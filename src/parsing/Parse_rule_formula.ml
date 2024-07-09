@@ -225,6 +225,8 @@ type extra =
   | MetavarPattern of MV.mvar * Xlang.t option * Rule.formula
   | MetavarComparison of metavariable_comparison
   | MetavarAnalysis of MV.mvar * Rule.metavar_analysis_kind
+  | MetavarName of MV.mvar * Rule.metavar_name_kind
+
 (* old: | PatWherePython of string, but it was too dangerous.
  * MetavarComparison is not as powerful, but safer.
  *)
@@ -372,6 +374,7 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
                     | Some true -> rewrite_metavar_comparison_strip comparison
                     | _ -> comparison)
               | MetavarAnalysis (mvar, kind) -> R.CondAnalysis (mvar, kind)
+              | MetavarName (mvar, k) -> R.CondName (mvar, k)
             in
             match
               ( H.dict_take_opt dict "focus-metavariable",
@@ -379,17 +382,20 @@ and parse_pair_old env ((key, value) : key * G.expr) : R.formula =
                 H.dict_take_opt dict "metavariable-regex",
                 H.dict_take_opt dict "metavariable-type",
                 H.dict_take_opt dict "metavariable-pattern",
-                H.dict_take_opt dict "metavariable-comparison" )
+                H.dict_take_opt dict "metavariable-comparison",
+                H.dict_take_opt dict "semgrep-internal-metavariable-name" )
             with
-            | None, None, None, None, None, None ->
+            | None, None, None, None, None, None, None ->
                 Either_.Left3 (get_nested_formula_in_list env i expr)
-            | Some (((_, t) as key), value), None, None, None, None, None ->
+            | Some (((_, t) as key), value), None, None, None, None, None, None
+              ->
                 Either_.Middle3 (t, parse_focus_mvs env key value)
-            | None, Some (key, value), None, None, None, None
-            | None, None, Some (key, value), None, None, None
-            | None, None, None, Some (key, value), None, None
-            | None, None, None, None, Some (key, value), None
-            | None, None, None, None, None, Some (key, value) ->
+            | None, Some (key, value), None, None, None, None, None
+            | None, None, Some (key, value), None, None, None, None
+            | None, None, None, Some (key, value), None, None, None
+            | None, None, None, None, Some (key, value), None, None
+            | None, None, None, None, None, Some (key, value), None
+            | None, None, None, None, None, None, Some (key, value) ->
                 Either_.Right3
                   (snd key, parse_extra env key value |> process_extra)
             | _ ->
@@ -546,6 +552,24 @@ and parse_extra (env : env) (key : key) (value : G.expr) : extra =
               'strip: true'")
       | __else__ -> ());
       MetavarComparison { metavariable; comparison; strip; base }
+  | "semgrep-internal-metavariable-name" ->
+      let mv_name_dict = yaml_to_dict env key value in
+      let metavar = take_key mv_name_dict env parse_string "metavariable" in
+      let parse_kind = function
+        | "django-view", _ -> R.DjangoView
+        | str, _ -> error_at_key env.id key ("unsupported kind: " ^ str)
+      in
+      let kind_str =
+        take_opt mv_name_dict env parse_string_wrap "kind"
+        |> Option.map parse_kind
+      in
+      let k =
+        match kind_str with
+        | Some x -> x
+        | None ->
+            error env.id mv_name_dict.first_tok "Missing required field: kind"
+      in
+      MetavarName (metavar, k)
   | _ -> error_at_key env.id key ("wrong parse_extra field: " ^ fst key)
 
 (*****************************************************************************)

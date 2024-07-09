@@ -79,6 +79,7 @@ val range_of_mvalue : mvalue -> (string (* filename *) * Range.t) option
  *)
 val mvalue_to_any : mvalue -> AST_generic.any
 val mvalue_of_any : AST_generic.any -> mvalue
+val mvalue_to_expr : mvalue -> AST_generic.expr option
 
 (* This is used for metavariable-pattern: where we need to transform the content
  * of a metavariable into a program so we can use evaluate_formula on it *)

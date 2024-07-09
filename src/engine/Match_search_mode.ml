@@ -597,6 +597,10 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
 
 let hook_pro_entropy_analysis : (string -> bool) option ref = ref None
 
+let hook_pro_metavariable_name :
+    (Match_env.env -> G.expr -> R.metavar_name_kind -> bool) option ref =
+  ref None
+
 let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
     (cond : R.metavar_cond) : (RM.t * MV.bindings list) list =
   let file = env.xtarget.path.internal_path_to_content in
@@ -619,18 +623,8 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
              | [] -> None
              | bindings -> Some (r, bindings @ new_bindings))
          | R.CondType (mvar, opt_lang, _, ts) -> (
-             let mvalue_to_expr m =
-               match Metavariable.mvalue_to_any m with
-               | G.E e -> Some e
-               (* When we capture `IdQualified` with `Id`
-                  metavariable, `Metavariable.N` is generated in
-                  `Generic_vs_generic.m_name_inner` *)
-               | G.Name n -> Some (N n |> G.e)
-               | _ -> None
-             in
-             match
-               Option.bind (List.assoc_opt mvar bindings) mvalue_to_expr
-             with
+             let* mval = List.assoc_opt mvar bindings in
+             match Metavariable.mvalue_to_expr mval with
              | Some e ->
                  let lang =
                    match Option.value opt_lang ~default:env.xtarget.xlang with
@@ -664,6 +658,23 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
                   * probably fine to just check whether the match is empty or
                   * not *)
                  matches <> [] |> map_bool r
+             | None ->
+                 error env
+                   (spf "couldn't find metavar %s in the match results." mvar);
+                 None)
+         | R.CondName (mvar, ks) -> (
+             let find_name env e ks =
+               match !hook_pro_metavariable_name with
+               | None ->
+                   error env
+                     "semgrep-internal-metavariable-name operator is only \
+                      supported in the Pro engine";
+                   false
+               | Some f -> f env e ks
+             in
+             let* mval = List.assoc_opt mvar bindings in
+             match Metavariable.mvalue_to_expr mval with
+             | Some e -> find_name env e ks |> map_bool r
              | None ->
                  error env
                    (spf "couldn't find metavar %s in the match results." mvar);
