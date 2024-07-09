@@ -140,12 +140,14 @@ repos:
           - types-python-dateutil
           - types-requests
           - types-setuptools
-      - id: mypy
-        alias: mypy-test
-        name: mypy (test files)
-        files: ^cli/tests/.+$
-        args: [--config, mypy-tests.ini, --show-error-codes]
-        additional_dependencies: *mypy-deps
+     # TODO: this is commented here because pad was not able to make it work
+     # also in Pro
+     # - id: mypy
+     #   alias: mypy-test
+     #   name: mypy (test files)
+     #   files: ^cli/tests/.+$
+     #   args: [--config, mypy-tests.ini, --show-error-codes]
+     #   additional_dependencies: *mypy-deps
 
   - repo: https://github.com/PyCQA/flake8
     rev: 6.1.0 # PLEASE DO NOT CHANGE [see NOTE "Python"]
