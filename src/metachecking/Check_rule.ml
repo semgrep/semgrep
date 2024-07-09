@@ -95,6 +95,7 @@ let check_mvars_of_condition env bound_mvs (t, condition) =
   | CondEval _ -> ()
   | CondRegexp (mv, _, _)
   | CondType (mv, _, _, _)
+  | CondName (mv, _)
   | CondNestedFormula (mv, _, _)
   | CondAnalysis (mv, _) ->
       if not (mvar_is_ok mv bound_mvs) then mv_error env mv t
@@ -121,7 +122,8 @@ let unknown_metavar_in_comparison env f =
              match condition with
              | CondEval _
              | CondType _
-             | CondAnalysis _ ->
+             | CondAnalysis _
+             | CondName _ ->
                  Set.empty
              | CondRegexp (_, regex, _) ->
                  Metavariable.mvars_of_regexp_string regex |> Set_.of_list

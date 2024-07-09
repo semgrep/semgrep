@@ -95,7 +95,7 @@ type mvalue =
 (* we sometimes need to convert to an any to be able to use
  * Lib_AST.ii_of_any, or Lib_AST.abstract_position_info_any
  *)
-(* coupling: this function should be an inverse to the function below! *)
+(* coupling: this function should be an inverse to 'mvalue_of_any' below! *)
 let mvalue_to_any = function
   | E e -> G.E e
   | S s -> G.S s
@@ -117,6 +117,26 @@ let mvalue_to_any = function
   | Text (s, info, _) ->
       G.E (G.L (G.String (Tok.unsafe_fake_bracket (s, info))) |> G.e)
   | Any any -> any
+
+(* coupling: mvalue_to_any *)
+let mvalue_to_expr = function
+  | E e -> Some e
+  | Id (id, Some idinfo) -> Some (G.N (G.Id (id, idinfo)) |> G.e)
+  | Id (id, None) -> Some (G.N (G.Id (id, G.empty_id_info ())) |> G.e)
+  | N x -> Some (G.N x |> G.e)
+  | Raw x -> Some (G.RawExpr x |> G.e)
+  | Text (s, info, _) ->
+      Some (G.L (G.String (Tok.unsafe_fake_bracket (s, info))) |> G.e)
+  | S _
+  | XmlAt _
+  | Ss _
+  | Args _
+  | Params _
+  | Xmls _
+  | T _
+  | P _
+  | Any _ ->
+      None
 
 (* coupling: this function should be an inverse to the function above! *)
 let mvalue_of_any any =
