@@ -280,19 +280,8 @@ let prepare_config_for_core_scan (config : Core_scan_config.t)
 (* LATER: we want to avoid this intermediate data structure but
  * for now that's what pysemgrep used to get so simpler to return it.
  *)
-let create_core_result (all_rules : Rule.rule list)
-    (result_or_exn : Core_result.result_or_exn) =
+let create_core_result (all_rules : Rule.rule list) (res : Core_result.t) =
   (* similar to Core_command.output_core_results code *)
-  let res =
-    match result_or_exn with
-    | Ok r -> r
-    | Error (exn, _core_error_opt) ->
-        (* TODO: use _core_error_opt instead? reraise the exn instead?
-         * TOADAPT? Runner_exit.exit_semgrep (Unknown_exception e) instead.
-         *)
-        let err = Core_error.exn_to_error None "" exn in
-        Core_result.mk_final_result_with_just_errors [ err ]
-  in
   let scanned = res.scanned |> List_.map Target.internal_path |> Set_.of_list in
   let match_results = Core_json_output.core_output_of_matches_and_errors res in
   (* TOPORT? or move in semgrep-core so get info ASAP

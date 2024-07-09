@@ -87,7 +87,7 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
   let metacheck_errors =
     match conf.rules_source with
     | Rules_source.Pattern _ -> []
-    | Rules_source.Configs _xs ->
+    | Rules_source.Configs _xs -> (
         (* In a validate context, rules are actually targets of metarules.
          * alt: could also process Configs to compute the targets.
          *)
@@ -134,40 +134,43 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
           Core_runner.mk_core_run_for_osemgrep
             (Core_scan.scan_with_exn_handler (caps :> < Cap.tmp >))
         in
-        let result_and_exn =
+        let result_or_exn =
           core_run_func.run conf.core_runner_conf Find_targets.default_conf
             metarules [] targets
         in
-        let res = Core_runner.create_core_result metarules result_and_exn in
-        (* TODO? sanity check errors below too? *)
-        let OutJ.{ results; errors = _; _ } =
-          Cli_json_output.cli_output_of_core_results ~dryrun:true
-            ~logging_level:conf.common.logging_level res.core res.hrules
-            res.scanned
-        in
-        (* TOPORT?
-                ... run -check_rules in semgrep-core ...
-                parsed_errors += [
-                  core_error_to_semgrep_error(e) for e in core_output.errors
-                ]
-                return dedup_errors(parsed_errors)
-             ...
-             def dedup_errors(errors: List[SemgrepCoreError]) -> List[SemgrepCoreError]:
-                return list({uniq_error_id(e): e for e in errors}.values())
+        match result_or_exn with
+        | Error (exn, _core_error_opt) -> Exception.reraise exn
+        | Ok result ->
+            let res = Core_runner.create_core_result metarules result in
+            (* TODO? sanity check errors below too? *)
+            let OutJ.{ results; errors = _; _ } =
+              Cli_json_output.cli_output_of_core_results ~dryrun:true
+                ~logging_level:conf.common.logging_level res.core res.hrules
+                res.scanned
+            in
+            (* TOPORT?
+                    ... run -check_rules in semgrep-core ...
+                    parsed_errors += [
+                      core_error_to_semgrep_error(e) for e in core_output.errors
+                    ]
+                    return dedup_errors(parsed_errors)
+                 ...
+                 def dedup_errors(errors: List[SemgrepCoreError]) -> List[SemgrepCoreError]:
+                    return list({uniq_error_id(e): e for e in errors}.values())
 
-           def uniq_error_id(
-               error: SemgrepCoreError,
-           ) -> Tuple[int, Path, core.Position, core.Position, str]:
-               return (
-                   error.code,
-                   Path(error.core.location.path),
-                   error.core.location.start,
-                   error.core.location.end,
-                   error.core.message,
-               )
-        *)
-        (* metarules match results are actually metacheck errors *)
-        results
+               def uniq_error_id(
+                   error: SemgrepCoreError,
+               ) -> Tuple[int, Path, core.Position, core.Position, str]:
+                   return (
+                       error.code,
+                       Path(error.core.location.path),
+                       error.core.location.start,
+                       error.core.location.end,
+                       error.core.message,
+                   )
+            *)
+            (* metarules match results are actually metacheck errors *)
+            results)
   in
 
   (* TODO: checking (4) *)

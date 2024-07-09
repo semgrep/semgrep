@@ -123,13 +123,17 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
         in
         Logs.debug (fun m ->
             m "Running Semgrep with %d rules" (List.length rules));
-        let res =
+        let res_or_exn =
           (fun () ->
             core_run_func.run ~file_match_results_hook:None runner_conf
               Find_targets.default_conf rules [] targets)
           |> Profiler.record profiler ~name:"core_run"
         in
-        Core_runner.create_core_result rules res
+        match res_or_exn with
+        | Error (exn, _core_error_opt) ->
+            (* TODO? should this just be logged instead *)
+            Exception.reraise exn
+        | Ok res -> Core_runner.create_core_result rules res
       in
       (* Collect results. *)
       let scanned = res.scanned |> Set_.elements in
