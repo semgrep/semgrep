@@ -30,7 +30,7 @@ type conf = {
   (* Main configuration options *)
   (* mix of --pattern/--lang/--replacement, --config *)
   rules_source : Rules_source.t;
-  (* can be a list of files or directories *)
+  (* the roots can be files, directories, or even symlinks *)
   target_roots : Scanning_root.t list;
   (* Rules/targets refinements *)
   rule_filtering_conf : Rule_filtering.conf;
@@ -49,21 +49,21 @@ type conf = {
   (* Networking options *)
   metrics : Metrics_.config;
   version_check : bool;
+  (* Debugging/logging/profiling options *)
   common : CLI_common.conf;
+  trace : bool;
+  trace_endpoint : string option;
   (* Ugly: should be in separate subcommands *)
   version : bool;
   show : Show_CLI.conf option;
   validate : Validate_subcommand.conf option;
   test : Test_CLI.conf option;
-  trace : bool;
-  trace_endpoint : string option;
   ls : bool;
 }
 [@@deriving show]
 
-(* We could split the content of this variable in different files, e.g.,
- * targeting_conf default could be move in a Find_targets.default, but
- * it's also nice to have everything in one place.
+(* alt: we could split even more the content of this variable in different
+ * files, but it's also nice to have almost everything in one place.
  *)
 let default : conf =
   {
@@ -84,7 +84,8 @@ let default : conf =
          * not overload on large machines.
          * Also, hardcode num_jobs to 1 for non-unix (i.e. Windows) because
          * we don't believe that Parmap works in those environments
-         * TODO: figure out a solution for Windows multi-processing (OCaml 5 in the worst case)
+         * TODO: figure out a solution for Windows multi-processing (OCaml 5 in
+         * the worst case)
          *)
         Core_runner.num_jobs =
           min 16 (if Sys.unix then Parmap_helpers.get_cpu_count () else 1);
@@ -107,6 +108,8 @@ let default : conf =
         logging_level = Some Logs.Warning;
         maturity = Maturity.Default;
       };
+    trace = false;
+    trace_endpoint = None;
     engine_type = OSS;
     output = None;
     output_conf = Output.default;
@@ -120,8 +123,6 @@ let default : conf =
     show = None;
     validate = None;
     test = None;
-    trace = false;
-    trace_endpoint = None;
     ls = false;
   }
 
@@ -901,7 +902,7 @@ CHANGE OR DISAPPEAR WITHOUT NOTICE.
   Arg.value (Arg.flag info)
 
 (*****************************************************************************)
-(* Turn argv into a conf *)
+(* Helpers *)
 (*****************************************************************************)
 
 (*
@@ -952,6 +953,10 @@ let replace_target_roots_by_regular_files_where_needed (caps : < Cap.tmp >)
           "Implying --scan-unknown-extensions due to explicit targets being \
            stdin or named pipes");
   (target_roots, !imply_always_select_explicit_targets)
+
+(*****************************************************************************)
+(* Turn argv into a conf *)
+(*****************************************************************************)
 
 let cmdline_term caps ~allow_empty_config : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order

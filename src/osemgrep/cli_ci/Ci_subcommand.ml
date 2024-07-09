@@ -819,7 +819,7 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
       Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
     in
     let res =
-      Scan_subcommand.run_scan_files
+      Scan_subcommand.check_targets_with_rules
         (caps :> < Cap.stdout ; Cap.chdir ; Cap.tmp >)
         conf profiler rules_and_origin targets_and_ignored
     in

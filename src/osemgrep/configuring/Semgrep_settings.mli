@@ -2,6 +2,7 @@
  * See also Semgrep_envvars.user_settings_file
  *)
 type t = {
+  (* a banner we want to show just once to the user *)
   has_shown_metrics_notification : bool option;
   api_token : Auth.token option;
   anonymous_user_id : Uuidm.t;
@@ -10,5 +11,5 @@ type t = {
 (* loading the ~/.semgrep/settings.yml in memory *)
 val load : ?maturity:Maturity.t -> ?include_env:bool -> unit -> t
 
-(* returns whether the save was successful *)
+(* save and returns whether the save was successful *)
 val save : t -> bool

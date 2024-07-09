@@ -4,6 +4,9 @@
    Usage: main caps [| "semgrep-scan"; ... |]
 
    This function returns an exit code to be passed to the 'exit' function.
+
+   Note that this subcommand can also calls the 'test', 'validate', and 'show'
+   subcommands when using legacy flags (e.g., with 'semgrep scan --test').
 *)
 
 type caps = < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.chdir >
@@ -14,8 +17,8 @@ val main : caps -> string array -> Exit_code.t
 val run_conf : caps -> Scan_CLI.conf -> Exit_code.t
 val run_scan_conf : caps -> Scan_CLI.conf -> Exit_code.t
 
-(* internal: scan all the files - also used in CI *)
-val run_scan_files :
+(* internal: also used in CI *)
+val check_targets_with_rules :
   < Cap.stdout ; Cap.chdir ; Cap.tmp > ->
   Scan_CLI.conf ->
   Profiler.t ->
