@@ -238,6 +238,7 @@ def ci(
     trace_endpoint: str,
     use_git_ignore: bool,
     verbose: bool,
+    path_sensitive: bool,
 ) -> None:
     state = get_state()
     state.terminal.configure(

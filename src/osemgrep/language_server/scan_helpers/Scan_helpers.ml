@@ -108,6 +108,7 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
                       secrets_config = None;
                       code_config = Some ();
                       supply_chain_config = None;
+                      path_sensitive = false;
                     })
           | _ ->
               (* TODO: improve this error message depending on what the

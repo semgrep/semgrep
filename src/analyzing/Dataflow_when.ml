@@ -26,16 +26,40 @@ module Log = Log_analyzing.Log
  * }
  *
  *)
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+(* also used in Eval_generic.ml *)
+type value = Eval_generic_partial.value
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let hook_annotate_facts = ref None
+let hook_facts_satisfy_e = ref None
+
+(* if the -path_sensitive flag is enabled, the ref below will be set to
+ * true. the functions in this file will only execute if both
+ * -deep_intra_file and -path_sensitive are enabled.
+ *)
+let hook_path_sensitive = ref false
 
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
-(* coupling: copied from Eval_generic so the metavariable values can
-   be used here *)
-type value = Eval_generic_partial.value
 
-let annotate_facts (_cfg : IL.cfg) = ()
+let annotate_facts (_cfg : IL.cfg) = if !hook_path_sensitive then ()
 
 let facts_satisfy_e (_mvars : (Metavariable.mvar, value) Hashtbl.t)
     (_facts : facts) (_e : expr) =
-  false
+  !hook_path_sensitive && false
+
+let with_pro_hooks f =
+  Common.save_excursion hook_annotate_facts (Some annotate_facts) (fun () ->
+      Common.save_excursion hook_facts_satisfy_e (Some facts_satisfy_e) f)
+
+let setup_pro_hooks () =
+  hook_annotate_facts := Some annotate_facts;
+  hook_facts_satisfy_e := Some facts_satisfy_e

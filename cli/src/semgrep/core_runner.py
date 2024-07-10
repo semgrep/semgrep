@@ -486,6 +486,7 @@ class CoreRunner:
         optimizations: str,
         allow_untrusted_validators: bool,
         respect_rule_paths: bool = True,
+        path_sensitive: bool = False,
     ):
         self._binary_path = engine_type.get_binary_path()
         self._jobs = jobs or engine_type.default_jobs
@@ -498,6 +499,7 @@ class CoreRunner:
         self._trace_endpoint = trace_endpoint
         self._optimizations = optimizations
         self._allow_untrusted_validators = allow_untrusted_validators
+        self._path_sensitive = path_sensitive
         self._respect_rule_paths = respect_rule_paths
 
     def _extract_core_output(
@@ -873,6 +875,9 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
 
             if self._allow_untrusted_validators:
                 cmd.append("-allow-untrusted-validators")
+
+            if self._path_sensitive:
+                cmd.append("-path_sensitive")
 
             # TODO: use exact same command-line arguments so just
             # need to replace the SemgrepCore.path() part.

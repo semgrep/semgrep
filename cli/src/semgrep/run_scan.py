@@ -379,6 +379,7 @@ def run_scan(
     baseline_commit_is_mergebase: bool = False,
     dump_contributions: bool = False,
     x_ls: bool = False,
+    path_sensitive: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -568,6 +569,7 @@ def run_scan(
         optimizations=optimizations,
         allow_untrusted_validators=allow_untrusted_validators,
         respect_rule_paths=respect_rule_paths,
+        path_sensitive=path_sensitive,
     )
 
     if dump_contributions:
