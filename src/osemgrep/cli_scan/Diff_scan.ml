@@ -32,6 +32,15 @@ module SS = Set.Make (String)
  *)
 
 (*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+type diff_scan_func =
+  ?diff_config:Differential_scan_config.t ->
+  Fpath.t list ->
+  Rule.rules ->
+  Core_result.result_or_exn
+
+(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
@@ -105,10 +114,9 @@ let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp >)
     (result_or_exn : Core_result.result_or_exn) (rules : Rule.rules)
     (commit : string) (status : Git_wrapper.status)
     (core :
-      Fpath.t list ->
       ?diff_config:Differential_scan_config.t ->
+      Fpath.t list ->
       Rule.rules ->
-      unit ->
       Core_result.result_or_exn) : Core_result.result_or_exn =
   let/ r = result_or_exn in
   if r.processed_matches <> [] then
@@ -175,10 +183,10 @@ let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp >)
                     (all_in_baseline, paths_in_scanned)
                 | _ -> (paths_in_match, [])
               in
-              core baseline_targets
+              core
                 ~diff_config:
                   (Differential_scan_config.BaseLine baseline_diff_targets)
-                baseline_rules ()))
+                baseline_targets baseline_rules))
     in
     match baseline_result with
     | Error _exn -> baseline_result
@@ -191,14 +199,9 @@ let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp >)
 (*****************************************************************************)
 
 let scan_baseline (caps : < Cap.chdir ; Cap.tmp >) (conf : Scan_CLI.conf)
-    (baseline_commit : string) (targets : Fpath.t list) (rules : Rule.rules)
-    (profiler : Profiler.t)
-    (scan_func :
-      Fpath.t list ->
-      ?diff_config:Differential_scan_config.t ->
-      Rule.rules ->
-      unit ->
-      Core_result.result_or_exn) =
+    (profiler : Profiler.t) (baseline_commit : string) (targets : Fpath.t list)
+    (rules : Rule.rules) (diff_scan_func : diff_scan_func) :
+    Core_result.result_or_exn =
   Logs.info (fun m ->
       m "running differential scan on base commit %s" baseline_commit);
   Metrics_.g.payload.environment.isDiffScan <- true;
@@ -214,11 +217,11 @@ let scan_baseline (caps : < Cap.chdir ; Cap.tmp >) (conf : Scan_CLI.conf)
     | _ -> (added_or_modified, [])
   in
   let (head_scan_result : Core_result.result_or_exn) =
-    Profiler.record profiler ~name:"head_core_time"
-      (scan_func targets
-         ~diff_config:
-           (Differential_scan_config.Depth (diff_targets, diff_depth))
-         rules)
+    Profiler.record profiler ~name:"head_core_time" (fun () ->
+        diff_scan_func
+          ~diff_config:
+            (Differential_scan_config.Depth (diff_targets, diff_depth))
+          targets rules)
   in
   (match (head_scan_result, conf.engine_type) with
   | Ok r, PRO Engine_type.{ analysis = Interfile; _ } ->
@@ -245,4 +248,4 @@ let scan_baseline (caps : < Cap.chdir ; Cap.tmp >) (conf : Scan_CLI.conf)
           }
   | _ -> ());
   scan_baseline_and_remove_duplicates caps conf profiler head_scan_result rules
-    commit status scan_func
+    commit status diff_scan_func
