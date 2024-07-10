@@ -193,9 +193,8 @@ let dump_patterns_of_rule (caps : < Cap.tmp >) (file : Fpath.t) =
   List.iter
     (fun { Xpattern.pat; _ } ->
       match pat with
-      | Sem (lazypat, _) ->
-          let any = Lazy.force lazypat in
-          let v = Meta_AST.vof_any any in
+      | Sem (pat, _) ->
+          let v = Meta_AST.vof_any pat in
           let s = dump_v_to_format v in
           UCommon.pr s
       | _ -> UCommon.pr (Xpattern.show_xpattern_kind pat))

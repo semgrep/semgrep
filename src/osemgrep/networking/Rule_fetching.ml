@@ -428,14 +428,7 @@ let rules_from_dashdash_config ~rewrite_rule_ids ~token_opt caps kind :
 
 let langs_of_pattern (pat, xlang_opt) : Xlang.t list =
   let xlang_compatible_with_pat xlang =
-    let xpat = Parse_rule.parse_fake_xpattern xlang pat in
-    (* force the parsing of the pattern to get the parse error if any *)
-    (match xpat.XP.pat with
-    | XP.Sem (lpat, _) -> Lazy.force lpat |> ignore
-    | XP.Spacegrep _
-    | XP.Aliengrep _
-    | XP.Regexp _ ->
-        ());
+    let _xpat = Parse_rule.parse_fake_xpattern xlang pat in
     xlang
   in
   match xlang_opt with

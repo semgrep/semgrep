@@ -24,6 +24,7 @@ const languages = [
   "python",
   "ql",
   "r",
+  "ruby",
   "rust",
   "scala",
   "solidity",
