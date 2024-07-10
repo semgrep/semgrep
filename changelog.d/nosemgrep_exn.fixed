@@ -1,2 +1,0 @@
-Fixed fatal errors on files containing nosemgrep annotation without
-any rule ID after.

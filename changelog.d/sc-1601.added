@@ -1,3 +1,0 @@
-Added support for comparing Golang Pseudo-versions. After replacing calls to the
-packaging module with some custom logic, Pseudo-versions can now be compared against
-strict core versions and other pseudo versions accurately.
