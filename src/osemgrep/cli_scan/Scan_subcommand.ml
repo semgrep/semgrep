@@ -125,8 +125,6 @@ let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
 (* Error management *)
 (*****************************************************************************)
 
-let ( let/ ) = Result.bind
-
 (* python: this used to be done in a _final_raise method from output.py
  * but better separation of concern to do it here.
  *)

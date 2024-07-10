@@ -356,31 +356,28 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.core_scan_func) :
     let config = prepare_config_for_core_scan config lang_jobs in
 
     (* !!!!Finally! this is where we branch to semgrep-core core scan fun!!! *)
-    let result_or_exn = core_scan_func config in
-    match result_or_exn with
-    | Error _ -> result_or_exn
-    | Ok res ->
-        (* Reinject rule errors *)
-        let res =
-          {
-            res with
-            errors = rule_errors @ res.errors;
-            skipped_rules = invalid_rules @ res.skipped_rules;
-            rules_with_targets;
-          }
-        in
+    let/ res = core_scan_func config in
+    (* Reinject rule errors *)
+    let res =
+      {
+        res with
+        errors = rule_errors @ res.errors;
+        skipped_rules = invalid_rules @ res.skipped_rules;
+        rules_with_targets;
+      }
+    in
 
-        let scanned =
-          res.scanned |> List_.map Target.internal_path |> Set_.of_list
-        in
+    let scanned =
+      res.scanned |> List_.map Target.internal_path |> Set_.of_list
+    in
 
-        (* TODO(dinosaure): currently, we don't collect metrics when we invoke
-           semgrep-core but we should. However, if we implement a way to collect
-           metrics, we will just need to set [final_result.extra] to
-           [Core_result.Debug]/[Core_result.Time] and this line of code will not change. *)
-        Metrics_.add_max_memory_bytes res.profiling;
-        Metrics_.add_targets_stats scanned res.profiling;
-        Ok res
+    (* TODO(dinosaure): currently, we don't collect metrics when we invoke
+       semgrep-core but we should. However, if we implement a way to collect
+       metrics, we will just need to set [final_result.extra] to
+       [Core_result.Debug]/[Core_result.Time] and this line of code will not change. *)
+    Metrics_.add_max_memory_bytes res.profiling;
+    Metrics_.add_targets_stats scanned res.profiling;
+    Ok res
   in
   { run }
 [@@profiling]

@@ -1,3 +1,4 @@
+open Common
 open Fpath_.Operators
 
 (*****************************************************************************)
@@ -28,8 +29,6 @@ let default_settings =
 (* Helpers *)
 (*****************************************************************************)
 
-let ( let* ) = Result.bind
-
 (* TODO: we should just use ATD to automatically read the settings.yml
    file by converting it first to json and then use ATDgen API *)
 let of_yaml = function
@@ -38,14 +37,14 @@ let of_yaml = function
         List.assoc_opt "has_shown_metrics_notification" data
       and api_token = List.assoc_opt "api_token" data
       and anonymous_user_id = List.assoc_opt "anonymous_user_id" data in
-      let* has_shown_metrics_notification =
+      let/ has_shown_metrics_notification =
         Option.fold ~none:(Ok None)
           ~some:(function
             | `Bool b -> Ok (Some b)
             | _else -> Error (`Msg "has shown metrics notification not a bool"))
           has_shown_metrics_notification
       in
-      let* api_token =
+      let/ api_token =
         Option.fold ~none:(Ok None)
           ~some:(function
             | `String s ->
@@ -54,7 +53,7 @@ let of_yaml = function
             | _else -> Error (`Msg "api token not a string"))
           api_token
       in
-      let* anonymous_user_id =
+      let/ anonymous_user_id =
         Option.fold
           ~none:(Error (`Msg "no anonymous user id"))
           ~some:(function
@@ -85,7 +84,9 @@ let load ?(maturity = Maturity.Default) ?(include_env = true) () =
   let settings = !Semgrep_envvars.v.user_settings_file in
   Logs.info (fun m -> m "Loading settings from %s" !!settings);
   try
-    if Sys.file_exists !!settings && Unix.(stat !!settings).st_kind = Unix.S_REG
+    if
+      Sys.file_exists !!settings
+      && Unix.(stat !!settings).st_kind =*= Unix.S_REG
     then
       let data = UFile.read_file settings in
       let decoded =
