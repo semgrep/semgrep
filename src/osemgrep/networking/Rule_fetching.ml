@@ -104,7 +104,7 @@ let mk_rewrite_rule_ids (origin : origin) : Rule_ID.t -> Rule_ID.t =
 (*****************************************************************************)
 
 let partition_rules_and_errors (xs : rules_and_origin list) :
-    Rule.rules * Rule.invalid_rule_error list =
+    Rule.rules_and_errors =
   let (rules : Rule.rules) = xs |> List.concat_map (fun x -> x.rules) in
   let (errors : Rule.invalid_rule_error list) =
     xs |> List.concat_map (fun x -> x.errors)
@@ -264,7 +264,7 @@ let modify_registry_provided_metadata (origin : origin) (rule : Rule.t) =
  * for a registry-aware jsonnet.
  *)
 let parse_rule ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
-    (Rule.rules * Rule.invalid_rule_error list, Rule.error) Result.t =
+    (Rule.rules_and_errors, Rule.error) Result.t =
   let rule_id_rewriter =
     if rewrite_rule_ids then Some (mk_rewrite_rule_ids origin) else None
   in

@@ -376,9 +376,9 @@ let uniq_rules_and_error_if_empty_rules rules =
 (* Select and execute the scan func based on the configured engine settings.
    Yet another mk_scan_func adapter. TODO: can we simplify?
 *)
-let mk_scan_func (caps : < Cap.tmp >) (conf : Scan_CLI.conf)
-    file_match_results_hook errors targets
-    ?(diff_config = Differential_scan_config.WholeScan) rules () =
+let mk_scan_func (caps : < Cap.tmp >) (conf : Scan_CLI.conf) file_match_hook
+    errors targets ?(diff_config = Differential_scan_config.WholeScan) rules ()
+    =
   let core_run_for_osemgrep : Core_runner.core_run_for_osemgrep =
     match conf.engine_type with
     | OSS ->
@@ -410,8 +410,8 @@ let mk_scan_func (caps : < Cap.tmp >) (conf : Scan_CLI.conf)
             pro_git_remote_scan_setup core_run_for_osemgrep)
     | _ -> core_run_for_osemgrep
   in
-  core_run_for_osemgrep.run ~file_match_results_hook conf.core_runner_conf
-    conf.targeting_conf rules errors targets
+  core_run_for_osemgrep.run ~file_match_hook conf.core_runner_conf
+    conf.targeting_conf (rules, errors) targets
 
 let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~strict caps
     rules_source =

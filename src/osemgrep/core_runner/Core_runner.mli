@@ -1,3 +1,8 @@
+(* This module is essentially an adapter around Core_scan.scan_with_exn_handler
+ * so that it can be used from osemgrep to try to match what is done in
+ * pysemgrep (which calls semgrep-core and its underlying Core_scan).
+ *)
+
 (* input *)
 type conf = {
   (* opti and limits *)
@@ -6,8 +11,10 @@ type conf = {
   max_memory_mb : int;
   timeout : float;
   timeout_threshold : int; (* output flags *)
+  (* features *)
   nosem : bool;
   strict : bool;
+  (* useful for debugging rules *)
   time_flag : bool;
   matching_explanations : bool;
   dataflow_traces : bool;
@@ -21,20 +28,19 @@ type result = {
   scanned : Fpath.t Set_.t;
 }
 
-(* similar to Core_scan.core_scan_func (?)
-
-   This is called "core run" and not "scan" because it takes a list of target
-   files as input. No further scanning of the filesystem shall be performed.
-*)
+(* This type is similar to Core_scan.core_scan_func, but taking a list of
+ * rules and targets and a simpler Core_runner.conf instead of the very
+ * large Core_scan_config.t
+ *
+ * This is called "core run" and not "scan" because it takes a list of target
+ * files as input; no further scanning of the filesystem shall be performed.
+ *)
 type core_run_for_osemgrep = {
   run :
-    ?file_match_results_hook:
-      (Fpath.t -> Core_result.matches_single_file -> unit) option ->
+    ?file_match_hook:(Fpath.t -> Core_result.matches_single_file -> unit) option ->
     conf ->
     Find_targets.conf ->
-    (* LATER? use Config_resolve.rules_and_origin instead? *)
-    Rule.rules ->
-    Rule.invalid_rule_error list ->
+    Rule.rules_and_errors ->
     (* All targets. Not scanning roots. *)
     Fpath.t list ->
     Core_result.result_or_exn;
@@ -71,6 +77,6 @@ val mk_core_run_for_osemgrep : Core_scan.core_scan_func -> core_run_for_osemgrep
 (* Helper used in Semgrep_scan.ml to setup logging *)
 val core_scan_config_of_conf : conf -> Core_scan_config.t
 
-(* reused in semgrep-server *)
+(* reused in semgrep-server in pro and for Git_remote.ml in pro *)
 val split_jobs_by_language :
   Find_targets.conf -> Rule.t list -> Fpath.t list -> Lang_job.t list

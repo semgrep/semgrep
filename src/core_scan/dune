@@ -1,3 +1,4 @@
+; the main code behind semgrep-core
 (library
  (public_name semgrep.running)
  (name semgrep_running)

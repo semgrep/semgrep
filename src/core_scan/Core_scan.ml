@@ -569,7 +569,7 @@ let sanity_check_invalid_patterns (res : Core_result.t) :
 
 (* for -rules *)
 let rules_from_rule_source (caps : < Cap.tmp >) (config : Core_scan_config.t) :
-    Rule.t list * Rule.invalid_rule_error list =
+    Rule.rules_and_errors =
   let rule_source =
     match config.rule_source with
     | Some (Core_scan_config.Rule_file file) ->
@@ -1056,8 +1056,7 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
           * Note that this is run in a child process of Parmap, so
           * the hook should not rely on shared memory.
       *)
-      config.file_match_results_hook
-      |> Option.iter (fun hook -> hook file matches);
+      config.file_match_hook |> Option.iter (fun hook -> hook file matches);
       print_cli_progress config;
       (matches, was_scanned)
 

@@ -141,6 +141,11 @@ and metavar_cond =
   | CondName of MV.mvar * metavar_name_kind
 
 and metavar_analysis_kind = CondEntropy | CondEntropyV2 | CondReDoS
+
+(* ugly: adhoc static analysis used in pro. In the long term we should
+ * instead improve the engine (e.g., finish steps mode) instead of
+ * writing adhoc analysis.
+ *)
 and metavar_name_kind = DjangoView
 
 (* Represents all of the metavariables that are being focused by a single
@@ -166,8 +171,8 @@ type validation_state = Semgrep_output_v1_t.validation_state
 (*****************************************************************************)
 
 (* We roll our own Boolean formula type here for convenience, it is simpler to
-   * inspect and manipulate, and we can safely use polymorphic 'compare' on it.
-*)
+ * inspect and manipulate, and we can safely use polymorphic 'compare' on it.
+ *)
 type precondition =
   | PLabel of string
   | PBool of bool
@@ -784,6 +789,8 @@ type error_kind =
   | DuplicateYamlKey of string * Tok.t
   | UnparsableYamlException of string
 [@@deriving show]
+
+type rules_and_errors = rules * invalid_rule_error list
 
 type error = {
   (* Some errors are in the YAML file before we can enter a specific rule

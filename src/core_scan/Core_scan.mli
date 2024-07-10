@@ -41,7 +41,7 @@ val print_match :
 (*****************************************************************************)
 
 val rules_from_rule_source :
-  < Cap.tmp > -> Core_scan_config.t -> Rule.rules * Rule.invalid_rule_error list
+  < Cap.tmp > -> Core_scan_config.t -> Rule.rules_and_errors
 (** Get the rules *)
 
 val targets_of_config :
