@@ -1522,22 +1522,20 @@ and map_expr (env : env) (x : CST.expr) =
   | `Ellips tok -> (* "..." *) G.Ellipsis (token env tok) |> G.e
   | `Deep_ellips x -> map_deep_ellipsis env x
 
-and map_expr_field (env : env) (x : CST.expr_field) : G.expr =
+and map_expr_field (env : env) (x : CST.expr_field) : G.argument =
   match x with
   | `Id tok ->
       (* identifier (shorthand) *)
       let field = str env tok in
-      let lhs = G.N (H2.name_of_id field) |> G.e in
       let rhs = G.N (H2.name_of_id field) |> G.e in
-      G.Assign (lhs, G.fake ":", rhs) |> G.e
+      G.ArgKwd (field, rhs)
   | `Id_COLON_expr (v1, v2, v3) ->
       let field = (* identifier *) str env v1 in
       let _colon = (* ":" *) token env v2 in
       let value = map_expr env v3 in
 
-      let lhs = G.N (H2.name_of_id field) |> G.e in
-      G.Assign (lhs, _colon, value) |> G.e
-  | `Ellips tok -> (* "..." *) G.Ellipsis (token env tok) |> G.e
+      G.ArgKwd (field, value)
+  | `Ellips tok -> (* "..." *) G.Arg (G.Ellipsis (token env tok) |> G.e)
 
 and map_field_access_ellipsis_expr (env : env)
     ((v1, v2, v3) : CST.field_access_ellipsis_expr) =
@@ -1612,8 +1610,12 @@ and map_name_expr (env : env) (x : CST.name_expr) : G.expr =
       in
       let _comma = Option.map (fun x -> (* "," *) token env x) v5 in
       let rb = (* "}" *) token env v6 in
-      G.Constructor
-        (H2.add_type_args_opt_to_name name_chain type_args, (lb, fields, rb))
+      let struct_type =
+        G.TyN (H2.add_type_args_opt_to_name name_chain type_args) |> G.t
+      in
+      (* We mimic Go's way of translating struct composition *)
+      (* Rust's `Constructor` approach does not support ellipsis *)
+      G.New (G.fake "new", struct_type, G.empty_id_info (), (lb, fields, rb))
       |> G.e
   | `Macro_call_expr (v1, v2, v3) ->
       let name = map_name_access_chain env v1 in
