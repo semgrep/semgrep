@@ -24,7 +24,7 @@ val push_processor : (module Processor) -> unit
 (* quite similar to Core_scan.core_scan_func *)
 type 'config core_scan_func_with_rules =
   'config ->
-  (Rule.t list * Rule.invalid_rule_error list) * float (* rule parse time *) ->
+  Rule.rules_and_errors * float (* rule parse time *) ->
   Core_result.t
 
 (* [call_with_pre_and_post_processor scan] will return a scan

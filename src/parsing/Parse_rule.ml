@@ -976,8 +976,7 @@ let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) : Rule.t =
   }
 
 let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
-    (file : Fpath.t) (ast : AST_generic.program) :
-    Rule.rules * Rule.invalid_rule_error list =
+    (file : Fpath.t) (ast : AST_generic.program) : Rule.rules_and_errors =
   let rules =
     match ast with
     | [ { G.s = G.ExprStmt (e, _); _ } ] -> (

@@ -136,7 +136,7 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
         in
         let result_or_exn =
           core_run_func.run conf.core_runner_conf Find_targets.default_conf
-            metarules [] targets
+            (metarules, []) targets
         in
         match result_or_exn with
         | Error (exn, _core_error_opt) -> Exception.reraise exn

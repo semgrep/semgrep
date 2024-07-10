@@ -40,9 +40,7 @@ and origin =
   | Untrusted_remote of Uri.t
 [@@deriving show]
 
-val partition_rules_and_errors :
-  rules_and_origin list -> Rule.rules * Rule.invalid_rule_error list
-
+val partition_rules_and_errors : rules_and_origin list -> Rule.rules_and_errors
 val langs_of_pattern : string * Xlang.t option -> Xlang.t list
 
 (* [rules_from_rules_source] returns rules from --config or -e.

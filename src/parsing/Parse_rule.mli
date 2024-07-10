@@ -14,7 +14,7 @@
 val parse_and_filter_invalid_rules :
   ?rewrite_rule_ids:(Rule_ID.t -> Rule_ID.t) option ->
   Fpath.t ->
-  Rule.rules * Rule.invalid_rule_error list
+  Rule.rules_and_errors
 
 (* This is used for parsing -e/-f extended patterns in Run_semgrep.ml
  * and now also in osemgrep Config_resolver.ml.
@@ -43,4 +43,4 @@ val parse_generic_ast :
   ?rewrite_rule_ids:(Rule_ID.t -> Rule_ID.t) option ->
   Fpath.t ->
   AST_generic.program ->
-  Rule.rules * Rule.invalid_rule_error list
+  Rule.rules_and_errors
