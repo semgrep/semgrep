@@ -496,24 +496,6 @@ local push_docker_job(artifact_name, repository_name) = {
 };
 
 // ----------------------------------------------------------------------------
-// Semgrep Pro
-// ----------------------------------------------------------------------------
-
-local test_semgrep_pro_job = {
-  needs: [
-    'build-test-docker',
-    'push-docker-returntocorp',
-  ],
-  uses: './.github/workflows/test-semgrep-pro.yml',
-  'if': "github.ref == 'refs/heads/develop' || github.event.pull_request.head.repo.full_name == github.repository",
-  secrets: 'inherit',
-  with: {
-    'artifact-name': docker_artifact_name,
-    'repository-name': docker_repository_name,
-  },
-};
-
-// ----------------------------------------------------------------------------
 // The Workflow
 // ----------------------------------------------------------------------------
 
@@ -567,8 +549,6 @@ local ignore_md = {
     'build-test-docker-performance-tests':
       build_test_docker_other_target_job("-performance-tests", "performance-tests"),
     //'push-docker-performance-tests': ...
-    // Semgrep-pro mismatch check
-    'test-semgrep-pro': test_semgrep_pro_job,
     // trigger argo workflows
     'trigger-semgrep-comparison-argo': trigger_semgrep_comparison_argo,
     // The inherit jobs also included from releases.yml
