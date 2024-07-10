@@ -1,2 +1,0 @@
-Autofix: Previews in the textual CLI output will now join differing lines
-with a space, rather than joining with no whitespace whatsoever.

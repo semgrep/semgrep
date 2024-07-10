@@ -6,6 +6,48 @@
 
 <!-- insertion point -->
 
+## [1.79.0](https://github.com/returntocorp/semgrep/releases/tag/v1.79.0) - 2024-07-10
+
+
+### Added
+
+
+- Preliminary support for the Move on Aptos language
+  (see https://aptos.dev/move/move-on-aptos for more info on this language).
+  Thanks a lot to Zhiping Liao (ArArgon) and Andrea Cappa for their contributions! (move_on_aptos)
+- The language server now reports number of autofixes and ignores triggered throught IDE integrations when metrics are enabled (pdx-autofix-ignore)
+- Added support for comparing Golang Pseudo-versions. After replacing calls to the
+  packaging module with some custom logic, Pseudo-versions can now be compared against
+  strict core versions and other pseudo versions accurately. (sc-1601)
+- We now perform a git gc as a side-effect of historical scans. (scrt-630)
+
+
+### Fixed
+
+
+- tainting: Fixed bug in `--pro-intrafile` that caused Semgrep to confuse a parameter
+  with a top-level function with no arguments that happened to have the same name:
+
+      def foo
+        taint
+      end
+
+      def bar(foo)
+        sink(foo) # no more FP here
+      end (code-6923)
+- Fixed fatal errors on files containing nosemgrep annotation without
+  any rule ID after. (nosemgrep_exn)
+- Matching explanations: Focus nodes now appear after filter nodes, which is
+  the correct order of execution of pattern nodes. Filter nodes are now
+  unreversed. (saf-1127)
+- Autofix: Previews in the textual CLI output will now join differing lines
+  with a space, rather than joining with no whitespace whatsoever. (saf-1135)
+- Secrets: resolved some rare instances where historical scans would skip blobs
+  depending on the structure of the local copy of the repository (i.e., blobs
+  were only skipped if the specific copy of the git store had a certain
+  structure). (scrt-630)
+
+
 ## [1.78.0](https://github.com/returntocorp/semgrep/releases/tag/v1.78.0) - 2024-06-27
 
 
