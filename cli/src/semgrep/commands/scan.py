@@ -339,6 +339,9 @@ _scan_options: List[Callable] = [
         flag_value=EngineType.PRO_LANG,
     ),
     optgroup.option(
+        "--pro-path-sensitive", "path_sensitive", is_flag=True, default=False
+    ),
+    optgroup.option(
         "--oss-only",
         "requested_engine",
         type=EngineType,
@@ -554,6 +557,7 @@ def scan(
     verbose: bool,
     version: bool,
     x_ls: bool,
+    path_sensitive: bool,
 ) -> Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]:
     if version:
         print(__VERSION__)
@@ -728,6 +732,7 @@ def scan(
                             trace_endpoint=trace_endpoint,
                             optimizations=optimizations,
                             allow_untrusted_validators=allow_untrusted_validators,
+                            path_sensitive=path_sensitive,
                         ).validate_configs(config)
                     except SemgrepError as e:
                         metacheck_errors = [e]
@@ -798,6 +803,7 @@ def scan(
                     optimizations=optimizations,
                     baseline_commit=baseline_commit,
                     x_ls=x_ls,
+                    path_sensitive=path_sensitive,
                 )
             except SemgrepError as e:
                 output_handler.handle_semgrep_errors([e])

@@ -641,7 +641,9 @@ let propagate_dataflow lang ast =
               *
               * TODO: refactor this code if we don't incorporate when into svalue analysis.
               *)
-             Dataflow_when.annotate_facts fcfg;
+             (match !Dataflow_when.hook_annotate_facts with
+             | None -> ()
+             | Some annotate_facts -> annotate_facts fcfg);
              propagate_dataflow_one_function lang fparams fcfg);
 
       (* We consider the top-level function the interior of a degenerate function,

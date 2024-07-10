@@ -57,6 +57,8 @@ let pro_hooks_refs =
     Pro_hook_ref Dataflow_tainting.hook_function_taint_signature;
     Pro_hook_ref Dataflow_tainting.hook_find_attribute_in_class;
     Pro_hook_ref Dataflow_tainting.hook_check_tainted_at_exit_sinks;
+    Pro_hook_ref Dataflow_when.hook_annotate_facts;
+    Pro_hook_ref Dataflow_when.hook_facts_satisfy_e;
   ]
 
 (*****************************************************************************)
