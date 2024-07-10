@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 1998-2023 Yoann Padioleau
+ * Copyright (C) 1998-2024 Yoann Padioleau
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -257,6 +257,11 @@ let ( ||| ) a b =
   match a with
   | Some x -> x
   | None -> b
+
+(*****************************************************************************)
+(* Result *)
+(*****************************************************************************)
+let ( let/ ) = Result.bind
 
 (*****************************************************************************)
 (* Either *)

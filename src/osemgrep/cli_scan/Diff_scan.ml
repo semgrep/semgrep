@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Common
 open Fpath_.Operators
 module SS = Set.Make (String)
 
@@ -33,7 +34,6 @@ module SS = Set.Make (String)
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let ( let/ ) = Result.bind
 
 (* This function removes duplicated matches from the results of the
    head commit scan if they are also present in the results of the

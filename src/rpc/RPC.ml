@@ -3,8 +3,6 @@ open Semgrep_output_v1_j
 
 exception InvalidRPCArgument of string
 
-let ( let* ) = Result.bind
-
 (* Once we get some more RPC calls we should probably move this to a different
  * file. But it seems fine for now. *)
 let handle_autofix dryrun edits =
@@ -118,11 +116,11 @@ let handle_call caps : function_call -> (function_return, string) result =
            "The field show_dataflow_traces must be populated in CallSarifFormat")
 
 let read_packet chan =
-  let* size_str =
+  let/ size_str =
     try Ok (input_line chan) with
     | End_of_file -> Error "Reached EOF while reading RPC request header"
   in
-  let* size =
+  let/ size =
     match int_of_string_opt size_str with
     | Some i -> Ok i
     | None ->
@@ -146,8 +144,8 @@ let write_packet chan str =
  * *)
 let handle_single_request caps () =
   let res =
-    let* call_str = read_packet stdin in
-    let* call =
+    let/ call_str = read_packet stdin in
+    let/ call =
       try Ok (Semgrep_output_v1_j.function_call_of_string call_str) with
       (* It's not immediately clear what exceptions `function_call_of_string`
        * could raise on bad input. So let's be cautious and just handle

@@ -12,12 +12,9 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-
 open Common
 open AST_generic
 module MV = Metavariable
-
-let ( let/ ) = Result.bind
 
 (*****************************************************************************)
 (* Prelude *)

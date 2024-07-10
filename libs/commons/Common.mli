@@ -1,10 +1,10 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* This module contains functions (and types) which are very often used.
+(* This module contains functions which are very often used.
  * They are so common (hence the name of this file) that lots of modules
  * just 'open Common' to get in scope those functions.
- * This file acts like a second stdlib.ml.
+ * This file acts like a second stdlib.ml (which was called pervasives.ml before)
  *
  * However, because this module is often open'ed, it should
  * not define too many functions (<100) because we can't impose
@@ -18,10 +18,11 @@
 (*****************************************************************************)
 
 (* You should not use the polymorphic '='. It is convenient but
- * its use will eventually backfire. You should use instead 'deriving eq'
- * where the equality function can be customized.
- * To enforce this rule, this module redefines '=' to just operate
- * on strings, so ocaml can statically detect when you wrongly use '='
+ * its use will eventually backfire
+ * (see https://blog.janestreet.com/the-perils-of-polymorphic-compare/).
+ * You should use instead 'deriving eq' where the equality function can be
+ * customized. To enforce this rule, this module redefines '=' to just operate
+ * on strings, so ocamlc can statically detect when you wrongly use '='
  * on other types.
  *
  * See also the Operators submodule at the end of this file.
@@ -207,6 +208,13 @@ type 'a smap = 'a SMap.t
  *)
 val ( let* ) : 'a option -> ('a -> 'b option) -> 'b option
 val ( ||| ) : 'a option -> 'a -> 'a
+
+(*****************************************************************************)
+(* Result *)
+(*****************************************************************************)
+(* Now in Result_.mli *)
+val ( let/ ) :
+  ('a, 'e) Result.t -> ('a -> ('b, 'e) Result.t) -> ('b, 'e) Result.t
 
 (*****************************************************************************)
 (* Either *)
