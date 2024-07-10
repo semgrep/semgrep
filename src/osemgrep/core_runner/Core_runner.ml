@@ -37,6 +37,12 @@ type conf = {
 }
 [@@deriving show]
 
+type pro_conf = {
+  diff_config : Differential_scan_config.t;
+  roots : Scanning_root.t list;
+  engine_type : Engine_type.t;
+}
+
 (* output *)
 (* LATER: ideally we should just return Core_result.t
    without the need for the intermediate Out.core_output.
@@ -99,13 +105,8 @@ type core_run_for_osemgrep = {
  * and executed by osemgrep-pro. When linked from osemgrep-pro, this
  * hook below will be set.
  *)
-let (hook_pro_core_run_for_osemgrep :
-      (?diff_config:Differential_scan_config.t ->
-      roots:Scanning_root.t list ->
-      Engine_type.t ->
-      core_run_for_osemgrep)
-      option
-      ref) =
+let (hook_mk_pro_core_run_for_osemgrep :
+      (pro_conf -> core_run_for_osemgrep) option ref) =
   ref None
 
 (* This hooks into the proprietary part of Semgrep, in order to access a

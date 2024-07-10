@@ -82,7 +82,7 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
         (* This is currently just ripped from Scan_subcommand. *)
         let core_run_func =
           let pro_intrafile = session.user_settings.pro_intrafile in
-          match !Core_runner.hook_pro_core_run_for_osemgrep with
+          match !Core_runner.hook_mk_pro_core_run_for_osemgrep with
           | Some pro_scan_func when pro_intrafile ->
               (* THINK: files or folders?
                  Note that converting many target files to scanning roots
@@ -94,22 +94,26 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
               let roots = List_.map Scanning_root.of_fpath targets in
               (* For now, we're going to just hard-code it at a whole scan, and
                  using the intrafile pro engine.
-                 Interfile would likely be too intensive (and require us to target
-                 folders, not the affected files)
+                 Interfile would likely be too intensive (and require us to
+                 target folders, not the affected files)
               *)
-              let diff_config = Differential_scan_config.WholeScan in
-              pro_scan_func ~diff_config ~roots
-                Engine_type.(
-                  PRO
-                    {
-                      (* TODO: this probably needs better product detection. *)
-                      extra_languages = true;
-                      analysis = Interprocedural;
-                      secrets_config = None;
-                      code_config = Some ();
-                      supply_chain_config = None;
-                      path_sensitive = false;
-                    })
+              pro_scan_func
+                {
+                  roots;
+                  diff_config = Differential_scan_config.WholeScan;
+                  engine_type =
+                    Engine_type.(
+                      PRO
+                        {
+                          (* TODO: this probably needs better product detection. *)
+                          extra_languages = true;
+                          analysis = Interprocedural;
+                          secrets_config = None;
+                          code_config = Some ();
+                          supply_chain_config = None;
+                          path_sensitive = false;
+                        });
+                }
           | _ ->
               (* TODO: improve this error message depending on what the
                * instructions should be *)

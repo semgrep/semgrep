@@ -1,6 +1,7 @@
 (* This module is essentially an adapter around Core_scan.scan_with_exn_handler
- * so that it can be used from osemgrep to try to match what is done in
- * pysemgrep (which calls semgrep-core and its underlying Core_scan).
+ * (and Deep_scan.scan_with_exn_handler) so that it can be used from osemgrep
+ * to try to imitate what is done in pysemgrep which calls semgrep-core
+ * (or semgrep-core-proprietary) and its underlying Core_scan (or Deep_scan).
  *)
 
 (* input *)
@@ -46,14 +47,15 @@ type core_run_for_osemgrep = {
     Core_result.result_or_exn;
 }
 
+type pro_conf = {
+  diff_config : Differential_scan_config.t;
+  roots : Scanning_root.t list;
+  engine_type : Engine_type.t;
+}
+
 (* Semgrep Pro hook for osemgrep *)
-val hook_pro_core_run_for_osemgrep :
-  (?diff_config:Differential_scan_config.t ->
-  roots:Scanning_root.t list ->
-  Engine_type.t ->
-  core_run_for_osemgrep)
-  option
-  ref
+val hook_mk_pro_core_run_for_osemgrep :
+  (pro_conf -> core_run_for_osemgrep) option ref
 
 val hook_pro_git_remote_scan_setup :
   (core_run_for_osemgrep -> core_run_for_osemgrep) option ref

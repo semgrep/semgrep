@@ -88,13 +88,9 @@ let notify_user_about_metrics_once (settings : Semgrep_settings.t) : unit =
            enable metrics.@.@.More information: \
            https://semgrep.dev/docs/metrics");
     Logs.app (fun m -> m "%s" pysemgrep_hack2);
-    let settings =
-      {
-        settings with
-        Semgrep_settings.has_shown_metrics_notification = Some true;
-      }
-    in
-    Semgrep_settings.save settings |> ignore)
+    Semgrep_settings.save
+      { settings with has_shown_metrics_notification = Some true }
+    |> ignore)
 
 (* This function counts how many matches we got by rules:
    [(Rule.t, number of matches : int) list].
@@ -170,7 +166,7 @@ let exit_code_of_errors ~strict (errors : Out.core_error list) : Exit_code.t =
  * the use of Unix.lockf below.
  *)
 
-let mk_file_match_results_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
+let mk_file_match_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
     (printer : Scan_CLI.conf -> Out.cli_match list -> unit) (_file : Fpath.t)
     (match_results : Core_result.matches_single_file) : unit =
   let (cli_matches : Out.cli_match list) =
@@ -234,14 +230,14 @@ let choose_output_format_and_match_hook (conf : Scan_CLI.conf)
       _;
     } ->
       ( Output_format.Incremental,
-        Some (mk_file_match_results_hook conf rules incremental_text_printer) )
+        Some (mk_file_match_hook conf rules incremental_text_printer) )
   | {
    output_conf = { output_format = Output_format.Json; _ };
    incremental_output = true;
    _;
   } ->
       ( Output_format.Incremental,
-        Some (mk_file_match_results_hook conf rules incremental_json_printer) )
+        Some (mk_file_match_hook conf rules incremental_json_printer) )
   | { output_conf; _ } -> (output_conf.output_format, None)
 
 (*****************************************************************************)
@@ -371,19 +367,17 @@ let uniq_rules_and_error_if_empty_rules rules =
   if List_.null rules then Error (Exit_code.missing_config ~__LOC__)
   else Ok rules
 
-(* Select and execute the scan func based on the configured engine settings.
-   Yet another mk_scan_func adapter. TODO: can we simplify?
-*)
-let mk_scan_func (caps : < Cap.tmp >) (conf : Scan_CLI.conf) file_match_hook
-    errors targets ?(diff_config = Differential_scan_config.WholeScan) rules ()
-    =
+(* Select and execute the scan func based on the configured engine settings *)
+let mk_core_run_for_osemgrep (caps : < Cap.tmp >) (conf : Scan_CLI.conf)
+    (diff_config : Differential_scan_config.t) :
+    Core_runner.core_run_for_osemgrep =
   let core_run_for_osemgrep : Core_runner.core_run_for_osemgrep =
     match conf.engine_type with
     | OSS ->
         Core_runner.mk_core_run_for_osemgrep
           (Core_scan.scan_with_exn_handler caps)
     | PRO _ -> (
-        match !Core_runner.hook_pro_core_run_for_osemgrep with
+        match !Core_runner.hook_mk_pro_core_run_for_osemgrep with
         | None ->
             (* TODO: improve this error message depending on what the
              * instructions should be *)
@@ -392,8 +386,12 @@ let mk_scan_func (caps : < Cap.tmp >) (conf : Scan_CLI.conf) file_match_hook
                the pro engine, but do not have the pro engine. You may need to \
                acquire a different binary."
         | Some pro_scan_func ->
-            let roots = conf.target_roots in
-            pro_scan_func ~roots ~diff_config conf.engine_type)
+            pro_scan_func
+              {
+                roots = conf.target_roots;
+                diff_config;
+                engine_type = conf.engine_type;
+              })
   in
   let core_run_for_osemgrep : Core_runner.core_run_for_osemgrep =
     match conf.targeting_conf.force_project_root with
@@ -408,8 +406,7 @@ let mk_scan_func (caps : < Cap.tmp >) (conf : Scan_CLI.conf) file_match_hook
             pro_git_remote_scan_setup core_run_for_osemgrep)
     | _ -> core_run_for_osemgrep
   in
-  core_run_for_osemgrep.run ~file_match_hook conf.core_runner_conf
-    conf.targeting_conf (rules, errors) targets
+  core_run_for_osemgrep
 
 let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~strict caps
     rules_source =
@@ -490,7 +487,7 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
     (Rule.rule list * Core_runner.result * Out.cli_output, Exit_code.t) result =
   Metrics_.add_engine_type conf.engine_type;
   (* step 1: last touch on rules *)
-  let rules, errors =
+  let rules, rule_errors =
     Rule_fetching.partition_rules_and_errors rules_and_origins
   in
   let/ rules = uniq_rules_and_error_if_empty_rules rules in
@@ -510,26 +507,36 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
                (x.details ||| "")));
 
   (* step 3: choose the right engine and right hooks *)
-  let output_format, file_match_results_hook =
+  let output_format, file_match_hook =
     choose_output_format_and_match_hook conf rules
-  in
-  (* TODO: What is this wrapping for? It makes things really hard to
-     follow. Choose a better name (oss_por_pro_scan_func?) *)
-  let scan_func =
-    mk_scan_func (caps :> < Cap.tmp >) conf file_match_results_hook errors
   in
   (* step 3': call the engine! *)
   Logs.info (fun m -> m "running the semgrep engine");
   let (result_or_exn : Core_result.result_or_exn) =
     match conf.targeting_conf.baseline_commit with
     | None ->
-        Profiler.record profiler ~name:"core_time" (scan_func targets rules)
+        Profiler.record profiler ~name:"core_time" (fun () ->
+            let core_run_for_osemgrep =
+              mk_core_run_for_osemgrep
+                (caps :> < Cap.tmp >)
+                conf Differential_scan_config.WholeScan
+            in
+            core_run_for_osemgrep.run ~file_match_hook conf.core_runner_conf
+              conf.targeting_conf (rules, rule_errors) targets)
     | Some baseline_commit ->
         (* scan_baseline calls internally Profiler.record "head_core_time"  *)
         (* diff scan mode *)
+        let diff_scan_func : Diff_scan.diff_scan_func =
+         fun ?(diff_config = Differential_scan_config.WholeScan) targets rules ->
+          let core_run_for_osemgrep =
+            mk_core_run_for_osemgrep (caps :> < Cap.tmp >) conf diff_config
+          in
+          core_run_for_osemgrep.run ~file_match_hook conf.core_runner_conf
+            conf.targeting_conf (rules, rule_errors) targets
+        in
         Diff_scan.scan_baseline
           (caps :> < Cap.chdir ; Cap.tmp >)
-          conf baseline_commit targets rules profiler scan_func
+          conf profiler baseline_commit targets rules diff_scan_func
   in
   match result_or_exn with
   | Error (e, _core_error_opt) ->
@@ -633,12 +640,13 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
 (*****************************************************************************)
 
 let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
+  (* step0: more initializations *)
   (* Print The logo ASAP to minimize time to first meaningful content paint *)
   if new_cli_ux then print_logo ();
 
   (* imitate pysemgrep for backward compatible profiling metrics ? *)
   let profiler = Profiler.make () in
-  (* the corresponding stop is done in run_scan_files () *)
+  (* the corresponding stop is done in check_targets_with_rules () *)
   Profiler.start profiler ~name:"total_time";
 
   (* Metrics initialization (and finalization) is done in CLI.ml,
@@ -687,16 +695,18 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   let targets_and_skipped =
     Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
   in
+
   (* step3: let's go *)
   let res =
     check_targets_with_rules
       (caps :> < Cap.stdout ; Cap.chdir ; Cap.tmp >)
       conf profiler rules_and_origins targets_and_skipped
   in
+
+  (* step4: exit with the right exit code *)
   match res with
   | Error exit_code -> exit_code
   | Ok (_rules, res, cli_output) ->
-      (* step4: exit with the right exit code *)
       (* final result for the shell *)
       if conf.error_on_findings && not (List_.null cli_output.results) then
         Exit_code.findings ~__LOC__
@@ -755,7 +765,7 @@ let run_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
     *)
     if conf.common.profile then (
       (* ugly: no need to set Common.profile, this was done in CLI.ml *)
-      Logs.info (fun m -> m "Profile mode On (running one job, ignoring -j)");
+      Logs.warn (fun m -> m "Profile mode On (running one job, ignoring -j)");
       {
         conf with
         core_runner_conf = { conf.core_runner_conf with num_jobs = 1 };
@@ -770,10 +780,8 @@ let run_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
    * coupling: if you add a new alternate mode, you probably need to modify
    * Scan_CLI.cmdline_term.combine.rules_source match cases and allow
    * more cases returning an empty 'Configs []'.
-   * LATER: this should be real separate subcommands instead of abusing
-   * semgrep scan flags. Maybe a 'semgrep show version',
-   * 'semgrep show supported_languages', 'semgrep show ast foo.py',
-   * 'semgrep test dir/'
+   * LATER: people should use the new separate subcommands
+   * (e.g., 'semgrep show version') instead of abusing 'semgrep scan' flags.
    *)
   | _ when conf.version ->
       CapConsole.print caps#stdout Version.version;
