@@ -1,7 +1,7 @@
 #! /usr/bin/env bash
 
 # Coupling: If you update this script, you likely also want
-# to update run-pro-benchmarks.sh
+# to update run-pro-benchmarks.sh in the pro repo.
 
 # You may also need to update the comment in perf/README.md
 
