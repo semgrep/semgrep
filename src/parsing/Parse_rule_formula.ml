@@ -138,24 +138,12 @@ and unwrap_type_expr env key lang expr =
 let parse_rule_xpattern env (str, tok) =
   match env.target_analyzer with
   | Xlang.L (lang, _) ->
-      (* opti: parsing Semgrep patterns lazily improves speed significantly.
-       * Parsing p/default goes from 13s to just 0.2s, mostly because
-       * p/default contains lots of ruby rules which are currently very
-       * slow to parse. Still, even if there was no Ruby rule, it's probably
-       * still worth the optimization.
-       * The disadvantage of parsing lazily is that
-       * parse errors in the pattern are detected only later, when
-       * the rule/pattern is actually needed. In practice we have pretty
-       * good error management and error recovery so the error should
-       * find its way to the JSON error field anyway.
-       *)
-      let lpat =
-        lazy
-          ((* we need to raise the right error *)
-           try_and_raise_invalid_pattern_if_error env (str, tok) (fun () ->
-               Parse_pattern.parse_pattern lang ~rule_options:env.options str))
+      let pat =
+        (* we need to raise the right error *)
+        try_and_raise_invalid_pattern_if_error env (str, tok) (fun () ->
+            Parse_pattern.parse_pattern lang ~rule_options:env.options str)
       in
-      XP.mk_xpat (XP.Sem (lpat, lang)) (str, tok)
+      XP.mk_xpat (XP.Sem (pat, lang)) (str, tok)
   | Xlang.LRegex ->
       XP.mk_xpat (XP.Regexp (parse_regexp env (str, tok))) (str, tok)
   | Xlang.LSpacegrep -> (

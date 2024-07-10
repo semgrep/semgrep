@@ -10,7 +10,48 @@ rule.yml
                    [{ Rule.f =
                       (Rule.P
                          { Xpattern.pat =
-                           (Xpattern.Sem (<not evaluated>, Python));
+                           (Xpattern.Sem (
+                              (E
+                                 { e =
+                                   (Call (
+                                      { e = (IdSpecial ((Op Eq), ()));
+                                        e_id = 0; e_range = None;
+                                        is_implicit_return = false;
+                                        facts = [] },
+                                      ((),
+                                       [(Arg
+                                           { e =
+                                             (N
+                                                (Id (("$X", ()),
+                                                   { id_resolved = ref (None);
+                                                     id_type = ref (None);
+                                                     id_svalue = ref (None);
+                                                     id_flags = ref (0);
+                                                     id_info_id = <MASKED> }
+                                                   )));
+                                             e_id = 0; e_range = None;
+                                             is_implicit_return = false;
+                                             facts = [] });
+                                         (Arg
+                                            { e =
+                                              (N
+                                                 (Id (("$X", ()),
+                                                    { id_resolved =
+                                                      ref (None);
+                                                      id_type = ref (None);
+                                                      id_svalue = ref (None);
+                                                      id_flags = ref (0);
+                                                      id_info_id = <MASKED> }
+                                                    )));
+                                              e_id = 0; e_range = None;
+                                              is_implicit_return = false;
+                                              facts = [] })
+                                         ],
+                                       ())
+                                      ));
+                                   e_id = 0; e_range = None;
+                                   is_implicit_return = false; facts = [] }),
+                              Python));
                            pstr = ("$X == $X", ()); pid = <MASKED> });
                       conditions = []; focus = []; fix = None; as_ = None }
                      ]
