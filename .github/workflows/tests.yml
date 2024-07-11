@@ -12,7 +12,7 @@ jobs:
         with:
           cache: pipenv
           python-version: "3.8"
-      - run: pip install pipenv==2022.6.7
+      - run: pip install pipenv==2024.0.1
       - uses: actions/download-artifact@v3
         with:
           name: semgrep-core-x86-artifact
@@ -129,7 +129,7 @@ jobs:
         with:
           cache: pipenv
           python-version: ${{ matrix.python }}
-      - run: pip install pipenv==2022.6.7
+      - run: pip install pipenv==2024.0.1
       - name: Install Python dependencies
         run: pipenv install --dev
         working-directory: cli
@@ -242,7 +242,7 @@ jobs:
         with:
           cache: pipenv
           python-version: "3.11"
-      - run: pip install pipenv==2022.6.7
+      - run: pip install pipenv==2024.0.1
       - uses: actions/download-artifact@v3
         with:
           name: semgrep-core-x86-artifact

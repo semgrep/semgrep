@@ -35,9 +35,8 @@
       cache: 'pipenv',
     },
   },
-  // TODO? can we pin a more recent version?
   pipenv_install_step: {
-    run: 'pip install pipenv==2022.6.7',
+    run: 'pip install pipenv==2024.0.1',
   },
 
   install_python_deps(directory): {
