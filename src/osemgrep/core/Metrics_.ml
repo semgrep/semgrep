@@ -53,6 +53,11 @@ module OutJ = Semgrep_output_v1_j
         |-> OpenSearch (Name=semgrep-metrics)
     For metabase, you can watch "Metabase for PA engineers" talk by Emma here:
     https://drive.google.com/file/d/1BJNR578M3KxbuuIU5xNPFkhbYccfo9XH/view
+    You can see the data here:
+    https://metabase.corp.semgrep.dev/browse/databases/6-semgrep-cli-snowflake
+    and especially the CLI Run table and inside the EVENT column which contains
+    the whole JSON payload.
+
     Notes:
       - Raw payload is ingested by our metrics endpoint exposed via our API
         Gateway
@@ -76,10 +81,11 @@ module OutJ = Semgrep_output_v1_j
       - The data viewer URL will look something like https://us-west-2.console.aws.amazon.com/kinesis/home?region=us-west-2#/streams/details/semgrep-cli-telemetry/dataViewer
         where each row is a payload with the IP address as the Partition Key
       - The data is then stored in our S3 bucket ("semgrep-cli-metrics") and
-        can be queried via Snowflake or Metabase
+        can be queried via Snowflake or Metabase such as
+        https://metabase.corp.semgrep.dev/browse/databases/6-semgrep-cli-snowflake
 
-    This file should be called simply Metrics.ml but this would conflict with
-    a module using the same name in one of the OCaml library we use.
+    alt: this file should be called simply Metrics.ml but this would conflict
+    with a module using the same name in one of the OCaml library we use.
 *)
 
 (*****************************************************************************)
@@ -464,6 +470,10 @@ let add_exit_code code =
   let code = Exit_code.to_int code in
   g.payload.errors.returnCode <- Some code
 
+(* Covered: "language/xxx", "cli-flag/xxx", "subcommand/xxx"
+ * TOPORT: "config/xxx", "ruleset/xxx", "cli-envvar/xxx", "cli-prompt/xxx"
+ *  "output/xxx"
+ *)
 let add_feature ~category ~name =
   let str = Format.asprintf "%s/%s" category name in
   g.payload.value.features <- str :: g.payload.value.features
