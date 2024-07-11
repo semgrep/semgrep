@@ -408,8 +408,8 @@ let write_workflow_file (caps : < Cap.chdir ; Cap.tmp >) ~git_dir:dir : unit =
    2. Commit and push changes to the repo
    3. Open a PR to the repo to merge the changes
 *)
-let add_semgrep_workflow caps ~(token : Auth.token) (conf : Install_CLI.conf) :
-    unit =
+let add_semgrep_workflow caps ~(token : Auth.token) (conf : Install_ci_CLI.conf)
+    : unit =
   let (repo : Fpath.t) =
     match conf.repo with
     | Dir v -> Fpath.to_dir_path v |> Fpath.rem_empty_seg
@@ -433,7 +433,7 @@ let add_semgrep_workflow caps ~(token : Auth.token) (conf : Install_CLI.conf) :
 (* Main logic *)
 (*****************************************************************************)
 
-let run_conf (caps : caps) (conf : Install_CLI.conf) : Exit_code.t =
+let run_conf (caps : caps) (conf : Install_ci_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:true ~level:conf.common.logging_level;
   (* In theory, we should use the same --metrics=xxx as in scan,
      but given that this is an experimental command that we need to validate
@@ -442,7 +442,7 @@ let run_conf (caps : caps) (conf : Install_CLI.conf) : Exit_code.t =
      command at a later date.
   *)
   Metrics_.configure Metrics_.On;
-  Logs.debug (fun m -> m "conf = %s" (Install_CLI.show_conf conf));
+  Logs.debug (fun m -> m "conf = %s" (Install_ci_CLI.show_conf conf));
   let settings = Semgrep_settings.load () in
   let api_token = settings.Semgrep_settings.api_token in
   match api_token with
@@ -469,5 +469,5 @@ let run_conf (caps : caps) (conf : Install_CLI.conf) : Exit_code.t =
 (* Entry point *)
 (*****************************************************************************)
 let main (caps : caps) (argv : string array) : Exit_code.t =
-  let conf = Install_CLI.parse_argv argv in
+  let conf = Install_ci_CLI.parse_argv argv in
   run_conf caps conf

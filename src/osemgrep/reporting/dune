@@ -11,6 +11,9 @@
    xmlm
    sarif
    python-str-repr
+   ; for Console_spinner
+   lwt
+   lwt_platform
 
    murmur3
    osemgrep_configuring
@@ -25,6 +28,7 @@
      ppx_deriving.show
      ppx_deriving.eq
      ppx_hash
+     lwt_ppx
    )
  )
 )

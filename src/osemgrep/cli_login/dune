@@ -11,10 +11,10 @@
     ocolor
     commons
 
-    osemgrep_cli_ui
     osemgrep_configuring
     osemgrep_core
     osemgrep_networking
+    osemgrep_reporting
   )
  (preprocess
    (pps
