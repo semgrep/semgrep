@@ -30,7 +30,7 @@ script {
     const ADDRESS: address = 0xabcd;
 
     // ruleid: pattern-move-func-signature
-    #[attr(key = b"value", inner(key2 = b"value2))]
+    #[attr(key = b"value", inner(key2 = b"value2"))]
     entry fun do_something() {
         test_func(&signer, ADDRESS);
     }
