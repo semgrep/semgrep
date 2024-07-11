@@ -685,8 +685,20 @@ type 'mode rule_info = {
   (* TODO(cooper): would be nice to have nonempty but common2 version not nice to work with; no pp for one *)
   validators : validator list option;
   (* Range of Semgrep versions supported by the rule.
-     Note that a rule with these fields may not even be parseable
-     in the current version of Semgrep and wouldn't even reach this point. *)
+   * Note that a rule with these fields may not even be parseable
+   * in the current version of Semgrep and wouldn't even reach this point.
+   * coupling: unfortunately, rule filtering is currently done in 3 places:
+   *  - in Parse_rule.check_version_compatibility() for semgrep-core and osemgrep
+   *    since 1.41.0
+   *  - in rule_lang.py remove_incompatible_rules_based_on_version() for pysemgrep
+   *    since 1.76.0
+   *  - in semgrep-app in server/semgrep_app/foundations/scan/providers/config.py
+   *    in filter_rules_by_supported_version() since 1.79.0
+   * The last one was done because we wanted to start using Critical severity in
+   * our rules without having to wait for everybody to switch to 1.76.0
+   * (adding version filtering in semgrep-core was not enough; it was still crashing
+   *  pysemgrep which was still doing its own rule validation via jsonschema).
+   *)
   min_version : Version_info.t option;
   max_version : Version_info.t option;
   dependency_formula : dependency_formula option;
