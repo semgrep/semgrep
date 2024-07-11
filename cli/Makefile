@@ -143,7 +143,7 @@ osemgrep-e2e:
 # coupling: this is run in CI in .github/workflows/tests.yml
 osempass:
 	PYTEST_USE_OSEMGREP=true $(PYTEST) -n auto \
-	  -m 'not osemfail' tests/default/e2e
+	  -m 'not osemfail' tests/default/e2e tests/default/e2e-other
 
 # to be used to discover tests that we should remove the osemfail pytest mark
 osempass-check-if-new-osempass:
