@@ -84,15 +84,6 @@ def set_token(token: str) -> None:
     settings.set("api_token", token)
 
 
-def delete_token() -> None:
-    """
-    Remove api token from settings file
-    """
-    logger.debug("Deleting api token from settings file")
-    settings = get_state().settings
-    settings.delete("api_token")
-
-
 def is_a_tty() -> bool:
     """
     Whether or not the terminal is interactive (a tty)

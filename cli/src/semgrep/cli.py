@@ -5,7 +5,6 @@ import click
 from semgrep.commands.ci import ci
 from semgrep.commands.install import install_semgrep_pro
 from semgrep.commands.login import login
-from semgrep.commands.login import logout
 from semgrep.commands.publish import publish
 from semgrep.commands.scan import scan
 from semgrep.default_group import DefaultGroup
@@ -45,12 +44,10 @@ def maybe_set_git_safe_directories() -> None:
 @click.help_option("--help", "-h")
 @click.pass_context
 def cli(ctx: click.Context) -> None:
-    """ """
     state = get_state()
     state.terminal.init_for_cli()
 
     commands: Dict[str, click.Command] = ctx.command.commands  # type: ignore
-
     subcommand: str = (
         ctx.invoked_subcommand if ctx.invoked_subcommand in commands else "unset"
     )
@@ -64,7 +61,6 @@ def cli(ctx: click.Context) -> None:
 
 cli.add_command(ci)
 cli.add_command(login)
-cli.add_command(logout)
 cli.add_command(publish)
 cli.add_command(scan)
 cli.add_command(install_semgrep_pro)
