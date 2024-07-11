@@ -12,7 +12,7 @@ jobs:
         name: Set GHA cache for OPAM in ~/.opam
         uses: actions/cache@v3
         with:
-          key: ${{ runner.os }}-${{ runner.arch }}-opam-deps-4.14.0-${{hashFiles('semgrep.opam')}}
+          key: ${{ runner.os }}-${{ runner.arch }}-v1-opam-4.14.0-${{hashFiles('semgrep.opam')}}
           path: ~/.opam
       - name: Install dependencies
         run: ./scripts/osx-setup-for-release.sh "4.14.0"
