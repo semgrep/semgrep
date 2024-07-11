@@ -20,9 +20,6 @@ def test_publish(tmp_path, mocker):
     valid_target = str(tests_path.resolve())
     valid_single_file_target = str((tests_path / "valid1.yaml").resolve())
 
-    result = runner.invoke(cli, subcommand="logout", args=[])
-    assert result.exit_code == 0
-
     # should require login
     result = runner.invoke(
         cli,

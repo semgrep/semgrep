@@ -20,28 +20,7 @@ type conf = {
 [@@deriving show]
 
 (*****************************************************************************)
-(* Login subcommand *)
-(*****************************************************************************)
-
-let login_doc = "Obtain and save credentials for semgrep.dev"
-
-let login_man : Cmdliner.Manpage.block list =
-  [
-    `S Cmdliner.Manpage.s_description;
-    `P
-      "Obtain and save credentials for semgrep.dev\n\n\
-      \    Looks for an semgrep.dev API token in the environment variable \
-       SEMGREP_APP_TOKEN.\n\
-      \    If not defined and running in a TTY, prompts interactively.\n\
-      \    Once token is found, saves it to global settings file";
-  ]
-  @ CLI_common.help_page_bottom
-
-let login_cmdline_info : Cmd.info =
-  Cmd.info "semgrep login" ~doc:login_doc ~man:login_man
-
-(*****************************************************************************)
-(* Flags *)
+(* Command-line Flags *)
 (*****************************************************************************)
 
 let o_temporary_secret : string Term.t =
@@ -55,10 +34,30 @@ let o_temporary_secret : string Term.t =
 (* Turn argv into a conf *)
 (*****************************************************************************)
 
-let term =
+let cmdline_term : conf Term.t =
   let combine common one_time_seed = { common; one_time_seed } in
   Term.(const combine $ CLI_common.o_common $ o_temporary_secret)
 
-let parse_argv (cmd_info : Cmd.info) (argv : string array) : conf =
-  let cmd : conf Cmd.t = Cmd.v cmd_info term in
+let doc = "Obtain and save credentials for semgrep.dev"
+
+let man : Cmdliner.Manpage.block list =
+  [
+    `S Cmdliner.Manpage.s_description;
+    `P
+      "Obtain and save credentials for semgrep.dev\n\n\
+      \    Looks for an semgrep.dev API token in the environment variable \
+       SEMGREP_APP_TOKEN.\n\
+      \    If not defined and running in a TTY, prompts interactively.\n\
+      \    Once token is found, saves it to global settings file";
+  ]
+  @ CLI_common.help_page_bottom
+
+let cmdline_info : Cmd.info = Cmd.info "semgrep login" ~doc ~man
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
+let parse_argv (argv : string array) : conf =
+  let cmd : conf Cmd.t = Cmd.v cmdline_info cmdline_term in
   CLI_common.eval_value ~argv cmd

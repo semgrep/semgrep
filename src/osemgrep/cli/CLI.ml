@@ -168,6 +168,8 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
       let experimental = Array.mem "--experimental" argv in
       (* basic metrics on what was the command *)
       Metrics_.add_feature "subcommand" subcmd;
+      (* osemgrep-only: *)
+      Metrics_.add_user_agent_tag "osemgrep";
       Metrics_.add_user_agent_tag (Printf.sprintf "command/%s" subcmd);
       subcmd_argv |> Array.to_list
       |> List_.exclude (fun x ->
@@ -195,12 +197,6 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
             Login_subcommand.main
               (caps :> < Cap.stdout ; Cap.network >)
               subcmd_argv
-        | "logout" when experimental ->
-            Logout_subcommand.main (caps :> < Cap.stdout >) subcmd_argv
-        | "lsp" ->
-            Lsp_subcommand.main
-              (caps :> < Cap.random ; Cap.network ; Cap.tmp >)
-              subcmd_argv
         (* partial support, still use Pysemgrep.Fallback in it *)
         | "scan" ->
             Scan_subcommand.main
@@ -212,6 +208,12 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
                 :> < Cap.stdout ; Cap.network ; Cap.exec ; Cap.tmp ; Cap.chdir >)
               subcmd_argv
         (* osemgrep-only: and by default! no need experimental! *)
+        | "lsp" ->
+            Lsp_subcommand.main
+              (caps :> < Cap.random ; Cap.network ; Cap.tmp >)
+              subcmd_argv
+        | "logout" ->
+            Logout_subcommand.main (caps :> < Cap.stdout >) subcmd_argv
         | "install-ci" ->
             Install_ci_subcommand.main
               (caps :> < Cap.random ; Cap.chdir ; Cap.tmp >)
