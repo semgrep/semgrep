@@ -109,6 +109,25 @@ let download_semgrep_pro caps platform_kind dest =
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
 let run_conf (caps : caps) (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
+  (match conf.common.maturity with
+  | Maturity.Default -> (
+      (* TODO: handle more confs, or fallback to pysemgrep further down *)
+      match conf with
+      (* we just handle --custom_binary for now via osemgrep; anyway it's
+       * mostly an internal developer option
+       *)
+      | { custom_binary = Some _; _ } -> ()
+      | _else_ -> raise Pysemgrep.Fallback)
+  | Maturity.Legacy -> raise Pysemgrep.Fallback
+  | Maturity.Experimental
+  | Maturity.Develop ->
+      ());
+
+  CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
+  Logs.debug (fun m -> m "conf = %s" (Install_semgrep_pro_CLI.show_conf conf));
+  (* stricter: this command was actually not tracked in pysemgrep *)
+  Metrics_.configure Metrics_.On;
+
   (* We want to install to basically wherever the current executable is,
      but to the name `semgrep-core-proprietary`, which is where the ultimate
      Python wrapper entry point knows to look for the pro binary.
@@ -184,7 +203,11 @@ let run_conf (caps : caps) (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
             [ `User (`Set `Exec); `Group (`Set `Exec); `Other (`Set `Exec) ])
           [ !!semgrep_pro_path_tmp ];
 
-        (* Get Pro version, it serves as a simple check that the binary works *)
+        (* Get Pro version, it serves as a simple check that the binary works
+         * TODO: seems buggy, if passing --custom-binary ./bin/semgrep-core
+         * the program returns an error (wrong -pro_version argument) but
+         * the whole thing still succeed.
+         *)
         let version =
           let cmd = (Cmd.Name !!semgrep_pro_path_tmp, [ "-pro_version" ]) in
           let opt =

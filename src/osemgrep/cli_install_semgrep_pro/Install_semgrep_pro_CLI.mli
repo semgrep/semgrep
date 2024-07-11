@@ -6,7 +6,8 @@
    The result of parsing a 'semgrep install-semgrep-pro' command.
 *)
 
-type conf = { custom_binary : string option } [@@deriving show]
+type conf = { common : CLI_common.conf; custom_binary : string option }
+[@@deriving show]
 
 (*
    Usage: parse_argv [| "semgrep-install-semgrep-pro"; <args> |]

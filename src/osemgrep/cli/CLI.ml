@@ -185,10 +185,6 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
          * we progress in osemgrep port (or use Pysemgrep.Fallback further
          * down when we know we don't handle certain kind of arguments).
          *)
-        | "install-semgrep-pro" when experimental ->
-            Install_semgrep_pro_subcommand.main
-              (caps :> < Cap.network >)
-              subcmd_argv
         | "publish" when experimental ->
             Publish_subcommand.main
               (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >)
@@ -206,6 +202,10 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
             Ci_subcommand.main
               (caps
                 :> < Cap.stdout ; Cap.network ; Cap.exec ; Cap.tmp ; Cap.chdir >)
+              subcmd_argv
+        | "install-semgrep-pro" ->
+            Install_semgrep_pro_subcommand.main
+              (caps :> < Cap.network >)
               subcmd_argv
         (* osemgrep-only: and by default! no need experimental! *)
         | "lsp" ->

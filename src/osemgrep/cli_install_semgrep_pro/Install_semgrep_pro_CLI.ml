@@ -17,7 +17,8 @@ module H = Cmdliner_
 (* Types and constants *)
 (*****************************************************************************)
 
-type conf = { custom_binary : string option } [@@deriving show]
+type conf = { common : CLI_common.conf; custom_binary : string option }
+[@@deriving show]
 
 (*************************************************************************)
 (* Command-line flags *)
@@ -36,7 +37,7 @@ let o_custom_binary : string option Term.t =
 (*************************************************************************)
 
 let cmdline_term : conf Term.t =
-  let combine _common custom_binary = { custom_binary } in
+  let combine common custom_binary = { common; custom_binary } in
   Term.(const combine $ CLI_common.o_common $ o_custom_binary)
 
 let doc = "Install the Semgrep Pro Engine"
