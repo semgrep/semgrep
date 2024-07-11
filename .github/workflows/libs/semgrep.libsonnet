@@ -60,19 +60,19 @@ local github_bot = {
 // ----------------------------------------------------------------------------
 
 // The step below uses the actions/cache@v3 GHA extension to cache
-// the ~/.opam directory which speedups a lot the "install opam dependencies"
-// step, especially in workflows where we can't use ocaml-layer.
+// the ~/.opam directory which speedups a lot the "Install opam dependencies"
+// steps in our workflows, especially the one where we can't use ocaml-layer.
 // See also actions.libsonnet for other GHA caching helpers.
 // Note that actions/setup-ocaml@v2 is using a similar technique.
 //
-// For example, on GHA-hosted macos runners, without caching it would run
-// very slowly like 35min instead of 10min with caching.
+// For example, on GHA-hosted macos runners, without caching the osx workflow
+// would run very for 35min instead of 10min with caching.
 // The M1 build runs on fast self-hosted runners where caching does not seem
 // to be necessary.
 // In Linux, we use a special container (returntocorp/ocaml:alpine-xxx) to
 // bring in the required dependencies, which makes 'opam switch create'
 // and 'opam install deps' unnecessary and almost a noop.
-// Still, we could potentially get rid of ocaml-layer and replace it with
+// Still, we are gradually getting rid of ocaml-layer and replace it with
 // this more general caching mechanism (or switch to setup-ocaml@v2).
 //
 // alt:
@@ -90,8 +90,10 @@ local github_bot = {
 //    with actions/cache@v3 seems to solve the speed issue (and maybe ocamlc
 //    works now well under macos-12).
 //  - use a technique similar to what we do for Linux with our special
-//    container, but can this be done for macos?
-//  - use setup-ocaml@v2 which internally uses a GHA cache too
+//    ocaml-layer container, but can this be done for macos?
+//  - use setup-ocaml@v2 which internally uses a GHA cache too, but this
+//    cache just the downloaded package; it still install/compiles the packages
+//    each time.
 //
 // See also https://www.notion.so/semgrep/Caching-the-Opam-Environment-5d7e594203884d289acdac53713fb39f
 // for more information.
@@ -100,15 +102,38 @@ local github_bot = {
 // See https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows
 // for more information on GHA caching.
 //
-// Note that this works and speedup things because of the way OPAM works
-// and osx-setup-for-release.sh is written. Indeed, this script checks
-// if the opam switch is already created, and if a package is already
-// installed (in ~/.opam), then opam install on this package will do nothing.
-//
-// See https://github.com/organizations/semgrep/settings/actions/caches
+// See also https://github.com/organizations/semgrep/settings/actions/caches
 // (requires admin access to github org) to see the GHA cache settings
 // and https://github.com/semgrep/semgrep/actions/caches?query=sort%3Asize-desc
 // to see the actual cache files created and used.
+//
+// Note that from the doc:
+// "Workflow runs cannot restore caches created for child branches or sibling
+//  branches. For example, a cache created for the child feature-b branch would
+//  not be accessible to a workflow run triggered on the parent main branch.
+//  Similarly, a cache created for the feature-a branch with the base main
+//  would not be accessible to its sibling feature-c branch with the base main."
+// This explains why you can see multiple cache entries with the exact same
+// cache key name; it's because they are from different branches.
+
+// Note that this caching works and speedup things because of the way OPAM works
+// and osx-setup-for-release.sh is written. Indeed, this script checks
+// if the opam switch is already created, and if a package is already
+// installed (in ~/.opam), then opam install on this package will do nothing.
+
+// Sometimes the cache key is not precise enough and some external changes
+// do not trigger cache invalidation but should. For example, we use
+// hashFiles('semgrep.opam') in many workflows for the cache key, but
+// semgrep.opam is not a lock file and some updates in the opam repo might
+// trigger the recompilation/installation of packages which would slow
+// down the workflow, even in the presence of the GHA cache, because this
+// cache is not up to date with the opam repo. Same for changes such as
+// an upgrade from opam 2.1 to 2.2 which is not captured in the cache key
+// but which should invalidate the cache.
+// This bump_cache is one way to cope with the limitations of our cache keys.
+// Moreover, GHA itself does not have a big "delete all cache" button like
+// in depot.dev so this bump_cache can act as one too.
+local bump_cache = 1;
 
 local cache_opam = {
   step(key, path="~/.opam"): {
@@ -119,7 +144,7 @@ local cache_opam = {
     },
     with: {
       path: path,
-      key: '${{ runner.os }}-${{ runner.arch }}-opam-deps-%s' % key,
+      key: '${{ runner.os }}-${{ runner.arch }}-v%d-opam-%s' % [bump_cache, key],
     },
    },
    // to be used with workflow_dispatch and workflow_call in the workflow
