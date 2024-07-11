@@ -137,6 +137,8 @@ let fetch_token caps session_id =
 let run_conf (caps : caps) (conf : Login_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
   Logs.debug (fun m -> m "conf = %s" (Login_CLI.show_conf conf));
+  (* stricter: the login/logout metrics are actually not tracked in pysemgrep *)
+  Metrics_.configure Metrics_.On;
   let settings = Semgrep_settings.load () in
   match settings.Semgrep_settings.api_token with
   | None -> (
