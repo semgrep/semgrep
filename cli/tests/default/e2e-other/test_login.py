@@ -5,28 +5,36 @@ from semgrep.cli import cli
 from semgrep.config_resolver import ConfigFile
 from semgrep.config_resolver import ConfigLoader
 
+expected_logout_str = "Logged out (log back in with `semgrep login`)\n"
 
+
+# it should be ok to logout when not logged in and to logout twice
 @pytest.mark.slow
-@pytest.mark.osemfail
-def test_login(tmp_path, mocker):
+def test_logout_not_logged_in(tmp_path, mocker):
     runner = SemgrepRunner(
         env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")},
-        use_click_runner=True,
     )
-
-    expected_logout_str = "Logged out (log back in with `semgrep login`)\n"
-    fake_key = "key123"
-    alt_key = "key456"
-
-    # Patch Token Validation:
-    mocker.patch(
-        "semgrep.app.auth.get_deployment_from_token", return_value="deployment_name"
-    )
-
-    # Logout
     result = runner.invoke(cli, subcommand="logout", args=[])
     assert result.exit_code == 0
     assert result.output == expected_logout_str
+
+    # Logout twice should work
+    result = runner.invoke(cli, subcommand="logout", args=[])
+    assert result.exit_code == 0
+    assert result.output == expected_logout_str
+
+
+# it should fail when run from a non-terminal shell
+@pytest.mark.slow
+@pytest.mark.osemfail
+def test_login_no_tty(tmp_path, mocker):
+    runner = SemgrepRunner(
+        env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")},
+        # TODO: not sure why we need use_click_runner here, maybe
+        # for the input=fake_key to work?
+        use_click_runner=True,
+    )
+    fake_key = "key123"
 
     # Fail to login without a tty
     result = runner.invoke(
@@ -37,6 +45,23 @@ def test_login(tmp_path, mocker):
     )
     assert result.exit_code == 2
     assert "semgrep login is an interactive command" in result.output
+
+
+# it should login by using SEMGREP_APP_TOKEN
+@pytest.mark.slow
+@pytest.mark.osemfail
+def test_login_env_token(tmp_path, mocker):
+    runner = SemgrepRunner(
+        env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")},
+        use_click_runner=True,
+    )
+    fake_key = "key123"
+    alt_key = "key456"
+
+    # Patch Token Validation:
+    mocker.patch(
+        "semgrep.app.auth.get_deployment_from_token", return_value="deployment_name"
+    )
 
     # Login with env token
     result = runner.invoke(
@@ -59,17 +84,22 @@ def test_login(tmp_path, mocker):
     assert result.exit_code == 2
     assert "API token already exists in" in result.output
 
-    # Clear login
-    result = runner.invoke(cli, subcommand="logout", args=[])
-    assert result.exit_code == 0
-    assert result.output == expected_logout_str
 
-    # Logout twice should work
-    result = runner.invoke(cli, subcommand="logout", args=[])
-    assert result.exit_code == 0
-    assert result.output == expected_logout_str
+# it should give access to the registry once logged in
+@pytest.mark.slow
+@pytest.mark.osemfail
+def test_login_and_use_registry(tmp_path, mocker):
+    runner = SemgrepRunner(
+        env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")},
+        use_click_runner=True,
+    )
+    fake_key = "key123"
 
-    # Next we'll check registry config works while logged in, so we have to log back in
+    # Patch Token Validation:
+    mocker.patch(
+        "semgrep.app.auth.get_deployment_from_token", return_value="deployment_name"
+    )
+
     result = runner.invoke(
         cli,
         subcommand="login",
