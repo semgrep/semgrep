@@ -5,7 +5,6 @@ import stat
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
 
 import click
 from rich.progress import BarColumn
@@ -100,7 +99,7 @@ def download_semgrep_pro(
             shutil.copyfileobj(r_raw, f)
 
 
-def run_install_semgrep_pro(custom_binary: Optional[str] = None) -> None:
+def run_install_semgrep_pro() -> None:
     semgrep_pro_path = determine_semgrep_pro_path()
 
     # TODO This is a temporary solution to help offline users
@@ -110,7 +109,7 @@ def run_install_semgrep_pro(custom_binary: Optional[str] = None) -> None:
         logger.info(f"Overwriting Semgrep Pro Engine already installed!")
 
     state = get_state()
-    if state.app_session.token is None and custom_binary is None:
+    if state.app_session.token is None:
         logger.info(
             "Run `semgrep login` before running `semgrep install-semgrep-pro`. "
             "Or in non-interactive environments, ensure your SEMGREP_APP_TOKEN variable is set correctly."
@@ -143,11 +142,7 @@ def run_install_semgrep_pro(custom_binary: Optional[str] = None) -> None:
 
     semgrep_pro_path_tmp = semgrep_pro_path.with_suffix(".tmp_download")
 
-    if custom_binary is None:
-        download_semgrep_pro(state, platform_kind, semgrep_pro_path_tmp)
-    else:
-        custom_binary_path = Path(custom_binary)
-        shutil.copy(custom_binary_path, semgrep_pro_path_tmp)
+    download_semgrep_pro(state, platform_kind, semgrep_pro_path_tmp)
 
     # THINK: Do we need to give exec permissions to everybody? Can this be a security risk?
     #        The binary should not have setuid or setgid rights, so letting others
@@ -186,25 +181,12 @@ def run_install_semgrep_pro(custom_binary: Optional[str] = None) -> None:
 
 @click.command()
 @click.option(
-    "--custom-binary",
-    help="Supply a binary to use as semgrep-core-proprietary, rather than downloading it. You are responsible for ensuring compatibility.",
-)
-@click.option(
     "--debug",
     is_flag=True,
 )
 @handle_command_errors
-def install_semgrep_pro(custom_binary: Optional[str], debug: bool) -> None:
-    """
-    Install the Semgrep Pro Engine
-
-    The binary is installed in the same directory that semgrep-core
-    is installed in.
-
-    Must be logged in and have access to Semgrep Pro Engine.
-    Visit https://semgrep.dev/products/pro-engine/ for more information
-    """
+def install_semgrep_pro(debug: bool) -> None:
     state = get_state()
     state.terminal.configure(verbose=False, debug=debug, quiet=False, force_color=False)
 
-    run_install_semgrep_pro(custom_binary)
+    run_install_semgrep_pro()
