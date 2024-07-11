@@ -769,49 +769,106 @@ let map_spec_pragma_prop (env : env) ((v1, v2) : CST.spec_pragma_prop) =
       G.Assign (name, v1, v2 |> G.e) |> G.e
   | None -> name
 
-let rec map_attribute_list (env : env) tok
+let rec build_nested_attr_arguments (exprs : G.expr list) : G.argument list =
+  exprs
+  |> List.map (fun item ->
+         match item.e with
+         | G.Ellipsis _ -> G.Arg item
+         | G.N name -> G.Arg item
+         | G.Assign (name, _, rhs) -> (
+             match rhs.e with
+             | G.Container (G.Dict, (lbrace, attrs, rbrace)) ->
+                 let args = build_nested_attr_arguments attrs in
+                 G.Arg (G.Call (name, (lbrace, args, rbrace)) |> G.e)
+             | _ -> (
+                 match name.e with
+                 | G.N (G.Id (ident, _)) -> G.ArgKwd (ident, rhs)
+                 (* Attribute names can be FQNs *)
+                 | _ -> G.Arg item))
+         | _ -> failwith "unexpected expression type in nested attr arguments")
+
+let build_attr_list (exprs : G.expr list) : G.attribute list =
+  (* The highest level of items in attribute list are treated as attributes *)
+  exprs
+  |> List.map (fun item ->
+         match item.e with
+         | G.Ellipsis tok -> [ (* Ellipsis is essentially empty *) ]
+         | G.N name -> [ G.NamedAttr (sc, name, (sc, [], sc)) ]
+         | G.Assign (name, _, expr) -> (
+             let name =
+               match name.e with
+               | G.N name -> name
+               | _ -> failwith "unexpected name in nested attribute"
+             in
+             match expr.e with
+             | G.Container (G.Dict, (lbrace, attrs, rbrace)) ->
+                 (* Nested attributes are arguments *)
+                 let args = build_nested_attr_arguments attrs in
+                 [ G.NamedAttr (sc, name, (lbrace, args, rbrace)) ]
+             | G.N _
+             | G.Ellipsis _ ->
+                 [ G.NamedAttr (sc, name, (sc, [ G.Arg expr ], sc)) ]
+             | _ -> failwith "unexpected expression in nested attribute")
+         | _ -> failwith "Unsupported pattern in let binding")
+  |> List.flatten
+
+let rec map_attribute_expr_list (env : env) tok
     ((v1, v2) : CST.anon_attr_rep_COMMA_attr_246bec5) =
-  let first = map_attribute env tok v1 in
+  let first = map_attribute_expr env tok v1 in
   let rest =
     List.map
       (fun (v1, v2) ->
         let v1 = (* "," *) token env v1 in
-        let v2 = map_attribute env tok v2 in
+        let v2 = map_attribute_expr env tok v2 in
         v2)
       v2
   in
   first :: rest
 
-and map_attribute (env : env) tok (x : CST.attribute) : G.attribute =
+and map_attribute_list (env : env) tok
+    (x : CST.anon_attr_rep_COMMA_attr_246bec5) : G.attribute list =
+  (* Parse attributes as expressions first. Then, transform them into attributes.
+     This is because
+      1. expr's are more expressive;
+      2. move supports nested attributes while semgrep doesn't;
+      3. attributes have limited variants.
+     Top-level attributes are treated as attributes. Nested attributes are placed
+      in arguments.
+  *)
+  let expr_list = map_attribute_expr_list env tok x in
+  build_attr_list expr_list
+
+and map_attribute_expr (env : env) tok (x : CST.attribute) : G.expr =
   match x with
   | `Choice_attr_name x -> (
       match x with
       | `Attr_name x ->
           let name = map_attribute_name env x in
-          G.NamedAttr (tok, name, fb [])
+          G.N name |> G.e
       | `Attr_name_EQ_attr_val (v1, v2, v3) ->
           let name = map_attribute_name env v1 in
           let v2 = (* "=" *) token env v2 in
           let expr = map_attribute_val env v3 |> G.e in
-          G.OtherAttribute (("AttrAssign", tok), G.[ Name name; E expr ])
+          G.Assign (G.N name |> G.e, v2, expr) |> G.e
       | `Attr_name_LPAR_opt_attr_rep_COMMA_attr_opt_COMMA_RPAR
           (v1, v2, v3, v4, v5) ->
           let name = map_attribute_name env v1 in
           let v2 = (* "(" *) token env v2 in
           let attrs =
             v3
-            |> Option.map (map_attribute_list env tok)
+            |> Option.map (map_attribute_expr_list env tok)
             |> Option.value ~default:[]
-            |> List.map (fun x -> G.At x)
           in
           let _comma = Option.map (fun x -> (* "," *) token env x) v4 in
           let v5 = (* ")" *) token env v5 in
-          let args = G.OtherArg (("AttrArg", tok), attrs) in
-          G.NamedAttr (tok, name, fb [ args ]))
-  | `Ellips tok ->
-      G.OtherAttribute
-        ( ("Ellipsis", token env tok),
-          G.[ E (G.Ellipsis (token env tok) |> G.e) ] )
+
+          (* We don't want to use function call here because arguments are hard
+             to convert. There is a separate pass to convert expressions into
+             arguments. *)
+          G.Assign
+            (G.N name |> G.e, sc, G.Container (G.Dict, (v2, attrs, v5)) |> G.e)
+          |> G.e)
+  | `Ellips tok -> G.Ellipsis (token env tok) |> G.e
 
 let map_anon_bind_rep_COMMA_bind_38cc8c1 (env : env)
     ((v1, v2) : CST.anon_bind_rep_COMMA_bind_38cc8c1) =
