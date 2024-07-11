@@ -13,4 +13,4 @@ val main : < Cap.random ; Cap.chdir ; Cap.tmp > -> string array -> Exit_code.t
 
 (* internal *)
 val run_conf :
-  < Cap.random ; Cap.chdir ; Cap.tmp > -> Install_CLI.conf -> Exit_code.t
+  < Cap.random ; Cap.chdir ; Cap.tmp > -> Install_ci_CLI.conf -> Exit_code.t
