@@ -116,13 +116,3 @@ def save_token(login_token: Optional[str], echo_token: bool) -> bool:
     else:
         click.echo("Login token is not valid. Please try again.", err=True)
         return False
-
-
-@click.command()
-@handle_command_errors
-def logout() -> None:
-    """
-    Remove locally stored credentials to semgrep.dev
-    """
-    auth.delete_token()
-    click.echo("Logged out (log back in with `semgrep login`)")

@@ -183,5 +183,5 @@ let run_conf (caps : caps) (conf : Login_CLI.conf) : Exit_code.t =
 (*****************************************************************************)
 
 let main (caps : caps) (argv : string array) : Exit_code.t =
-  let conf = Login_CLI.parse_argv Login_CLI.login_cmdline_info argv in
+  let conf = Login_CLI.parse_argv argv in
   run_conf caps conf
