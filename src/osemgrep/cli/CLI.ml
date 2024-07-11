@@ -213,7 +213,7 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
               subcmd_argv
         (* osemgrep-only: and by default! no need experimental! *)
         | "install-ci" ->
-            Install_subcommand.main
+            Install_ci_subcommand.main
               (caps :> < Cap.random ; Cap.chdir ; Cap.tmp >)
               subcmd_argv
         | "interactive" -> !hook_semgrep_interactive subcmd_argv
