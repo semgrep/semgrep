@@ -171,7 +171,8 @@
 
 ### Fixed
 
-
+- The min-version/max-version rule filtering is now done in pysemgrep too,
+  avoiding previous crash when using new fields (or new enums) in a rule.
 - Language Server will now send error messages properly, and error handling is greatly improved (cdx-502)
 - Pro: Calling a safe method on a tainted object should no longer propagate taint.
 
