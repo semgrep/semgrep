@@ -1,0 +1,21 @@
+rules:
+  - id: pattern_move_struct_member
+    severity: ERROR
+    languages: [move_on_aptos]
+    message: "a non public function with attr key = 'value"
+    patterns:
+      - pattern-inside: address $ADDR { ... }
+      - pattern-inside: module $MODULE_NAME { ... }
+      - pattern-inside: |
+          struct $INNER_STRUCT has store { ... }
+          ...
+      - pattern: |
+          struct $STRUCT has key {
+              $MEMBER: aptos_std::object::Object<$INNER_STRUCT>,
+          }
+  - id: pattern_move_struct_signature
+    severity: ERROR
+    languages: [move_on_aptos]
+    message: "a non public function with attr key = 'value"
+    patterns:
+      - pattern: struct $NAME has drop
