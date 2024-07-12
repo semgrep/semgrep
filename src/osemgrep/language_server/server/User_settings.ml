@@ -59,6 +59,8 @@ let find_targets_conf_of_t settings : Find_targets.conf =
     always_select_explicit_targets = false;
     explicit_targets = Find_targets.Explicit_targets.empty;
     force_project_root = None;
+    (* If you're editing minified files then ??? *)
+    exclude_minified_files = true;
   }
 
 let core_runner_conf_of_t settings : Core_runner.conf =

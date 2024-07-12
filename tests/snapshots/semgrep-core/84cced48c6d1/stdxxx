@@ -99,7 +99,7 @@ Files skipped:
 
    • <none>
 
-  Skipped by limiting to files smaller than 1000000 bytes:
+  Skipped by limiting to files smaller than -1 bytes:
   (Adjust with the --max-target-bytes flag)
 
    • <none>
