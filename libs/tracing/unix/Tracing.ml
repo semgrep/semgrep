@@ -49,7 +49,7 @@ module Log = Log_commons.Log
  * If you want to send traces to a different endpoint, append your command with
  * the `--trace-endpoint=<url> argument
  *
- * coupling: see also cli/src/semgrep/tracing.py
+ * Communicates with the Python tracing in cli/src/semgrep/tracing.py
  *
  * See also https://www.notion.so/semgrep/How-to-add-tracing-b0e1eaa1531e408cbb074663d1f840a6
  *
@@ -77,6 +77,8 @@ type user_data = Trace_core.user_data
 (*****************************************************************************)
 (* Constants *)
 (*****************************************************************************)
+
+(* Coupling: these need to be kept in sync with tracing.py *)
 
 let default_endpoint = "https://telemetry.semgrep.dev"
 let default_dev_endpoint = "https://telemetry.dev2.semgrep.dev"
@@ -179,6 +181,7 @@ let with_tracing fname trace_endpoint data f =
   let url =
     match trace_endpoint with
     | Some url -> (
+        (* Coupling: the endpoint options need to be kept in sync with tracing.py *)
         match url with
         | "semgrep-prod" -> default_endpoint
         | "semgrep-dev" -> default_dev_endpoint
