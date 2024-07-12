@@ -363,10 +363,6 @@ ALPINE_APK_DEPS_CORE=\
   openssl-libs-static \
   zlib-static
 
-# Here is why we need those external packages below for pysemgrep:
-# - python3: obviously needed for pysemgrep and our e2e tests
-ALPINE_APK_DEPS_PYSEMGREP=python3
-
 # Here is why we need those external packages:
 # - pkg-config?
 # NOTE: libpcre3 is actually libpcre
@@ -424,17 +420,6 @@ install-deps-ALPINE-for-semgrep-core:
 	apk add $(ALPINE_APK_DEPS_CORE)
 # Look at its top comment for why it's necessary
 	./scripts/build-static-libcurl.sh
-
-# We pin to a specific version just to prevent things from breaking randomly.
-# We could update to a more recent version.
-# coupling: if you modify the version, please modify also .github/workflows/*
-PIPENV='pipenv==2024.0.1'
-
-# For '--ignore-installed distlib' below see
-# https://stackoverflow.com/questions/63515454/why-does-pip3-install-pipenv-give-error-error-cannot-uninstall-distlib
-install-deps-ALPINE-for-pysemgrep:
-	apk add --no-cache $(ALPINE_APK_DEPS_PYSEMGREP)
-	pip install --no-cache-dir --ignore-installed distlib $(PIPENV)
 
 # -------------------------------------------------
 # Ubuntu

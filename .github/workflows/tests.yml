@@ -222,7 +222,8 @@ jobs:
           make copy-core-for-cli
       - name: Install Python dependencies
         run: |
-          make install-deps-ALPINE-for-pysemgrep
+          apk add --no-cache python3
+          pip install --no-cache-dir --ignore-installed distlib pipenv==2024.0.1
           (cd cli; pipenv install --dev)
       - name: Run pytest for osemgrep known passing tests
         run: |
