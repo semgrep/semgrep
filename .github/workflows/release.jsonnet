@@ -194,7 +194,7 @@ local park_pypi_packages_job = {
     },
     actions.setup_python_step('3.10'),
     {
-      run: 'sudo python3 -m pip install pipenv==2024.0.1',
+      run: 'sudo python3 -m ' + actions.pipenv_install_step.run,
     },
     {
       run: 'pipenv install --dev',

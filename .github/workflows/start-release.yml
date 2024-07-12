@@ -381,7 +381,7 @@ jobs:
       - if: ${{ ! inputs.dry-run }}
         name: Create GitHub Release Body
         run: |
-          pip3 install pipenv==2024.0.1
+          pip install pipenv==2024.0.1
           pipenv install --dev
 
           pipenv run towncrier build --draft --version ${{ needs.get-version.outputs.version }} > release_body.txt
@@ -394,7 +394,7 @@ jobs:
           path: scripts/release/release_body.txt
       - name: Update Changelog
         run: |
-          pip3 install pipenv==2024.0.1
+          pip install pipenv==2024.0.1
           pipenv install --dev
 
           pipenv run towncrier build --yes --version ${{ needs.get-version.outputs.version }}

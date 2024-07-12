@@ -35,10 +35,12 @@
       cache: 'pipenv',
     },
   },
+  // We pin to a specific version just to prevent things from breaking randomly.
+  // This has been a source of breakage in the past.
+  pipenv_version: '2024.0.1',
   pipenv_install_step: {
-    run: 'pip install pipenv==2024.0.1',
+    run: 'pip install pipenv==%s' % $.pipenv_version,
   },
-
   install_python_deps(directory): {
     name: 'Install Python dependencies',
     'working-directory': directory,
