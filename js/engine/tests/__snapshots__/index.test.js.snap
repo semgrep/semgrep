@@ -64,6 +64,49 @@ exports[`misc interpolates metavariables in rule message 1`] = `
           ],
         },
       ],
+      "extra": {
+        "before_filter_matches": "None",
+        "before_negation_matches": [
+          "Some",
+          [
+            {
+              "check_id": "test-interpolate-metavars",
+              "end": {
+                "col": 21,
+                "line": 1,
+                "offset": 20,
+              },
+              "extra": {
+                "engine_kind": "OSS",
+                "is_ignored": false,
+                "message": "Print content is "Hello World"",
+                "metavars": {
+                  "$A": {
+                    "abstract_content": ""Hello World"",
+                    "end": {
+                      "col": 20,
+                      "line": 1,
+                      "offset": 19,
+                    },
+                    "start": {
+                      "col": 7,
+                      "line": 1,
+                      "offset": 6,
+                    },
+                  },
+                },
+                "validation_state": "NO_VALIDATOR",
+              },
+              "path": "test.py",
+              "start": {
+                "col": 1,
+                "line": 1,
+                "offset": 0,
+              },
+            },
+          ],
+        ],
+      },
       "loc": {
         "end": {
           "col": 17,
@@ -248,6 +291,62 @@ exports[`misc js representation handles large ints 1`] = `
               ],
             },
           ],
+          "extra": {
+            "before_filter_matches": [
+              "Some",
+              [
+                {
+                  "check_id": "test",
+                  "end": {
+                    "col": 30,
+                    "line": 1,
+                    "offset": 29,
+                  },
+                  "extra": {
+                    "engine_kind": "OSS",
+                    "is_ignored": false,
+                    "message": "test",
+                    "metavars": {
+                      "$ABOVE_SIGNED_INT32": {
+                        "abstract_content": "3000000000",
+                        "end": {
+                          "col": 29,
+                          "line": 1,
+                          "offset": 28,
+                        },
+                        "start": {
+                          "col": 19,
+                          "line": 1,
+                          "offset": 18,
+                        },
+                      },
+                      "$BELOW_SIGNED_INT32": {
+                        "abstract_content": "2000000000",
+                        "end": {
+                          "col": 17,
+                          "line": 1,
+                          "offset": 16,
+                        },
+                        "start": {
+                          "col": 7,
+                          "line": 1,
+                          "offset": 6,
+                        },
+                      },
+                    },
+                    "validation_state": "NO_VALIDATOR",
+                  },
+                  "path": "test-representation.py",
+                  "start": {
+                    "col": 1,
+                    "line": 1,
+                    "offset": 0,
+                  },
+                },
+              ],
+            ],
+            "before_negation_matches": "None",
+          },
           "loc": {
             "end": {
               "col": 73,
@@ -317,6 +416,62 @@ exports[`misc js representation handles large ints 1`] = `
           ],
         },
       ],
+      "extra": {
+        "before_filter_matches": "None",
+        "before_negation_matches": [
+          "Some",
+          [
+            {
+              "check_id": "test",
+              "end": {
+                "col": 30,
+                "line": 1,
+                "offset": 29,
+              },
+              "extra": {
+                "engine_kind": "OSS",
+                "is_ignored": false,
+                "message": "test",
+                "metavars": {
+                  "$ABOVE_SIGNED_INT32": {
+                    "abstract_content": "3000000000",
+                    "end": {
+                      "col": 29,
+                      "line": 1,
+                      "offset": 28,
+                    },
+                    "start": {
+                      "col": 19,
+                      "line": 1,
+                      "offset": 18,
+                    },
+                  },
+                  "$BELOW_SIGNED_INT32": {
+                    "abstract_content": "2000000000",
+                    "end": {
+                      "col": 17,
+                      "line": 1,
+                      "offset": 16,
+                    },
+                    "start": {
+                      "col": 7,
+                      "line": 1,
+                      "offset": 6,
+                    },
+                  },
+                },
+                "validation_state": "NO_VALIDATOR",
+              },
+              "path": "test-representation.py",
+              "start": {
+                "col": 1,
+                "line": 1,
+                "offset": 0,
+              },
+            },
+          ],
+        ],
+      },
       "loc": {
         "end": {
           "col": 14,

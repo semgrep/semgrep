@@ -160,6 +160,9 @@ let fold_with_expls ~f ~init env xs =
   in
   (acc, List.rev expls)
 
+let pms_of_ranges env (ranges : RM.ranges) : PM.t list =
+  ranges |> List_.map (RM.range_to_pattern_match_adjusted env.rule)
+
 (*****************************************************************************)
 (* Adapters *)
 (*****************************************************************************)
@@ -538,16 +541,12 @@ let matches_of_xpatterns ~mvar_context rule (xconf : xconfig)
 (* Maching explanations helpers *)
 (*****************************************************************************)
 
-let if_explanations (env : env) (ranges : RM.ranges)
+let if_explanations ?(extra = None) (env : env) (ranges : RM.ranges)
     (children : ME.t option list) (op, tok) : ME.t option =
   if env.xconf.matching_explanations then
-    let matches =
-      ranges
-      |> List_.map (fun range ->
-             RM.range_to_pattern_match_adjusted env.rule range)
-    in
+    let matches = pms_of_ranges env ranges in
     let xs = List_.filter_map (fun x -> x) children in
-    let expl = { ME.op; pos = tok; children = xs; matches } in
+    let expl = { ME.op; pos = tok; children = xs; matches; extra } in
     Some expl
   else None
 
@@ -582,12 +581,72 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
                   *)
                  let pos = snd xpat.pstr in
                  (* less: in theory we could decompose again pat and get children*)
-                 { ME.op = XPat pstr; pos; matches; children = [] })
+                 {
+                   ME.op = XPat pstr;
+                   pos;
+                   matches;
+                   children = [];
+                   extra = None;
+                 })
         in
         (* less: add a Out.EllipsisAndStmts intermediate? *)
         children
     | _ -> []
   else []
+
+(* This helper is for making the explanations in a `Rule.formula`, after making
+   the call to evaluate the `Rule.formula_kind`.
+   We mostly split it up here for brevity, because it clutters up `evaluate_formula`.
+*)
+let mk_expls_after_formula_kind ~formula_kind_expls ~filter_expls ~focus_expls
+    ({ conditions; focus; f = _; as_ = _; fix = _ } : Rule.formula) env ranges =
+  match formula_kind_expls with
+  | None -> None
+  | Some ({ ME.children; extra; _ } as me) ->
+      let children =
+        List_.map (fun x -> Some x) children @ filter_expls @ focus_expls
+        |> List_.filter_map Fun.id
+      in
+      let extra =
+        (* if we didn't have any filter steps, then we shouldn't change
+           any of the fields here
+           in particular, we should avoid accidentally setting `before_filter_matches`
+           to `Some []` or the whole extra to `Some`
+        *)
+        match (conditions, focus) with
+        | [], [] -> extra
+        | _ -> (
+            (* As a corollary of having to replace the matches below, we need to
+               put these pre-filtering matches somewhere else.
+               We elect to store it in the `extra`.
+            *)
+            let before_filter_matches = pms_of_ranges env ranges in
+            match extra with
+            | None -> Some (ME.mk_extra ~before_filter_matches ())
+            | Some extra ->
+                Some
+                  {
+                    extra with
+                    before_filter_matches = Some before_filter_matches;
+                  })
+      in
+      Some
+        {
+          me with
+          ME.children;
+          ME.extra;
+          (* We must replace the matches here, or else the matches of the root
+             node will not be those that the tree finally outputs.
+             For instance, if we had:
+             all:
+               - pattern: foo(...)
+               - not: foo(1)
+             and there were 3 instances of `foo(...)` but 2 instances of `foo(1)`,
+             without this step the root explanation would have 3 matches, instead
+             of the correct 1.
+          *)
+          matches = pms_of_ranges env ranges;
+        }
 
 (*****************************************************************************)
 (* Metavariable condition evaluation *)
@@ -785,8 +844,8 @@ and get_nested_formula_matches env formula range =
 (*****************************************************************************)
 
 and evaluate_formula env opt_context
-    ({ f; focus; conditions; fix; as_ } : Rule.formula) =
-  let ranges, expls = evaluate_formula_kind env opt_context f in
+    ({ f; focus; conditions; fix; as_ } as formula : Rule.formula) =
+  let formula_kind_ranges, expls = evaluate_formula_kind env opt_context f in
   (* let's apply additional filters.
       * TODO: Note that some metavariable-regexp may be part of an
       * AND where not all patterns define the metavar, e.g.,
@@ -813,7 +872,7 @@ and evaluate_formula env opt_context
             (OutJ.Filter (Tok.content_of_tok tok), tok)
         in
         (ranges_with_bindings, expl))
-      ~init:(List_.map (fun x -> (x, [])) ranges)
+      ~init:(List_.map (fun x -> (x, [])) formula_kind_ranges)
       env conditions
   in
 
@@ -863,21 +922,19 @@ and evaluate_formula env opt_context
           ranges
   in
 
-  let new_expls =
-    match expls with
-    | None -> None
-    | Some ({ ME.children; _ } as me) ->
-        let children =
-          List_.map (fun x -> Some x) children @ filter_expls @ focus_expls
-          |> List_.filter_map Fun.id
-        in
-        Some { me with ME.children }
-  in
-
   let ranges =
     match as_ with
     | None -> ranges
     | Some as_ -> apply_as_on_ranges ranges as_
+  in
+
+  (* This code path only matters for matching explanations.
+     Here, we synthesize the information from all the explanations in a `formula`,
+     and combine it with the information we obtained before from the `formula_kind`
+  *)
+  let new_expls =
+    mk_expls_after_formula_kind ~formula_kind_expls:expls ~filter_expls
+      ~focus_expls formula env ranges
   in
 
   (ranges, new_expls)
@@ -973,7 +1030,9 @@ and evaluate_formula_kind env opt_context (kind : Rule.formula_kind) =
                  ranges
           in
           (* optimization of `pattern: $X` *)
-          let ranges = run_selector_on_ranges env selector_opt ranges in
+          let ranges_before_negation =
+            run_selector_on_ranges env selector_opt ranges
+          in
 
           (* let's remove the negative ranges *)
           let ranges, negs_expls =
@@ -987,14 +1046,27 @@ and evaluate_formula_kind env opt_context (kind : Rule.formula_kind) =
                   if_explanations env ranges [ expl ] (OutJ.Negation, tok)
                 in
                 (ranges, expl))
-              ~init:ranges env neg
+              ~init:ranges_before_negation env neg
           in
 
           let expl =
             (* We reverse these negation explanations, because we folded across them from
                the left, meaning they are in the opposite order as in the original rule.
             *)
-            if_explanations env ranges (posrs_expls @ negs_expls) (OutJ.And, t)
+            if_explanations env ranges
+              (posrs_expls @ negs_expls)
+              (* These explanations are useful, because without it, we cannot
+                 recover the matches incoming to the first Not node.
+                 This makes it difficult to tell from purely the matching explanation
+                 whether a match was removed by positive intersection or negation.
+              *)
+              ~extra:
+                (Some
+                   (ME.mk_extra
+                      ~before_negation_matches:
+                        (pms_of_ranges env ranges_before_negation)
+                      ()))
+              (OutJ.And, t)
           in
           (ranges, expl))
   | R.Not _ -> failwith "Invalid Not; you can only negate inside an And"
