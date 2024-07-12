@@ -27,6 +27,7 @@ module Resp = Semgrep_output_v1_t
   is that Semgrep would likely take longer as it scans more costly minified
   files. TODO we might want to do some benchmarking and change this default
 *)
+(* coupling: this number is iuncluded in Scan_CLI.ml's docs *)
 let min_whitespace_frequency = 0.07
 
 (*
@@ -127,20 +128,20 @@ let exclude_minified_files paths = Result_.partition_result is_minified paths
    We could configure the size limit based on a per-language basis if we
    know that a language parser can handle larger files.
 *)
-let exclude_big_files paths =
-  let max_bytes = !Flag_semgrep.max_target_bytes in
-  paths
-  |> Result_.partition_result (fun path ->
-         let size = UFile.filesize path in
-         if max_bytes > 0 && size > max_bytes then
-           Error
-             {
-               Resp.path;
-               reason = Too_big;
-               details =
-                 Some
-                   (spf "target file size exceeds %i bytes at %i bytes"
-                      max_bytes size);
-               rule_id = None;
-             }
-         else Ok path)
+let is_big max_bytes path =
+  let size = UFile.filesize path in
+  if max_bytes > 0 && size > max_bytes then
+    Error
+      {
+        Resp.path;
+        reason = Too_big;
+        details =
+          Some
+            (spf "target file size exceeds %i bytes at %i bytes" max_bytes size);
+        rule_id = None;
+      }
+  else Ok path
+
+let exclude_big_files max_target_bytes paths =
+  let max_bytes = max_target_bytes in
+  paths |> Result_.partition_result (is_big max_bytes)

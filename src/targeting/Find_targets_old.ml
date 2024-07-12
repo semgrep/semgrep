@@ -57,7 +57,9 @@ let global_filter ~opt_lang ~sort_by_decr_size paths =
     | None -> (paths, [])
     | Some lang -> Guess_lang.inspect_files lang paths
   in
-  let paths, skipped2 = Skip_target.exclude_big_files paths in
+  let paths, skipped2 =
+    Skip_target.exclude_big_files !Flag_semgrep.max_target_bytes paths
+  in
   let paths, skipped3 = Skip_target.exclude_minified_files paths in
   let skipped = List_.flatten [ skipped1; skipped2; skipped3 ] in
   let sorted_paths =
