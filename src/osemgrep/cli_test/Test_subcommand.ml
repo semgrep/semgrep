@@ -88,6 +88,7 @@ type error =
   | MissingTest of Fpath.t (* rule file *)
   (* the rule when applied produces fixes, but there is no .fixed file *)
   | MissingFixtest of Fpath.t (* rule file *)
+  | UnparsableRule of Fpath.t
 
 (* Useful for error management *)
 type env = {
@@ -626,8 +627,18 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
                (* TODO? sanity check? call metachecker Check_rule.check()?
                 * TODO: error managementm parsing errors?
                 *)
-               let rules, _errorsTODO =
-                 Parse_rule.parse_and_filter_invalid_rules rule_file
+               let* rules, _errorsTODO =
+                 try
+                   Some (Parse_rule.parse_and_filter_invalid_rules rule_file)
+                 with
+                 | Parsing_error.Syntax_error _
+                 | Parsing_error.Other_error _
+                 | Rule.Error _ ->
+                     Logs.warn (fun m ->
+                         m "got error when parsing %s: %s" !!rule_file
+                           (Printexc.get_backtrace ()));
+                     Stack_.push (UnparsableRule rule_file) errors;
+                     None
                in
                match Test_engine.find_target_of_yaml_file_opt rule_file with
                | None ->
@@ -710,7 +721,12 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
                | _else_ -> None)
           |> List.sort Fpath.compare;
         (* TODO *)
-        config_with_errors = [];
+        config_with_errors =
+          !errors
+          |> List_.filter_map (function
+               | UnparsableRule rule_file ->
+                   Some { file = rule_file; reason = `UnparsableRule }
+               | _else_ -> None);
       }
   in
   (* pysemgrep is reporting some "successfully modified 1 file."
