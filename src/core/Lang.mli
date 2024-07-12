@@ -19,6 +19,7 @@ type t = Language.t =
   | Bash
   | C
   | Cairo
+  | Circom
   | Clojure
   | Cpp
   | Csharp

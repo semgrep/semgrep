@@ -127,6 +127,7 @@ else
             "c_sharp"
             "c"
             "cairo"
+            "circom"
             "clojure"
             "cpp"
             "dart"

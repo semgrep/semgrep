@@ -241,6 +241,7 @@ let inspect_file_p (lang : Lang.t) path =
     | Bash
     | C
     | Cairo
+    | Circom
     | Clojure
     | Cpp
     | Csharp
