@@ -99,6 +99,8 @@ type conf = {
   (* osemgrep-only: option
      (see Git_project.find_any_project_root and the force_root parameter) *)
   force_project_root : project_root option;
+  (* osemgrep-only option, exclude scanning minified files, default false *)
+  exclude_minified_files : bool;
 }
 [@@deriving show]
 
@@ -113,10 +115,11 @@ let default_conf : conf =
     include_ = None;
     baseline_commit = None;
     diff_depth = 2;
-    max_target_bytes = 1_000_000 (* 1 MB *);
+    max_target_bytes = -1 (* This is the default for pysemgrep *);
     respect_gitignore = true;
     always_select_explicit_targets = false;
     explicit_targets = Explicit_targets.empty;
+    exclude_minified_files = false;
   }
 
 (*************************************************************************)
@@ -442,6 +445,27 @@ let git_list_untracked_files (project_roots : Project.roots) :
     Fppath_set.t option =
   git_list_files ~exclude_standard:true [ Others ] project_roots
 
+let filter_size_and_minified max_target_bytes exclude_minified_files paths =
+  let selected_fppaths, skipped_size =
+    Result_.partition_result
+      (fun (fppath : Fppath.t) ->
+        Result.map
+          (fun _ -> fppath)
+          (Skip_target.is_big max_target_bytes fppath.fpath))
+      paths
+  in
+  let selected_fppaths, skipped_minified =
+    if exclude_minified_files then
+      Result_.partition_result
+        (fun (fppath : Fppath.t) ->
+          Result.map (fun _ -> fppath) (Skip_target.is_minified fppath.fpath))
+        selected_fppaths
+    else (selected_fppaths, [])
+  in
+  Logs.debug (fun m -> m "skipped_size: %d" (List.length skipped_size));
+  Logs.debug (fun m -> m "skipped_minified: %d" (List.length skipped_minified));
+  (selected_fppaths, skipped_size @ skipped_minified)
+
 (*************************************************************************)
 (* Grouping *)
 (*************************************************************************)
@@ -665,12 +689,19 @@ let get_targets conf scanning_roots =
   |> List_.map (get_targets_for_project conf)
   |> List.split
   |> fun (path_set_list, skipped_paths_list) ->
-  let path_set =
-    List.fold_left Fppath_set.union Fppath_set.empty path_set_list
+  let paths, skipped_size_minified =
+    let path_set =
+      List.fold_left Fppath_set.union Fppath_set.empty path_set_list
+    in
+    Fppath_set.elements path_set
+    |> filter_size_and_minified conf.max_target_bytes
+         conf.exclude_minified_files
   in
-  let paths = Fppath_set.elements path_set in
   let sorted_skipped_targets =
-    List.flatten skipped_paths_list
+    let skipped_paths_list =
+      List.flatten skipped_paths_list @ skipped_size_minified
+    in
+    skipped_paths_list
     |> List.sort (fun (a : Out.skipped_target) (b : Out.skipped_target) ->
            Fpath.compare a.path b.path)
   in
@@ -679,4 +710,5 @@ let get_targets conf scanning_roots =
 
 let get_target_fpaths conf scanning_roots =
   let selected, skipped = get_targets conf scanning_roots in
-  (selected |> List_.map (fun (x : Fppath.t) -> x.fpath), skipped)
+  let selected_fpaths = selected |> List_.map (fun (x : Fppath.t) -> x.fpath) in
+  (selected_fpaths, skipped)

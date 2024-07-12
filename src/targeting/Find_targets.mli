@@ -83,6 +83,9 @@ type conf = {
   explicit_targets : Explicit_targets.t;
   (* osemgrep-only: option (see Git_project.ml and the force_root parameter) *)
   force_project_root : project_root option;
+  (* osemgrep-only option, exclude scanning large files based on
+      max_target_bytes, default true*)
+  exclude_minified_files : bool;
 }
 [@@deriving show]
 
