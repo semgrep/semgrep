@@ -479,9 +479,24 @@ let error_to_error (err : Core_error.t) : OutJ.core_error =
     details;
   }
 
+let extra_to_extra (extra : Matching_explanation.extra) :
+    OutJ.matching_explanation_extra =
+  {
+    before_negation_matches =
+      extra.before_negation_matches
+      |> Option.map
+           (List_.map (fun pm ->
+                unsafe_match_to_match (Core_result.mk_processed_match pm)));
+    before_filter_matches =
+      extra.before_filter_matches
+      |> Option.map
+           (List_.map (fun pm ->
+                unsafe_match_to_match (Core_result.mk_processed_match pm)));
+  }
+
 let rec explanation_to_explanation (exp : Matching_explanation.t) :
     OutJ.matching_explanation =
-  let { Matching_explanation.op; matches; pos; children } = exp in
+  let { Matching_explanation.op; matches; pos; children; extra } = exp in
   let tloc = Tok.unsafe_loc_of_tok pos in
   {
     op;
@@ -491,6 +506,7 @@ let rec explanation_to_explanation (exp : Matching_explanation.t) :
       |> List_.map (fun pm ->
              unsafe_match_to_match (Core_result.mk_processed_match pm));
     loc = OutUtils.location_of_token_location tloc;
+    extra = Option.map extra_to_extra extra;
   }
 
 let profiling_to_profiling (profiling_data : Core_profiling.t) : OutJ.profile =

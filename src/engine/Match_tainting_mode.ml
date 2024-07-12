@@ -699,12 +699,14 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
           pos = fst spec.sources;
           children = expls_sources;
           matches = ranges_to_pms sources_ranges;
+          extra = None;
         };
         {
           ME.op = OutJ.TaintSink;
           pos = fst spec.sinks;
           children = expls_sinks;
           matches = ranges_to_pms sinks_ranges;
+          extra = None;
         }
         (* TODO: propagators *);
       ]
@@ -724,6 +726,7 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
                * has been deprecated for quite some time, and we will remove it at
                * some point. *)
               matches = ranges_to_pms sanitizers_ranges;
+              extra = None;
             };
           ]
     else []
@@ -1032,6 +1035,7 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
           children = expls;
           matches = report.matches;
           pos = snd rule.id;
+          extra = None;
         };
       ]
     else []
