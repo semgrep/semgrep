@@ -26,7 +26,7 @@ local pr_number = '"${{ needs.release-setup.outputs.pr-number }}"';
 
 // For towncrier setup in scripts/release/
 local pipenv_setup = |||
-  pip3 install pipenv==2022.6.7
+  pip3 install pipenv==2024.0.1
   pipenv install --dev
 |||;
 

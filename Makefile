@@ -428,7 +428,7 @@ install-deps-ALPINE-for-semgrep-core:
 # We pin to a specific version just to prevent things from breaking randomly.
 # We could update to a more recent version.
 # coupling: if you modify the version, please modify also .github/workflows/*
-PIPENV='pipenv==2022.6.7'
+PIPENV='pipenv==2024.0.1'
 
 # For '--ignore-installed distlib' below see
 # https://stackoverflow.com/questions/63515454/why-does-pip3-install-pipenv-give-error-error-cannot-uninstall-distlib
