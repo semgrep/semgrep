@@ -21,6 +21,7 @@ import semgrep.run_scan
 import semgrep.test
 from semgrep import __VERSION__
 from semgrep import bytesize
+from semgrep import tracing
 from semgrep.app.version import get_no_findings_msg
 from semgrep.commands.install import determine_semgrep_pro_path
 from semgrep.commands.wrapper import handle_command_errors
@@ -583,266 +584,272 @@ def scan(
         )
 
     state = get_state()
-
-    engine_type = EngineType.decide_engine_type(
-        logged_in=state.app_session.token is not None,
-        engine_flag=requested_engine,
-        run_secrets=run_secrets_flag,
-        interfile_diff_scan_enabled=diff_depth >= 0,
-    )
-
-    # this is useful for our CI job to find where semgrep-core (or semgrep-core-proprietary)
-    # is installed and check if the binary is statically linked.
-    if dump_engine_path:
-        if engine_type == EngineType.OSS:
-            print(SemgrepCore.path())
-        else:
-            print(determine_semgrep_pro_path())
-        return None
-
-    if dataflow_traces is None:
-        dataflow_traces = engine_type.has_dataflow_traces
-
-    state.metrics.configure(metrics)
-    state.terminal.configure(
-        verbose=verbose,
-        debug=debug,
-        quiet=quiet,
-        force_color=force_color,
-        output_format=output_format,
-    )
-
-    if include and exclude:
-        logger.warning(
-            with_color(
-                Colors.yellow,
-                "Paths that match both --include and --exclude will be skipped by Semgrep.",
-            )
+    state.traces.configure(trace, trace_endpoint)
+    with tracing.TRACER.start_as_current_span("semgrep.commands.scan"):
+        engine_type = EngineType.decide_engine_type(
+            logged_in=state.app_session.token is not None,
+            engine_flag=requested_engine,
+            run_secrets=run_secrets_flag,
+            interfile_diff_scan_enabled=diff_depth >= 0,
         )
 
-    if pattern is not None and lang is None:
-        abort("-e/--pattern and -l/--lang must both be specified")
-
-    if config and "auto" in config and metrics == MetricsState.OFF:
-        abort(
-            "Cannot create auto config when metrics are off. Please allow metrics or run with a specific config."
-        )
-
-    # People have more flexibility on local scans so --max-memory and --pro-timeout is set to unlimited
-    if not max_memory:
-        max_memory = 0  # unlimited
-    if not interfile_timeout:
-        interfile_timeout = 0  # unlimited
-
-    # Note this must be after the call to `terminal.configure` so that verbosity is respected
-    possibly_notify_user()
-
-    # change cwd if using docker
-    if not targets:
-        semgrep.config_resolver.adjust_for_docker()
-        targets = (os.curdir,)
-
-    use_osemgrep_to_format: Set[OutputFormat] = set()
-    if use_osemgrep_sarif:
-        use_osemgrep_to_format.add(OutputFormat.SARIF)
-
-    outputs = collect_additional_outputs(
-        outputs_text=outputs_text,
-        outputs_emacs=outputs_emacs,
-        outputs_json=outputs_json,
-        outputs_vim=outputs_vim,
-        outputs_gitlab_sast=outputs_gitlab_sast,
-        outputs_gitlab_secrets=outputs_gitlab_secrets,
-        outputs_junit_xml=outputs_junit_xml,
-        outputs_sarif=outputs_sarif,
-    )
-
-    output_settings = OutputSettings(
-        outputs=outputs,
-        output_format=output_format,
-        output_destination=output,
-        error_on_findings=error_on_findings,
-        strict=strict,
-        verbose_errors=verbose,
-        timeout_threshold=timeout_threshold,
-        output_time=time_flag,
-        output_per_finding_max_lines_limit=max_lines_per_finding,
-        output_per_line_max_chars_limit=max_chars_per_line,
-        dataflow_traces=dataflow_traces,
-        use_osemgrep_to_format=use_osemgrep_to_format,
-    )
-
-    if test:
-        if len(outputs) > 0:
-            abort("The --test option doesn't support additional outputs to files.")
-        # the test code (which isn't a "test" per se but is actually
-        # machinery to evaluate semgrep performance) uses
-        # managed_output internally
-        semgrep.test.test_main(
-            target=targets,
-            config=config,
-            test_ignore_todo=test_ignore_todo,
-            strict=strict,
-            json=output_format == OutputFormat.JSON,
-            optimizations=optimizations,
-            engine_type=engine_type,
-        )
-
-    run_has_findings = False
-
-    # The 'optional_stdin_target' context manager must remain before
-    # 'managed_output'. Output depends on file contents so we cannot have
-    # already deleted the temporary stdin file.
-    with tempfile.TemporaryDirectory() as pipes_dir:
-        # mostly repeating the loop in write_pipes_to_disk to detect if we
-        # need --scan-unknown-extensions.
-        for t in targets:
-            if t == "-" or Path(t).is_fifo():
-                logger.debug("stdin or piped targets, adding --scan-unknown-extensions")
-                scan_unknown_extensions = True
-
-        targets = write_pipes_to_disk(targets, Path(pipes_dir))
-
-        output_handler = OutputHandler(output_settings)
-        return_data: Optional[
-            Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]
-        ] = None
-
-        if validate:
-            if not (pattern or lang or config):
-                logger.error(
-                    f"Nothing to validate, use the --config or --pattern flag to specify a rule"
-                )
+        # this is useful for our CI job to find where semgrep-core (or semgrep-core-proprietary)
+        # is installed and check if the binary is statically linked.
+        if dump_engine_path:
+            if engine_type == EngineType.OSS:
+                print(SemgrepCore.path())
             else:
-                resolved_configs, config_errors = semgrep.config_resolver.get_config(
-                    pattern, lang, config or [], project_url=get_project_url()
+                print(determine_semgrep_pro_path())
+            return None
+
+        if dataflow_traces is None:
+            dataflow_traces = engine_type.has_dataflow_traces
+
+        state.metrics.configure(metrics)
+        state.terminal.configure(
+            verbose=verbose,
+            debug=debug,
+            quiet=quiet,
+            force_color=force_color,
+            output_format=output_format,
+        )
+
+        if include and exclude:
+            logger.warning(
+                with_color(
+                    Colors.yellow,
+                    "Paths that match both --include and --exclude will be skipped by Semgrep.",
                 )
+            )
 
-                # Run metachecks specifically on the config files
-                if config:
-                    try:
-                        metacheck_errors = CoreRunner(
-                            jobs=jobs,
-                            engine_type=engine_type,
-                            timeout=timeout,
-                            max_memory=max_memory,
-                            timeout_threshold=timeout_threshold,
-                            interfile_timeout=interfile_timeout,
-                            trace=trace,
-                            trace_endpoint=trace_endpoint,
-                            optimizations=optimizations,
-                            allow_untrusted_validators=allow_untrusted_validators,
-                            path_sensitive=path_sensitive,
-                        ).validate_configs(config)
-                    except SemgrepError as e:
-                        metacheck_errors = [e]
+        if pattern is not None and lang is None:
+            abort("-e/--pattern and -l/--lang must both be specified")
 
-                config_errors = list(chain(config_errors, metacheck_errors))
+        if config and "auto" in config and metrics == MetricsState.OFF:
+            abort(
+                "Cannot create auto config when metrics are off. Please allow metrics or run with a specific config."
+            )
 
-                valid_str = "invalid" if config_errors else "valid"
-                # NOTE: get_rules will de-duplicate rules as the same rule can appear across multiple config packs
-                rule_count = len(resolved_configs.get_rules(True))
-                logger.info(
-                    f"Configuration is {valid_str} - found {len(config_errors)} configuration error(s), and {rule_count} rule(s)."
-                )
-                if config_errors:
-                    output_handler.handle_semgrep_errors(config_errors)
+        # People have more flexibility on local scans so --max-memory and --pro-timeout is set to unlimited
+        if not max_memory:
+            max_memory = 0  # unlimited
+        if not interfile_timeout:
+            interfile_timeout = 0  # unlimited
+
+        # Note this must be after the call to `terminal.configure` so that verbosity is respected
+        possibly_notify_user()
+
+        # change cwd if using docker
+        if not targets:
+            semgrep.config_resolver.adjust_for_docker()
+            targets = (os.curdir,)
+
+        use_osemgrep_to_format: Set[OutputFormat] = set()
+        if use_osemgrep_sarif:
+            use_osemgrep_to_format.add(OutputFormat.SARIF)
+
+        outputs = collect_additional_outputs(
+            outputs_text=outputs_text,
+            outputs_emacs=outputs_emacs,
+            outputs_json=outputs_json,
+            outputs_vim=outputs_vim,
+            outputs_gitlab_sast=outputs_gitlab_sast,
+            outputs_gitlab_secrets=outputs_gitlab_secrets,
+            outputs_junit_xml=outputs_junit_xml,
+            outputs_sarif=outputs_sarif,
+        )
+
+        output_settings = OutputSettings(
+            outputs=outputs,
+            output_format=output_format,
+            output_destination=output,
+            error_on_findings=error_on_findings,
+            strict=strict,
+            verbose_errors=verbose,
+            timeout_threshold=timeout_threshold,
+            output_time=time_flag,
+            output_per_finding_max_lines_limit=max_lines_per_finding,
+            output_per_line_max_chars_limit=max_chars_per_line,
+            dataflow_traces=dataflow_traces,
+            use_osemgrep_to_format=use_osemgrep_to_format,
+        )
+
+        if test:
+            if len(outputs) > 0:
+                abort("The --test option doesn't support additional outputs to files.")
+            # the test code (which isn't a "test" per se but is actually
+            # machinery to evaluate semgrep performance) uses
+            # managed_output internally
+            semgrep.test.test_main(
+                target=targets,
+                config=config,
+                test_ignore_todo=test_ignore_todo,
+                strict=strict,
+                json=output_format == OutputFormat.JSON,
+                optimizations=optimizations,
+                engine_type=engine_type,
+            )
+
+        run_has_findings = False
+
+        # The 'optional_stdin_target' context manager must remain before
+        # 'managed_output'. Output depends on file contents so we cannot have
+        # already deleted the temporary stdin file.
+        with tempfile.TemporaryDirectory() as pipes_dir:
+            # mostly repeating the loop in write_pipes_to_disk to detect if we
+            # need --scan-unknown-extensions.
+            for t in targets:
+                if t == "-" or Path(t).is_fifo():
+                    logger.debug(
+                        "stdin or piped targets, adding --scan-unknown-extensions"
+                    )
+                    scan_unknown_extensions = True
+
+            targets = write_pipes_to_disk(targets, Path(pipes_dir))
+
+            output_handler = OutputHandler(output_settings)
+            return_data: Optional[
+                Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]
+            ] = None
+
+            if validate:
+                if not (pattern or lang or config):
+                    logger.error(
+                        f"Nothing to validate, use the --config or --pattern flag to specify a rule"
+                    )
+                else:
+                    (
+                        resolved_configs,
+                        config_errors,
+                    ) = semgrep.config_resolver.get_config(
+                        pattern, lang, config or [], project_url=get_project_url()
+                    )
+
+                    # Run metachecks specifically on the config files
+                    if config:
+                        try:
+                            metacheck_errors = CoreRunner(
+                                jobs=jobs,
+                                engine_type=engine_type,
+                                timeout=timeout,
+                                max_memory=max_memory,
+                                timeout_threshold=timeout_threshold,
+                                interfile_timeout=interfile_timeout,
+                                trace=trace,
+                                trace_endpoint=trace_endpoint,
+                                optimizations=optimizations,
+                                allow_untrusted_validators=allow_untrusted_validators,
+                                path_sensitive=path_sensitive,
+                            ).validate_configs(config)
+                        except SemgrepError as e:
+                            metacheck_errors = [e]
+
+                    config_errors = list(chain(config_errors, metacheck_errors))
+
+                    valid_str = "invalid" if config_errors else "valid"
+                    # NOTE: get_rules will de-duplicate rules as the same rule can appear across multiple config packs
+                    rule_count = len(resolved_configs.get_rules(True))
+                    logger.info(
+                        f"Configuration is {valid_str} - found {len(config_errors)} configuration error(s), and {rule_count} rule(s)."
+                    )
+                    if config_errors:
+                        output_handler.handle_semgrep_errors(config_errors)
+                        output_handler.output({}, all_targets=set(), filtered_rules=[])
+                        raise SemgrepError("Please fix the above errors and try again.")
+            else:
+                try:
+                    (
+                        filtered_matches_by_rule,
+                        semgrep_errors,
+                        _renamed_targets,
+                        ignore_log,
+                        filtered_rules,
+                        profiler,
+                        output_extra,
+                        shown_severities,
+                        _dependencies,
+                        _dependency_parser_errors,
+                        _contributions,
+                        executed_rule_count,
+                        missed_rule_count,
+                    ) = semgrep.run_scan.run_scan(
+                        diff_depth=diff_depth,
+                        dump_command_for_core=dump_command_for_core,
+                        time_flag=time_flag,
+                        matching_explanations=matching_explanations,
+                        engine_type=engine_type,
+                        run_secrets=run_secrets_flag,
+                        disable_secrets_validation=disable_secrets_validation_flag,
+                        historical_secrets=historical_secrets,
+                        output_handler=output_handler,
+                        target=targets,
+                        pattern=pattern,
+                        lang=lang,
+                        configs=(config or ["auto"]),
+                        no_rewrite_rule_ids=(not rewrite_rule_ids),
+                        jobs=jobs,
+                        include=include,
+                        exclude={product: (exclude or ()) for product in ALL_PRODUCTS},
+                        exclude_rule=exclude_rule,
+                        max_target_bytes=max_target_bytes,
+                        replacement=replacement,
+                        strict=strict,
+                        autofix=autofix,
+                        dryrun=dryrun,
+                        disable_nosem=(not enable_nosem),
+                        no_git_ignore=(not use_git_ignore),
+                        timeout=timeout,
+                        max_memory=max_memory,
+                        timeout_threshold=timeout_threshold,
+                        interfile_timeout=interfile_timeout,
+                        trace=trace,
+                        trace_endpoint=trace_endpoint,
+                        skip_unknown_extensions=(not scan_unknown_extensions),
+                        allow_untrusted_validators=allow_untrusted_validators,
+                        severity=severity,
+                        optimizations=optimizations,
+                        baseline_commit=baseline_commit,
+                        x_ls=x_ls,
+                        path_sensitive=path_sensitive,
+                    )
+                except SemgrepError as e:
+                    output_handler.handle_semgrep_errors([e])
                     output_handler.output({}, all_targets=set(), filtered_rules=[])
-                    raise SemgrepError("Please fix the above errors and try again.")
-        else:
-            try:
-                (
+                    raise e
+
+                output_handler.output(
+                    filtered_matches_by_rule,
+                    all_targets=output_extra.all_targets,
+                    ignore_log=ignore_log,
+                    profiler=profiler,
+                    filtered_rules=filtered_rules,
+                    extra=output_extra,
+                    explanations=output_extra.core.explanations,
+                    severities=shown_severities,
+                    print_summary=True,
+                    engine_type=engine_type,
+                    executed_rule_count=executed_rule_count,
+                    missed_rule_count=missed_rule_count,
+                )
+
+                run_has_findings = any(filtered_matches_by_rule.values())
+
+                return_data = (
                     filtered_matches_by_rule,
                     semgrep_errors,
-                    _renamed_targets,
-                    ignore_log,
                     filtered_rules,
-                    profiler,
-                    output_extra,
-                    shown_severities,
-                    _dependencies,
-                    _dependency_parser_errors,
-                    _contributions,
-                    executed_rule_count,
-                    missed_rule_count,
-                ) = semgrep.run_scan.run_scan(
-                    diff_depth=diff_depth,
-                    dump_command_for_core=dump_command_for_core,
-                    time_flag=time_flag,
-                    matching_explanations=matching_explanations,
-                    engine_type=engine_type,
-                    run_secrets=run_secrets_flag,
-                    disable_secrets_validation=disable_secrets_validation_flag,
-                    historical_secrets=historical_secrets,
-                    output_handler=output_handler,
-                    target=targets,
-                    pattern=pattern,
-                    lang=lang,
-                    configs=(config or ["auto"]),
-                    no_rewrite_rule_ids=(not rewrite_rule_ids),
-                    jobs=jobs,
-                    include=include,
-                    exclude={product: (exclude or ()) for product in ALL_PRODUCTS},
-                    exclude_rule=exclude_rule,
-                    max_target_bytes=max_target_bytes,
-                    replacement=replacement,
-                    strict=strict,
-                    autofix=autofix,
-                    dryrun=dryrun,
-                    disable_nosem=(not enable_nosem),
-                    no_git_ignore=(not use_git_ignore),
-                    timeout=timeout,
-                    max_memory=max_memory,
-                    timeout_threshold=timeout_threshold,
-                    interfile_timeout=interfile_timeout,
-                    trace=trace,
-                    trace_endpoint=trace_endpoint,
-                    skip_unknown_extensions=(not scan_unknown_extensions),
-                    allow_untrusted_validators=allow_untrusted_validators,
-                    severity=severity,
-                    optimizations=optimizations,
-                    baseline_commit=baseline_commit,
-                    x_ls=x_ls,
-                    path_sensitive=path_sensitive,
+                    output_extra.all_targets,
                 )
-            except SemgrepError as e:
-                output_handler.handle_semgrep_errors([e])
-                output_handler.output({}, all_targets=set(), filtered_rules=[])
-                raise e
 
-            output_handler.output(
-                filtered_matches_by_rule,
-                all_targets=output_extra.all_targets,
-                ignore_log=ignore_log,
-                profiler=profiler,
-                filtered_rules=filtered_rules,
-                extra=output_extra,
-                explanations=output_extra.core.explanations,
-                severities=shown_severities,
-                print_summary=True,
-                engine_type=engine_type,
-                executed_rule_count=executed_rule_count,
-                missed_rule_count=missed_rule_count,
-            )
+        if enable_version_check:
+            from semgrep.app.version import version_check
 
-            run_has_findings = any(filtered_matches_by_rule.values())
+            version_check()
 
-            return_data = (
-                filtered_matches_by_rule,
-                semgrep_errors,
-                filtered_rules,
-                output_extra.all_targets,
-            )
+        if not run_has_findings and enable_version_check:
+            msg = get_no_findings_msg()
+            # decouple CLI from app - if functionality removed, do not fail
+            if msg:
+                logger.info(msg)
 
-    if enable_version_check:
-        from semgrep.app.version import version_check
-
-        version_check()
-
-    if not run_has_findings and enable_version_check:
-        msg = get_no_findings_msg()
-        # decouple CLI from app - if functionality removed, do not fail
-        if msg:
-            logger.info(msg)
-
-    return return_data
+        return return_data

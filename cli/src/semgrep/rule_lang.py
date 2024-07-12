@@ -25,13 +25,13 @@ from ruamel.yaml import YAML
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
+from semgrep import tracing
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.error import OK_EXIT_CODE
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.error_location import SourceTracker
 from semgrep.error_location import Span
-
 
 MISSING_RULE_ID = "no-rule-id"
 
@@ -260,6 +260,7 @@ def parse_yaml_preserve_spans(
     return data
 
 
+@tracing.trace()
 def parse_config_preserve_spans(
     contents: str, filename: Optional[str]
 ) -> Tuple[YamlTree, List[SemgrepError]]:
@@ -423,6 +424,7 @@ def prepend_rule_path(filename: Optional[str], rule_id: str) -> str:
 # In-place removal of rules that don't satisfy min-version or max-version
 # constraints. It's not great but easier than having to reconstruct a valid
 # YamlTree from the root.
+@tracing.trace()
 def remove_incompatible_rules_based_on_version(
     root: YamlTree, filename: Optional[str], no_rewrite_rule_ids: bool = False
 ) -> List[SemgrepError]:
@@ -520,6 +522,7 @@ def remove_incompatible_rules_based_on_version(
     return errors
 
 
+@tracing.trace()
 def validate_yaml(
     data: YamlTree, filename: Optional[str] = None, no_rewrite_rule_ids: bool = False
 ) -> List[SemgrepError]:
@@ -530,8 +533,9 @@ def validate_yaml(
     )
 
     try:
-        jsonschema.validate(data.unroll(), RuleSchema.get(), cls=Draft7Validator)
-        return errors
+        with tracing.TRACER.start_as_current_span("jsonschema.validate"):
+            jsonschema.validate(data.unroll(), RuleSchema.get(), cls=Draft7Validator)
+            return errors
     except jsonschema.ValidationError as ve:
         message = _validation_error_message(ve)
         item = data

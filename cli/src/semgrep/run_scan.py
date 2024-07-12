@@ -35,6 +35,7 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parse_lockfile import parse_lockfile_path
 from semdep.parsers.util import DependencyParserError
 from semgrep import __VERSION__
+from semgrep import tracing
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
 from semgrep.constants import DEFAULT_DIFF_DEPTH
@@ -82,7 +83,6 @@ from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
 from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
-
 
 logger = getLogger(__name__)
 
@@ -171,6 +171,7 @@ def remove_matches_in_baseline(
 
 
 # This runs semgrep-core (and also handles SCA and join rules)
+@tracing.trace()
 def run_rules(
     filtered_rules: List[Rule],
     target_manager: TargetManager,
@@ -335,6 +336,7 @@ def list_targets_and_exit(target_manager: TargetManager, product: out.Product) -
 
 # cli/bin/semgrep -> main.py -> cli.py -> commands/scan.py -> run_scan()
 # old: this used to be called semgrep.semgrep_main.main
+@tracing.trace()
 def run_scan(
     *,
     diff_depth: int = DEFAULT_DIFF_DEPTH,

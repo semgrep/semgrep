@@ -4,11 +4,13 @@ from typing import Optional
 
 from boltons.iterutils import get_path
 
+from semgrep import tracing
 from semgrep.state import get_state
 
 logger = logging.getLogger(__name__)
 
 
+@tracing.trace()
 def get_deployment_from_token(token: str) -> Optional[str]:
     """
     Returns the deployment name the token is for, if token is valid

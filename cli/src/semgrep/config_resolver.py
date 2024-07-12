@@ -24,6 +24,7 @@ from ruamel.yaml import YAMLError
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
+from semgrep import tracing
 from semgrep.app import auth
 from semgrep.console import console
 from semgrep.constants import CLI_RULE_ID
@@ -53,7 +54,6 @@ from semgrep.util import is_rules
 from semgrep.util import is_url
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
-
 
 logger = getLogger(__name__)
 
@@ -405,6 +405,7 @@ def read_config_folder(loc: Path, relative: bool = False) -> List[ConfigFile]:
     return configs
 
 
+@tracing.trace()
 def parse_config_files(
     loaded_config_infos: List[ConfigFile],
 ) -> Tuple[Dict[str, YamlTree], List[SemgrepError]]:
@@ -465,6 +466,7 @@ def parse_config_files(
     return config, errors
 
 
+@tracing.trace()
 def resolve_config(
     config_str: str, project_url: Optional[str] = None
 ) -> Tuple[Dict[str, YamlTree], List[SemgrepError]]:
@@ -499,6 +501,7 @@ class Config:
         self.missed_rule_count = missed_rule_count
 
     @classmethod
+    @tracing.trace()
     def from_pattern_lang(
         cls, pattern: str, lang: str, replacement: Optional[str] = None
     ) -> Tuple["Config", List[SemgrepError]]:
@@ -507,6 +510,7 @@ class Config:
         return cls(valid), errors
 
     @classmethod
+    @tracing.trace()
     def from_rules_yaml(
         cls, config: str, no_rewrite_rule_ids: bool = False
     ) -> Tuple["Config", List[SemgrepError]]:
@@ -531,6 +535,7 @@ class Config:
         return cls(valid), errors
 
     @classmethod
+    @tracing.trace()
     def from_config_list(
         cls, configs: Sequence[str], project_url: Optional[str]
     ) -> Tuple["Config", List[SemgrepError]]:
@@ -734,6 +739,7 @@ def indent(msg: str) -> str:
     return "\n".join(["\t" + line for line in msg.splitlines()])
 
 
+@tracing.trace()
 def parse_config_string(
     config_id: str,
     contents: str,
@@ -900,6 +906,7 @@ def is_pack_id(config_str: str) -> bool:
     return config_str[:2] == "p/"
 
 
+@tracing.trace()
 def get_config(
     pattern: Optional[str],
     lang: Optional[str],

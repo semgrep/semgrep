@@ -121,7 +121,7 @@ def select_real_errors(errors: List[SemgrepError]) -> List[SemgrepError]:
     return [x for x in errors if is_real_error(x.level)]
 
 
-@dataclass(frozen=True)
+@dataclass()
 class SemgrepCoreError(SemgrepError):
     code: int
     level: out.ErrorSeverity
