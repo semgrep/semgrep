@@ -1,4 +1,6 @@
-# See https://www.notion.so/semgrep/How-to-add-tracing-b0e1eaa1531e408cbb074663d1f840a6
+# Library to use Opentelemetry from the python side of Semgrep
+# coupling: stay aligned with ../../../libs/tracing/unix/Tracing.ml
+# For more info, see https://www.notion.so/semgrep/How-to-add-tracing-b0e1eaa1531e408cbb074663d1f840a6
 import functools
 import os
 from typing import Callable

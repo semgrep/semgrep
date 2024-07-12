@@ -19,18 +19,18 @@ module Log = Log_commons.Log
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-
-(** Tracing library for Semgrep using several libraries:
+(* Tracing library wrapper relying on OpenTelemetry and several libraries:
  *
  * - trace (https://github.com/c-cube/ocaml-trace) for the trace
-     instrumentation frontend (e.g. the annotations)
+ *   instrumentation frontend (e.g. the annotations)
  * - opentelemetry (https://github.com/imandra-ai/ocaml-opentelemetry)
-     for the backend that processes traces
+ *   for the backend that processes traces
  * - opentelemetry-client-ocurl (included with opentelemetry) for the
-     collector. TODO use opentelemetry-client-cohttp-lwt instead since
-     we rely on cottp in other places already
+ *   collector.
+ *   TODO use opentelemetry-client-cohttp-lwt instead since
+ *   we rely on cottp in other places already
  * - ambient-context (https://github.com/ELLIOTTCABLE/ocaml-ambient-context)
-     which we set up for opentelemetry to use
+ *   which we set up for opentelemetry to use
  *
  * The goal of tracing is to track how we perform in real scans. Things we
  * might do with this data include tracking the p95 scan time, tracking the
@@ -42,12 +42,23 @@ module Log = Log_commons.Log
  * to use a different backend (permanently, or for our own profiling), we can
  * switch it out in just this file.
  *
- * Functions can be instrumented using a ppx or directly with the `with_span`
- * function. The results are sent to the default endpoint (see constants below),
- * which collects them to send to a viewer.
+ * Functions can be instrumented using a ppx (see ../ppx/) or directly with
+ * the `with_span` function. The results are sent to the default endpoint
+ * (see constants below), which collects them to send to a viewer.
  *
  * If you want to send traces to a different endpoint, append your command with
  * the `--trace-endpoint=<url> argument
+ *
+ * coupling: see also cli/src/semgrep/tracing.py
+ *
+ * See also https://www.notion.so/semgrep/How-to-add-tracing-b0e1eaa1531e408cbb074663d1f840a6
+ *
+ * TODO:
+ *  - code in libs/ should be independent of semgrep, so some of the
+ *    hardcoded endpoints below should be moved to src/, not in libs/
+ *  - get rid of our dependency to curl, but the current alternative is to
+ *    use Opentelemetry_client_cohttp_lwt which require to lwt-ify the code
+ *    which is annoying. Does opentelemetry have an eio backend?
  *)
 
 (*****************************************************************************)
@@ -83,11 +94,13 @@ type level =
   | Debug  (** Traces to help profile a specific run *)
   | Trace  (** All traces *)
 
+(* TODO: replace by [@@deriving show] above, but then weird compilation errors*)
 let show_level = function
   | Info -> "Info"
   | Debug -> "Debug"
   | Trace -> "Trace"
 
+(* TODO? why define our own type repeating an existing one? *)
 let level_to_trace_level level =
   match level with
   | Info -> Trace_core.Level.Info
@@ -145,6 +158,7 @@ let add_data_to_opt_span sp data =
 (*****************************************************************************)
 (* Entry points for setting up tracing *)
 (*****************************************************************************)
+
 (* Set according to README of https://github.com/imandra-ai/ocaml-opentelemetry/ *)
 let configure_tracing service_name =
   Otel.Globals.service_name := service_name;
@@ -196,4 +210,5 @@ let with_tracing fname trace_endpoint data f =
 
    Lwt_platform.run (let res = Opentelemetry_client_cohttp_lwt.with_setup ~config () @@ fun () ->
    run_with_span "All time" f in
-     Lwt.bind (Lwt_platform.sleep 0.01) (fun () -> Lwt.return res)) *)
+     Lwt.bind (Lwt_platform.sleep 0.01) (fun () -> Lwt.return res))
+*)
