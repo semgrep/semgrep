@@ -6,7 +6,7 @@ module OutJ = Semgrep_output_v1_j
 (*****************************************************************************)
 (*
    Small wrapper around semgrep-interfaces/semgrep_metrics.atd to prepare
-   semgrep metrics data to send to https://metrics.semgrep.dev
+   the metrics data to send to https://metrics.semgrep.dev
 
    Partially translated from metrics.py
 
@@ -18,7 +18,6 @@ module OutJ = Semgrep_output_v1_j
      - basic feature tags (subcommands, language)
      - user agent information (version, subcommand)
      - language information (language, numRules, numTargets, totalBytesScanned)
-
    TODO:
     - add_registry_url
     - parsing stat (parse rates)
@@ -30,19 +29,20 @@ module OutJ = Semgrep_output_v1_j
     execution of the CLI.safe_run() function to report the exit code.
 
     Metrics flow in osemgrep:
-      1. init() - set started_at, event_id, anonymous_user_id
-      2. add_feature - tag subcommand, CLI flags, language, etc.
-      3. add_user_agent_tag - add CLI version, subcommand, etc.
-      4. add_* methods - any other data, or access directly g.payload
-      5. prepare_to_send() - set sent_at
-      6. string_of_metrics() - serialize metrics payload as JSON string
-      7. send_metrics() - send payload to our endpoint
+      1. init() (in CLI.ml) - set started_at, event_id, anonymous_user_id
+      2. configure() (in the Xxx_subcommand.ml) to enable/disable metrics
+      3. add_feature - tag subcommand, CLI flags, language, etc.
+      4. add_user_agent_tag - add CLI version, subcommand, etc.
+      5. add_* methods - any other data, or access directly g.payload
+      6. prepare_to_send() - set sent_at
+      7. string_of_metrics() - serialize metrics payload as JSON string
+      8. send_metrics() (in CLI.ml) - send payload to our endpoint
          https://metrics.semgrep.dev (can be changed via SEMGREP_METRICS_URL
          for testing purpose)
 
-    Metrics flow outside (o)semgrep:
+    Metrics flow outside (o)semgrep: See
     https://www.notion.so/semgrep/Life-of-a-Semgrep-CLI-metrics-payload-8b6442c4ce164819aa55bab08d83c1f6
-    But basically after posting to metrics.semgrep.dev:
+    but basically after posting to metrics.semgrep.dev:
       -> API Gateway (Name=Telemetry)
       -> Lambda (Name=SemgrepMetricsGatewayToKinesisIntegration)
          see semgrep-app-lambdas/metrics-handler/prod/index.js
@@ -50,20 +50,32 @@ module OutJ = Semgrep_output_v1_j
         |-> S3 Bucket (Name=semgrep-cli-metrics)
           -> Snowflake (SEMGREP_CLI_TELEMETRY)
             -> Metabase (SEMGREP CLI - SNOWFLAKE)
-        |-> OpenSearch (Name=semgrep-metrics)
+        |-> OpenSearch (Name=semgrep-metrics) (TODO: where??)
+
     For metabase, you can watch "Metabase for PA engineers" talk by Emma here:
     https://drive.google.com/file/d/1BJNR578M3KxbuuIU5xNPFkhbYccfo9XH/view
     You can see the data here:
     https://metabase.corp.semgrep.dev/browse/databases/6-semgrep-cli-snowflake
     and especially the CLI Run table and inside the EVENT column which contains
     the whole JSON payload.
+    However it does not seem to work very well.
+
+    For Snowflake, which seems more responsive and with less errors, try
+    https://app.snowflake.com/fbwpxcx/xx83553/#/data/databases/SEMGREP_CLI
+    and in https://app.snowflake.com/fbwpxcx/xx83553/worksheets click '+' to
+    write query, such as
+
+       SELECT *
+       FROM "SEMGREP_CLI"."PUBLIC"."CLI_RUN"
+       WHERE date_trunc('day', CAST(INGESTED_AT AS TIMESTAMP)) >=
+             date_trunc('day', current_timestamp - INTERVAL '90 days')
+          AND USER_AGENT LIKE '%logout%'
 
     Notes:
-      - Raw payload is ingested by our metrics endpoint exposed via our API
-        Gateway
-      - We parse the payload and add additional metadata (i.e., sender IP) in our
-        Lambda function (see semgrep-app-lambdas/metrics-handler/prod/index.js).
-        We do not parse the payload in a typed way, we access json fields
+      - We parse the payload and add additional metadata (i.e., sender IP, the
+        user Agent) in our Lambda function
+        (see semgrep-app-lambdas/metrics-handler/prod/index.js).
+        We do not parse the payload in a typed way, we access JSON fields
         directly (bad)
       - We pass the transformed payload to our AWS Kinesis stream
         ("semgrep-cli-telemetry")
@@ -83,6 +95,7 @@ module OutJ = Semgrep_output_v1_j
       - The data is then stored in our S3 bucket ("semgrep-cli-metrics") and
         can be queried via Snowflake or Metabase such as
         https://metabase.corp.semgrep.dev/browse/databases/6-semgrep-cli-snowflake
+        https://app.snowflake.com/fbwpxcx/xx83553/#/data/databases/SEMGREP_CLI
 
     alt: this file should be called simply Metrics.ml but this would conflict
     with a module using the same name in one of the OCaml library we use.
@@ -246,6 +259,13 @@ let is_enabled () =
 (* User agent *)
 (*****************************************************************************)
 
+(* The user_agent is not part of the payload we send to the metrics
+ * endpoint, but it's part of the HTTP request and an AWS Lambda in the metrics
+ * pipeline actually adds it back to the payload.
+ *
+ * This function is used to add extra "tags" to the agent around
+ * parenthesis (e.g., "(Docker)", "(osemgrep)", "(command/login)")
+ *)
 let add_user_agent_tag (str : string) =
   let str =
     str
