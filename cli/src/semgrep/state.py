@@ -14,6 +14,7 @@ from semgrep.metrics import Metrics
 from semgrep.semgrep_types import get_frozen_id
 from semgrep.settings import Settings
 from semgrep.terminal import Terminal
+from semgrep.tracing import Traces
 
 
 class DesignTreatment(Enum):
@@ -38,6 +39,7 @@ class SemgrepState:
     error_handler: ErrorHandler = Factory(ErrorHandler)
     settings: Settings = Factory(Settings)
     terminal: Terminal = Factory(Terminal)
+    traces: Traces = Factory(Traces)
 
     @staticmethod
     def get_cli_ux_flavor() -> DesignTreatment:

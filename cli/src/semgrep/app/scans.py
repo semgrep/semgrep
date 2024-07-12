@@ -22,6 +22,7 @@ from boltons.iterutils import partition
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers.util import DependencyParserError
 from semgrep import __VERSION__
+from semgrep import tracing
 from semgrep.app.project_config import ProjectConfig
 from semgrep.constants import USER_FRIENDLY_PRODUCT_NAMES
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
@@ -198,6 +199,7 @@ class ScanHandler:
             return config
         return out.HistoricalConfiguration(enabled=False)
 
+    @tracing.trace()
     def start_scan(
         self, project_metadata: out.ProjectMetadata, project_config: ProjectConfig
     ) -> None:
@@ -275,6 +277,7 @@ class ScanHandler:
         except requests.RequestException:
             raise Exception(f"API server returned this error: {response.text}")
 
+    @tracing.trace()
     def report_findings(
         self,
         matches_by_rule: RuleMatchMap,

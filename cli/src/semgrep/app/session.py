@@ -12,6 +12,7 @@ from attrs import define
 from attrs import field
 
 from semgrep import __VERSION__
+from semgrep import tracing
 
 
 @define
@@ -173,6 +174,7 @@ class AppSession(requests.Session):
     def is_authenticated(self) -> bool:
         return self.token is not None
 
+    @tracing.trace()
     def request(self, *args: Any, **kwargs: Any) -> requests.Response:
         kwargs.setdefault(
             "timeout", 70

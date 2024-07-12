@@ -29,6 +29,7 @@ from rich.progress import TimeElapsedColumn
 from ruamel.yaml import YAML
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semgrep import tracing
 from semgrep.app import auth
 from semgrep.config_resolver import Config
 from semgrep.console import console
@@ -177,6 +178,7 @@ def uniq_error_id(
     )
 
 
+@tracing.trace()
 def open_and_ignore(fname: str) -> None:
     """
     Attempt to open 'fname' simply so a record of having done so will
@@ -413,6 +415,9 @@ class StreamingSemgrepCore:
 
         Return its exit code when it terminates.
         """
+        # Set parent span id as close to fork as possible to ensure core
+        # spans nest under the correct pysemgrep parent span.
+        get_state().traces.inject()
         process = await asyncio.create_subprocess_exec(
             *self._cmd,
             stdout=asyncio.subprocess.PIPE,
@@ -430,6 +435,7 @@ class StreamingSemgrepCore:
         # Return exit code of cmd. process should already be done
         return await process.wait()
 
+    @tracing.trace()
     def execute(self) -> int:
         """
         Run semgrep-core and listen to stdout to update
