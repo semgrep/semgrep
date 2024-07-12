@@ -117,6 +117,7 @@ let lang_parsing_tests () =
       pack_parsing_tests_for_lang Lang.Dockerfile "dockerfile" ".dockerfile";
       pack_parsing_tests_for_lang Lang.Lua "lua" ".lua";
       pack_parsing_tests_for_lang Lang.Move_on_aptos "move_on_aptos" ".move";
+      pack_parsing_tests_for_lang Lang.Circom "circom" ".circom";
       pack_parsing_tests_for_lang Lang.Rust "rust" ".rs";
       pack_parsing_tests_for_lang Lang.Cairo "cairo" ".cairo";
       pack_parsing_tests_for_lang Lang.Swift "swift" ".swift";

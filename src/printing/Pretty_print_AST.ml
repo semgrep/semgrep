@@ -208,6 +208,7 @@ and if_stmt env (tok, e, s, sopt) =
   let bracket_body = F.sprintf "%s %s" (* (if cond) body *) in
   let format_cond, elseif_str, format_block =
     match env.lang with
+    | Lang.Circom
     | Lang.Cairo
     | Lang.Xml
     | Lang.Dart
@@ -286,6 +287,7 @@ and while_stmt env (tok, e, s) =
   let ruby_while = F.sprintf "%s %s\n %s\nend" in
   let while_format =
     match env.lang with
+    | Lang.Circom
     | Lang.Cairo
     | Lang.Xml
     | Lang.Dart
@@ -339,6 +341,7 @@ and do_while stmt env (s, e) =
   let c_do_while = F.sprintf "do %s\nwhile(%s)" in
   let do_while_format =
     match env.lang with
+    | Lang.Circom
     | Lang.Cairo
     | Lang.Xml
     | Lang.Dart
@@ -390,6 +393,7 @@ and do_while stmt env (s, e) =
 and for_stmt env (for_tok, hdr, s) =
   let for_format =
     match env.lang with
+    | Lang.Circom
     | Lang.Cairo
     | Lang.Xml
     | Lang.Dart
@@ -488,6 +492,7 @@ and def_stmt env (entity, def_kind) =
   let var_def (ent, def) =
     let no_val, with_val =
       match env.lang with
+      | Lang.Circom
       | Lang.Cairo
       | Lang.Xml
       | Lang.Dart

@@ -146,3 +146,7 @@ url = https://github.com/returntocorp/semgrep-rules.git
 path = languages/move_on_aptos/tree-sitter/semgrep-move-on-aptos
 url = https://github.com/semgrep/semgrep-move-on-aptos.git
 
+[submodule "OSS/languages/circom/tree-sitter/semgrep-circom"]
+path = languages/circom/tree-sitter/semgrep-circom
+url = https://github.com/semgrep/semgrep-circom.git
+

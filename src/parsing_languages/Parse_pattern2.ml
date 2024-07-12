@@ -210,8 +210,9 @@ let parse_pattern options lang str =
   | Lang.Move_on_aptos ->
       let res = Parse_move_on_aptos_tree_sitter.parse_pattern str in
       extract_pattern_from_tree_sitter_result res
-(* not yet handled ?? *)
-(* | Lang.Xxx -> failwith "No Xxx generic parser yet" *)
+  | Lang.Circom ->
+      let res = Parse_circom_tree_sitter.parse_pattern str in
+      extract_pattern_from_tree_sitter_result res
 
 let dump_tree_sitter_pattern_cst (lang : Lang.t) (path : Fpath.t) : unit =
   let file = !!path in
