@@ -209,6 +209,8 @@ let language_exceptions =
     (Lang.Ruby, [ "equivalence_naming_import"; "metavar_typed"; "metavar_anno" ]);
     (* regexp_string feature has been deprecated *)
     (Lang.Scala, [ "regexp_string"; "metavar_ellipsis_args" ]);
+
+    (Lang.Move_on_aptos, [ "metavar_key_value"; "regexp_string" ]);
     (* Beta languages *)
 
     (* TODO: to fix *)
@@ -278,6 +280,7 @@ let maturity_tests () =
       make_maturity_tests Lang.Ruby "ruby" ".rb" GA;
       make_maturity_tests Lang.Ts "ts" ".ts" GA;
       make_maturity_tests Lang.Scala "scala" ".scala" GA;
+      make_maturity_tests Lang.Move_on_aptos "move_on_aptos" ".move" GA;
       (* Beta *)
       make_maturity_tests Lang.Hack "hack" ".hack" Beta;
       make_maturity_tests Lang.Kotlin "kotlin" ".kt" Beta;
