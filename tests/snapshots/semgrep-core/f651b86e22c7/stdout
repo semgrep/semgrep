@@ -1,0 +1,16 @@
+Test name: with git > symlinks from git are filtered too
+--- Files added before 'git add' ---
+a
+lnk
+--- begin input files ---
+a
+lnk
+--- end input files ---
+Initialized empty Git repository in <TMP>/<MASKED>/.git/
+[main (root-commit) <MASKED>] Add files
+ 2 files changed, 2 insertions(+)
+ create mode 100644 a
+ create mode 120000 lnk
+--- Selected targets ---
+selected a
+--- Skipped targets ---
