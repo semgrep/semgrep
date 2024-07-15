@@ -3,36 +3,17 @@
    regardless of rules or languages.
  *)
 
-type git_remote = { url : Uri.t } [@@deriving show]
+type project_root =
+  | Filesystem of Rfpath.t
+  (* currently used to optimize Semgrep query console *)
+  | Git_remote of git_remote
 
-type project_root = Git_remote of git_remote | Filesystem of Rfpath.t
-[@@deriving show]
+and git_remote = { url : Uri.t } [@@deriving show]
 
 (*
    Abstract type designed for quickly determining whether a path is in the
    set of explicit targets. An explicit target is a target file passed directly
    on the command line.
-
-   This is a bit fragile as it assumes that target file paths found in the file
-   system have the same form as those passed on the command line. It won't
-   work with unnormalized paths such as 'foo/../bar.js' that will likely
-   be rewritten into 'bar.js'. See:
-
-     $ git ls-files libs/../README.md
-     README.md
-
-   This results in 'README.md' being treated as non-explicit target file.
-
-   TODO: use pairs (project, ppath) instead as keys? If we use a dedicated
-   record for targets, we can extract the pair (project, ppath):
-
-     type target = {
-       project: Project.t; (* provides normalized project root *)
-       path: Fppath.t; (* provides (normalized) ppath *)
-     }
-
-   If we go this path, we could also add a field 'is_explicit: bool' to the
-   target type.
 *)
 module Explicit_targets : sig
   type t
@@ -47,9 +28,9 @@ module Explicit_targets : sig
 end
 
 type conf = {
-  (* global exclude list, passed via semgrep --exclude *)
+  (* global exclude list, passed via semgrep --exclude (a glob) *)
   exclude : string list;
-  (* global include list, passed via semgrep --include
+  (* global include list, passed via semgrep --include (a glob)
    * Those are flags copied from grep (and ripgrep).
    *)
   include_ : string list option;
@@ -58,10 +39,6 @@ type conf = {
    * TODO? what about .semgrepignore?
    *)
   respect_gitignore : bool;
-  (* TODO: not used for now *)
-  baseline_commit : string option;
-  (* TODO: not used for now *)
-  diff_depth : int;
   (* Language-specific filtering: CLI option '--scan-unknown-extensions'
      allows explicit targets (files on the command line) to bypass
      normal language detection.
@@ -83,9 +60,12 @@ type conf = {
   explicit_targets : Explicit_targets.t;
   (* osemgrep-only: option (see Git_project.ml and the force_root parameter) *)
   force_project_root : project_root option;
-  (* osemgrep-only option, exclude scanning large files based on
-      max_target_bytes, default true*)
+  (* osemgrep-only: exclude scanning large files based on
+      max_target_bytes, default true *)
   exclude_minified_files : bool;
+  (* TODO: not used for now *)
+  baseline_commit : string option;
+  diff_depth : int;
 }
 [@@deriving show]
 

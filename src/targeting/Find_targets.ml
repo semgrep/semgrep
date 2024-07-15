@@ -1,3 +1,17 @@
+(* Martin Jambon, Yoann Padioleau
+ *
+ * Copyright (C) 2023-2024 Semgrep Inc.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file LICENSE.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * LICENSE for more details.
+ *)
 open Common
 open Fpath_.Operators
 module Out = Semgrep_output_v1_t
@@ -29,14 +43,51 @@ module Log = Log_targeting.Log
      If allow_unknown_extensions is set then targets with extensions that are
      not understood by semgrep will always be returned by get_files. Else will
      discard targets with unknown extensions
+
+   TODO:
+    - optimize, reduce the number of filesystem lookup? or memoize them?
+      there are a few places where we stat for a file
+    - add an option to select all git-tracked files regardless of
+       gitignore or semgrepignore exclusions (will be needed for Secrets)
+       and have the exclusions apply only to the files that aren't tracked.
 *)
 
 (*************************************************************************)
 (* Types *)
 (*************************************************************************)
 
+type project_root =
+  | Filesystem of Rfpath.t
+  (* for Semgrep query console *)
+  | Git_remote of git_remote
+
+and git_remote = { url : Uri.t } [@@deriving show]
+
 module Fppath_set = Set.Make (Fppath)
 
+(* Yet another file path type ...
+
+   This module is a bit fragile as it assumes that target file paths found in
+   the file system have the same form as those passed on the command line.
+   It won't work with unnormalized paths such as 'foo/../bar.js' that will
+   likely be rewritten into 'bar.js'. See:
+
+     $ git ls-files libs/../README.md
+     README.md
+
+   This results in 'README.md' being treated as non-explicit target file.
+
+   TODO: use pairs (project, ppath) instead as keys? If we use a dedicated
+   record for targets, we can extract the pair (project, ppath):
+
+     type target = {
+       project: Project.t; (* provides normalized project root *)
+       path: Fppath.t; (* provides (normalized) ppath *)
+     }
+
+   If we go this path, we could also add a field 'is_explicit: bool' to the
+   target type.
+*)
 module Explicit_targets = struct
   type t = {
     tbl : (Fpath.t, unit) Hashtbl.t;
@@ -59,20 +110,10 @@ module Explicit_targets = struct
   let mem x path = Hashtbl.mem x.tbl path
 end
 
-(* TODO? process also user's gitignore file like ripgrep does?
-   TODO? use Glob.Pattern.t below instead of string for exclude and include_?
-   TODO: add an option to select all git-tracked files regardless of
-         gitignore or semgrepignore exclusions (will be needed for Secrets)
-         and have the exclusions apply only to the files that aren't tracked.
-*)
-
-type git_remote = { url : Uri.t } [@@deriving show]
-
-type project_root = Git_remote of git_remote | Filesystem of Rfpath.t
-[@@deriving show]
-
 type conf = {
-  (* global exclude list, passed via semgrep '--exclude'. *)
+  (* global exclude list, passed via semgrep '--exclude'.
+   * TODO? use Glob.Pattern.t instead? same for include_
+   *)
   exclude : string list;
   (* !!! '--include' is very different from '--exclude' !!!
       The include filter is applied after after gitignore and
@@ -91,9 +132,6 @@ type conf = {
    * The .semgrepignore are always respected.
    *)
   respect_gitignore : bool;
-  (* TODO? use, and better parsing of the string? a Git.version type? *)
-  baseline_commit : string option;
-  diff_depth : int;
   always_select_explicit_targets : bool;
   explicit_targets : Explicit_targets.t;
   (* osemgrep-only: option
@@ -101,6 +139,9 @@ type conf = {
   force_project_root : project_root option;
   (* osemgrep-only option, exclude scanning minified files, default false *)
   exclude_minified_files : bool;
+  (* TODO? remove it? This is now done in Diff_scan.ml instead? *)
+  baseline_commit : string option;
+  diff_depth : int;
 }
 [@@deriving show]
 
@@ -113,13 +154,13 @@ let default_conf : conf =
     force_project_root = None;
     exclude = [];
     include_ = None;
-    baseline_commit = None;
-    diff_depth = 2;
     max_target_bytes = -1 (* This is the default for pysemgrep *);
     respect_gitignore = true;
     always_select_explicit_targets = false;
     explicit_targets = Explicit_targets.empty;
     exclude_minified_files = false;
+    baseline_commit = None;
+    diff_depth = 2;
   }
 
 (*************************************************************************)
@@ -149,7 +190,7 @@ let get_reason_for_exclusion (sel_events : Gitignore.selection_event list) :
       (* shouldn't happen *) fallback
 
 (*************************************************************************)
-(* Finding *)
+(* Filtering *)
 (*************************************************************************)
 
 type filter_result =
@@ -248,6 +289,31 @@ let filter_regular_file_paths
          | Ignore_silently -> ());
   (Fppath_set.of_list !selected_paths, !skipped)
 
+let filter_size_and_minified max_target_bytes exclude_minified_files paths =
+  let selected_fppaths, skipped_size =
+    Result_.partition_result
+      (fun (fppath : Fppath.t) ->
+        Result.map
+          (fun _ -> fppath)
+          (Skip_target.is_big max_target_bytes fppath.fpath))
+      paths
+  in
+  let selected_fppaths, skipped_minified =
+    if exclude_minified_files then
+      Result_.partition_result
+        (fun (fppath : Fppath.t) ->
+          Result.map (fun _ -> fppath) (Skip_target.is_minified fppath.fpath))
+        selected_fppaths
+    else (selected_fppaths, [])
+  in
+  Logs.debug (fun m -> m "skipped_size: %d" (List.length skipped_size));
+  Logs.debug (fun m -> m "skipped_minified: %d" (List.length skipped_minified));
+  (selected_fppaths, skipped_size @ skipped_minified)
+
+(*************************************************************************)
+(* Finding by walking *)
+(*************************************************************************)
+
 (* We used to call 'git ls-files' when conf.respect_gitignore was true,
  * which could potentially speedup things because git may rely on
  * internal data-structures to answer the question instead of walking
@@ -305,7 +371,7 @@ let walk_skip_and_collect (ign : Gitignore.filter)
   (!selected_paths, !skipped)
 
 (*************************************************************************)
-(* Additional Git-specific (or other) expansion of the scanning roots *)
+(* Finding by using git *)
 (*************************************************************************)
 
 (*
@@ -444,27 +510,6 @@ let git_list_tracked_files (project_roots : Project.roots) : Fppath_set.t option
 let git_list_untracked_files (project_roots : Project.roots) :
     Fppath_set.t option =
   git_list_files ~exclude_standard:true [ Others ] project_roots
-
-let filter_size_and_minified max_target_bytes exclude_minified_files paths =
-  let selected_fppaths, skipped_size =
-    Result_.partition_result
-      (fun (fppath : Fppath.t) ->
-        Result.map
-          (fun _ -> fppath)
-          (Skip_target.is_big max_target_bytes fppath.fpath))
-      paths
-  in
-  let selected_fppaths, skipped_minified =
-    if exclude_minified_files then
-      Result_.partition_result
-        (fun (fppath : Fppath.t) ->
-          Result.map (fun _ -> fppath) (Skip_target.is_minified fppath.fpath))
-        selected_fppaths
-    else (selected_fppaths, [])
-  in
-  Logs.debug (fun m -> m "skipped_size: %d" (List.length skipped_size));
-  Logs.debug (fun m -> m "skipped_minified: %d" (List.length skipped_minified));
-  (selected_fppaths, skipped_size @ skipped_minified)
 
 (*************************************************************************)
 (* Grouping *)
