@@ -209,14 +209,12 @@ let language_exceptions =
     (Lang.Ruby, [ "equivalence_naming_import"; "metavar_typed"; "metavar_anno" ]);
     (* regexp_string feature has been deprecated *)
     (Lang.Scala, [ "regexp_string"; "metavar_ellipsis_args" ]);
-
     (* Beta languages *)
 
     (* TODO: to fix *)
     (Lang.Kotlin, [ "dots_stmts"; "metavar_equality_var" ]);
     (* good boy *)
     (Lang.Rust, []);
-
     (Lang.Move_on_aptos, [ "metavar_key_value"; "regexp_string" ]);
     (* Experimental languages *)
 
