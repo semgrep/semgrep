@@ -3,7 +3,7 @@
     {
       "code": 2,
       "level": "error",
-      "message": "Rule parse error in rule -:\n Invalid pattern for C: invalid rule -, <MASKED>:9:17: Invalid pattern for C: Stdlib.Parsing.Parse_error\n----- pattern -----\n#include<asdf><<>>><$X>\n----- end pattern -----\n\n----- pattern -----\n#include<asdf><<>>><$X>\n----- end pattern -----\n",
+      "message": "Rule parse error in rule -:\n Invalid pattern for C: Stdlib.Parsing.Parse_error\n----- pattern -----\n#include<asdf><<>>><$X>\n----- end pattern -----\n",
       "rule_id": "-",
       "type": "Rule parse error"
     }

@@ -180,25 +180,30 @@ let dump_pattern (caps : < Cap.tmp >) (file : Fpath.t) =
   let lang = Xlang.lang_of_opt_xlang_exn !lang in
   E.try_with_log_exn_and_reraise file (fun () ->
       (* TODO? enable "semgrep.parsing" log level *)
-      let any = Parse_pattern.parse_pattern lang s in
-      let v = Meta_AST.vof_any any in
-      let s = dump_v_to_format v in
-      UCommon.pr s)
+      match Parse_pattern.parse_pattern lang s with
+      | Ok any ->
+          let v = Meta_AST.vof_any any in
+          let s = dump_v_to_format v in
+          UCommon.pr s
+      | Error e -> Logs.app (fun m -> m "Parse error: %s" e))
 [@@action]
 
 let dump_patterns_of_rule (caps : < Cap.tmp >) (file : Fpath.t) =
   let file = Core_scan.replace_named_pipe_by_regular_file caps file in
-  let rules = Parse_rule.parse file in
-  let xpats = List.concat_map Rule.xpatterns_of_rule rules in
-  List.iter
-    (fun { Xpattern.pat; _ } ->
-      match pat with
-      | Sem (pat, _) ->
-          let v = Meta_AST.vof_any pat in
-          let s = dump_v_to_format v in
-          UCommon.pr s
-      | _ -> UCommon.pr (Xpattern.show_xpattern_kind pat))
-    xpats
+  match Parse_rule.parse file with
+  | Ok rules ->
+      let xpats = List.concat_map Rule.xpatterns_of_rule rules in
+      List.iter
+        (fun { Xpattern.pat; _ } ->
+          match pat with
+          | Sem (pat, _) ->
+              let v = Meta_AST.vof_any pat in
+              let s = dump_v_to_format v in
+              UCommon.pr s
+          | _ -> UCommon.pr (Xpattern.show_xpattern_kind pat))
+        xpats
+      (* TODO: handle better *)
+  | Error e -> failwith (Rule.string_of_error e)
 [@@action]
 
 let dump_ast ?(naming = false) (caps : < Cap.stdout ; Cap.exit ; Cap.tmp >)

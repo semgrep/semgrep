@@ -268,34 +268,32 @@ let parse_rule ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
   let rule_id_rewriter =
     if rewrite_rule_ids then Some (mk_rewrite_rule_ids origin) else None
   in
-  try
-    let rules, errors =
-      match FT.file_type_of_file file with
-      | FT.Config FT.Jsonnet ->
-          Logs.warn (fun m ->
-              m
-                "Support for Jsonnet rules is experimental and currently meant \
-                 for internal use only. The syntax may change or be removed at \
-                 any point.");
-          let ast = Parse_jsonnet.parse_program file in
-          let core =
-            Desugar_jsonnet.desugar_program
-              ~import_callback:(mk_import_callback caps) file ast
-          in
-          let value_ = Eval_jsonnet.eval_program core in
-          let gen = Manifest_jsonnet_to_AST_generic.manifest_value value_ in
-          (* TODO: put to true at some point *)
-          Parse_rule.parse_generic_ast ~rewrite_rule_ids:rule_id_rewriter
-            ~error_recovery:false file gen
-      | _ ->
-          Parse_rule.parse_and_filter_invalid_rules
-            ~rewrite_rule_ids:rule_id_rewriter file
-    in
-    Ok (List_.map (modify_registry_provided_metadata origin) rules, errors)
-  with
-  | Rule.Error err -> Error err
-  | Parsing_error.Other_error (s, t) ->
-      Error { rule_id = None; kind = Rule.InvalidYaml (s, t) }
+  let rules_and_errors =
+    match FT.file_type_of_file file with
+    | FT.Config FT.Jsonnet ->
+        Logs.warn (fun m ->
+            m
+              "Support for Jsonnet rules is experimental and currently meant \
+               for internal use only. The syntax may change or be removed at \
+               any point.");
+        let ast = Parse_jsonnet.parse_program file in
+        let core =
+          Desugar_jsonnet.desugar_program
+            ~import_callback:(mk_import_callback caps) file ast
+        in
+        let value_ = Eval_jsonnet.eval_program core in
+        let gen = Manifest_jsonnet_to_AST_generic.manifest_value value_ in
+        (* TODO: put to true at some point *)
+        Parse_rule.parse_generic_ast ~rewrite_rule_ids:rule_id_rewriter
+          ~error_recovery:false file gen
+    | _ ->
+        Parse_rule.parse_and_filter_invalid_rules
+          ~rewrite_rule_ids:rule_id_rewriter file
+  in
+  match rules_and_errors with
+  | Ok (rules, errors) ->
+      Ok (List_.map (modify_registry_provided_metadata origin) rules, errors)
+  | Error err -> Error err
 
 (*****************************************************************************)
 (* Loading rules *)
@@ -428,14 +426,14 @@ let rules_from_dashdash_config ~rewrite_rule_ids ~token_opt caps kind :
 
 let langs_of_pattern (pat, xlang_opt) : Xlang.t list =
   let xlang_compatible_with_pat xlang =
-    let _xpat = Parse_rule.parse_fake_xpattern xlang pat in
-    xlang
+    let/ _xpat = Parse_rule.parse_fake_xpattern xlang pat in
+    Ok xlang
   in
   match xlang_opt with
   | Some xlang ->
       (* TODO? capture also parse errors here? and transform the pattern
          * parse error in invalid_rule_error to return in rules_and_origin? *)
-      [ xlang_compatible_with_pat xlang ]
+      [ xlang_compatible_with_pat xlang |> Result.get_ok ]
   (* osemgrep-only: better: can use -e without -l! we try all languages *)
   | None ->
       (* We need uniq_by because Lang.assoc contain multiple times the
@@ -455,14 +453,15 @@ let langs_of_pattern (pat, xlang_opt) : Xlang.t list =
       in
       all_langs
       |> List_.filter_map (fun l ->
-             try
+             match
                let xlang = Xlang.of_lang l |> xlang_compatible_with_pat in
                Logs.debug (fun m ->
                    m "language %s valid for the pattern" (Lang.show l));
-               Some xlang
+               xlang
              with
-             | R.Error _
-             | Failure _ ->
+             | Ok xlang -> Some xlang
+             | Error _
+             | (exception Failure _) ->
                  None)
 
 let rules_and_origin_of_rule rule =
@@ -518,7 +517,13 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict caps
         let rules_and_origins =
           List_.map
             (fun xlang ->
-              let xpat = Parse_rule.parse_fake_xpattern xlang pat in
+              let xpat =
+                match Parse_rule.parse_fake_xpattern xlang pat with
+                | Ok xpat -> xpat
+                (* TODO: this shouldn't be any worse than the status quo but
+                   this should be more robust *)
+                | Error e -> failwith (Rule.string_of_error e)
+              in
               let rule = Rule.rule_of_xpattern ~fix xlang xpat in
               rules_and_origin_of_rule rule)
             valid_langs

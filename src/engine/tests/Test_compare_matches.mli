@@ -1,5 +1,8 @@
 (* Helpers for unit testing *)
 
+val location_of_pm : Pattern_match.t -> Fpath.t * int
+val location_of_core_error : Core_error.t -> Fpath.t * int
+
 (* extract all the lines with ERROR: comment in test files *)
 val expected_error_lines_of_files :
   ?regexp:string ->
@@ -9,8 +12,11 @@ val expected_error_lines_of_files :
 
 (* Return the number of errors and an error message, if there's any error. *)
 val compare_actual_to_expected :
-  Core_error.t list -> (Fpath.t * int) list -> (unit, int * string) result
+  to_location:('a -> Fpath.t * int) ->
+  'a list ->
+  (Fpath.t * int) list ->
+  (unit, int * string) result
 
 (* Call Alcotest.fail in case of errors *)
 val compare_actual_to_expected_for_alcotest :
-  Core_error.t list -> (Fpath.t * int) list -> unit
+  to_location:('a -> Fpath.t * int) -> 'a list -> (Fpath.t * int) list -> unit

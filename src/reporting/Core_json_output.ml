@@ -600,8 +600,7 @@ let core_output_of_matches_and_errors (res : Core_result.t) : OutJ.core_output =
   let matches, new_errs =
     Either_.partition_either match_to_match res.processed_matches
   in
-  let errs = !E.g_errors @ new_errs @ res.errors in
-  E.g_errors := [];
+  let errs = new_errs @ res.errors in
   {
     results = matches |> dedup_and_sort;
     errors = errs |> List_.map error_to_error;
@@ -634,17 +633,3 @@ let core_output_of_matches_and_errors (res : Core_result.t) : OutJ.core_output =
     version = Some Version.version;
   }
 [@@profiling]
-
-(*****************************************************************************)
-(* Error management *)
-(*****************************************************************************)
-
-(* this is used only in the testing code, to reuse the
- * Semgrep_error_code.compare_actual_to_expected
- *)
-let push_error loc (rule : Pattern_match.rule_id) =
-  E.push_error rule.id loc rule.message OutJ.SemgrepMatchFound
-
-let match_to_push_error x =
-  let min_loc, _max_loc = x.range_loc in
-  push_error min_loc x.rule_id

@@ -333,18 +333,27 @@ let translate_files fparser xs =
     |> List_.map (fun file ->
            Logs.info (fun m -> m "translate_files: processing %s" !!file);
            let formulas =
-             fparser file
-             |> List_.map (fun rule ->
-                    match rule.mode with
-                    | `Search formula
-                    | `Extract { formula; _ } ->
-                        [
-                          ("match", (formula |> translate_formula :> Yaml.value));
-                        ]
-                    | `Taint spec ->
-                        [ ("taint", (translate_taint_spec spec :> Yaml.value)) ]
-                    | `SCA _ -> failwith "sca rules not currently translated"
-                    | `Steps _ -> failwith "step rules not currently handled")
+             match fparser file with
+             | Ok rules ->
+                 rules
+                 |> List_.map (fun rule ->
+                        match rule.mode with
+                        | `Search formula
+                        | `Extract { formula; _ } ->
+                            [
+                              ( "match",
+                                (formula |> translate_formula :> Yaml.value) );
+                            ]
+                        | `Taint spec ->
+                            [
+                              ( "taint",
+                                (translate_taint_spec spec :> Yaml.value) );
+                            ]
+                        | `SCA _ ->
+                            failwith "sca rules not currently translated"
+                        | `Steps _ ->
+                            failwith "step rules not currently handled")
+             | Error e -> failwith ("parsing failure: " ^ Rule.string_of_error e)
            in
            (file, formulas))
   in

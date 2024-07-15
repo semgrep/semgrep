@@ -52,7 +52,11 @@ let check lang { target; pattern; fix_pattern; expected } =
                  "wrong number of matches for `%s`. expected exactly 1, got %d"
                  target (List.length lst))
       in
-      let fix_pattern_ast = Parse_pattern.parse_pattern lang fix_pattern in
+      let fix_pattern_ast =
+        match Parse_pattern.parse_pattern lang fix_pattern with
+        | Ok x -> x
+        | Error s -> failwith (spf "Failed to parse %s: %s" fix_pattern s)
+      in
       let metavars = match_.env in
       let fixed_pattern_ast =
         match

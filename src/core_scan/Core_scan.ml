@@ -583,10 +583,14 @@ let rules_from_rule_source (caps : < Cap.tmp >) (config : Core_scan_config.t) :
   in
   let rules, rule_errors =
     match rule_source with
-    | Some (Core_scan_config.Rule_file file) ->
+    | Some (Core_scan_config.Rule_file file) -> (
         Logs.info (fun m -> m "Parsing %s" !!file);
         Logs.debug (fun m -> m " content = %s" (UFile.read_file file));
-        Parse_rule.parse_and_filter_invalid_rules ~rewrite_rule_ids:None file
+        match
+          Parse_rule.parse_and_filter_invalid_rules ~rewrite_rule_ids:None file
+        with
+        | Ok rules -> rules
+        | Error e -> failwith ("Error in parsing: " ^ Rule.string_of_error e))
     | Some (Core_scan_config.Rules rules) -> (rules, [])
     | None ->
         (* TODO: ensure that this doesn't happen *)

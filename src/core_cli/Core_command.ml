@@ -34,23 +34,28 @@ let timeout_function file timeout f =
   match
     Time_limit.set_timeout_opt ~name:"Run_semgrep.timeout_function" timeout f
   with
-  | Some res -> res
+  | Some res -> Ok res
   | None ->
       let loc = Tok.first_loc_of_file !!file in
       let err = E.mk_error None loc "" OutJ.Timeout in
-      Stack_.push err E.g_errors
+      Error err
 
 (* for -e/-f *)
 let parse_pattern lang_pattern str =
-  try Parse_pattern.parse_pattern lang_pattern str with
-  | exn ->
-      Logs.err (fun m -> m "parse_pattern: exn = %s" (Common.exn_to_s exn));
-      Rule.raise_error None
-        (InvalidRule
-           ( InvalidPattern
-               (str, Xlang.of_lang lang_pattern, Common.exn_to_s exn, []),
-             Rule_ID.of_string_exn "no-id",
-             Tok.unsafe_fake_tok "no loc" ))
+  let error_of_string s =
+    let id = Rule_ID.of_string_exn "no-id" in
+    let tok = Tok.unsafe_fake_tok "no loc" in
+    let xlang = Xlang.of_lang lang_pattern in
+    Rule.raise_error None
+      (InvalidRule (InvalidPattern (str, xlang, s, []), id, tok))
+  in
+  match Parse_pattern.parse_pattern lang_pattern str with
+  | Ok pat -> Ok pat
+  | Error s -> error_of_string s
+  | exception exn ->
+      let s = Common.exn_to_s exn in
+      Logs.err (fun m -> m "exception in parse pattern: exn = %s" s);
+      error_of_string s
 [@@profiling]
 
 let output_core_results (caps : < Cap.stdout ; Cap.exit >)
@@ -136,17 +141,20 @@ let minirule_of_pattern lang pattern_string pattern =
  * need to generate a rule, sometimes a minirule
  *)
 let pattern_of_config lang (config : Core_scan_config.t) =
-  match (config.pattern_file, config.pattern_string) with
-  | None, None -> failwith "I need a pattern; use -f or -e"
-  | Some _s1, Some _s2 ->
-      failwith "I need just one pattern; use -f OR -e (not both)"
-  | Some file, None ->
-      let s = UFile.read_file file in
-      (parse_pattern lang s, s)
-  (* this is for Emma, who often confuses -e with -f :) *)
-  | None, Some s when s =~ ".*\\.sgrep$" ->
-      failwith "you probably want -f with a .sgrep file, not -e"
-  | None, Some s -> (parse_pattern lang s, s)
+  let pattern_string =
+    match (config.pattern_file, config.pattern_string) with
+    | None, None -> failwith "I need a pattern; use -f or -e"
+    | Some _s1, Some _s2 ->
+        failwith "I need just one pattern; use -f OR -e (not both)"
+    | Some file, None -> UFile.read_file file
+    (* this is for Emma, who often confuses -e with -f :) *)
+    | None, Some s when s =~ ".*\\.sgrep$" ->
+        failwith "you probably want -f with a .sgrep file, not -e"
+    | None, Some s -> s
+  in
+  match parse_pattern lang pattern_string with
+  | Ok pat -> (pat, pattern_string)
+  | Error e -> failwith ("parsing error: " ^ Rule.string_of_error e)
 
 (* simpler code path compared to scan() *)
 (* FIXME: don't use a different processing logic depending on the output
@@ -197,31 +205,37 @@ let semgrep_core_with_one_pattern (caps : < Cap.stdout ; Cap.tmp >)
       if config.filter_irrelevant_rules then
         Logs.warn (fun m ->
             m "-fast does not work with -f/-e, or you need also -json");
-      files
-      |> List.iter (fun (file : Fpath.t) ->
-             Logs.info (fun m -> m "processing: %s" !!file);
-             let process file =
-               timeout_function file config.timeout (fun () ->
-                   let ast =
-                     Parse_target.parse_and_resolve_name_warn_if_partial lang
-                       file
-                   in
-                   Match_patterns.check
-                     ~hook:(fun match_ ->
-                       Core_scan.print_match config match_
-                         Metavariable.ii_of_mval)
-                     ( Rule_options.default_config,
-                       Core_scan.parse_equivalences config.equivalences_file )
-                     minirule
-                     (file, File file, lang, ast)
-                   |> ignore)
-             in
+      let errors =
+        files
+        |> List.concat_map (fun (file : Fpath.t) ->
+               Logs.info (fun m -> m "processing: %s" !!file);
+               let process file =
+                 timeout_function file config.timeout (fun () ->
+                     let ast =
+                       Parse_target.parse_and_resolve_name_warn_if_partial lang
+                         file
+                     in
+                     Match_patterns.check
+                       ~hook:(fun match_ ->
+                         Core_scan.print_match config match_
+                           Metavariable.ii_of_mval)
+                       ( Rule_options.default_config,
+                         Core_scan.parse_equivalences config.equivalences_file
+                       )
+                       minirule
+                       (file, File file, lang, ast)
+                     |> ignore)
+               in
 
-             if not config.error_recovery then
-               E.try_with_log_exn_and_reraise file (fun () -> process file)
-             else E.try_with_exn_to_error file (fun () -> process file));
-
-      let n = List.length !E.g_errors in
+               match
+                 if not config.error_recovery then
+                   E.try_with_log_exn_and_reraise file (fun () -> process file)
+                 else E.try_with_result_to_error file (fun () -> process file)
+               with
+               | Ok _ -> []
+               | Error e -> [ e ])
+      in
+      let n = List.length errors in
       if n > 0 then Logs.err (fun m -> m "error count: %d" n)
 
 (*****************************************************************************)

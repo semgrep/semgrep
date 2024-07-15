@@ -40,9 +40,10 @@ let _ =
        method execute language rule_file _root source_files : string =
          let execute () =
            let xlang = Xlang.of_string (Js.to_string language) in
+           let rule_file = Fpath.v (Js.to_string rule_file) in
            let rules_and_errors =
              Parse_rule.parse_and_filter_invalid_rules ~rewrite_rule_ids:None
-               (Fpath.v (Js.to_string rule_file))
+               rule_file
            in
            let source_files =
              Js.to_array source_files |> Array.to_list |> List.map Js.to_string
@@ -58,7 +59,7 @@ let _ =
            let config : Core_scan_config.t =
              {
                Core_scan_config.default with
-               rule_source = Some (Rule_file (Fpath.v (Js.to_string rule_file)));
+               rule_source = Some (Rule_file rule_file);
                output_format = Json false;
                target_source = Some (Core_scan_config.Targets targets);
                matching_explanations = true;
@@ -80,7 +81,16 @@ let _ =
              | Ok res -> res
            in
            let res =
-             Core_runner.create_core_result (fst rules_and_errors) res
+             match rules_and_errors with
+             | Ok (rules, _) -> Core_runner.create_core_result rules res
+             | Error e ->
+                 Core_runner.create_core_result []
+                   (Core_result.mk_final_result_with_just_errors
+                      [
+                        Core_error.error_of_rule_error
+                          ~file:Fpath_.(!!rule_file)
+                          e;
+                      ])
            in
            (* This is just the default configuration, but this function
               doesn't actually depend upon the parts of the config that we
