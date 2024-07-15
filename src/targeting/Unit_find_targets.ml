@@ -143,6 +143,8 @@ let tests_with_git_only =
         F.dir "dir" [ F.file "a"; F.file "b" ];
         F.file "c";
       ];
+    test_find_targets ~with_git "symlinks from git are filtered too"
+      [ F.Symlink ("lnk", "inexistent"); F.File ("a", "some content") ];
   ]
 
 let tests =

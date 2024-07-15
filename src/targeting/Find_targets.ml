@@ -48,8 +48,8 @@ module Log = Log_targeting.Log
     - optimize, reduce the number of filesystem lookup? or memoize them?
       there are a few places where we stat for a file
     - add an option to select all git-tracked files regardless of
-       gitignore or semgrepignore exclusions (will be needed for Secrets)
-       and have the exclusions apply only to the files that aren't tracked.
+      gitignore or semgrepignore exclusions (will be needed for Secrets)
+      and have the exclusions apply only to the files that aren't tracked.
 *)
 
 (*************************************************************************)
@@ -65,7 +65,7 @@ and git_remote = { url : Uri.t } [@@deriving show]
 
 module Fppath_set = Set.Make (Fppath)
 
-(* Yet another file path type ...
+(* Yet another file path related type ...
 
    This module is a bit fragile as it assumes that target file paths found in
    the file system have the same form as those passed on the command line.
@@ -199,14 +199,6 @@ type filter_result =
   | Skip of Out.skipped_target (* ignore this file and report it *)
   | Ignore_silently (* ignore and don't report this file *)
 
-let apply_include_filter status selection_events include_filter ppath =
-  match status with
-  | Gitignore.Ignored -> (status, selection_events)
-  | Gitignore.Not_ignored -> (
-      match include_filter with
-      | None -> (status, selection_events)
-      | Some include_filter -> Include_filter.select include_filter ppath)
-
 let ignore_path selection_events fpath =
   Log.debug (fun m ->
       m "Ignoring path %s:\n%s" !!fpath
@@ -221,14 +213,18 @@ let ignore_path selection_events fpath =
       rule_id = None;
     }
 
-(*
-   Filter a path.
-   - Include filters apply only to the paths of regular files. They're applied
-     last, after the exclude/gitignore/semgrepignore filters.
-   - If you know that the path is a regular file, specify 'file_kind' so
-     as to avoid making a file system lookup.
+let apply_include_filter status selection_events include_filter ppath =
+  match status with
+  | Gitignore.Ignored -> (status, selection_events)
+  | Gitignore.Not_ignored -> (
+      match include_filter with
+      | None -> (status, selection_events)
+      | Some include_filter -> Include_filter.select include_filter ppath)
+
+(* Include filters apply only to the paths of regular files. They're applied
+   last, after the exclude/gitignore/semgrepignore filters.
 *)
-let filter_any_path ?file_kind (ign : Gitignore.filter)
+let filter_path (ign : Gitignore.filter)
     (include_filter : Include_filter.t option) (fppath : Fppath.t) :
     filter_result =
   let { fpath; ppath } : Fppath.t = fppath in
@@ -236,13 +232,8 @@ let filter_any_path ?file_kind (ign : Gitignore.filter)
   match status with
   | Ignored -> ignore_path selection_events fpath
   | Not_ignored -> (
-      (* TODO: check read permission? *)
-      let file_kind =
-        match file_kind with
-        | Some x -> x
-        | None -> (Unix.lstat !!fpath).st_kind
-      in
-      match file_kind with
+      (* TODO: check read permission too? *)
+      match (Unix.lstat !!fpath).st_kind with
       (* skipping symlinks *)
       | S_LNK -> Ignore_silently
       | S_REG -> (
@@ -263,16 +254,12 @@ let filter_any_path ?file_kind (ign : Gitignore.filter)
       (* ignore for now errors. TODO? return a skip? *)
       | exception Unix.Unix_error (_err, _fun, _info) -> Ignore_silently)
 
-let filter_regular_file_path (ign : Gitignore.filter)
-    (include_filter : Include_filter.t option) (fppath : Fppath.t) :
-    filter_result =
-  filter_any_path ~file_kind:S_REG ign include_filter fppath
-
 (*
    Filter a pre-expanded list of target files, such as a list of files
-   obtained with 'git ls-files'.
+   obtained with 'git ls-files'. A strong postcondition is that the
+   paths returned must correspond to existing regular files!
 *)
-let filter_regular_file_paths
+let filter_paths
     ((ign, include_filter) : Gitignore.filter * Include_filter.t option)
     (target_files : Fppath.t list) : Fppath_set.t * Out.skipped_target list =
   let (selected_paths : Fppath.t list ref) = ref [] in
@@ -281,10 +268,10 @@ let filter_regular_file_paths
   let skip target = Stack_.push target skipped in
   target_files
   |> List.iter (fun fppath ->
-         match filter_regular_file_path ign include_filter fppath with
+         match filter_path ign include_filter fppath with
          | Keep -> add fppath
-         | Dir ->
-             (* shouldn't happen if we work on the output of 'git ls-files *) ()
+         (* shouldn't happen if we work on the output of 'git ls-files *)
+         | Dir -> ()
          | Skip x -> skip x
          | Ignore_silently -> ());
   (Fppath_set.of_list !selected_paths, !skipped)
@@ -338,6 +325,8 @@ let walk_skip_and_collect (ign : Gitignore.filter)
   *)
   let (selected_paths : Fppath.t list ref) = ref [] in
   let (skipped : Out.skipped_target list ref) = ref [] in
+
+  (* TODO: factorize code with filter_paths? *)
   let add path = Stack_.push path selected_paths in
   let skip target = Stack_.push target skipped in
 
@@ -348,6 +337,7 @@ let walk_skip_and_collect (ign : Gitignore.filter)
           (Ppath.to_string_for_tests dir.ppath));
     (* TODO? should we sort them first? *)
     let entries = List_files.read_dir_entries dir.fpath in
+    (* TODO: factorize code with filter_paths? *)
     entries
     |> List.iter (fun name ->
            let fpath =
@@ -359,7 +349,7 @@ let walk_skip_and_collect (ign : Gitignore.filter)
            in
            let ppath = Ppath.add_seg dir.ppath name in
            let fppath : Fppath.t = { fpath; ppath } in
-           match filter_any_path ign include_filter fppath with
+           match filter_path ign include_filter fppath with
            | Keep -> add fppath
            | Skip skipped -> skip skipped
            | Dir -> aux fppath
@@ -630,7 +620,7 @@ let setup_path_filters conf (project_roots : Project.roots) :
 (* Work from a list of target paths obtained with git *)
 let filter_targets conf project_roots (all_files : Fppath.t list) =
   let ign = setup_path_filters conf project_roots in
-  filter_regular_file_paths ign all_files
+  filter_paths ign all_files
 
 let get_targets_from_filesystem conf (project_roots : Project.roots) =
   let ign, include_filter = setup_path_filters conf project_roots in
