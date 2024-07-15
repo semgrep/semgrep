@@ -571,8 +571,9 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
             }
         in
         Output.output_result
+          (caps :> < Cap.stdout >)
           { conf.output_conf with output_format }
-          profiler runtime_params res
+          runtime_params profiler res
       in
       Profiler.stop_ign profiler ~name:"total_time";
 

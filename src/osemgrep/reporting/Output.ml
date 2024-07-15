@@ -16,25 +16,32 @@ module OutT = Semgrep_output_v1_t
    display findings even with --quiet.
 *)
 
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+(* Mostly a subset of Scan_CLI.ml with just the output relevant stuff *)
 type conf = {
-  nosem : bool;
-  autofix : bool;
-  dryrun : bool;
-  strict : bool;
-  (* maybe should define an Output_option.t, or add a record to
-   * Output_format.Text *)
-  force_color : bool;
-  logging_level : Logs.level option;
-  (* For text and SARIF *)
-  show_dataflow_traces : bool;
   (* Display options *)
   (* mix of --json, --emacs, --vim, etc. *)
   output_format : Output_format.t;
   max_chars_per_line : int;
   max_lines_per_finding : int;
+  (* maybe should define an Output_option.t, or add a record to
+   * Output_format.Text *)
+  force_color : bool;
+  (* For text and SARIF *)
+  show_dataflow_traces : bool;
+  (* TODO: why nosem/autofix/strict part of an output conf? *)
+  nosem : bool;
+  autofix : bool;
+  strict : bool;
+  dryrun : bool;
+  logging_level : Logs.level option;
 }
 [@@deriving show]
 
+(* TODO? merge with conf? *)
 type runtime_params = { is_logged_in : bool; is_using_registry : bool }
 
 let default : conf =
@@ -63,14 +70,16 @@ let string_of_severity (severity : OutJ.match_severity) : string =
 (* Format dispatcher *)
 (*****************************************************************************)
 
-let dispatch_output_format (output_format : Output_format.t) (conf : conf)
-    (cli_output : OutJ.cli_output) (runtime_params : runtime_params)
-    (hrules : Rule.hrules) =
+let dispatch_output_format (caps : < Cap.stdout >)
+    (output_format : Output_format.t) (conf : conf)
+    (runtime_params : runtime_params) (cli_output : OutJ.cli_output)
+    (hrules : Rule.hrules) : unit =
+  let print = CapConsole.print caps#stdout in
   (* TOPORT? Sort keys for predictable output. Helps with snapshot tests *)
   match output_format with
   | Json ->
       let s = OutJ.string_of_cli_output cli_output in
-      UConsole.print s
+      print s
   | Vim ->
       cli_output.results
       |> List.iter (fun (m : OutJ.cli_match) ->
@@ -87,7 +96,7 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
                      message;
                    ]
                  in
-                 UConsole.print (String.concat ":" parts))
+                 print (String.concat ":" parts))
   | Emacs ->
       (* TOPORT? sorted(rule_matches, key=lambda r: (r.path, r.rule_id)) *)
       cli_output.results
@@ -134,7 +143,7 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
                      message;
                    ]
                  in
-                 UConsole.print (String.concat ":" parts))
+                 print (String.concat ":" parts))
   | Text ->
       Matches_report.pp_cli_output ~max_chars_per_line:conf.max_chars_per_line
         ~max_lines_per_finding:conf.max_lines_per_finding
@@ -157,24 +166,23 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
         Sarif_output.sarif_output hide_nudge engine_label
           conf.show_dataflow_traces hrules cli_output
       in
-      UConsole.print
-        (Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema sarif_json)
+      print (Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema sarif_json)
   | Junit_xml ->
       let junit_xml = Junit_xml_output.junit_xml_output cli_output in
-      UConsole.print junit_xml
+      print junit_xml
   | Gitlab_sast ->
       let gitlab_sast_json = Gitlab_output.sast_output cli_output.results in
-      UConsole.print (Yojson.Basic.to_string gitlab_sast_json)
+      print (Yojson.Basic.to_string gitlab_sast_json)
   | Gitlab_secrets ->
       let gitlab_secrets_json =
         Gitlab_output.secrets_output cli_output.results
       in
-      UConsole.print (Yojson.Basic.to_string gitlab_secrets_json)
+      print (Yojson.Basic.to_string gitlab_secrets_json)
   | Files_with_matches ->
       cli_output.results
       |> List_.map (fun (x : OutT.cli_match) -> !!(x.path))
       |> Set_.of_list |> Set_.elements |> List_.sort |> String.concat "\n"
-      |> UConsole.print
+      |> print
 
 (*****************************************************************************)
 (* Entry points *)
@@ -197,20 +205,21 @@ let preprocess_result (conf : conf) (res : Core_runner.result) : OutJ.cli_output
 
 (* python: mix of output.OutputSettings(), output.OutputHandler(), and
  * output.output() all at once.
- * TODO: take a more precise conf than Scan_CLI.conf at some point
  *)
-let output_result (conf : conf) (profiler : Profiler.t)
-    (runtime_params : runtime_params) (res : Core_runner.result) :
-    OutJ.cli_output =
+let output_result (caps : < Cap.stdout >) (conf : conf)
+    (runtime_params : runtime_params) (profiler : Profiler.t)
+    (res : Core_runner.result) : OutJ.cli_output =
   (* In theory, we should build the JSON CLI output only for the
    * Json conf.output_format, but cli_output contains lots of data-structures
    * that are useful for the other formats (e.g., Vim, Emacs), so we build
    * it here.
    *)
-  let cli_output () = preprocess_result conf res in
   (* TOPORT? output.output() *)
-  let cli_output = Profiler.record profiler ~name:"ignores_times" cli_output in
-  dispatch_output_format conf.output_format conf cli_output runtime_params
+  let cli_output =
+    Profiler.record profiler ~name:"ignores_times" (fun () ->
+        preprocess_result conf res)
+  in
+  dispatch_output_format caps conf.output_format conf runtime_params cli_output
     res.hrules;
   cli_output
 [@@profiling]
