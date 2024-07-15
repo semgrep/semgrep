@@ -11,9 +11,7 @@ type conf = {
   force_color : bool;
   (* For text and SARIF *)
   show_dataflow_traces : bool;
-  (* this is only for preprocess_result *)
-  nosem : bool;
-  autofix : bool;
+  (* TODO: why strict part of an output conf? *)
   strict : bool;
   dryrun : bool;
   logging_level : Logs.level option;

@@ -18,6 +18,8 @@ type conf = {
   error_on_findings : bool;
   rewrite_rule_ids : bool;
   engine_type : Engine_type.t;
+  (* autofix *)
+  autofix : bool;
   (* Performance options *)
   core_runner_conf : Core_runner.conf;
   (* file or URL (None means output to stdout) *)

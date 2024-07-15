@@ -621,7 +621,7 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
       (* this must happen posterior to reporting matches, or will report the
          already-fixed file
       *)
-      if conf.output_conf.autofix then
+      if conf.autofix then
         Autofix.apply_fixes_of_core_matches ~dryrun:conf.output_conf.dryrun
           res.core.results;
 

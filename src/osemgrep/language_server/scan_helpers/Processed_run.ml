@@ -47,7 +47,7 @@ let filter_clean_lines git_ref matches =
   let not_in_git_matches = not_in_git |> List.concat_map snd in
   in_git_matches @ not_in_git_matches
 
-let scan_conf = { Output.default with strict = false; nosem = true }
+let scan_conf = { Output.default with strict = false }
 (*************************************************************************)
 (* Entry point *)
 (*************************************************************************)
