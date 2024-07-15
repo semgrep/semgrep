@@ -32,9 +32,7 @@ type conf = {
   force_color : bool;
   (* For text and SARIF *)
   show_dataflow_traces : bool;
-  (* TODO: why nosem/autofix/strict part of an output conf? *)
-  nosem : bool;
-  autofix : bool;
+  (* TODO: why strict part of an output conf? *)
   strict : bool;
   dryrun : bool;
   logging_level : Logs.level option;
@@ -46,8 +44,6 @@ type runtime_params = { is_logged_in : bool; is_using_registry : bool }
 
 let default : conf =
   {
-    nosem = true;
-    autofix = false;
     dryrun = false;
     strict = false;
     logging_level = Some Logs.Warning;

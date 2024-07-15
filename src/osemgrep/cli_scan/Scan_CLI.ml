@@ -40,6 +40,8 @@ type conf = {
   rewrite_rule_ids : bool;
   (* Engine selection *)
   engine_type : Engine_type.t;
+  (* autofix *)
+  autofix : bool;
   (* Performance options *)
   core_runner_conf : Core_runner.conf;
   (* file or URL (None means output to stdout) *)
@@ -77,6 +79,7 @@ let default : conf =
         severity = [];
         exclude_products = [];
       };
+    autofix = false;
     (* alt: could move in a Core_runner.default *)
     core_runner_conf =
       {
@@ -721,7 +724,7 @@ with --pattern. Only valid with a command-line specified pattern.
 
 let o_autofix : bool Term.t =
   H.negatable_flag [ "a"; "autofix" ] ~neg_options:[ "no-autofix" ]
-    ~default:default.output_conf.autofix
+    ~default:default.autofix
     ~doc:
       {|Apply autofix patches. WARNING: data loss can occur with this flag.
 Make sure your files are stored in a version control system. Note that
@@ -1082,8 +1085,6 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     in
     let output_conf : Output.conf =
       {
-        nosem;
-        autofix;
         dryrun;
         strict;
         force_color;
@@ -1339,6 +1340,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       targeting_conf;
       core_runner_conf;
       error_on_findings = error;
+      autofix;
       metrics;
       version_check;
       output;
