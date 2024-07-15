@@ -293,8 +293,8 @@ let filter_size_and_minified max_target_bytes exclude_minified_files paths =
         selected_fppaths
     else (selected_fppaths, [])
   in
-  Logs.debug (fun m -> m "skipped_size: %d" (List.length skipped_size));
-  Logs.debug (fun m -> m "skipped_minified: %d" (List.length skipped_minified));
+  Log.debug (fun m -> m "skipped_size: %d" (List.length skipped_size));
+  Log.debug (fun m -> m "skipped_minified: %d" (List.length skipped_minified));
   (selected_fppaths, skipped_size @ skipped_minified)
 
 (*************************************************************************)
