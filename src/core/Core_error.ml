@@ -48,8 +48,6 @@ type t = {
 }
 [@@deriving show]
 
-let g_errors = ref []
-
 (* ugly alias because 'type t = t' is not allowed *)
 type core_error = t
 
@@ -108,9 +106,6 @@ let mk_error_tok ?(file = "NO FILE INFO") opt_rule_id tok msg err =
   in
   mk_error opt_rule_id loc msg err
 
-let push_error rule_id loc msg err =
-  Stack_.push (mk_error (Some rule_id) loc msg err) g_errors
-
 let error_of_invalid_rule_error ((kind, rule_id, pos) : R.invalid_rule_error) :
     t =
   let msg = Rule.string_of_invalid_rule_error_kind kind in
@@ -129,33 +124,38 @@ let error_of_invalid_rule_error ((kind, rule_id, pos) : R.invalid_rule_error) :
   in
   mk_error_tok (Some rule_id) pos msg err
 
-let opt_error_of_rule_error ~file (err : Rule.error) : t option =
+let error_of_rule_error ~file (err : Rule.error) : t =
   let rule_id = err.rule_id in
   match err.kind with
   | InvalidRule
       (InvalidPattern (pattern, xlang, message, yaml_path), rule_id, pos) ->
-      Some
-        {
-          rule_id = Some rule_id;
-          typ = OutJ.PatternParseError yaml_path;
-          loc = Tok.unsafe_loc_of_tok pos;
-          msg =
-            spf
-              "Invalid pattern for %s:\n\
-               --- pattern ---\n\
-               %s\n\
-               --- end pattern ---\n\
-               Pattern error: %s\n"
-              (Xlang.to_string xlang) pattern message;
-          details = None;
-        }
-  | InvalidRule err -> Some (error_of_invalid_rule_error err)
+      {
+        rule_id = Some rule_id;
+        typ = OutJ.PatternParseError yaml_path;
+        loc = Tok.unsafe_loc_of_tok pos;
+        msg =
+          spf
+            "Invalid pattern for %s:\n\
+             --- pattern ---\n\
+             %s\n\
+             --- end pattern ---\n\
+             Pattern error: %s\n"
+            (Xlang.to_string xlang) pattern message;
+        details = None;
+      }
+  | InvalidRule err -> error_of_invalid_rule_error err
   | InvalidYaml (msg, pos) ->
-      Some (mk_error_tok ~file rule_id pos msg OutJ.InvalidYaml)
+      mk_error_tok ~file rule_id pos msg OutJ.InvalidYaml
   | DuplicateYamlKey (s, pos) ->
-      Some (mk_error_tok ~file rule_id pos s OutJ.InvalidYaml)
+      mk_error_tok ~file rule_id pos s OutJ.InvalidYaml
   (* TODO?? *)
-  | UnparsableYamlException _ -> None
+  | UnparsableYamlException s ->
+      (* Based on what previously happened based on exn_to_error logic before
+         converting Rule parsing errors to not be exceptions. *)
+      mk_error rule_id
+        (if not String.(equal file "") then Tok.first_loc_of_file file
+         else Tok.fake_location)
+        s OutJ.OtherParseError
 
 (*
    This function converts known exceptions to Semgrep errors.
@@ -193,7 +193,6 @@ let known_exn_to_error rule_id file (e : Exception.t) : t option =
       Some (mk_error_tok ~file rule_id tok s OutJ.OtherParseError)
   | AST_generic.Error (s, tok) ->
       Some (mk_error_tok ~file rule_id tok s OutJ.AstBuilderError)
-  | Rule.Error err -> opt_error_of_rule_error ~file err
   | Time_limit.Timeout timeout_info ->
       let s = Printexc.get_backtrace () in
       Log.warn (fun m -> m "WEIRD Timeout converted to exn, backtrace = %s" s);
@@ -299,12 +298,12 @@ let severity_of_error (typ : OutJ.error_type) : OutJ.error_severity =
 (* Try with error, mostly used in testing code *)
 (*****************************************************************************)
 
-let try_with_exn_to_error (file : Fpath.t) f =
+let try_with_result_to_error (file : Fpath.t) f =
   try f () with
   | Time_limit.Timeout _ as exn -> Exception.catch_and_reraise exn
   | exn ->
       let e = Exception.catch exn in
-      Stack_.push (exn_to_error None !!file e) g_errors
+      Error (exn_to_error None !!file e)
 
 let try_with_log_exn_and_reraise (file : Fpath.t) f =
   try f () with

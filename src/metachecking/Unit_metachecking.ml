@@ -38,17 +38,16 @@ let metachecker_checks_tests () =
      |> List_.map (fun file ->
             let file = Fpath.v file in
             t (Fpath.basename file) (fun () ->
-                (* note that try_with_exn_to_error also modifies g_errors *)
-                E.try_with_exn_to_error file (fun () ->
-                    let rules = Parse_rule.parse file in
-                    rules
-                    |> List.iter (fun rule ->
-                           let errs = Check_rule.check rule in
-                           E.g_errors := errs @ !E.g_errors));
-                let actual = !E.g_errors in
-                E.g_errors := [];
+                let actual =
+                  match Parse_rule.parse file with
+                  | Error e -> [ Core_error.error_of_rule_error ~file:!!file e ]
+                  | Ok rules ->
+                      rules
+                      |> List.concat_map (fun rule -> Check_rule.check rule)
+                in
                 let expected = TCM.expected_error_lines_of_files [ file ] in
-                TCM.compare_actual_to_expected_for_alcotest actual expected)))
+                TCM.compare_actual_to_expected_for_alcotest
+                  ~to_location:TCM.location_of_core_error actual expected)))
 
 (* Test the entire `-test_check` path *)
 let metachecker_regression_tests caps =

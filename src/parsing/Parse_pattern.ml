@@ -76,6 +76,5 @@ let parse_pattern_ref =
 let parse_pattern ?(rule_options = None) lang str =
   let any = !parse_pattern_ref rule_options lang str in
   let any = normalize_any lang any in
-  Check_pattern.check lang any;
-  any
+  Check_pattern.check lang any |> Result.map (fun () -> any)
 [@@profiling]

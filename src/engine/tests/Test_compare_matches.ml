@@ -20,6 +20,14 @@ open Fpath_.Operators
 
 let default_error_regexp = ".*\\(ERROR\\|MATCH\\):"
 
+let location_of_pm { Pattern_match.range_loc; _ } =
+  let { Tok.pos = { line; file; _ }; _ }, _ = range_loc in
+  (Fpath.v file, line)
+
+let location_of_core_error (err : Core_error.t) =
+  let loc = err.loc in
+  (Fpath.v loc.Tok.pos.file, loc.Tok.pos.line)
+
 let (expected_error_lines_of_files :
       ?regexp:string ->
       ?ok_regexp:string option ->
@@ -49,16 +57,12 @@ let (expected_error_lines_of_files :
 (* Entry points *)
 (*****************************************************************************)
 
-let compare_actual_to_expected actual_findings expected_findings_lines =
-  let actual_findings_lines =
-    actual_findings
-    |> List_.map (fun (err : Core_error.t) ->
-           let loc = err.loc in
-           (Fpath.v loc.Tok.pos.file, loc.Tok.pos.line))
-  in
+let compare_actual_to_expected ~to_location actual_findings
+    expected_findings_lines =
+  let actual_findings = List_.map to_location actual_findings in
   (* diff report *)
   let _common, only_in_expected, only_in_actual =
-    Common2.diff_set_eff expected_findings_lines actual_findings_lines
+    Common2.diff_set_eff expected_findings_lines actual_findings
   in
 
   only_in_expected
@@ -66,14 +70,7 @@ let compare_actual_to_expected actual_findings expected_findings_lines =
          UCommon.pr2 (spf "this one finding is missing: %s:%d" !!src l));
   only_in_actual
   |> List.iter (fun (src, l) ->
-         UCommon.pr2
-           (spf "this one finding was not expected: %s:%d (%s)" !!src l
-              (actual_findings
-              (* nosemgrep: ocaml.lang.best-practice.list.list-find-outside-try *)
-              |> List.find (fun (err : Core_error.t) ->
-                     let loc = err.loc in
-                     !!src = loc.Tok.pos.file && l =|= loc.Tok.pos.line)
-              |> Core_error.string_of_error)));
+         UCommon.pr2 (spf "this one finding was not expected: %s:%d" !!src l));
   let num_errors = List.length only_in_actual + List.length only_in_expected in
   let msg =
     spf "it should find all reported findings and no more (%d errors)"
@@ -83,7 +80,7 @@ let compare_actual_to_expected actual_findings expected_findings_lines =
   | 0 -> Stdlib.Ok ()
   | n -> Error (n, msg)
 
-let compare_actual_to_expected_for_alcotest actual expected =
-  match compare_actual_to_expected actual expected with
+let compare_actual_to_expected_for_alcotest ~to_location actual expected =
+  match compare_actual_to_expected ~to_location actual expected with
   | Ok () -> ()
   | Error (_num_errors, msg) -> Alcotest.fail msg

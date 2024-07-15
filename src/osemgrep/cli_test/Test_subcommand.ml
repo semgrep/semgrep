@@ -628,12 +628,11 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
                 * TODO: error managementm parsing errors?
                 *)
                let* rules, _errorsTODO =
-                 try
-                   Some (Parse_rule.parse_and_filter_invalid_rules rule_file)
-                 with
-                 | Parsing_error.Syntax_error _
-                 | Parsing_error.Other_error _
-                 | Rule.Error _ ->
+                 match Parse_rule.parse_and_filter_invalid_rules rule_file with
+                 | Ok x -> Some x
+                 | Error _
+                 | (exception Parsing_error.Syntax_error _)
+                 | (exception Parsing_error.Other_error _) ->
                      Logs.warn (fun m ->
                          m "got error when parsing %s: %s" !!rule_file
                            (Printexc.get_backtrace ()));

@@ -25,8 +25,8 @@ open Common
  * Semgrep (especially in the ocamllex/menhir-based parsers).
  *
  * Note that those exns can be converted in Semgrep_error_code.error with
- * Semgrep_error_code.try_with_exn_to_error()
- * coupling: Semgrep_error_code.exn_to_error()
+ * Core_error.exn_to_error()
+ * coupling: Core_error.exn_to_error()
  *
  * related code:
  *  - Semgrep_output_v1.core_error_kind

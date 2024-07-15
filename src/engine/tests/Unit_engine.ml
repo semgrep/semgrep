@@ -311,8 +311,13 @@ let maturity_tests () =
 let match_pattern ~lang ~hook ~file ~pattern ~fix =
   (* TODO? enable the "semgrep.parsing" src level maybe here *)
   let pattern =
-    try Parse_pattern.parse_pattern lang pattern with
-    | exn ->
+    match Parse_pattern.parse_pattern lang pattern with
+    | Ok pat -> pat
+    | Error s ->
+        failwith
+          (spf "fail to parse pattern `%s` with lang = %s: %s" pattern
+             (Lang.to_string lang) s)
+    | exception exn ->
         failwith
           (spf "fail to parse pattern `%s` with lang = %s (exn = %s)" pattern
              (Lang.to_string lang) (Common.exn_to_s exn))
@@ -380,18 +385,15 @@ let regression_tests_for_lang ~polyglot_pattern_path files lang =
                 *     (Filename.concat data_path "basic_equivalences.yml")
                 * else []
              *)
+             let matches = ref [] in
              match_pattern ~lang
-               ~hook:(fun { Pattern_match.range_loc; _ } ->
-                 let start_loc, _end_loc = range_loc in
-                 E.push_error
-                   (Rule_ID.of_string_exn "test-pattern")
-                   start_loc "" OutJ.SemgrepMatchFound)
+               ~hook:(fun pm -> Stack_.push (TCM.location_of_pm pm) matches)
                ~file ~pattern ~fix:NoFix
              |> ignore;
-             let actual = !E.g_errors in
-             E.g_errors := [];
+             let actual = !matches in
              let expected = TCM.expected_error_lines_of_files [ file ] in
-             TCM.compare_actual_to_expected_for_alcotest actual expected))
+             TCM.compare_actual_to_expected_for_alcotest ~to_location:Fun.id
+               actual expected))
 
 let make_lang_regression_tests ~test_pattern_path ~polyglot_pattern_path
     lang_data =
@@ -490,18 +492,8 @@ let autofix_tests_for_lang ~polyglot_pattern_path files lang =
              in
 
              let matches =
-               match_pattern ~lang
-                 ~hook:(fun { Pattern_match.range_loc; _ } ->
-                   let start_loc, _end_loc = range_loc in
-                   (* TODO? needed? we don't seem to use it,
-                    * maybe left because of copy-pasta?
-                    *)
-                   E.push_error
-                     (Rule_ID.of_string_exn "test-pattern")
-                     start_loc "" OutJ.SemgrepMatchFound)
-                 ~file ~pattern ~fix
+               match_pattern ~lang ~hook:(fun _ -> ()) ~file ~pattern ~fix
              in
-             E.g_errors := [];
              match fix with
              | NoFix -> ()
              | _ ->
@@ -542,7 +534,8 @@ let eval_regression_tests () =
 
 let test_irrelevant_rule rule_file target_file =
   let cache = Some (Hashtbl.create 101) in
-  let rules = Parse_rule.parse rule_file in
+  (* TODO: fail more gracefully for invalid rules? *)
+  let rules = Parse_rule.parse rule_file |> Result.get_ok in
   rules
   |> List.iter (fun rule ->
          match Analyze_rule.regexp_prefilter_of_rule ~cache rule with
@@ -598,11 +591,12 @@ let filter_irrelevant_rules_tests () =
 
 let tainting_test lang rules_file file =
   let rules =
-    try Parse_rule.parse rules_file with
-    | exn ->
+    match Parse_rule.parse rules_file with
+    | Ok rules -> rules
+    | Error e ->
         failwith
-          (spf "fail to parse tainting rules %s (exn = %s)" !!rules_file
-             (Common.exn_to_s exn))
+          (spf "fail to parse tainting rules %s (error = %s)" !!rules_file
+             (Rule.string_of_error e))
   in
   let ast =
     try Parse_target.parse_and_resolve_name_warn_if_partial lang file with
@@ -663,7 +657,8 @@ let tainting_test lang rules_file file =
            })
   in
   let expected = TCM.expected_error_lines_of_files [ file ] in
-  TCM.compare_actual_to_expected_for_alcotest actual expected
+  TCM.compare_actual_to_expected_for_alcotest
+    ~to_location:TCM.location_of_core_error actual expected
 
 let tainting_tests_for_lang files lang =
   files

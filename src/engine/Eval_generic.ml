@@ -87,7 +87,7 @@ let parse_json (file : string) : env * code =
           (* less: could also use Parse_pattern *)
           let code =
             match Parse_pattern.parse_pattern lang code with
-            | G.E e -> e
+            | Ok (G.E e) -> e
             | _ -> failwith "only expressions are supported"
           in
           let metavars =

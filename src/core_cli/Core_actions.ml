@@ -147,27 +147,31 @@ let dump_equivalences (caps : < Cap.stdout >) file =
 let dump_rule (caps : < Cap.tmp >) file =
   let file = Core_scan.replace_named_pipe_by_regular_file caps file in
   let rules = Parse_rule.parse file in
-  rules |> List.iter (fun r -> UCommon.pr (Rule.show r))
+  (* TODO: handle parse errors gracefully instead of silently ignoring *)
+  rules |> Result.iter (List.iter (fun r -> UCommon.pr (Rule.show r)))
 [@@action]
 
 let prefilter_of_rules file =
   let cache = Some (Hashtbl.create 101) in
-  let rules = Parse_rule.parse file in
-  let xs =
-    rules
-    |> List_.map (fun r ->
-           let pre_opt = Analyze_rule.regexp_prefilter_of_rule ~cache r in
-           let pre_atd_opt =
-             Option.map Analyze_rule.prefilter_formula_of_prefilter pre_opt
-           in
-           let id = r.Rule.id |> fst in
-           {
-             Semgrep_prefilter_t.rule_id = Rule_ID.to_string id;
-             filter = pre_atd_opt;
-           })
-  in
-  let s = Semgrep_prefilter_j.string_of_prefilters xs in
-  UCommon.pr s
+  match Parse_rule.parse file with
+  | Ok rules ->
+      let xs =
+        rules
+        |> List_.map (fun r ->
+               let pre_opt = Analyze_rule.regexp_prefilter_of_rule ~cache r in
+               let pre_atd_opt =
+                 Option.map Analyze_rule.prefilter_formula_of_prefilter pre_opt
+               in
+               let id = r.Rule.id |> fst in
+               {
+                 Semgrep_prefilter_t.rule_id = Rule_ID.to_string id;
+                 filter = pre_atd_opt;
+               })
+      in
+      let s = Semgrep_prefilter_j.string_of_prefilters xs in
+      UCommon.pr s
+  (* TODO: handle parse errors gracefully instead of silently ignoring *)
+  | Error _ -> ()
 [@@action]
 
 (* This is called from 'pysemgrep ci' to get contributors from

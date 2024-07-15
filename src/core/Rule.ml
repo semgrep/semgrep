@@ -813,8 +813,6 @@ type error = {
 }
 [@@deriving show]
 
-exception Error of error
-
 (*
    Determine if an error can be skipped. This is for presumably well-formed
    rules that aren't compatible with the current version of semgrep
@@ -839,7 +837,7 @@ let is_skippable_error (kind : invalid_rule_error_kind) =
    specify a rule ID whenever possible.
 *)
 let raise_error optional_rule_id kind =
-  raise (Error { rule_id = optional_rule_id; kind })
+  Error { rule_id = optional_rule_id; kind }
 
 (*****************************************************************************)
 (* String-of *)
@@ -898,16 +896,6 @@ let string_of_error (error : error) : string =
   | UnparsableYamlException s ->
       (* TODO: what's the string s? *)
       spf "unparsable YAML: %s" s
-
-(*
-   Exception printers for Printexc.to_string.
-*)
-let opt_string_of_exn (exn : exn) =
-  match exn with
-  | Error x -> Some (string_of_error x)
-  | _ -> None
-
-let () = Printexc.register_printer opt_string_of_exn
 
 (*****************************************************************************)
 (* Visitor/extractor *)

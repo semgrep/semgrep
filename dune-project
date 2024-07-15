@@ -440,6 +440,7 @@ For more information see https://semgrep.dev
     ; core deps
     (ocaml (>= 4.13.0))
     (dune (>= 2.7.0 ))
+    base
     ; parser generators
     (menhir (= 20230608))
     ; standard libraries

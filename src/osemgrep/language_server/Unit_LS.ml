@@ -44,7 +44,9 @@ let mock_run_results (files : string list) : Core_runner.result =
   let lang = Lang.Python in
   let fk = Tok.unsafe_fake_tok "" in
   let xlang = Xlang.L (lang, []) in
-  let pattern = Parse_pattern.parse_pattern lang pattern_string in
+  let pattern =
+    Parse_pattern.parse_pattern lang pattern_string |> Result.get_ok
+  in
   let xpat = Xpattern.mk_xpat (Xpattern.Sem (pattern, lang)) in
   let xpat = xpat (pattern_string, fk) in
   let rule = Rule.rule_of_xpattern xlang xpat in
