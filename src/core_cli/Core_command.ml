@@ -74,9 +74,9 @@ let output_core_results (caps : < Cap.stdout ; Cap.exit >)
             let err =
               match core_error_opt with
               | Some err -> err
-              | None -> E.exn_to_error None "" exn
+              | None -> E.exn_to_error None Core_error.no_file exn
             in
-            Core_result.mk_final_result_with_just_errors [ err ]
+            Core_result.mk_result_with_just_errors [ err ]
       in
       let res = Core_json_output.core_output_of_matches_and_errors res in
       (*

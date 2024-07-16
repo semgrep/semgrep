@@ -18,7 +18,6 @@ module PM = Pattern_match
 module E = Core_error
 module MR = Mini_rule
 module R = Rule
-module RP = Core_result
 module In = Input_to_core_j
 module Out = Semgrep_output_v1_j
 
@@ -141,7 +140,7 @@ type was_scanned = Scanned of Fpath.t | Not_scanned
 
    Remember that a target handler runs in another process (via Parmap).
 *)
-type target_handler = Target.t -> RP.matches_single_file * was_scanned
+type target_handler = Target.t -> Core_result.matches_single_file * was_scanned
 
 (*****************************************************************************)
 (* Helpers *)
@@ -245,7 +244,8 @@ let filter_existing_targets (targets : Target.t list) :
                  })
 
 let set_matches_to_proprietary_origin_if_needed (xtarget : Xtarget.t)
-    (matches : RP.matches_single_file) : RP.matches_single_file =
+    (matches : Core_result.matches_single_file) :
+    Core_result.matches_single_file =
   (* If our target is a proprietary language, or we've been using the
    * proprietary engine, then label all the resulting matches with the Pro
    * engine kind. This can't really be done any later, because we need the
@@ -623,11 +623,12 @@ let handle_target_with_trace handle_target t =
 *)
 let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
     (handle_target : target_handler) (targets : Target.t list) :
-    Core_profiling.file_profiling RP.match_result list * Fpath.t list =
+    Core_profiling.file_profiling Core_result.match_result list * Fpath.t list =
   (* The path in match_and_path_list is None when the file was not scanned *)
   let (match_and_path_list
-        : (Core_profiling.file_profiling RP.match_result * Fpath.t option) list)
-      =
+        : (Core_profiling.file_profiling Core_result.match_result
+          * Fpath.t option)
+          list) =
     targets
     |> map_targets config.ncores (fun (target : Target.t) ->
            let internal_path = Target.internal_path target in
@@ -759,7 +760,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                      let e = Exception.catch exn in
                      let errors =
                        Core_error.ErrorSet.singleton
-                         (E.exn_to_error None !!internal_path e)
+                         (E.exn_to_error None internal_path e)
                      in
                      ( Core_result.mk_match_result [] errors
                          (Core_profiling.empty_partial_profiling internal_path),
@@ -987,7 +988,8 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
         | _ -> Scanned internal_path_to_content
       in
       (* TODO: run all the right hooks *)
-      (RP.collate_rule_results internal_path_to_content dep_matches, was_scanned)
+      ( Core_result.collate_rule_results internal_path_to_content dep_matches,
+        was_scanned )
   | Regular target ->
       let origin = target.path.origin in
       let file = target.path.internal_path_to_content in
@@ -1128,8 +1130,8 @@ let scan_exn ?match_hook (caps : < Cap.tmp >) (config : Core_scan_config.t)
   (* Since the OSS engine was invoked, there were no interfile languages
      requested *)
   let interfile_languages_used = [] in
-  let res =
-    RP.make_final_result file_results
+  let (res : Core_result.t) =
+    Core_result.mk_result file_results
       (List_.map (fun r -> (r, `OSS)) valid_rules)
       invalid_rules scanned interfile_languages_used ~rules_parse_time
   in

@@ -137,7 +137,7 @@ let empty_match_result : Core_profiling.times match_result =
     explanations = [];
   }
 
-let mk_final_result_with_just_errors (errors : Core_error.t list) : t =
+let mk_result_with_just_errors (errors : Core_error.t list) : t =
   {
     errors;
     (* default values *)
@@ -263,8 +263,7 @@ let collate_rule_results (file : Fpath.t)
 (*****************************************************************************)
 
 (* Aggregate a list of target results into one final result *)
-let make_final_result
-    (results : Core_profiling.file_profiling match_result list)
+let mk_result (results : Core_profiling.file_profiling match_result list)
     (rules_with_engine : (Rule.t * Engine_kind.t) list)
     (skipped_rules : Rule.invalid_rule_error list) (scanned : Target.t list)
     (interfile_languages_used : Xlang.t list) ~rules_parse_time : t =
