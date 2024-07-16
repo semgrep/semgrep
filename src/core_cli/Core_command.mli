@@ -12,7 +12,7 @@ val semgrep_core_with_one_pattern :
 val semgrep_core_with_rules_and_formatted_output :
   < Cap.stdout ; Cap.tmp ; Cap.exit > -> Core_scan_config.t -> unit
 (** [semgrep_core_with_rules_and_formatted_output config] calls
-    [scan_with_exn_handler] and then [output_core_results] on the results
+    [Core_scan.scan] and then [output_core_results] on the results
     This is the function used when running semgrep-core with -rules.
 *)
 

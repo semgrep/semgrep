@@ -1,16 +1,16 @@
 (* The type of the semgrep "core" scan. We define it here so that
    semgrep and semgrep-proprietary use the same definition *)
-type core_scan_func = Core_scan_config.t -> Core_result.result_or_exn
+type func = Core_scan_config.t -> Core_result.result_or_exn
 
 (* Entry point. This is used in Core_command.ml for semgrep-core,
  * in tests, in semgrep-pro, and finally in osemgrep.
  *
- * [scan_with_exn_handler config] runs a core scan with a starting list
+ * [scan config] runs a core scan with a starting list
  * of targets and capture any exception.
  * This internally calls Match_rules.check on every files, in
  * parallel, with some memory limits, and aggregate the results.
  *
- * This has the type core_scan_func defined above.
+ * This has the type [func] defined above.
  *
  * Note that this function will run the pre/post scan hook defined
  * in Pre_post_core_scan.hook_processor.
@@ -19,7 +19,7 @@ type core_scan_func = Core_scan_config.t -> Core_result.result_or_exn
  * provided, it defaults to a function that internally calls
  * print_match() below.
  *)
-val scan_with_exn_handler :
+val scan :
   ?match_hook:(Pattern_match.t -> unit) ->
   < Cap.tmp > ->
   Core_scan_config.t ->

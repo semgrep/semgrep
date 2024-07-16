@@ -124,7 +124,7 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
                    You may need to acquire a different binary."
                 |> ignore;
               Core_runner.mk_core_run_for_osemgrep
-                (Core_scan.scan_with_exn_handler (session.caps :> < Cap.tmp >))
+                (Core_scan.scan (session.caps :> < Cap.tmp >))
         in
         Logs.debug (fun m ->
             m "Running Semgrep with %d rules" (List.length rules));
@@ -138,7 +138,7 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
         | Error (exn, _core_error_opt) ->
             (* TODO? should this just be logged instead *)
             Exception.reraise exn
-        | Ok res -> Core_runner.create_core_result rules res
+        | Ok res -> Core_runner.mk_result rules res
       in
       (* Collect results. *)
       let scanned = res.scanned |> Set_.elements in

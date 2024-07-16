@@ -132,7 +132,7 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
 
         let core_run_func =
           Core_runner.mk_core_run_for_osemgrep
-            (Core_scan.scan_with_exn_handler (caps :> < Cap.tmp >))
+            (Core_scan.scan (caps :> < Cap.tmp >))
         in
         let result_or_exn =
           core_run_func.run conf.core_runner_conf Find_targets.default_conf
@@ -141,7 +141,7 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
         match result_or_exn with
         | Error (exn, _core_error_opt) -> Exception.reraise exn
         | Ok result ->
-            let res = Core_runner.create_core_result metarules result in
+            let res = Core_runner.mk_result metarules result in
             (* TODO? sanity check errors below too? *)
             let OutJ.{ results; errors = _; _ } =
               Cli_json_output.cli_output_of_core_results

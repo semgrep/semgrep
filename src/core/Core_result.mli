@@ -16,8 +16,7 @@ type t = {
    * It includes targets that couldn't be scanned, for instance due to
    * a parsing error.
    * TODO: are we actually doing that? this was a comment
-   * for semgrep_with_raw_results_and_exn_handler (now scan_with_exn_handler)
-   * but I'm not sure we're doing it.
+   * for Core_scan.scan but I'm not sure we're doing it.
    *)
   scanned : Target.t list;
   (* extra information useful to also give to the user (in JSON or

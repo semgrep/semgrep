@@ -369,13 +369,10 @@ let uniq_rules_and_error_if_empty_rules rules =
 
 (* Select and execute the scan func based on the configured engine settings *)
 let mk_core_run_for_osemgrep (caps : < Cap.tmp >) (conf : Scan_CLI.conf)
-    (diff_config : Differential_scan_config.t) :
-    Core_runner.core_run_for_osemgrep =
-  let core_run_for_osemgrep : Core_runner.core_run_for_osemgrep =
+    (diff_config : Differential_scan_config.t) : Core_runner.func =
+  let core_run_for_osemgrep : Core_runner.func =
     match conf.engine_type with
-    | OSS ->
-        Core_runner.mk_core_run_for_osemgrep
-          (Core_scan.scan_with_exn_handler caps)
+    | OSS -> Core_runner.mk_core_run_for_osemgrep (Core_scan.scan caps)
     | PRO _ -> (
         match !Core_runner.hook_mk_pro_core_run_for_osemgrep with
         | None ->
@@ -393,7 +390,7 @@ let mk_core_run_for_osemgrep (caps : < Cap.tmp >) (conf : Scan_CLI.conf)
                 engine_type = conf.engine_type;
               })
   in
-  let core_run_for_osemgrep : Core_runner.core_run_for_osemgrep =
+  let core_run_for_osemgrep : Core_runner.func =
     match conf.targeting_conf.force_project_root with
     | Some (Find_targets.Git_remote _) -> (
         match !Core_runner.hook_pro_git_remote_scan_setup with
@@ -543,9 +540,7 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
       (* TOADAPT? Runner_exit.exit_semgrep (Unknown_exception e) instead *)
       Exception.reraise e
   | Ok result ->
-      let (res : Core_runner.result) =
-        Core_runner.create_core_result rules result
-      in
+      let (res : Core_runner.result) = Core_runner.mk_result rules result in
       (* step 3'': adjust the matches, filter via nosemgrep and part1 autofix *)
       let keep_ignored =
         (not conf.core_runner_conf.nosem)
