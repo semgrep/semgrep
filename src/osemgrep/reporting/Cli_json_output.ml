@@ -383,9 +383,8 @@ let index_match_based_ids (matches : Out.cli_match list) : Out.cli_match list =
  * to depend on cli_scan/ from reporting/ here, hence the duplication.
  * alt: we could move Core_runner.result type in src/osemgrep/core/
  *)
-let cli_output_of_runner_result ~time ~fixed_lines ~skipped_files
-    (core : Out.core_output) (hrules : Rule.hrules) (scanned : Fpath.t Set_.t) :
-    Out.cli_output =
+let cli_output_of_runner_result ~fixed_lines (core : Out.core_output)
+    (hrules : Rule.hrules) (scanned : Fpath.t Set_.t) : Out.cli_output =
   match core with
   | {
    version;
@@ -400,7 +399,7 @@ let cli_output_of_runner_result ~time ~fixed_lines ~skipped_files
    skipped_rules;
    explanations;
    interfile_languages_used;
-   time = time_info;
+   time;
    (* LATER *)
    rules_by_engine = _;
    engine_requested = _;
@@ -416,29 +415,23 @@ let cli_output_of_runner_result ~time ~fixed_lines ~skipped_files
        * python: scanned=[str(path) for path in sorted(self.all_targets)]
        *)
       let scanned = scanned |> Set_.elements in
-      let (paths : Out.scanned_and_skipped) =
-        if
-          skipped_files
-          (* Skipping the python intermediate FileTargetingLog for now.
-           * We used to have a cli_skipped_target and core_skipped_target type,
-           * but now they are merged so this function is the identity.
-           * In theory we could remove the details: and rule_id: from it
-           * because they used to not be included in the final JSON output
-           * (but the info was used in the text output to display skipping
-           * information).
-           *
-           * Still? skipped targets are coming from the FileIgnoreLog which is
-           * populated from many places in the code.
-           * Still? see _make_failed_to_analyze() in output.py,
-           * core_failure_lines_by_file in target_manager.py
-           * Still? need to sort
-           *)
-        then { scanned; skipped }
-        else { scanned; skipped = None }
-      in
+      (* Skipping the python intermediate FileTargetingLog for now.
+       * We used to have a cli_skipped_target and core_skipped_target type,
+       * but now they are merged so this function is the identity.
+       * In theory we could remove the details: and rule_id: from it
+       * because they used to not be included in the final JSON output
+       * (but the info was used in the text output to display skipping
+       * information).
+       *
+       * Still? skipped targets are coming from the FileIgnoreLog which is
+       * populated from many places in the code.
+       * Still? see _make_failed_to_analyze() in output.py,
+       * core_failure_lines_by_file in target_manager.py
+       * Still? need to sort
+       *)
+      let (paths : Out.scanned_and_skipped) = { scanned; skipped } in
       let skipped_rules =
         (* TODO: return skipped_rules with --develop
-
            if maturity = Develop then
              invalid_rules
            else
@@ -450,8 +443,7 @@ let cli_output_of_runner_result ~time ~fixed_lines ~skipped_files
       let fixed_env = Fixed_lines.mk_env () in
       {
         version;
-        (* Skipping the python intermediate RuleMatchMap for now.
-         *)
+        (* Skipping the python intermediate RuleMatchMap for now *)
         results =
           matches
           |> List_.map (cli_match_of_core_match ~fixed_lines fixed_env hrules)
@@ -461,7 +453,7 @@ let cli_output_of_runner_result ~time ~fixed_lines ~skipped_files
         skipped_rules;
         explanations;
         interfile_languages_used;
-        time = (if time then time_info else None);
+        time;
         (* LATER *)
         rules_by_engine = None;
         engine_requested = None;

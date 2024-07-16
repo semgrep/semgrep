@@ -21,7 +21,7 @@ open RPC_server
 module CN = Client_notification
 module CR = Client_request
 module Conv = Convert_utils
-module OutJ = Semgrep_output_v1_t
+module Out = Semgrep_output_v1_t
 
 (*****************************************************************************)
 (* Helpers *)
@@ -153,13 +153,12 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
         |> Profiler.record profiler ~name:"process_run"
       in
       (* Do reporting *)
-      let cli_output =
-        Output.preprocess_result ~time:false ~fixed_lines:false
-          ~skipped_files:false res
+      let (cli_output : Out.cli_output) =
+        Output.preprocess_result ~fixed_lines:false res
       in
       let errors =
         cli_output.errors
-        |> List_.filter_map (fun (e : OutJ.cli_error) -> e.message)
+        |> List_.filter_map (fun (e : Out.cli_error) -> e.message)
         |> String.concat "\n"
       in
       Logs.app (fun m -> m "Semgrep errors: %s" errors);
@@ -285,7 +284,7 @@ let scan_file server uri =
     let targets = if List.mem file session_targets then targets else [] in
     let results, _ = run_semgrep ~targets server in
     let results =
-      List_.map (fun (m : OutJ.cli_match) -> { m with path = file }) results
+      List_.map (fun (m : Out.cli_match) -> { m with path = file }) results
     in
     let files = [ file ] in
     Session.record_results server.session results files;

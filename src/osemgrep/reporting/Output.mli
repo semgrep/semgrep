@@ -10,8 +10,6 @@ type conf = {
   force_color : bool;
   (* for text and SARIF *)
   show_dataflow_traces : bool;
-  (* for displaying profiling information *)
-  time : bool;
   (* misc *)
   strict : bool;
   (* a.k.a. dryrun in Scan_CLI.conf *)
@@ -39,11 +37,7 @@ val output_result :
   Core_runner.result ->
   Out.cli_output
 
-(* helper used in output_result() and other callsites *)
-val preprocess_result :
-  time:bool ->
-  fixed_lines:bool ->
-  skipped_files:bool ->
-  Core_runner.result ->
-  Out.cli_output
-(** This handles nosemgrep, interpolating messages, and more. *)
+(* helper used in output_result() and other callsites.
+ * This handles nosemgrep, interpolating messages, and more.
+ *)
+val preprocess_result : fixed_lines:bool -> Core_runner.result -> Out.cli_output

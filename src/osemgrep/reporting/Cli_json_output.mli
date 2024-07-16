@@ -3,12 +3,9 @@ module Out = Semgrep_output_v1_j
 (* Entry point.
  * when fixed_lines is true, the JSON output contains the fixed lines
  * (and in Scan_subcommand.ml we do not apply the autofix on the files).
- * when skipped_files is true, the JSON contains the skipped files.
  *)
 val cli_output_of_runner_result :
-  time:bool ->
   fixed_lines:bool ->
-  skipped_files:bool ->
   (* those 3 parameters are essentially Core_runner.result *)
   Out.core_output ->
   Rule.hrules ->
