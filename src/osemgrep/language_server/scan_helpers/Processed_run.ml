@@ -55,7 +55,7 @@ let scan_conf = { Output.default with strict = false }
 let of_matches ?(skipped_fingerprints = []) ?(only_git_dirty = true)
     ?(git_ref = None) (result : Core_runner.result) =
   let result =
-    Output.preprocess_result ~dryrun:scan_conf.dryrun
+    Output.preprocess_result ~time:scan_conf.time ~dryrun:scan_conf.dryrun
       ~logging_level:scan_conf.logging_level result
   in
   (* Match the rules with the matches so we can get fixes/rule-ids/messages *)

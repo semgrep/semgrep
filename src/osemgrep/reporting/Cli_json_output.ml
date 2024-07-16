@@ -383,8 +383,9 @@ let index_match_based_ids (matches : Out.cli_match list) : Out.cli_match list =
  * to depend on cli_scan/ from reporting/ here, hence the duplication.
  * alt: we could move Core_runner.result type in core/
  *)
-let cli_output_of_core_results ~dryrun ~logging_level (core : Out.core_output)
-    (hrules : Rule.hrules) (scanned : Fpath.t Set_.t) : Out.cli_output =
+let cli_output_of_core_results ~time ~dryrun ~logging_level
+    (core : Out.core_output) (hrules : Rule.hrules) (scanned : Fpath.t Set_.t) :
+    Out.cli_output =
   match core with
   | {
    version;
@@ -399,8 +400,8 @@ let cli_output_of_core_results ~dryrun ~logging_level (core : Out.core_output)
    skipped_rules;
    explanations;
    interfile_languages_used;
+   time = time_info;
    (* LATER *)
-   time = _;
    rules_by_engine = _;
    engine_requested = _;
   } ->
@@ -460,8 +461,8 @@ let cli_output_of_core_results ~dryrun ~logging_level (core : Out.core_output)
         skipped_rules;
         explanations;
         interfile_languages_used;
+        time = (if time then time_info else None);
         (* LATER *)
-        time = None;
         rules_by_engine = None;
         engine_requested = None;
       }

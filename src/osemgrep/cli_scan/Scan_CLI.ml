@@ -1086,6 +1086,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       {
         dryrun;
         strict;
+        time = time_flag;
         force_color;
         show_dataflow_traces = dataflow_traces;
         output_format;

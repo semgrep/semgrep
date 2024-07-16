@@ -229,8 +229,8 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
    matching_explanations;
    nosem;
    strict;
+   time_flag;
    (* TODO *)
-   time_flag = _;
    dataflow_traces = _;
   } ->
       (* We default to Json because we do not want the current text
@@ -251,6 +251,7 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
         nosem;
         strict;
         version = Version.version;
+        report_time = time_flag;
       }
 
 let prepare_config_for_core_scan (config : Core_scan_config.t)

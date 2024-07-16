@@ -10,6 +10,8 @@ type conf = {
   force_color : bool;
   (* for text and SARIF *)
   show_dataflow_traces : bool;
+  (* for displaying profiling information *)
+  time : bool;
   (* misc *)
   strict : bool;
   dryrun : bool;
@@ -37,6 +39,7 @@ val output_result :
 
 (* helper used in output_result() and other callsites *)
 val preprocess_result :
+  time:bool ->
   dryrun:bool ->
   logging_level:Logs.level option ->
   Core_runner.result ->
