@@ -1121,7 +1121,7 @@ let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
            | Error err -> Error err)
     |> Base.Result.all
   in
-  Ok (Either_.partition_either (fun x -> x) xs)
+  Ok (Either_.partition (fun x -> x) xs)
 
 (* We can't call just Yaml_to_generic.program below because when we parse
  * YAML Semgrep rules, we preprocess unicode characters differently.

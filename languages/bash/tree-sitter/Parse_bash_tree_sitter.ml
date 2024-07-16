@@ -394,7 +394,7 @@ and case_item (env : env) ((v1, v2, v3, v4, v5) : CST.case_item) : case_clause =
 
 and command (env : env) ((v1, v2, v3) : CST.command) : cmd_redir =
   let assignments, redirects =
-    Either_.partition_either
+    Either_.partition
       (fun x ->
         match x with
         | `Var_assign x -> Left (variable_assignment env x)

@@ -1,6 +1,6 @@
 open Common
 open Fpath_.Operators
-module OutJ = Semgrep_output_v1_t
+module Out = Semgrep_output_v1_t
 
 (*****************************************************************************)
 (* Prelude *)
@@ -143,11 +143,10 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
         | Ok result ->
             let res = Core_runner.mk_result metarules result in
             (* TODO? sanity check errors below too? *)
-            let OutJ.{ results; errors = _; _ } =
-              Cli_json_output.cli_output_of_core_results
-                ~time:conf.core_runner_conf.time_flag ~dryrun:true
-                ~logging_level:conf.common.logging_level res.core res.hrules
-                res.scanned
+            let Out.{ results; errors = _; _ } =
+              Cli_json_output.cli_output_of_runner_result
+                ~time:conf.core_runner_conf.time_flag ~fixed_lines:false
+                ~skipped_files:false res.core res.hrules res.scanned
             in
             (* TOPORT?
                     ... run -check_rules in semgrep-core ...
@@ -185,7 +184,7 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
         num_errors (List.length rules));
   (* coupling: with Check_rule.error and use of SemgrepMatchFound *)
   metacheck_errors
-  |> List.iter (fun (x : OutJ.cli_match) ->
+  |> List.iter (fun (x : Out.cli_match) ->
          Logs.err (fun m ->
              m "Semgrep match found at line %s:%d\n%s" !!(x.path) x.start.line
                x.extra.message));

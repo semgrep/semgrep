@@ -541,7 +541,7 @@ let sources_of_taints ?preferred_label taints =
      with preconditions as a secondary choice. *)
   let with_req, without_req =
     taint_sources
-    |> Either_.partition_either (fun (src, tokens, sink_trace) ->
+    |> Either_.partition (fun (src, tokens, sink_trace) ->
            match get_source_requires src with
            | Some _ -> Left (src, tokens, sink_trace)
            | None -> Right (src, tokens, sink_trace))

@@ -991,7 +991,7 @@ let selector_and_analyzer_of_xlang (xlang : Xlang.t) :
 (* return list of "positive" x list of Not *)
 let split_and (xs : formula list) : formula list * (tok * formula) list =
   xs
-  |> Either_.partition_either (fun e ->
+  |> Either_.partition (fun e ->
          match e.f with
          (* positives *)
          | P _

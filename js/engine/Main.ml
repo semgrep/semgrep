@@ -55,7 +55,6 @@ let _ =
                    (Target.mk_regular xlang Product.all (File (Fpath.v f))))
                source_files
            in
-           let default_config = Output.default in
            let config : Core_scan_config.t =
              {
                Core_scan_config.default with
@@ -93,9 +92,8 @@ let _ =
               set above.
            *)
            let cli_output =
-             Output.preprocess_result ~time:default_config.time
-               ~dryrun:default_config.dryrun
-               ~logging_level:default_config.logging_level res
+             Output.preprocess_result ~time:false ~fixed_lines:false
+               ~skipped_files:false res
            in
            Semgrep_output_v1_j.string_of_cli_output cli_output
          in

@@ -235,7 +235,7 @@ let make_fixed_lines fixes_env fix path (start : Out.position)
   in
   Fixed_lines.make_fixed_lines fixes_env edit
 
-let cli_match_of_core_match ~dryrun fixes_env (hrules : Rule.hrules)
+let cli_match_of_core_match ~fixed_lines fixed_env (hrules : Rule.hrules)
     (m : Out.core_match) : Out.cli_match =
   match m with
   | {
@@ -282,11 +282,11 @@ let cli_match_of_core_match ~dryrun fixes_env (hrules : Rule.hrules)
        *)
       let severity = severity ||| rule.severity in
       let fixed_lines =
-        match (fix, dryrun) with
+        match (fix, fixed_lines) with
         | None, _
         | _, false ->
             None
-        | Some fix, true -> make_fixed_lines fixes_env fix path start end_
+        | Some fix, true -> make_fixed_lines fixed_env fix path start end_
       in
       (* Can't use content_of_file_at_range because we want to include the
        * entirety of every line involved in the match, not just the text that
@@ -379,11 +379,11 @@ let index_match_based_ids (matches : Out.cli_match list) : Out.cli_match list =
 (* Entry point *)
 (*****************************************************************************)
 
-(* The 3 parameters are mostly Core_runner.result but we don't want
+(* The 3 regular parameters are mostly Core_runner.result but we don't want
  * to depend on cli_scan/ from reporting/ here, hence the duplication.
- * alt: we could move Core_runner.result type in core/
+ * alt: we could move Core_runner.result type in src/osemgrep/core/
  *)
-let cli_output_of_core_results ~time ~dryrun ~logging_level
+let cli_output_of_runner_result ~time ~fixed_lines ~skipped_files
     (core : Out.core_output) (hrules : Rule.hrules) (scanned : Fpath.t Set_.t) :
     Out.cli_output =
   match core with
@@ -417,24 +417,24 @@ let cli_output_of_core_results ~time ~dryrun ~logging_level
        *)
       let scanned = scanned |> Set_.elements in
       let (paths : Out.scanned_and_skipped) =
-        match logging_level with
-        | Some (Logs.Info | Logs.Debug) ->
-            (* Skipping the python intermediate FileTargetingLog for now.
-             * We used to have a cli_skipped_target and core_skipped_target type,
-             * but now they are merged so this function is the identity.
-             * In theory we could remove the details: and rule_id: from it
-             * because they used to not be included in the final JSON output
-             * (but the info was used in the text output to display skipping
-             * information).
-             *
-             * Still? skipped targets are coming from the FileIgnoreLog which is
-             * populated from many places in the code.
-             * Still? see _make_failed_to_analyze() in output.py,
-             * core_failure_lines_by_file in target_manager.py
-             * Still? need to sort
-             *)
-            { scanned; skipped }
-        | _else_ -> { scanned; skipped = None }
+        if
+          skipped_files
+          (* Skipping the python intermediate FileTargetingLog for now.
+           * We used to have a cli_skipped_target and core_skipped_target type,
+           * but now they are merged so this function is the identity.
+           * In theory we could remove the details: and rule_id: from it
+           * because they used to not be included in the final JSON output
+           * (but the info was used in the text output to display skipping
+           * information).
+           *
+           * Still? skipped targets are coming from the FileIgnoreLog which is
+           * populated from many places in the code.
+           * Still? see _make_failed_to_analyze() in output.py,
+           * core_failure_lines_by_file in target_manager.py
+           * Still? need to sort
+           *)
+        then { scanned; skipped }
+        else { scanned; skipped = None }
       in
       let skipped_rules =
         (* TODO: return skipped_rules with --develop
@@ -447,14 +447,14 @@ let cli_output_of_core_results ~time ~dryrun ~logging_level
         ignore skipped_rules;
         []
       in
-      let fixes_env = Fixed_lines.mk_env () in
+      let fixed_env = Fixed_lines.mk_env () in
       {
         version;
         (* Skipping the python intermediate RuleMatchMap for now.
          *)
         results =
           matches
-          |> List_.map (cli_match_of_core_match ~dryrun fixes_env hrules)
+          |> List_.map (cli_match_of_core_match ~fixed_lines fixed_env hrules)
           |> Semgrep_output_utils.sort_cli_matches;
         errors = errors |> List_.map cli_error_of_core_error;
         paths;

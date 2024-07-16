@@ -218,7 +218,7 @@ let sort_targets_by_decreasing_size (targets : Target.t list) : Target.t list =
 let filter_existing_targets (targets : Target.t list) :
     Target.t list * Out.skipped_target list =
   targets
-  |> Either_.partition_either (fun (target : Target.t) ->
+  |> Either_.partition (fun (target : Target.t) ->
          let internal_path = Target.internal_path target in
          if Sys.file_exists !!internal_path then Left target
          else
@@ -1010,7 +1010,7 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
         | Some lockfile_target ->
             applicable_rules
             |> Match_dependency.match_all_dependencies lockfile_target
-            |> Either_.partition_either (function
+            |> Either_.partition (function
                  | rule, Some [] -> Left rule
                  | x -> Right x)
       in

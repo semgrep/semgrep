@@ -114,7 +114,7 @@ let is_minified (path : Fpath.t) =
       else Ok path
     else Ok path
 
-let exclude_minified_files paths = Result_.partition_result is_minified paths
+let exclude_minified_files paths = Result_.partition is_minified paths
 
 (****************************************************************************)
 (* Big file filtering *)
@@ -144,4 +144,4 @@ let is_big max_bytes path =
 
 let exclude_big_files max_target_bytes paths =
   let max_bytes = max_target_bytes in
-  paths |> Result_.partition_result (is_big max_bytes)
+  paths |> Result_.partition (is_big max_bytes)

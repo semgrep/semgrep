@@ -154,9 +154,8 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
       in
       (* Do reporting *)
       let cli_output =
-        Output.preprocess_result ~time:Output.default.time
-          ~dryrun:Output.default.dryrun
-          ~logging_level:Output.default.logging_level res
+        Output.preprocess_result ~time:false ~fixed_lines:false
+          ~skipped_files:false res
       in
       let errors =
         cli_output.errors

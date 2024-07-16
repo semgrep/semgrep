@@ -1,15 +1,15 @@
 module Out = Semgrep_output_v1_j
 
 (* Entry point.
- * when dryrun is true, the JSON output contains the fixed lines
+ * when fixed_lines is true, the JSON output contains the fixed lines
  * (and in Scan_subcommand.ml we do not apply the autofix on the files).
- * when logging_level is Info or Debug the JSON contains the skipped files.
+ * when skipped_files is true, the JSON contains the skipped files.
  *)
-val cli_output_of_core_results :
+val cli_output_of_runner_result :
   time:bool ->
-  dryrun:bool ->
-  logging_level:Logs.level option ->
-  (* essentially Core_runner.result *)
+  fixed_lines:bool ->
+  skipped_files:bool ->
+  (* those 3 parameters are essentially Core_runner.result *)
   Out.core_output ->
   Rule.hrules ->
   Fpath.t Set_.t ->
@@ -23,7 +23,7 @@ val exit_code_of_error_type : Out.error_type -> Exit_code.t
  * cli_match. This depends on whether an overlapping fix was already included in
  * an earlier cli_match in the same list of matches. *)
 val cli_match_of_core_match :
-  dryrun:bool ->
+  fixed_lines:bool ->
   Fixed_lines.env ->
   Rule.hrules ->
   Out.core_match ->
