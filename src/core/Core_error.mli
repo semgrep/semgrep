@@ -23,9 +23,9 @@ module ErrorSet : Set.S with type elt = t
 (*****************************************************************************)
 
 val mk_error :
-  Rule_ID.t option ->
+  ?rule_id:Rule_ID.t option ->
+  ?msg:string ->
   Tok.location ->
-  string ->
   Semgrep_output_v1_t.error_type ->
   t
 

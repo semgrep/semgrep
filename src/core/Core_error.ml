@@ -70,8 +70,8 @@ let please_file_issue_text =
   "An error occurred while invoking the Semgrep engine. Please help us fix \
    this by creating an issue at https://github.com/returntocorp/semgrep"
 
-let mk_error (opt_rule_id : Rule_ID.t option) (loc : Tok.location)
-    (msg : string) (err : Out.error_type) : t =
+let mk_error ?(rule_id = None) ?(msg = "") (loc : Tok.location)
+    (err : Out.error_type) : t =
   let msg =
     match err with
     | MatchingError
@@ -101,7 +101,7 @@ let mk_error (opt_rule_id : Rule_ID.t option) (loc : Tok.location)
     | MissingPlugin ->
         msg
   in
-  { loc; typ = err; msg; details = None; rule_id = opt_rule_id }
+  { loc; typ = err; msg; details = None; rule_id }
 
 let mk_error_tok opt_rule_id (file : Fpath.t) (tok : Tok.t) (msg : string)
     (err : Out.error_type) : t =
@@ -110,7 +110,7 @@ let mk_error_tok opt_rule_id (file : Fpath.t) (tok : Tok.t) (msg : string)
     | Ok loc -> loc
     | Error _ -> Tok.first_loc_of_file !!file
   in
-  mk_error opt_rule_id loc msg err
+  mk_error ~rule_id:opt_rule_id ~msg loc err
 
 let error_of_invalid_rule_error ((kind, rule_id, pos) : R.invalid_rule_error) :
     t =
@@ -157,10 +157,10 @@ let error_of_rule_error (file : Fpath.t) (err : Rule.error) : t =
   | UnparsableYamlException s ->
       (* Based on what previously happened based on exn_to_error logic before
          converting Rule parsing errors to not be exceptions. *)
-      mk_error rule_id
+      mk_error ~rule_id ~msg:s
         (if not (is_no_file file) then Tok.first_loc_of_file !!file
          else Tok.fake_location)
-        s Out.OtherParseError
+        Out.OtherParseError
 
 (*
    This function converts known exceptions to Semgrep errors.
@@ -205,13 +205,13 @@ let known_exn_to_error (rule_id : Rule_ID.t option) (file : Fpath.t)
       (* This exception should always be reraised. *)
       let loc = Tok.first_loc_of_file !!file in
       let msg = Time_limit.string_of_timeout_info timeout_info in
-      Some (mk_error rule_id loc msg Out.Timeout)
+      Some (mk_error ~rule_id ~msg loc Out.Timeout)
   | Memory_limit.ExceededMemoryLimit msg ->
       let loc = Tok.first_loc_of_file !!file in
-      Some (mk_error rule_id loc msg Out.OutOfMemory)
+      Some (mk_error ~rule_id ~msg loc Out.OutOfMemory)
   | Out_of_memory ->
       let loc = Tok.first_loc_of_file !!file in
-      Some (mk_error rule_id loc "Heap space exceeded" Out.OutOfMemory)
+      Some (mk_error ~rule_id ~msg:"Heap space exceeded" loc Out.OutOfMemory)
   (* general case, can't extract line information from it, default to line 1 *)
   | _exn -> None
 

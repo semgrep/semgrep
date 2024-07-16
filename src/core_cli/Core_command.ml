@@ -37,7 +37,7 @@ let timeout_function file timeout f =
   | Some res -> Ok res
   | None ->
       let loc = Tok.first_loc_of_file !!file in
-      let err = E.mk_error None loc "" Out.Timeout in
+      let err = E.mk_error loc Out.Timeout in
       Error err
 
 (* for -e/-f *)

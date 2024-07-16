@@ -504,12 +504,13 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
            (* todo: we should maybe use a new error: TooManyMatches of int * string*)
            let loc = Tok.first_loc_of_file file in
            let error =
-             E.mk_error (Some id) loc
-               (spf
-                  "%d rules result in too many matches, most offending rule \
-                   has %d: %s"
-                  offending_rules cnt pat)
-               Out.TooManyMatches
+             E.mk_error ~rule_id:(Some id)
+               ~msg:
+                 (spf
+                    "%d rules result in too many matches, most offending rule \
+                     has %d: %s"
+                    offending_rules cnt pat)
+               loc Out.TooManyMatches
            in
            let skipped =
              sorted_offending_rules
@@ -700,7 +701,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                               file *)
                            rule_ids
                            |> List_.map (fun error_rule_id ->
-                                  E.mk_error (Some error_rule_id) loc ""
+                                  E.mk_error ~rule_id:(Some error_rule_id) loc
                                     Out.Timeout)
                            |> E.ErrorSet.of_list
                        | Out_of_memory ->
@@ -708,7 +709,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                                m "OutOfMemory on %s (contents in %s)"
                                  (Origin.to_string origin) !!internal_path);
                            E.ErrorSet.singleton
-                             (E.mk_error !Rule.last_matched_rule loc ""
+                             (E.mk_error ~rule_id:!Rule.last_matched_rule loc
                                 Out.OutOfMemory)
                        | _ -> raise Impossible
                      in
