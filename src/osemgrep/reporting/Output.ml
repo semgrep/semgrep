@@ -1,7 +1,6 @@
 open Common
 open Fpath_.Operators
-module OutJ = Semgrep_output_v1_j
-module OutT = Semgrep_output_v1_t
+module Out = Semgrep_output_v1_j
 
 (*****************************************************************************)
 (* Prelude *)
@@ -11,8 +10,8 @@ module OutT = Semgrep_output_v1_t
 
    Partially translated from output.py
 
-   We're using Out.put() below, not Logs.app(), because we want to output
-   findings on stdout (Logs.app uses stderr). That also mean semgrep will
+   We're using CapConsole.print() below, not Logs.app(), because we want to
+   output findings on stdout (Logs.app uses stderr). That also mean semgrep will
    display findings even with --quiet.
 *)
 
@@ -20,20 +19,21 @@ module OutT = Semgrep_output_v1_t
 (* Types *)
 (*****************************************************************************)
 
-(* Mostly a subset of Scan_CLI.ml with just the output relevant stuff *)
+(* Mostly a subset of Scan_CLI.conf with just the output relevant stuff *)
 type conf = {
   (* Display options *)
   (* mix of --json, --emacs, --vim, etc. *)
   output_format : Output_format.t;
+  (* maybe should define an Output_option.t, or add a record to
+   * Output_format.Text as those fields are only valid for Text output *)
   max_chars_per_line : int;
   max_lines_per_finding : int;
-  (* maybe should define an Output_option.t, or add a record to
-   * Output_format.Text *)
   force_color : bool;
-  (* For text and SARIF *)
+  (* For Text and SARIF *)
   show_dataflow_traces : bool;
   (* TODO: why strict part of an output conf? *)
   strict : bool;
+  (* TODO: only for preprocess_result? remove? *)
   dryrun : bool;
   logging_level : Logs.level option;
 }
@@ -58,8 +58,8 @@ let default : conf =
 (* Helpers *)
 (*****************************************************************************)
 
-let string_of_severity (severity : OutJ.match_severity) : string =
-  OutJ.string_of_match_severity severity
+let string_of_severity (severity : Out.match_severity) : string =
+  Out.string_of_match_severity severity
   |> JSON.remove_enclosing_quotes_of_jstring
 
 (*****************************************************************************)
@@ -68,17 +68,17 @@ let string_of_severity (severity : OutJ.match_severity) : string =
 
 let dispatch_output_format (caps : < Cap.stdout >)
     (output_format : Output_format.t) (conf : conf)
-    (runtime_params : runtime_params) (cli_output : OutJ.cli_output)
+    (runtime_params : runtime_params) (cli_output : Out.cli_output)
     (hrules : Rule.hrules) : unit =
   let print = CapConsole.print caps#stdout in
   (* TOPORT? Sort keys for predictable output. Helps with snapshot tests *)
   match output_format with
   | Json ->
-      let s = OutJ.string_of_cli_output cli_output in
+      let s = Out.string_of_cli_output cli_output in
       print s
   | Vim ->
       cli_output.results
-      |> List.iter (fun (m : OutJ.cli_match) ->
+      |> List.iter (fun (m : Out.cli_match) ->
              match m with
              | { check_id; path; start; extra = { message; severity; _ }; _ } ->
                  let parts =
@@ -96,7 +96,7 @@ let dispatch_output_format (caps : < Cap.stdout >)
   | Emacs ->
       (* TOPORT? sorted(rule_matches, key=lambda r: (r.path, r.rule_id)) *)
       cli_output.results
-      |> List.iter (fun (m : OutJ.cli_match) ->
+      |> List.iter (fun (m : Out.cli_match) ->
              match m with
              | {
               check_id;
@@ -148,7 +148,7 @@ let dispatch_output_format (caps : < Cap.stdout >)
   | Incremental -> ()
   | Sarif ->
       let engine_label, is_pro =
-        match cli_output.OutT.engine_requested with
+        match cli_output.engine_requested with
         | Some `OSS
         | None ->
             ("OSS", false)
@@ -176,7 +176,7 @@ let dispatch_output_format (caps : < Cap.stdout >)
       print (Yojson.Basic.to_string gitlab_secrets_json)
   | Files_with_matches ->
       cli_output.results
-      |> List_.map (fun (x : OutT.cli_match) -> !!(x.path))
+      |> List_.map (fun (x : Out.cli_match) -> !!(x.path))
       |> Set_.of_list |> Set_.elements |> List_.sort |> String.concat "\n"
       |> print
 
@@ -186,16 +186,18 @@ let dispatch_output_format (caps : < Cap.stdout >)
 
 (* This function takes a core runner output and makes it suitable for the user,
  * by filtering out nosem, setting messages, adding fingerprinting etc.
+ * TODO? remove this intermediate?
  *)
-let preprocess_result (conf : conf) (res : Core_runner.result) : OutJ.cli_output
-    =
-  let cli_output : OutJ.cli_output =
-    Cli_json_output.cli_output_of_core_results ~dryrun:conf.dryrun
-      ~logging_level:conf.logging_level res.core res.hrules res.scanned
+let preprocess_result ~dryrun ~logging_level (res : Core_runner.result) :
+    Out.cli_output =
+  let cli_output : Out.cli_output =
+    Cli_json_output.cli_output_of_core_results ~dryrun ~logging_level res.core
+      res.hrules res.scanned
   in
   cli_output |> fun results ->
   {
     results with
+    (* TODO? why not do that in cli_output_of_core_results? *)
     results = Cli_json_output.index_match_based_ids results.results;
   }
 
@@ -204,7 +206,7 @@ let preprocess_result (conf : conf) (res : Core_runner.result) : OutJ.cli_output
  *)
 let output_result (caps : < Cap.stdout >) (conf : conf)
     (runtime_params : runtime_params) (profiler : Profiler.t)
-    (res : Core_runner.result) : OutJ.cli_output =
+    (res : Core_runner.result) : Out.cli_output =
   (* In theory, we should build the JSON CLI output only for the
    * Json conf.output_format, but cli_output contains lots of data-structures
    * that are useful for the other formats (e.g., Vim, Emacs), so we build
@@ -213,7 +215,8 @@ let output_result (caps : < Cap.stdout >) (conf : conf)
   (* TOPORT? output.output() *)
   let cli_output =
     Profiler.record profiler ~name:"ignores_times" (fun () ->
-        preprocess_result conf res)
+        preprocess_result ~dryrun:conf.dryrun ~logging_level:conf.logging_level
+          res)
   in
   dispatch_output_format caps conf.output_format conf runtime_params cli_output
     res.hrules;

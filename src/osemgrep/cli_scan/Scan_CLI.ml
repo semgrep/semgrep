@@ -40,7 +40,6 @@ type conf = {
   rewrite_rule_ids : bool;
   (* Engine selection *)
   engine_type : Engine_type.t;
-  (* autofix *)
   autofix : bool;
   (* Performance options *)
   core_runner_conf : Core_runner.conf;

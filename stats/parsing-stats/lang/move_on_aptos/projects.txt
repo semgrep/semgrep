@@ -10,4 +10,3 @@ https://github.com/aptos-labs/token-minter
 https://github.com/aptos-labs/aptos-names-contracts
 https://github.com/aptos-labs/daily-move
 https://github.com/movefuns/move-by-example
-https://github.com/aave/aptos-aave-v3
