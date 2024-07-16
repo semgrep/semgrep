@@ -16,10 +16,19 @@ let token = H.token
 let str = H.str
 let _fb = Tok.unsafe_fake_bracket
 
+(* let fake s = Tok.unsafe_fake_tok s *)
+let fake_id s = (s, G.fake s)
+
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
 (* This was started by copying from semgrep-circom/lib/Boilerplate.ml *)
+
+(* Disable warnings against unused variables *)
+[@@@warning "-26-27-32"]
+
+(* Disable warning against unused 'rec' *)
+[@@@warning "-39"]
 
 let _map_signal_visability (env : env) (x : CST.signal_visability) =
   (match x with
@@ -107,6 +116,95 @@ let map_directive (env : env) (x : CST.directive) =
       
       [ ImportAll (timport, FileName path, fake "") |> G.d ]
   )
+
+let map_int_ (env : env) (tok : CST.int_) =
+  (* pattern \d+ *) str env tok
+
+let map_parameter (env : env) (x : CST.parameter) =
+  match x with
+  | `Id v1 ->
+      let name =  (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v1 in
+      let param =
+        {
+          G.pname = Some name;
+          G.ptype = None;
+          G.pdefault = None;
+          G.pattrs = [];
+          G.pinfo = G.empty_id_info ();
+        }
+      in
+      G.Param param
+  | `Ellips tok ->
+    ParamEllipsis ((* "..." *) token env tok)
+
+(* let map_parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) =
+  let v1 = (* "(" *) token env v1 in
+  let v2 =
+    (match v2 with
+    | Some (v1, v2, v3) -> R.Option (Some (
+        let v1 = map_parameter env v1 in
+        let v2 =
+          R.List (List.map (fun (v1, v2) ->
+            let v1 = (* "," *) token env v1 in
+            let v2 = map_parameter env v2 in
+            R.Tuple [v1; v2]
+          ) v2)
+        in
+        let v3 =
+          (match v3 with
+          | Some tok -> R.Option (Some (
+              (* "," *) token env tok
+            ))
+          | None -> None)
+        in
+        R.Tuple [v1; v2; v3]
+      ))
+    | None -> None)
+  in
+  let v3 = (* ")" *) token env v3 in
+  R.Tuple [v1; v2; v3] *)
+
+let map_definition (env : env) (x : CST.definition) =
+  match x with
+  | `Func_defi (v1, v2, v3, v4) ->
+      let v1 = (* "function" *) token env v1 in
+      let v2 =
+        (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) token env v2
+      in
+      let v3 = map_parameter_list env v3 in
+      let v4 = map_function_body env v4 in
+      R.Tuple [v1; v2; v3; v4]
+  (* | `Temp_defi (v1, v2, v3, v4, v5) -> R.Case ("Temp_defi",
+      let v1 = (* "template" *) token env v1 in
+      let v2 =
+        (match v2 with
+        | Some x -> R.Option (Some (
+            map_template_type env x
+          ))
+        | None -> R.Option None)
+      in
+      let v3 =
+        (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) token env v3
+      in
+      let v4 = map_parameter_list env v4 in
+      let v5 = map_template_body env v5 in
+      R.Tuple [v1; v2; v3; v4; v5]
+    )
+  | `Main_comp_defi (v1, v2, v3, v4, v5, v6) -> R.Case ("Main_comp_defi",
+      let v1 = (* "component" *) token env v1 in
+      let v2 = (* "main" *) token env v2 in
+      let v3 =
+        (match v3 with
+        | Some x -> R.Option (Some (
+            map_main_component_public_signals env x
+          ))
+        | None -> R.Option None)
+      in
+      let v4 = (* "=" *) token env v4 in
+      let v5 = map_call_expression env v5 in
+      let v6 = (* ";" *) token env v6 in
+      R.Tuple [v1; v2; v3; v4; v5; v6]
+    ) *)
 
 let map_source_unit (env : env) (x : CST.source_unit) : item list =
   match x with
