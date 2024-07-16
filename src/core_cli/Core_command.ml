@@ -116,7 +116,7 @@ let output_core_results (caps : < Cap.stdout ; Cap.exit >)
 let semgrep_core_with_rules_and_formatted_output
     (caps : < Cap.stdout ; Cap.tmp ; Cap.exit >) (config : Core_scan_config.t) :
     unit =
-  let res = Core_scan.scan_with_exn_handler (caps :> < Cap.tmp >) config in
+  let res = Core_scan.scan (caps :> < Cap.tmp >) config in
   output_core_results (caps :> < Cap.stdout ; Cap.exit >) res config
 
 (*****************************************************************************)
@@ -184,7 +184,7 @@ let semgrep_core_with_one_pattern (caps : < Cap.stdout ; Cap.tmp >)
         Rule.rule_of_xpattern xlang xpat
       in
       let config = { config with rule_source = Some (Rules [ rule ]) } in
-      let res = Core_scan.scan_with_exn_handler (caps :> < Cap.tmp >) config in
+      let res = Core_scan.scan (caps :> < Cap.tmp >) config in
       match res with
       | Error (exn, _) -> Exception.reraise exn
       | Ok res ->

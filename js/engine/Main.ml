@@ -69,7 +69,7 @@ let _ =
             * but this should not happen here, so it's ok to use tmp_caps_UNSAFE
             *)
            let caps = Cap.tmp_caps_UNSAFE () in
-           let res_or_exn = Core_scan.scan_with_exn_handler caps config in
+           let res_or_exn = Core_scan.scan caps config in
            let res =
              match res_or_exn with
              | Error (e, _core_error_opt) ->
@@ -82,9 +82,9 @@ let _ =
            in
            let res =
              match rules_and_errors with
-             | Ok (rules, _) -> Core_runner.create_core_result rules res
+             | Ok (rules, _) -> Core_runner.mk_result rules res
              | Error e ->
-                 Core_runner.create_core_result []
+                 Core_runner.mk_result []
                    (Core_result.mk_final_result_with_just_errors
                       [
                         Core_error.error_of_rule_error

@@ -20,7 +20,7 @@ module MR = Mini_rule
 module R = Rule
 module RP = Core_result
 module In = Input_to_core_j
-module OutJ = Semgrep_output_v1_j
+module Out = Semgrep_output_v1_j
 
 (*****************************************************************************)
 (* Purpose *)
@@ -123,7 +123,7 @@ module OutJ = Semgrep_output_v1_j
 
 (* The type of the semgrep core scan. We define it here so that
    semgrep and semgrep-proprietary use the same definition *)
-type core_scan_func = Core_scan_config.t -> Core_result.result_or_exn
+type func = Core_scan_config.t -> Core_result.result_or_exn
 
 (* A target is [Not_scanned] when semgrep didn't find any applicable rules.
  * The information is useful to return to pysemgrep/osemgrep to
@@ -217,7 +217,7 @@ let sort_targets_by_decreasing_size (targets : Target.t list) : Target.t list =
  * early on.
  *)
 let filter_existing_targets (targets : Target.t list) :
-    Target.t list * OutJ.skipped_target list =
+    Target.t list * Out.skipped_target list =
   targets
   |> Either_.partition_either (fun (target : Target.t) ->
          let internal_path = Target.internal_path target in
@@ -509,7 +509,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
                   "%d rules result in too many matches, most offending rule \
                    has %d: %s"
                   offending_rules cnt pat)
-               OutJ.TooManyMatches
+               Out.TooManyMatches
            in
            let skipped =
              sorted_offending_rules
@@ -555,7 +555,7 @@ let sanity_check_invalid_patterns (res : Core_result.t) :
   match
     res.errors
     |> List.find_opt (function
-         | { Core_error.typ = OutJ.PatternParseError _; _ } -> true
+         | { Core_error.typ = Out.PatternParseError _; _ } -> true
          | _else_ -> false)
   with
   | None -> Ok res
@@ -713,7 +713,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                            rule_ids
                            |> List_.map (fun error_rule_id ->
                                   E.mk_error (Some error_rule_id) loc ""
-                                    OutJ.Timeout)
+                                    Out.Timeout)
                            |> E.ErrorSet.of_list
                        | Out_of_memory ->
                            Logs.warn (fun m ->
@@ -721,7 +721,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                                  (Origin.to_string origin) !!internal_path);
                            E.ErrorSet.singleton
                              (E.mk_error !Rule.last_matched_rule loc ""
-                                OutJ.OutOfMemory)
+                                Out.OutOfMemory)
                        | _ -> raise Impossible
                      in
                      ( Core_result.mk_match_result [] errors
@@ -818,7 +818,7 @@ let target_of_input_to_core (input : In.target) : Target.t =
  * by using the include/exclude fields.).
  *)
 let targets_of_config (caps : < Cap.tmp >) (config : Core_scan_config.t) :
-    Target.t list * OutJ.skipped_target list =
+    Target.t list * Out.skipped_target list =
   match (config.target_source, config.roots, config.lang) with
   (* We usually let semgrep-python computes the list of targets (and pass it
    * via -target), but it's convenient to also run semgrep-core without
@@ -1064,14 +1064,7 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
       print_cli_progress config;
       (matches, was_scanned)
 
-(* This is the main function used by pysemgrep right now.
- * This is also now called from osemgrep.
- * It takes a set of rules and a set of targets and iteratively process those
- * targets.
- * coupling: If you modify this function, you probably need also to modify
- * Deep_scan.scan() in semgrep-pro which is mostly a copy-paste of this file.
- *)
-let scan ?match_hook (caps : < Cap.tmp >) (config : Core_scan_config.t)
+let scan_exn ?match_hook (caps : < Cap.tmp >) (config : Core_scan_config.t)
     ((valid_rules, invalid_rules), rules_parse_time) : Core_result.t =
   let rule_errors = errors_of_invalid_rule_errors invalid_rules in
 
@@ -1174,8 +1167,15 @@ let scan ?match_hook (caps : < Cap.tmp >) (config : Core_scan_config.t)
 (* Entry point *)
 (*****************************************************************************)
 
-let scan_with_exn_handler ?match_hook (caps : < Cap.tmp >)
-    (config : Core_scan_config.t) : Core_result.result_or_exn =
+(* This is the main function used by pysemgrep right now.
+ * This is also now called from osemgrep.
+ * It takes a set of rules and a set of targets and iteratively process those
+ * targets.
+ * coupling: If you modify this function, you probably need also to modify
+ * Deep_scan.scan() in semgrep-pro which is mostly a copy-paste of this file.
+ *)
+let scan ?match_hook (caps : < Cap.tmp >) (config : Core_scan_config.t) :
+    Core_result.result_or_exn =
   try
     let timed_rules =
       Common.with_time (fun () -> rules_from_rule_source caps config)
@@ -1187,12 +1187,13 @@ let scan_with_exn_handler ?match_hook (caps : < Cap.tmp >)
        results. *)
     let res =
       Pre_post_core_scan.call_with_pre_and_post_processor Fun.id
-        (scan ?match_hook caps) config timed_rules
+        (scan_exn ?match_hook caps)
+        config timed_rules
     in
     sanity_check_invalid_patterns res
   with
   | exn when not !Flag_semgrep.fail_fast ->
       let e = Exception.catch exn in
       Logs.err (fun m ->
-          m "Uncaught exn in scan_with_exn_handler: %s" (Exception.to_string e));
+          m "Uncaught exn in Core_scan.scan: %s" (Exception.to_string e));
       Error (e, None)

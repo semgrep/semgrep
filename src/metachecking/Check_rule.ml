@@ -53,6 +53,7 @@ module OutJ = Semgrep_output_v1_t
  * and have semgrep call `semgrep-core -rules` on the checks
  *
  * TODO: make it possible to run `semgrep-core -check_rules` with no metachecks
+ * TODO: merge code with `osemgrep validate`
  *)
 
 (*****************************************************************************)
@@ -267,7 +268,7 @@ let semgrep_check (caps : < Cap.tmp >) config metachecks rules :
       roots = List_.map Scanning_root.of_fpath rules;
     }
   in
-  let res = Core_scan.scan_with_exn_handler caps config in
+  let res = Core_scan.scan caps config in
   match res with
   | Ok result ->
       result.processed_matches

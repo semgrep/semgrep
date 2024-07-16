@@ -1,5 +1,4 @@
 open Common
-module OutJ = Semgrep_output_v1_t
 module Env = Semgrep_envvars
 
 (*************************************************************************)
@@ -49,9 +48,9 @@ type pro_conf = {
 *)
 type result = {
   (* ocaml: not in original python implem, but just enough to get
-   * Semgrep_scan.cli_output_of_core_results to work
+   * Cli_json_output.cli_output_of_core_results to work
    *)
-  core : OutJ.core_output;
+  core : Semgrep_output_v1_t.core_output;
   hrules : Rule.hrules;
   scanned : Fpath.t Set_.t;
       (* in python implem *)
@@ -75,11 +74,11 @@ type result = {
    It doesn't scan the filesystem since it takes a list of target files,
    not scanning roots.
 *)
-type core_run_for_osemgrep = {
+type func = {
   run :
     ?file_match_hook:(Fpath.t -> Core_result.matches_single_file -> unit) option ->
     conf ->
-    (* alt: pass a bool alongside each target path that indicates whether
+    (* TODO alt: pass a bool alongside each target path that indicates whether
        the target is explicit i.e. occurs directly on the command line *)
     Find_targets.conf ->
     (* LATER? alt: use Config_resolve.rules_and_origin instead? *)
@@ -105,8 +104,7 @@ type core_run_for_osemgrep = {
  * and executed by osemgrep-pro. When linked from osemgrep-pro, this
  * hook below will be set.
  *)
-let (hook_mk_pro_core_run_for_osemgrep :
-      (pro_conf -> core_run_for_osemgrep) option ref) =
+let (hook_mk_pro_core_run_for_osemgrep : (pro_conf -> func) option ref) =
   ref None
 
 (* This hooks into the proprietary part of Semgrep, in order to access a
@@ -114,9 +112,7 @@ let (hook_mk_pro_core_run_for_osemgrep :
  * If a repo is checked out sparsely, this will only checkout the files
  * that are needed for the scan.
  *)
-let (hook_pro_git_remote_scan_setup :
-      (core_run_for_osemgrep -> core_run_for_osemgrep) option ref) =
-  ref None
+let (hook_pro_git_remote_scan_setup : (func -> func) option ref) = ref None
 
 (*************************************************************************)
 (* Extract mode *)
@@ -278,11 +274,10 @@ let prepare_config_for_core_scan (config : Core_scan_config.t)
     rule_source = Some (Rules rules);
   }
 
-(* Create the core result structure from the results *)
 (* LATER: we want to avoid this intermediate data structure but
  * for now that's what pysemgrep used to get so simpler to return it.
  *)
-let create_core_result (all_rules : Rule.rule list) (res : Core_result.t) =
+let mk_result (all_rules : Rule.rule list) (res : Core_result.t) : result =
   (* similar to Core_command.output_core_results code *)
   let scanned = res.scanned |> List_.map Target.internal_path |> Set_.of_list in
   let match_results = Core_json_output.core_output_of_matches_and_errors res in
@@ -304,8 +299,7 @@ let create_core_result (all_rules : Rule.rule list) (res : Core_result.t) =
 (*************************************************************************)
 
 (* Core_scan.core_scan_func adapter for osemgrep *)
-let mk_core_run_for_osemgrep (core_scan_func : Core_scan.core_scan_func) :
-    core_run_for_osemgrep =
+let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
   let run ?(file_match_hook = None) (conf : conf)
       (targeting_conf : Find_targets.conf)
       (rules_and_errors : Rule.rules_and_errors) (all_targets : Fpath.t list) :
