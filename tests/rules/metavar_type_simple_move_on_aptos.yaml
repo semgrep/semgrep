@@ -1,0 +1,13 @@
+rules:
+  - id: metavar_type_simple_move_on_aptos
+    patterns:
+      - pattern: $X.do_nothing(...)
+      - metavariable-type:
+          metavariable: $X
+          types:
+            - ConstructorRef
+            - object
+    message: Semgrep found a match
+    languages:
+      - move_on_aptos
+    severity: WARNING
