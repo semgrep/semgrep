@@ -624,6 +624,28 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
            Logs.debug (fun m ->
                m "Analyzing %s (contents in %s)" (Origin.to_string origin)
                  !!internal_path);
+
+           (* Sadly we need to disable tracing when we are using more than 1
+            * cores.
+            *
+            * The reason is that parmap forks new processes, and we occasionally
+            * run into a deadlock where the scan just freezes when we use tracing and
+            * multiprocesses together.
+            *
+            * Hopefully, Ocaml 5 with multithread support will resolve this issue.
+            * For now, just turn off tracing when we use more than 1 core.
+            *)
+           let handle_target_maybe_with_trace =
+             if config.ncores > 1 then (
+               Logs.debug (fun m ->
+                   m
+                     "Handling target without traces because multiprocessing \
+                      (%d jobs) was requested."
+                     config.ncores);
+               handle_target)
+             else handle_target_with_trace handle_target
+           in
+
            let (res, was_scanned), run_time =
              Common.with_time (fun () ->
                  try
@@ -650,7 +672,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                         * old: timeout_function file config.timeout ...
                         *)
                        let res, was_scanned =
-                         handle_target_with_trace handle_target target
+                         handle_target_maybe_with_trace target
                        in
 
                        (* This is just to test -max_memory, to give a chance
