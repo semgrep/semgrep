@@ -536,9 +536,9 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
           conf profiler baseline_commit targets rules diff_scan_func
   in
   match result_or_exn with
-  | Error (e, _core_error_opt) ->
+  | Error exn ->
       (* TOADAPT? Runner_exit.exit_semgrep (Unknown_exception e) instead *)
-      Exception.reraise e
+      Exception.reraise exn
   | Ok result ->
       let (res : Core_runner.result) = Core_runner.mk_result rules result in
       (* step 3'': adjust the matches, filter via nosemgrep and part1 autofix *)

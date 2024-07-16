@@ -72,7 +72,7 @@ let _ =
            let res_or_exn = Core_scan.scan caps config in
            let res =
              match res_or_exn with
-             | Error (e, _core_error_opt) ->
+             | Error e ->
                  (* TODO? maybe we should Exception.reraise e instead, but then need
                   * to fix some regressions in make -C js test
                   *)
