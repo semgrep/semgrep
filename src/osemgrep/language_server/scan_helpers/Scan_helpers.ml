@@ -135,7 +135,7 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
           |> Profiler.record profiler ~name:"core_run"
         in
         match res_or_exn with
-        | Error (exn, _core_error_opt) ->
+        | Error exn ->
             (* TODO? should this just be logged instead *)
             Exception.reraise exn
         | Ok res -> Core_runner.mk_result rules res

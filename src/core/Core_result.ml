@@ -113,11 +113,7 @@ type t = {
 }
 [@@deriving show]
 
-(* ugly: the Core_error.t is used in Core_scan.sanity_check_invalid_patterns
- * to remember some Out.PatternParseError that now happens later since
- * we're parsing lazily the patterns in a rule.
- *)
-type result_or_exn = (t, Exception.t * Core_error.t option) result
+type result_or_exn = (t, Exception.t) result
 
 (*****************************************************************************)
 (* Builders *)

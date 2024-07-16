@@ -274,7 +274,7 @@ let semgrep_check (caps : < Cap.tmp >) config metachecks rules :
       result.processed_matches
       |> List_.map (fun (m : Core_result.processed_match) -> m.pm)
       |> List_.map match_to_semgrep_error
-  | Error (exn, _) -> Exception.reraise exn
+  | Error exn -> Exception.reraise exn
 
 (* TODO *)
 

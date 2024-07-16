@@ -550,19 +550,6 @@ let errors_of_invalid_rule_errors (invalid_rules : Rule.invalid_rule_error list)
     =
   List_.map E.error_of_invalid_rule_error invalid_rules
 
-let sanity_check_invalid_patterns (res : Core_result.t) :
-    Core_result.result_or_exn =
-  match
-    res.errors
-    |> List.find_opt (function
-         | { Core_error.typ = Out.PatternParseError _; _ } -> true
-         | _else_ -> false)
-  with
-  | None -> Ok res
-  | Some err ->
-      let e = Exception.catch (Failure "Pattern parse error") in
-      Error (e, Some err)
-
 (*****************************************************************************)
 (* Parsing (non-cached) *)
 (*****************************************************************************)
@@ -737,24 +724,10 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                  | Time_limit.Timeout _ ->
                      failwith
                        "Time limit exceeded (this shouldn't happen, FIXME)"
-                 (* It would be nice to detect 'R.Err (R.InvalidRule _)' here
-                  * for errors while parsing patterns. This exn used to be raised earlier
-                  * in sanity_check_rules_and_invalid_rules(), but after
-                  * the lazy parsing of patterns, those errors are raised
-                  * later. Unfortunately, we can't catch and reraise here, because
-                  * with -j 2, Parmap will just abort the whole thing and return
-                  * a different kind of exception to the caller. Instead, we
-                  * we need to convert all exns in errors (see the code further below),
-                  * and only in sanity_check_invalid_patterns() we can detect if one
-                  * of those errors was a PatternParseError.
-                  * does-not-work:
-                  * | R.Err (R.InvalidRule _) as exn when false ->
-                  *   Exception.catch_and_reraise exn
-                  *)
-                 (* convert all other exns (e.g., a parse error in a target file,
-                  * a parse error in a pattern), in an empty match result with errors,
-                  * so that one error in one target file or rule does not abort the whole
-                  * semgrep-core process.
+                 (* convert all other exns (e.g., a parse error in a target file)
+                  * in an empty match result with errors, so that one error in
+                  * one target file does not abort the whole scan and the
+                  * semgrep-core program.
                   *)
                  | exn when not !Flag_semgrep.fail_fast ->
                      let e = Exception.catch exn in
@@ -1187,15 +1160,13 @@ let scan ?match_hook (caps : < Cap.tmp >) (config : Core_scan_config.t) :
        and nosemgrep post processors in OSS; it is easy to
        hook any pre or post processing step that needs to look at rules and
        results. *)
-    let res =
-      Pre_post_core_scan.call_with_pre_and_post_processor Fun.id
-        (scan_exn ?match_hook caps)
-        config timed_rules
-    in
-    sanity_check_invalid_patterns res
+    Ok
+      (Pre_post_core_scan.call_with_pre_and_post_processor Fun.id
+         (scan_exn ?match_hook caps)
+         config timed_rules)
   with
   | exn when not !Flag_semgrep.fail_fast ->
       let e = Exception.catch exn in
       Logs.err (fun m ->
           m "Uncaught exn in Core_scan.scan: %s" (Exception.to_string e));
-      Error (e, None)
+      Error e

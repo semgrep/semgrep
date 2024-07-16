@@ -139,7 +139,7 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
             (metarules, []) targets
         in
         match result_or_exn with
-        | Error (exn, _core_error_opt) -> Exception.reraise exn
+        | Error exn -> Exception.reraise exn
         | Ok result ->
             let res = Core_runner.mk_result metarules result in
             (* TODO? sanity check errors below too? *)

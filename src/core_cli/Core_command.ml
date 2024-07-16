@@ -14,7 +14,7 @@
  *)
 open Common
 open Fpath_.Operators
-module OutJ = Semgrep_output_v1_j
+module Out = Semgrep_output_v1_j
 module E = Core_error
 
 (*****************************************************************************)
@@ -37,7 +37,7 @@ let timeout_function file timeout f =
   | Some res -> Ok res
   | None ->
       let loc = Tok.first_loc_of_file !!file in
-      let err = E.mk_error None loc "" OutJ.Timeout in
+      let err = E.mk_error None loc "" Out.Timeout in
       Error err
 
 (* for -e/-f *)
@@ -70,12 +70,8 @@ let output_core_results (caps : < Cap.stdout ; Cap.exit >)
       let res =
         match result_or_exn with
         | Ok r -> r
-        | Error (exn, core_error_opt) ->
-            let err =
-              match core_error_opt with
-              | Some err -> err
-              | None -> E.exn_to_error None Core_error.no_file exn
-            in
+        | Error exn ->
+            let err = E.exn_to_error None Core_error.no_file exn in
             Core_result.mk_result_with_just_errors [ err ]
       in
       let res = Core_json_output.core_output_of_matches_and_errors res in
@@ -86,13 +82,13 @@ let output_core_results (caps : < Cap.stdout ; Cap.exit >)
         User should use an external tool like jq or ydump (latter comes with
         yojson) for pretty-printing json.
       *)
-      let s = OutJ.string_of_core_output res in
+      let s = Out.string_of_core_output res in
       Logs.debug (fun m ->
           m "size of returned JSON string: %d" (String.length s));
       CapConsole.print caps#stdout s;
       match result_or_exn with
-      | Error (e, _) ->
-          Core_exit_code.exit_semgrep caps#exit (Unknown_exception e)
+      | Error exn ->
+          Core_exit_code.exit_semgrep caps#exit (Unknown_exception exn)
       | Ok _ -> ())
   | Text -> (
       match result_or_exn with
@@ -107,7 +103,7 @@ let output_core_results (caps : < Cap.stdout ; Cap.exit >)
             res.errors
             |> List.iter (fun err ->
                    Logs.warn (fun m -> m "%s" (E.string_of_error err))))
-      | Error (exn, _) -> Exception.reraise exn)
+      | Error exn -> Exception.reraise exn)
 
 (*****************************************************************************)
 (* semgrep-core -rules *)
@@ -186,10 +182,10 @@ let semgrep_core_with_one_pattern (caps : < Cap.stdout ; Cap.tmp >)
       let config = { config with rule_source = Some (Rules [ rule ]) } in
       let res = Core_scan.scan (caps :> < Cap.tmp >) config in
       match res with
-      | Error (exn, _) -> Exception.reraise exn
+      | Error exn -> Exception.reraise exn
       | Ok res ->
           let json = Core_json_output.core_output_of_matches_and_errors res in
-          let s = OutJ.string_of_core_output json in
+          let s = Out.string_of_core_output json in
           CapConsole.print caps#stdout s)
   | Text ->
       let minirule, _rules_parse_time =
