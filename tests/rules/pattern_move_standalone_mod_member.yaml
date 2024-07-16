@@ -1,0 +1,12 @@
+rules:
+  - id: pattern_move_use_member
+    severity: ERROR
+    languages: [move_on_aptos]
+    message: match a use statement
+    pattern: use something::pack::unsafe;
+  - id: pattern_move_const_member
+    severity: ERROR
+    languages: [move_on_aptos]
+    message: match a const statement
+    pattern: | 
+      const $NAME: address = ...;
