@@ -31,8 +31,6 @@ type conf = {
   force_color : bool;
   (* For Text and SARIF *)
   show_dataflow_traces : bool;
-  (* for displaying profiling information *)
-  time : bool;
   (* TODO: why strict part of an output conf? *)
   strict : bool;
   (* a.k.a. dryrun in Scan_CLI.conf *)
@@ -51,7 +49,6 @@ let default : conf =
     force_color = false;
     max_chars_per_line = 160;
     max_lines_per_finding = 10;
-    time = false;
     show_dataflow_traces = false;
     strict = false;
     fixed_lines = false;
@@ -191,11 +188,10 @@ let dispatch_output_format (caps : < Cap.stdout >) (conf : conf)
  * by filtering out nosem, setting messages, adding fingerprinting etc.
  * TODO? remove this intermediate?
  *)
-let preprocess_result ~time ~fixed_lines ~skipped_files
-    (res : Core_runner.result) : Out.cli_output =
+let preprocess_result ~fixed_lines (res : Core_runner.result) : Out.cli_output =
   let cli_output : Out.cli_output =
-    Cli_json_output.cli_output_of_runner_result ~time ~fixed_lines
-      ~skipped_files res.core res.hrules res.scanned
+    Cli_json_output.cli_output_of_runner_result ~fixed_lines res.core res.hrules
+      res.scanned
   in
   cli_output |> fun results ->
   {
@@ -215,12 +211,21 @@ let output_result (caps : < Cap.stdout >) (conf : conf)
    * that are useful for the other formats (e.g., Vim, Emacs), so we build
    * it here.
    *)
-  (* TOPORT? output.output() *)
-  let cli_output =
+  let (cli_output : Out.cli_output) =
     Profiler.record profiler ~name:"ignores_times" (fun () ->
-        preprocess_result ~time:conf.time ~fixed_lines:conf.fixed_lines
-          ~skipped_files:conf.skipped_files res)
+        preprocess_result ~fixed_lines:conf.fixed_lines res)
   in
+  (* TODO: adjust conf.time *)
+  let cli_output =
+    if not conf.skipped_files then
+      {
+        cli_output with
+        paths = { scanned = cli_output.paths.scanned; skipped = None };
+      }
+    else cli_output
+  in
+  (* the actual output on stdout *)
   dispatch_output_format caps conf runtime_params cli_output res.hrules;
+  (* we return cli_output as the caller might use it *)
   cli_output
 [@@profiling]

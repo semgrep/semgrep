@@ -1089,7 +1089,6 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
         max_lines_per_finding;
         force_color;
         show_dataflow_traces = dataflow_traces;
-        time = time_flag;
         strict;
         fixed_lines = dryrun;
         skipped_files =

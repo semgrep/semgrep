@@ -144,9 +144,8 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
             let res = Core_runner.mk_result metarules result in
             (* TODO? sanity check errors below too? *)
             let Out.{ results; errors = _; _ } =
-              Cli_json_output.cli_output_of_runner_result
-                ~time:conf.core_runner_conf.time_flag ~fixed_lines:false
-                ~skipped_files:false res.core res.hrules res.scanned
+              Cli_json_output.cli_output_of_runner_result ~fixed_lines:false
+                res.core res.hrules res.scanned
             in
             (* TOPORT?
                     ... run -check_rules in semgrep-core ...

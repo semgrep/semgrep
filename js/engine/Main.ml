@@ -91,10 +91,7 @@ let _ =
               doesn't actually depend upon the parts of the config that we
               set above.
            *)
-           let cli_output =
-             Output.preprocess_result ~time:false ~fixed_lines:false
-               ~skipped_files:false res
-           in
+           let cli_output = Output.preprocess_result ~fixed_lines:false res in
            Semgrep_output_v1_j.string_of_cli_output cli_output
          in
          Semgrep_js_shared.wrap_with_js_error execute
