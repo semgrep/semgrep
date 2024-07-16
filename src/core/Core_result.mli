@@ -59,7 +59,7 @@ type matches_single_file = Core_profiling.partial_profiling match_result
 (* take the match results for each file, all the rules, all the targets,
  * and build the final result
  *)
-val make_final_result :
+val mk_result :
   Core_profiling.file_profiling match_result list ->
   (Rule.rule * Engine_kind.t) list ->
   Rule.invalid_rule_error list ->
@@ -74,7 +74,7 @@ val make_final_result :
  * added in the errors field.
  * This is also used for semgrep-core metachecker (-check_rules)
  *)
-val mk_final_result_with_just_errors : Core_error.t list -> t
+val mk_result_with_just_errors : Core_error.t list -> t
 val empty_match_result : Core_profiling.times match_result
 
 val mk_match_result :

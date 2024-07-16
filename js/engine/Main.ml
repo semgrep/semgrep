@@ -76,8 +76,8 @@ let _ =
                  (* TODO? maybe we should Exception.reraise e instead, but then need
                   * to fix some regressions in make -C js test
                   *)
-                 let err = Core_error.exn_to_error None "" e in
-                 Core_result.mk_final_result_with_just_errors [ err ]
+                 let err = Core_error.exn_to_error None Core_error.no_file e in
+                 Core_result.mk_result_with_just_errors [ err ]
              | Ok res -> res
            in
            let res =
@@ -85,12 +85,8 @@ let _ =
              | Ok (rules, _) -> Core_runner.mk_result rules res
              | Error e ->
                  Core_runner.mk_result []
-                   (Core_result.mk_final_result_with_just_errors
-                      [
-                        Core_error.error_of_rule_error
-                          ~file:Fpath_.(!!rule_file)
-                          e;
-                      ])
+                   (Core_result.mk_result_with_just_errors
+                      [ Core_error.error_of_rule_error rule_file e ])
            in
            (* This is just the default configuration, but this function
               doesn't actually depend upon the parts of the config that we

@@ -311,10 +311,10 @@ let run_checks (caps : < Cap.tmp >) config fparser metachecks xs =
                (* TODO this error is special cased because YAML files that
                   aren't semgrep rules are getting scanned *)
                | Error { kind = InvalidYaml _; _ } -> []
-               | Error e -> [ Core_error.error_of_rule_error ~file:!!file e ]
+               | Error e -> [ Core_error.error_of_rule_error file e ]
                | exception exn ->
                    let e = Exception.catch exn in
-                   [ E.exn_to_error None !!file e ])
+                   [ E.exn_to_error None file e ])
       in
       semgrep_found_errs @ ocaml_found_errs
 
@@ -339,7 +339,7 @@ let check_files (caps : < Cap.stdout ; Cap.tmp >) mk_config fparser input =
              Logs.err (fun m -> m "%s" (E.string_of_error err)))
   | Json _ ->
       let (res : Core_result.t) =
-        Core_result.mk_final_result_with_just_errors errors
+        Core_result.mk_result_with_just_errors errors
       in
       let json = Core_json_output.core_output_of_matches_and_errors res in
       CapConsole.print caps#stdout (SJ.string_of_core_output json)

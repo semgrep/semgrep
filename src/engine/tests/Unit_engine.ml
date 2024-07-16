@@ -591,7 +591,7 @@ let filter_irrelevant_rules_tests () =
 (* Tainting tests *)
 (*****************************************************************************)
 
-let tainting_test lang rules_file file =
+let tainting_test (lang : Lang.t) (rules_file : Fpath.t) (file : Fpath.t) =
   let rules =
     match Parse_rule.parse rules_file with
     | Ok rules -> rules
@@ -649,14 +649,15 @@ let tainting_test lang rules_file file =
   in
   let actual =
     matches
-    |> List_.map (fun m ->
-           {
-             rule_id = Some m.P.rule_id.id;
-             E.typ = OutJ.SemgrepMatchFound;
-             loc = fst m.range_loc;
-             msg = m.P.rule_id.message;
-             details = None;
-           })
+    |> List_.map (fun (m : P.t) ->
+           E.
+             {
+               rule_id = Some m.rule_id.id;
+               typ = OutJ.SemgrepMatchFound;
+               loc = fst m.range_loc;
+               msg = m.rule_id.message;
+               details = None;
+             })
   in
   let expected = TCM.expected_error_lines_of_files [ file ] in
   TCM.compare_actual_to_expected_for_alcotest
