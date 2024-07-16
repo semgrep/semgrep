@@ -537,12 +537,9 @@ and parse_extra (env : env) (key : key) (value : G.expr) :
               in
               let env' =
                 {
-                  id = env.id;
+                  env with
                   target_analyzer = xlang;
-                  in_metavariable_pattern = env.in_metavariable_pattern;
                   path = "metavariable-type" :: "metavariable" :: env.path;
-                  options_key = None;
-                  options = None;
                 }
               in
               (env', Some xlang)
@@ -562,12 +559,9 @@ and parse_extra (env : env) (key : key) (value : G.expr) :
             let xlang = Xlang.of_string ~rule_id:(Rule_ID.to_string env.id) s in
             let env' =
               {
-                id = env.id;
+                env with
                 target_analyzer = xlang;
-                in_metavariable_pattern = env.in_metavariable_pattern;
                 path = "metavariable-pattern" :: "metavariable" :: env.path;
-                options_key = None;
-                options = None;
               }
             in
             (env', Some xlang)
