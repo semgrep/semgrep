@@ -1071,7 +1071,7 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
  * coupling: If you modify this function, you probably need also to modify
  * Deep_scan.scan() in semgrep-pro which is mostly a copy-paste of this file.
  *)
-let scan ?match_hook (caps : < Cap.tmp >) config
+let scan ?match_hook (caps : < Cap.tmp >) (config : Core_scan_config.t)
     ((valid_rules, invalid_rules), rules_parse_time) : Core_result.t =
   let rule_errors = errors_of_invalid_rule_errors invalid_rules in
 

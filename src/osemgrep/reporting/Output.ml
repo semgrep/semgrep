@@ -31,6 +31,8 @@ type conf = {
   force_color : bool;
   (* For Text and SARIF *)
   show_dataflow_traces : bool;
+  (* for displaying profiling information *)
+  time : bool;
   (* TODO: why strict part of an output conf? *)
   strict : bool;
   (* TODO: only for preprocess_result? remove? *)
@@ -46,6 +48,7 @@ let default : conf =
   {
     dryrun = false;
     strict = false;
+    time = false;
     logging_level = Some Logs.Warning;
     show_dataflow_traces = false;
     output_format = Output_format.Text;
@@ -188,11 +191,11 @@ let dispatch_output_format (caps : < Cap.stdout >)
  * by filtering out nosem, setting messages, adding fingerprinting etc.
  * TODO? remove this intermediate?
  *)
-let preprocess_result ~dryrun ~logging_level (res : Core_runner.result) :
+let preprocess_result ~time ~dryrun ~logging_level (res : Core_runner.result) :
     Out.cli_output =
   let cli_output : Out.cli_output =
-    Cli_json_output.cli_output_of_core_results ~dryrun ~logging_level res.core
-      res.hrules res.scanned
+    Cli_json_output.cli_output_of_core_results ~time ~dryrun ~logging_level
+      res.core res.hrules res.scanned
   in
   cli_output |> fun results ->
   {
@@ -215,8 +218,8 @@ let output_result (caps : < Cap.stdout >) (conf : conf)
   (* TOPORT? output.output() *)
   let cli_output =
     Profiler.record profiler ~name:"ignores_times" (fun () ->
-        preprocess_result ~dryrun:conf.dryrun ~logging_level:conf.logging_level
-          res)
+        preprocess_result ~time:conf.time ~dryrun:conf.dryrun
+          ~logging_level:conf.logging_level res)
   in
   dispatch_output_format caps conf.output_format conf runtime_params cli_output
     res.hrules;

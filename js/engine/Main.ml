@@ -97,7 +97,8 @@ let _ =
               set above.
            *)
            let cli_output =
-             Output.preprocess_result ~dryrun:default_config.dryrun
+             Output.preprocess_result ~time:default_config.time
+               ~dryrun:default_config.dryrun
                ~logging_level:default_config.logging_level res
            in
            Semgrep_output_v1_j.string_of_cli_output cli_output

@@ -6,6 +6,7 @@ module Out = Semgrep_output_v1_j
  * when logging_level is Info or Debug the JSON contains the skipped files.
  *)
 val cli_output_of_core_results :
+  time:bool ->
   dryrun:bool ->
   logging_level:Logs.level option ->
   (* essentially Core_runner.result *)
