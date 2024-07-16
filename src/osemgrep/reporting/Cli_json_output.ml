@@ -1,6 +1,6 @@
 open Common
 open Fpath_.Operators
-module OutJ = Semgrep_output_v1_j
+module Out = Semgrep_output_v1_j
 
 (*****************************************************************************)
 (* Prelude *)
@@ -28,7 +28,7 @@ module OutJ = Semgrep_output_v1_j
 (*****************************************************************************)
 (* LATER: we should get rid of those intermediate Out.core_xxx *)
 
-let core_location_to_error_span (loc : OutJ.location) : OutJ.error_span =
+let core_location_to_error_span (loc : Out.location) : Out.error_span =
   {
     file = loc.path;
     start = loc.start;
@@ -42,8 +42,8 @@ let core_location_to_error_span (loc : OutJ.location) : OutJ.error_span =
   }
 
 (* Generate error message exposed to user *)
-let error_message ~rule_id ~(location : OutJ.location)
-    ~(error_type : OutJ.error_type) ~core_message : string =
+let error_message ~rule_id ~(location : Out.location)
+    ~(error_type : Out.error_type) ~core_message : string =
   let path = location.path in
   let rule_id_str_opt = Option.map Rule_ID.to_string rule_id in
   let error_context =
@@ -65,7 +65,7 @@ let error_message ~rule_id ~(location : OutJ.location)
     (Error.string_of_error_type error_type)
     error_context core_message
 
-let error_spans ~(error_type : OutJ.error_type) ~(location : OutJ.location) =
+let error_spans ~(error_type : Out.error_type) ~(location : Out.location) =
   match error_type with
   | PatternParseError _yaml_pathTODO ->
       (* TOPORT
@@ -95,7 +95,7 @@ let error_spans ~(error_type : OutJ.error_type) ~(location : OutJ.location) =
 (* # TODO benchmarking code relies on error code value right now
    * # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
 *)
-let exit_code_of_error_type (error_type : OutJ.error_type) : Exit_code.t =
+let exit_code_of_error_type (error_type : Out.error_type) : Exit_code.t =
   match error_type with
   | ParseError
   | LexicalError
@@ -130,7 +130,7 @@ let exit_code_of_error_type (error_type : OutJ.error_type) : Exit_code.t =
  * TODO: should we return an Error.Semgrep_core_error instead? like we
  * do in python? and then generate an Out.cli_error out of it?
  *)
-let cli_error_of_core_error (x : OutJ.core_error) : OutJ.cli_error =
+let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
   match x with
   | {
    error_type;
@@ -227,8 +227,8 @@ let cli_error_of_core_error (x : OutJ.core_error) : OutJ.cli_error =
 (*****************************************************************************)
 (* LATER: we should get rid of those intermediate Out.core_xxx *)
 
-let make_fixed_lines fixes_env fix path (start : OutJ.position)
-    (end_ : OutJ.position) =
+let make_fixed_lines fixes_env fix path (start : Out.position)
+    (end_ : Out.position) =
   let edit =
     Textedit.
       { path; start = start.offset; end_ = end_.offset; replacement_text = fix }
@@ -236,7 +236,7 @@ let make_fixed_lines fixes_env fix path (start : OutJ.position)
   Fixed_lines.make_fixed_lines fixes_env edit
 
 let cli_match_of_core_match ~dryrun fixes_env (hrules : Rule.hrules)
-    (m : OutJ.core_match) : OutJ.cli_match =
+    (m : Out.core_match) : Out.cli_match =
   match m with
   | {
    check_id = rule_id;
@@ -338,27 +338,26 @@ bad_function() # 2nd call
  * will be different. So the first will be <match_based_id>_0 and the second
  * will be <match_based_id>_1.
  *)
-let index_match_based_ids (matches : OutJ.cli_match list) : OutJ.cli_match list
-    =
+let index_match_based_ids (matches : Out.cli_match list) : Out.cli_match list =
   matches
   (* preserve order *)
   |> List_.mapi (fun i x -> (i, x))
   (* Group by rule and path *)
   (* XXX: can we do with grouping by fingerprint only? *)
-  |> Assoc.group_by (fun (_, (x : OutJ.cli_match)) ->
+  |> Assoc.group_by (fun (_, (x : Out.cli_match)) ->
          (x.path, x.check_id, x.extra.fingerprint))
   (* Sort by start line *)
   |> List_.map (fun (path_and_rule_id, matches) ->
          ( path_and_rule_id,
            List.sort
-             (fun (_, (a : OutJ.cli_match)) (_, (b : OutJ.cli_match)) ->
+             (fun (_, (a : Out.cli_match)) (_, (b : Out.cli_match)) ->
                compare a.start.offset b.start.offset)
              matches ))
   (* Index per file *)
   |> List_.map (fun (path_and_rule_id, matches) ->
          let matches =
            List_.mapi
-             (fun i (i', (x : OutJ.cli_match)) ->
+             (fun i (i', (x : Out.cli_match)) ->
                ( i',
                  {
                    x with
@@ -384,8 +383,8 @@ let index_match_based_ids (matches : OutJ.cli_match list) : OutJ.cli_match list
  * to depend on cli_scan/ from reporting/ here, hence the duplication.
  * alt: we could move Core_runner.result type in core/
  *)
-let cli_output_of_core_results ~dryrun ~logging_level (core : OutJ.core_output)
-    (hrules : Rule.hrules) (scanned : Fpath.t Set_.t) : OutJ.cli_output =
+let cli_output_of_core_results ~dryrun ~logging_level (core : Out.core_output)
+    (hrules : Rule.hrules) (scanned : Fpath.t Set_.t) : Out.cli_output =
   match core with
   | {
    version;
@@ -408,7 +407,7 @@ let cli_output_of_core_results ~dryrun ~logging_level (core : OutJ.core_output)
       (* TODO: not sure how it's sorted. Look at rule_match.py keys? *)
       let matches =
         matches
-        |> List.sort (fun (a : OutJ.core_match) (b : OutJ.core_match) ->
+        |> List.sort (fun (a : Out.core_match) (b : Out.core_match) ->
                compare a.check_id b.check_id)
       in
       (* TODO: not sure how it's sorted, but Set_.elements return
@@ -416,7 +415,7 @@ let cli_output_of_core_results ~dryrun ~logging_level (core : OutJ.core_output)
        * python: scanned=[str(path) for path in sorted(self.all_targets)]
        *)
       let scanned = scanned |> Set_.elements in
-      let (paths : OutJ.scanned_and_skipped) =
+      let (paths : Out.scanned_and_skipped) =
         match logging_level with
         | Some (Logs.Info | Logs.Debug) ->
             (* Skipping the python intermediate FileTargetingLog for now.

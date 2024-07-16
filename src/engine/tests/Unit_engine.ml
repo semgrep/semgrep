@@ -215,7 +215,6 @@ let language_exceptions =
     (Lang.Kotlin, [ "dots_stmts"; "metavar_equality_var" ]);
     (* good boy *)
     (Lang.Rust, []);
-    (Lang.Move_on_aptos, [ "metavar_key_value"; "regexp_string" ]);
     (* Experimental languages *)
 
     (* TODO: dots_nested_stmts to fix for C and C++ *)
@@ -283,7 +282,6 @@ let maturity_tests () =
       make_maturity_tests Lang.Hack "hack" ".hack" Beta;
       make_maturity_tests Lang.Kotlin "kotlin" ".kt" Beta;
       make_maturity_tests Lang.Rust "rust" ".rs" Beta;
-      make_maturity_tests Lang.Move_on_aptos "move_on_aptos" ".move" Beta;
       (* Terraform/HCL has too many NA, not worth it *)
 
       (* Experimental *)

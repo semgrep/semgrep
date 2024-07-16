@@ -153,7 +153,10 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
         |> Profiler.record profiler ~name:"process_run"
       in
       (* Do reporting *)
-      let cli_output = Output.preprocess_result Output.default res in
+      let cli_output =
+        Output.preprocess_result ~dryrun:Output.default.dryrun
+          ~logging_level:Output.default.logging_level res
+      in
       let errors =
         cli_output.errors
         |> List_.filter_map (fun (e : OutJ.cli_error) -> e.message)

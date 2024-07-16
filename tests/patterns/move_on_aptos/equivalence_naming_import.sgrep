@@ -1,3 +1,0 @@
-fun $FUNC(...) : std::object::ConstructorRef {
-    std::object::some_func(...);
-}

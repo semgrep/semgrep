@@ -18,7 +18,6 @@ type conf = {
   error_on_findings : bool;
   rewrite_rule_ids : bool;
   engine_type : Engine_type.t;
-  (* autofix *)
   autofix : bool;
   (* Performance options *)
   core_runner_conf : Core_runner.conf;
@@ -27,9 +26,6 @@ type conf = {
   output_conf : Output.conf;
   (* osemgrep-only: *)
   incremental_output : bool;
-  (* text output config (TODO: make a separate type gathering all of them)
-   * or add them under Output_format.Text
-   *)
   (* Networking options *)
   metrics : Metrics_.config;
   version_check : bool;
