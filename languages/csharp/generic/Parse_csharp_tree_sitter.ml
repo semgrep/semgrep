@@ -65,7 +65,7 @@ let type_parameters_with_constraints (tparams : type_parameters option)
                  match with_constraints with
                  | Some (_id, xs) ->
                      let _more_constraintsTODO, more_bounds =
-                       xs |> Either_.partition_either (fun x -> x)
+                       xs |> Either_.partition (fun x -> x)
                      in
                      TP
                        {

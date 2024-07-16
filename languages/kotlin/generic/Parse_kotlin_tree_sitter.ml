@@ -2035,9 +2035,7 @@ and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) =
         [ v2 ]
     | None -> []
   in
-  let tp_attrs, variances =
-    Either_.partition_either (fun x -> x) tp_modifiers
-  in
+  let tp_attrs, variances = Either_.partition (fun x -> x) tp_modifiers in
   let tp_attrs = List.flatten tp_attrs in
   let tp_variance =
     match variances with

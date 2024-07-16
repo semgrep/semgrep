@@ -14,8 +14,10 @@ type conf = {
   time : bool;
   (* misc *)
   strict : bool;
-  dryrun : bool;
-  logging_level : Logs.level option;
+  (* a.k.a. dryrun in Scan_CLI.conf *)
+  fixed_lines : bool;
+  (* true when using --verbose or --debug in Scan_CLI.ml *)
+  skipped_files : bool;
 }
 [@@deriving show]
 
@@ -40,8 +42,8 @@ val output_result :
 (* helper used in output_result() and other callsites *)
 val preprocess_result :
   time:bool ->
-  dryrun:bool ->
-  logging_level:Logs.level option ->
+  fixed_lines:bool ->
+  skipped_files:bool ->
   Core_runner.result ->
   Out.cli_output
 (** This handles nosemgrep, interpolating messages, and more. *)

@@ -732,7 +732,7 @@ this mode is experimental and not guaranteed to function properly.
 
 let o_dryrun : bool Term.t =
   H.negatable_flag [ "dryrun" ] ~neg_options:[ "no-dryrun" ]
-    ~default:default.output_conf.dryrun
+    ~default:default.output_conf.fixed_lines
     ~doc:
       {|If --dryrun, does not write autofixes to a file. This will print the
 changes to the console. This lets you see the changes before you commit to
@@ -1084,15 +1084,18 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     in
     let output_conf : Output.conf =
       {
-        dryrun;
-        strict;
-        time = time_flag;
-        force_color;
-        show_dataflow_traces = dataflow_traces;
         output_format;
         max_chars_per_line;
         max_lines_per_finding;
-        logging_level = common.logging_level;
+        force_color;
+        show_dataflow_traces = dataflow_traces;
+        time = time_flag;
+        strict;
+        fixed_lines = dryrun;
+        skipped_files =
+          (match common.logging_level with
+          | Some (Info | Debug) -> true
+          | _else_ -> false);
       }
     in
 

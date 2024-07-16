@@ -2693,7 +2693,7 @@ and map_declaration_specifiers (env : env)
   let t, specs =
     let tqs, other =
       specs1 @ specs2
-      |> Either_.partition_either (function
+      |> Either_.partition (function
            | TQ x -> Left x
            | (A _ | M _ | ST _) as x -> Right x)
     in

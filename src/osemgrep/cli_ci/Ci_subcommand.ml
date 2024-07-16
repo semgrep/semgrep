@@ -715,7 +715,7 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   (* TODO? we probably want to set the metrics to On by default in CI ctx? *)
   Metrics_.configure conf.metrics;
   let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
-  let dry_run = conf.output_conf.dryrun in
+  let dry_run = conf.output_conf.fixed_lines in
 
   (* step2: sanity checking *)
   (match conf.rules_source with

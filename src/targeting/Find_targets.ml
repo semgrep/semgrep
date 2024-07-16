@@ -278,7 +278,7 @@ let filter_paths
 
 let filter_size_and_minified max_target_bytes exclude_minified_files paths =
   let selected_fppaths, skipped_size =
-    Result_.partition_result
+    Result_.partition
       (fun (fppath : Fppath.t) ->
         Result.map
           (fun _ -> fppath)
@@ -287,7 +287,7 @@ let filter_size_and_minified max_target_bytes exclude_minified_files paths =
   in
   let selected_fppaths, skipped_minified =
     if exclude_minified_files then
-      Result_.partition_result
+      Result_.partition
         (fun (fppath : Fppath.t) ->
           Result.map (fun _ -> fppath) (Skip_target.is_minified fppath.fpath))
         selected_fppaths

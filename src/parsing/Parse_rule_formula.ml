@@ -834,7 +834,7 @@ and constrain_where env (_t1, _t2) where_key (value : G.expr) formula :
   (* TODO *)
   let/ conditions, focus =
     let+ where_contents = parse_listi env where_key parse_where_pair value in
-    where_contents |> List.flatten |> Either_.partition_either (fun x -> x)
+    where_contents |> List.flatten |> Either_.partition (fun x -> x)
   in
   Ok
     {

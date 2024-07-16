@@ -21,7 +21,7 @@ module MV = Metavariable
 module RP = Core_result
 module PM = Pattern_match
 open Pattern_match
-module OutJ = Semgrep_output_v1_j
+module Out = Semgrep_output_v1_j
 module OutUtils = Semgrep_output_utils
 
 (*****************************************************************************)
@@ -121,7 +121,7 @@ let annotated_rule_name (metadata : J.t) =
 (* This is a port of the original pysemgrep cli_unique_key. This used to be in the CLI,
    but has since been moved to core.
 *)
-let core_unique_key (c : OutJ.core_match) =
+let core_unique_key (c : Out.core_match) =
   (* type-wise this is a tuple of string * string * int * int * string * string option *)
   (* self.annotated_rule_name if self.from_transient_scan else self.rule_id,
       str(self.path),
@@ -189,19 +189,18 @@ let core_unique_key (c : OutJ.core_match) =
  # runs. Results may arrive in a different order due to parallelism
  # (-j option).
 *)
-let dedup_and_sort (xs : OutJ.core_match list) : OutJ.core_match list =
+let dedup_and_sort (xs : Out.core_match list) : Out.core_match list =
   (* Whether we prefer to report match x over match y.
      This is currently only used for Secrets findings, which prefer a
      finding with a confirmed validation status.
   *)
-  let should_report_instead ((x : OutJ.core_match), (y : OutJ.core_match)) =
+  let should_report_instead ((x : Out.core_match), (y : Out.core_match)) =
     match (x, y) with
-    | { OutJ.extra = { validation_state = None; _ }; _ }, _ -> false
-    | _, { OutJ.extra = { validation_state = None; _ }; _ } -> true
-    | { OutJ.extra = { validation_state = Some `Confirmed_valid; _ }; _ }, _
-      -> (
+    | { Out.extra = { validation_state = None; _ }; _ }, _ -> false
+    | _, { Out.extra = { validation_state = None; _ }; _ } -> true
+    | { Out.extra = { validation_state = Some `Confirmed_valid; _ }; _ }, _ -> (
         match y with
-        | { OutJ.extra = { validation_state = Some `Confirmed_valid; _ }; _ } ->
+        | { Out.extra = { validation_state = Some `Confirmed_valid; _ }; _ } ->
             false
         | _ -> true)
     | _ -> false
@@ -251,7 +250,7 @@ let get_propagated_value default_start mvalue =
     match range_of_any_opt default_start any with
     | Some (start, end_) ->
         Some
-          OutJ.
+          Out.
             {
               svalue_start = Some start;
               svalue_end = Some end_;
@@ -259,7 +258,7 @@ let get_propagated_value default_start mvalue =
             }
     | None ->
         Some
-          OutJ.
+          Out.
             {
               svalue_start = None;
               svalue_end = None;
@@ -285,10 +284,10 @@ let metavars startp_of_match_range (s, mval) =
       raise
         (Tok.NoTokenLocation
            (spf "NoTokenLocation with metavar %s, close location = %s" s
-              (OutJ.string_of_position startp_of_match_range)))
+              (Out.string_of_position startp_of_match_range)))
   | Some (startp, endp) ->
       ( s,
-        OutJ.
+        Out.
           {
             start = startp;
             end_ = endp;
@@ -303,33 +302,33 @@ let metavars startp_of_match_range (s, mval) =
  * directly from semgrep-core (to avoid some boilerplate code in
  * pysemgrep).
  *)
-let content_of_loc (loc : OutJ.location) : string =
+let content_of_loc (loc : Out.location) : string =
   OutUtils.content_of_file_at_range (loc.start, loc.end_) loc.path
 
-let token_to_intermediate_var token : OutJ.match_intermediate_var option =
+let token_to_intermediate_var token : Out.match_intermediate_var option =
   let* location = OutUtils.tokens_to_single_loc [ token ] in
   Some
-    (OutJ.{ location; content = content_of_loc location }
-      : OutJ.match_intermediate_var)
+    (Out.{ location; content = content_of_loc location }
+      : Out.match_intermediate_var)
 
 let tokens_to_intermediate_vars tokens =
   List_.filter_map token_to_intermediate_var tokens
 
 let rec taint_call_trace (trace : PM.taint_call_trace) :
-    OutJ.match_call_trace option =
+    Out.match_call_trace option =
   match trace with
   | Toks toks ->
       let* loc = OutUtils.tokens_to_single_loc toks in
-      Some (OutJ.CliLoc (loc, content_of_loc loc))
+      Some (Out.CliLoc (loc, content_of_loc loc))
   | Call { call_trace; intermediate_vars; call_toks } ->
       let* loc = OutUtils.tokens_to_single_loc call_toks in
       let intermediate_vars = tokens_to_intermediate_vars intermediate_vars in
       let* call_trace = taint_call_trace call_trace in
       Some
-        (OutJ.CliCall ((loc, content_of_loc loc), intermediate_vars, call_trace))
+        (Out.CliCall ((loc, content_of_loc loc), intermediate_vars, call_trace))
 
 let taint_trace_to_dataflow_trace (traces : PM.taint_trace_item list) :
-    OutJ.match_dataflow_trace =
+    Out.match_dataflow_trace =
   (* Here, we ignore all but the first taint trace, for source or sink.
      This is because we added support for multiple sources/sinks in a single
      trace, but only internally to semgrep-core. Externally, our CLI dataflow
@@ -347,7 +346,7 @@ let taint_trace_to_dataflow_trace (traces : PM.taint_trace_item list) :
     | { Pattern_match.source_trace; tokens; sink_trace } :: _ ->
         (source_trace, tokens, sink_trace)
   in
-  OutJ.
+  Out.
     {
       taint_source = taint_call_trace source_call_trace;
       intermediate_vars = Some (tokens_to_intermediate_vars tokens);
@@ -356,7 +355,7 @@ let taint_trace_to_dataflow_trace (traces : PM.taint_trace_item list) :
 
 let unsafe_match_to_match
     ({ pm = x; is_ignored; autofix_edit } : Core_result.processed_match) :
-    OutJ.core_match =
+    Out.core_match =
   let min_loc, max_loc = x.range_loc in
   let startp, endp = OutUtils.position_range min_loc max_loc in
   let dataflow_trace =
@@ -415,7 +414,7 @@ let unsafe_match_to_match
                      Datetime_.of_unix_int_time timestamp offset.sign
                        offset.hours offset.minutes;
                  }
-                  : OutJ.historical_info) ))
+                  : Out.historical_info) ))
   in
   {
     check_id = x.rule_id.id;
@@ -443,9 +442,9 @@ let unsafe_match_to_match
   }
 
 let match_to_match (x : Core_result.processed_match) :
-    (OutJ.core_match, Core_error.t) Either.t =
+    (Out.core_match, Core_error.t) result =
   try
-    Left (unsafe_match_to_match x)
+    Ok (unsafe_match_to_match x)
     (* raised by min_max_ii_by_pos in range_of_any when the AST of the
      * pattern in x.code or the metavar does not contain any token
      *)
@@ -456,15 +455,15 @@ let match_to_match (x : Core_result.processed_match) :
         spf "NoTokenLocation with pattern %s, %s" x.pm.rule_id.pattern_string s
       in
       let err =
-        E.mk_error ~rule_id:(Some x.pm.rule_id.id) ~msg:s loc OutJ.MatchingError
+        E.mk_error ~rule_id:(Some x.pm.rule_id.id) ~msg:s loc Out.MatchingError
       in
-      Right err
+      Error err
 [@@profiling]
 
 (* less: Semgrep_error_code should be defined fully Output_from_core.atd
  * so we would not need those conversions
  *)
-let error_to_error (err : Core_error.t) : OutJ.core_error =
+let error_to_error (err : Core_error.t) : Out.core_error =
   let file = err.loc.pos.file in
   let startp, endp = OutUtils.position_range err.loc err.loc in
   let rule_id = err.rule_id in
@@ -482,7 +481,7 @@ let error_to_error (err : Core_error.t) : OutJ.core_error =
   }
 
 let extra_to_extra (extra : Matching_explanation.extra) :
-    OutJ.matching_explanation_extra =
+    Out.matching_explanation_extra =
   {
     before_negation_matches =
       extra.before_negation_matches
@@ -497,7 +496,7 @@ let extra_to_extra (extra : Matching_explanation.extra) :
   }
 
 let rec explanation_to_explanation (exp : Matching_explanation.t) :
-    OutJ.matching_explanation =
+    Out.matching_explanation =
   let { Matching_explanation.op; matches; pos; children; extra } = exp in
   let tloc = Tok.unsafe_loc_of_tok pos in
   {
@@ -511,7 +510,7 @@ let rec explanation_to_explanation (exp : Matching_explanation.t) :
     extra = Option.map extra_to_extra extra;
   }
 
-let profiling_to_profiling (profiling_data : Core_profiling.t) : OutJ.profile =
+let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.profile =
   let rule_ids : Rule_ID.t list =
     profiling_data.rules |> List_.map (fun (rule : Rule.t) -> fst rule.id)
   in
@@ -528,7 +527,7 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : OutJ.profile =
                |> Hashtbl_.hash_of_list
              in
 
-             OutJ.
+             Out.
                {
                  path = target;
                  match_times =
@@ -598,9 +597,9 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : OutJ.profile =
 (* Final semgrep-core output *)
 (*****************************************************************************)
 
-let core_output_of_matches_and_errors (res : Core_result.t) : OutJ.core_output =
+let core_output_of_matches_and_errors (res : Core_result.t) : Out.core_output =
   let matches, new_errs =
-    Either_.partition_either match_to_match res.processed_matches
+    Result_.partition match_to_match res.processed_matches
   in
   let errs = new_errs @ res.errors in
   {
@@ -619,7 +618,7 @@ let core_output_of_matches_and_errors (res : Core_result.t) : OutJ.core_output =
       res.skipped_rules
       |> List_.map (fun ((kind, rule_id, tk) : Rule.invalid_rule_error) ->
              let loc = Tok.unsafe_loc_of_tok tk in
-             OutJ.
+             Out.
                {
                  rule_id;
                  details = Rule.string_of_invalid_rule_error_kind kind;

@@ -376,7 +376,7 @@ and metavarcond_step1 ~is_id_mvar x =
 let and_step1bis_filter_general (And xs) =
   let has_empty_idents, rest =
     xs
-    |> Either_.partition_either (function Or xs ->
+    |> Either_.partition (function Or xs ->
            if
              xs
              |> List.exists (function

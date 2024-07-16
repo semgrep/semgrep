@@ -353,7 +353,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt caps kind :
   match kind with
   | C.File path ->
       Lwt.return
-        (Result_.partition_result
+        (Result_.partition
            (load_rules_from_file ~rewrite_rule_ids ~origin:(Local_file path)
               caps)
            [ path ])
@@ -369,8 +369,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt caps kind :
       |> List_.map (fun file ->
              load_rules_from_file ~rewrite_rule_ids ~origin:(Local_file file)
                caps file)
-      |> Result_.partition_result Fun.id
-      |> Lwt.return
+      |> Result_.partition Fun.id |> Lwt.return
   | C.URL url ->
       (* TODO: Re-enable passing in our token to trusted remote urls.
          * This is currently disabled because we don't want to pass our token
@@ -381,7 +380,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt caps kind :
         load_rules_from_url_async ~origin:(Untrusted_remote url) ~token_opt:None
           caps url
       in
-      [ rules ] |> Result_.partition_result Fun.id |> Lwt.return
+      [ rules ] |> Result_.partition Fun.id |> Lwt.return
   | C.R rkind ->
       let url = Semgrep_Registry.url_of_registry_config_kind rkind in
       let%lwt contents =
@@ -389,8 +388,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt caps kind :
       in
       CapTmp.with_temp_file caps#tmp ~contents ~suffix:".yaml" (fun file ->
           [ load_rules_from_file ~rewrite_rule_ids ~origin:Registry caps file ])
-      |> Result_.partition_result Fun.id
-      |> Lwt.return
+      |> Result_.partition Fun.id |> Lwt.return
   | C.A Policy ->
       let token =
         match token_opt with
@@ -409,7 +407,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt caps kind :
           caps'' uri
       in
       Metrics_.g.is_using_app <- true;
-      [ rules_and_errors ] |> Result_.partition_result Fun.id |> Lwt.return
+      [ rules_and_errors ] |> Result_.partition Fun.id |> Lwt.return
   | C.A SupplyChain ->
       Metrics_.g.is_using_app <- true;
       failwith "TODO: SupplyChain not handled yet"

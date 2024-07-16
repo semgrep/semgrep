@@ -276,7 +276,7 @@ let get_targets conf (scanning_roots : Scanning_root.t list) =
          in
          let paths, skipped_paths1 =
            paths
-           |> Either_.partition_either (fun path ->
+           |> Either_.partition (fun path ->
                   Log.info (fun m -> m "Considering path %s" !!path);
                   let rel_path =
                     match
@@ -336,7 +336,7 @@ let get_targets conf (scanning_roots : Scanning_root.t list) =
           *)
          let paths, skipped_paths3 =
            paths
-           |> Result_.partition_result (fun path ->
+           |> Result_.partition (fun path ->
                   let size = UFile.filesize path in
                   if conf.max_target_bytes > 0 && size > conf.max_target_bytes
                   then

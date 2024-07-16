@@ -1003,7 +1003,7 @@ and evaluate_formula_kind env opt_context (kind : Rule.formula_kind) =
       *)
       let posrs, posrs_inside =
         posrs
-        |> Either_.partition_either (fun xs ->
+        |> Either_.partition (fun xs ->
                match xs with
                (* todo? should we double check they are all inside? *)
                | { RM.kind = Inside; _ } :: _ -> Right xs
