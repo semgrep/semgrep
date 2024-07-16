@@ -1,0 +1,16 @@
+rules:
+  - id: pattern_move_let_bind
+    severity: ERROR
+    languages: [move_on_aptos]
+    message: let destructuring bind
+    patterns:
+      - pattern-inside: |
+          struct $INNER_STRUCT { ... }
+          ...
+          struct $STRUCT { 
+            $MEMBER: $INNER_STRUCT,
+            ...
+          }
+          ...
+      - pattern: |
+          let $STRUCT { $FIELD : $INNER_STRUCT { ... } } = ...;

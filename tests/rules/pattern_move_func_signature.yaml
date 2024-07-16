@@ -1,0 +1,15 @@
+rules:
+  - id: pattern-move-func-signature
+    severity: ERROR
+    languages: [move_on_aptos]
+    message: "a non public function with attr key = 'value"
+    patterns:
+      - pattern-either:
+        - pattern: |
+            #[attr(key = b"value", ...)]
+            fun $FUNC_NAME(...): ...
+        - pattern: |
+            #[attr2 = ...]
+            fun $FUNC_NAME(...): ...
+      - pattern-not: |
+          public fun $FUNC_NAME(...): ...

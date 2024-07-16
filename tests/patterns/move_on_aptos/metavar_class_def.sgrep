@@ -1,0 +1,3 @@
+struct $X has drop {
+    ...
+}
