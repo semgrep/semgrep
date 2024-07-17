@@ -201,7 +201,7 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
             (* Just in case the lambda CFG needs be inserted here later on (if the
              * lambda is never dereferenced) then we have to insert a JOIN node here,
              * see cfg_lambda. *)
-            let lasti = state.g#add_node (IL.mk_node F.Join) in
+            let lasti = state.g#add_node (IL.mk_node F.OtherJoin) in
             state.g |> add_arc (newi, lasti);
             Hashtbl.add state.lambdas name fdef;
             Hashtbl.add state.unused_lambdas name ();
@@ -374,14 +374,17 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
 
 and cfg_lambda state previ joini (fdef : IL.function_definition) =
   (* Lambdas are treated as statement blocks, the CFG does NOT capture the actual
-     * flow of data that goes into the lambda through its parameters, and back
-     * into the surrounding definition through its `return' statement. We won't
-     * do inter-procedural analysis here, it is a DeepSemgrep thing.
-     *
-     * previ -> NLambda params -> ... (lambda body) -> finallambda -> lasti
-     *
-     * alt: We could inline lambdas perhaps?
-  *)
+   * flow of data that goes into the lambda through its parameters, and back
+   * into the surrounding definition through its `return' statement. We won't
+   * do inter-procedural analysis here, it is a DeepSemgrep thing.
+   *
+   * previ -> NLambda params -> ... (lambda body) -> finallambda -> lasti
+   *
+   * alt: We could inline lambdas perhaps?
+   *
+   * coupling: if we ever decide to capture the flow of data into the lambda
+   * here, the handling of the NLambda case in Dataflow_when has to be updated.
+   *)
   let newi = state.g#add_node (IL.mk_node (NLambda fdef.fparams)) in
   state.g |> add_arc_from_opt (previ, newi);
   let finallambda, _ignore_throws_in_lambda_ =
@@ -417,7 +420,7 @@ and build_cfg_for_lambdas_in state previ n =
      *       \-> (lambda N) ->/
      *       \_______________/
      *)
-    let lasti = state.g#add_node (IL.mk_node F.Join) in
+    let lasti = state.g#add_node (IL.mk_node F.OtherJoin) in
     state.g |> add_arc_from_opt (previ, lasti);
     lambda_fdefs |> List.iter (fun fdef -> cfg_lambda state previ lasti fdef);
     lambda_names
@@ -492,7 +495,8 @@ let mark_at_exit_nodes cfg =
     | Exit
     | NOther (Noop _)
     | NGoto _
-    | Join ->
+    | Join
+    | OtherJoin ->
         CFG.predecessors cfg nodei |> List.iter (fun (predi, _) -> loop predi)
     (* These can be at-exit nodes. *)
     | NInstr _

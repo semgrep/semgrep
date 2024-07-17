@@ -17,7 +17,7 @@ rule.yml
                                       { e = (IdSpecial ((Op Eq), ()));
                                         e_id = 0; e_range = None;
                                         is_implicit_return = false;
-                                        facts = [] },
+                                        facts = <opaque> },
                                       ((),
                                        [(Arg
                                            { e =
@@ -31,7 +31,7 @@ rule.yml
                                                    )));
                                              e_id = 0; e_range = None;
                                              is_implicit_return = false;
-                                             facts = [] });
+                                             facts = <opaque> });
                                          (Arg
                                             { e =
                                               (N
@@ -45,12 +45,13 @@ rule.yml
                                                     )));
                                               e_id = 0; e_range = None;
                                               is_implicit_return = false;
-                                              facts = [] })
+                                              facts = <opaque> })
                                          ],
                                        ())
                                       ));
                                    e_id = 0; e_range = None;
-                                   is_implicit_return = false; facts = [] }),
+                                   is_implicit_return = false;
+                                   facts = <opaque> }),
                               Python));
                            pstr = ("$X == $X", ()); pid = <MASKED> });
                       conditions = []; focus = []; fix = None; as_ = None }

@@ -36,7 +36,19 @@ module Log = Log_engine.Log
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type value = Eval_generic_partial.value [@@deriving show]
+type value =
+  | Bool of bool
+  | Int of int64
+  | Float of float
+  | String of string (* string without the enclosing '"' *)
+  | List of value list
+  (* default case where we don't really have good builtin operations.
+   * This should be a AST_generic.any once parsed.
+   * See JSON_report.json_metavar().
+   *)
+  | AST of string (* any AST, e.g., "x+1" *)
+(* less: Id of string (* simpler to merge with AST *) *)
+[@@deriving show]
 
 type env = {
   mvars : (MV.mvar, value) Hashtbl.t;
@@ -585,7 +597,7 @@ let eval_opt env e =
       Log.err (fun m -> m "NotHandled: %s" (G.show_expr e));
       None
 
-let eval_bool env e facts =
+let eval_bool env e facts bindings =
   let res = eval_opt env e in
   match res with
   | Some (Bool b) -> b
@@ -603,9 +615,9 @@ let eval_bool env e facts =
        *)
       match !Dataflow_when.hook_facts_satisfy_e with
       | None -> false
-      | Some facts_satisfy_e -> facts_satisfy_e env.mvars facts e)
+      | Some facts_satisfy_e -> facts_satisfy_e bindings facts e)
   | None -> (
       Log.err (fun m -> m "got exn during eval_bool");
       match !Dataflow_when.hook_facts_satisfy_e with
       | None -> false
-      | Some facts_satisfy_e -> facts_satisfy_e env.mvars facts e)
+      | Some facts_satisfy_e -> facts_satisfy_e bindings facts e)
