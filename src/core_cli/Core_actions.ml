@@ -178,8 +178,8 @@ let prefilter_of_rules file =
  * 'git log'. This must print the JSON on stdout as it is
  * processed by core_runner.py
  *)
-let dump_contributions () =
-  Parse_contribution.get_contributions ()
+let dump_contributions (caps : < Cap.exec >) () : unit =
+  Parse_contribution.get_contributions caps
   |> Semgrep_output_v1_j.string_of_contributions |> UCommon.pr
 [@@action]
 

@@ -36,21 +36,20 @@ module Log = Log_git_wrapper.Log
  *  - use Bos uniformly instead of Common.cmd_to_list and Lwt_process.
  *  - be more consistent and requires an Fpath instead
  *    of relying sometimes on cwd.
+ *  - make sub capability with cap_git_exec
  *)
-(* Standard git uses sha1 *)
-
-module type Store = Git.S with type hash = Digestif.SHA1.t
-
-module Hash = Git.Hash.Make (Digestif.SHA1)
-module Value = Git.Value.Make (Hash)
-module Commit = Git.Commit.Make (Hash)
-module Tree = Git.Tree.Make (Hash)
-module Blob = Git.Blob.Make (Hash)
-module User = Git.User
 
 (*****************************************************************************)
 (* Types and constants *)
 (*****************************************************************************)
+
+(* To make sure we don't call other commands!
+ * TODO: we could create a special git_cap capabilities instead of using
+ * Cap.exec. We could have
+ *   type git_cap
+ *   val git_cap_of_exec: Cap.exec -> git_cap
+ *)
+let git : Cmd.name = Cmd.Name "git"
 
 type status = {
   added : string list;
@@ -61,13 +60,15 @@ type status = {
 }
 [@@deriving show]
 
-(* To make sure we don't call other commands!
- * TODO: we could create a special git_cap capabilities instead of using
- * Cap.exec. We could have
- *   type git_cap
- *   val git_cap_of_exec: Cap.exec -> git_cap
- *)
-let git : Cmd.name = Cmd.Name "git"
+(* Standard git uses sha1 *)
+module type Store = Git.S with type hash = Digestif.SHA1.t
+
+module Hash = Git.Hash.Make (Digestif.SHA1)
+module Value = Git.Value.Make (Hash)
+module Commit = Git.Commit.Make (Hash)
+module Tree = Git.Tree.Make (Hash)
+module Blob = Git.Blob.Make (Hash)
+module User = Git.User
 
 type hash = Hash.t [@@deriving show, eq, ord]
 type value = Value.t [@@deriving show, eq, ord]
@@ -252,26 +253,8 @@ let blobs_by_commit objects commits =
 (* Entry points *)
 (*****************************************************************************)
 
-let commit_blobs_by_date objects =
-  Log.info (fun m -> m "getting commits");
-  let commits =
-    objects |> Hashtbl.to_seq |> List.of_seq
-    |> List_.filter_map (fun (_, value) ->
-           match value with
-           | Git.Value.Commit commit -> Some commit
-           | _ -> None)
-  in
-  Log.debug (fun m -> m "got commits");
-  Log.debug (fun m -> m "sorting commits");
-  let commits_by_date =
-    commits |> List.sort Commit.compare_by_date |> List.rev
-  in
-  Log.debug (fun m -> m "sorted commits");
-  let blobs_by_commit = blobs_by_commit objects commits_by_date in
-  Log.debug (fun m -> m "got blobs by commit");
-  blobs_by_commit
-
-let git_check_output (_caps_exec : < Cap.exec >) (args : Cmd.args) : string =
+(* Similar to Sys.command, but specific to git *)
+let command (_caps_exec : < Cap.exec >) (args : Cmd.args) : string =
   let cmd : Cmd.t = (git, args) in
   match UCmd.string_of_run ~trim:true cmd with
   | Ok (str, (_, `Exited 0)) -> str
@@ -292,6 +275,30 @@ Try running the command yourself to debug the issue.|}
             (Cmd.to_string cmd));
       raise (Error "Error when we run a git command")
 
+let commit_blobs_by_date objects =
+  Log.info (fun m -> m "getting commits");
+  let commits =
+    objects |> Hashtbl.to_seq |> List.of_seq
+    |> List_.filter_map (fun (_, value) ->
+           match value with
+           | Git.Value.Commit commit -> Some commit
+           | _ -> None)
+  in
+  Log.debug (fun m -> m "got commits");
+  Log.debug (fun m -> m "sorting commits");
+  let commits_by_date =
+    commits |> List.sort Commit.compare_by_date |> List.rev
+  in
+  Log.debug (fun m -> m "sorted commits");
+  let blobs_by_commit = blobs_by_commit objects commits_by_date in
+  Log.debug (fun m -> m "got blobs by commit");
+  blobs_by_commit
+
+(*
+   This is incomplete. Git offer a variety of filters and subfilters,
+   and it would be a lot of work to translate them all into clean types.
+   Please extend this interface as needed.
+*)
 type ls_files_kind =
   | Cached (* --cached, the default *)
   | Others (* --others, the complement of Cached but still excluding .git/ *)
@@ -390,20 +397,20 @@ let ls_files_relative ?exclude_standard ?kinds ~(project_root : Rpath.t)
   rel_paths
 
 (* TODO: somehow avoid error message on stderr in case this is not a git repo *)
-let get_project_root_for_files_in_dir dir =
+let project_root_for_files_in_dir dir =
   let cmd = (git, [ "-C"; !!dir; "rev-parse"; "--show-toplevel" ]) in
   match UCmd.string_of_run ~trim:true cmd with
   | Ok (path, (_, `Exited 0)) -> Some (Fpath.v path)
   | _ -> None
 
-let get_project_root_for_file file =
-  get_project_root_for_files_in_dir (Fpath.parent file)
+let project_root_for_file file =
+  project_root_for_files_in_dir (Fpath.parent file)
 
-let get_project_root_for_file_or_files_in_dir path =
-  if Sys.is_directory !!path then get_project_root_for_files_in_dir path
-  else get_project_root_for_file path
+let project_root_for_file_or_files_in_dir path =
+  if Sys.is_directory !!path then project_root_for_files_in_dir path
+  else project_root_for_file path
 
-let is_tracked_by_git file = get_project_root_for_file file |> Option.is_some
+let is_tracked_by_git file = project_root_for_file file |> Option.is_some
 
 let checkout ?cwd ?git_ref () =
   let cmd = (git, cd cwd @ [ "checkout" ] @ opt git_ref) in
@@ -461,7 +468,8 @@ let sparse_checkout_add ?cwd folders =
   | Ok (`Exited 0) -> Ok ()
   | _ -> Error "Could not add sparse checkout"
 
-let get_merge_base commit =
+(* TODO: use better types? sha1? *)
+let merge_base (commit : string) : string =
   let cmd = (git, [ "merge-base"; commit; "HEAD" ]) in
   match UCmd.string_of_run ~trim:true cmd with
   | Ok (merge_base, (_, `Exited 0)) -> merge_base
@@ -471,7 +479,7 @@ let run_with_worktree (caps : < Cap.chdir ; Cap.tmp >) ~commit ?(branch = None)
     f =
   let cwd = getcwd () |> Fpath.to_dir_path in
   let git_root =
-    match get_project_root_for_files_in_dir cwd with
+    match project_root_for_files_in_dir cwd with
     | None ->
         raise (Error ("Could not get git root for current directory " ^ !!cwd))
     | Some path -> Fpath.to_dir_path path
@@ -687,7 +695,7 @@ let clean_project_url (url : string) : Uri.t =
   | _ -> uri
 
 (* TODO: should return Uri.t option *)
-let get_project_url ?cwd () : string option =
+let project_url ?cwd () : string option =
   let cmd = (git, cd cwd @ [ "ls-remote"; "--get-url" ]) in
   match UCmd.string_of_run ~trim:true cmd with
   | Ok (url, _) -> Some (Uri.to_string (clean_project_url url))
@@ -714,7 +722,7 @@ let time_to_str (timestamp : float) : string =
   Printf.sprintf "%04d-%02d-%02d" year month day
 
 (* TODO: should really return a JSON.t list at least *)
-let get_git_logs ?cwd ?(since = None) () : string list =
+let logs ?cwd ?(since = None) (_caps_exec : < Cap.exec >) : string list =
   let cmd : Cmd.t =
     match since with
     | None -> (git, cd cwd @ [ "log"; git_log_json_format ])

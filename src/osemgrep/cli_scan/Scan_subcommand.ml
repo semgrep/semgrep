@@ -52,7 +52,7 @@ let add_project_and_config_metrics (conf : Scan_CLI.conf) : unit =
    * git can take time (and generate errors on stderr)?
    *)
   if Metrics_.is_enabled () then
-    Git_wrapper.get_project_url () |> Option.iter Metrics_.add_project_url_hash;
+    Git_wrapper.project_url () |> Option.iter Metrics_.add_project_url_hash;
   match conf.rules_source with
   | Configs configs -> Metrics_.add_configs_hash configs
   | Pattern _ -> ()

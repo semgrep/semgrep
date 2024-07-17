@@ -1,29 +1,32 @@
-(* Small wrapper around the 'git' command-line program *)
+(* Small wrapper around the 'git' command-line program.
+ *
+ * The functions in this module will call the external 'git' program, hence
+ * the use of the Cap.exec capability.
+ * TODO: generalize the use of Cap.exec to all functions!
+ *)
 
-(* TODO: make sub capability with cap_git_exec *)
-
+(* many of the functions in this module can raise Error if git does not
+ * exist or fail to run for some reasons.
+ *)
 exception Error of string
 
 (* very general helper to run a git command and return its output
  * if everthing went fine or log the error (using Logs) and
  * raise an Error exn otherwise.
  *)
-val git_check_output : < Cap.exec > -> Cmd.args -> string
+val command : < Cap.exec > -> Cmd.args -> string
 
-(*
-   This is incomplete. Git offer a variety of filters and subfilters,
-   and it would be a lot of work to translate them all into clean types.
-   Please extend this interface as needed.
-*)
 type ls_files_kind =
+  (* --cached, the default:
+   * Show all files cached in Git’s index, i.e. all tracked files
+   *)
   | Cached
-    (* --cached, the default:
-       Show all files cached in Git’s index, i.e. all tracked files *)
+  (* --others:
+   * Show other (i.e. untracked) files in the output,
+   * that is mostly the complement of Cached but still
+   * excluding .git/
+   *)
   | Others
-(* --others:
-   Show other (i.e. untracked) files in the output,
-   that is mostly the complement of Cached but still
-   excluding .git/ *)
 
 (*
    cwd: directory to cd into (-C)
@@ -60,7 +63,7 @@ val ls_files_relative :
   Fpath.t list
 
 (* get merge base between arg and HEAD *)
-val get_merge_base : string -> string
+val merge_base : string -> string
 
 (* Executing a function inside a directory created from git-worktree.
 
@@ -107,7 +110,7 @@ val status : ?cwd:Fpath.t -> ?commit:string -> unit -> status
 
    'None' is returned in case of an error.
 *)
-val get_project_root_for_files_in_dir : Fpath.t -> Fpath.t option
+val project_root_for_files_in_dir : Fpath.t -> Fpath.t option
 
 (*
    Determine the project root for a *member* of a git project.
@@ -118,7 +121,7 @@ val get_project_root_for_files_in_dir : Fpath.t -> Fpath.t option
    For example, "/projects/my-git-project" will return None
    even though "/projects/my-git-project" is the root of a git repo.
 *)
-val get_project_root_for_file : Fpath.t -> Fpath.t option
+val project_root_for_file : Fpath.t -> Fpath.t option
 
 (*
    If the argument is a directory, return the project root associated with
@@ -126,7 +129,7 @@ val get_project_root_for_file : Fpath.t -> Fpath.t option
    (normally a regular file or a symlink), then the root of the project
    containing this file is returned.
 *)
-val get_project_root_for_file_or_files_in_dir : Fpath.t -> Fpath.t option
+val project_root_for_file_or_files_in_dir : Fpath.t -> Fpath.t option
 
 (* Determine whether a path is tracked by git. *)
 val is_tracked_by_git : Fpath.t -> bool
@@ -191,15 +194,15 @@ val commit : ?cwd:Fpath.t -> string -> unit
 (** [commit msg] creates a commit with containing the current contents of the
     index with [msg] as the commit message. *)
 
-val get_project_url : ?cwd:Fpath.t -> unit -> string option
-(** [get_project_url ()] tries to get the URL of the project from
+val project_url : ?cwd:Fpath.t -> unit -> string option
+(** [project_url ()] tries to get the URL of the project from
     [git ls-remote] or from the [.git/config] file. It returns [None] if it
     found nothing relevant.
     TODO: should maybe raise an exn instead if not run from a git repo.
 *)
 
-val get_git_logs : ?cwd:Fpath.t -> ?since:float option -> unit -> string list
-(** [get_git_logs ()] will run 'git log' in the current directory
+val logs : ?cwd:Fpath.t -> ?since:float option -> < Cap.exec > -> string list
+(** [logs ()] will run 'git log' in the current directory
     and returns for each log a JSON string that fits the schema
     defined in semgrep_output_v1.atd contribution type.
     It returns an empty list if it found nothing relevant.

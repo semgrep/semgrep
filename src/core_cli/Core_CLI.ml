@@ -398,7 +398,8 @@ let all_actions (caps : Cap.all_caps) () =
           Test_parsing.diff_pfff_tree_sitter (Fpath_.of_strings xs)) );
     ( "-dump_contributions",
       " dump on stdout the commit contributions in JSON",
-      Arg_.mk_action_0_arg Core_actions.dump_contributions );
+      Arg_.mk_action_0_arg
+        (Core_actions.dump_contributions (caps :> < Cap.exec >)) );
     (* Misc stuff *)
     ( "-expr_at_range",
       " <l:c-l:c> <file>",

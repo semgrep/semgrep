@@ -104,7 +104,7 @@ let tests =
            Fpath.(Rpath.to_fpath project_root / "a")));
     t "get git project root" (fun () ->
         let cwd = USys.getcwd () |> Fpath.v in
-        match Git_wrapper.get_project_root_for_files_in_dir cwd with
+        match Git_wrapper.project_root_for_files_in_dir cwd with
         | Some root -> printf "found git project root: %s\n" !!root
         | None ->
             Alcotest.fail
@@ -113,7 +113,7 @@ let tests =
     t "fail to get git project root" (fun () ->
         (* A standard folder that we know is not in a git repo *)
         let cwd = Filename.get_temp_dir_name () |> Fpath.v in
-        match Git_wrapper.get_project_root_for_files_in_dir cwd with
+        match Git_wrapper.project_root_for_files_in_dir cwd with
         | Some root ->
             Alcotest.fail
               (spf "we found a git project root with cwd = %s: %s" !!cwd !!root)

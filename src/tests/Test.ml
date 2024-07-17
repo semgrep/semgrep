@@ -133,7 +133,7 @@ let tests_with_delayed_error caps =
 let main (caps : Cap.all_caps) : unit =
   (* find the root of the semgrep repo as many of our tests rely on
      'let test_path = "tests/"' to find their test files *)
-  let project_root = Test_LS_e2e.get_project_root () in
+  let project_root = Test_LS_e2e.project_root () in
   Testutil_files.with_chdir project_root (fun () ->
       (* coupling: partial copy of the content of CLI.main() *)
       Core_CLI.register_exception_printers ();

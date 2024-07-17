@@ -68,7 +68,7 @@ let upload_rule caps rule_file (conf : Publish_CLI.conf) test_code_file =
          This output needs to be suppressed.
       *)
       let project_url =
-        match Git_wrapper.get_project_url () with
+        match Git_wrapper.project_url () with
         | None -> "<none>"
         | Some url -> url
       in
