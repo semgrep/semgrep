@@ -28,6 +28,22 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
+def parse_package_name(package_path: str) -> str:
+    """
+    Utility method for parsing a package name from the "packages" field
+    Splits the package_path and uses the last element of each path as the dependency's name. In some cases, the path
+    may contain a scope (https://docs.npmjs.com/cli/v8/using-npm/scope) in the second-to-last path component,
+    so we check for that as well.
+    """
+    split_package_path = package_path.split("/")
+    if (
+        len(split_package_path) >= 2 and "@" in split_package_path[-2]
+    ):  # The dependency has a scope, so include it in the name
+        return "/".join(split_package_path[-2:])
+    else:
+        return split_package_path[-1]
+
+
 def parse_packages_field(deps: Dict[str, JSON]) -> List[FoundDependency]:
     try:
         manifest_deps = set(deps[""].as_dict()["dependencies"].as_dict().keys())
@@ -37,9 +53,7 @@ def parse_packages_field(deps: Dict[str, JSON]) -> List[FoundDependency]:
     for package, dep_json in deps.items():
         fields = dep_json.as_dict()
         version = fields.get("version")
-        package_name = package[
-            package.rfind("node_modules") + 13 :
-        ]  # we only want the stuff after the final 'node_modules'
+        package_name = parse_package_name(package)
         if not version:
             logger.info(f"no version for dependency: {package}")
             continue
