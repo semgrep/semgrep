@@ -1310,6 +1310,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
               optimizations;
               ignore_todo = test_ignore_todo;
               common;
+              matching_diagnosis = false;
             }
       else None
     in
