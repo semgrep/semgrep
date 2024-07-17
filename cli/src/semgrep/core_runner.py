@@ -858,13 +858,15 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
             # need to replace the SemgrepCore.path() part.
             if engine.is_pro:
                 if auth.get_token() is None:
-                    logger.error("!!!This is a proprietary extension of semgrep.!!!")
-                    logger.error("!!!You must be logged in to access this extension!!!")
-                else:
-                    if engine is EngineType.PRO_INTERFILE:
-                        logger.error(
-                            "Semgrep Pro Engine may be slower and show different results than Semgrep OSS."
-                        )
+                    raise SemgrepError(
+                        "This is a proprietary extension of semgrep.\n"
+                        "You must log in with `semgrep login` to access this extension."
+                    )
+
+                if engine is EngineType.PRO_INTERFILE:
+                    logger.error(
+                        "Semgrep Pro Engine may be slower and show different results than Semgrep OSS."
+                    )
 
                 if engine is EngineType.PRO_INTERFILE:
                     targets = target_manager.targets
