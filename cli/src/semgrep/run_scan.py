@@ -10,6 +10,7 @@
 # file when we introduced semgrep commands (e.g., scan, login). This file
 # is now called from commands/scan.py and commands/ci.py instead.
 # old: this file used to be called semgrep_main.py
+#
 import json
 import time
 from io import StringIO
@@ -42,7 +43,6 @@ from semgrep.constants import DEFAULT_DIFF_DEPTH
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
 from semgrep.core_runner import CoreRunner
-from semgrep.core_runner import get_contributions
 from semgrep.core_runner import Plan
 from semgrep.engine import EngineType
 from semgrep.error import FilesNotFoundError
@@ -379,7 +379,6 @@ def run_scan(
     optimizations: str = "none",
     baseline_commit: Optional[str] = None,
     baseline_commit_is_mergebase: bool = False,
-    dump_contributions: bool = False,
     x_ls: bool = False,
     path_sensitive: bool = False,
 ) -> Tuple[
@@ -393,7 +392,6 @@ def run_scan(
     Collection[out.MatchSeverity],
     Dict[str, List[FoundDependency]],
     List[DependencyParserError],
-    out.Contributions,
     int,  # Executed Rule Count
     int,  # Missed Rule Count
 ]:
@@ -573,11 +571,6 @@ def run_scan(
         respect_rule_paths=respect_rule_paths,
         path_sensitive=path_sensitive,
     )
-
-    if dump_contributions:
-        contributions = get_contributions(engine_type)
-    else:
-        contributions = out.Contributions([])
 
     experimental_rules, unexperimental_rules = partition(
         filtered_rules, lambda rule: (isinstance(rule.severity.value, out.Experiment))
@@ -776,7 +769,6 @@ def run_scan(
         shown_severities,
         dependencies,
         dependency_parser_errors,
-        contributions,
         executed_rule_count,
         missed_rule_count,
     )
@@ -812,7 +804,6 @@ def run_scan_and_return_json(
         profiler,
         output_extra,
         shown_severities,
-        _,
         _,
         _,
         _,

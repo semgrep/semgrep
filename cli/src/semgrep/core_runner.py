@@ -3,7 +3,6 @@ import collections
 import contextlib
 import json
 import resource
-import subprocess
 import sys
 import tempfile
 from datetime import datetime
@@ -70,36 +69,6 @@ INPUT_BUFFER_LIMIT: int = 1024 * 1024 * 1024
 #
 # test/e2e/test_performance.py is one test that exercises this risk.
 LARGE_READ_SIZE: int = 1024 * 1024 * 512
-
-
-def get_contributions(engine_type: EngineType) -> out.Contributions:
-    binary_path = engine_type.get_binary_path()
-    start = datetime.now()
-    if binary_path is None:  # should never happen, doing this for mypy
-        raise SemgrepError("semgrep engine not found.")
-    cmd = [
-        str(binary_path),
-        "-json",
-        "-dump_contributions",
-    ]
-    env = get_state().env
-
-    try:
-        # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
-        raw_output = subprocess.run(
-            cmd,
-            timeout=env.git_command_timeout,
-            capture_output=True,
-            encoding="utf-8",
-            check=True,
-        ).stdout
-        contributions = out.Contributions.from_json_string(raw_output)
-    except subprocess.CalledProcessError:
-        logger.warning("Failed to collect contributions. Continuing with scan...")
-        contributions = out.Contributions([])
-
-    logger.debug(f"semgrep contributions ran in {datetime.now() - start}")
-    return contributions
 
 
 def setrlimits_preexec_fn() -> None:
