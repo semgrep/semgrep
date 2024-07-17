@@ -769,7 +769,6 @@ def scan(
                         shown_severities,
                         _dependencies,
                         _dependency_parser_errors,
-                        _contributions,
                         executed_rule_count,
                         missed_rule_count,
                     ) = semgrep.run_scan.run_scan(

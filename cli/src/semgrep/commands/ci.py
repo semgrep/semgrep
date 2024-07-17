@@ -18,6 +18,7 @@ from rich.progress import SpinnerColumn
 from rich.progress import TextColumn
 from rich.table import Table
 
+import semgrep.ocaml as ocaml
 import semgrep.run_scan
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import tracing
@@ -541,7 +542,6 @@ def ci(
             "baseline_commit": metadata.merge_base_ref,
             "baseline_commit_is_mergebase": True,
             "diff_depth": diff_depth,
-            "dump_contributions": True,
         }
 
         try:
@@ -565,7 +565,6 @@ def ci(
                 shown_severities,
                 dependencies,
                 dependency_parser_errors,
-                contributions,
                 _executed_rule_count,
                 _missed_rule_count,
             ) = semgrep.run_scan.run_scan(**run_scan_args)
@@ -620,7 +619,6 @@ def ci(
                     _historical_dependencies,
                     _historical_dependency_parser_errors,
                     # Usage limits currently only consider last 30 days.
-                    _historical_contributions,
                     _executed_rule_count,
                     _missed_rule_count,
                 ) = semgrep.run_scan.run_scan(
@@ -730,6 +728,7 @@ def ci(
         )
 
         complete_result: ScanCompleteResult | None = None
+        contributions = ocaml.contributions()
         if scan_handler:
             with Progress(
                 TextColumn("  {task.description}"),

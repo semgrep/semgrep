@@ -174,15 +174,6 @@ let prefilter_of_rules file =
   | Error _ -> ()
 [@@action]
 
-(* This is called from 'pysemgrep ci' to get contributors from
- * 'git log'. This must print the JSON on stdout as it is
- * processed by core_runner.py
- *)
-let dump_contributions (caps : < Cap.exec >) () : unit =
-  Parse_contribution.get_contributions caps
-  |> Semgrep_output_v1_j.string_of_contributions |> UCommon.pr
-[@@action]
-
 (*****************************************************************************)
 (* Other actions *)
 (*****************************************************************************)

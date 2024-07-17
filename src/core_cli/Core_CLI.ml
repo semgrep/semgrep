@@ -396,10 +396,6 @@ let all_actions (caps : Cap.all_caps) () =
       " <file>",
       Arg_.mk_action_n_arg (fun xs ->
           Test_parsing.diff_pfff_tree_sitter (Fpath_.of_strings xs)) );
-    ( "-dump_contributions",
-      " dump on stdout the commit contributions in JSON",
-      Arg_.mk_action_0_arg
-        (Core_actions.dump_contributions (caps :> < Cap.exec >)) );
     (* Misc stuff *)
     ( "-expr_at_range",
       " <l:c-l:c> <file>",
@@ -471,7 +467,7 @@ let all_actions (caps : Cap.all_caps) () =
 (* The options *)
 (*****************************************************************************)
 
-let options caps actions =
+let options caps (actions : unit -> Arg_.cmdline_actions) =
   [
     ( "-e",
       Arg.String (fun s -> pattern_string := Some s),
@@ -644,7 +640,7 @@ let options caps actions =
       ( "-rpc",
         Arg.Unit
           (fun () ->
-            RPC.main caps;
+            RPC.main (caps :> < Cap.exec ; Cap.tmp >);
             Core_exit_code.(exit_semgrep caps#exit Success)),
         " don't use this unless you already know" );
     ]

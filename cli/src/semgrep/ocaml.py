@@ -1,3 +1,12 @@
+##############################################################################
+# Prelude
+##############################################################################
+# Allows function calls from Python into OCaml, to allow us to incrementally
+# migrate pysemgrep functionality to osemgrep piece by piece.
+#
+# See `src/rpc/README.txt` from the repository root for more details.
+# coupling: src/rpc/RPC.handle_call()
+# coupling: semgrep_output_v1.atd which defines the CallXxx and RetXxx
 import subprocess
 from typing import IO
 from typing import Optional
@@ -10,10 +19,9 @@ from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-# Allows function calls from Python into OCaml, to allow us to incrementally
-# migrate functionality piece by piece to OCaml.
-#
-# See `src/rpc/README.txt` from the repository root for more details.
+##############################################################################
+# Constants
+##############################################################################
 
 # This is a typical system default, but let's not leave it up to chance.
 ENCODING = "utf-8"
@@ -26,6 +34,10 @@ ENCODING = "utf-8"
 # We do want to log if we hit this timeout, though, since it *could* be
 # indicative of a real problem.
 SUBPROC_TIMEOUT_S = 1
+
+##############################################################################
+# Helpers
+##############################################################################
 
 
 # Read `size` bytes from `io`. Returns fewer bytes if we hit EOF.
@@ -143,6 +155,11 @@ def _call(call: out.FunctionCall, cls: Type[T]) -> Optional[T]:
                 proc.kill()
 
 
+##############################################################################
+# The calls to OCaml
+##############################################################################
+
+
 def apply_fixes(args: out.ApplyFixesParams) -> Optional[out.ApplyFixesReturn]:
     call = out.FunctionCall(out.CallApplyFixes(args))
     ret: Optional[out.RetApplyFixes] = _call(call, out.RetApplyFixes)
@@ -161,3 +178,12 @@ def sarif_format(args: out.SarifFormatParams) -> Optional[out.RetSarifFormat]:
         # could cause this, and we log in the caller too.
         return None
     return ret
+
+
+def contributions() -> out.Contributions:
+    call = out.FunctionCall(out.CallContributions())
+    ret: Optional[out.RetContributions] = _call(call, out.RetContributions)
+    if ret is None:
+        logger.warning("Failed to collect contributions. Continuing with scan...")
+        return out.Contributions([])
+    return ret.value
