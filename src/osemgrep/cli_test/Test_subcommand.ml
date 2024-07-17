@@ -400,8 +400,8 @@ let rule_contain_fix_or_fix_regex (rule : Rule.t) : bool =
 (* Reporting *)
 (*****************************************************************************)
 
-let report_tests_result (caps : < Cap.stdout >) ~json (res : Out.tests_result) :
-    unit =
+let report_tests_result (caps : < Cap.stdout >) ~matching_diagnosis ~json
+    (res : Out.tests_result) : unit =
   if json then
     let s = Out.string_of_tests_result res in
     CapConsole.print caps#stdout s
@@ -452,8 +452,29 @@ let report_tests_result (caps : < Cap.stdout >) ~json (res : Out.tests_result) :
         CapConsole.print caps#stdout break_line;
         (* TODO *)
         CapConsole.print caps#stdout "TODO: print(fixtest_file_diffs)");
-    (* TODO: if config_with_errors_output: ... *)
-    ()
+    if matching_diagnosis then (
+      (* diagnosis *)
+      let diagnoses =
+        List.concat_map
+          (fun (rule_file, (checks : Out.checks)) ->
+            List.concat_map
+              (fun (_rule_id, (rule_res : Out.rule_result)) ->
+                match rule_res.diagnosis with
+                | Some d -> [ (rule_file, d) ]
+                | None -> [])
+              checks.checks)
+          res.results
+      in
+      if List.length diagnoses <> 0 then (
+        CapConsole.print caps#stdout break_line;
+        CapConsole.print caps#stdout "Matching diagnosis:";
+        List.iter
+          (fun (rule_file, d) ->
+            CapConsole.print caps#stdout
+              (Diagnosis.report ~rule_file:(Fpath.v rule_file) d))
+          diagnoses);
+      (* TODO: if config_with_errors_output: ... *)
+      ())
 
 (*****************************************************************************)
 (* Calling the engine *)
@@ -492,11 +513,13 @@ let report_tests_result (caps : < Cap.stdout >) ~json (res : Out.tests_result) :
  * on where to plug to the semgrep engine.
  *)
 
-let run_rules_against_target (env : env) (xlang : Xlang.t) (rules : Rule.t list)
-    (target : Fpath.t) : test_result list * fixtest_result option =
+let run_rules_against_target ~matching_diagnosis (env : env) (xlang : Xlang.t)
+    (rules : Rule.t list) (target : Fpath.t) :
+    test_result list * fixtest_result option =
   (* running the engine *)
   let xtarget = Test_engine.xtarget_of_file xlang target in
-  let xconf = Match_env.default_xconfig in
+  (* activate matching explanations for Diagnosis to work *)
+  let xconf = { Match_env.default_xconfig with matching_explanations = true } in
   let (res : Core_result.matches_single_file) =
     Match_rules.check
       ~match_hook:(fun _pm -> ())
@@ -555,15 +578,26 @@ let run_rules_against_target (env : env) (xlang : Xlang.t) (rules : Rule.t list)
            (* TODO: not sure why pysemgrep does not report the real
             * reported_lines (and expected_lines) and filter those todook:
             *)
-           let reported_lines = filter_todook annots reported_lines in
-           let expected_lines = filter_todook annots expected_lines in
+           let expected_reported =
+             let reported_lines = filter_todook annots reported_lines in
+             let expected_lines = filter_todook annots expected_lines in
+             { Out.reported_lines; expected_lines }
+           in
+           let diagnosis =
+             if matching_diagnosis then
+               Some
+                 (Diagnosis.diagnose ~target ~rule_file:env.rule_file
+                    expected_reported res.explanations)
+             else None
+           in
            let (rule_result : Out.rule_result) =
              Out.
                {
                  passed;
-                 matches = [ (filename, { reported_lines; expected_lines }) ];
+                 matches = [ (filename, expected_reported) ];
                  (* TODO: error from the engine ? *)
                  errors = [];
+                 diagnosis;
                }
            in
            (id, rule_result))
@@ -593,7 +627,6 @@ let run_rules_against_target (env : env) (xlang : Xlang.t) (rules : Rule.t list)
     | Some fixtest_target, true ->
         Some (fixtest_result_for_target env target fixtest_target res.matches)
   in
-  (* both together *)
   (checks, fixtest_res)
 
 (*****************************************************************************)
@@ -653,7 +686,9 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
                    in
                    let env = { rule_file; errors } in
                    let checks, fixtest_res =
-                     run_rules_against_target env xlang rules target
+                     run_rules_against_target
+                       ~matching_diagnosis:conf.matching_diagnosis env xlang
+                       rules target
                    in
                    Some (rule_file, checks, fixtest_res |> Option.to_list))
     | Test_CLI.File (path, config_str)
@@ -673,7 +708,7 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
         rule_files_and_rules
         |> List_.map (fun (rule_file, rules) ->
                Logs.info (fun m -> m "processing rule file %s" !!rule_file);
-               let all_checks, all_fixtest =
+               let all_checks, all_fixtests =
                  targets
                  |> List_.map (fun target ->
                         Logs.info (fun m -> m "processing target %s" !!target);
@@ -682,12 +717,14 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
                         in
                         let env = { rule_file; errors } in
                         let checks, fixtest_res =
-                          run_rules_against_target env xlang rules target
+                          run_rules_against_target
+                            ~matching_diagnosis:conf.matching_diagnosis env
+                            xlang rules target
                         in
                         (checks, fixtest_res |> Option.to_list))
                  |> List.split
                in
-               (rule_file, List.flatten all_checks, List.flatten all_fixtest))
+               (rule_file, List.flatten all_checks, List.flatten all_fixtests))
   in
   let res : Out.tests_result =
     Out.
@@ -733,7 +770,9 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
    * fixtests, so better to not imitate for now.
    *)
   (* final report *)
-  report_tests_result (caps :> < Cap.stdout >) ~json:conf.json res;
+  report_tests_result
+    (caps :> < Cap.stdout >)
+    ~matching_diagnosis:conf.matching_diagnosis ~json:conf.json res;
   (* TODO: and bool(config_with_errors_output) *)
   let strict_error = conf.strict && false in
   let any_failures =

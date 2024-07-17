@@ -15,6 +15,11 @@ type conf = {
   optimizations : bool;
   strict : bool;
   common : CLI_common.conf;
+  (* Whether to emit "matching diagnosis", which analyzes failing
+     test annotation cases and matching explanations to determine
+     why a rule did or did not match.
+  *)
+  matching_diagnosis : bool;
 }
 
 and target_kind =

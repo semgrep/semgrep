@@ -32,6 +32,11 @@ type conf = {
   optimizations : bool;
   strict : bool;
   common : CLI_common.conf;
+  (* Whether to emit "matching diagnosis", which analyzes failing
+     test annotation cases and matching explanations to determine
+     why a rule did or did not match.
+  *)
+  matching_diagnosis : bool;
 }
 
 (* alt: we could accept multiple dirs, and multiple files
@@ -78,6 +83,17 @@ let o_config : string list Term.t =
   in
   Arg.value (Arg.opt_all Arg.string [] info)
 
+(* osemgrep-only *)
+let o_matching_diagnosis : bool Term.t =
+  let info =
+    Arg.info [ "matching-diagnosis" ]
+      ~doc:
+        {|Whether to emit "matching diagnosis", which analyzes failing
+test annotation cases and matching explanations to determine
+why a rule did or did not match.|}
+  in
+  Arg.value (Arg.flag info)
+
 (* ------------------------------------------------------------------ *)
 (* Positional arguments *)
 (* ------------------------------------------------------------------ *)
@@ -114,7 +130,8 @@ let target_kind_of_roots_and_config target_roots config =
 let cmdline_term : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
-  let combine args common config json strict test_ignore_todo =
+  let combine args common config json matching_diagnosis strict test_ignore_todo
+      =
     let target =
       target_kind_of_roots_and_config (Fpath_.of_strings args) config
     in
@@ -125,11 +142,12 @@ let cmdline_term : conf Term.t =
       ignore_todo = test_ignore_todo;
       common;
       optimizations = true;
+      matching_diagnosis;
     }
   in
   Term.(
-    const combine $ o_args $ CLI_common.o_common $ o_config $ o_json $ o_strict
-    $ o_test_ignore_todo)
+    const combine $ o_args $ CLI_common.o_common $ o_config $ o_json
+    $ o_matching_diagnosis $ o_strict $ o_test_ignore_todo)
 
 let doc = "testing the rules"
 

@@ -88,6 +88,8 @@ let tests (caps : Cap.all_caps) =
       Test_login_subcommand.tests (caps :> < Cap.stdout ; Cap.network >);
       Test_scan_subcommand.tests
         (caps :> < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.chdir >);
+      Unit_test_subcommand.tests
+        (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >);
       Test_show_subcommand.tests
         (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >);
       Test_publish_subcommand.tests
