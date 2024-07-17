@@ -310,7 +310,7 @@ let run_checks (caps : < Cap.tmp >) config fparser metachecks xs =
                | Ok rs -> rs |> List.concat_map (fun file -> check file)
                (* TODO this error is special cased because YAML files that
                   aren't semgrep rules are getting scanned *)
-               | Error { kind = InvalidYaml _; _ } -> []
+               | Error ({ kind = InvalidYaml _; _ } : Rule.Error.t) -> []
                | Error e -> [ Core_error.error_of_rule_error file e ]
                | exception exn ->
                    let e = Exception.catch exn in

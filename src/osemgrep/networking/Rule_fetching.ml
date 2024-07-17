@@ -264,7 +264,7 @@ let modify_registry_provided_metadata (origin : origin) (rule : Rule.t) =
  * for a registry-aware jsonnet.
  *)
 let parse_rule ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
-    (Rule.rules_and_errors, Rule.error) Result.t =
+    (Rule.rules_and_errors, Rule.Error.t) Result.t =
   let rule_id_rewriter =
     if rewrite_rule_ids then Some (mk_rewrite_rule_ids origin) else None
   in
@@ -307,7 +307,7 @@ let parse_rule ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
  *  be done).
  *)
 let load_rules_from_file ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
-    (rules_and_origin, Rule.error) Result.t =
+    (rules_and_origin, Rule.Error.t) Result.t =
   Logs.info (fun m -> m "loading local config from %s" !!file);
   if Sys.file_exists !!file then
     match parse_rule ~rewrite_rule_ids ~origin caps file with
@@ -322,7 +322,7 @@ let load_rules_from_file ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
     Error.abort (spf "file %s does not exist anymore" !!file)
 
 let load_rules_from_url_async ~origin ?token_opt ?(ext = "yaml") caps url :
-    (rules_and_origin, Rule.error) Result.t Lwt.t =
+    (rules_and_origin, Rule.Error.t) Result.t Lwt.t =
   let%lwt contents = fetch_content_from_url_async ?token_opt caps url in
   let ext, contents =
     if ext = "policy" then
@@ -343,13 +343,13 @@ let load_rules_from_url_async ~origin ?token_opt ?(ext = "yaml") caps url :
   |> Lwt.return
 
 let load_rules_from_url ~origin ?token_opt ?(ext = "yaml") caps url :
-    (rules_and_origin, Rule.error) Result.t =
+    (rules_and_origin, Rule.Error.t) Result.t =
   Lwt_platform.run (load_rules_from_url_async ~origin ?token_opt ~ext caps url)
 [@@profiling]
 
 (* TODO: merge caps and token_opt and caps_opt? *)
 let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt caps kind :
-    (rules_and_origin list * Rule.error list) Lwt.t =
+    (rules_and_origin list * Rule.Error.t list) Lwt.t =
   match kind with
   | C.File path ->
       Lwt.return
@@ -413,7 +413,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt caps kind :
       failwith "TODO: SupplyChain not handled yet"
 
 let rules_from_dashdash_config ~rewrite_rule_ids ~token_opt caps kind :
-    rules_and_origin list * Rule.error list =
+    rules_and_origin list * Rule.Error.t list =
   Lwt_platform.run
     (rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt caps kind)
 [@@profiling]

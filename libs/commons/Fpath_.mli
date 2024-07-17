@@ -74,3 +74,7 @@ val readable : root:Fpath.t -> Fpath.t -> Fpath.t
 
 (* Fpath.v "." *)
 val current_dir : Fpath.t
+
+(* DO NOT USE THIS *)
+val no_file : Fpath.t
+val is_no_file : Fpath.t -> bool

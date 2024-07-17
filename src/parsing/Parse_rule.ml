@@ -55,17 +55,19 @@ let ( >>= ) = Result.bind
 (* Parsers for core fields (languages:, severity:) *)
 (*****************************************************************************)
 
-let parse_language ~id ((s, t) as _lang) : (Lang.t, R.error) Result.t =
+let parse_language ~id ((s, t) as _lang) : (Lang.t, R.Error.t) Result.t =
   match Lang.of_string_opt s with
   | None ->
-      Error { rule_id = Some id; kind = InvalidRule (InvalidLanguage s, id, t) }
+      Error
+        (Rule.Error.mk_error ~rule_id:(Some id)
+           (InvalidRule (InvalidLanguage s, id, t)))
   | Some lang -> (
       match Parsing_plugin.check_if_missing lang with
       | Ok () -> Ok lang
       | Error msg ->
           Error
-            { rule_id = Some id; kind = InvalidRule (MissingPlugin msg, id, t) }
-      )
+            (Rule.Error.mk_error ~rule_id:(Some id)
+               (InvalidRule (MissingPlugin msg, id, t))))
 
 (*
    This list specifies target selection and possible pattern parsers.
@@ -82,7 +84,7 @@ let parse_language ~id ((s, t) as _lang) : (Lang.t, R.error) Result.t =
    this might lead to inconsistencies as here we allow just "generic".
 *)
 let parse_languages ~id (options : Rule_options_t.t) langs :
-    (Target_selector.t option * Xlang.t, R.error) Result.t =
+    (Target_selector.t option * Xlang.t, R.Error.t) Result.t =
   match langs with
   | [ (("none" | "regex"), _t) ] -> Ok (None, LRegex)
   | [ ("generic", _t) ] -> (
@@ -98,13 +100,10 @@ let parse_languages ~id (options : Rule_options_t.t) langs :
         xs |> List_.map (parse_language ~id:rule_id) |> Base.Result.all
       in
       match langs with
-      | [] ->
-          Rule.raise_error (Some rule_id)
-            (InvalidRule
-               (InvalidOther "we need at least one language", fst id, snd id))
+      | [] -> error rule_id (snd id) "we need at least one language"
       | x :: xs -> Ok (Some langs, Xlang.L (x, xs)))
 
-let parse_severity ~id (s, t) : (Rule.severity, R.error) Result.t =
+let parse_severity ~id (s, t) : (Rule.severity, R.Error.t) Result.t =
   match s with
   (* LATER: should put a deprecated notice at some point for all of those
    * coupling: update the error below when we fully switch to Low/Medium/...
@@ -120,13 +119,7 @@ let parse_severity ~id (s, t) : (Rule.severity, R.error) Result.t =
   | "LOW" -> Ok `Low
   (* generic placeholder *)
   | "INFO" -> Ok `Info
-  | s ->
-      Rule.raise_error (Some id)
-        (InvalidRule
-           ( InvalidOther
-               (spf "Bad severity: %s (expected ERROR, WARNING or INFO)" s),
-             id,
-             t ))
+  | s -> error id t (spf "Bad severity: %s (expected ERROR, WARNING or INFO)" s)
 
 (*****************************************************************************)
 (* Parsers for extra (metavar-xxx:, fix:, etc.) *)
@@ -272,7 +265,7 @@ let parse_taint_requires env key x =
 
 (* TODO: can add a case where these take in only a single string *)
 let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
-    (Rule.taint_source, Rule.error) Result.t =
+    (Rule.taint_source, Rule.Error.t) Result.t =
   let source_id = "source:" ^ String.concat ":" env.path in
   let parse_from_dict dict f =
     let/ source_exact =
@@ -327,7 +320,7 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
         parse_from_dict dict Parse_rule_formula.parse_formula_from_dict
 
 let parse_taint_propagator ~(is_old : bool) env (key : key) (value : G.expr) :
-    (Rule.taint_propagator, Rule.error) Result.t =
+    (Rule.taint_propagator, Rule.Error.t) Result.t =
   let propagator_id = "propagator:" ^ String.concat ":" env.path in
   let f =
     if is_old then Parse_rule_formula.parse_formula_old_from_dict
@@ -414,7 +407,7 @@ let parse_taint_sanitizer ~(is_old : bool) env (key : key) (value : G.expr) =
         parse_from_dict dict Parse_rule_formula.parse_formula_from_dict
 
 let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
-    (Rule.taint_sink, R.error) Result.t =
+    (Rule.taint_sink, R.Error.t) Result.t =
   let sink_id = "sink:" ^ String.concat ":" env.path in
   let parse_from_dict dict f =
     let/ sink_requires = take_opt dict env parse_taint_requires "requires" in
@@ -507,7 +500,7 @@ let parse_taint_pattern env key (value : G.expr) =
 (*****************************************************************************)
 
 (* TODO: factorize code with parse_languages *)
-let parse_extract_dest ~id lang : (Xlang.t, Rule.error) Result.t =
+let parse_extract_dest ~id lang : (Xlang.t, Rule.Error.t) Result.t =
   match lang with
   | ("none" | "regex"), _ -> Ok LRegex
   | ("generic" | "spacegrep"), _ -> Ok LSpacegrep
@@ -521,12 +514,8 @@ let parse_extract_reduction ~id (s, t) =
   | "concat" -> Ok R.Concat
   | "separate" -> Ok R.Separate
   | s ->
-      Rule.raise_error (Some id)
-        (InvalidRule
-           ( InvalidOther
-               (spf "Bad extract reduction: %s (expected concat or separate)" s),
-             id,
-             t ))
+      error id t
+        (spf "Bad extract reduction: %s (expected concat or separate)" s)
 
 let parse_extract_transform ~id (s, t) =
   match s with
@@ -534,15 +523,11 @@ let parse_extract_transform ~id (s, t) =
   | "unquote_string" -> Ok R.Unquote
   | "concat_json_string_array" -> Ok R.ConcatJsonArray
   | s ->
-      Rule.raise_error (Some id)
-        (InvalidRule
-           ( InvalidOther
-               (spf
-                  "Bad extract transform: %s (expected unquote_string or \
-                   concat_json_string_array)"
-                  s),
-             id,
-             t ))
+      error id t
+        (spf
+           "Bad extract transform: %s (expected unquote_string or \
+            concat_json_string_array)"
+           s)
 
 let parse_rules_to_run_with_extract env key value =
   let/ ruleids_dict = yaml_to_dict env key value in
@@ -552,19 +537,16 @@ let parse_rules_to_run_with_extract env key value =
            Rule_ID.of_string_opt value
            |> Option.to_result
                 ~none:
-                  R.
-                    {
-                      rule_id = Some env.id;
-                      kind =
-                        InvalidRule
-                          ( InvalidOther
-                              ("Expected a valid rule ID. Instead got " ^ value),
-                            env.id,
-                            (* TODO: this isn't the best key, but we don't have
-                               access to a better one. Seems like the helpers
-                               could be refactored to compose much better. *)
-                            snd key );
-                    }))
+                  R.Error.(
+                    mk_error ~rule_id:(Some env.id)
+                      (InvalidRule
+                         ( InvalidOther
+                             ("Expected a valid rule ID. Instead got " ^ value),
+                           env.id,
+                           (* TODO: this isn't the best key, but we don't have
+                              access to a better one. Seems like the helpers
+                              could be refactored to compose much better. *)
+                           snd key )))))
       key
   in
   let/ inc_opt = parse_rule_ids ruleids_dict env "include" in
@@ -650,7 +632,7 @@ let parse_taint_fields env rule_dict =
 (* Parsers for step mode *)
 (*****************************************************************************)
 
-let parse_step_fields env key (value : G.expr) : (R.step, R.error) Result.t =
+let parse_step_fields env key (value : G.expr) : (R.step, R.Error.t) Result.t =
   let/ rd = yaml_to_dict env key value in
   let/ languages = take_no_env rd parse_string_wrap_list_no_env "languages" in
   (* No id, so error at the steps key
@@ -691,7 +673,7 @@ let parse_step_fields env key (value : G.expr) : (R.step, R.error) Result.t =
   in
   Ok Rule.{ step_selector; step_analyzer; step_paths; step_mode }
 
-let parse_steps env key (value : G.expr) : (R.step list, R.error) Result.t =
+let parse_steps env key (value : G.expr) : (R.step list, R.Error.t) Result.t =
   let parse_step step = parse_step_fields env key step in
   match value.G.e with
   | G.Container (Array, (_, xs, _)) ->
@@ -702,13 +684,13 @@ let parse_steps env key (value : G.expr) : (R.step list, R.error) Result.t =
 (* Parsers for secrets mode *)
 (*****************************************************************************)
 
-let parse_validity env key x : (Rule.validation_state, R.error) Result.t =
+let parse_validity env key x : (Rule.validation_state, R.Error.t) Result.t =
   match x.G.e with
   | G.L (String (_, ("valid", _), _)) -> Ok `Confirmed_valid
   | G.L (String (_, ("invalid", _), _)) -> Ok `Confirmed_invalid
   | _x -> error_at_key env.id key (spf "parse_validity for %s" (fst key))
 
-let parse_http_request env key value : (Rule.request, R.error) Result.t =
+let parse_http_request env key value : (Rule.request, R.Error.t) Result.t =
   let/ req = yaml_to_dict env key value in
   let/ url = take_key req env parse_string "url" in
   let/ meth = take_key req env method_ "method" in
@@ -727,7 +709,7 @@ let parse_http_request env key value : (Rule.request, R.error) Result.t =
   Ok Rule.{ url; meth; headers; body; auth }
 
 let parse_http_matcher_clause key env value :
-    (Rule.http_match_clause, R.error) Result.t =
+    (Rule.http_match_clause, R.Error.t) Result.t =
   let/ clause = yaml_to_dict env key value in
   let/ status_code = take_opt clause env parse_int "status-code" in
   let/ headers =
@@ -766,8 +748,8 @@ let parse_http_matcher_clause key env value :
         Rule.
           { status_code; headers = Option.value ~default:[] headers; content }
 
-let parse_http_matcher key env value : (Rule.http_matcher, Rule.error) Result.t
-    =
+let parse_http_matcher key env value :
+    (Rule.http_matcher, Rule.Error.t) Result.t =
   let/ matcher = yaml_to_dict env key value in
   let/ match_conditions =
     take_key matcher env
@@ -789,16 +771,16 @@ let parse_http_matcher key env value : (Rule.http_matcher, Rule.error) Result.t
   Ok Rule.{ match_conditions; validity; message; severity; metadata }
 
 let parse_http_response env key value :
-    (Rule.http_matcher list, R.error) Result.t =
+    (Rule.http_matcher list, R.Error.t) Result.t =
   parse_list env key (parse_http_matcher key) value
 
-let parse_http_validator env key value : (Rule.validator, R.error) Result.t =
+let parse_http_validator env key value : (Rule.validator, R.Error.t) Result.t =
   let/ validator_dict = yaml_to_dict env key value in
   let/ request = take_key validator_dict env parse_http_request "request" in
   let/ response = take_key validator_dict env parse_http_response "response" in
   Ok (Rule.HTTP { request; response })
 
-let parse_aws_request env key value : (Rule.aws_request, R.error) Result.t =
+let parse_aws_request env key value : (Rule.aws_request, R.Error.t) Result.t =
   let/ request_dict = yaml_to_dict env key value in
   let/ secret_access_key =
     take_key request_dict env parse_string "secret_access_key"
@@ -807,7 +789,7 @@ let parse_aws_request env key value : (Rule.aws_request, R.error) Result.t =
   let/ region = take_key request_dict env parse_string "region" in
   Ok Rule.{ secret_access_key; access_key_id; region }
 
-let parse_aws_validator env key value : (Rule.validator, R.error) Result.t =
+let parse_aws_validator env key value : (Rule.validator, R.Error.t) Result.t =
   let/ validator_dict = yaml_to_dict env key value in
   let/ request = take_key validator_dict env parse_aws_request "request" in
   let/ response = take_key validator_dict env parse_http_response "response" in
@@ -839,7 +821,7 @@ let parse_ecosystem env key value =
   | _ -> error_at_key env.id key "Non-string data for ecosystem?"
 
 let parse_dependency_pattern key env value :
-    (R.dependency_pattern, R.error) Result.t =
+    (R.dependency_pattern, R.Error.t) Result.t =
   let/ rd = yaml_to_dict env key value in
   let/ ecosystem = take_key rd env parse_ecosystem "namespace" in
   let/ package_name = take_key rd env parse_string "package" in
@@ -853,7 +835,7 @@ let parse_dependency_pattern key env value :
   Ok R.{ ecosystem; package_name; version_constraints }
 
 let parse_dependency_formula env key value :
-    (R.dependency_formula, R.error) Result.t =
+    (R.dependency_formula, R.Error.t) Result.t =
   let/ rd = yaml_to_dict env key value in
   if Hashtbl.mem rd.h "depends-on-either" then
     take_key rd env
@@ -869,7 +851,7 @@ let parse_dependency_formula env key value :
 
 (* dispatch depending on the "mode" of the rule *)
 let parse_mode env mode_opt dep_fml_opt (rule_dict : dict) :
-    (R.mode, R.error) Result.t =
+    (R.mode, R.Error.t) Result.t =
   (* We do this because we should only assume that we have a search mode rule
      if there is not a `taint` key present in the rule dict.
   *)
@@ -943,11 +925,12 @@ let parse_version key value =
         ("Expected a version of the form X.Y.Z for " ^ fst key)
 
 let incompatible_version ?min_version ?max_version rule_id tok =
-  Rule.raise_error (Some rule_id)
-    (InvalidRule
-       ( IncompatibleRule (Version_info.version, (min_version, max_version)),
-         rule_id,
-         tok ))
+  Error
+    (Rule.Error.mk_error ~rule_id:(Some rule_id)
+       (InvalidRule
+          ( IncompatibleRule (Version_info.version, (min_version, max_version)),
+            rule_id,
+            tok )))
 
 let check_version_compatibility rule_id ~min_version ~max_version =
   let/ () =
@@ -988,7 +971,7 @@ let parse_product (metadata : J.t option)
       | _ -> `SAST)
 
 let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) :
-    (Rule.t, Rule.error) Result.t =
+    (Rule.t, Rule.Error.t) Result.t =
   (* TODO: explain the function arguments of yaml_to_dict_no_env *)
   let/ rd = yaml_to_dict_no_env "rules" rule in
   (* We need a rule ID early to produce useful error messages. *)
@@ -1073,55 +1056,62 @@ let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) :
 
 let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
     (file : Fpath.t) (ast : AST_generic.program) :
-    (Rule.rules_and_errors, Rule.error) Result.t =
-  let/ rules =
-    match ast with
-    | [ { G.s = G.ExprStmt (e, _); _ } ] -> (
-        let missing_rules_field () =
-          let loc = Tok.first_loc_of_file !!file in
-          yaml_error (Tok.tok_of_loc loc) "missing rules entry as top-level key"
-        in
-        match e.e with
-        | Container (Dict, _) ->
-            let/ root_dict = yaml_to_dict_no_env "rule file" e in
-            let/ rules =
-              match dict_take_opt root_dict "rules" with
-              | None -> missing_rules_field ()
-              | Some (_key, rules) -> (
-                  match rules.G.e with
-                  | G.Container (G.Array, (_tok, rules, _r)) -> Ok rules
-                  | _ ->
-                      yaml_error_at_expr rules
-                        "expected a list of rules following `rules:`")
-            in
-            let/ () = check_that_dict_is_empty root_dict in
-            Ok rules
-        (* it's also ok to not have the toplevel rules:, anyway we never
-         * used another toplevel key
-         *)
-        | G.Container (G.Array, (_tok, rules, _r)) -> Ok rules
-        | _ -> missing_rules_field ())
-    | [] ->
-        (* an empty rules file returns an empty list of rules *)
-        Ok []
-    | _ -> assert false
-    (* yaml_to_generic should always return a ExprStmt *)
+    (Rule.rules_and_errors, Rule.Error.t) Result.t =
+  let res =
+    let/ rules =
+      match ast with
+      | [ { G.s = G.ExprStmt (e, _); _ } ] -> (
+          let missing_rules_field () =
+            let loc = Tok.first_loc_of_file !!file in
+            yaml_error (Tok.tok_of_loc loc)
+              "missing rules entry as top-level key"
+          in
+          match e.e with
+          | Container (Dict, _) ->
+              let/ root_dict = yaml_to_dict_no_env "rule file" e in
+              let/ rules =
+                match dict_take_opt root_dict "rules" with
+                | None -> missing_rules_field ()
+                | Some (_key, rules) -> (
+                    match rules.G.e with
+                    | G.Container (G.Array, (_tok, rules, _r)) -> Ok rules
+                    | _ ->
+                        yaml_error_at_expr rules
+                          "expected a list of rules following `rules:`")
+              in
+              let/ () = check_that_dict_is_empty root_dict in
+              Ok rules
+          (* it's also ok to not have the toplevel rules:, anyway we never
+             * used another toplevel key
+          *)
+          | G.Container (G.Array, (_tok, rules, _r)) -> Ok rules
+          | _ -> missing_rules_field ())
+      | [] ->
+          (* an empty rules file returns an empty list of rules *)
+          Ok []
+      | _ -> assert false
+      (* yaml_to_generic should always return a ExprStmt *)
+    in
+    let/ xs =
+      rules
+      |> List_.mapi (fun i rule ->
+             match parse_one_rule ~rewrite_rule_ids i rule with
+             | Ok rule -> Ok (Either.Left rule)
+             | Error { kind = InvalidRule ((kind, ruleid, _) as err); _ }
+               when error_recovery || R.is_skippable_error kind ->
+                 let s = Rule.string_of_invalid_rule_error_kind kind in
+                 Log.warn (fun m ->
+                     m "skipping rule %s, error = %s" (Rule_ID.to_string ruleid)
+                       s);
+                 Ok (Either.Right err)
+             | Error err -> Error err)
+      |> Base.Result.all
+    in
+    Ok (Either_.partition (fun x -> x) xs)
   in
-  let/ xs =
-    rules
-    |> List_.mapi (fun i rule ->
-           match parse_one_rule ~rewrite_rule_ids i rule with
-           | Ok rule -> Ok (Either.Left rule)
-           | Error { kind = InvalidRule ((kind, ruleid, _) as err); _ }
-             when error_recovery || R.is_skippable_error kind ->
-               let s = Rule.string_of_invalid_rule_error_kind kind in
-               Log.warn (fun m ->
-                   m "skipping rule %s, error = %s" (Rule_ID.to_string ruleid) s);
-               Ok (Either.Right err)
-           | Error err -> Error err)
-    |> Base.Result.all
-  in
-  Ok (Either_.partition (fun x -> x) xs)
+  match res with
+  | Error (err : Rule.Error.t) -> Error (Rule.Error.augment_with_file file err)
+  | other -> other
 
 (* We can't call just Yaml_to_generic.program below because when we parse
  * YAML Semgrep rules, we preprocess unicode characters differently.
@@ -1134,10 +1124,10 @@ let parse_yaml_rule_file ~is_target (file : Fpath.t) =
   let str = UFile.read_file file in
   try Ok (Yaml_to_generic.parse_yaml_file ~is_target file str) with
   | Parsing_error.Other_error (s, t) ->
-      Rule.raise_error None (InvalidYaml (s, t))
+      Error (Rule.Error.mk_error (InvalidYaml (s, t)))
 
 let parse_file ?error_recovery ?(rewrite_rule_ids = None) file :
-    (Rule.rules * Rule.invalid_rule_error list, Rule.error) Result.t =
+    (Rule.rules * Rule.invalid_rule_error list, Rule.Error.t) Result.t =
   let/ ast =
     (* coupling: Rule_file.is_valid_rule_filename *)
     match FT.file_type_of_file file with
@@ -1205,7 +1195,7 @@ let parse_file ?error_recovery ?(rewrite_rule_ids = None) file :
 (*****************************************************************************)
 
 let parse_and_filter_invalid_rules ?rewrite_rule_ids (file : Fpath.t) :
-    (Rule.rules * Rule.invalid_rule_error list, Rule.error) Result.t =
+    (Rule.rules * Rule.invalid_rule_error list, Rule.Error.t) Result.t =
   let/ rules, errors = parse_file ~error_recovery:true ?rewrite_rule_ids file in
   Log.debug (fun m ->
       m "Parse_rule.parse_and_filter_invalid_rules(%s) = " !!file);

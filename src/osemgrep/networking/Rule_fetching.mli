@@ -72,7 +72,7 @@ val rules_from_dashdash_config_async :
   token_opt:Auth.token option ->
   < Cap.network ; Cap.tmp ; .. > ->
   Rules_config.t ->
-  (rules_and_origin list * Rule.error list) Lwt.t
+  (rules_and_origin list * Rule.Error.t list) Lwt.t
 
 (* [rules_from_dashdash_config] returns a list of rules_and_origin
  * because the [Rules_config.t] can be a [Dir], in which case we return one
@@ -83,7 +83,7 @@ val rules_from_dashdash_config :
   token_opt:Auth.token option ->
   < Cap.network ; Cap.tmp ; .. > ->
   Rules_config.t ->
-  rules_and_origin list * Rule.error list
+  rules_and_origin list * Rule.Error.t list
 
 (* low-level API *)
 val load_rules_from_file :
@@ -91,7 +91,7 @@ val load_rules_from_file :
   origin:origin ->
   < Cap.network ; Cap.tmp ; .. > ->
   Fpath.t ->
-  (rules_and_origin, Rule.error) Result.t
+  (rules_and_origin, Rule.Error.t) Result.t
 
 val load_rules_from_url :
   origin:origin ->
@@ -99,4 +99,4 @@ val load_rules_from_url :
   ?ext:string ->
   < Cap.network ; Cap.tmp ; .. > ->
   Uri.t ->
-  (rules_and_origin, Rule.error) Result.t
+  (rules_and_origin, Rule.Error.t) Result.t

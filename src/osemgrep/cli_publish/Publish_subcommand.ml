@@ -50,7 +50,7 @@ let upload_rule caps rule_file (conf : Publish_CLI.conf) test_code_file =
     ( rules,
       List_.map
         (fun ((_, rule_id, _) as err) ->
-          Rule.{ rule_id = Some rule_id; kind = InvalidRule err })
+          Rule.Error.mk_error ~rule_id:(Some rule_id) (InvalidRule err))
         invalid_rule_errors
       @ errors )
   in

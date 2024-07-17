@@ -62,7 +62,7 @@ type dict = {
 (* Error Management *)
 (*****************************************************************************)
 
-let yaml_error t s = Error { R.rule_id = None; kind = InvalidYaml (s, t) }
+let yaml_error t s = Error (Rule.Error.mk_error (InvalidYaml (s, t)))
 
 let yaml_error_at_expr (e : G.expr) s =
   yaml_error (AST_generic_helpers.first_info_of_any (G.E e)) s
@@ -71,10 +71,8 @@ let yaml_error_at_key (key : key) s = yaml_error (snd key) s
 
 let error rule_id t s =
   Error
-    {
-      R.rule_id = Some rule_id;
-      kind = InvalidRule (InvalidOther s, rule_id, t);
-    }
+    (Rule.Error.mk_error ~rule_id:(Some rule_id)
+       (InvalidRule (InvalidOther s, rule_id, t)))
 
 let error_at_key rule_id (key : key) s = error rule_id (snd key) s
 
@@ -105,7 +103,7 @@ let pcre_error_to_string s exn =
   spf "'%s': %s" s message
 
 let try_and_raise_invalid_pattern_if_error (env : env) (s, t)
-    (f : unit -> ('a, R.error) Result.t) : ('a, R.error) Result.t =
+    (f : unit -> ('a, R.Error.t) Result.t) : ('a, R.Error.t) Result.t =
   try f () with
   | (Time_limit.Timeout _ | UnixExit _) as e -> Exception.catch_and_reraise e
   (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
@@ -113,7 +111,9 @@ let try_and_raise_invalid_pattern_if_error (env : env) (s, t)
       let error_kind : R.invalid_rule_error_kind =
         InvalidPattern (s, env.target_analyzer, Common.exn_to_s exn, env.path)
       in
-      Rule.raise_error (Some env.id) (InvalidRule (error_kind, env.id, t))
+      Error
+        (Rule.Error.mk_error ~rule_id:(Some env.id)
+           (InvalidRule (error_kind, env.id, t)))
 
 let parse_pattern_with_rule_error env (str, t) ?rule_options lang s =
   Parse_pattern.parse_pattern ?rule_options lang s
@@ -123,24 +123,17 @@ let parse_pattern_with_rule_error env (str, t) ?rule_options lang s =
          let error_kind : R.invalid_rule_error_kind =
            InvalidPattern (str, env.target_analyzer, s, env.path)
          in
-         Rule.
-           { rule_id = Some env.id; kind = InvalidRule (error_kind, env.id, t) })
+         Rule.Error.mk_error ~rule_id:(Some env.id)
+           (InvalidRule (error_kind, env.id, t)))
 
-let check_that_dict_is_empty (dict : dict) : (unit, Rule.error) Result.t =
+let check_that_dict_is_empty (dict : dict) : (unit, Rule.Error.t) Result.t =
   if Hashtbl.length dict.h > 0 then
     let remaining_keys =
       dict.h |> Hashtbl.to_seq_keys |> List.of_seq |> List.sort String.compare
       |> String.concat ", "
     in
-    Error
-      {
-        rule_id = None;
-        kind =
-          InvalidYaml
-            ( "Unknown or duplicate properties found in YAML object: "
-              ^ remaining_keys,
-              dict.first_tok );
-      }
+    yaml_error dict.first_tok
+      ("Unknown or duplicate properties found in YAML object: " ^ remaining_keys)
   else Ok ()
 
 (* sanity check there are no remaining fields in rd (rule dictionnary) *)
@@ -163,7 +156,7 @@ let warn_if_remaining_unparsed_fields (rule_id : Rule_ID.t) (rd : dict) : unit =
  * in the generic AST to get proper error location. This is because
  * the 'metadata' field in Rule.ml is JSON.
  *)
-let generic_to_json rule_id (key : key) ast : (J.t, Rule.error) Result.t =
+let generic_to_json rule_id (key : key) ast : (J.t, Rule.Error.t) Result.t =
   let rec aux x =
     match x.G.e with
     | G.L (Null _) -> Ok J.Null
@@ -174,15 +167,8 @@ let generic_to_json rule_id (key : key) ast : (J.t, Rule.error) Result.t =
         | None ->
             Log.err (fun m ->
                 m "no value for integer %s" (G.show_expr_kind x.G.e));
-            Error
-              {
-                R.rule_id = Some rule_id;
-                kind =
-                  InvalidRule
-                    ( InvalidOther "no value for generic integer",
-                      rule_id,
-                      AST_generic_helpers.first_info_of_any (G.E x) );
-              }
+            let t = AST_generic_helpers.first_info_of_any (G.E x) in
+            error rule_id t "no value for generic integer"
         | Some i -> Ok (J.Int i))
     | G.L (String (_, (s, _), _)) ->
         (* should use the unescaped string *)
@@ -203,32 +189,17 @@ let generic_to_json rule_id (key : key) ast : (J.t, Rule.error) Result.t =
                      let/ v = aux v in
                      Ok (k, v)
                  | _ ->
-                     Error
-                       {
-                         rule_id = Some rule_id;
-                         kind =
-                           InvalidRule
-                             ( InvalidOther
-                                 ("Expected key/value pair in " ^ fst key
-                                ^ " dictionary"),
-                               rule_id,
-                               AST_generic_helpers.first_info_of_any (G.E x) );
-                       })
+                     let t = AST_generic_helpers.first_info_of_any (G.E x) in
+                     error rule_id t
+                       ("Expected key/value pair in " ^ fst key ^ " dictionary"))
                xs)
         in
         Ok (J.Object xs)
     | G.Alias (_alias, e) -> aux e
     | _ ->
         Log.err (fun m -> m "Unexpected yaml: %s" (G.show_expr_kind x.G.e));
-        Error
-          {
-            rule_id = Some rule_id;
-            kind =
-              InvalidRule
-                ( InvalidOther "Unexpected generic representation of yaml",
-                  rule_id,
-                  AST_generic_helpers.first_info_of_any (G.E x) );
-          }
+        let t = AST_generic_helpers.first_info_of_any (G.E x) in
+        error rule_id t "Unexpected generic representation of yaml"
   in
   let/ result = aux ast in
   Ok result
@@ -246,8 +217,8 @@ let read_string_wrap e =
 (*****************************************************************************)
 
 let yaml_to_dict_helper opt_rule_id error_fun_f error_fun_d
-    (enclosing_obj_name : string) (rule : G.expr) : (dict, Rule.error) Result.t
-    =
+    (enclosing_obj_name : string) (rule : G.expr) :
+    (dict, Rule.Error.t) Result.t =
   match rule.G.e with
   | G.Container (Dict, (l, fields, _r)) ->
       let dict = Hashtbl.create 10 in
@@ -264,12 +235,9 @@ let yaml_to_dict_helper opt_rule_id error_fun_f error_fun_d
                        _ ) ) ->
                    if Hashtbl.mem dict key_str then
                      Error
-                       {
-                         R.rule_id = opt_rule_id;
-                         kind =
-                           DuplicateYamlKey
-                             (spf "duplicate key '%s' in dictionary" key_str, t);
-                       }
+                       (Rule.Error.mk_error ~rule_id:opt_rule_id
+                          (DuplicateYamlKey
+                             (spf "duplicate key '%s' in dictionary" key_str, t)))
                    else (
                      Hashtbl.add dict key_str ((key_str, t), value);
                      Ok ())
@@ -290,16 +258,16 @@ let dict_take_opt (dict : dict) (key_str : string) : (key * G.expr) option =
 
 (* Mutates the Hashtbl! *)
 let take_opt (dict : dict) (env : env)
-    (f : env -> key -> G.expr -> ('a, Rule.error) Result.t) (key_str : string) :
-    ('a option, Rule.error) Result.t =
+    (f : env -> key -> G.expr -> ('a, Rule.Error.t) Result.t) (key_str : string)
+    : ('a option, Rule.Error.t) Result.t =
   match dict_take_opt dict key_str with
   | Some (k, v) -> f env k v |> Result.map (fun x -> Some x)
   | None -> Ok None
 
 (* Mutates the Hashtbl! *)
 let take_key (dict : dict) (env : env)
-    (f : env -> key -> G.expr -> ('a, Rule.error) Result.t) (key_str : string) :
-    ('a, Rule.error) Result.t =
+    (f : env -> key -> G.expr -> ('a, Rule.Error.t) Result.t) (key_str : string)
+    : ('a, Rule.Error.t) Result.t =
   let/ res = take_opt dict env f key_str in
   match res with
   | Some res -> Ok res
@@ -317,8 +285,8 @@ let yaml_to_dict (env : env) (enclosing_obj_name : string G.wrap) =
 
 (* Mutates the Hashtbl! *)
 let take_opt_no_env (dict : dict)
-    (f : key -> G.expr -> ('a, Rule.error) Result.t) (key_str : string) :
-    ('a option, Rule.error) Result.t =
+    (f : key -> G.expr -> ('a, Rule.Error.t) Result.t) (key_str : string) :
+    ('a option, Rule.Error.t) Result.t =
   match Hashtbl.find_opt dict.h key_str with
   | Some (key, value) ->
       let result = f key value in
@@ -327,31 +295,26 @@ let take_opt_no_env (dict : dict)
   | None -> Ok None
 
 (* Mutates the Hashtbl! *)
-let take_no_env (dict : dict) (f : key -> G.expr -> ('a, Rule.error) Result.t)
-    (key_str : string) : ('a, Rule.error) Result.t =
+let take_no_env (dict : dict) (f : key -> G.expr -> ('a, Rule.Error.t) Result.t)
+    (key_str : string) : ('a, Rule.Error.t) Result.t =
   let/ res = take_opt_no_env dict f key_str in
   match res with
   | Some res -> Ok res
-  | None ->
-      Error
-        {
-          rule_id = None;
-          kind =
-            InvalidYaml ("Missing required field " ^ key_str, dict.first_tok);
-        }
+  | None -> yaml_error dict.first_tok ("Missing required field " ^ key_str)
 
-let yaml_to_dict_no_env enclosing_obj_name expr : (dict, Rule.error) Result.t =
+let yaml_to_dict_no_env enclosing_obj_name expr : (dict, Rule.Error.t) Result.t
+    =
   yaml_to_dict_helper None yaml_error_at_expr yaml_error_at_expr
     enclosing_obj_name expr
 
 let parse_string_wrap_no_env (key : key) x :
-    (string * Tok.t, Rule.error) Result.t =
+    (string * Tok.t, Rule.Error.t) Result.t =
   match read_string_wrap x.G.e with
   | Some x -> Ok x
   | None -> yaml_error_at_key key ("Expected a string value for " ^ fst key)
 
 let parse_rule_id_no_env (key : key) x :
-    (Rule_ID.t * Tok.t, Rule.error) Result.t =
+    (Rule_ID.t * Tok.t, Rule.Error.t) Result.t =
   let/ str, tok = parse_string_wrap_no_env key x in
   match Rule_ID.of_string_opt str with
   | Some x -> Ok (x, tok)
@@ -359,7 +322,7 @@ let parse_rule_id_no_env (key : key) x :
       yaml_error_at_key key
         ("Expected a valid rule ID at " ^ fst key ^ ". Got " ^ str)
 
-let parse_list_no_env (key : key) f x : ('a list, Rule.error) Result.t =
+let parse_list_no_env (key : key) f x : ('a list, Rule.Error.t) Result.t =
   match x.G.e with
   | G.Container (Array, (_, xs, _)) ->
       let rec aux acc = function
@@ -372,7 +335,7 @@ let parse_list_no_env (key : key) f x : ('a list, Rule.error) Result.t =
   | _ -> yaml_error_at_key key ("Expected a list for " ^ fst key)
 
 let parse_string_wrap_list_no_env (key : key) e :
-    ((string * Tok.t) list, Rule.error) Result.t =
+    ((string * Tok.t) list, Rule.Error.t) Result.t =
   let extract_string = function
     | { G.e = G.L (String (_, (value, t), _)); _ } -> Ok (value, t)
     | _ ->
@@ -390,7 +353,8 @@ let parse_string_wrap env (key : key) x =
   | Some (value, t) -> Ok (value, t)
   | None -> error_at_key env.id key ("Expected a string value for " ^ fst key)
 
-let parse_rule_id env (key : key) x : (Rule_ID.t * Tok.t, Rule.error) Result.t =
+let parse_rule_id env (key : key) x : (Rule_ID.t * Tok.t, Rule.Error.t) Result.t
+    =
   let/ str, tok = parse_string_wrap_no_env key x in
   match Rule_ID.of_string_opt str with
   | Some x -> Ok (x, tok)
@@ -411,7 +375,7 @@ let method_ env (key : key) x =
   | "PUT" -> Ok `PUT
   | _ -> error_at_key env.id key ("non-supported HTTP method: " ^ meth)
 
-let parse_auth env (key : key) x : (Rule.auth, Rule.error) Result.t =
+let parse_auth env (key : key) x : (Rule.auth, Rule.Error.t) Result.t =
   let/ auth = yaml_to_dict env key x in
   let/ type_ = take_key auth env parse_string "type" in
   match type_ with
@@ -490,7 +454,7 @@ let parse_int_strict env (key : key) x =
   | _x -> error_at_key env.id key (spf "parse_int for %s" (fst key))
 
 let parse_str_or_dict env (value : G.expr) :
-    ((G.ident, dict) Either.t, R.error) Result.t =
+    ((G.ident, dict) Either.t, R.Error.t) Result.t =
   match value.G.e with
   | G.L (String (_, (value, t), _)) ->
       (* should use the unescaped string *)
@@ -529,8 +493,9 @@ let parse_regexp env (s, t) =
     Ok s
   with
   | Pcre2.Error exn ->
-      Rule.raise_error (Some env.id)
-        (InvalidRule (InvalidRegexp (pcre_error_to_string s exn), env.id, t))
+      Error
+        (Rule.Error.mk_error ~rule_id:(Some env.id)
+           (InvalidRule (InvalidRegexp (pcre_error_to_string s exn), env.id, t)))
 
 let parse_python_expression env key s =
   try
