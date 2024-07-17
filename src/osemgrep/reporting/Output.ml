@@ -141,8 +141,13 @@ let dispatch_output_format (caps : < Cap.stdout >) (conf : conf)
                  in
                  print (String.concat ":" parts))
   | Text ->
+      (* TODO: we should switch to Fmt_.with_buffer_to_string +
+       * some CapConsole.print_no_nl, but then is_atty fail on
+       * a string buffer and we lose the colors
+       *)
       Matches_report.pp_cli_output ~max_chars_per_line:conf.max_chars_per_line
         ~max_lines_per_finding:conf.max_lines_per_finding
+          (* nosemgrep: forbid-console *)
         ~color_output:conf.force_color Format.std_formatter cli_output
   (* matches have already been displayed in a file_match_results_hook *)
   | Incremental -> ()

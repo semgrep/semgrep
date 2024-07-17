@@ -194,30 +194,39 @@ let mk_file_match_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
            Option.value ~default:false m.extra.is_ignored)
   in
   if cli_matches <> [] then (
+    (* nosemgrep: forbid-console *)
     Unix.lockf Unix.stdout Unix.F_LOCK 0;
     Common.protect
       (fun () ->
         (* coupling: similar to Output.dispatch_output_format for Text *)
         printer conf cli_matches)
-      ~finally:(fun () -> Unix.lockf Unix.stdout Unix.F_ULOCK 0))
+      ~finally:(fun () ->
+        (* nosemgrep: forbid-console *)
+        Unix.lockf Unix.stdout Unix.F_ULOCK 0))
 
-let incremental_text_printer (conf : Scan_CLI.conf)
+let incremental_text_printer (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
     (cli_matches : Out.cli_match list) : unit =
+  (* TODO: we should switch to Fmt_.with_buffer_to_string +
+   * some CapConsole.print_no_nl, but then is_atty fail on
+   * a string buffer and we lose the colors
+   *)
   Matches_report.pp_text_outputs
     ~max_chars_per_line:conf.output_conf.max_chars_per_line
     ~max_lines_per_finding:conf.output_conf.max_lines_per_finding
+      (* nosemgrep: forbid-console *)
     ~color_output:conf.output_conf.force_color Format.std_formatter cli_matches
 
-let incremental_json_printer (conf : Scan_CLI.conf)
+let incremental_json_printer (caps : < Cap.stdout >) (conf : Scan_CLI.conf)
     (cli_matches : Out.cli_match list) : unit =
   ignore conf;
   List.iter
     (fun cli_match ->
-      Fmt.pr "%s@." (Semgrep_output_v1_j.string_of_cli_match cli_match))
+      CapConsole.print caps#stdout
+        (Semgrep_output_v1_j.string_of_cli_match cli_match))
     cli_matches
 
-let choose_output_format_and_match_hook (conf : Scan_CLI.conf)
-    (rules : Rule.rules) =
+let choose_output_format_and_match_hook (caps : < Cap.stdout >)
+    (conf : Scan_CLI.conf) (rules : Rule.rules) =
   match conf with
   | {
       output_conf = { output_format = Output_format.Text; _ };
@@ -230,14 +239,14 @@ let choose_output_format_and_match_hook (conf : Scan_CLI.conf)
       _;
     } ->
       ( Output_format.Incremental,
-        Some (mk_file_match_hook conf rules incremental_text_printer) )
+        Some (mk_file_match_hook conf rules (incremental_text_printer caps)) )
   | {
    output_conf = { output_format = Output_format.Json; _ };
    incremental_output = true;
    _;
   } ->
       ( Output_format.Incremental,
-        Some (mk_file_match_hook conf rules incremental_json_printer) )
+        Some (mk_file_match_hook conf rules (incremental_json_printer caps)) )
   | { output_conf; _ } -> (output_conf.output_format, None)
 
 (*****************************************************************************)
@@ -505,7 +514,7 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
 
   (* step 3: choose the right engine and right hooks *)
   let output_format, file_match_hook =
-    choose_output_format_and_match_hook conf rules
+    choose_output_format_and_match_hook (caps :> < Cap.stdout >) conf rules
   in
   (* step 3': call the engine! *)
   Logs.info (fun m -> m "running the semgrep engine");
