@@ -19,4 +19,5 @@ let with_highlight temp func =
   Common.finalize func (fun () -> setup ~highlight_setting:orig ())
 
 let print str = UPrintf.printf "%s\n%!" str
+let print_no_nl str = UPrintf.printf "%s%!" str
 let eprint str = UPrintf.eprintf "%s\n%!" str
