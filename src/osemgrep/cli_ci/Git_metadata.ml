@@ -119,18 +119,18 @@ class meta (caps : < Cap.exec >) ~scan_environment
   object (self)
     method project_metadata : Project_metadata.t =
       let commit_title : string =
-        Git_wrapper.git_check_output caps [ "show"; "-s"; "--format=%B" ]
+        Git_wrapper.command caps [ "show"; "-s"; "--format=%B" ]
       in
       let commit_author_email : Emile.mailbox =
-        Git_wrapper.git_check_output caps [ "show"; "-s"; "--format=%ae" ]
+        Git_wrapper.command caps [ "show"; "-s"; "--format=%ae" ]
         |> Emile.of_string |> Result.get_ok
       in
       let commit_author_name : string =
-        Git_wrapper.git_check_output caps [ "show"; "-s"; "--format=%an" ]
+        Git_wrapper.command caps [ "show"; "-s"; "--format=%an" ]
       in
       (* Returns strict ISO 8601 time as str of head commit *)
       let commit_timestamp : Timedesc.Timestamp.t =
-        Git_wrapper.git_check_output caps [ "show"; "-s"; "--format=%cI" ]
+        Git_wrapper.command caps [ "show"; "-s"; "--format=%cI" ]
         |> Timedesc.Timestamp.of_iso8601 |> Result.get_ok
       in
       {
@@ -174,7 +174,7 @@ class meta (caps : < Cap.exec >) ~scan_environment
       | Some repo_name -> repo_name
       | None ->
           let str =
-            Git_wrapper.git_check_output caps [ "rev-parse"; "--show-toplevel" ]
+            Git_wrapper.command caps [ "rev-parse"; "--show-toplevel" ]
           in
           Printf.sprintf "local_scan/%s" (Fpath.basename (Fpath.v str))
 

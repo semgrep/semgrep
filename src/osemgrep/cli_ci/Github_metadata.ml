@@ -149,7 +149,7 @@ let env : env Term.t =
 (* Split out shallow fetch so we can mock it away in tests. *)
 let shallow_fetch_branch (caps : < Cap.exec >) branch_name =
   let _ =
-    Git_wrapper.git_check_output caps
+    Git_wrapper.command caps
       [
         "fetch";
         "origin";
@@ -167,7 +167,7 @@ let shallow_fetch_branch (caps : < Cap.exec >) branch_name =
    name to the commit. It just does the fetch. *)
 let _shallow_fetch_commit (caps : < Cap.exec >) commit_hash =
   let _ =
-    Git_wrapper.git_check_output caps
+    Git_wrapper.command caps
       [
         "fetch";
         "origin";
@@ -184,7 +184,7 @@ let _shallow_fetch_commit (caps : < Cap.exec >) commit_hash =
    Does a git fetch of given branch with depth = 1. *)
 let get_latest_commit_hash_in_branch (caps : < Cap.exec >) branch_name =
   shallow_fetch_branch caps branch_name;
-  Git_wrapper.git_check_output caps [ "rev-parse"; branch_name ]
+  Git_wrapper.command caps [ "rev-parse"; branch_name ]
   |> Digestif.SHA1.of_hex_opt |> Option.get
 
 (* Ref name of the branch pull request if from. *)
@@ -211,7 +211,7 @@ let get_head_branch_hash (caps : < Cap.exec >) (env : env) :
           m "head branch %s has latest commit %a, fetching that commit now."
             head_branch_name Digestif.SHA1.pp commit);
       let _ =
-        Git_wrapper.git_check_output caps
+        Git_wrapper.command caps
           [
             "fetch";
             "origin";
@@ -307,7 +307,7 @@ let rec find_branchoff_point (caps : < Cap.exec ; Cap.network >)
     (* XXX(dinosaure): we safely can use [Option.get]. This information is
        required to [get_base_branch_ref]. *)
     let _ =
-      Git_wrapper.git_check_output
+      Git_wrapper.command
         (caps :> < Cap.exec >)
         [
           "fetch";
@@ -320,7 +320,7 @@ let rec find_branchoff_point (caps : < Cap.exec ; Cap.network >)
         ]
     in
     let _ =
-      Git_wrapper.git_check_output
+      Git_wrapper.command
         (caps :> < Cap.exec >)
         [
           "fetch";

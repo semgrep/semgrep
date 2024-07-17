@@ -99,7 +99,7 @@ let create caps capabilities =
   }
 
 let dirty_paths_of_folder folder =
-  let git_repo = Git_wrapper.get_project_root_for_files_in_dir folder in
+  let git_repo = Git_wrapper.project_root_for_files_in_dir folder in
   if Option.is_some git_repo then
     let dirty_paths = Git_wrapper.dirty_paths ~cwd:folder () in
     Some (List_.map (fun x -> folder // x) dirty_paths)
@@ -145,7 +145,7 @@ let send_metrics ?core_time ?profiler ?cli_output session =
     api_token
     |> Option.iter (fun (_token : Auth.token) ->
            Metrics_.g.payload.environment.isAuthenticated <- true);
-    Git_wrapper.get_project_url () |> Option.iter Metrics_.add_project_url_hash;
+    Git_wrapper.project_url () |> Option.iter Metrics_.add_project_url_hash;
     cli_output
     |> Option.iter (fun (o : OutJ.cli_output) -> Metrics_.add_errors o.errors);
     profiler |> Option.iter Metrics_.add_profiling;
