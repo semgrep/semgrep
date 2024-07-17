@@ -1,0 +1,5 @@
+Users are now required to login before using semgrep scan --pro.
+
+Previously, semgrep will tell the users to log in, but the scan will still continue.
+
+With this change, semgrep will tell the users to log in and stop the scan.
