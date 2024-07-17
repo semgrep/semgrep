@@ -71,7 +71,7 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
   let token_opt = settings.api_token in
   (* Checking (1) and (2). Parsing the rules is already a form of validation.
    * Before running metachecks on those rules, we make sure we can parse them.
-   * TODO: report not only Rule.invalid_rule_errors but all Rule.error for (1)
+   * TODO: report not only Rule.invalid_rule_errors but all Rule.Error.t for (1)
    * in Config_resolver.errors.
    *)
   let rules_and_origin =

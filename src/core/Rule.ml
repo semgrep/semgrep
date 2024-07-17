@@ -804,14 +804,67 @@ type error_kind =
 
 type rules_and_errors = rules * invalid_rule_error list
 
-type error = {
-  (* Some errors are in the YAML file before we can enter a specific rule
-     or it could be a rule without an ID. This is why the rule ID is
-     optional. *)
-  rule_id : Rule_ID.t option;
-  kind : error_kind;
-}
-[@@deriving show]
+(* A small module for the type of rule errors.
+   Depending on the variant, these may or may not be "recoverable" or "unrecoverable",
+   where "recoverable" errors in rule parsing can simply skip the rule, whereas
+   "unrecoverable" rule errors will stop engine execution.
+
+   We make this private, because we have since decided to include a file path with
+   each rule error, by intercepting the error before it exits rule parsing.
+
+   To clean the code, we establish a singular way to create an error, that being
+   `mk_error`, so that we are not too dependent on the definition of the type.
+   This also lets us instantiate the `file` at a dummy value uniformly.
+*)
+module Error : sig
+  (* same as below *)
+  type error = private {
+    (* Some errors are in the YAML file before we can enter a specific rule
+       or it could be a rule without an ID. This is why the rule ID is
+       optional. *)
+    rule_id : Rule_ID.t option;
+    (* helpful to have this for error message purposes, as well as
+       conversion via functions like `Core_error.error_of_rule_error
+    *)
+    file : Fpath.t;
+    kind : error_kind;
+  }
+
+  and t = error [@@deriving show]
+
+  val mk_error : ?rule_id:Rule_ID.t option -> error_kind -> error
+  val augment_with_file : Fpath.t -> error -> error
+end = struct
+  (* same as above *)
+  type error = { rule_id : Rule_ID.t option; file : Fpath.t; kind : error_kind }
+  and t = error [@@deriving show]
+
+  (*
+      You must provide a rule ID for a rule to be reported properly as an invalid
+      rule. The argument is not optional because it's important to not forget to
+      specify a rule ID whenever possible.
+    *)
+  (* It's not great that we set this temporary file, but because of how we guard
+     `Parse_rule`, this should definitely be populated in any entry point
+     functions other than `parse_xpattern` and `parse_fake_xpattern`.
+
+     Alternatively, we could try to provide the `file` at each call-site of
+     `mk_error` itself, such as in the `Parse_rule_helpers.env`. This is actually
+     a pretty hard refactor, though, as not all of those call-sites have easy access
+     to a file or an env.
+     For instance, yaml_error calls Rule.Error.mk_error, but yaml_error is
+     explicitly called by take_no_env. We can't thread an env through there,
+     the point is that it doesn't take an env, so we would need to do a broader
+     refactor. This will do to start, as I anticipate we probably won't be
+     refactoring this module to add more entry points at any time.
+  *)
+  let mk_error ?(rule_id = None) kind = { rule_id; file = Fpath_.no_file; kind }
+
+  (* for intercepting an error before it leaves `Parse_rule`, by augmenting it with
+     the file path
+  *)
+  let augment_with_file file error = { error with file }
+end
 
 (*
    Determine if an error can be skipped. This is for presumably well-formed
@@ -830,14 +883,6 @@ let is_skippable_error (kind : invalid_rule_error_kind) =
   | IncompatibleRule _
   | MissingPlugin _ ->
       true
-
-(*
-   You must provide a rule ID for a rule to be reported properly as an invalid
-   rule. The argument is not optional because it's important to not forget to
-   specify a rule ID whenever possible.
-*)
-let raise_error optional_rule_id kind =
-  Error { rule_id = optional_rule_id; kind }
 
 (*****************************************************************************)
 (* String-of *)
@@ -886,7 +931,7 @@ let string_of_invalid_rule_error ((kind, rule_id, pos) : invalid_rule_error) =
     (Tok.stringpos_of_tok pos)
     (string_of_invalid_rule_error_kind kind)
 
-let string_of_error (error : error) : string =
+let string_of_error (error : Error.t) : string =
   match error.kind with
   | InvalidRule x -> string_of_invalid_rule_error x
   | InvalidYaml (msg, pos) ->

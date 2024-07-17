@@ -46,8 +46,9 @@ let parse_pattern lang_pattern str =
     let id = Rule_ID.of_string_exn "no-id" in
     let tok = Tok.unsafe_fake_tok "no loc" in
     let xlang = Xlang.of_lang lang_pattern in
-    Rule.raise_error None
-      (InvalidRule (InvalidPattern (str, xlang, s, []), id, tok))
+    Error
+      (Rule.Error.mk_error
+         (InvalidRule (InvalidPattern (str, xlang, s, []), id, tok)))
   in
   match Parse_pattern.parse_pattern lang_pattern str with
   | Ok pat -> Ok pat
@@ -71,7 +72,7 @@ let output_core_results (caps : < Cap.stdout ; Cap.exit >)
         match result_or_exn with
         | Ok r -> r
         | Error exn ->
-            let err = E.exn_to_error None Core_error.no_file exn in
+            let err = E.exn_to_error None Fpath_.no_file exn in
             Core_result.mk_result_with_just_errors [ err ]
       in
       let res = Core_json_output.core_output_of_matches_and_errors res in

@@ -4,7 +4,7 @@ val check : Rule.t -> Core_error.t list
 val run_checks :
   < Cap.tmp > ->
   Core_scan_config.t ->
-  (Fpath.t -> (Rule.t list, Rule.error) Result.t) ->
+  (Fpath.t -> (Rule.t list, Rule.Error.t) Result.t) ->
   Fpath.t (* metachecks *) ->
   Fpath.t list (* rules *) ->
   Core_error.t list
@@ -13,13 +13,13 @@ val run_checks :
 val check_files :
   < Cap.stdout ; Cap.tmp > ->
   (unit -> Core_scan_config.t) ->
-  (Fpath.t -> (Rule.t list, Rule.error) Result.t) ->
+  (Fpath.t -> (Rule.t list, Rule.Error.t) Result.t) ->
   Fpath.t list ->
   unit
 
 (* -stat_rules *)
 val stat_files :
   < Cap.stdout > ->
-  (Fpath.t -> (Rule.t list, Rule.error) Result.t) ->
+  (Fpath.t -> (Rule.t list, Rule.Error.t) Result.t) ->
   Fpath.t list ->
   unit

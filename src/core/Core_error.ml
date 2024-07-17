@@ -58,10 +58,6 @@ module ErrorSet = Set.Make (struct
   let compare = compare
 end)
 
-(* TODO: get rid of! *)
-let no_file : Fpath.t = Fpath.v "_NOT_A_FILE_"
-let is_no_file (f : Fpath.t) : bool = Fpath.equal f no_file
-
 (****************************************************************************)
 (* Convertor functions *)
 (****************************************************************************)
@@ -129,9 +125,9 @@ let error_of_invalid_rule_error ((kind, rule_id, pos) : R.invalid_rule_error) :
     | _ -> Out.RuleParseError
   in
   (* TODO: bad use of no_file, use pos? *)
-  mk_error_tok (Some rule_id) no_file pos msg err
+  mk_error_tok (Some rule_id) Fpath_.no_file pos msg err
 
-let error_of_rule_error (file : Fpath.t) (err : Rule.error) : t =
+let error_of_rule_error (file : Fpath.t) (err : Rule.Error.t) : t =
   let rule_id = err.rule_id in
   match err.kind with
   | InvalidRule
@@ -158,7 +154,7 @@ let error_of_rule_error (file : Fpath.t) (err : Rule.error) : t =
       (* Based on what previously happened based on exn_to_error logic before
          converting Rule parsing errors to not be exceptions. *)
       mk_error ~rule_id ~msg:s
-        (if not (is_no_file file) then Tok.first_loc_of_file !!file
+        (if not (Fpath_.is_no_file file) then Tok.first_loc_of_file !!file
          else Tok.fake_location)
         Out.OtherParseError
 
@@ -231,7 +227,7 @@ let exn_to_error (rule_id : Rule_ID.t option) (file : Fpath.t) (e : Exception.t)
           let loc =
             (* TODO: we shouldn't build Tok.t w/out a filename, but
                lets do it here so we don't crash until we do *)
-            if not (is_no_file file) then Tok.first_loc_of_file !!file
+            if not (Fpath_.is_no_file file) then Tok.first_loc_of_file !!file
             else Tok.fake_location
           in
           {
