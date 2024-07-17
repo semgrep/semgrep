@@ -6,20 +6,6 @@ type env = {
   attributes : (var, AST_generic.attribute list) Hashtbl.t;
 }
 
-(* this is the (partially parsed/evaluated) content of a metavariable. This type
- * is used by Eval_generic.ml and Dataflow_when.ml.
- *)
-type value =
-  | Bool of bool
-  | Int of int64
-  | Float of float
-  (* the string does not contain the enclosing '"' *)
-  | String of string
-  | List of value list
-  (* any AST, e.g., "x+1" *)
-  | AST of string
-[@@deriving show]
-
 val default_env : Language.t option -> env
 
 (* Partially evaluate a Generic expression *)

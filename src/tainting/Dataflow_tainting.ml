@@ -2139,6 +2139,7 @@ let transfer :
     | TrueNode _
     | FalseNode _
     | Join
+    | OtherJoin
     | NOther _
     | NTodo _ ->
         in'

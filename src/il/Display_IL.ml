@@ -85,6 +85,7 @@ let short_string_of_node_kind nkind =
   | TrueNode e -> Common.spf "<TRUE %s>" (string_of_exp e)
   | FalseNode e -> Common.spf "<FALSE %s>" (string_of_exp e)
   | Join -> "<join>"
+  | OtherJoin -> "<other join>"
   | NCond _ -> "cond(...)"
   | NGoto (_, l) -> "goto " ^ str_of_label l
   | NReturn (_, e) -> Common.spf "return %s" (string_of_exp e)

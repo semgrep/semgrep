@@ -644,8 +644,11 @@ and expr = {
    *
    * is x == 0. this field is used for implementing when/ pattern-when
    * (now part of comparison), a feature to add path sensitivity to semgrep.
+   *
+   * making facts opaque here to prevent slowing down tests that prints
+   * expressions for debugging purposes.
    *)
-  mutable facts : facts; [@equal fun _a _b -> true] [@hash.ignore]
+  mutable facts : facts; [@equal fun _a _b -> true] [@hash.ignore] [@opaque]
 }
 
 and fact = Equal of name * expr | NotEqual of name * expr

@@ -527,7 +527,7 @@ let eval_regression_tests () =
                Alcotest.(check bool)
                  (spf "%s should evaluate to true" file)
                  true
-                 (Eval_generic_partial.Bool true =*= res)));
+                 (Eval_generic.Bool true =*= res)));
   ]
 
 (*****************************************************************************)
