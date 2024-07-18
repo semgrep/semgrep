@@ -1,4 +1,0 @@
-Pro: Improved module resolution for Python. Imports like `from a.b import c` where
-`c` is a module will now be resolved by Semgrep. And, if a module cannot be found
-in the search path, Semgrep will try to heuristically resolve the module by matching
-the module specifier against the files that are being scanned.
