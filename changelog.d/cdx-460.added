@@ -1,1 +1,0 @@
-OSemgrep now can take `--exclude-minified-files` to skip  minified files. Additionally `--no-exclude-minified-files` will disable this option. It is off by default.
