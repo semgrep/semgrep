@@ -1,3 +1,0 @@
-A scan can occasionally freeze when using tracing with multiprocesses.
-
-This change disables tracing when scanning each target file unless the scan runs in a single process.
