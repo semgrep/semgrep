@@ -6,37 +6,6 @@
 
 <!-- insertion point -->
 
-## [1.80.0](https://github.com/returntocorp/semgrep/releases/tag/v1.80.0) - 2024-07-18
-
-
-### Added
-
-
-- OSemgrep now can take `--exclude-minified-files` to skip  minified files. Additionally `--no-exclude-minified-files` will disable this option. It is off by default. (cdx-460)
-- Users are now required to login before using semgrep scan --pro.
-
-  Previously, semgrep will tell the users to log in, but the scan will still continue.
-
-  With this change, semgrep will tell the users to log in and stop the scan. (saf-1137)
-
-
-### Fixed
-
-
-- The language server no longer scans large or minified files (cdx-460)
-- Pro: Improved module resolution for Python. Imports like `from a.b import c` where
-  `c` is a module will now be resolved by Semgrep. And, if a module cannot be found
-  in the search path, Semgrep will try to heuristically resolve the module by matching
-  the module specifier against the files that are being scanned. (code-7069)
-- A scan can occasionally freeze when using tracing with multiprocesses.
-
-  This change disables tracing when scanning each target file unless the scan runs in a single process. (saf-1143)
-- Improved error handling for rules with invalid patterns. Now, scans will still complete and findings from other rules will be reported. (saf-789)
-- The "package-lock.json" parser incorrectly assumed that all paths in the "packages" component of "package-lock.json" started with "node_modules/".
-
-  In reality, a dependency can be installed anywhere, so the parser was made more flexible to recognize alternative locations ("node_modules", "lib", etc). (sc-1576)
-
-
 ## [1.79.0](https://github.com/returntocorp/semgrep/releases/tag/v1.79.0) - 2024-07-10
 
 
