@@ -13,6 +13,10 @@
  *)
 val check :
   hook:(Pattern_match.t -> unit) ->
+  (* as-metavariable: whether this rule whose patterns we are matching
+     contains an `as-metavariable`
+  *)
+  ?has_as_metavariable:bool ->
   ?mvar_context:Metavariable.bindings option ->
   ?range_filter:(Tok.location * Tok.location -> bool) ->
   Rule_options.t * Equivalence.equivalences ->

@@ -61,6 +61,12 @@ type env = {
   (* used by metavariable-pattern to recursively call evaluate_formula *)
   xtarget : Xtarget.t;
   rule : Rule.t;
+  (* as-metavariable: This is here so we can easily pass down
+     `has_as_metavariable` to `evaluate_formula`, which will dictate
+     whether  we should set the `ast_node` field when focusing, as this is
+     only needed for rules  making use of the `as-metavariable` feature.
+  *)
+  has_as_metavariable : bool;
   (* problems found during evaluation, one day these may be caught earlier by
    * the meta-checker *)
   errors : Core_error.ErrorSet.t ref;
