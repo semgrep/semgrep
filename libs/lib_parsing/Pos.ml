@@ -72,14 +72,13 @@ type linecol = { l : int; c : int } [@@deriving show, eq]
 (* alt: could use @@deriving make.
  * TODO? should we use 0 instead? -1 clearly mark the field has not been set
  *)
-let make ?(line = -1) ?(column = -1) ?(file = "NO FILE INFO YET") bytepos =
+let make ?(line = -1) ?(column = -1) ~file bytepos =
   { bytepos; line; column; file }
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-let fake_pos = make (-1)
 let first_pos_of_file file = make ~line:1 ~column:0 ~file 0
 
 (* for error reporting *)

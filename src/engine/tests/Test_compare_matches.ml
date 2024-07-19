@@ -25,8 +25,10 @@ let location_of_pm { Pattern_match.range_loc; _ } =
   (Fpath.v file, line)
 
 let location_of_core_error (err : Core_error.t) =
-  let loc = err.loc in
-  (Fpath.v loc.Tok.pos.file, loc.Tok.pos.line)
+  match err.loc with
+  | Some loc -> (Fpath.v loc.Tok.pos.file, loc.Tok.pos.line)
+  (* TODO Is there something that would be easier to debug, should I just failwith *)
+  | None -> (Fpath.v "No Location", -1)
 
 let (expected_error_lines_of_files :
       ?regexp:string ->
