@@ -312,7 +312,7 @@ let get_relevant_xlangs (env : env) : Xlang.t list =
 
 (* Get the rules to run based on the pattern and state of the LSP. *)
 let get_relevant_rules ({ params = { patterns; fix; lang; _ }; _ } as env : env)
-    : (Rule.search_rule list, Rule.Error.t) Result.t =
+    : (Rule.search_rule list, Rule_error.t) result =
   (* Get all the possible xpatterns and associated languages for each
      pattern
      This is a map from pattern -> valid langs for that pattern
@@ -337,8 +337,7 @@ let get_relevant_rules ({ params = { patterns; fix; lang; _ }; _ } as env : env)
         List.filter (fun xlang -> List.mem xlang relevant_xlangs) xlangs
   in
   (* Returns Some if we every pattern is parseable in `xlang` *)
-  let rule_of_lang_opt xlang : (Rule.search_rule option, Rule.Error.t) Result.t
-      =
+  let rule_of_lang_opt xlang : (Rule.search_rule option, Rule_error.t) result =
     (* Get all valid lang -> patterns pairings, for valid languages
         which are valid for all patterns
     *)
@@ -540,7 +539,7 @@ let start_search (server : RPC_server.t) (params : Jsonrpc.Structured.t option)
       | Error e ->
           Logs.warn (fun m ->
               m "error parsing patterns for semgrep/search: %s"
-                (Rule.string_of_error e));
+                (Rule_error.string_of_error e));
           (None, server)
       | Ok rules ->
           let xconf =

@@ -6,21 +6,19 @@
 *)
 
 val parse_rule_xpattern :
-  Parse_rule_helpers.env ->
-  string * Tok.t ->
-  (Xpattern.t, Rule.Error.t) Result.t
+  Parse_rule_helpers.env -> string * Tok.t -> (Xpattern.t, Rule_error.t) result
 
 val parse_formula_from_dict :
   Parse_rule_helpers.env ->
   Parse_rule_helpers.dict ->
-  (Rule.formula, Rule.Error.t) Result.t
+  (Rule.formula, Rule_error.t) result
 
 val parse_formula_old_from_dict :
   Parse_rule_helpers.env ->
   Parse_rule_helpers.dict ->
-  (Rule.formula, Rule.Error.t) Result.t
+  (Rule.formula, Rule_error.t) result
 
 val parse_formula :
   Parse_rule_helpers.env ->
   AST_generic.expr ->
-  (Rule.formula, Rule.Error.t) Result.t
+  (Rule.formula, Rule_error.t) result

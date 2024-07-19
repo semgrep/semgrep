@@ -1,6 +1,8 @@
 type rules_and_origin = {
   rules : Rule.rules;
-  errors : Rule.invalid_rule_error list;
+  (* TODO: rename to invalid_rules instead, rule (fatal) errors are not stored
+   * here *)
+  errors : Rule_error.invalid_rule list;
   origin : origin;
 }
 
@@ -40,7 +42,9 @@ and origin =
   | Untrusted_remote of Uri.t
 [@@deriving show]
 
-val partition_rules_and_errors : rules_and_origin list -> Rule.rules_and_errors
+val partition_rules_and_invalid :
+  rules_and_origin list -> Rule_error.rules_and_invalid
+
 val langs_of_pattern : string * Xlang.t option -> Xlang.t list
 
 (* [rules_from_rules_source] returns rules from --config or -e.
@@ -57,7 +61,7 @@ val rules_from_rules_source :
   strict:bool ->
   < Cap.network ; Cap.tmp > ->
   Rules_source.t ->
-  rules_and_origin list * Rule.Error.t list
+  rules_and_origin list * Rule_error.t list
 
 (* TODO: make cap network an option (with token) *)
 val rules_from_rules_source_async :
@@ -66,7 +70,7 @@ val rules_from_rules_source_async :
   strict:bool ->
   < Cap.network ; Cap.tmp > ->
   Rules_source.t ->
-  (rules_and_origin list * Rule.Error.t list) Lwt.t
+  (rules_and_origin list * Rule_error.t list) Lwt.t
 
 (* internals *)
 
@@ -75,7 +79,7 @@ val rules_from_dashdash_config_async :
   token_opt:Auth.token option ->
   < Cap.network ; Cap.tmp ; .. > ->
   Rules_config.t ->
-  (rules_and_origin list * Rule.Error.t list) Lwt.t
+  (rules_and_origin list * Rule_error.t list) Lwt.t
 
 (* [rules_from_dashdash_config] returns a list of rules_and_origin
  * because the [Rules_config.t] can be a [Dir], in which case we return one
@@ -86,7 +90,7 @@ val rules_from_dashdash_config :
   token_opt:Auth.token option ->
   < Cap.network ; Cap.tmp ; .. > ->
   Rules_config.t ->
-  rules_and_origin list * Rule.Error.t list
+  rules_and_origin list * Rule_error.t list
 
 (* low-level API *)
 val load_rules_from_file :
@@ -94,7 +98,7 @@ val load_rules_from_file :
   origin:origin ->
   < Cap.network ; Cap.tmp ; .. > ->
   Fpath.t ->
-  (rules_and_origin, Rule.Error.t) Result.t
+  (rules_and_origin, Rule_error.t) Result.t
 
 val load_rules_from_url :
   origin:origin ->
@@ -102,4 +106,4 @@ val load_rules_from_url :
   ?ext:string ->
   < Cap.network ; Cap.tmp ; .. > ->
   Uri.t ->
-  (rules_and_origin, Rule.Error.t) Result.t
+  (rules_and_origin, Rule_error.t) Result.t

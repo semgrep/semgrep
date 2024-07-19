@@ -598,7 +598,7 @@ let tainting_test (lang : Lang.t) (rules_file : Fpath.t) (file : Fpath.t) =
     | Error e ->
         failwith
           (spf "fail to parse tainting rules %s (error = %s)" !!rules_file
-             (Rule.string_of_error e))
+             (Rule_error.string_of_error e))
   in
   let ast =
     try Parse_target.parse_and_resolve_name_warn_if_partial lang file with

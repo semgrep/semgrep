@@ -33,8 +33,8 @@ val mk_error :
    TODO: return None for rules that are being skipped due to version
    mismatches.
 *)
-val error_of_invalid_rule_error : Rule.invalid_rule_error -> t
-val error_of_rule_error : Fpath.t -> Rule.Error.t -> t
+val error_of_invalid_rule : Rule_error.invalid_rule -> t
+val error_of_rule_error : Fpath.t -> Rule_error.t -> t
 
 (* Convert a caught exception and its stack trace to a Semgrep error.
  * See also JSON_report.json_of_exn for non-target related exn handling.

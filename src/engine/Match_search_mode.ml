@@ -110,7 +110,9 @@ type selector = {
 (*****************************************************************************)
 let xpatterns_in_formula (e : R.formula) : (Xpattern.t * bool) list =
   let res = ref [] in
-  e |> R.visit_xpatterns (fun xpat ~inside:b -> Stack_.push (xpat, b) res);
+  e
+  |> Visit_rule.visit_xpatterns (fun xpat ~inside:b ->
+         Stack_.push (xpat, b) res);
   !res
 
 let partition_xpatterns xs =
@@ -165,7 +167,9 @@ let pms_of_ranges env (ranges : RM.ranges) : PM.t list =
 
 let formula_has_as_metavariable (f : R.formula) =
   let ans = ref false in
-  R.visit_formula (fun (f : R.formula) -> ans := !ans || Option.is_some f.as_) f;
+  Visit_rule.visit_formula
+    (fun (f : R.formula) -> ans := !ans || Option.is_some f.as_)
+    f;
   !ans
 
 (*****************************************************************************)
