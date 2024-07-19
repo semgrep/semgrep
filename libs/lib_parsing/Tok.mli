@@ -88,7 +88,7 @@ val tok_of_lexbuf : Lexing.lexbuf -> t
 val tok_of_loc : location -> t
 
 (* deprecated: TODO used only in Lexer_php.mll *)
-val tok_of_str_and_bytepos : string -> int -> t
+val tok_of : str:string -> file:string -> bytepos:int -> t
 
 (* the token will be empty, but its pos will be the beginning of the file *)
 val first_tok_of_file : string (* filename *) -> t
@@ -139,7 +139,11 @@ val combine_toks : t -> t list -> t
    - ignorable_blank: ' ' (space)
 *)
 val combine_sparse_toks :
-  ?ignorable_newline:string -> ?ignorable_blank:char -> t -> t list -> t
+  ?ignorable_newline:string ->
+  ?ignorable_blank:char ->
+  t ->
+  t list ->
+  t Option.t
 
 (* Create the empty token corresponding to the position right after a
    given token. This is intended for representing empty strings and such. *)
@@ -169,7 +173,6 @@ val is_origintok : t -> bool
 
 exception NoTokenLocation of string
 
-val fake_location : location
 val fake_tok : t -> string -> t
 val unsafe_fake_tok : string -> t
 

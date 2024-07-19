@@ -654,7 +654,7 @@ let tainting_test (lang : Lang.t) (rules_file : Fpath.t) (file : Fpath.t) =
              {
                rule_id = Some m.rule_id.id;
                typ = OutJ.SemgrepMatchFound;
-               loc = fst m.range_loc;
+               loc = Some (fst m.range_loc);
                msg = m.rule_id.message;
                details = None;
              })
