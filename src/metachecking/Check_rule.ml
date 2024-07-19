@@ -86,7 +86,7 @@ let mv_error env mv t =
 
 let mvar_is_ok mv mvs =
   (* TODO: remove first condition when we kill numeric capture groups *)
-  Metavariable.is_metavar_for_capture_group mv || Set.mem mv mvs
+  Mvar.is_metavar_for_capture_group mv || Set.mem mv mvs
 
 let check_mvars_of_condition env bound_mvs (t, condition) =
   match condition with
@@ -105,7 +105,7 @@ let check_mvars_of_focus r bound_mvs (t, mv_list) =
 
 let unknown_metavar_in_comparison r f =
   let rec collect_metavars parent_mvs { f; conditions; focus; fix = _; as_ } :
-      MV.mvar Set.t * Core_error.t list =
+      Mvar.t Set.t * Core_error.t list =
     (* Check the metavariables in the conditions (e.g. metavariable-pattern).
        From here on, both the metavariables from the conjuncts and the
        metavariables from the parent are already bound *)
@@ -127,7 +127,7 @@ let unknown_metavar_in_comparison r f =
              | CondName _ ->
                  (Set.empty, [])
              | CondRegexp (_, regex, _) ->
-                 (Metavariable.mvars_of_regexp_string regex |> Set_.of_list, [])
+                 (Mvar.mvars_of_regexp_string regex |> Set_.of_list, [])
              | CondNestedFormula (_, _, formula) ->
                  collect_metavars bound_mvs_for_conds formula)
       |> List.fold_left
@@ -150,7 +150,7 @@ let unknown_metavar_in_comparison r f =
       | Some as_ -> Set.add as_ mvs
     in
     (mvs_with_as, focus_errors @ cond_errors @ errors @ inner_errors)
-  and collect_metavars' parent_mvs kind : MV.mvar Set.t * Core_error.t list =
+  and collect_metavars' parent_mvs kind : Mvar.t Set.t * Core_error.t list =
     match kind with
     | P { pat; pstr = pstr, _; pid = _pid } ->
         (* TODO currently this guesses that the metavariables are the strings
@@ -159,17 +159,17 @@ let unknown_metavar_in_comparison r f =
         (* First get the potential metavar ellipsis words *)
         let words_with_dot = Str.split (Str.regexp "[^a-zA-Z0-9_\\.$]") pstr in
         let ellipsis_metavars =
-          words_with_dot |> List.filter Metavariable.is_metavar_ellipsis
+          words_with_dot |> List.filter Mvar.is_metavar_ellipsis
         in
         (* Then split the individual metavariables *)
         let words = List.concat_map (String.split_on_char '.') words_with_dot in
-        let metavars = words |> List.filter Metavariable.is_metavar_name in
+        let metavars = words |> List.filter Mvar.is_metavar_name in
         (* Then, for a pattern-regex, get all the named capture groups, and
            account for the metavariables introduced by their matches.
         *)
         let regexp_captured_mvars =
           match pat with
-          | Xpattern.Regexp s -> Metavariable.mvars_of_regexp_string s
+          | Xpattern.Regexp s -> Mvar.mvars_of_regexp_string s
           | __else__ -> []
         in
         ( [ metavars; ellipsis_metavars; regexp_captured_mvars ]

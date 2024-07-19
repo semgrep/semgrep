@@ -56,8 +56,8 @@ class ['self] metavar_checker =
       let str, _tok = id in
       if
         str.[0] = '$'
-        && (not (Metavariable.is_metavar_name str))
-        && not (Metavariable.is_metavar_ellipsis str)
+        && (not (Mvar.is_metavar_name str))
+        && not (Mvar.is_metavar_ellipsis str)
       then
         error
           (Common.spf

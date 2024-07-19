@@ -230,7 +230,7 @@ let requires_expr_to_precondition env key e =
   let rec expr_to_precondition e =
     match e.G.e with
     | G.L (G.Bool (v, _)) -> Ok (R.PBool v)
-    | G.N (G.Id ((str, _), _)) when Metavariable.is_metavar_name str ->
+    | G.N (G.Id ((str, _), _)) when Mvar.is_metavar_name str ->
         error_at_key env.id key
           ("Invalid `requires' expression, metavariables cannot be used as \
             labels: " ^ str)
@@ -917,7 +917,7 @@ let parse_mode env mode_opt dep_fml_opt (rule_dict : dict) :
 
 let parse_version key value =
   let/ str, tok = parse_string_wrap_no_env key value in
-  match Version_info.of_string str with
+  match Semver.of_string str with
   | Some version -> Ok (version, tok)
   | None ->
       yaml_error_at_key key
@@ -934,8 +934,8 @@ let incompatible_version ?min_version ?max_version rule_id tok =
 let check_version_compatibility rule_id ~min_version ~max_version =
   let/ () =
     match min_version with
-    | Some (mini, tok)
-      when not (Version_info.compare mini Version_info.version <= 0) ->
+    | Some (mini, tok) when not (Semver.compare mini Version_info.version <= 0)
+      ->
         incompatible_version ?min_version:(Some mini) rule_id tok
     | Some _
     | None ->
@@ -943,8 +943,8 @@ let check_version_compatibility rule_id ~min_version ~max_version =
   in
   let/ () =
     match max_version with
-    | Some (maxi, tok)
-      when not (Version_info.compare Version_info.version maxi <= 0) ->
+    | Some (maxi, tok) when not (Semver.compare Version_info.version maxi <= 0)
+      ->
         incompatible_version ?max_version:(Some maxi) rule_id tok
     | Some _
     | None ->
