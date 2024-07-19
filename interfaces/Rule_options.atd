@@ -69,6 +69,7 @@ type t = {
   ~flddef_assign <ocaml default="false"> : bool;
   (* expression patterns (e.g. `f($X)`) will match attributes (e.g. `@f(a)`)  *)
   ~attr_expr <ocaml default="true"> : bool;
+  ~unify_ids_strictly <ocaml default="true"> : bool;
 
   (* treat arrows (a.k.a short lambdas) like other functions *)
   ~arrow_is_function <ocaml default="true">: bool;

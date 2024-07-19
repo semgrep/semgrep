@@ -29,7 +29,7 @@ module MV = Metavariable
 module ME = Matching_explanation
 module OutJ = Semgrep_output_v1_t
 module Labels = Set.Make (String)
-module Log = Log_engine.Log
+module Log = Log_tainting.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -357,7 +357,7 @@ let range_of_any any =
        * TODO: Perhaps we should avoid the call to `any_in_ranges` in the
        * first place? *)
       if any <> G.Anys [] then
-        Log.warn (fun m ->
+        Log.debug (fun m ->
             m "Cannot compute range, there are no real tokens in this AST: %s"
               (G.show_any any));
       None
