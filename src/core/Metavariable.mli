@@ -1,5 +1,5 @@
 (* metavariable name (e.g., "$FOO") *)
-type mvar = string [@@deriving show, eq, hash]
+type mvar = Mvar.t [@@deriving show, eq, hash]
 
 (* metavariable content *)
 type mvalue =
@@ -53,23 +53,6 @@ type bindings = (mvar * mvalue) list [@@deriving show, eq]
    possible.
 *)
 val location_aware_equal_mvalue : mvalue -> mvalue -> bool
-
-(* return whether a string could be a metavariable name (e.g., "$FOO", but not
- * "FOO"). This mostly check for the regexp $[A-Z_][A-Z_0-9]* but
- * also handles special variables like $_GET in PHP which are actually
- * not metavariables.
- *)
-val is_metavar_name : string -> bool
-
-(* example: "$...FOO" is a metavariable ellipsis *)
-val is_metavar_ellipsis : string -> bool
-val mvars_of_regexp_string : string -> mvar list
-
-(* metavariables like $_ *)
-val is_anonymous_metavar : string -> bool
-
-(* example: "$1" *)
-val is_metavar_for_capture_group : string -> bool
 val ii_of_mval : mvalue -> Tok.t list
 val str_of_mval : mvalue -> string
 val range_of_mvalue : mvalue -> (string (* filename *) * Range.t) option

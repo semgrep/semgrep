@@ -221,7 +221,7 @@ let add_mv_capture key value (env : tin) =
   (* Anonymous metavariables do not unify, so they don't go into
      the environment.
   *)
-  if Metavariable.is_anonymous_metavar key then env
+  if Mvar.is_anonymous_metavar key then env
   else { env with mv = (key, value) :: env.mv }
 
 let extend_stmts_matched rightmost_stmt (env : tin) =
@@ -804,7 +804,7 @@ let m_string_ellipsis_or_metavar_or_default ?(m_string_for_default = m_string) a
   (* dots: '...' on string *)
   | "..." -> return ()
   (* metavar: "$MVAR" *)
-  | astr when MV.is_metavar_name astr ->
+  | astr when Mvar.is_metavar_name astr ->
       let _, orig_info = b in
       let s, info = adjust_info_remove_enclosing_quotes b in
       envf a (MV.Text (s, info, orig_info))
@@ -819,7 +819,7 @@ let m_ellipsis_or_metavar_or_string a b =
   (* dots: '...' on string in atom/regexp/string *)
   | "..." -> return ()
   (* metavar: *)
-  | s when MV.is_metavar_name s ->
+  | s when Mvar.is_metavar_name s ->
       let str, info = b in
       envf a (MV.Text (str, info, info))
   | _ -> m_wrap m_string a b
