@@ -11,9 +11,9 @@ and invalid_rule_kind =
   | DeprecatedFeature of string (* e.g., pattern-where-python: *)
   | MissingPositiveTermInAnd
   | IncompatibleRule of
-      Version_info.t (* this version of Semgrep *)
-      * (Version_info.t option (* minimum version supported by this rule *)
-        * Version_info.t option (* maximum version *))
+      Semver_.t (* this version of Semgrep *)
+      * (Semver_.t option (* minimum version supported by this rule *)
+        * Semver_.t option (* maximum version *))
   | MissingPlugin of string (* error message *)
   | InvalidOther of string
 [@@deriving show]

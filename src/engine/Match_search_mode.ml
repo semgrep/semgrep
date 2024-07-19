@@ -306,7 +306,8 @@ let selector_from_formula ({ f; _ } : Rule.formula) =
   match f with
   | R.P { Xpattern.pat = Sem (pattern, _); pid; pstr } -> (
       match pattern with
-      | G.E { e = G.N (G.Id ((mvar, _), _)); _ } when MV.is_metavar_name mvar ->
+      | G.E { e = G.N (G.Id ((mvar, _), _)); _ } when Mvar.is_metavar_name mvar
+        ->
           Some { mvar; pattern; pid; pstr }
       | _ -> None)
   | _ -> None

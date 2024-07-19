@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-module MV = Metavariable
 
 (* for deriving hash *)
 open Ppx_hash_lib.Std.Hash.Builtin
@@ -128,17 +127,17 @@ and metavar_cond =
    * the "regexpizer" optimizer (see Analyze_rule.ml).
    *)
   | CondRegexp of
-      MV.mvar * Xpattern.regexp_string * bool (* constant-propagation *)
+      Mvar.t * Xpattern.regexp_string * bool (* constant-propagation *)
   | CondType of
-      MV.mvar
+      Mvar.t
       * Xlang.t option
       (* when the type expression is in different lang *)
       * string list (* raw input string saved for regenerating rule yaml *)
       * AST_generic.type_ list
     (* LATER: could parse lazily, like the patterns *)
-  | CondAnalysis of MV.mvar * metavar_analysis_kind
-  | CondNestedFormula of MV.mvar * Xlang.t option * formula
-  | CondName of MV.mvar * metavar_name_kind
+  | CondAnalysis of Mvar.t * metavar_analysis_kind
+  | CondNestedFormula of Mvar.t * Xlang.t option * formula
+  | CondName of Mvar.t * metavar_name_kind
 
 and metavar_analysis_kind = CondEntropy | CondEntropyV2 | CondReDoS
 
@@ -150,7 +149,7 @@ and metavar_name_kind = DjangoView
 
 (* Represents all of the metavariables that are being focused by a single
    `focus-metavariable`. *)
-and focus_mv_list = tok * MV.mvar list [@@deriving show, eq, hash]
+and focus_mv_list = tok * Mvar.t list [@@deriving show, eq, hash]
 
 let mk_formula ?(fix = None) ?(focus = []) ?(conditions = []) ?(as_ = None) kind
     =
@@ -300,8 +299,8 @@ and taint_propagator = {
   propagator_id : string;
   propagator_formula : formula;
   propagator_by_side_effect : bool;
-  from : MV.mvar wrap;
-  to_ : MV.mvar wrap;
+  from : Mvar.t wrap;
+  to_ : Mvar.t wrap;
   propagator_requires : precondition_with_range option;
       (* A Boolean expression over taint labels. See also 'taint_source'.
        * This propagator will only propagate taint if the incoming taint
@@ -358,7 +357,7 @@ type extract = {
   formula : formula;
   dst_lang : Xlang.t;
   (* e.g., $...BODY, $CMD *)
-  extract : MV.mvar;
+  extract : Mvar.t;
   extract_rule_ids : extract_rule_ids option;
   (* map/reduce *)
   transform : extract_transform;
@@ -705,8 +704,8 @@ type 'mode rule_info = {
    * (adding version filtering in semgrep-core was not enough; it was still crashing
    *  pysemgrep which was still doing its own rule validation via jsonschema).
    *)
-  min_version : Version_info.t option;
-  max_version : Version_info.t option;
+  min_version : Semver_.t option;
+  max_version : Semver_.t option;
   dependency_formula : dependency_formula option;
 }
 [@@deriving show]

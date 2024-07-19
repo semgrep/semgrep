@@ -116,9 +116,9 @@ let error_of_invalid_rule ((kind, rule_id, pos) : Rule_error.invalid_rule) : t =
         Out.IncompatibleRule
           {
             rule_id;
-            this_version = Version_info.to_string this_version;
-            min_version = Option.map Version_info.to_string min_version;
-            max_version = Option.map Version_info.to_string max_version;
+            this_version = Semver.to_string this_version;
+            min_version = Option.map Semver.to_string min_version;
+            max_version = Option.map Semver.to_string max_version;
           }
     | MissingPlugin _msg -> Out.MissingPlugin
     | _ -> Out.RuleParseError
