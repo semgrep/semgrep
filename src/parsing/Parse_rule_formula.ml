@@ -257,7 +257,7 @@ let rewrite_metavar_comparison_strip cond =
         (* apply on children *)
         let e = super#visit_expr env e in
         match e.G.e with
-        | G.N (G.Id ((s, tok), _idinfo)) when Metavariable.is_metavar_name s ->
+        | G.N (G.Id ((s, tok), _idinfo)) when Mvar.is_metavar_name s ->
             let py_int = G.Id (("int", tok), G.empty_id_info ()) in
             G.Call (G.N py_int |> G.e, Tok.unsafe_fake_bracket [ G.Arg e ])
             |> G.e

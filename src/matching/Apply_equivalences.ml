@@ -38,7 +38,7 @@ let subst_e (bindings : MV.bindings) e =
 
       method! visit_expr env x =
         match x.e with
-        | N (Id ((str, _tok), _id_info)) when MV.is_metavar_name str -> (
+        | N (Id ((str, _tok), _id_info)) when Mvar.is_metavar_name str -> (
             match List.assoc_opt str bindings with
             | Some (MV.Id (id, Some idinfo)) ->
                 (* less: abstract-line? *)

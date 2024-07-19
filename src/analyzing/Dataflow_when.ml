@@ -1,5 +1,4 @@
 open AST_generic
-module MV = Metavariable
 module Log = Log_analyzing.Log
 
 (*****************************************************************************)
@@ -333,7 +332,7 @@ let facts_satisfy_e (mvars : Metavariable.bindings) (facts : facts) (e : expr) =
       match args with
       (* id <op> expr *)
       | [ Arg { e = N (Id (((en, _) as e_id), _)); _ }; Arg e ] ->
-          if MV.is_metavar_name en || MV.is_metavar_ellipsis en then
+          if Mvar.is_metavar_name en || Mvar.is_metavar_ellipsis en then
             try
               let v = List.assoc en mvars in
               match v with

@@ -52,9 +52,9 @@ and invalid_rule_kind =
   | DeprecatedFeature of string (* e.g., pattern-where-python: *)
   | MissingPositiveTermInAnd
   | IncompatibleRule of
-      Version_info.t (* this version of Semgrep *)
-      * (Version_info.t option (* minimum version supported by this rule *)
-        * Version_info.t option (* maximum version *))
+      Semver_.t (* this version of Semgrep *)
+      * (Semver_.t option (* minimum version supported by this rule *)
+        * Semver_.t option (* maximum version *))
   | MissingPlugin of string (* error message *)
   | InvalidOther of string
 [@@deriving show]
@@ -124,21 +124,21 @@ let string_of_invalid_rule_kind = function
   | DeprecatedFeature s -> spf "deprecated feature: %s" s
   | IncompatibleRule (cur, (Some min_version, None)) ->
       spf "This rule requires upgrading Semgrep from version %s to at least %s"
-        (Version_info.to_string cur)
-        (Version_info.to_string min_version)
+        (Semver.to_string cur)
+        (Semver.to_string min_version)
   | IncompatibleRule (cur, (None, Some max_version)) ->
       spf
         "This rule is no longer supported by Semgrep. The last compatible \
          version was %s. This version of Semgrep is %s"
-        (Version_info.to_string max_version)
-        (Version_info.to_string cur)
+        (Semver.to_string max_version)
+        (Semver.to_string cur)
   | IncompatibleRule (cur, (Some min_version, Some max_version)) ->
       spf
         "This rule requires a version of Semgrep within [%s, %s] but we're \
          using version %s"
-        (Version_info.to_string min_version)
-        (Version_info.to_string max_version)
-        (Version_info.to_string cur)
+        (Semver.to_string min_version)
+        (Semver.to_string max_version)
+        (Semver.to_string cur)
   | IncompatibleRule (_, (None, None)) -> assert false
   | MissingPlugin msg -> msg
   | InvalidOther s -> s

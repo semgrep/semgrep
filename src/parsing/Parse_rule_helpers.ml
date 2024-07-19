@@ -482,9 +482,9 @@ let parse_regexp env (s, t) =
    * the raw string, see notes attached to 'Xpattern.xpattern_kind'. *)
   try
     (* calls `pcre.compile` *)
-    Metavariable.mvars_of_regexp_string s
+    Mvar.mvars_of_regexp_string s
     |> List.iter (fun mvar ->
-           if not (Metavariable.is_metavar_name mvar) then
+           if not (Mvar.is_metavar_name mvar) then
              Log.warn (fun m ->
                  m
                    "Found invalid metavariable capture group name `%s` for \
