@@ -464,23 +464,21 @@ let match_to_match (x : Core_result.processed_match) :
  * so we would not need those conversions
  *)
 let error_to_error (err : Core_error.t) : Out.core_error =
-  let location =
-    match err.loc with
-    | Some loc ->
-        let file = loc.pos.file in
-        let startp, endp = OutUtils.position_range loc loc in
-        { Out.path = Fpath.v file; start = startp; end_ = endp }
-    (* TODO For now hardcode what it would have been *)
-    | None ->
-        let pos = { Out.line = 1; col = 1; offset = 0 } in
-        { Out.path = Fpath.v ""; start = pos; end_ = pos }
-  in
+  let file = err.loc.pos.file in
+  let startp, endp = OutUtils.position_range err.loc err.loc in
   let rule_id = err.rule_id in
   let error_type = err.typ in
   let severity = E.severity_of_error err.typ in
   let message = err.msg in
   let details = err.details in
-  { error_type; rule_id; severity; location; message; details }
+  {
+    error_type;
+    rule_id;
+    severity;
+    location = { path = Fpath.v file; start = startp; end_ = endp };
+    message;
+    details;
+  }
 
 let extra_to_extra (extra : Matching_explanation.extra) :
     Out.matching_explanation_extra =
