@@ -38,8 +38,7 @@ module XP = Xpattern
  *)
 type rules_and_origin = {
   rules : Rule.rules;
-  (* TODO: rename to invalid_rules *)
-  errors : Rule_error.invalid_rule list;
+  invalid_rules : Rule_error.invalid_rule list;
   origin : origin; (* used by Validate_subcommand *)
 }
 
@@ -108,7 +107,7 @@ let partition_rules_and_invalid (xs : rules_and_origin list) :
     Rule_error.rules_and_invalid =
   let (rules : Rule.rules) = xs |> List.concat_map (fun x -> x.rules) in
   let (invalid_rules : Rule_error.invalid_rule list) =
-    xs |> List.concat_map (fun x -> x.errors)
+    xs |> List.concat_map (fun x -> x.invalid_rules)
   in
   (rules, invalid_rules)
 
@@ -312,9 +311,9 @@ let load_rules_from_file ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
   Logs.info (fun m -> m "loading local config from %s" !!file);
   if Sys.file_exists !!file then
     match parse_rule ~rewrite_rule_ids ~origin caps file with
-    | Ok (rules, errors) ->
+    | Ok (rules, invalid_rules) ->
         Logs.info (fun m -> m "Done loading local config from %s" !!file);
-        Ok { rules; errors; origin = Local_file file }
+        Ok { rules; invalid_rules; origin = Local_file file }
     | Error err -> Error err
   else
     (* This should never happen because Semgrep_dashdash_config only builds
@@ -474,7 +473,7 @@ let langs_of_pattern (pat, xlang_opt) : Xlang.t list =
                  None)
 
 let rules_and_origin_of_rule rule =
-  { rules = [ rule ]; errors = []; origin = CLI_argument }
+  { rules = [ rule ]; invalid_rules = []; origin = CLI_argument }
 
 (* python: mix of resolver_config.get_config() and get_rules() *)
 let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict:_ caps
