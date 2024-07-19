@@ -103,6 +103,9 @@ type t = {
      only need `ast_node` when we are embedding pattern matches into metavariables,
      so we don't need it once the `evaluate_formula` process is done. Thus, we
      set this back to `None` in `Range_with_metavars.range_to_pattern_match_adjusted`.
+     NOTE2: Now in `Match_env`, we only set this field if the corresponding
+     `has_as_metavariable` is true of the originating rule.
+     Otherwise, we leave it at `None`.
   *)
   ast_node : AST_generic.any option;
   (* less: do we need to be lazy? *)

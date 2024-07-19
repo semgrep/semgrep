@@ -110,7 +110,7 @@ type selector = {
 (*****************************************************************************)
 let xpatterns_in_formula (e : R.formula) : (Xpattern.t * bool) list =
   let res = ref [] in
-  e |> R.visit_new_formula (fun xpat ~inside:b -> Stack_.push (xpat, b) res);
+  e |> R.visit_xpatterns (fun xpat ~inside:b -> Stack_.push (xpat, b) res);
   !res
 
 let partition_xpatterns xs =
@@ -162,6 +162,11 @@ let fold_with_expls ~f ~init env xs =
 
 let pms_of_ranges env (ranges : RM.ranges) : PM.t list =
   ranges |> List_.map (RM.range_to_pattern_match_adjusted env.rule)
+
+let formula_has_as_metavariable (f : R.formula) =
+  let ans = ref false in
+  R.visit_formula (fun (f : R.formula) -> ans := !ans || Option.is_some f.as_) f;
+  !ans
 
 (*****************************************************************************)
 (* Adapters *)
@@ -240,8 +245,8 @@ let debug_semgrep config mini_rules file lang ast =
 (* Evaluating Semgrep patterns *)
 (*****************************************************************************)
 
-let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
-    (xtarget : Xtarget.t)
+let matches_of_patterns ~has_as_metavariable ?mvar_context ?range_filter rule
+    (xconf : xconfig) (xtarget : Xtarget.t)
     (patterns : (Pattern.t * bool * Xpattern.pattern_id * string) list) :
     Core_profiling.times Core_result.match_result =
   let {
@@ -273,7 +278,8 @@ let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
               (* regular path *)
               Match_patterns.check
                 ~hook:(fun _ -> ())
-                ?mvar_context ?range_filter config mini_rules
+                ~has_as_metavariable ?mvar_context ?range_filter config
+                mini_rules
                 (internal_path_to_content, origin, lang, ast))
       in
       let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
@@ -352,8 +358,8 @@ let run_selector_on_ranges env selector_opt ranges =
       in
       let patterns = [ (pattern, false, pid, fst pstr) ] in
       let res =
-        matches_of_patterns ~range_filter env.rule env.xconf env.xtarget
-          patterns
+        matches_of_patterns ~has_as_metavariable:env.has_as_metavariable
+          ~range_filter env.rule env.xconf env.xtarget patterns
       in
       Log.debug (fun m ->
           m "run_selector_on_ranges: found %d matches" (List.length res.matches));
@@ -362,7 +368,7 @@ let run_selector_on_ranges env selector_opt ranges =
       |> RM.intersect_ranges env.xconf.config ~debug_matches:!debug_matches
            ranges
 
-let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
+let apply_focus_on_ranges (env : env) (focus_mvars_list : R.focus_mv_list list)
     (ranges : RM.ranges) : RM.ranges =
   let intersect (r1 : RM.t) (r2 : RM.t) : RM.t option =
     if Range.( $<=$ ) r1.r r2.r then Some r1
@@ -406,7 +412,10 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
                PM.rule_id = fake_rule_id (-1, focus_mvar);
                path = env.xtarget.path;
                range_loc;
-               ast_node = Some (MV.mvalue_to_any mval);
+               (* as-metavariable: *)
+               ast_node =
+                 (if env.has_as_metavariable then Some (MV.mvalue_to_any mval)
+                  else None);
                tokens = lazy (MV.ii_of_mval mval);
                env = range.mvars;
                taint_trace = None;
@@ -508,8 +517,9 @@ let apply_as_on_ranges ranges as_ =
 (* Evaluating xpatterns *)
 (*****************************************************************************)
 
-let matches_of_xpatterns ~mvar_context rule (xconf : xconfig)
-    (xtarget : Xtarget.t) (xpatterns : (Xpattern.t * bool) list) :
+let matches_of_xpatterns ~has_as_metavariable ~mvar_context rule
+    (xconf : xconfig) (xtarget : Xtarget.t)
+    (xpatterns : (Xpattern.t * bool) list) :
     Core_profiling.times Core_result.match_result =
   let ({ path = { internal_path_to_content; origin }; lazy_content; _ }
         : Xtarget.t) =
@@ -527,7 +537,8 @@ let matches_of_xpatterns ~mvar_context rule (xconf : xconfig)
   (* final result *)
   RP.collate_pattern_results
     [
-      matches_of_patterns ~mvar_context rule xconf xtarget patterns;
+      matches_of_patterns ~has_as_metavariable ~mvar_context rule xconf xtarget
+        patterns;
       Xpattern_match_spacegrep.matches_of_spacegrep xconf spacegreps
         internal_path_to_content origin;
       Xpattern_match_aliengrep.matches_of_aliengrep aliengreps lazy_content
@@ -569,7 +580,9 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
           subs
           |> List_.map (fun pat ->
                  let match_result =
-                   matches_of_patterns env.rule env.xconf env.xtarget
+                   matches_of_patterns
+                     ~has_as_metavariable:env.has_as_metavariable env.rule
+                     env.xconf env.xtarget
                      [ (pat, false, xpat.pid, "TODO") ]
                  in
                  let matches = match_result.matches in
@@ -1077,8 +1090,14 @@ and matches_of_formula xconf rule xtarget formula opt_context :
   let mvar_context : Metavariable.bindings option =
     Option.map (fun s -> s.RM.mvars) opt_context
   in
+  let has_as_metavariable = formula_has_as_metavariable formula in
+  Log.debug (fun m ->
+      m "formula for %s has as_metavariable: %b"
+        (Rule_ID.to_string (fst rule.id))
+        has_as_metavariable);
   let res =
-    matches_of_xpatterns mvar_context rule xconf xtarget xpatterns
+    matches_of_xpatterns ~has_as_metavariable ~mvar_context rule xconf xtarget
+      xpatterns
     |> RP.add_rule rule
   in
   Log.info (fun m -> m "found %d matches" (List.length res.matches));
@@ -1091,6 +1110,7 @@ and matches_of_formula xconf rule xtarget formula opt_context :
       pattern_matches = pattern_matches_per_id;
       xtarget;
       rule;
+      has_as_metavariable;
       errors = ref E.ErrorSet.empty;
     }
   in
