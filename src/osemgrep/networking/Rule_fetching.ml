@@ -349,6 +349,16 @@ let load_rules_from_url ~origin ?token_opt ?(ext = "yaml") caps url :
 
 (* TODO: merge caps and token_opt and caps_opt? *)
 let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt caps kind :
+    (* alt: (rules_and_origin list, Rule.Error.t list) result
+       here and below:
+       we could do this, but it lacks flexibility compared with this output type
+       for instance, Validate_subcommand and Publish_subcommand pool together the
+       invalid rule errors (located inside each `rules_and_origin`) and the fatal
+       rule errors (the `Rule.Error.t`s), and decides to fail if either are present
+
+       if we split each into a sum, we never have either at the same time. this
+       breaks the code's behavior *
+    *)
     (rules_and_origin list * Rule.Error.t list) Lwt.t =
   match kind with
   | C.File path ->
@@ -466,8 +476,8 @@ let rules_and_origin_of_rule rule =
   { rules = [ rule ]; errors = []; origin = CLI_argument }
 
 (* python: mix of resolver_config.get_config() and get_rules() *)
-let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict caps
-    (src : Rules_source.t) : rules_and_origin list Lwt.t =
+let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict:_ caps
+    (src : Rules_source.t) : (rules_and_origin list * Rule.Error.t list) Lwt.t =
   let%lwt rules_and_origins, errors =
     match src with
     | Configs xs ->
@@ -486,18 +496,14 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict caps
           (List.flatten rules_and_origins_nested, List.flatten errors_nested)
         in
 
-        (* error handling: *)
-        if errors <> [] then
-          raise
-            (Error.Semgrep_error
-               ( Common.spf
-                   "invalid configuration file found (%d configs were invalid)"
-                   (List.length errors),
-                 Some (Exit_code.missing_config ~__LOC__) ));
         (* NOTE: We should default to config auto if no config was passed in an earlier step,
-           but if we reach this step without a config, we emit the error below.
+            but if we reach this step without a config, we emit the error below.
         *)
-        if rules_and_origins =*= [] then
+        (* we would prefer to emit output based on the fatal errors here over complaining
+           about not obtaining any configs, so we only emit this error if we didn't get
+           any fatal errors (which will separately be processed)
+        *)
+        if rules_and_origins =*= [] && errors =*= [] then
           raise
             (Error.Semgrep_error
                ( "No config given. Run with `--config auto` or see \
@@ -526,26 +532,28 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict caps
               rules_and_origin_of_rule rule)
             valid_langs
         in
+
+        (* In run_scan.py, in the pattern case, we would do this:
+           if real_config_errors and strict:
+               raise SemgrepError(
+                   f"Ran with --strict and got {unit_str(len(config_errors), 'error')} while loading configs",
+                   code=MISSING_CONFIG_EXIT_CODE,
+               )
+           except we now don't have errors.
+
+           THINK: this may be impossible now in `osemgrep`?
+        *)
         Lwt.return (rules_and_origins, [])
   in
 
-  (* error handling: *)
-  if errors <> [] && strict then
-    raise
-      (Error.Semgrep_error
-         ( Common.spf "Ran with --strict and got %s while loading configs"
-             (String_.unit_str (List.length errors) "error"),
-           Some (Exit_code.missing_config ~__LOC__) ));
-
-  (* errors should be empty here, because patterns cannot yet return errors *)
-  Lwt.return rules_and_origins
+  Lwt.return (rules_and_origins, errors)
 
 (* You should probably avoid using directly this function and prefer
  * to use the _async variant above mixed with a spinner as in
  * Scan_subcommand.rules_from_rules_source()
  *)
 let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~strict caps
-    (src : Rules_source.t) : rules_and_origin list =
+    (src : Rules_source.t) : rules_and_origin list * Rule.Error.t list =
   Lwt_platform.run
     (rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict caps src)
 [@@profiling]

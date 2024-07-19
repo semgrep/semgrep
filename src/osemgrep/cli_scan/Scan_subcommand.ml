@@ -156,6 +156,47 @@ let exit_code_of_errors ~strict (errors : Out.core_error list) : Exit_code.t =
           exit_code
       | _ -> Exit_code.ok ~__LOC__)
 
+(* Core errors are easier to report. *)
+let core_errors_of_fatal_rule_errors (fatal_errors : Rule.Error.t list) :
+    Core_error.t list =
+  fatal_errors
+  |> List_.map (fun (e : Rule.Error.t) ->
+         let core_err = Core_error.error_of_rule_error e.file e in
+         (* We should definitely not drop rule errors here.
+            That being said, it shouldn't be possible to get no file here,
+            by construction.
+            The `file` field is set in `Rule.Error.t` from all of the entry points
+            into Parse_rule.ml
+         *)
+         if Fpath_.is_fake_file e.file then
+           Logs.err (fun m ->
+               m "no file found for rule error %s"
+                 (Core_error.string_of_error core_err));
+         core_err)
+
+(* we require stdout here to give the proper output, such as with --json *)
+let output_and_exit_from_fatal_core_errors (caps : < Cap.stdout >)
+    (conf : Scan_CLI.conf) (profiler : Profiler.t) (errors : Core_error.t list)
+    : Exit_code.t =
+  let runtime_params =
+    Output.
+      {
+        is_logged_in = Semgrep_login.is_logged_in ();
+        is_using_registry =
+          Metrics_.g.is_using_registry || !Semgrep_envvars.v.mock_using_registry;
+      }
+  in
+  let res =
+    Core_runner.mk_result [] (Core_result.mk_result_with_just_errors errors)
+  in
+
+  Output.output_result
+    (caps :> < Cap.stdout >)
+    (* TODO: choose output conf? *)
+    conf.output_conf runtime_params profiler res
+  |> ignore;
+  exit_code_of_errors ~strict:conf.core_runner_conf.strict res.core.errors
+
 (*****************************************************************************)
 (* Incremental display *)
 (*****************************************************************************)
@@ -699,35 +740,64 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   Logs.info (fun m -> m "Getting the rules");
   (* Display a (possibly interactive) message to denote rule fetching *)
   if new_cli_ux then display_rule_source ~rule_source:conf.rules_source;
-  let rules_and_origins =
+  let rules_and_origins, fatal_errors =
     rules_from_rules_source
       (caps :> < Cap.network ; Cap.tmp >)
       ~token_opt:settings.api_token ~rewrite_rule_ids:conf.rewrite_rule_ids
       ~strict:conf.core_runner_conf.strict conf.rules_source
   in
 
-  (* step2: getting the targets *)
-  Logs.info (fun m -> m "Computing the targets");
-  let targets_and_skipped =
-    Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
-  in
+  match fatal_errors with
+  (* if there are fatal errors, we must exit :( *)
+  | _ :: _ -> (
+      let core_errors = core_errors_of_fatal_rule_errors fatal_errors in
+      match conf.output_conf.output_format with
+      (* For textual output, it seems that we do not have a unified way to
+         display errors, other than raising an exception and dispatching to the
+         surrounding error handler. In that case, that's what we do.
+         Otherwise, such as for JSON outputs, we want to call the normal
+         Output.output_result handler, which will display the JSON even in
+         the event of an error.
+      *)
+      | Output_format.Text ->
+          raise
+            (Error.Semgrep_error
+               ( Common.spf
+                   "invalid configuration file found (%d configs were invalid)\n\
+                    %s"
+                   (List.length core_errors)
+                   (String.concat "\n"
+                      (List_.map Core_error.string_of_error core_errors)),
+                 Some (Exit_code.missing_config ~__LOC__) ))
+      | _ ->
+          output_and_exit_from_fatal_core_errors
+            (caps :> < Cap.stdout >)
+            conf profiler core_errors)
+  (* but with no fatal rule errors, we can proceed with the scan! *)
+  | [] -> (
+      (* step2: getting the targets *)
+      Logs.info (fun m -> m "Computing the targets");
+      let targets_and_skipped =
+        Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
+      in
 
-  (* step3: let's go *)
-  let res =
-    check_targets_with_rules
-      (caps :> < Cap.stdout ; Cap.chdir ; Cap.tmp >)
-      conf profiler rules_and_origins targets_and_skipped
-  in
+      (* step3: let's go *)
+      let res =
+        check_targets_with_rules
+          (caps :> < Cap.stdout ; Cap.chdir ; Cap.tmp >)
+          conf profiler rules_and_origins targets_and_skipped
+      in
 
-  (* step4: exit with the right exit code *)
-  match res with
-  | Error exit_code -> exit_code
-  | Ok (_rules, res, cli_output) ->
-      (* final result for the shell *)
-      if conf.error_on_findings && not (List_.null cli_output.results) then
-        Exit_code.findings ~__LOC__
-      else
-        exit_code_of_errors ~strict:conf.core_runner_conf.strict res.core.errors
+      (* step4: exit with the right exit code *)
+      match res with
+      | Error exit_code -> exit_code
+      | Ok (_rules, res, cli_output) ->
+          (* final result for the shell *)
+          if conf.error_on_findings && not (List_.null cli_output.results) then
+            Exit_code.findings ~__LOC__
+          else
+            exit_code_of_errors ~strict:conf.core_runner_conf.strict
+              res.core.errors)
 
 (*****************************************************************************)
 (* Run 'scan' or 'test' or 'validate' or 'show' (or fallback to pysemgrep) *)
