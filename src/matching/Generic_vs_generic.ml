@@ -388,52 +388,62 @@ let rec m_name_inner a b =
           (fail ()) alternate_names
     | _ -> fail ()
   in
+  let try_with_equivalences a b =
+    (* equivalence: aliasing (name resolving) part 1 *)
+    match (a, b) with
+    | ( a,
+        B.Id
+          ( idb,
+            ({
+               B.id_resolved =
+                 {
+                   contents =
+                     Some
+                       ( (( B.ImportedEntity canonical
+                          | B.ImportedModule canonical
+                          | B.GlobalName (canonical, _) ) as resolved),
+                         _sid );
+                 };
+               _;
+             } as infob) ) ) ->
+        let dotted = G.canonical_to_dotted (snd idb) canonical in
+        (* coupling: resolved names with wildcards *)
+        wipe_wildcard_imports
+          (m_name a (B.Id (idb, { infob with B.id_resolved = ref None }))
+          >||> try_alternate_names idb resolved
+          (* Try the resolved entity *)
+          >||> m_name a (H.name_of_ids dotted)
+          >||>
+          (* Try the resolved entity and parents *)
+          match a with
+          (* > If we're matching against a metavariable, don't bother checking
+           * > the resolved entity or parents. It will only cause duplicate matches
+           * > that can't be deduped, since the captured metavariable will be
+           * > different.
+           *
+           * FIXME:
+           * This is actually not the correct way of dealing with the problem,
+           * because there could be `metavariable-xyz` operators filtering the
+           * potential values of the metavariable. See DeepSemgrep commit
+           *
+           *     5b2766ee30e "test: Tests for matching metavariable patterns against resolved names"
+           *)
+          | G.Id ((str, _tok), _info) when MV.is_metavar_name str -> fail ()
+          | _ ->
+              (* Try matching against parent classes *)
+              try_parents dotted)
+    | __else__ -> fail ()
+  in
   match (a, b) with
-  (* equivalence: aliasing (name resolving) part 1 *)
-  | ( a,
-      B.Id
-        ( idb,
-          ({
-             B.id_resolved =
-               {
-                 contents =
-                   Some
-                     ( (( B.ImportedEntity canonical
-                        | B.ImportedModule canonical
-                        | B.GlobalName (canonical, _) ) as resolved),
-                       _sid );
-               };
-             _;
-           } as infob) ) ) ->
-      let dotted = G.canonical_to_dotted (snd idb) canonical in
-      (* coupling: resolved names with wildcards *)
-      wipe_wildcard_imports
-        (m_name a (B.Id (idb, { infob with B.id_resolved = ref None }))
-        >||> try_alternate_names idb resolved
-        (* Try the resolved entity *)
-        >||> m_name a (H.name_of_ids dotted)
-        >||>
-        (* Try the resolved entity and parents *)
-        match a with
-        (* > If we're matching against a metavariable, don't bother checking
-         * > the resolved entity or parents. It will only cause duplicate matches
-         * > that can't be deduped, since the captured metavariable will be
-         * > different.
-         *
-         * FIXME:
-         * This is actually not the correct way of dealing with the problem,
-         * because there could be `metavariable-xyz` operators filtering the
-         * potential values of the metavariable. See DeepSemgrep commit
-         *
-         *     5b2766ee30e "test: Tests for matching metavariable patterns against resolved names"
-         *)
-        | G.Id ((str, _tok), _info) when MV.is_metavar_name str -> fail ()
-        | _ ->
-            (* Try matching against parent classes *)
-            try_parents dotted)
+  (* old: Previously we applied the equivalences in 'try_with_equivalences' right
+   *      here. The good was that we handled equivalences first of all and they did
+   *      not have to be taken into consideration anywhere else. The bad was that
+   *      applying the equivalences erases the 'id_info', and when $MVARs bound to
+   *      global identifiers, we had lost all that valuable info. *)
   | G.Id (a1, a2), B.Id (b1, b2) ->
       (* this will handle metavariables in Id *)
-      m_ident_and_id_info (a1, a2) (b1, b2)
+      m_ident_and_id_info (a1, a2) (b1, b2) >!> fun () ->
+      try_with_equivalences a b
   | G.Id ((str, tok), _info), G.IdQualified _ when MV.is_metavar_name str ->
       envf (str, tok) (MV.N b)
   (* equivalence: aliasing (name resolving) part 2 (mostly for OCaml) *)
@@ -489,7 +499,7 @@ let rec m_name_inner a b =
   | G.IdQualified { name_last = ida, None; _ }, B.Id (idb, _infob)
     when fst ida = fst idb -> (
       match !Hooks.get_def idb with
-      | None -> fail ()
+      | None -> try_with_equivalences a b
       | Some file ->
           let m = module_name_of_filename file in
           let t = snd idb in
@@ -530,7 +540,7 @@ let rec m_name_inner a b =
   | G.IdQualified a1, B.IdQualified b1 -> m_name_info a1 b1
   | G.Id _, _
   | G.IdQualified _, _ ->
-      fail ()
+      try_with_equivalences a b
 
 (* This is just an entry point for m_name_inner, which just ensures that we only
    ever unpack wildcard imports once, before entering the main recursive loop of
