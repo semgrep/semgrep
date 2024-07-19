@@ -1,0 +1,2 @@
+The --debug option will now display logging information from the semgrep-core
+binary directly, without waiting that the semgrep-core program finish.

@@ -381,6 +381,7 @@ def run_scan(
     baseline_commit_is_mergebase: bool = False,
     x_ls: bool = False,
     path_sensitive: bool = False,
+    capture_core_stderr: bool = True,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -566,6 +567,7 @@ def run_scan(
         timeout_threshold=timeout_threshold,
         trace=trace,
         trace_endpoint=trace_endpoint,
+        capture_stderr=capture_core_stderr,
         optimizations=optimizations,
         allow_untrusted_validators=allow_untrusted_validators,
         respect_rule_paths=respect_rule_paths,
