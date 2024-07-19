@@ -75,7 +75,7 @@ let _ =
                  (* TODO? maybe we should Exception.reraise e instead, but then need
                   * to fix some regressions in make -C js test
                   *)
-                 let err = Core_error.exn_to_error None Fpath_.no_file e in
+                 let err = Core_error.exn_to_error None Fpath_.fake_file e in
                  Core_result.mk_result_with_just_errors [ err ]
              | Ok res -> res
            in

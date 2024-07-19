@@ -47,6 +47,9 @@ val langs_of_pattern : string * Xlang.t option -> Xlang.t list
  * If [rewrite_rule_ids] is true, it will add the path of the config
  * file to the start of rule_ids.
  * The token is used to fetch App rules (e.g., from --config policy).
+ *
+ * It also returns "unrecoverable errors", in the form of `Rule.Error.t`,
+ * which are errors that should prevent further execution, and not be skipped.
  *)
 val rules_from_rules_source :
   token_opt:Auth.token option ->
@@ -54,7 +57,7 @@ val rules_from_rules_source :
   strict:bool ->
   < Cap.network ; Cap.tmp > ->
   Rules_source.t ->
-  rules_and_origin list
+  rules_and_origin list * Rule.Error.t list
 
 (* TODO: make cap network an option (with token) *)
 val rules_from_rules_source_async :
@@ -63,7 +66,7 @@ val rules_from_rules_source_async :
   strict:bool ->
   < Cap.network ; Cap.tmp > ->
   Rules_source.t ->
-  rules_and_origin list Lwt.t
+  (rules_and_origin list * Rule.Error.t list) Lwt.t
 
 (* internals *)
 

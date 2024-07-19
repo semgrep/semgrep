@@ -74,7 +74,7 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
    * TODO: report not only Rule.invalid_rule_errors but all Rule.Error.t for (1)
    * in Config_resolver.errors.
    *)
-  let rules_and_origin =
+  let rules_and_origin, fatal_errors =
     Rule_fetching.rules_from_rules_source ~token_opt ~rewrite_rule_ids:true
       ~strict:conf.core_runner_conf.strict
       (caps :> < Cap.network ; Cap.tmp >)
@@ -175,12 +175,15 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
   (* TODO: checking (4) *)
 
   (* Summarizing findings (errors) *)
+  let num_fatal_errors = List.length fatal_errors in
   let num_errors = List.length errors + List.length metacheck_errors in
   (* was logger.info, but works without --verbose, so Logs.app better *)
   Logs.app (fun m ->
-      m "Configuration is %s - found %d configuration error(s), and %d rule(s)."
-        (if num_errors =|= 0 then "valid" else "invalid")
-        num_errors (List.length rules));
+      m
+        "Configuration is %s - found %d fatal errors, %d skippable error(s), \
+         and %d rule(s)."
+        (if num_errors + num_fatal_errors =|= 0 then "valid" else "invalid")
+        num_fatal_errors num_errors (List.length rules));
   (* coupling: with Check_rule.error and use of SemgrepMatchFound *)
   metacheck_errors
   |> List.iter (fun (x : Out.cli_match) ->

@@ -49,5 +49,5 @@ let readable ~root path = Filename_.readable ~root:!!root !!path |> Fpath.v
 let current_dir = Fpath.v "."
 
 (* TODO: get rid of! *)
-let no_file : Fpath.t = Fpath.v "_NOT_A_FILE_"
-let is_no_file (f : Fpath.t) : bool = Fpath.equal f no_file
+let fake_file : Fpath.t = Fpath.v "_NOT_A_FILE_"
+let is_fake_file (f : Fpath.t) : bool = Fpath.equal f fake_file
