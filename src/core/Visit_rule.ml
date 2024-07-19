@@ -35,7 +35,8 @@ let visit_formula f (formula : formula) : unit =
    That way, pattern leaves underneath an Inside/Anywhere will properly be
    paired with a true boolean.
 *)
-let visit_xpatterns func formula =
+let visit_xpatterns (func : Xpattern.t -> inside:bool -> unit)
+    (formula : formula) : unit =
   let bref = ref false in
   let rec aux func formula =
     match formula.f with
@@ -50,7 +51,7 @@ let visit_xpatterns func formula =
   in
   aux func formula
 
-let xpatterns_of_rule rule =
+let xpatterns_of_rule (rule : Rule.t) : Xpattern.t list =
   let formulae = formula_of_mode rule.mode in
   let xpat_store = ref [] in
   let visit xpat ~inside:_ = xpat_store := xpat :: !xpat_store in

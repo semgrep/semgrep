@@ -59,14 +59,14 @@ let parse_language ~id ((s, t) as _lang) : (Lang.t, Rule_error.t) result =
   match Lang.of_string_opt s with
   | None ->
       Error
-        (Rule_error.Error.mk_error ~rule_id:(Some id)
+        (Rule_error.mk_error ~rule_id:(Some id)
            (InvalidRule (InvalidLanguage s, id, t)))
   | Some lang -> (
       match Parsing_plugin.check_if_missing lang with
       | Ok () -> Ok lang
       | Error msg ->
           Error
-            (Rule_error.Error.mk_error ~rule_id:(Some id)
+            (Rule_error.mk_error ~rule_id:(Some id)
                (InvalidRule (MissingPlugin msg, id, t))))
 
 (*
@@ -537,7 +537,7 @@ let parse_rules_to_run_with_extract env key value =
            Rule_ID.of_string_opt value
            |> Option.to_result
                 ~none:
-                  (Rule_error.Error.mk_error ~rule_id:(Some env.id)
+                  (Rule_error.mk_error ~rule_id:(Some env.id)
                      (InvalidRule
                         ( InvalidOther
                             ("Expected a valid rule ID. Instead got " ^ value),
@@ -925,7 +925,7 @@ let parse_version key value =
 
 let incompatible_version ?min_version ?max_version rule_id tok =
   Error
-    (Rule_error.Error.mk_error ~rule_id:(Some rule_id)
+    (Rule_error.mk_error ~rule_id:(Some rule_id)
        (InvalidRule
           ( IncompatibleRule (Version_info.version, (min_version, max_version)),
             rule_id,
@@ -1109,8 +1109,7 @@ let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
     Ok (Either_.partition (fun x -> x) xs)
   in
   match res with
-  | Error (err : Rule_error.t) ->
-      Error (Rule_error.Error.augment_with_file file err)
+  | Error (err : Rule_error.t) -> Error (Rule_error.augment_with_file file err)
   | other -> other
 
 (* We can't call just Yaml_to_generic.program below because when we parse
@@ -1124,7 +1123,7 @@ let parse_yaml_rule_file ~is_target (file : Fpath.t) =
   let str = UFile.read_file file in
   try Ok (Yaml_to_generic.parse_yaml_file ~is_target file str) with
   | Parsing_error.Other_error (s, t) ->
-      Error (Rule_error.Error.mk_error (InvalidYaml (s, t)))
+      Error (Rule_error.mk_error (InvalidYaml (s, t)))
 
 let parse_file ?error_recovery ?(rewrite_rule_ids = None) file :
     (Rule.rules * Rule_error.invalid_rule list, Rule_error.t) result =
