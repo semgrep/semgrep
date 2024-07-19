@@ -47,7 +47,7 @@ let parse_pattern lang_pattern str =
     let tok = Tok.unsafe_fake_tok "no loc" in
     let xlang = Xlang.of_lang lang_pattern in
     Error
-      (Rule_error.Error.mk_error
+      (Rule_error.mk_error
          (InvalidRule (InvalidPattern (str, xlang, s, []), id, tok)))
   in
   match Parse_pattern.parse_pattern lang_pattern str with
