@@ -543,13 +543,11 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
 
 (* Convert invalid rules to errors to be reported at the end.
    This used to raise an exception causing an early abort.
-
    TODO: restore early abort but only in strict mode?
    TODO: report an error or not depending on the kind of problem?
 *)
-let errors_of_invalid_rule_errors (invalid_rules : Rule.invalid_rule_error list)
-    =
-  List_.map E.error_of_invalid_rule_error invalid_rules
+let errors_of_invalid_rules (invalid_rules : Rule_error.invalid_rule list) =
+  invalid_rules |> List_.map E.error_of_invalid_rule
 
 (*****************************************************************************)
 (* Parsing (non-cached) *)
@@ -557,7 +555,7 @@ let errors_of_invalid_rule_errors (invalid_rules : Rule.invalid_rule_error list)
 
 (* for -rules *)
 let rules_from_rule_source (caps : < Cap.tmp >) (config : Core_scan_config.t) :
-    Rule.rules_and_errors =
+    Rule_error.rules_and_invalid =
   let rule_source =
     match config.rule_source with
     | Some (Core_scan_config.Rule_file file) ->
@@ -578,7 +576,8 @@ let rules_from_rule_source (caps : < Cap.tmp >) (config : Core_scan_config.t) :
           Parse_rule.parse_and_filter_invalid_rules ~rewrite_rule_ids:None file
         with
         | Ok rules -> rules
-        | Error e -> failwith ("Error in parsing: " ^ Rule.string_of_error e))
+        | Error e ->
+            failwith ("Error in parsing: " ^ Rule_error.string_of_error e))
     | Some (Core_scan_config.Rules rules) -> (rules, [])
     | None ->
         (* TODO: ensure that this doesn't happen *)
@@ -1064,7 +1063,7 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
 
 let scan_exn ?match_hook (caps : < Cap.tmp >) (config : Core_scan_config.t)
     ((valid_rules, invalid_rules), rules_parse_time) : Core_result.t =
-  let rule_errors = errors_of_invalid_rule_errors invalid_rules in
+  let rule_errors = errors_of_invalid_rules invalid_rules in
 
   (* The basic targets *)
   let basic_targets, skipped = targets_of_config caps config in

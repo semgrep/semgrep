@@ -616,12 +616,12 @@ let core_output_of_matches_and_errors (res : Core_result.t) : Out.core_output =
       };
     skipped_rules =
       res.skipped_rules
-      |> List_.map (fun ((kind, rule_id, tk) : Rule.invalid_rule_error) ->
+      |> List_.map (fun ((kind, rule_id, tk) : Rule_error.invalid_rule) ->
              let loc = Tok.unsafe_loc_of_tok tk in
              Out.
                {
                  rule_id;
-                 details = Rule.string_of_invalid_rule_error_kind kind;
+                 details = Rule_error.string_of_invalid_rule_kind kind;
                  position = OutUtils.position_of_token_location loc;
                });
     time = res.profiling |> Option.map profiling_to_profiling;

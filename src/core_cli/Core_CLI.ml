@@ -192,7 +192,7 @@ let dump_patterns_of_rule (caps : < Cap.tmp >) (file : Fpath.t) =
   let file = Core_scan.replace_named_pipe_by_regular_file caps file in
   match Parse_rule.parse file with
   | Ok rules ->
-      let xpats = List.concat_map Rule.xpatterns_of_rule rules in
+      let xpats = List.concat_map Visit_rule.xpatterns_of_rule rules in
       List.iter
         (fun { Xpattern.pat; _ } ->
           match pat with
@@ -203,7 +203,7 @@ let dump_patterns_of_rule (caps : < Cap.tmp >) (file : Fpath.t) =
           | _ -> UCommon.pr (Xpattern.show_xpattern_kind pat))
         xpats
       (* TODO: handle better *)
-  | Error e -> failwith (Rule.string_of_error e)
+  | Error e -> failwith (Rule_error.string_of_error e)
 [@@action]
 
 let dump_ast ?(naming = false) (caps : < Cap.stdout ; Cap.exit ; Cap.tmp >)

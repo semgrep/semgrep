@@ -44,14 +44,14 @@ let upload_rule caps rule_file (conf : Publish_CLI.conf) test_code_file =
         (caps :> < Cap.network ; Cap.tmp >)
         (Rules_config.File (Fpath.v rule_file))
     in
-    let rules, invalid_rule_errors =
-      Rule_fetching.partition_rules_and_errors rules_and_origins
+    let rules, invalid_rules =
+      Rule_fetching.partition_rules_and_invalid rules_and_origins
     in
     ( rules,
-      List_.map
-        (fun ((_, rule_id, _) as err) ->
-          Rule.Error.mk_error ~rule_id:(Some rule_id) (InvalidRule err))
-        invalid_rule_errors
+      (invalid_rules
+      |> List_.map (fun ((_, rule_id, _) as err) ->
+             Rule_error.Error.mk_error ~rule_id:(Some rule_id) (InvalidRule err))
+      )
       @ errors )
   in
 
@@ -59,7 +59,9 @@ let upload_rule caps rule_file (conf : Publish_CLI.conf) test_code_file =
   | _ :: _, _ ->
       Logs.err (fun m ->
           m "    Invalid rule definition: %s is invalid: %s" rule_file
-            (errors |> List_.map Rule.string_of_error |> String.concat ", "));
+            (errors
+            |> List_.map Rule_error.string_of_error
+            |> String.concat ", "));
       false
   | _, [ rule ] -> (
       (* TODO: This emits a "fatal: No remote configured to list refs from."

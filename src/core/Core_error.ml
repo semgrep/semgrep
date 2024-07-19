@@ -108,9 +108,8 @@ let mk_error_tok opt_rule_id (file : Fpath.t) (tok : Tok.t) (msg : string)
   in
   mk_error ~rule_id:opt_rule_id ~msg loc err
 
-let error_of_invalid_rule_error ((kind, rule_id, pos) : R.invalid_rule_error) :
-    t =
-  let msg = Rule.string_of_invalid_rule_error_kind kind in
+let error_of_invalid_rule ((kind, rule_id, pos) : Rule_error.invalid_rule) : t =
+  let msg = Rule_error.string_of_invalid_rule_kind kind in
   let err =
     match kind with
     | IncompatibleRule (this_version, (min_version, max_version)) ->
@@ -127,7 +126,7 @@ let error_of_invalid_rule_error ((kind, rule_id, pos) : R.invalid_rule_error) :
   (* TODO: bad use of fake_file, use pos? *)
   mk_error_tok (Some rule_id) Fpath_.fake_file pos msg err
 
-let error_of_rule_error (file : Fpath.t) (err : Rule.Error.t) : t =
+let error_of_rule_error (file : Fpath.t) (err : Rule_error.t) : t =
   let rule_id = err.rule_id in
   match err.kind with
   | InvalidRule
@@ -146,7 +145,7 @@ let error_of_rule_error (file : Fpath.t) (err : Rule.Error.t) : t =
             (Xlang.to_string xlang) pattern message;
         details = None;
       }
-  | InvalidRule err -> error_of_invalid_rule_error err
+  | InvalidRule err -> error_of_invalid_rule err
   | InvalidYaml (msg, pos) -> mk_error_tok rule_id file pos msg Out.InvalidYaml
   | DuplicateYamlKey (s, pos) -> mk_error_tok rule_id file pos s Out.InvalidYaml
   (* TODO?? *)

@@ -157,10 +157,10 @@ let exit_code_of_errors ~strict (errors : Out.core_error list) : Exit_code.t =
       | _ -> Exit_code.ok ~__LOC__)
 
 (* Core errors are easier to report. *)
-let core_errors_of_fatal_rule_errors (fatal_errors : Rule.Error.t list) :
+let core_errors_of_fatal_rule_errors (fatal_errors : Rule_error.t list) :
     Core_error.t list =
   fatal_errors
-  |> List_.map (fun (e : Rule.Error.t) ->
+  |> List_.map (fun (e : Rule_error.t) ->
          let core_err = Core_error.error_of_rule_error e.file e in
          (* We should definitely not drop rule errors here.
             That being said, it shouldn't be possible to get no file here,
@@ -534,8 +534,8 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
     (Rule.rule list * Core_runner.result * Out.cli_output, Exit_code.t) result =
   Metrics_.add_engine_type conf.engine_type;
   (* step 1: last touch on rules *)
-  let rules, rule_errors =
-    Rule_fetching.partition_rules_and_errors rules_and_origins
+  let rules, invalid_rules =
+    Rule_fetching.partition_rules_and_invalid rules_and_origins
   in
   let/ rules = uniq_rules_and_error_if_empty_rules rules in
   let rules = Rule_filtering.filter_rules conf.rule_filtering_conf rules in
@@ -569,7 +569,7 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
                 conf Differential_scan_config.WholeScan
             in
             core_run_for_osemgrep.run ~file_match_hook conf.core_runner_conf
-              conf.targeting_conf (rules, rule_errors) targets)
+              conf.targeting_conf (rules, invalid_rules) targets)
     | Some baseline_commit ->
         (* scan_baseline calls internally Profiler.record "head_core_time"  *)
         (* diff scan mode *)
@@ -579,7 +579,7 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
             mk_core_run_for_osemgrep (caps :> < Cap.tmp >) conf diff_config
           in
           core_run_for_osemgrep.run ~file_match_hook conf.core_runner_conf
-            conf.targeting_conf (rules, rule_errors) targets
+            conf.targeting_conf (rules, invalid_rules) targets
         in
         Diff_scan.scan_baseline
           (caps :> < Cap.chdir ; Cap.tmp >)
