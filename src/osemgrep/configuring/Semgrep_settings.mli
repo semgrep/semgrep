@@ -8,7 +8,13 @@ type t = {
   anonymous_user_id : Uuidm.t;
 }
 
-(* loading the ~/.semgrep/settings.yml in memory *)
+(* Load the settings file (default: ~/.semgrep/settings.yml).
+   This function is intended for testing. *)
+val load_opt : ?maturity:Maturity.t -> ?include_env:bool -> unit -> t option
+
+(* Load the settings file and additionally read 'api_token'
+   from the 'SEMGREP_APP_TOKEN' environment variable if 'include_env'
+   is true (default). *)
 val load : ?maturity:Maturity.t -> ?include_env:bool -> unit -> t
 
 (* save and returns whether the save was successful *)

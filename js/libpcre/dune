@@ -1,3 +1,6 @@
+; This dune file provides the javascript stubs. Similar to stubs for
+; C libraries, but for javascript
+
 (library
  (public_name semgrep.libpcre_stubs_js)
  (name libpcre_stubs_js)

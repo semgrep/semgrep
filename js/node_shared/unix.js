@@ -220,6 +220,8 @@ function unix_pipe(cloexec, vunit) {
 
   globalThis.fdCount++;
 
+  // ??? Please explain the return value since normally,
+  // Unix.pipe returns a pair (fd_read, fd_write) with fd_write <> fd_read.
   return [0, fd, fd];
 }
 
@@ -252,11 +254,20 @@ function unix_clear_close_on_exec(fd) {
 function unix_dup(cloexec, fd) {
   // We just use the same unix_pipe logic to generate a fresh fake
   // file descriptor.
+  // ??? Shouldn't we return just the new file descriptor?
   return unix_pipe(cloexec, fd);
 }
 
 //Provides: unix_close
 function unix_close(fd) {
+  return;
+}
+
+//Provides: unix_dup2
+function unix_dup2(cloexec, old_fd, new_fd) {
+  // Normally, we're supposed to close old_fd and reuse its identifier
+  // to make it point to a copy of new_fd.
+  // ???
   return;
 }
 

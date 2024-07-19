@@ -1,6 +1,11 @@
+# What does this do? Why is 'build' not the default?
 .PHONY: default
 default: libyaml engine languages
 
+# Why does this not build everything? Why doesn't it invoke 'dune'?
+#
+# This calls emscripten to compile the C dependencies, then esbuild to bundle
+# the js_of_ocaml files and emscripten outputs together
 .PHONY: build
 build:
 	cd libpcre; $(MAKE) build
