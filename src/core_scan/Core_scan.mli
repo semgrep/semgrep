@@ -41,7 +41,7 @@ val print_match :
 (*****************************************************************************)
 
 val rules_from_rule_source :
-  < Cap.tmp > -> Core_scan_config.t -> Rule.rules_and_errors
+  < Cap.tmp > -> Core_scan_config.t -> Rule_error.rules_and_invalid
 (** Get the rules *)
 
 val targets_of_config :
@@ -85,9 +85,7 @@ val print_cli_additional_targets : Core_scan_config.t -> int -> unit
 val print_cli_progress : Core_scan_config.t -> unit
 
 (* used internally but also called by osemgrep *)
-val errors_of_invalid_rule_errors :
-  Rule.invalid_rule_error list -> Core_error.t list
-
+val errors_of_invalid_rules : Rule_error.invalid_rule list -> Core_error.t list
 val replace_named_pipe_by_regular_file : < Cap.tmp > -> Fpath.t -> Fpath.t
 (* Small wrapper around File.replace_named_pipe_by_regular_file_if_needed.
    Any file coming from the command line should go through this so as to

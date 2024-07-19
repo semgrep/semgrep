@@ -353,7 +353,8 @@ let translate_files fparser xs =
                             failwith "sca rules not currently translated"
                         | `Steps _ ->
                             failwith "step rules not currently handled")
-             | Error e -> failwith ("parsing failure: " ^ Rule.string_of_error e)
+             | Error e ->
+                 failwith ("parsing failure: " ^ Rule_error.string_of_error e)
            in
            (file, formulas))
   in

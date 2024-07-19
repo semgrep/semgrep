@@ -14,7 +14,7 @@
 val parse_and_filter_invalid_rules :
   ?rewrite_rule_ids:(Rule_ID.t -> Rule_ID.t) option ->
   Fpath.t ->
-  (Rule.rules_and_errors, Rule.Error.t) Result.t
+  (Rule_error.rules_and_invalid, Rule_error.t) Result.t
 
 (* This is used for parsing -e/-f extended patterns in Run_semgrep.ml
  * and now also in osemgrep Config_resolver.ml.
@@ -22,17 +22,17 @@ val parse_and_filter_invalid_rules :
  * Error (Rule.InvalidRegexp _) for regexp errors.
  *)
 val parse_xpattern :
-  Xlang.t -> string Rule.wrap -> (Xpattern.t, Rule.Error.t) Result.t
+  Xlang.t -> string Rule.wrap -> (Xpattern.t, Rule_error.t) Result.t
 
 val parse_fake_xpattern :
-  Xlang.t -> string -> (Xpattern.t, Rule.Error.t) Result.t
+  Xlang.t -> string -> (Xpattern.t, Rule_error.t) Result.t
 
 (* This should be used mostly in testing code. Otherwise you should
  * use parse_and_filter_invalid_rules.
  * This function may raise (Rule.Err ....) or Assert_failure (when
  * there are invalid rules).
  *)
-val parse : Fpath.t -> (Rule.rules, Rule.Error.t) Result.t
+val parse : Fpath.t -> (Rule.rules, Rule_error.t) Result.t
 
 (* Internals, used by osemgrep to setup a ojsonnet import hook.
  * The filename parameter is just used in case of missing 'rules:'
@@ -43,4 +43,4 @@ val parse_generic_ast :
   ?rewrite_rule_ids:(Rule_ID.t -> Rule_ID.t) option ->
   Fpath.t ->
   AST_generic.program ->
-  (Rule.rules_and_errors, Rule.Error.t) Result.t
+  (Rule_error.rules_and_invalid, Rule_error.t) Result.t

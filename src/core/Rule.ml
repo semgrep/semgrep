@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2023 Semgrep Inc.
+ * Copyright (C) 2019-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -12,9 +12,9 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open Common
 module MV = Metavariable
-module OutJ = Semgrep_output_v1_t
+
+(* for deriving hash *)
 open Ppx_hash_lib.Std.Hash.Builtin
 
 (*****************************************************************************)
@@ -151,6 +151,12 @@ and metavar_name_kind = DjangoView
 (* Represents all of the metavariables that are being focused by a single
    `focus-metavariable`. *)
 and focus_mv_list = tok * MV.mvar list [@@deriving show, eq, hash]
+
+let mk_formula ?(fix = None) ?(focus = []) ?(conditions = []) ?(as_ = None) kind
+    =
+  { f = kind; focus; conditions; fix; as_ }
+
+let f kind = mk_formula kind
 
 (*****************************************************************************)
 (* Semgrep_output aliases *)
@@ -676,7 +682,7 @@ type 'mode rule_info = {
   (* This is not a concrete field in the rule, but it's derived from
    * other fields (e.g., metadata, mode) in Parse_rule.ml
    *)
-  product : OutJ.product;
+  product : Semgrep_output_v1_t.product;
   (* ex: [("owasp", "A1: Injection")] but can be anything.
    * Metadata was (ab)used for the ("interfile", "true") setting, but this
    * is now done via Rule_options instead.
@@ -769,232 +775,10 @@ let show_id rule = rule.id |> fst |> Rule_ID.to_string
  *)
 let last_matched_rule : Rule_ID.t option ref = ref None
 
-(* Those are recoverable errors; We can just skip the rules containing them.
- * TODO? put in Output_from_core.atd?
- *)
-type invalid_rule_error = invalid_rule_error_kind * Rule_ID.t * Tok.t
-
-and invalid_rule_error_kind =
-  | InvalidLanguage of string (* the language string *)
-  (* TODO: the Parse_info.t for InvalidPattern is not precise for now;
-   * it corresponds to the start of the pattern *)
-  | InvalidPattern of
-      string (* pattern *)
-      * Xlang.t
-      * string (* exn *)
-      * string list (* yaml path *)
-  | InvalidRegexp of string (* PCRE error message *)
-  | DeprecatedFeature of string (* e.g., pattern-where-python: *)
-  | MissingPositiveTermInAnd
-  | IncompatibleRule of
-      Version_info.t (* this version of Semgrep *)
-      * (Version_info.t option (* minimum version supported by this rule *)
-        * Version_info.t option (* maximum version *))
-  | MissingPlugin of string (* error message *)
-  | InvalidOther of string
-[@@deriving show]
-
-(* General errors *)
-type error_kind =
-  | InvalidRule of invalid_rule_error
-  | InvalidYaml of string * Tok.t
-  | DuplicateYamlKey of string * Tok.t
-  | UnparsableYamlException of string
-[@@deriving show]
-
-type rules_and_errors = rules * invalid_rule_error list
-
-(* A small module for the type of rule errors.
-   Depending on the variant, these may or may not be "recoverable" or "unrecoverable",
-   where "recoverable" errors in rule parsing can simply skip the rule, whereas
-   "unrecoverable" rule errors will stop engine execution.
-
-   We make this private, because we have since decided to include a file path with
-   each rule error, by intercepting the error before it exits rule parsing.
-
-   To clean the code, we establish a singular way to create an error, that being
-   `mk_error`, so that we are not too dependent on the definition of the type.
-   This also lets us instantiate the `file` at a dummy value uniformly.
-*)
-module Error : sig
-  (* same as below *)
-  type error = private {
-    (* Some errors are in the YAML file before we can enter a specific rule
-       or it could be a rule without an ID. This is why the rule ID is
-       optional. *)
-    rule_id : Rule_ID.t option;
-    (* helpful to have this for error message purposes, as well as
-       conversion via functions like `Core_error.error_of_rule_error
-    *)
-    file : Fpath.t;
-    kind : error_kind;
-  }
-
-  and t = error [@@deriving show]
-
-  val mk_error : ?rule_id:Rule_ID.t option -> error_kind -> error
-  val augment_with_file : Fpath.t -> error -> error
-end = struct
-  (* same as above *)
-  type error = { rule_id : Rule_ID.t option; file : Fpath.t; kind : error_kind }
-  and t = error [@@deriving show]
-
-  (*
-      You must provide a rule ID for a rule to be reported properly as an invalid
-      rule. The argument is not optional because it's important to not forget to
-      specify a rule ID whenever possible.
-    *)
-  (* It's not great that we set this temporary file, but because of how we guard
-     `Parse_rule`, this should definitely be populated in any entry point
-     functions other than `parse_xpattern` and `parse_fake_xpattern`.
-
-     Alternatively, we could try to provide the `file` at each call-site of
-     `mk_error` itself, such as in the `Parse_rule_helpers.env`. This is actually
-     a pretty hard refactor, though, as not all of those call-sites have easy access
-     to a file or an env.
-     For instance, yaml_error calls Rule.Error.mk_error, but yaml_error is
-     explicitly called by take_no_env. We can't thread an env through there,
-     the point is that it doesn't take an env, so we would need to do a broader
-     refactor. This will do to start, as I anticipate we probably won't be
-     refactoring this module to add more entry points at any time.
-  *)
-  let mk_error ?(rule_id = None) kind =
-    { rule_id; file = Fpath_.fake_file; kind }
-
-  (* for intercepting an error before it leaves `Parse_rule`, by augmenting it with
-     the file path
-  *)
-  let augment_with_file file error = { error with file }
-end
-
-(*
-   Determine if an error can be skipped. This is for presumably well-formed
-   rules that aren't compatible with the current version of semgrep
-   and shouldn't cause a failure.
-*)
-let is_skippable_error (kind : invalid_rule_error_kind) =
-  match kind with
-  | InvalidLanguage _
-  | InvalidPattern _
-  | InvalidRegexp _
-  | DeprecatedFeature _
-  | MissingPositiveTermInAnd
-  | InvalidOther _ ->
-      false
-  | IncompatibleRule _
-  | MissingPlugin _ ->
-      true
-
-(*****************************************************************************)
-(* String-of *)
-(*****************************************************************************)
-
-let string_of_invalid_rule_error_kind = function
-  | InvalidLanguage language -> spf "invalid language %s" language
-  | InvalidRegexp message -> spf "invalid regex %s" message
-  (* coupling: this is actually intercepted in
-   * Semgrep_error_code.exn_to_error to generate a PatternParseError instead
-   * of a RuleParseError *)
-  | InvalidPattern (pattern, xlang, message, _yaml_path) ->
-      spf
-        "Invalid pattern for %s: %s\n\
-         ----- pattern -----\n\
-         %s\n\
-         ----- end pattern -----\n"
-        (Xlang.to_string xlang) message pattern
-  | MissingPositiveTermInAnd ->
-      "you need at least one positive term (not just negations or conditions)"
-  | DeprecatedFeature s -> spf "deprecated feature: %s" s
-  | IncompatibleRule (cur, (Some min_version, None)) ->
-      spf "This rule requires upgrading Semgrep from version %s to at least %s"
-        (Version_info.to_string cur)
-        (Version_info.to_string min_version)
-  | IncompatibleRule (cur, (None, Some max_version)) ->
-      spf
-        "This rule is no longer supported by Semgrep. The last compatible \
-         version was %s. This version of Semgrep is %s"
-        (Version_info.to_string max_version)
-        (Version_info.to_string cur)
-  | IncompatibleRule (cur, (Some min_version, Some max_version)) ->
-      spf
-        "This rule requires a version of Semgrep within [%s, %s] but we're \
-         using version %s"
-        (Version_info.to_string min_version)
-        (Version_info.to_string max_version)
-        (Version_info.to_string cur)
-  | IncompatibleRule (_, (None, None)) -> assert false
-  | MissingPlugin msg -> msg
-  | InvalidOther s -> s
-
-let string_of_invalid_rule_error ((kind, rule_id, pos) : invalid_rule_error) =
-  spf "invalid rule %s, %s: %s"
-    (Rule_ID.to_string rule_id)
-    (Tok.stringpos_of_tok pos)
-    (string_of_invalid_rule_error_kind kind)
-
-let string_of_error (error : Error.t) : string =
-  match error.kind with
-  | InvalidRule x -> string_of_invalid_rule_error x
-  | InvalidYaml (msg, pos) ->
-      spf "invalid YAML, %s: %s" (Tok.stringpos_of_tok pos) msg
-  | DuplicateYamlKey (key, pos) ->
-      spf "invalid YAML, %s: duplicate key %S" (Tok.stringpos_of_tok pos) key
-  | UnparsableYamlException s ->
-      (* TODO: what's the string s? *)
-      spf "unparsable YAML: %s" s
-
 (*****************************************************************************)
 (* Visitor/extractor *)
 (*****************************************************************************)
-(* currently used in Check_rule.ml metachecker *)
-
-(* A more generic formula visitor than the specialized one for xpatterns below *)
-let visit_formula f (formula : formula) : unit =
-  let rec aux formula =
-    f formula;
-    (match formula.f with
-    | P _ -> ()
-    | Anywhere (_, formula)
-    | Inside (_, formula)
-    | Not (_, formula) ->
-        aux formula
-    | Or (_, xs)
-    | And (_, xs) ->
-        xs |> List.iter aux);
-    formula.conditions
-    |> List.iter (fun (_, cond) ->
-           match cond with
-           | CondNestedFormula (_, _, formula) -> aux formula
-           | CondEval _
-           | CondName _
-           | CondType _
-           | CondRegexp _
-           | CondAnalysis _ ->
-               ())
-  in
-  aux formula
-
-(* OK, this is only a little disgusting, but...
-   Evaluation order means that we will only visit children after parents.
-   So we keep a reference cell around, and set it to true whenever we descend
-   under an inside.
-   That way, pattern leaves underneath an Inside/Anywhere will properly be
-   paired with a true boolean.
-*)
-let visit_xpatterns func formula =
-  let bref = ref false in
-  let rec aux func formula =
-    match formula.f with
-    | P p -> func p ~inside:!bref
-    | Anywhere (_, formula)
-    | Inside (_, formula) ->
-        Common.save_excursion bref true (fun () -> aux func formula)
-    | Not (_, x) -> aux func x
-    | Or (_, xs)
-    | And (_, xs) ->
-        xs |> List.iter (aux func)
-  in
-  aux func formula
+(* See also Visit_rule.ml *)
 
 (* used by the metachecker for precise error location *)
 let tok_of_formula = function
@@ -1033,19 +817,6 @@ let rec formula_of_mode (mode : mode) =
         (fun step -> formula_of_mode (step.step_mode :> mode))
         steps
   | `SCA _ -> []
-
-let xpatterns_of_rule rule =
-  let formulae = formula_of_mode rule.mode in
-  let xpat_store = ref [] in
-  let visit xpat ~inside:_ = xpat_store := xpat :: !xpat_store in
-  List.iter (visit_xpatterns visit) formulae;
-  !xpat_store
-
-let mk_formula ?(fix = None) ?(focus = []) ?(conditions = []) ?(as_ = None) kind
-    =
-  { f = kind; focus; conditions; fix; as_ }
-
-let f kind = mk_formula kind
 
 (*****************************************************************************)
 (* Converters *)
