@@ -72,7 +72,7 @@ let output_core_results (caps : < Cap.stdout ; Cap.exit >)
         match result_or_exn with
         | Ok r -> r
         | Error exn ->
-            let err = E.exn_to_error None Fpath_.no_file exn in
+            let err = E.exn_to_error None Fpath_.fake_file exn in
             Core_result.mk_result_with_just_errors [ err ]
       in
       let res = Core_json_output.core_output_of_matches_and_errors res in
