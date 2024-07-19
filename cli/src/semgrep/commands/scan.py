@@ -613,6 +613,10 @@ def scan(
             force_color=force_color,
             output_format=output_format,
         )
+        # to capture the stderr of semgrep-core or to let semgrep-core reuse
+        # the stderr of pysemgrep to display logs as soon as they are produced
+        # pysemgrep-only: not needed for osemgrep obviously
+        capture_core_stderr = not debug
 
         if include and exclude:
             logger.warning(
@@ -737,6 +741,7 @@ def scan(
                                 interfile_timeout=interfile_timeout,
                                 trace=trace,
                                 trace_endpoint=trace_endpoint,
+                                capture_stderr=capture_core_stderr,
                                 optimizations=optimizations,
                                 allow_untrusted_validators=allow_untrusted_validators,
                                 path_sensitive=path_sensitive,
@@ -810,6 +815,7 @@ def scan(
                         baseline_commit=baseline_commit,
                         x_ls=x_ls,
                         path_sensitive=path_sensitive,
+                        capture_core_stderr=capture_core_stderr,
                     )
                 except SemgrepError as e:
                     output_handler.handle_semgrep_errors([e])

@@ -165,15 +165,22 @@ class StreamingSemgrepCore:
     Handles running semgrep-core in a streaming fashion
 
     This behavior is assumed to be that semgrep-core:
-    - prints a "." on a newline for every file it finishes scanning
-    - prints a number on a newline for any extra targets produced during a scan
-    - prints a single json blob of all results
+    - prints on stdout a "." on a newline for every file it finishes scanning
+    - prints on stdout a number on a newline for any extra targets produced
+      during a scan
+    - prints on stdout a single json blob of all results
 
     Exposes the subprocess.CompletedProcess properties for
     expediency in integrating
+
+    capture_stderr is to capture the stderr of semgrep-core in a pipe; if set
+    to false then the stderr of semgrep-core is reusing the one of pysemgrep
+    allowing to show the logs of semgrep-core as soon as they are produced.
     """
 
-    def __init__(self, cmd: List[str], total: int, engine_type: EngineType) -> None:
+    def __init__(
+        self, cmd: List[str], total: int, engine_type: EngineType, capture_stderr: bool
+    ) -> None:
         """
         cmd: semgrep-core command to run
         total: how many rules to run / how many "." we expect to see a priori
@@ -183,6 +190,7 @@ class StreamingSemgrepCore:
         self._total = total
         self._stdout = ""
         self._stderr = ""
+        self._capture_stderr = capture_stderr
         self._progress_bar: Optional[Progress] = None
         self._progress_bar_task_id: Optional[TaskID] = None
         self._engine_type: EngineType = engine_type
@@ -324,6 +332,9 @@ class StreamingSemgrepCore:
         Basically works synchronously and combines output to
         stderr to self._stderr
         """
+        if not self._capture_stderr:
+            return
+
         stderr_lines: List[str] = []
 
         if stream is None:
@@ -360,7 +371,7 @@ class StreamingSemgrepCore:
             return (f"{fname}: {exnClass}: {e}".encode(), 1)
 
     async def _handle_process_outputs(
-        self, stdout: asyncio.StreamReader, stderr: asyncio.StreamReader
+        self, stdout: asyncio.StreamReader, stderr: Optional[asyncio.StreamReader]
     ) -> None:
         """
         Wait for both output streams to reach EOF, processing and
@@ -384,20 +395,23 @@ class StreamingSemgrepCore:
 
         Return its exit code when it terminates.
         """
+        stderr_arg = asyncio.subprocess.PIPE if self._capture_stderr else None
+
         # Set parent span id as close to fork as possible to ensure core
         # spans nest under the correct pysemgrep parent span.
         get_state().traces.inject()
         process = await asyncio.create_subprocess_exec(
             *self._cmd,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
+            stderr=stderr_arg,
             limit=INPUT_BUFFER_LIMIT,
             preexec_fn=setrlimits_preexec_fn,
         )
 
         # Ensured by passing stdout/err named parameters above.
         assert process.stdout
-        assert process.stderr
+        if self._capture_stderr:
+            assert process.stderr
 
         await self._handle_process_outputs(process.stdout, process.stderr)
 
@@ -458,6 +472,7 @@ class CoreRunner:
         interfile_timeout: int,
         trace: bool,
         trace_endpoint: Optional[str],
+        capture_stderr: bool,
         optimizations: str,
         allow_untrusted_validators: bool,
         respect_rule_paths: bool = True,
@@ -476,6 +491,7 @@ class CoreRunner:
         self._allow_untrusted_validators = allow_untrusted_validators
         self._path_sensitive = path_sensitive
         self._respect_rule_paths = respect_rule_paths
+        self._capture_stderr = capture_stderr
 
     def _extract_core_output(
         self,
@@ -671,6 +687,7 @@ class CoreRunner:
             unused_rules=unused_rules,
         )
 
+    # TODO: move some of those parameters to CoreRunner.__init__()?
     def _run_rules_direct_to_semgrep_core_helper(
         self,
         rules: List[Rule],
@@ -906,7 +923,12 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                 print(" ".join(printed_cmd))
                 sys.exit(0)
 
-            runner = StreamingSemgrepCore(cmd, total=total, engine_type=engine)
+            runner = StreamingSemgrepCore(
+                cmd,
+                total=total,
+                engine_type=engine,
+                capture_stderr=self._capture_stderr,
+            )
             runner.vfs_map = vfs_map
             returncode = runner.execute()
             # Process output
@@ -1109,7 +1131,7 @@ Exception raised: `{e}`
             total = 1 if show_progress else 0
 
             runner = StreamingSemgrepCore(
-                cmd, total=total, engine_type=self._engine_type
+                cmd, total=total, engine_type=self._engine_type, capture_stderr=True
             )
             returncode = runner.execute()
 
