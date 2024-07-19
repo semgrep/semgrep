@@ -271,7 +271,8 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
         *)
         | None, _ ->
             true
-        | Some i1, Some i2 -> G.equal_id_info i1 i2
+        | Some i1, Some i2 ->
+            (not config.unify_ids_strictly) || G.equal_id_info i1 i2
         | Some _, None -> false)
     (* In Ruby, they use atoms for metaprogramming to generate fields
      * (e.g., 'serialize :tags ... post.tags') in which case we want
