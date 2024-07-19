@@ -234,7 +234,7 @@ let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
                   Core_error.rule_id = None;
                   typ = SemgrepWarning;
                   msg;
-                  loc = Some loc;
+                  loc;
                   details = None;
                 }
               in

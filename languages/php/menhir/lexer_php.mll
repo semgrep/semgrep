@@ -59,7 +59,7 @@ let yyback n lexbuf =
 let tok = Lexing.lexeme
 let tokinfo = Tok.tok_of_lexbuf
 
-let tokinfo_file_str_pos file str bytepos = Tok.tok_of ~str ~file ~bytepos
+let tokinfo_str_pos = Tok.tok_of_str_and_bytepos
 
 (* all string passed to T_IDENT or T_VARIABLE should go through case_str *)
 let case_str s =
@@ -540,14 +540,13 @@ rule st_in_scripting = parse
 
         let syminfo = Tok.rewrap_str sym info in
 
-        let file = Tok.file_of_tok info in
         let parse_info = Tok.unsafe_loc_of_tok info in
         let pos_after_sym   =
           parse_info.Tok.pos.bytepos + String.length sym in
         let pos_after_white = pos_after_sym + String.length white in
 
-        let whiteinfo = tokinfo_file_str_pos file white pos_after_sym in
-        let lblinfo = tokinfo_file_str_pos file label pos_after_white in
+        let whiteinfo = tokinfo_str_pos white pos_after_sym in
+        let lblinfo = tokinfo_str_pos label pos_after_white in
 
         push_token (T_IDENT (case_str label, lblinfo));
        (* todo: could be newline ... *)
@@ -632,9 +631,8 @@ rule st_in_scripting = parse
         let info = tokinfo lexbuf in
         let dollarinfo = Tok.rewrap_str (String.make 1 dollar) info in
         let parse_info = Tok.unsafe_loc_of_tok info in
-        let file = Tok.file_of_tok info in
         let pos_after_sym = parse_info.Tok.pos.bytepos + 2 in
-        let lblinfo = tokinfo_file_str_pos file s pos_after_sym in
+        let lblinfo = tokinfo_str_pos s pos_after_sym in
 
         push_token (T_VARIABLE(case_str s, lblinfo));
         TDOLLAR dollarinfo
@@ -903,12 +901,12 @@ and st_double_quotes = parse
     | "$" (LABEL as s)     { t_variable_or_metavar s (tokinfo lexbuf) }
     | "$" (LABEL as s) "[" {
           let info = tokinfo lexbuf in
-          let file = Tok.file_of_tok info in
+
           let varinfo = Tok.rewrap_str ("$" ^ s) info in
           let charpos_info = Tok.bytepos_of_tok varinfo in
           let pos_after_label = charpos_info + String.length ("$" ^ s) in
 
-          let bra_info = tokinfo_file_str_pos file "[" pos_after_label in
+          let bra_info = tokinfo_str_pos "[" pos_after_label in
           push_token (TOBRA bra_info);
           push_mode ST_VAR_OFFSET;
           T_VARIABLE(case_str s, varinfo)
@@ -952,12 +950,11 @@ and st_backquote = parse
     | "$" (LABEL as s) "[" {
           let info = tokinfo lexbuf in
 
-          let file = Tok.file_of_tok info in
           let varinfo = Tok.rewrap_str ("$" ^ s) info in
           let charpos_info = Tok.bytepos_of_tok varinfo in
           let pos_after_label = charpos_info + String.length ("$" ^ s) in
 
-          let bra_info = tokinfo_file_str_pos file "[" pos_after_label in
+          let bra_info = tokinfo_str_pos "[" pos_after_label in
           push_token (TOBRA bra_info);
           push_mode ST_VAR_OFFSET;
           T_VARIABLE(case_str s, varinfo)
@@ -1000,15 +997,14 @@ and st_start_heredoc stopdoc = parse
 
       let lbl_info = Tok.rewrap_str s info in
 
-      let file = Tok.file_of_tok info in
       let pos = Tok.bytepos_of_tok info in
       let pos_after_label = pos + String.length s in
       let pos_after_semi = pos_after_label + String.length semi in
 
       let colon_info =
-        tokinfo_file_str_pos file semi pos_after_label in
+        tokinfo_str_pos semi pos_after_label in
       let space_info =
-        tokinfo_file_str_pos file (Common2.string_of_char space) pos_after_semi in
+        tokinfo_str_pos (Common2.string_of_char space) pos_after_semi in
 
       if s = stopdoc
       then begin
@@ -1031,12 +1027,11 @@ and st_start_heredoc stopdoc = parse
     | "$" (LABEL as s) "[" {
           let info = tokinfo lexbuf in
 
-          let file = Tok.file_of_tok info in
           let varinfo = Tok.rewrap_str ("$" ^ s) info in
           let charpos_info = Tok.bytepos_of_tok varinfo in
           let pos_after_label = charpos_info + String.length ("$" ^ s) in
 
-          let bra_info = tokinfo_file_str_pos file "[" pos_after_label in
+          let bra_info = tokinfo_str_pos "[" pos_after_label in
           push_token (TOBRA bra_info);
           push_mode ST_VAR_OFFSET;
           T_VARIABLE(case_str s, varinfo)
@@ -1074,15 +1069,14 @@ and st_start_nowdoc stopdoc = parse
 
       let lbl_info = Tok.rewrap_str s info in
 
-      let file = Tok.file_of_tok info in
       let pos = Tok.bytepos_of_tok info in
       let pos_after_label = pos + String.length s in
       let pos_after_semi = pos_after_label + String.length semi in
 
       let colon_info =
-        tokinfo_file_str_pos file semi pos_after_label in
+        tokinfo_str_pos semi pos_after_label in
       let space_info =
-        tokinfo_file_str_pos file (Common2.string_of_char space) pos_after_semi in
+        tokinfo_str_pos (Common2.string_of_char space) pos_after_semi in
 
       if s = stopdoc
       then begin

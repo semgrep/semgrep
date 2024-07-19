@@ -164,6 +164,8 @@ let is_origintok ii =
   | OriginTok _ -> true
   | _ -> false
 
+let fake_location = { str = ""; pos = Pos.fake_pos }
+
 (* Synthesize a fake token *)
 let unsafe_fake_tok str : t = FakeTok (str, None)
 
@@ -271,20 +273,18 @@ let end_pos_of_loc loc =
 
 let tok_of_loc loc = OriginTok loc
 
-let tok_of ~str ~file ~bytepos =
+let tok_of_str_and_bytepos str pos =
   let loc =
     {
       str;
       (* the pos will be filled in post-lexing phase, see complete_location *)
-      pos = Pos.make file bytepos;
+      pos = Pos.make pos;
     }
   in
   tok_of_loc loc
 
 let tok_of_lexbuf lexbuf =
-  (* TODO: Make sure filename is set by parsers, otherwise we will need to take filename here *)
-  tok_of ~str:(Lexing.lexeme lexbuf) ~file:lexbuf.Lexing.lex_curr_p.pos_fname
-    ~bytepos:(Lexing.lexeme_start lexbuf)
+  tok_of_str_and_bytepos (Lexing.lexeme lexbuf) (Lexing.lexeme_start lexbuf)
 
 let first_loc_of_file file = { str = ""; pos = Pos.first_pos_of_file file }
 let first_tok_of_file file = fake_tok_loc (first_loc_of_file file) ""
@@ -372,17 +372,19 @@ let combine_sparse_toks ?(ignorable_newline = "\n") ?(ignorable_blank = ' ')
         String.length ignorable_newline - (newline_pos + 1)
     | None -> assert false
   in
-  match loc_of_tok first_tok with
-  | Error _ -> None
-  | Ok { pos = orig_pos; _ } ->
-      let current_line = ref orig_pos.line in
-      let current_column = ref orig_pos.column in
-      let buf = Buffer.create 100 in
-      let add_tok tok =
-        match loc_of_tok tok with
-        | Error _ -> ()
-        | Ok { str; pos } ->
-            (*
+  let orig_pos =
+    match loc_of_tok first_tok with
+    | Error _ -> Pos.fake_pos
+    | Ok loc -> loc.pos
+  in
+  let current_line = ref orig_pos.line in
+  let current_column = ref orig_pos.column in
+  let buf = Buffer.create 100 in
+  let add_tok tok =
+    match loc_of_tok tok with
+    | Error _ -> ()
+    | Ok { str; pos } ->
+        (*
            Insert padding before the token string to match the original
            line number, column, and byte offset.
 
@@ -407,49 +409,49 @@ let combine_sparse_toks ?(ignorable_newline = "\n") ?(ignorable_blank = ' ')
            found in the source file when converting a (line, col) position
            into a bytepos by consulting the original file.
         *)
-            let missing_newlines = max 0 (pos.line - !current_line) in
-            let missing_newline_bytes =
-              missing_newlines * String.length ignorable_newline
-            in
-            let column_after_adding_missing_newlines =
-              if missing_newlines > 0 then column_after_an_ignorable_newline
-              else !current_column
-            in
-            let missing_indent =
-              max 0 (pos.column - column_after_adding_missing_newlines)
-            in
-            let missing_bytes =
-              max 0
-                (pos.bytepos - orig_pos.bytepos - missing_newline_bytes
-               - missing_indent)
-            in
-            (* It's safe to insert missing bytes only if they're followed
-               by a newline that resets the indentation. *)
-            if missing_newlines > 0 then
-              for (* Adjust bytepos *)
-                  _ = 1 to missing_bytes do
-                Buffer.add_char buf ignorable_blank;
-                incr current_column
-              done;
-            (* Adjust line number *)
-            for _ = 1 to missing_newlines do
-              Buffer.add_string buf ignorable_newline;
-              update_column current_column ignorable_newline
-            done;
-            (* Adjust column number *)
-            for _ = 1 to missing_indent do
-              Buffer.add_char buf ignorable_blank;
-              incr current_column
-            done;
-            (* Add the token string *)
-            Buffer.add_string buf str;
-            update_column current_column str;
-            let newlines_in_tok = count_char '\n' str in
-            current_line := !current_line + missing_newlines + newlines_in_tok
-      in
-      List.iter add_tok (first_tok :: toks);
-      let str = Buffer.contents buf in
-      Some (OriginTok { str; pos = orig_pos })
+        let missing_newlines = max 0 (pos.line - !current_line) in
+        let missing_newline_bytes =
+          missing_newlines * String.length ignorable_newline
+        in
+        let column_after_adding_missing_newlines =
+          if missing_newlines > 0 then column_after_an_ignorable_newline
+          else !current_column
+        in
+        let missing_indent =
+          max 0 (pos.column - column_after_adding_missing_newlines)
+        in
+        let missing_bytes =
+          max 0
+            (pos.bytepos - orig_pos.bytepos - missing_newline_bytes
+           - missing_indent)
+        in
+        (* It's safe to insert missing bytes only if they're followed
+           by a newline that resets the indentation. *)
+        if missing_newlines > 0 then
+          for (* Adjust bytepos *)
+              _ = 1 to missing_bytes do
+            Buffer.add_char buf ignorable_blank;
+            incr current_column
+          done;
+        (* Adjust line number *)
+        for _ = 1 to missing_newlines do
+          Buffer.add_string buf ignorable_newline;
+          update_column current_column ignorable_newline
+        done;
+        (* Adjust column number *)
+        for _ = 1 to missing_indent do
+          Buffer.add_char buf ignorable_blank;
+          incr current_column
+        done;
+        (* Add the token string *)
+        Buffer.add_string buf str;
+        update_column current_column str;
+        let newlines_in_tok = count_char '\n' str in
+        current_line := !current_line + missing_newlines + newlines_in_tok
+  in
+  List.iter add_tok (first_tok :: toks);
+  let str = Buffer.contents buf in
+  OriginTok { str; pos = orig_pos }
 
 let empty_tok_after tok : t =
   match loc_of_tok tok with

@@ -41,7 +41,7 @@ module Log = Log_semgrep.Log
  *)
 type t = {
   typ : Out.error_type;
-  loc : Tok.location option;
+  loc : Tok.location;
   msg : string;
   details : string option;
   rule_id : Rule_ID.t option;
@@ -97,7 +97,7 @@ let mk_error ?(rule_id = None) ?(msg = "") (loc : Tok.location)
     | MissingPlugin ->
         msg
   in
-  { loc = Some loc; typ = err; msg; details = None; rule_id }
+  { loc; typ = err; msg; details = None; rule_id }
 
 let mk_error_tok opt_rule_id (file : Fpath.t) (tok : Tok.t) (msg : string)
     (err : Out.error_type) : t =
@@ -135,8 +135,7 @@ let error_of_rule_error (file : Fpath.t) (err : Rule.Error.t) : t =
       {
         rule_id = Some rule_id;
         typ = Out.PatternParseError yaml_path;
-        (* TODO: Switch to using option and report better info for figuring out why the location is missing *)
-        loc = Some (Tok.unsafe_loc_of_tok pos);
+        loc = Tok.unsafe_loc_of_tok pos;
         msg =
           spf
             "Invalid pattern for %s:\n\
@@ -151,15 +150,13 @@ let error_of_rule_error (file : Fpath.t) (err : Rule.Error.t) : t =
   | InvalidYaml (msg, pos) -> mk_error_tok rule_id file pos msg Out.InvalidYaml
   | DuplicateYamlKey (s, pos) -> mk_error_tok rule_id file pos s Out.InvalidYaml
   (* TODO?? *)
-  | UnparsableYamlException msg ->
+  | UnparsableYamlException s ->
       (* Based on what previously happened based on exn_to_error logic before
          converting Rule parsing errors to not be exceptions. *)
-      if not (Fpath_.is_no_file file) then
-        mk_error ~rule_id ~msg
-          (Tok.first_loc_of_file !!file)
-          Out.OtherParseError
-      else
-        { loc = None; typ = Out.OtherParseError; msg; details = None; rule_id }
+      mk_error ~rule_id ~msg:s
+        (if not (Fpath_.is_no_file file) then Tok.first_loc_of_file !!file
+         else Tok.fake_location)
+        Out.OtherParseError
 
 (*
    This function converts known exceptions to Semgrep errors.
@@ -230,9 +227,8 @@ let exn_to_error (rule_id : Rule_ID.t option) (file : Fpath.t) (e : Exception.t)
           let loc =
             (* TODO: we shouldn't build Tok.t w/out a filename, but
                lets do it here so we don't crash until we do *)
-            if not (Fpath_.is_no_file file) then
-              Some (Tok.first_loc_of_file !!file)
-            else None
+            if not (Fpath_.is_no_file file) then Tok.first_loc_of_file !!file
+            else Tok.fake_location
           in
           {
             rule_id;
@@ -265,13 +261,11 @@ let string_of_error err =
     | None -> ""
     | Some s -> spf "\n%s" s
   in
-  let loc =
-    match pos with
-    | None -> "<unknown location>"
-    | Some { pos = { file; line; column; _ }; _ } ->
-        spf "%s:%d:%d" (source_of_string file) line column
-  in
-  spf "%s: %s: %s%s" loc (Out.string_of_error_type err.typ) err.msg details
+  spf "%s:%d:%d: %s: %s%s"
+    (source_of_string pos.Tok.pos.file)
+    pos.Tok.pos.line pos.Tok.pos.column
+    (Out.string_of_error_type err.typ)
+    err.msg details
 
 let severity_of_error (typ : Out.error_type) : Out.error_severity =
   match typ with
