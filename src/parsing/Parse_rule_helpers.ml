@@ -62,7 +62,7 @@ type dict = {
 (* Error Management *)
 (*****************************************************************************)
 
-let yaml_error t s = Error (Rule_error.Error.mk_error (InvalidYaml (s, t)))
+let yaml_error t s = Error (Rule_error.mk_error (InvalidYaml (s, t)))
 
 let yaml_error_at_expr (e : G.expr) s =
   yaml_error (AST_generic_helpers.first_info_of_any (G.E e)) s
@@ -71,7 +71,7 @@ let yaml_error_at_key (key : key) s = yaml_error (snd key) s
 
 let error rule_id t s =
   Error
-    (Rule_error.Error.mk_error ~rule_id:(Some rule_id)
+    (Rule_error.mk_error ~rule_id:(Some rule_id)
        (InvalidRule (InvalidOther s, rule_id, t)))
 
 let error_at_key rule_id (key : key) s = error rule_id (snd key) s
@@ -112,7 +112,7 @@ let try_and_raise_invalid_pattern_if_error (env : env) (s, t)
         InvalidPattern (s, env.target_analyzer, Common.exn_to_s exn, env.path)
       in
       Error
-        (Rule_error.Error.mk_error ~rule_id:(Some env.id)
+        (Rule_error.mk_error ~rule_id:(Some env.id)
            (InvalidRule (error_kind, env.id, t)))
 
 let parse_pattern_with_rule_error env (str, t) ?rule_options lang s =
@@ -123,7 +123,7 @@ let parse_pattern_with_rule_error env (str, t) ?rule_options lang s =
          let error_kind : Rule_error.invalid_rule_kind =
            InvalidPattern (str, env.target_analyzer, s, env.path)
          in
-         Rule_error.Error.mk_error ~rule_id:(Some env.id)
+         Rule_error.mk_error ~rule_id:(Some env.id)
            (InvalidRule (error_kind, env.id, t)))
 
 let check_that_dict_is_empty (dict : dict) : (unit, Rule_error.t) Result.t =
@@ -235,7 +235,7 @@ let yaml_to_dict_helper opt_rule_id error_fun_f error_fun_d
                        _ ) ) ->
                    if Hashtbl.mem dict key_str then
                      Error
-                       (Rule_error.Error.mk_error ~rule_id:opt_rule_id
+                       (Rule_error.mk_error ~rule_id:opt_rule_id
                           (DuplicateYamlKey
                              (spf "duplicate key '%s' in dictionary" key_str, t)))
                    else (
@@ -494,7 +494,7 @@ let parse_regexp env (s, t) =
   with
   | Pcre2.Error exn ->
       Error
-        (Rule_error.Error.mk_error ~rule_id:(Some env.id)
+        (Rule_error.mk_error ~rule_id:(Some env.id)
            (InvalidRule (InvalidRegexp (pcre_error_to_string s exn), env.id, t)))
 
 let parse_python_expression env key s =

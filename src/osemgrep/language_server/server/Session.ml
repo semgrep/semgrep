@@ -117,7 +117,8 @@ let decode_rules caps data =
               m "Loaded %d rules from Semgrep Deployment"
                 (List.length res.rules));
           Logs.app (fun m ->
-              m "Got %d errors from Semgrep Deployment" (List.length res.errors));
+              m "Got %d errors from Semgrep Deployment"
+                (List.length res.invalid_rules));
           res
       | Error _err ->
           (* There shouldn't be any errors, because we got these rules from CI. *)

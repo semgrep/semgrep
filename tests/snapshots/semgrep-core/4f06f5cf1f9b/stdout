@@ -65,4 +65,4 @@ rule.yml
      product = `SAST; metadata = None; validators = None; min_version = None;
      max_version = None; dependency_formula = None }
     ];
-  errors = []; origin = (Rule_fetching.Local_file rule.yml) }
+  invalid_rules = []; origin = (Rule_fetching.Local_file rule.yml) }
