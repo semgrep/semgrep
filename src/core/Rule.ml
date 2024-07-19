@@ -858,7 +858,8 @@ end = struct
      refactor. This will do to start, as I anticipate we probably won't be
      refactoring this module to add more entry points at any time.
   *)
-  let mk_error ?(rule_id = None) kind = { rule_id; file = Fpath_.no_file; kind }
+  let mk_error ?(rule_id = None) kind =
+    { rule_id; file = Fpath_.fake_file; kind }
 
   (* for intercepting an error before it leaves `Parse_rule`, by augmenting it with
      the file path
