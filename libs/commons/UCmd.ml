@@ -28,6 +28,19 @@ let log_shell_command cmd =
   (* nosemgrep: no-logs-in-library *)
   Logs.info (fun m -> m "Running shell command: %s" cmd)
 
+(* Capture error output and log it at the same level as 'log_command' above.
+
+   This uses a utility function from Testo which is weird since it's
+   not a general-purpose library. Bos doesn't seem to provide a simple
+   equivalent (?)
+*)
+let capture_and_log_stderr func =
+  let res, err = Testo.with_capture UStdlib.stderr func in
+  if err <> "" then
+    (* nosemgrep: no-logs-in-library *)
+    Logs.info (fun m -> m "error output: %s" err);
+  res
+
 (*****************************************************************************)
 (* Old Common.cmd_to_list *)
 (*****************************************************************************)
@@ -68,27 +81,31 @@ let cmd_to_list ?verbose command =
 
 let string_of_run ~trim cmd =
   log_command cmd;
-  (* nosemgrep: forbid-exec *)
-  let out = Cmd.bos_apply Bos.OS.Cmd.run_out cmd in
-  (* nosemgrep: forbid-exec *)
-  Bos.OS.Cmd.out_string ~trim out
+  capture_and_log_stderr (fun () ->
+      (* nosemgrep: forbid-exec *)
+      let out = Cmd.bos_apply Bos.OS.Cmd.run_out cmd in
+      (* nosemgrep: forbid-exec *)
+      Bos.OS.Cmd.out_string ~trim out)
 
 let lines_of_run ~trim cmd =
   log_command cmd;
-  (* nosemgrep: forbid-exec *)
-  let out = Cmd.bos_apply Bos.OS.Cmd.run_out cmd in
-  (* nosemgrep: forbid-exec *)
-  Bos.OS.Cmd.out_lines ~trim out
+  capture_and_log_stderr (fun () ->
+      (* nosemgrep: forbid-exec *)
+      let out = Cmd.bos_apply Bos.OS.Cmd.run_out cmd in
+      (* nosemgrep: forbid-exec *)
+      Bos.OS.Cmd.out_lines ~trim out)
 
 (* nosemgrep: forbid-exec *)
 let status_of_run ?quiet cmd =
   log_command cmd;
-  (* nosemgrep: forbid-exec *)
-  Cmd.bos_apply (Bos.OS.Cmd.run_status ?quiet) cmd
+  capture_and_log_stderr (fun () ->
+      (* nosemgrep: forbid-exec *)
+      Cmd.bos_apply (Bos.OS.Cmd.run_status ?quiet) cmd)
 
 (* TODO: switch to type Cmd.t for cmd *)
 let with_open_process_in (cmd : string) f =
   log_shell_command cmd;
-  (* nosemgrep: forbid-exec *)
-  let chan = UUnix.open_process_in cmd in
-  Common.protect ~finally:(fun () -> close_in chan) (fun () -> f chan)
+  capture_and_log_stderr (fun () ->
+      (* nosemgrep: forbid-exec *)
+      let chan = UUnix.open_process_in cmd in
+      Common.protect ~finally:(fun () -> close_in chan) (fun () -> f chan))

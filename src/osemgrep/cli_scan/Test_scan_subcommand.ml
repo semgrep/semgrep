@@ -13,6 +13,8 @@
  * LICENSE for more details.
  *)
 
+open Printf
+
 let t = Testo.create
 
 module F = Testutil_files
@@ -68,6 +70,12 @@ let without_settings f =
 (*****************************************************************************)
 (* Tests *)
 (*****************************************************************************)
+
+let test_nosettings () =
+  without_settings (fun () ->
+      printf "cwd: %s\n%!" (Unix.getcwd ());
+      assert (Semgrep_settings.load_opt () = None))
+
 let test_basic_output (caps : Scan_subcommand.caps) : Testo.t =
   t ~checked_output:(Testo.stdxxx ()) ~normalize __FUNCTION__ (fun () ->
       Logs.app (fun m -> m "Snapshot for %s" __FUNCTION__);
@@ -116,4 +124,8 @@ let test_basic_verbose_output (caps : Scan_subcommand.caps) : Testo.t =
 
 let tests (caps : < Scan_subcommand.caps >) =
   Testo.categorize "Osemgrep Scan (e2e)"
-    [ test_basic_output caps; test_basic_verbose_output caps ]
+    [
+      t "no semgrep settings file" test_nosettings;
+      test_basic_output caps;
+      test_basic_verbose_output caps;
+    ]

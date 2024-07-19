@@ -39,6 +39,7 @@ dist/libpcre.a: downloads/pcre-8.45/.libs/libpcre.a
 	mkdir -p dist
 	cp $^ $@
 
+# What does this do? What is the 'dune' file for?
 dist/libpcre.js dist/libpcre.wasm: dist/libpcre.a
 	mkdir -p dist
 	emcc \
