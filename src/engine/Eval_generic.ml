@@ -266,7 +266,7 @@ let rec eval env code =
   | G.Call ({ e = IdSpecial (ConcatString op, _); _ }, (_, args, _)) ->
       String (eval_concat_string_op env code op args)
   | G.N (G.Id ((s, _t), _idinfo))
-    when MV.is_metavar_name s || MV.is_metavar_ellipsis s -> (
+    when Mvar.is_metavar_name s || Mvar.is_metavar_ellipsis s -> (
       try Hashtbl.find env.mvars s with
       | Not_found ->
           Log.warn (fun m -> m "could not find a value for %s in env" s);
