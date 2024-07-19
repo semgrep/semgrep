@@ -101,12 +101,13 @@ let exit_code_of_error_type (error_type : Out.error_type) : Exit_code.t =
   | LexicalError
   | PartialParsing _ ->
       Exit_code.invalid_code ~__LOC__
+  (* rule errors lead to `missing_config` *)
+  | InvalidYaml -> Exit_code.missing_config ~__LOC__
   | OtherParseError
   | AstBuilderError
   | RuleParseError
   | PatternParseError _
   | PatternParseError0
-  | InvalidYaml
   | MatchingError
   | SemgrepMatchFound
   | TooManyMatches
