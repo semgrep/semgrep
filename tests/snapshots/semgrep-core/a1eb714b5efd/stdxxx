@@ -18,7 +18,6 @@ Initialized empty Git repository in <TMP>/<MASKED>/.git/
 │ Semgrep CLI │
 └─────────────┘
 
-fatal: No remote configured to list refs from.
 [32m✔[39m [1mSemgrep OSS[0m
   [32m✔[39m Basic security coverage for first-party code vulnerabilities.
 

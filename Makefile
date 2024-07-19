@@ -152,15 +152,29 @@ build-pfff:
 build-parse-cairo:
 	dune build $(BUILD)/install/default/bin/parse-cairo
 
+# ???? What does this build?
 # This takes a long time
 .PHONY: build-semgrep-jsoo
 build-semgrep-jsoo:
 	dune build js --profile=release
 
+# ???? What does this build?
 # Build Semgrep JS w/debug symbols, no mangling and source maps
 .PHONY: build-semgrep-jsoo-debug
 build-semgrep-jsoo-debug:
 	dune build js --profile=dev
+
+# Compile the JavaScript version of semgrep that runs in the browser.
+# Please make it be just 'make -C js build' if you know what's going on.
+.PHONY: build-js
+build-js:
+	$(MAKE) build-semgrep-jsoo-debug
+	$(MAKE) build-js-artifacts
+
+# ???? What does this build? Why doesn't it include the dune build?
+.PHONY: build-js-artifacts
+build-js-artifacts:
+	make -C js build -j `nproc`
 
 # Remove from the project tree everything that's not under source control
 # and was not created by 'make setup'.
@@ -244,9 +258,17 @@ core-test-e2e:
 	$(MAKE) -C interfaces/semgrep_interfaces test
 	python3 tests/semgrep-core-e2e/test_target_file.py
 
-.PHONY: test-jsoo
-test-jsoo: build-semgrep-jsoo-debug
-	$(MAKE) -C js test
+# Run all the tests for JavaScript Semgrep
+.PHONY: test-js
+test-js: build-js
+	$(MAKE) test-js-no-dune
+
+# The CI job is currently split into two jobs. This runs in the second
+# job that doesn't have access to dune, so we can't make target this depend
+# on the 'build-js' target.
+.PHONY: test-js-no-dune
+test-js-no-dune:
+	$(MAKE) -C js test -j `nproc`
 
 # Test the compatibility with the main branch of semgrep-proprietary
 # in a separate work tree.

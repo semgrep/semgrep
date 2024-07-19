@@ -80,7 +80,18 @@ let to_yaml { has_shown_metrics_notification; api_token; anonymous_user_id } =
 (* Entry points *)
 (*****************************************************************************)
 
-let load ?(maturity = Maturity.Default) ?(include_env = true) () =
+let set_api_token ~include_env settings =
+  if include_env then
+    match !Semgrep_envvars.v.app_token with
+    | Some token -> { settings with api_token = Some token }
+    | None -> settings
+  else settings
+
+(*
+   Return 'None' if the settings file can't be loaded. The 'settings'
+   record need to be completed with the 'set_api_token'.
+*)
+let load_opt ?(maturity = Maturity.Default) ?(include_env = true) () =
   let settings = !Semgrep_envvars.v.user_settings_file in
   Logs.info (fun m -> m "Loading settings from %s" !!settings);
   try
@@ -89,13 +100,15 @@ let load ?(maturity = Maturity.Default) ?(include_env = true) () =
       && Unix.(stat !!settings).st_kind =*= Unix.S_REG
     then
       let data = UFile.read_file settings in
-      let decoded =
+      let opt_settings =
         match Yaml.of_string data with
-        | Error _ ->
+        | Error (`Msg msg) ->
             Logs.warn (fun m ->
-                m "Bad settings format; %s will be overriden. Contents:\n%s"
-                  !!settings data);
-            default_settings
+                m
+                  "Bad settings format; %s will be overriden. Contents:\n\
+                   %s\n\
+                   Decode error: %s" !!settings data msg);
+            None
         | Ok value -> (
             match of_yaml value with
             | Error (`Msg msg) ->
@@ -104,27 +117,44 @@ let load ?(maturity = Maturity.Default) ?(include_env = true) () =
                       "Bad settings format; %s will be overriden. Contents:\n\
                        %s\n\
                        Decode error: %s" !!settings data msg);
-                default_settings
-            | Ok s -> s)
+                None
+            | Ok settings -> Some settings)
       in
+      (* TODO: explain why we set the api_token field from the environment
+         variable only in the case of some failures but not in case of
+         an exception. *)
       let settings =
-        if include_env then
-          match !Semgrep_envvars.v.app_token with
-          | Some token -> { decoded with api_token = Some token }
-          | None -> decoded
-        else decoded
+        match opt_settings with
+        | None -> default_settings
+        | Some settings -> settings
       in
-      settings
+      Some (set_api_token ~include_env settings)
     else (
       (match maturity with
       | Maturity.Develop ->
           Logs.warn (fun m ->
-              m "Settings file %s does not exist or is not a regular file"
+              m "Settings file '%s' does not exist or is not a regular file"
                 !!settings)
-      | _else_ -> ());
-      default_settings)
+      | Default
+      | Legacy
+      | Experimental ->
+          (* We used to log nothing here. Why not log the same message
+             at all maturity levels? Either way, we should always log
+             error messages somewhere, never ignore them. *)
+          Logs.info (fun m ->
+              m "Settings file '%s' does not exist or is not a regular file"
+                !!settings));
+      None)
   with
-  | Failure _ -> default_settings
+  | Failure msg ->
+      Logs.info (fun m ->
+          m "Failed to load settings from %s: %s" !!settings msg);
+      None
+
+let load ?maturity ?include_env () =
+  match load_opt ?maturity ?include_env () with
+  | None -> default_settings
+  | Some settings -> settings
 
 let save setting =
   let settings = !Semgrep_envvars.v.user_settings_file in
