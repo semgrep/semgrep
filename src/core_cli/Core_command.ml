@@ -47,7 +47,7 @@ let parse_pattern lang_pattern str =
     let tok = Tok.unsafe_fake_tok "no loc" in
     let xlang = Xlang.of_lang lang_pattern in
     Error
-      (Rule.Error.mk_error
+      (Rule_error.Error.mk_error
          (InvalidRule (InvalidPattern (str, xlang, s, []), id, tok)))
   in
   match Parse_pattern.parse_pattern lang_pattern str with
@@ -151,7 +151,7 @@ let pattern_of_config lang (config : Core_scan_config.t) =
   in
   match parse_pattern lang pattern_string with
   | Ok pat -> (pat, pattern_string)
-  | Error e -> failwith ("parsing error: " ^ Rule.string_of_error e)
+  | Error e -> failwith ("parsing error: " ^ Rule_error.string_of_error e)
 
 (* simpler code path compared to scan() *)
 (* FIXME: don't use a different processing logic depending on the output

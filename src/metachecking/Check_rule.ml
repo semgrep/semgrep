@@ -207,7 +207,7 @@ let check_pattern (lang : Xlang.t) f =
       ((* TODO: can we ditch the exceptions and just have this be some sort of
           catamorphism? Would be nice to be able to easily return all the errors
           without needing a ref. *)
-       visit_xpatterns
+       Visit_rule.visit_xpatterns
          (fun { pat; pstr = _pat_str, t; pid = _ } ~inside:_ ->
            match (pat, lang) with
            | Sem (semgrep_pat, _lang), L (lang, _rest) -> (
@@ -310,7 +310,7 @@ let run_checks (caps : < Cap.tmp >) config fparser metachecks xs =
                | Ok rs -> rs |> List.concat_map (fun file -> check file)
                (* TODO this error is special cased because YAML files that
                   aren't semgrep rules are getting scanned *)
-               | Error ({ kind = InvalidYaml _; _ } : Rule.Error.t) -> []
+               | Error ({ kind = InvalidYaml _; _ } : Rule_error.t) -> []
                | Error e -> [ Core_error.error_of_rule_error file e ]
                | exception exn ->
                    let e = Exception.catch exn in
@@ -377,6 +377,6 @@ let stat_files (caps : < Cap.stdout >) fparser xs =
          | Error e ->
              Logs.warn (fun m ->
                  m "stat_files: error in %a: %s" Fpath.pp file
-                   (Rule.string_of_error e)));
+                   (Rule_error.string_of_error e)));
   CapConsole.print caps#stdout
     (spf "good = %d, no regexp found = %d" !good !bad)

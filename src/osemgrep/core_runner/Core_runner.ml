@@ -82,7 +82,7 @@ type func = {
        the target is explicit i.e. occurs directly on the command line *)
     Find_targets.conf ->
     (* LATER? alt: use Config_resolve.rules_and_origin instead? *)
-    Rule.rules_and_errors ->
+    Rule_error.rules_and_invalid ->
     (* Takes a list of target files, not scanning roots. *)
     Fpath.t list ->
     Core_result.result_or_exn;
@@ -302,8 +302,8 @@ let mk_result (all_rules : Rule.rule list) (res : Core_result.t) : result =
 let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
   let run ?(file_match_hook = None) (conf : conf)
       (targeting_conf : Find_targets.conf)
-      (rules_and_errors : Rule.rules_and_errors) (all_targets : Fpath.t list) :
-      Core_result.result_or_exn =
+      (rules_and_invalid : Rule_error.rules_and_invalid)
+      (all_targets : Fpath.t list) : Core_result.result_or_exn =
     (*
        At this point, we already have the full list of targets. These targets
        will populate the 'target_source' field of the config object
@@ -311,8 +311,8 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
        This mode doesn't tolerate scanning roots. This is checked in
        Core_scan.ml.
     *)
-    let rules, invalid_rules = rules_and_errors in
-    let rule_errors = Core_scan.errors_of_invalid_rule_errors invalid_rules in
+    let rules, invalid_rules = rules_and_invalid in
+    let rule_errors = Core_scan.errors_of_invalid_rules invalid_rules in
     let config : Core_scan_config.t = core_scan_config_of_conf conf in
     let config = { config with file_match_hook } in
     (* TODO: we should not need to use List_.map below, because

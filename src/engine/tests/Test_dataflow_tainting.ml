@@ -43,7 +43,7 @@ let test_dfg_tainting rules_file file =
     | Error e ->
         failwith
           (spf "fail to parse tainting rules in %s (error: %s)" !!rules_file
-             (Rule.string_of_error e))
+             (Rule_error.string_of_error e))
   in
   let ast =
     try Parse_target.parse_and_resolve_name_warn_if_partial lang file with

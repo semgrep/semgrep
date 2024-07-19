@@ -34,11 +34,12 @@ module XP = Xpattern
 
 (* python: was called ConfigFile, and called a 'config' in text output.
  * TODO? maybe we don't need this intermediate type anymore; just return
- * a pair, which would remove the need for partition_rules_and_errors.
+ * a pair, which would remove the need for partition_rules_and_invalid.
  *)
 type rules_and_origin = {
   rules : Rule.rules;
-  errors : Rule.invalid_rule_error list;
+  (* TODO: rename to invalid_rules *)
+  errors : Rule_error.invalid_rule list;
   origin : origin; (* used by Validate_subcommand *)
 }
 
@@ -103,13 +104,13 @@ let mk_rewrite_rule_ids (origin : origin) : Rule_ID.t -> Rule_ID.t =
 (* Helpers *)
 (*****************************************************************************)
 
-let partition_rules_and_errors (xs : rules_and_origin list) :
-    Rule.rules_and_errors =
+let partition_rules_and_invalid (xs : rules_and_origin list) :
+    Rule_error.rules_and_invalid =
   let (rules : Rule.rules) = xs |> List.concat_map (fun x -> x.rules) in
-  let (errors : Rule.invalid_rule_error list) =
+  let (invalid_rules : Rule_error.invalid_rule list) =
     xs |> List.concat_map (fun x -> x.errors)
   in
-  (rules, errors)
+  (rules, invalid_rules)
 
 let fetch_content_from_url_async ?(token_opt = None) caps (url : Uri.t) :
     string Lwt.t =
@@ -264,11 +265,11 @@ let modify_registry_provided_metadata (origin : origin) (rule : Rule.t) =
  * for a registry-aware jsonnet.
  *)
 let parse_rule ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
-    (Rule.rules_and_errors, Rule.Error.t) Result.t =
+    (Rule_error.rules_and_invalid, Rule_error.t) Result.t =
   let rule_id_rewriter =
     if rewrite_rule_ids then Some (mk_rewrite_rule_ids origin) else None
   in
-  let rules_and_errors =
+  let rules_and_invalid =
     match FT.file_type_of_file file with
     | FT.Config FT.Jsonnet ->
         Logs.warn (fun m ->
@@ -290,9 +291,9 @@ let parse_rule ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
         Parse_rule.parse_and_filter_invalid_rules
           ~rewrite_rule_ids:rule_id_rewriter file
   in
-  match rules_and_errors with
-  | Ok (rules, errors) ->
-      Ok (List_.map (modify_registry_provided_metadata origin) rules, errors)
+  match rules_and_invalid with
+  | Ok (rules, invalid) ->
+      Ok (List_.map (modify_registry_provided_metadata origin) rules, invalid)
   | Error err -> Error err
 
 (*****************************************************************************)
@@ -307,7 +308,7 @@ let parse_rule ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
  *  be done).
  *)
 let load_rules_from_file ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
-    (rules_and_origin, Rule.Error.t) Result.t =
+    (rules_and_origin, Rule_error.t) result =
   Logs.info (fun m -> m "loading local config from %s" !!file);
   if Sys.file_exists !!file then
     match parse_rule ~rewrite_rule_ids ~origin caps file with
@@ -322,7 +323,7 @@ let load_rules_from_file ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
     Error.abort (spf "file %s does not exist anymore" !!file)
 
 let load_rules_from_url_async ~origin ?token_opt ?(ext = "yaml") caps url :
-    (rules_and_origin, Rule.Error.t) Result.t Lwt.t =
+    (rules_and_origin, Rule_error.t) result Lwt.t =
   let%lwt contents = fetch_content_from_url_async ?token_opt caps url in
   let ext, contents =
     if ext = "policy" then
@@ -343,7 +344,7 @@ let load_rules_from_url_async ~origin ?token_opt ?(ext = "yaml") caps url :
   |> Lwt.return
 
 let load_rules_from_url ~origin ?token_opt ?(ext = "yaml") caps url :
-    (rules_and_origin, Rule.Error.t) Result.t =
+    (rules_and_origin, Rule_error.t) result =
   Lwt_platform.run (load_rules_from_url_async ~origin ?token_opt ~ext caps url)
 [@@profiling]
 
@@ -359,7 +360,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt caps kind :
        if we split each into a sum, we never have either at the same time. this
        breaks the code's behavior *
     *)
-    (rules_and_origin list * Rule.Error.t list) Lwt.t =
+    (rules_and_origin list * Rule_error.t list) Lwt.t =
   match kind with
   | C.File path ->
       Lwt.return
@@ -423,7 +424,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt caps kind :
       failwith "TODO: SupplyChain not handled yet"
 
 let rules_from_dashdash_config ~rewrite_rule_ids ~token_opt caps kind :
-    rules_and_origin list * Rule.Error.t list =
+    rules_and_origin list * Rule_error.t list =
   Lwt_platform.run
     (rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt caps kind)
 [@@profiling]
@@ -477,7 +478,7 @@ let rules_and_origin_of_rule rule =
 
 (* python: mix of resolver_config.get_config() and get_rules() *)
 let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict:_ caps
-    (src : Rules_source.t) : (rules_and_origin list * Rule.Error.t list) Lwt.t =
+    (src : Rules_source.t) : (rules_and_origin list * Rule_error.t list) Lwt.t =
   let%lwt rules_and_origins, errors =
     match src with
     | Configs xs ->
@@ -526,7 +527,7 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict:_ caps
                 | Ok xpat -> xpat
                 (* TODO: this shouldn't be any worse than the status quo but
                    this should be more robust *)
-                | Error e -> failwith (Rule.string_of_error e)
+                | Error e -> failwith (Rule_error.string_of_error e)
               in
               let rule = Rule.rule_of_xpattern ~fix xlang xpat in
               rules_and_origin_of_rule rule)
@@ -553,7 +554,7 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict:_ caps
  * Scan_subcommand.rules_from_rules_source()
  *)
 let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~strict caps
-    (src : Rules_source.t) : rules_and_origin list * Rule.Error.t list =
+    (src : Rules_source.t) : rules_and_origin list * Rule_error.t list =
   Lwt_platform.run
     (rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict caps src)
 [@@profiling]

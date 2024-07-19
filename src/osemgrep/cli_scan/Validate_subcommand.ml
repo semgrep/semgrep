@@ -80,8 +80,8 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
       (caps :> < Cap.network ; Cap.tmp >)
       conf.rules_source
   in
-  let rules, errors =
-    Rule_fetching.partition_rules_and_errors rules_and_origin
+  let rules, invalid_rules =
+    Rule_fetching.partition_rules_and_invalid rules_and_origin
   in
   (* Checking (3) *)
   let metacheck_errors =
@@ -125,7 +125,7 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
             config
         in
         let metarules, metaerrors =
-          Rule_fetching.partition_rules_and_errors metarules_and_origin
+          Rule_fetching.partition_rules_and_invalid metarules_and_origin
         in
         if metaerrors <> [] then
           Error.abort (spf "error in metachecks! please fix %s" metarules_pack);
@@ -176,7 +176,7 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
 
   (* Summarizing findings (errors) *)
   let num_fatal_errors = List.length fatal_errors in
-  let num_errors = List.length errors + List.length metacheck_errors in
+  let num_errors = List.length invalid_rules + List.length metacheck_errors in
   (* was logger.info, but works without --verbose, so Logs.app better *)
   Logs.app (fun m ->
       m

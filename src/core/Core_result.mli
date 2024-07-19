@@ -23,7 +23,7 @@ type t = {
    * in textual reports) or for tools (e.g., the playground).
    *)
   skipped_targets : Semgrep_output_v1_t.skipped_target list;
-  skipped_rules : Rule.invalid_rule_error list;
+  skipped_rules : Rule_error.invalid_rule list;
   rules_with_targets : Rule.rule list;
   profiling : Core_profiling.t option;
   explanations : Matching_explanation.t list option;
@@ -62,7 +62,7 @@ type matches_single_file = Core_profiling.partial_profiling match_result
 val mk_result :
   Core_profiling.file_profiling match_result list ->
   (Rule.rule * Engine_kind.t) list ->
-  Rule.invalid_rule_error list ->
+  Rule_error.invalid_rule list ->
   Target.t list ->
   Xlang.t list ->
   rules_parse_time:float ->
