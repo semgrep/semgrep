@@ -207,7 +207,7 @@ let check_pattern (lang : Xlang.t) f =
       ((* TODO: can we ditch the exceptions and just have this be some sort of
           catamorphism? Would be nice to be able to easily return all the errors
           without needing a ref. *)
-       visit_new_formula
+       visit_xpatterns
          (fun { pat; pstr = _pat_str, t; pid = _ } ~inside:_ ->
            match (pat, lang) with
            | Sem (semgrep_pat, _lang), L (lang, _rest) -> (
