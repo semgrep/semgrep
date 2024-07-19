@@ -308,8 +308,8 @@ let fetch_rules session =
     | Some r -> r :: rules_and_origins
     | None -> rules_and_origins
   in
-  let rules, errors =
-    Rule_fetching.partition_rules_and_errors rules_and_origins
+  let rules, invalid_rules =
+    Rule_fetching.partition_rules_and_invalid rules_and_origins
   in
   let rules =
     List_.uniq_by
@@ -325,11 +325,11 @@ let fetch_rules session =
         exclude_products = [ `SCA; `Secrets ];
       }
   in
-  let rules, errors =
-    (Rule_filtering.filter_rules rule_filtering_conf rules, errors)
+  let rules, invalid_rules =
+    (Rule_filtering.filter_rules rule_filtering_conf rules, invalid_rules)
   in
 
-  Lwt.return (rules, errors)
+  Lwt.return (rules, invalid_rules)
 
 let fetch_skipped_app_fingerprints caps =
   (* At some point we should allow users to ignore ids locally *)

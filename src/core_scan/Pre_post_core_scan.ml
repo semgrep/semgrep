@@ -39,7 +39,7 @@ end
 (* quite similar to Core_scan.core_scan_func *)
 type 'config core_scan_func_with_rules =
   'config ->
-  Rule.rules_and_errors * float (* rule parse time *) ->
+  Rule_error.rules_and_invalid * float (* rule parse time *) ->
   Core_result.t
 
 (*****************************************************************************)

@@ -87,7 +87,7 @@ let brace_pairs_of_string_pairs env xs =
   |> Base.Result.all
 
 let aliengrep_conf_of_options (env : env) :
-    (Aliengrep.Conf.t, R.Error.t) Result.t =
+    (Aliengrep.Conf.t, Rule_error.t) Result.t =
   let options = Option.value env.options ~default:Rule_options.default_config in
   let default = Aliengrep.Conf.default_multiline_conf in
   let caseless = options.generic_caseless in
@@ -266,8 +266,8 @@ let rewrite_metavar_comparison_strip cond =
   in
   visitor#visit_expr () cond
 
-let find_formula_old env (rule_dict : dict) : (key * G.expr, R.Error.t) Result.t
-    =
+let find_formula_old env (rule_dict : dict) :
+    (key * G.expr, Rule_error.t) result =
   match
     ( H.dict_take_opt rule_dict "pattern",
       H.dict_take_opt rule_dict "pattern-either",
@@ -291,13 +291,13 @@ let find_formula_old env (rule_dict : dict) : (key * G.expr, R.Error.t) Result.t
          `pattern-regex`"
 
 let rec parse_formula_old_from_dict (env : env) (rule_dict : dict) :
-    (R.formula, R.Error.t) Result.t =
+    (R.formula, Rule_error.t) result =
   (* bTODO: filter out unconstrained nots *)
   let/ root = find_formula_old env rule_dict in
   parse_pair_old env root
 
 and parse_pair_old env ((key, value) : key * G.expr) :
-    (R.formula, R.Error.t) Result.t =
+    (R.formula, Rule_error.t) result =
   let env = { env with path = fst key :: env.path } in
   let parse_listi env (key : key) f x =
     match x.G.e with
@@ -435,7 +435,7 @@ and parse_pair_old env ((key, value) : key * G.expr) :
       let pos, _ = R.split_and conjuncts in
       if pos =*= [] && not env.in_metavariable_pattern then
         Error
-          (Rule.Error.mk_error ~rule_id:(Some env.id)
+          (Rule_error.Error.mk_error ~rule_id:(Some env.id)
              (InvalidRule (MissingPositiveTermInAnd, env.id, t)))
       else
         Ok
@@ -465,7 +465,7 @@ and parse_pair_old env ((key, value) : key * G.expr) :
       error_at_key env.id key "Must occur directly under a patterns:"
   | "pattern-where-python" ->
       Error
-        (Rule.Error.mk_error ~rule_id:(Some env.id)
+        (Rule_error.Error.mk_error ~rule_id:(Some env.id)
            (InvalidRule (DeprecatedFeature (fst key), env.id, t)))
   (* fix suggestions *)
   | "metavariable-regexp" ->
@@ -480,7 +480,7 @@ and parse_pair_old env ((key, value) : key * G.expr) :
 (* This is now mutually recursive because of metavariable-pattern: which can
  * contain itself a formula! *)
 and parse_extra (env : env) (key : key) (value : G.expr) :
-    (extra, R.Error.t) Result.t =
+    (extra, Rule_error.t) result =
   match fst key with
   | "metavariable-analysis" ->
       let/ mv_analysis_dict = yaml_to_dict env key value in
@@ -614,7 +614,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) :
 let formula_keys =
   [ "pattern"; "all"; "any"; "regex"; "taint"; "not"; "inside"; "anywhere" ]
 
-let find_formula env (rule_dict : dict) : (key * G.expr, R.Error.t) Result.t =
+let find_formula env (rule_dict : dict) : (key * G.expr, Rule_error.t) result =
   match List_.find_some_opt (H.dict_take_opt rule_dict) formula_keys with
   | None ->
       error env.id rule_dict.first_tok
@@ -646,7 +646,7 @@ let find_constraint dict =
       | Some res -> Some res)
     dict None
 
-let rec parse_formula env (value : G.expr) : (R.formula, R.Error.t) Result.t =
+let rec parse_formula env (value : G.expr) : (R.formula, Rule_error.t) result =
   (* First, try to parse as a string *)
   let/ pattern = parse_str_or_dict env value in
   match pattern with
@@ -819,7 +819,7 @@ and produce_constraint env dict tok indicator =
             pat)
 
 and constrain_where env (_t1, _t2) where_key (value : G.expr) formula :
-    (R.formula, R.Error.t) Result.t =
+    (R.formula, Rule_error.t) result =
   let env = { env with path = "where" :: env.path } in
   (* TODO: first token, or principal token? *)
   let parse_where_pair env (where_value : G.expr) =
@@ -841,7 +841,7 @@ and constrain_where env (_t1, _t2) where_key (value : G.expr) formula :
     }
 
 and parse_pair env ((key, value) : key * G.expr) :
-    (R.formula, R.Error.t) Result.t =
+    (R.formula, Rule_error.t) result =
   let env = { env with path = fst key :: env.path } in
   let get_string_pattern str_e = parse_xpattern_expr env str_e in
   let s, t = key in
@@ -863,7 +863,7 @@ and parse_pair env ((key, value) : key * G.expr) :
       let pos, _ = R.split_and conjuncts in
       if pos =*= [] && not env.in_metavariable_pattern then
         Error
-          (Rule.Error.mk_error ~rule_id:(Some env.id)
+          (Rule_error.Error.mk_error ~rule_id:(Some env.id)
              (InvalidRule (MissingPositiveTermInAnd, env.id, t)))
       else Ok (R.And (t, conjuncts) |> R.f)
   | "any" ->

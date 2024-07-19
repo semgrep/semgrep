@@ -282,7 +282,7 @@ type is_id_mvar = Metavariable.mvar -> bool
 let id_mvars_of_formula f =
   let id_mvars = ref MvarSet.empty in
   f
-  |> R.visit_xpatterns (fun xp ~inside:_ ->
+  |> Visit_rule.visit_xpatterns (fun xp ~inside:_ ->
          match xp with
          | { pat = XP.Sem (pat, lang); _ } ->
              id_mvars :=
