@@ -1,8 +1,6 @@
 type rules_and_origin = {
   rules : Rule.rules;
-  (* TODO: rename to invalid_rules instead, rule (fatal) errors are not stored
-   * here *)
-  errors : Rule_error.invalid_rule list;
+  invalid_rules : Rule_error.invalid_rule list;
   origin : origin;
 }
 
