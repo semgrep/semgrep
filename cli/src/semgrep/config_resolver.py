@@ -5,6 +5,7 @@ import time
 from collections import OrderedDict
 from enum import auto
 from enum import Enum
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -511,6 +512,7 @@ class Config:
 
     @classmethod
     @tracing.trace()
+    @lru_cache(maxsize=None)
     def from_rules_yaml(
         cls, config: str, no_rewrite_rule_ids: bool = False
     ) -> Tuple["Config", List[SemgrepError]]:
