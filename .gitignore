@@ -99,7 +99,8 @@ instance/
 docs/_build/
 
 # PyBuilder
-target/
+#target/
+#pad: commented because we now have also src/target/ valid code
 
 # Jupyter Notebook
 .ipynb_checkpoints
