@@ -1,0 +1,31 @@
+; This library contains just the data structures for a target. The
+; actual targeting code is in ../targeting/
+(library
+ (public_name semgrep.target)
+ (name semgrep_core_target)
+ (wrapped false)
+ (libraries
+   ; standard libraries
+   ; in libs/
+   commons
+   lib_parsing ; Origin
+   ; in src/
+   ; We should also not depend on any other semgrep libs
+   semgrep.rule ; for semgrep_output_v1.atd core types like 'ecosystem'
+ )
+ (preprocess
+   (pps
+     ppx_profiling
+     ppx_deriving.show
+     ppx_deriving.eq
+     ppx_deriving.ord
+     ppx_hash
+   )
+ )
+)
+
+; this is for Lockfile_xtarget.ml which contains multiple types
+; using the same field names
+(env
+  (_
+    (flags (:standard  -w -30))))
