@@ -14,8 +14,8 @@ open Fpath_.Operators
 (* We now log the files who have too many matches, but this action below
  * can still be useful for deeper debugging.
  *)
-let stat_matches (caps : < Cap.stdout >) file =
-  let (matches : Pattern_match.t list) = Common2.get_value file in
+let stat_matches (caps : < Cap.stdout >) (file : Fpath.t) =
+  let (matches : Pattern_match.t list) = UMarshal_.get_value file in
   CapConsole.print caps#stdout (spf "matched: %d" (List.length matches));
   let per_files =
     matches
