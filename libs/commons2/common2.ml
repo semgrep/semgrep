@@ -633,29 +633,6 @@ let take_one xs =
 *)
 
 (*****************************************************************************)
-(* Persistence *)
-(*****************************************************************************)
-
-let get_value filename =
-  let chan = UStdlib.open_in_bin filename in
-  let x = UStdlib.input_value chan in
-  (* <=> Marshal.from_channel  *)
-  close_in chan;
-  x
-
-let write_value valu filename =
-  let chan = UStdlib.open_out_bin filename in
-  UStdlib.output_value chan valu;
-  (* <=> Marshal.to_channel *)
-  (* Marshal.to_channel chan valu [Marshal.Closures]; *)
-  close_out chan
-
-let write_back func filename = write_value (func (get_value filename)) filename
-let read_value f = get_value f
-let marshal__to_string v flags = Marshal.to_string v flags
-let marshal__from_string v flags = UMarshal.from_string v flags
-
-(*****************************************************************************)
 (* Counter *)
 (*****************************************************************************)
 let _counter = ref 0
@@ -4593,6 +4570,20 @@ let regression_testing_vs newscore bestscore =
   flush UStdlib.stdout;
   flush UStdlib.stderr;
   newbestscore
+
+let get_value filename =
+  let chan = UStdlib.open_in_bin filename in
+  let x = UStdlib.input_value chan in
+  (* <=> Marshal.from_channel  *)
+  close_in chan;
+  x
+
+let write_value valu filename =
+  let chan = UStdlib.open_out_bin filename in
+  UStdlib.output_value chan valu;
+  (* <=> Marshal.to_channel *)
+  (* Marshal.to_channel chan valu [Marshal.Closures]; *)
+  close_out chan
 
 let regression_testing newscore best_score_file =
   pr2 ("regression file: " ^ best_score_file);
