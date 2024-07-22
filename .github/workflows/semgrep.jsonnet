@@ -22,7 +22,7 @@ local semgrep_ci_job = {
     actions.checkout(),
     {
       // Dogfood!
-      run: 'semgrep ci',
+      run: 'semgrep ci --debug',
     },
   ],
 } + gha.dependabot_guard;
