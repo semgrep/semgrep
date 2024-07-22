@@ -219,20 +219,6 @@ val statistic : 'a list -> (int * 'a) list
 val laws2 : string -> ('a -> bool * 'b) -> 'a gen -> 'a option * (int * 'b) list
 
 (*****************************************************************************)
-(* Persistence *)
-(*****************************************************************************)
-
-(* just wrappers around Marshal *)
-val get_value : filename -> 'a
-val read_value : filename -> 'a (* alias *)
-val write_value : 'a -> filename -> unit
-val write_back : ('a -> 'b) -> filename -> unit
-
-(* wrappers that also use profile_code *)
-val marshal__to_string : 'a -> Marshal.extern_flags list -> string
-val marshal__from_string : string -> int -> 'a
-
-(*****************************************************************************)
 (* Counter *)
 (*****************************************************************************)
 val _counter : int ref

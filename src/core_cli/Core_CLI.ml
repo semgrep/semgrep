@@ -414,8 +414,8 @@ let all_actions (caps : Cap.all_caps) () =
     );
     ( "-stat_matches",
       " <marshalled file>",
-      Arg_.mk_action_1_arg (Experiments.stat_matches (caps :> < Cap.stdout >))
-    );
+      Arg_.mk_action_1_conv Fpath.v
+        (Experiments.stat_matches (caps :> < Cap.stdout >)) );
     ( "-ebnf_to_menhir",
       " <ebnf file>",
       Arg_.mk_action_1_conv Fpath.v
