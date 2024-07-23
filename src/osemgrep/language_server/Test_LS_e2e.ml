@@ -702,7 +702,7 @@ let with_session caps (f : test_info -> unit Lwt.t) : unit Lwt.t =
   (* we want to start every test logged out, or the LS won't behave
      predictably, because the testing structure assumes a fresh start
   *)
-  Cli_utils.with_login_test_env ~chdir:false
+  Testutil_login.with_login_test_env ~chdir:false
     (fun () ->
       with_git_tmp_path (fun root ->
           let server_info = create_info caps in

@@ -7,7 +7,6 @@
 
     osemgrep_cli
     osemgrep_cli_login
-    osemgrep_cli_utils
   )
  (preprocess
    (pps
