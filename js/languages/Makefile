@@ -6,7 +6,9 @@
 # - javascript: because?
 # - yaml: because?
 # - regexp: because?
-SUPPORTED_LANGS := bash c cairo circom cpp csharp dart dockerfile go hack html java json jsonnet julia kotlin lisp lua move_on_aptos ocaml php promql protobuf python ql r ruby rust scala solidity swift terraform typescript vue
+# C is missing from this list now, because we use the cpp parser for it. We only
+# need to build the actual parser once, and then reference it from C
+SUPPORTED_LANGS := bash cairo circom cpp csharp dart dockerfile go hack html java json jsonnet julia kotlin lisp lua move_on_aptos ocaml php promql protobuf python ql r ruby rust scala solidity swift terraform typescript vue
 
 .PHONY: default
 default: build

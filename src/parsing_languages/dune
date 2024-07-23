@@ -15,7 +15,6 @@
    parser_ocaml.menhir parser_ocaml.tree_sitter parser_ocaml.ast_generic
    parser_java.menhir parser_java.tree_sitter parser_java.ast_generic
    parser_python.menhir parser_python.tree_sitter parser_python.ast_generic
-   parser_c.menhir parser_c.tree_sitter parser_c.ast_generic
    parser_cpp.menhir parser_cpp.tree_sitter parser_cpp.ast_generic
    parser_php.menhir parser_php.tree_sitter parser_php.ast_generic
    ; no tree_sitter (use the one for typescript)
