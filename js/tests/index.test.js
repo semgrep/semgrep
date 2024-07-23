@@ -3,9 +3,9 @@ const SemgrepEngine = require("./dist/semgrep-engine");
 //TODO: why cpp is not in this list?
 const languages = [
   "bash",
-  "c",
   "cairo",
   "circom",
+  "cpp",
   "csharp",
   "dart",
   "dockerfile",

@@ -1,7 +1,14 @@
 TREESITTER_SRCDIR := ../../../libs/ocaml-tree-sitter-core/downloads/tree-sitter/lib/src
 
 ifndef NO_WASM
-TREE_SITTER_SOURCES ?= $(shell find ../../../languages/$(SEMGREP_LANG)/tree-sitter -name 'scanner.c' -o -name 'scanner.cc' -o -name 'parser.c')
+  # Because we now use the C++ parser for C, the C parser no longer exists.
+  # So our tree sitter sources are not in ../../../languages/c, they are in
+  # ../../../languages/cpp, so we must special case that here.
+  ifeq ($(SEMGREP_LANG),c)
+    TREE_SITTER_SOURCES ?= $(shell find ../../../languages/cpp/tree-sitter -name 'scanner.c' -o -name 'scanner.cc' -o -name 'parser.c')
+  else
+    TREE_SITTER_SOURCES ?= $(shell find ../../../languages/$(SEMGREP_LANG)/tree-sitter -name 'scanner.c' -o -name 'scanner.cc' -o -name 'parser.c')
+  endif
 endif
 
 

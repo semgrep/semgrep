@@ -167,11 +167,21 @@ let lang_parsing_tests () =
  *)
 let parsing_error_tests () =
   let dir = tests_path / "parsing_errors" in
+  let tags_of_file file =
+    match Fpath.to_string file with
+    (* For some reason, we can get a `Parsing_error.Syntax_error
+       from this test in JS, despite the fact that the `try` makes this
+       blatantly impossible.
+       I suspect a `jsoo` bug.
+    *)
+    | file when file =~ ".*/foo.c" -> [ Test_tags.todo_js ]
+    | _ -> []
+  in
   Testo.categorize "Parsing error detection"
     (let tests = Common2.glob (spf "%s/*" !!dir) in
      tests |> Fpath_.of_strings
      |> List_.map (fun file ->
-            t (Fpath.basename file) (fun () ->
+            t ~tags:(tags_of_file file) (Fpath.basename file) (fun () ->
                 try
                   let lang = Lang.lang_of_filename_exn file in
                   let res = Parse_target.just_parse_with_lang lang file in

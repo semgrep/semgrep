@@ -125,7 +125,9 @@ else
         LANGS=(
             "bash"
             "c_sharp"
-            "c"
+            # we would have c here, but now that we use the cpp parser for c instead, we
+            # no longer have the c code. so we cannot rely on the existence of the tree_sitter_c stubs
+            # "c"
             "cairo"
             "circom"
             "clojure"
