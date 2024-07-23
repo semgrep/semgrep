@@ -1,0 +1,2 @@
+C++: Scanning a project with header files (.h) now no longer causes a
+spurious warnings that the file is being skipped, or not analyzed.
