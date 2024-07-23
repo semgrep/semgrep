@@ -9,6 +9,8 @@
    fileutils
    testo
    testo-lwt
+
+   osemgrep_cli_utils
  )
  (preprocess
   (pps

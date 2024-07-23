@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Common
-open Fpath_.Operators
 
 let t = Testo.create
 
@@ -30,13 +29,6 @@ let t = Testo.create
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
-(* we return a fun () to match Testo.test second element *)
-let with_login_test_env f () =
-  Testutil_files.with_tempdir ~chdir:true (fun tmp_path ->
-      Semgrep_envvars.with_envvar "SEMGREP_SETTINGS_FILE"
-        !!(tmp_path / "settings.yaml")
-        f)
 
 let with_fake_deployment_response return_value f =
   let make_response_fn (req : Cohttp.Request.t) _body =
@@ -61,7 +53,7 @@ let test_logout_not_logged_in caps : Testo.t =
   t ~checked_output:(Testo.stderr ())
     ~normalize:[ Testo.mask_not_substring "You are not logged in" ]
     __FUNCTION__
-    (with_login_test_env (fun () ->
+    (Cli_utils.with_login_test_env (fun () ->
          let exit_code = Logout_subcommand.main caps [| "semgrep-logout" |] in
          Exit_code.Check.ok exit_code))
 
@@ -70,7 +62,7 @@ let test_login_no_tty caps : Testo.t =
     ~normalize:
       [ Testo.mask_not_substring "meant to be run in an interactive terminal" ]
     __FUNCTION__
-    (with_login_test_env (fun () ->
+    (Cli_utils.with_login_test_env (fun () ->
          (* make stdin non-interactive so Unix.isatty Unix.stdin
             called in Login_subcommand.run returns false
          *)
@@ -112,7 +104,7 @@ let test_login_with_env_token caps : Testo.t =
           ];
       ]
     __FUNCTION__
-    (with_login_test_env (fun () ->
+    (Cli_utils.with_login_test_env (fun () ->
          Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" fake_token (fun () ->
              with_fake_deployment_response fake_deployment (fun () ->
                  let exit_code =

@@ -1,21 +1,13 @@
 ; OCaml implementation of the 'semgrep login' and 'semgrep logout' subcommands.
 ;
 (library
-  (public_name semgrep.osemgrep_cli_login)
-  (name osemgrep_cli_login)
+  (public_name semgrep.osemgrep_cli_utils)
+  (name osemgrep_cli_utils)
   (wrapped false)
   (libraries
-  ; External libraries
-    ANSITerminal
-    cmdliner
-    ocolor
     commons
 
     osemgrep_configuring
-    osemgrep_core
-    osemgrep_networking
-    osemgrep_reporting
-    osemgrep_cli_utils
   )
  (preprocess
    (pps

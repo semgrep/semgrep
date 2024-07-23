@@ -699,13 +699,19 @@ let with_session caps (f : test_info -> unit Lwt.t) : unit Lwt.t =
        Logs.err (fun m -> m "Got exception: %s" err);
        Logs.err (fun m -> m "Traceback:\n%s" traceback);
        Alcotest.fail "Got exception in Lwt.async during tests");
-  let server_info = create_info caps in
-  let server_promise () = LanguageServer.start server_info.server in
-  (* Separate promise so we actually bubble up errors from this one *)
-  Lwt.async server_promise;
-  with_git_tmp_path (fun root ->
-      let test_info = { server = server_info; root } in
-      f test_info)
+  (* we want to start every test logged out, or the LS won't behave
+     predictably, because the testing structure assumes a fresh start
+  *)
+  Cli_utils.with_login_test_env ~chdir:false
+    (fun () ->
+      with_git_tmp_path (fun root ->
+          let server_info = create_info caps in
+          let server_promise () = LanguageServer.start server_info.server in
+          (* Separate promise so we actually bubble up errors from this one *)
+          Lwt.async server_promise;
+          let test_info = { server = server_info; root } in
+          f test_info))
+    ()
 
 let test_ls_specs caps () =
   with_session caps (fun { server = info; root } ->
@@ -986,9 +992,6 @@ let _test_login caps () =
       (* If we don't log out prior to starting this test, the LS will complain
          we're already logged in, and not display the correct behavior.
       *)
-      let settings = Semgrep_settings.load () in
-      if not (Semgrep_settings.save { settings with api_token = None }) then
-        Alcotest.fail "failed to save settings to log out in ls e2e test";
       let files = mock_files root in
       Testutil_files.with_chdir root (fun () ->
           let%lwt () = check_startup info [ root ] files in
@@ -1004,7 +1007,6 @@ let _test_login caps () =
           in
 
           assert (Pcre2_.unanchored_match login_url_regex url);
-          Semgrep_settings.save settings |> ignore;
           send_exit info;
           Lwt.return_unit))
 

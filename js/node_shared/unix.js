@@ -409,3 +409,32 @@ function unix_read(fd, buf, ofs, len) {
 function unix_rename(path1, path2) {
   globalThis.fs.renameSync(path1, path2);
 }
+
+//Provides: unix_putenv
+//Requires: caml_set_static_env
+function unix_putenv(name, val) {
+  // prioritize nodejs env over static env
+  // cf. caml_sys_getenv
+  // https://github.com/ocsigen/js_of_ocaml/blob/51cce064485ac35dc311c26cdcadcb3320162223/runtime/sys.js#L102-L133
+  if(process
+    && process.env) {
+    process.env[name] = val;
+    return 0;
+  }
+  if(!globalThis.jsoo_static_env)
+    globalThis.jsoo_static_env = {}
+  globalThis.jsoo_static_env[k] = v;
+  return 0;
+}
+
+//Provides: unix_getenv
+//Requires: caml_sys_getenv
+function unix_getenv(v) {
+  return caml_sys_getenv(v);
+}
+
+//Provides: unix_unsafe_getenv
+//Requires: caml_sys_unsafe_getenv
+function unix_unsafe_getenv(v) {
+  return caml_sys_unsafe_getenv(v);
+}
