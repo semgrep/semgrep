@@ -15,7 +15,6 @@
     osemgrep_core
     osemgrep_networking
     osemgrep_reporting
-    osemgrep_cli_utils
   )
  (preprocess
    (pps
