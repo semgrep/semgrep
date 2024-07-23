@@ -316,7 +316,7 @@ _scan_options: List[Callable] = [
         "--gitlab-secrets-output", "outputs_gitlab_secrets", multiple=True, default=[]
     ),
     optgroup.option(
-        "--junit-xml-outputl", "outputs_junit_xml", multiple=True, default=[]
+        "--junit-xml-output", "outputs_junit_xml", multiple=True, default=[]
     ),
     optgroup.option("--sarif-output", "outputs_sarif", multiple=True, default=[]),
     optgroup.option("--vim-output", "outputs_vim", multiple=True, default=[]),
