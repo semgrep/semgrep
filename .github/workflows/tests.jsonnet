@@ -582,18 +582,6 @@ local ignore_md = {
       uses: './.github/workflows/build-test-osx-arm64.yml',
       secrets: 'inherit',
     },
-    'build-test-javascript': {
-      uses: './.github/workflows/build-test-javascript.yml',
-      secrets: 'inherit',
-      // we limit artifact uploads to avoid filling the S3 bucket with tons of semgrep.js builds.
-      // we will upload if one of these are true:
-      // - the branch name is "develop" (so that we can test the bleeding edge)
-      // - the branch name starts with "release-" (TODO: move this to release.yml instead)
-      // - the PR is not a fork and has a "publish-js" label
-      with: {
-        'upload-artifacts': "${{ (github.ref == 'refs/heads/develop') || startsWith(github.head_ref, 'release-') || (!github.event.pull_request.head.repo.fork && contains(github.event.pull_request.labels.*.name, 'publish-js')) }}",
-      },
-    },
   },
   export:: {
     // Used in semgrep-proprietary.
