@@ -1,8 +1,5 @@
-# TODO: this file is now unused!
-# ***************************************************************************
-# *** Once you have checked that a config for a hook was ported to the
-# *** new git project root, remove it from here.
-# ***************************************************************************
+# coupling: if you add a check in this file, please add it first in
+# the semgrep-proprietary repo
 #
 # Semgrep pre-commit configuration.
 # See https://pre-commit.com/ for more information.
@@ -12,28 +9,10 @@
 # This config defines also 2 "jobs" with the `stages: [manual]` directive
 # which are only exercised in CI (see .github/workflows/lint.yml).
 
-# NOTE "Python"
-#
-# TL;DR PLEASE DO NOT update Python dependencies unless strictly needed !
-#
-# In the past, bumping some of the dependencies in this file
-# (e.g. Black to 23.11.0) has caused pre-commit to fail for many of us, with the
-# inevitable disruption that this causes.
-#
-# Given that we are in the process of replacing the Python CLI, it is not a good
-# use of our time to deal with issues caused by bumping Python dependencies,
-# unless it is truly needed.
-
-# Note that below after the invalid\\b there is a list of directories which
-# are not strictly needed to be ignored; they correspond to the submodules
-# of semgrep. By default, precommit is skipping any code in submodules,
-# but in semgrep-pro in check-semgrep-oss.jsonnet we want to check whether
-# the OSS/ subfolder does not have precommit errors and we use some
-# basic cp -a OSS ../ and create a new repo from that but it does not
-# handle well submodules. So simpler to ignore them here, it should
-# not hurt.
 exclude: "^tests|^cli/tests/default/e2e.*/(targets|snapshots|rules/syntax)|^cli/tests/performance/targets_perf_sca|^cli/src/(semgrep|semdep)/external|^cli/bin|\\binvalid\\b|^libs/ocaml-tree-sitter-core|^libs/testo|^libs/pcre2|^cli/src/semgrep/semgrep_interfaces|languages/.*/semgrep-.*|tests/semgrep-rules"
+
 default_stages: [commit]
+
 # See https://pre-commit.com/#pre-commit-configyaml---repos
 # for more information on the format of the content below
 repos:
@@ -63,6 +42,8 @@ repos:
       - id: debug-statements
       - id: destroyed-symlinks
       - id: detect-private-key
+      - id: end-of-file-fixer
+        exclude: "^\\.github/workflows/.+|semgrep\\.opam|.gitmodules$"
       - id: fix-byte-order-marker
       - id: fix-encoding-pragma
         args: [--remove]
