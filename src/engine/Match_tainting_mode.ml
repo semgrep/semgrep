@@ -1073,10 +1073,16 @@ let check_rules ~match_hook
            Match_env.adjust_xconfig_with_rule_options xconf rule.R.options
          in
          (* This boilerplate function will take care of things like
-            timing out if this rule takes too long, and returning a dummy
-            result for the timed-out rule.
+             timing out if this rule takes too long, and returning a dummy
+             result for the timed-out rule.
          *)
          per_rule_boilerplate_fn
            (rule :> R.rule)
            (fun () ->
-             check_rule per_file_formula_cache rule match_hook xconf xtarget))
+             Logs_.with_info_trace "Match_tainting_mode.check_rule" (fun () ->
+                 (* Part of main application tracing. *)
+                 (* nosem: no-logs-in-library *)
+                 Logs.info (fun m ->
+                     m "target: %s" !!(xtarget.path.internal_path_to_content);
+                     m "ruleid: %s" (rule.id |> fst |> Rule_ID.to_string));
+                 check_rule per_file_formula_cache rule match_hook xconf xtarget)))

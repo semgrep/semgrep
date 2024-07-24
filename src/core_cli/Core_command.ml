@@ -75,7 +75,11 @@ let output_core_results (caps : < Cap.stdout ; Cap.exit >)
             let err = E.exn_to_error None Fpath_.fake_file exn in
             Core_result.mk_result_with_just_errors [ err ]
       in
-      let res = Core_json_output.core_output_of_matches_and_errors res in
+      let res =
+        Logs_.with_debug_trace
+          "Core_command.core_output_of_matches_and_errors.1" (fun () ->
+            Core_json_output.core_output_of_matches_and_errors res)
+      in
       (*
         Not pretty-printing the json output (Yojson.Safe.prettify)
         because it kills performance, adding an extra 50% time on our
@@ -185,7 +189,11 @@ let semgrep_core_with_one_pattern (caps : < Cap.stdout ; Cap.tmp >)
       match res with
       | Error exn -> Exception.reraise exn
       | Ok res ->
-          let json = Core_json_output.core_output_of_matches_and_errors res in
+          let json =
+            Logs_.with_debug_trace
+              "Core_command.core_output_of_matches_and_errors.2" (fun () ->
+                Core_json_output.core_output_of_matches_and_errors res)
+          in
           let s = Out.string_of_core_output json in
           CapConsole.print caps#stdout s)
   | Text ->
