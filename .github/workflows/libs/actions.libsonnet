@@ -87,4 +87,33 @@
         name: artifact_name,
       },
   },
+  // See semgrep.libjsonnet cache_opam for inspiration here
+  //
+  guard_cache_hit: {
+    step(path, key='${{ github.sha}}', bump_cache=1): {
+      name: 'Set GHA cache for ' + key +' in ' + path,
+      uses: 'actions/cache@v3',
+      env: {
+        SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2,
+      },
+      with: {
+        path: path,
+        key: '${{ runner.os }}-${{ runner.arch }}-v%d-opam-%s' % [bump_cache, key],
+      },
+    },
+    // to be used with workflow_dispatch and workflow_call in the workflow
+    inputs(required, step): {
+      inputs: {
+        'use-cache': {
+          description: 'Use Github Cache for ' + step + '- uncheck the box to disable use of the cache for this step, meaning a long-running but completely from-scratch build.',
+          required: required,
+          type: 'boolean',
+          default: true,
+        },
+      }
+    },
+    if_cache_inputs: {
+      'if': '${{ inputs.use-cache}}'
+    },
+  }
 }

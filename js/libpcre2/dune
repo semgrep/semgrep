@@ -1,8 +1,0 @@
-(library
- (public_name semgrep.libpcre2_stubs_js)
- (name libpcre2_stubs_js)
- (wrapped false)
- (js_of_ocaml
-  (javascript_files runtime.js))
- (preprocess
-  (pps js_of_ocaml-ppx)))
