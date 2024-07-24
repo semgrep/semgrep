@@ -1,3 +1,5 @@
+# coupling: if you modify this file, please also update OSS/src/targeting/Semgrepignore.ml
+
 # Common large paths
 node_modules/
 build/
@@ -13,6 +15,7 @@ vendor/
 # Common test paths
 test/
 tests/
+testsuite/
 *_test.go
 
 # Semgrep rules folder
