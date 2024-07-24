@@ -6,6 +6,73 @@
 
 <!-- insertion point -->
 
+## [1.81.0](https://github.com/returntocorp/semgrep/releases/tag/v1.81.0) - 2024-07-24
+
+
+### Changed
+
+
+- The --debug option will now display logging information from the semgrep-core
+  binary directly, without waiting that the semgrep-core program finish. (incremental_debug)
+
+
+### Fixed
+
+
+- C++: Scanning a project with header files (.h) now no longer causes a
+  spurious warnings that the file is being skipped, or not analyzed. (code-6899)
+- Semgrep will now be more strict (as it should be) when unifying identifiers.
+
+  Patterns like the one below may not longer work, particularly in Semgrep Pro:
+
+      patterns:
+        - pattern-inside: |
+            class A:
+              ...
+              def $F(...):
+                ...
+              ...
+            ...
+        - pattern-inside: |
+            class B:
+              ...
+              def $F(...):
+                ...
+              ...
+            ...
+
+  Even if two classes `A` and `B` may both have a method named `foo`, these methods
+  are not the same, and their ids are not unifiable via `$F`. The right way of doing
+  this in Semgrep is the following:
+
+      patterns:
+        - pattern-inside: |
+            class A:
+              ...
+              def $F1(...):
+                ...
+              ...
+            ...
+        - pattern-inside: |
+            class B:
+              ...
+              def $F2(...):
+                ...
+              ...
+            ...
+        - metavariable-comparison:
+            comparison: str($F1) == str($F2)
+
+  We use a different metavariable to match each method, then we check whether they
+  have the same name (i.e., same string). (code-7336)
+- In the app, you can configure Secrets ignores separately from Code/SSC ignores. However, the
+  files that were ignored by Code/SSC and not Secrets were still being scanned during the
+  preprocessing stage for interfile analysis. This caused significantly longer scan times than
+  expected for some users, since those ignored files can ignore library code. This PR fixes that
+  behavior and makes Code/SSC ignores apply as expected. (saf-1087)
+- Fixed typo that prevented users from using "--junit-xml-output" flag and added a tests that invokes the flag. (saf-1437)
+
+
 ## [1.80.0](https://github.com/returntocorp/semgrep/releases/tag/v1.80.0) - 2024-07-18
 
 

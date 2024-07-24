@@ -1,1 +1,0 @@
-Fixed typo that prevented users from using "--junit-xml-output" flag and added a tests that invokes the flag.

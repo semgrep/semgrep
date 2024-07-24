@@ -1,5 +1,0 @@
-In the app, you can configure Secrets ignores separately from Code/SSC ignores. However, the
-files that were ignored by Code/SSC and not Secrets were still being scanned during the
-preprocessing stage for interfile analysis. This caused significantly longer scan times than
-expected for some users, since those ignored files can ignore library code. This PR fixes that
-behavior and makes Code/SSC ignores apply as expected.
