@@ -444,7 +444,14 @@ let unsafe_match_to_match
 let match_to_match (x : Core_result.processed_match) :
     (Out.core_match, Core_error.t) result =
   try
-    Ok (unsafe_match_to_match x)
+    (* nosem: no-logs-in-library *)
+    Ok
+      (Logs_.with_debug_trace ~src:Log_reporting.src
+         "Core_json_output.unsafe_match_to_match" (fun () ->
+           Log_reporting.Log.debug (fun m ->
+               m "target: %s" !!(x.pm.path.internal_path_to_content);
+               m "ruleid: %s" (x.pm.rule_id.id |> Rule_ID.to_string));
+           unsafe_match_to_match x))
     (* raised by min_max_ii_by_pos in range_of_any when the AST of the
      * pattern in x.code or the metavar does not contain any token
      *)
@@ -608,9 +615,9 @@ let core_output_of_matches_and_errors (res : Core_result.t) : Out.core_output =
     paths =
       {
         (* It seems that we have two separate paths, one for osemgrep
-           (Cli_json_output.ml) and another for pysemgrep here. We
-           should update this section to output the results
-           specifically for pysemgrep. *)
+            (Cli_json_output.ml) and another for pysemgrep here. We
+            should update this section to output the results
+            specifically for pysemgrep. *)
         skipped = None;
         scanned = res.scanned |> List_.map Target.internal_path;
       };

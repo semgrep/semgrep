@@ -27,6 +27,9 @@ type lockfile = {
 }
 [@@deriving show]
 
+let pp_debug_lockfile f t =
+  Format.fprintf f "%s" (t.path.internal_path_to_content |> Fpath.to_string)
+
 type regular = {
   path : path;
   analyzer : Xlang.t;
@@ -35,7 +38,16 @@ type regular = {
 }
 [@@deriving show]
 
+let pp_debug_regular f t =
+  Format.fprintf f "%s (%s)"
+    (t.path.internal_path_to_content |> Fpath.to_string)
+    (t.analyzer |> Xlang.to_string)
+
 type t = Regular of regular | Lockfile of lockfile [@@deriving show]
+
+let pp_debug f = function
+  | Regular t -> Format.fprintf f "target file: %a" pp_debug_regular t
+  | Lockfile t -> Format.fprintf f "target lockfile: %a" pp_debug_lockfile t
 
 (** [tempfile_of_git_blob sha] is the path to a newly created temporary file
     which contains the contents of the git blob object identified by [sha] *)
