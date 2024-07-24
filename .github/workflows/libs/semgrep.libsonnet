@@ -241,6 +241,22 @@ local slack = {
     },
 };
 
+
+// default one
+// coupling: with containers above
+local opam_switch = '4.14.0';
+
+// this must be done after the checkout as opam installs itself
+// locally in the project folder (/home/runner/work/semgrep/semgrep/_opam)
+// coupling: default is above opam_switch
+local opam_setup = function(opam_switch="4.14.0") {
+      uses: 'ocaml/setup-ocaml@v2',
+      with: {
+        'ocaml-compiler': opam_switch,
+        'opam-depext': false,
+      },
+    };
+
 // ----------------------------------------------------------------------------
 // Entry point
 // ----------------------------------------------------------------------------
@@ -266,10 +282,8 @@ local slack = {
     },
   // See https://depot.dev/orgs/9ks3jwp44z/projects/fhmxj6w9z8/settings
   depot_project_id: 'fhmxj6w9z8',
-
-  // default one
-  // coupling: with containers above
-  opam_switch: '4.14.0',
+  opam_switch: opam_switch,
+  opam_setup: opam_setup,
   containers: containers,
 
   github_bot: github_bot,
