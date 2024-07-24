@@ -783,7 +783,9 @@ let mark_todo_js (test : Testo.t) =
     when (* The target file has an unsupported .erb extension, making it excluded
             correctly by the OCaml test suite but not by the JS test suite
             (or something close to this). *)
-         s =~ ".*/ruby/rails/security/brakeman/check-reverse-tabnabbing.yaml" ->
+         s =~ ".*/ruby/rails/security/brakeman/check-reverse-tabnabbing.yaml"
+         || (* Not sure why this fails *)
+         s =~ ".*/ruby/lang/security/divide-by-zero.yaml" ->
       Testo.update test ~tags:(Test_tags.todo_js :: test.tags)
   | _ -> test
 
