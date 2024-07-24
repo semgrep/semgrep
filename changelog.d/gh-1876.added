@@ -1,0 +1,1 @@
+Added `testsuite/` as a filepath to the default value for `.semgrepignore`.
