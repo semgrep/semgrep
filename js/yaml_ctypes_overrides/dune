@@ -1,8 +1,0 @@
-(library
-  (public_name semgrep.yaml_ctypes_overrides)
-  (name yaml_ctypes_overrides)
-   (libraries
-    yaml
-   )
-  (wrapped false)
-)
