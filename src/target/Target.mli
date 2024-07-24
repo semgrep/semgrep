@@ -48,6 +48,8 @@ type lockfile = {
 (** A lockfile to be used during matching. See also {!Lockfile_xtarget.t}, an
     augmented version with the contents of the lockfile. *)
 
+val pp_debug_lockfile : Format.formatter -> lockfile -> unit
+
 type regular = {
   path : path;
   analyzer : Xlang.t;  (** The analyzer to use when scanning this target. *)
@@ -68,6 +70,8 @@ type regular = {
    regex/generic, arbitrary text data) to be executed. See also {!Xtarget.t},
    an augmented version which also has the contents. *)
 
+val pp_debug_regular : Format.formatter -> regular -> unit
+
 (** A Semgrep target. This contains all of the details needed to be able to
     determine how to scan a target, e.g.,
 
@@ -81,6 +85,8 @@ type regular = {
     the target itself. For that, see {!Xtarget.t} or {!Lockfile_xtarget}.
  *)
 type t = Regular of regular | Lockfile of lockfile [@@deriving show]
+
+val pp_debug : Format.formatter -> t -> unit
 
 val mk_regular :
   ?lockfile:lockfile ->

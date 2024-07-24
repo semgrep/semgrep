@@ -319,6 +319,36 @@ let sinfo ?src ?tags str = Logs.info ?src (fun m -> m ?tags "%s" str)
 let swarn ?src ?tags str = Logs.warn ?src (fun m -> m ?tags "%s" str)
 let serr ?src ?tags str = Logs.err ?src (fun m -> m ?tags "%s" str)
 
+let with_info_trace ?src ?tags ?pp_res name f =
+  Logs.info ?src (fun m -> m ?tags "starting %s" name);
+  try
+    let res = f () in
+    pp_res
+    |> Option.iter (fun pp_res ->
+           Logs.info ?src (fun m -> m ?tags "%s returned: %a" name pp_res res));
+    Logs.info ?src (fun m -> m ?tags "finished %s" name);
+    res
+  with
+  | f_exn ->
+      let f_bt = Printexc.get_raw_backtrace () in
+      Logs.err ?src (fun m -> m ?tags "exception during %s" name);
+      Printexc.raise_with_backtrace f_exn f_bt
+
+let with_debug_trace ?src ?tags ?pp_res name f =
+  Logs.debug ?src (fun m -> m ?tags "starting %s" name);
+  try
+    let res = f () in
+    pp_res
+    |> Option.iter (fun pp_res ->
+           Logs.debug ?src (fun m -> m ?tags "%s returned: %a" name pp_res res));
+    Logs.debug ?src (fun m -> m ?tags "finished %s" name);
+    res
+  with
+  | f_exn ->
+      let f_bt = Printexc.get_raw_backtrace () in
+      Logs.err ?src (fun m -> m ?tags "exception during %s" name);
+      Printexc.raise_with_backtrace f_exn f_bt
+
 let list to_string xs =
   Printf.sprintf "[%s]" (xs |> List_.map to_string |> String.concat ";")
 
