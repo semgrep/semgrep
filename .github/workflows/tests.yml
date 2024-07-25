@@ -82,11 +82,6 @@ jobs:
       file: Dockerfile
       repository-name: semgrep/semgrep
       target: performance-tests
-  build-test-javascript:
-    secrets: inherit
-    uses: ./.github/workflows/build-test-javascript.yml
-    with:
-      upload-artifacts: ${{ (github.ref == 'refs/heads/develop') || startsWith(github.head_ref, 'release-') || (!github.event.pull_request.head.repo.fork && contains(github.event.pull_request.labels.*.name, 'publish-js')) }}
   build-test-manylinux-aarch64:
     needs:
       - build-test-docker
