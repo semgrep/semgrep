@@ -257,6 +257,7 @@ def ci(
         state.metrics.configure(metrics)
         state.error_handler.configure(suppress_errors)
         scan_handler = None
+        capture_core_stderr = not debug
 
         if subdir:
             subdir = subdir.resolve()  # normalize path & resolve symlinks
@@ -542,6 +543,7 @@ def ci(
             "baseline_commit": metadata.merge_base_ref,
             "baseline_commit_is_mergebase": True,
             "diff_depth": diff_depth,
+            "capture_core_stderr": capture_core_stderr,
         }
 
         try:
