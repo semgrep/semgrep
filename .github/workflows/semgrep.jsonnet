@@ -11,21 +11,19 @@ local semgrep = import 'libs/semgrep.libsonnet';
 // The Job
 // ----------------------------------------------------------------------------
 
-local semgrep_ci_job = {
+local mk_job(steps) = {
   'runs-on': 'ubuntu-20.04',
   container: {
     // We're dogfooding the canary here!
     image: 'semgrep/semgrep:canary',
   },
   env: semgrep.secrets,
-  steps: [
-    actions.checkout(),
-    {
-      // Dogfood!
-      run: 'semgrep ci --debug',
-    },
-  ],
+  steps: [ actions.checkout() ] + steps,
 } + gha.dependabot_guard;
+
+local semgrep_ci_job = mk_job([{ run: 'semgrep ci' } ]);
+local semgrep_ci_oss_job = mk_job([{ run: 'semgrep ci --oss-only' } ]);
+local semgrep_ci_debug_job = mk_job([{ run: 'semgrep ci --debug' } ]);
 
 // ----------------------------------------------------------------------------
 // The Workflow
@@ -40,13 +38,12 @@ local semgrep_ci_job = {
     // Note that any modification of this file in a PR does not reflect on said PR
     // Changes must be merged to develop first.
     pull_request_target: {},
+    // can be run manually from the GHA dashboard
+    workflow_dispatch: null,
+    // this will run a full-scan
     push: {
       branches: [
         'develop',
-      ],
-      // ???
-      paths: [
-        '.github/workflows/semgrep.yml',
       ],
     },
     schedule: [
@@ -58,5 +55,7 @@ local semgrep_ci_job = {
   },
   jobs: {
     'semgrep-ci': semgrep_ci_job,
+    'semgrep-ci-oss': semgrep_ci_oss_job,
+    'semgrep-ci-debug': semgrep_ci_debug_job,
   },
 }
