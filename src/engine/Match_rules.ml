@@ -201,8 +201,9 @@ let check ~match_hook ~timeout ~timeout_threshold
   in
   (* Part of main application tracing. *)
   (* nosem: no-logs-in-library *)
-  Logs.info (fun m ->
-      m "skipping %d irrelevant rules." (List.length _skipped_rules));
+  Logs.debug (fun m ->
+      m "Match_rules.check - skipping %d irrelevant rules."
+        (List.length _skipped_rules));
 
   let res_taint_rules =
     relevant_taint_rules_groups

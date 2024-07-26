@@ -61,7 +61,6 @@ Rules:
   Scanning 3 files.
 [<MASKED TIMESTAMP>][INFO]: core_scan: processing 1 files, skipping 0 files
 [<MASKED TIMESTAMP>][INFO]: targets in processing order:target file: stupid.py (Python)
-[<MASKED TIMESTAMP>][INFO]: skipping 0 irrelevant rules.
 [<MASKED TIMESTAMP>][INFO]: target: stupid.py
 [<MASKED TIMESTAMP>][INFO]: ruleid: eqeq-bad
 [<MASKED TIMESTAMP>][INFO]: target: stupid.py
