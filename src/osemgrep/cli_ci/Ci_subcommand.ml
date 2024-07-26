@@ -893,5 +893,5 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
 (*****************************************************************************)
 
 let main (caps : caps) (argv : string array) : Exit_code.t =
-  let conf = Ci_CLI.parse_argv (caps :> < Cap.tmp >) argv in
+  let conf = Ci_CLI.parse_argv argv in
   run_conf caps conf

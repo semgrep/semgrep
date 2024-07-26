@@ -163,7 +163,6 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     "--secrets",
     "run_secrets_flag",
     is_flag=True,
-    help="Run Semgrep Secrets product, including support for secret validation. Requires access to Secrets, contact support@semgrep.com for more information.",
 )
 @click.option(
     "--suppress-errors/--no-suppress-errors",
@@ -174,7 +173,6 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
 @click.option(
     "--subdir",
     type=click.Path(allow_dash=True, path_type=Path),
-    help="Scan only a subdirectory of this folder. This creates a project specific to the subdirectory unless SEMGREP_REPO_DISPLAY_NAME is set. Expects a relative path. (Note that when two scans have the same SEMGREP_REPO_DISPLAY_NAME but different targeted directories, the results of the second scan overwrite the first.)",
 )
 @click.option(
     "--internal-ci-scan-results",

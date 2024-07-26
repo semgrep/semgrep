@@ -452,17 +452,20 @@ let o_trace : bool Term.t =
   H.negatable_flag [ "trace" ] ~neg_options:[ "no-trace" ]
     ~default:default.trace
     ~doc:
-      {|Record traces from Semgrep scans to help debugging. This feature is meant for internal use and may be changed or removed without warning.
+      {|Record traces from Semgrep scans to help debugging. This feature is
+meant for internal use and may be changed or removed without warning.
 |}
 
 let o_trace_endpoint : string option Term.t =
   let info =
     Arg.info [ "trace-endpoint" ]
+      ~env:(Cmd.Env.info "SEMGREP_OTEL_ENDPOINTS")
       ~doc:
-        "Endpoint to send OpenTelemetry traces to, if `--trace` is present. \
-         The value may be `semgrep-prod` (default), `semgrep-dev`, \
-         `semgrep-local`, or any valid URL.  This feature is meant for \
-         internal use and may be changed or removed wihtout warning."
+        {|Endpoint to send OpenTelemetry traces to, if `--trace` is present.
+The value may be `semgrep-prod` (default), `semgrep-dev`,
+`semgrep-local`, or any valid URL.  This feature is meant for
+internal use and may be changed or removed wihtout warning.
+|}
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 
@@ -497,7 +500,8 @@ let o_json : bool Term.t =
 
 let o_incremental_output : bool Term.t =
   let info =
-    Arg.info [ "incremental-output" ] ~doc:{|Output results incrementally.|}
+    Arg.info [ "incremental-output" ]
+      ~doc:{|Output results incrementally. REQUIRES --experimental|}
   in
   Arg.value (Arg.flag info)
 
@@ -505,7 +509,9 @@ let o_incremental_output : bool Term.t =
 let o_files_with_matches : bool Term.t =
   let info =
     Arg.info [ "files-with-matches" ]
-      ~doc:{|Output only the names of files containing matches|}
+      ~doc:
+        {|Output only the names of files containing matches.
+REQUIRES --experimental|}
   in
   Arg.value (Arg.flag info)
 
@@ -628,18 +634,20 @@ let o_oss : bool Term.t =
   let info =
     Arg.info [ "oss-only" ]
       ~doc:
-        {|Run using only OSS features, even if the Semgrep Pro toggle is on.|}
+        {|Run using only the OSS engine, even if the Semgrep Pro toggle is on.
+This may still run Pro rules, but only using the OSS features.
+|}
   in
   Arg.value (Arg.flag info)
 
-let blurb =
+let blurb_pro =
   "Requires Semgrep Pro Engine. See https://semgrep.dev/products/pro-engine/ \
    for more."
 
 let o_pro_languages : bool Term.t =
   let info =
     Arg.info [ "pro-languages" ]
-      ~doc:("Enable Pro languages (currently Apex and Elixir). " ^ blurb)
+      ~doc:("Enable Pro languages (currently Apex and Elixir). " ^ blurb_pro)
   in
   Arg.value (Arg.flag info)
 
@@ -648,14 +656,14 @@ let o_pro_intrafile : bool Term.t =
     Arg.info [ "pro-intrafile" ]
       ~doc:
         ("Intra-file inter-procedural taint analysis. Implies --pro-languages. "
-       ^ blurb)
+       ^ blurb_pro)
   in
   Arg.value (Arg.flag info)
 
 let o_pro_path_sensitive : bool Term.t =
   let info =
     Arg.info [ "pro-path-sensitive" ]
-      ~doc:("Path sensitivity. Implies --pro-intrafile. " ^ blurb)
+      ~doc:("Path sensitivity. Implies --pro-intrafile. " ^ blurb_pro)
   in
   Arg.value (Arg.flag info)
 
@@ -664,12 +672,12 @@ let o_pro : bool Term.t =
     Arg.info [ "pro" ]
       ~doc:
         ("Inter-file analysis and Pro languages (currently Apex and Elixir). "
-       ^ blurb)
+       ^ blurb_pro)
   in
   Arg.value (Arg.flag info)
 
 (* ------------------------------------------------------------------ *)
-(* Configuration options *)
+(* Configuration options ('scan' only, not reused in 'ci') *)
 (* ------------------------------------------------------------------ *)
 let o_config : string list Term.t =
   let info =
@@ -888,7 +896,7 @@ let o_project_root : string option Term.t =
           forces a specific directory to be the project root. This is useful
           for testing or for restoring compatibility with older semgrep
           implementations that only looked for a .semgrepignore file
-          in the current directory.|}
+          in the current directory. REQUIRES --experimental|}
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 
@@ -899,7 +907,8 @@ let o_remote : string option Term.t =
         {|Remote will quickly checkout and scan a remote git repository of
         the format "http[s]://<WEBSITE>/.../<REPO>.git". Must be run with
         --pro Incompatible with --project-root. Note this requires an empty
-        CWD as this command will clone the repository into the CWD|}
+        CWD as this command will clone the repository into the CWD.
+        REQUIRES --experimental|}
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 
@@ -916,6 +925,7 @@ files before any rule-specific or language-specific filtering. Then exit.
 The output format is unspecified.
 THIS OPTION IS NOT PART OF THE SEMGREP API AND MAY
 CHANGE OR DISAPPEAR WITHOUT NOTICE.
+REQUIRES --experimental.
 |}
   in
   Arg.value (Arg.flag info)
@@ -977,6 +987,9 @@ let replace_target_roots_by_regular_files_where_needed (caps : < Cap.tmp >)
 (* Turn argv into a conf *)
 (*****************************************************************************)
 
+(* coupling: if you modify this function, you might need to modify
+ * also Ci_CLI.scan_subset_cmdline_term
+ *)
 let cmdline_term caps ~allow_empty_config : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)

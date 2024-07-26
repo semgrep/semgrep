@@ -60,13 +60,67 @@ val default : conf
 *)
 val parse_argv : < Cap.tmp > -> string array -> conf
 
-(* exported because used by Ci_CLI.ml too *)
-val cmdline_term :
-  < Cap.tmp > -> allow_empty_config:bool -> conf Cmdliner.Term.t
-
-(* exported because used by Interactive_CLI.ml too *)
+(* exported because used by Interactive_CLI.ml too (and some by Ci_CLI.ml) *)
 val o_lang : string option Cmdliner.Term.t
 val o_target_roots : string list Cmdliner.Term.t
 val o_include : string list Cmdliner.Term.t
 val o_exclude : string list Cmdliner.Term.t
 val o_secrets : bool Cmdliner.Term.t
+
+(* exported because used by Ci_CLI.ml *)
+val o_allow_untrusted_validators : bool Cmdliner.Term.t
+val o_autofix : bool Cmdliner.Term.t
+val o_baseline_commit : string option Cmdliner.Term.t
+val o_dataflow_traces : bool Cmdliner.Term.t
+val o_diff_depth : int Cmdliner.Term.t
+val o_dryrun : bool Cmdliner.Term.t
+val o_dump_command_for_core : bool Cmdliner.Term.t
+val o_emacs : bool Cmdliner.Term.t
+val o_emacs_outputs : string list Cmdliner.Term.t
+val o_exclude_minified_files : bool Cmdliner.Term.t
+val o_exclude_rule_ids : string list Cmdliner.Term.t
+val o_files_with_matches : bool Cmdliner.Term.t
+val o_force_color : bool Cmdliner.Term.t
+val o_gitlab_sast : bool Cmdliner.Term.t
+val o_gitlab_sast_outputs : string list Cmdliner.Term.t
+val o_gitlab_secrets : bool Cmdliner.Term.t
+val o_gitlab_secrets_outputs : string list Cmdliner.Term.t
+val o_historical_secrets : bool Cmdliner.Term.t
+val o_incremental_output : bool Cmdliner.Term.t
+val o_json : bool Cmdliner.Term.t
+val o_json_outputs : string list Cmdliner.Term.t
+val o_junit_xml : bool Cmdliner.Term.t
+val o_junit_xml_outputs : string list Cmdliner.Term.t
+val o_matching_explanations : bool Cmdliner.Term.t
+val o_max_chars_per_line : int Cmdliner.Term.t
+val o_max_lines_per_finding : int Cmdliner.Term.t
+val o_max_memory_mb : int Cmdliner.Term.t
+val o_max_target_bytes : int Cmdliner.Term.t
+val o_metrics : Metrics_.config Cmdliner.Term.t
+val o_num_jobs : int Cmdliner.Term.t
+val o_no_secrets_validation : bool Cmdliner.Term.t
+val o_nosem : bool Cmdliner.Term.t
+val o_optimizations : bool Cmdliner.Term.t
+val o_oss : bool Cmdliner.Term.t
+val o_output : string option Cmdliner.Term.t
+val o_pro : bool Cmdliner.Term.t
+val o_pro_intrafile : bool Cmdliner.Term.t
+val o_pro_languages : bool Cmdliner.Term.t
+val o_pro_path_sensitive : bool Cmdliner.Term.t
+val o_respect_gitignore : bool Cmdliner.Term.t
+val o_rewrite_rule_ids : bool Cmdliner.Term.t
+val o_sarif : bool Cmdliner.Term.t
+val o_sarif_outputs : string list Cmdliner.Term.t
+val o_scan_unknown_extensions : bool Cmdliner.Term.t
+val o_test : bool Cmdliner.Term.t
+val o_text : bool Cmdliner.Term.t
+val o_text_outputs : string list Cmdliner.Term.t
+val o_time : bool Cmdliner.Term.t
+val o_timeout : float Cmdliner.Term.t
+val o_timeout_interfile : int Cmdliner.Term.t
+val o_timeout_threshold : int Cmdliner.Term.t
+val o_trace : bool Cmdliner.Term.t
+val o_trace_endpoint : string option Cmdliner.Term.t
+val o_version_check : bool Cmdliner.Term.t
+val o_vim : bool Cmdliner.Term.t
+val o_vim_outputs : string list Cmdliner.Term.t

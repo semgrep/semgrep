@@ -5,16 +5,16 @@
 (*
    The result of parsing a 'semgrep ci' command.
 *)
-
 type conf = {
   audit_on : string list;
   dry_run : bool;
   suppress_errors : bool;
   (* --code/--sca/--secrets/ *)
   products : Semgrep_output_v1_t.product list;
+  (* for monorepos *)
+  subdir : string;
   (* BIG ONE: 'semgrep ci' shares many flags with 'semgrep scan' *)
   scan_conf : Scan_CLI.conf;
-  subdir : string;
 }
 [@@deriving show]
 
@@ -25,8 +25,5 @@ type conf = {
 
    This function may raise an exn in case of an error parsing argv
    but this should be caught by CLI.safe_run.
-
-   TODO: ugly, but require Cap.tmp for Scan_CLI.cmdline_term
-   for Find_targets.Git_remote
 *)
-val parse_argv : < Cap.tmp > -> string array -> conf
+val parse_argv : string array -> conf
