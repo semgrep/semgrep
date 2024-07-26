@@ -83,6 +83,7 @@ class MetricsStateType(click.ParamType):
 
 METRICS_STATE_TYPE = MetricsStateType()
 
+# This subset of scan options is reused in ci.py
 _scan_options: List[Callable] = [
     click.help_option("--help", "-h"),
     click.option(
@@ -215,13 +216,11 @@ _scan_options: List[Callable] = [
         "trace",
         is_flag=True,
         default=False,
-        help="Record traces from Semgrep scans to help debugging. This feature is meant for internal use and may be changed or removed without warning.",
     ),
     optgroup.option(
         "--trace-endpoint",
         envvar="SEMGREP_OTEL_ENDPOINT",
         default=None,
-        help="Url to send OpenTelemetry traces to, if `--trace` is present. This feature is meant for internal use and may be changed or removed wihtout warning.",
     ),
     optgroup.option(
         "--matching-explanations",
@@ -416,6 +415,7 @@ def scan_options(func: Callable) -> Callable:
     return func
 
 
+# Those are the scan-only options (not reused in ci.py)
 @click.command()
 @click.argument("targets", nargs=-1, type=click.Path(allow_dash=True))
 @click.option(
@@ -483,7 +483,6 @@ def scan_options(func: Callable) -> Callable:
     "--secrets",
     "run_secrets_flag",
     is_flag=True,
-    help="Run Semgrep Secrets product, including support for secret validation. Requires access to Secrets, contact support@semgrep.com for more information.",
 )
 @optgroup.group("Osemgrep migration options")
 @optgroup.option(

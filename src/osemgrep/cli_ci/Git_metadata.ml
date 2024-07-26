@@ -50,7 +50,7 @@ let env : env Term.t =
     Arg.(
       value
       & opt (some string) None
-      & info [ " semgrep-repo-display-name" ] ~env ~doc)
+      & info [ "semgrep-repo-display-name" ] ~env ~doc)
   in
   let semgrep_repo_url =
     let doc = "The URL of the Git repository." in
