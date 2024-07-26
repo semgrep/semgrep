@@ -493,6 +493,7 @@ class GithubMeta(GitMeta):
                 req = requests.get(
                     f"{self.api_url}/repos/{self.repo_name}/compare/{self.base_branch_hash}...{self.head_branch_hash}",
                     headers=headers,
+                    timeout=3,
                 )
                 if req.status_code == 200:
                     compare_json = json.loads(req.text)
