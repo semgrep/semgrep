@@ -60,11 +60,6 @@ Rules:
   Scanning 3 files tracked by git with 1 Code rule:
   Scanning 3 files.
 [<MASKED TIMESTAMP>][INFO]: core_scan: processing 1 files, skipping 0 files
-[<MASKED TIMESTAMP>][INFO]: targets in processing order:target file: stupid.py (Python)
-[<MASKED TIMESTAMP>][INFO]: target: stupid.py
-[<MASKED TIMESTAMP>][INFO]: ruleid: eqeq-bad
-[<MASKED TIMESTAMP>][INFO]: target: stupid.py
-[<MASKED TIMESTAMP>][INFO]: lang: Python
 [<MASKED TIMESTAMP>][INFO]: reporting matches if any
 [<MASKED TIMESTAMP>][INFO]: Loading settings from nosettings.yaml
 
