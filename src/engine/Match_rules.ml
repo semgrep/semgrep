@@ -223,7 +223,7 @@ let check ~match_hook ~timeout ~timeout_threshold
                Logs_.with_debug_trace "Match_rules.check_rule" (fun () ->
                    (* Part of main application tracing. *)
                    (* nosem: no-logs-in-library *)
-                   Logs.info (fun m ->
+                   Logs.debug (fun m ->
                        m "target: %s" !!internal_path_to_content;
                        m "ruleid: %s" (r.id |> fst |> Rule_ID.to_string));
                    (* dispatching *)
