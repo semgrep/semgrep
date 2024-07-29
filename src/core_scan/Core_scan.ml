@@ -155,7 +155,7 @@ let parse_and_resolve_name (lang : Lang.t) (fpath : Fpath.t) :
     AST_generic.program * Tok.location list =
   let { Parsing_result2.ast; skipped_tokens; _ } =
     Logs_.with_debug_trace "Core_scan.parse_and_resolve_name" (fun () ->
-        Logs.info (fun m ->
+        Logs.debug (fun m ->
             m "target: %s" !!fpath;
             m "lang: %s" (Lang.to_string lang));
         Parse_target.parse_and_resolve_name lang fpath)
@@ -414,7 +414,7 @@ let map_targets ncores f (targets : Target.t list) =
      the two modes, we always sort the target queue in the same way.
   *)
   let targets = sort_targets_by_decreasing_size targets in
-  Logs.info (fun m ->
+  Logs.debug (fun m ->
       let pp_sep f () = Format.pp_print_string f "\n\t" in
       m "targets in processing order:%a"
         (Format.pp_print_list ~pp_sep Target.pp_debug)

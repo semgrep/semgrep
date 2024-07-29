@@ -134,14 +134,6 @@ val sinfo : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
 val swarn : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
 val serr : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
 
-val with_info_trace :
-  ?src:Logs.src ->
-  ?tags:Logs.Tag.set ->
-  ?pp_res:(Format.formatter -> 'a -> unit) ->
-  string ->
-  (unit -> 'a) ->
-  'a
-
 val with_debug_trace :
   ?src:Logs.src ->
   ?tags:Logs.Tag.set ->
