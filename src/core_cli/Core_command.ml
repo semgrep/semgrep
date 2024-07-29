@@ -90,7 +90,7 @@ let output_core_results (caps : < Cap.stdout ; Cap.exit >)
       let s = Out.string_of_core_output res in
       Logs.debug (fun m ->
           m "size of returned JSON string: %d" (String.length s));
-      CapConsole.print caps#stdout s;
+      (* CapConsole.print caps#stdout s; *)
       match result_or_exn with
       | Error exn ->
           Core_exit_code.exit_semgrep caps#exit (Unknown_exception exn)
@@ -195,7 +195,7 @@ let semgrep_core_with_one_pattern (caps : < Cap.stdout ; Cap.tmp >)
                 Core_json_output.core_output_of_matches_and_errors res)
           in
           let s = Out.string_of_core_output json in
-          CapConsole.print caps#stdout s)
+          (* CapConsole.print caps#stdout s *))
   | Text ->
       let minirule, _rules_parse_time =
         Common.with_time (fun () ->
