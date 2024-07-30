@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2023 Semgrep Inc.
+ * Copyright (C) 2023-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -25,7 +25,10 @@
  *
  * LATER: add 'interactive' and 'test' new osemgrep-only
  * subcommands (not added yet to avoid regressions in
-   tests/default/e2e/test_help.py).
+ * tests/default/e2e/test_help.py).
+ *
+ * coupling: with https://semgrep.dev/docs/cli-reference#semgrep-commands
+ * updated automatically by update-help-command.yml in the semgrep-docs repo
  *)
 
 (*****************************************************************************)

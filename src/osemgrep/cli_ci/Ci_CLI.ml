@@ -7,11 +7,13 @@ module SC = Scan_CLI
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(*
-   'semgrep ci' command-line parsing.
-
-   Translated from ci.py
-*)
+(* 'semgrep ci' command-line parsing.
+ *
+ * Translated from ci.py
+ *
+ * coupling: https://semgrep.dev/docs/cli-reference#semgrep-ci-command-options
+ * updated automatically by update-help-command.yml in the semgrep-docs repo
+ *)
 
 (*****************************************************************************)
 (* Types and constants *)
