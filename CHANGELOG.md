@@ -6,6 +6,42 @@
 
 <!-- insertion point -->
 
+## [1.82.0](https://github.com/returntocorp/semgrep/releases/tag/v1.82.0) - 2024-07-30
+
+
+### Added
+
+
+- Added `testsuite/` as a filepath to the default value for `.semgrepignore`. (gh-1876)
+
+
+### Changed
+
+
+- Update the library definitions for Java for the latest version of the JDK. (java-library-definitions)
+
+
+### Fixed
+
+
+- Fixed metavariable comparison in step mode.
+
+  Used to be that the rule:
+  ```yaml
+      steps:
+          - languages: [python]
+            patterns:
+              - pattern: x = f($VAR);
+          - languages: [generic]
+            patterns:
+              - pattern-either:
+                 - patterns:
+                  - pattern: HI $VAR
+  ```
+  Wouldn't match, as one is an identifier, and the other an expression that has a
+  string literal. The fix was chainging the equality used. (saf-1061)
+
+
 ## [1.81.0](https://github.com/returntocorp/semgrep/releases/tag/v1.81.0) - 2024-07-24
 
 
