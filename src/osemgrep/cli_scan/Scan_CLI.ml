@@ -8,11 +8,13 @@ module Show = Show_CLI
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(*
-   'semgrep scan' command-line arguments processing.
-
-   Translated partially from scan.py
-*)
+(* 'semgrep scan' command-line arguments processing.
+ *
+ * Translated partially from scan.py
+ *
+ * coupling: https://semgrep.dev/docs/cli-reference#semgrep-scan-command-options
+ * updated automatically by update-help-command.yml in the semgrep-docs repo
+ *)
 
 (*****************************************************************************)
 (* Types and constants *)
