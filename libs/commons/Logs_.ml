@@ -319,36 +319,20 @@ let sinfo ?src ?tags str = Logs.info ?src (fun m -> m ?tags "%s" str)
 let swarn ?src ?tags str = Logs.warn ?src (fun m -> m ?tags "%s" str)
 let serr ?src ?tags str = Logs.err ?src (fun m -> m ?tags "%s" str)
 
-(* Won't trace anything but exceptions on the default src or no tag,
-   and exceptions are always logged without a tag or src. *)
-let with_debug_trace ?src ?tags ?pp_input ?pp_res name f =
-  let pp_input f () =
-    match pp_input with
-    | None -> ()
-    | Some pp_input ->
-        Format.pp_print_string f "\n";
-        pp_input f ()
-  in
+let with_debug_trace ?src ?tags ?pp_res name f =
+  Logs.debug ?src (fun m -> m ?tags "starting %s" name);
   try
     let res = f () in
-    (match (pp_res, src, tags) with
-    (* Will log a result to the default src if there isn't an alternative. *)
-    | Some pp_res, _, _ ->
+    (match pp_res with
+    | Some pp_res ->
         Logs.debug ?src (fun m ->
-            m ?tags "finished %s returning:%a" name pp_res res)
-    | None, None, None -> ()
-    | None, _, _ -> Logs.debug ?src (fun m -> m ?tags "finished %s" name));
+            m ?tags "finished %s returning: %a" name pp_res res)
+    | None -> Logs.debug ?src (fun m -> m ?tags "finished %s" name));
     res
   with
-  (* We might want to make timeouts an exception to this. *)
   | f_exn ->
       let f_bt = Printexc.get_raw_backtrace () in
-      (* Unconditionally Log Errors to default src and tag. *)
-      Logs.err (fun m ->
-          m "exception during %s\nexception: %s%a" name
-            (Printexc.to_string f_exn)
-            (* If there are parameters print them with on a newline indented by two *)
-            pp_input ());
+      Logs.err ?src (fun m -> m ?tags "exception during %s" name);
       Printexc.raise_with_backtrace f_exn f_bt
 
 let list to_string xs =
