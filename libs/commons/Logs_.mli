@@ -137,6 +137,7 @@ val serr : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
 val with_debug_trace :
   ?src:Logs.src ->
   ?tags:Logs.Tag.set ->
+  ?pp_input:(Format.formatter -> unit -> unit) ->
   ?pp_res:(Format.formatter -> 'a -> unit) ->
   string ->
   (unit -> 'a) ->
