@@ -1294,7 +1294,7 @@ let map_enum_variant (env : env) ((v1, v2) : CST.enum_variant) =
   | `Struct_body x ->
       let lbrace, fields, rbrace = map_struct_body env x in
       let record_type =
-        G.TyRecordAnon ((G.Object, sc), (lbrace, fields, rbrace))
+        G.TyRecordAnon ((G.Class, sc), (lbrace, fields, rbrace))
       in
       G.OrUnion (variant, record_type |> G.t)
   | `Anon_fields x ->
@@ -1332,17 +1332,17 @@ let map_enum_body (env : env) ((v1, v2, v3, v4) : CST.enum_body) =
 
 let map_enum_signature (env : env) attrs ((v1, v2, v3) : CST.enum_signature) =
   let enum_ = (* "enum" *) token env v1 in
-  let name, type_params = map_struct_def_name env v2 in
+  let name, tparams = map_struct_def_name env v2 in
   let abilities =
     v3 |> Option.map (map_abilities env) |> Option.value ~default:[]
   in
-  let ent = G.basic_entity ~tparams:type_params ~attrs name in
+  let ent = G.basic_entity ~tparams ~attrs name in
   (enum_, abilities, ent)
 
 let map_enum_decl (env : env) attrs (x : CST.enum_decl) =
   match x with
   | `Enum_sign_enum_body (v1, v2) ->
-      let enum_, abilities_TODO, ent = map_enum_signature env attrs v1 in
+      let _, abilities_TODO, ent = map_enum_signature env attrs v1 in
       let lb, variants, rb = map_enum_body env v2 in
 
       let def = G.TypeDef { G.tbody = G.OrType variants } in
@@ -1356,7 +1356,7 @@ let map_enum_decl (env : env) attrs (x : CST.enum_decl) =
       in
       let v5 = (* ";" *) token env v5 in
 
-      let ent = G.basic_entity ~tparams name in
+      let ent = G.basic_entity ~tparams ~attrs name in
       let def = G.TypeDef { G.tbody = G.OrType variants } in
       G.DefStmt (ent, def) |> G.s
 
