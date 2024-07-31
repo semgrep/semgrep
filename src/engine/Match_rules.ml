@@ -220,12 +220,12 @@ let check ~match_hook ~timeout ~timeout_threshold
            per_rule_boilerplate_fn
              (r :> R.rule)
              (fun () ->
-               Logs_.with_debug_trace "Match_rules.check_rule"
-                 ~pp_input:(fun f () ->
-                   Format.fprintf f "target: %s\nruleid: %s"
-                     !!internal_path_to_content
-                     (r.id |> fst |> Rule_ID.to_string))
-                 (fun () ->
+               Logs_.with_debug_trace "Match_rules.check_rule" (fun () ->
+                   (* Part of main application tracing. *)
+                   (* nosem: no-logs-in-library *)
+                   Logs.debug (fun m ->
+                       m "target: %s" !!internal_path_to_content;
+                       m "ruleid: %s" (r.id |> fst |> Rule_ID.to_string));
                    (* dispatching *)
                    match r.R.mode with
                    | `Search _ as mode ->
