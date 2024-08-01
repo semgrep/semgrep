@@ -82,6 +82,11 @@ let command_loc = function
   | Shell_command_template (loc, _) -> loc
 
 let param_loc ((loc, _) : param) : loc = loc
+
+let param_or_ellipsis_loc : param_or_ellipsis -> loc = function
+  | ParamParam param -> param_loc param
+  | ParamEllipsis tok -> (tok, tok)
+
 let image_spec_loc (x : image_spec) = x.loc
 
 let env_pair_loc = function
@@ -103,6 +108,7 @@ let cmd_instr_loc ((loc, _, _, _) : cmd_instr) = loc
 
 let healthcheck_loc = function
   | Healthcheck_semgrep_metavar (_, tok) -> (tok, tok)
+  | Healthcheck_ellipsis tok -> (tok, tok)
   | Healthcheck_none tok -> (tok, tok)
   | Healthcheck_cmd (loc, _, _) -> loc
 
