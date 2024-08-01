@@ -1494,7 +1494,7 @@ and expr_stmt env (eorig : G.expr) tok : IL.stmt list =
        *
        * The issue is that for some languages
        * when `some_var` is the last evaluated expression in the function,
-       * `some_var` is also implicitly returned from the function. In this case
+       * `some_var` is also implictly returned from the function. In this case
        * `some_var` actually means `return some_var`, so there should be a return
        * node in the CFG.
        *
