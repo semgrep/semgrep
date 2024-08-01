@@ -156,8 +156,7 @@ let parse_and_resolve_name (lang : Lang.t) (fpath : Fpath.t) :
   let { Parsing_result2.ast; skipped_tokens; _ } =
     Logs_.with_debug_trace "Core_scan.parse_and_resolve_name" (fun () ->
         Logs.debug (fun m ->
-            m "target: %s" !!fpath;
-            m "lang: %s" (Lang.to_string lang));
+            m "Parsing (and naming) %s (with lang %s)" !!fpath (Lang.show lang));
         Parse_target.parse_and_resolve_name lang fpath)
   in
   (ast, skipped_tokens)
@@ -414,11 +413,6 @@ let map_targets ncores f (targets : Target.t list) =
      the two modes, we always sort the target queue in the same way.
   *)
   let targets = sort_targets_by_decreasing_size targets in
-  Logs.debug (fun m ->
-      let pp_sep f () = Format.pp_print_string f "\n\t" in
-      m "targets in processing order:%a"
-        (Format.pp_print_list ~pp_sep Target.pp_debug)
-        targets);
   if ncores <= 1 then List_.map f targets
   else (
     (*
@@ -580,7 +574,6 @@ let rules_from_rule_source (caps : < Cap.tmp >) (config : Core_scan_config.t) :
     match rule_source with
     | Some (Core_scan_config.Rule_file file) -> (
         Logs.info (fun m -> m "Parsing %s" !!file);
-        Logs.debug (fun m -> m " content = %s" (UFile.read_file file));
         match
           Parse_rule.parse_and_filter_invalid_rules ~rewrite_rule_ids:None file
         with
@@ -629,9 +622,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
     |> map_targets config.ncores (fun (target : Target.t) ->
            let internal_path = Target.internal_path target in
            let origin = Target.origin target in
-           Logs.debug (fun m ->
-               m "Analyzing %s (contents in %s)" (Origin.to_string origin)
-                 !!internal_path);
+           Logs.debug (fun m -> m "Core_scan analyzing %s" !!internal_path);
 
            (* Sadly we need to disable tracing when we are using more than 1
             * cores.
@@ -644,13 +635,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
             * For now, just turn off tracing when we use more than 1 core.
             *)
            let handle_target_maybe_with_trace =
-             if config.ncores > 1 then (
-               Logs.debug (fun m ->
-                   m
-                     "Handling target without traces because multiprocessing \
-                      (%d jobs) was requested."
-                     config.ncores);
-               handle_target)
+             if config.ncores > 1 then handle_target
              else handle_target_with_trace handle_target
            in
 
@@ -691,10 +676,6 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                         * not testing -max_memory.
                         *)
                        if config.test then Gc.full_major ();
-                       Logs.debug (fun m ->
-                           m "done with %s (contents in %s)"
-                             (Origin.to_string origin) !!internal_path);
-
                        (res, was_scanned))
                  with
                  (* note that Semgrep_error_code.exn_to_error already handles

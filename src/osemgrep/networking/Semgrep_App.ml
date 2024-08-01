@@ -77,15 +77,15 @@ let get_scan_config_from_token_async
     | Ok { body = Ok body; _ } -> (
         try Some (OutJ.scan_config_of_string body) with
         | Yojson.Json_error msg ->
-            Logs.debug (fun m ->
+            Logs.err (fun m ->
                 m "failed to parse body as scan_config %s: %s" msg body);
             None)
     | Ok { body = Error err; code; _ } ->
-        Logs.debug (fun m ->
+        Logs.err (fun m ->
             m "error while retrieving scan config %u: %s" code err);
         None
     | Error e ->
-        Logs.debug (fun m -> m "error while retrieving scan config %s" e);
+        Logs.err (fun m -> m "error while retrieving scan config %s" e);
         None
   in
   Lwt.return scan_config_opt
@@ -171,12 +171,12 @@ let get_deployment_from_token_async caps : OutJ.deployment_config option Lwt.t =
         let x = OutJ.deployment_response_of_string body in
         Some x.deployment
     | Ok { body = Error msg; code; _ } ->
-        Logs.debug (fun m ->
+        Logs.err (fun m ->
             m "error while retrieving deployment, %s returned %u: %s"
               (Uri.to_string url) code msg);
         None
     | Error e ->
-        Logs.debug (fun m -> m "error while retrieving deployment: %s" e);
+        Logs.err (fun m -> m "error while retrieving deployment: %s" e);
         None
   in
   Lwt.return deployment_opt
@@ -351,10 +351,7 @@ let upload_findings_async ~dry_run ~scan_id ~results ~complete caps :
         m "Would have sent findings and ignores blob: %s" results);
     Logs.app (fun m -> m "Would have sent complete blob: %s" complete);
     Lwt.return_ok None)
-  else (
-    Logs.debug (fun m -> m "Sending findings and ignores blob: %s" results);
-    Logs.debug (fun m -> m "Sending complete blob: %s" complete);
-
+  else
     let url =
       Uri.with_path !Semgrep_envvars.v.semgrep_url (results_route scan_id)
     in
@@ -365,6 +362,7 @@ let upload_findings_async ~dry_run ~scan_id ~results ~complete caps :
         Auth.auth_header_of_token caps#token;
       ]
     in
+    Logs.debug (fun m -> m "Sending findings and ignores blob");
     let body = results in
     let%lwt () =
       match%lwt Http_helpers.post ~body ~headers caps#network url with
@@ -387,6 +385,7 @@ let upload_findings_async ~dry_run ~scan_id ~results ~complete caps :
     let url =
       Uri.with_path !Semgrep_envvars.v.semgrep_url (complete_route scan_id)
     in
+    Logs.debug (fun m -> m "Sending complete blob");
     let body = complete in
     match%lwt Http_helpers.post ~body ~headers caps#network url with
     | Ok { body = Ok body; _ } -> Lwt.return (extract_block_override body)
@@ -397,7 +396,7 @@ let upload_findings_async ~dry_run ~scan_id ~results ~complete caps :
             code msg
         in
         Lwt.return_error msg
-    | Error e -> Lwt.return_error (spf "Failed to upload findings: %s" e))
+    | Error e -> Lwt.return_error (spf "Failed to upload findings: %s" e)
 
 let upload_findings ~dry_run ~scan_id ~results ~complete caps =
   Lwt_platform.run

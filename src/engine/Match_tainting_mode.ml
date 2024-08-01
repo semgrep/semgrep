@@ -1080,9 +1080,8 @@ let check_rules ~match_hook
            (rule :> R.rule)
            (fun () ->
              Logs_.with_debug_trace "Match_tainting_mode.check_rule" (fun () ->
-                 (* Part of main application tracing. *)
-                 (* nosem: no-logs-in-library *)
-                 Logs.debug (fun m ->
-                     m "target: %s" !!(xtarget.path.internal_path_to_content);
-                     m "ruleid: %s" (rule.id |> fst |> Rule_ID.to_string));
+                 Log.debug (fun m ->
+                     m "target: %s, ruleid: %s"
+                       !!(xtarget.path.internal_path_to_content)
+                       (rule.id |> fst |> Rule_ID.to_string));
                  check_rule per_file_formula_cache rule match_hook xconf xtarget)))

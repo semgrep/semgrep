@@ -548,11 +548,14 @@ class CoreRunner:
         output_json = self._parse_core_output(
             shell_command, core_stdout, core_stderr, returncode
         )
-        logger.debug(
-            f"--- semgrep-core JSON answer ---\n"
-            f"{output_json}"
-            f"--- end semgrep-core JSON answer ---"
-        )
+        # old: the JSON is sometimes more than 100MB, so better not log it
+        # logger.debug(
+        #     f"--- semgrep-core JSON answer ---\n"
+        #     f"{output_json}"
+        #     f"--- end semgrep-core JSON answer ---"
+        # )
+        # alt: save it in ~/.semgrep/logs/semgrep_core.json?
+        # alt: reduce the size of the core json output
         return output_json
 
     def _parse_core_output(

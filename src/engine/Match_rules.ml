@@ -199,12 +199,6 @@ let check ~match_hook ~timeout ~timeout_threshold
   let relevant_taint_rules_groups, relevant_nontaint_rules, _skipped_rules =
     group_rules xconf rules xtarget
   in
-  (* Part of main application tracing. *)
-  (* nosem: no-logs-in-library *)
-  Logs.debug (fun m ->
-      m "Match_rules.check - skipping %d irrelevant rules."
-        (List.length _skipped_rules));
-
   let res_taint_rules =
     relevant_taint_rules_groups
     |> List.concat_map (fun relevant_taint_rules ->
@@ -221,11 +215,9 @@ let check ~match_hook ~timeout ~timeout_threshold
              (r :> R.rule)
              (fun () ->
                Logs_.with_debug_trace "Match_rules.check_rule" (fun () ->
-                   (* Part of main application tracing. *)
-                   (* nosem: no-logs-in-library *)
-                   Logs.debug (fun m ->
-                       m "target: %s" !!internal_path_to_content;
-                       m "ruleid: %s" (r.id |> fst |> Rule_ID.to_string));
+                   Log.debug (fun m ->
+                       m "target: %s, ruleid: %s" !!internal_path_to_content
+                         (r.id |> fst |> Rule_ID.to_string));
                    (* dispatching *)
                    match r.R.mode with
                    | `Search _ as mode ->

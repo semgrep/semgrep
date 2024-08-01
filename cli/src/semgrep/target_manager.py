@@ -41,6 +41,8 @@ from attrs import Factory, frozen
 from wcmatch import glob as wcglob
 from boltons.iterutils import partition
 
+from semgrep.constants import TOO_MANY_ENTRIES
+from semgrep.constants import TOO_MUCH_DATA
 from semgrep.constants import Colors, UNSUPPORTED_EXT_IGNORE_LANGS
 from semgrep.error import FilesNotFoundError
 from semgrep.formatter.text import BASE_WIDTH as width
@@ -298,8 +300,11 @@ class FileTargetingLog:
 
         yield 1, "Skipped by --exclude patterns:"
         if self.cli_excludes:
-            for path in sorted(self.cli_excludes):
-                yield 2, with_color(Colors.cyan, str(path))
+            if len(self.cli_excludes) <= TOO_MANY_ENTRIES:
+                for path in sorted(self.cli_excludes):
+                    yield 2, with_color(Colors.cyan, str(path))
+            else:
+                yield 2, TOO_MUCH_DATA
         else:
             yield 2, "<none>"
 
