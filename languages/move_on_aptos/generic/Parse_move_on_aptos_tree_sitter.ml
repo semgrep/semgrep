@@ -458,7 +458,7 @@ let map_value (env : env) (x : CST.value) : G.expr_kind =
   | `AT_lead_name_access (v1, v2) ->
       let v1 = (* "@" *) token env v1 in
       let v2 = map_leading_name_access env v2 in
-      G.N (H2.name_of_id v2)
+      G.OtherExpr (("address literal", v1), [ G.Tk v1; G.I v2 ])
   | `Bool_lit x -> G.L (map_bool_literal env x)
   | `Num x -> G.L (map_number (map_numerical_addr env x))
   | `Typed_num (v1, v2) ->
