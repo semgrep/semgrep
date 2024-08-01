@@ -1,0 +1,1 @@
+HEALTHCHECK ... CMD echo foo

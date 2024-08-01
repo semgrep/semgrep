@@ -301,9 +301,14 @@ let cmd_instr_expr (env : env) loc name (params : run_param list)
     (cmd : command) : G.expr =
   call_exprs name loc ~opt_args:(List_.map run_param params) (command env cmd)
 
-let healthcheck_cmd_args env (params : param list) (cmd : cmd_instr) :
-    G.argument list =
-  let opt_args = List_.map param_arg params in
+let healthcheck_cmd_args env (params : param_or_ellipsis list) (cmd : cmd_instr)
+    : G.argument list =
+  let opt_args =
+    params
+    |> List_.map (function
+         | ParamParam x -> param_arg x
+         | ParamEllipsis tok -> G.Arg (G.Ellipsis tok |> G.e))
+  in
   let cmd_arg =
     let loc, name, params, cmd = cmd in
     G.Arg (cmd_instr_expr env loc name params cmd)
@@ -347,6 +352,7 @@ let expose_port_expr (x : expose_port) : G.expr list =
 let healthcheck env loc name (x : healthcheck) =
   match x with
   | Healthcheck_semgrep_metavar id -> call_exprs name loc [ metavar_expr id ]
+  | Healthcheck_ellipsis tok -> G.Ellipsis tok |> G.e
   | Healthcheck_none tok ->
       call_exprs name loc [ unquoted_string_expr (Tok.content_of_tok tok, tok) ]
   | Healthcheck_cmd (_cmd_loc, params, cmd) ->
