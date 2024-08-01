@@ -112,6 +112,10 @@ DEFAULT_MAX_CHARS_PER_LINE = 160
 ELLIPSIS_STRING = " ... "
 DEFAULT_MAX_TARGET_SIZE = 1000000  # 1 MB
 
+# Number of entries (rules, targets) beyond we're not logging anymore
+TOO_MANY_ENTRIES = 100
+TOO_MUCH_DATA = "<SKIPPED DATA (too big or contain too many entries)>"
+
 
 class Colors(Enum):
     # these colors come from user's terminal theme

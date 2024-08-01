@@ -173,7 +173,9 @@ let pp_skipped ppf
   Fmt.pf ppf "  %a@.@."
     Fmt.(styled `Bold string)
     (esc ^ "Skipped by --exclude patterns:");
-  pp_list exclude_ignored;
+  if List.length exclude_ignored <= Log_semgrep.too_many_entries then
+    pp_list exclude_ignored
+  else Fmt.pf ppf "   • %s@." Log_semgrep.too_much_data;
   Fmt.pf ppf "@.";
 
   Fmt.pf ppf "  %a@.  %a@.@."

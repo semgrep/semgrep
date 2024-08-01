@@ -23,7 +23,7 @@ module PM = Pattern_match
 open Pattern_match
 module Out = Semgrep_output_v1_j
 module OutUtils = Semgrep_output_utils
-
+module Log = Log_reporting.Log
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -448,9 +448,10 @@ let match_to_match (x : Core_result.processed_match) :
     Ok
       (Logs_.with_debug_trace ~src:Log_reporting.src
          "Core_json_output.unsafe_match_to_match" (fun () ->
-           Log_reporting.Log.debug (fun m ->
-               m "target: %s" !!(x.pm.path.internal_path_to_content);
-               m "ruleid: %s" (x.pm.rule_id.id |> Rule_ID.to_string));
+           Log.debug (fun m ->
+               m "target: %s, ruleid: %s"
+                 !!(x.pm.path.internal_path_to_content)
+                 (x.pm.rule_id.id |> Rule_ID.to_string));
            unsafe_match_to_match x))
     (* raised by min_max_ii_by_pos in range_of_any when the AST of the
      * pattern in x.code or the metavar does not contain any token

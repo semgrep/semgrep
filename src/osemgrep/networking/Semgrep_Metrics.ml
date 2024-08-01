@@ -37,6 +37,9 @@ let send_async caps =
   let headers =
     [ ("Content-Type", "application/json"); ("User-Agent", user_agent) ]
   in
+  (* TODO: the metrics can be big, maybe skip logging it if too big,
+   * especially the fileStats and rule performance stats.
+   *)
   Logs.debug (fun m ->
       m "Sending metrics (with user agent '%s') data: %s" user_agent metrics);
   let%lwt response =

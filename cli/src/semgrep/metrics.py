@@ -510,12 +510,12 @@ class Metrics:
             if source == click.core.ParameterSource.PROMPT:
                 self.add_feature("cli-prompt", param)
 
-    # Posting the metrics is separated out so that our tests can check
-    # for it
-    # TODO it's a bit unfortunate that our tests are going to post
-    # metrics...
+    # Posting the metrics is separated out so that our tests can check for it
+    # TODO it's a bit unfortunate that our tests are going to post metrics...
     def _post_metrics(self, *, user_agent: str, local_scan_id: str) -> None:
-        logger.debug(f"Sending to {METRICS_ENDPOINT} {self.as_json()}")
+        # old: was also logging {self.as_json()}
+        # alt: save it in ~/.semgrep/logs/metrics.json?
+        logger.debug(f"Sending to {METRICS_ENDPOINT}")
         r = requests.post(
             METRICS_ENDPOINT,
             data=self.as_json(),

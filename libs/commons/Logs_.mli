@@ -133,14 +133,17 @@ val sdebug : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
 val sinfo : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
 val swarn : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
 val serr : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
+val debug_trace_src : Logs.src
 
-val with_debug_trace :
-  ?src:Logs.src ->
-  ?tags:Logs.Tag.set ->
-  ?pp_res:(Format.formatter -> 'a -> unit) ->
-  string ->
-  (unit -> 'a) ->
-  'a
+(* [with_debug_trace ?src str f] will first log a "starting <str>"
+ * on the src, then run f, then log a "finished <str>" and return
+ * the result of f. If f is throwing an exception, this will
+ * also be logged as "exception during <str>".
+ * If no src is given, with_debug_trace will use the debug_trace_src above
+ * and so you might need to run your program with
+ * LOG_SRCS=debug_trace ...
+ *)
+val with_debug_trace : ?src:Logs.src -> string -> (unit -> 'a) -> 'a
 
 (*
    Formatting utilities for common containers:

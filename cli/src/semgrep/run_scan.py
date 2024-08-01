@@ -42,6 +42,8 @@ from semgrep.config_resolver import get_config
 from semgrep.constants import DEFAULT_DIFF_DEPTH
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
+from semgrep.constants import TOO_MANY_ENTRIES
+from semgrep.constants import TOO_MUCH_DATA
 from semgrep.core_runner import CoreRunner
 from semgrep.core_runner import Plan
 from semgrep.engine import EngineType
@@ -574,19 +576,25 @@ def run_scan(
         path_sensitive=path_sensitive,
     )
 
-    experimental_rules, unexperimental_rules = partition(
+    experimental_rules, normal_rules = partition(
         filtered_rules, lambda rule: (isinstance(rule.severity.value, out.Experiment))
     )
 
     if logger.isEnabledFor(logger.VERBOSE_LOG_LEVEL):
         logger.verbose("Rules:")
-        for ruleid in sorted(rule.id for rule in unexperimental_rules):
-            logger.verbose(f"- {ruleid}")
+        if len(normal_rules) <= TOO_MANY_ENTRIES:
+            for ruleid in sorted(rule.id for rule in normal_rules):
+                logger.verbose(f"- {ruleid}")
+        else:
+            logger.verbose(TOO_MUCH_DATA)
 
         if len(experimental_rules) > 0:
             logger.verbose("Experimental Rules:")
-            for ruleid in sorted(rule.id for rule in experimental_rules):
-                logger.verbose(f"- {ruleid}")
+            if len(experimental_rules) <= TOO_MANY_ENTRIES:
+                for ruleid in sorted(rule.id for rule in experimental_rules):
+                    logger.verbose(f"- {ruleid}")
+            else:
+                logger.verbose(TOO_MUCH_DATA)
 
     (
         rule_matches_by_rule,

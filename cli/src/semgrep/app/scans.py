@@ -24,6 +24,7 @@ from semdep.parsers.util import DependencyParserError
 from semgrep import __VERSION__
 from semgrep import tracing
 from semgrep.app.project_config import ProjectConfig
+from semgrep.constants import TOO_MUCH_DATA
 from semgrep.constants import USER_FRIENDLY_PRODUCT_NAMES
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.error import SemgrepError
@@ -250,9 +251,12 @@ class ScanHandler:
             )
 
         self.scan_response = out.ScanResponse.from_json(response.json())
-        logger.debug(
-            f"Scan started: {json.dumps(self.scan_response.to_json(), indent=4)}"
-        )
+        # the rules field below can be huge so better to not log it
+        x = self.scan_response
+        save = x.config.rules
+        x.config.rules = out.RawJson(TOO_MUCH_DATA)
+        logger.debug(f"Scan started: {json.dumps(x.to_json(), indent=4)}")
+        x.config.rules = save
 
     def report_failure(self, exit_code: int) -> None:
         """
@@ -425,9 +429,9 @@ class ScanHandler:
             )
             return ScanCompleteResult(True, False, "")
         else:
-            logger.debug(
-                f"Sending findings and ignores blob: {json.dumps(findings_and_ignores, indent=4)}"
-            )
+            # old: was also logging {json.dumps(findings_and_ignores, indent=4)}
+            # alt: save it in ~/.semgrep/logs/findings_and_ignores.json?
+            logger.debug(f"Sending findings and ignores blob")
 
         results_task = progress_bar.add_task("Uploading scan results")
         response = state.app_session.post(
@@ -462,9 +466,9 @@ class ScanHandler:
         slow_down_after = datetime.utcnow() + timedelta(minutes=2)
 
         while True:
-            logger.debug(
-                f"Sending /complete {json.dumps(complete.to_json(), indent=4)}"
-            )
+            # old: was also logging {json.dumps(complete.to_json(), indent=4)}
+            # alt: save it in ~/.semgrep/logs/complete.json?
+            logger.debug(f"Sending /complete")
 
             if datetime.utcnow() > try_until:
                 # let the backend know we won't be trying again
