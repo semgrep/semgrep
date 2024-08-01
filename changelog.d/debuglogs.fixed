@@ -1,0 +1,5 @@
+The use of --debug should generate now far less log entries.
+Moreover, when the number of ignored files, or rules, or
+other entities exceed a big number, we instead replace them
+with a <SKIPPED DATA> in the output to keep the output of semgrep
+small.
