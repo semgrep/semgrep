@@ -12,7 +12,7 @@
 #    different style of comments
 #  - test to take a single directory and iterate over. This is actually
 #    the main use case for --test and what we use in semgrep-rules/. However,
-#    is a bit harder to test here given how run_semgrep_in_tmp() was
+#    is is a bit harder to test here given how run_semgrep_in_tmp() was
 #    designed with always a 'config' and a 'target_name' parameter
 #    (and the fact that the e2e rules and targets are in different dirs)
 #    (maybe we could write this test in Testo instead and for osemgrep-only

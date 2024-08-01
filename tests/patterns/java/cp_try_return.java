@@ -5,7 +5,7 @@ public class Main {
     public boolean test1() {
         Throwable throwable = null;
         // Here the `while` fall-through case ensures that the `return` is
-        // reachable, so if the catch-block is not processed we will get
+        // reacheable, so if the catch-block is not processed we will get
         // a false positive.
         while (cond) {
             try {
