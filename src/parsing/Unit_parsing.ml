@@ -228,7 +228,7 @@ let parsing_rules_with_atd_tests () =
 (*****************************************************************************)
 
 let tests () =
-  List.flatten
+  List_.flatten
     [
       lang_parsing_tests ();
       parsing_error_tests ();

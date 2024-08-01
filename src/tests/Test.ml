@@ -46,7 +46,7 @@ let cleanup_before_each_test (reset : unit -> unit) (tests : Testo.t list) :
    that call 'Common2.glob'.
 *)
 let tests (caps : Cap.all_caps) =
-  List.flatten
+  List_.flatten
     [
       Commons_tests.tests;
       Unit_list_files.tests;

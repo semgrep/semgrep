@@ -525,7 +525,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) :
           (parse_string_wrap_list (fun _ _ x -> Ok x))
           "types"
       in
-      let type_list = type_list |> Option.to_list |> List.flatten in
+      let type_list = type_list |> Option.to_list |> List_.flatten in
       let type_strs = (type_strs |> Option.to_list) @ type_list in
       if type_strs =*= [] then
         error env.id mv_type_dict.first_tok
@@ -764,7 +764,7 @@ and produce_constraint env dict tok indicator =
       let/ type_list =
         take_opt dict env (parse_string_wrap_list (fun _ _ x -> Ok x)) "types"
       in
-      let type_list = type_list |> Option.to_list |> List.flatten in
+      let type_list = type_list |> Option.to_list |> List_.flatten in
       let type_strs = type_strs @ type_list in
       let/ types =
         type_strs |> List_.map (parse_type env (metavar, t)) |> Base.Result.all
@@ -831,7 +831,7 @@ and constrain_where env (_t1, _t2) where_key (value : G.expr) formula :
   (* TODO *)
   let/ conditions, focus =
     let+ where_contents = parse_listi env where_key parse_where_pair value in
-    where_contents |> List.flatten |> Either_.partition (fun x -> x)
+    where_contents |> List_.flatten |> Either_.partition (fun x -> x)
   in
   Ok
     {

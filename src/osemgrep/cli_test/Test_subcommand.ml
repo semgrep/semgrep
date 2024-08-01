@@ -724,7 +724,7 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
                         (checks, fixtest_res |> Option.to_list))
                  |> List.split
                in
-               (rule_file, List.flatten all_checks, List.flatten all_fixtests))
+               (rule_file, List_.flatten all_checks, List_.flatten all_fixtests))
   in
   let res : Out.tests_result =
     Out.

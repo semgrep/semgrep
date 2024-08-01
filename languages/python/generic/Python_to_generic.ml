@@ -531,7 +531,7 @@ and list_stmt1 env xs =
 (* This will avoid intermediate Block. You should prefer this function
  * to calls to (list stmt)
  *)
-and list_stmt env xs = list (stmt_aux env) xs |> List.flatten
+and list_stmt env xs = list (stmt_aux env) xs |> List_.flatten
 
 (* In Python, many Assign are actually VarDef. We should transform those,
  * because this would simplify Naming_AST.ml later, but this requires

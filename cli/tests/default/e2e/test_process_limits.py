@@ -41,7 +41,7 @@ def test_stack_size(run_semgrep_in_tmp: RunSemgrep, snapshot):
     # Do not just delete this assertion. It means the actual test below does
     # not accurately verify that we are solving the stack exhaustion
     output = subprocess.run(
-        f"ulimit -s 1000 && {SEMGREP_BASE_SCAN_COMMAND_STR} --disable-version-check --metrics off --config {rulepath} --verbose {targetpath}",
+        f"ulimit -s 250 && {SEMGREP_BASE_SCAN_COMMAND_STR} --disable-version-check --metrics off --config {rulepath} --verbose {targetpath}",
         shell=True,
         capture_output=True,
         encoding="utf-8",
@@ -54,7 +54,7 @@ def test_stack_size(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
     # If only set soft limit, semgrep should raise it as necessary so we don't hit soft limit
     output = subprocess.run(
-        f"ulimit -S -s 1000 && {SEMGREP_BASE_SCAN_COMMAND_STR} --disable-version-check --metrics off --config {rulepath} --verbose {targetpath}",
+        f"ulimit -S -s 250 && {SEMGREP_BASE_SCAN_COMMAND_STR} --disable-version-check --metrics off --config {rulepath} --verbose {targetpath}",
         shell=True,
         capture_output=True,
         encoding="utf-8",

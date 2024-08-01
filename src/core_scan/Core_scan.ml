@@ -537,7 +537,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
            (error, skipped))
     |> List.split
   in
-  (new_matches, new_errors, List.flatten new_skipped)
+  (new_matches, new_errors, List_.flatten new_skipped)
 [@@profiling "Run_semgrep.filter_too_many_matches"]
 
 (*****************************************************************************)

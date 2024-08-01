@@ -608,7 +608,7 @@ let report_unexpected_match ~target_file ~rule_file
            patterns?"
           :: List_.map indent parent_report
     in
-    List.concat [ header_text; originating_lines; parent_lines ]
+    List_.flatten [ header_text; originating_lines; parent_lines ]
   in
   String.concat "\n" text
 
@@ -647,7 +647,7 @@ let report_unexpected_no_match ~target_file ~rule_file
               :: report_snippet text)
             killing_parents
     in
-    List.concat [ header_text; kind_text ]
+    List_.flatten [ header_text; kind_text ]
   in
   String.concat "\n" text
 
@@ -664,7 +664,8 @@ let report ~rule_file
       (report_unexpected_no_match ~target_file:target ~rule_file)
       unexpected_no_match_diagnoses
   in
-  String.concat "\n" (List.concat [ unexpected_matches; unexpected_no_matches ])
+  String.concat "\n"
+    (List_.flatten [ unexpected_matches; unexpected_no_matches ])
 
 let diagnose ~target ~rule_file (report : Out.expected_reported)
     (explanations : ME.t list) : diagnosis =

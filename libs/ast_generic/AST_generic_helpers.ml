@@ -430,7 +430,7 @@ let ac_matching_nf op args =
          | ArgType _
          | OtherArg _ ->
              raise_notrace Exit)
-    |> List_.map nf_one |> List.flatten
+    |> List_.map nf_one |> List_.flatten
   and nf_one e =
     match e.e with
     | Call ({ e = IdSpecial (Op op1, _tok1); _ }, (_, args1, _)) when op =*= op1

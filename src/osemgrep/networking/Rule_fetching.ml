@@ -493,7 +493,7 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict:_ caps
           Common2.unzip pairs_list
         in
         let rules_and_origins, errors =
-          (List.flatten rules_and_origins_nested, List.flatten errors_nested)
+          (List_.flatten rules_and_origins_nested, List_.flatten errors_nested)
         in
 
         (* NOTE: We should default to config auto if no config was passed in an earlier step,

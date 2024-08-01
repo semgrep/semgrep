@@ -40,7 +40,7 @@ let layout_table (h1, heading) entries =
     String.make to_pad ' '
   in
   String.concat ""
-    (List.flatten
+    (List_.flatten
        ([ h1; pad (String.length h1) len1 ]
        :: List_.map2 (fun h l -> [ pad (String.length h) l; h ]) heading lengths
        ))
@@ -48,7 +48,7 @@ let layout_table (h1, heading) entries =
   :: List_.map
        (fun (e1, entries) ->
          String.concat ""
-           (List.flatten
+           (List_.flatten
               ([ e1; pad (String.length e1) len1 ]
               :: List_.map2
                    (fun e l -> [ pad (int_size e) l; string_of_int e ])

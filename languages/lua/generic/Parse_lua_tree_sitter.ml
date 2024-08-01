@@ -143,7 +143,7 @@ let map_parameters (env : env) ((v1, v2, v3) : CST.parameters) : G.parameters =
               Some (G.ParamEllipsis v2)
           | None -> None
         in
-        deoptionalize (List.concat [ [ Some v1 ]; v2; [ v3 ] ])
+        deoptionalize (List_.flatten [ [ Some v1 ]; v2; [ v3 ] ])
     | None -> []
   in
   let rp = token env v3 (* ")" *) in
@@ -342,7 +342,7 @@ and map_binary_operation (env : env) (x : CST.binary_operation) =
 
 and map_statement_list (env : env) (x : CST.statement list) : G.stmt list =
   let v1 = List_.map (map_statement env) x in
-  List.flatten v1
+  List_.flatten v1
 
 and map_statements_and_return (env : env) (v1, v2) : G.stmt list =
   let v1 = map_statement_list env v1 in

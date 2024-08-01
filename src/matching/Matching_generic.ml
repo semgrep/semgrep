@@ -163,7 +163,7 @@ let (( >>= ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout) =
   let xs = m1 tin in
   (* try m2 on each possible returned bindings *)
   let xxs = xs |> List_.map (fun binding -> m2 () binding) in
-  List.flatten xxs
+  List_.flatten xxs
 
 (* the disjunctive combinator *)
 let (( >||> ) : (tin -> tout) -> (tin -> tout) -> tin -> tout) =

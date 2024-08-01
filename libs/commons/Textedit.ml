@@ -188,5 +188,5 @@ let apply_edits ~dryrun edits =
       if not dryrun then UFile.write_file ~file:path new_text)
     edits_by_file;
   let modified_files = Hashtbl.to_seq_keys edits_by_file |> List.of_seq in
-  let conflicting_edits = List.concat !all_conflicting_edits in
+  let conflicting_edits = List_.flatten !all_conflicting_edits in
   (modified_files, conflicting_edits)

@@ -744,7 +744,7 @@ and destructuring_pattern (env : env) (x : CST.destructuring_pattern) :
                 match x with
                 | Some x -> [ object_property_pattern env x ]
                 | None -> [])
-            |> List.flatten
+            |> List_.flatten
         | None -> []
       in
       let v3 = token env v3 (* "}" *) in
@@ -758,7 +758,7 @@ and destructuring_pattern (env : env) (x : CST.destructuring_pattern) :
                 match x with
                 | Some x -> [ pat_or_assign_pat env x |> sub_pattern ]
                 | None -> [])
-            |> List.flatten
+            |> List_.flatten
         | None -> []
       in
       let close = token env v3 (* "]" *) in
@@ -2767,7 +2767,7 @@ and object_ (env : env) ((v1, v2, v3) : CST.object_) : a_obj =
             match x with
             | Some x -> [ object_property env x ]
             | None -> [])
-        |> List.flatten
+        |> List_.flatten
     | None -> []
   in
   let v3 = token env v3 (* "}" *) in

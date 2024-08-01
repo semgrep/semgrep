@@ -297,7 +297,7 @@ let fetch_rules session =
     let rules_and_origins_nested, errors_nested =
       Common2.unzip rules_and_errors
     in
-    (List.flatten rules_and_origins_nested, List.flatten errors_nested)
+    (List_.flatten rules_and_origins_nested, List_.flatten errors_nested)
   in
 
   Logs.info (fun m ->
