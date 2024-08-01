@@ -939,7 +939,7 @@ and map_stmt env x : G.stmt =
   | Default _ ->
       let cases, xs = convert_case env x in
       let anys = cases |> List_.map (fun cs -> G.Cs cs) in
-      let sts = map_of_list (map_stmt_or_decl env) xs |> List.flatten in
+      let sts = map_of_list (map_stmt_or_decl env) xs |> List_.flatten in
       let st = G.stmt1 sts in
       G.OtherStmtWithStmt (OSWS_Todo, anys, st) |> G.s
   | Try (v1, v2, v3) ->
@@ -960,7 +960,7 @@ and map_stmt env x : G.stmt =
 and map_ms_try_handler env (l, inner, r) x =
   let inner =
     map_of_list (map_sequencable env (map_stmt_or_decl env)) inner
-    |> List.flatten
+    |> List_.flatten
   in
   let try_stmt =
     G.OtherStmtWithStmt (OSWS_SEH, [], G.Block (l, inner, r) |> G.s) |> G.s
@@ -970,7 +970,7 @@ and map_ms_try_handler env (l, inner, r) x =
     | MsExcept (v1, (_, v2, _), (l', v3, r')) ->
         let contents =
           map_of_list (map_sequencable env (map_stmt_or_decl env)) v3
-          |> List.flatten
+          |> List_.flatten
         in
         G.OtherStmtWithStmt
           ( OSWS_SEH,
@@ -980,7 +980,7 @@ and map_ms_try_handler env (l, inner, r) x =
     | MsFinally (v1, (l', v2, r')) ->
         let contents =
           map_of_list (map_sequencable env (map_stmt_or_decl env)) v2
-          |> List.flatten
+          |> List_.flatten
         in
         G.OtherStmtWithStmt
           (OSWS_SEH, [ G.Tk v1 ], G.Block (l', contents, r') |> G.s)
@@ -1055,7 +1055,7 @@ and map_cases env tk st : G.case_and_body list =
                 in
                 let cases, xs = convert_case env case_repack in
                 let sts =
-                  map_of_list (map_stmt_or_decl env) xs |> List.flatten
+                  map_of_list (map_stmt_or_decl env) xs |> List_.flatten
                 in
                 let st = G.stmt1 sts in
                 G.CasesAndBody (cases, st) :: aux rest
@@ -1310,11 +1310,11 @@ and map_stmt_or_decl env x : G.stmt list =
 
 and map_compound env (l, v, r) : G.stmt list bracket =
   let xs = map_of_list (map_sequencable env (map_stmt_or_decl env)) v in
-  (l, List.flatten xs, r)
+  (l, List_.flatten xs, r)
 
 and map_declarations env (l, v, r) : G.stmt list bracket =
   let xs = map_of_list (map_sequencable env (map_stmt_or_decl env)) v in
-  (l, List.flatten xs, r)
+  (l, List_.flatten xs, r)
 
 and map_entity env { name = v_name; specs = v_specs } : G.entity =
   let v_specs = map_of_list (map_specifier env) v_specs in
@@ -1426,19 +1426,19 @@ and map_decl env x : G.stmt list =
       [ G.OtherStmt (G.OS_Todo, [ G.TodoK v1 ]) |> G.s ]
 
 and map_vars_decl env (v1, v2) : G.definition list * G.sc =
-  let defs = map_of_list (map_onedecl env) v1 |> List.flatten in
+  let defs = map_of_list (map_onedecl env) v1 |> List_.flatten in
   let sc = map_sc env v2 in
   (defs, sc)
 
 and map_asmbody env (v1, v2) : G.any list =
   let _v1 = map_of_list (map_wrap env map_of_string) v1
   and v2 = map_of_list (map_colon env) v2 in
-  v2 |> List.flatten
+  v2 |> List_.flatten
 
 and map_colon env = function
   | Colon (v1, v2) ->
       let _v1 = map_tok env v1 and v2 = map_of_list (map_colon_option env) v2 in
-      v2 |> List.flatten
+      v2 |> List_.flatten
 
 and map_colon_option env = function
   | ColonExpr (v1, v2) ->
@@ -1817,7 +1817,7 @@ and map_enum_definition env
   in
   let v_enum_name = map_of_option (map_name env) v_enum_name in
   let _v_enum_kindTODO = map_tok env v_enum_kind in
-  (v_enum_name, { G.tbody = G.OrType (List.flatten v_enum_body) })
+  (v_enum_name, { G.tbody = G.OrType (List_.flatten v_enum_body) })
 
 and map_enum_elem env { e_name = v_e_name; e_val = v_e_val } : G.or_type_element
     =
@@ -1847,7 +1847,7 @@ and map_class_definition_bis env
   in
   let v_c_kind, _attrsTODO = map_class_key env v_c_kind in
   let v_c_inherit = map_of_list (map_base_clause env) v_c_inherit in
-  let fields = List.flatten v_c_members |> distribute_access in
+  let fields = List_.flatten v_c_members |> distribute_access in
   {
     G.ckind = v_c_kind;
     cextends = v_c_inherit;
@@ -2234,7 +2234,7 @@ and map_ifdef_directive env = function
 let map_toplevel env v = map_sequencable env (map_stmt_or_decl env) v
 
 let map_program env v : G.program =
-  map_of_list (map_toplevel env) v |> List.flatten
+  map_of_list (map_toplevel env) v |> List_.flatten
 
 let map_any env x : G.any =
   match x with
@@ -2251,7 +2251,7 @@ let map_any env x : G.any =
       let v1 = map_toplevel env v1 in
       G.Ss v1
   | Toplevels v1 ->
-      let v1 = map_of_list (map_toplevel env) v1 |> List.flatten in
+      let v1 = map_of_list (map_toplevel env) v1 |> List_.flatten in
       G.Ss v1
   | Program v1 ->
       let v1 = map_program env v1 in

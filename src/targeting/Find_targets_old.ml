@@ -358,7 +358,7 @@ let get_targets conf (scanning_roots : Scanning_root.t list) =
   |> (* flatten results that were grouped by project *)
   List.split
   |> fun (paths_list, skipped_paths_list) ->
-  (List.flatten paths_list, List.flatten skipped_paths_list)
+  (List_.flatten paths_list, List_.flatten skipped_paths_list)
 [@@profiling]
 
 (*************************************************************************)

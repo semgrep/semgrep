@@ -62,5 +62,5 @@ let metachecker_regression_tests caps =
 (*****************************************************************************)
 
 let tests caps =
-  List.flatten
+  List_.flatten
     [ metachecker_checks_tests (); metachecker_regression_tests caps ]

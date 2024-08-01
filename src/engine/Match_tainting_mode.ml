@@ -246,7 +246,7 @@ let concat_map_with_expls f xs =
            Stack_.push expls all_expls;
            ys)
   in
-  (res, List.flatten (List.rev !all_expls))
+  (res, List_.flatten (List.rev !all_expls))
 
 let%test _ =
   concat_map_with_expls (fun x -> ([ -x; x ], [ 2 * x; 3 * x ])) [ 0; 1; 2 ]

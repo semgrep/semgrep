@@ -810,7 +810,7 @@ let build_attr_list (exprs : G.expr list) : G.attribute list =
                  [ G.NamedAttr (sc, name, (sc, [ G.Arg expr ], sc)) ]
              | _ -> failwith "unexpected expression in nested attribute")
          | _ -> failwith "Unsupported pattern in let binding")
-  |> List.flatten
+  |> List_.flatten
 
 let rec map_attribute_expr_list (env : env) tok
     ((v1, v2) : CST.anon_attr_rep_COMMA_attr_246bec5) =
@@ -952,7 +952,7 @@ let map_attributes (env : env) (xs : CST.attributes) =
          let _comma = v4 |> Option.map (fun x -> (* "," *) token env x) in
          let v5 = (* "]" *) token env v5 in
          attrs)
-  |> List.flatten
+  |> List_.flatten
 
 let map_bind_list (env : env) (x : CST.bind_list) =
   match x with
@@ -1217,7 +1217,7 @@ let rec transpile_let_bind (env : env) (left : G.pattern) (right : G.expr) :
                | PatWildcard _ -> []
                | _ -> transpile_let_bind env pat right)
       in
-      let inner = List.flatten fields in
+      let inner = List_.flatten fields in
       [ G.F (G.Record (sc, inner, sc) |> G.e |> G.exprstmt) ]
   | G.PatTuple (_, elements, _) ->
       elements
@@ -1225,7 +1225,7 @@ let rec transpile_let_bind (env : env) (left : G.pattern) (right : G.expr) :
              let idx = G.L (G.Int (Some (Int64.of_int idx), sc)) |> G.e in
              let element = G.ArrayAccess (right, (sc, idx, sc)) |> G.e in
              transpile_let_bind env pat element)
-      |> List.flatten
+      |> List_.flatten
   | _ -> failwith "Unsupported pattern in let binding"
 
 let map_function_signature (env : env) attrs
@@ -1462,7 +1462,7 @@ and map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : G.stmt =
   let uses =
     v2
     |> List.map (map_use_decl env [])
-    |> List.flatten
+    |> List_.flatten
     |> List.map (fun x -> G.DirectiveStmt x |> G.s)
   in
   let stmts = List.map (map_sequence_item env) v3 in
@@ -1852,7 +1852,7 @@ and map_spec_block (env : env) attrs ((v1, v2) : CST.spec_block) =
         let v2 = (* "{" *) token env v2 in
         let uses =
           List.map (map_use_decl env attrs) v3
-          |> List.flatten
+          |> List_.flatten
           |> List.map (fun x -> G.DirectiveStmt x |> G.s)
         in
         let members = List.map (map_spec_block_member env attrs) v4 in
@@ -2314,7 +2314,7 @@ let map_module_ (env : env) attrs (addr : ident option)
   let prefix, name = map_module_path env v2 in
   let prefix = [ addr; prefix ] |> List.filter_map Fun.id in
   let _ = (* "{" *) token env v3 in
-  let body = List.map (map_declaration env) v4 |> List.flatten in
+  let body = List.map (map_declaration env) v4 |> List_.flatten in
   let _ = (* "}" *) token env v5 in
 
   (* let module_entity = G.basic_entity ~attrs name in *)
@@ -2334,7 +2334,7 @@ let map_module_ (env : env) attrs (addr : ident option)
 let map_script (env : env) attrs ((v1, v2, v3, v4, v5, v6, v7) : CST.script) =
   let v1 = (* "script" *) str env v1 in
   let v2 = (* "{" *) token env v2 in
-  let uses = v3 |> List.map (map_script_use_decl env attrs) |> List.flatten in
+  let uses = v3 |> List.map (map_script_use_decl env attrs) |> List_.flatten in
   let consts = List.map (map_script_constant_decl env attrs) v4 in
   let func = map_script_func_decl env attrs v5 in
   let spec = List.map (map_script_spec_block env attrs) v6 in
@@ -2381,7 +2381,7 @@ let map_semgrep_statement (env : env) (xs : CST.semgrep_statement) =
            match x with
            | `Seq_item x -> [ map_sequence_item env x ]
            | `Decl x -> map_declaration env x)
-    |> List.flatten
+    |> List_.flatten
   in
   G.Ss stmts
 

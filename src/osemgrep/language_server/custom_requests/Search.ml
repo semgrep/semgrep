@@ -273,7 +273,7 @@ let mk_env (server : RPC_server.t) (params : Request_params.t) =
   in
   let files =
     server.session.cached_workspace_targets |> Hashtbl.to_seq_values
-    |> List.of_seq |> List.concat
+    |> List.of_seq |> List_.flatten
   in
   let project_root =
     match
@@ -510,7 +510,7 @@ let rec search_single_target (server : RPC_server.t) =
               (* !!calling the engine!! *)
               Scan_helpers.run_core_search xconf rule file)
             rules
-          |> List.concat
+          |> List_.flatten
         in
         match matches with
         | [] -> search_single_target server

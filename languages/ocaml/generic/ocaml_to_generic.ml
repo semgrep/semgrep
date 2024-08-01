@@ -645,7 +645,7 @@ and module_expr = function
       let v1 = dotted_ident_of_name v1 in
       G.ModuleAlias v1
   | ModuleStruct v1 ->
-      let v1 = list item v1 |> List.flatten in
+      let v1 = list item v1 |> List_.flatten in
       G.ModuleStruct (None, v1)
   | ModuleTodo (t, xs) ->
       let t = todo_category t in
@@ -752,7 +752,7 @@ and item { i; iattrs } =
       [ G.DefStmt (ent, G.ModuleDef def) |> G.s ]
   | ItemTodo (t, xs) ->
       let t = todo_category t in
-      let xs = list item xs |> List.flatten in
+      let xs = list item xs |> List_.flatten in
       [
         G.OtherStmt
           ( G.OS_Todo,

@@ -118,7 +118,7 @@ and translate_taint_source
     if source_control then [ ("control", `Bool true) ] else []
   in
   `O
-    (List.concat
+    (List_.flatten
        [
          source_f;
          exact_obj;
@@ -145,7 +145,7 @@ and translate_taint_sink
     | None -> []
     | Some { range; _ } -> [ ("requires", `String (range_to_string range)) ]
   in
-  `O (List.concat [ sink_f; exact_obj; requires_obj; at_exit_obj ])
+  `O (List_.flatten [ sink_f; exact_obj; requires_obj; at_exit_obj ])
 
 and translate_taint_sanitizer
     {
@@ -163,7 +163,7 @@ and translate_taint_sanitizer
   let not_conflicting_obj =
     if not_conflicting then [ ("not-conflicting", `Bool true) ] else []
   in
-  `O (List.concat [ san_f; exact_obj; side_effect_obj; not_conflicting_obj ])
+  `O (List_.flatten [ san_f; exact_obj; side_effect_obj; not_conflicting_obj ])
 
 and translate_taint_propagator
     {
@@ -200,7 +200,7 @@ and translate_taint_propagator
   let from_obj = [ ("from", `String (fst from)) ] in
   let to_obj = [ ("to", `String (fst to_)) ] in
   `O
-    (List.concat
+    (List_.flatten
        [
          prop_f;
          side_effect_obj;
@@ -226,7 +226,7 @@ and translate_taint_spec
     | other -> [ ("propagators", `A other) ]
   in
   `O
-    (List.concat
+    (List_.flatten
        [
          [ ("sources", `A (List_.map translate_taint_source (snd sources))) ];
          sanitizers;

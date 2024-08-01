@@ -441,7 +441,7 @@ let top_func () =
         G.Call (G.IdSpecial (G.IncrDecr (v2, v3), tok) |> G.e, fb [ G.Arg v1 ])
         |> G.e
   (* invariant: you should not use 'list stmt', but instead always
-   * use list stmt_aux ... |> List.flatten
+   * use list stmt_aux ... |> List_.flatten
    *)
   and stmt x = G.stmt1 (stmt_aux x)
   and stmt_aux = function
@@ -461,7 +461,7 @@ let top_func () =
         let v1 = list decl v1 in
         v1
     | Block (t1, v1, t2) ->
-        let v1 = list stmt_aux v1 |> List.flatten in
+        let v1 = list stmt_aux v1 |> List_.flatten in
         [ G.Block (t1, v1, t2) |> G.s ]
     | Empty -> [ G.Block (fb []) |> G.s ]
     | SimpleStmt v1 ->
@@ -744,13 +744,13 @@ let top_func () =
       (* not used anymore, Items is now used for sgrep *)
       | Ss v1 ->
           let v1 = list stmt_aux v1 in
-          G.Ss (List.flatten v1)
+          G.Ss (List_.flatten v1)
       | Item v1 ->
           let v1 = item v1 in
           G.S v1
       | Items v1 ->
           let v1 = list item_aux v1 in
-          G.Ss (List.flatten v1)
+          G.Ss (List_.flatten v1)
     in
     res
   in

@@ -397,7 +397,7 @@ let instruction env (x : instruction) : G.stmt list =
          | _ -> stmt_of_expr (Loc.instruction_loc x) expr)
 
 let program_with_env (env : env) (x : program) : G.stmt list =
-  List_.map (instruction env) x |> List.flatten
+  List_.map (instruction env) x |> List_.flatten
 
 (*****************************************************************************)
 (* Entry points *)

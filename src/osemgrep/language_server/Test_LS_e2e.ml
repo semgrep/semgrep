@@ -685,7 +685,7 @@ let do_search ?(pattern = "print(...)") ?(includes = []) ?(excludes = []) info =
           send_semgrep_search_ongoing info;
           Lwt.return (Some (matches, ())))
     ()
-  |> Lwt_seq.to_list |> Lwt.map List.concat
+  |> Lwt_seq.to_list |> Lwt.map List_.flatten
 
 let with_session caps (f : test_info -> unit Lwt.t) : unit Lwt.t =
   (* Not setting this means that really nasty errors happen when an exception

@@ -470,7 +470,7 @@ let js_get_angular_constructor_args env attrs defs =
          when is_injectable ->
            Some (params_of_parameters env fparams)
        | _ -> None)
-  |> List.concat
+  |> List_.flatten
 
 let declare_var env lang id id_info ~explicit vinit vtype =
   let sid = SId.mk () in

@@ -899,7 +899,7 @@ let full_rule_semgrep_rules_regression_tests () =
 (*****************************************************************************)
 
 let tests () =
-  List.flatten
+  List_.flatten
     [
       (* full testing for many languages *)
       lang_regression_tests ~polyglot_pattern_path;

@@ -419,7 +419,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
   in
   let xs = loop () in
   let ast = xs |> List.map fst in
-  let tokens = xs |> List.map snd |> List.flatten in
+  let tokens = xs |> List.map snd |> List_.flatten in
   { Parsing_result.ast; tokens; stat }
 
 let parse2 file : (Ast.program, T.token) Parsing_result.t =

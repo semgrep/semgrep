@@ -211,7 +211,7 @@ let collate_results (init : 'c) (combine : 'b option -> 'c -> 'c)
   in
   let matches, errors, profiling, explanations = unzip_results results in
   {
-    matches = List.flatten matches;
+    matches = List_.flatten matches;
     (* We deduplicate errors here to avoid repeat PartialParsing errors
        which can arise when multiple rules generate the same error. This is
        done for consistency with other parsing errors, like ParseError or
@@ -221,7 +221,7 @@ let collate_results (init : 'c) (combine : 'b option -> 'c -> 'c)
     *)
     errors = List.fold_left E.ErrorSet.union E.ErrorSet.empty errors;
     profiling = final profiling;
-    explanations = List.flatten explanations;
+    explanations = List_.flatten explanations;
   }
 
 (* Aggregate a list of pattern results into one result *)

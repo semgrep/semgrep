@@ -1472,7 +1472,7 @@ and map_expression_except_range (env : env) (x : CST.expression_except_range) =
         | None -> []
       in
       let rparen = token env v7 (* ")" *) in
-      let exprs = List.concat [ [ expr_first ]; expr_rest; expr_last ] in
+      let exprs = List_.flatten [ [ expr_first ]; expr_rest; expr_last ] in
       G.Container (G.Tuple, (lparen, exprs, rparen))
   | `Macro_invo x ->
       let x = map_macro_invocation env x in
@@ -2270,7 +2270,7 @@ and map_match_block (env : env) ((v1, v2, v3) : CST.match_block) :
     | Some (v1, v2) ->
         let match_arms = List_.map (map_match_arm env) v1 in
         let match_arm_last = map_last_match_arm env v2 in
-        List.concat [ match_arms; [ match_arm_last ] ]
+        List_.flatten [ match_arms; [ match_arm_last ] ]
     | None -> []
   in
   let _rbrace = token env v3 (* "}" *) in
@@ -2298,7 +2298,7 @@ and map_pattern_or_expr (env : env) (x : CST.anon_choice_pat_17a3e23) =
        G.stmt list G.bracket =
      let lbrace = token env v1 (* "{" *) in
      let _inner_attrs = List.map (map_inner_attribute_item env) v2 in
-     let stmts = List.map (map_item env) v3 |> List.flatten in
+     let stmts = List.map (map_item env) v3 |> List_.flatten in
      let rbrace = token env v4 (* "}" *) in
      (lbrace, stmts, rbrace)
 *)
@@ -3052,7 +3052,7 @@ and map_use_list (env : env) ((v1, v2, v3, v4) : CST.use_list) (use : Tok.t)
               use_clause)
             v2
         in
-        List.flatten (use_clause_first :: use_clause_rest)
+        List_.flatten (use_clause_first :: use_clause_rest)
     | None -> []
   in
   let _comma = Option.map (fun tok -> token env tok (* "," *)) v3 in
@@ -3248,7 +3248,7 @@ and map_declaration_statement_bis (env : env) outer_attrs (*_visibility*) x :
             in
             let rparen = token env v4 (* ")" *) in
             let _semicolon = token env v5 (* ";" *) in
-            (lparen, List.concat [ rules; rule_last ], rparen)
+            (lparen, List_.flatten [ rules; rule_last ], rparen)
         | `LCURL_rep_macro_rule_SEMI_opt_macro_rule_RCURL (v1, v2, v3, v4) ->
             let lbrace = token env v1 (* "{" *) in
             let rules =
@@ -3265,7 +3265,7 @@ and map_declaration_statement_bis (env : env) outer_attrs (*_visibility*) x :
               | None -> []
             in
             let rbrace = token env v4 (* "}" *) in
-            (lbrace, List.concat [ rules; rule_last ], rbrace)
+            (lbrace, List_.flatten [ rules; rule_last ], rbrace)
       in
       let ent =
         {
@@ -3605,7 +3605,7 @@ let map_source_file (env : env) (x : CST.source_file) : G.any =
   (* ruin:
      | `Rep_inner_attr_item_rep_item (v1, v2) ->
          let _inner_attrs = List.map (map_inner_attribute_item env) v1 in
-         let items = List.map (map_item env) v2 |> List.flatten in
+         let items = List.map (map_item env) v2 |> List_.flatten in
          G.Pr items
   *)
   | `Opt_sheb_rep_stmt (v1, v2) ->

@@ -812,7 +812,7 @@ let shell_command (env : env) (x : CST.shell_command) =
                in
                let shell_frag = shell_fragment env v2 in
                [ shell_line_cont; shell_frag ])
-        |> List.flatten
+        |> List_.flatten
       in
       let raw_shell_code = concat_shell_fragments first_frag more_frags in
       let _, shell_compat = env.extra in

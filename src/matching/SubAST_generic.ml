@@ -65,7 +65,7 @@ let subexprs_of_stmt_kind = function
            | FE (_, _, e) -> Some [ e ]
            | FECond ((_, _, e1), _, e2) -> Some [ e1; e2 ]
            | FEllipsis _ -> None)
-      |> List.concat
+      |> List_.flatten
   | For (_, ForClassic (xs, eopt1, eopt2), _) ->
       (xs
       |> List_.filter_map (function
@@ -373,7 +373,7 @@ let lambdas_in_expr_memo a =
 
 let flatten_substmts_of_stmts xs =
   (* opti: using a ref, List.iter, and Common.push instead of a mix of
-   * List.map, List.flatten and @ below speed things up
+   * List.map, List_.flatten and @ below speed things up
    * (but it is still slow when called many many times)
    *)
   let res = ref [] in

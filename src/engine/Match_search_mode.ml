@@ -987,7 +987,7 @@ and evaluate_formula_kind env opt_context (kind : Rule.formula_kind) =
       let ranges, expls =
         xs |> List_.map (evaluate_formula env opt_context) |> Common2.unzip
       in
-      let ranges = List.flatten ranges in
+      let ranges = List_.flatten ranges in
       let expl = if_explanations env ranges expls (OutJ.Or, tok) in
       (ranges, expl)
   | R.And (t, conj) -> (

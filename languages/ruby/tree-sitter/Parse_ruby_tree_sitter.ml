@@ -988,7 +988,7 @@ and string_array (env : env) ((v1, v2, v3, v4, v5) : CST.string_array) =
     | None -> None
   in
   let v5 = token2 env v5 (* string_end *) in
-  Literal (String (Double (v1, v3 |> List.flatten, v5)))
+  Literal (String (Double (v1, v3 |> List_.flatten, v5)))
 
 and symbol_array (env : env) ((v1, v2, v3, v4, v5) : CST.symbol_array) =
   let v1 = token2 env v1 (* %i( *) in
@@ -1008,7 +1008,7 @@ and symbol_array (env : env) ((v1, v2, v3, v4, v5) : CST.symbol_array) =
     | None -> None
   in
   let v5 = token2 env v5 (* ) *) in
-  Atom (v1, AtomFromString (v1, v3 |> List.flatten, v5))
+  Atom (v1, AtomFromString (v1, v3 |> List_.flatten, v5))
 
 and pattern_literal (env : env) (x : CST.pattern_literal) : expr =
   match x with

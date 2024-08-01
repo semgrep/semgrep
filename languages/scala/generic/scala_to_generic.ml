@@ -160,12 +160,12 @@ and v_import_spec tk path = function
 and v_import (v1, v2) : G.directive list =
   let v1 = v_tok v1 in
   let v2 = v_list (v_import_expr v1) v2 in
-  List.flatten v2
+  List_.flatten v2
 
 and v_export (v1, v2) : G.directive list =
   let v1 = v_tok v1 in
   let v2 = v_list (v_import_expr v1) v2 in
-  List.flatten v2
+  List_.flatten v2
   |> List_.map (fun x ->
          G.OtherDirective (("export", Tok.unsafe_fake_tok "export"), [ G.Dir x ])
          |> G.d)
@@ -335,7 +335,7 @@ and v_type_kind = function
       G.TyAny v1
 
 and v_refinement v =
-  v_bracket (fun xs -> v_list v_refine_stat xs |> List.flatten) v
+  v_bracket (fun xs -> v_list v_refine_stat xs |> List_.flatten) v
 
 and v_refine_stat v = v_definition v
 
@@ -768,7 +768,7 @@ and v_finally_clause (v1, v2) =
   let v1 = v_tok v1 and v2 = v_expr_for_stmt v2 in
   (v1, v2)
 
-and v_block v = v_list v_block_stat v |> List.flatten
+and v_block v = v_list v_block_stat v |> List_.flatten
 
 and v_block_stat x : G.item list =
   match x with
@@ -795,7 +795,7 @@ and v_block_stat x : G.item list =
       let ipak, ids = v_package v1 in
       let xxs = v_list v_top_stat v2 in
       [ G.DirectiveStmt (G.Package (ipak, ids) |> G.d) |> G.s ]
-      @ List.flatten xxs
+      @ List_.flatten xxs
       @ [ G.DirectiveStmt (G.PackageEnd rb |> G.d) |> G.s ]
 
 and v_top_stat v = v_block_stat v
@@ -830,7 +830,7 @@ and v_modifier_kind = function
 
 and v_annotation (v1, v2, v3) : G.attribute =
   let v1 = v_tok v1 and v2 = v_type_ v2 and v3 = v_list v_arguments v3 in
-  let args = v3 |> List_.map Tok.unbracket |> List.flatten in
+  let args = v3 |> List_.map Tok.unbracket |> List_.flatten in
   match v2.t with
   | TyN name -> G.NamedAttr (v1, name, fb args)
   | _ ->
@@ -902,7 +902,7 @@ and v_given_definition { gsig; gkind } =
         let g_using =
           [
             G.Anys
-              (v_list v_bindings g_using |> List.concat
+              (v_list v_bindings g_using |> List_.flatten
               |> List_.map (fun x -> G.Pa x));
           ]
         in
@@ -982,7 +982,7 @@ and v_enum_case_definition attrs v1 =
   | EnumConstr { eid; etyparams; eparams; eattrs; eextends } ->
       let id = v_ident eid in
       let tparams = v_type_parameters etyparams in
-      let params = v_list v_bindings eparams |> List.concat in
+      let params = v_list v_bindings eparams |> List_.flatten in
       let attrs = v_list v_attribute eattrs @ attrs in
       (* TODO *)
       let _extends = v_list v_constr_app eextends in
@@ -1062,7 +1062,7 @@ and v_function_definition
   let fbody = v_option v_fbody vfbody in
   {
     fkind = kind;
-    fparams = fb (List.flatten params);
+    fparams = fb (List_.flatten params);
     (* TODO? *)
     frettype = tret;
     fbody =
@@ -1145,7 +1145,7 @@ and v_template_definition
     } : G.class_definition =
   let ckind = v_wrap v_template_kind v_ckind in
   (* TODO? flatten? *)
-  let cparams = fb (v_list v_bindings v_cparams |> List.flatten) in
+  let cparams = fb (v_list v_bindings v_cparams |> List_.flatten) in
   let cextends, cmixins = v_template_parents v_cparents in
   let body = v_option v_template_body v_cbody in
   let cbody =
@@ -1207,7 +1207,7 @@ and v_type_definition_kind = function
       (* abstract type with constraints? *)
       G.AbstractType (fake "")
 
-let v_program v = v_list v_top_stat v |> List.flatten
+let v_program v = v_list v_top_stat v |> List_.flatten
 
 let v_any = function
   | Pr v1 ->

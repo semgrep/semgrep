@@ -734,7 +734,7 @@ let get_targets conf scanning_roots =
   in
   let sorted_skipped_targets =
     let skipped_paths_list =
-      List.flatten skipped_paths_list @ skipped_size_minified
+      List_.flatten skipped_paths_list @ skipped_size_minified
     in
     skipped_paths_list
     |> List.sort (fun (a : Out.skipped_target) (b : Out.skipped_target) ->

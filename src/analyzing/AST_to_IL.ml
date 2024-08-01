@@ -369,7 +369,7 @@ and pattern env pat =
                pattern_assign_statements env
                  (mk_e (Fetch lval_i) eorig)
                  ~eorig pat_i)
-        |> List.concat
+        |> List_.flatten
       in
       (tmp_lval, ss)
   | G.PatTyped (pat1, ty) ->
