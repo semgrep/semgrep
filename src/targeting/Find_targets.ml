@@ -221,9 +221,9 @@ let apply_include_filter status selection_events include_filter ppath =
       | None -> (status, selection_events)
       | Some include_filter -> Include_filter.select include_filter ppath)
 
-(* Include filters apply only to the paths of regular files. They're applied
-   last, after the exclude/gitignore/semgrepignore filters.
-*)
+(* Note that include_filter applies only to the paths of regular files. They're
+ * applied last, after the exclude/gitignore/semgrepignore filters.
+ *)
 let filter_path (ign : Gitignore.filter)
     (include_filter : Include_filter.t option) (fppath : Fppath.t) :
     filter_result =
@@ -249,9 +249,9 @@ let filter_path (ign : Gitignore.filter)
       | S_BLK
       | S_SOCK ->
           Ignore_silently
-      (* This is handled in the Core_scan_function already *)
-      | exception Unix.Unix_error (ENOENT, _fun, _info) -> Keep
-      (* ignore for now errors. TODO? return a skip? *)
+      (* We need to filter those paths ASAP otherwise we can get some exn later
+       * when trying to process targets that actually do not exist.
+       *)
       | exception Unix.Unix_error (_err, _fun, _info) -> Ignore_silently)
 
 (*
