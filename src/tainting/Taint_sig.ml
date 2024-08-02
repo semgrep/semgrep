@@ -223,7 +223,7 @@ let instantiate_taint ~callee ~inst_var ~inst_ctrl taint =
            *     6     t = bar(taint)
            *     7     ...
            *
-           * would result in this list of tokens (note that is is reversed):
+           * would result in this list of tokens (note that is reversed):
            *
            *     ["t" @l.6; "y" @l.2; "x" @l.1; "bar" @l.6]
            *
