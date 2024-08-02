@@ -5,7 +5,7 @@ public class TargetParser
     public static Pair<ColumnMetadata, IndexTarget.Type> parse(TableMetadata metadata, String target)
     {
         // if the regex matches then the target is in the form "keys(foo)", "entries(bar)" etc
-        // if not, then it must be a simple column name and implictly its type is VALUES
+        // if not, then it must be a simple column name and implicitly its type is VALUES
         Matcher matcher = TARGET_REGEX.matcher(target);
         String columnName;
         IndexTarget.Type targetType;
