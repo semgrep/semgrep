@@ -274,7 +274,14 @@ def match_to_lines(
     # bunch of lines that belong to a different file, so instruct 'format_lines'
     # to print the name of that file too.
     is_different_file = path != ref_path
-    lines = get_lines_from_file(path, location.start.line, location.end.line)
+    try:
+        lines = get_lines_from_file(path, location.start.line, location.end.line)
+    except FileNotFoundError:
+        # Use ‘content’ instead when the file at the specified location doesn’t exist.
+        # This can happen if the taint trace shows a match in a temporary fake lifecycle
+        # file used for web framework analysis. The issue is specific to pysemgrep, as
+        # for osemgrep, the temporary file isn’t deleted until osemgrep finishes.
+        lines = [content]
     yield from format_lines(
         path,
         location.start.line,
@@ -331,9 +338,12 @@ def call_trace_to_lines(
             for var in intermediate_vars:
                 loc = var.location
                 path = Path(loc.path.value)
-                lines = get_lines_from_file(
-                    Path(loc.path.value), loc.start.line, loc.end.line
-                )
+                try:
+                    lines = get_lines_from_file(
+                        Path(loc.path.value), loc.start.line, loc.end.line
+                    )
+                except FileNotFoundError:
+                    lines = [var.content]
                 is_different_file = path != prev_path
                 yield from format_lines(
                     Path(loc.path.value),
@@ -399,7 +409,10 @@ def dataflow_trace_to_lines(
             for var in intermediate_vars:
                 loc = var.location
                 path = Path(loc.path.value)
-                lines = get_lines_from_file(path, loc.start.line, loc.end.line)
+                try:
+                    lines = get_lines_from_file(path, loc.start.line, loc.end.line)
+                except FileNotFoundError:
+                    lines = [var.content]
                 is_different_file = path != prev_path
                 yield from format_lines(
                     path,
