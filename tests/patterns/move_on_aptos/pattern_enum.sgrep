@@ -1,0 +1,6 @@
+match (...) {
+    $VAR => ...,
+    $ARM { $FIELD: Option::Some { ... }, ... } if ... => ...,
+    $VAR2 if ... => ...,
+    ...
+}
