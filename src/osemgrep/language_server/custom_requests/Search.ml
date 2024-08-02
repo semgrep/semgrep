@@ -267,13 +267,13 @@ let filter_out_multiple_python (rules : Rule.search_rule list) :
 
 (* Make an environment for the search. *)
 
-let mk_env (server : RPC_server.t) (params : Request_params.t) =
+let mk_env (session : Session.t) (params : Request_params.t) =
   let scanning_roots =
-    List_.map Scanning_root.of_fpath server.session.workspace_folders
+    List_.map Scanning_root.of_fpath session.workspace_folders
   in
   let files =
-    server.session.cached_workspace_targets |> Hashtbl.to_seq_values
-    |> List.of_seq |> List_.flatten
+    session.cached_workspace_targets |> Hashtbl.to_seq_values |> List.of_seq
+    |> List_.flatten
   in
   let project_root =
     match
@@ -479,30 +479,26 @@ let json_of_matches
 (* Running Semgrep! *)
 (*****************************************************************************)
 
-let next_rules_and_file (server : RPC_server.t) =
-  match server.session.search_config with
+let next_rules_and_file (session : Session.t) =
+  match session.search_config with
   | None
   | Some { files = []; _ } ->
       None
   | Some ({ files = file :: rest; xconf; _ } as config) ->
       let new_session =
-        {
-          server.session with
-          search_config = Some { config with files = rest };
-        }
+        { session with search_config = Some { config with files = rest } }
       in
-      Some ((config.rules, file, xconf), { server with session = new_session })
+      Some (new_session, (config.rules, file, xconf))
 
-let rec search_single_target (server : RPC_server.t) =
-  match next_rules_and_file server with
+let rec search_single_target (session : Session.t) =
+  match next_rules_and_file session with
   | None ->
       (* Since we are done with our searches (no more targets), reset our internal state to
          no longer have this scan config.
       *)
-      ( Some (`Assoc [ ("locations", `List []) ]),
-        { server with session = { server.session with search_config = None } }
-      )
-  | Some ((rules, file, xconf), server) -> (
+      ( { session with search_config = None },
+        Some (`Assoc [ ("locations", `List []) ]) )
+  | Some (session, (rules, file, xconf)) -> (
       try
         let matches =
           List_.filter_map
@@ -513,12 +509,12 @@ let rec search_single_target (server : RPC_server.t) =
           |> List_.flatten
         in
         match matches with
-        | [] -> search_single_target server
+        | [] -> search_single_target session
         | _ ->
             let json = json_of_matches [ (file, matches) ] in
-            (json, server)
+            (session, json)
       with
-      | Parsing_error.Syntax_error _ -> search_single_target server)
+      | Parsing_error.Syntax_error _ -> search_single_target session)
 
 (*****************************************************************************)
 (* Entry point *)
@@ -527,20 +523,19 @@ let rec search_single_target (server : RPC_server.t) =
 (** on a semgrep/search request, get the pattern and (optional) language params.
     We then try and parse the pattern in every language (or specified lang), and
     scan like normal, only returning the match ranges per file *)
-let start_search (server : RPC_server.t) (params : Jsonrpc.Structured.t option)
-    =
+let start_search (session : Session.t) (params : Jsonrpc.Structured.t option) =
   match Request_params.of_jsonrpc_params params with
   | None ->
       Logs.debug (fun m -> m "no params received in semgrep/search");
-      (None, server)
+      (session, None)
   | Some params -> (
-      let env = mk_env server params in
+      let env = mk_env session params in
       match get_relevant_rules env with
       | Error e ->
           Logs.warn (fun m ->
               m "error parsing patterns for semgrep/search: %s"
                 (Rule_error.string_of_error e));
-          (None, server)
+          (session, None)
       | Ok rules ->
           let xconf =
             {
@@ -551,15 +546,10 @@ let start_search (server : RPC_server.t) (params : Jsonrpc.Structured.t option)
           (* !!calling the engine!! *)
           search_single_target
             {
-              server with
-              session =
-                {
-                  server.session with
-                  search_config =
-                    Some { rules; files = env.initial_files; xconf };
-                };
+              session with
+              search_config = Some { rules; files = env.initial_files; xconf };
             })
 
-let search_next_file (server : RPC_server.t) _params =
+let search_next_file (session : Session.t) _params =
   (* The params are nullary, so we don't actually need to check them. *)
-  search_single_target server
+  search_single_target session

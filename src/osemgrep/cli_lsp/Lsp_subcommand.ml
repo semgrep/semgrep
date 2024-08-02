@@ -11,28 +11,45 @@
 (*****************************************************************************)
 type caps = < Cap.random ; Cap.network ; Cap.tmp >
 
-module Io = RPC_server.MakeLSIO (struct
-  type input = Lwt_io.input_channel
-  type output = Lwt_io.output_channel
+(* Set IO here since it is specific to the LS entrypoint *)
+(* This one utilizes unix IO, but the JS version does not *)
+module Io : RPC_server.LSIO = struct
+  open
+    Lsp.Io.Make
+      (struct
+        include Lwt
 
-  let read_line = Lwt_io.read_line_opt
-  let write = Lwt_io.write
-  let stdin = Lwt_io.stdin
-  let stdout = Lwt_io.stdout
-  let flush = Lwt_io.flush_all
-  let atomic = Lwt_io.atomic
+        module O = struct
+          let ( let* ) x f = Lwt.bind x f
+          let ( let+ ) x f = Lwt.map f x
+        end
 
-  let read_exactly inc n =
-    let rec read_exactly acc n =
-      if n = 0 then
-        let result = String.concat "" (List.rev acc) in
-        Lwt.return (Some result)
-      else
-        let%lwt line = Lwt_io.read ~count:n inc in
-        read_exactly (line :: acc) (n - String.length line)
-    in
-    read_exactly [] n
-end)
+        let raise exn = Lwt.fail exn
+      end)
+      (struct
+        type input = Lwt_io.input_channel
+        type output = Lwt_io.output_channel
+
+        let read_line = Lwt_io.read_line_opt
+        let write = Lwt_io.write
+
+        (* LWT doesn't implement this in a nice way *)
+        let read_exactly inc n =
+          let rec read_exactly acc n =
+            if n = 0 then
+              let result = String.concat "" (List.rev acc) in
+              Lwt.return (Some result)
+            else
+              let%lwt line = Lwt_io.read ~count:n inc in
+              read_exactly (line :: acc) (n - String.length line)
+          in
+          read_exactly [] n
+      end)
+
+  let read () = read Lwt_io.stdin
+  let write packet = Lwt_io.atomic (fun oc -> write oc packet) Lwt_io.stdout
+  let flush () = Lwt_io.flush Lwt_io.stdout
+end
 
 (*****************************************************************************)
 (* Helpers *)

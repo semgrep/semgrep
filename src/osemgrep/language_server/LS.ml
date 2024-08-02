@@ -27,42 +27,38 @@ open Types
  * language server.
  *)
 
-module MessageHandler = struct
-  let on_notification = Notification_handler.on_notification
-  let on_request = Request_handler.on_request
+let on_notification = Notification_handler.on_notification
+let on_request = Request_handler.on_request
 
-  (* See: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification *)
+(* See: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification *)
 
-  (** Everything this server supports from the LSP *)
-  let capabilities =
-    let fil =
-      FileOperationFilter.create
-        ~pattern:(FileOperationPattern.create ~glob:"**/*" ())
-        ()
-    in
-    let reg_opts = FileOperationRegistrationOptions.create ~filters:[ fil ] in
-    ServerCapabilities.create
-      ~textDocumentSync:
-        (`TextDocumentSyncOptions
-          (TextDocumentSyncOptions.create ~openClose:true
-             ~change:TextDocumentSyncKind.Incremental ~save:(`Bool true) ()))
-      ~workspace:
-        (ServerCapabilities.create_workspace
-           ~workspaceFolders:
-             (WorkspaceFoldersServerCapabilities.create ~supported:true
-                ~changeNotifications:(`Bool true) ())
-           ~fileOperations:
-             (FileOperationOptions.create ~didCreate:reg_opts
-                ~didRename:reg_opts ~didDelete:reg_opts ())
-           ())
-      ~hoverProvider:(`Bool true) ~codeActionProvider:(`Bool true)
-      ~executeCommandProvider:
-        (ExecuteCommandOptions.create
-           ~commands:Execute_command.supported_commands ())
+(** Everything this server supports from the LSP *)
+let capabilities =
+  let fil =
+    FileOperationFilter.create
+      ~pattern:(FileOperationPattern.create ~glob:"**/*" ())
       ()
-end
-
-module LanguageServer = RPC_server.Make (MessageHandler)
+  in
+  let reg_opts = FileOperationRegistrationOptions.create ~filters:[ fil ] in
+  ServerCapabilities.create
+    ~textDocumentSync:
+      (`TextDocumentSyncOptions
+        (TextDocumentSyncOptions.create ~openClose:true
+           ~change:TextDocumentSyncKind.Incremental ~save:(`Bool true) ()))
+    ~workspace:
+      (ServerCapabilities.create_workspace
+         ~workspaceFolders:
+           (WorkspaceFoldersServerCapabilities.create ~supported:true
+              ~changeNotifications:(`Bool true) ())
+         ~fileOperations:
+           (FileOperationOptions.create ~didCreate:reg_opts ~didRename:reg_opts
+              ~didDelete:reg_opts ())
+         ())
+    ~hoverProvider:(`Bool true) ~codeActionProvider:(`Bool true)
+    ~executeCommandProvider:
+      (ExecuteCommandOptions.create ~commands:Execute_command.supported_commands
+         ())
+    ()
 
 (*****************************************************************************)
 (* Entry point*)
@@ -72,5 +68,5 @@ module LanguageServer = RPC_server.Make (MessageHandler)
 let start caps =
   Logs.debug (fun m -> m "Starting Semgrep Language Server");
   Lwt_platform.set_engine ();
-  let server = LanguageServer.create caps in
-  LanguageServer.start server
+  let server = RPC_server.create caps capabilities in
+  RPC_server.start ~handler:{ on_notification; on_request } server
