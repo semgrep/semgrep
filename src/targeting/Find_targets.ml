@@ -154,7 +154,10 @@ let default_conf : conf =
     force_project_root = None;
     exclude = [];
     include_ = None;
-    max_target_bytes = -1 (* This is the default for pysemgrep *);
+    (* Must be kept in sync w/ pysemgrep.
+       coupling: cli/src/semgrep/constants.py DEFAULT_MAX_TARGET_SIZE
+    *)
+    max_target_bytes = 1000000;
     respect_gitignore = true;
     always_select_explicit_targets = false;
     explicit_targets = Explicit_targets.empty;
