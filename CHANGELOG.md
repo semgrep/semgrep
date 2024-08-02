@@ -6,6 +6,28 @@
 
 <!-- insertion point -->
 
+## [1.83.0](https://github.com/returntocorp/semgrep/releases/tag/v1.83.0) - 2024-08-02
+
+
+### Added
+
+
+- Dockerfile: Allow Semgrep Ellipsis (...) in patterns for HEALTHCHECK commands. (saf-1441)
+
+
+### Fixed
+
+
+- The use of --debug should generate now far less log entries.
+  Moreover, when the number of ignored files, or rules, or
+  other entities exceed a big number, we instead replace them
+  with a <SKIPPED DATA> in the output to keep the output of semgrep
+  small. (debuglogs)
+- Fixed a bug introduced in 1.81.0 which caused files ignored for the Code
+  product but not the Secrets product to fail to be scanned for secrets.
+  Files that were not ignored for either product were not affected. (saf-1459)
+
+
 ## [1.82.0](https://github.com/returntocorp/semgrep/releases/tag/v1.82.0) - 2024-07-30
 
 
