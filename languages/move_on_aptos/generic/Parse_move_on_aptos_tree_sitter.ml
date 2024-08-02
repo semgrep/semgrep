@@ -1438,6 +1438,14 @@ let rec transpile_let_bind (env : env) (left : G.pattern) (right : G.expr) :
              let element = G.DotAccess (right, sc, G.FDynamic idx) |> G.e in
              transpile_let_bind env pat element)
       |> List_.flatten
+  | G.PatWhen (pat, cond) ->
+      (* when(cond, pat) | expr
+         =>          pat | if(cond) expr *)
+      let if_stmt =
+        G.If (sc, G.Cond cond, right |> G.exprstmt, None)
+        |> G.s |> G.stmt_to_expr
+      in
+      transpile_let_bind env pat right
   | _ -> failwith "Unsupported pattern in let binding"
 
 let map_function_signature (env : env) attrs
@@ -2232,7 +2240,7 @@ and map_spec_variable (env : env)
 
 and map_match_arm (env : env) (x : CST.match_arm) : G.case_and_body =
   match x with
-  | `Bind_list_opt_if_expr_EQGT_cont_body (v1, v2, v3, v4) ->
+  | `Bind_list_opt_if_expr_EQGT_cont_body (v1, v2, v3, v4) -> (
       let pat = map_bind_list env v1 in
       let cond =
         v2
@@ -2244,7 +2252,20 @@ and map_match_arm (env : env) (x : CST.match_arm) : G.case_and_body =
 
       let v3 = (* "=>" *) token env v3 in
       let body = map_control_body env v4 in
-      G.CasesAndBody ([ G.Case (v3, cond) ], body)
+
+      match pat with
+      | G.PatType _
+      | G.PatId _
+      | G.PatEllipsis _
+      | G.PatWildcard _ ->
+          G.CasesAndBody ([ G.Case (v3, cond) ], body)
+      | _ ->
+          let transpiled =
+            transpile_let_bind env cond (G.L (G.Null sc) |> G.e)
+          in
+          G.CasesAndBody
+            ( [ G.CaseEqualExpr (v3, G.Record (sc, transpiled, sc) |> G.e) ],
+              body ))
   | `Ellips tok -> (* "..." *) G.CaseEllipsis (token env tok)
 
 and map_for_loop_expr (env : env) (x : CST.for_loop_expr) =
