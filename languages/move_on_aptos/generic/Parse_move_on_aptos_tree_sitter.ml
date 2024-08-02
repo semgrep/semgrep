@@ -1339,24 +1339,36 @@ let map_enum_signature (env : env) attrs ((v1, v2, v3) : CST.enum_signature) =
   let ent = G.basic_entity ~tparams ~attrs name in
   (enum_, abilities, ent)
 
+let inject_enum_abilities (env : env) (abilities : G.type_ list)
+    (ent : G.entity) =
+  let ability_attr =
+    G.NamedAttr
+      ( sc,
+        G.Id (("has", sc), G.empty_id_info ()),
+        (sc, abilities |> List.map (fun x -> G.ArgType x), sc) )
+  in
+  { ent with G.attrs = ent.G.attrs @ [ ability_attr ] }
+
 let map_enum_decl (env : env) attrs (x : CST.enum_decl) =
   match x with
   | `Enum_sign_enum_body (v1, v2) ->
-      let _, abilities_TODO, ent = map_enum_signature env attrs v1 in
+      let _, abilities, ent = map_enum_signature env attrs v1 in
       let lb, variants, rb = map_enum_body env v2 in
 
+      let ent = inject_enum_abilities env abilities ent in
       let def = G.TypeDef { G.tbody = G.OrType variants } in
       G.DefStmt (ent, def) |> G.s
   | `Enum_struct_def_name_enum_body_opt_abilis_SEMI (v1, v2, v3, v4, v5) ->
       let enum_ = (* "enum" *) token env v1 in
       let name, tparams = map_struct_def_name env v2 in
       let lb, variants, rb = map_enum_body env v3 in
-      let abilities_TODO =
+      let abilities =
         v4 |> Option.map (map_abilities env) |> Option.value ~default:[]
       in
       let v5 = (* ";" *) token env v5 in
 
       let ent = G.basic_entity ~tparams ~attrs name in
+      let ent = inject_enum_abilities env abilities ent in
       let def = G.TypeDef { G.tbody = G.OrType variants } in
       G.DefStmt (ent, def) |> G.s
 
@@ -2702,8 +2714,11 @@ let map_source_file (env : env) (x : CST.source_file) =
           G.Partial (G.PartialDef (ent, G.ClassDef struct_def))
       | `Enum_sign x ->
           let enum_, abilities, ent = map_enum_signature env attrs x in
-          let enum_def = { tbody = G.OrType [] } in
-          G.Partial (G.PartialDef (ent, G.TypeDef enum_def)))
+          let enum_def = { tbody = G.OrType [ G.OrEllipsis sc ] } in
+          (* inject abilities into entity *)
+          let ent = inject_enum_abilities env abilities ent in
+          (* Workaround: Def, Partial Def don't work *)
+          G.S (G.DefStmt (ent, G.TypeDef enum_def) |> G.s))
 
 (*****************************************************************************)
 (* Entry point *)
