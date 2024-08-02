@@ -2,7 +2,7 @@
 Python -> OCaml RPC
 --------------------------------------------------------------------------------
 
-The mechanism implemented here and in `ocaml.py` in pysemgrep allows us to
+The mechanism implemented here and in `rpc.py` in pysemgrep allows us to
 incrementally migrate functionality from Python to OCaml in support of our
 osemgrep effort. Instead of being limited to the one main call out to
 semgrep-core, we can now make additional calls from arbitrary points in the
@@ -13,12 +13,12 @@ To add a function:
 - Update the `function_call` and `function_return` types in
   `semgrep_output_v1.atd` in the `semgrep-interfaces` module.
 - Update `RPC.ml` to handle the function call and return the appropriate value.
-- Update `ocaml.py` to make the function call.
-- Call the function in `ocaml.py` from wherever you need to in the Python code.
+- Update `rpc_call.py` to make the function call.
+- Call the function in `rpc_call.py` from wherever you need to in the Python code.
 
 Suggested best practices:
 
-- Do not perform any business logic in `ocaml.py`. It should just construct the
+- Do not perform any business logic in `rpc_call.py`. It should just construct the
   function call object, send it, receive the result, and return it.
 
 Invariants/limitations:
