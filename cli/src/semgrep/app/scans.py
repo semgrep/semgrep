@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING
 import click
 import requests
 from boltons.iterutils import partition
+from opentelemetry import trace as otel_trace
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers.util import DependencyParserError
@@ -257,6 +258,14 @@ class ScanHandler:
         x.config.rules = out.RawJson(TOO_MUCH_DATA)
         logger.debug(f"Scan started: {json.dumps(x.to_json(), indent=4)}")
         x.config.rules = save
+
+        current_span = otel_trace.get_current_span()
+        if self.scan_id:
+            current_span.set_attribute("semgrep.scan_id", self.scan_id)
+        if self.deployment_id:
+            current_span.set_attribute("semgrep.deployment_id", self.deployment_id)
+        if self.deployment_name:
+            current_span.set_attribute("semgrep.deployment_name", self.deployment_name)
 
     def report_failure(self, exit_code: int) -> None:
         """
