@@ -21,6 +21,7 @@
 (*****************************************************************************)
 
 open Lsp
+open Lsp_
 open Types
 open Jsonrpc
 module CR = Client_request
@@ -30,9 +31,8 @@ module CR = Client_request
 (*****************************************************************************)
 
 (* Dispatch to the various custom request handlers. *)
-let handle_custom_request server (meth : string)
-    (params : Jsonrpc.Structured.t option) : Yojson.Safe.t option * RPC_server.t
-    =
+let handle_custom_request session (meth : string) (params : Structured.t option)
+    : Session.t * Yojson.Safe.t option =
   match
     (* Methods which can alter the server *)
     [
@@ -41,7 +41,7 @@ let handle_custom_request server (meth : string)
     ]
     |> List.assoc_opt meth
   with
-  | Some handler -> handler server params
+  | Some handler -> handler session params
   | None -> (
       match
         (* Methods which cannot alter the server. *)
@@ -53,13 +53,23 @@ let handle_custom_request server (meth : string)
         |> List.assoc_opt meth
       with
       | None ->
+          (* TODO: Notify client *)
           Logs.warn (fun m -> m "Unhandled custom request %s" meth);
-          (None, server)
-      | Some handler -> (handler server params, server))
+          (session, None)
+      | Some handler -> (session, handler session params))
 
-let on_request (type r) (request : r CR.t) server =
-  let process_result ((req : r), server) =
-    (Some (CR.yojson_of_result request req), server)
+let on_request (type r) server (req_id : Id.t) (request : r CR.t) :
+    RPC_server.t * Reply.t =
+  let process_result ((response : r), server) =
+    (server, Reply.now (respond req_id request response))
+  in
+  let process_json_result ((response_json : Yojson.Safe.t option), server) =
+    let reply =
+      match response_json with
+      | None -> Reply.empty
+      | Some response_json -> Reply.now (respond_json req_id response_json)
+    in
+    (server, reply)
   in
   Logs.debug (fun m ->
       m "Handling request:\n%s"
@@ -73,30 +83,55 @@ let on_request (type r) (request : r CR.t) server =
           Logs.err (fun m ->
               m "Error initializing server: %s" (Printexc.to_string e));
           Logs.info (fun m -> m "Backtrace: %s" backtrace);
-          RPC_server.log_error_to_client "Error initializing server" e;
-          let result =
-            InitializeError.create ~retry:false |> InitializeError.yojson_of_t
+          let reply =
+            Reply.later (fun send ->
+                let%lwt () =
+                  send (Lsp_.log_error_to_client "Error initializing server" e)
+                in
+                let result =
+                  InitializeError.create ~retry:false
+                  |> InitializeError.yojson_of_t |> respond_json req_id
+                in
+                send result)
           in
-          (Some result, server))
-  | _ when server.state = RPC_server.State.Uninitialized ->
+          (server, reply))
+  | _ when server.state = State.Uninitialized ->
       Logs.err (fun m -> m "Server not initialized, ignoring request");
-      (None, server)
+      (* Explicitly don't respond *)
+      (server, Reply.empty)
   | CR.CodeAction params ->
       Code_actions.on_request server params |> process_result
-  | TextDocumentHover params -> Hover_request.on_request server params
+  | TextDocumentHover params ->
+      Hover_request.on_request server params |> process_json_result
   | CR.ExecuteCommand { arguments; command; _ } ->
       let args = Option.value arguments ~default:[] in
-      Execute_command.handle_execute_request server command args
+      let session, reply_opt =
+        Execute_command.handle_execute_request server.session command args
+      in
+      ({ server with session }, Option.value reply_opt ~default:Reply.empty)
   | CR.UnknownRequest { meth; params } ->
-      handle_custom_request server meth params
+      (* Could be handled better but :shrug: *)
+      if meth = Login.meth && Semgrep_login.is_logged_in () then
+        let reply =
+          Reply.now
+            (Lsp_.notify_show_message ~kind:MessageType.Info
+               "Already logged in to Semgrep Code")
+        in
+        (server, reply)
+      else
+        let session, yojson_opt =
+          handle_custom_request server.session meth params
+        in
+        process_json_result (yojson_opt, { server with session })
   | CR.Shutdown ->
       Logs.app (fun m -> m "Shutting down server");
       Session.save_local_skipped_fingerprints server.session;
-      (None, server)
+      (server, Reply.empty)
   | CR.DebugEcho params -> process_result (params, server)
   | _ ->
       Logs.debug (fun m ->
           m "Unhandled request %s"
             (CR.to_jsonrpc_request request (`Int 0)
             |> Request.yojson_of_t |> Yojson.Safe.pretty_to_string));
-      (None, server)
+      (* TODO: error response, log to client *)
+      (server, Reply.empty)

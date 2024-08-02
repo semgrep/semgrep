@@ -15,79 +15,54 @@ module type LSIO = sig
   (** [flush ()] flushes the output channel *)
 end
 
-module MakeLSIO (I : sig
-  (** This module makes an [LSIO] module to be used by the RPC server for IO.
-    This handles a bunch of functor stuff required by the LSP library
-  *)
+type t = { session : Session.t; state : Lsp_.State.t }
+(** This struct keeps track of the actual server lifecycle. [state] is whether
+    the server is running, and [session] holds things such as targets, parsed
+    rules, etc. *)
 
-  type input
-  type output
-
-  val stdin : input
-  val stdout : output
-  val read_line : input -> string option Lwt.t
-  val write : output -> string -> unit Lwt.t
-  val read_exactly : input -> int -> string option Lwt.t
-  val flush : unit -> unit Lwt.t
-  val atomic : (output -> 'a Lwt.t) -> output -> 'a Lwt.t
-end) : LSIO
+type handler = {
+  on_request :
+    'a. t -> Jsonrpc.Id.t -> 'a Lsp.Client_request.t -> t * Lsp_.Reply.t;
+      (** [on_request server req_id request] will process a client request, and
+          return a server with a modified [state] and/or [state]. The [Reply.t]
+          will possibly send responses, requests, or notifications to the
+          client, and any IO needed to create these messages. [on_request] is
+          guaranteed to perform no IO, asynchronous actions, or heavy
+          computation except on resolution of the reply, and therefore can be
+          called and expected to return quickly. The reply may only modify
+          [session.session_cache]. *)
+  on_notification : t -> Lsp.Client_notification.t -> t * Lsp_.Reply.t option;
+      (** [on_notification server notif] is similar to [on_request], except it may
+      or may not reply to the client*)
+}
 
 val io_ref : (module LSIO) ref
-(** [io_ref] is what the RPCServer will use for IO. This is a ref mostly for testing
-    purposes.
-  *)
+(** [io_ref] is what the server will use for IO. This is a ref mostly js version
+    of the LS to change how IO happens*)
 
-(** All Language Servers have a lifecycle according to the specs as follows:
-    Uninitialzed -> must ignore all requests until the initialize request is received.
-    Running -> normal state until shutdown is called
-    Stopped -> exit process
+val send : Jsonrpc.Packet.t -> unit Lwt.t
+(** [send p] sends the JSONRPC packet [p] to the client *)
 
-    This struct keeps track of the actual server lifecycle
-    See:
-    https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#lifeCycleMessages
- *)
-module State : sig
-  type t = Uninitialized | Running | Stopped
-end
+val set_async_exception_hook : unit -> unit
+(** [set_async_exception_hook ()] sets up a hook to catch uncaught exceptions in
+    async code and log them to the client. This is useful for debugging, as
+    otherwise exceptions in async code are silently ignored. Async exceptions
+    are guaranteed to only happen at the end of an RPC_server loop, when IO is
+    attempted. *)
 
-type t = { session : Session.t; state : State.t }
+val start : handler:handler -> t -> unit Lwt.t
+(** [start ~handler server] will begin an IO loop processing client messages
+    using [io_ref], and the returned promise will not resolve until the client
+    asks the server to exit, or a unrecoverable error happens *)
 
-val notify_custom : ?params:Jsonrpc.Structured.t -> string -> unit
-(** [notify_custom ?params ~method_] sends a custom notification to the client. *)
+(* Exposed so if we want to use the handler directly, and forgo
+   IO we can *)
+val handle_client_message :
+  handler:handler -> t -> Jsonrpc.Packet.t -> t * (Lsp_.Reply.t, string) result
+(** [handle_client_message ~handler server message] will process a message, and
+    return a reply if handled ok, or an error if there was something wrong with
+    the message structure itself (but not if the message is valid but something
+    went wrong while handling it)  *)
 
-val batch_notify : Lsp.Server_notification.t list -> unit
-(** [batch_notify t notifs] sends a batch of notifications to the client. *)
-
-val notify_show_message : kind:Lsp.Types.MessageType.t -> string -> unit
-(** [notify_show_message] server ~kind s sends the string [s] as a message with
-    type [kind] as a window to the extension
-  *)
-
-val create_progress : string -> string -> Lsp.Types.ProgressToken.t
-(** [create_progress t title message] creates a progress token. *)
-
-val end_progress : Lsp.Types.ProgressToken.t -> unit
-(** [end_progress t token] ends a progress token. *)
-
-val log_error_to_client : string -> exn -> unit
-(** [log_error_to_client msg exn] sends an error message to the client *)
-
-val notify_and_log_error : string -> exn -> unit
-(** [notify_error_message msg exn] sends an error message to the client,
-    logs the error to STDERR, and logs the error to the client via [log_error_to_client] *)
-
-(** [Make] creates a server from a message handler. *)
-module Make (MessageHandler : sig
-  val on_request : _ Lsp.Client_request.t -> t -> Jsonrpc.Json.t option * t
-  val on_notification : Lsp.Client_notification.t -> t -> t
-  val capabilities : Lsp.Types.ServerCapabilities.t
-end) : sig
-  val start : t -> unit Lwt.t
-
-  (* Exposed so if we want to use the handler directly, and forgo *)
-  (* IO we can *)
-  val handle_client_message :
-    Jsonrpc.Packet.t -> t -> (t * Jsonrpc.Packet.t option) Lwt.t
-
-  val create : < Cap.random ; Cap.network ; Cap.tmp > -> t
-end
+val create :
+  < Cap.random ; Cap.network ; Cap.tmp > -> Lsp.Types.ServerCapabilities.t -> t

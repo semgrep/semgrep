@@ -1,4 +1,5 @@
 open Lsp.Types
+open Lsp_
 module Conv = Convert_utils
 module OutJ = Semgrep_output_v1_t
 
@@ -28,26 +29,30 @@ let of_jsonrpc_params params : (Uri.t * Uuidm.t) option =
 (* Entry point *)
 (*****************************************************************************)
 
-let on_notification _server params : unit =
+let on_notification session params : Reply.t =
   (* Emulating a poor man's writer's monad, mixed with some LWT goodness. *)
-  let ( let^ ) (x : (_, string) Result.t Lwt.t) f : unit Lwt.t =
-    let%lwt result = x in
-    match result with
-    | Error s ->
-        RPC_server.notify_show_message ~kind:MessageType.Error
-          ("Failed to complete login process: " ^ s);
-        Lwt.return ()
-    | Ok y -> f y
-  in
   match params with
   | None ->
       Logs.warn (fun m ->
-          m "semgrep/loginFinish got no params but expected some")
+          m "semgrep/loginFinish got no params but expected some");
+
+      Reply.now
+        (notify_show_message ~kind:MessageType.Error
+           "semgrep/loginFinish got no parameters, but expected some")
   | Some _ ->
       (* All of this is side-effecting, so we can run it asynchronously, and
          return to the main event loop.
       *)
-      Lwt.async (fun () ->
+      Reply.later (fun send ->
+          let ( let^ ) (x : (_, string) Result.t Lwt.t) f : unit Lwt.t =
+            let%lwt result = x in
+            match result with
+            | Error s ->
+                send
+                  (notify_show_message ~kind:MessageType.Error
+                     ("Failed to complete login process: " ^ s))
+            | Ok y -> f y
+          in
           let^ _url, sessionId =
             of_jsonrpc_params params
             |> Option.to_result ~none:"got invalid parameters"
@@ -69,7 +74,11 @@ let on_notification _server params : unit =
           (* TODO: state.app_session.authenticate()
              basically, just add the token to the metrics once that exists
           *)
-          RPC_server.notify_show_message ~kind:MessageType.Info
-            "Successfully logged into Semgrep Code";
+          let%lwt () =
+            send
+              (notify_show_message ~kind:MessageType.Info
+                 "Successfully logged into Semgrep Code")
+          in
           let^ _deployment = Semgrep_login.save_token_async caps in
+          let%lwt () = Reply.apply send (Scan_helpers.refresh_rules session) in
           Lwt.return ())

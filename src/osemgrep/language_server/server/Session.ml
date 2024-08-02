@@ -169,6 +169,8 @@ let send_metrics ?core_time ?profiler ?cli_output session =
     Metrics_.g.payload.environment.deployment_id <-
       session.cached_session.deployment_id;
     Metrics_.prepare_to_send ();
+    (* Lwt.async really ok here since we hope metrics send but it doesn't
+       impact state at all so *)
     Lwt.async (fun () ->
         (* Don't worry if metrics fail to send, and don't notify user *)
         try%lwt Semgrep_Metrics.send_async session.caps with
@@ -432,29 +434,26 @@ let add_skipped_fingerprint session fingerprint =
   }
 
 let add_open_document session file =
-  Lwt.async (fun () ->
-      Lwt_mutex.with_lock session.cached_session.lock (fun () ->
-          session.cached_session.open_documents <-
-            file :: session.cached_session.open_documents;
-          Lwt.return_unit))
+  Lwt_mutex.with_lock session.cached_session.lock (fun () ->
+      session.cached_session.open_documents <-
+        file :: session.cached_session.open_documents;
+      Lwt.return_unit)
 
 let remove_open_document session file =
-  Lwt.async (fun () ->
-      Lwt_mutex.with_lock session.cached_session.lock (fun () ->
-          session.cached_session.open_documents <-
-            List.filter
-              (fun f -> not (Fpath.equal f file))
-              session.cached_session.open_documents;
-          Lwt.return_unit))
+  Lwt_mutex.with_lock session.cached_session.lock (fun () ->
+      session.cached_session.open_documents <-
+        List.filter
+          (fun f -> not (Fpath.equal f file))
+          session.cached_session.open_documents;
+      Lwt.return_unit)
 
 let remove_open_documents session files =
-  Lwt.async (fun () ->
-      Lwt_mutex.with_lock session.cached_session.lock (fun () ->
-          session.cached_session.open_documents <-
-            List.filter
-              (fun f -> not (List.mem f files))
-              session.cached_session.open_documents;
-          Lwt.return_unit))
+  Lwt_mutex.with_lock session.cached_session.lock (fun () ->
+      session.cached_session.open_documents <-
+        List.filter
+          (fun f -> not (List.mem f files))
+          session.cached_session.open_documents;
+      Lwt.return_unit)
 
 let update_workspace_folders ?(added = []) ?(removed = []) session =
   let workspace_folders =

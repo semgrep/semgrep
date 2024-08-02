@@ -17,7 +17,7 @@
 (* Prelude *)
 (*****************************************************************************)
 open Lsp
-open RPC_server
+open Lsp_
 module CN = Client_notification
 module CR = Client_request
 module Conv = Convert_utils
@@ -40,15 +40,19 @@ let parse_and_resolve_name (lang : Lang.t) (fpath : Fpath.t) :
 
 (** [wrap_with_detach f] runs f in a separate, preemptive thread, in order to
     not block the Lwt event loop *)
-let wrap_with_detach f = Lwt.async (fun () -> Lwt_platform.detach f ())
+let wrap_with_detach f = Lwt_platform.detach f ()
 (* Relevant here means any matches we actually care about showing the user.
     This means like some matches, such as those that appear in committed
     files/lines, will be filtered out*)
 
-(* This is the entry point for scanning, returns /relevant/ matches,
-   and all files scanned. *)
+(** [run_semgrep server] runs semgrep on the given server. If [targets] is
+  * provided, it will be used as the targets for semgrep. If [rules] is
+  * provided, it will be used as the rules for semgrep. Otherwise, the rules
+  * will be read from the config file. If [git_ref] is provided, it will be
+  * used as the git ref for what matches are filtered out based on git diff.
+  *)
 let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
-    ({ session; _ } : RPC_server.t) =
+    (session : Session.t) =
   let rules = Option.value ~default:session.cached_session.rules rules in
   match (rules, targets) with
   (* This can happen if rules aren't loaded yet. It seems to alarm users if
@@ -118,7 +122,7 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
               (* TODO: improve this error message depending on what the
                * instructions should be *)
               if pro_intrafile then
-                RPC_server.notify_show_message Lsp.Types.MessageType.Error
+                notify_show_message Lsp.Types.MessageType.Error
                   "You have requested running semgrep with a setting that \
                    requires the pro engine, but do not have the pro engine. \
                    You may need to acquire a different binary."
@@ -170,6 +174,9 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
         ~cli_output;
       (matches, scanned)
 
+let run_semgrep_detached ?targets ?rules ?git_ref (session : Session.t) =
+  wrap_with_detach (fun () -> run_semgrep ?targets ?rules ?git_ref session)
+
 (* This function runs a search by hooking into Match_search_mode, which bypasses
    some of the CLI.
    We do this instead of using run_semgrep above. Why?
@@ -216,99 +223,100 @@ let run_core_search xconf rule (file : Fpath.t) =
     | Parsing_error.Syntax_error _ -> None
   else None
 
-(** Scan all folders in the workspace *)
-let scan_workspace server =
-  Logs.app (fun m -> m "Scanning workspace");
-  let f () =
-    let token =
-      create_progress "Semgrep Scan in Progress" "Scanning Workspace"
-    in
-    let results, files = run_semgrep server in
-    Session.record_results server.session results files;
-    (* LSP expects empty diagnostics to clear problems *)
-    let diagnostics =
-      let files = Session.scanned_files server.session in
-      Diagnostics.diagnostics_of_results ~is_intellij:server.session.is_intellij
-        results files
-    in
-    end_progress token;
-    Logs.app (fun m -> m "Scanned workspace");
-    batch_notify diagnostics
-  in
-  (* Scanning is blocking, so run in separate preemptive thread *)
-  wrap_with_detach f
+let scan_something ?targets session =
+  let%lwt results, files = run_semgrep_detached ?targets session in
+  Session.record_results session results files;
+  (* LSP expects empty diagnostics to clear problems *)
+  let files = Session.scanned_files session in
+  Lwt.return
+    (Diagnostics.diagnostics_of_results ~is_intellij:session.is_intellij results
+       files)
 
-let scan_open_documents server =
-  Logs.app (fun m -> m "Scanning open documents");
-  let f () =
-    let open_documents = server.session.cached_session.open_documents in
-    let session_targets = Session.targets server.session in
-    let open_documents =
-      List.filter (fun doc -> List.mem doc open_documents) session_targets
-    in
-    let token =
-      create_progress "Semgrep Scan in Progress" "Scanning Open Documents"
-    in
-    let results, files = run_semgrep ~targets:open_documents server in
-    Session.record_results server.session results files;
-    (* LSP expects empty diagnostics to clear problems *)
-    let diagnostics =
-      let files = Session.scanned_files server.session in
-      Diagnostics.diagnostics_of_results ~is_intellij:server.session.is_intellij
-        results files
-    in
-    end_progress token;
-    Logs.app (fun m -> m "Scanned open documents");
-    batch_notify diagnostics
+(** Scan all folders in the workspace *)
+let scan_workspace session =
+  Logs.app (fun m -> m "Scanning workspace");
+  let packets, token =
+    create_progress "Semgrep Scan in Progress" "Scanning Workspace"
   in
-  wrap_with_detach f
+  Reply.Later
+    (fun send ->
+      let%lwt () = Lwt_list.iter_s send packets in
+      let%lwt diagnostics = scan_something session in
+      let%lwt () = send (end_progress token) in
+      Logs.app (fun m -> m "Scanned workspace");
+      Lwt_list.iter_p send (batch_notify diagnostics))
+
+let scan_open_documents (session : Session.t) =
+  Logs.app (fun m -> m "Scanning open documents");
+  let session_targets = Session.targets session in
+  let open_documents =
+    let open_documents = session.cached_session.open_documents in
+    List.filter (fun doc -> List.mem doc open_documents) session_targets
+  in
+  let packets, token =
+    create_progress "Semgrep Scan in Progress" "Scanning Open Documents"
+  in
+  Reply.Later
+    (fun send ->
+      let%lwt () = Lwt_list.iter_s send packets in
+      let%lwt diagnostics = scan_something session ~targets:open_documents in
+      (* LSP expects empty diagnostics to clear problems *)
+      let%lwt () = send (end_progress token) in
+      Logs.app (fun m -> m "Scanned open documents");
+      Lwt_list.iter_p send (batch_notify diagnostics))
 
 (** Scan a single file *)
-let scan_file server uri =
+let scan_file session uri =
   Logs.app (fun m -> m "Scanning single file");
-  let f () =
-    let file_path = Uri.to_path uri in
-    let file = Fpath.v file_path in
-    let targets = [ file ] in
-    let session_targets = Session.targets server.session in
-    (* If the file opened isn't a target, try updating targets just in case *)
-    (* This feels fine since if it is an actual target, we need to do this, and if not *)
-    (* then the user won't see results either way. *)
-    if not (List.mem file session_targets) then (
-      Logs.debug (fun m ->
-          m
-            "File %a is not in the session targets recalculating targets just \
-             in case"
-            Fpath.pp file);
-      Session.cache_workspace_targets server.session);
-    let targets = if List.mem file session_targets then targets else [] in
-    let results, _ = run_semgrep ~targets server in
-    let results =
-      List_.map (fun (m : Out.cli_match) -> { m with path = file }) results
+  let file = uri |> Uri.to_path |> Fpath.v in
+  let get_diagnostics () =
+    let%lwt results =
+      let%lwt results, _ =
+        let targets =
+          let targets = [ file ] in
+          let session_targets = Session.targets session in
+          (* If the file opened isn't a target, try updating targets just in case *)
+          (* This feels fine since if it is an actual target, we need to do this, and if not *)
+          (* then the user won't see results either way. *)
+          if not (List.mem file session_targets) then (
+            Logs.debug (fun m ->
+                m
+                  "File %a is not in the session targets recalculating targets \
+                   just in case"
+                  Fpath.pp file);
+            Session.cache_workspace_targets session);
+          if List.mem file session_targets then targets else []
+        in
+        run_semgrep_detached ~targets session
+      in
+      Lwt.return
+        (List_.map (fun (m : Out.cli_match) -> { m with path = file }) results)
     in
     let files = [ file ] in
-    Session.record_results server.session results files;
-    let diagnostics =
-      Diagnostics.diagnostics_of_results ~is_intellij:server.session.is_intellij
-        results files
-    in
-    Logs.app (fun m -> m "Scanned single file");
-    batch_notify diagnostics
+    Session.record_results session results files;
+    Lwt.return
+      (Diagnostics.diagnostics_of_results ~is_intellij:session.is_intellij
+         results files)
   in
-  (* Scanning is blocking, so run in separate preemptive thread *)
-  wrap_with_detach f
+  Logs.app (fun m -> m "Scanned single file");
+  Reply.Later
+    (fun send ->
+      let%lwt diagnostics = get_diagnostics () in
+      Lwt_list.iter_p send (batch_notify diagnostics))
 
-let refresh_rules server =
-  let token = create_progress "Semgrep" "Refreshing Rules" in
-  Lwt.async (fun () ->
+let refresh_rules session =
+  Reply.later (fun send ->
+      let packets, token = create_progress "Semgrep" "Refreshing Rules" in
+      let%lwt () = Lwt_list.iter_s send packets in
       Logs.app (fun m -> m "Refreshing rules");
-      let%lwt () = Session.cache_session server.session in
-      end_progress token;
-      RPC_server.notify_custom "semgrep/rulesRefreshed";
+      let%lwt () = Session.cache_session session in
+      let%lwt () = send (end_progress token) in
+      let%lwt () =
+        (* Will always be okay since it's just a string :) *)
+        send (notify_custom "semgrep/rulesRefreshed" |> Result.get_ok)
+      in
       Logs.app (fun m -> m "Rules refreshed");
-
       (* We used to scan ALL files in the workspace *)
       (* Now we just scan open documents so we aren't killing *)
       (* CPU cycles for no reason *)
-      scan_open_documents server;
-      Lwt.return_unit)
+      Reply.apply send (scan_open_documents session))

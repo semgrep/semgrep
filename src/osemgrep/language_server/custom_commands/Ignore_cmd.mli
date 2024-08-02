@@ -7,5 +7,6 @@ type t = { path : string; fingerprint : string } [@@deriving yojson]
 val create : path:string -> fingerprint:string -> Lsp.Types.Command.t
 (** [create ~path ~fingerprint] creates a [Command.t] command to ignore a finding at [path] with [fingerprint] *)
 
-val command_handler : RPC_server.t -> Yojson.Safe.t list -> RPC_server.t
-(** [command_handler rpc_server params] handles the ignore finding command *)
+val command_handler :
+  Session.t -> Yojson.Safe.t list -> Session.t * Lsp_.Reply.t option
+(** [command_handler session params] handles the ignore finding command *)

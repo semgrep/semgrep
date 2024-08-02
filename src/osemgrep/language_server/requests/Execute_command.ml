@@ -27,19 +27,17 @@
 (*  command to the LS  *)
 let supported_commands = [ Ignore_cmd.command; Autofix_cmd.command ]
 
-let handle_execute_request (server : RPC_server.t) (command : string) arg_list :
-    Yojson.Safe.t option * RPC_server.t =
-  let server =
-    match
-      [
-        (Ignore_cmd.command, Ignore_cmd.command_handler);
-        (Autofix_cmd.command, Autofix_cmd.command_handler);
-      ]
-      |> List.assoc_opt command
-    with
-    | Some handler -> handler server arg_list
-    | None ->
-        Logs.err (fun m -> m "Command %s not supported by the server" command);
-        server
-  in
-  (None, server)
+let handle_execute_request (session : Session.t) (command : string) arg_list :
+    Session.t * Lsp_.Reply.t option =
+  match
+    [
+      (Ignore_cmd.command, Ignore_cmd.command_handler);
+      (Autofix_cmd.command, Autofix_cmd.command_handler);
+    ]
+    |> List.assoc_opt command
+  with
+  | Some handler -> handler session arg_list
+  | None ->
+      (* TODO: Log to client *)
+      Logs.err (fun m -> m "Command %s not supported by the server" command);
+      (session, None)
