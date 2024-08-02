@@ -1,1 +1,0 @@
-Dockerfile: Allow Semgrep Ellipsis (...) in patterns for HEALTHCHECK commands.
