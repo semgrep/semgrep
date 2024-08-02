@@ -1,10 +1,13 @@
 open Common
-open Semgrep_output_v1_j
 module Out = Semgrep_output_v1_j
 
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
+(* OCaml side of the Python -> OCaml RPC
+ *
+ * See RPC_return.ml for the code implementing the Python RPC calls.
+ *)
 
 (*****************************************************************************)
 (* Types *)
@@ -13,95 +16,13 @@ module Out = Semgrep_output_v1_j
 exception InvalidRPCArgument of string
 
 (*****************************************************************************)
-(* The answer to the call from Python *)
-(*****************************************************************************)
-
-(* Once we get some more RPC calls we should probably move this to a different
- * file. But it seems fine for now. *)
-let handle_autofix (dryrun : bool) (edits : edit list) =
-  let edits =
-    edits
-    |> List_.map (fun { path; start_offset; end_offset; replacement_text } ->
-           Textedit.
-             { path; start = start_offset; end_ = end_offset; replacement_text })
-  in
-  (* For a dry run, all we do is construct the fixed lines for each edit. This
-   * makes it into the final JSON output. Otherwise, we write the edits to disk
-   * and report the number of files that we modified. *)
-  if dryrun then
-    let env = Fixed_lines.mk_env () in
-    (* We need to include the index of each edit along with its fixed_lines so
-     * that the Python code can mutate the right match. *)
-    let fixed_lines =
-      List_.mapi
-        (fun i edit -> (i, Fixed_lines.make_fixed_lines env edit))
-        edits
-    in
-    let fixed_lines =
-      List_.filter_map
-        (function
-          | i, Some x -> Some (i, x)
-          | _, None -> None)
-        fixed_lines
-    in
-    (0, fixed_lines)
-  else
-    let modified_files, _failed_edit =
-      Textedit.apply_edits ~dryrun:false edits
-    in
-    (List.length modified_files, [])
-
-let handle_sarif_format caps hide_nudge engine_label show_dataflow_traces
-    (rules : fpath) (cli_matches : cli_match list) (cli_errors : cli_error list)
-    =
-  let core_scan_conf =
-    {
-      Core_scan_config.default with
-      rule_source = Some (Core_scan_config.Rule_file rules);
-    }
-  in
-  let rules, _invalid_rules =
-    Core_scan.rules_from_rule_source caps core_scan_conf
-  in
-  let hrules = Rule.hrules_of_rules rules in
-  let cli_output =
-    {
-      results = cli_matches;
-      errors = cli_errors;
-      (* The only fields that matter for sarif are cli_output.results and cli_output.errors,
-       * so the rest of the fields are just populated with the minimal amount of info
-       *)
-      version = None;
-      paths = { scanned = []; skipped = None };
-      time = None;
-      explanations = None;
-      rules_by_engine = None;
-      engine_requested = None;
-      interfile_languages_used = None;
-      skipped_rules = [];
-    }
-  in
-  let output, format_time_seconds =
-    Common.with_time (fun () ->
-        let sarif_json =
-          Sarif_output.sarif_output hide_nudge engine_label show_dataflow_traces
-            hrules cli_output
-        in
-        Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema sarif_json)
-  in
-  (output, format_time_seconds)
-
-let handle_contributions (caps : < Cap.exec >) : Out.contributions =
-  Parse_contribution.get_contributions caps
-
-(*****************************************************************************)
 (* Dispatcher *)
 (*****************************************************************************)
 
 let handle_call (caps : < Cap.exec ; Cap.tmp >) :
-    function_call -> (function_return, string) result = function
+    Out.function_call -> (Out.function_return, string) result = function
   | `CallApplyFixes { dryrun; edits } ->
-      let modified_file_count, fixed_lines = handle_autofix dryrun edits in
+      let modified_file_count, fixed_lines = RPC_return.autofix dryrun edits in
       Ok (`RetApplyFixes { modified_file_count; fixed_lines })
   | `CallSarifFormat
       {
@@ -113,7 +34,7 @@ let handle_call (caps : < Cap.exec ; Cap.tmp >) :
         show_dataflow_traces = Some show_dataflow_traces;
       } ->
       let output, format_time_seconds =
-        handle_sarif_format
+        RPC_return.sarif_format
           (caps :> < Cap.tmp >)
           hide_nudge engine_label show_dataflow_traces rules cli_matches
           cli_errors
@@ -135,7 +56,7 @@ let handle_call (caps : < Cap.exec ; Cap.tmp >) :
         (InvalidRPCArgument
            "The field show_dataflow_traces must be populated in CallSarifFormat")
   | `CallContributions ->
-      let contribs = handle_contributions (caps :> < Cap.exec >) in
+      let contribs = RPC_return.contributions (caps :> < Cap.exec >) in
       Ok (`RetContributions contribs)
 
 (*****************************************************************************)
@@ -167,8 +88,7 @@ let write_packet chan str =
   output_string chan str;
   flush chan
 
-(* Blocks until a request comes in, then handles it and sends the result back.
- * *)
+(* Blocks until a request comes in, then handles it and sends the result back *)
 let handle_single_request (caps : < Cap.exec ; Cap.tmp >) =
   let res =
     let/ call_str = read_packet stdin in

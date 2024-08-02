@@ -18,7 +18,7 @@ from rich.progress import SpinnerColumn
 from rich.progress import TextColumn
 from rich.table import Table
 
-import semgrep.ocaml as ocaml
+import semgrep.rpc_call
 import semgrep.run_scan
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import tracing
@@ -728,7 +728,7 @@ def ci(
         )
 
         complete_result: ScanCompleteResult | None = None
-        contributions = ocaml.contributions()
+        contributions = semgrep.rpc_call.contributions()
         if scan_handler:
             with Progress(
                 TextColumn("  {task.description}"),
