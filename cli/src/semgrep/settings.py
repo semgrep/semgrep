@@ -14,6 +14,7 @@ callers should handle this gracefully.
 import os
 import uuid
 from pathlib import Path
+from tempfile import mkstemp
 from typing import Any
 from typing import cast
 from typing import Mapping
@@ -106,13 +107,25 @@ class Settings:
     def __attrs_post_init__(self) -> None:
         self.save()  # in case we retrieved default contents
 
+    # coupling: src/osemgrep/configuring/Semgrep_setting.ml save
     def save(self) -> None:
         try:
             if not self.path.parent.exists():
                 self.path.parent.mkdir(parents=True, exist_ok=True)
 
-            with self.path.open("w") as fd:
-                yaml.dump(self._contents, fd)
+            dir = str(self.path.parent)
+            fd, tmp_path = mkstemp(suffix=".yml", prefix="settings", dir=dir, text=True)
+            with os.fdopen(fd, "w") as f:
+                yaml.dump(self._contents, f)
+
+            # By writing to a guarenteed unique file and then renaming
+            # that file.  The written contents are guarenteed to be
+            # valid. If we write directly to the file, there is a
+            # chance that concurrent instances of the program be
+            # writing to the file at the same time an get race
+            # conditions.
+            os.replace(tmp_path, self.path)
+
         except PermissionError:
             logger.verbose("Could not write settings file at %s", self.path)
 
