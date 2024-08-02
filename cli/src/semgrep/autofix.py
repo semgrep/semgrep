@@ -1,7 +1,7 @@
 from typing import List
 from typing import Tuple
 
-import semgrep.ocaml as ocaml
+import semgrep.rpc_call
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
@@ -57,7 +57,7 @@ def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> Non
                 )
     edits = [edit for (match, edit) in matches]
     rpc_args = out.ApplyFixesParams(dryrun, edits)
-    application_result = ocaml.apply_fixes(rpc_args)
+    application_result = semgrep.rpc_call.apply_fixes(rpc_args)
     # Put this case first because otherwise mypy requires a type annotation on
     # the empty list
     if application_result is not None:
