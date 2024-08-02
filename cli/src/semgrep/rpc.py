@@ -100,10 +100,13 @@ def _parse_function_return(packet: str) -> Optional[out.FunctionReturn]:
         return None
 
 
+##############################################################################
+# Entry point
+##############################################################################
 T = TypeVar("T")
 
 
-def _call(call: out.FunctionCall, cls: Type[T]) -> Optional[T]:
+def rpc_call(call: out.FunctionCall, cls: Type[T]) -> Optional[T]:
     semgrep_core_path = SemgrepCore.executable_path()
     with subprocess.Popen(
         [semgrep_core_path, "-rpc"],
@@ -153,37 +156,3 @@ def _call(call: out.FunctionCall, cls: Type[T]) -> Optional[T]:
             except subprocess.TimeoutExpired:
                 logger.error(f"RPC subprocess did not exit cleanly. Killing it.")
                 proc.kill()
-
-
-##############################################################################
-# The calls to OCaml
-##############################################################################
-
-
-def apply_fixes(args: out.ApplyFixesParams) -> Optional[out.ApplyFixesReturn]:
-    call = out.FunctionCall(out.CallApplyFixes(args))
-    ret: Optional[out.RetApplyFixes] = _call(call, out.RetApplyFixes)
-    if ret is None:
-        # No real point in logging here. We log for each of the conditions that
-        # could cause this, and we log in the caller too.
-        return None
-    return ret.value
-
-
-def sarif_format(args: out.SarifFormatParams) -> Optional[out.RetSarifFormat]:
-    call = out.FunctionCall(out.CallSarifFormat(args))
-    ret: Optional[out.RetSarifFormat] = _call(call, out.RetSarifFormat)
-    if ret is None:
-        # No real point in logging here. We log for each of the conditions that
-        # could cause this, and we log in the caller too.
-        return None
-    return ret
-
-
-def contributions() -> out.Contributions:
-    call = out.FunctionCall(out.CallContributions())
-    ret: Optional[out.RetContributions] = _call(call, out.RetContributions)
-    if ret is None:
-        logger.warning("Failed to collect contributions. Continuing with scan...")
-        return out.Contributions([])
-    return ret.value

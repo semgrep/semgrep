@@ -9,7 +9,7 @@ from typing import Mapping
 from typing import Optional
 from typing import Sequence
 
-import semgrep.ocaml as ocaml
+import semgrep.rpc_call
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
@@ -95,7 +95,7 @@ class OsemgrepSarifFormatter(BaseFormatter):
                 cli_errors,
                 show_dataflow_traces,
             )
-            formatted_output = ocaml.sarif_format(rpc_params)
+            formatted_output = semgrep.rpc_call.sarif_format(rpc_params)
             if formatted_output:
                 return formatted_output.value
         return None
