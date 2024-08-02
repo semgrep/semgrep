@@ -110,6 +110,9 @@ BREAK_LINE = BREAK_LINE_CHAR * BREAK_LINE_WIDTH
 MAX_CHARS_FLAG_NAME = "--max-chars-per-line"
 DEFAULT_MAX_CHARS_PER_LINE = 160
 ELLIPSIS_STRING = " ... "
+
+# Must be kept in sync w/ osemgrep
+# coupling: src/targeting/Find_targets.ml default_conf.max_target_bytes
 DEFAULT_MAX_TARGET_SIZE = 1000000  # 1 MB
 
 # Number of entries (rules, targets) beyond we're not logging anymore
