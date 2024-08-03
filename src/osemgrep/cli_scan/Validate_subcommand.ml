@@ -143,7 +143,7 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
         | Ok result ->
             let res = Core_runner.mk_result metarules result in
             (* TODO? sanity check errors below too? *)
-            let Out.{ results; errors = _; _ } =
+            let Out.{ results; errors = _; _ } : Out.cli_output =
               Cli_json_output.cli_output_of_runner_result ~fixed_lines:false
                 res.core res.hrules res.scanned
             in
