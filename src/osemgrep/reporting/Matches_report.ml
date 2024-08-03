@@ -263,26 +263,35 @@ let pp_finding ~max_chars_per_line ~max_lines_per_finding ~color_output
       if append_separator then
         Fmt.pf ppf "%s⋮┆%s" findings_indent (String.make fill_count '-')
 
+(* TODO: factorize more this code, just the color and >>> change below *)
 let pp_styled_severity ppf ~no_color (severity : OutJ.match_severity) =
   match severity with
-  | `Error ->
+  | `Critical ->
+      Fmt.pf ppf "%s%a" rule_leading_indent
+        (if no_color then Fmt.(styled `None string)
+         else Fmt.(styled (`Fg `Magenta) string))
+        "❯❯❯❱"
+  | `Error
+  | `High ->
       Fmt.pf ppf "%s%a" rule_leading_indent
         (if no_color then Fmt.(styled `None string)
          else Fmt.(styled (`Fg `Red) string))
         "❯❯❱"
-  (* No out-of-the-box support for Orange and we use here Magenta
-     instead :/ *)
-  | `Warning ->
+  | `Warning
+  | `Medium ->
       Fmt.pf ppf "%s%a" rule_leading_indent
         (if no_color then Fmt.(styled `None string)
-         else Fmt.(styled (`Fg `Magenta) string))
+         else Fmt.(styled (`Fg `Yellow) string))
         " ❯❱"
-  | `Info ->
+  | `Info
+  | `Low ->
       Fmt.pf ppf "%s%a" rule_leading_indent
         (if no_color then Fmt.(styled `None string)
          else Fmt.(styled (`Fg `Green) string))
         "  ❱"
-  | _ -> Fmt.pf ppf "%s%s" rule_leading_indent "   "
+  | `Inventory
+  | `Experiment ->
+      Fmt.pf ppf "%s%s" rule_leading_indent "   "
 
 let pp_text_outputs ~max_chars_per_line ~max_lines_per_finding ~color_output ppf
     (matches : OutJ.cli_match list) =

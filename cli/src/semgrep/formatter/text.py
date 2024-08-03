@@ -83,11 +83,11 @@ SEVERITY_MAP_PLAIN = {
 }
 
 SEVERITY_MAP_STYLED = {
-    out.Critical.to_json(): ("red", "❯❯❯❱"),
+    out.Critical.to_json(): ("magenta", "❯❯❯❱"),
     out.Error.to_json(): ("red", "❯❯❱"),
     out.High.to_json(): ("red", "❯❯❱"),
-    out.Warning.to_json(): ("magenta", " ❯❱"),
-    out.Medium.to_json(): ("magenta", " ❯❱"),
+    out.Warning.to_json(): ("yellow", " ❯❱"),
+    out.Medium.to_json(): ("yellow", " ❯❱"),
     out.Info.to_json(): ("green", "  ❱"),
     out.Low.to_json(): ("green", "  ❱"),
 }
