@@ -624,7 +624,10 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
            let origin = Target.origin target in
            Logs.debug (fun m -> m "Core_scan analyzing %s" !!internal_path);
 
-           (* Sadly we need to disable tracing when we are using more than 1
+           (* Coupling: if you update handle_target_maybe_with_trace here
+            * it's very likely you'd need to update the same in Deep_scan.ml
+            *
+            * Sadly we need to disable tracing when we are using more than 1
             * cores.
             *
             * The reason is that parmap forks new processes, and we occasionally
