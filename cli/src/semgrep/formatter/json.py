@@ -5,10 +5,9 @@ from typing import Mapping
 from typing import Sequence
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
-from semgrep import __VERSION__
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
-from semgrep.formatter.base import rule_match_to_CliMatch
+from semgrep.formatter.base import to_CliOutput
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 
@@ -29,21 +28,6 @@ class JsonFormatter(BaseFormatter):
         extra: Mapping[str, Any],
         is_ci_invocation: bool,
     ) -> str:
-        # Sort according to RuleMatch.get_ordering_key
-        sorted_findings = sorted(rule_matches)
-        # Note that extra is not used here! Every part of the JSON output should
-        # be specified in semgrep_output_v1.atd and be part of CliOutputExtra
-        output = out.CliOutput(
-            version=out.Version(__VERSION__),
-            results=[
-                rule_match_to_CliMatch(rule_match) for rule_match in sorted_findings
-            ],
-            errors=[error.to_CliError() for error in semgrep_structured_errors],
-            paths=cli_output_extra.paths,
-            time=cli_output_extra.time,
-            explanations=cli_output_extra.explanations,
-            interfile_languages_used=cli_output_extra.interfile_languages_used,
-            skipped_rules=[],  # TODO: concatenate skipped_rules field from core responses
-        )
+        output = to_CliOutput(rule_matches, semgrep_structured_errors, cli_output_extra)
         # Sort keys for predictable output. This helps with snapshot tests, etc.
         return json.dumps(output.to_json(), sort_keys=True, default=to_json)

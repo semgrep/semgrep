@@ -67,18 +67,22 @@ let string_of_severity (severity : Out.match_severity) : string =
 (* Format dispatcher *)
 (*****************************************************************************)
 
-let dispatch_output_format (caps : < Cap.stdout >) (conf : conf)
-    (runtime_params : runtime_params) (cli_output : Out.cli_output)
-    (hrules : Rule.hrules) : unit =
-  let print = CapConsole.print caps#stdout in
-  (* TOPORT? Sort keys for predictable output. Helps with snapshot tests *)
-  match conf.output_format with
-  | Json ->
-      let s = Out.string_of_cli_output cli_output in
-      print s
+(* called also from RPC_return.ml *)
+let format (kind : Output_format.t) (cli_output : Out.cli_output) : string list
+    =
+  match kind with
+  | Text
+  | Json
+  | Sarif
+  | Gitlab_sast
+  | Gitlab_secrets
+  | Junit_xml
+  | Files_with_matches
+  | Incremental ->
+      failwith (spf "format not supported here: %s" (Output_format.show kind))
   | Vim ->
       cli_output.results
-      |> List.iter (fun (m : Out.cli_match) ->
+      |> List_.map (fun (m : Out.cli_match) ->
              match m with
              | { check_id; path; start; extra = { message; severity; _ }; _ } ->
                  let parts =
@@ -92,11 +96,11 @@ let dispatch_output_format (caps : < Cap.stdout >) (conf : conf)
                      message;
                    ]
                  in
-                 print (String.concat ":" parts))
+                 String.concat ":" parts)
   | Emacs ->
       (* TOPORT? sorted(rule_matches, key=lambda r: (r.path, r.rule_id)) *)
       cli_output.results
-      |> List.iter (fun (m : Out.cli_match) ->
+      |> List_.map (fun (m : Out.cli_match) ->
              match m with
              | {
               check_id;
@@ -139,7 +143,19 @@ let dispatch_output_format (caps : < Cap.stdout >) (conf : conf)
                      message;
                    ]
                  in
-                 print (String.concat ":" parts))
+                 String.concat ":" parts)
+
+let dispatch_output_format (caps : < Cap.stdout >) (conf : conf)
+    (runtime_params : runtime_params) (cli_output : Out.cli_output)
+    (hrules : Rule.hrules) : unit =
+  let print = CapConsole.print caps#stdout in
+  (* TOPORT? Sort keys for predictable output. Helps with snapshot tests *)
+  match conf.output_format with
+  | Json ->
+      let s = Out.string_of_cli_output cli_output in
+      print s
+  | Vim -> format Vim cli_output |> List.iter print
+  | Emacs -> format Emacs cli_output |> List.iter print
   | Text ->
       (* TODO: we should switch to Fmt_.with_buffer_to_string +
        * some CapConsole.print_no_nl, but then is_atty fail on
