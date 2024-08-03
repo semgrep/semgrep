@@ -58,6 +58,9 @@ let handle_call (caps : < Cap.exec ; Cap.tmp >) :
   | `CallContributions ->
       let contribs = RPC_return.contributions (caps :> < Cap.exec >) in
       Ok (`RetContributions contribs)
+  | `CallFormatter (output_format, cli_output) ->
+      let str = RPC_return.format output_format cli_output in
+      Ok (`RetFormatter str)
 
 (*****************************************************************************)
 (* Helpers *)
