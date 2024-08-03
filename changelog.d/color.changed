@@ -1,0 +1,4 @@
+We switch from magenta to yellow when highlighting matches
+with the medium or warning severity. We now use magenta for
+cricical severity to be consistent with other tools such
+as npm.
