@@ -11,6 +11,14 @@ logger = getLogger(__name__)
 ##############################################################################
 
 
+def format(formatter: out.OutputFormat, output: out.CliOutput) -> str:
+    call = out.FunctionCall(out.CallFormatter((formatter, output)))
+    ret: Optional[out.RetFormatter] = rpc_call(call, out.RetFormatter)
+    if ret is None:
+        return "<error missing output>"
+    return ret.value
+
+
 def apply_fixes(args: out.ApplyFixesParams) -> Optional[out.ApplyFixesReturn]:
     call = out.FunctionCall(out.CallApplyFixes(args))
     ret: Optional[out.RetApplyFixes] = rpc_call(call, out.RetApplyFixes)
