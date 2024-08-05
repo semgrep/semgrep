@@ -485,3 +485,19 @@ def test_output_matching_explanations(run_semgrep_in_tmp: RunSemgrep, snapshot):
         output_format=OutputFormat.JSON,  # Not the real output format; just disables JSON parsing
     )
     snapshot.assert_match(stdout, "report.json")
+
+
+@pytest.mark.kinda_slow
+@pytest.mark.parametrize(
+    "target_dir",
+    ["multilangproj", "language-filtering", "exclude_include"],
+)
+@pytest.mark.osemfail
+def test_file_count_multifile(run_semgrep_in_tmp: RunSemgrep, snapshot, target_dir):
+    _, stderr = run_semgrep_in_tmp(
+        "rules/filecount.yaml",
+        output_format=OutputFormat.TEXT,
+        target_name=target_dir,
+        options=[],
+    )
+    snapshot.assert_match(stderr, "result.out")

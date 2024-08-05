@@ -168,8 +168,12 @@ def _print_degenerate_table(plan: Plan, *, rule_count: int) -> None:
     """
     if not rule_count or not plan.target_mappings:
         console.print("Nothing to scan.")
-    else:  # e.g. 1 rule, 4 files
-        console.print(f"Scanning {unit_str(len(plan.target_mappings), 'file')}.")
+    else:
+        # e.g. 1 rule, 4 files
+        file_count = len(
+            [task for task in plan.target_mappings if plan.product in task.products]
+        )
+        console.print(f"Scanning {unit_str(file_count, 'file')}.")
 
 
 def _print_sast_table(
@@ -393,6 +397,9 @@ def print_scan_status(
     # TODO: after launch this should no longer be conditional.
     if has_secret_rules:
         console.print(Title("Secrets Rules", order=2))
+        # NOTE: this is modification of the plan's product is needed for
+        # acuratly reporting the number of files in degenerate table
+        sast_plan.product = out.Product(out.Secrets())
         _print_sast_table(
             sast_plan=sast_plan,
             product=out.Product(out.Secrets()),
