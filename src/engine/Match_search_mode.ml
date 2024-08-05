@@ -673,7 +673,7 @@ let mk_expls_after_formula_kind ~formula_kind_expls ~filter_expls ~focus_expls
 let hook_pro_entropy_analysis : (string -> bool) option ref = ref None
 
 let hook_pro_metavariable_name :
-    (Match_env.env -> G.expr -> R.metavar_name_kind -> bool) option ref =
+    (G.expr -> R.metavar_name_kind -> bool) option ref =
   ref None
 
 let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
@@ -745,7 +745,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
                      "semgrep-internal-metavariable-name operator is only \
                       supported in the Pro engine";
                    false
-               | Some f -> f env e ks
+               | Some f -> f e ks
              in
              let* mval = List.assoc_opt mvar bindings in
              match Metavariable.mvalue_to_expr mval with
