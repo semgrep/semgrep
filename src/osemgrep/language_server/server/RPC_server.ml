@@ -173,7 +173,7 @@ let set_async_exception_hook () =
   Lwt.async_exception_hook :=
     fun e ->
       Lwt.async (fun () ->
-          let error = notify_and_log_error "Uncaught async exception" e in
+          let error = notify_and_log_error "Uncaught exception" e in
           Lwt_list.iter_s send error)
 
 (* NOTE: this function is only used by the native version of the extension,
