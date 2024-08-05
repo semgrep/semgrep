@@ -1,0 +1,21 @@
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 5 files tracked by git with 5 Code rules, 1 Secrets rule:
+
+  Language      Rules   Files          Origin   Rules
+ ─────────────────────────────        ────────────────
+  <multilang>       3       5          Custom       5
+  js                1       4
+
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+Some files were skipped or only partially analyzed.
+  Scan was limited to files tracked by git.
+
+Ran 4 rules on 5 files: 0 findings.

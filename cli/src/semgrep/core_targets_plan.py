@@ -76,7 +76,14 @@ class TargetMappings(List[Task]):
 
     @property
     def file_count(self) -> int:
-        return len(self)
+        # the '<multilang>' label is reserved for regex & generic
+        # (& others like secrets), which causes a double count
+        # in the number of files.
+        if not self[0].language_label == "<multilang>":
+            return len(self)
+        else:
+            lang_count = len({task.analyzer.definition.id for task in self})
+            return len(self) // lang_count
 
 
 @define

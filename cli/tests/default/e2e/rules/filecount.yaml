@@ -1,0 +1,41 @@
+rules:
+  - id: regex-1
+    message: ""
+    languages:
+      - python
+    severity: ERROR
+    pattern-either:
+      - patterns:
+          - pattern-regex: "foo\\(.*\\)"
+  - id: regex-2
+    message: ""
+    languages:
+      - regex
+    severity: ERROR
+    patterns:
+      - pattern-regex: "{%.*%}"
+  - id: generic-1
+    patterns:
+      - pattern: 'allowed_origins = ["*"]'
+    languages:
+      - generic
+    severity: ERROR
+    message: ""
+  - id: generic-2
+    severity: ERROR
+    languages: [generic]
+    message: ""
+    patterns:
+      - pattern: "## $TEXT"
+  - id: secret-1
+    pattern: $X == $X
+    message: Basic test
+    severity: ERROR
+    languages: [python]
+    metadata:
+      product: secrets
+  - id: js-1
+    pattern: "f()"
+    severity: ERROR
+    languages: [js]
+    message: ""
