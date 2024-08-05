@@ -14,7 +14,7 @@ type caps = < Cap.random ; Cap.network ; Cap.tmp >
 (* Set IO here since it is specific to the LS entrypoint *)
 (* This one utilizes unix IO, but the JS version does not *)
 module Io : RPC_server.LSIO = struct
-  open
+  module RPC_IO =
     Lsp.Io.Make
       (struct
         include Lwt
@@ -46,14 +46,13 @@ module Io : RPC_server.LSIO = struct
           read_exactly [] n
       end)
 
-  let read () = read Lwt_io.stdin
-  let write packet = Lwt_io.atomic (fun oc -> write oc packet) Lwt_io.stdout
+  let read () = RPC_IO.read Lwt_io.stdin
+
+  let write packet =
+    Lwt_io.atomic (fun oc -> RPC_IO.write oc packet) Lwt_io.stdout
+
   let flush () = Lwt_io.flush Lwt_io.stdout
 end
-
-(*****************************************************************************)
-(* Helpers *)
-(*****************************************************************************)
 
 (*****************************************************************************)
 (* Main logic *)
