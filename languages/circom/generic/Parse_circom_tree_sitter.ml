@@ -183,34 +183,31 @@ let rec map_anon_choice_id_3723479 (env : env) (x : CST.anon_choice_id_3723479) 
   | `Array_access_exp x ->
       map_array_access_expression env x
 
-and map_member_expression (env : env) ((v1, v2, v3) : CST.member_expression) =
-  let e =
-    match e with
-    | `Exp x ->
-        map_expression env x
-    | `Id tok ->
-        let id = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) token env tok in
-        N (H2.name_of_id id) |> G.e
-  in
-  let tdot = (* "." *) token env v2 in
-  let fld = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v3 in
-  DotAccess (e, tdot, FN (H2.name_of_id fld)) |> G.e
+and map_increment_expression (env : env) ((v1, v2) : CST.increment_expression) =
+  let e = map_anon_choice_id_3723479 env v1 in
+  let op = (* "++" *) token env v2 in
+  G.special (IncrDecr (Incr, Postfix), op) [ e ]
+
+  and map_decrement_expression (env : env) ((v1, v2) : CST.decrement_expression) =
+    let e = map_anon_choice_id_3723479 env v1 in
+    let op = (* "--" *) token env v2 in
+    G.special (IncrDecr (Incr, Postfix), op) [ e ]
 
 and map_array_access_expression (env : env) ((v1, v2, v3, v4) : CST.array_access_expression) =
   let expression = map_expression env v1 in
   let lbracket = (* "[" *) token env v2 in
   let index =
     match v3 with
-    | Some x -> Some (
+    | Some x -> (
         map_expression env x
       )
-    | None -> R.Option None
+    | None -> G.L (Null lbracket) |> G.e
   in
   let rbracket = (* "]" *) token env v4 in
-  G.ArrayAccess (expr, (lbracket, index, rbracket))
+  G.ArrayAccess (expression, (lbracket, index, rbracket)) |> G.e
 
 
-let map_expression_statement (env : env) (x : CST.expression_statement) =
+and map_expression_statement (env : env) (x : CST.expression_statement) =
   match x with
   | `Exp_semi (v1, v2) ->
       let e = map_expression env v1 in
@@ -260,11 +257,6 @@ and map_binary_expression (env : env) (x : CST.binary_expression) : expr =
       let v2 = (* ">>" *) token env v2 in
       let v3 = map_expression env v3 in
       G.opcall (LSR, v2) [ v1; v3 ]
-  | `Exp_GTGTGT_exp (v1, v2, v3) ->
-      let v1 = map_expression env v1 in
-      let v2 = (* ">>>" *) token env v2 in
-      let v3 = map_expression env v3 in
-      G.opcall (ASR, v2) [ v1; v3 ]
   | `Exp_LTLT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = (* "<<" *) token env v2 in
@@ -357,66 +349,192 @@ and map_ternary_expression (env : env) ((v1, v2, v3, v4, v5) : CST.ternary_expre
   let ok = map_expression env v3 in
   let s = (* ":" *) token env v4 in
   let elseE = map_expression env v5 in
-  Conditional (cond, ok, elseE) |> G.s
+  Conditional (cond, ok, elseE) |> G.e
+
+and map_parenthesized_expression (env : env)
+  ((v1, v2, v3) : CST.parenthesized_expression) : expr =
+  let _lp = (* "(" *) token env v1 in
+  let e = map_expression env v2 in
+  let _rp = (* ")" *) token env v3 in
+  (* alt: ParenExpr (lp, e, rp) |> G.e *)
+  e
+
+and map_tuple (env : env) ((v1, v2, v3, v4, v5) : CST.tuple) =
+    let v1 = (* "(" *) token env v1 in
+    let v2 = map_expression env v2 in
+    let v3 =
+      List_.map (fun (v1, v2) ->
+        let v1 = (* "," *) token env v1 in
+        let v2 = map_expression env v2 in 
+        v2
+      ) v3
+    in
+    let v4 =
+      match v4 with
+      | Some tok -> Some (
+          (* "," *) token env tok
+        )
+      | None -> None
+    in
+    let v5 = (* ")" *) token env v5 in
+    Container (Tuple, (v1, v2 :: v3, v5)) |> G.e
+
+and map_call_expression (env : env) ((v1, v2, v3, v4, v5, v6) : CST.call_expression) =
+  let v1 =
+    match v1 with
+    | Some tok -> 
+        (* "parallel" *) (token env tok)
+    | None -> (fake "")
+  in
+  let v2 =
+    (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) token env v2
+  in
+  let v3 = (* "(" *) token env v3 in
+  let v4 =
+    match v4 with
+    | Some x -> (
+        map_argument_list env x
+      )
+    | None -> []
+  in
+  let v5 = (* ")" *) token env v5 in
+  let v6 =
+    match v6 with
+    | Some x -> (
+        map_anonymous_inputs env x
+      )
+    | None -> []
+  in
+  G.OtherExpr (("Call", v2), [Tk v1; G.Args v4; G.Args v6 ]) |> G.e
+
+and map_argument_list (env : env) ((v1, v2) : CST.argument_list) =
+  let v1 = map_expression env v1 in
+  let v2 =
+    List_.map (fun (v1, v2) ->
+      let _v1 = (* "," *) token env v1 in
+      let v2 = map_expression env v2 in
+      v2 |> G.arg
+    ) v2
+  in v2 
+
+and map_anonymous_inputs (env : env) ((v1, v2, v3) : CST.anonymous_inputs) =
+  let v1 = (* "(" *) token env v1 in
+  let v2 =
+    match v2 with
+    | Some x -> (
+        map_argument_list env x
+      )
+    | None -> []
+  in
+  let v3 = (* ")" *) token env v3 in
+  v2
+
+and map_array_ (env : env) ((v1, v2, v3, v4, v5) : CST.array_) =
+  let lb = (* "[" *) token env v1 in
+  let v2 = map_expression env v2 in
+  let items =
+    List_.map (fun (v1, v2) ->
+      let _v1 = (* "," *) token env v1 in
+      let v2 = map_expression env v2 in
+      v2
+    ) v3
+  in
+  let _v4 =
+    (match v4 with
+    | Some tok -> Some (
+        (* "," *) token env tok
+      )
+    | None -> None)
+  in
+  let rb = (* "]" *) token env v5 in
+  G.Container (G.Array, (lb, items, rb)) |> G.e
+
+and map_member_expression (env : env) ((v1, v2, v3) : CST.member_expression) =
+  let e =
+    match v1 with
+    | `Exp x ->
+        map_expression env x
+    | `Id tok ->
+        let id = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env tok in
+        N (H2.name_of_id id) |> G.e
+  in
+  let tdot = (* "." *) token env v2 in
+  let fld = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v3 in
+  DotAccess (e, tdot, FN (H2.name_of_id fld)) |> G.e
+
+and map_assignment_expression (env : env) ((v1, v2, v3) : CST.assignment_expression) =
+  let v1 =
+    match v1 with
+    | `Exp x -> map_expression env x
+  in
+  let v2 =
+    match v2 with
+    | `LTEQEQ tok -> (* "<==" *) token env tok
+    | `EQEQGT tok -> (* "==>" *) token env tok
+    | `LTDASHDASH tok -> (* "<--" *) token env tok
+    | `DASHDASHGT tok -> (* "-->" *) token env tok
+    | `AMPEQ tok -> (* "&=" *) token env tok
+    | `PLUSEQ tok -> (* "+=" *) token env tok
+    | `DASHEQ tok -> (* "-=" *) token env tok
+    | `STAREQ tok ->  (* "*=" *) token env tok
+    | `STARSTAREQ tok -> (* "**=" *) token env tok
+    | `SLASHEQ tok -> (* "/=" *) token env tok
+    | `BSLASHEQ tok -> (* "\\=" *) token env tok
+    | `PERCEQ tok -> (* "%=" *) token env tok
+    | `BAREQ tok -> (* "|=" *) token env tok
+    | `HATEQ tok -> (* "^=" *) token env tok
+    | `GTGTEQ tok -> (* ">>=" *) token env tok
+    | `LTLTEQ tok -> (* "<<=" *) token env tok
+    | `EQEQEQ tok -> (* "===" *) token env tok
+    | `EQ tok -> (* "=" *) token env tok
+  in
+  let v3 = map_expression env v3 in
+  G.Assign (v1, v2, v3) |> G.e
 
 and map_expression (env : env) (x : CST.expression) =
   match x with
-  | `Choice_int x -> (
+  | `Choice_int x ->
       (match x with
-      (* | `Int tok -> R.Case ("Int",
-          (* pattern \d+ *) token env tok
-      | `Id tok -> R.Case ("Id",
-          (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) token env tok
-        ) *)
-      (* | `Array x -> R.Case ("Array",
+      | `Int tok -> 
+        let s, t = str env tok in
+         G.L (G.Int (Parsed_int.parse (s, t))) |> G.e
+      | `Id tok -> 
+        let id = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env tok in
+        N (H2.name_of_id id) |> G.e
+      | `Array x ->
           map_array_ env x
-        )
-      | `Tuple x -> R.Case ("Tuple",
+      | `Tuple x -> 
           map_tuple env x
-        ) *)
-      | `Un_exp x -> R.Case ("Un_exp",
+      | `Un_exp x -> 
           map_unary_expression env x
-        )
-      | `Bin_exp x -> R.Case ("Bin_exp",
+      | `Bin_exp x -> 
           map_binary_expression env x
-        )
-      | `Tern_exp x -> R.Case ("Tern_exp",
+      | `Tern_exp x -> 
           map_ternary_expression env x
-        )
-      | `Paren_exp x -> R.Case ("Paren_exp",
+      | `Paren_exp x -> 
           map_parenthesized_expression env x
-        )
-      | `Call_exp x -> R.Case ("Call_exp",
+      | `Call_exp x ->
           map_call_expression env x
-        )
-      | `Incr_exp x -> R.Case ("Incr_exp",
+      | `Incr_exp x -> 
           map_increment_expression env x
-        )
-      | `Decr_exp x -> R.Case ("Decr_exp",
+      | `Decr_exp x ->
           map_decrement_expression env x
-        )
-      | `Member_exp x -> R.Case ("Member_exp",
+      | `Member_exp x -> 
           map_member_expression env x
-        )
-      | `Array_access_exp x -> R.Case ("Array_access_exp",
+      | `Array_access_exp x ->
           map_array_access_expression env x
-        )
-      | `Assign_exp x -> R.Case ("Assign_exp",
+      | `Assign_exp x -> 
           map_assignment_expression env x
-        )
-      )
-    )
-  | `Ellips tok -> R.Case ("Ellips",
-      (* "..." *) token env tok
-    )
-  | `Deep_ellips (v1, v2, v3) -> R.Case ("Deep_ellips",
-      let v1 = (* "<..." *) token env v1 in
-      let v2 = map_expression env v2 in
-      let v3 = (* "...>" *) token env v3 in
-      R.Tuple [v1; v2; v3]
-    )
+  )
+  | `Ellips tok -> (* "..." *) G.Ellipsis (token env tok) |> G.e
+  | `Deep_ellips (v1, v2, v3) ->
+    let l = token env v1 in
+    let e = map_expression env v2 in
+    let r = token env v3 in
+    DeepEllipsis (l, e, r) |> G.e
 
-let map_statement (env : env) (x : CST.statement) : stmt = 
+
+(* let map_statement (env : env) (x : CST.statement) : stmt = 
   match x with
   | `Ret_stmt (v1, v2, v3) ->
       let tret = (* "return" *) token env v1 in
@@ -460,7 +578,7 @@ let map_statement (env : env) (x : CST.statement) : stmt =
             Some st
         | None -> None
       in
-      If (tif, Cond cond, then_, else_opt) |> G.s
+      If (tif, Cond cond, then_, else_opt) |> G.s *)
 
 let map_function_body (env : env) ((v1, v2, v3) : CST.function_body) :
     function_body =
@@ -556,7 +674,7 @@ let parse file =
 (* todo: special mode to convert Ellipsis in the right construct! *)
 let parse_pattern str =
   H.wrap_parser
-    (fun () -> Tree_sitter_solidity.Parse.string str)
+    (fun () -> Tree_sitter_circom.Parse.string str)
     (fun cst ->
       let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
