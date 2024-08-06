@@ -1,5 +1,3 @@
-open Common
-open Either_
 open Fpath_.Operators
 module CST = Tree_sitter_circom.CST
 module H = Parse_tree_sitter_helpers
@@ -17,7 +15,6 @@ let str = H.str
 let _fb = Tok.unsafe_fake_bracket
 
 (* let fake s = Tok.unsafe_fake_tok s *)
-let fake_id s = (s, G.fake s)
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -752,53 +749,91 @@ let map_function_body (env : env) ((v1, v2, v3) : CST.function_body) :
   FBStmt (Block (lb, xs, rb) |> G.s)
 
 let map_template_body (env : env) ((v1, v2, v3) : CST.template_body):
-    template_body =
+    function_body =
   let lb = (* "{" *) token env v1 in
   let xs = List_.map (map_statement env) v2 in
   let rb = (* "}" *) token env v3 in
   FBStmt (Block (lb, xs, rb) |> G.s)
 
+let map_template_type (env : env) (x : CST.template_type) =
+  (match x with
+  | `Custom tok -> (* "custom" *) G.OtherAttribute (str env tok, [])
+  | `Para tok -> (* "parallel" *) G.OtherAttribute (str env tok, [])
+  )
+
+let map_main_component_public_signals (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.main_component_public_signals) =
+  let v1 = (* "{" *) token env v1 in
+  let v2 = (* "public" *) token env v2 in
+  let v3 = (* "[" *) token env v3 in
+  let first_param = map_parameter env v4 in
+  let params = first_param ::
+     List.map (fun (v1, v2) ->
+      let v1 = (* "," *) token env v1 in
+      let v2 = map_parameter env v2 in
+      v2
+    ) v5
+  in
+  let _v6 =
+    (match v6 with
+    | Some tok -> Some (
+        (* "," *) token env tok
+      )
+    | None -> None)
+  in
+  let v7 = (* "]" *) token env v7 in
+  let v8 = (* "}" *) token env v8 in
+  (v3, params, v7)
+
 let map_definition (env : env) (x : CST.definition) =
   match x with
   | `Func_defi (v1, v2, v3, v4) ->
-      let v1 = (* "function" *) token env v1 in
-      let v2 =
-        (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) token env v2
+      let tfunc = (* "function" *) token env v1 in
+      let id =
+        (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v2
       in
-      let v3 = map_parameter_list env v3 in
-      let v4 = map_function_body env v4 in
-      R.Tuple [v1; v2; v3; v4]
-  (* | `Temp_defi (v1, v2, v3, v4, v5) -> R.Case ("Temp_defi",
-      let v1 = (* "template" *) token env v1 in
-      let v2 =
+      let params = map_parameter_list env v3 in
+      let fbody = map_function_body env v4 in
+      let ent = G.basic_entity id in
+      let def =
+      { fkind = (Function, tfunc); fparams = params; frettype = None; fbody }
+      in
+      (ent, FuncDef def)
+  | `Temp_defi (v1, v2, v3, v4, v5) ->
+      let tfunc = (* "template" *) token env v1 in
+      let attrs =
         (match v2 with
-        | Some x -> R.Option (Some (
-            map_template_type env x
-          ))
-        | None -> R.Option None)
+        | Some x -> (
+            [map_template_type env x]
+          )
+        | None -> [])
       in
-      let v3 =
-        (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) token env v3
+      let id =
+        (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v3
       in
-      let v4 = map_parameter_list env v4 in
-      let v5 = map_template_body env v5 in
-      R.Tuple [v1; v2; v3; v4; v5]
-    )
-  | `Main_comp_defi (v1, v2, v3, v4, v5, v6) -> R.Case ("Main_comp_defi",
-      let v1 = (* "component" *) token env v1 in
-      let v2 = (* "main" *) token env v2 in
-      let v3 =
-        (match v3 with
-        | Some x -> R.Option (Some (
-            map_main_component_public_signals env x
-          ))
-        | None -> R.Option None)
+      let params = map_parameter_list env v4 in
+      let fbody = map_template_body env v5 in
+      let ent = G.basic_entity id ~attrs in
+      let def =
+      { fkind = (Function, tfunc); fparams = params; frettype = None; fbody }
       in
+      (ent, FuncDef def)
+  | `Main_comp_defi (v1, v2, v3, v4, v5, v6) ->
+      let v1 = (* "component" *) str env v1 in
+      let id = (* "main" *) str env v2 in
       let v4 = (* "=" *) token env v4 in
-      let v5 = map_call_expression env v5 in
-      let v6 = (* ";" *) token env v6 in
-      R.Tuple [v1; v2; v3; v4; v5; v6]
-    ) *)
+      let _paramsTODO =
+        (match v3 with
+        | Some x -> (
+            map_main_component_public_signals env x
+          )
+        | None -> (fake "", [], fake ""))
+      in
+      let ty = G.ty_builtin v1 in 
+      let vinit = map_call_expression env v5 in
+      let sc = (* ";" *) token env v6 in
+      let ent = G.basic_entity id in
+      let def = { vinit = Some vinit; vtype = Some ty; vtok = Some sc } in
+      (ent, VarDef def)
 
 let map_source_unit (env : env) (x : CST.source_unit) : item list =
   match x with
