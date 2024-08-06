@@ -1287,32 +1287,33 @@ let map_struct_decl (env : env) attrs (x : CST.struct_decl) : G.stmt =
       in
       G.DefStmt (struct_ent, G.ClassDef struct_def) |> G.s
 
-let map_enum_variant (env : env) ((v1, v2) : CST.enum_variant) =
+let map_enum_variant_struct (env : env) ((v1, v2) : CST.enum_variant_struct) =
   let variant = (* identifier *) str env v1 in
+  let lbrace, fields, rbrace = map_struct_body env v2 in
+  let record_type = G.TyRecordAnon ((G.Class, sc), (lbrace, fields, rbrace)) in
+  G.OrUnion (variant, record_type |> G.t)
 
-  match v2 with
-  | `Struct_body x ->
-      let lbrace, fields, rbrace = map_struct_body env x in
-      let record_type =
-        G.TyRecordAnon ((G.Class, sc), (lbrace, fields, rbrace))
-      in
-      G.OrUnion (variant, record_type |> G.t)
-  | `Anon_fields x ->
-      let lp, fields, rp = map_anon_fields env x in
-      G.OrConstructor (variant, fields)
+let map_enum_variant_posit (env : env) ((v1, v2) : CST.enum_variant_posit) =
+  let variant = (* identifier *) str env v1 in
+  let lp, fields, rp = map_anon_fields env v2 in
+  G.OrConstructor (variant, fields)
 
 let map_variant (env : env) (x : CST.variant) : G.or_type_element =
   match x with
-  | `Choice_enum_vari_opt_COMMA x -> (
+  | `Choice_enum_vari_struct_opt_COMMA x -> (
       match x with
-      | `Enum_vari_opt_COMMA (v1, v2) ->
-          let v1 = map_enum_variant env v1 in
+      | `Enum_vari_struct_opt_COMMA (v1, v2) ->
+          let v1 = map_enum_variant_struct env v1 in
           let v2 = v2 |> Option.map ((* "," *) token env) in
           v1
-      | `Id_COMMA (v1, v2) ->
+      | `Enum_vari_COMMA (v1, v2) ->
           let v1 = (* identifier *) str env v1 in
           let v2 = (* "," *) token env v2 in
-          G.OrEnum (v1, None))
+          G.OrEnum (v1, None)
+      | `Enum_vari_posit_COMMA (v1, v2) ->
+          let v1 = map_enum_variant_posit env v1 in
+          let v2 = (* "," *) token env v2 in
+          v1)
   | `Ellips tok -> (* "..." *) G.OrEllipsis (token env tok)
 
 let map_enum_body (env : env) ((v1, v2, v3, v4) : CST.enum_body) =
@@ -1322,9 +1323,13 @@ let map_enum_body (env : env) ((v1, v2, v3, v4) : CST.enum_body) =
   (* last `identifier` type variant can omit its ','*)
   let last_opt =
     v3
-    |> Option.map (fun x ->
-           let variant = (* identifier *) str env x in
-           G.OrEnum (variant, None))
+    |> Option.map (fun (v1, _) ->
+           match v1 with
+           | `Enum_vari tok ->
+               let variant = (* identifier *) str env tok in
+               G.OrEnum (variant, None)
+           | `Enum_vari_struct x -> map_enum_variant_struct env x
+           | `Enum_vari_posit x -> map_enum_variant_posit env x)
     |> Option.to_list
   in
   let rb = (* "}" *) token env v4 in
