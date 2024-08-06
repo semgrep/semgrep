@@ -1,2 +1,0 @@
-Fixed <multilang> file count to report the accurate number of files scanned by generic & regex
-so that no double counting occurs.

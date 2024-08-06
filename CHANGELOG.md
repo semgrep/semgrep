@@ -6,6 +6,26 @@
 
 <!-- insertion point -->
 
+## [1.84.0](https://github.com/returntocorp/semgrep/releases/tag/v1.84.0) - 2024-08-06
+
+
+### Changed
+
+
+- We switch from magenta to yellow when highlighting matches
+  with the medium or warning severity. We now use magenta for
+  cricical severity to be consistent with other tools such
+  as npm. (color)
+
+
+### Fixed
+
+
+- Workaround deadlock when interfile is run with j>1 and tracing is enabled. (saf-1157)
+- Fixed <multilang> file count to report the accurate number of files scanned by generic & regex
+  so that no double counting occurs. (saf-507)
+
+
 ## [1.83.0](https://github.com/returntocorp/semgrep/releases/tag/v1.83.0) - 2024-08-02
 
 

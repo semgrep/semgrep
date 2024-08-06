@@ -1,1 +1,0 @@
-Workaround deadlock when interfile is run with j>1 and tracing is enabled.
