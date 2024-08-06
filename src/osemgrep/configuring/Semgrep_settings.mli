@@ -19,3 +19,8 @@ val load : ?maturity:Maturity.t -> ?include_env:bool -> unit -> t
 
 (* save and returns whether the save was successful *)
 val save : t -> bool
+
+val is_authenticated : unit -> bool
+(** [is_authenticated] checks if the user is logged in. This means a token is
+    set in either the settings file, or `SEMGREP_APP_TOKEN` is set and
+    non-empty *)

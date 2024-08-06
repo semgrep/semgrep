@@ -100,7 +100,9 @@ let save_token_tests caps =
     let caps = Auth.cap_token_and_network ok_token caps in
     match Semgrep_login.save_token caps with
     | Ok _deployment_config ->
-        Alcotest.(check bool) "logged in" true (Semgrep_login.is_logged_in ())
+        Alcotest.(check bool)
+          "logged in" true
+          (Semgrep_settings.is_authenticated ())
     | Error e -> failwith e
   in
   let invalid_token_test () =
@@ -110,7 +112,7 @@ let save_token_tests caps =
     | Error _ ->
         Alcotest.(check bool)
           "not logged in" false
-          (Semgrep_login.is_logged_in ())
+          (Semgrep_settings.is_authenticated ())
   in
   let tests =
     [ ("invalid token", invalid_token_test); ("valid token", valid_token_test) ]

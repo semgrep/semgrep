@@ -181,7 +181,7 @@ let output_and_exit_from_fatal_core_errors (caps : < Cap.stdout >)
   let runtime_params =
     Output.
       {
-        is_logged_in = Semgrep_login.is_logged_in ();
+        is_logged_in = Semgrep_settings.is_authenticated ();
         is_using_registry =
           Metrics_.g.is_using_registry || !Semgrep_envvars.v.mock_using_registry;
       }
@@ -609,7 +609,7 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
         let runtime_params =
           Output.
             {
-              is_logged_in = Semgrep_login.is_logged_in ();
+              is_logged_in = Semgrep_settings.is_authenticated ();
               is_using_registry =
                 Metrics_.g.is_using_registry
                 || !Semgrep_envvars.v.mock_using_registry;
