@@ -64,7 +64,7 @@ let on_notification (server : RPC_server.t) notification =
         let check_token =
           Reply.later (fun send ->
               Logs.debug (fun m -> m "Checking API token exists");
-              let settings = Semgrep_settings.load ~include_env:true () in
+              let settings = Semgrep_settings.load () in
               match settings.api_token with
               | Some token ->
                   Logs.debug (fun m -> m "Checking API token validity");
@@ -81,16 +81,8 @@ let on_notification (server : RPC_server.t) notification =
                       (Lsp_.notify_show_message ~kind:MessageType.Error
                          "Invalid Semgrep token detected, please log in again."))
               | None ->
-                  Logs.info (fun m -> m "No API token detected");
-
-                  (* Check if pro_intrafile requested *)
-                  if session.user_settings.pro_intrafile then
-                    send
-                      (Lsp_.notify_show_message Lsp.Types.MessageType.Error
-                         "Semgrep's Pro engine is enabled, but no API token is \
-                          set. Please login to enable the Pro engine, or \
-                          disable the setting to stop seeing this message.")
-                  else Lwt.return_unit)
+                  Logs.debug (fun m -> m "No API token detected");
+                  Lwt.return_unit)
         in
         let reply =
           Reply.both check_token (Scan_helpers.refresh_rules session)

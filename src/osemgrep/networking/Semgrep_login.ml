@@ -62,6 +62,10 @@ let verify_token_async token =
 
 let verify_token token = Lwt_platform.run (verify_token_async token)
 
+let is_logged_in () =
+  let settings = Semgrep_settings.load () in
+  Option.is_some settings.api_token
+
 let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
     ?(max_retries = 12) ?(wait_hook = fun _delay_ms -> Lwt.return_unit) caps
     shared_secret =

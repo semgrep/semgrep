@@ -85,10 +85,7 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
         let runner_conf = Session.runner_conf session in
         (* This is currently just ripped from Scan_subcommand. *)
         let core_run_func =
-          let pro_intrafile =
-            session.user_settings.pro_intrafile
-            && Semgrep_settings.is_authenticated ()
-          in
+          let pro_intrafile = session.user_settings.pro_intrafile in
           match !Core_runner.hook_mk_pro_core_run_for_osemgrep with
           | Some pro_scan_func when pro_intrafile ->
               (* THINK: files or folders?
@@ -125,12 +122,11 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
               (* TODO: improve this error message depending on what the
                * instructions should be *)
               if pro_intrafile then
-                Logs.warn (fun m ->
-                    m
-                      "Pro intrafile is enabled, but the pro engine is not \
-                       available, as the user is not logged in, or there is no \
-                       pro binary available. Running with the OSS engine \
-                       instead.");
+                notify_show_message Lsp.Types.MessageType.Error
+                  "You have requested running semgrep with a setting that \
+                   requires the pro engine, but do not have the pro engine. \
+                   You may need to acquire a different binary."
+                |> ignore;
               Core_runner.mk_core_run_for_osemgrep
                 (Core_scan.scan (session.caps :> < Cap.tmp >))
         in

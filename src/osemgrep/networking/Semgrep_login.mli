@@ -37,6 +37,11 @@ val save_token :
   * hashed [token] (auth token) is the token to save for future API calls
   *)
 
+val is_logged_in : unit -> bool
+(** [is_logged_in ()] will check if the user is logged in by checking if a
+  * token in the settings file exists.
+  *)
+
 val fetch_token :
   ?min_wait_ms:int ->
   ?next_wait_ms:int ->
