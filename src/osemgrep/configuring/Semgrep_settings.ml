@@ -76,16 +76,16 @@ let to_yaml { has_shown_metrics_notification; api_token; anonymous_user_id } =
       | Some v -> [ ("api_token", `String (Auth.string_of_token v)) ])
     @ [ ("anonymous_user_id", `String (Uuidm.to_string anonymous_user_id)) ])
 
+(*****************************************************************************)
+(* Entry points *)
+(*****************************************************************************)
+
 let set_api_token ~include_env settings =
   if include_env then
     match !Semgrep_envvars.v.app_token with
     | Some token -> { settings with api_token = Some token }
     | None -> settings
   else settings
-
-(*****************************************************************************)
-(* Entry points *)
-(*****************************************************************************)
 
 (*
    Return 'None' if the settings file can't be loaded. The 'settings'
@@ -182,9 +182,3 @@ let save setting =
       Logs.warn (fun m ->
           m "Could not write settings file at %a: %s" Fpath.pp settings e);
       false
-
-let is_authenticated () =
-  let settings = load ~include_env:true () in
-  match settings.api_token with
-  | Some token -> String.length (Auth.string_of_token token) > 0
-  | None -> false
