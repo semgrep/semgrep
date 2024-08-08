@@ -168,13 +168,20 @@ let handle_client_message ~(handler : handler) server (msg : Packet.t) =
 (* Server *)
 (*****************************************************************************)
 
+let notify_and_log_error_sync msg e =
+  let error = notify_and_log_error msg e in
+  Lwt.dont_wait
+    (fun () -> Lwt_list.iter_s send error)
+    (fun exn ->
+      Logs.err (fun m -> m "%s: %s" msg (Printexc.to_string exn));
+      let backtrace = Printexc.get_backtrace () in
+      Logs.err (fun m -> m "Backtrace: %s" backtrace))
+
+(* Set async exception hook so we error handle better *)
+
 let set_async_exception_hook () =
-  let module Io = (val !io_ref : LSIO) in
   Lwt.async_exception_hook :=
-    fun e ->
-      Lwt.async (fun () ->
-          let error = notify_and_log_error "Uncaught exception" e in
-          Lwt_list.iter_s send error)
+    notify_and_log_error_sync "Uncaught exception in async_exception_hook"
 
 (* NOTE: this function is only used by the native version of the extension,
    but not LSP.js. [handle_client_message] is used by LSP.js though. *)
@@ -207,12 +214,14 @@ let start ~(handler : handler) server =
               (* THINK: Should these be resolved in a separate thread? Or should
                  the expectation be that Replys will spawn their own only if
                  they need it? *)
-              Lwt.async (fun () ->
+              Lwt.dont_wait
+                (fun () ->
                   match reply_result with
                   | Ok reply -> Reply.apply send reply
                   | Error e ->
                       Logs.err (fun m -> m "%s" e);
-                      Lwt.return_unit);
+                      Lwt.return_unit)
+                (notify_and_log_error_sync "Error resolving reply");
               Lwt.return server
             in
             rpc_loop server

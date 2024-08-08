@@ -171,13 +171,13 @@ let send_metrics ?core_time ?profiler ?cli_output session =
     Metrics_.prepare_to_send ();
     (* Lwt.async really ok here since we hope metrics send but it doesn't
        impact state at all so *)
-    Lwt.async (fun () ->
+    Lwt.dont_wait
+      (fun () ->
         (* Don't worry if metrics fail to send, and don't notify user *)
-        try%lwt Semgrep_Metrics.send_async session.caps with
-        | e ->
-            Logs.err (fun m ->
-                m "Failed to send metrics: %s" (Printexc.to_string e));
-            Lwt.return_unit))
+        Semgrep_Metrics.send_async session.caps)
+      (fun exn ->
+        Logs.err (fun m ->
+            m "Failed to send metrics: %s" (Printexc.to_string exn))))
 
 (*****************************************************************************)
 (* State getters *)
