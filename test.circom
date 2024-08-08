@@ -18,18 +18,6 @@ template Multiplier3 () {
    mult1.in1 <== in1;
    mult1.in2 <== in2;
    mult2.in1 <== mult1.out;
-   mult2.in2 <== in3;
-   out <== mult2.out;
+   mult2++;
+   QQQQQQ--;
 }
-
-function nbits(arg1, arg2, arg3) {
-    var n = 1;
-    var r = 0;
-    while (n-1<a) {
-        r++;
-        n *= 2;
-    }
-    return r;
-}
-
-component main = Multiplier3();
