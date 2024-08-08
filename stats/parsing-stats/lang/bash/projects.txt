@@ -10,7 +10,6 @@ https://github.com/papers-we-love/papers-we-love
 https://github.com/pi-hole/pi-hole
 https://github.com/open-guides/og-aws
 https://github.com/dylanaraps/pure-bash-bible
-https://github.com/shengxinjing/programmer-job-blacklist
 https://github.com/mathiasbynens/dotfiles
 https://github.com/nvie/gitflow
 https://github.com/acmesh-official/acme.sh
