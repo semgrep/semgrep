@@ -161,8 +161,8 @@ let map_trailing_comma env v =
 
 let map_parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) :
   parameters =
-  let lp = (* "(" *) token env v1 in
-  let params =
+let lp = (* "(" *) token env v1 in
+let params =
   match v2 with
   | Some (v1, v2, v3) ->
       let v1 = map_parameter env v1 in
@@ -177,9 +177,9 @@ let map_parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) :
       let _v3 = map_trailing_comma env v3 in
       v1 :: v2
   | None -> []
-  in
-  let rp = (* ")" *) token env v3 in
-  (lp, params, rp)
+in
+let rp = (* ")" *) token env v3 in
+(lp, params, rp)
 
 let rec map_anon_choice_id_3723479 (env : env) (x : CST.anon_choice_id_3723479) =
   match x with
@@ -416,14 +416,14 @@ and map_call_expression (env : env) ((v1, v2, v3, v4, v5, v6) : CST.call_express
   G.OtherExpr (("Call", v2), [Tk v1; G.Args v4; G.Args v6 ]) |> G.e
 
 and map_argument_list (env : env) ((v1, v2) : CST.argument_list) =
-  let v1 = map_expression env v1 in
+  let v1 = map_expression env v1 |> G.arg in
   let v2 =
     List_.map (fun (v1, v2) ->
       let _v1 = (* "," *) token env v1 in
       let v2 = map_expression env v2 in
       v2 |> G.arg
     ) v2
-  in v2 
+  in v1 :: v2 
 
 and map_anonymous_inputs (env : env) ((v1, v2, v3) : CST.anonymous_inputs) =
   let v1 = (* "(" *) token env v1 in
@@ -471,33 +471,33 @@ and map_member_expression (env : env) ((v1, v2, v3) : CST.member_expression) =
   DotAccess (e, tdot, FN (H2.name_of_id fld)) |> G.e
 
 and map_assignment_expression (env : env) ((v1, v2, v3) : CST.assignment_expression) =
-  let v1 =
+  let le =
     match v1 with
     | `Exp x -> map_expression env x
   in
-  let v2 =
+  let op =
     match v2 with
-    | `LTEQEQ tok -> (* "<==" *) token env tok
-    | `EQEQGT tok -> (* "==>" *) token env tok
-    | `LTDASHDASH tok -> (* "<--" *) token env tok
-    | `DASHDASHGT tok -> (* "-->" *) token env tok
-    | `AMPEQ tok -> (* "&=" *) token env tok
-    | `PLUSEQ tok -> (* "+=" *) token env tok
-    | `DASHEQ tok -> (* "-=" *) token env tok
-    | `STAREQ tok ->  (* "*=" *) token env tok
-    | `STARSTAREQ tok -> (* "**=" *) token env tok
-    | `SLASHEQ tok -> (* "/=" *) token env tok
-    | `BSLASHEQ tok -> (* "\\=" *) token env tok
-    | `PERCEQ tok -> (* "%=" *) token env tok
-    | `BAREQ tok -> (* "|=" *) token env tok
-    | `HATEQ tok -> (* "^=" *) token env tok
-    | `GTGTEQ tok -> (* ">>=" *) token env tok
-    | `LTLTEQ tok -> (* "<<=" *) token env tok
-    | `EQEQEQ tok -> (* "===" *) token env tok
-    | `EQ tok -> (* "=" *) token env tok
+    | `LTEQEQ tok -> (* "<==" *) (LDA, token env tok)
+    | `EQEQGT tok -> (* "==>" *) (RDA, token env tok)
+    | `LTDASHDASH tok -> (* "<--" *) (LSA, token env tok)
+    | `DASHDASHGT tok -> (* "-->" *) (RSA, token env tok) 
+    | `AMPEQ tok -> (* "&=" *) (BitAnd, token env tok) 
+    | `PLUSEQ tok -> (* "+=" *) (Plus, token env tok)
+    | `DASHEQ tok -> (* "-=" *) (Minus, token env tok)
+    | `STAREQ tok ->  (* "*=" *) (Mult, token env tok) 
+    | `STARSTAREQ tok -> (* "**=" *) (Pow, token env tok)
+    | `SLASHEQ tok -> (* "/=" *) (Div, token env tok)
+    | `BSLASHEQ tok -> (* "\\=" *) (FloorDiv, token env tok)
+    | `PERCEQ tok -> (* "%=" *) (Mod, token env tok)
+    | `BAREQ tok -> (* "|=" *) (BitOr, token env tok)
+    | `HATEQ tok -> (* "^=" *) (BitXor, token env tok)
+    | `GTGTEQ tok -> (* ">>=" *) (LSR, token env tok)
+    | `LTLTEQ tok -> (* "<<=" *) (LSL, token env tok)
+    | `EQEQEQ tok -> (* "===" *) (PhysEq, token env tok)
+    | `EQ tok -> (* "=" *) (Eq, token env tok)
   in
-  let v3 = map_expression env v3 in
-  G.Assign (v1, v2, v3) |> G.e
+  let re = map_expression env v3 in
+  G.AssignOp (le, op, re) |> G.e
 
 and map_expression (env : env) (x : CST.expression) =
   match x with
