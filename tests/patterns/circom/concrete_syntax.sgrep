@@ -1,1 +1,0 @@
-template $M ($A, b, c) {...; var $Y; ... }
