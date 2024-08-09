@@ -174,7 +174,7 @@
  * convenient to correspond mostly to Semgrep versions. So version below
  * can jump from "1.12.1" to "1.20.0" and that's fine.
  *)
-let version = "1.66.1"
+let version = "1.66.2"
 
 (*****************************************************************************)
 (* Some notes on deriving *)
