@@ -816,7 +816,7 @@ let map_definition (env : env) (x : CST.definition) =
         | None -> [])
       in
       let id =
-        (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v3
+        (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v3 |> left_strip_space
       in
       let params = map_parameter_list env v4 in
       let fbody = map_template_body env v5 in
