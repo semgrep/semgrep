@@ -395,7 +395,7 @@ and map_call_expression (env : env) ((v1, v2, v3, v4, v5, v6) : CST.call_express
     | None -> (fake "")
   in
   let v2 =
-    (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) token env v2
+    (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v2
   in
   let v3 = (* "(" *) token env v3 in
   let v4 =
@@ -406,14 +406,18 @@ and map_call_expression (env : env) ((v1, v2, v3, v4, v5, v6) : CST.call_express
     | None -> []
   in
   let v5 = (* ")" *) token env v5 in
-  let v6 =
+  let v6TODO =
     match v6 with
     | Some x -> (
         map_anonymous_inputs env x
       )
     | None -> []
   in
-  G.OtherExpr (("Call", v2), [Tk v1; G.Args v4; G.Args v6 ]) |> G.e
+  let id = G.N( G.Id (v2, G.empty_id_info ())) |> G.e
+  in
+  let args = (v3, v4, v5) in
+  G.Call (id, args) |> G.e
+  (* G.OtherExpr (("Call", v2), [Tk v2; Tk v1; G.Args v4; G.Args v6 ]) |> G.e *)
 
 and map_argument_list (env : env) ((v1, v2) : CST.argument_list) =
   let v1 = map_expression env v1 |> G.arg in
