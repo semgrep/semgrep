@@ -1444,7 +1444,7 @@ let rec transpile_let_bind (env : env) (left : G.pattern) (right : G.expr) :
                 =>        element | expr.idx *)
              let element = G.DotAccess (right, sc, G.FDynamic idx) |> G.e in
              transpile_let_bind env pat element)
-      |> List.flatten
+      |> List_.flatten
   | G.PatConstructor (name, elements) ->
       elements
       |> List.mapi (fun idx pat ->
