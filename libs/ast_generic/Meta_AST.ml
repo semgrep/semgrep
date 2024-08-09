@@ -620,6 +620,10 @@ and vof_arithmetic_operator = function
   | Cmp -> OCaml.VSum ("Cmp", [])
   | Length -> OCaml.VSum ("Length", [])
   | Background -> OCaml.VSum ("Background", [])
+  | LDA -> OCaml.VSum ("LDA", [])
+  | RDA -> OCaml.VSum ("RDA", [])
+  | LSA -> OCaml.VSum ("LSA", [])
+  | RSA -> OCaml.VSum ("RSA", [])
 
 and vof_arguments v = vof_bracket (OCaml.vof_list vof_argument) v
 
