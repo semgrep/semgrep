@@ -1,0 +1,13 @@
+(library
+ (public_name parallelism)
+ (wrapped false)
+ (libraries
+   parmap
+ )
+ (preprocess
+   (pps
+     ppx_deriving.show
+     profiling.ppx
+   )
+ )
+)

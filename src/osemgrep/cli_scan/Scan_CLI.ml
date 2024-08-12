@@ -92,7 +92,7 @@ let default : conf =
          * the worst case)
          *)
         Core_runner.num_jobs =
-          min 16 (if Sys.unix then Parmap_helpers.get_cpu_count () else 1);
+          min 16 (if Sys.unix then Parmap_.get_cpu_count () else 1);
         timeout = 5.0;
         (* ^ seconds, keep up-to-date with User_settings.ml and constants.py *)
         timeout_threshold = 3;
