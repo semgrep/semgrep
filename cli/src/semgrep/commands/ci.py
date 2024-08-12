@@ -647,13 +647,11 @@ def ci(
         # Split up rules into respective categories:
         blocking_rules: List[Rule] = []
         nonblocking_rules: List[Rule] = []
-        prev_scan_rules: List[Rule] = []
-        cai_rules: List[Rule] = []
         for rule in filtered_rules:
             if "r2c-internal-cai" in rule.id:
-                cai_rules.append(rule)
+                pass
             elif rule.from_transient_scan:
-                prev_scan_rules.append(rule)
+                pass
             elif rule.is_blocking:
                 blocking_rules.append(rule)
             else:
