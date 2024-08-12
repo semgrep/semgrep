@@ -27,7 +27,7 @@
 ###############################################################################
 
 # The semgrep git repository contains the source code to multiple build artifacts
-# (semgrep, semgrep-core, semgrep.js, etc...). In order to maximize Docker cache
+# (pysemgrep, semgrep-core, etc...). In order to maximize Docker cache
 # hits (and keep the build fast), we only copy over the folders needed to build
 # semgrep-core. This is done in a multi-stage build so that the final COPY
 # happens in a single layer.
@@ -41,8 +41,7 @@ COPY . .
 # remove files and folders that aren't necessary for the semgrep-core build
 # coupling: see the (dirs ...) directive in the toplevel dune file for the list
 # of directories containing OCaml code and which should not be added below
-# (except js/ which contains OCaml code but is not used to build semgrep-core)
-RUN rm -rf cli js .github .circleci Dockerfile
+RUN rm -rf cli .github .circleci Dockerfile
 
 # we *do* need the cli's semgrep_interfaces folder, however
 COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
@@ -118,6 +117,7 @@ COPY --from=semgrep-core-files /src/semgrep/scripts ./scripts
 COPY --from=semgrep-core-files /src/semgrep/semgrep.opam ./semgrep.opam
 COPY --from=semgrep-core-files /src/semgrep/libs/ocaml-tree-sitter-core/tree-sitter.opam ./libs/ocaml-tree-sitter-core/tree-sitter.opam
 COPY --from=semgrep-core-files /src/semgrep/dev ./dev
+
 # note that we do not run 'make install-deps-for-semgrep-core' here because it
 # configures and builds ocaml-tree-sitter-core too; here we are
 # just concerned about installing external packages to maximize docker caching.
@@ -126,6 +126,7 @@ RUN make install-deps-ALPINE-for-semgrep-core &&\
 
 # Compile (and minimal test) semgrep-core
 COPY --from=semgrep-core-files /src/semgrep ./
+
 # Let's build just semgrep-core
 #alt: use 'opam exec -- ...' instead of eval
 RUN make install-deps-for-semgrep-core &&\
@@ -245,8 +246,7 @@ RUN rm -rf /semgrep
 # Note though that the actual USER directive is done in Step 3.
 RUN adduser -D -u 1000 -h /home/semgrep semgrep \
     && chown semgrep /src
-# Disabling defaulting to the user 'semgrep' for now
-# See the nonroot build stage below.
+# stay with ROOT for now (see the nonroot step below)
 #USER semgrep
 
 # Workaround for rootless containers as git operations may fail due to dubious
@@ -270,6 +270,14 @@ RUN printf "[safe]\n	directory = /src"  > ~semgrep/.gitconfig && \
 # image's entrypoint in a .gitlab-ci.yml.
 # => Simpler to not have any ENTRYPOINT, even it means forcing the user
 # to repeat multiple times semgrep in the docker command line.
+# Using CMD instead gives them a default command when nothing is
+# passed to the container, but at the same time still allows users
+# to run the container interactively.
+# For example,
+#   docker run semgrep/semgrep
+# will show the help text, but
+#   docker run -it semgrep/semgrep /bin/bash
+# will let users bring up a bash session.
 CMD ["semgrep", "--help"]
 LABEL maintainer="support@semgrep.com"
 
