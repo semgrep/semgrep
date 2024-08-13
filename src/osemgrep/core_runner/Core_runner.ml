@@ -312,7 +312,9 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
        Core_scan.ml.
     *)
     let rules, invalid_rules = rules_and_invalid in
-    let rule_errors = Core_scan.errors_of_invalid_rules invalid_rules in
+    let rule_errors : Core_error.t list =
+      invalid_rules |> List_.map Core_error.error_of_invalid_rule
+    in
     let config : Core_scan_config.t = core_scan_config_of_conf conf in
     let config = { config with file_match_hook } in
     (* TODO: we should not need to use List_.map below, because
