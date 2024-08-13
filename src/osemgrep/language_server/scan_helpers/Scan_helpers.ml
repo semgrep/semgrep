@@ -85,7 +85,10 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
         let runner_conf = Session.runner_conf session in
         (* This is currently just ripped from Scan_subcommand. *)
         let core_run_func =
-          let pro_intrafile = session.user_settings.pro_intrafile in
+          let pro_intrafile =
+            session.user_settings.pro_intrafile
+            && Semgrep_settings.has_api_token ()
+          in
           match !Core_runner.hook_mk_pro_core_run_for_osemgrep with
           | Some pro_scan_func when pro_intrafile ->
               (* THINK: files or folders?
@@ -96,6 +99,11 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
                  rather than "scanning roots".
               *)
               let roots = List_.map Scanning_root.of_fpath targets in
+              (* TODO: maybe be smarter about this?*)
+              (* if we've already called this function then we don't want extra *)
+              (* languages as the parsers are already registered. This is a bit *)
+              (* of a hack*)
+              let extra_languages = Parsing_plugin.Apex.is_available () in
               (* For now, we're going to just hard-code it at a whole scan, and
                  using the intrafile pro engine.
                  Interfile would likely be too intensive (and require us to
@@ -109,11 +117,13 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
                     Engine_type.(
                       PRO
                         {
-                          (* TODO: this probably needs better product detection. *)
-                          extra_languages = true;
+                          extra_languages;
+                          (* TODO Interfile? *)
                           analysis = Interprocedural;
+                          (* TODO *)
                           secrets_config = None;
                           code_config = Some ();
+                          (* TODO *)
                           supply_chain_config = None;
                           path_sensitive = false;
                         });
@@ -122,11 +132,12 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
               (* TODO: improve this error message depending on what the
                * instructions should be *)
               if pro_intrafile then
-                notify_show_message Lsp.Types.MessageType.Error
-                  "You have requested running semgrep with a setting that \
-                   requires the pro engine, but do not have the pro engine. \
-                   You may need to acquire a different binary."
-                |> ignore;
+                Logs.warn (fun m ->
+                    m
+                      "Pro intrafile is enabled, but the pro engine is not \
+                       available, as the user is not logged in, or there is no \
+                       pro binary available. Running with the OSS engine \
+                       instead.");
               Core_runner.mk_core_run_for_osemgrep
                 (Core_scan.scan (session.caps :> < Cap.tmp >))
         in
