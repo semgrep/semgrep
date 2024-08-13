@@ -17,24 +17,13 @@ type func = Core_scan_config.t -> Core_result.result_or_exn
  *
  * The match_hook parameter is a deprecated way to print matches. If not
  * provided, it defaults to a function that internally calls
- * print_match() below.
+ * Core_text_output.print_match().
  *)
 val scan :
   ?match_hook:(Pattern_match.t -> unit) ->
   < Cap.tmp > ->
   Core_scan_config.t ->
   Core_result.result_or_exn
-
-(* Old hook to support incremental display of matches for semgrep-core
- * in text-mode. Deprecated. Use Core_scan_config.file_match_results_hook
- * instead now with osemgrep.
- *)
-val print_match :
-  ?str:string ->
-  Core_scan_config.t ->
-  Pattern_match.t ->
-  (Metavariable.mvalue -> Tok.t list) ->
-  unit
 
 (*****************************************************************************)
 (* Utilities functions used in tests or semgrep-pro *)
@@ -51,7 +40,6 @@ val targets_of_config :
 (**
   Compute the set of targets, either by reading what was passed
   in -target, or by using Find_target.files_of_dirs_or_files.
-  The rule ids argument is useful only when you don't use -target.
  *)
 
 (* This is also used by semgrep-proprietary. It filters the rules that
@@ -74,18 +62,15 @@ val select_applicable_rules_for_target :
 val select_applicable_rules_for_analyzer :
   analyzer:Xlang.t -> Rule.t list -> Rule.t list
 
-(* This function prints the number of additional targets, which is consumed by
-   pysemgrep to update the progress bar. See `core_runner.py`
-*)
-val print_cli_additional_targets : Core_scan_config.t -> int -> unit
-
 (* This function prints a dot, which is consumed by pysemgrep to update
    the progress bar. See `core_runner.py`
 *)
 val print_cli_progress : Core_scan_config.t -> unit
 
-(* used internally but also called by osemgrep *)
-val errors_of_invalid_rules : Rule_error.invalid_rule list -> Core_error.t list
+(* This function prints the number of additional targets, which is consumed by
+   pysemgrep to update the progress bar. See `core_runner.py`
+*)
+val print_cli_additional_targets : Core_scan_config.t -> int -> unit
 val replace_named_pipe_by_regular_file : < Cap.tmp > -> Fpath.t -> Fpath.t
 (* Small wrapper around File.replace_named_pipe_by_regular_file_if_needed.
    Any file coming from the command line should go through this so as to
