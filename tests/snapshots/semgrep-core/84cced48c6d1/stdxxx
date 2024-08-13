@@ -19,8 +19,11 @@ Initialized empty Git repository in <TMP>/<MASKED>/.git/
 │ Semgrep CLI │
 └─────────────┘
 
+[<MASKED TIMESTAMP>][INFO]: Checking for API token in environment variables
+[<MASKED TIMESTAMP>][INFO]: Environment variable SEMGREP_APP_TOKEN is set but not well-formed, ignoring it
 [<MASKED TIMESTAMP>][INFO]: Loading settings from nosettings.yaml
 [<MASKED TIMESTAMP>][INFO]: Settings file 'nosettings.yaml' does not exist or is not a regular file
+[<MASKED TIMESTAMP>][INFO]: No settings file found, using default settings
 [<MASKED TIMESTAMP>][INFO]: Running external command: 'git' 'ls-remote' '--get-url'
 [<MASKED TIMESTAMP>][INFO]: error output: fatal: No remote configured to list refs from.
 
@@ -61,7 +64,10 @@ Rules:
   Scanning 3 files.
 [<MASKED TIMESTAMP>][INFO]: core_scan: processing 1 files, skipping 0 files
 [<MASKED TIMESTAMP>][INFO]: reporting matches if any
+[<MASKED TIMESTAMP>][INFO]: Checking for API token in environment variables
+[<MASKED TIMESTAMP>][INFO]: Environment variable SEMGREP_APP_TOKEN is set but not well-formed, ignoring it
 [<MASKED TIMESTAMP>][INFO]: Loading settings from nosettings.yaml
+[<MASKED TIMESTAMP>][INFO]: Settings file found, using settings from file
 
 
 ┌────────────────┐

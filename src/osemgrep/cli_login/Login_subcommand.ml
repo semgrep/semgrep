@@ -139,39 +139,38 @@ let run_conf (caps : caps) (conf : Login_CLI.conf) : Exit_code.t =
   Logs.debug (fun m -> m "conf = %s" (Login_CLI.show_conf conf));
   (* stricter: the login/logout metrics are actually not tracked in pysemgrep *)
   Metrics_.configure Metrics_.On;
-  let settings = Semgrep_settings.load () in
-  match settings.Semgrep_settings.api_token with
-  | None -> (
-      match !Semgrep_envvars.v.app_token with
-      | Some token when String.length (Auth.string_of_token token) > 0 ->
-          let caps = Auth.cap_token_and_network token caps in
-          save_token ~display_name:None caps
-      | None when String.length conf.one_time_seed > 0 ->
-          let shared_secret = Uuidm.v5 Uuidm.nil conf.one_time_seed in
-          Logs.debug (fun m ->
-              m "using seed %s with uuid %s" conf.one_time_seed
-                (Uuidm.to_string shared_secret));
-          fetch_token caps shared_secret
-      | None
-      | Some _ -> (
-          let session_id = start_interactive_flow () in
-          match session_id with
-          | None -> Exit_code.fatal ~__LOC__
-          | Some session_id -> (
-              Unix.sleepf 0.1;
-              (* wait 100ms for the browser to open and then start showing the spinner *)
-              match
-                Semgrep_login.fetch_token
-                  ~wait_hook:Console_Spinner.show_spinner caps session_id
-              with
-              | Error msg ->
-                  Logs.err (fun m -> m "%s" msg);
-                  Exit_code.fatal ~__LOC__
-              | Ok (token, display_name) ->
-                  Console_Spinner.erase_spinner ();
-                  let caps = Auth.cap_token_and_network token caps in
-                  save_token caps ~display_name:(Some display_name))))
-  | Some _ ->
+  (* don't include env here since it matters where the token is from *)
+  let settings = Semgrep_settings.load ~include_env:false () in
+  (* Settings.load checks if token is well formed *)
+  (* Weird logic for logging in that's from login.py. *)
+  match (settings.Semgrep_settings.api_token, !Semgrep_envvars.v.app_token) with
+  | None, None when String.length conf.one_time_seed > 0 ->
+      let shared_secret = Uuidm.v5 Uuidm.nil conf.one_time_seed in
+      Logs.debug (fun m ->
+          m "using seed %s with uuid %s" conf.one_time_seed
+            (Uuidm.to_string shared_secret));
+      fetch_token caps shared_secret
+  (* If the token exists in env, and well formed, exit ok *)
+  | None, Some token when Auth.well_formed token ->
+      Logs.debug (fun m ->
+          m
+            "File token is unset, env token is set and well formed, saving and \
+             exiting ok");
+      let caps = Auth.cap_token_and_network token caps in
+      save_token ~display_name:None caps
+  (* If the token exists in both locations, but aren't the same, tell user *)
+  | Some file_token, Some env_token when not Auth.(equal file_token env_token)
+    ->
+      Logs.err (fun m ->
+          m
+            "API token set in both settings file, and environment variable, \
+             but the tokens differ. To login with a different token logout use \
+             `semgrep logout`");
+      Exit_code.fatal ~__LOC__
+  (* If the token exists in both locations, and are the same, exit ok *)
+  | Some _, Some _
+  (* If the token exists in the settings file, nowhere else, exit error *)
+  | Some _, None ->
       (* TODO: why not Logs.err instead? *)
       Logs.app (fun m ->
           m
@@ -179,6 +178,26 @@ let run_conf (caps : caps) (conf : Login_CLI.conf) : Exit_code.t =
              first, and then you can login with a new access token."
             (Console.error_tag ()));
       Exit_code.fatal ~__LOC__
+  (* Token doesn't exist, or it's in the env and not well formed *)
+  | None, None
+  | None, Some _ -> (
+      let session_id = start_interactive_flow () in
+      match session_id with
+      | None -> Exit_code.fatal ~__LOC__
+      | Some session_id -> (
+          Unix.sleepf 0.1;
+          (* wait 100ms for the browser to open and then start showing the spinner *)
+          match
+            Semgrep_login.fetch_token ~wait_hook:Console_Spinner.show_spinner
+              caps session_id
+          with
+          | Error msg ->
+              Logs.err (fun m -> m "%s" msg);
+              Exit_code.fatal ~__LOC__
+          | Ok (token, display_name) ->
+              Console_Spinner.erase_spinner ();
+              let caps = Auth.cap_token_and_network token caps in
+              save_token caps ~display_name:(Some display_name)))
 
 (*****************************************************************************)
 (* Entry point *)
