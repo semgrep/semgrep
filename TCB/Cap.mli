@@ -162,6 +162,7 @@ type no_caps = < >
 (* !!DO NOT USE!! *)
 val network_caps_UNSAFE : unit -> < network >
 val tmp_caps_UNSAFE : unit -> < tmp >
+val stdout_caps_UNSAFE : unit -> < stdout >
 
 (**************************************************************************)
 (* Entry point *)

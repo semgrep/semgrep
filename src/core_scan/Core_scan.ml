@@ -286,114 +286,6 @@ let print_cli_progress (config : Core_scan_config.t) : unit =
   | _ -> ()
 
 (*****************************************************************************)
-(* Printing matches *)
-(*****************************************************************************)
-
-let print_intermediate_vars ~spaces toks =
-  let spaces_string = String.init spaces (fun _ -> ' ') in
-  let print str = UConsole.print (spaces_string ^ str) in
-  let rec loop_print curr_file = function
-    | [] -> ()
-    | tok :: toks -> (
-        match Tok.loc_of_tok tok with
-        | Error _ ->
-            (* The toks are supposed to be real toks, so this should not happen, but
-             * it would be better to have a list of locs then. *)
-            ()
-        | Ok loc ->
-            let pos : Pos.t = loc.pos in
-            if pos.file <> curr_file then print pos.file;
-            print (spf "- %s @l.%d" loc.str pos.line);
-            loop_print pos.file toks)
-  in
-  loop_print "<NO FILE>" toks
-
-(* TODO: use Logs.app instead of those Out.put? *)
-let rec print_taint_call_trace ~format ~spaces = function
-  | Pattern_match.Toks toks -> Core_text_output.print_match ~format ~spaces toks
-  | Call { call_toks; intermediate_vars; call_trace } ->
-      let spaces_string = String.init spaces (fun _ -> ' ') in
-      UConsole.print (spaces_string ^ "call to");
-      Core_text_output.print_match ~format ~spaces call_toks;
-      if intermediate_vars <> [] then (
-        UConsole.print
-          (spf "%sthese intermediate values are tainted:" spaces_string);
-        print_intermediate_vars ~spaces:(spaces + 2) intermediate_vars);
-      UConsole.print (spaces_string ^ "then");
-      print_taint_call_trace ~format ~spaces:(spaces + 2) call_trace
-
-let print_taint_trace ~format taint_trace =
-  if format =*= Core_text_output.Normal then
-    taint_trace |> Lazy.force
-    |> List.iteri (fun idx { PM.source_trace; tokens; sink_trace } ->
-           if idx =*= 0 then
-             UConsole.print "  * Taint may come from this source:"
-           else UConsole.print "  * Taint may also come from this source:";
-           print_taint_call_trace ~format ~spaces:4 source_trace;
-           if tokens <> [] then (
-             UConsole.print "  * These intermediate values are tainted:";
-             print_intermediate_vars ~spaces:4 tokens);
-           UConsole.print "  * This is how taint reaches the sink:";
-           print_taint_call_trace ~format ~spaces:4 sink_trace)
-
-let print_match ?str (config : Core_scan_config.t) match_ ii_of_any =
-  (* there are a few fake tokens in the generic ASTs now (e.g.,
-   * for DotAccess generated outside the grammar) *)
-  let {
-    Pattern_match.env;
-    tokens = (lazy tokens_matched_code);
-    taint_trace;
-    dependency;
-    _;
-  } =
-    match_
-  in
-  let str =
-    match str with
-    | None -> Common.spf "with rule %s" (Rule_ID.to_string match_.rule_id.id)
-    | Some str -> str
-  in
-  let toks = tokens_matched_code |> List.filter Tok.is_origintok in
-  let dep_toks_and_version =
-    (* Only print the extra data if it was a reachable finding *)
-    (* TODO: special printing for lockfile-only findings *)
-    match dependency with
-    | Some (CodeAndLockfileMatch (dmatched, _)) ->
-        Some
-          ( dmatched.toks |> List.filter Tok.is_origintok,
-            dmatched.package_version_string )
-    | _ -> None
-  in
-  (if config.mvars =*= [] then
-     Core_text_output.print_match ~str ~format:config.match_format toks
-   else
-     (* similar to the code of Lib_matcher.print_match, maybe could
-      * factorize code a bit.
-      *)
-     let mini, _maxi = Tok_range.min_max_toks_by_pos toks in
-     let file, line = (Tok.file_of_tok mini, Tok.line_of_tok mini) in
-
-     let strings_metavars =
-       config.mvars
-       |> List_.map (fun x ->
-              match Common2.assoc_opt x env with
-              | Some any ->
-                  any |> ii_of_any
-                  |> List.filter Tok.is_origintok
-                  |> List_.map Tok.content_of_tok
-                  |> Core_text_output.join_with_space_if_needed
-              | None -> failwith (spf "the metavariable '%s' was not bound" x))
-     in
-     UConsole.print
-       (spf "%s:%d: %s" file line (String.concat ":" strings_metavars));
-     ());
-  dep_toks_and_version
-  |> Option.iter (fun (toks, version) ->
-         UConsole.print ("with dependency match at version " ^ version);
-         Core_text_output.print_match ~format:config.match_format toks);
-  Option.iter (print_taint_trace ~format:config.match_format) taint_trace
-
-(*****************************************************************************)
 (* Parallelism *)
 (*****************************************************************************)
 
@@ -539,18 +431,6 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
   in
   (new_matches, new_errors, List_.flatten new_skipped)
 [@@profiling "Run_semgrep.filter_too_many_matches"]
-
-(*****************************************************************************)
-(* Error management *)
-(*****************************************************************************)
-
-(* Convert invalid rules to errors to be reported at the end.
-   This used to raise an exception causing an early abort.
-   TODO: restore early abort but only in strict mode?
-   TODO: report an error or not depending on the kind of problem?
-*)
-let errors_of_invalid_rules (invalid_rules : Rule_error.invalid_rule list) =
-  invalid_rules |> List_.map E.error_of_invalid_rule
 
 (*****************************************************************************)
 (* Parsing (non-cached) *)
@@ -772,7 +652,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
   (matches, scanned)
 
 (*****************************************************************************)
-(* File targeting and rule filtering *)
+(* File targeting *)
 (*****************************************************************************)
 
 let manifest_target_of_input_to_core
@@ -863,7 +743,7 @@ let targets_of_config (caps : < Cap.tmp >) (config : Core_scan_config.t) :
           |> filter_existing_targets)
 
 (*****************************************************************************)
-(* a "core" scan *)
+(* Rule selection *)
 (*****************************************************************************)
 
 (* This is used by semgrep-proprietary. *)
@@ -948,6 +828,10 @@ let select_applicable_supply_chain_rules ~lockfile_kind ~respect_rule_paths
            select_applicable_rules_for_origin r.paths origin)
   else rules
 
+(*****************************************************************************)
+(* a "core" scan *)
+(*****************************************************************************)
+
 (* build the callback for iter_targets_and_get_matches_and_exn_to_errors *)
 let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
     (prefilter_cache_opt : Match_env.prefilter_config) match_hook :
@@ -1004,7 +888,15 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
       in
       let default_match_hook match_ =
         if config.output_format =*= Text then
-          print_match config match_ Metavariable.ii_of_mval
+          (* alt: we could pass the stdout caps to Core_scan, but that would
+           * require to change lots of callers, and ideally we don't want
+           * Core_scan to display things on stdout; this is used here only
+           * as a deprecated way to get matchings output, so let's use
+           * the UNSAFE helper.
+           *)
+          let caps = Cap.stdout_caps_UNSAFE () in
+          Core_text_output.print_match caps config.match_format match_
+            config.mvars Metavariable.ii_of_mval
       in
       let match_hook = Option.value match_hook ~default:default_match_hook in
       let xconf =
@@ -1056,7 +948,9 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
 
 let scan_exn ?match_hook (caps : < Cap.tmp >) (config : Core_scan_config.t)
     ((valid_rules, invalid_rules), rules_parse_time) : Core_result.t =
-  let rule_errors = errors_of_invalid_rules invalid_rules in
+  let (rule_errors : E.t list) =
+    invalid_rules |> List_.map E.error_of_invalid_rule
+  in
 
   (* The basic targets *)
   let basic_targets, skipped = targets_of_config caps config in
