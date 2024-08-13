@@ -11,11 +11,16 @@
       id: 'setup-docker-tag',
       run: |||
         echo "Github event is ${{ github.event_name }}"
+        if [ "${{ github.repository }}" = "semgrep/semgrep-proprietary" ]; then
+          PRO_PREFIX="pro-"
+        else
+          PRO_PREFIX=""
+        fi
         if [ "${{ github.event_name }}" = "pull_request" ]; then
-          echo "docker-tag=pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+          echo "docker-tag=${PRO_PREFIX}pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
           echo "Setting docker tag to current pull request number"
         else
-          echo "docker-tag=develop" >> "$GITHUB_OUTPUT"
+          echo "docker-tag=${PRO_PREFIX}develop" >> "$GITHUB_OUTPUT"
           echo "Setting dry-run to develop"
         fi
       |||,
