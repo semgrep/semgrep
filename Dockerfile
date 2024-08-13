@@ -1,6 +1,9 @@
 ###############################################################################
 # Overview
 ###############################################################################
+# Dockerfile to build the semgrep/semgrep:canary docker image
+# (see .github/workflows/{build-test-docker,push-docker}.jsonnet).
+#
 # First, we build a fully *static* 'semgrep-core' binary on Alpine. This
 # binary does not even depend on Glibc because Alpine uses Musl instead
 # which can be statically linked.
@@ -16,7 +19,7 @@
 # See https://docs.docker.com/build/building/multi-stage/
 # We use static linking because we can and removing external library
 # dependencies is usually simpler (especially since the docker container
-# where we build semgrep-core is not the same container where we use it).
+# where we build semgrep-core is not the same container where we run it).
 #
 # In case of problems, if you need to debug the docker image, run 'docker build .',
 # identify the SHA of the build image and run 'docker run -it <sha> /bin/bash'
@@ -50,62 +53,60 @@ COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 # Step1: build semgrep-core
 ###############################################################################
 
-# The Docker image below (after the 'FROM') is prepackaged with 'ocamlc',
-# 'opam', and lots of packages that are used by semgrep-core and installed in
-# the 'make install-deps' command further below.
-# See https://github.com/returntocorp/ocaml-layer/blob/master/configs/alpine.sh
-# for this list of packages.
-# Thanks to this container, 'make install-deps' finishes very quickly because it's
-# mostly a noop. Alternative base container candidates are:
+# We're now using a simple alpine:3.19 image in the FROM below.
+# TL;DR this used to be too slow but our use of https://depot.dev to accelerate
+# our docker build made this a viable and simpler option.
 #
-#  - 'ocaml/opam:alpine', the official OCaml/opam Docker image,
-#    but building our Docker image would take longer because
-#    of all the necessary Semgrep dependencies installed in 'make install-deps'.
+# The possible base container candidates are:
 #
+#  - 'alpine', the official Alpine Docker image. This requires some
+#    extra 'apk' commands to install opam, and extra commands to setup OCaml
+#    with this opam from scratch. Moreover, 'opam' itself requires lots of extra
+#    tools like gcc, make, which are not provided by default on Alpine.
+#
+#    In theory, this can make a docker build really slow, like 30min, especially
+#    in Github Actions (GHA).
 #    We build a new Semgrep Docker image on each pull-request (PR) so we don't
 #    want to wait 30min each time just for 'docker build' to finish.
+#    Fortunately, our use of https://depot.dev allows us to cache intermediate
+#    steps which usually make the whole docker build to finish in a few minutes.
+#
+#  - 'ocaml/opam:alpine', the official OCaml/opam Docker image,
+#    but building our Docker image would still take time without depot.dev because
+#    of all the necessary Semgrep dependencies installed in 'make install-deps'.
 #
 #    Note also that ocaml/opam:alpine default user is 'opam', not 'root', which
 #    is not without problems when used inside Github actions (GHA) or even inside
 #    this Dockerfile.
 #
-#    update: we recently started to cache the ~/.opam/ directory in CI so
-#    in theory we could get rid of ocaml-layer and instead use the official
-#    opam docker image combined with this ~/.opam/ caching to speedup things.
+#    update: we recently started to cache the ~/.opam/ directory in most of our
+#    CI workflows and started to use the official actions/setup-ocaml@v2 which
+#    works pretty well and allowed us to get rid of ocaml-layer.
 #
-#  - 'alpine', the official Alpine Docker image, but this would require some
-#    extra 'apk' commands to install opam, and extra commands to setup OCaml
-#    with this opam from scratch, and more importantly this would take
-#    far more time to finish. Moreover, it is not trivial to work from such
-#    a base container as 'opam' itself requires lots of extra
-#    tools like gcc, make, which are not provided by default on Alpine.
+#  - 'returntocorp/ocaml:alpine-xxx', which comes from
+#    https://github.com/returntocorp/ocaml-layer/blob/master/configs/alpine.sh
 #
-# An alternative to ocaml-layer would be to use https://depot.dev/
-# update: we actually started to use depot.dev to speedup multi-arch (arm)
-# docker image, so maybe we could use it to get rid of ocaml-layer
+#    We used this base container for a very long time (before switching to
+#    basic alpine). This Docker image is prepackaged with 'ocamlc','opam', and
+#    lots of packages that are used by semgrep-core and installed in the
+#    'make install-deps' command. Thanks to this container, 'make install-deps'
+#    was finishing very quickly because it was mostly a noop.
 #
-# Note that the Docker base image below currently uses OCaml 4.14.0
-# coupling: if you modify the OCaml version there, you probably also need
-# to modify:
-# - scripts/{osx-setup-for-release,setup-m1-builder}.sh
-# - doc/SEMGREP_CORE_CONTRIBUTING.md
-# - https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb
-#
-# coupling: if you modify the FROM below, you probably need to modify also
-# a few .github/workflows/ files. grep for returntocorp/ocaml there.
-
-# This base image should be updated regularly to maximize the caching
-# of opam packages. We don't use a rolling ':latest' tag to ensure
-# reproducible builds and fix problems more easily.
-#
-# Visit https://hub.docker.com/r/returntocorp/ocaml/tags to see the latest
-# images available.
+#    However, it was another repository to modify each time we wanted to
+#    add a package or we wanted to switch to a different OCaml version.
+#    Being able to control everything from a single Dockerfile is simpler.
 
 FROM alpine:3.19 as semgrep-core-container
 
-# Install opam and basic build tools (independent of semgrep)
-#TODO? move those apk commands in Makefile? so we can factorize later in GHA?
+# Install opam and basic build tools
 RUN apk add --no-cache bash build-base git make opam
+
+# coupling: if you modify the OCaml version there, you probably also need
+# to modify:
+# - .github/workflows/libs/semgrep.libsonnet
+# - scripts/{osx-setup-for-release,setup-m1-builder}.sh
+# - doc/SEMGREP_CORE_CONTRIBUTING.md
+# - https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb
 RUN opam init --disable-sandboxing -v &&\
     opam switch create 4.14.0 -v
 
@@ -143,7 +144,7 @@ RUN make install-deps-for-semgrep-core &&\
 #coupling: the 'semgrep-oss' name is used in 'make build-docker'
 FROM python:3.11-alpine AS semgrep-oss
 
-WORKDIR /semgrep
+WORKDIR /pysemgrep
 
 # Update to the latest packages for the base image. This allows to get CVE
 # fixes ASAP, without waiting for new builds of the base image.
@@ -197,7 +198,7 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=true \
 
 # For some reason, using pip version 24 (the one that comes with they
 # python:3.11-alpine docker image as of June 21, 2024) will cause
-#     pip install /semgrep
+#     pip install /pysemgrep
 # below to fail because it couldn't find the wheel module, but the
 # wheel module actually exists.
 #
@@ -205,6 +206,8 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=true \
 # the issue, to allow us to build semgrep docker images successfully
 # for now. If anyone understand exactly why pip version 24 fails the
 # docker build, we'd be happy to fix it at the root cause.
+# TODO: thos seems to work in the pro Dockerfile so we can probably
+# remove it now
 RUN pip install --force-reinstall -v "pip==23.3.2"
 
 # Let's now simply use 'pip' to install semgrep.
@@ -215,16 +218,22 @@ RUN pip install --force-reinstall -v "pip==23.3.2"
 #  - build-base: ??
 # hadolint ignore=DL3013
 RUN apk add --no-cache --virtual=.build-deps build-base make &&\
-     pip install /semgrep &&\
+     pip install /pysemgrep &&\
      apk del .build-deps
-
-# Let the user know how their container was built
-COPY Dockerfile /Dockerfile
 
 # Get semgrep-core from step1
 COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe /usr/local/bin/semgrep-core
 
 RUN ln -s semgrep-core /usr/local/bin/osemgrep
+
+# We don't need the python source anymore; 'pip install ...' above
+# installed them under /usr/local/lib/python3.xx/site-packages/semgrep/
+RUN rm -rf /pysemgrep
+
+
+
+# Let the user know how their container was built
+COPY Dockerfile /Dockerfile
 
 # There are a few places in the CLI where we do different things
 # depending on whether we are run from a Docker container.
@@ -236,10 +245,6 @@ ENV SEMGREP_IN_DOCKER=1 \
 #   docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep --config=auto
 # (see https://semgrep.dev/docs/getting-started/ ), hence this WORKDIR directive
 WORKDIR /src
-
-# We don't need the python source anymore; 'pip install /semgrep' above
-# installed them under /usr/local/lib/python3.xx/site-packages/semgrep/
-RUN rm -rf /semgrep
 
 # It is better to avoid running semgrep as root
 # See https://stackoverflow.com/questions/49193283/why-it-is-unsafe-to-run-applications-as-root-in-docker-container
