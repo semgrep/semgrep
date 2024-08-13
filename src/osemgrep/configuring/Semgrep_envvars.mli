@@ -60,8 +60,13 @@ val v : t ref
 (* useful to work in cunjonction with with_envvars in testing context *)
 val of_current_sys_env : unit -> t
 
-(* [with_envvar envvar value f] temporarily modifies [v] above
+val with_envvars : t -> (unit -> 'a) -> 'a
+(** [with_envvars env f] temporarily modifies [v] above with a new [env]
+ * and run [f] in this new context. This is useful in tests.
+ *)
+
+val with_envvar : string -> string -> (unit -> 'a) -> 'a
+(** [with_envvar envvar value f] temporarily modifies [v] above
  * with a new envvar and run [f] in this new context. This is useful
  * in tests.
  *)
-val with_envvar : string -> string -> (unit -> 'a) -> 'a

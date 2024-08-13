@@ -55,6 +55,8 @@ def foo(a, b):
     return a + b == a + b
 |}
 
+let dummy_app_token = "FAKETESTINGAUTHTOKEN"
+
 (* coupling: subset of cli/tests/conftest.py ALWAYS_MASK *)
 let normalize =
   [
@@ -67,14 +69,46 @@ let normalize =
 let without_settings f =
   Semgrep_envvars.with_envvar "SEMGREP_SETTINGS_FILE" "nosettings.yaml" f
 
+let with_env_app_token ?(token = dummy_app_token) f =
+  Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" token f
+
 (*****************************************************************************)
 (* Tests *)
 (*****************************************************************************)
 
-let test_nosettings () =
+let test_nosettings_no_env () =
   without_settings (fun () ->
       printf "cwd: %s\n%!" (Unix.getcwd ());
-      assert (Semgrep_settings.load_opt () = None))
+      let settings_opt = Semgrep_settings.from_file () in
+      Alcotest.(check bool) "no settings from file" true (settings_opt = None);
+      let settings = Semgrep_settings.load () in
+      Alcotest.(check bool)
+        "default settings loaded" true
+        (settings = Semgrep_settings.default))
+
+let test_nosettings_with_env () =
+  without_settings (fun () ->
+      with_env_app_token (fun () ->
+          printf "cwd: %s\n%!" (Unix.getcwd ());
+          let settings_opt = Semgrep_settings.from_file () in
+          Alcotest.(check bool)
+            "no settings from file" true (settings_opt = None);
+          let settings = Semgrep_settings.load () in
+          let default_with_app_token =
+            {
+              Semgrep_settings.default with
+              api_token = Some (Auth.unsafe_token_of_string dummy_app_token);
+            }
+          in
+          Alcotest.(check bool)
+            "default settings loaded with app token" true
+            (settings = default_with_app_token);
+          let settings_with_no_include_env =
+            Semgrep_settings.load ~include_env:false ()
+          in
+          Alcotest.(check bool)
+            "default settings loaded with app token and no env" true
+            (settings_with_no_include_env = Semgrep_settings.default)))
 
 let test_basic_output (caps : Scan_subcommand.caps) : Testo.t =
   t ~checked_output:(Testo.stdxxx ()) ~normalize __FUNCTION__ (fun () ->
@@ -125,7 +159,8 @@ let test_basic_verbose_output (caps : Scan_subcommand.caps) : Testo.t =
 let tests (caps : < Scan_subcommand.caps >) =
   Testo.categorize "Osemgrep Scan (e2e)"
     [
-      t "no semgrep settings file" test_nosettings;
+      t "no semgrep settings file" test_nosettings_no_env;
+      t "no semgrep settings file with env" test_nosettings_with_env;
       test_basic_output caps;
       test_basic_verbose_output caps;
     ]

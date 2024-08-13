@@ -95,7 +95,7 @@ let test_scan_config_registry_with_invalid_token caps : Testo.t =
              (* we got the exn as intended, good *)
              Alcotest.(check string)
                __LOC__
-               {|Failed to download config from https://semgrep.dev/c/r/python.lang.correctness.useless-eqeq.useless-eqeq, returned code 401: {"error":"Invalid Authorization"}|}
+               {|Failed to download config from https://semgrep.dev/c/r/python.lang.correctness.useless-eqeq.useless-eqeq, returned code 401: {"error":"Not authorized"}|}
                msg;
              ()))
 

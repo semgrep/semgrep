@@ -99,8 +99,9 @@ let test_login_with_env_token caps : Testo.t =
           [
             "Saved access token";
             "You're already logged in";
-            "Logged out!";
+            "Logged out";
             "You are not logged in";
+            "API token set in both settings file";
           ];
       ]
     __FUNCTION__
