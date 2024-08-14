@@ -29,6 +29,7 @@ val first_pos_of_file : string (* filename *) -> t
 
 (* for error reporting *)
 val string_of_pos : t -> string
+val to_linecol : t -> linecol
 
 (*****************************************************************************)
 (* Adjust line x col in a position *)
