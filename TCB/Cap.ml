@@ -305,6 +305,13 @@ let stdout_caps_UNSAFE () =
     method stdout = ()
   end
 
+(* !!DO NOT USE!! *)
+let exec_and_tmp_caps_UNSAFE () =
+  object
+    method exec = ()
+    method tmp = ()
+  end
+
 (**************************************************************************)
 (* Entry point *)
 (**************************************************************************)
