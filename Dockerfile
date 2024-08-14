@@ -224,11 +224,9 @@ RUN apk add --no-cache --virtual=.build-deps build-base make &&\
 # Get semgrep-core from step1
 COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe /usr/local/bin/semgrep-core
 
-RUN ln -s semgrep-core /usr/local/bin/osemgrep
-
 # We don't need the python source anymore; 'pip install ...' above
 # installed them under /usr/local/lib/python3.xx/site-packages/semgrep/
-RUN rm -rf /pysemgrep
+RUN ln -s semgrep-core /usr/local/bin/osemgrep && rm -rf /pysemgrep
 
 
 
