@@ -84,6 +84,7 @@ let first_pos_of_file file = make ~line:1 ~column:0 ~file 0
 
 (* for error reporting *)
 let string_of_pos { file; line; column; _ } = spf "%s:%d:%d" file line column
+let to_linecol { line; column; _ } = { l = line; c = column }
 
 (*****************************************************************************)
 (* Adjust line x col in a position *)
