@@ -1,0 +1,1 @@
+Semgrep now recognizes files ending with the extention `.tfvars` as terraform files
