@@ -16,11 +16,11 @@ module J = JSON
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* This module contains the main command line parsing logic.
+(* This module contains the main command-line parsing logic of semgrep-core.
  *
  * It is packaged as a library so it can be used both for the stand-alone
  * semgrep-core binary as well as the semgrep-core-proprietary one.
- * The code here used to be in Main.ml.
+ * history: the code here used to be in Main.ml.
  *)
 
 (*****************************************************************************)
@@ -137,7 +137,7 @@ let version = spf "semgrep-core version: %s" Version.version
  * and the tuning below raise significantly the major cycle trigger.
  * This is why we call set_gc() only when max_memory_mb is unset.
  *)
-let set_gc () =
+let _set_gc_TODO () =
   Logs.debug (fun m -> m "Gc tuning");
   (*
   if !Flag.debug_gc
@@ -689,7 +689,7 @@ let register_exception_printers () =
 (* Main entry point *)
 (*****************************************************************************)
 
-let main_no_exn_handler (caps : Cap.all_caps) (sys_argv : string array) : unit =
+let main_exn (caps : Cap.all_caps) (sys_argv : string array) : unit =
   profile_start := Unix.gettimeofday ();
 
   (* SIGXFSZ (file size limit exceeded)
@@ -812,14 +812,9 @@ let with_exception_trace f =
       Printf.eprintf "Exception: %s\n%!" (Exception.to_string e);
       raise (UnixExit 1)
 
-(* This used to be defined as 'let () = Common.main_boilerplate ...'
- * but now Core_CLI.ml is a library that can be called from
- * Semgrep-pro, hence the introduction of a function.
- *)
 let main (caps : Cap.all_caps) (argv : string array) : unit =
   UCommon.main_boilerplate (fun () ->
       register_exception_printers ();
       Common.finalize
-        (fun () ->
-          with_exception_trace (fun () -> main_no_exn_handler caps argv))
+        (fun () -> with_exception_trace (fun () -> main_exn caps argv))
         (fun () -> !Hooks.exit |> List.iter (fun f -> f ())))

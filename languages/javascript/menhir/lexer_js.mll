@@ -2,7 +2,7 @@
 (* Yoann Padioleau
  *
  * Copyright (C) 2010, 2013, 2014 Facebook
- * Copyright (C) 2019 r2c
+ * Copyright (C) 2019 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,6 +18,7 @@ open Common
 
 open Parser_js
 module Flag = Flag_parsing
+module Log = Log_parser_javascript.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -192,7 +193,7 @@ let rec current_mode () =
   match !_mode_stack with
   | top :: _ -> top
   | [] ->
-      UCommon.pr2("mode_stack is empty, defaulting to INITIAL");
+      Log.warn (fun m -> m "mode_stack is empty, defaulting to INITIAL");
       reset();
       current_mode ()
 
