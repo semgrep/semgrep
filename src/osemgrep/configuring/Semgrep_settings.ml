@@ -153,7 +153,7 @@ let from_file ?(maturity = Maturity.Default) () =
           m "Failed to load settings from %s: %s" !!settings msg);
       None
 
-(* Try loading from the file, and  *)
+(* Try loading from the file, and/or environment  *)
 (* coupling: cli/src/semgrep/settings.py get_default_contents *)
 (* You may ask WTF is this behavior. In pysemgrep we: *)
 (* 1. Generate default settings, but set the api token from the envrionment if *)
