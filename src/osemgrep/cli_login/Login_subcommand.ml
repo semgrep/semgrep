@@ -139,36 +139,53 @@ let run_conf (caps : caps) (conf : Login_CLI.conf) : Exit_code.t =
   Logs.debug (fun m -> m "conf = %s" (Login_CLI.show_conf conf));
   (* stricter: the login/logout metrics are actually not tracked in pysemgrep *)
   Metrics_.configure Metrics_.On;
-  (* don't include env here since it matters where the token is from *)
+  (* don't include env here since we care if the token comes from the env or a
+     file, and Semgrep_setting.load will check for either if include_env is
+     true (the default)*)
+  (* Also, Settings.load checks if token is well formed *)
   let settings = Semgrep_settings.load ~include_env:false () in
-  (* Settings.load checks if token is well formed *)
+  (* Ensure that the env token is also well formed *)
+  let app_token_opt =
+    Option.bind !Semgrep_envvars.v.app_token (fun token ->
+        if Auth.well_formed token then Some token else None)
+  in
   (* Weird logic for logging in that's from login.py. *)
-  match (settings.Semgrep_settings.api_token, !Semgrep_envvars.v.app_token) with
+  match (settings.Semgrep_settings.api_token, app_token_opt) with
   | None, None when String.length conf.one_time_seed > 0 ->
       let shared_secret = Uuidm.v5 Uuidm.nil conf.one_time_seed in
       Logs.debug (fun m ->
           m "using seed %s with uuid %s" conf.one_time_seed
             (Uuidm.to_string shared_secret));
       fetch_token caps shared_secret
-  (* If the token exists in env, and well formed, exit ok *)
-  | None, Some token when Auth.well_formed token ->
+  (* If the token only exists in env, and well formed, exit ok *)
+  | None, Some token ->
       Logs.debug (fun m ->
           m
-            "File token is unset, env token is set and well formed, saving and \
-             exiting ok");
+            "Token in settings file is unset, environment variable \
+             (SEMGREP_API_TOKEN) is set and well formed, saving the env token \
+             to the settings file and exiting ok");
       let caps = Auth.cap_token_and_network token caps in
       save_token ~display_name:None caps
-  (* If the token exists in both locations, but aren't the same, tell user *)
-  | Some file_token, Some env_token when not Auth.(equal file_token env_token)
-    ->
-      Logs.err (fun m ->
-          m
-            "API token set in both settings file, and environment variable, \
-             but the tokens differ. To login with a different token logout use \
-             `semgrep logout`");
-      Exit_code.fatal ~__LOC__
-  (* If the token exists in both locations, and are the same, exit ok *)
-  | Some _, Some _
+  | Some file_token, Some env_token ->
+      (* If the token exists in both locations, but aren't the same, tell user
+         and exit error *)
+      if not Auth.(equal file_token env_token) then (
+        Logs.err (fun m ->
+            m
+              "API token set in both settings file, and environment variable \
+               (SEMGREP_API_TOKEN), but the tokens differ. To login with a \
+               different token logout use `semgrep logout`");
+        Exit_code.fatal ~__LOC__
+        (* If the token exists in both locations, but are the same, save the token and exit ok *)
+        (* It's weird we save anyways, since they're equivalent but that's what pysemgrep does *))
+      else (
+        Logs.debug (fun m ->
+            m
+              "Token is set in settings file, and environment variable \
+               (SEMGREP_API_TOKEN) is set and well formed, using env var token \
+               and exiting ok");
+        let caps = Auth.cap_token_and_network env_token caps in
+        save_token ~display_name:None caps)
   (* If the token exists in the settings file, nowhere else, exit error *)
   | Some _, None ->
       (* TODO: why not Logs.err instead? *)
@@ -179,8 +196,12 @@ let run_conf (caps : caps) (conf : Login_CLI.conf) : Exit_code.t =
             (Console.error_tag ()));
       Exit_code.fatal ~__LOC__
   (* Token doesn't exist, or it's in the env and not well formed *)
-  | None, None
-  | None, Some _ -> (
+  | None, None -> (
+      Logs.debug (fun m ->
+          m
+            "Token is not set in settings file, and environment variable \
+             (SEMGREP_API_TOKEN) is not set or not well formed, starting \
+             interactive login flow");
       let session_id = start_interactive_flow () in
       match session_id with
       | None -> Exit_code.fatal ~__LOC__
