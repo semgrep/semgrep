@@ -482,8 +482,13 @@ let parse_equivalences equivalences_file =
 (*****************************************************************************)
 
 let handle_target_with_trace handle_target t =
-  let target_name = Target.internal_path t |> Fpath.to_string in
-  let data () = [ ("filename", `String target_name) ] in
+  let target_name = Target.internal_path t in
+  let data () =
+    [
+      ("filename", `String !!target_name);
+      ("num_bytes", `Int (UFile.filesize target_name));
+    ]
+  in
   Tracing.with_span ~__FILE__ ~__LINE__ ~data "Core_scan.handle_target"
     (fun _sp -> handle_target t)
 

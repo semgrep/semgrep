@@ -395,6 +395,7 @@ All traces are sent in Opentelemetry format and may include:
 - Start time (e.g. `1718775054055113`)
 - Duration (e.g. `934956`)
 - Path (e.g. `test/example/test_code.py`)
+- Size of a file in bytes (e.g. `12927`)
 - Rule name (e.g. `tainted-sql-from-http-request`)
 - Is a taint rule (e.g. `true`)
 
