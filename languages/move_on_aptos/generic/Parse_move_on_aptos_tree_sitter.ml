@@ -8,6 +8,10 @@ module H2 = AST_generic_helpers
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+
+(* Disable warnings against unused variables *)
+[@@@warning "-26-27-32"]
+
 type mode = Pattern | Target
 type env = mode H.env
 
@@ -32,9 +36,6 @@ let in_pattern env =
    Boilerplate to be used as a template when mapping the move_on_aptos CST
    to another type of tree.
 *)
-
-(* Disable warnings against unused variables *)
-[@@@warning "-26-27-32"]
 
 (* Disable warning against unused 'rec' *)
 [@@@warning "-39"]
@@ -612,36 +613,6 @@ and map_ref_type (env : env) (x : CST.ref_type) : G.type_ =
       let v2 = map_type_ env v2 in
       { t = G.TyRef (v1, v2); t_attrs = [ G.KeywordAttr (G.Mutable, v1) ] }
 
-and map_type_to_param (env : env) (ty : G.type_) : G.parameter =
-  match ty.t with
-  (* If this type is a singular identifier that is a metavariable,
-   * then the user probably meant to write a metavariable parameter.
-   * So let's translate it to one.
-   *)
-  | G.TyN (Id (((s, _) as id), _))
-    when AST_generic.is_metavar_name s && in_pattern env ->
-      let param =
-        {
-          G.pname = Some id;
-          G.ptype = None;
-          G.pdefault = None;
-          G.pattrs = [];
-          G.pinfo = G.empty_id_info ();
-        }
-      in
-      G.Param param
-  | _ ->
-      let param =
-        {
-          G.pname = None;
-          G.ptype = Some ty;
-          G.pdefault = None;
-          G.pattrs = [];
-          G.pinfo = G.empty_id_info ();
-        }
-      in
-      G.Param param
-
 and map_type_ (env : env) (x : CST.type_) : G.type_ =
   match x with
   | `Choice_name_access_chain_opt_type_args (v1, v2) -> (
@@ -658,15 +629,15 @@ and map_type_ (env : env) (x : CST.type_) : G.type_ =
       let params =
         v2
         |> Option.map (fun x -> map_type_list env x)
-        |> Option.value ~default:[]
-        |> List.map (map_type_to_param env)
+        |> Option.value ~default:[] |> List.map param_of_type
+        |> List.map (fun x -> G.Param x)
       in
       let v3 = v3 |> Option.map (fun x -> (* "," *) token env x) in
       let v4 = (* "|" *) token env v4 in
       let ret_type =
         v5
         |> Option.map (map_type__ env)
-        |> Option.value ~default:(G.ty_builtin (fake_id "()"))
+        |> Option.value ~default:(G.TyTuple (sc, [], sc) |> G.t)
       in
 
       G.TyFun (params, ret_type) |> G.t
@@ -955,14 +926,7 @@ let map_parameter (env : env) (x : CST.parameter) : G.parameter =
       let ident = (* identifier *) str env v1 in
       let v2 = (* ":" *) token env v2 in
       let param_type = map_type__ env v3 in
-      G.Param
-        {
-          G.pname = Some ident;
-          G.ptype = Some param_type;
-          G.pdefault = None;
-          G.pattrs = [];
-          G.pinfo = G.empty_id_info ();
-        }
+      G.Param (G.param_of_id ~ptype:(Some param_type) ident)
   | `Ellips tok -> (* "..." *) G.ParamEllipsis (token env tok)
 
 let map_field_annot (env : env) (x : CST.field_annot) : G.field =
@@ -1173,18 +1137,18 @@ let map_specifier (env : env) (x : CST.specifier) : G.attribute list =
                    G.Arg (G.L (G.Bool (false, tok)) |> G.e)
                | None -> G.Arg (G.L (G.Bool (true, sc)) |> G.e)
              in
-             let specifier =
+             let tk, specifier =
                match v2 with
-               | `Acquis tok -> (* "acquires" *) str env tok
-               | `Reads tok -> (* "reads" *) str env tok
-               | `Writes tok -> (* "writes" *) str env tok
+               | `Acquis tok -> (token env tok, (* "acquires" *) str env tok)
+               | `Reads tok -> (token env tok, (* "reads" *) str env tok)
+               | `Writes tok -> (token env tok, (* "writes" *) str env tok)
              in
              let objects =
                map_access_specifier_list env v3
-               |> List.map (fun x -> G.Arg (G.N x |> G.e))
+               |> List.map (fun x -> G.ArgType (G.TyN x |> G.t))
                |> fun args -> (sc, negate :: args, sc)
              in
-             G.NamedAttr (G.fake "", H2.name_of_id specifier, objects))
+             G.NamedAttr (tk, H2.name_of_id specifier, objects))
 
 let map_spec_func_signatures (env : env)
     ((v1, v2, v3, v4, v5) : CST.spec_func_signatures) =
