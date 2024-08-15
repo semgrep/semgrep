@@ -453,7 +453,7 @@ let rules_from_rule_source (caps : < Cap.tmp >) (config : Core_scan_config.t) :
   let rules, rule_errors =
     match rule_source with
     | Some (Core_scan_config.Rule_file file) -> (
-        Logs.info (fun m -> m "Parsing %s" !!file);
+        Logs.info (fun m -> m "Parsing rules in %s" !!file);
         match
           Parse_rule.parse_and_filter_invalid_rules ~rewrite_rule_ids:None file
         with
@@ -952,7 +952,8 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
       (matches, was_scanned)
 
 let scan_exn ?match_hook (caps : < Cap.tmp >) (config : Core_scan_config.t)
-    ((valid_rules, invalid_rules), rules_parse_time) : Core_result.t =
+    (rules : Rule_error.rules_and_invalid * float) : Core_result.t =
+  let (valid_rules, invalid_rules), rules_parse_time = rules in
   let (rule_errors : E.t list) =
     invalid_rules |> List_.map E.error_of_invalid_rule
   in
@@ -989,8 +990,11 @@ let scan_exn ?match_hook (caps : < Cap.tmp >) (config : Core_scan_config.t)
 
   (* Let's go! *)
   Logs.info (fun m ->
-      m "core_scan: processing %d files, skipping %d files" num_targets
-        num_skipped_targets);
+      m
+        "core_scan: processing %d files (skipping %d), with %d rules (skipping \
+         %d )"
+        num_targets num_skipped_targets (List.length valid_rules)
+        (List.length invalid_rules));
   let file_results, scanned_targets =
     all_targets
     |> iter_targets_and_get_matches_and_exn_to_errors config

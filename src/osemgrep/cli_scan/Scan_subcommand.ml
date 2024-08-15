@@ -695,16 +695,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   (* the corresponding stop is done in check_targets_with_rules () *)
   Profiler.start profiler ~name:"total_time";
 
-  (* This needs to be placed here, near the entry point of the CLI, so that
-     it applies for both `--pro` and regular `osemgrep` scanning.
-     If we put it in just `Core_scan`, we miss out on `Deep_scan`.
-  *)
-  let is_debug =
-    match conf.common.logging_level with
-    | Some Logs.Debug -> true
-    | _ -> false
-  in
-  Core_profiling.profiling := is_debug || conf.core_runner_conf.time_flag;
+  Core_profiling.profiling := conf.core_runner_conf.time_flag;
 
   (* Metrics initialization (and finalization) is done in CLI.ml,
    * but here we "configure" it (enable or disable it) based on CLI flags.

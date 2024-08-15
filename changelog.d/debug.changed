@@ -1,0 +1,2 @@
+The use of --debug will not generate anymore profiling information.
+Use --time instead.

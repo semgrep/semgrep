@@ -18,16 +18,18 @@
 (*****************************************************************************)
 (* Profiling information on rule matching and target parsing.
  *
- * Many of the types below are created to collect profiling information in as
- * well-typed a manner as possible. Creating a type for practically every
- * stage that reports matches is annoying, but prevents us from relying on
- * dummy values or unlabeled tuples.
- *
  * Note that the extra information can take a lot of memory, which scales
  * with both the number of rules and files. On large repos, this used to
  * be (and may still be) the most significant factor driving semgrep's
  * memory consumption. Therefore, if the parsing times (for example) are
  * not being used, we don't want to save them.
+ *
+ * For example, on the semgrep-pro repo itself, running semgrep with
+ * 4000 rules on 22000 files can lead to a JSON core_output of
+ * 650 MB! compared to 5 MB without the profiling info.
+ * This puts lots of stress in semgrep-core when generating this
+ * huge JSON and also in pysemgrep when reading it (and later
+ * when sending some of it to our metrics backend).
  *
  * Like for Core_error.ml and Core_result.ml, this "core" profiling
  * is eventually converted in semgrep_output_v1.core_timing,
@@ -42,14 +44,21 @@
 (* Global *)
 (*****************************************************************************)
 
-(* Set by -json_time (or -debug) to save profiling info. Currently our
- * metrics record this.
+(* Set by -json_time in semgrep-core or --time in pysemgrep/osemgrep to save
+ * profiling info. Those profiling info found their way then in our metrics.
  *)
 let profiling = ref false
+let profiling_opt prof = if !profiling then Some prof else None
 
 (*****************************************************************************)
-(* Different formats for profiling info as we have access to more data *)
+(* Types *)
 (*****************************************************************************)
+
+(* Many of the types below are created to collect profiling information in as
+ * well-typed a manner as possible. Creating a type for practically every
+ * stage that reports matches is annoying, but prevents us from relying on
+ * dummy values or unlabeled tuples.
+ *)
 
 (* general type *)
 type times = { parse_time : float; match_time : float }
@@ -98,6 +107,10 @@ type t = {
 }
 [@@deriving show]
 
+(*****************************************************************************)
+(* Merge helpers *)
+(*****************************************************************************)
+
 (* used in pro engine e.g. when merging secret mode results *)
 let merge a b : t =
   {
@@ -122,5 +135,3 @@ let empty_partial_profiling file : partial_profiling =
 
 let empty_rule_profiling (rule : Rule.t) : rule_profiling =
   { rule_id = fst rule.Rule.id; rule_parse_time = 0.0; rule_match_time = 0.0 }
-
-let profiling_opt prof = if !profiling then Some prof else None
