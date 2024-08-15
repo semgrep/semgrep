@@ -1,0 +1,18 @@
+rules:
+  - id: for-comprehension-metavar
+    languages:
+      - julia
+    severity: ERROR
+    message: "Bindings need to match"
+    patterns:
+      - patterns:
+          - pattern: "[$A for $B in $C]"
+          - metavariable-pattern:
+              metavariable: $A
+              pattern: c^2
+          - metavariable-pattern:
+              metavariable: $B
+              pattern: c
+          - metavariable-pattern:
+              metavariable: $C
+              pattern: b
