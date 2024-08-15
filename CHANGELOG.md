@@ -6,6 +6,39 @@
 
 <!-- insertion point -->
 
+## [1.85.0](https://github.com/returntocorp/semgrep/releases/tag/v1.85.0) - 2024-08-15
+
+
+### Added
+
+
+- Semgrep now recognizes files ending with the extention `.tfvars` as terraform files (saf-1481)
+
+
+### Changed
+
+
+- The use of --debug will not generate anymore profiling information.
+  Use --time instead. (debug)
+- Updated link to the Supply Chain findings page on Semgrep AppSec Platform to filter to the specific repository and ref the findings are detected on. (secw-2395)
+
+
+### Fixed
+
+
+- Fixed an error with julia list comprehentions where the pattern:
+  ```
+  [$A for $B in $C]
+  ```
+  would match
+  ```julia
+  [x for y in z]
+  ```
+  However we would only get one binding [$A/x]
+
+  Behavior after fix: we get three bindings [$A/x,$B/y,$C/z] (saf-1480)
+
+
 ## [1.84.1](https://github.com/returntocorp/semgrep/releases/tag/v1.84.1) - 2024-08-07
 
 
