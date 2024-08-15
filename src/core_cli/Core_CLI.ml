@@ -737,7 +737,7 @@ let main_exn (caps : Cap.all_caps) (sys_argv : string array) : unit =
 
   let config = mk_config () in
 
-  Core_profiling.profiling := config.debug || config.report_time;
+  Core_profiling.profiling := config.report_time;
 
   Log_semgrep.setup ?log_to_file:config.log_to_file
     ?require_one_of_these_tags:None ~force_color:true
