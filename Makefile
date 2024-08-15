@@ -125,11 +125,8 @@ minimal-build:
 	chmod +w bin/semgrep-core$(EXE)
 	strip bin/semgrep-core$(EXE)
 
-# It is better to run this from a fresh repo or after a 'make clean',
-# to not send too much data to the Docker daemon.
-# For a fresh repo you will need at least to run first 'git submodule update --init'.
-# The 'semgrep-oss' is the name of the step in the Dockerfile, the 'semgrep'
-# the name of the docker image produced (will be semgrep:latest)
+#coupling: The 'semgrep-oss' is the name of the step in the Dockerfile, the
+# 'semgrep' the name of the docker image produced (will be semgrep:latest)
 .PHONY: build-docker
 build-docker:
 	docker build -t semgrep --target semgrep-oss .
@@ -155,17 +152,12 @@ build-parse-cairo:
 # and was not created by 'make setup'.
 .PHONY: clean
 clean:
-	-$(MAKE) core-clean
-	-$(MAKE) -C cli clean
-
-#history: was the 'clean' target in semgrep-core/Makefile before
-.PHONY: core-clean
-core-clean:
 	dune clean
 # We still need to keep the nonempty opam files in git for
 # 'make setup', so we should only remove the empty opam files.
 # This removes the gitignored opam files.
 	git clean -fX *.opam
+	-$(MAKE) -C cli clean
 
 ###############################################################################
 # Install targets
@@ -225,7 +217,6 @@ core-test:
 build-core-test:
 	dune build $(BUILD_DEFAULT)/src/tests/test.exe
 
-
 #coupling: this is run by .github/workflow/tests.yml
 .PHONY: core-test-e2e
 core-test-e2e:
@@ -244,25 +235,6 @@ test-js: build-js
 .PHONY: test-js-no-dune
 test-js-no-dune:
 	$(MAKE) -C js test -j `nproc`
-
-# Test the compatibility with the main branch of semgrep-proprietary
-# in a separate work tree.
-.PHONY: pro
-pro:
-	test -L semgrep-proprietary || ln -s ../semgrep-proprietary .
-	@if ! test -e semgrep-proprietary; then \
-	  echo "** Please fix the symlink 'semgrep-proprietary'."; \
-	  echo "** Make it point to your semgrep-proprietary repo."; \
-	  exit 1; \
-	fi
-	set -eu && \
-	worktree_parent=$$(pwd)/.. && \
-	commit=$$(git rev-parse --short HEAD) && \
-	cd semgrep-proprietary && \
-	./scripts/check-compatibility \
-	  --worktree "$$worktree_parent"/semgrep-pro-compat \
-	  --semgrep-commit "$$commit" \
-	  --pro-commit origin/develop
 
 ###############################################################################
 # External dependencies installation targets
@@ -502,7 +474,6 @@ nix-check-flake:
 nix-update:
 	nix flake update
 
-
 # -------------------------------------------------
 # Windows (native, via mingw and cygwin)
 # -------------------------------------------------
@@ -638,7 +609,6 @@ report-perf-matching:
 # the same findings, but they are useful anyway to test all the different
 # places where you can plug semgrep (Makefile, pre-commit, circleCI, GHA, GHA+App).
 
-
 #coupling: see also .circleci/config.yml and its 'semgrep' job
 SEMGREP_ARGS=--experimental --config semgrep.jsonnet --error --strict --exclude tests
 # you can add --verbose for debugging
@@ -685,7 +655,6 @@ push:
 	git push origin `git rev-parse --abbrev-ref HEAD`
 merge:
 	A=`git rev-parse --abbrev-ref HEAD` && git checkout develop && git pull && git branch -D $$A
-
 
 # see https://github.com/aryx/codegraph for information on codegraph_build
 index:

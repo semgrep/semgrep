@@ -107,8 +107,8 @@ RUN apk add --no-cache bash build-base git make opam
 # - scripts/{osx-setup-for-release,setup-m1-builder}.sh
 # - doc/SEMGREP_CORE_CONTRIBUTING.md
 # - https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb
-RUN opam init --disable-sandboxing -v &&\
-    opam switch create 4.14.0 -v
+#TODO: switch to 5.2.0 at some point
+RUN opam init --disable-sandboxing -v && opam switch create 4.14.0 -v
 
 # Install semgrep-core build dependencies
 WORKDIR /src/semgrep
@@ -141,6 +141,7 @@ RUN make install-deps-for-semgrep-core &&\
 ###############################################################################
 # We change container, bringing the 'semgrep-core' binary with us.
 
+#TODO: switch to 3.12 at some point
 #coupling: the 'semgrep-oss' name is used in 'make build-docker'
 FROM python:3.11-alpine AS semgrep-oss
 
@@ -370,11 +371,7 @@ RUN scripts/build-wheels.sh && scripts/validate-wheel.sh cli/dist/*musllinux*.wh
 # use in running performance benchmarks from a test build container, e.g., on PRs
 #coupling: the 'performance-tests' name is used in tests.jsonnet
 FROM semgrep-cli AS performance-tests
-
 COPY perf /semgrep/perf
-
 RUN apk add --no-cache make
-
 WORKDIR /semgrep/perf
-
 ENTRYPOINT ["make"]
