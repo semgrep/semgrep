@@ -1,0 +1,11 @@
+Fixed an error with julia list comprehentions where the pattern:
+```
+[$A for $B in $C]
+```
+would match
+```julia
+[x for y in z]
+```
+However we would only get one binding [$A/x]
+
+Behavior after fix: we get three bindings [$A/x,$B/y,$C/z]

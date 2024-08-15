@@ -1056,7 +1056,7 @@ and map_closed_macrocall_expression (env : env)
 
 and map_comprehension_clause (env : env)
     ((v1, v2, v3, v4) : CST.comprehension_clause) =
-  let _v1 = map_for_clause env v1 in
+  let v1 = map_for_clause env v1 in
   let _v2 = map_newline_opt env v2 in
   let v3 =
     match v3 with
@@ -1074,7 +1074,7 @@ and map_comprehension_clause (env : env)
     | None -> []
   in
   let _v4 = map_newline_opt env v4 in
-  List_.flatten v3
+  List_.flatten (v1 :: v3)
 
 and map_comprehension_expression (env : env)
     ((v1, v2, v3, v4, v5) : CST.comprehension_expression) =
