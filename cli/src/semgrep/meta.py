@@ -1191,6 +1191,10 @@ class SemgrepManagedScanMeta(GitMeta):
 
     environment: str = field(default="semgrep-managed-scan", init=False)
 
+    @property
+    def event_name(self) -> str:
+        return os.getenv("SEMGREP_MANAGED_SCAN_EVENT_NAME", super().event_name)
+
 
 def generate_meta_from_environment(
     baseline_ref: Optional[str], subdir: Optional[Path]
