@@ -62,7 +62,6 @@ class ScanHandler:
         )
         self.scan_response: Optional[out.ScanResponse] = None
         self.dry_run = dry_run
-        self._dry_run_rules_url: str = ""
         self._scan_params: str = ""
         self.ci_scan_results: Optional[out.CiScanResults] = None
 
