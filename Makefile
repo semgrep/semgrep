@@ -224,18 +224,6 @@ core-test-e2e:
 	$(MAKE) -C interfaces/semgrep_interfaces test
 	python3 tests/semgrep-core-e2e/test_target_file.py
 
-# Run all the tests for JavaScript Semgrep
-.PHONY: test-js
-test-js: build-js
-	$(MAKE) test-js-no-dune
-
-# The CI job is currently split into two jobs. This runs in the second
-# job that doesn't have access to dune, so we can't make target this depend
-# on the 'build-js' target.
-.PHONY: test-js-no-dune
-test-js-no-dune:
-	$(MAKE) -C js test -j `nproc`
-
 ###############################################################################
 # External dependencies installation targets
 ###############################################################################

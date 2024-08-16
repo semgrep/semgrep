@@ -8,13 +8,6 @@ module H2 = AST_generic_helpers
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
-(* Disable warnings against unused variables *)
-[@@@warning "-26-27-32"]
-
-(* Disable warning against unused 'rec' *)
-[@@@warning "-39"]
-
 type mode = Pattern | Target
 type env = mode H.env
 
@@ -39,6 +32,12 @@ let in_pattern env =
    Boilerplate to be used as a template when mapping the move_on_aptos CST
    to another type of tree.
 *)
+
+(* Disable warnings against unused variables *)
+[@@@warning "-26-27-32"]
+
+(* Disable warning against unused 'rec' *)
+[@@@warning "-39"]
 
 let remove_char str ch = String.split_on_char ch str |> String.concat ""
 
@@ -65,7 +64,6 @@ let map_reuseable_keywords (env : env) (x : CST.reuseable_keywords) : G.ident =
   | `For tok -> (* "for" *) str env tok
   | `While tok -> (* "while" *) str env tok
   | `Friend tok -> (* "friend" *) str env tok
-  | `Match tok -> (* "match" *) str env tok
 
 let map_ability (env : env) (x : CST.ability) : G.type_ =
   match x with
@@ -143,25 +141,15 @@ let map_module_member_modifier (env : env) (x : CST.module_member_modifier) :
     G.attribute =
   match x with
   | `Visi (v1, v2) -> (
-      let pub = (* "public" *) token env v1 in
+      let public_ = (* "public" *) G.attr G.Public (token env v1) in
       match v2 with
-      | Some (v1, scope, v2) -> (
-          let lb = (* "(" *) token env v1 in
-          let rb = (* ")" *) token env v2 in
-          let combine = Tok.combine_toks pub in
+      | Some scope -> (
+          let _, scope, _ = scope in
           match scope with
-          | `Script tok ->
-              (* "script" *)
-              G.attr G.Static (combine [ lb; token env tok; rb ])
+          | `Script tok -> (* "script" *) G.attr G.Static (token env tok)
           (* abuse `protected` for `friend` *)
-          | `Friend tok ->
-              (* "friend" *)
-              G.attr G.Protected (combine [ lb; token env tok; rb ])
-          (* abuse `extern` for `package` *)
-          | `Pack tok ->
-              (* "package" *)
-              G.attr G.Extern (combine [ lb; token env tok; rb ]))
-      | None -> (* "public" *) G.attr G.Public pub)
+          | `Friend tok -> (* "friend" *) G.attr G.Protected (token env tok))
+      | None -> public_)
   | `Native tok -> (* "native" *) G.attr G.Extern (token env tok)
   | `Entry tok -> (* "entry" *) G.OtherAttribute (str env tok, [])
 
@@ -185,8 +173,7 @@ let map_constraints (env : env) ((v1, v2, v3) : CST.constraints) : G.type_ list
   in
   v2 :: v3
 
-let map_abilities (env : env) ((v0, v1, v2) : CST.abilities) : G.type_ list =
-  let v0 = (* "has" *) token env v0 in
+let map_abilities (env : env) ((v1, v2) : CST.abilities) : G.type_ list =
   let v1 = map_ability env v1 in
   let v2 =
     v2
@@ -415,7 +402,7 @@ let map_name_access_chain_wildcard (env : env)
       match x with
       | `Choice_id x -> H2.name_of_id (map_ident_or_wildcard env x)
       | `Disc_name x -> H2.name_of_id (map_discouraged_name env x))
-  | `Choice_lead_name_access_wild_COLONCOLON_choice_id_opt_COLONCOLON_choice_id_opt_COLONCOLON_choice_id
+  | `Choice_lead_name_access_wild_COLONCOLON_choice_id_opt_COLONCOLON_choice_id
       (v1, v2, v3, v4) -> (
       let first =
         match v1 with
@@ -426,17 +413,10 @@ let map_name_access_chain_wildcard (env : env)
       let second = map_ident_or_wildcard env v3 in
 
       match v4 with
-      | Some (v1, v2, v3) ->
+      | Some (v1, v2) ->
           let v1 = (* "::" *) token env v1 in
           let third = map_ident_or_wildcard env v2 in
-          let forth_opt =
-            v3
-            |> Option.map (fun (v1, v2) ->
-                   let v1 = (* "::" *) token env v1 in
-                   map_ident_or_wildcard env v2)
-            |> Option.to_list
-          in
-          H2.name_of_ids ([ first; second; third ] @ forth_opt)
+          H2.name_of_ids [ first; second; third ]
       | None -> H2.name_of_ids [ first; second ])
 
 let map_module_ident (env : env) ((v1, v2, v3) : CST.module_ident) =
@@ -454,25 +434,25 @@ let map_number (num : G.ident) : G.literal =
   | _ -> G.Int num_val
 (* G.Int num_val *)
 
-let map_value (env : env) (x : CST.value) : G.expr_kind =
+let map_value (env : env) (x : CST.value) : G.literal =
   match x with
   | `AT_lead_name_access (v1, v2) ->
       let v1 = (* "@" *) token env v1 in
       let v2 = map_leading_name_access env v2 in
-      G.OtherExpr (("address literal", v1), [ G.Tk v1; G.I v2 ])
-  | `Bool_lit x -> G.L (map_bool_literal env x)
-  | `Num x -> G.L (map_number (map_numerical_addr env x))
+      G.String (v1, v2, G.fake "")
+  | `Bool_lit x -> map_bool_literal env x
+  | `Num x -> map_number (map_numerical_addr env x)
   | `Typed_num (v1, v2) ->
       (* let num, _ = map_numerical_addr env v1 in *)
       let _, num_type = map_number_type env v2 in
-      G.L (map_number (map_numerical_addr env v1))
-  | `Byte_str x -> G.L (G.String (map_byte_string env x))
+      map_number (map_numerical_addr env v1)
+  | `Byte_str x -> G.String (map_byte_string env x)
 
 let map_name_access_chain (env : env) (x : CST.name_access_chain) : G.name =
   match x with
   | `Choice_id x -> H2.name_of_id (map_var_name env x)
-  | `Choice_lead_name_access_COLONCOLON_id_opt_COLONCOLON_id_opt_COLONCOLON_id
-      (v1, v2, v3, v4) -> (
+  | `Choice_lead_name_access_COLONCOLON_id_opt_COLONCOLON_id (v1, v2, v3, v4)
+    -> (
       let top =
         match v1 with
         | `Lead_name_access x -> map_leading_name_access env x
@@ -482,17 +462,10 @@ let map_name_access_chain (env : env) (x : CST.name_access_chain) : G.name =
       let access_one = (* identifier *) str env v3 in
 
       match v4 with
-      | Some (v1, v2, v3) ->
+      | Some (v1, v2) ->
           let v1 = (* "::" *) token env v1 in
           let access_two = (* identifier *) str env v2 in
-          let access_three_opt =
-            v3
-            |> Option.map (fun (v1, v2) ->
-                   let v1 = (* "::" *) token env v1 in
-                   (* identifier *) str env v2)
-            |> Option.to_list
-          in
-          H2.name_of_ids ([ top; access_one; access_two ] @ access_three_opt)
+          H2.name_of_ids [ top; access_one; access_two ]
       | None -> H2.name_of_ids [ top; access_one ])
 
 let map_anon_spec_apply_pat_rep_COMMA_spec_apply_pat_d9a21d6 (env : env)
@@ -613,6 +586,36 @@ and map_ref_type (env : env) (x : CST.ref_type) : G.type_ =
       let v2 = map_type_ env v2 in
       { t = G.TyRef (v1, v2); t_attrs = [ G.KeywordAttr (G.Mutable, v1) ] }
 
+and map_type_to_param (env : env) (ty : G.type_) : G.parameter =
+  match ty.t with
+  (* If this type is a singular identifier that is a metavariable,
+   * then the user probably meant to write a metavariable parameter.
+   * So let's translate it to one.
+   *)
+  | G.TyN (Id (((s, _) as id), _))
+    when AST_generic.is_metavar_name s && in_pattern env ->
+      let param =
+        {
+          G.pname = Some id;
+          G.ptype = None;
+          G.pdefault = None;
+          G.pattrs = [];
+          G.pinfo = G.empty_id_info ();
+        }
+      in
+      G.Param param
+  | _ ->
+      let param =
+        {
+          G.pname = None;
+          G.ptype = Some ty;
+          G.pdefault = None;
+          G.pattrs = [];
+          G.pinfo = G.empty_id_info ();
+        }
+      in
+      G.Param param
+
 and map_type_ (env : env) (x : CST.type_) : G.type_ =
   match x with
   | `Choice_name_access_chain_opt_type_args (v1, v2) -> (
@@ -629,15 +632,15 @@ and map_type_ (env : env) (x : CST.type_) : G.type_ =
       let params =
         v2
         |> Option.map (fun x -> map_type_list env x)
-        |> Option.value ~default:[] |> List.map param_of_type
-        |> List.map (fun x -> G.Param x)
+        |> Option.value ~default:[]
+        |> List.map (map_type_to_param env)
       in
       let v3 = v3 |> Option.map (fun x -> (* "," *) token env x) in
       let v4 = (* "|" *) token env v4 in
       let ret_type =
         v5
         |> Option.map (map_type__ env)
-        |> Option.value ~default:(G.TyTuple (sc, [], sc) |> G.t)
+        |> Option.value ~default:(G.ty_builtin (fake_id "()"))
       in
 
       G.TyFun (params, ret_type) |> G.t
@@ -671,7 +674,7 @@ and map_type_args (env : env) ((v1, v2, v3, v4) : CST.type_args) :
 
 let map_attribute_pair (env : env) (x : CST.anon_choice_value_f266929) =
   match x with
-  | `Value x -> map_value env x
+  | `Value x -> G.L (map_value env x)
   | `Name_access_chain x -> G.N (map_name_access_chain env x)
 
 let map_attribute_val (env : env) (x : CST.attribute_val) =
@@ -686,46 +689,19 @@ let rec map_bind (env : env) (x : CST.bind) : G.pattern =
       match name with
       | "_", tok -> G.PatWildcard tok
       | _ -> G.PatId (name, G.empty_id_info ()))
-  | `Name_access_chain_opt_type_args_opt_choice_bind_fields (v1, v2, v3) -> (
+  | `Name_access_chain_opt_type_args_bind_fields (v1, v2, v3) ->
       let struct_name = map_name_access_chain env v1 in
       let type_args = v2 |> Option.map (fun x -> map_type_args env x) in
+      let lbrace, fields, rbrace = map_bind_fields env v3 in
       let struct_type =
-        G.PatType
-          ((match type_args with
-           | Some x -> G.TyApply (G.TyN struct_name |> G.t, x)
-           | None -> G.TyN struct_name)
-          |> G.t)
+        match type_args with
+        | Some x -> G.TyApply (G.TyN struct_name |> G.t, x)
+        | None -> G.TyN struct_name
       in
-      match v3 with
-      | Some v3 -> (
-          match v3 with
-          | `Bind_fields x ->
-              let lbrace, fields, rbrace = map_bind_fields env x in
-              (* abused for record binding in move, so that struct is matchable *)
-              G.PatDisj (struct_type, G.PatRecord (lbrace, fields, rbrace))
-          | `Bind_tuple x -> G.PatConstructor (struct_name, map_bind_tuple env x)
-          )
-      | None -> struct_type)
+      (* abused for record binding in move, so that struct is matchable *)
+      G.PatDisj
+        (G.PatType (struct_type |> G.t), G.PatRecord (lbrace, fields, rbrace))
   | `Ellips tok -> G.PatEllipsis (token env tok)
-
-and map_bind_tuple (env : env) ((v1, v2, v3, v4) : CST.bind_tuple) =
-  let v1 = (* "(" *) token env v1 in
-  let items =
-    v2
-    |> Option.map (fun (v1, v2) ->
-           let first = map_bind env v1 in
-           let rest =
-             v2
-             |> List.map (fun (v1, v2) ->
-                    let v1 = (* "," *) token env v1 in
-                    map_bind env v2)
-           in
-           first :: rest)
-    |> Option.value ~default:[]
-  in
-  let v3 = v3 |> Option.map (fun x -> (* "," *) token env x) in
-  let v4 = (* ")" *) token env v4 in
-  items
 
 and map_bind_field (env : env) (x : CST.bind_field) : G.dotted_ident * G.pattern
     =
@@ -926,7 +902,14 @@ let map_parameter (env : env) (x : CST.parameter) : G.parameter =
       let ident = (* identifier *) str env v1 in
       let v2 = (* ":" *) token env v2 in
       let param_type = map_type__ env v3 in
-      G.Param (G.param_of_id ~ptype:(Some param_type) ident)
+      G.Param
+        {
+          G.pname = Some ident;
+          G.ptype = Some param_type;
+          G.pdefault = None;
+          G.pattrs = [];
+          G.pinfo = G.empty_id_info ();
+        }
   | `Ellips tok -> (* "..." *) G.ParamEllipsis (token env tok)
 
 let map_field_annot (env : env) (x : CST.field_annot) : G.field =
@@ -1039,7 +1022,12 @@ let map_struct_signature (env : env) attrs ((v1, v2, v3) : CST.struct_signature)
   let struct_ = (* "struct" *) token env v1 in
   let name, type_params = map_struct_def_name env v2 in
   let abilities =
-    v3 |> Option.map (map_abilities env) |> Option.value ~default:[]
+    v3
+    |> Option.map (fun (v1, v2) ->
+           let v1 = (* "has" *) token env v1 in
+           let v2 = map_abilities env v2 in
+           v2)
+    |> Option.value ~default:[]
   in
   let struct_ent = G.basic_entity ~tparams:type_params ~attrs name in
   (struct_, abilities, struct_ent)
@@ -1051,11 +1039,11 @@ let map_struct_body (env : env) ((v1, v2, v3, v4) : CST.struct_body) =
     |> Option.map (fun (v1, v2) ->
            let first = map_field_annot env v1 in
            let rest =
-             List.map
-               (fun (v1, v2) ->
-                 let v1 = (* "," *) token env v1 in
-                 map_field_annot env v2)
-               v2
+             v2
+             |> List.map (fun (v1, v2) ->
+                    let v1 = (* "," *) token env v1 in
+                    let v2 = map_field_annot env v2 in
+                    v2)
            in
            first :: rest)
     |> Option.value ~default:[]
@@ -1063,26 +1051,6 @@ let map_struct_body (env : env) ((v1, v2, v3, v4) : CST.struct_body) =
   let _comma = v3 |> Option.map (fun x -> (* "," *) token env x) in
   let rb = (* "}" *) token env v4 in
   (lb, fields, rb)
-
-let map_anon_fields (env : env) ((v1, v2, v3, v4) : CST.anon_fields) =
-  let lp = (* "(" *) token env v1 in
-  let items =
-    v2
-    |> Option.map (fun (v1, v2) ->
-           let first = map_type__ env v1 in
-           let rest =
-             List.map
-               (fun (v1, v2) ->
-                 let v1 = (* "," *) token env v1 in
-                 map_type__ env v2)
-               v2
-           in
-           first :: rest)
-    |> Option.value ~default:[]
-  in
-  let v3 = v3 |> Option.map (fun x -> (* "," *) token env x) in
-  let rp = (* ")" *) token env v4 in
-  (lp, items, rp)
 
 let map_condition_props (env : env) ((v1, v2, v3, v4) : CST.condition_props) =
   let v1 = (* "[" *) token env v1 in
@@ -1145,10 +1113,10 @@ let map_specifier (env : env) (x : CST.specifier) : G.attribute list =
              in
              let objects =
                map_access_specifier_list env v3
-               |> List.map (fun x -> G.ArgType (G.TyN x |> G.t))
+               |> List.map (fun x -> G.Arg (G.N x |> G.e))
                |> fun args -> (sc, negate :: args, sc)
              in
-             G.NamedAttr (snd specifier, H2.name_of_id specifier, objects))
+             G.NamedAttr (G.fake "", H2.name_of_id specifier, objects))
 
 let map_spec_func_signatures (env : env)
     ((v1, v2, v3, v4, v5) : CST.spec_func_signatures) =
@@ -1175,171 +1143,24 @@ let map_spec_target_signature_opt (env : env)
   in
   (type_params, params, ret_type)
 
-let map_struct_decl (env : env) attrs (x : CST.struct_decl) : G.stmt =
-  match x with
-  | `Struct_sign_choice_struct_body (v1, v2) ->
-      let struct_, abilities, struct_ent = map_struct_signature env attrs v1 in
-      let body =
-        match v2 with
-        | `Struct_body x -> map_struct_body env x
-        | `SEMI tok -> (* ";" *) (sc, [], sc)
-      in
-      let struct_def =
-        {
-          ckind = (G.Class, struct_);
-          cextends = [];
-          cimplements = abilities;
-          cmixins = [];
-          cparams = fb [];
-          cbody = body;
-        }
-      in
-      G.DefStmt (struct_ent, G.ClassDef struct_def) |> G.s
-  | `Struct_struct_def_name_struct_body_opt_abilis_SEMI (v1, v2, v3, v4, v5) ->
-      let struct_ = (* "struct" *) token env v1 in
-      let name, tparams = map_struct_def_name env v2 in
-      let struct_ent = G.basic_entity name ~tparams in
-
-      let body = map_struct_body env v3 in
-      let abilities =
-        v4 |> Option.map (map_abilities env) |> Option.value ~default:[]
-      in
-      let v5 = (* ";" *) token env v5 in
-      let struct_def =
-        {
-          ckind = (G.Class, struct_);
-          cextends = [];
-          cimplements = abilities;
-          cmixins = [];
-          cparams = fb [];
-          cbody = body;
-        }
-      in
-      G.DefStmt (struct_ent, G.ClassDef struct_def) |> G.s
-  | `Struct_struct_def_name_anon_fields_opt_abilis_SEMI (v1, v2, v3, v4, v5) ->
-      let struct_ = (* "struct" *) token env v1 in
-      let name, tparams = map_struct_def_name env v2 in
-      let struct_ent = G.basic_entity name ~tparams in
-
-      let lp, body, rp = map_anon_fields env v3 in
-      let abilities =
-        v4 |> Option.map (map_abilities env) |> Option.value ~default:[]
-      in
-      let v5 = (* ";" *) token env v5 in
-
-      let body =
-        body
-        |> List.mapi (fun idx x ->
-               let var_def =
-                 { G.vinit = None; G.vtype = Some x; vtok = G.no_sc }
-               in
-               let name =
-                 G.EDynamic (G.L (G.Int (Parsed_int.of_int idx)) |> G.e)
-               in
-               let ent = { G.name; G.attrs = []; G.tparams = None } in
-               G.fld (ent, G.FieldDefColon var_def))
-      in
-      let struct_def =
-        {
-          ckind = (G.Class, struct_);
-          cextends = [];
-          cimplements = abilities;
-          cmixins = [];
-          cparams = fb [];
-          cbody = (lp, body, rp);
-        }
-      in
-      G.DefStmt (struct_ent, G.ClassDef struct_def) |> G.s
-
-let map_enum_variant_struct (env : env) ((v1, v2) : CST.enum_variant_struct) =
-  let variant = (* identifier *) str env v1 in
-  let lbrace, fields, rbrace = map_struct_body env v2 in
-  let record_type = G.TyRecordAnon ((G.Class, sc), (lbrace, fields, rbrace)) in
-  G.OrUnion (variant, record_type |> G.t)
-
-let map_enum_variant_posit (env : env) ((v1, v2) : CST.enum_variant_posit) =
-  let variant = (* identifier *) str env v1 in
-  let lp, fields, rp = map_anon_fields env v2 in
-  G.OrConstructor (variant, fields)
-
-let map_variant (env : env) (x : CST.variant) : G.or_type_element =
-  match x with
-  | `Choice_enum_vari_struct_opt_COMMA x -> (
-      match x with
-      | `Enum_vari_struct_opt_COMMA (v1, v2) ->
-          let v1 = map_enum_variant_struct env v1 in
-          let v2 = v2 |> Option.map ((* "," *) token env) in
-          v1
-      | `Enum_vari_COMMA (v1, v2) ->
-          let v1 = (* identifier *) str env v1 in
-          let v2 = (* "," *) token env v2 in
-          G.OrEnum (v1, None)
-      | `Enum_vari_posit_COMMA (v1, v2) ->
-          let v1 = map_enum_variant_posit env v1 in
-          let v2 = (* "," *) token env v2 in
-          v1)
-  | `Ellips tok -> (* "..." *) G.OrEllipsis (token env tok)
-
-let map_enum_body (env : env) ((v1, v2, v3, v4) : CST.enum_body) =
-  let lb = (* "{" *) token env v1 in
-  let variants = List.map (map_variant env) v2 in
-
-  (* last `identifier` type variant can omit its ','*)
-  let last_opt =
-    v3
-    |> Option.map (fun (v1, _) ->
-           match v1 with
-           | `Enum_vari tok ->
-               let variant = (* identifier *) str env tok in
-               G.OrEnum (variant, None)
-           | `Enum_vari_struct x -> map_enum_variant_struct env x
-           | `Enum_vari_posit x -> map_enum_variant_posit env x)
-    |> Option.to_list
+let map_struct_decl (env : env) attrs ((v1, v2) : CST.struct_decl) =
+  let struct_, abilities, struct_ent = map_struct_signature env attrs v1 in
+  let body =
+    match v2 with
+    | `Struct_body x -> map_struct_body env x
+    | `SEMI tok -> (* ";" *) (sc, [], sc)
   in
-  let rb = (* "}" *) token env v4 in
-  (lb, variants @ last_opt, rb)
-
-let map_enum_signature (env : env) attrs ((v1, v2, v3) : CST.enum_signature) =
-  let enum_ = (* "enum" *) token env v1 in
-  let name, tparams = map_struct_def_name env v2 in
-  let abilities =
-    v3 |> Option.map (map_abilities env) |> Option.value ~default:[]
+  let struct_def =
+    {
+      ckind = (G.Class, struct_);
+      cextends = [];
+      cimplements = abilities;
+      cmixins = [];
+      cparams = fb [];
+      cbody = body;
+    }
   in
-  let ent = G.basic_entity ~tparams ~attrs name in
-  (enum_, abilities, ent)
-
-let inject_enum_abilities (env : env) (abilities : G.type_ list)
-    (ent : G.entity) =
-  let ability_attr =
-    G.NamedAttr
-      ( sc,
-        G.Id (("has", sc), G.empty_id_info ()),
-        (sc, abilities |> List.map (fun x -> G.ArgType x), sc) )
-  in
-  { ent with G.attrs = ent.G.attrs @ [ ability_attr ] }
-
-let map_enum_decl (env : env) attrs (x : CST.enum_decl) =
-  match x with
-  | `Enum_sign_enum_body (v1, v2) ->
-      let _, abilities, ent = map_enum_signature env attrs v1 in
-      let lb, variants, rb = map_enum_body env v2 in
-
-      let ent = inject_enum_abilities env abilities ent in
-      let def = G.TypeDef { G.tbody = G.OrType variants } in
-      G.DefStmt (ent, def) |> G.s
-  | `Enum_struct_def_name_enum_body_opt_abilis_SEMI (v1, v2, v3, v4, v5) ->
-      let enum_ = (* "enum" *) token env v1 in
-      let name, tparams = map_struct_def_name env v2 in
-      let lb, variants, rb = map_enum_body env v3 in
-      let abilities =
-        v4 |> Option.map (map_abilities env) |> Option.value ~default:[]
-      in
-      let v5 = (* ";" *) token env v5 in
-
-      let ent = G.basic_entity ~tparams ~attrs name in
-      let ent = inject_enum_abilities env abilities ent in
-      let def = G.TypeDef { G.tbody = G.OrType variants } in
-      G.DefStmt (ent, def) |> G.s
+  G.DefStmt (struct_ent, G.ClassDef struct_def) |> G.s
 
 let map_spec_block_target (env : env) (x : CST.spec_block_target) : G.any =
   match x with
@@ -1376,8 +1197,6 @@ let rec transpile_let_bind (env : env) (left : G.pattern) (right : G.expr) :
   | G.PatId (var, _) -> [ G.basic_field var (Some right) None ]
   | G.PatEllipsis tok -> [ G.F (G.Ellipsis tok |> G.e |> G.exprstmt) ]
   | G.PatDisj (G.PatType inner_type, inner) ->
-      (* SomeStruct { ... } | right: expr
-         =>            ...  | (expr as SomeStruct) *)
       let typed_right = G.Cast (inner_type, sc, right) |> G.e in
       transpile_let_bind env inner typed_right
   | G.PatWildcard _ -> []
@@ -1404,29 +1223,9 @@ let rec transpile_let_bind (env : env) (left : G.pattern) (right : G.expr) :
       elements
       |> List.mapi (fun idx pat ->
              let idx = G.L (G.Int (Some (Int64.of_int idx), sc)) |> G.e in
-             (* (element, ..., _) | expr
-                =>        element | expr.idx *)
-             let element = G.DotAccess (right, sc, G.FDynamic idx) |> G.e in
+             let element = G.ArrayAccess (right, (sc, idx, sc)) |> G.e in
              transpile_let_bind env pat element)
       |> List_.flatten
-  | G.PatConstructor (name, elements) ->
-      elements
-      |> List.mapi (fun idx pat ->
-             let idx = G.L (G.Int (Some (Int64.of_int idx), sc)) |> G.e in
-             let right = G.Cast (G.TyN name |> G.t, sc, right) |> G.e in
-             (* Name(_, element, ..., _) | expr
-                =>               element | (expr as Name).idx *)
-             let element = G.DotAccess (right, sc, G.FDynamic idx) |> G.e in
-             transpile_let_bind env pat element)
-      |> List_.flatten
-  | G.PatWhen (pat, cond) ->
-      (* when(cond, pat) | expr
-         =>          pat | if(cond) expr *)
-      let if_stmt =
-        G.If (sc, G.Cond cond, right |> G.exprstmt, None)
-        |> G.s |> G.stmt_to_expr
-      in
-      transpile_let_bind env pat right
   | _ -> failwith "Unsupported pattern in let binding"
 
 let map_function_signature (env : env) attrs
@@ -1699,33 +1498,17 @@ and map_deep_ellipsis (env : env) ((v1, v2, v3) : CST.deep_ellipsis) =
   let v3 = (* "...>" *) token env v3 in
   G.DeepEllipsis (v1, v2, v3) |> G.e
 
-and map_identifier_or_anon_field (env : env)
-    ?(type_args : type_arguments option = None)
-    (x : CST.identifier_or_anon_field) =
-  match x with
-  | `Id tok ->
-      let ident = (* identifier *) str env tok in
-      G.FN (H2.add_type_args_opt_to_name (H2.name_of_id ident) type_args)
-  | `Anon_field_index tok -> (
-      (* pattern \d+ *)
-      let pos_id = str env tok in
-      let literal = G.L (G.Int (Parsed_int.parse pos_id)) |> G.e in
-      match type_args with
-      | Some _ ->
-          (* although it's impossible for a positional field to have  *)
-          G.FN (H2.name_of_ids_with_opt_typeargs [ (pos_id, type_args) ])
-      | None -> G.FDynamic literal)
-
 and map_dot_or_index_chain (env : env) (x : CST.dot_or_index_chain) =
   match x with
   | `Access_field (v1, v2, v3) ->
       let expr_ = map_dot_or_index_chain env v1 in
       let dot = (* "." *) token env v2 in
-      let field = map_identifier_or_anon_field env v3 in
-      G.DotAccess (expr_, dot, field) |> G.e
+      let field = (* identifier *) str env v3 in
+      G.DotAccess (expr_, dot, G.FN (H2.name_of_id field)) |> G.e
   | `Rece_call (v1, v2, v3, v4, v5) ->
       let expr_ = map_dot_or_index_chain env v1 in
       let dot = (* "." *) token env v2 in
+      let func_name = (* identifier *) str env v3 in
       let type_args =
         v4
         |> Option.map (fun (v1, v2) ->
@@ -1733,8 +1516,15 @@ and map_dot_or_index_chain (env : env) (x : CST.dot_or_index_chain) =
                let v2 = map_type_args env v2 in
                v2)
       in
-      let func_name = map_identifier_or_anon_field ~type_args env v3 in
-      let func_expr = G.DotAccess (expr_, dot, func_name) |> G.e in
+      let func_expr =
+        G.DotAccess
+          ( expr_,
+            dot,
+            G.FN
+              (H2.add_type_args_opt_to_name (H2.name_of_id func_name) type_args)
+          )
+        |> G.e
+      in
       let args = map_call_args env v5 in
       G.Call (func_expr, args) |> G.e
   | `Mem_access (v1, v2, v3, v4) ->
@@ -2221,36 +2011,6 @@ and map_spec_variable (env : env)
   G.DefStmt (entity, G.VarDef { vinit = value; vtype = Some type_; vtok = None })
   |> G.s
 
-and map_match_arm (env : env) (x : CST.match_arm) : G.case_and_body =
-  match x with
-  | `Bind_list_opt_if_expr_EQGT_cont_body (v1, v2, v3, v4) -> (
-      let pat = map_bind_list env v1 in
-      let cond =
-        v2
-        |> Option.map (fun (v1, v2) ->
-               let v1 = (* "if" *) token env v1 in
-               G.PatWhen (pat, map_expr env v2))
-        |> Option.value ~default:pat
-      in
-
-      let v3 = (* "=>" *) token env v3 in
-      let body = map_control_body env v4 in
-
-      match pat with
-      | G.PatType _
-      | G.PatId _
-      | G.PatEllipsis _
-      | G.PatWildcard _ ->
-          G.CasesAndBody ([ G.Case (v3, cond) ], body)
-      | _ ->
-          let transpiled =
-            transpile_let_bind env cond (G.L (G.Null sc) |> G.e)
-          in
-          G.CasesAndBody
-            ( [ G.CaseEqualExpr (v3, G.Record (sc, transpiled, sc) |> G.e) ],
-              body ))
-  | `Ellips tok -> (* "..." *) G.CaseEllipsis (token env tok)
-
 and map_for_loop_expr (env : env) (x : CST.for_loop_expr) =
   match x with
   | `For_LPAR_var_name_in_un_expr_DOTDOT_un_expr_opt_spec_loop_inva_RPAR_blk
@@ -2303,7 +2063,7 @@ and map_term (env : env) (x : CST.term) : G.expr =
       let _comma = v5 |> Option.map (fun x -> (* "," *) token env x) in
       let rb = (* "]" *) token env v6 in
       G.Container (G.Array, (lb, values, rb)) |> G.e
-  | `Value x -> map_value env x |> G.e
+  | `Value x -> G.L (map_value env x) |> G.e
   | `Tuple_expr (v1, v2, v3, v4) -> (
       let lp = (* "(" *) token env v1 in
       let tuple_list =
@@ -2363,22 +2123,6 @@ and map_term (env : env) (x : CST.term) : G.expr =
       (* fake condition *)
       let cond = G.L (G.Bool (true, G.fake "true")) |> G.e in
       G.stmt_to_expr (G.While (loop_, G.Cond cond, body) |> G.s)
-  | `Match_expr (v1, v2, v3, v4, v5, v6, v7) ->
-      let match_ = (* "match" *) token env v1 in
-      let v2 = (* "(" *) token env v2 in
-      let cond = G.Cond (map_expr env v3) in
-      let v4 = (* ")" *) token env v4 in
-      let v5 = (* "{" *) token env v5 in
-      let arms =
-        List.map
-          (fun (v1, v2) ->
-            let arm = map_match_arm env v1 in
-            let v2 = v2 |> Option.map (fun x -> (* "," *) token env x) in
-            arm)
-          v6
-      in
-      let v7 = (* "}" *) token env v7 in
-      G.Switch (match_, Some cond, arms) |> G.s |> G.stmt_to_expr
   | `Ret_expr x ->
       let expr_stmt = G.ExprStmt (map_return_expr env x |> G.e, sc) |> G.s in
       G.stmt_to_expr expr_stmt
@@ -2533,10 +2277,7 @@ let map_declaration (env : env) (x : CST.declaration) : G.stmt list =
           let def =
             match v2 with
             | `Cst_decl x -> map_constant_decl env attrs x
-            | `Struct_or_enum_decl x -> (
-                match x with
-                | `Struct_decl x -> map_struct_decl env attrs x
-                | `Enum_decl x -> map_enum_decl env attrs x)
+            | `Struct_decl x -> map_struct_decl env attrs x
             | `Func_decl x -> map_function_decl env attrs x
           in
           [ def ])
@@ -2682,14 +2423,7 @@ let map_source_file (env : env) (x : CST.source_file) =
               cbody = (sc, [], sc);
             }
           in
-          G.Partial (G.PartialDef (ent, G.ClassDef struct_def))
-      | `Enum_sign x ->
-          let enum_, abilities, ent = map_enum_signature env attrs x in
-          let enum_def = { tbody = G.OrType [ G.OrEllipsis sc ] } in
-          (* inject abilities into entity *)
-          let ent = inject_enum_abilities env abilities ent in
-          (* Workaround: Def, Partial Def don't work *)
-          G.S (G.DefStmt (ent, G.TypeDef enum_def) |> G.s))
+          G.Partial (G.PartialDef (ent, G.ClassDef struct_def)))
 
 (*****************************************************************************)
 (* Entry point *)
