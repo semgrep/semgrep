@@ -29,6 +29,7 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
+from semgrep.state import get_state
 from semgrep.util import format_bytes
 from semgrep.util import get_lines_from_file
 from semgrep.util import MASK_CHAR
@@ -66,6 +67,7 @@ GROUP_TITLES: Dict[Tuple[out.Product, str], str] = {
     (out.Product(out.Secrets()), "valid"): "Valid Secrets Finding",
     (out.Product(out.Secrets()), "invalid"): "Invalid Secrets Finding",
     (out.Product(out.Secrets()), "unvalidated"): "Unvalidated Secrets Finding",
+    (out.Product(out.Secrets()), "generic-secrets"): "Generic Secrets Finding",
     (
         out.Product(out.Secrets()),
         "validation error",
@@ -837,24 +839,28 @@ class TextFormatter(BaseFormatter):
                 (out.Product(out.SCA()), "unreachable"): [],
                 (out.Product(out.SAST()), "nonblocking"): [],
                 (out.Product(out.Secrets()), "invalid"): [],
+                (out.Product(out.Secrets()), "generic-secrets"): [],
             }
 
             for match in rule_matches:
                 if isinstance(match.product.value, out.SAST):
                     subgroup = "blocking" if match.is_blocking else "nonblocking"
                 elif isinstance(match.product.value, out.Secrets):
-                    state = match.validation_state
-                    if state is None:
-                        subgroup = "unvalidated"
+                    if match.metadata.get("generic_secrets", False):
+                        subgroup = "generic-secrets"
                     else:
-                        if isinstance(state.value, out.ConfirmedValid):
-                            subgroup = "valid"
-                        elif isinstance(state.value, out.ConfirmedInvalid):
-                            subgroup = "invalid"
-                        elif isinstance(state.value, out.ValidationError):
-                            subgroup = "validation error"
-                        else:
+                        state = match.validation_state
+                        if state is None:
                             subgroup = "unvalidated"
+                        else:
+                            if isinstance(state.value, out.ConfirmedValid):
+                                subgroup = "valid"
+                            elif isinstance(state.value, out.ConfirmedInvalid):
+                                subgroup = "invalid"
+                            elif isinstance(state.value, out.ValidationError):
+                                subgroup = "validation error"
+                            else:
+                                subgroup = "unvalidated"
                 else:
                     subgroup = match.exposure_type or "undetermined"
 
@@ -878,15 +884,33 @@ class TextFormatter(BaseFormatter):
             for group, matches in grouped_matches.items():
                 if not matches:
                     continue
-                console.print(Title(unit_str(len(matches), GROUP_TITLES[group])))
 
-                print_text_output(
-                    matches,
-                    extra.get("color_output", False),
-                    extra["per_finding_max_lines_limit"],
-                    extra["per_line_max_chars_limit"],
-                    extra["dataflow_traces"],
-                )
+                # Generic Secrets findings are somewhat special, and don't print out their
+                # matches in the output.
+                # Instead, they are sent to the App for LLM validation. We expect this to
+                # be noisy, so we won't print out all of the findings here.
+                if group[1] == "generic-secrets":
+                    url = get_state().env.semgrep_url
+                    console.print(
+                        textwrap.dedent(
+                            f"""
+                        Your deployment has generic secrets enabled. {len(matches)} potential line locations
+                        will be uploaded to the Semgrep platform and then analyzed by Semgrep Assistant.
+                        Any findings that appear actionable will be available in the Semgrep Platform.
+                        You can view the secrets analyzed by Assistant at {url}/orgs/-/secrets?status=open&type=AI-detected+secret
+                        """
+                        )
+                    )
+                else:
+                    console.print(Title(unit_str(len(matches), GROUP_TITLES[group])))
+
+                    print_text_output(
+                        matches,
+                        extra.get("color_output", False),
+                        extra["per_finding_max_lines_limit"],
+                        extra["per_line_max_chars_limit"],
+                        extra["dataflow_traces"],
+                    )
 
             if first_party_blocking_rules and is_ci_invocation:
                 console.print(Title("Blocking Code Rules Fired:", order=2))
