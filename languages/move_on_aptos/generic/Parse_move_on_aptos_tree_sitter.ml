@@ -12,6 +12,9 @@ module H2 = AST_generic_helpers
 (* Disable warnings against unused variables *)
 [@@@warning "-26-27-32"]
 
+(* Disable warning against unused 'rec' *)
+[@@@warning "-39"]
+
 type mode = Pattern | Target
 type env = mode H.env
 
@@ -36,9 +39,6 @@ let in_pattern env =
    Boilerplate to be used as a template when mapping the move_on_aptos CST
    to another type of tree.
 *)
-
-(* Disable warning against unused 'rec' *)
-[@@@warning "-39"]
 
 let remove_char str ch = String.split_on_char ch str |> String.concat ""
 
@@ -1137,18 +1137,18 @@ let map_specifier (env : env) (x : CST.specifier) : G.attribute list =
                    G.Arg (G.L (G.Bool (false, tok)) |> G.e)
                | None -> G.Arg (G.L (G.Bool (true, sc)) |> G.e)
              in
-             let tk, specifier =
+             let specifier =
                match v2 with
-               | `Acquis tok -> (token env tok, (* "acquires" *) str env tok)
-               | `Reads tok -> (token env tok, (* "reads" *) str env tok)
-               | `Writes tok -> (token env tok, (* "writes" *) str env tok)
+               | `Acquis tok -> (* "acquires" *) str env tok
+               | `Reads tok -> (* "reads" *) str env tok
+               | `Writes tok -> (* "writes" *) str env tok
              in
              let objects =
                map_access_specifier_list env v3
                |> List.map (fun x -> G.ArgType (G.TyN x |> G.t))
                |> fun args -> (sc, negate :: args, sc)
              in
-             G.NamedAttr (tk, H2.name_of_id specifier, objects))
+             G.NamedAttr (snd specifier, H2.name_of_id specifier, objects))
 
 let map_spec_func_signatures (env : env)
     ((v1, v2, v3, v4, v5) : CST.spec_func_signatures) =
@@ -1708,10 +1708,12 @@ and map_identifier_or_anon_field (env : env)
       G.FN (H2.add_type_args_opt_to_name (H2.name_of_id ident) type_args)
   | `Anon_field_index tok -> (
       (* pattern \d+ *)
-      let s, t = str env tok in
-      let literal = G.L (G.Int (Parsed_int.parse (s, t))) |> G.e in
+      let pos_id = str env tok in
+      let literal = G.L (G.Int (Parsed_int.parse pos_id)) |> G.e in
       match type_args with
-      | Some _ -> failwith "Type arguments are not supported for anon fields"
+      | Some _ ->
+          (* although it's impossible for a positional field to have  *)
+          G.FN (H2.name_of_ids_with_opt_typeargs [ (pos_id, type_args) ])
       | None -> G.FDynamic literal)
 
 and map_dot_or_index_chain (env : env) (x : CST.dot_or_index_chain) =
