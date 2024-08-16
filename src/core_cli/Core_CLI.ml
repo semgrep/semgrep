@@ -691,6 +691,7 @@ let register_exception_printers () =
 
 let main_exn (caps : Cap.all_caps) (sys_argv : string array) : unit =
   profile_start := Unix.gettimeofday ();
+  register_exception_printers ();
 
   (* SIGXFSZ (file size limit exceeded)
    * ----------------------------------
@@ -814,7 +815,6 @@ let with_exception_trace f =
 
 let main (caps : Cap.all_caps) (argv : string array) : unit =
   UCommon.main_boilerplate (fun () ->
-      register_exception_printers ();
       Common.finalize
         (fun () -> with_exception_trace (fun () -> main_exn caps argv))
         (fun () -> !Hooks.exit |> List.iter (fun f -> f ())))
