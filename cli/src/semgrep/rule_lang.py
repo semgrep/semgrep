@@ -1,5 +1,6 @@
 import json
 import re
+import time
 from io import StringIO
 from pathlib import Path
 from typing import Any
@@ -16,8 +17,8 @@ from typing import TypeVar
 from typing import Union
 
 import jsonschema.exceptions
-from jsonschema.validators import Draft7Validator
 from packaging.version import Version
+from pydantic import ValidationError
 from ruamel.yaml import MappingNode
 from ruamel.yaml import Node
 from ruamel.yaml import RoundTripConstructor
@@ -32,8 +33,12 @@ from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.error_location import SourceTracker
 from semgrep.error_location import Span
+from semgrep.rule_model import Model
+from semgrep.verbose_logging import getLogger
 
 MISSING_RULE_ID = "no-rule-id"
+
+logger = getLogger(__name__)
 
 
 class EmptyYamlException(Exception):
@@ -522,6 +527,68 @@ def remove_incompatible_rules_based_on_version(
     return errors
 
 
+def validate_yaml_(data: YamlTree) -> None:
+    from semgrep.error import InvalidRuleSchemaError
+
+    # Unroll the data to a more normal datastructure
+    normalized_data = data.unroll()
+    try:
+        Model.model_validate(normalized_data)
+    except ValidationError as e:
+        rules = data.value["rules"] if "rules" in data.value else None
+        readable_errors = []
+        spans: List[Span] = []
+        seen_lines = (
+            set()
+        )  # Workaround to avoid Type Union errors that lack Discriminator
+        # See https://docs.pydantic.dev/latest/concepts/unions/#union-validation-errors
+        omit_error_type_info = {"enum", "string_type", "value_error"}
+        for error in e.errors():
+            err_type = (error.get("type", "") or "").lower()
+            msg = (error.get("msg", "") or "").removeprefix("Value error, ")
+            loc = error.get("loc")
+            received = error.get("input", "")
+            err_msg_prefix = (
+                " ".join(word.capitalize() for word in err_type.split("_"))
+                if not err_type in omit_error_type_info
+                else ""
+            )
+            err_msg = f"{err_msg_prefix}: {msg}" if err_msg_prefix else msg
+            if not loc or len(loc) < 2:
+                readable_errors.append(f"{err_msg}")
+                continue
+            elif len(loc) >= 2:
+                line_no = loc[1]
+                if line_no in seen_lines:
+                    continue
+                rule = (rules.value[line_no] if rules else None) or None
+                rule_id_box = (
+                    rule.value["id"] if (rule and "id" in rule.value) else None
+                )
+                rule_id = (
+                    f"({line_no}) `{rule_id_box.value}`"
+                    if rule_id_box
+                    else f"({line_no})"
+                )
+                readable_errors.append(
+                    f"Error parsing rule {rule_id}:\n  - received `{received}`\n  - {err_msg}"
+                )
+                seen_lines.add(loc[1])
+        if rules:
+            for line_no in seen_lines:
+                item = (rules.value[line_no] if rules else None) or None
+                if not item:
+                    continue
+                spans.append(item.span)
+        else:
+            spans.append(data.span)
+        raise InvalidRuleSchemaError(
+            short_msg="Invalid rule schema",
+            long_msg="\n".join(readable_errors),
+            spans=spans,
+        )
+
+
 @tracing.trace()
 def validate_yaml(
     data: YamlTree, filename: Optional[str] = None, no_rewrite_rule_ids: bool = False
@@ -534,7 +601,12 @@ def validate_yaml(
 
     try:
         with tracing.TRACER.start_as_current_span("jsonschema.validate"):
-            jsonschema.validate(data.unroll(), RuleSchema.get(), cls=Draft7Validator)
+            start_time = time.monotonic()
+            logger.info("Validating rule schema")
+            # jsonschema.validate(data.unroll(), RuleSchema.get(), cls=Draft7Validator)
+            validate_yaml_(data)
+            end_time = time.monotonic()
+            logger.info(f"Rule schema is valid after {end_time - start_time:.3f}s")
             return errors
     except jsonschema.ValidationError as ve:
         message = _validation_error_message(ve)
