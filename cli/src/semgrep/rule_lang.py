@@ -18,6 +18,7 @@ from typing import Union
 import jsonschema.exceptions
 from jsonschema.validators import Draft7Validator
 from packaging.version import Version
+from pydantic import ValidationError
 from ruamel.yaml import MappingNode
 from ruamel.yaml import Node
 from ruamel.yaml import RoundTripConstructor
@@ -32,8 +33,12 @@ from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.error_location import SourceTracker
 from semgrep.error_location import Span
+from semgrep.rule_model import Model
+from semgrep.verbose_logging import getLogger
 
 MISSING_RULE_ID = "no-rule-id"
+
+logger = getLogger(__name__)
 
 
 class EmptyYamlException(Exception):
@@ -522,6 +527,11 @@ def remove_incompatible_rules_based_on_version(
     return errors
 
 
+def validate_yaml_(data: YamlTree) -> None:
+    # MARK: First pass with pydantic, raises ValidationError
+    Model.model_validate(data.unroll())
+
+
 @tracing.trace()
 def validate_yaml(
     data: YamlTree, filename: Optional[str] = None, no_rewrite_rule_ids: bool = False
@@ -533,9 +543,19 @@ def validate_yaml(
     )
 
     try:
-        with tracing.TRACER.start_as_current_span("jsonschema.validate"):
-            jsonschema.validate(data.unroll(), RuleSchema.get(), cls=Draft7Validator)
-            return errors
+        # MARK: First pass with pydantic
+        try:
+            validate_yaml_(data)
+        except (ValidationError, NotImplementedError):
+            # If we get a validation error, we want to pass through to the jsonschema validation
+            # for the custom error messages
+            with tracing.TRACER.start_as_current_span("jsonschema.validate"):
+                jsonschema.validate(
+                    data.unroll(), RuleSchema.get(), cls=Draft7Validator
+                )
+        # After the first (and or second pass), we should have a valid schema
+        # and can return the errors
+        return errors
     except jsonschema.ValidationError as ve:
         message = _validation_error_message(ve)
         item = data
