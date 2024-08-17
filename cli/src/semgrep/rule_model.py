@@ -19,7 +19,7 @@ from typing_extensions import Annotated
 
 # NOTE: Ensure that we also inherit from str to prevent footguns when comparing equality with raw strings
 # TODO: Add a semgrep rule to enforce this!
-class Mode(str, Enum):
+class RuleMode(str, Enum):
     search = "search"
     taint = "taint"
     _join = "join"  # NOTE: This is a workaround to avoid a name conflict with the str `join` field
@@ -29,7 +29,7 @@ class Mode(str, Enum):
 # NOTE: Duplication is better than the wrong abstraction here.
 # TODO: Figure out why JoinedRules supports this partial match of our Mode enum
 #       and provide a better solution.
-class Mode1(str, Enum):
+class JoinedRuleMode(str, Enum):
     search = "search"
     taint = "taint"
 
@@ -760,7 +760,7 @@ class JoinedRules(BaseModel):
         None, title="Return finding where Semgrep pattern matches exactly"
     )
     patterns: Optional[PatternsContent] = None
-    mode: Optional[Mode1] = None
+    mode: Optional[JoinedRuleMode] = None
     pattern_sources: Optional["TaintContent"] = Field(None, alias="pattern-sources")
     pattern_propagators: Optional["TaintContent"] = Field(
         None, alias="pattern-propagators"
@@ -880,8 +880,8 @@ class Rule(BaseModel):
     )
     version: Optional[str] = Field(None, title="Version of rule")
     message: Optional[str] = Field(None, title="Description to attach to findings")
-    mode: Optional[Mode] = Field(
-        Mode.search, title="Mode of the rule"
+    mode: Optional[RuleMode] = Field(
+        RuleMode.search, title="Mode of the rule"
     )  # NOTE: I don't quite follow why we have a default value here
     languages: Optional[
         Annotated[Union[Languages, List[Languages]], Tag("languages")]
@@ -973,7 +973,7 @@ class Rule(BaseModel):
         and the breakpoint will not be hit.
         """
         # NOTE: We use PydanticCustomError over ValueError to provide a more descriptive error message
-        if mode == Mode.extract:  # EXPERIMENTAL
+        if mode == RuleMode.extract:  # EXPERIMENTAL
             if not all(
                 [
                     self.id,
@@ -999,7 +999,7 @@ class Rule(BaseModel):
                     "check_extract_has_pattern", missing_pattern_error_message
                 )
         elif (
-            mode == Mode.taint and not self.taint
+            mode == RuleMode.taint and not self.taint
         ):  # old-style taint rule without taint field
             if not all(
                 [
@@ -1031,7 +1031,7 @@ class Rule(BaseModel):
                     "check_taint_v2_has_required_fields",
                     "Expected `id`, `message`, `languages`, `severity`, `taint` to be present",
                 )
-        elif mode == Mode._join:  # EXPERIMENTAL
+        elif mode == RuleMode._join:  # EXPERIMENTAL
             if not all(
                 [
                     self.id,
@@ -1044,7 +1044,7 @@ class Rule(BaseModel):
                     "check_join_has_required_fields",
                     "Expected `id`, `message`, `severity`, `join` to be present",
                 )
-        elif mode == Mode.search:
+        elif mode == RuleMode.search:
             if not all(
                 [
                     self.id,
