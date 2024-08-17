@@ -167,7 +167,7 @@ class HttpRequestContent(BaseModel):
 
 
 class GeneralPatternContent(RootModel):
-    root: Union[str, Any] = Field(
+    root: str = Field(
         ..., title="Return finding where code matches against the following pattern"
     )
 
