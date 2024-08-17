@@ -127,6 +127,7 @@ install_requires = [
     "opentelemetry-instrumentation-requests~=0.46b0",
     "packaging>=21.0",
     "peewee~=3.14",
+    "pydantic~=2.8.2",
     "requests~=2.22",
     "rich>=12.6.0",
     "ruamel.yaml>=0.16.0,<0.18",
