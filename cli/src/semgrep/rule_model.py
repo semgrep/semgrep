@@ -268,6 +268,7 @@ class NewPattern(RootModel):
 
 
 class NewPattern1(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     pattern: Optional[str] = None
     regex: Optional[str] = None
     all: Optional[List[NewPattern]] = Field(None, min_length=1)
