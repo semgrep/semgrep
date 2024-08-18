@@ -12,6 +12,6 @@
 [94m[22m[24m13 | [0m              - pattern-not-inside: FROM $IMAGE:$VERSION@$HASH
 [94m[22m[24m14 | [0m    message: To ensure reproducible builds, pin Dockerfile `FROM` commands to a
 
-[31m[22m[24m{'patterns-either': [{'patterns': [{'pattern': 'FROM $IMAGE:$VERSION@$HASH'}, {'metavariable-regex': {'metavariable': '$HASH', 'regex': '(?!sha256:)'}}]}, {'patterns': [{'pattern': 'FROM $IMAGE'}, {'pattern': 'FROM $IMAGE:$VERSION'}, {'pattern-not-inside': 'FROM $IMAGE:$VERSION@$HASH'}]}]} is not valid under any of the given schemas[0m
+[31m[22m[24mAdditional properties are not allowed ('patterns-either' was unexpected)[0m
 
 [31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mERROR[0m[31m[41m[22m[24m][0m invalid configuration file found (1 configs were invalid)
