@@ -34,11 +34,8 @@ from semgrep.error import SemgrepError
 from semgrep.error_location import SourceTracker
 from semgrep.error_location import Span
 from semgrep.rule_model import Model
-from semgrep.verbose_logging import getLogger
 
 MISSING_RULE_ID = "no-rule-id"
-
-logger = getLogger(__name__)
 
 
 class EmptyYamlException(Exception):
@@ -545,7 +542,8 @@ def validate_yaml(
     try:
         # MARK: First pass with pydantic
         try:
-            validate_yaml_(data)
+            with tracing.TRACER.start_as_current_span("pydantic.validate"):
+                validate_yaml_(data)
         except (ValidationError, NotImplementedError):
             # If we get a validation error, we want to pass through to the jsonschema validation
             # for the custom error messages

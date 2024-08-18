@@ -2,6 +2,7 @@ from enum import Enum
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Mapping
 from typing import Optional
 from typing import Union
 
@@ -167,7 +168,7 @@ class HttpRequestContent(BaseModel):
 
 
 class GeneralPatternContent(RootModel):
-    root: str = Field(
+    root: Union[str, Mapping] = Field(
         ..., title="Return finding where code matches against the following pattern"
     )
 
