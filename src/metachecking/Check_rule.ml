@@ -333,7 +333,8 @@ let check_files (caps : < Cap.stdout ; Cap.tmp >) mk_config fparser input =
         run_checks (caps :> < Cap.tmp >) config fparser metachecks xs
   in
   match config.output_format with
-  | Text ->
+  | NoOutput -> ()
+  | Text _ ->
       errors
       |> List.iter (fun err ->
              Logs.err (fun m -> m "%s" (E.string_of_error err)))
