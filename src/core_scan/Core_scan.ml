@@ -146,48 +146,6 @@ type target_handler = Target.t -> Core_result.matches_single_file * was_scanned
 (* Helpers *)
 (*****************************************************************************)
 
-(* TODO: hook for
-   ~parsing_cache_dir:config.parsing_cache_dir
-   AST_generic.version)
-*)
-
-let parse_and_resolve_name (lang : Lang.t) (fpath : Fpath.t) :
-    AST_generic.program * Tok.location list =
-  let { Parsing_result2.ast; skipped_tokens; _ } =
-    Logs_.with_debug_trace "Core_scan.parse_and_resolve_name" (fun () ->
-        Logs.debug (fun m ->
-            m "Parsing (and naming) %s (with lang %s)" !!fpath (Lang.show lang));
-        Parse_target.parse_and_resolve_name lang fpath)
-  in
-  (ast, skipped_tokens)
-
-(*
-   If the target is a named pipe, copy it into a regular file and return
-   that. This allows multiple reads on the file.
-
-   This is intended to support one or a small number of targets created
-   manually on the command line with e.g. <(echo 'eval(x)') which the
-   shell replaces by a named pipe like '/dev/fd/63'.
-
-   update: This can be used also to fetch rules from the network!
-   e.g., semgrep-core -rules <(curl https://semgrep.dev/c/p/ocaml) ...
-
-   coupling: this functionality is implemented also in semgrep-python.
-*)
-let replace_named_pipe_by_regular_file (caps : < Cap.tmp >) (path : Fpath.t) =
-  match
-    CapTmp.replace_named_pipe_by_regular_file_if_needed caps#tmp
-      ~prefix:"semgrep-core-" path
-  with
-  | Some new_path -> new_path
-  | None -> path
-
-let replace_named_pipe_by_regular_file_root (caps : < Cap.tmp >)
-    (path : Scanning_root.t) =
-  path |> Scanning_root.to_fpath
-  |> replace_named_pipe_by_regular_file caps
-  |> Scanning_root.of_fpath
-
 (*
    Sort targets by decreasing size. This is meant for optimizing
    CPU usage when processing targets in parallel on a fixed number of cores.
@@ -341,10 +299,8 @@ let map_targets ncores f (targets : Target.t list) =
 
 (* Certain patterns may be too general and match too many times on big files.
  * This does not cause a Timeout during parsing or matching, but returning
- * a huge number of matches can stress print_matches_and_errors_json
+ * a huge number of matches can stress Core_json_output.
  * and anyway is probably a sign that the pattern should be rewritten.
- * This puts also lots of stress on the semgrep Python wrapper which has
- * to do lots of range intersections with all those matches.
  *)
 let filter_files_with_too_many_matches_and_transform_as_timeout
     max_match_per_file matches =
@@ -433,39 +389,32 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
 [@@profiling "Run_semgrep.filter_too_many_matches"]
 
 (*****************************************************************************)
-(* Parsing (non-cached) *)
+(* Parsing *)
 (*****************************************************************************)
 
+let parse_and_resolve_name (lang : Lang.t) (fpath : Fpath.t) :
+    AST_generic.program * Tok.location list =
+  let { Parsing_result2.ast; skipped_tokens; _ } =
+    Logs_.with_debug_trace "Core_scan.parse_and_resolve_name" (fun () ->
+        Logs.debug (fun m ->
+            m "Parsing (and naming) %s (with lang %s)" !!fpath (Lang.show lang));
+        Parse_target.parse_and_resolve_name lang fpath)
+  in
+  (ast, skipped_tokens)
+
 (* for -rules *)
-let rules_from_rule_source (caps : < Cap.tmp >) (config : Core_scan_config.t) :
+let rules_from_rule_source (rule_source : Core_scan_config.rule_source) :
     Rule_error.rules_and_invalid =
-  let rule_source =
-    match config.rule_source with
-    | Some (Core_scan_config.Rule_file file) ->
-        (* useful when using process substitution, e.g.
-         * semgrep-core -rules <(curl https://semgrep.dev/c/p/ocaml) ...
-         *)
-        Some
-          (Core_scan_config.Rule_file
-             (replace_named_pipe_by_regular_file caps file))
-    | other -> other
-  in
-  let rules, rule_errors =
-    match rule_source with
-    | Some (Core_scan_config.Rule_file file) -> (
-        Logs.info (fun m -> m "Parsing rules in %s" !!file);
-        match
-          Parse_rule.parse_and_filter_invalid_rules ~rewrite_rule_ids:None file
-        with
-        | Ok rules -> rules
-        | Error e ->
-            failwith ("Error in parsing: " ^ Rule_error.string_of_error e))
-    | Some (Core_scan_config.Rules rules) -> (rules, [])
-    | None ->
-        (* TODO: ensure that this doesn't happen *)
-        failwith "missing rules"
-  in
-  (rules, rule_errors)
+  match rule_source with
+  | Core_scan_config.Rule_file file -> (
+      Logs.info (fun m -> m "Parsing rules in %s" !!file);
+      match
+        Parse_rule.parse_and_filter_invalid_rules ~rewrite_rule_ids:None file
+      with
+      | Ok rules -> rules
+      | Error e -> failwith ("Error in parsing: " ^ Rule_error.string_of_error e)
+      )
+  | Core_scan_config.Rules rules -> (rules, [])
 [@@trace]
 
 (* TODO? this is currently deprecated, but pad still has hope the
@@ -478,10 +427,10 @@ let parse_equivalences equivalences_file =
 [@@profiling]
 
 (*****************************************************************************)
-(* Iteration helpers *)
+(* Telemetry *)
 (*****************************************************************************)
-
-let handle_target_with_trace handle_target t =
+let handle_target_with_trace (handle_target : Target.t -> 'a) (t : Target.t) :
+    'a =
   let target_name = Target.internal_path t in
   let data () =
     [
@@ -491,6 +440,10 @@ let handle_target_with_trace handle_target t =
   in
   Tracing.with_span ~__FILE__ ~__LINE__ ~data "Core_scan.handle_target"
     (fun _sp -> handle_target t)
+
+(*****************************************************************************)
+(* Iteration helpers *)
+(*****************************************************************************)
 
 (*
    Returns a list of match results and a separate list of scanned targets.
@@ -545,17 +498,14 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                    in
                    Memory_limit.run_with_memory_limit ~get_context
                      ~mem_limit_mb:config.max_memory_mb (fun () ->
-                       (* we used to call timeout_function() here, but this
-                        * is now done in Match_rules because we now
-                        * timeout per rule, not per file since pysemgrep
+                       (* we used to call Time_limit.set_timeout() here, but
+                        * this is now done in Match_rules.check() because we
+                        * now timeout per rule, not per file since pysemgrep
                         * passed all the rules to semgrep-core.
-                        *
-                        * old: timeout_function file config.timeout ...
                         *)
                        let res, was_scanned =
                          handle_target_maybe_with_trace target
                        in
-
                        (* old: This was to test -max_memory, to give a chance
                         * to Gc.create_alarm to run even if the program does
                         * not even need to run the Gc. However, this has a
@@ -691,7 +641,7 @@ let target_of_input_to_core (input : In.target) : Target.t =
  * certain rules for certain targets in the semgrep-cli wrapper
  * by using the include/exclude fields.).
  *)
-let targets_of_config (caps : < Cap.tmp >) (config : Core_scan_config.t) :
+let targets_of_config (config : Core_scan_config.t) :
     Target.t list * Out.skipped_target list =
   match (config.target_source, config.roots, config.lang) with
   (* We usually let semgrep-python computes the list of targets (and pass it
@@ -702,9 +652,6 @@ let targets_of_config (caps : < Cap.tmp >) (config : Core_scan_config.t) :
    *)
   | None, roots, Some xlang ->
       (* less: could also apply Common.fullpath? *)
-      let roots =
-        roots |> List_.map (replace_named_pipe_by_regular_file_root caps)
-      in
       let lang_opt =
         match xlang with
         | Xlang.LRegex
@@ -951,7 +898,7 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
       print_cli_progress config;
       (matches, was_scanned)
 
-let scan_exn ?match_hook (caps : < Cap.tmp >) (config : Core_scan_config.t)
+let scan_exn ?match_hook (_caps : < Cap.tmp >) (config : Core_scan_config.t)
     (rules : Rule_error.rules_and_invalid * float) : Core_result.t =
   let (valid_rules, invalid_rules), rules_parse_time = rules in
   let (rule_errors : E.t list) =
@@ -959,7 +906,7 @@ let scan_exn ?match_hook (caps : < Cap.tmp >) (config : Core_scan_config.t)
   in
 
   (* The basic targets *)
-  let targets, skipped = targets_of_config caps config in
+  let targets, skipped = targets_of_config config in
   let prefilter_cache_opt =
     if config.filter_irrelevant_rules then
       Match_env.PrefilterWithCache (Hashtbl.create (List.length valid_rules))
@@ -1058,7 +1005,12 @@ let scan ?match_hook (caps : < Cap.tmp >) (config : Core_scan_config.t) :
     Core_result.result_or_exn =
   try
     let timed_rules =
-      Common.with_time (fun () -> rules_from_rule_source caps config)
+      Common.with_time (fun () ->
+          match config.rule_source with
+          | None ->
+              (* TODO: ensure that this doesn't happen *)
+              failwith "missing rules"
+          | Some rule_source -> rules_from_rule_source rule_source)
     in
     (* The pre and post processors hook here is currently used
        for the secrets post processor in Pro, and for the autofix
