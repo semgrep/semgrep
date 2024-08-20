@@ -556,14 +556,14 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
                          handle_target_maybe_with_trace target
                        in
 
-                       (* This is just to test -max_memory, to give a chance
+                       (* old: This was to test -max_memory, to give a chance
                         * to Gc.create_alarm to run even if the program does
                         * not even need to run the Gc. However, this has a
                         * slow perf penality on small programs, which is why
                         * it's better to keep guarded when you're
                         * not testing -max_memory.
+                        * if config.test then Gc.full_major ();
                         *)
-                       if config.test then Gc.full_major ();
                        (res, was_scanned))
                  with
                  (* note that Semgrep_error_code.exn_to_error already handles
