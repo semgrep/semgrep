@@ -15,7 +15,10 @@ module Env = Semgrep_envvars
 (* Types *)
 (*************************************************************************)
 
-(* input *)
+(* input
+ * LATER: ideally we can cleanup Core_scan_config.ml enough that we don't
+ * need this extra type can can just reuse Core_scan_config.t as is.
+ *)
 type conf = {
   (* opti and limits *)
   num_jobs : int;

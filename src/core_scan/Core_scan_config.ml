@@ -25,15 +25,11 @@ type target_source = Target_file of Fpath.t | Targets of Target.t list
 [@@deriving show]
 
 (* This is essentially the flags for the semgrep-core program.
- * LATER: should delete or merge with osemgrep Scan_CLI.conf.
+ * LATER: should delete or merge with osemgrep Core_runner.conf
  *)
 type t = {
   strict : bool;
-  (* TODO: remove *)
-  error_recovery : bool;
-  (* Debugging/profiling/logging flags *)
-  debug : bool;
-  profile : bool;
+  (* debugging and telemetry flags *)
   trace : bool;
   trace_endpoint : string option;
   (* To add data to our opentelemetry top span, so easier to filter *)
@@ -68,8 +64,6 @@ type t = {
    * in Run_semgrep, so the hook should not rely on shared memory!
    *)
   file_match_hook : (Fpath.t -> Core_result.matches_single_file -> unit) option;
-  (* Common.ml action for the -dump_xxx *)
-  action : string;
 }
 [@@deriving show]
 
@@ -87,17 +81,15 @@ type t = {
 let default =
   {
     strict = false;
-    (* Debugging/profiling/logging flags *)
-    debug = false;
-    profile = false;
+    (* debugging and telemetry flags *)
     trace = false;
     trace_endpoint = None;
     top_level_span = None;
     report_time = false;
-    error_recovery = false;
     matching_explanations = false;
     (* Main flags *)
     rule_source = None;
+    target_source = None;
     equivalences_file = None;
     lang = None;
     roots = [];
@@ -117,8 +109,4 @@ let default =
     (* a.k.a -fast, on by default *)
     filter_irrelevant_rules = true;
     file_match_hook = None;
-    (* Flag used by the semgrep-python wrapper *)
-    target_source = None;
-    (* Common.ml action for the -dump_xxx *)
-    action = "";
   }

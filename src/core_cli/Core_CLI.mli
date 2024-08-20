@@ -4,6 +4,8 @@ val main : Cap.all_caps -> string array -> unit
 (* internals used also in semgrep-core-proprietary *)
 val lang : Xlang.t option ref
 val ncores : int ref
+val debug : bool ref
+val profile : bool ref
 val log_to_file : Fpath.t option ref
 val env_extra : string
 val mk_config : unit -> Core_scan_config.t

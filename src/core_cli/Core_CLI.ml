@@ -39,18 +39,14 @@ let log_to_file = ref None
 let strict = ref Core_scan_config.default.strict
 
 (* see also verbose/... flags in Flag_semgrep.ml *)
-(* to test things *)
-let debug = ref Core_scan_config.default.debug
+let debug = ref false
 
 (* related:
  * - Flag_semgrep.debug_matching
  * - Flag_semgrep.fail_fast
  * - Trace_matching.on
  *)
-
-(* try to continue processing files, even if one has a parse error with -e/f *)
-let error_recovery = ref Core_scan_config.default.error_recovery
-let profile = ref Core_scan_config.default.profile
+let profile = ref false
 let trace = ref Core_scan_config.default.trace
 let trace_endpoint = ref Core_scan_config.default.trace_endpoint
 
@@ -219,12 +215,9 @@ let dump_ast ?(naming = false) (caps : < Cap.stdout ; Cap.exit >)
 let mk_config () =
   {
     strict = !strict;
-    debug = !debug;
     trace = !trace;
     trace_endpoint = !trace_endpoint;
-    profile = !profile;
     report_time = !report_time;
-    error_recovery = !error_recovery;
     matching_explanations = !matching_explanations;
     rule_source = !rule_source;
     filter_irrelevant_rules = !filter_irrelevant_rules;
@@ -242,7 +235,6 @@ let mk_config () =
     ncores = !ncores;
     target_source = !target_source;
     file_match_hook = None;
-    action = !action;
     roots = [] (* This will be set later in main () *);
     top_level_span = None;
   }
@@ -470,12 +462,6 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
     ( "-pvar",
       Arg.String (fun s -> mvars := String_.split ~sep:"," s),
       " <metavars> print the metavariables, not the matched code" );
-    ( "-error_recovery",
-      Arg.Unit
-        (fun () ->
-          error_recovery := true;
-          Flag_parsing.error_recovery := true),
-      " do not stop at first parsing error with -e/-f" );
     ( "-fail_fast",
       Arg.Set Flag.fail_fast,
       " stop at first exception (and get a backtrace)" );
@@ -622,6 +608,7 @@ let register_exception_printers () =
 (*****************************************************************************)
 
 let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
+  (* coupling: lots of similarities with what we do in CLI.main *)
   register_exception_printers ();
 
   (* SIGXFSZ (file size limit exceeded)
@@ -664,19 +651,19 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
 
   let config = mk_config () in
 
-  Core_profiling.profiling := config.report_time;
-
+  (* coupling: lots of similarities with what we do in Scan_subcommand.ml *)
   Log_semgrep.setup ?log_to_file:!log_to_file ?require_one_of_these_tags:None
     ~force_color:true
     ~level:
       (* TODO: command-line option or env variable to choose the log level *)
-      (if config.debug then Some Debug else Some Info)
+      (if !debug then Some Debug else Some Info)
     ();
+  Core_profiling.profiling := config.report_time;
 
   Logs.info (fun m -> m "Executed as: %s" (argv |> String.concat " "));
   Logs.info (fun m -> m "Version: %s" version);
   let config =
-    if config.profile then (
+    if !profile then (
       Logs.info (fun m -> m "Profile mode On");
       Logs.info (fun m -> m "disabling -j when in profiling mode");
       { config with ncores = 1 })
@@ -696,10 +683,9 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
       (* --------------------------------------------------------- *)
       (* actions, useful to debug subpart *)
       (* --------------------------------------------------------- *)
-      | xs when List.mem config.action (Arg_.action_list (all_actions caps ()))
-        ->
-          Arg_.do_action config.action xs (all_actions caps ())
-      | _ when not (String_.empty config.action) ->
+      | xs when List.mem !action (Arg_.action_list (all_actions caps ())) ->
+          Arg_.do_action !action xs (all_actions caps ())
+      | _ when not (String_.empty !action) ->
           failwith ("unrecognized action or wrong params: " ^ !action)
       (* --------------------------------------------------------- *)
       (* main entry *)
@@ -714,11 +700,12 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
           let config =
             { config with roots = List_.map Scanning_root.of_string roots }
           in
-
-          (* Set up tracing and run it for the duration of scanning. Note that this will
-             only trace `semgrep_core_dispatch` and the functions it calls.
-           * TODO when osemgrep is the default entry point, we will also be able to
-             instrument the pre- and post-scan code in the same way. *)
+          (* Set up tracing and run it for the duration of scanning. Note that
+             this will only trace `Core_command.run_conf` and the functions it
+             calls.
+             TODO when osemgrep is the default entry point, we will also be
+             able to instrument the pre- and post-scan code in the same way.
+          *)
           if config.trace then (
             let trace_data =
               Trace_data.get_top_level_data config.ncores Version.version
