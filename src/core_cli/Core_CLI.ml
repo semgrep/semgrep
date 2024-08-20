@@ -67,7 +67,6 @@ let equivalences_file = ref None
 (* TODO: infer from basename argv(0) ? *)
 let lang = ref None
 let output_format = ref Core_scan_config.default.output_format
-let mvars = ref ([] : Metavariable.mvar list)
 let respect_rule_paths = ref Core_scan_config.default.respect_rule_paths
 
 (* ------------------------------------------------------------------------- *)
@@ -141,7 +140,8 @@ let _set_gc_TODO () =
 
 let dump_v_to_format (v : OCaml.v) =
   match !output_format with
-  | Text -> OCaml.string_of_v v
+  | NoOutput -> "<NoOutput>"
+  | Text _ -> OCaml.string_of_v v
   | Json _ -> J.string_of_json (Core_actions.json_of_v v)
 
 let log_parsing_errors file (res : Parsing_result2.t) =
@@ -225,7 +225,6 @@ let mk_config () =
     equivalences_file = !equivalences_file;
     lang = !lang;
     output_format = !output_format;
-    mvars = !mvars;
     timeout = !timeout;
     timeout_threshold = !timeout_threshold;
     max_memory_mb = !max_memory_mb;
@@ -272,7 +271,13 @@ let all_actions (caps : Cap.all_caps) () =
       Arg_.mk_action_n_arg (fun xs ->
           Test_parsing.parsing_stats
             (Xlang.lang_of_opt_xlang_exn !lang)
-            ~json:(!output_format <> Text) ~verbose:true xs) );
+            ~json:
+              (match !output_format with
+              | Json _ -> true
+              | Text _
+              | NoOutput ->
+                  false)
+            ~verbose:true xs) );
     (* the dumpers *)
     ( "-dump_extensions",
       " print file extension to language mapping",
@@ -452,8 +457,9 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
       " report detailed matching times as part of the JSON response. Implies \
        '-json'." );
     ( "-pvar",
-      Arg.String (fun s -> mvars := String_.split ~sep:"," s),
-      " <metavars> print the metavariables, not the matched code" );
+      Arg.String (fun s -> output_format := Text (String_.split ~sep:"," s)),
+      " <metavars> print the metavariables, not the matched code (imply TEXT \
+       format)" );
     ( "-fail_fast",
       Arg.Set Flag.fail_fast,
       " stop at first exception (and get a backtrace)" );
