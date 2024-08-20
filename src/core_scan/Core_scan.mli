@@ -30,13 +30,11 @@ val scan :
 (*****************************************************************************)
 
 val rules_from_rule_source :
-  < Cap.tmp > -> Core_scan_config.t -> Rule_error.rules_and_invalid
+  Core_scan_config.rule_source -> Rule_error.rules_and_invalid
 (** Get the rules *)
 
 val targets_of_config :
-  < Cap.tmp > ->
-  Core_scan_config.t ->
-  Target.t list * Semgrep_output_v1_t.skipped_target list
+  Core_scan_config.t -> Target.t list * Semgrep_output_v1_t.skipped_target list
 (**
   Compute the set of targets, either by reading what was passed
   in -target, or by using Find_target.files_of_dirs_or_files.
@@ -71,11 +69,6 @@ val print_cli_progress : Core_scan_config.t -> unit
    pysemgrep to update the progress bar. See `core_runner.py`
 *)
 val print_cli_additional_targets : Core_scan_config.t -> int -> unit
-val replace_named_pipe_by_regular_file : < Cap.tmp > -> Fpath.t -> Fpath.t
-(* Small wrapper around File.replace_named_pipe_by_regular_file_if_needed.
-   Any file coming from the command line should go through this so as to
-   allows easy manual testing.
-*)
 
 val filter_files_with_too_many_matches_and_transform_as_timeout :
   int ->

@@ -90,8 +90,7 @@ let dump_il (caps : < Cap.stdout >) file =
   Visit_function_defs.visit report_func_def_with_name ast
 [@@action]
 
-let dump_v1_json caps ~(get_lang : unit -> Language.t option) file =
-  let file = Core_scan.replace_named_pipe_by_regular_file caps file in
+let dump_v1_json ~(get_lang : unit -> Language.t option) file =
   let lang =
     match get_lang () with
     | Some x -> x
@@ -144,8 +143,7 @@ let dump_equivalences (caps : < Cap.stdout >) file =
   CapConsole.print caps#stdout (Dumper.dump xs)
 [@@action]
 
-let dump_rule (caps : < Cap.tmp >) file =
-  let file = Core_scan.replace_named_pipe_by_regular_file caps file in
+let dump_rule (file : Fpath.t) : unit =
   let rules = Parse_rule.parse file in
   (* TODO: handle parse errors gracefully instead of silently ignoring *)
   rules |> Result.iter (List.iter (fun r -> UCommon.pr (Rule.show r)))
