@@ -72,12 +72,6 @@ let matching_explanations = ref Core_scan_config.default.matching_explanations
 (* main flags *)
 (* ------------------------------------------------------------------------- *)
 
-(* -e *)
-let pattern_string = ref None
-
-(* -f *)
-let pattern_file = ref None
-
 (* -rules *)
 let rule_source = ref None
 let equivalences_file = ref None
@@ -249,8 +243,6 @@ let mk_config () =
     error_recovery = !error_recovery;
     profile_start = !profile_start;
     matching_explanations = !matching_explanations;
-    pattern_string = !pattern_string;
-    pattern_file = !pattern_file;
     rule_source = !rule_source;
     filter_irrelevant_rules = !filter_irrelevant_rules;
     respect_rule_paths = !respect_rule_paths;
@@ -469,21 +461,12 @@ let all_actions (caps : Cap.all_caps) () =
 
 let options caps (actions : unit -> Arg_.cmdline_actions) =
   [
-    ( "-e",
-      Arg.String (fun s -> pattern_string := Some s),
-      " <str> use the string as the pattern" );
-    ( "-f",
-      Arg.String (fun s -> pattern_file := Some (Fpath.v s)),
-      " <file> use the file content as the pattern" );
     ( "-rules",
-      Arg.String
-        (fun s ->
-          let path = Fpath.v s in
-          (*
-        Printf.eprintf "-rules:\n%s\n%!" (UFile.read_file path);
-*)
-          rule_source := Some (Rule_file path)),
+      Arg.String (fun s -> rule_source := Some (Rule_file (Fpath.v s))),
       " <file> obtain formula of patterns from YAML/JSON/Jsonnet file" );
+    ( "-targets",
+      Arg.String (fun s -> target_source := Some (Target_file (Fpath.v s))),
+      " <file> obtain list of targets to run patterns on" );
     ( "-lang",
       Arg.String (fun s -> lang := Some (Xlang.of_string s)),
       spf " <str> choose language (valid choices:\n     %s)"
@@ -491,15 +474,6 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
     ( "-l",
       Arg.String (fun s -> lang := Some (Xlang.of_string s)),
       spf " <str> shortcut for -lang" );
-    ( "-targets",
-      Arg.String
-        (fun s ->
-          let path = Fpath.v s in
-          (*
-        Printf.eprintf "-targets:\n%s\n%!" (UFile.read_file path);
-*)
-          target_source := Some (Target_file path)),
-      " <file> obtain list of targets to run patterns on" );
     ( "-equivalences",
       Arg.String (fun s -> equivalences_file := Some (Fpath.v s)),
       " <file> obtain list of code equivalences from YAML file" );
@@ -709,10 +683,7 @@ let main_exn (caps : Cap.all_caps) (sys_argv : string array) : unit =
   if Sys.unix then Sys.set_signal Sys.sigxfsz Sys.Signal_ignore;
 
   let usage_msg =
-    spf
-      "Usage: %s [options] -lang <str> [-e|-f|-rules] <pattern> \
-       (<files_or_dirs> | -targets <file>) \n\
-       Options:"
+    spf "Usage: %s [options] -rules <file> -targets <file>\nOptions:"
       (Filename.basename sys_argv.(0))
   in
 
@@ -801,9 +772,13 @@ let main_exn (caps : Cap.all_caps) (sys_argv : string array) : unit =
             Tracing.configure_tracing "semgrep-oss";
             Tracing.with_tracing "Core_command.semgrep_core_dispatch"
               config.trace_endpoint trace_data (fun sp ->
-                Core_command.semgrep_core_dispatch caps
+                Core_command.run_conf
+                  (caps :> < Cap.stdout ; Cap.tmp ; Cap.exit >)
                   { config with top_level_span = Some sp }))
-          else Core_command.semgrep_core_dispatch caps config)
+          else
+            Core_command.run_conf
+              (caps :> < Cap.stdout ; Cap.tmp ; Cap.exit >)
+              config)
 
 let with_exception_trace f =
   Printexc.record_backtrace true;
