@@ -847,8 +847,8 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
            * the UNSAFE helper.
            *)
           let caps = Cap.stdout_caps_UNSAFE () in
-          Core_text_output.print_match caps config.match_format match_
-            config.mvars Metavariable.ii_of_mval
+          Core_text_output.print_match caps match_ config.mvars
+            Metavariable.ii_of_mval
       in
       let match_hook = match_hook ||| default_match_hook in
       let xconf =
