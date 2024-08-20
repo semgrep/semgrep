@@ -67,7 +67,6 @@ let equivalences_file = ref None
 (* TODO: infer from basename argv(0) ? *)
 let lang = ref None
 let output_format = ref Core_scan_config.default.output_format
-let match_format = ref Core_scan_config.default.match_format
 let mvars = ref ([] : Metavariable.mvar list)
 let respect_rule_paths = ref Core_scan_config.default.respect_rule_paths
 
@@ -226,7 +225,6 @@ let mk_config () =
     equivalences_file = !equivalences_file;
     lang = !lang;
     output_format = !output_format;
-    match_format = !match_format;
     mvars = !mvars;
     timeout = !timeout;
     timeout_threshold = !timeout_threshold;
@@ -440,12 +438,6 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
     ( "-no_gc_tuning",
       Arg.Clear Flag.gc_tuning,
       " use OCaml's default garbage collector settings" );
-    ( "-emacs",
-      Arg.Unit (fun () -> match_format := Core_text_output.Emacs),
-      " print matches on the same line than the match position" );
-    ( "-oneline",
-      Arg.Unit (fun () -> match_format := Core_text_output.OneLine),
-      " print matches on one line, in normalized form" );
     ( "-json",
       Arg.Unit (fun () -> output_format := Json true),
       " output JSON format" );
