@@ -21,7 +21,6 @@ from semgrep.console import console
 from semgrep.console import Title
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import Colors
-from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
@@ -219,7 +218,7 @@ def format_lines(
     if trimmed > 0:
         yield Text.assemble(
             " " * (FINDINGS_INDENT_DEPTH - 4),
-            f" [hid {trimmed} additional lines, adjust with {MAX_LINES_FLAG_NAME}] ",
+            f" [hid {trimmed} additional lines, adjust with --max-lines-per-finding] ",
         )
     elif lines and show_separator:
         longest_line_len = min(

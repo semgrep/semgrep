@@ -16,10 +16,18 @@ type conf = {
   fixed_lines : bool;
   (* true when using --verbose or --debug in Scan_CLI.ml *)
   skipped_files : bool;
+  (* Used when displaying rule ids or skipped files. If above the limit,
+   * the entries will not be displayed and replaced by a <SKIPPED DATA>
+   * in the log output.
+   *)
+  max_log_list_entries : int;
 }
 [@@deriving show]
 
 val default : conf
+
+(* used with max_log_list_entries *)
+val too_much_data : string
 
 (* Some parameters that are determined at runtime can also affect
  * the output. For example, if a user is not logged in, then in

@@ -206,6 +206,7 @@ def ci(
     matching_explanations: bool,
     max_chars_per_line: int,
     max_lines_per_finding: int,
+    max_log_list_entries: int,
     max_memory: Optional[int],
     max_target_bytes: int,
     metrics: Optional[MetricsState],
@@ -478,6 +479,7 @@ def ci(
             output_per_finding_max_lines_limit=max_lines_per_finding,
             output_per_line_max_chars_limit=max_chars_per_line,
             dataflow_traces=dataflow_traces,
+            max_log_list_entries=max_log_list_entries,
         )
         output_handler = OutputHandler(output_settings)
 

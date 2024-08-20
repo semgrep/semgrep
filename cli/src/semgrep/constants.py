@@ -101,13 +101,11 @@ NOSEM_PREVIOUS_LINE_RE = re.compile(
 
 COMMA_SEPARATED_LIST_RE = re.compile(r"[,\s]")
 
-MAX_LINES_FLAG_NAME = "--max-lines-per-finding"
 DEFAULT_MAX_LINES_PER_FINDING = 10
 BREAK_LINE_WIDTH = 80
 BREAK_LINE_CHAR = "-"
 BREAK_LINE = BREAK_LINE_CHAR * BREAK_LINE_WIDTH
 
-MAX_CHARS_FLAG_NAME = "--max-chars-per-line"
 DEFAULT_MAX_CHARS_PER_LINE = 160
 ELLIPSIS_STRING = " ... "
 
@@ -116,8 +114,9 @@ ELLIPSIS_STRING = " ... "
 DEFAULT_MAX_TARGET_SIZE = 1000000  # 1 MB
 
 # Number of entries (rules, targets) beyond we're not logging anymore
-TOO_MANY_ENTRIES = 100
-TOO_MUCH_DATA = "<SKIPPED DATA (too big or contain too many entries)>"
+# coupling: with Output.ml
+DEFAULT_MAX_LOG_LIST_ENTRIES = 100
+TOO_MUCH_DATA = "<SKIPPED DATA (too many entries; use --max-log-list-entries)>"
 
 
 class Colors(Enum):

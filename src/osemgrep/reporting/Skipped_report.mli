@@ -21,4 +21,7 @@ val group_skipped :
   Semgrep_output_v1_t.skipped_target list -> skipped_targets_grouped
 
 val pp_skipped :
-  Format.formatter -> bool * Maturity.t * int * skipped_targets_grouped -> unit
+  too_many_entries:int ->
+  Format.formatter ->
+  bool * Maturity.t * int * skipped_targets_grouped ->
+  unit
