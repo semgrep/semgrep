@@ -27,8 +27,7 @@ module TCM = Test_compare_matches
 (* Helpers *)
 (*****************************************************************************)
 
-let config : Core_scan_config.t =
-  { Core_scan_config.default with version = "test" }
+let config : Core_scan_config.t = Core_scan_config.default
 
 (*****************************************************************************)
 (* Entry point *)
