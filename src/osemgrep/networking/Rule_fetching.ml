@@ -519,20 +519,18 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict:_ caps
     | Pattern (pat, xlang_opt, fix) ->
         let valid_langs = langs_of_pattern (pat, xlang_opt) in
         let rules_and_origins =
-          List_.map
-            (fun xlang ->
-              let xpat =
-                match Parse_rule.parse_fake_xpattern xlang pat with
-                | Ok xpat -> xpat
-                (* TODO: this shouldn't be any worse than the status quo but
-                   this should be more robust *)
-                | Error e -> failwith (Rule_error.string_of_error e)
-              in
-              let rule = Rule.rule_of_xpattern ~fix xlang xpat in
-              rules_and_origin_of_rule rule)
-            valid_langs
+          valid_langs
+          |> List_.map (fun xlang ->
+                 let xpat =
+                   match Parse_rule.parse_fake_xpattern xlang pat with
+                   | Ok xpat -> xpat
+                   (* TODO: this shouldn't be any worse than the status quo but
+                      this should be more robust *)
+                   | Error e -> failwith (Rule_error.string_of_error e)
+                 in
+                 let rule = Rule.rule_of_xpattern ~fix xlang xpat in
+                 rules_and_origin_of_rule rule)
         in
-
         (* In run_scan.py, in the pattern case, we would do this:
            if real_config_errors and strict:
                raise SemgrepError(
