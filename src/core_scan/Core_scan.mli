@@ -7,23 +7,24 @@ type func = Core_scan_config.t -> Core_result.result_or_exn
  *
  * [scan config] runs a core scan with a starting list
  * of targets and capture any exception.
+ * (TODO remove the "starting" above, impose fixed list of targets)
  * This internally calls Match_rules.check on every files, in
  * parallel, with some memory limits, and aggregate the results.
+ *
+ * It can print things on stdout depending on Core_scan_config.output_format:
+ *  - incremental dots when used from pysemgrep in Json true mode
+ *  - incremental matches when used from semgrep-core in Text mode
+ *  - nothing when called from osemgrep, unless file_match_hook
+ *    is also set in which case it can display incremental matches too
+ * The rest of the output is done in the caller of scan() such as
+ * Core_command.run_conf() for semgrep-core.
  *
  * This has the type [func] defined above.
  *
  * Note that this function will run the pre/post scan hook defined
  * in Pre_post_core_scan.hook_processor.
- *
- * The match_hook parameter is a deprecated way to print matches. If not
- * provided, it defaults to a function that internally calls
- * Core_text_output.print_match().
  *)
-val scan :
-  ?match_hook:(Pattern_match.t -> unit) ->
-  < Cap.tmp > ->
-  Core_scan_config.t ->
-  Core_result.result_or_exn
+val scan : < Cap.tmp > -> Core_scan_config.t -> Core_result.result_or_exn
 
 (*****************************************************************************)
 (* Utilities functions used in tests or semgrep-pro *)
@@ -38,6 +39,7 @@ val targets_of_config :
 (**
   Compute the set of targets, either by reading what was passed
   in -target, or by using Find_target.files_of_dirs_or_files.
+  TODO: replace by just 'Get the targets'
  *)
 
 (* This is also used by semgrep-proprietary. It filters the rules that
@@ -61,14 +63,21 @@ val select_applicable_rules_for_analyzer :
   analyzer:Xlang.t -> Rule.t list -> Rule.t list
 
 (* This function prints a dot, which is consumed by pysemgrep to update
-   the progress bar. See `core_runner.py`
+   the progress bar if the output_format is Json true.
+   See also `core_runner.py`
 *)
 val print_cli_progress : Core_scan_config.t -> unit
 
 (* This function prints the number of additional targets, which is consumed by
-   pysemgrep to update the progress bar. See `core_runner.py`
+   pysemgrep to update the progress bar, if the output_format is Json true.
+   This was used by extract-mode (TODO still useful?).
+   See `core_runner.py`
 *)
 val print_cli_additional_targets : Core_scan_config.t -> int -> unit
+
+(* This function print matches incrementally when the output_format is Text *)
+val print_incremental_matches_when_text_mode :
+  Core_scan_config.t -> Pattern_match.t -> unit
 
 val filter_files_with_too_many_matches_and_transform_as_timeout :
   int ->
