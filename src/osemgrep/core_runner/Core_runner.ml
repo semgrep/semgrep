@@ -24,6 +24,11 @@ type conf = {
   timeout : float;
   timeout_threshold : int; (* output flags *)
   (* features *)
+  (* TODO: move nosem in Scan_CLI.conf and handled it Scan_subcommand.ml.
+   * Core_scan does not use nosem anymore, or more precisely it always
+   * have nosem=true and return findings with ignore=false and assume
+   * the caller will handle the ignored findings.
+   *)
   nosem : bool;
   strict : bool;
   (* useful for debugging rules *)
@@ -223,7 +228,7 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
    max_memory_mb;
    optimizations;
    matching_explanations;
-   nosem;
+   nosem = _TODO;
    strict;
    time_flag;
    (* TODO *)
@@ -244,9 +249,7 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
         max_memory_mb;
         filter_irrelevant_rules;
         matching_explanations;
-        nosem;
         strict;
-        version = Version.version;
         report_time = time_flag;
       }
 
