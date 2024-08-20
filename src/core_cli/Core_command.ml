@@ -36,6 +36,9 @@ let output_core_results (caps : < Cap.stdout ; Cap.exit >)
    * Common2.write_value matches "/tmp/debug_matches";
    *)
   match config.output_format with
+  (* note that the dots have been displayed before in Core_scan.scan ()
+   * for pysemgrep. Here we print the matches (and errors).
+   *)
   | Json _ -> (
       let res =
         match result_or_exn with
@@ -64,14 +67,16 @@ let output_core_results (caps : < Cap.stdout ; Cap.exit >)
       | Error exn ->
           Core_exit_code.exit_semgrep caps#exit (Unknown_exception exn)
       | Ok _ -> ())
-  (* TODO: delete, you should now use osemgrep for this *)
-  | Text -> (
+  (* The matches have already been printed before in Core_scan.scan(). We just
+   * print the errors here (and matching explanations).
+   * LATER: you should now use osemgrep for this
+   *)
+  | Text _ -> (
       match result_or_exn with
       | Ok res ->
           if config.matching_explanations then
             res.explanations
             |> Option.iter (List.iter Matching_explanation.print);
-          (* the match has already been printed above. We just print errors here *)
           if not (List_.null res.errors) then (
             Logs.warn (fun m ->
                 m "some files were skipped or only partially analyzed");
@@ -79,6 +84,7 @@ let output_core_results (caps : < Cap.stdout ; Cap.exit >)
             |> List.iter (fun err ->
                    Logs.warn (fun m -> m "%s" (E.string_of_error err))))
       | Error exn -> Exception.reraise exn)
+  | NoOutput -> ()
 
 (*****************************************************************************)
 (* Entry point *)

@@ -18,8 +18,12 @@ open Common
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* This file is deprecated. You should use osemgrep text output instead
+(* This file is mostly deprecated. You should use osemgrep text output instead
  * and stop using directly semgrep-core.
+ *
+ * it is unfortunately still useful to use the text output of semgrep-core,
+ * even when combined with the -rules and -targets passed from pysemgrep,
+ * to better see what is going on when debugging.
  *)
 
 (*****************************************************************************)
@@ -117,8 +121,7 @@ let print_taint_trace (caps : < Cap.stdout >) taint_trace =
 (*****************************************************************************)
 
 let print_match (caps : < Cap.stdout >) (match_ : Pattern_match.t)
-    (mvars : Metavariable.mvar list)
-    (ii_of_any : Metavariable.mvalue -> Tok.t list) : unit =
+    (mvars : Metavariable.mvar list) : unit =
   let print = CapConsole.print caps#stdout in
   let Pattern_match.
         { env; tokens = (lazy tokens_matched_code); taint_trace; dependency; _ }
@@ -152,7 +155,7 @@ let print_match (caps : < Cap.stdout >) (match_ : Pattern_match.t)
        |> List_.map (fun x ->
               match Common2.assoc_opt x env with
               | Some any ->
-                  any |> ii_of_any
+                  any |> Metavariable.ii_of_mval
                   |> List.filter Tok.is_origintok
                   |> List_.map Tok.content_of_tok
                   |> join_with_space_if_needed
