@@ -42,7 +42,6 @@ from semgrep.config_resolver import get_config
 from semgrep.constants import DEFAULT_DIFF_DEPTH
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
-from semgrep.constants import TOO_MANY_ENTRIES
 from semgrep.constants import TOO_MUCH_DATA
 from semgrep.core_runner import CoreRunner
 from semgrep.core_runner import Plan
@@ -93,7 +92,7 @@ logger = getLogger(__name__)
 ##############################################################################
 
 
-def get_file_ignore() -> FileIgnore:
+def get_file_ignore(max_log_list_entries: int) -> FileIgnore:
     TEMPLATES_DIR = Path(__file__).parent / "templates"
     try:
         workdir = Path.cwd()
@@ -123,6 +122,7 @@ def get_file_ignore() -> FileIgnore:
         file_ignore = FileIgnore.from_unprocessed_patterns(
             base_path=workdir,
             patterns=Parser(file_path=semgrepignore_path, base_path=workdir).parse(f),
+            max_log_list_entries=max_log_list_entries,
         )
 
     return file_ignore
@@ -136,7 +136,9 @@ def file_ignore_to_ignore_profiles(
     return {
         SAST_PRODUCT: file_ignore,
         SCA_PRODUCT: file_ignore,
-        SECRETS_PRODUCT: FileIgnore(file_ignore.base_path, frozenset()),
+        SECRETS_PRODUCT: FileIgnore(
+            file_ignore.base_path, frozenset(), max_log_list_entries=0
+        ),
     }
 
 
@@ -525,6 +527,7 @@ def run_scan(
 
     respect_git_ignore = not no_git_ignore
     target_strings = frozenset(Path(t) for t in target)
+    too_many_entries = output_handler.settings.max_log_list_entries
 
     try:
         target_manager = TargetManager(
@@ -536,7 +539,9 @@ def run_scan(
             respect_rule_paths=respect_rule_paths,
             baseline_handler=baseline_handler,
             allow_unknown_extensions=not skip_unknown_extensions,
-            ignore_profiles=file_ignore_to_ignore_profiles(get_file_ignore()),
+            ignore_profiles=file_ignore_to_ignore_profiles(
+                get_file_ignore(too_many_entries)
+            ),
         )
         # Debugging option --x-ls
         if x_ls:
@@ -582,19 +587,19 @@ def run_scan(
 
     if logger.isEnabledFor(logger.VERBOSE_LOG_LEVEL):
         logger.verbose("Rules:")
-        if len(normal_rules) <= TOO_MANY_ENTRIES:
+        if too_many_entries > 0 and len(normal_rules) > too_many_entries:
+            logger.verbose(TOO_MUCH_DATA)
+        else:
             for ruleid in sorted(rule.id for rule in normal_rules):
                 logger.verbose(f"- {ruleid}")
-        else:
-            logger.verbose(TOO_MUCH_DATA)
 
         if len(experimental_rules) > 0:
             logger.verbose("Experimental Rules:")
-            if len(experimental_rules) <= TOO_MANY_ENTRIES:
+            if too_many_entries > 0 and len(experimental_rules) > too_many_entries:
+                logger.verbose(TOO_MUCH_DATA)
+            else:
                 for ruleid in sorted(rule.id for rule in experimental_rules):
                     logger.verbose(f"- {ruleid}")
-            else:
-                logger.verbose(TOO_MUCH_DATA)
 
     (
         rule_matches_by_rule,
@@ -692,7 +697,7 @@ def run_scan(
                         respect_git_ignore=respect_git_ignore,
                         allow_unknown_extensions=not skip_unknown_extensions,
                         ignore_profiles=file_ignore_to_ignore_profiles(
-                            get_file_ignore()
+                            get_file_ignore(too_many_entries),
                         ),
                     )
 
