@@ -42,13 +42,14 @@ type t = {
   profile_start : float;
   matching_explanations : bool;
   (* Main flags *)
-  pattern_string : string option;
-  pattern_file : Fpath.t option;
+  (* TODO: remove the option *)
   rule_source : rule_source option;
+  target_source : target_source option;
+  (* Scanning roots. They are mutually exclusive with target_source! *)
+  (* TODO: remove roots *)
+  roots : Scanning_root.t list;
   equivalences_file : Fpath.t option;
   lang : Xlang.t option;
-  (* Scanning roots. They are mutually exclusive with target_source! *)
-  roots : Scanning_root.t list;
   output_format : output_format;
   match_format : Core_text_output.match_format;
   mvars : Metavariable.mvar list;
@@ -68,8 +69,6 @@ type t = {
    * in Run_semgrep, so the hook should not rely on shared memory!
    *)
   file_match_hook : (Fpath.t -> Core_result.matches_single_file -> unit) option;
-  (* Flag used by pysemgrep *)
-  target_source : target_source option;
   (* Common.ml action for the -dump_xxx *)
   action : string;
   (* Other *)
@@ -106,8 +105,6 @@ let default =
     profile_start = 0.;
     matching_explanations = false;
     (* Main flags *)
-    pattern_string = None;
-    pattern_file = None;
     rule_source = None;
     equivalences_file = None;
     lang = None;
