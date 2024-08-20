@@ -54,8 +54,3 @@ let setup ?log_to_file ?require_one_of_these_tags ~force_color ~level () =
   Logs.debug (fun m -> m "%s" help_msg);
   Logs.debug (fun m -> m "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
   ()
-
-(* python: defined in constants.py *)
-(* Number of entries (rules, targets) beyond we're not logging anymore *)
-let too_many_entries = 100
-let too_much_data = "<SKIPPED DATA (too big or contain too many entries)>"
