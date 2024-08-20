@@ -28,18 +28,17 @@ type target_source = Target_file of Fpath.t | Targets of Target.t list
  * LATER: should delete or merge with osemgrep Scan_CLI.conf.
  *)
 type t = {
-  (* Debugging/profiling/logging flags *)
-  log_to_file : Fpath.t option;
-  nosem : bool;
   strict : bool;
-  test : bool;
+  (* TODO: remove *)
+  error_recovery : bool;
+  (* Debugging/profiling/logging flags *)
   debug : bool;
   profile : bool;
   trace : bool;
   trace_endpoint : string option;
+  (* To add data to our opentelemetry top span, so easier to filter *)
+  top_level_span : Tracing.span option;
   report_time : bool;
-  error_recovery : bool;
-  profile_start : float;
   matching_explanations : bool;
   (* Main flags *)
   (* TODO: remove the option *)
@@ -71,10 +70,6 @@ type t = {
   file_match_hook : (Fpath.t -> Core_result.matches_single_file -> unit) option;
   (* Common.ml action for the -dump_xxx *)
   action : string;
-  (* Other *)
-  version : string;
-  (* To add data to our opentelemetry top span, which makes it easier to filter *)
-  top_level_span : Tracing.span option;
 }
 [@@deriving show]
 
@@ -91,18 +86,15 @@ type t = {
 *)
 let default =
   {
-    (* Debugging/profiling/logging flags *)
-    log_to_file = None;
-    nosem = true;
     strict = false;
-    test = false;
+    (* Debugging/profiling/logging flags *)
     debug = false;
     profile = false;
     trace = false;
     trace_endpoint = None;
+    top_level_span = None;
     report_time = false;
     error_recovery = false;
-    profile_start = 0.;
     matching_explanations = false;
     (* Main flags *)
     rule_source = None;
@@ -129,7 +121,4 @@ let default =
     target_source = None;
     (* Common.ml action for the -dump_xxx *)
     action = "";
-    (* Other *)
-    version = "";
-    top_level_span = None;
   }
