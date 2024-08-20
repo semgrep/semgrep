@@ -162,8 +162,7 @@ let log_parsing_errors file (res : Parsing_result2.t) =
         |> String.concat "\n"))
 
 (* works with -lang *)
-let dump_pattern (caps : < Cap.tmp >) (file : Fpath.t) =
-  let file = Core_scan.replace_named_pipe_by_regular_file caps file in
+let dump_pattern (file : Fpath.t) =
   let s = UFile.read_file file in
   (* mostly copy-paste of parse_pattern in runner, but with better error report *)
   let lang = Xlang.lang_of_opt_xlang_exn !lang in
@@ -177,8 +176,7 @@ let dump_pattern (caps : < Cap.tmp >) (file : Fpath.t) =
       | Error e -> Logs.app (fun m -> m "Parse error: %s" e))
 [@@action]
 
-let dump_patterns_of_rule (caps : < Cap.tmp >) (file : Fpath.t) =
-  let file = Core_scan.replace_named_pipe_by_regular_file caps file in
+let dump_patterns_of_rule (file : Fpath.t) =
   match Parse_rule.parse file with
   | Ok rules ->
       let xpats = List.concat_map Visit_rule.xpatterns_of_rule rules in
@@ -195,11 +193,8 @@ let dump_patterns_of_rule (caps : < Cap.tmp >) (file : Fpath.t) =
   | Error e -> failwith (Rule_error.string_of_error e)
 [@@action]
 
-let dump_ast ?(naming = false) (caps : < Cap.stdout ; Cap.exit ; Cap.tmp >)
+let dump_ast ?(naming = false) (caps : < Cap.stdout ; Cap.exit >)
     (lang : Language.t) (file : Fpath.t) =
-  let file =
-    Core_scan.replace_named_pipe_by_regular_file (caps :> < Cap.tmp >) file
-  in
   E.try_with_log_exn_and_reraise file (fun () ->
       let res =
         if naming then Parse_target.parse_and_resolve_name lang file
@@ -278,8 +273,7 @@ let all_actions (caps : Cap.all_caps) () =
     (* possibly useful to the user *)
     ( "-show_ast_json",
       " <file> dump on stdout the generic AST of file in JSON",
-      Arg_.mk_action_1_conv Fpath.v
-        (Core_actions.dump_v1_json (caps :> < Cap.tmp >) ~get_lang) );
+      Arg_.mk_action_1_conv Fpath.v (Core_actions.dump_v1_json ~get_lang) );
     ( "-generate_ast_json",
       " <file> save in file.ast.json the generic AST of file in JSON",
       Arg_.mk_action_1_conv Fpath.v Core_actions.generate_ast_json );
@@ -297,19 +291,16 @@ let all_actions (caps : Cap.all_caps) () =
       " print file extension to language mapping",
       Arg_.mk_action_0_arg
         (Core_actions.dump_ext_of_lang (caps :> < Cap.stdout >)) );
-    ( "-dump_pattern",
-      " <file>",
-      Arg_.mk_action_1_conv Fpath.v (dump_pattern (caps :> < Cap.tmp >)) );
+    ("-dump_pattern", " <file>", Arg_.mk_action_1_conv Fpath.v dump_pattern);
     ( "-dump_patterns_of_rule",
       " <file>",
-      Arg_.mk_action_1_conv Fpath.v
-        (dump_patterns_of_rule (caps :> < Cap.tmp >)) );
+      Arg_.mk_action_1_conv Fpath.v dump_patterns_of_rule );
     ( "-dump_ast",
       " <file>",
       fun file ->
         Arg_.mk_action_1_conv Fpath.v
           (dump_ast ~naming:false
-             (caps :> < Cap.stdout ; Cap.exit ; Cap.tmp >)
+             (caps :> < Cap.stdout ; Cap.exit >)
              (Xlang.lang_of_opt_xlang_exn !lang))
           file );
     ( "-dump_lang_ast",
@@ -323,7 +314,7 @@ let all_actions (caps : Cap.all_caps) () =
       fun file ->
         Arg_.mk_action_1_conv Fpath.v
           (dump_ast ~naming:true
-             (caps :> < Cap.stdout ; Cap.exit ; Cap.tmp >)
+             (caps :> < Cap.stdout ; Cap.exit >)
              (Xlang.lang_of_opt_xlang_exn !lang))
           file );
     ( "-dump_il_all",
@@ -336,8 +327,7 @@ let all_actions (caps : Cap.all_caps) () =
         (Core_actions.dump_il (caps :> < Cap.stdout >)) );
     ( "-dump_rule",
       " <file>",
-      Arg_.mk_action_1_conv Fpath.v
-        (Core_actions.dump_rule (caps :> < Cap.tmp >)) );
+      Arg_.mk_action_1_conv Fpath.v Core_actions.dump_rule );
     ( "-dump_equivalences",
       " <file> (deprecated)",
       Arg_.mk_action_1_conv Fpath.v
@@ -345,33 +335,18 @@ let all_actions (caps : Cap.all_caps) () =
     ( "-dump_tree_sitter_cst",
       " <file> dump the CST obtained from a tree-sitter parser",
       Arg_.mk_action_1_conv Fpath.v (fun file ->
-          let file =
-            Core_scan.replace_named_pipe_by_regular_file
-              (caps :> < Cap.tmp >)
-              file
-          in
           Test_parsing.dump_tree_sitter_cst
             (Xlang.lang_of_opt_xlang_exn !lang)
             !!file) );
     ( "-dump_tree_sitter_pattern_cst",
       " <file>",
       Arg_.mk_action_1_conv Fpath.v (fun file ->
-          let file =
-            Core_scan.replace_named_pipe_by_regular_file
-              (caps :> < Cap.tmp >)
-              file
-          in
           Parse_pattern2.dump_tree_sitter_pattern_cst
             (Xlang.lang_of_opt_xlang_exn !lang)
             file) );
     ( "-dump_pfff_ast",
       " <file> dump the generic AST obtained from a pfff parser",
       Arg_.mk_action_1_conv Fpath.v (fun file ->
-          let file =
-            Core_scan.replace_named_pipe_by_regular_file
-              (caps :> < Cap.tmp >)
-              file
-          in
           Test_parsing.dump_pfff_ast (Xlang.lang_of_opt_xlang_exn !lang) file)
     );
     ( "-diff_pfff_tree_sitter",
