@@ -18,7 +18,7 @@ let pp_rule_sources ppf = function
 (* Entry point *)
 (*****************************************************************************)
 
-let pp_rules ppf (rules_source, filtered_rules) =
+let pp_rules ~too_many_entries ppf (rules_source, filtered_rules) =
   Fmt.pf ppf "running %d rules from %a@."
     (List.length filtered_rules)
     pp_rule_sources rules_source;
@@ -34,11 +34,12 @@ let pp_rules ppf (rules_source, filtered_rules) =
   let sorted =
     List.sort (fun r1 r2 -> Rule_ID.compare (rule_id r1) (rule_id r2))
   in
-  if List.length normal <= Log_semgrep.too_many_entries then
+  if too_many_entries > 0 && List.length normal > too_many_entries then
+    Fmt.pf ppf "%s" Output.too_much_data
+  else
     sorted normal
     |> List.iter (fun rule ->
-           Fmt.pf ppf "- %s@." (Rule_ID.to_string (rule_id rule)))
-  else Fmt.pf ppf "%s" Log_semgrep.too_much_data;
+           Fmt.pf ppf "- %s@." (Rule_ID.to_string (rule_id rule)));
   match exp with
   | [] -> ()
   | __non_empty__ ->

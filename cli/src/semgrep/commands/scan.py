@@ -29,10 +29,9 @@ from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_DIFF_DEPTH
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
+from semgrep.constants import DEFAULT_MAX_LOG_LIST_ENTRIES
 from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
 from semgrep.constants import DEFAULT_TIMEOUT
-from semgrep.constants import MAX_CHARS_FLAG_NAME
-from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.constants import OutputFormat
 from semgrep.core_runner import CoreRunner
 from semgrep.engine import EngineType
@@ -182,14 +181,19 @@ _scan_options: List[Callable] = [
         is_flag=True,
     ),
     optgroup.option(
-        MAX_CHARS_FLAG_NAME,
+        "--max-chars-per-line",
         type=int,
         default=DEFAULT_MAX_CHARS_PER_LINE,
     ),
     optgroup.option(
-        MAX_LINES_FLAG_NAME,
+        "--max-lines-per-finding",
         type=int,
         default=DEFAULT_MAX_LINES_PER_FINDING,
+    ),
+    optgroup.option(
+        "--max-log-list-entries",
+        type=int,
+        default=DEFAULT_MAX_LOG_LIST_ENTRIES,
     ),
     optgroup.option(
         "--dataflow-traces",
@@ -519,6 +523,7 @@ def scan(
     matching_explanations: bool,
     max_chars_per_line: int,
     max_lines_per_finding: int,
+    max_log_list_entries: int,
     max_memory: Optional[int],
     max_target_bytes: int,
     metrics: Optional[MetricsState],
@@ -666,15 +671,17 @@ def scan(
             outputs=outputs,
             output_format=output_format,
             output_destination=output,
-            error_on_findings=error_on_findings,
-            strict=strict,
             verbose_errors=verbose,
             timeout_threshold=timeout_threshold,
             output_time=time_flag,
             output_per_finding_max_lines_limit=max_lines_per_finding,
             output_per_line_max_chars_limit=max_chars_per_line,
             dataflow_traces=dataflow_traces,
+            max_log_list_entries=max_log_list_entries,
+            # those are not set in ci.py as they are scan-specific flags
             use_osemgrep_to_format=use_osemgrep_to_format,
+            error_on_findings=error_on_findings,
+            strict=strict,
         )
 
         if test:

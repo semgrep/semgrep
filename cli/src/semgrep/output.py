@@ -138,6 +138,8 @@ class NormalizedOutputSettings(NamedTuple):
     output_time: bool
     timeout_threshold: int
     dataflow_traces: bool
+    # alt: put that in terminal.py, which can then be accessed globally
+    max_log_list_entries: int
 
     def get_outputs(self) -> Iterator[Tuple[Optional[str], OutputFormat]]:
         return self.outputs.items().__iter__()
@@ -149,10 +151,6 @@ class NormalizedOutputSettings(NamedTuple):
         return self.has_output_format(OutputFormat.TEXT)
 
 
-# WARNING: this class is unofficially part of our external API. It can be passed
-# as an argument to our official API: 'semgrep_main.invoke_semgrep'. Try to minimize
-# changes to this API, and make them backwards compatible, if possible.
-# Calling normalize produces the internal representation used by OutputHandler.
 class OutputSettings(NamedTuple):
     outputs: Optional[Dict[Optional[str], OutputFormat]] = None
     output_format: Optional[OutputFormat] = None
@@ -166,6 +164,7 @@ class OutputSettings(NamedTuple):
     timeout_threshold: int = 0
     dataflow_traces: bool = False
     use_osemgrep_to_format: Optional[Set[OutputFormat]] = None
+    max_log_list_entries: int = 0
 
     def normalize(self) -> NormalizedOutputSettings:
         normalized_outputs: Dict[Optional[str], OutputFormat] = {}
@@ -192,6 +191,7 @@ class OutputSettings(NamedTuple):
             output_time=self.output_time,
             timeout_threshold=self.timeout_threshold,
             dataflow_traces=self.dataflow_traces,
+            max_log_list_entries=self.max_log_list_entries,
         )
 
 
@@ -520,7 +520,8 @@ class OutputHandler:
                     learn_more_line = f"⚡ Supercharge Semgrep OSS when you create a free account at {learn_more_url}."
                     stats_line = f"{stats_line}\n{missed_count_line}\n{learn_more_line}"
             if ignore_log is not None:
-                logger.verbose(ignore_log.verbose_output())
+                too_many_entries = self.settings.max_log_list_entries
+                logger.verbose(ignore_log.verbose_output(too_many_entries))
 
             output_text = ignores_line + suggestion_line + stats_line
             console.print(Title("Scan Summary"))
