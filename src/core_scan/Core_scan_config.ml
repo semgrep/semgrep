@@ -28,7 +28,6 @@ type target_source = Target_file of Fpath.t | Targets of Target.t list
  * LATER: should delete or merge with osemgrep Core_runner.conf
  *)
 type t = {
-  strict : bool;
   (* debugging and telemetry flags *)
   trace : bool;
   trace_endpoint : string option;
@@ -46,10 +45,16 @@ type t = {
   equivalences_file : Fpath.t option;
   lang : Xlang.t option;
   output_format : output_format;
-  match_format : Core_text_output.match_format;
   mvars : Metavariable.mvar list;
   (* Tweaking *)
+  strict : bool;
   respect_rule_paths : bool;
+  (* Hook to display match results incrementally, after a file has been fully
+   * processed. Note that this hook run in a child process of Parmap
+   * in Core_scan.scan(), so the hook should not rely on shared memory!
+   * This is also now used in Runner_service.ml and Git_remote.ml.
+   *)
+  file_match_hook : (Fpath.t -> Core_result.matches_single_file -> unit) option;
   (* Limits *)
   (* maximum time to spend running a rule on a single file *)
   timeout : float;
@@ -58,12 +63,8 @@ type t = {
   max_memory_mb : int;
   max_match_per_file : int;
   ncores : int;
+  (* a.k.a -fast (on by default) *)
   filter_irrelevant_rules : bool;
-  (* Hook to display match results incrementally, after a file has been fully
-   * processed. Note that this hook run in a child process of Parmap
-   * in Run_semgrep, so the hook should not rely on shared memory!
-   *)
-  file_match_hook : (Fpath.t -> Core_result.matches_single_file -> unit) option;
 }
 [@@deriving show]
 
@@ -80,7 +81,6 @@ type t = {
 *)
 let default =
   {
-    strict = false;
     (* debugging and telemetry flags *)
     trace = false;
     trace_endpoint = None;
@@ -94,10 +94,11 @@ let default =
     lang = None;
     roots = [];
     output_format = Text;
-    match_format = Core_text_output.Normal;
     mvars = [];
     (* tweaking *)
+    strict = false;
     respect_rule_paths = true;
+    file_match_hook = None;
     (* Limits *)
     (* maximum time to spend running a rule on a single file *)
     timeout = 0.;
@@ -108,5 +109,4 @@ let default =
     ncores = 1;
     (* a.k.a -fast, on by default *)
     filter_irrelevant_rules = true;
-    file_match_hook = None;
   }

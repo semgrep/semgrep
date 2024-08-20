@@ -210,12 +210,12 @@ let output_and_exit_from_fatal_core_errors (caps : < Cap.stdout >)
 let mk_file_match_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
     (printer : Scan_CLI.conf -> Out.cli_match list -> unit) (_file : Fpath.t)
     (match_results : Core_result.matches_single_file) : unit =
-  let (cli_matches : Out.cli_match list) =
+  let cli_matches : Out.cli_match list =
     (* need to go through a series of transformation so that we can
      * get something that Matches_report.pp_text_outputs can operate on
      *)
-    let (pms : Pattern_match.t list) = match_results.matches in
-    let (core_matches : Out.core_match list) =
+    let pms : Pattern_match.t list = match_results.matches in
+    let core_matches : Out.core_match list =
       pms
       (* OK, because we don't need the postprocessing to report the matches. *)
       |> List_.map Core_result.mk_processed_match
@@ -228,23 +228,18 @@ let mk_file_match_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
     |> List_.map
          (Cli_json_output.cli_match_of_core_match
             ~fixed_lines:conf.output_conf.fixed_lines fixed_env hrules)
-  in
-  let cli_matches =
-    cli_matches
-    |> List_.exclude (fun (m : Out.cli_match) ->
-           Option.value ~default:false m.extra.is_ignored)
+    |> List_.exclude (fun (m : Out.cli_match) -> m.extra.is_ignored ||| false)
   in
   if cli_matches <> [] then (
     (* nosemgrep: forbid-console *)
     Unix.lockf Unix.stdout Unix.F_LOCK 0;
     Common.protect
-      (fun () ->
-        (* coupling: similar to Output.dispatch_output_format for Text *)
-        printer conf cli_matches)
+      (fun () -> printer conf cli_matches)
       ~finally:(fun () ->
         (* nosemgrep: forbid-console *)
         Unix.lockf Unix.stdout Unix.F_ULOCK 0))
 
+(* coupling: similar to Output.dispatch_output_format for Text *)
 let incremental_text_printer (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
     (cli_matches : Out.cli_match list) : unit =
   (* TODO: we should switch to Fmt_.with_buffer_to_string +
