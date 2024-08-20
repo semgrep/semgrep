@@ -903,7 +903,7 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
           Core_text_output.print_match caps config.match_format match_
             config.mvars Metavariable.ii_of_mval
       in
-      let match_hook = Option.value match_hook ~default:default_match_hook in
+      let match_hook = match_hook ||| default_match_hook in
       let xconf =
         {
           Match_env.config = Rule_options.default_config;
@@ -959,19 +959,7 @@ let scan_exn ?match_hook (caps : < Cap.tmp >) (config : Core_scan_config.t)
   in
 
   (* The basic targets *)
-  let basic_targets, skipped = targets_of_config caps config in
-  let targets =
-    (* Optimization: no valid rule => no findings.
-       This solution avoids using an exception which would be a little harder
-       to track.
-       Use case: a user is creating a rule and testing it on their project
-       but the rule is invalid. *)
-    match valid_rules with
-    | [] -> []
-    | _some_rules -> basic_targets
-  in
-
-  let all_targets = targets in
+  let targets, skipped = targets_of_config caps config in
   let prefilter_cache_opt =
     if config.filter_irrelevant_rules then
       Match_env.PrefilterWithCache (Hashtbl.create (List.length valid_rules))
@@ -979,7 +967,7 @@ let scan_exn ?match_hook (caps : < Cap.tmp >) (config : Core_scan_config.t)
   in
 
   (* Add information to the trace *)
-  let num_targets = List.length all_targets in
+  let num_targets = List.length targets in
   let num_skipped_targets = List.length skipped in
   Tracing.add_data_to_opt_span config.top_level_span
     [
@@ -996,7 +984,7 @@ let scan_exn ?match_hook (caps : < Cap.tmp >) (config : Core_scan_config.t)
         num_targets num_skipped_targets (List.length valid_rules)
         (List.length invalid_rules));
   let file_results, scanned_targets =
-    all_targets
+    targets
     |> iter_targets_and_get_matches_and_exn_to_errors config
          (mk_target_handler config valid_rules prefilter_cache_opt match_hook)
   in
@@ -1010,9 +998,7 @@ let scan_exn ?match_hook (caps : < Cap.tmp >) (config : Core_scan_config.t)
     tbl
   in
   let scanned =
-    (* we do not use all_targets here, because we don't count
-     * the extracted targets
-     *)
+    (* old: we were using all_targets and targets to not count extracted one *)
     targets
     |> List.filter (fun (x : Target.t) ->
            let internal_path = Target.internal_path x in
@@ -1038,7 +1024,8 @@ let scan_exn ?match_hook (caps : < Cap.tmp >) (config : Core_scan_config.t)
       config.max_match_per_file res.processed_matches
   in
 
-  (* note: uncomment the following and use semgrep-core -stat_matches
+  (* TODO: delete this comment and -stat_matches.
+   * note: uncomment the following and use semgrep-core -stat_matches
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
    *)
