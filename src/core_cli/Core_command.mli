@@ -3,18 +3,7 @@
 (* Main entry point to the semgrep-core scan. This is called from
  * Core_CLI.ml, called itself from Main.ml
  *)
-val semgrep_core_dispatch : Cap.all_caps -> Core_scan_config.t -> unit
-
-val semgrep_core_with_one_pattern :
-  < Cap.stdout ; Cap.tmp > -> Core_scan_config.t -> unit
-(** this is the function used when running semgrep-core with -e or -f *)
-
-val semgrep_core_with_rules_and_formatted_output :
-  < Cap.stdout ; Cap.tmp ; Cap.exit > -> Core_scan_config.t -> unit
-(** [semgrep_core_with_rules_and_formatted_output config] calls
-    [Core_scan.scan] and then [output_core_results] on the results
-    This is the function used when running semgrep-core with -rules.
-*)
+val run_conf : < Cap.stdout ; Cap.tmp ; Cap.exit > -> Core_scan_config.t -> unit
 
 val output_core_results :
   < Cap.stdout ; Cap.exit > ->
