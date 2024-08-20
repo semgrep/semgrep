@@ -31,12 +31,9 @@ module J = JSON
 (* debugging/profiling/logging flags *)
 (* ------------------------------------------------------------------------- *)
 
-(* You can set those environment variables to enable debugging/profiling
- * instead of using -debug or -profile. This is useful when you don't call
- * directly semgrep-core but instead use the semgrep Python wrapper.
+(* This is useful when you don't call directly semgrep-core but instead use
+ * pysemgrep but still want to tweak the call to semgrep-core.
  *)
-let env_debug = "SEMGREP_CORE_DEBUG"
-let env_profile = "SEMGREP_CORE_PROFILE"
 let env_extra = "SEMGREP_CORE_EXTRA"
 let log_to_file = ref None
 let strict = ref Core_scan_config.default.strict
@@ -624,7 +621,7 @@ let register_exception_printers () =
 (* Main entry point *)
 (*****************************************************************************)
 
-let main_exn (caps : Cap.all_caps) (sys_argv : string array) : unit =
+let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
   register_exception_printers ();
 
   (* SIGXFSZ (file size limit exceeded)
@@ -644,16 +641,14 @@ let main_exn (caps : Cap.all_caps) (sys_argv : string array) : unit =
 
   let usage_msg =
     spf "Usage: %s [options] -rules <file> -targets <file>\nOptions:"
-      (Filename.basename sys_argv.(0))
+      (Filename.basename argv.(0))
   in
 
   (* --------------------------------------------------------- *)
   (* Setting up debugging/profiling *)
   (* --------------------------------------------------------- *)
   let argv =
-    Array.to_list sys_argv
-    @ (if Sys.getenv_opt env_debug <> None then [ "-debug" ] else [])
-    @ (if Sys.getenv_opt env_profile <> None then [ "-profile" ] else [])
+    Array.to_list argv
     @
     match Sys.getenv_opt env_extra with
     | Some s -> String_.split ~sep:"[ \t]+" s
