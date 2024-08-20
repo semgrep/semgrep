@@ -13,7 +13,6 @@ from attr import frozen
 from attrs import define
 from boltons.iterutils import partition
 
-from semgrep.constants import TOO_MANY_ENTRIES
 from semgrep.constants import TOO_MUCH_DATA
 from semgrep.error import SemgrepError
 from semgrep.state import get_state
@@ -44,6 +43,7 @@ def path_is_relative_to(p1: Path, p2: Path) -> bool:
 class FileIgnore:
     base_path: Path
     patterns: FrozenSet[str]
+    max_log_list_entries: int
 
     @lru_cache(maxsize=100_000)  # size aims to be 100x of fully caching this repo
     def _survives(self, path: Path) -> bool:
@@ -94,20 +94,25 @@ class FileIgnore:
 
     def filter_paths(self, *, candidates: Iterable[Path]) -> FilteredFiles:
         kept, removed = partition(sorted(candidates), self._filter)
-        if len(removed) <= TOO_MANY_ENTRIES:
-            for path in removed:
-                logger.verbose(f"Ignoring {path} due to .semgrepignore")
-        else:
+        too_many_entries = self.max_log_list_entries
+        if too_many_entries > 0 and len(removed) > too_many_entries:
             logger.verbose(f"Ignoring due to .semgrepignore:")
             logger.verbose(TOO_MUCH_DATA)
+        else:
+            for path in removed:
+                logger.verbose(f"Ignoring {path} due to .semgrepignore")
 
         return FilteredFiles(frozenset(kept), frozenset(removed))
 
     @classmethod
     def from_unprocessed_patterns(
-        cls, base_path: Path, patterns: Iterable[str]
+        cls, base_path: Path, patterns: Iterable[str], max_log_list_entries: int
     ) -> "FileIgnore":
-        return cls(base_path, frozenset(Processor(base_path).process(patterns)))
+        return cls(
+            base_path,
+            frozenset(Processor(base_path).process(patterns)),
+            max_log_list_entries,
+        )
 
 
 # This class is an exact duplicate of the Parser class in semgrep-action
