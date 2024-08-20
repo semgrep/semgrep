@@ -539,7 +539,9 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
   in
   let/ rules = uniq_rules_and_error_if_empty_rules rules in
   let rules = Rule_filtering.filter_rules conf.rule_filtering_conf rules in
-  Logs.info (fun m -> m "%a" Rules_report.pp_rules (conf.rules_source, rules));
+  let too_many_entries = conf.output_conf.max_log_list_entries in
+  Logs.info (fun m ->
+      m "%a" (Rules_report.pp_rules ~too_many_entries) (conf.rules_source, rules));
 
   (* step 2: printing the skipped targets *)
   let targets, skipped = targets_and_skipped in
@@ -640,7 +642,8 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
 
       let skipped_groups = Skipped_report.group_skipped skipped in
       Logs.info (fun m ->
-          m "%a" Skipped_report.pp_skipped
+          m "%a"
+            (Skipped_report.pp_skipped ~too_many_entries)
             ( conf.targeting_conf.respect_gitignore,
               conf.common.maturity,
               conf.targeting_conf.max_target_bytes,

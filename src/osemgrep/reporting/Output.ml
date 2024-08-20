@@ -19,12 +19,12 @@ module Out = Semgrep_output_v1_j
 (* Types *)
 (*****************************************************************************)
 
-(* Mostly a subset of Scan_CLI.conf with just the output relevant stuff *)
+(* This is part of Scan_CLI.conf *)
 type conf = {
   (* Display options *)
   (* mix of --json, --emacs, --vim, etc. *)
   output_format : Output_format.t;
-  (* maybe should define an Output_option.t, or add a record to
+  (* alt: maybe we should define an Output_option.t, or add a record to
    * Output_format.Text as those fields are only valid for Text output *)
   max_chars_per_line : int;
   max_lines_per_finding : int;
@@ -37,6 +37,8 @@ type conf = {
   fixed_lines : bool;
   (* true when using --verbose or --debug in Scan_CLI.ml *)
   skipped_files : bool;
+  (* alt: in CLI_common.conf *)
+  max_log_list_entries : int;
 }
 [@@deriving show]
 
@@ -53,7 +55,12 @@ let default : conf =
     strict = false;
     fixed_lines = false;
     skipped_files = false;
+    max_log_list_entries = 100;
   }
+
+(* used with max_log_list_entries *)
+let too_much_data =
+  "<SKIPPED DATA (too many entries; adjust with --max-log-list-entries)>"
 
 (*****************************************************************************)
 (* Helpers *)

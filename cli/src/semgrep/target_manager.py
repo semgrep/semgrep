@@ -41,7 +41,6 @@ from attrs import Factory, frozen
 from wcmatch import glob as wcglob
 from boltons.iterutils import partition
 
-from semgrep.constants import TOO_MANY_ENTRIES
 from semgrep.constants import TOO_MUCH_DATA
 from semgrep.constants import Colors, UNSUPPORTED_EXT_IGNORE_LANGS
 from semgrep.error import FilesNotFoundError
@@ -260,7 +259,9 @@ class FileTargetingLog:
         message += "\n"
         return message
 
-    def yield_verbose_lines(self) -> Iterator[Tuple[Literal[0, 1, 2], str]]:
+    def yield_verbose_lines(
+        self, too_many_entries: int
+    ) -> Iterator[Tuple[Literal[0, 1, 2], str]]:
         """Yields lines of verbose output for the skipped files.
 
         The returned tuple is (level, message).
@@ -286,11 +287,11 @@ class FileTargetingLog:
         yield 1, "Skipped by .semgrepignore:"
         yield 1, "- https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults"
         if self.semgrepignored:
-            if len(self.semgrepignored) <= TOO_MANY_ENTRIES:
+            if too_many_entries > 0 and len(self.semgrepignored) > too_many_entries:
+                yield 2, TOO_MUCH_DATA
+            else:
                 for path in sorted(self.semgrepignored):
                     yield 2, with_color(Colors.cyan, str(path))
-            else:
-                yield 2, TOO_MUCH_DATA
         else:
             yield 2, "<none>"
 
@@ -303,11 +304,11 @@ class FileTargetingLog:
 
         yield 1, "Skipped by --exclude patterns:"
         if self.cli_excludes:
-            if len(self.cli_excludes) <= TOO_MANY_ENTRIES:
+            if too_many_entries > 0 and len(self.cli_excludes) > too_many_entries:
+                yield 2, TOO_MUCH_DATA
+            else:
                 for path in sorted(self.cli_excludes):
                     yield 2, with_color(Colors.cyan, str(path))
-            else:
-                yield 2, TOO_MUCH_DATA
         else:
             yield 2, "<none>"
 
@@ -343,7 +344,7 @@ class FileTargetingLog:
         else:
             yield 2, "<none>"
 
-    def verbose_output(self) -> str:
+    def verbose_output(self, too_many_entries: int) -> str:
         formatters_by_level: Mapping[int, Callable[[str], str]] = {
             0: lambda line: "\n".join([40 * "=", line, 40 * "="]),
             1: lambda line: click.wrap_text(
@@ -364,7 +365,7 @@ class FileTargetingLog:
         output = ""
 
         prev_level = None
-        for level, line in self.yield_verbose_lines():
+        for level, line in self.yield_verbose_lines(too_many_entries):
             if prev_level != level:
                 output += "\n"
             formatter = formatters_by_level[level]
