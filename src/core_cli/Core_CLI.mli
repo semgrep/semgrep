@@ -5,8 +5,6 @@ val main : Cap.all_caps -> string array -> unit
 val lang : Xlang.t option ref
 val ncores : int ref
 val log_to_file : Fpath.t option ref
-val env_debug : string
-val env_profile : string
 val env_extra : string
 val mk_config : unit -> Core_scan_config.t
 
