@@ -23,23 +23,6 @@ open Common
  *)
 
 (*****************************************************************************)
-(* Types *)
-(*****************************************************************************)
-
-type match_format =
-  (* ex: tests/misc/foo4.php:3
-   *  foo(
-   *   1,
-   *   2);
-   *)
-  | Normal
-  (* ex: tests/misc/foo4.php:3: foo( *)
-  | Emacs
-  (* ex: tests/misc/foo4.php:3: foo(1,2) *)
-  | OneLine
-[@@deriving show]
-
-(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
@@ -64,7 +47,7 @@ let rec join_with_space_if_needed xs =
 (*****************************************************************************)
 
 let print_match_toks ?(str = "") ?(spaces = 0) (caps : < Cap.stdout >)
-    (format : match_format) (ii : Tok.t list) : unit =
+    (ii : Tok.t list) : unit =
   let print = CapConsole.print caps#stdout in
   try
     let mini, maxi = Tok_range.min_max_toks_by_pos ii in
@@ -74,20 +57,11 @@ let print_match_toks ?(str = "") ?(spaces = 0) (caps : < Cap.stdout >)
     let lines_str =
       UFile.lines_of_file (Tok.line_of_tok mini, end_line) (Fpath.v file)
     in
-    match format with
-    | Normal ->
-        let prefix = if str = "" then prefix else prefix ^ " " ^ str in
-        let spaces_string = String.init spaces (fun _ -> ' ') in
-        print (spaces_string ^ prefix);
-        (* todo? some context too ? *)
-        lines_str |> List.iter (fun s -> print (spaces_string ^ " " ^ s))
-    (* bugfix: do not add extra space after ':', otherwise M-x wgrep will not work *)
-    | Emacs ->
-        print (prefix ^ ":" ^ List_.hd_exn "unexpected empty list" lines_str)
-    | OneLine ->
-        print
-          (prefix ^ ": "
-          ^ (ii |> List_.map Tok.content_of_tok |> join_with_space_if_needed))
+    let prefix = if str = "" then prefix else prefix ^ " " ^ str in
+    let spaces_string = String.init spaces (fun _ -> ' ') in
+    print (spaces_string ^ prefix);
+    (* todo? some context too ? *)
+    lines_str |> List.iter (fun s -> print (spaces_string ^ " " ^ s))
   with
   | Failure "get_pos: Ab or FakeTok" ->
       print "<could not locate match, FakeTok or AbstractTok>"
@@ -112,41 +86,38 @@ let print_intermediate_vars ~spaces (caps : < Cap.stdout >) (toks : Tok.t list)
   in
   loop_print "<NO FILE>" toks
 
-let rec print_taint_call_trace (caps : < Cap.stdout >) (format : match_format)
-    ~spaces = function
-  | Pattern_match.Toks toks -> print_match_toks caps format ~spaces toks
+let rec print_taint_call_trace (caps : < Cap.stdout >) ~spaces = function
+  | Pattern_match.Toks toks -> print_match_toks caps ~spaces toks
   | Call { call_toks; intermediate_vars; call_trace } ->
       let print = CapConsole.print caps#stdout in
       let spaces_string = String.init spaces (fun _ -> ' ') in
       print (spaces_string ^ "call to");
-      print_match_toks caps format ~spaces call_toks;
+      print_match_toks caps ~spaces call_toks;
       if intermediate_vars <> [] then (
         print (spf "%sthese intermediate values are tainted:" spaces_string);
         print_intermediate_vars caps ~spaces:(spaces + 2) intermediate_vars);
       print (spaces_string ^ "then");
-      print_taint_call_trace caps format ~spaces:(spaces + 2) call_trace
+      print_taint_call_trace caps ~spaces:(spaces + 2) call_trace
 
-let print_taint_trace (caps : < Cap.stdout >) (format : match_format)
-    taint_trace =
-  if format =*= Normal then
-    taint_trace |> Lazy.force
-    |> List.iteri (fun idx { Pattern_match.source_trace; tokens; sink_trace } ->
-           let print = CapConsole.print caps#stdout in
-           if idx =*= 0 then print "  * Taint may come from this source:"
-           else print "  * Taint may also come from this source:";
-           print_taint_call_trace caps format ~spaces:4 source_trace;
-           if tokens <> [] then (
-             print "  * These intermediate values are tainted:";
-             print_intermediate_vars caps ~spaces:4 tokens);
-           print "  * This is how taint reaches the sink:";
-           print_taint_call_trace caps format ~spaces:4 sink_trace)
+let print_taint_trace (caps : < Cap.stdout >) taint_trace =
+  taint_trace |> Lazy.force
+  |> List.iteri (fun idx { Pattern_match.source_trace; tokens; sink_trace } ->
+         let print = CapConsole.print caps#stdout in
+         if idx =*= 0 then print "  * Taint may come from this source:"
+         else print "  * Taint may also come from this source:";
+         print_taint_call_trace caps ~spaces:4 source_trace;
+         if tokens <> [] then (
+           print "  * These intermediate values are tainted:";
+           print_intermediate_vars caps ~spaces:4 tokens);
+         print "  * This is how taint reaches the sink:";
+         print_taint_call_trace caps ~spaces:4 sink_trace)
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let print_match (caps : < Cap.stdout >) (format : match_format)
-    (match_ : Pattern_match.t) (mvars : Metavariable.mvar list)
+let print_match (caps : < Cap.stdout >) (match_ : Pattern_match.t)
+    (mvars : Metavariable.mvar list)
     (ii_of_any : Metavariable.mvalue -> Tok.t list) : unit =
   let print = CapConsole.print caps#stdout in
   let Pattern_match.
@@ -168,7 +139,7 @@ let print_match (caps : < Cap.stdout >) (format : match_format)
             dmatched.package_version_string )
     | _ -> None
   in
-  (if mvars =*= [] then print_match_toks caps ~str format toks
+  (if mvars =*= [] then print_match_toks caps ~str toks
    else
      (* similar to the code of Lib_matcher.print_match, maybe could
       * factorize code a bit.
@@ -192,5 +163,5 @@ let print_match (caps : < Cap.stdout >) (format : match_format)
   dep_toks_and_version
   |> Option.iter (fun (toks, version) ->
          print ("with dependency match at version " ^ version);
-         print_match_toks caps format toks);
-  taint_trace |> Option.iter (print_taint_trace caps format)
+         print_match_toks caps toks);
+  taint_trace |> Option.iter (print_taint_trace caps)

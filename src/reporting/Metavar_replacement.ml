@@ -4,12 +4,24 @@ module OutJ = Semgrep_output_v1_j
 module OutUtils = Semgrep_output_utils
 module G = AST_generic
 
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
 type replacement = {
   mval_content : string Lazy.t;
   propagated_content : string option;
 }
 
 type replacement_ctx = (string * replacement) list
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
 
 let metavar_string_of_any any =
   (* TODO: metavar_string_of_any is used in get_propagated_value
@@ -39,6 +51,10 @@ let propagated_value_string_of_mval mval =
       | Some NotCst -> None
       | None -> None)
   | __else__ -> None
+
+(*****************************************************************************)
+(* Entry points *)
+(*****************************************************************************)
 
 let of_bindings bindings =
   bindings
