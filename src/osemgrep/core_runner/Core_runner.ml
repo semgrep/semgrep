@@ -237,11 +237,8 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
    (* TODO *)
    dataflow_traces = _;
   } ->
-      (* We default to Json because we do not want the current text
-       * displayed in semgrep-core, and we don't want either the
-       * current semgrep-core incremental matches text output.
-       *)
-      let output_format = Core_scan_config.Json false (* no dots *) in
+      (* We do our own output in osemgrep, no need for Core_scan.scan() output *)
+      let output_format = Core_scan_config.NoOutput in
       let filter_irrelevant_rules = optimizations in
       {
         Core_scan_config.default with

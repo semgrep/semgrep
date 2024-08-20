@@ -225,6 +225,7 @@ let set_matches_to_proprietary_origin_if_needed (xtarget : Xtarget.t)
 (*****************************************************************************)
 (* Pysemgrep progress bar *)
 (*****************************************************************************)
+(* LATER: remove once osegmrep is fully done *)
 
 (* Print additional target count so the Python progress bar knows *)
 let print_cli_additional_targets (config : Core_scan_config.t) (n : int) : unit
@@ -242,6 +243,27 @@ let print_cli_progress (config : Core_scan_config.t) : unit =
   match config.output_format with
   | Json true -> UConsole.print "."
   | _ -> ()
+
+(*****************************************************************************)
+(* Semgrep-core incremental matches *)
+(*****************************************************************************)
+
+(* LATER: remove once osegmrep is fully done *)
+let print_incremental_matches_when_text_mode (config : Core_scan_config.t)
+    (match_ : Pattern_match.t) : unit =
+  match config.output_format with
+  | Text mvars ->
+      (* alt: we could pass the stdout caps to Core_scan, but that would
+           * require to change lots of callers, and ideally we don't want
+           * Core_scan to display things on stdout; this is used here only
+           * as a deprecated way to get matchings output, so let's use
+           * the UNSAFE helper.
+      *)
+      let caps = Cap.stdout_caps_UNSAFE () in
+      Core_text_output.print_match caps match_ mvars
+  | Json _
+  | NoOutput ->
+      ()
 
 (*****************************************************************************)
 (* Parallelism *)
@@ -786,8 +808,7 @@ let select_applicable_supply_chain_rules ~lockfile_kind ~respect_rule_paths
 
 (* build the callback for iter_targets_and_get_matches_and_exn_to_errors *)
 let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
-    (prefilter_cache_opt : Match_env.prefilter_config) match_hook :
-    target_handler =
+    (prefilter_cache_opt : Match_env.prefilter_config) : target_handler =
   (* Note that this function runs in another process *)
   function
   | Lockfile
@@ -838,19 +859,7 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
              Parse_lockfile.parse_lockfile)
           target.lockfile
       in
-      let default_match_hook match_ =
-        if config.output_format =*= Text then
-          (* alt: we could pass the stdout caps to Core_scan, but that would
-           * require to change lots of callers, and ideally we don't want
-           * Core_scan to display things on stdout; this is used here only
-           * as a deprecated way to get matchings output, so let's use
-           * the UNSAFE helper.
-           *)
-          let caps = Cap.stdout_caps_UNSAFE () in
-          Core_text_output.print_match caps match_ config.mvars
-            Metavariable.ii_of_mval
-      in
-      let match_hook = match_hook ||| default_match_hook in
+      let match_hook pm = print_incremental_matches_when_text_mode config pm in
       let xconf =
         {
           Match_env.config = Rule_options.default_config;
@@ -898,7 +907,7 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
       print_cli_progress config;
       (matches, was_scanned)
 
-let scan_exn ?match_hook (_caps : < Cap.tmp >) (config : Core_scan_config.t)
+let scan_exn (_caps : < Cap.tmp >) (config : Core_scan_config.t)
     (rules : Rule_error.rules_and_invalid * float) : Core_result.t =
   let (valid_rules, invalid_rules), rules_parse_time = rules in
   let (rule_errors : E.t list) =
@@ -933,7 +942,7 @@ let scan_exn ?match_hook (_caps : < Cap.tmp >) (config : Core_scan_config.t)
   let file_results, scanned_targets =
     targets
     |> iter_targets_and_get_matches_and_exn_to_errors config
-         (mk_target_handler config valid_rules prefilter_cache_opt match_hook)
+         (mk_target_handler config valid_rules prefilter_cache_opt)
   in
   (* TODO: Delete any lockfile-only findings whose rule produced a code+lockfile finding in that lockfile *)
   let scanned_target_table =
@@ -1001,7 +1010,7 @@ let scan_exn ?match_hook (_caps : < Cap.tmp >) (config : Core_scan_config.t)
  * coupling: If you modify this function, you probably need also to modify
  * Deep_scan.scan() in semgrep-pro which is mostly a copy-paste of this file.
  *)
-let scan ?match_hook (caps : < Cap.tmp >) (config : Core_scan_config.t) :
+let scan (caps : < Cap.tmp >) (config : Core_scan_config.t) :
     Core_result.result_or_exn =
   try
     let timed_rules =
@@ -1019,8 +1028,7 @@ let scan ?match_hook (caps : < Cap.tmp >) (config : Core_scan_config.t) :
        results. *)
     Ok
       (Pre_post_core_scan.call_with_pre_and_post_processor Fun.id
-         (scan_exn ?match_hook caps)
-         config timed_rules)
+         (scan_exn caps) config timed_rules)
   with
   | exn when not !Flag_semgrep.fail_fast ->
       let e = Exception.catch exn in
