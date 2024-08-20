@@ -39,12 +39,10 @@ let env_debug = "SEMGREP_CORE_DEBUG"
 let env_profile = "SEMGREP_CORE_PROFILE"
 let env_extra = "SEMGREP_CORE_EXTRA"
 let log_to_file = ref None
-let nosem = ref Core_scan_config.default.nosem
 let strict = ref Core_scan_config.default.strict
 
 (* see also verbose/... flags in Flag_semgrep.ml *)
 (* to test things *)
-let test = ref Core_scan_config.default.test
 let debug = ref Core_scan_config.default.debug
 
 (* related:
@@ -61,9 +59,6 @@ let trace_endpoint = ref Core_scan_config.default.trace_endpoint
 
 (* report matching times per file *)
 let report_time = ref Core_scan_config.default.report_time
-
-(* used for -json -profile *)
-let profile_start = ref Core_scan_config.default.profile_start
 
 (* step-by-step matching debugger *)
 let matching_explanations = ref Core_scan_config.default.matching_explanations
@@ -231,17 +226,13 @@ let dump_ast ?(naming = false) (caps : < Cap.stdout ; Cap.exit ; Cap.tmp >)
 
 let mk_config () =
   {
-    log_to_file = !log_to_file;
-    nosem = !nosem;
     strict = !strict;
-    test = !test;
     debug = !debug;
     trace = !trace;
     trace_endpoint = !trace_endpoint;
     profile = !profile;
     report_time = !report_time;
     error_recovery = !error_recovery;
-    profile_start = !profile_start;
     matching_explanations = !matching_explanations;
     rule_source = !rule_source;
     filter_irrelevant_rules = !filter_irrelevant_rules;
@@ -260,7 +251,6 @@ let mk_config () =
     target_source = !target_source;
     file_match_hook = None;
     action = !action;
-    version = Version.version;
     roots = [] (* This will be set later in main () *);
     top_level_span = None;
   }
@@ -565,9 +555,6 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
       Arg.Set_int max_match_per_file,
       " <int> maximum numbers of match per file" );
     ("-debug", Arg.Set debug, " output debugging information");
-    ( "-disable-nosem",
-      Arg.Clear nosem,
-      " disable filtering of matches based on nosem" );
     ("-strict", Arg.Set strict, " fail on warnings");
     ("--debug", Arg.Set debug, " output debugging information");
     ( "-debug_matching",
@@ -579,7 +566,6 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
     ( "-log_to_file",
       Arg.String (fun file -> log_to_file := Some (Fpath.v file)),
       " <file> log debugging info to file" );
-    ("-test", Arg.Set test, " (internal) set test context");
     ("-trace", Arg.Set trace, " output tracing information");
     ( "-trace_endpoint",
       Arg.String (fun url -> trace_endpoint := Some url),
@@ -664,7 +650,6 @@ let register_exception_printers () =
 (*****************************************************************************)
 
 let main_exn (caps : Cap.all_caps) (sys_argv : string array) : unit =
-  profile_start := Unix.gettimeofday ();
   register_exception_printers ();
 
   (* SIGXFSZ (file size limit exceeded)
@@ -711,8 +696,8 @@ let main_exn (caps : Cap.all_caps) (sys_argv : string array) : unit =
 
   Core_profiling.profiling := config.report_time;
 
-  Log_semgrep.setup ?log_to_file:config.log_to_file
-    ?require_one_of_these_tags:None ~force_color:true
+  Log_semgrep.setup ?log_to_file:!log_to_file ?require_one_of_these_tags:None
+    ~force_color:true
     ~level:
       (* TODO: command-line option or env variable to choose the log level *)
       (if config.debug then Some Debug else Some Info)
@@ -766,7 +751,7 @@ let main_exn (caps : Cap.all_caps) (sys_argv : string array) : unit =
              instrument the pre- and post-scan code in the same way. *)
           if config.trace then (
             let trace_data =
-              Trace_data.get_top_level_data config.ncores config.version
+              Trace_data.get_top_level_data config.ncores Version.version
                 (Trace_data.no_analysis_features ())
             in
             Tracing.configure_tracing "semgrep-oss";
