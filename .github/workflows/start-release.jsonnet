@@ -18,9 +18,8 @@ local semgrep = import 'libs/semgrep.libsonnet';
 // Constants
 // ----------------------------------------------------------------------------
 
-// This is computed by the get_version_job (e.g., "1.55.0")
-// and can be referenced from other jobs.
-local version = '${{ needs.get-version.outputs.version }}';
+// This is one of the inputs to the workflow.
+local version = '${{ github.event.inputs.semgrep-version }}';
 // This is computed by the release_setup_job (e.g., "9545")
 // and can be referenced from other jobs.
 local pr_number = '"${{ needs.release-setup.outputs.pr-number }}"';
@@ -36,23 +35,13 @@ local pipenv_setup = |||
 // Input
 // ----------------------------------------------------------------------------
 // To be used by the workflow.
+
 local input = {
   inputs: {
-    bumpVersionFragment: {
-      description: 'Version fragment to bump',
+    'semgrep-version': {
+      type: 'string',
+      description: 'This is the version that is about to be released and should be what the previous version bump step set the OSS version to in the previous step. This is only really required as a safety check, failing to get the version correct here will only cause this step to fail and should not break anything.',
       required: true,
-      // These options are passed directly into
-      // christian-draeger/increment-semantic-version in the `next-vesion`
-      // step to decide which of X.Y.Z to increment
-      type: 'choice',
-      options: [
-        // Many folks are concerned about a mis-click and releasing 2.0 which
-        // is why we commented the 'major' option below
-        // 'major', // x.0.0
-        'feature',  // 1.x.0
-        'bug',  // 1.1.x
-      ],
-      default: 'feature',
     },
     'dry-run': {
       required: true,
@@ -81,7 +70,7 @@ local unless_dry_run = {
 local bump_job(repository) = {
   'runs-on': 'ubuntu-22.04',
   needs: [
-    'get-version',
+    'check-version',
     // we open PRs only when we're sure the release is valid
     'validate-release-trigger',
     'release-setup',
@@ -91,10 +80,11 @@ local bump_job(repository) = {
       name: 'Bump semgrep version in %s' % repository,
       env: {
         GITHUB_TOKEN: semgrep.github_bot.token_ref,
+	VERSION: version,
       },
       // Initiate run of workflow (non-blocking)
       // bump_version.yml is defined in semgrep-app/semgrep-rpc/semgrep-action
-      run: 'gh workflow run bump_version.yml --repo "%s" --raw-field version="%s"' % [repository, version],
+      run: 'gh workflow run bump_version.yml --repo "%s" --raw-field version="$VERSION"' % repository,
     },
   ],
 } + unless_dry_run;
@@ -150,49 +140,23 @@ local get_current_num_checks_step = {
 // ----------------------------------------------------------------------------
 // The jobs
 // ----------------------------------------------------------------------------
-// This job just infers the next release version (e.g., 1.53.1) based on past
-// git tags in the semgrep repo and the workflow input choice (feature vs bug)
-// and using christian-draeger/increment-semantic-version to compute it.
-local get_version_job = {
-  'runs-on': 'ubuntu-20.04',
-  outputs: {
-    // other jobs can refer to this output via the 'version' constant above
-    version: '${{ steps.next-version.outputs.next-version }}',
-  },
-    //TODO: why we need a special token? Can't we just do the default checkout?
-  steps: semgrep.github_bot.get_token_steps + [
+local check_version_job = {
+  name: "Check Semgrep Version",
+  'runs-on': 'ubuntu-22.04',
+  permissions: gha.write_permissions,
+  steps: [
     {
-      uses: 'actions/checkout@v3',
+      uses: 'actions/checkout@v4',
       with: {
-        submodules: 'recursive',
-        ref: '${{ github.event.repository.default_branch }}',
-        token: semgrep.github_bot.token_ref,
+	'sparse-checkout': |||
+           src/core/Version.ml
+        |||,
       },
     },
-    // Note that checkout@v3 does not get the tags by default. It does if you do
-    // "full" checkout, which is too heavyweight. We don't want all branches and
-    // everything that ever existed on the repo, so we just do a lightweight checkout
-    // and then get the tags ourselves. Also we don't need the tags in submodules.
     {
-      name: 'Pull Tags',
-      run: "git fetch --no-recurse-submodules origin 'refs/tags/*:refs/tags/*'",
-    },
-    {
-      name: 'Get latest version',
-      id: 'latest-version',
       run: |||
-        LATEST_TAG=$(git tag --list "v*.*.*" | sort -V | tail -n 1 | cut -c 2- )
-        echo "latest-version=${LATEST_TAG}" >> $GITHUB_OUTPUT
-      |||,
-    },
-    {
-      name: 'Bump release version',
-      id: 'next-version',
-      uses: 'christian-draeger/increment-semantic-version@68f14f806a9800fe17433287c35226fd8fd60201',
-      with: {
-        'current-version': '${{ steps.latest-version.outputs.latest-version }}',
-        'version-fragment': '${{ github.event.inputs.bumpVersionFragment }}',
-      },
+        grep -F "let version = \"%s\"" src/core/Version.ml
+      ||| % version
     },
   ],
 };
@@ -201,7 +165,7 @@ local get_version_job = {
 // semgrep-core-proprietary in the right S3 bucket
 local check_semgrep_pro_job = {
   needs: [
-    'get-version',
+    'check-version',
   ],
   name: 'Check Semgrep Pro Manifest',
   secrets: 'inherit',
@@ -218,7 +182,7 @@ local check_semgrep_pro_job = {
 // make the Release PR
 local release_setup_job = {
   needs: [
-    'get-version',
+    'check-version',
     'check-semgrep-pro',
   ],
   'runs-on': 'ubuntu-20.04',
@@ -332,7 +296,7 @@ local release_setup_job = {
 local wait_for_pr_checks_job = {
   'runs-on': 'ubuntu-20.04',
   needs: [
-    'get-version',
+    'check-version',
     'check-semgrep-pro',
     'release-setup',
   ],
@@ -358,7 +322,7 @@ local wait_for_pr_checks_job = {
 local create_tag_job = {
   'runs-on': 'ubuntu-20.04',
   needs: [
-    'get-version',
+    'check-version',
     'check-semgrep-pro',
     'release-setup',
     'wait-for-pr-checks',
@@ -398,7 +362,7 @@ local create_tag_job = {
 local create_draft_release_job = {
   'runs-on': 'ubuntu-20.04',
   needs: [
-    'get-version',
+    'check-version',
     'release-setup',
     'create-tag',
     'wait-for-pr-checks',
@@ -457,7 +421,7 @@ local wait_for_release_checks_job = {
 
 local validate_release_trigger_job = {
   needs: [
-    'get-version',
+    'check-version',
     'wait-for-release-checks',
     'release-setup',
   ],
@@ -484,7 +448,7 @@ local validate_release_trigger_job = {
 local notify_success_job = {
   'if': '${{ success() && ! inputs.dry-run }}',
   needs: [
-    'get-version',
+    'check-version',
     'release-setup',
     'validate-release-trigger',
     'bump-semgrep-action',
@@ -527,7 +491,7 @@ local notify_success_job = {
   // These extra permissions are needed by some of the jobs, e.g. check-semgrep-pro.
   permissions: gha.write_permissions,
   jobs: {
-    'get-version': get_version_job,
+    'check-version': check_version_job,
     'check-semgrep-pro': check_semgrep_pro_job,
     'release-setup': release_setup_job,
     'wait-for-pr-checks': wait_for_pr_checks_job,
@@ -548,7 +512,7 @@ local notify_success_job = {
       ) + {
          'if': '${{ failure() && ! inputs.dry-run }}',
           needs: [
-            'get-version',
+            'check-version',
             'release-setup',
             'validate-release-trigger',
             'bump-semgrep-action',
