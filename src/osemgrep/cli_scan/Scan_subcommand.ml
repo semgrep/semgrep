@@ -837,14 +837,10 @@ let run_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   Logs.info (fun m -> m "Semgrep version: %s" Version.version);
 
   let conf =
-    (* ugly: also partially done in CLI.ml *)
-    (* TOADAPT
-       if config.debug then Report.mode := MDebug
-       else if config.report_time then Report.mode := MTime
-       else Report.mode := MNo_info;
-    *)
     if conf.common.profile then (
-      (* ugly: no need to set Common.profile, this was done in CLI.ml *)
+      (* ugly: no need to set Profiling.profile, this was done in CLI.ml
+       * See also Core_profiling.profiling set in run_scan_conf() above.
+       *)
       Logs.warn (fun m -> m "Profile mode On (running one job, ignoring -j)");
       {
         conf with

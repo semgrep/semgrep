@@ -65,13 +65,13 @@ val mk_result : Rule.rule list -> Core_result.t -> result
 
    The first argument is usually Core_scan.scan, but it can also be
    Deep_scan.scan when running in Pro Interfile mode and when called from
-   the Steps_runner in Semgrep Pro.
+   Steps_scan.scan in Semgrep Pro.
 
    LATER: This function should go away.
 *)
 val mk_core_run_for_osemgrep : Core_scan.func -> func
 
-(* Helper used in Semgrep_scan.ml to setup logging *)
+(* Helper used also in Steps_scan.ml *)
 val core_scan_config_of_conf : conf -> Core_scan_config.t
 
 (* reused in semgrep-server in pro and for Git_remote.ml in pro *)
