@@ -98,7 +98,7 @@ let group_skipped (skipped : OutJ.skipped_target list) : skipped_targets_grouped
 (* Entry point *)
 (*****************************************************************************)
 
-let pp_skipped ppf
+let pp_skipped ~too_many_entries ppf
     (respect_git_ignore, maturity, max_target_bytes, skipped_groups) : unit =
   let {
     ignored = semgrep_ignored;
@@ -173,9 +173,9 @@ let pp_skipped ppf
   Fmt.pf ppf "  %a@.@."
     Fmt.(styled `Bold string)
     (esc ^ "Skipped by --exclude patterns:");
-  if List.length exclude_ignored <= Log_semgrep.too_many_entries then
-    pp_list exclude_ignored
-  else Fmt.pf ppf "   • %s@." Log_semgrep.too_much_data;
+  if too_many_entries > 0 && List.length exclude_ignored > too_many_entries then
+    Fmt.pf ppf "   • %s@." Output.too_much_data
+  else pp_list exclude_ignored;
   Fmt.pf ppf "@.";
 
   Fmt.pf ppf "  %a@.  %a@.@."

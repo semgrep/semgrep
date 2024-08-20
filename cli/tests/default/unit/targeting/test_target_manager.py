@@ -318,7 +318,7 @@ def test_ignores(tmp_path, monkeypatch):
             [tmp_path],
             ignore_profiles={
                 profile_product: FileIgnore.from_unprocessed_patterns(
-                    tmp_path, ignore_pats
+                    tmp_path, ignore_pats, max_log_list_entries=0
                 )
             },
         ).get_files_for_rule(Language("python"), [], [], "dummy_rule_id", rule_product)
