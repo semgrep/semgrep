@@ -1,9 +1,17 @@
-(* in JSON mode, we might need to display intermediate '.' in the
- * output for pysemgrep to track progress as well as extra targets
- * found by extract rules.
- * LATER: osemgrep: not needed after osemgrep migration done
- *)
-type output_format = Text | Json of bool (* dots *) [@@deriving show]
+(* LATER: osemgrep: not needed after osemgrep migration done *)
+type output_format =
+  (* The mvars are from semgrep-core -pvars to print info on the
+   * matched variables instead of the matched content.
+   *)
+  | Text of Metavariable.mvar list
+  (* In JSON mode, we might need to display intermediate '.' in the
+   * output for pysemgrep to track progress as well as extra targets
+   * found by extract-mode rules, hence the bool below.
+   *)
+  | Json of bool (* dots *)
+  (* for osemgrep *)
+  | NoOutput
+[@@deriving show]
 
 (*
    'Rule_file' is for the semgrep-core CLI.
@@ -24,18 +32,11 @@ type rule_source = Rule_file of Fpath.t | Rules of Rule.t list
 type target_source = Target_file of Fpath.t | Targets of Target.t list
 [@@deriving show]
 
-(* This is essentially the flags for the semgrep-core program.
+(* This is mostly the flags of the semgrep-core program.
  * LATER: should delete or merge with osemgrep Core_runner.conf
  *)
 type t = {
-  (* debugging and telemetry flags *)
-  trace : bool;
-  trace_endpoint : string option;
-  (* To add data to our opentelemetry top span, so easier to filter *)
-  top_level_span : Tracing.span option;
-  report_time : bool;
-  matching_explanations : bool;
-  (* Main flags *)
+  (* Main flags, input *)
   (* TODO: remove the option *)
   rule_source : rule_source option;
   target_source : target_source option;
@@ -44,9 +45,10 @@ type t = {
   roots : Scanning_root.t list;
   equivalences_file : Fpath.t option;
   lang : Xlang.t option;
+  (* output and result tweaking *)
   output_format : output_format;
-  mvars : Metavariable.mvar list;
-  (* Tweaking *)
+  report_time : bool;
+  matching_explanations : bool;
   strict : bool;
   respect_rule_paths : bool;
   (* Hook to display match results incrementally, after a file has been fully
@@ -65,6 +67,11 @@ type t = {
   ncores : int;
   (* a.k.a -fast (on by default) *)
   filter_irrelevant_rules : bool;
+  (* debugging and telemetry flags *)
+  trace : bool;
+  trace_endpoint : string option;
+  (* To add data to our opentelemetry top span, so easier to filter *)
+  top_level_span : Tracing.span option;
 }
 [@@deriving show]
 
@@ -81,21 +88,16 @@ type t = {
 *)
 let default =
   {
-    (* debugging and telemetry flags *)
-    trace = false;
-    trace_endpoint = None;
-    top_level_span = None;
-    report_time = false;
-    matching_explanations = false;
     (* Main flags *)
     rule_source = None;
     target_source = None;
+    roots = [];
     equivalences_file = None;
     lang = None;
-    roots = [];
-    output_format = Text;
-    mvars = [];
-    (* tweaking *)
+    (* alt: NoOutput but then would need a -text in Core_CLI.ml *)
+    output_format = Text [];
+    report_time = false;
+    matching_explanations = false;
     strict = false;
     respect_rule_paths = true;
     file_match_hook = None;
@@ -109,4 +111,8 @@ let default =
     ncores = 1;
     (* a.k.a -fast, on by default *)
     filter_irrelevant_rules = true;
+    (* debugging and telemetry flags *)
+    trace = false;
+    trace_endpoint = None;
+    top_level_span = None;
   }
