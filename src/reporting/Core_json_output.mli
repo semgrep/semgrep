@@ -17,3 +17,8 @@ val metavar_string_of_any : AST_generic.any -> string
 (* now used also in osemgrep *)
 val error_to_error : Core_error.t -> Out.core_error
 val dedup_and_sort : Out.core_match list -> Out.core_match list
+
+(* For unit testing *)
+type key [@@deriving show]
+
+val test_core_unique_key : Out.core_match -> key
