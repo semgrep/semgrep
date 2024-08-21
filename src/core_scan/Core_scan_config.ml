@@ -37,8 +37,7 @@ type target_source = Target_file of Fpath.t | Targets of Target.t list
  *)
 type t = {
   (* Main flags, input *)
-  (* TODO: remove the option *)
-  rule_source : rule_source option;
+  rule_source : rule_source;
   target_source : target_source option;
   (* Scanning roots. They are mutually exclusive with target_source! *)
   (* TODO: remove roots *)
@@ -89,7 +88,7 @@ type t = {
 let default =
   {
     (* Main flags *)
-    rule_source = None;
+    rule_source = Rules [];
     target_source = None;
     roots = [];
     equivalences_file = None;
