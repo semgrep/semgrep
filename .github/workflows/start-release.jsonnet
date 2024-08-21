@@ -195,7 +195,7 @@ local release_setup_job = {
   },
   env: {
     VERSION: version,
-  },	
+  },
   // TODO: again why we need this token? we release from
   // the repo of the workflow, can't we just checkout?
   steps: semgrep.github_bot.get_token_steps + [
@@ -433,6 +433,9 @@ local validate_release_trigger_job = {
     'release-setup',
   ],
   'runs-on': 'ubuntu-latest',
+  env: {
+    VERSION: version
+  },
   steps: [
     {
       uses: 'actions/checkout@v3',
@@ -443,7 +446,7 @@ local validate_release_trigger_job = {
       },
     },
     {
-      run: './scripts/validate-docker-release.sh %s' % version,
+      run: './scripts/validate-docker-release.sh $VERSION',
     },
   ],
 } + unless_dry_run;

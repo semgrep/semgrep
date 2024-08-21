@@ -463,6 +463,8 @@ jobs:
 
           echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
   validate-release-trigger:
+    env:
+      VERSION: ${{ github.event.inputs.semgrep-version }}
     if: ${{ ! inputs.dry-run }}
     needs:
       - check-version
@@ -473,7 +475,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           ref: v${{ github.event.inputs.semgrep-version }}
-      - run: ./scripts/validate-docker-release.sh ${{ github.event.inputs.semgrep-version }}
+      - run: ./scripts/validate-docker-release.sh $VERSION
   wait-for-pr-checks:
     if: ${{ ! inputs.dry-run }}
     needs:
