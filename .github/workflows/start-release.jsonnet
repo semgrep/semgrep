@@ -18,9 +18,8 @@ local semgrep = import 'libs/semgrep.libsonnet';
 // Constants
 // ----------------------------------------------------------------------------
 
-// This is computed by the get_version_job (e.g., "1.55.0")
-// and can be referenced from other jobs.
-local version = '${{ needs.get-version.outputs.version }}';
+// This is one of the inputs to the workflow.
+local version = '${{ github.event.inputs.semgrep-version }}';
 // This is computed by the release_setup_job (e.g., "9545")
 // and can be referenced from other jobs.
 local pr_number = '"${{ needs.release-setup.outputs.pr-number }}"';
@@ -36,23 +35,13 @@ local pipenv_setup = |||
 // Input
 // ----------------------------------------------------------------------------
 // To be used by the workflow.
+
 local input = {
   inputs: {
-    bumpVersionFragment: {
-      description: 'Version fragment to bump',
+    'semgrep-version': {
+      type: 'string',
+      description: 'This is the version that is about to be released and should be what the previous version bump step set the OSS version to in the previous step. This is only really required as a safety check, failing to get the version correct here will only cause this step to fail and should not break anything.',
       required: true,
-      // These options are passed directly into
-      // christian-draeger/increment-semantic-version in the `next-vesion`
-      // step to decide which of X.Y.Z to increment
-      type: 'choice',
-      options: [
-        // Many folks are concerned about a mis-click and releasing 2.0 which
-        // is why we commented the 'major' option below
-        // 'major', // x.0.0
-        'feature',  // 1.x.0
-        'bug',  // 1.1.x
-      ],
-      default: 'feature',
     },
     'dry-run': {
       required: true,
@@ -81,7 +70,7 @@ local unless_dry_run = {
 local bump_job(repository) = {
   'runs-on': 'ubuntu-22.04',
   needs: [
-    'get-version',
+    'check-version',
     // we open PRs only when we're sure the release is valid
     'validate-release-trigger',
     'release-setup',
@@ -91,10 +80,11 @@ local bump_job(repository) = {
       name: 'Bump semgrep version in %s' % repository,
       env: {
         GITHUB_TOKEN: semgrep.github_bot.token_ref,
+	VERSION: version,
       },
       // Initiate run of workflow (non-blocking)
       // bump_version.yml is defined in semgrep-app/semgrep-rpc/semgrep-action
-      run: 'gh workflow run bump_version.yml --repo "%s" --raw-field version="%s"' % [repository, version],
+      run: 'gh workflow run bump_version.yml --repo "%s" --raw-field version="$VERSION"' % repository,
     },
   ],
 } + unless_dry_run;
@@ -150,49 +140,26 @@ local get_current_num_checks_step = {
 // ----------------------------------------------------------------------------
 // The jobs
 // ----------------------------------------------------------------------------
-// This job just infers the next release version (e.g., 1.53.1) based on past
-// git tags in the semgrep repo and the workflow input choice (feature vs bug)
-// and using christian-draeger/increment-semantic-version to compute it.
-local get_version_job = {
-  'runs-on': 'ubuntu-20.04',
-  outputs: {
-    // other jobs can refer to this output via the 'version' constant above
-    version: '${{ steps.next-version.outputs.next-version }}',
+local check_version_job = {
+  name: "Check Semgrep Version",
+  'runs-on': 'ubuntu-22.04',
+  permissions: gha.write_permissions,
+  env: {
+    VERSION: version,
   },
-    //TODO: why we need a special token? Can't we just do the default checkout?
-  steps: semgrep.github_bot.get_token_steps + [
+  steps: [
     {
-      uses: 'actions/checkout@v3',
+      uses: 'actions/checkout@v4',
       with: {
-        submodules: 'recursive',
-        ref: '${{ github.event.repository.default_branch }}',
-        token: semgrep.github_bot.token_ref,
+	'sparse-checkout': |||
+           src/core/Version.ml
+        |||,
       },
     },
-    // Note that checkout@v3 does not get the tags by default. It does if you do
-    // "full" checkout, which is too heavyweight. We don't want all branches and
-    // everything that ever existed on the repo, so we just do a lightweight checkout
-    // and then get the tags ourselves. Also we don't need the tags in submodules.
     {
-      name: 'Pull Tags',
-      run: "git fetch --no-recurse-submodules origin 'refs/tags/*:refs/tags/*'",
-    },
-    {
-      name: 'Get latest version',
-      id: 'latest-version',
       run: |||
-        LATEST_TAG=$(git tag --list "v*.*.*" | sort -V | tail -n 1 | cut -c 2- )
-        echo "latest-version=${LATEST_TAG}" >> $GITHUB_OUTPUT
-      |||,
-    },
-    {
-      name: 'Bump release version',
-      id: 'next-version',
-      uses: 'christian-draeger/increment-semantic-version@68f14f806a9800fe17433287c35226fd8fd60201',
-      with: {
-        'current-version': '${{ steps.latest-version.outputs.latest-version }}',
-        'version-fragment': '${{ github.event.inputs.bumpVersionFragment }}',
-      },
+        grep -F "let version = \"${VERSION}\"" src/core/Version.ml
+      |||
     },
   ],
 };
@@ -201,7 +168,7 @@ local get_version_job = {
 // semgrep-core-proprietary in the right S3 bucket
 local check_semgrep_pro_job = {
   needs: [
-    'get-version',
+    'check-version',
   ],
   name: 'Check Semgrep Pro Manifest',
   secrets: 'inherit',
@@ -218,13 +185,16 @@ local check_semgrep_pro_job = {
 // make the Release PR
 local release_setup_job = {
   needs: [
-    'get-version',
+    'check-version',
     'check-semgrep-pro',
   ],
   'runs-on': 'ubuntu-20.04',
   outputs: {
     // other jobs can refer to this output via 'pr_number' constant above
     'pr-number': '${{ steps.open-pr.outputs.pr-number }}',
+  },
+  env: {
+    VERSION: version,
   },
   // TODO: again why we need this token? we release from
   // the repo of the workflow, can't we just checkout?
@@ -238,7 +208,7 @@ local release_setup_job = {
       },
     },
     {
-      run: 'git checkout -b "release-%s"' % version,
+      run: 'git checkout -b "release-${VERSION}"',
     },
     {
       env: {
@@ -260,8 +230,8 @@ local release_setup_job = {
       'working-directory': 'scripts/release',
       run: |||
         %s
-        pipenv run towncrier build --draft --version %s > release_body.txt
-      ||| % [pipenv_setup, version],
+        pipenv run towncrier build --draft --version $VERSION > release_body.txt
+      ||| % pipenv_setup,
     } + unless_dry_run,
     {
       name: 'Upload Changelog Body Artifact',
@@ -277,23 +247,18 @@ local release_setup_job = {
       // use || true below since modifications mean exit code != 0
       run: |||
         %s
-        pipenv run towncrier build --yes --version %s
+        pipenv run towncrier build --yes --version $VERSION
         pipenv run pre-commit run --files ../../CHANGELOG.md --config ../../.pre-commit-config.yaml || true
-      ||| % [pipenv_setup, version],
+      ||| % pipenv_setup,
     },
     {
       name: 'Push release branch',
-      // LATER: can probably simplify and use directly version instead
-      // of intermediate env
-      env: {
-        SEMGREP_RELEASE_NEXT_VERSION: version,
-      },
       run: |||
         %s
         git add --all
-        git commit -m "chore: Bump version to ${SEMGREP_RELEASE_NEXT_VERSION}"
-        git push --set-upstream origin release-%s
-      ||| % [gha.git_config_user, version],
+        git commit -m "chore: Bump version to ${VERSION}"
+        git push --set-upstream origin release-${VERSION}
+      ||| % gha.git_config_user,
     } + unless_dry_run,
     {
       name: 'Create PR',
@@ -332,7 +297,7 @@ local release_setup_job = {
 local wait_for_pr_checks_job = {
   'runs-on': 'ubuntu-20.04',
   needs: [
-    'get-version',
+    'check-version',
     'check-semgrep-pro',
     'release-setup',
   ],
@@ -358,7 +323,7 @@ local wait_for_pr_checks_job = {
 local create_tag_job = {
   'runs-on': 'ubuntu-20.04',
   needs: [
-    'get-version',
+    'check-version',
     'check-semgrep-pro',
     'release-setup',
     'wait-for-pr-checks',
@@ -377,20 +342,26 @@ local create_tag_job = {
     // pushing on a vxxx branch will trigger the release.jsonnet workflow?
     {
       name: 'Create semgrep release version tag',
+      env: {
+	VERSION: version
+      },
       run: |||
         %s
-        git tag -a -m "Release %s" "v%s"
-        git push origin "v%s"
-      ||| % [gha.git_config_user, version, version, version],
+        git tag -a -m "Release ${VERSION}" "v${VERSION}"
+        git push origin "v${VERSION}"
+      ||| % gha.git_config_user,
     },
     {
       name: 'Create semgrep-interfaces release version tag',
+      env: {
+	VERSION: version
+      },
       run: |||
         cd cli/src/semgrep/semgrep_interfaces
         %s
-        git tag -a -m "Release %s" "v%s"
-        git push origin "v%s"
-      ||| % [gha.git_config_user, version, version, version],
+        git tag -a -m "Release ${VERSION}" "v${VERSION}"
+        git push origin "v${VERSION}"
+      ||| % gha.git_config_user,
     },
   ],
 } + unless_dry_run;
@@ -398,7 +369,7 @@ local create_tag_job = {
 local create_draft_release_job = {
   'runs-on': 'ubuntu-20.04',
   needs: [
-    'get-version',
+    'check-version',
     'release-setup',
     'create-tag',
     'wait-for-pr-checks',
@@ -457,11 +428,14 @@ local wait_for_release_checks_job = {
 
 local validate_release_trigger_job = {
   needs: [
-    'get-version',
+    'check-version',
     'wait-for-release-checks',
     'release-setup',
   ],
   'runs-on': 'ubuntu-latest',
+  env: {
+    VERSION: version
+  },
   steps: [
     {
       uses: 'actions/checkout@v3',
@@ -472,7 +446,7 @@ local validate_release_trigger_job = {
       },
     },
     {
-      run: './scripts/validate-docker-release.sh %s' % version,
+      run: './scripts/validate-docker-release.sh $VERSION',
     },
   ],
 } + unless_dry_run;
@@ -484,7 +458,7 @@ local validate_release_trigger_job = {
 local notify_success_job = {
   'if': '${{ success() && ! inputs.dry-run }}',
   needs: [
-    'get-version',
+    'check-version',
     'release-setup',
     'validate-release-trigger',
     'bump-semgrep-action',
@@ -496,22 +470,31 @@ local notify_success_job = {
   'runs-on': 'ubuntu-20.04',
   steps: [
     {
-      run: 'echo "%s"' % version,
+      env: {
+	VERSION: version
+      },
+      run: 'echo "${VERSION}"',
     },
     {
       name: 'Notify Success on Twitter',
       // TODO: seems to not work anymore; the last release announced
       // on twitter on the "semgrep release notifications" account are
       // for 1.38.3
+      env: {
+	VERSION: version
+      },
       run: |||
         # POST a webhook to Zapier to allow for public notifications to our users via Twitter
         curl "${{ secrets.ZAPIER_WEBHOOK_URL }}" \
-          -d '{"version":"%s","changelog_url":"https://github.com/returntocorp/semgrep/releases/tag/v%s"}'
-      ||| % [version, version],
+          -d '{"version":"${VERSION}","changelog_url":"https://github.com/returntocorp/semgrep/releases/tag/v${VERSION}"}'
+      |||
     },
     {
       name: 'Notify Success on Slack',
-      run: semgrep.slack.curl_notify('Release Validation for %s has succeeded! Please review the PRs in semgrep-app, semgrep-rpc, and semgrep-action that were generated by this workflow.' % version),
+      env: {
+        VERSION: version
+      },
+      run: semgrep.slack.curl_notify('Release Validation for ${VERSION} has succeeded! Please review the PRs in semgrep-app, semgrep-rpc, and semgrep-action that were generated by this workflow.'),
     },
   ],
 };
@@ -527,7 +510,7 @@ local notify_success_job = {
   // These extra permissions are needed by some of the jobs, e.g. check-semgrep-pro.
   permissions: gha.write_permissions,
   jobs: {
-    'get-version': get_version_job,
+    'check-version': check_version_job,
     'check-semgrep-pro': check_semgrep_pro_job,
     'release-setup': release_setup_job,
     'wait-for-pr-checks': wait_for_pr_checks_job,
@@ -544,11 +527,14 @@ local notify_success_job = {
     'notify-success': notify_success_job,
     'notify-failure':
       semgrep.slack.notify_failure_job(
-        'Release Validation has failed for version %s. Please see https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!' % version
-      ) + {
+        'Release Validation has failed for version ${VERSION}. Please see https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!'
+         ) + {
+         env: {
+	  VERSION: version
+         },
          'if': '${{ failure() && ! inputs.dry-run }}',
           needs: [
-            'get-version',
+            'check-version',
             'release-setup',
             'validate-release-trigger',
             'bump-semgrep-action',
