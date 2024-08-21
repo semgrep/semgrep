@@ -5,9 +5,9 @@
  (libraries
    pfff-lang_GENERIC-analyze
 
-   semgrep_core
-   semgrep_running
-   semgrep_optimizing ; for regexp_prefilter stats
+   semgrep.core
+   semgrep.core_scan
+   semgrep.optimizing ; for regexp_prefilter stats
    semgrep.engine.tests
  )
  (preprocess (pps ppx_profiling))
