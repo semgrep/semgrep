@@ -36,7 +36,7 @@ let svalue_prop_MAX_VISIT_SYM_IN_CYCLE_CHECK = 1000
 let taint_FIXPOINT_TIMEOUT = 0.1
 
 (** Bounds the number of l-values we can track. *)
-let taint_MAX_TAINTED_LVALS = 100
+let taint_MAX_TAINTED_LVALS = 200
 
 (** Bounds the number of taints we can track per l-value.
  *
@@ -47,7 +47,7 @@ let taint_MAX_TAINTED_LVALS = 100
  * source specs that match essentially everything), but those we will not be
  * able to run inter-file, and they should be discouraged anyways.
  *)
-let taint_MAX_TAINT_SET_SIZE = 25
+let taint_MAX_TAINT_SET_SIZE = 50
 
 (** Bounds the length of the offsets we can track per arg/poly-taint. *)
 let taint_MAX_POLY_OFFSET = 1
