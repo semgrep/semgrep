@@ -118,11 +118,17 @@ let annotated_rule_name (metadata : J.t) =
 (* Deduplication *)
 (*****************************************************************************)
 
+(* The actual type here isn't super important. We just feed it into Hashtbl
+ * which uses polymorphic hash and equals. It just needs to have a consistent
+ * representation and include anything relevant for deduplication. *)
+type key = string * string * int * int * string option * string option
+[@@deriving show]
+
 (* This is a port of the original pysemgrep cli_unique_key. This used to be in the CLI,
    but has since been moved to core.
 *)
-let core_unique_key (c : Out.core_match) =
-  (* type-wise this is a tuple of string * string * int * int * string * string option *)
+let core_unique_key (c : Out.core_match) : key =
+  (* TYpe-wise this is a tuple of string * string * int * int * string * string option *)
   (* self.annotated_rule_name if self.from_transient_scan else self.rule_id,
       str(self.path),
       self.start.offset,
@@ -642,3 +648,9 @@ let core_output_of_matches_and_errors (res : Core_result.t) : Out.core_output =
     version = Some Version.version;
   }
 [@@profiling]
+
+(******************************************************************************)
+(* Exposed for testing *)
+(******************************************************************************)
+
+let test_core_unique_key = core_unique_key
