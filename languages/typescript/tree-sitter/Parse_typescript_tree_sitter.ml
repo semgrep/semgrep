@@ -2396,8 +2396,8 @@ and export_statement (env : env) (x : CST.export_statement) : stmt list =
                          -->
 
                            const foo = bar
-                           const !default! = foo
-                           export !default!
+                           const default = foo
+                           export default
                       *)
                            [
                              DefStmt def;

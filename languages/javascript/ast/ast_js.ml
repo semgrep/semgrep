@@ -157,8 +157,19 @@ type a_filename = string wrap [@@deriving show]
  *)
 type a_dotted_ident = a_ident list [@@deriving show]
 
-(* when doing export default Foo and import Bar, ... *)
-let default_entity = "!default!"
+(* In ECMAScript modules, there's a notion of a "default" import/export, which
+   is used, e.g., when doing `import bar from 'foo';`
+   (cf. `import { bar } from 'foo';`). In these cases, `default` is a keyword
+   and cannot be used as an identifier, so we can use it here directly to refer
+   to that default entity. This allows us to have a pattern matching the name
+   `foo.default` to match against the imported name in both `import { default
+   as example } from 'foo';` and `import example from 'foo';`, as it ought
+   to---this value being used in the latter case to construct the name.
+
+   When not using ECMAScript modules, this isn't a keyword, but we don't use
+   it, so there's no chance of a conflict.
+*)
+let default_entity = "default"
 
 type property_name =
   (* this can even be a string or number *)
