@@ -273,7 +273,7 @@ let all_actions (caps : Cap.all_caps) () =
       Arg_.mk_action_n_conv Fpath.v
         (Check_rule.check_files
            (caps :> < Cap.stdout ; Cap.tmp >)
-           !output_format Parse_rule.parse) );
+           !output_format) );
     (* this is run by some of our workflows (e.g., check-pro-rules.jsonnet) *)
     ( "-test_rules",
       " <files or dirs>",
@@ -416,7 +416,7 @@ let all_actions (caps : Cap.all_caps) () =
     ( "-stat_rules",
       " <files or dirs>",
       Arg_.mk_action_n_conv Fpath.v
-        (Check_rule.stat_files (caps :> < Cap.stdout >) Parse_rule.parse) );
+        (Check_rule.stat_files (caps :> < Cap.stdout >)) );
     ( "-parse_rules",
       " <files or dirs>",
       Arg_.mk_action_n_conv Fpath.v Test_parsing.test_parse_rules );

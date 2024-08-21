@@ -276,14 +276,8 @@ let semgrep_check (caps : < Cap.tmp >) (metachecks : Fpath.t)
       |> List_.map match_to_semgrep_error
   | Error exn -> Exception.reraise exn
 
-(* TODO *)
-
-(* We parse the parsing function fparser (Parser_rule.parse) to avoid
- * circular dependencies.
- * Similar to Test_parsing.test_parse_rules.
- *)
-let run_checks (caps : < Cap.tmp >) fparser (metachecks : Fpath.t)
-    (xs : Fpath.t list) : Core_error.t list =
+let run_checks (caps : < Cap.tmp >) (metachecks : Fpath.t) (xs : Fpath.t list) :
+    Core_error.t list =
   let yaml_xs, skipped_paths =
     xs
     |> File_type.files_of_dirs_or_files (function
@@ -307,7 +301,7 @@ let run_checks (caps : < Cap.tmp >) fparser (metachecks : Fpath.t)
         |> List.concat_map (fun file ->
                Logs.info (fun m ->
                    m "run_checks: processing rule file %s" !!file);
-               match fparser file with
+               match Parse_rule.parse file with
                | Ok rs -> rs |> List.concat_map (fun file -> check file)
                (* TODO this error is special cased because YAML files that
                   aren't semgrep rules are getting scanned *)
@@ -321,8 +315,8 @@ let run_checks (caps : < Cap.tmp >) fparser (metachecks : Fpath.t)
 
 (* for semgrep-core -check_rules, called from pysemgrep --validate *)
 let check_files (caps : < Cap.stdout ; Cap.tmp >)
-    (output_format : Core_scan_config.output_format) fparser
-    (input : Fpath.t list) : unit =
+    (output_format : Core_scan_config.output_format) (input : Fpath.t list) :
+    unit =
   let errors =
     match input with
     | []
@@ -331,7 +325,7 @@ let check_files (caps : < Cap.stdout ; Cap.tmp >)
           (No_metacheck_file
              "check_rules needs a metacheck file or directory and rules to run \
               on")
-    | metachecks :: xs -> run_checks (caps :> < Cap.tmp >) fparser metachecks xs
+    | metachecks :: xs -> run_checks (caps :> < Cap.tmp >) metachecks xs
   in
   match output_format with
   | NoOutput -> ()
@@ -347,7 +341,7 @@ let check_files (caps : < Cap.stdout ; Cap.tmp >)
       CapConsole.print caps#stdout (SJ.string_of_core_output json)
 
 (* for semgrep-core -stat_rules *)
-let stat_files (caps : < Cap.stdout >) fparser xs =
+let stat_files (caps : < Cap.stdout >) xs =
   let fullxs, _skipped_paths =
     xs
     |> File_type.files_of_dirs_or_files (function
@@ -361,7 +355,7 @@ let stat_files (caps : < Cap.stdout >) fparser xs =
   fullxs
   |> List.iter (fun file ->
          Logs.info (fun m -> m "stat_files: processing rule file %s" !!file);
-         match fparser file with
+         match Parse_rule.parse file with
          | Ok rs ->
              rs
              |> List.iter (fun r ->
