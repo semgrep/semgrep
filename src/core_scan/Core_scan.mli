@@ -86,13 +86,4 @@ val filter_files_with_too_many_matches_and_transform_as_timeout :
   * Core_error.t list
   * Semgrep_output_v1_j.skipped_target list
 
-(*
-   Sort targets by decreasing size. This is meant for optimizing
-   CPU usage when processing targets in parallel on a fixed number of cores.
-*)
-val sort_targets_by_decreasing_size : Target.t list -> Target.t list
-
-val sort_code_targets_by_decreasing_size :
-  Target.regular list -> Target.regular list
-
 val parse_equivalences : Fpath.t option -> Equivalence.equivalences
