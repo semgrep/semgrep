@@ -1798,10 +1798,15 @@ and map_parametrized_type_expression (env : env)
     ((v1, v2, v3) : CST.parametrized_type_expression) =
   let v1 = map_primary_expression env v1 in
   let _v2 = (* immediate_brace *) token env v2 in
-  let _, v3, _ = map_type_parameter_list env v3 in
+  let open_, v3, close = map_type_parameter_list env v3 in
   OtherExpr
     ( ("type_parametrized", fake "type_parametrized"),
-      [ G.E v1; G.Anys (List_.map (fun x -> G.Tp x) v3) ] )
+      [
+        G.E v1;
+        G.Anys
+          (List_.flatten
+             [ [ G.Tk open_ ]; List_.map (fun x -> G.Tp x) v3; [ G.Tk close ] ]);
+      ] )
   |> G.e
 
 and map_primary_expression (env : env) (x : CST.primary_expression) : expr =

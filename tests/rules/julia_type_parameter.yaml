@@ -1,0 +1,14 @@
+rules:
+  - id: julia-type-parameter
+    languages:
+      - julia
+    severity: ERROR
+    message: |
+      Final curly brackets are not matched: <$TYPE>
+    patterns:
+      - pattern: $TYPE
+      - pattern-inside: $X::$TYPE = ...
+      # Check that we include the closing brace in e.g. Vector{Int}
+      - metavariable-regex:
+          metavariable: $TYPE
+          regex: ".*}"
