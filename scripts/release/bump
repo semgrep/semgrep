@@ -36,10 +36,15 @@ update_init_py() {
   git add "$target"
 }
 
+# coupling: .github/workflows/pro-release.jsonnet
+# coupling: OSS/.github/workflows/start-release.jsonnet
 update_version_ml() {
+  # The coupled files check for this exact path for the presence
+  # of the version string below.
   target=src/core/Version.ml
   targets+=" $target"
   echo "Updating $target"
+  # The coupled files check for this exact string formatting.
   sed_in_place 's/let version = ".*"/let version = "'"$release"'"/g' "$target"
   git add "$target"
 }
