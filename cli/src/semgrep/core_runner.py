@@ -906,7 +906,7 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                     cmd += ["-deep_intra_file"]
 
             if state.terminal.is_debug:
-                cmd += ["--debug"]
+                cmd += ["-debug"]
 
             show_progress = state.get_cli_ux_flavor() != DesignTreatment.MINIMAL
             total = (

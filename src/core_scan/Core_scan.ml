@@ -635,7 +635,7 @@ let targets_of_config (config : Core_scan_config.t) :
       (* TODO: ugly, this is because the code path for -e/-f requires
        * a language, even with a -target, see test_target_file.py
        *)
-      if lang_opt <> None && config.rule_source <> None then
+      if lang_opt <> None then
         failwith "if you use -targets and -rules, you should not specify a lang";
       match target_source with
       | Targets x -> x |> filter_existing_targets
@@ -943,12 +943,7 @@ let scan (caps : < Cap.tmp >) (config : Core_scan_config.t) :
     Core_result.result_or_exn =
   try
     let timed_rules =
-      Common.with_time (fun () ->
-          match config.rule_source with
-          | None ->
-              (* TODO: ensure that this doesn't happen *)
-              failwith "missing rules"
-          | Some rule_source -> rules_from_rule_source rule_source)
+      Common.with_time (fun () -> rules_from_rule_source config.rule_source)
     in
     (* The pre and post processors hook here is currently used
        for the secrets post processor in Pro, and for the autofix
