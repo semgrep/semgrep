@@ -274,7 +274,7 @@ let prepare_config_for_core_scan (config : Core_scan_config.t)
   {
     config with
     target_source = Some (Targets targets);
-    rule_source = Some (Rules rules);
+    rule_source = Rules rules;
   }
 
 (* LATER: we want to avoid this intermediate data structure but

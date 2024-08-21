@@ -92,8 +92,5 @@ let output_core_results (caps : < Cap.stdout ; Cap.exit >)
 
 let run_conf (caps : < Cap.stdout ; Cap.tmp ; Cap.exit >)
     (config : Core_scan_config.t) : unit =
-  match config.rule_source with
-  | None -> failwith "you need to pass a rule source with -rules"
-  | Some _ ->
-      let res = Core_scan.scan (caps :> < Cap.tmp >) config in
-      output_core_results (caps :> < Cap.stdout ; Cap.exit >) res config
+  let res = Core_scan.scan (caps :> < Cap.tmp >) config in
+  output_core_results (caps :> < Cap.stdout ; Cap.exit >) res config

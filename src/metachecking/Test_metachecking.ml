@@ -27,8 +27,6 @@ module TCM = Test_compare_matches
 (* Helpers *)
 (*****************************************************************************)
 
-let config : Core_scan_config.t = Core_scan_config.default
-
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -91,9 +89,7 @@ let test_rules ?(unit_testing = false) (caps : < Cap.tmp >) xs =
 
          (* actual *)
          let actual_errors =
-           try
-             Check_rule.run_checks caps config Parse_rule.parse file [ target ]
-           with
+           try Check_rule.run_checks caps Parse_rule.parse file [ target ] with
            | exn ->
                failwith
                  (spf "exn on %s (exn = %s)" !!file (Common.exn_to_s exn))

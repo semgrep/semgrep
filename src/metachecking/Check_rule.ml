@@ -248,8 +248,8 @@ let check r =
   | `Steps _ -> (* TODO *) []
   | `SCA _ -> (* TODO *) []
 
-let semgrep_check (caps : < Cap.tmp >) config metachecks rules :
-    Core_error.t list =
+let semgrep_check (caps : < Cap.tmp >) (metachecks : Fpath.t)
+    (rules : Fpath.t list) : Core_error.t list =
   let match_to_semgrep_error (m : Pattern_match.t) : Core_error.t =
     let loc, _ = m.P.range_loc in
     (* TODO use the end location in errors *)
@@ -260,9 +260,9 @@ let semgrep_check (caps : < Cap.tmp >) config metachecks rules :
   in
   let (config : Core_scan_config.t) =
     {
-      config with
+      Core_scan_config.default with
       lang = Some (Xlang.of_lang Yaml);
-      rule_source = Some (Rule_file metachecks);
+      rule_source = Rule_file metachecks;
       output_format = Json true;
       (* the targets are actually the rules! metachecking! *)
       roots = List_.map Scanning_root.of_fpath rules;
@@ -282,7 +282,8 @@ let semgrep_check (caps : < Cap.tmp >) config metachecks rules :
  * circular dependencies.
  * Similar to Test_parsing.test_parse_rules.
  *)
-let run_checks (caps : < Cap.tmp >) config fparser metachecks xs =
+let run_checks (caps : < Cap.tmp >) fparser (metachecks : Fpath.t)
+    (xs : Fpath.t list) : Core_error.t list =
   let yaml_xs, skipped_paths =
     xs
     |> File_type.files_of_dirs_or_files (function
@@ -300,7 +301,7 @@ let run_checks (caps : < Cap.tmp >) config fparser metachecks xs =
           m "no valid yaml rules to run on (.test.yaml files are excluded)");
       []
   | _ ->
-      let semgrep_found_errs = semgrep_check caps config metachecks rules in
+      let semgrep_found_errs = semgrep_check caps metachecks rules in
       let ocaml_found_errs =
         rules
         |> List.concat_map (fun file ->
@@ -318,9 +319,10 @@ let run_checks (caps : < Cap.tmp >) config fparser metachecks xs =
       in
       semgrep_found_errs @ ocaml_found_errs
 
-(* for semgrep-core -check_rules *)
-let check_files (caps : < Cap.stdout ; Cap.tmp >) mk_config fparser input =
-  let config = mk_config () in
+(* for semgrep-core -check_rules, called from pysemgrep --validate *)
+let check_files (caps : < Cap.stdout ; Cap.tmp >)
+    (output_format : Core_scan_config.output_format) fparser
+    (input : Fpath.t list) : unit =
   let errors =
     match input with
     | []
@@ -329,10 +331,9 @@ let check_files (caps : < Cap.stdout ; Cap.tmp >) mk_config fparser input =
           (No_metacheck_file
              "check_rules needs a metacheck file or directory and rules to run \
               on")
-    | metachecks :: xs ->
-        run_checks (caps :> < Cap.tmp >) config fparser metachecks xs
+    | metachecks :: xs -> run_checks (caps :> < Cap.tmp >) fparser metachecks xs
   in
-  match config.output_format with
+  match output_format with
   | NoOutput -> ()
   | Text _ ->
       errors
