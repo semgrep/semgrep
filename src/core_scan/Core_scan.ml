@@ -146,28 +146,6 @@ type target_handler = Target.t -> Core_result.matches_single_file * was_scanned
 (* Helpers *)
 (*****************************************************************************)
 
-(*
-   Sort targets by decreasing size. This is meant for optimizing
-   CPU usage when processing targets in parallel on a fixed number of cores.
-*)
-let sort_code_targets_by_decreasing_size (targets : Target.regular list) :
-    Target.regular list =
-  targets
-  |> List_.sort_by_key
-       (fun (target : Target.regular) ->
-         UFile.filesize target.path.internal_path_to_content)
-       (* Flip the comparison so we get descending,
-        * instead of ascending, order *)
-       (Fun.flip Int.compare)
-
-let sort_targets_by_decreasing_size (targets : Target.t list) : Target.t list =
-  targets
-  |> List_.sort_by_key
-       (fun target -> UFile.filesize (Target.internal_path target))
-       (* Flip the comparison so we get descending,
-        * instead of ascending, order *)
-       (Fun.flip Int.compare)
-
 (* In some context, a target passed in might have disappeared, or have been
  * encoded in the wrong way in the Inputs_to_core.atd (for example
  * in the case of filenames with special unicode bytes in it), in which case
@@ -264,56 +242,6 @@ let print_incremental_matches_when_text_mode (config : Core_scan_config.t)
   | Json _
   | NoOutput ->
       ()
-
-(*****************************************************************************)
-(* Parallelism *)
-(*****************************************************************************)
-
-(*
-   Run jobs in parallel, using number of cores specified with -j.
-*)
-let map_targets ncores f (targets : Target.t list) =
-  (*
-     Sorting the targets by decreasing size is based on the assumption
-     that larger targets will take more time to process. Starting with
-     the longer jobs allows parmap to feed the workers with shorter and
-     shorter jobs, as a way of maximizing CPU usage.
-     This is a kind of greedy algorithm, which is in general not optimal
-     but hopefully good enough in practice.
-
-     This is needed only when ncores > 1, but to reduce discrepancy between
-     the two modes, we always sort the target queue in the same way.
-  *)
-  let targets = sort_targets_by_decreasing_size targets in
-  if ncores <= 1 then List_.map f targets
-  else (
-    (*
-       Parmap creates ncores children processes which listen for
-       chunks of input. When a chunk size is specified, parmap feeds
-       the ncores processes in small chunks of the specified size
-       instead of just dividing the input list into exactly ncores chunks.
-
-       Since our jobs are relatively big compared to the serialization
-       and communication overhead, setting the chunk size to 1 works
-       fine.  We don't want to have two giant target files in the same
-       chunk, so this setting takes care of it.
-    *)
-    (* Quoting Parmap's README:
-     * > To obtain maximum speed, Parmap tries to pin the worker processes to a CPU
-     * Unfortunately, on the new Apple M1, and depending on the number of workers,
-     * Parmap will enter an infinite loop trying (but failing) to pin a worker to
-     * CPU 0. This only happens with HomeBrew installs, presumably because under
-     * HomeBrew's build environment HAVE_MACH_THREAD_POLICY_H is set
-     * (https://github.com/rdicosmo/parmap/blob/1.2.3/src/setcore_stubs.c#L47).
-     * So, despite it may hurt perf a bit, we disable core pinning to work around
-     * this issue until this is fixed in a future version of Parmap.
-     *)
-    Parmap.disable_core_pinning ();
-    assert (ncores > 0);
-    (* TODO: port this functionality to Logs:
-       let init _ = Logging.add_PID_tag () in
-    *)
-    Parmap.parmap (*~init*) ~ncores ~chunksize:1 f (Parmap.L targets))
 
 (*****************************************************************************)
 (* Timeout *)
@@ -479,7 +407,8 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
           * Fpath.t option)
           list) =
     targets
-    |> map_targets config.ncores (fun (target : Target.t) ->
+    |> Parmap_targets.map_targets__run_in_forked_process_do_not_modify_globals
+         config.ncores (fun (target : Target.t) ->
            let internal_path = Target.internal_path target in
            let origin = Target.origin target in
            Logs.debug (fun m -> m "Core_scan analyzing %s" !!internal_path);
