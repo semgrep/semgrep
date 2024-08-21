@@ -6,7 +6,7 @@
 
    osemgrep_core
    osemgrep_configuring
-   semgrep.running
+   semgrep.core_scan
 
   )
  (preprocess
