@@ -115,5 +115,39 @@
     if_cache_inputs: {
       'if': '${{ inputs.use-cache}}'
     },
-  }
+  },
+
+  inc_version_steps: function(id='inc-version', fragment) [
+    {
+      uses: 'actions/checkout@v4',
+    },
+    // Note that checkout@v4 does not get the tags by default. It does
+    // if you do "full" checkout, which is too heavyweight. We don't
+    // want all branches and everything that ever existed on the repo,
+    // so we just do a lightweight checkout and then get the tags
+    // ourselves. Also we don't need the tags in submodules.
+    {
+      name: 'Pull Tags',
+      run: |||
+        git fetch --no-recurse-submodules origin 'refs/tags/*:refs/tags/*'
+      |||,
+    },
+    {
+      name: 'Get latest version',
+      id: 'latest-version',
+      run: |||
+        LATEST_TAG=$(git tag --list "v*.*.*" | sort -V | tail -n 1 | cut -c 2- )
+        echo "version=${LATEST_TAG}" >> $GITHUB_OUTPUT
+      |||,
+    },
+    {
+      name: 'Bump Feature',
+      id: id,
+      uses: 'christian-draeger/increment-semantic-version@1.1.0',
+      with: {
+	'current-version': '${{ steps.latest-version.outputs.version }}',
+	'version-fragment': fragment,
+      },
+    },
+  ],
 }
