@@ -836,7 +836,7 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
       print_cli_progress config;
       (matches, was_scanned)
 
-let scan_exn (_caps : < Cap.tmp >) (config : Core_scan_config.t)
+let scan_exn (_caps : < >) (config : Core_scan_config.t)
     (rules : Rule_error.rules_and_invalid * float) : Core_result.t =
   let (valid_rules, invalid_rules), rules_parse_time = rules in
   let (rule_errors : E.t list) =
@@ -939,8 +939,8 @@ let scan_exn (_caps : < Cap.tmp >) (config : Core_scan_config.t)
  * coupling: If you modify this function, you probably need also to modify
  * Deep_scan.scan() in semgrep-pro which is mostly a copy-paste of this file.
  *)
-let scan (caps : < Cap.tmp >) (config : Core_scan_config.t) :
-    Core_result.result_or_exn =
+let scan (caps : < >) (config : Core_scan_config.t) : Core_result.result_or_exn
+    =
   try
     let timed_rules =
       Common.with_time (fun () -> rules_from_rule_source config.rule_source)

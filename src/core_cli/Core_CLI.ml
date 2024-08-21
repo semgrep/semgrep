@@ -271,9 +271,7 @@ let all_actions (caps : Cap.all_caps) () =
     ( "-check_rules",
       " <metachecks file> <files or dirs>",
       Arg_.mk_action_n_conv Fpath.v
-        (Check_rule.check_files
-           (caps :> < Cap.stdout ; Cap.tmp >)
-           !output_format) );
+        (Check_rule.check_files (caps :> < Cap.stdout >) !output_format) );
     (* this is run by some of our workflows (e.g., check-pro-rules.jsonnet) *)
     ( "-test_rules",
       " <files or dirs>",
@@ -714,7 +712,7 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
           (* if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc (); *)
           let run ?span_id () =
             Core_command.run_conf
-              (caps :> < Cap.stdout ; Cap.tmp ; Cap.exit >)
+              (caps :> < Cap.stdout ; Cap.exit >)
               {
                 config with
                 roots = List_.map Scanning_root.of_string roots;
