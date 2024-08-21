@@ -156,6 +156,14 @@ type all_caps =
 (* pure computation, just cpu/ram *)
 type no_caps = < >
 
+(* In theory, you should not need this constant but when refactoring code
+ * it can happen that a function temporarily does not need anymore capabilities
+ * but the person knows it might soon in the future; it can be tedious
+ * to each time add/remove the caps argument. In that case, it is simpler to
+ * pass the no_caps below.
+ *)
+val no_caps : no_caps
+
 (**************************************************************************)
 (* Temporary unsafe caps to help migration *)
 (**************************************************************************)

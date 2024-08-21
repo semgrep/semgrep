@@ -248,8 +248,8 @@ let check r =
   | `Steps _ -> (* TODO *) []
   | `SCA _ -> (* TODO *) []
 
-let semgrep_check (caps : < Cap.tmp >) (metachecks : Fpath.t)
-    (rules : Fpath.t list) : Core_error.t list =
+let semgrep_check (caps : < >) (metachecks : Fpath.t) (rules : Fpath.t list) :
+    Core_error.t list =
   let match_to_semgrep_error (m : Pattern_match.t) : Core_error.t =
     let loc, _ = m.P.range_loc in
     (* TODO use the end location in errors *)
@@ -276,7 +276,7 @@ let semgrep_check (caps : < Cap.tmp >) (metachecks : Fpath.t)
       |> List_.map match_to_semgrep_error
   | Error exn -> Exception.reraise exn
 
-let run_checks (caps : < Cap.tmp >) (metachecks : Fpath.t) (xs : Fpath.t list) :
+let run_checks (caps : < >) (metachecks : Fpath.t) (xs : Fpath.t list) :
     Core_error.t list =
   let yaml_xs, skipped_paths =
     xs
@@ -314,7 +314,7 @@ let run_checks (caps : < Cap.tmp >) (metachecks : Fpath.t) (xs : Fpath.t list) :
       semgrep_found_errs @ ocaml_found_errs
 
 (* for semgrep-core -check_rules, called from pysemgrep --validate *)
-let check_files (caps : < Cap.stdout ; Cap.tmp >)
+let check_files (caps : < Cap.stdout >)
     (output_format : Core_scan_config.output_format) (input : Fpath.t list) :
     unit =
   let errors =
@@ -325,7 +325,7 @@ let check_files (caps : < Cap.stdout ; Cap.tmp >)
           (No_metacheck_file
              "check_rules needs a metacheck file or directory and rules to run \
               on")
-    | metachecks :: xs -> run_checks (caps :> < Cap.tmp >) metachecks xs
+    | metachecks :: xs -> run_checks (caps :> < >) metachecks xs
   in
   match output_format with
   | NoOutput -> ()

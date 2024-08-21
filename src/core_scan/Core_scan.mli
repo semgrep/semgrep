@@ -5,26 +5,37 @@ type func = Core_scan_config.t -> Core_result.result_or_exn
 (* Entry point. This is used in Core_command.ml for semgrep-core,
  * in tests, in semgrep-pro, and finally in osemgrep.
  *
- * [scan config] runs a core scan with a starting list
+ * [scan caps config] runs a core scan with a starting list
  * of targets and capture any exception.
  * (TODO remove the "starting" above, impose fixed list of targets)
- * This internally calls Match_rules.check on every files, in
+ * This internally calls Match_rules.check() on every files, in
  * parallel, with some memory limits, and aggregate the results.
  *
  * It can print things on stdout depending on Core_scan_config.output_format:
  *  - incremental dots when used from pysemgrep in Json true mode
  *  - incremental matches when used from semgrep-core in Text mode
- *  - nothing when called from osemgrep, unless file_match_hook
- *    is also set in which case it can display incremental matches too
+ *  - nothing when called from osemgrep (or the playground), unless
+ *    file_match_hook is also set in which case it can display incremental
+ *    matches too
  * The rest of the output is done in the caller of scan() such as
  * Core_command.run_conf() for semgrep-core.
  *
- * This has the type [func] defined above.
+ * alt: we should require Cap.stdout below, but this is false when using the
+ * NoOutput output_format so for now we internally use Cap.stdout_caps_UNSAFE()
+ * or UConsole. In theory, scan() can be completely pure.
+ *
+ * TODO: we should require Cap.fork (for Parmap), Cap.alarm (for timeout
+ * in Check_rules()), and more.
+ *
+ * The scan function has the type [func] defined above.
  *
  * Note that this function will run the pre/post scan hook defined
  * in Pre_post_core_scan.hook_processor.
  *)
-val scan : < Cap.tmp > -> Core_scan_config.t -> Core_result.result_or_exn
+val scan :
+  < (* no caps needed for now *) > ->
+  Core_scan_config.t ->
+  Core_result.result_or_exn
 
 (*****************************************************************************)
 (* Utilities functions used in tests or semgrep-pro *)
