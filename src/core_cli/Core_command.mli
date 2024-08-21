@@ -3,7 +3,7 @@
 (* Main entry point to the semgrep-core scan. This is called from
  * Core_CLI.ml, called itself from Main.ml
  *)
-val run_conf : < Cap.stdout ; Cap.tmp ; Cap.exit > -> Core_scan_config.t -> unit
+val run_conf : < Cap.stdout ; Cap.exit > -> Core_scan_config.t -> unit
 
 val output_core_results :
   < Cap.stdout ; Cap.exit > ->
