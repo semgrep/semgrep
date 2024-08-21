@@ -1,0 +1,3 @@
+Fixed inter-file constant propagation to prevent some definitions from being
+incorrectly identified as constant, when they are modified in other parts of
+the codebase.
