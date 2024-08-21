@@ -3,7 +3,7 @@ jobs:
   bump-semgrep-action:
     if: ${{ ! inputs.dry-run }}
     needs:
-      - get-version
+      - check-version
       - validate-release-trigger
       - release-setup
     runs-on: ubuntu-22.04
@@ -27,12 +27,13 @@ jobs:
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
       - env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+          VERSION: ${{ github.event.inputs.semgrep-version }}
         name: Bump semgrep version in semgrep/semgrep-action
-        run: gh workflow run bump_version.yml --repo "semgrep/semgrep-action" --raw-field version="${{ needs.get-version.outputs.version }}"
+        run: gh workflow run bump_version.yml --repo "semgrep/semgrep-action" --raw-field version="$VERSION"
   bump-semgrep-app:
     if: ${{ ! inputs.dry-run }}
     needs:
-      - get-version
+      - check-version
       - validate-release-trigger
       - release-setup
     runs-on: ubuntu-22.04
@@ -56,12 +57,13 @@ jobs:
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
       - env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+          VERSION: ${{ github.event.inputs.semgrep-version }}
         name: Bump semgrep version in semgrep/semgrep-app
-        run: gh workflow run bump_version.yml --repo "semgrep/semgrep-app" --raw-field version="${{ needs.get-version.outputs.version }}"
+        run: gh workflow run bump_version.yml --repo "semgrep/semgrep-app" --raw-field version="$VERSION"
   bump-semgrep-intellij:
     if: ${{ ! inputs.dry-run }}
     needs:
-      - get-version
+      - check-version
       - validate-release-trigger
       - release-setup
     runs-on: ubuntu-22.04
@@ -85,12 +87,13 @@ jobs:
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
       - env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+          VERSION: ${{ github.event.inputs.semgrep-version }}
         name: Bump semgrep version in semgrep/semgrep-intellij
-        run: gh workflow run bump_version.yml --repo "semgrep/semgrep-intellij" --raw-field version="${{ needs.get-version.outputs.version }}"
+        run: gh workflow run bump_version.yml --repo "semgrep/semgrep-intellij" --raw-field version="$VERSION"
   bump-semgrep-pre-commit:
     if: ${{ ! inputs.dry-run }}
     needs:
-      - get-version
+      - check-version
       - validate-release-trigger
       - release-setup
     runs-on: ubuntu-22.04
@@ -114,12 +117,13 @@ jobs:
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
       - env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+          VERSION: ${{ github.event.inputs.semgrep-version }}
         name: Bump semgrep version in semgrep/pre-commit
-        run: gh workflow run bump_version.yml --repo "semgrep/pre-commit" --raw-field version="${{ needs.get-version.outputs.version }}"
+        run: gh workflow run bump_version.yml --repo "semgrep/pre-commit" --raw-field version="$VERSION"
   bump-semgrep-rpc:
     if: ${{ ! inputs.dry-run }}
     needs:
-      - get-version
+      - check-version
       - validate-release-trigger
       - release-setup
     runs-on: ubuntu-22.04
@@ -143,12 +147,13 @@ jobs:
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
       - env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+          VERSION: ${{ github.event.inputs.semgrep-version }}
         name: Bump semgrep version in semgrep/semgrep-rpc
-        run: gh workflow run bump_version.yml --repo "semgrep/semgrep-rpc" --raw-field version="${{ needs.get-version.outputs.version }}"
+        run: gh workflow run bump_version.yml --repo "semgrep/semgrep-rpc" --raw-field version="$VERSION"
   bump-semgrep-vscode:
     if: ${{ ! inputs.dry-run }}
     needs:
-      - get-version
+      - check-version
       - validate-release-trigger
       - release-setup
     runs-on: ubuntu-22.04
@@ -172,23 +177,39 @@ jobs:
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
       - env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+          VERSION: ${{ github.event.inputs.semgrep-version }}
         name: Bump semgrep version in semgrep/semgrep-vscode
-        run: gh workflow run bump_version.yml --repo "semgrep/semgrep-vscode" --raw-field version="${{ needs.get-version.outputs.version }}"
+        run: gh workflow run bump_version.yml --repo "semgrep/semgrep-vscode" --raw-field version="$VERSION"
   check-semgrep-pro:
     name: Check Semgrep Pro Manifest
     needs:
-      - get-version
+      - check-version
     secrets: inherit
     uses: ./.github/workflows/check-semgrep-pro-version.yml
     with:
       bucket-name: deep-semgrep-artifacts
       dry-run: ${{ inputs.dry-run }}
       manifest-key: versions-manifest.json
-      semgrep-version: ${{ needs.get-version.outputs.version }}
+      semgrep-version: ${{ github.event.inputs.semgrep-version }}
+  check-version:
+    env:
+      VERSION: ${{ github.event.inputs.semgrep-version }}
+    name: Check Semgrep Version
+    permissions:
+      contents: write
+      id-token: write
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            src/core/Version.ml
+      - run: |
+          grep -F "let version = \"${VERSION}\"" src/core/Version.ml
   create-draft-release:
     if: ${{ ! inputs.dry-run }}
     needs:
-      - get-version
+      - check-version
       - release-setup
       - create-tag
       - wait-for-pr-checks
@@ -214,31 +235,31 @@ jobs:
       - name: Download Release Body Artifact
         uses: actions/download-artifact@v3
         with:
-          name: release_body_${{ needs.get-version.outputs.version }}
+          name: release_body_${{ github.event.inputs.semgrep-version }}
           path: scripts/release
       - name: Create Draft Release Semgrep
         uses: softprops/action-gh-release@v1
         with:
           body_path: scripts/release/release_body.txt
           draft: true
-          name: Release v${{ needs.get-version.outputs.version }}
+          name: Release v${{ github.event.inputs.semgrep-version }}
           prerelease: false
-          tag_name: v${{ needs.get-version.outputs.version }}
+          tag_name: v${{ github.event.inputs.semgrep-version }}
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Create Draft Release Semgrep Interfaces
         uses: softprops/action-gh-release@v1
         with:
           body_path: scripts/release/release_body.txt
           draft: true
-          name: Release v${{ needs.get-version.outputs.version }}
+          name: Release v${{ github.event.inputs.semgrep-version }}
           prerelease: false
           repository: returntocorp/semgrep-interfaces
-          tag_name: v${{ needs.get-version.outputs.version }}
+          tag_name: v${{ github.event.inputs.semgrep-version }}
           token: ${{ steps.token.outputs.token }}
   create-tag:
     if: ${{ ! inputs.dry-run }}
     needs:
-      - get-version
+      - check-version
       - check-semgrep-pro
       - release-setup
       - wait-for-pr-checks
@@ -263,68 +284,34 @@ jobs:
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
       - uses: actions/checkout@v3
         with:
-          ref: release-${{ needs.get-version.outputs.version }}
+          ref: release-${{ github.event.inputs.semgrep-version }}
           submodules: true
           token: ${{ steps.token.outputs.token }}
-      - name: Create semgrep release version tag
+      - env:
+          VERSION: ${{ github.event.inputs.semgrep-version }}
+        name: Create semgrep release version tag
         run: |
           git config user.name ${{ github.actor }}
           git config user.email ${{ github.actor }}@users.noreply.github.com
 
-          git tag -a -m "Release ${{ needs.get-version.outputs.version }}" "v${{ needs.get-version.outputs.version }}"
-          git push origin "v${{ needs.get-version.outputs.version }}"
-      - name: Create semgrep-interfaces release version tag
+          git tag -a -m "Release ${VERSION}" "v${VERSION}"
+          git push origin "v${VERSION}"
+      - env:
+          VERSION: ${{ github.event.inputs.semgrep-version }}
+        name: Create semgrep-interfaces release version tag
         run: |
           cd cli/src/semgrep/semgrep_interfaces
           git config user.name ${{ github.actor }}
           git config user.email ${{ github.actor }}@users.noreply.github.com
 
-          git tag -a -m "Release ${{ needs.get-version.outputs.version }}" "v${{ needs.get-version.outputs.version }}"
-          git push origin "v${{ needs.get-version.outputs.version }}"
-  get-version:
-    outputs:
-      version: ${{ steps.next-version.outputs.next-version }}
-    runs-on: ubuntu-20.04
-    steps:
-      - env:
-          EXPIRATION: 600
-          ISSUER: ${{ secrets.SEMGREP_CI_APP_ID }}
-          PRIVATE_KEY: ${{ secrets.SEMGREP_CI_APP_KEY }}
-        id: jwt
-        name: Get JWT for semgrep-ci GitHub App
-        uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
-      - id: token
-        name: Get token for semgrep-ci GitHub App
-        run: |
-          TOKEN="$(curl -X POST \
-          -H "Authorization: Bearer ${{ steps.jwt.outputs.jwt }}" \
-          -H "Accept: application/vnd.github.v3+json" \
-          "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
-          jq -r .token)"
-          echo "::add-mask::$TOKEN"
-          echo "token=$TOKEN" >> $GITHUB_OUTPUT
-      - uses: actions/checkout@v3
-        with:
-          ref: ${{ github.event.repository.default_branch }}
-          submodules: recursive
-          token: ${{ steps.token.outputs.token }}
-      - name: Pull Tags
-        run: git fetch --no-recurse-submodules origin 'refs/tags/*:refs/tags/*'
-      - id: latest-version
-        name: Get latest version
-        run: |
-          LATEST_TAG=$(git tag --list "v*.*.*" | sort -V | tail -n 1 | cut -c 2- )
-          echo "latest-version=${LATEST_TAG}" >> $GITHUB_OUTPUT
-      - id: next-version
-        name: Bump release version
-        uses: christian-draeger/increment-semantic-version@68f14f806a9800fe17433287c35226fd8fd60201
-        with:
-          current-version: ${{ steps.latest-version.outputs.latest-version }}
-          version-fragment: ${{ github.event.inputs.bumpVersionFragment }}
+          git tag -a -m "Release ${VERSION}" "v${VERSION}"
+          git push origin "v${VERSION}"
   notify-failure:
+    env:
+      VERSION: ${{ github.event.inputs.semgrep-version }}
     if: ${{ failure() && ! inputs.dry-run }}
     needs:
-      - get-version
+      - check-version
       - release-setup
       - validate-release-trigger
       - bump-semgrep-action
@@ -340,12 +327,12 @@ jobs:
            --url  ${{ secrets.NOTIFICATIONS_URL }} \
            --header 'content-type: application/json' \
            --data '{
-             "text": "Release Validation has failed for version ${{ needs.get-version.outputs.version }}. Please see https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!"
+             "text": "Release Validation has failed for version ${VERSION}. Please see https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!"
            }'
   notify-success:
     if: ${{ success() && ! inputs.dry-run }}
     needs:
-      - get-version
+      - check-version
       - release-setup
       - validate-release-trigger
       - bump-semgrep-action
@@ -355,23 +342,31 @@ jobs:
       - bump-semgrep-intellij
     runs-on: ubuntu-20.04
     steps:
-      - run: echo "${{ needs.get-version.outputs.version }}"
-      - name: Notify Success on Twitter
+      - env:
+          VERSION: ${{ github.event.inputs.semgrep-version }}
+        run: echo "${VERSION}"
+      - env:
+          VERSION: ${{ github.event.inputs.semgrep-version }}
+        name: Notify Success on Twitter
         run: |
           # POST a webhook to Zapier to allow for public notifications to our users via Twitter
           curl "${{ secrets.ZAPIER_WEBHOOK_URL }}" \
-            -d '{"version":"${{ needs.get-version.outputs.version }}","changelog_url":"https://github.com/returntocorp/semgrep/releases/tag/v${{ needs.get-version.outputs.version }}"}'
-      - name: Notify Success on Slack
+            -d '{"version":"${VERSION}","changelog_url":"https://github.com/returntocorp/semgrep/releases/tag/v${VERSION}"}'
+      - env:
+          VERSION: ${{ github.event.inputs.semgrep-version }}
+        name: Notify Success on Slack
         run: |
           curl --request POST \
            --url  ${{ secrets.NOTIFICATIONS_URL }} \
            --header 'content-type: application/json' \
            --data '{
-             "text": "Release Validation for ${{ needs.get-version.outputs.version }} has succeeded! Please review the PRs in semgrep-app, semgrep-rpc, and semgrep-action that were generated by this workflow."
+             "text": "Release Validation for ${VERSION} has succeeded! Please review the PRs in semgrep-app, semgrep-rpc, and semgrep-action that were generated by this workflow."
            }'
   release-setup:
+    env:
+      VERSION: ${{ github.event.inputs.semgrep-version }}
     needs:
-      - get-version
+      - check-version
       - check-semgrep-pro
     outputs:
       pr-number: ${{ steps.open-pr.outputs.pr-number }}
@@ -399,9 +394,9 @@ jobs:
           ref: ${{ github.event.repository.default_branch }}
           submodules: recursive
           token: ${{ steps.token.outputs.token }}
-      - run: git checkout -b "release-${{ needs.get-version.outputs.version }}"
+      - run: git checkout -b "release-${VERSION}"
       - env:
-          SEMGREP_RELEASE_NEXT_VERSION: ${{ needs.get-version.outputs.version }}
+          SEMGREP_RELEASE_NEXT_VERSION: ${{ github.event.inputs.semgrep-version }}
         run: make release
       - uses: actions/setup-python@v4
         with:
@@ -414,38 +409,36 @@ jobs:
           pip install pipenv==2024.0.1
           pipenv install --dev
 
-          pipenv run towncrier build --draft --version ${{ needs.get-version.outputs.version }} > release_body.txt
+          pipenv run towncrier build --draft --version $VERSION > release_body.txt
         working-directory: scripts/release
       - if: ${{ ! inputs.dry-run }}
         name: Upload Changelog Body Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: release_body_${{ needs.get-version.outputs.version }}
+          name: release_body_${{ github.event.inputs.semgrep-version }}
           path: scripts/release/release_body.txt
       - name: Update Changelog
         run: |
           pip install pipenv==2024.0.1
           pipenv install --dev
 
-          pipenv run towncrier build --yes --version ${{ needs.get-version.outputs.version }}
+          pipenv run towncrier build --yes --version $VERSION
           pipenv run pre-commit run --files ../../CHANGELOG.md --config ../../.pre-commit-config.yaml || true
         working-directory: scripts/release
-      - env:
-          SEMGREP_RELEASE_NEXT_VERSION: ${{ needs.get-version.outputs.version }}
-        if: ${{ ! inputs.dry-run }}
+      - if: ${{ ! inputs.dry-run }}
         name: Push release branch
         run: |
           git config user.name ${{ github.actor }}
           git config user.email ${{ github.actor }}@users.noreply.github.com
 
           git add --all
-          git commit -m "chore: Bump version to ${SEMGREP_RELEASE_NEXT_VERSION}"
-          git push --set-upstream origin release-${{ needs.get-version.outputs.version }}
+          git commit -m "chore: Bump version to ${VERSION}"
+          git push --set-upstream origin release-${VERSION}
       - env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
-          SOURCE: release-${{ needs.get-version.outputs.version }}
+          SOURCE: release-${{ github.event.inputs.semgrep-version }}
           TARGET: ${{ github.event.repository.default_branch }}
-          TITLE: Release Version ${{ needs.get-version.outputs.version }}
+          TITLE: Release Version ${{ github.event.inputs.semgrep-version }}
         id: open-pr
         if: ${{ ! inputs.dry-run }}
         name: Create PR
@@ -470,21 +463,23 @@ jobs:
 
           echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
   validate-release-trigger:
+    env:
+      VERSION: ${{ github.event.inputs.semgrep-version }}
     if: ${{ ! inputs.dry-run }}
     needs:
-      - get-version
+      - check-version
       - wait-for-release-checks
       - release-setup
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
         with:
-          ref: v${{ needs.get-version.outputs.version }}
-      - run: ./scripts/validate-docker-release.sh ${{ needs.get-version.outputs.version }}
+          ref: v${{ github.event.inputs.semgrep-version }}
+      - run: ./scripts/validate-docker-release.sh $VERSION
   wait-for-pr-checks:
     if: ${{ ! inputs.dry-run }}
     needs:
-      - get-version
+      - check-version
       - check-semgrep-pro
       - release-setup
     outputs:
@@ -546,14 +541,6 @@ name: start-release
 on:
   workflow_dispatch:
     inputs:
-      bumpVersionFragment:
-        default: feature
-        description: Version fragment to bump
-        options:
-          - feature
-          - bug
-        required: true
-        type: choice
       dry-run:
         default: false
         description: |
@@ -561,6 +548,10 @@ on:
           (branches, tags, images, or PyPI packages).
         required: true
         type: boolean
+      semgrep-version:
+        description: This is the version that is about to be released and should be what the previous version bump step set the OSS version to in the previous step. This is only really required as a safety check, failing to get the version correct here will only cause this step to fail and should not break anything.
+        required: true
+        type: string
 permissions:
   contents: write
   id-token: write
