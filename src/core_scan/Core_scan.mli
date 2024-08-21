@@ -87,3 +87,7 @@ val filter_files_with_too_many_matches_and_transform_as_timeout :
   * Semgrep_output_v1_j.skipped_target list
 
 val parse_equivalences : Fpath.t option -> Equivalence.equivalences
+
+(* small wrapper around Parse_target.parse_and_resolve_name *)
+val parse_and_resolve_name :
+  Lang.t -> Fpath.t -> AST_generic.program * Tok.location list
