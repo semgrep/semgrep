@@ -105,6 +105,7 @@ let tests (caps : Cap.all_caps) =
       Aliengrep.Unit_tests.tests;
       (* Inline tests *)
       Testo.get_registered_tests ();
+      Unit_core_json_output.tests;
     ]
 
 (*****************************************************************************)
