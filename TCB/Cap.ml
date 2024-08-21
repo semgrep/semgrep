@@ -240,6 +240,8 @@ type all_caps =
 
 type no_caps = < >
 
+let no_caps : no_caps = object end
+
 let powerbox : all_caps =
   object
     (* fs *)

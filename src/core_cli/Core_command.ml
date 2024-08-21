@@ -90,7 +90,7 @@ let output_core_results (caps : < Cap.stdout ; Cap.exit >)
 (* Entry point *)
 (*****************************************************************************)
 
-let run_conf (caps : < Cap.stdout ; Cap.tmp ; Cap.exit >)
-    (config : Core_scan_config.t) : unit =
-  let res = Core_scan.scan (caps :> < Cap.tmp >) config in
+let run_conf (caps : < Cap.stdout ; Cap.exit >) (config : Core_scan_config.t) :
+    unit =
+  let res = Core_scan.scan (caps :> < >) config in
   output_core_results (caps :> < Cap.stdout ; Cap.exit >) res config
