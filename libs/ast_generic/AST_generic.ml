@@ -1079,8 +1079,8 @@ and operator =
   (* Shell & and | *)
   | Background
   | Pipe
-  (* Circom Signal Assignments 
-   * L = left, D = double, S = single, A = Arrow 
+  (* Circom Signal Assignments
+   * L = left, D = double, S = single, A = Arrow
    *)
   | LDA (* <== *)
   | RDA (* ==> *)
