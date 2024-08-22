@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2021 Semgrep Inc.
+ * Copyright (C) 2019-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -258,14 +258,19 @@ let semgrep_check (caps : < >) (metachecks : Fpath.t) (rules : Fpath.t list) :
     (* TODO: why not set ~rule_id here?? bug? *)
     E.mk_error ~msg:s loc OutJ.SemgrepMatchFound
   in
+  (* LATER: what if the rule is written in Jsonnet or JSON ? *)
+  let lang : Lang.t = Yaml in
+  (* the targets are actually the rules! metachecking! *)
+  let targets : Target.t list =
+    rules |> List_.map (fun file -> Target.mk_target lang file)
+  in
   let (config : Core_scan_config.t) =
     {
       Core_scan_config.default with
-      lang = Some (Xlang.of_lang Yaml);
       rule_source = Rule_file metachecks;
+      target_source = Some (Targets targets);
+      (* we're used from pysemgrep --validate *)
       output_format = Json true;
-      (* the targets are actually the rules! metachecking! *)
-      roots = List_.map Scanning_root.of_fpath rules;
     }
   in
   let res = Core_scan.scan caps config in

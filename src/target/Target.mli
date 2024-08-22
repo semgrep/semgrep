@@ -129,3 +129,6 @@ val internal_path : t -> Fpath.t
 
 val origin : t -> Origin.t
 (** [origin target] is the user-reportable origin of [target]. *)
+
+(* useful in tests *)
+val mk_target : Lang.t -> Fpath.t -> t

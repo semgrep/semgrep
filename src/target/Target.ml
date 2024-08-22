@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+module Out = Semgrep_output_v1_t
 
 (* See Target.mli for documentation of public items. *)
 
@@ -33,7 +34,7 @@ let pp_debug_lockfile f t =
 type regular = {
   path : path;
   analyzer : Xlang.t;
-  products : Semgrep_output_v1_t.product list;
+  products : Out.product list;
   lockfile : lockfile option;
 }
 [@@deriving show]
@@ -90,3 +91,8 @@ let origin (target : t) : Origin.t =
   | Regular { path = { origin; _ }; _ }
   | Lockfile { path = { origin; _ }; _ } ->
       origin
+
+let mk_target (lang : Lang.t) (file : Fpath.t) : t =
+  (* coupling: src/targeting/Product.all *)
+  let all = [ `SAST; `SCA; `Secrets ] in
+  Regular (mk_regular (Xlang.of_lang lang) all (Origin.File file))
