@@ -1,0 +1,7 @@
+rules:
+- id: basic
+  languages:
+  - python
+  match: $X == $X
+  message: found something
+  severity: ERROR
