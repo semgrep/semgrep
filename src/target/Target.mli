@@ -4,6 +4,10 @@
     pysemgrep generates targets that have slightly less information (e.g.,
     these types have expanded information about the targets' locations). *)
 
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
 type path = {
   origin : Origin.t;
       (** The origin of the data as is relevant to the user. This could be,
@@ -88,6 +92,10 @@ type t = Regular of regular | Lockfile of lockfile [@@deriving show]
 
 val pp_debug : Format.formatter -> t -> unit
 
+(*****************************************************************************)
+(* Builders *)
+(*****************************************************************************)
+
 val mk_regular :
   ?lockfile:lockfile ->
   Xlang.t ->
@@ -123,12 +131,21 @@ val mk_manifest : Manifest_kind.t -> Origin.t -> manifest
     target from certain types of origins, such as generating a tempfile.
  *)
 
+(* useful in tests *)
+val mk_target : Xlang.t -> Fpath.t -> t
+
+(*****************************************************************************)
+(* Input_to_core -> Target *)
+(*****************************************************************************)
+val target_of_input_to_core : Input_to_core_t.target -> t
+
+(*****************************************************************************)
+(* Accessors *)
+(*****************************************************************************)
+
 val internal_path : t -> Fpath.t
 (** [internal_path target] is the path to a file containing the
     contents of [target]. *)
 
 val origin : t -> Origin.t
 (** [origin target] is the user-reportable origin of [target]. *)
-
-(* useful in tests *)
-val mk_target : Xlang.t -> Fpath.t -> t

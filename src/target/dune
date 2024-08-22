@@ -29,3 +29,13 @@
 (env
   (_
     (flags (:standard  -w -30))))
+
+(rule
+ (targets Input_to_core_j.ml Input_to_core_j.mli)
+ (deps    Input_to_core.atd)
+ (action  (run atdgen -j -j-std %{deps})))
+
+(rule
+ (targets Input_to_core_t.ml Input_to_core_t.mli)
+ (deps    Input_to_core.atd)
+ (action  (run atdgen -t %{deps})))
