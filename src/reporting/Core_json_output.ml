@@ -24,16 +24,6 @@ open Pattern_match
 module Out = Semgrep_output_v1_j
 module OutUtils = Semgrep_output_utils
 module Log = Log_reporting.Log
-(*****************************************************************************)
-(* Types *)
-(*****************************************************************************)
-
-type rule_scan_source =
-  | Unchanged
-  | NewVersion
-  | NewRule
-  | PreviousScan
-  | Unannotated
 
 (*****************************************************************************)
 (* Helpers *)
@@ -91,29 +81,6 @@ let range_of_any_opt startp_of_match_range any =
       let startp, endp = OutUtils.position_range min_loc max_loc in
       Some (startp, endp)
 
-let get_scan_source (metadata : J.t) =
-  let res =
-    let* j = J.member "semgrep.dev" metadata in
-    let* j2 = J.member "src" j in
-    Some
-      (match j2 with
-      | J.String "unchanged" -> Unchanged
-      | J.String "new-version" -> NewVersion
-      | J.String "new-rule" -> NewRule
-      | J.String "previous-scan" -> PreviousScan
-      | _ -> Unannotated)
-  in
-  match res with
-  | None -> Unannotated
-  | Some v -> v
-
-let annotated_rule_name (metadata : J.t) =
-  let* a = J.member "semgrep.dev" metadata in
-  let* a = J.member "rule" a in
-  match J.member "rule_name" a with
-  | Some (J.String s) -> Some s
-  | _ -> None
-
 (*****************************************************************************)
 (* Deduplication *)
 (*****************************************************************************)
@@ -128,41 +95,12 @@ type key = string * string * int * int * string option * string option
    but has since been moved to core.
 *)
 let core_unique_key (c : Out.core_match) : key =
-  (* TYpe-wise this is a tuple of string * string * int * int * string * string option *)
-  (* self.annotated_rule_name if self.from_transient_scan else self.rule_id,
-      str(self.path),
-      self.start.offset,
-      self.end.offset,
-      self.message,
-  *)
-  let metadata =
-    match c.extra.metadata with
-    | None -> J.Null
-    | Some json -> JSON.from_yojson json
-  in
-  let name =
-    if get_scan_source metadata =*= PreviousScan then
-      match annotated_rule_name metadata with
-      | None -> failwith ""
-      | Some s -> s
-    else Rule_ID.to_string c.check_id
-  in
+  let name = Rule_ID.to_string c.check_id in
   let path =
     match c.extra.historical_info with
     | Some { git_blob = Some sha; _ } -> ATD_string_wrap.Sha1.unwrap sha
     | _ -> Fpath.to_string c.path
   in
-  (* NOTE: We include the previous scan's rules in the config for
-     consistent fixed status work. For unique hashing/grouping,
-     previous and current scan rules must have distinct check IDs.
-     Hence, previous scan rules are annotated with a unique check ID,
-     while the original ID is kept in metadata. As check_id is used
-     for unique_key, this patch fetches the check ID from metadata
-     for previous scan findings.
-     TODO: Once the fixed status work is stable, all findings should
-     fetch the check ID from metadata. This fallback prevents breaking
-     current scan results if an issue arises.
-  *)
   ( name,
     path,
     c.start.offset,

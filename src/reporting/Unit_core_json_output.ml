@@ -81,9 +81,8 @@ let test_core_unique_key =
           make_core_match ~check_id:"mangled-rule-name" ~src:"previous-scan"
             ~annotated_rule_id:"orig-rule-name" ()
         in
-        (* TODO These should be not equal *)
-        make_test_case "previous-scan match deduplication" key
-          "keys should match" match1 match2);
+        make_test_case "previous-scan match deduplication" key_not_equal
+          "keys should not match" match1 match2);
      ]
 
 let tests = Testo.categorize "Core_json_output" test_core_unique_key

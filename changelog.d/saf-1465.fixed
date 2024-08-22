@@ -1,0 +1,1 @@
+Fix overly-aggressive match deduplication that could, under certain circumstances, lead to findings being closed and reopened in the app.
