@@ -11,6 +11,7 @@ open Fpath_.Operators
 module Flag = Flag_semgrep
 module E = Core_error
 module J = JSON
+module Out = Semgrep_output_v1_j
 
 (*****************************************************************************)
 (* Prelude *)
@@ -216,6 +217,69 @@ let dump_ast ?(naming = false) (caps : < Cap.stdout ; Cap.exit >)
 (* Experiments *)
 (*****************************************************************************)
 (* See Experiments.ml now *)
+
+(*****************************************************************************)
+(* Output *)
+(*****************************************************************************)
+
+(* also used in semgrep-pro *)
+let output_core_results (caps : < Cap.stdout ; Cap.exit >)
+    (result_or_exn : Core_result.result_or_exn) (config : Core_scan_config.t) :
+    unit =
+  (* TODO: delete this comment and -stat_matches
+   * note: uncomment the following and use semgrep-core -stat_matches
+   * to debug too-many-matches issues.
+   * Common2.write_value matches "/tmp/debug_matches";
+   *)
+  match config.output_format with
+  (* note that the dots have been displayed before in Core_scan.scan ()
+   * for pysemgrep. Here we print the matches (and errors).
+   *)
+  | Json _ -> (
+      let res =
+        match result_or_exn with
+        | Ok r -> r
+        | Error exn ->
+            let err = E.exn_to_error None Fpath_.fake_file exn in
+            Core_result.mk_result_with_just_errors [ err ]
+      in
+      let res =
+        Logs_.with_debug_trace "Core_CLI.core_output_of_matches_and_errors.1"
+          (fun () -> Core_json_output.core_output_of_matches_and_errors res)
+      in
+      (*
+        Not pretty-printing the json output (Yojson.Safe.prettify)
+        because it kills performance, adding an extra 50% time on our
+        old calculate_ci_perf.py benchmark.
+        User should use an external tool like jq or ydump (latter comes with
+        yojson) for pretty-printing json.
+      *)
+      let s = Out.string_of_core_output res in
+      Logs.debug (fun m ->
+          m "size of returned JSON string: %d" (String.length s));
+      CapConsole.print caps#stdout s;
+      match result_or_exn with
+      | Error exn ->
+          Core_exit_code.exit_semgrep caps#exit (Unknown_exception exn)
+      | Ok _ -> ())
+  (* The matches have already been printed before in Core_scan.scan(). We just
+   * print the errors here (and matching explanations).
+   * LATER: you should now use osemgrep for this
+   *)
+  | Text _ -> (
+      match result_or_exn with
+      | Ok res ->
+          if config.matching_explanations then
+            res.explanations
+            |> Option.iter (List.iter Matching_explanation.print);
+          if not (List_.null res.errors) then (
+            Logs.warn (fun m ->
+                m "some files were skipped or only partially analyzed");
+            res.errors
+            |> List.iter (fun err ->
+                   Logs.warn (fun m -> m "%s" (E.string_of_error err))))
+      | Error exn -> Exception.reraise exn)
+  | NoOutput -> ()
 
 (*****************************************************************************)
 (* Config *)
@@ -764,9 +828,11 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
              for now just turn it off *)
           (* if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc (); *)
           let run ?span_id () =
-            Core_command.run_conf
-              (caps :> < Cap.stdout ; Cap.exit >)
+            let config =
               { config with target_source; ncores; top_level_span = span_id }
+            in
+            let res = Core_scan.scan (caps :> < >) config in
+            output_core_results (caps :> < Cap.stdout ; Cap.exit >) res config
           in
 
           (* Set up tracing and run it for the duration of scanning. Note that
