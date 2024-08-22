@@ -5,9 +5,8 @@ type func = Core_scan_config.t -> Core_result.result_or_exn
 (* Entry point. This is used in Core_command.ml for semgrep-core,
  * in tests, in semgrep-pro, and finally in osemgrep.
  *
- * [scan caps config] runs a core scan with a starting list
- * of targets and capture any exception.
- * (TODO remove the "starting" above, impose fixed list of targets)
+ * [scan caps config] runs a core scan with a fixed list of targets
+ * and rules and capture any exception.
  * This internally calls Match_rules.check() on every files, in
  * parallel, with some memory limits, and aggregate the results.
  *
