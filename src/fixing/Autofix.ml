@@ -330,7 +330,7 @@ let regex_fix ~fix_regexp:Rule.{ regexp; count; replacement } (start, end_)
        This lets us essentially capture everything matched by \<num> with
        $<num>.
     *)
-    Pcre2_.replace ~rex:capture_group_rex ~template:"$$1" replacement
+    Pcre2_.replace ~rex:capture_group_rex ~template:"$$$1" replacement
   in
   let replacement_text =
     match count with
