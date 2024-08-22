@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 module Out = Semgrep_output_v1_t
+module In = Input_to_core_t
 
 (*****************************************************************************)
 (* Prelude *)
@@ -95,6 +96,40 @@ let mk_lockfile ?manifest kind (origin : Origin.t) : lockfile =
 let mk_manifest kind (origin : Origin.t) : manifest =
   { path = path_of_origin origin; kind }
 
+let mk_target (xlang : Xlang.t) (file : Fpath.t) : t =
+  let all = Product.all in
+  (* TODO: should do the check in the other mk_xxx ? *)
+  assert (UFile.is_file file);
+  Regular (mk_regular xlang all (Origin.File file))
+
+(*****************************************************************************)
+(* Input_to_core -> Target *)
+(*****************************************************************************)
+
+let manifest_target_of_input_to_core
+    ({ path; manifest_kind = kind } : In.manifest_target) : manifest =
+  mk_manifest kind (File (Fpath.v path))
+
+let lockfile_target_of_input_to_core
+    ({ path; lockfile_kind = kind; manifest_target } : In.lockfile_target) :
+    lockfile =
+  let manifest = Option.map manifest_target_of_input_to_core manifest_target in
+  mk_lockfile ?manifest kind (File (Fpath.v path))
+
+let code_target_location_of_input_to_core
+    ({ path; analyzer; products; lockfile_target } : In.code_target) : regular =
+  let lockfile = Option.map lockfile_target_of_input_to_core lockfile_target in
+  mk_regular ?lockfile analyzer products (File (Fpath.v path))
+
+let target_of_input_to_core (input : In.target) : t =
+  match input with
+  | `CodeTarget x -> Regular (code_target_location_of_input_to_core x)
+  | `LockfileTarget x -> Lockfile (lockfile_target_of_input_to_core x)
+
+(*****************************************************************************)
+(* Accessors *)
+(*****************************************************************************)
+
 let internal_path (target : t) : Fpath.t =
   match target with
   | Regular { path = { internal_path_to_content; _ }; _ }
@@ -106,10 +141,3 @@ let origin (target : t) : Origin.t =
   | Regular { path = { origin; _ }; _ }
   | Lockfile { path = { origin; _ }; _ } ->
       origin
-
-let mk_target (xlang : Xlang.t) (file : Fpath.t) : t =
-  (* coupling: src/targeting/Product.all *)
-  let all = [ `SAST; `SCA; `Secrets ] in
-  (* TODO: should do the check in the other mk_xxx ? *)
-  assert (UFile.is_file file);
-  Regular (mk_regular xlang all (Origin.File file))

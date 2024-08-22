@@ -551,27 +551,6 @@ let filter_existing_targets (targets : Target.t list) :
                    rule_id = None;
                  })
 
-let manifest_target_of_input_to_core
-    ({ path; manifest_kind = kind } : In.manifest_target) : Target.manifest =
-  Target.mk_manifest kind (File (Fpath.v path))
-
-let lockfile_target_of_input_to_core
-    ({ path; lockfile_kind = kind; manifest_target } : In.lockfile_target) :
-    Target.lockfile =
-  let manifest = Option.map manifest_target_of_input_to_core manifest_target in
-  Target.mk_lockfile ?manifest kind (File (Fpath.v path))
-
-let code_target_location_of_input_to_core
-    ({ path; analyzer; products; lockfile_target } : In.code_target) :
-    Target.regular =
-  let lockfile = Option.map lockfile_target_of_input_to_core lockfile_target in
-  Target.mk_regular ?lockfile analyzer products (File (Fpath.v path))
-
-let target_of_input_to_core (input : In.target) : Target.t =
-  match input with
-  | `CodeTarget x -> Regular (code_target_location_of_input_to_core x)
-  | `LockfileTarget x -> Lockfile (lockfile_target_of_input_to_core x)
-
 (* Compute the set of targets, either by reading what was passed
  * in -targets or passed by osemgrep in Targets.
  *)
@@ -591,7 +570,7 @@ let targets_of_config (config : Core_scan_config.t) :
       | Target_file target_file ->
           UFile.read_file target_file
           |> In.targets_of_string
-          |> List_.map target_of_input_to_core
+          |> List_.map Target.target_of_input_to_core
           |> filter_existing_targets)
 
 (* DEPRECATED
@@ -652,7 +631,7 @@ let targets_of_config_DEPRECATED (config : Core_scan_config.t) :
           | Target_file target_file ->
               UFile.read_file target_file
               |> In.targets_of_string
-              |> List_.map target_of_input_to_core
+              |> List_.map Target.target_of_input_to_core
               |> filter_existing_targets))
 
 (*****************************************************************************)
