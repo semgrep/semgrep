@@ -28,18 +28,8 @@ module Out = Semgrep_output_v1_j
  *
  * ## pysemgrep vs semgrep-core
  *
- * Officially, `semgrep-core` is never run on its own. External users run
- * `semgrep`, which invokes `semgrep-core` with the appropriate rules and
- * targets. However, for development purposes it can be convenient to skip
- * the wrapper. Therefore, we also maintain some code paths that allow
- * `semgrep-core` to take in rules or patterns and perform its own file
- * targeting. These will not always return the same results as the equivalent
- * `semgrep` run.
- *
  * When invoked by `pysemgrep`, `semgrep-core` will always be passed
- * `-rules` and `-targets`. All the code relevant to `pysemgrep` runs will be
- * found in code paths where the rules file and the targets file are not `""`.
- *
+ * `-rules` and `-targets`.
  * While the `rules` file is just the collection of rules, the `targets` file
  * describes the mapping of targets to rules. See `Input_to_core.atd` target
  * type. `semgrep-core` follows the target-to-rulemappings without validation
@@ -145,42 +135,6 @@ type target_handler = Target.t -> Core_result.matches_single_file * was_scanned
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
-(* In some context, a target passed in might have disappeared, or have been
- * encoded in the wrong way in the Inputs_to_core.atd (for example
- * in the case of filenames with special unicode bytes in it), in which case
- * Common2.filesize above would fail and crash the whole scan as the
- * raised exn is outside the iter_targets_and_get_matches_and_exn_to_errors
- * big try. This is why it's better to filter those problematic targets
- * early on.
- *)
-let filter_existing_targets (targets : Target.t list) :
-    Target.t list * Out.skipped_target list =
-  targets
-  |> Either_.partition (fun (target : Target.t) ->
-         let internal_path = Target.internal_path target in
-         if Sys.file_exists !!internal_path then Left target
-         else
-           match Target.origin target with
-           | File path ->
-               Right
-                 {
-                   Semgrep_output_v1_t.path;
-                   reason = Nonexistent_file;
-                   details = Some "File does not exist";
-                   rule_id = None;
-                 }
-           | GitBlob { sha; _ } ->
-               Right
-                 {
-                   Semgrep_output_v1_t.path = Target.internal_path target;
-                   reason = Nonexistent_file;
-                   details =
-                     Some
-                       (spf "Issue creating a target from git blob %s"
-                          (Digestif.SHA1.to_hex sha));
-                   rule_id = None;
-                 })
 
 let set_matches_to_proprietary_origin_if_needed (xtarget : Xtarget.t)
     (matches : Core_result.matches_single_file) :
@@ -561,6 +515,42 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
 (* File targeting *)
 (*****************************************************************************)
 
+(* In some context, a target passed in might have disappeared, or have been
+ * encoded in the wrong way in the Inputs_to_core.atd (for example
+ * in the case of filenames with special unicode bytes in it), in which case
+ * Common2.filesize above would fail and crash the whole scan as the
+ * raised exn is outside the iter_targets_and_get_matches_and_exn_to_errors
+ * big try. This is why it's better to filter those problematic targets
+ * early on.
+ *)
+let filter_existing_targets (targets : Target.t list) :
+    Target.t list * Out.skipped_target list =
+  targets
+  |> Either_.partition (fun (target : Target.t) ->
+         let internal_path = Target.internal_path target in
+         if Sys.file_exists !!internal_path then Left target
+         else
+           match Target.origin target with
+           | File path ->
+               Right
+                 {
+                   Semgrep_output_v1_t.path;
+                   reason = Nonexistent_file;
+                   details = Some "File does not exist";
+                   rule_id = None;
+                 }
+           | GitBlob { sha; _ } ->
+               Right
+                 {
+                   Semgrep_output_v1_t.path = Target.internal_path target;
+                   reason = Nonexistent_file;
+                   details =
+                     Some
+                       (spf "Issue creating a target from git blob %s"
+                          (Digestif.SHA1.to_hex sha));
+                   rule_id = None;
+                 })
+
 let manifest_target_of_input_to_core
     ({ path; manifest_kind = kind } : In.manifest_target) : Target.manifest =
   Target.mk_manifest kind (File (Fpath.v path))
@@ -583,14 +573,16 @@ let target_of_input_to_core (input : In.target) : Target.t =
   | `LockfileTarget x -> Lockfile (lockfile_target_of_input_to_core x)
 
 (* Compute the set of targets, either by reading what was passed
- * in -target or passed by osemgrep in Targets.
+ * in -targets or passed by osemgrep in Targets.
  *)
 let targets_of_config (config : Core_scan_config.t) :
     Target.t list * Out.skipped_target list =
-  (* TODO:
-     assert (config.lang =*= None);
-     assert (config.roots =*= []);
-  *)
+  (* sanity checking
+   * LATER: we should get rid of those fields instead *)
+  if config.lang <> None then
+    failwith "config.lang is not empty in Core_scan.targets_of_config";
+  if config.roots <> [] then
+    failwith "config.roots is not empty in Core_scan.targets_of_config";
   match config.target_source with
   | None -> failwith "you need to specify targets with -targets"
   | Some target_source -> (
@@ -605,14 +597,7 @@ let targets_of_config (config : Core_scan_config.t) :
 (* DEPRECATED
  * Compute the set of targets, either by reading what was passed
  * in -target, or by using our poor's man file targeting with
- * Find_target.files_of_dirs_or_files.
- *
- * The rule ids argument is useful only when -target is not specified.
- * The In.target type now requires the list of rule ids to use for
- * a target, which gives flexibility to the caller (e.g., filter
- * certain rules for certain targets in the semgrep-cli wrapper
- * by using the include/exclude fields.).
- * in -target or passed by osemgrep in Targets.
+ * Find_targets_old.files_of_dirs_or_files.
  *)
 let targets_of_config_DEPRECATED (config : Core_scan_config.t) :
     Target.t list * Out.skipped_target list =
@@ -648,7 +633,7 @@ let targets_of_config_DEPRECATED (config : Core_scan_config.t) :
       (target_mappings, skipped)
   | None, _, None -> failwith "you need to specify a language with -lang"
   (* main code path for semgrep python, with targets specified by -target *)
-  | Some _target_source, roots, lang_opt ->
+  | Some _target_source, roots, lang_opt -> (
       (* sanity checking *)
       (* in deep mode we actually have a single root dir passed *)
       if roots <> [] then
@@ -659,7 +644,16 @@ let targets_of_config_DEPRECATED (config : Core_scan_config.t) :
        *)
       if lang_opt <> None then
         failwith "if you use -targets and -rules, you should not specify a lang";
-      targets_of_config config
+      match config.target_source with
+      | None -> failwith "you need to specify targets with -targets"
+      | Some target_source -> (
+          match target_source with
+          | Targets x -> x |> filter_existing_targets
+          | Target_file target_file ->
+              UFile.read_file target_file
+              |> In.targets_of_string
+              |> List_.map target_of_input_to_core
+              |> filter_existing_targets))
 
 (*****************************************************************************)
 (* Rule selection *)
