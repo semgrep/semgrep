@@ -8,11 +8,14 @@ def test_target_file():
         as having that file in -target-file flag
     """
     output = subprocess.check_output([
-        "bin/semgrep-core", "-e", "$X==$X", "-lang", "python",
+        "bin/semgrep-core",
+        "-lang", "python",
+        "-rules", "tests/semgrep-core-e2e/rules/basic.yaml",
         "tests/semgrep-core-e2e/targets/basic.py"
     ], encoding="utf-8")
     output2 = subprocess.check_output([
-        "bin/semgrep-core", "-e", "$X==$X", "-lang", "python",
+        "bin/semgrep-core",
+        "-rules", "tests/semgrep-core-e2e/rules/basic.yaml",
         "-targets", "tests/semgrep-core-e2e/targets.json"
     ], encoding="utf-8")
     assert output == output2
