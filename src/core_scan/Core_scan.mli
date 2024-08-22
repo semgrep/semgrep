@@ -102,3 +102,7 @@ val parse_equivalences : Fpath.t option -> Equivalence.equivalences
 (* small wrapper around Parse_target.parse_and_resolve_name *)
 val parse_and_resolve_name :
   Lang.t -> Fpath.t -> AST_generic.program * Tok.location list
+
+(* DO NOT USE *)
+val targets_of_config_DEPRECATED :
+  Core_scan_config.t -> Target.t list * Semgrep_output_v1_t.skipped_target list

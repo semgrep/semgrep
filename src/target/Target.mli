@@ -131,4 +131,4 @@ val origin : t -> Origin.t
 (** [origin target] is the user-reportable origin of [target]. *)
 
 (* useful in tests *)
-val mk_target : Lang.t -> Fpath.t -> t
+val mk_target : Xlang.t -> Fpath.t -> t
