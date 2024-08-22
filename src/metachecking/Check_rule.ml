@@ -262,7 +262,7 @@ let semgrep_check (caps : < >) (metachecks : Fpath.t) (rules : Fpath.t list) :
   let lang : Lang.t = Yaml in
   (* the targets are actually the rules! metachecking! *)
   let targets : Target.t list =
-    rules |> List_.map (fun file -> Target.mk_target lang file)
+    rules |> List_.map (fun file -> Target.mk_target (Xlang.of_lang lang) file)
   in
   let (config : Core_scan_config.t) =
     {

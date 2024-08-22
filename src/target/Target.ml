@@ -1,6 +1,6 @@
 (* Cooper Pierce
  *
- * Copyright (c) Semgrep Inc.
+ * Copyright (c) 2024, Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -14,7 +14,14 @@
  *)
 module Out = Semgrep_output_v1_t
 
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
 (* See Target.mli for documentation of public items. *)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
 
 type path = { origin : Origin.t; internal_path_to_content : Fpath.t }
 [@@deriving show, eq]
@@ -50,6 +57,10 @@ let pp_debug f = function
   | Regular t -> Format.fprintf f "target file: %a" pp_debug_regular t
   | Lockfile t -> Format.fprintf f "target lockfile: %a" pp_debug_lockfile t
 
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
 (** [tempfile_of_git_blob sha] is the path to a newly created temporary file
     which contains the contents of the git blob object identified by [sha] *)
 let tempfile_of_git_blob sha =
@@ -70,6 +81,10 @@ let path_of_origin (origin : Origin.t) : path =
   | File file -> { origin; internal_path_to_content = file }
   | GitBlob { sha; _ } ->
       { origin; internal_path_to_content = tempfile_of_git_blob sha }
+
+(*****************************************************************************)
+(* Builders *)
+(*****************************************************************************)
 
 let mk_regular ?lockfile analyzer products (origin : Origin.t) : regular =
   { path = path_of_origin origin; analyzer; products; lockfile }
@@ -92,7 +107,9 @@ let origin (target : t) : Origin.t =
   | Lockfile { path = { origin; _ }; _ } ->
       origin
 
-let mk_target (lang : Lang.t) (file : Fpath.t) : t =
+let mk_target (xlang : Xlang.t) (file : Fpath.t) : t =
   (* coupling: src/targeting/Product.all *)
   let all = [ `SAST; `SCA; `Secrets ] in
-  Regular (mk_regular (Xlang.of_lang lang) all (Origin.File file))
+  (* TODO: should do the check in the other mk_xxx ? *)
+  assert (UFile.is_file file);
+  Regular (mk_regular xlang all (Origin.File file))
