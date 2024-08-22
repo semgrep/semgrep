@@ -18,3 +18,6 @@ val options :
 val action : string ref
 val all_actions : Cap.all_caps -> unit -> Arg_.action_spec list
 val register_exception_printers : unit -> unit
+
+(* DO NOT USE! *)
+val mk_config_DEPRECATED : unit -> Core_scan_config.t

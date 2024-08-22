@@ -22,7 +22,7 @@ module J = JSON
  * history: the code here used to be in Main.ml.
  *
  * DEPRECATED: semgrep-core used to recognize lots of options (e.g., -e/-f) and
- * is still used extensively by PA for many things. It is doing its own file
+ * is still used extensively by PA for many things. It was doing its own file
  * targeting, its own text output, but all of this should be gradually removed.
  * Ideally semgrep-core should support just the options that are required
  * by pysemgrep in core_runner.py and nothing else. You should use
@@ -63,7 +63,14 @@ let trace_endpoint = ref Core_scan_config.default.trace_endpoint
 let rule_source = ref None
 
 (* -targets (takes the list of files in a file given by pysemgrep) *)
-let target_source = ref None
+let target_source : Core_scan_config.target_source option ref = ref None
+
+(* used for `semgrep-core -l <lang> <single file>` instead of
+ * `semgrep-core -targets`. It is also used for semgrep-core "actions" as in
+ * `semgrep-core -l <lang> -dump_ast <file`
+ * less: we could infer it from basename argv(0) ?
+ *)
+let lang = ref None
 
 (* this is used not only by pysemgrep but also by a few actions *)
 let output_format = ref Core_scan_config.default.output_format
@@ -106,17 +113,12 @@ let filter_irrelevant_rules =
 (* pad's action flag *)
 (* ------------------------------------------------------------------------- *)
 
-(* TODO: infer from basename argv(0) ? *)
-let lang = ref None
-
 (* action mode *)
 let action = ref ""
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
-let version = spf "semgrep-core version: %s" Version.version
 
 (* Note that set_gc() may not interact well with Memory_limit and its use of
  * Gc.alarm. Indeed, the Gc.alarm triggers only at major cycle
@@ -221,30 +223,63 @@ let dump_ast ?(naming = false) (caps : < Cap.stdout ; Cap.exit >)
 
 let mk_config () : Core_scan_config.t =
   {
-    strict = !strict;
-    trace = !trace;
-    trace_endpoint = !trace_endpoint;
-    report_time = !report_time;
-    matching_explanations = !matching_explanations;
     rule_source =
       (match !rule_source with
       | None -> failwith "missing -rules"
       | Some x -> x);
-    filter_irrelevant_rules = !filter_irrelevant_rules;
-    respect_rule_paths = !respect_rule_paths;
-    (* not part of CLI *)
-    equivalences_file = !equivalences_file;
-    lang = !lang;
+    (* target_source will be filled later in main_exn() *)
+    target_source = None;
     output_format = !output_format;
+    strict = !strict;
+    report_time = !report_time;
+    matching_explanations = !matching_explanations;
+    respect_rule_paths = !respect_rule_paths;
+    equivalences_file = !equivalences_file;
+    file_match_hook = None;
+    (* limits and perf *)
     timeout = !timeout;
     timeout_threshold = !timeout_threshold;
     max_memory_mb = !max_memory_mb;
     max_match_per_file = !max_match_per_file;
     ncores = !ncores;
-    target_source = !target_source;
-    file_match_hook = None;
-    roots = [] (* This will be set later in main () *);
+    filter_irrelevant_rules = !filter_irrelevant_rules;
+    (* open telemetry *)
+    trace = !trace;
+    trace_endpoint = !trace_endpoint;
     top_level_span = None;
+    (* DEPRECATED: should be removed once Deep_scan does not need it anymore *)
+    roots = [];
+    lang = None;
+  }
+
+let mk_config_DEPRECATED () : Core_scan_config.t =
+  {
+    rule_source =
+      (match !rule_source with
+      | None -> failwith "missing -rules"
+      | Some x -> x);
+    output_format = !output_format;
+    strict = !strict;
+    report_time = !report_time;
+    matching_explanations = !matching_explanations;
+    respect_rule_paths = !respect_rule_paths;
+    equivalences_file = !equivalences_file;
+    file_match_hook = None;
+    (* limits and perf *)
+    timeout = !timeout;
+    timeout_threshold = !timeout_threshold;
+    max_memory_mb = !max_memory_mb;
+    max_match_per_file = !max_match_per_file;
+    ncores = !ncores;
+    filter_irrelevant_rules = !filter_irrelevant_rules;
+    (* open telemetry *)
+    trace = !trace;
+    trace_endpoint = !trace_endpoint;
+    top_level_span = None;
+    (* !!!Differ from above!!! *)
+    target_source = !target_source;
+    lang = !lang;
+    roots = [];
   }
 
 (*****************************************************************************)
@@ -565,6 +600,7 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
       ( "-version",
         Arg.Unit
           (fun () ->
+            let version = spf "semgrep-core version: %s" Version.version in
             CapConsole.print caps#stdout version;
             Core_exit_code.(exit_semgrep caps#exit Success)),
         "  guess what" );
@@ -671,7 +707,7 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
     ();
 
   Logs.info (fun m -> m "Executed as: %s" (argv |> String.concat " "));
-  Logs.info (fun m -> m "Version: %s" version);
+  Logs.info (fun m -> m "Version: %s" Version.version);
 
   (* hacks to reduce the size of engine.js
    * coupling: if you add an init() call here, you probably need to modify
@@ -694,14 +730,31 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
       (* main entry *)
       (* --------------------------------------------------------- *)
       | roots ->
+          let roots = Fpath_.of_strings roots in
           let config = mk_config () in
           Core_profiling.profiling := config.report_time;
-          let config =
+          let ncores =
             if !profile then (
               Logs.info (fun m -> m "Profile mode On");
               Logs.info (fun m -> m "disabling -j when in profiling mode");
-              { config with ncores = 1 })
-            else config
+              1)
+            else config.ncores
+          in
+          let target_source =
+            match (!target_source, !lang, roots) with
+            | Some x, None, [] -> Some x
+            | None, Some lang, [ file ] when UFile.is_file file ->
+                Some (Targets [ Target.mk_target lang file ])
+            | _ ->
+                (* alt: use the file targeting in targets_of_config_DEPRECATED
+                 * with the deprecated use of Find_targets_old, but better
+                 * to "dumb-down" semgrep-core to its minimum.
+                 *)
+                failwith
+                  "this combination of targets and flags is not supported; \
+                   semgrep-core supports either the use of -targets, or -lang \
+                   and a single target file; if you need more complex file \
+                   targeting use semgrep"
           in
 
           (* TODO: We used to tune the garbage collector but from profiling
@@ -713,11 +766,7 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
           let run ?span_id () =
             Core_command.run_conf
               (caps :> < Cap.stdout ; Cap.exit >)
-              {
-                config with
-                roots = List_.map Scanning_root.of_string roots;
-                top_level_span = span_id;
-              }
+              { config with target_source; ncores; top_level_span = span_id }
           in
 
           (* Set up tracing and run it for the duration of scanning. Note that
