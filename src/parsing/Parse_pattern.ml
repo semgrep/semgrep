@@ -42,7 +42,7 @@ let rec normalize_any (lang : Lang.t) (any : G.any) : G.any =
   (* Any name pattern which is a metavariable should be sorted into an
      E pattern, so we can properly match it against E nodes.
   *)
-  | G.Name (Id ((s, t), idinfo)) when Metavariable.is_metavar_name s ->
+  | G.Name (Id ((s, t), idinfo)) when Mvar.is_metavar_name s ->
       G.E (G.N (Id ((s, t), idinfo)) |> G.e)
   (* TODO: generalizing to other languages generate many regressions *)
   | G.E { e = G.N name; _ } when lang =*= Lang.Rust ->
@@ -76,6 +76,5 @@ let parse_pattern_ref =
 let parse_pattern ?(rule_options = None) lang str =
   let any = !parse_pattern_ref rule_options lang str in
   let any = normalize_any lang any in
-  Check_pattern.check lang any;
-  any
+  Check_pattern.check lang any |> Result.map (fun () -> any)
 [@@profiling]

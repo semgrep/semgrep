@@ -13,6 +13,8 @@
  * LICENSE for more details.
  *)
 
+open Printf
+
 let t = Testo.create
 
 module F = Testutil_files
@@ -53,6 +55,8 @@ def foo(a, b):
     return a + b == a + b
 |}
 
+let dummy_app_token = "FAKETESTINGAUTHTOKEN"
+
 (* coupling: subset of cli/tests/conftest.py ALWAYS_MASK *)
 let normalize =
   [
@@ -65,9 +69,36 @@ let normalize =
 let without_settings f =
   Semgrep_envvars.with_envvar "SEMGREP_SETTINGS_FILE" "nosettings.yaml" f
 
+let with_env_app_token ?(token = dummy_app_token) f =
+  Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" token f
+
 (*****************************************************************************)
 (* Tests *)
 (*****************************************************************************)
+
+let test_nosettings ~env_app_token_set () =
+  printf "cwd: %s\n%!" (Unix.getcwd ());
+  let settings_opt = Semgrep_settings.from_file () in
+  Alcotest.(check bool) "no settings from file" true (settings_opt = None);
+  let settings_with_include_env = Semgrep_settings.load () in
+  let expected_settings =
+    if env_app_token_set then
+      {
+        Semgrep_settings.default with
+        api_token = Some (Auth.unsafe_token_of_string dummy_app_token);
+      }
+    else Semgrep_settings.default
+  in
+  Alcotest.(check bool)
+    "default settings loaded" true
+    (expected_settings = settings_with_include_env);
+  let settings_with_no_include_env =
+    Semgrep_settings.load ~include_env:false ()
+  in
+  Alcotest.(check bool)
+    "default settings loaded with app token and no env" true
+    (settings_with_no_include_env = Semgrep_settings.default)
+
 let test_basic_output (caps : Scan_subcommand.caps) : Testo.t =
   t ~checked_output:(Testo.stdxxx ()) ~normalize __FUNCTION__ (fun () ->
       Logs.app (fun m -> m "Snapshot for %s" __FUNCTION__);
@@ -116,4 +147,12 @@ let test_basic_verbose_output (caps : Scan_subcommand.caps) : Testo.t =
 
 let tests (caps : < Scan_subcommand.caps >) =
   Testo.categorize "Osemgrep Scan (e2e)"
-    [ test_basic_output caps; test_basic_verbose_output caps ]
+    [
+      t "no semgrep settings file" (fun () ->
+          without_settings (test_nosettings ~env_app_token_set:false));
+      t "no semgrep settings file with env set" (fun () ->
+          without_settings (fun () ->
+              with_env_app_token (test_nosettings ~env_app_token_set:true)));
+      test_basic_output caps;
+      test_basic_verbose_output caps;
+    ]

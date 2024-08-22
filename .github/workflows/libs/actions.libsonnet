@@ -35,10 +35,12 @@
       cache: 'pipenv',
     },
   },
+  // We pin to a specific version just to prevent things from breaking randomly.
+  // This has been a source of breakage in the past.
+  pipenv_version: '2024.0.1',
   pipenv_install_step: {
-    run: 'pip install pipenv==2024.0.1',
+    run: 'pip install pipenv==%s' % $.pipenv_version,
   },
-
   install_python_deps(directory): {
     name: 'Install Python dependencies',
     'working-directory': directory,
@@ -85,4 +87,33 @@
         name: artifact_name,
       },
   },
+  // See semgrep.libjsonnet cache_opam for inspiration here
+  //
+  guard_cache_hit: {
+    step(path, key='${{ github.sha}}', bump_cache=1): {
+      name: 'Set GHA cache for ' + key +' in ' + path,
+      uses: 'actions/cache@v3',
+      env: {
+        SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2,
+      },
+      with: {
+        path: path,
+        key: '${{ runner.os }}-${{ runner.arch }}-v%d-opam-%s' % [bump_cache, key],
+      },
+    },
+    // to be used with workflow_dispatch and workflow_call in the workflow
+    inputs(required, step): {
+      inputs: {
+        'use-cache': {
+          description: 'Use Github Cache for ' + step + '- uncheck the box to disable use of the cache for this step, meaning a long-running but completely from-scratch build.',
+          required: required,
+          type: 'boolean',
+          default: true,
+        },
+      }
+    },
+    if_cache_inputs: {
+      'if': '${{ inputs.use-cache}}'
+    },
+  }
 }

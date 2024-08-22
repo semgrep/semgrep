@@ -65,7 +65,7 @@ let type_parameters_with_constraints (tparams : type_parameters option)
                  match with_constraints with
                  | Some (_id, xs) ->
                      let _more_constraintsTODO, more_bounds =
-                       xs |> Either_.partition_either (fun x -> x)
+                       xs |> Either_.partition (fun x -> x)
                      in
                      TP
                        {
@@ -287,7 +287,7 @@ module List = struct
   include List
 
   (* not available in 4.09 *)
-  let concat_map f xs = List_.map f xs |> List.flatten
+  let concat_map f xs = List_.map f xs |> List_.flatten
 end
 
 (*****************************************************************************)
@@ -2831,7 +2831,7 @@ and compilation_unit (env : env) (xs : CST.compilation_unit) : any =
             v1 @ v2
         | `File_scoped_name_decl x -> file_scoped_namespace_declaration env x
       in
-      G.Pr (List.concat [ v1; v2; v3; v4 ])
+      G.Pr (List_.flatten [ v1; v2; v3; v4 ])
   | `Semg_exp (_v1, v2) ->
       let v2 = expression env v2 in
       G.E v2
@@ -2848,7 +2848,7 @@ and file_scoped_namespace_declaration (env : env)
   let v8 = List_.map (type_declaration env) v8 in
   let dotted_ident = H2.dotted_ident_of_name n in
   let namespace = G.Package (tnamespace, dotted_ident) |> G.d in
-  List.concat
+  List_.flatten
     [ stmts; nspace_decls; [ G.DirectiveStmt namespace |> G.s ]; v6; v7; v8 ]
 
 and namespace_declaration (env : env)

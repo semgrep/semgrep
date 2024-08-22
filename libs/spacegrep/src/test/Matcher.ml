@@ -59,7 +59,7 @@ let matches_eq expected_doc_strings matches =
 
 let search param pat doc_src doc =
   let matches = Match.search param doc_src pat doc in
-  Match.print doc_src matches;
+  Print_match.print doc_src matches;
   matches
 
 let search_str param pat_str doc_str =

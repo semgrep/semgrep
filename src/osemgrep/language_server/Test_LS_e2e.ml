@@ -14,6 +14,7 @@
  *)
 
 open Lsp
+open Lsp_
 open Types
 open Jsonrpc
 open Fpath_.Operators
@@ -23,7 +24,6 @@ module SR = Server_request
 module CR = Client_request
 module CN = Client_notification
 module YS = Yojson.Safe
-module LanguageServer = LS.LanguageServer
 
 (*****************************************************************************)
 (* Prelude *)
@@ -50,42 +50,18 @@ module LanguageServer = LS.LanguageServer
    which deals with data flowing "out" of the server.
 *)
 
-type push_function = Jsonrpc.Packet.t option -> unit
-
-let write_func : push_function ref = ref (fun _ -> ())
-
-let read_stream : Jsonrpc.Packet.t Lwt_stream.t ref =
-  ref (fst (Lwt_stream.create ()))
-
-module Io : RPC_server.LSIO = struct
-  let write packet =
-    !write_func (Some packet);
-    Lwt.return_unit
-
-  let read () = Lwt_stream.get !read_stream
-  let flush () = Lwt.return_unit
-end
-
-type server_info = {
-  server : RPC_server.t;
-  in_stream : Jsonrpc.Packet.t Lwt_stream.t * push_function;
-  out_stream : Jsonrpc.Packet.t Lwt_stream.t * push_function;
-}
-
+type server_info = { server : RPC_server.t; handler : RPC_server.handler }
 type test_info = { server : server_info; root : Fpath.t }
 
 let create_info caps =
-  RPC_server.io_ref := (module Io);
-  let in_stream, in_push_func = Lwt_stream.create () in
-  let out_stream, out_push_func = Lwt_stream.create () in
-  let server = LanguageServer.create caps in
-  write_func := out_push_func;
-  read_stream := in_stream;
-  {
-    server;
-    in_stream = (in_stream, in_push_func);
-    out_stream = (out_stream, out_push_func);
-  }
+  let server = RPC_server.create caps LS.capabilities in
+  let handler : RPC_server.handler =
+    {
+      on_request = Request_handler.on_request;
+      on_notification = Notification_handler.on_notification;
+    }
+  in
+  { server; handler }
 
 (*****************************************************************************)
 (* Constants *)
@@ -99,8 +75,8 @@ let create_info caps =
    This makes a system call that interferes with lwt's event loop.
    Be careful.
 *)
-let get_project_root () =
-  match Git_wrapper.get_project_root_for_files_in_dir Fpath_.current_dir with
+let project_root () =
+  match Git_wrapper.project_root_for_files_in_dir Fpath_.current_dir with
   | Some path ->
       let oss_path = path / "OSS" in
       if Sys.file_exists !!oss_path then oss_path else path
@@ -114,7 +90,7 @@ let get_project_root () =
            one of its subfolders or submodules."
 
 let get_rule_path () =
-  match Git_wrapper.get_project_root_for_files_in_dir Fpath_.current_dir with
+  match Git_wrapper.project_root_for_files_in_dir Fpath_.current_dir with
   | Some root -> root // Fpath.v "cli/tests/default/e2e/targets/ls/rules.yaml"
   | None ->
       failwith "The test program must run from within the semgrep git project"
@@ -135,7 +111,6 @@ let login_url_regex =
   Pcre2_.pcre_compile {|https://semgrep.dev/login\?cli-token=.*"|}
 
 let prog_regex = Pcre2_.pcre_compile {|Pr([\s\S]*)|}
-let timeout = 30.0
 
 (*****************************************************************************)
 (* Helpers *)
@@ -150,59 +125,97 @@ let open_and_write_default_content ?(mode = []) file =
   output_string oc default_content;
   close_out oc
 
-let with_timeout (f : unit -> 'a Lwt.t) : unit -> 'a Lwt.t =
-  let timeout_promise =
-    let%lwt () = Lwt_platform.sleep timeout in
-    Alcotest.failf "Test timed out after %f seconds!" timeout
-  in
-  let f () = Lwt.pick [ f (); timeout_promise ] in
-  f
+let expect_one msg = function
+  | [ x ] -> x
+  | _ -> Alcotest.fail msg
+
+let expect_one_msg xs = expect_one "Expected exactly one message from server" xs
+let expect_empty msg list = Alcotest.(check int) msg 0 (List.length list)
+let expect_empty_msg xs = expect_empty "Expected no messages from server" xs
+
+let expect_object_field field_name (json : YS.t) =
+  match json with
+  | `Assoc fields -> (
+      match List.assoc_opt field_name fields with
+      | Some value -> value
+      | None -> Alcotest.fail (Printf.sprintf "Expected field %s" field_name))
+  | _ -> Alcotest.fail "Expected object"
+
+let expect_params_field field_name (params : Structured.t option) =
+  match params with
+  | Some (`Assoc _ as obj) -> expect_object_field field_name obj
+  | _ -> Alcotest.fail (Printf.sprintf "Expected params field %s" field_name)
+
+let scanned_files_of_files files =
+  List.filter
+    (fun f -> not (String_.contains (Fpath.to_string f) ~term:"existing"))
+    files
 
 (*****************************************************************************)
 (* Core primitives *)
 (*****************************************************************************)
 
-let send (info : server_info) packet : unit =
+let send (info : server_info) packet : server_info * Reply.t =
   match info.server.state with
-  | RPC_server.State.Stopped -> Alcotest.failf "Cannot send, server stopped"
-  | _ ->
-      let push_func = snd info.in_stream in
-      push_func (Some packet)
-
-let receive (info : server_info) : Packet.t Lwt.t =
-  match info.server.state with
-  | RPC_server.State.Stopped -> Alcotest.failf "Cannot receive, server stopped"
+  | Lsp_.State.Stopped -> Alcotest.failf "Cannot send, server stopped"
   | _ -> (
-      let%lwt server_msg = Lwt_stream.get (fst info.out_stream) in
-      match server_msg with
-      | Some packet -> Lwt.return packet
-      | _ -> Alcotest.failf "Received no response, client disconnected")
+      let server, reply_result =
+        RPC_server.handle_client_message ~handler:info.handler info.server
+          packet
+      in
+      match reply_result with
+      | Ok reply -> ({ info with server }, reply)
+      | Error e -> Alcotest.failf "Error sending packet: %s" e)
+
+let send_map (type a) (info : server_info) packet (f : Packet.t -> a) :
+    (server_info * a list) Lwt.t =
+  (* server may or may not be mutated at this point *)
+  Logs.app (fun m ->
+      m "Sending packet: %a" Yojson.Safe.pp (Packet.yojson_of_t packet));
+  let info, reply = send info packet in
+  let result : a list ref = ref [] in
+  let%lwt () =
+    Reply.apply
+      (fun packet ->
+        Logs.app (fun m ->
+            m "Got result: %a" Yojson.Safe.pp (Packet.yojson_of_t packet));
+        let res = f packet in
+        result := res :: !result;
+        Lwt.return_unit)
+      reply
+  in
+  (* When this promise is resolved, it's guaranteed that the server has
+     finished processing the packet we sent and has performed all side effects. *)
+  Lwt.return (info, List.rev !result)
 
 (*****************************************************************************)
 (* Specific send/receive functions *)
 (*****************************************************************************)
 
-let send_request info request : unit =
+let send_request info request =
   let id = Uuidm.v `V4 |> Uuidm.to_string in
   let packet = Packet.Request (CR.to_jsonrpc_request request (`String id)) in
-  send info packet
+  send_map info packet
 
 let send_custom_request ~meth ?params info =
   send_request info (CR.UnknownRequest { meth; params })
 
-let send_notification info (notification : Client_notification.t) : unit =
+let send_notification info (notification : Client_notification.t) =
   let packet =
     Packet.Notification (Client_notification.to_jsonrpc notification)
   in
-  send info packet
+  send_map info packet
+
+let send_notification_map info notif =
+  let packet = Packet.Notification (Client_notification.to_jsonrpc notif) in
+  send_map info packet
 
 let send_custom_notification ~meth ?params info =
   send_notification info (CN.UnknownNotification { method_ = meth; params })
 
-let receive_response (info : server_info) : Response.t Lwt.t =
-  let%lwt packet = receive info in
+let receive_response (packet : Packet.t) : Response.t =
   match packet with
-  | Packet.Response resp -> Lwt.return resp
+  | Packet.Response resp -> resp
   | _ ->
       Alcotest.failf "expected valid response, got %s"
         (Packet.yojson_of_t packet |> YS.to_string)
@@ -211,14 +224,13 @@ let receive_response (info : server_info) : Response.t Lwt.t =
    a specific function before returning, instead of leaving it to be
    unpacked later.
 *)
-let receive_response_result (f : Json.t -> 'a) (info : server_info) : 'a Lwt.t =
-  let%lwt resp = receive_response info in
-  Lwt.return (resp.result |> Result.get_ok |> f)
+let receive_response_result (f : Json.t -> 'a) (packet : Packet.t) : 'a =
+  let resp = receive_response packet in
+  resp.result |> Result.get_ok |> f
 
-let receive_notification (info : server_info) : Notification.t Lwt.t =
-  let%lwt packet = receive info in
+let receive_notification (packet : Packet.t) : Notification.t =
   match packet with
-  | Packet.Notification notif -> Lwt.return notif
+  | Packet.Notification notif -> notif
   | _ ->
       Alcotest.failf "expected notification, got %s"
         (Packet.yojson_of_t packet |> YS.to_string)
@@ -227,18 +239,35 @@ let receive_notification (info : server_info) : Notification.t Lwt.t =
    with a specific function before returning, instead of leaving it to be
    unpacked later.
 *)
-let receive_notification_params (f : YS.t -> 'a) (info : server_info) : 'a Lwt.t
-    =
-  let%lwt notif = receive_notification info in
-  Lwt.return (f (notif.params |> Option.get |> Structured.yojson_of_t))
+let receive_notification_params (f : YS.t -> 'a) (packet : Packet.t) : 'a =
+  let notif = receive_notification packet in
+  f (notif.params |> Option.get |> Structured.yojson_of_t)
 
-let receive_request (info : server_info) : Request.t Lwt.t =
-  let%lwt packet = receive info in
+let receive_request (packet : Packet.t) : Request.t =
   match packet with
-  | Packet.Request req -> Lwt.return req
+  | Packet.Request req -> req
   | _ ->
       Alcotest.failf "expected request, got %s"
         (Packet.yojson_of_t packet |> YS.to_string)
+
+let receive_diagnostics =
+  receive_notification_params PublishDiagnosticsParams.t_of_yojson
+
+let receive_and_sort_diagnostics packets =
+  packets
+  |> List_.map receive_diagnostics
+  |> List.sort
+       (fun (x : PublishDiagnosticsParams.t) (y : PublishDiagnosticsParams.t) ->
+         String.compare
+           (DocumentUri.to_string x.uri)
+           (DocumentUri.to_string y.uri))
+
+let ids_of_params (params : PublishDiagnosticsParams.t) =
+  List_.map (fun d -> d.Diagnostic.code) params.diagnostics
+
+let receive_diagnostic_ids packet =
+  let params = receive_diagnostics packet in
+  ids_of_params params
 
 (*****************************************************************************)
 (* Mocking and testing functions *)
@@ -360,7 +389,12 @@ let mock_search_files root : Fpath.t list =
 (* Sending functions *)
 (*****************************************************************************)
 
-let send_exit info = send_notification info Client_notification.Exit
+let send_exit info =
+  let%lwt info, empty =
+    send_notification info Client_notification.Exit Fun.id
+  in
+  expect_empty_msg empty;
+  Lwt.return info
 
 let send_initialize info ?(only_git_dirty = true) workspaceFolders =
   let request =
@@ -410,7 +444,10 @@ let send_initialize info ?(only_git_dirty = true) workspaceFolders =
          ~capabilities:(ClientCapabilities.create ())
          ())
   in
-  send_request info request
+  let%lwt info, responses = send_request info request receive_response in
+  let response = expect_one_msg responses in
+  assert_contains (Response.yojson_of_t response) "capabilities";
+  Lwt.return info
 
 let send_initialized info =
   let notif = CN.Initialized in
@@ -435,19 +472,19 @@ let send_did_save info (path : Fpath.t) =
   let notif =
     CN.DidSaveTextDocument (DidSaveTextDocumentParams.create ~textDocument ())
   in
-  send_notification info notif
+  send_notification_map info notif
 
 let send_did_add info (path : Fpath.t) =
   let path = Fpath.to_string path in
   let files = [ FileCreate.create ~uri:("file://" ^ path) ] in
   let notif = CN.DidCreateFiles (CreateFilesParams.create ~files) in
-  send_notification info notif
+  send_notification_map info notif
 
 let send_did_delete info (path : Fpath.t) =
   let path = Fpath.to_string path in
   let files = [ FileDelete.create ~uri:("file://" ^ path) ] in
   let notif = CN.DidDeleteFiles (DeleteFilesParams.create ~files) in
-  send_notification info notif
+  send_notification_map info notif
 
 (* Info comes last because otherwise the optional arguments are unerasable... shame. *)
 let send_did_change_folder ?(added = []) ?(removed = []) info =
@@ -535,157 +572,165 @@ let send_semgrep_show_ast info ?(named = false) (path : Fpath.t) =
 (* Checking functions *)
 (*****************************************************************************)
 
-let check_diagnostics (notif : Notification.t) (file : Fpath.t) expected_ids =
-  let open YS.Util in
-  let resp = Notification.yojson_of_t notif in
-  Alcotest.(check string)
-    "method is publishDiagnostics"
-    (resp |> member "method" |> to_string)
-    "textDocument/publishDiagnostics";
+let check_diagnostics (file : Fpath.t) expected_ids
+    (diagnostics : PublishDiagnosticsParams.t) =
   Alcotest.(check string)
     "uri is same as file"
-    (resp |> member "params" |> member "uri" |> to_string)
-    (Common.spf "file://%s" (Fpath.to_string file));
+    (Common.spf "file://%s" (Fpath.to_string file))
+    (DocumentUri.to_string diagnostics.uri);
   let ids =
-    resp |> member "params" |> member "diagnostics" |> to_list
-    |> List_.map (fun d -> member "code" d)
+    diagnostics.diagnostics
+    |> List_.map (fun (d : Diagnostic.t) ->
+           d.code |> Option.get |> Id.yojson_of_t)
   in
   Alcotest.(check string)
     "diagnostics are cohesive"
+    (YS.to_string (`List expected_ids))
     (YS.to_string (`List ids))
-    (YS.to_string (`List expected_ids));
-  Lwt.return_unit
 
-let assert_notif (notif : Notification.t) ?message ?kind meth =
+let assert_notif ?message ?kind meth (pkt : Packet.t) =
+  let notif = receive_notification pkt in
   Alcotest.(check string) "methods should be same" meth notif.method_;
   (match message with
   | None -> ()
   | Some message ->
-      assert (
-        YS.Util.(
-          notif.params |> Option.get |> Structured.yojson_of_t |> member "value"
-          |> member "message" |> to_string = message)));
-  (match kind with
+      let recv_message =
+        notif.params
+        |> expect_params_field "value"
+        |> expect_object_field "message"
+        |> YS.Util.to_string
+      in
+      Alcotest.(check string) "message should be same" message recv_message);
+  match kind with
   | None -> ()
   | Some kind ->
-      assert (
-        YS.Util.(
-          notif.params |> Option.get |> Structured.yojson_of_t |> member "value"
-          |> member "kind" |> to_string = kind)));
-  Lwt.return_unit
+      let recv_kind =
+        notif.params
+        |> expect_params_field "value"
+        |> expect_object_field "kind" |> YS.Util.to_string
+      in
+      Alcotest.(check string) "kind should be same" kind recv_kind
 
-let assert_request (req : Request.t) ?message ?kind meth =
+let assert_request ?message ?kind meth (pkt : Packet.t) =
   let open YS.Util in
+  let req = receive_request pkt in
   assert (req.method_ = meth);
   (match message with
   | None -> ()
   | Some message ->
-      assert (
-        req.params |> Option.get |> Structured.yojson_of_t |> member "value"
-        |> member "message" |> to_string = message));
-  (match kind with
+      let recv_message =
+        req.params
+        |> expect_params_field "value"
+        |> expect_object_field "message"
+      in
+      Alcotest.(check string)
+        "message should be same" message (to_string recv_message));
+  match kind with
   | None -> ()
   | Some kind ->
-      assert (
-        req.params |> Option.get |> Structured.yojson_of_t |> member "value"
-        |> member "kind" |> to_string = kind));
-  Lwt.return_unit
+      let recv_kind =
+        req.params
+        |> expect_params_field "value"
+        |> expect_object_field "kind" |> to_string
+      in
+      Alcotest.(check string) "kind should be same" kind recv_kind
 
-let assert_message (notif : Notification.t) message =
+let assert_message message (pkt : Packet.t) =
+  let notif = receive_notification pkt in
   Alcotest.(check string)
     "methods should be same" notif.method_ "window/showMessage";
-  assert (
-    YS.Util.(
-      notif.params |> Option.get |> Structured.yojson_of_t |> member "message"
-      |> to_string = message));
-  Lwt.return_unit
+  let recv_message =
+    notif.params |> expect_params_field "message" |> YS.Util.to_string
+  in
+  Alcotest.(check string) "message should be same" message recv_message
 
-let assert_progress info message =
-  let%lwt req = receive_request info in
-  let%lwt () = assert_request req "window/workDoneProgress/create" in
+let rec map_asserts (recv_asserts : (string * ('a -> unit)) list) (xs : 'a list)
+    =
+  match (recv_asserts, xs) with
+  | [], [] -> []
+  | (name, assert_) :: recv_asserts, pkt :: pkts ->
+      Logs.app (fun m -> m "Asserting: %s" name);
+      assert_ pkt;
+      map_asserts recv_asserts pkts
+  | [], pkts -> pkts
+  | asserts, [] ->
+      let names = List_.map fst asserts in
+      Alcotest.failf "Expected more packets, got none. Expected: %s"
+        (String.concat ", " names)
 
-  let%lwt notif = receive_notification info in
-  let%lwt () = assert_notif notif "$/progress" ~message in
-
-  let%lwt notif = receive_notification info in
-  let%lwt () = assert_notif notif "$/progress" ~kind:"end" in
-  Lwt.return_unit
+let assert_progress message =
+  [
+    ( "received progress request",
+      assert_request "window/workDoneProgress/create" );
+    ("received progress message", assert_notif "$/progress" ~message);
+    ("receive progress end", assert_notif "$/progress" ~kind:"end");
+  ]
 
 let check_startup info folders (files : Fpath.t list) =
   (* initialize *)
-  send_initialize info folders;
+  let%lwt info = send_initialize info folders in
+  let scanned_files = scanned_files_of_files files in
 
-  let%lwt resp = receive_response info in
-  assert_contains (Response.yojson_of_t resp) "capabilities";
-
-  let scanned_files =
-    List.filter
-      (fun f -> not (String_.contains (Fpath.to_string f) ~term:"existing"))
-      files
+  let%lwt info =
+    Lwt_list.fold_left_s
+      (fun info file ->
+        let%lwt info, notifs = send_did_open info file receive_notification in
+        (* TODO properly check this? *)
+        ignore notifs;
+        Lwt.return info)
+      info scanned_files
   in
-
-  List.iter (send_did_open info) scanned_files;
-  let%lwt () =
-    Lwt_list.iter_s
-      (fun _ ->
-        let%lwt notif = receive_notification info in
-        ignore notif;
-        Lwt.return_unit)
+  let%lwt info, packets = send_initialized info Fun.id in
+  let remaining_packets =
+    map_asserts
+      (assert_progress "Refreshing Rules"
+      @ [ ("received rules refreshed", assert_notif "semgrep/rulesRefreshed") ]
+      @ assert_progress "Scanning Open Documents")
+      packets
+  in
+  let scan_notifications = receive_and_sort_diagnostics remaining_packets in
+  let expected_ids = [ `String "eqeq-five" ] in
+  let check_diagnostics_asserts =
+    List_.map
+      (fun file ->
+        ( Printf.sprintf "Checking file %s has diagnostics"
+            (Fpath.to_string file),
+          check_diagnostics file expected_ids ))
       scanned_files
   in
-  send_initialized info;
-  let%lwt () = assert_progress info "Refreshing Rules" in
-  let%lwt rulesRefreshedNotif = receive_notification info in
-  let%lwt () = assert_notif rulesRefreshedNotif "semgrep/rulesRefreshed" in
-  let%lwt () = assert_progress info "Scanning Open Documents" in
-
-  let%lwt scan_notifications =
-    Lwt_list.map_s (fun _ -> receive_notification info) scanned_files
+  let leftover_packets =
+    map_asserts check_diagnostics_asserts scan_notifications
   in
-
-  let scan_notifications =
-    List.sort
-      (fun (x : Notification.t) (y : Notification.t) ->
-        let open YS.Util in
-        String.compare
-          (x.params |> Option.get |> Structured.yojson_of_t |> member "uri"
-         |> to_string)
-          (y.params |> Option.get |> Structured.yojson_of_t |> member "uri"
-         |> to_string))
-      scan_notifications
-  in
-
-  let expected_ids = [ `String "eqeq-five" ] in
-
-  let%lwt _ =
-    scanned_files
-    |> List_.mapi (fun i file ->
-           let notification = List.nth scan_notifications i in
-           check_diagnostics notification file expected_ids)
-    |> Lwt_list.map_s Fun.id
-  in
-
-  Lwt.return_unit
+  Alcotest.(check int)
+    "no leftover packets on startup" 0
+    (List.length leftover_packets);
+  Lwt.return info
 
 (*****************************************************************************)
 (* Tests *)
 (*****************************************************************************)
 
 let do_search ?(pattern = "print(...)") ?(includes = []) ?(excludes = []) info =
-  send_semgrep_search info pattern ~includes ~excludes;
-  Lwt_seq.unfold_lwt
-    (fun () ->
-      let%lwt resp = receive_response info in
-      match
-        YS.Util.(resp.result |> Result.get_ok |> member "locations" |> to_list)
-      with
-      | [] -> Lwt.return None
-      | matches ->
-          (* Send the searchOngoing so we get the next response *)
-          send_semgrep_search_ongoing info;
-          Lwt.return (Some (matches, ())))
-    ()
-  |> Lwt_seq.to_list |> Lwt.map List.concat
+  let get_matches (packet : Packet.t) =
+    let resp = receive_response packet in
+    YS.Util.(resp.result |> Result.get_ok |> member "locations" |> to_list)
+  in
+  let%lwt info, resps =
+    send_semgrep_search info pattern ~includes ~excludes get_matches
+  in
+  let resp = expect_one_msg resps in
+  let send_ongoing info =
+    let%lwt info, resps = send_semgrep_search_ongoing info get_matches in
+    Lwt.return (info, expect_one_msg resps)
+  in
+  let rec gather_matches info acc =
+    let%lwt info, resp = send_ongoing info in
+    match resp with
+    | [] -> Lwt.return (info, acc)
+    | _ -> gather_matches info (acc @ resp)
+  in
+  let%lwt info, matches = gather_matches info resp in
+  Lwt.return (info, matches)
 
 let with_session caps (f : test_info -> unit Lwt.t) : unit Lwt.t =
   (* Not setting this means that really nasty errors happen when an exception
@@ -699,113 +744,108 @@ let with_session caps (f : test_info -> unit Lwt.t) : unit Lwt.t =
        Logs.err (fun m -> m "Got exception: %s" err);
        Logs.err (fun m -> m "Traceback:\n%s" traceback);
        Alcotest.fail "Got exception in Lwt.async during tests");
-  let server_info = create_info caps in
-  let server_promise () = LanguageServer.start server_info.server in
-  (* Separate promise so we actually bubble up errors from this one *)
-  Lwt.async server_promise;
-  with_git_tmp_path (fun root ->
-      let test_info = { server = server_info; root } in
-      f test_info)
+  (* we want to start every test logged out, or the LS won't behave
+     predictably, because the testing structure assumes a fresh start
+  *)
+  Testutil_login.with_login_test_env ~chdir:false
+    (fun () ->
+      with_git_tmp_path (fun root ->
+          let server_info = create_info caps in
+          let test_info = { server = server_info; root } in
+          f test_info))
+    ()
 
 let test_ls_specs caps () =
   with_session caps (fun { server = info; root } ->
       let files = mock_files root in
-      let%lwt () = check_startup info [ root ] files in
-      let%lwt () =
-        files
-        |> Lwt_list.iter_s (fun file ->
-               (* didOpen *)
-               send_did_save info file;
+      let%lwt info = check_startup info [ root ] files in
+      let%lwt info =
+        Lwt_list.fold_right_s
+          (fun file info ->
+            (* didOpen *)
+            let%lwt info, old_ids =
+              send_did_save info file receive_diagnostic_ids
+            in
+            let old_ids = expect_one_msg old_ids in
+            (* This sleep is to ensure that the subsequent write to
+               `modified.py` results in changing the modification time of
+               the file. Otherwise, we might actually load from the cached
+               AST for the file, and not incorporate the new change.
+            *)
+            Unix.sleep 2;
 
-               (* add content *)
-               let%lwt params =
-                 receive_notification_params
-                   PublishDiagnosticsParams.t_of_yojson info
-               in
-               let old_ids =
-                 List_.map (fun d -> d.Diagnostic.code) params.diagnostics
-               in
+            open_and_write_default_content ~mode:[ Open_append ] file;
 
-               (* This sleep is to ensure that the subsequent write to
-                  `modified.py` results in changing the modification time of
-                  the file. Otherwise, we might actually load from the cached
-                  AST for the file, and not incorporate the new change.
-               *)
-               Unix.sleep 1;
+            (* didSave *)
+            let%lwt info, params =
+              send_did_save info file receive_diagnostics
+            in
+            let params = expect_one_msg params in
+            let new_ids = ids_of_params params in
 
-               open_and_write_default_content ~mode:[ Open_append ] file;
+            Alcotest.(check int)
+              "new finding from modified file" (List.length new_ids)
+              (List.length old_ids + 1);
 
-               (* didSave *)
-               send_did_save info file;
+            let diagnostic = Common2.list_last params.diagnostics in
+            (* get range of last diagnostic *)
+            let line_start = diagnostic.range.start.line in
+            let char_start = diagnostic.range.start.character in
+            let line_end = diagnostic.range.end_.line in
+            let char_end = diagnostic.range.end_.character in
 
-               let%lwt params =
-                 receive_notification_params
-                   PublishDiagnosticsParams.t_of_yojson info
-               in
-               let new_ids =
-                 List_.map (fun d -> d.Diagnostic.code) params.diagnostics
-               in
+            (* get code actions *)
+            let%lwt info, res =
+              send_code_action info ~path:file ~diagnostics:[ diagnostic ]
+                ~line_start ~char_start ~line_end ~char_end
+                (receive_response_result CodeActionResult.t_of_yojson)
+            in
+            let res = expect_one_msg res in
+            assert (List.length (Option.get res) = 2);
+            let command =
+              match res with
+              | Some
+                  [
+                    `CodeAction { kind; _ };
+                    `CodeAction { command = Some command; _ };
+                  ] ->
+                  assert (
+                    CodeActionKind.yojson_of_t (Option.get kind)
+                    = `String "quickfix");
+                  assert (command.command = "semgrep/ignore");
+                  assert (Option.is_some command.arguments);
+                  command
+              | _ -> Alcotest.fail "expected code action kind"
+            in
 
-               Alcotest.(check int)
-                 "new finding from modified file" (List.length new_ids)
-                 (List.length old_ids + 1);
+            (* execute command *)
+            let%lwt info, params =
+              send_execute_command ~command:command.command
+                ~arguments:(Option.get command.arguments)
+                info
+                (receive_notification_params
+                   PublishDiagnosticsParams.t_of_yojson)
+            in
+            let params = expect_one_msg params in
+            Logs.app (fun m ->
+                m "Received diagnostics after ignore %a" Yojson.Safe.pp
+                  (PublishDiagnosticsParams.yojson_of_t params));
+            let not_ignored_ids =
+              List_.map
+                (fun d ->
+                  Logs.app (fun m ->
+                      m "Diagnostic: %a" Yojson.Safe.pp
+                        (Diagnostic.yojson_of_t d));
+                  d.Diagnostic.code)
+                params.diagnostics
+            in
+            Alcotest.(check int)
+              "new finding from modified file with ignored finding"
+              (List.length new_ids - 1)
+              (List.length not_ignored_ids);
 
-               let diagnostic = Common2.list_last params.diagnostics in
-               (* get range of last diagnostic *)
-               let line_start = diagnostic.range.start.line in
-               let char_start = diagnostic.range.start.character in
-               let line_end = diagnostic.range.end_.line in
-               let char_end = diagnostic.range.end_.character in
-
-               (* get code actions *)
-               send_code_action info ~path:file ~diagnostics:[ diagnostic ]
-                 ~line_start ~char_start ~line_end ~char_end;
-               let%lwt res =
-                 receive_response_result CodeActionResult.t_of_yojson info
-               in
-               assert (List.length (Option.get res) = 2);
-               let command =
-                 match res with
-                 | Some
-                     [
-                       `CodeAction { kind; _ };
-                       `CodeAction { command = Some command; _ };
-                     ] ->
-                     assert (
-                       CodeActionKind.yojson_of_t (Option.get kind)
-                       = `String "quickfix");
-                     assert (command.command = "semgrep/ignore");
-                     assert (Option.is_some command.arguments);
-                     command
-                 | _ -> Alcotest.fail "expected code action kind"
-               in
-
-               (* execute command *)
-               send_execute_command ~command:command.command
-                 ~arguments:(Option.get command.arguments)
-                 info;
-               let%lwt params =
-                 receive_notification_params
-                   PublishDiagnosticsParams.t_of_yojson info
-               in
-               Logs.app (fun m ->
-                   m "Received diagnostics after ignore %a" Yojson.Safe.pp
-                     (PublishDiagnosticsParams.yojson_of_t params));
-               let not_ignored_ids =
-                 List_.map
-                   (fun d ->
-                     Logs.app (fun m ->
-                         m "Diagnostic: %a" Yojson.Safe.pp
-                           (Diagnostic.yojson_of_t d));
-                     d.Diagnostic.code)
-                   params.diagnostics
-               in
-               Alcotest.(check int)
-                 "new finding from modified file with ignored finding"
-                 (List.length new_ids - 1)
-                 (List.length not_ignored_ids);
-
-               Lwt.return_unit)
+            Lwt.return info)
+          files info
       in
 
       (* test did add *)
@@ -814,118 +854,145 @@ let test_ls_specs caps () =
       FileUtil.cp [ List.hd files |> Fpath.to_string ] (added |> Fpath.to_string);
 
       (* Tests target caching *)
-      send_did_add info added;
-      send_did_open info added;
+      let%lwt info, empty = send_did_add info added Fun.id in
 
-      let%lwt notif = receive_notification info in
-      let%lwt () =
-        check_diagnostics notif added
-          [ `String "eqeq-five"; `String "eqeq-five" ]
+      expect_empty_msg empty;
+      let%lwt info, diagnostics =
+        send_did_open info added receive_diagnostics
       in
+      let diagnostics = expect_one_msg diagnostics in
 
-      send_did_delete info added;
+      check_diagnostics added
+        [ `String "eqeq-five"; `String "eqeq-five" ]
+        diagnostics;
 
-      let%lwt notif = receive_notification info in
-      let%lwt () = check_diagnostics notif added [] in
+      let%lwt info, diagnostics =
+        send_did_delete info added receive_diagnostics
+      in
+      let diagnostics = expect_one_msg diagnostics in
 
-      send_exit info;
+      check_diagnostics added [] diagnostics;
+
+      let%lwt info = send_exit info in
+      ignore info;
+      expect_empty_msg empty;
       Lwt.return_unit)
 
 let test_ls_ext caps () =
   with_session caps (fun { server = info; root } ->
       let files = mock_files root in
       Testutil_files.with_chdir root (fun () ->
-          let%lwt () = check_startup info [ root ] files in
+          let%lwt info = check_startup info [ root ] files in
 
           (* scan workspace *)
-          send_semgrep_scan_workspace info;
-          let%lwt () = assert_progress info "Scanning Workspace" in
+          let%lwt info, scan_messages =
+            send_semgrep_scan_workspace info Fun.id
+          in
+          let leftover_packets =
+            map_asserts (assert_progress "Scanning Workspace") scan_messages
+          in
 
-          let scanned_files =
-            List.filter
-              (fun f ->
-                not (String_.contains (Fpath.to_string f) ~term:"existing"))
-              files
+          let scanned_files = scanned_files_of_files files in
+          let diagnostics = receive_and_sort_diagnostics leftover_packets in
+          let num_diagnostics =
+            List_.map
+              (fun (params : PublishDiagnosticsParams.t) ->
+                Logs.app (fun m ->
+                    m "Received diagnostics: %a" Yojson.Safe.pp
+                      (PublishDiagnosticsParams.yojson_of_t params));
+                List.length params.diagnostics)
+              diagnostics
           in
-          let%lwt num_ids =
-            Lwt_list.map_s
-              (fun _ ->
-                let%lwt notif = receive_notification info in
-                Lwt.return
-                  YS.Util.(
-                    List.length
-                      (notif.params |> Option.get |> Structured.yojson_of_t
-                     |> member "diagnostics" |> to_list)))
-              scanned_files
-          in
+          (* In unit testing we check to make sure that targeting is ok, so
+             this is just double checking. We also have a vscode test suite
+             that tests this logic *)
+          Alcotest.(check int)
+            "number of scanned files is expected"
+            (List.length scanned_files)
+            (List.length num_diagnostics);
 
           (* scan workspace full *)
-          send_semgrep_scan_workspace ~full:true info;
-
-          Logs.app (fun m -> m "Waiting for scan to finish 2");
-          let%lwt notif = receive_notification info in
-          Logs.app (fun m -> m "Received notification");
-          let%lwt () =
-            assert_message notif
-              "Scanning all files regardless of git status. These diagnostics \
-               will persist until a file is edited. To default to always \
-               scanning regardless of git status, please disable 'Only Git \
-               Dirty' in settings"
+          let%lwt info, full_scan_messages =
+            send_semgrep_scan_workspace ~full:true info Fun.id
           in
-
-          let%lwt () = assert_progress info "Scanning Workspace" in
-
-          let%lwt () =
-            files
-            |> Lwt_list.iteri_s
-                 YS.Util.(
-                   fun i _ ->
-                     let%lwt notif = receive_notification info in
-                     let uri =
-                       notif.params |> Option.get |> Structured.yojson_of_t
-                       |> member "uri"
-                     in
-                     if String_.contains (YS.to_string uri) ~term:"modified"
-                     then
-                       assert (
-                         List.length
-                           (notif.params |> Option.get |> Structured.yojson_of_t
-                          |> member "diagnostics" |> to_list)
-                         > List.nth num_ids i);
-                     Lwt.return_unit)
+          let scan_warn_msg =
+            "Scanning all files regardless of git status. These diagnostics \
+             will persist until a file is edited. To default to always \
+             scanning regardless of git status, please disable 'Only Git \
+             Dirty' in settings"
           in
+          let leftover_packets =
+            map_asserts
+              ([ ("Full workspace warning", assert_message scan_warn_msg) ]
+              @ assert_progress "Scanning Workspace")
+              full_scan_messages
+          in
+          let diagnostics = receive_and_sort_diagnostics leftover_packets in
+          let assert_modified_diagnostics num_diagnostics
+              (params : PublishDiagnosticsParams.t) =
+            Logs.app (fun m ->
+                m "Received diagnostics: %a" Yojson.Safe.pp
+                  (PublishDiagnosticsParams.yojson_of_t params));
+            let uri = DocumentUri.to_string params.uri in
+            if String_.contains uri ~term:"existing" then
+              Alcotest.(check int)
+                "number of diagnostics is unchanged" num_diagnostics
+                (List.length params.diagnostics)
+            else
+              Alcotest.(check int)
+                "number of diagnostics is expected after modified"
+                (num_diagnostics + 1)
+                (List.length params.diagnostics)
+          in
+          let asserts =
+            List_.map
+              (fun n ->
+                ("assert modified diagnostics", assert_modified_diagnostics n))
+              (* 0 is new file, since it doesn't have any normally *)
+              (num_diagnostics @ [ 0 ])
+          in
+          let leftover_packets = map_asserts asserts diagnostics in
+          expect_empty "no leftover packets after workspace scan"
+            leftover_packets;
 
           (* search *)
-          let%lwt matches = do_search info in
+          let%lwt info, matches = do_search info in
           assert (matches |> List.length = 3);
 
+          (* hover *)
           (* hover is on by default *)
-          let%lwt () =
-            files
-            |> Lwt_list.iter_s (fun file ->
-                   send_hover info file ~character:1 ~line:0;
-                   let%lwt resp = receive_response info in
-                   assert (resp.result |> Result.get_ok <> `Null);
-                   (* just checking that "contents" exists *)
-                   YS.Util.(
-                     resp.result |> Result.get_ok |> member "contents" |> ignore);
-                   Lwt.return_unit)
+          let check_hover file info =
+            let%lwt info, resp =
+              send_hover info file ~character:1 ~line:0
+                (receive_response_result Hover.t_of_yojson)
+            in
+            let contents =
+              let resp = expect_one_msg resp in
+              match resp.contents with
+              | `MarkupContent s -> MarkupContent.yojson_of_t s
+              | `MarkedString s -> MarkedString.yojson_of_t s
+              | `List s -> `List (List_.map MarkedString.yojson_of_t s)
+            in
+            (* Assert contents is non-empty *)
+            Alcotest.(check bool)
+              "hover contents is non-empty" true (contents <> `Null);
+            Lwt.return info
           in
+          let%lwt info = Lwt_list.fold_right_s check_hover files info in
 
           (* showAst *)
-          let%lwt () =
-            files
-            |> Lwt_list.iter_s (fun file ->
-                   send_semgrep_show_ast info file;
-                   let%lwt resp = receive_response info in
-                   let resp =
-                     resp.result |> Result.get_ok |> YS.Util.to_string
-                   in
-                   assert (Pcre2_.unanchored_match prog_regex resp);
-                   Lwt.return_unit)
+          let check_show_ast file info =
+            let%lwt info, resp =
+              send_semgrep_show_ast info file receive_response
+            in
+            let resp = expect_one_msg resp in
+            let ast = resp.result |> Result.get_ok |> YS.Util.to_string in
+            assert (Pcre2_.unanchored_match prog_regex ast);
+            Lwt.return info
           in
-
-          send_exit info;
+          let%lwt info = Lwt_list.fold_right_s check_show_ast files info in
+          let%lwt info = send_exit info in
+          ignore info;
           Lwt.return_unit))
 
 let test_ls_multi caps () =
@@ -936,49 +1003,60 @@ let test_ls_multi caps () =
       in
       let workspace_folders = [ workspace1_root; workspace2_root ] in
       let files = workspace1_files @ workspace2_files in
-      let scanned_files =
-        List.filter
-          (fun f -> not (String_.contains (Fpath.to_string f) ~term:"existing"))
-          files
+      let scanned_files = scanned_files_of_files files in
+      let%lwt info = check_startup info workspace_folders files in
+
+      let%lwt info, packets =
+        send_did_change_folder info ~removed:[ workspace1_root ] Fun.id
       in
 
-      let%lwt () = check_startup info workspace_folders files in
+      let leftover_packets =
+        map_asserts (assert_progress "Scanning Workspace") packets
+      in
+      let scan_notifications = receive_and_sort_diagnostics leftover_packets in
+      let check_diagnostics_count expected_ids_ws1 expected_ids_ws2 file =
+        let expected_ids =
+          if Fpath.is_prefix workspace1_root file then expected_ids_ws1
+          else expected_ids_ws2
+        in
+        let check = check_diagnostics file expected_ids in
+        ( Printf.sprintf "Checking file %s has diagnostics"
+            (Fpath.to_string file),
+          check )
+      in
+      let leftover_packets =
+        let expected_ids_ws1 = [] in
+        let expected_ids_ws2 = [ `String "eqeq-five" ] in
+        map_asserts
+          (List_.map
+             (check_diagnostics_count expected_ids_ws1 expected_ids_ws2)
+             scanned_files)
+          scan_notifications
+      in
+      expect_empty "no leftover packets after workspace change" leftover_packets;
 
-      send_did_change_folder info ~removed:[ workspace1_root ];
-
-      let%lwt () = assert_progress info "Scanning Workspace" in
-
-      let%lwt () =
-        scanned_files
-        |> Lwt_list.iter_s (fun file ->
-               let%lwt notif = receive_notification info in
-               (* If it's a workspace we removed, then we expect no diagnostics *)
-               if
-                 String_.contains (Fpath.to_string file)
-                   ~term:(Fpath.to_string workspace1_root)
-               then (
-                 Alcotest.(check int)
-                   "check number of diagnostics is good"
-                   YS.Util.(
-                     List.length
-                       (notif.params |> Option.get |> Structured.yojson_of_t
-                      |> member "diagnostics" |> to_list))
-                   0;
-                 Lwt.return_unit)
-               else check_diagnostics notif file [ `String "eqeq-five" ])
+      let%lwt info, packets =
+        send_did_change_folder info ~added:[ workspace1_root ] Fun.id
+      in
+      let leftover_packets =
+        map_asserts (assert_progress "Scanning Workspace") packets
       in
 
-      send_did_change_folder info ~added:[ workspace1_root ];
-
-      let%lwt () = assert_progress info "Scanning Workspace" in
-
-      let%lwt () =
-        scanned_files
-        |> Lwt_list.iter_s (fun file ->
-               let%lwt notif = receive_notification info in
-               check_diagnostics notif file [ `String "eqeq-five" ])
+      let scan_notifications = receive_and_sort_diagnostics leftover_packets in
+      let leftover_packets =
+        (* Files should be exactly the same as before *)
+        let expected_ids_ws1 = [ `String "eqeq-five" ] in
+        let expected_ids_ws2 = expected_ids_ws1 in
+        map_asserts
+          (List_.map
+             (check_diagnostics_count expected_ids_ws1 expected_ids_ws2)
+             scanned_files)
+          scan_notifications
       in
-      send_exit info;
+      expect_empty "no leftover packets after workspace change" leftover_packets;
+
+      let%lwt info = send_exit info in
+      ignore info;
       Lwt.return_unit)
 
 let _test_login caps () =
@@ -986,50 +1064,49 @@ let _test_login caps () =
       (* If we don't log out prior to starting this test, the LS will complain
          we're already logged in, and not display the correct behavior.
       *)
-      let settings = Semgrep_settings.load () in
-      if not (Semgrep_settings.save { settings with api_token = None }) then
-        Alcotest.fail "failed to save settings to log out in ls e2e test";
       let files = mock_files root in
       Testutil_files.with_chdir root (fun () ->
-          let%lwt () = check_startup info [ root ] files in
-          send_initialize info [];
-          let%lwt resp = receive_response info in
-          assert_contains (Response.yojson_of_t resp) "capabilities";
-
-          send_custom_request ~meth:"semgrep/login" info;
-          let%lwt msg = receive_response info in
+          let%lwt info = check_startup info [ root ] files in
+          let%lwt info, resp =
+            send_custom_request ~meth:"semgrep/login" info receive_response
+          in
+          let msg = expect_one_msg resp in
 
           let url =
             YS.Util.(msg.result |> Result.get_ok |> member "url" |> to_string)
           in
 
           assert (Pcre2_.unanchored_match login_url_regex url);
-          Semgrep_settings.save settings |> ignore;
-          send_exit info;
+          let%lwt info = send_exit info in
+          ignore info;
           Lwt.return_unit))
 
 let test_ls_no_folders caps () =
   with_session caps (fun { server = info; _ } ->
-      let%lwt () = check_startup info [] [] in
+      let%lwt info = check_startup info [] [] in
 
-      send_exit info;
+      let%lwt info = send_exit info in
+      ignore info;
       Lwt.return_unit)
 
 let test_search_includes_excludes caps () =
   with_session caps (fun { server = info; root } ->
       let files = mock_search_files root in
 
-      let%lwt () = check_startup info [ root ] files in
-      let%lwt matches = do_search ~pattern:"x = 0" info in
-      assert (List.length matches = 2);
+      let%lwt info = check_startup info [ root ] files in
+      let%lwt info, matches = do_search ~pattern:"x = 0" info in
+      Alcotest.(check int) "number of matches" 2 (List.length matches);
 
       let assert_with_includes_excludes ?(includes = []) ?(excludes = [])
           ~matches_test ~matches_c () =
-        let%lwt matches = do_search ~includes ~excludes ~pattern:"x = 0" info in
+        let%lwt info, matches =
+          do_search ~includes ~excludes ~pattern:"x = 0" info
+        in
         let num_matches =
           (if matches_test then 1 else 0) + if matches_c then 1 else 0
         in
-        assert (List.length matches = num_matches);
+        Alcotest.(check int)
+          "number of matches" num_matches (List.length matches);
         if
           matches_test
           && not
@@ -1048,6 +1125,8 @@ let test_search_includes_excludes caps () =
                       YS.Util.(m |> member "uri" |> to_string))
                   matches)
         then Alcotest.failf "failed to find test.py for matches_c case";
+        (* We don't care about state in these tests *)
+        ignore info;
         Lwt.return_unit
       in
 
@@ -1089,6 +1168,8 @@ let test_search_includes_excludes caps () =
         assert_with_includes_excludes ~includes:[ "a/b/c.py" ] ~matches_c:true
           ~matches_test:false ()
       in
+      let%lwt info = send_exit info in
+      ignore info;
 
       Lwt.return_unit)
 
@@ -1101,25 +1182,24 @@ let sync f () = Lwt_platform.run (f ())
 (* Create an lwt test and a synchronous test right away because we run
    both and it's hard to convert from one to the other. *)
 let pair ?tolerate_chdir name func =
-  let func = with_timeout func in
   ( Testo.create ?tolerate_chdir name (sync func),
     Testo_lwt.create ?tolerate_chdir name func )
 
 let promise_tests caps =
   [
     pair "Test LS" (test_ls_specs caps) ~tolerate_chdir:true;
-    pair "Test LS exts" (test_ls_ext caps) ~tolerate_chdir:true;
-    pair "Test LS multi-workspaces" (test_ls_multi caps) ~tolerate_chdir:true;
     (* Keep this test commented out while it is xfail.
         Because logging in is side-effecting, if the test never completes, we
         will stay log in, which can mangle some of the later tests.
        Test_lwt.create "Test LS login" (test_login caps)
        ~expected_outcome:
          (Should_fail "TODO: currently failing in js tests in CI"); *)
-    pair "Test LS with no folders" (test_ls_no_folders caps);
     pair "Test LS /semgrep/search includes/excludes"
       (test_search_includes_excludes caps)
       ~tolerate_chdir:true;
+    pair "Test LS exts" (test_ls_ext caps) ~tolerate_chdir:true;
+    pair "Test LS with no folders" (test_ls_no_folders caps);
+    pair "Test LS multi-workspaces" (test_ls_multi caps) ~tolerate_chdir:true;
   ]
   |> List.split
 

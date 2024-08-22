@@ -1,0 +1,78 @@
+; This library now also includes semgrep_output_v1.atd (see the dune rules below).
+; This ATD file used to be in reporting/ because it was concerned mostly with
+; JSON reporting of a scan result, but it now contains core data definitions
+; (e.g., engine_kind, core_error_kind, skip_reason, matching_operation) reused
+; in the OCaml core code, which is why it was moved here.
+
+(library
+ (public_name semgrep.rule)
+ (name semgrep_core_rule)
+ (wrapped false)
+ (libraries
+   ; standard libraries
+   semver
+   atdgen-runtime
+
+   ; in libs/
+   commons
+   glob
+   lib_parsing
+   ast_generic
+   ; Rule.ml references Spacegrep.Pattern_AST.t
+   spacegrep
+   aliengrep
+
+   ; in languages/
+   ; TODO ugly dependency to Ast_js.default_entity in Pattern.ml
+   parser_javascript.ast
+
+   ; in src/
+   ; We should also not depend on any other semgrep libs (except the 1 below
+   ; because of our use of Rule_options.atd)
+   semgrep.configuring
+
+ )
+ (preprocess
+   (pps
+     ppx_profiling
+     ppx_deriving.show
+     ppx_deriving.eq
+     ppx_deriving.ord
+     ppx_hash
+   )
+ )
+)
+
+; this is for rule_schema_v2_t.ml which contains multiple types
+; using the same field names
+(env
+  (_
+    (flags (:standard  -w -30))))
+
+; '-j-defaults' below is for matching the behavior of atdpy so that we can get the
+; same JSON output from pysemgrep and osemgrep. This is useful only for
+; passing end-to-end tests where osemgrep is expected to produce the same
+; output as pysemgrep. This allows us to use '~field: ... list' which is more
+; convenient than '?field: ... list option'.
+;
+(rule
+ (targets semgrep_output_v1_j.ml semgrep_output_v1_j.mli)
+ (deps    semgrep_output_v1.atd)
+ (action  (run atdgen -j -j-std -j-defaults %{deps})))
+
+(rule
+ (targets semgrep_output_v1_t.ml semgrep_output_v1_t.mli)
+ (deps    semgrep_output_v1.atd)
+ (action  (run atdgen -t %{deps})))
+
+; note the use of -j-strict-fields here!
+(rule
+ (targets rule_schema_v2_j.ml rule_schema_v2_j.mli)
+ (deps    rule_schema_v2.atd)
+ (action  (run atdgen -j -j-std -j-defaults -j-strict-fields %{deps})))
+
+; derive show for the type defs
+(rule
+ (targets rule_schema_v2_t.ml rule_schema_v2_t.mli)
+ (deps    rule_schema_v2.atd)
+ (action  (run atdgen -deriving-conv "show{with_path=false}" -t %{deps})))

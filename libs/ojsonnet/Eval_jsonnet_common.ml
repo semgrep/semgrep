@@ -154,7 +154,7 @@ let eval_call_ (env : V.env) (e0 : expr) (largs, args, _rargs) =
       (* the named_args are supposed to be the last one *)
       let basic_args, named_args =
         args
-        |> Either_.partition_either (function
+        |> Either_.partition (function
              | Arg ei -> Left ei
              | NamedArg (id, _tk, ei) -> Right (fst id, ei))
       in

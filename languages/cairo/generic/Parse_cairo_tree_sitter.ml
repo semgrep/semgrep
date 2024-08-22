@@ -544,7 +544,7 @@ and map_attributes (env : env) (x : CST.attribute_list list) : G.attribute list
     List.map map_attribute attributes
   in
 
-  List.flatten (List.map map_attribute_list x)
+  List_.flatten (List.map map_attribute_list x)
 
 and map_type_parameters (env : env) (x : CST.type_parameter_list) :
     G.type_parameters =

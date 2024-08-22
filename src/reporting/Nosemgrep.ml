@@ -258,7 +258,7 @@ let produce_ignored (matches : Core_result.processed_match list) :
            ({ pm with is_ignored }, errors))
     |> List.split
   in
-  (matches, List.concat wide_errors)
+  (matches, List_.flatten wide_errors)
 
 let filter_ignored ~keep_ignored (matches : OutJ.core_match list) =
   matches

@@ -82,11 +82,6 @@ jobs:
       file: Dockerfile
       repository-name: semgrep/semgrep
       target: performance-tests
-  build-test-javascript:
-    secrets: inherit
-    uses: ./.github/workflows/build-test-javascript.yml
-    with:
-      upload-artifacts: ${{ (github.ref == 'refs/heads/develop') || startsWith(github.head_ref, 'release-') || (!github.event.pull_request.head.repo.fork && contains(github.event.pull_request.labels.*.name, 'publish-js')) }}
   build-test-manylinux-aarch64:
     needs:
       - build-test-docker
@@ -222,7 +217,8 @@ jobs:
           make copy-core-for-cli
       - name: Install Python dependencies
         run: |
-          make install-deps-ALPINE-for-pysemgrep
+          apk add --no-cache python3
+          pip install --no-cache-dir --ignore-installed distlib pipenv==2024.0.1
           (cd cli; pipenv install --dev)
       - name: Run pytest for osemgrep known passing tests
         run: |

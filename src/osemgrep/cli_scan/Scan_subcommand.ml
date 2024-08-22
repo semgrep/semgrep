@@ -52,7 +52,7 @@ let add_project_and_config_metrics (conf : Scan_CLI.conf) : unit =
    * git can take time (and generate errors on stderr)?
    *)
   if Metrics_.is_enabled () then
-    Git_wrapper.get_project_url () |> Option.iter Metrics_.add_project_url_hash;
+    Git_wrapper.project_url () |> Option.iter Metrics_.add_project_url_hash;
   match conf.rules_source with
   | Configs configs -> Metrics_.add_configs_hash configs
   | Pattern _ -> ()
@@ -156,6 +156,47 @@ let exit_code_of_errors ~strict (errors : Out.core_error list) : Exit_code.t =
           exit_code
       | _ -> Exit_code.ok ~__LOC__)
 
+(* Core errors are easier to report. *)
+let core_errors_of_fatal_rule_errors (fatal_errors : Rule_error.t list) :
+    Core_error.t list =
+  fatal_errors
+  |> List_.map (fun (e : Rule_error.t) ->
+         let core_err = Core_error.error_of_rule_error e.file e in
+         (* We should definitely not drop rule errors here.
+            That being said, it shouldn't be possible to get no file here,
+            by construction.
+            The `file` field is set in `Rule.Error.t` from all of the entry points
+            into Parse_rule.ml
+         *)
+         if Fpath_.is_fake_file e.file then
+           Logs.err (fun m ->
+               m "no file found for rule error %s"
+                 (Core_error.string_of_error core_err));
+         core_err)
+
+(* we require stdout here to give the proper output, such as with --json *)
+let output_and_exit_from_fatal_core_errors (caps : < Cap.stdout >)
+    (conf : Scan_CLI.conf) (profiler : Profiler.t) (errors : Core_error.t list)
+    : Exit_code.t =
+  let runtime_params =
+    Output.
+      {
+        is_logged_in = Semgrep_settings.has_api_token ();
+        is_using_registry =
+          Metrics_.g.is_using_registry || !Semgrep_envvars.v.mock_using_registry;
+      }
+  in
+  let res =
+    Core_runner.mk_result [] (Core_result.mk_result_with_just_errors errors)
+  in
+
+  Output.output_result
+    (caps :> < Cap.stdout >)
+    (* TODO: choose output conf? *)
+    conf.output_conf runtime_params profiler res
+  |> ignore;
+  exit_code_of_errors ~strict:conf.core_runner_conf.strict res.core.errors
+
 (*****************************************************************************)
 (* Incremental display *)
 (*****************************************************************************)
@@ -178,15 +219,15 @@ let mk_file_match_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
       pms
       (* OK, because we don't need the postprocessing to report the matches. *)
       |> List_.map Core_result.mk_processed_match
-      |> Either_.partition_either Core_json_output.match_to_match
+      |> Result_.partition Core_json_output.match_to_match
       |> fst |> Core_json_output.dedup_and_sort
     in
     let hrules = Rule.hrules_of_rules rules in
-    let fixes_env = Fixed_lines.mk_env () in
+    let fixed_env = Fixed_lines.mk_env () in
     core_matches
     |> List_.map
          (Cli_json_output.cli_match_of_core_match
-            ~dryrun:conf.output_conf.dryrun fixes_env hrules)
+            ~fixed_lines:conf.output_conf.fixed_lines fixed_env hrules)
   in
   let cli_matches =
     cli_matches
@@ -194,30 +235,39 @@ let mk_file_match_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
            Option.value ~default:false m.extra.is_ignored)
   in
   if cli_matches <> [] then (
+    (* nosemgrep: forbid-console *)
     Unix.lockf Unix.stdout Unix.F_LOCK 0;
     Common.protect
       (fun () ->
         (* coupling: similar to Output.dispatch_output_format for Text *)
         printer conf cli_matches)
-      ~finally:(fun () -> Unix.lockf Unix.stdout Unix.F_ULOCK 0))
+      ~finally:(fun () ->
+        (* nosemgrep: forbid-console *)
+        Unix.lockf Unix.stdout Unix.F_ULOCK 0))
 
-let incremental_text_printer (conf : Scan_CLI.conf)
+let incremental_text_printer (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
     (cli_matches : Out.cli_match list) : unit =
+  (* TODO: we should switch to Fmt_.with_buffer_to_string +
+   * some CapConsole.print_no_nl, but then is_atty fail on
+   * a string buffer and we lose the colors
+   *)
   Matches_report.pp_text_outputs
     ~max_chars_per_line:conf.output_conf.max_chars_per_line
     ~max_lines_per_finding:conf.output_conf.max_lines_per_finding
+      (* nosemgrep: forbid-console *)
     ~color_output:conf.output_conf.force_color Format.std_formatter cli_matches
 
-let incremental_json_printer (conf : Scan_CLI.conf)
+let incremental_json_printer (caps : < Cap.stdout >) (conf : Scan_CLI.conf)
     (cli_matches : Out.cli_match list) : unit =
   ignore conf;
   List.iter
     (fun cli_match ->
-      Fmt.pr "%s@." (Semgrep_output_v1_j.string_of_cli_match cli_match))
+      CapConsole.print caps#stdout
+        (Semgrep_output_v1_j.string_of_cli_match cli_match))
     cli_matches
 
-let choose_output_format_and_match_hook (conf : Scan_CLI.conf)
-    (rules : Rule.rules) =
+let choose_output_format_and_match_hook (caps : < Cap.stdout >)
+    (conf : Scan_CLI.conf) (rules : Rule.rules) =
   match conf with
   | {
       output_conf = { output_format = Output_format.Text; _ };
@@ -230,14 +280,14 @@ let choose_output_format_and_match_hook (conf : Scan_CLI.conf)
       _;
     } ->
       ( Output_format.Incremental,
-        Some (mk_file_match_hook conf rules incremental_text_printer) )
+        Some (mk_file_match_hook conf rules (incremental_text_printer caps)) )
   | {
    output_conf = { output_format = Output_format.Json; _ };
    incremental_output = true;
    _;
   } ->
       ( Output_format.Incremental,
-        Some (mk_file_match_hook conf rules incremental_json_printer) )
+        Some (mk_file_match_hook conf rules (incremental_json_printer caps)) )
   | { output_conf; _ } -> (output_conf.output_format, None)
 
 (*****************************************************************************)
@@ -369,13 +419,10 @@ let uniq_rules_and_error_if_empty_rules rules =
 
 (* Select and execute the scan func based on the configured engine settings *)
 let mk_core_run_for_osemgrep (caps : < Cap.tmp >) (conf : Scan_CLI.conf)
-    (diff_config : Differential_scan_config.t) :
-    Core_runner.core_run_for_osemgrep =
-  let core_run_for_osemgrep : Core_runner.core_run_for_osemgrep =
+    (diff_config : Differential_scan_config.t) : Core_runner.func =
+  let core_run_for_osemgrep : Core_runner.func =
     match conf.engine_type with
-    | OSS ->
-        Core_runner.mk_core_run_for_osemgrep
-          (Core_scan.scan_with_exn_handler caps)
+    | OSS -> Core_runner.mk_core_run_for_osemgrep (Core_scan.scan caps)
     | PRO _ -> (
         match !Core_runner.hook_mk_pro_core_run_for_osemgrep with
         | None ->
@@ -393,7 +440,7 @@ let mk_core_run_for_osemgrep (caps : < Cap.tmp >) (conf : Scan_CLI.conf)
                 engine_type = conf.engine_type;
               })
   in
-  let core_run_for_osemgrep : Core_runner.core_run_for_osemgrep =
+  let core_run_for_osemgrep : Core_runner.func =
     match conf.targeting_conf.force_project_root with
     | Some (Find_targets.Git_remote _) -> (
         match !Core_runner.hook_pro_git_remote_scan_setup with
@@ -487,8 +534,8 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
     (Rule.rule list * Core_runner.result * Out.cli_output, Exit_code.t) result =
   Metrics_.add_engine_type conf.engine_type;
   (* step 1: last touch on rules *)
-  let rules, rule_errors =
-    Rule_fetching.partition_rules_and_errors rules_and_origins
+  let rules, invalid_rules =
+    Rule_fetching.partition_rules_and_invalid rules_and_origins
   in
   let/ rules = uniq_rules_and_error_if_empty_rules rules in
   let rules = Rule_filtering.filter_rules conf.rule_filtering_conf rules in
@@ -508,7 +555,7 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
 
   (* step 3: choose the right engine and right hooks *)
   let output_format, file_match_hook =
-    choose_output_format_and_match_hook conf rules
+    choose_output_format_and_match_hook (caps :> < Cap.stdout >) conf rules
   in
   (* step 3': call the engine! *)
   Logs.info (fun m -> m "running the semgrep engine");
@@ -522,7 +569,7 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
                 conf Differential_scan_config.WholeScan
             in
             core_run_for_osemgrep.run ~file_match_hook conf.core_runner_conf
-              conf.targeting_conf (rules, rule_errors) targets)
+              conf.targeting_conf (rules, invalid_rules) targets)
     | Some baseline_commit ->
         (* scan_baseline calls internally Profiler.record "head_core_time"  *)
         (* diff scan mode *)
@@ -532,20 +579,18 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
             mk_core_run_for_osemgrep (caps :> < Cap.tmp >) conf diff_config
           in
           core_run_for_osemgrep.run ~file_match_hook conf.core_runner_conf
-            conf.targeting_conf (rules, rule_errors) targets
+            conf.targeting_conf (rules, invalid_rules) targets
         in
         Diff_scan.scan_baseline
           (caps :> < Cap.chdir ; Cap.tmp >)
           conf profiler baseline_commit targets rules diff_scan_func
   in
   match result_or_exn with
-  | Error (e, _core_error_opt) ->
+  | Error exn ->
       (* TOADAPT? Runner_exit.exit_semgrep (Unknown_exception e) instead *)
-      Exception.reraise e
+      Exception.reraise exn
   | Ok result ->
-      let (res : Core_runner.result) =
-        Core_runner.create_core_result rules result
-      in
+      let (res : Core_runner.result) = Core_runner.mk_result rules result in
       (* step 3'': adjust the matches, filter via nosemgrep and part1 autofix *)
       let keep_ignored =
         (not conf.core_runner_conf.nosem)
@@ -564,15 +609,16 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
         let runtime_params =
           Output.
             {
-              is_logged_in = Semgrep_login.is_logged_in ();
+              is_logged_in = Semgrep_settings.has_api_token ();
               is_using_registry =
                 Metrics_.g.is_using_registry
                 || !Semgrep_envvars.v.mock_using_registry;
             }
         in
         Output.output_result
+          (caps :> < Cap.stdout >)
           { conf.output_conf with output_format }
-          profiler runtime_params res
+          runtime_params profiler res
       in
       Profiler.stop_ign profiler ~name:"total_time";
 
@@ -620,8 +666,8 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
       (* this must happen posterior to reporting matches, or will report the
          already-fixed file
       *)
-      if conf.output_conf.autofix then
-        Autofix.apply_fixes_of_core_matches ~dryrun:conf.output_conf.dryrun
+      if conf.autofix then
+        Autofix.apply_fixes_of_core_matches ~dryrun:conf.output_conf.fixed_lines
           res.core.results;
 
       (* TOPORT? was in formater/base.py
@@ -648,6 +694,8 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   let profiler = Profiler.make () in
   (* the corresponding stop is done in check_targets_with_rules () *)
   Profiler.start profiler ~name:"total_time";
+
+  Core_profiling.profiling := conf.core_runner_conf.time_flag;
 
   (* Metrics initialization (and finalization) is done in CLI.ml,
    * but here we "configure" it (enable or disable it) based on CLI flags.
@@ -683,35 +731,64 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
   Logs.info (fun m -> m "Getting the rules");
   (* Display a (possibly interactive) message to denote rule fetching *)
   if new_cli_ux then display_rule_source ~rule_source:conf.rules_source;
-  let rules_and_origins =
+  let rules_and_origins, fatal_errors =
     rules_from_rules_source
       (caps :> < Cap.network ; Cap.tmp >)
       ~token_opt:settings.api_token ~rewrite_rule_ids:conf.rewrite_rule_ids
       ~strict:conf.core_runner_conf.strict conf.rules_source
   in
 
-  (* step2: getting the targets *)
-  Logs.info (fun m -> m "Computing the targets");
-  let targets_and_skipped =
-    Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
-  in
+  match fatal_errors with
+  (* if there are fatal errors, we must exit :( *)
+  | _ :: _ -> (
+      let core_errors = core_errors_of_fatal_rule_errors fatal_errors in
+      match conf.output_conf.output_format with
+      (* For textual output, it seems that we do not have a unified way to
+         display errors, other than raising an exception and dispatching to the
+         surrounding error handler. In that case, that's what we do.
+         Otherwise, such as for JSON outputs, we want to call the normal
+         Output.output_result handler, which will display the JSON even in
+         the event of an error.
+      *)
+      | Output_format.Text ->
+          raise
+            (Error.Semgrep_error
+               ( Common.spf
+                   "invalid configuration file found (%d configs were invalid)\n\
+                    %s"
+                   (List.length core_errors)
+                   (String.concat "\n"
+                      (List_.map Core_error.string_of_error core_errors)),
+                 Some (Exit_code.missing_config ~__LOC__) ))
+      | _ ->
+          output_and_exit_from_fatal_core_errors
+            (caps :> < Cap.stdout >)
+            conf profiler core_errors)
+  (* but with no fatal rule errors, we can proceed with the scan! *)
+  | [] -> (
+      (* step2: getting the targets *)
+      Logs.info (fun m -> m "Computing the targets");
+      let targets_and_skipped =
+        Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
+      in
 
-  (* step3: let's go *)
-  let res =
-    check_targets_with_rules
-      (caps :> < Cap.stdout ; Cap.chdir ; Cap.tmp >)
-      conf profiler rules_and_origins targets_and_skipped
-  in
+      (* step3: let's go *)
+      let res =
+        check_targets_with_rules
+          (caps :> < Cap.stdout ; Cap.chdir ; Cap.tmp >)
+          conf profiler rules_and_origins targets_and_skipped
+      in
 
-  (* step4: exit with the right exit code *)
-  match res with
-  | Error exit_code -> exit_code
-  | Ok (_rules, res, cli_output) ->
-      (* final result for the shell *)
-      if conf.error_on_findings && not (List_.null cli_output.results) then
-        Exit_code.findings ~__LOC__
-      else
-        exit_code_of_errors ~strict:conf.core_runner_conf.strict res.core.errors
+      (* step4: exit with the right exit code *)
+      match res with
+      | Error exit_code -> exit_code
+      | Ok (_rules, res, cli_output) ->
+          (* final result for the shell *)
+          if conf.error_on_findings && not (List_.null cli_output.results) then
+            Exit_code.findings ~__LOC__
+          else
+            exit_code_of_errors ~strict:conf.core_runner_conf.strict
+              res.core.errors)
 
 (*****************************************************************************)
 (* Run 'scan' or 'test' or 'validate' or 'show' (or fallback to pysemgrep) *)

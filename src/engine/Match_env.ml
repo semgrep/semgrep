@@ -61,6 +61,12 @@ type env = {
   (* used by metavariable-pattern to recursively call evaluate_formula *)
   xtarget : Xtarget.t;
   rule : Rule.t;
+  (* as-metavariable: This is here so we can easily pass down
+     `has_as_metavariable` to `evaluate_formula`, which will dictate
+     whether  we should set the `ast_node` field when focusing, as this is
+     only needed for rules  making use of the `as-metavariable` feature.
+  *)
+  has_as_metavariable : bool;
   (* problems found during evaluation, one day these may be caught earlier by
    * the meta-checker *)
   errors : Core_error.ErrorSet.t ref;
@@ -80,7 +86,9 @@ let error (env : env) msg =
     Tok.first_loc_of_file !!(env.xtarget.path.internal_path_to_content)
   in
   (* TODO: warning or error? MatchingError or ... ? *)
-  let err = E.mk_error (Some (fst env.rule.id)) loc msg OutJ.MatchingError in
+  let err =
+    E.mk_error ~rule_id:(Some (fst env.rule.id)) ~msg loc OutJ.MatchingError
+  in
   env.errors := Core_error.ErrorSet.add err !(env.errors)
 
 (* this will be adjusted later in range_to_pattern_match_adjusted *)

@@ -29,7 +29,7 @@ module MV = Metavariable
 module ME = Matching_explanation
 module OutJ = Semgrep_output_v1_t
 module Labels = Set.Make (String)
-module Log = Log_engine.Log
+module Log = Log_tainting.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -246,7 +246,7 @@ let concat_map_with_expls f xs =
            Stack_.push expls all_expls;
            ys)
   in
-  (res, List.flatten (List.rev !all_expls))
+  (res, List_.flatten (List.rev !all_expls))
 
 let%test _ =
   concat_map_with_expls (fun x -> ([ -x; x ], [ 2 * x; 3 * x ])) [ 0; 1; 2 ]
@@ -357,7 +357,7 @@ let range_of_any any =
        * TODO: Perhaps we should avoid the call to `any_in_ranges` in the
        * first place? *)
       if any <> G.Anys [] then
-        Log.warn (fun m ->
+        Log.debug (fun m ->
             m "Cannot compute range, there are no real tokens in this AST: %s"
               (G.show_any any));
       None
@@ -541,7 +541,7 @@ let sources_of_taints ?preferred_label taints =
      with preconditions as a secondary choice. *)
   let with_req, without_req =
     taint_sources
-    |> Either_.partition_either (fun (src, tokens, sink_trace) ->
+    |> Either_.partition (fun (src, tokens, sink_trace) ->
            match get_source_requires src with
            | Some _ -> Left (src, tokens, sink_trace)
            | None -> Right (src, tokens, sink_trace))
@@ -699,12 +699,14 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
           pos = fst spec.sources;
           children = expls_sources;
           matches = ranges_to_pms sources_ranges;
+          extra = None;
         };
         {
           ME.op = OutJ.TaintSink;
           pos = fst spec.sinks;
           children = expls_sinks;
           matches = ranges_to_pms sinks_ranges;
+          extra = None;
         }
         (* TODO: propagators *);
       ]
@@ -724,6 +726,7 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
                * has been deprecated for quite some time, and we will remove it at
                * some point. *)
               matches = ranges_to_pms sanitizers_ranges;
+              extra = None;
             };
           ]
     else []
@@ -1032,6 +1035,7 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
           children = expls;
           matches = report.matches;
           pos = snd rule.id;
+          extra = None;
         };
       ]
     else []
@@ -1069,10 +1073,15 @@ let check_rules ~match_hook
            Match_env.adjust_xconfig_with_rule_options xconf rule.R.options
          in
          (* This boilerplate function will take care of things like
-            timing out if this rule takes too long, and returning a dummy
-            result for the timed-out rule.
+             timing out if this rule takes too long, and returning a dummy
+             result for the timed-out rule.
          *)
          per_rule_boilerplate_fn
            (rule :> R.rule)
            (fun () ->
-             check_rule per_file_formula_cache rule match_hook xconf xtarget))
+             Logs_.with_debug_trace "Match_tainting_mode.check_rule" (fun () ->
+                 Log.debug (fun m ->
+                     m "target: %s, ruleid: %s"
+                       !!(xtarget.path.internal_path_to_content)
+                       (rule.id |> fst |> Rule_ID.to_string));
+                 check_rule per_file_formula_cache rule match_hook xconf xtarget)))

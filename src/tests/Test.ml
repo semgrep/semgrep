@@ -46,7 +46,7 @@ let cleanup_before_each_test (reset : unit -> unit) (tests : Testo.t list) :
    that call 'Common2.glob'.
 *)
 let tests (caps : Cap.all_caps) =
-  List.flatten
+  List_.flatten
     [
       Commons_tests.tests;
       Unit_list_files.tests;
@@ -88,6 +88,8 @@ let tests (caps : Cap.all_caps) =
       Test_login_subcommand.tests (caps :> < Cap.stdout ; Cap.network >);
       Test_scan_subcommand.tests
         (caps :> < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.chdir >);
+      Unit_test_subcommand.tests
+        (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >);
       Test_show_subcommand.tests
         (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >);
       Test_publish_subcommand.tests
@@ -133,7 +135,7 @@ let tests_with_delayed_error caps =
 let main (caps : Cap.all_caps) : unit =
   (* find the root of the semgrep repo as many of our tests rely on
      'let test_path = "tests/"' to find their test files *)
-  let project_root = Test_LS_e2e.get_project_root () in
+  let project_root = Test_LS_e2e.project_root () in
   Testutil_files.with_chdir project_root (fun () ->
       (* coupling: partial copy of the content of CLI.main() *)
       Core_CLI.register_exception_printers ();

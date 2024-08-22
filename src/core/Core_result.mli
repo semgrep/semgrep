@@ -16,15 +16,14 @@ type t = {
    * It includes targets that couldn't be scanned, for instance due to
    * a parsing error.
    * TODO: are we actually doing that? this was a comment
-   * for semgrep_with_raw_results_and_exn_handler (now scan_with_exn_handler)
-   * but I'm not sure we're doing it.
+   * for Core_scan.scan but I'm not sure we're doing it.
    *)
   scanned : Target.t list;
   (* extra information useful to also give to the user (in JSON or
    * in textual reports) or for tools (e.g., the playground).
    *)
   skipped_targets : Semgrep_output_v1_t.skipped_target list;
-  skipped_rules : Rule.invalid_rule_error list;
+  skipped_rules : Rule_error.invalid_rule list;
   rules_with_targets : Rule.rule list;
   profiling : Core_profiling.t option;
   explanations : Matching_explanation.t list option;
@@ -33,7 +32,7 @@ type t = {
 }
 [@@deriving show]
 
-type result_or_exn = (t, Exception.t * Core_error.t option) result
+type result_or_exn = (t, Exception.t) result
 
 (* just set default values for is_ignored (false) and autofix_edit (None) *)
 val mk_processed_match : Pattern_match.t -> processed_match
@@ -60,10 +59,10 @@ type matches_single_file = Core_profiling.partial_profiling match_result
 (* take the match results for each file, all the rules, all the targets,
  * and build the final result
  *)
-val make_final_result :
+val mk_result :
   Core_profiling.file_profiling match_result list ->
   (Rule.rule * Engine_kind.t) list ->
-  Rule.invalid_rule_error list ->
+  Rule_error.invalid_rule list ->
   Target.t list ->
   Xlang.t list ->
   rules_parse_time:float ->
@@ -75,7 +74,7 @@ val make_final_result :
  * added in the errors field.
  * This is also used for semgrep-core metachecker (-check_rules)
  *)
-val mk_final_result_with_just_errors : Core_error.t list -> t
+val mk_result_with_just_errors : Core_error.t list -> t
 val empty_match_result : Core_profiling.times match_result
 
 val mk_match_result :

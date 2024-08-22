@@ -7,7 +7,7 @@
 type ('a, 'b) t = ('a, 'b) Either.t = Left of 'a | Right of 'b
 [@@deriving eq, show, sexp]
 
-val partition_either : ('a -> ('b, 'c) t) -> 'a list -> 'b list * 'c list
+val partition : ('a -> ('b, 'c) t) -> 'a list -> 'b list * 'c list
 
 type ('a, 'b, 'c) either3 = Left3 of 'a | Middle3 of 'b | Right3 of 'c
 [@@deriving eq, show]

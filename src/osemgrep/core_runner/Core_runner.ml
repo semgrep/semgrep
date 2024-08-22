@@ -1,5 +1,4 @@
 open Common
-module OutJ = Semgrep_output_v1_t
 module Env = Semgrep_envvars
 
 (*************************************************************************)
@@ -49,9 +48,9 @@ type pro_conf = {
 *)
 type result = {
   (* ocaml: not in original python implem, but just enough to get
-   * Semgrep_scan.cli_output_of_core_results to work
+   * Cli_json_output.cli_output_of_core_results to work
    *)
-  core : OutJ.core_output;
+  core : Semgrep_output_v1_t.core_output;
   hrules : Rule.hrules;
   scanned : Fpath.t Set_.t;
       (* in python implem *)
@@ -75,15 +74,15 @@ type result = {
    It doesn't scan the filesystem since it takes a list of target files,
    not scanning roots.
 *)
-type core_run_for_osemgrep = {
+type func = {
   run :
     ?file_match_hook:(Fpath.t -> Core_result.matches_single_file -> unit) option ->
     conf ->
-    (* alt: pass a bool alongside each target path that indicates whether
+    (* TODO alt: pass a bool alongside each target path that indicates whether
        the target is explicit i.e. occurs directly on the command line *)
     Find_targets.conf ->
     (* LATER? alt: use Config_resolve.rules_and_origin instead? *)
-    Rule.rules_and_errors ->
+    Rule_error.rules_and_invalid ->
     (* Takes a list of target files, not scanning roots. *)
     Fpath.t list ->
     Core_result.result_or_exn;
@@ -105,8 +104,7 @@ type core_run_for_osemgrep = {
  * and executed by osemgrep-pro. When linked from osemgrep-pro, this
  * hook below will be set.
  *)
-let (hook_mk_pro_core_run_for_osemgrep :
-      (pro_conf -> core_run_for_osemgrep) option ref) =
+let (hook_mk_pro_core_run_for_osemgrep : (pro_conf -> func) option ref) =
   ref None
 
 (* This hooks into the proprietary part of Semgrep, in order to access a
@@ -114,9 +112,7 @@ let (hook_mk_pro_core_run_for_osemgrep :
  * If a repo is checked out sparsely, this will only checkout the files
  * that are needed for the scan.
  *)
-let (hook_pro_git_remote_scan_setup :
-      (core_run_for_osemgrep -> core_run_for_osemgrep) option ref) =
-  ref None
+let (hook_pro_git_remote_scan_setup : (func -> func) option ref) = ref None
 
 (*************************************************************************)
 (* Extract mode *)
@@ -229,8 +225,8 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
    matching_explanations;
    nosem;
    strict;
+   time_flag;
    (* TODO *)
-   time_flag = _;
    dataflow_traces = _;
   } ->
       (* We default to Json because we do not want the current text
@@ -251,6 +247,7 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
         nosem;
         strict;
         version = Version.version;
+        report_time = time_flag;
       }
 
 let prepare_config_for_core_scan (config : Core_scan_config.t)
@@ -277,11 +274,10 @@ let prepare_config_for_core_scan (config : Core_scan_config.t)
     rule_source = Some (Rules rules);
   }
 
-(* Create the core result structure from the results *)
 (* LATER: we want to avoid this intermediate data structure but
  * for now that's what pysemgrep used to get so simpler to return it.
  *)
-let create_core_result (all_rules : Rule.rule list) (res : Core_result.t) =
+let mk_result (all_rules : Rule.rule list) (res : Core_result.t) : result =
   (* similar to Core_command.output_core_results code *)
   let scanned = res.scanned |> List_.map Target.internal_path |> Set_.of_list in
   let match_results = Core_json_output.core_output_of_matches_and_errors res in
@@ -303,12 +299,11 @@ let create_core_result (all_rules : Rule.rule list) (res : Core_result.t) =
 (*************************************************************************)
 
 (* Core_scan.core_scan_func adapter for osemgrep *)
-let mk_core_run_for_osemgrep (core_scan_func : Core_scan.core_scan_func) :
-    core_run_for_osemgrep =
+let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
   let run ?(file_match_hook = None) (conf : conf)
       (targeting_conf : Find_targets.conf)
-      (rules_and_errors : Rule.rules_and_errors) (all_targets : Fpath.t list) :
-      Core_result.result_or_exn =
+      (rules_and_invalid : Rule_error.rules_and_invalid)
+      (all_targets : Fpath.t list) : Core_result.result_or_exn =
     (*
        At this point, we already have the full list of targets. These targets
        will populate the 'target_source' field of the config object
@@ -316,8 +311,10 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.core_scan_func) :
        This mode doesn't tolerate scanning roots. This is checked in
        Core_scan.ml.
     *)
-    let rules, invalid_rules = rules_and_errors in
-    let rule_errors = Core_scan.errors_of_invalid_rule_errors invalid_rules in
+    let rules, invalid_rules = rules_and_invalid in
+    let rule_errors : Core_error.t list =
+      invalid_rules |> List_.map Core_error.error_of_invalid_rule
+    in
     let config : Core_scan_config.t = core_scan_config_of_conf conf in
     let config = { config with file_match_hook } in
     (* TODO: we should not need to use List_.map below, because

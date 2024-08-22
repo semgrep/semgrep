@@ -94,13 +94,13 @@ val previous_scan_of_file :
 val add_skipped_fingerprint : t -> string -> t
 (** [add_skipped_fingerprint t fingerprint] adds a fingerprint to the list of skipped fingerprints in the session *)
 
-val add_open_document : t -> Fpath.t -> unit
+val add_open_document : t -> Fpath.t -> unit Lwt.t
 (** [add_open_document t path] adds a file to the list of open documents in the session *)
 
-val remove_open_document : t -> Fpath.t -> unit
+val remove_open_document : t -> Fpath.t -> unit Lwt.t
 (** [remove_open_document t path] removes a file from the list of open documents in the session *)
 
-val remove_open_documents : t -> Fpath.t list -> unit
+val remove_open_documents : t -> Fpath.t list -> unit Lwt.t
 (** [remove_open_documents t path] removes all files from the list of open documents in the session *)
 
 val record_results :

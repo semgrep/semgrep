@@ -1,7 +1,3 @@
-[submodule "OSS/languages/c/tree-sitter/semgrep-c"]
-path = languages/c/tree-sitter/semgrep-c
-url = https://github.com/returntocorp/semgrep-c
-
 [submodule "OSS/languages/cpp/tree-sitter/semgrep-cpp"]
 path = languages/cpp/tree-sitter/semgrep-cpp
 url = https://github.com/returntocorp/semgrep-cpp

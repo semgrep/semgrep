@@ -53,6 +53,7 @@ module OutJ = Semgrep_output_v1_t
  * and have semgrep call `semgrep-core -rules` on the checks
  *
  * TODO: make it possible to run `semgrep-core -check_rules` with no metachecks
+ * TODO: merge code with `osemgrep validate`
  *)
 
 (*****************************************************************************)
@@ -60,18 +61,15 @@ module OutJ = Semgrep_output_v1_t
 (*****************************************************************************)
 exception No_metacheck_file of string
 
-type env = { r : Rule.t; errors : Core_error.t list ref }
-
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-let error env t s =
+let error (rule : Rule.t) (t : Tok.t) (s : string) : Core_error.t =
   let loc = Tok.unsafe_loc_of_tok t in
   let _check_idTODO = "semgrep-metacheck-builtin" in
-  let rule_id, _ = env.r.id in
-  let err = E.mk_error (Some rule_id) loc s OutJ.SemgrepMatchFound in
-  Stack_.push err env.errors
+  let rule_id, _ = rule.id in
+  E.mk_error ~rule_id:(Some rule_id) ~msg:s loc OutJ.SemgrepMatchFound
 
 (*****************************************************************************)
 (* Checks *)
@@ -88,35 +86,38 @@ let mv_error env mv t =
 
 let mvar_is_ok mv mvs =
   (* TODO: remove first condition when we kill numeric capture groups *)
-  Metavariable.is_metavar_for_capture_group mv || Set.mem mv mvs
+  Mvar.is_metavar_for_capture_group mv || Set.mem mv mvs
 
 let check_mvars_of_condition env bound_mvs (t, condition) =
   match condition with
-  | CondEval _ -> ()
+  | CondEval _ -> []
   | CondRegexp (mv, _, _)
   | CondType (mv, _, _, _)
   | CondName (mv, _)
   | CondNestedFormula (mv, _, _)
   | CondAnalysis (mv, _) ->
-      if not (mvar_is_ok mv bound_mvs) then mv_error env mv t
+      if not (mvar_is_ok mv bound_mvs) then [ mv_error env mv t ] else []
 
-let check_mvars_of_focus env bound_mvs (t, mv_list) =
+let check_mvars_of_focus r bound_mvs (t, mv_list) =
   mv_list
-  |> List.iter (fun mv ->
-         if not (mvar_is_ok mv bound_mvs) then mv_error env mv t)
+  |> List.concat_map (fun mv ->
+         if not (mvar_is_ok mv bound_mvs) then [ mv_error r mv t ] else [])
 
-let unknown_metavar_in_comparison env f =
+let unknown_metavar_in_comparison r f =
   let rec collect_metavars parent_mvs { f; conditions; focus; fix = _; as_ } :
-      MV.mvar Set.t =
+      Mvar.t Set.t * Core_error.t list =
     (* Check the metavariables in the conditions (e.g. metavariable-pattern).
        From here on, both the metavariables from the conjuncts and the
        metavariables from the parent are already bound *)
-    let inner_mvs = collect_metavars' parent_mvs f in
+    let inner_mvs, inner_errors = collect_metavars' parent_mvs f in
     let bound_mvs_for_conds = Set.union inner_mvs parent_mvs in
-    conditions |> List.iter (check_mvars_of_condition env bound_mvs_for_conds);
+    let errors =
+      conditions
+      |> List.concat_map (check_mvars_of_condition r bound_mvs_for_conds)
+    in
     (* Now collect the metavariables defined in the conditions, which could
        be used in the focus-metavariable clauses, and check nested formulas *)
-    let cond_mvs =
+    let cond_mvs, cond_errors =
       conditions
       |> List_.map (fun (_, condition) ->
              match condition with
@@ -124,18 +125,23 @@ let unknown_metavar_in_comparison env f =
              | CondType _
              | CondAnalysis _
              | CondName _ ->
-                 Set.empty
+                 (Set.empty, [])
              | CondRegexp (_, regex, _) ->
-                 Metavariable.mvars_of_regexp_string regex |> Set_.of_list
+                 (Mvar.mvars_of_regexp_string regex |> Set_.of_list, [])
              | CondNestedFormula (_, _, formula) ->
                  collect_metavars bound_mvs_for_conds formula)
-      |> List.fold_left Set.union Set.empty
+      |> List.fold_left
+           (fun (mvars_acc, errors_acc) (mvars, errors) ->
+             (Set.union mvars_acc mvars, errors @ errors_acc))
+           (Set.empty, [])
     in
 
     (* Check the focus-metavariable clauses last since they can use metavariables
        in any clause within the And *)
     let bound_mvs_for_focus = Set.union cond_mvs bound_mvs_for_conds in
-    focus |> List.iter (check_mvars_of_focus env bound_mvs_for_focus);
+    let focus_errors =
+      focus |> List.concat_map (check_mvars_of_focus r bound_mvs_for_focus)
+    in
     (* Return only the metavariables that were newly bound in this node *)
     let mvs = Set.union cond_mvs inner_mvs in
     let mvs_with_as =
@@ -143,8 +149,8 @@ let unknown_metavar_in_comparison env f =
       | None -> mvs
       | Some as_ -> Set.add as_ mvs
     in
-    mvs_with_as
-  and collect_metavars' parent_mvs kind : MV.mvar Set.t =
+    (mvs_with_as, focus_errors @ cond_errors @ errors @ inner_errors)
+  and collect_metavars' parent_mvs kind : Mvar.t Set.t * Core_error.t list =
     match kind with
     | P { pat; pstr = pstr, _; pid = _pid } ->
         (* TODO currently this guesses that the metavariables are the strings
@@ -153,26 +159,27 @@ let unknown_metavar_in_comparison env f =
         (* First get the potential metavar ellipsis words *)
         let words_with_dot = Str.split (Str.regexp "[^a-zA-Z0-9_\\.$]") pstr in
         let ellipsis_metavars =
-          words_with_dot |> List.filter Metavariable.is_metavar_ellipsis
+          words_with_dot |> List.filter Mvar.is_metavar_ellipsis
         in
         (* Then split the individual metavariables *)
         let words = List.concat_map (String.split_on_char '.') words_with_dot in
-        let metavars = words |> List.filter Metavariable.is_metavar_name in
+        let metavars = words |> List.filter Mvar.is_metavar_name in
         (* Then, for a pattern-regex, get all the named capture groups, and
            account for the metavariables introduced by their matches.
         *)
         let regexp_captured_mvars =
           match pat with
-          | Xpattern.Regexp s -> Metavariable.mvars_of_regexp_string s
+          | Xpattern.Regexp s -> Mvar.mvars_of_regexp_string s
           | __else__ -> []
         in
-        [ metavars; ellipsis_metavars; regexp_captured_mvars ]
-        |> List_.map Set.of_list
-        |> List.fold_left Set.union Set.empty
+        ( [ metavars; ellipsis_metavars; regexp_captured_mvars ]
+          |> List_.map Set.of_list
+          |> List.fold_left Set.union Set.empty,
+          [] )
     | Inside (_, f)
     | Anywhere (_, f) ->
         collect_metavars parent_mvs f
-    | Not (_, _) -> Set.empty
+    | Not (_, _) -> (Set.empty, [])
     | And (_, xs)
     | Or (_, xs) ->
         (* Collect and check from the conjuncts. Pass down the metavariables
@@ -183,37 +190,49 @@ let unknown_metavar_in_comparison env f =
            * speaking a metavariable needs to be in all cases of a pattern-either
            * to be bound. However, due to how the pattern is transformed, this
            * is not always enforced, so the metacheck is too strict
-           *
-          (fun acc mv_set ->
-            if acc == Set.empty then mv_set else Set.inter acc mv_set)
            *)
-            (fun acc mv_set -> Set.union acc mv_set)
-          Set.empty mv_sets
+            (fun (acc, acc_errors) (mv_set, errors) ->
+            (Set.union acc mv_set, errors @ acc_errors))
+          (Set.empty, []) mv_sets
   in
-  let _ = collect_metavars Set.empty f in
-  ()
+  let _, errors = collect_metavars Set.empty f in
+  List.rev errors
 
 (* call Check_pattern subchecker *)
+exception CheckPatternFailure of string wrap
+
 let check_pattern (lang : Xlang.t) f =
-  visit_new_formula
-    (fun { pat; pstr = _pat_str; pid = _ } ~inside:_ ->
-      match (pat, lang) with
-      | Sem (semgrep_pat, _lang), L (lang, _rest) ->
-          Check_pattern.check lang semgrep_pat
-      | Spacegrep _spacegrep_pat, LSpacegrep -> ()
-      | Aliengrep _aliengrep_pat, LAliengrep -> ()
-      | Regexp _, _ -> ()
-      | _ -> raise Impossible)
-    f
+  try
+    Ok
+      ((* TODO: can we ditch the exceptions and just have this be some sort of
+          catamorphism? Would be nice to be able to easily return all the errors
+          without needing a ref. *)
+       Visit_rule.visit_xpatterns
+         (fun { pat; pstr = _pat_str, t; pid = _ } ~inside:_ ->
+           match (pat, lang) with
+           | Sem (semgrep_pat, _lang), L (lang, _rest) -> (
+               match Check_pattern.check lang semgrep_pat with
+               | Ok () -> ()
+               | Error s -> raise (CheckPatternFailure (s, t)))
+           | Spacegrep _spacegrep_pat, LSpacegrep -> ()
+           | Aliengrep _aliengrep_pat, LAliengrep -> ()
+           | Regexp _, _ -> ()
+           | _ -> raise Impossible)
+         f)
+  with
+  | CheckPatternFailure s -> Error s
 
 (*****************************************************************************)
 (* Formula *)
 (*****************************************************************************)
 
-let check_formula env (lang : Xlang.t) f =
-  check_pattern lang f;
-  unknown_metavar_in_comparison env f;
-  List.rev !(env.errors)
+let check_formula r (lang : Xlang.t) f =
+  let errors =
+    check_pattern lang f
+    |> Result.map_error (fun (s, t) -> error r t s)
+    |> Base.Result.error |> Option.to_list
+  in
+  errors @ unknown_metavar_in_comparison r f
 
 (*****************************************************************************)
 (* Entry points *)
@@ -224,7 +243,7 @@ let check r =
   match r.mode with
   | `Search f
   | `Extract { formula = f; _ } ->
-      check_formula { r; errors = ref [] } r.target_analyzer f
+      check_formula r r.target_analyzer f
   | `Taint _ -> (* TODO *) []
   | `Steps _ -> (* TODO *) []
   | `SCA _ -> (* TODO *) []
@@ -237,7 +256,7 @@ let semgrep_check (caps : < Cap.tmp >) config metachecks rules :
     let s = m.rule_id.message in
     let _check_id = m.rule_id.id in
     (* TODO: why not set ~rule_id here?? bug? *)
-    E.mk_error None loc s OutJ.SemgrepMatchFound
+    E.mk_error ~msg:s loc OutJ.SemgrepMatchFound
   in
   let (config : Core_scan_config.t) =
     {
@@ -249,13 +268,13 @@ let semgrep_check (caps : < Cap.tmp >) config metachecks rules :
       roots = List_.map Scanning_root.of_fpath rules;
     }
   in
-  let res = Core_scan.scan_with_exn_handler caps config in
+  let res = Core_scan.scan caps config in
   match res with
   | Ok result ->
       result.processed_matches
       |> List_.map (fun (m : Core_result.processed_match) -> m.pm)
       |> List_.map match_to_semgrep_error
-  | Error (exn, _) -> Exception.reraise exn
+  | Error exn -> Exception.reraise exn
 
 (* TODO *)
 
@@ -287,16 +306,15 @@ let run_checks (caps : < Cap.tmp >) config fparser metachecks xs =
         |> List.concat_map (fun file ->
                Logs.info (fun m ->
                    m "run_checks: processing rule file %s" !!file);
-               try
-                 let rs = fparser file in
-                 rs |> List.concat_map (fun file -> check file)
-               with
-               (* TODO this error is special cased because YAML files that *)
-               (* aren't semgrep rules are getting scanned *)
-               | R.Error { kind = InvalidYaml _; _ } -> []
-               | exn ->
+               match fparser file with
+               | Ok rs -> rs |> List.concat_map (fun file -> check file)
+               (* TODO this error is special cased because YAML files that
+                  aren't semgrep rules are getting scanned *)
+               | Error ({ kind = InvalidYaml _; _ } : Rule_error.t) -> []
+               | Error e -> [ Core_error.error_of_rule_error file e ]
+               | exception exn ->
                    let e = Exception.catch exn in
-                   [ E.exn_to_error None !!file e ])
+                   [ E.exn_to_error None file e ])
       in
       semgrep_found_errs @ ocaml_found_errs
 
@@ -321,7 +339,7 @@ let check_files (caps : < Cap.stdout ; Cap.tmp >) mk_config fparser input =
              Logs.err (fun m -> m "%s" (E.string_of_error err)))
   | Json _ ->
       let (res : Core_result.t) =
-        Core_result.mk_final_result_with_just_errors errors
+        Core_result.mk_result_with_just_errors errors
       in
       let json = Core_json_output.core_output_of_matches_and_errors res in
       CapConsole.print caps#stdout (SJ.string_of_core_output json)
@@ -341,19 +359,24 @@ let stat_files (caps : < Cap.stdout >) fparser xs =
   fullxs
   |> List.iter (fun file ->
          Logs.info (fun m -> m "stat_files: processing rule file %s" !!file);
-         let rs = fparser file in
-         rs
-         |> List.iter (fun r ->
-                let res = Analyze_rule.regexp_prefilter_of_rule ~cache r in
-                match res with
-                | None ->
-                    incr bad;
-                    Logs.warn (fun m ->
-                        m "no regexp prefilter for rule %s:%s" !!file
-                          (Rule_ID.to_string (fst r.id)))
-                | Some (f, _f) ->
-                    incr good;
-                    let s = Semgrep_prefilter_j.string_of_formula f in
-                    Logs.debug (fun m -> m "regexp: %s" s)));
+         match fparser file with
+         | Ok rs ->
+             rs
+             |> List.iter (fun r ->
+                    let res = Analyze_rule.regexp_prefilter_of_rule ~cache r in
+                    match res with
+                    | None ->
+                        incr bad;
+                        Logs.warn (fun m ->
+                            m "no regexp prefilter for rule %s:%s" !!file
+                              (Rule_ID.to_string (fst r.id)))
+                    | Some (f, _f) ->
+                        incr good;
+                        let s = Semgrep_prefilter_j.string_of_formula f in
+                        Logs.debug (fun m -> m "regexp: %s" s))
+         | Error e ->
+             Logs.warn (fun m ->
+                 m "stat_files: error in %a: %s" Fpath.pp file
+                   (Rule_error.string_of_error e)));
   CapConsole.print caps#stdout
     (spf "good = %d, no regexp found = %d" !good !bad)

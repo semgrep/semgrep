@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 
+open Common
 module R = Range
 open Lsp
 open Lsp.Types
@@ -229,15 +230,15 @@ let filter_by_includes_excludes ~project_root (file : Fpath.t)
 let formula_of_signed_patterns xlang patterns =
   let of_signed_pattern ({ positive; pattern } : Request_params.signed_pattern)
       =
-    let xpat = Parse_rule.parse_fake_xpattern xlang pattern in
-    if positive then Rule.f (Rule.P xpat)
-    else Rule.f (Rule.Not (Tok.unsafe_fake_tok "", Rule.f (Rule.P xpat)))
+    let/ xpat = Parse_rule.parse_fake_xpattern xlang pattern in
+    if positive then Ok (Rule.f (Rule.P xpat))
+    else Ok (Rule.f (Rule.Not (Tok.unsafe_fake_tok "", Rule.f (Rule.P xpat))))
   in
   match patterns with
   | [ signed_pat ] -> of_signed_pattern signed_pat
   | _ ->
-      Rule.And (Tok.unsafe_fake_tok "", List_.map of_signed_pattern patterns)
-      |> Rule.f
+      let/ patterns = List_.map of_signed_pattern patterns |> Base.Result.all in
+      Ok (Rule.And (Tok.unsafe_fake_tok "", patterns) |> Rule.f)
 
 (*****************************************************************************)
 (* Information gathering *)
@@ -266,13 +267,13 @@ let filter_out_multiple_python (rules : Rule.search_rule list) :
 
 (* Make an environment for the search. *)
 
-let mk_env (server : RPC_server.t) (params : Request_params.t) =
+let mk_env (session : Session.t) (params : Request_params.t) =
   let scanning_roots =
-    List_.map Scanning_root.of_fpath server.session.workspace_folders
+    List_.map Scanning_root.of_fpath session.workspace_folders
   in
   let files =
-    server.session.cached_workspace_targets |> Hashtbl.to_seq_values
-    |> List.of_seq |> List.concat
+    session.cached_workspace_targets |> Hashtbl.to_seq_values |> List.of_seq
+    |> List_.flatten
   in
   let project_root =
     match
@@ -311,7 +312,7 @@ let get_relevant_xlangs (env : env) : Xlang.t list =
 
 (* Get the rules to run based on the pattern and state of the LSP. *)
 let get_relevant_rules ({ params = { patterns; fix; lang; _ }; _ } as env : env)
-    : Rule.search_rule list =
+    : (Rule.search_rule list, Rule_error.t) result =
   (* Get all the possible xpatterns and associated languages for each
      pattern
      This is a map from pattern -> valid langs for that pattern
@@ -336,7 +337,7 @@ let get_relevant_rules ({ params = { patterns; fix; lang; _ }; _ } as env : env)
         List.filter (fun xlang -> List.mem xlang relevant_xlangs) xlangs
   in
   (* Returns Some if we every pattern is parseable in `xlang` *)
-  let rule_of_lang_opt xlang : Rule.search_rule option =
+  let rule_of_lang_opt xlang : (Rule.search_rule option, Rule_error.t) result =
     (* Get all valid lang -> patterns pairings, for valid languages
         which are valid for all patterns
     *)
@@ -347,15 +348,25 @@ let get_relevant_rules ({ params = { patterns; fix; lang; _ }; _ } as env : env)
         langs_of_patterns
     in
     if valid_for_all_xpats then
-      let formula = formula_of_signed_patterns xlang patterns in
+      let/ formula = formula_of_signed_patterns xlang patterns in
       match Rule.rule_of_formula ~fix xlang formula with
       | { mode = `Search f; _ } as r ->
           (* repack here so we get the right search_rule type *)
-          Some { r with mode = `Search f }
-      | _ -> None
-    else None
+          Ok (Some { r with mode = `Search f })
+      | _ -> Ok None
+    else Ok None
   in
-  let search_rules = List_.filter_map rule_of_lang_opt valid_xlangs in
+  let/ search_rules =
+    List.fold_left
+      (fun acc lang ->
+        let/ acc = acc in
+        let/ x = rule_of_lang_opt lang in
+        Ok
+          (match x with
+          | Some x -> x :: acc
+          | None -> acc))
+      (Ok []) valid_xlangs
+  in
   match search_rules with
   (* Unfortunately, almost everything parses as YAML, because you can specify
      no quotes and it will be interpreted as a YAML string
@@ -365,8 +376,9 @@ let get_relevant_rules ({ params = { patterns; fix; lang; _ }; _ } as env : env)
   | []
   | [ { target_analyzer = Xlang.L (Yaml, _); _ } ] ->
       (* should be a singleton *)
-      rule_of_lang_opt Xlang.LRegex |> Option.to_list
-  | other -> other |> filter_out_multiple_python
+      let/ rule = rule_of_lang_opt Xlang.LRegex in
+      Ok (rule |> Option.to_list)
+  | other -> Ok (other |> filter_out_multiple_python)
 
 (*****************************************************************************)
 (* Output *)
@@ -383,7 +395,7 @@ let preview_of_line ?(before_length = 12) line ~col_range:(begin_col, end_col) =
   let before_col, is_cut_off =
     let ideal_start = Int.max 0 (begin_col - before_length) in
     let ideal_end = Int.max 0 (begin_col - (before_length * 2)) in
-    if ideal_start = 0 then (first_non_whitespace_after line 0, false)
+    if Int.equal ideal_start 0 then (first_non_whitespace_after line 0, false)
     else
       (* The picture looks like this:
          xxxxxoooooxxxxxoooooxxxxxoooooxxxxx
@@ -414,7 +426,7 @@ let preview_of_line ?(before_length = 12) line ~col_range:(begin_col, end_col) =
       | Some idx when idx > ideal_start -> (idx + 1, false)
       (* This means our preview is currently on whitespace, let's skip ahead if possible.
       *)
-      | _ when String.get line ideal_start = ' ' ->
+      | _ when Char.equal (String.get line ideal_start) ' ' ->
           (first_non_whitespace_after line ideal_start, false)
       (* if we're not on whitespace, we can't do better. Just cut the word in half. *)
       | _ -> (ideal_start, true)
@@ -437,7 +449,7 @@ let json_of_matches
                  let range_json = Range.yojson_of_t range in
                  let line = List.nth (UFile.cat path) range.start.line in
                  let before, inside, after =
-                   if range.start.line = range.end_.line then
+                   if Int.equal range.start.line range.end_.line then
                      preview_of_line line
                        ~col_range:(range.start.character, range.end_.character)
                    else
@@ -467,30 +479,26 @@ let json_of_matches
 (* Running Semgrep! *)
 (*****************************************************************************)
 
-let next_rules_and_file (server : RPC_server.t) =
-  match server.session.search_config with
+let next_rules_and_file (session : Session.t) =
+  match session.search_config with
   | None
   | Some { files = []; _ } ->
       None
   | Some ({ files = file :: rest; xconf; _ } as config) ->
       let new_session =
-        {
-          server.session with
-          search_config = Some { config with files = rest };
-        }
+        { session with search_config = Some { config with files = rest } }
       in
-      Some ((config.rules, file, xconf), { server with session = new_session })
+      Some (new_session, (config.rules, file, xconf))
 
-let rec search_single_target (server : RPC_server.t) =
-  match next_rules_and_file server with
+let rec search_single_target (session : Session.t) =
+  match next_rules_and_file session with
   | None ->
       (* Since we are done with our searches (no more targets), reset our internal state to
          no longer have this scan config.
       *)
-      ( Some (`Assoc [ ("locations", `List []) ]),
-        { server with session = { server.session with search_config = None } }
-      )
-  | Some ((rules, file, xconf), server) -> (
+      ( { session with search_config = None },
+        Some (`Assoc [ ("locations", `List []) ]) )
+  | Some (session, (rules, file, xconf)) -> (
       try
         let matches =
           List_.filter_map
@@ -498,15 +506,15 @@ let rec search_single_target (server : RPC_server.t) =
               (* !!calling the engine!! *)
               Scan_helpers.run_core_search xconf rule file)
             rules
-          |> List.concat
+          |> List_.flatten
         in
         match matches with
-        | [] -> search_single_target server
+        | [] -> search_single_target session
         | _ ->
             let json = json_of_matches [ (file, matches) ] in
-            (json, server)
+            (session, json)
       with
-      | Parsing_error.Syntax_error _ -> search_single_target server)
+      | Parsing_error.Syntax_error _ -> search_single_target session)
 
 (*****************************************************************************)
 (* Entry point *)
@@ -515,32 +523,33 @@ let rec search_single_target (server : RPC_server.t) =
 (** on a semgrep/search request, get the pattern and (optional) language params.
     We then try and parse the pattern in every language (or specified lang), and
     scan like normal, only returning the match ranges per file *)
-let start_search (server : RPC_server.t) (params : Jsonrpc.Structured.t option)
-    =
+let start_search (session : Session.t) (params : Jsonrpc.Structured.t option) =
   match Request_params.of_jsonrpc_params params with
   | None ->
       Logs.debug (fun m -> m "no params received in semgrep/search");
-      (None, server)
-  | Some params ->
-      let env = mk_env server params in
-      let rules = get_relevant_rules env in
-      let xconf =
-        {
-          Match_env.default_xconfig with
-          filter_irrelevant_rules = PrefilterWithCache (Hashtbl.create 10);
-        }
-      in
-      (* !!calling the engine!! *)
-      search_single_target
-        {
-          server with
-          session =
+      (session, None)
+  | Some params -> (
+      let env = mk_env session params in
+      match get_relevant_rules env with
+      | Error e ->
+          Logs.warn (fun m ->
+              m "error parsing patterns for semgrep/search: %s"
+                (Rule_error.string_of_error e));
+          (session, None)
+      | Ok rules ->
+          let xconf =
             {
-              server.session with
+              Match_env.default_xconfig with
+              filter_irrelevant_rules = PrefilterWithCache (Hashtbl.create 10);
+            }
+          in
+          (* !!calling the engine!! *)
+          search_single_target
+            {
+              session with
               search_config = Some { rules; files = env.initial_files; xconf };
-            };
-        }
+            })
 
-let search_next_file (server : RPC_server.t) _params =
+let search_next_file (session : Session.t) _params =
   (* The params are nullary, so we don't actually need to check them. *)
-  search_single_target server
+  search_single_target session

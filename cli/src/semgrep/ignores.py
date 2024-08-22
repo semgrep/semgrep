@@ -13,6 +13,8 @@ from attr import frozen
 from attrs import define
 from boltons.iterutils import partition
 
+from semgrep.constants import TOO_MANY_ENTRIES
+from semgrep.constants import TOO_MUCH_DATA
 from semgrep.error import SemgrepError
 from semgrep.state import get_state
 from semgrep.types import FilteredFiles
@@ -38,11 +40,6 @@ def path_is_relative_to(p1: Path, p2: Path) -> bool:
         return False
 
 
-## TODO: This files duplicates the .semgrepignore functionality from semgrep-action.
-## We should ultimately remove this from semgrep-action, and keep it as part of the CLI
-
-
-# This class is a duplicate of the FileIgnore class in semgrep-action, but with all file walking functionality removed
 @frozen
 class FileIgnore:
     base_path: Path
@@ -61,10 +58,8 @@ class FileIgnore:
             path_relative_to_base = ""
         for p in self.patterns:
             if path_is_dir and p.endswith("/") and fnmatch.fnmatch(str(path), p[:-1]):
-                logger.verbose(f"Ignoring {path} due to .semgrepignore")
                 return False
             if fnmatch.fnmatch(str(path), p):
-                logger.verbose(f"Ignoring {path} due to .semgrepignore")
                 return False
 
             # Check any subpath of path satisfies a pattern
@@ -80,14 +75,12 @@ class FileIgnore:
                 and p.endswith("/")
                 and fnmatch.fnmatch("/" + path_relative_to_base, p + "*")
             ):
-                logger.verbose(f"Ignoring {path} due to .semgrepignore")
                 return False
             if (
                 p.endswith("/")
                 and p.startswith(str(self.base_path))
                 and fnmatch.fnmatch(str(path), p + "*")
             ):
-                logger.verbose(f"Ignoring {path} due to .semgrepignore")
                 return False
 
         return True
@@ -101,6 +94,13 @@ class FileIgnore:
 
     def filter_paths(self, *, candidates: Iterable[Path]) -> FilteredFiles:
         kept, removed = partition(sorted(candidates), self._filter)
+        if len(removed) <= TOO_MANY_ENTRIES:
+            for path in removed:
+                logger.verbose(f"Ignoring {path} due to .semgrepignore")
+        else:
+            logger.verbose(f"Ignoring due to .semgrepignore:")
+            logger.verbose(TOO_MUCH_DATA)
+
         return FilteredFiles(frozenset(kept), frozenset(removed))
 
     @classmethod

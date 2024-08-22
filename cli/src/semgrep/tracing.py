@@ -1,5 +1,5 @@
-# Library to use Opentelemetry from the python side of Semgrep
-# coupling: stay aligned with ../../../libs/tracing/unix/Tracing.ml
+# Library to use Opentelemetry traces from the python side of Semgrep
+# Communicates with OCaml tracing defined in ../../../libs/tracing/unix/Tracing.ml
 # For more info, see https://www.notion.so/semgrep/How-to-add-tracing-b0e1eaa1531e408cbb074663d1f840a6
 import functools
 import os
@@ -20,6 +20,8 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from typing_extensions import ParamSpec
 
 TRACER = otrace.get_tracer(__name__)
+
+# Coupling: these constants need to be kept in sync with Tracing.ml
 
 _SEMGREP_TRACE_PARENT_TRACE_ID = "SEMGREP_TRACE_PARENT_TRACE_ID"
 _SEMGREP_TRACE_PARENT_SPAN_ID = "SEMGREP_TRACE_PARENT_SPAN_ID"

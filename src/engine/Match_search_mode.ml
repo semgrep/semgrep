@@ -110,7 +110,9 @@ type selector = {
 (*****************************************************************************)
 let xpatterns_in_formula (e : R.formula) : (Xpattern.t * bool) list =
   let res = ref [] in
-  e |> R.visit_new_formula (fun xpat ~inside:b -> Stack_.push (xpat, b) res);
+  e
+  |> Visit_rule.visit_xpatterns (fun xpat ~inside:b ->
+         Stack_.push (xpat, b) res);
   !res
 
 let partition_xpatterns xs =
@@ -159,6 +161,16 @@ let fold_with_expls ~f ~init env xs =
          (init, [])
   in
   (acc, List.rev expls)
+
+let pms_of_ranges env (ranges : RM.ranges) : PM.t list =
+  ranges |> List_.map (RM.range_to_pattern_match_adjusted env.rule)
+
+let formula_has_as_metavariable (f : R.formula) =
+  let ans = ref false in
+  Visit_rule.visit_formula
+    (fun (f : R.formula) -> ans := !ans || Option.is_some f.as_)
+    f;
+  !ans
 
 (*****************************************************************************)
 (* Adapters *)
@@ -237,8 +249,8 @@ let debug_semgrep config mini_rules file lang ast =
 (* Evaluating Semgrep patterns *)
 (*****************************************************************************)
 
-let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
-    (xtarget : Xtarget.t)
+let matches_of_patterns ~has_as_metavariable ?mvar_context ?range_filter rule
+    (xconf : xconfig) (xtarget : Xtarget.t)
     (patterns : (Pattern.t * bool * Xpattern.pattern_id * string) list) :
     Core_profiling.times Core_result.match_result =
   let {
@@ -270,7 +282,8 @@ let matches_of_patterns ?mvar_context ?range_filter rule (xconf : xconfig)
               (* regular path *)
               Match_patterns.check
                 ~hook:(fun _ -> ())
-                ?mvar_context ?range_filter config mini_rules
+                ~has_as_metavariable ?mvar_context ?range_filter config
+                mini_rules
                 (internal_path_to_content, origin, lang, ast))
       in
       let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
@@ -293,7 +306,8 @@ let selector_from_formula ({ f; _ } : Rule.formula) =
   match f with
   | R.P { Xpattern.pat = Sem (pattern, _); pid; pstr } -> (
       match pattern with
-      | G.E { e = G.N (G.Id ((mvar, _), _)); _ } when MV.is_metavar_name mvar ->
+      | G.E { e = G.N (G.Id ((mvar, _), _)); _ } when Mvar.is_metavar_name mvar
+        ->
           Some { mvar; pattern; pid; pstr }
       | _ -> None)
   | _ -> None
@@ -349,8 +363,8 @@ let run_selector_on_ranges env selector_opt ranges =
       in
       let patterns = [ (pattern, false, pid, fst pstr) ] in
       let res =
-        matches_of_patterns ~range_filter env.rule env.xconf env.xtarget
-          patterns
+        matches_of_patterns ~has_as_metavariable:env.has_as_metavariable
+          ~range_filter env.rule env.xconf env.xtarget patterns
       in
       Log.debug (fun m ->
           m "run_selector_on_ranges: found %d matches" (List.length res.matches));
@@ -359,7 +373,7 @@ let run_selector_on_ranges env selector_opt ranges =
       |> RM.intersect_ranges env.xconf.config ~debug_matches:!debug_matches
            ranges
 
-let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
+let apply_focus_on_ranges (env : env) (focus_mvars_list : R.focus_mv_list list)
     (ranges : RM.ranges) : RM.ranges =
   let intersect (r1 : RM.t) (r2 : RM.t) : RM.t option =
     if Range.( $<=$ ) r1.r r2.r then Some r1
@@ -403,7 +417,10 @@ let apply_focus_on_ranges env (focus_mvars_list : R.focus_mv_list list)
                PM.rule_id = fake_rule_id (-1, focus_mvar);
                path = env.xtarget.path;
                range_loc;
-               ast_node = Some (MV.mvalue_to_any mval);
+               (* as-metavariable: *)
+               ast_node =
+                 (if env.has_as_metavariable then Some (MV.mvalue_to_any mval)
+                  else None);
                tokens = lazy (MV.ii_of_mval mval);
                env = range.mvars;
                taint_trace = None;
@@ -505,8 +522,9 @@ let apply_as_on_ranges ranges as_ =
 (* Evaluating xpatterns *)
 (*****************************************************************************)
 
-let matches_of_xpatterns ~mvar_context rule (xconf : xconfig)
-    (xtarget : Xtarget.t) (xpatterns : (Xpattern.t * bool) list) :
+let matches_of_xpatterns ~has_as_metavariable ~mvar_context rule
+    (xconf : xconfig) (xtarget : Xtarget.t)
+    (xpatterns : (Xpattern.t * bool) list) :
     Core_profiling.times Core_result.match_result =
   let ({ path = { internal_path_to_content; origin }; lazy_content; _ }
         : Xtarget.t) =
@@ -524,7 +542,8 @@ let matches_of_xpatterns ~mvar_context rule (xconf : xconfig)
   (* final result *)
   RP.collate_pattern_results
     [
-      matches_of_patterns ~mvar_context rule xconf xtarget patterns;
+      matches_of_patterns ~has_as_metavariable ~mvar_context rule xconf xtarget
+        patterns;
       Xpattern_match_spacegrep.matches_of_spacegrep xconf spacegreps
         internal_path_to_content origin;
       Xpattern_match_aliengrep.matches_of_aliengrep aliengreps lazy_content
@@ -538,16 +557,12 @@ let matches_of_xpatterns ~mvar_context rule (xconf : xconfig)
 (* Maching explanations helpers *)
 (*****************************************************************************)
 
-let if_explanations (env : env) (ranges : RM.ranges)
+let if_explanations ?(extra = None) (env : env) (ranges : RM.ranges)
     (children : ME.t option list) (op, tok) : ME.t option =
   if env.xconf.matching_explanations then
-    let matches =
-      ranges
-      |> List_.map (fun range ->
-             RM.range_to_pattern_match_adjusted env.rule range)
-    in
+    let matches = pms_of_ranges env ranges in
     let xs = List_.filter_map (fun x -> x) children in
-    let expl = { ME.op; pos = tok; children = xs; matches } in
+    let expl = { ME.op; pos = tok; children = xs; matches; extra } in
     Some expl
   else None
 
@@ -570,7 +585,9 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
           subs
           |> List_.map (fun pat ->
                  let match_result =
-                   matches_of_patterns env.rule env.xconf env.xtarget
+                   matches_of_patterns
+                     ~has_as_metavariable:env.has_as_metavariable env.rule
+                     env.xconf env.xtarget
                      [ (pat, false, xpat.pid, "TODO") ]
                  in
                  let matches = match_result.matches in
@@ -582,12 +599,72 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
                   *)
                  let pos = snd xpat.pstr in
                  (* less: in theory we could decompose again pat and get children*)
-                 { ME.op = XPat pstr; pos; matches; children = [] })
+                 {
+                   ME.op = XPat pstr;
+                   pos;
+                   matches;
+                   children = [];
+                   extra = None;
+                 })
         in
         (* less: add a Out.EllipsisAndStmts intermediate? *)
         children
     | _ -> []
   else []
+
+(* This helper is for making the explanations in a `Rule.formula`, after making
+   the call to evaluate the `Rule.formula_kind`.
+   We mostly split it up here for brevity, because it clutters up `evaluate_formula`.
+*)
+let mk_expls_after_formula_kind ~formula_kind_expls ~filter_expls ~focus_expls
+    ({ conditions; focus; f = _; as_ = _; fix = _ } : Rule.formula) env ranges =
+  match formula_kind_expls with
+  | None -> None
+  | Some ({ ME.children; extra; _ } as me) ->
+      let children =
+        List_.map (fun x -> Some x) children @ filter_expls @ focus_expls
+        |> List_.filter_map Fun.id
+      in
+      let extra =
+        (* if we didn't have any filter steps, then we shouldn't change
+           any of the fields here
+           in particular, we should avoid accidentally setting `before_filter_matches`
+           to `Some []` or the whole extra to `Some`
+        *)
+        match (conditions, focus) with
+        | [], [] -> extra
+        | _ -> (
+            (* As a corollary of having to replace the matches below, we need to
+               put these pre-filtering matches somewhere else.
+               We elect to store it in the `extra`.
+            *)
+            let before_filter_matches = pms_of_ranges env ranges in
+            match extra with
+            | None -> Some (ME.mk_extra ~before_filter_matches ())
+            | Some extra ->
+                Some
+                  {
+                    extra with
+                    before_filter_matches = Some before_filter_matches;
+                  })
+      in
+      Some
+        {
+          me with
+          ME.children;
+          ME.extra;
+          (* We must replace the matches here, or else the matches of the root
+             node will not be those that the tree finally outputs.
+             For instance, if we had:
+             all:
+               - pattern: foo(...)
+               - not: foo(1)
+             and there were 3 instances of `foo(...)` but 2 instances of `foo(1)`,
+             without this step the root explanation would have 3 matches, instead
+             of the correct 1.
+          *)
+          matches = pms_of_ranges env ranges;
+        }
 
 (*****************************************************************************)
 (* Metavariable condition evaluation *)
@@ -596,7 +673,7 @@ let children_explanations_of_xpat (env : env) (xpat : Xpattern.t) : ME.t list =
 let hook_pro_entropy_analysis : (string -> bool) option ref = ref None
 
 let hook_pro_metavariable_name :
-    (Match_env.env -> G.expr -> R.metavar_name_kind -> bool) option ref =
+    (G.expr -> R.metavar_name_kind -> bool) option ref =
   ref None
 
 let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
@@ -611,7 +688,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
              let env =
                Eval_generic.bindings_to_env env.xconf.config ~file bindings
              in
-             Eval_generic.eval_bool env e r.origin.facts |> map_bool r
+             Eval_generic.eval_bool env e r.origin.facts bindings |> map_bool r
          | R.CondNestedFormula (mvar, opt_lang, formula) -> (
              (* TODO: could return expl for nested matching! *)
              match
@@ -668,7 +745,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
                      "semgrep-internal-metavariable-name operator is only \
                       supported in the Pro engine";
                    false
-               | Some f -> f env e ks
+               | Some f -> f e ks
              in
              let* mval = List.assoc_opt mvar bindings in
              match Metavariable.mvalue_to_expr mval with
@@ -785,8 +862,8 @@ and get_nested_formula_matches env formula range =
 (*****************************************************************************)
 
 and evaluate_formula env opt_context
-    ({ f; focus; conditions; fix; as_ } : Rule.formula) =
-  let ranges, expls = evaluate_formula_kind env opt_context f in
+    ({ f; focus; conditions; fix; as_ } as formula : Rule.formula) =
+  let formula_kind_ranges, expls = evaluate_formula_kind env opt_context f in
   (* let's apply additional filters.
       * TODO: Note that some metavariable-regexp may be part of an
       * AND where not all patterns define the metavar, e.g.,
@@ -813,7 +890,7 @@ and evaluate_formula env opt_context
             (OutJ.Filter (Tok.content_of_tok tok), tok)
         in
         (ranges_with_bindings, expl))
-      ~init:(List_.map (fun x -> (x, [])) ranges)
+      ~init:(List_.map (fun x -> (x, [])) formula_kind_ranges)
       env conditions
   in
 
@@ -863,21 +940,19 @@ and evaluate_formula env opt_context
           ranges
   in
 
-  let new_expls =
-    match expls with
-    | None -> None
-    | Some ({ ME.children; _ } as me) ->
-        let children =
-          List_.map (fun x -> Some x) children @ filter_expls @ focus_expls
-          |> List_.filter_map Fun.id
-        in
-        Some { me with ME.children }
-  in
-
   let ranges =
     match as_ with
     | None -> ranges
     | Some as_ -> apply_as_on_ranges ranges as_
+  in
+
+  (* This code path only matters for matching explanations.
+     Here, we synthesize the information from all the explanations in a `formula`,
+     and combine it with the information we obtained before from the `formula_kind`
+  *)
+  let new_expls =
+    mk_expls_after_formula_kind ~formula_kind_expls:expls ~filter_expls
+      ~focus_expls formula env ranges
   in
 
   (ranges, new_expls)
@@ -912,7 +987,7 @@ and evaluate_formula_kind env opt_context (kind : Rule.formula_kind) =
       let ranges, expls =
         xs |> List_.map (evaluate_formula env opt_context) |> Common2.unzip
       in
-      let ranges = List.flatten ranges in
+      let ranges = List_.flatten ranges in
       let expl = if_explanations env ranges expls (OutJ.Or, tok) in
       (ranges, expl)
   | R.And (t, conj) -> (
@@ -946,7 +1021,7 @@ and evaluate_formula_kind env opt_context (kind : Rule.formula_kind) =
       *)
       let posrs, posrs_inside =
         posrs
-        |> Either_.partition_either (fun xs ->
+        |> Either_.partition (fun xs ->
                match xs with
                (* todo? should we double check they are all inside? *)
                | { RM.kind = Inside; _ } :: _ -> Right xs
@@ -973,7 +1048,9 @@ and evaluate_formula_kind env opt_context (kind : Rule.formula_kind) =
                  ranges
           in
           (* optimization of `pattern: $X` *)
-          let ranges = run_selector_on_ranges env selector_opt ranges in
+          let ranges_before_negation =
+            run_selector_on_ranges env selector_opt ranges
+          in
 
           (* let's remove the negative ranges *)
           let ranges, negs_expls =
@@ -987,14 +1064,27 @@ and evaluate_formula_kind env opt_context (kind : Rule.formula_kind) =
                   if_explanations env ranges [ expl ] (OutJ.Negation, tok)
                 in
                 (ranges, expl))
-              ~init:ranges env neg
+              ~init:ranges_before_negation env neg
           in
 
           let expl =
             (* We reverse these negation explanations, because we folded across them from
                the left, meaning they are in the opposite order as in the original rule.
             *)
-            if_explanations env ranges (posrs_expls @ negs_expls) (OutJ.And, t)
+            if_explanations env ranges
+              (posrs_expls @ negs_expls)
+              (* These explanations are useful, because without it, we cannot
+                 recover the matches incoming to the first Not node.
+                 This makes it difficult to tell from purely the matching explanation
+                 whether a match was removed by positive intersection or negation.
+              *)
+              ~extra:
+                (Some
+                   (ME.mk_extra
+                      ~before_negation_matches:
+                        (pms_of_ranges env ranges_before_negation)
+                      ()))
+              (OutJ.And, t)
           in
           (ranges, expl))
   | R.Not _ -> failwith "Invalid Not; you can only negate inside an And"
@@ -1005,8 +1095,14 @@ and matches_of_formula xconf rule xtarget formula opt_context :
   let mvar_context : Metavariable.bindings option =
     Option.map (fun s -> s.RM.mvars) opt_context
   in
+  let has_as_metavariable = formula_has_as_metavariable formula in
+  Log.debug (fun m ->
+      m "formula for %s has as_metavariable: %b"
+        (Rule_ID.to_string (fst rule.id))
+        has_as_metavariable);
   let res =
-    matches_of_xpatterns mvar_context rule xconf xtarget xpatterns
+    matches_of_xpatterns ~has_as_metavariable ~mvar_context rule xconf xtarget
+      xpatterns
     |> RP.add_rule rule
   in
   Log.info (fun m -> m "found %d matches" (List.length res.matches));
@@ -1019,6 +1115,7 @@ and matches_of_formula xconf rule xtarget formula opt_context :
       pattern_matches = pattern_matches_per_id;
       xtarget;
       rule;
+      has_as_metavariable;
       errors = ref E.ErrorSet.empty;
     }
   in

@@ -1,6 +1,6 @@
 open Common
 open Fpath_.Operators
-module OutJ = Semgrep_output_v1_t
+module Out = Semgrep_output_v1_t
 
 (*****************************************************************************)
 (* Prelude *)
@@ -71,17 +71,17 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
   let token_opt = settings.api_token in
   (* Checking (1) and (2). Parsing the rules is already a form of validation.
    * Before running metachecks on those rules, we make sure we can parse them.
-   * TODO: report not only Rule.invalid_rule_errors but all Rule.error for (1)
+   * TODO: report not only Rule.invalid_rule_errors but all Rule.Error.t for (1)
    * in Config_resolver.errors.
    *)
-  let rules_and_origin =
+  let rules_and_origin, fatal_errors =
     Rule_fetching.rules_from_rules_source ~token_opt ~rewrite_rule_ids:true
       ~strict:conf.core_runner_conf.strict
       (caps :> < Cap.network ; Cap.tmp >)
       conf.rules_source
   in
-  let rules, errors =
-    Rule_fetching.partition_rules_and_errors rules_and_origin
+  let rules, invalid_rules =
+    Rule_fetching.partition_rules_and_invalid rules_and_origin
   in
   (* Checking (3) *)
   let metacheck_errors =
@@ -125,28 +125,27 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
             config
         in
         let metarules, metaerrors =
-          Rule_fetching.partition_rules_and_errors metarules_and_origin
+          Rule_fetching.partition_rules_and_invalid metarules_and_origin
         in
         if metaerrors <> [] then
           Error.abort (spf "error in metachecks! please fix %s" metarules_pack);
 
         let core_run_func =
           Core_runner.mk_core_run_for_osemgrep
-            (Core_scan.scan_with_exn_handler (caps :> < Cap.tmp >))
+            (Core_scan.scan (caps :> < Cap.tmp >))
         in
         let result_or_exn =
           core_run_func.run conf.core_runner_conf Find_targets.default_conf
             (metarules, []) targets
         in
         match result_or_exn with
-        | Error (exn, _core_error_opt) -> Exception.reraise exn
+        | Error exn -> Exception.reraise exn
         | Ok result ->
-            let res = Core_runner.create_core_result metarules result in
+            let res = Core_runner.mk_result metarules result in
             (* TODO? sanity check errors below too? *)
-            let OutJ.{ results; errors = _; _ } =
-              Cli_json_output.cli_output_of_core_results ~dryrun:true
-                ~logging_level:conf.common.logging_level res.core res.hrules
-                res.scanned
+            let Out.{ results; errors = _; _ } : Out.cli_output =
+              Cli_json_output.cli_output_of_runner_result ~fixed_lines:false
+                res.core res.hrules res.scanned
             in
             (* TOPORT?
                     ... run -check_rules in semgrep-core ...
@@ -176,15 +175,18 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
   (* TODO: checking (4) *)
 
   (* Summarizing findings (errors) *)
-  let num_errors = List.length errors + List.length metacheck_errors in
+  let num_fatal_errors = List.length fatal_errors in
+  let num_errors = List.length invalid_rules + List.length metacheck_errors in
   (* was logger.info, but works without --verbose, so Logs.app better *)
   Logs.app (fun m ->
-      m "Configuration is %s - found %d configuration error(s), and %d rule(s)."
-        (if num_errors =|= 0 then "valid" else "invalid")
-        num_errors (List.length rules));
+      m
+        "Configuration is %s - found %d fatal errors, %d skippable error(s), \
+         and %d rule(s)."
+        (if num_errors + num_fatal_errors =|= 0 then "valid" else "invalid")
+        num_fatal_errors num_errors (List.length rules));
   (* coupling: with Check_rule.error and use of SemgrepMatchFound *)
   metacheck_errors
-  |> List.iter (fun (x : OutJ.cli_match) ->
+  |> List.iter (fun (x : Out.cli_match) ->
          Logs.err (fun m ->
              m "Semgrep match found at line %s:%d\n%s" !!(x.path) x.start.line
                x.extra.message));

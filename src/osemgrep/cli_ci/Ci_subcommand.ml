@@ -122,7 +122,7 @@ let exit_code_of_blocking_findings ~audit_mode ~on ~app_block_override
 (*****************************************************************************)
 (* token -> deployment_config -> scan_id -> scan_config -> rules *)
 
-let caps_with_token token_opt caps =
+let caps_with_token (token_opt : Auth.token option) caps =
   let token =
     match token_opt with
     | Some tok -> tok
@@ -133,7 +133,7 @@ let caps_with_token token_opt caps =
                scan` and set `--config`");
         Error.exit_code_exn (Exit_code.invalid_api_key ~__LOC__)
   in
-  Auth.cap_token_and_network_and_tmp token caps
+  Auth.cap_token_and_network_and_tmp_and_exec token caps
 
 (* if something fails, we Error.exit_code_exn *)
 let deployment_config (caps : < Cap.network ; Auth.cap_token ; .. >) :
@@ -525,13 +525,13 @@ let report_scan_completed ~blocking_findings ~blocking_rules
 
 (* from scans.py *)
 let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
-    (cli_output : OutJ.cli_output) (rules : Rule.rule list) :
-    OutJ.ci_scan_results * OutJ.ci_scan_complete =
+    (caps : < Cap.exec >) (cli_output : OutJ.cli_output)
+    (rules : Rule.rule list) : OutJ.ci_scan_results * OutJ.ci_scan_complete =
   let targets = cli_output.paths.scanned in
   let skipped = cli_output.paths.skipped in
 
   let rule_ids = rules |> List_.map (fun r -> fst r.Rule.id) in
-  let contributions = Parse_contribution.get_contributions () in
+  let contributions = Parse_contribution.get_contributions caps in
   (*
       we want date stamps assigned by the app to be assigned such that the
       current sort by relevant_since results in findings within a given scan
@@ -644,13 +644,15 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
   in
   (results, complete)
 
-let upload_findings ~dry_run (caps : < Cap.network ; Auth.cap_token ; .. >)
+let upload_findings ~dry_run
+    (caps : < Cap.network ; Auth.cap_token ; Cap.exec ; .. >)
     (deployment_config : OutJ.deployment_config) (scan_id : Semgrep_App.scan_id)
     (prj_meta : OutJ.project_metadata) blocking_findings filtered_rules
     (cli_output : OutJ.cli_output) : Semgrep_App.app_block_override =
   Logs.app (fun m -> m "  Uploading findings.");
   let results, complete =
     findings_and_complete
+      (caps :> < Cap.exec >)
       ~has_blocking_findings:(not (List_.null blocking_findings))
       ~commit_date:"" ~engine_requested:`OSS cli_output filtered_rules
   in
@@ -715,7 +717,7 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   (* TODO? we probably want to set the metrics to On by default in CI ctx? *)
   Metrics_.configure conf.metrics;
   let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
-  let dry_run = conf.output_conf.dryrun in
+  let dry_run = conf.output_conf.fixed_lines in
 
   (* step2: sanity checking *)
   (match conf.rules_source with
@@ -891,5 +893,5 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
 (*****************************************************************************)
 
 let main (caps : caps) (argv : string array) : Exit_code.t =
-  let conf = Ci_CLI.parse_argv (caps :> < Cap.tmp >) argv in
+  let conf = Ci_CLI.parse_argv argv in
   run_conf caps conf

@@ -837,7 +837,7 @@ let map_literal (env : env) (x : CST.literal) : expr =
             ( ("HexString", tok_hex),
               xs
               |> List_.map (fun (thex, str) -> [ Tk thex; Str str ])
-              |> List.flatten )
+              |> List_.flatten )
           |> G.e)
   | `Unic_str_lit x -> (
       let xs = map_unicode_string_literal env x in
@@ -848,7 +848,7 @@ let map_literal (env : env) (x : CST.literal) : expr =
             ( ("UnicodeString", tok_unicode),
               xs
               |> List_.map (fun (tk, str) -> [ Tk tk; Str str ])
-              |> List.flatten )
+              |> List_.flatten )
           |> G.e)
 
 let map_yul_variable_declaration (env : env) (x : CST.yul_variable_declaration)
@@ -975,7 +975,7 @@ let map_solidity_pragma_token (env : env) ((v1, v2) : CST.solidity_pragma_token)
            in
            [ G.E e ] @ v2)
   in
-  (idsol, List.flatten anys)
+  (idsol, List_.flatten anys)
 
 let map_pragma_value (env : env) (x : CST.pragma_value) =
   let t = token (* pattern [^;]+ *) env x in
@@ -1034,7 +1034,7 @@ let rec map_anon_choice_exp_5650be1 (env : env)
         ( ("ArgIds", lb),
           xs
           |> List_.map (fun (id, tcol, e) -> [ I id; Tk tcol; E e ])
-          |> List.flatten )
+          |> List_.flatten )
 
 and map_anon_yul_id_COLON_exp_rep_COMMA_yul_id_COLON_exp_opt_COMMA_c2b7c35
     (env : env)
@@ -1254,7 +1254,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
           let flds_any =
             flds
             |> List_.map (fun (fld_id, e) -> [ I fld_id; E e ])
-            |> List.flatten
+            |> List_.flatten
           in
           OtherExpr (("StructExpr", lb), [ E e; Tk lb ] @ flds_any @ [ Tk rb ])
           |> G.e
@@ -2473,7 +2473,7 @@ let map_source_file (env : env) (x : CST.source_file) : any =
   match x with
   | `Rep_source_unit v1 ->
       let xxs = List_.map (map_source_unit env) v1 in
-      Pr (List.flatten xxs)
+      Pr (List_.flatten xxs)
   | `Rep1_stmt xs ->
       let xs = List_.map (map_statement env) xs in
       Ss xs

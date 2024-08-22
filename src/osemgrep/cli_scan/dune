@@ -9,6 +9,8 @@
     logs
     bos
     commons
+    parmap
+    parallelism
 
     semgrep_core
     semgrep_core_cli

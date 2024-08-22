@@ -1,3 +1,17 @@
+(* Martin Jambon, Yoann Padioleau
+ *
+ * Copyright (C) 2023-2024 Semgrep Inc.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file LICENSE.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * LICENSE for more details.
+ *)
 open Common
 open Fpath_.Operators
 module Out = Semgrep_output_v1_t
@@ -29,14 +43,51 @@ module Log = Log_targeting.Log
      If allow_unknown_extensions is set then targets with extensions that are
      not understood by semgrep will always be returned by get_files. Else will
      discard targets with unknown extensions
+
+   TODO:
+    - optimize, reduce the number of filesystem lookup? or memoize them?
+      there are a few places where we stat for a file
+    - add an option to select all git-tracked files regardless of
+      gitignore or semgrepignore exclusions (will be needed for Secrets)
+      and have the exclusions apply only to the files that aren't tracked.
 *)
 
 (*************************************************************************)
 (* Types *)
 (*************************************************************************)
 
+type project_root =
+  | Filesystem of Rfpath.t
+  (* for Semgrep query console *)
+  | Git_remote of git_remote
+
+and git_remote = { url : Uri.t } [@@deriving show]
+
 module Fppath_set = Set.Make (Fppath)
 
+(* Yet another file path related type ...
+
+   This module is a bit fragile as it assumes that target file paths found in
+   the file system have the same form as those passed on the command line.
+   It won't work with unnormalized paths such as 'foo/../bar.js' that will
+   likely be rewritten into 'bar.js'. See:
+
+     $ git ls-files libs/../README.md
+     README.md
+
+   This results in 'README.md' being treated as non-explicit target file.
+
+   TODO: use pairs (project, ppath) instead as keys? If we use a dedicated
+   record for targets, we can extract the pair (project, ppath):
+
+     type target = {
+       project: Project.t; (* provides normalized project root *)
+       path: Fppath.t; (* provides (normalized) ppath *)
+     }
+
+   If we go this path, we could also add a field 'is_explicit: bool' to the
+   target type.
+*)
 module Explicit_targets = struct
   type t = {
     tbl : (Fpath.t, unit) Hashtbl.t;
@@ -59,20 +110,10 @@ module Explicit_targets = struct
   let mem x path = Hashtbl.mem x.tbl path
 end
 
-(* TODO? process also user's gitignore file like ripgrep does?
-   TODO? use Glob.Pattern.t below instead of string for exclude and include_?
-   TODO: add an option to select all git-tracked files regardless of
-         gitignore or semgrepignore exclusions (will be needed for Secrets)
-         and have the exclusions apply only to the files that aren't tracked.
-*)
-
-type git_remote = { url : Uri.t } [@@deriving show]
-
-type project_root = Git_remote of git_remote | Filesystem of Rfpath.t
-[@@deriving show]
-
 type conf = {
-  (* global exclude list, passed via semgrep '--exclude'. *)
+  (* global exclude list, passed via semgrep '--exclude'.
+   * TODO? use Glob.Pattern.t instead? same for include_
+   *)
   exclude : string list;
   (* !!! '--include' is very different from '--exclude' !!!
       The include filter is applied after after gitignore and
@@ -91,14 +132,16 @@ type conf = {
    * The .semgrepignore are always respected.
    *)
   respect_gitignore : bool;
-  (* TODO? use, and better parsing of the string? a Git.version type? *)
-  baseline_commit : string option;
-  diff_depth : int;
   always_select_explicit_targets : bool;
   explicit_targets : Explicit_targets.t;
   (* osemgrep-only: option
      (see Git_project.find_any_project_root and the force_root parameter) *)
   force_project_root : project_root option;
+  (* osemgrep-only option, exclude scanning minified files, default false *)
+  exclude_minified_files : bool;
+  (* TODO? remove it? This is now done in Diff_scan.ml instead? *)
+  baseline_commit : string option;
+  diff_depth : int;
 }
 [@@deriving show]
 
@@ -111,12 +154,16 @@ let default_conf : conf =
     force_project_root = None;
     exclude = [];
     include_ = None;
-    baseline_commit = None;
-    diff_depth = 2;
-    max_target_bytes = 1_000_000 (* 1 MB *);
+    (* Must be kept in sync w/ pysemgrep.
+       coupling: cli/src/semgrep/constants.py DEFAULT_MAX_TARGET_SIZE
+    *)
+    max_target_bytes = 1000000;
     respect_gitignore = true;
     always_select_explicit_targets = false;
     explicit_targets = Explicit_targets.empty;
+    exclude_minified_files = false;
+    baseline_commit = None;
+    diff_depth = 2;
   }
 
 (*************************************************************************)
@@ -146,7 +193,7 @@ let get_reason_for_exclusion (sel_events : Gitignore.selection_event list) :
       (* shouldn't happen *) fallback
 
 (*************************************************************************)
-(* Finding *)
+(* Filtering *)
 (*************************************************************************)
 
 type filter_result =
@@ -154,14 +201,6 @@ type filter_result =
   | Dir (* the path is a directory to scan recursively *)
   | Skip of Out.skipped_target (* ignore this file and report it *)
   | Ignore_silently (* ignore and don't report this file *)
-
-let apply_include_filter status selection_events include_filter ppath =
-  match status with
-  | Gitignore.Ignored -> (status, selection_events)
-  | Gitignore.Not_ignored -> (
-      match include_filter with
-      | None -> (status, selection_events)
-      | Some include_filter -> Include_filter.select include_filter ppath)
 
 let ignore_path selection_events fpath =
   Log.debug (fun m ->
@@ -177,14 +216,18 @@ let ignore_path selection_events fpath =
       rule_id = None;
     }
 
-(*
-   Filter a path.
-   - Include filters apply only to the paths of regular files. They're applied
-     last, after the exclude/gitignore/semgrepignore filters.
-   - If you know that the path is a regular file, specify 'file_kind' so
-     as to avoid making a file system lookup.
-*)
-let filter_any_path ?file_kind (ign : Gitignore.filter)
+let apply_include_filter status selection_events include_filter ppath =
+  match status with
+  | Gitignore.Ignored -> (status, selection_events)
+  | Gitignore.Not_ignored -> (
+      match include_filter with
+      | None -> (status, selection_events)
+      | Some include_filter -> Include_filter.select include_filter ppath)
+
+(* Note that include_filter applies only to the paths of regular files. They're
+ * applied last, after the exclude/gitignore/semgrepignore filters.
+ *)
+let filter_path (ign : Gitignore.filter)
     (include_filter : Include_filter.t option) (fppath : Fppath.t) :
     filter_result =
   let { fpath; ppath } : Fppath.t = fppath in
@@ -192,13 +235,8 @@ let filter_any_path ?file_kind (ign : Gitignore.filter)
   match status with
   | Ignored -> ignore_path selection_events fpath
   | Not_ignored -> (
-      (* TODO: check read permission? *)
-      let file_kind =
-        match file_kind with
-        | Some x -> x
-        | None -> (Unix.lstat !!fpath).st_kind
-      in
-      match file_kind with
+      (* TODO: check read permission too? *)
+      match (Unix.lstat !!fpath).st_kind with
       (* skipping symlinks *)
       | S_LNK -> Ignore_silently
       | S_REG -> (
@@ -214,21 +252,17 @@ let filter_any_path ?file_kind (ign : Gitignore.filter)
       | S_BLK
       | S_SOCK ->
           Ignore_silently
-      (* This is handled in the Core_scan_function already *)
-      | exception Unix.Unix_error (ENOENT, _fun, _info) -> Keep
-      (* ignore for now errors. TODO? return a skip? *)
+      (* We need to filter those paths ASAP otherwise we can get some exn later
+       * when trying to process targets that actually do not exist.
+       *)
       | exception Unix.Unix_error (_err, _fun, _info) -> Ignore_silently)
-
-let filter_regular_file_path (ign : Gitignore.filter)
-    (include_filter : Include_filter.t option) (fppath : Fppath.t) :
-    filter_result =
-  filter_any_path ~file_kind:S_REG ign include_filter fppath
 
 (*
    Filter a pre-expanded list of target files, such as a list of files
-   obtained with 'git ls-files'.
+   obtained with 'git ls-files'. A strong postcondition is that the
+   paths returned must correspond to existing regular files!
 *)
-let filter_regular_file_paths
+let filter_paths
     ((ign, include_filter) : Gitignore.filter * Include_filter.t option)
     (target_files : Fppath.t list) : Fppath_set.t * Out.skipped_target list =
   let (selected_paths : Fppath.t list ref) = ref [] in
@@ -237,13 +271,38 @@ let filter_regular_file_paths
   let skip target = Stack_.push target skipped in
   target_files
   |> List.iter (fun fppath ->
-         match filter_regular_file_path ign include_filter fppath with
+         match filter_path ign include_filter fppath with
          | Keep -> add fppath
-         | Dir ->
-             (* shouldn't happen if we work on the output of 'git ls-files *) ()
+         (* shouldn't happen if we work on the output of 'git ls-files *)
+         | Dir -> ()
          | Skip x -> skip x
          | Ignore_silently -> ());
   (Fppath_set.of_list !selected_paths, !skipped)
+
+let filter_size_and_minified max_target_bytes exclude_minified_files paths =
+  let selected_fppaths, skipped_size =
+    Result_.partition
+      (fun (fppath : Fppath.t) ->
+        Result.map
+          (fun _ -> fppath)
+          (Skip_target.is_big max_target_bytes fppath.fpath))
+      paths
+  in
+  let selected_fppaths, skipped_minified =
+    if exclude_minified_files then
+      Result_.partition
+        (fun (fppath : Fppath.t) ->
+          Result.map (fun _ -> fppath) (Skip_target.is_minified fppath.fpath))
+        selected_fppaths
+    else (selected_fppaths, [])
+  in
+  Log.debug (fun m -> m "skipped_size: %d" (List.length skipped_size));
+  Log.debug (fun m -> m "skipped_minified: %d" (List.length skipped_minified));
+  (selected_fppaths, skipped_size @ skipped_minified)
+
+(*************************************************************************)
+(* Finding by walking *)
+(*************************************************************************)
 
 (* We used to call 'git ls-files' when conf.respect_gitignore was true,
  * which could potentially speedup things because git may rely on
@@ -269,6 +328,8 @@ let walk_skip_and_collect (ign : Gitignore.filter)
   *)
   let (selected_paths : Fppath.t list ref) = ref [] in
   let (skipped : Out.skipped_target list ref) = ref [] in
+
+  (* TODO: factorize code with filter_paths? *)
   let add path = Stack_.push path selected_paths in
   let skip target = Stack_.push target skipped in
 
@@ -279,6 +340,7 @@ let walk_skip_and_collect (ign : Gitignore.filter)
           (Ppath.to_string_for_tests dir.ppath));
     (* TODO? should we sort them first? *)
     let entries = List_files.read_dir_entries dir.fpath in
+    (* TODO: factorize code with filter_paths? *)
     entries
     |> List.iter (fun name ->
            let fpath =
@@ -290,7 +352,7 @@ let walk_skip_and_collect (ign : Gitignore.filter)
            in
            let ppath = Ppath.add_seg dir.ppath name in
            let fppath : Fppath.t = { fpath; ppath } in
-           match filter_any_path ign include_filter fppath with
+           match filter_path ign include_filter fppath with
            | Keep -> add fppath
            | Skip skipped -> skip skipped
            | Dir -> aux fppath
@@ -302,7 +364,7 @@ let walk_skip_and_collect (ign : Gitignore.filter)
   (!selected_paths, !skipped)
 
 (*************************************************************************)
-(* Additional Git-specific (or other) expansion of the scanning roots *)
+(* Finding by using git *)
 (*************************************************************************)
 
 (*
@@ -561,7 +623,7 @@ let setup_path_filters conf (project_roots : Project.roots) :
 (* Work from a list of target paths obtained with git *)
 let filter_targets conf project_roots (all_files : Fppath.t list) =
   let ign = setup_path_filters conf project_roots in
-  filter_regular_file_paths ign all_files
+  filter_paths ign all_files
 
 let get_targets_from_filesystem conf (project_roots : Project.roots) =
   let ign, include_filter = setup_path_filters conf project_roots in
@@ -665,12 +727,19 @@ let get_targets conf scanning_roots =
   |> List_.map (get_targets_for_project conf)
   |> List.split
   |> fun (path_set_list, skipped_paths_list) ->
-  let path_set =
-    List.fold_left Fppath_set.union Fppath_set.empty path_set_list
+  let paths, skipped_size_minified =
+    let path_set =
+      List.fold_left Fppath_set.union Fppath_set.empty path_set_list
+    in
+    Fppath_set.elements path_set
+    |> filter_size_and_minified conf.max_target_bytes
+         conf.exclude_minified_files
   in
-  let paths = Fppath_set.elements path_set in
   let sorted_skipped_targets =
-    List.flatten skipped_paths_list
+    let skipped_paths_list =
+      List_.flatten skipped_paths_list @ skipped_size_minified
+    in
+    skipped_paths_list
     |> List.sort (fun (a : Out.skipped_target) (b : Out.skipped_target) ->
            Fpath.compare a.path b.path)
   in
@@ -679,4 +748,5 @@ let get_targets conf scanning_roots =
 
 let get_target_fpaths conf scanning_roots =
   let selected, skipped = get_targets conf scanning_roots in
-  (selected |> List_.map (fun (x : Fppath.t) -> x.fpath), skipped)
+  let selected_fpaths = selected |> List_.map (fun (x : Fppath.t) -> x.fpath) in
+  (selected_fpaths, skipped)

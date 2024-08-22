@@ -106,7 +106,7 @@ let (cpp_engine :
          match tok with
          | TIdent (s, _i1) when List.mem_assoc s env -> Common2.assoc s env
          | x -> [ x ])
-  |> List.flatten
+  |> List_.flatten
 
 (*
  * We apply a macro by generating new ExpandedToken and by

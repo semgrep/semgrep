@@ -83,6 +83,7 @@ class MetricsStateType(click.ParamType):
 
 METRICS_STATE_TYPE = MetricsStateType()
 
+# This subset of scan options is reused in ci.py
 _scan_options: List[Callable] = [
     click.help_option("--help", "-h"),
     click.option(
@@ -215,13 +216,11 @@ _scan_options: List[Callable] = [
         "trace",
         is_flag=True,
         default=False,
-        help="Record traces from Semgrep scans to help debugging. This feature is meant for internal use and may be changed or removed without warning.",
     ),
     optgroup.option(
         "--trace-endpoint",
         envvar="SEMGREP_OTEL_ENDPOINT",
         default=None,
-        help="Url to send OpenTelemetry traces to, if `--trace` is present. This feature is meant for internal use and may be changed or removed wihtout warning.",
     ),
     optgroup.option(
         "--matching-explanations",
@@ -316,7 +315,7 @@ _scan_options: List[Callable] = [
         "--gitlab-secrets-output", "outputs_gitlab_secrets", multiple=True, default=[]
     ),
     optgroup.option(
-        "--junit-xml-outputl", "outputs_junit_xml", multiple=True, default=[]
+        "--junit-xml-output", "outputs_junit_xml", multiple=True, default=[]
     ),
     optgroup.option("--sarif-output", "outputs_sarif", multiple=True, default=[]),
     optgroup.option("--vim-output", "outputs_vim", multiple=True, default=[]),
@@ -416,6 +415,7 @@ def scan_options(func: Callable) -> Callable:
     return func
 
 
+# Those are the scan-only options (not reused in ci.py)
 @click.command()
 @click.argument("targets", nargs=-1, type=click.Path(allow_dash=True))
 @click.option(
@@ -483,7 +483,6 @@ def scan_options(func: Callable) -> Callable:
     "--secrets",
     "run_secrets_flag",
     is_flag=True,
-    help="Run Semgrep Secrets product, including support for secret validation. Requires access to Secrets, contact support@semgrep.com for more information.",
 )
 @optgroup.group("Osemgrep migration options")
 @optgroup.option(
@@ -613,6 +612,10 @@ def scan(
             force_color=force_color,
             output_format=output_format,
         )
+        # to capture the stderr of semgrep-core or to let semgrep-core reuse
+        # the stderr of pysemgrep to display logs as soon as they are produced
+        # pysemgrep-only: not needed for osemgrep obviously
+        capture_core_stderr = not debug
 
         if include and exclude:
             logger.warning(
@@ -737,6 +740,7 @@ def scan(
                                 interfile_timeout=interfile_timeout,
                                 trace=trace,
                                 trace_endpoint=trace_endpoint,
+                                capture_stderr=capture_core_stderr,
                                 optimizations=optimizations,
                                 allow_untrusted_validators=allow_untrusted_validators,
                                 path_sensitive=path_sensitive,
@@ -769,7 +773,6 @@ def scan(
                         shown_severities,
                         _dependencies,
                         _dependency_parser_errors,
-                        _contributions,
                         executed_rule_count,
                         missed_rule_count,
                     ) = semgrep.run_scan.run_scan(
@@ -811,6 +814,7 @@ def scan(
                         baseline_commit=baseline_commit,
                         x_ls=x_ls,
                         path_sensitive=path_sensitive,
+                        capture_core_stderr=capture_core_stderr,
                     )
                 except SemgrepError as e:
                     output_handler.handle_semgrep_errors([e])

@@ -1,7 +1,6 @@
 open Common
 open Fpath_.Operators
-module OutJ = Semgrep_output_v1_j
-module OutT = Semgrep_output_v1_t
+module Out = Semgrep_output_v1_j
 
 (*****************************************************************************)
 (* Prelude *)
@@ -11,69 +10,79 @@ module OutT = Semgrep_output_v1_t
 
    Partially translated from output.py
 
-   We're using Out.put() below, not Logs.app(), because we want to output
-   findings on stdout (Logs.app uses stderr). That also mean semgrep will
+   We're using CapConsole.print() below, not Logs.app(), because we want to
+   output findings on stdout (Logs.app uses stderr). That also mean semgrep will
    display findings even with --quiet.
 *)
 
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+(* Mostly a subset of Scan_CLI.conf with just the output relevant stuff *)
 type conf = {
-  nosem : bool;
-  autofix : bool;
-  dryrun : bool;
-  strict : bool;
-  (* maybe should define an Output_option.t, or add a record to
-   * Output_format.Text *)
-  force_color : bool;
-  logging_level : Logs.level option;
-  (* For text and SARIF *)
-  show_dataflow_traces : bool;
   (* Display options *)
   (* mix of --json, --emacs, --vim, etc. *)
   output_format : Output_format.t;
+  (* maybe should define an Output_option.t, or add a record to
+   * Output_format.Text as those fields are only valid for Text output *)
   max_chars_per_line : int;
   max_lines_per_finding : int;
+  force_color : bool;
+  (* For Text and SARIF *)
+  show_dataflow_traces : bool;
+  (* TODO: why strict part of an output conf? *)
+  strict : bool;
+  (* a.k.a. dryrun in Scan_CLI.conf *)
+  fixed_lines : bool;
+  (* true when using --verbose or --debug in Scan_CLI.ml *)
+  skipped_files : bool;
 }
 [@@deriving show]
 
+(* TODO? merge with conf? *)
 type runtime_params = { is_logged_in : bool; is_using_registry : bool }
 
 let default : conf =
   {
-    nosem = true;
-    autofix = false;
-    dryrun = false;
-    strict = false;
-    logging_level = Some Logs.Warning;
-    show_dataflow_traces = false;
     output_format = Output_format.Text;
     force_color = false;
     max_chars_per_line = 160;
     max_lines_per_finding = 10;
+    show_dataflow_traces = false;
+    strict = false;
+    fixed_lines = false;
+    skipped_files = false;
   }
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-let string_of_severity (severity : OutJ.match_severity) : string =
-  OutJ.string_of_match_severity severity
+let string_of_severity (severity : Out.match_severity) : string =
+  Out.string_of_match_severity severity
   |> JSON.remove_enclosing_quotes_of_jstring
 
 (*****************************************************************************)
 (* Format dispatcher *)
 (*****************************************************************************)
 
-let dispatch_output_format (output_format : Output_format.t) (conf : conf)
-    (cli_output : OutJ.cli_output) (runtime_params : runtime_params)
-    (hrules : Rule.hrules) =
-  (* TOPORT? Sort keys for predictable output. Helps with snapshot tests *)
-  match output_format with
-  | Json ->
-      let s = OutJ.string_of_cli_output cli_output in
-      UConsole.print s
+(* called also from RPC_return.ml *)
+let format (kind : Output_format.t) (cli_output : Out.cli_output) : string list
+    =
+  match kind with
+  | Text
+  | Json
+  | Sarif
+  | Gitlab_sast
+  | Gitlab_secrets
+  | Junit_xml
+  | Files_with_matches
+  | Incremental ->
+      failwith (spf "format not supported here: %s" (Output_format.show kind))
   | Vim ->
       cli_output.results
-      |> List.iter (fun (m : OutJ.cli_match) ->
+      |> List_.map (fun (m : Out.cli_match) ->
              match m with
              | { check_id; path; start; extra = { message; severity; _ }; _ } ->
                  let parts =
@@ -87,11 +96,11 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
                      message;
                    ]
                  in
-                 UConsole.print (String.concat ":" parts))
+                 String.concat ":" parts)
   | Emacs ->
       (* TOPORT? sorted(rule_matches, key=lambda r: (r.path, r.rule_id)) *)
       cli_output.results
-      |> List.iter (fun (m : OutJ.cli_match) ->
+      |> List_.map (fun (m : Out.cli_match) ->
              match m with
              | {
               check_id;
@@ -134,16 +143,33 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
                      message;
                    ]
                  in
-                 UConsole.print (String.concat ":" parts))
+                 String.concat ":" parts)
+
+let dispatch_output_format (caps : < Cap.stdout >) (conf : conf)
+    (runtime_params : runtime_params) (cli_output : Out.cli_output)
+    (hrules : Rule.hrules) : unit =
+  let print = CapConsole.print caps#stdout in
+  (* TOPORT? Sort keys for predictable output. Helps with snapshot tests *)
+  match conf.output_format with
+  | Json ->
+      let s = Out.string_of_cli_output cli_output in
+      print s
+  | Vim -> format Vim cli_output |> List.iter print
+  | Emacs -> format Emacs cli_output |> List.iter print
   | Text ->
+      (* TODO: we should switch to Fmt_.with_buffer_to_string +
+       * some CapConsole.print_no_nl, but then is_atty fail on
+       * a string buffer and we lose the colors
+       *)
       Matches_report.pp_cli_output ~max_chars_per_line:conf.max_chars_per_line
         ~max_lines_per_finding:conf.max_lines_per_finding
+          (* nosemgrep: forbid-console *)
         ~color_output:conf.force_color Format.std_formatter cli_output
   (* matches have already been displayed in a file_match_results_hook *)
   | Incremental -> ()
   | Sarif ->
       let engine_label, is_pro =
-        match cli_output.OutT.engine_requested with
+        match cli_output.engine_requested with
         | Some `OSS
         | None ->
             ("OSS", false)
@@ -157,24 +183,23 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
         Sarif_output.sarif_output hide_nudge engine_label
           conf.show_dataflow_traces hrules cli_output
       in
-      UConsole.print
-        (Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema sarif_json)
+      print (Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema sarif_json)
   | Junit_xml ->
       let junit_xml = Junit_xml_output.junit_xml_output cli_output in
-      UConsole.print junit_xml
+      print junit_xml
   | Gitlab_sast ->
       let gitlab_sast_json = Gitlab_output.sast_output cli_output.results in
-      UConsole.print (Yojson.Basic.to_string gitlab_sast_json)
+      print (Yojson.Basic.to_string gitlab_sast_json)
   | Gitlab_secrets ->
       let gitlab_secrets_json =
         Gitlab_output.secrets_output cli_output.results
       in
-      UConsole.print (Yojson.Basic.to_string gitlab_secrets_json)
+      print (Yojson.Basic.to_string gitlab_secrets_json)
   | Files_with_matches ->
       cli_output.results
-      |> List_.map (fun (x : OutT.cli_match) -> !!(x.path))
+      |> List_.map (fun (x : Out.cli_match) -> !!(x.path))
       |> Set_.of_list |> Set_.elements |> List_.sort |> String.concat "\n"
-      |> UConsole.print
+      |> print
 
 (*****************************************************************************)
 (* Entry points *)
@@ -182,35 +207,46 @@ let dispatch_output_format (output_format : Output_format.t) (conf : conf)
 
 (* This function takes a core runner output and makes it suitable for the user,
  * by filtering out nosem, setting messages, adding fingerprinting etc.
+ * TODO? remove this intermediate?
  *)
-let preprocess_result (conf : conf) (res : Core_runner.result) : OutJ.cli_output
-    =
-  let cli_output : OutJ.cli_output =
-    Cli_json_output.cli_output_of_core_results ~dryrun:conf.dryrun
-      ~logging_level:conf.logging_level res.core res.hrules res.scanned
+let preprocess_result ~fixed_lines (res : Core_runner.result) : Out.cli_output =
+  let cli_output : Out.cli_output =
+    Cli_json_output.cli_output_of_runner_result ~fixed_lines res.core res.hrules
+      res.scanned
   in
   cli_output |> fun results ->
   {
     results with
+    (* TODO? why not do that in cli_output_of_core_results? *)
     results = Cli_json_output.index_match_based_ids results.results;
   }
 
 (* python: mix of output.OutputSettings(), output.OutputHandler(), and
  * output.output() all at once.
- * TODO: take a more precise conf than Scan_CLI.conf at some point
  *)
-let output_result (conf : conf) (profiler : Profiler.t)
-    (runtime_params : runtime_params) (res : Core_runner.result) :
-    OutJ.cli_output =
+let output_result (caps : < Cap.stdout >) (conf : conf)
+    (runtime_params : runtime_params) (profiler : Profiler.t)
+    (res : Core_runner.result) : Out.cli_output =
   (* In theory, we should build the JSON CLI output only for the
    * Json conf.output_format, but cli_output contains lots of data-structures
    * that are useful for the other formats (e.g., Vim, Emacs), so we build
    * it here.
    *)
-  let cli_output () = preprocess_result conf res in
-  (* TOPORT? output.output() *)
-  let cli_output = Profiler.record profiler ~name:"ignores_times" cli_output in
-  dispatch_output_format conf.output_format conf cli_output runtime_params
-    res.hrules;
+  let (cli_output : Out.cli_output) =
+    Profiler.record profiler ~name:"ignores_times" (fun () ->
+        preprocess_result ~fixed_lines:conf.fixed_lines res)
+  in
+  (* TODO: adjust conf.time *)
+  let cli_output =
+    if not conf.skipped_files then
+      {
+        cli_output with
+        paths = { scanned = cli_output.paths.scanned; skipped = None };
+      }
+    else cli_output
+  in
+  (* the actual output on stdout *)
+  dispatch_output_format caps conf runtime_params cli_output res.hrules;
+  (* we return cli_output as the caller might use it *)
   cli_output
 [@@profiling]

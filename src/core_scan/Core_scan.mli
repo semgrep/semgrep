@@ -1,47 +1,36 @@
 (* The type of the semgrep "core" scan. We define it here so that
    semgrep and semgrep-proprietary use the same definition *)
-type core_scan_func = Core_scan_config.t -> Core_result.result_or_exn
+type func = Core_scan_config.t -> Core_result.result_or_exn
 
 (* Entry point. This is used in Core_command.ml for semgrep-core,
  * in tests, in semgrep-pro, and finally in osemgrep.
  *
- * [scan_with_exn_handler config] runs a core scan with a starting list
+ * [scan config] runs a core scan with a starting list
  * of targets and capture any exception.
  * This internally calls Match_rules.check on every files, in
  * parallel, with some memory limits, and aggregate the results.
  *
- * This has the type core_scan_func defined above.
+ * This has the type [func] defined above.
  *
  * Note that this function will run the pre/post scan hook defined
  * in Pre_post_core_scan.hook_processor.
  *
  * The match_hook parameter is a deprecated way to print matches. If not
  * provided, it defaults to a function that internally calls
- * print_match() below.
+ * Core_text_output.print_match().
  *)
-val scan_with_exn_handler :
+val scan :
   ?match_hook:(Pattern_match.t -> unit) ->
   < Cap.tmp > ->
   Core_scan_config.t ->
   Core_result.result_or_exn
-
-(* Old hook to support incremental display of matches for semgrep-core
- * in text-mode. Deprecated. Use Core_scan_config.file_match_results_hook
- * instead now with osemgrep.
- *)
-val print_match :
-  ?str:string ->
-  Core_scan_config.t ->
-  Pattern_match.t ->
-  (Metavariable.mvalue -> Tok.t list) ->
-  unit
 
 (*****************************************************************************)
 (* Utilities functions used in tests or semgrep-pro *)
 (*****************************************************************************)
 
 val rules_from_rule_source :
-  < Cap.tmp > -> Core_scan_config.t -> Rule.rules_and_errors
+  < Cap.tmp > -> Core_scan_config.t -> Rule_error.rules_and_invalid
 (** Get the rules *)
 
 val targets_of_config :
@@ -51,7 +40,6 @@ val targets_of_config :
 (**
   Compute the set of targets, either by reading what was passed
   in -target, or by using Find_target.files_of_dirs_or_files.
-  The rule ids argument is useful only when you don't use -target.
  *)
 
 (* This is also used by semgrep-proprietary. It filters the rules that
@@ -74,20 +62,15 @@ val select_applicable_rules_for_target :
 val select_applicable_rules_for_analyzer :
   analyzer:Xlang.t -> Rule.t list -> Rule.t list
 
-(* This function prints the number of additional targets, which is consumed by
-   pysemgrep to update the progress bar. See `core_runner.py`
-*)
-val print_cli_additional_targets : Core_scan_config.t -> int -> unit
-
 (* This function prints a dot, which is consumed by pysemgrep to update
    the progress bar. See `core_runner.py`
 *)
 val print_cli_progress : Core_scan_config.t -> unit
 
-(* used internally but also called by osemgrep *)
-val errors_of_invalid_rule_errors :
-  Rule.invalid_rule_error list -> Core_error.t list
-
+(* This function prints the number of additional targets, which is consumed by
+   pysemgrep to update the progress bar. See `core_runner.py`
+*)
+val print_cli_additional_targets : Core_scan_config.t -> int -> unit
 val replace_named_pipe_by_regular_file : < Cap.tmp > -> Fpath.t -> Fpath.t
 (* Small wrapper around File.replace_named_pipe_by_regular_file_if_needed.
    Any file coming from the command line should go through this so as to

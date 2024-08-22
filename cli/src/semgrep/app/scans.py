@@ -18,12 +18,14 @@ from typing import TYPE_CHECKING
 import click
 import requests
 from boltons.iterutils import partition
+from opentelemetry import trace as otel_trace
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers.util import DependencyParserError
 from semgrep import __VERSION__
 from semgrep import tracing
 from semgrep.app.project_config import ProjectConfig
+from semgrep.constants import TOO_MUCH_DATA
 from semgrep.constants import USER_FRIENDLY_PRODUCT_NAMES
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.error import SemgrepError
@@ -60,7 +62,6 @@ class ScanHandler:
         )
         self.scan_response: Optional[out.ScanResponse] = None
         self.dry_run = dry_run
-        self._dry_run_rules_url: str = ""
         self._scan_params: str = ""
         self.ci_scan_results: Optional[out.CiScanResults] = None
 
@@ -250,9 +251,20 @@ class ScanHandler:
             )
 
         self.scan_response = out.ScanResponse.from_json(response.json())
-        logger.debug(
-            f"Scan started: {json.dumps(self.scan_response.to_json(), indent=4)}"
-        )
+        # the rules field below can be huge so better to not log it
+        x = self.scan_response
+        save = x.config.rules
+        x.config.rules = out.RawJson(TOO_MUCH_DATA)
+        logger.debug(f"Scan started: {json.dumps(x.to_json(), indent=4)}")
+        x.config.rules = save
+
+        current_span = otel_trace.get_current_span()
+        if self.scan_id:
+            current_span.set_attribute("semgrep.scan_id", self.scan_id)
+        if self.deployment_id:
+            current_span.set_attribute("semgrep.deployment_id", self.deployment_id)
+        if self.deployment_name:
+            current_span.set_attribute("semgrep.deployment_name", self.deployment_name)
 
     def report_failure(self, exit_code: int) -> None:
         """
@@ -425,9 +437,9 @@ class ScanHandler:
             )
             return ScanCompleteResult(True, False, "")
         else:
-            logger.debug(
-                f"Sending findings and ignores blob: {json.dumps(findings_and_ignores, indent=4)}"
-            )
+            # old: was also logging {json.dumps(findings_and_ignores, indent=4)}
+            # alt: save it in ~/.semgrep/logs/findings_and_ignores.json?
+            logger.debug(f"Sending findings and ignores blob")
 
         results_task = progress_bar.add_task("Uploading scan results")
         response = state.app_session.post(
@@ -462,9 +474,9 @@ class ScanHandler:
         slow_down_after = datetime.utcnow() + timedelta(minutes=2)
 
         while True:
-            logger.debug(
-                f"Sending /complete {json.dumps(complete.to_json(), indent=4)}"
-            )
+            # old: was also logging {json.dumps(complete.to_json(), indent=4)}
+            # alt: save it in ~/.semgrep/logs/complete.json?
+            logger.debug(f"Sending /complete")
 
             if datetime.utcnow() > try_until:
                 # let the backend know we won't be trying again

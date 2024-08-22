@@ -323,6 +323,23 @@ def test_junit_xml_output(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
+def test_junit_xml_output_flag(
+    run_semgrep_in_tmp: RunSemgrep,
+    snapshot,
+):
+    stdout, _ = run_semgrep_in_tmp(
+        "rules/eqeq.yaml",
+        target_name="basic/stupid.py",
+        options=["--junit-xml-output=result.xml"],
+        output_format=OutputFormat.TEXT,  # disables json parsing
+    )
+
+    with open("result.xml") as xml:
+        snapshot.assert_match(mask_variable_text(xml.read()), "expected.xml")
+
+
+@pytest.mark.kinda_slow
 def test_json_output_with_dataflow_traces(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
@@ -468,3 +485,19 @@ def test_output_matching_explanations(run_semgrep_in_tmp: RunSemgrep, snapshot):
         output_format=OutputFormat.JSON,  # Not the real output format; just disables JSON parsing
     )
     snapshot.assert_match(stdout, "report.json")
+
+
+@pytest.mark.kinda_slow
+@pytest.mark.parametrize(
+    "target_dir",
+    ["multilangproj", "language-filtering", "exclude_include"],
+)
+@pytest.mark.osemfail
+def test_file_count_multifile(run_semgrep_in_tmp: RunSemgrep, snapshot, target_dir):
+    _, stderr = run_semgrep_in_tmp(
+        "rules/filecount.yaml",
+        output_format=OutputFormat.TEXT,
+        target_name=target_dir,
+        options=[],
+    )
+    snapshot.assert_match(stderr, "result.out")

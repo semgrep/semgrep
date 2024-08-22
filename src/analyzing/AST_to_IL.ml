@@ -369,7 +369,7 @@ and pattern env pat =
                pattern_assign_statements env
                  (mk_e (Fetch lval_i) eorig)
                  ~eorig pat_i)
-        |> List.concat
+        |> List_.flatten
       in
       (tmp_lval, ss)
   | G.PatTyped (pat1, ty) ->
@@ -1494,7 +1494,7 @@ and expr_stmt env (eorig : G.expr) tok : IL.stmt list =
        *
        * The issue is that for some languages
        * when `some_var` is the last evaluated expression in the function,
-       * `some_var` is also implictly returned from the function. In this case
+       * `some_var` is also implicitly returned from the function. In this case
        * `some_var` actually means `return some_var`, so there should be a return
        * node in the CFG.
        *

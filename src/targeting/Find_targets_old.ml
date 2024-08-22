@@ -57,7 +57,9 @@ let global_filter ~opt_lang ~sort_by_decr_size paths =
     | None -> (paths, [])
     | Some lang -> Guess_lang.inspect_files lang paths
   in
-  let paths, skipped2 = Skip_target.exclude_big_files paths in
+  let paths, skipped2 =
+    Skip_target.exclude_big_files !Flag_semgrep.max_target_bytes paths
+  in
   let paths, skipped3 = Skip_target.exclude_minified_files paths in
   let skipped = List_.flatten [ skipped1; skipped2; skipped3 ] in
   let sorted_paths =
@@ -274,7 +276,7 @@ let get_targets conf (scanning_roots : Scanning_root.t list) =
          in
          let paths, skipped_paths1 =
            paths
-           |> Either_.partition_either (fun path ->
+           |> Either_.partition (fun path ->
                   Log.info (fun m -> m "Considering path %s" !!path);
                   let rel_path =
                     match
@@ -334,7 +336,7 @@ let get_targets conf (scanning_roots : Scanning_root.t list) =
           *)
          let paths, skipped_paths3 =
            paths
-           |> Result_.partition_result (fun path ->
+           |> Result_.partition (fun path ->
                   let size = UFile.filesize path in
                   if conf.max_target_bytes > 0 && size > conf.max_target_bytes
                   then
@@ -356,7 +358,7 @@ let get_targets conf (scanning_roots : Scanning_root.t list) =
   |> (* flatten results that were grouped by project *)
   List.split
   |> fun (paths_list, skipped_paths_list) ->
-  (List.flatten paths_list, List.flatten skipped_paths_list)
+  (List_.flatten paths_list, List_.flatten skipped_paths_list)
 [@@profiling]
 
 (*************************************************************************)

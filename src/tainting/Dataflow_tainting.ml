@@ -312,7 +312,7 @@ let sink_biased_union_mvars source_mvars sink_mvars =
  * such that either $MVAR is bound by a single source, or all MVALs bounds to $MVAR
  * can be unified. *)
 let merge_source_mvars env bindings =
-  let flat_bindings = List.concat bindings in
+  let flat_bindings = List_.flatten bindings in
   let bindings_tbl =
     flat_bindings
     |> List_.map (fun (mvar, _) -> (mvar, None))
@@ -2143,6 +2143,7 @@ let transfer :
     | TrueNode _
     | FalseNode _
     | Join
+    | OtherJoin
     | NOther _
     | NTodo _ ->
         in'

@@ -13,7 +13,14 @@ type match_format =
   | OneLine
 [@@deriving show]
 
+(* this can also display metavars and taint traces *)
 val print_match :
-  ?format:match_format -> ?str:string -> ?spaces:int -> Tok.t list -> unit
+  < Cap.stdout > ->
+  match_format ->
+  Pattern_match.t ->
+  Metavariable.mvar list ->
+  (Metavariable.mvalue -> Tok.t list) ->
+  unit
 
+(* used also in Metavar_replacement.ml *)
 val join_with_space_if_needed : string list -> string

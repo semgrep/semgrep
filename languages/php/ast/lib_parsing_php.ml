@@ -241,7 +241,7 @@ let top_statements_of_program ast =
   | ClassDef _| FuncDef _ | ConstantDef _ | TypeDef _
   | NamespaceDef _ | NamespaceBracketDef _ | NamespaceUse _
       -> []
-  ) |> List.flatten
+  ) |> List_.flatten
 
 (* We often do some analysis on "unit" of code like a function,
  * a method, or toplevel statements. One can not use the

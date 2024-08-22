@@ -1,23 +1,25 @@
-module OutJ = Semgrep_output_v1_j
+module Out = Semgrep_output_v1_j
 
+(* Display options *)
 type conf = {
-  nosem : bool;
-  autofix : bool;
-  dryrun : bool;
-  strict : bool;
-  (* maybe should define an Output_option.t, or add a record to
-   * Output_format.Text *)
-  force_color : bool;
-  logging_level : Logs.level option;
-  (* For text and SARIF *)
-  show_dataflow_traces : bool;
-  (* Display options *)
   (* mix of --json, --emacs, --vim, etc. *)
   output_format : Output_format.t;
+  (* for Text *)
   max_chars_per_line : int;
   max_lines_per_finding : int;
+  force_color : bool;
+  (* for text and SARIF *)
+  show_dataflow_traces : bool;
+  (* misc *)
+  strict : bool;
+  (* a.k.a. dryrun in Scan_CLI.conf *)
+  fixed_lines : bool;
+  (* true when using --verbose or --debug in Scan_CLI.ml *)
+  skipped_files : bool;
 }
 [@@deriving show]
+
+val default : conf
 
 (* Some parameters that are determined at runtime can also affect
  * the output. For example, if a user is not logged in, then in
@@ -26,24 +28,19 @@ type conf = {
  *)
 type runtime_params = { is_logged_in : bool; is_using_registry : bool }
 
-val default : conf
-
-val preprocess_result : conf -> Core_runner.result -> OutJ.cli_output
-(** [preprocess_result conf result] preprocesses the result of a scan
-  * according to the configuration [conf]. This handles
-  * nosemgrep, interpolating messages, and more.
-  *)
-
-(* Output the core results on stdout depending on flags in
- * the configuration:
- *  - Json
- -  - Vim
- *  - Emacs
- *  - TODO Text
- *  - TODO Sarif
- *  - TODO ...
- *
- * ugly: this also apply autofixes depending on the configuration.
- *)
+(* Output the core results on stdout depending on flags in conf *)
 val output_result :
-  conf -> Profiler.t -> runtime_params -> Core_runner.result -> OutJ.cli_output
+  < Cap.stdout > ->
+  conf ->
+  runtime_params ->
+  Profiler.t ->
+  Core_runner.result ->
+  Out.cli_output
+
+(* helper used in output_result() and other callsites.
+ * This handles nosemgrep, interpolating messages, and more.
+ *)
+val preprocess_result : fixed_lines:bool -> Core_runner.result -> Out.cli_output
+
+(* used by RPC_return.ml for the vim and emacs formatter for now *)
+val format : Output_format.t -> Out.cli_output -> string list

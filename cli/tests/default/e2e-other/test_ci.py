@@ -72,6 +72,24 @@ BAD_CONFIG = dedent(
       foo: bar
 """
 ).lstrip()
+GENERIC_SECRETS_AND_REAL_RULE = dedent(
+    """
+    rules:
+    - id: generic-secrets-rule-example
+      message: "generic secrets rule message"
+      languages: [python]
+      severity: ERROR
+      pattern: $X
+      metadata:
+        product: secrets
+        generic_secrets: true
+    - id: real-rule-example
+      message: "this rule should actually display findings in CLI"
+      languages: [python]
+      severity: ERROR
+      pattern: $X
+"""
+).lstrip()
 FROZEN_ISOTIMESTAMP = out.Datetime("1970-01-01T00:00:00Z")
 DUMMY_APP_TOKEN_ALICE = "peasoup"
 DUMMY_APP_TOKEN_BOB = "coolcucumber"
@@ -1582,10 +1600,50 @@ def test_nosem(
         env={"SEMGREP_APP_TOKEN": "fake_key"},
         use_click_runner=True,  # TODO: probably because rely on some mocking
     )
+
     snapshot.assert_match(
         result.as_snapshot(),
         "output.txt",
     )
+
+
+@pytest.mark.parametrize(
+    "scan_config",
+    [GENERIC_SECRETS_AND_REAL_RULE],
+    ids=["generic_secrets_and_real_rule"],
+)
+@pytest.mark.osemfail
+def test_generic_secrets_output(
+    git_tmp_path_with_commit,
+    snapshot,
+    run_semgrep: RunSemgrep,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
+):
+    start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
+
+    result = run_semgrep(
+        subcommand="ci",
+        target_name=None,
+        strict=False,
+        assert_exit_code=1,
+        options=["--oss-only"],
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
+    )
+    snapshot.assert_match(
+        result.as_snapshot(),
+        "output.txt",
+    )
+
+    assert "real-rule-example" in result.raw_stdout
+    # because it doesn't go in the "Blocking findings" section or otherwise,
+    # the rule message doesn't show. these go straight to the App with minimal
+    # CLI output
+    assert "generic secrets rule message" not in result.raw_stdout
 
 
 @pytest.mark.parametrize("mocked_scan_id", [None])

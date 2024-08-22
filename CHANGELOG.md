@@ -6,6 +6,221 @@
 
 <!-- insertion point -->
 
+## [1.85.0](https://github.com/returntocorp/semgrep/releases/tag/v1.85.0) - 2024-08-15
+
+
+### Added
+
+
+- Semgrep now recognizes files ending with the extention `.tfvars` as terraform files (saf-1481)
+
+
+### Changed
+
+
+- The use of --debug will not generate anymore profiling information.
+  Use --time instead. (debug)
+- Updated link to the Supply Chain findings page on Semgrep AppSec Platform to filter to the specific repository and ref the findings are detected on. (secw-2395)
+
+
+### Fixed
+
+
+- Fixed an error with julia list comprehentions where the pattern:
+  ```
+  [$A for $B in $C]
+  ```
+  would match
+  ```julia
+  [x for y in z]
+  ```
+  However we would only get one binding [$A/x]
+
+  Behavior after fix: we get three bindings [$A/x,$B/y,$C/z] (saf-1480)
+
+
+## [1.84.1](https://github.com/returntocorp/semgrep/releases/tag/v1.84.1) - 2024-08-07
+
+
+No significant changes.
+
+
+## [1.84.0](https://github.com/returntocorp/semgrep/releases/tag/v1.84.0) - 2024-08-06
+
+
+### Changed
+
+
+- We switch from magenta to yellow when highlighting matches
+  with the medium or warning severity. We now use magenta for
+  cricical severity to be consistent with other tools such
+  as npm. (color)
+
+
+### Fixed
+
+
+- Workaround deadlock when interfile is run with j>1 and tracing is enabled. (saf-1157)
+- Fixed <multilang> file count to report the accurate number of files scanned by generic & regex
+  so that no double counting occurs. (saf-507)
+
+
+## [1.83.0](https://github.com/returntocorp/semgrep/releases/tag/v1.83.0) - 2024-08-02
+
+
+### Added
+
+
+- Dockerfile: Allow Semgrep Ellipsis (...) in patterns for HEALTHCHECK commands. (saf-1441)
+
+
+### Fixed
+
+
+- The use of --debug should generate now far less log entries.
+  Moreover, when the number of ignored files, or rules, or
+  other entities exceed a big number, we instead replace them
+  with a <SKIPPED DATA> in the output to keep the output of semgrep
+  small. (debuglogs)
+- Fixed a bug introduced in 1.81.0 which caused files ignored for the Code
+  product but not the Secrets product to fail to be scanned for secrets.
+  Files that were not ignored for either product were not affected. (saf-1459)
+
+
+## [1.82.0](https://github.com/returntocorp/semgrep/releases/tag/v1.82.0) - 2024-07-30
+
+
+### Added
+
+
+- Added `testsuite/` as a filepath to the default value for `.semgrepignore`. (gh-1876)
+
+
+### Changed
+
+
+- Update the library definitions for Java for the latest version of the JDK. (java-library-definitions)
+
+
+### Fixed
+
+
+- Fixed metavariable comparison in step mode.
+
+  Used to be that the rule:
+  ```yaml
+      steps:
+          - languages: [python]
+            patterns:
+              - pattern: x = f($VAR);
+          - languages: [generic]
+            patterns:
+              - pattern-either:
+                 - patterns:
+                  - pattern: HI $VAR
+  ```
+  Wouldn't match, as one is an identifier, and the other an expression that has a
+  string literal. The fix was chainging the equality used. (saf-1061)
+
+
+## [1.81.0](https://github.com/returntocorp/semgrep/releases/tag/v1.81.0) - 2024-07-24
+
+
+### Changed
+
+
+- The --debug option will now display logging information from the semgrep-core
+  binary directly, without waiting that the semgrep-core program finish. (incremental_debug)
+
+
+### Fixed
+
+
+- C++: Scanning a project with header files (.h) now no longer causes a
+  spurious warnings that the file is being skipped, or not analyzed. (code-6899)
+- Semgrep will now be more strict (as it should be) when unifying identifiers.
+
+  Patterns like the one below may not longer work, particularly in Semgrep Pro:
+
+      patterns:
+        - pattern-inside: |
+            class A:
+              ...
+              def $F(...):
+                ...
+              ...
+            ...
+        - pattern-inside: |
+            class B:
+              ...
+              def $F(...):
+                ...
+              ...
+            ...
+
+  Even if two classes `A` and `B` may both have a method named `foo`, these methods
+  are not the same, and their ids are not unifiable via `$F`. The right way of doing
+  this in Semgrep is the following:
+
+      patterns:
+        - pattern-inside: |
+            class A:
+              ...
+              def $F1(...):
+                ...
+              ...
+            ...
+        - pattern-inside: |
+            class B:
+              ...
+              def $F2(...):
+                ...
+              ...
+            ...
+        - metavariable-comparison:
+            comparison: str($F1) == str($F2)
+
+  We use a different metavariable to match each method, then we check whether they
+  have the same name (i.e., same string). (code-7336)
+- In the app, you can configure Secrets ignores separately from Code/SSC ignores. However, the
+  files that were ignored by Code/SSC and not Secrets were still being scanned during the
+  preprocessing stage for interfile analysis. This caused significantly longer scan times than
+  expected for some users, since those ignored files can ignore library code. This PR fixes that
+  behavior and makes Code/SSC ignores apply as expected. (saf-1087)
+- Fixed typo that prevented users from using "--junit-xml-output" flag and added a tests that invokes the flag. (saf-1437)
+
+
+## [1.80.0](https://github.com/returntocorp/semgrep/releases/tag/v1.80.0) - 2024-07-18
+
+
+### Added
+
+
+- OSemgrep now can take `--exclude-minified-files` to skip  minified files. Additionally `--no-exclude-minified-files` will disable this option. It is off by default. (cdx-460)
+- Users are now required to login before using semgrep scan --pro.
+
+  Previously, semgrep will tell the users to log in, but the scan will still continue.
+
+  With this change, semgrep will tell the users to log in and stop the scan. (saf-1137)
+
+
+### Fixed
+
+
+- The language server no longer scans large or minified files (cdx-460)
+- Pro: Improved module resolution for Python. Imports like `from a.b import c` where
+  `c` is a module will now be resolved by Semgrep. And, if a module cannot be found
+  in the search path, Semgrep will try to heuristically resolve the module by matching
+  the module specifier against the files that are being scanned. (code-7069)
+- A scan can occasionally freeze when using tracing with multiprocesses.
+
+  This change disables tracing when scanning each target file unless the scan runs in a single process. (saf-1143)
+- Improved error handling for rules with invalid patterns. Now, scans will still complete and findings from other rules will be reported. (saf-789)
+- The "package-lock.json" parser incorrectly assumed that all paths in the "packages" component of "package-lock.json" started with "node_modules/".
+
+  In reality, a dependency can be installed anywhere, so the parser was made more flexible to recognize alternative locations ("node_modules", "lib", etc). (sc-1576)
+
+
 ## [1.79.0](https://github.com/returntocorp/semgrep/releases/tag/v1.79.0) - 2024-07-10
 
 

@@ -125,7 +125,8 @@ let rlvals_of_node = function
   | TrueNode _
   | FalseNode _
   | NGoto _
-  | Join ->
+  | Join
+  | OtherJoin ->
       []
   | NInstr x -> rlvals_of_instr x
   | NCond (_, e)
@@ -150,6 +151,7 @@ let orig_of_node = function
   | NInstr i -> Some i.iorig
   | NGoto _
   | Join
+  | OtherJoin
   | NLambda _
   | NOther _
   | NTodo _ ->

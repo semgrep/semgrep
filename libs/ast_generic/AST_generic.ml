@@ -594,8 +594,21 @@ and id_info = {
   (* sgrep: in OCaml we also use that to store the type of
    * a typed entity, which can be interpreted as a TypedMetavar in semgrep.
    * alt: have an explicity type_ field in entity.
+   * NOTE on 'equal': We do not need `id_type`, 'id_resolved' is all we
+   *   need to determine whether two ids are the same. The same id should not
+   *   have two different types. And... there is a bug in Naming_SAST that
+   *   may be assigning a fresh SId.t to type ids, thus making equality fail
+   *   sometimes when comparing two identical ids. So e.g. a rule matching
+   *   `Foo $FOO` and `$FOO.bar()` may not work on this code:
+   *
+   *       Foo foo;
+   *       ...
+   *       foo.bar();
+   *
+   *   because the first `foo` has type `Foo` but that `Foo` has SId.t "n",
+   *   whereas the second `foo` has type `Foo` but with SId.t "m".
    *)
-  id_type : type_ option ref;
+  id_type : type_ option ref; [@equal fun _a _b -> true]
   (* type checker (typing) *)
   (* sgrep: this is for sgrep constant propagation hack.
    * todo? associate only with Id?
@@ -644,8 +657,11 @@ and expr = {
    *
    * is x == 0. this field is used for implementing when/ pattern-when
    * (now part of comparison), a feature to add path sensitivity to semgrep.
+   *
+   * making facts opaque here to prevent slowing down tests that prints
+   * expressions for debugging purposes.
    *)
-  mutable facts : facts; [@equal fun _a _b -> true] [@hash.ignore]
+  mutable facts : facts; [@equal fun _a _b -> true] [@hash.ignore] [@opaque]
 }
 
 and fact = Equal of name * expr | NotEqual of name * expr

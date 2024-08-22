@@ -1,13 +1,13 @@
-(* Can return an Error because when have a NoTokenLocation exn when
+module Out = Semgrep_output_v1_j
+
+(* entry point *)
+val core_output_of_matches_and_errors : Core_result.t -> Out.core_output
+
+(* Can return an Error when we get a NoTokenLocation exn when
  * trying to get the range of a match or metavar.
  *)
 val match_to_match :
-  Core_result.processed_match ->
-  (Semgrep_output_v1_t.core_match, Core_error.t) Either.t
-
-(* Note that this uses and reset !Core_error.g_errors internally *)
-val core_output_of_matches_and_errors :
-  Core_result.t -> Semgrep_output_v1_t.core_output
+  Core_result.processed_match -> (Out.core_match, Core_error.t) result
 
 (* for abstract_content and subpatterns matching-explanations
  * TODO: should not use! the result may miss some commas
@@ -15,12 +15,5 @@ val core_output_of_matches_and_errors :
 val metavar_string_of_any : AST_generic.any -> string
 
 (* now used also in osemgrep *)
-val error_to_error : Core_error.t -> Semgrep_output_v1_t.core_error
-
-(* This is used only in the testing code, to reuse the
- * Semgrep_error_code.compare_actual_to_expected
- *)
-val match_to_push_error : Pattern_match.t -> unit
-
-val dedup_and_sort :
-  Semgrep_output_v1_t.core_match list -> Semgrep_output_v1_t.core_match list
+val error_to_error : Core_error.t -> Out.core_error
+val dedup_and_sort : Out.core_match list -> Out.core_match list

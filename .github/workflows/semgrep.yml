@@ -11,13 +11,34 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: semgrep ci
+  semgrep-ci-debug:
+    container:
+      image: semgrep/semgrep:canary
+    env:
+      E2E_APP_TOKEN: ${{ secrets.SEMGREP_E2E_APP_TOKEN }}
+      SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+    if: (github.actor != 'dependabot[bot]')
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - run: semgrep ci --debug
+  semgrep-ci-oss:
+    container:
+      image: semgrep/semgrep:canary
+    env:
+      E2E_APP_TOKEN: ${{ secrets.SEMGREP_E2E_APP_TOKEN }}
+      SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+    if: (github.actor != 'dependabot[bot]')
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - run: semgrep ci --oss-only
 name: semgrep
 on:
   pull_request_target: {}
   push:
     branches:
       - develop
-    paths:
-      - .github/workflows/semgrep.yml
   schedule:
     - cron: 50 15 * * *
+  workflow_dispatch: null

@@ -752,7 +752,7 @@ and list_stmt xs =
   (* converting require() in import, so they can benefit from the
    * other goodies coming with import in semgrep (e.g., equivalence aliasing)
    *)
-  xs |> List_.map (fun st -> [ stmt st ]) |> List.flatten
+  xs |> List_.map (fun st -> [ stmt st ]) |> List_.flatten
 
 and program v = list_stmt v
 

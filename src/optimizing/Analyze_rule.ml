@@ -282,7 +282,7 @@ type is_id_mvar = Metavariable.mvar -> bool
 let id_mvars_of_formula f =
   let id_mvars = ref MvarSet.empty in
   f
-  |> R.visit_new_formula (fun xp ~inside:_ ->
+  |> Visit_rule.visit_xpatterns (fun xp ~inside:_ ->
          match xp with
          | { pat = XP.Sem (pat, lang); _ } ->
              id_mvars :=
@@ -376,7 +376,7 @@ and metavarcond_step1 ~is_id_mvar x =
 let and_step1bis_filter_general (And xs) =
   let has_empty_idents, rest =
     xs
-    |> Either_.partition_either (function Or xs ->
+    |> Either_.partition (function Or xs ->
            if
              xs
              |> List.exists (function

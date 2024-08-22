@@ -84,7 +84,7 @@ let included_in config rv1 rv2 =
                note: this does not affect named capture group metavariables
                from <?xxx>, which will still be unified as normal
             *)
-            | _ when Metavariable.is_metavar_for_capture_group mvar -> true
+            | _ when Mvar.is_metavar_for_capture_group mvar -> true
             | Some mval2 ->
                 Matching_generic.equal_ast_bound_code config mval1 mval2)
 

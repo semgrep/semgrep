@@ -177,6 +177,10 @@ type command =
 type param =
   loc * (tok (* -- *) * string wrap (* name *) * tok (* = *) * string wrap)
 
+(* For positions where `...` is a valid parameter. TODO should we refactor to
+ * allow ellipsis everywhere parameters may be? *)
+type param_or_ellipsis = ParamParam of param | ParamEllipsis of tok
+
 (* value *)
 
 type image_spec = {
@@ -214,7 +218,8 @@ type cmd_instr = loc * string wrap * run_param list * command
 
 type healthcheck =
   | Healthcheck_none of tok
-  | Healthcheck_cmd of loc * param list * cmd_instr
+  | Healthcheck_ellipsis of tok
+  | Healthcheck_cmd of loc * param_or_ellipsis list * cmd_instr
   | Healthcheck_semgrep_metavar of string wrap
 
 type expose_port =

@@ -16,11 +16,11 @@ module J = JSON
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* This module contains the main command line parsing logic.
+(* This module contains the main command-line parsing logic of semgrep-core.
  *
  * It is packaged as a library so it can be used both for the stand-alone
  * semgrep-core binary as well as the semgrep-core-proprietary one.
- * The code here used to be in Main.ml.
+ * history: the code here used to be in Main.ml.
  *)
 
 (*****************************************************************************)
@@ -137,7 +137,7 @@ let version = spf "semgrep-core version: %s" Version.version
  * and the tuning below raise significantly the major cycle trigger.
  * This is why we call set_gc() only when max_memory_mb is unset.
  *)
-let set_gc () =
+let _set_gc_TODO () =
   Logs.debug (fun m -> m "Gc tuning");
   (*
   if !Flag.debug_gc
@@ -180,25 +180,30 @@ let dump_pattern (caps : < Cap.tmp >) (file : Fpath.t) =
   let lang = Xlang.lang_of_opt_xlang_exn !lang in
   E.try_with_log_exn_and_reraise file (fun () ->
       (* TODO? enable "semgrep.parsing" log level *)
-      let any = Parse_pattern.parse_pattern lang s in
-      let v = Meta_AST.vof_any any in
-      let s = dump_v_to_format v in
-      UCommon.pr s)
+      match Parse_pattern.parse_pattern lang s with
+      | Ok any ->
+          let v = Meta_AST.vof_any any in
+          let s = dump_v_to_format v in
+          UCommon.pr s
+      | Error e -> Logs.app (fun m -> m "Parse error: %s" e))
 [@@action]
 
 let dump_patterns_of_rule (caps : < Cap.tmp >) (file : Fpath.t) =
   let file = Core_scan.replace_named_pipe_by_regular_file caps file in
-  let rules = Parse_rule.parse file in
-  let xpats = List.concat_map Rule.xpatterns_of_rule rules in
-  List.iter
-    (fun { Xpattern.pat; _ } ->
-      match pat with
-      | Sem (pat, _) ->
-          let v = Meta_AST.vof_any pat in
-          let s = dump_v_to_format v in
-          UCommon.pr s
-      | _ -> UCommon.pr (Xpattern.show_xpattern_kind pat))
-    xpats
+  match Parse_rule.parse file with
+  | Ok rules ->
+      let xpats = List.concat_map Visit_rule.xpatterns_of_rule rules in
+      List.iter
+        (fun { Xpattern.pat; _ } ->
+          match pat with
+          | Sem (pat, _) ->
+              let v = Meta_AST.vof_any pat in
+              let s = dump_v_to_format v in
+              UCommon.pr s
+          | _ -> UCommon.pr (Xpattern.show_xpattern_kind pat))
+        xpats
+      (* TODO: handle better *)
+  | Error e -> failwith (Rule_error.string_of_error e)
 [@@action]
 
 let dump_ast ?(naming = false) (caps : < Cap.stdout ; Cap.exit ; Cap.tmp >)
@@ -391,9 +396,6 @@ let all_actions (caps : Cap.all_caps) () =
       " <file>",
       Arg_.mk_action_n_arg (fun xs ->
           Test_parsing.diff_pfff_tree_sitter (Fpath_.of_strings xs)) );
-    ( "-dump_contributions",
-      " dump on stdout the commit contributions in JSON",
-      Arg_.mk_action_0_arg Core_actions.dump_contributions );
     (* Misc stuff *)
     ( "-expr_at_range",
       " <l:c-l:c> <file>",
@@ -412,8 +414,8 @@ let all_actions (caps : Cap.all_caps) () =
     );
     ( "-stat_matches",
       " <marshalled file>",
-      Arg_.mk_action_1_arg (Experiments.stat_matches (caps :> < Cap.stdout >))
-    );
+      Arg_.mk_action_1_conv Fpath.v
+        (Experiments.stat_matches (caps :> < Cap.stdout >)) );
     ( "-ebnf_to_menhir",
       " <ebnf file>",
       Arg_.mk_action_1_conv Fpath.v
@@ -465,7 +467,7 @@ let all_actions (caps : Cap.all_caps) () =
 (* The options *)
 (*****************************************************************************)
 
-let options caps actions =
+let options caps (actions : unit -> Arg_.cmdline_actions) =
   [
     ( "-e",
       Arg.String (fun s -> pattern_string := Some s),
@@ -638,7 +640,7 @@ let options caps actions =
       ( "-rpc",
         Arg.Unit
           (fun () ->
-            RPC.main caps;
+            RPC.main (caps :> < Cap.exec ; Cap.tmp >);
             Core_exit_code.(exit_semgrep caps#exit Success)),
         " don't use this unless you already know" );
     ]
@@ -687,8 +689,9 @@ let register_exception_printers () =
 (* Main entry point *)
 (*****************************************************************************)
 
-let main_no_exn_handler (caps : Cap.all_caps) (sys_argv : string array) : unit =
+let main_exn (caps : Cap.all_caps) (sys_argv : string array) : unit =
   profile_start := Unix.gettimeofday ();
+  register_exception_printers ();
 
   (* SIGXFSZ (file size limit exceeded)
    * ----------------------------------
@@ -735,7 +738,7 @@ let main_no_exn_handler (caps : Cap.all_caps) (sys_argv : string array) : unit =
 
   let config = mk_config () in
 
-  Core_profiling.profiling := config.debug || config.report_time;
+  Core_profiling.profiling := config.report_time;
 
   Log_semgrep.setup ?log_to_file:config.log_to_file
     ?require_one_of_these_tags:None ~force_color:true
@@ -810,14 +813,8 @@ let with_exception_trace f =
       Printf.eprintf "Exception: %s\n%!" (Exception.to_string e);
       raise (UnixExit 1)
 
-(* This used to be defined as 'let () = Common.main_boilerplate ...'
- * but now Core_CLI.ml is a library that can be called from
- * Semgrep-pro, hence the introduction of a function.
- *)
 let main (caps : Cap.all_caps) (argv : string array) : unit =
   UCommon.main_boilerplate (fun () ->
-      register_exception_printers ();
       Common.finalize
-        (fun () ->
-          with_exception_trace (fun () -> main_no_exn_handler caps argv))
+        (fun () -> with_exception_trace (fun () -> main_exn caps argv))
         (fun () -> !Hooks.exit |> List.iter (fun f -> f ())))

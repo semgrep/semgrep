@@ -179,7 +179,7 @@ let m_id_string case_insensitive =
 let m_ident a b =
   match (a, b) with
   (* metavar: *)
-  | (str, tok), b when MV.is_metavar_name str ->
+  | (str, tok), b when Mvar.is_metavar_name str ->
       envf (str, tok) (MV.Id (b, None))
   (* in some languages such as Javascript certain entities like
    * fields can use strings for identifiers (e.g., {"myfield": 1}),
@@ -200,7 +200,7 @@ let m_ident a b =
 let m_dotted_name a b =
   match (a, b) with
   (* $X should match any list *)
-  | [ (s, t) ], b when MV.is_metavar_name s ->
+  | [ (s, t) ], b when Mvar.is_metavar_name s ->
       envf (s, t) (MV.N (H.name_of_ids b))
   (* TODO? we could allow a.b.$X to match a.b.c.d *)
   | a, b -> (m_list m_ident) a b
@@ -223,8 +223,9 @@ let make_dotted xs =
 let rec m_dotted_name_prefix_ok a b =
   match (a, b) with
   | [], [] -> return ()
-  | [ (s, t) ], [ x ] when MV.is_metavar_name s -> envf (s, t) (MV.Id (x, None))
-  | [ (s, t) ], _ :: _ when MV.is_metavar_name s ->
+  | [ (s, t) ], [ x ] when Mvar.is_metavar_name s ->
+      envf (s, t) (MV.Id (x, None))
+  | [ (s, t) ], _ :: _ when Mvar.is_metavar_name s ->
       (* TODO: should we bind it instead to a MV.N IdQualified?
        * but it is actually just the qualifier part; the last id
        * is not here (even though make_dottd will not care about that)
@@ -388,53 +389,63 @@ let rec m_name_inner a b =
           (fail ()) alternate_names
     | _ -> fail ()
   in
+  let try_with_equivalences a b =
+    (* equivalence: aliasing (name resolving) part 1 *)
+    match (a, b) with
+    | ( a,
+        B.Id
+          ( idb,
+            ({
+               B.id_resolved =
+                 {
+                   contents =
+                     Some
+                       ( (( B.ImportedEntity canonical
+                          | B.ImportedModule canonical
+                          | B.GlobalName (canonical, _) ) as resolved),
+                         _sid );
+                 };
+               _;
+             } as infob) ) ) ->
+        let dotted = G.canonical_to_dotted (snd idb) canonical in
+        (* coupling: resolved names with wildcards *)
+        wipe_wildcard_imports
+          (m_name a (B.Id (idb, { infob with B.id_resolved = ref None }))
+          >||> try_alternate_names idb resolved
+          (* Try the resolved entity *)
+          >||> m_name a (H.name_of_ids dotted)
+          >||>
+          (* Try the resolved entity and parents *)
+          match a with
+          (* > If we're matching against a metavariable, don't bother checking
+           * > the resolved entity or parents. It will only cause duplicate matches
+           * > that can't be deduped, since the captured metavariable will be
+           * > different.
+           *
+           * FIXME:
+           * This is actually not the correct way of dealing with the problem,
+           * because there could be `metavariable-xyz` operators filtering the
+           * potential values of the metavariable. See DeepSemgrep commit
+           *
+           *     5b2766ee30e "test: Tests for matching metavariable patterns against resolved names"
+           *)
+          | G.Id ((str, _tok), _info) when Mvar.is_metavar_name str -> fail ()
+          | _ ->
+              (* Try matching against parent classes *)
+              try_parents dotted)
+    | __else__ -> fail ()
+  in
   match (a, b) with
-  (* equivalence: aliasing (name resolving) part 1 *)
-  | ( a,
-      B.Id
-        ( idb,
-          ({
-             B.id_resolved =
-               {
-                 contents =
-                   Some
-                     ( (( B.ImportedEntity canonical
-                        | B.ImportedModule canonical
-                        | B.GlobalName (canonical, _) ) as resolved),
-                       _sid );
-               };
-             _;
-           } as infob) ) ) ->
-      let dotted = G.canonical_to_dotted (snd idb) canonical in
-      (* coupling: resolved names with wildcards *)
-      wipe_wildcard_imports
-        (m_name a (B.Id (idb, { infob with B.id_resolved = ref None }))
-        >||> try_alternate_names idb resolved
-        (* Try the resolved entity *)
-        >||> m_name a (H.name_of_ids dotted)
-        >||>
-        (* Try the resolved entity and parents *)
-        match a with
-        (* > If we're matching against a metavariable, don't bother checking
-         * > the resolved entity or parents. It will only cause duplicate matches
-         * > that can't be deduped, since the captured metavariable will be
-         * > different.
-         *
-         * FIXME:
-         * This is actually not the correct way of dealing with the problem,
-         * because there could be `metavariable-xyz` operators filtering the
-         * potential values of the metavariable. See DeepSemgrep commit
-         *
-         *     5b2766ee30e "test: Tests for matching metavariable patterns against resolved names"
-         *)
-        | G.Id ((str, _tok), _info) when MV.is_metavar_name str -> fail ()
-        | _ ->
-            (* Try matching against parent classes *)
-            try_parents dotted)
+  (* old: Previously we applied the equivalences in 'try_with_equivalences' right
+   *      here. The good was that we handled equivalences first of all and they did
+   *      not have to be taken into consideration anywhere else. The bad was that
+   *      applying the equivalences erases the 'id_info', and when $MVARs bound to
+   *      global identifiers, we had lost all that valuable info. *)
   | G.Id (a1, a2), B.Id (b1, b2) ->
       (* this will handle metavariables in Id *)
-      m_ident_and_id_info (a1, a2) (b1, b2)
-  | G.Id ((str, tok), _info), G.IdQualified _ when MV.is_metavar_name str ->
+      m_ident_and_id_info (a1, a2) (b1, b2) >!> fun () ->
+      try_with_equivalences a b
+  | G.Id ((str, tok), _info), G.IdQualified _ when Mvar.is_metavar_name str ->
       envf (str, tok) (MV.N b)
   (* equivalence: aliasing (name resolving) part 2 (mostly for OCaml) *)
   | ( G.IdQualified _a1,
@@ -489,7 +500,7 @@ let rec m_name_inner a b =
   | G.IdQualified { name_last = ida, None; _ }, B.Id (idb, _infob)
     when fst ida = fst idb -> (
       match !Hooks.get_def idb with
-      | None -> fail ()
+      | None -> try_with_equivalences a b
       | Some file ->
           let m = module_name_of_filename file in
           let t = snd idb in
@@ -530,7 +541,7 @@ let rec m_name_inner a b =
   | G.IdQualified a1, B.IdQualified b1 -> m_name_info a1 b1
   | G.Id _, _
   | G.IdQualified _, _ ->
-      fail ()
+      try_with_equivalences a b
 
 (* This is just an entry point for m_name_inner, which just ensures that we only
    ever unpack wildcard imports once, before entering the main recursive loop of
@@ -541,7 +552,7 @@ let rec m_name_inner a b =
 *)
 and m_name a b =
   let dotted_contains_mvars dotted =
-    List.exists (fun (s, _) -> Metavariable.is_metavar_name s) dotted
+    List.exists (fun (s, _) -> Mvar.is_metavar_name s) dotted
   in
   let dotted_b = H.dotted_ident_of_name b in
   m_name_inner a b >!> fun () tin ->
@@ -619,7 +630,7 @@ and m_ident_and_type_arguments (a1, a2) (b1, b2) =
 and m_qualifier a b =
   match (a, b) with
   (* Like for m_dotted_name, [$X] should match anything *)
-  | G.QDots [ ((str, t), _) ], B.QDots b when MV.is_metavar_name str ->
+  | G.QDots [ ((str, t), _) ], B.QDots b when Mvar.is_metavar_name str ->
       envf (str, t) (MV.E (make_dotted (List_.map fst b)))
   | G.QDots a, B.QDots b -> m_list m_ident_and_type_arguments a b
   | G.QExpr (a1, a2), B.QExpr (b1, b2) -> m_expr a1 b1 >>= fun () -> m_tok a2 b2
@@ -648,7 +659,7 @@ and m_type_option_with_hook idb taopt tbopt =
 and m_ident_and_id_info (a1, a2) (b1, b2) =
   (* metavar: *)
   match (a1, b1) with
-  | (str, tok), b when MV.is_metavar_name str ->
+  | (str, tok), b when Mvar.is_metavar_name str ->
       (* a bit OCaml specific, cos only ml_to_generic tags id_type in pattern *)
       m_type_option_with_hook b1 !(a2.G.id_type) !(b2.B.id_type) >>= fun () ->
       m_id_info a2 b2 >>= fun () -> envf (str, tok) (MV.Id (b, Some b2))
@@ -875,7 +886,7 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
    *)
   | ( G.Call ({ e = G.N (G.Id ((str, _tok), _id_info)); _ }, _argsa),
       B.Call ({ e = B.IdSpecial (idspec, _); _ }, _argsb) )
-    when MV.is_metavar_name str && not (should_match_call idspec) ->
+    when Mvar.is_metavar_name str && not (should_match_call idspec) ->
       fail ()
   (* metavar: *)
   (* Matching a generic Id metavariable to an IdSpecial will fail as it is
@@ -883,7 +894,7 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
    *)
   | G.N (G.Id ((str, _), _)), B.IdSpecial (B.ConcatString _, _)
   | G.N (G.Id ((str, _), _)), B.IdSpecial (B.Instanceof, _)
-    when MV.is_metavar_name str ->
+    when Mvar.is_metavar_name str ->
       fail ()
   (* Important to bind to MV.Id when we can, so this must be before
    * the next case where we bind to the more general MV.E.
@@ -892,10 +903,10 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
   | G.N (G.Id _ as na), B.N (B.Id _ as nb) ->
       m_name na nb
       >||> m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
-  | G.N (G.Id ((str, tok), _id_info)), _b when MV.is_metavar_name str ->
+  | G.N (G.Id ((str, tok), _id_info)), _b when Mvar.is_metavar_name str ->
       envf (str, tok) (MV.E b)
   (* metavar: typed! *)
-  | G.TypedMetavar ((str, tok), _, t), _b when MV.is_metavar_name str ->
+  | G.TypedMetavar ((str, tok), _, t), _b when Mvar.is_metavar_name str ->
       with_lang (fun lang -> m_compatible_type lang (str, tok) t b)
   (* dots: should be patterned-match before in arguments, or statements,
    * but this is useful for keyword parameters, as in f(..., foo=..., ...)
@@ -1136,7 +1147,7 @@ and m_raw_tree (a : G.raw_tree) (b : G.raw_tree) =
       | Case (_, Token (str, tok))
       | Case (_, Case (_, Token (str, tok))) ),
       b )
-    when MV.is_metavar_name str ->
+    when Mvar.is_metavar_name str ->
       envf (str, tok) (MV.Raw b)
   (* dots: on string.
    * TODO: we should use m_string_ellipsis_or_metavar_or_default,
@@ -1176,7 +1187,7 @@ and m_entity_name a b =
   match (a, b) with
   | G.EN a1, B.EN b1 -> m_name a1 b1
   | G.EN (G.Id ((str, tok), _idinfoa)), B.EDynamic b1
-    when MV.is_metavar_name str ->
+    when Mvar.is_metavar_name str ->
       envf (str, tok) (MV.E b1)
   (* boilerplate *)
   | G.EDynamic a, B.EDynamic b -> m_expr a b
@@ -1193,7 +1204,7 @@ and m_field_name a b =
   match (a, b) with
   | G.FN a1, B.FN b1 -> m_name a1 b1
   | G.FN (G.Id ((str, tok), _idinfoa)), B.FDynamic b1
-    when MV.is_metavar_name str ->
+    when Mvar.is_metavar_name str ->
       envf (str, tok) (MV.E b1)
   (* boilerplate *)
   | G.FDynamic a, B.FDynamic b -> m_expr a b
@@ -1592,7 +1603,7 @@ and m_xml_bodies a b =
    * to bind $...JS to an empty list.
    * TODO: remove this special case
    *)
-  | [ XmlText (s, tok) ], _ when MV.is_metavar_ellipsis s ->
+  | [ XmlText (s, tok) ], _ when Mvar.is_metavar_ellipsis s ->
       envf (s, tok) (MV.Xmls b)
   | _else_ ->
       (* alt: use with_lang and enabled it by default for Lang.Xml *)
@@ -1606,7 +1617,7 @@ and m_xml_bodies a b =
                (* less-is-ok: it's ok to have an empty body in the pattern *)
              ~less_is_ok:true
              ~is_metavar_ellipsis:(function
-               | G.XmlText (s, tok) when MV.is_metavar_ellipsis s ->
+               | G.XmlText (s, tok) when Mvar.is_metavar_ellipsis s ->
                    Some ((s, tok), fun xs -> MV.Xmls xs)
                | _ -> None)
              a b)
@@ -1669,7 +1680,7 @@ and m_list__m_argument (xsa : G.argument list) (xsb : G.argument list) =
   | [ G.Arg { e = G.Ellipsis _i; _ } ], [] -> return ()
   (* dots: metavars: $...ARGS *)
   | G.Arg { e = G.N (G.Id ((s, tok), _idinfo)); _ } :: xsa, xsb
-    when MV.is_metavar_ellipsis s ->
+    when Mvar.is_metavar_ellipsis s ->
       (* can match 0 or more arguments (just like ...) *)
       let candidates = inits_and_rest_of_list_empty_ok xsb in
       let rec aux xs =
@@ -1689,7 +1700,7 @@ and m_list__m_argument (xsa : G.argument list) (xsb : G.argument list) =
   (* unordered kwd argument matching *)
   | (G.ArgKwd (((s, _tok) as ida), ea) as a) :: xsa, xsb
   | (G.ArgKwdOptional (((s, _tok) as ida), ea) as a) :: xsa, xsb -> (
-      if MV.is_metavar_name s then
+      if Mvar.is_metavar_name s then
         let candidates = all_elem_and_rest_of_list xsb in
         (* less: could use a fold *)
         let rec aux xs =
@@ -1750,7 +1761,7 @@ and m_arguments_concat a b =
         fail ()
     | ( G.Arg { e = G.N (G.Id ((s, _tok), _idinfo)); _ },
         G.Arg { e = G.L (G.String _); _ } )
-      when MV.is_metavar_name s ->
+      when Mvar.is_metavar_name s ->
         fail ()
     | _ -> m_argument xa xb
   in
@@ -1760,7 +1771,7 @@ and m_arguments_concat a b =
   in
   let is_metavar_ellipsis = function
     | G.Arg { e = G.L (G.String (_, (s, tok), _)); _ }
-      when MV.is_metavar_ellipsis s ->
+      when Mvar.is_metavar_ellipsis s ->
         Some ((s, tok), fun xs -> MV.Args xs)
     | _else_ -> None
   in
@@ -1868,7 +1879,7 @@ and m_assoc_op tok op aargs_ac bargs_ac =
   | [ { e = G.Ellipsis _i; _ } ], [] -> return ()
   (* $MVAR, acting similar to $...MVAR *)
   | ({ e = G.N (G.Id ((s, _tok), _idinfo)); _ } as xa) :: xsa, xsb
-    when MV.is_metavar_name s ->
+    when Mvar.is_metavar_name s ->
       let candidates = inits_and_rest_of_list_empty_ok xsb in
       let rec aux xs =
         match xs with
@@ -1942,7 +1953,7 @@ and m_ac_op tok op aargs_ac bargs_ac =
     |> List.partition (fun e ->
            match e.G.e with
            | G.Ellipsis _ -> true
-           | G.N (G.Id ((str, _tok), _id_info)) -> MV.is_metavar_name str
+           | G.N (G.Id ((str, _tok), _id_info)) -> Mvar.is_metavar_name str
            | ___else___ -> false)
   in
   (* Try to match each aapp with a different barg, this is a 1-to-1 matching.
@@ -2034,7 +2045,7 @@ and m_type_ a b =
    *)
   | G.TyN a1, B.TyExpr { e = N b1; _ } ->
       m_name a1 b1
-  | G.TyN (G.Id ((str, tok), _id_info)), _t2 when MV.is_metavar_name str ->
+  | G.TyN (G.Id ((str, tok), _id_info)), _t2 when Mvar.is_metavar_name str ->
       envf (str, tok) (MV.T b)
   (* dots: *)
   | G.TyEllipsis _, _ -> return ()
@@ -2103,7 +2114,7 @@ and m_type_arguments a b =
 and m_type_argument a b =
   match (a, b) with
   | B.TAExpr { e = N (Id ((str, tok), _)); _ }, G.TA b1
-    when MV.is_metavar_name str ->
+    when Mvar.is_metavar_name str ->
       envf (str, tok) (MV.T b1)
   | G.TA a1, B.TA b1 -> m_type_ a1 b1
   | G.TAWildcard (a1, a2), B.TAWildcard (b1, b2) ->
@@ -2141,7 +2152,7 @@ and m_wildcard (a1, a2) (b1, b2) =
  * *)
 and m_generic_type_vs_type_t lang tok a b =
   match (a.G.t, b) with
-  | G.TyN (Id ((str, idtok), _)), _ when MV.is_metavar_name str -> (
+  | G.TyN (Id ((str, idtok), _)), _ when Mvar.is_metavar_name str -> (
       match
         Type.to_ast_generic_type_ ~tok:(Lazy.force tok) lang
           (fun name _alts -> name)
@@ -2426,7 +2437,7 @@ and m_stmts_deep ~inside ~less_is_ok (xsa : G.stmt list) (xsb : G.stmt list) =
   | ( ({ s = G.ExprStmt ({ e = G.N (G.Id ((s, _), _idinfo)); _ }, _); _ } :: _
        as xsa),
       xsb )
-    when MV.is_metavar_ellipsis s ->
+    when Mvar.is_metavar_ellipsis s ->
       (* less: for metavariable ellipsis, does it make sense to go deep? *)
       m_list__m_stmt xsa xsb
   (* the general case *)
@@ -2468,7 +2479,7 @@ and m_list__m_stmt ?(less_is_ok = true) (xsa : G.stmt list) (xsb : G.stmt list)
   (* dots: metavars: $...BODY *)
   | ( { s = G.ExprStmt ({ e = G.N (G.Id ((s, tok), _idinfo)); _ }, _); _ } :: xsa,
       xsb )
-    when MV.is_metavar_ellipsis s ->
+    when Mvar.is_metavar_ellipsis s ->
       (* can match 0 or more arguments *)
       let candidates = inits_and_rest_of_list_empty_ok xsb in
       let rec aux xs =
@@ -2533,7 +2544,7 @@ and m_stmt a b =
    * _or_ an expression metavar with >||>. below
    *)
   | G.ExprStmt (({ e = G.N (G.Id ((str, tok), _id_info)); _ } as suba), sc), _b
-    when MV.is_metavar_name str -> (
+    when Mvar.is_metavar_name str -> (
       envf (str, tok) (MV.S b)
       >||>
       match b.s with
@@ -2863,7 +2874,7 @@ and m_pattern a b =
   | G.DisjPat (a1, a2), b -> m_pattern a1 b >||> m_pattern a2 b
   (* metavar: *)
   (* less: G.PatId vs B.PatId? Use MV.Id then ? *)
-  | G.PatId ((str, tok), _id_info), b2 when MV.is_metavar_name str -> (
+  | G.PatId ((str, tok), _id_info), b2 when Mvar.is_metavar_name str -> (
       try
         let e2 = H.pattern_to_expr b2 in
         envf (str, tok) (MV.E e2)
@@ -3116,7 +3127,7 @@ and m_parameter_list a b =
       | _ -> false)
     ~less_is_ok:false (* empty list can not match non-empty list *)
     ~is_metavar_ellipsis:(function
-      | Param { pname = Some (s, tok); _ } when MV.is_metavar_ellipsis s ->
+      | Param { pname = Some (s, tok); _ } when Mvar.is_metavar_ellipsis s ->
           Some ((s, tok), fun xs -> MV.Params xs)
       | _ -> None)
     a b
@@ -3139,7 +3150,7 @@ and m_parameter a b =
            pinfo = _;
          } as a1),
       b )
-    when Metavariable.is_metavar_name str -> (
+    when Mvar.is_metavar_name str -> (
       match b with
       | OtherParam _
       | ParamPattern _
@@ -3275,7 +3286,8 @@ and m_list__m_field ~less_is_ok (xsa : G.field list) (xsb : G.field list) =
         }
       :: xsa,
       xsb )
-    when (not (MV.is_metavar_name s1)) && not (Pattern.is_regexp_string s1) -> (
+    when (not (Mvar.is_metavar_name s1)) && not (Pattern.is_regexp_string s1)
+    -> (
       try
         let before, there, after =
           xsb
@@ -3674,7 +3686,7 @@ and m_directive_basic a b =
    * import would the metavar bind to? *)
   | ( G.ImportFrom (a0, DottedName [], [ ((str, tok), a3) ]),
       B.ImportFrom (b0, DottedName xs, [ (x, b3) ]) )
-    when MV.is_metavar_name str ->
+    when Mvar.is_metavar_name str ->
       let name = H.name_of_ids (xs @ [ x ]) in
       let* () = m_tok a0 b0 in
       let* () = envf (str, tok) (MV.N name) in

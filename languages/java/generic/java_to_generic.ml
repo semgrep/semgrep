@@ -310,7 +310,7 @@ and expr e =
       let anys =
         [ G.E v0; G.T v2 ]
         @ (v3 |> Tok.unbracket |> List_.map (fun arg -> G.Ar arg))
-        @ (Option.to_list v4 |> List_.map Tok.unbracket |> List.flatten
+        @ (Option.to_list v4 |> List_.map Tok.unbracket |> List_.flatten
           |> List_.map (fun st -> G.S st))
       in
       G.OtherExpr (("NewQualifiedClass", tok2), anys)
@@ -511,7 +511,7 @@ and tok_and_stmt (t, v) =
   let v = stmt v in
   (t, v)
 
-and stmts v = list stmt_aux v |> List.flatten
+and stmts v = list stmt_aux v |> List_.flatten
 
 and case = function
   | Case (t, v1) ->

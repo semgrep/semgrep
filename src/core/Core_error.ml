@@ -14,7 +14,7 @@
  *)
 open Common
 open Fpath_.Operators
-module OutJ = Semgrep_output_v1_j
+module Out = Semgrep_output_v1_j
 module R = Rule
 module Log = Log_semgrep.Log
 
@@ -40,15 +40,13 @@ module Log = Log_semgrep.Log
  * less: we should define everything in semgrep_output_v1.atd, not just typ:
  *)
 type t = {
-  rule_id : Rule_ID.t option;
-  typ : OutJ.error_type;
+  typ : Out.error_type;
   loc : Tok.location;
   msg : string;
   details : string option;
+  rule_id : Rule_ID.t option;
 }
 [@@deriving show]
-
-let g_errors = ref []
 
 (* ugly alias because 'type t = t' is not allowed *)
 type core_error = t
@@ -68,9 +66,10 @@ let please_file_issue_text =
   "An error occurred while invoking the Semgrep engine. Please help us fix \
    this by creating an issue at https://github.com/returntocorp/semgrep"
 
-let mk_error opt_rule_id loc msg err =
+let mk_error ?(rule_id = None) ?(msg = "") (loc : Tok.location)
+    (err : Out.error_type) : t =
   let msg =
-    match (err : OutJ.error_type) with
+    match err with
     | MatchingError
     | AstBuilderError
     | FatalError
@@ -98,64 +97,65 @@ let mk_error opt_rule_id loc msg err =
     | MissingPlugin ->
         msg
   in
-  { rule_id = opt_rule_id; loc; typ = err; msg; details = None }
+  { loc; typ = err; msg; details = None; rule_id }
 
-let mk_error_tok ?(file = "NO FILE INFO") opt_rule_id tok msg err =
+let mk_error_tok opt_rule_id (file : Fpath.t) (tok : Tok.t) (msg : string)
+    (err : Out.error_type) : t =
   let loc =
     match Tok.loc_of_tok tok with
     | Ok loc -> loc
-    | Error _ -> Tok.first_loc_of_file file
+    | Error _ -> Tok.first_loc_of_file !!file
   in
-  mk_error opt_rule_id loc msg err
+  mk_error ~rule_id:opt_rule_id ~msg loc err
 
-let push_error rule_id loc msg err =
-  Stack_.push (mk_error (Some rule_id) loc msg err) g_errors
-
-let error_of_invalid_rule_error ((kind, rule_id, pos) : R.invalid_rule_error) :
-    t =
-  let msg = Rule.string_of_invalid_rule_error_kind kind in
+let error_of_invalid_rule ((kind, rule_id, pos) : Rule_error.invalid_rule) : t =
+  let msg = Rule_error.string_of_invalid_rule_kind kind in
   let err =
     match kind with
     | IncompatibleRule (this_version, (min_version, max_version)) ->
-        OutJ.IncompatibleRule
+        Out.IncompatibleRule
           {
             rule_id;
-            this_version = Version_info.to_string this_version;
-            min_version = Option.map Version_info.to_string min_version;
-            max_version = Option.map Version_info.to_string max_version;
+            this_version = Semver.to_string this_version;
+            min_version = Option.map Semver.to_string min_version;
+            max_version = Option.map Semver.to_string max_version;
           }
-    | MissingPlugin _msg -> OutJ.MissingPlugin
-    | _ -> OutJ.RuleParseError
+    | MissingPlugin _msg -> Out.MissingPlugin
+    | _ -> Out.RuleParseError
   in
-  mk_error_tok (Some rule_id) pos msg err
+  (* TODO: bad use of fake_file, use pos? *)
+  mk_error_tok (Some rule_id) Fpath_.fake_file pos msg err
 
-let opt_error_of_rule_error ~file (err : Rule.error) : t option =
+let error_of_rule_error (file : Fpath.t) (err : Rule_error.t) : t =
   let rule_id = err.rule_id in
   match err.kind with
   | InvalidRule
       (InvalidPattern (pattern, xlang, message, yaml_path), rule_id, pos) ->
-      Some
-        {
-          rule_id = Some rule_id;
-          typ = OutJ.PatternParseError yaml_path;
-          loc = Tok.unsafe_loc_of_tok pos;
-          msg =
-            spf
-              "Invalid pattern for %s:\n\
-               --- pattern ---\n\
-               %s\n\
-               --- end pattern ---\n\
-               Pattern error: %s\n"
-              (Xlang.to_string xlang) pattern message;
-          details = None;
-        }
-  | InvalidRule err -> Some (error_of_invalid_rule_error err)
-  | InvalidYaml (msg, pos) ->
-      Some (mk_error_tok ~file rule_id pos msg OutJ.InvalidYaml)
-  | DuplicateYamlKey (s, pos) ->
-      Some (mk_error_tok ~file rule_id pos s OutJ.InvalidYaml)
+      {
+        rule_id = Some rule_id;
+        typ = Out.PatternParseError yaml_path;
+        loc = Tok.unsafe_loc_of_tok pos;
+        msg =
+          spf
+            "Invalid pattern for %s:\n\
+             --- pattern ---\n\
+             %s\n\
+             --- end pattern ---\n\
+             Pattern error: %s\n"
+            (Xlang.to_string xlang) pattern message;
+        details = None;
+      }
+  | InvalidRule err -> error_of_invalid_rule err
+  | InvalidYaml (msg, pos) -> mk_error_tok rule_id file pos msg Out.InvalidYaml
+  | DuplicateYamlKey (s, pos) -> mk_error_tok rule_id file pos s Out.InvalidYaml
   (* TODO?? *)
-  | UnparsableYamlException _ -> None
+  | UnparsableYamlException s ->
+      (* Based on what previously happened based on exn_to_error logic before
+         converting Rule parsing errors to not be exceptions. *)
+      mk_error ~rule_id ~msg:s
+        (if not (Fpath_.is_fake_file file) then Tok.first_loc_of_file !!file
+         else Tok.fake_location)
+        Out.OtherParseError
 
 (*
    This function converts known exceptions to Semgrep errors.
@@ -169,13 +169,14 @@ let opt_error_of_rule_error ~file (err : Rule.error) : t option =
    reporting.
    - TODO: naming exns?
 *)
-let known_exn_to_error rule_id file (e : Exception.t) : t option =
+let known_exn_to_error (rule_id : Rule_ID.t option) (file : Fpath.t)
+    (e : Exception.t) : t option =
   match Exception.get_exn e with
   (* TODO: Move the cases handling Parsing_error.XXX to the Parsing_error
      module so that we can use it for the exception printers that are
      registered there. *)
   | Parsing_error.Lexical_error (s, tok) ->
-      Some (mk_error_tok ~file rule_id tok s OutJ.LexicalError)
+      Some (mk_error_tok rule_id file tok s Out.LexicalError)
   | Parsing_error.Syntax_error tok ->
       let msg =
         match tok with
@@ -188,29 +189,29 @@ let known_exn_to_error rule_id file (e : Exception.t) : t option =
         | Tok.OriginTok { str; _ } -> spf "`%s` was unexpected" str
         | __else__ -> "unknown reason"
       in
-      Some (mk_error_tok ~file rule_id tok msg OutJ.ParseError)
+      Some (mk_error_tok rule_id file tok msg Out.ParseError)
   | Parsing_error.Other_error (s, tok) ->
-      Some (mk_error_tok ~file rule_id tok s OutJ.OtherParseError)
+      Some (mk_error_tok rule_id file tok s Out.OtherParseError)
   | AST_generic.Error (s, tok) ->
-      Some (mk_error_tok ~file rule_id tok s OutJ.AstBuilderError)
-  | Rule.Error err -> opt_error_of_rule_error ~file err
+      Some (mk_error_tok rule_id file tok s Out.AstBuilderError)
   | Time_limit.Timeout timeout_info ->
       let s = Printexc.get_backtrace () in
       Log.warn (fun m -> m "WEIRD Timeout converted to exn, backtrace = %s" s);
       (* This exception should always be reraised. *)
-      let loc = Tok.first_loc_of_file file in
+      let loc = Tok.first_loc_of_file !!file in
       let msg = Time_limit.string_of_timeout_info timeout_info in
-      Some (mk_error rule_id loc msg OutJ.Timeout)
+      Some (mk_error ~rule_id ~msg loc Out.Timeout)
   | Memory_limit.ExceededMemoryLimit msg ->
-      let loc = Tok.first_loc_of_file file in
-      Some (mk_error rule_id loc msg OutJ.OutOfMemory)
+      let loc = Tok.first_loc_of_file !!file in
+      Some (mk_error ~rule_id ~msg loc Out.OutOfMemory)
   | Out_of_memory ->
-      let loc = Tok.first_loc_of_file file in
-      Some (mk_error rule_id loc "Heap space exceeded" OutJ.OutOfMemory)
+      let loc = Tok.first_loc_of_file !!file in
+      Some (mk_error ~rule_id ~msg:"Heap space exceeded" loc Out.OutOfMemory)
   (* general case, can't extract line information from it, default to line 1 *)
   | _exn -> None
 
-let exn_to_error rule_id file (e : Exception.t) : t =
+let exn_to_error (rule_id : Rule_ID.t option) (file : Fpath.t) (e : Exception.t)
+    : t =
   match known_exn_to_error rule_id file e with
   | Some err -> err
   | None -> (
@@ -225,7 +226,7 @@ let exn_to_error rule_id file (e : Exception.t) : t =
           let loc =
             (* TODO: we shouldn't build Tok.t w/out a filename, but
                lets do it here so we don't crash until we do *)
-            if not String.(equal file "") then Tok.first_loc_of_file file
+            if not (Fpath_.is_fake_file file) then Tok.first_loc_of_file !!file
             else Tok.fake_location
           in
           {
@@ -238,7 +239,7 @@ let exn_to_error rule_id file (e : Exception.t) : t =
              * we can recover from it, so let's generate a OtherParseError
              * instead.
              *)
-            typ = OutJ.OtherParseError;
+            typ = Out.OtherParseError;
             loc;
             msg = Printexc.to_string exn;
             details = Some trace;
@@ -262,10 +263,10 @@ let string_of_error err =
   spf "%s:%d:%d: %s: %s%s"
     (source_of_string pos.Tok.pos.file)
     pos.Tok.pos.line pos.Tok.pos.column
-    (OutJ.string_of_error_type err.typ)
+    (Out.string_of_error_type err.typ)
     err.msg details
 
-let severity_of_error (typ : OutJ.error_type) : OutJ.error_severity =
+let severity_of_error (typ : Out.error_type) : Out.error_severity =
   match typ with
   | SemgrepMatchFound -> `Error
   | MatchingError -> `Warning
@@ -299,19 +300,19 @@ let severity_of_error (typ : OutJ.error_type) : OutJ.error_severity =
 (* Try with error, mostly used in testing code *)
 (*****************************************************************************)
 
-let try_with_exn_to_error (file : Fpath.t) f =
+let try_with_result_to_error (file : Fpath.t) f =
   try f () with
   | Time_limit.Timeout _ as exn -> Exception.catch_and_reraise exn
   | exn ->
       let e = Exception.catch exn in
-      Stack_.push (exn_to_error None !!file e) g_errors
+      Error (exn_to_error None file e)
 
 let try_with_log_exn_and_reraise (file : Fpath.t) f =
   try f () with
   | Time_limit.Timeout _ as exn -> Exception.catch_and_reraise exn
   | exn ->
       let e = Exception.catch exn in
-      let err = exn_to_error None !!file e in
+      let err = exn_to_error None file e in
       (* nosemgrep: no-logs-in-library *)
       Logs.err (fun m -> m "%s" (string_of_error err));
       Exception.reraise e

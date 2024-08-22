@@ -99,7 +99,7 @@ let create caps capabilities =
   }
 
 let dirty_paths_of_folder folder =
-  let git_repo = Git_wrapper.get_project_root_for_files_in_dir folder in
+  let git_repo = Git_wrapper.project_root_for_files_in_dir folder in
   if Option.is_some git_repo then
     let dirty_paths = Git_wrapper.dirty_paths ~cwd:folder () in
     Some (List_.map (fun x -> folder // x) dirty_paths)
@@ -117,7 +117,8 @@ let decode_rules caps data =
               m "Loaded %d rules from Semgrep Deployment"
                 (List.length res.rules));
           Logs.app (fun m ->
-              m "Got %d errors from Semgrep Deployment" (List.length res.errors));
+              m "Got %d errors from Semgrep Deployment"
+                (List.length res.invalid_rules));
           res
       | Error _err ->
           (* There shouldn't be any errors, because we got these rules from CI. *)
@@ -145,7 +146,7 @@ let send_metrics ?core_time ?profiler ?cli_output session =
     api_token
     |> Option.iter (fun (_token : Auth.token) ->
            Metrics_.g.payload.environment.isAuthenticated <- true);
-    Git_wrapper.get_project_url () |> Option.iter Metrics_.add_project_url_hash;
+    Git_wrapper.project_url () |> Option.iter Metrics_.add_project_url_hash;
     cli_output
     |> Option.iter (fun (o : OutJ.cli_output) -> Metrics_.add_errors o.errors);
     profiler |> Option.iter Metrics_.add_profiling;
@@ -168,13 +169,15 @@ let send_metrics ?core_time ?profiler ?cli_output session =
     Metrics_.g.payload.environment.deployment_id <-
       session.cached_session.deployment_id;
     Metrics_.prepare_to_send ();
-    Lwt.async (fun () ->
+    (* Lwt.async really ok here since we hope metrics send but it doesn't
+       impact state at all so *)
+    Lwt.dont_wait
+      (fun () ->
         (* Don't worry if metrics fail to send, and don't notify user *)
-        try%lwt Semgrep_Metrics.send_async session.caps with
-        | e ->
-            Logs.err (fun m ->
-                m "Failed to send metrics: %s" (Printexc.to_string e));
-            Lwt.return_unit))
+        Semgrep_Metrics.send_async session.caps)
+      (fun exn ->
+        Logs.err (fun m ->
+            m "Failed to send metrics: %s" (Printexc.to_string exn))))
 
 (*****************************************************************************)
 (* State getters *)
@@ -296,7 +299,7 @@ let fetch_rules session =
     let rules_and_origins_nested, errors_nested =
       Common2.unzip rules_and_errors
     in
-    (List.flatten rules_and_origins_nested, List.flatten errors_nested)
+    (List_.flatten rules_and_origins_nested, List_.flatten errors_nested)
   in
 
   Logs.info (fun m ->
@@ -308,8 +311,8 @@ let fetch_rules session =
     | Some r -> r :: rules_and_origins
     | None -> rules_and_origins
   in
-  let rules, errors =
-    Rule_fetching.partition_rules_and_errors rules_and_origins
+  let rules, invalid_rules =
+    Rule_fetching.partition_rules_and_invalid rules_and_origins
   in
   let rules =
     List_.uniq_by
@@ -325,11 +328,11 @@ let fetch_rules session =
         exclude_products = [ `SCA; `Secrets ];
       }
   in
-  let rules, errors =
-    (Rule_filtering.filter_rules rule_filtering_conf rules, errors)
+  let rules, invalid_rules =
+    (Rule_filtering.filter_rules rule_filtering_conf rules, invalid_rules)
   in
 
-  Lwt.return (rules, errors)
+  Lwt.return (rules, invalid_rules)
 
 let fetch_skipped_app_fingerprints caps =
   (* At some point we should allow users to ignore ids locally *)
@@ -431,29 +434,26 @@ let add_skipped_fingerprint session fingerprint =
   }
 
 let add_open_document session file =
-  Lwt.async (fun () ->
-      Lwt_mutex.with_lock session.cached_session.lock (fun () ->
-          session.cached_session.open_documents <-
-            file :: session.cached_session.open_documents;
-          Lwt.return_unit))
+  Lwt_mutex.with_lock session.cached_session.lock (fun () ->
+      session.cached_session.open_documents <-
+        file :: session.cached_session.open_documents;
+      Lwt.return_unit)
 
 let remove_open_document session file =
-  Lwt.async (fun () ->
-      Lwt_mutex.with_lock session.cached_session.lock (fun () ->
-          session.cached_session.open_documents <-
-            List.filter
-              (fun f -> not (Fpath.equal f file))
-              session.cached_session.open_documents;
-          Lwt.return_unit))
+  Lwt_mutex.with_lock session.cached_session.lock (fun () ->
+      session.cached_session.open_documents <-
+        List.filter
+          (fun f -> not (Fpath.equal f file))
+          session.cached_session.open_documents;
+      Lwt.return_unit)
 
 let remove_open_documents session files =
-  Lwt.async (fun () ->
-      Lwt_mutex.with_lock session.cached_session.lock (fun () ->
-          session.cached_session.open_documents <-
-            List.filter
-              (fun f -> not (List.mem f files))
-              session.cached_session.open_documents;
-          Lwt.return_unit))
+  Lwt_mutex.with_lock session.cached_session.lock (fun () ->
+      session.cached_session.open_documents <-
+        List.filter
+          (fun f -> not (List.mem f files))
+          session.cached_session.open_documents;
+      Lwt.return_unit)
 
 let update_workspace_folders ?(added = []) ?(removed = []) session =
   let workspace_folders =

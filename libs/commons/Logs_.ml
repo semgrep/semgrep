@@ -311,6 +311,25 @@ let setup ?(highlight_setting = Console.get_highlight_setting ())
                src_name))
 
 (*****************************************************************************)
+(* Poor's man tracing *)
+(*****************************************************************************)
+
+let debug_trace_src = Logs.Src.create "debug_trace"
+
+let with_debug_trace ?(src = debug_trace_src) (name : string) (f : unit -> 'a) :
+    'a =
+  Logs.debug ~src (fun m -> m "starting %s" name);
+  try
+    let res = f () in
+    Logs.debug ~src (fun m -> m "finished %s" name);
+    res
+  with
+  | exn ->
+      let ex = Exception.catch exn in
+      Logs.err ~src (fun m -> m "exception during %s" name);
+      Exception.reraise ex
+
+(*****************************************************************************)
 (* Missing basic functions *)
 (*****************************************************************************)
 

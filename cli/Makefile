@@ -31,7 +31,9 @@ check-markers:
 clean:
 	rm -rf build/ semgrep.egg-info/ .eggs/
 	rm -rf .pytest_cache/ .benchmarks/
-	rm -f cli/src/semgrep/bin/semgrep-core
+# clean also the semgrep-pro artifacts, not just semgrep-core
+	rm -f src/semgrep/bin/semgrep-core*
+	rm -f src/semgrep/bin/pro-installed-by.txt
 
 Pipfile.lock: setup.py
 	pipenv update

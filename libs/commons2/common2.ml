@@ -633,29 +633,6 @@ let take_one xs =
 *)
 
 (*****************************************************************************)
-(* Persistence *)
-(*****************************************************************************)
-
-let get_value filename =
-  let chan = UStdlib.open_in_bin filename in
-  let x = UStdlib.input_value chan in
-  (* <=> Marshal.from_channel  *)
-  close_in chan;
-  x
-
-let write_value valu filename =
-  let chan = UStdlib.open_out_bin filename in
-  UStdlib.output_value chan valu;
-  (* <=> Marshal.to_channel *)
-  (* Marshal.to_channel chan valu [Marshal.Closures]; *)
-  close_out chan
-
-let write_back func filename = write_value (func (get_value filename)) filename
-let read_value f = get_value f
-let marshal__to_string v flags = Marshal.to_string v flags
-let marshal__from_string v flags = UMarshal.from_string v flags
-
-(*****************************************************************************)
 (* Counter *)
 (*****************************************************************************)
 let _counter = ref 0
@@ -1804,7 +1781,7 @@ let files_of_dir_or_files_no_vcs ext xs =
              ("find " ^ arg_symlink () ^ x ^ " -noleaf -type f -name \"*." ^ ext
             ^ "\"" ^ grep_dash_v_str)
          else [ x ])
-  |> List.concat
+  |> List_.flatten
 
 (*****************************************************************************)
 (* i18n *)
@@ -2366,7 +2343,7 @@ let nblines_eff2 file =
 
 (* could be in h_files-format *)
 let words_of_string_with_newlines s =
-  lines s |> List.map words |> List.flatten |> exclude String_.empty
+  lines s |> List.map words |> List_.flatten |> exclude String_.empty
 
 let lines_with_nl_either s =
   let xs = Str.full_split (Str.regexp "\n") s in
@@ -3389,7 +3366,7 @@ let rec sorted_keep_best f = function
 
 let (cartesian_product : 'a list -> 'b list -> ('a * 'b) list) =
  fun xs ys ->
-  xs |> List.map (fun x -> ys |> List.map (fun y -> (x, y))) |> List.flatten
+  xs |> List.map (fun x -> ys |> List.map (fun y -> (x, y))) |> List_.flatten
 
 let _ =
   assert_equal
@@ -3561,7 +3538,7 @@ let (columns_of_matrix : 'a matrix -> 'a list list) =
   |> List.map (fun j ->
          List_.enum 0 (nbrows - 1) |> List.map (fun i -> m.(i).(j)))
 
-let all_elems_matrix_by_row m = rows_of_matrix m |> List.flatten
+let all_elems_matrix_by_row m = rows_of_matrix m |> List_.flatten
 let ex_matrix1 = [| [| 0; 1; 2 |]; [| 3; 4; 5 |]; [| 6; 7; 8 |] |]
 let ex_rows1 = [ [ 0; 1; 2 ]; [ 3; 4; 5 ]; [ 6; 7; 8 ] ]
 let ex_columns1 = [ [ 0; 3; 6 ]; [ 1; 4; 7 ]; [ 2; 5; 8 ] ]
@@ -4593,6 +4570,20 @@ let regression_testing_vs newscore bestscore =
   flush UStdlib.stdout;
   flush UStdlib.stderr;
   newbestscore
+
+let get_value filename =
+  let chan = UStdlib.open_in_bin filename in
+  let x = UStdlib.input_value chan in
+  (* <=> Marshal.from_channel  *)
+  close_in chan;
+  x
+
+let write_value valu filename =
+  let chan = UStdlib.open_out_bin filename in
+  UStdlib.output_value chan valu;
+  (* <=> Marshal.to_channel *)
+  (* Marshal.to_channel chan valu [Marshal.Closures]; *)
+  close_out chan
 
 let regression_testing newscore best_score_file =
   pr2 ("regression file: " ^ best_score_file);

@@ -87,6 +87,35 @@ jobs:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         name: Bump semgrep version in semgrep/semgrep-intellij
         run: gh workflow run bump_version.yml --repo "semgrep/semgrep-intellij" --raw-field version="${{ needs.get-version.outputs.version }}"
+  bump-semgrep-pre-commit:
+    if: ${{ ! inputs.dry-run }}
+    needs:
+      - get-version
+      - validate-release-trigger
+      - release-setup
+    runs-on: ubuntu-22.04
+    steps:
+      - env:
+          EXPIRATION: 600
+          ISSUER: ${{ secrets.SEMGREP_CI_APP_ID }}
+          PRIVATE_KEY: ${{ secrets.SEMGREP_CI_APP_KEY }}
+        id: jwt
+        name: Get JWT for semgrep-ci GitHub App
+        uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
+      - id: token
+        name: Get token for semgrep-ci GitHub App
+        run: |
+          TOKEN="$(curl -X POST \
+          -H "Authorization: Bearer ${{ steps.jwt.outputs.jwt }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
+          jq -r .token)"
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
+      - env:
+          GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+        name: Bump semgrep version in semgrep/pre-commit
+        run: gh workflow run bump_version.yml --repo "semgrep/pre-commit" --raw-field version="${{ needs.get-version.outputs.version }}"
   bump-semgrep-rpc:
     if: ${{ ! inputs.dry-run }}
     needs:
@@ -299,6 +328,7 @@ jobs:
       - release-setup
       - validate-release-trigger
       - bump-semgrep-action
+      - bump-semgrep-pre-commit
       - bump-semgrep-rpc
       - bump-semgrep-app
       - bump-semgrep-vscode
@@ -381,7 +411,7 @@ jobs:
       - if: ${{ ! inputs.dry-run }}
         name: Create GitHub Release Body
         run: |
-          pip3 install pipenv==2024.0.1
+          pip install pipenv==2024.0.1
           pipenv install --dev
 
           pipenv run towncrier build --draft --version ${{ needs.get-version.outputs.version }} > release_body.txt
@@ -394,7 +424,7 @@ jobs:
           path: scripts/release/release_body.txt
       - name: Update Changelog
         run: |
-          pip3 install pipenv==2024.0.1
+          pip install pipenv==2024.0.1
           pipenv install --dev
 
           pipenv run towncrier build --yes --version ${{ needs.get-version.outputs.version }}

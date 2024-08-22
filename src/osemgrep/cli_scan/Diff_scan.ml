@@ -205,7 +205,7 @@ let scan_baseline (caps : < Cap.chdir ; Cap.tmp >) (conf : Scan_CLI.conf)
   Logs.info (fun m ->
       m "running differential scan on base commit %s" baseline_commit);
   Metrics_.g.payload.environment.isDiffScan <- true;
-  let commit = Git_wrapper.get_merge_base baseline_commit in
+  let commit = Git_wrapper.merge_base baseline_commit in
   let status = Git_wrapper.status ~cwd:(Fpath.v ".") ~commit () in
   let diff_depth = Differential_scan_config.default_depth in
   let targets, diff_targets =

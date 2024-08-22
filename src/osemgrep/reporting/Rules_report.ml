@@ -34,9 +34,11 @@ let pp_rules ppf (rules_source, filtered_rules) =
   let sorted =
     List.sort (fun r1 r2 -> Rule_ID.compare (rule_id r1) (rule_id r2))
   in
-  sorted normal
-  |> List.iter (fun rule ->
-         Fmt.pf ppf "- %s@." (Rule_ID.to_string (rule_id rule)));
+  if List.length normal <= Log_semgrep.too_many_entries then
+    sorted normal
+    |> List.iter (fun rule ->
+           Fmt.pf ppf "- %s@." (Rule_ID.to_string (rule_id rule)))
+  else Fmt.pf ppf "%s" Log_semgrep.too_much_data;
   match exp with
   | [] -> ()
   | __non_empty__ ->

@@ -428,7 +428,21 @@ and node_kind =
    * condition as in 'NCond'. *)
   | TrueNode of exp (* same as in Cond *)
   | FalseNode of exp (* same as in Cond *)
-  | Join (* after Cond *)
+  (* Join is a type of join that follows NCond only,
+   * while OtherJoin follows other nodes (e.g., NInstr, NLambda) but not NCond.
+   *
+   * we need the two kinds of joins because not only do we add joins
+   * after NCond, we also add joins after NInstr/ NLamdba for handling
+   * the insertion of the lambda CFG (see cfg_stmt, cfg_lambda)
+   * and the translation of the set of lambdas used in a node
+   * (see build_cfg_for_lambdas_in). and in some cases, we want to
+   * have a clear distinction between the two uses.
+   *
+   * in general, we can treat Join and OtherJoin as the same, unless
+   * we need to separate out the conditional case, such as in Dataflow_when.ml.
+   *)
+  | Join
+  | OtherJoin
   | NInstr of instr
   | NCond of tok * exp
   | NGoto of tok * label

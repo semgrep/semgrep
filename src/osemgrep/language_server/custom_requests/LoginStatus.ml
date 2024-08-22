@@ -4,5 +4,5 @@ module OutJ = Semgrep_output_v1_t
 
 let meth = "semgrep/loginStatus"
 
-let on_request (_server : RPC_server.t) _params : Yojson.Safe.t option =
-  Some (`Assoc [ ("loggedIn", `Bool (Semgrep_login.is_logged_in ())) ])
+let on_request (_session : Session.t) _params : Yojson.Safe.t option =
+  Some (`Assoc [ ("loggedIn", `Bool (Semgrep_settings.has_api_token ())) ])

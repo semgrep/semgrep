@@ -812,7 +812,7 @@ let shell_command (env : env) (x : CST.shell_command) =
                in
                let shell_frag = shell_fragment env v2 in
                [ shell_line_cont; shell_frag ])
-        |> List.flatten
+        |> List_.flatten
       in
       let raw_shell_code = concat_shell_fragments first_frag more_frags in
       let _, shell_compat = env.extra in
@@ -1070,10 +1070,23 @@ let rec instruction (env : env) (x : CST.instruction) : env * instruction =
             | `Semg_meta tok ->
                 Healthcheck_semgrep_metavar
                   (str env tok (* pattern \$[A-Z_][A-Z_0-9]* *))
+            | `Semg_ellips tok ->
+                let tok = token env tok in
+                Healthcheck_ellipsis tok
             | `NONE tok -> Healthcheck_none (token env tok (* "NONE" *))
-            | `Rep_param_cmd_inst (v1, (name (* CMD *), args)) ->
-                let params = List_.map (param env) v1 in
-                let params_loc = Tok_range.of_list param_loc params in
+            | `Rep_choice_semg_ellips_cmd_inst (v1, (name (* CMD *), args)) ->
+                let params =
+                  List_.map
+                    (function
+                      | `Param x -> ParamParam (param env x)
+                      | `Semg_ellips tok ->
+                          let tok = token env tok in
+                          ParamEllipsis tok)
+                    v1
+                in
+                let params_loc =
+                  Tok_range.of_list param_or_ellipsis_loc params
+                in
                 let cmd_loc, name, run_params, args =
                   runlike_instruction env name [] args
                 in

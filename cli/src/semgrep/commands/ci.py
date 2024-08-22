@@ -18,6 +18,7 @@ from rich.progress import SpinnerColumn
 from rich.progress import TextColumn
 from rich.table import Table
 
+import semgrep.rpc_call
 import semgrep.run_scan
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import tracing
@@ -162,7 +163,6 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     "--secrets",
     "run_secrets_flag",
     is_flag=True,
-    help="Run Semgrep Secrets product, including support for secret validation. Requires access to Secrets, contact support@semgrep.com for more information.",
 )
 @click.option(
     "--suppress-errors/--no-suppress-errors",
@@ -173,7 +173,6 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
 @click.option(
     "--subdir",
     type=click.Path(allow_dash=True, path_type=Path),
-    help="Scan only a subdirectory of this folder. This creates a project specific to the subdirectory unless SEMGREP_REPO_DISPLAY_NAME is set. Expects a relative path. (Note that when two scans have the same SEMGREP_REPO_DISPLAY_NAME but different targeted directories, the results of the second scan overwrite the first.)",
 )
 @click.option(
     "--internal-ci-scan-results",
@@ -256,6 +255,7 @@ def ci(
         state.metrics.configure(metrics)
         state.error_handler.configure(suppress_errors)
         scan_handler = None
+        capture_core_stderr = not debug
 
         if subdir:
             subdir = subdir.resolve()  # normalize path & resolve symlinks
@@ -541,7 +541,7 @@ def ci(
             "baseline_commit": metadata.merge_base_ref,
             "baseline_commit_is_mergebase": True,
             "diff_depth": diff_depth,
-            "dump_contributions": True,
+            "capture_core_stderr": capture_core_stderr,
         }
 
         try:
@@ -565,7 +565,6 @@ def ci(
                 shown_severities,
                 dependencies,
                 dependency_parser_errors,
-                contributions,
                 _executed_rule_count,
                 _missed_rule_count,
             ) = semgrep.run_scan.run_scan(**run_scan_args)
@@ -620,7 +619,6 @@ def ci(
                     _historical_dependencies,
                     _historical_dependency_parser_errors,
                     # Usage limits currently only consider last 30 days.
-                    _historical_contributions,
                     _executed_rule_count,
                     _missed_rule_count,
                 ) = semgrep.run_scan.run_scan(
@@ -649,13 +647,11 @@ def ci(
         # Split up rules into respective categories:
         blocking_rules: List[Rule] = []
         nonblocking_rules: List[Rule] = []
-        prev_scan_rules: List[Rule] = []
-        cai_rules: List[Rule] = []
         for rule in filtered_rules:
             if "r2c-internal-cai" in rule.id:
-                cai_rules.append(rule)
+                pass
             elif rule.from_transient_scan:
-                prev_scan_rules.append(rule)
+                pass
             elif rule.is_blocking:
                 blocking_rules.append(rule)
             else:
@@ -730,6 +726,7 @@ def ci(
         )
 
         complete_result: ScanCompleteResult | None = None
+        contributions = semgrep.rpc_call.contributions()
         if scan_handler:
             with Progress(
                 TextColumn("  {task.description}"),
@@ -783,7 +780,7 @@ def ci(
                 )
                 if "r2c-internal-project-depends-on" in scan_handler.rules:
                     logger.info(
-                        f"    {state.env.semgrep_url}/orgs/{scan_handler.deployment_name}/supply-chain"
+                        f"    {state.env.semgrep_url}/orgs/{scan_handler.deployment_name}/supply-chain/vulnerabilities?repo={metadata.repo_display_name}{ref_if_available}"
                     )
 
         audit_mode = metadata.event_name in audit_on

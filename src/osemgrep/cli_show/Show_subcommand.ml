@@ -80,14 +80,18 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
   (* TODO? error management? improve error message for parse errors?
    * or let CLI.safe_run do the right thing?
    *)
-  | DumpPattern (str, lang) ->
+  | DumpPattern (str, lang) -> (
       (* mostly a copy paste of Core_CLI.dump_pattern *)
       (* TODO: maybe enable the "semgrep.parsing" src here *)
-      let any = Parse_pattern.parse_pattern lang str in
-      let v = Meta_AST.vof_any any in
-      let s = dump_v_to_format ~json:conf.json v in
-      CapConsole.print stdout s;
-      Exit_code.ok ~__LOC__
+      match Parse_pattern.parse_pattern lang str with
+      | Ok any ->
+          let v = Meta_AST.vof_any any in
+          let s = dump_v_to_format ~json:conf.json v in
+          CapConsole.print stdout s;
+          Exit_code.ok ~__LOC__
+      | Error s ->
+          Logs.app (fun m -> m "Parse error: %s" s);
+          Exit_code.invalid_pattern ~__LOC__)
   | DumpAST (file, lang) ->
       (* mostly a copy paste of Core_CLI.dump_ast *)
       let { Parsing_result2.ast; skipped_tokens = _; _ } =

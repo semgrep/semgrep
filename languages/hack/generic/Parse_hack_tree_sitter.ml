@@ -1779,7 +1779,7 @@ and member_declarations (env : env) ((v1, v2, v3) : CST.member_declarations) =
       v2
   in
   let v3 = (* "}" *) token env v3 in
-  (v1, List.flatten v2, v3)
+  (v1, List_.flatten v2, v3)
 
 and method_declaration (env : env) ((v1, v2, v3, v4) : CST.method_declaration) =
   let v1 =
@@ -2715,7 +2715,7 @@ and variablish (env : env) (x : CST.variablish) : G.expr =
             v2)
           v4
       in
-      let exprs = v3 @ List.flatten v4 in
+      let exprs = v3 @ List_.flatten v4 in
       let _v5 =
         match v5 with
         | Some tok -> (* "," *) Some (token env tok)

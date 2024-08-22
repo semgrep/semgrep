@@ -55,7 +55,7 @@ let test_scan_config_registry_no_token (caps : CLI.caps) =
 let test_scan_config_registry_with_invalid_token caps : Testo.t =
   Testo.create ~checked_output:(Testo.stderr ()) __FUNCTION__
     ~normalize:[ Testo.mask_not_substrings [ "Saved access token" ] ]
-    (TL.with_login_test_env (fun () ->
+    (Testutil_login.with_login_test_env (fun () ->
          Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" TL.fake_token
            (fun () ->
              TL.with_fake_deployment_response TL.fake_deployment (fun () ->
@@ -95,7 +95,7 @@ let test_scan_config_registry_with_invalid_token caps : Testo.t =
              (* we got the exn as intended, good *)
              Alcotest.(check string)
                __LOC__
-               {|Failed to download config from https://semgrep.dev/c/r/python.lang.correctness.useless-eqeq.useless-eqeq, returned code 401: {"error":"Invalid Authorization"}|}
+               {|Failed to download config from https://semgrep.dev/c/r/python.lang.correctness.useless-eqeq.useless-eqeq, returned code 401: {"error":"Not authorized"}|}
                msg;
              ()))
 

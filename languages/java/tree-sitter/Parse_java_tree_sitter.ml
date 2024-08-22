@@ -1309,7 +1309,7 @@ and class_body_decl env (x : CST.class_body_declaration) =
 and enum_body_declarations (env : env) ((v1, v2) : CST.enum_body_declarations) =
   let _v1 = token env v1 (* ";" *) in
   let v2 = List_.map (fun x -> class_body_decl env x) v2 in
-  List.flatten v2
+  List_.flatten v2
 
 and enum_constant (env : env) ((v1, v2, v3, v4) : CST.enum_constant) =
   let _v1 = modifiers_opt env v1 in
@@ -1461,7 +1461,7 @@ and class_body (env : env) ((v1, v2, v3) : CST.class_body) =
   let v1 = token env v1 (* "{" *) in
   let v2 = List_.map (fun x -> class_body_decl env x) v2 in
   let v3 = token env v3 (* "}" *) in
-  (v1, List.flatten v2, v3)
+  (v1, List_.flatten v2, v3)
 
 and static_initializer (env : env) ((v1, v2) : CST.static_initializer) =
   let v1 = token env v1 (* "static" *) in
@@ -1571,7 +1571,7 @@ and annotation_type_body (env : env) ((v1, v2, v3) : CST.annotation_type_body) =
       v2
   in
   let v3 = token env v3 (* "}" *) in
-  (v1, List.flatten v2, v3)
+  (v1, List_.flatten v2, v3)
 
 and annotation_type_element_declaration (env : env)
     ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.annotation_type_element_declaration)
@@ -1653,7 +1653,7 @@ and interface_body (env : env) ((v1, v2, v3) : CST.interface_body) =
       v2
   in
   let v3 = token env v3 (* "}" *) in
-  (v1, List.flatten v2, v3)
+  (v1, List_.flatten v2, v3)
 
 and constant_declaration (env : env)
     ((v1, v2, v3, v4) : CST.constant_declaration) =

@@ -222,7 +222,7 @@ let impl xs =
              in
              [ item; item2 ]
          | x -> [ x ])
-  |> List.concat
+  |> List_.flatten
 
 (*****************************************************************************)
 (* Entry point *)

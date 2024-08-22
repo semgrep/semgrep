@@ -36,7 +36,19 @@ module Log = Log_engine.Log
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type value = Eval_generic_partial.value [@@deriving show]
+type value =
+  | Bool of bool
+  | Int of int64
+  | Float of float
+  | String of string (* string without the enclosing '"' *)
+  | List of value list
+  (* default case where we don't really have good builtin operations.
+   * This should be a AST_generic.any once parsed.
+   * See JSON_report.json_metavar().
+   *)
+  | AST of string (* any AST, e.g., "x+1" *)
+(* less: Id of string (* simpler to merge with AST *) *)
+[@@deriving show]
 
 type env = {
   mvars : (MV.mvar, value) Hashtbl.t;
@@ -87,7 +99,7 @@ let parse_json (file : string) : env * code =
           (* less: could also use Parse_pattern *)
           let code =
             match Parse_pattern.parse_pattern lang code with
-            | G.E e -> e
+            | Ok (G.E e) -> e
             | _ -> failwith "only expressions are supported"
           in
           let metavars =
@@ -254,7 +266,7 @@ let rec eval env code =
   | G.Call ({ e = IdSpecial (ConcatString op, _); _ }, (_, args, _)) ->
       String (eval_concat_string_op env code op args)
   | G.N (G.Id ((s, _t), _idinfo))
-    when MV.is_metavar_name s || MV.is_metavar_ellipsis s -> (
+    when Mvar.is_metavar_name s || Mvar.is_metavar_ellipsis s -> (
       try Hashtbl.find env.mvars s with
       | Not_found ->
           Log.warn (fun m -> m "could not find a value for %s in env" s);
@@ -585,7 +597,7 @@ let eval_opt env e =
       Log.err (fun m -> m "NotHandled: %s" (G.show_expr e));
       None
 
-let eval_bool env e facts =
+let eval_bool env e facts bindings =
   let res = eval_opt env e in
   match res with
   | Some (Bool b) -> b
@@ -603,9 +615,9 @@ let eval_bool env e facts =
        *)
       match !Dataflow_when.hook_facts_satisfy_e with
       | None -> false
-      | Some facts_satisfy_e -> facts_satisfy_e env.mvars facts e)
+      | Some facts_satisfy_e -> facts_satisfy_e bindings facts e)
   | None -> (
       Log.err (fun m -> m "got exn during eval_bool");
       match !Dataflow_when.hook_facts_satisfy_e with
       | None -> false
-      | Some facts_satisfy_e -> facts_satisfy_e env.mvars facts e)
+      | Some facts_satisfy_e -> facts_satisfy_e bindings facts e)

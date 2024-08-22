@@ -139,7 +139,7 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
         if timeout_threshold > 0 && !cnt_timeout >= timeout_threshold then
           raise (File_timeout !rule_timeouts);
         let loc = Tok.first_loc_of_file file in
-        let error = E.mk_error (Some rule_id) loc "" OutJ.Timeout in
+        let error = E.mk_error ~rule_id:(Some rule_id) loc OutJ.Timeout in
         RP.mk_match_result []
           (Core_error.ErrorSet.singleton error)
           (Core_profiling.empty_rule_profiling rule)
@@ -199,7 +199,6 @@ let check ~match_hook ~timeout ~timeout_threshold
   let relevant_taint_rules_groups, relevant_nontaint_rules, _skipped_rules =
     group_rules xconf rules xtarget
   in
-
   let res_taint_rules =
     relevant_taint_rules_groups
     |> List.concat_map (fun relevant_taint_rules ->
@@ -215,16 +214,20 @@ let check ~match_hook ~timeout ~timeout_threshold
            per_rule_boilerplate_fn
              (r :> R.rule)
              (fun () ->
-               (* dispatching *)
-               match r.R.mode with
-               | `Search _ as mode ->
-                   Match_search_mode.check_rule { r with mode } match_hook xconf
-                     xtarget
-               | `Extract extract_spec ->
-                   Match_search_mode.check_rule
-                     { r with mode = `Search extract_spec.R.formula }
-                     match_hook xconf xtarget
-               | `Steps _ -> raise Multistep_rules_not_available))
+               Logs_.with_debug_trace "Match_rules.check_rule" (fun () ->
+                   Log.debug (fun m ->
+                       m "target: %s, ruleid: %s" !!internal_path_to_content
+                         (r.id |> fst |> Rule_ID.to_string));
+                   (* dispatching *)
+                   match r.R.mode with
+                   | `Search _ as mode ->
+                       Match_search_mode.check_rule { r with mode } match_hook
+                         xconf xtarget
+                   | `Extract extract_spec ->
+                       Match_search_mode.check_rule
+                         { r with mode = `Search extract_spec.R.formula }
+                         match_hook xconf xtarget
+                   | `Steps _ -> raise Multistep_rules_not_available)))
   in
   let res_total = res_taint_rules @ res_nontaint_rules in
   (* TODO: detect if a target was fully skipped because no rule

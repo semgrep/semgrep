@@ -299,6 +299,19 @@ let tmp_caps_UNSAFE () =
     method tmp = ()
   end
 
+(* !!DO NOT USE!! *)
+let stdout_caps_UNSAFE () =
+  object
+    method stdout = ()
+  end
+
+(* !!DO NOT USE!! *)
+let exec_and_tmp_caps_UNSAFE () =
+  object
+    method exec = ()
+    method tmp = ()
+  end
+
 (**************************************************************************)
 (* Entry point *)
 (**************************************************************************)

@@ -14,7 +14,7 @@
  *)
 open Common
 open Fpath_.Operators
-module OutJ = Semgrep_output_v1_j
+module Out = Semgrep_output_v1_j
 module E = Core_error
 
 (*****************************************************************************)
@@ -34,23 +34,29 @@ let timeout_function file timeout f =
   match
     Time_limit.set_timeout_opt ~name:"Run_semgrep.timeout_function" timeout f
   with
-  | Some res -> res
+  | Some res -> Ok res
   | None ->
       let loc = Tok.first_loc_of_file !!file in
-      let err = E.mk_error None loc "" OutJ.Timeout in
-      Stack_.push err E.g_errors
+      let err = E.mk_error loc Out.Timeout in
+      Error err
 
 (* for -e/-f *)
 let parse_pattern lang_pattern str =
-  try Parse_pattern.parse_pattern lang_pattern str with
-  | exn ->
-      Logs.err (fun m -> m "parse_pattern: exn = %s" (Common.exn_to_s exn));
-      Rule.raise_error None
-        (InvalidRule
-           ( InvalidPattern
-               (str, Xlang.of_lang lang_pattern, Common.exn_to_s exn, []),
-             Rule_ID.of_string_exn "no-id",
-             Tok.unsafe_fake_tok "no loc" ))
+  let error_of_string s =
+    let id = Rule_ID.of_string_exn "no-id" in
+    let tok = Tok.unsafe_fake_tok "no loc" in
+    let xlang = Xlang.of_lang lang_pattern in
+    Error
+      (Rule_error.mk_error
+         (InvalidRule (InvalidPattern (str, xlang, s, []), id, tok)))
+  in
+  match Parse_pattern.parse_pattern lang_pattern str with
+  | Ok pat -> Ok pat
+  | Error s -> error_of_string s
+  | exception exn ->
+      let s = Common.exn_to_s exn in
+      Logs.err (fun m -> m "exception in parse pattern: exn = %s" s);
+      error_of_string s
 [@@profiling]
 
 let output_core_results (caps : < Cap.stdout ; Cap.exit >)
@@ -65,15 +71,15 @@ let output_core_results (caps : < Cap.stdout ; Cap.exit >)
       let res =
         match result_or_exn with
         | Ok r -> r
-        | Error (exn, core_error_opt) ->
-            let err =
-              match core_error_opt with
-              | Some err -> err
-              | None -> E.exn_to_error None "" exn
-            in
-            Core_result.mk_final_result_with_just_errors [ err ]
+        | Error exn ->
+            let err = E.exn_to_error None Fpath_.fake_file exn in
+            Core_result.mk_result_with_just_errors [ err ]
       in
-      let res = Core_json_output.core_output_of_matches_and_errors res in
+      let res =
+        Logs_.with_debug_trace
+          "Core_command.core_output_of_matches_and_errors.1" (fun () ->
+            Core_json_output.core_output_of_matches_and_errors res)
+      in
       (*
         Not pretty-printing the json output (Yojson.Safe.prettify)
         because it kills performance, adding an extra 50% time on our
@@ -81,13 +87,13 @@ let output_core_results (caps : < Cap.stdout ; Cap.exit >)
         User should use an external tool like jq or ydump (latter comes with
         yojson) for pretty-printing json.
       *)
-      let s = OutJ.string_of_core_output res in
+      let s = Out.string_of_core_output res in
       Logs.debug (fun m ->
           m "size of returned JSON string: %d" (String.length s));
       CapConsole.print caps#stdout s;
       match result_or_exn with
-      | Error (e, _) ->
-          Core_exit_code.exit_semgrep caps#exit (Unknown_exception e)
+      | Error exn ->
+          Core_exit_code.exit_semgrep caps#exit (Unknown_exception exn)
       | Ok _ -> ())
   | Text -> (
       match result_or_exn with
@@ -102,7 +108,7 @@ let output_core_results (caps : < Cap.stdout ; Cap.exit >)
             res.errors
             |> List.iter (fun err ->
                    Logs.warn (fun m -> m "%s" (E.string_of_error err))))
-      | Error (exn, _) -> Exception.reraise exn)
+      | Error exn -> Exception.reraise exn)
 
 (*****************************************************************************)
 (* semgrep-core -rules *)
@@ -111,7 +117,7 @@ let output_core_results (caps : < Cap.stdout ; Cap.exit >)
 let semgrep_core_with_rules_and_formatted_output
     (caps : < Cap.stdout ; Cap.tmp ; Cap.exit >) (config : Core_scan_config.t) :
     unit =
-  let res = Core_scan.scan_with_exn_handler (caps :> < Cap.tmp >) config in
+  let res = Core_scan.scan (caps :> < Cap.tmp >) config in
   output_core_results (caps :> < Cap.stdout ; Cap.exit >) res config
 
 (*****************************************************************************)
@@ -136,17 +142,20 @@ let minirule_of_pattern lang pattern_string pattern =
  * need to generate a rule, sometimes a minirule
  *)
 let pattern_of_config lang (config : Core_scan_config.t) =
-  match (config.pattern_file, config.pattern_string) with
-  | None, None -> failwith "I need a pattern; use -f or -e"
-  | Some _s1, Some _s2 ->
-      failwith "I need just one pattern; use -f OR -e (not both)"
-  | Some file, None ->
-      let s = UFile.read_file file in
-      (parse_pattern lang s, s)
-  (* this is for Emma, who often confuses -e with -f :) *)
-  | None, Some s when s =~ ".*\\.sgrep$" ->
-      failwith "you probably want -f with a .sgrep file, not -e"
-  | None, Some s -> (parse_pattern lang s, s)
+  let pattern_string =
+    match (config.pattern_file, config.pattern_string) with
+    | None, None -> failwith "I need a pattern; use -f or -e"
+    | Some _s1, Some _s2 ->
+        failwith "I need just one pattern; use -f OR -e (not both)"
+    | Some file, None -> UFile.read_file file
+    (* this is for Emma, who often confuses -e with -f :) *)
+    | None, Some s when s =~ ".*\\.sgrep$" ->
+        failwith "you probably want -f with a .sgrep file, not -e"
+    | None, Some s -> s
+  in
+  match parse_pattern lang pattern_string with
+  | Ok pat -> (pat, pattern_string)
+  | Error e -> failwith ("parsing error: " ^ Rule_error.string_of_error e)
 
 (* simpler code path compared to scan() *)
 (* FIXME: don't use a different processing logic depending on the output
@@ -176,12 +185,16 @@ let semgrep_core_with_one_pattern (caps : < Cap.stdout ; Cap.tmp >)
         Rule.rule_of_xpattern xlang xpat
       in
       let config = { config with rule_source = Some (Rules [ rule ]) } in
-      let res = Core_scan.scan_with_exn_handler (caps :> < Cap.tmp >) config in
+      let res = Core_scan.scan (caps :> < Cap.tmp >) config in
       match res with
-      | Error (exn, _) -> Exception.reraise exn
+      | Error exn -> Exception.reraise exn
       | Ok res ->
-          let json = Core_json_output.core_output_of_matches_and_errors res in
-          let s = OutJ.string_of_core_output json in
+          let json =
+            Logs_.with_debug_trace
+              "Core_command.core_output_of_matches_and_errors.2" (fun () ->
+                Core_json_output.core_output_of_matches_and_errors res)
+          in
+          let s = Out.string_of_core_output json in
           CapConsole.print caps#stdout s)
   | Text ->
       let minirule, _rules_parse_time =
@@ -197,31 +210,39 @@ let semgrep_core_with_one_pattern (caps : < Cap.stdout ; Cap.tmp >)
       if config.filter_irrelevant_rules then
         Logs.warn (fun m ->
             m "-fast does not work with -f/-e, or you need also -json");
-      files
-      |> List.iter (fun (file : Fpath.t) ->
-             Logs.info (fun m -> m "processing: %s" !!file);
-             let process file =
-               timeout_function file config.timeout (fun () ->
-                   let ast =
-                     Parse_target.parse_and_resolve_name_warn_if_partial lang
-                       file
-                   in
-                   Match_patterns.check
-                     ~hook:(fun match_ ->
-                       Core_scan.print_match config match_
-                         Metavariable.ii_of_mval)
-                     ( Rule_options.default_config,
-                       Core_scan.parse_equivalences config.equivalences_file )
-                     minirule
-                     (file, File file, lang, ast)
-                   |> ignore)
-             in
+      let errors =
+        files
+        |> List.concat_map (fun (file : Fpath.t) ->
+               Logs.info (fun m -> m "processing: %s" !!file);
+               let process file =
+                 timeout_function file config.timeout (fun () ->
+                     let ast =
+                       Parse_target.parse_and_resolve_name_warn_if_partial lang
+                         file
+                     in
+                     Match_patterns.check
+                       ~hook:(fun match_ ->
+                         Core_text_output.print_match
+                           (caps :> < Cap.stdout >)
+                           config.match_format match_ config.mvars
+                           Metavariable.ii_of_mval)
+                       ( Rule_options.default_config,
+                         Core_scan.parse_equivalences config.equivalences_file
+                       )
+                       minirule
+                       (file, File file, lang, ast)
+                     |> ignore)
+               in
 
-             if not config.error_recovery then
-               E.try_with_log_exn_and_reraise file (fun () -> process file)
-             else E.try_with_exn_to_error file (fun () -> process file));
-
-      let n = List.length !E.g_errors in
+               match
+                 if not config.error_recovery then
+                   E.try_with_log_exn_and_reraise file (fun () -> process file)
+                 else E.try_with_result_to_error file (fun () -> process file)
+               with
+               | Ok _ -> []
+               | Error e -> [ e ])
+      in
+      let n = List.length errors in
       if n > 0 then Logs.err (fun m -> m "error count: %d" n)
 
 (*****************************************************************************)

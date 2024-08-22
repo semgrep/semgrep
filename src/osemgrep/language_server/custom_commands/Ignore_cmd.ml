@@ -38,7 +38,7 @@ let create ~path ~fingerprint =
 (* Code *)
 (*****************************************************************************)
 
-let command_handler (server : RPC_server.t) (arg_list : Yojson.Safe.t list) =
+let command_handler (session : Session.t) (arg_list : Yojson.Safe.t list) =
   let args =
     match arg_list with
     | args :: _ -> args
@@ -47,9 +47,7 @@ let command_handler (server : RPC_server.t) (arg_list : Yojson.Safe.t list) =
   match of_yojson args with
   | Ok { path; fingerprint } ->
       let session =
-        let session =
-          Session.add_skipped_fingerprint server.session fingerprint
-        in
+        let session = Session.add_skipped_fingerprint session fingerprint in
         let metrics =
           {
             session.metrics with
@@ -58,9 +56,7 @@ let command_handler (server : RPC_server.t) (arg_list : Yojson.Safe.t list) =
         in
         { session with metrics }
       in
-      let server = { server with session } in
-      Scan_helpers.scan_file server Lsp.Uri.(of_path path);
-      server
+      (session, Some (Scan_helpers.scan_file session Lsp.Uri.(of_path path)))
   | Error e ->
       Logs.warn (fun m -> m "Error parsing ignore command: %s" e);
-      server
+      (session, None)

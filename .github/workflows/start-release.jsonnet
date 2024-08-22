@@ -11,6 +11,7 @@
 //  - scripts/validate-docker-release.sh
 
 local gha = import 'libs/gha.libsonnet';
+local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
 // ----------------------------------------------------------------------------
@@ -25,10 +26,11 @@ local version = '${{ needs.get-version.outputs.version }}';
 local pr_number = '"${{ needs.release-setup.outputs.pr-number }}"';
 
 // For towncrier setup in scripts/release/
+//TODO: was using pip3 before, and pipenv_install_step is using pip, an issue?
 local pipenv_setup = |||
-  pip3 install pipenv==2024.0.1
+  %s
   pipenv install --dev
-|||;
+||| % actions.pipenv_install_step.run;
 
 // ----------------------------------------------------------------------------
 // Input
@@ -535,6 +537,7 @@ local notify_success_job = {
     'validate-release-trigger': validate_release_trigger_job,
     'bump-semgrep-app': bump_job('semgrep/semgrep-app'),
     'bump-semgrep-action': bump_job('semgrep/semgrep-action'),
+    'bump-semgrep-pre-commit': bump_job('semgrep/pre-commit'),
     'bump-semgrep-rpc': bump_job('semgrep/semgrep-rpc'),
     'bump-semgrep-vscode': bump_job('semgrep/semgrep-vscode'),
     'bump-semgrep-intellij': bump_job('semgrep/semgrep-intellij'),
@@ -549,6 +552,7 @@ local notify_success_job = {
             'release-setup',
             'validate-release-trigger',
             'bump-semgrep-action',
+            'bump-semgrep-pre-commit',
             'bump-semgrep-rpc',
             'bump-semgrep-app',
             'bump-semgrep-vscode',

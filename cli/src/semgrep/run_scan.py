@@ -10,6 +10,7 @@
 # file when we introduced semgrep commands (e.g., scan, login). This file
 # is now called from commands/scan.py and commands/ci.py instead.
 # old: this file used to be called semgrep_main.py
+#
 import json
 import time
 from io import StringIO
@@ -41,8 +42,9 @@ from semgrep.config_resolver import get_config
 from semgrep.constants import DEFAULT_DIFF_DEPTH
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
+from semgrep.constants import TOO_MANY_ENTRIES
+from semgrep.constants import TOO_MUCH_DATA
 from semgrep.core_runner import CoreRunner
-from semgrep.core_runner import get_contributions
 from semgrep.core_runner import Plan
 from semgrep.engine import EngineType
 from semgrep.error import FilesNotFoundError
@@ -379,9 +381,9 @@ def run_scan(
     optimizations: str = "none",
     baseline_commit: Optional[str] = None,
     baseline_commit_is_mergebase: bool = False,
-    dump_contributions: bool = False,
     x_ls: bool = False,
     path_sensitive: bool = False,
+    capture_core_stderr: bool = True,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -393,7 +395,6 @@ def run_scan(
     Collection[out.MatchSeverity],
     Dict[str, List[FoundDependency]],
     List[DependencyParserError],
-    out.Contributions,
     int,  # Executed Rule Count
     int,  # Missed Rule Count
 ]:
@@ -568,30 +569,32 @@ def run_scan(
         timeout_threshold=timeout_threshold,
         trace=trace,
         trace_endpoint=trace_endpoint,
+        capture_stderr=capture_core_stderr,
         optimizations=optimizations,
         allow_untrusted_validators=allow_untrusted_validators,
         respect_rule_paths=respect_rule_paths,
         path_sensitive=path_sensitive,
     )
 
-    if dump_contributions:
-        contributions = get_contributions(engine_type)
-    else:
-        contributions = out.Contributions([])
-
-    experimental_rules, unexperimental_rules = partition(
+    experimental_rules, normal_rules = partition(
         filtered_rules, lambda rule: (isinstance(rule.severity.value, out.Experiment))
     )
 
     if logger.isEnabledFor(logger.VERBOSE_LOG_LEVEL):
         logger.verbose("Rules:")
-        for ruleid in sorted(rule.id for rule in unexperimental_rules):
-            logger.verbose(f"- {ruleid}")
+        if len(normal_rules) <= TOO_MANY_ENTRIES:
+            for ruleid in sorted(rule.id for rule in normal_rules):
+                logger.verbose(f"- {ruleid}")
+        else:
+            logger.verbose(TOO_MUCH_DATA)
 
         if len(experimental_rules) > 0:
             logger.verbose("Experimental Rules:")
-            for ruleid in sorted(rule.id for rule in experimental_rules):
-                logger.verbose(f"- {ruleid}")
+            if len(experimental_rules) <= TOO_MANY_ENTRIES:
+                for ruleid in sorted(rule.id for rule in experimental_rules):
+                    logger.verbose(f"- {ruleid}")
+            else:
+                logger.verbose(TOO_MUCH_DATA)
 
     (
         rule_matches_by_rule,
@@ -776,7 +779,6 @@ def run_scan(
         shown_severities,
         dependencies,
         dependency_parser_errors,
-        contributions,
         executed_rule_count,
         missed_rule_count,
     )
@@ -812,7 +814,6 @@ def run_scan_and_return_json(
         profiler,
         output_extra,
         shown_severities,
-        _,
         _,
         _,
         _,

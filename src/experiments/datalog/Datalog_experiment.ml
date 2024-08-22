@@ -124,7 +124,7 @@ let gen_facts file outdir =
   in
   v#visit_program () ast;
 
-  let facts = !facts |> List.rev |> List.flatten in
+  let facts = !facts |> List.rev |> List_.flatten in
   (* nosemgrep: no-logs-in-library *)
   Logs.info (fun m ->
       m "generating %d facts in %s" (List.length facts) !!outdir);

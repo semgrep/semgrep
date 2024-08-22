@@ -73,27 +73,6 @@ let initialize_server server
           "intellij"
     | _ -> false
   in
-  (* Check the validity of the current API token here.
-     We do this asynchronously, since this is purely side-effecting,
-     and we don't care to percolate the monad.
-  *)
-  Lwt.async (fun () ->
-      Logs.debug (fun m -> m "Checking API token exists");
-      let settings = Semgrep_settings.load () in
-      match settings.api_token with
-      | Some token ->
-          Logs.debug (fun m -> m "Checking API token validity");
-          let caps = Auth.cap_token_and_network token server.session.caps in
-          (* "if not valid", basically *)
-          if%lwt Semgrep_login.verify_token_async caps |> Lwt.map not then (
-            Logs.warn (fun m -> m "Invalid Semgrep token detected");
-            RPC_server.notify_show_message ~kind:MessageType.Error
-              "Invalid Semgrep token detected, please log in again.";
-            Semgrep_settings.save { settings with api_token = None } |> ignore;
-            Lwt.return_unit)
-      | None ->
-          Logs.debug (fun m -> m "No API token detected");
-          Lwt.return_unit);
   (* We're using preemptive threads here as when semgrep scans run, they don't utilize Lwt at all,
       and so block the Lwt scheduler, meaning it cannot properly respond to requests until
       a scan is finished. With preemptive threads, the threads are guaranteed to run concurrently.
@@ -120,7 +99,7 @@ let initialize_server server
           is_intellij;
           metrics;
         };
-      state = State.Running;
+      state = Lsp_.State.Running;
     }
   in
   Logs.app (fun m -> m "Caching workspace targets");
