@@ -1000,6 +1000,254 @@ let replace_target_roots_by_regular_files_where_needed (caps : < Cap.tmp >)
   (target_roots, !imply_always_select_explicit_targets)
 
 (*****************************************************************************)
+(* Subconf helpers *)
+(*****************************************************************************)
+
+(* alt: use an output_cmdline_term, core_runner_cmdline_term, etc
+ * and leverage the nice ability of cmdliner to be composable.
+ *)
+
+let rule_source_conf ~config ~pattern ~lang ~replacement ~allow_empty_config
+    ~maturity : Rules_source.t =
+  let explicit_analyzer = Option.map Xlang.of_string lang in
+  match (config, (pattern, explicit_analyzer, replacement)) with
+  (* TOPORT: handle get_project_url() if empty Configs? *)
+  | [], (None, _, _) ->
+      (* TOPORT: raise with Exit_code.missing_config *)
+      (* TOPORT? use instead
+         "No config given and {DEFAULT_CONFIG_FILE} was not found. Try running with --help to debug or if you want to download a default config, try running with --config r2c" *)
+      if allow_empty_config then Rules_source.Configs []
+      else (
+        Migration.abort_if_use_of_legacy_dot_semgrep_yml ();
+        (* config is set to auto if not otherwise specified and when we're not trying another inferred subcommand *)
+        default.rules_source)
+  | [], (Some pat, Some analyzer, fix) ->
+      (* may raise a Failure (will be caught in CLI.safe_run) *)
+      Rules_source.Pattern (pat, Some analyzer, fix)
+  | _, (Some pat, None, fix) -> (
+      match maturity with
+      (* osemgrep-only: better: can use -e without -l! *)
+      | Maturity.Develop -> Rules_source.Pattern (pat, None, fix)
+      | _else_ ->
+          (* alt: "language must be specified when a pattern is passed" *)
+          Error.abort "-e/--pattern and -l/--lang must both be specified")
+  | _, (None, Some _, _) ->
+      (* stricter: error not detected in original semgrep *)
+      Error.abort "-e/--pattern and -l/--lang must both be specified"
+  | _, (None, _, Some _) ->
+      Error.abort
+        "command-line replacement flag can only be used with command-line \
+         pattern; when using a config file add the fix: key instead"
+  (* TOPORT? handle [x], _ and rule passed inline, python: util.is_rules*)
+  | xs, (None, None, None) -> Rules_source.Configs xs
+  | _ :: _, (Some _, _, _) ->
+      Error.abort "Mutually exclusive options --config/--pattern"
+
+let project_root_conf ~project_root ~remote : Find_targets.project_root option =
+  let is_git_repo remote =
+    remote |> Git_wrapper.remote_repo_name |> Option.is_some
+  in
+  match (project_root, remote) with
+  | Some root, None ->
+      Some (Find_targets.Filesystem (Rfpath.of_string_exn root))
+  | None, Some url when is_git_repo url ->
+      (* CWD must be empty for this to work *)
+      let has_files = not (List_.null (List_files.list (Fpath.v "."))) in
+      if has_files then
+        Error.abort
+          "Cannot use --remote with a git remote when the current directory is \
+           not empty";
+      let url = Uri.of_string url in
+      Some (Find_targets.Git_remote { url })
+  | None, Some _url ->
+      Error.abort
+        "Remote arg is not a valid git remote, expected something like \
+         http[s]://website.com/.../<REPONAME>.git"
+  | Some _, Some _ ->
+      Error.abort "Cannot use both --project-root and --remote at the same time"
+  | _ -> None
+
+(* reused in Ci_CLI.ml *)
+let output_format_conf ~text ~files_with_matches ~json ~emacs ~vim ~sarif
+    ~gitlab_sast ~gitlab_secrets ~junit_xml : Output_format.t =
+  let all_flags =
+    [ json; emacs; vim; sarif; gitlab_sast; gitlab_secrets; junit_xml ]
+  in
+  let cnt =
+    all_flags |> List.fold_left (fun acc b -> if b then acc + 1 else acc) 0
+  in
+  if cnt >= 2 then
+    (* TOPORT: list the possibilities *)
+    Error.abort "Mutually exclusive options --json/--emacs/--vim/--sarif/...";
+  match () with
+  | _ when text -> Output_format.Text
+  | _ when files_with_matches -> Output_format.Files_with_matches
+  | _ when json -> Output_format.Json
+  | _ when emacs -> Output_format.Emacs
+  | _ when vim -> Output_format.Vim
+  | _ when sarif -> Output_format.Sarif
+  | _ when gitlab_sast -> Output_format.Gitlab_sast
+  | _ when gitlab_secrets -> Output_format.Gitlab_secrets
+  | _ when junit_xml -> Output_format.Junit_xml
+  | _else_ -> default.output_conf.output_format
+
+(* reused in Ci_CLI.ml *)
+let outputs_conf ~text_outputs ~json_outputs ~emacs_outputs ~vim_outputs
+    ~sarif_outputs ~gitlab_sast_outputs ~gitlab_secrets_outputs
+    ~junit_xml_outputs =
+  [
+    (Output_format.Text, text_outputs);
+    (Output_format.Json, json_outputs);
+    (Output_format.Emacs, emacs_outputs);
+    (Output_format.Vim, vim_outputs);
+    (Output_format.Sarif, sarif_outputs);
+    (Output_format.Gitlab_sast, gitlab_sast_outputs);
+    (Output_format.Gitlab_secrets, gitlab_secrets_outputs);
+    (Output_format.Junit_xml, junit_xml_outputs);
+  ]
+  |> List.fold_left
+       (fun outputs (output_format, outputs_for_specific_format) ->
+         outputs_for_specific_format
+         |> List.fold_left
+              (fun outputs output_destination ->
+                let key = Some output_destination in
+                if Map_.mem key outputs then
+                  (* TODO: Should probably error here. *)
+                  outputs
+                else Map_.add key output_format outputs)
+              outputs)
+       Map_.empty
+
+(* reused in Ci_CLI.ml *)
+let engine_type_conf ~oss ~pro_lang ~pro_intrafile ~pro ~secrets
+    ~no_secrets_validation ~allow_untrusted_validators ~pro_path_sensitive :
+    Engine_type.t =
+  (* This first bit just rules out mutually exclusive options. *)
+  if oss && secrets then
+    Error.abort "Cannot run secrets scan with OSS engine (--oss specified).";
+  if
+    [ oss; pro_lang; pro_intrafile; pro ]
+    |> List.filter Fun.id |> List.length > 1
+  then
+    Error.abort
+      "Mutually exclusive options --oss/--pro-languages/--pro-intrafile/--pro";
+  (* Now select the engine type *)
+  if oss then Engine_type.OSS
+  else
+    let analysis =
+      Engine_type.(
+        match () with
+        | _ when pro -> Interfile
+        | _ when pro_intrafile -> Interprocedural
+        | _ -> Intraprocedural)
+    in
+    let extra_languages = pro || pro_lang || pro_intrafile in
+    let secrets_config =
+      if secrets && not no_secrets_validation then
+        Some Engine_type.{ allow_all_origins = allow_untrusted_validators }
+      else None
+    in
+    let code_config =
+      if pro || pro_lang || pro_intrafile then Some () else None
+    in
+    (* Currently we don't run SCA in osemgrep *)
+    let supply_chain_config = None in
+    match (extra_languages, analysis, secrets_config) with
+    | false, Intraprocedural, None -> OSS
+    | _ ->
+        PRO
+          {
+            extra_languages;
+            analysis;
+            code_config;
+            secrets_config;
+            supply_chain_config;
+            path_sensitive = pro_path_sensitive;
+          }
+(*****************************************************************************)
+(* Alternate subcommand subconf *)
+(*****************************************************************************)
+
+let show_CLI_conf ~dump_ast ~dump_engine_path ~dump_command_for_core
+    ~show_supported_languages ~target_roots ~pattern ~lang ~json ~pro ~common :
+    Show_CLI.conf option =
+  match () with
+  | _ when dump_ast -> (
+      let target_roots =
+        if target_roots =*= default.target_roots then [] else target_roots
+      in
+      match (pattern, lang, target_roots) with
+      | Some str, Some lang_str, [] ->
+          Some
+            {
+              Show.show_kind = Show.DumpPattern (str, Lang.of_string lang_str);
+              json;
+              common;
+            }
+      | None, Some lang_str, [ file ] ->
+          Some
+            {
+              Show.show_kind =
+                Show.DumpAST
+                  (Scanning_root.to_fpath file, Lang.of_string lang_str);
+              json;
+              common;
+            }
+      | _, None, _ ->
+          Error.abort "--dump-ast and -l/--lang must both be specified"
+      (* stricter: alt: could dump all targets *)
+      | None, Some _, _ :: _ :: _ ->
+          Error.abort "--dump-ast requires exactly one target file"
+      (* stricter: better error message *)
+      | None, Some _, [] ->
+          Error.abort "--dump-ast needs either a target or a -e pattern"
+      (* stricter: *)
+      | Some _, _, _ :: _ ->
+          Error.abort "Can't specify both -e and a target for --dump-ast")
+  | _ when dump_engine_path ->
+      Some { Show.show_kind = Show.DumpEnginePath pro; json; common }
+  | _ when dump_command_for_core ->
+      Some { Show.show_kind = Show.DumpCommandForCore; json; common }
+  | _ when show_supported_languages ->
+      Some { Show.show_kind = Show.SupportedLanguages; json; common }
+  | _else_ -> None
+
+let validate_CLI_conf ~validate ~rules_source ~core_runner_conf ~common :
+    Validate_subcommand.conf option =
+  if validate then
+    match rules_source with
+    | Rules_source.Configs [] ->
+        (* TOPORT? was a Logs.err but seems better as an abort *)
+        Error.abort
+          "Nothing to validate, use the --config or --pattern flag to specify \
+           a rule"
+    | Configs (_ :: _)
+    | Pattern _ ->
+        Some { Validate_subcommand.rules_source; core_runner_conf; common }
+  else None
+
+let test_CLI_conf ~test ~target_roots ~config ~json ~optimizations
+    ~test_ignore_todo ~strict ~common : Test_CLI.conf option =
+  if test then
+    let target =
+      Test_CLI.target_kind_of_roots_and_config
+        (List_.map Scanning_root.to_fpath target_roots)
+        config
+    in
+    Some
+      Test_CLI.
+        {
+          target;
+          strict;
+          json;
+          optimizations;
+          ignore_todo = test_ignore_todo;
+          common;
+          matching_diagnosis = false;
+        }
+  else None
+
+(*****************************************************************************)
 (* Turn argv into a conf *)
 (*****************************************************************************)
 
@@ -1030,31 +1278,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
         ~experimental:(common.CLI_common.maturity =*= Maturity.Experimental)
         target_roots
     in
-    let force_project_root =
-      let is_git_repo remote =
-        remote |> Git_wrapper.remote_repo_name |> Option.is_some
-      in
-      match (project_root, remote) with
-      | Some root, None ->
-          Some (Find_targets.Filesystem (Rfpath.of_string_exn root))
-      | None, Some url when is_git_repo url ->
-          (* CWD must be empty for this to work *)
-          let has_files = not (List_.null (List_files.list (Fpath.v "."))) in
-          if has_files then
-            Error.abort
-              "Cannot use --remote with a git remote when the current \
-               directory is not empty";
-          let url = Uri.of_string url in
-          Some (Find_targets.Git_remote { url })
-      | None, Some _url ->
-          Error.abort
-            "Remote arg is not a valid git remote, expected something like \
-             http[s]://website.com/.../<REPONAME>.git"
-      | Some _, Some _ ->
-          Error.abort
-            "Cannot use both --project-root and --remote at the same time"
-      | _ -> None
-    in
+    let force_project_root = project_root_conf ~project_root ~remote in
     let explicit_targets =
       (* This is for determining whether a target path appears on the command
          line. As long as this holds, it's ok to include folders. *)
@@ -1063,54 +1287,16 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       |> Find_targets.Explicit_targets.of_list
     in
 
-    let output_format =
-      let all_flags =
-        [ json; emacs; vim; sarif; gitlab_sast; gitlab_secrets; junit_xml ]
-      in
-      let cnt =
-        all_flags |> List.fold_left (fun acc b -> if b then acc + 1 else acc) 0
-      in
-      if cnt >= 2 then
-        (* TOPORT: list the possibilities *)
-        Error.abort
-          "Mutually exclusive options --json/--emacs/--vim/--sarif/...";
-      match () with
-      | _ when text -> Output_format.Text
-      | _ when files_with_matches -> Output_format.Files_with_matches
-      | _ when json -> Output_format.Json
-      | _ when emacs -> Output_format.Emacs
-      | _ when vim -> Output_format.Vim
-      | _ when sarif -> Output_format.Sarif
-      | _ when gitlab_sast -> Output_format.Gitlab_sast
-      | _ when gitlab_secrets -> Output_format.Gitlab_secrets
-      | _ when junit_xml -> Output_format.Junit_xml
-      | _else_ -> default.output_conf.output_format
+    let output_format : Output_format.t =
+      output_format_conf ~text ~files_with_matches ~json ~emacs ~vim ~sarif
+        ~gitlab_sast ~gitlab_secrets ~junit_xml
     in
     (* TODO: Actually handle additional output files *)
     (* _outputs is currently just parsed to support pysemgrep *)
     let _outputs =
-      [
-        (Output_format.Text, text_outputs);
-        (Output_format.Json, json_outputs);
-        (Output_format.Emacs, emacs_outputs);
-        (Output_format.Vim, vim_outputs);
-        (Output_format.Sarif, sarif_outputs);
-        (Output_format.Gitlab_sast, gitlab_sast_outputs);
-        (Output_format.Gitlab_secrets, gitlab_secrets_outputs);
-        (Output_format.Junit_xml, junit_xml_outputs);
-      ]
-      |> List.fold_left
-           (fun outputs (output_format, outputs_for_specific_format) ->
-             outputs_for_specific_format
-             |> List.fold_left
-                  (fun outputs output_destination ->
-                    let key = Some output_destination in
-                    if Map_.mem key outputs then
-                      (* TODO: Should probably error here. *)
-                      outputs
-                    else Map_.add key output_format outputs)
-                  outputs)
-           Map_.empty
+      outputs_conf ~text_outputs ~json_outputs ~emacs_outputs ~vim_outputs
+        ~sarif_outputs ~gitlab_sast_outputs ~gitlab_secrets_outputs
+        ~junit_xml_outputs
     in
     let output_conf : Output.conf =
       {
@@ -1129,97 +1315,27 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       }
     in
 
-    let engine_type =
-      (* This first bit just rules out mutually exclusive options. *)
-      if oss && secrets then
-        Error.abort "Cannot run secrets scan with OSS engine (--oss specified).";
-      if
-        [ oss; pro_lang; pro_intrafile; pro ]
-        |> List.filter Fun.id |> List.length > 1
-      then
-        Error.abort
-          "Mutually exclusive options \
-           --oss/--pro-languages/--pro-intrafile/--pro";
-      (* Now select the engine type *)
-      if oss then Engine_type.OSS
-      else
-        let analysis =
-          Engine_type.(
-            match () with
-            | _ when pro -> Interfile
-            | _ when pro_intrafile -> Interprocedural
-            | _ -> Intraprocedural)
-        in
-        let extra_languages = pro || pro_lang || pro_intrafile in
-        let secrets_config =
-          if secrets && not no_secrets_validation then
-            Some Engine_type.{ allow_all_origins = allow_untrusted_validators }
-          else None
-        in
-        let code_config =
-          if pro || pro_lang || pro_intrafile then Some () else None
-        in
-        (* Currently we don't run SCA in osemgrep *)
-        let supply_chain_config = None in
-        match (extra_languages, analysis, secrets_config) with
-        | false, Intraprocedural, None -> OSS
-        | _ ->
-            PRO
-              {
-                extra_languages;
-                analysis;
-                code_config;
-                secrets_config;
-                supply_chain_config;
-                path_sensitive = pro_path_sensitive;
-              }
+    let engine_type : Engine_type.t =
+      engine_type_conf ~oss ~pro_lang ~pro_intrafile ~pro ~secrets
+        ~no_secrets_validation ~allow_untrusted_validators ~pro_path_sensitive
     in
-    let explicit_analyzer = Option.map Xlang.of_string lang in
-    let rules_source =
-      match (config, (pattern, explicit_analyzer, replacement)) with
+    let rules_source : Rules_source.t =
+      match (config, pattern) with
       (* ugly: when using --dump-ast, we can pass a pattern or a target,
        * but in the case of a target that means there is no config
        * but we still don't want to abort, hence this empty Configs.
        * Same for --version, --show-supported-langages, etc., hence
        * this ugly special case returning an empty Configs.
        *)
-      | [], (None, _, _)
+      | [], None
         when dump_ast || dump_engine_path || validate || test || version
              || show_supported_languages ->
           Rules_source.Configs []
-      (* TOPORT: handle get_project_url() if empty Configs? *)
-      | [], (None, _, _) ->
-          (* TOPORT: raise with Exit_code.missing_config *)
-          (* TOPORT? use instead
-             "No config given and {DEFAULT_CONFIG_FILE} was not found. Try running with --help to debug or if you want to download a default config, try running with --config r2c" *)
-          if allow_empty_config then Rules_source.Configs []
-          else (
-            Migration.abort_if_use_of_legacy_dot_semgrep_yml ();
-            (* config is set to auto if not otherwise specified and when we're not trying another inferred subcommand *)
-            default.rules_source)
-      | [], (Some pat, Some analyzer, fix) ->
-          (* may raise a Failure (will be caught in CLI.safe_run) *)
-          Rules_source.Pattern (pat, Some analyzer, fix)
-      | _, (Some pat, None, fix) -> (
-          match common.maturity with
-          (* osemgrep-only: better: can use -e without -l! *)
-          | Maturity.Develop -> Rules_source.Pattern (pat, None, fix)
-          | _else_ ->
-              (* alt: "language must be specified when a pattern is passed" *)
-              Error.abort "-e/--pattern and -l/--lang must both be specified")
-      | _, (None, Some _, _) ->
-          (* stricter: error not detected in original semgrep *)
-          Error.abort "-e/--pattern and -l/--lang must both be specified"
-      | _, (None, _, Some _) ->
-          Error.abort
-            "command-line replacement flag can only be used with command-line \
-             pattern; when using a config file add the fix: key instead"
-      (* TOPORT? handle [x], _ and rule passed inline, python: util.is_rules*)
-      | xs, (None, None, None) -> Rules_source.Configs xs
-      | _ :: _, (Some _, _, _) ->
-          Error.abort "Mutually exclusive options --config/--pattern"
+      | _ ->
+          rule_source_conf ~config ~pattern ~lang ~replacement
+            ~allow_empty_config ~maturity:common.maturity
     in
-    let core_runner_conf =
+    let core_runner_conf : Core_runner.conf =
       {
         Core_runner.num_jobs;
         optimizations;
@@ -1253,7 +1369,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
         exclude_minified_files;
       }
     in
-    let rule_filtering_conf =
+    let rule_filtering_conf : Rule_filtering.conf =
       {
         Rule_filtering.exclude_rule_ids =
           List_.map Rule_ID.of_string_exn exclude_rule_ids;
@@ -1265,87 +1381,22 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     (* ugly: dump should be a separate subcommand.
      * alt: we could move this code in a Dump_subcommand.validate_cli_args()
      *)
-    let show =
-      match () with
-      | _ when dump_ast -> (
-          let target_roots =
-            if target_roots =*= default.target_roots then [] else target_roots
-          in
-          match (pattern, lang, target_roots) with
-          | Some str, Some lang_str, [] ->
-              Some
-                {
-                  Show.show_kind =
-                    Show.DumpPattern (str, Lang.of_string lang_str);
-                  json;
-                  common;
-                }
-          | None, Some lang_str, [ file ] ->
-              Some
-                {
-                  Show.show_kind =
-                    Show.DumpAST
-                      (Scanning_root.to_fpath file, Lang.of_string lang_str);
-                  json;
-                  common;
-                }
-          | _, None, _ ->
-              Error.abort "--dump-ast and -l/--lang must both be specified"
-          (* stricter: alt: could dump all targets *)
-          | None, Some _, _ :: _ :: _ ->
-              Error.abort "--dump-ast requires exactly one target file"
-          (* stricter: better error message *)
-          | None, Some _, [] ->
-              Error.abort "--dump-ast needs either a target or a -e pattern"
-          (* stricter: *)
-          | Some _, _, _ :: _ ->
-              Error.abort "Can't specify both -e and a target for --dump-ast")
-      | _ when dump_engine_path ->
-          Some { Show.show_kind = Show.DumpEnginePath pro; json; common }
-      | _ when dump_command_for_core ->
-          Some { Show.show_kind = Show.DumpCommandForCore; json; common }
-      | _ when show_supported_languages ->
-          Some { Show.show_kind = Show.SupportedLanguages; json; common }
-      | _else_ -> None
+    let show : Show_CLI.conf option =
+      show_CLI_conf ~dump_ast ~dump_engine_path ~dump_command_for_core
+        ~show_supported_languages ~target_roots ~pattern ~lang ~json ~pro
+        ~common
     in
     (* ugly: validate should be a separate subcommand.
      * alt: we could move this code in a Validate_subcommand.cli_args()
      *)
-    let validate =
-      if validate then
-        match rules_source with
-        | Configs [] ->
-            (* TOPORT? was a Logs.err but seems better as an abort *)
-            Error.abort
-              "Nothing to validate, use the --config or --pattern flag to \
-               specify a rule"
-        | Configs (_ :: _)
-        | Pattern _ ->
-            Some { Validate_subcommand.rules_source; core_runner_conf; common }
-      else None
+    let validate : Validate_subcommand.conf option =
+      validate_CLI_conf ~validate ~rules_source ~core_runner_conf ~common
     in
     (* ugly: test should be a separate subcommand *)
-    let test =
-      if test then
-        let target =
-          Test_CLI.target_kind_of_roots_and_config
-            (List_.map Scanning_root.to_fpath target_roots)
-            config
-        in
-        Some
-          Test_CLI.
-            {
-              target;
-              strict;
-              json;
-              optimizations;
-              ignore_todo = test_ignore_todo;
-              common;
-              matching_diagnosis = false;
-            }
-      else None
+    let test : Test_CLI.conf option =
+      test_CLI_conf ~test ~target_roots ~config ~json ~optimizations
+        ~test_ignore_todo ~strict ~common
     in
-
     (* more sanity checks *)
     if
       (List.mem "auto" config

@@ -125,3 +125,37 @@ val o_trace_endpoint : string option Cmdliner.Term.t
 val o_version_check : bool Cmdliner.Term.t
 val o_vim : bool Cmdliner.Term.t
 val o_vim_outputs : string list Cmdliner.Term.t
+
+val engine_type_conf :
+  oss:bool ->
+  pro_lang:bool ->
+  pro_intrafile:bool ->
+  pro:bool ->
+  secrets:bool ->
+  no_secrets_validation:bool ->
+  allow_untrusted_validators:bool ->
+  pro_path_sensitive:bool ->
+  Engine_type.t
+
+val output_format_conf :
+  text:bool ->
+  files_with_matches:bool ->
+  json:bool ->
+  emacs:bool ->
+  vim:bool ->
+  sarif:bool ->
+  gitlab_sast:bool ->
+  gitlab_secrets:bool ->
+  junit_xml:bool ->
+  Output_format.t
+
+val outputs_conf :
+  text_outputs:'a list ->
+  json_outputs:'a list ->
+  emacs_outputs:'a list ->
+  vim_outputs:'a list ->
+  sarif_outputs:'a list ->
+  gitlab_sast_outputs:'a list ->
+  gitlab_secrets_outputs:'a list ->
+  junit_xml_outputs:'a list ->
+  ('a option, Output_format.t) Map_.t

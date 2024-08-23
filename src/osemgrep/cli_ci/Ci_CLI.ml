@@ -144,9 +144,6 @@ let o_config : string list Term.t =
 
 (* Started as a copy paste of Scan_CLI.cmdline_terms but no:
  * target_roots, test/test_ignore_todo, ...
- * TODO: factorize with Scan_CLI.cmdline_terms, divide in helper functions
- * that can be reused, like output_cmdline_term, core_runner_cmdline_term, etc
- * and leverage the nice ability of cmdliner to be composable.
  *)
 let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
@@ -164,54 +161,16 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
       sarif_outputs scan_unknown_extensions secrets text text_outputs time_flag
       timeout _timeout_interfileTODO timeout_threshold trace trace_endpoint
       version_check vim vim_outputs =
-    let output_format =
-      let all_flags =
-        [ json; emacs; vim; sarif; gitlab_sast; gitlab_secrets; junit_xml ]
-      in
-      let cnt =
-        all_flags |> List.fold_left (fun acc b -> if b then acc + 1 else acc) 0
-      in
-      if cnt >= 2 then
-        (* TOPORT: list the possibilities *)
-        Error.abort
-          "Mutually exclusive options --json/--emacs/--vim/--sarif/...";
-      match () with
-      | _ when text -> Output_format.Text
-      | _ when files_with_matches -> Output_format.Files_with_matches
-      | _ when json -> Output_format.Json
-      | _ when emacs -> Output_format.Emacs
-      | _ when vim -> Output_format.Vim
-      | _ when sarif -> Output_format.Sarif
-      | _ when gitlab_sast -> Output_format.Gitlab_sast
-      | _ when gitlab_secrets -> Output_format.Gitlab_secrets
-      | _ when junit_xml -> Output_format.Junit_xml
-      | _else_ -> SC.default.output_conf.output_format
+    let output_format : Output_format.t =
+      Scan_CLI.output_format_conf ~text ~files_with_matches ~json ~emacs ~vim
+        ~sarif ~gitlab_sast ~gitlab_secrets ~junit_xml
     in
     (* TODO: Actually handle additional output files *)
     (* _outputs is currently just parsed to support pysemgrep *)
     let _outputs =
-      [
-        (Output_format.Text, text_outputs);
-        (Output_format.Json, json_outputs);
-        (Output_format.Emacs, emacs_outputs);
-        (Output_format.Vim, vim_outputs);
-        (Output_format.Sarif, sarif_outputs);
-        (Output_format.Gitlab_sast, gitlab_sast_outputs);
-        (Output_format.Gitlab_secrets, gitlab_secrets_outputs);
-        (Output_format.Junit_xml, junit_xml_outputs);
-      ]
-      |> List.fold_left
-           (fun outputs (output_format, outputs_for_specific_format) ->
-             outputs_for_specific_format
-             |> List.fold_left
-                  (fun outputs output_destination ->
-                    let key = Some output_destination in
-                    if Map_.mem key outputs then
-                      (* TODO: Should probably error here. *)
-                      outputs
-                    else Map_.add key output_format outputs)
-                  outputs)
-           Map_.empty
+      Scan_CLI.outputs_conf ~text_outputs ~json_outputs ~emacs_outputs
+        ~vim_outputs ~sarif_outputs ~gitlab_sast_outputs ~gitlab_secrets_outputs
+        ~junit_xml_outputs
     in
     let output_conf : Output.conf =
       {
@@ -231,50 +190,9 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
       }
     in
 
-    let engine_type =
-      (* This first bit just rules out mutually exclusive options. *)
-      if oss && secrets then
-        Error.abort "Cannot run secrets scan with OSS engine (--oss specified).";
-      if
-        [ oss; pro_lang; pro_intrafile; pro ]
-        |> List.filter Fun.id |> List.length > 1
-      then
-        Error.abort
-          "Mutually exclusive options \
-           --oss/--pro-languages/--pro-intrafile/--pro";
-      (* Now select the engine type *)
-      if oss then Engine_type.OSS
-      else
-        let analysis =
-          Engine_type.(
-            match () with
-            | _ when pro -> Interfile
-            | _ when pro_intrafile -> Interprocedural
-            | _ -> Intraprocedural)
-        in
-        let extra_languages = pro || pro_lang || pro_intrafile in
-        let secrets_config =
-          if secrets && not no_secrets_validation then
-            Some Engine_type.{ allow_all_origins = allow_untrusted_validators }
-          else None
-        in
-        let code_config =
-          if pro || pro_lang || pro_intrafile then Some () else None
-        in
-        (* Currently we don't run SCA in osemgrep *)
-        let supply_chain_config = None in
-        match (extra_languages, analysis, secrets_config) with
-        | false, Intraprocedural, None -> OSS
-        | _ ->
-            PRO
-              {
-                extra_languages;
-                analysis;
-                code_config;
-                secrets_config;
-                supply_chain_config;
-                path_sensitive = pro_path_sensitive;
-              }
+    let engine_type : Engine_type.t =
+      Scan_CLI.engine_type_conf ~oss ~pro_lang ~pro_intrafile ~pro ~secrets
+        ~no_secrets_validation ~allow_untrusted_validators ~pro_path_sensitive
     in
     let rules_source = Rules_source.Configs config in
     let core_runner_conf =
