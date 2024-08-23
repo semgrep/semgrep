@@ -18,6 +18,7 @@ from typing import Union
 import jsonschema.exceptions
 from jsonschema.validators import Draft7Validator
 from packaging.version import Version
+from pydantic import ValidationError
 from ruamel.yaml import MappingNode
 from ruamel.yaml import Node
 from ruamel.yaml import RoundTripConstructor
@@ -32,6 +33,7 @@ from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.error_location import SourceTracker
 from semgrep.error_location import Span
+from semgrep.rule_model import Model
 
 MISSING_RULE_ID = "no-rule-id"
 
@@ -523,6 +525,13 @@ def remove_incompatible_rules_based_on_version(
 
 
 @tracing.trace()
+def validate_yaml_pydantic(data: YamlTree) -> None:
+    # MARK: Run pydantic validation for a 20x perf improvement in validation speed
+    # relative to `jsonschema.validate`
+    Model.model_validate(data.unroll())
+
+
+@tracing.trace()
 def validate_yaml(
     data: YamlTree, filename: Optional[str] = None, no_rewrite_rule_ids: bool = False
 ) -> List[SemgrepError]:
@@ -533,9 +542,21 @@ def validate_yaml(
     )
 
     try:
-        with tracing.TRACER.start_as_current_span("jsonschema.validate"):
-            jsonschema.validate(data.unroll(), RuleSchema.get(), cls=Draft7Validator)
-            return errors
+        # Use pydantic to validate the schema first, which can be 20x faster
+        try:
+            with tracing.TRACER.start_as_current_span("pydantic.validate"):
+                validate_yaml_pydantic(data)
+        except (ValidationError, NotImplementedError):
+            # If we get a validation error (or intentionally raise NotImplementedError)
+            # we want to pass through to the jsonschema validation
+            # for the custom error messages
+            with tracing.TRACER.start_as_current_span("jsonschema.validate"):
+                jsonschema.validate(
+                    data.unroll(), RuleSchema.get(), cls=Draft7Validator
+                )
+        # After the first (and or second pass), we should have a valid schema
+        # and can return the errors
+        return errors
     except jsonschema.ValidationError as ve:
         message = _validation_error_message(ve)
         item = data
