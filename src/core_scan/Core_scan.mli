@@ -57,7 +57,7 @@ val targets_of_config :
    It takes into account the analyzer (specified by 'languages' field)
    and the per-rule include/exclude patterns; possibly more in the future.
 *)
-val select_applicable_rules_for_target :
+val rules_for_target :
   analyzer:Xlang.t ->
   products:Semgrep_output_v1_t.product list ->
   origin:Origin.t ->
@@ -69,8 +69,7 @@ val select_applicable_rules_for_target :
    Compare to select_applicable_rules_for_target which additionally can
    honor per-rule include/exclude patterns based on the target path.
 *)
-val select_applicable_rules_for_analyzer :
-  analyzer:Xlang.t -> Rule.t list -> Rule.t list
+val rules_for_analyzer : analyzer:Xlang.t -> Rule.t list -> Rule.t list
 
 (* This function prints a dot, which is consumed by pysemgrep to update
    the progress bar if the output_format is Json true.
