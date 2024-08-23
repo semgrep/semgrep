@@ -90,7 +90,7 @@ val default_conf : conf
 val get_targets :
   conf ->
   Scanning_root.t list ->
-  Fppath.t list * Semgrep_output_v1_t.skipped_target list
+  Scanning_root.processed list * Semgrep_output_v1_t.skipped_target list
 
 (* Same as get_targets but drop the ppath (path within the project) *)
 val get_target_fpaths :

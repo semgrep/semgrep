@@ -7,10 +7,10 @@ open Common
 module OutJ = Semgrep_output_v1_j
 
 let run ~target_roots ~targeting_conf:conf () =
-  let selected, skipped = Find_targets.get_targets conf target_roots in
-  selected |> List.sort Fppath.compare
-  |> List.iter (fun (x : Fppath.t) ->
-         UConsole.print (spf "selected %s" (Fpath.to_string x.fpath)));
+  let selected, skipped = Find_targets.get_target_fpaths conf target_roots in
+  selected |> List.sort Fpath.compare
+  |> List.iter (fun (x : Fpath.t) ->
+         UConsole.print (spf "selected %s" (x |> Fpath.to_string)));
   skipped
   |> List.sort (fun (a : OutJ.skipped_target) (b : OutJ.skipped_target) ->
          Fpath.compare a.path b.path)

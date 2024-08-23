@@ -529,8 +529,9 @@ let scanning_root_by_project (force_root : Project.t option)
 
    TODO? move in paths/Project.ml?
 *)
-let group_scanning_roots_by_project (conf : conf)
-    (scanning_roots : Scanning_root.t list) : Project.roots list =
+let group_scanning_roots_by_files_and_projects (conf : conf)
+    (scanning_roots : Scanning_root.t list) :
+    Scanning_root.t list * Project.roots list =
   (* Force root relativizes scan roots to project roots.
      I.e. if the project_root is /repo/src/ and the scanning root is /src/foo
      it would make the scanning root /foo. So it doesn't make sense to
@@ -541,7 +542,7 @@ let group_scanning_roots_by_project (conf : conf)
      TODO: revise the above. 'force_root' is the project root.
   *)
   Log.debug (fun m ->
-      m "group_scanning_roots_by_project %s"
+      m "group_scanning_roots_by_files_and_projects %s"
         (Logs_.list Scanning_root.to_string scanning_roots));
   let force_root : Project.t option =
     match conf.force_project_root with
@@ -557,14 +558,27 @@ let group_scanning_roots_by_project (conf : conf)
         (* Usual case when scanning the local file system *)
         None
   in
-  scanning_roots
-  |> List_.map (scanning_root_by_project force_root)
-  (* Using a realpath (physical path) in Project.t ensures we group
-     correctly even if the scanning_roots went through different symlink paths.
+  (* Files are not projects, so we must separate out our files and non-files
+     here to determine which paths should proceed to project-root logic.
   *)
-  |> Assoc.group_assoc_bykey_eff
-  |> List_.map (fun (project, scanning_roots) ->
-         Project.{ project; scanning_roots })
+  let dir_scanning_roots, file_scanning_roots =
+    List.partition
+      (fun x ->
+        UFile.dir_exists
+          (Fpath.append (Fpath.v (Sys.getcwd ())) (Scanning_root.to_fpath x)))
+      scanning_roots
+  in
+  let project_roots =
+    dir_scanning_roots
+    |> List_.map (scanning_root_by_project force_root)
+    (* Using a realpath (physical path) in Project.t ensures we group
+       correctly even if the scanning_roots went through different symlink paths.
+    *)
+    |> Assoc.group_assoc_bykey_eff
+    |> List_.map (fun (project, scanning_roots) ->
+           Project.{ project; scanning_roots })
+  in
+  (file_scanning_roots, project_roots)
 
 (*************************************************************************)
 (* Work on a single project *)
@@ -720,12 +734,13 @@ let clone_if_remote_project_root conf =
 (* Entry point *)
 (*************************************************************************)
 
-let get_targets conf scanning_roots =
+let get_targets conf scanning_roots :
+    Scanning_root.processed list * Out.skipped_target list =
   clone_if_remote_project_root conf;
-  scanning_roots
-  |> group_scanning_roots_by_project conf
-  |> List_.map (get_targets_for_project conf)
-  |> List.split
+  let file_scanning_roots, projects =
+    scanning_roots |> group_scanning_roots_by_files_and_projects conf
+  in
+  projects |> List_.map (get_targets_for_project conf) |> List.split
   |> fun (path_set_list, skipped_paths_list) ->
   let paths, skipped_size_minified =
     let path_set =
@@ -743,10 +758,22 @@ let get_targets conf scanning_roots =
     |> List.sort (fun (a : Out.skipped_target) (b : Out.skipped_target) ->
            Fpath.compare a.path b.path)
   in
-  (paths, sorted_skipped_targets)
+  (* Consolidate the project paths and the separately-partitioned
+     file paths, which are not projects.
+  *)
+  let target_paths : Scanning_root.processed list =
+    List_.map
+      (fun x -> Scanning_root.File (Scanning_root.to_fpath x))
+      file_scanning_roots
+    @ List_.map (fun x -> Scanning_root.Dir x) paths
+  in
+  (target_paths, sorted_skipped_targets)
 [@@profiling]
 
 let get_target_fpaths conf scanning_roots =
   let selected, skipped = get_targets conf scanning_roots in
-  let selected_fpaths = selected |> List_.map (fun (x : Fppath.t) -> x.fpath) in
-  (selected_fpaths, skipped)
+  ( selected
+    |> List_.map (function
+         | Scanning_root.Dir (x : Fppath.t) -> x.fpath
+         | File f -> f),
+    skipped )

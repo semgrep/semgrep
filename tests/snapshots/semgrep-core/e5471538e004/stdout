@@ -1,0 +1,8 @@
+Test name: without git > scanning root as a file
+--- Files not added to git ---
+a.py
+--- begin input files ---
+--- end input files ---
+--- Selected targets ---
+selected a.py
+--- Skipped targets ---
