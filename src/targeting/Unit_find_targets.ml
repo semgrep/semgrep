@@ -31,7 +31,8 @@ module Out = Semgrep_output_v1_t
                   (only relevant if with_git is true)
 *)
 let test_find_targets ?includes ?(excludes = [])
-    ?(non_git_files : F.t list = []) ~with_git name (files : F.t list) =
+    ?(non_git_files : F.t list = []) ~with_git ?(scanning_root = ".") name
+    (files : F.t list) =
   let category = if with_git then "with git" else "without git" in
   let test_func () =
     printf "Test name: %s > %s\n" category name;
@@ -63,7 +64,7 @@ let test_find_targets ?includes ?(excludes = [])
         in
         let targets, skipped_targets =
           Find_targets.get_target_fpaths conf
-            [ Scanning_root.of_fpath (Fpath.v ".") ]
+            [ Scanning_root.of_fpath (Fpath.v scanning_root) ]
         in
         (match includes with
         | None -> ()
@@ -109,6 +110,8 @@ let tests_with_or_without_git ~with_git =
     (* Select file 'a', not 'b' *)
     test_find_targets ~with_git ~includes:[ "a" ] "deep include"
       [ F.dir "dir" [ F.file "a"; F.file "b" ] ];
+    test_find_targets ~with_git ~scanning_root:"a.py" "scanning root as a file"
+      [ F.file "a.py" ];
     (*
        Test that the '--include' filter takes place after all the other
        filters.
