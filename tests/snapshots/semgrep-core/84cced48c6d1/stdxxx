@@ -62,7 +62,7 @@ Rules:
 └─────────────┘
   Scanning 3 files tracked by git with 1 Code rule:
   Scanning 3 files.
-[<MASKED TIMESTAMP>][INFO]: core_scan: processing 1 files (skipping 0), with 1 rules (skipping 0 )
+[<MASKED TIMESTAMP>][INFO]: scan: processing 1 files (skipping 0), with 1 rules (skipping 0 )
 [<MASKED TIMESTAMP>][INFO]: reporting matches if any
 [<MASKED TIMESTAMP>][INFO]: Checking for API token in environment variables
 [<MASKED TIMESTAMP>][INFO]: Environment variable SEMGREP_APP_TOKEN is set but not well-formed, ignoring it

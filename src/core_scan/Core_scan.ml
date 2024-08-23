@@ -138,11 +138,6 @@ type target_handler = Target.t -> Core_result.matches_single_file * was_scanned
 (* Helpers *)
 (*****************************************************************************)
 
-let scanned_unless_empty_rules rules (path : Fpath.t) : was_scanned =
-  match rules with
-  | [] -> Not_scanned
-  | _ -> Scanned path
-
 let set_matches_to_proprietary_origin_if_needed (xtarget : Xtarget.t)
     (matches : Core_result.matches_single_file) :
     Core_result.matches_single_file =
@@ -160,6 +155,32 @@ let set_matches_to_proprietary_origin_if_needed (xtarget : Xtarget.t)
     || Xlang.is_proprietary xtarget.xlang
   then Report_pro_findings.annotate_pro_findings xtarget matches
   else matches
+
+(*****************************************************************************)
+(* Scanned Helpers *)
+(*****************************************************************************)
+
+let scanned_unless_empty_rules rules (path : Fpath.t) : was_scanned =
+  match rules with
+  | [] -> Not_scanned
+  | _ -> Scanned path
+
+let scanned_of_targets ~targets ~scanned_targets =
+  (* TODO: Delete any lockfile-only findings whose rule produced a code+lockfile
+     finding in that lockfile *)
+  let scanned_target_table =
+    (* provide fast access to paths that were scanned by at least one rule;
+       includes extracted targets *)
+    (* TODO: create a new function: Common.hash_of_list ~get_key list ? *)
+    let tbl = Hashtbl.create (List.length scanned_targets) in
+    List.iter (fun x -> Hashtbl.replace tbl !!x ()) scanned_targets;
+    tbl
+  in
+  (* old: we were using all_targets and targets to not count extracted one *)
+  targets
+  |> List.filter (fun (x : Target.t) ->
+         let internal_path = Target.internal_path x in
+         Hashtbl.mem scanned_target_table !!internal_path)
 
 (*****************************************************************************)
 (* Pysemgrep progress bar *)
@@ -349,29 +370,28 @@ let handle_target_with_trace (handle_target : Target.t -> 'a) (t : Target.t) :
       ("num_bytes", `Int (UFile.filesize target_name));
     ]
   in
-  Tracing.with_span ~__FILE__ ~__LINE__ ~data "Core_scan.handle_target"
-    (fun _sp -> handle_target t)
+  Tracing.with_span ~__FILE__ ~__LINE__ ~data "scan.handle_target" (fun _sp ->
+      handle_target t)
 
-let log_core_scan_inputs (config : Core_scan_config.t) ~targets ~skipped
-    ~valid_rules ~invalid_rules =
+let log_scan_inputs (config : Core_scan_config.t) ~targets ~skipped ~valid_rules
+    ~invalid_rules =
   (* Add information to the trace *)
+  let num_rules = List.length valid_rules in
   let num_targets = List.length targets in
-  let num_skipped_targets = List.length skipped in
+  let num_skipped = List.length skipped in
   Tracing.add_data_to_opt_span config.top_level_span
     [
-      ("num_rules", `Int (List.length valid_rules));
+      ("num_rules", `Int num_rules);
       ("num_targets", `Int num_targets);
-      ("num_skipped_targets", `Int num_skipped_targets);
+      ("num_skipped_targets", `Int num_skipped);
     ];
   Logs.info (fun m ->
-      m
-        "core_scan: processing %d files (skipping %d), with %d rules (skipping \
-         %d )"
-        num_targets num_skipped_targets (List.length valid_rules)
+      m "scan: processing %d files (skipping %d), with %d rules (skipping %d )"
+        num_targets num_skipped num_rules
         (List.length invalid_rules));
   ()
 
-let log_core_scan_results (config : Core_scan_config.t) ~(res : Core_result.t)
+let log_scan_results (config : Core_scan_config.t) (res : Core_result.t)
     ~skipped_targets =
   (* TODO: delete this comment and -stat_matches.
    * note: uncomment the following and use semgrep-core -stat_matches
@@ -383,9 +403,9 @@ let log_core_scan_results (config : Core_scan_config.t) ~(res : Core_result.t)
   Tracing.add_data_to_opt_span config.top_level_span
     [ ("num_matches", `Int num_matches); ("num_errors", `Int num_errors) ];
   Logs.debug (fun m ->
-      m "core_scan: found %d matches, %d errors" num_matches num_errors);
+      m "scan: found %d matches, %d errors" num_matches num_errors);
   Logs.debug (fun m ->
-      m "core_scan: there were %d skipped targets" (List.length skipped_targets));
+      m "scan: there were %d skipped targets" (List.length skipped_targets));
   ()
 
 (* This is used to generate warnings in the logs
@@ -855,18 +875,19 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
       print_cli_progress config;
       (matches, was_scanned)
 
+(* coupling: with Deep_scan.scan_aux() *)
 let scan_exn (_caps : < >) (config : Core_scan_config.t)
     (rules : Rule_error.rules_and_invalid * float) : Core_result.t =
+  (* the rules *)
   let (valid_rules, invalid_rules), rules_parse_time = rules in
   let (rule_errors : E.t list) =
     invalid_rules |> List_.map E.error_of_invalid_rule
   in
-
-  (* The basic targets *)
+  (* the targets *)
   let targets, skipped = targets_of_config config in
-  log_core_scan_inputs config ~targets ~skipped ~valid_rules ~invalid_rules;
 
   (* !!Let's go!! *)
+  log_scan_inputs config ~targets ~skipped ~valid_rules ~invalid_rules;
   let prefilter_cache_opt =
     if config.filter_irrelevant_rules then
       Match_env.PrefilterWithCache (Hashtbl.create (List.length valid_rules))
@@ -877,24 +898,9 @@ let scan_exn (_caps : < >) (config : Core_scan_config.t)
     |> iter_targets_and_get_matches_and_exn_to_errors config
          (mk_target_handler config valid_rules prefilter_cache_opt)
   in
-  (* TODO: Delete any lockfile-only findings whose rule produced a code+lockfile finding in that lockfile *)
-  let scanned_target_table =
-    (* provide fast access to paths that were scanned by at least one rule;
-       includes extracted targets *)
-    (* TODO: create a new function: Common.hash_of_list ~get_key list ? *)
-    let tbl = Hashtbl.create (List.length scanned_targets) in
-    List.iter (fun x -> Hashtbl.replace tbl !!x ()) scanned_targets;
-    tbl
-  in
-  let scanned =
-    (* old: we were using all_targets and targets to not count extracted one *)
-    targets
-    |> List.filter (fun (x : Target.t) ->
-           let internal_path = Target.internal_path x in
-           Hashtbl.mem scanned_target_table !!internal_path)
-  in
-  (* Since the OSS engine was invoked, there were no interfile languages
-     requested *)
+  let scanned = scanned_of_targets ~targets ~scanned_targets in
+
+  (* the OSS engine was invoked so no interfile langs *)
   let interfile_languages_used = [] in
   let (res : Core_result.t) =
     Core_result.mk_result file_results
@@ -910,7 +916,8 @@ let scan_exn (_caps : < >) (config : Core_scan_config.t)
   (* Concatenate all the skipped targets *)
   let skipped_targets = skipped @ new_skipped @ res.skipped_targets in
 
-  log_core_scan_results config ~res ~skipped_targets;
+  (* TODO? should probably remove ~skipped_targets and apply to latest res *)
+  log_scan_results config res ~skipped_targets;
   (* TODO: returning, or not skipped_targets does not seem to have any impact
    * on our testsuite, weird. We need to add more tests. Maybe because
    * both pysemgrep and osemgrep do their own skip targets management.

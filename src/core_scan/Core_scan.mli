@@ -101,6 +101,17 @@ val parse_equivalences : Fpath.t option -> Equivalence.equivalences
 val parse_and_resolve_name :
   Lang.t -> Fpath.t -> AST_generic.program * Tok.location list
 
+val log_scan_inputs :
+  Core_scan_config.t ->
+  targets:'a list ->
+  skipped:'b list ->
+  valid_rules:'c list ->
+  invalid_rules:'d list ->
+  unit
+
+val log_scan_results :
+  Core_scan_config.t -> Core_result.t -> skipped_targets:'a list -> unit
+
 (* DO NOT USE *)
 val targets_of_config_DEPRECATED :
   Core_scan_config.t -> Target.t list * Semgrep_output_v1_t.skipped_target list
