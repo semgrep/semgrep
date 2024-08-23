@@ -40,12 +40,19 @@ def test_stack_size(run_semgrep_in_tmp: RunSemgrep, snapshot):
     # overflow. If this fails, the test is broken and needs to be fixed.
     # Do not just delete this assertion. It means the actual test below does
     # not accurately verify that we are solving the stack exhaustion
+
+    # NOTE: This test requires some tuning to work on different systems
+    # as we can see a SIGSEGV on macOS and Linux for too small of ulimit sizes.
+    # For too high of ulimit sizes, we will not see a stack overflow.
+    ulimit_size = 384
+
     output = subprocess.run(
-        f"ulimit -s 250 && {SEMGREP_BASE_SCAN_COMMAND_STR} --disable-version-check --metrics off --config {rulepath} --verbose {targetpath}",
+        f"ulimit -s {ulimit_size} && {SEMGREP_BASE_SCAN_COMMAND_STR} --disable-version-check --metrics off --config {rulepath} --jobs 1 --verbose {targetpath}",
         shell=True,
         capture_output=True,
         encoding="utf-8",
     )
+    print(output.stdout)
     print(output.stderr)
     assert (
         "semgrep-core exit code: -11" in output.stderr
@@ -54,14 +61,16 @@ def test_stack_size(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
     # If only set soft limit, semgrep should raise it as necessary so we don't hit soft limit
     output = subprocess.run(
-        f"ulimit -S -s 250 && {SEMGREP_BASE_SCAN_COMMAND_STR} --disable-version-check --metrics off --config {rulepath} --verbose {targetpath}",
+        f"ulimit -S -s {ulimit_size} && {SEMGREP_BASE_SCAN_COMMAND_STR} --disable-version-check --metrics off --config {rulepath} --jobs 1 --verbose {targetpath}",
         shell=True,
         capture_output=True,
         encoding="utf-8",
     )
+    print(output.stderr)
     # with a soft limit, semgrep should terminate without errors
     assert "semgrep-core exit code: -11" not in output.stderr
     assert "Stack overflow" not in output.stderr
+    assert output.returncode == 0
 
 
 @pytest.mark.slow
