@@ -15,6 +15,7 @@
 open Common
 open Fpath_.Operators
 module R = Rule
+module PM = Pattern_match
 module RP = Core_result
 module E = Core_error
 module OutJ = Semgrep_output_v1_t
@@ -121,7 +122,7 @@ let group_rules xconf rules xtarget =
 let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
   let cnt_timeout = ref 0 in
   let rule_timeouts = ref [] in
-  fun file rule f ->
+  fun file (rule : Rule.t) f ->
     let rule_id = fst rule.R.id in
     Rule.last_matched_rule := Some rule_id;
     let res_opt =
@@ -144,15 +145,23 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
           (Core_error.ErrorSet.singleton error)
           (Core_profiling.empty_rule_profiling rule)
 
-let scc_match_hook match_hook get_dep_matches pms =
-  pms
-  |> List.concat_map (fun (pm : Pattern_match.t) ->
-         let dependency_matches = get_dep_matches pm.rule_id.id in
-         let pms' =
-           Match_dependency.annotate_pattern_match dependency_matches pm
-         in
-         pms' |> List.iter match_hook;
-         pms')
+let scc_match_hook (match_hook : PM.t -> unit)
+    (dependency_match_table : Match_dependency.dependency_match_table option) :
+    PM.t list -> PM.t list =
+  let get_dep_matches =
+    match dependency_match_table with
+    | Some table -> Hashtbl.find_opt table
+    | None -> fun _ -> None
+  in
+  fun pms ->
+    pms
+    |> List.concat_map (fun (pm : Pattern_match.t) ->
+           let dependency_matches = get_dep_matches pm.rule_id.id in
+           let pms' =
+             Match_dependency.annotate_pattern_match dependency_matches pm
+           in
+           pms' |> List.iter match_hook;
+           pms')
 
 (*****************************************************************************)
 (* Entry point *)
@@ -162,20 +171,17 @@ let check ~match_hook ~timeout ~timeout_threshold
     ?(dependency_match_table : Match_dependency.dependency_match_table option)
     (xconf : Match_env.xconfig) (rules : Rule.rules) (xtarget : Xtarget.t) :
     Core_result.matches_single_file =
-  let get_dep_matches =
-    match dependency_match_table with
-    | Some table -> Hashtbl.find_opt table
-    | None -> fun _ -> None
-  in
-  let match_hook = scc_match_hook match_hook get_dep_matches in
+  let match_hook = scc_match_hook match_hook dependency_match_table in
 
-  let { path = { internal_path_to_content; _ }; lazy_ast_and_errors; xlang; _ }
-      : Xtarget.t =
+  let {
+    path = { internal_path_to_content = file; _ };
+    lazy_ast_and_errors;
+    xlang;
+    _;
+  } : Xtarget.t =
     xtarget
   in
-  Log.info (fun m ->
-      m "checking %s with %d rules" !!internal_path_to_content
-        (List.length rules));
+  Log.info (fun m -> m "checking %s with %d rules" !!file (List.length rules));
   (match (!Profiling.profile, xlang) with
   (* coupling: see Run_semgrep.xtarget_of_file() *)
   | Profiling.ProfAll, Xlang.L (_lang, []) ->
@@ -183,9 +189,9 @@ let check ~match_hook ~timeout ~timeout_threshold
           m "forcing parsing of AST outside of rules, for better profile");
       Lazy.force lazy_ast_and_errors |> ignore
   | _else_ -> ());
+
   let per_rule_boilerplate_fn =
-    per_rule_boilerplate_fn ~timeout ~timeout_threshold
-      !!internal_path_to_content
+    per_rule_boilerplate_fn ~timeout ~timeout_threshold !!file
   in
 
   (* We separate out the taint rules specifically, because we may want to
@@ -196,17 +202,17 @@ let check ~match_hook ~timeout ~timeout_threshold
 
      TODO: use skipped_rules to call the commented skipped_target_of_rule?
   *)
-  let relevant_taint_rules_groups, relevant_nontaint_rules, _skipped_rules =
+  let taint_rules_groups, nontaint_rules, _skipped_rules =
     group_rules xconf rules xtarget
   in
   let res_taint_rules =
-    relevant_taint_rules_groups
-    |> List.concat_map (fun relevant_taint_rules ->
+    taint_rules_groups
+    |> List.concat_map (fun taint_rules ->
            Match_tainting_mode.check_rules ~match_hook ~per_rule_boilerplate_fn
-             relevant_taint_rules xconf xtarget)
+             taint_rules xconf xtarget)
   in
   let res_nontaint_rules =
-    relevant_nontaint_rules
+    nontaint_rules
     |> List_.map (fun r ->
            let xconf =
              Match_env.adjust_xconfig_with_rule_options xconf r.R.options
@@ -216,7 +222,7 @@ let check ~match_hook ~timeout ~timeout_threshold
              (fun () ->
                Logs_.with_debug_trace "Match_rules.check_rule" (fun () ->
                    Log.debug (fun m ->
-                       m "target: %s, ruleid: %s" !!internal_path_to_content
+                       m "target: %s, ruleid: %s" !!file
                          (r.id |> fst |> Rule_ID.to_string));
                    (* dispatching *)
                    match r.R.mode with
