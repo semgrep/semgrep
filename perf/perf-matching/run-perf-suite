@@ -3,6 +3,7 @@
 # Run semgrep-core on a series of pairs (target, pattern) and report the
 # time it takes. Optionally upload the results to the semgrep dashboard.
 import argparse
+import json
 import os
 import subprocess
 import time
@@ -80,18 +81,38 @@ class Result:
         self.duration = duration
 
 
+# RIP semgrep-core -f
+# This creates a semgrep rule from a semgrep pattern found in a file.
+def make_rule_file(dirname: str, name: str, lang: str) -> str:
+    pattern_file = os.path.join(dirname, name + ".sgrep")
+    rule_file = os.path.join(dirname, f"{name}.tmp.yaml")
+    with open(pattern_file, "r") as file:
+        pattern = file.read()
+    with open(rule_file, "w") as file:
+        file.write(
+            f"""
+# generated from {pattern_file}
+rules:
+- id: test
+  pattern: {json.dumps(pattern)}
+  languages: [{lang}]
+  message: found something
+  severity: ERROR
+"""
+        )
+    return rule_file
+
+
 def run_tests(
     dirname: str, tests: List[Test], no_cache: bool, max_cache: bool
 ) -> List[Result]:
     results = []
     for test in tests:
-        ext = ".sgrep"
-        flag = "-f"
         if test.is_config:
-            ext = ".yaml"
-            flag = "-rules"
+            rule_file = os.path.join(dirname, test.name + ".yaml")
+        else:
+            rule_file = make_rule_file(dirname, test.name, test.lang)
 
-        pattern_file = os.path.join(dirname, test.name + ext)
         target_file = os.path.join(dirname, test.target)
         target_file_gz = os.path.join(dirname, test.target + ".gz")
 
@@ -103,8 +124,8 @@ def run_tests(
             SEMGREP_CORE,
             "-lang",
             test.lang,
-            flag,
-            pattern_file,
+            "-rules",
+            rule_file,
             target_file,
         ]
         if no_cache:
