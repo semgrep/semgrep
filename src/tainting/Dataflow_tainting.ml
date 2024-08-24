@@ -1288,11 +1288,7 @@ and check_tainted_expr env exp : Taints.t * S.shape * Lval_env.t =
           | G.Elvis
           | G.Nullish
           | G.Background
-          | G.Pipe
-          | G.LDA
-          | G.RDA
-          | G.LSA
-          | G.RSA ->
+          | G.Pipe ->
               all_args_taints
         in
         (op_taints, S.Bot, lval_env)
