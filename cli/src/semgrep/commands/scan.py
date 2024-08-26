@@ -48,6 +48,7 @@ from semgrep.state import get_state
 from semgrep.target_manager import ALL_PRODUCTS
 from semgrep.target_manager import write_pipes_to_disk
 from semgrep.util import abort
+from semgrep.util import is_truthy
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
@@ -73,7 +74,7 @@ class MetricsStateType(click.ParamType):
             if lower == "auto":
                 return MetricsState.AUTO
             # Support setting via old environment variable values 0/1/true/false
-            if lower == "on" or lower == "1" or lower == "true":
+            if is_truthy(value):
                 return MetricsState.ON
             if lower == "off" or lower == "0" or lower == "false":
                 return MetricsState.OFF

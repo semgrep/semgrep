@@ -58,9 +58,13 @@ class CoreNotFound(Exception):
 
 # Similar to cli/src/semgrep/engine.py check_is_correct_pro_version
 def is_correct_pro_version(core_path):
-    # We want to be careful about what we import here in order to keep this
-    # script lightweight. However, this file just defines a single constant and
-    # it takes well under a millisecond to import this.
+    """
+    We want to be careful about what we import here in order to keep this
+    script lightweight. However, this file just defines a single constant and
+    it takes well under a millisecond to import this.
+
+    This can be verified with `time python -c 'import semgrep; print(semgrep.__VERSION__)'`
+    """
     from semgrep import __VERSION__
     # Duplicate of cli/src/semgrep/semgrep_core.py pro_version_stamp_path
     stamp_path = core_path.parent / "pro-installed-by.txt"
@@ -170,5 +174,5 @@ if __name__ == "__main__":
        # We activate the new CLI UX only when semgrep is invoked directly
        # (and legacy is not specified)
        # and osemgrep needs to fallback on pysemgrep
-       os.environ["SEMGREP_NEW_CLI_UX"] = f"{int(os.isatty(sys.stdout.fileno()))}"
+       os.environ["SEMGREP_NEW_CLI_UX"] = f"{int(sys.stdout.isatty())}"
        exec_osemgrep()
