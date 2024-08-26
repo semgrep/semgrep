@@ -878,6 +878,7 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
 (* coupling: with Deep_scan.scan_aux() *)
 let scan_exn (_caps : < >) (config : Core_scan_config.t)
     (rules : Rule_error.rules_and_invalid * float) : Core_result.t =
+  Logs.debug (fun m -> m "Core_scan.scan_exn %s" (Core_scan_config.show config));
   (* the rules *)
   let (valid_rules, invalid_rules), rules_parse_time = rules in
   let (rule_errors : E.t list) =

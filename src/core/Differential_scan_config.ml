@@ -35,6 +35,7 @@ type t =
   | BaseLine of Fpath.t list (* implies depth 0 *)
   | Depth of Fpath.t list (* starting point *) * int (* depth *)
   | WholeScan
+[@@deriving show]
 
 let map_targets f = function
   | BaseLine targets -> BaseLine (f targets)
