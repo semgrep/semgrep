@@ -1,0 +1,55 @@
+rules:
+- id: example-py
+  pattern: "f()"
+  languages: [py, python]
+  message: |
+    It's a Python finding.
+  severity: WARNING
+- id: example-python
+  pattern: "f()"
+  languages: [python]
+  message: |
+    It's a Python finding.
+  severity: WARNING
+- id: example-python-sentence-case
+  pattern: "f()"
+  languages: [Python]
+  message: |
+    It's a Python finding.
+  severity: WARNING
+- id: example-js
+  pattern: "f()"
+  languages: [js]
+  message: |
+    It's a JavaScript finding.
+  severity: WARNING
+- id: example-javascript
+  pattern: "f()"
+  languages: [javascript]
+  message: |
+    It's a JavaScript finding.
+  severity: WARNING
+- id: example-cpp
+  pattern: "f()"
+  languages: [cpp, c++]
+  message: |
+    It's a C++ finding.
+  severity: WARNING
+- id: example-csharp
+  pattern: "f()"
+  languages: [C#]
+  message: |
+    It's a C# finding.
+  severity: WARNING
+- id: example-csharp-lower
+  pattern: "f()"
+  languages: [c#]
+  message: |
+    It's a C# finding.
+  severity: WARNING
+- id: example-multi-lang
+  pattern: "f()"
+  languages: [C#, c++, python, javascript, js, cpp, py, python2]
+  message: |
+    It's an multilang finding.
+  severity: WARNING
