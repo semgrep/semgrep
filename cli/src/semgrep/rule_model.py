@@ -1,3 +1,33 @@
+# A semi-automated generated Pydantic model to validate our Rule schema.
+#
+# @author: zz@semgrep.com
+# @date: 2024-08-20
+#
+# This model is generated from the rule_schema_v1.yaml file in the semgrep repository,
+# and then tuned with some additional custom logic to smooth over some rough edges.
+#
+# For generating this model, we used https://docs.pydantic.dev/latest/integrations/datamodel_code_generator/
+# whose homepage is https://koxudaxi.github.io/datamodel-code-generator/
+#
+# Ideally running
+# $ datamodel-codegen --input interfaces/semgrep-interfaces/rule_schema_v1.yaml --input-file-type jsonschema --output model.py
+# would just work out of the box, but there a few issues that require manual intervention.
+#
+# Steps used to generate this model:
+#
+# 1. The yaml file first needs to be converted to jsonschema format which can be done using the following command:
+#    $ python -c 'import yaml, json; print(json.dumps(yaml.safe_load(open("interfaces/semgrep-interfaces/rule_schema_v1.yaml")), indent=2))' > rule_schema_v1.json
+# 2. Now we can run `$ datamodel-codegen --input rule_schema_v1.json --input-file-type jsonschema --output model.py`
+# 3. Next, we need to update the generated model to pydantic v2 (see https://docs.pydantic.dev/latest/migration/#migration-guide) which is a
+#    somewhat labor intensive and manual process. The generated model will also a lot duplicate class definitions which should be cleaned up.
+#    This will manifest as a lot of `class NewPatternX(BaseModel)` with X being a number from 1 to 8.
+# 4. Sadly, we need to update the `Languages` enum with the extended `lang.json` values and add some custom python code to handle extended matches
+#    for the `Languages` enum.
+# 5. Then, there's some custom logic for validation (e.g. `model_validator` and `field_validator` functions) that needs to be added to the model
+#    as well as `pattern_discriminator` and `focus_discriminator` functions for better error messages, including the `check_language_static` to validate.
+# 6. Finally, there's a bit of tuning that I undertook and hopefully we won't need to do again once we move validation directly in OCaml.
+#
+#
 from enum import Enum
 from typing import Any
 from typing import Dict
@@ -18,33 +48,59 @@ from pydantic_core import PydanticCustomError
 from typing_extensions import Annotated
 
 
-# NOTE: Ensure that we also inherit from str to prevent footguns when comparing equality with raw strings
-# TODO: Add a semgrep rule to enforce this!
 class RuleMode(str, Enum):
+    """
+    NOTE: Ensure that we also inherit from str to prevent footguns when comparing equality with raw strings
+    """
+
     search = "search"
     taint = "taint"
     _join = "join"  # NOTE: This is a workaround to avoid a name conflict with the str `join` field
     extract = "extract"
 
 
-# NOTE: Duplication is better than the wrong abstraction here.
-# TODO: Figure out why JoinedRules supports this partial match of our Mode enum
-#       and provide a better solution.
 class JoinedRuleMode(str, Enum):
+    """
+    NOTE: While this enum does not exist in the original rule schema, we split the `RuleMode` enum into two separate enums
+    for clarity of the expected options for the `mode` field in the `JoinedRules` model.
+    """
+
     search = "search"
     taint = "taint"
 
 
-# NOTE: Coupling with lang.json as rule_schema_v1.yaml is out-of-date
 class Languages(str, Enum):
+    """
+    NOTE: Derived from `lang.json` as the `languages` definition in `rule_schema_v1.yaml`
+    is not the source of truth for the languages that Semgrep supports.
+
+    To create this enum, we can follow the following steps:
+
+    1. Run the following command to extract the language keys from lang.json:
+        $ jq -r '. | map(.keys[]) | sort' interfaces/semgrep-interfaces/lang.json
+    2. Copy the output which should look like this:
+    [
+        "aliengrep",
+        "apex",
+        "bash",
+        "c",
+        "c#",
+        "c++",
+        ...
+    ]
+    3. Paste the output into an IDE and format the data to `{lang} = "{lang}"` for each language key
+    4. Adust the key values for languages that are not valid Python identifiers (e.g. `c#` -> `_cs`)
+    5. Update the `Languages` enum below with the formatted data
+    """
+
     aliengrep = "aliengrep"
     apex = "apex"
     bash = "bash"
     c = "c"
-    cs = "c#"
-    cs2 = "C#"  # TODO: Normalize raw values to become case-insensitive
-    cpp_ = "c++"
+    _cs = "c#"
+    _cpp = "c++"
     cairo = "cairo"
+    circom = "circom"
     clojure = "clojure"
     cpp = "cpp"
     csharp = "csharp"
@@ -69,7 +125,7 @@ class Languages(str, Enum):
     kt = "kt"
     lisp = "lisp"
     lua = "lua"
-    move_on_aptos = "move-on-aptos"
+    move_on_aptos = "move_on_aptos"
     none = "none"
     ocaml = "ocaml"
     php = "php"
@@ -101,14 +157,52 @@ class Languages(str, Enum):
     xml = "xml"
     yaml = "yaml"
 
+    @classmethod
+    def _missing_(cls, value: object) -> Union["Languages", None]:
+        """
+        Instead of defining values for both "C#" and "c#" in the enum to account for case-insensitive matching,
+        we can use this built-in method to resolve enum members that otherwise wouldn't be found through the normal
+        lookup process. Note that pydantic field validation will respect this method when resolving enum members.
+
+        See https://docs.python.org/3/library/enum.html#enum.Enum._missing_
+        """
+        search_value = value.lower() if isinstance(value, str) else value
+        return next((member for member in cls if search_value == member.value), None)
+
+    @classmethod
+    def resolve(cls, value: str) -> Union["Languages", None]:
+        """
+        Resolve a raw language string value to the correct enum member or None.
+
+        This method will use the `_missing_` method under the hood and is useful for checking membership
+        of the `Languages` enum or comparing against the `_LanguageData` class.
+
+        Note that we can't use `hasattr(Languages, value)` for all cases, as `c#` for example, is not a
+        valid Python identifier. Instead, we can use this method to resolve the value to the correct enum
+        (or None) and take full advantage of the `_missing_` method to handle case-insensitive matching.
+        """
+        try:
+            return cls(value)
+        except ValueError:
+            return None
+
 
 def check_language_static(v: Union[str, List[str]]) -> Union[str, List[str]]:
+    """
+    While pydantic will run a validation of the input against the members of the `Languages` enum,
+    we can provide a better error message that calls out the invalid language(s) at the beginning of
+    the exception for inputs of multiple languages. This method will be called prior to the pydantic
+    validation.
+
+    Note that for inputs of a single language, we can just return the input unchanged and pydantic will
+    validation and a suitable error message without any need for customizations.
+    """
     if isinstance(v, list):
-        # Check for singleton list and return the string for a better error message
+        # Check for singleton list and return the string for a better error message from pydantic
         if len(v) == 1:
             return v[0]
-        # Otherwise, check for invalid languages
-        _invalid_langs = [lang for lang in v if not hasattr(Languages, lang)]
+        # Otherwise, check for invalid languages via the `resolve` method
+        _invalid_langs = [lang for lang in v if not (Languages.resolve(lang))]
         # If there's only one invalid language, return it as a string for a better error message
         invalid_langs = (
             _invalid_langs[0]
@@ -128,8 +222,14 @@ class Severity(str, Enum):
     ERROR = "ERROR"
     WARNING = "WARNING"
     INFO = "INFO"
+    # EXPERIMENTAL
     INVENTORY = "INVENTORY"
     EXPERIMENT = "EXPERIMENT"
+    # since 1.72.0
+    CRITICAL = "CRITICAL"
+    HIGH = "HIGH"
+    MEDIUM = "MEDIUM"
+    LOW = "LOW"
 
 
 class FixRegex(BaseModel):
@@ -193,9 +293,14 @@ def http_status_discriminator(value: Any) -> Union[str, None]:
 
 
 class HttpResponseMatch(BaseModel):
-    # NOTE: Why do we support strings here? These should be integers.
-    #       Coupling due to create_validator_rule in test_validator_rule_is_blocking
-    #       of test_rule.py
+    """
+    NOTE: Ideally we should only be using integers for status codes, but we
+    are more permissive here as the original schema allows for strings.
+
+    We can see that the `create_validator_rule` function in the `test_validator_rule_is_blocking`
+    test of `test_rule.py` uses strings for status codes.
+    """
+
     status_code: Annotated[
         Union[
             Annotated[str, Tag("str")],
@@ -1094,5 +1199,5 @@ class Rule(BaseModel):
 
 
 # Our final exported model for the rule schema
-class Model(BaseModel):
+class RuleModel(BaseModel):
     rules: List[Rule]

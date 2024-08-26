@@ -33,9 +33,13 @@ from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.error_location import SourceTracker
 from semgrep.error_location import Span
-from semgrep.rule_model import Model
+from semgrep.rule_model import RuleModel
+from semgrep.verbose_logging import getLogger
 
 MISSING_RULE_ID = "no-rule-id"
+
+
+logger = getLogger(__name__)
 
 
 class EmptyYamlException(Exception):
@@ -528,7 +532,7 @@ def remove_incompatible_rules_based_on_version(
 def validate_yaml_pydantic(data: YamlTree) -> None:
     # MARK: Run pydantic validation for a 20x perf improvement in validation speed
     # relative to `jsonschema.validate`
-    Model.model_validate(data.unroll())
+    RuleModel.model_validate(data.unroll())
 
 
 @tracing.trace()
@@ -546,13 +550,20 @@ def validate_yaml(
         try:
             with tracing.TRACER.start_as_current_span("pydantic.validate"):
                 validate_yaml_pydantic(data)
-        except (ValidationError, NotImplementedError):
+        except (ValidationError, NotImplementedError) as e:
             # If we get a validation error (or intentionally raise NotImplementedError)
             # we want to pass through to the jsonschema validation
             # for the custom error messages
+            logger.verbose(
+                f"Fast rule validation failed, falling back to jsonschema.validate: {e}"
+            )
             with tracing.TRACER.start_as_current_span("jsonschema.validate"):
                 jsonschema.validate(
                     data.unroll(), RuleSchema.get(), cls=Draft7Validator
+                )
+                # If we reach this line, the jsonschema validation passed but pydantic failed
+                logger.verbose(
+                    "Mismatch between pydantic and jsonschema validation! RuleModel is likely out of date."
                 )
         # After the first (and or second pass), we should have a valid schema
         # and can return the errors
