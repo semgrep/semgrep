@@ -50,6 +50,14 @@ def is_rules(rules: str) -> bool:
     return rules[:6] == "rules:" or rules[:8] == '{"rules"'
 
 
+def is_truthy(value: Any) -> bool:
+    """
+    Returns True if the value is a truthy value, False otherwise.
+    """
+    val = str(value).lower()
+    return value is not None and val in ["true", "1", "y", "on", "yes"]
+
+
 def path_has_permissions(path: Path, permissions: int) -> bool:
     return path.exists() and path.stat().st_mode & permissions == permissions
 
@@ -57,6 +65,28 @@ def path_has_permissions(path: Path, permissions: int) -> bool:
 def abort(message: str) -> None:
     click.secho(message, fg="red", err=True)
     sys.exit(2)
+
+
+def has_color() -> bool:
+    """
+    Determine if color should be used in the output.
+
+    NOTE: This method shares logic with the `configure` method in `terminal.py`
+    and is intended to mimic the behavior without relying on internal state.
+    This could be a candidate TODO for refactoring to avoid duplication.
+    """
+    force_color = is_truthy(os.environ.get("SEMGREP_FORCE_COLOR"))
+    # See https://no-color.org/
+    no_color = is_truthy(os.environ.get("NO_COLOR")) or is_truthy(
+        os.environ.get("SEMGREP_FORCE_NO_COLOR")
+    )
+    # If both are force_color and no_color are set, force_color wins
+    if force_color and no_color:
+        return True
+    if no_color:
+        return False
+    # If force_color is set, use it. Otherwise, use color if stdout is a tty.
+    return force_color or sys.stdout.isatty()
 
 
 def with_color(
@@ -83,6 +113,31 @@ def with_color(
         bg=(bgcolor.value if bgcolor is not None else None),
         underline=underline,
         bold=bold,
+    )
+
+
+def with_logo_color(text: str) -> str:
+    """
+    Wrap text with our brand color if color is enabled.
+    Does not rely on internal state.
+    """
+    if has_color():
+        return click.style(text, fg=Colors.green.value)
+    return text
+
+
+def welcome() -> None:
+    """
+    Print a welcome message with the Semgrep logo.
+    """
+    logo = with_logo_color("○○○")
+    click.echo(
+        f"""
+┌──── {logo} ────┐
+│ Semgrep CLI │
+└─────────────┘
+""",
+        err=True,
     )
 
 
