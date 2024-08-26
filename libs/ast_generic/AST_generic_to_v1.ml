@@ -550,6 +550,10 @@ and map_arithmetic_operator = function
   | Is -> `Is
   | NotIs -> `NotIs
   | Background -> `Background
+  | LDA -> `LDA
+  | RDA -> `RDA
+  | LSA -> `LSA
+  | RSA -> `RSA
 
 and map_arguments v = map_bracket (map_of_list map_argument) v
 
