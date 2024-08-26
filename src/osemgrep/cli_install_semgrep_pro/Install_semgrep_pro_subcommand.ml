@@ -195,12 +195,18 @@ let run_conf (caps : caps) (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
       if not download_succeeded then Exit_code.fatal ~__LOC__
       else (
         (* THINK: Do we need to give exec permissions to everybody? Can this be a security risk?
-           *        The binary should not have setuid or setgid rights, so letting others
-           *        execute it should not be a problem.
-        *)
+         *        The binary should not have setuid or setgid rights, so letting others
+         *        execute it should not be a problem.
+         *
+         * Also, some OSes require read permissions to run the executable, so add the permission.
+         *)
         FileUtil.chmod
           (`Symbolic
-            [ `User (`Set `Exec); `Group (`Set `Exec); `Other (`Set `Exec) ])
+            [
+              `User (`Set (`List [ `Read; `Exec ]));
+              `Group (`Set (`List [ `Read; `Exec ]));
+              `Other (`Set (`List [ `Read; `Exec ]));
+            ])
           [ !!semgrep_pro_path_tmp ];
 
         (* Get Pro version, it serves as a simple check that the binary works
