@@ -291,8 +291,8 @@ let mk_config () : Core_scan_config.t =
       (match !rule_source with
       | None -> failwith "missing -rules"
       | Some x -> x);
-    (* target_source will be filled later in main_exn() *)
-    target_source = None;
+    (* target_source will be adjusted later in main_exn() if needed *)
+    target_source = !target_source;
     output_format = !output_format;
     strict = !strict;
     report_time = !report_time;
@@ -314,36 +314,6 @@ let mk_config () : Core_scan_config.t =
     (* DEPRECATED: should be removed once Deep_scan does not need it anymore *)
     roots = [];
     lang = None;
-  }
-
-let mk_config_DEPRECATED () : Core_scan_config.t =
-  {
-    rule_source =
-      (match !rule_source with
-      | None -> failwith "missing -rules"
-      | Some x -> x);
-    output_format = !output_format;
-    strict = !strict;
-    report_time = !report_time;
-    matching_explanations = !matching_explanations;
-    respect_rule_paths = !respect_rule_paths;
-    equivalences_file = !equivalences_file;
-    file_match_hook = None;
-    (* limits and perf *)
-    timeout = !timeout;
-    timeout_threshold = !timeout_threshold;
-    max_memory_mb = !max_memory_mb;
-    max_match_per_file = !max_match_per_file;
-    ncores = !ncores;
-    filter_irrelevant_rules = !filter_irrelevant_rules;
-    (* open telemetry *)
-    trace = !trace;
-    trace_endpoint = !trace_endpoint;
-    top_level_span = None;
-    (* !!!Differ from above!!! *)
-    target_source = !target_source;
-    lang = !lang;
-    roots = [];
   }
 
 (*****************************************************************************)
