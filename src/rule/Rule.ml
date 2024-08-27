@@ -137,7 +137,25 @@ and metavar_cond =
     (* LATER: could parse lazily, like the patterns *)
   | CondAnalysis of Mvar.t * metavar_analysis_kind
   | CondNestedFormula of Mvar.t * Xlang.t option * formula
-  | CondName of Mvar.t * metavar_name_kind
+  | CondName of metavar_cond_name
+
+and metavar_cond_name = {
+  mvar : Mvar.t;
+  kind : metavar_name_kind option;
+  module_ : string option;
+      (** A user-facing module name.
+
+        Internally we would further resolve this in the relevant hook. Mainly
+        for JS/TS, where what is used for require or import might have
+        non-identifier characters, and there aren't really fully qualified
+        names. For instance, this might be `foo.bar`, or `@lib/something`, or
+        `@angular`.
+
+        Applicable for other languages too, like for Java, e.g., this could be
+        `com.foo.bar`, but less important since those patterns may be able to
+        be written directly.
+  *)
+}
 
 and metavar_analysis_kind = CondEntropy | CondEntropyV2 | CondReDoS
 
