@@ -31,7 +31,7 @@ let tests_path = Fpath.v "tests"
  * as just errors.
  *)
 let metachecker_checks_tests () =
-  Testo.categorize "metachecker checks testing"
+  Testo.categorize "metachecker"
     (let dir = tests_path / "errors" in
      let files = Common2.glob (spf "%s/*.yaml" !!dir) in
      files
@@ -52,7 +52,7 @@ let metachecker_checks_tests () =
 (* Test the entire `-test_check` path *)
 let metachecker_regression_tests caps =
   [
-    t "metachecker regression testing" (fun () ->
+    t "metachecker" (fun () ->
         let path = tests_path / "metachecks" in
         Test_metachecking.test_rules ~unit_testing:true caps [ path ]);
   ]

@@ -36,6 +36,8 @@ val match_pattern :
   - foo.rb: target file for the test case "foo".
   - foo.sgrep: target file for the test case "foo". If missing, it must
     exist in the polyglot folder.
+
+  Used in Unit_pro_languages.ml
 *)
 val make_lang_regression_tests :
   test_pattern_path:Fpath.t ->
