@@ -25,6 +25,16 @@ type taints_to_sink = {
    * matching the source and the one from matching the sink. *)
 }
 
+type taints_to_return = {
+  data_taints : Taint.taint list;
+      (** The taints of the data being returned (typical data propagated via data flow). *)
+  data_shape : Taint_shape.shape;  (** The shape of the data being returned. *)
+  control_taints : Taint.taint list;
+      (** The taints propagated via the control flow (cf., `control: true` sources)
+   * used for reachability queries. *)
+  return_tok : AST_generic.tok;
+}
+
 (** Function-level result.
   *
   * 'ToSink' results where a taint source reaches a sink are candidates for
@@ -53,7 +63,7 @@ type result =
         *              sink = "sink(y)";
         *              ... }
         *)
-  | ToReturn of Taint.taint list * Taint_shape.shape * AST_generic.tok
+  | ToReturn of taints_to_return
       (** Taints reach a `return` statement.
         *
         * For example:

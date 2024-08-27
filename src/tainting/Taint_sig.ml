@@ -68,9 +68,36 @@ let compare_taints_to_sink
       | other -> other)
   | other -> other
 
+type taints_to_return = {
+  data_taints : Taint.taint list;
+  data_shape : Taint_shape.shape;
+  control_taints : Taint.taint list;
+  return_tok : AST_generic.tok;
+}
+
+let compare_taints_to_return
+    {
+      data_taints = data_taints1;
+      data_shape = data_shape1;
+      control_taints = control_taints1;
+      return_tok = _;
+    }
+    {
+      data_taints = data_taints2;
+      data_shape = data_shape2;
+      control_taints = control_taints2;
+      return_tok = _;
+    } =
+  match List.compare T.compare_taint data_taints1 data_taints2 with
+  | 0 -> (
+      match S.compare_shape data_shape1 data_shape2 with
+      | 0 -> List.compare T.compare_taint control_taints1 control_taints2
+      | other -> other)
+  | other -> other
+
 type result =
   | ToSink of taints_to_sink
-  | ToReturn of T.taint list * S.shape * G.tok
+  | ToReturn of taints_to_return
   | ToLval of T.taint list * T.lval (* TODO: CleanArg ? *)
 
 let show_taints_to_sink { taints_with_precondition = taints, _; sink; _ } =
@@ -78,10 +105,11 @@ let show_taints_to_sink { taints_with_precondition = taints, _; sink; _ } =
 
 let show_result = function
   | ToSink x -> show_taints_to_sink x
-  | ToReturn (taints, shape, _) ->
-      Printf.sprintf "return (%s & %s)"
-        (Common2.string_of_list T.show_taint taints)
-        (S.show_shape shape)
+  | ToReturn { data_taints; data_shape; control_taints; return_tok = _ } ->
+      Printf.sprintf "return (%s & %s & CTRL:%s)"
+        (Common2.string_of_list T.show_taint data_taints)
+        (S.show_shape data_shape)
+        (Common2.string_of_list T.show_taint control_taints)
   | ToLval (taints, lval) ->
       Printf.sprintf "%s ----> %s"
         (Common2.string_of_list T.show_taint taints)
@@ -90,10 +118,7 @@ let show_result = function
 let compare_result r1 r2 =
   match (r1, r2) with
   | ToSink tts1, ToSink tts2 -> compare_taints_to_sink tts1 tts2
-  | ToReturn (ts1, shape1, _tok1), ToReturn (ts2, shape2, _tok2) -> (
-      match List.compare T.compare_taint ts1 ts2 with
-      | 0 -> S.compare_shape shape1 shape2
-      | other -> other)
+  | ToReturn ttr1, ToReturn ttr2 -> compare_taints_to_return ttr1 ttr2
   | ToLval (ts1, lv1), ToLval (ts2, lv2) -> (
       match List.compare T.compare_taint ts1 ts2 with
       | 0 -> T.compare_lval lv1 lv2

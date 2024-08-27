@@ -378,6 +378,18 @@ let partition_sources_by_side_effect sources_matches =
              Right3 m)
   |> fun (only, yes, no) -> (`Only only, `Yes yes, `No no)
 
+(* We need to filter out `Control` variables since those do not propagate trough return
+ * (there is just no point in doing so). *)
+let get_control_taints_to_return env =
+  Lval_env.get_control_taints env.lval_env
+  |> Taints.elements
+  |> List.filter (fun ({ orig; _ } : T.taint) ->
+         match orig with
+         | T.Src _ -> true
+         | Var _
+         | Control ->
+             false)
+
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -566,13 +578,20 @@ let results_of_tainted_sinks env taints sinks : Sig.result list =
            in
            results_of_tainted_sink env taints_with_traces sink)
 
-let results_of_tainted_return taints shape return_tok : Sig.result list =
-  if S.taints_and_shape_are_relevant taints shape then
-    let taint_list =
+let results_of_tainted_return env taints shape return_tok : Sig.result list =
+  let control_taints = get_control_taints_to_return env in
+  if
+    S.taints_and_shape_are_relevant taints shape
+    || not (List_.null control_taints)
+  then
+    let data_taints =
       taints |> Taints.elements
       |> List_.map (fun t -> { t with T.tokens = List.rev t.T.tokens })
     in
-    [ Sig.ToReturn (taint_list, shape, return_tok) ]
+    [
+      Sig.ToReturn
+        { data_taints; data_shape = shape; control_taints; return_tok };
+    ]
   else []
 
 let check_orig_if_sink env ?filter_sinks orig taints shape =
@@ -1619,15 +1638,16 @@ let check_function_signature env fun_exp args
       in
       let process_sig :
           Sig.result ->
-          [ `Return of Taints.t * S.shape
+          [ `Return of Taints.t * S.shape * Taints.t
           | (* ^ Taints flowing through the function's output *)
             `UpdateEnv of
             lval * Taints.t
             (* ^ Taints flowing through function's arguments (or the callee object) by side-effect *)
           ]
           list = function
-        | Sig.ToReturn (taints, shape, _return_tok) ->
-            let taints =
+        | Sig.ToReturn
+            { data_taints; data_shape; control_taints; return_tok = _ } ->
+            let inst_taints taints =
               taints
               |> List.fold_left
                    (fun return_taints (t : T.taint) ->
@@ -1643,12 +1663,19 @@ let check_function_signature env fun_exp args
                      return_taints |> Taints.union taints')
                    Taints.empty
             in
+            let taints = inst_taints data_taints in
             let shape =
               Sig.instantiate_shape ~callee:fun_exp ~inst_var:lval_to_taints
                 ~inst_ctrl:(fun () -> Lval_env.get_control_taints env.lval_env)
-                shape
+                data_shape
             in
-            [ `Return (taints, shape) ]
+            let control_taints =
+              (* No need to instantiate 'control_taints' because control taint variables
+               * do not propagate through function calls... BUT instantiation also fixes
+               * the call trace! *)
+              inst_taints control_taints
+            in
+            [ `Return (taints, shape, control_taints) ]
         | Sig.ToSink { taints_with_precondition = taints, _requires; sink; _ }
           ->
             let incoming_taints =
@@ -1765,10 +1792,10 @@ let check_function_signature env fun_exp args
         |> List.fold_left
              (fun (taints_acc, shape_acc, lval_env) fsig ->
                match fsig with
-               | `Return (taints, shape) ->
+               | `Return (taints, shape, control_taints) ->
                    ( Taints.union taints taints_acc,
                      S.unify_shape shape shape_acc,
-                     lval_env )
+                     Lval_env.add_control_taints lval_env control_taints )
                | `UpdateEnv (lval, taints) ->
                    (taints_acc, shape_acc, lval_env |> Lval_env.add lval taints))
              (Taints.empty, S.Bot, env.lval_env))
@@ -2009,6 +2036,32 @@ let results_from_arg_updates_at_exit enter_env exit_env : Sig.result list =
                         else None)))
   |> Seq.concat |> List.of_seq
 
+let check_tainted_control_at_exit node env =
+  match node.F.n with
+  (* This is only for implicit returns, we could handle 'NReturn' here too
+   * but we would be generating duplicate results. *)
+  | NReturn _ -> ()
+  | __else__ ->
+      if node.IL.at_exit then
+        let return_tok =
+          (* Getting a token from an arbitrary node could be expensive
+           * (see 'AST_generic_helpers.range_of_tokens'). We just use a
+           * fake one but use the function's name if available to make
+           * it unique. If it were not unique, the results cache in
+           * 'Deep_tainting' would consider all `ToReturn`s with the
+           * same control taint as being the same, given that
+           * `Taint.compare_source` does not compare the length of the
+           * call trace. And that could cause some calls to be missing
+           * in the call trace of a finding. *)
+          match env.fun_name with
+          | None -> G.fake "return"
+          | Some name -> G.fake (name ^ "/return")
+        in
+        let results =
+          results_of_tainted_return env Taints.empty S.Bot return_tok
+        in
+        report_results env results
+
 let check_tainted_at_exit_sinks node env =
   match !hook_check_tainted_at_exit_sinks with
   | None -> ()
@@ -2120,7 +2173,7 @@ let transfer :
     | NReturn (tok, e) ->
         (* TODO: Move most of this to check_tainted_return. *)
         let taints, shape, lval_env' = check_tainted_return env tok e in
-        let results = results_of_tainted_return taints shape tok in
+        let results = results_of_tainted_return env taints shape tok in
         report_results env results;
         lval_env'
     | NLambda params ->
@@ -2148,7 +2201,9 @@ let transfer :
     | NTodo _ ->
         in'
   in
-  check_tainted_at_exit_sinks node { env with lval_env = out' };
+  let env_at_exit = { env with lval_env = out' } in
+  check_tainted_control_at_exit node env_at_exit;
+  check_tainted_at_exit_sinks node env_at_exit;
   Log.debug (fun m ->
       m ~tags:transfer_tag "Taint transfer %s\n  %s:\n  IN:  %s\n  OUT: %s"
         (env.fun_name ||| "<FUN>")
