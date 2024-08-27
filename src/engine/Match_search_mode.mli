@@ -9,7 +9,7 @@ val check_rule :
 val hook_pro_entropy_analysis : (string -> bool) option ref
 
 val hook_pro_metavariable_name :
-  (AST_generic.expr -> Rule.metavar_name_kind -> bool) option ref
+  (AST_generic.expr -> Rule.metavar_cond_name -> bool) option ref
 (** Determine whether a expression is a name of the given kind. *)
 
 (* called from check_rule above and from Match_tainting_mode *)

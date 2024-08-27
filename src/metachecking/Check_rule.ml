@@ -93,7 +93,7 @@ let check_mvars_of_condition env bound_mvs (t, condition) =
   | CondEval _ -> []
   | CondRegexp (mv, _, _)
   | CondType (mv, _, _, _)
-  | CondName (mv, _)
+  | CondName { mvar = mv; _ }
   | CondNestedFormula (mv, _, _)
   | CondAnalysis (mv, _) ->
       if not (mvar_is_ok mv bound_mvs) then [ mv_error env mv t ] else []

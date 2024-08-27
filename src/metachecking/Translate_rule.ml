@@ -55,15 +55,16 @@ and translate_metavar_cond cond : [> `O of (string * Yaml.value) list ] =
         match lang with
         | None -> []
         | Some x -> [ ("language", `String (Xlang.to_string x)) ])
-  | CondName (mv, k) ->
+  | CondName { mvar; kind; module_ } ->
       `O
-        [
-          ("metavariable", `String mv);
-          ( "kind",
-            `String
-              (match k with
-              | DjangoView -> "django-view") );
-        ]
+        ([ ("metavariable", `String mvar) ]
+        @ (match kind with
+          | Some DjangoView -> [ ("kind", `String "django-view") ]
+          | None -> [])
+        @
+        match module_ with
+        | Some name -> [ ("module", `String name) ]
+        | None -> [])
   | CondRegexp (mv, re_str, _) ->
       `O [ ("metavariable", `String mv); ("regex", `String re_str) ]
   | CondAnalysis (mv, analysis) ->

@@ -673,7 +673,7 @@ let mk_expls_after_formula_kind ~formula_kind_expls ~filter_expls ~focus_expls
 let hook_pro_entropy_analysis : (string -> bool) option ref = ref None
 
 let hook_pro_metavariable_name :
-    (G.expr -> R.metavar_name_kind -> bool) option ref =
+    (G.expr -> Rule.metavar_cond_name -> bool) option ref =
   ref None
 
 let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
@@ -737,19 +737,19 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
                  error env
                    (spf "couldn't find metavar %s in the match results." mvar);
                  None)
-         | R.CondName (mvar, ks) -> (
-             let find_name env e ks =
+         | R.CondName ({ mvar; _ } as cond) -> (
+             let find_name env e cond =
                match !hook_pro_metavariable_name with
                | None ->
                    error env
                      "semgrep-internal-metavariable-name operator is only \
                       supported in the Pro engine";
                    false
-               | Some f -> f e ks
+               | Some f -> f e cond
              in
              let* mval = List.assoc_opt mvar bindings in
              match Metavariable.mvalue_to_expr mval with
-             | Some e -> find_name env e ks |> map_bool r
+             | Some e -> find_name env e cond |> map_bool r
              | None ->
                  error env
                    (spf "couldn't find metavar %s in the match results." mvar);
