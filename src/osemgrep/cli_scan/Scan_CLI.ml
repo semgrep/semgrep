@@ -588,7 +588,7 @@ let make_o_format_outputs : ?fancy:string -> string -> string list Term.t =
       [ format ^ "-output" ]
       ~doc:
         ("Write a copy of the " ^ fancy_format
-       ^ " output to a file or post to or post to URL.")
+       ^ " output to a file or post to URL.")
   in
   Arg.value (Arg.opt_all Arg.string [] info)
 
