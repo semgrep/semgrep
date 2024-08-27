@@ -1187,19 +1187,19 @@ let pair ?tolerate_chdir name func =
 
 let promise_tests caps =
   [
-    pair "Test LS" (test_ls_specs caps) ~tolerate_chdir:true;
+    pair "LS specs" (test_ls_specs caps) ~tolerate_chdir:true;
     (* Keep this test commented out while it is xfail.
         Because logging in is side-effecting, if the test never completes, we
         will stay log in, which can mangle some of the later tests.
        Test_lwt.create "Test LS login" (test_login caps)
        ~expected_outcome:
          (Should_fail "TODO: currently failing in js tests in CI"); *)
-    pair "Test LS /semgrep/search includes/excludes"
+    pair "LS /semgrep/search includes/excludes"
       (test_search_includes_excludes caps)
       ~tolerate_chdir:true;
-    pair "Test LS exts" (test_ls_ext caps) ~tolerate_chdir:true;
-    pair "Test LS with no folders" (test_ls_no_folders caps);
-    pair "Test LS multi-workspaces" (test_ls_multi caps) ~tolerate_chdir:true;
+    pair "LS exts" (test_ls_ext caps) ~tolerate_chdir:true;
+    pair "LS with no folders" (test_ls_no_folders caps);
+    pair "LS multi-workspaces" (test_ls_multi caps) ~tolerate_chdir:true;
   ]
   |> List.split
 

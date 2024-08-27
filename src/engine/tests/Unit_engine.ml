@@ -109,7 +109,7 @@ let pack_tests_for_lang
        Language.t ->
        Testo.t list) ~test_pattern_path ~polyglot_pattern_path lang dir ext =
   Testo.categorize
-    (spf "semgrep %s" (Lang.show lang))
+    (spf "%s" (Lang.show lang))
     (let dir = test_pattern_path / dir in
      let files = Common2.glob (spf "%s/*%s" !!dir ext) |> Fpath_.of_strings in
 
@@ -266,7 +266,7 @@ let make_maturity_tests ?(lang_exn = language_exceptions) lang dir ext maturity
 
 let maturity_tests () =
   (* coupling: https://semgrep.dev/docs/language-support/ *)
-  Testo.categorize_suites "Maturity level testing"
+  Testo.categorize_suites "Maturity levels"
     [
       (* GA *)
       make_maturity_tests Lang.Csharp "csharp" ".cs" GA;
@@ -397,6 +397,7 @@ let regression_tests_for_lang ~polyglot_pattern_path files lang =
              TCM.compare_actual_to_expected_for_alcotest ~to_location:Fun.id
                actual expected))
 
+(* used in Unit_pro_languages.ml *)
 let make_lang_regression_tests ~test_pattern_path ~polyglot_pattern_path
     lang_data =
   (* TODO: infer dir and ext from lang using Lang helper functions *)
@@ -406,7 +407,7 @@ let make_lang_regression_tests ~test_pattern_path ~polyglot_pattern_path
            pack_tests_for_lang ~lang_test_fn:regression_tests_for_lang
              ~test_pattern_path ~polyglot_pattern_path lang dir ext)
   in
-  Testo.categorize_suites "lang testing" lang_tests
+  Testo.categorize_suites "sgrep patterns" lang_tests
 
 let lang_regression_tests ~polyglot_pattern_path =
   let test_pattern_path = tests_path_patterns in
@@ -418,7 +419,7 @@ let lang_regression_tests ~polyglot_pattern_path =
   in
   let irregular_tests =
     [
-      Testo.categorize "semgrep Typescript on Javascript (no JSX)"
+      Testo.categorize "Typescript on Javascript (no JSX)"
         (let dir = test_pattern_path / "js" in
          let files = Common2.glob (spf "%s/*.js" !!dir) in
          let files =
@@ -428,7 +429,7 @@ let lang_regression_tests ~polyglot_pattern_path =
 
          let lang = Lang.Ts in
          regression_tests_for_lang ~polyglot_pattern_path files lang);
-      Testo.categorize "semgrep C++ on C tests"
+      Testo.categorize "C++ on C tests"
         (let dir = test_pattern_path / "c" in
          let files = Common2.glob (spf "%s/*.c" !!dir) |> Fpath_.of_strings in
 
@@ -436,7 +437,7 @@ let lang_regression_tests ~polyglot_pattern_path =
          regression_tests_for_lang ~polyglot_pattern_path files lang);
     ]
   in
-  Testo.categorize_suites "lang testing" (regular_tests @ irregular_tests)
+  Testo.categorize_suites "sgrep patterns" (regular_tests @ irregular_tests)
 
 (*****************************************************************************)
 (* Autofix tests *)
@@ -509,7 +510,7 @@ let lang_autofix_tests ~polyglot_pattern_path =
            pack_tests_for_lang ~lang_test_fn:autofix_tests_for_lang
              ~test_pattern_path ~polyglot_pattern_path lang dir ext)
   in
-  Testo.categorize_suites "autofix testing" lang_tests
+  Testo.categorize_suites "autofix" lang_tests
 
 (*****************************************************************************)
 (* Eval_generic tests *)
@@ -517,7 +518,7 @@ let lang_autofix_tests ~polyglot_pattern_path =
 
 let eval_regression_tests () =
   [
-    t "eval regression testing" (fun () ->
+    t "Eval_generic" (fun () ->
         let dir = tests_path / "eval" in
         let files = Common2.glob (spf "%s/*.json" !!dir) in
         files
@@ -575,7 +576,7 @@ let test_irrelevant_rule_file target_file =
    in a comment that the test targets filter_irrelevant_rules to help
    future debuggers. *)
 let filter_irrelevant_rules_tests () =
-  Testo.categorize "filter irrelevant rules testing"
+  Testo.categorize "filter irrelevant rules"
     (let dir = tests_path / "irrelevant_rules" in
      let target_files =
        Common2.glob (spf "%s/*" !!dir)
@@ -680,7 +681,7 @@ let tainting_tests_for_lang files lang =
 
 let lang_tainting_tests () =
   let taint_tests_path = tests_path / "tainting_rules" in
-  Testo.categorize_suites "lang tainting rules testing"
+  Testo.categorize_suites "lang tainting rules"
     [
       Testo.categorize "tainting Go"
         (let dir = taint_tests_path / "go" in

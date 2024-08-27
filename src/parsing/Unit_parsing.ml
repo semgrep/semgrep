@@ -126,7 +126,7 @@ let pack_parsing_tests_for_lang ?(error_tolerance = Strict) lang =
  * parsing with pfff but parses here
  *)
 let lang_parsing_tests () =
-  Testo.categorize_suites "lang parsing testing"
+  Testo.categorize_suites "lang parsing"
     [
       (* languages with only a tree-sitter parser *)
       pack_parsing_tests_for_lang Lang.Bash;
