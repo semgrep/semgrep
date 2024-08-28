@@ -15,9 +15,11 @@
 open Common
 open Either_
 open Parse_rule_helpers
+module G = AST_generic
 module H = Parse_rule_helpers
 module XP = Xpattern
 module MV = Metavariable
+module R = Rule
 
 let ( let+ ) x f = Result.map f x
 
@@ -484,7 +486,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) :
     (extra, Rule_error.t) result =
   match fst key with
   | "metavariable-analysis" ->
-      let/ mv_analysis_dict = yaml_to_dict env key value in
+      let/ mv_analysis_dict = parse_dict env key value in
       let/ metavar =
         take_key mv_analysis_dict env parse_string "metavariable"
       in
@@ -499,7 +501,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) :
       Ok (MetavarAnalysis (metavar, kind))
   | "metavariable-regex" ->
       let/ mv_regex_dict =
-        match yaml_to_dict env key value with
+        match parse_dict env key value with
         | Error { kind = DuplicateYamlKey (msg, t); _ } ->
             error env.id t (msg ^ ". You should use multiple metavariable-regex")
         | x -> x
@@ -518,7 +520,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) :
              | Some b -> b
              | None -> false ))
   | "metavariable-type" ->
-      let/ mv_type_dict = yaml_to_dict env key value in
+      let/ mv_type_dict = parse_dict env key value in
       let/ metavar = take_key mv_type_dict env parse_string "metavariable" in
       let/ type_strs = take_opt mv_type_dict env parse_string_wrap "type" in
       let/ type_list =
@@ -554,7 +556,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) :
         in
         Ok (MetavarType (metavar, opt_xlang, type_strs |> List_.map fst, ts))
   | "metavariable-pattern" ->
-      let/ mv_pattern_dict = yaml_to_dict env key value in
+      let/ mv_pattern_dict = parse_dict env key value in
       let/ metavar = take_key mv_pattern_dict env parse_string "metavariable" in
       let/ env', opt_xlang =
         let+ lang = take_opt mv_pattern_dict env parse_string "language" in
@@ -576,7 +578,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) :
       let/ formula_old = parse_pair_old env' formula_root in
       Ok (MetavarPattern (metavar, opt_xlang, formula_old))
   | "metavariable-comparison" ->
-      let/ mv_comparison_dict = yaml_to_dict env key value in
+      let/ mv_comparison_dict = parse_dict env key value in
       let/ metavariable =
         take_opt mv_comparison_dict env parse_string "metavariable"
       in
@@ -597,7 +599,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) :
       in
       Ok (MetavarComparison { metavariable; comparison; strip; base })
   | "semgrep-internal-metavariable-name" -> (
-      let/ mv_name_dict = yaml_to_dict env key value in
+      let/ mv_name_dict = parse_dict env key value in
       let/ mvar = take_key mv_name_dict env parse_string "metavariable" in
       let parse_kind = function
         | "django-view", _ -> Ok R.DjangoView
@@ -834,7 +836,7 @@ and constrain_where env (_t1, _t2) where_key (value : G.expr) formula :
   let env = { env with path = "where" :: env.path } in
   (* TODO: first token, or principal token? *)
   let parse_where_pair env (where_value : G.expr) =
-    let/ dict = yaml_to_dict env where_key where_value in
+    let/ dict = parse_dict env where_key where_value in
     match find_constraint dict with
     | Some (tok, indicator) -> produce_constraint env dict tok indicator
     | _ -> error_at_expr env.id value "Wrong where constraint fields"
