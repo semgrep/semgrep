@@ -88,7 +88,11 @@ let make lang =
         parsers := Some (parse_pattern, parse_target);
         Hashtbl.remove missing_plugins lang
     | Some _existing_parsers ->
-        (* This is a bug *)
+        (* This is a bug
+         * update: this is slightly annoying though because in tests
+         * we can call multiple time the same register function. See
+         * the note in Proprietary_parser.ml about 'already_done'
+         *)
         let msg =
           spf
             "Plugin initialization error: a %s parser is being registered \
