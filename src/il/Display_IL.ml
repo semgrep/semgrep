@@ -9,6 +9,8 @@ let string_of_type (ty : G.type_) =
 let string_of_base base =
   match base with
   | Var x -> str_of_name x
+  | VarSpecial (This, _) -> "<this>"
+  | VarSpecial (Self, _) -> "<self>"
   | VarSpecial _ -> "<VarSpecial>"
   | Mem _ -> "<Mem>"
 

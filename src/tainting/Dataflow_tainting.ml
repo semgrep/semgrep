@@ -155,7 +155,9 @@ let _show_fun_exp fun_exp =
   | { e = Fetch { base = Var obj; rev_offset = [ { o = Dot method_; _ } ] }; _ }
     ->
       Printf.sprintf "%s.%s" (fst obj.ident) (fst method_.ident)
-  | _ -> "<FUNC>"
+  | { e = Fetch { base = _; rev_offset = { o = Dot method_; _ } :: _ }; _ } ->
+      Printf.sprintf "<OBJ>.%s" (fst method_.ident)
+  | _ -> "<FUN>"
 
 let map_check_expr env check_expr xs =
   let rev_taints_and_shapes, lval_env =
@@ -1418,25 +1420,52 @@ let lval_of_sig_lval fun_exp fparams args_exps (sig_lval : T.lval) :
      * `this.x` were tainted, then we would record that taint went through
      * `obj`. *)
     (lval * T.tainted_token) option =
+  let ( let* ) opt f =
+    match opt with
+    | None -> None
+    | Some x -> (
+        match f x with
+        | None ->
+            Log.err (fun m ->
+                m "Could not instantiate taint signature of %s: %s"
+                  (_show_fun_exp fun_exp) (T.show_lval sig_lval));
+            None
+        | Some r -> Some r)
+  in
   let* rev_offset = T.rev_IL_offset_of_offset sig_lval.offset in
   let* lval, obj =
     match sig_lval.base with
     | BGlob gvar -> Some ({ base = Var gvar; rev_offset }, gvar)
     | BThis -> (
+        (* For the call trace, we try to record variables that correspond to objects,
+         * but if not possible then we record method names. *)
         match fun_exp with
         | {
          e = Fetch { base = Var obj; rev_offset = [ { o = Dot _method; _ } ] };
          _;
         } ->
-            (* We're calling `obj.method`, so `this.x` is actually `obj.x` *)
+            (* We're calling `obj.method(...)`, so `this.x` is actually `obj.x`. *)
             Some ({ base = Var obj; rev_offset }, obj)
         | { e = Fetch { base = Var method_; rev_offset = [] }; _ } ->
-            (* We're calling a `method` on the same instace of the caller,
-             * and `this.x` is just `this.x` *)
+            (* We're calling a `method(...)` on the same instace of the caller,
+             * and `this.x` is just `this.x`. *)
             let this =
               VarSpecial (This, Tok.fake_tok (snd method_.ident) "this")
             in
             Some ({ base = this; rev_offset }, method_)
+        | {
+         e =
+           Fetch
+             {
+               base;
+               rev_offset = { o = Dot method_; _ } :: exp_obj_rev_offset';
+             };
+         _;
+        } ->
+            (* We're calling e.g. `this.obj.method(...)`,
+             * so `this.x` is actually `this.obj.x`. *)
+            Some
+              ({ base; rev_offset = rev_offset @ exp_obj_rev_offset' }, method_)
         | __else__ -> None)
     | BArg pos -> (
         let* arg_exp =
