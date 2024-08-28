@@ -186,7 +186,7 @@ let tests =
                tests
                |> List.iter (fun (filename, range, sols) ->
                       let file = test_path / filename in
-                      let config = Rule_options.default_config in
+                      let config = Rule_options.default in
 
                       (* pattern candidates (as strings) *)
                       let pats =
@@ -225,7 +225,7 @@ let tests =
                               let matches_with_env =
                                 let env =
                                   Matching_generic.environment_of_any lang
-                                    Rule_options.default_config code
+                                    Rule_options.default code
                                 in
                                 Match_patterns.match_any_any pattern code env
                               in

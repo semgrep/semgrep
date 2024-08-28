@@ -640,7 +640,7 @@ let parse_step_fields env key (value : G.expr) : (R.step, Rule_error.t) result =
     (* TODO: this is annoying and refers to the global options which may be
        incorrect anyway -> support an 'options' field next to 'languages'
        in the step object? *)
-    Option.value env.options ~default:Rule_options.default_config
+    Option.value env.options ~default:Rule_options.default
   in
   let step_id_str, tok = key in
   let id =
@@ -994,7 +994,7 @@ let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) :
     | None -> Ok (None, None)
     | Some (options, options_key) -> Ok (Some options, options_key)
   in
-  let options = Option.value options_opt ~default:Rule_options.default_config in
+  let options = Option.value options_opt ~default:Rule_options.default in
   let/ target_selector, target_analyzer =
     parse_languages ~id options languages
   in
