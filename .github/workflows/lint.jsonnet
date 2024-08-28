@@ -83,7 +83,7 @@ local pre_commit_manual_job = {
 };
 
 // Running the ocamlformat part of pre-commit, which requires a special container
-local pre_commit_ocaml_job(submodules=false) =
+local pre_commit_ocaml_job(checkout_steps) =
   {
     // Even if there's a 'container:' below, we still need a 'runs-on:', to say which VM will
     // run the Docker container. See https://github.com/orgs/community/discussions/25534
@@ -93,8 +93,8 @@ local pre_commit_ocaml_job(submodules=false) =
     // OCaml code (must be the same than the one in dev/required.opam)
     // See https://github.com/returntocorp/ocaml-layer/blob/master/configs/ubuntu.sh
     container: 'returntocorp/ocaml:ubuntu-2023-10-17',
-    steps: [
-      if submodules then actions.checkout_with_submodules() else actions.checkout(),
+    steps: checkout_steps +
+      [
       // HOME in the container is tampered by GHA and modified from /root to /home/github
       // which then confuses opam below which can not find its ~/.opam (which is at /root/.opam)
       // hence the ugly use of 'env: HOME ...' below.
@@ -136,10 +136,9 @@ local pre_commit_ocaml_job(submodules=false) =
   };
 
 // TODO: we should port those GHA checks to semgrep and add them in semgrep-rules
-local action_lint_job = {
+local action_lint_job(checkout_steps) = {
   'runs-on': 'ubuntu-latest',
-  steps: [
-    actions.checkout(),
+  steps: checkout_steps + [
     gha.git_safedir,
     {
       uses: 'actions/setup-go@v4',
@@ -156,10 +155,10 @@ local action_lint_job = {
   ],
 };
 
-local jsonnet_gha_job(dir=".github/workflows") = {
+local jsonnet_gha_job(checkout_steps, dir=".github/workflows") = {
   'runs-on': 'ubuntu-latest',
-  steps: [
-    actions.checkout(),
+  steps: checkout_steps
+    + [
     {
       name: 'Check GitHub workflow files are up to date',
       // yq (the good one) is actually pre-installed in GHA ubuntu image, see
@@ -186,9 +185,9 @@ local jsonnet_gha_job(dir=".github/workflows") = {
   jobs: {
     'pre-commit': pre_commit_job,
     'pre-commit-manual': pre_commit_manual_job,
-    'pre-commit-ocaml': pre_commit_ocaml_job(),
-    'github-actions': action_lint_job,
-    'jsonnet-gha': jsonnet_gha_job(),
+    'pre-commit-ocaml': pre_commit_ocaml_job([actions.checkout()]),
+    'github-actions': action_lint_job([actions.checkout()]),
+    'jsonnet-gha': jsonnet_gha_job([actions.checkout()]),
   },
   export::{
     // reused in semgrep-pro
