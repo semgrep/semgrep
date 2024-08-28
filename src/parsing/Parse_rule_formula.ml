@@ -90,7 +90,7 @@ let brace_pairs_of_string_pairs env xs =
 
 let aliengrep_conf_of_options (env : env) :
     (Aliengrep.Conf.t, Rule_error.t) Result.t =
-  let options = Option.value env.options ~default:Rule_options.default_config in
+  let options = Option.value env.options ~default:Rule_options.default in
   let default = Aliengrep.Conf.default_multiline_conf in
   let caseless = options.generic_caseless in
   let multiline = options.generic_multiline in

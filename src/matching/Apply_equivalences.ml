@@ -114,11 +114,7 @@ let apply equivs lang any =
     end
   in
   let config =
-    {
-      Rule_options.default_config with
-      go_deeper_expr = false;
-      go_deeper_stmt = false;
-    }
+    { Rule_options.default with go_deeper_expr = false; go_deeper_stmt = false }
   in
   let env = Matching_generic.environment_of_any lang config any in
   visitor#visit_any env any
