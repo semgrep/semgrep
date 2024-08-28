@@ -49,7 +49,7 @@ type env = {
  *)
 type dict = {
   (* Do not use directly Hashtbl.find_opt on this field!
-   * Use instead dict_take_opt() or tak_opt_no_env() otherwise
+   * Use instead dict_take_opt() or take_opt_no_env() otherwise
    * warn_if_remaining_unparsed_fields() will not work.
    * This is mutated!
    *)
@@ -216,7 +216,7 @@ let read_string_wrap e =
 (* Dict helper methods *)
 (*****************************************************************************)
 
-let yaml_to_dict_helper opt_rule_id error_fun_f error_fun_d
+let parse_dict_helper opt_rule_id error_fun_f error_fun_d
     (enclosing_obj_name : string) (rule : G.expr) :
     (dict, Rule_error.t) Result.t =
   match rule.G.e with
@@ -275,9 +275,9 @@ let take_key (dict : dict) (env : env)
 
 let fold_dict f dict x = Hashtbl.fold f dict.h x
 
-let yaml_to_dict (env : env) (enclosing_obj_name : string G.wrap) =
-  yaml_to_dict_helper (Some env.id) (error_at_expr env.id)
-    (error_at_expr env.id) (fst enclosing_obj_name)
+let parse_dict (env : env) (enclosing_obj_name : string G.wrap) expr =
+  parse_dict_helper (Some env.id) (error_at_expr env.id) (error_at_expr env.id)
+    (fst enclosing_obj_name) expr
 
 (*****************************************************************************)
 (* Parsing methods for before env is created *)
@@ -302,9 +302,8 @@ let take_no_env (dict : dict) (f : key -> G.expr -> ('a, Rule_error.t) Result.t)
   | Some res -> Ok res
   | None -> yaml_error dict.first_tok ("Missing required field " ^ key_str)
 
-let yaml_to_dict_no_env enclosing_obj_name expr : (dict, Rule_error.t) Result.t
-    =
-  yaml_to_dict_helper None yaml_error_at_expr yaml_error_at_expr
+let parse_dict_no_env enclosing_obj_name expr : (dict, Rule_error.t) Result.t =
+  parse_dict_helper None yaml_error_at_expr yaml_error_at_expr
     enclosing_obj_name expr
 
 let parse_string_wrap_no_env (key : key) x :
@@ -353,43 +352,9 @@ let parse_string_wrap env (key : key) x =
   | Some (value, t) -> Ok (value, t)
   | None -> error_at_key env.id key ("Expected a string value for " ^ fst key)
 
-let parse_rule_id env (key : key) x : (Rule_ID.t * Tok.t, Rule_error.t) Result.t
-    =
-  let/ str, tok = parse_string_wrap_no_env key x in
-  match Rule_ID.of_string_opt str with
-  | Some x -> Ok (x, tok)
-  | None ->
-      error_at_key env.id key ("Expected a valid rule ID. Instead got " ^ str)
-
 (* TODO: delete at some point, should use parse_string_wrap instead *)
 let parse_string env (key : key) x =
   parse_string_wrap env key x |> Result.map fst
-
-let method_ env (key : key) x =
-  let/ meth = parse_string env key x in
-  match meth with
-  | "DELETE" -> Ok `DELETE
-  | "GET" -> Ok `GET
-  | "HEAD" -> Ok `HEAD
-  | "POST" -> Ok `POST
-  | "PUT" -> Ok `PUT
-  | _ -> error_at_key env.id key ("non-supported HTTP method: " ^ meth)
-
-let parse_auth env (key : key) x : (Rule.auth, Rule_error.t) Result.t =
-  let/ auth = yaml_to_dict env key x in
-  let/ type_ = take_key auth env parse_string "type" in
-  match type_ with
-  | "sigv4" ->
-      let/ secret_access_key =
-        take_key auth env parse_string "secret_access_key"
-      in
-      let/ access_key_id = take_key auth env parse_string "access_key_id" in
-      let/ region = take_key auth env parse_string "region" in
-      let/ service = take_key auth env parse_string "service" in
-      Ok (R.AWS_SIGV4 { secret_access_key; access_key_id; region; service })
-  | auth_ty ->
-      error_at_key env.id key
-        ("Unknown authorization type requested to be added: " ^ auth_ty)
 
 let parse_list env (key : key) f x =
   match x.G.e with
@@ -453,6 +418,44 @@ let parse_int_strict env (key : key) x =
       | _ -> error_at_key env.id key "not an int")
   | _x -> error_at_key env.id key (spf "parse_int for %s" (fst key))
 
+(*****************************************************************************)
+(* Parsers for specialized types *)
+(*****************************************************************************)
+
+let parse_rule_id env (key : key) x : (Rule_ID.t * Tok.t, Rule_error.t) Result.t
+    =
+  let/ str, tok = parse_string_wrap_no_env key x in
+  match Rule_ID.of_string_opt str with
+  | Some x -> Ok (x, tok)
+  | None ->
+      error_at_key env.id key ("Expected a valid rule ID. Instead got " ^ str)
+
+let parse_http_method env (key : key) x =
+  let/ meth = parse_string env key x in
+  match meth with
+  | "DELETE" -> Ok `DELETE
+  | "GET" -> Ok `GET
+  | "HEAD" -> Ok `HEAD
+  | "POST" -> Ok `POST
+  | "PUT" -> Ok `PUT
+  | _ -> error_at_key env.id key ("non-supported HTTP method: " ^ meth)
+
+let parse_auth env (key : key) x : (Rule.auth, Rule_error.t) Result.t =
+  let/ auth = parse_dict env key x in
+  let/ type_ = take_key auth env parse_string "type" in
+  match type_ with
+  | "sigv4" ->
+      let/ secret_access_key =
+        take_key auth env parse_string "secret_access_key"
+      in
+      let/ access_key_id = take_key auth env parse_string "access_key_id" in
+      let/ region = take_key auth env parse_string "region" in
+      let/ service = take_key auth env parse_string "service" in
+      Ok (R.AWS_SIGV4 { secret_access_key; access_key_id; region; service })
+  | auth_ty ->
+      error_at_key env.id key
+        ("Unknown authorization type requested to be added: " ^ auth_ty)
+
 let parse_str_or_dict env (value : G.expr) :
     ((G.ident, dict) Either.t, Rule_error.t) Result.t =
   match value.G.e with
@@ -467,7 +470,7 @@ let parse_str_or_dict env (value : G.expr) :
          else Left (string_of_float n, t))
   | G.N (Id ((value, t), _)) -> Ok (Left (value, t))
   | G.Container (Dict, _) ->
-      let/ x = yaml_to_dict env ("<TODO>", G.fake "<TODO>") value in
+      let/ x = parse_dict env ("<TODO>", G.fake "<TODO>") value in
       Ok (Either.Right x)
   | _ ->
       error_at_expr env.id value

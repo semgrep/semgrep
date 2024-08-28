@@ -126,7 +126,7 @@ let parse_severity ~id (s, t) : (Rule.severity, Rule_error.t) result =
 (*****************************************************************************)
 
 let parse_fix_regex (env : env) (key : key) fields =
-  let/ fix_regex_dict = yaml_to_dict env key fields in
+  let/ fix_regex_dict = parse_dict env key fields in
   let/ regexp = take_key fix_regex_dict env parse_string_wrap "regex" in
   let/ regexp = parse_regexp env regexp in
   (* TODO? should we String.trim for consistency with fix: ? *)
@@ -163,7 +163,7 @@ let parse_equivalences env key value =
   parse_list env key parse_equivalence value
 
 let parse_paths env key value =
-  let/ paths_dict = yaml_to_dict env key value in
+  let/ paths_dict = parse_dict env key value in
   (* TODO: should imitate parse_string_wrap_list *)
   let parse_glob_list env (key : key) e =
     let extract_string env = function
@@ -298,7 +298,7 @@ let parse_taint_source ~(is_old : bool) env (key : key) (value : G.expr) :
       }
   in
   if is_old then
-    let/ dict = yaml_to_dict env key value in
+    let/ dict = parse_dict env key value in
     parse_from_dict dict Parse_rule_formula.parse_formula_old_from_dict
   else
     let/ source = parse_str_or_dict env value in
@@ -356,7 +356,7 @@ let parse_taint_propagator ~(is_old : bool) env (key : key) (value : G.expr) :
         propagator_label;
       }
   in
-  let/ dict = yaml_to_dict env key value in
+  let/ dict = parse_dict env key value in
   parse_from_dict dict f
 
 let parse_taint_sanitizer ~(is_old : bool) env (key : key) (value : G.expr) =
@@ -387,7 +387,7 @@ let parse_taint_sanitizer ~(is_old : bool) env (key : key) (value : G.expr) =
         }
   in
   if is_old then
-    let/ dict = yaml_to_dict env key value in
+    let/ dict = parse_dict env key value in
     parse_from_dict dict Parse_rule_formula.parse_formula_old_from_dict
   else
     let/ sanitizer = parse_str_or_dict env value in
@@ -433,7 +433,7 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
         }
   in
   if is_old then
-    let/ dict = yaml_to_dict env key value in
+    let/ dict = parse_dict env key value in
     parse_from_dict dict Parse_rule_formula.parse_formula_old_from_dict
   else
     let/ sink = parse_str_or_dict env value in
@@ -456,7 +456,7 @@ let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
         parse_from_dict dict Parse_rule_formula.parse_formula_from_dict
 
 let parse_taint_pattern env key (value : G.expr) =
-  let/ dict = yaml_to_dict env key value in
+  let/ dict = parse_dict env key value in
   let parse_specs parse_spec env key x =
     let/ items =
       parse_listi env key
@@ -530,7 +530,7 @@ let parse_extract_transform ~id (s, t) =
            s)
 
 let parse_rules_to_run_with_extract env key value =
-  let/ ruleids_dict = yaml_to_dict env key value in
+  let/ ruleids_dict = parse_dict env key value in
   let parse_rule_ids ruleids_dict env key =
     take_opt ruleids_dict env
       (parse_string_wrap_list (fun env key value ->
@@ -632,7 +632,7 @@ let parse_taint_fields env rule_dict =
 (*****************************************************************************)
 
 let parse_step_fields env key (value : G.expr) : (R.step, Rule_error.t) result =
-  let/ rd = yaml_to_dict env key value in
+  let/ rd = parse_dict env key value in
   let/ languages = take_no_env rd parse_string_wrap_list_no_env "languages" in
   (* No id, so error at the steps key
      TODO error earlier *)
@@ -690,10 +690,10 @@ let parse_validity env key x : (Rule.validation_state, Rule_error.t) result =
   | _x -> error_at_key env.id key (spf "parse_validity for %s" (fst key))
 
 let parse_http_request env key value : (Rule.request, Rule_error.t) result =
-  let/ req = yaml_to_dict env key value in
+  let/ req = parse_dict env key value in
   let/ url = take_key req env parse_string "url" in
-  let/ meth = take_key req env method_ "method" in
-  let/ headers = take_key req env yaml_to_dict "headers" in
+  let/ meth = take_key req env parse_http_method "method" in
+  let/ headers = take_key req env parse_dict "headers" in
   let/ headers =
     headers |> fun { h; _ } ->
     Hashtbl.fold
@@ -709,20 +709,20 @@ let parse_http_request env key value : (Rule.request, Rule_error.t) result =
 
 let parse_http_matcher_clause key env value :
     (Rule.http_match_clause, Rule_error.t) result =
-  let/ clause = yaml_to_dict env key value in
+  let/ clause = parse_dict env key value in
   let/ status_code = take_opt clause env parse_int "status-code" in
   let/ headers =
     take_opt clause env
       (fun env key ->
         parse_list env key (fun env x ->
-            let/ hd = yaml_to_dict env key x in
+            let/ hd = parse_dict env key x in
             let/ name = take_key hd env parse_string "name" in
             let/ value = take_key hd env parse_string "value" in
             Ok Rule.{ name; value }))
       "headers"
   in
   let/ content =
-    match take_opt clause env yaml_to_dict "content" with
+    match take_opt clause env parse_dict "content" with
     | Ok (Some content) ->
         let/ formula =
           Parse_rule_formula.parse_formula_old_from_dict env content
@@ -749,13 +749,13 @@ let parse_http_matcher_clause key env value :
 
 let parse_http_matcher key env value : (Rule.http_matcher, Rule_error.t) result
     =
-  let/ matcher = yaml_to_dict env key value in
+  let/ matcher = parse_dict env key value in
   let/ match_conditions =
     take_key matcher env
       (fun env key -> parse_list env key (parse_http_matcher_clause key))
       "match"
   in
-  let/ result = take_key matcher env yaml_to_dict "result" in
+  let/ result = take_key matcher env parse_dict "result" in
   let/ validity = take_key result env parse_validity "validity" in
   let/ message = take_opt result env parse_string "message" in
   let/ severity =
@@ -774,13 +774,13 @@ let parse_http_response env key value :
   parse_list env key (parse_http_matcher key) value
 
 let parse_http_validator env key value : (Rule.validator, Rule_error.t) result =
-  let/ validator_dict = yaml_to_dict env key value in
+  let/ validator_dict = parse_dict env key value in
   let/ request = take_key validator_dict env parse_http_request "request" in
   let/ response = take_key validator_dict env parse_http_response "response" in
   Ok (Rule.HTTP { request; response })
 
 let parse_aws_request env key value : (Rule.aws_request, Rule_error.t) result =
-  let/ request_dict = yaml_to_dict env key value in
+  let/ request_dict = parse_dict env key value in
   let/ secret_access_key =
     take_key request_dict env parse_string "secret_access_key"
   in
@@ -789,13 +789,13 @@ let parse_aws_request env key value : (Rule.aws_request, Rule_error.t) result =
   Ok Rule.{ secret_access_key; access_key_id; region }
 
 let parse_aws_validator env key value : (Rule.validator, Rule_error.t) result =
-  let/ validator_dict = yaml_to_dict env key value in
+  let/ validator_dict = parse_dict env key value in
   let/ request = take_key validator_dict env parse_aws_request "request" in
   let/ response = take_key validator_dict env parse_http_response "response" in
   Ok (Rule.AWS { request; response })
 
 let parse_validator key env value =
-  let/ dict = yaml_to_dict env key value in
+  let/ dict = parse_dict env key value in
   match List_.find_some_opt (Hashtbl.find_opt dict.h) [ "http"; "aws" ] with
   | Some (("http", _), value) -> parse_http_validator env key value
   | Some (("aws", _), value) -> parse_aws_validator env key value
@@ -821,7 +821,7 @@ let parse_ecosystem env key value =
 
 let parse_dependency_pattern key env value :
     (R.dependency_pattern, Rule_error.t) result =
-  let/ rd = yaml_to_dict env key value in
+  let/ rd = parse_dict env key value in
   let/ ecosystem = take_key rd env parse_ecosystem "namespace" in
   let/ package_name = take_key rd env parse_string "package" in
   let/ version_constraints =
@@ -835,7 +835,7 @@ let parse_dependency_pattern key env value :
 
 let parse_dependency_formula env key value :
     (R.dependency_formula, Rule_error.t) result =
-  let/ rd = yaml_to_dict env key value in
+  let/ rd = parse_dict env key value in
   if Hashtbl.mem rd.h "depends-on-either" then
     take_key rd env
       (fun env key -> parse_list env key (parse_dependency_pattern key))
@@ -971,8 +971,8 @@ let parse_product (metadata : J.t option)
 
 let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) :
     (Rule.t, Rule_error.t) result =
-  (* TODO: explain the function arguments of yaml_to_dict_no_env *)
-  let/ rd = yaml_to_dict_no_env "rules" rule in
+  (* TODO: explain the function arguments of parse_dict_no_env *)
+  let/ rd = parse_dict_no_env "rules" rule in
   (* We need a rule ID early to produce useful error messages. *)
   let/ rule_id, tok = take_no_env rd parse_rule_id_no_env "id" in
   let rule_id : Rule_ID.t =
@@ -1067,7 +1067,7 @@ let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
           in
           match e.e with
           | Container (Dict, _) ->
-              let/ root_dict = yaml_to_dict_no_env "rule file" e in
+              let/ root_dict = parse_dict_no_env "rule file" e in
               let/ rules =
                 match dict_take_opt root_dict "rules" with
                 | None -> missing_rules_field ()
