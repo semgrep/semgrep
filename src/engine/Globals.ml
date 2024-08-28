@@ -47,6 +47,7 @@ let reset () =
   Rule.last_matched_rule := None;
   Pro_hooks.reset_pro_hooks ();
   (* TODO?
+   * - the internal parser refs in Parsing_plugin.ml
    * - Http_helpers.client_ref ?
    * - Std_msg.highlight_xxx
    * - Logs library state
