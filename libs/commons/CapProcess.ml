@@ -1,10 +1,11 @@
 (* src: harrop article on fork-based parallelism
  * returns a futur
- * TODO: require fork capability
+ * old: was called invoke() and was in pfff/commons/parallel.ml
+ * related work: my pfff/commons/distribution.ml
  *)
-let invoke_in_child_process f x =
+let apply_in_child_process (caps : < Cap.fork >) f x =
   let input, output = UUnix.pipe () in
-  match UUnix.fork () with
+  match CapUnix.fork caps#fork () with
   (* error, could not create process, well compute now then *)
   | -1 ->
       let v = f x in
