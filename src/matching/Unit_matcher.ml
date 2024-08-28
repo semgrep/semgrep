@@ -120,7 +120,7 @@ let tests ~any_gen_of_string =
                  let pattern = any_gen_of_string spattern in
                  let code = any_gen_of_string scode in
                  let lang = Lang.Python in
-                 let config = Rule_options.default_config in
+                 let config = Rule_options.default in
                  let env =
                    Matching_generic.environment_of_any lang config code
                  in
