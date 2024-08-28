@@ -77,7 +77,7 @@ let ranges_matched (lang : Lang.t) (file : Fpath.t) pattern : Range.t list =
   let matches =
     Match_patterns.check
       ~hook:(fun _ -> ())
-      (Rule_options.default_config, equiv)
+      (Rule_options.default, equiv)
       [ rule ]
       (file, File file, lang, ast)
   in
@@ -85,7 +85,7 @@ let ranges_matched (lang : Lang.t) (file : Fpath.t) pattern : Range.t list =
 
 let run_single_test file linecols expected_pattern =
   let lang, _, inferred_pattern =
-    Synthesizer.generate_pattern_from_targets Rule_options.default_config
+    Synthesizer.generate_pattern_from_targets Rule_options.default
       (linecols @ [ file ])
   in
   let actual_pattern =

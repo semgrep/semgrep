@@ -109,7 +109,7 @@ let adjust_xconfig_with_rule_options xconf options =
 
 let default_xconfig =
   {
-    config = Rule_options.default_config;
+    config = Rule_options.default;
     equivs = [];
     nested_formula = false;
     matching_explanations = false;
