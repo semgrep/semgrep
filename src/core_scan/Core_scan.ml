@@ -852,7 +852,7 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
       let match_hook pm = print_incremental_matches_when_text_mode config pm in
       let xconf =
         {
-          Match_env.config = Rule_options.default_config;
+          Match_env.config = Rule_options.default;
           equivs = parse_equivalences config.equivalences_file;
           nested_formula = false;
           matching_explanations = config.matching_explanations;
