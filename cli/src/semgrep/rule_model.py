@@ -315,7 +315,7 @@ class HttpResponseMatch(BaseModel):
 
 
 class HttpResponseItem(BaseModel):
-    match: Optional[HttpResponseMatch] = None
+    match: List[HttpResponseMatch]
     result: Optional[HttpResult] = None
 
 
