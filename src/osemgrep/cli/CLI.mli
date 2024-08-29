@@ -1,5 +1,5 @@
 (* no exit, no argv
- * TODO: Cap.files_argv, Cap.domain, Cap.thread
+ * TODO: Cap.files_argv, Cap.domain, Cap.thread, Cap.alarm
  *)
 type caps =
   < Cap.stdout
@@ -8,7 +8,8 @@ type caps =
   ; Cap.random
   ; Cap.signal
   ; Cap.tmp
-  ; Cap.chdir >
+  ; Cap.chdir
+  ; Cap.fork >
 
 (*
    Parse the semgrep command line, run the requested subcommand, and return

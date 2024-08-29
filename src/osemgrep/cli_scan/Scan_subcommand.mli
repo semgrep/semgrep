@@ -9,7 +9,7 @@
    subcommands when using legacy flags (e.g., with 'semgrep scan --test').
 *)
 
-type caps = < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.chdir >
+type caps = < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.chdir ; Cap.fork >
 
 val main : caps -> string array -> Exit_code.t
 
@@ -19,7 +19,7 @@ val run_scan_conf : caps -> Scan_CLI.conf -> Exit_code.t
 
 (* internal: also used in CI *)
 val check_targets_with_rules :
-  < Cap.stdout ; Cap.chdir ; Cap.tmp > ->
+  < Cap.stdout ; Cap.chdir ; Cap.tmp ; Cap.fork > ->
   Scan_CLI.conf ->
   Profiler.t ->
   Rule_fetching.rules_and_origin list ->

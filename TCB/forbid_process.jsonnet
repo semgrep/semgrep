@@ -14,12 +14,15 @@ local unix_funcs = [
         // Unix
         [('Unix.' + p) for p in unix_funcs] +
         [('UUnix.' + p) for p in unix_funcs] +
+	// Parmap
+	['Parmap.$F'] +
         //TODO Other libs?
 	[]
       },
       languages: ['ocaml'],
       paths: {
-        exclude: common.exclude_paths
+        exclude: common.exclude_paths +
+	['Parmap_.ml']
       },
       severity: 'ERROR',
       message: |||

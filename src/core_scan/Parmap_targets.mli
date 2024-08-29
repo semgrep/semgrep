@@ -7,12 +7,14 @@
  * function!
  *)
 val map_targets__run_in_forked_process_do_not_modify_globals :
+  < Cap.fork > ->
   int (* ncores *) ->
   (Target.t -> 'a) ->
   (* job function *) Target.t list ->
   'a list
 
 val map_regular_targets__run_in_forked_process_do_not_modify_globals :
+  < Cap.fork > ->
   int (* ncores *) ->
   (Target.regular -> 'a) ->
   (* job function *) Target.regular list ->
