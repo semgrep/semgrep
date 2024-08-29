@@ -31,6 +31,7 @@ module Process : sig
   type pid
   type kill
   type chdir
+  type alarm (* one of the signal *)
 
   (* See also the separate Exec.t *)
   type fork
@@ -119,6 +120,7 @@ type console = < stdin ; stdout ; stderr >
 type argv = < argv : Process.argv >
 type env = < env : Process.env >
 type signal = < signal : Process.signal >
+type alarm = < alarm : Process.signal >
 type exit = < exit : Process.exit >
 type pid = < pid : Process.pid >
 type kill = < kill : Process.kill >
@@ -127,7 +129,7 @@ type fork = < fork : Process.fork >
 type domain = < domain : Process.domain >
 type thread = < thread : Process.thread >
 type process_multi = < pid ; kill ; fork ; domain ; thread >
-type process_single = < signal ; exit ; chdir >
+type process_single = < signal ; alarm ; exit ; chdir >
 type process = < argv ; env ; console ; process_single ; process_multi >
 
 (* exec *)
@@ -171,7 +173,7 @@ val no_caps : no_caps
 val network_caps_UNSAFE : unit -> < network >
 val tmp_caps_UNSAFE : unit -> < tmp >
 val stdout_caps_UNSAFE : unit -> < stdout >
-val fork_caps_UNSAFE : unit -> < fork >
+val fork_and_alarm_caps_UNSAFE : unit -> < fork ; alarm >
 val exec_and_tmp_caps_UNSAFE : unit -> < exec ; tmp >
 
 (**************************************************************************)

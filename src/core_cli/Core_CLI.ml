@@ -341,7 +341,7 @@ let all_actions (caps : Cap.all_caps) () =
       " <metachecks file> <files or dirs>",
       Arg_.mk_action_n_conv Fpath.v
         (Check_rule.check_files
-           (caps :> < Cap.stdout ; Cap.fork >)
+           (caps :> < Cap.stdout ; Cap.fork ; Cap.alarm >)
            !output_format) );
     (* this is run by some of our workflows (e.g., check-pro-rules.jsonnet) *)
     ( "-test_rules",
