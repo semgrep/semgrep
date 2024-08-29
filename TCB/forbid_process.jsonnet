@@ -3,13 +3,14 @@ local common = import 'common.libsonnet';
 
 local unix_funcs = [
   'fork',
+  'alarm',
   'setitimer',
   //TODO: alarm, signal, kill, waitpid
 ];
 
 local sys_funcs = [
-  'sigalrm',
-  //TODO: set_signal
+  //TODO: set_signal? but then need different capability depending
+  // on the int argument of set_signal
 ];
 
 {
@@ -31,12 +32,12 @@ local sys_funcs = [
       languages: ['ocaml'],
       paths: {
         exclude: common.exclude_paths +
-	['Parmap_.ml', 'Time_limit.ml']
+	['Parmap_.ml']
       },
       severity: 'ERROR',
       message: |||
         Do not use directly process functions. Use the
-        safer CapProcess module.
+        safer CapProcess or CapSys or CapUnix modules.
       |||,
     },
   ],

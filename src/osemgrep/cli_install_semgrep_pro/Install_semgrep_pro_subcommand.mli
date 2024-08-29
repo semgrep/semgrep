@@ -5,7 +5,8 @@
 
    This function returns an exit code to be passed to the 'exit' function.
 *)
-val main : < Cap.network > -> string array -> Exit_code.t
+val main : < Cap.network ; Cap.alarm > -> string array -> Exit_code.t
 
 (* internal *)
-val run_conf : < Cap.network > -> Install_semgrep_pro_CLI.conf -> Exit_code.t
+val run_conf :
+  < Cap.network ; Cap.alarm > -> Install_semgrep_pro_CLI.conf -> Exit_code.t

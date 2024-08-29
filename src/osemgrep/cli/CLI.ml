@@ -219,7 +219,7 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
               subcmd_argv
         | "install-semgrep-pro" ->
             Install_semgrep_pro_subcommand.main
-              (caps :> < Cap.network >)
+              (caps :> < Cap.network ; Cap.alarm >)
               subcmd_argv
         (* osemgrep-only: and by default! no need experimental! *)
         | "lsp" ->
