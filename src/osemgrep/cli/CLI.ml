@@ -44,7 +44,8 @@ type caps =
   ; Cap.signal
   ; Cap.tmp
   ; Cap.chdir
-  ; Cap.fork >
+  ; Cap.fork
+  ; Cap.alarm >
 
 let default_subcommand = "scan"
 
@@ -198,7 +199,12 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
         | "scan" ->
             Scan_subcommand.main
               (caps
-                :> < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.chdir ; Cap.fork >)
+                :> < Cap.stdout
+                   ; Cap.network
+                   ; Cap.tmp
+                   ; Cap.chdir
+                   ; Cap.fork
+                   ; Cap.alarm >)
               subcmd_argv
         | "ci" ->
             Ci_subcommand.main
@@ -208,7 +214,8 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
                    ; Cap.exec
                    ; Cap.tmp
                    ; Cap.chdir
-                   ; Cap.fork >)
+                   ; Cap.fork
+                   ; Cap.alarm >)
               subcmd_argv
         | "install-semgrep-pro" ->
             Install_semgrep_pro_subcommand.main
@@ -217,7 +224,8 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
         (* osemgrep-only: and by default! no need experimental! *)
         | "lsp" ->
             Lsp_subcommand.main
-              (caps :> < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork >)
+              (caps
+                :> < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.alarm >)
               subcmd_argv
         | "logout" ->
             Logout_subcommand.main (caps :> < Cap.stdout >) subcmd_argv

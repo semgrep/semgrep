@@ -9,7 +9,7 @@ val run_checks :
 
 (* -check_rules *)
 val check_files :
-  < Cap.stdout ; Cap.fork > ->
+  < Cap.stdout ; Cap.fork ; Cap.alarm > ->
   Core_scan_config.output_format ->
   Fpath.t list ->
   unit

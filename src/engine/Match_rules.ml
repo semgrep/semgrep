@@ -35,7 +35,7 @@ exception File_timeout of Rule_ID.t list
 (* TODO make this one of the Semgrep_error_code exceptions *)
 exception Multistep_rules_not_available
 
-type timeout_config = { timeout : float; threshold : int }
+type timeout_config = { timeout : float; threshold : int; caps : < Cap.alarm > }
 
 (*****************************************************************************)
 (* Helpers *)

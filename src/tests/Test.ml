@@ -81,13 +81,20 @@ let tests (caps : Cap.all_caps) =
       Unit_jsonnet.tests ();
       Unit_metachecking.tests (caps :> Core_scan.caps);
       (* OSemgrep tests *)
-      Unit_LS.tests (caps :> < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork >);
+      Unit_LS.tests
+        (caps :> < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.alarm >);
       Unit_Login.tests caps;
       Unit_Fetching.tests (caps :> < Cap.network ; Cap.tmp >);
       Test_is_blocking_helpers.tests;
       Test_login_subcommand.tests (caps :> < Cap.stdout ; Cap.network >);
       Test_scan_subcommand.tests
-        (caps :> < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.chdir ; Cap.fork >);
+        (caps
+          :> < Cap.stdout
+             ; Cap.network
+             ; Cap.tmp
+             ; Cap.chdir
+             ; Cap.fork
+             ; Cap.alarm >);
       Unit_test_subcommand.tests
         (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >);
       Test_show_subcommand.tests
@@ -100,7 +107,7 @@ let tests (caps : Cap.all_caps) =
       (* And the SSL issues they've been testing have been stable *)
       (*Unit_Networking.tests;*)
       Test_LS_e2e.tests
-        (caps :> < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork >);
+        (caps :> < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.alarm >);
       (* End OSemgrep tests *)
       Spacegrep_tests.Test.tests ();
       Aliengrep.Unit_tests.tests;
