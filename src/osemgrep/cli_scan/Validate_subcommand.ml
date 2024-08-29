@@ -39,7 +39,7 @@ module Out = Semgrep_output_v1_t
 (*****************************************************************************)
 
 (* TODO: should use stdout, right now we abuse Logs.app *)
-type caps = < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.fork >
+type caps = < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.alarm >
 
 (* a slice of Scan_CLI.conf *)
 type conf = {

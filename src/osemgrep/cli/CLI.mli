@@ -9,7 +9,8 @@ type caps =
   ; Cap.signal
   ; Cap.tmp
   ; Cap.chdir
-  ; Cap.fork >
+  ; Cap.fork
+  ; Cap.alarm >
 
 (*
    Parse the semgrep command line, run the requested subcommand, and return

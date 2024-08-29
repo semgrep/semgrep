@@ -3,7 +3,13 @@ local common = import 'common.libsonnet';
 
 local unix_funcs = [
   'fork',
+  'setitimer',
   //TODO: alarm, signal, kill, waitpid
+];
+
+local sys_funcs = [
+  'sigalrm',
+  //TODO: set_signal
 ];
 
 {
@@ -14,6 +20,9 @@ local unix_funcs = [
         // Unix
         [('Unix.' + p) for p in unix_funcs] +
         [('UUnix.' + p) for p in unix_funcs] +
+        // Sys
+        [('Sys.' + p) for p in sys_funcs] +
+        [('USys.' + p) for p in sys_funcs] +
 	// Parmap
 	['Parmap.$F'] +
         //TODO Other libs?
@@ -22,7 +31,7 @@ local unix_funcs = [
       languages: ['ocaml'],
       paths: {
         exclude: common.exclude_paths +
-	['Parmap_.ml']
+	['Parmap_.ml', 'Time_limit.ml']
       },
       severity: 'ERROR',
       message: |||

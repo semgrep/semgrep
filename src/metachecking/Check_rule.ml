@@ -318,8 +318,10 @@ let run_checks (caps : Core_scan.caps) (metachecks : Fpath.t)
       in
       semgrep_found_errs @ ocaml_found_errs
 
-(* for semgrep-core -check_rules, called from pysemgrep --validate *)
-let check_files (caps : < Cap.stdout ; Cap.fork >)
+(* for semgrep-core -check_rules, called from pysemgrep --validate
+ * caps = Core_scan.caps + Cap.stdout
+ *)
+let check_files (caps : < Cap.stdout ; Cap.fork ; Cap.alarm >)
     (output_format : Core_scan_config.output_format) (input : Fpath.t list) :
     unit =
   let errors =

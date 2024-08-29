@@ -1,3 +1,5 @@
+type caps = < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.alarm >
+
 (*
    Parse a semgrep-lsp command, execute it and exit.
 
@@ -5,13 +7,7 @@
 
    This function returns an exit code to be passed to the 'exit' function.
 *)
-val main :
-  < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork > ->
-  string array ->
-  Exit_code.t
+val main : caps -> string array -> Exit_code.t
 
 (* internal *)
-val run_conf :
-  < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork > ->
-  Lsp_CLI.conf ->
-  Exit_code.t
+val run_conf : caps -> Lsp_CLI.conf -> Exit_code.t

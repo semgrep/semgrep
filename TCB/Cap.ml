@@ -126,10 +126,10 @@ module Process = struct
   type env = cap
 
   (* advanced stuff
-   * TODO: subtypes, like timeout signal very important
-   * TODO: split signal?
+   * TODO: split signal? use subtypes to make alarm a subtype of signal?
    *)
   type signal = cap
+  type alarm = cap
   type exit = cap
   type pid = cap
   type kill = cap
@@ -208,6 +208,7 @@ type console = < stdin ; stdout ; stderr >
 type argv = < argv : Process.argv >
 type env = < env : Process.env >
 type signal = < signal : Process.signal >
+type alarm = < alarm : Process.signal >
 type exit = < exit : Process.exit >
 type pid = < pid : Process.pid >
 type kill = < kill : Process.kill >
@@ -216,7 +217,7 @@ type fork = < fork : Process.fork >
 type domain = < domain : Process.domain >
 type thread = < thread : Process.thread >
 type process_multi = < pid ; kill ; fork ; domain ; thread >
-type process_single = < signal ; exit ; chdir >
+type process_single = < signal ; alarm ; exit ; chdir >
 type process = < argv ; env ; console ; process_single ; process_multi >
 
 (* exec *)
@@ -271,6 +272,7 @@ let powerbox : all_caps =
     method kill = ()
     method chdir = ()
     method signal = ()
+    method alarm = ()
     method fork = ()
     method exit = ()
     method domain = ()
@@ -308,9 +310,10 @@ let stdout_caps_UNSAFE () =
   end
 
 (* !!DO NOT USE!! *)
-let fork_caps_UNSAFE () =
+let fork_and_alarm_caps_UNSAFE () =
   object
     method fork = ()
+    method alarm = ()
   end
 
 (* !!DO NOT USE!! *)
