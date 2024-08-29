@@ -115,6 +115,9 @@ module Out = Semgrep_output_v1_j
    semgrep and semgrep-proprietary use the same definition *)
 type func = Core_scan_config.t -> Core_result.result_or_exn
 
+(* TODO: far more: alarm, stdout (sometimes), ... *)
+type caps = < Cap.fork >
+
 (* A target is [Not_scanned] when semgrep didn't find any applicable rules.
  * The information is useful to return to pysemgrep/osemgrep to
  * display statistics.
@@ -462,8 +465,9 @@ let errors_of_timeout_or_memory_exn (exn : exn) (target : Target.t) : ESet.t =
 (*****************************************************************************)
 
 (* Returns a list of match results and a separate list of scanned targets *)
-let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
-    (handle_target : target_handler) (targets : Target.t list) :
+let iter_targets_and_get_matches_and_exn_to_errors (caps : < Cap.fork >)
+    (config : Core_scan_config.t) (handle_target : target_handler)
+    (targets : Target.t list) :
     Core_profiling.file_profiling Core_result.match_result list * Fpath.t list =
   (* The path in match_and_path_list is None when the file was not scanned *)
   let (match_and_path_list
@@ -472,7 +476,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (config : Core_scan_config.t)
           list) =
     targets
     |> Parmap_targets.map_targets__run_in_forked_process_do_not_modify_globals
-         config.ncores (fun (target : Target.t) ->
+         caps config.ncores (fun (target : Target.t) ->
            let internal_path = Target.internal_path target in
            let noprof = Core_profiling.empty_partial_profiling internal_path in
            Logs.debug (fun m -> m "Core_scan analyzing %s" !!internal_path);
@@ -876,7 +880,7 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
       (matches, was_scanned)
 
 (* coupling: with Deep_scan.scan_aux() *)
-let scan_exn (_caps : < >) (config : Core_scan_config.t)
+let scan_exn (caps : caps) (config : Core_scan_config.t)
     (rules : Rule_error.rules_and_invalid * float) : Core_result.t =
   Logs.debug (fun m -> m "Core_scan.scan_exn %s" (Core_scan_config.show config));
   (* the rules *)
@@ -896,7 +900,9 @@ let scan_exn (_caps : < >) (config : Core_scan_config.t)
   in
   let file_results, scanned_targets =
     targets
-    |> iter_targets_and_get_matches_and_exn_to_errors config
+    |> iter_targets_and_get_matches_and_exn_to_errors
+         (caps :> < Cap.fork >)
+         config
          (mk_target_handler config valid_rules prefilter_cache_opt)
   in
   let scanned = scanned_of_targets ~targets ~scanned_targets in
@@ -936,7 +942,7 @@ let scan_exn (_caps : < >) (config : Core_scan_config.t)
  * coupling: If you modify this function, you probably need also to modify
  * Deep_scan.scan() in semgrep-pro which is mostly a copy-paste of this file.
  *)
-let scan (caps : < >) (config : Core_scan_config.t) : Core_result.result_or_exn
+let scan (caps : caps) (config : Core_scan_config.t) : Core_result.result_or_exn
     =
   try
     let timed_rules =

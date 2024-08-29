@@ -31,7 +31,7 @@ module TCM = Test_compare_matches
 (* Entry point *)
 (*****************************************************************************)
 
-let test_rules ?(unit_testing = false) (caps : < >) xs =
+let test_rules ?(unit_testing = false) (caps : Core_scan.caps) xs =
   let fullxs, _skipped_paths =
     xs
     |> File_type.files_of_dirs_or_files (function

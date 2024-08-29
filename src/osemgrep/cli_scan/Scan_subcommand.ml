@@ -41,7 +41,9 @@ type caps =
   ; (* this is for Git_remote for semgrep query console and also for
      * differential scans as we use Git_wrapper.run_with_worktree.
      *)
-    Cap.chdir >
+    Cap.chdir
+  ; (* for Parmap in Core_scan *)
+    Cap.fork >
 
 (*****************************************************************************)
 (* Metrics *)
@@ -413,7 +415,7 @@ let uniq_rules_and_error_if_empty_rules rules =
   else Ok rules
 
 (* Select and execute the scan func based on the configured engine settings *)
-let mk_core_run_for_osemgrep (caps : < >) (conf : Scan_CLI.conf)
+let mk_core_run_for_osemgrep (caps : Core_scan.caps) (conf : Scan_CLI.conf)
     (diff_config : Differential_scan_config.t) : Core_runner.func =
   let core_run_for_osemgrep : Core_runner.func =
     match conf.engine_type with
@@ -522,7 +524,8 @@ let adjust_nosemgrep_and_autofix ~keep_ignored (res : Core_runner.result) :
 (* Yet another check targets with rules *)
 (*****************************************************************************)
 (* this is called also from Ci_subcommand.ml *)
-let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
+let check_targets_with_rules
+    (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp ; Cap.fork >)
     (conf : Scan_CLI.conf) (profiler : Profiler.t)
     (rules_and_origins : Rule_fetching.rules_and_origin list)
     (targets_and_skipped : Fpath.t list * Out.skipped_target list) :
@@ -562,7 +565,7 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
         Profiler.record profiler ~name:"core_time" (fun () ->
             let core_run_for_osemgrep =
               mk_core_run_for_osemgrep
-                (caps :> < >)
+                (caps :> Core_scan.caps)
                 conf Differential_scan_config.WholeScan
             in
             core_run_for_osemgrep.run ~file_match_hook conf.core_runner_conf
@@ -573,7 +576,7 @@ let check_targets_with_rules (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp >)
         let diff_scan_func : Diff_scan.diff_scan_func =
          fun ?(diff_config = Differential_scan_config.WholeScan) targets rules ->
           let core_run_for_osemgrep =
-            mk_core_run_for_osemgrep (caps :> < >) conf diff_config
+            mk_core_run_for_osemgrep (caps :> Core_scan.caps) conf diff_config
           in
           core_run_for_osemgrep.run ~file_match_hook conf.core_runner_conf
             conf.targeting_conf (rules, invalid_rules) targets
@@ -773,7 +776,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
       (* step3: let's go *)
       let res =
         check_targets_with_rules
-          (caps :> < Cap.stdout ; Cap.chdir ; Cap.tmp >)
+          (caps :> < Cap.stdout ; Cap.chdir ; Cap.tmp ; Cap.fork >)
           conf profiler rules_and_origins targets_and_skipped
       in
 
@@ -864,7 +867,7 @@ let run_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
         (Common2.some conf.test)
   | _ when conf.validate <> None ->
       Validate_subcommand.run_conf
-        (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >)
+        (caps :> < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.fork >)
         (Common2.some conf.validate)
   | _ when conf.show <> None ->
       Show_subcommand.run_conf

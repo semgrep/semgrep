@@ -1,9 +1,11 @@
 (* The type of the semgrep "core" scan. We define it here so that
    semgrep and semgrep-proprietary use the same definition *)
 type func = Core_scan_config.t -> Core_result.result_or_exn
+type caps = < Cap.fork >
 
-(* Entry point. This is used in Core_command.ml for semgrep-core,
- * in tests, in semgrep-pro, and finally in osemgrep.
+(* Entry point. This is used in Core_CLI.ml for semgrep-core,
+ * in Pro_core_CLI for semgrep-core-proprietary, in tests, and finally
+ * in osemgrep.
  *
  * [scan caps config] runs a core scan with a fixed list of targets
  * and rules and capture any exception.
@@ -17,24 +19,21 @@ type func = Core_scan_config.t -> Core_result.result_or_exn
  *    file_match_hook is also set in which case it can display incremental
  *    matches too
  * The rest of the output is done in the caller of scan() such as
- * Core_command.run_conf() for semgrep-core.
+ * Core_CLI.main_exn() for semgrep-core with Core_CLI.output_core_results().
  *
  * alt: we should require Cap.stdout below, but this is false when using the
  * NoOutput output_format so for now we internally use Cap.stdout_caps_UNSAFE()
  * or UConsole. In theory, scan() can be completely pure.
  *
- * TODO: we should require Cap.fork (for Parmap), Cap.alarm (for timeout
- * in Check_rules()), and more.
+ * We require Cap.fork for Parmap.
+ * TODO: require Cap.alarm (for timeout in Check_rules()), and more.
  *
  * The scan function has the type [func] defined above.
  *
  * Note that this function will run the pre/post scan hook defined
  * in Pre_post_core_scan.hook_processor.
  *)
-val scan :
-  < (* no caps needed for now *) > ->
-  Core_scan_config.t ->
-  Core_result.result_or_exn
+val scan : caps -> Core_scan_config.t -> Core_result.result_or_exn
 
 (*****************************************************************************)
 (* Utilities functions used in tests or semgrep-pro *)
@@ -48,8 +47,7 @@ val targets_of_config :
   Core_scan_config.t -> Target.t list * Semgrep_output_v1_t.skipped_target list
 (**
   Compute the set of targets, either by reading what was passed
-  in -target, or by using Find_target.files_of_dirs_or_files.
-  TODO: replace by just 'Get the targets'
+  in -target, or passed explicitely in Core_scan_config.Targets.
  *)
 
 (* This is also used by semgrep-proprietary. It filters the rules that

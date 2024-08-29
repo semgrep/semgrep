@@ -171,6 +171,7 @@ val no_caps : no_caps
 val network_caps_UNSAFE : unit -> < network >
 val tmp_caps_UNSAFE : unit -> < tmp >
 val stdout_caps_UNSAFE : unit -> < stdout >
+val fork_caps_UNSAFE : unit -> < fork >
 val exec_and_tmp_caps_UNSAFE : unit -> < exec ; tmp >
 
 (**************************************************************************)
