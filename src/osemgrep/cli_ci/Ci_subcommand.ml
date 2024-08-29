@@ -89,7 +89,8 @@ module OutJ = Semgrep_output_v1_j
  *
  * TODO: probably far more needed at some point
  *)
-type caps = < Cap.stdout ; Cap.network ; Cap.exec ; Cap.tmp ; Cap.chdir >
+type caps =
+  < Cap.stdout ; Cap.network ; Cap.exec ; Cap.tmp ; Cap.chdir ; Cap.fork >
 
 (*****************************************************************************)
 (* Error management *)
@@ -822,7 +823,7 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
     in
     let res =
       Scan_subcommand.check_targets_with_rules
-        (caps :> < Cap.stdout ; Cap.chdir ; Cap.tmp >)
+        (caps :> < Cap.stdout ; Cap.chdir ; Cap.tmp ; Cap.fork >)
         conf profiler rules_and_origin targets_and_ignored
     in
     match res with
