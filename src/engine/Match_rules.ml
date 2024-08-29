@@ -35,12 +35,19 @@ exception File_timeout of Rule_ID.t list
 (* TODO make this one of the Semgrep_error_code exceptions *)
 exception Multistep_rules_not_available
 
+type timeout_config = { timeout : float; threshold : int }
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-let timeout_function (rule : Rule.t) file timeout f =
-  let timeout = if timeout <= 0. then None else Some timeout in
+let timeout_function (rule : Rule.t) (file : string)
+    (timeout : timeout_config option) f =
+  let timeout =
+    match timeout with
+    | None -> None
+    | Some { timeout; _ } -> if timeout <= 0. then None else Some timeout
+  in
   match
     Time_limit.set_timeout_opt ~name:"Match_rules.timeout_function" timeout f
   with
@@ -119,10 +126,10 @@ let group_rules xconf rules xtarget =
  * which will iterate over each rule in a different place, and so needs
  * access to this logic.
  *)
-let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
+let per_rule_boilerplate_fn (timeout : timeout_config option) =
   let cnt_timeout = ref 0 in
   let rule_timeouts = ref [] in
-  fun file (rule : Rule.t) f ->
+  fun (file : string) (rule : Rule.t) f ->
     let rule_id = fst rule.R.id in
     Rule.last_matched_rule := Some rule_id;
     let res_opt =
@@ -137,8 +144,11 @@ let per_rule_boilerplate_fn ~timeout ~timeout_threshold =
     | None ->
         incr cnt_timeout;
         Stack_.push rule_id rule_timeouts;
-        if timeout_threshold > 0 && !cnt_timeout >= timeout_threshold then
-          raise (File_timeout !rule_timeouts);
+        (match timeout with
+        | Some { threshold; _ } when threshold > 0 && !cnt_timeout >= threshold
+          ->
+            raise (File_timeout !rule_timeouts)
+        | _else_ -> ());
         let loc = Tok.first_loc_of_file file in
         let error = E.mk_error ~rule_id:(Some rule_id) loc OutJ.Timeout in
         RP.mk_match_result []
@@ -167,10 +177,11 @@ let scc_match_hook (match_hook : PM.t -> unit)
 (* Entry point *)
 (*****************************************************************************)
 
-let check ~match_hook ~timeout ~timeout_threshold
+let check
     ?(dependency_match_table : Match_dependency.dependency_match_table option)
-    (xconf : Match_env.xconfig) (rules : Rule.rules) (xtarget : Xtarget.t) :
-    Core_result.matches_single_file =
+    ~match_hook ~(timeout : timeout_config option) (xconf : Match_env.xconfig)
+    (rules : Rule.rules) (xtarget : Xtarget.t) : Core_result.matches_single_file
+    =
   let match_hook = scc_match_hook match_hook dependency_match_table in
 
   let {
@@ -190,9 +201,7 @@ let check ~match_hook ~timeout ~timeout_threshold
       Lazy.force lazy_ast_and_errors |> ignore
   | _else_ -> ());
 
-  let per_rule_boilerplate_fn =
-    per_rule_boilerplate_fn ~timeout ~timeout_threshold !!file
-  in
+  let per_rule_boilerplate_fn = per_rule_boilerplate_fn timeout !!file in
 
   (* We separate out the taint rules specifically, because we may want to
      do some rule-wide optimizations, which require analyzing more than
