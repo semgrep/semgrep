@@ -115,8 +115,8 @@ module Out = Semgrep_output_v1_j
    semgrep and semgrep-proprietary use the same definition *)
 type func = Core_scan_config.t -> Core_result.result_or_exn
 
-(* TODO: far more: alarm, stdout (sometimes), ... *)
-type caps = < Cap.fork >
+(* TODO: stdout (sometimes) *)
+type caps = < Cap.fork ; Cap.alarm >
 
 (* A target is [Not_scanned] when semgrep didn't find any applicable rules.
  * The information is useful to return to pysemgrep/osemgrep to
@@ -815,7 +815,8 @@ let sca_rules_filtering (target : Target.regular) (rules : Rule.t list) :
 (*****************************************************************************)
 
 (* build the callback for iter_targets_and_get_matches_and_exn_to_errors *)
-let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
+let mk_target_handler (caps : < Cap.alarm >) (config : Core_scan_config.t)
+    (valid_rules : Rule.t list)
     (prefilter_cache_opt : Match_env.prefilter_config) : target_handler =
   (* Note that this function runs in another process *)
   function
@@ -867,7 +868,11 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
       let timeout =
         Some
           Match_rules.
-            { timeout = config.timeout; threshold = config.timeout_threshold }
+            {
+              timeout = config.timeout;
+              threshold = config.timeout_threshold;
+              caps :> < Cap.alarm >;
+            }
       in
       let matches =
         (* !!Calling Match_rules!! Calling the matching engine!! *)
@@ -907,7 +912,9 @@ let scan_exn (caps : caps) (config : Core_scan_config.t)
     |> iter_targets_and_get_matches_and_exn_to_errors
          (caps :> < Cap.fork >)
          config
-         (mk_target_handler config valid_rules prefilter_cache_opt)
+         (mk_target_handler
+            (caps :> < Cap.alarm >)
+            config valid_rules prefilter_cache_opt)
   in
   let scanned = scanned_of_targets ~targets ~scanned_targets in
 
