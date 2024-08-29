@@ -375,7 +375,3 @@ let hook_facts_satisfy_e = ref None
 let with_pro_hooks f =
   Common.save_excursion hook_annotate_facts (Some annotate_facts) (fun () ->
       Common.save_excursion hook_facts_satisfy_e (Some facts_satisfy_e) f)
-
-let setup_pro_hooks () =
-  hook_annotate_facts := Some annotate_facts;
-  hook_facts_satisfy_e := Some facts_satisfy_e
