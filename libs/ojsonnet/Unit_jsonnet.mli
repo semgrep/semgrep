@@ -1,1 +1,1 @@
-val tests : unit -> Testo.t list
+val tests : < Cap.alarm > -> Testo.t list
