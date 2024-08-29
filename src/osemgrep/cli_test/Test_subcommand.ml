@@ -523,7 +523,7 @@ let run_rules_against_target ~matching_diagnosis (env : env) (xlang : Xlang.t)
   let (res : Core_result.matches_single_file) =
     Match_rules.check
       ~match_hook:(fun _pm -> ())
-      ~timeout:0. ~timeout_threshold:0 xconf rules xtarget
+      ~timeout:None xconf rules xtarget
   in
   let (annots : (annotation * linenb) list) = annotations target in
 
