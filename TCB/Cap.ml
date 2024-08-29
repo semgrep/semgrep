@@ -308,6 +308,12 @@ let stdout_caps_UNSAFE () =
   end
 
 (* !!DO NOT USE!! *)
+let fork_caps_UNSAFE () =
+  object
+    method fork = ()
+  end
+
+(* !!DO NOT USE!! *)
 let exec_and_tmp_caps_UNSAFE () =
   object
     method exec = ()
