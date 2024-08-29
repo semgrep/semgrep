@@ -824,26 +824,31 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
                     Some
                       ( ( B.ImportedEntity canonical
                         | B.ImportedModule canonical
-                        (* TODO: We should uncomment this code, but this introduces
-                         * 52 regressions in DeepSemgrep!
-                         *)
-                        (*| B.GlobalName (canonical, _)*) ),
+                        | B.GlobalName (canonical, _) ),
                         _sid );
                 };
               _;
-            } )) ) ->
+            } )) )
+    when arguments_have_changed ->
       let dotted = G.canonical_to_dotted (snd idb) canonical in
       (* We used to force to fully qualify entities in the pattern
        * (e.g., with org.foo(...)) but this is confusing for users.
        * We now allow an unqualified pattern like 'foo' to match resolved
        * entities like import org.foo; foo(), just like for attributes.
-       *
-       * bugfix: important to call with empty_id_info() below to avoid
-       * infinite recursion.
        *)
       (* coupling: resolved names with wildcards *)
       wipe_wildcard_imports
-        (m_expr a (B.N (B.Id (idb, B.empty_id_info ())) |> G.e)
+        ((* try matching the expression a and the identifier b *)
+         m_expr ~arguments_have_changed:false a b
+        >||> (* try again without symbolic propagated information in id_info
+                *
+                * TODO(yosef): this case could propbably be refactored; this
+                * handles an edge case that involves resolving imported names in
+                * javascript such that import { Foo } = require('a'); var x = new
+                * Foo({ y : 1}) matches the rule `new a.Foo({ y : 1})`
+             *)
+        m_expr ~arguments_have_changed:false a
+          (B.N (B.Id (idb, B.empty_id_info ())) |> G.e)
         >||> (* try this time a match with the resolved entity *)
         m_expr a (make_dotted dotted))
   (* equivalence: name resolving on qualified ids (for OCaml) *)
