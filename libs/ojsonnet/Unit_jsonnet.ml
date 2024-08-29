@@ -34,8 +34,8 @@ let test_maker_err dir : Testo.t list =
              | Eval_jsonnet_common.Error _ ->
                  Alcotest.(check bool) "this raised an error" true true))
 
-let mk_tests (subdir : string) (strategys : Conf.eval_strategy list) :
-    Testo.t list =
+let mk_tests (caps : < Cap.alarm >) (subdir : string)
+    (strategys : Conf.eval_strategy list) : Testo.t list =
   Common2.glob (spf "tests/jsonnet/%s/*.jsonnet" subdir)
   |> Fpath_.of_strings
   |> List_.map (fun file ->
@@ -67,7 +67,7 @@ let mk_tests (subdir : string) (strategys : Conf.eval_strategy list) :
                       let json_opt =
                         Common.save_excursion Conf.eval_strategy strategy
                           (fun () ->
-                            Time_limit.set_timeout
+                            Time_limit.set_timeout caps
                               ~name:("ojsonnet-" ^ str_strategy) timeout
                               (fun () ->
                                 let value_ = Eval_jsonnet.eval_program core in
@@ -91,15 +91,15 @@ let mk_tests (subdir : string) (strategys : Conf.eval_strategy list) :
                         failwith
                           (spf "this threw an error with %s" str_strategy))))
 
-let tests () : Testo.t list =
+let tests (caps : < Cap.alarm >) : Testo.t list =
   Testo.categorize_suites "ojsonnet"
     [
-      mk_tests "pass/" [ Conf.EvalSubst; Conf.EvalEnvir ];
-      mk_tests "only_subst/" [ Conf.EvalSubst ];
-      mk_tests "only_envir/" [ Conf.EvalEnvir ];
-      mk_tests "tutorial/pass/" [ Conf.EvalSubst; Conf.EvalEnvir ];
-      mk_tests "tutorial/only_subst/" [ Conf.EvalSubst ];
-      mk_tests "tutorial/only_envir/" [ Conf.EvalEnvir ];
+      mk_tests caps "pass/" [ Conf.EvalSubst; Conf.EvalEnvir ];
+      mk_tests caps "only_subst/" [ Conf.EvalSubst ];
+      mk_tests caps "only_envir/" [ Conf.EvalEnvir ];
+      mk_tests caps "tutorial/pass/" [ Conf.EvalSubst; Conf.EvalEnvir ];
+      mk_tests caps "tutorial/only_subst/" [ Conf.EvalSubst ];
+      mk_tests caps "tutorial/only_envir/" [ Conf.EvalEnvir ];
       (* TODO
            test_maker_pass_fail dir_fail false;
            test_maker_pass_fail dir_fail_tutorial false;
