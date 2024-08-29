@@ -62,7 +62,7 @@ let current_timer = ref None
 
   question: can we have a signal and so exn when in a exn handler ?
 *)
-let set_timeout ~name max_duration f =
+let set_timeout (caps : < Cap.alarm >) ~name max_duration f =
   (match !current_timer with
   | None -> ()
   | Some { name = running_name; max_duration = running_val } ->
@@ -75,12 +75,13 @@ let set_timeout ~name max_duration f =
   let raise_timeout () = raise (Timeout info) in
   let clear_timer () =
     current_timer := None;
-    Unix.setitimer Unix.ITIMER_REAL { Unix.it_value = 0.; it_interval = 0. }
+    CapUnix.setitimer caps#alarm Unix.ITIMER_REAL
+      { Unix.it_value = 0.; it_interval = 0. }
     |> ignore
   in
   let set_timer () =
     current_timer := Some info;
-    Unix.setitimer Unix.ITIMER_REAL
+    CapUnix.setitimer caps#alarm Unix.ITIMER_REAL
       { Unix.it_value = max_duration; it_interval = 0. }
     |> ignore
   in
@@ -110,4 +111,4 @@ let set_timeout ~name max_duration f =
 let set_timeout_opt ~name time_limit f =
   match time_limit with
   | None -> Some (f ())
-  | Some x -> set_timeout ~name x f
+  | Some (x, caps) -> set_timeout caps ~name x f

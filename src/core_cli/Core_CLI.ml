@@ -355,6 +355,7 @@ let all_actions (caps : Cap.all_caps) () =
       " <files or dirs> generate parsing statistics (use -json for JSON output)",
       Arg_.mk_action_n_arg (fun xs ->
           Test_parsing.parsing_stats
+            (caps :> < Cap.alarm >)
             (Xlang.lang_of_opt_xlang_exn !lang)
             ~json:
               (match !output_format with
@@ -470,6 +471,7 @@ let all_actions (caps : Cap.all_caps) () =
       " <files or dirs> look for parsing regressions",
       Arg_.mk_action_n_arg (fun xs ->
           Test_parsing.parsing_regressions
+            (caps :> < Cap.alarm >)
             (Xlang.lang_of_opt_xlang_exn !lang)
             (Fpath_.of_strings xs)) );
     ( "-test_parse_tree_sitter",

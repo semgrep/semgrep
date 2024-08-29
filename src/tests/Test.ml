@@ -69,7 +69,7 @@ let tests (caps : Cap.all_caps) =
       Unit_autofix_printer.tests;
       Unit_synthesizer.tests;
       Unit_synthesizer_targets.tests;
-      Unit_dataflow.tests Parse_target.parse_program;
+      Unit_dataflow.tests (caps :> < Cap.alarm >) Parse_target.parse_program;
       Unit_typing_generic.tests Parse_target.parse_program (fun lang file ->
           Parse_pattern.parse_pattern lang file);
       Unit_naming_generic.tests Parse_target.parse_program;
@@ -78,7 +78,7 @@ let tests (caps : Cap.all_caps) =
       (* TODO Unit_matcher.spatch_unittest ~xxx *)
       (* TODO Unit_matcher_php.unittest; (* sgrep, spatch, refactoring, unparsing *) *)
       Unit_engine.tests ();
-      Unit_jsonnet.tests ();
+      Unit_jsonnet.tests (caps :> < Cap.alarm >);
       Unit_metachecking.tests (caps :> Core_scan.caps);
       (* OSemgrep tests *)
       Unit_LS.tests

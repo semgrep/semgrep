@@ -46,7 +46,8 @@ let timeout_function (rule : Rule.t) (file : string)
   let timeout =
     match timeout with
     | None -> None
-    | Some { timeout; _ } -> if timeout <= 0. then None else Some timeout
+    | Some { timeout; caps; threshold = _ } ->
+        if timeout <= 0. then None else Some (timeout, caps)
   in
   match
     Time_limit.set_timeout_opt ~name:"Match_rules.timeout_function" timeout f
