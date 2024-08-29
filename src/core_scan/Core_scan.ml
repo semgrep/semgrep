@@ -864,11 +864,15 @@ let mk_target_handler (config : Core_scan_config.t) (valid_rules : Rule.t list)
         }
       in
       let rules, dependency_match_table = sca_rules_filtering target rules in
+      let timeout =
+        Some
+          Match_rules.
+            { timeout = config.timeout; threshold = config.timeout_threshold }
+      in
       let matches =
         (* !!Calling Match_rules!! Calling the matching engine!! *)
-        Match_rules.check ~match_hook ~timeout:config.timeout
-          ~timeout_threshold:config.timeout_threshold ~dependency_match_table
-          xconf rules xtarget
+        Match_rules.check ~match_hook ~timeout ~dependency_match_table xconf
+          rules xtarget
         |> set_matches_to_proprietary_origin_if_needed xtarget
       in
       (* So we can display matches incrementally in osemgrep!

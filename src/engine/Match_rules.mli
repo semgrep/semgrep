@@ -1,6 +1,8 @@
 (* this can be raised when timeout_threshold is set *)
 exception File_timeout of Rule_ID.t list
 
+type timeout_config = { timeout : float; threshold : int }
+
 (* Matches many rules against one target. This function is called from
  * Test_engine.ml, Test_subcommand.ml, and of course Core_scan.ml
  * (and also Match_extract_mode.ml now).
@@ -24,10 +26,9 @@ exception File_timeout of Rule_ID.t list
  * !This can also raise File_timeout!
  *)
 val check :
-  match_hook:(Pattern_match.t -> unit) ->
-  timeout:float ->
-  timeout_threshold:int ->
   ?dependency_match_table:Match_dependency.dependency_match_table ->
+  match_hook:(Pattern_match.t -> unit) ->
+  timeout:timeout_config option ->
   Match_env.xconfig ->
   Rule.rules ->
   Xtarget.t ->
