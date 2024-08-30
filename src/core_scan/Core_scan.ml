@@ -592,6 +592,7 @@ let filter_existing_targets (targets : Target.t list) :
          else
            match Target.origin target with
            | File path ->
+               Logs.warn (fun m -> m "skipping %s which does not exist" !!path);
                Right
                  {
                    Semgrep_output_v1_t.path;
