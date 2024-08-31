@@ -867,12 +867,13 @@ let mk_target_handler (caps : < Cap.alarm >) (config : Core_scan_config.t)
       in
       let rules, dependency_match_table = sca_rules_filtering target rules in
       let timeout =
+        let caps = (caps :> < Cap.alarm >) in
         Some
           Match_rules.
             {
               timeout = config.timeout;
               threshold = config.timeout_threshold;
-              caps :> < Cap.alarm >;
+              caps;
             }
       in
       let matches =
