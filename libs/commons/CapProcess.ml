@@ -27,7 +27,9 @@ let apply_in_child_process (caps : < Cap.fork >) f x =
       let input = UUnix.in_channel_of_descr input in
       fun () ->
         let v = UMarshal.from_channel input in
-        ignore (UUnix.waitpid [] pid);
+        (* Without 'WNOHANG', in macOS the 'waitpid' call may fail with 'EINTR',
+         * not 100% sure why. *)
+        ignore UUnix.(waitpid [ WNOHANG ] pid);
         close_in input;
         match v with
         | `Res x -> x
