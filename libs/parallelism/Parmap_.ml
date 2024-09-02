@@ -1,4 +1,5 @@
-let parmap _caps ~ncores ~chunksize f xs = Parmap.parmap ~ncores ~chunksize f xs
+let parmap _caps ~ncores ~chunksize f xs =
+  Parmap.parmap ~ncores ~chunksize f (Parmap.L xs)
 
 (* this is just because we forget every call to Parmap.$F in
  * TCB/forbid_process.jsonnet so we need that

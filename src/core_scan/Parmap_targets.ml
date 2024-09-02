@@ -96,7 +96,7 @@ let map_targets__run_in_forked_process_do_not_modify_globals caps (ncores : int)
     Logs.debug (fun m ->
         m "running parmap with %d cores on %d targets" ncores
           (List.length targets));
-    Parmap_.parmap caps ~ncores ~chunksize:1 f (Parmap.L targets))
+    Parmap_.parmap caps ~ncores ~chunksize:1 f targets)
 
 (* remove duplication? But we now use this function below at a few places like
  * in Deep_scan_phases and it would be uglier to wrap with [Target.Regular]
@@ -113,4 +113,4 @@ let map_regular_targets__run_in_forked_process_do_not_modify_globals caps
     Logs.debug (fun m ->
         m "running parmap with %d cores on %d targets" ncores
           (List.length targets));
-    Parmap_.parmap caps ~ncores ~chunksize:1 f (Parmap.L targets))
+    Parmap_.parmap caps ~ncores ~chunksize:1 f targets)

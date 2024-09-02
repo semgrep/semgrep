@@ -5,7 +5,7 @@ val parmap :
   ncores:int ->
   chunksize:int ->
   ('a -> 'b) ->
-  'a Parmap.sequence ->
+  'a list ->
   'b list
 
 val disable_core_pinning : unit -> unit
