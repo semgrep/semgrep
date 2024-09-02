@@ -634,67 +634,6 @@ let targets_of_config (config : Core_scan_config.t) :
           |> List_.map Target.target_of_input_to_core
           |> filter_existing_targets)
 
-(* DEPRECATED
- * Compute the set of targets, either by reading what was passed
- * in -target, or by using our poor's man file targeting with
- * Find_targets_old.files_of_dirs_or_files.
- *)
-let targets_of_config_DEPRECATED (config : Core_scan_config.t) :
-    Target.t list * Out.skipped_target list =
-  match (config.target_source, config.roots, config.lang) with
-  (* We usually let semgrep-python computes the list of targets (and pass it
-   * via -target), but it's convenient to also run semgrep-core without
-   * semgrep-python and to recursively get a list of targets.
-   * We just have a poor's man file targeting/filtering here, just enough
-   * to run semgrep-core independently of semgrep-python to test things.
-   *)
-  | None, roots, Some xlang ->
-      (* less: could also apply Common.fullpath? *)
-      let lang_opt =
-        match xlang with
-        | Xlang.LRegex
-        | Xlang.LSpacegrep
-        | Xlang.LAliengrep ->
-            None (* we will get all the files *)
-        | Xlang.L (lang, []) -> Some lang
-        (* config.lang comes from Xlang.of_string which returns just a lang *)
-        | Xlang.L (_, _) -> assert false
-      in
-      let files, skipped =
-        roots
-        |> List_.map Scanning_root.to_fpath
-        |> Find_targets_old.files_of_dirs_or_files lang_opt
-      in
-      let target_mappings =
-        files
-        |> List_.map (fun file : Target.t ->
-               Regular (Target.mk_regular xlang Product.all (Origin.File file)))
-      in
-      (target_mappings, skipped)
-  | None, _, None -> failwith "you need to specify a language with -lang"
-  (* main code path for semgrep python, with targets specified by -target *)
-  | Some _target_source, roots, lang_opt -> (
-      (* sanity checking *)
-      (* in deep mode we actually have a single root dir passed *)
-      if roots <> [] then
-        Logs.warn (fun m ->
-            m "if you use -targets, you should not specify files");
-      (* TODO: ugly, this is because the code path for -e/-f requires
-       * a language, even with a -target, see test_target_file.py
-       *)
-      if lang_opt <> None then
-        failwith "if you use -targets and -rules, you should not specify a lang";
-      match config.target_source with
-      | None -> failwith "you need to specify targets with -targets"
-      | Some target_source -> (
-          match target_source with
-          | Targets x -> x |> filter_existing_targets
-          | Target_file target_file ->
-              UFile.read_file target_file
-              |> In.targets_of_string
-              |> List_.map Target.target_of_input_to_core
-              |> filter_existing_targets))
-
 (*****************************************************************************)
 (* Rule selection *)
 (*****************************************************************************)
