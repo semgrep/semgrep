@@ -111,7 +111,3 @@ val log_scan_inputs :
 
 val log_scan_results :
   Core_scan_config.t -> Core_result.t -> skipped_targets:'a list -> unit
-
-(* DO NOT USE *)
-val targets_of_config_DEPRECATED :
-  Core_scan_config.t -> Target.t list * Semgrep_output_v1_t.skipped_target list
