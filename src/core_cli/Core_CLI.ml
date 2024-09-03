@@ -311,8 +311,6 @@ let mk_config () : Core_scan_config.t =
     trace = !trace;
     trace_endpoint = !trace_endpoint;
     top_level_span = None;
-    (* DEPRECATED: should be removed once Deep_scan does not need it anymore *)
-    roots = [];
   }
 
 (*****************************************************************************)

@@ -38,9 +38,8 @@ type target_source = Target_file of Fpath.t | Targets of Target.t list
 type t = {
   (* Main flags, input *)
   rule_source : rule_source;
+  (* TODO: remove the option *)
   target_source : target_source option;
-  (* TODO: remove roots and once removed remove the option in target_source *)
-  roots : Scanning_root.t list;
   equivalences_file : Fpath.t option;
   (* output and result tweaking *)
   output_format : output_format;
@@ -110,6 +109,4 @@ let default =
     trace = false;
     trace_endpoint = None;
     top_level_span = None;
-    (* TODO: deprecated, remove *)
-    roots = [];
   }
