@@ -618,15 +618,12 @@ let filter_existing_targets (targets : Target.t list) :
 let targets_of_config (config : Core_scan_config.t) :
     Target.t list * Out.skipped_target list =
   match config.target_source with
-  | None -> failwith "you need to specify targets with -targets"
-  | Some target_source -> (
-      match target_source with
-      | Targets x -> x |> filter_existing_targets
-      | Target_file target_file ->
-          UFile.read_file target_file
-          |> In.targets_of_string
-          |> List_.map Target.target_of_input_to_core
-          |> filter_existing_targets)
+  | Targets x -> x |> filter_existing_targets
+  | Target_file target_file ->
+      UFile.read_file target_file
+      |> In.targets_of_string
+      |> List_.map Target.target_of_input_to_core
+      |> filter_existing_targets
 
 (*****************************************************************************)
 (* Rule selection *)

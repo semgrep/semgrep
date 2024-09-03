@@ -38,8 +38,7 @@ type target_source = Target_file of Fpath.t | Targets of Target.t list
 type t = {
   (* Main flags, input *)
   rule_source : rule_source;
-  (* TODO: remove the option *)
-  target_source : target_source option;
+  target_source : target_source;
   equivalences_file : Fpath.t option;
   (* output and result tweaking *)
   output_format : output_format;
@@ -86,7 +85,7 @@ let default =
   {
     (* Main flags *)
     rule_source = Rules [];
-    target_source = None;
+    target_source = Targets [];
     equivalences_file = None;
     (* alt: NoOutput but then would need a -text in Core_CLI.ml *)
     output_format = Text [];
