@@ -118,13 +118,6 @@ type func = Core_scan_config.t -> Core_result.result_or_exn
 (* TODO: stdout (sometimes) *)
 type caps = < Cap.fork ; Cap.alarm >
 
-(* A target is [Not_scanned] when semgrep didn't find any applicable rules.
- * The information is useful to return to pysemgrep/osemgrep to
- * display statistics.
- * TODO? do we need this type? switch to a simple bool?
- *)
-type was_scanned = Scanned of Fpath.t | Not_scanned
-
 (* Type of the iter_targets_and_get_matches_and_exn_to_errors callback.
 
    A target handler returns (matches, was_scanned) where was_scanned indicates
@@ -135,7 +128,7 @@ type was_scanned = Scanned of Fpath.t | Not_scanned
 
    Remember that a target handler runs in another process (via Parmap).
 *)
-type target_handler = Target.t -> Core_result.matches_single_file * was_scanned
+type target_handler = Target.t -> Core_result.matches_single_file * bool
 
 (*****************************************************************************)
 (* Helpers *)
@@ -158,32 +151,6 @@ let set_matches_to_proprietary_origin_if_needed (xtarget : Xtarget.t)
     || Xlang.is_proprietary xtarget.xlang
   then Report_pro_findings.annotate_pro_findings xtarget matches
   else matches
-
-(*****************************************************************************)
-(* Scanned Helpers *)
-(*****************************************************************************)
-
-let scanned_unless_empty_rules rules (path : Fpath.t) : was_scanned =
-  match rules with
-  | [] -> Not_scanned
-  | _ -> Scanned path
-
-let scanned_of_targets ~targets ~scanned_targets =
-  (* TODO: Delete any lockfile-only findings whose rule produced a code+lockfile
-     finding in that lockfile *)
-  let scanned_target_table =
-    (* provide fast access to paths that were scanned by at least one rule;
-       includes extracted targets *)
-    (* TODO: create a new function: Common.hash_of_list ~get_key list ? *)
-    let tbl = Hashtbl.create (List.length scanned_targets) in
-    List.iter (fun x -> Hashtbl.replace tbl !!x ()) scanned_targets;
-    tbl
-  in
-  (* old: we were using all_targets and targets to not count extracted one *)
-  targets
-  |> List.filter (fun (x : Target.t) ->
-         let internal_path = Target.internal_path x in
-         Hashtbl.mem scanned_target_table !!internal_path)
 
 (*****************************************************************************)
 (* Pysemgrep progress bar *)
@@ -468,11 +435,12 @@ let errors_of_timeout_or_memory_exn (exn : exn) (target : Target.t) : ESet.t =
 let iter_targets_and_get_matches_and_exn_to_errors (caps : < Cap.fork >)
     (config : Core_scan_config.t) (handle_target : target_handler)
     (targets : Target.t list) :
-    Core_profiling.file_profiling Core_result.match_result list * Fpath.t list =
-  (* The path in match_and_path_list is None when the file was not scanned *)
-  let (match_and_path_list
+    Core_profiling.file_profiling Core_result.match_result list * Target.t list
+    =
+  (* The target is None when the file was not scanned *)
+  let (xs
         : (Core_profiling.file_profiling Core_result.match_result
-          * Fpath.t option)
+          * Target.t option)
           list) =
     targets
     |> Parmap_targets.map_targets__run_in_forked_process_do_not_modify_globals
@@ -530,8 +498,11 @@ let iter_targets_and_get_matches_and_exn_to_errors (caps : < Cap.fork >)
                  | (Match_rules.File_timeout _ | Out_of_memory) as exn ->
                      log_critical_exn_and_last_rule ();
                      let errors = errors_of_timeout_or_memory_exn exn target in
-                     ( Core_result.mk_match_result [] errors noprof,
-                       Scanned internal_path )
+                     (* we got an exn on the target so definitely we tried to
+                      * process the target
+                      *)
+                     let scanned = true in
+                     (Core_result.mk_match_result [] errors noprof, scanned)
                  | Time_limit.Timeout _ ->
                      (* converted in Main_timeout in timeout_function() *)
                      (* FIXME:
@@ -551,23 +522,20 @@ let iter_targets_and_get_matches_and_exn_to_errors (caps : < Cap.fork >)
                      let errors =
                        ESet.singleton (E.exn_to_error None internal_path e)
                      in
-                     ( Core_result.mk_match_result [] errors noprof,
-                       Scanned internal_path ))
+                     (Core_result.mk_match_result [] errors noprof, true))
            in
-           let scanned_path =
-             match was_scanned with
-             | Scanned target -> Some target
-             | Not_scanned -> None
-           in
-           (Core_result.add_run_time run_time res, scanned_path))
+           let scanned_target = if was_scanned then Some target else None in
+           (Core_result.add_run_time run_time res, scanned_target))
   in
-  let matches, opt_paths = List.split match_and_path_list in
+  let matches, opt_paths = List.split xs in
   let scanned =
     opt_paths |> List_.filter_map Fun.id
-    (* It's necessary to remove duplicates because extracted targets are
+    (* old: It's necessary to remove duplicates because extracted targets are
        mapped back to their original target, and you can have multiple
-       extracted targets for a single file. Might as well sort too *)
-    |> List.sort_uniq Fpath.compare
+       extracted targets for a single file. Might as well sort too
+       TODO? still needed now that we don't have extracted targets in Core_scan?
+       |> List.sort_uniq Fpath.compare
+    *)
   in
   (matches, scanned)
 
@@ -763,9 +731,7 @@ let mk_target_handler (caps : < Cap.alarm >) (config : Core_scan_config.t)
         |> List_.map (fun (rule, dep_formula) ->
                Match_dependency.check_rule rule lockfile_xtarget dep_formula)
       in
-      let was_scanned =
-        scanned_unless_empty_rules rules internal_path_to_content
-      in
+      let was_scanned = not (List_.null rules) in
       (* TODO: run all the right hooks *)
       ( Core_result.collate_rule_results internal_path_to_content dep_matches,
         was_scanned )
@@ -780,7 +746,7 @@ let mk_target_handler (caps : < Cap.alarm >) (config : Core_scan_config.t)
         rules_for_target ~analyzer ~products ~origin
           ~respect_rule_paths:config.respect_rule_paths valid_rules
       in
-      let was_scanned = scanned_unless_empty_rules rules file in
+      let was_scanned = not (List_.null rules) in
 
       (* TODO: can we skip all of this if there are no applicable
           rules? In particular, can we skip print_cli_progress? *)
@@ -848,14 +814,17 @@ let scan_exn (caps : caps) (config : Core_scan_config.t)
             (caps :> < Cap.alarm >)
             config valid_rules prefilter_cache_opt)
   in
-  let scanned = scanned_of_targets ~targets ~scanned_targets in
+
+  (* TODO: Delete any lockfile-only findings whose rule produced a code+lockfile
+     finding in that lockfile  in scanned_targets?
+  *)
 
   (* the OSS engine was invoked so no interfile langs *)
   let interfile_languages_used = [] in
   let (res : Core_result.t) =
     Core_result.mk_result file_results
       (List_.map (fun r -> (r, `OSS)) valid_rules)
-      invalid_rules scanned interfile_languages_used ~rules_parse_time
+      invalid_rules scanned_targets interfile_languages_used ~rules_parse_time
   in
   let processed_matches, new_errors, new_skipped =
     filter_files_with_too_many_matches_and_transform_as_timeout

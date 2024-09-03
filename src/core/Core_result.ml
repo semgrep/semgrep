@@ -99,9 +99,13 @@ type t = {
   (* old: matches : Pattern_match.t list *)
   processed_matches : processed_match list;
   errors : Core_error.t list;
-  (* was simply [Fpath.t list] before, but for inter-file diff scan
-     metrics we also need to know the analyzer used on the target,
-     hence the use of [Target.t list] now *)
+  (* A target is scanned when semgrep found some applicable rules.
+   * The information is useful to return to pysemgrep/osemgrep to
+   * display statistics.
+   * old: was simply [Fpath.t list] before, but for inter-file diff scan
+   * metrics we also need to know the analyzer used on the target,
+   * hence the use of [Target.t list] now
+   *)
   scanned : Target.t list;
   skipped_targets : Semgrep_output_v1_t.skipped_target list;
   skipped_rules : Rule_error.invalid_rule list;
