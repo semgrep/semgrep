@@ -617,10 +617,6 @@ let filter_existing_targets (targets : Target.t list) :
  *)
 let targets_of_config (config : Core_scan_config.t) :
     Target.t list * Out.skipped_target list =
-  (* sanity checking
-   * LATER: we should get rid of those fields instead *)
-  if config.roots <> [] then
-    failwith "config.roots is not empty in Core_scan.targets_of_config";
   match config.target_source with
   | None -> failwith "you need to specify targets with -targets"
   | Some target_source -> (
