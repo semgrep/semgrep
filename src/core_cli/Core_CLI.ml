@@ -313,7 +313,6 @@ let mk_config () : Core_scan_config.t =
     top_level_span = None;
     (* DEPRECATED: should be removed once Deep_scan does not need it anymore *)
     roots = [];
-    lang = None;
   }
 
 (*****************************************************************************)
