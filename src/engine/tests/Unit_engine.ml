@@ -834,8 +834,6 @@ let full_rule_semgrep_rules_regression_tests () =
                     || s =~ ".*/generic/ci/audit/changed-semgrepignore.*"
                     (* TODO: parse error, weird *)
                     || s =~ ".*/unicode/security/bidi.yml"
-                    || s
-                       =~ ".*/python/django/maintainability/duplicate-path-assignment.yaml"
                     (* Apex requires Pro *)
                     || s =~ ".*/apex/lang/.*"
                        (* but the following are generic rules ... *)
