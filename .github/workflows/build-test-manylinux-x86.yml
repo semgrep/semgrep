@@ -16,7 +16,7 @@ jobs:
           update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.6 1
           update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 2
           update-alternatives --config python3
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4.1.7
         with:
           name: semgrep-core-x86-artifact
       - run: |
@@ -33,7 +33,7 @@ jobs:
       - build-wheels
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4.1.7
         with:
           name: manylinux-x86-wheel
       - run: unzip dist.zip

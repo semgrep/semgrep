@@ -233,7 +233,7 @@ jobs:
           echo "::add-mask::$TOKEN"
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
       - name: Download Release Body Artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4.1.7
         with:
           name: release_body_${{ github.event.inputs.semgrep-version }}
           path: scripts/release
