@@ -272,11 +272,7 @@ let prepare_config_for_core_scan (config : Core_scan_config.t)
         (List_.append targets acc_targets, List_.append rules acc_rules))
       lang_jobs ([], [])
   in
-  {
-    config with
-    target_source = Some (Targets targets);
-    rule_source = Rules rules;
-  }
+  { config with target_source = Targets targets; rule_source = Rules rules }
 
 (* LATER: we want to avoid this intermediate data structure but
  * for now that's what pysemgrep used to get so simpler to return it.

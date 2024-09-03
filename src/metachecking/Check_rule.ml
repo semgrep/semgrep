@@ -268,7 +268,7 @@ let semgrep_check (caps : Core_scan.caps) (metachecks : Fpath.t)
     {
       Core_scan_config.default with
       rule_source = Rule_file metachecks;
-      target_source = Some (Targets targets);
+      target_source = Targets targets;
       (* we're used from pysemgrep --validate *)
       output_format = Json true;
     }

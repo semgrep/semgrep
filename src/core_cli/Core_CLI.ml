@@ -64,7 +64,7 @@ let trace_endpoint = ref Core_scan_config.default.trace_endpoint
 let rule_source = ref None
 
 (* -targets (takes the list of files in a file given by pysemgrep) *)
-let target_source : Core_scan_config.target_source option ref = ref None
+let target_file : Fpath.t option ref = ref None
 
 (* used for `semgrep-core -l <lang> <single file>` instead of
  * `semgrep-core -targets`. It is also used for semgrep-core "actions" as in
@@ -291,8 +291,10 @@ let mk_config () : Core_scan_config.t =
       (match !rule_source with
       | None -> failwith "missing -rules"
       | Some x -> x);
-    (* target_source will be adjusted later in main_exn() if needed *)
-    target_source = !target_source;
+    target_source =
+      (match !target_file with
+      | None -> Targets [] (* will be adjusted later in main_exn() *)
+      | Some file -> Target_file file);
     output_format = !output_format;
     strict = !strict;
     report_time = !report_time;
@@ -508,7 +510,7 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
       Arg.String (fun s -> rule_source := Some (Rule_file (Fpath.v s))),
       " <file> obtain formula of patterns from YAML/JSON/Jsonnet file" );
     ( "-targets",
-      Arg.String (fun s -> target_source := Some (Target_file (Fpath.v s))),
+      Arg.String (fun s -> target_file := Some (Fpath.v s)),
       " <file> obtain list of targets to run patterns on" );
     ( "-lang",
       Arg.String (fun s -> lang := Some (Xlang.of_string s)),
@@ -775,11 +777,11 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
               1)
             else config.ncores
           in
-          let target_source =
-            match (!target_source, !lang, roots) with
-            | Some x, None, [] -> Some x
+          let target_source : Core_scan_config.target_source =
+            match (!target_file, !lang, roots) with
+            | Some file, None, [] -> Target_file file
             | None, Some lang, [ file ] when UFile.is_file file ->
-                Some (Targets [ Target.mk_target lang file ])
+                Targets [ Target.mk_target lang file ]
             | _ ->
                 (* alt: use the file targeting in targets_of_config_DEPRECATED
                  * with the deprecated use of Find_targets_old, but better
