@@ -24,7 +24,7 @@ django-nose==1.4.7
     # via -r requirements.in
 django-storages==1.11.1
     # via -r requirements.in
-django==2.2.24
+django==3.2.25
     # via
     #   -r requirements.in
     #   django-debug-toolbar
