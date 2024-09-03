@@ -1,5 +1,5 @@
 running 4 rules from 1 config rules/eqeq.yaml_0
-No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignoring-files
+No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignore-files
 Rules:
 - rules.assert-eqeq-is-ok
 - rules.eqeq-is-bad
@@ -27,7 +27,7 @@ Files skipped:
    • <all files not listed by `git ls-files` were skipped>
 
   Skipped by .semgrepignore:
-  - https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults
+  - https://semgrep.dev/docs/ignoring-files-folders-code/#understand-semgrep-defaults
 
    • <none>
 

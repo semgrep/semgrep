@@ -159,7 +159,7 @@ let pp_skipped ~too_many_entries ppf
     Fmt.(styled `Bold string)
     (esc
    ^ "(See: \
-      https://semgrep.dev/docs/ignoring-files-folders-code/#understanding-semgrep-defaults)"
+      https://semgrep.dev/docs/ignoring-files-folders-code/#understand-semgrep-defaults)"
     );
   pp_list semgrep_ignored;
   Fmt.pf ppf "@.";
