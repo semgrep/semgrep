@@ -39,9 +39,8 @@ type t = {
   (* Main flags, input *)
   rule_source : rule_source;
   target_source : target_source option;
-  (* TODO: remove roots and lang, and once removed remove the option above *)
+  (* TODO: remove roots and once removed remove the option in target_source *)
   roots : Scanning_root.t list;
-  lang : Xlang.t option;
   equivalences_file : Fpath.t option;
   (* output and result tweaking *)
   output_format : output_format;
@@ -113,5 +112,4 @@ let default =
     top_level_span = None;
     (* TODO: deprecated, remove *)
     roots = [];
-    lang = None;
   }
