@@ -13,7 +13,6 @@
  * license.txt for more details.
  *)
 open Common
-module Log = Log_process_limits.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -90,12 +89,12 @@ let run_with_memory_limit ?get_context
     let stack_bytes = stat.stack_size * (Sys.word_size / 8) in
     let mem_bytes = heap_bytes + stack_bytes in
     if mem_limit > 0 && mem_bytes > mem_limit then (
-      Log.err (fun m ->
+      Logs.err (fun m ->
           m "%sexceeded heap+stack memory limit: %d bytes (stack=%d, heap=%d)"
             (context ()) mem_bytes stack_bytes heap_bytes);
       raise (ExceededMemoryLimit "Exceeded memory limit"))
     else if !heap_warning > 0 && heap_bytes > !heap_warning then (
-      Log.warn (fun m ->
+      Logs.warn (fun m ->
           m
             "%slarge heap size: %d MiB (memory limit is %d MiB). If a crash \
              follows, you could suspect OOM."
@@ -106,7 +105,7 @@ let run_with_memory_limit ?get_context
       && stack_bytes > stack_warning
       && not !stack_already_warned
     then (
-      Log.warn (fun m ->
+      Logs.warn (fun m ->
           m
             "%slarge stack size: %d bytes. If a crash follows, you should \
              suspect a stack overflow. Make sure the maximum stack size is set \
