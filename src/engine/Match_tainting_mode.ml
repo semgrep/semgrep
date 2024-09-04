@@ -518,6 +518,7 @@ let sources_of_taints ?preferred_label taints =
            (* even if there is any taint "variable", it's irrelevant for the
             * finding, since the precondition is satisfied. *)
            | Var _
+           | Shape_var _
            | Control ->
                None)
   in

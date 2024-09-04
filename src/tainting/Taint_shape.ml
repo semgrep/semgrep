@@ -59,7 +59,7 @@ end)
  *  we need shape variables... but then we need to handle unification
  *  between shape variables too.
  *)
-type shape = Bot | Obj of obj
+type shape = Bot | Obj of obj | Arg of T.arg
 
 (* THINK: rename 'ref' as 'cell' or 'var' to make it less confusing wrt OCaml 'ref' type ? *)
 and ref = Ref of Xtaint.t * shape
@@ -114,8 +114,10 @@ and equal_shape shape1 shape2 =
   match (shape1, shape2) with
   | Bot, Bot -> true
   | Obj obj1, Obj obj2 -> equal_obj obj1 obj2
+  | Arg arg1, Arg arg2 -> T.equal_arg arg1 arg2
   | Bot, _
-  | Obj _, _ ->
+  | Obj _, _
+  | Arg _, _ ->
       false
 
 and equal_obj obj1 obj2 = Fields.equal equal_ref obj1 obj2
@@ -135,8 +137,15 @@ and compare_shape shape1 shape2 =
   match (shape1, shape2) with
   | Bot, Bot -> 0
   | Obj obj1, Obj obj2 -> compare_obj obj1 obj2
-  | Bot, Obj _ -> -1
-  | Obj _, Bot -> 1
+  | Arg arg1, Arg arg2 -> T.compare_arg arg1 arg2
+  | Bot, Obj _
+  | Bot, Arg _
+  | Obj _, Arg _ ->
+      -1
+  | Obj _, Bot
+  | Arg _, Bot
+  | Arg _, Obj _ ->
+      1
 
 and compare_obj obj1 obj2 = Fields.compare compare_ref obj1 obj2
 
@@ -151,6 +160,7 @@ let rec show_ref ref =
 and show_shape = function
   | Bot -> "_|_"
   | Obj obj -> spf "obj {|%s|}" (show_obj obj)
+  | Arg arg -> "'{" ^ T.show_arg arg ^ "}"
 
 and show_obj obj =
   obj |> Fields.to_seq
@@ -195,6 +205,27 @@ and unify_shape shape1 shape2 =
   | shape, Bot ->
       shape
   | Obj obj1, Obj obj2 -> Obj (unify_obj obj1 obj2)
+  | Arg _, (Obj _ as obj)
+  | (Obj _ as obj), Arg _ ->
+      obj
+  | Arg arg1, Arg arg2 ->
+      if T.equal_arg arg1 arg2 then shape1
+      else (
+        (* TODO: We do not handle this right now, we would need to record and
+         *   solve constraints. It can happen with code like e.g.
+         *
+         *     def foo(a, b):
+         *       tup = (a,)
+         *       tup[0] = b
+         *       return tup
+         *
+         * Then the consequence would be that the signature of `foo` would ignore
+         * the shape of `b`.
+         *)
+        Log.warn (fun m ->
+            m "Trying to unify two different arg shapes: %s ~ %s"
+              (T.show_arg arg1) (T.show_arg arg2));
+        shape1)
 
 and unify_obj obj1 obj2 =
   (* THINK: Apply taint_MAX_OBJ_FIELDS limit ? *)
@@ -218,6 +249,9 @@ let rec gather_all_taints_in_ref_acc acc ref =
 and gather_all_taints_in_shape_acc acc = function
   | Bot -> acc
   | Obj obj -> gather_all_taints_in_obj_acc acc obj
+  | Arg arg ->
+      let taint = { T.orig = T.Shape_var (T.lval_of_arg arg); tokens = [] } in
+      Taints.add taint acc
 
 and gather_all_taints_in_obj_acc acc obj =
   Fields.fold
@@ -241,6 +275,9 @@ and find_in_shape offset = function
   (* offset <> [] *)
   | Bot -> None
   | Obj obj -> find_in_obj offset obj
+  | Arg _ ->
+      (* TODO: Here we should "refine" the arg shape, it should be an Obj shape. *)
+      None
 
 and find_in_obj (offset : T.offset list) obj =
   (* offset <> [] *)
@@ -285,17 +322,18 @@ let rec update_offset_in_ref ~f offset ref =
   | `None, Bot -> None
   | `Tainted taints, Bot when Taints.is_empty taints -> None
   (* Restore INVARIANT(ref).2 *)
-  | `Clean, Obj _ ->
+  | `Clean, (Obj _ | Arg _) ->
       (* If we are tainting an offset of this ref, the ref cannot be
          considered clean anymore. *)
       Some (Ref (`None, shape))
   | `Clean, Bot
-  | `None, Obj _
-  | `Tainted _, (Bot | Obj _) ->
+  | `None, (Obj _ | Arg _)
+  | `Tainted _, (Bot | Obj _ | Arg _) ->
       Some (Ref (xtaint, shape))
 
 and update_offset_in_shape ~f offset = function
-  | Bot ->
+  | Bot
+  | Arg _ ->
       let shape = Obj Fields.empty in
       update_offset_in_shape ~f offset shape
   | Obj obj -> (
@@ -388,7 +426,8 @@ let rec clean_ref (offset : T.offset list) ref =
       Ref (xtaint, shape)
 
 and clean_shape offset = function
-  | Bot ->
+  | Bot
+  | Arg _ ->
       let shape = Obj Fields.empty in
       clean_shape offset shape
   | Obj obj -> Obj (clean_obj offset obj)
@@ -408,7 +447,7 @@ and clean_obj offset obj =
 (* Instantiation *)
 (*****************************************************************************)
 
-let rec instantiate_shape ~inst_taints = function
+let rec instantiate_shape ~inst_lval ~inst_taints = function
   | Bot -> Bot
   | Obj obj ->
       let obj =
@@ -417,12 +456,19 @@ let rec instantiate_shape ~inst_taints = function
                (* This is essentially a recursive call to 'instantiate_shape'!
                 * We rely on 'update_offset_in_ref' to maintain INVARIANT(ref). *)
                update_offset_in_ref
-                 ~f:(internal_UNSAFE_inst_xtaint_shape ~inst_taints)
+                 ~f:(internal_UNSAFE_inst_xtaint_shape ~inst_lval ~inst_taints)
                  [] ref)
       in
       if Fields.is_empty obj then Bot else Obj obj
+  | Arg arg -> (
+      match inst_lval (T.lval_of_arg arg) with
+      | Some (_taints, shape) -> shape
+      | None ->
+          Log.warn (fun m ->
+              m "Could not instantiate arg shape: %s" (T.show_arg arg));
+          Arg arg)
 
-and internal_UNSAFE_inst_xtaint_shape ~inst_taints xtaint shape =
+and internal_UNSAFE_inst_xtaint_shape ~inst_lval ~inst_taints xtaint shape =
   (* This may break INVARIANT(ref) but 'update_offset_in_ref' will restore it. *)
   let xtaint =
     match xtaint with
@@ -431,7 +477,7 @@ and internal_UNSAFE_inst_xtaint_shape ~inst_taints xtaint shape =
         xtaint
     | `Tainted taints -> `Tainted (inst_taints taints)
   in
-  let shape = instantiate_shape ~inst_taints shape in
+  let shape = instantiate_shape ~inst_lval ~inst_taints shape in
   (xtaint, shape)
 
 (*****************************************************************************)
@@ -452,6 +498,9 @@ let rec enum_in_ref ref : (T.offset list * Taints.t) Seq.t =
 and enum_in_shape = function
   | Bot -> Seq.empty
   | Obj obj -> enum_in_obj obj
+  | Arg _ ->
+      (* TODO: First need to record taint shapes in 'ToLval'.  *)
+      Seq.empty
 
 and enum_in_obj obj =
   obj |> Fields.to_seq

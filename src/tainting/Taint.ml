@@ -132,7 +132,7 @@ let rec show_call_trace show_thing = function
 (* Taint arguments ("variables", kind of) *)
 (*****************************************************************************)
 
-type arg = { name : string; index : int } [@@deriving show, ord]
+type arg = { name : string; index : int } [@@deriving eq, ord]
 type base = BGlob of IL.name | BThis | BArg of arg [@@deriving ord]
 
 type offset = Ofld of IL.name | Oint of int | Ostr of string | Oany
@@ -148,13 +148,13 @@ let compare_lval { base = base1; offset = offset1 }
   | 0 -> List.compare compare_offset offset1 offset2
   | other -> other
 
-let show_pos { name = s; index = i } = Printf.sprintf "arg(%s#%d)" s i
+let show_arg { name = s; index = i } = Printf.sprintf "arg(%s#%d)" s i
 
 let show_base base =
   match base with
   | BGlob name -> fst name.ident
   | BThis -> "this"
-  | BArg pos -> show_pos pos
+  | BArg arg -> show_arg arg
 
 let show_offset offset =
   match offset with
@@ -222,6 +222,8 @@ let rev_IL_offset_of_offset offset =
              None)
        (Some [])
 
+let lval_of_arg arg = { base = BArg arg; offset = [] }
+
 (*****************************************************************************)
 (* Taint *)
 (*****************************************************************************)
@@ -238,7 +240,11 @@ type source = {
   precondition : (taint list * R.precondition) option;
 }
 
-and orig = Src of source | Var of lval | Control
+and orig = Src of source | Var of lval | Shape_var of lval | Control
+(* THINK(iago): We could group 'Var', 'Shape_var' and 'Control' into a single
+ * 'Var' with a "kind" parameter. But we need to be careful about perf when
+ * adding an extra level of indirection here (due to memory allocations). *)
+
 and taint = { orig : orig; tokens : tainted_tokens }
 
 let compare_precondition (_ts1, f1) (_ts2, f2) =
@@ -285,11 +291,16 @@ let compare_orig orig1 orig2 =
   match (orig1, orig2) with
   | Src p, Src q -> compare_source p q
   | Var lv1, Var lv2 -> compare_lval lv1 lv2
+  | Shape_var lv1, Shape_var lv2 -> compare_lval lv1 lv2
   | Control, Control -> 0
-  | Src _, (Var _ | Control) -> -1
-  | Var _, Control -> -1
+  (* constructor "smaller than" ... *)
+  | Src _, (Var _ | Shape_var _ | Control) -> -1
+  | Var _, (Shape_var _ | Control) -> -1
+  | Shape_var _, Control -> -1
+  (* constructor "greater than" ... *)
   | Var _, Src _ -> 1
-  | Control, (Var _ | Src _) -> 1
+  | Shape_var _, (Var _ | Src _) -> 1
+  | Control, (Shape_var _ | Var _ | Src _) -> 1
 
 let compare_taint taint1 taint2 =
   (* THINK: Right now we disregard the trace because we just want to keep one
@@ -345,7 +356,8 @@ and show_taint taint =
   match taint.orig with
   | Src src -> show_source src
   | Var lval -> "'" ^ show_lval lval
-  | Control -> "<control>"
+  | Shape_var lval -> "'<" ^ show_lval lval ^ ">"
+  | Control -> "'<control>"
 
 (*****************************************************************************)
 (* Taint sets *)
@@ -421,6 +433,7 @@ module Taint_set = struct
        * of them, but we want "the best" one, e.g. the one with the shortest trace. *)
     match (taint1.orig, taint2.orig) with
     | Var _, Var _
+    | Shape_var _, Shape_var _
     | Control, Control ->
         (* Polymorphic taint should only be intraprocedural so the call-trace is irrelevant. *)
         if List.length taint1.tokens < List.length taint2.tokens then taint1
@@ -472,7 +485,7 @@ module Taint_set = struct
           List.length taint1.tokens < List.length taint2.tokens
         then taint1
         else taint2
-    | (Src _ | Var _ | Control), _ ->
+    | (Src _ | Var _ | Shape_var _ | Control), _ ->
         Log.err (fun m ->
             m "Taint_set.pick_taint: Ooops, the impossible happened!");
         taint2
@@ -578,6 +591,7 @@ and labels_in_taints taints =
   |> Taint_set.iter (fun taint ->
          match taint.orig with
          | Var _
+         | Shape_var _
          | Control ->
              has_poly_taint := true
          | Src { label; precondition = None; _ } ->
@@ -631,6 +645,7 @@ let filter_relevant_taints requires taints =
          match t.orig with
          | Src src -> LabelSet.mem src.label labels
          | Var _
+         | Shape_var _
          | Control ->
              true)
 
@@ -638,6 +653,7 @@ let filter_relevant_taints requires taints =
 let rec map_preconditions f taint =
   match taint.orig with
   | Var _
+  | Shape_var _
   | Control ->
       Some taint
   | Src { precondition = None; _ } -> Some taint

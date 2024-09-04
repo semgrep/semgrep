@@ -166,32 +166,45 @@ let get_ident_of_callee callee =
   | __else__ -> None
 
 (* TODO: Move to 'Taint' module ? *)
-let subst_in_precondition ~inst_var ~inst_ctrl taint =
+let subst_in_precondition ~inst_lval ~inst_ctrl taint =
   let subst taints =
     taints
     |> List.concat_map (fun t ->
            match t.T.orig with
            | Src _ -> [ t ]
            | Var lval -> (
-               match inst_var lval with
+               match inst_lval lval with
                | None -> []
-               | Some (var_taints, var_shape) ->
-                   var_taints
-                   (* Taint here is only used to resolve preconditions for taint
-                    * variables affected by labels. *)
-                   |> Taints.union (S.gather_all_taints_in_shape var_shape)
-                   |> Taints.elements)
+               | Some (var_taints, _var_shape) -> var_taints |> Taints.elements)
+           | Shape_var lval -> (
+               match inst_lval lval with
+               | None -> []
+               | Some (_var_taints, var_shape) ->
+                   S.gather_all_taints_in_shape var_shape |> Taints.elements)
            | Control -> inst_ctrl () |> Taints.elements)
   in
   T.map_preconditions subst taint
 
+let instantiate_taint_var ~inst_lval ~inst_ctrl taint =
+  match taint.T.orig with
+  | Src _ -> None
+  | Var lval -> inst_lval lval
+  | Shape_var lval ->
+      (* This is just a delayed 'Taint_shape.gather_all_taints_in_shape'. *)
+      let* taints =
+        inst_lval lval
+        |> Option.map (fun (_taints, shape) ->
+               S.gather_all_taints_in_shape shape)
+      in
+      Some (taints, S.Bot)
+  | Control ->
+      (* 'Control' is pretty much like a taint variable so we handle all together. *)
+      Some (inst_ctrl (), S.Bot)
+
 (* TODO: Move to 'Taint' module ? *)
-let instantiate_taint ~callee ~inst_var ~inst_ctrl taint =
+let instantiate_taint ~callee ~inst_lval ~inst_ctrl taint =
   let inst_taint_var taint =
-    match taint.T.orig with
-    | Src _ -> None
-    | Var lval -> inst_var lval
-    | Control -> Some (inst_ctrl (), S.Bot)
+    instantiate_taint_var ~inst_lval ~inst_ctrl taint
   in
   match taint.T.orig with
   | Src src -> (
@@ -220,22 +233,18 @@ let instantiate_taint ~callee ~inst_var ~inst_ctrl taint =
             { T.orig = Src { src with call_trace }; tokens = [] }
         | __else__ -> taint
       in
-      match subst_in_precondition ~inst_var ~inst_ctrl taint with
+      match subst_in_precondition ~inst_lval ~inst_ctrl taint with
       | None ->
           (* substitution made preconditon false, so no taint here! *)
           Taints.empty
       | Some taint -> Taints.singleton taint)
+  (* Taint variables *)
   | Var _
-  (* 'Control' is pretty much like a taint variable so we handle both together. *)
+  | Shape_var _
   | Control -> (
       match inst_taint_var taint with
       | None -> Taints.empty
-      | Some (var_taints, var_shape) ->
-          let taints =
-            (* TODO: We should be separating taint and shapes to maintain precison,
-             * but this isn't possible without first having shape variables. *)
-            var_taints |> Taints.union (S.gather_all_taints_in_shape var_shape)
-          in
+      | Some (var_taints, _var_shape) ->
           (* Update taint trace.
            *
            * E.g. the call to 'bar' in:
@@ -261,20 +270,22 @@ let instantiate_taint ~callee ~inst_var ~inst_ctrl taint =
             | Some ident -> [ snd ident ])
             @ List.rev taint.tokens
           in
-          taints
+          var_taints
           |> Taints.map (fun taint' ->
                  {
                    taint' with
                    tokens = List.rev_append extra_tokens taint'.tokens;
                  }))
 
-let instantiate_taints ~callee ~inst_var ~inst_ctrl taints =
+let instantiate_taints ~callee ~inst_lval ~inst_ctrl taints =
   taints |> Taints.elements
   |> List.fold_left
        (fun acc taint ->
          acc
-         |> Taints.union (instantiate_taint ~callee ~inst_var ~inst_ctrl taint))
+         |> Taints.union (instantiate_taint ~callee ~inst_lval ~inst_ctrl taint))
        Taints.empty
 
-let instantiate_shape ~callee ~inst_var ~inst_ctrl shape =
-  S.instantiate_shape (instantiate_taints ~callee ~inst_var ~inst_ctrl) shape
+let instantiate_shape ~callee ~inst_lval ~inst_ctrl shape =
+  S.instantiate_shape ~inst_lval
+    ~inst_taints:(instantiate_taints ~callee ~inst_lval ~inst_ctrl)
+    shape
