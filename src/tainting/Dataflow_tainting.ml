@@ -389,6 +389,7 @@ let get_control_taints_to_return env =
          match orig with
          | T.Src _ -> true
          | Var _
+         | Shape_var _
          | Control ->
              false)
 
@@ -462,7 +463,7 @@ let propagate_taint_to_label replace_labels label (taint : T.taint) =
     | Src src, None -> T.Src { src with label }
     | Src src, Some replace_labels when List.mem src.T.label replace_labels ->
         T.Src { src with label }
-    | ((Src _ | Var _ | Control) as orig), _ -> orig
+    | ((Src _ | Var _ | Shape_var _ | Control) as orig), _ -> orig
   in
   { taint with orig = new_orig }
 
@@ -498,6 +499,7 @@ let results_of_tainted_sink env taints_with_traces (sink : Sig.sink) :
                      let src_pm, _ = T.pm_of_trace source.call_trace in
                      src_pm.PM.env
                  | Var _
+                 | Shape_var _
                  | Control ->
                      []
                in
@@ -693,6 +695,34 @@ let fix_poly_taint_with_field env lval xtaint =
     | Dot n -> !(n.id_info.id_type)
     | Index _ -> None
   in
+  let add_offset_to_lval o ({ offset; _ } as lval : T.lval) =
+    if
+      (* If the offset we are trying to take is already in the
+           list of offsets, don't append it! This is so we don't
+           never-endingly loop the dataflow and make it think the
+           Arg taint is never-endingly changing.
+
+           For instance, this code example would previously loop,
+           if `x` started with an `Arg` taint:
+           while (true) { x = x.getX(); }
+      *)
+      (not (List.mem o offset))
+      && (* For perf reasons we don't allow offsets to get too long.
+          * Otherwise in a long chain of function calls where each
+          * function adds some offset, we could end up a very large
+          * amount of polymorphic taint.
+          * This actually happened with rule
+          * semgrep.perf.rules.express-fs-filename from the Pro
+          * benchmarks, and file
+          * WebGoat/src/main/resources/webgoat/static/js/libs/ace.js.
+          *
+          * TODO: This is way less likely to happen if we had better
+          *   type info and we used it to remove taint, e.g. if Boolean
+          *   and integer expressions didn't propagate taint. *)
+      List.length offset < Limits_semgrep.taint_MAX_POLY_OFFSET
+    then { lval with offset = lval.offset @ [ o ] }
+    else lval
+  in
   (* TODO: Aren't we missing here C# and Go ? *)
   if env.lang =*= Lang.Java || Lang.is_js env.lang || env.lang =*= Lang.Python
   then
@@ -724,37 +754,13 @@ let fix_poly_taint_with_field env lval xtaint =
                   taints
                   |> Taints.map (fun taint ->
                          match taint.orig with
-                         | Var ({ offset; _ } as lval)
-                           when (* If the offset we are trying to take is already in the
-                                   list of offsets, don't append it! This is so we don't
-                                   never-endingly loop the dataflow and make it think the
-                                   Arg taint is never-endingly changing.
-
-                                   For instance, this code example would previously loop,
-                                   if `x` started with an `Arg` taint:
-                                   while (true) { x = x.getX(); }
-                                *)
-                                (not (List.mem o offset))
-                                && (* For perf reasons we don't allow offsets to get too long.
-                                    * Otherwise in a long chain of function calls where each
-                                    * function adds some offset, we could end up a very large
-                                    * amount of polymorphic taint.
-                                    * This actually happened with rule
-                                    * semgrep.perf.rules.express-fs-filename from the Pro
-                                    * benchmarks, and file
-                                    * WebGoat/src/main/resources/webgoat/static/js/libs/ace.js.
-                                    *
-                                    * TODO: This is way less likely to happen if we had better
-                                    *   type info and we used to remove taint, e.g. if Boolean
-                                    *   and integer expressions didn't propagate taint. *)
-                                List.length offset
-                                < Limits_semgrep.taint_MAX_POLY_OFFSET ->
-                             let lval' =
-                               { lval with offset = lval.offset @ [ o ] }
-                             in
+                         | Var lval ->
+                             let lval' = add_offset_to_lval o lval in
                              { taint with orig = Var lval' }
+                         | Shape_var lval ->
+                             let lval' = add_offset_to_lval o lval in
+                             { taint with orig = Shape_var lval' }
                          | Src _
-                         | Var _
                          | Control ->
                              taint)
                 in
@@ -1659,11 +1665,26 @@ let check_function_signature env fun_exp args
          So we will isolate this as a specific step to be applied as necessary.
       *)
       let lval_to_taints lval =
-        taints_of_sig_lval env fparams fun_exp args args_taints lval
+        let opt_taints_shape =
+          taints_of_sig_lval env fparams fun_exp args args_taints lval
+        in
+        Log.debug (fun m ->
+            m ~tags:sigs_tag "Instantiating taint signature of %s: %s -> %s"
+              (_show_fun_exp fun_exp) (T.show_lval lval)
+              (match opt_taints_shape with
+              | None -> "nothing :/"
+              | Some (taints, shape) ->
+                  spf "%s & %s" (T.show_taints taints) (S.show_shape shape)));
+        opt_taints_shape
+      in
+      let taints_in_ctrl () = Lval_env.get_control_taints env.lval_env in
+      let inst_taint_var taint =
+        Sig.instantiate_taint_var ~inst_lval:lval_to_taints
+          ~inst_ctrl:taints_in_ctrl taint
       in
       let subst_in_precondition =
-        Sig.subst_in_precondition ~inst_var:lval_to_taints ~inst_ctrl:(fun () ->
-            Lval_env.get_control_taints env.lval_env)
+        Sig.subst_in_precondition ~inst_lval:lval_to_taints
+          ~inst_ctrl:taints_in_ctrl
       in
       let process_sig :
           Sig.result ->
@@ -1684,19 +1705,15 @@ let check_function_signature env fun_exp args
                        (* TODO: Use 'Sig.instantiate_taint' also for 'ToSink' and
                                 'ToLval' cases below. *)
                        Sig.instantiate_taint ~callee:fun_exp
-                         ~inst_var:lval_to_taints
-                         ~inst_ctrl:(fun () ->
-                           Lval_env.get_control_taints env.lval_env)
-                         t
+                         ~inst_lval:lval_to_taints ~inst_ctrl:taints_in_ctrl t
                      in
                      return_taints |> Taints.union taints')
                    Taints.empty
             in
             let taints = inst_taints data_taints in
             let shape =
-              Sig.instantiate_shape ~callee:fun_exp ~inst_var:lval_to_taints
-                ~inst_ctrl:(fun () -> Lval_env.get_control_taints env.lval_env)
-                data_shape
+              Sig.instantiate_shape ~callee:fun_exp ~inst_lval:lval_to_taints
+                ~inst_ctrl:taints_in_ctrl data_shape
             in
             let control_taints =
               (* No need to instantiate 'control_taints' because control taint variables
@@ -1743,28 +1760,20 @@ let check_function_signature env fun_exp args
                          *)
                          let+ taint = taint |> subst_in_precondition in
                          [ { Sig.taint; sink_trace } ]
-                     | Var lval ->
-                         let sink_trace =
-                           T.Call (eorig, taint.tokens, sink_trace)
-                         in
-                         let+ lval_taints, lval_shape = lval_to_taints lval in
-                         (* See NOTE(gather-all-taints) *)
-                         let lval_taints =
-                           lval_taints
-                           |> Taints.union
-                                (S.gather_all_taints_in_shape lval_shape)
-                         in
-                         Taints.elements lval_taints
-                         |> List_.map (fun x -> { Sig.taint = x; sink_trace })
+                     | Var _
+                     | Shape_var _
                      | Control ->
-                         (* coupling: how to best refactor with Arg's case? *)
                          let sink_trace =
                            T.Call (eorig, taint.tokens, sink_trace)
                          in
-                         let control_taints =
-                           Lval_env.get_control_taints env.lval_env
+                         let+ var_taints, var_shape = inst_taint_var taint in
+                         (* See NOTE(gather-all-taints) *)
+                         let var_taints =
+                           var_taints
+                           |> Taints.union
+                                (S.gather_all_taints_in_shape var_shape)
                          in
-                         Taints.elements control_taints
+                         Taints.elements var_taints
                          |> List_.map (fun x -> { Sig.taint = x; sink_trace }))
             in
             results_of_tainted_sink env incoming_taints sink
@@ -1796,12 +1805,13 @@ let check_function_signature env fun_exp args
                          match t |> subst_in_precondition with
                          | None -> Taints.empty
                          | Some t -> Taints.singleton t)
-                     | Var src_lval ->
+                     | Var _
+                     | Shape_var _ ->
                          (* Taint is flowing from one argument to another argument
                           * (or possibly the callee object). Given the formal poly
                           * taint 'src_lval', we compute the actual taint in the
                           * context of this function call. *)
-                         let& res, _TODOshape = lval_to_taints src_lval in
+                         let& res, _TODOshape = inst_taint_var t in
                          res
                          |> Taints.map (fun taint ->
                                 let tokens =
@@ -1886,7 +1896,15 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
           match
             check_function_signature { env with lval_env } e args args_taints
           with
-          | Some (call_taints, shape, lval_env) -> (call_taints, shape, lval_env)
+          | Some (call_taints, shape, lval_env) ->
+              (* THINK: For debugging, we could print a diff of the previous and new lval_env *)
+              Log.debug (fun m ->
+                  m ~tags:sigs_tag
+                    "Instantiating taint signature of %s: returns %s & %s"
+                    (_show_fun_exp e)
+                    (T.show_taints call_taints)
+                    (S.show_shape shape));
+              (call_taints, shape, lval_env)
           | None -> (
               let call_taints =
                 if not (propagate_through_functions env) then Taints.empty

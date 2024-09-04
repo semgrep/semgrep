@@ -8,5 +8,5 @@
    semgrep.matching
    semgrep.printing
  )
- (preprocess (pps ppx_deriving.show ppx_deriving.ord ppx_profiling))
+ (preprocess (pps ppx_deriving.show ppx_deriving.eq ppx_deriving.ord ppx_profiling))
 )

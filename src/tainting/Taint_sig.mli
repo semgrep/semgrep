@@ -91,6 +91,7 @@ type result =
         *
         *     ToLval(["taint"], "x[0]")
         *
+        * TODO: Record taint shapes.
         *)
 
 val compare_result : result -> result -> int
@@ -136,9 +137,15 @@ val show_signature : signature -> string
 (* Instantiation *)
 (*****************************************************************************)
 
+val instantiate_taint_var :
+  inst_lval:(Taint.lval -> (Taint.taints * Taint_shape.shape) option) ->
+  inst_ctrl:(unit -> Taint.taints) ->
+  Taint.taint ->
+  (Taint.taints * Taint_shape.shape) option
+
 val instantiate_taint :
   callee:IL.exp ->
-  inst_var:(Taint.lval -> (Taint.taints * Taint_shape.shape) option) ->
+  inst_lval:(Taint.lval -> (Taint.taints * Taint_shape.shape) option) ->
   inst_ctrl:(unit -> Taint.taints) ->
   Taint.taint ->
   Taint.taints
@@ -148,7 +155,7 @@ val instantiate_taint :
 
 val instantiate_shape :
   callee:IL.exp ->
-  inst_var:(Taint.lval -> (Taint.taints * Taint_shape.shape) option) ->
+  inst_lval:(Taint.lval -> (Taint.taints * Taint_shape.shape) option) ->
   inst_ctrl:(unit -> Taint.taints) ->
   Taint_shape.shape ->
   Taint_shape.shape
@@ -157,7 +164,7 @@ val instantiate_shape :
  * the caller. *)
 
 val subst_in_precondition :
-  inst_var:(Taint.lval -> (Taint.taints * Taint_shape.shape) option) ->
+  inst_lval:(Taint.lval -> (Taint.taints * Taint_shape.shape) option) ->
   inst_ctrl:(unit -> Taint.taints) ->
   Taint.taint ->
   Taint.taint option

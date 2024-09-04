@@ -28,7 +28,7 @@ type 'spec call_trace =
 
 val show_call_trace : ('spec -> string) -> 'spec call_trace -> string
 
-type arg = { name : string; index : int }
+type arg = { name : string; index : int } [@@deriving eq, ord]
 (** A formal argument of a function given by its name and it's index/position. *)
 
 val show_arg : arg -> string
@@ -71,6 +71,8 @@ type lval = { base : base; offset : offset list }
  *
  * See 'orig' and 'result' / 'signature' for more details.
  *)
+
+val lval_of_arg : arg -> lval
 
 val hook_offset_of_IL : (IL.offset -> offset) option ref
 (** Pro index sensitivity *)
@@ -145,6 +147,9 @@ and orig =
        * the l-value `obj.a`, and 2) looking up the taint attached to `obj.a` in
        * the environment.
        *)
+  | Shape_var of lval
+      (** A taint shape-variable stands for the taints reachable through the
+        * shape of the 'lval', see 'Taint_shape.gather_all_taints_in_shape'. *)
   | Control  (** Polymorphic taint variable, but for the "control-flow". *)
 
 and taint = { orig : orig; tokens : tainted_tokens }

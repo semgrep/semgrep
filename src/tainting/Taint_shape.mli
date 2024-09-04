@@ -25,6 +25,11 @@ type shape =
         * constant indexes as if they were fields, and use 'Oany' to capture the
         * non-constant indexes.
         *)
+  | Arg of Taint.arg
+      (** Represents the yet-unknown shape of a function/method parameter. It is
+        * a polymorphic shape variable that is meant to be instantiated at call
+        * site. Before adding 'Arg' we assumed parameters had shape 'Bot', and
+        * 'Arg' still acts like 'Bot' in some places. *)
 
 (* TODO: Rename 'ref' to 'cell'/'store', or 'data'/'info', or 'lval' ? *)
 and ref =
@@ -116,7 +121,10 @@ val clean_ref : Taint.offset list -> ref -> ref
 (** [clean_ref offset ref] marks the 'offset' in 'ref' as clean.  *)
 
 val instantiate_shape :
-  inst_taints:(Taint.taints -> Taint.taints) -> shape -> shape
+  inst_lval:(Taint.lval -> (Taint.taints * shape) option) ->
+  inst_taints:(Taint.taints -> Taint.taints) ->
+  shape ->
+  shape
 (** 'instantiate inst_taints shape' will instantiate all taints in 'shape'
  * using 'inst_taints. Instantiation is meant to replace the taint variables
  * in the taint signature of a callee function, with the taints assigned by
