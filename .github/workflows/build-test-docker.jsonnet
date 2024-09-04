@@ -104,16 +104,11 @@ local job = {
         labels: '${{ steps.meta.outputs.labels }}',
         file: '${{ inputs.file }}',
         target: '${{ inputs.target }}',
-        // This flag means that if for whatever reason depot fails to
-        // build the docker image on their fast native arm64 runners, it
-        // will fallback to docker-buildx which uses emulation (which is
-        // really slow). So if this job suddently takes more than 15min,
-        // it's probably because there is a problem somewhere and the
-        // fallback is activated. A common solution is to reset the depot.dev
-        // cache (especially useful when depot.dev gets confused by changes
-        // in submodules in a PR) by clicking "Reset cache" at the bottom of
-        // https://depot.dev/orgs/9ks3jwp44z/projects/fhmxj6w9z8/settings
-        'buildx-fallback': true,
+        // We used to set this to true, just in case Depot had some bugs
+        // but this would fallback for any error, not just Depot error,
+        // and then you need to wait 1h30min to actually see the error
+        // so better to set this to false
+        'buildx-fallback': false,
         secrets: 'SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }}',
       },
     },
