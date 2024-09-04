@@ -139,7 +139,8 @@ local semgrep_rules = [
        'scripts/*',
        'libs/commons/Logs_.ml',
        'libs/profiling/Profiling.ml',
-       'src/core/Log_semgrep.ml'
+       'src/core/Log_semgrep.ml',
+       "libs/process_limits/Memory_limit.ml",
       ]
     },
   },
