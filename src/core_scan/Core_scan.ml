@@ -425,6 +425,10 @@ let errors_of_timeout_or_memory_exn (exn : exn) (target : Target.t) : ESet.t =
       Logs.warn (fun m -> m "OutOfMemory on %s" (Origin.to_string origin));
       ESet.singleton
         (E.mk_error ~rule_id:!Rule.last_matched_rule loc Out.OutOfMemory)
+  | Stack_overflow ->
+      Logs.warn (fun m -> m "StackOverflow on %s" (Origin.to_string origin));
+      ESet.singleton
+        (E.mk_error ~rule_id:!Rule.last_matched_rule loc Out.StackOverflow)
   | _ -> raise Impossible
 
 (*****************************************************************************)
@@ -495,7 +499,8 @@ let iter_targets_and_get_matches_and_exn_to_errors (caps : < Cap.fork >)
                   * Timeout and would generate a TimeoutError code for it,
                   * but we intercept Timeout here to give a better diagnostic.
                   *)
-                 | (Match_rules.File_timeout _ | Out_of_memory) as exn ->
+                 | (Match_rules.File_timeout _ | Out_of_memory | Stack_overflow)
+                   as exn ->
                      log_critical_exn_and_last_rule ();
                      let errors = errors_of_timeout_or_memory_exn exn target in
                      (* we got an exn on the target so definitely we tried to
