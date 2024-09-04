@@ -1,5 +1,0 @@
-A new flag --max-log-list-entries allows to control the
-maximum number of entries that will be shown in the log (e.g.,
-list of rule ids, list of skipped files).
-A zero or negative value disables this filter.
-The previous hardcoded limit was at 100 (and now becomes a default value).
