@@ -1,0 +1,2 @@
+Semgrep will now log memory-related warnings/errors when run in `--debug` mode,
+without the need to set `SEMGREP_LOG_SRCS=process_limits`.
