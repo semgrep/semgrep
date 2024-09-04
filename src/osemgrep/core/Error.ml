@@ -134,6 +134,7 @@ let rec string_of_error_type (error_type : OutJ.error_type) : string =
   | FatalError
   | Timeout
   | OutOfMemory
+  | StackOverflow
   | TimeoutDuringInterfile
   | OutOfMemoryDuringInterfile ->
       OutJ.string_of_error_type error_type

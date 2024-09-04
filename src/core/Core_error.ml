@@ -83,6 +83,7 @@ let mk_error ?(rule_id = None) ?(msg = "") (loc : Tok.location)
     | SemgrepMatchFound
     | Timeout
     | OutOfMemory
+    | StackOverflow
     | TimeoutDuringInterfile
     | OutOfMemoryDuringInterfile
     | PatternParseError _
@@ -285,6 +286,7 @@ let severity_of_error (typ : Out.error_type) : Out.error_severity =
   | FatalError -> `Error
   | Timeout -> `Warning
   | OutOfMemory -> `Warning
+  | StackOverflow -> `Warning
   | TimeoutDuringInterfile -> `Error
   | OutOfMemoryDuringInterfile -> `Error
   | SemgrepError -> `Error
