@@ -114,6 +114,7 @@ let exit_code_of_error_type (error_type : Out.error_type) : Exit_code.t =
   | FatalError
   | Timeout
   | OutOfMemory
+  | StackOverflow
   | TimeoutDuringInterfile
   | OutOfMemoryDuringInterfile
   (* TODO? really? fatal for SemgrepWarning? *)
@@ -165,6 +166,7 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
         | FatalError
         | Timeout
         | OutOfMemory
+        | StackOverflow
         | TimeoutDuringInterfile
         | OutOfMemoryDuringInterfile
         | IncompatibleRule _
@@ -193,6 +195,7 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
         | FatalError
         | Timeout
         | OutOfMemory
+        | StackOverflow
         | TimeoutDuringInterfile
         | OutOfMemoryDuringInterfile
         | SemgrepWarning
