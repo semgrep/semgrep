@@ -1,3 +1,0 @@
-Uses of values imported via ECMAScript `default` imports (e.g., `import example
-from 'mod';`) can now be matched by qualified name patterns (e.g.,
-`mod.default`).

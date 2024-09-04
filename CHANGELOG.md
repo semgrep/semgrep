@@ -6,6 +6,139 @@
 
 <!-- insertion point -->
 
+## [1.86.0](https://github.com/returntocorp/semgrep/releases/tag/v1.86.0) - 2024-09-04
+
+
+### Added
+
+
+- The taint analysis can now track method invocations on variables of an
+  interface type, when there is a single implementation. For example, the tainted
+  input vulnerability can now be detected in the following code:
+
+  ```java
+  public interface MovieService {
+    String vulnerableInjection(String input);
+  }
+
+  @Service
+  public class MovieServiceImpl implements MovieService {
+    @Override
+    public String vulnerableInjection(String input) {
+      return sink(input);
+    }
+  }
+
+  @RestController("/")
+  public class SpringController {
+
+    @Autowired
+    private MovieService movieService;
+
+    @GetMapping("/pwn")
+    public String pwnTest(@RequestParam("input") String taintedInput) {
+      return movieService.vulnerableInjection(taintedInput);
+    }
+  }
+  ```
+
+  When there are multiple implementations, the taint analysis will not follow any
+  of them. We will add handling of cases with multiple implementations in
+  upcoming updates. (code-7434)
+- Uses of values imported via ECMAScript `default` imports (e.g., `import example
+  from 'mod';`) can now be matched by qualified name patterns (e.g.,
+  `mod.default`). (code-7463)
+- Pro: taint-mode: Allow (experimental) control taint to propagate through `return`s.
+
+  Now this taint rule:
+
+      pattern-sources:
+      - control: true
+        pattern: taint()
+      pattern-sinks:
+      - pattern: sink()
+
+  It is able to find this:
+
+      def foo():
+        taint()
+
+      def test():
+        foo()
+        sink() # now it is found! (code-7490)
+- A new flag --max-log-list-entries allows to control the
+  maximum number of entries that will be shown in the log (e.g.,
+  list of rule ids, list of skipped files).
+  A zero or negative value disables this filter.
+  The previous hardcoded limit was at 100 (and now becomes a default value). (max_log_list_entries)
+
+
+### Changed
+
+
+- Semgrep will now log memory-related warnings/errors when run in `--debug` mode,
+  without the need to set `SEMGREP_LOG_SRCS=process_limits`. (logging)
+
+
+### Fixed
+
+
+- Fixed inter-file constant propagation to prevent some definitions from being
+  incorrectly identified as constant, when they are modified in other parts of
+  the codebase. (code-6793)
+- pro: taint-mode: Fixed bug in taint signature instantiation that could cause an
+  update to a field in a nested object to not be tracked.
+
+  For example, in the code below, Semgrep knew that `Nested.update` updates the
+  `fld` attribute of a `Nested` object`. But due to this bug, Semgrep would not
+  know that `Wrapper.update` updated the `fld` attribute of the `nested` object
+  attribute in a `Wrapper` object.
+
+      public class Nested {
+
+          private String fld;
+
+          public void update(String str) {
+              fld = str;
+          }
+
+          // ...
+      }
+
+      public class Wrapper {
+
+          private Nested nested;
+
+          public void update(String str) {
+              this.nested.update(str);
+          }
+
+      // ...
+      } (code-7499)
+- Fixed incorrect range matching parametrized type expressions in Julia (gh-10467)
+- Fixed an edge case that could lead to a failure to name or type imported Python symbols during interfile analysis. (py-imports)
+- Fix overly-aggressive match deduplication that could, under certain circumstances, lead to findings being closed and reopened in the app. (saf-1465)
+- Fixed regex-fix numbered capture groups, where it used to be the case that
+  a `replacement:` regex with numbered capture groups like `\1\2\3` would effectivly
+  be the same as `\1\1\1`.
+
+  After the fix:
+  ```python
+  # src.py
+  12345
+  ```
+  ```yaml
+  pattern: $X
+  fix-regex:
+        regex: (1)(2)(3)(4)(5)
+        replacement: \5\4\3\2\1
+  ```
+  actually results in the fix
+  ```python
+  54321
+  ``` (saf-1497)
+
+
 ## [1.85.0](https://github.com/returntocorp/semgrep/releases/tag/v1.85.0) - 2024-08-15
 
 
