@@ -316,18 +316,56 @@ let setup ?(highlight_setting = Console.get_highlight_setting ())
 
 let debug_trace_src = Logs.Src.create "debug_trace"
 
-let with_debug_trace ?(src = debug_trace_src) (name : string) (f : unit -> 'a) :
-    'a =
-  Logs.debug ~src (fun m -> m "starting %s" name);
+(* This ref and the setting and restoring of it allows
+   with_debug_trace to keep track of whether the is another call to
+   with_debug_trace wrapping the current call. Which enables only
+   writing out backtraces on the outermost call to keep logs
+   minimal. This could cause backtraces to not show up if someone
+   catches and handles them between the first and the last
+   with_debug_trace call. *)
+let is_in_debug_trace_context = ref false
+
+let with_debug_trace ?(src = debug_trace_src) ~__FUNCTION__
+    ?(pp_input : (unit -> string) option) (f : unit -> 'a) : 'a =
+  let name = __FUNCTION__ in
+  let currently_in_debug_trace = !is_in_debug_trace_context in
+  (match pp_input with
+  | None -> Logs.debug ~src (fun m -> m "starting %s" name)
+  | Some pp_input ->
+      Logs.debug ~src (fun m ->
+          m "starting %s with input:\n%s" name (pp_input ())));
   try
-    let res = f () in
+    is_in_debug_trace_context := true;
+    let finally () = is_in_debug_trace_context := currently_in_debug_trace in
+    let res = Common.protect ~finally f in
     Logs.debug ~src (fun m -> m "finished %s" name);
     res
   with
+  (* We could consider filtering timeouts and other expected
+     exceptions to prevent them from showing up as errors in the
+     log. *)
   | exn ->
-      let ex = Exception.catch exn in
-      Logs.err ~src (fun m -> m "exception during %s" name);
-      Exception.reraise ex
+      let exn = Exception.catch exn in
+      (* Purposefully not using ~src here so that it goes to the
+         applications logs. *)
+      Logs.err (fun m ->
+          (* %t the little known give me back my format stream
+             specifier. *)
+          m "%t" (fun ppf ->
+              Format.fprintf ppf "exception during %s:\n" name;
+              match pp_input with
+              | None -> ()
+              | Some pp_input ->
+                  Format.fprintf ppf "input:\n%s\n" (pp_input ());
+                  Format.fprintf ppf "exception: %s\n"
+                    (Printexc.to_string (Exception.get_exn exn));
+                  (* Only print stack trace in the outermost handler to
+                     prevent large duplications. *)
+                  if not currently_in_debug_trace then
+                    Format.fprintf ppf "backtrace:\n%s"
+                      (Printexc.raw_backtrace_to_string
+                         (Exception.get_trace exn))));
+      Exception.reraise exn
 
 (*****************************************************************************)
 (* Missing basic functions *)

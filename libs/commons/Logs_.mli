@@ -135,15 +135,25 @@ val swarn : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
 val serr : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
 val debug_trace_src : Logs.src
 
-(* [with_debug_trace ?src str f] will first log a "starting <str>"
- * on the src, then run f, then log a "finished <str>" and return
- * the result of f. If f is throwing an exception, this will
- * also be logged as "exception during <str>".
- * If no src is given, with_debug_trace will use the debug_trace_src above
+(* [with_debug_trace ?src ?__FUNCTION__ ?__LOC__ ?pp_input f]
+ * will use __FUNCTION__ as <str> and will
+ * first log a "starting <str>" on the src, then run f,
+ * then log a "finished <str>" and return the result of f.
+ * If f is throwing an exception, this will also be logged as
+ * "exception during <str>". If no src is given,
+ * with_debug_trace will use the debug_trace_src above
  * and so you might need to run your program with
  * LOG_SRCS=debug_trace ...
+ * Note, execeptions are always logged on the application src.
+ * If pp_input is given then the function will be invoked when
+ * logging at the start of the function and when an exception occurs.
  *)
-val with_debug_trace : ?src:Logs.src -> string -> (unit -> 'a) -> 'a
+val with_debug_trace :
+  ?src:Logs.src ->
+  __FUNCTION__:string ->
+  ?pp_input:(unit -> string) ->
+  (unit -> 'a) ->
+  'a
 
 (*
    Formatting utilities for common containers:
