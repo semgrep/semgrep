@@ -457,6 +457,34 @@ class MetavariableComparison(BaseModel):
     )
 
 
+class SemgrepInternalMetavariableName1(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    metavariable: str = Field(..., title="Metavariable to match")
+    kind: str = Field(..., title="Kind keyword")
+    module: Optional[str] = Field(None, title="Kind keyword")
+
+
+class SemgrepInternalMetavariableName2(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    metavariable: str = Field(..., title="Metavariable to match")
+    kind: Optional[str] = Field(None, title="Kind keyword")
+    module: str = Field(..., title="Kind keyword")
+
+
+class SemgrepInternalMetavariableName(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    semgrep_internal_metavariable_name: Union[
+        SemgrepInternalMetavariableName1, SemgrepInternalMetavariableName2
+    ] = Field(
+        ...,
+        alias="semgrep-internal-metavariable-name",
+        title="Filter for metavariables with a certain kind",
+    )
+
+
 class Pattern(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -821,6 +849,8 @@ def pattern_discriminator(value: Any) -> Union[str, None]:
         return "MetavariableComparison"
     elif "pattern-where-python" in value:
         return "PatternWherePython"
+    elif "semgrep-internal-metavariable-name" in value:
+        return "SemgrepInternalMetavariableName"
     else:
         # NOTE: Pydantic will create a better error message for us
         #      if we return None here instead of raising a ValueError
@@ -850,6 +880,10 @@ class PatternsContent(RootModel):
                 Annotated["MetavariableType", Tag("MetavariableType")],
                 Annotated["MetavariableComparison", Tag("MetavariableComparison")],
                 Annotated["PatternWherePython", Tag("PatternWherePython")],
+                Annotated[
+                    "SemgrepInternalMetavariableName",
+                    Tag("SemgrepInternalMetavariableName"),
+                ],
             ],
             Discriminator(
                 pattern_discriminator,
