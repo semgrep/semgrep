@@ -30,3 +30,6 @@ val options :
 val action : string ref
 val all_actions : Cap.all_caps -> unit -> Arg_.action_spec list
 val register_exception_printers : unit -> unit
+
+(* this can raise exn; useful in test context *)
+val main_exn : Cap.all_caps -> string array -> unit
