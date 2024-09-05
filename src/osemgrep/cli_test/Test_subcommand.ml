@@ -51,33 +51,11 @@ type test_result = Rule_ID.t * Out.rule_result
 
 (* TODO? add diff between .fixed and actual for error management? *)
 type fixtest_result = Fpath.t (* target name *) * Out.fixtest_result
+type linenb = Test_annotation.linenb
 
 (* TODO: move in core/ ? used in other files? was in constants.py in pysemgrep *)
 let break_line =
   "--------------------------------------------------------------------------------"
-
-(* See https://semgrep.dev/docs/writing-rules/testing-rules/
- * TODO? extended for semgrep-pro annotations?
- *)
-type annotation_kind =
-  (* The good one, should be reported (TP) *)
-  | Ruleid
-  (* Those should *not* be reported (TN) *)
-  | Ok
-  (* Should be reported but are not because of current engine limitations (FN) *)
-  | Todoruleid
-  (* Are reported but should not (FP) *)
-  | Todook
-[@@deriving show]
-
-(* ex: "#ruleid: lang.ocaml.do-not-use-lisp-map" *)
-type annotation = annotation_kind * Rule_ID.t [@@deriving show]
-
-(* just to get a show_annotations *)
-type annotations = annotation list [@@deriving show]
-
-(* starts at 1 *)
-type linenb = int
 
 (* TODO: define clearly in semgrep_output_v1.atd config_with_errors type
  * and also the errors in rule_result.
@@ -97,189 +75,6 @@ type env = {
   (* alt: get each functions returning different kind of errors *)
   errors : error list ref;
 }
-
-(*****************************************************************************)
-(* Annotation extractions *)
-(*****************************************************************************)
-
-let annotation_kind_of_string (str : string) : annotation_kind =
-  match str with
-  | "ruleid" -> Ruleid
-  | "ok" -> Ok
-  | "todoruleid" -> Todoruleid
-  | "todook" -> Todook
-  | s -> failwith (spf "not a valid annotation: %s" s)
-
-let (comment_syntaxes : (string * string option) list) =
-  [ ("#", None); ("//", None); ("<!--", Some "-->"); ("(*", Some "*)") ]
-
-let remove_enclosing_comment_opt (str : string) : string option =
-  comment_syntaxes
-  |> List.find_map (fun (prefix, suffixopt) ->
-         if String.starts_with ~prefix str then
-           let str = Str.string_after str (String.length prefix) in
-           match suffixopt with
-           | None -> Some str
-           | Some suffix ->
-               if String.ends_with ~suffix str then
-                 let before = String.length str - String.length suffix in
-                 Some (Str.string_before str before)
-               else (
-                 Logs.warn (fun m ->
-                     m "could not find end comment %s in %s" suffix str);
-                 Some str)
-         else None)
-
-let () =
-  Testo.test "Test_subcommand.remove_enclosing_comment_opt" (fun () ->
-      let test_remove (str : string) (expected : string option) =
-        let res = remove_enclosing_comment_opt str in
-        if not (res =*= expected) then
-          failwith
-            (spf "didn't match, got %s, expected %s" (Dumper.dump res)
-               (Dumper.dump expected))
-      in
-      test_remove "# foobar" (Some " foobar");
-      test_remove "// foobar" (Some " foobar");
-      test_remove "<!-- foobar -->" (Some " foobar ");
-      ())
-
-let prefilter_annotation_regexp = ".*\\(ruleid\\|ok\\|todoruleid\\|todook\\):.*"
-let annotation_regexp = "^\\(ruleid\\|ok\\|todoruleid\\|todook\\):\\(.*\\)"
-
-(* This does a few things:
- *  - check comments: #, //, ( *, <--
- *  - support multiple ruleids separated by commas
- *  - support possible leading deepok:
- *  - TODO? support pro/deep annotations?
- *)
-let annotations_of_string (orig_str : string) (file : Fpath.t) (idx : linenb) :
-    (annotation * linenb) list =
-  let s = orig_str in
-  let error_context = spf "in %s line %d" !!file idx in
-  if s =~ prefilter_annotation_regexp then
-    (* " <!-- ruleid: foo.bar --> " *)
-    let s = String.trim s in
-    (* "<!-- ruleid: foo.bar -->" *)
-    let res = remove_enclosing_comment_opt s in
-    match res with
-    | None ->
-        (* some Javascript code has valid code such as { ok: true } that is not
-         * a semgrep annotation *)
-        Logs.debug (fun m ->
-            m "skipping %s, actually not an annotation" orig_str);
-        []
-    | Some s ->
-        (* " ruleid: foo.bar " *)
-        let s = String.trim s in
-        (* "ruleid: foo.bar" *)
-        if s =~ annotation_regexp then
-          let kind_str, ids_str = Common.matched2 s in
-          let kind = annotation_kind_of_string kind_str in
-          let s = String.trim ids_str in
-          let s =
-            (* indicate that no finding is expected in interfile analysis *)
-            let prefix = "deepok:" in
-            if String.starts_with ~prefix s then
-              Str.string_after s (String.length prefix)
-            else ids_str
-          in
-          let xs =
-            Str.split_delim (Str.regexp "[ \t]*,[ \t]*") s
-            |> List_.map String.trim
-          in
-          xs
-          |> List_.filter_map (fun id_str ->
-                 match Rule_ID.of_string_opt id_str with
-                 | Some id -> Some ((kind, id), idx)
-                 | None ->
-                     Logs.warn (fun m ->
-                         m
-                           "malformed rule ID '%s' (%s) skipping this \
-                            annotation"
-                           id_str error_context);
-                     None)
-        else (
-          Logs.warn (fun m ->
-              m "could not parse annotation: %s (%s)" orig_str error_context);
-          [])
-  else []
-
-(* Note that this returns the line of the annotation itself. In practice,
- * you must then add +1 to it if you want to compare it to where semgrep
- * report matches.
- *
- * alt: use Core_error.expected_error_lines_of_files but it does not
- * allow to extract the ruleID after the annotation_kind
- *)
-let annotations (file : Fpath.t) : (annotation * linenb) list =
-  UFile.cat file |> List_.index_list_1
-  |> List.concat_map (fun (s, idx) -> annotations_of_string s file idx)
-
-let () =
-  Testo.test "Test_subcommand.annotations" (fun () ->
-      let test (str : string) (expected : annotations) =
-        let xs =
-          annotations_of_string str (Fpath.v "foo") 0
-          |> List_.map (fun (annot, _idx) -> annot)
-        in
-        if not (xs =*= expected) then
-          failwith
-            (spf "Annotations didn't match, got %s, expected %s"
-               (show_annotations xs)
-               (show_annotations expected))
-      in
-      test "// ruleid: foo.bar" [ (Ruleid, Rule_ID.of_string_exn "foo.bar") ];
-      test "// ruleid: foo, bar"
-        [
-          (Ruleid, Rule_ID.of_string_exn "foo");
-          (Ruleid, Rule_ID.of_string_exn "bar");
-        ];
-      test "<!-- ruleid: foo-bar -->"
-        [ (Ruleid, Rule_ID.of_string_exn "foo-bar") ];
-      (* the ok: does not mean it's an annot; it's regular (JS) code *)
-      test "return res.send({ok: true})" [];
-      test "// ruleid: deepok: foo.deep"
-        [ (Ruleid, Rule_ID.of_string_exn "foo.deep") ];
-      ())
-
-(* Keep only the Ruleid and Todook, group them by rule id, and adjust
- * the linenb + 1 so it can be used to compare actual matches.
- *)
-let group_positive_annotations (annots : (annotation * linenb) list) :
-    (Rule_ID.t, linenb list) Assoc.t =
-  annots
-  |> List_.filter_map (fun ((kind, id), line) ->
-         match kind with
-         | Ruleid
-         | Todook ->
-             Some (id, line)
-         | Ok
-         | Todoruleid ->
-             None)
-  |> Assoc.group_by (fun (id, _line) -> id)
-  |> List_.map (fun (id, xs) ->
-         ( id,
-           xs
-           |> List_.map (fun (_id, line) -> line + 1)
-           (* should not be needed given how annotations work but safer *)
-           |> List.sort_uniq Int.compare ))
-
-let filter_todook (annots : (annotation * linenb) list) (xs : linenb list) :
-    linenb list =
-  let (todooks : linenb Set_.t) =
-    annots
-    |> List_.filter_map (fun ((kind, _id), line) ->
-           match kind with
-           (* + 1 because the expected/reported is the line after the annotation *)
-           | Todook -> Some (line + 1)
-           | Ruleid
-           | Ok
-           | Todoruleid ->
-               None)
-    |> Set_.of_list
-  in
-  xs |> List_.exclude (fun line -> Set_.mem line todooks)
 
 (*****************************************************************************)
 (* File targeting *)
@@ -525,7 +320,9 @@ let run_rules_against_target ~matching_diagnosis (env : env) (xlang : Xlang.t)
       ~match_hook:(fun _pm -> ())
       ~timeout:None xconf rules xtarget
   in
-  let (annots : (annotation * linenb) list) = annotations target in
+  let (annots : (Test_annotation.t * linenb) list) =
+    Test_annotation.annotations target
+  in
 
   (* actual matches *)
   let (matches_by_ruleid : (Rule_ID.t, Pattern_match.t list) Assoc.t) =
@@ -544,7 +341,7 @@ let run_rules_against_target ~matching_diagnosis (env : env) (xlang : Xlang.t)
   in
   (* expected matches *)
   let (expected_by_ruleid : (Rule_ID.t, linenb list) Assoc.t) =
-    group_positive_annotations annots
+    Test_annotation.group_positive_annotations annots
   in
 
   (* regular ruleid tests *)
@@ -579,8 +376,12 @@ let run_rules_against_target ~matching_diagnosis (env : env) (xlang : Xlang.t)
             * reported_lines (and expected_lines) and filter those todook:
             *)
            let expected_reported =
-             let reported_lines = filter_todook annots reported_lines in
-             let expected_lines = filter_todook annots expected_lines in
+             let reported_lines =
+               Test_annotation.filter_todook annots reported_lines
+             in
+             let expected_lines =
+               Test_annotation.filter_todook annots expected_lines
+             in
              { Out.reported_lines; expected_lines }
            in
            let diagnosis =
