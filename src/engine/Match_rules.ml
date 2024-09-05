@@ -230,10 +230,11 @@ let check
            per_rule_boilerplate_fn
              (r :> R.rule)
              (fun () ->
-               Logs_.with_debug_trace "Match_rules.check_rule" (fun () ->
-                   Log.debug (fun m ->
-                       m "target: %s, ruleid: %s" !!file
-                         (r.id |> fst |> Rule_ID.to_string));
+               Logs_.with_debug_trace ~__FUNCTION__
+                 ~pp_input:(fun _ ->
+                   "target: " ^ !!file ^ "\nruleid: "
+                   ^ (r.id |> fst |> Rule_ID.to_string))
+                 (fun () ->
                    (* dispatching *)
                    match r.R.mode with
                    | `Search _ as mode ->

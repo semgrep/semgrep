@@ -244,8 +244,8 @@ let output_core_results (caps : < Cap.stdout ; Cap.exit >)
             Core_result.mk_result_with_just_errors [ err ]
       in
       let res =
-        Logs_.with_debug_trace "Core_CLI.core_output_of_matches_and_errors.1"
-          (fun () -> Core_json_output.core_output_of_matches_and_errors res)
+        Logs_.with_debug_trace ~__FUNCTION__ (fun () ->
+            Core_json_output.core_output_of_matches_and_errors res)
       in
       (*
         Not pretty-printing the json output (Yojson.Safe.prettify)

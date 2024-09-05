@@ -64,7 +64,7 @@ module Autofix_processor : Processor = struct
   let pre_process _config rules = (rules, ())
 
   let post_process (_config : Core_scan_config.t) () (res : Core_result.t) =
-    Logs_.with_debug_trace "Pre_post_core_scan.produce_autofixes" (fun () ->
+    Logs_.with_debug_trace ~__FUNCTION__ (fun () ->
         let matches_with_fixes =
           Autofix.produce_autofixes res.processed_matches
         in
@@ -78,7 +78,7 @@ module Nosemgrep_processor : Processor = struct
   let pre_process _config rules = (rules, ())
 
   let post_process (config : Core_scan_config.t) () (res : Core_result.t) =
-    Logs_.with_debug_trace "Pre_post_core_scan.produce_ignored" (fun () ->
+    Logs_.with_debug_trace ~__FUNCTION__ (fun () ->
         let processed_matches_with_ignores, errors =
           Nosemgrep.produce_ignored res.processed_matches
         in
@@ -138,7 +138,8 @@ let call_with_pre_and_post_processor fconfig
  fun config ((rules, rule_errors), rules_parse_time) ->
   let module Processor = (val !hook_processor) in
   let rules', state =
-    Logs_.with_debug_trace "Pre_post_core_scan.pre_process" (fun () ->
+    Logs_.with_debug_trace ~__FUNCTION__:"Pre_post_core_scan.pre_process"
+      (fun () ->
         try Processor.pre_process (fconfig config) rules with
         | (Time_limit.Timeout _ | Common.UnixExit _) as e ->
             Exception.catch_and_reraise e
@@ -154,7 +155,8 @@ let call_with_pre_and_post_processor fconfig
     scan_with_rules config ((rules', rule_errors), rules_parse_time)
   in
   let (res : Core_result.t) =
-    Logs_.with_debug_trace "Pre_post_core_scan.post_process" (fun () ->
+    Logs_.with_debug_trace ~__FUNCTION__:"Pre_post_core_scan.post_process"
+      (fun () ->
         try Processor.post_process (fconfig config) state res with
         | (Time_limit.Timeout _ | Common.UnixExit _) as e ->
             Exception.catch_and_reraise e
