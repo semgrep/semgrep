@@ -297,7 +297,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
 let parse_and_resolve_name (lang : Lang.t) (fpath : Fpath.t) :
     AST_generic.program * Tok.location list =
   let { Parsing_result2.ast; skipped_tokens; _ } =
-    Logs_.with_debug_trace "Core_scan.parse_and_resolve_name" (fun () ->
+    Logs_.with_debug_trace ~__FUNCTION__ (fun () ->
         Logs.debug (fun m ->
             m "Parsing (and naming) %s (with lang %s)" !!fpath (Lang.show lang));
         Parse_target.parse_and_resolve_name lang fpath)

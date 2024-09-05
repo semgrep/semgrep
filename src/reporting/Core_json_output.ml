@@ -388,15 +388,14 @@ let unsafe_match_to_match
 let match_to_match (x : Core_result.processed_match) :
     (Out.core_match, Core_error.t) result =
   try
-    (* nosem: no-logs-in-library *)
     Ok
-      (Logs_.with_debug_trace ~src:Log_reporting.src
-         "Core_json_output.unsafe_match_to_match" (fun () ->
-           Log.debug (fun m ->
-               m "target: %s, ruleid: %s"
-                 !!(x.pm.path.internal_path_to_content)
-                 (x.pm.rule_id.id |> Rule_ID.to_string));
-           unsafe_match_to_match x))
+      (Logs_.with_debug_trace ~__FUNCTION__ ~src:Log_reporting.src
+         ~pp_input:(fun _ ->
+           "target: "
+           ^ !!(x.pm.path.internal_path_to_content)
+           ^ "\nruleid: "
+           ^ (x.pm.rule_id.id |> Rule_ID.to_string))
+         (fun () -> unsafe_match_to_match x))
     (* raised by min_max_ii_by_pos in range_of_any when the AST of the
      * pattern in x.code or the metavar does not contain any token
      *)
