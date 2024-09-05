@@ -34,6 +34,13 @@ type annotations = t list [@@deriving show]
 type linenb = int
 
 let prefilter_annotation_regexp = ".*\\(ruleid\\|ok\\|todoruleid\\|todook\\):.*"
+
+(* removing ok as it could be valid code (as in `ok: foo` in JS)
+ * alt: choose an annotation for ok: that would be less ambiguous
+ *)
+let prefilter_annotation_regexp_no_ok =
+  ".*\\(ruleid\\|todoruleid\\|todook\\):.*"
+
 let annotation_regexp = "^\\(ruleid\\|ok\\|todoruleid\\|todook\\):\\(.*\\)"
 
 let (comment_syntaxes : (string * string option) list) =
@@ -46,6 +53,12 @@ let (comment_syntaxes : (string * string option) list) =
 let remove_enclosing_comment_opt (str : string) : string option =
   comment_syntaxes
   |> List.find_map (fun (prefix, suffixopt) ->
+         (* stricter: pysemgrep allows code before the comment, but this
+          * was used only once in semgrep-rules/ and it can be ambiguous as
+          * <some code> # ruleid: xxx might make you think the finding is
+          * on this line instead of the line after. Forcing the annotation
+          * to be alone on its line before the finding is clearer.
+          *)
          if String.starts_with ~prefix str then
            let str = Str.string_after str (String.length prefix) in
            match suffixopt with
@@ -103,10 +116,14 @@ let annotations_of_string (orig_str : string) (file : Fpath.t) (idx : linenb) :
     let res = remove_enclosing_comment_opt s in
     match res with
     | None ->
-        (* some Javascript code has valid code such as { ok: true } that is not
-         * a semgrep annotation *)
-        Logs.debug (fun m ->
-            m "skipping %s, actually not an annotation" orig_str);
+        if s =~ prefilter_annotation_regexp_no_ok then
+          Logs.err (fun m ->
+              m "annotation without leading comment: %s" orig_str)
+          (* some Javascript code has valid code such as { ok: true } that is not
+           * a semgrep annotation *)
+        else
+          Logs.debug (fun m ->
+              m "skipping %s, actually not an annotation" orig_str);
         []
     | Some s ->
         (* " ruleid: foo.bar " *)
