@@ -210,13 +210,16 @@ local release_setup_job = {
     {
       run: 'git checkout -b "release-${VERSION}"',
     },
+    // TODO: we can probably remove that step now that we do it in Pro
     {
       env: {
         SEMGREP_RELEASE_NEXT_VERSION: version,
       },
       run: 'make release',
     },
-    // for towncrier, TODO reuse actions.setup_python
+    // for towncrier,
+    // TODO move to pro! with bump-version.jsonnet
+    // (and reuse actions.setup_python)
     {
       uses: 'actions/setup-python@v4',
       with: {
@@ -256,7 +259,7 @@ local release_setup_job = {
       run: |||
         %s
         git add --all
-        git commit -m "chore: Bump version to ${VERSION}"
+        git commit -m "chore: release version ${VERSION}"
         git push --set-upstream origin release-${VERSION}
       ||| % gha.git_config_user,
     } + unless_dry_run,
