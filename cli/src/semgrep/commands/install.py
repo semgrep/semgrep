@@ -5,6 +5,7 @@ import stat
 import subprocess
 import sys
 from pathlib import Path
+from typing import BinaryIO
 
 import click
 from rich.progress import BarColumn
@@ -86,6 +87,12 @@ def download_semgrep_pro(
 
         file_size = int(r.headers.get("Content-Length", 0))
 
+        # I (nmote) think the typings for this are wrong. This works at runtime,
+        # and when adding the necessary `instanceof` checks to satisfy mypy, I
+        # actually got a runtime failure. Looks like some discrepancy between
+        # http.client.HTTPResponse and urllib3.response.HTTPResponse. Maybe the
+        # typings picked the wrong one?
+        raw_response: BinaryIO = r.raw  # type: ignore
         with Progress(
             TextColumn("{task.description}"),
             BarColumn(),
@@ -94,7 +101,7 @@ def download_semgrep_pro(
             TimeRemainingColumn(),
             console=console,
         ) as progress, destination.open("wb") as f, progress.wrap_file(
-            r.raw, total=file_size, description="Downloading..."
+            raw_response, total=file_size, description="Downloading..."
         ) as r_raw:
             shutil.copyfileobj(r_raw, f)
 
