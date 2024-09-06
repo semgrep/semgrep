@@ -1,0 +1,3 @@
+Added support for comparing Golang pre-release versions. With this, strict
+core versions, pseudo-versions and pre-release versions can all be
+compared to each other.
