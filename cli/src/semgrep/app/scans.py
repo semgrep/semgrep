@@ -298,6 +298,7 @@ class ScanHandler:
         targets: Set[Path],
         renamed_targets: Set[Path],
         ignored_targets: FrozenSet[Path],
+        cli_suggested_exit_code: int,
         parse_rate: ParsingData,
         total_time: float,
         commit_date: str,
@@ -398,13 +399,7 @@ class ScanHandler:
             findings_by_product[f"{name}"] += len(f)
 
         complete = out.CiScanComplete(
-            exit_code=(
-                1
-                if any(
-                    match.is_blocking and not match.is_ignored for match in all_matches
-                )
-                else 0
-            ),
+            exit_code=cli_suggested_exit_code,
             dependency_parser_errors=dependency_parser_errors,
             stats=out.CiScanCompleteStats(
                 findings=len(
