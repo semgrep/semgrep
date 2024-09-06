@@ -708,6 +708,14 @@ def ci(
         num_blocking_findings = len(blocking_matches)
         filtered_rules = [*blocking_rules, *nonblocking_rules]
 
+        # After computing the number of blocking/non-blocking findings, here
+        # is were the cli comes up with the suggested exit code that we send
+        # to the semgrep app
+        #
+        # NOTE: this is not the exit code the cli will use to exit with, as
+        # the cli depends on the apps response to compute its own exit code!
+        cli_suggested_exit_code = 1 if num_blocking_findings > 0 else 0
+
         if not internal_ci_scan_results:
             output_handler.output(
                 non_cai_matches_by_rule,
@@ -742,6 +750,7 @@ def ci(
                     output_extra.all_targets,
                     renamed_targets,
                     ignore_log.unsupported_lang_paths,
+                    cli_suggested_exit_code,
                     output_extra.parsing_data,
                     total_time,
                     metadata.commit_datetime,
@@ -785,8 +794,11 @@ def ci(
                         f"    {state.env.semgrep_url}/orgs/{scan_handler.deployment_name}/supply-chain/vulnerabilities?repo={metadata.repo_display_name}{ref_if_available}"
                     )
 
+        # Although the cli came up with a suggested exit code, we could still
+        # exit with a different exit code, as the cli depends on the app to
+        # compute its own exit code
         audit_mode = metadata.event_name in audit_on
-        if num_blocking_findings > 0:
+        if cli_suggested_exit_code == 1:
             if audit_mode:
                 logger.info(
                     f"  Audit mode is on for {metadata.event_name}, so exiting with code 0 even if matches found",
