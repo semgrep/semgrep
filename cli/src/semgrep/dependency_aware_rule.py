@@ -13,7 +13,6 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.external.packaging.specifiers import InvalidSpecifier  # type: ignore
 from semdep.external.packaging.specifiers import SpecifierSet  # type: ignore
 from semdep.package_restrictions import dependencies_range_match_any
-from semdep.parse_lockfile import parse_lockfile_path
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
@@ -25,8 +24,8 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaInfo
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
-from semgrep.target_manager import SCA_PRODUCT
-from semgrep.target_manager import TargetManager
+from semgrep.subproject import find_closest_subproject
+from semgrep.subproject import Subproject
 
 
 SCA_FINDING_SCHEMA = 20220913
@@ -64,8 +63,8 @@ def parse_depends_on_yaml(entries: List[Dict[str, str]]) -> Iterator[DependencyP
 
 def generate_unreachable_sca_findings(
     rule: Rule,
-    target_manager: TargetManager,
     already_reachable: Callable[[Path, FoundDependency], bool],
+    resolved_deps: Dict[Ecosystem, List[Subproject]],
 ) -> Tuple[List[RuleMatch], List[SemgrepError]]:
     """
     Returns matches to a only a rule's sca-depends-on patterns; ignoring any reachabiliy patterns it has
@@ -77,13 +76,12 @@ def generate_unreachable_sca_findings(
     ecosystems = list(rule.ecosystems)
 
     non_reachable_matches = []
-    match_based_keys: dict[tuple[str, Path, str], int] = defaultdict(int)
+    match_based_keys: Dict[tuple[str, Path, str], int] = defaultdict(int)
     for ecosystem in ecosystems:
-        lockfile_paths = target_manager.get_lockfiles(ecosystem, SCA_PRODUCT)
+        for sca_project in resolved_deps.get(ecosystem, []):
+            deps = sca_project.found_dependencies
+            lockfile_path = sca_project.dependency_source.lockfile_path
 
-        for lockfile_path in lockfile_paths:
-            # Ignore errors here because we assume they are processed later
-            deps, _ = parse_lockfile_path(lockfile_path)
             dependency_matches = list(
                 dependencies_range_match_any(depends_on_entries, list(deps))
             )
@@ -146,7 +144,9 @@ def transitive_dep_is_also_direct(
 
 
 def generate_reachable_sca_findings(
-    matches: List[RuleMatch], rule: Rule, target_manager: TargetManager
+    matches: List[RuleMatch],
+    rule: Rule,
+    resolved_deps: Dict[Ecosystem, List[Subproject]],
 ) -> Tuple[
     List[RuleMatch], List[SemgrepError], Callable[[Path, FoundDependency], bool]
 ]:
@@ -162,13 +162,15 @@ def generate_reachable_sca_findings(
     for ecosystem in ecosystems:
         for match in matches:
             try:
-                lockfile_path = target_manager.find_single_lockfile(
-                    match.path, ecosystem, ignore_baseline_handler=True
+                sca_project = find_closest_subproject(
+                    match.path, ecosystem, resolved_deps.get(ecosystem, [])
                 )
-                if lockfile_path is None:
+                if sca_project is None:
                     continue
-                # Ignore errors here because we assume they are processed later
-                deps, _ = parse_lockfile_path(lockfile_path)
+
+                lockfile_path = sca_project.dependency_source.lockfile_path
+
+                deps = sca_project.found_dependencies if sca_project is not None else []
                 frozen_deps = tuple((dep.package, dep.transitivity) for dep in deps)
 
                 dependency_matches = list(

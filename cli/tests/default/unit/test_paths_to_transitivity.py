@@ -2,6 +2,8 @@ from pathlib import Path
 
 import pytest
 
+from semdep.parse_lockfile import lockfile_path_to_manifest_path
+
 pytestmark = pytest.mark.kinda_slow
 
 paths_to_transitivity = {
@@ -69,9 +71,9 @@ paths_to_transitivity = {
 def test_child_construction(
     parse_lockfile_path_in_tmp, target_supports_path_to_transitivity
 ):
-    dependencies, error = parse_lockfile_path_in_tmp(
-        Path(target_supports_path_to_transitivity)
-    )
+    lockfile = Path(target_supports_path_to_transitivity)
+    manifest = lockfile_path_to_manifest_path(lockfile)
+    dependencies, error = parse_lockfile_path_in_tmp(lockfile, manifest)
 
     """
     This might be weird but I wanted to create a simple test that people can reuse as we

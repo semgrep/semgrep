@@ -556,8 +556,9 @@ class TargetManager:
     changed since that commit
 
     If allow_unknown_extensions is set then targets with extensions that are
-    not understood by semgrep will always be returned by get_files. Else will discard
-    targets with unknown extensions
+    not understood by semgrep will always be returned by get_files when searching for
+    code targets. Else will discard targets with unknown extensions. Unknown
+    extensions are never returned when looking for manifest/lockfile targets.
 
     TargetManager not to be confused with https://jobs.target.com/search-jobs/store%20manager
     """
@@ -796,7 +797,9 @@ class TargetManager:
             lang, candidates=explicit_files
         )
         kept_files |= explicit_files_for_lang.kept
-        if self.allow_unknown_extensions:
+        if self.allow_unknown_extensions and not isinstance(lang, Ecosystem):
+            # add unknown extensions back in for languages. Don't do so when searching
+            # for lockfiles and manifests (when lang is an Ecosystem)
             explicit_files_of_unknown_lang = self.filter_known_extensions(
                 candidates=explicit_files
             )
@@ -873,28 +876,3 @@ class TargetManager:
         return self.get_files_for_language(
             ecosystem, product, ignore_baseline_handler
         ).kept
-
-    def find_single_lockfile(
-        self, p: Path, ecosystem: Ecosystem, ignore_baseline_handler: bool = False
-    ) -> Optional[Path]:
-        """
-        Find the nearest lockfile in a given ecosystem to P
-        Searches only up the directory tree
-
-        If lockfile not in self.get_lockfiles(ecosystem) then return None
-        this would happen if the lockfile is ignored by a .semgrepignore or --exclude
-
-        ignore_baseline_handler: if True, will pass the value downstream and scan all files. Used in the context of scanning unchanged lockfiles for their dependencies and doing reachability analysis.
-        """
-        candidates = self.get_lockfiles(
-            ecosystem, ignore_baseline_handler=ignore_baseline_handler
-        )
-
-        for path in p.parents:
-            for lockfile_pattern in ECOSYSTEM_TO_LOCKFILES[ecosystem]:
-                lockfile_path = path / lockfile_pattern
-                if lockfile_path in candidates and lockfile_path.exists():
-                    return lockfile_path
-                else:
-                    continue
-        return None

@@ -3,6 +3,8 @@ from time import time
 
 import pytest
 
+from semdep.parse_lockfile import lockfile_path_to_manifest_path
+
 
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
@@ -32,9 +34,9 @@ def test_dependency_aware_timing(
 ):
     start = time()
     # parse_lockfile_path_in_tmp_for_perf is defined in ../conftest.py
-    _, error = parse_lockfile_path_in_tmp_for_perf(
-        Path(f"targets_perf_sca/{file_size}/{target}")
-    )
+    lockfile = Path(f"targets_perf_sca/{file_size}/{target}")
+    manifest = lockfile_path_to_manifest_path(lockfile)
+    _, error = parse_lockfile_path_in_tmp_for_perf(lockfile, manifest)
     end = time()
     assert len(error) == 0
     exec_time = end - start

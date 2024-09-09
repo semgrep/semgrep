@@ -16,7 +16,8 @@
     },
     "engine_requested": "OSS",
     "findings_by_product": {
-      "code": 16
+      "code": 16,
+      "supply-chain": 0
     }
   },
   "dependency_parser_errors": [],

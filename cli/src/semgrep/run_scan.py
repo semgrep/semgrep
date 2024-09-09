@@ -33,7 +33,6 @@ from boltons.iterutils import partition
 
 import semgrep.scan_report as scan_report
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
-from semdep.parse_lockfile import parse_lockfile_path
 from semdep.parsers.util import DependencyParserError
 from semgrep import __VERSION__
 from semgrep import tracing
@@ -71,11 +70,13 @@ from semgrep.semgrep_interfaces.semgrep_metrics import SecretsConfig
 from semgrep.semgrep_interfaces.semgrep_metrics import SecretsOrigin
 from semgrep.semgrep_interfaces.semgrep_metrics import Semgrep as SemgrepSecretsOrigin
 from semgrep.semgrep_interfaces.semgrep_metrics import SupplyChainConfig
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Product
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.state import get_state
-from semgrep.target_manager import ECOSYSTEM_TO_LOCKFILES
+from semgrep.subproject import resolve_subprojects
+from semgrep.subproject import Subproject
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import SAST_PRODUCT
 from semgrep.target_manager import SCA_PRODUCT
@@ -204,22 +205,39 @@ def run_rules(
     if not target_mode_config:
         target_mode_config = TargetModeConfig.whole_scan()
 
-    cli_ux = get_state().get_cli_ux_flavor()
-    plans = scan_report.print_scan_status(
-        filtered_rules,
-        target_manager,
-        target_mode_config,
-        cli_ux=cli_ux,
-        with_code_rules=with_code_rules,
-        with_supply_chain=with_supply_chain,
-    )
-
     join_rules, rest_of_the_rules = partition(
         filtered_rules, lambda rule: rule.mode == JOIN_MODE
     )
     dependency_aware_rules = [r for r in rest_of_the_rules if r.project_depends_on]
     dependency_only_rules, rest_of_the_rules = partition(
         rest_of_the_rules, lambda rule: not rule.should_run_on_semgrep_core
+    )
+
+    resolved_deps: Dict[Ecosystem, List[Subproject]] = {}
+    dependency_parser_errors: List[DependencyParserError] = []
+    sca_dependency_targets: List[Path] = []
+
+    if len(dependency_aware_rules) > 0:
+        # identify and parse lockfiles before beginning the scan
+        # to produce dependency information that is used throughout.
+        # only do so if there is at least one dependency aware rule to
+        # use the information.
+        (
+            resolved_deps,
+            dependency_parser_errors,
+            sca_dependency_targets,
+        ) = resolve_subprojects(target_manager)
+
+    cli_ux = get_state().get_cli_ux_flavor()
+    plans = scan_report.print_scan_status(
+        filtered_rules,
+        target_manager,
+        target_mode_config,
+        resolved_deps,
+        dependency_parser_errors,
+        cli_ux=cli_ux,
+        with_code_rules=with_code_rules,
+        with_supply_chain=with_supply_chain,
     )
 
     # Dispatching to semgrep-core!
@@ -238,6 +256,7 @@ def run_rules(
         run_secrets,
         disable_secrets_validation,
         target_mode_config,
+        resolved_deps,
     )
 
     if join_rules:
@@ -256,8 +275,6 @@ def run_rules(
             rule_matches_by_rule.update(join_rule_matches_by_rule)
             output_handler.handle_semgrep_errors(join_rule_errors)
 
-    dependencies = {}
-    dependency_parser_errors = []
     if len(dependency_aware_rules) > 0:
         from semgrep.dependency_aware_rule import (
             generate_unreachable_sca_findings,
@@ -278,7 +295,7 @@ def run_rules(
                 ) = generate_reachable_sca_findings(
                     rule_matches_by_rule.get(rule, []),
                     rule,
-                    target_manager,
+                    resolved_deps,
                 )
                 rule_matches_by_rule[rule] = dep_rule_matches
                 output_handler.handle_semgrep_errors(dep_rule_errors)
@@ -286,7 +303,9 @@ def run_rules(
                     dep_rule_matches,
                     dep_rule_errors,
                 ) = generate_unreachable_sca_findings(
-                    rule, target_manager, already_reachable
+                    rule,
+                    already_reachable,
+                    resolved_deps,
                 )
                 rule_matches_by_rule[rule].extend(dep_rule_matches)
                 output_handler.handle_semgrep_errors(dep_rule_errors)
@@ -295,29 +314,27 @@ def run_rules(
                     dep_rule_matches,
                     dep_rule_errors,
                 ) = generate_unreachable_sca_findings(
-                    rule, target_manager, lambda p, d: False
+                    rule, lambda p, d: False, resolved_deps
                 )
                 rule_matches_by_rule[rule] = dep_rule_matches
                 output_handler.handle_semgrep_errors(dep_rule_errors)
 
-        # Generate stats per lockfile:
-        for ecosystem in ECOSYSTEM_TO_LOCKFILES.keys():
-            for lockfile in target_manager.get_lockfiles(
-                ecosystem, ignore_baseline_handler=True
-            ):
-                # Add lockfiles as a target that was scanned
-                output_extra.all_targets.add(lockfile)
-                # Warning temporal assumption: this is the only place we process
-                # parse errors. We silently toss them in other places we call parse_lockfile_path
-                # It doesn't really matter where it gets handled as long as we collect the parse errors somewhere
-                deps, parse_errors = parse_lockfile_path(lockfile)
-                dependencies[str(lockfile)] = deps
-                dependency_parser_errors.extend(parse_errors)
+        # The caller expects a map from lockfile path to `FoundDependency` items rather than our Subproject representation
+        found_dependencies = {
+            str(proj.dependency_source.lockfile_path): proj.found_dependencies
+            for ecosystem in resolved_deps
+            for proj in resolved_deps[ecosystem]
+        }
+        for target in sca_dependency_targets:
+            output_extra.all_targets.add(target)
+    else:
+        found_dependencies = {}
+
     return (
         rule_matches_by_rule,
         semgrep_errors,
         output_extra,
-        dependencies,
+        found_dependencies,
         dependency_parser_errors,
         plans,
     )

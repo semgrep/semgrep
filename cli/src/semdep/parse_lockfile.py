@@ -26,7 +26,6 @@ from semdep.parsers.requirements import parse_requirements
 from semdep.parsers.swiftpm import parse_package_resolved
 from semdep.parsers.util import DependencyParserError
 from semdep.parsers.yarn import parse_yarn
-from semgrep.console import console
 from semgrep.error import SemgrepError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
 from semgrep.semgrep_interfaces.semgrep_output_v1 import CargoParser
@@ -135,7 +134,7 @@ def lockfile_path_to_manifest_path(lockfile_path: Path) -> Optional[Path]:
 
 
 def parse_lockfile_path(
-    lockfile_path: Path,
+    lockfile_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
     """
     Parse a lockfile and return it as a list of dependency objects
@@ -146,12 +145,14 @@ def parse_lockfile_path(
     Raises SemgrepError if the lockfile is not supported
     """
     file_changed_timestamp = os.stat(lockfile_path).st_mtime
-    return _parse_lockfile_path_helper(lockfile_path, file_changed_timestamp)
+    return _parse_lockfile_path_helper(
+        lockfile_path, manifest_path, file_changed_timestamp
+    )
 
 
 @lru_cache(maxsize=1000)
 def _parse_lockfile_path_helper(
-    lockfile_path: Path, file_changed_timestamp: float
+    lockfile_path: Path, manifest_path: Optional[Path], file_changed_timestamp: float
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
     """
     Parse a lockfile and return it as a list of dependency objects
@@ -159,7 +160,6 @@ def _parse_lockfile_path_helper(
     Takes file_changed_timestamp to help invalidate the cache in case the file has changed
     which can happen between a head <-> baseline scan transition
     """
-    manifest_path = lockfile_path_to_manifest_path(lockfile_path)
     lockfile_name = lockfile_path.name.lower()
     if lockfile_name in NEW_LOCKFILE_PARSERS:
         parse_lockfile = NEW_LOCKFILE_PARSERS[lockfile_name]
@@ -181,10 +181,11 @@ def _parse_lockfile_path_helper(
         # python errors, since our parsers are just using stdlib string processing functions
         # This will avoid catching dangerous to catch things like KeyboardInterrupt and SystemExit
         except Exception as e:
-            console.print(f"Failed to parse {lockfile_path} with exception {e}")
             return (
                 [],
                 [
+                    # the only parser remaining in OLD_LOCKFILE_PARSERS is Cargo, so it's
+                    # OK that we have the parser name hardcoded here.
                     DependencyParserError(
                         str(lockfile_path), ScaParserName(CargoParser()), str(e)
                     )

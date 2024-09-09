@@ -534,29 +534,3 @@ def test_ignore_baseline_handler(monkeypatch, tmp_path):
     assert {str(dir_a_poetry), str(dir_b_poetry), str(dir_c_poetry)} == {
         str(path) for path in all_files
     }, "Should include unchanged lockfiles as well"
-
-    # Assert correct behaviour for finding single lockfile
-    assert (
-        target_manager.find_single_lockfile(dir_a_poetry, Ecosystem(Pypi()), False)
-        == None
-    ), "Should return None for unchanged lockfile"
-    assert (
-        target_manager.find_single_lockfile(dir_a_poetry, Ecosystem(Pypi()), True)
-        == dir_a_poetry
-    ), "Should return the unchanged lockfile since we are passing ignore_baseline_handler=True"
-    assert (
-        target_manager.find_single_lockfile(dir_b_poetry, Ecosystem(Pypi()), False)
-        == dir_b_poetry
-    ), "Should return the modified lockfile"
-    assert (
-        target_manager.find_single_lockfile(dir_b_poetry, Ecosystem(Pypi()), True)
-        == dir_b_poetry
-    ), "Should return the modified lockfile"
-    assert (
-        target_manager.find_single_lockfile(dir_c_poetry, Ecosystem(Pypi()), False)
-        == dir_c_poetry
-    ), "Should return the newly-added lockfile"
-    assert (
-        target_manager.find_single_lockfile(dir_c_poetry, Ecosystem(Pypi()), True)
-        == dir_c_poetry
-    ), "Should return the newly-added lockfile"
