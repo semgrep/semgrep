@@ -155,6 +155,12 @@ def upload_result(
                     num_lines += sum(1 for _ in f)
                 except UnicodeDecodeError:
                     pass
+                # Semgrep creates artificial temporary target files (for
+                # example, the Flask lifecycle harness) to aid in analysis under
+                # some circumstances. It cleans these up after it runs. If we
+                # try to open them here, we'll get an error.
+                except FileNotFoundError:
+                    pass
         lps = num_lines / (prof_times["total_time"] * num_rules)
 
         lps_url = f"{DASHBOARD_URL}/api/metric/{LPS_ENDPOINT}"
