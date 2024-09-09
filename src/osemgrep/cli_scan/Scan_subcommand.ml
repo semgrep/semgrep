@@ -866,9 +866,7 @@ let run_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
       (* TOPORT: if enable_version_check: version_check() *)
       Exit_code.ok ~__LOC__
   | _ when conf.test <> None ->
-      Test_subcommand.run_conf
-        (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >)
-        (Common2.some conf.test)
+      Test_subcommand.run_conf (caps :> < Cap.stdout >) (Common2.some conf.test)
   | _ when conf.validate <> None ->
       Validate_subcommand.run_conf
         (caps :> < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.alarm >)

@@ -131,7 +131,7 @@ let normalize = [ Testutil_logs.mask_time ]
 (* Tests *)
 (*****************************************************************************)
 
-let mk_matching_explanation_tests caps =
+let mk_matching_explanation_tests (caps : < Cap.stdout >) =
   let tests =
     [
       ( "matching diagnosis unexpected match",
@@ -171,5 +171,5 @@ let mk_matching_explanation_tests caps =
 (* Entry point *)
 (*****************************************************************************)
 
-let tests (caps : < Cap.stdout ; Cap.network ; Cap.tmp >) =
+let tests (caps : < Cap.stdout >) =
   Testo.categorize "Osemgrep Test (e2e)" (mk_matching_explanation_tests caps)

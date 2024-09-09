@@ -12,7 +12,9 @@ open Fpath_.Operators
 (* Types and constants *)
 (*****************************************************************************)
 
-(* TODO? extended for semgrep-pro annotations? *)
+(* TODO: extend for semgrep-pro annotations (maybe add a bool in addition
+ * to the kind so 'deepruleid:' is parsed as { kind = Ruleid; deep = true }
+ *)
 type kind =
   (* The good one, should be reported (TP) *)
   | Ruleid
