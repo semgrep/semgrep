@@ -5,11 +5,9 @@
 # and specified in Input_to_core.atd
 import collections
 from functools import lru_cache
-from pathlib import Path
 from typing import Any
 from typing import DefaultDict
 from typing import Dict
-from typing import FrozenSet
 from typing import List
 from typing import Mapping
 from typing import Optional
@@ -29,6 +27,7 @@ from semgrep.rule import Rule
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_types import Language
 from semgrep.state import get_state
+from semgrep.subproject import Subproject
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -109,7 +108,7 @@ class Plan:
         rules: List[Rule],
         *,
         product: Optional[out.Product] = None,
-        lockfiles_by_ecosystem: Optional[Dict[Ecosystem, FrozenSet[Path]]] = None,
+        sca_subprojects: Optional[Dict[out.Ecosystem, List[Subproject]]] = None,
         unused_rules: Optional[List[Rule]] = None,
     ):
         self.target_mappings = TargetMappings(mappings)
@@ -117,7 +116,7 @@ class Plan:
         # target_mappings relies on the index of each rule_id in rule_ids
         self.rules = rules
         self.product = product
-        self.lockfiles_by_ecosystem = lockfiles_by_ecosystem
+        self.sca_subprojects = sca_subprojects
         self.unused_rules = unused_rules or []
 
     # TODO: make this counts_by_lang_label, returning TaskCounts
@@ -177,11 +176,11 @@ class Plan:
 
         # if a rule scans npm and maven, but we only have npm lockfiles,
         # then we skip mentioning maven in debug info by deleting maven's counts
-        if self.lockfiles_by_ecosystem is not None:
+        if self.sca_subprojects is not None:
             unused_ecosystems = {
                 ecosystem
                 for ecosystem in result
-                if not self.lockfiles_by_ecosystem.get(ecosystem)
+                if not self.sca_subprojects.get(ecosystem)
             }
             for ecosystem in unused_ecosystems:
                 del result[ecosystem]
@@ -240,10 +239,10 @@ class Plan:
             key=lambda x: (x[1].files, x[1].rules),
             reverse=True,
         ):
-            if self.lockfiles_by_ecosystem is not None:
+            if self.sca_subprojects is not None:
                 lockfile_paths = ", ".join(
-                    str(lockfile)
-                    for lockfile in self.lockfiles_by_ecosystem.get(ecosystem, [])
+                    str(proj.dependency_source.lockfile_path)
+                    for proj in self.sca_subprojects.get(ecosystem, [])
                 )
             else:
                 lockfile_paths = "N/A"

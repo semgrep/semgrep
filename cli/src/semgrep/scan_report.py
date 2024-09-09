@@ -4,6 +4,7 @@
 # Helpers to run_scan.py to report scan status
 import sys
 from textwrap import wrap
+from typing import Dict
 from typing import List
 from typing import Sequence
 
@@ -22,6 +23,7 @@ from semgrep.core_runner import Plan
 from semgrep.rule import Rule
 from semgrep.state import DesignTreatment
 from semgrep.state import get_state
+from semgrep.subproject import Subproject
 from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
 from semgrep.util import unit_str
@@ -207,6 +209,35 @@ def _print_sast_table(
     )
 
 
+def _print_sca_parse_errors(errors: List[out.DependencyParserError]) -> None:
+    """
+    Print the given SCA parse errors.
+    """
+    for error in errors:
+        # These are zero indexed but most editors are one indexed
+        line_prefix = f"{error.line} | "
+
+        if error.line and error.col and error.text:
+            location = (
+                f"[bold]{error.path}[/bold] at [bold]{error.line}:{error.col}[/bold]"
+            )
+
+            console.print(
+                f"Failed to parse {location} - {error.reason}\n"
+                f"{line_prefix}{error.text}\n"
+                f"{' ' * (error.col - 1 + len(line_prefix))}^"
+            )
+        elif error.line and error.text:
+            location = f"[bold]{error.path}[/bold] at [bold]{error.line}[/bold]"
+
+            console.print(
+                f"Failed to parse {location} - {error.reason}\n"
+                f"{line_prefix}{error.text}\n"
+            )
+        else:
+            console.print(f"Failed to parse {location} - {error.reason}")
+
+
 def _print_sca_table(sca_plan: Plan, rule_count: int) -> None:
     """
     Pretty print the sca plan to stdout with the legacy CLI UX.
@@ -283,6 +314,8 @@ def print_scan_status(
     rules: Sequence[Rule],
     target_manager: TargetManager,
     target_mode_config: TargetModeConfig,
+    sca_subprojects: Dict[out.Ecosystem, List[Subproject]],
+    dependency_parser_errors: List[out.DependencyParserError],
     *,
     cli_ux: DesignTreatment = DesignTreatment.LEGACY,
     # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
@@ -317,18 +350,22 @@ def print_scan_status(
         product=out.Product(
             out.SAST()
         ),  # code-smell since secrets and sast are within the same plan
+        sca_subprojects=sca_subprojects,
     )
 
-    lockfiles = target_manager.get_all_lockfiles()
     sca_plan = CoreRunner.plan_core_run(
         [
             rule
             for rule in rules
             if isinstance(rule.product.value, out.SCA)
-            and any(lockfiles[ecosystem] for ecosystem in rule.ecosystems)
+            and any(
+                len(sca_subprojects.get(ecosystem, [])) > 0
+                for ecosystem in rule.ecosystems
+            )
         ],
         target_manager,
         product=out.Product(out.SCA()),
+        sca_subprojects=sca_subprojects,
     )
 
     plans = [sast_plan, sca_plan]
@@ -404,6 +441,7 @@ def print_scan_status(
         # Show the basic table for supply chain
         console.print(Title("Supply Chain Rules", order=2))
         _print_sca_table(sca_plan=sca_plan, rule_count=alt_sca_rule_count)
+        _print_sca_parse_errors(dependency_parser_errors)
     else:
         # Show the table with a supply chain nudge or supply chain
         console.print(Title("Supply Chain Rules", order=2))
@@ -414,6 +452,7 @@ def print_scan_status(
             # without supply-chain to upgrade their usage to the `ci` command
             with_supply_chain=with_supply_chain,
         )
+        _print_sca_parse_errors(dependency_parser_errors)
 
     if detailed_ux:
         console.print(Title("Progress", order=2))
