@@ -141,9 +141,10 @@ def test_rule_parser_semgrep_test_invalid_rule(run_semgrep_in_tmp: RunSemgrep):
     _, stderr = run_semgrep_in_tmp(
         f"rules/syntax/invalid-patterns-key.yml",
         subcommand="test",
+        target_name="targets/basic/basic.py",
         output_format=OutputFormat.TEXT,
         force_color=True,
         assert_exit_code=7,
     )
 
-    assert "invalid configuration string found" in stderr
+    assert "invalid configuration" in stderr

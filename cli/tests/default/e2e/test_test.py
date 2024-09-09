@@ -44,10 +44,11 @@ def test_cli_test_basic(run_semgrep_in_tmp: RunSemgrep, snapshot):
     )
 
 
-# It should accept a directory as a target.
+# It should accept a directory as a target and rules in a different dir.
 # TODO: this actually does not really test the ability to iterate over
 # a directory (ability heavily used in semgrep-rules/scripts/run-test.sh)
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_cli_test_directory(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/test_test/directory/",
@@ -87,6 +88,7 @@ def test_timeout(run_semgrep_in_tmp: RunSemgrep, snapshot):
 # and foo.c (even though in our test infra the rule and test are in different
 # directories so in theory we could).
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_cli_test_yaml_language(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/test_test/yaml_language/",
@@ -103,6 +105,7 @@ def test_cli_test_yaml_language(run_semgrep_in_tmp: RunSemgrep, snapshot):
 # It should support rule filenames using multiple extensions/suffixes
 # (e.g., this.that.rule.yaml)
 @pytest.mark.kinda_slow
+@pytest.mark.osemfail
 def test_cli_test_suffixes(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/test_test/suffixes/",
