@@ -4,6 +4,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import typing
 from pathlib import Path
 from typing import BinaryIO
 
@@ -92,7 +93,7 @@ def download_semgrep_pro(
         # actually got a runtime failure. Looks like some discrepancy between
         # http.client.HTTPResponse and urllib3.response.HTTPResponse. Maybe the
         # typings picked the wrong one?
-        raw_response: BinaryIO = r.raw  # type: ignore
+        raw_response: BinaryIO = typing.cast(typing.Any, r.raw)
         with Progress(
             TextColumn("{task.description}"),
             BarColumn(),
