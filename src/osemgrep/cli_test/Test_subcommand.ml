@@ -35,8 +35,8 @@ module Out = Semgrep_output_v1_j
 (*****************************************************************************)
 (* Types and constants *)
 (*****************************************************************************)
-(* LATER: we should remove the network caps; the tested rules should be local *)
-type caps = < Cap.stdout ; Cap.network ; Cap.tmp >
+(* no need for Cap.network; the tested rules should be local *)
+type caps = < Cap.stdout >
 
 (* Intermediate type because semgrep_output_v1.atd does not have
  * a good type name for those. Note that we can't easily change the .atd
@@ -65,8 +65,10 @@ type error =
   (* there is a rule but there is no target file *)
   | MissingTest of Fpath.t (* rule file *)
   (* the rule when applied produces fixes, but there is no .fixed file *)
-  | MissingFixtest of Fpath.t (* rule file *)
-  | UnparsableRule of Fpath.t
+  | MissingFixtest of Fpath.t
+
+(* rule file *)
+(* alt: UnparsableRule of Fpath.t, but simpler to just raise early *)
 
 (* Useful for error management *)
 type env = {
@@ -96,43 +98,6 @@ let xlang_for_rules_and_target (rules_origin : string) (rules : Rule.t list)
           m "too many languages found in %s, picking the first one: %s"
             rules_origin (Xlang.show fst));
       fst
-
-(*****************************************************************************)
-(* Rule fetching *)
-(*****************************************************************************)
-
-let rule_files_and_rules_of_config_string caps
-    (config_string : Rules_config.config_string) : (Fpath.t * Rule.t list) list
-    =
-  let (config : Rules_config.t) =
-    Rules_config.parse_config_string ~in_docker:false config_string
-  in
-  (* LESS: restrict to just File? *)
-  let (rules_and_origin : Rule_fetching.rules_and_origin list), errors =
-    Rule_fetching.rules_from_dashdash_config ~rewrite_rule_ids:false
-      ~token_opt:None caps config
-  in
-
-  if errors <> [] then
-    raise
-      (Error.Semgrep_error
-         ( Common.spf "invalid configuration string found: %s" config_string,
-           Some (Exit_code.missing_config ~__LOC__) ));
-
-  rules_and_origin
-  |> List_.filter_map (fun (x : Rule_fetching.rules_and_origin) ->
-         match x.origin with
-         | Local_file f ->
-             (* TODO: return also rule errors *)
-             Some (f, x.rules)
-         | CLI_argument
-         | Registry
-         | App
-         | Untrusted_remote _ ->
-             Logs.warn (fun m ->
-                 m "skipping rules not from local files: %s"
-                   (Rule_fetching.show_origin x.origin));
-             None)
 
 (*****************************************************************************)
 (* Fixtest *)
@@ -197,9 +162,10 @@ let rule_contain_fix_or_fix_regex (rule : Rule.t) : bool =
 
 let report_tests_result (caps : < Cap.stdout >) ~matching_diagnosis ~json
     (res : Out.tests_result) : unit =
+  let print str = CapConsole.print caps#stdout str in
   if json then
     let s = Out.string_of_tests_result res in
-    CapConsole.print caps#stdout s
+    print s
   else
     let passed = ref 0 in
     let total = ref 0 in
@@ -219,34 +185,33 @@ let report_tests_result (caps : < Cap.stdout >) ~matching_diagnosis ~json
     (* "unit" tests *)
     (match () with
     | _ when !total =|= 0 ->
-        CapConsole.print caps#stdout
+        (* TODO: exit error code instead? *)
+        print
           "No unit tests found. See \
            https://semgrep.dev/docs/writing-rules/testing-rules"
     | _ when !passed =|= !total ->
-        CapConsole.print caps#stdout
-          (spf "%d/%d: ✓ All tests passed" !passed !total)
+        print (spf "%d/%d: ✓ All tests passed" !passed !total)
     | _else_ ->
-        CapConsole.print caps#stdout
+        print
           (spf "%d/%d: %d unit tests did not pass:" !passed !total
              (!total - !passed));
-        CapConsole.print caps#stdout break_line;
+        print break_line;
         (* TODO *)
-        CapConsole.print caps#stdout "TODO: print(check_output_lines)");
+        print "TODO: print(check_output_lines)");
     (* fix tests *)
     (match () with
-    | _ when List_.null res.fixtest_results ->
-        CapConsole.print caps#stdout "No tests for fixes found."
+    | _ when List_.null res.fixtest_results -> print "No tests for fixes found."
     | _ when !fixtest_passed =|= !fixtest_total ->
-        CapConsole.print caps#stdout
+        print
           (spf "%d/%d: ✓ All fix tests passed" !fixtest_passed !fixtest_total)
     | _else_ ->
-        CapConsole.print caps#stdout
+        print
           (spf "%d/%d: %d fix tests did not pass:" !fixtest_passed
              !fixtest_total
              (!fixtest_total - !fixtest_passed));
-        CapConsole.print caps#stdout break_line;
+        print break_line;
         (* TODO *)
-        CapConsole.print caps#stdout "TODO: print(fixtest_file_diffs)");
+        print "TODO: print(fixtest_file_diffs)");
     if matching_diagnosis then (
       (* diagnosis *)
       let diagnoses =
@@ -261,12 +226,11 @@ let report_tests_result (caps : < Cap.stdout >) ~matching_diagnosis ~json
           res.results
       in
       if List.length diagnoses <> 0 then (
-        CapConsole.print caps#stdout break_line;
-        CapConsole.print caps#stdout "Matching diagnosis:";
+        print break_line;
+        print "Matching diagnosis:";
         List.iter
           (fun (rule_file, d) ->
-            CapConsole.print caps#stdout
-              (Diagnosis.report ~rule_file:(Fpath.v rule_file) d))
+            print (Diagnosis.report ~rule_file:(Fpath.v rule_file) d))
           diagnoses);
       (* TODO: if config_with_errors_output: ... *)
       ())
@@ -298,6 +262,8 @@ let report_tests_result (caps : < Cap.stdout >) ~matching_diagnosis ~json
  *
  * For 'osemgrep test', it is better to call directly
  * Match_rules.check() and use a few helpers from Test_engine.ml.
+ * TODO: switch to Core_scan which now has a simpler Core_scan_config.t
+ * and will help to switch to Deep_scan when using semgrep test --pro.
  *
  * LATER: what about extract rules? They are not handled by Match_rules.check().
  * But they are not part of semgrep OSS anymore, and were not added back to
@@ -315,6 +281,9 @@ let run_rules_against_target ~matching_diagnosis (env : env) (xlang : Xlang.t)
   let xtarget = Test_engine.xtarget_of_file xlang target in
   (* activate matching explanations for Diagnosis to work *)
   let xconf = { Match_env.default_xconfig with matching_explanations = true } in
+  (* TODO switch to Core_scan.scan so easier to add a hook so we would
+   * call Deep_scan.scan instead when using osemgrep test --pro
+   *)
   let (res : Core_result.matches_single_file) =
     Match_rules.check
       ~match_hook:(fun _pm -> ())
@@ -445,9 +414,11 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
 
   let errors = ref [] in
 
-  let (results
-        : (Fpath.t (* rule file *) * test_result list * fixtest_result list)
-          list) =
+  (* TODO: switch to Target.t. Then support multiple targets tested
+   * independently (e.g., .jsx and .tsx) and later multiple targets
+   * analyzed together for --pro interfile analysis.
+   *)
+  let plan : (Fpath.t (* rule file *) * Fpath.t (* target *)) list =
     match conf.target with
     | Test_CLI.Dir (dir, None) ->
         (* coupling: similar to Test_engine.test_rules() *)
@@ -457,22 +428,7 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
         in
         rule_files
         |> List_.filter_map (fun (rule_file : Fpath.t) ->
-               Logs.info (fun m -> m "processing rule file %s" !!rule_file);
-               (* TODO? sanity check? call metachecker Check_rule.check()?
-                * TODO: error managementm parsing errors?
-                *)
-               let* rules, _errorsTODO =
-                 match Parse_rule.parse_and_filter_invalid_rules rule_file with
-                 | Ok x -> Some x
-                 | Error _
-                 | (exception Parsing_error.Syntax_error _)
-                 | (exception Parsing_error.Other_error _) ->
-                     Logs.warn (fun m ->
-                         m "got error when parsing %s: %s" !!rule_file
-                           (Printexc.get_backtrace ()));
-                     Stack_.push (UnparsableRule rule_file) errors;
-                     None
-               in
+               (* TODO: just get all targets with same basename *)
                match Test_engine.find_target_of_yaml_file_opt rule_file with
                | None ->
                    (* stricter: (but reported via config_missing_tests in JSON)*)
@@ -480,53 +436,79 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
                        m "could not find target for %s" !!rule_file);
                    Stack_.push (MissingTest rule_file) errors;
                    None
-               | Some target ->
-                   Logs.info (fun m -> m "processing target %s" !!target);
-                   let xlang =
-                     xlang_for_rules_and_target !!rule_file rules target
-                   in
-                   let env = { rule_file; errors } in
-                   let checks, fixtest_res =
-                     run_rules_against_target
-                       ~matching_diagnosis:conf.matching_diagnosis env xlang
-                       rules target
-                   in
-                   Some (rule_file, checks, fixtest_res |> Option.to_list))
-    | Test_CLI.File (path, config_str)
-    | Test_CLI.Dir (path, Some config_str) ->
-        let rule_files_and_rules =
-          rule_files_and_rules_of_config_string
-            (caps :> < Cap.network ; Cap.tmp >)
-            config_str
-        in
-        (* alt: use Find_targets.get_target_fpaths but then it requires
-         * a Find_targets.conf, and this will respect the .semgrepignore
-         * which may be annoying, so simpler to just get all the files
-         * under the directory
-         *)
-        let targets = UFile.files_of_dirs_or_files_no_vcs_nofilter [ path ] in
-
-        rule_files_and_rules
-        |> List_.map (fun (rule_file, rules) ->
-               Logs.info (fun m -> m "processing rule file %s" !!rule_file);
-               let all_checks, all_fixtests =
-                 targets
-                 |> List_.map (fun target ->
-                        Logs.info (fun m -> m "processing target %s" !!target);
-                        let xlang =
-                          xlang_for_rules_and_target config_str rules target
-                        in
-                        let env = { rule_file; errors } in
-                        let checks, fixtest_res =
-                          run_rules_against_target
-                            ~matching_diagnosis:conf.matching_diagnosis env
-                            xlang rules target
-                        in
-                        (checks, fixtest_res |> Option.to_list))
-                 |> List.split
-               in
-               (rule_file, List_.flatten all_checks, List_.flatten all_fixtests))
+               | Some target -> Some (rule_file, target))
+    | Test_CLI.File (target, config_str) -> (
+        match Rules_config.parse_config_string ~in_docker:false config_str with
+        | File rule_file -> [ (rule_file, target) ]
+        | Dir _
+        | URL _
+        | R _
+        | A _ ->
+            (* stricter: *)
+            failwith "the config must be a local file")
+    (* this is to allow to have the rules in a different directories than
+     * the targets as in `osemgrep test --config tests/rules/ tests/targets/
+     * see https://semgrep.dev/docs/writing-rules/testing-rules#storing-rules-and-test-targets-in-different-directories
+     *)
+    | Test_CLI.Dir (_dir_targets, Some config_str) -> (
+        match Rules_config.parse_config_string ~in_docker:false config_str with
+        | Dir _dir_rules ->
+            (* TODO: this was working at some point when we were both doing
+             * the file tarteting phase (plan) and analysis phase (results)
+             * together because we were (incorrectly) getting all the rules
+             * in the directory and then running all those rules on all
+             * the targets.
+             * The right thing to do instead is to match each rule file
+             * in dir with a target file in the other dir
+             *)
+            failwith
+              "TODO: the split of tests/ and rules/ is not supported yet in \
+               semgrep test"
+        | File _
+        | URL _
+        | R _
+        | A _ ->
+            (* stricter: *)
+            failwith "the config must be a local directory")
   in
+
+  let (results
+        : (Fpath.t (* rule file *) * test_result list * fixtest_result list)
+          list) =
+    plan
+    |> List_.map (fun (rule_file, target) ->
+           Logs.info (fun m -> m "processing rule file %s" !!rule_file);
+           (* TODO? sanity check? call metachecker Check_rule.check()? *)
+           match Parse_rule.parse_and_filter_invalid_rules rule_file with
+           | Ok (rules, []) ->
+               Logs.info (fun m -> m "processing target %s" !!target);
+               let xlang =
+                 xlang_for_rules_and_target !!rule_file rules target
+               in
+               let env = { rule_file; errors } in
+               let checks, fixtest_res =
+                 run_rules_against_target
+                   ~matching_diagnosis:conf.matching_diagnosis env xlang rules
+                   target
+               in
+               (rule_file, checks, fixtest_res |> Option.to_list)
+           | Ok (_, _ :: _)
+           | Error _ ->
+               (* alt: use List_.filter_map above and be more fault tolerant
+                * with a Stack_.push (UnparsableRule rule_file) errors;
+                * but simpler to raise errors early
+                *)
+               raise
+                 (Error.Semgrep_error
+                    ( spf "invalid configuration found in %s" !!rule_file,
+                      Some (Exit_code.missing_config ~__LOC__) ))
+           | (exception Parsing_error.Syntax_error _)
+           | (exception Parsing_error.Other_error _) ->
+               failwith
+                 "impossible: parse_and_filter_invalid_rules should not raise \
+                  exns")
+  in
+
   let res : Out.tests_result =
     Out.
       {
@@ -545,6 +527,7 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
                  fixtest_results
                  |> List_.map (fun (target_file, passed) ->
                         (!!target_file, passed)));
+        (* TODO: change the schema and use an enum instead of those fields *)
         config_missing_tests =
           !errors
           |> List_.filter_map (function
@@ -557,13 +540,10 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
                | MissingFixtest rule_file -> Some rule_file
                | _else_ -> None)
           |> List.sort Fpath.compare;
-        (* TODO *)
-        config_with_errors =
-          !errors
-          |> List_.filter_map (function
-               | UnparsableRule rule_file ->
-                   Some { file = rule_file; reason = `UnparsableRule }
-               | _else_ -> None);
+        (* TODO: rename to just 'errors' and put the missing_tests and missing
+         * fixtests here as a kind of error.
+         *)
+        config_with_errors = [];
       }
   in
   (* pysemgrep is reporting some "successfully modified 1 file."

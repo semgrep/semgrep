@@ -238,10 +238,7 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
             Show_subcommand.main
               (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >)
               subcmd_argv
-        | "test" ->
-            Test_subcommand.main
-              (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >)
-              subcmd_argv
+        | "test" -> Test_subcommand.main (caps :> < Cap.stdout >) subcmd_argv
         | _ ->
             if experimental then
               (* this should never happen because we default to 'scan',
