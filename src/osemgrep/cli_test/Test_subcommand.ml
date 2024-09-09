@@ -274,9 +274,8 @@ let report_tests_result (caps : < Cap.stdout >) ~matching_diagnosis ~json
  * on where to plug to the semgrep engine.
  *)
 
-let run_rules_against_target ~matching_diagnosis (env : env) (xlang : Xlang.t)
-    (rules : Rule.t list) (target : Fpath.t) :
-    test_result list * fixtest_result option =
+let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
+    (target : Fpath.t) : Core_result.matches_single_file =
   (* running the engine *)
   let xtarget = Test_engine.xtarget_of_file xlang target in
   (* activate matching explanations for Diagnosis to work *)
@@ -284,15 +283,15 @@ let run_rules_against_target ~matching_diagnosis (env : env) (xlang : Xlang.t)
   (* TODO switch to Core_scan.scan so easier to add a hook so we would
    * call Deep_scan.scan instead when using osemgrep test --pro
    *)
-  let (res : Core_result.matches_single_file) =
-    Match_rules.check
-      ~match_hook:(fun _pm -> ())
-      ~timeout:None xconf rules xtarget
-  in
-  let (annots : (Test_annotation.t * linenb) list) =
-    Test_annotation.annotations target
-  in
+  Match_rules.check
+    ~match_hook:(fun _pm -> ())
+    ~timeout:None xconf rules xtarget
 
+let compare_actual_to_expected ~matching_diagnosis (env : env)
+    (target : Fpath.t) (rules : Rule.t list)
+    (res : Core_result.matches_single_file)
+    (annots : (Test_annotation.t * linenb) list) :
+    test_result list * fixtest_result option =
   (* actual matches *)
   let (matches_by_ruleid : (Rule_ID.t, Pattern_match.t list) Assoc.t) =
     if List_.null res.matches then (
@@ -486,10 +485,14 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
                  xlang_for_rules_and_target !!rule_file rules target
                in
                let env = { rule_file; errors } in
+               let res = run_rules_against_target xlang rules target in
+               let (expected : (Test_annotation.t * linenb) list) =
+                 Test_annotation.annotations target
+               in
                let checks, fixtest_res =
-                 run_rules_against_target
-                   ~matching_diagnosis:conf.matching_diagnosis env xlang rules
-                   target
+                 compare_actual_to_expected
+                   ~matching_diagnosis:conf.matching_diagnosis env target rules
+                   res expected
                in
                (rule_file, checks, fixtest_res |> Option.to_list)
            | Ok (_, _ :: _)
