@@ -36,7 +36,6 @@ from semdep.external.parsy import Parser
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
 from semdep.external.parsy import success
-from semgrep.console import console
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyChild
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
@@ -262,29 +261,19 @@ def parse_dependency_file(
         )
     except RecursionError:
         reason = "Python recursion depth exceeded, try again with SEMGREP_PYTHON_RECURSION_LIMIT_INCREASE set higher than 500"
-        console.print(f"Failed to parse {file_to_parse.path} - {reason}")
         return DependencyParserError(
             str(file_to_parse.path), file_to_parse.parser_name, reason
         )
     except ParseError as e:
         # These are zero indexed but most editors are one indexed
         line, col = e.index.line, e.index.column
-        line_prefix = f"{line + 1} | "
         text_lines = text.splitlines() + (
             ["<trailing newline>"] if text.endswith("\n") else []
         )  # Error on trailing newline shouldn't blow us up
         error_str = parse_error_to_str(e)
-        location = (
-            f"[bold]{file_to_parse.path}[/bold] at [bold]{line + 1}:{col + 1}[/bold]"
-        )
 
         if line < len(text_lines):
             offending_line = text_lines[line]
-            console.print(
-                f"Failed to parse {location} - {error_str}\n"
-                f"{line_prefix}{offending_line}\n"
-                f"{' ' * (col + len(line_prefix))}^"
-            )
             return DependencyParserError(
                 str(file_to_parse.path),
                 file_to_parse.parser_name,
@@ -295,7 +284,6 @@ def parse_dependency_file(
             )
         else:
             reason = f"{error_str}\nInternal Error - line {line + 1} is past the end of {file_to_parse.path}?"
-            console.print(f"Failed to parse {location} - {reason}")
             return DependencyParserError(
                 str(file_to_parse.path),
                 file_to_parse.parser_name,
