@@ -366,8 +366,7 @@ let save_local_skipped_fingerprints session =
   let save_dir =
     !Env.v.user_dot_semgrep_dir / "cache" / "fingerprinted_ignored_findings"
   in
-  if not (Sys.file_exists (Fpath.to_string save_dir)) then
-    Sys.mkdir (Fpath.to_string save_dir) 0o755;
+  UFile.make_directories save_dir;
   let save_file_name =
     String.concat "_"
       (List_.map (fun f -> f |> Fpath.basename) session.workspace_folders)
