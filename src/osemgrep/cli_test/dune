@@ -10,8 +10,10 @@
 
     semgrep.engine
     semgrep.engine.tests
-    osemgrep_core
-    osemgrep_networking
+    semgrep.core_scan
+    semgrep.core_runner
+    semgrep.osemgrep_core
+    semgrep.osemgrep_networking
   )
  (preprocess
    (pps

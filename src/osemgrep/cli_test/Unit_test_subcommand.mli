@@ -1,1 +1,1 @@
-val tests : < stdout : Cap.Console.stdout > -> Testo.t list
+val tests : Test_subcommand.caps -> Testo.t list

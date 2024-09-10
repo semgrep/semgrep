@@ -154,15 +154,16 @@ let detect_extract_languages all_rules =
        XlangSet.empty
 
 (*************************************************************************)
-(* Helpers *)
+(* Targeting (Fpath.t -> Target.t) *)
 (*************************************************************************)
 
 (* The same rule may appear under multiple target languages because
    some patterns can be interpreted in multiple languages.
-   TODO? could use Common.group_by
 *)
-let group_rules_by_target_language rules : (Xlang.t * Rule.t list) list =
+let group_rules_by_target_language (rules : Rule.t list) :
+    (Xlang.t * Rule.t list) list =
   (* target language -> rules *)
+  (* TODO: use Assoc.group_by *)
   let tbl = Hashtbl.create 100 in
   rules
   |> List.iter (fun (rule : Rule.t) ->
@@ -178,13 +179,13 @@ let group_rules_by_target_language rules : (Xlang.t * Rule.t list) list =
                 Hashtbl.replace tbl lang (rule :: rules)));
   Hashtbl.fold (fun lang rules acc -> (lang, rules) :: acc) tbl []
 
-let add_typescript_to_javascript_rules_hack (all_rules : Rule.t list) :
-    Rule.t list =
+let add_typescript_to_javascript_rules_hack (rules : Rule.t list) : Rule.t list
+    =
   (* If Javascript is one of the rule languages, we should also run on
      Typescript files. This implementation mimics the hack in `rule.py`.
      We could alternatively set this by changing lang.json, but we should
      be careful to do that without affecting other things like the docs *)
-  all_rules
+  rules
   |> List_.map (fun r ->
          match r.Rule.target_analyzer with
          | LRegex
@@ -200,14 +201,14 @@ let add_typescript_to_javascript_rules_hack (all_rules : Rule.t list) :
              in
              { r with Rule.target_analyzer = L (l, lset |> Set_.elements) })
 
-let split_jobs_by_language (conf : Find_targets.conf) all_rules all_targets :
-    Lang_job.t list =
-  let all_rules = add_typescript_to_javascript_rules_hack all_rules in
-  let extract_languages = detect_extract_languages all_rules in
-  all_rules |> group_rules_by_target_language
+let split_jobs_by_language (conf : Find_targets.conf) (rules : Rule.t list)
+    (targets : Fpath.t list) : Lang_job.t list =
+  let rules = add_typescript_to_javascript_rules_hack rules in
+  let extract_languages = detect_extract_languages rules in
+  rules |> group_rules_by_target_language
   |> List_.filter_map (fun (xlang, rules) ->
          let targets =
-           all_targets
+           targets
            |> List.filter (fun path ->
                   (* bypass normal analyzer detection for explicit targets with
                      '--scan-unknown-extensions' *)
@@ -222,6 +223,34 @@ let split_jobs_by_language (conf : Find_targets.conf) all_rules all_targets :
          if List_.null targets && not (XlangSet.mem xlang extract_languages)
          then None
          else Some ({ xlang; targets; rules } : Lang_job.t))
+
+let targets_of_lang_job (x : Lang_job.t) : Target.t list =
+  x.targets
+  |> List_.map (fun (path : Fpath.t) : Target.t ->
+         Target.mk_target x.xlang path)
+
+let targets_and_rules_of_lang_jobs (lang_jobs : Lang_job.t list) :
+    Target.t list * Rule.t list =
+  let targets, rules =
+    List_.fold_right
+      (fun lang_job (acc_targets, acc_rules) ->
+        let targets = targets_of_lang_job lang_job in
+        let rules = lang_job.rules in
+        (List_.append targets acc_targets, List_.append rules acc_rules))
+      lang_jobs ([], [])
+  in
+  (targets, rules)
+
+(* used only in Test_subcommand.ml *)
+let targets_for_files_and_rules (files : Fpath.t list) (rules : Rule.t list) :
+    Target.t list =
+  let conf = Find_targets.default_conf in
+  let lang_jobs = split_jobs_by_language conf rules files in
+  lang_jobs |> List.concat_map targets_of_lang_job
+
+(*************************************************************************)
+(* Other helpers *)
+(*************************************************************************)
 
 let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
   match conf with
@@ -255,23 +284,8 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
       }
 
 let prepare_config_for_core_scan (config : Core_scan_config.t)
-    (lang_jobs : Lang_job.t list) =
-  let targets_and_rules_of_lang_job (x : Lang_job.t) :
-      Target.t list * Rule.rules =
-    let targets =
-      x.targets
-      |> List_.map (fun (path : Fpath.t) : Target.t ->
-             Regular (Target.mk_regular x.xlang Product.all (File path)))
-    in
-    (targets, x.rules)
-  in
-  let targets, rules =
-    List_.fold_right
-      (fun lang_job (acc_targets, acc_rules) ->
-        let targets, rules = targets_and_rules_of_lang_job lang_job in
-        (List_.append targets acc_targets, List_.append rules acc_rules))
-      lang_jobs ([], [])
-  in
+    (lang_jobs : Lang_job.t list) : Core_scan_config.t =
+  let targets, rules = targets_and_rules_of_lang_jobs lang_jobs in
   { config with target_source = Targets targets; rule_source = Rules rules }
 
 (* LATER: we want to avoid this intermediate data structure but
@@ -334,7 +348,8 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
     *)
     let lang_jobs = split_jobs_by_language targeting_conf rules all_targets in
     let rules_with_targets =
-      List.concat_map (fun { Lang_job.rules; _ } -> rules) lang_jobs
+      lang_jobs
+      |> List.concat_map (fun { Lang_job.rules; _ } -> rules)
       |> (* TODO: if this is using physical equality on purpose,
             explain why because otherwise it looks like a bug. *)
       List_.uniq_by Stdlib.( == )
