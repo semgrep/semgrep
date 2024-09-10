@@ -373,35 +373,53 @@ let map_postfix_ability_decls (env : env) ((v1, v2, v3, v4) : CST.postfix_abilit
   let v4 = (* ";" *) token env v4 in
   abilites
 
+let map_identifier_or_metavariable (env : env) (x : CST.identifier_or_metavariable) =
+  match x with
+  | `Choice_macro_id_dollar x -> 
+    let ident, attribs =
+    (match x with
+    | `Macro_id_dollar tok ->
+      let type_name = (* pattern \$[a-zA-Z][0-9a-zA-Z_]* *) str env tok in
+      let macro_attr = G.NamedAttr(fake "$", H2.name_of_id (fake_id "$") , (sc, [], sc)) in
+      type_name, [macro_attr]
+    | `Semg_meta_ellips tok ->  
+      let ident = (* pattern \$\.\.\.[A-Z_][A-Z_0-9]* *) str env tok in
+      ident, []
+    | `Semg_meta_var tok -> 
+      let ident = (* pattern \$[A-Z_][A-Z_0-9]* *) str env tok in
+      ident, []
+    | `X__ tok ->
+      let ident = (* "_" *) str env tok in
+      ident, []) in
+      ident, attribs
+  | `Opt_phan_clean_id (v1, v2) ->
+    let phatom =
+      Option.map ((* "phatom" *) str env) v1
+      |> Option.to_list
+      |> List.map (fun x ->
+             G.NamedAttr
+               ( (match x with
+                 | _, tok -> tok),
+                 H2.name_of_id x,
+                 (sc, [], sc) ))
+    in
+      let ident = (* pattern (`)?[a-zA-Z_][0-9a-zA-Z_]*(`)? *) str env v2 in
+      ident, phatom
+
+    
+
+
+
+
 
 let map_type_parameter (env : env) attrs (x : CST.type_parameter) : G.type_parameter =
   match x with
-  | `Opt_DOLLAR_opt_phan_type_param_id_opt_COLON_abil_rep_PLUS_abil_opt_PLUS (v1, v2, v3, v4) ->
-      let dollar =
-        Option.map ((* "dollar" *) str env) v1
-        |> Option.to_list
-        |> List.map (fun x ->
-               G.NamedAttr
-                 ( (match x with
-                   | _, tok -> tok),
-                   H2.name_of_id x,
-                   (sc, [], sc) ))
-      in
-      let phatom =
-        Option.map ((* "phatom" *) str env) v2
-        |> Option.to_list
-        |> List.map (fun x ->
-               G.NamedAttr
-                 ( (match x with
-                   | _, tok -> tok),
-                   H2.name_of_id x,
-                   (sc, [], sc) ))
-      in
-      let type_name: G.ident =  str env v3 in
-      let abilites =
-        match v4 with
+  | `Id_or_meta_opt_COLON_abil_rep_PLUS_abil_opt_PLUS (v1, v2) ->
+    let type_name, attribs = map_identifier_or_metavariable env v1 in
+    let abilites = (* todo use abilities *)
+        match v2 with
         | Some (v1, v2, v3, v4) ->
-            let v1 = token env v1 in
+            let v1 = (* ":" *)  token env v1 in
             let ability = map_ability env v2 in
             let ablities = List.map (fun (v1, v2) ->
               let v1 = token env v1 in
@@ -416,7 +434,7 @@ let map_type_parameter (env : env) attrs (x : CST.type_parameter) : G.type_param
             ability :: ablities
         | None -> []
       in
-      G.tparam_of_id ~tp_attrs:(attrs @ attrs @ phatom @ dollar) type_name
+      G.tparam_of_id ~tp_attrs:(attrs @ attrs @ attribs) type_name
       | `Ellips tok -> G.TParamEllipsis (token env tok)
 
 
@@ -520,13 +538,19 @@ let map_condition_properties (env : env) ((v1, v2, v3, v4) : CST.condition_prope
 
 
 let map_module_access_ (env : env) (x : CST.module_access)=
-match x with 
-  | `Choice_DOLLAR_id x ->
-    (match x with
-    | `DOLLAR_id (v1, v2) ->
-        let v1= (* "$" *) str env v1 in
-        let member  = (* identifier *) str env v2 in
-        H2.name_of_id(member), (None, None, Some member)
+  match x with
+    | `Choice_semg_meta_ellips x ->
+      (match x with
+        | `Semg_meta_ellips tok -> 
+          let member = (* pattern \$\.\.\.[A-Z_][A-Z_0-9]* *) str env tok in
+          H2.name_of_id(member), (None, None, Some member)
+        | `Macro_id_dollar tok ->
+          let member =  (* pattern \$[a-zA-Z][0-9a-zA-Z_]* *) str env tok in
+          H2.name_of_id(member), (None, None, Some member)
+        | `Id tok ->
+          let member =  (* pattern (`)?[a-zA-Z_][0-9a-zA-Z_]*(`)?|\$\.\.\.[A-Z_][A-Z_0-9]*]|\$[A-Z_][A-Z_0-9]* *) str env tok in
+          H2.name_of_id(member), (None, None, Some member)
+      )
     | `AT_id (v1, v2) ->
         let v1 = (* "@" *) str env v1 in
         let member  = (* identifier *) str env v2 in
@@ -534,9 +558,6 @@ match x with
     | `Rese_id tok->
         let quant = map_reserved_identifier env tok in
         H2.name_of_id(fake_id ""), (None, None, None)  (* Not sure this ever happens in a module_access*)
-    | `Id tok ->
-        let member = (* identifier *) str env tok in
-        H2.name_of_id(member),  (None, None, Some member)
     | `Module_id_COLONCOLON_id (v1, v2, v3) ->
         let mod_name  = (* identifier *) str env v1 in
         let v2 = (* "::" *) token env v2 in
@@ -556,8 +577,8 @@ match x with
         let enum_name_str,_ =  enum_name in
         let variant_str,_ =  variant in
         (*todo is treating enum as a member correct*)
-        H2.name_of_ids [address; mod_name; enum_name; variant], (Some address, Some mod_name, Some (enum_name_str ^ "::" ^ variant_str, sc)))
-  | `Ellips (* "..." *) x ->  H2.name_of_id (str env x), (None, None, None)
+        H2.name_of_ids [address; mod_name; enum_name; variant], (Some address, Some mod_name, Some (enum_name_str ^ "::" ^ variant_str, sc))
+    | `Ellips (* "..." *) x ->  H2.name_of_id (str env x), (None, None, None)
 
 
 let map_module_access (env : env) (x : CST.module_access): G.name =
@@ -1218,23 +1239,17 @@ let map_ret_type (env : env) ((v1, v2) : CST.ret_type): G.type_ =
 
 let map_function_parameter (env : env) (x : CST.function_parameter) :G.parameter =
   match x with
-  | `Opt_mut_choice_var_id_COLON_type (v1, v2, v3, v4) ->
+  | `Opt_mut_id_or_meta_COLON_type (v1, v2, v3, v4) ->
       let is_mutable =
         match v1 with
         | Some tok ->  true
         | None -> false
       in
-      let is_dollar, ident =
-        match v2 with
-        | `Var_id tok -> (false, str env tok) (* identifier *)
-        | `DOLLAR_var_id (v1, v2) ->
-            let dollar = str env v1 in (* "$" *)
-            let ident = str env v2 in (* identifier *)
-            (true, ident)
+      let param_name, attribs = map_identifier_or_metavariable env v2 
       in
       let v3 = token env v3 in (* ":" *)
       let func_type = map_type_ env v4 in
-      let param = map_parameter(is_mutable, is_dollar, ident, func_type) in
+      let param = map_parameter(is_mutable, attribs, param_name, func_type) in
       param
   | `Ellips tok -> (* "..." *) G.ParamEllipsis (token env tok)
 
@@ -2096,6 +2111,20 @@ and map_expression_term (env : env) (x : CST.expression_term) =
       | `If_exp x ->  map_if_expression env x
       | `Vec_exp x ->map_vector_expression env x
       | `Match_exp x -> map_match_expression env x)
+      | `Typed_meta (v1, v2, v3, v4, v5) ->
+        let v1 = (* "(" *) token env v1 in
+        let ident = (* identifier *) str env v2 in
+        let _colon = (* ":" *) token env v3 in
+        let var_type = map_type_ env v4 in
+        let v5 = (* ")" *) token env v5 in
+        (* Typed metavariables and cast expressions are ambiguous in the grammar *)
+        let expr =
+          if AST_generic.is_metavar_name (H2.str_of_ident ident) then
+            G.TypedMetavar (ident, _colon, var_type)
+          else G.Cast (var_type, _colon, G.N (H2.name_of_id ident) |> G.e)
+        in
+        expr |> G.e
+    
   | `Ellips tok -> (* "..." *) G.Ellipsis (token env tok) |> G.e
   | `Deep_ellips x -> map_deep_ellipsis env x
     (*| `Typed_meta x -> map_typed_metavariable env x*)
@@ -2530,20 +2559,6 @@ match x with
   | `Ellips tok ->  G.Ellipsis (token env tok) |> G.e
   | `Deep_ellips x ->  map_deep_ellipsis env x
   | `Field_access_ellips_expr x -> map_field_access_ellipsis_expr env x
-  | `Typed_meta (v1, v2, v3, v4, v5) ->
-      let v1 = (* "(" *) token env v1 in
-      let ident = (* identifier *) str env v2 in
-      let _colon = (* ":" *) token env v3 in
-      let var_type = map_type_ env v4 in
-      let v5 = (* ")" *) token env v5 in
-      (* Typed metavariables and cast expressions are ambiguous in the grammar *)
-      let expr =
-        if AST_generic.is_metavar_name (H2.str_of_ident ident) then
-          G.TypedMetavar (ident, _colon, var_type)
-        else G.Cast (var_type, _colon, G.N (H2.name_of_id ident) |> G.e)
-      in
-      expr |> G.e
-  
 and map_unary_expression_ (env : env) ((v1, v2) : CST.unary_expression_) : G.expr =
   let bang = map_unary_op env v1 in
   let expr = map_expression env v2 in
