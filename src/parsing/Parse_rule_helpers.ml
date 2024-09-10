@@ -265,13 +265,17 @@ let take_opt (dict : dict) (env : env)
   | None -> Ok None
 
 (* Mutates the Hashtbl! *)
-let take_key (dict : dict) (env : env)
+let take_key ?default (dict : dict) (env : env)
     (f : env -> key -> G.expr -> ('a, Rule_error.t) Result.t) (key_str : string)
     : ('a, Rule_error.t) Result.t =
   let/ res = take_opt dict env f key_str in
   match res with
   | Some res -> Ok res
-  | None -> error env.id dict.first_tok ("Missing required field " ^ key_str)
+  | None -> (
+      match default with
+      | Some x -> Ok x
+      | None -> error env.id dict.first_tok ("Missing required field " ^ key_str)
+      )
 
 let fold_dict f dict x = Hashtbl.fold f dict.h x
 
@@ -417,6 +421,16 @@ let parse_int_strict env (key : key) x =
       | (Some i64, _), Some f' when f =*= f' -> Ok (Int64.to_int i64)
       | _ -> error_at_key env.id key "not an int")
   | _x -> error_at_key env.id key (spf "parse_int for %s" (fst key))
+
+(* Either an object with one required string field or just a string.
+   See mli for examples. *)
+let parse_variant ?(kind_field_name = "kind") env (key : key) (expr : G.expr) =
+  match expr.e with
+  | G.L (String (_, (kind, _), _)) -> Ok (kind, None)
+  | _ ->
+      let/ dict = parse_dict env key expr in
+      let/ kind = take_key dict env parse_string kind_field_name in
+      Ok (kind, Some dict)
 
 (*****************************************************************************)
 (* Parsers for specialized types *)

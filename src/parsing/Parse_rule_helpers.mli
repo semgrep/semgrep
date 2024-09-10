@@ -19,7 +19,7 @@ type env = {
   options : Rule_options_t.t option;
 }
 
-type dict = {
+type dict = private {
   (* Do not use directly Hashtbl.find_opt on this field!
    * Use instead dict_take_opt() or take_opt_no_env() otherwise
    * warn_if_remaining_unparsed_fields() will not work.
@@ -78,6 +78,7 @@ val read_string_wrap :
 
 val dict_take_opt : dict -> string -> (key * AST_generic.expr) option
 
+(* Look up an optional key in a dict and remove it. *)
 val take_opt :
   dict ->
   env ->
@@ -85,7 +86,13 @@ val take_opt :
   string ->
   ('a option, Rule_error.t) Result.t
 
+(* Look up a key in a dict and remove it.
+   If the key doesn't exist:
+   - if no default is provided, an error is created,
+   - otherwise, the default is returned.
+*)
 val take_key :
+  ?default:'a ->
   dict ->
   env ->
   (env -> key -> AST_generic.expr -> ('a, Rule_error.t) Result.t) ->
@@ -167,6 +174,33 @@ val parse_string_wrap_list :
   key ->
   AST_generic.expr ->
   (('a * AST_generic.tok) list, Rule_error.t) Result.t
+
+(* This handles sum types using the same flexible syntax as used
+   in YAML by others (e.g. GitHub Actions workflow config files). It is
+   relatively manageable with JSON Schema and less so with ATD but doable
+   using so-called adapters. They translate to OCaml variants.
+
+   This first form is compact, being just a string ('bar'):
+
+     foo: bar
+
+   It is a shorthand for:
+
+     foo:
+       kind: bar
+
+   The long form allows specifying properties, options, etc.:
+
+     foo:
+       kind: bar
+       description: blah
+*)
+val parse_variant :
+  ?kind_field_name:string ->
+  env ->
+  key ->
+  AST_generic.expr ->
+  (string * dict option, Rule_error.t) result
 
 (*****************************************************************************)
 (* Parsers for basic types *)

@@ -21,6 +21,12 @@ module XP = Xpattern
 module MV = Metavariable
 module R = Rule
 
+(* Unwrap the Ok value and map it to another Ok value.
+   Compare this to 'let/' which maps an Ok value to a result (Ok or Error).
+
+   The point of using 'let+' and 'let/' is that they leave any Error intact,
+   propagating it without us having to worry about it.
+*)
 let ( let+ ) x f = Result.map f x
 
 (*****************************************************************************)
@@ -292,6 +298,15 @@ let find_formula_old env (rule_dict : dict) :
         "Expected only one of `pattern`, `pattern-either`, `patterns`, or \
          `pattern-regex`"
 
+(*
+let parse_options (env : env) (dict : dict) :
+    (R.formula, Rule_error.t) result =
+      let/ mode = take_opt mv_analysis_dict env parse_string "mode" in
+
+      let/ options =
+        take_opt mv_analysis_dict env parse_metavariable_analysis_options "options" in
+*)
+
 let rec parse_formula_old_from_dict (env : env) (rule_dict : dict) :
     (R.formula, Rule_error.t) result =
   (* bTODO: filter out unconstrained nots *)
@@ -480,6 +495,44 @@ and parse_pair_old env ((key, value) : key * G.expr) :
   | "r2c-internal-patterns-from" -> failwith "TODO"
   | _ -> error_at_key env.id key (spf "unexpected key %s" (fst key))
 
+and parse_analyzer (env : env) (key : key) (dict : dict) :
+    (Rule.metavar_analysis_kind, Rule_error.t) result =
+  let/ analyzer_kind, options_dict =
+    take_key dict env parse_variant "analyzer"
+  in
+  let/ analyzer =
+    match analyzer_kind with
+    | "entropy" -> Ok R.CondEntropy
+    | "entropy_v2" ->
+        let/ mode =
+          match options_dict with
+          | None -> Ok R.Default
+          | Some options_dict ->
+              let/ mode = take_opt options_dict env parse_string "mode" in
+              let/ mode =
+                match mode with
+                | Some "lax" -> Ok R.Lax
+                | Some "strict" -> Ok R.Strict
+                | Some "default"
+                | None ->
+                    Ok R.Default
+                | Some other ->
+                    error_at_key env.id key
+                      ("Unsupported optional analyzer mode: " ^ other)
+              in
+              Ok mode
+        in
+        Ok (R.CondEntropyV2 mode)
+    | "redos" -> Ok R.CondReDoS
+    | other -> error_at_key env.id key ("Unsupported analyzer: " ^ other)
+  in
+  let/ () =
+    match options_dict with
+    | Some options_dict -> check_that_dict_is_empty options_dict
+    | None -> Ok ()
+  in
+  Ok analyzer
+
 (* This is now mutually recursive because of metavariable-pattern: which can
  * contain itself a formula! *)
 and parse_extra (env : env) (key : key) (value : G.expr) :
@@ -490,15 +543,9 @@ and parse_extra (env : env) (key : key) (value : G.expr) :
       let/ metavar =
         take_key mv_analysis_dict env parse_string "metavariable"
       in
-      let/ analyzer = take_key mv_analysis_dict env parse_string "analyzer" in
-      let/ kind =
-        match analyzer with
-        | "entropy" -> Ok R.CondEntropy
-        | "entropy_v2" -> Ok R.CondEntropyV2
-        | "redos" -> Ok R.CondReDoS
-        | other -> error_at_key env.id key ("Unsupported analyzer: " ^ other)
-      in
-      Ok (MetavarAnalysis (metavar, kind))
+      let/ analyzer_kind = parse_analyzer env key mv_analysis_dict in
+      let/ () = check_that_dict_is_empty mv_analysis_dict in
+      Ok (MetavarAnalysis (metavar, analyzer_kind))
   | "metavariable-regex" ->
       let/ mv_regex_dict =
         match parse_dict env key value with
@@ -715,7 +762,7 @@ and parse_formula_from_dict env dict =
     in
     Ok { formula with fix; as_ = as_metavariable }
 
-and produce_constraint env dict tok indicator =
+and produce_constraint (env : env) (key : key) dict tok indicator =
   match indicator with
   | Ccompare ->
       (* comparison: ...
@@ -747,18 +794,8 @@ and produce_constraint env dict tok indicator =
          analyzer: ...
       *)
       let/ metavar, t = take_key dict env parse_string_wrap "metavariable" in
-      let/ analyzer, analyze_t =
-        take_key dict env parse_string_wrap "analyzer"
-      in
-      let/ kind =
-        match analyzer with
-        | "entropy" -> Ok R.CondEntropy
-        | "redos" -> Ok R.CondReDoS
-        | other ->
-            error_at_key env.id ("analyzer", analyze_t)
-              ("Unsupported analyzer: " ^ other)
-      in
-      Ok [ Left (t, R.CondAnalysis (metavar, kind)) ]
+      let/ analyzer_kind = parse_analyzer env key dict in
+      Ok [ Left (t, R.CondAnalysis (metavar, analyzer_kind)) ]
   | Ctype ->
       (* metavariable: ...
          [<pattern-pair>]
@@ -838,7 +875,8 @@ and constrain_where env (_t1, _t2) where_key (value : G.expr) formula :
   let parse_where_pair env (where_value : G.expr) =
     let/ dict = parse_dict env where_key where_value in
     match find_constraint dict with
-    | Some (tok, indicator) -> produce_constraint env dict tok indicator
+    | Some (tok, indicator) ->
+        produce_constraint env where_key dict tok indicator
     | _ -> error_at_expr env.id value "Wrong where constraint fields"
   in
   (* TODO *)
