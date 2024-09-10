@@ -362,7 +362,7 @@ let log_scan_inputs (config : Core_scan_config.t) ~targets ~skipped ~valid_rules
   ()
 
 let log_scan_results (config : Core_scan_config.t) (res : Core_result.t)
-    ~skipped_targets =
+    ~scanned_targets ~skipped_targets =
   (* TODO: delete this comment and -stat_matches.
    * note: uncomment the following and use semgrep-core -stat_matches
    * to debug too-many-matches issues.
@@ -373,9 +373,10 @@ let log_scan_results (config : Core_scan_config.t) (res : Core_result.t)
   Tracing.add_data_to_opt_span config.top_level_span
     [ ("num_matches", `Int num_matches); ("num_errors", `Int num_errors) ];
   Logs.debug (fun m ->
-      m "scan: found %d matches, %d errors" num_matches num_errors);
-  Logs.debug (fun m ->
-      m "scan: there were %d skipped targets" (List.length skipped_targets));
+      m "scan: found %d matches, %d errors (scanned %d targets, skipped %d)"
+        num_matches num_errors
+        (List.length scanned_targets)
+        (List.length skipped_targets));
   ()
 
 (* This is used to generate warnings in the logs
@@ -523,6 +524,9 @@ let iter_targets_and_get_matches_and_exn_to_errors (caps : < Cap.fork >)
                   * semgrep-core program.
                   *)
                  | exn when not !Flag_semgrep.fail_fast ->
+                     Logs.err (fun m ->
+                         m "exception on %s (%s)" !!internal_path
+                           (Printexc.to_string exn));
                      let e = Exception.catch exn in
                      let errors =
                        ESet.singleton (E.exn_to_error None internal_path e)
@@ -602,7 +606,7 @@ let targets_of_config (config : Core_scan_config.t) :
 (* Rule selection *)
 (*****************************************************************************)
 
-(* This is used by semgrep-proprietary. *)
+(* This is also used by semgrep-proprietary. *)
 let rules_for_analyzer ~analyzer rules =
   rules
   |> List.filter (fun (r : Rule.t) ->
@@ -641,8 +645,9 @@ let rules_for_origin paths (origin : Origin.t) =
    case we have a high number of rules and a high fraction of irrelevant
    rules? *)
 let rules_for_target ~analyzer ~products ~origin ~respect_rule_paths rules =
+  let rules = rules_for_analyzer ~analyzer rules in
   let rules =
-    rules_for_analyzer ~analyzer rules
+    rules
     |> List.filter (fun r ->
            products |> List.exists (Out.equal_product r.Rule.product))
   in
@@ -841,7 +846,7 @@ let scan_exn (caps : caps) (config : Core_scan_config.t)
   let skipped_targets = skipped @ new_skipped @ res.skipped_targets in
 
   (* TODO? should probably remove ~skipped_targets and apply to latest res *)
-  log_scan_results config res ~skipped_targets;
+  log_scan_results config res ~scanned_targets ~skipped_targets;
   (* TODO: returning, or not skipped_targets does not seem to have any impact
    * on our testsuite, weird. We need to add more tests. Maybe because
    * both pysemgrep and osemgrep do their own skip targets management.

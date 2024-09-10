@@ -45,6 +45,9 @@ type t = {
   report_time : bool;
   matching_explanations : bool;
   strict : bool;
+  (* respect or not the paths: directive in a rule. Useful to set to false
+   * in a testing context as in `semgrep test`
+   *)
   respect_rule_paths : bool;
   (* Hook to display match results incrementally, after a file has been fully
    * processed. Note that this hook run in a child process of Parmap

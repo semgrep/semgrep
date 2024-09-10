@@ -36,7 +36,7 @@ module Out = Semgrep_output_v1_j
 (* Types and constants *)
 (*****************************************************************************)
 (* no need for Cap.network; the tested rules should be local *)
-type caps = < Cap.stdout >
+type caps = < Cap.stdout ; Cap.fork ; Cap.alarm >
 
 (* Intermediate type because semgrep_output_v1.atd does not have
  * a good type name for those. Note that we can't easily change the .atd
@@ -77,27 +77,6 @@ type env = {
   (* alt: get each functions returning different kind of errors *)
   errors : error list ref;
 }
-
-(*****************************************************************************)
-(* File targeting *)
-(*****************************************************************************)
-
-(* coupling: mostly copy paste of Test_engine.single_xlang_from_rules *)
-let xlang_for_rules_and_target (rules_origin : string) (rules : Rule.t list)
-    (_target : Fpath.t) : Xlang.t =
-  let xlangs = Test_engine.xlangs_of_rules rules in
-  match xlangs with
-  | [] -> failwith ("no language found in rules " ^ rules_origin)
-  | [ x ] -> x
-  (* Note that this test whether we have multiple Xlang, but
-   * remember that one Xlang.L can contain itself multiple languages
-   *)
-  | _ :: _ :: _ ->
-      let fst = Test_engine.first_xlang_of_rules rules in
-      Logs.warn (fun m ->
-          m "too many languages found in %s, picking the first one: %s"
-            rules_origin (Xlang.show fst));
-      fst
 
 (*****************************************************************************)
 (* Fixtest *)
@@ -274,27 +253,42 @@ let report_tests_result (caps : < Cap.stdout >) ~matching_diagnosis ~json
  * on where to plug to the semgrep engine.
  *)
 
-let run_rules_against_target (xlang : Xlang.t) (rules : Rule.t list)
-    (target : Fpath.t) : Core_result.matches_single_file =
-  (* running the engine *)
-  let xtarget = Test_engine.xtarget_of_file xlang target in
-  (* activate matching explanations for Diagnosis to work *)
-  let xconf = { Match_env.default_xconfig with matching_explanations = true } in
-  (* TODO switch to Core_scan.scan so easier to add a hook so we would
-   * call Deep_scan.scan instead when using osemgrep test --pro
+let run_rules_against_targets ~matching_diagnosis caps (rules : Rule.t list)
+    (targets : Target.t list) : Core_result.result_or_exn =
+  (* old:
+   * let xtarget = Test_engine.xtarget_of_file xlang target in
+   * let xconf = { Match_env.default_xconfig with matching_explanations = true}in
+   * Match_rules.check ~match_hook:(fun _ ->()) ~timeout:None xconf rules xtarget
    *)
-  Match_rules.check
-    ~match_hook:(fun _pm -> ())
-    ~timeout:None xconf rules xtarget
+  let config : Core_scan_config.t =
+    {
+      Core_scan_config.default with
+      rule_source = Rules rules;
+      target_source = Targets targets;
+      output_format = NoOutput;
+      (* activate matching explanations for Diagnosis to work *)
+      matching_explanations = matching_diagnosis;
+      (* try to be as close as possible as a real scan to avoid differences
+       * between semgrep test and semgrep scan behavior
+       *)
+      filter_irrelevant_rules = true;
+      (* in a test context, we don't want to honor the paths: (include/exclude)
+       * directive since the test target file, which must have the same
+       * basename than the rule, may not match the paths: of the rule
+       *)
+      respect_rule_paths = false;
+    }
+  in
+  Core_scan.scan caps config
 
-let compare_actual_to_expected ~matching_diagnosis (env : env)
-    (target : Fpath.t) (rules : Rule.t list)
-    (res : Core_result.matches_single_file)
+let compare_actual_to_expected (env : env) (target : Fpath.t)
+    (rules : Rule.t list) (matches : Pattern_match.t list)
+    (explanations : Matching_explanation.t list option)
     (annots : (Test_annotation.t * linenb) list) :
     test_result list * fixtest_result option =
   (* actual matches *)
   let (matches_by_ruleid : (Rule_ID.t, Pattern_match.t list) Assoc.t) =
-    if List_.null res.matches then (
+    if List_.null matches then (
       (* stricter: *)
       Logs.warn (fun m -> m "nothing matched in %s" !!target);
       (* Probably some files with todoruleid: without any match yet, but we
@@ -303,9 +297,7 @@ let compare_actual_to_expected ~matching_diagnosis (env : env)
       if not (List_.null annots) then
         rules |> List_.map (fun (r : Rule.t) -> (fst r.id, []))
       else [])
-    else
-      res.matches
-      |> Assoc.group_by (fun (pm : Pattern_match.t) -> pm.rule_id.id)
+    else matches |> Assoc.group_by (fun (pm : Pattern_match.t) -> pm.rule_id.id)
   in
   (* expected matches *)
   let (expected_by_ruleid : (Rule_ID.t, linenb list) Assoc.t) =
@@ -353,11 +345,10 @@ let compare_actual_to_expected ~matching_diagnosis (env : env)
              { Out.reported_lines; expected_lines }
            in
            let diagnosis =
-             if matching_diagnosis then
-               Some
-                 (Diagnosis.diagnose ~target ~rule_file:env.rule_file
-                    expected_reported res.explanations)
-             else None
+             let* explanations = explanations in
+             Some
+               (Diagnosis.diagnose ~target ~rule_file:env.rule_file
+                  expected_reported explanations)
            in
            let (rule_result : Out.rule_result) =
              Out.
@@ -394,7 +385,7 @@ let compare_actual_to_expected ~matching_diagnosis (env : env)
         None
     | None, false -> None
     | Some fixtest_target, true ->
-        Some (fixtest_result_for_target env target fixtest_target res.matches)
+        Some (fixtest_result_for_target env target fixtest_target matches)
   in
   (checks, fixtest_res)
 
@@ -410,7 +401,7 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
    *  those options and we should disable metrics (and version-check) by default.
    *)
   Logs.debug (fun m -> m "conf = %s" (Test_CLI.show_conf conf));
-
+  let matching_diagnosis = conf.matching_diagnosis in
   let errors = ref [] in
 
   (* TODO: switch to Target.t. Then support multiple targets tested
@@ -475,26 +466,41 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
         : (Fpath.t (* rule file *) * test_result list * fixtest_result list)
           list) =
     plan
-    |> List_.map (fun (rule_file, target) ->
+    |> List_.map (fun (rule_file, target_file) ->
            Logs.info (fun m -> m "processing rule file %s" !!rule_file);
            (* TODO? sanity check? call metachecker Check_rule.check()? *)
            match Parse_rule.parse_and_filter_invalid_rules rule_file with
-           | Ok (rules, []) ->
-               Logs.info (fun m -> m "processing target %s" !!target);
-               let xlang =
-                 xlang_for_rules_and_target !!rule_file rules target
+           | Ok (rules, []) -> (
+               Logs.info (fun m -> m "processing target %s" !!target_file);
+               (* one target file can result in different targets
+                * if the rules contain multiple xlangs
+                *)
+               let targets : Target.t list =
+                 Core_runner.targets_for_files_and_rules [ target_file ] rules
                in
                let env = { rule_file; errors } in
-               let res = run_rules_against_target xlang rules target in
+               let res_or_exn : Core_result.result_or_exn =
+                 run_rules_against_targets ~matching_diagnosis
+                   (caps :> Core_scan.caps)
+                   rules targets
+               in
                let (expected : (Test_annotation.t * linenb) list) =
-                 Test_annotation.annotations target
+                 Test_annotation.annotations target_file
                in
-               let checks, fixtest_res =
-                 compare_actual_to_expected
-                   ~matching_diagnosis:conf.matching_diagnosis env target rules
-                   res expected
-               in
-               (rule_file, checks, fixtest_res |> Option.to_list)
+               match res_or_exn with
+               | Error exn -> Exception.reraise exn
+               | Ok res ->
+                   let matches =
+                     res.processed_matches
+                     |> List_.map (fun (x : Core_result.processed_match) ->
+                            x.pm)
+                   in
+                   let explanations = res.explanations in
+                   let checks, fixtest_res =
+                     compare_actual_to_expected env target_file rules matches
+                       explanations expected
+                   in
+                   (rule_file, checks, fixtest_res |> Option.to_list))
            | Ok (_, _ :: _)
            | Error _ ->
                (* alt: use List_.filter_map above and be more fault tolerant
@@ -556,7 +562,7 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
   (* final report *)
   report_tests_result
     (caps :> < Cap.stdout >)
-    ~matching_diagnosis:conf.matching_diagnosis ~json:conf.json res;
+    ~matching_diagnosis ~json:conf.json res;
   (* TODO: and bool(config_with_errors_output) *)
   let strict_error = conf.strict && false in
   let any_failures =

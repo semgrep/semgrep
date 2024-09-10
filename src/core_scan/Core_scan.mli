@@ -119,4 +119,8 @@ val log_scan_inputs :
   unit
 
 val log_scan_results :
-  Core_scan_config.t -> Core_result.t -> skipped_targets:'a list -> unit
+  Core_scan_config.t ->
+  Core_result.t ->
+  scanned_targets:'a list ->
+  skipped_targets:'b list ->
+  unit
