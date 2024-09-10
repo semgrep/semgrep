@@ -1118,9 +1118,9 @@ Exception raised: `{e}`
         if self._binary_path is None:  # should never happen, doing this for mypy
             raise SemgrepError("semgrep engine not found.")
 
-        metachecks = Config.from_config_list(["p/semgrep-rule-lints"], None)[
-            0
-        ].get_rules(True)
+        metachecks = Config.from_config_list(
+            ["p/semgrep-rule-lints"], None, force_jsonschema=True
+        )[0].get_rules(True)
 
         parsed_errors = []
 

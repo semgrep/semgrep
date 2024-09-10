@@ -7,6 +7,7 @@ from enum import auto
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
+from tempfile import mkstemp
 from typing import Any
 from typing import Dict
 from typing import List
@@ -409,6 +410,7 @@ def read_config_folder(loc: Path, relative: bool = False) -> List[ConfigFile]:
 @tracing.trace()
 def parse_config_files(
     loaded_config_infos: List[ConfigFile],
+    force_jsonschema: bool = False,
 ) -> Tuple[Dict[str, YamlTree], List[SemgrepError]]:
     """
     Parse a list of config files into rules
@@ -449,7 +451,7 @@ def parse_config_files(
             else:
                 filename = config_path
             config_data, config_errors = parse_config_string(
-                config_id, contents, filename
+                config_id, contents, filename, force_jsonschema=force_jsonschema
             )
             config.update(config_data)
             errors.extend(config_errors)
@@ -469,12 +471,16 @@ def parse_config_files(
 
 @tracing.trace()
 def resolve_config(
-    config_str: str, project_url: Optional[str] = None
+    config_str: str,
+    project_url: Optional[str] = None,
+    force_jsonschema: bool = False,
 ) -> Tuple[Dict[str, YamlTree], List[SemgrepError]]:
     """resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
     start_t = time.time()
     config_loader = ConfigLoader(config_str, project_url)
-    config, errors = parse_config_files(config_loader.load_config())
+    config, errors = parse_config_files(
+        config_loader.load_config(), force_jsonschema=force_jsonschema
+    )
     if config:
         logger.debug(f"loaded {len(config)} configs in {time.time() - start_t}")
     return config, errors
@@ -514,7 +520,10 @@ class Config:
     @tracing.trace()
     @lru_cache(maxsize=None)
     def from_rules_yaml(
-        cls, config: str, no_rewrite_rule_ids: bool = False
+        cls,
+        config: str,
+        no_rewrite_rule_ids: bool = False,
+        force_jsonschema: bool = False,
     ) -> Tuple["Config", List[SemgrepError]]:
         config_dict: Dict[str, YamlTree] = {}
         errors: List[SemgrepError] = []
@@ -526,6 +535,7 @@ class Config:
                 config,
                 filename=None,
                 no_rewrite_rule_ids=no_rewrite_rule_ids,
+                force_jsonschema=force_jsonschema,
             )
             config_dict.update(config_data)
             errors.extend(config_errors)
@@ -539,7 +549,10 @@ class Config:
     @classmethod
     @tracing.trace()
     def from_config_list(
-        cls, configs: Sequence[str], project_url: Optional[str]
+        cls,
+        configs: Sequence[str],
+        project_url: Optional[str],
+        force_jsonschema: bool = False,
     ) -> Tuple["Config", List[SemgrepError]]:
         """
         Takes in list of files/directories and returns Config object as well as
@@ -556,7 +569,9 @@ class Config:
         for i, config in enumerate(configs):
             try:
                 # Patch config_id to fix https://github.com/returntocorp/semgrep/issues/1912
-                resolved_config, config_errors = resolve_config(config, project_url)
+                resolved_config, config_errors = resolve_config(
+                    config, project_url, force_jsonschema=force_jsonschema
+                )
                 errors.extend(config_errors)
                 if not resolved_config:
                     logger.verbose(f"Could not resolve config for {config}. Skipping.")
@@ -747,6 +762,7 @@ def parse_config_string(
     contents: str,
     filename: Optional[str],
     no_rewrite_rule_ids: bool = False,
+    force_jsonschema: bool = False,
 ) -> Tuple[Dict[str, YamlTree], List[SemgrepError]]:
     if not contents:
         raise SemgrepError(
@@ -755,18 +771,39 @@ def parse_config_string(
 
     # Should we guard this code and checks whether filename ends with .json?
     errors: List[SemgrepError] = []
+
+    rules_tmp_path: Optional[str] = None
+    try:
+        fd, rules_tmp_path = mkstemp(suffix=".rules", prefix="semgrep-", text=True)
+        with os.fdopen(fd, "w") as fp:
+            fp.write(contents)
+        logger.debug(f"Saving rules to {rules_tmp_path}")
+    except Exception as e:
+        logger.debug(f"Failed to write {rules_tmp_path=} to disk: {e}")
+
     try:
         # we pretend it came from YAML so we can keep later code simple
         data = YamlTree.wrap(json.loads(contents), EmptySpan)
         errors.extend(
-            validate_yaml(data, filename, no_rewrite_rule_ids=no_rewrite_rule_ids)
+            validate_yaml(
+                data,
+                filename,
+                no_rewrite_rule_ids=no_rewrite_rule_ids,
+                force_jsonschema=force_jsonschema,
+                rules_tmp_path=rules_tmp_path,
+            )
         )
         return ({config_id: data}, errors)
     except json.decoder.JSONDecodeError:
         pass
 
     try:
-        data, config_errors = parse_config_preserve_spans(contents, filename)
+        data, config_errors = parse_config_preserve_spans(
+            contents,
+            filename,
+            force_jsonschema=force_jsonschema,
+            rules_tmp_path=rules_tmp_path,
+        )
         errors.extend(config_errors)
     except EmptyYamlException:
         raise SemgrepError(
@@ -917,6 +954,7 @@ def get_config(
     project_url: Optional[str],
     replacement: Optional[str] = None,
     no_rewrite_rule_ids: bool = False,
+    force_jsonschema: bool = False,
 ) -> Tuple[Config, List[SemgrepError]]:
     if pattern:
         if not lang:
@@ -924,13 +962,17 @@ def get_config(
         config, errors = Config.from_pattern_lang(pattern, lang, replacement)
     elif len(config_strs) == 1 and is_rules(config_strs[0]):
         config, errors = Config.from_rules_yaml(
-            config_strs[0], no_rewrite_rule_ids=no_rewrite_rule_ids
+            config_strs[0],
+            no_rewrite_rule_ids=no_rewrite_rule_ids,
+            force_jsonschema=force_jsonschema,
         )
     elif replacement:
         raise SemgrepError(
             "command-line replacement flag can only be used with command-line pattern; when using a config file add the fix: key instead"
         )
     else:
-        config, errors = Config.from_config_list(config_strs, project_url)
+        config, errors = Config.from_config_list(
+            config_strs, project_url, force_jsonschema=force_jsonschema
+        )
 
     return config, errors

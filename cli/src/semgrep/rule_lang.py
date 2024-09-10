@@ -9,6 +9,7 @@ from typing import Generic
 from typing import ItemsView
 from typing import KeysView
 from typing import List
+from typing import Literal
 from typing import Optional
 from typing import Set
 from typing import Tuple
@@ -18,7 +19,6 @@ from typing import Union
 import jsonschema.exceptions
 from jsonschema.validators import Draft7Validator
 from packaging.version import Version
-from pydantic import ValidationError
 from ruamel.yaml import MappingNode
 from ruamel.yaml import Node
 from ruamel.yaml import RoundTripConstructor
@@ -33,7 +33,7 @@ from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.error_location import SourceTracker
 from semgrep.error_location import Span
-from semgrep.rule_model import RuleModel
+from semgrep.rpc_call import validate as rpc_validate
 from semgrep.verbose_logging import getLogger
 
 MISSING_RULE_ID = "no-rule-id"
@@ -268,12 +268,21 @@ def parse_yaml_preserve_spans(
 
 @tracing.trace()
 def parse_config_preserve_spans(
-    contents: str, filename: Optional[str]
+    contents: str,
+    filename: Optional[str],
+    force_jsonschema: bool = False,
+    rules_tmp_path: Optional[str] = None,
 ) -> Tuple[YamlTree, List[SemgrepError]]:
     data = parse_yaml_preserve_spans(contents, filename)
     if not data:
         raise EmptyYamlException()
-    errors = validate_yaml(data, filename)
+    errors = validate_yaml(
+        data,
+        filename,
+        no_rewrite_rule_ids=False,
+        force_jsonschema=force_jsonschema,
+        rules_tmp_path=rules_tmp_path,
+    )
     return data, errors
 
 
@@ -528,45 +537,66 @@ def remove_incompatible_rules_based_on_version(
     return errors
 
 
-@tracing.trace()
-def validate_yaml_pydantic(data: YamlTree) -> None:
-    # MARK: Run pydantic validation for a 20x perf improvement in validation speed
-    # relative to `jsonschema.validate`
-    RuleModel.model_validate(data.unroll())
+class RpcValidationError(Exception):
+    pass
+
+
+def run_rpc_validate(rules_tmp_path: str) -> Literal[True]:
+    try:
+        valid = rpc_validate(out.Fpath(rules_tmp_path))
+        logger.debug(f"semgrep-core validation response: {valid=}")
+        if valid:
+            logger.debug("semgrep-core validation succeeded")
+            return True
+        raise RpcValidationError("semgrep-core validation failed")
+    except Exception as e:
+        raise e
 
 
 @tracing.trace()
 def validate_yaml(
-    data: YamlTree, filename: Optional[str] = None, no_rewrite_rule_ids: bool = False
+    data: YamlTree,
+    filename: Optional[str] = None,
+    no_rewrite_rule_ids: bool = False,
+    force_jsonschema: bool = False,
+    rules_tmp_path: Optional[str] = None,
 ) -> List[SemgrepError]:
     from semgrep.error import InvalidRuleSchemaError
 
     errors = remove_incompatible_rules_based_on_version(
         data, filename, no_rewrite_rule_ids=no_rewrite_rule_ids
     )
-
+    # If we specifically request jsonschema validation (or tmp_path of the rules was not successfully
+    # set), we skip the RPC validation and go straight to jsonschema validation
+    skip_rpc_validation = force_jsonschema or not rules_tmp_path
     try:
-        # Use pydantic to validate the schema first, which can be 20x faster
-        try:
-            with tracing.TRACER.start_as_current_span("pydantic.validate"):
-                validate_yaml_pydantic(data)
-        except (ValidationError, NotImplementedError) as e:
-            # If we get a validation error (or intentionally raise NotImplementedError)
-            # we want to pass through to the jsonschema validation
-            # for the custom error messages
-            logger.verbose(
-                f"Fast rule validation failed, falling back to jsonschema.validate: {e}"
+        if skip_rpc_validation:
+            logger.debug(
+                "Skipping semgrep-core validation to proceed directly to jsonschema validation"
             )
-            with tracing.TRACER.start_as_current_span("jsonschema.validate"):
-                jsonschema.validate(
-                    data.unroll(), RuleSchema.get(), cls=Draft7Validator
-                )
-                # If we reach this line, the jsonschema validation passed but pydantic failed
-                logger.verbose(
-                    "Mismatch between pydantic and jsonschema validation! RuleModel is likely out of date."
-                )
-        # After the first (and or second pass), we should have a valid schema
-        # and can return the errors
+        else:
+            # NOTE: Some rule schema errors are marked as "Other syntax error" by the
+            # native RPC-based validation and are included in the errors JSON response
+            # without outright rejecting the config. This behavior presents an immediate
+            # challenge for certain validation test cases and is called out in SAF-1556.
+            try:
+                if not rules_tmp_path or not Path.exists(Path(rules_tmp_path)):
+                    raise NotImplementedError(
+                        "Cannot execute RPC validation without a rules_tmp_path"
+                    )
+                with tracing.TRACER.start_as_current_span("rpc.validate"):
+                    run_rpc_validate(rules_tmp_path=rules_tmp_path)
+                    logger.debug("RPC validation succeeded")
+                    # If we reach this line, the RPC-based validation passed and we can early return
+                    return errors
+            except (RpcValidationError, NotImplementedError) as e:
+                logger.debug(f"run_rpc_validate failed: {e}")
+
+        # Now enter the jsonschema validation for the custom error messages
+        with tracing.TRACER.start_as_current_span("jsonschema.validate"):
+            jsonschema.validate(data.unroll(), RuleSchema.get(), cls=Draft7Validator)
+        # At this point we have successfully validated the rules
+        # and can return any errors
         return errors
     except jsonschema.ValidationError as ve:
         message = _validation_error_message(ve)

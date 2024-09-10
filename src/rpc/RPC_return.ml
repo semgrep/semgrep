@@ -84,3 +84,15 @@ let sarif_format _caps hide_nudge engine_label show_dataflow_traces
 
 let contributions (caps : < Cap.exec >) : Out.contributions =
   Parse_contribution.get_contributions caps
+
+let validate (path : Out.fpath) : bool =
+  try
+    let res = Parse_rule.parse path in
+    let valid =
+      match res with
+      | Ok _ -> true
+      | Error _ -> false
+    in
+    valid
+  with
+  | _ -> false
