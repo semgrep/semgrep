@@ -218,6 +218,16 @@ let dir_exists path =
   with
   | UUnix.Unix_error (Unix.ENOENT, _, _) -> false
 
+let rec make_directories dir =
+  try UUnix.mkdir !!dir 0o755 with
+  (* The directory already exists *)
+  | UUnix.Unix_error ((EEXIST | EISDIR), _, _) when is_directory dir -> ()
+  (* parent doesn't exist *)
+  | UUnix.Unix_error (ENOENT, _, _) ->
+      let parent = Fpath.parent dir in
+      make_directories parent;
+      make_directories dir
+
 let find_first_match_with_whole_line path ?split:(chr = '\n') =
   Bos.OS.File.with_ic path @@ fun ic term ->
   let len = in_channel_length ic in
