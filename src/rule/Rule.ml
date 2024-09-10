@@ -157,7 +157,12 @@ and metavar_cond_name = {
   *)
 }
 
-and metavar_analysis_kind = CondEntropy | CondEntropyV2 | CondReDoS
+and metavar_analysis_kind =
+  | CondEntropy
+  | CondEntropyV2 of entropy_analysis_mode
+  | CondReDoS
+
+and entropy_analysis_mode = Lax | Default | Strict
 
 (* ugly: adhoc static analysis used in pro. In the long term we should
  * instead improve the engine (e.g., finish steps mode) instead of

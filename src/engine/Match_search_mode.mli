@@ -6,7 +6,8 @@ val check_rule :
   Xtarget.t ->
   Core_profiling.rule_profiling Core_result.match_result
 
-val hook_pro_entropy_analysis : (string -> bool) option ref
+val hook_pro_entropy_analysis :
+  (mode:Rule.entropy_analysis_mode -> string -> bool) option ref
 
 val hook_pro_metavariable_name :
   (AST_generic.expr -> Rule.metavar_cond_name -> bool) option ref
