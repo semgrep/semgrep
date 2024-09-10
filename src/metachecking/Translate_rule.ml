@@ -33,7 +33,7 @@ open Rule
 (* Main translation logic *)
 (*****************************************************************************)
 
-let rec range_to_string (range : (Tok.location * Tok.location) option) =
+let range_to_string (range : (Tok.location * Tok.location) option) =
   match range with
   | Some (start, end_) ->
       UFile.Legacy.with_open_infile start.pos.file (fun chan ->
@@ -42,7 +42,20 @@ let rec range_to_string (range : (Tok.location * Tok.location) option) =
           really_input_string chan extract_size)
   | None -> failwith "invalid source/sink requires"
 
-and translate_metavar_cond cond : [> `O of (string * Yaml.value) list ] =
+let translate_entropy_v2_options mode =
+  ( "options",
+    `O
+      [
+        ( "mode",
+          `String
+            (match mode with
+            | Lax -> "lax"
+            | Strict -> "strict"
+            (* kb - how2optional node*)
+            | Default -> "default") );
+      ] )
+
+let rec translate_metavar_cond cond : [> `O of (string * Yaml.value) list ] =
   match cond with
   | CondEval e -> `O [ ("comparison", `String (range_to_string e.e_range)) ]
   | CondType (mv, lang, strs, _) ->
@@ -68,16 +81,16 @@ and translate_metavar_cond cond : [> `O of (string * Yaml.value) list ] =
   | CondRegexp (mv, re_str, _) ->
       `O [ ("metavariable", `String mv); ("regex", `String re_str) ]
   | CondAnalysis (mv, analysis) ->
+      let analyzer, options =
+        match analysis with
+        | CondEntropy -> ("entropy", [])
+        | CondEntropyV2 options ->
+            ("entropy_v2", [ translate_entropy_v2_options options ])
+        | CondReDoS -> ("redos", [])
+      in
       `O
-        [
-          ("metavariable", `String mv);
-          ( "analyzer",
-            `String
-              (match analysis with
-              | CondEntropy -> "entropy"
-              | CondEntropyV2 -> "entropy_v2"
-              | CondReDoS -> "redos") );
-        ]
+        ([ ("metavariable", `String mv); ("analyzer", `String analyzer) ]
+        @ options)
   | CondNestedFormula (mv, lang, f) ->
       let (`O fs) = translate_formula f in
       `O

@@ -670,7 +670,9 @@ let mk_expls_after_formula_kind ~formula_kind_expls ~filter_expls ~focus_expls
 (* Metavariable condition evaluation *)
 (*****************************************************************************)
 
-let hook_pro_entropy_analysis : (string -> bool) option ref = ref None
+let hook_pro_entropy_analysis :
+    (mode:Rule.entropy_analysis_mode -> string -> bool) option ref =
+  ref None
 
 let hook_pro_metavariable_name :
     (G.expr -> Rule.metavar_cond_name -> bool) option ref =
@@ -780,7 +782,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
               *)
              | Some capture_bindings -> Some (r, capture_bindings @ new_bindings)
              )
-         | R.CondAnalysis (mvar, CondEntropyV2) -> (
+         | R.CondAnalysis (mvar, CondEntropyV2 mode) -> (
              match !hook_pro_entropy_analysis with
              | None ->
                  (* TODO - nice UX handling of this for pysemgrep - tell the user
@@ -796,7 +798,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
              | Some f ->
                  let bindings = r.mvars in
                  Metavariable_analysis.analyze_string_metavar env bindings mvar
-                   f
+                   (f ~mode)
                  |> map_bool r)
          | R.CondAnalysis (mvar, CondEntropy) ->
              let bindings = r.mvars in
