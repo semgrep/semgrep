@@ -18,6 +18,7 @@ open Lsp_
 open Types
 open Jsonrpc
 open Fpath_.Operators
+module Env = Semgrep_envvars
 module OutJ = Semgrep_output_v1_t
 module In = Input_to_core_t
 module SR = Server_request
@@ -1173,6 +1174,61 @@ let test_search_includes_excludes caps () =
 
       Lwt.return_unit)
 
+let test_ls_delete_cache caps () =
+  with_session caps (fun { server = info; root } ->
+      (* Helpers *)
+      (* a string -> Fpath.t helper *)
+      let to_fpath_exn (s : string) : Fpath.t =
+        Result.get_ok @@ Fpath.of_string s
+      in
+      let assert_cache_exists () =
+        let cache_dir = !Env.v.user_dot_semgrep_dir / "cache" in
+        if not (Sys.file_exists !!cache_dir) then
+          Alcotest.fail "cache wasn't created!"
+      in
+      (* init. fileserver *)
+      let files = mock_search_files root in
+      let%lwt info = check_startup info [ root ] files in
+
+      (* Since the goal of this test is testing how the LS handles filesystem
+       * manipulation, modify the environment's $HOME & $SEMGREP to tmp/
+       * & tmp/.semgrep
+       *)
+      let tmp = to_fpath_exn (Filename.get_temp_dir_name ()) in
+      Env.v :=
+        {
+          !Env.v with
+          user_home_dir = tmp;
+          user_dot_semgrep_dir = tmp / ".semgrep";
+        };
+
+      (* do a simple search *)
+      let%lwt info, matches = do_search ~pattern:"x = 0" info in
+
+      (* Check if we created search files + shutdown to create a cache *)
+      Alcotest.(check int) "number of matches" 2 (List.length matches);
+      let%lwt _ = send_request info CR.Shutdown receive_response in
+
+      (* ASSERT: cache exists after shutdown *)
+      assert_cache_exists ();
+
+      (* mimic deleting cache dir by changing .semgrep/ to .semgrepp/ *)
+      Env.v :=
+        {
+          !Env.v with
+          user_dot_semgrep_dir =
+            to_fpath_exn (!!(!Env.v.user_dot_semgrep_dir) ^ "p");
+        };
+      (* TEST: run the server again after shut down *)
+      let%lwt info, _ = do_search ~pattern:"x = 0" info in
+      Alcotest.(check int) "number of matches" 2 (List.length matches);
+      let%lwt _ = send_request info CR.Shutdown receive_response in
+
+      (* ASSERT: cache exists after deletion *)
+      assert_cache_exists ();
+
+      Lwt.return ())
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -1200,6 +1256,7 @@ let promise_tests caps =
     pair "LS exts" (test_ls_ext caps) ~tolerate_chdir:true;
     pair "LS with no folders" (test_ls_no_folders caps);
     pair "LS multi-workspaces" (test_ls_multi caps) ~tolerate_chdir:true;
+    pair "Test LS cache deletion" (test_ls_delete_cache caps);
   ]
   |> List.split
 
