@@ -198,7 +198,11 @@ def test_invalid_pattern_child():
     )
 
     with pytest.raises(InvalidRuleSchemaError):
-        parse_config_string("testfile", rule, None)
+        # NOTE: force_jsonschema is used to force the use of the jsonschema parser
+        # instead of the rpc-based validation as we need raise an error earlier
+        # in Parse_rule.ml to match the behavior for pysemgrep.
+        # See SAF-1556 for more details.
+        parse_config_string("testfile", rule, None, force_jsonschema=True)
 
 
 @pytest.mark.quick

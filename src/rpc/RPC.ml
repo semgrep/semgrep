@@ -61,6 +61,9 @@ let handle_call (caps : < Cap.exec ; Cap.tmp >) :
   | `CallFormatter (output_format, cli_output) ->
       let str = RPC_return.format output_format cli_output in
       Ok (`RetFormatter str)
+  | `CallValidate path ->
+      let valid = RPC_return.validate path in
+      Ok (`RetValidate valid)
 
 (*****************************************************************************)
 (* Helpers *)

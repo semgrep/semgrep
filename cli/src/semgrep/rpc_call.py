@@ -46,3 +46,12 @@ def contributions() -> out.Contributions:
         logger.warning("Failed to collect contributions. Continuing with scan...")
         return out.Contributions([])
     return ret.value
+
+
+def validate(fp: out.Fpath) -> bool:
+    call = out.FunctionCall(out.CallValidate(fp))
+    ret: Optional[out.RetValidate] = rpc_call(call, out.RetValidate)
+    if ret is None:
+        logger.error("Failed to validate semgrep configuration")
+        return out.RetValidate(False).value
+    return ret.value

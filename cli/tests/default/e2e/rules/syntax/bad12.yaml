@@ -2,6 +2,7 @@ rules:
   - id: bad12
     pattern-either:
       - pattern: $X
+      # Invalid Not; you can only negate inside an And
       - pattern-not: $Y
     severity: ERROR
     languages: [python]

@@ -14,3 +14,4 @@ val sarif_format :
   string * float
 
 val contributions : < Cap.exec > -> Out.contributions
+val validate : Out.fpath -> bool
