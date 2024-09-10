@@ -4,7 +4,11 @@
  *)
 
 type t = [ `Tainted of Taint.taints | `None  (** no info *) | `Clean ]
-(** See 'Taint_shape.ref'. *)
+(** "Xtaint" makes a explicit difference between "no taint" and "clean", which is
+ * a difference that matters for field-sensitivity (see 'Taint_sig'). We also have
+ * a separate constructor to represent "no info", instead of representing it with
+ * an empty taint set---this is for convenience.
+ * See also 'Taint_sig.cell'. *)
 
 type t_or_sanitized = [ t | `Sanitized ]
 (** When checking the taint of an l-value, we want to distinguish between "clean",
