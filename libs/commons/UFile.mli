@@ -100,6 +100,14 @@ val lfile_exists : Fpath.t -> bool
 val dir_exists : Fpath.t -> bool
 
 (*****************************************************************************)
+(* Filesystem manipulation *)
+(*****************************************************************************)
+(* Makes the given directory as well as its parent directories.
+ * Raises Unix_error if A non-directory object with the same name exists.
+ *)
+val make_directories : Fpath.t -> unit
+
+(*****************************************************************************)
 (* Legacy API using 'string' for filenames instead of Fpath.t *)
 (*****************************************************************************)
 
