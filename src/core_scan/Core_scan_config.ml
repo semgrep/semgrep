@@ -65,7 +65,9 @@ type t = {
   ncores : int;
   (* a.k.a -fast (on by default) *)
   filter_irrelevant_rules : bool;
-  (* debugging and telemetry flags *)
+  (* debugging and telemetry flags
+   * TODO: put all those fields in a separate record trace: trace_info option;
+   *)
   trace : bool;
   trace_endpoint : string option;
   (* To add data to our opentelemetry top span, so easier to filter *)
