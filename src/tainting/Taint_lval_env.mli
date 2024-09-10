@@ -44,7 +44,7 @@ val hook_propagate_to :
 val empty : env
 val empty_inout : env Dataflow_core.inout
 
-val add_shape : IL.lval -> Taint.taints -> Taint_shape.shape -> env -> env
+val add_shape : IL.lval -> Taint.taints -> Taint_sig.shape -> env -> env
 (** Add taints & shape to an l-value.
 
     Adding taints to x.a_1. ... .a_N will NOT taint the prefixes
@@ -57,11 +57,11 @@ val add : add_fn
 (* THINK: Perhaps keep propagators outside of this environment? *)
 val propagate_to : Dataflow_var_env.var -> Taint.taints -> env -> env
 
-val find_var : env -> IL.name -> Taint_shape.ref option
-(** Find the 'ref' of a variable. *)
+val find_var : env -> IL.name -> Taint_sig.cell option
+(** Find the 'cell' of a variable. *)
 
-val find_lval : env -> IL.lval -> Taint_shape.ref option
-(** Find the 'ref' of an l-value. *)
+val find_lval : env -> IL.lval -> Taint_sig.cell option
+(** Find the 'cell' of an l-value. *)
 
 val find_lval_xtaint : env -> IL.lval -> Xtaint.t
 (** Look up an l-value on the environemnt and return whether it's tainted, clean,
@@ -103,4 +103,4 @@ val equal_by_lval : env -> env -> IL.lval -> bool
  * and each one of its extensions. *)
 
 val to_string : env -> string
-val seq_of_tainted : env -> (IL.name * Taint_shape.ref) Seq.t
+val seq_of_tainted : env -> (IL.name * Taint_sig.cell) Seq.t

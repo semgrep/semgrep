@@ -149,7 +149,7 @@ and orig =
        *)
   | Shape_var of lval
       (** A taint shape-variable stands for the taints reachable through the
-        * shape of the 'lval', see 'Taint_shape.gather_all_taints_in_shape'. *)
+        * shape of the 'lval', see 'Taint_sig.gather_all_taints_in_shape'. *)
   | Control  (** Polymorphic taint variable, but for the "control-flow". *)
 
 and taint = { orig : orig; tokens : tainted_tokens }

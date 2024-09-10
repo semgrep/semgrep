@@ -39,7 +39,7 @@ let taint_FIXPOINT_TIMEOUT = 0.1
 let taint_MAX_TAINTED_VARS = 50
 
 (** Bounds the number of fields we can track per l-value, that is, the number of
- * fields in an 'Obj' shape, see 'Taint_shape.shape'. *)
+ * fields in an 'Obj' shape, see 'Taint_sig.shape'. *)
 let taint_MAX_OBJ_FIELDS = 10
 
 (** Bounds the number of taints we can track per l-value.
