@@ -18,6 +18,7 @@ module Env = Semgrep_envvars
 (* input
  * LATER: ideally we can cleanup Core_scan_config.ml enough that we don't
  * need this extra type can can just reuse Core_scan_config.t as is.
+ * TODO: At least factorize some of it like the opti/limits
  *)
 type conf = {
   (* opti and limits *)
@@ -62,16 +63,6 @@ type result = {
   core : Semgrep_output_v1_t.core_output;
   hrules : Rule.hrules;
   scanned : Fpath.t Set_.t;
-      (* in python implem *)
-      (* TODO: original intermediate data structures in python *)
-      (*
-     findings_by_rule : (Rule.t, Rule_match.t list) Map_.t;
-     errors : Error.t list;
-     all_targets: path Set_.t;
-     (*profiling_data: profiling_data; TOPORT: do we need to translate this? *)
-     parsing_data : Parsing_data.t;
-     explanations : Out.matching_explanation list option;
-  *)
 }
 
 (* Type for the scan function, which can either be built by
@@ -122,6 +113,25 @@ let (hook_mk_pro_core_run_for_osemgrep : (pro_conf -> func) option ref) =
  * that are needed for the scan.
  *)
 let (hook_pro_git_remote_scan_setup : (func -> func) option ref) = ref None
+
+(*************************************************************************)
+(* Metrics and reporting *)
+(*************************************************************************)
+let report_status_and_add_metrics_languages ~respect_gitignore
+    (lang_jobs : Lang_job.t list) (rules : Rule.t list) (targets : Fpath.t list)
+    =
+  Logs.app (fun m ->
+      m "%a"
+        (fun ppf () ->
+          (* TODO: validate if target is actually within a git repo and
+             perhaps set respect_git_ignore to false otherwise *)
+          Status_report.pp_status ~num_rules:(List.length rules)
+            ~num_targets:(List.length targets) ~respect_gitignore lang_jobs ppf)
+        ());
+  lang_jobs
+  |> List.iter (fun { Lang_job.xlang; _ } ->
+         Metrics_.add_feature "language" (Xlang.to_string xlang));
+  ()
 
 (*************************************************************************)
 (* Extract mode *)
@@ -179,12 +189,13 @@ let group_rules_by_target_language (rules : Rule.t list) :
                 Hashtbl.replace tbl lang (rule :: rules)));
   Hashtbl.fold (fun lang rules acc -> (lang, rules) :: acc) tbl []
 
+(* If Javascript is one of the rule languages, we should also run on
+   Typescript files. This implementation mimics the hack in `rule.py`.
+   We could alternatively set this by changing lang.json, but we should
+   be careful to do that without affecting other things like the docs
+*)
 let add_typescript_to_javascript_rules_hack (rules : Rule.t list) : Rule.t list
     =
-  (* If Javascript is one of the rule languages, we should also run on
-     Typescript files. This implementation mimics the hack in `rule.py`.
-     We could alternatively set this by changing lang.json, but we should
-     be careful to do that without affecting other things like the docs *)
   rules
   |> List_.map (fun r ->
          match r.Rule.target_analyzer with
@@ -249,9 +260,10 @@ let targets_for_files_and_rules (files : Fpath.t list) (rules : Rule.t list) :
   lang_jobs |> List.concat_map targets_of_lang_job
 
 (*************************************************************************)
-(* Other helpers *)
+(* Input/output adapters to Core_scan input/output *)
 (*************************************************************************)
 
+(* input adapter to Core_scan.scan *)
 let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
   match conf with
   | {
@@ -271,7 +283,6 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
       let output_format = Core_scan_config.NoOutput in
       let filter_irrelevant_rules = optimizations in
       {
-        Core_scan_config.default with
         ncores = num_jobs;
         output_format;
         timeout;
@@ -281,14 +292,24 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
         matching_explanations;
         strict;
         report_time = time_flag;
+        (* set later in mk_core_run_for_osemgrep *)
+        target_source = Targets [];
+        rule_source = Rules [];
+        file_match_hook = None;
+        (* same than in Core_scan_config.default
+         * alt: we could use a 'Core_scan_config.default with ...' but better
+         * to list all the fields.
+         *)
+        equivalences_file = None;
+        respect_rule_paths = true;
+        max_match_per_file = Core_scan_config.default.max_match_per_file;
+        trace = false;
+        trace_endpoint = None;
+        top_level_span = None;
       }
 
-let prepare_config_for_core_scan (config : Core_scan_config.t)
-    (lang_jobs : Lang_job.t list) : Core_scan_config.t =
-  let targets, rules = targets_and_rules_of_lang_jobs lang_jobs in
-  { config with target_source = Targets targets; rule_source = Rules rules }
-
-(* LATER: we want to avoid this intermediate data structure but
+(* output adapter to Core_scan.scan.
+ * LATER: we want to avoid this intermediate data structure but
  * for now that's what pysemgrep used to get so simpler to return it.
  *)
 let mk_result (all_rules : Rule.rule list) (res : Core_result.t) : result =
@@ -317,7 +338,7 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
   let run ?(file_match_hook = None) (conf : conf)
       (targeting_conf : Find_targets.conf)
       (rules_and_invalid : Rule_error.rules_and_invalid)
-      (all_targets : Fpath.t list) : Core_result.result_or_exn =
+      (targets : Fpath.t list) : Core_result.result_or_exn =
     (*
        At this point, we already have the full list of targets. These targets
        will populate the 'target_source' field of the config object
@@ -331,13 +352,7 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
     in
     let config : Core_scan_config.t = core_scan_config_of_conf conf in
     let config = { config with file_match_hook } in
-    (* TODO: we should not need to use List_.map below, because
-       Run_semgrep.semgrep_with_raw_results_and_exn_handler can accept
-       a list of targets with different languages! We just
-       need to pass the right target object (and not a lang_job)
-       TODO: Martin said the issue was that Run_semgrep.targets_of_config
-       requires the xlang object to contain a single language.
-       TODO: Martin says there's no fundamental reason to split
+    (* LATER: Martin says there's no fundamental reason to split
        a scanning job by programming language. Several optimizations
        are possible based on target project structure, number and diversity
        of rules, presence of rule-specific include/exclude patterns etc.
@@ -346,7 +361,17 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
        in use, bypassing it without removing it seems complicated.
        See https://www.notion.so/r2cdev/Osemgrep-scanning-algorithm-5962232bfd74433ba50f97c86bd1a0f3
     *)
-    let lang_jobs = split_jobs_by_language targeting_conf rules all_targets in
+    let lang_jobs = split_jobs_by_language targeting_conf rules targets in
+    report_status_and_add_metrics_languages
+      ~respect_gitignore:targeting_conf.respect_gitignore lang_jobs rules
+      targets;
+    let targets, rules = targets_and_rules_of_lang_jobs lang_jobs in
+    let config =
+      { config with target_source = Targets targets; rule_source = Rules rules }
+    in
+
+    (* !!!!Finally! this is where we branch to semgrep-core core scan fun!!! *)
+    let/ res = core_scan_func config in
     let rules_with_targets =
       lang_jobs
       |> List.concat_map (fun { Lang_job.rules; _ } -> rules)
@@ -354,22 +379,6 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
             explain why because otherwise it looks like a bug. *)
       List_.uniq_by Stdlib.( == )
     in
-    Logs.app (fun m ->
-        m "%a"
-          (fun ppf () ->
-            (* TODO: validate if target is actually within a git repo and
-               perhaps set respect_git_ignore to false otherwise *)
-            Status_report.pp_status ~num_rules:(List.length rules)
-              ~num_targets:(List.length all_targets)
-              ~respect_gitignore:targeting_conf.respect_gitignore lang_jobs ppf)
-          ());
-    lang_jobs
-    |> List.iter (fun { Lang_job.xlang; _ } ->
-           Metrics_.add_feature "language" (Xlang.to_string xlang));
-    let config = prepare_config_for_core_scan config lang_jobs in
-
-    (* !!!!Finally! this is where we branch to semgrep-core core scan fun!!! *)
-    let/ res = core_scan_func config in
     (* Reinject rule errors *)
     let res =
       {
@@ -384,10 +393,6 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
       res.scanned |> List_.map Target.internal_path |> Set_.of_list
     in
 
-    (* TODO(dinosaure): currently, we don't collect metrics when we invoke
-       semgrep-core but we should. However, if we implement a way to collect
-       metrics, we will just need to set [final_result.extra] to
-       [Core_result.Debug]/[Core_result.Time] and this line of code will not change. *)
     Metrics_.add_max_memory_bytes res.profiling;
     Metrics_.add_targets_stats scanned res.profiling;
     Ok res
