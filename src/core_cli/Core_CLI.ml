@@ -53,8 +53,8 @@ let log_to_file = ref None
  *)
 let debug = ref false
 let profile = ref false
-let trace = ref Core_scan_config.default.trace
-let trace_endpoint = ref Core_scan_config.default.trace_endpoint
+let trace = ref false
+let trace_endpoint = ref None
 
 (* ------------------------------------------------------------------------- *)
 (* main flags *)
@@ -285,6 +285,11 @@ let output_core_results (caps : < Cap.stdout ; Cap.exit >)
 (* Config *)
 (*****************************************************************************)
 
+(* Coupling: these need to be kept in sync with tracing.py *)
+let default_trace_endpoint = Uri.of_string "https://telemetry.semgrep.dev"
+let default_dev_endpoint = Uri.of_string "https://telemetry.dev2.semgrep.dev"
+let default_local_endpoint = Uri.of_string "http://localhost:4318"
+
 let mk_config () : Core_scan_config.t =
   {
     rule_source =
@@ -310,9 +315,21 @@ let mk_config () : Core_scan_config.t =
     ncores = !ncores;
     filter_irrelevant_rules = !filter_irrelevant_rules;
     (* open telemetry *)
-    trace = !trace;
-    trace_endpoint = !trace_endpoint;
-    top_level_span = None;
+    tracing =
+      (match (!trace, !trace_endpoint) with
+      | true, Some url ->
+          let endpoint =
+            match url with
+            | "semgrep-prod" -> default_trace_endpoint
+            | "semgrep-dev" -> default_dev_endpoint
+            | "semgrep-local" -> default_local_endpoint
+            | _ -> Uri.of_string url
+          in
+          Some { endpoint; top_level_span = None }
+      | true, None ->
+          Some { endpoint = default_trace_endpoint; top_level_span = None }
+      | false, Some _ -> failwith "need both -trace and -trace_endpoint"
+      | false, None -> None);
   }
 
 (*****************************************************************************)
@@ -766,7 +783,7 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
       (* --------------------------------------------------------- *)
       (* main entry *)
       (* --------------------------------------------------------- *)
-      | roots ->
+      | roots -> (
           let roots = Fpath_.of_strings roots in
           let config = mk_config () in
           Core_profiling.profiling := config.report_time;
@@ -793,6 +810,7 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
                    and a single target file; if you need more complex file \
                    targeting use semgrep"
           in
+          let config = { config with target_source; ncores } in
 
           (* TODO: We used to tune the garbage collector but from profiling
              we found that the effect was small. Meanwhile, the memory
@@ -800,29 +818,30 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
              tune these parameters in the future/do more testing, but
              for now just turn it off *)
           (* if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc (); *)
-          let run ?span_id () =
-            let config =
-              { config with target_source; ncores; top_level_span = span_id }
-            in
+          let run config =
             let res = Core_scan.scan (caps :> Core_scan.caps) config in
             output_core_results (caps :> < Cap.stdout ; Cap.exit >) res config
           in
-
           (* Set up tracing and run it for the duration of scanning. Note that
              this will only trace `Core_command.run_conf` and the functions it
              calls.
              TODO when osemgrep is the default entry point, we will also be
              able to instrument the pre- and post-scan code in the same way.
           *)
-          if config.trace then (
-            let trace_data =
-              Trace_data.get_top_level_data config.ncores Version.version
-                (Trace_data.no_analysis_features ())
-            in
-            Tracing.configure_tracing "semgrep-oss";
-            Tracing.with_tracing "Core_command.semgrep_core_dispatch"
-              config.trace_endpoint trace_data (fun span_id -> run ~span_id ()))
-          else run ())
+          match config.tracing with
+          | None -> run config
+          | Some tracing ->
+              let trace_data =
+                Trace_data.get_top_level_data config.ncores Version.version
+                  (Trace_data.no_analysis_features ())
+              in
+              Tracing.configure_tracing "semgrep-oss";
+              Tracing.with_tracing "Core_command.semgrep_core_dispatch"
+                tracing.endpoint trace_data (fun span_id ->
+                  let tracing =
+                    { tracing with top_level_span = Some span_id }
+                  in
+                  run { config with tracing = Some tracing })))
 
 let with_exception_trace f =
   Printexc.record_backtrace true;

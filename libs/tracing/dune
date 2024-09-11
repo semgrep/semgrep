@@ -3,6 +3,7 @@
  (public_name tracing)
  (wrapped false)
   (libraries
+    uri
     trace
   )
  (virtual_modules tracing)

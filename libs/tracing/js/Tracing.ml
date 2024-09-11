@@ -27,6 +27,13 @@
 type span = int64 [@@deriving show]
 type user_data = Trace_core.user_data
 
+type config = {
+  endpoint : Uri.t;
+  (* To add data to our opentelemetry top span, so easier to filter *)
+  top_level_span : span option;
+}
+[@@deriving show]
+
 (*****************************************************************************)
 (* Levels *)
 (*****************************************************************************)
@@ -58,8 +65,8 @@ let add_data_to_span (_i : span) (_data : (string * Trace_core.user_data) list)
     =
   ()
 
-let add_data_to_opt_span (_i : span option)
-    (_data : (string * Trace_core.user_data) list) =
+let add_data (_data : (string * Trace_core.user_data) list) (_i : config option)
+    =
   ()
 
 (*****************************************************************************)
@@ -68,6 +75,6 @@ let add_data_to_opt_span (_i : span option)
 
 let configure_tracing (_service_name : string) = ()
 
-let with_tracing (_fname : string) (_trace_endpoint : string option)
+let with_tracing (_fname : string) (_trace_endpoint : Uri.t)
     (_data : (string * Trace_core.user_data) list) f =
   f 0L

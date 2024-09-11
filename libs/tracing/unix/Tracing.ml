@@ -74,15 +74,18 @@ let pp_span fmt = Format.fprintf fmt "%Ldl"
 
 type user_data = Trace_core.user_data
 
+type config = {
+  endpoint : Uri.t;
+  (* To add data to our opentelemetry top span, so easier to filter *)
+  top_level_span : span option;
+}
+[@@deriving show]
+
 (*****************************************************************************)
 (* Constants *)
 (*****************************************************************************)
 
 (* Coupling: these need to be kept in sync with tracing.py *)
-
-let default_endpoint = "https://telemetry.semgrep.dev"
-let default_dev_endpoint = "https://telemetry.dev2.semgrep.dev"
-let default_local_endpoint = "http://localhost:4318"
 let trace_level_var = "SEMGREP_TRACE_LEVEL"
 let parent_span_id_var = "SEMGREP_TRACE_PARENT_SPAN_ID"
 let parent_trace_id_var = "SEMGREP_TRACE_PARENT_TRACE_ID"
@@ -154,8 +157,11 @@ let with_top_level_span ?(level = Info) ?parent_span_id ?parent_trace_id
 let add_data_to_span = Trace_core.add_data_to_span
 
 (* This function is helpful for Semgrep, which stores an optional span *)
-let add_data_to_opt_span sp data =
-  Option.iter (fun sp -> Trace_core.add_data_to_span sp data) sp
+let add_data data (tracing_opt : config option) =
+  tracing_opt
+  |> Option.iter (fun tracing ->
+         tracing.top_level_span
+         |> Option.iter (fun sp -> Trace_core.add_data_to_span sp data))
 
 (*****************************************************************************)
 (* Entry points for setting up tracing *)
@@ -178,17 +184,7 @@ let with_tracing fname trace_endpoint data f =
    * ALT: we could also have wrapped this with a `Otel.Scope.with_ambient_scope`
      to ensure the trace_id is the same for all spans, but we decided that
      having the top level time is a good default. *)
-  let url =
-    match trace_endpoint with
-    | Some url -> (
-        (* Coupling: the endpoint options need to be kept in sync with tracing.py *)
-        match url with
-        | "semgrep-prod" -> default_endpoint
-        | "semgrep-dev" -> default_dev_endpoint
-        | "semgrep-local" -> default_local_endpoint
-        | _ -> url)
-    | None -> default_endpoint
-  in
+  let url = Uri.to_string trace_endpoint in
   let level =
     match Sys.getenv_opt trace_level_var with
     | Some level -> (
