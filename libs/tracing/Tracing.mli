@@ -20,6 +20,14 @@
 (*****************************************************************************)
 
 type span = Trace_core.span [@@deriving show]
+
+type config = {
+  endpoint : Uri.t;
+  (* To add data to our opentelemetry top span, so easier to filter *)
+  top_level_span : span option;
+}
+[@@deriving show]
+
 type user_data = Trace_core.user_data
 
 (*****************************************************************************)
@@ -52,8 +60,7 @@ val with_span :
 val add_data_to_span : span -> (string * Trace_core.user_data) list -> unit
 (** Expose the Trace function to add data to a span *)
 
-val add_data_to_opt_span :
-  span option -> (string * Trace_core.user_data) list -> unit
+val add_data : (string * Trace_core.user_data) list -> config option -> unit
 (** Convenience version of add_data_to_span for Semgrep *)
 
 (*****************************************************************************)
@@ -66,10 +73,6 @@ val configure_tracing : string -> unit
     backend with threads, HTTP connections, etc. when called *)
 
 val with_tracing :
-  string ->
-  string option ->
-  (string * Trace_core.user_data) list ->
-  (span -> 'a) ->
-  'a
+  string -> Uri.t -> (string * Trace_core.user_data) list -> (span -> 'a) -> 'a
 (** Setup instrumentation and run the passed function.
    Stops instrumenting once that function is finished. *)

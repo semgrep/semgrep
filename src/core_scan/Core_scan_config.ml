@@ -65,13 +65,8 @@ type t = {
   ncores : int;
   (* a.k.a -fast (on by default) *)
   filter_irrelevant_rules : bool;
-  (* debugging and telemetry flags
-   * TODO: put all those fields in a separate record trace: trace_info option;
-   *)
-  trace : bool;
-  trace_endpoint : string option;
-  (* To add data to our opentelemetry top span, so easier to filter *)
-  top_level_span : Tracing.span option;
+  (* telemetry *)
+  tracing : Tracing.config option;
 }
 [@@deriving show]
 
@@ -110,7 +105,5 @@ let default =
     (* a.k.a -fast, on by default *)
     filter_irrelevant_rules = true;
     (* debugging and telemetry flags *)
-    trace = false;
-    trace_endpoint = None;
-    top_level_span = None;
+    tracing = None;
   }
