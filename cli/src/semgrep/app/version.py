@@ -9,21 +9,72 @@ an outdated version.
 import json
 import re
 import time
+from dataclasses import dataclass
 from json import JSONDecodeError
 from pathlib import Path
+from typing import cast
+from typing import Dict
+from typing import List
+from typing import Literal
 from typing import Mapping
 from typing import Optional
+from typing import Set
 
 import requests
 from packaging.version import InvalidVersion
 from packaging.version import Version
 
 from semgrep import __VERSION__
+from semgrep.constants import Colors
 from semgrep.state import get_state
 from semgrep.types import JsonObject
+from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
+
+# NOTE: Subscriptable types require Python >= 3.9
+# and we still support Python 3.8 :(
+
+# Typings for keys of valid identifiers for the banners
+ValidIdentifers = Literal["upgrade", "too_many_findings"]
+
+# Identifiers that should be treated as conditional and skipped during the base banner display
+CONDITIONAL_IDENTIFIERS: Set[ValidIdentifers] = {"too_many_findings"}
+
+# Mapping of valid identifiers to their corresponding emoji icon
+IDENTIFIER_LOOKUP: Dict[ValidIdentifers, str] = {
+    "upgrade": "⏫",
+    "too_many_findings": "📢",  # loud speaker icon
+}
+TOO_MANY_FINDINGS_THRESHOLD = 25
+
+"""
+# NOTE: We should expect the API response to be in the following format.
+# We do not define this here as the source of truth is in the proto definition
+# in the Semgrep App repository, and this is used just as a reference.
+
+@dataclass
+class Banner:
+    message: str
+    show_version: Optional[str]
+    hide_version: Optional[str]
+    url: Optional[str]
+    identifier: Optional[str]
+
+@dataclass
+class VersionApiResponse:
+    latest: str
+    versions: Dict[Literal["latest", "minimum"], str]
+    banners: List[Banner]
+    no_findings_msg: str
+"""
+
+
+@dataclass
+class VersionInfo:
+    current: Version
+    api_response: JsonObject
 
 
 def _fetch_latest_version() -> Optional[JsonObject]:
@@ -111,10 +162,31 @@ def _get_latest_version(allow_fetch: bool = True) -> Optional[JsonObject]:
     return latest_version
 
 
-def _show_banners(current_version: Version, latest_version_object: JsonObject) -> None:
-    logged_something = False
-    banners = latest_version_object.get("banners", [])
-    state = get_state()
+def _get_version_info() -> Optional[VersionInfo]:
+    latest_version_object = _get_latest_version()
+    if latest_version_object is None:
+        return None
+    try:
+        current_version = Version(__VERSION__)
+    except InvalidVersion as e:
+        logger.debug(f"Invalid version string: {e}")
+        return None
+    return VersionInfo(current_version, latest_version_object)
+
+
+def _get_version_filtered_banners() -> List[JsonObject]:
+    """
+    Filters banners based on the current version of the CLI and version ranges specified by the API response.
+    """
+    filtered_banners: List[JsonObject] = []
+    latest_version_info = _get_version_info()
+    if not latest_version_info:
+        return filtered_banners
+
+    api_response = latest_version_info.api_response
+    current_version = latest_version_info.current
+    banners = api_response.get("banners", [])
+
     for b in banners:
         try:
             show_str = b.get("show_version")  # Note that b["show_version"] can be None
@@ -127,11 +199,32 @@ def _show_banners(current_version: Version, latest_version_object: JsonObject) -
         if (not show or current_version >= show) and (
             not hide or current_version < hide
         ):
+            filtered_banners.append(b)
+    return filtered_banners
+
+
+def _show_banners() -> None:
+    logged_something = False
+    banners = _get_version_filtered_banners()
+    state = get_state()
+    for b in banners:
+        try:
+            message = b.get("message", "")
+            identifier = cast(ValidIdentifers, b.get("identifier", "") or "")
+            icon = IDENTIFIER_LOOKUP.get(identifier) or "⏫"
+            if not message:
+                continue
+            if identifier in CONDITIONAL_IDENTIFIERS:
+                # If we know on the CLI-side that banner is marked as conditional,
+                # we will need to perform additional checks to determine if we should show the banner.
+                continue
             if state.env.with_new_cli_ux:
-                logger.warning("\n⏫  " + b.get("message", ""))
+                logger.warning(f"\n{icon} {message}")
             else:
-                logger.warning("\n" + b.get("message", ""))
+                logger.warning(f"\n{message}")
             logged_something = True
+        except Exception as e:
+            logger.debug(f"Error processing banner: {e}")
 
     env = get_state().env
     if logged_something and env.in_agent:
@@ -144,17 +237,7 @@ def version_check() -> None:
     """
     Checks for messages from the backend, displaying any messages that match the current version
     """
-    latest_version_object = _get_latest_version()
-    if latest_version_object is None:
-        return
-
-    try:
-        current_version = Version(__VERSION__)
-    except InvalidVersion as e:
-        logger.debug(f"Invalid version string: {e}")
-        return
-
-    _show_banners(current_version, latest_version_object)
+    _show_banners()
 
 
 def get_no_findings_msg() -> Optional[str]:
@@ -172,5 +255,35 @@ def get_no_findings_msg() -> Optional[str]:
     base_msg = str(latest_version_object["no_findings_msg"])
     if not state.env.with_new_cli_ux:
         return base_msg
-    msg = re.sub("\n(\n+)?", "\\1\n    ", base_msg)
+    msg = re.sub("\n(\n+)?", "\\1\n   ", base_msg)
+    groups = re.split(r"\s+(?=https:)", msg, 1)
+    if len(groups) == 2:
+        pretty_url = with_color(Colors.cyan, f"{groups[1]}", underline=True)
+        return f"\n✨ {groups[0]} {pretty_url}"
     return f"\n✨ {msg}"
+
+
+def get_too_many_findings_msg() -> Optional[str]:
+    """
+    Returns the latest too_many_findings message from the backend or cache.
+
+    Note that this will only return a response if the version_check operation was completed before this call,
+    or if we have a locally cached response.
+    """
+    banners = _get_version_filtered_banners()
+    too_many_findings_banner = next(
+        (b for b in banners if (b.get("identifier") or "") == "too_many_findings"), None
+    )
+    if not too_many_findings_banner:
+        return None
+    message = too_many_findings_banner.get("message") or ""
+    identifier = cast(
+        ValidIdentifers, too_many_findings_banner.get("identifier", "") or ""
+    )
+    icon = IDENTIFIER_LOOKUP.get(identifier) or "⏫"
+    url = too_many_findings_banner.get("url") or ""
+    pretty_url = with_color(Colors.cyan, f"{url}", underline=True) if url else ""
+    suffix = f"\n   See {pretty_url}." if pretty_url else ""
+    if not message:
+        return None
+    return f"\n{icon} {message}{suffix}"
