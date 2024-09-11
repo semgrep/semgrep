@@ -1,5 +1,7 @@
-semgrep-core language tests
+semgrep-core tests
 ==
+This folder contains mostly tests related to the semgrep-core program.
+For the (py)semgrep tests see the cli/tests/ folder instead.
 
 Running the tests
 --
@@ -9,9 +11,9 @@ with `make core-test`. This will recompile the test programs if necessary.
 
 Only running the main test program can be done with `./test`. Try
 `./test --help` for options. In particular, running just the tests
-that contain the string `semgrep PHP` is done with
+that contain the string `php` is done with
 ```
-$ ./test 'PHP'
+$ ./test -s 'php'
 ```
 
 ⚠️ `./test` won't try to rebuild the test program to make things
@@ -22,8 +24,8 @@ automatically without having to rebuild the test program.
 Matching tests
 --
 
-The `patterns/` folder contains pairs (pattern, target). A pattern must be a file with
-the `.sgrep` extension and a target must be a file in the target
+The `patterns/` folder contains pairs (pattern, target). A pattern must be a
+file with the `.sgrep` extension and a target must be a file in the target
 language with the language's usual extension, known to semgrep-core.
 For example, the folder for the Go language looks like this:
 
