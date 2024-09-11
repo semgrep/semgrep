@@ -1,0 +1,1 @@
+semgrep-core CLI (e2e) > output of -rules <rule> -l <lang> <single_file>
