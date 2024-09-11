@@ -104,10 +104,8 @@ repos:
           - click<8.1.4
           - defusedxml~=0.7.1
           - packaging~=21.0
-          # pydantic for fast rule validation (until we have a better solution in pure ocaml)
-          - pydantic~=2.8.2
           - requests~=2.22
-          - rich>=12.6.0
+          - rich~=13.5.2
           - tomli~=2.0.1
           - opentelemetry-api~=1.25.0
           - opentelemetry-sdk~=1.25.0
