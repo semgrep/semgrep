@@ -2640,3 +2640,152 @@ def test_fail_on_historical_scan_without_secrets(
         result.as_snapshot(),
         "output.txt",
     )
+
+
+@pytest.mark.parametrize(
+    "scan_config",
+    [
+        dedent(
+            """
+            rules:
+              - id: supply-chain-parity-1
+                message: "found a dependency"
+                languages: [python]
+                severity: ERROR
+                r2c-internal-project-depends-on:
+                    namespace: pypi
+                    package: python-dateutil
+                    version: == 2.8.2
+                metadata:
+                    dev.semgrep.actions: [block]
+                    sca-kind: upgrade-only
+              - id: supply-chain-parity-2
+                message: "found another dependency without a pattern"
+                languages: [python]
+                severity: ERROR
+                r2c-internal-project-depends-on:
+                    namespace: pypi
+                    package: mypy
+                    version: == 0.950
+                metadata:
+                    dev.semgrep.actions: [block]
+                    sca-kind: upgrade-only
+              - id: supply-chain-reachable-1
+                message: "found a reachable vulnerability from a dependency"
+                pattern: $X = 2
+                languages: [python]
+                severity: ERROR
+                r2c-internal-project-depends-on:
+                    namespace: pypi
+                    package: mypy
+                    version: == 0.950
+                metadata:
+                    dev.semgrep.actions: [block]
+            """
+        ).lstrip()
+    ],
+    ids=["config"],
+)
+@pytest.mark.osemfail
+def test_existing_reachable_finding_deduplication(
+    git_tmp_path_with_commit,
+    snapshot,
+    mocker,
+    run_semgrep: RunSemgrep,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
+):
+    repo_copy_base, _, base_commit = git_tmp_path_with_commit
+
+    start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
+
+    # Add vulnerability here so that it's already existing when we run a scan later
+    pyfile1 = repo_copy_base / "foo.py"
+    pyfile1.write_text(f"x = 2\n")
+
+    subprocess.run(["git", "add", "."], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "add reachable vulnerability"],
+        check=True,
+        capture_output=True,
+    )
+    vulnerable_commit = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], encoding="utf-8"
+    ).strip()
+
+    result = run_semgrep(
+        subcommand="ci",
+        options=[
+            "--no-suppress-errors",
+            "--oss-only",
+            "--baseline-commit",
+            base_commit,
+        ],
+        target_name=None,
+        strict=False,
+        assert_exit_code=None,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,
+    )
+
+    # This scan should have a reachable finding which we added earlier
+    snapshot.assert_match(
+        result.as_snapshot(
+            mask=[
+                vulnerable_commit,
+                vulnerable_commit[:7],
+                base_commit,
+            ]
+        ),
+        "base_output.txt",
+    )
+
+    findings_json = upload_results_mock.last_request.json()
+    assert len(findings_json["findings"]) == 1
+
+    # Since we want to ensure that reachability works on git tracked files, we modify the
+    # same file with a safe change (but do not fix the vulnerability) so that the reachablity
+    # check can be done on the same file by the baseline scanner
+    pyfile1 = repo_copy_base / "foo.py"
+    pyfile1.write_text(f"x = 2\nprint('hello')\n")
+
+    subprocess.run(["git", "add", "."], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "add another thing"], check=True, capture_output=True
+    )
+    non_vulnerable_head_commit = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], encoding="utf-8"
+    ).strip()
+
+    result = run_semgrep(
+        subcommand="ci",
+        options=[
+            "--no-suppress-errors",
+            "--oss-only",
+            "--baseline-commit",
+            vulnerable_commit,
+        ],
+        target_name=None,
+        strict=False,
+        assert_exit_code=None,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,  # TODO: probably because rely on some mocking
+    )
+
+    # This scan should have no findings since reachability analysis in the baseline
+    # should also raise the same finding (leading to deduplication downstream)
+    snapshot.assert_match(
+        result.as_snapshot(
+            mask=[
+                non_vulnerable_head_commit,
+                non_vulnerable_head_commit[:7],
+                vulnerable_commit,
+            ]
+        ),
+        "new_output.txt",
+    )
+    findings_json = upload_results_mock.last_request.json()
+    assert len(findings_json["findings"]) == 0
