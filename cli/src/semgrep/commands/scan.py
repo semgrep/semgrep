@@ -23,6 +23,8 @@ from semgrep import __VERSION__
 from semgrep import bytesize
 from semgrep import tracing
 from semgrep.app.version import get_no_findings_msg
+from semgrep.app.version import get_too_many_findings_msg
+from semgrep.app.version import TOO_MANY_FINDINGS_THRESHOLD
 from semgrep.commands.install import determine_semgrep_pro_path
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.constants import Colors
@@ -588,6 +590,9 @@ def scan(
             "Cannot run secrets scan with OSS engine (--oss specified). Semgrep Secrets is a proprietary extension."
         )
 
+    # Define engine_type for later use in the scan output messages
+    engine_type: Optional[EngineType] = None
+
     state = get_state()
     state.traces.configure(trace, trace_endpoint)
     with tracing.TRACER.start_as_current_span("semgrep.commands.scan"):
@@ -701,7 +706,7 @@ def scan(
                 engine_type=engine_type,
             )
 
-        run_has_findings = False
+        filtered_matches_by_rule: RuleMatchMap = {}
 
         # The 'optional_stdin_target' context manager must remain before
         # 'managed_output'. Output depends on file contents so we cannot have
@@ -848,8 +853,6 @@ def scan(
                     missed_rule_count=missed_rule_count,
                 )
 
-                run_has_findings = any(filtered_matches_by_rule.values())
-
                 return_data = (
                     filtered_matches_by_rule,
                     semgrep_errors,
@@ -857,15 +860,34 @@ def scan(
                     output_extra.all_targets,
                 )
 
+        findings_count = sum(
+            len(matches) for matches in filtered_matches_by_rule.values()
+        )
+        no_findings = findings_count == 0
+
         if enable_version_check:
             from semgrep.app.version import version_check
 
+            # Fetch the latest version and potentially display a banner
             version_check()
 
-        if not run_has_findings and enable_version_check:
-            msg = get_no_findings_msg()
-            # decouple CLI from app - if functionality removed, do not fail
-            if msg:
-                logger.info(msg)
+            if no_findings:
+                try:
+                    msg = get_no_findings_msg()
+                    if msg:
+                        logger.info(msg)
+                except Exception as e:
+                    logger.debug(f"Error getting no findings message: {e}")
+
+            if (
+                findings_count > TOO_MANY_FINDINGS_THRESHOLD
+                and engine_type is EngineType.OSS
+            ):
+                try:
+                    msg = get_too_many_findings_msg()
+                    if msg:
+                        logger.info(msg)
+                except Exception as e:
+                    logger.debug(f"Error getting too many findings message: {e}")
 
         return return_data
