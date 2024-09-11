@@ -137,6 +137,20 @@ class ConfigLoader:
             state.metrics.is_using_registry = True
             state.metrics.add_registry_url(self._config_path)
 
+    @classmethod
+    def includes_remote_config(cls, configs: Sequence[str]) -> bool:
+        """
+        Returns True if any of the configs are remote
+        """
+        return any(
+            config == AUTO_CONFIG_KEY
+            or config == "r2c"
+            or is_product_names(config)
+            or is_registry_id(config)
+            or is_url(config)
+            for config in configs
+        )
+
     def load_config(self) -> List[ConfigFile]:
         """
         Loads a config based on self's state.
