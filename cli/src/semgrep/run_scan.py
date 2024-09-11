@@ -12,6 +12,7 @@
 # old: this file used to be called semgrep_main.py
 #
 import json
+import sys
 import time
 from io import StringIO
 from os import environ
@@ -30,6 +31,9 @@ from typing import Tuple
 from typing import Union
 
 from boltons.iterutils import partition
+from rich.progress import Progress
+from rich.progress import SpinnerColumn
+from rich.progress import TextColumn
 
 import semgrep.scan_report as scan_report
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
@@ -37,7 +41,9 @@ from semdep.parsers.util import DependencyParserError
 from semgrep import __VERSION__
 from semgrep import tracing
 from semgrep.autofix import apply_fixes
+from semgrep.config_resolver import ConfigLoader
 from semgrep.config_resolver import get_config
+from semgrep.console import console
 from semgrep.constants import DEFAULT_DIFF_DEPTH
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
@@ -444,14 +450,32 @@ def run_scan(
     profiler = ProfileManager()
 
     rule_start_time = time.time()
-    configs_obj, config_errors = get_config(
-        pattern,
-        lang,
-        configs,
-        replacement=replacement,
-        project_url=project_url,
-        no_rewrite_rule_ids=no_rewrite_rule_ids,
+
+    includes_remote_config = ConfigLoader.includes_remote_config(configs)
+    progress_msg = (
+        "Loading rules from registry..."
+        if includes_remote_config
+        else "Loading rules..."
     )
+
+    with Progress(
+        SpinnerColumn(style="green"),
+        TextColumn("[bold]{task.description}[/bold]"),
+        transient=True,
+        console=console,
+        disable=(not sys.stderr.isatty()),
+    ) as progress:
+        task_id = progress.add_task(f"{progress_msg}", total=1)
+        configs_obj, config_errors = get_config(
+            pattern,
+            lang,
+            configs,
+            replacement=replacement,
+            project_url=project_url,
+            no_rewrite_rule_ids=no_rewrite_rule_ids,
+        )
+        progress.remove_task(task_id)
+
     all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
     profiler.save("config_time", rule_start_time)
 
