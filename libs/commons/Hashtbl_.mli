@@ -5,6 +5,7 @@
 val hash_of_list : ('a * 'b) list -> ('a, 'b) Hashtbl.t
 val hash_to_list : ('a, 'b) Hashtbl.t -> ('a * 'b) list
 val hkeys : ('a, 'b) Hashtbl.t -> 'a list
+val map : ('k -> 'v -> 'w) -> ('k, 'v) Hashtbl.t -> ('k, 'w) Hashtbl.t
 
 type 'a hashset = ('a, bool) Hashtbl.t
 
