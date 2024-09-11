@@ -461,7 +461,7 @@ let o_time : bool Term.t =
     ~default:default.core_runner_conf.time_flag
     ~doc:
       {|Include a timing summary with the results. If output format is json,
- provides times for each pair (rule, target).
+ provides times for each pair (rule, target). This feature is meant for internal use and may be changed or removed without warning. At the current moment, --trace is better supported.
 |}
 
 let o_trace : bool Term.t =

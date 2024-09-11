@@ -158,8 +158,8 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
       max_log_list_entries max_memory_mb max_target_bytes metrics num_jobs
       no_secrets_validation nosem optimizations oss output pro pro_intrafile
       pro_lang pro_path_sensitive respect_gitignore rewrite_rule_ids sarif
-      sarif_outputs scan_unknown_extensions secrets text text_outputs time_flag
-      timeout _timeout_interfileTODO timeout_threshold trace trace_endpoint
+      sarif_outputs scan_unknown_extensions secrets text text_outputs timeout
+      _timeout_interfileTODO timeout_threshold trace trace_endpoint
       version_check vim vim_outputs =
     let output_format : Output_format.t =
       Scan_CLI.output_format_conf ~text ~files_with_matches ~json ~emacs ~vim
@@ -206,7 +206,7 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
         nosem;
         (* TODO: default value in semgrep ci? *)
         strict = false;
-        time_flag;
+        time_flag = false;
         matching_explanations;
       }
     in
@@ -297,9 +297,9 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
     $ SC.o_pro_intrafile $ SC.o_pro_languages $ SC.o_pro_path_sensitive
     $ SC.o_respect_gitignore $ SC.o_rewrite_rule_ids $ SC.o_sarif
     $ SC.o_sarif_outputs $ SC.o_scan_unknown_extensions $ SC.o_secrets
-    $ SC.o_text $ SC.o_text_outputs $ SC.o_time $ SC.o_timeout
-    $ SC.o_timeout_interfile $ SC.o_timeout_threshold $ SC.o_trace
-    $ SC.o_trace_endpoint $ SC.o_version_check $ SC.o_vim $ SC.o_vim_outputs)
+    $ SC.o_text $ SC.o_text_outputs $ SC.o_timeout $ SC.o_timeout_interfile
+    $ SC.o_timeout_threshold $ SC.o_trace $ SC.o_trace_endpoint
+    $ SC.o_version_check $ SC.o_vim $ SC.o_vim_outputs)
 
 (*************************************************************************)
 (* Turn argv into conf *)
