@@ -238,7 +238,7 @@ jobs:
           github-token: ${{ steps.token.outputs.token }}
           name: release_body_${{ github.event.inputs.semgrep-version }}
           path: scripts/release
-          repository: returntocorp/semgrep-interfaces
+          repository: semgrep/semgrep-proprietary
       - name: Create Draft Release Semgrep
         uses: softprops/action-gh-release@v1
         with:
@@ -434,6 +434,13 @@ jobs:
           PR_NUMBER=$(echo $PR_URL | sed 's|.*pull/\(.*\)|\1|')
 
           echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
+      - name: Download Release Body Artifact
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ steps.token.outputs.token }}
+          name: release_body_${{ github.event.inputs.semgrep-version }}
+          path: scripts/release
+          repository: semgrep/semgrep-pro
   validate-release-trigger:
     env:
       VERSION: ${{ github.event.inputs.semgrep-version }}
