@@ -232,15 +232,10 @@ jobs:
           jq -r .token)"
           echo "::add-mask::$TOKEN"
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
-      - name: Download Release Body Artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: release_body_${{ github.event.inputs.semgrep-version }}
-          path: scripts/release
       - name: Create Draft Release Semgrep
         uses: softprops/action-gh-release@v1
         with:
-          body_path: scripts/release/release_body.txt
+          body_path: release_changes.md
           draft: true
           name: Release v${{ github.event.inputs.semgrep-version }}
           prerelease: false
@@ -249,7 +244,7 @@ jobs:
       - name: Create Draft Release Semgrep Interfaces
         uses: softprops/action-gh-release@v1
         with:
-          body_path: scripts/release/release_body.txt
+          body_path: release_changes.md
           draft: true
           name: Release v${{ github.event.inputs.semgrep-version }}
           prerelease: false
@@ -395,36 +390,6 @@ jobs:
           submodules: recursive
           token: ${{ steps.token.outputs.token }}
       - run: git checkout -b "release-${VERSION}"
-      - env:
-          SEMGREP_RELEASE_NEXT_VERSION: ${{ github.event.inputs.semgrep-version }}
-        run: make release
-      - uses: actions/setup-python@v4
-        with:
-          cache: pipenv
-          cache-dependency-path: scripts/release/Pipfile.lock
-          python-version: "3.10"
-      - if: ${{ ! inputs.dry-run }}
-        name: Create GitHub Release Body
-        run: |
-          pip install pipenv==2024.0.1
-          pipenv install --dev
-
-          pipenv run towncrier build --draft --version $VERSION > release_body.txt
-        working-directory: scripts/release
-      - if: ${{ ! inputs.dry-run }}
-        name: Upload Changelog Body Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: release_body_${{ github.event.inputs.semgrep-version }}
-          path: scripts/release/release_body.txt
-      - name: Update Changelog
-        run: |
-          pip install pipenv==2024.0.1
-          pipenv install --dev
-
-          pipenv run towncrier build --yes --version $VERSION
-          pipenv run pre-commit run --files ../../CHANGELOG.md --config ../../.pre-commit-config.yaml || true
-        working-directory: scripts/release
       - if: ${{ ! inputs.dry-run }}
         name: Push release branch
         run: |
