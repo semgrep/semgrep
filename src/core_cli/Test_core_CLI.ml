@@ -32,7 +32,7 @@ let run_main (caps : Cap.all_caps) (cmd : string) : (unit, exn_res) result =
         Ok (Core_CLI.main_exn caps (Array.of_list ("semgrep-core" :: args)))
       with
       | Common.UnixExit n -> Error (ExnExit n))
-    () ()
+    ()
 
 let assert_Ok res =
   match res with
