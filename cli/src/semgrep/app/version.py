@@ -49,26 +49,25 @@ IDENTIFIER_LOOKUP: Dict[ValidIdentifers, str] = {
 }
 TOO_MANY_FINDINGS_THRESHOLD = 25
 
-"""
+
 # NOTE: We should expect the API response to be in the following format.
 # We do not define this here as the source of truth is in the proto definition
 # in the Semgrep App repository, and this is used just as a reference.
 
-@dataclass
-class Banner:
-    message: str
-    show_version: Optional[str]
-    hide_version: Optional[str]
-    url: Optional[str]
-    identifier: Optional[str]
+# @dataclass
+# class Banner:
+#     message: str
+#     show_version: Optional[str]
+#     hide_version: Optional[str]
+#     url: Optional[str]
+#     identifier: Optional[str]
 
-@dataclass
-class VersionApiResponse:
-    latest: str
-    versions: Dict[Literal["latest", "minimum"], str]
-    banners: List[Banner]
-    no_findings_msg: str
-"""
+# @dataclass
+# class VersionApiResponse:
+#     latest: str
+#     versions: Dict[Literal["latest", "minimum"], str]
+#     banners: List[Banner]
+#     no_findings_msg: str
 
 
 @dataclass
