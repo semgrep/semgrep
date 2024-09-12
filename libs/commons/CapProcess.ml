@@ -1,5 +1,5 @@
 (* src: harrop article on fork-based parallelism
- * returns a futur/promise.
+ * returns a promise.
  * old: was called invoke() and was in pfff/commons/parallel.ml
  * related work: my pfff/commons/distribution.ml
  *)
