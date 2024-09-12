@@ -95,7 +95,14 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
   | DumpAST (file, lang) ->
       (* mostly a copy paste of Core_CLI.dump_ast *)
       let { Parsing_result2.ast; skipped_tokens = _; _ } =
-        Parse_target.just_parse_with_lang lang file
+        (* alt: call Parse_target.just_parse_with_lang()
+         * but usually we also want the naming/typing info.
+         * we could add a flag --naming, but simpler to just call
+         * parse_and_resolve_name by default
+         * LATER? could also have a --pro where we use the advanced
+         * naming/typing of Deep_scan by analyzing the files around too?
+         *)
+        Parse_target.parse_and_resolve_name lang file
       in
       let v = Meta_AST.vof_any (AST_generic.Pr ast) in
       (* 80 columns is too little *)
