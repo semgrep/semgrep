@@ -96,8 +96,9 @@ let cmdline_term : conf Term.t =
       | [ "dump-config"; config_str ] -> DumpConfig config_str
       | [ "dump-rule-v2"; file ] -> DumpRuleV2 (Fpath.v file)
       | [ "dump-ast"; file ] ->
-          let lang = failwith "TODO" in
-          DumpAST (Fpath.v file, lang)
+          let path = Fpath.v file in
+          let lang = Lang.lang_of_filename_exn path in
+          DumpAST (path, lang)
       | [ "dump-ast"; lang_str; file ] ->
           let lang = Lang.of_string lang_str in
           DumpAST (Fpath.v file, lang)
@@ -142,7 +143,9 @@ let man : Cmdliner.Manpage.block list =
     `Pre "semgrep show dump-rule-v2 <FILE>";
     `P "Dump the internal representation of a rule using the new (v2) syntax";
     `Pre "semgrep show dump-ast [<LANG>] <FILE>";
-    `P "Dump the abstract syntax tree of the file";
+    `P
+      "Dump the abstract syntax tree of the file (with some names/types \
+       resolved)";
     `Pre "semgrep show dump-pattern <LANG> <STRING>";
     `P "Dump the abstract syntax tree of the pattern string";
   ]
