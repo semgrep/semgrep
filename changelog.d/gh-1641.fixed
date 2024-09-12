@@ -1,1 +1,0 @@
-The Semgrep proprietary engine added a new entropy analyzer `entropy_v2` that supports strictness options.
