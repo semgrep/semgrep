@@ -438,9 +438,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ steps.token.outputs.token }}
-          name: release_body_${{ github.event.inputs.semgrep-version }}
+          name: release_body_1.87.0
           path: scripts/release
-          repository: semgrep/semgrep-pro
+          repository: semgrep/semgrep-proprietary
   validate-release-trigger:
     env:
       VERSION: ${{ github.event.inputs.semgrep-version }}

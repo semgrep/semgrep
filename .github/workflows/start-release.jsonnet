@@ -243,13 +243,13 @@ local release_setup_job = {
         echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
       |||,
     } + unless_dry_run,
-    {
+        {
       name: 'Download Release Body Artifact',
       uses: 'actions/download-artifact@v4',
       with: {
 	'github-token': semgrep.github_bot.token_ref,
-	repository: 'semgrep/semgrep-pro',
-        name: 'release_body_%s' % version,
+	repository: 'semgrep/semgrep-proprietary',
+        name: 'release_body_%s' % '1.87.0',
         path: 'scripts/release',
       },
     },
@@ -337,7 +337,7 @@ local create_draft_release_job = {
     'wait-for-pr-checks',
   ],
   steps: semgrep.github_bot.get_token_steps + [
-        {
+    {
       name: 'Download Release Body Artifact',
       uses: 'actions/download-artifact@v4',
       with: {
