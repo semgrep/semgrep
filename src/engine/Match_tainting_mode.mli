@@ -36,7 +36,7 @@ val hook_setup_hook_function_taint_signature :
   *
   * FIXME: Once we have the taint signature of a function we do not need to run
   *   taint tracking on it anymore... but we still do it hence duplicating work.
-  *   We only need to analyze anonymous functions which do not get taint sigantures
+  *   We only need to analyze anonymous functions which do not get taint signatures
   *   (or we could infer a signature for them too...).
   *)
 

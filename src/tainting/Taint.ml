@@ -394,7 +394,7 @@ module Taint_set = struct
      * the one with the shortest trace.
      *
      * This also helps avoiding infinite loops, which can happen when inferring
-     * taint sigantures for functions like this:
+     * taint signatures for functions like this:
      *
      *     f(tainted) {
      *         while (true) {
