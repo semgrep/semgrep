@@ -24,13 +24,6 @@ local version = '${{ github.event.inputs.semgrep-version }}';
 // and can be referenced from other jobs.
 local pr_number = '"${{ needs.release-setup.outputs.pr-number }}"';
 
-// For towncrier setup in scripts/release/
-//TODO: was using pip3 before, and pipenv_install_step is using pip, an issue?
-local pipenv_setup = |||
-  %s
-  pipenv install --dev
-||| % actions.pipenv_install_step.run;
-
 // ----------------------------------------------------------------------------
 // Input
 // ----------------------------------------------------------------------------
@@ -210,50 +203,6 @@ local release_setup_job = {
     {
       run: 'git checkout -b "release-${VERSION}"',
     },
-    // TODO: we can probably remove that step now that we do it in Pro
-    {
-      env: {
-        SEMGREP_RELEASE_NEXT_VERSION: version,
-      },
-      run: 'make release',
-    },
-    // for towncrier,
-    // TODO move to pro! with bump-version.jsonnet
-    // (and reuse actions.setup_python)
-    {
-      uses: 'actions/setup-python@v4',
-      with: {
-        'python-version': '3.10',
-        cache: 'pipenv',
-        'cache-dependency-path': 'scripts/release/Pipfile.lock',
-      },
-    },
-    {
-      name: 'Create GitHub Release Body',
-      'working-directory': 'scripts/release',
-      run: |||
-        %s
-        pipenv run towncrier build --draft --version $VERSION > release_body.txt
-      ||| % pipenv_setup,
-    } + unless_dry_run,
-    {
-      name: 'Upload Changelog Body Artifact',
-      uses: 'actions/upload-artifact@v3',
-      with: {
-        name: 'release_body_%s' % version,
-        path: 'scripts/release/release_body.txt',
-      },
-    } + unless_dry_run,
-    {
-      name: 'Update Changelog',
-      'working-directory': 'scripts/release',
-      // use || true below since modifications mean exit code != 0
-      run: |||
-        %s
-        pipenv run towncrier build --yes --version $VERSION
-        pipenv run pre-commit run --files ../../CHANGELOG.md --config ../../.pre-commit-config.yaml || true
-      ||| % pipenv_setup,
-    },
     {
       name: 'Push release branch',
       run: |||
@@ -378,21 +327,19 @@ local create_draft_release_job = {
     'wait-for-pr-checks',
   ],
   steps: semgrep.github_bot.get_token_steps + [
-    {
-      name: 'Download Release Body Artifact',
-      uses: 'actions/download-artifact@v3',
-      with: {
-        name: 'release_body_%s' % version,
-        path: 'scripts/release',
-      },
-    },
+    // TODO I (Andre) couldn't figure out how to save the
+    // release_changes.md as an asset in one workflow and download in
+    // another. I am sure it is possible, but it isn't easy.  Instead
+    // I just made an additional file contained in the repo called
+    // OSS/release_changes.md .
     {
       name: 'Create Draft Release Semgrep',
       uses: 'softprops/action-gh-release@v1',
       with: {
         tag_name: 'v%s' % version,
         name: 'Release v%s' % version,
-        body_path: 'scripts/release/release_body.txt',
+        body_path: 'release_changes.md',
+	// Why not use the semgrep.github_bot.token_ref?
         token: '${{ secrets.GITHUB_TOKEN }}',
         prerelease: false,
         draft: true,
@@ -404,7 +351,7 @@ local create_draft_release_job = {
       with: {
         tag_name: 'v%s' % version,
         name: 'Release v%s' % version,
-        body_path: 'scripts/release/release_body.txt',
+        body_path: 'release_changes.md',
         token: semgrep.github_bot.token_ref,
         prerelease: false,
         draft: true,
