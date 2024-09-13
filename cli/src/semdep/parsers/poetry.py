@@ -25,6 +25,7 @@ from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import PoetryLock
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.semgrep_interfaces.semgrep_output_v1 import PyprojectToml
@@ -224,6 +225,7 @@ def parse_poetry(
                     [dep["name"].value.lower().replace("-", "_")],
                 ),
                 line_number=dep["name"].line_number,
+                lockfile_path=Fpath(str(lockfile_path)),
             )
         )
     return output, errors

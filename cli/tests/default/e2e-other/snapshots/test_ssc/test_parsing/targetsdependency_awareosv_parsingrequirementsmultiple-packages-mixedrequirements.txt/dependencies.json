@@ -5,6 +5,7 @@
     "ecosystem": "pypi",
     "allowed_hashes": {},
     "transitivity": "unknown",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/multiple-packages-mixed/requirements.txt",
     "line_number": 3
   },
   {
@@ -13,6 +14,7 @@
     "ecosystem": "pypi",
     "allowed_hashes": {},
     "transitivity": "unknown",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/multiple-packages-mixed/requirements.txt",
     "line_number": 4
   },
   {
@@ -21,6 +23,7 @@
     "ecosystem": "pypi",
     "allowed_hashes": {},
     "transitivity": "unknown",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/requirements/multiple-packages-mixed/requirements.txt",
     "line_number": 5
   }
 ]

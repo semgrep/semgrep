@@ -5,6 +5,7 @@
     "ecosystem": "npm",
     "allowed_hashes": {},
     "transitivity": "unknown",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v2/yarn.lock",
     "line_number": 8
   },
   {
@@ -17,6 +18,7 @@
       ]
     },
     "transitivity": "unknown",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v2/yarn.lock",
     "line_number": 12
   },
   {
@@ -29,6 +31,7 @@
       ]
     },
     "transitivity": "unknown",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v2/yarn.lock",
     "line_number": 21
   },
   {
@@ -41,6 +44,7 @@
       ]
     },
     "transitivity": "unknown",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v2/yarn.lock",
     "line_number": 37
   },
   {
@@ -49,6 +53,7 @@
     "ecosystem": "npm",
     "allowed_hashes": {},
     "transitivity": "unknown",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v2/yarn.lock",
     "line_number": 44
   },
   {
@@ -61,6 +66,7 @@
       ]
     },
     "transitivity": "unknown",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v2/yarn.lock",
     "line_number": 48
   },
   {
@@ -73,6 +79,7 @@
       ]
     },
     "transitivity": "unknown",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v2/yarn.lock",
     "line_number": 55
   }
 ]

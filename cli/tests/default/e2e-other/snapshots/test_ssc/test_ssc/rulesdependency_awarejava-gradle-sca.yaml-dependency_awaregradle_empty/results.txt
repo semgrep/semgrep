@@ -42,6 +42,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "allowed_hashes": {},
               "ecosystem": "maven",
               "line_number": 4,
+              "lockfile_path": "targets/dependency_aware/gradle_empty=/gradle.lockfile",
               "package": "org.webjars.npm:swagger-ui-dist",
               "transitivity": "unknown",
               "version": "3.35.2"

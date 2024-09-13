@@ -14,6 +14,7 @@ from semgrep.rule_lang import YamlMap
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pub
 from semgrep.semgrep_interfaces.semgrep_output_v1 import PubspecLock
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
@@ -62,6 +63,7 @@ def parse_pubspec_lock(
                     transitivity=transitivity,
                     line_number=key.span.start.line,
                     allowed_hashes={},
+                    lockfile_path=Fpath(str(lockfile_path)),
                 )
             )
     except KeyError:

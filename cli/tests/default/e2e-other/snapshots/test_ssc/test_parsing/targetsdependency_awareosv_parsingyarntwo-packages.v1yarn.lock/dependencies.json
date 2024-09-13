@@ -10,6 +10,7 @@
     },
     "transitivity": "unknown",
     "resolved_url": "https://registry.yarnpkg.com/concat-map/-/concat-map-0.0.1.tgz",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/two-packages.v1/yarn.lock",
     "line_number": 5
   },
   {
@@ -23,6 +24,7 @@
     },
     "transitivity": "unknown",
     "resolved_url": "https://registry.npmjs.org/concat-stream/-/concat-stream-1.6.2.tgz",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/two-packages.v1/yarn.lock",
     "line_number": 10
   }
 ]
