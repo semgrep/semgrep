@@ -1,0 +1,28 @@
+[
+  {
+    "package": "domelementtype",
+    "version": "1.3.1",
+    "ecosystem": "npm",
+    "allowed_hashes": {
+      "sha512": [
+        "052281f934a9329148fc73b108daf53bc68c39367c853de9337190d30fe65919a48440d2149924cb3cf85d0b01578e010a1c0692b0df3328d50f4780d9a155df"
+      ]
+    },
+    "transitivity": "unknown",
+    "resolved_url": "https://registry.yarnpkg.com/domelementtype/-/domelementtype-1.3.1.tgz",
+    "line_number": 5
+  },
+  {
+    "package": "babel/code-frame",
+    "version": "7.12.13",
+    "ecosystem": "npm",
+    "allowed_hashes": {
+      "sha512": [
+        "1d5d429b443766ba4247dded9163988ae60880bc595d91551b65602be3015a352a653ba776ea5b7f1d9a5daad7bb0e4aa3968c723b4981b4ace2f506052e6fea"
+      ]
+    },
+    "transitivity": "unknown",
+    "resolved_url": "https://registry.yarnpkg.com/@babel/code-frame/-/code-frame-7.12.13.tgz",
+    "line_number": 10
+  }
+]

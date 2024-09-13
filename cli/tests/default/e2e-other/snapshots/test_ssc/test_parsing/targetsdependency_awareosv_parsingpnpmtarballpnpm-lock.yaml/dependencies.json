@@ -1,0 +1,10 @@
+[
+  {
+    "package": "@my-org/my-package",
+    "version": "3.2.3",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "line_number": 10
+  }
+]

@@ -1,0 +1,28 @@
+[
+  {
+    "package": "concat-map",
+    "version": "0.0.1",
+    "ecosystem": "npm",
+    "allowed_hashes": {
+      "sha1": [
+        "d8a96bd77fd68df7793a73036a3ba0d5405d477b"
+      ]
+    },
+    "transitivity": "unknown",
+    "resolved_url": "https://registry.yarnpkg.com/concat-map/-/concat-map-0.0.1.tgz",
+    "line_number": 5
+  },
+  {
+    "package": "concat-stream",
+    "version": "1.6.2",
+    "ecosystem": "npm",
+    "allowed_hashes": {
+      "sha512": [
+        "dbb1c18212718e266d224dd872f9ffe246c993fd6e66e2457ee3c49ece8b684be9bc6d5fd214de6bc96296ba2eca8f6655cd8659d70467c38ba0699200396b0b"
+      ]
+    },
+    "transitivity": "unknown",
+    "resolved_url": "https://registry.npmjs.org/concat-stream/-/concat-stream-1.6.2.tgz",
+    "line_number": 10
+  }
+]

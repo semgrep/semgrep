@@ -1,0 +1,18 @@
+[
+  {
+    "package": "proto-plus",
+    "version": "1.22.0",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "line_number": 2
+  },
+  {
+    "package": "protobuf",
+    "version": "4.21.5",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "line_number": 16
+  }
+]

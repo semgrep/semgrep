@@ -1,0 +1,10 @@
+[
+  {
+    "package": "django",
+    "version": "2.2.24",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "line_number": 1
+  }
+]
