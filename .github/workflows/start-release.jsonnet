@@ -175,6 +175,8 @@ local check_semgrep_pro_job = {
   },
 };
 
+local release_branch = 'release-%s' % version;
+
 // make the Release PR
 local release_setup_job = {
   needs: [
@@ -187,6 +189,7 @@ local release_setup_job = {
     'pr-number': '${{ steps.open-pr.outputs.pr-number }}',
   },
   env: {
+    BRANCH: release_branch,
     VERSION: version,
   },
   // TODO: again why we need this token? we release from
@@ -201,7 +204,7 @@ local release_setup_job = {
       },
     },
     {
-      run: 'git checkout -b "release-${VERSION}"',
+      run: 'git checkout -b "${BRANCH}"'
     },
     {
       name: 'Push release branch',
@@ -209,14 +212,14 @@ local release_setup_job = {
         %s
         git add --all
         git commit --allow-empty -m "chore: release version ${VERSION}"
-        git push --set-upstream origin release-${VERSION}
+        git push --set-upstream origin ${BRANCH}
       ||| % gha.git_config_user,
     } + unless_dry_run,
     {
       name: 'Create PR',
       id: 'open-pr',
       env: {
-        SOURCE: 'release-%s' % version,
+        SOURCE: release_branch,
         TARGET: '${{ github.event.repository.default_branch }}',
         TITLE: 'Release Version %s' % version,
         GITHUB_TOKEN: semgrep.github_bot.token_ref,
@@ -287,7 +290,7 @@ local create_tag_job = {
       with: {
         submodules: true,
         // checkout the release branch this time
-        ref: 'release-%s' % version,
+        ref: release_branch,
         token: semgrep.github_bot.token_ref,
       },
     },
@@ -332,6 +335,13 @@ local create_draft_release_job = {
     // another. I am sure it is possible, but it isn't easy.  Instead
     // I just made an additional file contained in the repo called
     // OSS/release_changes.md .
+    {
+      uses: 'actions/checkout@v3',
+      with: {
+        ref: release_branch,
+        token: semgrep.github_bot.token_ref,
+      },
+    },
     {
       name: 'Create Draft Release Semgrep',
       uses: 'softprops/action-gh-release@v1',
