@@ -232,6 +232,10 @@ jobs:
           jq -r .token)"
           echo "::add-mask::$TOKEN"
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
+      - uses: actions/checkout@v3
+        with:
+          ref: release-${{ github.event.inputs.semgrep-version }}
+          token: ${{ steps.token.outputs.token }}
       - name: Create Draft Release Semgrep
         uses: softprops/action-gh-release@v1
         with:
@@ -359,6 +363,7 @@ jobs:
            }'
   release-setup:
     env:
+      BRANCH: release-${{ github.event.inputs.semgrep-version }}
       VERSION: ${{ github.event.inputs.semgrep-version }}
     needs:
       - check-version
@@ -389,7 +394,7 @@ jobs:
           ref: ${{ github.event.repository.default_branch }}
           submodules: recursive
           token: ${{ steps.token.outputs.token }}
-      - run: git checkout -b "release-${VERSION}"
+      - run: git checkout -b "${BRANCH}"
       - if: ${{ ! inputs.dry-run }}
         name: Push release branch
         run: |
@@ -398,7 +403,7 @@ jobs:
 
           git add --all
           git commit --allow-empty -m "chore: release version ${VERSION}"
-          git push --set-upstream origin release-${VERSION}
+          git push --set-upstream origin ${BRANCH}
       - env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
           SOURCE: release-${{ github.event.inputs.semgrep-version }}
