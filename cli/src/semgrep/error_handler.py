@@ -96,6 +96,7 @@ class ErrorHandler:
             self.capture_error()
 
         self.payload["request_id"] = str(state.local_scan_id)
+        self.payload["exit_code"] = exit_code
 
         try:
             requests.post(url, headers=headers, json=self.payload, timeout=3)
