@@ -1,3 +1,4 @@
+import json
 import logging
 from pathlib import Path
 
@@ -6,8 +7,8 @@ from tests.conftest import RULES_PATH
 from tests.conftest import TARGETS_PATH
 from tests.fixtures import RunSemgrep
 
+from semdep.lockfile import Lockfile
 from semdep.package_restrictions import is_in_range
-from semdep.parse_lockfile import lockfile_path_to_manifest_path
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
 
@@ -344,11 +345,16 @@ def test_maven_version_comparison(version, specifier, outcome):
 # They also include random lockfiles we want to make sure we parse predictably
 @pytest.mark.no_semgrep_cli
 @pytest.mark.osemfail
-def test_parsing(parse_lockfile_path_in_tmp, caplog, target):
+def test_parsing(caplog, target, snapshot, lockfile_path_in_tmp):
+    # Setup
     caplog.set_level(logging.ERROR)
-    lockfile = Path(target)
-    manifest = lockfile_path_to_manifest_path(lockfile)
-    _, error = parse_lockfile_path_in_tmp(lockfile, manifest)
+
+    # Parse
+    lockfile = Lockfile.from_path(Path(target))
+    dependencies, error = lockfile.parse()
+
+    # Assert
+
     # These two files have some packages we cannot really make sense of, so we ignore them
     # We include our failures in the error output for informational purposes
     if target.endswith("files/pnpm-lock.yaml"):
@@ -360,6 +366,9 @@ def test_parsing(parse_lockfile_path_in_tmp, caplog, target):
     else:
         assert len(error) == 0
     assert len(caplog.records) == 0
+
+    snapshot_deps = [dependency.to_json() for dependency in dependencies]
+    snapshot.assert_match(json.dumps(snapshot_deps, indent=2), "dependencies.json")
 
 
 # Quite awkward. To test that we can handle a target whose toplevel parent

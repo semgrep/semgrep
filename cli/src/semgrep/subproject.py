@@ -5,12 +5,11 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
-from semdep.parse_lockfile import lockfile_path_to_manifest_path
-from semdep.parse_lockfile import parse_lockfile_path
+from semdep.lockfile import ECOSYSTEM_TO_LOCKFILES
+from semdep.lockfile import ExactLockfileMatcher
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
-from semgrep.target_manager import ECOSYSTEM_TO_LOCKFILES
 from semgrep.target_manager import TargetManager
 
 
@@ -36,8 +35,36 @@ class Subproject:
 
     # the dependency source is how we resolved the dependencies. This might be a lockfile/manifest pair (the only current one),
     # but in the future it might also be dynamic resolution based on a manifest, an SBOM, or something else
-    dependency_source: LockfileDependencySource  # TODO: add more dependency source types
+    dependency_source: (
+        LockfileDependencySource  # TODO: add more dependency source types
+    )
     found_dependencies: List[FoundDependency]
+
+
+def _find_matching_lockfile(
+    current_path: Path,
+    ecosystem: Ecosystem,
+    candidates_by_lockfile: Dict[Path, Subproject],
+) -> Optional[Path]:
+    """
+    Find a matching lockfile in the given path for the specified ecosystem.
+
+    Args:
+        current_path (Path): The path to search for lockfiles.
+        ecosystem (Ecosystem): The ecosystem to search lockfiles for.
+        candidates_by_lockfile (Dict[Path, Subproject]): Dictionary of candidate lockfiles.
+
+    Returns:
+        Optional[Path]: The path of the matching lockfile, or None if no match is found.
+    """
+    for lockfile_matcher in ECOSYSTEM_TO_LOCKFILES[ecosystem]:
+        if isinstance(lockfile_matcher, ExactLockfileMatcher):
+            lockfile_path = current_path / lockfile_matcher.lockfile
+            if lockfile_path in candidates_by_lockfile:
+                return lockfile_path
+        else:
+            continue
+    return None
 
 
 def find_closest_subproject(
@@ -58,12 +85,11 @@ def find_closest_subproject(
     candidates_by_lockfile = {o.dependency_source.lockfile_path: o for o in candidates}
 
     for path in path.parents:
-        for lockfile_pattern in ECOSYSTEM_TO_LOCKFILES[ecosystem]:
-            lockfile_path = path / lockfile_pattern
-            if lockfile_path in candidates_by_lockfile:
-                return candidates_by_lockfile[lockfile_path]
-            else:
-                continue
+        matching_lockfile = _find_matching_lockfile(
+            path, ecosystem, candidates_by_lockfile
+        )
+        if matching_lockfile:
+            return candidates_by_lockfile[matching_lockfile]
     return None
 
 
@@ -90,17 +116,16 @@ def resolve_subprojects(
         # for safety, when `allow_dynamic_resolution` is disabled we follow
         # a lockfile-first approach to resolve projects that matches previous behavior
         for ecosystem in ECOSYSTEM_TO_LOCKFILES.keys():
-            for lockfile_path in target_manager.get_lockfiles(
+            for lockfile in target_manager.get_lockfiles(
                 ecosystem, ignore_baseline_handler=True
             ):
-                manifest_path = lockfile_path_to_manifest_path(lockfile_path)
-                deps, parse_errors = parse_lockfile_path(lockfile_path, manifest_path)
-                sca_dependency_targets.append(lockfile_path)
+                deps, parse_errors = lockfile.parse()
+                sca_dependency_targets.append(lockfile.path)
                 subproject = Subproject(
-                    root_dir=lockfile_path.parent,
+                    root_dir=lockfile.path.parent,
                     dependency_source=LockfileDependencySource(
-                        manifest_path=manifest_path,
-                        lockfile_path=lockfile_path,
+                        manifest_path=lockfile.manifest_path,
+                        lockfile_path=lockfile.path,
                     ),
                     ecosystem=ecosystem,
                     found_dependencies=deps,

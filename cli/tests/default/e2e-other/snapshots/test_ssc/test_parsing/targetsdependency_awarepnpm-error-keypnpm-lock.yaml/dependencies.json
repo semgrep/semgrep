@@ -1,0 +1,66 @@
+[
+  {
+    "package": "@babel/helper-string-parser",
+    "version": "7.19.4",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "line_number": 21
+  },
+  {
+    "package": "@babel/helper-validator-identifier",
+    "version": "7.19.1",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "line_number": 25
+  },
+  {
+    "package": "@babel/parser",
+    "version": "7.20.7",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "line_number": 29
+  },
+  {
+    "package": "@types/jsdom",
+    "version": "20.0.1",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "line_number": 36
+  },
+  {
+    "package": "stream",
+    "version": "0.0.2",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "line_number": 54
+  },
+  {
+    "package": "typescript",
+    "version": "4.7.4",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "line_number": 60
+  },
+  {
+    "package": "pinia",
+    "version": "2.0.28_e7lp6ggkpgyi5vqd44m2kxvk6i",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "line_number": 65
+  },
+  {
+    "package": "http-proxy-agent",
+    "version": "5.0.0",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "line_number": 83
+  }
+]

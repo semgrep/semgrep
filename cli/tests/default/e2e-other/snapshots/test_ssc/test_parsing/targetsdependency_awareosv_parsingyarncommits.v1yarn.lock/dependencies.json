@@ -1,0 +1,164 @@
+[
+  {
+    "package": "mine1",
+    "version": "1.0.0-alpha.37",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "resolved_url": "git+ssh://git@github.com:G-Rath/npm-git-repo-2",
+    "line_number": 5
+  },
+  {
+    "package": "mine2",
+    "version": "0.0.1",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "resolved_url": "https://codeload.github.com/G-Rath/npm-git-repo-2/tar.gz/0a2d2506c1fe299691fc5db53a2097db3bd615bc",
+    "line_number": 11
+  },
+  {
+    "package": "mine3",
+    "version": "1.2.3",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "resolved_url": "https://codeload.github.com/G-Rath/npm-git-repo-1/tar.gz/094e581aaf927d010e4b61d706ba584551dac502",
+    "line_number": 17
+  },
+  {
+    "package": "mine4",
+    "version": "0.0.2",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "resolved_url": "git+ssh://git@github.com:G-Rath/npm-git-repo-2",
+    "line_number": 21
+  },
+  {
+    "package": "mine4",
+    "version": "0.0.4",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "resolved_url": "https://codeload.github.com/G-Rath/npm-git-repo-2/tar.gz/aa3bdfcb1d845c79f14abb66f60d35b8a3ee5998",
+    "line_number": 25
+  },
+  {
+    "package": "my-package",
+    "version": "1.8.3",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "resolved_url": "git+https://git@github.com/my-org/my-package.git",
+    "line_number": 29
+  },
+  {
+    "package": "bower_components/angular-animate",
+    "version": "1.4.14",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "resolved_url": "git://github.com/angular/bower-angular-animate.git",
+    "line_number": 33
+  },
+  {
+    "package": "bower_components/alertify",
+    "version": "0.0.0",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "resolved_url": "https://codeload.github.com/fabien-d/alertify.js-shim/tar.gz/e7b6c46d76604d297c389d830817b611c9a8f17c",
+    "line_number": 37
+  },
+  {
+    "package": "minimist",
+    "version": "0.0.8",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "resolved_url": "ssh://github.com/substack/minimist.git",
+    "line_number": 41
+  },
+  {
+    "package": "bats-assert",
+    "version": "2.0.0",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "resolved_url": "https://github.com/bats-core/bats-assert",
+    "line_number": 45
+  },
+  {
+    "package": "bats-support",
+    "version": "0.3.0",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "resolved_url": "https://github.com/bats-core/bats-support",
+    "line_number": 49
+  },
+  {
+    "package": "bats",
+    "version": "1.5.0",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "resolved_url": "https://github.com/bats-core/bats-core",
+    "line_number": 53
+  },
+  {
+    "package": "vue",
+    "version": "2.6.12",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "resolved_url": "https://github.com/vuejs/vue.git",
+    "line_number": 57
+  },
+  {
+    "package": "kit",
+    "version": "1.0.0",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "resolved_url": "git+https://bitbucket.org/kettlelogic/kit.git",
+    "line_number": 61
+  },
+  {
+    "package": "casadistance",
+    "version": "1.0.0",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "resolved_url": "git+ssh://git@bitbucket.org/casasoftag/casadistance.git",
+    "line_number": 68
+  },
+  {
+    "package": "babel-preset-php",
+    "version": "1.1.1",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "resolved_url": "https://gitlab.com/kornelski/babel-preset-php/repository/archive.tar.gz?ref=c5a7ba5e0ad98b8db1cb8ce105403dd4b768cced",
+    "line_number": 72
+  },
+  {
+    "package": "is-number",
+    "version": "2.0.0",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "resolved_url": "https://codeload.github.com/jonschlinkert/is-number/tar.gz/d5ac0584ee9ae7bd9288220a39780f155b9ad4c8",
+    "line_number": 78
+  },
+  {
+    "package": "is-number",
+    "version": "5.0.0",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "resolved_url": "https://dummy-token@github.com/jonschlinkert/is-number.git",
+    "line_number": 82
+  }
+]

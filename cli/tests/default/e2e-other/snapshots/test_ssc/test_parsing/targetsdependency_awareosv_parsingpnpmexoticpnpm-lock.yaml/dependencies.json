@@ -1,0 +1,34 @@
+[
+  {
+    "package": "foo",
+    "version": "1.0.0",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "line_number": 10
+  },
+  {
+    "package": "@foo/bar",
+    "version": "1.0.0",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "line_number": 11
+  },
+  {
+    "package": "foo",
+    "version": "1.4.0_@types+babel__core@7.1.14",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "line_number": 17
+  },
+  {
+    "package": "foo",
+    "version": "bar",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "line_number": 18
+  }
+]
