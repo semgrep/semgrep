@@ -1,0 +1,54 @@
+[
+  {
+    "package": "define-properties",
+    "version": "1.1.3",
+    "ecosystem": "npm",
+    "allowed_hashes": {
+      "sha512": [
+        "dcca9f60a8f694bcdd3127fc648644fd5f99bb2f81803e9fd7ae1ef0adb0edd827a4a02b0437ab198a4ce3a21861c8e791d3cd3233e4f40e95141f3edd22a55d"
+      ]
+    },
+    "transitivity": "unknown",
+    "resolved_url": "https://registry.yarnpkg.com/define-properties/-/define-properties-1.1.3.tgz",
+    "line_number": 5
+  },
+  {
+    "package": "define-property",
+    "version": "0.2.5",
+    "ecosystem": "npm",
+    "allowed_hashes": {
+      "sha1": [
+        "c35b1ef918ec3c990f9a5bc57be04aacec5c8116"
+      ]
+    },
+    "transitivity": "unknown",
+    "resolved_url": "https://registry.yarnpkg.com/define-property/-/define-property-0.2.5.tgz",
+    "line_number": 12
+  },
+  {
+    "package": "define-property",
+    "version": "1.0.0",
+    "ecosystem": "npm",
+    "allowed_hashes": {
+      "sha1": [
+        "769ebaaf3f4a63aad3af9e8d304c9bbe79bfb0e6"
+      ]
+    },
+    "transitivity": "unknown",
+    "resolved_url": "https://registry.yarnpkg.com/define-property/-/define-property-1.0.0.tgz",
+    "line_number": 19
+  },
+  {
+    "package": "define-property",
+    "version": "2.0.2",
+    "ecosystem": "npm",
+    "allowed_hashes": {
+      "sha512": [
+        "8f02b6515e1c9cfa5b706efe55101129364f516a30c1703c6f31f934feae774a1e031c983ee1995000bb84cba0a42773e01792665d8397d93ae821c9ff8e9961"
+      ]
+    },
+    "transitivity": "unknown",
+    "resolved_url": "https://registry.yarnpkg.com/define-property/-/define-property-2.0.2.tgz",
+    "line_number": 26
+  }
+]

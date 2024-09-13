@@ -1,0 +1,10 @@
+[
+  {
+    "package": "acorn",
+    "version": "8.7.0",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "line_number": 11
+  }
+]

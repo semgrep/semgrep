@@ -1,0 +1,42 @@
+[
+  {
+    "package": "my-bitbucket-package",
+    "version": "1.0.0",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "line_number": 14
+  },
+  {
+    "package": "@my-scope/my-package",
+    "version": "1.0.0",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "line_number": 20
+  },
+  {
+    "package": "@my-scope/my-other-package",
+    "version": "1.0.0",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "line_number": 28
+  },
+  {
+    "package": "faker-parser",
+    "version": "0.0.1",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "line_number": 34
+  },
+  {
+    "package": "mocks",
+    "version": "20.0.1",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "line_number": 42
+  }
+]

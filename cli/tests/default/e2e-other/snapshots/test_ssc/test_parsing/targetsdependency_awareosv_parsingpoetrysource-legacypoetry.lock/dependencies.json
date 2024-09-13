@@ -1,0 +1,10 @@
+[
+  {
+    "package": "appdirs",
+    "version": "1.4.4",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "line_number": 2
+  }
+]
