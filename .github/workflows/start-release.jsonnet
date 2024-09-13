@@ -208,7 +208,7 @@ local release_setup_job = {
       run: |||
         %s
         git add --all
-        git commit -m "chore: release version ${VERSION}"
+        git commit --allow-empty -m "chore: release version ${VERSION}"
         git push --set-upstream origin release-${VERSION}
       ||| % gha.git_config_user,
     } + unless_dry_run,
