@@ -34,6 +34,7 @@ from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Jsondoc
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
@@ -269,6 +270,7 @@ def parse_yarn(
                 resolved_url=remove_trailing_octothorpe(resolved_url),
                 transitivity=transitivity(manifest_deps, sources),
                 line_number=line_number,
+                lockfile_path=Fpath(str(lockfile_path)),
             )
         )
     return output, errors

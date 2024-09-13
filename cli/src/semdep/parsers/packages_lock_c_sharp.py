@@ -15,6 +15,7 @@ from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Jsondoc
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Nuget
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
@@ -36,7 +37,9 @@ def map_to_transitivity(type_value: Optional[str]) -> Transitivity:
         return Transitivity(Unknown())
 
 
-def parse_dependencies_field(deps: Dict[str, JSON]) -> List[FoundDependency]:
+def parse_dependencies_field(
+    lockfile_path: Path, deps: Dict[str, JSON]
+) -> List[FoundDependency]:
     output = []
 
     for framework, dep_json in deps.items():
@@ -62,6 +65,7 @@ def parse_dependencies_field(deps: Dict[str, JSON]) -> List[FoundDependency]:
                     allowed_hashes={},
                     transitivity=map_to_transitivity(transitivity_str),
                     line_number=package_json.line_number,
+                    lockfile_path=Fpath(str(lockfile_path)),
                 )
             )
 
@@ -87,4 +91,4 @@ def parse_packages_lock(
         logger.warn("Found packages.lock.json with no 'dependencies'")
         return [], errors
 
-    return parse_dependencies_field(deps.as_dict()), errors
+    return parse_dependencies_field(lockfile_path, deps.as_dict()), errors

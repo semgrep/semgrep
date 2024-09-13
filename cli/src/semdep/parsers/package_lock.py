@@ -18,6 +18,7 @@ from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semdep.parsers.util import transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Jsondoc
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
@@ -44,7 +45,10 @@ def parse_package_name(package_path: str) -> str:
         return split_package_path[-1]
 
 
-def parse_packages_field(deps: Dict[str, JSON]) -> List[FoundDependency]:
+def parse_packages_field(
+    lockfile_path: Path,
+    deps: Dict[str, JSON],
+) -> List[FoundDependency]:
     try:
         manifest_deps = set(deps[""].as_dict()["dependencies"].as_dict().keys())
     except KeyError:
@@ -80,13 +84,17 @@ def parse_packages_field(deps: Dict[str, JSON]) -> List[FoundDependency]:
                 # https://docs.npmjs.com/cli/v10/configuring-npm/package-lock-json#packages
                 else transitivity(manifest_deps, [package_name]),
                 line_number=dep_json.line_number,
+                lockfile_path=Fpath(str(lockfile_path)),
             )
         )
     return output
 
 
 def parse_dependencies_field(
-    deps: Dict[str, JSON], manifest_deps: Optional[Set[str]], nested: bool
+    lockfile_path: Path,
+    deps: Dict[str, JSON],
+    manifest_deps: Optional[Set[str]],
+    nested: bool,
 ) -> List[FoundDependency]:
     # Dependency dicts in a package-lock.json can be nested:
     # {"foo" : {stuff, "dependencies": {"bar": stuff, "dependencies": {"baz": stuff}}}}
@@ -118,12 +126,15 @@ def parse_dependencies_field(
                 if nested
                 else transitivity(manifest_deps, [package]),
                 line_number=dep_json.line_number,
+                lockfile_path=Fpath(str(lockfile_path)),
             )
         )
         nested_deps = fields.get("dependencies")
         if nested_deps:
             output.extend(
-                parse_dependencies_field(nested_deps.as_dict(), manifest_deps, True)
+                parse_dependencies_field(
+                    lockfile_path, nested_deps.as_dict(), manifest_deps, True
+                )
             )
     return output
 
@@ -156,7 +167,7 @@ def parse_package_lock(
         if deps is None:
             logger.debug("Found package-lock with no 'packages'")
             return [], errors
-        return parse_packages_field(deps.as_dict()), errors
+        return parse_packages_field(lockfile_path, deps.as_dict()), errors
     else:
         deps = lockfile_json.get("dependencies")
         if deps is None:
@@ -173,4 +184,9 @@ def parse_package_lock(
                 else set()
             )
 
-        return parse_dependencies_field(deps.as_dict(), manifest_deps, False), errors
+        return (
+            parse_dependencies_field(
+                lockfile_path, deps.as_dict(), manifest_deps, False
+            ),
+            errors,
+        )

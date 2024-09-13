@@ -20,6 +20,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyChild
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pomtree
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
@@ -137,6 +138,7 @@ def parse_pom_tree(
                 transitivity=match.transitivity,
                 line_number=match.line_number,
                 children=match.children,
+                lockfile_path=Fpath(str(tree_path)),
             )
         )
     return output, errors
