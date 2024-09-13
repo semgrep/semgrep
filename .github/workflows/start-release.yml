@@ -232,10 +232,6 @@ jobs:
           jq -r .token)"
           echo "::add-mask::$TOKEN"
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
-      - uses: actions/checkout@v3
-        with:
-          ref: release-${{ github.event.inputs.semgrep-version }}
-          token: ${{ steps.token.outputs.token }}
       - name: Create Draft Release Semgrep
         uses: softprops/action-gh-release@v1
         with:
@@ -329,8 +325,6 @@ jobs:
              "text": "Release Validation has failed for version ${VERSION}. Please see https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!"
            }'
   notify-success:
-    env:
-      VERSION: ${{ github.event.inputs.semgrep-version }}
     if: ${{ success() && ! inputs.dry-run }}
     needs:
       - check-version
@@ -343,7 +337,9 @@ jobs:
       - bump-semgrep-intellij
     runs-on: ubuntu-20.04
     steps:
-      - run: echo "${VERSION}"
+      - env:
+          VERSION: ${{ github.event.inputs.semgrep-version }}
+        run: echo "${VERSION}"
       - env:
           VERSION: ${{ github.event.inputs.semgrep-version }}
         name: Notify Success on Twitter
@@ -351,7 +347,9 @@ jobs:
           # POST a webhook to Zapier to allow for public notifications to our users via Twitter
           curl "${{ secrets.ZAPIER_WEBHOOK_URL }}" \
             -d '{"version":"${VERSION}","changelog_url":"https://github.com/returntocorp/semgrep/releases/tag/v${VERSION}"}'
-      - name: Notify Success on Slack
+      - env:
+          VERSION: ${{ github.event.inputs.semgrep-version }}
+        name: Notify Success on Slack
         run: |
           curl --request POST \
            --url  ${{ secrets.NOTIFICATIONS_URL }} \
@@ -361,7 +359,6 @@ jobs:
            }'
   release-setup:
     env:
-      BRANCH: release-${{ github.event.inputs.semgrep-version }}
       VERSION: ${{ github.event.inputs.semgrep-version }}
     needs:
       - check-version
@@ -392,7 +389,7 @@ jobs:
           ref: ${{ github.event.repository.default_branch }}
           submodules: recursive
           token: ${{ steps.token.outputs.token }}
-      - run: git checkout -b "${BRANCH}"
+      - run: git checkout -b "release-${VERSION}"
       - if: ${{ ! inputs.dry-run }}
         name: Push release branch
         run: |
@@ -400,8 +397,8 @@ jobs:
           git config user.email ${{ github.actor }}@users.noreply.github.com
 
           git add --all
-          git commit --allow-empty -m "chore: release version ${VERSION}"
-          git push --set-upstream origin ${BRANCH}
+          git commit -m "chore: release version ${VERSION}"
+          git push --set-upstream origin release-${VERSION}
       - env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
           SOURCE: release-${{ github.event.inputs.semgrep-version }}
