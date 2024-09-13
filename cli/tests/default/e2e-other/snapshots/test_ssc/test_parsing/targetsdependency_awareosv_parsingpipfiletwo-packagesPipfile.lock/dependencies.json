@@ -10,6 +10,7 @@
       ]
     },
     "transitivity": "unknown",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/pipfile/two-packages/Pipfile.lock",
     "line_number": 19
   }
 ]

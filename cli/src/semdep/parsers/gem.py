@@ -21,6 +21,7 @@ from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Gem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import GemfileLock
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
@@ -114,6 +115,7 @@ def parse_gemfile(
                     allowed_hashes={},
                     transitivity=transitivity(manifest_deps, [dep[0]]),
                     line_number=line_number,
+                    lockfile_path=Fpath(str(lockfile_path)),
                 )
             )
     return output, errors

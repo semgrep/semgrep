@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from semdep.parsers.package_lock import parse_package_name
@@ -5,6 +7,7 @@ from semdep.parsers.package_lock import parse_packages_field
 from semdep.parsers.util import JSON
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
@@ -12,6 +15,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 
 @pytest.mark.quick
 def test_package_lock_v2_parser_ignores_root():
+    lockfile_path = Path("test/fixtures/package-lock-v2/package-lock.json")
     only_root_dep = {
         "": JSON(
             line_number=6,
@@ -23,7 +27,7 @@ def test_package_lock_v2_parser_ignores_root():
             },
         )
     }
-    parsed_deps = parse_packages_field(only_root_dep)
+    parsed_deps = parse_packages_field(lockfile_path, only_root_dep)
     assert parsed_deps == []
 
 
@@ -57,6 +61,7 @@ def test_package_lock_v2_parser_parses_package_outside_node_modules(
 
 @pytest.mark.quick
 def test_package_lock_v2_parser_produces_correct_deps():
+    lockfile_path = Path("test/fixtures/package-lock-v2/package-lock.json")
     v3_deps = {
         "": JSON(
             line_number=6,
@@ -136,7 +141,7 @@ def test_package_lock_v2_parser_produces_correct_deps():
         ),
     }
 
-    parsed_deps = parse_packages_field(v3_deps)
+    parsed_deps = parse_packages_field(lockfile_path, v3_deps)
     assert parsed_deps == [
         FoundDependency(
             package="@popperjs/core",
@@ -152,6 +157,7 @@ def test_package_lock_v2_parser_produces_correct_deps():
             line_number=11,
             children=None,
             git_ref=None,
+            lockfile_path=Fpath(str(lockfile_path)),
         ),
         FoundDependency(
             package="legacy-bootstrap",
@@ -167,5 +173,6 @@ def test_package_lock_v2_parser_produces_correct_deps():
             line_number=21,
             children=None,
             git_ref=None,
+            lockfile_path=Fpath(str(lockfile_path)),
         ),
     ]
