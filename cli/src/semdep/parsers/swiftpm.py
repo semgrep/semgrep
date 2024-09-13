@@ -26,6 +26,7 @@ from semdep.parsers.util import transitivity
 from semdep.parsers.util import whitespace
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Jsondoc
 from semgrep.semgrep_interfaces.semgrep_output_v1 import PackageResolved
 from semgrep.semgrep_interfaces.semgrep_output_v1 import PackageSwift
@@ -110,7 +111,7 @@ package_swift_parser = (
 
 
 def parse_swiftpm_v2(
-    lockfile: Dict[str, JSON], direct_deps: Set[str]
+    lockfile_path: Path, lockfile: Dict[str, JSON], direct_deps: Set[str]
 ) -> List[FoundDependency]:
     result = []
 
@@ -149,6 +150,7 @@ def parse_swiftpm_v2(
                 line_number=version.line_number,
                 git_ref=revision.as_str() if revision else None,
                 resolved_url=repository_url.as_str() if repository_url else None,
+                lockfile_path=Fpath(str(lockfile_path)),
             )
         )
 
@@ -156,7 +158,7 @@ def parse_swiftpm_v2(
 
 
 def parse_swiftpm_v1(
-    lockfile: Dict[str, JSON], direct_deps: Set[str]
+    lockfile_path: Path, lockfile: Dict[str, JSON], direct_deps: Set[str]
 ) -> List[FoundDependency]:
     result = []
 
@@ -196,6 +198,7 @@ def parse_swiftpm_v1(
                 line_number=version.line_number,
                 git_ref=revision.as_str() if revision else None,
                 resolved_url=repository_url.as_str() if repository_url else None,
+                lockfile_path=Fpath(str(lockfile_path)),
             )
         )
 
@@ -245,9 +248,9 @@ def parse_package_resolved(
 
     all_deps = []
     if lockfile_version_int == 1:
-        all_deps = parse_swiftpm_v1(lockfile_json, direct_deps)
+        all_deps = parse_swiftpm_v1(lockfile_path, lockfile_json, direct_deps)
     elif lockfile_version_int == 2:
-        all_deps = parse_swiftpm_v2(lockfile_json, direct_deps)
+        all_deps = parse_swiftpm_v2(lockfile_path, lockfile_json, direct_deps)
     else:
         errors.append(
             DependencyParserError(

@@ -137,6 +137,7 @@
             "ecosystem": "pypi",
             "allowed_hashes": {},
             "transitivity": "unknown",
+            "lockfile_path": "poetry.lock",
             "line_number": 2
           },
           "lockfile": "poetry.lock"

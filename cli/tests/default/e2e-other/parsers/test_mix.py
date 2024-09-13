@@ -8,6 +8,7 @@ from semdep.parsers import mix
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Hex
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
@@ -403,6 +404,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=2,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="cowboy",
@@ -414,6 +416,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=3,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="cowlib",
@@ -425,6 +428,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=4,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="ecpool",
@@ -436,6 +440,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=5,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="ehttpc",
@@ -447,6 +452,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=6,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="ex_aws",
@@ -458,6 +464,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=7,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="ex_aws_lambda",
@@ -469,6 +476,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=8,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="ex_aws_s3",
@@ -480,6 +488,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=9,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="ex_aws_ses",
@@ -491,6 +500,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=10,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="gproc",
@@ -502,6 +512,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=11,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="grpc",
@@ -513,6 +524,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=12,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="gun",
@@ -524,6 +536,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=13,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="hackney",
@@ -535,6 +548,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=14,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="idna",
@@ -546,6 +560,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=15,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="jason",
@@ -557,6 +572,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=16,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="joken",
@@ -568,6 +584,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=17,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="jose",
@@ -579,6 +596,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=18,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="metrics",
@@ -590,6 +608,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=19,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="mime",
@@ -601,6 +620,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=20,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="mimerl",
@@ -612,6 +632,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=21,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="parse_trans",
@@ -623,6 +644,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=22,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="pbkdf2",
@@ -634,6 +656,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=23,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="ranch",
@@ -645,6 +668,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=24,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="rocksdb",
@@ -656,6 +680,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=25,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="snabbkaffe",
@@ -667,6 +692,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=26,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="ssl_verify_fun",
@@ -678,6 +704,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=27,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="sweet_xml",
@@ -689,6 +716,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=28,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="telemetry",
@@ -700,6 +728,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=29,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="typerefl",
@@ -711,6 +740,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=30,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="unicode_util_compat",
@@ -722,6 +752,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=32,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
             FoundDependency(
                 package="uuid",
@@ -733,6 +764,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 line_number=33,
                 children=None,
                 git_ref=None,
+                lockfile_path=Fpath(str(lockfile_path)),
             ),
         ],
         [],

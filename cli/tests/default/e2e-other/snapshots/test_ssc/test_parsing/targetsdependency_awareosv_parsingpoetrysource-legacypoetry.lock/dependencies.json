@@ -5,6 +5,7 @@
     "ecosystem": "pypi",
     "allowed_hashes": {},
     "transitivity": "unknown",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/poetry/source-legacy/poetry.lock",
     "line_number": 2
   }
 ]

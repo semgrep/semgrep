@@ -5,6 +5,7 @@
     "ecosystem": "npm",
     "allowed_hashes": {},
     "transitivity": "transitive",
+    "lockfile_path": "targets/dependency_aware/pnpm-error-key/pnpm-lock.yaml",
     "line_number": 21
   },
   {
@@ -13,6 +14,7 @@
     "ecosystem": "npm",
     "allowed_hashes": {},
     "transitivity": "transitive",
+    "lockfile_path": "targets/dependency_aware/pnpm-error-key/pnpm-lock.yaml",
     "line_number": 25
   },
   {
@@ -21,6 +23,7 @@
     "ecosystem": "npm",
     "allowed_hashes": {},
     "transitivity": "transitive",
+    "lockfile_path": "targets/dependency_aware/pnpm-error-key/pnpm-lock.yaml",
     "line_number": 29
   },
   {
@@ -29,6 +32,7 @@
     "ecosystem": "npm",
     "allowed_hashes": {},
     "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/pnpm-error-key/pnpm-lock.yaml",
     "line_number": 36
   },
   {
@@ -37,6 +41,7 @@
     "ecosystem": "npm",
     "allowed_hashes": {},
     "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/pnpm-error-key/pnpm-lock.yaml",
     "line_number": 54
   },
   {
@@ -45,6 +50,7 @@
     "ecosystem": "npm",
     "allowed_hashes": {},
     "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/pnpm-error-key/pnpm-lock.yaml",
     "line_number": 60
   },
   {
@@ -53,6 +59,7 @@
     "ecosystem": "npm",
     "allowed_hashes": {},
     "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/pnpm-error-key/pnpm-lock.yaml",
     "line_number": 65
   },
   {
@@ -61,6 +68,7 @@
     "ecosystem": "npm",
     "allowed_hashes": {},
     "transitivity": "transitive",
+    "lockfile_path": "targets/dependency_aware/pnpm-error-key/pnpm-lock.yaml",
     "line_number": 83
   }
 ]

@@ -1,4 +1,5 @@
 import textwrap
+from pathlib import Path
 
 import pytest
 
@@ -6,6 +7,7 @@ from semdep.parsers import swiftpm
 from semdep.parsers.util import json_doc
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import SwiftPM
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
@@ -268,6 +270,7 @@ def test_swift_dependencies_block_parser():
 @pytest.mark.osemfail
 @pytest.mark.quick
 def test_swift_lockfile_v1_parser():
+    lockfile_path = Path("test/fixtures/swiftpm-lock-v1/Package.resolved")
     lockfile_v1 = json_doc.parse(
         """
     {
@@ -298,7 +301,7 @@ def test_swift_lockfile_v1_parser():
     """
     ).as_dict()
 
-    found_deps = swiftpm.parse_swiftpm_v1(lockfile_v1, {""})
+    found_deps = swiftpm.parse_swiftpm_v1(lockfile_path, lockfile_v1, {""})
     expected_deps = [
         FoundDependency(
             package="curry",
@@ -309,6 +312,7 @@ def test_swift_lockfile_v1_parser():
             line_number=11,
             git_ref="4331dd50bc1db007db664a23f32e6f3df93d4e1a",
             resolved_url="https://github.com/thoughtbot/Curry.git",
+            lockfile_path=Fpath(str(lockfile_path)),
         ),
         FoundDependency(
             package="prettycolors",
@@ -319,6 +323,7 @@ def test_swift_lockfile_v1_parser():
             line_number=20,
             git_ref="afd4553a4db6f656521cfe9b1f70bece2748c7d8",
             resolved_url="https://github.com/jdhealy/PrettyColors.git",
+            lockfile_path=Fpath(str(lockfile_path)),
         ),
     ]
 
@@ -329,6 +334,7 @@ def test_swift_lockfile_v1_parser():
 @pytest.mark.osemfail
 @pytest.mark.quick
 def test_swift_lockfile_v2_parser():
+    lockfile_path = Path("test/fixtures/swiftpm-lock-v2/Package.resolved")
     lockfile_v2 = json_doc.parse(
         """
     {
@@ -357,7 +363,7 @@ def test_swift_lockfile_v2_parser():
     """
     ).as_dict()
 
-    found_deps = swiftpm.parse_swiftpm_v2(lockfile_v2, {""})
+    found_deps = swiftpm.parse_swiftpm_v2(lockfile_path, lockfile_v2, {""})
     expected_deps = [
         FoundDependency(
             package="bson",
@@ -368,6 +374,7 @@ def test_swift_lockfile_v2_parser():
             line_number=10,
             git_ref="944dfb3b0eb028f477c25ba6a071181de8ab903a",
             resolved_url="https://github.com/orlandos-nl/BSON.git",
+            lockfile_path=Fpath(str(lockfile_path)),
         ),
         FoundDependency(
             package="dnsclient",
@@ -378,6 +385,7 @@ def test_swift_lockfile_v2_parser():
             line_number=19,
             git_ref="770249dcb7259c486f2d68c164091b115ccb765f",
             resolved_url="https://github.com/orlandos-nl/DNSClient.git",
+            lockfile_path=Fpath(str(lockfile_path)),
         ),
     ]
 
