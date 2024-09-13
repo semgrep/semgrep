@@ -1,0 +1,4 @@
+If there is an OOM error during interfile dataflow analysis (`--pro`) Semgrep will
+now try to recover from it and continue the interfile analysis without falling back
+immediately to intrafile analysis. This allows using `--max-memory` with `--pro` in
+a more effective way.
