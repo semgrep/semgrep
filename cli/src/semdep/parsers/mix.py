@@ -26,6 +26,7 @@ from semdep.parsers.util import whitespace
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Hex
 from semgrep.semgrep_interfaces.semgrep_output_v1 import MixLock
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
@@ -208,7 +209,9 @@ def _parse_manifest_deps(manifest: list[tuple[int, str]]) -> set[str]:
 
 
 def _build_found_dependencies(
-    direct_deps: set[str], lockfile_deps: list[tuple[int, tuple[str, str]] | None]
+    lockfile_path: Path,
+    direct_deps: set[str],
+    lockfile_deps: list[tuple[int, tuple[str, str]] | None],
 ) -> list[FoundDependency]:
     result = []
     for dep in lockfile_deps:
@@ -223,6 +226,7 @@ def _build_found_dependencies(
                 allowed_hashes={},
                 transitivity=transitivity(direct_deps, [package]),
                 line_number=line_number,
+                lockfile_path=Fpath(str(lockfile_path)),
             )
         )
 
@@ -250,7 +254,7 @@ def parse_mix(
         [x for x in parsed_manifest if isinstance(x, tuple)]
     )
     found_deps = _build_found_dependencies(
-        direct_deps, [x for x in parsed_lockfile if isinstance(x, tuple)]
+        lockfile_path, direct_deps, [x for x in parsed_lockfile if isinstance(x, tuple)]
     )
 
     return found_deps, errors

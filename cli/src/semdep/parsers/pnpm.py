@@ -17,6 +17,7 @@ from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
 from semgrep.semgrep_interfaces.semgrep_output_v1 import PnpmLock
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
@@ -138,6 +139,7 @@ def parse_pnpm(
                 transitivity=transitivity(direct_deps, [package_str]),
                 line_number=line_number,
                 allowed_hashes={},
+                lockfile_path=Fpath(str(lockfile_path)),
             )
         )
     return output, errors

@@ -5,6 +5,7 @@
     "ecosystem": "npm",
     "allowed_hashes": {},
     "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/pnpm/multiple-versions/pnpm-lock.yaml",
     "line_number": 13
   },
   {
@@ -13,6 +14,7 @@
     "ecosystem": "npm",
     "allowed_hashes": {},
     "transitivity": "direct",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/pnpm/multiple-versions/pnpm-lock.yaml",
     "line_number": 19
   },
   {
@@ -21,6 +23,7 @@
     "ecosystem": "npm",
     "allowed_hashes": {},
     "transitivity": "transitive",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/pnpm/multiple-versions/pnpm-lock.yaml",
     "line_number": 24
   }
 ]

@@ -21,6 +21,7 @@ from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import GoMod
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Gomod
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
@@ -104,6 +105,7 @@ def parse_go_mod(
                             ),
                             line_number=line_number,
                             resolved_url=package,  # Go package names are URLs
+                            lockfile_path=Fpath(str(lockfile_path)),
                         )
                     )
     return [d for d in output if (d.package, d.version) not in exclude], errors

@@ -19,6 +19,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Composer
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ComposerLock
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.verbose_logging import getLogger
 
@@ -117,6 +118,7 @@ def parse_composer_lock(
                 allowed_hashes=allowed_hashes,
                 transitivity=transitivity(manifest_deps, [package]),
                 line_number=line_number,
+                lockfile_path=Fpath(str(lockfile_path)),
             )
         )
     # Return the output list containing FoundDependency objects

@@ -42,6 +42,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "allowed_hashes": {},
               "ecosystem": "nuget",
               "line_number": 11,
+              "lockfile_path": "targets/dependency_aware/nuget/packages.lock.json",
               "package": "Newtonsoft.Json",
               "transitivity": "direct",
               "version": "9.0.1"
@@ -87,6 +88,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "allowed_hashes": {},
               "ecosystem": "nuget",
               "line_number": 171,
+              "lockfile_path": "targets/dependency_aware/nuget/packages.lock.json",
               "package": "System.Linq",
               "transitivity": "transitive",
               "version": "4.1.0"
