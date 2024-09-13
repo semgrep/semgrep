@@ -80,6 +80,7 @@ def test_send_nominal(fail_open_mock) -> None:
     assert fail_open_mock.called
     payload = fail_open_mock.last_request.json()
     assert payload["error"] == str_containing("Traceback")
+    assert payload["exit_code"] == 2
 
 
 @pytest.mark.quick
@@ -136,6 +137,7 @@ def test_send_with_scan_id(
         "url": "https://semgrep.dev/api/agent/deployments/current",
         "scan_id": 1234,
         "request_id": str(mocked_state.local_scan_id),
+        "exit_code": 2,
     }
 
     expected_headers = {
@@ -176,6 +178,7 @@ def test_send_nominal_with_trace(
     expected_payload = {
         "error": expected_traceback,
         "request_id": str(mocked_state.local_scan_id),
+        "exit_code": 2,
     }
     expected_headers = {
         "User-Agent": FAKE_USER_AGENT,

@@ -1733,6 +1733,7 @@ def test_fail_auth_invalid_key_suppressed_by_default(
         "status_code": 401,
         "request_id": scan_create.last_request.json()["scan_metadata"]["unique_id"],
         "error": str_containing("INVALID_API_KEY_EXIT_CODE"),
+        "exit_code": 13,
     }
 
 
@@ -1840,6 +1841,7 @@ def test_fail_open_works_when_backend_is_down(
         "method": "POST",
         "request_id": scan_create.last_request.json()["scan_metadata"]["unique_id"],
         "error": str_containing("requests.exceptions.ConnectionError"),
+        "exit_code": 2,
     }
 
 
