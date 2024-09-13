@@ -1,0 +1,15 @@
+[
+  {
+    "package": "itsdangerous",
+    "version": "2.1.2",
+    "ecosystem": "pypi",
+    "allowed_hashes": {
+      "sha256": [
+        "2c2349112351b88699d8d4b6b075022c0808887cb7ad10069318a8b0bc88db44",
+        "5dbbc68b317e5e42f327f9021763545dc3fc3bfe22e6deb96aaf1fc38874156a"
+      ]
+    },
+    "transitivity": "unknown",
+    "line_number": 19
+  }
+]

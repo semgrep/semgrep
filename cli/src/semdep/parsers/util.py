@@ -21,8 +21,10 @@ from typing import Any
 from typing import Callable
 from typing import cast
 from typing import Dict
+from typing import Generator
 from typing import Generic
 from typing import List
+from typing import Optional
 from typing import Tuple
 from typing import TypeVar
 
@@ -36,9 +38,11 @@ from semdep.external.parsy import Parser
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
 from semdep.external.parsy import success
+from semgrep.console import console
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyChild
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
+from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
@@ -54,6 +58,40 @@ B = TypeVar("B")
 C = TypeVar("C")
 
 Pos = Tuple[int, int]
+
+SemgrepParser = Callable[
+    [Path, Optional[Path]],
+    Tuple[List[FoundDependency], List[DependencyParserError]],
+]
+
+LegacySemgrepParser = Callable[
+    [str, Optional[str]], Generator[FoundDependency, None, None]
+]
+
+
+def to_parser(parser: LegacySemgrepParser, parser_type: ScaParserName) -> SemgrepParser:
+    """
+    Converts a legacy parser to a new parser format.
+    Legacy parsers return a generator of FoundDependency objects, while new parsers
+    return a tuple of a list of FoundDependency objects and a list of DependencyParserError.
+    """
+
+    def wrapped_parser(
+        path: Path, manifest_path: Optional[Path]
+    ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
+        try:
+            lockfile_text = path.read_text()
+            manifest_text = manifest_path.read_text() if manifest_path else None
+            dependencies = list(parser(lockfile_text, manifest_text))
+            return dependencies, []
+        except Exception as e:
+            console.print(f"Failed to parse {path} with exception {e}")
+            return (
+                [],
+                [DependencyParserError(str(path), parser_type, str(e))],
+            )
+
+    return wrapped_parser
 
 
 def not_any(*chars: str) -> Parser[str]:
@@ -368,7 +406,7 @@ class JSON:
             Pos,
             None | bool | str | float | int | list[JSON] | dict[str, JSON],
             Pos,
-        ]
+        ],
     ) -> JSON:
         return JSON(marked[0][0] + 1, marked[1])
 

@@ -1,0 +1,10 @@
+[
+  {
+    "package": "emoji",
+    "version": "2.0.0",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "line_number": 2
+  }
+]

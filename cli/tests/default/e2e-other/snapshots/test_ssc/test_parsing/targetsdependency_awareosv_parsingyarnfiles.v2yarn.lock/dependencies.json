@@ -1,0 +1,14 @@
+[
+  {
+    "package": "my-package",
+    "version": "0.0.2",
+    "ecosystem": "npm",
+    "allowed_hashes": {
+      "sha512": [
+        "87e5f82e286e70a6555041c33fe826757f731539bad991f3aefdb0a3f0df3558ab2fbbe3c01b253e581c67967d684f4b39c879906fe04f63778b77523c8e5aea"
+      ]
+    },
+    "transitivity": "unknown",
+    "line_number": 8
+  }
+]

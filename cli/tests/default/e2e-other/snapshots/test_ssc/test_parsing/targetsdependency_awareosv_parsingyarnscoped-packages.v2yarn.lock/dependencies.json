@@ -1,0 +1,38 @@
+[
+  {
+    "package": "@babel/cli",
+    "version": "7.16.8",
+    "ecosystem": "npm",
+    "allowed_hashes": {
+      "sha512": [
+        "bb0cf50ff502a30e92918cf644192351023a9ef615acc3e7774abbd0327948d93e58ab3a8d31f52c18e2f04df8af10186b89421c28f4f0a2eee6b1ddce17a8ef"
+      ]
+    },
+    "transitivity": "unknown",
+    "line_number": 8
+  },
+  {
+    "package": "@babel/code-frame",
+    "version": "7.16.7",
+    "ecosystem": "npm",
+    "allowed_hashes": {
+      "sha512": [
+        "db2f7faa31bc2c9cf63197b481b30ea57147a5fc1a6fab60e5d6c02cdfbf6de8e17b5121f99917b3dabb5eeb572da078312e70697415940383efc140d4e0808b"
+      ]
+    },
+    "transitivity": "unknown",
+    "line_number": 35
+  },
+  {
+    "package": "@babel/compat-data",
+    "version": "7.16.8",
+    "ecosystem": "npm",
+    "allowed_hashes": {
+      "sha512": [
+        "10da2dac5ea9589c251412b00920889910e476c1ab24cd7095577635bc3a27c785151c89db4e26285fd39f509510ec29ab9d7e721f4fc16e4aec221cacde784b"
+      ]
+    },
+    "transitivity": "unknown",
+    "line_number": 44
+  }
+]

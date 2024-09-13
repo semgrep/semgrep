@@ -1,0 +1,10 @@
+[
+  {
+    "package": "twisted",
+    "version": "20.3.0",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "line_number": 1
+  }
+]

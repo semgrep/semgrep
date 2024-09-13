@@ -1,0 +1,10 @@
+[
+  {
+    "package": "@typescript-eslint/types",
+    "version": "5.57.1",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "line_number": 10
+  }
+]
