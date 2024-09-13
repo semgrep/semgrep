@@ -1,0 +1,15 @@
+[
+  {
+    "package": "balanced-match",
+    "version": "1.0.2",
+    "ecosystem": "npm",
+    "allowed_hashes": {
+      "sha512": [
+        "de849e50ed13315ebb84dd4099b5ec2b8c9aa94eed8e21e56f144364ea47d0a5bdf82797e1b440697d009f1b74b71d8cae94695b041a3f02252121098585393f"
+      ]
+    },
+    "transitivity": "unknown",
+    "resolved_url": "https://registry.yarnpkg.com/balanced-match/-/balanced-match-1.0.2.tgz",
+    "line_number": 5
+  }
+]

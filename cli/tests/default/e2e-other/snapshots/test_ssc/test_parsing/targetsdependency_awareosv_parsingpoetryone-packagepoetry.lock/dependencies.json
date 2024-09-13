@@ -1,0 +1,10 @@
+[
+  {
+    "package": "numpy",
+    "version": "1.23.3",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "line_number": 2
+  }
+]

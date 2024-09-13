@@ -1,0 +1,28 @@
+[
+  {
+    "package": "babel/code-frame",
+    "version": "7.12.11",
+    "ecosystem": "npm",
+    "allowed_hashes": {
+      "sha512": [
+        "66dd72a1d071d5473289e3cc4a45a753884faa1c2aee11a2da714bd4b780dc4525faad8b431d7a3084a0274fb3edd9e682f3fd42d2257ae11318e88e1f545c23"
+      ]
+    },
+    "transitivity": "unknown",
+    "resolved_url": "https://registry.npmjs.org/@babel/code-frame/-/code-frame-7.12.11.tgz",
+    "line_number": 5
+  },
+  {
+    "package": "babel/compat-data",
+    "version": "7.14.0",
+    "ecosystem": "npm",
+    "allowed_hashes": {
+      "sha512": [
+        "beef55dee30cff5a391e5e4e7a4314a30a3716a5cb252c3eb3eeba9edd1f4965564ed9a8b1dce7e39247381ddc3ed6687ba093043cef4b0d1174e63ce50dfbf9"
+      ]
+    },
+    "transitivity": "unknown",
+    "resolved_url": "https://registry.npmjs.org/@babel/compat-data/-/compat-data-7.14.0.tgz",
+    "line_number": 12
+  }
+]

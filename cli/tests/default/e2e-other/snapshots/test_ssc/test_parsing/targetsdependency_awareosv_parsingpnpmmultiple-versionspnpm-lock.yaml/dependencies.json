@@ -1,0 +1,26 @@
+[
+  {
+    "package": "uuid",
+    "version": "3.3.2",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "line_number": 13
+  },
+  {
+    "package": "uuid",
+    "version": "8.3.2",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "line_number": 19
+  },
+  {
+    "package": "xmlbuilder",
+    "version": "9.0.7",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "line_number": 24
+  }
+]

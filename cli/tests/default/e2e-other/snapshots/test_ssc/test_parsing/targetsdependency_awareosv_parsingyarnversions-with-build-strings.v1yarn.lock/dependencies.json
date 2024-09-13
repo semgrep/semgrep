@@ -1,0 +1,67 @@
+[
+  {
+    "package": "css-tree",
+    "version": "1.0.0-alpha.37",
+    "ecosystem": "npm",
+    "allowed_hashes": {
+      "sha512": [
+        "0ccc56260d2b9f3ed4831293d10d4753f2fd05e248d0cea4b28af43a0a8e9c5f9a4420d683f376eb8d47995c94f4a548bb439555639bd88a42f40f812519de8e"
+      ]
+    },
+    "transitivity": "unknown",
+    "resolved_url": "https://registry.npmjs.org/css-tree/-/css-tree-1.0.0-alpha.37.tgz",
+    "line_number": 5
+  },
+  {
+    "package": "gensync",
+    "version": "1.0.0-beta.2",
+    "ecosystem": "npm",
+    "allowed_hashes": {
+      "sha512": [
+        "de137b35ab2462f3032d0639e609d6dcd43e99eb0401ea53aa583e5446e3ef3cea10c055361cdc19861ea85a3f4e5633e9e42215ca751dcb0264efa71a04bcce"
+      ]
+    },
+    "transitivity": "unknown",
+    "resolved_url": "https://registry.yarnpkg.com/gensync/-/gensync-1.0.0-beta.2.tgz",
+    "line_number": 13
+  },
+  {
+    "package": "node-fetch",
+    "version": "3.0.0-beta.9",
+    "ecosystem": "npm",
+    "allowed_hashes": {
+      "sha512": [
+        "45d6d9084ca71f6b47e3afad8f4b9af5c6941d55ab77f4479d17ef972d8455da86988de7752d559ffc639b92ae19e8c3b7644d0d0b1544b3cd77640fc1c7b056"
+      ]
+    },
+    "transitivity": "unknown",
+    "resolved_url": "https://registry.npmjs.org/node-fetch/-/node-fetch-3.0.0-beta.9.tgz",
+    "line_number": 18
+  },
+  {
+    "package": "resolve",
+    "version": "1.20.0",
+    "ecosystem": "npm",
+    "allowed_hashes": {
+      "sha512": [
+        "c043413ede324b3838c9b1505b64d3d73310b9c3caf791d287f9ead82153655386baddbea50bd2b20b5d6b8776e98ad872bd3aef08db9b3386f1bc833c15fadc"
+      ]
+    },
+    "transitivity": "unknown",
+    "resolved_url": "https://registry.npmjs.org/resolve/-/resolve-1.20.0.tgz",
+    "line_number": 26
+  },
+  {
+    "package": "resolve",
+    "version": "2.0.0-next.3",
+    "ecosystem": "npm",
+    "allowed_hashes": {
+      "sha512": [
+        "5bc2ee712ca7294203bbdca5ada6bbb9e559ee1734b8080907156c41228e5ceca57bc6bddea5e1733f9701767c6c8ab677a8b812175d9fa12fb7ed3f5302a4e9"
+      ]
+    },
+    "transitivity": "unknown",
+    "resolved_url": "https://registry.npmjs.org/resolve/-/resolve-2.0.0-next.3.tgz",
+    "line_number": 34
+  }
+]

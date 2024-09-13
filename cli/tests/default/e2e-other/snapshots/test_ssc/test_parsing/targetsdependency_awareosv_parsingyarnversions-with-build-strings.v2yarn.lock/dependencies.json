@@ -1,0 +1,34 @@
+[
+  {
+    "package": "@nicolo-ribaudo/chokidar-2",
+    "version": "2.1.8-no-fsevents.3",
+    "ecosystem": "npm",
+    "allowed_hashes": {
+      "sha512": [
+        "ee55cc9241aeea7eb94b8a8551bfa4246c56c53bc71ecda0a2104018fcc328ba5723b33686bdf9cc65d4df4ae65e8016b89e0bbdeb94e0309fe91bb9ced42344"
+      ]
+    },
+    "transitivity": "unknown",
+    "line_number": 8
+  },
+  {
+    "package": "gensync",
+    "version": "1.0.0-beta.2",
+    "ecosystem": "npm",
+    "allowed_hashes": {
+      "sha512": [
+        "a7437e58c6be12aa6c90f7730eac7fa9833dc78872b4ad2963d2031b00a3367a93f98aec75f9aaac7220848e4026d67a8655e870b24f20a543d103c0d65952ec"
+      ]
+    },
+    "transitivity": "unknown",
+    "line_number": 15
+  },
+  {
+    "package": "eslint-plugin-jest",
+    "version": "0.0.0-use.local",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "line_number": 22
+  }
+]
