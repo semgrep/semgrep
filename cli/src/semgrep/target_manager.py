@@ -23,6 +23,8 @@ from typing import Tuple
 from typing import Union
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semdep.lockfile import filter_lockfile_paths
+from semdep.lockfile import Lockfile
 from semgrep.git import BaselineHandler
 
 # usually this would be a try...except ImportError
@@ -83,25 +85,6 @@ ALL_EXTENSIONS: Collection[FileExtension] = {
     for definition in LANGUAGE.definition_by_id.values()
     for ext in definition.exts
     if ext != FileExtension("")
-}
-
-ECOSYSTEM_TO_LOCKFILES = {
-    Ecosystem(Pypi()): [
-        "Pipfile.lock",
-        "poetry.lock",
-        "requirements.txt",
-        "requirements3.txt",
-    ],
-    Ecosystem(Npm()): ["package-lock.json", "yarn.lock", "pnpm-lock.yaml"],
-    Ecosystem(Gem()): ["Gemfile.lock"],
-    Ecosystem(Gomod()): ["go.mod"],
-    Ecosystem(Cargo()): ["Cargo.lock"],
-    Ecosystem(Maven()): ["maven_dep_tree.txt", "gradle.lockfile"],
-    Ecosystem(Composer()): ["composer.lock"],
-    Ecosystem(Nuget()): ["packages.lock.json"],
-    Ecosystem(Pub()): ["pubspec.lock"],
-    Ecosystem(SwiftPM()): ["Package.resolved"],
-    Ecosystem(Hex()): ["mix.lock"],
 }
 
 
@@ -285,7 +268,10 @@ class FileTargetingLog:
             yield 2, "<none>"
 
         yield 1, "Skipped by .semgrepignore:"
-        yield 1, "- https://semgrep.dev/docs/ignoring-files-folders-code/#understand-semgrep-defaults"
+        yield (
+            1,
+            "- https://semgrep.dev/docs/ignoring-files-folders-code/#understand-semgrep-defaults",
+        )
         if self.semgrepignored:
             if too_many_entries > 0 and len(self.semgrepignored) > too_many_entries:
                 yield 2, TOO_MUCH_DATA
@@ -312,7 +298,10 @@ class FileTargetingLog:
         else:
             yield 2, "<none>"
 
-        yield 1, f"Skipped by limiting to files smaller than {self.target_manager.max_target_bytes} bytes:"
+        yield (
+            1,
+            f"Skipped by limiting to files smaller than {self.target_manager.max_target_bytes} bytes:",
+        )
         yield 1, "(Adjust with the --max-target-bytes flag)"
         if self.size_limit:
             for path in sorted(self.size_limit):
@@ -656,14 +645,7 @@ class TargetManager:
                 or self.executes_with_shebang(path, language.definition.shebangs)
             )
         elif isinstance(language, Ecosystem):
-            kept = frozenset(
-                path
-                for path in candidates
-                if any(
-                    str(path.parts[-1]) == lockfile_name
-                    for lockfile_name in ECOSYSTEM_TO_LOCKFILES[language]
-                )
-            )
+            kept = filter_lockfile_paths(language, candidates)
         else:
             kept = frozenset(candidates)
         return FilteredFiles(kept, frozenset(candidates - kept))
@@ -856,7 +838,10 @@ class TargetManager:
         }
 
         return {
-            ecosystem: self.get_lockfiles(ecosystem) for ecosystem in ALL_ECOSYSTEMS
+            ecosystem: frozenset(
+                lockfile.path for lockfile in self.get_lockfiles(ecosystem)
+            )
+            for ecosystem in ALL_ECOSYSTEMS
         }
 
     @lru_cache(maxsize=None)
@@ -865,7 +850,7 @@ class TargetManager:
         ecosystem: Ecosystem,
         product: out.Product = SCA_PRODUCT,
         ignore_baseline_handler: bool = False,
-    ) -> FrozenSet[Path]:
+    ) -> List[Lockfile]:
         """
         Return set of paths to lockfiles for a given ecosystem
 
@@ -873,6 +858,8 @@ class TargetManager:
 
         ignore_baseline_handler: if True, will ignore the baseline handler and scan all files. Used in the context of scanning unchanged lockfiles for their dependencies and doing reachability analysis.
         """
-        return self.get_files_for_language(
+        files = self.get_files_for_language(
             ecosystem, product, ignore_baseline_handler
         ).kept
+
+        return [Lockfile.from_path(path) for path in files]

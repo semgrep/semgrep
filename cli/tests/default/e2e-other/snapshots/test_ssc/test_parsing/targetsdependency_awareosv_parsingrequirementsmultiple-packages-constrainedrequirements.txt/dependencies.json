@@ -1,0 +1,106 @@
+[
+  {
+    "package": "astroid",
+    "version": "2.5.1",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "line_number": 1
+  },
+  {
+    "package": "beautifulsoup4",
+    "version": "4.9.3",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "line_number": 3
+  },
+  {
+    "package": "boto3",
+    "version": "1.17.19",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "line_number": 5
+  },
+  {
+    "package": "botocore",
+    "version": "1.20.19",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "line_number": 7
+  },
+  {
+    "package": "certifi",
+    "version": "2020.12.5",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "line_number": 11
+  },
+  {
+    "package": "chardet",
+    "version": "4.0.0",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "line_number": 13
+  },
+  {
+    "package": "circus",
+    "version": "0.17.1",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "line_number": 15
+  },
+  {
+    "package": "click",
+    "version": "7.1.2",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "line_number": 17
+  },
+  {
+    "package": "django-debug-toolbar",
+    "version": "3.2.1",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "line_number": 19
+  },
+  {
+    "package": "django-filter",
+    "version": "2.4.0",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "line_number": 21
+  },
+  {
+    "package": "django-nose",
+    "version": "1.4.7",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "line_number": 23
+  },
+  {
+    "package": "django-storages",
+    "version": "1.11.1",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "line_number": 25
+  },
+  {
+    "package": "django",
+    "version": "2.2.24",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "line_number": 27
+  }
+]

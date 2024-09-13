@@ -1,0 +1,26 @@
+[
+  {
+    "package": "pandas",
+    "version": "0.23.4",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "line_number": 3
+  },
+  {
+    "package": "numpy",
+    "version": "1.16.0",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "line_number": 4
+  },
+  {
+    "package": "scikit-learn",
+    "version": "0.20.1",
+    "ecosystem": "pypi",
+    "allowed_hashes": {},
+    "transitivity": "unknown",
+    "line_number": 5
+  }
+]

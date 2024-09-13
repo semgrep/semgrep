@@ -1,0 +1,42 @@
+[
+  {
+    "package": "my-file-package",
+    "version": "0.0.0",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "direct",
+    "line_number": 10
+  },
+  {
+    "package": "a-local-package",
+    "version": "1.0.0",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "line_number": 16
+  },
+  {
+    "package": "a-nested-local-package",
+    "version": "1.0.0",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "line_number": 22
+  },
+  {
+    "package": "one-up",
+    "version": "1.0.0",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "line_number": 28
+  },
+  {
+    "package": "one-up-with-peer",
+    "version": "1.0.0",
+    "ecosystem": "npm",
+    "allowed_hashes": {},
+    "transitivity": "transitive",
+    "line_number": 34
+  }
+]
