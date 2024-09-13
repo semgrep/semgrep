@@ -444,6 +444,7 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
               "allowed_hashes": {},
               "ecosystem": "pypi",
               "line_number": 2,
+              "lockfile_path": "poetry.lock",
               "package": "badlib",
               "transitivity": "unknown",
               "version": "99.99.99"

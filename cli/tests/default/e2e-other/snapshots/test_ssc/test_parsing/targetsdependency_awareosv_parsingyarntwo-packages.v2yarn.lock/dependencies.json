@@ -9,6 +9,7 @@
       ]
     },
     "transitivity": "unknown",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/two-packages.v2/yarn.lock",
     "line_number": 8
   },
   {
@@ -21,6 +22,7 @@
       ]
     },
     "transitivity": "unknown",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/two-packages.v2/yarn.lock",
     "line_number": 18
   }
 ]

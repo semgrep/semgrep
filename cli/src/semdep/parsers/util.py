@@ -65,7 +65,7 @@ SemgrepParser = Callable[
 ]
 
 LegacySemgrepParser = Callable[
-    [str, Optional[str]], Generator[FoundDependency, None, None]
+    [Path, str, Optional[str]], Generator[FoundDependency, None, None]
 ]
 
 
@@ -77,18 +77,18 @@ def to_parser(parser: LegacySemgrepParser, parser_type: ScaParserName) -> Semgre
     """
 
     def wrapped_parser(
-        path: Path, manifest_path: Optional[Path]
+        lockfile_path: Path, manifest_path: Optional[Path]
     ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
         try:
-            lockfile_text = path.read_text()
+            lockfile_text = lockfile_path.read_text()
             manifest_text = manifest_path.read_text() if manifest_path else None
-            dependencies = list(parser(lockfile_text, manifest_text))
+            dependencies = list(parser(lockfile_path, lockfile_text, manifest_text))
             return dependencies, []
         except Exception as e:
-            console.print(f"Failed to parse {path} with exception {e}")
+            console.print(f"Failed to parse {lockfile_path} with exception {e}")
             return (
                 [],
-                [DependencyParserError(str(path), parser_type, str(e))],
+                [DependencyParserError(str(lockfile_path), parser_type, str(e))],
             )
 
     return wrapped_parser

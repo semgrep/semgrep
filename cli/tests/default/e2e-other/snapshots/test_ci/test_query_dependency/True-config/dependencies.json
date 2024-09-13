@@ -6,6 +6,7 @@
       "ecosystem": "pypi",
       "allowed_hashes": {},
       "transitivity": "unknown",
+      "lockfile_path": "poetry.lock",
       "line_number": 2
     },
     {
@@ -14,6 +15,7 @@
       "ecosystem": "pypi",
       "allowed_hashes": {},
       "transitivity": "unknown",
+      "lockfile_path": "poetry.lock",
       "line_number": 10
     },
     {
@@ -22,6 +24,7 @@
       "ecosystem": "pypi",
       "allowed_hashes": {},
       "transitivity": "unknown",
+      "lockfile_path": "poetry.lock",
       "line_number": 18
     }
   ],
@@ -37,6 +40,7 @@
       },
       "transitivity": "unknown",
       "resolved_url": "https://registry.yarnpkg.com/lodash/-/lodash-4.17.18.tgz",
+      "lockfile_path": "yarn.lock",
       "line_number": 5
     }
   ]
