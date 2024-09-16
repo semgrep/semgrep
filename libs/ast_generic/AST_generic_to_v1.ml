@@ -131,6 +131,7 @@ and map_id_info x =
   match x with
   | {
    G.id_resolved = v_id_resolved;
+   id_resolved_alternatives = _not_available_in_v1_;
    id_type = v_id_type;
    id_svalue = v3;
    id_flags = _not_available_in_v1;
