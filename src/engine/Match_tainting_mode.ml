@@ -23,13 +23,13 @@ module PM = Pattern_match
 module RM = Range_with_metavars
 module RP = Core_result
 module T = Taint
-module Sig = Taint_sig
 module Lval_env = Taint_lval_env
 module MV = Metavariable
 module ME = Matching_explanation
 module OutJ = Semgrep_output_v1_t
 module Labels = Set.Make (String)
 module Log = Log_tainting.Log
+module Effect = Shape_and_sig.Effect
 
 (*****************************************************************************)
 (* Prelude *)
@@ -480,7 +480,7 @@ let lazy_force x = Lazy.force x [@@profiling]
 
 (* If the 'requires' has the shape 'A and ...' then we assume that 'A' is the
  * preferred label for reporting the taint trace. *)
-let preferred_label_of_sink ({ rule_sink; _ } : Sig.sink) =
+let preferred_label_of_sink ({ rule_sink; _ } : Effect.sink) =
   match rule_sink.sink_requires with
   | Some { precondition = PAnd (PLabel label :: _); _ } -> Some label
   | Some _
@@ -512,7 +512,7 @@ let sources_of_taints ?preferred_label taints =
    * they need to specify the parameters as taint sources. *)
   let taint_sources =
     taints
-    |> List_.filter_map (fun { Sig.taint = { orig; tokens }; sink_trace } ->
+    |> List_.filter_map (fun { Effect.taint = { orig; tokens }; sink_trace } ->
            match orig with
            | Src src -> Some (src, tokens, sink_trace)
            (* even if there is any taint "variable", it's irrelevant for the
@@ -565,10 +565,10 @@ let trace_of_source source =
 
 let pms_of_finding ~match_on finding =
   match finding with
-  | Sig.ToLval _
-  | Sig.ToReturn _ ->
+  | Effect.ToLval _
+  | Effect.ToReturn _ ->
       []
-  | Sig.ToSink
+  | Effect.ToSink
       {
         taints_with_precondition = taints, requires;
         sink = { pm = sink_pm; _ } as sink;
@@ -577,7 +577,7 @@ let pms_of_finding ~match_on finding =
       if
         not
           (T.taints_satisfy_requires
-             (List_.map (fun t -> t.Sig.taint) taints)
+             (List_.map (fun t -> t.Effect.taint) taints)
              requires)
       then []
       else
@@ -634,7 +634,7 @@ let pms_of_finding ~match_on finding =
 (*****************************************************************************)
 
 let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
-    ({ mode = `Taint spec; _ } as rule : R.taint_rule) handle_results =
+    ({ mode = `Taint spec; _ } as rule : R.taint_rule) handle_effects =
   let file = Fpath.v file in
   let formula_cache = per_file_formula_cache in
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf rule.options in
@@ -746,7 +746,7 @@ let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
         (fun x -> any_is_in_sanitizers_matches rule x sanitizers_ranges);
       is_sink = (fun x -> any_is_in_sinks_matches rule x sinks_ranges);
       unify_mvars = config.taint_unify_mvars;
-      handle_results;
+      handle_effects;
     },
     {
       sources = sources_ranges;
@@ -949,14 +949,14 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
           `Source
       | `Sink, `Sink -> `Sink
     in
-    let handle_results _ results _env =
-      results
-      |> List.iter (fun result ->
-             pms_of_finding ~match_on result
+    let handle_effects _ effects _env =
+      effects
+      |> List.iter (fun effect ->
+             pms_of_finding ~match_on effect
              |> List.iter (fun pm -> Stack_.push pm matches))
     in
     taint_config_of_rule ~per_file_formula_cache xconf
-      !!internal_path_to_content (ast, []) rule handle_results
+      !!internal_path_to_content (ast, []) rule handle_effects
   in
 
   (match !hook_setup_hook_function_taint_signature with
