@@ -21,11 +21,12 @@ open Common
 module Log = Log_tainting.Log
 module T = Taint
 module Taints = T.Taint_set
-module Sig = Taint_sig
 module H = IL_helpers
 module Var_env = Dataflow_var_env
 module VarMap = Var_env.VarMap
 module NameMap = Map.Make (H.NameOrdered)
+open Shape_and_sig.Shape
+module Shape = Taint_shape
 
 let limits_tags = Logs_.create_tags [ "bad"; "limits" ]
 
@@ -33,7 +34,7 @@ type taints_to_propagate = T.taints VarMap.t
 type pending_propagation_dests = IL.lval VarMap.t
 
 type t = {
-  tainted : Sig.cell NameMap.t;
+  tainted : cell NameMap.t;
       (** Lvalues that are tainted, it is only meant to track l-values of the form x.a_1. ... . a_N. *)
   control : T.taints;
       (** Taints propagated via the flow of control (rather than the flow of data). *)
@@ -86,7 +87,7 @@ let empty_inout = { Dataflow_core.in_env = empty; out_env = empty }
 let union le1 le2 =
   let tainted =
     NameMap.union
-      (fun _ x y -> Some (Sig.unify_cell x y))
+      (fun _ x y -> Some (Shape.unify_cell x y))
       le1.tainted le2.tainted
   in
   {
@@ -215,7 +216,7 @@ let add_shape lval new_taints new_shape
             tainted =
               NameMap.update var
                 (fun opt_var_ref ->
-                  Sig.update_offset_and_unify new_taints new_shape offset
+                  Shape.update_offset_and_unify new_taints new_shape offset
                     opt_var_ref)
                 tainted;
             control;
@@ -223,7 +224,7 @@ let add_shape lval new_taints new_shape
             pending_propagation_dests;
           })
 
-let add lval new_taints lval_env = add_shape lval new_taints Sig.Bot lval_env
+let add lval new_taints lval_env = add_shape lval new_taints Bot lval_env
 
 let propagate_to prop_var taints env =
   (* THINK: Should we record empty propagations anyways so that we can always
@@ -251,12 +252,12 @@ let find_var { tainted; _ } var = NameMap.find_opt var tainted
 let find_lval { tainted; _ } lval =
   let* var, offsets = normalize_lval lval in
   let* var_ref = NameMap.find_opt var tainted in
-  Sig.find_in_cell offsets var_ref
+  Shape.find_in_cell offsets var_ref
 
 let find_lval_xtaint env lval =
   match find_lval env lval with
   | None -> `None
-  | Some (Sig.Cell (xtaints, _shape)) -> xtaints
+  | Some (Cell (xtaints, _shape)) -> xtaints
 
 let propagate_from prop_var env =
   let opt_taints = VarMap.find_opt prop_var env.taints_to_propagate in
@@ -291,7 +292,7 @@ let clean
           NameMap.update var
             (function
               | None -> None
-              | Some var_ref -> Some (Sig.clean_cell offsets var_ref))
+              | Some var_ref -> Some (Shape.clean_cell offsets var_ref))
             tainted;
         control;
         taints_to_propagate;
@@ -318,7 +319,7 @@ let equal
       taints_to_propagate = _;
       pending_propagation_dests = _;
     } =
-  NameMap.equal Sig.equal_cell tainted1 tainted2
+  NameMap.equal equal_cell tainted1 tainted2
   (* NOTE: We ignore 'taints_to_propagate' and 'pending_propagation_dests',
    * we just care how they affect 'tainted'. *)
   && Taints.equal control1 control2
@@ -335,7 +336,7 @@ let equal_by_lval { tainted = tainted1; _ } { tainted = tainted2; _ } lval =
           (NameMap.find_opt var tainted1, NameMap.find_opt var tainted2)
         with
         | None, None -> true
-        | Some ref1, Some ref2 -> Sig.equal_cell ref1 ref2
+        | Some ref1, Some ref2 -> equal_cell ref1 ref2
         | Some _, None
         | None, Some _ ->
             false
@@ -348,7 +349,7 @@ let to_string
   (if NameMap.is_empty tainted then ""
    else
      NameMap.fold
-       (fun dn v s -> s ^ IL.str_of_name dn ^ ":" ^ Sig.show_cell v ^ " ")
+       (fun dn v s -> s ^ IL.str_of_name dn ^ ":" ^ show_cell v ^ " ")
        tainted "[TAINTED]")
   ^ (if Taints.is_empty control then ""
      else "[CONTROL] " ^ T.show_taints control)
