@@ -1,4 +1,4 @@
-type t = PackageLockJsonV3 [@@deriving show, eq]
+type t = PackageLockJsonV3 [@@deriving show, eq, yojson]
 
 let to_ecosystem : t -> Semgrep_output_v1_t.ecosystem = function
   | PackageLockJsonV3 -> `Npm

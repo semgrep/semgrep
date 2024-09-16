@@ -24,6 +24,8 @@
  *)
 val of_strings : string list -> Fpath.t list
 val to_strings : Fpath.t list -> string list
+val to_yojson : Fpath.t -> Yojson.Safe.t
+val of_yojson : Yojson.Safe.t -> (Fpath.t, string) result
 
 (*
    Take a nonempty list of path segments and turn them in to relative path.

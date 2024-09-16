@@ -163,6 +163,16 @@ let add_data data (tracing_opt : config option) =
          tracing.top_level_span
          |> Option.iter (fun sp -> Trace_core.add_data_to_span sp data))
 
+let trace_data_only ?(level = Info) ~__FUNCTION__ ~__FILE__ ~__LINE__ name
+    (f : unit -> (string * Yojson.Safe.t) list) =
+  with_span ~level ~__FUNCTION__ ~__FILE__ ~__LINE__ name (fun span ->
+      let data =
+        f ()
+        |> List_.map (fun (key, yojson) ->
+               (key, `String (Yojson.Safe.to_string yojson)))
+      in
+      add_data_to_span span data)
+
 (*****************************************************************************)
 (* Entry points for setting up tracing *)
 (*****************************************************************************)
