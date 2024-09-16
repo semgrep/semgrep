@@ -1160,7 +1160,8 @@ and xml_attribute =
 and a_xml_attr_value = expr
 
 and xml_body =
-  (* sgrep-ext: can contain "...". The string can also contain multiple lines *)
+  (* sgrep-ext: can contain "...". The string can also contain multiple
+     lines and so-called entities such as "&lt;" *)
   | XmlText of string wrap
   (* this can be None when people abuse {} to put comments in it *)
   | XmlExpr of expr option bracket
