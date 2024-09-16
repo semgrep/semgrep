@@ -199,6 +199,7 @@ and vof_name_info
 and vof_id_info
     {
       id_resolved = v_id_resolved;
+      id_resolved_alternatives = v_id_resolved_alts;
       id_type = v_id_type;
       id_svalue = v3;
       id_flags;
@@ -213,6 +214,13 @@ and vof_id_info
   let bnds = bnd :: bnds in
   let arg = OCaml.vof_ref (OCaml.vof_option vof_resolved_name) v_id_resolved in
   let bnd = ("id_resolved", arg) in
+  let bnds = bnd :: bnds in
+  let arg =
+    OCaml.vof_ref
+      (fun alts -> OCaml.vof_list vof_resolved_name alts)
+      v_id_resolved_alts
+  in
+  let bnd = ("id_resolved_alternative", arg) in
   let bnds = bnd :: bnds in
   let arg =
     OCaml.vof_ref

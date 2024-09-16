@@ -1,0 +1,32 @@
+The dataflow analysis in the Pro engine can now track method invocations on
+variables of an interface type, safely assuming that any implementation of the
+method can be called. For example, tainted input vulnerabilities in both
+implementation classes can now be detected in the following code:
+
+```java
+public interface MovieService {
+  String vulnerableInjection(String input);
+}
+
+public class SimpleImpl implements MovieService {
+  @Override
+  public String vulnerableInjection(String input) {
+    return sink(input);
+  }
+}
+
+public class MoreImpl implements MovieService {
+  @Override
+  public String vulnerableInjection(String input) {
+    return sink(input);
+  }
+}
+
+public class AppController {
+  private MovieService movieService;
+
+  public String pwnTest(String taintedInput) {
+    return movieService.vulnerableInjection(taintedInput);
+  }
+}
+```
