@@ -23,7 +23,7 @@ type path = {
           should be used to obtain the contents of the target, but not for
           reporting to the user, other than possibly for debugging purposes. *)
 }
-[@@deriving show, eq]
+[@@deriving show, eq, yojson]
 (** Information about where a target from for both the purpose of
    {ul
     {- informing the user: [origin]}
@@ -36,7 +36,7 @@ type manifest = {
       (** The type of manifest this is. Analogous to analyzer for a source code
         target. *)
 }
-[@@deriving show]
+[@@deriving show, yojson]
 (** A manifest file to be used during matching. See also
     {!Lockfile_xtarget.manifest}, which also has the contents. *)
 
@@ -48,7 +48,7 @@ type lockfile = {
   manifest : manifest option;
       (** Optionally, a manifest file associated with this lockfile. *)
 }
-[@@deriving show]
+[@@deriving show, yojson]
 (** A lockfile to be used during matching. See also {!Lockfile_xtarget.t}, an
     augmented version with the contents of the lockfile. *)
 
@@ -69,7 +69,7 @@ type regular = {
           generation process must resolve these connections as part of
           generating regular targets. *)
 }
-[@@deriving show]
+[@@deriving show, yojson]
 (** A regular semgrep target, comprising source code (or, for
    regex/generic, arbitrary text data) to be executed. See also {!Xtarget.t},
    an augmented version which also has the contents. *)
@@ -88,7 +88,7 @@ val pp_debug_regular : Format.formatter -> regular -> unit
     However, it does not contain the actual contents (parsed or otherwise) of
     the target itself. For that, see {!Xtarget.t} or {!Lockfile_xtarget}.
  *)
-type t = Regular of regular | Lockfile of lockfile [@@deriving show]
+type t = Regular of regular | Lockfile of lockfile [@@deriving show, yojson]
 
 val pp_debug : Format.formatter -> t -> unit
 

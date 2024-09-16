@@ -63,6 +63,15 @@ val add_data_to_span : span -> (string * Trace_core.user_data) list -> unit
 val add_data : (string * Trace_core.user_data) list -> config option -> unit
 (** Convenience version of add_data_to_span for Semgrep *)
 
+val trace_data_only :
+  ?level:level ->
+  __FUNCTION__:string ->
+  __FILE__:string ->
+  __LINE__:int ->
+  string ->
+  (unit -> (string * Yojson.Safe.t) list) ->
+  unit
+
 (*****************************************************************************)
 (* Entry points for setting up tracing *)
 (*****************************************************************************)

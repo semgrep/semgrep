@@ -51,3 +51,13 @@ let current_dir = Fpath.v "."
 (* TODO: get rid of! *)
 let fake_file : Fpath.t = Fpath.v "_NOT_A_FILE_"
 let is_fake_file (f : Fpath.t) : bool = Fpath.equal f fake_file
+let to_yojson file = `String (Fpath.to_string file)
+
+let of_yojson = function
+  | `String path ->
+      Fpath.of_string path
+      |> Result.map_error (fun (`Msg error_str) -> error_str)
+  | other ->
+      Error
+        (Printf.sprintf "Expected `String, received %s"
+           (Yojson.Safe.pretty_to_string other))

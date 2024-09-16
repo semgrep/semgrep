@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 module Out = Semgrep_output_v1_t
+module OutJ = Semgrep_output_v1_j
 module In = Input_to_core_t
 
 (*****************************************************************************)
@@ -24,35 +25,67 @@ module In = Input_to_core_t
 (* Types *)
 (*****************************************************************************)
 
-type path = { origin : Origin.t; internal_path_to_content : Fpath.t }
-[@@deriving show, eq]
+type path = {
+  origin : Origin.t;
+  internal_path_to_content : Fpath.t;
+      [@to_yojson Fpath_.to_yojson] [@of_yojson Fpath_.of_yojson]
+}
+[@@deriving show, eq, yojson]
 
-type manifest = { path : path; kind : Manifest_kind.t } [@@deriving show]
+type manifest = { path : path; kind : Manifest_kind.t }
+[@@deriving show, yojson]
 
 type lockfile = {
   path : path;
   kind : Lockfile_kind.t;
   manifest : manifest option;
 }
-[@@deriving show]
+[@@deriving show, yojson]
 
 let pp_debug_lockfile f t =
   Format.fprintf f "%s" (t.path.internal_path_to_content |> Fpath.to_string)
+
+(* TODO: Put this somewhere else? *)
+let out_product_list_to_yojson product_list =
+  `List
+    (List_.map
+       (* A little redundant *)
+         (fun p -> p |> OutJ.string_of_product |> Yojson.Safe.from_string)
+       product_list)
+
+(* TODO: Put this somewhere else? *)
+let out_product_list_of_yojson yojson =
+  match yojson with
+  | `List products -> (
+      try
+        Ok
+          (List_.map
+             (fun p -> p |> Yojson.Safe.to_string |> OutJ.product_of_string)
+             products)
+      with
+      | e -> Error (Printexc.to_string e))
+  | json ->
+      Error
+        (Printf.sprintf
+           "Could not convert to Out.product list expected `List, received %s"
+           Yojson.Safe.(to_string json))
 
 type regular = {
   path : path;
   analyzer : Xlang.t;
   products : Out.product list;
+      [@to_yojson out_product_list_to_yojson]
+      [@of_yojson out_product_list_of_yojson]
   lockfile : lockfile option;
 }
-[@@deriving show]
+[@@deriving show, yojson]
 
 let pp_debug_regular f t =
   Format.fprintf f "%s (%s)"
     (t.path.internal_path_to_content |> Fpath.to_string)
     (t.analyzer |> Xlang.to_string)
 
-type t = Regular of regular | Lockfile of lockfile [@@deriving show]
+type t = Regular of regular | Lockfile of lockfile [@@deriving show, yojson]
 
 let pp_debug f = function
   | Regular t -> Format.fprintf f "target file: %a" pp_debug_regular t

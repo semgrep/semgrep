@@ -1,4 +1,4 @@
-type t = PackageJson [@@deriving show, eq]
+type t = PackageJson [@@deriving show, eq, yojson]
 
 let to_ecosystem : t -> Semgrep_output_v1_t.ecosystem = function
   | PackageJson -> `Npm

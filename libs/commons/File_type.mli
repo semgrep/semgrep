@@ -8,6 +8,7 @@ type file_type =
   | Media of media_type
   | Archive of string
   | Other of string
+[@@deriving yojson]
 
 and pl_type =
   | OCaml of string
@@ -45,18 +46,23 @@ and pl_type =
   | IDL of idl_type
   | MiscPL of string
   | Elixir
+[@@deriving yojson]
 
 and config_type =
   | Makefile
   | Dockerfile
   | Json
   | Jsonnet
+  | Properties
+  | Ignore of string
+  | RC of string
   | Yaml
   | Terraform
   | Sexp
   | Toml
+[@@deriving yojson]
 
-and lisp_type = CommonLisp | Elisp | Scheme | Clojure
+and lisp_type = CommonLisp | Elisp | Scheme | Clojure [@@deriving yojson]
 
 and webpl_type =
   | Php of string
@@ -66,14 +72,18 @@ and webpl_type =
   | Coffee
   | Vue
   | Css
+  | Scss
   | Html
   | Xml
   | Opa
   | Flash
   | Sql
+[@@deriving yojson]
 
-and idl_type = Thrift | ATD | Protobuf
+and idl_type = Thrift | ATD | Protobuf [@@deriving yojson]
+
 and media_type = Sound of string | Picture of string | Video of string
+[@@deriving yojson]
 
 (* main entry point *)
 val file_type_of_file : Fpath.t -> file_type
