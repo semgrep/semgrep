@@ -7,8 +7,9 @@ Pr(
      ({
        name=EN(
               Id(("foo", ()),
-                {id_info_id=<MASKED>; id_resolved=Ref(
-                 None); id_type=Ref(None); id_svalue=Ref(None); }));
+                {id_info_id=<MASKED>; 
+                 id_resolved_alternative=Ref([]); id_resolved=Ref(None); 
+                 id_type=Ref(None); id_svalue=Ref(None); }));
        attrs=[]; tparams=None; },
       FuncDef(
         {fkind=(Function, ()); fparams=[]; frettype=None; 

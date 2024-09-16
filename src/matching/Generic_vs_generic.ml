@@ -694,17 +694,19 @@ and m_id_info a b =
   match (a, b) with
   | ( {
         G.id_resolved = _a1;
-        id_type = _a2;
-        id_svalue = _a3;
-        id_flags = _a4;
-        id_info_id = _a5;
+        id_resolved_alternatives = _a2;
+        id_type = _a3;
+        id_svalue = _a4;
+        id_flags = _a5;
+        id_info_id = _a6;
       },
       {
         B.id_resolved = _b1;
-        id_type = _b2;
-        id_svalue = _b3;
-        id_flags = _b4;
-        id_info_id = _b5;
+        id_resolved_alternatives = _b2;
+        id_type = _b3;
+        id_svalue = _b4;
+        id_flags = _b5;
+        id_info_id = _b6;
       } ) ->
       (* old: (m_ref m_resolved_name) a3 b3  >>= (fun () ->
        * but doing import flask in a source file means every reference
