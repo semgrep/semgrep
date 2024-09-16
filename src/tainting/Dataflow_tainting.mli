@@ -52,12 +52,12 @@ type config = {
       (** Test whether 'any' is a sanitizer, this corresponds to
       * 'pattern-sanitizers:' in taint-mode. *)
   unify_mvars : bool;  (** Unify metavariables in sources and sinks? *)
-  handle_results :
+  handle_effects :
     var option (** function name ('None' if anonymous) *) ->
-    Taint_sig.result list ->
+    Shape_and_sig.Effect.t list ->
     Taint_lval_env.t ->
     unit;
-      (** Callback to report results. *)
+      (** Callback to report effects. *)
 }
 (** Taint rule instantiated for a given file.
   *
@@ -82,7 +82,8 @@ val mk_empty_java_props_cache : unit -> java_props_cache
 val hook_function_taint_signature :
   (config ->
   AST_generic.expr ->
-  (AST_generic.parameters (* params of function *) * Taint_sig.signature) option)
+  (AST_generic.parameters (* params of function *) * Shape_and_sig.Signature.t)
+  option)
   option
   ref
 (** Pro inter-file (aka deep) *)
@@ -95,7 +96,7 @@ val hook_check_tainted_at_exit_sinks :
   (config ->
   Taint_lval_env.t ->
   IL.node ->
-  (Taint.taints * Taint_sig.sink list) option)
+  (Taint.taints * Shape_and_sig.Effect.sink list) option)
   option
   ref
 (** Pro: support for `at-exit: true` sinks *)
