@@ -3,18 +3,21 @@ E(
   Call(
     N(
       Id(("foo", ()),
-        {id_info_id=<MASKED>; 
-         id_type=Ref(None); id_svalue=Ref(None); })),
+        {id_info_id=<MASKED>; id_resolved_alternative=Ref(
+         []); id_resolved=Ref(None); id_type=Ref(None); id_svalue=Ref(
+         None); })),
     [Arg(Ellipsis(()));
      Arg(
        Call(IdSpecial((Op(Eq), ())),
          [Arg(
             N(
               Id(("$X", ()),
-                {id_info_id=<MASKED>; id_resolved=Ref(
-                 None); id_type=Ref(None); id_svalue=Ref(None); })));
+                {id_info_id=<MASKED>; 
+                 id_resolved_alternative=Ref([]); id_resolved=Ref(None); 
+                 id_type=Ref(None); id_svalue=Ref(None); })));
           Arg(
             N(
               Id(("$X", ()),
-                {id_info_id=<MASKED>; id_resolved=Ref(
-                 None); id_type=Ref(None); id_svalue=Ref(None); })))]))]))
+                {id_info_id=<MASKED>; 
+                 id_resolved_alternative=Ref([]); id_resolved=Ref(None); 
+                 id_type=Ref(None); id_svalue=Ref(None); })))]))]))
