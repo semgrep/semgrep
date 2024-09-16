@@ -14,6 +14,7 @@
  *)
 open Common
 module PM = Pattern_match
+module Effect = Shape_and_sig.Effect
 
 type overlap = float
 
@@ -26,7 +27,7 @@ type 'spec t = {
 }
 
 let is_exact x = x.overlap > 0.99
-let sink_of_match x = { Taint_sig.pm = x.spec_pm; rule_sink = x.spec }
+let sink_of_match x = { Effect.pm = x.spec_pm; rule_sink = x.spec }
 
 let _show x =
   Range.content_at_range x.spec_pm.path.internal_path_to_content x.range
