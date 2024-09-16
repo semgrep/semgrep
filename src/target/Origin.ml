@@ -16,12 +16,15 @@
 (* See Origin.mli for top-level documentation of this module. *)
 
 type t =
-  | File of Fpath.t
+  | File of (Fpath.t[@of_yojson Fpath_.of_yojson] [@to_yojson Fpath_.to_yojson])
   | GitBlob of {
       sha : Git_wrapper.hash;
+      (* It'd be nice if we could serialize this but let's not worry about that
+         for now *)
       paths : (Git_wrapper.commit * Fpath.t) list;
+          [@to_yojson fun _ -> `String "<opaque>"] [@of_yojson fun _ -> Ok []]
     }
-[@@deriving show, eq, ord]
+[@@deriving show, eq, ord, yojson]
 
 let to_string (s : t) =
   match s with

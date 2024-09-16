@@ -5,6 +5,7 @@
   (libraries
     uri
     trace
+    yojson
   )
  (virtual_modules tracing)
  (default_implementation tracing.unix)

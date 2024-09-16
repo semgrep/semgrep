@@ -164,6 +164,34 @@ end
 (* Using Fpath.t *)
 (*****************************************************************************)
 
+let file_kind_to_yojson (kind : Unix.file_kind) =
+  let kind_str =
+    match kind with
+    | S_REG -> "S_REG"
+    | S_DIR -> "S_DIR"
+    | S_CHR -> "S_CHR"
+    | S_BLK -> "S_BLK"
+    | S_LNK -> "S_LNK"
+    | S_FIFO -> "S_FIFO"
+    | S_SOCK -> "S_SOCK"
+  in
+  `String kind_str
+
+let file_kind_of_yojson (yojson : Yojson.Safe.t) =
+  match yojson with
+  | `String "S_REG" -> Ok Unix.S_REG
+  | `String "S_DIR" -> Ok Unix.S_DIR
+  | `String "S_CHR" -> Ok Unix.S_CHR
+  | `String "S_BLK" -> Ok Unix.S_BLK
+  | `String "S_LNK" -> Ok Unix.S_LNK
+  | `String "S_FIFO" -> Ok Unix.S_FIFO
+  | `String "S_SOCK" -> Ok Unix.S_SOCK
+  | json ->
+      Error
+        (Printf.sprintf
+           "Could not convert to Unix.file_kind expected `String, received %s"
+           Yojson.Safe.(to_string json))
+
 let files_of_dirs_or_files_no_vcs_nofilter xs =
   xs |> Fpath_.to_strings |> Legacy.files_of_dirs_or_files_no_vcs_nofilter
   |> Fpath_.of_strings

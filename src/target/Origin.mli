@@ -67,7 +67,7 @@ type t =
 
               This is used for e.g., a rule's path-based include & excludes. *)
     }
-[@@deriving show, eq, ord]
+[@@deriving show, eq, ord, yojson]
 
 val to_string : t -> string
 (** [to_string origin] is [origin] as a user-facing string. This is the version

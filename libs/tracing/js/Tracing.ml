@@ -69,6 +69,10 @@ let add_data (_data : (string * Trace_core.user_data) list) (_i : config option)
     =
   ()
 
+let trace_data_only ?(level = Info) ~__FUNCTION__ ~__FILE__ ~__LINE__ name
+    (f : unit -> (string * Yojson.Safe.t) list) =
+  ()
+
 (*****************************************************************************)
 (* Entry points for setting up tracing *)
 (*****************************************************************************)

@@ -58,7 +58,7 @@ type t = Language.t =
   | Vue
   | Xml
   | Yaml
-[@@deriving show, eq, hash]
+[@@deriving show, eq, hash, yojson]
 
 (* unsupported_language_message [lang] takes the language as a string and
  * returns an error message.
