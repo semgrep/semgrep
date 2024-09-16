@@ -590,6 +590,17 @@ and qualifier =
 (*****************************************************************************)
 and id_info = {
   id_resolved : resolved_name option ref;
+  (* List of alternative names, populated when there are multiple
+     candidates available (not including `id_resolved` itself) for the
+     identifier (e.g., resolving virtual fields of the interface in
+     Java); otherwise, it remains empty.
+
+     TODO We could merge `id_resolved` and `id_resolved_alternatives`.
+     Keeping them separate might help distinguish a preferred name
+     from other possible candidates. However, since we currently don’t
+     have any features that prioritize findings based on probability,
+     this distinction isn’t particularly useful at the moment. *)
+  id_resolved_alternatives : resolved_name list ref;
   (* variable tagger (naming) *)
   (* sgrep: in OCaml we also use that to store the type of
    * a typed entity, which can be interpreted as a TypedMetavar in semgrep.
@@ -2248,6 +2259,7 @@ let empty_id_info ?(hidden = false) ?(case_insensitive = false)
     ?(id = id_info_id ()) () =
   {
     id_resolved = ref None;
+    id_resolved_alternatives = ref [];
     id_type = ref None;
     id_svalue = ref None;
     id_flags = ref (IdFlags.make ~hidden ~case_insensitive ~final:false);
