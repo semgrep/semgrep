@@ -81,7 +81,7 @@ let parse_pattern options lang str =
              ]
       in
       Cpp_to_generic.any
-        ~parsing_opt:
+        ?parsing_opt:
           (Option.map (fun x -> x.Rule_options_t.cpp_parsing_pref) options)
         any
   | Lang.Java ->

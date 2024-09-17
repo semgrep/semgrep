@@ -17,7 +17,7 @@ val check :
      contains an `as-metavariable`
   *)
   ?has_as_metavariable:bool ->
-  ?mvar_context:Metavariable.bindings option ->
+  ?mvar_context:Metavariable.bindings ->
   ?range_filter:(Tok.location * Tok.location -> bool) ->
   Rule_options.t * Equivalence.equivalences ->
   Mini_rule.rules ->

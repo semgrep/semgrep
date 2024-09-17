@@ -376,8 +376,7 @@ let write_workflow_file (caps : < Cap.chdir ; Cap.tmp >) ~git_dir:dir : unit =
   let res =
     Bos.OS.Dir.with_current dir
       (fun () ->
-        Git_wrapper.run_with_worktree caps ~commit
-          ~branch:(Some (get_new_branch ()))
+        Git_wrapper.run_with_worktree caps ~commit ~branch:(get_new_branch ())
           (fun () ->
             let github_dir = ".github" in
             mkdir_if_needed github_dir;

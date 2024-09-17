@@ -564,7 +564,7 @@ and catch (tok, catch_exn, v2) =
         let ent, typ = var v1 in
         let id, _idinfo = id_of_entname ent.G.name in
         match typ with
-        | Some t -> G.CatchParam (G.param_of_type t ~pname:(Some id))
+        | Some t -> G.CatchParam (G.param_of_type t ~pname:id)
         | None -> error tok "TODO: Catch without a type")
     | CatchEllipsis t -> G.CatchPattern (G.PatEllipsis t)
   in
@@ -598,7 +598,7 @@ and parameter_binding = function
       G.ParamRest (tk, p)
   | ParamEllipsis t -> G.ParamEllipsis t
 
-and method_decl ?(cl_kind = None) { m_var; m_formals; m_throws; m_body } =
+and method_decl ?cl_kind { m_var; m_formals; m_throws; m_body } =
   let ent, rett = var m_var in
   let fparams = parameters m_formals in
   let v3 = list typ m_throws in
@@ -652,8 +652,8 @@ and enum_constant (v1, v2, v3) =
   let def = { G.ee_args = v2; ee_body = v3 } in
   (ent, G.EnumEntryDef def)
 
-and class_body ?(cl_kind = None) (l, xs, r) : G.field list G.bracket =
-  let xs = decls ~cl_kind xs |> List_.map (fun x -> G.F x) in
+and class_body ?cl_kind (l, xs, r) : G.field list G.bracket =
+  let xs = decls ?cl_kind xs |> List_.map (fun x -> G.F x) in
   (l, xs, r)
 
 and class_decl
@@ -678,8 +678,8 @@ and class_decl
   let v5 = option class_parent cl_extends in
   let v6 = list ref_type cl_impls in
   let cparams = parameters cl_formals in
-  let fields = class_body ~cl_kind:(Some cl_kind) cl_body in
-  let ent = G.basic_entity v1 ~attrs:(more_attrs @ v4) ~tparams:v3 in
+  let fields = class_body ~cl_kind cl_body in
+  let ent = G.basic_entity v1 ~attrs:(more_attrs @ v4) ?tparams:v3 in
   let cdef =
     {
       G.ckind = v2;
@@ -699,13 +699,13 @@ and class_kind_and_more (x, t) =
   | AtInterface -> ((G.Interface, t), [ G.attr AnnotationClass t ])
   | Record -> ((G.Class, t), [ G.attr RecordClass t ])
 
-and decl ?(cl_kind = None) decl : G.stmt =
+and decl ?cl_kind decl : G.stmt =
   match decl with
   | Class v1 ->
       let ent, def = class_decl v1 in
       G.DefStmt (ent, G.ClassDef def) |> G.s
   | Method v1 ->
-      let ent, def = method_decl ~cl_kind v1 in
+      let ent, def = method_decl ?cl_kind v1 in
       G.DefStmt (ent, G.FuncDef def) |> G.s
   | Field v1 ->
       let ent, def = field v1 in
@@ -725,7 +725,7 @@ and decl ?(cl_kind = None) decl : G.stmt =
   | EmptyDecl t -> G.Block (t, [], t) |> G.s
   | AnnotationTypeElementTodo t -> G.OtherStmt (G.OS_Todo, [ G.Tk t ]) |> G.s
 
-and decls ?(cl_kind = None) v : G.stmt list = list (decl ~cl_kind) v
+and decls ?cl_kind v : G.stmt list = list (decl ?cl_kind) v
 
 and import = function
   | ImportAll (t, xs, tok) -> G.ImportAll (t, G.DottedName xs, tok)

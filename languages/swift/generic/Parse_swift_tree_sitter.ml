@@ -1200,7 +1200,7 @@ and map_capture_list_item (env : env) (x : CST.capture_list_item) =
             Some (map_expression env v2)
         | None -> None
       in
-      G.Param (G.param_of_id ~pattrs ~pdefault id)
+      G.Param (G.param_of_id ~pattrs ?pdefault id)
 
 and map_catch_block (env : env) ((v1, v2, v3, v4) : CST.catch_block) =
   let catch_tok = (* catch_keyword *) token env v1 in
@@ -1899,7 +1899,7 @@ and map_lambda_parameter (env : env) (v1 : CST.lambda_parameter) : G.parameter =
       let attrs = map_parameter_modifiers_opt env v4 in
       let v5 = map_possibly_implicitly_unwrapped_type env v5 in
       let ty = { v5 with G.t_attrs = attrs @ v5.G.t_attrs } in
-      G.Param (G.param_of_id ~ptype:(Some ty) ~pattrs:attrs v2)
+      G.Param (G.param_of_id ~ptype:ty ~pattrs:attrs v2)
 
 and map_local_declaration (env : env) (x : CST.local_declaration) : G.stmt list
     =
@@ -2040,7 +2040,7 @@ and map_modifierless_class_declaration (env : env) (attrs : G.attribute list)
       let v2 = map_simple_identifier env v2 in
       let tparams = Option.map (map_type_parameters env) v3 in
 
-      let entity = G.basic_entity ~tparams ~attrs v2 in
+      let entity = G.basic_entity ?tparams ~attrs v2 in
       construct_class_def env v1 v4 entity v5 v6 map_class_body
   | `Exte_unan_type_opt_type_params_opt_COLON_inhe_specis_opt_type_consts_class_body
       (v1, v2, v3, v4, v5, v6) ->
@@ -2082,7 +2082,7 @@ and map_modifierless_class_declaration (env : env) (attrs : G.attribute list)
          base type like integers, floating point values, or whatever.
          It's just kind of a pain to extract that information.
       *)
-      let entity = G.basic_entity ~attrs ~tparams v3 in
+      let entity = G.basic_entity ~attrs ?tparams v3 in
       construct_class_def env v2 v5 entity v6 v7 (map_enum_class_body v3)
 
 and map_modifierless_function_declaration (env : env) (attrs : G.attribute list)
@@ -2131,7 +2131,7 @@ and map_modifierless_function_declaration_no_body (env : env) ~in_class
   in
 
   let attrs = attrs in
-  let entity = G.basic_entity ~tparams:v2 ~attrs v1 in
+  let entity = G.basic_entity ?tparams:v2 ~attrs v1 in
   let kind = if in_class then G.Method else G.Function in
   let definition_kind =
     G.FuncDef
@@ -2191,7 +2191,7 @@ and map_modifierless_typealias_declaration (env : env)
   let _v4TODO = (* eq_custom *) token env v4 in
   let v5 = map_type_ env v5 in
   G.DefStmt
-    ( G.basic_entity ~tparams:v3 ~attrs v2,
+    ( G.basic_entity ?tparams:v3 ~attrs v2,
       G.TypeDef { G.tbody = G.AliasType v5 } )
   |> G.s
 
@@ -2342,8 +2342,8 @@ and map_parameter (env : env) ((v1, v2, v3, v4, v5, v6) : CST.parameter)
   let _tcolon = (* ":" *) token env v3 in
   let attrs = map_parameter_modifiers_opt env v4 @ attrs in
   let v5 = map_possibly_implicitly_unwrapped_type env v5 in
-  let ptype = Some { v5 with G.t_attrs = attrs @ v5.G.t_attrs } in
-  let param = G.param_of_id ~pdefault:default ~ptype v2 in
+  let ptype = { v5 with G.t_attrs = attrs @ v5.G.t_attrs } in
+  let param = G.param_of_id ?pdefault:default ~ptype v2 in
   match v6 with
   | Some tok ->
       let dots = (* three_dot_operator_custom *) token env tok in
@@ -2526,7 +2526,7 @@ and map_protocol_declaration (env : env)
   let v2 = (* "protocol" *) token env v2 in
   let v3 = map_simple_identifier env v3 in
   let tparams = Option.map (map_type_parameters env) v4 in
-  let entity = G.basic_entity ~attrs:modifiers ~tparams v3 in
+  let entity = G.basic_entity ~attrs:modifiers ?tparams v3 in
   construct_class_def env ~kind:G.Interface v2 v5 entity v6 v7 map_protocol_body
 
 and map_protocol_member_declaration (env : env)

@@ -100,7 +100,7 @@ val load_rules_from_file :
 
 val load_rules_from_url :
   origin:origin ->
-  ?token_opt:Auth.token option ->
+  ?token_opt:Auth.token ->
   ?ext:string ->
   < Cap.network ; Cap.tmp ; .. > ->
   Uri.t ->

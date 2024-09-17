@@ -672,7 +672,7 @@ and class_binding (c_tok : Tok.t) (binding : class_binding) : G.definition =
   let { c_name; c_tparams; c_params; c_body } = binding in
   let id = ident c_name in
   let tparams = option (bracket (list type_parameter)) c_tparams in
-  let ent = G.basic_entity ~tparams id in
+  let ent = G.basic_entity ?tparams id in
   let cparams = fb (list parameter c_params) in
   let cbody =
     match c_body with

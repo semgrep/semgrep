@@ -1154,7 +1154,7 @@ parameter_decl:
      { let (t_ret, p_specs) = type_and_specs_from_decl $1 in
        let ii = Tok.unsafe_fake_tok "" in
        let (name, ftyp) = fixNameForParam ii $2 in
-       P (make_param (ftyp t_ret) ~p_name:(Some name) ~p_specs) }
+       P (make_param (ftyp t_ret) ~p_name:name ~p_specs) }
  | decl_spec_seq abstract_declarator
      { let (t_ret, p_specs) = type_and_specs_from_decl $1 in
        P (make_param ($2 t_ret) ~p_specs ) }
@@ -1167,13 +1167,13 @@ parameter_decl:
  | decl_spec_seq declarator "=" assign_expr
      { let (t_ret, p_specs) = type_and_specs_from_decl $1 in
        let (name, ftyp) = fixNameForParam $3 $2 in
-       P (make_param (ftyp t_ret) ~p_name:(Some name) ~p_specs ~p_val:(Some ($3, $4))) }
+       P (make_param (ftyp t_ret) ~p_name:name ~p_specs ~p_val:($3, $4)) }
  | decl_spec_seq abstract_declarator "=" assign_expr
      { let (t_ret, p_specs) = type_and_specs_from_decl $1 in
-       P (make_param ($2 t_ret) ~p_specs ~p_val:(Some ($3, $4))) }
+       P (make_param ($2 t_ret) ~p_specs ~p_val:($3, $4)) }
  | decl_spec_seq "=" assign_expr
      { let (t_ret, p_specs) = type_and_specs_from_decl $1 in
-       P (make_param t_ret ~p_specs ~p_val:(Some($2,$3)) ) }
+       P (make_param t_ret ~p_specs ~p_val:($2,$3) ) }
  (* sgrep-ext: allowed only in last position in C, or in exn in C++ *)
  | "..." { ParamEllipsis $1 }
 

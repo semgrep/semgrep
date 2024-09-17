@@ -926,7 +926,7 @@ let map_parameter (env : env) (x : CST.parameter) : G.parameter =
       let ident = (* identifier *) str env v1 in
       let v2 = (* ":" *) token env v2 in
       let param_type = map_type__ env v3 in
-      G.Param (G.param_of_id ~ptype:(Some param_type) ident)
+      G.Param (G.param_of_id ~ptype:param_type ident)
   | `Ellips tok -> (* "..." *) G.ParamEllipsis (token env tok)
 
 let map_field_annot (env : env) (x : CST.field_annot) : G.field =
@@ -1041,7 +1041,7 @@ let map_struct_signature (env : env) attrs ((v1, v2, v3) : CST.struct_signature)
   let abilities =
     v3 |> Option.map (map_abilities env) |> Option.value ~default:[]
   in
-  let struct_ent = G.basic_entity ~tparams:type_params ~attrs name in
+  let struct_ent = G.basic_entity ?tparams:type_params ~attrs name in
   (struct_, abilities, struct_ent)
 
 let map_struct_body (env : env) ((v1, v2, v3, v4) : CST.struct_body) =
@@ -1158,7 +1158,7 @@ let map_spec_func_signatures (env : env)
   let v4 = (* ":" *) token env v4 in
   let ret_type = map_type__ env v5 in
 
-  let entity = G.basic_entity ~tparams:type_params func_name in
+  let entity = G.basic_entity ?tparams:type_params func_name in
   (entity, params, ret_type)
 
 let map_spec_target_signature_opt (env : env)
@@ -1198,7 +1198,7 @@ let map_struct_decl (env : env) attrs (x : CST.struct_decl) : G.stmt =
   | `Struct_struct_def_name_struct_body_opt_abilis_SEMI (v1, v2, v3, v4, v5) ->
       let struct_ = (* "struct" *) token env v1 in
       let name, tparams = map_struct_def_name env v2 in
-      let struct_ent = G.basic_entity name ~tparams in
+      let struct_ent = G.basic_entity name ?tparams in
 
       let body = map_struct_body env v3 in
       let abilities =
@@ -1219,7 +1219,7 @@ let map_struct_decl (env : env) attrs (x : CST.struct_decl) : G.stmt =
   | `Struct_struct_def_name_anon_fields_opt_abilis_SEMI (v1, v2, v3, v4, v5) ->
       let struct_ = (* "struct" *) token env v1 in
       let name, tparams = map_struct_def_name env v2 in
-      let struct_ent = G.basic_entity name ~tparams in
+      let struct_ent = G.basic_entity name ?tparams in
 
       let lp, body, rp = map_anon_fields env v3 in
       let abilities =
@@ -1305,7 +1305,7 @@ let map_enum_signature (env : env) attrs ((v1, v2, v3) : CST.enum_signature) =
   let abilities =
     v3 |> Option.map (map_abilities env) |> Option.value ~default:[]
   in
-  let ent = G.basic_entity ~tparams ~attrs name in
+  let ent = G.basic_entity ?tparams ~attrs name in
   (enum_, abilities, ent)
 
 let inject_enum_abilities (env : env) (abilities : G.type_ list)
@@ -1336,7 +1336,7 @@ let map_enum_decl (env : env) attrs (x : CST.enum_decl) =
       in
       let v5 = (* ";" *) token env v5 in
 
-      let ent = G.basic_entity ~tparams ~attrs name in
+      let ent = G.basic_entity ?tparams ~attrs name in
       let ent = inject_enum_abilities env abilities ent in
       let def = G.TypeDef { G.tbody = G.OrType variants } in
       G.DefStmt (ent, def) |> G.s
@@ -1350,7 +1350,7 @@ let map_spec_block_target (env : env) (x : CST.spec_block_target) : G.any =
           let type_params, params, ret_type =
             map_spec_target_signature_opt env x
           in
-          let entity = G.basic_entity ~tparams:type_params ident in
+          let entity = G.basic_entity ?tparams:type_params ident in
           let def_ =
             {
               G.fkind = (G.Function, sc);
@@ -1367,7 +1367,7 @@ let map_spec_block_target (env : env) (x : CST.spec_block_target) : G.any =
       let ident = (* identifier *) token env v2 in
       let type_params = v3 |> Option.map (map_type_params env) in
 
-      let entity = G.basic_entity ~tparams:type_params (str env v2) in
+      let entity = G.basic_entity ?tparams:type_params (str env v2) in
       G.Anys [ v1; G.En entity ]
 
 let rec transpile_let_bind (env : env) (left : G.pattern) (right : G.expr) :
@@ -1700,8 +1700,7 @@ and map_deep_ellipsis (env : env) ((v1, v2, v3) : CST.deep_ellipsis) =
   G.DeepEllipsis (v1, v2, v3) |> G.e
 
 and map_identifier_or_anon_field (env : env)
-    ?(type_args : type_arguments option = None)
-    (x : CST.identifier_or_anon_field) =
+    ?(type_args : type_arguments option) (x : CST.identifier_or_anon_field) =
   match x with
   | `Id tok ->
       let ident = (* identifier *) str env tok in
@@ -1733,7 +1732,7 @@ and map_dot_or_index_chain (env : env) (x : CST.dot_or_index_chain) =
                let v2 = map_type_args env v2 in
                v2)
       in
-      let func_name = map_identifier_or_anon_field ~type_args env v3 in
+      let func_name = map_identifier_or_anon_field ?type_args env v3 in
       let func_expr = G.DotAccess (expr_, dot, func_name) |> G.e in
       let args = map_call_args env v5 in
       G.Call (func_expr, args) |> G.e
@@ -2208,7 +2207,7 @@ and map_spec_variable (env : env)
   let v4 = (* ":" *) token env v4 in
   let type_ = map_type__ env v5 in
 
-  let entity = G.basic_entity ~attrs:attr ~tparams:type_params ident in
+  let entity = G.basic_entity ~attrs:attr ?tparams:type_params ident in
   let value =
     Option.map
       (fun (v1, v2) ->

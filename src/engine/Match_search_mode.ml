@@ -542,7 +542,7 @@ let matches_of_xpatterns ~has_as_metavariable ~mvar_context rule
   (* final result *)
   RP.collate_pattern_results
     [
-      matches_of_patterns ~has_as_metavariable ~mvar_context rule xconf xtarget
+      matches_of_patterns ~has_as_metavariable ?mvar_context rule xconf xtarget
         patterns;
       Xpattern_match_spacegrep.matches_of_spacegrep xconf spacegreps
         internal_path_to_content origin;
@@ -557,7 +557,7 @@ let matches_of_xpatterns ~has_as_metavariable ~mvar_context rule
 (* Maching explanations helpers *)
 (*****************************************************************************)
 
-let if_explanations ?(extra = None) (env : env) (ranges : RM.ranges)
+let if_explanations ?extra (env : env) (ranges : RM.ranges)
     (children : ME.t option list) (op, tok) : ME.t option =
   if env.xconf.matching_explanations then
     let matches = pms_of_ranges env ranges in
@@ -1081,11 +1081,10 @@ and evaluate_formula_kind env opt_context (kind : Rule.formula_kind) =
                  whether a match was removed by positive intersection or negation.
               *)
               ~extra:
-                (Some
-                   (ME.mk_extra
-                      ~before_negation_matches:
-                        (pms_of_ranges env ranges_before_negation)
-                      ()))
+                (ME.mk_extra
+                   ~before_negation_matches:
+                     (pms_of_ranges env ranges_before_negation)
+                   ())
               (OutJ.And, t)
           in
           (ranges, expl))

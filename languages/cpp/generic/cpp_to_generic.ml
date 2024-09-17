@@ -1905,7 +1905,7 @@ and map_template_parameter env x : G.type_parameter =
       and v2 = map_of_option (map_ident env) v2
       and v3 = map_of_option (map_type_ env) v3 in
       match (v2, v3) with
-      | Some id, v3 -> G.tparam_of_id id ~tp_default:v3
+      | Some id, v3 -> G.tparam_of_id id ?tp_default:v3
       | None, None -> G.OtherTypeParam (("AnonTypeParam", v1), [])
       | None, Some t ->
           G.OtherTypeParam (("AnonTypeParamWithType", v1), [ G.T t ]))
@@ -2297,7 +2297,7 @@ let map_any env x : G.any =
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let any ?(parsing_opt = None) x =
+let any ?parsing_opt x =
   let env = empty_env () in
   let env = { env with parsing_pref = parsing_opt; in_mode = Pattern } in
   map_any env x

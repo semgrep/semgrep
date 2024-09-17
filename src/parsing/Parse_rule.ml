@@ -59,14 +59,14 @@ let parse_language ~id ((s, t) as _lang) : (Lang.t, Rule_error.t) result =
   match Lang.of_string_opt s with
   | None ->
       Error
-        (Rule_error.mk_error ~rule_id:(Some id)
+        (Rule_error.mk_error ~rule_id:id
            (InvalidRule (InvalidLanguage s, id, t)))
   | Some lang -> (
       match Parsing_plugin.check_if_missing lang with
       | Ok () -> Ok lang
       | Error msg ->
           Error
-            (Rule_error.mk_error ~rule_id:(Some id)
+            (Rule_error.mk_error ~rule_id:id
                (InvalidRule (MissingPlugin msg, id, t))))
 
 (*
@@ -537,7 +537,7 @@ let parse_rules_to_run_with_extract env key value =
            Rule_ID.of_string_opt value
            |> Option.to_result
                 ~none:
-                  (Rule_error.mk_error ~rule_id:(Some env.id)
+                  (Rule_error.mk_error ~rule_id:env.id
                      (InvalidRule
                         ( InvalidOther
                             ("Expected a valid rule ID. Instead got " ^ value),
@@ -925,7 +925,7 @@ let parse_version key value =
 
 let incompatible_version ?min_version ?max_version rule_id tok =
   Error
-    (Rule_error.mk_error ~rule_id:(Some rule_id)
+    (Rule_error.mk_error ~rule_id
        (InvalidRule
           ( IncompatibleRule (Version_info.version, (min_version, max_version)),
             rule_id,
@@ -1053,7 +1053,7 @@ let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) :
       dependency_formula = dep_formula_opt;
     }
 
-let parse_generic_ast ?(error_recovery = false) ?(rewrite_rule_ids = None)
+let parse_generic_ast ?(error_recovery = false) ?rewrite_rule_ids
     (file : Fpath.t) (ast : AST_generic.program) :
     (Rule_error.rules_and_invalid, Rule_error.t) result =
   let res =
@@ -1125,7 +1125,7 @@ let parse_yaml_rule_file ~is_target (file : Fpath.t) =
   | Parsing_error.Other_error (s, t) ->
       Error (Rule_error.mk_error (InvalidYaml (s, t)))
 
-let parse_file ?error_recovery ?(rewrite_rule_ids = None) file :
+let parse_file ?error_recovery ?rewrite_rule_ids file :
     (Rule.rules * Rule_error.invalid_rule list, Rule_error.t) result =
   let/ ast =
     (* coupling: Rule_file.is_valid_rule_filename *)
@@ -1187,7 +1187,7 @@ let parse_file ?error_recovery ?(rewrite_rule_ids = None) file :
               !!file);
         parse_yaml_rule_file ~is_target:true file
   in
-  parse_generic_ast ?error_recovery ~rewrite_rule_ids file ast
+  parse_generic_ast ?error_recovery ?rewrite_rule_ids file ast
 
 (*****************************************************************************)
 (* Main Entry point *)

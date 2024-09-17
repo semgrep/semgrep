@@ -9,5 +9,5 @@ let get_contributions (caps : < Cap.exec >) :
    * See https://semgrep.dev/docs/usage-limits
    *)
   let last_30_days = Common2.today () |> Common2.month_before in
-  Git_wrapper.logs caps ~since:(Some last_30_days)
+  Git_wrapper.logs caps ~since:last_30_days
   |> List_.map Semgrep_output_v1_j.contribution_of_string

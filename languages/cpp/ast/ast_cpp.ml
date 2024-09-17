@@ -1160,7 +1160,7 @@ let make_expanded ii =
   in
   Tok.ExpandedTok (get_original_token_location ii, no_virt_loc)
 
-let make_param ?(p_name = None) ?(p_specs = []) ?(p_val = None) t =
+let make_param ?p_name ?(p_specs = []) ?p_val t =
   { p_name; p_type = t; p_specs; p_val }
 
 (* used by parsing hacks *)

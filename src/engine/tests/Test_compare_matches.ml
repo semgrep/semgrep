@@ -30,10 +30,10 @@ let location_of_core_error (err : Core_error.t) =
 
 let (expected_error_lines_of_files :
       ?regexp:string ->
-      ?ok_regexp:string option ->
+      ?ok_regexp:string ->
       Fpath.t list ->
       (Fpath.t * int) (* line *) list) =
- fun ?(regexp = default_error_regexp) ?(ok_regexp = None) test_files ->
+ fun ?(regexp = default_error_regexp) ?ok_regexp test_files ->
   test_files
   |> List.concat_map (fun file ->
          UFile.cat file |> List_.index_list_1

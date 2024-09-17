@@ -349,7 +349,7 @@ let get_relevant_rules ({ params = { patterns; fix; lang; _ }; _ } as env : env)
     in
     if valid_for_all_xpats then
       let/ formula = formula_of_signed_patterns xlang patterns in
-      match Rule.rule_of_formula ~fix xlang formula with
+      match Rule.rule_of_formula ?fix xlang formula with
       | { mode = `Search f; _ } as r ->
           (* repack here so we get the right search_rule type *)
           Ok (Some { r with mode = `Search f })

@@ -54,7 +54,7 @@ val try_and_raise_invalid_pattern_if_error :
 val parse_pattern_with_rule_error :
   env ->
   string * Tok.t ->
-  ?rule_options:Rule_options_t.t option ->
+  ?rule_options:Rule_options_t.t ->
   Lang.t ->
   string ->
   (Pattern.t, Rule_error.t) result
