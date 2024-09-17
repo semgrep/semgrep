@@ -401,3 +401,22 @@ rules:
       include:
         - src/*
         - libs/*
+  # Existing rules remain as they are
+  # Rule to detect potential unsafe use of exec with user input in Python code
+  - id: confusion-1
+    mode: taint
+    pattern-sinks:
+      - pattern-either:
+          - pattern-inside: exec(...)
+    pattern-sources:
+      - patterns:
+          - pattern: $STR
+          - pattern-not: $FILE.read()
+          - metavariable-pattern:
+              metavariable: $STR
+              patterns:
+                - pattern-not-regex: (.*\/?[__]?version[__]?.py.*)
+    message: "Potential unsafe use of exec with $STR"
+    languages:
+      - python
+    severity: WARNING
