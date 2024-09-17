@@ -38,7 +38,7 @@ let make_login_url () =
           ("gha", if !Semgrep_envvars.v.in_gh_action then "True" else "False");
         ]) )
 
-let save_token_async ?(ident = None) caps =
+let save_token_async ?ident caps =
   Option.iter
     (fun v -> Logs.debug (fun m -> m "saving token for user %s" v))
     ident;
@@ -53,8 +53,7 @@ let save_token_async ?(ident = None) caps =
            Ok deployment_config
        | _ -> Error "Failed to save token. Please try again.")
 
-let save_token ?(ident = None) caps =
-  Lwt_platform.run (save_token_async ~ident caps)
+let save_token ?ident caps = Lwt_platform.run (save_token_async ?ident caps)
 
 let verify_token_async token =
   let%lwt resopt = Semgrep_App.get_deployment_from_token_async token in
@@ -111,7 +110,7 @@ let fetch_token_async ?(min_wait_ms = 2000) ?(next_wait_ms = 1000)
                   let ident = json |> member "user_name" |> to_string in
                   let token = Auth.unsafe_token_of_string str_token in
                   let caps = Auth.cap_token_and_network token caps in
-                  let%lwt result = save_token_async ~ident:(Some ident) caps in
+                  let%lwt result = save_token_async ~ident caps in
                   Result.bind result (fun _deployment_config ->
                       Ok (token, ident))
                   |> Lwt.return

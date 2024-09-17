@@ -3879,13 +3879,12 @@ and map_optional_parameter_declaration (env : env)
       | `Decl x ->
           let { dn; dt } = map_declarator env x in
           let id = id_of_dname_for_parameter env dn in
-          make_param (dt t) ~p_name:(Some id) ~p_specs ~p_val:(Some (v3, v4))
+          make_param (dt t) ~p_name:id ~p_specs ~p_val:(v3, v4)
       | `Abst_ref_decl x ->
           make_param
             ((map_abstract_reference_declarator env x) t)
-            ~p_specs
-            ~p_val:(Some (v3, v4)))
-  | None -> make_param t ~p_specs ~p_val:(Some (v3, v4))
+            ~p_specs ~p_val:(v3, v4))
+  | None -> make_param t ~p_specs ~p_val:(v3, v4)
 
 and map_optional_type_parameter_declaration (env : env)
     ((v1, v2, v3, v4) : CST.optional_type_parameter_declaration) =
@@ -3909,7 +3908,7 @@ and map_parameter_declaration (env : env) ((v1, v2) : CST.parameter_declaration)
         | `Decl x ->
             let { dn; dt } = map_declarator env x in
             let id = id_of_dname_for_parameter env dn in
-            make_param (dt t) ~p_name:(Some id) ~p_specs
+            make_param (dt t) ~p_name:id ~p_specs
         | `Abst_decl x ->
             let dt = map_abstract_declarator env x in
             make_param (dt t) ~p_specs)
@@ -4959,13 +4958,13 @@ and map_variadic_parameter_declaration (env : env)
     match v2 with
     | `Vari_decl x ->
         let tdots, p_name = map_variadic_declarator env x in
-        let p = make_param t ~p_name ~p_specs in
+        let p = make_param t ?p_name ~p_specs in
         ParamVariadic (None, tdots, p)
     | `Vari_ref_decl x ->
         let ampersand, (tdots, p_name) =
           map_variadic_reference_declarator env x
         in
-        let p = make_param t ~p_name ~p_specs in
+        let p = make_param t ?p_name ~p_specs in
         ParamVariadic (Some ampersand, tdots, p)
   in
   v2

@@ -44,7 +44,7 @@ let print_did_save_token () : unit =
   Logs.app (fun m -> m "%s" epilog)
 
 (* Helper to call our save token implementation when the token is passed as an env var *)
-let save_token ?(display_name = None) token =
+let save_token ?display_name token =
   match Semgrep_login.save_token token with
   | Ok deployment_config ->
       print_did_save_token ();
@@ -165,7 +165,7 @@ let run_conf (caps : caps) (conf : Login_CLI.conf) : Exit_code.t =
              (SEMGREP_API_TOKEN) is set and well formed, saving the env token \
              to the settings file and exiting ok");
       let caps = Auth.cap_token_and_network token caps in
-      save_token ~display_name:None caps
+      save_token caps
   | Some file_token, Some env_token ->
       (* If the token exists in both locations, but aren't the same, tell user
          and exit error *)
@@ -185,7 +185,7 @@ let run_conf (caps : caps) (conf : Login_CLI.conf) : Exit_code.t =
                (SEMGREP_API_TOKEN) is set and well formed, using env var token \
                and exiting ok");
         let caps = Auth.cap_token_and_network env_token caps in
-        save_token ~display_name:None caps)
+        save_token caps)
   (* If the token exists in the settings file, nowhere else, exit error *)
   | Some _, None ->
       (* TODO: why not Logs.err instead? *)
@@ -218,7 +218,7 @@ let run_conf (caps : caps) (conf : Login_CLI.conf) : Exit_code.t =
           | Ok (token, display_name) ->
               Console_Spinner.erase_spinner ();
               let caps = Auth.cap_token_and_network token caps in
-              save_token caps ~display_name:(Some display_name)))
+              save_token caps ~display_name))
 
 (*****************************************************************************)
 (* Entry point *)

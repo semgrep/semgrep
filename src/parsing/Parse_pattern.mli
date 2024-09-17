@@ -1,5 +1,5 @@
 val parse_pattern :
-  ?rule_options:Rule_options_t.t option ->
+  ?rule_options:Rule_options_t.t ->
   Lang.t ->
   string ->
   (Pattern.t, string) Result.t

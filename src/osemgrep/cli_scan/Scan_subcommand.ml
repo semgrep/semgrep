@@ -604,7 +604,7 @@ let check_targets_with_rules
                     (caps :> Core_scan.caps)
                     conf Differential_scan_config.WholeScan
                 in
-                core_run_for_osemgrep.run ~file_match_hook conf.core_runner_conf
+                core_run_for_osemgrep.run ?file_match_hook conf.core_runner_conf
                   conf.targeting_conf (rules, invalid_rules) targets)
         | Some baseline_commit ->
             (* scan_baseline calls internally Profiler.record "head_core_time"  *)
@@ -617,7 +617,7 @@ let check_targets_with_rules
                   (caps :> Core_scan.caps)
                   conf diff_config
               in
-              core_run_for_osemgrep.run ~file_match_hook conf.core_runner_conf
+              core_run_for_osemgrep.run ?file_match_hook conf.core_runner_conf
                 conf.targeting_conf (rules, invalid_rules) targets
             in
             Diff_scan.scan_baseline

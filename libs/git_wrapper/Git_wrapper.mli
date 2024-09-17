@@ -84,7 +84,7 @@ val merge_base : string -> string
 val run_with_worktree :
   < Cap.chdir ; Cap.tmp > ->
   commit:string ->
-  ?branch:string option ->
+  ?branch:string ->
   (unit -> 'a) ->
   'a
 
@@ -201,7 +201,7 @@ val project_url : ?cwd:Fpath.t -> unit -> string option
     TODO: should maybe raise an exn instead if not run from a git repo.
 *)
 
-val logs : ?cwd:Fpath.t -> ?since:float option -> < Cap.exec > -> string list
+val logs : ?cwd:Fpath.t -> ?since:float -> < Cap.exec > -> string list
 (** [logs ()] will run 'git log' in the current directory
     and returns for each log a JSON string that fits the schema
     defined in semgrep_output_v1.atd contribution type.

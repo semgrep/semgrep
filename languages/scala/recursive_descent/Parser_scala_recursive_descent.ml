@@ -1105,7 +1105,7 @@ let paramType_ =
  *                  | null
  *  }}}
 *)
-let literal ?(isNegated = None) ?(inPattern = false) in_ : literal =
+let literal ?isNegated ?(inPattern = false) in_ : literal =
   in_
   |> with_logging
        (spf "literal(isNegated:%s, inPattern:%b)" (Dumper.dump isNegated)
@@ -1406,7 +1406,7 @@ and simpleType in_ : type_ =
          | MINUS ii when lookingAhead (fun in_ -> TH.isNumericLit in_.token) in_
            ->
              nextToken in_;
-             let x = literal ~isNegated:(Some ii) in_ in
+             let x = literal ~isNegated:ii in_ in
              (* ast: SingletonTypeTree(x) *)
              TyLiteral x
          (* See https://docs.scala-lang.org/scala3/reference/changed-features/wildcards.html *)
@@ -1820,7 +1820,7 @@ and simplePattern in_ : pattern =
                     | _ -> true)
                   in_ ->
              nextToken in_;
-             let x = literal ~isNegated:(Some ii) ~inPattern:true in_ in
+             let x = literal ~isNegated:ii ~inPattern:true in_ in
              PatLiteral x
          | x when TH.isIdentBool x || x =~= Kthis ab -> (
              let t = stableId in_ in
@@ -2106,7 +2106,7 @@ and prefixExpr ?(is_block_expr = false) in_ : expr =
         match (t, in_.token) with
         | MINUS ii, x when TH.isNumericLit x (* uname == nme.UNARY_- ... *) ->
             (* start at the -, not the number *)
-            let x = literal ~isNegated:(Some ii) in_ in
+            let x = literal ~isNegated:ii in_ in
             let x' = L x in
             simpleExprRest ~canApply:true x' in_
         | _ ->
@@ -4092,7 +4092,7 @@ let blockStatSeq in_ : block_stat list =
      if (true) then
        1 else 4
 *)
-let indentedExprOrBlockStatSeqUntil ?(until = None) in_ =
+let indentedExprOrBlockStatSeqUntil ?until in_ =
   let hit_until tok =
     match until with
     | Some tok' -> tok' =~= tok
@@ -4425,8 +4425,7 @@ let templateOpt ckind vparams in_ : template_definition =
  *  ObjectDef       ::= Id ClassTemplateOpt
  *  }}}
 *)
-let objectDef ?(isCase = None) ?(isPackageObject = None) attrs in_ : definition
-    =
+let objectDef ?isCase ?isPackageObject attrs in_ : definition =
   in_
   |> with_logging "objectDef" (fun () ->
          let ikind = TH.info_of_tok in_.token in
@@ -4469,7 +4468,7 @@ let objectDef ?(isCase = None) ?(isPackageObject = None) attrs in_ : definition
  *  }}}
 *)
 let packageObjectDef ipackage in_ : definition =
-  objectDef noMods ~isPackageObject:(Some ipackage) in_
+  objectDef noMods ~isPackageObject:ipackage in_
 (* AST: gen.mkPackageObject(defn, pidPos, pkgPos) *)
 
 let packageOrPackageObject ipackage in_ : top_stat =
@@ -4506,7 +4505,7 @@ let constructorAnnotations in_ : annotation list =
 *)
 
 (* pad: I added isTrait and isCase instead of abusing mods *)
-let classDef ?(isTrait = false) ?(isCase = None) attrs in_ : definition =
+let classDef ?(isTrait = false) ?isCase attrs in_ : definition =
   in_
   |> with_logging "classDef" (fun () ->
          let ikind = TH.info_of_tok in_.token in
@@ -4831,8 +4830,8 @@ let tmplDef attrs in_ : definition =
   | Kcase ii -> (
       nextToken in_;
       match in_.token with
-      | Kclass _ -> classDef ~isCase:(Some ii) attrs in_
-      | Kobject _ -> objectDef ~isCase:(Some ii) attrs in_
+      | Kclass _ -> classDef ~isCase:ii attrs in_
+      | Kobject _ -> objectDef ~isCase:ii attrs in_
       | _ when TH.isIdentBool in_.token -> EnumCaseDef (attrs, enumCaseRest in_)
       (* pad: my error message *)
       | _ -> error "expecting class or object after a case" in_)
@@ -4854,7 +4853,7 @@ let _ =
   tmplDef_ := tmplDef;
   blockStatSeq_ := blockStatSeq;
   (indentedExprOrBlockStatSeqUntil_ :=
-     fun env ~until -> indentedExprOrBlockStatSeqUntil ~until env);
+     fun env ~until -> indentedExprOrBlockStatSeqUntil ?until env);
   packageOrPackageObject_ := packageOrPackageObject;
 
   exprTypeArgs_ := exprTypeArgs;

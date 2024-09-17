@@ -257,7 +257,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
            (* todo: we should maybe use a new error: TooManyMatches of int * string*)
            let loc = Tok.first_loc_of_file file in
            let error =
-             E.mk_error ~rule_id:(Some id)
+             E.mk_error ~rule_id:id
                ~msg:
                  (spf
                     "%d rules result in too many matches, most offending rule \
@@ -310,9 +310,7 @@ let rules_from_rule_source (rule_source : Core_scan_config.rule_source) :
   match rule_source with
   | Core_scan_config.Rule_file file -> (
       Logs.info (fun m -> m "Parsing rules in %s" !!file);
-      match
-        Parse_rule.parse_and_filter_invalid_rules ~rewrite_rule_ids:None file
-      with
+      match Parse_rule.parse_and_filter_invalid_rules file with
       | Ok rules -> rules
       | Error e -> failwith ("Error in parsing: " ^ Rule_error.string_of_error e)
       )
@@ -422,16 +420,16 @@ let errors_of_timeout_or_memory_exn (exn : exn) (target : Target.t) : ESet.t =
       *)
       rule_ids
       |> List_.map (fun error_rule_id ->
-             E.mk_error ~rule_id:(Some error_rule_id) loc Out.Timeout)
+             E.mk_error ~rule_id:error_rule_id loc Out.Timeout)
       |> ESet.of_list
   | Out_of_memory ->
       Logs.warn (fun m -> m "OutOfMemory on %s" (Origin.to_string origin));
       ESet.singleton
-        (E.mk_error ~rule_id:!Rule.last_matched_rule loc Out.OutOfMemory)
+        (E.mk_error ?rule_id:!Rule.last_matched_rule loc Out.OutOfMemory)
   | Stack_overflow ->
       Logs.warn (fun m -> m "StackOverflow on %s" (Origin.to_string origin));
       ESet.singleton
-        (E.mk_error ~rule_id:!Rule.last_matched_rule loc Out.StackOverflow)
+        (E.mk_error ?rule_id:!Rule.last_matched_rule loc Out.StackOverflow)
   | _ -> raise Impossible
 
 (*****************************************************************************)

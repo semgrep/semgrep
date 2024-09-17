@@ -4,7 +4,7 @@
 open Ograph_extended
 
 val print_ograph_mutable_generic :
-  ?title:string option ->
+  ?title:string ->
   (* label for the entire graph *)
   ?display_graph:bool ->
   ?output_file:string (* filename *) ->

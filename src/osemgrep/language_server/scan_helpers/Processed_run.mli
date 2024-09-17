@@ -1,7 +1,7 @@
 val of_matches :
   ?skipped_fingerprints:string list ->
   ?only_git_dirty:bool ->
-  ?git_ref:string option ->
+  ?git_ref:string ->
   Core_runner.result ->
   Semgrep_output_v1_t.cli_match list
 (**  [of_matches ~only_git_dirty result] returns the list of cli matches from the

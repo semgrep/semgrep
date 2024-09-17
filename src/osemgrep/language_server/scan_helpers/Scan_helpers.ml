@@ -145,8 +145,8 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
             m "Running Semgrep with %d rules" (List.length rules));
         let res_or_exn =
           (fun () ->
-            core_run_func.run ~file_match_hook:None runner_conf
-              Find_targets.default_conf (rules, []) targets)
+            core_run_func.run runner_conf Find_targets.default_conf (rules, [])
+              targets)
           |> Profiler.record profiler ~name:"core_run"
         in
         match res_or_exn with
@@ -163,7 +163,7 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
       let matches =
         let only_git_dirty = session.user_settings.only_git_dirty in
         (fun () ->
-          Processed_run.of_matches ~skipped_fingerprints ~git_ref
+          Processed_run.of_matches ~skipped_fingerprints ?git_ref
             ~only_git_dirty res)
         |> Profiler.record profiler ~name:"process_run"
       in

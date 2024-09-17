@@ -299,7 +299,7 @@ let get_facts_of_stmt stmt =
  * matching expressions unless they fall in specific regions of the code.
  * See also docs for {!check} in Match_pattern.mli.
  *)
-let check ~hook ?(has_as_metavariable = false) ?(mvar_context = None)
+let check ~hook ?(has_as_metavariable = false) ?mvar_context
     ?(range_filter = fun _ -> true) (config, equivs) rules
     (internal_path_to_content, origin, lang, ast) =
   Log.info (fun m ->

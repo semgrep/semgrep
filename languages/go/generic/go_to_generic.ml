@@ -629,7 +629,7 @@ let top_func () =
         let id = ident v1 in
         let tparams = option type_parameters v2 in
         let ty = type_ v3 in
-        let ent = G.basic_entity id ~tparams in
+        let ent = G.basic_entity id ?tparams in
         G.DefStmt (ent, G.TypeDef { G.tbody = G.NewType ty }) |> G.s
   and type_parameters v : G.type_parameters = bracket (list type_parameter) v
   and type_parameter v : G.type_parameter =
@@ -641,7 +641,7 @@ let top_func () =
         let tparams = option type_parameters v2 in
         let ftok, params, ret = func_type v3 in
         let body = stmt v4 in
-        let ent = G.basic_entity v1 ~tparams in
+        let ent = G.basic_entity v1 ?tparams in
         G.DefStmt
           ( ent,
             G.FuncDef

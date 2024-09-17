@@ -3467,7 +3467,7 @@ and map_declaration_statement_bis (env : env) outer_attrs (*_visibility*) x :
       let _where_clauseTODO = Option.map (fun x -> map_where_clause env x) v6 in
       let body = map_decls_or_semi env v7 in
       (* TODO not sure what to put for the name *)
-      let ent = G.basic_entity ~attrs ~tparams impl in
+      let ent = G.basic_entity ~attrs ?tparams impl in
       let def = G.OtherDef (("Impl", snd impl), [ G.T ty; G.Ss body ]) in
       [ G.DefStmt (ent, def) |> G.s ]
   | `Trait_item (_v0TODO, v1, v2, v3, v4, v5, v6, v7) ->
