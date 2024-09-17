@@ -51,8 +51,8 @@ let filter_clean_lines git_ref matches =
 (* Entry point *)
 (*************************************************************************)
 
-let of_matches ?(skipped_fingerprints = []) ?(only_git_dirty = true)
-    ?(git_ref = None) (result : Core_runner.result) =
+let of_matches ?(skipped_fingerprints = []) ?(only_git_dirty = true) ?git_ref
+    (result : Core_runner.result) =
   let result = Output.preprocess_result ~fixed_lines:false result in
   (* Match the rules with the matches so we can get fixes/rule-ids/messages *)
   let matches =

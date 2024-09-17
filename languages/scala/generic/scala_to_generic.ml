@@ -288,7 +288,7 @@ and v_type_kind = function
       let v1 =
         v_list
           (fun (v1, v2) ->
-            G.Param (G.param_of_type ~pname:(Some (v_ident v1)) (v_type_ v2)))
+            G.Param (G.param_of_type ~pname:(v_ident v1) (v_type_ v2)))
           v1
       in
       let v3 = v_type_ v3 in
@@ -584,7 +584,7 @@ and v_case_clause v : G.case_and_body =
   match v with
   | CC x ->
       let icase, p, s = v_case_clause_classic x in
-      G.case_of_pat_and_stmt ~tok:(Some icase) (p, s)
+      G.case_of_pat_and_stmt ~tok:icase (p, s)
   | CaseEllipsis ii -> G.CaseEllipsis ii
 
 and v_case_clause_classic
@@ -1002,7 +1002,7 @@ and v_enum_case_definition attrs v1 =
         | args -> Some (fb args)
       in
       [
-        ( G.basic_entity ~attrs ~tparams id,
+        ( G.basic_entity ~attrs ?tparams id,
           G.EnumEntryDef { ee_args = args; ee_body = None } );
       ]
 

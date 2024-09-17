@@ -163,7 +163,7 @@ let parse_rule_xpattern env (str, tok) =
         (* we need to raise the right error *)
         try_and_raise_invalid_pattern_if_error env (str, tok) (fun () ->
             parse_pattern_with_rule_error env (str, tok)
-              ~rule_options:env.options lang str)
+              ?rule_options:env.options lang str)
       in
       XP.mk_xpat (XP.Sem (pat, lang)) (str, tok)
   | Xlang.LRegex ->
@@ -453,7 +453,7 @@ and parse_pair_old env ((key, value) : key * G.expr) :
       let pos, _ = R.split_and conjuncts in
       if pos =*= [] && not env.in_metavariable_pattern then
         Error
-          (Rule_error.mk_error ~rule_id:(Some env.id)
+          (Rule_error.mk_error ~rule_id:env.id
              (InvalidRule (MissingPositiveTermInAnd, env.id, t)))
       else
         Ok
@@ -483,7 +483,7 @@ and parse_pair_old env ((key, value) : key * G.expr) :
       error_at_key env.id key "Must occur directly under a patterns:"
   | "pattern-where-python" ->
       Error
-        (Rule_error.mk_error ~rule_id:(Some env.id)
+        (Rule_error.mk_error ~rule_id:env.id
            (InvalidRule (DeprecatedFeature (fst key), env.id, t)))
   (* fix suggestions *)
   | "metavariable-regexp" ->
@@ -914,7 +914,7 @@ and parse_pair env ((key, value) : key * G.expr) :
       let pos, _ = R.split_and conjuncts in
       if pos =*= [] && not env.in_metavariable_pattern then
         Error
-          (Rule_error.mk_error ~rule_id:(Some env.id)
+          (Rule_error.mk_error ~rule_id:env.id
              (InvalidRule (MissingPositiveTermInAnd, env.id, t)))
       else Ok (R.And (t, conjuncts) |> R.f)
   | "any" ->

@@ -487,8 +487,7 @@ let merge_base (commit : string) : string =
   | Ok (merge_base, (_, `Exited 0)) -> merge_base
   | _ -> raise (Error "Could not get merge base from git merge-base")
 
-let run_with_worktree (caps : < Cap.chdir ; Cap.tmp >) ~commit ?(branch = None)
-    f =
+let run_with_worktree (caps : < Cap.chdir ; Cap.tmp >) ~commit ?branch f =
   let cwd = getcwd () |> Fpath.to_dir_path in
   let git_root =
     match project_root_for_files_in_dir cwd with
@@ -734,7 +733,7 @@ let time_to_str (timestamp : float) : string =
   Printf.sprintf "%04d-%02d-%02d" year month day
 
 (* TODO: should really return a JSON.t list at least *)
-let logs ?cwd ?(since = None) (_caps_exec : < Cap.exec >) : string list =
+let logs ?cwd ?since (_caps_exec : < Cap.exec >) : string list =
   let cmd : Cmd.t =
     match since with
     | None -> (git, cd cwd @ [ "log"; git_log_json_format ])

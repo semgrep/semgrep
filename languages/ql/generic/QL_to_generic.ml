@@ -90,7 +90,7 @@ and param_of_vardecl = function
   | VardeclInit (ty, id) ->
       let ty = type_ ty in
       let id = ident id in
-      G.Param (G.param_of_id ~ptype:(Some ty) id)
+      G.Param (G.param_of_id ~ptype:ty id)
   | VardeclEllipsis tok -> G.ParamEllipsis tok
 
 and params_any_of_vardecls vardecls =

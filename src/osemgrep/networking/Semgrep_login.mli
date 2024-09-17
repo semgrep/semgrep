@@ -23,12 +23,12 @@ val make_login_url : unit -> login_session
 
 (* need the network to first check whether the token is valid *)
 val save_token_async :
-  ?ident:string option ->
+  ?ident:string ->
   < network : Cap.Network.t ; token : Auth.token > ->
   (Semgrep_output_v1_t.deployment_config, string) result Lwt.t
 
 val save_token :
-  ?ident:string option ->
+  ?ident:string ->
   < network : Cap.Network.t ; token : Auth.token > ->
   (Semgrep_output_v1_t.deployment_config, string) result
 (** [save_token ?ident token] will save the token to the user's settings file.

@@ -814,7 +814,7 @@ and map_constructor_param (env : env)
     | Some x -> map_formal_parameter_part env x
     | None -> (None, fb [])
   in
-  Param (param_of_id ~pattrs ~ptype v4)
+  Param (param_of_id ~pattrs ?ptype v4)
 
 and map_declared_identifier (env : env)
     ((v1, v2, v3, v4) : CST.declared_identifier) :
@@ -836,7 +836,7 @@ and map_declared_identifier (env : env)
 (* Only allow the default expression if it's a normal Param, and if
     there isn't already one.
 *)
-and modify_param ?(attrs = []) ?(default = None) _env param =
+and modify_param ?(attrs = []) ?default _env param =
   match param with
   | Param pc ->
       let pdefault =
@@ -859,7 +859,7 @@ and map_default_formal_parameter (env : env)
         Some v2
     | None -> None
   in
-  modify_param ~default env param
+  modify_param ?default env param
 
 and map_default_named_parameter (env : env) (x : CST.default_named_parameter) =
   match x with
@@ -878,7 +878,7 @@ and map_default_named_parameter (env : env) (x : CST.default_named_parameter) =
             Some v2
         | None -> None
       in
-      modify_param ~attrs ~default env param
+      modify_param ~attrs ?default env param
   | `Opt_requ_formal_param_opt_COLON_exp (v1, v2, v3) ->
       let attrs =
         match v1 with
@@ -897,7 +897,7 @@ and map_default_named_parameter (env : env) (x : CST.default_named_parameter) =
             Some v2
         | None -> None
       in
-      modify_param ~attrs ~default env param
+      modify_param ~attrs ?default env param
 
 and map_element (env : env) (x : CST.element) : expr =
   match x with
@@ -1206,7 +1206,7 @@ and map_function_formal_parameter (env : env)
      have its own parameters??
   *)
   let _tparams, _params = map_formal_parameter_part env v4 in
-  let param = G.param_of_id ~pattrs ~ptype v3 in
+  let param = G.param_of_id ~pattrs ?ptype v3 in
   let v5 =
     match v5 with
     | Some tok ->
@@ -1251,7 +1251,7 @@ and map_function_signature ~attrs (env : env)
         |> G.s
     | _ ->
         DefStmt
-          ( basic_entity ~attrs ~tparams id,
+          ( basic_entity ~attrs ?tparams id,
             FuncDef { fkind; fparams; frettype; fbody } )
         |> G.s
 
@@ -1593,8 +1593,7 @@ and map_on_part (env : env) (x : CST.on_part) : catch =
         match v3 with
         | Some x -> (
             match map_catch_clause env x with
-            | _, Either.Left id ->
-                CatchParam (G.param_of_id ~ptype:(Some v2) id)
+            | _, Either.Left id -> CatchParam (G.param_of_id ~ptype:v2 id)
             (* If we are already set on an exn (the DoubleCatch case)
                then we cannot incorporate the type.
             *)
@@ -1960,7 +1959,7 @@ and map_simple_formal_parameter (env : env) (x : CST.simple_formal_parameter) :
   match x with
   | `Decl_id x ->
       let pattrs, ptype, id = map_declared_identifier env x in
-      Param (param_of_id ~ptype ~pattrs id)
+      Param (param_of_id ?ptype ~pattrs id)
   | `Opt_cova_id (v1, v2) ->
       let v1 =
         match v1 with
@@ -2250,7 +2249,7 @@ and map_super_formal_parameter (env : env)
     | Some x -> map_formal_parameter_part env x
     | None -> (None, fb [])
   in
-  Param (G.param_of_id ~pattrs ~ptype v4)
+  Param (G.param_of_id ~pattrs ?ptype v4)
 
 and map_switch_block (env : env) ((v1, v2, v3) : CST.switch_block) :
     case_and_body list =
@@ -2629,7 +2628,7 @@ let map_setter_signature ~attrs (env : env)
   in
   fun fbody ->
     DefStmt
-      ( basic_entity ~tparams ~attrs v3,
+      ( basic_entity ?tparams ~attrs v3,
         FuncDef { fkind = (Function, v2); fparams; frettype; fbody } )
     |> G.s
 
@@ -2986,7 +2985,7 @@ let map_mixin_application_class ~attrs ~class_tok (env : env)
   let cdef = map_mixin_application ~class_tok env v4 in
   (* TODO: add sc to cdef *)
   let _sc = map_semicolon env v5 in
-  DefStmt (basic_entity id ~attrs ~tparams, cdef) |> G.s
+  DefStmt (basic_entity id ~attrs ?tparams, cdef) |> G.s
 
 (* For use to augment the body of a function with "initializers", which are
    code that runs prior to the body of the constructor, on invocation.
@@ -3628,7 +3627,7 @@ let map_class_definition ~attrs (env : env) (x : CST.class_definition) : stmt =
       in
       let cbody = map_class_body env v7 in
       DefStmt
-        ( basic_entity ~attrs ~tparams v3,
+        ( basic_entity ~attrs ?tparams v3,
           ClassDef
             {
               ckind = (Class, v2);

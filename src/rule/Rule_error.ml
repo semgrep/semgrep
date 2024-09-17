@@ -95,7 +95,7 @@ type t = { rule_id : Rule_ID.t option; file : Fpath.t; kind : error_kind }
    refactor. This will do to start, as I anticipate we probably won't be
    refactoring this module to add more entry points at any time.
 *)
-let mk_error ?(rule_id = None) kind = { rule_id; file = Fpath_.fake_file; kind }
+let mk_error ?rule_id kind = { rule_id; file = Fpath_.fake_file; kind }
 
 (* for intercepting an error before it leaves `Parse_rule`, by augmenting it with
      the file path

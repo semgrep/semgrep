@@ -222,7 +222,7 @@ let builtin_type_of_type lang t =
  * token is needed. This allows the resulting synthetic AST to be used in places
  * that require location information.
  * *)
-let rec to_ast_generic_type_ ?(tok = None) lang
+let rec to_ast_generic_type_ ?tok lang
     (f : 'a -> G.alternate_name list -> G.name) (x : 'a t) : G.type_ option =
   let make_tok str =
     match tok with

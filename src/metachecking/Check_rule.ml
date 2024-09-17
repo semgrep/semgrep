@@ -69,7 +69,7 @@ let error (rule : Rule.t) (t : Tok.t) (s : string) : Core_error.t =
   let loc = Tok.unsafe_loc_of_tok t in
   let _check_idTODO = "semgrep-metacheck-builtin" in
   let rule_id, _ = rule.id in
-  E.mk_error ~rule_id:(Some rule_id) ~msg:s loc OutJ.SemgrepMatchFound
+  E.mk_error ~rule_id ~msg:s loc OutJ.SemgrepMatchFound
 
 (*****************************************************************************)
 (* Checks *)

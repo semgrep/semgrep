@@ -1320,7 +1320,7 @@ and map_parameter (env : env) (x : CST.parameter) : parameter =
         | Some tok -> (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) Some (str env tok)
         | None -> None
       in
-      Param (G.param_of_type ~pattrs ~pname t)
+      Param (G.param_of_type ~pattrs ?pname t)
   | `Ellips tok -> ParamEllipsis ((* "..." *) token env tok)
 
 and map_parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) :
@@ -1779,7 +1779,7 @@ let map_event_paramater (env : env) (x : CST.event_paramater) : parameter =
         | Some tok -> (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) Some (str env tok)
         | None -> None
       in
-      G.Param (G.param_of_type ~pattrs ~pname:idopt ty)
+      G.Param (G.param_of_type ~pattrs ?pname:idopt ty)
   | `Ellips v ->
       let tk = token env v in
       G.ParamEllipsis tk

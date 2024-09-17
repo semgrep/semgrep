@@ -53,7 +53,7 @@ type t = private {
 }
 [@@deriving show]
 
-val mk_error : ?rule_id:Rule_ID.t option -> error_kind -> t
+val mk_error : ?rule_id:Rule_ID.t -> error_kind -> t
 val augment_with_file : Fpath.t -> t -> t
 val is_skippable_error : invalid_rule_kind -> bool
 val string_of_invalid_rule_kind : invalid_rule_kind -> string
