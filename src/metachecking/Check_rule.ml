@@ -336,7 +336,7 @@ let check_files (caps : < Cap.stdout ; Cap.fork ; Cap.alarm >)
   in
   match output_format with
   | NoOutput -> ()
-  | Text _ ->
+  | Text ->
       errors
       |> List.iter (fun err ->
              Logs.err (fun m -> m "%s" (E.string_of_error err)))

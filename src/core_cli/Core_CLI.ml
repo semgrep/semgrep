@@ -150,7 +150,7 @@ let _set_gc_TODO () =
 let dump_v_to_format (v : OCaml.v) =
   match !output_format with
   | NoOutput -> "<NoOutput>"
-  | Text _ -> OCaml.string_of_v v
+  | Text -> OCaml.string_of_v v
   | Json _ -> J.string_of_json (Core_actions.json_of_v v)
 
 let log_parsing_errors file (res : Parsing_result2.t) =
@@ -266,7 +266,7 @@ let output_core_results (caps : < Cap.stdout ; Cap.exit >)
    * print the errors here (and matching explanations).
    * LATER: you should now use osemgrep for this
    *)
-  | Text _ -> (
+  | Text -> (
       match result_or_exn with
       | Ok res ->
           if config.matching_explanations then
@@ -376,7 +376,7 @@ let all_actions (caps : Cap.all_caps) () =
             ~json:
               (match !output_format with
               | Json _ -> true
-              | Text _
+              | Text
               | NoOutput ->
                   false)
             ~verbose:true xs) );
@@ -561,10 +561,6 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
           report_time := true),
       " report detailed matching times as part of the JSON response. Implies \
        '-json'." );
-    ( "-pvar",
-      Arg.String (fun s -> output_format := Text (String_.split ~sep:"," s)),
-      " <metavars> print the metavariables, not the matched code (imply TEXT \
-       format)" );
     ( "-fail_fast",
       Arg.Set Flag.fail_fast,
       " stop at first exception (and get a backtrace)" );
