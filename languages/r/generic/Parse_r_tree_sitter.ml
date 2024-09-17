@@ -470,7 +470,7 @@ and map_formal_parameter (env : env) (x : CST.formal_parameter) : G.parameter =
       let id = map_identifier env v1 in
       let _teq = (* "=" *) token env v2 in
       let e = map_expression env v3 in
-      G.Param (G.param_of_id id ~pdefault:(Some e))
+      G.Param (G.param_of_id id ~pdefault:e)
   | `Dots tok ->
       (* not semgrep-ext: either, part of the original language *)
       let t = (* "..." *) token env tok in

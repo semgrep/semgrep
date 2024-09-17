@@ -174,8 +174,7 @@ and metavar_name_kind = DjangoView
    `focus-metavariable`. *)
 and focus_mv_list = tok * Mvar.t list [@@deriving show, eq, hash]
 
-let mk_formula ?(fix = None) ?(focus = []) ?(conditions = []) ?(as_ = None) kind
-    =
+let mk_formula ?fix ?(focus = []) ?(conditions = []) ?as_ kind =
   { f = kind; focus; conditions; fix; as_ }
 
 let f kind = mk_formula kind
@@ -872,7 +871,7 @@ let split_and (xs : formula list) : formula list * (tok * formula) list =
  * This is used when someone calls `semgrep -e print -l python`
  *)
 
-let rule_of_formula ?(fix = None) (xlang : Xlang.t) (formula : formula) : rule =
+let rule_of_formula ?fix (xlang : Xlang.t) (formula : formula) : rule =
   let fk = Tok.unsafe_fake_tok "" in
   let target_selector, target_analyzer = selector_and_analyzer_of_xlang xlang in
   {
@@ -900,9 +899,8 @@ let rule_of_formula ?(fix = None) (xlang : Xlang.t) (formula : formula) : rule =
     dependency_formula = None;
   }
 
-let rule_of_xpattern ?(fix = None) (xlang : Xlang.t) (xpat : Xpattern.t) : rule
-    =
-  rule_of_formula xlang ~fix (f (P xpat))
+let rule_of_xpattern ?fix (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
+  rule_of_formula xlang ?fix (f (P xpat))
 
 (* TODO(dinosaure): Currently, on the Python side, we remove the metadatas and
    serialise the rule into JSON format, then produce the hash from this

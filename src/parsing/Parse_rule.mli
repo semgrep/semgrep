@@ -12,7 +12,7 @@
    See the command-line option --rewrite-rule-ids.
 *)
 val parse_and_filter_invalid_rules :
-  ?rewrite_rule_ids:(Rule_ID.t -> Rule_ID.t) option ->
+  ?rewrite_rule_ids:(Rule_ID.t -> Rule_ID.t) ->
   Fpath.t ->
   (Rule_error.rules_and_invalid, Rule_error.t) Result.t
 
@@ -40,7 +40,7 @@ val parse : Fpath.t -> (Rule.rules, Rule_error.t) Result.t
  *)
 val parse_generic_ast :
   ?error_recovery:bool ->
-  ?rewrite_rule_ids:(Rule_ID.t -> Rule_ID.t) option ->
+  ?rewrite_rule_ids:(Rule_ID.t -> Rule_ID.t) ->
   Fpath.t ->
   AST_generic.program ->
   (Rule_error.rules_and_invalid, Rule_error.t) Result.t

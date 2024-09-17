@@ -59,7 +59,7 @@ let empty_stmt env t =
 let todo_deprecation_stmt = G.Block (Tok.unsafe_fake_bracket [])
 
 let basic_typed_entity id attrs tparams : G.entity =
-  G.basic_entity id ~attrs ~tparams
+  G.basic_entity id ~attrs ?tparams
 
 let stringify_without_quotes str =
   let s, t = str in
@@ -991,7 +991,7 @@ and catch_clause (env : env) ((v1, v2, v3, v4, v5, v6) : CST.catch_clause) =
   let v4 = (* variable *) Some (str env v4) in
   let _v5 = (* ")" *) token env v5 in
   let v6 = compound_statement env v6 in
-  let exn = G.CatchParam (G.param_of_type v3 ~pname:v4) in
+  let exn = G.CatchParam (G.param_of_type v3 ?pname:v4) in
   (v1, exn, v6)
 
 and class_const_declaration (env : env)

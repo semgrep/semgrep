@@ -471,7 +471,7 @@ and anon_choice_param_b77c1d8 (env : env) (x : CST.anon_choice_param_b77c1d8) =
   match x with
   | `Param x ->
       let v1, v2 = parameter env x in
-      let param = G.param_of_id v1 ~ptype:(Some v2) in
+      let param = G.param_of_id v1 ~ptype:v2 in
       Param param
   | `Type x ->
       let v1 = type_ env x in
@@ -613,7 +613,7 @@ and catch_block (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.catch_block)
   let v6 = type_ env v6 in
   let _v7 = token env v7 (* ")" *) in
   let v8 = block env v8 in
-  let exn = CatchParam (G.param_of_type v6 ~pname:(Some v4)) in
+  let exn = CatchParam (G.param_of_type v6 ~pname:v4) in
   (v1, exn, v8)
 
 and class_body (env : env) ((v1, v2, v3) : CST.class_body) =
@@ -672,7 +672,7 @@ and class_declaration (env : env) (x : CST.class_declaration) :
         | Some x -> class_body env x
         | None -> fb []
       in
-      let ent = G.basic_entity v3 ~attrs:v1 ~tparams:v4 in
+      let ent = G.basic_entity v3 ~attrs:v1 ?tparams:v4 in
       let cdef =
         { ckind; cextends; cimplements = []; cmixins = []; cparams; cbody }
       in
@@ -708,7 +708,7 @@ and class_declaration (env : env) (x : CST.class_declaration) :
         | None -> fb []
       in
       let ent =
-        G.basic_entity v4 ~attrs:(G.attr EnumClass v2 :: v1) ~tparams:v5
+        G.basic_entity v4 ~attrs:(G.attr EnumClass v2 :: v1) ?tparams:v5
       in
       let cdef =
         {
@@ -825,7 +825,7 @@ and class_parameter (env : env) (x : CST.class_parameter) : G.parameter =
             Some v2
         | None -> None
       in
-      Param (G.param_of_id v3 ~pdefault:v6 ~ptype:(Some v5) ~pattrs:(v1 @ v2))
+      Param (G.param_of_id v3 ?pdefault:v6 ~ptype:v5 ~pattrs:(v1 @ v2))
   | `Ellips v1 ->
       (* "..." *)
       let tk = token env v1 in
@@ -991,7 +991,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
         | Some x -> function_body env x
         | None -> G.FBDecl G.sc
       in
-      let entity = basic_entity v5 ~attrs:v1 ~tparams:v3 in
+      let entity = basic_entity v5 ~attrs:v1 ?tparams:v3 in
       let func_def =
         { fkind = (Function, v2); fparams = v6; frettype = v7; fbody = v9 }
       in
@@ -1050,7 +1050,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
       let tparams = Option.map (type_parameters env) v3 in
       let _eq = token env v4 (* "=" *) in
       let t = type_ env v5 in
-      let ent = basic_entity ~attrs ~tparams id in
+      let ent = basic_entity ~attrs ?tparams id in
       let tdef = { tbody = AliasType t } in
       (ent, TypeDef tdef)
 
@@ -1273,7 +1273,7 @@ and function_value_parameter (env : env) (x : CST.function_value_parameter) =
             Some e
         | None -> None
       in
-      let param = G.param_of_id pname ~ptype:(Some ptype) ~pdefault ~pattrs in
+      let param = G.param_of_id pname ~ptype ?pdefault ~pattrs in
       Param param
   | `Ellips tok ->
       (* "..." *)
@@ -1463,7 +1463,7 @@ and var_or_multivar (env : env) (x : CST.lambda_parameter) =
 
 and lambda_parameter (env : env) (x : CST.lambda_parameter) : G.parameter =
   match var_or_multivar env x with
-  | Either.Left (id, ptype) -> G.Param (G.param_of_id id ~ptype)
+  | Either.Left (id, ptype) -> G.Param (G.param_of_id id ?ptype)
   | Either.Right (l, xs, r) ->
       let pat = vars_to_pattern (l, xs, r) in
       G.ParamPattern pat
@@ -1626,7 +1626,7 @@ and parameter_with_optional_type (env : env)
         Some v2
     | None -> None
   in
-  G.param_of_id v2 ~pattrs:v1 ~ptype:v3
+  G.param_of_id v2 ~pattrs:v1 ?ptype:v3
 
 and parenthesized_expression (env : env)
     ((v1, v2, v3) : CST.parenthesized_expression) : G.expr =
@@ -1903,7 +1903,7 @@ and statement (env : env) (x : CST.statement) : stmt =
       let ckind = (Class, fake "class") in
       (* See Constants section above why we use fake_name_for_partial_class_decl. *)
       let fake_ident = (fake_name_for_partial_class_decl, fake "fake_tok") in
-      let ent = basic_entity fake_ident ~tparams in
+      let ent = basic_entity fake_ident ?tparams in
       let cdef =
         { ckind; cextends; cimplements = []; cmixins = []; cparams; cbody }
       in
@@ -2043,7 +2043,7 @@ and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) =
     (* can have multiple variance? I just keep the first one *)
     | x :: _ -> Some x
   in
-  G.tparam_of_id tp_id ~tp_attrs ~tp_bounds ~tp_variance
+  G.tparam_of_id tp_id ~tp_attrs ~tp_bounds ?tp_variance
 
 and type_parameter_modifier (env : env) (x : CST.type_parameter_modifier) =
   match x with

@@ -514,7 +514,7 @@ let basic_entity id mods = { name = id; mods; type_ = None }
 let entity_of_id id = basic_entity id []
 
 (* TODO: reuse Tok.fake_tok ? *)
-let fakeInfo ?(next_to = None) str = Tok.FakeTok (str, next_to)
+let fakeInfo ?next_to str = Tok.FakeTok (str, next_to)
 
 (* used for error reporting usually *)
 let rec tok_of_identifier_ (id : identifier_) : Tok.t =

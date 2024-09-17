@@ -76,7 +76,7 @@ type result = {
 *)
 type func = {
   run :
-    ?file_match_hook:(Fpath.t -> Core_result.matches_single_file -> unit) option ->
+    ?file_match_hook:(Fpath.t -> Core_result.matches_single_file -> unit) ->
     conf ->
     (* TODO alt: pass a bool alongside each target path that indicates whether
        the target is explicit i.e. occurs directly on the command line *)
@@ -333,8 +333,7 @@ let mk_result (all_rules : Rule.rule list) (res : Core_result.t) : result =
 
 (* Core_scan.core_scan_func adapter for osemgrep *)
 let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
-  let run ?(file_match_hook = None) (conf : conf)
-      (targeting_conf : Find_targets.conf)
+  let run ?file_match_hook (conf : conf) (targeting_conf : Find_targets.conf)
       (rules_and_invalid : Rule_error.rules_and_invalid)
       (targets : Fpath.t list) : Core_result.result_or_exn =
     (*

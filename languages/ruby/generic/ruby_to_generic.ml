@@ -193,7 +193,7 @@ let rec expr e =
       *)
       let t = G.N (Id (("true", G.fake "true"), G.empty_id_info ())) |> G.e in
       let f = G.N (Id (("false", G.fake "false"), G.empty_id_info ())) |> G.e in
-      let case = G.case_of_pat_and_expr ~tok:(Some tk) (pattern p, t) in
+      let case = G.case_of_pat_and_expr ~tok:tk (pattern p, t) in
       let uncase =
         G.CasesAndBody ([ Case (tk, PatWildcard tk) ], G.exprstmt f)
       in

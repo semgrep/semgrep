@@ -100,7 +100,7 @@ let print_ograph_mutable g filename display_graph =
   generate_ograph_xxx g filename;
   if display_graph then display_graph_cmd filename
 
-let print_ograph_mutable_generic ?(title = None) ?(display_graph = true)
+let print_ograph_mutable_generic ?title ?(display_graph = true)
     ?(output_file = "/tmp/ograph.dot") ~s_of_node g =
   generate_ograph_generic g title s_of_node output_file;
   if display_graph then display_graph_cmd output_file

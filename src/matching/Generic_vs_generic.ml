@@ -2161,7 +2161,7 @@ and m_generic_type_vs_type_t lang tok a b =
   match (a.G.t, b) with
   | G.TyN (Id ((str, idtok), _)), _ when Mvar.is_metavar_name str -> (
       match
-        Type.to_ast_generic_type_ ~tok:(Lazy.force tok) lang
+        Type.to_ast_generic_type_ ?tok:(Lazy.force tok) lang
           (fun name _alts -> name)
           b
       with

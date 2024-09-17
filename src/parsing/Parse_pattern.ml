@@ -73,7 +73,7 @@ let rec normalize_any (lang : Lang.t) (any : G.any) : G.any =
 let parse_pattern_ref =
   ref (fun _rule_options _lang _str -> failwith "parse_pattern_ref unset")
 
-let parse_pattern ?(rule_options = None) lang str =
+let parse_pattern ?rule_options lang str =
   let any = !parse_pattern_ref rule_options lang str in
   let any = normalize_any lang any in
   Check_pattern.check lang any |> Result.map (fun () -> any)

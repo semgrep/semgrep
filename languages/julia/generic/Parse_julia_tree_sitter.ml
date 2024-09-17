@@ -513,12 +513,12 @@ and map_anon_choice_id_00cc266 (env : env) (x : CST.anon_choice_id_00cc266) =
   | `Id tok -> Left (map_identifier env tok)
   | `Interp_exp x -> map_interpolation_expression_either env x
 
-and map_anon_choice_id_00cc266_ent ?(attrs = []) ?(tparams = None) (env : env)
+and map_anon_choice_id_00cc266_ent ?(attrs = []) ?tparams (env : env)
     (x : CST.anon_choice_id_00cc266) =
   match x with
   | `Id tok ->
       let id = map_identifier env tok in
-      basic_entity ~attrs ~tparams id
+      basic_entity ~attrs ?tparams id
   | `Interp_exp x -> (
       match map_interpolation_expression_either env x with
       | Left id -> { name = EN (H2.name_of_id id); attrs; tparams }
@@ -1133,7 +1133,7 @@ and map_definition (env : env) (x : CST.definition) : stmt =
         | Some (_, x) -> Some (map_type_parameter_list env x)
       in
       let attrs = map_type_clause_opt env v4 in
-      let ent = map_anon_choice_id_00cc266_ent ~attrs ~tparams env v2 in
+      let ent = map_anon_choice_id_00cc266_ent ~attrs ?tparams env v2 in
       let _v5 = (* "end" *) token env v5 in
       DefStmt (ent, TypeDef { tbody = AbstractType v1 }) |> G.s
   | `Prim_defi (v1, v2, v3, v4, v5, v6) ->
@@ -1144,7 +1144,7 @@ and map_definition (env : env) (x : CST.definition) : stmt =
         | Some (_, x) -> Some (map_type_parameter_list env x)
       in
       let attrs = map_type_clause_opt env v4 in
-      let ent = map_anon_choice_id_00cc266_ent ~attrs ~tparams env v2 in
+      let ent = map_anon_choice_id_00cc266_ent ~attrs ?tparams env v2 in
       let i = map_integer_literal env v5 in
       let _v6 = (* "end" *) token env v6 in
       DefStmt (ent, TypeDef { tbody = OtherTypeKind (str env v1, [ G.E i ]) })
@@ -1165,7 +1165,7 @@ and map_definition (env : env) (x : CST.definition) : stmt =
       let _v6 = map_terminator_opt env v6 in
       let v7 = map_source_file env v7 in
       let v8 = (* "end" *) token env v8 in
-      let ent = map_anon_choice_id_00cc266_ent ~attrs ~tparams env v3 in
+      let ent = map_anon_choice_id_00cc266_ent ~attrs ?tparams env v3 in
       DefStmt
         (ent, TypeDef { tbody = AndType (v2, List_.map (fun x -> F x) v7, v8) })
       |> G.s
@@ -1463,15 +1463,15 @@ and map_function_signature ~body ~func_tok (env : env)
     match v1 with
     | `Id tok ->
         let id = map_identifier env tok in
-        basic_entity ~tparams ~attrs id
+        basic_entity ?tparams ~attrs id
     | `Op x ->
         let id = map_operator env x in
-        basic_entity ~tparams ~attrs id
+        basic_entity ?tparams ~attrs id
     | `LPAR_choice_id_RPAR (v1, v2, v3) ->
         let _v1 = (* "(" *) token env v1 in
         let id = map_anon_choice_id_267a5f7 env v2 in
         let _v3 = (* ")" *) token env v3 in
-        basic_entity ~tparams ~attrs id
+        basic_entity ?tparams ~attrs id
     | `Field_exp x ->
         { name = EDynamic (map_field_expression env x); attrs; tparams }
     | `LPAR_typed_param_RPAR (v1, v2, v3) ->
@@ -1502,7 +1502,7 @@ and map_function_signature ~body ~func_tok (env : env)
         }
     | `Interp_exp x -> (
         match map_interpolation_expression_either env x with
-        | Left id -> basic_entity ~attrs ~tparams id
+        | Left id -> basic_entity ~attrs ?tparams id
         | Right exp -> { name = EDynamic exp; attrs; tparams })
   in
   let func_tok =
@@ -2353,8 +2353,7 @@ and map_typed_parameter (env : env) (v1 : CST.typed_parameter) : parameter =
       | Some x -> (
           match x with
           | `Id tok ->
-              Param
-                (param_of_id ~pattrs ~ptype:(Some v3) (map_identifier env tok))
+              Param (param_of_id ~pattrs ~ptype:v3 (map_identifier env tok))
           | `Tuple_exp x ->
               let pat = map_tuple_pat env x in
               OtherParam (("param", fake "param"), [ G.P pat ])

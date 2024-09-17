@@ -111,8 +111,7 @@ let partition_rules_and_invalid (xs : rules_and_origin list) :
   in
   (rules, invalid_rules)
 
-let fetch_content_from_url_async ?(token_opt = None) caps (url : Uri.t) :
-    string Lwt.t =
+let fetch_content_from_url_async ?token_opt caps (url : Uri.t) : string Lwt.t =
   (* TOPORT? _nice_semgrep_url() *)
   Logs.info (fun m -> m "trying to download from %s" (Uri.to_string url));
   let content =
@@ -137,7 +136,7 @@ let fetch_content_from_url_async ?(token_opt = None) caps (url : Uri.t) :
 
 let fetch_content_from_registry_url_async ~token_opt caps url =
   Metrics_.g.is_using_registry <- true;
-  fetch_content_from_url_async ~token_opt caps url
+  fetch_content_from_url_async ?token_opt caps url
 
 let fetch_content_from_registry_url ~token_opt caps url =
   Lwt_platform.run (fetch_content_from_registry_url_async ~token_opt caps url)
@@ -284,11 +283,11 @@ let parse_rule ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
         let value_ = Eval_jsonnet.eval_program core in
         let gen = Manifest_jsonnet_to_AST_generic.manifest_value value_ in
         (* TODO: put to true at some point *)
-        Parse_rule.parse_generic_ast ~rewrite_rule_ids:rule_id_rewriter
+        Parse_rule.parse_generic_ast ?rewrite_rule_ids:rule_id_rewriter
           ~error_recovery:false file gen
     | _ ->
         Parse_rule.parse_and_filter_invalid_rules
-          ~rewrite_rule_ids:rule_id_rewriter file
+          ?rewrite_rule_ids:rule_id_rewriter file
   in
   match rules_and_invalid with
   | Ok (rules, invalid) ->
@@ -387,8 +386,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt caps kind :
          * to do this, but this can be addressed in a follow-up PR.
       *)
       let%lwt rules =
-        load_rules_from_url_async ~origin:(Untrusted_remote url) ~token_opt:None
-          caps url
+        load_rules_from_url_async ~origin:(Untrusted_remote url) caps url
       in
       [ rules ] |> Result_.partition Fun.id |> Lwt.return
   | C.R rkind ->
@@ -413,7 +411,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt caps kind :
       let uri = Semgrep_App.url_for_policy caps' in
       let caps'' = Auth.cap_token_and_network_and_tmp token caps in
       let%lwt rules_and_errors =
-        load_rules_from_url_async ~token_opt ~ext:"policy" ~origin:Registry
+        load_rules_from_url_async ?token_opt ~ext:"policy" ~origin:Registry
           caps'' uri
       in
       Metrics_.g.is_using_app <- true;
@@ -528,7 +526,7 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict:_ caps
                       this should be more robust *)
                    | Error e -> failwith (Rule_error.string_of_error e)
                  in
-                 let rule = Rule.rule_of_xpattern ~fix xlang xpat in
+                 let rule = Rule.rule_of_xpattern ?fix xlang xpat in
                  rules_and_origin_of_rule rule)
         in
         (* In run_scan.py, in the pattern case, we would do this:
