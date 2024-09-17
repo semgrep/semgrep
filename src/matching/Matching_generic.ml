@@ -322,12 +322,12 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
            code and the matching code to be the same, but we also seem
            to be a ways from that. *)
 
-        (* Note that because we want to retain the position information
-         * of the matched code in the environment (e.g. for the -pvar
-         * sgrep command line argument), we can not just use the
-         * generic '=' OCaml operator as 'a' and 'b' may represent
-         * the same code but they will contain leaves in their AST
-         * with different position information.
+        (* Note that because we want to retain the position information of the
+         * matched code in the environment (e.g. for autofix or anything else
+         * that might want the original text), we can not just use the generic
+         * '=' OCaml operator as 'a' and 'b' may represent the same code but
+         * they will contain leaves in their AST with different position
+         * information.
 
          * old: So before doing
          * the comparison we just need to remove/abstract-away

@@ -120,12 +120,10 @@ let print_taint_trace (caps : < Cap.stdout >) taint_trace =
 (* Entry point *)
 (*****************************************************************************)
 
-let print_match (caps : < Cap.stdout >) (match_ : Pattern_match.t)
-    (mvars : Metavariable.mvar list) : unit =
+let print_match (caps : < Cap.stdout >) (match_ : Pattern_match.t) : unit =
   let print = CapConsole.print caps#stdout in
   let Pattern_match.
-        { env; tokens = (lazy tokens_matched_code); taint_trace; dependency; _ }
-      =
+        { tokens = (lazy tokens_matched_code); taint_trace; dependency; _ } =
     match_
   in
   let str = spf "with rule %s" (Rule_ID.to_string match_.rule_id.id) in
@@ -142,27 +140,7 @@ let print_match (caps : < Cap.stdout >) (match_ : Pattern_match.t)
             dmatched.package_version_string )
     | _ -> None
   in
-  (if mvars =*= [] then print_match_toks caps ~str toks
-   else
-     (* similar to the code of Lib_matcher.print_match, maybe could
-      * factorize code a bit.
-      *)
-     let mini, _maxi = Tok_range.min_max_toks_by_pos toks in
-     let file, line = (Tok.file_of_tok mini, Tok.line_of_tok mini) in
-
-     let strings_metavars =
-       mvars
-       |> List_.map (fun x ->
-              match Common2.assoc_opt x env with
-              | Some any ->
-                  any |> Metavariable.ii_of_mval
-                  |> List.filter Tok.is_origintok
-                  |> List_.map Tok.content_of_tok
-                  |> join_with_space_if_needed
-              | None -> failwith (spf "the metavariable '%s' was not bound" x))
-     in
-     print (spf "%s:%d: %s" file line (String.concat ":" strings_metavars));
-     ());
+  print_match_toks caps ~str toks;
   dep_toks_and_version
   |> Option.iter (fun (toks, version) ->
          print ("with dependency match at version " ^ version);

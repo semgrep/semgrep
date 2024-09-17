@@ -1,9 +1,6 @@
 (* LATER: osemgrep: not needed after osemgrep migration done *)
 type output_format =
-  (* The mvars are from semgrep-core -pvars to print info on the
-   * matched variables instead of the matched content.
-   *)
-  | Text of Metavariable.mvar list
+  | Text
   (* In JSON mode, we might need to display intermediate '.' in the
    * output for pysemgrep to track progress as well as extra targets
    * found by extract-mode rules, hence the bool below.
@@ -88,7 +85,7 @@ let default =
     target_source = Targets [];
     equivalences_file = None;
     (* alt: NoOutput but then would need a -text in Core_CLI.ml *)
-    output_format = Text [];
+    output_format = Text;
     report_time = false;
     matching_explanations = false;
     strict = false;
