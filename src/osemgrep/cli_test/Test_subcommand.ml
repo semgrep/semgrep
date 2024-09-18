@@ -182,13 +182,11 @@ let rules_and_targets (kind : Test_CLI.target_kind) (errors : error list ref) :
 (* Fixtest *)
 (*****************************************************************************)
 
+(* TODO? Move to Rule_tests.ml? *)
 let fixtest_of_target_opt (target : Fpath.t) : Fpath.t option =
-  (* TODO? Use Fpath instead? Move to Rule_tests.ml?
-   * TODO? does it handle the foo.fixed.test.yaml for yaml?
-   *)
-  let d, b, e = Filename_.dbe_of_filename !!target in
-  let fixtest = Filename_.filename_of_dbe (d, b, "fixed." ^ e) in
-  if Sys.file_exists fixtest then Some (Fpath.v fixtest) else None
+  let stem, ext = Fpath_.split_ext ~multi:true target in
+  let fixtest = stem |> Fpath.add_ext (".fixed" ^ ext) in
+  if Sys.file_exists !!fixtest then Some fixtest else None
 
 (* TODO use capability and cleanup Test_parsing.ml and remove
  * Common2.unix_diff
