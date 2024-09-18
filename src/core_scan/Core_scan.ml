@@ -182,7 +182,7 @@ let print_cli_progress (config : Core_scan_config.t) : unit =
 let print_incremental_matches_when_text_mode (config : Core_scan_config.t)
     (match_ : Pattern_match.t) : unit =
   match config.output_format with
-  | Text ->
+  | Text -> (
       (* alt: we could pass the stdout caps to Core_scan, but that would
            * require to change lots of callers, and ideally we don't want
            * Core_scan to display things on stdout; this is used here only
@@ -190,7 +190,16 @@ let print_incremental_matches_when_text_mode (config : Core_scan_config.t)
            * the UNSAFE helper.
       *)
       let caps = Cap.stdout_caps_UNSAFE () in
-      Core_text_output.print_match caps match_
+      let match_ =
+        Core_result.{ pm = match_; is_ignored = false; autofix_edit = None }
+      in
+
+      match Core_json_output.match_to_match match_ with
+      | Ok match_ -> Core_text_output.print_match caps match_
+      | Error _ ->
+          (* This is for the semgrep-core text output, which is not user-facing,
+           * so we don't need to worry about handling this gracefully. *)
+          failwith "Error converting match")
   | Json _
   | NoOutput ->
       ()
