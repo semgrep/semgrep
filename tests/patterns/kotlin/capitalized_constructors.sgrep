@@ -1,1 +1,0 @@
-($ANY : org.cyclonedx.parsers.XmlParser).parse(...)
