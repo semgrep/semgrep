@@ -12,9 +12,6 @@ type kind =
 (* ex: "#ruleid: lang.ocaml.do-not-use-lisp-map" *)
 type t = kind * Rule_ID.t [@@deriving show]
 
-(* just to get a show_annots *)
-type annots = t list [@@deriving show]
-
 (* starts at 1 *)
 type linenb = int
 type annotations = (t * linenb) list
