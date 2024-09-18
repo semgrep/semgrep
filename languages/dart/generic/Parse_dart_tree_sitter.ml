@@ -3844,7 +3844,7 @@ let () =
 let parse file =
   H.wrap_parser
     (fun () -> Tree_sitter_dart.Parse.file !!file)
-    (fun cst ->
+    (fun cst _extras ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = Program } in
       let any = map_program env cst in
       match any with
@@ -3863,7 +3863,7 @@ let parse_expression_or_source_file str =
 let parse_pattern str =
   H.wrap_parser
     (fun () -> parse_expression_or_source_file str)
-    (fun cst ->
+    (fun cst _extras ->
       let file = Fpath.v "<pattern>" in
       let env =
         { H.file; conv = H.line_col_to_pos_pattern str; extra = Pattern }

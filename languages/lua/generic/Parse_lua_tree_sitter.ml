@@ -794,7 +794,7 @@ let map_program (env : env) ((v1, v2) : CST.program) : G.program =
 let parse file =
   H.wrap_parser
     (fun () -> Tree_sitter_lua.Parse.file !!file)
-    (fun cst ->
+    (fun cst _extras ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
 
       map_program env cst)
@@ -803,7 +803,7 @@ let parse file =
 let parse_pattern str =
   H.wrap_parser
     (fun () -> Tree_sitter_lua.Parse.string str)
-    (fun cst ->
+    (fun cst _extras ->
       let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       let xs = map_program env cst in

@@ -30,8 +30,11 @@ val debug_sexp_cst_after_error : Sexplib.Sexp.t -> unit
    Call a tree-sitter parser and then map the CST into an AST
    with the user-provided function. Takes care of error handling but lets
    exceptions go through.
+
+   Extras (e.g. comments, heredoc bodies, ...) must be injected into the AST
+   at this stage.
 *)
 val wrap_parser :
-  (unit -> 'cst Tree_sitter_run.Parsing_result.t) ->
-  ('cst -> 'ast) ->
-  'ast Tree_sitter_run.Parsing_result.t
+  (unit -> ('cst, 'extra) Tree_sitter_run.Parsing_result.t) ->
+  ('cst -> 'extra list -> 'ast) ->
+  ('ast, unit) Tree_sitter_run.Parsing_result.t

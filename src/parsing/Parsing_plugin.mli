@@ -4,10 +4,10 @@
 
 type pattern_parser =
   string (* pattern content *) ->
-  AST_generic.any Tree_sitter_run.Parsing_result.t
+  (AST_generic.any, unit) Tree_sitter_run.Parsing_result.t
 
 type target_file_parser =
-  Fpath.t -> AST_generic.program Tree_sitter_run.Parsing_result.t
+  Fpath.t -> (AST_generic.program, unit) Tree_sitter_run.Parsing_result.t
 
 module type T = sig
   (* Register parsing functions for a language (called in semgrep-pro) *)

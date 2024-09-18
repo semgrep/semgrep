@@ -245,7 +245,7 @@ let parse_bash (env : env) shell_cmd : ellipsis_or_bash =
           (fun () ->
             let str = shift_locations shell_cmd in
             Tree_sitter_bash.Parse.string str)
-          (fun cst ->
+          (fun cst _extras ->
             let bash_env : Parse_bash_tree_sitter.env =
               { env with extra = input_kind }
             in
@@ -1177,7 +1177,7 @@ let parse file =
     (fun () ->
       let contents = UFile.read_file file |> ensure_trailing_newline in
       Tree_sitter_dockerfile.Parse.string ~src_file:!!file contents)
-    (fun cst ->
+    (fun cst _extras ->
       let env =
         {
           H.file;
@@ -1192,7 +1192,7 @@ let parse_pattern str =
   H.wrap_parser
     (fun () ->
       str |> ensure_trailing_newline |> Tree_sitter_dockerfile.Parse.string)
-    (fun cst ->
+    (fun cst _extras ->
       let file = Fpath.v "<pattern>" in
       let env =
         {

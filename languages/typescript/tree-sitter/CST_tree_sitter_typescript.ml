@@ -2003,3 +2003,7 @@ type jsx_start_opening_element (* inlined *) = (
   * anon_choice_jsx_attr_name_b052322
   * jsx_attribute_ list (* zero or more *)
 )
+
+type extra = [ `Comment of Loc.t * comment ]
+
+type extras = extra list
