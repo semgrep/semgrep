@@ -29,9 +29,6 @@ type kind =
 (* ex: "#ruleid: lang.ocaml.do-not-use-lisp-map" *)
 type t = kind * Rule_ID.t [@@deriving show]
 
-(* just to get a show_annots *)
-type annots = t list [@@deriving show]
-
 (* starts at 1 *)
 type linenb = int
 type annotations = (t * linenb) list
@@ -109,7 +106,7 @@ let annotation_kind_of_string (str : string) : kind =
  *  - TODO? support pro/deep annotations?
  *)
 let annotations_of_string (orig_str : string) (file : Fpath.t) (idx : linenb) :
-    (t * linenb) list =
+    annotations =
   let s = orig_str in
   let error_context = spf "in %s line %d" !!file idx in
   if s =~ prefilter_annotation_regexp then
@@ -177,7 +174,7 @@ let annotations (file : Fpath.t) : annotations =
 
 let () =
   Testo.test "Test_subcommand.annotations" (fun () ->
-      let test (str : string) (expected : annots) =
+      let test (str : string) (expected : t list) =
         let xs =
           annotations_of_string str (Fpath.v "foo") 0
           |> List_.map (fun (annot, _idx) -> annot)
@@ -185,7 +182,7 @@ let () =
         if not (xs =*= expected) then
           failwith
             (spf "Annotations didn't match, got %s, expected %s"
-               (show_annots xs) (show_annots expected))
+               (Dumper.dump xs) (Dumper.dump expected))
       in
       test "// ruleid: foo.bar" [ (Ruleid, Rule_ID.of_string_exn "foo.bar") ];
       test "// ruleid: foo, bar"
@@ -208,7 +205,7 @@ let () =
 (* Keep only the Ruleid and Todook, group them by rule id, and adjust
  * the linenb + 1 so it can be used to compare actual matches.
  *)
-let group_positive_annotations (annots : (t * linenb) list) :
+let group_positive_annotations (annots : annotations) :
     (Rule_ID.t, linenb list) Assoc.t =
   annots
   |> List_.filter_map (fun ((kind, id), line) ->
@@ -227,8 +224,7 @@ let group_positive_annotations (annots : (t * linenb) list) :
            (* should not be needed given how annotations work but safer *)
            |> List.sort_uniq Int.compare ))
 
-let filter_todook (annots : (t * linenb) list) (xs : linenb list) : linenb list
-    =
+let filter_todook (annots : annotations) (xs : linenb list) : linenb list =
   let (todooks : linenb Set_.t) =
     annots
     |> List_.filter_map (fun ((kind, _id), line) ->
