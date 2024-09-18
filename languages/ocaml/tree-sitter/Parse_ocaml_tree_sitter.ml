@@ -3280,6 +3280,6 @@ let map_compilation_unit (env : env) (x : CST.compilation_unit) =
 let parse file =
   H.wrap_parser
     (fun () -> Tree_sitter_ocaml.Parse.file !!file)
-    (fun cst ->
+    (fun cst _extras ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       map_compilation_unit env cst)

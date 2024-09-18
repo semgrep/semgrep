@@ -1117,7 +1117,7 @@ let map_ql (env : env) (x : CST.ql) : any =
 let parse file =
   H.wrap_parser
     (fun () -> Tree_sitter_ql.Parse.file !!file)
-    (fun cst ->
+    (fun cst _extras ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       match map_ql env cst with
       | Pr xs -> xs
@@ -1126,7 +1126,7 @@ let parse file =
 let parse_string ~file ~contents =
   H.wrap_parser
     (fun () -> Tree_sitter_ql.Parse.string ~src_file:file contents)
-    (fun cst ->
+    (fun cst _extras ->
       let env =
         {
           H.file = Fpath.v file;
@@ -1150,7 +1150,7 @@ let parse_expression_or_source_file str =
 let parse_pattern str =
   H.wrap_parser
     (fun () -> parse_expression_or_source_file str)
-    (fun cst ->
+    (fun cst _extras ->
       let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       map_ql env cst)

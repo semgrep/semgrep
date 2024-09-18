@@ -269,7 +269,7 @@ let map_document (env : env) (x : CST.document) :
 let parse file =
   H.wrap_parser
     (fun () -> Tree_sitter_html.Parse.file !!file)
-    (fun cst ->
+    (fun cst _extras ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       match map_document env cst with
       | Left xs ->
@@ -289,7 +289,7 @@ let parse file =
 let parse_pattern str =
   H.wrap_parser
     (fun () -> Tree_sitter_html.Parse.string str)
-    (fun cst ->
+    (fun cst _extras ->
       let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
 

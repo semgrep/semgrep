@@ -397,7 +397,7 @@ and map_query (env : env) (x : CST.query) =
 let parse file =
   H.wrap_parser
     (fun () -> Tree_sitter_promql.Parse.file !!file)
-    (fun cst ->
+    (fun cst _extras ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       let x = map_query env cst in
       [ x |> G.exprstmt ])
@@ -405,7 +405,7 @@ let parse file =
 let parse_pattern str =
   H.wrap_parser
     (fun () -> Tree_sitter_promql.Parse.string str)
-    (fun cst ->
+    (fun cst _extras ->
       let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       let e = map_query env cst in

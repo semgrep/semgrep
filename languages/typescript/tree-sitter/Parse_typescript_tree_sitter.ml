@@ -3198,7 +3198,10 @@ let guess_dialect opt_dialect file : dialect =
       if file =~ ".*\\.tsx" then (* nosem *)
         `TSX else `Typescript
 
-type cst_result = CST.program Tree_sitter_run.Parsing_result.t
+type cst_result =
+  ( CST_tree_sitter_typescript.program,
+    CST_tree_sitter_typescript.extra )
+  Tree_sitter_run.Parsing_result.t
 
 let parse ?dialect file =
   let debug = false in
@@ -3212,7 +3215,7 @@ let parse ?dialect file =
       | `TSX ->
           let cst = Tree_sitter_tsx.Parse.file !!file in
           (cst :> cst_result))
-    (fun cst ->
+    (fun cst _extras ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
 
       if debug then (
@@ -3228,7 +3231,7 @@ let parse_pattern str =
     (* TODO Should we use Tree_sitter_tsx so that we permit TSX constructs in
      * patterns? Or try both, since TSX is not strictly a superset? *)
       (fun () -> (Tree_sitter_typescript.Parse.string str :> cst_result))
-    (fun cst ->
+    (fun cst _extras ->
       let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       match program env cst with

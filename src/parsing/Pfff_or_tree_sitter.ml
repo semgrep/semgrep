@@ -34,7 +34,7 @@ let debug_exn = ref false
 (* TODO: switch to Fpath.t *)
 type 'ast parser =
   | Pfff of (Fpath.t -> 'ast * Parsing_stat.t)
-  | TreeSitter of (Fpath.t -> 'ast Tree_sitter_run.Parsing_result.t)
+  | TreeSitter of (Fpath.t -> ('ast, unit) Tree_sitter_run.Parsing_result.t)
 
 (*
    This type is parametrized by the AST type because we don't always
@@ -54,7 +54,7 @@ type 'ast internal_result =
 (* TODO: factorize with previous type *)
 type 'ast pattern_parser =
   | PfffPat of (string -> 'ast)
-  | TreeSitterPat of (string -> 'ast Tree_sitter_run.Parsing_result.t)
+  | TreeSitterPat of (string -> ('ast, unit) Tree_sitter_run.Parsing_result.t)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -80,7 +80,8 @@ let stat_of_tree_sitter_stat file (stat : Tree_sitter_run.Parsing_result.stat) =
     ast_stat = None;
   }
 
-let dump_and_print_errors dumper (res : 'a Tree_sitter_run.Parsing_result.t) =
+let dump_and_print_errors dumper
+    (res : ('a, _) Tree_sitter_run.Parsing_result.t) =
   (match res.program with
   | Some cst -> dumper cst
   | None -> failwith "unknown error from tree-sitter parser");
@@ -115,7 +116,7 @@ let get_serious_error (res : _ Tree_sitter_run.Parsing_result.t) =
   List.find_opt (fun err -> is_serious_error err) res.errors
 
 let extract_pattern_from_tree_sitter_result
-    (res : 'a Tree_sitter_run.Parsing_result.t) =
+    (res : ('a, unit) Tree_sitter_run.Parsing_result.t) =
   match res.program with
   | None -> failwith "no pattern found"
   | Some pat ->
@@ -314,7 +315,8 @@ let run_pattern parsers program =
 (* Simplified version of 'run' that allows for plugins to hide the
    intermediate AST type. *)
 let run_external_parser (file : Fpath.t)
-    (parse : Fpath.t -> AST_generic.program Tree_sitter_run.Parsing_result.t) :
+    (parse :
+      Fpath.t -> (AST_generic.program, unit) Tree_sitter_run.Parsing_result.t) :
     Parsing_result2.t =
   run file [ TreeSitter parse ] (fun ast -> ast)
 

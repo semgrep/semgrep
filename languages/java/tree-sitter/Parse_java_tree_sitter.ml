@@ -1940,7 +1940,7 @@ let program (env : env) (file : Fpath.t) (x : CST.program) =
 let parse file =
   H.wrap_parser
     (fun () -> Tree_sitter_java.Parse.file !!file)
-    (fun cst ->
+    (fun cst _extras ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       match program env file cst with
       | AProgram xs -> xs
@@ -1949,7 +1949,7 @@ let parse file =
 let parse_pattern str =
   H.wrap_parser
     (fun () -> Tree_sitter_java.Parse.string str)
-    (fun cst ->
+    (fun cst _extras ->
       let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       program env file cst)

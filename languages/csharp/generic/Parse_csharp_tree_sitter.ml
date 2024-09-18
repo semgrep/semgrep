@@ -3374,7 +3374,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
 let parse file =
   H.wrap_parser
     (fun () -> Tree_sitter_c_sharp.Parse.file !!file)
-    (fun cst ->
+    (fun cst _extras ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       match compilation_unit env cst with
       | G.Pr xs -> xs
@@ -3396,7 +3396,7 @@ let parse_pattern_aux str =
 let parse_pattern str =
   H.wrap_parser
     (fun () -> parse_pattern_aux str)
-    (fun cst ->
+    (fun cst _extras ->
       let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       compilation_unit env cst)
