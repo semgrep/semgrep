@@ -175,36 +175,6 @@ let print_cli_progress (config : Core_scan_config.t) : unit =
   | _ -> ()
 
 (*****************************************************************************)
-(* Semgrep-core incremental matches *)
-(*****************************************************************************)
-
-(* LATER: remove once osegmrep is fully done *)
-let print_incremental_matches_when_text_mode (config : Core_scan_config.t)
-    (match_ : Pattern_match.t) : unit =
-  match config.output_format with
-  | Text -> (
-      (* alt: we could pass the stdout caps to Core_scan, but that would
-           * require to change lots of callers, and ideally we don't want
-           * Core_scan to display things on stdout; this is used here only
-           * as a deprecated way to get matchings output, so let's use
-           * the UNSAFE helper.
-      *)
-      let caps = Cap.stdout_caps_UNSAFE () in
-      let match_ =
-        Core_result.{ pm = match_; is_ignored = false; autofix_edit = None }
-      in
-
-      match Core_json_output.match_to_match match_ with
-      | Ok match_ -> Core_text_output.print_match caps match_
-      | Error _ ->
-          (* This is for the semgrep-core text output, which is not user-facing,
-           * so we don't need to worry about handling this gracefully. *)
-          failwith "Error converting match")
-  | Json _
-  | NoOutput ->
-      ()
-
-(*****************************************************************************)
 (* Timeout *)
 (*****************************************************************************)
 
@@ -770,7 +740,7 @@ let mk_target_handler (caps : < Cap.alarm >) (config : Core_scan_config.t)
       (* TODO: can we skip all of this if there are no applicable
           rules? In particular, can we skip print_cli_progress? *)
       let xtarget = Xtarget.resolve parse_and_resolve_name target in
-      let match_hook pm = print_incremental_matches_when_text_mode config pm in
+      let match_hook _ = () in
       let xconf =
         {
           Match_env.config = Rule_options.default;

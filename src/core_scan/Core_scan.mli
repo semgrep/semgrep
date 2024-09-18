@@ -84,10 +84,6 @@ val print_cli_progress : Core_scan_config.t -> unit
 *)
 val print_cli_additional_targets : Core_scan_config.t -> int -> unit
 
-(* This function print matches incrementally when the output_format is Text *)
-val print_incremental_matches_when_text_mode :
-  Core_scan_config.t -> Pattern_match.t -> unit
-
 type target_handler = Target.t -> Core_result.matches_single_file * bool
 
 val iter_targets_and_get_matches_and_exn_to_errors :
