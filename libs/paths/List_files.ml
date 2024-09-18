@@ -38,6 +38,8 @@ let read_dir_entries path =
       in
       loop [])
 
+let read_dir_entries_fpath path = read_dir_entries path |> List_.map Fpath.v
+
 let rec iter_dir_entries func dir names =
   List.iter (iter_dir_entry func dir) names
 

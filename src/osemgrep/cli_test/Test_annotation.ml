@@ -29,11 +29,12 @@ type kind =
 (* ex: "#ruleid: lang.ocaml.do-not-use-lisp-map" *)
 type t = kind * Rule_ID.t [@@deriving show]
 
-(* just to get a show_annotations *)
-type annotations = t list [@@deriving show]
+(* just to get a show_annots *)
+type annots = t list [@@deriving show]
 
 (* starts at 1 *)
 type linenb = int
+type annotations = (t * linenb) list
 
 let prefilter_annotation_regexp = ".*\\(ruleid\\|ok\\|todoruleid\\|todook\\):.*"
 
@@ -170,13 +171,13 @@ let annotations_of_string (orig_str : string) (file : Fpath.t) (idx : linenb) :
  * alt: use Core_error.expected_error_lines_of_files but it does not
  * allow to extract the ruleID after the annotation_kind
  *)
-let annotations (file : Fpath.t) : (t * linenb) list =
+let annotations (file : Fpath.t) : annotations =
   UFile.cat file |> List_.index_list_1
   |> List.concat_map (fun (s, idx) -> annotations_of_string s file idx)
 
 let () =
   Testo.test "Test_subcommand.annotations" (fun () ->
-      let test (str : string) (expected : annotations) =
+      let test (str : string) (expected : annots) =
         let xs =
           annotations_of_string str (Fpath.v "foo") 0
           |> List_.map (fun (annot, _idx) -> annot)
@@ -184,8 +185,7 @@ let () =
         if not (xs =*= expected) then
           failwith
             (spf "Annotations didn't match, got %s, expected %s"
-               (show_annotations xs)
-               (show_annotations expected))
+               (show_annots xs) (show_annots expected))
       in
       test "// ruleid: foo.bar" [ (Ruleid, Rule_ID.of_string_exn "foo.bar") ];
       test "// ruleid: foo, bar"
