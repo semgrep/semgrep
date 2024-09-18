@@ -223,7 +223,7 @@ let dump_ast ?(naming = false) (caps : < Cap.stdout ; Cap.exit >)
 (*****************************************************************************)
 
 (* also used in semgrep-pro *)
-let output_core_results (caps : < Cap.stdout ; Cap.exit >)
+let output_core_results (caps : < Cap.stdout ; Cap.stderr ; Cap.exit >)
     (result_or_exn : Core_result.result_or_exn) (config : Core_scan_config.t) :
     unit =
   (* TODO: delete this comment and -stat_matches
@@ -269,6 +269,19 @@ let output_core_results (caps : < Cap.stdout ; Cap.exit >)
   | Text -> (
       match result_or_exn with
       | Ok res ->
+          let matches =
+            res.processed_matches
+            |> List_.filter_map (fun processed_match ->
+                   match Core_json_output.match_to_match processed_match with
+                   | Error (e : Core_error.t) ->
+                       CapConsole.eprint caps#stderr
+                         (Core_error.string_of_error e);
+                       None
+                   | Ok (match_ : Out.core_match) -> Some match_)
+          in
+          let matches = Core_json_output.dedup_and_sort matches in
+          matches
+          |> List.iter (Core_text_output.print_match (caps :> < Cap.stdout >));
           if config.matching_explanations then
             res.explanations
             |> Option.iter (List.iter Matching_explanation.print);
@@ -816,7 +829,9 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
           (* if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc (); *)
           let run config =
             let res = Core_scan.scan (caps :> Core_scan.caps) config in
-            output_core_results (caps :> < Cap.stdout ; Cap.exit >) res config
+            output_core_results
+              (caps :> < Cap.stdout ; Cap.stderr ; Cap.exit >)
+              res config
           in
           (* Set up tracing and run it for the duration of scanning. Note that
              this will only trace `Core_command.run_conf` and the functions it

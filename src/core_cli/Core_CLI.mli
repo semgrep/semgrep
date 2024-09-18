@@ -13,7 +13,7 @@ val env_extra : string
 val mk_config : unit -> Core_scan_config.t
 
 val output_core_results :
-  < Cap.stdout ; Cap.exit > ->
+  < Cap.stdout ; Cap.stderr ; Cap.exit > ->
   Core_result.result_or_exn ->
   Core_scan_config.t ->
   unit
