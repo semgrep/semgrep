@@ -383,6 +383,15 @@ let rec get_resolved_type lang (vinit, vtype) =
       | Some { e = L (Unit tok); _ } -> make_type "unit" tok
       | Some { e = L (Null tok); _ } -> make_type "null" tok
       | Some { e = L (Imag (_, tok)); _ } -> make_type "imag" tok
+      (* kotlin: heuristic that Foo() is generally of type `Foo`, due to Kotlin
+         naming conventions
+      *)
+      | Some { e = Call ({ e = N (Id ((s, _), { id_resolved; _ })); _ }, _); _ }
+        when String_.is_capitalized s && lang =*= Language.Kotlin ->
+          (* We spawn a new id info, to avoid recursive infinite traversals *)
+          let base_id_info = empty_id_info () in
+          let new_id = (s, Tok.unsafe_fake_tok s) in
+          Some (TyN (Id (new_id, { base_id_info with id_resolved })) |> t)
       (* alt: lookup id in env to get its type, which would be cleaner *)
       | Some { e = N (Id (_, { id_type; _ })); _ } -> !id_type
       | Some { e = New (_, tp, _, (_, _, _)); _ } -> Some tp

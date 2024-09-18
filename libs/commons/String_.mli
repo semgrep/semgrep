@@ -41,3 +41,4 @@ val trim_cr : string -> string
  * included in the given range. Strips trailing newline characters from each
  * line. See unit tests for examples. *)
 val lines_of_range : int * int -> string -> string list
+val is_capitalized : string -> bool
