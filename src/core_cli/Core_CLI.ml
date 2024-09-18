@@ -723,7 +723,7 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
    * > ignoring SIGXFSZ, continued attempts to increase the size of a file
    * > beyond the limit will fail with errno set to EFBIG.
    *)
-  if Sys.unix then Sys.set_signal Sys.sigxfsz Sys.Signal_ignore;
+  if Sys.unix then CapSys.set_signal caps#signal Sys.sigxfsz Sys.Signal_ignore;
 
   let usage_msg =
     spf "Usage: %s [options] -rules <file> -targets <file>\nOptions:"

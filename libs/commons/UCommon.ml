@@ -76,20 +76,38 @@ let before_exit = ref []
 let main_boilerplate f =
   if not !Sys.interactive then
     exn_to_real_unixexit (fun () ->
-        USys.set_signal Sys.sigint
-          (Sys.Signal_handle
-             (fun _ ->
-               pr2 "C-c intercepted, will do some cleaning before exiting";
-               (* But if do some try ... with e -> and if do not reraise the exn,
-                * the bubble never goes at top and so I cant really C-c.
-                *
-                * A solution would be to not raise, but do the erase_temp_file in the
-                * syshandler, here, and then exit.
-                * The current solution is to not do some wild  try ... with e
-                * by having in the exn handler a case: UnixExit x -> raise ... | e ->
-                *)
-               USys.set_signal Sys.sigint Sys.Signal_default;
-               raise (UnixExit (-1))));
+        let default_handler signal =
+          Sys.Signal_handle
+            (fun _ ->
+              (* Feel free to match on signal here :D *)
+              pr2 "C-c intercepted, will do some cleaning before exiting";
+              (* But if do some try ... with e -> and if do not reraise the exn,
+               * the bubble never goes at top and so I cant really C-c.
+               *
+               * A solution would be to not raise, but do the erase_temp_file in the
+               * syshandler, here, and then exit.
+               * The current solution is to not do some wild  try ... with e
+               * by having in the exn handler a case: UnixExit x -> raise ... | e ->
+               *)
+              USys.set_signal signal Sys.Signal_default;
+              (* TODO: Raise UnixExit with the actual signal code, not ocaml's,
+                 since theirs is random *)
+              raise (UnixExit signal))
+        in
+
+        (* ref: https://faculty.cs.niu.edu/~hutchins/csci480/signals.htm *)
+        (* all signals that want TERM i.e. graceful shutdown *)
+        let default_signals = [ Sys.sigint ] in
+        let unix_signals = [ Sys.sighup; Sys.sigpipe; Sys.sigterm ] in
+        let signals =
+          (* Sigint works on windows, rest don't. Not sure why :/*)
+          if USys.os_type <> "Win32" then
+            List.append default_signals unix_signals
+          else default_signals
+        in
+        List.iter
+          (fun (s : int) -> USys.set_signal s (default_handler s))
+          signals;
 
         (* The finalize() below makes it tedious to go back from exns when we use
          * 'back' in ocamldebug. Hence the special code in finalize() to

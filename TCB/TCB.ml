@@ -653,6 +653,15 @@ module Sys = struct
     | Signal_handle of (int -> unit)
 
   (* LATER? create different capabilities for each signal? *)
+  (* ref: https://faculty.cs.niu.edu/~hutchins/csci480/signals.htm *)
+  let sighup = Sys.sighup
+  let sigquit = Sys.sigquit
+
+  (* Usually paging errors...  *)
+  let sigbus = Sys.sigbus
+  let sigpipe = Sys.sigpipe
+  let sigterm = Sys.sigterm
+  let sigsys = Sys.sigsys
   let sigalrm = Sys.sigalrm
   let sigxfsz = Sys.sigxfsz
   let sigint = Sys.sigint
