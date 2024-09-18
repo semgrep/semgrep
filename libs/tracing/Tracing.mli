@@ -45,6 +45,14 @@ val show_level : level -> string
 (* Functions to instrument the code *)
 (*****************************************************************************)
 
+val add_data_to_span : span -> (string * Trace_core.user_data) list -> unit
+(** Expose the Trace function to add data to a span *)
+
+val add_data : (string * Trace_core.user_data) list -> config option -> unit
+(** Convenience version of add_data_to_span for Semgrep *)
+
+(* with span funcs *)
+
 val with_span :
   ?level:level ->
   ?__FUNCTION__:string ->
@@ -55,13 +63,7 @@ val with_span :
   (span -> 'a) ->
   'a
 (** Expose the function to instrument code to send traces.
-    TODO: after we have a ppx, prefer using the ppx *)
-
-val add_data_to_span : span -> (string * Trace_core.user_data) list -> unit
-(** Expose the Trace function to add data to a span *)
-
-val add_data : (string * Trace_core.user_data) list -> config option -> unit
-(** Convenience version of add_data_to_span for Semgrep *)
+    prefer using the ppx *)
 
 val trace_data_only :
   ?level:level ->
