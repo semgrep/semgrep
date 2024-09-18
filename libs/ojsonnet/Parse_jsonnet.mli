@@ -3,7 +3,7 @@
  * on startup.
  *)
 val jsonnet_parser_ref :
-  (Fpath.t -> AST_jsonnet.expr Tree_sitter_run.Parsing_result.t) ref
+  (Fpath.t -> (AST_jsonnet.expr, unit) Tree_sitter_run.Parsing_result.t) ref
 
 (* This should really be in ../parsing/ but that would lead to circular
  * dependencies because we would use Parse_jsonnet_tree_sitter.ml which

@@ -2468,7 +2468,7 @@ let map_program (env : env) ((v1, v2) : CST.program) : A.program =
 let parse file =
   H.wrap_parser
     (fun () -> Tree_sitter_php.Parse.file !!file)
-    (fun cst ->
+    (fun cst _extras ->
       let extra = () in
       let env = { H.file; conv = H.line_col_to_pos file; extra } in
       map_program env cst)

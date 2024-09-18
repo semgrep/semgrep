@@ -4976,7 +4976,7 @@ and map_variadic_parameter_declaration (env : env)
 let parse file =
   H.wrap_parser
     (fun () -> Tree_sitter_cpp.Parse.file !!file)
-    (fun cst ->
+    (fun cst _extras ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       match map_program_or_expr env cst with
       | Left prog -> prog
@@ -4993,7 +4993,7 @@ let parse_expression_or_source_file str =
 let parse_pattern str =
   H.wrap_parser
     (fun () -> parse_expression_or_source_file str)
-    (fun cst ->
+    (fun cst _extras ->
       let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       let x = map_program_or_expr env cst in

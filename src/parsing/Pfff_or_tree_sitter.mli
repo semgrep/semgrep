@@ -1,11 +1,11 @@
 type 'ast parser =
   | Pfff of (Fpath.t -> 'ast * Parsing_stat.t)
-  | TreeSitter of (Fpath.t -> 'ast Tree_sitter_run.Parsing_result.t)
+  | TreeSitter of (Fpath.t -> ('ast, unit) Tree_sitter_run.Parsing_result.t)
 
 (* TODO: factorize with previous type *)
 type 'ast pattern_parser =
   | PfffPat of (string -> 'ast)
-  | TreeSitterPat of (string -> 'ast Tree_sitter_run.Parsing_result.t)
+  | TreeSitterPat of (string -> ('ast, unit) Tree_sitter_run.Parsing_result.t)
 
 (* usage:
     run file [
@@ -45,13 +45,13 @@ val throw_tokens :
 
 val run_external_parser :
   Fpath.t ->
-  (Fpath.t -> AST_generic.program Tree_sitter_run.Parsing_result.t) ->
+  (Fpath.t -> (AST_generic.program, unit) Tree_sitter_run.Parsing_result.t) ->
   Parsing_result2.t
 
 (* helpers used both in Parse_pattern.ml and Parse_pattern2.ml *)
 
 val extract_pattern_from_tree_sitter_result :
-  'any Tree_sitter_run.Parsing_result.t -> 'any
+  ('any, unit) Tree_sitter_run.Parsing_result.t -> 'any
 
 val dump_and_print_errors :
-  ('a -> unit) -> 'a Tree_sitter_run.Parsing_result.t -> unit
+  ('a -> unit) -> ('a, 'extra) Tree_sitter_run.Parsing_result.t -> unit

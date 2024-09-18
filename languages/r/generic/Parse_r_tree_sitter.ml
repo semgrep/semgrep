@@ -593,14 +593,14 @@ and map_unary (env : env) (x : CST.unary) : G.expr =
 let parse file =
   H.wrap_parser
     (fun () -> Tree_sitter_r.Parse.file !!file)
-    (fun cst ->
+    (fun cst _extras ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       map_program env cst)
 
 let parse_pattern str =
   H.wrap_parser
     (fun () -> Tree_sitter_r.Parse.string str)
-    (fun cst ->
+    (fun cst _extras ->
       let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       G.Ss (map_program env cst))

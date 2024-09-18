@@ -1656,14 +1656,14 @@ and map_suite (env : env) (x : CST.suite) : stmt list =
 let parse file =
   H.wrap_parser
     (fun () -> Tree_sitter_python.Parse.file !!file)
-    (fun cst ->
+    (fun cst _extras ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       map_module_ env cst)
 
 let parse_string ~file ~contents =
   H.wrap_parser
     (fun () -> Tree_sitter_python.Parse.string ~src_file:file contents)
-    (fun cst ->
+    (fun cst _extras ->
       let env =
         {
           H.file = Fpath.v file;
@@ -1677,7 +1677,7 @@ let parse_string ~file ~contents =
 let parse_pattern str =
   H.wrap_parser
     (fun () -> Tree_sitter_python.Parse.string str)
-    (fun cst ->
+    (fun cst _extras ->
       let file = Fpath.v "<pattern>" in
       let env = { H.file; conv = H.line_col_to_pos_pattern str; extra = () } in
       Program (map_module_ env cst))

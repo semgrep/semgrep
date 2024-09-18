@@ -18,6 +18,7 @@ type dialect = [ `Typescript | `TSX ]
 val parse :
   ?dialect:dialect ->
   Fpath.t ->
-  Ast_js.a_program Tree_sitter_run.Parsing_result.t
+  (Ast_js.a_program, unit) Tree_sitter_run.Parsing_result.t
 
-val parse_pattern : string -> Ast_js.any Tree_sitter_run.Parsing_result.t
+val parse_pattern :
+  string -> (Ast_js.any, unit) Tree_sitter_run.Parsing_result.t

@@ -956,7 +956,7 @@ let map_source_file (env : env) (x : CST.source_file) : G.any =
 let parse file =
   H.wrap_parser
     (fun () -> Tree_sitter_cairo.Parse.file !!file)
-    (fun cst ->
+    (fun cst _extras ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = Target } in
       match map_source_file env cst with
       | G.Pr xs -> xs
@@ -978,7 +978,7 @@ let parse_expression_or_source_file str =
 let parse_pattern str =
   H.wrap_parser
     (fun () -> parse_expression_or_source_file str)
-    (fun cst ->
+    (fun cst _extras ->
       let file = Fpath.v "<pattern>" in
       let env =
         { H.file; conv = H.line_col_to_pos_pattern str; extra = Pattern }

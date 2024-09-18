@@ -2,4 +2,4 @@
 val parse :
   (Fpath.t -> AST_generic.program) ->
   Fpath.t ->
-  AST_generic.program Tree_sitter_run.Parsing_result.t
+  (AST_generic.program, unit) Tree_sitter_run.Parsing_result.t

@@ -55,7 +55,7 @@ let error_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
 (*****************************************************************************)
 
 let jsonnet_parser_ref :
-    (Fpath.t -> AST_jsonnet.expr Tree_sitter_run.Parsing_result.t) ref =
+    (Fpath.t -> (AST_jsonnet.expr, unit) Tree_sitter_run.Parsing_result.t) ref =
   ref (fun _file -> failwith "internal error: jsonnet parser not initialized")
 
 let parse_program (file : Fpath.t) : AST_jsonnet.program =

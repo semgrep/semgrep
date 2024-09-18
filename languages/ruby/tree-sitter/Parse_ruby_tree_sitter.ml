@@ -2427,7 +2427,7 @@ let parse file =
   let debug = false in
   H.wrap_parser
     (fun () -> Tree_sitter_ruby.Parse.file !!file)
-    (fun cst ->
+    (fun cst _extras ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = Program } in
       if debug then Boilerplate.dump_tree cst;
       program env cst)
@@ -2436,7 +2436,7 @@ let parse_pattern string =
   let debug = false in
   H.wrap_parser
     (fun () -> Tree_sitter_ruby.Parse.string string)
-    (fun cst ->
+    (fun cst _extras ->
       let file = Fpath.v "<file>" in
       let env =
         { H.file; conv = H.line_col_to_pos_pattern string; extra = Pattern }

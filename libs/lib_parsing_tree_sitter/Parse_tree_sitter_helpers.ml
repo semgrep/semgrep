@@ -112,7 +112,9 @@ let debug_sexp_cst_after_error sexp_cst =
       m "%s\nOriginal backtrace:\n %s" (Sexplib.Sexp.to_string_hum sexp_cst) s)
 
 let wrap_parser tree_sitter_parser ast_mapper =
-  let res : 'a Tree_sitter_run.Parsing_result.t = tree_sitter_parser () in
+  let res : ('program, 'extra) Tree_sitter_run.Parsing_result.t =
+    tree_sitter_parser ()
+  in
   let program =
     match res.program with
     | Some cst ->
@@ -125,10 +127,10 @@ let wrap_parser tree_sitter_parser ast_mapper =
            let error_str = String.concat "\n" error_strs in
            Log.warn (fun m ->
                m "Partial errors returned by Tree-sitter parser\n%s" error_str));
-        Some (ast_mapper cst)
+        Some (ast_mapper cst res.extras)
     | None -> None
   in
-  { res with program }
+  { res with program; extras = [] }
 
 (* Stuff to put in entry point at the beginning:
    let todo _env _x = failwith "not implemented"

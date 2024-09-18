@@ -1478,7 +1478,7 @@ and right_hand_side (env : env) (x : CST.anon_choice_lit_bbf16c7) : expression =
 let parse file =
   H.wrap_parser
     (fun () -> Tree_sitter_bash.Parse.file !!file)
-    (fun cst ->
+    (fun cst _extras ->
       let env =
         { H.file; conv = H.line_col_to_pos file; extra = AST_bash.Program }
       in
@@ -1488,7 +1488,7 @@ let parse file =
 let parse_pattern str =
   H.wrap_parser
     (fun () -> Tree_sitter_bash.Parse.string str)
-    (fun cst ->
+    (fun cst _extras ->
       let file = Fpath.v "<pattern>" in
       let env =
         {
