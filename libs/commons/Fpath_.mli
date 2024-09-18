@@ -80,6 +80,9 @@ val current_dir : Fpath.t
 (* exts (Fpath.v "foo.tar.gz") = ["tar";"gz"] *)
 val exts : Fpath.t -> string list
 
+(* split_ext ~multi:true (Fpath.v "a/foo.tar.gz") = Fpath.v "a/foo", ".tar.gz" *)
+val split_ext : ?multi:bool -> Fpath.t -> Fpath.t * string
+
 (* DO NOT USE THIS *)
 val fake_file : Fpath.t
 val is_fake_file : Fpath.t -> bool

@@ -68,6 +68,14 @@ let exts (p : Fpath.t) : string list =
   let ext = Fpath.get_ext ~multi:true p in
   String.split_on_char '.' ext |> List_.exclude (fun s -> s = "")
 
+let split_ext ?multi (p : Fpath.t) : Fpath.t * string =
+  (Fpath.rem_ext ?multi p, Fpath.get_ext ?multi p)
+
 let () =
   Testo.test "Fpath_.exts" (fun () ->
-      assert (exts (Fpath.v "foo.tar.gz") =*= [ "tar"; "gz" ]))
+      assert (exts (Fpath.v "foo.tar.gz") =*= [ "tar"; "gz" ]));
+  Testo.test "Fpath_.split_ext" (fun () ->
+      assert (
+        split_ext ~multi:true (Fpath.v "a/foo.tar.gz")
+        =*= (Fpath.v "a/foo", ".tar.gz")));
+  ()
