@@ -796,7 +796,7 @@ let mark_todo_js (test : Testo.t) =
  * alt: do like in semgrep-pro and call the toplevel engine
  * in a Unit_runner.ml instead of using Test_engine.make_tests
  *)
-let full_rule_semgrep_rules_regression_tests () =
+let semgrep_rules_repo_tests () : Testo.t list =
   let path = tests_path / "semgrep-rules" in
   let tests = Test_engine.make_tests [ path ] in
   let groups =
@@ -834,6 +834,8 @@ let full_rule_semgrep_rules_regression_tests () =
                     || s =~ ".*/generic/ci/audit/changed-semgrepignore.*"
                     (* TODO: parse error, weird *)
                     || s =~ ".*/unicode/security/bidi.yml"
+                    (* Elixir requires Pro *)
+                    || s =~ ".*/elixir/lang/.*"
                     (* Apex requires Pro *)
                     || s =~ ".*/apex/lang/.*"
                        (* but the following are generic rules ... *)
@@ -849,8 +851,6 @@ let full_rule_semgrep_rules_regression_tests () =
                           <> "tests/semgrep-rules/apex/lang/performance/ncino/operationsInLoops/AvoidOperationsWithLimitsInLoops.yaml"
                        && s
                           <> "tests/semgrep-rules/apex/lang/security/ncino/dml/ApexCSRFStaticConstructor.yaml"
-                    (* Elixir requires Pro *)
-                    || s =~ ".*/elixir/lang/.*"
                     (* ?? *)
                     || s =~ ".*/yaml/semgrep/consistency/.*" ->
                  Some "XFAIL"
@@ -876,7 +876,7 @@ let full_rule_semgrep_rules_regression_tests () =
     |> Assoc.group_assoc_bykey_eff
   in
 
-  Testo.categorize_suites "full semgrep rule"
+  Testo.categorize_suites "semgrep-rules repo"
     (groups
     |> List_.map (fun (group, tests) ->
            tests
@@ -909,5 +909,5 @@ let tests () =
       maturity_tests ();
       full_rule_taint_maturity_tests ();
       full_rule_regression_tests ();
-      full_rule_semgrep_rules_regression_tests ();
+      semgrep_rules_repo_tests ();
     ]
