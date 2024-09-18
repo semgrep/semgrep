@@ -7,6 +7,9 @@ module LabelSet : Set.S with type elt = string
 (* Taint *)
 (*****************************************************************************)
 
+(* TODO: Use mutual-rec modules as in 'Shape_and_sig' so we can use 'Taint_set.t`
+ *   everywhere it is needed, instead of `taint list`s. *)
+
 type tainted_token = AST_generic.tok [@@deriving show]
 
 type tainted_tokens = tainted_token list [@@deriving show]
