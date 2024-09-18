@@ -47,3 +47,6 @@ val iter : (Fpath.t -> Unix.stats -> unit) -> Fpath.t -> unit
 
 (* Read the names found in a directory, excluding "." and "..". *)
 val read_dir_entries : Fpath.t -> string list
+
+(* same than read_dir_entries but return single segment Fpath.t *)
+val read_dir_entries_fpath : Fpath.t -> Fpath.t list
