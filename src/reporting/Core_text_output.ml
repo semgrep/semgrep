@@ -121,28 +121,12 @@ let print_taint_trace (caps : < Cap.stdout >) taint_trace =
 (*****************************************************************************)
 
 let print_match (caps : < Cap.stdout >) (match_ : Pattern_match.t) : unit =
-  let print = CapConsole.print caps#stdout in
-  let Pattern_match.
-        { tokens = (lazy tokens_matched_code); taint_trace; dependency; _ } =
+  let Pattern_match.{ tokens = (lazy tokens_matched_code); taint_trace; _ } =
     match_
   in
   let str = spf "with rule %s" (Rule_ID.to_string match_.rule_id.id) in
   (* there are a few fake tokens in the generic ASTs now (e.g.,
    * for DotAccess generated outside the grammar) *)
   let toks = tokens_matched_code |> List.filter Tok.is_origintok in
-  let dep_toks_and_version =
-    (* Only print the extra data if it was a reachable finding *)
-    (* TODO: special printing for lockfile-only findings *)
-    match dependency with
-    | Some (CodeAndLockfileMatch (dmatched, _)) ->
-        Some
-          ( dmatched.toks |> List.filter Tok.is_origintok,
-            dmatched.package_version_string )
-    | _ -> None
-  in
   print_match_toks caps ~str toks;
-  dep_toks_and_version
-  |> Option.iter (fun (toks, version) ->
-         print ("with dependency match at version " ^ version);
-         print_match_toks caps toks);
   taint_trace |> Option.iter (print_taint_trace caps)
