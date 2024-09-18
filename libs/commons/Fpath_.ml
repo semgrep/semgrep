@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Eq.Operators
 
 (*****************************************************************************)
 (* Prelude *)
@@ -61,3 +62,12 @@ let of_yojson = function
       Error
         (Printf.sprintf "Expected `String, received %s"
            (Yojson.Safe.pretty_to_string other))
+
+let exts (p : Fpath.t) : string list =
+  (* ex: ".tar.gz" *)
+  let ext = Fpath.get_ext ~multi:true p in
+  String.split_on_char '.' ext |> List_.exclude (fun s -> s = "")
+
+let () =
+  Testo.test "Fpath_.exts" (fun () ->
+      assert (exts (Fpath.v "foo.tar.gz") =*= [ "tar"; "gz" ]))

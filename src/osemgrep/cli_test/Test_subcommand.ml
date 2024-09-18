@@ -21,9 +21,9 @@ module Out = Semgrep_output_v1_j
 (*****************************************************************************)
 (* Parse a semgrep-test command, execute it and return an exit code.
  *
- * There are multiple ways to call `semgrep test` but its main use is to
- * take a directory as an argument as in `semgrep test semgrep-rules/ocaml`
- * and run all the tests in the directory recursively.
+ * There are multiple ways to call `semgrep test` but the main one is to call
+ * it with a directory as an argument as in `semgrep test semgrep-rules/ocaml`
+ * which will run all the tests in the directory recursively.
  * For each directory containing YAML rules, it run those rules on the file in
  * the same directory with the same name but a different extension
  * (e.g., eqeq.yaml runs on eqeq.py). It then validates that the output is
@@ -53,10 +53,11 @@ module Out = Semgrep_output_v1_j
 (* no need for Cap.network; the tested rules should be local *)
 type caps = < Cap.stdout ; Cap.fork ; Cap.alarm >
 
-(* rules and targets to test together
- * TODO: extend to target list for .js/.ts and for interfile tests later
+(* Rules and targets to test together.
+ * Usually the target list contains just one file, but in some cases
+ * one rule can be tested on multiple files such as a with a .js and a .ts
  *)
-type tests = (Fpath.t (* rule file *) * Fpath.t (* target *)) list
+type tests = (Fpath.t (* rule file *) * Fpath.t list (* targets *)) list
 
 type tests_result =
   (Fpath.t (* rule file *) * test_result list * fixtest_result list) list
@@ -106,6 +107,20 @@ let break_line =
 (* File targeting (the set of tests) *)
 (*****************************************************************************)
 
+(* TODO? Move to Rule_tests.ml? *)
+let find_targets_for_rule (rule_file : Fpath.t) : Fpath.t list =
+  let dir, base = Fpath.split_base rule_file in
+  (* ex: "useless-if" (without the ".yaml") *)
+  let base_no_ext = Fpath.rem_ext base in
+  dir |> List_files.read_dir_entries_fpath
+  |> List_.exclude (fun p ->
+         Fpath.equal p base || List.mem "fixed" (Fpath_.exts p))
+  |> List_.filter_map (fun p ->
+         (* the ~multi:true should then handle the foo.test.yaml *)
+         if Fpath.equal (Fpath.rem_ext ~multi:true p) base_no_ext then
+           Some (dir // p)
+         else None)
+
 let rules_and_targets (kind : Test_CLI.target_kind) (errors : error list ref) :
     tests =
   match kind with
@@ -117,18 +132,21 @@ let rules_and_targets (kind : Test_CLI.target_kind) (errors : error list ref) :
       in
       rule_files
       |> List_.filter_map (fun (rule_file : Fpath.t) ->
-             (* TODO: just get all targets with same basename *)
-             match Test_engine.find_target_of_yaml_file_opt rule_file with
-             | None ->
+             match find_targets_for_rule rule_file with
+             | [] ->
                  (* stricter: (but reported via config_missing_tests in JSON)*)
                  Logs.warn (fun m ->
                      m "could not find target for %s" !!rule_file);
                  Stack_.push (MissingTest rule_file) errors;
                  None
-             | Some target -> Some (rule_file, target))
+             | xs ->
+                 Logs.debug (fun m ->
+                     m "found targets for %s: %s" !!rule_file
+                       (xs |> List_.map Fpath.to_string |> String.concat ", "));
+                 Some (rule_file, xs))
   | Test_CLI.File (target, config_str) -> (
       match Rules_config.parse_config_string ~in_docker:false config_str with
-      | File rule_file -> [ (rule_file, target) ]
+      | File rule_file -> [ (rule_file, [ target ]) ]
       | Dir _
       | URL _
       | R _
@@ -354,6 +372,7 @@ let report_tests_result (caps : < Cap.stdout >) ~matching_diagnosis ~json
  *  - 4: core_scan/Core_scan.scan(), many rules vs many targets in //, and
  *       also handle nosemgrep, and errors, and cache, and many other things,
  *       but require complex arguments (a Core_scan_config)
+ *       update: Core_scan_config.t is now simpler and smaller
  *  - 5: core_scan/Pre_post_core_scan.call_with_pre_and_post_processor()
  *       to handle autofix and secrets validations
  *  - 6: osemgrep/core_runner/Core_runner.mk_scan_func_for_osemgrep()
@@ -396,7 +415,8 @@ let run_rules_against_targets ~matching_diagnosis caps (rules : Rule.t list)
       filter_irrelevant_rules = true;
       (* in a test context, we don't want to honor the paths: (include/exclude)
        * directive since the test target file, which must have the same
-       * basename than the rule, may not match the paths: of the rule
+       * basename without the extension than the rule, may not match the
+       * paths: directive of the rule
        *)
       respect_rule_paths = false;
     }
@@ -407,80 +427,122 @@ let run_rules_against_targets ~matching_diagnosis caps (rules : Rule.t list)
 (* Comparing *)
 (*****************************************************************************)
 
-let compare_actual_to_expected (env : env) (target : Fpath.t)
-    (rules : Rule.t list) (matches : Pattern_match.t list)
-    (explanations : Matching_explanation.t list option)
-    (annots : (Test_annotation.t * linenb) list) :
-    test_result list * fixtest_result option =
+(* alt: use Test_compare_matches.compare_actual_to_expected but
+ * it does not handle the actual rule id in the annotations
+ *)
+let compare_actual_to_expected (env : env) (rules : Rule.t list)
+    (target_files : Fpath.t list) (matches : Pattern_match.t list)
+    (annots : (Fpath.t * Test_annotation.annotations) list)
+    (explanations : Matching_explanation.t list option) :
+    test_result list * fixtest_result list =
   (* actual matches *)
-  let (matches_by_ruleid : (Rule_ID.t, Pattern_match.t list) Assoc.t) =
-    if List_.null matches then (
+  let matches_by_ruleid_and_file :
+      (Rule_ID.t, (Fpath.t, Pattern_match.t list) Assoc.t) Assoc.t =
+    if List_.null matches then
       (* stricter: *)
-      Logs.warn (fun m -> m "nothing matched in %s" !!target);
-      (* Probably some files with todoruleid: without any match yet, but we
-       * still want to include them in the JSON output like pysemgrep.
-       *)
-      if not (List_.null annots) then
-        rules |> List_.map (fun (r : Rule.t) -> (fst r.id, []))
-      else [])
-    else matches |> Assoc.group_by (fun (pm : Pattern_match.t) -> pm.rule_id.id)
+      Logs.warn (fun m -> m "nothing matched for %s" !!(env.rule_file));
+    matches
+    |> Assoc.group_by (fun (pm : Pattern_match.t) -> pm.rule_id.id)
+    |> List_.map (fun (rule_id, pms) ->
+           ( rule_id,
+             pms
+             |> Assoc.group_by (fun (pm : Pattern_match.t) ->
+                    pm.path.internal_path_to_content) ))
   in
   (* expected matches *)
-  let (expected_by_ruleid : (Rule_ID.t, linenb list) Assoc.t) =
-    Test_annotation.group_positive_annotations annots
+  let expected_by_ruleid_and_file :
+      (Rule_ID.t, (Fpath.t, linenb list) Assoc.t) Assoc.t =
+    let h = Hashtbl.create 101 in
+    annots
+    |> List.iter (fun (file, annotations) ->
+           let expected_by_rule_id : (Rule_ID.t, linenb list) Assoc.t =
+             Test_annotation.group_positive_annotations annotations
+           in
+           expected_by_rule_id
+           |> List.iter (fun (rule_id, lines) ->
+                  Hashtbl_.push h rule_id (file, lines)));
+    h |> Hashtbl_.map (fun _k vref -> !vref) |> Hashtbl_.hash_to_list
   in
 
+  let all_rule_ids : Rule_ID.t list =
+    Assoc.join_keys Rule_ID.equal matches_by_ruleid_and_file
+      expected_by_ruleid_and_file
+  in
   (* regular ruleid tests *)
-  let (checks : (Rule_ID.t * Out.rule_result) list) =
-    matches_by_ruleid
-    |> List_.map (fun (id, (matches : Pattern_match.t list)) ->
-           (* alt: use Core_error.compare_actual_to_expected  *)
-           (* alt: we could group by filename in matches, but all those
-            * matches should have the same file
-            *)
-           let (reported_lines : linenb list) =
-             matches
-             |> List_.map (fun (pm : Pattern_match.t) ->
-                    pm.range_loc |> fst |> fun (loc : Loc.t) -> loc.pos.line)
-             |> List.sort_uniq Int.compare
+  let checks : (Rule_ID.t * Out.rule_result) list =
+    all_rule_ids
+    |> List_.map (fun (id : Rule_ID.t) ->
+           let actual : (Fpath.t, Pattern_match.t list) Assoc.t =
+             matches_by_ruleid_and_file |> Assoc.find_opt id
+             |> List_.optlist_to_list
            in
-           let (expected_lines : linenb list) =
-             match Assoc.find_opt id expected_by_ruleid with
-             | Some xs -> xs
-             | None -> []
+           let expected : (Fpath.t, linenb list) Assoc.t =
+             expected_by_ruleid_and_file |> Assoc.find_opt id
+             |> List_.optlist_to_list
            in
-           let passed = reported_lines =*= expected_lines in
-           if not passed then
-             Logs.err (fun m ->
-                 m "test failed for rule id %s on target %s"
-                   (Rule_ID.to_string id) !!target);
-           (* TODO: not sure why but pysemgrep uses realpaths here, which is
-            * a bit annoying because it forces us to use masks in test snapshots
-            *)
-           let filename = Unix.realpath !!target in
-           (* TODO: not sure why pysemgrep does not report the real
-            * reported_lines (and expected_lines) and filter those todook:
-            *)
-           let expected_reported =
-             let reported_lines =
-               Test_annotation.filter_todook annots reported_lines
-             in
-             let expected_lines =
-               Test_annotation.filter_todook annots expected_lines
-             in
-             { Out.reported_lines; expected_lines }
+           let all_files : Fpath.t list =
+             Assoc.join_keys Fpath.equal actual expected
+           in
+           let res : (bool * (Fpath.t * Out.expected_reported)) list =
+             all_files
+             |> List_.map (fun (target : Fpath.t) ->
+                    let matches : Pattern_match.t list =
+                      actual |> Assoc.find_opt target |> List_.optlist_to_list
+                    in
+                    let (reported_lines : linenb list) =
+                      matches
+                      |> List_.map (fun (pm : Pattern_match.t) ->
+                             pm.range_loc |> fst |> fun (loc : Loc.t) ->
+                             loc.pos.line)
+                      |> List.sort_uniq Int.compare
+                    in
+                    let expected_lines : linenb list =
+                      expected |> Assoc.find_opt target |> List_.optlist_to_list
+                    in
+                    let passed = reported_lines =*= expected_lines in
+                    if not passed then
+                      Logs.err (fun m ->
+                          m "test failed for rule id %s on target %s"
+                            (Rule_ID.to_string id) !!target);
+                    (* TODO: not sure why pysemgrep does not report the real
+                     * reported_lines (and expected_lines) and filter those todook:
+                     *)
+                    let file_annots =
+                      Assoc.find_opt target annots |> List_.optlist_to_list
+                    in
+                    let expected_reported =
+                      let reported_lines =
+                        Test_annotation.filter_todook file_annots reported_lines
+                      in
+                      let expected_lines =
+                        Test_annotation.filter_todook file_annots expected_lines
+                      in
+                      { Out.reported_lines; expected_lines }
+                    in
+                    (passed, (target, expected_reported)))
            in
            let diagnosis =
              let* explanations = explanations in
-             Some
-               (Diagnosis.diagnose ~target ~rule_file:env.rule_file
-                  expected_reported explanations)
+             match res with
+             | [ (_passed, (target, expected_reported)) ] ->
+                 Some
+                   (Diagnosis.diagnose ~target ~rule_file:env.rule_file
+                      expected_reported explanations)
+             | _ -> failwith "diagnosis for multiple targets not supported"
            in
            let (rule_result : Out.rule_result) =
              Out.
                {
-                 passed;
-                 matches = [ (filename, expected_reported) ];
+                 passed = res |> List_.map fst |> Common2.and_list;
+                 matches =
+                   res
+                   |> List_.map (fun (_passed, (target, expected_reported)) ->
+                          (* TODO: not sure why but pysemgrep uses realpaths
+                           * here, which is a bit annoying because it forces
+                           * us to use masks in test snapshots
+                           *)
+                          let filename = Unix.realpath !!target in
+                          (filename, expected_reported));
                  (* TODO: error from the engine ? *)
                  errors = [];
                  diagnosis;
@@ -489,29 +551,37 @@ let compare_actual_to_expected (env : env) (target : Fpath.t)
            (id, rule_result))
   in
   (* optional fixtest *)
-  let (fixtest_res : (Fpath.t (* target *) * Out.fixtest_result) option) =
-    match
-      ( fixtest_of_target_opt target,
-        rules |> List.exists rule_contain_fix_or_fix_regex )
-    with
-    | None, true ->
-        (* stricter: (reported in JSON at least via config_missing_fixtests) *)
-        Logs.warn (fun m ->
-            m "no fixtest for test %s but the rule file %s uses autofix"
-              !!target !!(env.rule_file));
-        Stack_.push (MissingFixtest env.rule_file) env.errors;
-        None
-    | Some fixtest, false ->
-        (* stricter? *)
-        Logs.err (fun m ->
-            m
-              "found the fixtest %s but the rule file %s does not contain \
-               autofix"
-              !!fixtest !!(env.rule_file));
-        None
-    | None, false -> None
-    | Some fixtest_target, true ->
-        Some (fixtest_result_for_target env target fixtest_target matches)
+  let fixtest_res : (Fpath.t (* target *) * Out.fixtest_result) list =
+    target_files
+    |> List_.filter_map (fun target ->
+           match
+             ( fixtest_of_target_opt target,
+               rules |> List.exists rule_contain_fix_or_fix_regex )
+           with
+           | None, true ->
+               (* stricter: (reported in JSON at least via config_missing_fixtests) *)
+               Logs.warn (fun m ->
+                   m "no fixtest for test %s but the rule file %s uses autofix"
+                     !!target !!(env.rule_file));
+               Stack_.push (MissingFixtest env.rule_file) env.errors;
+               None
+           | Some fixtest, false ->
+               (* stricter? *)
+               Logs.err (fun m ->
+                   m
+                     "found the fixtest %s but the rule file %s does not \
+                      contain autofix"
+                     !!fixtest !!(env.rule_file));
+               None
+           | None, false -> None
+           | Some fixtest_target, true ->
+               let matches =
+                 matches
+                 |> List.filter (fun (pm : Pattern_match.t) ->
+                        Fpath.equal pm.path.internal_path_to_content target)
+               in
+               Some
+                 (fixtest_result_for_target env target fixtest_target matches))
   in
   (checks, fixtest_res)
 
@@ -523,24 +593,29 @@ let run_tests (caps : Core_scan.caps) ~matching_diagnosis (tests : tests)
     (Fpath.t (* rule file *) * test_result list * fixtest_result list) list =
   (* LATER: in theory we could use Parmap here *)
   tests
-  |> List_.map (fun (rule_file, target_file) ->
+  |> List_.map (fun (rule_file, target_files) ->
          Logs.info (fun m -> m "processing rule file %s" !!rule_file);
          (* TODO? sanity check? call metachecker Check_rule.check()? *)
          match Parse_rule.parse_and_filter_invalid_rules rule_file with
          | Ok (rules, []) -> (
-             Logs.info (fun m -> m "processing target %s" !!target_file);
-             (* one target file can result in different targets
-              * if the rules contain multiple xlangs
+             Logs.info (fun m ->
+                 m "processing target(s) %s"
+                   (target_files |> List_.map Fpath.to_string
+                  |> String.concat ", "));
+             (* note that even one target file can result in different targets
+              * if the rules contain multiple xlangs.
               *)
              let targets : Target.t list =
-               Core_runner.targets_for_files_and_rules [ target_file ] rules
+               Core_runner.targets_for_files_and_rules target_files rules
              in
              let env = { rule_file; errors } in
              let res_or_exn : Core_result.result_or_exn =
                run_rules_against_targets ~matching_diagnosis caps rules targets
              in
-             let (expected : (Test_annotation.t * linenb) list) =
-               Test_annotation.annotations target_file
+             let expected : (Fpath.t * Test_annotation.annotations) list =
+               target_files
+               |> List_.map (fun file ->
+                      (file, Test_annotation.annotations file))
              in
              match res_or_exn with
              | Error exn -> Exception.reraise exn
@@ -549,12 +624,11 @@ let run_tests (caps : Core_scan.caps) ~matching_diagnosis (tests : tests)
                    res.processed_matches
                    |> List_.map (fun (x : Core_result.processed_match) -> x.pm)
                  in
-                 let explanations = res.explanations in
                  let checks, fixtest_res =
-                   compare_actual_to_expected env target_file rules matches
-                     explanations expected
+                   compare_actual_to_expected env rules target_files matches
+                     expected res.explanations
                  in
-                 (rule_file, checks, fixtest_res |> Option.to_list))
+                 (rule_file, checks, fixtest_res))
          | Ok (_, _ :: _)
          | Error _ ->
              (* alt: use List_.filter_map above and be more fault tolerant
@@ -587,8 +661,8 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
   let errors = ref [] in
 
   (* step1: compute the set of tests (rule + target) *)
-  (* TODO: support multiple targets (e.g., .jsx and .tsx) analyzed independently
-   * and later multiple targets analyzed together for --pro interfile analysis.
+  (* We now support multiple targets (e.g., .jsx/.tsx) analyzed independently.
+   * TODO: multiple targets analyzed together for --pro interfile analysis.
    *)
   let tests : tests = rules_and_targets conf.target errors in
 

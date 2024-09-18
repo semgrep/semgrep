@@ -1,5 +1,7 @@
 type ('a, 'b) t = ('a * 'b) list
 
+val keys : ('a, 'b) t -> 'a list
+val join_keys : ('a -> 'a -> bool) -> ('a, 'b) t -> ('a, 'c) t -> 'a list
 val find_opt : 'a -> ('a, 'b) t -> 'b option
 
 (* sorts *)
