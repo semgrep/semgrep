@@ -1994,14 +1994,14 @@ and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
         (id_or_pat, opt_type, opt_default)
   in
   match id_or_pat with
-  | Left id ->
+  | Left (id, attrs) ->
       ParamClassic
         {
           p_name = id;
           p_default = opt_default;
           p_dots = None;
           p_type = opt_type;
-          p_attrs = [];
+          p_attrs = attrs;
         }
   | Right pat ->
       let pat =
@@ -2851,11 +2851,20 @@ and constraint_ (env : env) ((v1, v2) : CST.constraint_) :
   v2
 
 and parameter_name (env : env) ((v1, v2, v2bis, v3, v4) : CST.parameter_name) :
-    (a_ident, a_pattern) Either.t =
-  let _decorators = List_.map (decorator env) v1 in
-  let _accessibility = accessibility_modifier_opt_to_list env v2 in
-  let _override = kwd_attr_opt_to_list env Override v2bis in
-  let _readonly = kwd_attr_opt_to_list env Readonly v3 in
+    (a_ident * attribute list, a_pattern) Either.t =
+  let decorators = List_.map (decorator env) v1 in
+  let accessibility =
+    accessibility_modifier_opt_to_list env v2
+    |> List_.map (fun attr -> KeywordAttr attr)
+  in
+  let override =
+    kwd_attr_opt_to_list env Override v2bis
+    |> List_.map (fun attr -> KeywordAttr attr)
+  in
+  let readonly =
+    kwd_attr_opt_to_list env Readonly v3
+    |> List_.map (fun attr -> KeywordAttr attr)
+  in
   let id_or_pat =
     match v4 with
     | `Pat x -> pattern env x
@@ -2865,6 +2874,8 @@ and parameter_name (env : env) ((v1, v2, v2bis, v3, v4) : CST.parameter_name) :
         Left id
   in
   id_or_pat
+  |> Either.map_left (fun id ->
+         (id, decorators @ accessibility @ override @ readonly))
 
 and lhs_expression (env : env) (x : CST.lhs_expression) : expr =
   match x with
