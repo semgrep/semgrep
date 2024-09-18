@@ -514,10 +514,6 @@ gitclean:
 release:
 	./scripts/release/bump
 
-.PHONY: update_semgrep_rules
-update_semgrep_rules:
-	cd tests/semgrep-rules; git checkout origin/develop
-
 # Run utop with all the semgrep-core libraries loaded.
 .PHONY: utop
 utop:
