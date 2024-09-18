@@ -42,12 +42,6 @@ let rec type_of_expr lang e : G.name Type.t * G.ident option =
   | G.DotAccess (_, _, FN name) ->
       type_of_name lang name
   | G.Cast (t, _, _) -> (type_of_ast_generic_type lang t, None)
-  (* kotlin: heuristic that Foo() is generally of type `Foo`, due to Kotlin
-      naming conventions
-  *)
-  | Call ({ e = N (Id ((s, _), _) as id); _ }, _)
-    when String_.is_capitalized s && lang =*= Language.Kotlin ->
-      (type_of_ast_generic_type lang (TyN id |> G.t), None)
   (* TODO? or generate a fake "new" id for LSP to query on tk? *)
   (* We conflate the type of a class with the type of its instance. Maybe at
    * some point we should introduce a `Class` type and unwrap it here upon
