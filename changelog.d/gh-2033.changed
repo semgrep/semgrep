@@ -1,1 +1,0 @@
-include the exit code that semgrep will emit in the fail-open payload prior to exiting with a failure.
