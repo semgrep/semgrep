@@ -8,12 +8,12 @@ class A:
 
 class B:
     def b(self):
-        #ruleid:
+        #ruleid: return-none
         return
 
 class C:
     def c(self):
-        #ruleid:
+        #ruleid: return-none
         return None
 
 class D:

@@ -2,11 +2,11 @@
 # fixed by https://github.com/returntocorp/semgrep/pull/3157
 
 def foo():
-    #ruleid: should match here
+    #ruleid: my_pattern_id
     return 1
 
 def bar():
-    #ruleid: should match here
+    #ruleid: my_pattern_id
     return 2
 
 def baz():

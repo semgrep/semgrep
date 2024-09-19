@@ -1,7 +1,7 @@
 source "https://rubygems.org"
-#ruleid: 
+#ruleid:  new-Gemfile-dependency
 gem "functions_framework", "~> 0.7"
-#ruleid: 
+#ruleid: new-Gemfile-dependency
 gem "google-cloud-storage", "~> 1.29"
-#ruleid:
+#ruleid: new-Gemfile-dependency
 gem "", "~> 1.29"

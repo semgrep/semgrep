@@ -1,9 +1,9 @@
 def foo():
-    #ruleid:
+    #ruleid: my_pattern_id
     return 1
 
 def bar():
-    #ruleid:
+    #ruleid: my_pattern_id
     return 2
 
 def baz():

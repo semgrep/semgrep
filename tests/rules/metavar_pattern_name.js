@@ -1,4 +1,4 @@
 import {bar as baz} from "foo";
 
-//ruleid: xxx
+//ruleid: resolved-metavariables
 var res = baz()

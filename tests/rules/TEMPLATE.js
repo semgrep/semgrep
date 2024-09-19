@@ -1,4 +1,4 @@
 function test() {
-    //ruleid: match
+    //ruleid: test-template
     bar(foo(2));
 }

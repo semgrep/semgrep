@@ -14,7 +14,8 @@ def throw_in_catch_exits(input):
   except Exception as e:
     raise RuntimeError()
 
-  #ok: unreachable, because throw inside the catch clause exits
+  # unreachable, because throw inside the catch clause exits
+  # ok:
   sink(clean)
 
 def throw_in_else_exits(input):
@@ -23,12 +24,14 @@ def throw_in_else_exits(input):
     pass
   except Exception as e:
     clean = input
-    #ok: unreachable, because exception was not thrown
+    # unreachable, because exception was not thrown
+    # ok: 
     sink(clean)
   else:
     raise RuntimeError()
 
-  #ok: unreachable, because throw inside the else clause exits
+  # unreachable, because throw inside the else clause exits
+  # ok: 
   sink(clean)
 
 def throw_in_finally_exits(input):
@@ -38,7 +41,8 @@ def throw_in_finally_exits(input):
   finally:
     raise RuntimeError()
 
-  #ok: unreachable, because throw inside the finally clause exits
+  # unreachable, because throw inside the finally clause exits
+  # ok: 
   sink(clean)
 
 def return_exits(input):
@@ -55,7 +59,8 @@ def return_in_catch_exits(input):
   except Exception as e:
     return
 
-  #ok: unreachable, because return inside the catch clause exits
+  # unreachable, because return inside the catch clause exits
+  # ok: 
   sink(clean)
 
 def return_in_else_exits(input):
@@ -64,12 +69,14 @@ def return_in_else_exits(input):
     pass
   except Exception as e:
     clean = input
-    #ok: unreachable, because exception was not thrown
+    # unreachable, because exception was not thrown
+    #ok: 
     sink(clean)
   else:
     return
 
-  #ok: unreachable, because return inside the else clause exits
+  # unreachable, because return inside the else clause exits
+  #ok:
   sink(clean)
 
 def throw_in_finally_exits(input):
@@ -79,7 +86,8 @@ def throw_in_finally_exits(input):
   finally:
     return
 
-  #ok: unreachable, because return inside the finally clause exits
+  # unreachable, because return inside the finally clause exits
+  #ok:
   sink(clean)
 
 def throw_must_not_go_through_else(input):
@@ -166,7 +174,8 @@ def throw_may_go_through_catch_and_propagates(input):
       sink(clean1)
     else:
       clean2 = input
-      #ok: unreachable because the try clause returns
+      # unreachable because the try clause returns
+      #ok: 
       sink(clean2)
     finally:
       # Finally clauses are always reachable when present.

@@ -1,5 +1,5 @@
 def test(c):
-  #ruleid: test
+  #ruleid: tainting
   x = source()
   if c:
     y = x

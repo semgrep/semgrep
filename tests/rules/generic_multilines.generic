@@ -1,6 +1,6 @@
 class Foo {
   void foo() {
-    //ruleid:
+    // ruleid: multi-lines
     myfile = open();
     try {
       foo(myfile);

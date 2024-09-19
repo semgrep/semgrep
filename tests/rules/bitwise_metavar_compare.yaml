@@ -1,5 +1,5 @@
 rules:
-  - id: bitwise-op-demo
+  - id: bitwise-metavar-compare
     patterns:
       - pattern: $F($X)
       - metavariable-comparison:
