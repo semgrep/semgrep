@@ -18,7 +18,13 @@ def in_semgrep_rules_repo(tmpdir_factory):
     project_root = Path(get_git_project_root())
     monkeypatch = pytest.MonkeyPatch()
     # semgrep-rules is available as a git submodule:
-    repo_dir = project_root / "tests/semgrep-rules"
+
+    if project_root.name == "semgrep":
+        repo_dir = project_root / "tests/semgrep-rules"
+    elif project_root.name == "semgrep-proprietary":
+        repo_dir = project_root / "OSS/tests/semgrep-rules"
+    else:
+        raise Exception("Unknown git repository. Couldn't locate semgrep-rules.")
     monkeypatch.chdir(repo_dir)
     if not os.listdir("."):
         raise Exception(
