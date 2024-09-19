@@ -234,7 +234,11 @@ def _print_sca_parse_errors(errors: List[out.DependencyParserError]) -> None:
                 f"Failed to parse {location} - {error.reason}\n"
                 f"{line_prefix}{error.text}\n"
             )
+        elif error.line:
+            location = f"[bold]{error.path}[/bold] at [bold]{error.line}[/bold]"
+            console.print(f"Failed to parse {location} - {error.reason}")
         else:
+            location = f"[bold]{error.path}[/bold]"
             console.print(f"Failed to parse {location} - {error.reason}")
 
 

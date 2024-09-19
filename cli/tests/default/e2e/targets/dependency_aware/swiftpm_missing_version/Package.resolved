@@ -1,0 +1,60 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "Curry",
+        "repositoryURL": "https://github.com/thoughtbot/Curry.git",
+        "state": {
+          "branch": null,
+          "revision": "4331dd50bc1db007db664a23f32e6f3df93d4e1a",
+          "version": "4.0.2"
+        }
+      },
+      {
+        "package": "PrettyColors",
+        "repositoryURL": "https://github.com/jdhealy/PrettyColors.git",
+        "state": {
+          "branch": null,
+          "revision": "afd4553a4db6f656521cfe9b1f70bece2748c7d8",
+          "version": "5.0.2"
+        }
+      },
+      {
+	    "package" : "swift-collections",
+	    "repositoryURL" : "https://github.com/apple/swift-collections.git",
+	    "state" : {
+		  "branch": null,
+		  "revision" : "d029d9d39c87bed85b1c50adee7c41795261a192",
+		  "version" : "1.0.6"
+	    }
+	  },
+      {
+        "package": "Quick",
+        "repositoryURL": "https://github.com/Quick/Quick.git",
+        "state": {
+          "branch": null,
+          "revision": "09b3becb37cb2163919a3842a4c5fa6ec7130792",
+          "version": "2.2.1"
+        }
+      },
+      {
+        "package": "ReactiveSwift",
+        "repositoryURL": "https://github.com/ReactiveCocoa/ReactiveSwift.git",
+        "state": {
+          "branch": null,
+          "revision": "c37950dc5020544c58d4bf47c0d028893686b9e6",
+          "version": "5.0.1"
+        }
+      },
+      {
+        "package": "ReactiveTask",
+        "repositoryURL": "https://github.com/Carthage/ReactiveTask.git",
+        "state": {
+          "branch": null,
+          "revision": "df1bf7625684180b9377a8ba3c076db08d98757e",
+          "version": "0.16.0"
+        }
+      }
+    ]
+  }
+}
