@@ -1,5 +1,5 @@
 rules:
-  - id: test
+  - id: metavar_ellipsis_param
     languages:
       - go
     message: |
