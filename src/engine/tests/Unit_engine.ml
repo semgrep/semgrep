@@ -805,35 +805,13 @@ let semgrep_rules_repo_tests () : Testo.t list =
            let test = mark_todo_js test in
            let group_opt =
              match test.name with
-             (* TODO: cleanup nodejsscan? "no target for" error *)
+             (* note that there is no need to filter rules without targets; This
+              * is now handled in Test_engine.make_tests which will generate
+              * an XFAIL Testo test for those.
+              *)
              | s
-               when s =~ ".*/contrib/nodejsscan/xss_serialize_js.yaml"
-                    || s =~ ".*/contrib/nodejsscan/xss_mustache_escape.yaml"
-                    || s
-                       =~ ".*/contrib/nodejsscan/xml_entity_expansion_dos.yaml"
-                    || s =~ ".*/contrib/nodejsscan/timing_attack_node.yaml"
-                    || s =~ ".*/contrib/nodejsscan/sql_injection.yaml"
-                    || s =~ ".*/contrib/nodejsscan/security_electronjs.yaml"
-                    || s =~ ".*/contrib/nodejsscan/resolve_path_traversal.yaml"
-                    || s =~ ".*/contrib/nodejsscan/regex_injection.yaml"
-                    || s =~ ".*/contrib/nodejsscan/logic_bypass.yaml"
-                    || s =~ ".*/contrib/nodejsscan/jwt_hardcoded.yaml"
-                    || s =~ ".*/contrib/nodejsscan/jwt_express_hardcoded.yaml"
-                    || s =~ ".*/contrib/nodejsscan/good_ratelimiting.yaml"
-                    || s =~ ".*/contrib/nodejsscan/good_helmet_checks.yaml"
-                    || s =~ ".*/contrib/nodejsscan/good_anti_csrf.yaml"
-                    || s =~ ".*/contrib/nodejsscan/eval_drpc_deserialize.yaml"
-                    || s =~ ".*/contrib/nodejsscan/error_disclosure.yaml"
-                    (* TODO: cleanup semgrep-rules: "no target for" error *)
-                    (* TODO: do this filtering before Test_engine.make_tests
-                       because it already requires the target files. *)
-                    || s =~ ".*/contrib/dlint/dlint-equivalent.yaml"
-                    || s =~ ".*/fingerprints/fingerprints.yaml"
-                    || s
-                       =~ ".*/terraform/aws/security/aws-fsx-lustre-files-ystem.yaml"
-                    || s =~ ".*/generic/ci/audit/changed-semgrepignore.*"
-                    (* TODO: parse error, weird *)
-                    || s =~ ".*/unicode/security/bidi.yml"
+               when (* TODO: parse error, weird *)
+                    s =~ ".*/unicode/security/bidi.yml"
                     (* Elixir requires Pro *)
                     || s =~ ".*/elixir/lang/.*"
                     (* Apex requires Pro *)
@@ -858,7 +836,6 @@ let semgrep_rules_repo_tests () : Testo.t list =
              | s when s =~ ".*.test.yml" -> None
              (* not languages tests *)
              | s when s =~ ".*/semgrep-rules/stats/" -> None
-             | s when s =~ ".*/semgrep-rules/tests/" -> None
              (* ok let's keep all the other one with the appropriate group name *)
              | s when s =~ ".*/semgrep-rules/\\([a-zA-Z]+\\)/.*" ->
                  (* This is confusing because it looks like a programming
