@@ -1,5 +1,5 @@
 rules:
-- id: python.django.best-practice.upsell_django_environ.use-django-environ
+- id: match
   patterns:
   - pattern-not: |
       ...

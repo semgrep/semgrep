@@ -1,5 +1,5 @@
 rules:
-  - id: my_pattern_id
+  - id: my-pattern-id
     patterns:
       - pattern: |
           pattern: 

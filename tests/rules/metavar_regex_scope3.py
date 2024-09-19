@@ -9,12 +9,12 @@ class A:
 
 class B:
     def b(self):
-        #ruleid: should detect that
+        #ruleid: return-none
         return
 
 class C:
     def c(self):
-        #ruleid: should detect that
+        #ruleid: return-none
         return None
 
 class D:

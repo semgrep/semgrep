@@ -1,4 +1,4 @@
-//ruleid: match
+//ruleid: test-xml-matching
 x = <View />
 
 // nope

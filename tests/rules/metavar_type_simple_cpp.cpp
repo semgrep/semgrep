@@ -8,6 +8,6 @@ void test_001() {
     in.get(str, 2);
 
     mystream my;
-    // ok: type mismatch
+    // ok: type-mismatch
     my.get(str, 2);
 }

@@ -1,5 +1,5 @@
 def no_ret(x: Int) : Int = {
-  // ruleid: match
+  // ruleid: test
   3 * foo(x) + 412
 }
 

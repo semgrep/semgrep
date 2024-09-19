@@ -9,6 +9,6 @@ void test_001() {
    fgets(buf100, 100, fptr);
 
    char buf200[200];
-   // ok: type mismatch
+   // ok: type-mismatch
    fgets(buf200, 200, fptr);
 }

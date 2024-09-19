@@ -1,10 +1,10 @@
-<!-- ruleid: match -->
+<!-- ruleid: test-xml-matching -->
 <plugin>
     <configuration><somethingInvalid/></configuration>
     <groupId>org.apache.maven.plugins</groupId>
     <artifactId>maven-compiler-plugin</artifactId>
 </plugin>
-<!-- ruleid: match -->
+<!-- ruleid: test-xml-matching -->
 <plugin>
     <configuration><somethingInvalid/></configuration>
     <artifactId>maven-compiler-plugin</artifactId>

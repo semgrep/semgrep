@@ -1,4 +1,4 @@
-# ruleid:
+# ruleid: my_pattern_id
 owasp:
 - 'A8: Insecure Deserialization'
 - 'A1: Injection'

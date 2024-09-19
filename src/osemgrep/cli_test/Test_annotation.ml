@@ -44,7 +44,19 @@ let prefilter_annotation_regexp_no_ok =
 let annotation_regexp = "^\\(ruleid\\|ok\\|todoruleid\\|todook\\):\\(.*\\)"
 
 let (comment_syntaxes : (string * string option) list) =
-  [ ("#", None); ("//", None); ("<!--", Some "-->"); ("(*", Some "*)") ]
+  [
+    ("#", None);
+    ("//", None);
+    ("<!--", Some "-->");
+    ("(*", Some "*)");
+    ("/*", Some "*/");
+    (* in jsx as in
+     *       <div>
+     *         {/* ruleid: href-semgrep-app */}
+     * where you can't use comment
+     *)
+    ("{/*", Some "*/}");
+  ]
 
 (*****************************************************************************)
 (* Helpers *)
