@@ -1,6 +1,6 @@
 # https://github.com/returntocorp/semgrep/issues/3120
 rules:
-- id: test-3120
+- id: test
   options:
     implicit_ellipsis: false
   pattern: '{x:$X, ..., ...$Y}'

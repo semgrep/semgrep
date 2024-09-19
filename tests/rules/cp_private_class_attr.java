@@ -5,7 +5,7 @@ public class Class {
 
 
   public void foo() {
-    // ruleid: java-private-prop
+    // ruleid: java_private_prop
     return x;
   }
 
@@ -19,7 +19,7 @@ public class Class {
   }
 
   public void foo1() {
-    // ruleid: java-private-prop
+    // ruleid: java_private_prop
     return this.x;
   }
 

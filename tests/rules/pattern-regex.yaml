@@ -1,5 +1,5 @@
 rules:
-- id: hello 
+- id: hey
   pattern-regex: "hello.*"
   languages: [py]
   severity: WARNING 

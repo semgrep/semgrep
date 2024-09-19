@@ -3,6 +3,7 @@
 let func = new Function('var x = "static strings are okay";');
 func();
 
-//ruleid: match (only if use pattern-not)
+// match (only if use pattern-not)
+//ruleid: new-function-detected
 func = new Function(xxx);
 func();

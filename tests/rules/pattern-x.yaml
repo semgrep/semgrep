@@ -1,5 +1,5 @@
 rules:
-- id: typescript.react.security.audit.react-css-injection.react-css-injection
+- id: react-css-injection
   patterns:
   - pattern-either:
     - pattern-inside: |

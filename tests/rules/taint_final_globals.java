@@ -3,7 +3,7 @@ class Test {
   private String x = source();
 
   void test() {
-    //ruleid: test
+    //ruleid: tainting
     sink(x);
   }
 

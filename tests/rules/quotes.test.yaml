@@ -1,15 +1,15 @@
-# ruleid: bare-metavar
+# ruleid: bare_metavar
 - bare_double: "double"
 - bare_double: |
     piped 
 
-# ruleid: bare-metavar
+# ruleid: bare_metavar
 - bare_single: 'single'
 - bare_single: |
     piped 
 
 - quoted: "double"
-# ruleid: quoted-metavar
+# ruleid: quoted_metavar
 - quoted: "\"double"
 - quoted: 'double'
 - quoted: |

@@ -2,7 +2,7 @@ object App {
     private val r = Runtime.getRuntime()
     private val command = getUnsafeCommand()
 
-    // ruleid: tained-obj-fields
+    // ruleid: tainted-obj-fields
     val process = r.exec(command)
 }
 
