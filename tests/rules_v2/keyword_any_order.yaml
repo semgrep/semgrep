@@ -1,0 +1,7 @@
+rules:
+  - id: keyword-any-order
+    languages:
+      - java
+    severity: ERROR
+    message: keywords are matched in any order by default
+    match: static final int $X
