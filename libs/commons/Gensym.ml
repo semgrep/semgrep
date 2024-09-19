@@ -30,13 +30,10 @@
    and avoid boilerplate code with refs and counters.
 *)
 module MkId () : sig
-  type t [@@deriving show, eq, hash, sexp]
+  type t [@@deriving show, eq, ord, hash, sexp]
 
   val mk : unit -> t
   val to_int : t -> int
-
-  (* see below why we manually implement compare *)
-  val compare : t -> t -> int
   val unsafe_default : t
   val is_unsafe_default : t -> bool
   val unsafe_reset_counter : unit -> unit

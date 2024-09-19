@@ -3,11 +3,10 @@
    other.*)
 module MkId () : sig
   (* abstract type! *)
-  type t [@@deriving show, eq, hash, sexp]
+  type t [@@deriving show, eq, ord, hash, sexp]
 
   val mk : unit -> t
   val to_int : t -> int
-  val compare : t -> t -> int
 
   (* `unsafe_default` is distinct from all generated IDs, but not from other
      `unsafe_default`s.
