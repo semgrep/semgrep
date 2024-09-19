@@ -1,5 +1,5 @@
 import os
-#ruleid: 
+#ruleid: rule_template_id
 x = os.environ
 #ok:
 verify = (os.environ.get('REQUESTS_CA_BUNDLE') or os.environ.get('CURL_CA_BUNDLE'))
