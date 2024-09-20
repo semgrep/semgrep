@@ -33,7 +33,7 @@ local input = {
   inputs: {
     'semgrep-version': {
       type: 'string',
-      description: 'This is the version that is about to be released and should be what the previous version bump step set the OSS version to in the previous step. This is only really required as a safety check, failing to get the version correct here will only cause this step to fail and should not break anything.',
+      description: 'This is the version that is about to be released and should be what the previous version bump step set the OSS version to in the previous step. This is only really required as a safety check, failing to get the version correct here will only cause this step to fail and should not break anything. For example: "1.42.0"',
       required: true,
     },
     'dry-run': {
