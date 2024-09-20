@@ -13,3 +13,5 @@ let parse_manifest :
   function
   (* TODO: add parsers, guard behind semgrep-pro  *)
   | PackageJson -> fun _ -> []
+  | PomXml -> fun _ -> []
+  | BuildGradle -> fun _ -> []
