@@ -5,7 +5,7 @@ func f() {
 			a := 0;
 		case x > y:
 			b := 0;
-		//ERROR:
+		//ruleid: test-switch-no-scrutinee
 		case sink(source):
 			c := 0;
 		default:

@@ -10,7 +10,7 @@ public class Main {
         catch (Throwable t) {
             str = source();
         }
-        //ERROR:
+        //ruleid: test
         sink(str);
     }
 

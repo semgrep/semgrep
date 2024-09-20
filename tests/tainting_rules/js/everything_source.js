@@ -1,2 +1,2 @@
-// ERROR: test
+// ruleid: test
 jwt.decode(token, true);

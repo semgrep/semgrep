@@ -660,7 +660,8 @@ let tainting_test (lang : Lang.t) (rules_file : Fpath.t) (file : Fpath.t) =
                details = None;
              })
   in
-  let expected = TCM.expected_error_lines_of_files [ file ] in
+  let regexp = ".*\\b\\(ruleid\\|todook\\):.*" in
+  let expected = TCM.expected_error_lines_of_files ~regexp [ file ] in
   TCM.compare_actual_to_expected_for_alcotest
     ~to_location:TCM.location_of_core_error actual expected
 

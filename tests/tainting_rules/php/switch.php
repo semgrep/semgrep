@@ -11,7 +11,7 @@ function f($arg) {
             $b = 0;
         case 2:
             $c = 0;
-            //ERROR:
+            //ruleid: test-switch
             sink($source);
             break;
         default:

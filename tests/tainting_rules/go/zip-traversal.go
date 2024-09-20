@@ -59,7 +59,7 @@ func dangerous_unzip(target string) error {
 		}
 		fileReader, err := file.Open()
 		defer fileReader.Close()
-		//ERROR:
+		//ruleid: tainting
 		targetFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
 		if err != nil {
 			return err
