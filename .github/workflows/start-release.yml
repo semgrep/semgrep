@@ -331,7 +331,7 @@ jobs:
   notify-success:
     env:
       VERSION: ${{ github.event.inputs.semgrep-version }}
-    if: ${{ success() && ! inputs.dry-run }}
+    if: ${{ always() }}
     needs:
       - check-version
       - release-setup

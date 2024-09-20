@@ -416,7 +416,8 @@ local validate_release_trigger_job = {
 // ----------------------------------------------------------------------------
 
 local notify_success_job = {
-  'if': '${{ success() && ! inputs.dry-run }}',
+  #'if': '${{ success() && ! inputs.dry-run }}',
+  'if': '${{ always() }}',
   needs: [
     'check-version',
     'release-setup',
