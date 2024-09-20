@@ -3,6 +3,6 @@ func f() {
 	//OK:
 	sink(source)
 	LABEL:
-	//ERROR: match
+	//ruleid: test-dead-code
 	sink(source)
 }

@@ -5,7 +5,7 @@ from django.utils.http import is_safe_url
 def unsafe(request):
     url = request.headers.get('referrer')
     print("something")
-    #ERROR:
+    #ruleid: tainting
     return redirect(url)
 
 def safe(request):
@@ -15,12 +15,12 @@ def safe(request):
 
 def unsafe2(request):
     url = request.POST.get("url")
-    #ERROR:
+    #ruleid: tainting
     return HttpResponseRedirect(url)
 
 def unsafe3(request):
     url = request.POST["url"]
-    #ERROR:
+    #ruleid: tainting
     return HttpResponseRedirect(url)
 
 def fine(request):

@@ -1,6 +1,6 @@
 def foo():
   source1(a, b, c)
-  #ERROR:
+  #ruleid: tainting
   sink1(a)
   #OK:
   sink1(b)

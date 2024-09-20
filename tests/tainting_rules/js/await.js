@@ -6,12 +6,12 @@ const sequelize = new Sequelize('sqlite::memory:')
 const util = require('util')
 
 app.get('/test', (req, res) => {
-  //ERROR:
+  //ruleid: taint-test
   res.send("SELECT * FROM `users`" + " WHERE id = '" + req.query.message + "'")
 })
 
 app.get('/test1', (req, res) => {
-  //ERROR:
+  //ruleid: taint-test
   await res.send("SELECT * FROM `users`" + " WHERE id = '" + req.query.message + "'")
 })
 

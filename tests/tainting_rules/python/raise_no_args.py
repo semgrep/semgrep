@@ -4,7 +4,7 @@ def foo():
     #OK:
     sink(source)
   except:
-    #ERROR:
+    #ruleid: test
     sink(source)
-  #ERROR:
+  #ruleid: test
   sink(source)
