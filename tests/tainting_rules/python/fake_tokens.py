@@ -1,4 +1,4 @@
 def foo(request):
-    #ERROR:
+    #ruleid: open-redirect
     redirect(request.foo)
     return

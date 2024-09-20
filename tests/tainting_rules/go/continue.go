@@ -6,6 +6,6 @@ func f() {
 		//OK:
 		sink(source)
 	}
-	//ERROR:
+	//ruleid: test-continue
 	sink(source)
 }

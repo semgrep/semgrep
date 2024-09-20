@@ -1,5 +1,5 @@
 if (random()) {
-  //ERROR:
+  //ruleid: test
   sink(source);
 }
 else {

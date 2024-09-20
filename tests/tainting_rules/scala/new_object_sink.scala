@@ -1,3 +1,3 @@
 val x = arg
-//ERROR: match
+//ruleid: tainted-obj
 val bad = new Example(x)

@@ -5,17 +5,17 @@ class BadPractice extends Component {
     // Testing DOM XSS source --> sink taint tracking in `mode: taint`
 
     const a = location.href;
-    //ERROR:
+    //ruleid: test
     React.createElement("a", { href: a });
 
-    //ERROR:
+    //ruleid: test
     React.createElement("a", { href: location.hash });
 
     const c = location.href + "bbb";
-    //ERROR:
+    //ruleid: test
     React.createElement("a", { href: c });
 
-    //ERROR:
+    //ruleid: test
     React.createElement("a", { href: "aa" + location.href });
 
   }

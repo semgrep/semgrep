@@ -3,9 +3,9 @@
 $doc = new DOMDocument();
 // We did not catch the error when the sink was the variable in an l-value,
 // because we assumed that only expressions or instructions could be sinks.
-//ERROR:
+//ruleid: domdocument-load
 $doc->load('file.xml');
-//ERROR:
+//ruleid: domdocument-load
 $doc->load($doc);
 //OK:
 $something->load($doc);
