@@ -204,7 +204,12 @@ and rule_id = {
 
 (* Deduplicate matches *)
 let uniq (pms : t list) : t list =
-  let tbl = Hashtbl.create 1_024 in
+  (* perf: Previously used an initial size of 1024 but profiling with memtrace
+   * revealed that this was oversized and contributed to 14% of all major heap
+   * usage in an interfile run over juice-shop. Setting it to 8 meant it was
+   * undersized in some cases and led to additional allocations as the table
+   * gets resized. Change this only with caution. *)
+  let tbl = Hashtbl.create (List.length pms) in
   pms
   |> List.iter (fun match_ ->
          let loc = match_.range_loc in
