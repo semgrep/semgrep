@@ -202,7 +202,9 @@ let read_rules_file ~get_xlang ?fail_callback rule_file =
   | Ok rules ->
       let xlang = get_xlang rule_file rules in
       let target = find_target_of_yaml_file rule_file in
-      Logs.info (fun m -> m "processing target %s" !!target);
+      Logs.info (fun m ->
+          m "processing target %s (with xlang %s)" !!target
+            (Xlang.to_string xlang));
 
       (* ugly: this is just for tests/rules/inception2.yaml, to use JSON
          to parse the pattern but YAML to parse the target *)
@@ -219,7 +221,7 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
     ?(get_xlang = single_xlang_from_rules) ?(prepend_lang = false)
     (rule_file : Fpath.t) : Testo.t =
   let test () =
-    Logs.info (fun m -> m "processing rule file %s" !!rule_file);
+    Logs.info (fun m -> m "processing rules  %s" !!rule_file);
     match read_rules_file ~get_xlang ~fail_callback rule_file with
     | None -> ()
     | Some (rules, target, xlang) -> (
@@ -253,7 +255,7 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
                 (spf "exn on %s (exn = %s)" !!rule_file (Common.exn_to_s exn))
         in
         check_can_marshall rule_file res;
-        check_parse_errors rule_file res.errors;
+        check_parse_errors target res.errors;
 
         (* optionally do autofix tests if *)
         Test_utils.compare_fixes ~file:target res.matches;
