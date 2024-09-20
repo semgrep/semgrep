@@ -2,7 +2,7 @@
 func simpleTaint() int {
     global := getGlobal()
     items := make(global.Items, len(global.items))
-    //ERROR:
+    //ruleid: taint-example
     sink(global)
 }
 
@@ -19,7 +19,7 @@ func simpleSanitize() int {
 func twoHopTaint() int {
     global := getGlobal()
     items := make(global.Items, len(global.items))
-    //ERROR:
+    //ruleid: taint-example
     sink(items)
 }
 
@@ -29,7 +29,7 @@ func twoHopTaintSanitized() int {
     items := make(global.Items, len(global.items))
     sanitizeGlobal(items)
     //TODO
-    //ERROR:
+    //ruleid: taint-example
     sink(items)
 }
 
@@ -39,7 +39,7 @@ func GetItems() int {
     items := make(global.Items, len(global.items))
     if len(items) == 0 {
         fmt.Println("No items")
-        //ERROR:
+        //ruleid: taint-example
         sink(global)
     }
     return 0

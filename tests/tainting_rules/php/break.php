@@ -14,7 +14,7 @@ function f() {
                 }
             }
         }
-        //ERROR:
+        //ruleid: test-multi-break
         sink($bad);
     }
 }

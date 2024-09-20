@@ -5,8 +5,8 @@ var source = cond ? get(A) : get(B)
 
 //Since source could be tainted with either $X = A or $X = B, both of these sinks should be tainted
 
-//ERROR:
+//ruleid: test-metavar-eq
 sink(A,source)
 
-//ERROR:
+//ruleid: test-metavar-eq
 sink(B,source)

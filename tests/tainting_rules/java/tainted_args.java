@@ -5,5 +5,5 @@ String command = getSafeCommand();
 r.exec(command);
 
 String command2 = getUnsafeCommand();
-//ERROR:
+//ruleid: os-command
 r.exec(command2);
