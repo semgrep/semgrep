@@ -417,7 +417,7 @@ local validate_release_trigger_job = {
 
 local notify_success_job = {
   #'if': '${{ success() && ! inputs.dry-run }}',
-  'if': '${{ success() }}',
+  'if': '${{ always() }}',
   needs: [
     'check-version',
     'release-setup',
@@ -488,7 +488,7 @@ local notify_success_job = {
         "Release Validation has failed for version %s. Please see https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!" % version
          ) + {
           // 'if': '${{ failure() && ! inputs.dry-run }}',
-          'if': '${{ success() }}',
+          'if': '${{ always() }}',
           needs: [
             'check-version',
             'release-setup',

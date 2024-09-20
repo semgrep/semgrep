@@ -306,7 +306,7 @@ jobs:
           git tag -a -m "Release ${VERSION}" "v${VERSION}"
           git push origin "v${VERSION}"
   notify-failure:
-    if: ${{ success() }}
+    if: ${{ always() }}
     needs:
       - check-version
       - release-setup
@@ -329,7 +329,7 @@ jobs:
   notify-success:
     env:
       VERSION: ${{ github.event.inputs.semgrep-version }}
-    if: ${{ success() }}
+    if: ${{ always() }}
     needs:
       - check-version
       - release-setup
