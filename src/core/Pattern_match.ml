@@ -235,7 +235,9 @@ let submatch pm1 pm2 =
 
 (* Remove matches that are srictly inside another match. *)
 let no_submatches pms =
-  let tbl = Hashtbl.create 1_024 in
+  (* Initial hash table size based on memory profiling with memtrace. Increase
+   * only with caution. *)
+  let tbl = Hashtbl.create (List.length pms) in
   pms
   |> List.iter (fun pm ->
          (* This is mainly for removing taint-tracking duplicates and
