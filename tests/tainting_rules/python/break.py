@@ -2,7 +2,7 @@ def f():
     i = 0
     while (i < 0):
         if i == 4:
-            #ERROR:
+            #ruleid: test-break
             sink(source)
             break
             #OK:

@@ -2,5 +2,5 @@ def foo():
   try:
     raise Foo()
   finally:
-    #ERROR:
+    #ruleid: test
     sink(source)
