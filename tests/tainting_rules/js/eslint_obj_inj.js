@@ -1,12 +1,12 @@
 function test1(x) {
     var a = x
-    //ERROR:
+    //ruleid: tainting
     return o[a]
 }
 
 function test2() {
     var b = baz(0)
-    //ERROR:
+    //ruleid: tainting
     var z = o[b]
     return z+1
 }
@@ -17,7 +17,7 @@ function test3(x) {
         c = x
     else
         c = 1
-    //ERROR:
+    //ruleid: tainting
     return o[c]
 }
 

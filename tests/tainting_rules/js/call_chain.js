@@ -1,5 +1,5 @@
 function foo($scope) {
-  //ERROR:
+  //ruleid: detect-angular-element-methods
   var now = angular.element($scope.input).html();
 };
 

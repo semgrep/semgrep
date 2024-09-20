@@ -14,5 +14,5 @@ def foo():
     #OK:
     sink(z)
     z = y
-  #ERROR:
+  #ruleid: test
   sink(z)

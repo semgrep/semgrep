@@ -2,7 +2,7 @@ def foo():
   a = source1()
   b = "safe"
   if c:
-    #ERROR:
+    #ruleid: tainting
     return a
   else:
     #OK:

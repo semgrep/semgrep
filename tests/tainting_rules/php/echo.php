@@ -2,10 +2,10 @@
 // https://github.com/returntocorp/semgrep/issues/3191
 
 function foo() {
-    //ERROR:
+    //ruleid: test-taint-echo
     echo $_GET['a'];
 
-    //ERROR:
+    //ruleid: test-taint-echo
     echo custom($_GET['b']);
 
     //OK:
