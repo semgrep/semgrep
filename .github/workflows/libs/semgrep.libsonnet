@@ -231,7 +231,7 @@ local slack = {
   // (look for "slack webhook") and configured by #team-techops to post to
   // #semgrep-cli-release at
   // https://semgrepinc.slack.com/apps/A0F7XDUAZ-incoming-webhooks?tab=settings&next_id=0
-  
+
   // Double escape quotes because they are nested in two layers of double quotes. Which still allows string interpolation at the bash level.
   curl_notify(message): |||
       curl --request POST \
