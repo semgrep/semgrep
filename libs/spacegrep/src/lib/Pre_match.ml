@@ -41,8 +41,10 @@ type atom_table = {
 
 let build_atom_table ~case_sensitive (pat : Pattern_AST.t) =
   let open Pattern_AST in
-  let words = Hashtbl.create 1000 in
-  let chars = Hashtbl.create 256 in
+  (* Initial sizes for these hash tables reduced based on a memtrace
+   * investigation. Increase them only with caution. *)
+  let words = Hashtbl.create 64 in
+  let chars = Hashtbl.create 32 in
   let rec index nodes = List.iter index_node nodes
   and index_node = function
     | Atom (_, atom) -> index_atom atom
