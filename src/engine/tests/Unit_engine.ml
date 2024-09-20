@@ -791,10 +791,13 @@ let mark_todo_js (test : Testo.t) =
   | _ -> test
 
 (* quite similar to full_rule_regression_tests but prefer to pack_tests
- * with "full semgrep rule Java", so one can just run the Java tests
+ * with "semgrep-rules repo Java", so one can just run the Java tests
  * with ./test Java
  * alt: do like in semgrep-pro and call the toplevel engine
  * in a Unit_runner.ml instead of using Test_engine.make_tests
+ * TODO: get rid of this and rely on `osemgrep test` code instead of
+ * Test_engine.make_tests as they differ sligltly and we're using
+ * osemgrep test in the semgrep-rules repo CI, not -test_rules.
  *)
 let semgrep_rules_repo_tests () : Testo.t list =
   let path = tests_path / "semgrep-rules" in
@@ -810,8 +813,17 @@ let semgrep_rules_repo_tests () : Testo.t list =
               * an XFAIL Testo test for those.
               *)
              | s
-               when (* TODO: parse error, weird *)
+               when (* TODO: we're skipping those rules because e.g. for bidy.yml
+                       we're using a languages: [bash,c, ..., python] and a
+                       bidy.py target file which cause Test_engine.make_test to
+                       parse bidy.py with a bash parser (the first one in the
+                       list) which then cause a parse error. (py|o)semgrep test
+                       do not have the issue because they use the extension of
+                       the file to decide which language to use instead of what
+                       is in the rule
+                    *)
                     s =~ ".*/unicode/security/bidi.yml"
+                    || s =~ ".*/dockerfile/security/dockerd-socket-mount.yaml"
                     (* Elixir requires Pro *)
                     || s =~ ".*/elixir/lang/.*"
                     (* Apex requires Pro *)
