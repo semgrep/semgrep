@@ -617,6 +617,10 @@ let run_tests (caps : Core_scan.caps) ~matching_diagnosis (tests : tests)
              in
              match res_or_exn with
              | Error exn -> Exception.reraise exn
+             (* TODO: fail early or add a kind of error in the json output
+                | Ok { errors = _x::_; _} ->
+                   failwith "TODO"
+             *)
              | Ok res ->
                  let matches =
                    res.processed_matches
