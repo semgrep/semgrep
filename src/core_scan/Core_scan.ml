@@ -278,7 +278,8 @@ let parse_and_resolve_name (lang : Lang.t) (fpath : Fpath.t) :
   let { Parsing_result2.ast; skipped_tokens; _ } =
     Logs_.with_debug_trace ~__FUNCTION__ (fun () ->
         Logs.debug (fun m ->
-            m "Parsing (and naming) %s (with lang %s)" !!fpath (Lang.show lang));
+            m "Parsing (and naming) %s (with lang %s)" !!fpath
+              (Lang.to_string lang));
         Parse_target.parse_and_resolve_name lang fpath)
   in
   (ast, skipped_tokens)
@@ -431,7 +432,8 @@ let iter_targets_and_get_matches_and_exn_to_errors (caps : < Cap.fork >)
          caps config.ncores (fun (target : Target.t) ->
            let internal_path = Target.internal_path target in
            let noprof = Core_profiling.empty_partial_profiling internal_path in
-           Logs.debug (fun m -> m "Core_scan analyzing %s" !!internal_path);
+           Logs.debug (fun m ->
+               m "Core_scan analyzing %a" Target.pp_debug target);
 
            (* Coupling: if you update handle_target_maybe_with_trace here
             * it's very likely you'd need to update the same in Deep_scan.ml
