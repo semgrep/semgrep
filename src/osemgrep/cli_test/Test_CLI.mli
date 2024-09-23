@@ -2,24 +2,23 @@
    'semgrep test' command-line parsing.
 *)
 
-(*
-   The result of parsing a 'semgrep test' command.
-   This is also used in Scan_CLI.ml to transform legacy
-   commands such as 'semgrep scan --tests <dir>' into the
-   new 'semgrep test <dir>'
-*)
+(* The result of parsing a 'semgrep test' command. This is also used in
+ * Scan_CLI.ml to transform legacy commands such as 'semgrep scan --tests <dir>'
+ * into the new 'semgrep test <dir>'
+ *)
 type conf = {
   target : target_kind;
+  pro : bool;
   ignore_todo : bool;
   json : bool;
   optimizations : bool;
   strict : bool;
-  common : CLI_common.conf;
   (* Whether to emit "matching diagnosis", which analyzes failing
      test annotation cases and matching explanations to determine
      why a rule did or did not match.
   *)
   matching_diagnosis : bool;
+  common : CLI_common.conf;
 }
 
 and target_kind =
