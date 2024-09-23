@@ -28,9 +28,9 @@ jobs:
           curl --request POST \
            --url  ${{ secrets.NOTIFICATIONS_URL }} \
            --header 'content-type: application/json' \
-           --data '{
-             "text": "The End to end semgrep ci workflow failed with docker tag ${{ needs.get-inputs.outputs.docker_tag }}. The PR in `returntocorp/e2e` that had the failure was ${{ needs.semgrep-ci-on-pr.outputs.pr-number }}. See https://github.com/semgrep/semgrep/actions/workflows/test-e2e-semgrep-ci.yml for more info"
-           }'
+           --data "{
+             \"text\": \"The End to end semgrep ci workflow failed with docker tag ${{ needs.get-inputs.outputs.docker_tag }}. The PR in `returntocorp/e2e` that had the failure was ${{ needs.semgrep-ci-on-pr.outputs.pr-number }}. See https://github.com/semgrep/semgrep/actions/workflows/test-e2e-semgrep-ci.yml for more info\"
+           }"
   semgrep-ci:
     container:
       image: returntocorp/semgrep:${{ needs.get-inputs.outputs.docker_tag }}
