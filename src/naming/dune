@@ -10,6 +10,7 @@
    commons
    ast_generic
    semgrep.core ; for Lang
+   semgrep.typing
    parser_javascript.ast ; ugly for Ast_js.default_entity
  )
  (preprocess

@@ -82,3 +82,11 @@ let lines_of_range (start_offset, end_offset) str =
     in
     let lines = String.split_on_char '\n' substr in
     List_.map trim_cr lines
+
+let is_capitalized s =
+  String.length s <> 0
+  &&
+  match s.[0] with
+  (* https://ocaml.org/manual/5.2/patterns.html#sss:pat-range *)
+  | 'A' .. 'Z' -> true
+  | _ -> false
