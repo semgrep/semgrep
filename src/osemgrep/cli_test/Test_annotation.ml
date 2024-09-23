@@ -12,9 +12,6 @@ open Fpath_.Operators
 (* Types and constants *)
 (*****************************************************************************)
 
-(* TODO: extend for semgrep-pro annotations (maybe add a bool in addition
- * to the kind so 'deepruleid:' is parsed as { kind = Ruleid; deep = true }
- *)
 type kind =
   (* The good one, should be reported (TP) *)
   | Ruleid
@@ -26,8 +23,15 @@ type kind =
   | Todook
 [@@deriving show]
 
+(* following the conventions used in the annotations themselves with
+ * proruleid: and deepruleid: (see tests/intrafile/README).
+ * alt: CoreScan | ProScan | DeepScan
+ * less: factorize with the other engine types
+ *)
+type engine = OSS | Pro | Deep [@@deriving show]
+
 (* ex: "#ruleid: lang.ocaml.do-not-use-lisp-map" *)
-type t = kind * Rule_ID.t [@@deriving show]
+type t = kind * engine * Rule_ID.t [@@deriving show]
 
 (* starts at 1 *)
 type linenb = int
@@ -141,6 +145,12 @@ let annotations_of_string (orig_str : string) (file : Fpath.t) (idx : linenb) :
         (* " ruleid: foo.bar " *)
         let s = String.trim s in
         (* "ruleid: foo.bar" *)
+        let engine, s =
+          match s with
+          | _ when s =~ "^pro\\(.*\\)" -> (Pro, Common.matched1 s)
+          | _ when s =~ "^deep\\(.*\\)" -> (Deep, Common.matched1 s)
+          | _ -> (OSS, s)
+        in
         if s =~ annotation_regexp then
           let kind_str, ids_str = Common.matched2 s in
           let kind = annotation_kind_of_string kind_str in
@@ -159,7 +169,7 @@ let annotations_of_string (orig_str : string) (file : Fpath.t) (idx : linenb) :
           xs
           |> List_.filter_map (fun id_str ->
                  match Rule_ID.of_string_opt id_str with
-                 | Some id -> Some ((kind, id), idx)
+                 | Some id -> Some ((kind, engine, id), idx)
                  | None ->
                      Logs.warn (fun m ->
                          m
@@ -196,18 +206,19 @@ let () =
             (spf "Annotations didn't match, got %s, expected %s"
                (Dumper.dump xs) (Dumper.dump expected))
       in
-      test "// ruleid: foo.bar" [ (Ruleid, Rule_ID.of_string_exn "foo.bar") ];
+      test "// ruleid: foo.bar"
+        [ (Ruleid, OSS, Rule_ID.of_string_exn "foo.bar") ];
       test "// ruleid: foo, bar"
         [
-          (Ruleid, Rule_ID.of_string_exn "foo");
-          (Ruleid, Rule_ID.of_string_exn "bar");
+          (Ruleid, OSS, Rule_ID.of_string_exn "foo");
+          (Ruleid, OSS, Rule_ID.of_string_exn "bar");
         ];
       test "<!-- ruleid: foo-bar -->"
-        [ (Ruleid, Rule_ID.of_string_exn "foo-bar") ];
+        [ (Ruleid, OSS, Rule_ID.of_string_exn "foo-bar") ];
       (* the ok: does not mean it's an annot; it's regular (JS) code *)
       test "return res.send({ok: true})" [];
       test "// ruleid: deepok: foo.deep"
-        [ (Ruleid, Rule_ID.of_string_exn "foo.deep") ];
+        [ (Ruleid, OSS, Rule_ID.of_string_exn "foo.deep") ];
       ())
 
 (*****************************************************************************)
@@ -220,26 +231,26 @@ let () =
 let group_positive_annotations (annots : annotations) :
     (Rule_ID.t, linenb list) Assoc.t =
   annots
-  |> List_.filter_map (fun ((kind, id), line) ->
+  |> List_.filter_map (fun ((kind, engine, id), line) ->
          match kind with
          | Ruleid
          | Todook ->
-             Some (id, line)
+             Some (id, engine, line)
          | Ok
          | Todoruleid ->
              None)
-  |> Assoc.group_by (fun (id, _line) -> id)
+  |> Assoc.group_by (fun (id, _engine, _line) -> id)
   |> List_.map (fun (id, xs) ->
          ( id,
            xs
-           |> List_.map (fun (_id, line) -> line + 1)
+           |> List_.map (fun (_id, _engine, line) -> line + 1)
            (* should not be needed given how annotations work but safer *)
            |> List.sort_uniq Int.compare ))
 
 let filter_todook (annots : annotations) (xs : linenb list) : linenb list =
   let (todooks : linenb Set_.t) =
     annots
-    |> List_.filter_map (fun ((kind, _id), line) ->
+    |> List_.filter_map (fun ((kind, _engine, _id), line) ->
            match kind with
            (* + 1 because the expected/reported is the line after the annotation *)
            | Todook -> Some (line + 1)
