@@ -15,6 +15,7 @@
 open Common
 open Fpath_.Operators
 module Out = Semgrep_output_v1_j
+module A = Test_annotation
 
 (*****************************************************************************)
 (* Prelude *)
@@ -96,8 +97,6 @@ type env = {
    *)
   errors : error list ref;
 }
-
-type linenb = Test_annotation.linenb
 
 (* TODO: move in core/ ? used in other files? was in constants.py in pysemgrep *)
 let break_line =
@@ -438,7 +437,7 @@ let run_rules_against_targets ~matching_diagnosis caps (rules : Rule.t list)
  *)
 let compare_actual_to_expected (env : env) (rules : Rule.t list)
     (target_files : Fpath.t list) (matches : Pattern_match.t list)
-    (annots : (Fpath.t * Test_annotation.annotations) list)
+    (annots : (Fpath.t * A.annotations) list)
     (explanations : Matching_explanation.t list option) :
     test_result list * fixtest_result list =
   (* actual matches *)
@@ -457,12 +456,12 @@ let compare_actual_to_expected (env : env) (rules : Rule.t list)
   in
   (* expected matches *)
   let expected_by_ruleid_and_file :
-      (Rule_ID.t, (Fpath.t, linenb list) Assoc.t) Assoc.t =
+      (Rule_ID.t, (Fpath.t, A.linenb list) Assoc.t) Assoc.t =
     let h = Hashtbl.create 101 in
     annots
     |> List.iter (fun (file, annotations) ->
-           let expected_by_rule_id : (Rule_ID.t, linenb list) Assoc.t =
-             Test_annotation.group_positive_annotations annotations
+           let expected_by_rule_id : (Rule_ID.t, A.linenb list) Assoc.t =
+             A.group_positive_annotations annotations
            in
            expected_by_rule_id
            |> List.iter (fun (rule_id, lines) ->
@@ -482,7 +481,7 @@ let compare_actual_to_expected (env : env) (rules : Rule.t list)
              matches_by_ruleid_and_file |> Assoc.find_opt id
              |> List_.optlist_to_list
            in
-           let expected : (Fpath.t, linenb list) Assoc.t =
+           let expected : (Fpath.t, A.linenb list) Assoc.t =
              expected_by_ruleid_and_file |> Assoc.find_opt id
              |> List_.optlist_to_list
            in
@@ -495,14 +494,14 @@ let compare_actual_to_expected (env : env) (rules : Rule.t list)
                     let matches : Pattern_match.t list =
                       actual |> Assoc.find_opt target |> List_.optlist_to_list
                     in
-                    let (reported_lines : linenb list) =
+                    let (reported_lines : A.linenb list) =
                       matches
                       |> List_.map (fun (pm : Pattern_match.t) ->
                              pm.range_loc |> fst |> fun (loc : Loc.t) ->
                              loc.pos.line)
                       |> List.sort_uniq Int.compare
                     in
-                    let expected_lines : linenb list =
+                    let expected_lines : A.linenb list =
                       expected |> Assoc.find_opt target |> List_.optlist_to_list
                     in
                     let passed = reported_lines =*= expected_lines in
@@ -518,10 +517,10 @@ let compare_actual_to_expected (env : env) (rules : Rule.t list)
                     in
                     let expected_reported =
                       let reported_lines =
-                        Test_annotation.filter_todook file_annots reported_lines
+                        A.filter_todook file_annots reported_lines
                       in
                       let expected_lines =
-                        Test_annotation.filter_todook file_annots expected_lines
+                        A.filter_todook file_annots expected_lines
                       in
                       { Out.reported_lines; expected_lines }
                     in
@@ -594,7 +593,7 @@ let compare_actual_to_expected (env : env) (rules : Rule.t list)
 (*****************************************************************************)
 (* Run the tests *)
 (*****************************************************************************)
-let run_tests (caps : Core_scan.caps) ~matching_diagnosis (tests : tests)
+let run_tests (caps : Core_scan.caps) (conf : Test_CLI.conf) (tests : tests)
     (errors : error list ref) :
     (Fpath.t (* rule file *) * test_result list * fixtest_result list) list =
   (* LATER: in theory we could use Parmap here *)
@@ -615,13 +614,26 @@ let run_tests (caps : Core_scan.caps) ~matching_diagnosis (tests : tests)
                Core_runner.targets_for_files_and_rules target_files rules
              in
              let env = { rule_file; errors } in
+             (* TODO: give opportunity to branch to pro engine *)
              let res_or_exn : Core_result.result_or_exn =
-               run_rules_against_targets ~matching_diagnosis caps rules targets
+               run_rules_against_targets conf.matching_diagnosis caps rules
+                 targets
              in
-             let expected : (Fpath.t * Test_annotation.annotations) list =
+             let expected : (Fpath.t * A.annotations) list =
                target_files
                |> List_.map (fun file ->
-                      (file, Test_annotation.annotations file))
+                      let annots = A.annotations file in
+                      (* TODO: filter different annots if pro engine *)
+                      let annots =
+                        annots
+                        |> List.filter (fun ((_, engine, _), _) ->
+                               match engine with
+                               | A.OSS -> true
+                               | A.Pro
+                               | A.Deep ->
+                                   false)
+                      in
+                      (file, annots))
              in
              match res_or_exn with
              | Error exn -> Exception.reraise exn
@@ -684,7 +696,7 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
 
   (* step2: run the tests *)
   let result : tests_result =
-    run_tests (caps :> Core_scan.caps) ~matching_diagnosis tests errors
+    run_tests (caps :> Core_scan.caps) conf tests errors
   in
 
   (* step3: report the test results *)
