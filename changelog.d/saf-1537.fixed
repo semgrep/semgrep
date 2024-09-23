@@ -1,0 +1,2 @@
+Pro Engine: There is now improved type inference in Kotlin and Scala. Constructor invocations like
+`Foo()` will now be inferred properly to be of type `Foo`.
