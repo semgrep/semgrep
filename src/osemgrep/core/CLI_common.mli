@@ -14,6 +14,9 @@ type conf = {
 }
 [@@deriving show]
 
+(* stuff to add after an option that is available only in semgrep-pro *)
+val blurb_pro : string
+
 (* handles logging arguments (--quiet/--verbose/--debug) *)
 val o_logging : Logs.level option Cmdliner.Term.t
 

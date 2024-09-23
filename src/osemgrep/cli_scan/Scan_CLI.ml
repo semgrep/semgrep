@@ -4,6 +4,7 @@ module Term = Cmdliner.Term
 module Cmd = Cmdliner.Cmd
 module H = Cmdliner_
 module Show = Show_CLI
+module C = CLI_common
 
 (*****************************************************************************)
 (* Prelude *)
@@ -656,14 +657,10 @@ This may still run Pro rules, but only using the OSS features.
   in
   Arg.value (Arg.flag info)
 
-let blurb_pro =
-  "Requires Semgrep Pro Engine. See https://semgrep.dev/products/pro-engine/ \
-   for more."
-
 let o_pro_languages : bool Term.t =
   let info =
     Arg.info [ "pro-languages" ]
-      ~doc:("Enable Pro languages (currently Apex and Elixir). " ^ blurb_pro)
+      ~doc:("Enable Pro languages (currently Apex and Elixir). " ^ C.blurb_pro)
   in
   Arg.value (Arg.flag info)
 
@@ -672,14 +669,14 @@ let o_pro_intrafile : bool Term.t =
     Arg.info [ "pro-intrafile" ]
       ~doc:
         ("Intra-file inter-procedural taint analysis. Implies --pro-languages. "
-       ^ blurb_pro)
+       ^ C.blurb_pro)
   in
   Arg.value (Arg.flag info)
 
 let o_pro_path_sensitive : bool Term.t =
   let info =
     Arg.info [ "pro-path-sensitive" ]
-      ~doc:("Path sensitivity. Implies --pro-intrafile. " ^ blurb_pro)
+      ~doc:("Path sensitivity. Implies --pro-intrafile. " ^ C.blurb_pro)
   in
   Arg.value (Arg.flag info)
 
@@ -688,7 +685,7 @@ let o_pro : bool Term.t =
     Arg.info [ "pro" ]
       ~doc:
         ("Inter-file analysis and Pro languages (currently Apex and Elixir). "
-       ^ blurb_pro)
+       ^ C.blurb_pro)
   in
   Arg.value (Arg.flag info)
 
@@ -1227,7 +1224,7 @@ let validate_CLI_conf ~validate ~rules_source ~core_runner_conf ~common :
   else None
 
 let test_CLI_conf ~test ~target_roots ~config ~json ~optimizations
-    ~test_ignore_todo ~strict ~common : Test_CLI.conf option =
+    ~test_ignore_todo ~strict ~pro ~common : Test_CLI.conf option =
   if test then
     let target =
       Test_CLI.target_kind_of_roots_and_config
@@ -1238,6 +1235,7 @@ let test_CLI_conf ~test ~target_roots ~config ~json ~optimizations
       Test_CLI.
         {
           target;
+          pro;
           strict;
           json;
           optimizations;
@@ -1395,7 +1393,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     (* ugly: test should be a separate subcommand *)
     let test : Test_CLI.conf option =
       test_CLI_conf ~test ~target_roots ~config ~json ~optimizations
-        ~test_ignore_todo ~strict ~common
+        ~test_ignore_todo ~strict ~pro ~common
     in
     (* more sanity checks *)
     if
