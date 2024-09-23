@@ -14,3 +14,6 @@ val main : caps -> string array -> Exit_code.t
  * legacy way to test things (e.g., 'semgrep scan --tests <dir>')
  *)
 val run_conf : caps -> Test_CLI.conf -> Exit_code.t
+
+(* pro hooks *)
+val hook_pro_init : (unit -> unit) ref
