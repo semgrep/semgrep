@@ -9,8 +9,10 @@ type kind =
   | Todook
 [@@deriving show]
 
+type engine = OSS | Pro | Deep [@@deriving show]
+
 (* ex: "#ruleid: lang.ocaml.do-not-use-lisp-map" *)
-type t = kind * Rule_ID.t [@@deriving show]
+type t = kind * engine * Rule_ID.t [@@deriving show]
 
 (* starts at 1 *)
 type linenb = int
