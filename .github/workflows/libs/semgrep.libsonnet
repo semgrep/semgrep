@@ -200,6 +200,16 @@ local containers = {
    },
 };
 
+
+// Escape all the inner double quotes of a string so that
+// it could be embedded in a JSON string.
+local escapeStringJson = function(str)
+  std.lstripChars(
+    std.rstripChars(
+      std.escapeStringJson(str),
+      '"'),
+    '"');
+
 // ----------------------------------------------------------------------------
 // Slack helpers
 // ----------------------------------------------------------------------------
@@ -221,14 +231,16 @@ local slack = {
   // (look for "slack webhook") and configured by #team-techops to post to
   // #semgrep-cli-release at
   // https://semgrepinc.slack.com/apps/A0F7XDUAZ-incoming-webhooks?tab=settings&next_id=0
+
+  // Double escape quotes because they are nested in two layers of double quotes. Which still allows string interpolation at the bash level.
   curl_notify(message): |||
       curl --request POST \
        --url  ${{ secrets.NOTIFICATIONS_URL }} \
        --header 'content-type: application/json' \
-       --data '{
-         "text": %s
-       }'
-    ||| % std.escapeStringJson(message),
+       --data "{
+         \"text\": \"%s\"
+       }"
+  ||| % escapeStringJson(escapeStringJson(message)),
 
   notify_failure_job(message): {
    'runs-on': 'ubuntu-20.04',
