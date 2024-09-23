@@ -357,40 +357,54 @@ let rec get_resolved_type lang (vinit, vtype) =
   match vtype with
   | None
   | Some { t = TyAny _; _ } -> (
-      (* Currently these vary between languages *)
-      (* Alternative is to define a TyInt, TyBool, etc. in the generic AST *)
-      (* so this would be more portable across languages *)
-      match vinit with
-      | Some { e = L (Bool (_, tok)); _ } -> make_type "bool" tok
-      | Some { e = L (Int (_, tok)); _ } -> make_type "int" tok
-      | Some { e = L (Float (_, tok)); _ } -> make_type "float" tok
-      | Some { e = L (Char (_, tok)); _ } -> make_type "char" tok
-      | Some { e = L (String (_, (_, tok), _)); _ } ->
-          let string_str =
-            match lang with
-            | Lang.Go -> "str"
-            | Lang.Js
-            | Lang.Ts ->
-                "string"
-            | _ -> "string"
-          in
-          make_type string_str tok
-      | Some { e = L (Regexp ((_, (_, tok), _), _)); _ } ->
-          make_type "regexp" tok
-      | Some { e = RegexpTemplate ((l, _fragments, _r), _); _ } ->
-          (* TODO: need proper location instead of just the opening '/'? *)
-          make_type "regexp" l
-      | Some { e = L (Unit tok); _ } -> make_type "unit" tok
-      | Some { e = L (Null tok); _ } -> make_type "null" tok
-      | Some { e = L (Imag (_, tok)); _ } -> make_type "imag" tok
-      (* alt: lookup id in env to get its type, which would be cleaner *)
-      | Some { e = N (Id (_, { id_type; _ })); _ } -> !id_type
-      | Some { e = New (_, tp, _, (_, _, _)); _ } -> Some tp
-      | Some { e = Ref (tok, exp); _ } ->
-          Option.bind
-            (get_resolved_type lang (Some exp, None))
-            (fun x -> Some (t @@ TyPointer (tok, x)))
-      | _ -> None)
+      (* Use proprietary type inference, if applicable.
+         This needs to be here while we still use `Naming_AST` for intrafile
+         scans, as opposed to `Naming_SAST`.
+      *)
+      let pro_type =
+        match (!Typing.pro_hook_type_of_expr, vinit) with
+        | Some f, Some e ->
+            let* type_ = f lang e in
+            Type.to_ast_generic_type_ lang (fun name _alts -> name) type_
+        | _ -> None
+      in
+      match pro_type with
+      | Some x -> Some x
+      | None -> (
+          (* Currently these vary between languages *)
+          (* Alternative is to define a TyInt, TyBool, etc. in the generic AST *)
+          (* so this would be more portable across languages *)
+          match vinit with
+          | Some { e = L (Bool (_, tok)); _ } -> make_type "bool" tok
+          | Some { e = L (Int (_, tok)); _ } -> make_type "int" tok
+          | Some { e = L (Float (_, tok)); _ } -> make_type "float" tok
+          | Some { e = L (Char (_, tok)); _ } -> make_type "char" tok
+          | Some { e = L (String (_, (_, tok), _)); _ } ->
+              let string_str =
+                match lang with
+                | Lang.Go -> "str"
+                | Lang.Js
+                | Lang.Ts ->
+                    "string"
+                | _ -> "string"
+              in
+              make_type string_str tok
+          | Some { e = L (Regexp ((_, (_, tok), _), _)); _ } ->
+              make_type "regexp" tok
+          | Some { e = RegexpTemplate ((l, _fragments, _r), _); _ } ->
+              (* TODO: need proper location instead of just the opening '/'? *)
+              make_type "regexp" l
+          | Some { e = L (Unit tok); _ } -> make_type "unit" tok
+          | Some { e = L (Null tok); _ } -> make_type "null" tok
+          | Some { e = L (Imag (_, tok)); _ } -> make_type "imag" tok
+          (* alt: lookup id in env to get its type, which would be cleaner *)
+          | Some { e = N (Id (_, { id_type; _ })); _ } -> !id_type
+          | Some { e = New (_, tp, _, (_, _, _)); _ } -> Some tp
+          | Some { e = Ref (tok, exp); _ } ->
+              Option.bind
+                (get_resolved_type lang (Some exp, None))
+                (fun x -> Some (t @@ TyPointer (tok, x)))
+          | _ -> None))
   | Some _ -> vtype
 
 (*****************************************************************************)

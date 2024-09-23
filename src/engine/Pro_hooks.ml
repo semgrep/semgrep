@@ -59,6 +59,7 @@ let pro_hooks_refs =
     Pro_hook_ref Dataflow_tainting.hook_check_tainted_at_exit_sinks;
     Pro_hook_ref Dataflow_when.hook_annotate_facts;
     Pro_hook_ref Dataflow_when.hook_facts_satisfy_e;
+    Pro_hook_ref Typing.pro_hook_type_of_expr;
   ]
 
 (*****************************************************************************)
