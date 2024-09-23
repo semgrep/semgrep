@@ -104,6 +104,14 @@ let break_line =
   "--------------------------------------------------------------------------------"
 
 (*****************************************************************************)
+(* Pro hooks *)
+(*****************************************************************************)
+
+let hook_pro_init : (unit -> unit) ref =
+  ref (fun () ->
+      failwith "semgrep test --pro not available (need --install-semgrep-pro)")
+
+(*****************************************************************************)
 (* File targeting (the set of tests) *)
 (*****************************************************************************)
 
@@ -631,6 +639,11 @@ let run_tests (caps : Core_scan.caps) ~matching_diagnosis (tests : tests)
                      expected res.explanations
                  in
                  (rule_file, checks, fixtest_res))
+         | Ok (_, (MissingPlugin s, _, _) :: _)
+         | Error { kind = InvalidRule (MissingPlugin s, _, _); _ } ->
+             (* alt: could Stack_.push (MissingPlugin rule_file) errors *)
+             raise
+               (Error.Semgrep_error (s, Some (Exit_code.missing_config ~__LOC__)))
          | Ok (_, _ :: _)
          | Error _ ->
              (* alt: use List_.filter_map above and be more fault tolerant
@@ -659,6 +672,7 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
    * those options and we should disable metrics (and version-check) by default.
    *)
   Logs.debug (fun m -> m "conf = %s" (Test_CLI.show_conf conf));
+  if conf.pro then !hook_pro_init ();
   let matching_diagnosis = conf.matching_diagnosis in
   let errors = ref [] in
 

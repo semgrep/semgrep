@@ -9,7 +9,7 @@ open Cmdliner
 *)
 
 (*************************************************************************)
-(* Types *)
+(* Types and constants *)
 (*************************************************************************)
 
 type conf = {
@@ -21,6 +21,10 @@ type conf = {
   maturity : Maturity.t;
 }
 [@@deriving show]
+
+let blurb_pro =
+  "Requires Semgrep Pro Engine. See https://semgrep.dev/products/pro-engine/ \
+   for more."
 
 (*************************************************************************)
 (* Verbosity options (mutually exclusive) *)
