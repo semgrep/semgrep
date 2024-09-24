@@ -48,13 +48,18 @@ exception InternalInvalidLanguage of string (* rule id *) * string (* msg *)
 
 let of_lang (x : Lang.t) = L (x, [])
 
-let to_lang_exn (x : t) : Lang.t =
+let to_lang (x : t) : (Lang.t, string) Result.t =
   match x with
-  | L (lang, _) -> lang
-  | LRegex -> failwith (Lang.unsupported_language_message "regex")
+  | L (lang, _) -> Ok lang
+  | LRegex -> Error (Lang.unsupported_language_message "regex")
   | LSpacegrep
   | LAliengrep ->
-      failwith (Lang.unsupported_language_message "generic")
+      Error (Lang.unsupported_language_message "generic")
+
+let to_lang_exn (x : t) : Lang.t =
+  match to_lang x with
+  | Ok lang -> lang
+  | Error msg -> failwith msg
 
 let to_langs (x : t) : Lang.t list =
   match x with
