@@ -10,6 +10,10 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.config_resolver import parse_config_string
 from semgrep.dependency_aware_rule import SCA_FINDING_SCHEMA
 from semgrep.rule import Rule
+from semgrep.rule_match import remove_content
+from semgrep.rule_match import remove_content_call
+from semgrep.rule_match import remove_content_int_var
+from semgrep.rule_match import remove_content_loc
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatches
 
@@ -442,7 +446,7 @@ def test_rule_match_to_app_finding(snapshot, mocker):
             )
         },
     )
-    app_finding = match.to_app_finding_format("0")
+    app_finding = match.to_app_finding_format("0", remove_dataflow_content=False)
     app_finding.commit_date = "1970-01-01T00:00:00"
     app_finding_str = (
         json.dumps(app_finding.to_json(), indent=2, sort_keys=True) + "\n"
@@ -482,7 +486,7 @@ def test_rule_match_to_app_finding_historical_info(snapshot, mocker):
         ),
         extra={},
     )
-    app_finding = match.to_app_finding_format("0")
+    app_finding = match.to_app_finding_format("0", remove_dataflow_content=False)
     app_finding.commit_date = "1970-01-01T00:00:00"
     app_finding_str = (
         json.dumps(app_finding.to_json(), indent=2, sort_keys=True) + "\n"
@@ -635,3 +639,143 @@ def test_validator_rule_blocking(
         validation_state_actions, match_validation_state, action
     )
     assert rule_match.is_blocking == is_blocking
+
+
+file1 = "1.file"
+file2 = "2.file"
+pos1 = {"line": 1, "col": 1, "offset": 1}
+pos2 = {"line": 2, "col": 2, "offset": 2}
+loc1 = {"path": file1, "start": pos1, "end": pos2}
+loc2 = {"path": file2, "start": pos1, "end": pos2}
+
+lac1 = [loc1, "foo bar"]
+rc_lac1 = [loc1, "<code omitted>"]
+lac2 = [loc2, "foo bar"]
+rc_lac2 = [loc2, "<code omitted>"]
+
+
+@pytest.mark.quick
+@pytest.mark.parametrize(
+    ("input_json", "output_json"),
+    [(lac1, rc_lac1), (lac2, rc_lac2), (rc_lac1, rc_lac1), (rc_lac2, rc_lac2)],
+)
+def test_remove_content_loc(input_json, output_json):
+    assert (
+        out.LocAndContent.to_json(
+            remove_content_loc(out.LocAndContent.from_json(input_json))
+        )
+        == output_json
+    )
+
+
+iv1 = {"location": loc1, "content": "foo"}
+rc_iv1 = {"location": loc1, "content": "<code omitted>"}
+iv2 = {"location": loc2, "content": "foo"}
+rc_iv2 = {"location": loc2, "content": "<code omitted>"}
+
+
+@pytest.mark.quick
+@pytest.mark.parametrize(
+    ("input_json", "output_json"),
+    [(iv1, rc_iv1), (iv2, rc_iv2), (rc_iv1, rc_iv1), (rc_iv2, rc_iv2)],
+)
+def test_remove_content_int_var(input_json, output_json):
+    assert (
+        out.MatchIntermediateVar.to_json(
+            remove_content_int_var(out.MatchIntermediateVar.from_json(input_json))
+        )
+        == output_json
+    )
+
+
+cl1 = ["CliLoc", lac1]
+rc_cl1 = ["CliLoc", rc_lac1]
+cl2 = ["CliLoc", lac2]
+rc_cl2 = ["CliLoc", rc_lac2]
+cc1 = ["CliCall", [lac1, [iv1, iv2], cl1]]
+rc_cc1 = ["CliCall", [rc_lac1, [rc_iv1, rc_iv2], rc_cl1]]
+cc2 = ["CliCall", [lac2, [], cl2]]
+rc_cc2 = ["CliCall", [rc_lac2, [], rc_cl2]]
+cc3 = ["CliCall", [rc_lac1, [iv1, iv2, rc_iv1, rc_iv2], rc_cl1]]
+rc_cc3 = ["CliCall", [rc_lac1, [rc_iv1, rc_iv2, rc_iv1, rc_iv2], rc_cl1]]
+cc4 = ["CliCall", [lac2, [iv2, iv1], rc_cl2]]
+rc_cc4 = ["CliCall", [rc_lac2, [rc_iv2, rc_iv1], rc_cl2]]
+
+
+@pytest.mark.quick
+@pytest.mark.parametrize(
+    ("input_json", "output_json"),
+    [
+        (cl1, rc_cl1),
+        (cl2, rc_cl2),
+        (rc_cl1, rc_cl1),
+        (rc_cl2, rc_cl2),
+        (cc1, rc_cc1),
+        (cc2, rc_cc2),
+        (cc3, rc_cc3),
+        (cc4, rc_cc4),
+    ],
+)
+def test_remove_content_call(input_json, output_json):
+    assert (
+        out.MatchCallTrace.to_json(
+            remove_content_call(out.MatchCallTrace.from_json(input_json))
+        )
+        == output_json
+    )
+
+
+@pytest.mark.quick
+@pytest.mark.parametrize(
+    ("input_json", "output_json"),
+    [
+        (
+            {"taint_source": cl1, "intermediate_vars": [], "taint_sink": cl2},
+            {"taint_source": rc_cl1, "intermediate_vars": [], "taint_sink": rc_cl2},
+        ),
+        (
+            {},
+            {},
+        ),
+        (
+            {"taint_source": cc3, "intermediate_vars": [iv1], "taint_sink": cc4},
+            {
+                "taint_source": rc_cc3,
+                "intermediate_vars": [rc_iv1],
+                "taint_sink": rc_cc4,
+            },
+        ),
+        (
+            {"intermediate_vars": [iv1, iv2], "taint_sink": cc1},
+            {
+                "intermediate_vars": [rc_iv1, rc_iv2],
+                "taint_sink": rc_cc1,
+            },
+        ),
+        (
+            {"taint_source": cc3, "intermediate_vars": [iv1], "taint_sink": cc4},
+            {
+                "taint_source": rc_cc3,
+                "intermediate_vars": [rc_iv1],
+                "taint_sink": rc_cc4,
+            },
+        ),
+        (
+            {
+                "taint_source": cl1,
+                "intermediate_vars": [rc_iv1, rc_iv2],
+            },
+            {
+                "taint_source": rc_cl1,
+                "intermediate_vars": [rc_iv1, rc_iv2],
+            },
+        ),
+    ],
+)
+def test_remove_content(input_json, output_json):
+    assert (
+        out.MatchDataflowTrace.to_json(
+            remove_content(out.MatchDataflowTrace.from_json(input_json))
+        )
+        == output_json
+    )

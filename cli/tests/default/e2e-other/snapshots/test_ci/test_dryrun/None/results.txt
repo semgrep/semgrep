@@ -156,7 +156,7 @@ Would have sent findings and ignores blob: {
                                 "offset": 352
                             }
                         },
-                        "danger"
+                        "<code omitted>"
                     ]
                 ],
                 "intermediate_vars": [
@@ -174,7 +174,7 @@ Would have sent findings and ignores blob: {
                                 "offset": 343
                             }
                         },
-                        "content": "d2"
+                        "content": "<code omitted>"
                     }
                 ],
                 "taint_sink": [
@@ -193,7 +193,7 @@ Would have sent findings and ignores blob: {
                                 "offset": 365
                             }
                         },
-                        "sink(d2)"
+                        "<code omitted>"
                     ]
                 ]
             },
