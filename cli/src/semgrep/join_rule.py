@@ -261,7 +261,7 @@ def rename_metavars_in_place(
 
 
 def create_model_map(
-    semgrep_results: List[Dict[str, Any]]
+    semgrep_results: List[Dict[str, Any]],
 ) -> Dict[str, Type[BaseModel]]:
     """
     Dynamically create 'peewee' model classes directly from Semgrep results.
@@ -401,6 +401,7 @@ def json_to_rule_match(join_rule: Dict[str, Any], match: Dict[str, Any]) -> Rule
 def run_join_rule(
     join_rule: Dict[str, Any],
     targets: List[Path],
+    enable_experimental_requirements: bool = False,
 ) -> Tuple[List[RuleMatch], List[SemgrepError]]:
     """
     Run a 'join' mode rule.
@@ -491,6 +492,7 @@ def run_join_rule(
             targets=targets,
             no_rewrite_rule_ids=True,
             optimizations="all",
+            enable_experimental_requirements=enable_experimental_requirements,
         )
 
     assert isinstance(output, dict)  # placate mypy

@@ -80,7 +80,7 @@ def is_valid_pattern(pattern: str) -> bool:
 
 
 def get_exclude_paths(
-    requested_patterns: Optional[Mapping[out.Product, Sequence[str]]]
+    requested_patterns: Optional[Mapping[out.Product, Sequence[str]]],
 ) -> Mapping[out.Product, Sequence[str]]:
     patterns = {
         product: (
@@ -240,6 +240,7 @@ def ci(
     use_git_ignore: bool,
     verbose: bool,
     path_sensitive: bool,
+    enable_experimental_requirements: bool,
 ) -> None:
     state = get_state()
 
@@ -544,6 +545,7 @@ def ci(
             "baseline_commit_is_mergebase": True,
             "diff_depth": diff_depth,
             "capture_core_stderr": capture_core_stderr,
+            "enable_experimental_requirements": enable_experimental_requirements,
         }
 
         try:

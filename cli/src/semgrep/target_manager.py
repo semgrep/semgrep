@@ -862,4 +862,7 @@ class TargetManager:
             ecosystem, product, ignore_baseline_handler
         ).kept
 
-        return [Lockfile.from_path(path) for path in files]
+        # Sort files so file paths are returned in a deterministic order
+        sorted_files = sorted(files)
+
+        return [Lockfile.from_path(path) for path in sorted_files]
