@@ -37,7 +37,7 @@ type conf = {
   (* Ugly: should be in separate subcommands *)
   version : bool;
   show : Show_CLI.conf option;
-  validate : Validate_subcommand.conf option;
+  validate : Validate_CLI.conf option;
   test : Test_CLI.conf option;
   ls : bool;
 }

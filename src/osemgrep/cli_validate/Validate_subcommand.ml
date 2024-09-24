@@ -1,3 +1,17 @@
+(* Yoann Padioleau
+ *
+ * Copyright (C) 2022-2024 Semgrep Inc.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file LICENSE.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * LICENSE for more details.
+ *)
 open Common
 open Fpath_.Operators
 module Out = Semgrep_output_v1_t
@@ -5,7 +19,9 @@ module Out = Semgrep_output_v1_t
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* This module performs rule validation by checking whether a rule is
+(* Parse a semgrep-validate command, execute it and return an exit code.
+ *
+ * This module performs rule validation by checking whether a rule is
  * correct by detecting different kinds of errors:
  *
  *  (1) YAML syntax errors (e.g., unclosed quote). We detect those
@@ -13,60 +29,62 @@ module Out = Semgrep_output_v1_t
  *
  *  (2) Semgrep rule schema errors (e.g., missing 'message:' field). We
  *    detect those thanks to Parse_rule.ml
+ *    TODO: use the OCaml grace library of Cooper for better error messaging?
+ *    or fallback to jsonschema in pysemgrep just for the error message like
+ *    zz did?
  *
  *  (3) "Logical" errors, by running Semgrep rules (also called "meta" rules)
  *     on those target rules. We run Semgrep on Semgrep! We detect
  *     those thanks to the 'p/semgrep-rule-lints' ruleset.
+ *     (hence the need for the network capability and Core_scan.caps below)
  *
  *  (4) TODO Other errors that can't be detected easily using Semgrep rules. We
  *    detect those thanks to Check_rule.ml.
  *
- * There is currently no 'semgrep validate' subcommand. Rule validation is
- * ran via 'semgrep scan --validate --config ...' but internally it's quite
- * similar to a subcommand.
- * LATER: at some point we probably want to make this an actual subcommand
- * (Brendon is in favor of it).
+ * For more info see
+ * https://semgrep.dev/docs/writing-rules/testing-rules#validating-rules
  *
- * LATER: merge with Check_rule.ml (we can remove lots of code in it).
+ * Note that there was no 'pysemgrep validate' subcommand. Rule validation
+ * was run with 'semgrep scan --validate ...' but it's better to have a separate
+ * subcommand. Note that the legacy 'semgrep scan --validate' is redirected to
+ * this file after having built a compatible Validate_CLI.conf.
  *
- * Ideally we should move this file in a separate ../metachecking/ folder,
- * but this file depends on cli_scan/ and cli_scan/ depends on this file
- * because it's called from Scan_subcommand.ml, so it must remain here.
+ * LATER: get rid of semgrep-core -check_rules and cleanup duplicated code
+ * in Check_rule.ml.
  *)
 
 (*****************************************************************************)
 (* Types and constants *)
 (*****************************************************************************)
 
-(* TODO: should use stdout, right now we abuse Logs.app *)
+(* Cap.stdout + Core_scan.caps + network (we run metachecking rules) *)
+(* TODO: should use stdout, right now we abuse Logs.app
+ * TODO? why Cap.tmp?
+ *)
 type caps = < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.alarm >
 
-(* a slice of Scan_CLI.conf *)
-type conf = {
-  (* Right now we use --config to get the list of rules for validate, but
-   * positional arguments to pass after 'semgrep validate' would be more
-   * appropriate (e.g., semgrep validate foo.yaml).
-   * Do we allow to --validate --config p/python ?
-   *)
-  rules_source : Rules_source.t;
-  core_runner_conf : Core_runner.conf;
-  common : CLI_common.conf;
-}
-[@@deriving show]
-
 (* The "meta" rules are stored in the semgrep-rules public repository here:
- * https://github.com/returntocorp/semgrep-rules/tree/develop/yaml/semgrep
+ * https://github.com/semgrep/semgrep-rules/tree/develop/yaml/semgrep
  *
  * The pack below is defined in the semgrep-rules-pack private repository here:
- * https://github.com/returntocorp/semgrep-rule-packs/blob/master/semgrep-rule-lints.json
+ * https://github.com/semgrep/semgrep-rule-packs/blob/master/semgrep-rule-lints.json
  *)
 let metarules_pack = "p/semgrep-rule-lints"
 
 (*****************************************************************************)
-(* Entry point *)
+(* Run the conf *)
 (*****************************************************************************)
 
-let run_conf (caps : caps) (conf : conf) : Exit_code.t =
+let run_conf (caps : caps) (conf : Validate_CLI.conf) : Exit_code.t =
+  CLI_common.setup_logging ~force_color:true ~level:conf.common.logging_level;
+  (* Metrics_.configure Metrics_.On; ?? and allow to disable it?
+   * semgrep-rules/Makefile is running semgrep --validate with metrics=off
+   * (and also --disable-version-check), but maybe because it is used from
+   * 'semgrep scan'; in 'osemgrep validate' context, we should not even have
+   * those options and we should disable metrics (and version-check) by default.
+   *)
+  Logs.debug (fun m -> m "conf = %s" (Validate_CLI.show_conf conf));
+
   let settings = Semgrep_settings.load () in
   let token_opt = settings.api_token in
   (* Checking (1) and (2). Parsing the rules is already a form of validation.
@@ -195,3 +213,10 @@ let run_conf (caps : caps) (conf : conf) : Exit_code.t =
   | _else_ ->
       (* was a raise SemgrepError originally *)
       Error.abort "Please fix the above errors and try again."
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+let main (caps : caps) (argv : string array) : Exit_code.t =
+  let conf = Validate_CLI.parse_argv argv in
+  run_conf caps conf

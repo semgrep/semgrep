@@ -53,6 +53,8 @@ type pro_conf = {
   engine_type : Engine_type.t;
 }
 
+val default_conf : conf
+
 (* Semgrep Pro hook for osemgrep *)
 val hook_mk_pro_core_run_for_osemgrep : (pro_conf -> func) option ref
 val hook_pro_git_remote_scan_setup : (func -> func) option ref
