@@ -1,3 +1,6 @@
+from abc import ABC
+from abc import abstractmethod
+from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict
@@ -5,18 +8,35 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
-from semdep.lockfile import ECOSYSTEM_TO_LOCKFILES
-from semdep.lockfile import ExactLockfileMatcher
+from semdep.lockfile import EcosystemLockfiles
+from semdep.lockfile import Lockfile
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.target_manager import TargetManager
 
 
+class DependencySource(ABC):
+    @abstractmethod
+    def get_lockfile_paths(self) -> List[Path]:
+        pass
+
+
 @dataclass(frozen=True)
-class LockfileDependencySource:
+class LockfileDependencySource(DependencySource):
     manifest_path: Optional[Path]
     lockfile_path: Path  # required for now, but this will change as we start to support lockfileless scanning
+
+    def get_lockfile_paths(self) -> List[Path]:
+        return [self.lockfile_path]
+
+
+@dataclass(frozen=True)
+class MultiLockfileDependencySource(DependencySource):
+    sources: List[LockfileDependencySource]
+
+    def get_lockfile_paths(self) -> List[Path]:
+        return [source.lockfile_path for source in self.sources]
 
 
 @dataclass(frozen=True)
@@ -35,66 +55,191 @@ class Subproject:
 
     # the dependency source is how we resolved the dependencies. This might be a lockfile/manifest pair (the only current one),
     # but in the future it might also be dynamic resolution based on a manifest, an SBOM, or something else
-    dependency_source: (
-        LockfileDependencySource  # TODO: add more dependency source types
-    )
+    dependency_source: DependencySource
     found_dependencies: List[FoundDependency]
 
+    def map_lockfile_to_dependencies(self) -> Dict[str, List[FoundDependency]]:
+        """
+        Returns a mapping of lockfile paths to dependencies found in that lockfile
+        """
+        lockfile_to_deps = defaultdict(list)
 
-def _find_matching_lockfile(
-    current_path: Path,
-    ecosystem: Ecosystem,
-    candidates_by_lockfile: Dict[Path, Subproject],
-) -> Optional[Path]:
-    """
-    Find a matching lockfile in the given path for the specified ecosystem.
+        for dep in self.found_dependencies:
+            if dep.lockfile_path is not None:
+                lockfile_to_deps[str(dep.lockfile_path.value)].append(dep)
+            else:
+                # if the dependency doesn't have a lockfile path, we just put it in the root directory
+                lockfile_to_deps[
+                    str(self.root_dir.joinpath(Path("unknown_lockfile")))
+                ].append(dep)
 
-    Args:
-        current_path (Path): The path to search for lockfiles.
-        ecosystem (Ecosystem): The ecosystem to search lockfiles for.
-        candidates_by_lockfile (Dict[Path, Subproject]): Dictionary of candidate lockfiles.
+        return dict(lockfile_to_deps)
 
-    Returns:
-        Optional[Path]: The path of the matching lockfile, or None if no match is found.
-    """
-    for lockfile_matcher in ECOSYSTEM_TO_LOCKFILES[ecosystem]:
-        if isinstance(lockfile_matcher, ExactLockfileMatcher):
-            lockfile_path = current_path / lockfile_matcher.lockfile
-            if lockfile_path in candidates_by_lockfile:
-                return lockfile_path
-        else:
-            continue
-    return None
+    def get_lockfile_paths(self) -> List[Path]:
+        """
+        Returns a list of lockfile paths for this subproject
+        """
+        return self.dependency_source.get_lockfile_paths()
 
 
 def find_closest_subproject(
     path: Path, ecosystem: Ecosystem, candidates: List[Subproject]
 ) -> Optional[Subproject]:
     """
-    Find the best SCA project for the given match.
+    Find the best SCA project for the given match by looking at the parent path of the match
+    and comparing it to the root directories of the provided candidates. The best SCA project is
+    the one with the closest root directory to the match.
 
-    Determines by lockfile location, matching previous behavior
-    of `TargetManager.find_single_lockfile`. Searches up the directory
-    tree for files that match lockfile patterns.
+    ! All provided candidates must have the same ecosystem.
 
-    All provided candidates must have the same ecosystem.
+    We also order the candidates by root directory length so that we prefer
+    more specific subprojects over more general ones.
+
+    Args:
+        path (Path): The path to search for the closest subproject.
+        ecosystem (Ecosystem): The ecosystem to search lockfiles for.
+        candidates (List[Subproject]): List of candidate subprojects.
     """
-    # TODO: (bk) for now, we replicate previous lockfile-based behavior here, since lockfile-sourced
-    # dependencies are all that we support and to ensure no behavior change. In the future,
-    # we will need to change this logic to be based on root_dir instead of the lockfile location.
-    candidates_by_lockfile = {o.dependency_source.lockfile_path: o for o in candidates}
 
-    for path in path.parents:
-        matching_lockfile = _find_matching_lockfile(
-            path, ecosystem, candidates_by_lockfile
-        )
-        if matching_lockfile:
-            return candidates_by_lockfile[matching_lockfile]
+    sorted_candidates = sorted(
+        candidates, key=lambda x: len(x.root_dir.parts), reverse=True
+    )
+
+    for candidate in sorted_candidates:
+        for parent in [path, *path.parents]:
+            if candidate.root_dir == parent and candidate.ecosystem == ecosystem:
+                return candidate
+
     return None
 
 
+def _get_lockfiles_by_root_dir(
+    target_manager: TargetManager, ecosystem: Ecosystem
+) -> Dict[Path, List[Lockfile]]:
+    """
+    This function returns a mapping of parent paths to lockfiles for the given ecosystem.
+
+    Here we assume if there are multiple lockfiles in the same directory, we should combine the
+    dependencies from all of them. This is a simplification that may not be correct in all cases.
+    """
+    lockfiles = target_manager.get_lockfiles(ecosystem, ignore_baseline_handler=True)
+
+    # group by parent
+    lockfiles_by_parent_path: Dict[Path, List[Lockfile]] = {}
+    for lockfile in lockfiles:
+        parent = lockfile.parent_path
+        if parent not in lockfiles_by_parent_path:
+            lockfiles_by_parent_path[parent] = []
+        lockfiles_by_parent_path[parent].append(lockfile)
+
+    return lockfiles_by_parent_path
+
+
+def _parse_lockfiles(
+    lockfiles: List[Lockfile],
+) -> Tuple[List[FoundDependency], List[DependencyParserError], List[Path]]:
+    """
+    Parse a list of lockfiles and aggregate the results.
+
+    Args:
+        lockfiles (List[Lockfile]): A list of Lockfile objects to parse.
+
+    Returns:
+        Tuple[List[FoundDependency], List[DependencyParserError], List[Path]]:
+        - A list of all found dependencies
+        - A list of all parsing errors encountered
+        - A list of paths to the parsed lockfiles
+    """
+    all_deps: List[FoundDependency] = []
+    all_parse_errors: List[DependencyParserError] = []
+    sca_dependency_targets: List[Path] = []
+
+    for lockfile in lockfiles:
+        deps, parse_errors = lockfile.parse()
+        all_deps.extend(deps)
+        all_parse_errors.extend(parse_errors)
+        sca_dependency_targets.append(lockfile.path)
+
+    return all_deps, all_parse_errors, sca_dependency_targets
+
+
+def _create_dependency_source(lockfiles: List[Lockfile]) -> DependencySource:
+    """
+    Create a DependencySource based on the number of lockfiles.
+
+    Args:
+        lockfiles (List[Lockfile]): A list of Lockfile objects.
+
+    Returns:
+        DependencySource: Either a LockfileDependencySource or a MultiLockfileDependencySource.
+
+    Raises:
+        ValueError: If no lockfiles are provided.
+    """
+    if not lockfiles:
+        raise ValueError("No lockfiles found")
+
+    if len(lockfiles) == 1:
+        return LockfileDependencySource(
+            manifest_path=lockfiles[0].manifest_path,
+            lockfile_path=lockfiles[0].path,
+        )
+
+    return MultiLockfileDependencySource(
+        sources=[
+            LockfileDependencySource(
+                manifest_path=lockfile.manifest_path,
+                lockfile_path=lockfile.path,
+            )
+            for lockfile in lockfiles
+        ]
+    )
+
+
+def _process_ecosystem(
+    target_manager: TargetManager, ecosystem: Ecosystem
+) -> Tuple[List[Subproject], List[DependencyParserError], List[Path]]:
+    """
+    Process a specific ecosystem to extract dependencies and create subprojects.
+
+    Args:
+        target_manager: An object managing the targets for dependency resolution.
+        ecosystem (Ecosystem): The ecosystem to process.
+
+    Returns:
+        Tuple[List[Subproject], List[DependencyParserError], List[Path]]:
+        - A list of resolved Subprojects
+        - A list of all parsing errors encountered
+        - A list of all dependency target paths
+    """
+    resolved_deps: List[Subproject] = []
+    all_parse_errors: List[DependencyParserError] = []
+    all_sca_dependency_targets: List[Path] = []
+
+    for parent_path, lockfiles in _get_lockfiles_by_root_dir(
+        target_manager, ecosystem
+    ).items():
+        all_deps, parse_errors, sca_dependency_targets = _parse_lockfiles(lockfiles)
+        dependency_source = _create_dependency_source(lockfiles)
+
+        subproject = Subproject(
+            root_dir=parent_path,
+            dependency_source=dependency_source,
+            ecosystem=ecosystem,
+            found_dependencies=all_deps,
+        )
+
+        resolved_deps.append(subproject)
+        all_parse_errors.extend(parse_errors)
+        all_sca_dependency_targets.extend(sca_dependency_targets)
+
+    return resolved_deps, all_parse_errors, all_sca_dependency_targets
+
+
 def resolve_subprojects(
-    target_manager: TargetManager, allow_dynamic_resolution: bool = False
+    target_manager: TargetManager,
+    allow_dynamic_resolution: bool = False,
+    enable_experimental_requirements: bool = False,
 ) -> Tuple[Dict[Ecosystem, List[Subproject]], List[DependencyParserError], List[Path]]:
     """
     Identify lockfiles and manifest files to resolve dependency information from the environment
@@ -115,25 +260,37 @@ def resolve_subprojects(
     else:
         # for safety, when `allow_dynamic_resolution` is disabled we follow
         # a lockfile-first approach to resolve projects that matches previous behavior
-        for ecosystem in ECOSYSTEM_TO_LOCKFILES.keys():
-            for lockfile in target_manager.get_lockfiles(
-                ecosystem, ignore_baseline_handler=True
-            ):
-                deps, parse_errors = lockfile.parse()
-                sca_dependency_targets.append(lockfile.path)
-                subproject = Subproject(
-                    root_dir=lockfile.path.parent,
-                    dependency_source=LockfileDependencySource(
-                        manifest_path=lockfile.manifest_path,
-                        lockfile_path=lockfile.path,
-                    ),
-                    ecosystem=ecosystem,
-                    found_dependencies=deps,
-                )
+        if enable_experimental_requirements:
+            for ecosystem in EcosystemLockfiles.ecosystem_to_lockfiles.keys():
+                (
+                    ecosystem_subprojects,
+                    parse_errors,
+                    dependency_targets,
+                ) = _process_ecosystem(target_manager, ecosystem)
 
-                if ecosystem not in resolved_deps:
-                    resolved_deps[ecosystem] = []
-                resolved_deps[ecosystem].append(subproject)
+                resolved_deps.setdefault(ecosystem, []).extend(ecosystem_subprojects)
                 dependency_parser_errors.extend(parse_errors)
+                sca_dependency_targets.extend(dependency_targets)
+        else:
+            for ecosystem in EcosystemLockfiles.ecosystem_to_lockfiles.keys():
+                for lockfile in target_manager.get_lockfiles(
+                    ecosystem, ignore_baseline_handler=True
+                ):
+                    deps, parse_errors = lockfile.parse()
+                    sca_dependency_targets.append(lockfile.path)
+                    subproject = Subproject(
+                        root_dir=lockfile.path.parent,
+                        dependency_source=LockfileDependencySource(
+                            manifest_path=lockfile.manifest_path,
+                            lockfile_path=lockfile.path,
+                        ),
+                        ecosystem=ecosystem,
+                        found_dependencies=deps,
+                    )
+
+                    if ecosystem not in resolved_deps:
+                        resolved_deps[ecosystem] = []
+                    resolved_deps[ecosystem].append(subproject)
+                    dependency_parser_errors.extend(parse_errors)
 
     return resolved_deps, dependency_parser_errors, sca_dependency_targets

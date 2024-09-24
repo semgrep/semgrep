@@ -235,8 +235,92 @@ pytestmark = pytest.mark.kinda_slow
 )
 @pytest.mark.osemfail
 def test_ssc(run_semgrep_on_copied_files: RunSemgrep, snapshot, rule, target):
+    result = run_semgrep_on_copied_files(rule, target_name=target)
+
     snapshot.assert_match(
-        run_semgrep_on_copied_files(rule, target_name=target).as_snapshot(),
+        result.as_snapshot(),
+        "results.txt",
+    )
+
+
+@pytest.mark.parametrize(
+    "rule,target",
+    [
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirements_folder",
+        ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirements_folder_dep_dupes",
+        ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirements_folder_no_src",
+        ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirements_folder_similar_deps",
+        ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirements_multiple_lockfiles",
+        ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirements_multiple_lockfiles_dep_dupes",
+        ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirements_multiple_lockfiles_dep_dupes_no_src",
+        ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirements_multiple_lockfiles_no_src",
+        ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirements_multiple_lockfiles_similar_deps",
+        ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirements_nested",
+        ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirements_nested_no_src",
+        ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirements_nested_dep_dupes",
+        ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirements_nested_folder",
+        ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirements_nested_folder_dep_dupes",
+        ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirements_nested_folder_no_src",
+        ),
+    ],
+)
+@pytest.mark.osemfail
+def test_ssc__requirements_lockfiles(
+    run_semgrep_on_copied_files: RunSemgrep, snapshot, rule, target
+):
+    """
+    Seperated out from test_ssc to avoid polluting with extra requirements lockfile tests
+    """
+    result = run_semgrep_on_copied_files(
+        rule, target_name=target, options=["--enable-experimental-requirements"]
+    )
+
+    snapshot.assert_match(
+        result.as_snapshot(),
         "results.txt",
     )
 

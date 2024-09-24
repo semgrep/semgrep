@@ -241,8 +241,9 @@ class Plan:
         ):
             if self.sca_subprojects is not None:
                 lockfile_paths = ", ".join(
-                    str(proj.dependency_source.lockfile_path)
+                    str(lockfile_path)
                     for proj in self.sca_subprojects.get(ecosystem, [])
+                    for lockfile_path in proj.get_lockfile_paths()
                 )
             else:
                 lockfile_paths = "N/A"
