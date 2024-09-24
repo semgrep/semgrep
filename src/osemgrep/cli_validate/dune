@@ -1,0 +1,27 @@
+; OCaml implementation of the 'semgrep validate' subcommand.
+
+(library
+  (public_name semgrep.osemgrep_cli_validate)
+  (name osemgrep_cli_validate)
+  (wrapped false)
+  (libraries
+    cmdliner
+    commons
+
+    ; semgrep-core
+    ;semgrep.engine
+    ;semgrep.engine.tests
+    ;semgrep.core_scan
+    ; osemgrep
+    semgrep.osemgrep_core
+    semgrep.core_runner
+    semgrep.osemgrep_networking
+    semgrep.osemgrep_reporting
+  )
+ (preprocess
+   (pps
+     ppx_profiling
+     ppx_deriving.show
+   )
+ )
+)
