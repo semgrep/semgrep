@@ -171,23 +171,3 @@ let prefilter_of_rules file =
   (* TODO: handle parse errors gracefully instead of silently ignoring *)
   | Error _ -> ()
 [@@action]
-
-(*****************************************************************************)
-(* Other actions *)
-(*****************************************************************************)
-
-(* [test_rules dirs] run the tests discovered under [dirs]
- * and print a summary.
- * This is what 'semgrep-core -test_rules' run.
- *)
-let test_rules (caps : < Cap.stdout ; Cap.exit >) (paths : Fpath.t list) : unit
-    =
-  let total_mismatch = ref 0 in
-  let fail_callback num_errors _msg =
-    total_mismatch := !total_mismatch + num_errors
-  in
-  let tests = Test_engine.make_tests ~fail_callback paths in
-  tests |> List.iter (fun (test : Testo.t) -> test.func ());
-  CapConsole.print caps#stdout (spf "total mismatch: %d" !total_mismatch);
-  if !total_mismatch > 0 then CapStdlib.exit caps#exit 1
-[@@action]

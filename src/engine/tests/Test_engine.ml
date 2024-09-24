@@ -25,19 +25,17 @@ module OutJ = Semgrep_output_v1_j
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* This module allows to use semgrep-core -test_rules <files_or_dirs>
+(* !!!This module is deprecated!!!
+ *
+ * It used to allow to use semgrep-core -test_rules <files_or_dirs>
  * to automatically run all the semgrep rules in yaml files or directories
  * and make sure they match correctly (as specified by the special 'ruleid:'
- * comment in it).
- *
- * This is also now used for regression testing as part of 'make test' in
+ * comment in it), but now you should use osemgrep test instead.
+ * This is also used for regression testing as part of 'make test' in
  * semgrep-core. See Unit_engine.full_rule_semgrep_rules_regression_tests().
  *
- * This module provides a service similar to what semgrep --test provides,
- * but without requiring the Python wrapper. It is also significantly
- * faster than semgrep --test.
- *
- * LATER: merge with osemgrep Test_subcommand.ml
+ * TODO: get rid of this module, switch everything to use `osemgrep test`
+ * code path.
  *)
 
 (*****************************************************************************)
