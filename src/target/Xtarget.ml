@@ -38,12 +38,17 @@ let parse_file parser (analyzer : Xlang.t) path =
   in
   parser lang path
 
-let resolve parser (target : Target.regular) : t =
+let resolve_with_ast ast (target : Target.regular) : t =
   {
     path = target.path;
     xlang = target.analyzer;
     lazy_content = lazy (UFile.read_file target.path.internal_path_to_content);
-    lazy_ast_and_errors =
-      lazy
-        (parse_file parser target.analyzer target.path.internal_path_to_content);
+    lazy_ast_and_errors = ast;
   }
+
+let resolve parser (target : Target.regular) : t =
+  let ast =
+    lazy
+      (parse_file parser target.analyzer target.path.internal_path_to_content)
+  in
+  resolve_with_ast ast target
