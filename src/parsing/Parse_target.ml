@@ -83,9 +83,7 @@ let just_parse_with_lang (lang : Lang.t) (file : Fpath.t) : Res.t =
 (* Entry point *)
 (*****************************************************************************)
 
-let parse_and_resolve_name lang file =
-  let res = just_parse_with_lang lang file in
-  let ast = res.ast in
+let just_resolve_name lang ast =
   (* to be deterministic, reset the gensym; anyway right now semgrep is
    * used only for local per-file analysis, so no need to have a unique ID
    * among a set of files in a project like codegraph.
@@ -98,8 +96,12 @@ let parse_and_resolve_name lang file =
   Constant_propagation.propagate_basic lang ast;
 
   (* Flow-sensitive constant propagation. *)
-  Constant_propagation.propagate_dataflow lang ast;
+  Constant_propagation.propagate_dataflow lang ast
 
+let parse_and_resolve_name lang file =
+  let res = just_parse_with_lang lang file in
+  let ast = res.ast in
+  just_resolve_name lang ast;
   Log.info (fun m -> m "Parse_target.parse_and_resolve_name done");
   res
 [@@profiling]
