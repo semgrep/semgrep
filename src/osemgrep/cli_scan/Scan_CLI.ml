@@ -60,7 +60,7 @@ type conf = {
   (* Ugly: should be in separate subcommands *)
   version : bool;
   show : Show_CLI.conf option;
-  validate : Validate_subcommand.conf option;
+  validate : Validate_CLI.conf option;
   test : Test_CLI.conf option;
   ls : bool;
 }
@@ -83,28 +83,7 @@ let default : conf =
       };
     autofix = false;
     (* alt: could move in a Core_runner.default *)
-    core_runner_conf =
-      {
-        (* Maxing out number of cores used to 16 if more not requested to
-         * not overload on large machines.
-         * Also, hardcode num_jobs to 1 for non-unix (i.e. Windows) because
-         * we don't believe that Parmap works in those environments
-         * TODO: figure out a solution for Windows multi-processing (OCaml 5 in
-         * the worst case)
-         *)
-        Core_runner.num_jobs =
-          min 16 (if Sys.unix then Parmap_.get_cpu_count () else 1);
-        timeout = 5.0;
-        (* ^ seconds, keep up-to-date with User_settings.ml and constants.py *)
-        timeout_threshold = 3;
-        max_memory_mb = 0;
-        optimizations = true;
-        dataflow_traces = false;
-        matching_explanations = false;
-        time_flag = false;
-        nosem = true;
-        strict = false;
-      };
+    core_runner_conf = Core_runner.default_conf;
     error_on_findings = false;
     (* could be move in CLI_common.default_conf? *)
     common =
@@ -1210,7 +1189,7 @@ let show_CLI_conf ~dump_ast ~dump_engine_path ~dump_command_for_core
   | _else_ -> None
 
 let validate_CLI_conf ~validate ~rules_source ~core_runner_conf ~common :
-    Validate_subcommand.conf option =
+    Validate_CLI.conf option =
   if validate then
     match rules_source with
     | Rules_source.Configs [] ->
@@ -1220,7 +1199,7 @@ let validate_CLI_conf ~validate ~rules_source ~core_runner_conf ~common :
            a rule"
     | Configs (_ :: _)
     | Pattern _ ->
-        Some { Validate_subcommand.rules_source; core_runner_conf; common }
+        Some { rules_source; core_runner_conf; common }
   else None
 
 let test_CLI_conf ~test ~target_roots ~config ~json ~optimizations
@@ -1387,7 +1366,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     (* ugly: validate should be a separate subcommand.
      * alt: we could move this code in a Validate_subcommand.cli_args()
      *)
-    let validate : Validate_subcommand.conf option =
+    let validate : Validate_CLI.conf option =
       validate_CLI_conf ~validate ~rules_source ~core_runner_conf ~common
     in
     (* ugly: test should be a separate subcommand *)
