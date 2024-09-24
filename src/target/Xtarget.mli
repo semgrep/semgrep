@@ -21,3 +21,9 @@ val resolve :
   t
 (** [resolve parser target] is the extended version of [target], comprising
     also the contents and parsed version thereof. *)
+
+(* Instead of a parser (like with resolve), pass a lazy AST. This allows for the
+ * easy construction of Xtargets in contexts where the client has already parsed
+ * the file in question. *)
+val resolve_with_ast :
+  (AST_generic.program * Tok.location list) Lazy.t -> Target.regular -> t
