@@ -372,11 +372,6 @@ let all_actions (caps : Cap.all_caps) () =
         (Check_rule.check_files
            (caps :> < Cap.stdout ; Cap.fork ; Cap.alarm >)
            !output_format) );
-    (* this is run by some of our workflows (e.g., check-pro-rules.jsonnet) *)
-    ( "-test_rules",
-      " <files or dirs>",
-      Arg_.mk_action_n_conv Fpath.v
-        (Core_actions.test_rules (caps :> < Cap.stdout ; Cap.exit >)) );
     (* this is run by scripts (stats/.../run-lang) used by some of our workflows
      * (e.g., cron-parsing-stats.jsonnet)
      *)
