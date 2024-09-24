@@ -21,9 +21,10 @@
     osemgrep_configuring
     osemgrep_reporting
 
-    ; ugly, should not depend at some point when --dump, --validate are deprecated
+    ; ugly, should not depend when --dump/--validate/--test are deprecated
     osemgrep_cli_show
     osemgrep_cli_test
+    osemgrep_cli_validate
   )
  (preprocess
    (pps

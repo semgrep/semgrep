@@ -83,4 +83,7 @@ Commands:
   lsp                  Start the Semgrep LSP server (useful for IDEs)
   publish              Upload rule to semgrep.dev
   scan                 Run semgrep rules on files
-  show                 Show various information about Semgrep|}
+  show                 Show various information about Semgrep
+  test                 Test the rules
+  validate             Validate the rules
+|}
