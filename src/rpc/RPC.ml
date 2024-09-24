@@ -64,6 +64,17 @@ let handle_call (caps : < Cap.exec ; Cap.tmp >) :
   | `CallValidate path ->
       let valid = RPC_return.validate path in
       Ok (`RetValidate valid)
+  | `CallResolveDependencies manifests -> (
+      match !RPC_return.hook_resolve_dependencies with
+      | Some resolve_dependencies ->
+          let resolved =
+            resolve_dependencies (caps :> < Cap.exec ; Cap.tmp >) manifests
+          in
+          Ok (`RetResolveDependencies resolved)
+      | None ->
+          Error
+            "Dependency resolution is a proprietary feature, but semgrep-pro \
+             has not been loaded")
 
 (*****************************************************************************)
 (* Helpers *)

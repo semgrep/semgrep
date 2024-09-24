@@ -96,3 +96,8 @@ let validate (path : Out.fpath) : bool =
     valid
   with
   | _ -> false
+
+(*****************************************************************************)
+(* Hooks for handlers defined in Pro_RPC_return.ml *)
+(*****************************************************************************)
+let hook_resolve_dependencies = ref None
