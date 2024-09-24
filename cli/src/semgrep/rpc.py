@@ -107,7 +107,10 @@ T = TypeVar("T")
 
 
 def rpc_call(call: out.FunctionCall, cls: Type[T]) -> Optional[T]:
-    semgrep_core_path = SemgrepCore.executable_path()
+    # We always use the pro binary if it's available. It's up to the caller to
+    # appropriately handle the case where the pro function is not available and
+    # to ensure that pro RPC methods are only called during a pro scan.
+    semgrep_core_path = SemgrepCore.pro_path() or SemgrepCore.executable_path()
     with subprocess.Popen(
         [semgrep_core_path, "-rpc"],
         stdin=subprocess.PIPE,
