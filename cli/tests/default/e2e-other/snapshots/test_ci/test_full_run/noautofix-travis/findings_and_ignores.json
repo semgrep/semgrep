@@ -52,7 +52,7 @@
                 "offset": 352
               }
             },
-            "danger"
+            "<code omitted>"
           ]
         ],
         "intermediate_vars": [
@@ -70,7 +70,7 @@
                 "offset": 343
               }
             },
-            "content": "d2"
+            "content": "<code omitted>"
           }
         ],
         "taint_sink": [
@@ -89,7 +89,7 @@
                 "offset": 365
               }
             },
-            "sink(d2)"
+            "<code omitted>"
           ]
         ]
       },

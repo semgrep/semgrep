@@ -500,7 +500,11 @@ class RuleMatch:
         else:
             return "reachable" if self.extra["sca_info"].reachable else "unreachable"
 
-    def to_app_finding_format(self, commit_date: str) -> out.Finding:
+    def to_app_finding_format(
+        self,
+        commit_date: str,
+        remove_dataflow_content: bool,
+    ) -> out.Finding:
         """
         commit_date here for legacy reasons.
         commit date of the head commit in epoch time
@@ -547,7 +551,9 @@ class RuleMatch:
             hashes=hashes,
             metadata=out.RawJson(self.metadata),
             is_blocking=self.is_blocking,
-            dataflow_trace=self.dataflow_trace,
+            dataflow_trace=remove_content(self.dataflow_trace)
+            if remove_dataflow_content
+            else self.dataflow_trace,
             engine_kind=self.engine_kind,
             # TODO: Currently bypassing extra because it stores a
             # string instead of a ValidationState. Fix the monkey
@@ -648,3 +654,55 @@ class RuleMatches(Iterable[RuleMatch]):
 # This type marks variables that went through ordering already.
 OrderedRuleMatchList = List[RuleMatch]
 RuleMatchMap = Dict["Rule", OrderedRuleMatchList]
+
+
+def remove_content_call(x: out.MatchCallTrace) -> out.MatchCallTrace:
+    if isinstance(x.value, out.CliLoc):
+        value = out.CliLoc(value=remove_content_loc(x.value.value))
+        return out.MatchCallTrace(value=value)
+    if isinstance(x.value, out.CliCall):
+        return out.MatchCallTrace(
+            value=out.CliCall(
+                value=(
+                    remove_content_loc(x.value.value[0]),
+                    [remove_content_int_var(v) for v in x.value.value[1]],
+                    remove_content_call(x.value.value[2]),
+                )
+            )
+        )
+
+
+def remove_content_opt_call(
+    x: Optional[out.MatchCallTrace],
+) -> Optional[out.MatchCallTrace]:
+    return remove_content_call(x) if isinstance(x, out.MatchCallTrace) else None
+
+
+def remove_content_int_var(x: out.MatchIntermediateVar) -> out.MatchIntermediateVar:
+    return out.MatchIntermediateVar(
+        location=x.location,
+        content="<code omitted>",
+    )
+
+
+def remove_content_loc(x: out.LocAndContent) -> out.LocAndContent:
+    return out.LocAndContent(value=(x.value[0], "<code omitted>"))
+
+
+def remove_content(
+    x: Optional[out.MatchDataflowTrace],
+) -> Optional[out.MatchDataflowTrace]:
+    if isinstance(x, out.MatchDataflowTrace):
+        taint_source = remove_content_opt_call(x.taint_source)
+        intermediate_vars = (
+            [remove_content_int_var(v) for v in x.intermediate_vars]
+            if isinstance(x.intermediate_vars, list)
+            else None
+        )
+        taint_sink = remove_content_opt_call(x.taint_sink)
+        return out.MatchDataflowTrace(
+            taint_source=taint_source,
+            intermediate_vars=intermediate_vars,
+            taint_sink=taint_sink,
+        )
+    return None
