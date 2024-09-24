@@ -37,6 +37,7 @@ from rich.progress import TextColumn
 
 import semgrep.scan_report as scan_report
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semdep.lockfile import EcosystemLockfiles
 from semdep.parsers.util import DependencyParserError
 from semgrep import __VERSION__
 from semgrep import tracing
@@ -200,6 +201,7 @@ def run_rules(
     *,
     with_code_rules: bool = True,
     with_supply_chain: bool = False,
+    enable_experimental_requirements: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -223,6 +225,12 @@ def run_rules(
     dependency_parser_errors: List[DependencyParserError] = []
     sca_dependency_targets: List[Path] = []
 
+    # Temporary flag to allow us to test the new requirements lockfile matchers
+    # TODO(sal): remove once GA
+    EcosystemLockfiles.init(
+        use_new_requirements_matchers=enable_experimental_requirements
+    )
+
     if len(dependency_aware_rules) > 0:
         # identify and parse lockfiles before beginning the scan
         # to produce dependency information that is used throughout.
@@ -232,7 +240,10 @@ def run_rules(
             resolved_deps,
             dependency_parser_errors,
             sca_dependency_targets,
-        ) = resolve_subprojects(target_manager)
+        ) = resolve_subprojects(
+            target_manager,
+            enable_experimental_requirements=enable_experimental_requirements,
+        )
 
     cli_ux = get_state().get_cli_ux_flavor()
     plans = scan_report.print_scan_status(
@@ -270,7 +281,9 @@ def run_rules(
 
         for rule in join_rules:
             join_rule_matches, join_rule_errors = join_rule.run_join_rule(
-                rule.raw, [target.path for target in target_manager.targets]
+                rule.raw,
+                [target.path for target in target_manager.targets],
+                enable_experimental_requirements=enable_experimental_requirements,
             )
             join_rule_matches_set = RuleMatches(rule)
             for m in join_rule_matches:
@@ -326,11 +339,11 @@ def run_rules(
                 output_handler.handle_semgrep_errors(dep_rule_errors)
 
         # The caller expects a map from lockfile path to `FoundDependency` items rather than our Subproject representation
-        found_dependencies = {
-            str(proj.dependency_source.lockfile_path): proj.found_dependencies
-            for ecosystem in resolved_deps
-            for proj in resolved_deps[ecosystem]
-        }
+        found_dependencies: Dict[str, List[FoundDependency]] = {}
+        for ecosystem in resolved_deps:
+            for proj in resolved_deps[ecosystem]:
+                found_dependencies.update(proj.map_lockfile_to_dependencies())
+
         for target in sca_dependency_targets:
             output_extra.all_targets.add(target)
     else:
@@ -409,6 +422,7 @@ def run_scan(
     x_ls: bool = False,
     path_sensitive: bool = False,
     capture_core_stderr: bool = True,
+    enable_experimental_requirements: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -664,6 +678,7 @@ def run_scan(
         target_mode_config,
         with_code_rules=with_code_rules,
         with_supply_chain=with_supply_chain,
+        enable_experimental_requirements=enable_experimental_requirements,
     )
     profiler.save("core_time", core_start_time)
     semgrep_errors: List[SemgrepError] = config_errors + scan_errors
@@ -767,6 +782,7 @@ def run_scan(
                         run_secrets,
                         disable_secrets_validation,
                         baseline_target_mode_config,
+                        enable_experimental_requirements=enable_experimental_requirements,
                     )
                     rule_matches_by_rule = remove_matches_in_baseline(
                         rule_matches_by_rule,

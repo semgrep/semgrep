@@ -83,6 +83,16 @@ class LockfileMatcher(ABC):
             Optional[Path]: The path to the manifest file if it exists, otherwise None.
         """
 
+    def get_subproject_root(self, lockfile_path: Path) -> Path:
+        """
+        Retrieves the subproject root path based on the lockfile path.
+        Args:
+            lockfile_path (Path): The path to the lockfile.
+        Returns:
+            Path: The parent path of the lockfile.
+        """
+        return lockfile_path.parent
+
 
 @dataclass(frozen=True)
 class ExactLockfileMatcher(LockfileMatcher):
@@ -123,40 +133,100 @@ class PatternLockfileMatcher(LockfileMatcher):
 
     def get_manifest_path(self, lockfile_path: Path) -> Optional[Path]:
         if self.manifest:
+            manifest_path = self.get_subproject_root(lockfile_path) / self.manifest
+            if manifest_path.exists():
+                return manifest_path
+
+        return None
+
+
+@dataclass(frozen=True)
+class RequirementsLockfileMatcher(PatternLockfileMatcher):
+    def get_manifest_path(self, lockfile_path: Path) -> Optional[Path]:
+        if self.manifest:
+            # First check the lockfile's parent directory for the manifest
+            manifest_path = self.get_subproject_root(lockfile_path) / self.manifest
+            if manifest_path.exists():
+                return manifest_path
+
+            # If manifest not found, check for a manifest with the same stem as the lockfile
             lockfile_stem = lockfile_path.stem
             manifest_name = f"{lockfile_stem}{Path(self.manifest).suffix}"
             manifest_path = lockfile_path.with_name(manifest_name)
             return manifest_path if manifest_path.exists() else None
         return None
 
+    def get_subproject_root(self, lockfile_path: Path) -> Path:
+        """
+        Retrieves the parent path of the lockfile.
+        """
+
+        # Not pretty but we need to handle the case where the lockfile is in a subdirectory
+        # Ex. for requirements/base.txt, the parent path should be the directory containing the
+        # requirements directory. For requirements.txt, the parent path should be the directory
+        # containing the lockfile.
+
+        # Check if the lockfile is in a 'requirements' directory
+        if "requirements" in lockfile_path.parts:
+            # Find the index of 'requirements' in the path
+            req_index = lockfile_path.parts.index("requirements")
+            # Return the parent of the 'requirements' directory
+            return Path(*lockfile_path.parts[:req_index])
+        else:
+            # If not in a 'requirements' directory, return the immediate parent
+            return lockfile_path.parent
+
+
+NEW_REQUIREMENTS_MATCHERS: List[LockfileMatcher] = [
+    ExactLockfileMatcher(
+        lockfile="Pipfile.lock",
+        manifest="Pipfile",
+        parser=parse_pipfile,
+        ecosystem=Ecosystem(Pypi()),
+    ),
+    ExactLockfileMatcher(
+        lockfile="poetry.lock",
+        manifest="pyproject.toml",
+        parser=parse_poetry,
+        ecosystem=Ecosystem(Pypi()),
+    ),
+    RequirementsLockfileMatcher(
+        pattern="*requirements*.txt",
+        manifest="requirements.in",
+        parser=parse_requirements,
+        ecosystem=Ecosystem(Pypi()),
+    ),
+]
+
+OLD_REQUIREMENTS_MATCHERS: List[LockfileMatcher] = [
+    ExactLockfileMatcher(
+        lockfile="Pipfile.lock",
+        manifest="Pipfile",
+        parser=parse_pipfile,
+        ecosystem=Ecosystem(Pypi()),
+    ),
+    ExactLockfileMatcher(
+        lockfile="poetry.lock",
+        manifest="pyproject.toml",
+        parser=parse_poetry,
+        ecosystem=Ecosystem(Pypi()),
+    ),
+    ExactLockfileMatcher(
+        lockfile="requirements.txt",
+        manifest="requirements.in",
+        parser=parse_requirements,
+        ecosystem=Ecosystem(Pypi()),
+    ),
+    ExactLockfileMatcher(
+        lockfile="requirements3.txt",
+        manifest="requirements.in",
+        parser=parse_requirements,
+        ecosystem=Ecosystem(Pypi()),
+    ),
+]
+
 
 ECOSYSTEM_TO_LOCKFILES: Dict[Ecosystem, List[LockfileMatcher]] = {
-    Ecosystem(Pypi()): [
-        ExactLockfileMatcher(
-            lockfile="Pipfile.lock",
-            manifest="Pipfile",
-            parser=parse_pipfile,
-            ecosystem=Ecosystem(Pypi()),
-        ),
-        ExactLockfileMatcher(
-            lockfile="poetry.lock",
-            manifest="pyproject.toml",
-            parser=parse_poetry,
-            ecosystem=Ecosystem(Pypi()),
-        ),
-        ExactLockfileMatcher(
-            lockfile="requirements.txt",
-            manifest="requirements.in",
-            parser=parse_requirements,
-            ecosystem=Ecosystem(Pypi()),
-        ),
-        ExactLockfileMatcher(
-            lockfile="requirements3.txt",
-            manifest="requirements.in",
-            parser=parse_requirements,
-            ecosystem=Ecosystem(Pypi()),
-        ),
-    ],
     Ecosystem(Npm()): [
         ExactLockfileMatcher(
             lockfile="package-lock.json",
@@ -258,11 +328,27 @@ ECOSYSTEM_TO_LOCKFILES: Dict[Ecosystem, List[LockfileMatcher]] = {
 }
 
 
+class EcosystemLockfiles:
+    ecosystem_to_lockfiles: Dict[Ecosystem, List[LockfileMatcher]] = {
+        **ECOSYSTEM_TO_LOCKFILES,
+        # By default, use the old requirements lockfile matchers for Python
+        **{Ecosystem(Pypi()): OLD_REQUIREMENTS_MATCHERS},
+    }
+
+    @classmethod
+    def init(cls, use_new_requirements_matchers: bool = False) -> None:
+        cls.ecosystem_to_lockfiles[Ecosystem(Pypi())] = (
+            NEW_REQUIREMENTS_MATCHERS
+            if use_new_requirements_matchers
+            else OLD_REQUIREMENTS_MATCHERS
+        )
+
+
 def is_valid_lockfile(ecosystem: Ecosystem, path: Path) -> bool:
     """
     Check if a path is a valid lockfile for the given ecosystem.
     """
-    lockfile_matchers = ECOSYSTEM_TO_LOCKFILES.get(ecosystem, [])
+    lockfile_matchers = EcosystemLockfiles.ecosystem_to_lockfiles.get(ecosystem, [])
     return any(matcher.is_match(path) for matcher in lockfile_matchers)
 
 
@@ -280,7 +366,7 @@ def create_matcher(path: Path) -> LockfileMatcher:
     Method for creating the appropriate LockfileMatcher instance based on
     the lockfile path.
     """
-    for _, lockfile_matchers in ECOSYSTEM_TO_LOCKFILES.items():
+    for _, lockfile_matchers in EcosystemLockfiles.ecosystem_to_lockfiles.items():
         for lockfile_matcher in lockfile_matchers:
             if lockfile_matcher.is_match(path):
                 return lockfile_matcher
@@ -295,6 +381,7 @@ class Lockfile:
     """
 
     path: Path
+    parent_path: Path
     manifest_path: Optional[Path]
     ecosystem: Ecosystem
     matcher: LockfileMatcher
@@ -306,8 +393,10 @@ class Lockfile:
         """
         matcher = create_matcher(path)
         manifest_path = matcher.get_manifest_path(path)
+        parent_path = matcher.get_subproject_root(path)
         return Lockfile(
             path=path,
+            parent_path=parent_path,
             manifest_path=manifest_path,
             ecosystem=matcher.ecosystem,
             matcher=matcher,

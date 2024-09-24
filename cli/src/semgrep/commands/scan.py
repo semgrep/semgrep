@@ -376,6 +376,12 @@ _scan_options: List[Callable] = [
         "allow_untrusted_validators",
         is_flag=True,
     ),
+    optgroup.option(
+        "--enable-experimental-requirements",
+        "enable_experimental_requirements",
+        is_flag=True,
+        default=False,
+    ),
 ]
 
 
@@ -566,6 +572,7 @@ def scan(
     version: bool,
     x_ls: bool,
     path_sensitive: bool,
+    enable_experimental_requirements: bool,
 ) -> Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]:
     if version:
         print(__VERSION__)
@@ -832,6 +839,7 @@ def scan(
                         x_ls=x_ls,
                         path_sensitive=path_sensitive,
                         capture_core_stderr=capture_core_stderr,
+                        enable_experimental_requirements=enable_experimental_requirements,
                     )
                 except SemgrepError as e:
                     output_handler.handle_semgrep_errors([e])

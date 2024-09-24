@@ -1,3 +1,4 @@
+import copy
 from collections import defaultdict
 from functools import lru_cache
 from pathlib import Path
@@ -26,6 +27,9 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.subproject import find_closest_subproject
 from semgrep.subproject import Subproject
+from semgrep.verbose_logging import getLogger
+
+logger = getLogger(__name__)
 
 
 SCA_FINDING_SCHEMA = 20220913
@@ -80,14 +84,25 @@ def generate_unreachable_sca_findings(
     for ecosystem in ecosystems:
         for sca_project in resolved_deps.get(ecosystem, []):
             deps = sca_project.found_dependencies
-            lockfile_path = sca_project.dependency_source.lockfile_path
 
             dependency_matches = list(
                 dependencies_range_match_any(depends_on_entries, list(deps))
             )
             for dep_pat, found_dep in dependency_matches:
+                if found_dep.lockfile_path is None:
+                    # In rare cases, it's possible for a dependency to not have a lockfile
+                    # path. This indicates a dev error and usually means that the parser
+                    # did not associate the dep with a lockfile. So we'll just skip this dependency.
+                    logger.warning(
+                        f"Found a dependency ({found_dep.package}) without a lockfile path. Skipping..."
+                    )
+                    continue
+
+                lockfile_path = Path(found_dep.lockfile_path.value)
+
                 if already_reachable(lockfile_path, found_dep):
                     continue
+
                 dep_match = DependencyMatch(
                     dependency_pattern=dep_pat,
                     found_dependency=found_dep,
@@ -129,6 +144,7 @@ def generate_unreachable_sca_findings(
                 )
                 match_based_keys[match.match_based_key] += 1
                 non_reachable_matches.append(match)
+
     return non_reachable_matches, dep_rule_errors
 
 
@@ -165,10 +181,9 @@ def generate_reachable_sca_findings(
                 sca_project = find_closest_subproject(
                     match.path, ecosystem, resolved_deps.get(ecosystem, [])
                 )
+
                 if sca_project is None:
                     continue
-
-                lockfile_path = sca_project.dependency_source.lockfile_path
 
                 deps = sca_project.found_dependencies if sca_project is not None else []
                 frozen_deps = tuple((dep.package, dep.transitivity) for dep in deps)
@@ -177,10 +192,22 @@ def generate_reachable_sca_findings(
                     dependencies_range_match_any(depends_on_entries, deps)
                 )
                 for dep_pat, found_dep in dependency_matches:
+                    if found_dep.lockfile_path is None:
+                        # In rare cases, it's possible for a dependency to not have a lockfile
+                        # path. This indicates a dev error and usually means that the parser
+                        # did not associate the dep with a lockfile. So we'll just skip this dependency.
+                        logger.warning(
+                            f"Found a dependency ({found_dep.package}) without a lockfile path. Skipping..."
+                        )
+                        continue
+
+                    lockfile_path = Path(found_dep.lockfile_path.value)
+
                     if found_dep.transitivity == Transitivity(
                         Transitive()
                     ) and transitive_dep_is_also_direct(found_dep.package, frozen_deps):
                         continue
+
                     reachable_deps.add(
                         (
                             lockfile_path,
@@ -194,15 +221,19 @@ def generate_reachable_sca_findings(
                         found_dependency=found_dep,
                         lockfile=str(lockfile_path),
                     )
-                    match.extra["sca_info"] = ScaInfo(
+                    # ! deepcopy is necessary here since we might iterate over the
+                    # ! same match for multiple dependencies
+                    new_match = copy.deepcopy(match)
+                    new_match.extra["sca_info"] = ScaInfo(
                         sca_finding_schema=SCA_FINDING_SCHEMA,
                         reachable=True,
                         reachability_rule=rule.should_run_on_semgrep_core,
                         dependency_match=dep_match,
                     )
-                    reachable_matches.append(match)
+                    reachable_matches.append(new_match)
             except SemgrepError as e:
                 dep_rule_errors.append(e)
+
     return (
         reachable_matches,
         dep_rule_errors,
