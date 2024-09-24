@@ -152,6 +152,7 @@ let string_array ((open_, args, close) : string_array) : G.expr =
 let command (env : env) (x : command) : G.expr list =
   match x with
   | Command_semgrep_ellipsis tok -> [ G.Ellipsis tok |> G.e ]
+  | Command_semgrep_named_ellipsis x -> [ id_expr x ]
   | Argv (_loc, array) -> [ string_array array ]
   | Sh_command (loc, x) ->
       (* !!! Calling Bash_to_generic !!! *)

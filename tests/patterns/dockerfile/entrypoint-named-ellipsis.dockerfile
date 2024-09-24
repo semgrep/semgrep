@@ -1,0 +1,2 @@
+# MATCH:
+ENTRYPOINT ["a"]
