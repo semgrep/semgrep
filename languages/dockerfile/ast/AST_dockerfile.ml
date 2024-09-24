@@ -168,6 +168,7 @@ type command =
   | Sh_command of loc * AST_bash.blist
   | Other_shell_command of shell_compatibility * string wrap
   | Command_semgrep_ellipsis of tok
+  | Command_semgrep_named_ellipsis of string wrap
   (* If the instruction contains at least one heredoc template, we don't
      know the shell command statically and we produce such a template.
      Only the RUN instruction supports heredocs in commands, not CMD,
