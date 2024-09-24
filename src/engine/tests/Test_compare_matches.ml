@@ -57,6 +57,8 @@ let (expected_error_lines_of_files :
 (* Entry points *)
 (*****************************************************************************)
 
+let plural n = if n >= 2 then "s" else ""
+
 let compare_actual_to_expected ~to_location actual_findings
     expected_findings_lines =
   let actual_findings = List_.map to_location actual_findings in
@@ -71,10 +73,15 @@ let compare_actual_to_expected ~to_location actual_findings
   only_in_actual
   |> List.iter (fun (src, l) ->
          UCommon.pr2 (spf "this one finding was not expected: %s:%d" !!src l));
-  let num_errors = List.length only_in_actual + List.length only_in_expected in
+  let false_negatives = List.length only_in_expected in
+  let false_positives = List.length only_in_actual in
+  let num_errors = false_negatives + false_positives in
   let msg =
-    spf "it should find all reported findings and no more (%d errors)"
-      num_errors
+    spf
+      "The test failed to find exactly the expected findings: %i false \
+       negative%s, %i false positive%s."
+      false_negatives (plural false_negatives) false_positives
+      (plural false_positives)
   in
   match num_errors with
   | 0 -> Stdlib.Ok ()

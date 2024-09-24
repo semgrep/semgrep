@@ -76,6 +76,7 @@ let _quoted_string_loc = bracket_loc
 *)
 let command_loc = function
   | Command_semgrep_ellipsis tok -> (tok, tok)
+  | Command_semgrep_named_ellipsis x -> wrap_loc x
   | Argv (loc, _) -> loc
   | Sh_command (loc, _) -> loc
   | Other_shell_command (_, x) -> wrap_loc x
