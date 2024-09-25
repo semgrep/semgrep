@@ -424,8 +424,10 @@ let iter_targets_and_get_matches_and_exn_to_errors (caps : < Cap.fork >)
     =
   (* The target is None when the file was not scanned *)
   let (xs
-        : (Core_profiling.file_profiling Core_result.match_result
-          * Target.t option)
+        : ( Core_profiling.file_profiling Core_result.match_result
+            * Target.t option,
+            Target.t * Core_error.t )
+          result
           list) =
     targets
     |> Parmap_targets.map_targets__run_in_forked_process_do_not_modify_globals
@@ -516,6 +518,29 @@ let iter_targets_and_get_matches_and_exn_to_errors (caps : < Cap.fork >)
            in
            let scanned_target = if was_scanned then Some target else None in
            (Core_result.add_run_time run_time res, scanned_target))
+  in
+  let xs =
+    xs
+    |> List_.map
+         (fun
+           (x :
+             ( Core_profiling.file_profiling Core_result.match_result
+               * Target.t option,
+               Target.t * Core_error.t )
+             result)
+         ->
+           match x with
+           | Ok res -> res
+           | Error (target, e) ->
+               let internal_path = Target.internal_path target in
+               let noprof =
+                 Core_profiling.empty_partial_profiling internal_path
+               in
+               let errors = ESet.singleton e in
+               let match_result =
+                 Core_result.mk_match_result [] errors noprof
+               in
+               (Core_result.add_run_time 0.0 match_result, Some target))
   in
   let matches, opt_paths = List.split xs in
   let scanned =

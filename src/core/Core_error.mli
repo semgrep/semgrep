@@ -16,6 +16,9 @@ type t = {
 }
 [@@deriving show]
 
+(* Useful if we want to raise a core_error *)
+exception Unhandled_core_error of t
+
 module ErrorSet : Set.S with type elt = t
 
 (*****************************************************************************)
