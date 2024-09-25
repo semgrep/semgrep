@@ -72,9 +72,20 @@ type caps = < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.alarm >
 let metarules_pack = "p/semgrep-rule-lints"
 
 (*****************************************************************************)
+(* Pro hooks *)
+(*****************************************************************************)
+
+(* alt: could reuse the one in Test_subcommand.ml *)
+let hook_pro_init : (unit -> unit) ref =
+  ref (fun () ->
+      failwith
+        "semgrep validate --pro not available (need --install-semgrep-pro)")
+
+(*****************************************************************************)
 (* Run the conf *)
 (*****************************************************************************)
 
+(* TODO: split in 3 like in Test_subcommand.ml: targeting/validate/report *)
 let run_conf (caps : caps) (conf : Validate_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:true ~level:conf.common.logging_level;
   (* Metrics_.configure Metrics_.On; ?? and allow to disable it?
@@ -84,6 +95,7 @@ let run_conf (caps : caps) (conf : Validate_CLI.conf) : Exit_code.t =
    * those options and we should disable metrics (and version-check) by default.
    *)
   Logs.debug (fun m -> m "conf = %s" (Validate_CLI.show_conf conf));
+  if conf.pro then !hook_pro_init ();
 
   let settings = Semgrep_settings.load () in
   let token_opt = settings.api_token in
@@ -91,6 +103,13 @@ let run_conf (caps : caps) (conf : Validate_CLI.conf) : Exit_code.t =
    * Before running metachecks on those rules, we make sure we can parse them.
    * TODO: report not only Rule.invalid_rule_errors but all Rule.Error.t for (1)
    * in Config_resolver.errors.
+   * TODO? need the network here since anyway we filter_map registry config
+   * later. We currently abuse the ability for --config and rules_source
+   * to specify a dir but since anyway we want to filter yaml files
+   * that don't look like rules, probably better do our own file
+   * targeting here, especially in osemgrep validate which does not need
+   * to be backward compatible.
+   * TODO: example of possible fatal_errors here?
    *)
   let rules_and_origin, fatal_errors =
     Rule_fetching.rules_from_rules_source ~token_opt ~rewrite_rule_ids:true
@@ -101,6 +120,13 @@ let run_conf (caps : caps) (conf : Validate_CLI.conf) : Exit_code.t =
   let rules, invalid_rules =
     Rule_fetching.partition_rules_and_invalid rules_and_origin
   in
+  invalid_rules
+  |> List.iter (fun (err : Rule_error.invalid_rule) ->
+         match err with
+         (* to get the "Missing semgrep extension ... install --pro" error *)
+         (* alt: just warn *)
+         | MissingPlugin s, _, _ -> Error.abort s
+         | _ -> ());
   (* Checking (3) *)
   let metacheck_errors =
     match conf.rules_source with
@@ -148,6 +174,7 @@ let run_conf (caps : caps) (conf : Validate_CLI.conf) : Exit_code.t =
         if metaerrors <> [] then
           Error.abort (spf "error in metachecks! please fix %s" metarules_pack);
 
+        (* TODO? why using Core_runner instead of directly Core_scan? *)
         let core_run_func =
           Core_runner.mk_core_run_for_osemgrep
             (Core_scan.scan (caps :> Core_scan.caps))
