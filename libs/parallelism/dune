@@ -4,6 +4,7 @@
  (libraries
    TCB
    parmap
+   commons
  )
  (preprocess
    (pps

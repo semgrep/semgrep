@@ -18,7 +18,8 @@ module In = Input_to_core_t
 (* Prelude *)
 (*****************************************************************************)
 (* Small Parmap wrapper with specialized handling for semgrep targets
-*)
+ * See: Parmap_.mli for why the entrypoint functions returns a result list!
+ *)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -46,13 +47,26 @@ let sort_code_targets_by_decreasing_size (targets : Target.regular list) :
         * instead of ascending, order *)
        (Fun.flip Int.compare)
 
+(* Helper to make all the results from a simple n=1 job similar to parmap's
+   result *)
+let wrap_with_ok (f : 'b -> 'a) (x : 'b) : ('a, 'c) result = Ok (f x)
+
+let core_error_of_path_exc internal_path e =
+  let exn = Exception.get_exn e in
+  Logs.err (fun m ->
+      m "exception on %s (%s)"
+        (Fpath.to_string internal_path)
+        (Printexc.to_string exn));
+  Core_error.exn_to_error None internal_path e
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
 (* Run jobs in parallel, using number of cores specified with -j *)
 let map_targets__run_in_forked_process_do_not_modify_globals caps (ncores : int)
-    (f : Target.t -> 'a) (targets : Target.t list) : 'a list =
+    (f : Target.t -> 'a) (targets : Target.t list) :
+    ('a, Target.t * Core_error.t) result list =
   (*
      Sorting the targets by decreasing size is based on the assumption
      that larger targets will take more time to process. Starting with
@@ -65,7 +79,7 @@ let map_targets__run_in_forked_process_do_not_modify_globals caps (ncores : int)
      the two modes, we always sort the target queue in the same way.
   *)
   let targets = sort_targets_by_decreasing_size targets in
-  if ncores <= 1 then List_.map f targets
+  if ncores <= 1 then List_.map (wrap_with_ok f) targets
   else (
     (*
        Parmap creates ncores children processes which listen for
@@ -96,7 +110,15 @@ let map_targets__run_in_forked_process_do_not_modify_globals caps (ncores : int)
     Logs.debug (fun m ->
         m "running parmap with %d cores on %d targets" ncores
           (List.length targets));
-    Parmap_.parmap caps ~ncores ~chunksize:1 f targets)
+    (* Default to core_error and the target here since that's what's most
+       usefule in Core_scan. Maybe we should instead pass this as a
+       parameter? *)
+    let exception_handler (x : Target.t) (e : Exception.t) :
+        Target.t * Core_error.t =
+      let internal_path = Target.internal_path x in
+      (x, core_error_of_path_exc internal_path e)
+    in
+    Parmap_.parmap caps ~ncores ~chunksize:1 ~exception_handler f targets)
 
 (* remove duplication? But we now use this function below at a few places like
  * in Deep_scan_phases and it would be uglier to wrap with [Target.Regular]
@@ -104,13 +126,20 @@ let map_targets__run_in_forked_process_do_not_modify_globals caps (ncores : int)
  *)
 let map_regular_targets__run_in_forked_process_do_not_modify_globals caps
     (ncores : int) (f : Target.regular -> 'a) (targets : Target.regular list) :
-    'a list =
+    ('a, Core_error.t) result list =
   let targets = sort_code_targets_by_decreasing_size targets in
-  if ncores <= 1 then List_.map f targets
+  if ncores <= 1 then List_.map (wrap_with_ok f) targets
   else (
     Parmap_.disable_core_pinning ();
     assert (ncores > 0);
     Logs.debug (fun m ->
         m "running parmap with %d cores on %d targets" ncores
           (List.length targets));
-    Parmap_.parmap caps ~ncores ~chunksize:1 f targets)
+    (* Default to core_error here. Maybe we should instead pass this as a
+       parameter? *)
+    let exception_handler
+        ({ path = { internal_path_to_content; _ }; _ } : Target.regular)
+        (e : Exception.t) : Core_error.t =
+      core_error_of_path_exc internal_path_to_content e
+    in
+    Parmap_.parmap caps ~ncores ~chunksize:1 ~exception_handler f targets)
