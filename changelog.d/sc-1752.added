@@ -1,3 +1,0 @@
-Expanded support for requirement lockfiles. Semgrep will now find any `*requirement*.txt`
-file and lockfiles in a requirements folder (`**/requirements/*.txt`). This functionality
-will be gated behind the `--enable-experimental-requirements` CLI flag.
