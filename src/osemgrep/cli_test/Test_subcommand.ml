@@ -651,6 +651,9 @@ let run_tests (caps : Core_scan.caps) (conf : Test_CLI.conf) (tests : tests)
                      expected res.explanations
                  in
                  (rule_file, checks, fixtest_res))
+         (* capture s and return it in the error so the user will see something
+          * like "Missing semgrep extenstion needed for parsing X. Try --pro"
+          *)
          | Ok (_, (MissingPlugin s, _, _) :: _)
          | Error { kind = InvalidRule (MissingPlugin s, _, _); _ } ->
              (* alt: could Stack_.push (MissingPlugin rule_file) errors *)
