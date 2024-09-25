@@ -1,4 +1,0 @@
-Dockerfile matching: `CMD $...ARGS` now behaves like `CMD ...` and matches
-any CMD instruction that uses the array syntax such as `CMD ["ls"]`. This
-fix also applies to the other command-like instructions RUN
-and ENTRYPOINT.

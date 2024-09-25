@@ -1,1 +1,0 @@
-Errors that occur in semgrep scans with jobs > 1 will now have more detail
