@@ -51,6 +51,16 @@ type t = {
 (* ugly alias because 'type t = t' is not allowed *)
 type core_error = t
 
+exception Unhandled_core_error of t
+
+let () =
+  Printexc.register_printer (function
+    | Unhandled_core_error core_error ->
+        Some
+          (Printf.sprintf "Core_error.Unhandled_core_error(%s)"
+             (show core_error))
+    | _ -> None)
+
 (* TODO: use Set_.t instead *)
 module ErrorSet = Set.Make (struct
   type t = core_error
