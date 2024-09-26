@@ -85,7 +85,7 @@ class LockfileMatcher(ABC):
 
     def get_subproject_root(self, lockfile_path: Path) -> Path:
         """
-        Retrieves the subproject root path based on the lockfile path.
+        Retrieves the subproject root directory path based on the lockfile path.
         Args:
             lockfile_path (Path): The path to the lockfile.
         Returns:
@@ -158,7 +158,7 @@ class RequirementsLockfileMatcher(PatternLockfileMatcher):
 
     def get_subproject_root(self, lockfile_path: Path) -> Path:
         """
-        Retrieves the parent path of the lockfile.
+        Retrieves the subproject root directory path based on the lockfile path.
         """
 
         # Not pretty but we need to handle the case where the lockfile is in a subdirectory
@@ -196,6 +196,12 @@ NEW_REQUIREMENTS_MATCHERS: List[LockfileMatcher] = [
         parser=parse_requirements,
         ecosystem=Ecosystem(Pypi()),
     ),
+    ExactLockfileMatcher(
+        lockfile="requirements.pip",
+        manifest="requirements.in",
+        parser=parse_requirements,
+        ecosystem=Ecosystem(Pypi()),
+    ),
 ]
 
 OLD_REQUIREMENTS_MATCHERS: List[LockfileMatcher] = [
@@ -219,6 +225,12 @@ OLD_REQUIREMENTS_MATCHERS: List[LockfileMatcher] = [
     ),
     ExactLockfileMatcher(
         lockfile="requirements3.txt",
+        manifest="requirements.in",
+        parser=parse_requirements,
+        ecosystem=Ecosystem(Pypi()),
+    ),
+    ExactLockfileMatcher(
+        lockfile="requirements.pip",
         manifest="requirements.in",
         parser=parse_requirements,
         ecosystem=Ecosystem(Pypi()),
@@ -344,7 +356,7 @@ class EcosystemLockfiles:
         )
 
 
-def is_valid_lockfile(ecosystem: Ecosystem, path: Path) -> bool:
+def _is_valid_lockfile(ecosystem: Ecosystem, path: Path) -> bool:
     """
     Check if a path is a valid lockfile for the given ecosystem.
     """
@@ -352,16 +364,7 @@ def is_valid_lockfile(ecosystem: Ecosystem, path: Path) -> bool:
     return any(matcher.is_match(path) for matcher in lockfile_matchers)
 
 
-def filter_lockfile_paths(
-    ecosystem: Ecosystem, candidates: FrozenSet[Path]
-) -> FrozenSet[Path]:
-    """
-    Filter out paths that are not lockfiles for the given ecosystem
-    """
-    return frozenset(path for path in candidates if is_valid_lockfile(ecosystem, path))
-
-
-def create_matcher(path: Path) -> LockfileMatcher:
+def _create_matcher(path: Path) -> LockfileMatcher:
     """
     Method for creating the appropriate LockfileMatcher instance based on
     the lockfile path.
@@ -374,6 +377,15 @@ def create_matcher(path: Path) -> LockfileMatcher:
     raise ValueError(f"Unknown lockfile: {path.name}")
 
 
+def filter_lockfile_paths(
+    ecosystem: Ecosystem, candidates: FrozenSet[Path]
+) -> FrozenSet[Path]:
+    """
+    Filter out paths that are not lockfiles for the given ecosystem
+    """
+    return frozenset(path for path in candidates if _is_valid_lockfile(ecosystem, path))
+
+
 @dataclass(frozen=True)
 class Lockfile:
     """
@@ -381,25 +393,26 @@ class Lockfile:
     """
 
     path: Path
-    parent_path: Path
+    root_directory: Path
     manifest_path: Optional[Path]
     ecosystem: Ecosystem
-    matcher: LockfileMatcher
+    parser: SemgrepParser
 
     @staticmethod
     def from_path(path: Path) -> "Lockfile":
         """
         Create a Lockfile instance from a path
         """
-        matcher = create_matcher(path)
+        matcher = _create_matcher(path)
         manifest_path = matcher.get_manifest_path(path)
-        parent_path = matcher.get_subproject_root(path)
+        root_dir = matcher.get_subproject_root(path)
+
         return Lockfile(
             path=path,
-            parent_path=parent_path,
+            root_directory=root_dir,
             manifest_path=manifest_path,
             ecosystem=matcher.ecosystem,
-            matcher=matcher,
+            parser=matcher.parser,
         )
 
     def parse(self) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
@@ -408,4 +421,4 @@ class Lockfile:
         Also returns Optional DependencyParseError as second return value if there was a problem
         parsing the lockfile
         """
-        return self.matcher.parser(self.path, self.manifest_path)
+        return self.parser(self.path, self.manifest_path)

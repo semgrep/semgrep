@@ -2,11 +2,11 @@ from pathlib import Path
 
 import pytest
 
-from semdep.lockfile import create_matcher
+from semdep.lockfile import _create_matcher
+from semdep.lockfile import _is_valid_lockfile
 from semdep.lockfile import EcosystemLockfiles
 from semdep.lockfile import ExactLockfileMatcher
 from semdep.lockfile import filter_lockfile_paths
-from semdep.lockfile import is_valid_lockfile
 from semdep.lockfile import Lockfile
 from semdep.lockfile import NEW_REQUIREMENTS_MATCHERS
 from semdep.lockfile import OLD_REQUIREMENTS_MATCHERS
@@ -234,7 +234,7 @@ class TestRequirementsLockfileMatcher:
         )
 
     @pytest.mark.quick
-    def test_get_parent_path(self):
+    def test_get_subproject_root(self):
         matcher = RequirementsLockfileMatcher(
             pattern="*requirements*.txt",
             manifest="requirements.in",
@@ -283,7 +283,7 @@ class TestCreateMatcher:
     )
     def test_valid_match(self, lockfile):
         path = Path(lockfile)
-        matcher = create_matcher(path)
+        matcher = _create_matcher(path)
         assert isinstance(matcher, ExactLockfileMatcher)
         assert matcher.lockfile == lockfile
 
@@ -300,7 +300,7 @@ class TestCreateMatcher:
     def test_valid_pattern_match(self, lockfile):
         EcosystemLockfiles.init(use_new_requirements_matchers=True)
 
-        matcher = create_matcher(Path(lockfile))
+        matcher = _create_matcher(Path(lockfile))
 
         assert isinstance(matcher, PatternLockfileMatcher)
         assert matcher.pattern == "*requirements*.txt"
@@ -309,7 +309,7 @@ class TestCreateMatcher:
     def test_unknown_match(self):
         path = Path("unknown.lock")
         with pytest.raises(ValueError, match="Unknown lockfile"):
-            create_matcher(path)
+            _create_matcher(path)
 
 
 class TestLockfile:
@@ -420,7 +420,7 @@ def test_filter_lockfile_paths():
 )
 def test_is_valid_lockfile(lockfile, expected):
     ecosystem = Ecosystem(Pypi())
-    assert is_valid_lockfile(ecosystem, lockfile) is expected
+    assert _is_valid_lockfile(ecosystem, lockfile) is expected
 
 
 class TestEcosystemLockfiles:

@@ -126,6 +126,10 @@ pytestmark = pytest.mark.kinda_slow
         ),
         (
             "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirements_pip",
+        ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
             "dependency_aware/requirements_with_uppercase_package_name",
         ),
         (
