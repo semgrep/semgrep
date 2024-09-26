@@ -808,7 +808,7 @@ and map_struct_declaration (env : env) (x : CST.struct_declaration) :
           in
 
           G.F (G.s (G.DefStmt definition))
-      | `Ellips x -> G.fieldEllipsis (token env x)
+      | `Ellips x -> G.field_ellipsis (token env x)
     in
 
     let lb, v1, v2, rb = x in

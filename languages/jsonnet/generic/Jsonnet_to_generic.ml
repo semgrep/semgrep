@@ -348,7 +348,7 @@ and map_obj_member env v : G.field =
       G.F stmt
   | OEllipsis v ->
       let tdots = map_tok env v in
-      G.fieldEllipsis tdots
+      G.field_ellipsis tdots
 
 and map_field env v : G.definition =
   let { fld_name; fld_attr; fld_hidden; fld_value } = v in

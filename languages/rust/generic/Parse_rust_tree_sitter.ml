@@ -1784,7 +1784,7 @@ and map_field_declaration (env : env) (x : CST.field_declaration) : G.field =
       G.fld (ent, G.FieldDefColon var_def)
   | `Ellips v1 ->
       let t = token env v1 in
-      G.fieldEllipsis t
+      G.field_ellipsis t
 
 (* for struct definition *)
 and map_field_declaration_list (env : env)

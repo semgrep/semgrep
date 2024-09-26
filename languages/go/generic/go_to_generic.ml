@@ -203,7 +203,7 @@ let top_func () =
         let e = G.special spec [ G.N name |> G.e ] in
         let st = G.exprstmt e in
         G.F st
-    | FieldEllipsis t -> G.fieldEllipsis t
+    | FieldEllipsis t -> G.field_ellipsis t
   and tag v =
     let attr = G.(E (e (L (String (fb v))))) in
     [ G.OtherAttribute (("GoTag", snd v), [ attr ]) ]
@@ -223,7 +223,7 @@ let top_func () =
         let e = G.special spec [ G.N name |> G.e ] in
         let st = G.exprstmt e in
         G.F st
-    | FieldEllipsis2 t -> G.fieldEllipsis t
+    | FieldEllipsis2 t -> G.field_ellipsis t
     | Constraints xs -> (
         match xs with
         | [] -> raise Impossible

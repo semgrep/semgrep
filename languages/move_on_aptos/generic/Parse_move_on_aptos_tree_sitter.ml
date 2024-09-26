@@ -941,7 +941,7 @@ let map_field_annot (env : env) (x : CST.field_annot) : G.field =
       in
       let ent = G.basic_entity ident in
       G.fld (ent, G.FieldDefColon var_def)
-  | `Ellips tok -> (* "..." *) G.fieldEllipsis (token env tok)
+  | `Ellips tok -> (* "..." *) G.field_ellipsis (token env tok)
 
 let map_anon_spec_pragma_prop_rep_COMMA_spec_pragma_prop_588d25f (env : env)
     ((v1, v2) : CST.anon_spec_pragma_prop_rep_COMMA_spec_pragma_prop_588d25f) =
