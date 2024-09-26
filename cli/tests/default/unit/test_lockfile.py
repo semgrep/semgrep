@@ -303,7 +303,7 @@ class TestCreateMatcher:
         matcher = _create_matcher(Path(lockfile))
 
         assert isinstance(matcher, PatternLockfileMatcher)
-        assert matcher.pattern == "*requirements*.txt"
+        assert matcher.pattern == "*requirement*.txt"
 
     @pytest.mark.quick
     def test_unknown_match(self):

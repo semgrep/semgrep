@@ -191,7 +191,7 @@ NEW_REQUIREMENTS_MATCHERS: List[LockfileMatcher] = [
         ecosystem=Ecosystem(Pypi()),
     ),
     RequirementsLockfileMatcher(
-        pattern="*requirements*.txt",
+        pattern="*requirement*.txt",
         manifest="requirements.in",
         parser=parse_requirements,
         ecosystem=Ecosystem(Pypi()),
