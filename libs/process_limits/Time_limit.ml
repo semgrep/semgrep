@@ -27,11 +27,12 @@ module Log = Log_process_limits.Log
    - a descriptive name
    - the time limit
      The mli interface makes this type private to help prevent unsafe uses of
-     the exception.
+     the exception. The type is actually defined in the commons compilation
+     unit to allow logging to not treat it a an error.
 *)
-type timeout_info = { name : string; max_duration : float }
+type timeout_info = Exception.timeout_info
 
-exception Timeout of timeout_info
+exception Timeout = Exception.Timeout
 
 (*****************************************************************************)
 (* Helpers *)
@@ -40,7 +41,7 @@ exception Timeout of timeout_info
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
-let string_of_timeout_info { name; max_duration } =
+let string_of_timeout_info { Exception.name; max_duration } =
   spf "%s:%g" name max_duration
 
 let current_timer = ref None
@@ -65,13 +66,13 @@ let current_timer = ref None
 let set_timeout (caps : < Cap.alarm >) ~name max_duration f =
   (match !current_timer with
   | None -> ()
-  | Some { name = running_name; max_duration = running_val } ->
+  | Some { Exception.name = running_name; max_duration = running_val } ->
       invalid_arg
         (spf
            "Common.set_timeout: cannot set a timeout %S of %g seconds. A timer \
             for %S of %g seconds is still running."
            name max_duration running_name running_val));
-  let info (* private *) = { name; max_duration } in
+  let info (* private *) = { Exception.name; max_duration } in
   let raise_timeout () = raise (Timeout info) in
   let clear_timer () =
     current_timer := None;
@@ -92,7 +93,7 @@ let set_timeout (caps : < Cap.alarm >) ~name max_duration f =
     clear_timer ();
     Some x
   with
-  | Timeout { name; max_duration } ->
+  | Timeout { Exception.name; max_duration } ->
       clear_timer ();
       Log.warn (fun m -> m "%S timeout at %g s (we abort)" name max_duration);
       None
