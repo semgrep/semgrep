@@ -252,6 +252,10 @@ def test_ssc(run_semgrep_on_copied_files: RunSemgrep, snapshot, rule, target):
     [
         (
             "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirement",
+        ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
             "dependency_aware/requirements_folder",
         ),
         (
