@@ -82,37 +82,6 @@ class Subproject:
         return self.dependency_source.get_lockfile_paths()
 
 
-def find_closest_subproject(
-    path: Path, ecosystem: Ecosystem, candidates: List[Subproject]
-) -> Optional[Subproject]:
-    """
-    Find the best SCA project for the given match by looking at the parent path of the match
-    and comparing it to the root directories of the provided candidates. The best SCA project is
-    the one with the closest root directory to the match.
-
-    ! All provided candidates must have the same ecosystem.
-
-    We also order the candidates by root directory length so that we prefer
-    more specific subprojects over more general ones.
-
-    Args:
-        path (Path): The path to search for the closest subproject.
-        ecosystem (Ecosystem): The ecosystem to search lockfiles for.
-        candidates (List[Subproject]): List of candidate subprojects.
-    """
-
-    sorted_candidates = sorted(
-        candidates, key=lambda x: len(x.root_dir.parts), reverse=True
-    )
-
-    for candidate in sorted_candidates:
-        for parent in [path, *path.parents]:
-            if candidate.root_dir == parent and candidate.ecosystem == ecosystem:
-                return candidate
-
-    return None
-
-
 def _get_lockfiles_by_root_dir(
     target_manager: TargetManager, ecosystem: Ecosystem
 ) -> Dict[Path, List[Lockfile]]:
@@ -125,12 +94,11 @@ def _get_lockfiles_by_root_dir(
     lockfiles = target_manager.get_lockfiles(ecosystem, ignore_baseline_handler=True)
 
     # group by parent
-    lockfiles_by_parent_path: Dict[Path, List[Lockfile]] = {}
+    lockfiles_by_parent_path: Dict[Path, List[Lockfile]] = defaultdict(list)
+
     for lockfile in lockfiles:
-        parent = lockfile.parent_path
-        if parent not in lockfiles_by_parent_path:
-            lockfiles_by_parent_path[parent] = []
-        lockfiles_by_parent_path[parent].append(lockfile)
+        root_dir = lockfile.root_directory
+        lockfiles_by_parent_path[root_dir].append(lockfile)
 
     return lockfiles_by_parent_path
 
@@ -294,3 +262,34 @@ def resolve_subprojects(
                     dependency_parser_errors.extend(parse_errors)
 
     return resolved_deps, dependency_parser_errors, sca_dependency_targets
+
+
+def find_closest_subproject(
+    path: Path, ecosystem: Ecosystem, candidates: List[Subproject]
+) -> Optional[Subproject]:
+    """
+    Find the best SCA project for the given match by looking at the parent path of the match
+    and comparing it to the root directories of the provided candidates. The best SCA project is
+    the one with the closest root directory to the match.
+
+    ! All provided candidates must have the same ecosystem.
+
+    We also order the candidates by root directory length so that we prefer
+    more specific subprojects over more general ones.
+
+    Args:
+        path (Path): The path to search for the closest subproject.
+        ecosystem (Ecosystem): The ecosystem to search lockfiles for.
+        candidates (List[Subproject]): List of candidate subprojects.
+    """
+
+    sorted_candidates = sorted(
+        candidates, key=lambda x: len(x.root_dir.parts), reverse=True
+    )
+
+    for candidate in sorted_candidates:
+        for parent in [path, *path.parents]:
+            if candidate.root_dir == parent and candidate.ecosystem == ecosystem:
+                return candidate
+
+    return None
