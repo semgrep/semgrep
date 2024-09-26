@@ -53,8 +53,14 @@ type t = private {
 }
 [@@deriving show]
 
+(* builder *)
 val mk_error : ?rule_id:Rule_ID.t -> error_kind -> t
 val augment_with_file : Fpath.t -> t -> t
+
+(* filter *)
 val is_skippable_error : invalid_rule_kind -> bool
-val string_of_invalid_rule_kind : invalid_rule_kind -> string
+
+(* string of *)
 val string_of_error : t -> string
+val string_of_invalid_rule : invalid_rule -> string
+val string_of_invalid_rule_kind : invalid_rule_kind -> string
