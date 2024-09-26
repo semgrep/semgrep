@@ -792,7 +792,7 @@ and class_member_declaration (env : env) (x : CST.class_member_declaration) :
           (ent, FuncDef def) |> G.fld)
   | `Ellips x ->
       let x = token env x in
-      G.fieldEllipsis x
+      G.field_ellipsis x
 
 and class_member_declarations (env : env) (xs : CST.class_member_declarations) :
     field list =

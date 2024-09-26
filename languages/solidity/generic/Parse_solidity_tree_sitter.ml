@@ -1749,7 +1749,7 @@ let map_struct_member (env : env) (x : CST.struct_member) : field =
       let id = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v2 in
       let _sc = (* ";" *) token env v3 in
       G.basic_field id None (Some ty)
-  | `Ellips tok -> G.fieldEllipsis ((* "..." *) token env tok)
+  | `Ellips tok -> G.field_ellipsis ((* "..." *) token env tok)
 
 let map_inheritance_specifier (env : env) (v1 : CST.inheritance_specifier) :
     class_parent =

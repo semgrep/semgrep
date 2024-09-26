@@ -460,7 +460,7 @@ and map_object_elem (env : env) (x : CST.object_elem) : G.field =
       (ent, def) |> G.fld
   | `Semg_ellips v1 ->
       let v1 = token env v1 in
-      G.fieldEllipsis v1
+      G.field_ellipsis v1
 
 and map_object_elems (env : env) ((v1, v2, v3) : CST.object_elems) =
   let v1 = map_object_elem env v1 in

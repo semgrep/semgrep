@@ -44,7 +44,7 @@ let rec map_block_body_element (x : block_body_element) : G.field =
   | Block blk ->
       let e = map_block blk in
       G.F (G.exprstmt e)
-  | BlockEllipsis t -> G.fieldEllipsis t
+  | BlockEllipsis t -> G.field_ellipsis t
 
 (* TODO? convert to a definition? a class_def?
  * coupling: Constant_propagation.terraform_stmt_to_vardefs

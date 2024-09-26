@@ -705,7 +705,7 @@ and property x =
       let e = G.special spec [ v1 ] in
       let st = G.exprstmt e in
       G.F st
-  | FieldEllipsis v1 -> G.fieldEllipsis v1
+  | FieldEllipsis v1 -> G.field_ellipsis v1
   | FieldPatDefault (v1, _v2, v3) ->
       let v1 = pattern v1 in
       let v3 = expr v3 in

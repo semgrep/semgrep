@@ -2419,7 +2419,7 @@ let basic_field ?(vtok = no_sc) id vopt typeopt =
   let entity = basic_entity id in
   fld (entity, VarDef { vinit = vopt; vtype = typeopt; vtok })
 
-let fieldEllipsis t = F (exprstmt (e (Ellipsis t)))
+let field_ellipsis t = F (exprstmt (e (Ellipsis t)))
 
 (* ------------------------------------------------------------------------- *)
 (* Attributes *)

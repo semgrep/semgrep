@@ -1775,7 +1775,7 @@ and member_declarations (env : env) ((v1, v2, v3) : CST.member_declarations) =
         | `Ellips tok ->
             let tok = token env tok in
             (* "..." *)
-            [ G.fieldEllipsis tok ])
+            [ G.field_ellipsis tok ])
       v2
   in
   let v3 = (* "}" *) token env v3 in
