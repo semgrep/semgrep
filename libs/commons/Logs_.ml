@@ -341,31 +341,31 @@ let with_debug_trace ?(src = debug_trace_src) ~__FUNCTION__
     Logs.debug ~src (fun m -> m "finished %s" name);
     res
   with
-  (* We could consider filtering timeouts and other expected
-     exceptions to prevent them from showing up as errors in the
-     log. *)
   | exn ->
-      let exn = Exception.catch exn in
+      let exn' = Exception.catch exn in
+      let msgf ppf =
+        Format.fprintf ppf "exception during %s:\n" name;
+        match pp_input with
+        | None -> ()
+        | Some pp_input ->
+            Format.fprintf ppf "input:\n%s\n" (pp_input ());
+            Format.fprintf ppf "exception: %s\n"
+              (Printexc.to_string (Exception.get_exn exn'));
+            (* Only print stack trace in the outermost handler to
+                         prevent large duplications. *)
+            if not currently_in_debug_trace then
+              Format.fprintf ppf "backtrace:\n%s"
+                (Printexc.raw_backtrace_to_string (Exception.get_trace exn'))
+      in
       (* Purposefully not using ~src here so that it goes to the
          applications logs. *)
-      Logs.err (fun m ->
+      (match exn with
+      | Exception.Timeout _ ->
           (* %t the little known give me back my format stream
              specifier. *)
-          m "%t" (fun ppf ->
-              Format.fprintf ppf "exception during %s:\n" name;
-              match pp_input with
-              | None -> ()
-              | Some pp_input ->
-                  Format.fprintf ppf "input:\n%s\n" (pp_input ());
-                  Format.fprintf ppf "exception: %s\n"
-                    (Printexc.to_string (Exception.get_exn exn));
-                  (* Only print stack trace in the outermost handler to
-                     prevent large duplications. *)
-                  if not currently_in_debug_trace then
-                    Format.fprintf ppf "backtrace:\n%s"
-                      (Printexc.raw_backtrace_to_string
-                         (Exception.get_trace exn))));
-      Exception.reraise exn
+          Logs.debug (fun m -> m "%t" msgf)
+      | _ -> Logs.err (fun m -> m "%t" msgf));
+      Exception.reraise exn'
 
 (*****************************************************************************)
 (* Missing basic functions *)

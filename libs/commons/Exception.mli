@@ -131,3 +131,15 @@ val get_trace : t -> Printexc.raw_backtrace
    'Printexc.register_printer'.
 *)
 val to_string : t -> string
+
+(* A timeout exception with accompanying debug information:
+   - a descriptive name
+   - the time limit
+*)
+type timeout_info = { name : string; max_duration : float }
+
+(*
+   If ever caught, this exception must be re-raised immediately so as
+   to not interfere with the timeout handler. See function 'set_timeout'.
+*)
+exception Timeout of timeout_info

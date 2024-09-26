@@ -29,3 +29,7 @@ let to_string (exn, trace) =
   in
   (* ensure the output ends with a newline *)
   if msg = "" || msg.[String.length msg - 1] <> '\n' then msg ^ "\n" else msg
+
+type timeout_info = { name : string; max_duration : float }
+
+exception Timeout of timeout_info
