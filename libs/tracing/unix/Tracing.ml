@@ -201,6 +201,18 @@ let trace_data_only ?(level = Info) ~__FUNCTION__ ~__FILE__ ~__LINE__ name
   with_span ~level ~__FUNCTION__ ~__FILE__ ~__LINE__ name (fun sp ->
       f () |> add_yojson_to_span sp)
 
+let log_trace_message () =
+  match Otel.Scope.get_ambient_scope () with
+  | None ->
+      (* nosemgrep: no-logs-in-library *)
+      Logs.info (fun m ->
+          m "Tracing is enabled for this scan. There was no trace id recorded.")
+  | Some scope ->
+      let id = Otel.Trace_id.to_hex scope.trace_id in
+      (* nosemgrep: no-logs-in-library *)
+      Logs.info (fun m ->
+          m "Tracing is enabled for this scan. The trace id is <%s>." id)
+
 (*****************************************************************************)
 (* Entry points for setting up tracing *)
 (*****************************************************************************)
@@ -241,7 +253,9 @@ let with_tracing fname trace_endpoint data f =
   Opentelemetry_client_ocurl.with_setup ~config () @@ fun () ->
   with_top_level_span ?parent_span_id ?parent_trace_id ~__FILE__ ~__LINE__ ~data
     fname
-  @@ fun sp -> f sp
+  @@ fun sp ->
+  log_trace_message ();
+  f sp
 
 (* Alt: using cohttp_lwt (we probably want to do this when we switch to Eio w/ *)
 (* their compatibility layer)
