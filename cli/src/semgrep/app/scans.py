@@ -484,15 +484,16 @@ class ScanHandler:
         # minutes to wait for completion. Eventually, this wait may
         # be configurable as we see larger scans and increased backend
         # load.
-        try_until = datetime.utcnow() + timedelta(minutes=30)
-        slow_down_after = datetime.utcnow() + timedelta(minutes=2)
+        now = datetime.now().replace(tzinfo=None)
+        try_until = now + timedelta(minutes=30)
+        slow_down_after = now + timedelta(minutes=2)
 
         while True:
             # old: was also logging {json.dumps(complete.to_json(), indent=4)}
             # alt: save it in ~/.semgrep/logs/complete.json?
             logger.debug(f"Sending /complete")
 
-            if datetime.utcnow() > try_until:
+            if datetime.now().replace(tzinfo=None) > try_until:
                 # let the backend know we won't be trying again
                 complete.final_attempt = True
 
@@ -522,4 +523,4 @@ class ScanHandler:
                 )
 
             progress_bar.advance(complete_task)
-            sleep(5 if datetime.utcnow() < slow_down_after else 30)
+            sleep(5 if datetime.now().replace(tzinfo=None) < slow_down_after else 30)
