@@ -13,7 +13,6 @@ from semgrep.app import auth
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.config_resolver import get_config
 from semgrep.error import FATAL_EXIT_CODE
-from semgrep.git import clean_project_url
 from semgrep.git import get_project_url
 from semgrep.state import get_state
 from semgrep.test import get_config_filenames
@@ -176,9 +175,7 @@ def _upload_rule(
     rule = rules[0]
 
     # add metadata about the origin of the rule
-    origin_note = (
-        f"published from {rule_file} in {clean_project_url(get_project_url() or '')}"
-    )
+    origin_note = f"published from {rule_file} in {get_project_url()}"
     rule.metadata["rule-origin-note"] = origin_note
 
     request_json = {
