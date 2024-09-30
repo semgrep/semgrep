@@ -194,7 +194,9 @@ let send_map (type a) (info : server_info) packet (f : Packet.t -> a) :
 (*****************************************************************************)
 
 let send_request info request =
-  let id = Uuidm.v `V4 |> Uuidm.to_string in
+  let id =
+    Uuidm.v4_gen (Stdlib.Random.State.make_self_init ()) () |> Uuidm.to_string
+  in
   let packet = Packet.Request (CR.to_jsonrpc_request request (`String id)) in
   send_map info packet
 
