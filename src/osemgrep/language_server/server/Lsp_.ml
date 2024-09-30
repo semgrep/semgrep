@@ -82,7 +82,9 @@ let respond (type r) (id : Id.t) (request : r CR.t) (response : r) =
 
 (** Send a request to the client *)
 let request request =
-  let id = Uuidm.v `V4 |> Uuidm.to_string in
+  let id =
+    Uuidm.v4_gen (Stdlib.Random.State.make_self_init ()) () |> Uuidm.to_string
+  in
   let request = SR.to_jsonrpc_request request (`String id) in
   Logs.debug (fun m ->
       m "Sending request %s"
@@ -117,7 +119,9 @@ let notify_show_message ~kind s =
 
 (** Show a little progress circle while doing thing. Returns a token needed to end progress*)
 let create_progress title message =
-  let id = Uuidm.v `V4 |> Uuidm.to_string in
+  let id =
+    Uuidm.v4_gen (Stdlib.Random.State.make_self_init ()) () |> Uuidm.to_string
+  in
   Logs.debug (fun m ->
       m "Creating progress token %s, (%s: %s)" id title message);
   let token = ProgressToken.t_of_yojson (`String id) in

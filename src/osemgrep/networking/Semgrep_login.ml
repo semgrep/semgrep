@@ -27,7 +27,8 @@ type login_session = shared_secret * Uri.t
 let support_url = "https://semgrep.dev/docs/support/"
 
 let make_login_url () =
-  let session_id = Uuidm.v `V4 in
+  let rand = Stdlib.Random.State.make_self_init () in
+  let session_id = Uuidm.v4_gen rand () in
   ( session_id,
     Uri.(
       add_query_params'
