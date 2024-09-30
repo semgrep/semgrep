@@ -77,6 +77,7 @@ the other programming languages supported by atdgen."
     (lib_parsing (>= 1.5.5))
     (profiling (>= 1.5.5))
     (atdgen (>= 2.8.0))
+    (uuidm (>= 0.9.9))
   )
 )
 
@@ -515,7 +516,7 @@ For more information see https://semgrep.dev
     (conf-libcurl (= 1)) ; force older version of conf-libcurl to make windows work
     ; web stuff
     uri
-    uuidm
+    (uuidm (>= 0.9.9))
     ; cohttp >= 6.0.0 requires opam 2.1.0 which used to not available in Windows
     ; TODO: now that opam 2.2.0 is out and support windows, upgrade to 6.0.0
     (cohttp (= 5.3.0))
