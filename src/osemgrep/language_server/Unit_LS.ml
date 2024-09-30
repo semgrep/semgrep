@@ -103,7 +103,7 @@ let mock_run_results (files : string list) : Core_runner.result =
 
 let mock_workspace ?(git = false) () : Fpath.t =
   let rand_dir () =
-    let uuid = Uuidm.v `V4 in
+    let uuid = Uuidm.v4_gen (Stdlib.Random.State.make_self_init ()) () in
     let dir_name = "test_workspace_" ^ Uuidm.to_string uuid in
     let dir = Filename.concat (Filename.get_temp_dir_name ()) dir_name in
     Unix.mkdir dir 0o777;

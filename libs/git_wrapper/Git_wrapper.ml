@@ -501,7 +501,8 @@ let run_with_worktree (caps : < Cap.chdir ; Cap.tmp >) ~commit ?branch f =
     | None -> raise (Error "")
   in
   let rand_dir () =
-    let uuid = Uuidm.v `V4 in
+    let rand = Stdlib.Random.State.make_self_init () in
+    let uuid = Uuidm.v4_gen rand () in
     let dir_name = "semgrep_git_worktree_" ^ Uuidm.to_string uuid in
     let dir = CapTmp.get_temp_dir_name caps#tmp / dir_name in
     UUnix.mkdir !!dir 0o777;
