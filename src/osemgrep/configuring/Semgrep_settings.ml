@@ -20,10 +20,11 @@ type t = {
 }
 
 let default =
+  let rand = Stdlib.Random.State.make_self_init () in
   {
     has_shown_metrics_notification = None;
     api_token = None;
-    anonymous_user_id = Uuidm.v `V4;
+    anonymous_user_id = Uuidm.v4_gen rand ();
   }
 
 (*****************************************************************************)

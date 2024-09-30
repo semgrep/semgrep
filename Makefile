@@ -237,7 +237,18 @@ core-test-e2e:
 # path, then recent versions of opam crash with a 'git ls-files fatal error'
 # about some 'libs/ocaml-tree-sitter-core/../../.git/...' not being a git
 # repo.
-REQUIRED_DEPS = ./ ./libs/ocaml-tree-sitter-core/tree-sitter.opam ./dev/required.opam
+#
+# EXTRA_OPAM_DEPS allows us to add more opam files when building semgrep
+# as part of a larger project (e.g. semgrep-proprietary). Using a single
+# 'opam install' command to install all the dependencies allows us to detect
+# version constraints incompatibilities.
+#
+REQUIRED_DEPS = \
+ ./ \
+ ./libs/ocaml-tree-sitter-core/tree-sitter.opam \
+  ./dev/required.opam \
+  $(EXTRA_OPAM_DEPS)
+
 OPTIONAL_DEPS = $(REQUIRED_DEPS) ./dev/optional.opam
 
 # This target is portable; it only assumes you have 'gcc', 'opam' and
