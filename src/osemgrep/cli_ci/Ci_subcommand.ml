@@ -201,7 +201,7 @@ let scan_config_and_rules_from_deployment ~dry_run
   let scan_metadata : OutJ.scan_metadata =
     {
       cli_version = Version.version;
-      unique_id = Uuidm.v `V4;
+      unique_id = Uuidm.v4_gen (Stdlib.Random.State.make_self_init ()) ();
       (* TODO: should look at conf.secrets, conf.sca, conf.code, etc. *)
       requested_products = [];
       dry_run = false;
