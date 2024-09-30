@@ -144,8 +144,9 @@ type t = {
 let now () : Timedesc.Timestamp.t = Timedesc.Timestamp.now ()
 
 let default_payload =
+  let rand = Stdlib.Random.State.make_self_init () in
   {
-    Semgrep_metrics_t.event_id = Uuidm.v `V4;
+    Semgrep_metrics_t.event_id = Uuidm.v4_gen rand ();
     anonymous_user_id = "";
     started_at = now ();
     sent_at = now ();
