@@ -94,7 +94,7 @@ let format_cli_match (cli_match : OutT.cli_match) =
   let id =
     (* TODO the ?index argument needs to be provided (for ci_unique_key duplicates) *)
     Semgrep_hashing_functions.ci_unique_key cli_match
-    |> Uuidm.of_bytes |> Option.get |> Uuidm.to_string
+    |> Uuidm.of_binary_string |> Option.get |> Uuidm.to_string
   in
   let r =
     [
