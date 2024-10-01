@@ -28,10 +28,64 @@ module Lval_env = Taint_lval_env
 let sigs_tag = Log_tainting.sigs_tag
 let bad_tag = Log_tainting.bad_tag
 
+(*****************************************************************************)
+(* Call effets *)
+(*****************************************************************************)
+
+type call_effect =
+  | ToSink of Effect.taints_to_sink
+  | ToReturn of Effect.taints_to_return
+  | ToLval of Taint.taints * IL.lval
+
+type call_effects = call_effect list
+
+let show_call_effect = function
+  | ToSink tts -> Effect.show_taints_to_sink tts
+  | ToReturn ttr -> Effect.show_taints_to_return ttr
+  | ToLval (taints, lval) ->
+      Printf.sprintf "%s ----> %s" (T.show_taints taints)
+        (Display_IL.string_of_lval lval)
+
+let show_call_effects call_effects =
+  call_effects |> List_.map show_call_effect |> String.concat "; "
+
+(*****************************************************************************)
+(* Instantiation "config" *)
+(*****************************************************************************)
+
+type inst_var = {
+  inst_lval : T.lval -> (Taints.t * shape) option;
+      (** How to instantiate a 'Taint.lval', aka "data taint variable". *)
+  inst_ctrl : unit -> Taints.t;
+      (** How to instantiate a 'Taint.Control', aka "control taint variable". *)
+}
+
+(* TODO: Right now this is only for source traces, not for sink traces...
+ * In fact, we should probably not have two traces but just one, but more
+ * general. *)
+type inst_trace = {
+  add_call_to_trace_for_src :
+    Tok.t list ->
+    Rule.taint_source T.call_trace ->
+    Rule.taint_source T.call_trace option;
+      (** For sources we extend the call trace. *)
+  fix_token_trace_for_var : var_tokens:Tok.t list -> Tok.t list -> Tok.t list;
+      (** For variables we should too, but due to limitations in our call-trace
+   * representation, we just record the path as tainted tokens. *)
+}
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
 let ( let+ ) x f =
   match x with
   | None -> []
   | Some x -> f x
+
+(*****************************************************************************)
+(* Instantiating traces *)
+(*****************************************************************************)
 
 (* Try to get an idnetifier from a callee/function expression, to be used in
  * a taint trace. *)
@@ -47,75 +101,158 @@ let get_ident_of_callee callee =
       | __else__ -> None)
   | __else__ -> None
 
-(* TODO: Move to 'Taint' module ? *)
-let subst_in_precondition ~inst_lval ~inst_ctrl taint =
+let add_call_to_trace_if_callee_has_eorig ~callee tainted_tokens call_trace =
+  (* E.g. (ToReturn) the call to 'bar' in:
+   *
+   *     1 def bar():
+   *     2     x = taint
+   *     3     return x
+   *     4
+   *     5 def foo():
+   *     6     y = bar()
+   *     7     sink(y)
+   *
+   * would result in this call trace for the source:
+   *
+   *     Call('bar' @l.6, ["x" @l.2], "taint" @l.2)
+   *
+   * E.g. (ToLval) the call to 'bar' in:
+   *
+   *     1 s = set([])
+   *     2
+   *     3 def bar():
+   *     4    global s
+   *     5    s.add(taint)
+   *     6
+   *     7 def foo():
+   *     8    global s
+   *     9    bar()
+   *    10    sink(s)
+   *
+   * would result in this call trace for the source:
+   *
+   *     Call('bar' @l.6, ["s" @l.5], "taint" @l.5)
+   *)
+  match callee with
+  | { IL.e = _; eorig = SameAs orig_callee } ->
+      Some (T.Call (orig_callee, tainted_tokens, call_trace))
+  | __else__ ->
+      (* TODO: Have a better fallback in case we can't get an eorig from 'callee',
+       * maybe for that we need to change `Taint.Call` to accept a token. *)
+      None
+
+let add_call_to_token_trace ~callee ~var_tokens caller_tokens =
+  (* E.g. (ToReturn) the call to 'bar' in:
+   *
+   *     1 def bar(x):
+   *     2     y = x
+   *     3     return y
+   *     4
+   *     5 def foo():
+   *     6     t = bar(taint)
+   *     7     ...
+   *
+   * would result in this list of tokens (note that is reversed):
+   *
+   *     ["t" @l.6; "y" @l.2; "x" @l.1; "bar" @l.6]
+   *
+   * This is a hack we use because taint traces aren't general enough,
+   * this should be represented with a call trace.
+   *)
+  let call_tokens =
+    (match get_ident_of_callee callee with
+    | None -> []
+    | Some ident -> [ snd ident ])
+    @ List.rev var_tokens
+  in
+  List.rev_append call_tokens caller_tokens
+
+let add_lval_update_to_token_trace ~callee:_TODO lval_tok ~var_tokens
+    caller_tokens =
+  (* E.g. (ToLval) the call to 'bar' in:
+   *
+   *     1 s = set([])
+   *     2
+   *     3 def bar(x):
+   *     4    global s
+   *     5    s.add(x)
+   *     6
+   *     7 def foo():
+   *     8    global s
+   *     9    t = taint
+   *    10    bar(t)
+   *    11    sink(s)
+   *
+   * would result in this list of tokens (note that is reversed):
+   *
+   *     ["s" @l.5; "s" @l.5; "x" @l.3; "s" @l.5; "bar" @l.10; "t" @l.9]
+   *
+   * This is a hack we use because taint traces aren't general enough,
+   * this should be represented with a call trace.
+   *)
+  let call_tokens =
+    (* TODO: Use `get_ident_of_callee callee` to add the callee to the trace. *)
+    lval_tok :: List.rev var_tokens
+  in
+  List.rev_append call_tokens caller_tokens
+
+(*****************************************************************************)
+(* Instatiation *)
+(*****************************************************************************)
+
+let subst_in_precondition inst_var taint =
   let subst taints =
     taints
     |> List.concat_map (fun t ->
            match t.T.orig with
            | Src _ -> [ t ]
            | Var lval -> (
-               match inst_lval lval with
+               match inst_var.inst_lval lval with
                | None -> []
-               | Some (var_taints, _var_shape) -> var_taints |> Taints.elements)
+               | Some (call_taints, _call_shape) ->
+                   call_taints |> Taints.elements)
            | Shape_var lval -> (
-               match inst_lval lval with
+               match inst_var.inst_lval lval with
                | None -> []
-               | Some (_var_taints, var_shape) ->
-                   Shape.gather_all_taints_in_shape var_shape |> Taints.elements
-               )
-           | Control -> inst_ctrl () |> Taints.elements)
+               | Some (_call_taints, call_shape) ->
+                   (* Taint shape-variable, stands for the taints reachable
+                    * through the shape of the 'lval', it's like a delayed
+                    * call to 'Shape.gather_all_taints_in_shape'. *)
+                   Shape.gather_all_taints_in_shape call_shape
+                   |> Taints.elements)
+           | Control -> inst_var.inst_ctrl () |> Taints.elements)
   in
   T.map_preconditions subst taint
 
-let instantiate_taint_var ~inst_lval ~inst_ctrl taint =
+let instantiate_taint_var inst_var taint =
   match taint.T.orig with
   | Src _ -> None
-  | Var lval -> inst_lval lval
+  | Var lval -> inst_var.inst_lval lval
   | Shape_var lval ->
       (* This is just a delayed 'gather_all_taints_in_shape'. *)
       let* taints =
-        inst_lval lval
+        inst_var.inst_lval lval
         |> Option.map (fun (_taints, shape) ->
                Shape.gather_all_taints_in_shape shape)
       in
       Some (taints, Bot)
   | Control ->
       (* 'Control' is pretty much like a taint variable so we handle all together. *)
-      Some (inst_ctrl (), Bot)
+      Some (inst_var.inst_ctrl (), Bot)
 
-let instantiate_taint ~callee ~inst_lval ~inst_ctrl taint =
-  let inst_taint_var taint =
-    instantiate_taint_var ~inst_lval ~inst_ctrl taint
-  in
+let instantiate_taint inst_var inst_trace taint =
+  let inst_taint_var taint = instantiate_taint_var inst_var taint in
   match taint.T.orig with
   | Src src -> (
       let taint =
-        (* Update taint trace.
-         *
-         * E.g. the call to 'bar' in:
-         *
-         *     1 def bar():
-         *     2     x = taint
-         *     3     return x
-         *     4
-         *     5 def foo():
-         *     6     bar()
-         *     7     ...
-         *
-         * would result in this call trace:
-         *
-         *     Call('bar' @l.6, ["x" @l.2], "taint" @l.2)
-         *)
-        match callee with
-        | { IL.e = _; eorig = SameAs orig_callee } ->
-            let call_trace =
-              T.Call (orig_callee, taint.tokens, src.call_trace)
-            in
+        match
+          inst_trace.add_call_to_trace_for_src taint.tokens src.call_trace
+        with
+        | Some call_trace ->
             { T.orig = Src { src with call_trace }; tokens = [] }
-        | __else__ -> taint
+        | None -> taint
       in
-      match subst_in_precondition ~inst_lval ~inst_ctrl taint with
+      match subst_in_precondition inst_var taint with
       | None ->
           (* substitution made preconditon false, so no taint here! *)
           Taints.empty
@@ -126,49 +263,25 @@ let instantiate_taint ~callee ~inst_lval ~inst_ctrl taint =
   | Control -> (
       match inst_taint_var taint with
       | None -> Taints.empty
-      | Some (var_taints, _var_shape) ->
-          (* Update taint trace.
-           *
-           * E.g. the call to 'bar' in:
-           *
-           *     1 def bar(x):
-           *     2     y = x
-           *     3     return y
-           *     4
-           *     5 def foo():
-           *     6     t = bar(taint)
-           *     7     ...
-           *
-           * would result in this list of tokens (note that is reversed):
-           *
-           *     ["t" @l.6; "y" @l.2; "x" @l.1; "bar" @l.6]
-           *
-           * This is a hack we use because taint traces aren't general enough,
-           * this should be represented with a call trace.
-           *)
-          let extra_tokens =
-            (match get_ident_of_callee callee with
-            | None -> []
-            | Some ident -> [ snd ident ])
-            @ List.rev taint.tokens
-          in
-          var_taints
+      | Some (call_taints, _Bot_shape) ->
+          call_taints
           |> Taints.map (fun taint' ->
                  {
                    taint' with
-                   tokens = List.rev_append extra_tokens taint'.tokens;
+                   tokens =
+                     inst_trace.fix_token_trace_for_var ~var_tokens:taint.tokens
+                       taint'.tokens;
                  }))
 
-let instantiate_taints ~callee ~inst_lval ~inst_ctrl taints =
-  taints |> Taints.elements
-  |> List.fold_left
+let instantiate_taints inst_var inst_trace taints =
+  taints |> Taints.to_seq
+  |> Seq.fold_left
        (fun acc taint ->
-         acc
-         |> Taints.union (instantiate_taint ~callee ~inst_lval ~inst_ctrl taint))
+         acc |> Taints.union (instantiate_taint inst_var inst_trace taint))
        Taints.empty
 
-let instantiate_shape ~callee ~inst_lval ~inst_ctrl shape =
-  let inst_taints = instantiate_taints ~callee ~inst_lval ~inst_ctrl in
+let instantiate_shape inst_var inst_trace shape =
+  let inst_taints = instantiate_taints inst_var inst_trace in
   let rec inst_shape = function
     | Bot -> Bot
     | Obj obj ->
@@ -181,7 +294,7 @@ let instantiate_shape ~callee ~inst_lval ~inst_ctrl shape =
         in
         if Fields.is_empty obj then Bot else Obj obj
     | Arg arg -> (
-        match inst_lval (T.lval_of_arg arg) with
+        match inst_var.inst_lval (T.lval_of_arg arg) with
         | Some (_taints, shape) -> shape
         | None ->
             Log.warn (fun m ->
@@ -501,18 +614,30 @@ let taints_of_sig_lval lval_env ~check_lval fparams fun_exp args_exps
     (args_taints : (Taints.t * shape) IL.argument list) (sig_lval : T.lval) =
   match taints_of_lval lval_env fparams fun_exp args_taints sig_lval with
   | Some (taints, shape) -> Some (taints, shape)
-  | None ->
-      (* We want to know what's the taint carried by 'arg_exp.x1. ... .xN'.
-       * TODO: We should not need this when we cover everything with shapes,
-       *   see 'lval_of_sig_lval'.
-       *)
-      let* lval, _obj = lval_of_sig_lval fun_exp fparams args_exps sig_lval in
-      let lval_taints, shape = check_lval lval in
-      let lval_taints =
-        lval_taints
-        |> fix_lval_taints_if_global_or_a_field_of_this_class fun_exp sig_lval
-      in
-      Some (lval_taints, shape)
+  | None -> (
+      match args_exps with
+      | None ->
+          Log.warn (fun m ->
+              m
+                "Cannot find the taint&shape of %s because we lack the actual \
+                 arguments"
+                (T.show_lval sig_lval));
+          None
+      | Some args_exps ->
+          (* We want to know what's the taint carried by 'arg_exp.x1. ... .xN'.
+           * TODO: We should not need this when we cover everything with shapes,
+           *   see 'lval_of_sig_lval'.
+           *)
+          let* lval, _obj =
+            lval_of_sig_lval fun_exp fparams args_exps sig_lval
+          in
+          let lval_taints, shape = check_lval lval in
+          let lval_taints =
+            lval_taints
+            |> fix_lval_taints_if_global_or_a_field_of_this_class fun_exp
+                 sig_lval
+          in
+          Some (lval_taints, shape))
 
 (* This function is consuming the taint signature of a function to determine
    a few things:
@@ -521,26 +646,27 @@ let taints_of_sig_lval lval_env ~check_lval fparams fun_exp args_exps
    2) Are there any effects that occur within the function due to taints being
       input into the function body, from the calling context?
 *)
-let instantiate_function_signature lval_env ~check_lval fparams fun_sig fun_exp
-    fun_eorig args (args_taints : (Taints.t * shape) IL.argument list) : _ =
-  (* This function simply produces the corresponding taints to the
-      given argument, within the body of the function.
-  *)
-  (* Our first pass will be to substitute the args for taints.
-     We can't do this indiscriminately at the beginning, because
-     we might need to use some of the information of the pre-substitution
-     taints and the post-substitution taints, for instance the tokens.
-
-     So we will isolate this as a specific step to be applied as necessary.
-  *)
+let instantiate_function_signature lval_env ~check_lval fparams
+    (fun_sig : Signature.t) ~callee ~(args : _ option)
+    (args_taints : (Taints.t * shape) IL.argument list) : call_effects option =
   let lval_to_taints lval =
+    (* This function simply produces the corresponding taints to the
+        given argument, within the body of the function.
+    *)
+    (* Our first pass will be to substitute the args for taints.
+       We can't do this indiscriminately at the beginning, because
+       we might need to use some of the information of the pre-substitution
+       taints and the post-substitution taints, for instance the tokens.
+
+       So we will isolate this as a specific step to be applied as necessary.
+    *)
     let opt_taints_shape =
-      taints_of_sig_lval lval_env ~check_lval fparams fun_exp args args_taints
+      taints_of_sig_lval lval_env ~check_lval fparams callee args args_taints
         lval
     in
     Log.debug (fun m ->
-        m ~tags:sigs_tag "Instantiating taint signature of %s: %s -> %s"
-          (Display_IL.string_of_exp fun_exp)
+        m ~tags:sigs_tag "- Instantiating %s: %s -> %s"
+          (Display_IL.string_of_exp callee)
           (T.show_lval lval)
           (match opt_taints_shape with
           | None -> "nothing :/"
@@ -548,34 +674,24 @@ let instantiate_function_signature lval_env ~check_lval fparams fun_sig fun_exp
               spf "%s & %s" (T.show_taints taints) (show_shape shape)));
     opt_taints_shape
   in
+  (* Instantiation helpers *)
   let taints_in_ctrl () = Lval_env.get_control_taints lval_env in
-  let inst_taint_var taint =
-    instantiate_taint_var ~inst_lval:lval_to_taints ~inst_ctrl:taints_in_ctrl
-      taint
+  let inst_var = { inst_lval = lval_to_taints; inst_ctrl = taints_in_ctrl } in
+  let inst_taint_var taint = instantiate_taint_var inst_var taint in
+  let subst_in_precondition = subst_in_precondition inst_var in
+  let inst_trace =
+    {
+      add_call_to_trace_for_src = add_call_to_trace_if_callee_has_eorig ~callee;
+      fix_token_trace_for_var = add_call_to_token_trace ~callee;
+    }
   in
-  let subst_in_precondition =
-    subst_in_precondition ~inst_lval:lval_to_taints ~inst_ctrl:taints_in_ctrl
-  in
-  let process_sig : Effect.t -> _ list = function
+  let inst_taints taints = instantiate_taints inst_var inst_trace taints in
+  let inst_shape shape = instantiate_shape inst_var inst_trace shape in
+  (* Instatiate effects *)
+  let inst_effect : Effect.t -> call_effect list = function
     | Effect.ToReturn { data_taints; data_shape; control_taints; return_tok } ->
-        let inst_taints taints =
-          taints
-          |> List.fold_left
-               (fun return_taints (t : T.taint) ->
-                 let taints' =
-                   (* TODO: Use 'Taint_inst.instantiate_taint' also for 'ToSink' and
-                            'ToLval' cases below. *)
-                   instantiate_taint ~callee:fun_exp ~inst_lval:lval_to_taints
-                     ~inst_ctrl:taints_in_ctrl t
-                 in
-                 return_taints |> Taints.union taints')
-               Taints.empty
-        in
         let data_taints = inst_taints data_taints in
-        let data_shape =
-          instantiate_shape ~callee:fun_exp ~inst_lval:lval_to_taints
-            ~inst_ctrl:taints_in_ctrl data_shape
-        in
+        let data_shape = inst_shape data_shape in
         let control_taints =
           (* No need to instantiate 'control_taints' because control taint variables
            * do not propagate through function calls... BUT instantiation also fixes
@@ -585,12 +701,15 @@ let instantiate_function_signature lval_env ~check_lval fparams fun_sig fun_exp
         if
           Shape.taints_and_shape_are_relevant data_taints data_shape
           || not (Taints.is_empty control_taints)
-        then [ `ToReturn (data_taints, data_shape, control_taints, return_tok) ]
+        then
+          [ ToReturn { data_taints; data_shape; control_taints; return_tok } ]
         else []
-    | Effect.ToSink { taints_with_precondition = taints, _requires; sink; _ } ->
-        let incoming_taints =
+    | Effect.ToSink
+        { taints_with_precondition = taints, requires; sink; merged_env } ->
+        let taints =
           taints
           |> List.concat_map (fun { Effect.taint; sink_trace } ->
+                 (* TODO: Use 'instantiate_taint' here too (note differences wrt the call trace). *)
                  match taint.T.orig with
                  | T.Src _ ->
                      (* Here, we do not modify the call trace or the taint.
@@ -628,20 +747,30 @@ let instantiate_function_signature lval_env ~check_lval fparams fun_sig fun_exp
                  | Shape_var _
                  | Control ->
                      let sink_trace =
-                       T.Call (fun_eorig, taint.tokens, sink_trace)
+                       add_call_to_trace_if_callee_has_eorig ~callee
+                         taint.tokens sink_trace
+                       ||| sink_trace
                      in
-                     let+ var_taints, var_shape = inst_taint_var taint in
+                     let+ call_taints, call_shape = inst_taint_var taint in
                      (* See NOTE(gather-all-taints) *)
-                     let var_taints =
-                       var_taints
+                     let call_taints =
+                       call_taints
                        |> Taints.union
-                            (Shape.gather_all_taints_in_shape var_shape)
+                            (Shape.gather_all_taints_in_shape call_shape)
                      in
-                     Taints.elements var_taints
+                     Taints.elements call_taints
                      |> List_.map (fun x -> { Effect.taint = x; sink_trace }))
         in
-        if List_.null incoming_taints then []
-        else [ `ToSink (incoming_taints, sink) ]
+        if List_.null taints then []
+        else
+          [
+            ToSink
+              {
+                taints_with_precondition = (taints, requires);
+                sink;
+                merged_env;
+              };
+          ]
     | Effect.ToLval (taints, dst_sig_lval) ->
         (* Taints 'taints' go into an argument of the call, by side-effect.
          * Right now this is mainly used to track taint going into specific
@@ -649,42 +778,39 @@ let instantiate_function_signature lval_env ~check_lval fparams fun_sig fun_exp
         let+ dst_lval, tainted_tok =
           (* 'dst_lval' is the actual argument/l-value that corresponds
              * to the formal argument 'dst_sig_lval'. *)
-          lval_of_sig_lval fun_exp fparams args dst_sig_lval
+          match args with
+          | None ->
+              Log.warn (fun m ->
+                  m
+                    "Cannot instantiate '%s' because we lack the actual \
+                     arguments"
+                    (T.show_lval dst_sig_lval));
+              None
+          | Some args -> lval_of_sig_lval callee fparams args dst_sig_lval
         in
-        taints
-        |> List.concat_map (fun t ->
-               let dst_taints =
-                 match t.T.orig with
-                 | Src src -> (
-                     let call_trace =
-                       T.Call (fun_eorig, t.tokens, src.call_trace)
-                     in
-                     let t =
-                       { Taint.orig = Src { src with call_trace }; tokens = [] }
-                     in
-                     match t |> subst_in_precondition with
-                     | None -> Taints.empty
-                     | Some t -> Taints.singleton t)
-                 | Var _
-                 | Shape_var _ -> (
-                     (* Taint is flowing from one argument to another argument
-                      * (or possibly the callee object). Given the formal poly
-                      * taint 'src_lval', we compute the actual taint in the
-                      * context of this function call. *)
-                     match inst_taint_var t with
-                     | None -> Taints.empty
-                     | Some (res, _TODOshape) ->
-                         res
-                         |> Taints.map (fun taint ->
-                                let tokens =
-                                  t.tokens @ (tainted_tok :: taint.T.tokens)
-                                in
-                                { taint with tokens }))
-                 | Control ->
-                     (* control taints do not propagate to arguments *)
-                     Taints.empty
-               in
-               if Taints.is_empty dst_taints then []
-               else [ `ToLval (dst_taints, dst_lval) ])
+        let taints =
+          taints
+          |> instantiate_taints
+               {
+                 inst_lval = lval_to_taints;
+                 (* Note that control taints do not propagate to l-values. *)
+                 inst_ctrl = (fun _ -> Taints.empty);
+               }
+               {
+                 add_call_to_trace_for_src =
+                   add_call_to_trace_if_callee_has_eorig ~callee;
+                 fix_token_trace_for_var =
+                   add_lval_update_to_token_trace ~callee tainted_tok;
+               }
+        in
+
+        if Taints.is_empty taints then [] else [ ToLval (taints, dst_lval) ]
   in
-  Some (fun_sig |> Signature.elements |> List.concat_map process_sig)
+  let call_effects =
+    fun_sig |> Signature.elements |> List.concat_map inst_effect
+  in
+  Log.debug (fun m ->
+      m ~tags:sigs_tag "Instantiated call to %s: %s"
+        (Display_IL.string_of_exp callee)
+        (show_call_effects call_effects));
+  Some call_effects
