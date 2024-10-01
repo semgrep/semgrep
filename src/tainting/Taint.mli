@@ -196,6 +196,7 @@ module Taint_set : sig
   val map : (taint -> taint) -> t -> t
   val iter : (taint -> unit) -> t -> unit
   val fold : (taint -> 'a -> 'a) -> t -> 'a -> 'a
+  val filter : (taint -> bool) -> t -> t
   val of_list : taint list -> t
   val to_seq : t -> taint Seq.t
   val elements : t -> taint list
