@@ -1335,7 +1335,7 @@ let check_function_call env fun_exp args
     (args_taints : (Taints.t * S.shape) argument list) :
     (Taints.t * S.shape * Lval_env.t) option =
   match lookup_signature env fun_exp with
-  | Some (fparams, fun_sig) ->
+  | Some fun_sig ->
       Log.debug (fun m ->
           m ~tags:sigs_tag "Call to %s : %s"
             (Display_IL.string_of_exp fun_exp)
@@ -1345,8 +1345,8 @@ let check_function_call env fun_exp args
         (taints, shape)
       in
       let* call_effects =
-        Sig_inst.instantiate_function_signature env.lval_env ~check_lval fparams
-          fun_sig ~callee:fun_exp ~args:(Some args) args_taints
+        Sig_inst.instantiate_function_signature env.lval_env ~check_lval fun_sig
+          ~callee:fun_exp ~args:(Some args) args_taints
       in
       Some
         (call_effects
