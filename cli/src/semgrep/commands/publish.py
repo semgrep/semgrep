@@ -6,6 +6,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
+from urllib.parse import urlparse, urlunparse
 
 import click
 
@@ -175,8 +176,23 @@ def _upload_rule(
     rule = rules[0]
 
     # add metadata about the origin of the rule
-    origin_note = f"published from {rule_file} in {get_project_url()}"
-    rule.metadata["rule-origin-note"] = origin_note
+    try:
+        project_url = urlparse(get_project_url())
+        # sanitize the project url since sometimes they contain auth tokens
+        # Create a new URL without the username and password that could be contained before 
+        # an @ in the URL. That info is stored in parsed_url.netloc 
+        safe_project_url = urlunparse((
+            parsed_url.scheme,
+            parsed_url.hostname,
+            parsed_url.path,
+            parsed_url.params,
+            parsed_url.query,
+            parsed_url.fragment
+        ))
+        origin_note = f"published from {rule_file} in {safe_project_url}"
+        rule.metadata["rule-origin-note"] = origin_note
+    except Exception as e:
+        logger.warning(f"unable to parse url: {e}")
 
     request_json = {
         "definition": {"rules": [rule._raw]},
