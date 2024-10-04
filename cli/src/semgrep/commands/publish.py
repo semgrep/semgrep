@@ -189,7 +189,7 @@ def _upload_rule(
                 "",  # drop params
                 "",  # drop query
                 "",  # drop fragment
-            )
+            ) # type: ignore
         )
         origin_note = f"published from {rule_file} in {safe_project_url}"
         rule.metadata["rule-origin-note"] = origin_note
