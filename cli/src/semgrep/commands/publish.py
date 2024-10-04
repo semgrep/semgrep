@@ -6,8 +6,6 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
-from urllib.parse import urlparse
-from urllib.parse import urlunparse
 
 import click
 
@@ -15,7 +13,7 @@ from semgrep.app import auth
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.config_resolver import get_config
 from semgrep.error import FATAL_EXIT_CODE
-from semgrep.git import get_project_url
+from semgrep.git import clean_project_url
 from semgrep.state import get_state
 from semgrep.test import get_config_filenames
 from semgrep.test import get_config_test_filenames
@@ -176,25 +174,8 @@ def _upload_rule(
 
     rule = rules[0]
 
-    # add metadata about the origin of the rule
-    try:
-        parsed_url = urlparse(get_project_url())
-        # Create a new URL without the username and password that could be contained before
-        # an @ in the URL. That info is stored in parsed_url.netloc
-        safe_project_url = urlunparse(
-            (
-                parsed_url.scheme,
-                parsed_url.hostname,
-                parsed_url.path,
-                "",  # drop params
-                "",  # drop query
-                "",  # drop fragment
-            )  # type: ignore
-        )
-        origin_note = f"published from {rule_file} in {safe_project_url}"
-        rule.metadata["rule-origin-note"] = origin_note
-    except Exception as e:
-        logger.warning(f"unable to parse url: {e}")
+    origin_note = f"published from {rule_file} in {clean_project_url()}"
+    rule.metadata["rule-origin-note"] = origin_note
 
     request_json = {
         "definition": {"rules": [rule._raw]},
