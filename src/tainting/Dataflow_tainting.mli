@@ -7,15 +7,20 @@ type a_propagator = {
   var : var; (* REMOVE USE prop.id *)
 }
 
+type effects_handler =
+  var option (** function name ('None' if anonymous) *) ->
+  Shape_and_sig.Effect.t list ->
+  unit
+
 type config = {
   filepath : string;  (** File under analysis, for Deep Semgrep. *)
   rule_id : Rule_ID.t;  (** Taint rule id, for Deep Semgrep. *)
   track_control : bool;
       (** Whether the rule requires tracking "control taint". *)
-  is_source : AST_generic.any -> Rule.taint_source Taint_smatch.t list;
+  is_source : AST_generic.any -> Rule.taint_source Taint_spec_match.t list;
       (** Test whether 'any' is a taint source, this corresponds to
       * 'pattern-sources:' in taint-mode. *)
-  is_propagator : AST_generic.any -> a_propagator Taint_smatch.t list;
+  is_propagator : AST_generic.any -> a_propagator Taint_spec_match.t list;
       (** Test whether 'any' matches a taint propagator, this corresponds to
        * 'pattern-propagators:' in taint-mode.
        *
@@ -45,19 +50,15 @@ type config = {
        * anyhow it's clearly incorrect to taint `Shell`, so a better solution was
        * needed (hence `pattern-propagators`).
        *)
-  is_sink : AST_generic.any -> Rule.taint_sink Taint_smatch.t list;
+  is_sink : AST_generic.any -> Rule.taint_sink Taint_spec_match.t list;
       (** Test whether 'any' is a sink, this corresponds to 'pattern-sinks:'
       * in taint-mode. *)
-  is_sanitizer : AST_generic.any -> Rule.taint_sanitizer Taint_smatch.t list;
+  is_sanitizer :
+    AST_generic.any -> Rule.taint_sanitizer Taint_spec_match.t list;
       (** Test whether 'any' is a sanitizer, this corresponds to
       * 'pattern-sanitizers:' in taint-mode. *)
   unify_mvars : bool;  (** Unify metavariables in sources and sinks? *)
-  handle_effects :
-    var option (** function name ('None' if anonymous) *) ->
-    Shape_and_sig.Effect.t list ->
-    Taint_lval_env.t ->
-    unit;
-      (** Callback to report effects. *)
+  handle_effects : effects_handler;  (** Callback to report effects. *)
 }
 (** Taint rule instantiated for a given file.
   *
