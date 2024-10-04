@@ -64,26 +64,26 @@ let test_dfg_tainting rules_file file =
   let rule = List_.hd_exn "unexpected empty list" taint_rules in
   UCommon.pr2 "Tainting";
   UCommon.pr2 "========";
-  let handle_findings _ _ _ = () in
+  let handle_effects _ _ = () in
   let xconf = Match_env.default_xconfig in
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf rule.options in
   (* this won't cache anything. but that's fine, we don't need it
      for test purposes.
   *)
-  let tbl = Match_tainting_mode.mk_specialized_formula_cache [] in
-  let config, debug_taint, _exps =
-    Match_tainting_mode.taint_config_of_rule ~per_file_formula_cache:tbl xconf
-      !!file (ast, []) rule handle_findings
+  let tbl = Formula_cache.mk_specialized_formula_cache [] in
+  let config, spec_matches, _exps =
+    Match_taint_spec.taint_config_of_rule ~per_file_formula_cache:tbl xconf
+      !!file (ast, []) rule handle_effects
   in
   UCommon.pr2 "\nSources";
   UCommon.pr2 "-------";
-  pr2_ranges file (debug_taint.sources |> List_.map fst);
+  pr2_ranges file (spec_matches.sources |> List_.map fst);
   UCommon.pr2 "\nSanitizers";
   UCommon.pr2 "----------";
-  pr2_ranges file debug_taint.sanitizers;
+  pr2_ranges file (spec_matches.sanitizers |> List_.map fst);
   UCommon.pr2 "\nSinks";
   UCommon.pr2 "-----";
-  pr2_ranges file (debug_taint.sinks |> List_.map fst);
+  pr2_ranges file (spec_matches.sinks |> List_.map fst);
   let v =
     object
       inherit [_] AST_generic.iter_no_id_info as super
