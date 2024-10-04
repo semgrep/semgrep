@@ -465,6 +465,21 @@ end = struct
         Printf.sprintf "%s ----> %s" (T.show_taints taints) (T.show_lval lval)
 end
 
+and Effects : sig
+  include Set.S with type elt = Effect.t
+
+  val show : t -> string
+end = struct
+  include Set.Make (struct
+    type t = Effect.t
+
+    let compare effect1 effect2 = Effect.compare effect1 effect2
+  end)
+
+  let show s =
+    s |> to_seq |> List.of_seq |> List_.map Effect.show |> String.concat "; "
+end
+
 (** A (polymorphic) taint signature: simply a set of results for a function.
  *
  * Note that this signature is polymorphic/context-sensitive given that the
@@ -478,7 +493,7 @@ end
  *
  * We infer the signature (simplified):
  *
- *     {ToSink {taints_with_precondition = [(x#0).a]; sink = ... ; ...}}
+ *     x => {ToSink {taints_with_precondition = [(x#0).a]; sink = ... ; ...}}
  *
  * where '(x#0).a' is taint variable that denotes the taint of the offset `.a`
  * of the parameter `x` (where '#0' means it is the first argument) of `foo`.
@@ -495,18 +510,81 @@ end
  * THINK: Could we have a "taint shape" for functions/methods ?
  *)
 and Signature : sig
-  include Set.S with type elt = Effect.t
+  (** A simplified version of 'AST_generic.parameter', we use 'Other' to represent
+    * parameter kinds that we do not support yet. We don't want to just remove
+    * those unsupported parameters because we rely on the position of a parameter
+    * to represent taint variables, see 'Taint.arg'. *)
+  type param = P of string | Other [@@deriving eq, ord]
 
+  type params = param list [@@deriving eq, ord]
+
+  type t = { params : params; effects : Effects.t } [@@deriving eq, ord]
+  (**
+   * The 'params' act like an universal quantifier, we need them to later
+   * instantiate the accompanying signature. *)
+
+  val of_generic_params : AST_generic.parameters -> params
+  val show_params : params -> string
   val show : t -> string
 end = struct
-  include Set.Make (struct
-    type t = Effect.t
+  (*************************************)
+  (* Param(eter)s *)
+  (*************************************)
 
-    let compare r1 r2 = Effect.compare r1 r2
-  end)
+  (* TODO: Now with HOFs we run the risk of shadowing... *)
+  type param = P of string | Other
+  type params = param list
 
-  let show s =
-    s |> to_seq |> List.of_seq |> List_.map Effect.show |> String.concat " + "
+  let equal_param param1 param2 =
+    match (param1, param2) with
+    | P s1, P s2 -> String.equal s1 s2
+    | Other, Other -> true
+    | P _, Other
+    | Other, P _ ->
+        false
+
+  let compare_param param1 param2 =
+    match (param1, param2) with
+    | P s1, P s2 -> String.compare s1 s2
+    | Other, Other -> 0
+    | P _, Other -> -1
+    | Other, P _ -> 1
+
+  let show_param = function
+    | P s -> s
+    | Other -> "_?"
+
+  let equal_params params1 params2 = List.equal equal_param params1 params2
+
+  let compare_params params1 params2 =
+    List.compare compare_param params1 params2
+
+  let show_params params = params |> List_.map show_param |> String.concat ", "
+
+  let of_generic_params (_, g_params, _) =
+    g_params
+    |> List_.map (function
+         | AST_generic.Param { pname = Some (s, _); _ } -> P s
+         | __else__ -> Other)
+
+  (*************************************)
+  (* Signatures *)
+  (*************************************)
+
+  type t = { params : params; effects : Effects.t }
+
+  let equal { params = params1; effects = effects1 }
+      { params = params2; effects = effects2 } =
+    equal_params params1 params2 && Effects.equal effects1 effects2
+
+  let compare { params = params1; effects = effects1 }
+      { params = params2; effects = effects2 } =
+    match compare_params params1 params2 with
+    | 0 -> Effects.compare effects1 effects2
+    | other -> other
+
+  let show { params; effects } =
+    spf "%s => {%s}" (show_params params) (Effects.show effects)
 end
 
 module Effects_tbl = Hashtbl.Make (struct
