@@ -1,0 +1,10 @@
+rules:
+  - id: test
+    message: Semgrep found a match
+    languages: [python]
+    severity: WARNING
+    mode: taint
+    pattern-sources:
+      - pattern: taint
+    pattern-sinks:
+      - pattern: sink(...)
