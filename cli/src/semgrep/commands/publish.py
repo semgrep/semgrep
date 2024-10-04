@@ -184,7 +184,10 @@ def _upload_rule(
         safe_project_url = urlunparse((
             parsed_url.scheme,
             parsed_url.hostname,
-            parsed_url.path
+            parsed_url.path,
+            "", # drop params
+            "", # drop query
+            "", # drop fragment
         ))
         origin_note = f"published from {rule_file} in {safe_project_url}"
         rule.metadata["rule-origin-note"] = origin_note
