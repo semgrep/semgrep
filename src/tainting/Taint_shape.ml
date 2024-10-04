@@ -21,6 +21,7 @@ module T = Taint
 module Taints = T.Taint_set
 open Shape_and_sig.Shape
 module Fields = Shape_and_sig.Fields
+module Effects = Shape_and_sig.Effects
 module Signature = Shape_and_sig.Signature
 
 (*********************************************************)

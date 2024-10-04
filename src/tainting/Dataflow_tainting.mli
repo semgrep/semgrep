@@ -80,12 +80,7 @@ type java_props_cache
 val mk_empty_java_props_cache : unit -> java_props_cache
 
 val hook_function_taint_signature :
-  (config ->
-  AST_generic.expr ->
-  (AST_generic.parameters (* params of function *) * Shape_and_sig.Signature.t)
-  option)
-  option
-  ref
+  (config -> AST_generic.expr -> Shape_and_sig.Signature.t option) option ref
 (** Pro inter-file (aka deep) *)
 
 val hook_find_attribute_in_class :
