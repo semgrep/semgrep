@@ -26,7 +26,7 @@ module LV = IL_helpers
 module T = Taint
 module Lval_env = Taint_lval_env
 module Taints = T.Taint_set
-module TM = Taint_smatch
+module TM = Taint_spec_match
 module S = Shape_and_sig.Shape
 module Shape = Taint_shape
 module Effect = Shape_and_sig.Effect
@@ -80,6 +80,8 @@ type a_propagator = {
   var : var;
 }
 
+type effects_handler = var option -> Shape_and_sig.Effect.t list -> unit
+
 type config = {
   filepath : string;
   rule_id : Rule_ID.t;
@@ -94,7 +96,7 @@ type config = {
        * `sanitize(sink(tainted))` will not yield any finding.
        * *)
   unify_mvars : bool;
-  handle_effects : var option -> Effect.t list -> Lval_env.t -> unit;
+  handle_effects : effects_handler;
 }
 
 type mapping = Lval_env.t D.mapping
@@ -263,7 +265,7 @@ let taints_of_matches env ~incoming sources =
 
 let report_effects env effects =
   if not (List_.null effects) then
-    env.config.handle_effects env.fun_name effects env.lval_env
+    env.config.handle_effects env.fun_name effects
 
 let unify_mvars_sets env mvars1 mvars2 =
   let xs =
@@ -1674,33 +1676,16 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
       | [ penv ] -> penv
       | penv1 :: penvs -> List.fold_left Lval_env.union penv1 penvs)
 
-let transfer :
-    Lang.t ->
-    Rule_options.t ->
-    config ->
-    Lval_env.t ->
-    string option ->
-    flow:F.cfg ->
-    best_matches:TM.Best_matches.t ->
-    java_props:java_props_cache ->
-    Lval_env.t D.transfn =
- fun lang options config enter_env opt_name ~flow ~best_matches ~java_props
+let transfer : env -> flow:F.cfg -> Lval_env.t D.transfn =
+ fun enter_env ~flow
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
   (* DataflowX.display_mapping flow mapping show_tainted; *)
-  let in' : Lval_env.t = input_env ~enter_env ~flow mapping ni in
-  let node = flow.graph#nodes#assoc ni in
-  let env =
-    {
-      lang;
-      options;
-      config;
-      fun_name = opt_name;
-      lval_env = in';
-      best_matches;
-      java_props;
-    }
+  let in' : Lval_env.t =
+    input_env ~enter_env:enter_env.lval_env ~flow mapping ni
   in
+  let node = flow.graph#nodes#assoc ni in
+  let env = { enter_env with lval_env = in' } in
   let out' : Lval_env.t =
     match node.F.n with
     | NInstr x ->
@@ -1810,7 +1795,7 @@ let (fixpoint :
       mapping) =
  fun ?in_env ?name:opt_name lang options config java_props flow ->
   let init_mapping = DataflowX.new_node_array flow Lval_env.empty_inout in
-  let enter_env =
+  let enter_lval_env =
     match in_env with
     | None -> Lval_env.empty
     | Some in_env -> in_env
@@ -1842,18 +1827,25 @@ let (fixpoint :
         sources |> Seq.append sanitizers |> Seq.append sinks)
       flow
   in
+  let env =
+    {
+      lang;
+      options;
+      config;
+      fun_name = opt_name;
+      lval_env = enter_lval_env;
+      best_matches;
+      java_props;
+    }
+  in
   (* THINK: Why I cannot just update mapping here ? if I do, the mapping gets overwritten later on! *)
   (* DataflowX.display_mapping flow init_mapping show_tainted; *)
   let end_mapping =
     DataflowX.fixpoint ~timeout:Limits_semgrep.taint_FIXPOINT_TIMEOUT
-      ~eq_env:Lval_env.equal ~init:init_mapping
-      ~trans:
-        (transfer lang options config enter_env opt_name ~flow ~best_matches
-           ~java_props)
-        (* tainting is a forward analysis! *)
+      ~eq_env:Lval_env.equal ~init:init_mapping ~trans:(transfer env ~flow)
       ~forward:true ~flow
   in
-  let exit_env = end_mapping.(flow.exit).D.out_env in
-  ( effects_from_arg_updates_at_exit enter_env exit_env |> fun effects ->
-    if effects <> [] then config.handle_effects opt_name effects exit_env );
+  let exit_lval_env = end_mapping.(flow.exit).D.out_env in
+  effects_from_arg_updates_at_exit enter_lval_env exit_lval_env
+  |> report_effects env;
   end_mapping
