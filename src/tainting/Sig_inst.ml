@@ -22,6 +22,7 @@ open Shape_and_sig.Shape
 module Fields = Shape_and_sig.Fields
 module Shape = Taint_shape
 module Effect = Shape_and_sig.Effect
+module Effects = Shape_and_sig.Effects
 module Signature = Shape_and_sig.Signature
 module Lval_env = Taint_lval_env
 
@@ -338,9 +339,9 @@ let find_pos_in_actual_args ?(err_ctx = "???") args_taints fparams :
     (* Here, we take all the named arguments and remove them from the list of parameters.
      *)
     List_.fold_right
-      (fun param acc ->
+      (fun (param : Signature.param) acc ->
         match param with
-        | G.Param { pname = Some (s', _); _ } -> (
+        | P s' -> (
             match SMap.find_opt s' named_arg_map with
             | Some taints ->
                 (* If this parameter is one of our arguments, insert a mapping and then remove it
@@ -349,8 +350,8 @@ let find_pos_in_actual_args ?(err_ctx = "???") args_taints fparams :
                 acc
                 (* Otherwise, it has not been consumed, so keep it in the remaining parameters.*)
             | None -> param :: acc (* Same as above. *))
-        | __else__ -> param :: acc)
-      (Tok.unbracket fparams) []
+        | Other -> param :: acc)
+      fparams []
   in
   let _ =
     (* We then process all of the positional arguments in order of the remaining parameters.
@@ -646,8 +647,8 @@ let taints_of_sig_lval lval_env ~check_lval fparams fun_exp args_exps
    2) Are there any effects that occur within the function due to taints being
       input into the function body, from the calling context?
 *)
-let instantiate_function_signature lval_env ~check_lval fparams
-    (fun_sig : Signature.t) ~callee ~(args : _ option)
+let instantiate_function_signature lval_env ~check_lval (fun_sig : Signature.t)
+    ~callee ~(args : _ option)
     (args_taints : (Taints.t * shape) IL.argument list) : call_effects option =
   let lval_to_taints lval =
     (* This function simply produces the corresponding taints to the
@@ -661,8 +662,8 @@ let instantiate_function_signature lval_env ~check_lval fparams
        So we will isolate this as a specific step to be applied as necessary.
     *)
     let opt_taints_shape =
-      taints_of_sig_lval lval_env ~check_lval fparams callee args args_taints
-        lval
+      taints_of_sig_lval lval_env ~check_lval fun_sig.params callee args
+        args_taints lval
     in
     Log.debug (fun m ->
         m ~tags:sigs_tag "- Instantiating %s: %s -> %s"
@@ -786,7 +787,8 @@ let instantiate_function_signature lval_env ~check_lval fparams
                      arguments"
                     (T.show_lval dst_sig_lval));
               None
-          | Some args -> lval_of_sig_lval callee fparams args dst_sig_lval
+          | Some args ->
+              lval_of_sig_lval callee fun_sig.params args dst_sig_lval
         in
         let taints =
           taints
@@ -807,7 +809,7 @@ let instantiate_function_signature lval_env ~check_lval fparams
         if Taints.is_empty taints then [] else [ ToLval (taints, dst_lval) ]
   in
   let call_effects =
-    fun_sig |> Signature.elements |> List.concat_map inst_effect
+    fun_sig.effects |> Effects.elements |> List.concat_map inst_effect
   in
   Log.debug (fun m ->
       m ~tags:sigs_tag "Instantiated call to %s: %s"
