@@ -16,7 +16,6 @@ val instantiate_function_signature :
   (* TODO: 'check_lval' is just a way to avoid a recursive dependency with
    *   'Dataflow_tainting'. We should not need this when all field-sensitive
    *   taint tracking happens through shapes. *)
-  AST_generic.parameters ->
   Shape_and_sig.Signature.t ->
   callee:IL.exp ->
   args:IL.exp IL.argument list option (** actual arguments *) ->
