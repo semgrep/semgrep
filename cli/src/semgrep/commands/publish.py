@@ -177,7 +177,7 @@ def _upload_rule(
 
     # add metadata about the origin of the rule
     try:
-        project_url = urlparse(get_project_url())
+        parsed_url = urlparse(get_project_url())
         # sanitize the project url since sometimes they contain auth tokens
         # Create a new URL without the username and password that could be contained before 
         # an @ in the URL. That info is stored in parsed_url.netloc 
