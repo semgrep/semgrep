@@ -176,7 +176,9 @@ def _upload_rule(
     rule = rules[0]
 
     # add metadata about the origin of the rule
-    origin_note = f"published from {rule_file} in {clean_project_url(get_project_url())}"
+    origin_note = (
+        f"published from {rule_file} in {clean_project_url(get_project_url() or '')}"
+    )
     rule.metadata["rule-origin-note"] = origin_note
 
     request_json = {
