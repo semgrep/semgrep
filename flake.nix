@@ -221,9 +221,9 @@
 # - [Nix PhD Thesis](https://edolstra.github.io/pubs/phd-thesis.pdf) - Nix
 #   creator's PhD thesis on Nix. ~275 pages but really approachable
 
-
 {
-  description = "Semgrep OSS is a fast, open-source, static analysis tool for searching code, finding bugs, and enforcing code standards at editor, commit, and CI time.";
+  description =
+    "Semgrep OSS is a fast, open-source, static analysis tool for searching code, finding bugs, and enforcing code standards at editor, commit, and CI time.";
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     # all the follows here are so we don't use diff versions of
@@ -241,10 +241,8 @@
     };
   };
   outputs = { self, nixpkgs, flake-utils, opam-nix, opam-repository }@inputs:
-    let
-      package = "semgrep";
-    in
-    flake-utils.lib.eachDefaultSystem (system:
+    let package = "semgrep";
+    in flake-utils.lib.eachDefaultSystem (system:
       let
         # TODO Use pkgsStatic if on linux
         pkgs = nixpkgs.legacyPackages.${system};
@@ -253,16 +251,12 @@
         opamRepos = [ "${opam-repository}" ];
         lib = pkgs.lib;
         isDarwin = lib.strings.hasSuffix "darwin" system;
-        hasSubmodules = ! builtins.hasAttr "submodules" self || self.submodules;
+        hasSubmodules = !builtins.hasAttr "submodules" self || self.submodules;
         # TODO split out osemgrep and pysemgrep into diff nix files
-      in
-      let
+      in let
 
         # osemgrep/semgrep-core inputs
-        osemgrepInputs = with pkgs; [
-          pcre2
-          tree-sitter
-        ];
+        osemgrepInputs = with pkgs; [ pcre2 tree-sitter ];
         devOpamPackagesQuery = {
           # You can add "development" ocaml packages here. They will get added
           # to the devShell automatically.
@@ -291,14 +285,22 @@
 
         # repos = opamRepos to force newest version of opam
         # pkgs = pkgs to force newest version of nixpkgs instead of using opam-nix's
-        scope = on.buildOpamProject' { pkgs = pkgs; repos = opamRepos; } ./. opamQuery;
+        scope = on.buildOpamProject' {
+          pkgs = pkgs;
+          repos = opamRepos;
+        } ./. opamQuery;
         scopeOverlay = final: prev: {
           # You can add overrides here
           ${package} = prev.${package}.overrideAttrs (prev: {
             # Prevent the ocaml dependencies from leaking into dependent environments
             doNixSupport = false;
-            buildInputs = prev.buildInputs ++ [ final.tsort final.notty final.tyxml final.git-unix ];
-            nativeCheckInputs = [ final.junit_alcotest ];
+            buildInputs = prev.buildInputs ++ [
+              final.tsort
+              final.notty
+              final.tyxml
+              final.git-unix
+              final.junit_alcotest
+            ];
           });
         };
         scope' = scope.overrideScope' scopeOverlay;
@@ -347,11 +349,11 @@
           '';
           # make sure we have submodules
           # See https://github.com/NixOS/nix/pull/7862
-          buildPhase = if hasSubmodules then osemgrep.buildPhase' else osemgrep.buildPhaseFail;
-          nativeCheckInputs = prev.nativeCheckInputs ++ (with pkgs; [
-            cacert
-            git
-          ]);
+          buildPhase = if hasSubmodules then
+            osemgrep.buildPhase'
+          else
+            osemgrep.buildPhaseFail;
+          nativeCheckInputs = (with pkgs; [ cacert git ]);
           # git init is needed so tests work successfully since many rely on git root existing
           checkPhase = ''
             git init
@@ -385,45 +387,45 @@
         # pysemgrep
         #
 
-        pysemgrep = with pythonPackages; buildPythonApplication {
-          # thanks to @06kellyjac
-          pname = "semgrep";
-          inherit (osemgrep) version;
-          src = ./cli;
-          # TODO checks
-          doCheck = false;
+        pysemgrep = with pythonPackages;
+          buildPythonApplication {
+            # thanks to @06kellyjac
+            pname = "semgrep";
+            inherit (osemgrep) version;
+            src = ./cli;
+            # TODO checks
+            doCheck = false;
 
-          # coupling: anything added to the pysemgrep setup.py should be added here
-          propagatedBuildInputs = [
-            attrs
-            boltons
-            colorama
-            click
-            click-option-group
-            glom
-            requests
-            rich
-            ruamel-yaml
-            tqdm
-            packaging
-            jsonschema
-            wcmatch
-            peewee
-            defusedxml
-            urllib3
-            typing-extensions
-            tomli
-          ];
-          # doesn't work for some reason
-          dontUseSetuptoolsShellHook = true;
+            # coupling: anything added to the pysemgrep setup.py should be added here
+            propagatedBuildInputs = [
+              attrs
+              boltons
+              colorama
+              click
+              click-option-group
+              glom
+              requests
+              rich
+              ruamel-yaml
+              tqdm
+              packaging
+              jsonschema
+              wcmatch
+              peewee
+              defusedxml
+              urllib3
+              typing-extensions
+              tomli
+            ];
+            # doesn't work for some reason
+            dontUseSetuptoolsShellHook = true;
 
-          preFixup = ''
-            makeWrapperArgs+=(--prefix PATH : ${osemgrep}/bin)
-          '';
-        };
+            preFixup = ''
+              makeWrapperArgs+=(--prefix PATH : ${osemgrep}/bin)
+            '';
+          };
         # TODO semgrep-js
-      in
-      {
+      in {
         # For a lot of nix commands, nix uses the cwd's flake. So
         #   nix develop
         # will run the current flake. But because semgrep has submodules we have
