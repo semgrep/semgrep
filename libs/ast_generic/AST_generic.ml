@@ -839,9 +839,8 @@ and expr_kind =
    * StmtExpr above to wrap stmt if it's not an expr but a stmt
    *)
   | OtherExpr of todo_kind * any list
-  (* experimental alternative to OtherExpr. This allows us to have
-     proper exprs, stmts, etc. embedded in constructs that were not
-     fully translated into the generic AST. *)
+  (* Embed an untranslated or partially translated subtree generated
+     by ocaml-tree-sitter *)
   | RawExpr of raw_tree
 
 and literal =
@@ -1277,6 +1276,9 @@ and stmt_kind =
    * of relying that the any list contains at least one token
    *)
   | OtherStmt of other_stmt_operator * any list
+  (* Embed an untranslated or partially translated subtree generated
+     by ocaml-tree-sitter *)
+  | RawStmt of raw_tree
 
 (* TODO: can also introduce var in some languages
  * less: factorize with for_var_or_expr
@@ -2342,7 +2344,13 @@ let interpolated (lquote, xs, rquote) =
 let keyval k _tarrow v =
   Container (Tuple, Tok.unsafe_fake_bracket [ k; v ]) |> e
 
-let raw x = RawExpr x |> e
+(* Embed untranslated (raw) nodes into the AST *)
+let expr_of_raw (x : any Raw_tree.t) : expr = RawExpr x |> e
+let stmt_of_raw (x : any Raw_tree.t) : stmt = RawStmt x |> s
+
+(* Embed proper AST nodes into an untranslated subtree *)
+let raw_of_expr (x : expr) : any Raw_tree.t = Any (E x)
+let raw_of_stmt (x : stmt) : any Raw_tree.t = Any (S x)
 
 (* ------------------------------------------------------------------------- *)
 (* Parameters *)
