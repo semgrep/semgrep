@@ -135,7 +135,12 @@ let parse_pattern options lang str =
       QL_to_generic.any pattern
   (* Tree-sitter only and directly to generic AST *)
   | Lang.Csharp ->
-      let res = Parse_csharp_tree_sitter.parse_pattern str in
+      let parse_pattern =
+        if Parsing_plugin.Csharp.is_available () then
+          Parsing_plugin.Csharp.parse_pattern
+        else Parse_csharp_tree_sitter.parse_pattern
+      in
+      let res = parse_pattern str in
       extract_pattern_from_tree_sitter_result res
   | Lang.Cairo ->
       let res = Parse_cairo_tree_sitter.parse_pattern str in

@@ -1745,6 +1745,7 @@ and stmt_aux env st =
   | G.OtherStmt _
   | G.OtherStmtWithStmt _ ->
       todo (G.S st)
+  | G.RawStmt _ -> todo (G.S st)
 
 and for_each env tok (pat, tok2, e) st =
   let cont_label_s, break_label_s, st_env = mk_break_continue_labels env tok in
