@@ -36,6 +36,14 @@ let subexprs_of_any_list xs =
          | _ -> x)
        []
 
+let substmts_of_any_list xs =
+  xs
+  |> List.fold_left
+       (fun x -> function
+         | S s -> s :: x
+         | _ -> x)
+       []
+
 (* used for really deep statement matching *)
 
 let subexprs_of_stmt_kind = function
@@ -79,6 +87,7 @@ let subexprs_of_stmt_kind = function
            | _ -> None)
   | OtherStmt (_op, xs) -> subexprs_of_any_list xs
   | OtherStmtWithStmt (_, xs, _) -> subexprs_of_any_list xs
+  | RawStmt x -> Raw_tree.anys x |> subexprs_of_any_list
   (* 0 *)
   | DirectiveStmt _
   | Block _
@@ -332,6 +341,7 @@ let substmts_of_stmt st =
         | FuncDef def -> [ H.funcbody_to_stmt def.fbody ]
         | ClassDef def ->
             def.cbody |> Tok.unbracket |> List_.map (function F st -> st))
+  | RawStmt x -> Raw_tree.anys x |> substmts_of_any_list
 
 (*****************************************************************************)
 (* Visitors  *)

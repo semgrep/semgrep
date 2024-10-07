@@ -33,6 +33,8 @@ type target_file_parser =
   Fpath.t -> (AST_generic.program, unit) Tree_sitter_run.Parsing_result.t
 
 module type T = sig
+  val is_optional : bool
+
   val register_parsers :
     parse_pattern:pattern_parser -> parse_target:target_file_parser -> unit
 
@@ -43,6 +45,7 @@ end
 
 exception Missing_plugin of string
 
+(* Table of missing plugins that are not optional *)
 let missing_plugins : (Lang.t, unit) Hashtbl.t = Hashtbl.create 10
 
 (*****************************************************************************)
@@ -52,7 +55,7 @@ let missing_plugins : (Lang.t, unit) Hashtbl.t = Hashtbl.create 10
 let missing_plugin_msg lang =
   spf
     "Missing Semgrep extension needed for parsing %s target. Try adding \
-     `--pro` to your command."
+     `--pro-languages` to your command."
     (Lang.to_string lang)
 
 let check_if_missing lang =
@@ -79,9 +82,9 @@ let check_if_missing_analyzer (analyzer : Xlang.t) =
       | Error _ as res -> res)
 
 (* Create and manage the reference holding a plugin. *)
-let make lang =
+let make ?(optional = false) lang =
   let parsers = ref None in
-  Hashtbl.add missing_plugins lang ();
+  if not optional then Hashtbl.add missing_plugins lang ();
   let register ~parse_pattern ~parse_target =
     match !parsers with
     | None ->
@@ -119,18 +122,25 @@ let make lang =
         raise (Missing_plugin msg)
     | Some (_, parse_target) -> parse_target file
   in
-  (register, is_available, parse_pattern, parse_target)
+  (optional, register, is_available, parse_pattern, parse_target)
 
 (*****************************************************************************)
 (* Plugins *)
 (*****************************************************************************)
 
 module Apex = struct
-  let register_parsers, is_available, parse_pattern, parse_target =
+  let is_optional, register_parsers, is_available, parse_pattern, parse_target =
     make Lang.Apex
 end
 
+(* Parsing Csharp can be done with the default open-source parser which
+   is not as good as this one. *)
+module Csharp = struct
+  let is_optional, register_parsers, is_available, parse_pattern, parse_target =
+    make ~optional:true Lang.Csharp
+end
+
 module Elixir = struct
-  let register_parsers, is_available, parse_pattern, parse_target =
+  let is_optional, register_parsers, is_available, parse_pattern, parse_target =
     make Lang.Elixir
 end

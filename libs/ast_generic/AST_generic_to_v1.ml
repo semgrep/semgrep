@@ -812,6 +812,9 @@ and map_stmt x : B.stmt =
     | OtherStmt (v1, v2) ->
         let v1 = map_other_stmt_operator v1 and v2 = map_of_list map_any v2 in
         `OtherStmt ((v1, map_tok fk), v2)
+    | RawStmt x ->
+        let first_tok, _last_tok = Raw_tree.unsafe_loc x in
+        `OtherStmt (("RawStmt", map_tok first_tok), [])
   in
   skind
 
