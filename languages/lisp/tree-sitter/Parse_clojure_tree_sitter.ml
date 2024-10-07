@@ -319,7 +319,7 @@ let parse file =
     (fun cst _extras ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       let x = map_source env cst in
-      [ x |> G.raw |> G.exprstmt ])
+      [ x |> G.stmt_of_raw ])
 
 let parse_pattern str =
   H.wrap_parser

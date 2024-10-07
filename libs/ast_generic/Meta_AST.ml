@@ -894,6 +894,9 @@ and vof_stmt st =
   | OtherStmt (v1, v2) ->
       let v1 = vof_other_stmt_operator v1 and v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("OtherStmt", [ v1; v2 ])
+  | RawStmt x ->
+      let x = vof_raw_tree x in
+      OCaml.VSum ("RawStmt", [ x ])
 
 and vof_condition = function
   | Cond v1 ->

@@ -3,7 +3,7 @@
     {
       "code": 0,
       "level": "info",
-      "message": "Missing plugin for rule rules.dummy-apex-rule-no-parsing-string-pattern:\n Missing Semgrep extension needed for parsing Apex target. Try adding `--pro` to your command.",
+      "message": "Missing plugin for rule rules.dummy-apex-rule-no-parsing-string-pattern:\n Missing Semgrep extension needed for parsing Apex target. Try adding `--pro-languages` to your command.",
       "path": "<MASKED>",
       "rule_id": "rules.dummy-apex-rule-no-parsing-string-pattern",
       "type": "Missing plugin"
@@ -11,7 +11,7 @@
     {
       "code": 0,
       "level": "info",
-      "message": "Missing plugin for rule rules.dummy-apex-rule-no-parsing-complex-pattern:\n Missing Semgrep extension needed for parsing Apex target. Try adding `--pro` to your command.",
+      "message": "Missing plugin for rule rules.dummy-apex-rule-no-parsing-complex-pattern:\n Missing Semgrep extension needed for parsing Apex target. Try adding `--pro-languages` to your command.",
       "path": "<MASKED>",
       "rule_id": "rules.dummy-apex-rule-no-parsing-complex-pattern",
       "type": "Missing plugin"
