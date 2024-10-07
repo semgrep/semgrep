@@ -29,9 +29,14 @@ module Out = Semgrep_output_v1_t
  *
  *  (2) Semgrep rule schema errors (e.g., missing 'message:' field). We
  *    detect those thanks to Parse_rule.ml
+ *    Note that Parse_rule.ml also parses the patterns and validates they
+ *    have the right syntax (unlike jsonschema). This is why
+ *    osemgrep validate accepts a --pro flag as opposed to pysemgrep because
+ *    we need access to the pro languages parsers to parse the pro languages
+ *    patterns.
  *    TODO: use the OCaml grace library of Cooper for better error messaging?
- *    or fallback to jsonschema in pysemgrep just for the error message like
- *    zz did?
+ *     or fallback to jsonschema in pysemgrep just for the error message like
+ *     zz did?
  *
  *  (3) "Logical" errors, by running Semgrep rules (also called "meta" rules)
  *     on those target rules. We run Semgrep on Semgrep! We detect
