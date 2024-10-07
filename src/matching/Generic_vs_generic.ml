@@ -2726,6 +2726,7 @@ and m_stmt a b =
   | G.OtherStmtWithStmt (a1, a2, a3), B.OtherStmtWithStmt (b1, b2, b3) ->
       m_other_stmt_with_stmt_operator a1 b1 >>= fun () ->
       m_list m_any a2 b2 >>= fun () -> m_stmt a3 b3
+  | G.RawStmt a, B.RawStmt b -> m_raw_tree a b
   | G.WithUsingResource (a1, a2, a3), B.WithUsingResource (b1, b2, b3) ->
       m_tok a1 b1 >>= fun () ->
       m_list m_stmt a2 b2 >>= fun () -> m_stmt a3 b3
@@ -2748,6 +2749,7 @@ and m_stmt a b =
   | G.Assert _, _
   | G.OtherStmt _, _
   | G.OtherStmtWithStmt _, _
+  | G.RawStmt _, _
   | G.WithUsingResource _, _ ->
       fail ()
 
