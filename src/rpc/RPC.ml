@@ -75,6 +75,16 @@ let handle_call (caps : < Cap.exec ; Cap.tmp >) :
           Error
             "Dependency resolution is a proprietary feature, but semgrep-pro \
              has not been loaded")
+  | `CallDumpRulePartitions params -> (
+      match !RPC_return.hook_dump_rule_partitions with
+      | Some dump_rule_partitions ->
+          let Out.{ rules; n_partitions; output_dir } = params in
+          let ok = dump_rule_partitions rules n_partitions output_dir in
+          Ok (`RetDumpRulePartitions ok)
+      | None ->
+          Error
+            "Dump rule partitions is a proprietary feature, but semgreep-pro \
+             has not been loaded")
 
 (*****************************************************************************)
 (* Helpers *)

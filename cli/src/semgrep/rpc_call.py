@@ -68,5 +68,13 @@ def resolve_dependencies(
     )
     if ret is None:
         logger.warning("failed to resolve dependencies")
-        return None
+    return None
+
+
+def dump_rule_partitions(args: out.DumpRulePartitionsParams) -> bool:
+    call = out.FunctionCall(out.CallDumpRulePartitions(args))
+    ret: Optional[out.RetDumpRulePartitions] = rpc_call(call, out.RetDumpRulePartitions)
+    if ret is None:
+        logger.error("Failed to dump rule partitions")
+        return out.RetDumpRulePartitions(False).value
     return ret.value

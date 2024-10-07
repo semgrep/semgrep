@@ -22,3 +22,6 @@ val hook_resolve_dependencies :
   (Out.manifest * Out.resolution_result) list)
   option
   ref
+
+val hook_dump_rule_partitions :
+  (Out.raw_json -> int -> Fpath.t -> bool) option ref

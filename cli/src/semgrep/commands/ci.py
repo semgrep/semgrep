@@ -180,6 +180,13 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     is_flag=True,
     hidden=True,
 )
+@click.option(
+    "--x-dump-rule-partitions",
+    "dump_n_rule_partitions",
+    type=int,
+    default=0,
+    hidden=True,
+)
 @handle_command_errors
 def ci(
     ctx: click.Context,
@@ -241,6 +248,7 @@ def ci(
     verbose: bool,
     path_sensitive: bool,
     enable_experimental_requirements: bool,
+    dump_n_rule_partitions: Optional[int],
 ) -> None:
     state = get_state()
 
@@ -292,6 +300,10 @@ def ci(
             )
             sys.exit(FATAL_EXIT_CODE)
         elif token:
+            # Dumping partitions implies a dry run because we are not
+            # scanning or uploading results to the app.
+            if dump_n_rule_partitions:
+                dry_run = True
             scan_handler = ScanHandler(dry_run=dry_run)
         else:  # impossible state… until we break the code above
             raise RuntimeError("The token and/or config are misconfigured")
@@ -546,15 +558,22 @@ def ci(
             "diff_depth": diff_depth,
             "capture_core_stderr": capture_core_stderr,
             "enable_experimental_requirements": enable_experimental_requirements,
+            "dump_n_rule_partitions": dump_n_rule_partitions,
         }
 
         try:
             start = time.time()
 
-            if scan_handler and not scan_handler.enabled_products:
-                raise SemgrepError(
-                    "No products are enabled for this organization. Please enable a product in the Settings > Deployment tab of Semgrep Cloud Platform or reach out to support@semgrep.com for assistance."
-                )
+            if scan_handler:
+                if not scan_handler.enabled_products:
+                    raise SemgrepError(
+                        "No products are enabled for this organization. Please enable a product in the Settings > Deployment tab of Semgrep Cloud Platform or reach out to support@semgrep.com for assistance."
+                    )
+
+                if dump_n_rule_partitions and scan_handler.enabled_products != ["sast"]:
+                    raise SemgrepError(
+                        "--x-dump-rule-partitions is only compatible with SAST."
+                    )
 
             # TODO? we're not passing time_flag below (or matching_explanations),
             # is it indended?
