@@ -68,6 +68,7 @@ from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.output_extra import OutputExtra
 from semgrep.profile_manager import ProfileManager
+from semgrep.rpc_call import dump_rule_partitions
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatches
 from semgrep.rule_match import RuleMatchMap
@@ -423,6 +424,7 @@ def run_scan(
     path_sensitive: bool = False,
     capture_core_stderr: bool = True,
     enable_experimental_requirements: bool = False,
+    dump_n_rule_partitions: Optional[int] = None,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -532,6 +534,19 @@ def run_scan(
             rule for rule in all_rules if rule.severity in shown_severities
         ]
     filtered_rules = filter_exclude_rule(filtered_rules, exclude_rule)
+
+    if dump_n_rule_partitions:
+        rules = {"rules": [r.raw for r in filtered_rules]}
+        output_dir = get_state().env.user_data_folder
+        args = out.DumpRulePartitionsParams(
+            out.RawJson(rules), dump_n_rule_partitions, out.Fpath(str(output_dir))
+        )
+        ok = dump_rule_partitions(args)
+        if not ok:
+            logger.error("An error occurred while dumping rule partitions.")
+            sys.exit(2)
+        logger.info(f"Successfully dumped rule partitions to {output_dir}")
+        sys.exit(0)
 
     output_handler.handle_semgrep_errors(config_errors)
     real_config_errors = select_real_errors(config_errors)
