@@ -1,0 +1,23 @@
+rules:
+  - id: c-string-equality
+    languages:
+      - c
+    severity: ERROR
+    message: Using == on char* performs pointer comparison, use strcmp instead
+    patterns:
+      - pattern-either:
+          - pattern: <... -(int $NUMBER) ...>;
+      - pattern-not-inside: |-
+          if (<... $I_A == INT_MIN ...>) {
+            ...
+          } else {
+            ...
+            ...
+          }
+      - pattern-not-inside: |-
+          if (<... $I_A == -123123 ...>) {
+            ...
+          } else {
+            ...
+            ...
+          }
