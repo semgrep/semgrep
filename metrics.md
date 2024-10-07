@@ -1,6 +1,6 @@
-# Semgrep Privacy Policy
+# Semgrep metrics
 
-Semgrep may collect aggregate metrics to help improve the product. This document describes:
+Semgrep CLI may collect aggregate metrics to help improve the product. This document describes:
 
 - [the principles that guide our data-collection decisions](#principles)
 - [how to change when Semgrep sends metrics](#automatic-collection-opt-in-and-opt-out)
@@ -61,21 +61,21 @@ The following data will never leave your environment as part of metrics.
 - Git commit hashes, timestamps, messages, authors
 - User-identifiable data about Semgrep’s findings in your code, including finding messages
 
-This data will be sent to Semgrep App only if you explicitly request it,
-such as with `semgrep login && semgrep ci` to connect with Semgrep App.
+This data will be sent to Semgrep AppSec Platform only if you explicitly request it,
+such as with `semgrep login && semgrep ci` to connect with Semgrep AppSec Platform.
 Even in that case, your source code and private rules will never be sent.
 
 ## Data collected as metrics
 
-Semgrep collects data to improve the user experience.
+Semgrep CLI collects data to improve the user experience.
 Five types of data are collected:
 
 ### Environmental
 
-Environmental data provide contextual data about Semgrep’s runtime environment, as well as information that helps debug any issues users may be facing; e.g.
+Environmental data provide contextual data about Semgrep CLI’s runtime environment, as well as information that helps debug any issues users may be facing; e.g.
 
 - How long the command took to run
-- The version of Semgrep
+- The version of Semgrep CLI
 - An [anonymous user ID](#anonymous-user-id) that identifies the machine
 - IP address that triggers a run
 - Value of the CI environment variable, if set
@@ -86,7 +86,7 @@ Environmental data provide contextual data about Semgrep’s runtime environment
 
 ### Performance
 
-Performance data enable understanding of which rules and types of files are slow in the aggregate so Semgrep, Inc can improve the Semgrep program-analysis engine, query optimizer, and debug slow rules; e.g.
+Performance data enable understanding of which rules and types of files are slow in the aggregate so Semgrep, Inc can improve the program-analysis engine, query optimizer, and debug slow rules; e.g.
 
 - Runtime duration
 - Duration of individual phases (e.g. parsing)
@@ -96,7 +96,7 @@ Performance data enable understanding of which rules and types of files are slow
 
 ### Parse Rates
 
-Semgrep reports aggregated parse rate information on a per-language basis; e.g.,
+Aggregated parse rate information is reported on a per-language basis; e.g.,
 
 - Number of targeted files
 - Number of files without any parse-related error
@@ -105,7 +105,7 @@ Semgrep reports aggregated parse rate information on a per-language basis; e.g.,
 
 ### Errors
 
-High-level error and warning classes that Semgrep encounters when run; e.g.
+High-level error and warning classes encountered when run; e.g.
 
 - Semgrep’s return code
 - The number of errors
@@ -113,17 +113,17 @@ High-level error and warning classes that Semgrep encounters when run; e.g.
 
 ### Value
 
-Semgrep reports data that indicate how useful a run is for the end user; e.g.
+Data that indicate how useful a run is for the end user; e.g.
 
 - Number of raised findings
 - Number of ignored findings
 - Pseudoanonymized hashes of the rule definitions that yield findings
-- The [Semgrep features used](#feature-usage) during the scan
+- The [features used](#feature-usage) during the scan
 - The engine type requested for the scan
 
 ### Extension
 
-Semgrep reports additional data when used in conjunction with an IDE integration, such as the [Semgrep VSCode Extension](https://github.com/semgrep/semgrep-vscode), that help us understand what IDEs are used and how helpful the integrations are for users; e.g.
+Additional data is reported when used in conjunction with an IDE integration, such as the [Semgrep VS Code Extension](https://github.com/semgrep/semgrep-vscode), that help us understand what IDEs are used and how helpful the integrations are for users; e.g.
 
 - IDE being used
 - Version of IDE integration
@@ -343,14 +343,14 @@ This is a sample blob of the aggregate metrics described above:
 
 ## Data collected when explicitly requested
 
-For Semgrep App users running `semgrep ci` while logged in,
+For Semgrep AppSec Platform users running `semgrep ci` while logged in,
 data is sent to power your dashboard, notification, dependency search, and finding management features.
-These data are ONLY sent when using `semgrep ci` in an App-connected mode
+These data are ONLY sent when using `semgrep ci` in a platform-connected mode
 and are not sent when not logged in.
 
 Three types of data are sent to Semgrep, Inc servers for this logged-in use case: scan data, findings data, and dependencies data.
 
-**Scan data** provide information on the environment and performance of Semgrep.
+**Scan data** provide information on the environment and performance.
 They power dashboards, identify anomalies with the product, and are needed for billing.
 The classes of scan data are:
 
@@ -362,7 +362,7 @@ The classes of scan data are:
 - Scan metadata, including type of scan and scan parameters (e.g., paths scanned and extensions of ignored files)
 - Timing metrics (e.g., time taken to scan per-rule and per-path)
 - Parse metrics (e.g., number of files targeted and parsed per-language)
-- Semgrep environment (e.g., version, interpreter, timestamp)
+- Semgrep CLI environment (e.g., version, interpreter, timestamp)
 
 **Findings data** are used to provide human readable content for notifications and integrations,
 as well tracking results as new, fixed, or duplicate. The classes of findings data are:
@@ -382,12 +382,12 @@ dependencies data are:
 
 ## Debugging data collected when traces are requested
 
-To help debug performance issues, Semgrep can send traces, enabled via `--trace`.
+To help debug performance issues, Semgrep CLI can send traces, enabled via `--trace`.
 Traces are never sent unless the `--trace` flag is included.
 
 There are three modes of tracing.
 1. Info (`--trace`): basic tracing. Sends timings about each file as it undergoes pre-processing and then matching. Includes the file path and sometimes rule names.
-2. Debug (`--trace` with `SEMGREP_TRACE_LEVEL=debug`): debug tracing. Sends additional timings, particularly around functions Semgrep runs during taint analysis.
+2. Debug (`--trace` with `SEMGREP_TRACE_LEVEL=debug`): debug tracing. Sends additional timings, particularly around functions run during taint analysis.
 3. Trace (`--trace` with `SEMGREP_TRACE_LEVEL=trace`): even more detailed debug tracing.
 
 All traces are sent in Opentelemetry format and may include:
