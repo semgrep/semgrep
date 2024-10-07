@@ -943,6 +943,15 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
    *)
   | G.Ellipsis _a1, _ -> return ()
   | G.DeepEllipsis (_, a1, _), _b -> m_expr_deep a1 b
+  (* equivalence: (-) E ~ -n -> E ~ n *)
+  | ( G.Call ({ e = G.IdSpecial (G.Op G.Minus, _); _ }, (_, [ G.Arg arga ], _)),
+      B.L (B.Int int_lit) ) ->
+      m_expr arga (B.L (B.Int (Parsed_int.neg int_lit)) |> B.e)
+  (* equivalence: -n ~ (-) E -> n ~ E *)
+  | ( G.L (G.Int int_lit),
+      B.Call ({ e = B.IdSpecial (B.Op B.Minus, _); _ }, (_, [ B.Arg argb ], _))
+    ) ->
+      m_expr (G.L (G.Int (Parsed_int.neg int_lit)) |> G.e) argb
   (* must be before constant propagation case below *)
   | G.L a1, B.L b1 -> m_literal a1 b1
   (* equivalence: constant propagation and evaluation!
