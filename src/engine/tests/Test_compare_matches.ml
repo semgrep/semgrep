@@ -78,7 +78,7 @@ let compare_actual_to_expected ~to_location actual_findings
   let num_errors = false_negatives + false_positives in
   let msg =
     spf
-      "The test failed to find exactly the expected findings: %i false \
+      "The test failed to produce exactly the expected findings: %i false \
        negative%s, %i false positive%s."
       false_negatives (plural false_negatives) false_positives
       (plural false_positives)

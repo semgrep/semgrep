@@ -641,7 +641,8 @@ This may still run Pro rules, but only using the OSS features.
 let o_pro_languages : bool Term.t =
   let info =
     Arg.info [ "pro-languages" ]
-      ~doc:("Enable Pro languages (currently Apex and Elixir). " ^ C.blurb_pro)
+      ~doc:
+        ("Enable Pro languages (currently Apex, C#, and Elixir). " ^ C.blurb_pro)
   in
   Arg.value (Arg.flag info)
 
@@ -665,8 +666,8 @@ let o_pro : bool Term.t =
   let info =
     Arg.info [ "pro" ]
       ~doc:
-        ("Inter-file analysis and Pro languages (currently Apex and Elixir). "
-       ^ C.blurb_pro)
+        ("Inter-file analysis and Pro languages (currently Apex, C#, and \
+          Elixir. " ^ C.blurb_pro)
   in
   Arg.value (Arg.flag info)
 

@@ -10,6 +10,10 @@ type target_file_parser =
   Fpath.t -> (AST_generic.program, unit) Tree_sitter_run.Parsing_result.t
 
 module type T = sig
+  (* If true, the plugin provides only an alternate implementation to
+     one that is available by default. *)
+  val is_optional : bool
+
   (* Register parsing functions for a language (called in semgrep-pro) *)
   val register_parsers :
     parse_pattern:pattern_parser -> parse_target:target_file_parser -> unit
@@ -28,16 +32,18 @@ end
  * and raise Missing_plugin when the plugin is not registered.
  *)
 module Apex : T
+module Csharp : T
 module Elixir : T
 
 (* Exception indicating that a plugin is missing. The argument is
    a human-readable error message. *)
 exception Missing_plugin of string
 
-(* Return an error message in case of a missing plugin. This function is
- * called in Parse_rule.ml to filter rules using languages that can not
- * be handled because their corresponding plugins was not registered.
- *)
+(* Return an error message in case of a missing plugin that is not optional.
+   This function is called in Parse_rule.ml to filter rules using languages
+   that can not be handled because their corresponding plugins was not
+   registered.
+*)
 val check_if_missing : Lang.t -> (unit, string) Result.t
 
 (* Call 'check_is_missing' if any target programming language with a missing

@@ -687,8 +687,7 @@ let parse file =
     (fun cst _extras ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       let raw = map_source_file env cst in
-      let e = G.RawExpr raw |> G.e in
-      let st = G.exprstmt e in
+      let st = G.stmt_of_raw raw in
       [ st ])
 
 (* todo: special mode to convert Ellipsis in the right construct! *)
