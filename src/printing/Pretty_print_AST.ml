@@ -167,7 +167,8 @@ let rec stmt env st =
   | DirectiveStmt _
   | DisjStmt (_, _)
   | OtherStmtWithStmt (_, _, _)
-  | OtherStmt (_, _) ->
+  | OtherStmt (_, _)
+  | RawStmt _ ->
       todo (S st)
 
 and label_ident env lbl =
