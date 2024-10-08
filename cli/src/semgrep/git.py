@@ -65,6 +65,8 @@ def git_check_output(command: Sequence[str], cwd: Optional[str] = None) -> str:
 
                 - the git binary is not available
                 - the current working directory is not a git repository
+                - the baseline commit is not a parent of the current commit
+                    (if you are running through semgrep-app, check if you are setting `SEMGREP_BRANCH` or `SEMGREP_BASELINE_COMMIT` properly)
                 - the current working directory is not marked as safe
                     (fix with `git config --global --add safe.directory $(pwd)`)
 
