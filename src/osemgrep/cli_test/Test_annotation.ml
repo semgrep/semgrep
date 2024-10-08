@@ -118,8 +118,9 @@ let annotation_kind_of_string (str : string) : kind =
 (* This does a few things:
  *  - check comments: #, //, ( *, <--
  *  - support multiple ruleids separated by commas
- *  - support possible leading deepok:
- *  - TODO? support pro/deep annotations?
+ *  - support possible deepok: or prook: following the ruleid: (to negate
+ *    the ruleid when running a ProScan or DeepScan)
+ *  - support pro/deep annotations
  *)
 let annotations_of_string (orig_str : string) (file : Fpath.t) (idx : linenb) :
     annotations =
@@ -155,12 +156,22 @@ let annotations_of_string (orig_str : string) (file : Fpath.t) (idx : linenb) :
           let kind_str, ids_str = Common.matched2 s in
           let kind = annotation_kind_of_string kind_str in
           let s = String.trim ids_str in
+          (* handle the possible deepok: prook: "negations"
+           * TODO: need to return those negation annotations so that
+           * Test_subcommand.ml can use the information to remove
+           * certain ruleid from the list of expected lines
+           * (TCM handles that via the ~regexp and ~ok_regexp trick).
+           *)
           let s =
             (* indicate that no finding is expected in interfile analysis *)
             let prefix = "deepok:" in
             if String.starts_with ~prefix s then
               Str.string_after s (String.length prefix)
-            else ids_str
+            else
+              let prefix = "prook:" in
+              if String.starts_with ~prefix s then
+                Str.string_after s (String.length prefix)
+              else s
           in
           let xs =
             Str.split_delim (Str.regexp "[ \t]*,[ \t]*") s
