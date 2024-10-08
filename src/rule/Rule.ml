@@ -142,18 +142,18 @@ and metavar_cond =
 and metavar_cond_name = {
   mvar : Mvar.t;
   kind : metavar_name_kind option;
-  module_ : string option;
-      (** A user-facing module name.
+  modules : string list option;
+      (** A list of user-facing module names.
 
         Internally we would further resolve this in the relevant hook. Mainly
         for JS/TS, where what is used for require or import might have
         non-identifier characters, and there aren't really fully qualified
-        names. For instance, this might be `foo.bar`, or `@lib/something`, or
-        `@angular`.
+        names. For instance, elements of this might be `foo.bar`, or
+        `@lib/something`, or `@angular`.
 
-        Applicable for other languages too, like for Java, e.g., this could be
-        `com.foo.bar`, but less important since those patterns may be able to
-        be written directly.
+        Applicable for other languages too, like for Java, e.g., elements could
+        be `com.foo.bar`, but less important since those patterns may be able
+        to be written directly.
   *)
 }
 

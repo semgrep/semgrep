@@ -236,7 +236,7 @@ type extra =
   | MetavarPattern of MV.mvar * Xlang.t option * Rule.formula
   | MetavarComparison of metavariable_comparison
   | MetavarAnalysis of MV.mvar * Rule.metavar_analysis_kind
-  | MetavarName of MV.mvar * Rule.metavar_name_kind option * string option
+  | MetavarName of MV.mvar * Rule.metavar_name_kind option * string list option
 
 (* old: | PatWherePython of string, but it was too dangerous.
  * MetavarComparison is not as powerful, but safer.
@@ -413,8 +413,8 @@ and parse_pair_old env ((key, value) : key * G.expr) :
                     | Some true -> rewrite_metavar_comparison_strip comparison
                     | _ -> comparison)
               | MetavarAnalysis (mvar, kind) -> R.CondAnalysis (mvar, kind)
-              | MetavarName (mvar, kind, module_) ->
-                  R.CondName { mvar; kind; module_ }
+              | MetavarName (mvar, kind, modules) ->
+                  R.CondName { mvar; kind; modules }
             in
             match
               ( H.dict_take_opt dict "focus-metavariable",
@@ -654,9 +654,16 @@ and parse_extra (env : env) (key : key) (value : G.expr) :
       in
       let/ kind_str = take_opt mv_name_dict env parse_string_wrap "kind" in
       let/ module_ = take_opt mv_name_dict env parse_string "module" in
-      match (kind_str, module_) with
-      | None, None ->
-          error_at_key env.id key "expected at least one of kind, module"
+      let/ modules =
+        take_opt mv_name_dict env
+          (fun e k -> parse_list e k (fun e -> parse_string e k))
+          "modules"
+      in
+      match (kind_str, module_, modules) with
+      | None, None, None ->
+          error_at_key env.id key "expected at least one of kind, module(s)"
+      | _, Some _, Some _ ->
+          error_at_key env.id key "expected only one of module, modules"
       | _ ->
           let/ kind =
             match Option.map parse_kind kind_str with
@@ -664,7 +671,13 @@ and parse_extra (env : env) (key : key) (value : G.expr) :
             | Some (Ok x) -> Ok (Some x)
             | Some (Error e) -> Error e
           in
-          Ok (MetavarName (mvar, kind, module_)))
+          Ok
+            (MetavarName
+               ( mvar,
+                 kind,
+                 match modules with
+                 | None -> Option.map (fun x -> [ x ]) module_
+                 | _ -> modules )))
   | _ -> error_at_key env.id key ("wrong parse_extra field: " ^ fst key)
 
 (*****************************************************************************)
