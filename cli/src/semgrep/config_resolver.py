@@ -21,14 +21,12 @@ from urllib.parse import urlparse
 from urllib.parse import urlsplit
 
 import requests
-from rich import progress
 from ruamel.yaml import YAMLError
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
 from semgrep import tracing
 from semgrep.app import auth
-from semgrep.console import console
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import Colors
 from semgrep.constants import DEFAULT_SEMGREP_APP_CONFIG_URL
@@ -433,14 +431,7 @@ def parse_config_files(
     """
     config = {}
     errors: List[SemgrepError] = []
-    for config_id, contents, config_path in progress.track(
-        loaded_config_infos,
-        description=f"  parsing {len(loaded_config_infos)} rules",
-        transient=True,
-        # expected to take just 2-3 seconds with less than 500
-        disable=len(loaded_config_infos) < 500,
-        console=console,
-    ):
+    for config_id, contents, config_path in loaded_config_infos:
         try:
             if not config_id:  # registry rules don't have config ids
                 # Note: we must disambiguate registry sourced remote rules from
