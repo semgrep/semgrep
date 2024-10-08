@@ -1,0 +1,2 @@
+Address python `rich.errors.LiveError` where attempting to display multiple progress bars
+raises an exception as flagged in #10562.
