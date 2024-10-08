@@ -59,7 +59,7 @@ For more information about Semgrep, visit @{<cyan;ul>https://semgrep.dev@}
 @{<ul>Help@}:
   @{<cyan>semgrep COMMAND --help@}       For more information on each command
 
-For the CLI docs visit @{<cyan;ul>https://semgrep.dev/docs/category/semgrep-cli/@}
+For the CLI docs visit @{<cyan;ul>https://semgrep.dev/docs/cli-reference@}
 |}
 
 let print_semgrep_dashdash_help (stdout : Cap.Console.stdout) =
