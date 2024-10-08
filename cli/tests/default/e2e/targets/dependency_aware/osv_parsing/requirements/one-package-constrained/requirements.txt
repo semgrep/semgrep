@@ -1,4 +1,4 @@
-django==2.2.24
+django==4.2.16
     # via
     #   -r requirements.in
     #   django-debug-toolbar
