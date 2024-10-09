@@ -11,8 +11,21 @@ type kind =
 
 type engine = OSS | Pro | Deep [@@deriving show]
 
-(* ex: "#ruleid: lang.ocaml.do-not-use-lisp-map" *)
-type t = { kind : kind; engine : engine; id : Rule_ID.t } [@@deriving show]
+(* ex: "#ruleid: lang.ocaml.do-not-use-lisp-map"
+ * but also "ruleid: prook: lang.ocaml.do-not-use-lisp-map".
+ *
+ * Note that 'ruleid:' implies 'proruleid:' and 'deepruleid:' so you don't need
+ * to repeat those annotations. You usually need multiple kind/engine
+ * prefix when one engine TP would be another engine FP (e.g., 'ruleid: prook:')
+ *)
+type t = {
+  kind : kind;
+  engine : engine;
+  (* e.g., to deal with multiple annots as in 'ruleid: prook: x' *)
+  others : (kind * engine) list;
+  id : Rule_ID.t;
+}
+[@@deriving show]
 
 (* starts at 1 *)
 type linenb = int
