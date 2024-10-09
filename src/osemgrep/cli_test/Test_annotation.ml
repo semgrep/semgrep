@@ -18,8 +18,21 @@ open Fpath_.Operators
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Module to represent and parse test annotations.
+(* Module to represent and parse semgrep test annotations.
  * See https://semgrep.dev/docs/writing-rules/testing-rules/ for more info.
+ *
+ * Note that our docs currently mention just the OSS test annotations but not
+ * the pro one (e.g., 'proruleid:', 'deepruleid:').
+ * See tests/intrafile/README for more info on the pro/deep annotations.
+ *
+ * Note that if a finding is expected in OSS but not in Pro, you may need to
+ * combine two annotations, e.g. `ruleid: prook: test` would mean that the
+ * finding is expected in OSS but in Pro we expect no finding, which could be
+ * due to inter-procedural analysis being able to spot sanitization via a
+ * third-function.
+ *
+ * TODO: update https://semgrep.dev/docs/writing-rules/testing-rules and add
+ * doc for the pro/deep test annotations and remove tests/intrafile/README.
  *)
 
 (*****************************************************************************)
@@ -39,7 +52,6 @@ type kind =
    * the `prook:` and `deepok:` are useful to "negate" a preceding ruleid: when
    * a legitimate finding in semgrep OSS is actually considered a FP for the
    * pro engine and should not be reported.
-   * alt: we should use todook:
    *)
   | Ok
 [@@deriving show]
@@ -51,11 +63,23 @@ type kind =
  *)
 type engine = OSS | Pro | Deep [@@deriving show]
 
-(* ex: "#ruleid: lang.ocaml.do-not-use-lisp-map" *)
+(* ex: "#ruleid: lang.ocaml.do-not-use-lisp-map"
+ * but also "ruleid: prook: lang.ocaml.do-not-use-lisp-map".
+ *
+ * Note that 'ruleid:' implies 'proruleid:' and 'deepruleid:' so you don't need
+ * to repeat those annotations. You usually need multiple kind/engine
+ * prefix when one engine TP would be another engine TN (e.g., 'ruleid: prook:')
+ * Here are a few implicit rules:
+ *  - ruleid: > proruleid: > deepruleid:
+ *  - prook: > deepok: ?
+ *)
 type t = {
   kind : kind;
   engine : engine;
-  (* TODO: other: (kind * engine) list; *)
+  (* e.g., a ruleid: prook: x
+   * alt: call the field negators?
+   *)
+  others : (kind * engine) list;
   (* alt: ids: Rule_ID.t list; (instead we return a list of annots) *)
   id : Rule_ID.t;
 }
@@ -149,28 +173,25 @@ let parse_kind_and_engine_opt (s : string) : (kind * engine * string) option =
     | _ -> (OSS, s)
   in
   if s =~ annotation_regexp then
-    let kind_str, ids_str = Common.matched2 s in
+    let kind_str, s = Common.matched2 s in
     let kind = kind_of_string kind_str in
-    let s = String.trim ids_str in
-    (* handle the possible deepok: prook: "negations"
-     * TODO: need to return those negation annotations so that
-     * Test_subcommand.ml can use the information to remove
-     * certain ruleid from the list of expected lines
-     * (TCM handles that via the ~regexp and ~ok_regexp trick).
-     *)
-    let s =
-      (* indicate that no finding is expected in interfile analysis *)
-      let prefix = "deepok:" in
-      if String.starts_with ~prefix s then
-        Str.string_after s (String.length prefix)
-      else
-        let prefix = "prook:" in
-        if String.starts_with ~prefix s then
-          Str.string_after s (String.length prefix)
-        else s
-    in
+    let s = String.trim s in
     Some (kind, engine, s)
   else None
+
+(* TODO: could check for bad combinations such as
+ * - ruleid: deepruleid: proruleid:  (redundant)
+ * - todoruleid: deepruleid: (probably just need deepruleid:)
+ *)
+let parse_kinds_and_engines_opt (s : string) :
+    (kind * engine * (kind * engine) list * string) option =
+  let* kind, engine, s = parse_kind_and_engine_opt s in
+  let rec aux annots s =
+    match parse_kind_and_engine_opt s with
+    | None -> Some (kind, engine, List.rev annots, s)
+    | Some (kind2, engine2, s) -> aux ((kind2, engine2) :: annots) s
+  in
+  aux [] s
 
 (*****************************************************************************)
 (* Parsing *)
@@ -209,8 +230,8 @@ let annotations_of_string (orig_str : string) (file : Fpath.t) (idx : linenb) :
         (* " ruleid: foo.bar " *)
         let s = String.trim s in
         (* "ruleid: foo.bar" *)
-        match parse_kind_and_engine_opt s with
-        | Some (kind, engine, s) ->
+        match parse_kinds_and_engines_opt s with
+        | Some (kind, engine, others, s) ->
             let xs =
               Str.split_delim (Str.regexp "[ \t]*,[ \t]*") s
               |> List_.map String.trim
@@ -218,7 +239,7 @@ let annotations_of_string (orig_str : string) (file : Fpath.t) (idx : linenb) :
             xs
             |> List_.filter_map (fun id_str ->
                    match Rule_ID.of_string_opt id_str with
-                   | Some id -> Some ({ kind; engine; id }, idx)
+                   | Some id -> Some ({ kind; engine; others; id }, idx)
                    | None ->
                        Logs.warn (fun m ->
                            m
@@ -255,24 +276,26 @@ let () =
             (spf "Annotations didn't match, got %s, expected %s"
                (Dumper.dump xs) (Dumper.dump expected))
       in
-      test "// ruleid: foo.bar"
-        [
-          { kind = Ruleid; engine = OSS; id = Rule_ID.of_string_exn "foo.bar" };
-        ];
+      let rule_id s = Rule_ID.of_string_exn s in
+      test "// ruleid: foo"
+        [ { kind = Ruleid; engine = OSS; others = []; id = rule_id "foo" } ];
       test "// ruleid: foo, bar"
         [
-          { kind = Ruleid; engine = OSS; id = Rule_ID.of_string_exn "foo" };
-          { kind = Ruleid; engine = OSS; id = Rule_ID.of_string_exn "bar" };
+          { kind = Ruleid; engine = OSS; others = []; id = rule_id "foo" };
+          { kind = Ruleid; engine = OSS; others = []; id = rule_id "bar" };
         ];
       test "<!-- ruleid: foo-bar -->"
-        [
-          { kind = Ruleid; engine = OSS; id = Rule_ID.of_string_exn "foo-bar" };
-        ];
+        [ { kind = Ruleid; engine = OSS; others = []; id = rule_id "foo-bar" } ];
       (* the ok: does not mean it's an annot; it's regular (JS) code *)
       test "return res.send({ok: true})" [];
-      test "// ruleid: deepok: foo.deep"
+      test "// ruleid: deepok: foo"
         [
-          { kind = Ruleid; engine = OSS; id = Rule_ID.of_string_exn "foo.deep" };
+          {
+            kind = Ruleid;
+            engine = OSS;
+            others = [ (Ok, Deep) ];
+            id = rule_id "foo";
+          };
         ];
       ())
 
@@ -286,7 +309,7 @@ let () =
 let group_positive_annotations (annots : annotations) :
     (Rule_ID.t, linenb list) Assoc.t =
   annots
-  |> List_.filter_map (fun ({ kind; engine; id }, line) ->
+  |> List_.filter_map (fun ({ kind; engine; others = _; id }, line) ->
          match kind with
          | Ruleid
          | Todook ->
