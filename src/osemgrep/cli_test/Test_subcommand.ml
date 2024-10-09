@@ -626,7 +626,8 @@ let run_tests (caps : Core_scan.caps) (conf : Test_CLI.conf) (tests : tests)
                       (* TODO: filter different annots if pro engine *)
                       let annots =
                         annots
-                        |> List.filter (fun ((_, engine, _), _) ->
+                        |> List.filter
+                             (fun (Test_annotation.{ engine; _ }, _) ->
                                match engine with
                                | A.OSS -> true
                                | A.Pro
