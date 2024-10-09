@@ -718,7 +718,13 @@ let map_struct_signature (env : env) attrs ((v1, v2, v3, v4) : CST.struct_signat
     | Some x ->  (map_ability_decls env x)
     | None -> []
   in
-  let struct_ent = G.basic_entity ~tparams:type_params ~attrs name in
+  let struct_ent = 
+    let type_params = match type_params with
+      | Some params -> params
+      | None -> (G.fake "", [], G.fake "")
+    in
+    G.basic_entity ~tparams:type_params ~attrs name 
+  in
   (struct_, abilities, struct_ent)
 
 
@@ -1009,7 +1015,7 @@ and map_field_annotation (env : env) (x : CST.field_annotation) : G.field =
       in
       let ent = G.basic_entity ident in
       G.fld (ent, G.FieldDefColon var_def)
-  | `Ellips tok -> (* "..." *) G.fieldEllipsis (token env tok)
+  | `Ellips tok -> (* "..." *) G.field_ellipsis (token env tok)
   
 
 and map_field_annotation_type (env : env) (x : CST.field_annotation) : G.type_ =
@@ -1130,6 +1136,10 @@ let map_spec_block_target (env : env) (x : CST.spec_block_target): G.any =
         | Some x -> Some (map_type_parameters env x)
         | None -> None
       in
+      let type_params = match type_params with
+        | Some params -> params
+        | None -> (G.fake "", [], G.fake "")
+      in
       let entity = G.basic_entity ~tparams:type_params identifier in
       G.Anys [ schema; G.En entity ]
 
@@ -1228,6 +1238,10 @@ let map_spec_variable (env : env) ((v1, v2, v3, v4, v5, v6) : CST.spec_variable)
   let v4 = (* ":" *) token env v4 in
   let type_ = map_type_ env v5 in
   let v6 = (* ";" *) token env v6 in
+  let type_params = match type_params with
+    | Some params -> params
+    | None -> (G.fake "", [], G.fake "")
+  in
   let entity = G.basic_entity ~attrs:attr ~tparams:type_params ident in
   G.DefStmt (entity, G.VarDef { vinit = None; vtype = Some type_; vtok = None })
   |> G.s
@@ -1488,6 +1502,10 @@ and map_spec_function_signature (env : env) attrs ((v1, v2, v3, v4) : CST.spec_f
   in
   let function_parameters  = map_function_parameters env v3 in
   let ret_type = map_ret_type env v4 in
+  let type_parameters = match type_parameters with
+    | Some params -> params
+    | None -> (G.fake "", [], G.fake "")
+  in
   let entity = G.basic_entity ~attrs:attrs ~tparams:type_parameters func_name in
   (entity, function_parameters, ret_type)
 
@@ -1504,8 +1522,8 @@ and map_macro_signature (env : env) ((v1, v2, v3, v4, v5, v6) : CST.macro_signat
   let ident = (* identifier *) str env v3 in
   let type_parameters =
     match v4 with
-    | Some x -> Some (map_type_parameters env x)
-    | None -> None
+    | Some x -> (map_type_parameters env x)
+    | None ->  (G.fake "", [], G.fake "")
   in
   let function_parameters = map_function_parameters env v5 in
   let ret_type =
@@ -2841,7 +2859,7 @@ let map_source_file (env : env) (x : CST.source_file) =
 let parse file =
   H.wrap_parser
     (fun () -> Tree_sitter_move_on_sui.Parse.file !!file)
-    (fun cst ->
+    (fun cst _extras->
       let env = { H.file; conv = H.line_col_to_pos file; extra = Target } in
       match map_source_file env cst with
       | G.Pr xs -> xs
@@ -2854,7 +2872,7 @@ let parse_expression_or_source_file str =
 let parse_pattern str =
   H.wrap_parser
     (fun () -> parse_expression_or_source_file str)
-    (fun cst ->
+    (fun cst _extras->
       let file = Fpath.v "<pattern>" in
       let env =
         { H.file; conv = H.line_col_to_pos_pattern str; extra = Pattern }
