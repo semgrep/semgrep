@@ -81,8 +81,11 @@ let check_if_missing_analyzer (analyzer : Xlang.t) =
           | Some msg -> Error msg)
       | Error _ as res -> res)
 
+let all_possible_plugins = ref []
+
 (* Create and manage the reference holding a plugin. *)
 let make ?(optional = false) lang =
+  all_possible_plugins := lang :: !all_possible_plugins;
   let parsers = ref None in
   if not optional then Hashtbl.add missing_plugins lang ();
   let register ~parse_pattern ~parse_target =
@@ -144,3 +147,5 @@ module Elixir = struct
   let is_optional, register_parsers, is_available, parse_pattern, parse_target =
     make Lang.Elixir
 end
+
+let all_possible_plugins = List.rev !all_possible_plugins
