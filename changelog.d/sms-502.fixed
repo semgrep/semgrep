@@ -1,3 +1,0 @@
-When a scan runs into an exception, the app is appropriately notified
-about the failure. Previously, in the app, it would seem to the user
-that the scan is still in progress.
