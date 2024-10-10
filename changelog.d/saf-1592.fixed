@@ -1,1 +1,0 @@
-C: Fix a regression causing pattern `-n` to sometimes not match code `-n`.
