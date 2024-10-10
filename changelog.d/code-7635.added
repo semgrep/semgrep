@@ -1,6 +1,0 @@
-Type inference in the Pro engine has been improved for class fields in
-TypeScript that are assigned a new instance but lack an explicit type
-definition. When no explicit type is provided for a class field, its type is
-inferred from the type of the expression assigned to it. For example, in the
-class definition `class Foo { private readonly bar = new Bar(); }`, the type of
-`bar` is inferred to be `Bar`.
