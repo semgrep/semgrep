@@ -37,6 +37,7 @@ type t = Language.t =
   | Kotlin
   | Lisp
   | Lua
+  | Move_on_sui
   | Move_on_aptos
   | Ocaml
   | Php
