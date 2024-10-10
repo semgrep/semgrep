@@ -1,3 +1,5 @@
+# This file is DEPRECATED! Please modify instead osemgrep test in
+# src/osemgrep/cli_test/Test_subcommand.ml
 import collections
 import difflib
 import functools
@@ -41,8 +43,6 @@ TODORULEID = "todoruleid"
 RULEID = "ruleid"
 TODOOK = "todook"
 OK = "ok"
-DEEPOK = "deepok"
-DEEPRULEID = "deepruleid"
 
 EXIT_FAILURE = 2
 
@@ -53,6 +53,8 @@ def _remove_ending_comments(rule: str) -> str:
     return rule
 
 
+# Partial support for pro/deep annotations by just skipping them.
+# Use osemgrep test --pro if you actually want to process those annotations.
 def normalize_rule_ids(line: str) -> Set[str]:
     """
     given a line like `     # ruleid:foobar`
@@ -63,7 +65,12 @@ def normalize_rule_ids(line: str) -> Set[str]:
     _, rules_text = line.strip().split(":", 1)
     rules_text = rules_text.strip()
     # strip out "deepok" and "deepruleid" annotations if they are there to get rule name
-    if rules_text.startswith(DEEPOK) or rules_text.startswith(DEEPRULEID):
+    if (
+        rules_text.startswith("deepok")
+        or rules_text.startswith("prook")
+        or rules_text.startswith("deepruleid")
+        or rules_text.startswith("proruleid")
+    ):
         _, rules_text = rules_text.split(":")
     rules = rules_text.strip().split(",")
     # remove comment ends for non-newline comment syntaxes
