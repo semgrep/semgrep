@@ -943,11 +943,11 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
    *)
   | G.Ellipsis _a1, _ -> return ()
   | G.DeepEllipsis (_, a1, _), _b -> m_expr_deep a1 b
-  (* equivalence: (-) E ~ -n -> E ~ n *)
+  (* equivalence: (-) E vs -n ==> E vs n *)
   | ( G.Call ({ e = G.IdSpecial (G.Op G.Minus, _); _ }, (_, [ G.Arg arga ], _)),
       B.L (B.Int int_lit) ) ->
       m_expr arga (B.L (B.Int (Parsed_int.neg int_lit)) |> B.e)
-  (* equivalence: -n ~ (-) E -> n ~ E *)
+  (* equivalence: -n vs (-) E ==> n vs E *)
   | ( G.L (G.Int int_lit),
       B.Call ({ e = B.IdSpecial (B.Op B.Minus, _); _ }, (_, [ B.Arg argb ], _))
     ) ->
@@ -1887,7 +1887,7 @@ and m_call_op aop toka aargs bop tokb bargs tin =
             Log.warn (fun m ->
                 m
                   "Will not perform AC-matching, something went wrong when \
-                   trying to convert operands to AC normal form: %s ~ %s"
+                   trying to convert operands to AC normal form: %s vs %s"
                   (G.show_expr
                      (G.Call (G.IdSpecial (G.Op aop, toka) |> G.e, aargs) |> G.e))
                   (B.show_expr
