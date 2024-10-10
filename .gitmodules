@@ -146,3 +146,6 @@ url = https://github.com/semgrep/semgrep-move-on-aptos.git
 path = languages/circom/tree-sitter/semgrep-circom
 url = https://github.com/semgrep/semgrep-circom.git
 
+[submodule "languages/move_on_sui/tree-sitter/semgrep-move-on-sui"]
+	path = languages/move_on_sui/tree-sitter/semgrep-move-on-sui
+	url = https://github.com/semgrep/semgrep-move-on-sui

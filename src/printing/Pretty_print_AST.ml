@@ -98,6 +98,7 @@ let _lang_kind = function
   | Lang.Apex
   | Lang.Csharp
   | Lang.Rust
+  | Lang.Move_on_sui
   | Lang.Move_on_aptos ->
       CLikeSemiColon
   | Lang.Move_on_sui -> failwith "Unimplemented"
@@ -247,6 +248,7 @@ and if_stmt env (tok, e, s, sopt) =
     | Lang.Json
     | Lang.Jsonnet
     | Lang.Js
+    | Lang.Move_on_sui
     | Lang.Move_on_aptos
     | Lang.Ts
     | Lang.Vue
@@ -327,6 +329,7 @@ and while_stmt env (tok, e, s) =
     | Lang.Json
     | Lang.Jsonnet
     | Lang.Js
+    | Lang.Move_on_sui
     | Lang.Move_on_aptos
     | Lang.Ts
     | Lang.Vue
@@ -385,6 +388,7 @@ and do_while stmt env (s, e) =
     | Lang.Go
     | Lang.Json
     | Lang.Jsonnet
+    | Lang.Move_on_sui
     | Lang.Move_on_aptos
     | Lang.Ocaml
     | Lang.Rust
@@ -427,6 +431,7 @@ and for_stmt env (for_tok, hdr, s) =
     | Lang.Csharp
     | Lang.Kotlin
     | Lang.Js
+    | Lang.Move_on_sui
     | Lang.Move_on_aptos
     | Lang.Ts
     | Lang.Vue
@@ -545,6 +550,7 @@ and def_stmt env (entity, def_kind) =
       | Lang.Ql ->
           ( (fun _typ id _e -> F.sprintf "%s" id),
             fun _typ id e -> F.sprintf "%s = %s" id e )
+      | Lang.Move_on_sui
       | Lang.Move_on_aptos
       | Lang.Rust ->
           ( (fun typ id _e -> F.sprintf "let %s: %s" id typ),
