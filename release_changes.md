@@ -1,27 +1,24 @@
-## [1.90.0](https://github.com/returntocorp/semgrep/releases/tag/v1.90.0) - 2024-09-25
+## [1.91.0](https://github.com/returntocorp/semgrep/releases/tag/v1.91.0) - 2024-10-10
 
 
 ### Added
 
 
-- Expanded support for requirement lockfiles. Semgrep will now find any `*requirement*.txt`
-  file and lockfiles in a requirements folder (`**/requirements/*.txt`). This functionality
-  will be gated behind the `--enable-experimental-requirements` CLI flag. (sc-1752)
-
-
-### Changed
-
-
-- Security update for code snippet storage & access methods. (gh-2038)
+- Type inference in the Pro engine has been improved for class fields in
+  TypeScript that are assigned a new instance but lack an explicit type
+  definition. When no explicit type is provided for a class field, its type is
+  inferred from the type of the expression assigned to it. For example, in the
+  class definition `class Foo { private readonly bar = new Bar(); }`, the type of
+  `bar` is inferred to be `Bar`. (code-7635)
+- Cargo.lock parser can now associate dependencies with lockfile line numbers (sc-1140)
 
 
 ### Fixed
 
 
-- Errors that occur in semgrep scans with jobs > 1 will now have more detail (SAF-1628)
-- Dockerfile matching: `CMD $...ARGS` now behaves like `CMD ...` and matches
-  any CMD instruction that uses the array syntax such as `CMD ["ls"]`. This
-  fix also applies to the other command-like instructions RUN
-  and ENTRYPOINT. (gh-9726)
-- Pro Engine: There is now improved type inference in Kotlin and Scala. Constructor invocations like
-  `Foo()` will now be inferred properly to be of type `Foo`. (saf-1537)
+- Address python `rich.errors.LiveError` where attempting to display multiple progress bars
+  raises an exception as flagged in #10562. (grow-414)
+- C: Fix a regression causing pattern `-n` to sometimes not match code `-n`. (saf-1592)
+- When a scan runs into an exception, the app is appropriately notified
+  about the failure. Previously, in the app, it would seem to the user
+  that the scan is still in progress. (sms-502)
