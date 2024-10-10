@@ -134,6 +134,7 @@ let lang_parsing_tests () =
       pack_parsing_tests_for_lang Lang.Dockerfile;
       pack_parsing_tests_for_lang Lang.Lua;
       pack_parsing_tests_for_lang Lang.Move_on_aptos;
+      pack_parsing_tests_for_lang Lang.Move_on_sui;
       pack_parsing_tests_for_lang Lang.Circom;
       pack_parsing_tests_for_lang Lang.Rust;
       pack_parsing_tests_for_lang Lang.Cairo;

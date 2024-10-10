@@ -63,6 +63,7 @@ type t = Language.t =
   | Kotlin
   | Lisp
   | Lua
+  | Move_on_sui
   | Move_on_aptos
   | Ocaml
   | Php
@@ -151,6 +152,7 @@ let langs_of_filename filename =
   | FT.PL FT.Lua -> [ Lua ]
   | FT.PL (FT.Script "bash") -> [ Bash ]
   | FT.PL FT.Rust -> [ Rust ]
+  | FT.PL FT.Move_on_sui -> [ Move_on_sui ]
   | FT.PL FT.Move_on_aptos -> [ Move_on_aptos ]
   | FT.PL FT.R -> [ R ]
   | FT.PL FT.Scala -> [ Scala ]
