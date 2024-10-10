@@ -592,15 +592,23 @@ def ci(
                 _missed_rule_count,
             ) = semgrep.run_scan.run_scan(**run_scan_args)
         except SemgrepError as e:
-            output_handler.handle_semgrep_errors([e])
-            output_handler.output({}, all_targets=set(), filtered_rules=[])
-            logger.info(f"Encountered error when running rules: {e}")
+            # We place output_handler calls after scan_handler calls
+            # because the output handler may raise an exception further
+            # for the top-level error handler to handle.
+            #
+            # We'd still like scan_handler to notify the app for failures
+            # so we do it before calling output handler.
             if isinstance(e, SemgrepError):
                 exit_code = e.code
             else:
                 exit_code = FATAL_EXIT_CODE
             if scan_handler:
                 scan_handler.report_failure(exit_code)
+
+            output_handler.handle_semgrep_errors([e])
+            output_handler.output({}, all_targets=set(), filtered_rules=[])
+            logger.info(f"Encountered error when running rules: {e}")
+
             sys.exit(exit_code)
 
         # Run a separate scan for historical. This is due to the split in how the
