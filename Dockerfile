@@ -109,7 +109,6 @@ RUN apk add --no-cache bash build-base git make opam
 # - https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb
 #TODO: switch to 5.2.0 at some point
 RUN opam init --disable-sandboxing -v && opam switch create 4.14.0 -v
-RUN opam update
 
 # Install semgrep-core build dependencies
 WORKDIR /src/semgrep
