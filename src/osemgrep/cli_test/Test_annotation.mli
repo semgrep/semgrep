@@ -32,5 +32,5 @@ type linenb = int
 type annotations = (t * linenb) list
 
 val annotations : Fpath.t -> annotations
-val group_positive_annotations : annotations -> (Rule_ID.t, linenb list) Assoc.t
+val group_by_rule_id : annotations -> (Rule_ID.t, linenb list) Assoc.t
 val filter_todook : annotations -> linenb list -> linenb list
