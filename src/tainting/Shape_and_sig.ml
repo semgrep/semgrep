@@ -33,7 +33,7 @@ end)
  * associated with its fields and indexes.
  *
  * Taint shapes are a bit like types. Right now this is mainly to support
- * field- and index-sensitivity, but hapes also provide a good foundation to
+ * field- and index-sensitivity, but shapes also provide a good foundation to
  * later add alias analysis.  This is somewhat inspired by
  *
  *     "Polymorphic type, region and effect inference"
@@ -249,10 +249,10 @@ and Effect : sig
   }
 
   type taints_to_return = {
-    data_taints : Taint.taint list;
+    data_taints : Taint.taints;
         (** The taints of the data being returned (typical data propagated via data flow). *)
     data_shape : Shape.shape;  (** The shape of the data being returned. *)
-    control_taints : Taint.taint list;
+    control_taints : Taint.taints;
         (** The taints propagated via the control flow (cf., `control: true` sources)
    * used for reachability queries. *)
     return_tok : AST_generic.tok;
@@ -299,7 +299,7 @@ and Effect : sig
         *
         *     ToReturn(["taint"], Bot, ...)
         *)
-    | ToLval of Taint.taint list * Taint.lval
+    | ToLval of Taint.taints * Taint.lval
         (** Taints reach an l-value in the scope of the function/method.
         *
         * For example:
@@ -319,7 +319,13 @@ and Effect : sig
 
   val compare : t -> t -> int
   val show : t -> string
+
+  (* Mainly for debugging *)
+  val show_taints_to_sink : taints_to_sink -> string
+  val show_taints_to_return : taints_to_return -> string
 end = struct
+  module Taints = Taint.Taint_set
+
   type sink = { pm : Pattern_match.t; rule_sink : R.taint_sink }
   type taint_to_sink_item = { taint : T.taint; sink_trace : unit T.call_trace }
 
@@ -336,16 +342,16 @@ end = struct
   }
 
   type taints_to_return = {
-    data_taints : Taint.taint list;
+    data_taints : Taint.taints;
     data_shape : Shape.shape;
-    control_taints : Taint.taint list;
+    control_taints : Taint.taints;
     return_tok : AST_generic.tok;
   }
 
   type t =
     | ToSink of taints_to_sink
     | ToReturn of taints_to_return
-    | ToLval of T.taint list * T.lval (* TODO: CleanArg ? *)
+    | ToLval of T.taints * T.lval (* TODO: CleanArg ? *)
 
   (*************************************)
   (* Comparison *)
@@ -395,10 +401,10 @@ end = struct
         control_taints = control_taints2;
         return_tok = _;
       } =
-    match List.compare T.compare_taint data_taints1 data_taints2 with
+    match Taints.compare data_taints1 data_taints2 with
     | 0 -> (
         match Shape.compare_shape data_shape1 data_shape2 with
-        | 0 -> List.compare T.compare_taint control_taints1 control_taints2
+        | 0 -> Taints.compare control_taints1 control_taints2
         | other -> other)
     | other -> other
 
@@ -407,7 +413,7 @@ end = struct
     | ToSink tts1, ToSink tts2 -> compare_taints_to_sink tts1 tts2
     | ToReturn ttr1, ToReturn ttr2 -> compare_taints_to_return ttr1 ttr2
     | ToLval (ts1, lv1), ToLval (ts2, lv2) -> (
-        match List.compare T.compare_taint ts1 ts2 with
+        match Taints.compare ts1 ts2 with
         | 0 -> T.compare_lval lv1 lv2
         | other -> other)
     | ToSink _, (ToReturn _ | ToLval _) -> -1
@@ -445,17 +451,33 @@ end = struct
   let show_taints_to_sink { taints_with_precondition = taints, _; sink; _ } =
     Common.spf "%s ~~~> %s" (show_taints_and_traces taints) (show_sink sink)
 
+  let show_taints_to_return
+      { data_taints; data_shape; control_taints; return_tok = _ } =
+    Printf.sprintf "return (%s & %s & CTRL:%s)"
+      (T.show_taints data_taints)
+      (Shape.show_shape data_shape)
+      (T.show_taints control_taints)
+
   let show = function
-    | ToSink x -> show_taints_to_sink x
-    | ToReturn { data_taints; data_shape; control_taints; return_tok = _ } ->
-        Printf.sprintf "return (%s & %s & CTRL:%s)"
-          (Common2.string_of_list T.show_taint data_taints)
-          (Shape.show_shape data_shape)
-          (Common2.string_of_list T.show_taint control_taints)
+    | ToSink tts -> show_taints_to_sink tts
+    | ToReturn ttr -> show_taints_to_return ttr
     | ToLval (taints, lval) ->
-        Printf.sprintf "%s ----> %s"
-          (Common2.string_of_list T.show_taint taints)
-          (T.show_lval lval)
+        Printf.sprintf "%s ----> %s" (T.show_taints taints) (T.show_lval lval)
+end
+
+and Effects : sig
+  include Set.S with type elt = Effect.t
+
+  val show : t -> string
+end = struct
+  include Set.Make (struct
+    type t = Effect.t
+
+    let compare effect1 effect2 = Effect.compare effect1 effect2
+  end)
+
+  let show s =
+    s |> to_seq |> List.of_seq |> List_.map Effect.show |> String.concat "; "
 end
 
 (** A (polymorphic) taint signature: simply a set of results for a function.
@@ -471,7 +493,7 @@ end
  *
  * We infer the signature (simplified):
  *
- *     {ToSink {taints_with_precondition = [(x#0).a]; sink = ... ; ...}}
+ *     x => {ToSink {taints_with_precondition = [(x#0).a]; sink = ... ; ...}}
  *
  * where '(x#0).a' is taint variable that denotes the taint of the offset `.a`
  * of the parameter `x` (where '#0' means it is the first argument) of `foo`.
@@ -488,18 +510,81 @@ end
  * THINK: Could we have a "taint shape" for functions/methods ?
  *)
 and Signature : sig
-  include Set.S with type elt = Effect.t
+  (** A simplified version of 'AST_generic.parameter', we use 'Other' to represent
+    * parameter kinds that we do not support yet. We don't want to just remove
+    * those unsupported parameters because we rely on the position of a parameter
+    * to represent taint variables, see 'Taint.arg'. *)
+  type param = P of string | Other [@@deriving eq, ord]
 
+  type params = param list [@@deriving eq, ord]
+
+  type t = { params : params; effects : Effects.t } [@@deriving eq, ord]
+  (**
+   * The 'params' act like an universal quantifier, we need them to later
+   * instantiate the accompanying signature. *)
+
+  val of_generic_params : AST_generic.parameters -> params
+  val show_params : params -> string
   val show : t -> string
 end = struct
-  include Set.Make (struct
-    type t = Effect.t
+  (*************************************)
+  (* Param(eter)s *)
+  (*************************************)
 
-    let compare r1 r2 = Effect.compare r1 r2
-  end)
+  (* TODO: Now with HOFs we run the risk of shadowing... *)
+  type param = P of string | Other
+  type params = param list
 
-  let show s =
-    s |> to_seq |> List.of_seq |> List_.map Effect.show |> String.concat " + "
+  let equal_param param1 param2 =
+    match (param1, param2) with
+    | P s1, P s2 -> String.equal s1 s2
+    | Other, Other -> true
+    | P _, Other
+    | Other, P _ ->
+        false
+
+  let compare_param param1 param2 =
+    match (param1, param2) with
+    | P s1, P s2 -> String.compare s1 s2
+    | Other, Other -> 0
+    | P _, Other -> -1
+    | Other, P _ -> 1
+
+  let show_param = function
+    | P s -> s
+    | Other -> "_?"
+
+  let equal_params params1 params2 = List.equal equal_param params1 params2
+
+  let compare_params params1 params2 =
+    List.compare compare_param params1 params2
+
+  let show_params params = params |> List_.map show_param |> String.concat ", "
+
+  let of_generic_params (_, g_params, _) =
+    g_params
+    |> List_.map (function
+         | AST_generic.Param { pname = Some (s, _); _ } -> P s
+         | __else__ -> Other)
+
+  (*************************************)
+  (* Signatures *)
+  (*************************************)
+
+  type t = { params : params; effects : Effects.t }
+
+  let equal { params = params1; effects = effects1 }
+      { params = params2; effects = effects2 } =
+    equal_params params1 params2 && Effects.equal effects1 effects2
+
+  let compare { params = params1; effects = effects1 }
+      { params = params2; effects = effects2 } =
+    match compare_params params1 params2 with
+    | 0 -> Effects.compare effects1 effects2
+    | other -> other
+
+  let show { params; effects } =
+    spf "%s => {%s}" (show_params params) (Effects.show effects)
 end
 
 module Effects_tbl = Hashtbl.Make (struct

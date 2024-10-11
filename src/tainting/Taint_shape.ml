@@ -21,6 +21,8 @@ module T = Taint
 module Taints = T.Taint_set
 open Shape_and_sig.Shape
 module Fields = Shape_and_sig.Fields
+module Effects = Shape_and_sig.Effects
+module Signature = Shape_and_sig.Signature
 
 (*********************************************************)
 (* Helpers *)
@@ -45,6 +47,11 @@ let internal_UNSAFE_find_offset_in_obj o obj =
             m "Already tracking too many fields, will not track %s"
               (T.show_offset o));
         (Oany, obj))
+
+let debug_offset offset =
+  match offset with
+  | [] -> "<NO OFFSET>"
+  | _ :: _ -> offset |> List_.map T.show_offset |> String.concat ""
 
 (*********************************************************)
 (* Misc *)
@@ -94,11 +101,9 @@ and unify_shape shape1 shape2 =
   match (shape1, shape2) with
   | Bot, shape
   | shape, Bot ->
+      (* 'Bot' acts like a do-not-care. *)
       shape
   | Obj obj1, Obj obj2 -> Obj (unify_obj obj1 obj2)
-  | Arg _, (Obj _ as obj)
-  | (Obj _ as obj), Arg _ ->
-      obj
   | Arg arg1, Arg arg2 ->
       if T.equal_arg arg1 arg2 then shape1
       else (
@@ -117,6 +122,10 @@ and unify_shape shape1 shape2 =
             m "Trying to unify two different arg shapes: %s ~ %s"
               (T.show_arg arg1) (T.show_arg arg2));
         shape1)
+  (* 'Arg' acts like a shape variable. *)
+  | Arg _, (Obj _ as obj)
+  | (Obj _ as obj), Arg _ ->
+      obj
 
 and unify_obj obj1 obj2 =
   (* THINK: Apply taint_MAX_OBJ_FIELDS limit ? *)
@@ -162,12 +171,16 @@ let rec find_in_cell offset cell =
   | [] -> Some cell
   | _ :: _ -> find_in_shape offset shape
 
-and find_in_shape offset = function
+and find_in_shape offset shape =
+  match shape with
   (* offset <> [] *)
   | Bot -> None
   | Obj obj -> find_in_obj offset obj
   | Arg _ ->
       (* TODO: Here we should "refine" the arg shape, it should be an Obj shape. *)
+      Log.warn (fun m ->
+          m "Could not find offset %s in polymorphic shape %s"
+            (debug_offset offset) (show_shape shape));
       None
 
 and find_in_obj (offset : T.offset list) obj =
@@ -222,7 +235,8 @@ let rec update_offset_in_cell ~f offset cell =
   | `Tainted _, (Bot | Obj _ | Arg _) ->
       Some (Cell (xtaint, shape))
 
-and update_offset_in_shape ~f offset = function
+and update_offset_in_shape ~f offset shape =
+  match shape with
   | Bot
   | Arg _ ->
       let shape = Obj Fields.empty in
@@ -317,7 +331,8 @@ let rec clean_cell (offset : T.offset list) cell =
       let shape = clean_shape offset shape in
       Cell (xtaint, shape)
 
-and clean_shape offset = function
+and clean_shape offset shape =
+  match shape with
   | Bot
   | Arg _ ->
       let shape = Obj Fields.empty in

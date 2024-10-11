@@ -280,6 +280,8 @@ let command (_caps_exec : < Cap.exec >) (args : Cmd.args) : string =
 Failed to run %s. Possible reasons:
 - the git binary is not available
 - the current working directory is not a git repository
+- the baseline commit is not a parent of the current commit
+  (if you are running through semgrep-app, check if you are setting `SEMGREP_BRANCH` or `SEMGREP_BASELINE_COMMIT` properly)
 - the current working directory is not marked as safe
   (fix with `git config --global --add safe.directory $(pwd)`)
 
@@ -501,7 +503,8 @@ let run_with_worktree (caps : < Cap.chdir ; Cap.tmp >) ~commit ?branch f =
     | None -> raise (Error "")
   in
   let rand_dir () =
-    let uuid = Uuidm.v `V4 in
+    let rand = Stdlib.Random.State.make_self_init () in
+    let uuid = Uuidm.v4_gen rand () in
     let dir_name = "semgrep_git_worktree_" ^ Uuidm.to_string uuid in
     let dir = CapTmp.get_temp_dir_name caps#tmp / dir_name in
     UUnix.mkdir !!dir 0o777;

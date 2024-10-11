@@ -943,6 +943,15 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
    *)
   | G.Ellipsis _a1, _ -> return ()
   | G.DeepEllipsis (_, a1, _), _b -> m_expr_deep a1 b
+  (* equivalence: (-) E vs -n ==> E vs n *)
+  | ( G.Call ({ e = G.IdSpecial (G.Op G.Minus, _); _ }, (_, [ G.Arg arga ], _)),
+      B.L (B.Int int_lit) ) ->
+      m_expr arga (B.L (B.Int (Parsed_int.neg int_lit)) |> B.e)
+  (* equivalence: -n vs (-) E ==> n vs E *)
+  | ( G.L (G.Int int_lit),
+      B.Call ({ e = B.IdSpecial (B.Op B.Minus, _); _ }, (_, [ B.Arg argb ], _))
+    ) ->
+      m_expr (G.L (G.Int (Parsed_int.neg int_lit)) |> G.e) argb
   (* must be before constant propagation case below *)
   | G.L a1, B.L b1 -> m_literal a1 b1
   (* equivalence: constant propagation and evaluation!
@@ -1878,7 +1887,7 @@ and m_call_op aop toka aargs bop tokb bargs tin =
             Log.warn (fun m ->
                 m
                   "Will not perform AC-matching, something went wrong when \
-                   trying to convert operands to AC normal form: %s ~ %s"
+                   trying to convert operands to AC normal form: %s vs %s"
                   (G.show_expr
                      (G.Call (G.IdSpecial (G.Op aop, toka) |> G.e, aargs) |> G.e))
                   (B.show_expr
@@ -2717,6 +2726,7 @@ and m_stmt a b =
   | G.OtherStmtWithStmt (a1, a2, a3), B.OtherStmtWithStmt (b1, b2, b3) ->
       m_other_stmt_with_stmt_operator a1 b1 >>= fun () ->
       m_list m_any a2 b2 >>= fun () -> m_stmt a3 b3
+  | G.RawStmt a, B.RawStmt b -> m_raw_tree a b
   | G.WithUsingResource (a1, a2, a3), B.WithUsingResource (b1, b2, b3) ->
       m_tok a1 b1 >>= fun () ->
       m_list m_stmt a2 b2 >>= fun () -> m_stmt a3 b3
@@ -2739,6 +2749,7 @@ and m_stmt a b =
   | G.Assert _, _
   | G.OtherStmt _, _
   | G.OtherStmtWithStmt _, _
+  | G.RawStmt _, _
   | G.WithUsingResource _, _ ->
       fail ()
 

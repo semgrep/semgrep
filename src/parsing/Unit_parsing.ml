@@ -16,21 +16,24 @@ let t = Testo.create
 (* ran from the root of the semgrep repository *)
 let tests_path = Fpath.v "tests"
 let tests_path_parsing = tests_path / "parsing"
+let tests_path_parsing_missing = tests_path / "parsing_missing"
+let tests_path_parsing_partial = tests_path / "parsing_partial"
+let tests_path_parsing_todo = tests_path / "parsing_todo"
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-type error_tolerance = Strict | Missing_tokens | Partial_parsing
+type error_tolerance = Strict | Missing_tokens | Partial_parsing | Todo
 
 (*
    Strict parsing: errors due to missing (inserted) tokens are not tolerated
    in these tests.
 *)
-let parsing_tests_for_lang files lang =
+let parsing_tests_for_lang ?expected_outcome files lang =
   files
   |> List_.map (fun file ->
-         Testo.create ~tags:(Test_tags.tags_of_lang lang)
+         Testo.create ?expected_outcome ~tags:(Test_tags.tags_of_lang lang)
            (Filename.basename file) (fun () ->
              Parse_target.parse_and_resolve_name_strict lang (Fpath.v file)
              |> ignore))
@@ -82,6 +85,8 @@ let parsing_tests_for_lang error_tolerance files lang =
   | Strict -> parsing_tests_for_lang files lang
   | Missing_tokens -> missing_tokens_tests_for_lang files lang
   | Partial_parsing -> partial_parsing_tests_for_lang files lang
+  | Todo ->
+      parsing_tests_for_lang ~expected_outcome:(Should_fail "to do") files lang
 
 (*****************************************************************************)
 (* Tests *)
@@ -90,15 +95,15 @@ let parsing_tests_for_lang error_tolerance files lang =
 let pack_parsing_tests_for_lang ?(error_tolerance = Strict) lang =
   let slang = Lang.show lang in
   let dir = Lang.to_lowercase_alnum lang in
-  let dir = tests_path_parsing / dir in
   let exts = Lang.ext_of_lang lang in
   let dir, subcategory =
     match error_tolerance with
-    | Strict -> (dir, None)
-    | Missing_tokens -> (dir / "parsing_missing", Some "missing tokens")
-    | Partial_parsing -> (dir / "parsing_partial", Some "partial parsing")
+    | Strict -> (tests_path_parsing / dir, None)
+    | Missing_tokens -> (tests_path_parsing_missing / dir, Some "missing tokens")
+    | Partial_parsing ->
+        (tests_path_parsing_partial / dir, Some "partial parsing")
+    | Todo -> (tests_path_parsing_todo / dir, None)
   in
-  let is_dir f = f = "parsing_missing" || f = "parsing_partial" in
   let check_ext file =
     if
       not
@@ -108,13 +113,13 @@ let pack_parsing_tests_for_lang ?(error_tolerance = Strict) lang =
              file =~ regex)
            exts)
     then
-      failwith (spf "Unrecognized extention for file %s for lang %s" file slang)
+      failwith (spf "Unrecognized extension for file %s for lang %s" file slang)
   in
-  (* Get all files then check extentions *)
-  let files =
-    Common2.glob (spf "%s/*" !!dir) |> List.filter (fun f -> not (is_dir f))
-  in
-  if files =*= [] then failwith (spf "Empty set of parsing tests for %s" slang);
+  (* Get all files then check extensions *)
+  let pattern = spf "%s/**/*" !!dir in
+  let files = Common2.glob pattern in
+  if files =*= [] then
+    failwith (spf "Empty set of parsing tests for %s at %s" slang pattern);
   List.iter check_ext files;
   let tests = parsing_tests_for_lang error_tolerance files lang in
   (match subcategory with
@@ -125,56 +130,11 @@ let pack_parsing_tests_for_lang ?(error_tolerance = Strict) lang =
 (* Note that here we also use tree-sitter to parse; certain files were not
  * parsing with pfff but parses here
  *)
-let lang_parsing_tests () =
-  Testo.categorize_suites "lang parsing"
-    [
-      (* languages with only a tree-sitter parser *)
-      pack_parsing_tests_for_lang Lang.Bash;
-      pack_parsing_tests_for_lang Lang.Csharp;
-      pack_parsing_tests_for_lang Lang.Dockerfile;
-      pack_parsing_tests_for_lang Lang.Lua;
-      pack_parsing_tests_for_lang Lang.Move_on_aptos;
-      pack_parsing_tests_for_lang Lang.Move_on_sui;
-      pack_parsing_tests_for_lang Lang.Circom;
-      pack_parsing_tests_for_lang Lang.Rust;
-      pack_parsing_tests_for_lang Lang.Cairo;
-      pack_parsing_tests_for_lang Lang.Swift;
-      pack_parsing_tests_for_lang Lang.Kotlin;
-      pack_parsing_tests_for_lang Lang.Hack;
-      pack_parsing_tests_for_lang Lang.Html;
-      pack_parsing_tests_for_lang Lang.Xml;
-      pack_parsing_tests_for_lang Lang.Vue;
-      pack_parsing_tests_for_lang Lang.R;
-      pack_parsing_tests_for_lang Lang.Solidity;
-      pack_parsing_tests_for_lang Lang.Julia;
-      pack_parsing_tests_for_lang Lang.Jsonnet;
-      pack_parsing_tests_for_lang Lang.Dart;
-      (* here we have both a Pfff and tree-sitter parser *)
-      pack_parsing_tests_for_lang Lang.Java;
-      pack_parsing_tests_for_lang Lang.Go;
-      pack_parsing_tests_for_lang Lang.Ruby;
-      pack_parsing_tests_for_lang Lang.Js;
-      pack_parsing_tests_for_lang Lang.C;
-      pack_parsing_tests_for_lang Lang.Cpp;
-      pack_parsing_tests_for_lang Lang.Php;
-      pack_parsing_tests_for_lang Lang.Ocaml;
-      (* recursive descent parser *)
-      pack_parsing_tests_for_lang Lang.Scala;
-      pack_parsing_tests_for_lang Lang.Clojure;
-      pack_parsing_tests_for_lang Lang.Protobuf;
-      pack_parsing_tests_for_lang Lang.Promql;
-      pack_parsing_tests_for_lang Lang.Terraform;
-      (* a few parsing tests where we expect some partials
-       * See cpp/parsing_partial/
-       *)
-      pack_parsing_tests_for_lang ~error_tolerance:Partial_parsing Lang.Cpp;
-      (* a few parsing tests where we rely on "missing tokens" being
-         inserted by tree-sitter.
-         See cpp/parsing_missing/
-      *)
-      pack_parsing_tests_for_lang ~error_tolerance:Missing_tokens Lang.C;
-      pack_parsing_tests_for_lang ~error_tolerance:Missing_tokens Lang.Cpp;
-    ]
+let lang_parsing_tests langs_with_error_tolerance : Testo.t list =
+  langs_with_error_tolerance
+  |> List_.map (fun (lang, error_tolerance) ->
+         pack_parsing_tests_for_lang ~error_tolerance lang)
+  |> Testo.categorize_suites "lang parsing"
 
 (* It's important that our parsers generate classic parsing errors
  * exns (e.g., Parsing_error, Lexical_error), otherwise semgrep
@@ -242,11 +202,64 @@ let parsing_rules_with_atd_tests () =
 (* Tests *)
 (*****************************************************************************)
 
-let tests () =
+let make_tests langs_with_tolerance =
   List_.flatten
     [
-      lang_parsing_tests ();
+      lang_parsing_tests langs_with_tolerance;
       parsing_error_tests ();
       parsing_rules_tests ();
       parsing_rules_with_atd_tests ();
     ]
+
+let langs_with_error_tolerance =
+  [
+    (* languages with only a tree-sitter parser *)
+    (Lang.Bash, Strict);
+    (Lang.Csharp, Strict);
+    (Lang.Dockerfile, Strict);
+    (Lang.Lua, Strict);
+    (Lang.Lua, Todo);
+    (Lang.Move_on_aptos, Strict);
+    (Lang.Circom, Strict);
+    (Lang.Rust, Strict);
+    (Lang.Cairo, Strict);
+    (Lang.Swift, Strict);
+    (Lang.Kotlin, Strict);
+    (Lang.Hack, Strict);
+    (Lang.Html, Strict);
+    (Lang.Xml, Strict);
+    (Lang.Vue, Strict);
+    (Lang.R, Strict);
+    (Lang.Solidity, Strict);
+    (Lang.Julia, Strict);
+    (Lang.Jsonnet, Strict);
+    (Lang.Dart, Strict);
+    (* here we have both a Pfff and tree-sitter parser *)
+    (Lang.Java, Strict);
+    (Lang.Go, Strict);
+    (Lang.Ruby, Strict);
+    (Lang.Js, Strict);
+    (Lang.C, Strict);
+    (Lang.Cpp, Strict);
+    (Lang.Php, Strict);
+    (Lang.Ocaml, Strict);
+    (* recursive descent parser *)
+    (Lang.Scala, Strict);
+    (Lang.Clojure, Strict);
+    (Lang.Protobuf, Strict);
+    (Lang.Protobuf, Todo);
+    (Lang.Promql, Strict);
+    (Lang.Terraform, Strict);
+    (* a few parsing tests where we expect some partials
+     * See cpp/parsing_partial/
+     *)
+    (Lang.Cpp, Partial_parsing);
+    (* a few parsing tests where we rely on "missing tokens" being
+       inserted by tree-sitter.
+       See cpp/parsing_missing/
+    *)
+    (Lang.C, Missing_tokens);
+    (Lang.Cpp, Missing_tokens);
+  ]
+
+let tests () = make_tests langs_with_error_tolerance

@@ -296,6 +296,10 @@ let find_rule_files roots =
 (* Entry point *)
 (*****************************************************************************)
 
+(* TODO: do not filter_map, instead fail when we can't parse a rule
+ * (or wait that we switch to osemgrep test for our own test infra in which
+ * case this whole file will be deleted)
+ *)
 let collect_tests ?(get_xlang = single_xlang_from_rules) (xs : Fpath.t list) =
   xs |> find_rule_files
   |> List_.filter_map (fun rule_file ->

@@ -180,6 +180,13 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     is_flag=True,
     hidden=True,
 )
+@click.option(
+    "--x-dump-rule-partitions",
+    "dump_n_rule_partitions",
+    type=int,
+    default=0,
+    hidden=True,
+)
 @handle_command_errors
 def ci(
     ctx: click.Context,
@@ -241,6 +248,7 @@ def ci(
     verbose: bool,
     path_sensitive: bool,
     enable_experimental_requirements: bool,
+    dump_n_rule_partitions: Optional[int],
 ) -> None:
     state = get_state()
 
@@ -292,6 +300,10 @@ def ci(
             )
             sys.exit(FATAL_EXIT_CODE)
         elif token:
+            # Dumping partitions implies a dry run because we are not
+            # scanning or uploading results to the app.
+            if dump_n_rule_partitions:
+                dry_run = True
             scan_handler = ScanHandler(dry_run=dry_run)
         else:  # impossible state… until we break the code above
             raise RuntimeError("The token and/or config are misconfigured")
@@ -546,15 +558,22 @@ def ci(
             "diff_depth": diff_depth,
             "capture_core_stderr": capture_core_stderr,
             "enable_experimental_requirements": enable_experimental_requirements,
+            "dump_n_rule_partitions": dump_n_rule_partitions,
         }
 
         try:
             start = time.time()
 
-            if scan_handler and not scan_handler.enabled_products:
-                raise SemgrepError(
-                    "No products are enabled for this organization. Please enable a product in the Settings > Deployment tab of Semgrep Cloud Platform or reach out to support@semgrep.com for assistance."
-                )
+            if scan_handler:
+                if not scan_handler.enabled_products:
+                    raise SemgrepError(
+                        "No products are enabled for this organization. Please enable a product in the Settings > Deployment tab of Semgrep Cloud Platform or reach out to support@semgrep.com for assistance."
+                    )
+
+                if dump_n_rule_partitions and scan_handler.enabled_products != ["sast"]:
+                    raise SemgrepError(
+                        "--x-dump-rule-partitions is only compatible with SAST."
+                    )
 
             # TODO? we're not passing time_flag below (or matching_explanations),
             # is it indended?
@@ -573,15 +592,23 @@ def ci(
                 _missed_rule_count,
             ) = semgrep.run_scan.run_scan(**run_scan_args)
         except SemgrepError as e:
-            output_handler.handle_semgrep_errors([e])
-            output_handler.output({}, all_targets=set(), filtered_rules=[])
-            logger.info(f"Encountered error when running rules: {e}")
+            # We place output_handler calls after scan_handler calls
+            # because the output handler may raise an exception further
+            # for the top-level error handler to handle.
+            #
+            # We'd still like scan_handler to notify the app for failures
+            # so we do it before calling output handler.
             if isinstance(e, SemgrepError):
                 exit_code = e.code
             else:
                 exit_code = FATAL_EXIT_CODE
             if scan_handler:
                 scan_handler.report_failure(exit_code)
+
+            output_handler.handle_semgrep_errors([e])
+            output_handler.output({}, all_targets=set(), filtered_rules=[])
+            logger.info(f"Encountered error when running rules: {e}")
+
             sys.exit(exit_code)
 
         # Run a separate scan for historical. This is due to the split in how the

@@ -101,3 +101,4 @@ let validate (path : Out.fpath) : bool =
 (* Hooks for handlers defined in Pro_RPC_return.ml *)
 (*****************************************************************************)
 let hook_resolve_dependencies = ref None
+let hook_dump_rule_partitions = ref None

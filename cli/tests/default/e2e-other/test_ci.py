@@ -518,6 +518,17 @@ def complete_scan_mock_maker(requests_mock, mocked_scan_id):
 
 
 @pytest.fixture
+def scan_failure_mock_maker(requests_mock, mocked_scan_id):
+    def _scan_failure_func(semgrep_url: str = "https://semgrep.dev"):
+        return requests_mock.post(
+            f"{semgrep_url}/api/agent/scans/{mocked_scan_id}/error",
+            json=json.dumps({"exit_code": 0}),
+        )
+
+    return _scan_failure_func
+
+
+@pytest.fixture
 def mock_ci_api(
     start_scan_mock_maker, upload_results_mock_maker, complete_scan_mock_maker
 ):
@@ -1849,18 +1860,24 @@ def test_fail_open_works_when_backend_is_down(
 @pytest.mark.osemfail
 def test_bad_config(
     run_semgrep: RunSemgrep,
+    mocker,
     git_tmp_path_with_commit,
     start_scan_mock_maker,
     complete_scan_mock_maker,
     upload_results_mock_maker,
+    scan_failure_mock_maker,
 ):
     """
-    Test that bad rules has exit code > 1
+    Test that bad rules has exit code > 1 and we notify the app.
     """
 
     start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
     complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
     upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
+    scan_failure_mock = scan_failure_mock_maker("https://semgrep.dev")
+
+    # This is the function that notifies the app of the failure.
+    report_failure = mocker.patch.object(ScanHandler, "report_failure")
 
     result = run_semgrep(
         subcommand="ci",
@@ -1872,6 +1889,7 @@ def test_bad_config(
         use_click_runner=True,
     )
     assert "Invalid rule schema" in result.stderr
+    report_failure.assert_called_once()
 
 
 @pytest.mark.parametrize("scan_config", [BAD_CONFIG], ids=["bad_config"])
@@ -1883,15 +1901,23 @@ def test_bad_config_error_handler(
     start_scan_mock_maker,
     complete_scan_mock_maker,
     upload_results_mock_maker,
+    scan_failure_mock_maker,
 ):
     """
     Test that bad rules with --suppres-errors returns exit code 0
+    and we notify the app.
     """
-    mock_send = mocker.spy(ErrorHandler, "send")
+    # This is the function that traps all exceptions at the top level for
+    # all commands.
+    top_level_error_handler = mocker.spy(ErrorHandler, "send")
 
     start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
     complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
     upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
+    scan_failure_mock = scan_failure_mock_maker("https://semgrep.dev")
+
+    # This is the function that notifies the app of the failure.
+    report_failure = mocker.patch.object(ScanHandler, "report_failure")
 
     result = run_semgrep(
         subcommand="ci",
@@ -1903,7 +1929,8 @@ def test_bad_config_error_handler(
         use_click_runner=True,
     )
     assert "Invalid rule schema" in result.stderr
-    mock_send.assert_called_once_with(mocker.ANY, 7)
+    top_level_error_handler.assert_called_once_with(mocker.ANY, 7)
+    report_failure.assert_called_once()
 
 
 @pytest.mark.osemfail

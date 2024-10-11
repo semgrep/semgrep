@@ -184,8 +184,6 @@ let just_parse_with_lang lang file : Parsing_result2.t =
    *)
   | Lang.Cairo ->
       run file [ TreeSitter Parse_cairo_tree_sitter.parse ] (fun x -> x)
-  | Lang.Csharp ->
-      run file [ TreeSitter Parse_csharp_tree_sitter.parse ] (fun x -> x)
   | Lang.Ruby ->
       run file
         [ TreeSitter Parse_ruby_tree_sitter.parse ]
@@ -232,4 +230,14 @@ let just_parse_with_lang lang file : Parsing_result2.t =
    * for parsing to take place.
    *)
   | Lang.Apex -> run_external_parser file Parsing_plugin.Apex.parse_target
+  | Lang.Csharp ->
+      let parse_target =
+        (* Use the proprietary parser if available *)
+        if Parsing_plugin.Csharp.is_available () then
+          Parsing_plugin.Csharp.parse_target
+        else Parse_csharp_tree_sitter.parse
+      in
+      run file [ TreeSitter parse_target ] (fun x -> x)
   | Lang.Elixir -> run_external_parser file Parsing_plugin.Elixir.parse_target
+  (* TODO *)
+  | Lang.Move_on_sui -> failwith "Unimplemented"

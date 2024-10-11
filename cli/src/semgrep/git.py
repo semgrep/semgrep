@@ -65,6 +65,8 @@ def git_check_output(command: Sequence[str], cwd: Optional[str] = None) -> str:
 
                 - the git binary is not available
                 - the current working directory is not a git repository
+                - the baseline commit is not a parent of the current commit
+                    (if you are running through semgrep-app, check if you are setting `SEMGREP_BRANCH` or `SEMGREP_BASELINE_COMMIT` properly)
                 - the current working directory is not marked as safe
                     (fix with `git config --global --add safe.directory $(pwd)`)
 
@@ -76,19 +78,23 @@ def git_check_output(command: Sequence[str], cwd: Optional[str] = None) -> str:
 
 def get_project_url() -> Optional[str]:
     """
-    Returns the current git project's default remote URL, or None if not a git project / no remote
+    Returns the current git project's default remote URL, or None if not a git project / no remote.
+    NOTE: We need to ensure that we clean the URL to remove any credentials as Gitlab includes
+    a token in the URL (e.g.`https://gitlab-ci-token):${CI_JOB_TOKEN}@gitlab.example.com/<namespace>/<project>`)
+    which is sensitive information that we should not expose.
     """
+    project_url = None
     try:
-        remote_url = git_check_output(["git", "ls-remote", "--get-url"])
-        return clean_project_url(remote_url)
+        project_url = git_check_output(["git", "ls-remote", "--get-url"])
     except Exception as e:
         logger.debug(f"Failed to get project url from 'git ls-remote': {e}")
         try:
             # add \n to match urls from git ls-remote (backwards compatibility)
-            return manually_search_file(".git/config", ".com", "\n")
+            project_url = manually_search_file(".git/config", ".com", "\n")
         except Exception as e:
             logger.debug(f"Failed to get project url from .git/config: {e}")
             return None
+    return clean_project_url(project_url) if project_url else None
 
 
 def clean_project_url(url: str) -> str:

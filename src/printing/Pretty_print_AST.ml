@@ -101,6 +101,7 @@ let _lang_kind = function
   | Lang.Move_on_sui
   | Lang.Move_on_aptos ->
       CLikeSemiColon
+  | Lang.Move_on_sui -> failwith "Unimplemented"
   | _other_ -> Other
 
 (*****************************************************************************)
@@ -168,7 +169,8 @@ let rec stmt env st =
   | DirectiveStmt _
   | DisjStmt (_, _)
   | OtherStmtWithStmt (_, _, _)
-  | OtherStmt (_, _) ->
+  | OtherStmt (_, _)
+  | RawStmt _ ->
       todo (S st)
 
 and label_ident env lbl =
@@ -258,6 +260,7 @@ and if_stmt env (tok, e, s, sopt) =
     | Lang.Swift ->
         (paren_cond, "else if", bracket_body)
     | Lang.Lua -> (paren_cond, "elseif", bracket_body)
+    | Lang.Move_on_sui -> failwith "Unimplemented"
   in
   let e_str = format_cond tok (condition env e) in
   let s_str = stmt { env with level = env.level + 1 } s in
@@ -336,6 +339,7 @@ and while_stmt env (tok, e, s) =
     | Lang.Go -> go_while
     | Lang.Ruby -> ruby_while
     | Lang.Ocaml -> ocaml_while
+    | Lang.Move_on_sui -> failwith "Unimplemented"
   in
   while_format (token ~d:"while" tok) (condition env e)
     (stmt { env with level = env.level + 1 } s)
@@ -390,6 +394,7 @@ and do_while stmt env (s, e) =
     | Lang.Rust
     | Lang.R ->
         failwith "impossible; no do while"
+    | Lang.Move_on_sui -> failwith "Unimplemented"
     | Lang.Ruby -> failwith "ruby is so weird (here, do while loop)"
   in
   do_while_format (stmt { env with level = env.level + 1 } s) (expr env e)
@@ -445,6 +450,7 @@ and for_stmt env (for_tok, hdr, s) =
     | Lang.Ocaml
     | Lang.Ql ->
         failwith "JSON/OCaml/QL has for loops????"
+    | Lang.Move_on_sui -> failwith "Unimplemented"
   in
   let show_init = function
     | ForInitVar (ent, var_def) ->
@@ -557,6 +563,7 @@ and def_stmt env (entity, def_kind) =
       | Lang.Jsonnet
       | Lang.Ocaml ->
           failwith "I think JSON/OCaml have no variable definitions"
+      | Lang.Move_on_sui -> failwith "Unimplemented"
     in
     let typ, id =
       match ent.name with
