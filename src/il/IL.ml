@@ -146,7 +146,7 @@ type fixme_kind =
  * annotated with NoOrig. This also helps making -dump_il more readable.
  *)
 type orig = SameAs of G.expr | Related of G.any | NoOrig
-[@@deriving show { with_path = false }]
+[@@deriving eq, ord, show { with_path = false }]
 
 let related_tok tok = Related (G.Tk tok)
 let related_exp exp_gen = Related (G.E exp_gen)
