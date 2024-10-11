@@ -22,6 +22,7 @@ and show_kind =
   | Deployment
   (* dumpers *)
   | DumpPattern of string * Lang.t
+  | DumpCST of Fpath.t * Lang.t
   | DumpAST of Fpath.t * Lang.t
   | DumpConfig of Rules_config.config_string
   | DumpRuleV2 of Fpath.t
