@@ -21,6 +21,7 @@ depends: [
   "base"
   "menhir" {= "20230608"}
   "base" {>= "v0.15.1"}
+  "metadata"
   "fpath"
   "bos"
   "fileutils"
