@@ -17,3 +17,4 @@ val run_conf : caps -> Test_CLI.conf -> Exit_code.t
 
 (* pro hooks *)
 val hook_pro_init : (unit -> unit) ref
+val hook_pro_scan : (Core_scan.caps -> Core_scan.func) ref
