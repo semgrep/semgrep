@@ -303,25 +303,16 @@ let () =
 (* Annotations grouping and filtering *)
 (*****************************************************************************)
 
-(* Keep only the Ruleid and Todook, group them by rule id, and adjust
- * the linenb + 1 so it can be used to compare actual matches.
+(* group them by rule id, and adjust the linenb + 1 so it can be used to
+ * compare actual matches.
  *)
-let group_positive_annotations (annots : annotations) :
-    (Rule_ID.t, linenb list) Assoc.t =
+let group_by_rule_id (annots : annotations) : (Rule_ID.t, linenb list) Assoc.t =
   annots
-  |> List_.filter_map (fun ({ kind; engine; others = _; id }, line) ->
-         match kind with
-         | Ruleid
-         | Todook ->
-             Some (id, engine, line)
-         | Ok
-         | Todoruleid ->
-             None)
-  |> Assoc.group_by (fun (id, _engine, _line) -> id)
+  |> Assoc.group_by (fun ({ id; _ }, _) -> id)
   |> List_.map (fun (id, xs) ->
          ( id,
            xs
-           |> List_.map (fun (_id, _engine, line) -> line + 1)
+           |> List_.map (fun (_, line) -> line + 1)
            (* should not be needed given how annotations work but safer *)
            |> List.sort_uniq Int.compare ))
 
