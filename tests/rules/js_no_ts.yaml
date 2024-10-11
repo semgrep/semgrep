@@ -12,7 +12,7 @@ rules:
 - id: missing-js
   message: foo
   severity: ERROR
-  #ruleid: missing ts
+  #ruleid: missing-ts!
   languages: [javascript]
   pattern: foo
 - id: ok-get-both
