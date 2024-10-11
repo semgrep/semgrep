@@ -1366,11 +1366,19 @@ and for_var_or_expr_list env xs =
 (*****************************************************************************)
 (* Parameters *)
 (*****************************************************************************)
-and parameters _env params : name list =
+and parameters _env params : param list =
   params |> Tok.unbracket
-  |> List_.filter_map (function
-       | G.Param { pname = Some i; pinfo; _ } -> Some (var_of_id_info i pinfo)
-       | ___else___ -> None (* TODO *))
+  |> List_.map (function
+       | G.Param { pname = Some i; pinfo; pdefault; _ } ->
+           Param { pname = var_of_id_info i pinfo; pdefault }
+       | G.ParamPattern pat -> PatternParam pat
+       | G.Param { pname = None; _ }
+       | G.ParamRest (_, _)
+       | G.ParamHashSplat (_, _)
+       | G.ParamEllipsis _
+       | G.ParamReceiver _
+       | G.OtherParam (_, _) ->
+           FixmeParam (* TODO *))
 
 (*****************************************************************************)
 (* Type *)
@@ -1942,17 +1950,15 @@ and python_with_stmt env manager opt_pat body =
 and function_definition env fdef =
   let fparams = parameters env fdef.G.fparams in
   let fbody = function_body env fdef.G.fbody in
-  { fparams; frettype = fdef.G.frettype; fbody }
+  { fkind = fdef.fkind; fparams; frettype = fdef.G.frettype; fbody }
 
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
 
-let function_definition lang ?ctx def =
+let function_definition lang ?ctx fdef =
   let env = { (empty_env lang) with ctx = ctx ||| empty_ctx } in
-  let params = parameters env def.G.fparams in
-  let body = function_body env def.G.fbody in
-  (params, body)
+  function_definition env fdef
 
 let stmt lang st =
   let env = empty_env lang in
