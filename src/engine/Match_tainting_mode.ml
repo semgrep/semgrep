@@ -269,8 +269,8 @@ let add_to_env lang options taint_config env id ii opt_expr =
   in
   env |> Lval_env.add (IL_helpers.lval_of_var var) taints
 
-let mk_fun_input_env lang options taint_config ?(glob_env = Lval_env.empty) fdef
-    =
+let mk_fun_input_env lang options taint_config ?(glob_env = Lval_env.empty)
+    (fdef : IL.function_definition) =
   let add_to_env = add_to_env lang options taint_config in
   let in_env =
     (* For each argument, check if it's a source and, if so, add it to the input
@@ -278,10 +278,10 @@ let mk_fun_input_env lang options taint_config ?(glob_env = Lval_env.empty) fdef
     List.fold_left
       (fun env par ->
         match par with
-        | G.Param { pname = Some id; pinfo; pdefault; _ } ->
-            add_to_env env id pinfo pdefault
+        | IL.Param { pname = name; pdefault } ->
+            add_to_env env name.ident name.id_info pdefault
         (* JS: {arg} : type *)
-        | G.ParamPattern
+        | IL.PatternParam
             (G.OtherPat
               ( ("ExprToPattern", _),
                 [
@@ -289,7 +289,7 @@ let mk_fun_input_env lang options taint_config ?(glob_env = Lval_env.empty) fdef
                     { e = G.Cast (_, _, { e = G.Record (_, fields, _); _ }); _ };
                 ] ))
         (* JS: {arg} *)
-        | G.ParamPattern
+        | IL.PatternParam
             (G.OtherPat
               (("ExprToPattern", _), [ G.E { e = G.Record (_, fields, _); _ } ]))
           ->
@@ -309,7 +309,7 @@ let mk_fun_input_env lang options taint_config ?(glob_env = Lval_env.empty) fdef
                     add_to_env env id ii None
                 | G.F _ -> env)
               env fields
-        | G.ParamPattern pat ->
+        | IL.PatternParam pat ->
             (* Here, we just get all the identifiers in the pattern, which may
                themselves be sources.
                This is so we can handle patterns such as:
@@ -320,15 +320,8 @@ let mk_fun_input_env lang options taint_config ?(glob_env = Lval_env.empty) fdef
             List.fold_left
               (fun env (id, pinfo) -> add_to_env env id pinfo None)
               env ids
-        | G.Param { pname = None; _ }
-        | G.ParamRest (_, _)
-        | G.ParamHashSplat (_, _)
-        | G.ParamEllipsis _
-        | G.ParamReceiver _
-        | G.OtherParam (_, _) ->
-            env)
-      glob_env
-      (Tok.unbracket fdef.G.fparams)
+        | IL.FixmeParam -> env)
+      glob_env fdef.fparams
   in
   in_env
 
@@ -378,7 +371,8 @@ let check_fundef lang options taint_config opt_ent ctx ?glob_env
     let* name = AST_to_IL.name_of_entity ent in
     Some (IL.str_of_name name)
   in
-  let CFG_build.{ fcfg = flow; _ } = CFG_build.cfg_of_fdef lang ~ctx fdef in
+  let fdef = AST_to_IL.function_definition lang ~ctx fdef in
+  let IL.{ fcfg = flow; _ } = CFG_build.cfg_of_fdef lang fdef in
   let in_env = mk_fun_input_env lang options taint_config ?glob_env fdef in
   let mapping =
     Dataflow_tainting.fixpoint ~in_env ?name lang options taint_config

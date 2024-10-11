@@ -7,7 +7,7 @@ val function_definition :
   Lang.t ->
   ?ctx:ctx ->
   AST_generic.function_definition ->
-  IL.name list * IL.stmt list
+  IL.function_definition
 
 val stmt : Lang.t -> AST_generic.stmt -> IL.stmt list
 val expr : Lang.t -> AST_generic.expr -> IL.exp

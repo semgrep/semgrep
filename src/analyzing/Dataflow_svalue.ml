@@ -410,8 +410,8 @@ let transfer :
 (* Entry point *)
 (*****************************************************************************)
 
-let (fixpoint : Lang.t -> IL.name list -> F.cfg -> mapping) =
- fun lang _inputs flow ->
+let (fixpoint : Lang.t -> IL.fdef_cfg -> mapping) =
+ fun lang { fparams = _; fcfg = flow } ->
   let enter_env = VarMap.empty in
   DataflowX.fixpoint ~timeout:Limits_semgrep.svalue_prop_FIXPOINT_TIMEOUT
     ~eq_env:(Var_env.eq_env Eval.eq)

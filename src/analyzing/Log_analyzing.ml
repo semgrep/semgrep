@@ -7,3 +7,6 @@ module Log = (val Logs.src_log src : Logs.LOG)
 (*****************************************************************************)
 
 let svalue_tag = Logs_.create_tags [ "svalue" ]
+
+(* Prints 'Deep_dataflow_util.uses_table'. *)
+let fdeps_tag = Logs_.create_tags [ "fdeps" ]
