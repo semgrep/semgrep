@@ -45,6 +45,7 @@ and show_kind =
   (* 'semgrep show dump-ast
    * accessible also as 'semgrep scan --lang <lang> --dump-ast <target>
    * alt: we could accept multiple Files via multiple target_roots *)
+  | DumpCST of Fpath.t * Lang.t
   | DumpAST of Fpath.t * Lang.t
   | DumpConfig of Rules_config.config_string
   | DumpRuleV2 of Fpath.t
@@ -95,6 +96,13 @@ let cmdline_term : conf Term.t =
       | [ "version" ] -> Version
       | [ "dump-config"; config_str ] -> DumpConfig config_str
       | [ "dump-rule-v2"; file ] -> DumpRuleV2 (Fpath.v file)
+      | [ "dump-cst"; file ] ->
+          let path = Fpath.v file in
+          let lang = Lang.lang_of_filename_exn path in
+          DumpCST (path, lang)
+      | [ "dump-cst"; lang_str; file ] ->
+          let lang = Lang.of_string lang_str in
+          DumpCST (Fpath.v file, lang)
       | [ "dump-ast"; file ] ->
           let path = Fpath.v file in
           let lang = Lang.lang_of_filename_exn path in
@@ -146,6 +154,8 @@ let man : Cmdliner.Manpage.block list =
     `P
       "Dump the abstract syntax tree of the file (with some names/types \
        resolved)";
+    `Pre "semgrep show dump-cst [<LANG>] <FILE>";
+    `P "Dump the concrete syntax tree of the file (tree sitter only)";
     `Pre "semgrep show dump-pattern <LANG> <STRING>";
     `P "Dump the abstract syntax tree of the pattern string";
   ]
