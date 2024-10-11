@@ -47,8 +47,7 @@ let lang_has_no_dollar_ids =
     | Cairo
     | Scala
     | Solidity ->
-        false
-    | Move_on_sui -> failwith "Unimplemented")
+        false)
 
 class ['self] metavar_checker =
   object (_self : 'self)

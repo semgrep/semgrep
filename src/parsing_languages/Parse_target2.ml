@@ -240,4 +240,3 @@ let just_parse_with_lang lang file : Parsing_result2.t =
       run file [ TreeSitter parse_target ] (fun x -> x)
   | Lang.Elixir -> run_external_parser file Parsing_plugin.Elixir.parse_target
   (* TODO *)
-  | Lang.Move_on_sui -> failwith "Unimplemented"
