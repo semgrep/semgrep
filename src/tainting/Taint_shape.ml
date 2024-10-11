@@ -104,6 +104,19 @@ and unify_shape shape1 shape2 =
       (* 'Bot' acts like a do-not-care. *)
       shape
   | Obj obj1, Obj obj2 -> Obj (unify_obj obj1 obj2)
+  | ( Fun { params = params1; effects = effects1 },
+      Fun { params = params2; effects = effects2 } ) ->
+      if Signature.equal_params params1 params2 then
+        Fun { params = params1; effects = Effects.union effects1 effects2 }
+      else (
+        (* TODO: We could actually handle this. *)
+        Log.warn (fun m ->
+            m
+              "Trying to unify two fun shapes with different parameters: %s ~ \
+               %s"
+              (Signature.show_params params1)
+              (Signature.show_params params2));
+        shape1)
   | Arg arg1, Arg arg2 ->
       if T.equal_arg arg1 arg2 then shape1
       else (
@@ -126,6 +139,19 @@ and unify_shape shape1 shape2 =
   | Arg _, (Obj _ as obj)
   | (Obj _ as obj), Arg _ ->
       obj
+  | Arg _, (Fun _ as func)
+  | (Fun _ as func), Arg _ ->
+      func
+  | Obj _, Fun _
+  | Fun _, Obj _ ->
+      (* This could be caused by bugs in Semgrep, or by an if-then-else in a
+       * dynamic language like Python where the same variable has different types
+       * in each branch, or by unsafe casts in C/C++ perhaps. *)
+      Log.err (fun m ->
+          m "Trying to unify incompatible shapes: %s ~ %s" (show_shape shape1)
+            (show_shape shape2));
+      (* Not sure what to do here, so we just pick one arbitrary shape. *)
+      shape1
 
 and unify_obj obj1 obj2 =
   (* THINK: Apply taint_MAX_OBJ_FIELDS limit ? *)
@@ -152,6 +178,15 @@ and gather_all_taints_in_shape_acc acc = function
   | Arg arg ->
       let taint = { T.orig = T.Shape_var (T.lval_of_arg arg); tokens = [] } in
       Taints.add taint acc
+  | Fun _ ->
+      (* Consider a third-party/opaque function to which we pass a record that
+       * contains a function object. Should be gather the taints in the function
+       * shape? In principle, no, since taints within a function shape aren't
+       * reachable until the function gets called...
+       *
+       * TODO: We could perhaps consider gathering the concrete taint sources
+       * that may be reachable if the function ever gets called? *)
+      acc
 
 and gather_all_taints_in_obj_acc acc obj =
   Fields.fold
@@ -180,6 +215,12 @@ and find_in_shape offset shape =
       (* TODO: Here we should "refine" the arg shape, it should be an Obj shape. *)
       Log.warn (fun m ->
           m "Could not find offset %s in polymorphic shape %s"
+            (debug_offset offset) (show_shape shape));
+      None
+  | Fun _ ->
+      (* This is an error, we just don't want to crash here. *)
+      Log.err (fun m ->
+          m "Could not find offset %s in function shape %s"
             (debug_offset offset) (show_shape shape));
       None
 
@@ -226,13 +267,13 @@ let rec update_offset_in_cell ~f offset cell =
   | `None, Bot -> None
   | `Tainted taints, Bot when Taints.is_empty taints -> None
   (* Restore INVARIANT(cell).2 *)
-  | `Clean, (Obj _ | Arg _) ->
+  | `Clean, (Obj _ | Arg _ | Fun _) ->
       (* If we are tainting an offset of this cell, the cell cannot be
          considered clean anymore. *)
       Some (Cell (`None, shape))
   | `Clean, Bot
-  | `None, (Obj _ | Arg _)
-  | `Tainted _, (Bot | Obj _ | Arg _) ->
+  | `None, (Obj _ | Arg _ | Fun _)
+  | `Tainted _, (Bot | Obj _ | Arg _ | Fun _) ->
       Some (Cell (xtaint, shape))
 
 and update_offset_in_shape ~f offset shape =
@@ -245,6 +286,12 @@ and update_offset_in_shape ~f offset shape =
       match update_offset_in_obj ~f offset obj with
       | None -> Bot
       | Some obj -> Obj obj)
+  | Fun _ ->
+      (* This is an error, we just don't want to crash here. *)
+      Log.err (fun m ->
+          m "Could not update offset %s in function shape %s"
+            (debug_offset offset) (show_shape shape));
+      shape
 
 and update_offset_in_obj ~f offset obj =
   let obj' =
@@ -338,6 +385,12 @@ and clean_shape offset shape =
       let shape = Obj Fields.empty in
       clean_shape offset shape
   | Obj obj -> Obj (clean_obj offset obj)
+  | Fun _ ->
+      (* This is an error, we just don't want to crash here. *)
+      Log.err (fun m ->
+          m "Could not update offset %s in function shape %s"
+            (debug_offset offset) (show_shape shape));
+      shape
 
 and clean_obj offset obj =
   match offset with
@@ -372,6 +425,7 @@ and enum_in_shape = function
   | Arg _ ->
       (* TODO: First need to record taint shapes in 'ToLval'.  *)
       Seq.empty
+  | Fun _ -> Seq.empty
 
 and enum_in_obj obj =
   obj |> Fields.to_seq

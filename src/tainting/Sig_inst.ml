@@ -301,6 +301,31 @@ let instantiate_shape inst_var inst_trace shape =
             Log.warn (fun m ->
                 m "Could not instantiate arg shape: %s" (T.show_arg arg));
             Arg arg)
+    | Fun _ as funTODO ->
+        (* Right now a function shape can only come from a top-level function,
+         * whose shape will not depend on the parameters of another encloding
+         * function, so we shouldn't have to instantiate anything here, e.g.:
+         *
+         *     def bar():
+         *       ...
+         *
+         *     def foo(x):
+         *       return bar
+         *
+         * When instantiating a call like `foo(1)`, the shape of `bar` (that is,
+         * its signature) in `return bar` does not depend on `x` at all. (If the
+         * function is applied, then its signature will be instantiated as usual.)
+         *
+         * This will change when we start giving taint signatures to lambdas,
+         * as they can capture variables from their enclosing function, so when
+         * instantiating the enclosing function we also need to instantiate the
+         * shape of the lambda, e.g.:
+         *
+         *     def foo(x):
+         *       return (lambda y: x)
+         *
+         *)
+        funTODO
   and inst_xtaint xtaint shape =
     (* This may break INVARIANT(cell) but 'update_offset_in_cell' will restore it. *)
     let xtaint =
@@ -647,8 +672,8 @@ let taints_of_sig_lval lval_env ~check_lval fparams fun_exp args_exps
    2) Are there any effects that occur within the function due to taints being
       input into the function body, from the calling context?
 *)
-let instantiate_function_signature lval_env ~check_lval (fun_sig : Signature.t)
-    ~callee ~(args : _ option)
+let rec instantiate_function_signature lval_env ~check_lval
+    (taint_sig : Signature.t) ~callee ~(args : _ option)
     (args_taints : (Taints.t * shape) IL.argument list) : call_effects option =
   let lval_to_taints lval =
     (* This function simply produces the corresponding taints to the
@@ -662,7 +687,7 @@ let instantiate_function_signature lval_env ~check_lval (fun_sig : Signature.t)
        So we will isolate this as a specific step to be applied as necessary.
     *)
     let opt_taints_shape =
-      taints_of_sig_lval lval_env ~check_lval fun_sig.params callee args
+      taints_of_sig_lval lval_env ~check_lval taint_sig.params callee args
         args_taints lval
     in
     Log.debug (fun m ->
@@ -688,6 +713,11 @@ let instantiate_function_signature lval_env ~check_lval (fun_sig : Signature.t)
   in
   let inst_taints taints = instantiate_taints inst_var inst_trace taints in
   let inst_shape shape = instantiate_shape inst_var inst_trace shape in
+  let inst_taints_and_shape (taints, shape) =
+    let taints = inst_taints taints in
+    let shape = inst_shape shape in
+    (taints, shape)
+  in
   (* Instatiate effects *)
   let inst_effect : Effect.t -> call_effect list = function
     | Effect.ToReturn { data_taints; data_shape; control_taints; return_tok } ->
@@ -788,7 +818,7 @@ let instantiate_function_signature lval_env ~check_lval (fun_sig : Signature.t)
                     (T.show_lval dst_sig_lval));
               None
           | Some args ->
-              lval_of_sig_lval callee fun_sig.params args dst_sig_lval
+              lval_of_sig_lval callee taint_sig.params args dst_sig_lval
         in
         let taints =
           taints
@@ -807,9 +837,64 @@ let instantiate_function_signature lval_env ~check_lval (fun_sig : Signature.t)
         in
 
         if Taints.is_empty taints then [] else [ ToLval (taints, dst_lval) ]
+    | Effect.ToSinkInCall
+        { callee = fun_exp; arg = fun_arg; args_taints = fun_args_taints } -> (
+        Log.debug (fun m ->
+            m ~tags:sigs_tag "- Instantiating %s: Call to function arg '%s'"
+              (Display_IL.string_of_exp callee)
+              (Display_IL.string_of_exp fun_exp));
+        let+ fun_sig =
+          let fun_lval = T.lval_of_arg fun_arg in
+          match lval_to_taints fun_lval with
+          | Some (_fun_taints, Fun fun_sig) ->
+              (* The '_fun_taints' are the taints (not its signature) of the actual
+               * function argument, and they are not used for instantiation, they are
+               * tracked by the caller like any other intra-procedural taint. *)
+              Some fun_sig
+          | Some (_fun_taints, non_Fun_shape) ->
+              Log.err (fun m ->
+                  m "%s: '%s' does not have a function shape but: %s"
+                    (Display_IL.string_of_exp callee)
+                    (Display_IL.string_of_exp fun_exp)
+                    (show_shape non_Fun_shape));
+              None
+          | None ->
+              Log.err (fun m ->
+                  m "%s: Could not find the shape of function argument '%s'"
+                    (Display_IL.string_of_exp callee)
+                    (T.show_arg fun_arg));
+              None
+        in
+        let args_taints =
+          (* The args_taints need to be instantiated too. *)
+          fun_args_taints
+          |> List_.map (function
+               | IL.Unnamed (taints, shape) ->
+                   IL.Unnamed (inst_taints_and_shape (taints, shape))
+               | IL.Named (ident, (taints, shape)) ->
+                   IL.Named (ident, inst_taints_and_shape (taints, shape)))
+        in
+        Log.debug (fun m ->
+            m ~tags:sigs_tag
+              "** %s: Instantiated function call '%s' arguments: %s -> %s"
+              (Display_IL.string_of_exp callee)
+              (Display_IL.string_of_exp fun_exp)
+              (Effect.show_args_taints fun_args_taints)
+              (Effect.show_args_taints args_taints));
+        match
+          instantiate_function_signature lval_env ~check_lval fun_sig
+            ~callee:fun_exp ~args:None args_taints
+        with
+        | Some call_effects -> call_effects
+        | None ->
+            Log.err (fun m ->
+                m "%s: Could not instantiate the signature of '%s'"
+                  (Display_IL.string_of_exp callee)
+                  (Display_IL.string_of_exp fun_exp));
+            [])
   in
   let call_effects =
-    fun_sig.effects |> Effects.elements |> List.concat_map inst_effect
+    taint_sig.effects |> Effects.elements |> List.concat_map inst_effect
   in
   Log.debug (fun m ->
       m ~tags:sigs_tag "Instantiated call to %s: %s"
