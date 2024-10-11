@@ -157,8 +157,14 @@ let any_of_orig = function
   | NoOrig -> G.Anys []
 
 (*****************************************************************************)
-(* Arguments *)
+(* Parameters and arguments *)
 (*****************************************************************************)
+
+type name_param = { pname : name; pdefault : G.expr option }
+[@@deriving show { with_path = false }]
+
+type param = Param of name_param | PatternParam of G.pattern | FixmeParam
+[@@deriving show { with_path = false }]
 
 type 'a argument = Unnamed of 'a | Named of ident * 'a
 [@@deriving show { with_path = false }]
@@ -167,6 +173,7 @@ type 'a argument = Unnamed of 'a | Named of ident * 'a
 (* Parent iterator *)
 (*****************************************************************************)
 
+(* NOTE: We don't want visitors to automatically visit any AST_generic type. *)
 class virtual ['self] iter_parent =
   object (self : 'self)
     method visit_tok _env _tok = ()
@@ -188,6 +195,13 @@ class virtual ['self] iter_parent =
 
     method visit_orig _env _orig = ()
 
+    method visit_param env param =
+      match param with
+      | Param { pname; pdefault = _ } -> self#visit_name env pname
+      | PatternParam _
+      | FixmeParam ->
+          ()
+
     method visit_argument
         : 'a. ('env -> 'a -> unit) -> 'env -> 'a argument -> unit =
       fun f env arg ->
@@ -203,6 +217,7 @@ class virtual ['self] iter_parent =
     method visit_fixme_kind _env _fixme_kind = ()
     method visit_any _env _any = ()
     method visit_definition _env _def = ()
+    method visit_function_kind _env _def = ()
     method visit_class_definition _env _class_def = ()
     method visit_directive _env _directive = ()
   end
@@ -403,7 +418,8 @@ and label = ident * G.sid
 (*****************************************************************************)
 (* See AST_generic.ml *)
 and function_definition = {
-  fparams : name list;
+  fkind : G.function_kind wrap;
+  fparams : param list;
   frettype : G.type_ option;
   fbody : stmt list;
 }
@@ -448,7 +464,7 @@ and node_kind =
   | NGoto of tok * label
   | NReturn of tok * exp
   | NThrow of tok * exp
-  | NLambda of name list (* just the params, the body nodes follow this one *)
+  | NLambda of param list (* just the params, the body nodes follow this one *)
   | NOther of other_stmt
   | NTodo of stmt
 [@@deriving
@@ -460,6 +476,7 @@ and node_kind =
  *)
 type edge = Direct
 type cfg = (node, edge) CFG.t
+type fdef_cfg = { fparams : param list; fcfg : cfg }
 
 (* an int representing the index of a node in the graph *)
 type nodei = Ograph_extended.nodei

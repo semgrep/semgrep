@@ -25,7 +25,7 @@ val mk_fun_input_env :
   Rule_options_t.t ->
   Dataflow_tainting.config ->
   ?glob_env:Taint_lval_env.t ->
-  AST_generic.function_definition ->
+  IL.function_definition ->
   Taint_lval_env.t
 (** Constructs the initial taint environment for a given function definition.
  * Essentially, it records the parameters that are taint sources, or whose

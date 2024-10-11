@@ -1780,16 +1780,23 @@ let transfer : env -> flow:F.cfg -> Lval_env.t D.transfn =
     | NLambda params ->
         params
         |> List.fold_left
-             (fun lval_env var ->
-               (* This is a *new* variable, so we clean any taint that we may have
-                * attached to it previously. This can happen when a lambda is called
-                * inside a loop. *)
-               let lval_env = Lval_env.clean lval_env (LV.lval_of_var var) in
-               (* Now check if the parameter is itself a taint source. *)
-               let _taints, _shape, lval_env =
-                 check_tainted_var { env with lval_env } var
-               in
-               lval_env)
+             (fun lval_env param ->
+               match param with
+               | Param { pname = var; _ } ->
+                   (* This is a *new* variable, so we clean any taint that we may have
+                    * attached to it previously. This can happen when a lambda is called
+                    * inside a loop. *)
+                   let lval_env =
+                     Lval_env.clean lval_env (LV.lval_of_var var)
+                   in
+                   (* Now check if the parameter is itself a taint source. *)
+                   let _taints, _shape, lval_env =
+                     check_tainted_var { env with lval_env } var
+                   in
+                   lval_env
+               | PatternParam _ (* TODO *)
+               | FixmeParam ->
+                   lval_env)
              in'
     | NGoto _
     | Enter
