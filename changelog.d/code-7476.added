@@ -1,0 +1,12 @@
+Pro: taint-mode: Semgrep has now basic support to track taint through callbacks,
+when they lead to a sink, e.g.:
+
+    function unsafe_callback(x) {
+      sink(x); // finding here now !
+    }
+
+    function withCallback(val, callback) {
+      callback(val);
+    }
+
+    withCallback(taint, unsafe_callback);

@@ -156,7 +156,8 @@ let trace_of_source source =
 let pms_of_finding ~match_on finding =
   match finding with
   | Effect.ToLval _
-  | Effect.ToReturn _ ->
+  | Effect.ToReturn _
+  | Effect.ToSinkInCall _ ->
       []
   | Effect.ToSink
       {

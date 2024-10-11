@@ -78,6 +78,8 @@ module rec Shape : sig
           * a polymorphic shape variable that is meant to be instantiated at call
           * site. Before adding 'Arg' we assumed parameters had shape 'Bot', and
           * 'Arg' still acts like 'Bot' in some places. *)
+    | Fun of Signature.t
+        (** Function shapes. These enable Semgrep to handle HOFs. *)
 
   and cell =
     | Cell of Xtaint.t * shape
@@ -150,7 +152,7 @@ module rec Shape : sig
   val show_cell : cell -> string
   val show_shape : shape -> string
 end = struct
-  type shape = Bot | Obj of obj | Arg of T.arg
+  type shape = Bot | Obj of obj | Arg of T.arg | Fun of Signature.t
   and cell = Cell of Xtaint.t * shape
   and obj = cell Fields.t
 
@@ -169,9 +171,11 @@ end = struct
     | Bot, Bot -> true
     | Obj obj1, Obj obj2 -> equal_obj obj1 obj2
     | Arg arg1, Arg arg2 -> T.equal_arg arg1 arg2
+    | Fun sig1, Fun sig2 -> Signature.equal sig1 sig2
     | Bot, _
     | Obj _, _
-    | Arg _, _ ->
+    | Arg _, _
+    | Fun _, _ ->
         false
 
   and equal_obj obj1 obj2 = Fields.equal equal_cell obj1 obj2
@@ -192,11 +196,14 @@ end = struct
     | Bot, Bot -> 0
     | Obj obj1, Obj obj2 -> compare_obj obj1 obj2
     | Arg arg1, Arg arg2 -> T.compare_arg arg1 arg2
-    | Bot, (Obj _ | Arg _)
-    | Obj _, Arg _ ->
+    | Fun sig1, Fun sig2 -> Signature.compare sig1 sig2
+    | Bot, (Obj _ | Arg _ | Fun _)
+    | Obj _, (Arg _ | Fun _)
+    | Arg _, Fun _ ->
         -1
     | Obj _, Bot
-    | Arg _, (Bot | Obj _) ->
+    | Arg _, (Bot | Obj _)
+    | Fun _, (Bot | Obj _ | Arg _) ->
         1
 
   and compare_obj obj1 obj2 = Fields.compare compare_cell obj1 obj2
@@ -213,6 +220,7 @@ end = struct
     | Bot -> "_|_"
     | Obj obj -> spf "obj {|%s|}" (show_obj obj)
     | Arg arg -> "'{" ^ T.show_arg arg ^ "}"
+    | Fun fsig -> Signature.show fsig
 
   and show_obj obj =
     obj |> Fields.to_seq
@@ -257,6 +265,10 @@ and Effect : sig
    * used for reachability queries. *)
     return_tok : AST_generic.tok;
   }
+
+  type args_taints = (Taint.taints * Shape.shape) IL.argument list
+  (** The taints and shapes associated with the actual arguments in a
+    * function call. *)
 
   (** Function-level result.
   *
@@ -316,11 +328,27 @@ and Effect : sig
         *
         * TODO: Record taint shapes.
         *)
+    | ToSinkInCall of {
+        callee : IL.exp;
+            (** The function expression being called, it is used for recording a taint trace. *)
+        arg : Taint.arg;
+            (** The formal parameter corresponding to the function shape,
+                        this is what we instantiate at a specific call site. *)
+        args_taints : args_taints;
+      }
+        (** Essentially a preliminary form of "effect variable". It represents
+          * the 'ToSink' effects of a function call where the function is not
+          * yet known (the function is an argument to be instantiated at call
+          * site).
+          *
+          * TODO: Handle 'ToReturn' (probably easy) and 'ToLval' (may be trickier).
+          *)
 
   val compare : t -> t -> int
   val show : t -> string
 
   (* Mainly for debugging *)
+  val show_args_taints : args_taints -> string
   val show_taints_to_sink : taints_to_sink -> string
   val show_taints_to_return : taints_to_return -> string
 end = struct
@@ -348,10 +376,17 @@ end = struct
     return_tok : AST_generic.tok;
   }
 
+  type args_taints = (Taints.t * Shape.shape) IL.argument list
+
   type t =
     | ToSink of taints_to_sink
     | ToReturn of taints_to_return
     | ToLval of T.taints * T.lval (* TODO: CleanArg ? *)
+    | ToSinkInCall of {
+        callee : IL.exp;
+        arg : Taint.arg;
+        args_taints : args_taints;
+      }
 
   (*************************************)
   (* Comparison *)
@@ -408,6 +443,22 @@ end = struct
         | other -> other)
     | other -> other
 
+  let compare_arg (arg1 : _ IL.argument) (arg2 : _ IL.argument) =
+    let compare_taints_and_shape (taints1, shape1) (taints2, shape2) =
+      match Taints.compare taints1 taints2 with
+      | 0 -> Shape.compare_shape shape1 shape2
+      | other -> other
+    in
+    match (arg1, arg2) with
+    | Unnamed (taints1, shape1), Unnamed (taints2, shape2) ->
+        compare_taints_and_shape (taints1, shape1) (taints2, shape2)
+    | Named (name1, (taints1, shape1)), Named (name2, (taints2, shape2)) -> (
+        match AST_generic.compare_ident name1 name2 with
+        | 0 -> compare_taints_and_shape (taints1, shape1) (taints2, shape2)
+        | other -> other)
+    | Unnamed _, Named _ -> -1
+    | Named _, Unnamed _ -> 1
+
   let compare r1 r2 =
     match (r1, r2) with
     | ToSink tts1, ToSink tts2 -> compare_taints_to_sink tts1 tts2
@@ -416,10 +467,22 @@ end = struct
         match Taints.compare ts1 ts2 with
         | 0 -> T.compare_lval lv1 lv2
         | other -> other)
-    | ToSink _, (ToReturn _ | ToLval _) -> -1
-    | ToReturn _, ToLval _ -> -1
+    | ( ToSinkInCall { callee = fexp1; arg = fvar1; args_taints = args_taints1 },
+        ToSinkInCall { callee = fexp2; arg = fvar2; args_taints = args_taints2 }
+      ) -> (
+        (* Comparing "fvar"s is cheap so better to do it first. *)
+        match T.compare_arg fvar1 fvar2 with
+        | 0 -> (
+            match IL.compare_orig fexp1.eorig fexp2.eorig with
+            | 0 -> List.compare compare_arg args_taints1 args_taints2
+            | other -> other)
+        | other -> other)
+    | ToSink _, (ToReturn _ | ToLval _ | ToSinkInCall _) -> -1
+    | ToReturn _, (ToLval _ | ToSinkInCall _) -> -1
+    | ToLval _, ToSinkInCall _ -> -1
     | ToReturn _, ToSink _ -> 1
     | ToLval _, (ToSink _ | ToReturn _) -> 1
+    | ToSinkInCall _, (ToSink _ | ToReturn _ | ToLval _) -> 1
 
   (*************************************)
   (* Pretty-printing *)
@@ -458,11 +521,25 @@ end = struct
       (Shape.show_shape data_shape)
       (T.show_taints control_taints)
 
+  let show_arg (arg : _ IL.argument) =
+    match arg with
+    | Unnamed (taints, shape) ->
+        spf "%s & %s" (T.show_taints taints) (Shape.show_shape shape)
+    | Named (ident, (taints, shape)) ->
+        spf "%s:(%s & %s)" (fst ident) (T.show_taints taints)
+          (Shape.show_shape shape)
+
+  let show_args_taints (args : _ IL.argument list) =
+    spf "(%s)" (List_.map show_arg args |> String.concat ", ")
+
   let show = function
     | ToSink tts -> show_taints_to_sink tts
     | ToReturn ttr -> show_taints_to_return ttr
     | ToLval (taints, lval) ->
         Printf.sprintf "%s ----> %s" (T.show_taints taints) (T.show_lval lval)
+    | ToSinkInCall { callee = _; arg; args_taints } ->
+        Printf.sprintf "'call<%s>%s" (T.show_arg arg)
+          (show_args_taints args_taints)
 end
 
 and Effects : sig

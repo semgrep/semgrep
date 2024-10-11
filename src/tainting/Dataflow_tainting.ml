@@ -579,6 +579,20 @@ let effects_of_tainted_return env taints shape return_tok : Effect.t list =
     ]
   else []
 
+(* If a 'fun_exp' has no known taint signature, then it should have a polymorphic
+ * shape and we record its effects with an "effect variable" (that's kind of what
+ * 'ToSinkInCall' does). *)
+let effects_of_call_func_arg fun_exp fun_shape args_taints =
+  match fun_shape with
+  | S.Arg fun_arg ->
+      [ Effect.ToSinkInCall { callee = fun_exp; arg = fun_arg; args_taints } ]
+  | __else__ ->
+      Log.warn (fun m ->
+          m "Function (?) %s has shape %s"
+            (Display_IL.string_of_exp fun_exp)
+            (S.show_shape fun_shape));
+      []
+
 let lookup_signature env fun_exp =
   match (!hook_function_taint_signature, fun_exp) with
   | Some hook, { e = Fetch _f; eorig = SameAs eorig } -> hook env.config eorig
@@ -1276,6 +1290,22 @@ and check_tainted_expr env exp : Taints.t * S.shape * Lval_env.t =
         match exp.e with
         | Fetch lval ->
             let taints, shape, _sub, lval_env = check_tainted_lval env lval in
+            let shape =
+              (* Check if 'exp' is a known top-level function/method and, if it is,
+               * give it a proper 'Fun' shape. *)
+              match (lookup_signature env exp, shape) with
+              | Some fun_sig, S.Bot -> S.Fun fun_sig
+              | Some fun_sig, _non_Bot_shape ->
+                  (* A top-level function/method is expected to have shape 'Bot'. *)
+                  Log.warn (fun m ->
+                      m
+                        "'%s' has a taint signature (%s) but as an expression \
+                         its shape is '%s'"
+                        (Display_IL.string_of_exp exp)
+                        (Signature.show fun_sig) (S.show_shape shape));
+                  shape
+              | None (* no signature *), _any_shape -> shape
+            in
             (taints, shape, lval_env)
         | __else__ ->
             let taints_exp, shape, lval_env = check_subexpr exp in
@@ -1420,7 +1450,7 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
           all_args_taints
           |> Taints.union (gather_all_taints_in_args_taints args_taints)
         in
-        let e_obj, e_taints, _e_shape_TODO, lval_env =
+        let e_obj, e_taints, e_shape, lval_env =
           check_function_call_callee { env with lval_env } e
         in
         (* NOTE(sink_has_focus):
@@ -1468,7 +1498,9 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
                   (* We have no taint signature and it's neither a get/set method. *)
                   if not (propagate_through_functions env) then
                     (Taints.empty, Bot, lval_env)
-                  else
+                  else (
+                    effects_of_call_func_arg e e_shape args_taints
+                    |> report_effects { env with lval_env };
                     (* If this is a method call, `o.method(...)`, then we fetch the
                        * taint of the callee object `o`. This is a conservative worst-case
                        * asumption that any taint in `o` can be tainting the call's effect. *)
@@ -1478,7 +1510,7 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
                       | `Obj obj_taints ->
                           call_taints |> Taints.union obj_taints
                     in
-                    (call_taints, Bot, lval_env))
+                    (call_taints, Bot, lval_env)))
         in
         (* We add the taint of the function itselt (i.e., 'e_taints') too. *)
         let all_call_taints =
