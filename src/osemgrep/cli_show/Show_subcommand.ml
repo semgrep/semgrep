@@ -92,6 +92,9 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
       | Error s ->
           Logs.app (fun m -> m "Parse error: %s" s);
           Exit_code.invalid_pattern ~__LOC__)
+  | DumpCST (file, lang) ->
+      Test_parsing.dump_tree_sitter_cst lang (Fpath.to_string file);
+      Exit_code.ok ~__LOC__
   | DumpAST (file, lang) ->
       (* mostly a copy paste of Core_CLI.dump_ast *)
       let { Parsing_result2.ast; skipped_tokens = _; _ } =
