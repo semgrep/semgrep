@@ -65,7 +65,7 @@ depends: [
   "ambient-context-lwt"
   "conf-libcurl" {= "1"}
   "uri"
-  "uuidm" {>= "0.9.8"}
+  "uuidm" {>= "0.9.9"}
   "cohttp" {= "5.3.0"}
   "cohttp-lwt-unix"
   "cohttp-lwt-jsoo"
