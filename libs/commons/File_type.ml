@@ -394,8 +394,7 @@ let file_type_of_file file =
   | "exe" -> Binary e
   | "mk" -> Config Makefile
   | "rs" -> PL Rust
-  | "move_on_sui" -> PL Move_on_sui
-  | "move_on_aptos" -> PL Move_on_aptos
+  | "move" -> PL Move
   | "mod"
   | "go" -> PL Go
   | "lua" -> PL Lua
