@@ -613,10 +613,10 @@ let propagate_basic lang prog =
   ()
 [@@profiling] [@@trace_trace]
 
-let propagate_dataflow_one_function lang inputs flow =
+let propagate_dataflow_one_function lang fdef_cfg =
   (* Exposed to help DeepSemgrep *)
-  let mapping = Dataflow_svalue.fixpoint lang inputs flow in
-  Dataflow_svalue.update_svalue flow mapping
+  let mapping = Dataflow_svalue.fixpoint lang fdef_cfg in
+  Dataflow_svalue.update_svalue fdef_cfg.fcfg mapping
 
 let propagate_dataflow lang ast =
   Log.debug (fun m -> m ~tags "Constant_propagation.propagate_dataflow program");
@@ -626,15 +626,13 @@ let propagate_dataflow lang ast =
       let xs =
         AST_to_IL.stmt lang (G.Block (Tok.unsafe_fake_bracket ast) |> G.s)
       in
-      (* Top-level function. No need to use CFG_build.cfg_of_fdef here. *)
+      (* Top-level function. No need to use CFG_build.cfg_of_gfdef here. *)
       let flow = CFG_build.cfg_of_stmts xs in
-      propagate_dataflow_one_function lang [] flow
+      propagate_dataflow_one_function lang IL.{ fparams = []; fcfg = flow }
   | _ ->
       ast
       |> Visit_function_defs.visit (fun _ent fdef ->
-             let CFG_build.{ fparams; fcfg } =
-               CFG_build.cfg_of_fdef lang fdef
-             in
+             let fdef_cfg = CFG_build.cfg_of_gfdef lang fdef in
              (* when/ pattern when is not constant propagation but is related in the sense
               * that it also finds extra info by analyzing the cfg. we are reusing the cfg
               * created here to annotate facts for the pattern when feature.
@@ -643,8 +641,8 @@ let propagate_dataflow lang ast =
               *)
              (match !Dataflow_when.hook_annotate_facts with
              | None -> ()
-             | Some annotate_facts -> annotate_facts fcfg);
-             propagate_dataflow_one_function lang fparams fcfg);
+             | Some annotate_facts -> annotate_facts fdef_cfg.fcfg);
+             propagate_dataflow_one_function lang fdef_cfg);
 
       (* We consider the top-level function the interior of a degenerate function,
          and simply run constant propagation on that.
@@ -653,7 +651,7 @@ let propagate_dataflow lang ast =
          duplicate any work.
       *)
       let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
-      (* Top-level function. No need to use CFG_build.cfg_of_fdef here. *)
+      (* Top-level function. No need to use CFG_build.cfg_of_gfdef here. *)
       let flow = CFG_build.cfg_of_stmts xs in
-      propagate_dataflow_one_function lang [] flow
+      propagate_dataflow_one_function lang IL.{ fparams = []; fcfg = flow }
 [@@trace_trace]
