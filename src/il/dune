@@ -16,6 +16,7 @@
    (pps
       ppx_deriving.show
       ppx_deriving.eq
+      ppx_deriving.ord
       ppx_hash
       visitors.ppx
    )
