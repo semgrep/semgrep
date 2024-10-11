@@ -29,9 +29,6 @@ val propagate_basic : Lang.t -> AST_generic.program -> unit
  * in which functions are analyzed. Generally will perform better
  * if propagate_basic is called first *)
 val propagate_dataflow_one_function :
-  Lang.t ->
-  IL.name list (* inputs to function *) ->
-  IL.cfg (* function body *) ->
-  unit
+  Lang.t -> IL.fdef_cfg (* function CFG *) -> unit
 
 val propagate_dataflow : Lang.t -> AST_generic.program -> unit

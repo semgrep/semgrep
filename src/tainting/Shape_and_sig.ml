@@ -600,7 +600,7 @@ and Signature : sig
    * The 'params' act like an universal quantifier, we need them to later
    * instantiate the accompanying signature. *)
 
-  val of_generic_params : AST_generic.parameters -> params
+  val of_IL_params : IL.param list -> params
   val show_params : params -> string
   val show : t -> string
 end = struct
@@ -638,11 +638,13 @@ end = struct
 
   let show_params params = params |> List_.map show_param |> String.concat ", "
 
-  let of_generic_params (_, g_params, _) =
-    g_params
+  let of_IL_params il_params =
+    il_params
     |> List_.map (function
-         | AST_generic.Param { pname = Some (s, _); _ } -> P s
-         | __else__ -> Other)
+         | IL.Param { pname = { ident = s, _; _ }; _ } -> P s
+         | IL.PatternParam _
+         | IL.FixmeParam ->
+             Other)
 
   (*************************************)
   (* Signatures *)
