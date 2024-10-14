@@ -55,7 +55,7 @@ let arg_names_of_list xs =
   match xs with
   | [] -> []
   | [ x ] -> [ (x, "v") ]
-  | xs -> List.mapi (fun i x -> (x, sprintf "v%i" (i + 1))) xs
+  | xs -> List_.mapi (fun i x -> (x, sprintf "v%i" (i + 1))) xs
 
 (* Create tuple pattern or expression:
      "()"
@@ -198,7 +198,7 @@ and gen_case conf (id, xs) =
         let is_last idx = idx = n_args - 1 in
         let arg_handlers =
           xs
-          |> List.mapi (fun i (typ, var) ->
+          |> List_.mapi (fun i (typ, var) ->
                  let def, call_str = func_for_type conf typ in
                  Inline
                    [
@@ -276,7 +276,7 @@ and gen_tuple conf types =
   | Visit ->
       let len = List.length types in
       types
-      |> List.mapi (fun i (type_, var) ->
+      |> List_.mapi (fun i (type_, var) ->
              let def, call_str = func_for_type conf type_ in
              Inline
                [

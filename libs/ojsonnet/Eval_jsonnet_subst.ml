@@ -79,7 +79,7 @@ let vfld_name_to_fld_name fld_name =
 let vobj_to_obj l asserts fields r =
   let new_fields =
     fields
-    |> List.map (fun { V.fld_name; fld_hidden; fld_value } ->
+    |> List_.map (fun { V.fld_name; fld_hidden; fld_value } ->
            match fld_value.lv with
            | Val _
            | Closure _ ->
@@ -506,7 +506,7 @@ and eval_obj_inside env (l, x, r) : V.t =
                | v -> error tk (spf "field name was not a string: %s" (sv v)))
       in
       let new_assertsTODO =
-        assertsTODO |> List.map (fun ass -> (ass, empty_env))
+        assertsTODO |> List_.map (fun ass -> (ass, empty_env))
       in
       V.Object (l, (new_assertsTODO, fields), r)
   | ObjectComp _x -> error l "TODO: ObjectComp"
@@ -529,7 +529,7 @@ and eval_plus_object env _tk objl objr =
 
   let lflds_overlap_hidden =
     lflds
-    |> List.map (fun { V.fld_name = s, _; fld_hidden; _ } -> (s, fld_hidden))
+    |> List_.map (fun { V.fld_name = s, _; fld_hidden; _ } -> (s, fld_hidden))
     |> List.to_seq |> Hashtbl.of_seq
   in
 
@@ -582,7 +582,7 @@ and eval_plus_object env _tk objl objr =
 
   let new_ers =
     rflds
-    |> List.map (fun { V.fld_name; fld_hidden; fld_value } ->
+    |> List_.map (fun { V.fld_name; fld_hidden; fld_value } ->
            match fld_value.lv with
            | Val _
            | Closure _ ->
@@ -649,7 +649,7 @@ and manifest_value (v : V.t) : JSON.t =
                    (* similar to what we do in eval_expr on field access *)
                    let _new_assertsTODO =
                      _assertsTODO
-                     |> List.map (fun ((tk, prog), _) -> (tk, prog))
+                     |> List_.map (fun ((tk, prog), _) -> (tk, prog))
                    in
                    let _new_self = vobj_to_obj _l _new_assertsTODO fields _r in
                    let v =

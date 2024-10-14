@@ -239,7 +239,7 @@ let (mk_mapper : map_visitor -> trees -> trees) =
         Braces (v1, v2, v3)
     | Parens (v1, v2, v3) ->
         let v1 = map_tok v1
-        and v2 = List.map (OCaml.map_of_either map_trees map_tok) v2
+        and v2 = List_.map (OCaml.map_of_either map_trees map_tok) v2
         and v3 = map_tok v3 in
         Parens (v1, v2, v3)
     | Angle (v1, v2, v3) ->
@@ -257,7 +257,7 @@ let (mk_mapper : map_visitor -> trees -> trees) =
     | Tok v1 ->
         let v1 = map_wrap v1 in
         Tok v1
-  and map_trees v = List.map map_tree v
+  and map_trees v = List_.map map_tree v
   and map_tok v =
     let k v = v in
     hook.mtok k v

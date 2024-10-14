@@ -105,7 +105,7 @@ let tokens input_source =
 (* Fuzzy parsing *)
 (*****************************************************************************)
 
-let rec multi_grouped_list xs = xs |> List.map multi_grouped
+let rec multi_grouped_list xs = xs |> List_.map multi_grouped
 
 and multi_grouped = function
   | Token_views_cpp.Braces (tok1, xs, Some tok2) ->
@@ -153,7 +153,7 @@ let parse_fuzzy file =
         |> List_.exclude (fun x ->
                Token_helpers_cpp.is_comment x || Token_helpers_cpp.is_eof x)
       in
-      let extended = toks |> List.map Token_views_cpp.mk_token_extended in
+      let extended = toks |> List_.map Token_views_cpp.mk_token_extended in
       Parsing_hacks_cpp.find_template_inf_sup extended;
       let groups = Token_views_cpp.mk_multi extended in
       let trees = multi_grouped_list groups in
@@ -342,7 +342,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
           in
           let error_info =
             ( pbline
-              |> List.map (fun tok -> Tok.content_of_tok (TH.info_of_tok tok)),
+              |> List_.map (fun tok -> Tok.content_of_tok (TH.info_of_tok tok)),
               line_error )
           in
           stat.PS.problematic_lines <- error_info :: stat.PS.problematic_lines;
@@ -418,8 +418,8 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
     | Some xs -> (xs, info) :: loop () (* recurse *)
   in
   let xs = loop () in
-  let ast = xs |> List.map fst in
-  let tokens = xs |> List.map snd |> List_.flatten in
+  let ast = xs |> List_.map fst in
+  let tokens = xs |> List_.map snd |> List_.flatten in
   { Parsing_result.ast; tokens; stat }
 
 let parse2 file : (Ast.program, T.token) Parsing_result.t =

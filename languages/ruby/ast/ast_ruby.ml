@@ -532,5 +532,5 @@ let arg_to_expr = function
   | ArgKwd (id, tk, arg) -> keyword_arg_to_expr id tk arg
   | ArgAmp tk -> TodoExpr ("ArgAmp", tk)
 
-let args_to_exprs xs = List.map arg_to_expr xs
-let exprs_to_args xs = List.map (fun x -> Arg x) xs
+let args_to_exprs xs = List_.map arg_to_expr xs
+let exprs_to_args xs = List_.map (fun x -> Arg x) xs

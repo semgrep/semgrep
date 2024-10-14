@@ -235,7 +235,7 @@ let main () =
     run ~trim:true "grep" [ "-v"; "'^ *\\(#\\| *$\\)'"; projects_file ]
     |> String.split_on_char '\n'
   in
-  let project_names = List.map clone_project_files url_list in
+  let project_names = List_.map clone_project_files url_list in
   let results = Hashtbl.create (List.length project_names) in
   with_chdir "tmp" (fun () -> List.iter (test_project opts results) project_names);
   upload_results opts results

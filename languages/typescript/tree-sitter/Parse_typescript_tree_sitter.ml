@@ -429,7 +429,7 @@ let import_export_specifiers (env : env)
       CST.anon_import_export_spec_rep_COMMA_import_export_spec_3a1421d) :
     (a_ident * a_ident option) list =
   map_sep_list env v1 v2 import_export_specifier
-  |> List.filter_map (fun opt -> opt)
+  |> List_.filter_map (fun opt -> opt)
 
 let export_clause (env : env) ((v1, v2, v3, v4) : CST.export_clause) =
   let _open = token env v1 (* "{" *) in
@@ -2443,7 +2443,7 @@ and type_annotation (env : env) ((v1, v2) : CST.type_annotation) =
 
 and anon_rep_COMMA_opt_choice_exp_ca698a5 (env : env)
     (xs : CST.anon_rep_COMMA_opt_choice_exp_ca698a5) =
-  List.filter_map
+  List_.filter_map
     (fun (v1, v2) ->
       let _v1 = token env v1 (* "," *) in
       let v2 =

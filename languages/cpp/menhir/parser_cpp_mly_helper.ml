@@ -159,7 +159,7 @@ let id_of_dname_for_typedef dname =
   | _ -> error "expecting an ident for typedef" (ii_of_dname dname)
 
 let make_onedecl ~v_namei ~mods ~sto v_type : onedecl =
-  let specs = mods |> List.map (fun m -> M m) in
+  let specs = mods |> List_.map (fun m -> M m) in
   match v_namei with
   (* less: could check sto, because typedef can't be anonymous since c++17
    * lesS: use mods?

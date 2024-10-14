@@ -40,11 +40,11 @@ let rec dump r =
     if is_list r then
       (* List. *)
       let fields = get_list r in
-      "[" ^ String.concat "; " (List.map dump fields) ^ "]"
+      "[" ^ String.concat "; " (List_.map dump fields) ^ "]"
     else if t = 0 then
       (* Tuple, array, record. *)
       let fields = get_fields [] s in
-      "(" ^ String.concat ", " (List.map dump fields) ^ ")"
+      "(" ^ String.concat ", " (List_.map dump fields) ^ ")"
       (* Note that [lazy_tag .. forward_tag] are < no_scan_tag.  Not
        * clear if very large constructed values could have the same
        * tag. XXX *)
@@ -62,7 +62,7 @@ let rec dump r =
        * out the ID and the slots.
        *)
       "Object #" ^ dump id ^ " ("
-      ^ String.concat ", " (List.map dump slots)
+      ^ String.concat ", " (List_.map dump slots)
       ^ ")"
     else if t = infix_tag then opaque "infix"
     else if t = forward_tag then opaque "forward"
@@ -70,7 +70,7 @@ let rec dump r =
       (* Constructed value. *)
       let fields = get_fields [] s in
       "Tag" ^ string_of_int t ^ " ("
-      ^ String.concat ", " (List.map dump fields)
+      ^ String.concat ", " (List_.map dump fields)
       ^ ")"
     else if t = string_tag then "\"" ^ String.escaped (magic r : string) ^ "\""
     else if t = double_tag then string_of_float (magic r : float)

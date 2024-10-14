@@ -209,7 +209,7 @@ let map_string_ (env : env) (x : CST.string_) =
           let v1 = (* "\"" *) token env v1 in
           let v2 =
             R.List
-              (List.map
+              (List_.map
                  (fun x ->
                    match x with
                    | `Unes_double_str_frag tok ->
@@ -228,7 +228,7 @@ let map_string_ (env : env) (x : CST.string_) =
           let v1 = (* "'" *) token env v1 in
           let v2 =
             R.List
-              (List.map
+              (List_.map
                  (fun x ->
                    match x with
                    | `Unes_single_str_frag tok ->
@@ -378,7 +378,7 @@ let map_anon_import_export_spec_rep_COMMA_import_export_spec_3a1421d (env : env)
   let v1 = map_import_export_specifier env v1 in
   let v2 =
     R.List
-      (List.map
+      (List_.map
          (fun (v1, v2) ->
            let v1 = (* "," *) token env v1 in
            let v2 = map_import_export_specifier env v2 in
@@ -703,7 +703,7 @@ and map_anon_opt_opt_choice_exp_rep_COMMA_opt_choice_exp_208ebb4 (env : env)
 and map_anon_rep_COMMA_opt_choice_exp_ca698a5 (env : env)
     (xs : CST.anon_rep_COMMA_opt_choice_exp_ca698a5) =
   R.List
-    (List.map
+    (List_.map
        (fun (v1, v2) ->
          let v1 = (* "," *) token env v1 in
          let v2 =
@@ -1031,7 +1031,7 @@ and map_catch_clause (env : env) ((v1, v2, v3) : CST.catch_clause) =
   R.Tuple [ v1; v2; v3 ]
 
 and map_class_ (env : env) ((v1, v2, v3, v4, v5, v6) : CST.class_) =
-  let v1 = R.List (List.map (map_decorator env) v1) in
+  let v1 = R.List (List_.map (map_decorator env) v1) in
   let v2 = (* "class" *) token env v2 in
   let v3 =
     match v3 with
@@ -1055,7 +1055,7 @@ and map_class_body (env : env) ((v1, v2, v3) : CST.class_body) =
   let v1 = (* "{" *) token env v1 in
   let v2 =
     R.List
-      (List.map
+      (List_.map
          (fun x ->
            match x with
            | `Deco x -> R.Case ("Deco", map_decorator env x)
@@ -1115,7 +1115,7 @@ and map_class_body (env : env) ((v1, v2, v3) : CST.class_body) =
 
 and map_class_declaration (env : env)
     ((v1, v2, v3, v4, v5, v6, v7) : CST.class_declaration) =
-  let v1 = R.List (List.map (map_decorator env) v1) in
+  let v1 = R.List (List_.map (map_decorator env) v1) in
   let v2 = (* "class" *) token env v2 in
   let v3 = (* identifier *) token env v3 in
   let v4 =
@@ -1197,7 +1197,7 @@ and map_declaration (env : env) (x : CST.declaration) =
   | `Abst_class_decl (v1, v2, v3, v4, v5, v6, v7) ->
       R.Case
         ( "Abst_class_decl",
-          let v1 = R.List (List.map (map_decorator env) v1) in
+          let v1 = R.List (List_.map (map_decorator env) v1) in
           let v2 = (* "abstract" *) token env v2 in
           let v3 = (* "class" *) token env v3 in
           let v4 = (* identifier *) token env v4 in
@@ -1342,7 +1342,7 @@ and map_destructuring_pattern (env : env) (x : CST.destructuring_pattern) =
                       in
                       let v2 =
                         R.List
-                          (List.map
+                          (List_.map
                              (fun (v1, v2) ->
                                let v1 = (* "," *) token env v1 in
                                let v2 =
@@ -1379,7 +1379,7 @@ and map_destructuring_pattern (env : env) (x : CST.destructuring_pattern) =
                       in
                       let v2 =
                         R.List
-                          (List.map
+                          (List_.map
                              (fun (v1, v2) ->
                                let v1 = (* "," *) token env v1 in
                                let v2 =
@@ -1413,7 +1413,7 @@ and map_enum_body (env : env) ((v1, v2, v3) : CST.enum_body) =
              (let v1 = map_anon_choice_prop_name_6cc9e4b env v1 in
               let v2 =
                 R.List
-                  (List.map
+                  (List_.map
                      (fun (v1, v2) ->
                        let v1 = (* "," *) token env v1 in
                        let v2 = map_anon_choice_prop_name_6cc9e4b env v2 in
@@ -1477,7 +1477,7 @@ and map_export_statement (env : env) (x : CST.export_statement) =
           | `Rep_deco_export_choice_decl (v1, v2, v3) ->
               R.Case
                 ( "Rep_deco_export_choice_decl",
-                  let v1 = R.List (List.map (map_decorator env) v1) in
+                  let v1 = R.List (List_.map (map_decorator env) v1) in
                   let v2 = (* "export" *) token env v2 in
                   let v3 =
                     match v3 with
@@ -1682,7 +1682,7 @@ and map_extends_clause (env : env) ((v1, v2, v3, v4) : CST.extends_clause) =
   in
   let v4 =
     R.List
-      (List.map
+      (List_.map
          (fun (v1, v2, v3) ->
            let v1 = (* "," *) token env v1 in
            let v2 = map_expression env v2 in
@@ -1702,7 +1702,7 @@ and map_extends_type_clause (env : env) ((v1, v2, v3) : CST.extends_type_clause)
   let v2 = map_anon_choice_type_id_a85f573 env v2 in
   let v3 =
     R.List
-      (List.map
+      (List_.map
          (fun (v1, v2) ->
            let v1 = (* "," *) token env v1 in
            let v2 = map_anon_choice_type_id_a85f573 env v2 in
@@ -1799,7 +1799,7 @@ and map_formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) =
              (let v1 = map_formal_parameter env v1 in
               let v2 =
                 R.List
-                  (List.map
+                  (List_.map
                      (fun (v1, v2) ->
                        let v1 = (* "," *) token env v1 in
                        let v2 = map_formal_parameter env v2 in
@@ -1903,7 +1903,7 @@ and map_implements_clause (env : env) ((v1, v2, v3) : CST.implements_clause) =
   let v2 = map_type_ env v2 in
   let v3 =
     R.List
-      (List.map
+      (List_.map
          (fun (v1, v2) ->
            let v1 = (* "," *) token env v1 in
            let v2 = map_type_ env v2 in
@@ -2001,7 +2001,7 @@ and map_jsx_element_ (env : env) (x : CST.jsx_element_) =
       R.Case
         ( "Jsx_elem",
           let v1 = map_jsx_opening_element env v1 in
-          let v2 = R.List (List.map (map_jsx_child env) v2) in
+          let v2 = R.List (List_.map (map_jsx_child env) v2) in
           let v3 = map_jsx_closing_element env v3 in
           R.Tuple [ v1; v2; v3 ] )
   | `Jsx_self_clos_elem (v1, v2, v3, v4, v5) ->
@@ -2009,7 +2009,7 @@ and map_jsx_element_ (env : env) (x : CST.jsx_element_) =
         ( "Jsx_self_clos_elem",
           let v1 = (* "<" *) token env v1 in
           let v2 = map_anon_choice_jsx_attr_name_b052322 env v2 in
-          let v3 = R.List (List.map (map_jsx_attribute_ env) v3) in
+          let v3 = R.List (List_.map (map_jsx_attribute_ env) v3) in
           let v4 = (* "/" *) token env v4 in
           let v5 = (* ">" *) token env v5 in
           R.Tuple [ v1; v2; v3; v4; v5 ] )
@@ -2033,7 +2033,7 @@ and map_jsx_expression (env : env) ((v1, v2, v3) : CST.jsx_expression) =
 and map_jsx_fragment (env : env) ((v1, v2, v3, v4, v5, v6) : CST.jsx_fragment) =
   let v1 = (* "<" *) token env v1 in
   let v2 = (* ">" *) token env v2 in
-  let v3 = R.List (List.map (map_jsx_child env) v3) in
+  let v3 = R.List (List_.map (map_jsx_child env) v3) in
   let v4 = (* "<" *) token env v4 in
   let v5 = (* "/" *) token env v5 in
   let v6 = (* ">" *) token env v6 in
@@ -2043,7 +2043,7 @@ and map_jsx_opening_element (env : env)
     ((v1, v2, v3, v4) : CST.jsx_opening_element) =
   let v1 = (* "<" *) token env v1 in
   let v2 = map_anon_choice_jsx_attr_name_b052322 env v2 in
-  let v3 = R.List (List.map (map_jsx_attribute_ env) v3) in
+  let v3 = R.List (List_.map (map_jsx_attribute_ env) v3) in
   let v4 = (* ">" *) token env v4 in
   R.Tuple [ v1; v2; v3; v4 ]
 
@@ -2053,7 +2053,7 @@ and map_lexical_declaration (env : env)
   let v2 = map_variable_declarator env v2 in
   let v3 =
     R.List
-      (List.map
+      (List_.map
          (fun (v1, v2) ->
            let v1 = (* "," *) token env v1 in
            let v2 = map_variable_declarator env v2 in
@@ -2217,7 +2217,7 @@ and map_object_ (env : env) ((v1, v2, v3) : CST.object_) =
               in
               let v2 =
                 R.List
-                  (List.map
+                  (List_.map
                      (fun (v1, v2) ->
                        let v1 = (* "," *) token env v1 in
                        let v2 =
@@ -2261,7 +2261,7 @@ and map_object_type (env : env) ((v1, v2, v3) : CST.object_type) =
               let v2 = map_anon_choice_export_stmt_f90d83f env v2 in
               let v3 =
                 R.List
-                  (List.map
+                  (List_.map
                      (fun (v1, v2) ->
                        let v1 = map_anon_choice_COMMA_5194cb4 env v1 in
                        let v2 = map_anon_choice_export_stmt_f90d83f env v2 in
@@ -2297,7 +2297,7 @@ and map_opting_type_annotation (env : env)
   R.Tuple [ v1; v2 ]
 
 and map_parameter_name (env : env) ((v1, v2, v3, v4, v5) : CST.parameter_name) =
-  let v1 = R.List (List.map (map_decorator env) v1) in
+  let v1 = R.List (List_.map (map_decorator env) v1) in
   let v2 =
     match v2 with
     | Some x -> R.Option (Some (map_accessibility_modifier env x))
@@ -2425,7 +2425,7 @@ and map_primary_type (env : env) (x : CST.primary_type) =
                      (let v1 = map_tuple_type_member env v1 in
                       let v2 =
                         R.List
-                          (List.map
+                          (List_.map
                              (fun (v1, v2) ->
                                let v1 = (* "," *) token env v1 in
                                let v2 = map_tuple_type_member env v2 in
@@ -2822,7 +2822,7 @@ and map_statement (env : env) (x : CST.statement) =
 
 and map_statement_block (env : env) ((v1, v2, v3, v4) : CST.statement_block) =
   let v1 = (* "{" *) token env v1 in
-  let v2 = R.List (List.map (map_statement env) v2) in
+  let v2 = R.List (List_.map (map_statement env) v2) in
   let v3 = (* "}" *) token env v3 in
   let v4 =
     match v4 with
@@ -2848,7 +2848,7 @@ and map_switch_body (env : env) ((v1, v2, v3) : CST.switch_body) =
   let v1 = (* "{" *) token env v1 in
   let v2 =
     R.List
-      (List.map
+      (List_.map
          (fun x ->
            match x with
            | `Switch_case x -> R.Case ("Switch_case", map_switch_case env x)
@@ -2862,13 +2862,13 @@ and map_switch_case (env : env) ((v1, v2, v3, v4) : CST.switch_case) =
   let v1 = (* "case" *) token env v1 in
   let v2 = map_expressions env v2 in
   let v3 = (* ":" *) token env v3 in
-  let v4 = R.List (List.map (map_statement env) v4) in
+  let v4 = R.List (List_.map (map_statement env) v4) in
   R.Tuple [ v1; v2; v3; v4 ]
 
 and map_switch_default (env : env) ((v1, v2, v3) : CST.switch_default) =
   let v1 = (* "default" *) token env v1 in
   let v2 = (* ":" *) token env v2 in
-  let v3 = R.List (List.map (map_statement env) v3) in
+  let v3 = R.List (List_.map (map_statement env) v3) in
   R.Tuple [ v1; v2; v3 ]
 
 and map_template_literal_type (env : env)
@@ -2876,7 +2876,7 @@ and map_template_literal_type (env : env)
   let v1 = (* "`" *) token env v1 in
   let v2 =
     R.List
-      (List.map
+      (List_.map
          (fun x ->
            match x with
            | `Temp_chars tok ->
@@ -2891,7 +2891,7 @@ and map_template_string (env : env) ((v1, v2, v3) : CST.template_string) =
   let v1 = (* "`" *) token env v1 in
   let v2 =
     R.List
-      (List.map
+      (List_.map
          (fun x ->
            match x with
            | `Temp_chars tok ->
@@ -3010,7 +3010,7 @@ and map_type_arguments (env : env) ((v1, v2, v3, v4, v5) : CST.type_arguments) =
   let v2 = map_type_ env v2 in
   let v3 =
     R.List
-      (List.map
+      (List_.map
          (fun (v1, v2) ->
            let v1 = (* "," *) token env v1 in
            let v2 = map_type_ env v2 in
@@ -3045,7 +3045,7 @@ and map_type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters)
   let v2 = map_type_parameter env v2 in
   let v3 =
     R.List
-      (List.map
+      (List_.map
          (fun (v1, v2) ->
            let v1 = (* "," *) token env v1 in
            let v2 = map_type_parameter env v2 in
@@ -3137,7 +3137,7 @@ and map_variable_declaration (env : env)
   let v2 = map_variable_declarator env v2 in
   let v3 =
     R.List
-      (List.map
+      (List_.map
          (fun (v1, v2) ->
            let v1 = (* "," *) token env v1 in
            let v2 = map_variable_declarator env v2 in
@@ -3182,7 +3182,7 @@ let map_program (env : env) (x : CST.program) =
             | Some tok -> R.Option (Some ((* pattern #!.* *) token env tok))
             | None -> R.Option None
           in
-          let v2 = R.List (List.map (map_statement env) v2) in
+          let v2 = R.List (List_.map (map_statement env) v2) in
           R.Tuple [ v1; v2 ] )
   | `Switch_case x -> R.Case ("Switch_case", map_switch_case env x)
 
