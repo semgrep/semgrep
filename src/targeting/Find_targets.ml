@@ -740,7 +740,7 @@ let get_targets conf scanning_roots :
   let file_scanning_roots, projects =
     scanning_roots |> group_scanning_roots_by_files_and_projects conf
   in
-  projects |> List_.map (get_targets_for_project conf) |> List.split
+  projects |> List_.map (get_targets_for_project conf) |> List_.split
   |> fun (path_set_list, skipped_paths_list) ->
   let paths, skipped_size_minified =
     let path_set =

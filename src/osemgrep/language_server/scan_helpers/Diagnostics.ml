@@ -49,11 +49,9 @@ let diagnostics_of_file is_intellij matches file =
   in
   let diagnostics = List_.map (diagnostic_of_match is_intellij) matches in
   let diagnostics =
-    List_.uniq_by
-      (fun (a : Diagnostic.t) (b : Diagnostic.t) ->
-        Common.on String.equal
-          (fun x -> x |> Diagnostic.yojson_of_t |> Yojson.Safe.to_string)
-          a b)
+    List_.deduplicate_gen
+      ~get_key:(fun (x : Diagnostic.t) ->
+        x |> Diagnostic.yojson_of_t |> Yojson.Safe.to_string)
       diagnostics
   in
   let params =

@@ -394,9 +394,8 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
     let rules_with_targets =
       lang_jobs
       |> List.concat_map (fun { Lang_job.rules; _ } -> rules)
-      |> (* TODO: if this is using physical equality on purpose,
-            explain why because otherwise it looks like a bug. *)
-      List_.uniq_by Stdlib.( == )
+      |> List_.deduplicate_gen ~get_key:(fun r ->
+             Rule_ID.to_string (fst r.Rule.id))
     in
     (* Reinject rule errors *)
     let res =

@@ -72,6 +72,12 @@ val map2 : ('a -> 'b -> 'c) -> 'a list -> 'b list -> 'c list
     left to right like for [List.iter].
 *)
 
+val split : ('a * 'b) list -> 'a list * 'b list
+(** Same as [List.split] but stack-safe. *)
+
+val combine : 'a list -> 'b list -> ('a * 'b) list
+(** Same as [List.combine] but stack-safe. *)
+
 val mapi : (int -> 'a -> 'b) -> 'a list -> 'b list
 (** Same as [List.mapi] but stack-safe and slightly faster on short lists.
     Additionally, we guarantee that the mapping function is applied from
@@ -94,7 +100,19 @@ val sort_by_key : ('a -> 'b) -> ('b -> 'b -> int) -> 'a list -> 'a list
     [key] is applied only once per element.
   *)
 
+(* Warning: O(n^2) complexity. Prefer 'deduplicate' or 'deduplicate_gen'. *)
 val uniq_by : ('a -> 'a -> bool) -> 'a list -> 'a list
+
+(* Deduplicate a list of elements from left to right i.e. the first occurrence
+   of each element is preserved.
+
+   The 'get_key' function extracts a key that serves as the base for
+   deduplication. It must be suitable for use with 'Hashtbl'.
+*)
+val deduplicate_gen : get_key:('a -> 'key) -> 'a list -> 'a list
+
+(* Same as 'deduplicate_gen' but use the whole element as a key. *)
+val deduplicate : 'a list -> 'a list
 
 (* options and lists *)
 
@@ -116,6 +134,9 @@ val take_safe : int -> 'a list -> 'a list
 
 (* this may raise Failure "drop: not enough" *)
 val drop : int -> 'a list -> 'a list
+
+(* Cut the list right before the first element that doesn't match the
+   predicate. *)
 val span : ('a -> bool) -> 'a list -> 'a list * 'a list
 
 (* zip a list with an increasing list of numbers.

@@ -96,7 +96,7 @@ let config_error msg =
 
 let check conf =
   let word_chars = Set_.of_list conf.word_chars in
-  let open_chars_list, close_chars_list = List.split conf.brackets in
+  let open_chars_list, close_chars_list = List_.split conf.brackets in
   let open_chars = Set_.of_list open_chars_list in
   let close_chars = Set_.of_list close_chars_list in
   let brace_chars = Set_.union open_chars close_chars in
