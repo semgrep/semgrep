@@ -1,2 +1,2 @@
-New subcommand `show-cst` for tree-sitter languages available via `semgrep
+New subcommand `dump-cst` for tree-sitter languages available via `semgrep
 show`. This shows the concrete syntax tree for a given file.
