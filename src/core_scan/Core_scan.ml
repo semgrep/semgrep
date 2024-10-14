@@ -264,7 +264,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
                     })
            in
            (error, skipped))
-    |> List.split
+    |> List_.split
   in
   (new_matches, new_errors, List_.flatten new_skipped)
 [@@profiling "Run_semgrep.filter_too_many_matches"]
@@ -542,7 +542,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (caps : < Cap.fork >)
                in
                (Core_result.add_run_time 0.0 match_result, Some target))
   in
-  let matches, opt_paths = List.split xs in
+  let matches, opt_paths = List_.split xs in
   let scanned =
     opt_paths |> List_.filter_map Fun.id
     (* old: It's necessary to remove duplicates because extracted targets are

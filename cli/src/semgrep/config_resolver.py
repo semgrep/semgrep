@@ -624,14 +624,21 @@ class Config:
             # re-write the configs to have the hierarchical rule ids
             self._rename_rule_ids(configs)
 
-        # deduplicate rules, ignoring metadata, which is not displayed
-        # in the result
+        # Deduplicate rules, ignoring metadata, which is not displayed
+        # in the result.
+        # Deduplication occurs from left to right so as to have the same
+        # behavior as osemgrep i.e. the first occurrence of each rule
+        # if preserved and subsequent occurrences are discarded.
         return list(
-            OrderedDict(
-                (rule_without_metadata(rule), rule)
-                for rules in configs.values()
-                for rule in rules
-            ).values()
+            reversed(
+                list(
+                    OrderedDict(
+                        (rule_without_metadata(rule), rule)
+                        for rules in reversed(configs.values())
+                        for rule in reversed(rules)
+                    ).values()
+                )
+            )
         )
 
     @staticmethod

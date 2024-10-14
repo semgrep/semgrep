@@ -36,8 +36,8 @@
             "name": "Rule Board - Block column",
             "slug": "rule-board-block"
           },
-          "semgrep.ruleset": "other",
-          "semgrep.ruleset_id": 1234,
+          "semgrep.ruleset": "ci",
+          "semgrep.ruleset_id": 735,
           "semgrep.url": "https://semgrep.dev/r/javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret",
           "shortlink": "https://sg.run/4xN9",
           "source": "https://semgrep.dev/r/javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret",
@@ -100,8 +100,8 @@
             "name": "Rule Board - Block column",
             "slug": "rule-board-block"
           },
-          "semgrep.ruleset": "other",
-          "semgrep.ruleset_id": 1234,
+          "semgrep.ruleset": "ci",
+          "semgrep.ruleset_id": 735,
           "semgrep.url": "https://semgrep.dev/r/javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret",
           "shortlink": "https://sg.run/4xN9",
           "source": "https://semgrep.dev/r/javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret",
@@ -164,8 +164,8 @@
             "name": "Rule Board - Block column",
             "slug": "rule-board-block"
           },
-          "semgrep.ruleset": "other",
-          "semgrep.ruleset_id": 1234,
+          "semgrep.ruleset": "ci",
+          "semgrep.ruleset_id": 735,
           "semgrep.url": "https://semgrep.dev/r/javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret",
           "shortlink": "https://sg.run/4xN9",
           "source": "https://semgrep.dev/r/javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret",

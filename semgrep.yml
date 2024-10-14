@@ -163,6 +163,24 @@ rules:
     languages: [ocaml]
     severity: ERROR
 
+  - id: no-list-combine
+    pattern: List.combine
+    fix: List_.combine
+    message: >-
+      `List.combine` creates O(N) stack depth, and can lead to a
+      stack overflow. Use `List_.combine` instead.
+    languages: [ocaml]
+    severity: ERROR
+
+  - id: no-list-split
+    pattern: List.split
+    fix: List_.split
+    message: >-
+      `List.split` creates O(N) stack depth, and can lead to a
+      stack overflow. Use `List_.split` instead.
+    languages: [ocaml]
+    severity: ERROR
+
   - id: no-list-concat
     pattern-either:
       - pattern: List.concat
