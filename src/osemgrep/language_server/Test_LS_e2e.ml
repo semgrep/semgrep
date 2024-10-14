@@ -1260,7 +1260,7 @@ let promise_tests caps =
     pair "LS multi-workspaces" (test_ls_multi caps) ~tolerate_chdir:true;
     pair "Test LS cache deletion" (test_ls_delete_cache caps);
   ]
-  |> List.split
+  |> List_.split
 
 let tests caps =
   let sync_promise_tests, _ = promise_tests caps in

@@ -60,7 +60,7 @@ let bracket of_a (t1, x, t2) = (info t1, of_a x, info t2)
 let ident x = wrap string x
 
 let concatenate_string_wraps xs =
-  let strings, toks = List.split xs in
+  let strings, toks = List_.split xs in
   match toks with
   | [] -> None
   | x :: xs -> Some (String.concat "" strings, Tok.combine_toks x xs)

@@ -38,6 +38,40 @@ let test_fold_right () =
   let list = [ 1; 2; 3; 4 ] in
   Alcotest.(check (list int)) __LOC__ list (List_.fold_right cons list [])
 
+let test_combine () =
+  assert (
+    List_.combine [ 1; 2; 3 ] [ "a"; "b"; "c" ]
+    = [ (1, "a"); (2, "b"); (3, "c") ])
+
+let test_split () =
+  assert (
+    List_.split [ (1, "a"); (2, "b"); (3, "c") ]
+    = ([ 1; 2; 3 ], [ "a"; "b"; "c" ]))
+
+let test_span () =
+  assert (List_.span (fun x -> x < 3) [ 1; 2; 3 ] = ([ 1; 2 ], [ 3 ]));
+  assert (List_.span (fun x -> x < 3) [ 1; 2; 3; 1 ] = ([ 1; 2 ], [ 3; 1 ]));
+  assert (List_.span (fun x -> x < 3) [] = ([], []));
+  assert (List_.span (fun x -> x < 3) [ 1; 2 ] = ([ 1; 2 ], []));
+  assert (List_.span (fun x -> x < 3) [ 5; 1 ] = ([], [ 5; 1 ]))
+
+let test_uniq_by () =
+  Alcotest.(check (list int))
+    __LOC__ [ 1; 2; 3; 0 ]
+    (List_.uniq_by ( = ) [ 1; 2; 2; 1; 3; 0 ])
+
+let test_deduplicate () =
+  Alcotest.(check (list int))
+    __LOC__ [ 1; 2; 3; 0 ]
+    (List_.deduplicate [ 1; 2; 2; 1; 3; 0 ])
+
+let test_deduplicate_gen () =
+  Alcotest.(check (list (pair int string)))
+    __LOC__
+    [ (1, "a"); (2, "b"); (3, "e"); (0, "f") ]
+    (List_.deduplicate_gen fst
+       [ (1, "a"); (2, "b"); (2, "c"); (1, "d"); (3, "e"); (0, "f") ])
+
 let tests =
   Testo.categorize "List_"
     [
@@ -49,4 +83,10 @@ let tests =
       t "safe flatten" test_flatten;
       t "safe append" test_append;
       t "safe fold_right" test_fold_right;
+      t "combine" test_combine;
+      t "split" test_split;
+      t "span" test_span;
+      t "uniq_by" test_uniq_by;
+      t "deduplicate" test_deduplicate;
+      t "deduplicate_gen" test_deduplicate_gen;
     ]
