@@ -295,7 +295,7 @@ and map_read_cond_lit (env : env) ((v1, v2, v3, v4) : CST.read_cond_lit) =
 
 and map_source (env : env) (xs : CST.source) =
   R.List
-    (List.filter_map
+    (List_.filter_map
        (fun x ->
          match x with
          | `Form x ->

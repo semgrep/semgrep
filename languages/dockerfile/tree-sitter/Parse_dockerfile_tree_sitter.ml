@@ -574,7 +574,7 @@ let reattach_heredoc_bodies env
   in
   (* Assume that 'List.filter_map' proceeds from left-to-right *)
   src_paths
-  |> List.filter_map (fun ((v1 : CST.path_with_heredoc), _blank) ->
+  |> List_.filter_map (fun ((v1 : CST.path_with_heredoc), _blank) ->
          path_with_heredoc_or_ellipsis env v1 take_heredoc_body)
 
 let stopsignal_value (env : env) ((x, xs) : CST.stopsignal_value) :
@@ -644,7 +644,7 @@ let single_quoted_string (env : env) ((v1, v2, v3) : CST.single_quoted_string) :
   Single_quoted (loc, (open_, contents, close))
 
 let shell_fragment (env : env) (xs : CST.shell_fragment) : tok =
-  List.filter_map
+  List_.filter_map
     (fun x ->
       match x with
       | `Here_marker_pat_ea34a52 (_v1, _v2) ->

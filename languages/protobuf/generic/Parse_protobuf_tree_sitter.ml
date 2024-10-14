@@ -114,7 +114,7 @@ let map_string_ (env : env) (x : CST.string_) =
           let v1 = (* "\"" *) token env v1 in
           let v2 =
             R.List
-              (List.map
+              (List_.map
                  (fun x ->
                    match x with
                    | `Imm_tok_prec_p1_pat_3a2a380 x ->
@@ -133,7 +133,7 @@ let map_string_ (env : env) (x : CST.string_) =
           let v1 = (* "'" *) token env v1 in
           let v2 =
             R.List
-              (List.map
+              (List_.map
                  (fun x ->
                    match x with
                    | `Imm_tok_prec_p1_pat_dc28280 x ->
@@ -167,7 +167,7 @@ let map_message_or_enum_type (env : env)
   in
   let v2 =
     R.List
-      (List.map
+      (List_.map
          (fun (v1, v2) ->
            let v1 = (* identifier *) token env v1 in
            let v2 = (* "." *) token env v2 in
@@ -181,7 +181,7 @@ let map_field_names (env : env) ((v1, v2) : CST.field_names) =
   let v1 = (* identifier *) token env v1 in
   let v2 =
     R.List
-      (List.map
+      (List_.map
          (fun (v1, v2) ->
            let v1 = (* "," *) token env v1 in
            let v2 = (* identifier *) token env v2 in
@@ -198,7 +198,7 @@ let map_full_ident (env : env) ((v1, v2) : CST.full_ident) =
         R.Option
           (Some
              (R.List
-                (List.map
+                (List_.map
                    (fun (v1, v2) ->
                      let v1 = (* "." *) token env v1 in
                      let v2 = (* identifier *) token env v2 in
@@ -266,7 +266,7 @@ let map_option_name (env : env) ((v1, v2) : CST.option_name) =
   in
   let v2 =
     R.List
-      (List.map
+      (List_.map
          (fun (v1, v2) ->
            let v1 = (* "." *) token env v1 in
            let v2 = (* identifier *) token env v2 in
@@ -306,7 +306,7 @@ let rec map_constant (env : env) (x : CST.constant) =
           let v1 = (* "{" *) token env v1 in
           let v2 =
             R.List
-              (List.map
+              (List_.map
                  (fun (v1, v2, v3, v4) ->
                    let v1 = (* identifier *) token env v1 in
                    let v2 =
@@ -324,7 +324,7 @@ let rec map_constant (env : env) (x : CST.constant) =
                              let v2 = map_constant env v2 in
                              let v3 =
                                R.List
-                                 (List.map
+                                 (List_.map
                                     (fun (v1, v2) ->
                                       let v1 = (* "," *) token env v1 in
                                       let v2 = map_constant env v2 in
@@ -394,7 +394,7 @@ let map_ranges (env : env) ((v1, v2) : CST.ranges) =
   let v1 = map_range env v1 in
   let v2 =
     R.List
-      (List.map
+      (List_.map
          (fun (v1, v2) ->
            let v1 = (* "," *) token env v1 in
            let v2 = map_range env v2 in
@@ -407,7 +407,7 @@ let map_field_options (env : env) ((v1, v2) : CST.field_options) =
   let v1 = map_field_option env v1 in
   let v2 =
     R.List
-      (List.map
+      (List_.map
          (fun (v1, v2) ->
            let v1 = (* "," *) token env v1 in
            let v2 = map_field_option env v2 in
@@ -445,7 +445,7 @@ let map_rpc (env : env)
             let v1 = (* "{" *) token env v1 in
             let v2 =
               R.List
-                (List.map
+                (List_.map
                    (fun x ->
                      match x with
                      | `Opt x -> R.Case ("Opt", map_option_ env x)
@@ -477,7 +477,7 @@ let map_enum_field (env : env) ((v1, v2, v3, v4, v5, v6) : CST.enum_field) =
               let v2 = map_enum_value_option env v2 in
               let v3 =
                 R.List
-                  (List.map
+                  (List_.map
                      (fun (v1, v2) ->
                        let v1 = (* "," *) token env v1 in
                        let v2 = map_enum_value_option env v2 in
@@ -579,7 +579,7 @@ let map_service (env : env) ((v1, v2, v3, v4, v5) : CST.service) =
   let v3 = (* "{" *) token env v3 in
   let v4 =
     R.List
-      (List.map
+      (List_.map
          (fun x ->
            match x with
            | `Opt x -> R.Case ("Opt", map_option_ env x)
@@ -594,7 +594,7 @@ let map_enum_body (env : env) ((v1, v2, v3) : CST.enum_body) =
   let v1 = (* "{" *) token env v1 in
   let v2 =
     R.List
-      (List.map
+      (List_.map
          (fun x ->
            match x with
            | `Opt x -> R.Case ("Opt", map_option_ env x)
@@ -611,7 +611,7 @@ let map_oneof (env : env) ((v1, v2, v3, v4, v5) : CST.oneof) =
   let v3 = (* "{" *) token env v3 in
   let v4 =
     R.List
-      (List.map
+      (List_.map
          (fun x ->
            match x with
            | `Opt x -> R.Case ("Opt", map_option_ env x)
@@ -638,7 +638,7 @@ and map_message_body (env : env) ((v1, v2, v3) : CST.message_body) =
   let v1 = (* "{" *) token env v1 in
   let v2 =
     R.List
-      (List.map
+      (List_.map
          (fun x ->
            match x with
            | `Field x -> R.Case ("Field", map_field env x)
@@ -662,7 +662,7 @@ let map_source_file (env : env) ((v1, v2) : CST.source_file) : G.raw_tree =
         R.Option
           (Some
              (R.List
-                (List.map
+                (List_.map
                    (fun x ->
                      match x with
                      | `Import x -> R.Case ("Import", map_import env x)

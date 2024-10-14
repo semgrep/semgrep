@@ -633,8 +633,8 @@ type any = Pr of program | Ex of expr | Ss of block | Tk of tok
 (*****************************************************************************)
 
 let empty_cparents = { cextends = None; cwith = [] }
-let attrs_of_mods xs = List.map (fun x -> M x) xs
-let attrs_of_annots xs = List.map (fun x -> A x) xs
+let attrs_of_mods xs = List_.map (fun x -> M x) xs
+let attrs_of_annots xs = List_.map (fun x -> A x) xs
 let mods_with_annots mods annots = attrs_of_annots annots @ attrs_of_mods mods
 
 let is_variable_name s =

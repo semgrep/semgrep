@@ -202,7 +202,7 @@ let fix_tokens_lbody toks =
 
     (* use the tagged information and transform tokens *)
     toks
-    |> List.map (function
+    |> List_.map (function
          | T.LBRACE info when Hashtbl.mem retag_lbrace info -> T.LBODY info
          | T.LBRACE info when Hashtbl.mem retag_lbrace info -> T.LBODY info
          | T.LBRACE info when Hashtbl.mem retag_lbrace_semgrep info ->
