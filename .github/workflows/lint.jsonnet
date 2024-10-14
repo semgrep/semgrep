@@ -11,12 +11,43 @@
 //       built with ocaml-layer that would provide ocamlformat.
 //       Not sure why this is hard.
 
-local actions = import "libs/actions.libsonnet";
+local actions = import 'libs/actions.libsonnet';
 local gha = import 'libs/gha.libsonnet';
 
 // ----------------------------------------------------------------------------
 // The jobs
 // ----------------------------------------------------------------------------
+
+local pre_commit_steps(dependencies_path) = [
+  // pre-commit is a Python script, this speedup things from Xmin to Ymin?
+  // Ensures we have a version of python which is acceptible to pre-commit,
+  // even if we're on a runner which perhaps doesn't (e.g., Ubunut 24.04).
+  // See also <https://github.com/pre-commit/action/issues/210>.
+  {
+    uses: 'actions/setup-python@v4',
+    with: {
+      'python-version': '3.11',
+      // This caches the pip installed dependencies that pre-commit uses.
+      // Otherwise it will need to reinstall everytime.
+      // TODO? who will need to reinstall everytime? github action? How much does
+      // this cache directive speedup this workflow?
+      cache: 'pip',
+      'cache-dependency-path': dependencies_path,
+    },
+  },
+  // note that in a CI context pre-commit runs the hooks with the '--all' flag, so
+  // semgrep for example is passed all the files in the repository, not just
+  // the one modifed in the PR (as it is the case when it's ran from git
+  // hooks locally). This is why sometimes pre-commit passes locally but fails
+  // in CI, for the same PR.
+  {
+    uses: 'pre-commit/action@v3.0.0',
+    env: {
+      // Tell scripts/lint-ocaml to not bother with ocamlformat
+      SKIP_OCAMLFORMAT: 'yes',
+    },
+  },
+];
 
 // Running pre-commit in CI. See semgrep/.pre-commit-config.yaml for
 // our pre-commit configuration.
@@ -32,32 +63,7 @@ local pre_commit_job = {
       name: 'Fetch semgrep-cli submodules',
       run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces',
     },
-    // pre-commit is a Python script, this speedup things from Xmin to Ymin?
-    {
-      uses: 'actions/setup-python@v4',
-      with: {
-        'python-version': '3.11',
-        // This caches the pip installed dependencies that pre-commit uses.
-        // Otherwise it will need to reinstall everytime.
-        // TODO? who will need to reinstall everytime? github action? How much does
-        // this cache directive speedup this workflow?
-        cache: 'pip',
-        'cache-dependency-path': '.github/workflows/lint.yml',
-      },
-    },
-    // note that in a CI context pre-commit runs the hooks with the '--all' flag, so
-    // semgrep for example is passed all the files in the repository, not just
-    // the one modifed in the PR (as it is the case when it's ran from git
-    // hooks locally). This is why sometimes pre-commit passes locally but fails
-    // in CI, for the same PR.
-    {
-      uses: 'pre-commit/action@v3.0.0',
-      env: {
-        // Tell scripts/lint-ocaml to not bother with ocamlformat
-        SKIP_OCAMLFORMAT: 'yes'
-      },
-    },
-  ],
+  ] + pre_commit_steps('.github/workflows/lint.yml'),
 };
 
 // The 'extra_args:' directive runs semgrep/.pre-commit-config.yaml#L150,
@@ -194,5 +200,6 @@ local jsonnet_gha_job(checkout_steps, dir=".github/workflows") = {
     'pre-commit-ocaml': pre_commit_ocaml_job,
     'github-actions': action_lint_job,
     'jsonnet-gha': jsonnet_gha_job,
+    'pre-commit-steps': pre_commit_steps,
   },
 }
