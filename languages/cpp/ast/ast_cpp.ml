@@ -1192,7 +1192,7 @@ let (ii_of_id_name : name -> tok list) =
 let iis_of_dname = function
   | DN n -> ii_of_id_name n
   | DNStructuredBinding (l, (x, xs), r) ->
-      [ l ] @ (x :: xs |> List.map snd) @ [ r ]
+      [ l ] @ (x :: xs |> List_.map snd) @ [ r ]
 
 let (ii_of_name : name -> tok) =
  fun name ->

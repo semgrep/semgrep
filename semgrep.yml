@@ -90,15 +90,6 @@ rules:
     fix: List_.map2
     languages: [ocaml]
     severity: ERROR
-    paths:
-      include:
-        - src/*
-      exclude:
-        - profiling/*
-        - ppx_profiling/*
-        - commons/*
-        - graph_code/*
-        - lib_parsing/*
 
   - id: no-list-map
     pattern: List.map
@@ -108,15 +99,6 @@ rules:
     fix: List_.map
     languages: [ocaml]
     severity: ERROR
-    paths:
-      include:
-        - src/*
-      exclude:
-        - profiling/*
-        - ppx_profiling/*
-        - commons/*
-        - graph_code/*
-        - lib_parsing/*
 
   - id: no-list-filter-map
     pattern: List.filter_map
@@ -126,15 +108,6 @@ rules:
     fix: List_.filter_map
     languages: [ocaml]
     severity: ERROR
-    paths:
-      include:
-        - src/*
-      exclude:
-        - profiling/*
-        - ppx_profiling/*
-        - commons/*
-        - graph_code/*
-        - lib_parsing/*
 
   - id: no-list-mapi
     pattern: List.mapi
@@ -144,15 +117,6 @@ rules:
     fix: List_.mapi
     languages: [ocaml]
     severity: ERROR
-    paths:
-      include:
-        - src/*
-      exclude:
-        - profiling/*
-        - ppx_profiling/*
-        - commons/*
-        - graph_code/*
-        - lib_parsing/*
 
   - id: no-list-fold-right
     pattern: List.fold_right
@@ -191,15 +155,6 @@ rules:
     fix: List_.flatten
     languages: [ocaml]
     severity: ERROR
-    paths:
-      include:
-        - src/*
-      exclude:
-        - profiling/*
-        - ppx_profiling/*
-        - commons/*
-        - graph_code/*
-        - lib_parsing/*
 
   - id: use-concat-map
     pattern-either:
@@ -220,9 +175,6 @@ rules:
       by `concat`.
     languages: [ocaml]
     severity: ERROR
-    paths:
-      include:
-        - src/*
 
   - id: no-exit-code-1-in-semgrep
     pattern: sys.exit(1)

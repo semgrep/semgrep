@@ -15,5 +15,5 @@ class ['a, 'b] oassocb _xs =
     method null = Map_.is_empty data
     method assoc k = Map_.find k data
     method delkey k = {<data = Map_.remove k data>}
-    method keys = List.map fst o#tolist
+    method keys = List_.map fst o#tolist
   end

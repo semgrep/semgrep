@@ -895,12 +895,12 @@ let unargs xs =
 let unmodifiers class_vars =
   match class_vars with
   | NoModifiers _ -> []
-  | VModifiers xs -> List.map unwrap xs
+  | VModifiers xs -> List_.map unwrap xs
 
 let map_paren f (lp, x, rp) = (lp, f x, rp)
 
 let map_comma_list f xs =
-  List.map
+  List_.map
     (fun x ->
       match x with
       | Either.Left e -> Either.Left (f e)
@@ -980,7 +980,7 @@ let str_of_name_namespace x =
       Tok.content_of_tok tok
   | XName xs ->
       xs
-      |> List.map (function
+      |> List_.map (function
            | QITok _ -> "\\"
            | QI id -> str_of_ident id)
       |> String.concat ""

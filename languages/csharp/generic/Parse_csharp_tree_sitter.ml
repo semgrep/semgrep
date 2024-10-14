@@ -2934,7 +2934,7 @@ and struct_declaration (env : env)
     | Some x -> base_list env x
     | None -> []
   in
-  let v8 = List.map (type_parameter_constraints_clause env) v8 in
+  let v8 = List_.map (type_parameter_constraints_clause env) v8 in
   let tparams = type_parameters_with_constraints v6 v8 in
   let lb, body, rb = declaration_list env v9 in
   let fields = List_.map (fun x -> G.F x) body in

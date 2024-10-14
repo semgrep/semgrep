@@ -95,7 +95,7 @@ let rec macro_items_to_anys (xs : rust_macro_item list) : G.any list =
   let xs =
     xs
     |> List.concat_map (function
-         | MacAny (G.Anys anys) -> anys |> List.map (fun any -> MacAny any)
+         | MacAny (G.Anys anys) -> anys |> List_.map (fun any -> MacAny any)
          | other -> [ other ])
   in
   (* Note that the commas are considered like any other tokens in a Rust macro;
@@ -503,7 +503,7 @@ let map_non_special_token (env : env) (x : CST.non_special_token) =
       | `Choice_u8 x -> G.I (map_primitive_type_ident env x)
       | `Rep1_choice_SLASH xs ->
           G.Anys
-            (List.map
+            (List_.map
                (fun x ->
                  match x with
                  | `SLASH tok -> G.Tk ((* "/" *) token env tok)
@@ -2340,7 +2340,7 @@ and map_ordered_field_declaration_list (env : env)
           map_ordered_field env outer_attrs visibility type_first 0
         in
         let field_rest =
-          List.mapi
+          List_.mapi
             (fun index (v1, v2, v3, v4) ->
               let _comma = token env v1 (* "," *) in
               let outer_attrs = List_.map (map_outer_attribute_item env) v2 in
@@ -2379,7 +2379,7 @@ and map_ordered_field_declaration_list_types (env : env)
         in
         let type_first = map_type_ env v3 in
         let type_rest =
-          List.mapi
+          List_.mapi
             (fun _index (v1, v2, v3, v4) ->
               let _comma = token env v1 (* "," *) in
               let _outer_attrs = List_.map (map_outer_attribute_item env) v2 in

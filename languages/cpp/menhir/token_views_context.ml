@@ -33,7 +33,7 @@ let look_like_argument _tok_before xs =
   (* normalize for C++ *)
   let xs =
     xs
-    |> List.map (function
+    |> List_.map (function
          | Tok ({ t = TAnd ii } as record) -> Tok { record with t = TMul ii }
          | x -> x)
   in
@@ -108,7 +108,7 @@ let look_like_parameter_bis tok_before xs =
   (* normalize for C++ *)
   let xs =
     xs
-    |> List.map (function
+    |> List_.map (function
          | Tok ({ t = TAnd ii } as record) -> Tok { record with t = TMul ii }
          | x -> x)
   in

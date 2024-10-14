@@ -190,7 +190,9 @@ let fix_tokens_fuzzy toks =
     let retag_lparen_constructor = Hashtbl.create 101 in
 
     let horigin =
-      toks |> List.map (fun t -> (TH.info_of_tok t, t)) |> Hashtbl_.hash_of_list
+      toks
+      |> List_.map (fun t -> (TH.info_of_tok t, t))
+      |> Hashtbl_.hash_of_list
     in
 
     (match trees with
@@ -232,7 +234,7 @@ let fix_tokens_fuzzy toks =
 
     (* use the tagged information and transform tokens *)
     toks
-    |> List.map (function
+    |> List_.map (function
          | T.LP info when Hashtbl.mem retag_lparen info ->
              Log.debug (fun m ->
                  m "retagging ( for lambda at %s" (Tok.stringpos_of_tok info));

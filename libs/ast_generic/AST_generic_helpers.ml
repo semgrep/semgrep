@@ -145,7 +145,7 @@ let name_of_dot_access e =
         let* name_middle =
           match name_middle with
           | None -> Some []
-          | Some (QDots xs) -> Some (List.map (fun (id, _) -> id) xs)
+          | Some (QDots xs) -> Some (List_.map (fun (id, _) -> id) xs)
           | Some (QExpr _) -> None
         in
         let name_last = fst name_last in

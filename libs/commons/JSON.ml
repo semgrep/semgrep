@@ -44,8 +44,8 @@ let member m j =
   | _ -> None
 
 let rec (to_yojson : t -> yojson) = function
-  | Object xs -> `Assoc (xs |> List.map (fun (s, t) -> (s, to_yojson t)))
-  | Array xs -> `List (xs |> List.map to_yojson)
+  | Object xs -> `Assoc (xs |> List_.map (fun (s, t) -> (s, to_yojson t)))
+  | Array xs -> `List (xs |> List_.map to_yojson)
   | String s -> `String s
   | Int i -> `Int i
   | Bool b -> `Bool b
@@ -57,8 +57,8 @@ let rec (to_yojson : t -> yojson) = function
   | Null -> `Null
 
 let rec (from_yojson : yojson -> t) = function
-  | `Assoc xs -> Object (xs |> List.map (fun (s, t) -> (s, from_yojson t)))
-  | `List xs -> Array (xs |> List.map from_yojson)
+  | `Assoc xs -> Object (xs |> List_.map (fun (s, t) -> (s, from_yojson t)))
+  | `List xs -> Array (xs |> List_.map from_yojson)
   | `String s -> String s
   | `Int i -> Int i
   | `Bool b -> Bool b
@@ -67,8 +67,8 @@ let rec (from_yojson : yojson -> t) = function
 
 let rec yojson_to_ezjsonm (json : yojson) : ezjsonm =
   match json with
-  | `Assoc xs -> `O (xs |> List.map (fun (s, t) -> (s, yojson_to_ezjsonm t)))
-  | `List xs -> `A (xs |> List.map yojson_to_ezjsonm)
+  | `Assoc xs -> `O (xs |> List_.map (fun (s, t) -> (s, yojson_to_ezjsonm t)))
+  | `List xs -> `A (xs |> List_.map yojson_to_ezjsonm)
   | `String s -> `String s
   | `Int i -> `Float (float_of_int i)
   | `Bool b -> `Bool b
@@ -77,8 +77,8 @@ let rec yojson_to_ezjsonm (json : yojson) : ezjsonm =
 
 let rec ezjsonm_to_yojson (json : ezjsonm) : yojson =
   match json with
-  | `O xs -> `Assoc (xs |> List.map (fun (s, t) -> (s, ezjsonm_to_yojson t)))
-  | `A xs -> `List (xs |> List.map ezjsonm_to_yojson)
+  | `O xs -> `Assoc (xs |> List_.map (fun (s, t) -> (s, ezjsonm_to_yojson t)))
+  | `A xs -> `List (xs |> List_.map ezjsonm_to_yojson)
   | `String s -> `String s
   | `Bool b -> `Bool b
   | `Float x when Float.is_integer x -> `Int (int_of_float x)
