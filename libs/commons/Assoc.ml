@@ -24,9 +24,7 @@ type ('a, 'b) t = ('a * 'b) list
 (* Set-like operations *)
 (*****************************************************************************)
 let keys assoc = List_.map fst assoc
-
-let join_keys equal assoc1 assoc2 =
-  keys assoc1 @ keys assoc2 |> List_.uniq_by equal
+let join_keys assoc1 assoc2 = keys assoc1 @ keys assoc2 |> List_.deduplicate
 
 (*****************************************************************************)
 (* find *)

@@ -281,14 +281,14 @@ let enum x n =
 
 let exclude p xs = List.filter (fun x -> not (p x)) xs
 
-let rec (span : ('a -> bool) -> 'a list -> 'a list * 'a list) =
- fun p -> function
-  | [] -> ([], [])
-  | x :: xs ->
-      if p x then
-        let l1, l2 = span p xs in
-        (x :: l1, l2)
-      else ([], x :: xs)
+let span (p : 'a -> bool) xs =
+  let rec span acc_left xs =
+    match xs with
+    | [] -> (acc_left, [])
+    | x :: tail -> if p x then span (x :: acc_left) tail else (acc_left, xs)
+  in
+  let acc_left, right = span [] xs in
+  (List.rev acc_left, right)
 
 let rec take_safe n xs =
   match (n, xs) with
@@ -296,12 +296,11 @@ let rec take_safe n xs =
   | _, [] -> []
   | n, x :: xs -> x :: take_safe (n - 1) xs
 
-let rec zip xs ys =
-  match (xs, ys) with
-  | [], [] -> []
-  | [], _ -> failwith "zip: not same length"
-  | _, [] -> failwith "zip: not same length"
-  | x :: xs, y :: ys -> (x, y) :: zip xs ys
+(* Safe reimplementation of List.split *)
+let split xs = fold_right (fun (x, y) (xs, ys) -> (x :: xs, y :: ys)) xs ([], [])
+
+(* Safe reimplementation of List.combine *)
+let combine xs ys = map2 (fun a b -> (a, b)) xs ys
 
 let null xs =
   match xs with
@@ -310,7 +309,7 @@ let null xs =
 
 let index_list xs =
   if null xs then [] (* enum 0 (-1) generate an exception *)
-  else zip xs (enum 0 (List.length xs - 1))
+  else combine xs (enum 0 (List.length xs - 1))
 
 let index_list_0 xs = index_list xs
 let index_list_1 xs = xs |> index_list |> map (fun (x, i) -> (x, i + 1))
@@ -318,11 +317,6 @@ let index_list_1 xs = xs |> index_list |> map (fun (x, i) -> (x, i + 1))
 (*****************************************************************************)
 (* Options and lists *)
 (*****************************************************************************)
-
-let rec filter_some = function
-  | [] -> []
-  | None :: l -> filter_some l
-  | Some e :: l -> e :: filter_some l
 
 (* Tail-recursive to prevent stack overflows. *)
 let filter_map f xs =
@@ -333,6 +327,8 @@ let filter_map f xs =
       | Some y -> y :: acc)
     [] xs
   |> List.rev
+
+let filter_some xs = filter_map (fun x -> x) xs
 
 let rec find_some_opt p = function
   | [] -> None
@@ -364,13 +360,32 @@ let sort_by_key (key : 'a -> 'b) (cmp : 'b -> 'b -> int) (xs : 'a list) =
 
 (* maybe too slow? use an hash instead to first group, and then in
  * that group remove duplicates? *)
-let rec uniq_by eq xs =
-  match xs with
-  | [] -> []
-  | x :: xs -> (
-      match List.find_opt (fun y -> eq x y) xs with
-      | Some _ -> uniq_by eq xs
-      | None -> x :: uniq_by eq xs)
+let uniq_by eq xs =
+  let rec uniq_by acc xs =
+    match xs with
+    | [] -> acc
+    | x :: xs ->
+        if List.exists (fun y -> eq x y) acc then uniq_by acc xs
+        else uniq_by (x :: acc) xs
+  in
+  uniq_by [] xs |> List.rev
+
+let deduplicate_gen ~get_key xs =
+  let tbl = Hashtbl.create (List.length xs) in
+  (* We could use List.filter but it's not guaranteed to proceed from
+     left to right which would result in not necessarily selecting the first
+     occurrence of each element *)
+  List.fold_left
+    (fun acc x ->
+      let key = get_key x in
+      if Hashtbl.mem tbl key then acc
+      else (
+        Hashtbl.add tbl key ();
+        x :: acc))
+    [] xs
+  |> List.rev
+
+let deduplicate xs = deduplicate_gen (fun x -> x) xs
 
 (*****************************************************************************)
 (* Misc (was in common2.ml) *)

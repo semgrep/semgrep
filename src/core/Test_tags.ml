@@ -46,4 +46,4 @@ let tags_of_langs (langs : Lang.t list) =
   | langs ->
       langs |> List_.map tags_of_lang |> List_.flatten
       |> List.sort Testo.Tag.compare
-      |> List_.uniq_by Testo.Tag.equal
+      |> List_.deduplicate_gen ~get_key:Testo.Tag.to_string

@@ -37,7 +37,7 @@ let pattern_error source_name msg =
 *)
 let compile conf =
   Conf.check conf;
-  let open_chars, close_chars = List.split conf.brackets in
+  let open_chars, close_chars = List_.split conf.brackets in
   let long_ellipsis_1 = {|(\.\.\.\.)|} in
   let ellipsis_2 = {|(\.\.\.)|} in
   let metavar_3 = {|\$([A-Z][A-Z0-9_]*)|} in

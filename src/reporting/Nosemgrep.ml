@@ -256,7 +256,7 @@ let produce_ignored (matches : Core_result.processed_match list) :
     |> List_.map (fun (pm : Core_result.processed_match) ->
            let is_ignored, errors = rule_match_nosem pm.pm in
            ({ pm with is_ignored }, errors))
-    |> List.split
+    |> List_.split
   in
   (matches, List_.flatten wide_errors)
 
