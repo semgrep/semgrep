@@ -402,7 +402,7 @@ and build_cfg_for_lambdas_in state previ n =
   let lambda_names, lambda_fdefs =
     IL_helpers.rlvals_of_node n
     |> List_.filter_map (lval_is_lambda state)
-    |> List.split
+    |> List_.split
   in
   if lambda_fdefs <> [] then (
     (* We translate the set of lambdas used in the node as like an IF-ELSEIF-ELSE,

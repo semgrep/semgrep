@@ -529,8 +529,8 @@ let check_targets_with_rules
   in
   (* TODO: we should probably warn the user about rules using the same id *)
   let rules =
-    List_.uniq_by
-      (fun r1 r2 -> Rule_ID.equal (fst r1.Rule.id) (fst r2.Rule.id))
+    List_.deduplicate_gen
+      ~get_key:(fun r -> Rule_ID.to_string (fst r.Rule.id))
       rules
   in
   let too_many_entries = conf.output_conf.max_log_list_entries in

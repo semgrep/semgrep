@@ -356,7 +356,7 @@ let get_targets conf (scanning_roots : Scanning_root.t list) =
          (* TODO: respect_git_ignore, baseline_handler, etc. *)
          (paths, skipped_paths1 @ skipped_paths2 @ skipped_paths3))
   |> (* flatten results that were grouped by project *)
-  List.split
+  List_.split
   |> fun (paths_list, skipped_paths_list) ->
   (List_.flatten paths_list, List_.flatten skipped_paths_list)
 [@@profiling]

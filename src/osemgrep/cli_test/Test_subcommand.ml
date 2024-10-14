@@ -512,8 +512,7 @@ let compare_actual_to_expected (env : env) (matches : Pattern_match.t list)
   in
 
   let all_rule_ids : Rule_ID.t list =
-    Assoc.join_keys Rule_ID.equal matches_by_ruleid_and_file
-      expected_by_ruleid_and_file
+    Assoc.join_keys matches_by_ruleid_and_file expected_by_ruleid_and_file
   in
   (* regular ruleid tests *)
   let checks : (Rule_ID.t * Out.rule_result) list =
@@ -527,9 +526,7 @@ let compare_actual_to_expected (env : env) (matches : Pattern_match.t list)
              expected_by_ruleid_and_file |> Assoc.find_opt id
              |> List_.optlist_to_list
            in
-           let all_files : Fpath.t list =
-             Assoc.join_keys Fpath.equal actual expected
-           in
+           let all_files : Fpath.t list = Assoc.join_keys actual expected in
            let res : (bool * (Fpath.t * Out.expected_reported)) list =
              all_files
              |> List_.map (fun (target : Fpath.t) ->

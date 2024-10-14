@@ -450,7 +450,7 @@ let langs_of_pattern (pat, xlang_opt) : Xlang.t list =
       let all_langs =
         Lang.assoc
         |> List_.map (fun (_k, l) -> l)
-        |> List_.uniq_by ( =*= )
+        |> List_.deduplicate
         (* TODO: we currently get a segfault with the Dart parser
            * (for example on a pattern like ': string (* filename *)'), so we
            * skip Dart for now (which anyway is not really supported).

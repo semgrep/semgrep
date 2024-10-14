@@ -315,8 +315,8 @@ let fetch_rules session =
     Rule_fetching.partition_rules_and_invalid rules_and_origins
   in
   let rules =
-    List_.uniq_by
-      (fun r1 r2 -> Rule_ID.equal (fst r1.Rule.id) (fst r2.Rule.id))
+    List_.deduplicate_gen
+      ~get_key:(fun r -> Rule_ID.to_string (fst r.Rule.id))
       rules
   in
   let rule_filtering_conf =
