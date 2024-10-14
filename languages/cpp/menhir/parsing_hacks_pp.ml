@@ -167,7 +167,7 @@ let rec find_ifdef_mid xs =
                              | _ -> false))
                then
                  let counts =
-                   xxs |> List.map count_open_close_stuff_ifdef_clause
+                   xxs |> List_.map count_open_close_stuff_ifdef_clause
                  in
                  let cnt1, cnt2 =
                    match counts with

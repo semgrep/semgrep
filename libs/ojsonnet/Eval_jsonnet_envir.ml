@@ -259,7 +259,7 @@ and eval_obj_inside env (l, x, r) : V.t =
                      }
                | v -> error tk (spf "field name was not a string: %s" (sv v)))
       in
-      let asserts_with_env = List.map (fun x -> (x, env)) assertsTODO in
+      let asserts_with_env = List_.map (fun x -> (x, env)) assertsTODO in
       V.Object (l, (asserts_with_env, fields), r)
   (* big TODO *)
   | ObjectComp _x -> error l "TODO: ObjectComp"

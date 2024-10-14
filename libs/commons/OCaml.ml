@@ -364,7 +364,7 @@ let map_of_option v_of_a v =
   | None -> None
   | Some x -> Some (v_of_a x)
 
-let map_of_list of_a xs = List.map of_a xs
+let map_of_list of_a xs = List_.map of_a xs
 let map_of_int x = x
 let map_of_int64 x = x
 

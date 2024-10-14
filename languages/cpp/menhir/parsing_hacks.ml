@@ -170,7 +170,7 @@ let fix_tokens_fuzzy toks =
 
     (* use the tagged information and transform tokens *)
     toks
-    |> List.map (function
+    |> List_.map (function
          | T.TOCro info when Hashtbl.mem retag_lambda info ->
              T.TOCro_Lambda info
          | x -> x)

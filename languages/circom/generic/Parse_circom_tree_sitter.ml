@@ -741,7 +741,7 @@ let map_main_component_public_signals (env : env)
   let first_param = map_parameter env v4 in
   let params =
     first_param
-    :: List.map
+    :: List_.map
          (fun (v1, v2) ->
            let v1 = (* "," *) token env v1 in
            let v2 = map_parameter env v2 in
@@ -817,7 +817,7 @@ let map_source_file (env : env) (x : CST.source_file) =
   match x with
   | `Rep_source_unit v1 ->
       let xss = List_.map (map_source_unit env) v1 in
-      Pr (List.flatten xss)
+      Pr (List_.flatten xss)
   | `Rep1_stmt xs ->
       let xs = List_.map (map_statement env) xs in
       Ss xs

@@ -144,7 +144,7 @@ let seq_of_list (l : t list) : t =
   List_.fold_right (fun x acc -> seq x acc) l (Empty dummy_loc)
 
 let seq_of_code_points (l : (loc * int) list) : t =
-  List.map (fun (loc, c) -> Char (loc, Singleton c)) l |> seq_of_list
+  List_.map (fun (loc, c) -> Char (loc, Singleton c)) l |> seq_of_list
 
 let seq_of_ascii_string loc s =
   code_points_of_ascii_string_loc loc s |> seq_of_code_points

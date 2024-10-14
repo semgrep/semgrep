@@ -165,7 +165,7 @@ and toplevel env st =
       [ A.NamespaceDef (tok, qi, (t1, toplevels env xs, t2)) ]
   | NamespaceUse (tok, _kwdopt, xs, _) ->
       xs |> uncomma
-      |> List.map (fun (qu, alias_opt) ->
+      |> List_.map (fun (qu, alias_opt) ->
              let qu = qualified_ident env qu in
              let alias_opt =
                match alias_opt with
@@ -272,20 +272,21 @@ and stmt env st acc =
   | Throw (tok, e, sc) -> A.Expr (A.Throw (tok, expr env e), sc) :: acc
   | Try (tok, (lb, stl, rb), cl, fl) ->
       let stl = List_.fold_right (stmt_and_def env) stl [] in
-      let cl = List.map (catch env) cl in
-      let fl = List.map (finally env) fl in
+      let cl = List_.map (catch env) cl in
+      let fl = List_.map (finally env) fl in
       A.Try (tok, A.Block (lb, stl, rb), cl, fl) :: acc
   | Echo (tok, el, t) ->
       A.Expr
         ( A.Call
             ( A.Id [ (A.builtin "echo", wrap tok) ],
-              fb tok (List.map (fun e -> A.Arg (expr env e)) (comma_list el)) ),
+              fb tok (List_.map (fun e -> A.Arg (expr env e)) (comma_list el))
+            ),
           t )
       :: acc
   | Globals (tok, gvl, _) ->
-      A.Global (tok, List.map (global_var env) (comma_list gvl)) :: acc
+      A.Global (tok, List_.map (global_var env) (comma_list gvl)) :: acc
   | StaticVars (tok, svl, _) ->
-      A.StaticVars (tok, List.map (static_var env) (comma_list svl)) :: acc
+      A.StaticVars (tok, List_.map (static_var env) (comma_list svl)) :: acc
   | InlineHtml (s, tok) ->
       A.Expr
         ( A.Call
@@ -296,7 +297,7 @@ and stmt env st acc =
   | Use (tok, _fn, _) -> error tok "TODO:Use"
   | Unset (tok, (t1, lp, t2), sc) ->
       let lp = comma_list lp in
-      let lp = List.map (fun e -> A.Arg (lvalue env e)) lp in
+      let lp = List_.map (fun e -> A.Arg (lvalue env e)) lp in
       let id = A.IdSpecial (A.FuncLike A.Unset, wrap tok) in
       A.Expr (A.Call (id, (t1, lp, t2)), sc) :: acc
   (* http://php.net/manual/en/control-structures.declare.php *)
@@ -361,14 +362,14 @@ and expr env = function
       let e1 = expr env e1 in
       let fld_ident = name_expr env fld in
       let args = comma_list args in
-      let args = List.map (argument env) args in
+      let args = List_.map (argument env) args in
       A.Call
         ( A.Id [ ("call_user_func", wrap tok) ],
           (lp, A.Arg (A.Obj_get (e1, arrow, fld_ident)) :: args, rp) )
   | Call (e, (lp, args, rp)) ->
       let e = expr env e in
       let args = comma_list args in
-      let args = List.map (argument env) args in
+      let args = List_.map (argument env) args in
       A.Call (e, (lp, args, rp))
   | ObjGet (e1, tok, e2) ->
       let e1 = expr env e1 in
@@ -421,13 +422,13 @@ and expr env = function
   | ArrayLong (_, (t1, apl, t2))
   | ArrayShort (t1, apl, t2) ->
       let apl = comma_list apl in
-      let apl = List.map (array_pair env) apl in
+      let apl = List_.map (array_pair env) apl in
       A.ConsArray (t1, apl, t2)
   | New (tok, cn, args) ->
       let args =
         match args with
         | None -> []
-        | Some (_, cl, _) -> List.map (argument env) (comma_list cl)
+        | Some (_, cl, _) -> List_.map (argument env) (comma_list cl)
       in
       let cn = class_name_reference env cn in
       A.New (tok, cn, args)
@@ -435,7 +436,7 @@ and expr env = function
       let args =
         match args with
         | None -> []
-        | Some (_, cl, _) -> List.map (argument env) (comma_list cl)
+        | Some (_, cl, _) -> List_.map (argument env) (comma_list cl)
       in
       let cdef = class_def env cdef in
       A.NewAnonClass (tok, args, cdef)
@@ -485,7 +486,7 @@ and expr env = function
   | BackQuote (t1, el, t2) ->
       A.Call
         ( A.Id [ (A.builtin "exec", wrap t1 (* not really an exec token *)) ],
-          fb t1 [ A.Arg (A.Guil (t1, List.map (encaps env) el, t2)) ] )
+          fb t1 [ A.Arg (A.Guil (t1, List_.map (encaps env) el, t2)) ] )
   | Include (tok, e) ->
       A.Call
         (A.Id [ (A.builtin "include", wrap tok) ], fb tok [ A.Arg (expr env e) ])
@@ -506,7 +507,9 @@ and expr env = function
   | Isset (tok, (lp, lvl, rp)) ->
       let id = A.IdSpecial (A.FuncLike A.Isset, wrap tok) in
       A.Call
-        (id, (lp, List.map (fun e -> A.Arg (lvalue env e)) (comma_list lvl), rp))
+        ( id,
+          (lp, List_.map (fun e -> A.Arg (lvalue env e)) (comma_list lvl), rp)
+        )
   | Yield (tok, e) ->
       A.Call
         ( A.Id [ (A.builtin "yield", wrap tok) ],
@@ -574,8 +577,8 @@ and cast_type _env = function
 
 and scalar env = function
   | C cst -> constant env cst
-  | Guil (t1, el, t2) -> A.Guil (t1, List.map (encaps env) el, t2)
-  | HereDoc (t1, el, t2) -> A.Guil (t1, List.map (encaps env) el, t2)
+  | Guil (t1, el, t2) -> A.Guil (t1, List_.map (encaps env) el, t2)
+  | HereDoc (t1, el, t2) -> A.Guil (t1, List_.map (encaps env) el, t2)
 
 and constant env = function
   | Bool x -> A.Bool x
@@ -614,9 +617,9 @@ and hint_type env = function
   | HintArray tok -> A.HintArray tok
   | HintQuestion (tok, t) -> A.HintQuestion (tok, hint_type env t)
   | HintTuple (t1, v1, t2) ->
-      A.HintTuple (t1, List.map (hint_type env) (comma_list v1), t2)
+      A.HintTuple (t1, List_.map (hint_type env) (comma_list v1), t2)
   | HintCallback (_, (_, args, ret), _) ->
-      let args = List.map (hint_type env) (comma_list_dots (brace args)) in
+      let args = List_.map (hint_type env) (comma_list_dots (brace args)) in
       let ret = Option.map (fun (_, t) -> hint_type env t) ret in
       A.HintCallback (args, ret)
   | HintTypeConst (lhs, tok, rhs) ->
@@ -677,7 +680,7 @@ and lambda_def env (l_use, ld) =
       | None -> []
       | Some (_, (_lp, xs, _rp)) ->
           comma_list xs
-          |> List.map (function LexicalVar (is_ref, name) ->
+          |> List_.map (function LexicalVar (is_ref, name) ->
                  (is_ref <> None, dname name)));
   }
 
@@ -762,11 +765,11 @@ and class_type _env = function
 
 and interfaces env (_, intfs) =
   let intfs = comma_list intfs in
-  List.map (fun x -> hint_type env x) intfs
+  List_.map (fun x -> hint_type env x) intfs
 
 and class_traits env x acc =
   match x with
-  | UseTrait (_, l, _) -> List.map (hint_type env) (comma_list l) @ acc
+  | UseTrait (_, l, _) -> List_.map (hint_type env) (comma_list l) @ acc
   | _ -> acc
 
 and class_constants env st acc =
@@ -789,10 +792,10 @@ and class_variables env st acc =
       let m =
         match m with
         | NoModifiers _ -> []
-        | VModifiers l -> List.map (modifier env) l
+        | VModifiers l -> List_.map (modifier env) l
       in
       let ht = opt hint_type env ht in
-      List.map
+      List_.map
         (fun (n, ss) ->
           let name = dname n in
           let value = opt static_scalar_affect env ss in
@@ -831,7 +834,7 @@ and class_body env st (mets, flds) =
 
 and method_def env m =
   let _, params, _ = m.f_params in
-  let mds = List.map (modifier env) m.f_modifiers in
+  let mds = List_.map (modifier env) m.f_modifiers in
   let params = comma_list_dots_params (parameter env) params in
   (*
   let implicits =
@@ -921,7 +924,7 @@ and array_pair env = function
   | ArrayArrowRef (e1, arrow, tokref, lv) ->
       A.Arrow (expr env e1, arrow, A.Ref (tokref, lvalue env lv))
 
-and for_expr env el = List.map (expr env) (comma_list el)
+and for_expr env el = List_.map (expr env) (comma_list el)
 
 and colon_stmt tok env = function
   | SingleStmt st -> stmt1 tok (stmt env st [])
@@ -930,8 +933,8 @@ and colon_stmt tok env = function
 (*of tok (* : *) * stmt_and_def list * tok (* endxxx *) * tok (* ; *) *)
 
 and switch_case_list env = function
-  | CaseList (_, _, cl, _) -> List.map (case env) cl
-  | CaseColonList (_, _, cl, _, _) -> List.map (case env) cl
+  | CaseList (_, _, cl, _) -> List_.map (case env) cl
+  | CaseColonList (_, _, cl, _, _) -> List_.map (case env) cl
 
 and case env = function
   | Case (tok, e, _, stl) ->
@@ -1000,13 +1003,13 @@ and attributes env = function
   | Some (_, xs, _) ->
       let xs = comma_list xs in
       xs
-      |> List.map (function
+      |> List_.map (function
            | Attribute (s, tok) -> A.Id [ (s, wrap tok) ]
            | AttributeWithArgs ((s, tok), (lp, xs, rp)) ->
                A.Call
                  ( A.Id [ (s, wrap tok) ],
                    ( lp,
-                     List.map
+                     List_.map
                        (fun e -> A.Arg (static_scalar env e))
                        (comma_list xs),
                      rp ) ))

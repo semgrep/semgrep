@@ -839,7 +839,7 @@ and array_pattern_n (env : env) (x : CST.array_pattern_n) : patlist_arg list =
   | `Splat_param_rep_COMMA_pat_expr (v1, v2) ->
       let v1 = splat_parameter env v1 in
       let v2 =
-        List.map
+        List_.map
           (fun (v1, v2) ->
             let _v1 = (* "," *) token2 env v1 in
             let v2 = pattern_expr env v2 in
@@ -1563,7 +1563,7 @@ and primary (env : env) (x : CST.primary) : AST.expr =
             | Some x -> terminator env x
             | None -> ()
           in
-          let v4 = List.map (in_clause env) v4 in
+          let v4 = List_.map (in_clause env) v4 in
           let v5 =
             match v5 with
             | Some x -> Some (else_ env x)
@@ -1817,7 +1817,7 @@ and command_argument_list (env : env) (x : CST.command_argument_list) :
       let t = Tok.rewrap_str "..." t in
       let v2 = argument env v2 in
       let v3 =
-        List.map
+        List_.map
           (fun (v1, v2) ->
             let _v1 = (* "," *) token2 env v1 in
             let v2 = argument env v2 in
@@ -2328,7 +2328,7 @@ and delimited_symbol (env : env) ((v1, v2, v3) : CST.delimited_symbol) : atom =
   (Tok.fake_tok v1 ":", AtomFromString (v1, res, v3))
 
 and literal_contents (env : env) (xs : CST.literal_contents) : AST.interp list =
-  List.filter_map
+  List_.filter_map
     (fun x ->
       match x with
       | `Str_content tok ->

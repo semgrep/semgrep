@@ -224,7 +224,7 @@ and map_moduleinstantiation (env : env)
   let v2 = (* "<" *) token env v2 in
   let v3 = map_signatureexpr env v3 in
   let v4 =
-    List.map
+    List_.map
       (fun (v1, v2) ->
         let _v1 = (* "," *) token env v1 in
         let v2 = map_signatureexpr env v2 in
@@ -270,7 +270,7 @@ let map_annotarg (env : env) (x : CST.annotarg) : expr =
 
 let map_importmoduleexpr (env : env) ((v1, v2) : CST.importmoduleexpr) =
   let v1 =
-    List.map
+    List_.map
       (fun (v1, v2) ->
         let v1 = map_modulename env v1 in
         let v2 = (* "." *) token env v2 in
@@ -334,7 +334,7 @@ let map_typeunionbody ~tok ~name (env : env)
     | Some (v1, v2) ->
         let v1 = map_typeexpr env v1 in
         let v2 =
-          List.map
+          List_.map
             (fun (v1, v2) ->
               let v1 = (* "or" *) token env v1 in
               let v2 = map_typeexpr env v2 in
@@ -355,7 +355,7 @@ let map_annotation (env : env) (x : CST.annotation) =
       let v2 = (* "[" *) token env v2 in
       let v3 = map_annotarg env v3 in
       let v4 =
-        List.map
+        List_.map
           (fun (v1, v2) ->
             let _v1 = (* "," *) token env v1 in
             let v2 = map_annotarg env v2 in
@@ -388,7 +388,7 @@ let map_anon_vard_rep_COMMA_vard_76ab5f3 (env : env)
     ((v1, v2) : CST.anon_vard_rep_COMMA_vard_76ab5f3) =
   let v1 = map_vardecl env v1 in
   let v2 =
-    List.map
+    List_.map
       (fun (v1, v2) ->
         let _v1 = (* "," *) token env v1 in
         let v2 = map_vardecl env v2 in
@@ -401,7 +401,7 @@ let rec map_anon_call_arg_rep_COMMA_call_arg_25882ee (env : env)
     ((v1, v2) : CST.anon_call_arg_rep_COMMA_call_arg_25882ee) =
   let v1 = map_call_arg env v1 in
   let v2 =
-    List.map
+    List_.map
       (fun (v1, v2) ->
         let _v1 = (* "," *) token env v1 in
         let v2 = map_call_arg env v2 in
@@ -426,7 +426,7 @@ and map_asexpr (env : env) ((v1, v2) : CST.asexpr) =
 and map_asexprs (env : env) ((v1, v2) : CST.asexprs) =
   let v1 = map_asexpr env v1 in
   let v2 =
-    List.map
+    List_.map
       (fun (v1, v2) ->
         let _v1 = (* "," *) token env v1 in
         let v2 = map_asexpr env v2 in
@@ -644,7 +644,7 @@ and map_orderbys (env : env) ((v1, v2, v3, v4) : CST.orderbys) =
   let v2 = (* "by" *) token env v2 in
   let v3 = map_orderby env v3 in
   let v4 =
-    List.map
+    List_.map
       (fun (v1, v2) ->
         let _v1 = (* "," *) token env v1 in
         let v2 = map_orderby env v2 in
@@ -708,7 +708,7 @@ and map_primary (env : env) (x : CST.primary) : expr =
             let v1 = (* "[" *) token env v1 in
             let v2 = map_exprorterm env v2 in
             let v3 =
-              List.map
+              List_.map
                 (fun (v1, v2) ->
                   let _v1 = (* "," *) token env v1 in
                   let v2 = map_exprorterm env v2 in
@@ -747,7 +747,7 @@ and map_primary (env : env) (x : CST.primary) : expr =
         | Some (v1, v2) ->
             let v1 = map_exprorterm env v1 in
             let v2 =
-              List.map
+              List_.map
                 (fun (v1, v2) ->
                   let _v1 = (* "," *) token env v1 in
                   let v2 = map_exprorterm env v2 in
@@ -859,7 +859,7 @@ let map_optbody (env : env) (x : CST.optbody) : expr option =
         | Some (v1, v2) ->
             let v1 = map_predicateexpr env v1 in
             let v2 =
-              List.map
+              List_.map
                 (fun (v1, v2) ->
                   let _v1 = (* "," *) token env v1 in
                   let v2 = map_predicateexpr env v2 in
@@ -952,7 +952,7 @@ let map_classlesspredicate (env : env) ((v1, v2, v3) : CST.classlesspredicate) :
 let map_datatypebranches (env : env) ((v1, v2) : CST.datatypebranches) =
   let v1 = map_datatypebranch env v1 in
   let v2 =
-    List.map
+    List_.map
       (fun (v1, v2) ->
         let v1 = (* "or" *) token env v1 in
         let v2 = map_datatypebranch env v2 in
@@ -965,7 +965,7 @@ let map_classmember (env : env) (x : CST.classmember) : stmt list =
   match x with
   | `Semg_ellips tok -> [ ExprStmt (Ellipsis (token env tok)) ]
   | `Rep_anno_choice_char (v1, v2) ->
-      let v1 = List.map (map_annotation env) v1 in
+      let v1 = List_.map (map_annotation env) v1 in
       let v2 =
         match v2 with
         | `Char x -> map_charpred env x
@@ -994,7 +994,7 @@ let map_dataclass (env : env) ((v1, v2, v3) : CST.dataclass) : stmt =
             let v1 = (* "extends" *) token env v1 in
             let v2 = map_typeexpr env v2 in
             let v3 =
-              List.map
+              List_.map
                 (fun (v1, v2) ->
                   let _v1 = (* "," *) token env v1 in
                   let v2 = map_typeexpr env v2 in
@@ -1010,7 +1010,7 @@ let map_dataclass (env : env) ((v1, v2, v3) : CST.dataclass) : stmt =
             let v1 = (* "instanceof" *) token env v1 in
             let v2 = map_typeexpr env v2 in
             let v3 =
-              List.map
+              List_.map
                 (fun (v1, v2) ->
                   let _v1 = (* "," *) token env v1 in
                   let v2 = map_typeexpr env v2 in
@@ -1044,7 +1044,7 @@ let rec map_module_ (env : env) ((v1, v2, v3, v4, v5) : CST.module_) =
         let v1 = (* "<" *) token env v1 in
         let v2 = map_moduleparam env v2 in
         let v3 =
-          List.map
+          List_.map
             (fun (v1, v2) ->
               let _v1 = (* "," *) token env v1 in
               let v2 = map_moduleparam env v2 in
@@ -1063,7 +1063,7 @@ let rec map_module_ (env : env) ((v1, v2, v3, v4, v5) : CST.module_) =
           (let v1 = (* "implements" *) token env v1 in
            let v2 = map_signatureexpr env v2 in
            let v3 =
-             List.map
+             List_.map
                (fun (v1, v2) ->
                  let _v1 = (* "," *) token env v1 in
                  let v2 = map_signatureexpr env v2 in
@@ -1089,7 +1089,7 @@ and map_modulemember (env : env) (x : CST.modulemember) : stmt list =
   | `Semg_ellips tok -> [ ExprStmt (Ellipsis (token env tok)) ]
   | `Rep_anno_choice_impo (v1, v2) ->
       (* TODO *)
-      let _v1 = List.map (map_annotation env) v1 in
+      let _v1 = List_.map (map_annotation env) v1 in
       let v2 =
         match v2 with
         | `Impo x -> map_importdirective env x
