@@ -269,6 +269,11 @@ local opam_setup = function(opam_switch="4.14.0") {
       },
     };
 
+// We can't use ubuntu-latest (currently 24.04) just yet until
+// https://github.com/ocaml/setup-ocaml/issues/872
+// is fixed.
+local stable_ubuntu_version_for_setup_ocaml = 'ubuntu-22.04';
+
 // ----------------------------------------------------------------------------
 // Entry point
 // ----------------------------------------------------------------------------
@@ -301,4 +306,6 @@ local opam_setup = function(opam_switch="4.14.0") {
   github_bot: github_bot,
   cache_opam: cache_opam,
   slack: slack,
+
+  stable_ubuntu_version_for_setup_ocaml: stable_ubuntu_version_for_setup_ocaml,
 }
