@@ -675,9 +675,9 @@ let build_var kwd (id_or_pat, ty_opt, initopt) =
       (basic_entity id, { v_kind = kwd; v_init = initopt; v_type = ty_opt })
   | Either.Right pat -> var_pattern_to_var kwd pat (snd kwd) initopt
 
-let build_vars kwd vars = vars |> List.map (build_var kwd)
-let vars_to_defs xs = xs |> List.map (fun (ent, v) -> (ent, VarDef v))
-let vars_to_stmts xs = xs |> vars_to_defs |> List.map (fun x -> DefStmt x)
+let build_vars kwd vars = vars |> List_.map (build_var kwd)
+let vars_to_defs xs = xs |> List_.map (fun (ent, v) -> (ent, VarDef v))
+let vars_to_stmts xs = xs |> vars_to_defs |> List_.map (fun x -> DefStmt x)
 
 (*
    Left-handside patterns and function parameters happen to use the same
@@ -716,7 +716,7 @@ let add_decorators_to_declaration decorators declaration =
   ({ ent with attrs = ent.attrs @ decorators }, defkind)
 
 let add_decorators_to_declarations decorators declarations =
-  List.map (add_decorators_to_declaration decorators) declarations
+  List_.map (add_decorators_to_declaration decorators) declarations
 
 (*****************************************************************************)
 (* Helpers. TODO: move in Tok.ml instead *)

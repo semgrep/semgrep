@@ -331,7 +331,7 @@ let eval_std_method_ (env : V.env) (e0 : expr) (method_str, tk) (l, args, r) =
           let elts' =
             (* TODO? use Array.to_seqi instead? *)
             eis |> Array.to_list |> List_.index_list
-            |> List.filter_map (fun (ei, ji) ->
+            |> List_.filter_map (fun (ei, ji) ->
                    match
                      env.eval_std_filter_element { env with locals } tk f ei
                    with

@@ -248,7 +248,7 @@ let label_pair_exprs (instr_name : string wrap) (kv_pairs : label_pair list) :
     | _ -> false
   in
   kv_pairs
-  |> List.filter_map (function
+  |> List_.filter_map (function
        | Label_semgrep_ellipsis tok ->
            if is_one_element then
              (* LABEL ... *)

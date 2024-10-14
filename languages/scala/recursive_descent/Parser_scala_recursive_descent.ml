@@ -223,7 +223,7 @@ let convertToParam tk e =
 
 let convertToParams tk e =
   match e with
-  | Tuple (lb, xs, rb) -> (lb, (xs |> List.map (convertToParam tk), None), rb)
+  | Tuple (lb, xs, rb) -> (lb, (xs |> List_.map (convertToParam tk), None), rb)
   | _ -> fb tk ([ convertToParam tk e ], None)
 
 let makeMatchFromExpr e =

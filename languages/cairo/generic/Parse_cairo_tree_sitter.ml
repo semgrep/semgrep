@@ -55,7 +55,7 @@ let map_list (f : 'a -> 'b) (x : ('a * Token.t) list) (tail : 'a option) :
     | None -> remove_separator x
   in
 
-  List.map f values
+  List_.map f values
 
 (* map a list of one or more tokens that are separated by another token (ex. comma) *)
 let map_list_1 (f : 'a -> 'b) (head : 'a) (x : (Token.t * 'a) list) : 'b list =
@@ -65,7 +65,7 @@ let map_list_1 (f : 'a -> 'b) (head : 'a) (x : (Token.t * 'a) list) : 'b list =
     | [] -> []
   in
 
-  List.map f (head :: remove_separator x)
+  List_.map f (head :: remove_separator x)
 
 (* Convenience function to create a bracketed type. *)
 let wrap_in (env : env) (x : Token.t * 'a * Token.t) : 'a G.bracket =
@@ -356,7 +356,7 @@ and map_block (env : env) (x : CST.block) : G.expr =
 
   let lb = token env lb
   and rb = token env rb
-  and statements = List.map (map_statement env) prevs
+  and statements = List_.map (map_statement env) prevs
   and final =
     match last with
     | Some expr -> [ G.ExprStmt (map_expression env expr, G.sc) |> G.s ]
@@ -541,10 +541,10 @@ and map_attributes (env : env) (x : CST.attribute_list list) : G.attribute list
 
   let map_attribute_list (x : CST.attribute_list) =
     let _, _, attributes, _ = x in
-    List.map map_attribute attributes
+    List_.map map_attribute attributes
   in
 
-  List_.flatten (List.map map_attribute_list x)
+  List_.flatten (List_.map map_attribute_list x)
 
 and map_type_parameters (env : env) (x : CST.type_parameter_list) :
     G.type_parameters =
@@ -688,7 +688,7 @@ and map_module_declaration (env : env) (x : CST.module_declaration) :
 
   let body =
     match body with
-    | `Module_body (_, body, _) -> List.map (map_declaration env) body
+    | `Module_body (_, body, _) -> List_.map (map_declaration env) body
     | `SEMI _ -> []
   in
 
@@ -768,7 +768,7 @@ and map_trait_declaration (env : env) (x : CST.trait_declaration) : G.definition
     }
   in
 
-  let functions = List.map map_function functions in
+  let functions = List_.map map_function functions in
 
   ( entity,
     G.ClassDef
@@ -917,7 +917,7 @@ and map_impl_declaration (env : env) (x : CST.impl_declaration) : G.definition =
     let trait_name = G.IdQualified (map_qualified_name env trait) in
 
     let _, body, _ = body in
-    let body = List.map (map_declaration env) body in
+    let body = List_.map (map_declaration env) body in
 
     ( entity,
       G.OtherDef (("Impl", token env impl), [ G.Name trait_name; G.Ss body ]) )
@@ -935,7 +935,7 @@ and map_impl_declaration (env : env) (x : CST.impl_declaration) : G.definition =
     in
 
     let _, body, _ = body in
-    let body = List.map (map_declaration env) body in
+    let body = List_.map (map_declaration env) body in
 
     (entity, G.OtherDef (("Impl", token env impl), [ G.Ss body ]))
   in
@@ -946,9 +946,9 @@ and map_impl_declaration (env : env) (x : CST.impl_declaration) : G.definition =
 
 let map_source_file (env : env) (x : CST.source_file) : G.any =
   match x with
-  | `Rep_choice_import_decl x -> G.Pr (List.map (map_declaration env) x)
+  | `Rep_choice_import_decl x -> G.Pr (List_.map (map_declaration env) x)
   | `Semg_exp (_, x) -> G.E (map_expression env x)
-  | `Semg_stmt (_, x) -> G.Pr (List.map (map_statement env) x)
+  | `Semg_stmt (_, x) -> G.Pr (List_.map (map_statement env) x)
 
 (*****************************************************************************)
 (* Entry point *)

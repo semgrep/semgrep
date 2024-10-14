@@ -356,7 +356,7 @@ let line_range_of_paren = function
       match info_parens with
       | [] -> raise Impossible
       | x :: xs ->
-          let lines_no = x :: xs |> List.map (fun x -> x.line) in
+          let lines_no = x :: xs |> List_.map (fun x -> x.line) in
           (Common2.minimum lines_no, Common2.maximum lines_no))
 
 let rec span_line_paren_range (imin, imax) = function
@@ -606,7 +606,7 @@ let vof_context = function
 let vof_token_extended t =
   let info = TH.info_of_tok t.t in
   let str = Tok.content_of_tok info in
-  let xs = List.map vof_context t.where in
+  let xs = List_.map vof_context t.where in
   OCaml.VTuple [ OCaml.VString str; OCaml.VList xs ]
 
 let rec vof_multi_grouped = function
@@ -630,5 +630,5 @@ let rec vof_multi_grouped = function
       OCaml.VSum ("Tok", [ v1 ])
 
 let vof_multi_grouped_list xs =
-  let v = OCaml.VList (xs |> List.map vof_multi_grouped) in
+  let v = OCaml.VList (xs |> List_.map vof_multi_grouped) in
   v

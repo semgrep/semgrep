@@ -76,7 +76,7 @@ let map_duration (env : env) (x : CST.duration) =
   | `Semg_meta tok -> G.N (H2.name_of_id (str env tok)) |> G.e
   | `Rep1_pat_780550e_choice_ms x ->
       let dur =
-        List.map
+        List_.map
           (fun (f, d) ->
             let si, ti = str env f in
             let pi = Parsed_int.parse (si, ti) in
@@ -144,7 +144,7 @@ let map_series_matcher (env : env) (x : CST.series_matcher) =
     match v1 with
     | Some (h, t, _) ->
         let h = map_choice_semg_ellips env h in
-        let t = List.map (fun (_, x) -> map_choice_semg_ellips env x) t in
+        let t = List_.map (fun (_, x) -> map_choice_semg_ellips env x) t in
         [ h ] @ t
     | None -> []
   in
@@ -223,7 +223,7 @@ let map_function_grouping (env : env) ((v1, t1, v2, t2) : CST.grouping) =
     | Some (v1, v2, _) ->
         let h = map_choice_semg_ellpis env v1 |> G.e in
         let t =
-          List.map (fun (_, lbl) -> map_choice_semg_ellpis env lbl |> G.e) v2
+          List_.map (fun (_, lbl) -> map_choice_semg_ellpis env lbl |> G.e) v2
         in
         G.Container (G.Set, (t1, [ h ] @ t, t2)) |> G.e
     | None -> G.Container (G.Set, (t1, [], t2)) |> G.e
@@ -235,7 +235,7 @@ let rec map_function_args (env : env) ((_, v1, _) : CST.function_args) =
   | Some (v1, v2, _) ->
       let v1 = map_query env v1 in
       let v2 =
-        List.map
+        List_.map
           (fun (_, v1) ->
             let v1 = map_query env v1 in
             G.Arg v1)
