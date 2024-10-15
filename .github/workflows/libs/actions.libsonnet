@@ -24,15 +24,16 @@
   // Python stuff
   // ---------------------------------------------------------
 
+  // Small wrapper around https://github.com/actions/setup-python
   // TODO: maybe simplify callers now that has default version to 3.11
-  setup_python_step: function(version='3.11') {
+  setup_python_step: function(version='3.11', cache='pipenv') {
     uses: 'actions/setup-python@v4',
     with: {
       'python-version': version,
       // TODO where is this cache created?
       // TODO at least force to specify the key?
       // like 'cache-dependency-path': 'scripts/release/Pipfile.lock' ?
-      cache: 'pipenv',
+      cache: cache,
     },
   },
   // We pin to a specific version just to prevent things from breaking randomly.
