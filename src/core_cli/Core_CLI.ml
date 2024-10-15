@@ -341,7 +341,12 @@ let mk_config () : Core_scan_config.t =
           Some { endpoint; top_level_span = None }
       | true, None ->
           Some { endpoint = default_trace_endpoint; top_level_span = None }
-      | false, Some _ -> failwith "need both -trace and -trace_endpoint"
+      | false, Some _ ->
+          Logs.warn (fun m ->
+              m
+                "Tracing is disabled because -trace_endpoint is specified \
+                 without -trace.");
+          None
       | false, None -> None);
   }
 

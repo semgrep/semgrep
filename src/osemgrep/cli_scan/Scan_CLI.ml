@@ -457,7 +457,7 @@ meant for internal use and may be changed or removed without warning.
 let o_trace_endpoint : string option Term.t =
   let info =
     Arg.info [ "trace-endpoint" ]
-      ~env:(Cmd.Env.info "SEMGREP_OTEL_ENDPOINTS")
+      ~env:(Cmd.Env.info "SEMGREP_OTEL_ENDPOINT")
       ~doc:
         {|Endpoint to send OpenTelemetry traces to, if `--trace` is present.
 The value may be `semgrep-prod` (default), `semgrep-dev`,
@@ -1406,6 +1406,14 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
           m
             "Paths that match both --include and --exclude will be skipped by \
              Semgrep.");
+
+    if trace_endpoint <> None && not trace then
+      Logs.warn (fun m ->
+          m
+            "The --trace-endpoint flag or SEMGREP_OTEL_ENDPOINT environment \
+             variable is specified without --trace.\n\
+             If you intend to enable tracing, please also add the --trace flag.");
+
     {
       rules_source;
       target_roots;

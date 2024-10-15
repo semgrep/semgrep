@@ -601,6 +601,14 @@ def scan(
     engine_type: Optional[EngineType] = None
 
     state = get_state()
+    if trace_endpoint and not trace:
+        logger.warning(
+            with_color(
+                Colors.yellow,
+                "The --trace-endpoint flag or SEMGREP_OTEL_ENDPOINT environment variable is specified without --trace.\n"
+                "If you intend to enable tracing, please also add the --trace flag.",
+            )
+        )
     state.traces.configure(trace, trace_endpoint)
     with tracing.TRACER.start_as_current_span("semgrep.commands.scan"):
         engine_type = EngineType.decide_engine_type(
