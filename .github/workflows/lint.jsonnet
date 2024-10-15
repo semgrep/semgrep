@@ -24,7 +24,7 @@ local pre_commit_steps(dependencies_path) = [
   // even if we're on a runner which perhaps doesn't (e.g., Ubuntu 24.04).
   // See also <https://github.com/pre-commit/action/issues/210>.
   // TODO: factorize with actions.libsonnet setup_python_step
-  {
+   {
     uses: 'actions/setup-python@v4',
     with: {
       'python-version': '3.11',
@@ -80,6 +80,13 @@ local pre_commit_manual_job = {
   steps: [
     actions.checkout(),
     gha.git_safedir,
+    // less: factorize with pre_commit_steps
+    {
+       uses: 'actions/setup-python@v4',
+       with: {
+         'python-version': '3.11',
+        }
+    },
     {
       uses: 'pre-commit/action@v3.0.0',
       with: {
