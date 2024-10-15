@@ -21,8 +21,9 @@ local gha = import 'libs/gha.libsonnet';
 local pre_commit_steps(dependencies_path) = [
   // pre-commit is a Python script, this speedup things from Xmin to Ymin?
   // Ensures we have a version of python which is acceptible to pre-commit,
-  // even if we're on a runner which perhaps doesn't (e.g., Ubunut 24.04).
+  // even if we're on a runner which perhaps doesn't (e.g., Ubuntu 24.04).
   // See also <https://github.com/pre-commit/action/issues/210>.
+  // TODO: factorize with actions.libsonnet setup_python_step
   {
     uses: 'actions/setup-python@v4',
     with: {
