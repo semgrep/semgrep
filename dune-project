@@ -77,7 +77,6 @@ the other programming languages supported by atdgen."
     (lib_parsing (>= 1.5.5))
     (profiling (>= 1.5.5))
     (atdgen (>= 2.8.0))
-    (uuidm (>= 0.9.9))
   )
 )
 
