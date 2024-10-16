@@ -1,0 +1,12 @@
+(library
+ (public_name parser_move_on_sui.ast_generic)
+ (name parser_move_on_sui_ast_generic)
+ (wrapped false)
+ (libraries
+   commons
+   lib_parsing lib_parsing_tree_sitter
+   tree-sitter-lang.move-on-sui
+   ast_generic
+ )
+ (preprocess (pps ppx_deriving.show))
+)

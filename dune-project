@@ -269,6 +269,10 @@ parsers, especially ocamlyacc/menhir based parsers.
   (synopsis "XXX")
   (description "XXX")
 )
+(package (name parser_move_on_sui)
+  (synopsis "XXX")
+  (description "XXX")
+)
 (package (name parser_move_on_aptos)
   (synopsis "XXX")
   (description "XXX")
@@ -563,14 +567,12 @@ Uses indentation and standard braces to determine a crude parse tree
     (dune (>= 2.1))
   )
 )
-
+; needed because lots of dune language libs use tree-sitter-lang
+; as a common base as in tree-sitter-lang.typescript
 (package (name tree-sitter-lang)
   (synopsis "XXX")
   (description "XXX")
-)
-(package (name tree-sitter-to-generic)
-  (synopsis "XXX")
-  (description "XXX")
+  (allow_empty)
 )
 
 (package (name TCB)

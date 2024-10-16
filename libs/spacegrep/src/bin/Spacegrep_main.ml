@@ -253,7 +253,7 @@ let run config =
   in
   (match config.output_format with
   | Text ->
-      Match.print_nested_results ~with_time:config.time ~highlight matches
+      Print_match.print_nested_results ~with_time:config.time ~highlight matches
         errors);
   if debug then (
     printf "\nanalyzed %i files out of %i\n" num_analyzed num_files;
