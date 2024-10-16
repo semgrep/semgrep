@@ -26,7 +26,7 @@ val mk_fun_input_env :
   Dataflow_tainting.config ->
   ?glob_env:Taint_lval_env.t ->
   IL.function_definition ->
-  Taint_lval_env.t
+  Taint_lval_env.t * Shape_and_sig.Effects.t
 (** Constructs the initial taint environment for a given function definition.
  * Essentially, it records the parameters that are taint sources, or whose
  * default value is a taint source.
@@ -41,7 +41,7 @@ val check_fundef :
   ?glob_env:Taint_lval_env.t ->
   Dataflow_tainting.java_props_cache ->
   AST_generic.function_definition ->
-  IL.cfg * Dataflow_tainting.mapping
+  IL.cfg * Shape_and_sig.Effects.t * Dataflow_tainting.mapping
 (** Check a function definition using a [Dataflow_tainting.config] (which can
   * be obtained with [taint_config_of_rule]). Findings are passed on-the-fly
   * to the [handle_findings] callback in the dataflow config.

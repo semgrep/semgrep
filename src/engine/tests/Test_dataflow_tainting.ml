@@ -25,7 +25,7 @@ let pr2_ranges (file : Fpath.t) (rwms : RM.t list) : unit =
 let test_tainting (lang : Lang.t) (_file : Fpath.t) options config def =
   UCommon.pr2 "\nDataflow";
   UCommon.pr2 "--------";
-  let flow, mapping =
+  let flow, _effects_IGNORED, mapping =
     Match_tainting_mode.check_fundef lang options config None
       AST_to_IL.empty_ctx
       (Dataflow_tainting.mk_empty_java_props_cache ())
@@ -64,7 +64,6 @@ let test_dfg_tainting rules_file file =
   let rule = List_.hd_exn "unexpected empty list" taint_rules in
   UCommon.pr2 "Tainting";
   UCommon.pr2 "========";
-  let handle_effects _ _ = () in
   let xconf = Match_env.default_xconfig in
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf rule.options in
   (* this won't cache anything. but that's fine, we don't need it
@@ -73,7 +72,7 @@ let test_dfg_tainting rules_file file =
   let tbl = Formula_cache.mk_specialized_formula_cache [] in
   let config, spec_matches, _exps =
     Match_taint_spec.taint_config_of_rule ~per_file_formula_cache:tbl xconf
-      !!file (ast, []) rule handle_effects
+      !!file (ast, []) rule
   in
   UCommon.pr2 "\nSources";
   UCommon.pr2 "-------";

@@ -28,9 +28,15 @@ type spec_matches = {
 *)
 val taint_config_of_rule :
   per_file_formula_cache:Formula_cache.t ->
+  ?handle_effects:Dataflow_tainting.effects_handler
+    (** Use 'handle_effects' to e.g. apply hash-consing (see 'Deep_tainting'), or
+        to do some side-effect if needed.
+
+        old: In the past one had to use 'handle_effects' to record taint effects
+          by side-effect (no pun intended), however this is not needed now because
+          'Dataflow_tainting.fixpoint' already returns the set of taint effects. *) ->
   Match_env.xconfig ->
   string (* filename *) ->
   AST_generic.program * Tok.location list ->
   Rule.taint_rule ->
-  Dataflow_tainting.effects_handler ->
   Dataflow_tainting.config * spec_matches * Matching_explanation.t list

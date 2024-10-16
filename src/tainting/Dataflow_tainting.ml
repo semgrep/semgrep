@@ -30,6 +30,7 @@ module TM = Taint_spec_match
 module S = Shape_and_sig.Shape
 module Shape = Taint_shape
 module Effect = Shape_and_sig.Effect
+module Effects = Shape_and_sig.Effects
 module Signature = Shape_and_sig.Signature
 
 (* TODO: Rename things to make clear that there are "sub-matches" and there are
@@ -80,7 +81,7 @@ type a_propagator = {
   var : var;
 }
 
-type effects_handler = var option -> Shape_and_sig.Effect.t list -> unit
+type effects_handler = var option -> Effect.t list -> Effect.t list
 
 type config = {
   filepath : string;
@@ -116,6 +117,7 @@ type env = {
   lval_env : Lval_env.t;
   best_matches : TM.Best_matches.t;
   java_props : java_props_cache;
+  effects_acc : Effects.t ref;
 }
 
 (*****************************************************************************)
@@ -263,9 +265,10 @@ let taints_of_matches env ~incoming sources =
   let lval_env = Lval_env.add_control_taints env.lval_env control_taints in
   (data_taints, lval_env)
 
-let report_effects env effects =
-  if not (List_.null effects) then
-    env.config.handle_effects env.fun_name effects
+let record_effects env new_effects =
+  if not (List_.null new_effects) then
+    let new_effects = env.config.handle_effects env.fun_name new_effects in
+    env.effects_acc := Effects.add_list new_effects !(env.effects_acc)
 
 let unify_mvars_sets env mvars1 mvars2 =
   let xs =
@@ -619,7 +622,7 @@ let check_orig_if_sink env ?filter_sinks orig taints shape =
   in
   let sinks = sinks |> List_.map TM.sink_of_match in
   let effects = effects_of_tainted_sinks env taints sinks in
-  report_effects env effects
+  record_effects env effects
 
 let fix_poly_taint_with_field env lval xtaint =
   let type_of_il_offset il_offset =
@@ -912,7 +915,7 @@ let rec check_tainted_lval env (lval : IL.lval) :
     |> List_.map TM.sink_of_match
   in
   let effects = effects_of_tainted_sinks { env with lval_env } taints sinks in
-  report_effects { env with lval_env } effects;
+  record_effects { env with lval_env } effects;
   (taints, lval_shape, sub, lval_env)
 
 (* Java: Whenever we find a getter/setter without definition we end up here,
@@ -1128,7 +1131,7 @@ and check_tainted_lval_aux env (lval : IL.lval) :
       let effects =
         effects_of_tainted_sinks { env with lval_env } all_taints sinks
       in
-      report_effects { env with lval_env } effects;
+      record_effects { env with lval_env } effects;
       ( new_taints,
         lval_in_env,
         lval_shape,
@@ -1393,7 +1396,7 @@ let check_function_call env fun_exp args
                      _;
                    } ->
                    effects_of_tainted_sink env incoming_taints sink
-                   |> report_effects env;
+                   |> record_effects env;
                    (taints_acc, shape_acc, lval_env)
                | ToReturn
                    {
@@ -1500,7 +1503,7 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
                     (Taints.empty, Bot, lval_env)
                   else (
                     effects_of_call_func_arg e e_shape args_taints
-                    |> report_effects { env with lval_env };
+                    |> record_effects { env with lval_env };
                     (* If this is a method call, `o.method(...)`, then we fetch the
                        * taint of the callee object `o`. This is a conservative worst-case
                        * asumption that any taint in `o` can be tainting the call's effect. *)
@@ -1616,7 +1619,7 @@ let check_tainted_return env tok e : Taints.t * S.shape * Lval_env.t =
     check_type_and_drop_taints_if_bool_or_number env taints type_of_expr e
   in
   let effects = effects_of_tainted_sinks env taints sinks in
-  report_effects env effects;
+  record_effects env effects;
   (taints, shape, var_env')
 
 let effects_from_arg_updates_at_exit enter_env exit_env : Effect.t list =
@@ -1678,7 +1681,7 @@ let check_tainted_control_at_exit node env =
         let effects =
           effects_of_tainted_return env Taints.empty Bot return_tok
         in
-        report_effects env effects
+        record_effects env effects
 
 let check_tainted_at_exit_sinks node env =
   match !hook_check_tainted_at_exit_sinks with
@@ -1688,7 +1691,7 @@ let check_tainted_at_exit_sinks node env =
       | None -> ()
       | Some (taints_at_exit, sink_matches_at_exit) ->
           effects_of_tainted_sinks env taints_at_exit sink_matches_at_exit
-          |> report_effects env)
+          |> record_effects env)
 
 (*****************************************************************************)
 (* Transfer *)
@@ -1775,7 +1778,7 @@ let transfer : env -> flow:F.cfg -> Lval_env.t D.transfn =
         (* TODO: Move most of this to check_tainted_return. *)
         let taints, shape, lval_env' = check_tainted_return env tok e in
         let effects = effects_of_tainted_return env taints shape tok in
-        report_effects env effects;
+        record_effects env effects;
         lval_env'
     | NLambda params ->
         params
@@ -1831,7 +1834,7 @@ let (fixpoint :
       config ->
       java_props_cache ->
       F.cfg ->
-      mapping) =
+      Effects.t * mapping) =
  fun ?in_env ?name:opt_name lang options config java_props flow ->
   let init_mapping = DataflowX.new_node_array flow Lval_env.empty_inout in
   let enter_lval_env =
@@ -1875,6 +1878,7 @@ let (fixpoint :
       lval_env = enter_lval_env;
       best_matches;
       java_props;
+      effects_acc = ref Effects.empty;
     }
   in
   (* THINK: Why I cannot just update mapping here ? if I do, the mapping gets overwritten later on! *)
@@ -1886,5 +1890,5 @@ let (fixpoint :
   in
   let exit_lval_env = end_mapping.(flow.exit).D.out_env in
   effects_from_arg_updates_at_exit enter_lval_env exit_lval_env
-  |> report_effects env;
-  end_mapping
+  |> record_effects env;
+  (!(env.effects_acc), end_mapping)
