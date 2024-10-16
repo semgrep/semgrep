@@ -202,16 +202,16 @@ repos:
         # the very latest docker image, which is nice, but is far slower.
         language: python
 
-        # Both the .semgrepignore file and the --exclude option
+        # Note that both the .semgrepignore file and the --exclude option
         # do nothing because the target files are passed
-        # explicitly on the command line by pre-commit!
+        # explicitly on the command line by pre-commit!!!
         # TODO: remove once file targeting is revamped and supports
         # filtering for explicit targets (a command-line flag should do)
-        # exclude: "xxx.ml"
+        exclude: "tests"
         # TODO: we could also set 'pass_filenames: false', see
         # https://stackoverflow.com/questions/57199833/run-pre-commit-com-hook-once-not-for-every-file-if-a-matched-file-is-detected
 
-        #coupling: 'make check' and the SEMGREP_ARGS variable
+        #coupling: 'make check' and the SEMGREP_ARGS variable.
         args: [
             # use osemgrep!
             "--experimental",
@@ -239,6 +239,9 @@ repos:
             # this can save 3sec sometimes (a bit sad, would be good to dodgood
             # also our metrics, but the slowdown is annoying)
             "--metrics=off",
+            # commented on purpose: "--exclude tests"
+            # This is implemented via the exclude: above (see the comment
+            # further above to understand why)
           ]
   # Dogfooding .pre-commit-hooks.yml and setup.py
   # Use a fixed version of p/python and p/bandit to not get new findings
