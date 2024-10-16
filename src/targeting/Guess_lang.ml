@@ -257,6 +257,7 @@ let inspect_file_p (lang : Lang.t) path =
     | Kotlin
     | Lisp
     | Lua
+    | Move_on_sui
     | Move_on_aptos
     | Ocaml
     | Promql
@@ -278,7 +279,6 @@ let inspect_file_p (lang : Lang.t) path =
     | Xml
     | Yaml ->
         matches_lang lang
-    | Move_on_sui -> failwith "Unimplemented"
   in
 
   eval test path

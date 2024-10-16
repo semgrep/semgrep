@@ -1,0 +1,2 @@
+let $V = source();
+sink($V);

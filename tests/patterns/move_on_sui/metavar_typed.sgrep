@@ -1,0 +1,1 @@
+object::object_address(($OBJ : Object<$INNER>))
