@@ -78,6 +78,7 @@ let full_lang_info =
     (Lang.Xml, "xml", ".xml");
     (Lang.Dart, "dart", ".dart");
     (Lang.Ql, "ql", ".ql");
+    (Lang.Move_on_sui, "move_on_sui", ".move");
     (Lang.Move_on_aptos, "move_on_aptos", ".move");
   ]
 
@@ -215,6 +216,7 @@ let language_exceptions =
     (Lang.Kotlin, [ "dots_stmts"; "metavar_equality_var" ]);
     (* good boy *)
     (Lang.Rust, []);
+    (Lang.Move_on_sui, [ "metavar_key_value"; "regexp_string" ]);
     (Lang.Move_on_aptos, [ "metavar_key_value"; "regexp_string" ]);
     (* Experimental languages *)
 
@@ -283,6 +285,7 @@ let maturity_tests () =
       make_maturity_tests Lang.Hack "hack" ".hack" Beta;
       make_maturity_tests Lang.Kotlin "kotlin" ".kt" Beta;
       make_maturity_tests Lang.Rust "rust" ".rs" Beta;
+      make_maturity_tests Lang.Move_on_sui "move_on_sui" ".move" Beta;
       make_maturity_tests Lang.Move_on_aptos "move_on_aptos" ".move" Beta;
       (* Terraform/HCL has too many NA, not worth it *)
 

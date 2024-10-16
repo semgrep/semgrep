@@ -143,6 +143,7 @@ else
             "julia"
             "kotlin"
             "lua"
+            "move_on_sui"
             "move_on_aptos"
             "ocaml"
             "php"
