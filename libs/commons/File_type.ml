@@ -70,7 +70,7 @@ and pl_type =
   | Erlang
   | Go
   | Rust
-  | Move
+  | Move_on_aptos
   | Beta
   | Pascal
   | Haxe
@@ -393,9 +393,10 @@ let file_type_of_file file =
   | "exe" -> Binary e
   | "mk" -> Config Makefile
   | "rs" -> PL Rust
-  | "move" -> PL Move
+  | "move" -> PL Move_on_aptos
   | "mod"
-  | "go" -> PL Go
+  | "go" ->
+      PL Go
   | "lua" -> PL Lua
   | "r" -> PL R
   | "ex" -> PL Elixir
