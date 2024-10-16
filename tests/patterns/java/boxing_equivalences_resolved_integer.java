@@ -5,7 +5,7 @@ public class boxing_equivalences_resolved_integer {
     java.lang.Integer i3 = 6;
     // TODO:
     System.out.println(i1);
-    // TODO:
+    // DEEP:
     System.out.println(i2);
     // MATCH:
     System.out.println(i3);

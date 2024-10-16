@@ -1,7 +1,4 @@
 (library
  (name python_str_repr)
  (public_name python-str-repr)
- (libraries
-   commons ; just for List_.map
-   uutf uucp
- ))
+ (libraries uutf uucp))
