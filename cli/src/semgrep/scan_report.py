@@ -49,7 +49,7 @@ def _print_product_status(sast_enabled: bool = True, sca_enabled: bool = False) 
     sections = [
         (
             "Semgrep OSS",
-            True,
+            sast_enabled,
             [
                 "Basic security coverage for first-party code vulnerabilities.",
             ],

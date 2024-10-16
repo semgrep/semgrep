@@ -220,8 +220,6 @@ let just_parse_with_lang lang file : Parsing_result2.t =
   | Lang.Swift ->
       run file [ TreeSitter Parse_swift_tree_sitter.parse ] (fun x -> x)
   | Lang.R -> run file [ TreeSitter Parse_r_tree_sitter.parse ] (fun x -> x)
-  | Lang.Move_on_sui ->
-    run file [ TreeSitter Parse_move_on_sui_tree_sitter.parse ] (fun x -> x)
   | Lang.Move_on_aptos ->
       run file [ TreeSitter Parse_move_on_aptos_tree_sitter.parse ] (fun x -> x)
   | Lang.Circom ->
@@ -240,3 +238,4 @@ let just_parse_with_lang lang file : Parsing_result2.t =
       run file [ TreeSitter parse_target ] (fun x -> x)
   | Lang.Elixir -> run_external_parser file Parsing_plugin.Elixir.parse_target
   (* TODO *)
+  | Lang.Move_on_sui -> failwith "Unimplemented"
