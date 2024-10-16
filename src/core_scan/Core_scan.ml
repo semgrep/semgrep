@@ -418,9 +418,11 @@ let handle_target_with_trace (handle_target : Target.t -> 'a) (t : Target.t) :
     'a =
   let target_name = Target.internal_path t in
   let data () =
+    let target_json_str = Target.to_yojson t |> Yojson.Safe.to_string in
     [
       ("filename", `String !!target_name);
       ("num_bytes", `Int (UFile.filesize target_name));
+      ("target", `String target_json_str);
     ]
   in
   Tracing.with_span ~__FILE__ ~__LINE__ ~data "scan.handle_target" (fun _sp ->
@@ -555,10 +557,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (caps : < Cap.fork >)
             * Hopefully, Ocaml5 with multithread support will resolve this issue.
             * For now, just turn off tracing when we use more than 1 core.
             *)
-           let handle_target_maybe_with_trace =
-             if config.ncores > 1 then handle_target
-             else handle_target_with_trace handle_target
-           in
+           let handle_target = handle_target_with_trace handle_target in
 
            let (res, was_scanned), run_time =
              Common.with_time (fun () ->
@@ -571,9 +570,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (caps : < Cap.fork >)
                         * now timeout per rule, not per file since pysemgrep
                         * passed all the rules to semgrep-core.
                         *)
-                       let res, was_scanned =
-                         handle_target_maybe_with_trace target
-                       in
+                       let res, was_scanned = handle_target target in
                        (* old: This was to test -max_memory, to give a chance
                         * to Gc.create_alarm to run even if the program does
                         * not even need to run the Gc. However, this has a
@@ -658,6 +655,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (caps : < Cap.fork >)
     *)
   in
   (matches, scanned)
+[@@trace]
 
 (*****************************************************************************)
 (* Rule selection *)
