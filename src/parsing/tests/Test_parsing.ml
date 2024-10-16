@@ -298,6 +298,9 @@ let test_parse_tree_sitter lang root_paths =
                  Tree_sitter_hcl.Parse.file file |> fail_on_error |> ignore
              | Lang.Dart ->
                  Tree_sitter_dart.Parse.file file |> fail_on_error |> ignore
+             | Lang.Move_on_sui ->
+                 Tree_sitter_move_on_sui.Parse.file file
+                 |> fail_on_error |> ignore
              | _ ->
                  failwith
                    (spf "lang %s not supported with tree-sitter"

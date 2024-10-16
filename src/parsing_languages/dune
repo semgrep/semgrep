@@ -1,3 +1,4 @@
+
 ; The code in this library used to be merged with code in ../parsing/
 ; but we now moved most of the language-dependent code here so that
 ; we can generate a smaller engine.js file.
@@ -49,6 +50,7 @@
    parser_html.ast_generic
    parser_promql.ast_generic
    parser_protobuf.ast_generic
+   parser_move_on_sui.ast_generic
    parser_move_on_aptos.ast_generic
    parser_circom.ast_generic
    parser_vue.ast_generic

@@ -98,9 +98,9 @@ let _lang_kind = function
   | Lang.Apex
   | Lang.Csharp
   | Lang.Rust
+  | Lang.Move_on_sui
   | Lang.Move_on_aptos ->
       CLikeSemiColon
-  | Lang.Move_on_sui -> failwith "Unimplemented"
   | _other_ -> Other
 
 (*****************************************************************************)
@@ -247,6 +247,7 @@ and if_stmt env (tok, e, s, sopt) =
     | Lang.Json
     | Lang.Jsonnet
     | Lang.Js
+    | Lang.Move_on_sui
     | Lang.Move_on_aptos
     | Lang.Ts
     | Lang.Vue
@@ -258,7 +259,6 @@ and if_stmt env (tok, e, s, sopt) =
     | Lang.Swift ->
         (paren_cond, "else if", bracket_body)
     | Lang.Lua -> (paren_cond, "elseif", bracket_body)
-    | Lang.Move_on_sui -> failwith "Unimplemented"
   in
   let e_str = format_cond tok (condition env e) in
   let s_str = stmt { env with level = env.level + 1 } s in
@@ -327,6 +327,7 @@ and while_stmt env (tok, e, s) =
     | Lang.Json
     | Lang.Jsonnet
     | Lang.Js
+    | Lang.Move_on_sui
     | Lang.Move_on_aptos
     | Lang.Ts
     | Lang.Vue
@@ -336,7 +337,6 @@ and while_stmt env (tok, e, s) =
     | Lang.Go -> go_while
     | Lang.Ruby -> ruby_while
     | Lang.Ocaml -> ocaml_while
-    | Lang.Move_on_sui -> failwith "Unimplemented"
   in
   while_format (token ~d:"while" tok) (condition env e)
     (stmt { env with level = env.level + 1 } s)
@@ -385,12 +385,12 @@ and do_while stmt env (s, e) =
     | Lang.Go
     | Lang.Json
     | Lang.Jsonnet
+    | Lang.Move_on_sui
     | Lang.Move_on_aptos
     | Lang.Ocaml
     | Lang.Rust
     | Lang.R ->
         failwith "impossible; no do while"
-    | Lang.Move_on_sui -> failwith "Unimplemented"
     | Lang.Ruby -> failwith "ruby is so weird (here, do while loop)"
   in
   do_while_format (stmt { env with level = env.level + 1 } s) (expr env e)
@@ -427,6 +427,8 @@ and for_stmt env (for_tok, hdr, s) =
     | Lang.Csharp
     | Lang.Kotlin
     | Lang.Js
+    | Lang.Move_on_sui ->
+        failwith "Move on SUI has for loops????"
     | Lang.Move_on_aptos
     | Lang.Ts
     | Lang.Vue
@@ -445,7 +447,6 @@ and for_stmt env (for_tok, hdr, s) =
     | Lang.Ocaml
     | Lang.Ql ->
         failwith "JSON/OCaml/QL has for loops????"
-    | Lang.Move_on_sui -> failwith "Unimplemented"
   in
   let show_init = function
     | ForInitVar (ent, var_def) ->
@@ -545,6 +546,7 @@ and def_stmt env (entity, def_kind) =
       | Lang.Ql ->
           ( (fun _typ id _e -> F.sprintf "%s" id),
             fun _typ id e -> F.sprintf "%s = %s" id e )
+      | Lang.Move_on_sui
       | Lang.Move_on_aptos
       | Lang.Rust ->
           ( (fun typ id _e -> F.sprintf "let %s: %s" id typ),
@@ -557,7 +559,6 @@ and def_stmt env (entity, def_kind) =
       | Lang.Jsonnet
       | Lang.Ocaml ->
           failwith "I think JSON/OCaml have no variable definitions"
-      | Lang.Move_on_sui -> failwith "Unimplemented"
     in
     let typ, id =
       match ent.name with
