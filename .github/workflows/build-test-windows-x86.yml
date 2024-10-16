@@ -70,7 +70,6 @@ jobs:
             grep -v rpath $filename > $filename.new
             mv $filename.new $filename
           done
-          cd ..
           opam exec -- dune build _build/install/default/bin/semgrep-core.exe
       - name: Test semgrep-core
         run: |
