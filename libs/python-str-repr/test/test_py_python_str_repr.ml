@@ -16,7 +16,7 @@ let repr = Python_str_repr.repr ~unicode_version:py_unicode_version
 
 let test_repr =
   let inputs = [ ""; "a"; "'"; "\""; "tab\tthis" ] in
-  List_.map
+  List.map
     (fun input ->
       ( Printf.sprintf "%S" input,
         `Quick,

@@ -5,7 +5,7 @@ public class boxing_equivalences_boxed_boolean {
     java.lang.Boolean b3 = true;
     // TODO:
     System.out.println(b1);
-    // TODO:
+    // DEEP:
     System.out.println(b2);
     // MATCH:
     System.out.println(b3);

@@ -6,7 +6,7 @@ public class boxing_equivalences_resolved_string {
   public static void main(String[] args) {
     String s1 = "asdf";
     java.lang.String s2 = "asdf";
-    // TODO:
+    // DEEP:
     System.out.println(s1);
     // MATCH:
     System.out.println(s2);
