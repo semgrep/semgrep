@@ -41,15 +41,18 @@ val scan : caps -> Core_scan_config.t -> Core_result.result_or_exn
 (* Utilities functions used in tests or semgrep-pro *)
 (*****************************************************************************)
 
-val rules_from_rule_source :
-  Core_scan_config.rule_source -> Rule_error.rules_and_invalid
-(** Get the rules *)
-
 val targets_of_config :
   Core_scan_config.t -> Target.t list * Semgrep_output_v1_t.skipped_target list
 (**
-  Compute the set of targets, either by reading what was passed
-  in -target, or passed explicitely in Core_scan_config.Targets.
+   Compute the set of targets, either by reading what was passed
+   in -target, or passed explicitly in Core_scan_config.Targets.
+*)
+
+val rules_of_config :
+  filter_by_targets:bool -> Core_scan_config.t -> Rule_error.rules_and_invalid
+(** Get the rules
+ *  if filter_by_targets is true (default false): use targeting info in config
+ *  to filter irrelevant rules.
  *)
 
 (* This is also used by semgrep-proprietary. It filters the rules that
