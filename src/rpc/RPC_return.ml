@@ -51,8 +51,14 @@ let format (kind : Out.output_format) (cli_output : Out.cli_output) : string =
 let sarif_format _caps hide_nudge engine_label show_dataflow_traces
     (rules : Out.fpath) (cli_matches : Out.cli_match list)
     (cli_errors : Out.cli_error list) =
+  let fake_config =
+    {
+      Core_scan_config.default with
+      rule_source = Core_scan_config.Rule_file rules;
+    }
+  in
   let rules, _invalid_rules =
-    Core_scan.rules_from_rule_source (Core_scan_config.Rule_file rules)
+    Core_scan.rules_of_config ~filter_by_targets:false fake_config
   in
   let hrules = Rule.hrules_of_rules rules in
   let cli_output : Out.cli_output =

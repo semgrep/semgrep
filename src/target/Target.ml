@@ -174,3 +174,8 @@ let origin (target : t) : Origin.t =
   | Regular { path = { origin; _ }; _ }
   | Lockfile { path = { origin; _ }; _ } ->
       origin
+
+let analyzer (target : t) : Xlang.t option =
+  match target with
+  | Regular r -> Some r.analyzer
+  | Lockfile _ -> None

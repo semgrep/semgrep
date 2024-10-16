@@ -149,3 +149,5 @@ val internal_path : t -> Fpath.t
 
 val origin : t -> Origin.t
 (** [origin target] is the user-reportable origin of [target]. *)
+
+val analyzer : t -> Xlang.t option
