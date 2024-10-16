@@ -469,8 +469,11 @@ let any_is_in_sinks_matches rule any matches =
 (* Entry point *)
 (*****************************************************************************)
 
-let taint_config_of_rule ~per_file_formula_cache xconf file ast_and_errors
-    ({ mode = `Taint spec; _ } as rule : R.taint_rule) handle_effects =
+let default_effect_handler _fun_name new_effects = new_effects
+
+let taint_config_of_rule ~per_file_formula_cache
+    ?(handle_effects = default_effect_handler) xconf file ast_and_errors
+    ({ mode = `Taint spec; _ } as rule : R.taint_rule) =
   let spec_matches, expls =
     spec_matches_of_taint_rule ~per_file_formula_cache xconf file ast_and_errors
       rule

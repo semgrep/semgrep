@@ -546,6 +546,7 @@ and Effects : sig
   include Set.S with type elt = Effect.t
 
   val show : t -> string
+  val add_list : Effect.t list -> t -> t
 end = struct
   include Set.Make (struct
     type t = Effect.t
@@ -555,6 +556,8 @@ end = struct
 
   let show s =
     s |> to_seq |> List.of_seq |> List_.map Effect.show |> String.concat "; "
+
+  let add_list elts t = List.fold_left (fun set e -> add e set) t elts
 end
 
 (** A (polymorphic) taint signature: simply a set of results for a function.
