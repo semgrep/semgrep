@@ -20,7 +20,7 @@ jobs:
         name: Set GHA cache for OPAM in _opam
         uses: actions/cache@v3
         with:
-          key: ${{ runner.os }}-${{ runner.arch }}-v1-opam-4.14.0-${{ hashFiles('semgrep-pro.opam', 'OSS/semgrep.opam') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-v1-opam-4.14.0-${{ hashFiles('semgrep-pro.opam', 'semgrep.opam') }}
           path: _opam
       - name: Debug stuff
         run: |
@@ -46,7 +46,6 @@ jobs:
           CC: x86_64-w64-mingw32-gcc
         name: Build tree-sitter
         run: |
-          cd OSS
           cd libs/ocaml-tree-sitter-core
           ./configure
           ./scripts/download-tree-sitter --lazy
@@ -56,13 +55,11 @@ jobs:
           make PREFIX="$prefix" install
       - name: Install OPAM deps
         run: |
-          cd OSS
           export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
           make install-deps-WINDOWS-for-semgrep-core
           make install-opam-deps
       - name: Build semgrep-core
         run: |
-          cd OSS
           export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"
           export TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include
           export TREESITTER_LIBDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/lib
@@ -77,7 +74,7 @@ jobs:
           opam exec -- dune build _build/install/default/bin/semgrep-core.exe
       - name: Test semgrep-core
         run: |
-          _build/install/default/bin/semgrep-core.exe -l python -rules OSS/tests/windows/rules.yml -json OSS/tests/windows/test.py
+          _build/install/default/bin/semgrep-core.exe -l python -rules tests/windows/rules.yml -json tests/windows/test.py
       - name: Package semgrep-core
         run: |
           mkdir artifacts
