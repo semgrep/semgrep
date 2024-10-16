@@ -57,6 +57,12 @@ let level_to_trace_level level =
 (*****************************************************************************)
 (* Code *)
 (*****************************************************************************)
+let enter_span ?(level = Info) =
+  let level = level_to_trace_level level in
+  Trace_core.enter_span ~level
+
+let exit_span = Trace_core.exit_span
+
 let with_span ?(level = Info) =
   let level = level_to_trace_level level in
   Trace_core.with_span ~level
@@ -78,8 +84,12 @@ let trace_data_only ?(level = Info) ~__FUNCTION__ ~__FILE__ ~__LINE__ _name
 (* Entry points for setting up tracing *)
 (*****************************************************************************)
 
-let configure_tracing (_service_name : string) = ()
+let stop_tracing () = ()
+let restart_tracing () = ()
+let configure_tracing (_service_name : string) (_endpoint : Uri.t) = ()
 
-let with_tracing (_fname : string) (_trace_endpoint : Uri.t)
+let with_tracing (_fname : string)
     (_data : (string * Trace_core.user_data) list) f =
   f 0L
+
+let with_tracing_paused f = f ()

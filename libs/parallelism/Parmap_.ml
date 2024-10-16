@@ -1,7 +1,7 @@
 let default_exception_handler (_x : 'a) (e : Exception.t) =
   Exception.to_string e
 
-let parmap _caps ~ncores ~chunksize ~exception_handler f xs =
+let parmap _caps ?init ?finalize ~ncores ~chunksize ~exception_handler f xs =
   (* Why do this? The nanny state doesn't trust you to to use parmap AND catch
      all your exceptions. And if you don't catch all your exceptions and one
      happens, then parmap will try to unmarshal your exception into the data
@@ -29,7 +29,7 @@ let parmap _caps ~ncores ~chunksize ~exception_handler f xs =
            datatype etc. *)
         Error (exception_handler x e)
   in
-  Parmap.parmap ~ncores ~chunksize f' (Parmap.L xs)
+  Parmap.parmap ?init ?finalize ~ncores ~chunksize f' (Parmap.L xs)
 
 (* this is just because we forget every call to Parmap.$F in
  * TCB/forbid_process.jsonnet so we need that

@@ -1,0 +1,1 @@
+semgrep will no longer randomly segfault when --trace is on with -j > 2

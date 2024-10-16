@@ -53,6 +53,9 @@ let reset () =
    * - Logs library state
    * - Xpattern.count
    * - GenSym.MkId for AST_generic.SId and AST_generic.IdInfoId
+   * - Tracing.ml active_endpoint
+   * - Parmap_targets.ml parmap_child_top_level_span
+   * - Session.ml scan_config_parser_ref
    * - many more
    *)
   ()

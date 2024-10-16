@@ -62,6 +62,50 @@ let core_error_of_path_exc internal_path e =
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
+(* Why do we need init and finalize here? TL;DR; we will segfault randomly when
+   tracing is enabled an Parmap is run.
+
+   Parmap works by forking, and then running the function passed to it in the
+   child processes, with the xs passed by the parent. Tracing works by calling
+   out to c code (curl) that sends data to some telemetry endpoint. This C code
+   is called on every GC compaction. For some reason, when we fork, some data is
+   not marked as freed, and randomly when we hit a GC cycle the curl code will
+   try to free it and segfault.
+
+   So what we must do is, before forking, shut down Tracing to remove the curl
+   code that runs on a GC cycle, then after all forking is done we can re-enable
+   it in both the parent and child processes. This basically resets the curl
+   code and all associated memory so we won't segfault.
+
+   Tracing shuts down and then restarts normally in the parent process once it
+   exits as the setup is protected by a Common.protect. In the children though,
+   this is not possible due to the architecture of parmap, so we must manually
+   setup and teardown tracing via the init and finalize functions, which are
+   called by parmap in the child process once before and after f(xs) is
+   processed respectively.
+
+   TODO: once we have ocaml 5 with domains we can hopefully rip all this out
+   :)
+*)
+
+let parmap_child_top_level_span = ref None
+
+let init job =
+  (* Restart tracing as it is paused before forking below in both
+     map_targets___* funcs *)
+  (* NOTE: this only restarts tracing in the child *)
+  Tracing.restart_tracing ();
+  (* Keep track of how long the child runs *)
+  parmap_child_top_level_span :=
+    Some
+      (Tracing.enter_span ~__FILE__ ~__LINE__
+         (Printf.sprintf "parmap_job_%d" job))
+
+let finalize () =
+  !parmap_child_top_level_span |> Option.iter Tracing.exit_span;
+  (* Stop tracing to ensure traces are flushed *)
+  (* NOTE: this only stops tracing in the child *)
+  Tracing.stop_tracing ()
 
 (* Run jobs in parallel, using number of cores specified with -j *)
 let map_targets__run_in_forked_process_do_not_modify_globals caps (ncores : int)
@@ -118,7 +162,11 @@ let map_targets__run_in_forked_process_do_not_modify_globals caps (ncores : int)
       let internal_path = Target.internal_path x in
       (x, core_error_of_path_exc internal_path e)
     in
-    Parmap_.parmap caps ~ncores ~chunksize:1 ~exception_handler f targets)
+    (* We must pause tracing here as forking with tracing on causes segfaults.
+       See comments on this function in Tracing.ml *)
+    Tracing.with_tracing_paused (fun () ->
+        Parmap_.parmap caps ~init ~finalize ~ncores ~chunksize:1
+          ~exception_handler f targets))
 
 (* remove duplication? But we now use this function below at a few places like
  * in Deep_scan_phases and it would be uglier to wrap with [Target.Regular]
@@ -142,4 +190,8 @@ let map_regular_targets__run_in_forked_process_do_not_modify_globals caps
         (e : Exception.t) : Core_error.t =
       core_error_of_path_exc internal_path_to_content e
     in
-    Parmap_.parmap caps ~ncores ~chunksize:1 ~exception_handler f targets)
+    (* We must pause tracing here as forking with tracing on causes segfaults.
+       See comments on this function in Tracing.ml *)
+    Tracing.with_tracing_paused @@ fun () ->
+    Parmap_.parmap caps ~init ~finalize ~ncores ~chunksize:1 ~exception_handler
+      f targets)
