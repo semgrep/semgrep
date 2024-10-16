@@ -846,9 +846,9 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
                 Trace_data.get_top_level_data config.ncores Version.version
                   (Trace_data.no_analysis_features ())
               in
-              Tracing.configure_tracing "semgrep-oss";
+              Tracing.configure_tracing "semgrep-oss" tracing.endpoint;
               Tracing.with_tracing "Core_command.semgrep_core_dispatch"
-                tracing.endpoint trace_data (fun span_id ->
+                trace_data (fun span_id ->
                   let tracing =
                     { tracing with top_level_span = Some span_id }
                   in

@@ -84,6 +84,11 @@ type config = {
 (*****************************************************************************)
 (* Constants *)
 (*****************************************************************************)
+(* The endpoint that otel traces will be sent to. This should only ever be set
+   in configure_tracing, which is called once, at the beginning. The ref isn't
+   nice, but we need it to start and stop tracing without having to pass around
+   an env. See [with_tracing_paused]*)
+let active_endpoint = ref None
 
 (* Coupling: these need to be kept in sync with tracing.py *)
 let trace_level_var = "SEMGREP_TRACE_LEVEL"
@@ -147,6 +152,7 @@ let trace_exn sp ?(escaped = false) exn =
     e |> Exception.get_trace |> Printexc.raw_backtrace_to_string
   in
   let attrs =
+    (* See: https://opentelemetry.io/docs/specs/semconv/exceptions/exceptions-spans/#stacktrace-representation*)
     [
       ("exception.escaped", `Bool escaped);
       ("exception.message", `String exn_msg);
@@ -155,13 +161,20 @@ let trace_exn sp ?(escaped = false) exn =
   in
   add_data_to_span sp attrs
 
+let enter_span ?(level = Info) =
+  let level = level_to_trace_level level in
+  Trace_core.enter_span ~level
+
+let exit_span = Trace_core.exit_span
+
 (* General function to run with span to use for instrumentation *)
 let with_span ?(level = Info) ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data name f =
   let level = level_to_trace_level level in
   Trace_core.with_span ~level ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data name
     (fun sp ->
-      (* See: https://opentelemetry.io/docs/specs/semconv/exceptions/exceptions-spans/#stacktrace-representation*)
-      (* TODO: upstream this: https://github.com/imandra-ai/ocaml-opentelemetry/issues/50  *)
+      (* TODO: upstream the error catching functionality below:
+               https://github.com/imandra-ai/ocaml-opentelemetry/issues/71 *)
+      (* TODO: set span status to Error so we can get groupings in datadog/sentry *)
       try f sp with
       | exn ->
           let e = Exception.catch exn in
@@ -217,16 +230,66 @@ let log_trace_message () =
 (* Entry points for setting up tracing *)
 (*****************************************************************************)
 
-(* Set according to README of https://github.com/imandra-ai/ocaml-opentelemetry/ *)
-let configure_tracing service_name =
-  Otel.Globals.service_name := service_name;
-  Otel.GC_metrics.basic_setup ();
-  Ambient_context.set_storage_provider (Ambient_context_lwt.storage ());
-  let otel_backend = Opentelemetry_client_ocurl.create_backend () in
+(* setup_otel sets the Otel tracing backend and Trace_core tracing backend *)
+let setup_otel trace_endpoint =
+  (* nosemgrep: no-logs-in-library *)
+  let url = Uri.to_string trace_endpoint in
+  Log.info (fun m -> m "Tracing endpoint set to %s" url);
+  let config = Opentelemetry_client_ocurl.Config.make ~url () in
+  let otel_backend = Opentelemetry_client_ocurl.create_backend ~config () in
+  (* hack: let's just keep track of the endpoint for if we restart tracing
+     instead of having to pass it down everywhere. We will assume that we will
+     only ever report to one endpoint for the lifetime of the program *)
+  (* coupling: [restart_tracing] *)
+  active_endpoint := Some trace_endpoint;
   (* This forwards the spans from Trace to the Opentelemetry collector *)
   Opentelemetry_trace.setup_with_otel_backend otel_backend
 
-let with_tracing fname trace_endpoint data f =
+(* Set according to README of https://github.com/imandra-ai/ocaml-opentelemetry/ *)
+let configure_tracing service_name trace_endpoint =
+  Otel.Globals.service_name := service_name;
+  Log.info (fun m -> m "Setting up tracing with service name %s" service_name);
+  Otel.GC_metrics.basic_setup ();
+  Ambient_context.set_storage_provider (Ambient_context_lwt.storage ());
+  setup_otel trace_endpoint
+
+let stop_tracing () =
+  (* hack: get the backend so we can easily stop tracing at any time. See
+     [with_paused_tracing] for why we want the option to do this
+
+     See the following for why we do it this way:
+     https://github.com/imandra-ai/ocaml-opentelemetry/issues/70
+  *)
+  Otel.Collector.get_backend ()
+  |> Option.iter (fun backend ->
+         Log.info (fun m -> m "Stopping tracing");
+         let module Backend = (val backend : Otel.Collector.BACKEND) in
+         Backend.tick ();
+         Trace_core.shutdown ();
+         Otel.Collector.set_backend (module Otel.Collector.Noop_backend);
+         (* Cleanup doesn't seem to always send so let's tick one more time to
+            flush, see:
+            https://github.com/imandra-ai/ocaml-opentelemetry/issues/69
+         *)
+         Backend.cleanup ())
+
+let restart_tracing () =
+  !active_endpoint
+  |> Option.iter (fun endpoint ->
+         Log.info (fun m -> m "Restarting tracing");
+         setup_otel endpoint)
+
+(* Otel SOMETIMES segfaults if the traced process forks while the collector is running. So we
+   need to stop the backends before forking, then continue after forking is
+   done.
+
+   See https://github.com/imandra-ai/ocaml-opentelemetry/issues/68
+*)
+let with_tracing_paused f =
+  stop_tracing ();
+  Common.protect ~finally:restart_tracing f
+
+let with_tracing fname data f =
   (* This sets up the OTel collector and runs the given function.
    * Note that the function is traced by default. This makes sure we
      always trace the given function; it also ensures that all the spans from
@@ -234,7 +297,6 @@ let with_tracing fname trace_endpoint data f =
    * ALT: we could also have wrapped this with a `Otel.Scope.with_ambient_scope`
      to ensure the trace_id is the same for all spans, but we decided that
      having the top level time is a good default. *)
-  let url = Uri.to_string trace_endpoint in
   let level =
     match Sys.getenv_opt trace_level_var with
     | Some level -> (
@@ -249,13 +311,14 @@ let with_tracing fname trace_endpoint data f =
   let parent_trace_id = Sys.getenv_opt parent_trace_id_var in
   let data () = data in
   Trace_core.set_current_level (level_to_trace_level level);
-  let config = Opentelemetry_client_ocurl.Config.make ~url () in
-  Opentelemetry_client_ocurl.with_setup ~config () @@ fun () ->
-  with_top_level_span ?parent_span_id ?parent_trace_id ~__FILE__ ~__LINE__ ~data
-    fname
-  @@ fun sp ->
-  log_trace_message ();
-  f sp
+  let f' () =
+    with_top_level_span ?parent_span_id ?parent_trace_id ~__FILE__ ~__LINE__
+      ~data fname
+    @@ fun sp ->
+    log_trace_message ();
+    f sp
+  in
+  Common.protect ~finally:stop_tracing f'
 
 (* Alt: using cohttp_lwt (we probably want to do this when we switch to Eio w/ *)
 (* their compatibility layer)
