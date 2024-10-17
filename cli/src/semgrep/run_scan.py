@@ -202,6 +202,7 @@ def run_rules(
     with_code_rules: bool = True,
     with_supply_chain: bool = False,
     enable_experimental_requirements: bool = False,
+    allow_dynamic_dependency_resolution: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -237,6 +238,7 @@ def run_rules(
         ) = resolve_subprojects(
             target_manager,
             enable_experimental_requirements=enable_experimental_requirements,
+            allow_dynamic_resolution=allow_dynamic_dependency_resolution,
         )
 
     cli_ux = get_state().get_cli_ux_flavor()
@@ -278,6 +280,7 @@ def run_rules(
                 rule.raw,
                 [target.path for target in target_manager.targets],
                 enable_experimental_requirements=enable_experimental_requirements,
+                allow_dynamic_dependency_resolution=allow_dynamic_dependency_resolution,
             )
             join_rule_matches_set = RuleMatches(rule)
             for m in join_rule_matches:
@@ -346,6 +349,13 @@ def run_rules(
                 # this with types due to backwards compatibility guarantees on FoundDependency. If we see any
                 # dependencies without lockfile path, we assign them to a fake lockfile at the root of each subproject.
                 for dep in unknown_lockfile_deps:
+                    if (
+                        str(proj.root_dir.joinpath(Path("unknown_lockfile")))
+                        not in deps_by_lockfile
+                    ):
+                        deps_by_lockfile[
+                            str(proj.root_dir.joinpath(Path("unknown_lockfile")))
+                        ] = []
                     deps_by_lockfile[
                         str(proj.root_dir.joinpath(Path("unknown_lockfile")))
                     ].append(dep)
@@ -429,6 +439,7 @@ def run_scan(
     path_sensitive: bool = False,
     capture_core_stderr: bool = True,
     enable_experimental_requirements: bool = False,
+    allow_dynamic_dependency_resolution: bool = False,
     dump_n_rule_partitions: Optional[int] = None,
 ) -> Tuple[
     RuleMatchMap,
@@ -699,6 +710,7 @@ def run_scan(
         with_code_rules=with_code_rules,
         with_supply_chain=with_supply_chain,
         enable_experimental_requirements=enable_experimental_requirements,
+        allow_dynamic_dependency_resolution=allow_dynamic_dependency_resolution,
     )
     profiler.save("core_time", core_start_time)
     semgrep_errors: List[SemgrepError] = config_errors + scan_errors
@@ -803,6 +815,7 @@ def run_scan(
                         disable_secrets_validation,
                         baseline_target_mode_config,
                         enable_experimental_requirements=enable_experimental_requirements,
+                        allow_dynamic_dependency_resolution=allow_dynamic_dependency_resolution,
                     )
                     rule_matches_by_rule = remove_matches_in_baseline(
                         rule_matches_by_rule,
