@@ -155,51 +155,47 @@ let match_rules_and_recurse
   rules
   |> List.iter (fun (pattern, rule) ->
          let matches_with_env = matcher rule pattern x m_env in
-         if matches_with_env <> [] then
-           (* Found a match *)
-           matches_with_env
-           |> List.iter (fun (env : MG.tin) ->
-                  let mv = env.mv in
-                  match AST_generic_helpers.range_of_any_opt (any x) with
-                  | None ->
-                      (* TODO: Report a warning to the user? *)
-                      Log.warn (fun m ->
-                          m "Cannot report match because we lack range info: %s"
-                            (show_any (any x)));
-                      ()
-                  | Some range_loc ->
-                      let tokens =
-                        lazy (AST_generic_helpers.ii_of_any (any x))
-                      in
-                      let rule_id = rule_id_of_mini_rule rule in
-                      let pm =
-                        {
-                          PM.rule_id;
-                          path;
-                          env = mv;
-                          range_loc;
-                          (* as-metavariable: *)
-                          ast_node =
-                            (if has_as_metavariable then Some (any x) else None);
-                          tokens;
-                          taint_trace = None;
-                          (* This will be overrided later on by the Pro engine, if this is
-                             from a Pro run.
-                          *)
-                          engine_of_match = `OSS;
-                          validation_state = `No_validator;
-                          severity_override = None;
-                          metadata_override = None;
-                          dependency = None;
-                          (* NOTE: the global rule fix and fix_regexp in rule_id will be
-                             applied _later_, in `Autofix.ml`
-                          *)
-                          fix_text = None;
-                          facts = [];
-                        }
-                      in
-                      Stack_.push pm matches;
-                      hook pm));
+         matches_with_env
+         |> List.iter (fun (env : MG.tin) ->
+                let mv = env.mv in
+                match AST_generic_helpers.range_of_any_opt (any x) with
+                | None ->
+                    (* TODO: Report a warning to the user? *)
+                    Log.warn (fun m ->
+                        m "Cannot report match because we lack range info: %s"
+                          (show_any (any x)));
+                    ()
+                | Some range_loc ->
+                    let tokens = lazy (AST_generic_helpers.ii_of_any (any x)) in
+                    let rule_id = rule_id_of_mini_rule rule in
+                    let pm =
+                      {
+                        PM.rule_id;
+                        path;
+                        env = mv;
+                        range_loc;
+                        (* as-metavariable: *)
+                        ast_node =
+                          (if has_as_metavariable then Some (any x) else None);
+                        tokens;
+                        taint_trace = None;
+                        (* This will be overrided later on by the Pro engine, if this is
+                           from a Pro run.
+                        *)
+                        engine_of_match = `OSS;
+                        validation_state = `No_validator;
+                        severity_override = None;
+                        metadata_override = None;
+                        dependency = None;
+                        (* NOTE: the global rule fix and fix_regexp in rule_id will be
+                           applied _later_, in `Autofix.ml`
+                        *)
+                        fix_text = None;
+                        facts = [];
+                      }
+                    in
+                    Stack_.push pm matches;
+                    hook pm));
   (* try the rules on substatements and subexpressions *)
   k x
 
@@ -429,38 +425,36 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
                        }
                      in
                      let matches_with_env = match_e_e rule pattern x env in
-                     if matches_with_env <> [] then
-                       (* Found a match *)
-                       matches_with_env
-                       |> List.iter (fun (env : MG.tin) ->
-                              let mv = env.mv in
-                              let tokens =
-                                lazy (AST_generic_helpers.ii_of_any (E x))
-                              in
-                              let rule_id = rule_id_of_mini_rule rule in
-                              let pm =
-                                {
-                                  PM.rule_id;
-                                  path;
-                                  env = mv;
-                                  range_loc;
-                                  (* as-metavariable: *)
-                                  ast_node =
-                                    (if has_as_metavariable then Some (E x)
-                                     else None);
-                                  tokens;
-                                  taint_trace = None;
-                                  engine_of_match = `OSS;
-                                  validation_state = `No_validator;
-                                  severity_override = None;
-                                  metadata_override = None;
-                                  dependency = None;
-                                  fix_text = None;
-                                  facts = x.facts;
-                                }
-                              in
-                              Stack_.push pm matches;
-                              hook pm)
+                     matches_with_env
+                     |> List.iter (fun (env : MG.tin) ->
+                            let mv = env.mv in
+                            let tokens =
+                              lazy (AST_generic_helpers.ii_of_any (E x))
+                            in
+                            let rule_id = rule_id_of_mini_rule rule in
+                            let pm =
+                              {
+                                PM.rule_id;
+                                path;
+                                env = mv;
+                                range_loc;
+                                (* as-metavariable: *)
+                                ast_node =
+                                  (if has_as_metavariable then Some (E x)
+                                   else None);
+                                tokens;
+                                taint_trace = None;
+                                engine_of_match = `OSS;
+                                validation_state = `No_validator;
+                                severity_override = None;
+                                metadata_override = None;
+                                dependency = None;
+                                fix_text = None;
+                                facts = x.facts;
+                              }
+                            in
+                            Stack_.push pm matches;
+                            hook pm)
                  | Some (start_loc, end_loc) ->
                      Log.debug (fun m ->
                          m
@@ -488,51 +482,47 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
             !stmt_rules
             |> List.iter (fun (pattern, rule) ->
                    let matches_with_env = match_st_st rule pattern x m_env in
-                   if matches_with_env <> [] then
-                     (* Found a match *)
-                     matches_with_env
-                     |> List.iter (fun (env : MG.tin) ->
-                            let mv = env.mv in
-                            match
-                              AST_generic_helpers.range_of_any_opt (S x)
-                            with
-                            | None ->
-                                (* TODO: Report a warning to the user? *)
-                                Log.warn (fun m ->
-                                    m
-                                      "Cannot report match because we lack \
-                                       range info: %s"
-                                      (show_stmt x));
-                                ()
-                            | Some range_loc ->
-                                let tokens =
-                                  lazy (AST_generic_helpers.ii_of_any (S x))
-                                in
-                                let facts = get_facts_of_stmt x in
-                                let rule_id = rule_id_of_mini_rule rule in
-                                let pm =
-                                  {
-                                    PM.rule_id;
-                                    path;
-                                    env = mv;
-                                    range_loc;
-                                    (* as-metavariable: *)
-                                    ast_node =
-                                      (if has_as_metavariable then Some (S x)
-                                       else None);
-                                    tokens;
-                                    taint_trace = None;
-                                    engine_of_match = `OSS;
-                                    validation_state = `No_validator;
-                                    severity_override = None;
-                                    metadata_override = None;
-                                    dependency = None;
-                                    fix_text = None;
-                                    facts;
-                                  }
-                                in
-                                Stack_.push pm matches;
-                                hook pm));
+                   matches_with_env
+                   |> List.iter (fun (env : MG.tin) ->
+                          let mv = env.mv in
+                          match AST_generic_helpers.range_of_any_opt (S x) with
+                          | None ->
+                              (* TODO: Report a warning to the user? *)
+                              Log.warn (fun m ->
+                                  m
+                                    "Cannot report match because we lack range \
+                                     info: %s"
+                                    (show_stmt x));
+                              ()
+                          | Some range_loc ->
+                              let tokens =
+                                lazy (AST_generic_helpers.ii_of_any (S x))
+                              in
+                              let facts = get_facts_of_stmt x in
+                              let rule_id = rule_id_of_mini_rule rule in
+                              let pm =
+                                {
+                                  PM.rule_id;
+                                  path;
+                                  env = mv;
+                                  range_loc;
+                                  (* as-metavariable: *)
+                                  ast_node =
+                                    (if has_as_metavariable then Some (S x)
+                                     else None);
+                                  tokens;
+                                  taint_trace = None;
+                                  engine_of_match = `OSS;
+                                  validation_state = `No_validator;
+                                  severity_override = None;
+                                  metadata_override = None;
+                                  dependency = None;
+                                  fix_text = None;
+                                  facts;
+                                }
+                              in
+                              Stack_.push pm matches;
+                              hook pm));
             super#visit_stmt env x
           in
           visit_stmt ()
@@ -553,43 +543,41 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
                      let matches_with_env =
                        match_sts_sts rule pattern x m_env
                      in
-                     if matches_with_env <> [] then
-                       (* Found a match *)
-                       matches_with_env
-                       |> List.iter (fun (env : MG.tin) ->
-                              let matched = env.stmts_matched in
-                              match location_stmts matched with
-                              | None -> () (* empty sequence or bug *)
-                              | Some range_loc ->
-                                  let mv = env.mv in
-                                  let tokens =
-                                    lazy (list_original_tokens_stmts matched)
-                                  in
-                                  let rule_id = rule_id_of_mini_rule rule in
-                                  let pm =
-                                    {
-                                      PM.rule_id;
-                                      path;
-                                      env = mv;
-                                      range_loc;
-                                      (* as-metavariable: *)
-                                      ast_node =
-                                        (if has_as_metavariable then
-                                           Some (Ss matched)
-                                         else None);
-                                      tokens;
-                                      taint_trace = None;
-                                      engine_of_match = `OSS;
-                                      validation_state = `No_validator;
-                                      severity_override = None;
-                                      metadata_override = None;
-                                      dependency = None;
-                                      fix_text = None;
-                                      facts = [];
-                                    }
-                                  in
-                                  Stack_.push pm matches;
-                                  hook pm)));
+                     matches_with_env
+                     |> List.iter (fun (env : MG.tin) ->
+                            let matched = env.stmts_matched in
+                            match location_stmts matched with
+                            | None -> () (* empty sequence or bug *)
+                            | Some range_loc ->
+                                let mv = env.mv in
+                                let tokens =
+                                  lazy (list_original_tokens_stmts matched)
+                                in
+                                let rule_id = rule_id_of_mini_rule rule in
+                                let pm =
+                                  {
+                                    PM.rule_id;
+                                    path;
+                                    env = mv;
+                                    range_loc;
+                                    (* as-metavariable: *)
+                                    ast_node =
+                                      (if has_as_metavariable then
+                                         Some (Ss matched)
+                                       else None);
+                                    tokens;
+                                    taint_trace = None;
+                                    engine_of_match = `OSS;
+                                    validation_state = `No_validator;
+                                    severity_override = None;
+                                    metadata_override = None;
+                                    dependency = None;
+                                    fix_text = None;
+                                    facts = [];
+                                  }
+                                in
+                                Stack_.push pm matches;
+                                hook pm)));
           super#v_stmts env x
 
         method! visit_type_ env x =
@@ -655,43 +643,41 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
                      let matches_with_env =
                        match_sts_sts rule pattern x m_env
                      in
-                     if matches_with_env <> [] then
-                       (* Found a match *)
-                       matches_with_env
-                       |> List.iter (fun (env : MG.tin) ->
-                              let matched = env.stmts_matched in
-                              match location_stmts matched with
-                              | None -> () (* empty sequence or bug *)
-                              | Some range_loc ->
-                                  let mv = env.mv in
-                                  let tokens =
-                                    lazy (list_original_tokens_stmts matched)
-                                  in
-                                  let rule_id = rule_id_of_mini_rule rule in
-                                  let pm =
-                                    {
-                                      PM.rule_id;
-                                      path;
-                                      env = mv;
-                                      range_loc;
-                                      (* as-metavariable: *)
-                                      ast_node =
-                                        (if has_as_metavariable then
-                                           Some (Ss matched)
-                                         else None);
-                                      tokens;
-                                      taint_trace = None;
-                                      engine_of_match = `OSS;
-                                      validation_state = `No_validator;
-                                      severity_override = None;
-                                      metadata_override = None;
-                                      dependency = None;
-                                      fix_text = None;
-                                      facts = [];
-                                    }
-                                  in
-                                  Stack_.push pm matches;
-                                  hook pm)));
+                     matches_with_env
+                     |> List.iter (fun (env : MG.tin) ->
+                            let matched = env.stmts_matched in
+                            match location_stmts matched with
+                            | None -> () (* empty sequence or bug *)
+                            | Some range_loc ->
+                                let mv = env.mv in
+                                let tokens =
+                                  lazy (list_original_tokens_stmts matched)
+                                in
+                                let rule_id = rule_id_of_mini_rule rule in
+                                let pm =
+                                  {
+                                    PM.rule_id;
+                                    path;
+                                    env = mv;
+                                    range_loc;
+                                    (* as-metavariable: *)
+                                    ast_node =
+                                      (if has_as_metavariable then
+                                         Some (Ss matched)
+                                       else None);
+                                    tokens;
+                                    taint_trace = None;
+                                    engine_of_match = `OSS;
+                                    validation_state = `No_validator;
+                                    severity_override = None;
+                                    metadata_override = None;
+                                    dependency = None;
+                                    fix_text = None;
+                                    facts = [];
+                                  }
+                                in
+                                Stack_.push pm matches;
+                                hook pm)));
           match_rules_and_recurse mp_env !flds_rules match_flds_flds
             (super#v_fields env)
             (fun x -> Flds x)
