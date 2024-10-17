@@ -265,6 +265,9 @@ class ManifestOnlyMatcher(SubprojectMatcher):
     def _get_subproject_root(self, manifest_path: Path) -> Path:
         raise NotImplementedError
 
+    def is_match(self, path: Path) -> bool:
+        return self._is_manifest_match(path)
+
     def _filter_matching_manifests(
         self, dep_source_files: FrozenSet[Path]
     ) -> FrozenSet[Path]:
@@ -549,6 +552,14 @@ MATCHERS: List[SubprojectMatcher] = [
         lockfile_name="gradle.lockfile",
         manifest_name="build.gradle",
         package_manager_type=PackageManagerType.GRADLE,
+    ),
+    ExactManifestOnlyMatcher(
+        manifest_kind=out.ManifestKind(out.PomXml()),
+        manifest_name="pom.xml",
+    ),
+    ExactManifestOnlyMatcher(
+        manifest_kind=out.ManifestKind(out.BuildGradle()),
+        manifest_name="build.gradle",
     ),
     # Composer
     ExactLockfileManifestMatcher(

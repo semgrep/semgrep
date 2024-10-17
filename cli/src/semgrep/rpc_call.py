@@ -68,7 +68,8 @@ def resolve_dependencies(
     )
     if ret is None:
         logger.warning("failed to resolve dependencies")
-    return None
+        return None
+    return ret.value
 
 
 def dump_rule_partitions(args: out.DumpRulePartitionsParams) -> bool:
