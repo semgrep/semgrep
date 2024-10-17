@@ -135,11 +135,18 @@ jobs:
       - run: semgrep --version
       - name: e2e semgrep-core test
         run: echo '1 == 1' | semgrep -l python -e '$X == $X' -
-
-name: build-test-windows-x86
 on:
-  pull_request: null
-  push:
-    branches:
-      - develop
-  workflow_dispatch: null
+  workflow_call:
+    inputs:
+      use-cache:
+        default: true
+        description: Use Opam Cache - uncheck the box to disable use of the opam cache, meaning a long-running but completely from-scratch build.
+        required: false
+        type: boolean
+  workflow_dispatch:
+    inputs:
+      use-cache:
+        default: true
+        description: Use Opam Cache - uncheck the box to disable use of the opam cache, meaning a long-running but completely from-scratch build.
+        required: true
+        type: boolean
