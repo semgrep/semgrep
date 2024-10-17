@@ -111,13 +111,13 @@ jobs:
       - env:
           SEMGREP_FORCE_INSTALL: 1
         run: |
-          tar xvfz artifacts.tgz
+          tar xzvf artifacts.tgz
           cp artifacts/semgrep-core cli/src/semgrep/bin
           ./scripts/build-wheels.sh --plat-name TODO
       - uses: actions/upload-artifact@v3
         with:
           name: windows-x86-wheel
-          path: cli/dist.zip
+          path: cli/dist.tgz
   test-wheels:
     needs:
       - build-wheels
@@ -129,7 +129,7 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: windows-x86-wheel
-      - run: unzip dist.zip
+      - run: tar xzvf dist.tgz
       - name: install package
         run: pip3 install dist/*.whl
       - run: semgrep --version
