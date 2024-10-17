@@ -1,3 +1,0 @@
-Previously, semgrep fails when --trace-endpoint is specified, but --trace is not.
-
-Now, we relax this requirement a bit. In this case, we disable tracing, print out a warning, and continue to scan.
