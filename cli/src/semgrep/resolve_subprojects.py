@@ -31,6 +31,7 @@ from semdep.parsers.yarn import parse_yarn
 from semdep.subproject_matchers import ConfiguredMatchers
 from semdep.subproject_matchers import make_matchers
 from semdep.subproject_matchers import SubprojectMatcher
+from semgrep.rpc_call import resolve_dependencies
 from semgrep.semgrep_interfaces.semgrep_output_v1 import CargoParser
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
@@ -38,42 +39,59 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.subproject import DependencySource
 from semgrep.subproject import LockfileDependencySource
+from semgrep.subproject import ManifestOnlyDependencySource
 from semgrep.subproject import MultiLockfileDependencySource
 from semgrep.subproject import PackageManagerType
 from semgrep.subproject import ResolutionMethod
 from semgrep.subproject import ResolvedSubproject
 from semgrep.subproject import Subproject
 from semgrep.target_manager import TargetManager
+from semgrep.verbose_logging import getLogger
 
+logger = getLogger(__name__)
 
-# argument order for SemgrepParser is lockfile path, manifest path
-PARSERS_BY_PACKAGE_MANAGER_TYPE: Dict[
-    PackageManagerType, Tuple[SemgrepParser, Ecosystem]
-] = {
-    PackageManagerType.PIPENV: (parse_pipfile, Ecosystem(out.Pypi())),
-    PackageManagerType.PIP: (parse_requirements, Ecosystem(out.Pypi())),
-    PackageManagerType.POETRY: (parse_poetry, Ecosystem(out.Pypi())),
-    PackageManagerType.NPM: (parse_package_lock, Ecosystem(out.Npm())),
-    PackageManagerType.YARN: (parse_yarn, Ecosystem(out.Npm())),
-    PackageManagerType.PNPM: (parse_pnpm, Ecosystem(out.Npm())),
-    PackageManagerType.RUBY_GEM: (parse_gemfile, Ecosystem(out.Gem())),
-    PackageManagerType.COMPOSER: (parse_composer_lock, Ecosystem(out.Composer())),
-    PackageManagerType.GO_MOD: (parse_go_mod, Ecosystem(out.Gomod())),
-    PackageManagerType.CARGO: (
-        to_parser(parse_cargo, ScaParserName(CargoParser())),
-        Ecosystem(out.Cargo()),
-    ),
-    PackageManagerType.MAVEN: (parse_pom_tree, Ecosystem(out.Maven())),
-    PackageManagerType.GRADLE: (parse_gradle, Ecosystem(out.Maven())),
-    PackageManagerType.NUGET: (parse_packages_lock_c_sharp, Ecosystem(out.Nuget())),
-    PackageManagerType.DART_PUB: (parse_pubspec_lock, Ecosystem(out.Pub())),
-    PackageManagerType.SWIFT_PM: (parse_package_resolved, Ecosystem(out.SwiftPM())),
-    PackageManagerType.ELIXIR_HEX: (parse_mix, Ecosystem(out.Mix())),
+# argument order is lockfile path, manifest path
+PARSERS_BY_PACKAGE_MANAGER_TYPE: Dict[PackageManagerType, SemgrepParser] = {
+    PackageManagerType.PIPENV: parse_pipfile,
+    PackageManagerType.PIP: parse_requirements,
+    PackageManagerType.POETRY: parse_poetry,
+    PackageManagerType.NPM: parse_package_lock,
+    PackageManagerType.YARN: parse_yarn,
+    PackageManagerType.PNPM: parse_pnpm,
+    PackageManagerType.RUBY_GEM: parse_gemfile,
+    PackageManagerType.COMPOSER: parse_composer_lock,
+    PackageManagerType.GO_MOD: parse_go_mod,
+    PackageManagerType.CARGO: to_parser(parse_cargo, ScaParserName(CargoParser())),
+    PackageManagerType.MAVEN: parse_pom_tree,
+    PackageManagerType.GRADLE: parse_gradle,
+    PackageManagerType.NUGET: parse_packages_lock_c_sharp,
+    PackageManagerType.DART_PUB: parse_pubspec_lock,
+    PackageManagerType.SWIFT_PM: parse_package_resolved,
+    PackageManagerType.ELIXIR_HEX: parse_mix,
+}
+
+ECOSYSTEM_BY_PACKAGE_MANAGER_TYPE: Dict[PackageManagerType, Ecosystem] = {
+    PackageManagerType.PIPENV: Ecosystem(out.Pypi()),
+    PackageManagerType.PIP: Ecosystem(out.Pypi()),
+    PackageManagerType.POETRY: Ecosystem(out.Pypi()),
+    PackageManagerType.NPM: Ecosystem(out.Npm()),
+    PackageManagerType.YARN: Ecosystem(out.Npm()),
+    PackageManagerType.PNPM: Ecosystem(out.Npm()),
+    PackageManagerType.RUBY_GEM: Ecosystem(out.Gem()),
+    PackageManagerType.COMPOSER: Ecosystem(out.Composer()),
+    PackageManagerType.GO_MOD: Ecosystem(out.Gomod()),
+    PackageManagerType.CARGO: Ecosystem(out.Cargo()),
+    PackageManagerType.MAVEN: Ecosystem(out.Maven()),
+    PackageManagerType.GRADLE: Ecosystem(out.Maven()),
+    PackageManagerType.NUGET: Ecosystem(out.Nuget()),
+    PackageManagerType.DART_PUB: Ecosystem(out.Pub()),
+    PackageManagerType.SWIFT_PM: Ecosystem(out.SwiftPM()),
+    PackageManagerType.ELIXIR_HEX: Ecosystem(out.Mix()),
 }
 
 
 def _resolve_dependency_source(
-    dep_source: DependencySource,
+    dep_source: DependencySource, enable_dynamic_resolution: bool = True
 ) -> Tuple[
     Optional[Ecosystem], List[FoundDependency], List[DependencyParserError], List[Path]
 ]:
@@ -86,9 +104,8 @@ def _resolve_dependency_source(
     """
     ecosystem: Optional[Ecosystem] = None
     if isinstance(dep_source, LockfileDependencySource):
-        parser, ecosystem = PARSERS_BY_PACKAGE_MANAGER_TYPE[
-            dep_source.package_manager_type
-        ]
+        parser = PARSERS_BY_PACKAGE_MANAGER_TYPE[dep_source.package_manager_type]
+        ecosystem = ECOSYSTEM_BY_PACKAGE_MANAGER_TYPE[dep_source.package_manager_type]
         resolved_deps, parse_errors = parser(
             dep_source.lockfile_path, dep_source.manifest_path
         )
@@ -107,9 +124,34 @@ def _resolve_dependency_source(
             all_dep_targets.extend(new_targets)
 
         return ecosystem, all_resolved_deps, all_parse_errors, all_dep_targets
-    # We'll initially only support lockfiles, matching existing behavior
-    # elif isinstance(to_resolve.dependency_source, ManifestOnlyDependencySource):
-    #     # TODO: add dynamic dependency resolution
+    elif (
+        isinstance(dep_source, ManifestOnlyDependencySource)
+        and enable_dynamic_resolution
+    ):
+        manifest_arg = out.Manifest(
+            kind=dep_source.manifest_kind, path=out.Fpath(str(dep_source.manifest_path))
+        )
+        response = resolve_dependencies([manifest_arg])
+        if response is None:
+            # we failed to resolve somehow
+            # TODO: handle this and generate an error
+            return (None, [], [], [])
+        if len(response) > 1:
+            logger.warning(
+                f"Too many responses from dynamic dependency resolution RPC. Expected 1, got {len(response)}"
+            )
+        result = response[0][1]
+        if isinstance(result.value, out.ResolutionOk):
+            resolved_deps = result.value.value
+            # right now we only support lockfileless for the maven ecosystem, so hardcode that here
+            # TODO: move this ecosystem identification into the ocaml code when we redo the interface there
+            ecosystem = Ecosystem(out.Maven())
+            return ecosystem, resolved_deps, [], [dep_source.manifest_path]
+        else:
+            # some error occured in resolution
+            # TODO: error handling / bubbling up
+            return (None, [], [], [])
+
     else:
         # dependency source type is not supported, do nothing
         return (None, [], [], [])
@@ -173,7 +215,7 @@ def resolve_subprojects(
     # Dispatch each subproject to a resolver for resolution
     for to_resolve in unresolved_subprojects:
         ecosystem, deps, errors, targets = _resolve_dependency_source(
-            to_resolve.dependency_source
+            to_resolve.dependency_source, allow_dynamic_resolution
         )
         dependency_parser_errors.extend(errors)
         dependency_targets.extend(targets)
