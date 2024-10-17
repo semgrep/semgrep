@@ -408,13 +408,22 @@ class StreamingSemgrepCore:
         # Set parent span id as close to fork as possible to ensure core
         # spans nest under the correct pysemgrep parent span.
         get_state().traces.inject()
-        process = await asyncio.create_subprocess_exec(
-            *self._cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=stderr_arg,
-            limit=INPUT_BUFFER_LIMIT,
-            preexec_fn=setrlimits_preexec_fn,
-        )
+        if IS_WINDOWS:
+            process = await asyncio.create_subprocess_exec(
+                *self._cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=stderr_arg,
+                limit=INPUT_BUFFER_LIMIT,
+                # preexec_fn is not supported on Windows
+            )
+        else:
+            process = await asyncio.create_subprocess_exec(
+                *self._cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=stderr_arg,
+                limit=INPUT_BUFFER_LIMIT,
+                preexec_fn=setrlimits_preexec_fn,
+            )
 
         # Ensured by passing stdout/err named parameters above.
         assert process.stdout
