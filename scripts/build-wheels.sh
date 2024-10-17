@@ -22,4 +22,9 @@ cd cli && python3 setup.py sdist bdist_wheel "$@"
 twine check dist/*.whl
 
 # Zipping for a stable name to upload as an artifact
-zip -r dist.zip dist
+if [[ "$OSTYPE" == "msys" ]]; then
+	# zip not available on windows CI runners
+	tar czvf dist.tgz dist
+else
+	zip -r dist.zip dist
+fi
