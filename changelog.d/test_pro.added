@@ -1,5 +1,0 @@
-Pro-only: semgrep test now supports the --pro flag to not only use pro languages
-but also run the tests with the --pro-intrafile engine flag. If a finding
-is detected only by the pro engine, please use `proruleid:` instead of `ruleid:`
-and if an OSS finding is actually a false positive for the pro engine, please
-add the `prook:` to your test annotation.
