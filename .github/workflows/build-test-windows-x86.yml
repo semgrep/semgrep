@@ -1,5 +1,5 @@
 jobs:
-  job:
+  build-core:
     defaults:
       run:
         shell: bash
@@ -92,8 +92,50 @@ jobs:
           tar czvf artifacts.tgz artifacts
       - uses: actions/upload-artifact@v3
         with:
-          name: semgrep-core-and-dependent-libs-w64-artifact
+          name: semgrep-core-and-dependent-libs-w64-artifact-${{ github.sha }}
           path: artifacts.tgz
+  build-wheels:
+    needs:
+      - build-core
+    defaults:
+      run:
+        shell: bash
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - uses: actions/download-artifact@v3
+        with:
+          name: semgrep-core-and-dependent-libs-w64-artifact-${{ github.sha }}
+        env:
+          SEMGREP_FORCE_INSTALL=1
+      - run: |
+          tar xvfz artifacts.tgz
+          cp artifacts/semgrep-core cli/src/semgrep/bin
+          ./scripts/build-wheels.sh --plat-name TODO
+      - uses: actions/upload-artifact@v3
+        with:
+          name: windows-x86-wheel
+          path: cli/dist.zip
+  test-wheels:
+    needs:
+      - build-wheels
+    defaults:
+      run:
+        shell: bash
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: windows-x86-wheel
+      - run: unzip dist.zip
+      - name: install package
+        run: pip3 install dist/*.whl
+      - run: semgrep --version
+      - name: e2e semgrep-core test
+        run: echo '1 == 1' | semgrep -l python -e '$X == $X' -
+
 name: build-test-windows-x86
 on:
   pull_request: null
