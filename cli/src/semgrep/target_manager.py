@@ -23,8 +23,7 @@ from typing import Tuple
 from typing import Union
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
-from semdep.lockfile import filter_lockfile_paths
-from semdep.lockfile import Lockfile
+from semdep.subproject_matchers import filter_dependency_source_files
 from semgrep.git import BaselineHandler
 
 # usually this would be a try...except ImportError
@@ -57,18 +56,6 @@ from semgrep.util import path_has_permissions, sub_check_output
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Gem
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Gomod
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Hex
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Composer
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Nuget
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Pub
-from semgrep.semgrep_interfaces.semgrep_output_v1 import SwiftPM
 
 logger = getLogger(__name__)
 
@@ -138,9 +125,9 @@ class FileTargetingLog:
 
     # Indicates which files were NOT scanned by each language
     # e.g. for python, should be a list of all non-python-compatible files
-    by_language: Dict[Union[Language, Ecosystem], Set[Path]] = Factory(
-        lambda: defaultdict(set)
-    )
+    by_language: Dict[
+        Union[Language, Literal["dependency_source_files"]], Set[Path]
+    ] = Factory(lambda: defaultdict(set))
     rule_includes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
     rule_excludes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
 
@@ -627,15 +614,17 @@ class TargetManager:
         return cast(List[Path], result)
 
     def filter_by_language(
-        self, language: Union[None, Language, Ecosystem], *, candidates: FrozenSet[Path]
+        self,
+        language: Union[None, Language],
+        *,
+        candidates: FrozenSet[Path],
     ) -> FilteredFiles:
         """
-        Returns only paths that have the correct extension or shebang, or are the correct lockfile format
+        Returns only paths that have the correct extension or shebang
 
         Finds all files in a collection of paths that either:
         - end with one of a set of extension
         - is a script that executes with one of a set of programs
-        - are lockfiles associated with a given ecosystem
         """
         if isinstance(language, Language):
             kept = frozenset(
@@ -644,8 +633,6 @@ class TargetManager:
                 if any(str(path).endswith(ext) for ext in language.definition.exts)
                 or self.executes_with_shebang(path, language.definition.shebangs)
             )
-        elif isinstance(language, Ecosystem):
-            kept = filter_lockfile_paths(language, candidates)
         else:
             kept = frozenset(candidates)
         return FilteredFiles(kept, frozenset(candidates - kept))
@@ -725,7 +712,7 @@ class TargetManager:
     @lru_cache(maxsize=None)
     def get_files_for_language(
         self,
-        lang: Union[None, Language, Ecosystem],
+        lang: Union[None, Language, Literal["dependency_source_files"]],
         product: out.Product,
         ignore_baseline_handler: bool = False,
     ) -> FilteredFiles:
@@ -734,7 +721,12 @@ class TargetManager:
         an extension matching LANG or are a lockfile for LANG ecosystem that match any pattern in INCLUDES and do not
         match any pattern in EXCLUDES. Any file in TARGET bypasses excludes and includes.
         If a file in TARGET has a known extension that is not for langugage LANG then
-        it is also filtered out
+        it is also filtered out.
+
+        Lang can be:
+        - A true language, which causes this function to return source code files in that language
+        - `None`, which skips language filtering altogether
+        - `"dependency_source_files"`, which finds files that might contain dependency source information across all project types
 
         Note also filters out any directory and descendants of `.git`
 
@@ -742,8 +734,12 @@ class TargetManager:
         """
         all_files = self.get_all_files(ignore_baseline_handler)
 
-        if lang:
+        if isinstance(lang, Language):
             files = self.filter_by_language(lang, candidates=all_files)
+            self.ignore_log.by_language[lang].update(files.removed)
+        elif lang == "dependency_source_files":
+            kept = filter_dependency_source_files(candidates=all_files)
+            files = FilteredFiles(kept, all_files - kept)
             self.ignore_log.by_language[lang].update(files.removed)
         else:
             files = FilteredFiles(frozenset(all_files), frozenset())
@@ -760,7 +756,7 @@ class TargetManager:
         self.ignore_log.always_skipped.update(files.removed)
 
         # Lockfiles are easy to parse, and regularly surpass 1MB for big repos
-        if not isinstance(lang, Ecosystem):
+        if lang != "dependency_source_files":
             files = self.filter_by_size(self.max_target_bytes, candidates=files.kept)
             self.ignore_log.size_limit.update(files.removed)
 
@@ -776,12 +772,12 @@ class TargetManager:
             t.path for t in self.targets if not t.path.is_dir() and t.path.is_file()
         )
         explicit_files_for_lang = self.filter_by_language(
-            lang, candidates=explicit_files
+            lang if isinstance(lang, Language) else None, candidates=explicit_files
         )
         kept_files |= explicit_files_for_lang.kept
-        if self.allow_unknown_extensions and not isinstance(lang, Ecosystem):
+        if self.allow_unknown_extensions and lang != "dependency_source_files":
             # add unknown extensions back in for languages. Don't do so when searching
-            # for lockfiles and manifests (when lang is an Ecosystem)
+            # for dependency source information
             explicit_files_of_unknown_lang = self.filter_known_extensions(
                 candidates=explicit_files
             )
@@ -819,50 +815,14 @@ class TargetManager:
 
         return paths.kept
 
-    def get_all_lockfiles(self) -> Dict[Ecosystem, FrozenSet[Path]]:
-        """
-        Return a dict mapping each ecosystem to the set of lockfiles for that ecosystem
-        """
-        ALL_ECOSYSTEMS: Set[Ecosystem] = {
-            Ecosystem(Npm()),
-            Ecosystem(Pypi()),
-            Ecosystem(Gem()),
-            Ecosystem(Gomod()),
-            Ecosystem(Cargo()),
-            Ecosystem(Maven()),
-            Ecosystem(Composer()),
-            Ecosystem(Nuget()),
-            Ecosystem(Pub()),
-            Ecosystem(SwiftPM()),
-            Ecosystem(Hex()),
-        }
-
-        return {
-            ecosystem: frozenset(
-                lockfile.path for lockfile in self.get_lockfiles(ecosystem)
-            )
-            for ecosystem in ALL_ECOSYSTEMS
-        }
-
-    @lru_cache(maxsize=None)
-    def get_lockfiles(
+    def get_all_dependency_source_files(
         self,
-        ecosystem: Ecosystem,
-        product: out.Product = SCA_PRODUCT,
         ignore_baseline_handler: bool = False,
-    ) -> List[Lockfile]:
+    ) -> FrozenSet[Path]:
         """
-        Return set of paths to lockfiles for a given ecosystem
-
-        Respects semgrepignore/exclude flag
-
-        ignore_baseline_handler: if True, will ignore the baseline handler and scan all files. Used in the context of scanning unchanged lockfiles for their dependencies and doing reachability analysis.
+        Return all files that might be used as a source of dependency information
         """
-        files = self.get_files_for_language(
-            ecosystem, product, ignore_baseline_handler
-        ).kept
-
-        # Sort files so file paths are returned in a deterministic order
-        sorted_files = sorted(files)
-
-        return [Lockfile.from_path(path) for path in sorted_files]
+        all_files = self.get_files_for_language(
+            "dependency_source_files", out.Product(out.SCA()), ignore_baseline_handler
+        )
+        return all_files.kept

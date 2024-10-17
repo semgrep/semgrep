@@ -26,7 +26,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaInfo
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.subproject import find_closest_subproject
-from semgrep.subproject import Subproject
+from semgrep.subproject import ResolvedSubproject
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -68,7 +68,7 @@ def parse_depends_on_yaml(entries: List[Dict[str, str]]) -> Iterator[DependencyP
 def generate_unreachable_sca_findings(
     rule: Rule,
     already_reachable: Callable[[Path, FoundDependency], bool],
-    resolved_deps: Dict[Ecosystem, List[Subproject]],
+    resolved_deps: Dict[Ecosystem, List[ResolvedSubproject]],
 ) -> Tuple[List[RuleMatch], List[SemgrepError]]:
     """
     Returns matches to a only a rule's sca-depends-on patterns; ignoring any reachabiliy patterns it has
@@ -82,8 +82,8 @@ def generate_unreachable_sca_findings(
     non_reachable_matches = []
     match_based_keys: Dict[tuple[str, Path, str], int] = defaultdict(int)
     for ecosystem in ecosystems:
-        for sca_project in resolved_deps.get(ecosystem, []):
-            deps = sca_project.found_dependencies
+        for subproject in resolved_deps.get(ecosystem, []):
+            deps = list(subproject.found_dependencies.iter_found_dependencies())
 
             dependency_matches = list(
                 dependencies_range_match_any(depends_on_entries, list(deps))
@@ -162,7 +162,7 @@ def transitive_dep_is_also_direct(
 def generate_reachable_sca_findings(
     matches: List[RuleMatch],
     rule: Rule,
-    resolved_deps: Dict[Ecosystem, List[Subproject]],
+    resolved_deps: Dict[Ecosystem, List[ResolvedSubproject]],
 ) -> Tuple[
     List[RuleMatch], List[SemgrepError], Callable[[Path, FoundDependency], bool]
 ]:
@@ -178,14 +178,14 @@ def generate_reachable_sca_findings(
     for ecosystem in ecosystems:
         for match in matches:
             try:
-                sca_project = find_closest_subproject(
+                subproject = find_closest_subproject(
                     match.path, ecosystem, resolved_deps.get(ecosystem, [])
                 )
 
-                if sca_project is None:
+                if subproject is None:
                     continue
 
-                deps = sca_project.found_dependencies if sca_project is not None else []
+                deps = list(subproject.found_dependencies.iter_found_dependencies())
                 frozen_deps = tuple((dep.package, dep.transitivity) for dep in deps)
 
                 dependency_matches = list(
