@@ -3,7 +3,6 @@ import collections
 import contextlib
 import json
 import platform
-import resource
 import sys
 import tempfile
 from datetime import datetime
