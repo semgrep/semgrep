@@ -2,6 +2,7 @@ import asyncio
 import collections
 import contextlib
 import json
+import platform
 import resource
 import sys
 import tempfile
@@ -71,6 +72,10 @@ INPUT_BUFFER_LIMIT: int = 1024 * 1024 * 1024
 # test/e2e/test_performance.py is one test that exercises this risk.
 LARGE_READ_SIZE: int = 1024 * 1024 * 512
 
+IS_WINDOWS = platform.system() == "Windows"
+if not IS_WINDOWS:
+    import resource
+
 
 def setrlimits_preexec_fn() -> None:
     """
@@ -88,6 +93,9 @@ def setrlimits_preexec_fn() -> None:
     # which have their own output requirements so that CLI can parse its stdout,
     # we use a different logger than the usual "semgrep" one
     core_logger = getLogger("semgrep_core")
+    if IS_WINDOWS:
+        core_logger.info("Skipping setting stack limits on Windows")
+        return
 
     # Get current soft and hard stack limits
     old_soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_STACK)
@@ -573,7 +581,11 @@ class CoreRunner:
             if returncode == -11 or returncode == -9:
                 # Killed by signal 11 (segmentation fault), this could be a
                 # stack overflow that was not intercepted by the OCaml runtime.
-                soft_limit, _hard_limit = resource.getrlimit(resource.RLIMIT_STACK)
+                soft_limit, _hard_limit = (
+                    (-1, -1)
+                    if IS_WINDOWS
+                    else resource.getrlimit(resource.RLIMIT_STACK)
+                )
                 tip = f"""
                 Semgrep exceeded system resources. This may be caused by
                     1. Stack overflow. Try increasing the stack limit to
