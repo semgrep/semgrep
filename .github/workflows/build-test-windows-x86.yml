@@ -113,7 +113,7 @@ jobs:
         run: |
           tar xzvf artifacts.tgz
           cp artifacts/semgrep-core cli/src/semgrep/bin
-          ./scripts/build-wheels.sh --plat-name win_amd64_experimental
+          ./scripts/build-wheels.sh --plat-name win_amd64
       - uses: actions/upload-artifact@v3
         with:
           name: windows-x86-wheel
@@ -131,7 +131,7 @@ jobs:
           name: windows-x86-wheel
       - run: tar xzvf dist.tgz
       - name: install package
-        run: pip3 install dist/*.whl --platform win_amd64_experimental
+        run: pip3 install dist/*.whl
       - run: semgrep --version
       - name: e2e semgrep-core test
         run: echo '1 == 1' | semgrep -l python -e '$X == $X' -
