@@ -108,9 +108,9 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: semgrep-core-and-dependent-libs-w64-artifact-${{ github.sha }}
-        env:
+      - env:
           SEMGREP_FORCE_INSTALL=1
-      - run: |
+        run: |
           tar xvfz artifacts.tgz
           cp artifacts/semgrep-core cli/src/semgrep/bin
           ./scripts/build-wheels.sh --plat-name TODO
