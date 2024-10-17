@@ -37,7 +37,6 @@ from rich.progress import TextColumn
 
 import semgrep.scan_report as scan_report
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
-from semdep.lockfile import EcosystemLockfiles
 from semdep.parsers.util import DependencyParserError
 from semgrep import __VERSION__
 from semgrep import tracing
@@ -68,6 +67,7 @@ from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.output_extra import OutputExtra
 from semgrep.profile_manager import ProfileManager
+from semgrep.resolve_subprojects import resolve_subprojects
 from semgrep.rpc_call import dump_rule_partitions
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatches
@@ -83,8 +83,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Product
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.state import get_state
-from semgrep.subproject import resolve_subprojects
-from semgrep.subproject import Subproject
+from semgrep.subproject import ResolvedSubproject
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import SAST_PRODUCT
 from semgrep.target_manager import SCA_PRODUCT
@@ -222,15 +221,9 @@ def run_rules(
         rest_of_the_rules, lambda rule: not rule.should_run_on_semgrep_core
     )
 
-    resolved_deps: Dict[Ecosystem, List[Subproject]] = {}
+    resolved_deps: Dict[Ecosystem, List[ResolvedSubproject]] = {}
     dependency_parser_errors: List[DependencyParserError] = []
     sca_dependency_targets: List[Path] = []
-
-    # Temporary flag to allow us to test the new requirements lockfile matchers
-    # TODO(sal): remove once GA
-    EcosystemLockfiles.init(
-        use_new_requirements_matchers=enable_experimental_requirements
-    )
 
     if len(dependency_aware_rules) > 0:
         # identify and parse lockfiles before beginning the scan
@@ -340,21 +333,33 @@ def run_rules(
                 output_handler.handle_semgrep_errors(dep_rule_errors)
 
         # The caller expects a map from lockfile path to `FoundDependency` items rather than our Subproject representation
-        found_dependencies: Dict[str, List[FoundDependency]] = {}
+        deps_by_lockfile: Dict[str, List[FoundDependency]] = {}
         for ecosystem in resolved_deps:
             for proj in resolved_deps[ecosystem]:
-                found_dependencies.update(proj.map_lockfile_to_dependencies())
+                (
+                    proj_deps_by_lockfile,
+                    unknown_lockfile_deps,
+                ) = proj.found_dependencies.make_dependencies_by_source_path()
+                deps_by_lockfile.update(proj_deps_by_lockfile)
+
+                # We don't really expect to have any dependencies with an unknown lockfile, but we can't enforce
+                # this with types due to backwards compatibility guarantees on FoundDependency. If we see any
+                # dependencies without lockfile path, we assign them to a fake lockfile at the root of each subproject.
+                for dep in unknown_lockfile_deps:
+                    deps_by_lockfile[
+                        str(proj.root_dir.joinpath(Path("unknown_lockfile")))
+                    ].append(dep)
 
         for target in sca_dependency_targets:
             output_extra.all_targets.add(target)
     else:
-        found_dependencies = {}
+        deps_by_lockfile = {}
 
     return (
         rule_matches_by_rule,
         semgrep_errors,
         output_extra,
-        found_dependencies,
+        deps_by_lockfile,
         dependency_parser_errors,
         plans,
     )
