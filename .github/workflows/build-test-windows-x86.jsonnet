@@ -4,20 +4,24 @@ local semgrep = import 'libs/semgrep.libsonnet';
 
 // actually not exported for now to other workflows, but we might,
 // and at least can be downloaded from the GHA job page.
-local artifact_name = 'semgrep-core-and-dependent-libs-w64-artifact';
+local artifact_name = 'semgrep-core-and-dependent-libs-w64-artifact-${{ github.sha }}';
+
+local wheel_name = 'windows-x86-wheel';
+local runs_on = 'windows-latest';
+local defaults = {
+  run: {
+    // Windows GHA runners default to pwsh (PowerShell). We want to use bash
+    // to be consistent with our other workflows.
+    shell: 'bash',
+  },
+};
 
 // ----------------------------------------------------------------------------
 // The job
 // ----------------------------------------------------------------------------
-local job = {
-  'runs-on': 'windows-latest',
-  defaults: {
-    run: {
-      // Windows GHA runners default to pwsh (PowerShell). We want to use bash
-      // to be consistent with our other workflows.
-      shell: 'bash',
-    },
-  },
+local build_core_job = {
+  'runs-on': runs_on,
+  defaults: defaults,
   steps: [
     actions.checkout_with_submodules(),
     {
@@ -150,6 +154,63 @@ local job = {
   ],
 };
 
+local build_wheels_job = {
+  'runs-on': runs_on,
+  defaults: defaults,
+  needs: [
+    'build-core',
+  ],
+  steps: [
+    actions.checkout_with_submodules(),
+    actions.download_artifact_step(artifact_name),
+    {
+      env: {
+        "SEMGREP_FORCE_INSTALL": 1
+      },
+      run: |||
+        tar xvfz artifacts.tgz
+        cp artifacts/semgrep-core cli/src/semgrep/bin
+        ./scripts/build-wheels.sh --plat-name win_amd64
+      |||,
+    },
+    {
+      uses: 'actions/upload-artifact@v3',
+      with: {
+        path: 'cli/dist.tgz',
+        name: wheel_name,
+      },
+    },
+  ]
+};
+
+local test_wheels_job = {
+  'runs-on': runs_on,
+  defaults: defaults,
+  needs: [
+    'build-wheels',
+  ],
+  steps: [
+    actions.download_artifact_step(wheel_name),
+    {
+      run: 'tar xzvf dist.tgz',
+    },
+    // *.whl is fine here because we're building one wheel with the "any"
+    // platform compatibility tag
+    {
+      name: 'install package',
+      run: 'pip3 install dist/*.whl',
+    },
+    {
+      name: 'test package',
+      run: 'semgrep --version',
+    },
+    {
+      name: 'e2e semgrep-core test',
+      run: 'echo \'1 == 1\' | semgrep -l python -e \'$X == $X\' -'
+    },
+  ],
+};
+
 // ----------------------------------------------------------------------------
 // The workflow
 // ----------------------------------------------------------------------------
@@ -161,6 +222,8 @@ local job = {
     workflow_call: semgrep.cache_opam.inputs(required=false),
   },
   jobs: {
-    job: job,
+    'build-core': build_core_job,
+    'build-wheels': build_wheels_job,
+    'test-wheels': test_wheels_job,
   },
 }
