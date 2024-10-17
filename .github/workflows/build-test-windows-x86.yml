@@ -1,0 +1,152 @@
+jobs:
+  build-core:
+    defaults:
+      run:
+        shell: bash
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: "4.14"
+          opam-local-packages: dont_install_local_packages.opam
+          opam-repositories: |
+            opam-repository-mingw: https://github.com/ocaml-opam/opam-repository-mingw.git#sunset
+            default: https://github.com/ocaml/opam-repository.git
+      - env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
+        name: Set GHA cache for OPAM in _opam
+        uses: actions/cache@v3
+        with:
+          key: ${{ runner.os }}-${{ runner.arch }}-v1-opam-4.14.0-${{ hashFiles('semgrep-pro.opam', 'semgrep.opam') }}
+          path: _opam
+      - name: Debug stuff
+        run: |
+          ls
+          # to see the bin symlink for example
+          ls -l
+          set
+          # tree-sitter fails to compile without an ar, you can use
+          # CC=x86_64-w64-mingw32-gcc but there is no AR=x86_64-w64-mingw32-ar
+          which ar
+          ar --version
+          # GHA installs cygwin in a special place
+          export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
+          which ar
+          ar --version
+          which opam
+          # this should be fdopen's opan, so 2.0.10
+          opam --version
+          opam repo
+          # we should be on 4.14.0~mingw
+          opam switch
+      - env:
+          CC: x86_64-w64-mingw32-gcc
+        name: Build tree-sitter
+        run: |
+          cd libs/ocaml-tree-sitter-core
+          ./configure
+          ./scripts/download-tree-sitter --lazy
+          prefix="$(pwd)/tree-sitter"
+          cd downloads/tree-sitter
+          make PREFIX="$prefix" CFLAGS="-O3 -Wall -Wextra"
+          make PREFIX="$prefix" install
+      - name: Install OPAM deps
+        run: |
+          export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
+          make install-deps-WINDOWS-for-semgrep-core
+          make install-opam-deps
+      - name: Build semgrep-core
+        run: |
+          export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"
+          export TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include
+          export TREESITTER_LIBDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/lib
+          # We have to strip rpath from the tree-sitter projects because there's no
+          # equivalent in Windows
+          # TODO: investigate removing rpath from the tree-sitter projects
+          for filename in $(find ./languages/ ./libs/ocaml-tree-sitter-core/ -name dune); do
+            grep -v rpath $filename > $filename.new
+            mv $filename.new $filename
+          done
+          opam exec -- dune build _build/install/default/bin/semgrep-core.exe
+      - name: Test semgrep-core
+        run: |
+          _build/install/default/bin/semgrep-core.exe -l python -rules tests/windows/rules.yml -json tests/windows/test.py
+      - name: Package semgrep-core
+        run: |
+          mkdir artifacts
+          cp _build/install/default/bin/semgrep-core.exe artifacts/
+
+          # TODO: somehow upgrade to the latest flexdll, which should allow us
+          # to statically link these libraries
+          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libstdc++-6.dll artifacts/
+          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgcc_s_seh-1.dll artifacts/
+          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libwinpthread-1.dll artifacts/
+          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libpcre-1.dll artifacts/
+          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgmp-10.dll artifacts/
+          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libcurl-4.dll artifacts/
+          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libpcre2-8-0.dll artifacts/
+
+          tar czvf artifacts.tgz artifacts
+      - uses: actions/upload-artifact@v3
+        with:
+          name: semgrep-core-and-dependent-libs-w64-artifact-${{ github.sha }}
+          path: artifacts.tgz
+  build-wheels:
+    needs:
+      - build-core
+    defaults:
+      run:
+        shell: bash
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - uses: actions/download-artifact@v3
+        with:
+          name: semgrep-core-and-dependent-libs-w64-artifact-${{ github.sha }}
+      - env:
+          SEMGREP_FORCE_INSTALL: 1
+        run: |
+          tar xzvf artifacts.tgz
+          cp artifacts/semgrep-core cli/src/semgrep/bin
+          ./scripts/build-wheels.sh --plat-name win_amd64
+      - uses: actions/upload-artifact@v3
+        with:
+          name: windows-x86-wheel
+          path: cli/dist.tgz
+  test-wheels:
+    needs:
+      - build-wheels
+    defaults:
+      run:
+        shell: bash
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: windows-x86-wheel
+      - run: tar xzvf dist.tgz
+      - name: install package
+        run: pip3 install dist/*.whl
+      - run: semgrep --version
+      - name: e2e semgrep-core test
+        run: echo '1 == 1' | semgrep -l python -e '$X == $X' -
+on:
+  workflow_call:
+    inputs:
+      use-cache:
+        default: true
+        description: Use Opam Cache - uncheck the box to disable use of the opam cache, meaning a long-running but completely from-scratch build.
+        required: false
+        type: boolean
+  workflow_dispatch:
+    inputs:
+      use-cache:
+        default: true
+        description: Use Opam Cache - uncheck the box to disable use of the opam cache, meaning a long-running but completely from-scratch build.
+        required: true
+        type: boolean
