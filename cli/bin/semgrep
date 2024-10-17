@@ -49,6 +49,9 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 PATH = os.environ.get("PATH", "")
 os.environ["PATH"] = PATH + os.pathsep + os.path.dirname(os.path.abspath(__file__))
 
+IS_WINDOWS = platform.system() == "Windows"
+
+
 class CoreNotFound(Exception):
     def __init__(self, value):
         self.value = value
@@ -81,6 +84,10 @@ def find_semgrep_core_path(pro=False, extra_message=""):
         core = "semgrep-core-proprietary"
     else:
         core = "semgrep-core"
+
+    if IS_WINDOWS:
+        core += ".exe"
+
     # First, try the packaged binary.
     try:
         # the use of .path causes a DeprecationWarning hence the
