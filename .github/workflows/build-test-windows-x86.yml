@@ -132,9 +132,9 @@ jobs:
       - run: tar xzvf dist.tgz
       - name: install package
         run: pip3 install dist/*.whl
-      - run: semgrep --version --legacy
+      - run: semgrep --debug --version --legacy
       - name: e2e semgrep-core test
-        run: echo '1 == 1' | semgrep --legacy -l python -e '$X == $X' -
+        run: echo '1 == 1' | semgrep --debug --legacy -l python -e '$X == $X' -
 on:
   workflow_call:
     inputs:
