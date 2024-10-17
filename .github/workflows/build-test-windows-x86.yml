@@ -113,7 +113,7 @@ jobs:
         run: |
           tar xzvf artifacts.tgz
           cp artifacts/semgrep-core cli/src/semgrep/bin
-          ./scripts/build-wheels.sh --plat-name TODO
+          ./scripts/build-wheels.sh --plat-name win_amd64
       - uses: actions/upload-artifact@v3
         with:
           name: windows-x86-wheel
