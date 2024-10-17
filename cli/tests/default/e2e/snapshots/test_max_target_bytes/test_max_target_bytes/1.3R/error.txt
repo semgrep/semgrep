@@ -1,4 +1,4 @@
-semgrep scan: option '--max-target-bytes': Invalid representation for a
-              number of bytes: 1.3R
-Usage: semgrep scan [OPTION]… [TARGETS]…
-Try 'semgrep scan --help' for more information.
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/bin/semgrep", line 52, in <module>
+    IS_WINDOWS = platform.system() == "Windows"
+NameError: name 'platform' is not defined
