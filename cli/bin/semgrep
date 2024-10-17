@@ -30,6 +30,7 @@
 # if you want to test the change under `pipenv shell`.
 
 import os
+import platform
 import sys
 import importlib.resources
 import shutil
