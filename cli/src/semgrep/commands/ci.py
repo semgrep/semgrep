@@ -248,6 +248,7 @@ def ci(
     verbose: bool,
     path_sensitive: bool,
     enable_experimental_requirements: bool,
+    allow_dynamic_dependency_resolution: bool,
     dump_n_rule_partitions: Optional[int],
 ) -> None:
     state = get_state()
@@ -558,6 +559,7 @@ def ci(
             "diff_depth": diff_depth,
             "capture_core_stderr": capture_core_stderr,
             "enable_experimental_requirements": enable_experimental_requirements,
+            "allow_dynamic_dependency_resolution": allow_dynamic_dependency_resolution,
             "dump_n_rule_partitions": dump_n_rule_partitions,
         }
 
