@@ -133,9 +133,9 @@ jobs:
       - name: install package
         run: pip3 install dist/*.whl
       - run: which semgrep
-      - run: semgrep --debug --version --legacy
+      - run: semgrep --debug --version
       - name: e2e semgrep-core test
-        run: echo '1 == 1' | semgrep --debug --legacy -l python -e '$X == $X' -
+        run: echo '1 == 1' | semgrep --debug -l python -e '$X == $X' -
 on:
   workflow_call:
     inputs:
