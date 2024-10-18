@@ -1,0 +1,4 @@
+Improved naming for Common JS module imports (`require`) in arbitrary
+expression contexts. Notably, in-line use of `require` should now be linked to
+the correct module. For instance, the pattern `foo.bar` should now match
+against `require('foo').bar` and taint is likewise similarily tracked.
