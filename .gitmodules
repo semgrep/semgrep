@@ -46,10 +46,6 @@ url = https://github.com/returntocorp/semgrep-hack.git
 path = languages/html/tree-sitter/semgrep-html
 url = https://github.com/returntocorp/semgrep-html.git
 
-[submodule "OSS/languages/tree-sitter-lang/semgrep-vue"]
-path = languages/vue/tree-sitter/semgrep-vue
-url = https://github.com/returntocorp/semgrep-vue.git
-
 [submodule "OSS/languages/dockerfile/tree-sitter/semgrep-dockerfile"]
 path = languages/dockerfile/tree-sitter/semgrep-dockerfile
 url = https://github.com/returntocorp/semgrep-dockerfile
