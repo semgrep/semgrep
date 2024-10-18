@@ -157,8 +157,7 @@ else
             "solidity"
             "swift"
             "tsx"
-            "typescript"
-            "vue")
+            "typescript")
         FLAGS=("-noautolink")
         CCOPT=()
         # TODO: ideally much of this could be generated from dune/opam.
