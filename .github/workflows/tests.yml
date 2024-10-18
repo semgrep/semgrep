@@ -98,6 +98,9 @@ jobs:
   build-test-osx-x86:
     secrets: inherit
     uses: ./.github/workflows/build-test-osx-x86.yml
+  build-test-windows-x86:
+    secrets: inherit
+    uses: ./.github/workflows/build-test-windows-x86.yml
   push-docker-returntocorp:
     if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
     needs:
