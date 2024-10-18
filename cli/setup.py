@@ -136,11 +136,6 @@ install_requires = [
     "wcmatch~=8.3",
 ]
 
-scripts = ["bin/semgrep", "bin/pysemgrep"]
-
-if IS_WINDOWS:
-    scripts = [script + ".exe" for script in scripts]
-
 
 setuptools.setup(
     name="semgrep",
@@ -153,7 +148,6 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/returntocorp/semgrep",
-    scripts=scripts,
     entry_points={
         "console_scripts": [
             "semgrep = semgrep.console_scripts.semgrep:main",
