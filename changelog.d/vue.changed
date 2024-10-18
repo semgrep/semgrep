@@ -1,0 +1,4 @@
+Removed support for Vue. The tree-sitter grammar has not been updated in 3 years,
+there was no community rules added and semgrep-vue is causing linking conflicts
+when compiling semgrep under Windows so just simpler to remove support for Vue.
+In theory, extract mode could be a good substitute to parse Vue files.

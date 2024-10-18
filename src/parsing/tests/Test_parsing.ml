@@ -209,10 +209,6 @@ let dump_tree_sitter_cst lang file =
       Tree_sitter_html.Parse.file file
       |> dump_and_print_errors Tree_sitter_html.Boilerplate.dump_tree
            Tree_sitter_html.Boilerplate.dump_extras
-  | Lang.Vue ->
-      Tree_sitter_vue.Parse.file file
-      |> dump_and_print_errors Tree_sitter_vue.Boilerplate.dump_tree
-           Tree_sitter_vue.Boilerplate.dump_extras
   | Lang.Php ->
       Tree_sitter_php.Parse.file file
       |> dump_and_print_errors Tree_sitter_php.Boilerplate.dump_tree
@@ -290,8 +286,6 @@ let test_parse_tree_sitter lang root_paths =
                  Tree_sitter_cpp.Parse.file file |> fail_on_error |> ignore
              | Lang.Html ->
                  Tree_sitter_html.Parse.file file |> fail_on_error |> ignore
-             | Lang.Vue ->
-                 Tree_sitter_vue.Parse.file file |> fail_on_error |> ignore
              | Lang.Php ->
                  Tree_sitter_php.Parse.file file |> fail_on_error |> ignore
              | Lang.Terraform ->
