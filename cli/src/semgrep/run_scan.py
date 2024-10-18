@@ -50,6 +50,8 @@ from semgrep.constants import OutputFormat
 from semgrep.constants import TOO_MUCH_DATA
 from semgrep.core_runner import CoreRunner
 from semgrep.core_runner import Plan
+from semgrep.dependency_aware_rule import dependencies_range_match_any
+from semgrep.dependency_aware_rule import parse_depends_on_yaml
 from semgrep.engine import EngineType
 from semgrep.error import FilesNotFoundError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
@@ -92,6 +94,7 @@ from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
 from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
+
 
 logger = getLogger(__name__)
 
@@ -182,6 +185,47 @@ def remove_matches_in_baseline(
     return kept_matches_by_rule
 
 
+def filter_dependency_aware_rules(
+    dependency_aware_rules: List[Rule],
+    resolved_deps: Dict[Ecosystem, List[ResolvedSubproject]],
+) -> List[Rule]:
+    """Returns the list of filtered rules that have matching dependencies in the project"""
+    rules_to_check = [r for r in dependency_aware_rules if r.should_run_on_semgrep_core]
+    # List to store filtered rules
+    filtered_rules = []
+
+    # Loop through each rule to check for matching dependencies
+    for rule in rules_to_check:
+        depends_on_keys = rule.project_depends_on
+        depends_on_entries = list(parse_depends_on_yaml(depends_on_keys))
+        ecosystems = list(rule.ecosystems)
+
+        # Flag to track if we found a matching dependency
+        has_matching_dependency = False
+        # Check for each ecosystem in the rule
+        for ecosystem in ecosystems:
+            for sca_project in resolved_deps.get(ecosystem, []):
+                deps = list(sca_project.found_dependencies.iter_found_dependencies())
+                # Match the dependencies based on version ranges
+                dependency_matches = list(
+                    dependencies_range_match_any(depends_on_entries, deps)
+                )
+
+                # If any dependency matches, we flag it as a match
+                if dependency_matches:
+                    has_matching_dependency = True
+                    break
+
+            if has_matching_dependency:
+                break
+
+        # If we found a matching dependency, include this rule
+        if has_matching_dependency:
+            filtered_rules.append(rule)
+
+    return filtered_rules
+
+
 # This runs semgrep-core (and also handles SCA and join rules)
 @tracing.trace()
 def run_rules(
@@ -217,20 +261,18 @@ def run_rules(
     join_rules, rest_of_the_rules = partition(
         filtered_rules, lambda rule: rule.mode == JOIN_MODE
     )
-    dependency_aware_rules = [r for r in rest_of_the_rules if r.project_depends_on]
-    dependency_only_rules, rest_of_the_rules = partition(
-        rest_of_the_rules, lambda rule: not rule.should_run_on_semgrep_core
-    )
 
+    # Get rules that rely on dependencies from the project's lockfile
+    dependency_aware_rules = [r for r in rest_of_the_rules if r.project_depends_on]
+
+    # Initialize data structures for dependencies
+    filtered_dependency_aware_rules = []
     resolved_deps: Dict[Ecosystem, List[ResolvedSubproject]] = {}
     dependency_parser_errors: List[DependencyParserError] = []
     sca_dependency_targets: List[Path] = []
 
     if len(dependency_aware_rules) > 0:
-        # identify and parse lockfiles before beginning the scan
-        # to produce dependency information that is used throughout.
-        # only do so if there is at least one dependency aware rule to
-        # use the information.
+        # Parse lockfiles to get dependency information, if there are relevant rules
         (
             resolved_deps,
             dependency_parser_errors,
@@ -240,6 +282,15 @@ def run_rules(
             enable_experimental_requirements=enable_experimental_requirements,
             allow_dynamic_resolution=allow_dynamic_dependency_resolution,
         )
+
+        # Filter rules that match the dependencies
+        filtered_dependency_aware_rules = filter_dependency_aware_rules(
+            dependency_aware_rules, resolved_deps
+        )
+
+    rest_of_the_rules = [
+        r for r in rest_of_the_rules if r not in dependency_aware_rules
+    ] + filtered_dependency_aware_rules
 
     cli_ux = get_state().get_cli_ux_flavor()
     plans = scan_report.print_scan_status(
