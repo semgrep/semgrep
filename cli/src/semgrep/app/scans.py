@@ -51,7 +51,16 @@ class ScanCompleteResult:
 
 
 class ScanHandler:
-    def __init__(self, dry_run: bool = False) -> None:
+    def __init__(
+        self, dry_run: bool = False, partial_output: Optional[Path] = None
+    ) -> None:
+        """
+        When dry_run is True, semgrep ci would get the config from the app,
+        run the scans, but would not upload the results.
+
+        When partial_output is not None, the scan results for semgrep ci
+        will also be saved to disk on the path that is specified.
+        """
         state = get_state()
         self.local_id = str(state.local_scan_id)
         self.scan_metadata = out.ScanMetadata(
@@ -64,6 +73,7 @@ class ScanHandler:
         self.dry_run = dry_run
         self._scan_params: str = ""
         self.ci_scan_results: Optional[out.CiScanResults] = None
+        self.partial_output = partial_output
 
     @property
     def scan_id(self) -> Optional[int]:
@@ -272,6 +282,16 @@ class ScanHandler:
         and return what exit code semgrep should exit with.
         """
         state = get_state()
+
+        if self.partial_output:
+            self.partial_output.write_text(
+                out.PartialScanResult(
+                    out.PartialScanError(
+                        out.CiScanFailure(exit_code=exit_code, stderr="")
+                    )
+                ).to_json_string()
+            )
+
         if self.dry_run:
             logger.info(f"Would have reported failure to semgrep.dev: {exit_code}")
             return
@@ -442,6 +462,13 @@ class ScanHandler:
             ),
         )
 
+        if self.partial_output:
+            self.partial_output.write_text(
+                out.PartialScanResult(
+                    out.PartialScanOk((self.ci_scan_results, complete)),
+                ).to_json_string()
+            )
+
         if self.dry_run:
             logger.info(
                 f"Would have sent findings and ignores blob: {json.dumps(findings_and_ignores, indent=4)}"
@@ -450,10 +477,10 @@ class ScanHandler:
                 f"Would have sent complete blob: {json.dumps(complete.to_json(), indent=4)}"
             )
             return ScanCompleteResult(True, False, "")
-        else:
-            # old: was also logging {json.dumps(findings_and_ignores, indent=4)}
-            # alt: save it in ~/.semgrep/logs/findings_and_ignores.json?
-            logger.debug(f"Sending findings and ignores blob")
+
+        # old: was also logging {json.dumps(findings_and_ignores, indent=4)}
+        # alt: save it in ~/.semgrep/logs/findings_and_ignores.json?
+        logger.debug(f"Sending findings and ignores blob")
 
         results_task = progress_bar.add_task("Uploading scan results")
         response = state.app_session.post(
