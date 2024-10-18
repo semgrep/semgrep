@@ -228,7 +228,6 @@ let langs_with_error_tolerance =
     (Lang.Hack, Strict);
     (Lang.Html, Strict);
     (Lang.Xml, Strict);
-    (Lang.Vue, Strict);
     (Lang.R, Strict);
     (Lang.Solidity, Strict);
     (Lang.Julia, Strict);
