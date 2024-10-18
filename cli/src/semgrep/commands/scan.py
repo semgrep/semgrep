@@ -382,6 +382,12 @@ _scan_options: List[Callable] = [
         is_flag=True,
         default=False,
     ),
+    optgroup.option(
+        "--allow-dynamic-dependency-resolution",
+        "allow_dynamic_dependency_resolution",
+        is_flag=True,
+        default=False,
+    ),
 ]
 
 
@@ -573,6 +579,7 @@ def scan(
     x_ls: bool,
     path_sensitive: bool,
     enable_experimental_requirements: bool,
+    allow_dynamic_dependency_resolution: bool,
 ) -> Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]:
     if version:
         print(__VERSION__)
@@ -848,6 +855,7 @@ def scan(
                         path_sensitive=path_sensitive,
                         capture_core_stderr=capture_core_stderr,
                         enable_experimental_requirements=enable_experimental_requirements,
+                        allow_dynamic_dependency_resolution=allow_dynamic_dependency_resolution,
                     )
                 except SemgrepError as e:
                     output_handler.handle_semgrep_errors([e])

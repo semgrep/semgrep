@@ -41,6 +41,7 @@ type conf = {
   test : Test_CLI.conf option;
   ls : bool;
   experimental_requirements_lockfiles : bool;
+  allow_dynamic_dependency_resolution : bool;
 }
 [@@deriving show]
 
@@ -69,6 +70,7 @@ val o_exclude : string list Cmdliner.Term.t
 val o_secrets : bool Cmdliner.Term.t
 
 (* exported because used by Ci_CLI.ml *)
+val o_allow_dynamic_dependency_resolution : bool Cmdliner.Term.t
 val o_allow_untrusted_validators : bool Cmdliner.Term.t
 val o_autofix : bool Cmdliner.Term.t
 val o_baseline_commit : string option Cmdliner.Term.t
