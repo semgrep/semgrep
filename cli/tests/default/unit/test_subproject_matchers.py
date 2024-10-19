@@ -166,8 +166,8 @@ class TestRequirementsLockfileMatcher:
     @pytest.mark.quick
     def test_is_match(self) -> None:
         matcher = PipRequirementsMatcher(
-            base_file_pattern="*requirements*",
-            requirements_file_extension="txt",
+            base_file_pattern="*requirement*",
+            requirements_file_extensions=["txt", "pip"],
             manifest_file_extension="in",
             default_manifest_file_base="requirements",
         )
@@ -177,6 +177,9 @@ class TestRequirementsLockfileMatcher:
         assert matcher.is_match(Path("requirements3.txt")) is True
         assert matcher.is_match(Path("a/b/c/requirements.txt")) is True
         assert matcher.is_match(Path("a/b/c/requirements3.txt")) is True
+        assert matcher.is_match(Path("requirements.pip")) is True
+        assert matcher.is_match(Path("requirement.pip")) is True
+        assert matcher.is_match(Path("a/b/c/requirements.pip")) is True
 
         # Non-standard requirements cases
         assert matcher.is_match(Path("requirements.dev.txt")) is True
@@ -410,7 +413,7 @@ class TestRequirementsLockfileMatcher:
         # with a basic requirements matcher
         matcher = PipRequirementsMatcher(
             base_file_pattern="*requirements*",
-            requirements_file_extension="txt",
+            requirements_file_extensions=["txt", "pip"],
             manifest_file_extension="in",
             default_manifest_file_base="requirements",
         )
