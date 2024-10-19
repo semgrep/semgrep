@@ -320,15 +320,16 @@ class PipRequirementsMatcher(SubprojectMatcher):
     # requirements and manifests
     base_file_pattern: str  # without extension
 
-    requirements_file_extension: str
+    requirements_file_extensions: List[str]
     manifest_file_extension: str
 
     default_manifest_file_base: str  # without extension
 
     def _is_requirements_match(self, path: Path) -> bool:
-        return fnmatch(
-            str(path), f"{self.base_file_pattern}.{self.requirements_file_extension}"
-        )
+        for ext in self.requirements_file_extensions:
+            if fnmatch(str(path), f"{self.base_file_pattern}.{ext}"):
+                return True
+        return False
 
     def _is_manifest_match(self, path: Path) -> bool:
         return (
@@ -477,15 +478,10 @@ class PipRequirementsMatcher(SubprojectMatcher):
 NEW_REQUIREMENTS_MATCHERS: List[SubprojectMatcher] = [
     PipRequirementsMatcher(
         base_file_pattern="*requirement*",
-        requirements_file_extension="txt",
+        requirements_file_extensions=["txt", "pip"],
         manifest_file_extension="in",
         default_manifest_file_base="requirements",
-    ),
-    ExactLockfileManifestMatcher(
-        lockfile_name="requirements.pip",
-        manifest_name="requirements.in",
-        package_manager_type=PackageManagerType.PIP,
-    ),
+    )
 ]
 
 OLD_REQUIREMENTS_MATCHERS: List[SubprojectMatcher] = [

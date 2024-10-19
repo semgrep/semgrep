@@ -133,10 +133,6 @@ pytestmark = pytest.mark.kinda_slow
         ),
         (
             "rules/dependency_aware/python-requirements-sca.yaml",
-            "dependency_aware/requirements_pip",
-        ),
-        (
-            "rules/dependency_aware/python-requirements-sca.yaml",
             "dependency_aware/requirements_with_uppercase_package_name",
         ),
         (
@@ -263,7 +259,19 @@ def test_ssc(run_semgrep_on_copied_files: RunSemgrep, snapshot, rule, target):
         ),
         (
             "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirements_pip",
+        ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirement_pip",
+        ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
             "dependency_aware/requirements_folder",
+        ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirements_pip_folder",
         ),
         (
             "rules/dependency_aware/python-requirements-sca.yaml",
