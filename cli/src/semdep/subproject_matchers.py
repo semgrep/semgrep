@@ -475,35 +475,13 @@ class PipRequirementsMatcher(SubprojectMatcher):
 # use each dependency source file for at most one matcher, running the matchers in the
 # order that they are defined here. This means that if a catch-all matcher were placed
 # first, the rest of the matchers would have no chance of matching any subprojects.
-NEW_REQUIREMENTS_MATCHERS: List[SubprojectMatcher] = [
+MATCHERS: List[SubprojectMatcher] = [
     PipRequirementsMatcher(
         base_file_pattern="*requirement*",
         requirements_file_extensions=["txt", "pip"],
         manifest_file_extension="in",
         default_manifest_file_base="requirements",
-    )
-]
-
-OLD_REQUIREMENTS_MATCHERS: List[SubprojectMatcher] = [
-    ExactLockfileManifestMatcher(
-        lockfile_name="requirements.txt",
-        manifest_name="requirements.in",
-        package_manager_type=PackageManagerType.PIP,
     ),
-    ExactLockfileManifestMatcher(
-        lockfile_name="requirements3.txt",
-        manifest_name="requirements.in",
-        package_manager_type=PackageManagerType.PIP,
-    ),
-    ExactLockfileManifestMatcher(
-        lockfile_name="requirements.pip",
-        manifest_name="requirements.in",
-        package_manager_type=PackageManagerType.PIP,
-    ),
-]
-
-
-MATCHERS: List[SubprojectMatcher] = [
     # Npm
     ExactLockfileManifestMatcher(
         lockfile_name="package-lock.json",
@@ -602,27 +580,6 @@ MATCHERS: List[SubprojectMatcher] = [
 ]
 
 
-def make_matchers(
-    use_requirements_pattern_matchers: bool = False,
-) -> List[SubprojectMatcher]:
-    return MATCHERS + (
-        NEW_REQUIREMENTS_MATCHERS
-        if use_requirements_pattern_matchers
-        else OLD_REQUIREMENTS_MATCHERS
-    )
-
-
-class ConfiguredMatchers:
-    # By default, use the old requirements lockfile matchers for Python
-    matchers: List[SubprojectMatcher] = make_matchers(
-        use_requirements_pattern_matchers=False
-    )
-
-    @classmethod
-    def init(cls, use_new_requirements_matchers: bool = False) -> None:
-        cls.matchers = make_matchers(use_new_requirements_matchers)
-
-
 def filter_dependency_source_files(candidates: FrozenSet[Path]) -> FrozenSet[Path]:
     """
     Returns the paths in `candidates` that are dependency source files.
@@ -634,4 +591,4 @@ def _is_dependency_source_file(path: Path) -> bool:
     """
     Check if a path is a valid dependency source file (lockfile, manifest, SBOM, etc)
     """
-    return any(matcher.is_match(path) for matcher in ConfiguredMatchers.matchers)
+    return any(matcher.is_match(path) for matcher in MATCHERS)

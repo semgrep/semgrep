@@ -245,7 +245,6 @@ def run_rules(
     *,
     with_code_rules: bool = True,
     with_supply_chain: bool = False,
-    enable_experimental_requirements: bool = False,
     allow_dynamic_dependency_resolution: bool = False,
 ) -> Tuple[
     RuleMatchMap,
@@ -279,7 +278,6 @@ def run_rules(
             sca_dependency_targets,
         ) = resolve_subprojects(
             target_manager,
-            enable_experimental_requirements=enable_experimental_requirements,
             allow_dynamic_resolution=allow_dynamic_dependency_resolution,
         )
 
@@ -330,7 +328,6 @@ def run_rules(
             join_rule_matches, join_rule_errors = join_rule.run_join_rule(
                 rule.raw,
                 [target.path for target in target_manager.targets],
-                enable_experimental_requirements=enable_experimental_requirements,
                 allow_dynamic_dependency_resolution=allow_dynamic_dependency_resolution,
             )
             join_rule_matches_set = RuleMatches(rule)
@@ -760,7 +757,6 @@ def run_scan(
         target_mode_config,
         with_code_rules=with_code_rules,
         with_supply_chain=with_supply_chain,
-        enable_experimental_requirements=enable_experimental_requirements,
         allow_dynamic_dependency_resolution=allow_dynamic_dependency_resolution,
     )
     profiler.save("core_time", core_start_time)
@@ -865,7 +861,6 @@ def run_scan(
                         run_secrets,
                         disable_secrets_validation,
                         baseline_target_mode_config,
-                        enable_experimental_requirements=enable_experimental_requirements,
                         allow_dynamic_dependency_resolution=allow_dynamic_dependency_resolution,
                     )
                     rule_matches_by_rule = remove_matches_in_baseline(

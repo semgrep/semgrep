@@ -28,8 +28,7 @@ from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import SemgrepParser
 from semdep.parsers.util import to_parser
 from semdep.parsers.yarn import parse_yarn
-from semdep.subproject_matchers import ConfiguredMatchers
-from semdep.subproject_matchers import make_matchers
+from semdep.subproject_matchers import MATCHERS
 from semdep.subproject_matchers import SubprojectMatcher
 from semgrep.rpc_call import resolve_dependencies
 from semgrep.semgrep_interfaces.semgrep_output_v1 import CargoParser
@@ -168,7 +167,7 @@ def find_subprojects(
     unresolved_subprojects: List[Subproject] = []
     used_files: Set[Path] = set()
     for matcher in matchers:
-        # for each matcher, pass only those files that have not yet been used by some other matcher.
+        # for each matcher, pass only those files that have not yet been used by another matcher.
         new_subprojects, new_used_files = matcher.make_subprojects(
             dependency_source_files - used_files
         )
@@ -180,7 +179,6 @@ def find_subprojects(
 def resolve_subprojects(
     target_manager: TargetManager,
     allow_dynamic_resolution: bool = False,
-    enable_experimental_requirements: bool = False,
 ) -> Tuple[
     Dict[Ecosystem, List[ResolvedSubproject]], List[DependencyParserError], List[Path]
 ]:
@@ -195,18 +193,11 @@ def resolve_subprojects(
     """
     dependency_parser_errors: List[DependencyParserError] = []
 
-    # we need to call this to initialize the global store that enables the new requirements
-    # matchers to be used in the target manager.
-    # this will be gone soon, once we roll out experimental requirements to everyone
-    # TODO: (bk/sal) delete this
-    ConfiguredMatchers.init(enable_experimental_requirements)
-
     # first, find all the subprojects
     dependency_source_files = target_manager.get_all_dependency_source_files(
         ignore_baseline_handler=True
     )
-    matchers = make_matchers(enable_experimental_requirements)
-    unresolved_subprojects = find_subprojects(dependency_source_files, matchers)
+    unresolved_subprojects = find_subprojects(dependency_source_files, MATCHERS)
 
     # targets that were considered in generating the dependency tree
     dependency_targets: List[Path] = []
