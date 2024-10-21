@@ -43,7 +43,13 @@ _OSEMGREP_EXTRA_ARGS = ["--experimental"]
 _OSEMGREP_SCAN_EXTRA_ARGS = _OSEMGREP_EXTRA_ARGS + ["--project-root", "."]
 
 _SEMGREP_PATH = str(
-    (Path(__file__).parent.parent / "console_scripts" / "semgrep").absolute()
+    (
+        Path(__file__).parent.parent
+        / "src"
+        / "semgrep"
+        / "console_scripts"
+        / "semgrep.py"
+    ).absolute()
 )
 
 # Exported constant, convenient to use in a list context.
