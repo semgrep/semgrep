@@ -209,7 +209,6 @@ def test_terminal_output_quiet(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 # Feed 'a' to semgrep's stdin and search for the pattern 'a', expecting
 # one finding.
-@pytest.mark.osemfail
 @pytest.mark.kinda_slow
 def test_stdin_input(snapshot):
     unique_settings_file = tempfile.NamedTemporaryFile().name
@@ -234,7 +233,6 @@ def test_stdin_input(snapshot):
     snapshot.assert_match(mask_variable_text(stdout), "results.json")
 
 
-@pytest.mark.osemfail
 @pytest.mark.kinda_slow
 def test_subshell_input(snapshot):
     unique_settings_file = tempfile.NamedTemporaryFile().name
