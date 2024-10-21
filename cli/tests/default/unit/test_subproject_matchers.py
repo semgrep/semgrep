@@ -5,12 +5,8 @@ import pytest
 
 from semdep.subproject_matchers import ExactLockfileManifestMatcher
 from semdep.subproject_matchers import filter_dependency_source_files
-from semdep.subproject_matchers import MATCHERS
-from semdep.subproject_matchers import NEW_REQUIREMENTS_MATCHERS
-from semdep.subproject_matchers import OLD_REQUIREMENTS_MATCHERS
 from semdep.subproject_matchers import PatternLockfileMatcher
 from semdep.subproject_matchers import PipRequirementsMatcher
-from semgrep.resolve_subprojects import ConfiguredMatchers
 from semgrep.subproject import LockfileDependencySource
 from semgrep.subproject import MultiLockfileDependencySource
 from semgrep.subproject import PackageManagerType
@@ -442,20 +438,3 @@ def test_filter_dependency_source_files():
     filtered_paths = filter_dependency_source_files(frozenset(candidates))
 
     assert filtered_paths == valid_paths
-
-
-class TestConfiguredMatchers:
-    @pytest.mark.quick
-    def test_base_case(self):
-        ConfiguredMatchers.init(use_new_requirements_matchers=False)
-
-        # Use the old requirements lockfile matchers for Python
-        assert ConfiguredMatchers.matchers == MATCHERS + OLD_REQUIREMENTS_MATCHERS
-
-        # Use the new requirements lockfile matchers for Python
-        ConfiguredMatchers.init(use_new_requirements_matchers=True)
-        assert ConfiguredMatchers.matchers == MATCHERS + NEW_REQUIREMENTS_MATCHERS
-
-        # Use the old requirements lockfile matchers for Python
-        ConfiguredMatchers.init(use_new_requirements_matchers=False)
-        assert ConfiguredMatchers.matchers == MATCHERS + OLD_REQUIREMENTS_MATCHERS
