@@ -336,11 +336,9 @@ def test_ssc__requirements_lockfiles(
     run_semgrep_on_copied_files: RunSemgrep, snapshot, rule, target
 ):
     """
-    Seperated out from test_ssc to avoid polluting with extra requirements lockfile tests
+    Separated out from test_ssc to avoid polluting with extra requirements lockfile tests
     """
-    result = run_semgrep_on_copied_files(
-        rule, target_name=target, options=["--enable-experimental-requirements"]
-    )
+    result = run_semgrep_on_copied_files(rule, target_name=target)
 
     snapshot.assert_match(
         result.as_snapshot(),
