@@ -36,6 +36,7 @@
     contents: 'read',
   },
   pull_request_permissions: {
+    'id-token': 'write',
     contents: 'write',
     // needed when we want to modify the pull-request (e.g., for snapshot update)
     'pull-requests': 'write',
