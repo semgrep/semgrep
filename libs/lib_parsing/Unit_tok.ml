@@ -46,7 +46,9 @@ let test_combine_sparse_toks () =
       Tok.combine_sparse_toks ~ignorable_newline:"\\\n" ~ignorable_blank:'-'
         first_tok other_toks
     in
-    check_token "equal" expected_combined_token res
+    match res with
+    | None -> assert false
+    | Some res -> check_token "equal" expected_combined_token res
   in
   (*
      Here, we test only realistic cases of token sequences that
