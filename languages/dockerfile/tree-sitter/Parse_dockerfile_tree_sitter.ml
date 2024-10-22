@@ -57,11 +57,14 @@ let concat_tokens first_tok other_toks : string wrap =
    In the end, we want something like "a && \\\n\\\n            b".
 *)
 let concat_shell_fragments first_tok other_toks : string wrap =
-  let tok =
+  let tok_opt =
     Tok.combine_sparse_toks ~ignorable_newline:"\\\n" ~ignorable_blank:' '
       first_tok other_toks
   in
-  (Tok.content_of_tok tok, tok)
+  match tok_opt with
+  (* TODO What should I do here *)
+  | None -> failwith "concat of fake token"
+  | Some tok -> (Tok.content_of_tok tok, tok)
 
 (* TODO: This basic stuff should not exist here. Move it to Tok. *)
 let opt_concat_tokens toks : string wrap option =

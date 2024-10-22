@@ -61,7 +61,7 @@ type t = {
   (* Those two fields can be derived from bytepos (See complete_position() *)
   line : int; (* 1-based *)
   column : int; (* 0-based *)
-  (* TODO: use Fpath.t *)
+  (* TODO: use Fpath.t, or an Src.t/Origin.t? (see spacegrep Src_file.source *)
   file : string;
 }
 [@@deriving show, eq, ord, sexp]
@@ -71,15 +71,15 @@ type linecol = { l : int; c : int } [@@deriving show, eq]
 
 (* alt: could use @@deriving make.
  * TODO? should we use 0 instead? -1 clearly mark the field has not been set
+ * TODO: use Fpath.t at least here
  *)
-let make ?(line = -1) ?(column = -1) ?(file = "NO FILE INFO YET") bytepos =
+let make ?(line = -1) ?(column = -1) ~file bytepos =
   { bytepos; line; column; file }
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-let fake_pos = make (-1)
 let first_pos_of_file file = make ~line:1 ~column:0 ~file 0
 
 (* for error reporting *)
