@@ -102,9 +102,10 @@ def find_semgrep_core_path(pro=False, extra_message=""):
                     raise CoreNotFound(
                         f"The installed version of {core} is out of date.{extra_message}"
                     )
+                raise RuntimeError(f"cgdolan: found core in resources at {str(path)}")
                 return str(path)
     except (FileNotFoundError, ModuleNotFoundError):
-        pass
+        print("cgdolan: unable to find core in resources, trying PATH")
 
     # Second, try in PATH. In certain context such as Homebrew
     # (see https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb)
@@ -114,6 +115,7 @@ def find_semgrep_core_path(pro=False, extra_message=""):
     # In those cases, we want to grab semgrep-core from the PATH instead.
     path = shutil.which(core)
     if path is not None:
+        raise RuntimeError(f"cgdolan: found core in PATH at: {str(path)}")
         return path
 
     raise CoreNotFound(
