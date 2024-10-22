@@ -85,7 +85,7 @@ let position_range min_loc max_loc =
 
 let location_of_token_location loc =
   let start, end_ = position_range loc loc in
-  { path = Fpath.v loc.Tok.pos.file; start; end_ }
+  { path = loc.Tok.pos.file; start; end_ }
 
 (* None if pi has no location information. Fake tokens should have been
  * filtered out earlier, but in case one slipped through we handle this case.

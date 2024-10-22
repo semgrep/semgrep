@@ -284,7 +284,7 @@ let string_of_error err =
     match pos with
     | None -> "<unknown location>"
     | Some { pos = { file; line; column; _ }; _ } ->
-        spf "%s:%d:%d" (source_of_string file) line column
+        spf "%s:%d:%d" (source_of_string !!file) line column
   in
   spf "%s: %s: %s%s" loc (Out.string_of_error_type err.typ) err.msg details
 

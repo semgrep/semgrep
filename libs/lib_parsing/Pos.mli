@@ -11,11 +11,11 @@ type t = {
   bytepos : int; (* 0-based *)
   line : int; (* 1-based *)
   column : int; (* 0-based *)
-  file : string;
+  file : Fpath.t;
 }
 [@@deriving show, eq, ord, sexp]
 
-val make : ?line:int -> ?column:int -> file:string -> int -> t
+val make : ?line:int -> ?column:int -> Fpath.t -> int -> t
 
 (* basic file position (used to be Common2.filepos) (used in codemap) *)
 type linecol = { l : int; c : int } [@@deriving show, eq]

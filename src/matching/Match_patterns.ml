@@ -461,7 +461,7 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
                            "While matching pattern %s in file %s, we skipped \
                             expression at %d:%d-%d:%d (outside any range of \
                             interest)"
-                           rule.pattern_string start_loc.pos.file
+                           rule.pattern_string !!(start_loc.pos.file)
                            start_loc.pos.line start_loc.pos.column
                            end_loc.pos.line end_loc.pos.column);
                      ());

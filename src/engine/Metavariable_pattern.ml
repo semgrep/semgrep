@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Common
-open Fpath_.Operators
 open Match_env
 module MV = Metavariable
 module RM = Range_with_metavars
@@ -150,7 +149,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
               else pos.column
             in
             let pos =
-              Pos.make ~file:!!file ~column
+              Pos.make file ~column
                 ~line:(pos.line - mast_start_pos.line + 1)
                 (pos.bytepos - mast_start_pos.bytepos)
             in
@@ -168,7 +167,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
               else pos.column
             in
             let pos =
-              Pos.make ~file:mval_file ~column
+              Pos.make mval_file ~column
                 ~line:(pos.line + mast_start_pos.line - 1)
                 (pos.bytepos + mast_start_pos.bytepos)
             in
@@ -189,9 +188,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                   (* Note that due to symbolic propagation, `mast` may be
                    * outside of the current file/AST, so we must get
                    * `mval_range` from `mval_file` and not from `env.file`! *)
-                  let contents =
-                    Range.content_at_range (Fpath.v mval_file) mval_range
-                  in
+                  let contents = Range.content_at_range mval_file mval_range in
                   (* TODO: find a way to not use tmp files! parse strings *)
                   (* nosemgrep: forbid-tmp *)
                   UTmp.with_temp_file ~contents ~suffix:".mvar-pattern"
@@ -240,7 +237,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                 | _, MV.E { e = G.L (G.String (_, (content, _tok), _)); _ } ->
                     Some content
                 | (LSpacegrep | LAliengrep), _ ->
-                    Some (Range.content_at_range (Fpath.v mval_file) mval_range)
+                    Some (Range.content_at_range mval_file mval_range)
                 | _else_ -> None
               in
               match content with
@@ -316,7 +313,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                             {
                               path =
                                 {
-                                  origin = File (Fpath.v mval_file);
+                                  origin = File mval_file;
                                   internal_path_to_content = file;
                                 };
                               xlang;
