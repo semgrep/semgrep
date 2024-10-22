@@ -14,6 +14,7 @@
  * license.txt for more details.
  *)
 open Common
+open Fpath_.Operators
 open Sexplib.Std
 
 (*****************************************************************************)
@@ -222,7 +223,7 @@ let col_of_tok ii = (unsafe_loc_of_tok ii).pos.column
 
 (* todo: return a Real | Virt position ? *)
 let bytepos_of_tok ii = (unsafe_loc_of_tok ii).pos.bytepos
-let file_of_tok ii = (unsafe_loc_of_tok ii).pos.file
+let file_of_tok ii = !!((unsafe_loc_of_tok ii).pos.file)
 
 let content_of_tok ii =
   match ii with
@@ -281,12 +282,16 @@ let make ~str ~file ~bytepos =
   in
   tok_of_loc loc
 
-(* TODO: take an Fpath.t, we can't rely on Lexing.lexbuf.pos_fname to have
+(* TODO: we can't rely on Lexing.lexbuf.pos_fname to have
  * been set correctly by the caller (or need an "origin" when lexbuf is stdin)
+ * and actually in many case where we do a Lexbuf.of_string, the
+ * pos_fname is the empty string
  *)
 let tok_of_lexbuf lexbuf =
-  make ~str:(Lexing.lexeme lexbuf) ~file:lexbuf.Lexing.lex_curr_p.pos_fname
-    ~bytepos:(Lexing.lexeme_start lexbuf)
+  let fname = lexbuf.Lexing.lex_curr_p.pos_fname in
+  (* see Lexing.zero_pos *)
+  let file = if fname = "" then Fpath_.fake_file else Fpath.v fname in
+  make ~str:(Lexing.lexeme lexbuf) ~file ~bytepos:(Lexing.lexeme_start lexbuf)
 
 let first_loc_of_file file = { str = ""; pos = Pos.first_pos_of_file file }
 let first_tok_of_file file = fake_tok_loc (first_loc_of_file file) ""

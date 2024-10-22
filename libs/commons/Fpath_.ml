@@ -79,3 +79,13 @@ let () =
         split_ext ~multi:true (Fpath.v "a/foo.tar.gz")
         =*= (Fpath.v "a/foo", ".tar.gz")));
   ()
+
+(*****************************************************************************)
+(* Alias *)
+(*****************************************************************************)
+type t = Fpath.t [@@deriving show, eq, ord]
+
+let t_of_sexp (sexp : Sexplib.Sexp.t) : t =
+  Fpath.v (Sexplib.Std.string_of_sexp sexp)
+
+let sexp_of_t (t : t) : Sexplib.Sexp.t = Sexplib.Std.sexp_of_string !!t

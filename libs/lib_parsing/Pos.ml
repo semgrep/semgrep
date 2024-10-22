@@ -15,6 +15,7 @@
  *)
 open Common
 open Sexplib.Std
+open Fpath_.Operators
 
 (*****************************************************************************)
 (* Prelude *)
@@ -61,8 +62,8 @@ type t = {
   (* Those two fields can be derived from bytepos (See complete_position() *)
   line : int; (* 1-based *)
   column : int; (* 0-based *)
-  (* TODO: use Fpath.t, or an Src.t/Origin.t? (see spacegrep Src_file.source *)
-  file : string;
+  (* TODO: use an Src.t/Origin.t instead? (see spacegrep Src_file.source *)
+  file : Fpath_.t;
 }
 [@@deriving show, eq, ord, sexp]
 
@@ -71,19 +72,18 @@ type linecol = { l : int; c : int } [@@deriving show, eq]
 
 (* alt: could use @@deriving make.
  * TODO? should we use 0 instead? -1 clearly mark the field has not been set
- * TODO: use Fpath.t at least here
  *)
-let make ?(line = -1) ?(column = -1) ~file bytepos =
+let make ?(line = -1) ?(column = -1) file bytepos =
   { bytepos; line; column; file }
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-let first_pos_of_file file = make ~line:1 ~column:0 ~file 0
+let first_pos_of_file file = make ~line:1 ~column:0 (Fpath.v file) 0
 
 (* for error reporting *)
-let string_of_pos { file; line; column; _ } = spf "%s:%d:%d" file line column
+let string_of_pos { file; line; column; _ } = spf "%s:%d:%d" !!file line column
 let to_linecol { line; column; _ } = { l = line; c = column }
 
 (*****************************************************************************)
@@ -110,10 +110,10 @@ type bytepos_linecol_converters = {
  *   - in each lexer you need to take care of newlines and update manually
  *     the field.
  *)
-let complete_position filename converters (x : t) =
+let complete_position (filename : string) converters (x : t) =
   {
     x with
-    file = filename;
+    file = Fpath.v filename;
     line = fst (converters.bytepos_to_linecol_fun x.bytepos);
     column = snd (converters.bytepos_to_linecol_fun x.bytepos);
   }

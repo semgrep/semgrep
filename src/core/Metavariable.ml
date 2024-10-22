@@ -217,7 +217,7 @@ let program_of_mvalue : mvalue -> G.program option =
           m "program_of_mvalue: not handled '%s'" (show_mvalue mval));
       None
 
-let range_of_mvalue mval =
+let range_of_mvalue (mval : mvalue) : (Fpath.t * Range.t) option =
   let* tok_start, tok_end =
     AST_generic_helpers.range_of_any_opt (mvalue_to_any mval)
   in
