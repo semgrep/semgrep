@@ -333,9 +333,9 @@ let unsafe_match_to_match
     *)
     | File path ->
         if
-          (!!path <> min_loc.pos.file || !!path <> max_loc.pos.file)
-          && min_loc.pos.file <> "FAKE TOKEN LOCATION"
-        then (Fpath.v min_loc.pos.file, None)
+          (path <> min_loc.pos.file || path <> max_loc.pos.file)
+          && not (Fpath_.is_fake_file min_loc.pos.file)
+        then (min_loc.pos.file, None)
         else (path, None)
     (* TODO(cooper): if we can have a uri or something more general than a
      * file path here then we can stop doing this hack. *)
@@ -420,7 +420,7 @@ let error_to_error (err : Core_error.t) : Out.core_error =
     | Some loc ->
         let file = loc.pos.file in
         let startp, endp = OutUtils.position_range loc loc in
-        { Out.path = Fpath.v file; start = startp; end_ = endp }
+        { Out.path = file; start = startp; end_ = endp }
     (* TODO get rid of option in err.loc *)
     | None ->
         let pos = { Out.line = 1; col = 1; offset = 0 } in

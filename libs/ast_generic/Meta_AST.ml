@@ -2,6 +2,7 @@
  * Semgrep playground!
  * Use AST_generic.show_any instead.
  *)
+open Fpath_.Operators
 open Tok
 open AST_generic
 
@@ -30,7 +31,7 @@ let vof_token_location
         };
     } =
   let bnds = [] in
-  let arg = vof_filename v_file in
+  let arg = vof_filename !!v_file in
   let bnd = ("file", arg) in
   let bnds = bnd :: bnds in
   let arg = OCaml.vof_int v_column in

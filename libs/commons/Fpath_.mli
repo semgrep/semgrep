@@ -27,6 +27,9 @@ val to_strings : Fpath.t list -> string list
 val to_yojson : Fpath.t -> Yojson.Safe.t
 val of_yojson : Yojson.Safe.t -> (Fpath.t, string) result
 
+(* alias but with derived available *)
+type t = Fpath.t [@@deriving show, eq, ord, sexp]
+
 (*
    Take a nonempty list of path segments and turn them in to relative path.
    Only the last segment may by empty, representing a trailing slash.

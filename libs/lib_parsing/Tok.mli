@@ -88,7 +88,7 @@ val tok_of_lexbuf : Lexing.lexbuf -> t
 val tok_of_loc : location -> t
 
 (* deprecated: TODO used only in Lexer_php.mll *)
-val make : str:string -> file:string -> bytepos:int -> t
+val make : str:string -> file:Fpath.t -> bytepos:int -> t
 
 (* the token will be empty, but its pos will be the beginning of the file *)
 val first_tok_of_file : string (* filename *) -> t

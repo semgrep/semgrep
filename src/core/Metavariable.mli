@@ -55,7 +55,7 @@ type bindings = (mvar * mvalue) list [@@deriving show, eq]
 val location_aware_equal_mvalue : mvalue -> mvalue -> bool
 val ii_of_mval : mvalue -> Tok.t list
 val str_of_mval : mvalue -> string
-val range_of_mvalue : mvalue -> (string (* filename *) * Range.t) option
+val range_of_mvalue : mvalue -> (Fpath.t * Range.t) option
 
 (* we sometimes need to convert to an any to be able to use
  * Lib_AST.ii_of_any, or Lib_AST.abstract_position_info_any
