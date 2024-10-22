@@ -1,6 +1,21 @@
 (* Capability aware wrapper over Parmap (and a few helpers) *)
 
+exception Parmap_unhandled_children of (string * int) list
+(** List of children spawned by [Parmap] that were not awaited correctly by
+    [Parmap]. This usually happens when a child is sigkilled, or segfaults *)
+
+exception Parmap_marshalling_failure
+(** Parmap failed to unmarshal data from a child. This usually only happens when
+    an exception is raised in the [exception_handler] passed to [parmap] *)
+
+val debugging : bool -> unit
+(** [debugging true] will enable debugging in [Parmap]. This will print which
+    tasks are sent to what workers, how long they took, and some other info.
+    Useful for debugging issues unique to Parmap *)
+
 val default_exception_handler : 'a -> Exception.t -> string
+(** the default exception handler for [parmap], it will just convert the
+    exception to a string *)
 
 val parmap :
   < Cap.fork > ->
@@ -20,6 +35,12 @@ val parmap :
     marshal real exceptions, so we must handle them in the parmap child process.
     [?init] takes in the job number and will run before any calls to [f].
     Similarly [?finalize] will run after all calls to [f].
+
+    Can raise [Parmap_unhandled_children] if [f] segfaults or OOMS, but only
+    sometimes. See [Parmap_unhandled_children] for more info.
+
+    Can raise [Parmap_marshalling_failure], usually if an exception is raised in
+    [exception_handler]
 
     Example:
     {[
@@ -48,7 +69,7 @@ val parmap :
       Result: 4
       Result: 5
     ]}
- *)
+*)
 
 val disable_core_pinning : unit -> unit
 
