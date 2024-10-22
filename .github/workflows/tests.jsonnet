@@ -174,6 +174,7 @@ local test_osemgrep_job =
         run: |||
           eval $(opam env)
           make copy-core-for-cli
+          sudo cp bin/semgrep-core /usr/bin
         |||,
       },
        // For '--ignore-installed distlib' below see
