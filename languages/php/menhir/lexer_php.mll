@@ -541,7 +541,7 @@ rule st_in_scripting = parse
 
         let syminfo = Tok.rewrap_str sym info in
 
-        let file = Fpath.v (Tok.file_of_tok info) in
+        let file = Tok.file_of_tok info in
         let parse_info = Tok.unsafe_loc_of_tok info in
         let pos_after_sym   =
           parse_info.Tok.pos.bytepos + String.length sym in
@@ -633,7 +633,7 @@ rule st_in_scripting = parse
         let info = tokinfo lexbuf in
         let dollarinfo = Tok.rewrap_str (String.make 1 dollar) info in
         let parse_info = Tok.unsafe_loc_of_tok info in
-        let file = Fpath.v (Tok.file_of_tok info) in
+        let file = Tok.file_of_tok info in
         let pos_after_sym = parse_info.Tok.pos.bytepos + 2 in
         let lblinfo = tokinfo_file_str_pos file s pos_after_sym in
 
@@ -904,7 +904,7 @@ and st_double_quotes = parse
     | "$" (LABEL as s)     { t_variable_or_metavar s (tokinfo lexbuf) }
     | "$" (LABEL as s) "[" {
           let info = tokinfo lexbuf in
-          let file = Fpath.v (Tok.file_of_tok info) in
+          let file = Tok.file_of_tok info in
           let varinfo = Tok.rewrap_str ("$" ^ s) info in
           let charpos_info = Tok.bytepos_of_tok varinfo in
           let pos_after_label = charpos_info + String.length ("$" ^ s) in
@@ -953,7 +953,7 @@ and st_backquote = parse
     | "$" (LABEL as s) "[" {
           let info = tokinfo lexbuf in
 
-          let file = Fpath.v (Tok.file_of_tok info) in
+          let file = Tok.file_of_tok info in
           let varinfo = Tok.rewrap_str ("$" ^ s) info in
           let charpos_info = Tok.bytepos_of_tok varinfo in
           let pos_after_label = charpos_info + String.length ("$" ^ s) in
@@ -1001,7 +1001,7 @@ and st_start_heredoc stopdoc = parse
 
       let lbl_info = Tok.rewrap_str s info in
 
-      let file = Fpath.v (Tok.file_of_tok info) in
+      let file = Tok.file_of_tok info in
       let pos = Tok.bytepos_of_tok info in
       let pos_after_label = pos + String.length s in
       let pos_after_semi = pos_after_label + String.length semi in
@@ -1032,7 +1032,7 @@ and st_start_heredoc stopdoc = parse
     | "$" (LABEL as s) "[" {
           let info = tokinfo lexbuf in
 
-          let file = Fpath.v (Tok.file_of_tok info) in
+          let file = Tok.file_of_tok info in
           let varinfo = Tok.rewrap_str ("$" ^ s) info in
           let charpos_info = Tok.bytepos_of_tok varinfo in
           let pos_after_label = charpos_info + String.length ("$" ^ s) in
@@ -1075,7 +1075,7 @@ and st_start_nowdoc stopdoc = parse
 
       let lbl_info = Tok.rewrap_str s info in
 
-      let file = Fpath.v (Tok.file_of_tok info) in
+      let file = Tok.file_of_tok info in
       let pos = Tok.bytepos_of_tok info in
       let pos_after_label = pos + String.length s in
       let pos_after_semi = pos_after_label + String.length semi in
