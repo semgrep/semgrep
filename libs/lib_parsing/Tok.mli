@@ -206,7 +206,7 @@ val content_of_tok_opt : t -> string option
 val line_of_tok : t -> int
 val col_of_tok : t -> int
 val bytepos_of_tok : t -> int
-val file_of_tok : t -> string (* filename *)
+val file_of_tok : t -> Fpath.t
 
 (* Token positions in loc.pos denote the beginning of a token.
    Suppose we are interested in having instead the line, column, and charpos
