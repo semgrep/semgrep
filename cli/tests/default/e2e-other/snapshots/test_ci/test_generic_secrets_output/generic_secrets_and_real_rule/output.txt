@@ -111,6 +111,9 @@ SEMGREP_APP_TOKEN="fake_key" SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS
   BLOCKING CODE RULES FIRED:
     real-rule-example
 
+  BLOCKING SECRETS RULES FIRED:
+    generic-secrets-rule-example
+
 
 === end of stdout - plain
 

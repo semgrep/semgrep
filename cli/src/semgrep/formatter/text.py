@@ -841,10 +841,14 @@ class TextFormatter(BaseFormatter):
                 (out.Product(out.Secrets()), "generic-secrets"): [],
             }
 
+            secrets_blocking_rules = set()
+
             for match in rule_matches:
                 if isinstance(match.product.value, out.SAST):
                     subgroup = "blocking" if match.is_blocking else "nonblocking"
                 elif isinstance(match.product.value, out.Secrets):
+                    if match.is_blocking:
+                        secrets_blocking_rules.add(match.match.check_id.value)
                     if match.metadata.get("generic_secrets", False):
                         subgroup = "generic-secrets"
                     else:
@@ -865,14 +869,14 @@ class TextFormatter(BaseFormatter):
 
                 grouped_matches[match.product, subgroup].append(match)
 
-            first_party_blocking_rules = {
+            code_blocking_rules = {
                 match.match.check_id.value
                 for match in grouped_matches[out.Product(out.SAST()), "blocking"]
             }
 
             # When ephemeral rules are run with the -e or --pattern flag in the command-line, the rule_id is set to -.
             # The rule is ran in the command-line and has no associated rule_id
-            first_party_blocking_rules.discard("-")
+            code_blocking_rules.discard("-")
 
             if not is_ci_invocation:
                 grouped_matches[(out.Product(out.SAST()), "merged")] = [
@@ -911,9 +915,15 @@ class TextFormatter(BaseFormatter):
                         extra["dataflow_traces"],
                     )
 
-            if first_party_blocking_rules and is_ci_invocation:
+            if code_blocking_rules and is_ci_invocation:
                 console.print(Title("Blocking Code Rules Fired:", order=2))
-                for rule_id in sorted(first_party_blocking_rules):
+                for rule_id in sorted(code_blocking_rules):
+                    console.print(f"  {rule_id}")
+                console.reset_title(order=1)
+
+            if secrets_blocking_rules and is_ci_invocation:
+                console.print(Title("Blocking Secrets Rules Fired:", order=2))
+                for rule_id in sorted(secrets_blocking_rules):
                     console.print(f"  {rule_id}")
                 console.reset_title(order=1)
 
