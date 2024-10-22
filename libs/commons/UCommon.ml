@@ -79,8 +79,13 @@ let main_boilerplate f =
         let default_handler signal =
           Sys.Signal_handle
             (fun _ ->
+              let linux_signal = Sys_.ocaml_signal_to_signal signal in
+              let handled_name = Sys_.signal_to_string linux_signal in
               (* Feel free to match on signal here :D *)
-              pr2 "C-c intercepted, will do some cleaning before exiting";
+              pr2
+                (handled_name
+               ^ " signal intercepted, will do some cleaning before exiting");
+              USys.set_signal signal Sys.Signal_default;
               (* But if do some try ... with e -> and if do not reraise the exn,
                * the bubble never goes at top and so I cant really C-c.
                *
@@ -89,10 +94,8 @@ let main_boilerplate f =
                * The current solution is to not do some wild  try ... with e
                * by having in the exn handler a case: UnixExit x -> raise ... | e ->
                *)
-              USys.set_signal signal Sys.Signal_default;
-              (* TODO: Raise UnixExit with the actual signal code, not ocaml's,
-                 since theirs is random *)
-              raise (UnixExit signal))
+              (* Convert to a "standard" unix exit code from a unix signal *)
+              raise (UnixExit Sys_.(signal_to_linux_exit_code linux_signal)))
         in
 
         (* ref: https://faculty.cs.niu.edu/~hutchins/csci480/signals.htm *)
