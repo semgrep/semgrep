@@ -14,7 +14,6 @@
  * license.txt for more details.
  *)
 open Common
-open Fpath_.Operators
 open Sexplib.Std
 
 (*****************************************************************************)
@@ -223,7 +222,7 @@ let col_of_tok ii = (unsafe_loc_of_tok ii).pos.column
 
 (* todo: return a Real | Virt position ? *)
 let bytepos_of_tok ii = (unsafe_loc_of_tok ii).pos.bytepos
-let file_of_tok ii = !!((unsafe_loc_of_tok ii).pos.file)
+let file_of_tok ii = (unsafe_loc_of_tok ii).pos.file
 
 let content_of_tok ii =
   match ii with

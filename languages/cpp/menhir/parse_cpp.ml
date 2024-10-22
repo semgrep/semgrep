@@ -367,7 +367,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
           if !was_define && !Flag_cpp.filter_define_error then ()
           else if
             (* bugfix: *)
-            checkpoint_file = checkpoint2_file && checkpoint_file = !!file
+            checkpoint_file =*= checkpoint2_file && checkpoint_file =*= file
           then
             Log.err (fun m ->
                 m "%s"
@@ -389,7 +389,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
     let checkpoint2_file = Tok.file_of_tok info in
 
     let diffline =
-      if checkpoint_file = checkpoint2_file && checkpoint_file = !!file then
+      if checkpoint_file =*= checkpoint2_file && checkpoint_file =*= file then
         checkpoint2 - checkpoint
       else 0
       (* TODO? so if error come in middle of something ? where the
