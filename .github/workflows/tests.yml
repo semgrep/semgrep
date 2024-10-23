@@ -218,7 +218,6 @@ jobs:
         run: |
           eval $(opam env)
           make copy-core-for-cli
-          sudo cp bin/semgrep-core /usr/bin
       - name: Install Python dependencies
         run: |
           apk add --no-cache python3

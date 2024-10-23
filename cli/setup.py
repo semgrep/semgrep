@@ -148,6 +148,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/returntocorp/semgrep",
+    scripts=["bin/semgrep-core"],
     entry_points={
         "console_scripts": [
             "semgrep = semgrep.console_scripts.semgrep:main",
