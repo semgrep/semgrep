@@ -1,2 +1,0 @@
-Secrets: `semgrep ci` output now includes a list of all secrets rules which
-generated at least one blocking finding (similar to Code)
