@@ -85,6 +85,8 @@ def find_semgrep_core_path(pro=False, extra_message=""):
     try:
         # the use of .path causes a DeprecationWarning hence the
         # filterwarnings above
+        for entry in importlib.resources.contents("semgrep.bin"):
+            print(entry, entry.is_resource())
         with importlib.resources.path("semgrep.bin", core) as path:
             if path.is_file():
                 if pro and not is_correct_pro_version(path):
