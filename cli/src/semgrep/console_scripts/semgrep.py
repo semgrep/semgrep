@@ -103,7 +103,7 @@ def find_semgrep_core_path(pro=False, extra_message=""):
         for entry in importlib.resources.contents("semgrep.bin"):
             print(entry)
 
-        p = Path(__file__).resolve().parent.parent / "src" / "semgrep" / "bin"
+        p = Path(__file__).resolve().parent.parent / "bin"
         print(f"os.listdir({p}):")
         for item in os.listdir(p):
             print(item)
