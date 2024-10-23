@@ -54,10 +54,7 @@ class Terminal:
 
         # Assumes only one of verbose, debug, quiet is True
         logger = logging.getLogger("semgrep")
-        # Reset to no handlers
-        for handler in list(logger.handlers):
-            logger.removeHandler(handler)
-            handler.close()
+        logger.handlers = []  # Reset to no handlers
 
         stdout_level = logging.INFO
         if verbose:
