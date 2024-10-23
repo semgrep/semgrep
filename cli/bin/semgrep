@@ -94,7 +94,7 @@ def find_semgrep_core_path(pro=False, extra_message=""):
                 raise RuntimeError(f"cgdolan: found core in resources at {str(path)}")
                 return str(path)
     except (FileNotFoundError, ModuleNotFoundError) as e:
-        print("cgdolan: unable to find core in resources, trying PATH")
+        print(f"cgdolan: unable to find core in resources {e}, trying PATH")
         pass
 
     # Second, try in PATH. In certain context such as Homebrew
