@@ -42,7 +42,15 @@ _OSEMGREP_EXTRA_ARGS = ["--experimental"]
 # which is a new behavior in osemgrep.
 _OSEMGREP_SCAN_EXTRA_ARGS = _OSEMGREP_EXTRA_ARGS + ["--project-root", "."]
 
-_SEMGREP_PATH = str((Path(__file__).parent.parent / "bin" / "semgrep").absolute())
+_SEMGREP_PATH = str(
+    (
+        Path(__file__).parent.parent
+        / "src"
+        / "semgrep"
+        / "console_scripts"
+        / "entrypoint.py"
+    ).absolute()
+)
 
 # Exported constant, convenient to use in a list context.
 # This is not safe to use if you are going to append any subcommands after!
