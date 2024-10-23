@@ -90,7 +90,7 @@ repos:
     rev: v1.7.1 # PLEASE DO NOT CHANGE [see NOTE "Python"]
     hooks:
       - id: mypy
-        exclude: ^cli/tests/.+$|^setup.py$|^cli/src/semdep/external/packaging/.*$|^cli/src/semdep/external/parsy/.*$|^cli/scripts/.*$|^scripts/.+$|^stats/parsing-stats/.+$|^perf/.+$|^js/language_server/targets/.+$
+        exclude: ^cli/tests/.+$|^setup.py$|^cli/src/semdep/external/packaging/.*$|^cli/src/semdep/external/parsy/.*$|^cli/scripts/.*$|^scripts/.+$|^stats/parsing-stats/.+$|^perf/.+$|^js/language_server/targets/.+$|^cli/src/semgrep/console_scripts/.+$
         args: [--config, mypy.ini, --show-error-codes, --python-version, "3.11"]
         additional_dependencies: &mypy-deps
           # versions must be manually synced:
@@ -207,7 +207,7 @@ repos:
         # explicitly on the command line by pre-commit!!!
         # TODO: remove once file targeting is revamped and supports
         # filtering for explicit targets (a command-line flag should do)
-        exclude: "tests"
+        exclude: "tests|^cli/src/semgrep/console_scripts/.+$"
         # TODO: we could also set 'pass_filenames: false', see
         # https://stackoverflow.com/questions/57199833/run-pre-commit-com-hook-once-not-for-every-file-if-a-matched-file-is-detected
 
@@ -252,7 +252,7 @@ repos:
       - id: semgrep
         name: Semgrep Python
         types: [python]
-        exclude: "^cli/tests/.+$|^scripts/.+$|^cli/setup.py$"
+        exclude: "^cli/tests/.+$|^scripts/.+$|^cli/setup.py$|^cli/src/semgrep/console_scripts/.+$"
         args: ["--config", "tests/precommit_dogfooding/python.yml", "--error"]
       - id: semgrep
         name: Semgrep Bandit

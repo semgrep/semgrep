@@ -2,7 +2,7 @@ import asyncio
 import collections
 import contextlib
 import json
-import resource
+import platform
 import sys
 import tempfile
 from datetime import datetime
@@ -71,6 +71,10 @@ INPUT_BUFFER_LIMIT: int = 1024 * 1024 * 1024
 # test/e2e/test_performance.py is one test that exercises this risk.
 LARGE_READ_SIZE: int = 1024 * 1024 * 512
 
+IS_WINDOWS = platform.system() == "Windows"
+if not IS_WINDOWS:
+    import resource
+
 
 def setrlimits_preexec_fn() -> None:
     """
@@ -88,6 +92,9 @@ def setrlimits_preexec_fn() -> None:
     # which have their own output requirements so that CLI can parse its stdout,
     # we use a different logger than the usual "semgrep" one
     core_logger = getLogger("semgrep_core")
+    if IS_WINDOWS:
+        core_logger.info("Skipping setting stack limits on Windows")
+        return
 
     # Get current soft and hard stack limits
     old_soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_STACK)
@@ -401,13 +408,22 @@ class StreamingSemgrepCore:
         # Set parent span id as close to fork as possible to ensure core
         # spans nest under the correct pysemgrep parent span.
         get_state().traces.inject()
-        process = await asyncio.create_subprocess_exec(
-            *self._cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=stderr_arg,
-            limit=INPUT_BUFFER_LIMIT,
-            preexec_fn=setrlimits_preexec_fn,
-        )
+        if IS_WINDOWS:
+            process = await asyncio.create_subprocess_exec(
+                *self._cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=stderr_arg,
+                limit=INPUT_BUFFER_LIMIT,
+                # preexec_fn is not supported on Windows
+            )
+        else:
+            process = await asyncio.create_subprocess_exec(
+                *self._cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=stderr_arg,
+                limit=INPUT_BUFFER_LIMIT,
+                preexec_fn=setrlimits_preexec_fn,
+            )
 
         # Ensured by passing stdout/err named parameters above.
         assert process.stdout
@@ -573,7 +589,11 @@ class CoreRunner:
             if returncode == -11 or returncode == -9:
                 # Killed by signal 11 (segmentation fault), this could be a
                 # stack overflow that was not intercepted by the OCaml runtime.
-                soft_limit, _hard_limit = resource.getrlimit(resource.RLIMIT_STACK)
+                soft_limit, _hard_limit = (
+                    (-1, -1)
+                    if IS_WINDOWS
+                    else resource.getrlimit(resource.RLIMIT_STACK)
+                )
                 tip = f"""
                 Semgrep exceeded system resources. This may be caused by
                     1. Stack overflow. Try increasing the stack limit to
@@ -728,7 +748,7 @@ class CoreRunner:
         rule_file = exit_stack.enter_context(
             (state.env.user_data_folder / "semgrep_rules.json").open("w+")
             if dump_command_for_core
-            else tempfile.NamedTemporaryFile("w+", suffix=".json")
+            else tempfile.NamedTemporaryFile("w+", suffix=".json", delete=False)
         )
         # A historical scan does not create a targeting file since targeting is
         # performed directly by core.
@@ -736,13 +756,13 @@ class CoreRunner:
             target_file = exit_stack.enter_context(
                 (state.env.user_data_folder / "semgrep_targets.txt").open("w+")
                 if dump_command_for_core
-                else tempfile.NamedTemporaryFile("w+")
+                else tempfile.NamedTemporaryFile("w+", delete=False)
             )
         if target_mode_config.is_pro_diff_scan:
             diff_target_file = exit_stack.enter_context(
                 (state.env.user_data_folder / "semgrep_diff_targets.txt").open("w+")
                 if dump_command_for_core
-                else tempfile.NamedTemporaryFile("w+")
+                else tempfile.NamedTemporaryFile("w+", delete=False)
             )
 
         with exit_stack:
@@ -1124,7 +1144,9 @@ Exception raised: `{e}`
 
         parsed_errors = []
 
-        with tempfile.NamedTemporaryFile("w", suffix=".yaml") as rule_file:
+        with tempfile.NamedTemporaryFile(
+            "w", suffix=".yaml", delete=False
+        ) as rule_file:
             yaml = YAML()
             yaml.dump(
                 {"rules": [metacheck._raw for metacheck in metachecks]}, rule_file
