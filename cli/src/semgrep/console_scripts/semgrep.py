@@ -33,6 +33,7 @@ import platform
 import shutil
 import sys
 import warnings
+from pathlib import Path
 
 # alt: you can also add '-W ignore::DeprecationWarning' after the python3 above,
 # but setuptools and pip adjust this line when installing semgrep so we need
@@ -96,6 +97,17 @@ def find_semgrep_core_path(pro=False, extra_message=""):
     try:
         # the use of .path causes a DeprecationWarning hence the
         # filterwarnings above
+        print(f"PATH: {PATH}")
+
+        print("importlib.resources.contents:")
+        for entry in importlib.resources.contents("semgrep.bin"):
+            print(entry)
+
+        p = Path(__file__).resolve().parent.parent / "src" / "semgrep" / "bin"
+        print(f"os.listdir({p}):")
+        for item in os.listdir(p):
+            print(item)
+
         with importlib.resources.path("semgrep.bin", core) as path:
             if path.is_file():
                 if pro and not is_correct_pro_version(path):
@@ -104,8 +116,8 @@ def find_semgrep_core_path(pro=False, extra_message=""):
                     )
                 raise RuntimeError(f"cgdolan: found core in resources at {str(path)}")
                 return str(path)
-    except (FileNotFoundError, ModuleNotFoundError):
-        print("cgdolan: unable to find core in resources, trying PATH")
+    except (FileNotFoundError, ModuleNotFoundError) as e:
+        print(f"cgdolan: unable to find core in resources {e}, trying PATH")
 
     # Second, try in PATH. In certain context such as Homebrew
     # (see https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb)
