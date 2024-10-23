@@ -1,26 +1,5 @@
-{
-  "config_missing_fixtests": [],
-  "config_missing_tests": [],
-  "config_with_errors": [],
-  "fixtest_results": {},
-  "results": {
-    "rules/test_test/rule_that_timeout.yaml": {
-      "checks": {
-        "open-redirect": {
-          "errors": [
-            {
-              "code": 2,
-              "level": "warn",
-              "message": "Timeout when running forcetimeout on targets/test_test/long.py:\n ",
-              "path": "targets/test_test/long.py",
-              "rule_id": "forcetimeout",
-              "type": "Timeout"
-            }
-          ],
-          "matches": "<masked in tests>",
-          "passed": false
-        }
-      }
-    }
-  }
-}
+PATH: /home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/bin:/opt/hostedtoolcache/Python/3.11.10/x64/bin:/opt/hostedtoolcache/Python/3.11.10/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+os.listdir(/home/runner/work/semgrep/semgrep/cli/src/semgrep/bin):
+__init__.py
+importlib.resources.contents:
+__init__.py
