@@ -545,18 +545,8 @@ class CoreRunner:
                 "<semgrep-core stderr not captured, should be printed above>\n"
             )
 
-        # By default, we print semgrep-core's error output, which includes
-        # semgrep-core's logging if it was requested via --debug.
-        #
-        # If semgrep-core prints anything on stderr when running with default
-        # flags, it's a bug that should be fixed in semgrep-core.
-        #
-        logger.debug(
-            f"--- semgrep-core stderr ---\n"
-            f"{core_stderr}"
-            f"--- end semgrep-core stderr ---"
-        )
-
+        # All paths in this block should call self._fail() to raise a
+        # SemgrepError, as something is wrong if semgrep-core's exit code is non zero!!
         if returncode != 0:
             output_json = self._parse_core_output(
                 shell_command, core_stdout, core_stderr, returncode
@@ -565,15 +555,24 @@ class CoreRunner:
             if "errors" in output_json:
                 parsed_output = out.CoreOutput.from_json(output_json)
                 errors = parsed_output.errors
+                fail_msg = (
+                    "non-zero exit status with one or more errors in json response"
+                )
+                semgrep_errors = None
                 if len(errors) < 1:
-                    self._fail(
-                        "non-zero exit status errors array is empty in json response",
-                        shell_command,
-                        returncode,
-                        core_stdout,
-                        core_stderr,
+                    fail_msg = (
+                        "non-zero exit status errors array is empty in json response"
                     )
-                raise core_error_to_semgrep_error(errors[0])
+                else:
+                    semgrep_errors = [core_error_to_semgrep_error(e) for e in errors]
+                self._fail(
+                    fail_msg,
+                    shell_command,
+                    returncode,
+                    core_stdout,
+                    core_stderr,
+                    semgrep_errors,
+                )
             else:
                 self._fail(
                     'non-zero exit status with missing "errors" field in json response',
@@ -582,6 +581,22 @@ class CoreRunner:
                     core_stdout,
                     core_stderr,
                 )
+
+        # By default, we print semgrep-core's error output, which includes
+        # semgrep-core's logging if it was requested via --debug.
+        #
+        # If semgrep-core prints anything on stderr when running with default
+        # flags, it's a bug that should be fixed in semgrep-core.
+        #
+        # NOTE: We print the stderr here, AFTER the above if block, as all
+        # branches of the above if block result in self._fail. self._fail always
+        # prints the stderr and never returns, so by doing this we avoid
+        # printing stderr twice
+        logger.debug(
+            f"--- semgrep-core stderr ---\n"
+            f"{core_stderr}"
+            f"--- end semgrep-core stderr ---"
+        )
 
         # else:
         output_json = self._parse_core_output(
@@ -650,14 +665,31 @@ class CoreRunner:
         returncode: int,
         semgrep_output: str,
         semgrep_error_output: str,
+        semgrep_errors: Optional[List[SemgrepCoreError]] = None,
     ) -> None:
+        """Raise a Semgrep Error that indicates semgrep-core ran into an error and exited
+        abnormally. It will print the reason, shell_command, return code, and stdout/stderr of semgrep-core
+
+        By default we assume that no json response was produced/was produced
+        incorrectly, and therefore could not extract any core errors, and this
+        message will indicate so
+
+        If core errors are passed, i.e. we were able to extract core errors from
+        a response json, this method will print those out also
+
+        """
+        expected_json_msg = "unexpected non-json output while invoking semgrep-core:"
+        if semgrep_errors:
+            errors_str = "\n".join([f"   {error}" for error in semgrep_errors])
+            expected_json_msg = f"unexpected errors in json output after invoking semgrep-core:\n{errors_str}"
+
         # Once we require python >= 3.8, switch to using shlex.join instead
         # for proper quoting of the command line.
         details = with_color(
             Colors.white,
             f"semgrep-core exit code: {returncode}\n"
             f"semgrep-core command: {shell_command}\n"
-            f"unexpected non-json output while invoking semgrep-core:\n"
+            f"{expected_json_msg}\n"
             "--- semgrep-core stdout ---\n"
             f"{semgrep_output}"
             "--- end semgrep-core stdout ---\n"
