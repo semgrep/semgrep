@@ -241,7 +241,7 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
               subcmd_argv
         | "test" ->
             Test_subcommand.main
-              (caps :> < Cap.stdout ; Cap.fork ; Cap.alarm >)
+              (caps :> < Cap.stdout ; Cap.fork ; Cap.alarm ; Cap.tmp >)
               subcmd_argv
         | "validate" ->
             Validate_subcommand.main

@@ -51,10 +51,10 @@ module A = Test_annotation
 (*****************************************************************************)
 (* Types and constants *)
 (*****************************************************************************)
-(* = Cap.stdout + Core_scan.caps
+(* = Cap.stdout + Core_scan.caps + Cap.tmp (for Deep_scan.caps)
  * (no need for Cap.network; the tested rules should be local)
  *)
-type caps = < Cap.stdout ; Cap.fork ; Cap.alarm >
+type caps = < Cap.stdout ; Cap.fork ; Cap.alarm ; Cap.tmp >
 
 (* Rules and targets to test together.
  * Usually the target list contains just one file, but in some cases
@@ -118,6 +118,20 @@ let hook_pro_init : (unit -> unit) ref =
 
 let hook_pro_scan : (Core_scan.caps -> Core_scan.func) ref =
   ref (fun _caps _config ->
+      failwith "semgrep test --pro not available (need --install-semgrep-pro)")
+
+(* note that we run DeepScan with
+ *  - force_interfile=true (no need for the interfile: true metadata in the rule)
+ *  - experimental_languages=true (analyze with DeepScan also Ruby and a few
+ *    other languages)
+ *)
+let hook_deep_scan :
+    (< Cap.tmp ; Cap.fork ; Cap.alarm > ->
+    Core_scan_config.t ->
+    Fpath.t ->
+    Core_result.result_or_exn)
+    ref =
+  ref (fun _caps _config _root ->
       failwith "semgrep test --pro not available (need --install-semgrep-pro)")
 
 (*****************************************************************************)
@@ -351,7 +365,6 @@ let report_tests_result (caps : < Cap.stdout >) ~matching_diagnosis ~json
           (spf "%d/%d: %d unit tests did not pass:" !passed !total
              (!total - !passed));
         print break_line;
-        (* TODO *)
         print "TODO: print(check_output_lines)");
     (* fix tests *)
     (match () with
@@ -365,7 +378,6 @@ let report_tests_result (caps : < Cap.stdout >) ~matching_diagnosis ~json
              !fixtest_total
              (!fixtest_total - !fixtest_passed));
         print break_line;
-        (* TODO *)
         print "TODO: print(fixtest_file_diffs)");
     if matching_diagnosis then report_diagnosis print res;
     (* TODO: if config_with_errors_output: ... *)
@@ -431,35 +443,59 @@ let core_scan_config (conf : Test_CLI.conf) (rules : Rule.t list)
     respect_rule_paths = false;
   }
 
-let run_rules_against_targets_for_engine caps (conf : Test_CLI.conf)
-    (rules : Rule.t list) (targets : Target.t list) (engine : A.engine) :
-    Core_result.t =
+let run_rules_against_targets_for_engine caps (env : env) (rules : Rule.t list)
+    (targets : Target.t list) : Core_result.t =
   (* old:
    * let xtarget = Test_engine.xtarget_of_file xlang target in
    * let xconf = { Match_env.default_xconfig with matching_explanations = true}in
    * Match_rules.check ~match_hook:(fun _ ->()) ~timeout:None xconf rules xtarget
    *)
-  let config = core_scan_config conf rules targets in
+  let config = core_scan_config env.conf rules targets in
   let res_or_exn : Core_result.result_or_exn =
-    match engine with
-    | A.OSS -> Core_scan.scan caps config
-    | A.Pro -> !hook_pro_scan caps config
-    | A.Deep -> failwith "--pro for DeepScan not implemented yet"
+    match env.engine with
+    | A.OSS -> Core_scan.scan (caps :> Core_scan.caps) config
+    | A.Pro -> !hook_pro_scan (caps :> Core_scan.caps) config
+    | A.Deep ->
+        (* LATER: support also interfile tests where many targets are in
+         * a subdir (using the same name than the rule file)
+         *)
+        let root, _base = Fpath.split_base env.rule_file in
+        !hook_deep_scan (caps :> < Cap.fork ; Cap.alarm ; Cap.tmp >) config root
   in
   match res_or_exn with
   | Error exn -> Exception.reraise exn
-  (* TODO: fail early or add a kind of error in the json output?
+  (* TODO? fail early or add a kind of error in the json output?
      | Ok { errors = _x::_; _} -> failwith "TODO"
   *)
   | Ok res -> res
 
+(* Annotations have also a few implicit rules to avoid having to annotate
+ * too much:
+ *  - ruleid => proruleid => deepruleid,
+ *    so if you have a ruleid:, no need to annotate too with proruleid:
+ *    or deepruleid:, it is implicit. However if some ruleid: are actually
+ *    not found by ProScan or DeepScan you'll need to add further annotations
+ *    such as prook: or deeptodoruleid:
+ *  - prook => deepok, because if the intrafile engine is able to detect
+ *    some FPs compared to CoreScan, then the interfile engine should too.
+ *    If it's not the case it's probably a bug in DeepScan (probably a
+ *    naming bug as DeepScan use Naming_SAST.ml instead of Naming_AST.ml)
+ *    in which case it's good to annotate it with a deeptodook
+ *)
 let filter_annots_for_engine (running_engine : A.engine)
     (annots : A.annotations) : A.annotations =
   annots
   |> List.filter (fun (A.{ kind; engine; others; _ }, _) ->
          match (running_engine, kind, engine) with
          | Pro, _, _ when List.mem (A.Ok, A.Pro) others -> false
+         | Pro, _, _ when List.mem (A.Todoruleid, A.Pro) others -> false
          | Deep, _, _ when List.mem (A.Ok, A.Deep) others -> false
+         | Deep, _, _ when List.mem (A.Todoruleid, A.Deep) others -> false
+         (* prook => deepok (TODO? protodoruleid => deeptodoruleid? *)
+         | Deep, _, _ when List.mem (A.Ok, A.Pro) others -> false
+         (* ruleid => proruleid => deepruleid
+          * (and todok => protodok => deeptodook)
+          *)
          | OSS, (Ruleid | Todook), OSS -> true
          | Pro, (Ruleid | Todook), (OSS | Pro) -> true
          | Deep, (Ruleid | Todook), (OSS | Pro | Deep) -> true
@@ -468,6 +504,20 @@ let filter_annots_for_engine (running_engine : A.engine)
 (*****************************************************************************)
 (* Comparing *)
 (*****************************************************************************)
+
+let diff_findings (actual : int list) (expected : int list) : string =
+  let _common, only_in_expected, only_in_actual =
+    Common2.diff_set_eff expected actual
+  in
+  (if List_.null only_in_expected then ""
+   else
+     spf "missing findings lines %s."
+       (only_in_expected |> List_.map Int.to_string |> String.concat ", "))
+  ^
+  if List_.null only_in_actual then ""
+  else
+    spf "unexpected findings lines %s."
+      (only_in_actual |> List_.map Int.to_string |> String.concat ", ")
 
 (* alt: use Test_compare_matches.compare_actual_to_expected but
  * it does not handle the actual rule id in the annotations and is
@@ -494,7 +544,16 @@ let compare_actual_to_expected (env : env) (matches : Pattern_match.t list)
            ( rule_id,
              pms
              |> Assoc.group_by (fun (pm : Pattern_match.t) ->
-                    pm.path.internal_path_to_content) ))
+                    (* We need Fpath.normalize because for unclear reasons DeepScan
+                     * returns matches with paths that may differ from
+                     * the one below in the annotations so simpler to normalize
+                     * both so path like ./foo/bar.c and foo/bar.c are considered
+                     * the same
+                     * TODO: we don't need that for CoreScan and ProScan so we
+                     * should probably fix DeepScan instead to not mess up
+                     * with the Targets paths.
+                     *)
+                    Fpath.normalize pm.path.internal_path_to_content) ))
   in
   (* expected matches *)
   let expected_by_ruleid_and_file :
@@ -502,6 +561,7 @@ let compare_actual_to_expected (env : env) (matches : Pattern_match.t list)
     let h = Hashtbl.create 101 in
     annots
     |> List.iter (fun (file, annotations) ->
+           let file = Fpath.normalize file in
            let expected_by_rule_id : (Rule_ID.t, A.linenb list) Assoc.t =
              A.group_by_rule_id annotations
            in
@@ -547,8 +607,9 @@ let compare_actual_to_expected (env : env) (matches : Pattern_match.t list)
                     let passed = reported_lines =*= expected_lines in
                     if not passed then
                       Logs.err (fun m ->
-                          m "test failed for rule id %s on target %s%s"
-                            (Rule_ID.to_string id) !!target xtra);
+                          m "test failed for rule id %s on target %s%s (%s)"
+                            (Rule_ID.to_string id) !!target xtra
+                            (diff_findings reported_lines expected_lines));
                     (* TODO: not sure why pysemgrep does not report the real
                      * reported_lines (and expected_lines) and filter those
                      * 'todook:'. It's actually very confusing because sometimes
@@ -639,12 +700,12 @@ let compare_for_autofix (env : env) (rules : Rule.t list)
 (*****************************************************************************)
 
 (* alt: call it run_env? *)
-let run_engine (caps : Core_scan.caps) (env : env) (rules : Rule.t list)
-    (targets : Target.t list)
+let run_engine (caps : < Cap.fork ; Cap.alarm ; Cap.tmp >) (env : env)
+    (rules : Rule.t list) (targets : Target.t list)
     (files_and_annots : (Fpath.t * A.annotations) list) :
     test_result list * fixtest_result list =
   let res : Core_result.t =
-    run_rules_against_targets_for_engine caps env.conf rules targets env.engine
+    run_rules_against_targets_for_engine caps env rules targets
   in
   let expected : (Fpath.t * A.annotations) list =
     files_and_annots
@@ -676,7 +737,7 @@ let run_engine (caps : Core_scan.caps) (env : env) (rules : Rule.t list)
   (checks, fixtest)
 
 (* run one test using the different engines if --pro *)
-let run_test (caps : Core_scan.caps) (conf : Test_CLI.conf)
+let run_test (caps : < Cap.fork ; Cap.alarm ; Cap.tmp >) (conf : Test_CLI.conf)
     (rule_file : Fpath.t) (rules : Rule.t list) (target_files : Fpath.t list)
     (errors : error list ref) : test_result list * fixtest_result list =
   (* note that even one target file can result in different targets
@@ -696,7 +757,7 @@ let run_test (caps : Core_scan.caps) (conf : Test_CLI.conf)
   (* When conf.pro, we should run the engine 3 times:
    *  - with Core_scan and check just the ruleid:
    *  - with Pro_scan and check also the proruleid:
-   *  - TODO with Deep_scan and check also the deepruleid:.
+   *  - with Deep_scan and check also the deepruleid:.
    * The json will give information about those 3 different runs by using
    * different rule IDs suffix (e.g., "myrule--PRO")
    *)
@@ -721,11 +782,23 @@ let run_test (caps : Core_scan.caps) (conf : Test_CLI.conf)
              let id = Rule_ID.of_string_exn (s ^ "--PRO") in
              (id, rule_result))
     in
-    (checks_oss @ checks_pro, fixtest_oss)
+    (* same for deep *)
+    let checks_deep, _ =
+      let env = { env with engine = A.Deep } in
+      run_engine caps env rules targets files_and_annots
+    in
+    let checks_deep =
+      checks_deep
+      |> List_.map (fun (id, rule_result) ->
+             let s = Rule_ID.to_string id in
+             let id = Rule_ID.of_string_exn (s ^ "--DEEP") in
+             (id, rule_result))
+    in
+    (checks_oss @ checks_pro @ checks_deep, fixtest_oss)
   else (checks_oss, fixtest_oss)
 
-let run_tests (caps : Core_scan.caps) (conf : Test_CLI.conf) (tests : tests)
-    (errors : error list ref) :
+let run_tests (caps : < Cap.fork ; Cap.alarm ; Cap.tmp >) (conf : Test_CLI.conf)
+    (tests : tests) (errors : error list ref) :
     (Fpath.t (* rule file *) * test_result list * fixtest_result list) list =
   (* LATER: in theory we could use Parmap here *)
   tests
@@ -787,7 +860,7 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
 
   (* step2: run the tests *)
   let result : tests_result =
-    run_tests (caps :> Core_scan.caps) conf tests errors
+    run_tests (caps :> < Cap.fork ; Cap.alarm ; Cap.tmp >) conf tests errors
   in
 
   (* step3: report the test results *)

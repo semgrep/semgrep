@@ -69,9 +69,8 @@ type engine = OSS | Pro | Deep [@@deriving show]
  * Note that 'ruleid:' implies 'proruleid:' and 'deepruleid:' so you don't need
  * to repeat those annotations. You usually need multiple kind/engine
  * prefix when one engine TP would be another engine TN (e.g., 'ruleid: prook:')
- * Here are a few implicit rules:
- *  - ruleid: > proruleid: > deepruleid:
- *  - prook: > deepok: ?
+ * See Test_subcommand.filter_annots_for_engine comment for more about those
+ * implications.
  *)
 type t = {
   kind : kind;

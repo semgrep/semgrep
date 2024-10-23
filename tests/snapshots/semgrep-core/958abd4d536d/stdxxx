@@ -1,6 +1,6 @@
 Snapshot for matching diagnosis unexpected no match
 [<MASKED TIMESTAMP>][[33mWARNING[0m]: nothing matched for ./test.yaml
-[0m[<MASKED TIMESTAMP>][[31mERROR[0m]: test failed for rule id no-foo-unless-good on target ./test.py
+[0m[<MASKED TIMESTAMP>][[31mERROR[0m]: test failed for rule id no-foo-unless-good on target test.py (missing findings lines 3, 5.)
 --- begin input files ---
 test.py
 test.yaml
@@ -11,10 +11,10 @@ TODO: print(check_output_lines)
 No tests for fixes found.
 --------------------------------------------------------------------------------
 Matching diagnosis:
-./test.py: Unexpected lack of match at line 3
+test.py: Unexpected lack of match at line 3
 A potential match at line 3 was removed by this pattern at line 7 in ./test.yaml:
           - not: foo($X)
-./test.py: Unexpected lack of match at line 5
+test.py: Unexpected lack of match at line 5
 A potential match at line 5 was removed by this pattern at line 7 in ./test.yaml:
           - not: foo($X)
 [0m[33mASSERT[0m exit code
