@@ -1,21 +1,10 @@
-
-
-┌─────────────┐
-│ Scan Status │
-└─────────────┘
-  Scanning 24 files tracked by git with 4 Code rules:
-
-  Language   Rules   Files          Origin   Rules
- ──────────────────────────        ────────────────
-  python         3      11          Custom       4
-  js             1       3
-
-
-
-┌──────────────┐
-│ Scan Summary │
-└──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-
-Ran 4 rules on 14 files: 2 findings.
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/bin/semgrep", line 183, in <module>
+    exec_osemgrep()
+  File "/home/runner/work/semgrep/semgrep/cli/bin/semgrep", line 155, in exec_osemgrep
+    path = find_semgrep_core_path()
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/semgrep/semgrep/cli/bin/semgrep", line 89, in find_semgrep_core_path
+    print(entry, entry.is_resource())
+                 ^^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'is_resource'
