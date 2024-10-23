@@ -148,7 +148,13 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/returntocorp/semgrep",
-    scripts=["bin/semgrep", "bin/pysemgrep"],
+    # creates a .exe wrapper on windows
+    entry_points={
+        "console_scripts": [
+            "semgrep = semgrep.console_scripts.entrypoint:main",
+            "pysemgrep = semgrep.console_scripts.pysemgrep:main",
+        ]
+    },
     packages=setuptools.find_packages(where="src"),
     package_dir={"": "src"},
     package_data={"semgrep": [os.path.join("bin", "*")]},
