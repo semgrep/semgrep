@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 # This file is the Semgrep CLI entry point of the Semgrep pip package,
 # the Semgrep HomeBrew package, and the Semgrep Docker container.
 #
@@ -28,15 +27,18 @@
 #
 # NOTE: if you modify this file, you will need to `pipenv install --dev`
 # if you want to test the change under `pipenv shell`.
-
-import os
-import sys
 import importlib.resources
+import os
+import platform
 import shutil
-#alt: you can also add '-W ignore::DeprecationWarning' after the python3 above,
+import sys
+import warnings
+from pathlib import Path
+
+# alt: you can also add '-W ignore::DeprecationWarning' after the python3 above,
 # but setuptools and pip adjust this line when installing semgrep so we need
 # to do this instead.
-import warnings
+
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 # Add the directory containing this script in the PATH, so the pysemgrep
@@ -49,12 +51,16 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 PATH = os.environ.get("PATH", "")
 os.environ["PATH"] = PATH + os.pathsep + os.path.dirname(os.path.abspath(__file__))
 
+IS_WINDOWS = platform.system() == "Windows"
+
+
 class CoreNotFound(Exception):
     def __init__(self, value):
         self.value = value
- 
+
     def __str__(self):
-        return(self.value)
+        return self.value
+
 
 # Similar to cli/src/semgrep/engine.py check_is_correct_pro_version
 def is_correct_pro_version(core_path):
@@ -66,14 +72,16 @@ def is_correct_pro_version(core_path):
     This can be verified with `time python -c 'import semgrep; print(semgrep.__VERSION__)'`
     """
     from semgrep import __VERSION__
+
     # Duplicate of cli/src/semgrep/semgrep_core.py pro_version_stamp_path
     stamp_path = core_path.parent / "pro-installed-by.txt"
     if stamp_path.is_file():
-        with stamp_path.open('r') as f:
+        with stamp_path.open("r") as f:
             version_at_install = f.readline().strip()
             return version_at_install == __VERSION__
     else:
         return False
+
 
 # similar to cli/src/semgrep/semgrep_core.py compute_executable_path()
 def find_semgrep_core_path(pro=False, extra_message=""):
@@ -81,17 +89,38 @@ def find_semgrep_core_path(pro=False, extra_message=""):
         core = "semgrep-core-proprietary"
     else:
         core = "semgrep-core"
+
+    if IS_WINDOWS:
+        core += ".exe"
+
     # First, try the packaged binary.
     try:
         # the use of .path causes a DeprecationWarning hence the
         # filterwarnings above
+        print(f"PATH: {PATH}")
+
+        p = Path(__file__).resolve().parent.parent / "bin"
+        print(f"os.listdir({p}):")
+        for item in os.listdir(p):
+            print(item)
+
+        print("importlib.resources.contents:")
+        try:
+            for entry in importlib.resources.contents("semgrep.bin"):
+                print(entry)
+        except Exception as e:
+            print(e)
+
         with importlib.resources.path("semgrep.bin", core) as path:
             if path.is_file():
                 if pro and not is_correct_pro_version(path):
-                    raise CoreNotFound(f"The installed version of {core} is out of date.{extra_message}")
+                    raise CoreNotFound(
+                        f"The installed version of {core} is out of date.{extra_message}"
+                    )
+                raise RuntimeError(f"cgdolan: found core in resources at {str(path)}")
                 return str(path)
     except (FileNotFoundError, ModuleNotFoundError) as e:
-        pass
+        print(f"cgdolan: unable to find core in resources {e}, trying PATH")
 
     # Second, try in PATH. In certain context such as Homebrew
     # (see https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb)
@@ -101,20 +130,26 @@ def find_semgrep_core_path(pro=False, extra_message=""):
     # In those cases, we want to grab semgrep-core from the PATH instead.
     path = shutil.which(core)
     if path is not None:
+        raise RuntimeError(f"cgdolan: found core in PATH at: {str(path)}")
         return path
- 
-    raise CoreNotFound(f"Failed to find {core} in PATH or in the semgrep package.{extra_message}")
 
-#TODO: we should just do 'execvp("pysemgrep", sys.argv)'
+    raise CoreNotFound(
+        f"Failed to find {core} in PATH or in the semgrep package.{extra_message}"
+    )
+
+
+# TODO: we should just do 'execvp("pysemgrep", sys.argv)'
 # but this causes some regressions with --test (see PA-2963)
 # and autocomplete (see #8359)
-#TODO: we should get rid of autocomplete anyway (it's a Python Click
+# TODO: we should get rid of autocomplete anyway (it's a Python Click
 # thing not supported by osemgrep anyway),
-#TODO: we should fix --test instead.
+# TODO: we should fix --test instead.
 # The past investigation of Austin is available in #8360 PR comments
 def exec_pysemgrep():
     import semgrep.main
+
     sys.exit(semgrep.main.main())
+
 
 # We could have moved the code below in a separate 'osemgrep' file, like
 # for 'pysemgrep', but we don't want users to be exposed to another command,
@@ -126,19 +161,23 @@ def exec_pysemgrep():
 # they'll get the old behavior.
 def exec_osemgrep():
     argv = sys.argv
-    if ("--pro" in argv or
-        "--beta-testing-secrets-enabled" in argv):
+    if "--pro" in argv or "--beta-testing-secrets-enabled" in argv:
         try:
-            path = find_semgrep_core_path(pro=True,
-                                      extra_message="\nYou may need to run `semgrep install-semgrep-pro`"    )
+            path = find_semgrep_core_path(
+                pro=True,
+                extra_message="\nYou may need to run `semgrep install-semgrep-pro`",
+            )
         except CoreNotFound as e:
             print(str(e), file=sys.stderr)
             if sys.argv[1] == "ci":
                 # CI users usually want things to just work. In particular, if they
                 # are running `semgrep ci --pro` they don't want to have to add an
                 # extra step to install-semgrep-pro. This wrapper doesn't have a way
-                # to install semgrep-pro, however, so have them run legacy `semgrep`. 
-                print("Since `semgrep ci` was run, defaulting to legacy semgrep", file=sys.stderr)
+                # to install semgrep-pro, however, so have them run legacy `semgrep`.
+                print(
+                    "Since `semgrep ci` was run, defaulting to legacy semgrep",
+                    file=sys.stderr,
+                )
                 exec_pysemgrep()
             else:
                 sys.exit(2)
@@ -158,21 +197,26 @@ def exec_osemgrep():
         sys.argv[0] = "osemgrep"
     os.execvp(str(path), sys.argv)
 
-# Needed for similar reasons as in pysemgrep, but only for the legacy
-# flag to work
-if __name__ == "__main__":
+
+def main():
     # escape hatch for users to pysemgrep in case of problems (they
     # can also call directly 'pysemgrep').
     if "--legacy" in sys.argv:
-       sys.argv.remove("--legacy")
-       exec_pysemgrep()
+        sys.argv.remove("--legacy")
+        exec_pysemgrep()
     elif "--experimental" in sys.argv:
-       exec_osemgrep()
+        exec_osemgrep()
     else:
-       # we now default to osemgrep! but this will usually exec
-       # back to pysemgrep for most commands (for now)
-       # We activate the new CLI UX only when semgrep is invoked directly
-       # (and legacy is not specified)
-       # and osemgrep needs to fallback on pysemgrep
-       os.environ["SEMGREP_NEW_CLI_UX"] = f"{int(sys.stdout.isatty())}"
-       exec_osemgrep()
+        # we now default to osemgrep! but this will usually exec
+        # back to pysemgrep for most commands (for now)
+        # We activate the new CLI UX only when semgrep is invoked directly
+        # (and legacy is not specified)
+        # and osemgrep needs to fallback on pysemgrep
+        os.environ["SEMGREP_NEW_CLI_UX"] = f"{int(sys.stdout.isatty())}"
+        exec_osemgrep()
+
+
+# Needed for similar reasons as in pysemgrep, but only for the legacy
+# flag to work
+if __name__ == "__main__":
+    main()
