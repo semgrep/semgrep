@@ -1,0 +1,3 @@
+Semgrep will now print stderr and additional debugging info when semgrep-core
+exits with a fatal error code but still returns a json repsonse (finishes
+scanning)
