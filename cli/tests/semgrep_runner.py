@@ -44,11 +44,7 @@ _OSEMGREP_SCAN_EXTRA_ARGS = _OSEMGREP_EXTRA_ARGS + ["--project-root", "."]
 
 _SEMGREP_PATH = str(
     (
-        Path(__file__).parent.parent
-        / "src"
-        / "semgrep"
-        / "console_scripts"
-        / "ssemgrep.py"
+        Path(__file__).parent.parent / "src" / "semgrep" / "bin" / "ssemgrep.py"
     ).absolute()
 )
 
