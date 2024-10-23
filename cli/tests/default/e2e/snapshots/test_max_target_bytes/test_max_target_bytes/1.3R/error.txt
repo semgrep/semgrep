@@ -1,4 +1,9 @@
-semgrep scan: option '--max-target-bytes': Invalid representation for a
-              number of bytes: 1.3R
-Usage: semgrep scan [OPTION]… [TARGETS]…
-Try 'semgrep scan --help' for more information.
+Traceback (most recent call last):
+  File "/home/runner/work/semgrep/semgrep/cli/bin/semgrep", line 193, in <module>
+    exec_osemgrep()
+  File "/home/runner/work/semgrep/semgrep/cli/bin/semgrep", line 165, in exec_osemgrep
+    path = find_semgrep_core_path()
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/semgrep/semgrep/cli/bin/semgrep", line 118, in find_semgrep_core_path
+    raise RuntimeError(f"cgdolan: found core in PATH at: {str(path)}")
+RuntimeError: cgdolan: found core in PATH at: /usr/bin/semgrep-core
