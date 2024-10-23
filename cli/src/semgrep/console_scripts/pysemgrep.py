@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 # This script will be installed by pip somewhere in PATH (e.g., /opt/local/bin/)
 # because it's mentioned in ../setup.py with 'scripts=[..., "bin/pysemgrep"]'.
 # Thus, osemgrep can easily fallback to pysemgrep (without any further
@@ -11,9 +10,9 @@
 # then knows where to find the Semgrep Python source files referenced below
 # with semgrep.main.main
 # (e.g., in /opt/local/lib/site-packages/python3.11/semgrep/)
-
 import os
 import sys
+
 # This file is not part of the Python 'semgrep' package; it's a script.
 # It's an escape hatch for users to pysemgrep in case of problems.
 
@@ -45,8 +44,13 @@ import sys
 # See safe importing of main modules here:
 # https://docs.python.org/3/library/multiprocessing.html#the-spawn-and-forkserver-start-methods
 # It doesn't explain in enough detail to give a real answer, hence the guess above.
-if __name__ == "__main__":
+def main():
     # Only enable new CLI UX when pysemgrep is invoked directly and with interactive terminal
-    os.environ["SEMGREP_NEW_CLI_UX"] =  f"{int(sys.stdout.isatty())}"
+    os.environ["SEMGREP_NEW_CLI_UX"] = f"{int(sys.stdout.isatty())}"
     import semgrep.main
+
     sys.exit(semgrep.main.main())
+
+
+if __name__ == "__main__":
+    main()
