@@ -1,0 +1,6 @@
+PATH: /home/runner/.local/share/virtualenvs/cli-uZ-2zvZl/bin:/opt/hostedtoolcache/Python/3.11.10/x64/bin:/opt/hostedtoolcache/Python/3.11.10/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+os.listdir(/home/runner/work/semgrep/semgrep/cli/src/semgrep/bin):
+__init__.py
+importlib.resources.contents:
+No module named 'semgrep.bin'; 'semgrep' is not a package
+cgdolan: unable to find core in resources No module named 'semgrep.bin'; 'semgrep' is not a package, trying PATH
