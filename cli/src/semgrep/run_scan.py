@@ -489,6 +489,7 @@ def run_scan(
     enable_experimental_requirements: bool = False,
     allow_dynamic_dependency_resolution: bool = False,
     dump_n_rule_partitions: Optional[int] = None,
+    dump_rule_partitions_dir: Optional[Path] = None,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -601,9 +602,9 @@ def run_scan(
 
     if dump_n_rule_partitions:
         rules = {"rules": [r.raw for r in filtered_rules]}
-        output_dir = get_state().env.user_data_folder
+        output_dir = str(dump_rule_partitions_dir)
         args = out.DumpRulePartitionsParams(
-            out.RawJson(rules), dump_n_rule_partitions, out.Fpath(str(output_dir))
+            out.RawJson(rules), dump_n_rule_partitions, out.Fpath(output_dir)
         )
         ok = dump_rule_partitions(args)
         if not ok:

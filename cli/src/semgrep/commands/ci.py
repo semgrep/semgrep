@@ -188,6 +188,12 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     hidden=True,
 )
 @click.option(
+    "--x-dump-rule-partitions-dir",
+    "dump_rule_partitions_dir",
+    type=click.Path(allow_dash=True, path_type=Path),
+    hidden=True,
+)
+@click.option(
     "--x-partial-config",
     "partial_config",
     type=click.Path(allow_dash=True, path_type=Path),
@@ -262,6 +268,7 @@ def ci(
     enable_experimental_requirements: bool,
     allow_dynamic_dependency_resolution: bool,
     dump_n_rule_partitions: Optional[int],
+    dump_rule_partitions_dir: Optional[Path],
     partial_config: Optional[Path],
     partial_output: Optional[Path],
 ) -> None:
@@ -301,6 +308,14 @@ def ci(
         if config and partial_config:
             logger.info(
                 "The `--config` and `--x-partial-config` flags are mutually exclusive. They serve different purposes."
+            )
+            sys.exit(FATAL_EXIT_CODE)
+
+        if (dump_n_rule_partitions and not dump_rule_partitions_dir) or (
+            not dump_n_rule_partitions and dump_rule_partitions_dir
+        ):
+            logger.info(
+                "Both or none of --x-dump-rule-partitions and --x-dump-rule-partitions-dir must be specified."
             )
             sys.exit(FATAL_EXIT_CODE)
 
@@ -599,6 +614,7 @@ def ci(
             "enable_experimental_requirements": enable_experimental_requirements,
             "allow_dynamic_dependency_resolution": allow_dynamic_dependency_resolution,
             "dump_n_rule_partitions": dump_n_rule_partitions,
+            "dump_rule_partitions_dir": dump_rule_partitions_dir,
         }
 
         try:

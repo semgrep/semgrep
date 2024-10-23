@@ -142,6 +142,12 @@ let o_x_dump_n_rule_partitions : int Term.t =
   let info = Arg.info [ "x-dump-rule-partitions" ] ~doc:{|Internal flag.|} in
   Arg.value (Arg.opt Arg.int 0 info)
 
+let o_x_dump_rule_partitions_dir : string Term.t =
+  let info =
+    Arg.info [ "x-dump-rule-partitions-dir" ] ~doc:{|Internal flag.|}
+  in
+  Arg.value (Arg.opt Arg.string "" info)
+
 let o_x_partial_config : string Term.t =
   let info = Arg.info [ "x-partial-config" ] ~doc:{|Internal flag.|} in
   Arg.value (Arg.opt Arg.string "" info)
@@ -327,8 +333,9 @@ let cmdline_term : conf Term.t =
    * variables (Romain's idea).
    *)
   let combine scan_conf audit_on code secrets dry_run _internal_ci_scan_results
-      _x_dump_n_rule_partitions _x_partial_config _x_partial_output subdir
-      supply_chain suppress_errors _git_meta _github_meta =
+      _x_dump_n_rule_partitions _x_dump_rule_partitions_dir _x_partial_config
+      _x_partial_output subdir supply_chain suppress_errors _git_meta
+      _github_meta =
     let products =
       (if secrets then [ `Secrets ] else [])
       @ (if code then [ `SAST ] else [])
@@ -339,9 +346,9 @@ let cmdline_term : conf Term.t =
   Term.(
     const combine $ scan_subset_cmdline_term $ o_audit_on $ o_code
     $ SC.o_secrets $ o_dry_run $ o_internal_ci_scan_results
-    $ o_x_dump_n_rule_partitions $ o_x_partial_config $ o_x_partial_output
-    $ o_subdir $ o_supply_chain $ o_suppress_errors $ Git_metadata.env
-    $ Github_metadata.env)
+    $ o_x_dump_n_rule_partitions $ o_x_dump_rule_partitions_dir
+    $ o_x_partial_config $ o_x_partial_output $ o_subdir $ o_supply_chain
+    $ o_suppress_errors $ Git_metadata.env $ Github_metadata.env)
 
 let doc = "the recommended way to run semgrep in CI"
 
