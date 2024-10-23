@@ -1,1 +1,0 @@
-semgrep will now print exit codes if a segfault/OOM/other terminating signal happens in semgrep-core, or any of semgrep-core's child processes
