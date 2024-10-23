@@ -85,12 +85,16 @@ def find_semgrep_core_path(pro=False, extra_message=""):
     try:
         # the use of .path causes a DeprecationWarning hence the
         # filterwarnings above
+        for entry in importlib.resources.contents("semgrep.bin"):
+            print(entry, entry.is_resource())
         with importlib.resources.path("semgrep.bin", core) as path:
             if path.is_file():
                 if pro and not is_correct_pro_version(path):
                     raise CoreNotFound(f"The installed version of {core} is out of date.{extra_message}")
+                raise RuntimeError(f"cgdolan: found core in resources at {str(path)}")
                 return str(path)
     except (FileNotFoundError, ModuleNotFoundError) as e:
+        print("cgdolan: unable to find core in resources, trying PATH")
         pass
 
     # Second, try in PATH. In certain context such as Homebrew
@@ -101,6 +105,7 @@ def find_semgrep_core_path(pro=False, extra_message=""):
     # In those cases, we want to grab semgrep-core from the PATH instead.
     path = shutil.which(core)
     if path is not None:
+        raise RuntimeError(f"cgdolan: found core in PATH at: {str(path)}")
         return path
  
     raise CoreNotFound(f"Failed to find {core} in PATH or in the semgrep package.{extra_message}")
