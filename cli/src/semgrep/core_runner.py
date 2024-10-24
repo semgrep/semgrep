@@ -50,7 +50,7 @@ from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_types import Language
 from semgrep.state import DesignTreatment
 from semgrep.state import get_state
-from semgrep.subproject import Subproject
+from semgrep.subproject import ResolvedSubproject
 from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
 from semgrep.verbose_logging import getLogger
@@ -430,7 +430,29 @@ class StreamingSemgrepCore:
         if self._capture_stderr:
             assert process.stderr
 
-        await self._handle_process_outputs(process.stdout, process.stderr)
+        try:
+            await self._handle_process_outputs(process.stdout, process.stderr)
+        # Usually happens when the process is killed by the OS
+        except SemgrepError as e:
+            # Since this is error handling code, it's extra important to be
+            # defensive. As such, let's not have this be a straight wait call
+            # which will wait indefinitely for the subprocess to complete. let's
+            # instead just wait for a second so we don't risk getting stuck.
+            # This is fine since this is expected to only happen when the
+            # semgrep-core process was killed
+            try:
+                exit_code = await asyncio.wait_for(process.wait(), timeout=1.0)
+            except TimeoutError:
+                logger.error(
+                    "semgrep timed out waiting for the semgrep-core process to exit after an exception was raised"
+                )
+                raise e
+
+            # let's log this and reraise as if we got a non zero exit code with
+            # a semgrep error then we segfaulted or OOMd and so should
+            # immediately exit instead of assuming we got something usuable
+            logger.error(f"semgrep-core exited with {exit_code}!")
+            raise e
 
         # Return exit code of cmd. process should already be done
         return await process.wait()
@@ -651,7 +673,7 @@ class CoreRunner:
     def plan_core_run(
         rules: List[Rule],
         target_manager: TargetManager,
-        sca_subprojects: Dict[out.Ecosystem, List[Subproject]],
+        sca_subprojects: Dict[out.Ecosystem, List[ResolvedSubproject]],
         *,
         all_targets: Optional[Set[Path]] = None,
         product: Optional[out.Product] = None,
@@ -724,7 +746,7 @@ class CoreRunner:
         run_secrets: bool,
         disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
-        sca_subprojects: Dict[out.Ecosystem, List[Subproject]],
+        sca_subprojects: Dict[out.Ecosystem, List[ResolvedSubproject]],
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         state = get_state()
         logger.debug(f"Passing whole rules directly to semgrep_core")
@@ -748,7 +770,9 @@ class CoreRunner:
         rule_file = exit_stack.enter_context(
             (state.env.user_data_folder / "semgrep_rules.json").open("w+")
             if dump_command_for_core
-            else tempfile.NamedTemporaryFile("w+", suffix=".json", delete=False)
+            else tempfile.NamedTemporaryFile(
+                "w+", suffix=".json", delete=(not IS_WINDOWS)
+            )
         )
         # A historical scan does not create a targeting file since targeting is
         # performed directly by core.
@@ -756,13 +780,13 @@ class CoreRunner:
             target_file = exit_stack.enter_context(
                 (state.env.user_data_folder / "semgrep_targets.txt").open("w+")
                 if dump_command_for_core
-                else tempfile.NamedTemporaryFile("w+", delete=False)
+                else tempfile.NamedTemporaryFile("w+", delete=(not IS_WINDOWS))
             )
         if target_mode_config.is_pro_diff_scan:
             diff_target_file = exit_stack.enter_context(
                 (state.env.user_data_folder / "semgrep_diff_targets.txt").open("w+")
                 if dump_command_for_core
-                else tempfile.NamedTemporaryFile("w+", delete=False)
+                else tempfile.NamedTemporaryFile("w+", delete=(not IS_WINDOWS))
             )
 
         with exit_stack:
@@ -1030,7 +1054,7 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
         run_secrets: bool,
         disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
-        sca_subprojects: Dict[out.Ecosystem, List[Subproject]],
+        sca_subprojects: Dict[out.Ecosystem, List[ResolvedSubproject]],
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Sometimes we may run into synchronicity issues with the latest DeepSemgrep binary.
@@ -1091,7 +1115,7 @@ Exception raised: `{e}`
         run_secrets: bool,
         disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
-        sca_subprojects: Dict[out.Ecosystem, List[Subproject]],
+        sca_subprojects: Dict[out.Ecosystem, List[ResolvedSubproject]],
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Takes in rules and targets and returns object with findings
@@ -1145,7 +1169,7 @@ Exception raised: `{e}`
         parsed_errors = []
 
         with tempfile.NamedTemporaryFile(
-            "w", suffix=".yaml", delete=False
+            "w", suffix=".yaml", delete=(not IS_WINDOWS)
         ) as rule_file:
             yaml = YAML()
             yaml.dump(

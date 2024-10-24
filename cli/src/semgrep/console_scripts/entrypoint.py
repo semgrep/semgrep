@@ -27,7 +27,10 @@
 #
 # NOTE: if you modify this file, you will need to `pipenv install --dev`
 # if you want to test the change under `pipenv shell`.
-import importlib.resources
+
+import os
+import platform
+import sys
 import os
 import platform
 import shutil
@@ -97,30 +100,15 @@ def find_semgrep_core_path(pro=False, extra_message=""):
     try:
         # the use of .path causes a DeprecationWarning hence the
         # filterwarnings above
-        print(f"PATH: {PATH}")
-
-        p = Path(__file__).resolve().parent.parent / "bin"
-        print(f"os.listdir({p}):")
-        for item in os.listdir(p):
-            print(item)
-
-        print("importlib.resources.contents:")
-        try:
-            for entry in importlib.resources.contents("semgrep.bin"):
-                print(entry)
-        except Exception as e:
-            print(e)
-
         with importlib.resources.path("semgrep.bin", core) as path:
             if path.is_file():
                 if pro and not is_correct_pro_version(path):
                     raise CoreNotFound(
                         f"The installed version of {core} is out of date.{extra_message}"
                     )
-                raise RuntimeError(f"cgdolan: found core in resources at {str(path)}")
                 return str(path)
     except (FileNotFoundError, ModuleNotFoundError) as e:
-        print(f"cgdolan: unable to find core in resources {e}, trying PATH")
+        pass
 
     # Second, try in PATH. In certain context such as Homebrew
     # (see https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb)
@@ -130,7 +118,6 @@ def find_semgrep_core_path(pro=False, extra_message=""):
     # In those cases, we want to grab semgrep-core from the PATH instead.
     path = shutil.which(core)
     if path is not None:
-        raise RuntimeError(f"cgdolan: found core in PATH at: {str(path)}")
         return path
 
     raise CoreNotFound(

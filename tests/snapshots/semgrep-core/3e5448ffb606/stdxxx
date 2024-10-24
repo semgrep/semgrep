@@ -1,5 +1,5 @@
 Snapshot for matching diagnosis unexpected match
-[<MASKED TIMESTAMP>][[31mERROR[0m]: test failed for rule id no-foo-unless-good on target ./test.py
+[<MASKED TIMESTAMP>][[31mERROR[0m]: test failed for rule id no-foo-unless-good on target test.py (unexpected findings lines 5.)
 --- begin input files ---
 test.py
 test.yaml
@@ -10,7 +10,7 @@ TODO: print(check_output_lines)
 No tests for fixes found.
 --------------------------------------------------------------------------------
 Matching diagnosis:
-./test.py: Unexpected match at line 5:
+test.py: Unexpected match at line 5:
     foo(good)
 This match originated at this pattern at line 6 in ./test.yaml:
         - pattern: foo(...)

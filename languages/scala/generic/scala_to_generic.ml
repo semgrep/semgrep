@@ -462,6 +462,14 @@ and v_expr e : G.expr =
       let v1 = v_expr v1 and v2 = v_tok v2 and v3 = v_ident v3 in
       let name = H.name_of_id v3 in
       G.DotAccess (v1, v2, G.FN name) |> G.e
+  | Apply (Name (Id ((s, _t) as id), [ ("apply", apply_tok) ]), [ args ])
+    when String_.is_capitalized s ->
+      New
+        ( apply_tok,
+          TyN (G.Id (id, G.empty_id_info ())) |> G.t,
+          G.empty_id_info (),
+          v_arguments args )
+      |> G.e
   | Apply (v1, v2) ->
       let v1 = v_expr v1 and v2 = v_list v_arguments v2 in
       v2 |> List.fold_left (fun acc xs -> G.Call (acc, xs) |> G.e) v1

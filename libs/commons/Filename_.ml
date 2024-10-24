@@ -43,6 +43,10 @@ let readable ~root s =
           failwith (spf "file %s shouldn't start with / when root is ." s)
       | s when s =~ "^\\./\\(.*\\)" -> Common.matched1 s
       | _ -> s)
+  (* ugly: to support readable "./foo/bar" "foo/bar/foo.c" *)
+  | _ when (not (s =~ "^\\./")) && root =~ "^\\./\\(.*\\)$" ->
+      let root = Common.matched1 root in
+      filename_without_leading_path root s
   | _ -> filename_without_leading_path root s
 
 (*****************************************************************************)

@@ -193,7 +193,7 @@ let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
                       bytepos = linecol_to_bytepos_fun (line_num, col);
                       line = line_num;
                       column = col;
-                      file = !!path;
+                      file = path;
                     };
               }
           in
@@ -234,7 +234,7 @@ let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
                   Core_error.rule_id = None;
                   typ = SemgrepWarning;
                   msg;
-                  loc;
+                  loc = Some loc;
                   details = None;
                 }
               in

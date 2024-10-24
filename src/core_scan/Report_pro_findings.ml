@@ -1,3 +1,5 @@
+open Fpath_.Operators
+
 (*****************************************************************************)
 (* Purpose *)
 (*****************************************************************************)
@@ -39,7 +41,7 @@ let files_of_toks (ts : Pattern_match.pattern_match_tokens) : FileSet.t =
   |> List.fold_left
        (fun acc_files t ->
          match Tok.loc_of_tok t with
-         | Ok { pos; _ } -> FileSet.add pos.file acc_files
+         | Ok { pos; _ } -> FileSet.add !!(pos.file) acc_files
          | Error _ -> acc_files)
        FileSet.empty
 

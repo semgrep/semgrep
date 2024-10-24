@@ -885,7 +885,7 @@ let run_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
       Exit_code.ok ~__LOC__
   | _ when conf.test <> None ->
       Test_subcommand.run_conf
-        (caps :> < Cap.stdout ; Cap.fork ; Cap.alarm >)
+        (caps :> < Cap.stdout ; Cap.fork ; Cap.alarm ; Cap.tmp >)
         (Common2.some conf.test)
   | _ when conf.validate <> None ->
       Validate_subcommand.run_conf

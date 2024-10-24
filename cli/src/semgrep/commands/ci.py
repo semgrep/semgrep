@@ -187,6 +187,18 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     default=0,
     hidden=True,
 )
+@click.option(
+    "--x-partial-config",
+    "partial_config",
+    type=click.Path(allow_dash=True, path_type=Path),
+    hidden=True,
+)
+@click.option(
+    "--x-partial-output",
+    "partial_output",
+    type=click.Path(allow_dash=True, path_type=Path),
+    hidden=True,
+)
 @handle_command_errors
 def ci(
     ctx: click.Context,
@@ -248,7 +260,10 @@ def ci(
     verbose: bool,
     path_sensitive: bool,
     enable_experimental_requirements: bool,
+    allow_dynamic_dependency_resolution: bool,
     dump_n_rule_partitions: Optional[int],
+    partial_config: Optional[Path],
+    partial_output: Optional[Path],
 ) -> None:
     state = get_state()
 
@@ -283,6 +298,20 @@ def ci(
                 "WARNING: `semgrep ci` is meant to be run from the root of a git repo.\nWhen `semgrep ci` is not run from a git repo, it will not be able to perform all operations.\nWhen `semgrep ci` is run from a git repo, but not the root, links in the uploaded findings may be broken.\n\nTo run `semgrep ci` on only a subdirectory of a git repo, see `--subdir`."
             )
 
+        if config and partial_config:
+            logger.info(
+                "The `--config` and `--x-partial-config` flags are mutually exclusive. They serve different purposes."
+            )
+            sys.exit(FATAL_EXIT_CODE)
+
+        if (partial_config and not partial_output) or (
+            not partial_config and partial_output
+        ):
+            logger.info(
+                "Both or none of --x-partial-config and --x-partial-output must be specified."
+            )
+            sys.exit(FATAL_EXIT_CODE)
+
         token = state.app_session.token
         if not token and not config:
             # Not logged in and no explicit config
@@ -304,7 +333,11 @@ def ci(
             # scanning or uploading results to the app.
             if dump_n_rule_partitions:
                 dry_run = True
-            scan_handler = ScanHandler(dry_run=dry_run)
+            # Partial scans also implies a dry run. We'll be saving results
+            # to disk, but not upload them yet.
+            if partial_output:
+                dry_run = True
+            scan_handler = ScanHandler(dry_run=dry_run, partial_output=partial_output)
         else:  # impossible state… until we break the code above
             raise RuntimeError("The token and/or config are misconfigured")
 
@@ -402,7 +435,13 @@ def ci(
                     )
                     sys.exit(MISSING_CONFIG_EXIT_CODE)
 
-                config = (scan_handler.rules,)
+                # Partial config overrides the config we get from the app,
+                # but we still need to communicate with the app to get other
+                # configs such as products, deployment ID, etc.
+                if partial_config:
+                    config = (str(partial_config),)
+                else:
+                    config = (scan_handler.rules,)
 
         except Exception as e:
             import traceback
@@ -558,6 +597,7 @@ def ci(
             "diff_depth": diff_depth,
             "capture_core_stderr": capture_core_stderr,
             "enable_experimental_requirements": enable_experimental_requirements,
+            "allow_dynamic_dependency_resolution": allow_dynamic_dependency_resolution,
             "dump_n_rule_partitions": dump_n_rule_partitions,
         }
 

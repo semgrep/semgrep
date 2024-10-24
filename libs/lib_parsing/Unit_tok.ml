@@ -18,7 +18,7 @@ let test_end_pos_of_loc () =
     let line, column, bytepos = start in
     let expected_line, expected_col, expected_charpos = expected in
     let loc : Tok.location =
-      { str; pos = { bytepos; line; column; file = "test.txt" } }
+      { str; pos = { bytepos; line; column; file = Fpath.v "test.txt" } }
     in
     let line, col, charpos = Tok.end_pos_of_loc loc in
     assert (line = expected_line);
@@ -33,7 +33,7 @@ let test_end_pos_of_loc () =
 
 let test_combine_sparse_toks () =
   let tok str line column bytepos : Tok.t =
-    let pos : Pos.t = { bytepos; line; column; file = "<none>" } in
+    let pos : Pos.t = { bytepos; line; column; file = Fpath_.fake_file } in
     OriginTok { str; pos }
   in
   let test tokens expected_combined_token =
@@ -46,7 +46,9 @@ let test_combine_sparse_toks () =
       Tok.combine_sparse_toks ~ignorable_newline:"\\\n" ~ignorable_blank:'-'
         first_tok other_toks
     in
-    check_token "equal" expected_combined_token res
+    match res with
+    | None -> assert false
+    | Some res -> check_token "equal" expected_combined_token res
   in
   (*
      Here, we test only realistic cases of token sequences that

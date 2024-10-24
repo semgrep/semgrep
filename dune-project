@@ -21,7 +21,7 @@
 (generate_opam_files)
 
 ;; set here so the semgrep package below can use it and we can easily bump it
-(version 1.91.0)
+(version 1.93.0)
 
 ;; Default attributes of opam packages
 (source (github semgrep/semgrep))
@@ -567,16 +567,12 @@ Uses indentation and standard braces to determine a crude parse tree
     (dune (>= 2.1))
   )
 )
-
+; needed because lots of dune language libs use tree-sitter-lang
+; as a common base as in tree-sitter-lang.typescript
 (package (name tree-sitter-lang)
   (synopsis "XXX")
   (description "XXX")
-  (allow_empty) 
-)
-(package (name tree-sitter-to-generic)
-  (synopsis "XXX")
-  (description "XXX")
-  (allow_empty) 
+  (allow_empty)
 )
 
 (package (name TCB)

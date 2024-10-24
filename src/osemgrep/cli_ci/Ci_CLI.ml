@@ -142,6 +142,14 @@ let o_x_dump_n_rule_partitions : int Term.t =
   let info = Arg.info [ "x-dump-rule-partitions" ] ~doc:{|Internal flag.|} in
   Arg.value (Arg.opt Arg.int 0 info)
 
+let o_x_partial_config : string Term.t =
+  let info = Arg.info [ "x-partial-config" ] ~doc:{|Internal flag.|} in
+  Arg.value (Arg.opt Arg.string "" info)
+
+let o_x_partial_output : string Term.t =
+  let info = Arg.info [ "x-partial-output" ] ~doc:{|Internal flag.|} in
+  Arg.value (Arg.opt Arg.string "" info)
+
 (*************************************************************************)
 (* 'scan' subset supported by 'ci' *)
 (*************************************************************************)
@@ -152,19 +160,20 @@ let o_x_dump_n_rule_partitions : int Term.t =
 let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
-  let combine allow_untrusted_validators autofix baseline_commit common config
-      dataflow_traces diff_depth dryrun _dump_command_for_core emacs
-      emacs_outputs exclude_ exclude_minified_files exclude_rule_ids
-      experimental_requirements_lockfiles files_with_matches force_color
-      gitlab_sast gitlab_sast_outputs gitlab_secrets gitlab_secrets_outputs
-      _historical_secrets include_ incremental_output json json_outputs
-      junit_xml junit_xml_outputs matching_explanations max_chars_per_line
-      max_lines_per_finding max_log_list_entries max_memory_mb max_target_bytes
-      metrics num_jobs no_secrets_validation nosem optimizations oss output pro
-      pro_intrafile pro_lang pro_path_sensitive respect_gitignore
-      rewrite_rule_ids sarif sarif_outputs scan_unknown_extensions secrets text
-      text_outputs timeout _timeout_interfileTODO timeout_threshold trace
-      trace_endpoint version_check vim vim_outputs =
+  let combine allow_dynamic_dependency_resolution allow_untrusted_validators
+      autofix baseline_commit common config dataflow_traces diff_depth dryrun
+      _dump_command_for_core emacs emacs_outputs exclude_ exclude_minified_files
+      exclude_rule_ids experimental_requirements_lockfiles files_with_matches
+      force_color gitlab_sast gitlab_sast_outputs gitlab_secrets
+      gitlab_secrets_outputs _historical_secrets include_ incremental_output
+      json json_outputs junit_xml junit_xml_outputs matching_explanations
+      max_chars_per_line max_lines_per_finding max_log_list_entries
+      max_memory_mb max_target_bytes metrics num_jobs no_secrets_validation
+      nosem optimizations oss output pro pro_intrafile pro_lang
+      pro_path_sensitive respect_gitignore rewrite_rule_ids sarif sarif_outputs
+      scan_unknown_extensions secrets text text_outputs timeout
+      _timeout_interfileTODO timeout_threshold trace trace_endpoint
+      version_check vim vim_outputs =
     let output_format : Output_format.t =
       Scan_CLI.output_format_conf ~text ~files_with_matches ~json ~emacs ~vim
         ~sarif ~gitlab_sast ~gitlab_secrets ~junit_xml
@@ -279,16 +288,17 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
         test = None;
         ls = false;
         experimental_requirements_lockfiles;
+        allow_dynamic_dependency_resolution;
       }
   in
   (* Term defines 'const' but also the '$' operator *)
   Term.(
     (* !the o_xxx must be in alphabetic orders to match the parameters of
      * combine above! *)
-    const combine $ SC.o_allow_untrusted_validators $ SC.o_autofix
-    $ SC.o_baseline_commit $ CLI_common.o_common $ o_config
-    $ SC.o_dataflow_traces $ SC.o_diff_depth $ SC.o_dryrun
-    $ SC.o_dump_command_for_core $ SC.o_emacs $ SC.o_emacs_outputs
+    const combine $ SC.o_allow_dynamic_dependency_resolution
+    $ SC.o_allow_untrusted_validators $ SC.o_autofix $ SC.o_baseline_commit
+    $ CLI_common.o_common $ o_config $ SC.o_dataflow_traces $ SC.o_diff_depth
+    $ SC.o_dryrun $ SC.o_dump_command_for_core $ SC.o_emacs $ SC.o_emacs_outputs
     $ SC.o_exclude $ SC.o_exclude_minified_files $ SC.o_exclude_rule_ids
     $ SC.o_experimental_requirements_lockfiles $ SC.o_files_with_matches
     $ SC.o_force_color $ SC.o_gitlab_sast $ SC.o_gitlab_sast_outputs
@@ -317,8 +327,8 @@ let cmdline_term : conf Term.t =
    * variables (Romain's idea).
    *)
   let combine scan_conf audit_on code secrets dry_run _internal_ci_scan_results
-      _x_dump_n_rule_partitions subdir supply_chain suppress_errors _git_meta
-      _github_meta =
+      _x_dump_n_rule_partitions _x_partial_config _x_partial_output subdir
+      supply_chain suppress_errors _git_meta _github_meta =
     let products =
       (if secrets then [ `Secrets ] else [])
       @ (if code then [ `SAST ] else [])
@@ -329,8 +339,9 @@ let cmdline_term : conf Term.t =
   Term.(
     const combine $ scan_subset_cmdline_term $ o_audit_on $ o_code
     $ SC.o_secrets $ o_dry_run $ o_internal_ci_scan_results
-    $ o_x_dump_n_rule_partitions $ o_subdir $ o_supply_chain $ o_suppress_errors
-    $ Git_metadata.env $ Github_metadata.env)
+    $ o_x_dump_n_rule_partitions $ o_x_partial_config $ o_x_partial_output
+    $ o_subdir $ o_supply_chain $ o_suppress_errors $ Git_metadata.env
+    $ Github_metadata.env)
 
 let doc = "the recommended way to run semgrep in CI"
 

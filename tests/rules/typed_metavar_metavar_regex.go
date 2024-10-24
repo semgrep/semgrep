@@ -1,4 +1,4 @@
 func f(c *http.Request) {
-  // ruleid: typed-metavar-metavar-regex
+  // ruleid: deeptodoruleid: typed-metavar-metavar-regex
   c.Foo()
 }

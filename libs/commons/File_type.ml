@@ -395,7 +395,8 @@ let file_type_of_file file =
   | "rs" -> PL Rust
   | "move" -> PL Move
   | "mod"
-  | "go" -> PL Go
+  | "go" ->
+      PL Go
   | "lua" -> PL Lua
   | "r" -> PL R
   | "ex" -> PL Elixir

@@ -1153,12 +1153,9 @@ let get_original_token_location = function
  * used by parsing hacks
  *)
 let make_expanded ii =
-  let no_virt_loc =
-    (* TODO? use Pos.fake_pos? *)
-    let pos = Pos.make 0 in
-    ({ Tok.str = ""; pos }, -1)
-  in
-  Tok.ExpandedTok (get_original_token_location ii, no_virt_loc)
+  let loc = get_original_token_location ii in
+  let virt_loc = (loc, -1) in
+  Tok.ExpandedTok (loc, virt_loc)
 
 let make_param ?p_name ?(p_specs = []) ?p_val t =
   { p_name; p_type = t; p_specs; p_val }

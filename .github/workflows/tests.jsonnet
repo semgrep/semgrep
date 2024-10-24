@@ -584,6 +584,10 @@ local ignore_md = {
       uses: './.github/workflows/build-test-osx-arm64.yml',
       secrets: 'inherit',
     },
+    'build-test-windows-x86': {
+      uses: './.github/workflows/build-test-windows-x86.yml',
+      secrets: 'inherit',
+    },
   },
   export:: {
     // Used in semgrep-proprietary.

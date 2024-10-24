@@ -1,14 +1,21 @@
 import json
 import logging
 from pathlib import Path
+from typing import Dict
 
 import pytest
 from tests.conftest import RULES_PATH
 from tests.conftest import TARGETS_PATH
 from tests.fixtures import RunSemgrep
 
-from semdep.lockfile import Lockfile
 from semdep.package_restrictions import is_in_range
+from semdep.parsers.package_lock import parse_package_lock
+from semdep.parsers.pipfile import parse_pipfile
+from semdep.parsers.pnpm import parse_pnpm
+from semdep.parsers.poetry import parse_poetry
+from semdep.parsers.requirements import parse_requirements
+from semdep.parsers.util import SemgrepParser
+from semdep.parsers.yarn import parse_yarn
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
 
@@ -123,10 +130,6 @@ pytestmark = pytest.mark.kinda_slow
         (
             "rules/dependency_aware/python-requirements-sca.yaml",
             "dependency_aware/requirements",
-        ),
-        (
-            "rules/dependency_aware/python-requirements-sca.yaml",
-            "dependency_aware/requirements_pip",
         ),
         (
             "rules/dependency_aware/python-requirements-sca.yaml",
@@ -256,7 +259,19 @@ def test_ssc(run_semgrep_on_copied_files: RunSemgrep, snapshot, rule, target):
         ),
         (
             "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirements_pip",
+        ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirement_pip",
+        ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
             "dependency_aware/requirements_folder",
+        ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/requirements_pip_folder",
         ),
         (
             "rules/dependency_aware/python-requirements-sca.yaml",
@@ -321,11 +336,9 @@ def test_ssc__requirements_lockfiles(
     run_semgrep_on_copied_files: RunSemgrep, snapshot, rule, target
 ):
     """
-    Seperated out from test_ssc to avoid polluting with extra requirements lockfile tests
+    Separated out from test_ssc to avoid polluting with extra requirements lockfile tests
     """
-    result = run_semgrep_on_copied_files(
-        rule, target_name=target, options=["--enable-experimental-requirements"]
-    )
+    result = run_semgrep_on_copied_files(rule, target_name=target)
 
     snapshot.assert_match(
         result.as_snapshot(),
@@ -355,6 +368,16 @@ def test_ssc__requirements_lockfiles(
 @pytest.mark.osemfail
 def test_maven_version_comparison(version, specifier, outcome):
     assert is_in_range(Ecosystem(Maven()), specifier, version) == outcome
+
+
+LOCKFILE_NAME_TO_PARSER: Dict[str, SemgrepParser] = {
+    "requirements.txt": parse_requirements,
+    "yarn.lock": parse_yarn,
+    "package-lock.json": parse_package_lock,
+    "Pipfile.lock": parse_pipfile,
+    "poetry.lock": parse_poetry,
+    "pnpm-lock.yaml": parse_pnpm,
+}
 
 
 @pytest.mark.parametrize(
@@ -441,13 +464,14 @@ def test_maven_version_comparison(version, specifier, outcome):
 # They also include random lockfiles we want to make sure we parse predictably
 @pytest.mark.no_semgrep_cli
 @pytest.mark.osemfail
-def test_parsing(caplog, target, snapshot, lockfile_path_in_tmp):
+def test_parsing(caplog, target: str, snapshot, lockfile_path_in_tmp):
     # Setup
     caplog.set_level(logging.ERROR)
 
+    target_path = Path(target)
     # Parse
-    lockfile = Lockfile.from_path(Path(target))
-    dependencies, error = lockfile.parse()
+    parser: SemgrepParser = LOCKFILE_NAME_TO_PARSER[target_path.name]
+    dependencies, error = parser(Path(target), None)  # no manifest for any of these
 
     # Assert
 
@@ -472,7 +496,9 @@ def test_parsing(caplog, target, snapshot, lockfile_path_in_tmp):
 # a target that begins with "targets", as that dir contains every kind of lockfile
 # So we add the keyword arg to run_semgrep and manually do some cd-ing
 @pytest.mark.osemfail
-def test_no_lockfiles(run_semgrep: RunSemgrep, monkeypatch, tmp_path, snapshot):
+def test_no_lockfiles(
+    run_semgrep: RunSemgrep, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, snapshot
+):
     (tmp_path / "targets").symlink_to(TARGETS_PATH.resolve())
     (tmp_path / "rules").symlink_to(RULES_PATH.resolve())
     monkeypatch.chdir(tmp_path / "targets" / "basic")

@@ -26,7 +26,7 @@ let wrap_type_expr lang str =
   | Lang.Ts -> Some (spf "x as %s" str)
   | Lang.Csharp -> Some (spf "x as %s" str)
   | Lang.Rust -> Some (spf "x as %s" str)
-  | Lang.Move_on_sui-> Some (spf "(x : %s)" str)
+  | Lang.Move_on_sui -> Some (spf "(x : %s)" str)
   | Lang.Move_on_aptos -> Some (spf "(x : %s)" str)
   | Lang.Julia -> Some (spf "x :: %s" str)
   | Lang.Cpp -> Some (spf "(%s) x" str)

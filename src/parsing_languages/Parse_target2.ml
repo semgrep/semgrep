@@ -164,20 +164,7 @@ let just_parse_with_lang lang file : Parsing_result2.t =
       run file
         [ TreeSitter (Parse_typescript_tree_sitter.parse ?dialect:None) ]
         Js_to_generic.program
-  | Lang.Vue ->
-      let parse_embedded_js file =
-        let { Parsing_result2.ast; errors; _ } =
-          Parse_target.just_parse_with_lang Lang.Js file
-        in
-        (* TODO: pass the errors down to Parse_vue_tree_sitter.parse
-         * and accumulate with other vue parse errors
-         *)
-        if errors <> [] then failwith "parse error in embedded JS";
-        ast
-      in
-      run file
-        [ TreeSitter (Parse_vue_tree_sitter.parse parse_embedded_js) ]
-        (fun x -> x)
+  | Lang.Vue -> failwith "Vue support has been removed in 1.93.0"
   (* there is no pfff parsers for C#/Kotlin/... so let's just use
    * tree-sitter, and there's no ast_xxx.ml either so we directly generate
    * a generic AST (no calls to an xxx_to_generic() below)
@@ -221,7 +208,7 @@ let just_parse_with_lang lang file : Parsing_result2.t =
       run file [ TreeSitter Parse_swift_tree_sitter.parse ] (fun x -> x)
   | Lang.R -> run file [ TreeSitter Parse_r_tree_sitter.parse ] (fun x -> x)
   | Lang.Move_on_sui ->
-    run file [ TreeSitter Parse_move_on_sui_tree_sitter.parse ] (fun x -> x)
+      run file [ TreeSitter Parse_move_on_sui_tree_sitter.parse ] (fun x -> x)
   | Lang.Move_on_aptos ->
       run file [ TreeSitter Parse_move_on_aptos_tree_sitter.parse ] (fun x -> x)
   | Lang.Circom ->
@@ -239,4 +226,4 @@ let just_parse_with_lang lang file : Parsing_result2.t =
       in
       run file [ TreeSitter parse_target ] (fun x -> x)
   | Lang.Elixir -> run_external_parser file Parsing_plugin.Elixir.parse_target
-  (* TODO *)
+(* TODO *)

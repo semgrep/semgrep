@@ -66,7 +66,6 @@ let full_lang_info =
     (Lang.Scala, "scala", ".scala");
     (Lang.Swift, "swift", ".swift");
     (Lang.Html, "html", ".html");
-    (Lang.Vue, "vue", ".vue");
     (Lang.Terraform, "terraform", ".tf");
     (Lang.Kotlin, "kotlin", ".kt");
     (Lang.Solidity, "solidity", ".sol");
@@ -306,7 +305,7 @@ let maturity_tests () =
       make_maturity_tests Lang.Jsonnet "jsonnet" ".jsonnet" Experimental;
       make_maturity_tests Lang.Clojure "clojure" ".clj" Experimental
       (* Not even experimental yet *)
-      (* HTML, XML, Vue, Dart *);
+      (* HTML, XML, Dart *);
     ]
 
 (*****************************************************************************)
@@ -658,7 +657,7 @@ let tainting_test (lang : Lang.t) (rules_file : Fpath.t) (file : Fpath.t) =
              {
                rule_id = Some m.rule_id.id;
                typ = OutJ.SemgrepMatchFound;
-               loc = fst m.range_loc;
+               loc = Some (fst m.range_loc);
                msg = m.rule_id.message;
                details = None;
              })
@@ -683,6 +682,9 @@ let tainting_tests_for_lang files lang =
              in
              tainting_test lang rules_file file))
 
+(* DEPRECATED: this is redundant because we now have 'make rules-test'
+ * which calls 'osemgrep-pro test --pro tests/tainting_rules'
+ *)
 let lang_tainting_tests () =
   let taint_tests_path = tests_path / "tainting_rules" in
   Testo.categorize_suites "lang tainting rules"
@@ -745,6 +747,9 @@ let lang_tainting_tests () =
 (* Full rule tests *)
 (*****************************************************************************)
 
+(* DEPRECATED: this is redundant because we now have 'make rules-test'
+ * which calls 'osemgrep-pro test --pro tests/rules tests/rules_v2'
+ *)
 let full_rule_regression_tests () =
   let path = tests_path / "rules" in
   let tests1 = Test_engine.make_tests ~prepend_lang:true [ path ] in
@@ -774,6 +779,8 @@ let full_rule_regression_tests () =
  * TODO: We could have a taint_maturity/POLYGLOT/ directory to put reusable
  * rules that can work for multiple languages (like we have
  * for tests/patterns/POLYGLOT/
+ * DEPRECATED: this is redundant because we now have 'make rules-test'
+ * which calls 'osemgrep-pro test --pro tests/taint_maturity'
  *)
 let full_rule_taint_maturity_tests () =
   let path = tests_path / "taint_maturity" in
@@ -802,6 +809,8 @@ let mark_todo_js (test : Testo.t) =
  * TODO: get rid of this and rely on `osemgrep test` code instead of
  * Test_engine.make_tests as they differ sligltly and we're using
  * osemgrep test in the semgrep-rules repo CI, not -test_rules.
+ * DEPRECATED: this is redundant because we now have 'make rules-test'
+ * which calls 'osemgrep-pro test --pro tests/semgrep-rules'
  *)
 let semgrep_rules_repo_tests () : Testo.t list =
   let path = tests_path / "semgrep-rules" in

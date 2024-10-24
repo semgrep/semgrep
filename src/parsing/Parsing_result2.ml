@@ -30,7 +30,7 @@ let loc_of_tree_sitter_error (err : Err.t) =
   {
     Tok.str = err.substring;
     pos =
-      Pos.make ~file:err.file.name ~line:(start.row + 1) (* fake *)
+      Pos.make (Fpath.v err.file.name) ~line:(start.row + 1) (* fake *)
         ~column:start.column 0;
   }
 

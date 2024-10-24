@@ -270,6 +270,60 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
 [@@profiling "Run_semgrep.filter_too_many_matches"]
 
 (*****************************************************************************)
+(* File targeting *)
+(*****************************************************************************)
+
+(* In some context, a target passed in might have disappeared, or have been
+ * encoded in the wrong way in the Inputs_to_core.atd (for example
+ * in the case of filenames with special unicode bytes in it), in which case
+ * Common2.filesize above would fail and crash the whole scan as the
+ * raised exn is outside the iter_targets_and_get_matches_and_exn_to_errors
+ * big try. This is why it's better to filter those problematic targets
+ * early on.
+ *)
+let filter_existing_targets (targets : Target.t list) :
+    Target.t list * Out.skipped_target list =
+  targets
+  |> Either_.partition (fun (target : Target.t) ->
+         let internal_path = Target.internal_path target in
+         if Sys.file_exists !!internal_path then Left target
+         else
+           match Target.origin target with
+           | File path ->
+               Logs.warn (fun m -> m "skipping %s which does not exist" !!path);
+               Right
+                 {
+                   Semgrep_output_v1_t.path;
+                   reason = Nonexistent_file;
+                   details = Some "File does not exist";
+                   rule_id = None;
+                 }
+           | GitBlob { sha; _ } ->
+               Right
+                 {
+                   Semgrep_output_v1_t.path = Target.internal_path target;
+                   reason = Nonexistent_file;
+                   details =
+                     Some
+                       (spf "Issue creating a target from git blob %s"
+                          (Digestif.SHA1.to_hex sha));
+                   rule_id = None;
+                 })
+
+(* Compute the set of targets, either by reading what was passed
+ * in -targets or passed by osemgrep in Targets.
+ *)
+let targets_of_config (config : Core_scan_config.t) :
+    Target.t list * Out.skipped_target list =
+  match config.target_source with
+  | Targets x -> x |> filter_existing_targets
+  | Target_file target_file ->
+      UFile.read_file target_file
+      |> In.targets_of_string
+      |> List_.map Target.target_of_input_to_core
+      |> filter_existing_targets
+
+(*****************************************************************************)
 (* Parsing *)
 (*****************************************************************************)
 
@@ -284,17 +338,68 @@ let parse_and_resolve_name (lang : Lang.t) (fpath : Fpath.t) :
   in
   (ast, skipped_tokens)
 
+(* The set of all lang analyzers present in targets; used in rules_from_config
+ * for filtering.
+ *)
+let mk_analyzer_set targets =
+  let analyzer_set = Hashtbl.create 32 in
+  List.iter
+    (fun target ->
+      let langs =
+        Option.fold (Target.analyzer target) ~none:[] ~some:Xlang.to_langs
+      in
+      List.iter (fun lang -> Hashtbl.add analyzer_set lang ()) langs)
+    targets;
+  analyzer_set
+
+(* Lang heuristic to determine if a rule is relevant or can be filtered out *)
+let is_rule_used_by_targets analyzer_set (rule : Rule.t) =
+  match rule.target_analyzer with
+  | Xlang.L (l, ls) -> List.exists (Hashtbl.mem analyzer_set) (l :: ls)
+  | _ -> true
+
+(* Opt(rules): we observed in some traces that large rulesets (e.g p/default)
+ * are live in the major heap from start of parsing till program exit, which
+ * increases max-RSS. We can filter some irrelevant rules with a heuristic:
+ *
+ *  if a rule is for a language that isn't present in any of the targets (i.e
+ *  a python rule for a javascript project), then that rule won't apply and we
+ *  can get rid of it!
+ *
+ * TODO: currently, this is being done by extracting analyzers from our targets,
+ * however we should instead filter by rule_ids (i.e if a rule_id isn't mapped
+ * to any of the targets, then we can filter out the rule), but currently:
+ * Target.t only has analyzer info attached to each code target; we should
+ * probably augment Target.t to also carry rule_ids that we map to each target
+ *
+ * Reasoning: Due to excludes, we can still parse a rule that doesn't apply to
+ * any file, however we won't be able to filter it as we only look at analyzers
+ * as a proxy to figure out what rules will be run.
+ *)
+let filter_rules_by_targets_analyzers rules targets =
+  let analyzer_set = mk_analyzer_set targets in
+  let rules_filtered =
+    List.filter (is_rule_used_by_targets analyzer_set) rules
+  in
+  rules_filtered
+
 (* for -rules *)
-let rules_from_rule_source (rule_source : Core_scan_config.rule_source) :
+let rules_of_config ~filter_by_targets (config : Core_scan_config.t) :
     Rule_error.rules_and_invalid =
-  match rule_source with
-  | Core_scan_config.Rule_file file -> (
-      Logs.info (fun m -> m "Parsing rules in %s" !!file);
-      match Parse_rule.parse_and_filter_invalid_rules file with
-      | Ok rules -> rules
-      | Error e -> failwith ("Error in parsing: " ^ Rule_error.string_of_error e)
-      )
-  | Core_scan_config.Rules rules -> (rules, [])
+  let rules, invalid_rules =
+    match config.rule_source with
+    | Core_scan_config.Rule_file file -> (
+        Logs.info (fun m -> m "Parsing rules in %s" !!file);
+        match Parse_rule.parse_and_filter_invalid_rules file with
+        | Ok rules -> rules
+        | Error e ->
+            failwith ("Error in parsing: " ^ Rule_error.string_of_error e))
+    | Core_scan_config.Rules rules -> (rules, [])
+  in
+  if not filter_by_targets then (rules, invalid_rules)
+  else
+    let targets, _ = targets_of_config config in
+    (filter_rules_by_targets_analyzers rules targets, invalid_rules)
 [@@trace]
 
 (* TODO? this is currently deprecated, but pad still has hope the
@@ -313,9 +418,11 @@ let handle_target_with_trace (handle_target : Target.t -> 'a) (t : Target.t) :
     'a =
   let target_name = Target.internal_path t in
   let data () =
+    let target_json_str = Target.to_yojson t |> Yojson.Safe.to_string in
     [
       ("filename", `String !!target_name);
       ("num_bytes", `Int (UFile.filesize target_name));
+      ("target", `String target_json_str);
     ]
   in
   Tracing.with_span ~__FILE__ ~__LINE__ ~data "scan.handle_target" (fun _sp ->
@@ -450,10 +557,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (caps : < Cap.fork >)
             * Hopefully, Ocaml5 with multithread support will resolve this issue.
             * For now, just turn off tracing when we use more than 1 core.
             *)
-           let handle_target_maybe_with_trace =
-             if config.ncores > 1 then handle_target
-             else handle_target_with_trace handle_target
-           in
+           let handle_target = handle_target_with_trace handle_target in
 
            let (res, was_scanned), run_time =
              Common.with_time (fun () ->
@@ -466,9 +570,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (caps : < Cap.fork >)
                         * now timeout per rule, not per file since pysemgrep
                         * passed all the rules to semgrep-core.
                         *)
-                       let res, was_scanned =
-                         handle_target_maybe_with_trace target
-                       in
+                       let res, was_scanned = handle_target target in
                        (* old: This was to test -max_memory, to give a chance
                         * to Gc.create_alarm to run even if the program does
                         * not even need to run the Gc. However, this has a
@@ -553,60 +655,7 @@ let iter_targets_and_get_matches_and_exn_to_errors (caps : < Cap.fork >)
     *)
   in
   (matches, scanned)
-
-(*****************************************************************************)
-(* File targeting *)
-(*****************************************************************************)
-
-(* In some context, a target passed in might have disappeared, or have been
- * encoded in the wrong way in the Inputs_to_core.atd (for example
- * in the case of filenames with special unicode bytes in it), in which case
- * Common2.filesize above would fail and crash the whole scan as the
- * raised exn is outside the iter_targets_and_get_matches_and_exn_to_errors
- * big try. This is why it's better to filter those problematic targets
- * early on.
- *)
-let filter_existing_targets (targets : Target.t list) :
-    Target.t list * Out.skipped_target list =
-  targets
-  |> Either_.partition (fun (target : Target.t) ->
-         let internal_path = Target.internal_path target in
-         if Sys.file_exists !!internal_path then Left target
-         else
-           match Target.origin target with
-           | File path ->
-               Logs.warn (fun m -> m "skipping %s which does not exist" !!path);
-               Right
-                 {
-                   Semgrep_output_v1_t.path;
-                   reason = Nonexistent_file;
-                   details = Some "File does not exist";
-                   rule_id = None;
-                 }
-           | GitBlob { sha; _ } ->
-               Right
-                 {
-                   Semgrep_output_v1_t.path = Target.internal_path target;
-                   reason = Nonexistent_file;
-                   details =
-                     Some
-                       (spf "Issue creating a target from git blob %s"
-                          (Digestif.SHA1.to_hex sha));
-                   rule_id = None;
-                 })
-
-(* Compute the set of targets, either by reading what was passed
- * in -targets or passed by osemgrep in Targets.
- *)
-let targets_of_config (config : Core_scan_config.t) :
-    Target.t list * Out.skipped_target list =
-  match config.target_source with
-  | Targets x -> x |> filter_existing_targets
-  | Target_file target_file ->
-      UFile.read_file target_file
-      |> In.targets_of_string
-      |> List_.map Target.target_of_input_to_core
-      |> filter_existing_targets
+[@@trace]
 
 (*****************************************************************************)
 (* Rule selection *)
@@ -874,7 +923,8 @@ let scan (caps : caps) (config : Core_scan_config.t) : Core_result.result_or_exn
     =
   try
     let timed_rules =
-      Common.with_time (fun () -> rules_from_rule_source config.rule_source)
+      Common.with_time (fun () ->
+          rules_of_config ~filter_by_targets:true config)
     in
     (* The pre and post processors hook here is currently used
        for the secrets post processor in Pro, and for the autofix

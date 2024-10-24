@@ -64,6 +64,7 @@ type conf = {
   test : Test_CLI.conf option;
   ls : bool;
   experimental_requirements_lockfiles : bool;
+  allow_dynamic_dependency_resolution : bool;
 }
 [@@deriving show]
 
@@ -110,6 +111,7 @@ let default : conf =
     test = None;
     ls = false;
     experimental_requirements_lockfiles = false;
+    allow_dynamic_dependency_resolution = false;
   }
 
 (*************************************************************************)
@@ -866,6 +868,21 @@ let o_experimental_requirements_lockfiles : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
+(* This is just intended to be around temporarily while we roll out and test the feature. Once we
+   are confident that the lockfileless
+   approach will not cause failures for customers, we should remove this flag and replace it with
+   a flag to _disable_ dynamic dependency resolution.
+   TODO: (bk) delete this flag
+*)
+let o_allow_dynamic_dependency_resolution : bool Term.t =
+  let info =
+    Arg.info
+      [ "allow-dynamic-dependency-resolution" ]
+      ~doc:
+        {|Experimental: allow resolving dependencies dynamically by communicating with package managers during the scan.|}
+  in
+  Arg.value (Arg.flag info)
+
 (* ------------------------------------------------------------------ *)
 (* Test and debug options *)
 (* ------------------------------------------------------------------ *)
@@ -1245,20 +1262,21 @@ let test_CLI_conf ~test ~target_roots ~config ~json ~optimizations
 let cmdline_term caps ~allow_empty_config : conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
-  let combine allow_untrusted_validators autofix baseline_commit common config
-      dataflow_traces diff_depth dryrun dump_ast dump_command_for_core
-      dump_engine_path emacs emacs_outputs error exclude_ exclude_minified_files
-      exclude_rule_ids experimental_requirements_lockfiles files_with_matches
-      force_color gitlab_sast gitlab_sast_outputs gitlab_secrets
-      gitlab_secrets_outputs _historical_secrets include_ incremental_output
-      json json_outputs junit_xml junit_xml_outputs lang ls
-      matching_explanations max_chars_per_line max_lines_per_finding
-      max_log_list_entries max_memory_mb max_target_bytes metrics num_jobs
-      no_secrets_validation nosem optimizations oss output pattern pro
-      project_root pro_intrafile pro_lang pro_path_sensitive remote replacement
-      respect_gitignore rewrite_rule_ids sarif sarif_outputs
-      scan_unknown_extensions secrets severity show_supported_languages strict
-      target_roots test test_ignore_todo text text_outputs time_flag timeout
+  let combine allow_dynamic_dependency_resolution allow_untrusted_validators
+      autofix baseline_commit common config dataflow_traces diff_depth dryrun
+      dump_ast dump_command_for_core dump_engine_path emacs emacs_outputs error
+      exclude_ exclude_minified_files exclude_rule_ids
+      experimental_requirements_lockfiles files_with_matches force_color
+      gitlab_sast gitlab_sast_outputs gitlab_secrets gitlab_secrets_outputs
+      _historical_secrets include_ incremental_output json json_outputs
+      junit_xml junit_xml_outputs lang ls matching_explanations
+      max_chars_per_line max_lines_per_finding max_log_list_entries
+      max_memory_mb max_target_bytes metrics num_jobs no_secrets_validation
+      nosem optimizations oss output pattern pro project_root pro_intrafile
+      pro_lang pro_path_sensitive remote replacement respect_gitignore
+      rewrite_rule_ids sarif sarif_outputs scan_unknown_extensions secrets
+      severity show_supported_languages strict target_roots test
+      test_ignore_todo text text_outputs time_flag timeout
       _timeout_interfileTODO timeout_threshold trace trace_endpoint
       _use_osemgrep_sarif validate version version_check vim vim_outputs =
     let target_roots, imply_always_select_explicit_targets =
@@ -1439,13 +1457,15 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       trace_endpoint;
       ls;
       experimental_requirements_lockfiles;
+      allow_dynamic_dependency_resolution;
     }
   in
   (* Term defines 'const' but also the '$' operator *)
   Term.(
     (* !the o_xxx must be in alphabetic orders to match the parameters of
      * combine above! *)
-    const combine $ o_allow_untrusted_validators $ o_autofix $ o_baseline_commit
+    const combine $ o_allow_dynamic_dependency_resolution
+    $ o_allow_untrusted_validators $ o_autofix $ o_baseline_commit
     $ CLI_common.o_common $ o_config $ o_dataflow_traces $ o_diff_depth
     $ o_dryrun $ o_dump_ast $ o_dump_command_for_core $ o_dump_engine_path
     $ o_emacs $ o_emacs_outputs $ o_error $ o_exclude $ o_exclude_minified_files

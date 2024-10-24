@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2023 Semgrep Inc.
+ * Copyright (C) 2023-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -29,7 +29,9 @@
 (* Types *)
 (*****************************************************************************)
 
-(* alt: "in", but reserved keyword, and "in_" is ugly *)
+(* alt: "in", but reserved keyword, and "in_" is ugly
+ * alt: use an Origin.t instead of Fpath.t? so can also get Stdin or Network?
+ *)
 
 type i = { ic : in_channel; p : Fpath.t }
 type o = { oc : out_channel; p : Fpath.t }

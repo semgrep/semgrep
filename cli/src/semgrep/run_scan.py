@@ -37,7 +37,6 @@ from rich.progress import TextColumn
 
 import semgrep.scan_report as scan_report
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
-from semdep.lockfile import EcosystemLockfiles
 from semdep.parsers.util import DependencyParserError
 from semgrep import __VERSION__
 from semgrep import tracing
@@ -51,6 +50,8 @@ from semgrep.constants import OutputFormat
 from semgrep.constants import TOO_MUCH_DATA
 from semgrep.core_runner import CoreRunner
 from semgrep.core_runner import Plan
+from semgrep.dependency_aware_rule import dependencies_range_match_any
+from semgrep.dependency_aware_rule import parse_depends_on_yaml
 from semgrep.engine import EngineType
 from semgrep.error import FilesNotFoundError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
@@ -68,6 +69,7 @@ from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.output_extra import OutputExtra
 from semgrep.profile_manager import ProfileManager
+from semgrep.resolve_subprojects import resolve_subprojects
 from semgrep.rpc_call import dump_rule_partitions
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatches
@@ -83,8 +85,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Product
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.state import get_state
-from semgrep.subproject import resolve_subprojects
-from semgrep.subproject import Subproject
+from semgrep.subproject import ResolvedSubproject
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import SAST_PRODUCT
 from semgrep.target_manager import SCA_PRODUCT
@@ -93,6 +94,7 @@ from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
 from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
+
 
 logger = getLogger(__name__)
 
@@ -183,6 +185,47 @@ def remove_matches_in_baseline(
     return kept_matches_by_rule
 
 
+def filter_dependency_aware_rules(
+    dependency_aware_rules: List[Rule],
+    resolved_deps: Dict[Ecosystem, List[ResolvedSubproject]],
+) -> List[Rule]:
+    """Returns the list of filtered rules that have matching dependencies in the project"""
+    rules_to_check = [r for r in dependency_aware_rules if r.should_run_on_semgrep_core]
+    # List to store filtered rules
+    filtered_rules = []
+
+    # Loop through each rule to check for matching dependencies
+    for rule in rules_to_check:
+        depends_on_keys = rule.project_depends_on
+        depends_on_entries = list(parse_depends_on_yaml(depends_on_keys))
+        ecosystems = list(rule.ecosystems)
+
+        # Flag to track if we found a matching dependency
+        has_matching_dependency = False
+        # Check for each ecosystem in the rule
+        for ecosystem in ecosystems:
+            for sca_project in resolved_deps.get(ecosystem, []):
+                deps = list(sca_project.found_dependencies.iter_found_dependencies())
+                # Match the dependencies based on version ranges
+                dependency_matches = list(
+                    dependencies_range_match_any(depends_on_entries, deps)
+                )
+
+                # If any dependency matches, we flag it as a match
+                if dependency_matches:
+                    has_matching_dependency = True
+                    break
+
+            if has_matching_dependency:
+                break
+
+        # If we found a matching dependency, include this rule
+        if has_matching_dependency:
+            filtered_rules.append(rule)
+
+    return filtered_rules
+
+
 # This runs semgrep-core (and also handles SCA and join rules)
 @tracing.trace()
 def run_rules(
@@ -202,7 +245,7 @@ def run_rules(
     *,
     with_code_rules: bool = True,
     with_supply_chain: bool = False,
-    enable_experimental_requirements: bool = False,
+    allow_dynamic_dependency_resolution: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -217,34 +260,35 @@ def run_rules(
     join_rules, rest_of_the_rules = partition(
         filtered_rules, lambda rule: rule.mode == JOIN_MODE
     )
-    dependency_aware_rules = [r for r in rest_of_the_rules if r.project_depends_on]
-    dependency_only_rules, rest_of_the_rules = partition(
-        rest_of_the_rules, lambda rule: not rule.should_run_on_semgrep_core
-    )
 
-    resolved_deps: Dict[Ecosystem, List[Subproject]] = {}
+    # Get rules that rely on dependencies from the project's lockfile
+    dependency_aware_rules = [r for r in rest_of_the_rules if r.project_depends_on]
+
+    # Initialize data structures for dependencies
+    filtered_dependency_aware_rules = []
+    resolved_deps: Dict[Ecosystem, List[ResolvedSubproject]] = {}
     dependency_parser_errors: List[DependencyParserError] = []
     sca_dependency_targets: List[Path] = []
 
-    # Temporary flag to allow us to test the new requirements lockfile matchers
-    # TODO(sal): remove once GA
-    EcosystemLockfiles.init(
-        use_new_requirements_matchers=enable_experimental_requirements
-    )
-
     if len(dependency_aware_rules) > 0:
-        # identify and parse lockfiles before beginning the scan
-        # to produce dependency information that is used throughout.
-        # only do so if there is at least one dependency aware rule to
-        # use the information.
+        # Parse lockfiles to get dependency information, if there are relevant rules
         (
             resolved_deps,
             dependency_parser_errors,
             sca_dependency_targets,
         ) = resolve_subprojects(
             target_manager,
-            enable_experimental_requirements=enable_experimental_requirements,
+            allow_dynamic_resolution=allow_dynamic_dependency_resolution,
         )
+
+        # Filter rules that match the dependencies
+        filtered_dependency_aware_rules = filter_dependency_aware_rules(
+            dependency_aware_rules, resolved_deps
+        )
+
+    rest_of_the_rules = [
+        r for r in rest_of_the_rules if r not in dependency_aware_rules
+    ] + filtered_dependency_aware_rules
 
     cli_ux = get_state().get_cli_ux_flavor()
     plans = scan_report.print_scan_status(
@@ -284,7 +328,7 @@ def run_rules(
             join_rule_matches, join_rule_errors = join_rule.run_join_rule(
                 rule.raw,
                 [target.path for target in target_manager.targets],
-                enable_experimental_requirements=enable_experimental_requirements,
+                allow_dynamic_dependency_resolution=allow_dynamic_dependency_resolution,
             )
             join_rule_matches_set = RuleMatches(rule)
             for m in join_rule_matches:
@@ -340,21 +384,40 @@ def run_rules(
                 output_handler.handle_semgrep_errors(dep_rule_errors)
 
         # The caller expects a map from lockfile path to `FoundDependency` items rather than our Subproject representation
-        found_dependencies: Dict[str, List[FoundDependency]] = {}
+        deps_by_lockfile: Dict[str, List[FoundDependency]] = {}
         for ecosystem in resolved_deps:
             for proj in resolved_deps[ecosystem]:
-                found_dependencies.update(proj.map_lockfile_to_dependencies())
+                (
+                    proj_deps_by_lockfile,
+                    unknown_lockfile_deps,
+                ) = proj.found_dependencies.make_dependencies_by_source_path()
+                deps_by_lockfile.update(proj_deps_by_lockfile)
+
+                # We don't really expect to have any dependencies with an unknown lockfile, but we can't enforce
+                # this with types due to backwards compatibility guarantees on FoundDependency. If we see any
+                # dependencies without lockfile path, we assign them to a fake lockfile at the root of each subproject.
+                for dep in unknown_lockfile_deps:
+                    if (
+                        str(proj.root_dir.joinpath(Path("unknown_lockfile")))
+                        not in deps_by_lockfile
+                    ):
+                        deps_by_lockfile[
+                            str(proj.root_dir.joinpath(Path("unknown_lockfile")))
+                        ] = []
+                    deps_by_lockfile[
+                        str(proj.root_dir.joinpath(Path("unknown_lockfile")))
+                    ].append(dep)
 
         for target in sca_dependency_targets:
             output_extra.all_targets.add(target)
     else:
-        found_dependencies = {}
+        deps_by_lockfile = {}
 
     return (
         rule_matches_by_rule,
         semgrep_errors,
         output_extra,
-        found_dependencies,
+        deps_by_lockfile,
         dependency_parser_errors,
         plans,
     )
@@ -424,6 +487,7 @@ def run_scan(
     path_sensitive: bool = False,
     capture_core_stderr: bool = True,
     enable_experimental_requirements: bool = False,
+    allow_dynamic_dependency_resolution: bool = False,
     dump_n_rule_partitions: Optional[int] = None,
 ) -> Tuple[
     RuleMatchMap,
@@ -693,7 +757,7 @@ def run_scan(
         target_mode_config,
         with_code_rules=with_code_rules,
         with_supply_chain=with_supply_chain,
-        enable_experimental_requirements=enable_experimental_requirements,
+        allow_dynamic_dependency_resolution=allow_dynamic_dependency_resolution,
     )
     profiler.save("core_time", core_start_time)
     semgrep_errors: List[SemgrepError] = config_errors + scan_errors
@@ -797,7 +861,7 @@ def run_scan(
                         run_secrets,
                         disable_secrets_validation,
                         baseline_target_mode_config,
-                        enable_experimental_requirements=enable_experimental_requirements,
+                        allow_dynamic_dependency_resolution=allow_dynamic_dependency_resolution,
                     )
                     rule_matches_by_rule = remove_matches_in_baseline(
                         rule_matches_by_rule,

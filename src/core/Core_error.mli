@@ -8,7 +8,7 @@
 
 type t = {
   typ : Semgrep_output_v1_t.error_type;
-  loc : Tok.location;
+  loc : Tok.location option;
   msg : string;
   (* ?? diff with msg? *)
   details : string option;
