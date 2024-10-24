@@ -28,7 +28,7 @@
  *  - Java, Apex, Kotlin, C#
  *  - C, C++
  *  - Go
- *  - Swift
+ *  - Swift, Dart
  *  - OCaml, Scala, Rust
  *  - Clojure, Lisp, Scheme
  *  - R
@@ -37,12 +37,13 @@
  *  - JSON, XML, YAML
  *  - Jsonnet, Terraform
  *  - HTML
- *  - Promql
+ *  - Promql, CodeQL
  * TODO: SQL, Sqlite, PostgresSQL, Protobuf
  *
  * See Lang.ml for the list of supported languages.
  * See IL.ml for a generic IL (Intermediate language) better suited for
  * advanced static analysis (e.g., tainted dataflow analysis).
+ * See SAST.ml in pro a simplification of this AST better suited for naming.
  *
  * rational: In the end, programming languages have a lot in Common.
  * Even though some interesting analysis are probably better done on a
@@ -66,6 +67,8 @@
  *    parens around conditions in if). We keep the parens for 'Call'
  *    because we want to get the right range for those so we need the
  *    rightmost tokens in the AST.
+ *    TODO: long term we should not keep any tokens and maintain instead the
+ *    range information in each node (which would be faster and cleaner).
  *  - multiple var declarations in one declaration (e.g., int a,b; in C)
  *    are expanded in multiple 'variable_definition'. Note that
  *    tuple assignments (e.g., a,b=1,2) are not expanded in multiple assigns
@@ -95,7 +98,8 @@
  *
  * Note that this generic AST has become gradually more and more a
  * generic CST, to fix issues in autofix in Semgrep.
- * TODO? it may be time to rename this file CST_generic.ml
+ * TODO? it may be time to rename this file CST_generic.ml (or to remove
+ * all the tokens so we're back to be an AST).
  *
  * related work:
  *  - lib_parsing/ast_fuzzy.ml
@@ -174,7 +178,7 @@
  * convenient to correspond mostly to Semgrep versions. So version below
  * can jump from "1.12.1" to "1.20.0" and that's fine.
  *)
-let version = "1.66.2"
+let version = "1.93.0"
 
 (*****************************************************************************)
 (* Some notes on deriving *)
@@ -329,8 +333,8 @@ and resolved_name_kind =
    * aliased when imported.
    * both dotted_ident must at least contain one element *)
   | ImportedEntity of canonical_name
-  | ImportedModule of
-      canonical_name (* just the DottedName part of module_name*)
+  (* just the DottedName part of module_name *)
+  | ImportedModule of canonical_name
   (* used in Go, where you can pass types as arguments and where we
    * need to resolve those cases
    *)
@@ -710,6 +714,13 @@ and expr_kind =
    * how user think.
    *)
   | Constructor of name * expr list bracket
+  (* see also New(...) for other values *)
+  | N of name
+  | IdSpecial of special wrap
+  (* operators and function application *)
+  | Call of expr * arguments
+  (* IntepolatedString of expr list is simulated with a
+   * Call(IdSpecial (Concat ...)) *)
   (* Regexp templates are interpolated strings. Constant regexps aren't
      represented here but under 'literal' so as to benefit from constant
      propagation. This is meant to be similar to how string literals
@@ -723,11 +734,6 @@ and expr_kind =
      - semgrep metavariable ($X and $...X)
   *)
   | RegexpTemplate of expr bracket (* // *) * string wrap option (* modifiers *)
-  (* see also New(...) for other values *)
-  | N of name
-  | IdSpecial of special wrap
-  (* operators and function application *)
-  | Call of expr * arguments
   (* 'type_' below is usually a TyN or TyArray (or TyExpr).
    * 'id_info' refers to the constructor.
    * Note that certain languages do not have a 'new' keyword
@@ -741,8 +747,6 @@ and expr_kind =
   (* TODO? Separate regular Calls from OpCalls where no need bracket and Arg *)
   (* (XHP, JSX, TSX), could be transpiled also (done in IL.ml?) *)
   | Xml of xml
-  (* IntepolatedString of expr list is simulated with a
-   * Call(IdSpecial (Concat ...)) *)
   (* The left part should be an lvalue (Id, DotAccess, ArrayAccess, Deref)
    * but it can also be a pattern (Container, even Record), but
    * you should really use LetPattern for that.
@@ -811,6 +815,10 @@ and expr_kind =
      Revisit when symbolic propagation is more stable
   *)
   | Alias of string wrap * expr
+  (* For local open in OCaml, as in `let open Foo in` or the more
+   * recent Foo.(...) and Foo.[...]
+   *)
+  | LocalImportAll of module_name * tok (* '.' or 'let' *) * expr
   (* sgrep: ... in expressions, args, stmts, items, and fields
    * (and unfortunately also in types in Python) *)
   | Ellipsis of tok (* '...' *)
@@ -2051,9 +2059,11 @@ and directive_kind =
       * (ident * alias option (* as name alias *)) list
   | ImportAs of tok * module_name * alias option (* as name *)
   (* Bad practice! hard to resolve name locally.
-   * We use ImportAll for C/C++ #include and C++ 'using namespace'.
+   * We use ImportAll for C/C++ '#include', C++ 'using namespace', wildcard
+   * imports in Java, 'open' in OCaml, etc.
    * The last tok is '.' in Go, '*' in Java/Python, '_' in Scala, and a fake
    * token in C++ 'using namespace std;'.
+   * See also LocalImportAll in the expr type.
    *)
   | ImportAll of tok * module_name * tok
   (* packages are different from modules in that multiple files can reuse

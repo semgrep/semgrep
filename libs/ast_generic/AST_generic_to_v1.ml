@@ -346,6 +346,7 @@ and map_expr x : B.expr =
       let v1 = map_tok v1 in
       `Ellipsis v1
   | DeepEllipsis (v1, _, _) -> raise (SemgrepConstruct v1)
+  | LocalImportAll _ -> failwith "TODO"
   | OtherExpr (v1, v2) ->
       let v1 = map_todo_kind v1 in
       let v2 = map_of_list map_any v2 in

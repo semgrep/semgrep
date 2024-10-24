@@ -897,6 +897,9 @@ and expr_aux env ?(void = false) g_expr =
       let e = expr env e in
       mk_e (Cast (typ, e)) eorig
   | G.Alias (_alias, e) -> expr env e
+  | G.LocalImportAll (_module, _tk, e) ->
+      (* TODO: what can we do with _module? *)
+      expr env e
   | G.Ellipsis _
   | G.TypedMetavar (_, _, _)
   | G.DisjExpr (_, _)
