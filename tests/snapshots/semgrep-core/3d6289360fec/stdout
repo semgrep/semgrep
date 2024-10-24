@@ -10,6 +10,5 @@ Initialized empty Git repository in<MASKED>
  create mode 100644 bin/ignore-me
  create mode 100644 bin/ignore-me-not
 RUN semgrep scan --experimental --x-ls .
-selected .gitignore
-selected bin/ignore-me-not
-ignored bin/ignore-me [semgrepignore_patterns_match]
+.gitignore
+bin/ignore-me-not

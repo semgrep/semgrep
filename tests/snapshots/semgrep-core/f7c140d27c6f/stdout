@@ -8,5 +8,4 @@ Initialized empty Git repository in<MASKED>
  create mode 100644 .gitignore
  create mode 100644 a
 RUN semgrep scan --experimental --x-ls .
-selected .gitignore
-ignored a [semgrepignore_patterns_match]
+.gitignore

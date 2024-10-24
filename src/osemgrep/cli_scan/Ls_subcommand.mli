@@ -10,10 +10,18 @@
 *)
 
 (*
+   Print just the paths (like 'ls') or print a bunch of details (like 'ls -l')
+*)
+type format = Paths_only | Long [@@deriving show]
+
+val default_format : format
+
+(*
    Print the list of selected targets in alphabetical order, one per line.
 *)
 val run :
   target_roots:Scanning_root.t list ->
   targeting_conf:Find_targets.conf ->
+  format:format ->
   unit ->
   Exit_code.t

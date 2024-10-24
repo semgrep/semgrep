@@ -29,7 +29,7 @@ def conditional_welcome() -> None:
     if args.intersection(exclusionary_pysemgrep_commands):
         return
     # Exclude alternate modes for the scan subcommand,
-    # e.g. validation, version check, test, patern mode.
+    # e.g. validation, version check, test, pattern mode.
     exclusionary_options = {
         # Validation
         "--validate",

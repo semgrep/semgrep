@@ -39,9 +39,14 @@ type conf = {
   show : Show_CLI.conf option;
   validate : Validate_CLI.conf option;
   test : Test_CLI.conf option;
-  ls : bool;
   experimental_requirements_lockfiles : bool;
   allow_dynamic_dependency_resolution : bool;
+  (* --x-* options are experimental forever! (= subject to change or removal
+     without notice) *)
+  (* --x-ls: *)
+  ls : bool;
+  (* --x-ls-long: *)
+  ls_format : Ls_subcommand.format;
 }
 [@@deriving show]
 
