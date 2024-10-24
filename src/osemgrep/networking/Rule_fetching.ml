@@ -37,7 +37,7 @@ module XP = Xpattern
  * a pair, which would remove the need for partition_rules_and_invalid.
  *)
 type rules_and_origin = {
-  rules : Rule.rules;
+  rules : Rule.rule list;
   invalid_rules : Rule_error.invalid_rule list;
   origin : origin; (* used by Validate_subcommand *)
 }

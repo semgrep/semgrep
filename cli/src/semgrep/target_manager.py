@@ -744,6 +744,14 @@ class TargetManager:
         else:
             files = FilteredFiles(frozenset(all_files), frozenset())
 
+        ####################################################################
+        # language-independent, rule-independent target filtering
+        # TODO: generic filtering should not be done here!
+        # This prevents us from getting the count of targets before filtering
+        # them further based on applicable rules. This number is reported
+        # correctly by osemgrep but incorrectly by pysemgrep.
+        ####################################################################
+
         files = self.filter_includes(self.includes, candidates=files.kept)
         self.ignore_log.cli_includes.update(files.removed)
 

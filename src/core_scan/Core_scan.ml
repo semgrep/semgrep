@@ -857,6 +857,10 @@ let scan_exn (caps : caps) (config : Core_scan_config.t)
   Logs.debug (fun m -> m "Core_scan.scan_exn %s" (Core_scan_config.show config));
   (* the rules *)
   let (valid_rules, invalid_rules), rules_parse_time = rules in
+  Logs.debug (fun m ->
+      m "core scan: %i valid rules, %i invalid rules" (List.length valid_rules)
+        (List.length invalid_rules));
+
   let (rule_errors : E.t list) =
     invalid_rules |> List_.map E.error_of_invalid_rule
   in

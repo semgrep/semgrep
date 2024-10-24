@@ -594,31 +594,36 @@ let check_targets_with_rules
         choose_output_format_and_match_hook (caps :> < Cap.stdout >) conf rules
       in
       (* step 3': call the engine! *)
+      Logs.info (fun m ->
+          m "scan subcommand: %i valid rules, %i invalid rules, %i targets"
+            (List.length rules)
+            (List.length invalid_rules)
+            (List.length targets));
       Logs.info (fun m -> m "running the semgrep engine");
       let (result_or_exn : Core_result.result_or_exn) =
         match conf.targeting_conf.baseline_commit with
         | None ->
             Profiler.record profiler ~name:"core_time" (fun () ->
-                let core_run_for_osemgrep =
+                let { run } : Core_runner.func =
                   mk_core_run_for_osemgrep
                     (caps :> Core_scan.caps)
                     conf Differential_scan_config.WholeScan
                 in
-                core_run_for_osemgrep.run ?file_match_hook conf.core_runner_conf
-                  conf.targeting_conf (rules, invalid_rules) targets)
+                run ?file_match_hook conf.core_runner_conf conf.targeting_conf
+                  (rules, invalid_rules) targets)
         | Some baseline_commit ->
             (* scan_baseline calls internally Profiler.record "head_core_time"  *)
             (* diff scan mode *)
             let diff_scan_func : Diff_scan.diff_scan_func =
              fun ?(diff_config = Differential_scan_config.WholeScan) targets
                  rules ->
-              let core_run_for_osemgrep =
+              let { run } : Core_runner.func =
                 mk_core_run_for_osemgrep
                   (caps :> Core_scan.caps)
                   conf diff_config
               in
-              core_run_for_osemgrep.run ?file_match_hook conf.core_runner_conf
-                conf.targeting_conf (rules, invalid_rules) targets
+              run ?file_match_hook conf.core_runner_conf conf.targeting_conf
+                (rules, invalid_rules) targets
             in
             Diff_scan.scan_baseline
               (caps :> < Cap.chdir ; Cap.tmp >)
@@ -661,13 +666,15 @@ let check_targets_with_rules
           in
           Profiler.stop_ign profiler ~name:"total_time";
 
-          let rules_with_targets =
+          (* We'll report the number of valid rules, not the number of
+             rules applicable to our target files. *)
+          let valid_rules =
             match result_or_exn with
             | Ok r ->
-                r.rules_with_targets
+                r.valid_rules
                 |> List_.map (fun (rv : Rule.rule) ->
                        Rule_ID.to_string (fst rv.id))
-            | _ -> []
+            | Error _ -> []
           in
 
           if Metrics_.is_enabled () then (
@@ -699,7 +706,7 @@ let check_targets_with_rules
                 ());
           Logs.app (fun m ->
               m "Ran %s on %s: %s."
-                (String_.unit_str (List.length rules_with_targets) "rule")
+                (String_.unit_str (List.length valid_rules) "rule")
                 (String_.unit_str (List.length cli_output.paths.scanned) "file")
                 (String_.unit_str (List.length cli_output.results) "finding"));
 

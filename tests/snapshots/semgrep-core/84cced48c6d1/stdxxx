@@ -54,6 +54,7 @@ More information: https://semgrep.dev/docs/metrics
 Rules:
 - eqeq-bad
 
+[<MASKED TIMESTAMP>][INFO]: scan subcommand: 1 valid rules, 0 invalid rules, 3 targets
 [<MASKED TIMESTAMP>][INFO]: running the semgrep engine
 
 

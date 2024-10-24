@@ -24,6 +24,11 @@ type t = {
    *)
   skipped_targets : Semgrep_output_v1_t.skipped_target list;
   skipped_rules : Rule_error.invalid_rule list;
+  (*
+     valid_rules: deduplicated, valid rules
+     rules_with_targets: subset of valid_rules applicable to one or more target
+  *)
+  valid_rules : Rule.rule list;
   rules_with_targets : Rule.rule list;
   profiling : Core_profiling.t option;
   explanations : Matching_explanation.t list option;

@@ -272,6 +272,7 @@ let targets_and_rules_of_lang_jobs (lang_jobs : Lang_job.t list) :
         (List_.append targets acc_targets, List_.append rules acc_rules))
       lang_jobs ([], [])
   in
+  (* TODO: deduplicate rules? *)
   (targets, rules)
 
 (* used only in Test_subcommand.ml *)
@@ -365,7 +366,15 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
        This mode doesn't tolerate scanning roots. This is checked in
        Core_scan.ml.
     *)
-    let rules, invalid_rules = rules_and_invalid in
+    let valid_rules, invalid_rules = rules_and_invalid in
+    (* Deduplicate rules for a correct rule count and avoid redundant
+       work or findings.
+       TODO: do this even earlier? *)
+    let valid_rules =
+      List_.deduplicate_gen
+        ~get_key:(fun r -> Rule_ID.to_string (fst r.Rule.id))
+        valid_rules
+    in
     let rule_errors : Core_error.t list =
       invalid_rules |> List_.map Core_error.error_of_invalid_rule
     in
@@ -380,22 +389,28 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
        in use, bypassing it without removing it seems complicated.
        See https://www.notion.so/r2cdev/Osemgrep-scanning-algorithm-5962232bfd74433ba50f97c86bd1a0f3
     *)
-    let lang_jobs = split_jobs_by_language targeting_conf rules targets in
+    let lang_jobs = split_jobs_by_language targeting_conf valid_rules targets in
     report_status_and_add_metrics_languages
-      ~respect_gitignore:targeting_conf.respect_gitignore lang_jobs rules
+      ~respect_gitignore:targeting_conf.respect_gitignore lang_jobs valid_rules
       targets;
-    let targets, rules = targets_and_rules_of_lang_jobs lang_jobs in
+    let targets, applicable_rules = targets_and_rules_of_lang_jobs lang_jobs in
+    Logs.debug (fun m ->
+        m "core runner: %i applicable rules of %i valid rules, %i invalid rules"
+          (List.length applicable_rules)
+          (List.length valid_rules)
+          (List.length invalid_rules));
     let config =
-      { config with target_source = Targets targets; rule_source = Rules rules }
+      {
+        config with
+        target_source = Targets targets;
+        rule_source = Rules applicable_rules;
+      }
     in
 
     (* !!!!Finally! this is where we branch to semgrep-core core scan fun!!! *)
     let/ res = core_scan_func config in
     let rules_with_targets =
-      lang_jobs
-      |> List.concat_map (fun { Lang_job.rules; _ } -> rules)
-      |> List_.deduplicate_gen ~get_key:(fun r ->
-             Rule_ID.to_string (fst r.Rule.id))
+      lang_jobs |> List.concat_map (fun { Lang_job.rules; _ } -> rules)
     in
     (* Reinject rule errors *)
     let res =
@@ -403,6 +418,7 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
         res with
         errors = rule_errors @ res.errors;
         skipped_rules = invalid_rules @ res.skipped_rules;
+        valid_rules;
         rules_with_targets;
       }
     in

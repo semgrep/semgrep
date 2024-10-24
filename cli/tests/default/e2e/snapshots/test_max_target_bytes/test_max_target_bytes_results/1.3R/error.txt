@@ -1,0 +1,4 @@
+semgrep scan: option '--max-target-bytes': Invalid representation for a
+              number of bytes: 1.3R
+Usage: semgrep scan [OPTION]… [TARGETS]…
+Try 'semgrep scan --help' for more information.
