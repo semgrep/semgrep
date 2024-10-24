@@ -150,8 +150,8 @@ setuptools.setup(
     url="https://github.com/returntocorp/semgrep",
     entry_points={
         "console_scripts": [
-            "semgrep = semgrep.bin.ssemgrep:main",
-            "pysemgrep = semgrep.bin.pysemgrep:main",
+            "semgrep = semgrep.console_scripts.ssemgrep:main",
+            "pysemgrep = semgrep.console_scripts.pysemgrep:main",
         ]
     },
     packages=setuptools.find_packages(where="src"),
