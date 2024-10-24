@@ -16,7 +16,20 @@ type output_format =
     preparsed.
 *)
 type rule_source = Rule_file of Fpath.t | Rules of Rule.t list
-[@@deriving show]
+
+(* old: was [@@deriving show] but when using --config p/default
+ * the logs were getting too big
+ *)
+let pp_rule_source (fmt : Format.formatter) (x : rule_source) : unit =
+  match x with
+  | Rule_file x -> Format.fprintf fmt "Rule_file (%a)" Fpath.pp x
+  | Rules xs ->
+      (* TODO: we should use Scan_CLI max_log_list_entries
+       * and Output.too_much_data, but hard to pass that in
+       *)
+      if List.length xs > 100 then
+        Format.fprintf fmt "<TOO MANY RULES TO DISPLAY (%d)>" (List.length xs)
+      else Format.fprintf fmt "Rules (%a)" Rule.pp_rules xs
 
 (*
    'Target_file' is for the semgrep-core CLI which gets a list of
