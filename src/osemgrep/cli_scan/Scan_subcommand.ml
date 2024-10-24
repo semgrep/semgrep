@@ -904,7 +904,7 @@ let run_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
         (Common2.some conf.show)
   | _ when conf.ls ->
       Ls_subcommand.run ~target_roots:conf.target_roots
-        ~targeting_conf:conf.targeting_conf ()
+        ~targeting_conf:conf.targeting_conf ~format:conf.ls_format ()
   | _ ->
       (* --------------------------------------------------------- *)
       (* Let's go, this is an actual scan subcommand *)

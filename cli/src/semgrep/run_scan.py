@@ -424,12 +424,18 @@ def run_rules(
 
 
 # This is used for testing and comparing with osemgrep.
-def list_targets_and_exit(target_manager: TargetManager, product: out.Product) -> None:
+def list_targets_and_exit(
+    target_manager: TargetManager, product: out.Product, long_format: bool = False
+) -> None:
     targets = target_manager.get_files_for_language(None, product)
     for path in sorted(targets.kept):
-        print(f"selected {path}")
-    for path, reason in target_manager.ignore_log.list_skipped_paths_with_reason():
-        print(f"ignored {path} [{reason}]")
+        if long_format:
+            print(f"selected {path}")
+        else:
+            print(str(path))
+    if long_format:
+        for path, reason in target_manager.ignore_log.list_skipped_paths_with_reason():
+            print(f"ignored {path} [{reason}]")
     exit(0)
 
 
@@ -484,6 +490,7 @@ def run_scan(
     baseline_commit: Optional[str] = None,
     baseline_commit_is_mergebase: bool = False,
     x_ls: bool = False,
+    x_ls_long: bool = False,
     path_sensitive: bool = False,
     capture_core_stderr: bool = True,
     enable_experimental_requirements: bool = False,
@@ -679,8 +686,10 @@ def run_scan(
             ),
         )
         # Debugging option --x-ls
-        if x_ls:
-            list_targets_and_exit(target_manager, out.Product(out.SAST()))
+        if x_ls or x_ls_long:
+            list_targets_and_exit(
+                target_manager, out.Product(out.SAST()), long_format=x_ls_long
+            )
     except FilesNotFoundError as e:
         raise SemgrepError(e)
 

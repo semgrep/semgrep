@@ -14,8 +14,6 @@ Initialized empty Git repository in<MASKED>
  create mode 100644 b
  create mode 100644 c
 RUN semgrep scan --experimental --x-ls .
-selected .gitignore
-selected .semgrepignore
-selected c
-ignored a [semgrepignore_patterns_match]
-ignored b [semgrepignore_patterns_match]
+.gitignore
+.semgrepignore
+c

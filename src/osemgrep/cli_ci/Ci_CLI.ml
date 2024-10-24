@@ -292,9 +292,10 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
         show = None;
         validate = None;
         test = None;
-        ls = false;
         experimental_requirements_lockfiles;
         allow_dynamic_dependency_resolution;
+        ls = false;
+        ls_format = Ls_subcommand.default_format;
       }
   in
   (* Term defines 'const' but also the '$' operator *)
