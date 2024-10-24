@@ -32,7 +32,7 @@ from click.testing import CliRunner
 ##############################################################################
 
 # Environment variable that trigger the use of osemgrep
-_USE_OSEMGREP = "PYTEST_USE_OSEMGREP" in os.environ
+USE_OSEMGREP = "PYTEST_USE_OSEMGREP" in os.environ
 
 # The --experimental is to force the use of osemgrep.
 _OSEMGREP_EXTRA_ARGS = ["--experimental"]
@@ -57,7 +57,7 @@ _SEMGREP_PATH = str(
 # For instance, SEMGREP_BASE_SCAN_COMMAND + ["logout"] will fail with osemgrep,
 # because the subcommand must come first.
 SEMGREP_BASE_SCAN_COMMAND: List[str] = (
-    [_SEMGREP_PATH] + _OSEMGREP_SCAN_EXTRA_ARGS if _USE_OSEMGREP else [_SEMGREP_PATH]
+    [_SEMGREP_PATH] + _OSEMGREP_SCAN_EXTRA_ARGS if USE_OSEMGREP else [_SEMGREP_PATH]
 )
 
 SEMGREP_BASE_SCAN_COMMAND_STR: str = " ".join(SEMGREP_BASE_SCAN_COMMAND)
@@ -68,7 +68,7 @@ SEMGREP_BASE_SCAN_COMMAND_STR: str = " ".join(SEMGREP_BASE_SCAN_COMMAND)
 
 
 def mk_semgrep_base_command(subcommand: str, args: List[str]):
-    args = _OSEMGREP_EXTRA_ARGS + args if _USE_OSEMGREP else args
+    args = _OSEMGREP_EXTRA_ARGS + args if USE_OSEMGREP else args
     return [_SEMGREP_PATH] + [subcommand] + args
 
 
@@ -142,7 +142,7 @@ class SemgrepRunner:
     """
 
     def __init__(self, env=None, mix_stderr=True, use_click_runner=False):
-        if use_click_runner and _USE_OSEMGREP:
+        if use_click_runner and USE_OSEMGREP:
             use_click_runner = False
             print("disabling Click_runner use because of PYTEST_USE_OSEMGREP")
         self._use_click_runner = use_click_runner

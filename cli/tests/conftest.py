@@ -1,3 +1,18 @@
+# Define so-called pytest fixtures for our tests.
+#
+# Read about pytest's fixtures if you want to understand where test
+# function parameters come from. This is the introduction at
+# https://docs.pytest.org/en/latest/how-to/fixtures.html :
+#
+#   At a basic level, test functions request fixtures they require by
+#   declaring them as arguments.
+#
+#   When pytest goes to run a test, it looks at the parameters in that
+#   test function’s signature, and then searches for fixtures that have
+#   the same names as those parameters. Once pytest finds them, it runs
+#   those fixtures, captures what they returned (if anything), and passes
+#   those objects into the test function as arguments.
+#
 ##############################################################################
 # Prelude
 ##############################################################################
@@ -361,15 +376,17 @@ class SemgrepResult:
         yield self.stderr
 
 
+# Implements the 'RunSemgrep' function type (type checking is done
+# right after this definition) defined in 'fixtures.py'
+#
 def _run_semgrep(
-    # if you change these args, mypy will require updating tests.fixtures.RunSemgrep too
     config: Optional[Union[str, Path, List[str]]] = None,
     *,
-    target_name: Optional[str] = "basic",
+    target_name: Optional[str] = None,
     subcommand: Optional[str] = None,
     options: Optional[List[Union[str, Path]]] = None,
-    output_format: Optional[OutputFormat] = OutputFormat.JSON,
-    strict: bool = True,
+    output_format: Optional[OutputFormat] = None,
+    strict: bool = False,
     quiet: bool = False,
     env: Optional[Dict[str, str]] = None,
     assert_exit_code: Union[None, int, Set[int]] = 0,
@@ -475,6 +492,30 @@ def _run_semgrep(
 ##############################################################################
 # Fixtures
 ##############################################################################
+#
+# Warning to naive programmers:
+#
+#   # here's some utility function that we want to make available to tests:
+#   @pytest.fixture
+#   def foo():
+#       print("hello")
+#
+#   # here's a test in some other test file:
+#   def test_whatever(foo):
+#       foo()
+#
+# causes pytest to call test_whatever(foo) for us! If you're paying
+# attention, you'll notice that the following is not equivalent and won't
+# work because we didn't define a 'bar' fixture:
+#
+#   def test_whatever(bar):
+#       bar()
+#
+
+
+@pytest.fixture
+def run_semgrep() -> fixtures.RunSemgrep:
+    return _run_semgrep
 
 
 @pytest.fixture()
@@ -486,9 +527,10 @@ def unique_home_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     yield tmp_path
 
 
-@pytest.fixture
-def run_semgrep() -> fixtures.RunSemgrep:
-    return partial(_run_semgrep, strict=False, target_name=None, output_format=None)
+# Provide a run_semgrep function with alternate defaults
+_run_strict_semgrep_on_basic_targets_with_json_output: fixtures.RunSemgrep = partial(
+    _run_semgrep, strict=True, target_name="basic", output_format=OutputFormat.JSON
+)
 
 
 @pytest.fixture
@@ -502,7 +544,7 @@ def run_semgrep_in_tmp(
     (tmp_path / "rules").symlink_to(RULES_PATH.resolve())
     monkeypatch.chdir(tmp_path)
 
-    return _run_semgrep
+    return _run_strict_semgrep_on_basic_targets_with_json_output
 
 
 @pytest.fixture
@@ -517,7 +559,7 @@ def run_semgrep_on_copied_files(
     copytree(RULES_PATH.resolve(), tmp_path / "rules")
     monkeypatch.chdir(tmp_path)
 
-    return _run_semgrep
+    return _run_strict_semgrep_on_basic_targets_with_json_output
 
 
 @pytest.fixture

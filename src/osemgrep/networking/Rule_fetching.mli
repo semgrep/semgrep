@@ -1,5 +1,5 @@
 type rules_and_origin = {
-  rules : Rule.rules;
+  rules : Rule.rule list;
   invalid_rules : Rule_error.invalid_rule list;
   origin : origin;
 }

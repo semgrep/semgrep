@@ -109,6 +109,7 @@ type t = {
   scanned : Target.t list;
   skipped_targets : Semgrep_output_v1_t.skipped_target list;
   skipped_rules : Rule_error.invalid_rule list;
+  valid_rules : Rule.rule list;
   rules_with_targets : Rule.rule list;
   profiling : Core_profiling.t option;
   explanations : Matching_explanation.t list option;
@@ -142,6 +143,7 @@ let mk_result_with_just_errors (errors : Core_error.t list) : t =
     errors;
     (* default values *)
     processed_matches = [];
+    valid_rules = [];
     rules_with_targets = [];
     skipped_targets = [];
     scanned = [];
@@ -316,6 +318,7 @@ let mk_result (results : Core_profiling.file_profiling match_result list)
     scanned;
     skipped_targets = [];
     skipped_rules;
+    valid_rules = [];
     rules_with_targets = [];
     explanations = (if explanations =*= [] then None else Some explanations);
     rules_by_engine =
