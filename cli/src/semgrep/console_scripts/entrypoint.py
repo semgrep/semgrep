@@ -27,6 +27,7 @@
 #
 # NOTE: if you modify this file, you will need to `pipenv install --dev`
 # if you want to test the change under `pipenv shell`.
+import importlib.resources
 
 import os
 import platform
