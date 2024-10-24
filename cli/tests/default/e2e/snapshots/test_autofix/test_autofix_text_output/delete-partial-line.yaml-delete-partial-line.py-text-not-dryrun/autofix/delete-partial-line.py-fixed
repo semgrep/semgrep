@@ -1,0 +1,22 @@
+def foo(x=42):
+    print(x)
+
+# No autofix
+foo()
+foo(
+)
+foo(43)
+foo(
+43
+)
+
+# Autofix of a partial line
+foo()
+foo(
+)
+foo(
+)
+
+# Autofix of an entire line
+foo(
+)

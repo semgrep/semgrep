@@ -1,0 +1,6 @@
+x:
+  # ruleid: yaml-excessive-capture
+  y:
+    foo: true
+  # comment
+  z: "z"
