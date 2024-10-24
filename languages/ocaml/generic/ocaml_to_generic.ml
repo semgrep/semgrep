@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019, 2020 r2c
+ * Copyright (C) 2019, 2020, 2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -233,6 +233,14 @@ and option_expr_to_ctor_arguments v =
 
 and expr e =
   match e with
+  | LetOpen (tlet, n, _tin, e) ->
+      let dotted = module_name n in
+      let e = expr e in
+      G.LocalImportAll (G.DottedName dotted, tlet, e) |> G.e
+  | LocalOpen (n, tdot, e) ->
+      let dotted = module_name n in
+      let e = expr e in
+      G.LocalImportAll (G.DottedName dotted, tdot, e) |> G.e
   | Obj { o_tok; o_body } ->
       let cdef =
         G.

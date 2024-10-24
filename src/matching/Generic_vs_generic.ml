@@ -590,20 +590,21 @@ and m_name a b =
   *)
   | _ when dotted_contains_mvars (H.dotted_ident_of_name a) -> fail () tin
   (* coupling: resolved names with wildcards
-     If the name we are trying to match has a resolved name, then its "true name" is
-     something which we already know. We don't need to patch it with the information
-     from wildcard imports to try and match it.
+     If the name we are trying to match has a resolved name, then its
+     "true name" is something which we already know. We don't need to patch it
+     with the information from wildcard imports to try and match it.
 
-     This also means that any time in matching that we find ourselves matching something
-     with a resolved name, we have to ensure any future calls to `m_name` do not unpack
-     wildcard imports. This case here is insufficient, because for instance if we were
-     matching `B.foo` to `foo` with a resolved name of `A.foo`, one valid code path is
-     to try and match `foo` with no resolved name.
+     This also means that any time in matching that we find ourselves matching
+     something with a resolved name, we have to ensure any future calls to
+     `m_name` do not unpack wildcard imports. This case here is insufficient,
+     because for instance if we were matching `B.foo` to `foo` with a resolved
+     name of `A.foo`, one valid code path is to try and match `foo` with no
+     resolved name.
 
-     This will cause the wildcard import logic to trigger, despite the fact that this
-     `foo` identifier had a resolved name, because we got rid of it. So anywhere we
-     decompose on an `ImportedEntity` or similar, we should wipe wildcard imports from
-     `tin` to prevent this case.
+     This will cause the wildcard import logic to trigger, despite the fact
+     that this `foo` identifier had a resolved name, because we got rid of it.
+     So anywhere we decompose on an `ImportedEntity` or similar, we should wipe
+     wildcard imports from `tin` to prevent this case.
   *)
   (* For this case, we can just fail here, because this will be taken care of by
      the main `m_name_inner` call.
@@ -821,14 +822,22 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
   | _, G.Alias (_alias, b1) -> m_expr a b1
   (* equivalence: user-defined equivalence! *)
   | G.DisjExpr (a1, a2), _b -> m_expr a1 b >||> m_expr a2 b
+  | G.LocalImportAll (a0, a1, a2), B.LocalImportAll (b0, b1, b2) ->
+      let* () = m_module_name a0 b0 in
+      let* () = m_tok a1 b1 in
+      m_expr a2 b2
+  | _, G.LocalImportAll (b0, _b1, b2) -> (
+      match b0 with
+      | G.DottedName bn -> with_additional_wildcard_import bn (m_expr a b2)
+      | G.FileName _ -> fail ())
   (* This case should only run exactly once.
      This is so we do not endlessly loop trying to match to the same two things.
-     By setting `arguments_have_changed` to false, we ensure that we fall-through to
-     the cases that do decompose on `a` or `b`.
+     By setting `arguments_have_changed` to false, we ensure that we
+     fall-through to the cases that do decompose on `a` or `b`.
   *)
   | _, G.Cast (_, _, b1) when arguments_have_changed ->
-      (* We apply this equivalence only if not at the root, meaning we've done work
-         to get here, and should consider all possibilities.
+      (* We apply this equivalence only if not at the root, meaning we've done
+         work to get here, and should consider all possibilities.
          This is similar to symbolic propagation.
       *)
       (if not is_root then m_expr a b1 else fail ())
@@ -1163,6 +1172,7 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
   | G.Seq _, _
   | G.Ref _, _
   | G.DeRef _, _
+  | G.LocalImportAll _, _
   | G.StmtExpr _, _
   | G.OtherExpr _, _
   | G.RawExpr _, _

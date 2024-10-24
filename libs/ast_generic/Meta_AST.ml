@@ -301,6 +301,11 @@ and vof_name = function
 and vof_expr e =
   (* TODO: also dump e_id? *)
   match e.e with
+  | LocalImportAll (v1, v2, v3) ->
+      let v1 = vof_module_name v1 in
+      let v2 = vof_tok v2 in
+      let v3 = vof_expr v3 in
+      OCaml.VSum ("LocalImportAll", [ v1; v2; v3 ])
   | DotAccessEllipsis (v1, v2) ->
       let v1 = vof_expr v1 in
       let v2 = vof_tok v2 in

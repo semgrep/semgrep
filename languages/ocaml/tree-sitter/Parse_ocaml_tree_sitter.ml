@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (c) 2021-2022 R2C
+ * Copyright (c) 2021-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -918,22 +918,19 @@ and map_binding_pattern (env : env) (x : CST.binding_pattern) : pattern =
       let v2 = token env v2 (* "." *) in
       let v3 =
         match v3 with
-        | `LPAR_opt_bind_pat_ext_RPAR (v1, v2, v3) ->
+        | `LPAR_opt_bind_pat_ext_RPAR (v1, v2, v3) -> (
             let v1 = token env v1 (* "(" *) in
             let _v3 = token env v3 (* ")" *) in
-            let v2 =
-              match v2 with
-              | Some x ->
-                  let p = map_binding_pattern_ext env x in
-                  PatTodo (("LocalOpen", v1), [ p ])
-              | None -> PatTodo (("LocalOpen", v1), [])
-            in
-            v2
+            match v2 with
+            | Some x ->
+                let p = map_binding_pattern_ext env x in
+                PatTodo (("PatLocalOpen", v1), [ p ])
+            | None -> PatTodo (("PatLocalOpen", v1), []))
         | `List_bind_pat x -> map_list_binding_pattern env x
         | `Array_bind_pat x -> map_array_binding_pattern env x
         | `Record_bind_pat x -> map_record_binding_pattern env x
       in
-      PatTodo (("LocalOpen", v2), [ v3 ])
+      PatTodo (("PatLocalOpen", v2), [ v3 ])
   | `Pack_pat x -> map_package_pattern env x
   | `Paren_bind_pat (v1, v2, v3) ->
       let _v1 = token env v1 (* "(" *) in
@@ -1499,12 +1496,14 @@ and map_expression (env : env) (x : CST.expression) : expr =
       let _v3 = token env v3 (* "in" *) in
       let v4 = map_sequence_expression_ext env v4 |> seq1 in
       ExprTodo (("LocalModule", v1), [ v4 ])
-  | `Let_open_exp (v1, v2, v3, v4) ->
-      let v1 = token env v1 (* "let" *) in
-      let _v2 = map_open_module env v2 in
-      let _v3 = token env v3 (* "in" *) in
-      let v4 = map_sequence_expression_ext env v4 |> seq1 in
-      ExprTodo (("LocalOpen", v1), [ v4 ])
+  | `Let_open_exp (v1, v2, v3, v4) -> (
+      let tlet = token env v1 (* "let" *) in
+      let mod_ = map_open_module env v2 in
+      let tin = token env v3 (* "in" *) in
+      let e = map_sequence_expression_ext env v4 |> seq1 in
+      match mod_ with
+      | { i = Open (_topen, n); _ } -> LetOpen (tlet, n, tin, e)
+      | _else_ -> ExprTodo (("LetLocalOpenModExpr", tlet), [ e ]))
   | `Let_exc_exp (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "let" *) in
       let _v2 = map_exception_definition env v2 in
@@ -1890,7 +1889,8 @@ and map_module_definition (env : env)
   | [] -> Module (v1, v4) |> mki
   | _ -> ItemTodo (("Modules", v1), []) |> mki
 
-and map_module_expression (env : env) (x : CST.module_expression) =
+and map_module_expression (env : env) (x : CST.module_expression) : module_expr
+    =
   match x with
   | `Simple_module_exp x -> map_simple_module_expression env x
   | `Module_path x ->
@@ -1923,7 +1923,8 @@ and map_module_expression (env : env) (x : CST.module_expression) =
       in
       ModuleTodo (("App", Tok.unsafe_fake_tok ""), v1 :: v2)
 
-and map_module_expression_ext (env : env) (x : CST.module_expression_ext) =
+and map_module_expression_ext (env : env) (x : CST.module_expression_ext) :
+    module_expr =
   match x with
   | `Module_exp x -> map_module_expression env x
   | `Exte x ->
@@ -2602,27 +2603,43 @@ and map_simple_expression (env : env) (x : CST.simple_expression) : expr =
       let _v5 = map_type_ext env v5 in
       let _v6 = token env v6 (* ")" *) in
       ExprTodo (("Coerce", v1), [ v2 ])
-  | `Local_open_exp (v1, v2, v3) ->
-      let _v1 = map_module_path env v1 in
-      let v2 = token env v2 (* "." *) in
-      let v3 =
-        match v3 with
-        | `LPAR_opt_seq_exp_ext_RPAR (v1, v2, v3) ->
-            let _v1 = token env v1 (* "(" *) in
-            let v2 =
-              match v2 with
-              | Some x -> map_sequence_expression_ext env x
-              | None -> []
-            in
-            let _v3 = token env v3 (* ")" *) in
-            v2
-        | `List_exp x -> [ map_list_expression env x ]
-        | `Array_exp x -> [ map_array_expression env x ]
-        | `Record_exp x -> [ map_record_expression env x ]
-        | `Obj_copy_exp x -> [ map_object_copy_expression env x ]
-        | `Pack_exp x -> [ map_package_expression env x ]
-      in
-      ExprTodo (("LocalOpen", v2), v3)
+  | `Local_open_exp (v1, v2, v3) -> (
+      let qu = map_module_path env v1 in
+      let n = AST_ocaml.qualifier_to_name qu in
+      let tdot = token env v2 (* "." *) in
+      match v3 with
+      | `LPAR_opt_seq_exp_ext_RPAR (v1, v2, v3) ->
+          let lp = token env v1 (* "(" *) in
+          let rp = token env v3 (* ")" *) in
+          let xs =
+            match v2 with
+            | Some e -> map_sequence_expression_ext env e
+            | None -> []
+          in
+          let e =
+            match xs with
+            | [ x ] -> ParenExpr (lp, x, rp)
+            | xs -> Sequence (lp, xs, rp)
+          in
+          LocalOpen (n, tdot, e)
+      (* those do not require the extra () as they already use
+       * delimiters (e.g., '[]' for map_list_expression)
+       *)
+      | `List_exp x ->
+          let e = map_list_expression env x in
+          LocalOpen (n, tdot, e)
+      | `Array_exp x ->
+          let e = map_array_expression env x in
+          LocalOpen (n, tdot, e)
+      | `Record_exp x ->
+          let e = map_record_expression env x in
+          LocalOpen (n, tdot, e)
+      | `Obj_copy_exp x ->
+          let e = map_object_copy_expression env x in
+          LocalOpen (n, tdot, e)
+      | `Pack_exp x ->
+          let e = map_package_expression env x in
+          LocalOpen (n, tdot, e))
   | `Pack_exp x -> map_package_expression env x
   | `New_exp (v1, v2, v3) ->
       let v1 = token env v1 (* "new" *) in
