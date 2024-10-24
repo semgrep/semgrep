@@ -76,3 +76,21 @@ let mark_implicit_return_nodes (cfg : IL.cfg) =
    * first instruction node along each path.
    *)
   mark_first_instr_ancestor cfg cfg.exit
+
+let mark_implicit_return_fdef lang ~tok fdef =
+  let fdef_il = AST_to_IL.function_definition lang fdef in
+  let fcfg = CFG_build.cfg_of_stmts ~tok fdef_il.fbody in
+  mark_implicit_return_nodes fcfg
+
+let mark_implicit_return lang ast =
+  ast
+  |> Visit_function_defs.visit (fun _ent fdef ->
+         let fkind, tok = fdef.fkind in
+         match fkind with
+         | __any__ when lang_supports_implicit_return lang ->
+             mark_implicit_return_fdef lang ~tok fdef
+         | LambdaKind ->
+             (* Lambdas expressions tend to always support implicit returns,
+              * even in languages that require explicit returns like Java. *)
+             mark_implicit_return_fdef lang ~tok fdef
+         | __else__ -> ())

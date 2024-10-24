@@ -83,6 +83,17 @@ let just_parse_with_lang (lang : Lang.t) (file : Fpath.t) : Res.t =
 (* Entry point *)
 (*****************************************************************************)
 
+let run_analyses_after_name_resolution lang ast =
+  Typing.check_program lang ast;
+
+  Implicit_return.mark_implicit_return lang ast;
+
+  (* Flow-insensitive constant propagation. *)
+  Constant_propagation.propagate_basic lang ast;
+
+  (* Flow-sensitive constant propagation. *)
+  Constant_propagation.propagate_dataflow lang ast
+
 let just_resolve_name lang ast =
   (* to be deterministic, reset the gensym; anyway right now semgrep is
    * used only for local per-file analysis, so no need to have a unique ID
@@ -90,13 +101,7 @@ let just_resolve_name lang ast =
    *)
   AST_generic.SId.unsafe_reset_counter ();
   Naming_AST.resolve lang ast;
-  Typing.check_program lang ast;
-
-  (* Flow-insensitive constant propagation. *)
-  Constant_propagation.propagate_basic lang ast;
-
-  (* Flow-sensitive constant propagation. *)
-  Constant_propagation.propagate_dataflow lang ast
+  run_analyses_after_name_resolution lang ast
 
 let parse_and_resolve_name lang file =
   let res = just_parse_with_lang lang file in
