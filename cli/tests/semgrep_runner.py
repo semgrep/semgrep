@@ -48,7 +48,7 @@ _SEMGREP_PATH = str(
         / "src"
         / "semgrep"
         / "console_scripts"
-        / "ssemgrep.py"
+        / "entrypoint.py"
     ).absolute()
 )
 
