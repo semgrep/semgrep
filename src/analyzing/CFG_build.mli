@@ -7,8 +7,7 @@
  *)
 val cfg_of_stmts : ?tok:Tok.t -> IL.stmt list -> IL.cfg
 
-val cfg_of_fdef :
-  Language.t -> ?tok:Tok.t -> IL.function_definition -> IL.fdef_cfg
+val cfg_of_fdef : ?tok:Tok.t -> IL.function_definition -> IL.fdef_cfg
 (** Compute the control flow graph of a function definition.
  * Implicit return analysis is applied and for languages that support
  * implicit return, the returning expressions will be converted to
