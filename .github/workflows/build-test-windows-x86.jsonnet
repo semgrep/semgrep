@@ -178,7 +178,7 @@ local build_wheels_job = {
       },
       run: |||
         tar xvfz artifacts.tgz
-        cp artifacts/semgrep-core cli/src/semgrep/bin
+        cp artifacts/* cli/src/semgrep/bin
         ./scripts/build-wheels.sh --plat-name win_amd64
       |||,
     },

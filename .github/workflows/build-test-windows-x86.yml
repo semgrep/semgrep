@@ -122,7 +122,7 @@ jobs:
           SEMGREP_FORCE_INSTALL: 1
         run: |
           tar xvfz artifacts.tgz
-          cp artifacts/semgrep-core cli/src/semgrep/bin
+          cp artifacts/* cli/src/semgrep/bin
           ./scripts/build-wheels.sh --plat-name win_amd64
       - uses: actions/upload-artifact@v3
         with:

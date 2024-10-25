@@ -1,5 +1,6 @@
 import importlib.resources
 import os
+import platform
 import shutil
 import sys
 from pathlib import Path
@@ -11,6 +12,8 @@ logger = getLogger(__name__)
 
 VERSION_STAMP_FILENAME = "pro-installed-by.txt"
 
+IS_WINDOWS = platform.system() == "Windows"
+
 
 def compute_executable_path(exec_name: str) -> Optional[str]:
     """
@@ -18,6 +21,9 @@ def compute_executable_path(exec_name: str) -> Optional[str]:
 
     Return None if no executable found
     """
+    if IS_WINDOWS:
+        exec_name += ".exe"
+
     # First, try packaged binaries
     try:
         with importlib.resources.path("semgrep.bin", exec_name) as path:
