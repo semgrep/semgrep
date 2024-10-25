@@ -137,11 +137,13 @@ class SemgrepCoreError(SemgrepError):
         if self.core.rule_id:
             base = dataclasses.replace(base, rule_id=self.core.rule_id)
 
-        # For rule errors path is a temp file so for now will just be confusing to add
-        if not isinstance(
-            self.core.error_type.value, out.RuleParseError
-        ) and not isinstance(self.core.error_type.value, out.PatternParseError):
-            base = dataclasses.replace(base, path=self.core.location.path)
+        if self.core.location:
+            # For rule errors path is a temp file so for now will just be
+            # confusing to add
+            if not isinstance(
+                self.core.error_type.value, out.RuleParseError
+            ) and not isinstance(self.core.error_type.value, out.PatternParseError):
+                base = dataclasses.replace(base, path=self.core.location.path)
 
         if self.spans:
             base = dataclasses.replace(base, spans=self.spans)
@@ -190,11 +192,15 @@ class SemgrepCoreError(SemgrepError):
                 error_context = self.core.rule_id.value
             elif isinstance(self.core.error_type.value, out.MissingPlugin):
                 error_context = f"for rule {self.core.rule_id.value}"
-            else:
+            elif self.core.location:
                 # This message is suitable only if the error is in a target file:
                 error_context = f"when running {self.core.rule_id.value} on {self.core.location.path.value}"
-        else:
+            else:
+                error_context = f"when running {self.core.rule_id.value}"
+        elif self.core.location:
             error_context = f"at line {self.core.location.path.value}:{self.core.location.start.line}"
+        else:
+            error_context = ""
 
         return f"{error_type_string(self.core.error_type)} {error_context}:\n {self.core.message}"
 
@@ -215,19 +221,31 @@ class SemgrepCoreError(SemgrepError):
     # TODO: I didn't manage to get out.Error to be hashable because it contains lists or
     # objects (e.g., Error_) which are not hashable
     def __hash__(self) -> int:
-        return hash(
-            (
-                self.code,
-                self.level,
-                self.core.rule_id,
-                self.core.error_type.kind,
-                self.core.location.path.value,
-                self.core.location.start,
-                self.core.location.end,
-                self.core.message,
-                self.core.details,
+        if self.core.location:
+            return hash(
+                (
+                    self.code,
+                    self.level,
+                    self.core.rule_id,
+                    self.core.error_type.kind,
+                    self.core.location.path.value,
+                    self.core.location.start,
+                    self.core.location.end,
+                    self.core.message,
+                    self.core.details,
+                )
             )
-        )
+        else:
+            return hash(
+                (
+                    self.code,
+                    self.level,
+                    self.core.rule_id,
+                    self.core.error_type.kind,
+                    self.core.message,
+                    self.core.details,
+                )
+            )
 
 
 @attr.s(auto_attribs=True, frozen=True)

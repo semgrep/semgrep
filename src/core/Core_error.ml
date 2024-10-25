@@ -38,6 +38,7 @@ module Log = Log_semgrep.Log
 (* See also try_with_exn_to_errors(), try_with_error_loc_and_reraise(), and
  * filter_maybe_parse_and_fatal_errors.
  * less: we should define everything in semgrep_output_v1.atd, not just typ:
+ * coupling: almost identical to semgrep_output_v1.core_error
  *)
 type t = {
   typ : Out.error_type;
@@ -229,41 +230,28 @@ let known_exn_to_error (rule_id : Rule_ID.t option) (file : Fpath.t)
   (* general case, can't extract line information from it, default to line 1 *)
   | _exn -> None
 
+(* TODO: make the file an optional argument (or even remove it) *)
 let exn_to_error (rule_id : Rule_ID.t option) (file : Fpath.t) (e : Exception.t)
     : t =
   match known_exn_to_error rule_id file e with
   | Some err -> err
-  | None -> (
-      match Exception.get_exn e with
-      | UnixExit _ ->
-          (* TODO: remove this.
-             This exception shouldn't be passed to this function
-             in the first place. *)
-          Exception.reraise e
-      | exn ->
-          let trace = Exception.to_string e in
-          let loc =
-            (* TODO: we shouldn't build Tok.t w/out a filename, but
-               lets do it here so we don't crash until we do *)
-            if not (Fpath_.is_fake_file file) then
-              Some (Tok.first_loc_of_file !!file)
-            else None
-          in
-          {
-            rule_id;
-            (* bugfix: we used to return [Out.FatalError] here, but pysemgrep
-             * has some special handling for such error and aborts
-             * aggressively the scan and display a scary stack trace.
-             * We are probably here because of an unhandled exn
-             * in one of the parser (e.g., Failure "not a program") but
-             * we can recover from it, so let's generate a OtherParseError
-             * instead.
-             *)
-            typ = Out.OtherParseError;
-            loc;
-            msg = Printexc.to_string exn;
-            details = Some trace;
-          })
+  | None ->
+      let exn = Exception.get_exn e in
+      let trace = Exception.to_string e in
+      let loc =
+        (* TODO: we shouldn't build Tok.t w/out a filename, but
+           lets do it here so we don't crash until we do *)
+        if not (Fpath_.is_fake_file file) then
+          Some (Tok.first_loc_of_file !!file)
+        else None
+      in
+      {
+        rule_id;
+        typ = Out.FatalError;
+        loc;
+        msg = Printexc.to_string exn;
+        details = Some trace;
+      }
 
 (*****************************************************************************)
 (* Pretty printers *)

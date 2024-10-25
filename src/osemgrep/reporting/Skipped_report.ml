@@ -34,14 +34,16 @@ type skipped_targets_grouped = {
 let errors_to_skipped (errors : OutJ.core_error list) : OutJ.skipped_target list
     =
   errors
-  |> List_.map (fun OutJ.{ location; message; rule_id; _ } ->
-         OutJ.
-           {
-             path = location.path;
-             reason = Analysis_failed_parser_or_internal_error;
-             details = Some message;
-             rule_id;
-           })
+  |> List_.filter_map (fun OutJ.{ location; message; rule_id; _ } ->
+         let* loc = location in
+         Some
+           OutJ.
+             {
+               path = loc.path;
+               reason = Analysis_failed_parser_or_internal_error;
+               details = Some message;
+               rule_id;
+             })
 
 let group_skipped (skipped : OutJ.skipped_target list) : skipped_targets_grouped
     =

@@ -416,15 +416,10 @@ let match_to_match (x : Core_result.processed_match) :
  *)
 let error_to_error (err : Core_error.t) : Out.core_error =
   let location =
-    match err.loc with
-    | Some loc ->
-        let file = loc.pos.file in
-        let startp, endp = OutUtils.position_range loc loc in
-        { Out.path = file; start = startp; end_ = endp }
-    (* TODO get rid of option in err.loc *)
-    | None ->
-        let pos = { Out.line = 1; col = 1; offset = 0 } in
-        { Out.path = Fpath_.fake_file; start = pos; end_ = pos }
+    let* loc = err.loc in
+    let file = loc.pos.file in
+    let startp, endp = OutUtils.position_range loc loc in
+    Some { Out.path = file; start = startp; end_ = endp }
   in
   let rule_id = err.rule_id in
   let error_type = err.typ in
@@ -584,7 +579,7 @@ let core_output_of_matches_and_errors (res : Core_result.t) : Out.core_output =
     interfile_languages_used =
       Some (List_.map (fun l -> Xlang.to_string l) res.interfile_languages_used);
     engine_requested = Some `OSS;
-    version = Some Version.version;
+    version = Version.version;
   }
 [@@profiling]
 

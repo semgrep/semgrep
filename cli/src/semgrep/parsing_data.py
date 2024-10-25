@@ -51,6 +51,8 @@ class ParsingData:
         given error. The file the error originated from should have been
         registered from the original plan with `add_targets`.
         """
+        if not err.location:
+            return
         path = err.location.path.value
         try:
             (lang, no_error_yet) = self._file_info[path]

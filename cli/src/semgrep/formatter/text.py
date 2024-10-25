@@ -493,7 +493,10 @@ def print_time_summary(
         err for err in error_output if isinstance(err, SemgrepCoreError)
     ]
     errors = {
-        (err.core.location.path.value, err.core.error_type.kind)
+        (
+            err.core.location.path.value if err.core.location else "",
+            err.core.error_type.kind,
+        )
         for err in semgrep_core_errors
     }
 

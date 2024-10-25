@@ -84,7 +84,7 @@ let mock_run_results (files : string list) : Core_runner.result =
   let matches = List_.map match_of_file files in
   let (core : OutJ.core_output) =
     {
-      version = None;
+      version = Version.version;
       results = matches;
       errors = [];
       (* extra *)

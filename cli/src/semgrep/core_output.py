@@ -41,6 +41,7 @@ def core_error_to_semgrep_error(err: out.CoreError) -> SemgrepCoreError:
     level = err.severity
     spans: Optional[List[out.ErrorSpan]] = None
     if isinstance(err.error_type.value, out.PatternParseError):
+        assert err.location
         yaml_path = err.error_type.value.value[::-1]
         error_span = _core_location_to_error_span(err.location)
         config_start = out.Position(line=0, col=1, offset=-1)

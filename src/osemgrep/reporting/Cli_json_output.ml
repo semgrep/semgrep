@@ -42,9 +42,8 @@ let core_location_to_error_span (loc : Out.location) : Out.error_span =
   }
 
 (* Generate error message exposed to user *)
-let error_message ~rule_id ~(location : Out.location)
+let error_message ~rule_id ~(location : Out.location option)
     ~(error_type : Out.error_type) ~core_message : string =
-  let path = location.path in
   let rule_id_str_opt = Option.map Rule_ID.to_string rule_id in
   let error_context =
     match (rule_id_str_opt, error_type) with
@@ -56,10 +55,18 @@ let error_message ~rule_id ~(location : Out.location)
         | InvalidYaml | MatchingError | SemgrepMatchFound | TooManyMatches
         | FatalError | Timeout | OutOfMemory | TimeoutDuringInterfile
         | OutOfMemoryDuringInterfile ) ) ->
-        spf "when running %s on %s" id !!path
+        let suffix =
+          match location with
+          | None -> ""
+          | Some loc -> spf " on %s" !!(loc.path)
+        in
+        spf "when running %s%s" id suffix
     | Some id, IncompatibleRule _ -> id
     | Some id, MissingPlugin -> spf "for rule %s" id
-    | _ -> spf "at line %s:%d" !!path location.start.line
+    | _ -> (
+        match location with
+        | None -> ""
+        | Some loc -> spf "at line %s:%d" !!(loc.path) loc.start.line)
   in
   spf "%s %s:\n %s"
     (Error.string_of_error_type error_type)
@@ -203,12 +210,15 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
         | IncompatibleRule _
         | IncompatibleRule0
         | MissingPlugin ->
-            Some location.path
+            location |> Option.map (fun (x : Out.location) -> x.path)
       in
       let message =
         Some (error_message ~rule_id ~error_type ~location ~core_message)
       in
-      let spans = error_spans ~error_type ~location in
+      let spans =
+        let* location = location in
+        error_spans ~error_type ~location
+      in
       {
         (* LATER? seems to be either 2 (fatal) or 3 (invalid_code), so maybe
          * better to change the ATD spec and use a variant for cli_error.code
@@ -446,7 +456,7 @@ let cli_output_of_runner_result ~fixed_lines (core : Out.core_output)
       in
       let fixed_env = Fixed_lines.mk_env () in
       {
-        version;
+        version = Some version;
         (* Skipping the python intermediate RuleMatchMap for now *)
         results =
           matches

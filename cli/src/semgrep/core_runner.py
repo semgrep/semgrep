@@ -143,16 +143,20 @@ def dedup_errors(errors: List[SemgrepCoreError]) -> List[SemgrepCoreError]:
     return list({uniq_error_id(e): e for e in errors}.values())
 
 
-def uniq_error_id(
-    error: SemgrepCoreError,
-) -> Tuple[int, Path, out.Position, out.Position, str]:
-    return (
-        error.code,
-        Path(error.core.location.path.value),
-        error.core.location.start,
-        error.core.location.end,
-        error.core.message,
-    )
+def uniq_error_id(error: SemgrepCoreError) -> Any:
+    if error.core.location:
+        return (
+            error.code,
+            Path(error.core.location.path.value),
+            error.core.location.start,
+            error.core.location.end,
+            error.core.message,
+        )
+    else:
+        return (
+            error.code,
+            error.core.message,
+        )
 
 
 @tracing.trace()
@@ -1040,7 +1044,7 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
             parsed_errors = [core_error_to_semgrep_error(e) for e in core_output.errors]
             for err in core_output.errors:
                 if isinstance(err.error_type.value, out.Timeout):
-                    assert err.location.path is not None
+                    assert err.location and err.location.path is not None
 
                     file_timeouts[Path(err.location.path.value)] += 1
                     if (
@@ -1130,6 +1134,7 @@ When reporting the issue, please re-run the semgrep command with the
 Exception raised: `{e}`
                     """
                 )
+                # replace the sys.exit below with `raise e` to help debug
                 sys.exit(2)
             raise e
 

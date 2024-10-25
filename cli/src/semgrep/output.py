@@ -270,6 +270,7 @@ class OutputHandler:
                 and err.is_timeout()
                 and err not in self.error_set
             ):
+                assert err.core.location
                 self.semgrep_structured_errors.append(err)
                 self.error_set.add(err)
 
@@ -360,6 +361,7 @@ class OutputHandler:
         else:
             raise ex
 
+    # group semgrep core errors by path
     @staticmethod
     def _make_failed_to_analyze(
         semgrep_core_errors: Sequence[SemgrepCoreError],
@@ -368,6 +370,8 @@ class OutputHandler:
             memo: Mapping[Path, Tuple[Optional[int], List[out.RuleId]]],
             err: SemgrepCoreError,
         ) -> Mapping[Path, Tuple[Optional[int], List[out.RuleId]]]:
+            if not err.core.location:
+                return memo
             path = Path(err.core.location.path.value)
             so_far = memo.get(path, (0, []))
             if err.spans is None or so_far[0] is None:

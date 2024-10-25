@@ -776,6 +776,7 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
     enabled_products = _;
     triage_ignored_match_based_ids = _;
     triage_ignored_syntactic_ids = _;
+    path_to_transitivity = _;
   } =
     scan_config
   in
