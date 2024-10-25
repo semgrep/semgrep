@@ -8,11 +8,10 @@
 
 type t = {
   typ : Semgrep_output_v1_t.error_type;
-  loc : Tok.location option;
   msg : string;
-  (* ?? diff with msg? *)
-  details : string option;
+  loc : Tok.location option;
   rule_id : Rule_ID.t option;
+  details : string option;
 }
 [@@deriving show]
 
@@ -43,15 +42,6 @@ val error_of_rule_error : Fpath.t -> Rule_error.t -> t
  * See also JSON_report.json_of_exn for non-target related exn handling.
  *)
 val exn_to_error : Rule_ID.t option -> Fpath.t -> Exception.t -> t
-
-(*****************************************************************************)
-(* Try with error *)
-(*****************************************************************************)
-
-val try_with_result_to_error :
-  Fpath.t -> (unit -> ('a, t) Result.t) -> ('a, t) Result.t
-
-val try_with_log_exn_and_reraise : Fpath.t -> (unit -> 'a) -> 'a
 
 (*****************************************************************************)
 (* Pretty printers *)

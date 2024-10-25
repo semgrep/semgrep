@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2021-2023 Semgrep Inc.
+ * Copyright (C) 2021-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -35,28 +35,25 @@ module Log = Log_semgrep.Log
 (* Types and globals *)
 (****************************************************************************)
 
-(* See also try_with_exn_to_errors(), try_with_error_loc_and_reraise(), and
- * filter_maybe_parse_and_fatal_errors.
- * less: we should define everything in semgrep_output_v1.atd, not just typ:
+(* less: we should define everything in semgrep_output_v1.atd, not just typ:
  * coupling: almost identical to semgrep_output_v1.core_error
  *)
 type t = {
   typ : Out.error_type;
-  (* TODO: get rid of option.
-   * Is None when we call error_of_rule_error() or exn_to_error() with an
-   * Fpath_.fake_file
-   * TODO: get rid of Fpath_.fake_file call sites
+  msg : string;
+  (* This is None when we captured a fatal error that can't be
+   * attached to a file. See exn_to_error() for example.
    *)
   loc : Tok.location option;
-  msg : string;
-  details : string option;
   rule_id : Rule_ID.t option;
+  (* TODO? diff with msg? *)
+  details : string option;
 }
 [@@deriving show]
 
-(* ugly alias because 'type t = t' is not allowed *)
-type core_error = t
-
+(* Used only in pro in Deep_scan_phases.ml
+ * TODO? we should probably get rid of it
+ *)
 exception Unhandled_core_error of t
 
 let () =
@@ -67,6 +64,9 @@ let () =
              (show core_error))
     | _ -> None)
 
+(* ugly alias because 'type t = t' is not allowed in ErrorSet below *)
+type core_error = t
+
 (* TODO: use Set_.t instead *)
 module ErrorSet = Set.Make (struct
   type t = core_error
@@ -75,7 +75,7 @@ module ErrorSet = Set.Make (struct
 end)
 
 (****************************************************************************)
-(* Convertor functions *)
+(* Error builder *)
 (****************************************************************************)
 
 let please_file_issue_text =
@@ -124,6 +124,10 @@ let mk_error_tok opt_rule_id (file : Fpath.t) (tok : Tok.t) (msg : string)
     | Error _ -> Tok.first_loc_of_file !!file
   in
   mk_error ?rule_id:opt_rule_id ~msg loc err
+
+(****************************************************************************)
+(* Error of xxx *)
+(****************************************************************************)
 
 let error_of_invalid_rule ((kind, rule_id, pos) : Rule_error.invalid_rule) : t =
   let msg = Rule_error.string_of_invalid_rule_kind kind in
@@ -230,7 +234,6 @@ let known_exn_to_error (rule_id : Rule_ID.t option) (file : Fpath.t)
   (* general case, can't extract line information from it, default to line 1 *)
   | _exn -> None
 
-(* TODO: make the file an optional argument (or even remove it) *)
 let exn_to_error (rule_id : Rule_ID.t option) (file : Fpath.t) (e : Exception.t)
     : t =
   match known_exn_to_error rule_id file e with
@@ -257,24 +260,23 @@ let exn_to_error (rule_id : Rule_ID.t option) (file : Fpath.t) (e : Exception.t)
 (* Pretty printers *)
 (*****************************************************************************)
 
-let source_of_string = function
-  | "" -> "<input>"
-  | path -> path
-
-let string_of_error err =
-  let pos = err.loc in
+let string_of_error (err : t) : string =
   let details =
     match err.details with
     | None -> ""
     | Some s -> spf "\n%s" s
   in
   let loc =
-    match pos with
+    match err.loc with
     | None -> "<unknown location>"
     | Some { pos = { file; line; column; _ }; _ } ->
-        spf "%s:%d:%d" (source_of_string !!file) line column
+        spf "%s:%d:%d" !!file line column
   in
   spf "%s: %s: %s%s" loc (Out.string_of_error_type err.typ) err.msg details
+
+(****************************************************************************)
+(* Misc *)
+(****************************************************************************)
 
 let severity_of_error (typ : Out.error_type) : Out.error_severity =
   match typ with
@@ -306,24 +308,3 @@ let severity_of_error (typ : Out.error_type) : Out.error_severity =
   | IncompatibleRule0 ->
       `Info
   | MissingPlugin -> `Info
-
-(*****************************************************************************)
-(* Try with error, mostly used in testing code *)
-(*****************************************************************************)
-
-let try_with_result_to_error (file : Fpath.t) f =
-  try f () with
-  | Time_limit.Timeout _ as exn -> Exception.catch_and_reraise exn
-  | exn ->
-      let e = Exception.catch exn in
-      Error (exn_to_error None file e)
-
-let try_with_log_exn_and_reraise (file : Fpath.t) f =
-  try f () with
-  | Time_limit.Timeout _ as exn -> Exception.catch_and_reraise exn
-  | exn ->
-      let e = Exception.catch exn in
-      let err = exn_to_error None file e in
-      (* nosemgrep: no-logs-in-library *)
-      Logs.err (fun m -> m "%s" (string_of_error err));
-      Exception.reraise e

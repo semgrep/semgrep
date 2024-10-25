@@ -167,7 +167,7 @@ let dump_pattern (file : Fpath.t) =
   let s = UFile.read_file file in
   (* mostly copy-paste of parse_pattern in runner, but with better error report *)
   let lang = Xlang.lang_of_opt_xlang_exn !lang in
-  E.try_with_log_exn_and_reraise file (fun () ->
+  Core_actions.try_with_log_exn_and_reraise file (fun () ->
       (* TODO? enable "semgrep.parsing" log level *)
       match Parse_pattern.parse_pattern lang s with
       | Ok any ->
@@ -198,7 +198,7 @@ let dump_patterns_of_rule (file : Fpath.t) =
 (* TODO: remove, deprecated by osemgrep show dump-ast *)
 let dump_ast ?(naming = false) (caps : < Cap.stdout ; Cap.exit >)
     (lang : Language.t) (file : Fpath.t) =
-  E.try_with_log_exn_and_reraise file (fun () ->
+  Core_actions.try_with_log_exn_and_reraise file (fun () ->
       let res =
         if naming then Parse_target.parse_and_resolve_name lang file
         else Parse_target.just_parse_with_lang lang file

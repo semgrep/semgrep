@@ -41,6 +41,19 @@ let json_of_v (v : OCaml.v) =
   in
   aux v
 
+(* used to be in Core_error.mli but better here as should be used
+ * only in test code.
+ * val try_with_log_exn_and_reraise : Fpath.t -> (unit -> 'a) -> 'a
+ *)
+let try_with_log_exn_and_reraise (file : Fpath.t) f =
+  try f () with
+  | Time_limit.Timeout _ as exn -> Exception.catch_and_reraise exn
+  | exn ->
+      let e = Exception.catch exn in
+      let err = E.exn_to_error None file e in
+      Logs.err (fun m -> m "%s" (E.string_of_error err));
+      Exception.reraise e
+
 (*****************************************************************************)
 (* Dumpers *)
 (*****************************************************************************)
@@ -101,7 +114,7 @@ let dump_v1_json ~(get_lang : unit -> Language.t option) file =
         | x :: _ -> x
         | [] -> failwith (spf "unsupported language for %s" !!file))
   in
-  E.try_with_log_exn_and_reraise file (fun () ->
+  try_with_log_exn_and_reraise file (fun () ->
       let { Parsing_result2.ast; skipped_tokens; _ } =
         Parse_target.parse_and_resolve_name lang file
       in
