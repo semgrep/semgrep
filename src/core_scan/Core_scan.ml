@@ -242,7 +242,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
                     "%d rules result in too many matches, most offending rule \
                      has %d: %s"
                     offending_rules cnt pat)
-               loc Out.TooManyMatches
+               ~loc Out.TooManyMatches
            in
            let skipped =
              sorted_offending_rules
@@ -507,16 +507,16 @@ let errors_of_timeout_or_memory_exn (exn : exn) (target : Target.t) : ESet.t =
       *)
       rule_ids
       |> List_.map (fun error_rule_id ->
-             E.mk_error ~rule_id:error_rule_id loc Out.Timeout)
+             E.mk_error ~rule_id:error_rule_id ~loc Out.Timeout)
       |> ESet.of_list
   | Out_of_memory ->
       Logs.warn (fun m -> m "OutOfMemory on %s" (Origin.to_string origin));
       ESet.singleton
-        (E.mk_error ?rule_id:!Rule.last_matched_rule loc Out.OutOfMemory)
+        (E.mk_error ?rule_id:!Rule.last_matched_rule ~loc Out.OutOfMemory)
   | Stack_overflow ->
       Logs.warn (fun m -> m "StackOverflow on %s" (Origin.to_string origin));
       ESet.singleton
-        (E.mk_error ?rule_id:!Rule.last_matched_rule loc Out.StackOverflow)
+        (E.mk_error ?rule_id:!Rule.last_matched_rule ~loc Out.StackOverflow)
   | _ -> raise Impossible
 
 (*****************************************************************************)
@@ -609,12 +609,13 @@ let iter_targets_and_get_matches_and_exn_to_errors (caps : < Cap.fork >)
                   * semgrep-core program.
                   *)
                  | exn when not !Flag_semgrep.fail_fast ->
+                     (* TODO? repeat Parmap_targets.core_error_of_path_exc() *)
                      Logs.err (fun m ->
                          m "exception on %s (%s)" !!internal_path
                            (Printexc.to_string exn));
                      let e = Exception.catch exn in
                      let errors =
-                       ESet.singleton (E.exn_to_error None internal_path e)
+                       ESet.singleton (E.exn_to_error ~file:internal_path e)
                      in
                      (Core_result.mk_match_result [] errors noprof, true))
            in

@@ -82,8 +82,8 @@ let please_file_issue_text =
   "An error occurred while invoking the Semgrep engine. Please help us fix \
    this by creating an issue at https://github.com/returntocorp/semgrep"
 
-let mk_error ?rule_id ?(msg = "") (loc : Tok.location) (err : Out.error_type) :
-    t =
+let mk_error ?rule_id ?(msg = "") ?(loc : Tok.location option)
+    (err : Out.error_type) : t =
   let msg =
     match err with
     | MatchingError
@@ -114,16 +114,25 @@ let mk_error ?rule_id ?(msg = "") (loc : Tok.location) (err : Out.error_type) :
     | MissingPlugin ->
         msg
   in
-  { loc = Some loc; typ = err; msg; details = None; rule_id }
+  { loc; typ = err; msg; details = None; rule_id }
 
-let mk_error_tok opt_rule_id (file : Fpath.t) (tok : Tok.t) (msg : string)
+(* Why a file in addition to tok? Can't we just use Tok.file_of_tok on it?
+ * Because in some cases this may be a fake tok with a wrong file,
+ * and in some situation the caller might know the file we are currently
+ * processing hence the extra file parameter.
+ * TODO: this is still complicated, we should get rid of file and
+ * enforce that every tok has a correct file pos.
+ *)
+let mk_error_tok ?rule_id ?(file : Fpath.t option) (tok : Tok.t) (msg : string)
     (err : Out.error_type) : t =
   let loc =
     match Tok.loc_of_tok tok with
-    | Ok loc -> loc
-    | Error _ -> Tok.first_loc_of_file !!file
+    | Ok loc -> Some loc
+    | Error _ ->
+        let* file = file in
+        Some (Tok.first_loc_of_file !!file)
   in
-  mk_error ?rule_id:opt_rule_id ~msg loc err
+  mk_error ?rule_id ~msg ?loc err
 
 (****************************************************************************)
 (* Error of xxx *)
@@ -144,11 +153,11 @@ let error_of_invalid_rule ((kind, rule_id, pos) : Rule_error.invalid_rule) : t =
     | MissingPlugin _msg -> Out.MissingPlugin
     | _ -> Out.RuleParseError
   in
-  (* TODO: bad use of fake_file, use pos? *)
-  mk_error_tok (Some rule_id) Fpath_.fake_file pos msg err
+  mk_error_tok ~rule_id pos msg err
 
-let error_of_rule_error (file : Fpath.t) (err : Rule_error.t) : t =
+let error_of_rule_error (err : Rule_error.t) : t =
   let rule_id = err.rule_id in
+  let file = err.file in
   match err.kind with
   | InvalidRule
       (InvalidPattern (pattern, xlang, message, yaml_path), rule_id, pos) ->
@@ -168,18 +177,14 @@ let error_of_rule_error (file : Fpath.t) (err : Rule_error.t) : t =
         details = None;
       }
   | InvalidRule err -> error_of_invalid_rule err
-  | InvalidYaml (msg, pos) -> mk_error_tok rule_id file pos msg Out.InvalidYaml
-  | DuplicateYamlKey (s, pos) -> mk_error_tok rule_id file pos s Out.InvalidYaml
-  (* TODO?? *)
+  | InvalidYaml (msg, pos) ->
+      mk_error_tok ?rule_id ~file pos msg Out.InvalidYaml
+  | DuplicateYamlKey (s, pos) ->
+      mk_error_tok ?rule_id ~file pos s Out.InvalidYaml
   | UnparsableYamlException msg ->
-      (* Based on what previously happened based on exn_to_error logic before
-         converting Rule parsing errors to not be exceptions. *)
-      if not (Fpath_.is_fake_file file) then
-        mk_error ?rule_id ~msg
-          (Tok.first_loc_of_file !!file)
-          Out.OtherParseError
-      else
-        { loc = None; typ = Out.OtherParseError; msg; details = None; rule_id }
+      mk_error ?rule_id ~msg
+        ~loc:(Tok.first_loc_of_file !!file)
+        Out.OtherParseError
 
 (*
    This function converts known exceptions to Semgrep errors.
@@ -193,14 +198,13 @@ let error_of_rule_error (file : Fpath.t) (err : Rule_error.t) : t =
    reporting.
    - TODO: naming exns?
 *)
-let known_exn_to_error (rule_id : Rule_ID.t option) (file : Fpath.t)
-    (e : Exception.t) : t option =
+let known_exn_to_error ?(file : Fpath.t option) (e : Exception.t) : t option =
   match Exception.get_exn e with
   (* TODO: Move the cases handling Parsing_error.XXX to the Parsing_error
      module so that we can use it for the exception printers that are
      registered there. *)
   | Parsing_error.Lexical_error (s, tok) ->
-      Some (mk_error_tok rule_id file tok s Out.LexicalError)
+      Some (mk_error_tok ?file tok s Out.LexicalError)
   | Parsing_error.Syntax_error tok ->
       let msg =
         match tok with
@@ -213,43 +217,48 @@ let known_exn_to_error (rule_id : Rule_ID.t option) (file : Fpath.t)
         | Tok.OriginTok { str; _ } -> spf "`%s` was unexpected" str
         | __else__ -> "unknown reason"
       in
-      Some (mk_error_tok rule_id file tok msg Out.ParseError)
+      Some (mk_error_tok ?file tok msg Out.ParseError)
   | Parsing_error.Other_error (s, tok) ->
-      Some (mk_error_tok rule_id file tok s Out.OtherParseError)
+      Some (mk_error_tok ?file tok s Out.OtherParseError)
   | AST_generic.Error (s, tok) ->
-      Some (mk_error_tok rule_id file tok s Out.AstBuilderError)
+      Some (mk_error_tok ?file tok s Out.AstBuilderError)
   | Time_limit.Timeout timeout_info ->
       let s = Printexc.get_backtrace () in
       Log.warn (fun m -> m "WEIRD Timeout converted to exn, backtrace = %s" s);
       (* This exception should always be reraised. *)
-      let loc = Tok.first_loc_of_file !!file in
+      let loc =
+        let* file = file in
+        Some (Tok.first_loc_of_file !!file)
+      in
       let msg = Time_limit.string_of_timeout_info timeout_info in
-      Some (mk_error ?rule_id ~msg loc Out.Timeout)
+      Some (mk_error ~msg ?loc Out.Timeout)
   | Memory_limit.ExceededMemoryLimit msg ->
-      let loc = Tok.first_loc_of_file !!file in
-      Some (mk_error ?rule_id ~msg loc Out.OutOfMemory)
+      let loc =
+        let* file = file in
+        Some (Tok.first_loc_of_file !!file)
+      in
+      Some (mk_error ~msg ?loc Out.OutOfMemory)
   | Out_of_memory ->
-      let loc = Tok.first_loc_of_file !!file in
-      Some (mk_error ?rule_id ~msg:"Heap space exceeded" loc Out.OutOfMemory)
+      let loc =
+        let* file = file in
+        Some (Tok.first_loc_of_file !!file)
+      in
+      Some (mk_error ~msg:"Heap space exceeded" ?loc Out.OutOfMemory)
   (* general case, can't extract line information from it, default to line 1 *)
   | _exn -> None
 
-let exn_to_error (rule_id : Rule_ID.t option) (file : Fpath.t) (e : Exception.t)
-    : t =
-  match known_exn_to_error rule_id file e with
+let exn_to_error ?(file : Fpath.t option) (e : Exception.t) : t =
+  match known_exn_to_error ?file e with
   | Some err -> err
   | None ->
       let exn = Exception.get_exn e in
       let trace = Exception.to_string e in
       let loc =
-        (* TODO: we shouldn't build Tok.t w/out a filename, but
-           lets do it here so we don't crash until we do *)
-        if not (Fpath_.is_fake_file file) then
-          Some (Tok.first_loc_of_file !!file)
-        else None
+        let* file = file in
+        Some (Tok.first_loc_of_file !!file)
       in
       {
-        rule_id;
+        rule_id = None;
         typ = Out.FatalError;
         loc;
         msg = Printexc.to_string exn;

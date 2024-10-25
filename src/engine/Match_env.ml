@@ -86,7 +86,9 @@ let error (env : env) msg =
     Tok.first_loc_of_file !!(env.xtarget.path.internal_path_to_content)
   in
   (* TODO: warning or error? MatchingError or ... ? *)
-  let err = E.mk_error ~rule_id:(fst env.rule.id) ~msg loc OutJ.MatchingError in
+  let err =
+    E.mk_error ~rule_id:(fst env.rule.id) ~msg ~loc OutJ.MatchingError
+  in
   env.errors := Core_error.ErrorSet.add err !(env.errors)
 
 (* this will be adjusted later in range_to_pattern_match_adjusted *)

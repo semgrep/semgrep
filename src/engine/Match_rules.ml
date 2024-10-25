@@ -151,7 +151,7 @@ let per_rule_boilerplate_fn (timeout : timeout_config option) =
             raise (File_timeout !rule_timeouts)
         | _else_ -> ());
         let loc = Tok.first_loc_of_file file in
-        let error = E.mk_error ~rule_id loc OutJ.Timeout in
+        let error = E.mk_error ~rule_id ~loc OutJ.Timeout in
         RP.mk_match_result []
           (Core_error.ErrorSet.singleton error)
           (Core_profiling.empty_rule_profiling rule)

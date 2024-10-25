@@ -50,7 +50,7 @@ let try_with_log_exn_and_reraise (file : Fpath.t) f =
   | Time_limit.Timeout _ as exn -> Exception.catch_and_reraise exn
   | exn ->
       let e = Exception.catch exn in
-      let err = E.exn_to_error None file e in
+      let err = E.exn_to_error ~file e in
       Logs.err (fun m -> m "%s" (E.string_of_error err));
       Exception.reraise e
 

@@ -406,7 +406,7 @@ let match_to_match (x : Core_result.processed_match) :
         spf "NoTokenLocation with pattern %s, %s" x.pm.rule_id.pattern_string s
       in
       let err =
-        E.mk_error ~rule_id:x.pm.rule_id.id ~msg:s loc Out.MatchingError
+        E.mk_error ~rule_id:x.pm.rule_id.id ~msg:s ~loc Out.MatchingError
       in
       Error err
 [@@profiling]

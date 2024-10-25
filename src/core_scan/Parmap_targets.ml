@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Fpath_.Operators
 module In = Input_to_core_t
 
 (*****************************************************************************)
@@ -51,13 +52,12 @@ let sort_code_targets_by_decreasing_size (targets : Target.regular list) :
    result *)
 let wrap_with_ok (f : 'b -> 'a) (x : 'b) : ('a, 'c) result = Ok (f x)
 
-let core_error_of_path_exc internal_path e =
+let core_error_of_path_exc (internal_path : Fpath.t) (e : Exception.t) :
+    Core_error.t =
   let exn = Exception.get_exn e in
   Logs.err (fun m ->
-      m "exception on %s (%s)"
-        (Fpath.to_string internal_path)
-        (Printexc.to_string exn));
-  Core_error.exn_to_error None internal_path e
+      m "exception on %s (%s)" !!internal_path (Printexc.to_string exn));
+  Core_error.exn_to_error ~file:internal_path e
 
 (*****************************************************************************)
 (* Entry point *)

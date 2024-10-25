@@ -240,7 +240,7 @@ let output_core_results (caps : < Cap.stdout ; Cap.stderr ; Cap.exit >)
         match result_or_exn with
         | Ok r -> r
         | Error exn ->
-            let err = E.exn_to_error None Fpath_.fake_file exn in
+            let err = E.exn_to_error exn in
             Core_result.mk_result_with_just_errors [ err ]
       in
       let res =

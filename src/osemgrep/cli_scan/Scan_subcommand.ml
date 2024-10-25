@@ -164,19 +164,7 @@ let exit_code_of_errors ~strict (errors : Out.core_error list) : Exit_code.t =
 let core_errors_of_fatal_rule_errors (fatal_errors : Rule_error.t list) :
     Core_error.t list =
   fatal_errors
-  |> List_.map (fun (e : Rule_error.t) ->
-         let core_err = Core_error.error_of_rule_error e.file e in
-         (* We should definitely not drop rule errors here.
-            That being said, it shouldn't be possible to get no file here,
-            by construction.
-            The `file` field is set in `Rule.Error.t` from all of the entry points
-            into Parse_rule.ml
-         *)
-         if Fpath_.is_fake_file e.file then
-           Logs.err (fun m ->
-               m "no file found for rule error %s"
-                 (Core_error.string_of_error core_err));
-         core_err)
+  |> List_.map (fun (e : Rule_error.t) -> Core_error.error_of_rule_error e)
 
 (* we require stdout here to give the proper output, such as with --json *)
 let output_and_exit_from_fatal_core_errors_exn ~exit_code

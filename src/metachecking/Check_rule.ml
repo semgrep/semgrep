@@ -66,10 +66,15 @@ exception No_metacheck_file of string
 (*****************************************************************************)
 
 let error (rule : Rule.t) (t : Tok.t) (s : string) : Core_error.t =
-  let loc = Tok.unsafe_loc_of_tok t in
+  let loc =
+    match Tok.loc_of_tok t with
+    | Ok x -> Some x
+    (* TODO? Logs? *)
+    | Error _ -> None
+  in
   let _check_idTODO = "semgrep-metacheck-builtin" in
   let rule_id, _ = rule.id in
-  E.mk_error ~rule_id ~msg:s loc OutJ.SemgrepMatchFound
+  E.mk_error ~rule_id ~msg:s ?loc OutJ.SemgrepMatchFound
 
 (*****************************************************************************)
 (* Checks *)
@@ -256,7 +261,7 @@ let semgrep_check (caps : Core_scan.caps) (metachecks : Fpath.t)
     let s = m.rule_id.message in
     let _check_id = m.rule_id.id in
     (* TODO: why not set ~rule_id here?? bug? *)
-    E.mk_error ~msg:s loc OutJ.SemgrepMatchFound
+    E.mk_error ~msg:s ~loc OutJ.SemgrepMatchFound
   in
   (* LATER: what if the rule is written in Jsonnet or JSON ? *)
   let lang : Lang.t = Yaml in
@@ -311,10 +316,10 @@ let run_checks (caps : Core_scan.caps) (metachecks : Fpath.t)
                (* TODO this error is special cased because YAML files that
                   aren't semgrep rules are getting scanned *)
                | Error ({ kind = InvalidYaml _; _ } : Rule_error.t) -> []
-               | Error e -> [ Core_error.error_of_rule_error file e ]
+               | Error e -> [ Core_error.error_of_rule_error e ]
                | exception exn ->
                    let e = Exception.catch exn in
-                   [ E.exn_to_error None file e ])
+                   [ E.exn_to_error ~file e ])
       in
       semgrep_found_errs @ ocaml_found_errs
 

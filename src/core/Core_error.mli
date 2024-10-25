@@ -27,7 +27,7 @@ module ErrorSet : Set.S with type elt = t
 val mk_error :
   ?rule_id:Rule_ID.t ->
   ?msg:string ->
-  Tok.location ->
+  ?loc:Tok.location ->
   Semgrep_output_v1_t.error_type ->
   t
 
@@ -36,12 +36,12 @@ val mk_error :
    mismatches.
 *)
 val error_of_invalid_rule : Rule_error.invalid_rule -> t
-val error_of_rule_error : Fpath.t -> Rule_error.t -> t
+val error_of_rule_error : Rule_error.t -> t
 
 (* Convert a caught exception and its stack trace to a Semgrep error.
  * See also JSON_report.json_of_exn for non-target related exn handling.
  *)
-val exn_to_error : Rule_ID.t option -> Fpath.t -> Exception.t -> t
+val exn_to_error : ?file:Fpath.t -> Exception.t -> t
 
 (*****************************************************************************)
 (* Pretty printers *)

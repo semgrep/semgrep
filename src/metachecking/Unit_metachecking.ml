@@ -40,7 +40,7 @@ let metachecker_checks_tests () =
             t (Fpath.basename file) (fun () ->
                 let actual =
                   match Parse_rule.parse file with
-                  | Error e -> [ Core_error.error_of_rule_error file e ]
+                  | Error e -> [ Core_error.error_of_rule_error e ]
                   | Ok rules ->
                       rules
                       |> List.concat_map (fun rule -> Check_rule.check rule)
