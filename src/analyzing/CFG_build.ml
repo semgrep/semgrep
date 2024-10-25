@@ -570,26 +570,11 @@ let (cfg_of_stmts : ?tok:Tok.t -> stmt list -> F.cfg) =
   g |> add_arc_from_opt (last_node_opt, exiti);
   CFG.make g enteri exiti
 
-let cfg_of_fdef lang ?tok fdef =
-  let cfg_of_fdef () =
-    let fcfg = cfg_of_stmts ?tok fdef.fbody in
-    mark_at_exit_nodes fcfg;
-    IL.{ fparams = fdef.fparams; fcfg }
-  in
-
-  if Implicit_return.lang_supports_implicit_return lang then (
-    (* We need to build the CFG here first because the analysis
-     * visits the CFG to determine returning nodes.
-     *)
-    (* TODO: Could we instead just transform the CFG directly ? *)
-    Implicit_return.mark_implicit_return_nodes (cfg_of_stmts fdef.fbody);
-
-    (* Rebuild CFG after marking the return nodes, so that all
-     * implicit returns become explicit.
-     *)
-    cfg_of_fdef ())
-  else cfg_of_fdef ()
+let cfg_of_fdef ?tok fdef =
+  let fcfg = cfg_of_stmts ?tok fdef.fbody in
+  mark_at_exit_nodes fcfg;
+  IL.{ fparams = fdef.fparams; fcfg }
 
 let cfg_of_gfdef lang ?ctx fdef =
   let fdef_il = AST_to_IL.function_definition lang ?ctx fdef in
-  cfg_of_fdef lang ~tok:(snd fdef.fkind) fdef_il
+  cfg_of_fdef ~tok:(snd fdef.fkind) fdef_il

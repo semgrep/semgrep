@@ -716,6 +716,22 @@ let register_exception_printers () =
 [@@alert "-deprecated"]
 
 (*****************************************************************************)
+(* Run a scan *)
+(*****************************************************************************)
+(* TODO: We used to tune the garbage collector but from profiling
+   we found that the effect was small. Meanwhile, the memory
+   consumption causes some machines to freeze. We may want to
+   tune these parameters in the future/do more testing, but
+   for now just turn it off *)
+(* if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc (); *)
+
+let run caps (config : Core_scan_config.t) : unit =
+  let res = Core_scan.scan (caps :> Core_scan.caps) config in
+  output_core_results
+    (caps :> < Cap.stdout ; Cap.stderr ; Cap.exit >)
+    res config
+
+(*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
 
@@ -821,18 +837,6 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
           in
           let config = { config with target_source; ncores } in
 
-          (* TODO: We used to tune the garbage collector but from profiling
-             we found that the effect was small. Meanwhile, the memory
-             consumption causes some machines to freeze. We may want to
-             tune these parameters in the future/do more testing, but
-             for now just turn it off *)
-          (* if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc (); *)
-          let run config =
-            let res = Core_scan.scan (caps :> Core_scan.caps) config in
-            output_core_results
-              (caps :> < Cap.stdout ; Cap.stderr ; Cap.exit >)
-              res config
-          in
           (* Set up tracing and run it for the duration of scanning. Note that
              this will only trace `Core_command.run_conf` and the functions it
              calls.
@@ -840,7 +844,7 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
              able to instrument the pre- and post-scan code in the same way.
           *)
           match config.tracing with
-          | None -> run config
+          | None -> run caps config
           | Some tracing ->
               let trace_data =
                 Trace_data.get_top_level_data config.ncores Version.version
@@ -852,7 +856,7 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
                   let tracing =
                     { tracing with top_level_span = Some span_id }
                   in
-                  run { config with tracing = Some tracing })))
+                  run caps { config with tracing = Some tracing })))
 
 let with_exception_trace f =
   Printexc.record_backtrace true;

@@ -1,39 +1,55 @@
 (executables
  (names Main)
  (flags
-   (:standard (:include flags.sexp))
-   (:standard -open TCB -open Commons_TCB)
-   )
+  (:standard
+   (:include flags.sexp))
+  (:standard -open TCB -open Commons_TCB))
  (libraries
-    TCB
-    semgrep.core_cli
-    semgrep.osemgrep_cli
-
-    ; implementations of dune virtual modules
-    lwt_platform.unix
-    tracing.unix
- )
- (preprocess (pps ppx_profiling))
-  ; 'byte' is for ocamldebug
-  (modes native byte)
-)
-
+  TCB
+  semgrep.core_cli
+  semgrep.osemgrep_cli
+  ; implementations of dune virtual modules
+  lwt_platform.unix
+  tracing.unix)
+ (preprocess
+  (pps ppx_profiling))
+ ; 'byte' is for ocamldebug
+ (modes native byte))
 
 ; use flags.sh to generate the OS specific build flags
+
 (rule
  (targets flags.sexp)
- (enabled_if (<> %{os_type} Win32))
+ (deps
+  (:langs tree-sitter-langs.dat))
+ (enabled_if
+  (<> %{os_type} Win32))
  (action
-  (with-stdout-to flags.sexp
-   (run ./flags.sh %{ocaml-config:system}))))
+  (with-stdout-to
+   flags.sexp
+   (run ./flags.sh %{ocaml-config:system} %{langs}))))
 
 ; flags.sh won't run properly in Windows, so simply hardcode to ( :standard )
 ; todo: is there an easy way to do static compilation in Windows?
 ; todo: is there a way we could make flags.sh more portable?
+
 (rule
  (targets flags.sexp)
- (enabled_if (= %{os_type} Win32))
- (action (write-file %{targets} "( )")))
+ (enabled_if
+  (= %{os_type} Win32))
+ (action
+  (write-file %{targets} "( )")))
+
+(rule
+ (deps
+  (source_tree %{project_root}/languages))
+ (targets tree-sitter-langs.dat)
+ (action
+  (with-stdout-to
+   tree-sitter-langs.dat
+   (chdir
+    %{project_root}
+    (run src/main/list-tree-sitter-langs.sh)))))
 
 (install
  (package semgrep)
@@ -46,6 +62,4 @@
   (Main.exe as semgrep)
   ; useful to debug semgrep, see ../../debug and ocamldebug
   (Main.bc as semgrep-core.bc)
-  (Main.bc as osemgrep.bc)
- )
-)
+  (Main.bc as osemgrep.bc)))

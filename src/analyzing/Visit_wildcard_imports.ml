@@ -1,6 +1,6 @@
 (* Brandon Wu
  *
- * Copyright (C) 2023 r2c
+ * Copyright (C) 2023 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -36,11 +36,14 @@ module G = AST_generic
        !ids
      [@@profiling]
 
-   This is more intensive, and will result in us tracking all wildcard imports, even
-   those occurring not at the top level of the program.
+   This is more intensive, and will result in us tracking all wildcard imports,
+   even those occurring not at the top level of the program.
 
-   To make sure we don't affect perf, and so we don't have more false positives, let's
-   not consider those.
+   To make sure we don't affect perf, and so we don't have more false positives,
+   let's not consider those.
+
+   UPDATE: we now have LocalImportAll in AST_generic.ml and we perform
+   scoped wildcard imports in Generic_vs_generic.ml
 *)
 
 let visit_toplevel prog : G.dotted_ident list =

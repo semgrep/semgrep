@@ -27,6 +27,7 @@ markers = [
     "todo: the test is not implemented or needs work",
     "no_semgrep_cli: this test doesn't invoke the semgrep CLI or osemgrep",
     "osemfail: this test currently fails with osemgrep",
+    "pysemfail: this test currently fails with pysemgrep",
 ]
 
 [tool.tox]

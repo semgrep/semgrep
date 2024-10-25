@@ -1,0 +1,21 @@
+(* TODO: This test is renamed to .TODO because it fails in JS for unknown
+ * reasons
+ *)
+
+let test1 () =
+  (* ERROR: match *)
+  Foo.bar()
+
+let test2 () =
+  (* ERROR: match *)
+  Foo.(bar())
+
+(* TODO? the match should be on the call to bar(), not the let open *)
+let test3 () =
+  (* ERROR: match *)
+  let open Foo in
+  bar()
+
+(* without open Foo, this does not match *)
+let test4 () =
+  bar()

@@ -478,6 +478,11 @@ def scan_options(func: Callable) -> Callable:
     is_flag=True,
     default=False,
 )
+@optgroup.option(
+    "--x-ls-long",
+    is_flag=True,
+    default=False,
+)
 @optgroup.group("Test and debug options")
 @optgroup.option("--test", is_flag=True, default=False)
 @optgroup.option(
@@ -577,6 +582,7 @@ def scan(
     verbose: bool,
     version: bool,
     x_ls: bool,
+    x_ls_long: bool,
     path_sensitive: bool,
     enable_experimental_requirements: bool,
     allow_dynamic_dependency_resolution: bool,
@@ -852,6 +858,7 @@ def scan(
                         optimizations=optimizations,
                         baseline_commit=baseline_commit,
                         x_ls=x_ls,
+                        x_ls_long=x_ls_long,
                         path_sensitive=path_sensitive,
                         capture_core_stderr=capture_core_stderr,
                         enable_experimental_requirements=enable_experimental_requirements,

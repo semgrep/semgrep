@@ -382,7 +382,7 @@ let check_fundef lang options taint_config opt_ent ctx ?glob_env
     Some (IL.str_of_name name)
   in
   let fdef = AST_to_IL.function_definition lang ~ctx fdef in
-  let IL.{ fcfg = flow; _ } = CFG_build.cfg_of_fdef lang fdef in
+  let IL.{ fcfg = flow; _ } = CFG_build.cfg_of_fdef fdef in
   let in_env, env_effects =
     mk_fun_input_env lang options taint_config ?glob_env fdef
   in
@@ -442,7 +442,7 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
   (* FIXME: This is no longer needed, now we can just check the type 'n'. *)
   let ctx = ref AST_to_IL.empty_ctx in
   Visit_function_defs.visit
-    (fun opt_ent _ ->
+    (fun opt_ent _fdef ->
       match opt_ent with
       | Some { name = EN (Id (n, _)); _ } ->
           ctx := AST_to_IL.add_entity_name !ctx n

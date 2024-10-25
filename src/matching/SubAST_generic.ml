@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2022 r2c
+ * Copyright (C) 2019-2022 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -132,6 +132,8 @@ let subexprs_of_expr with_symbolic_propagation e =
   | Cast (_, _, e)
   | Ref (_, e)
   | DeRef (_, e)
+  | Alias (_, e)
+  | LocalImportAll (_, _, e)
   | DeepEllipsis (_, e, _)
   | DotAccessEllipsis (e, _) ->
       [ e ]
@@ -166,7 +168,6 @@ let subexprs_of_expr with_symbolic_propagation e =
       (* in theory we should go deeper in any *)
       subexprs_of_any_list anys
   | RawExpr x -> Raw_tree.anys x |> subexprs_of_any_list
-  | Alias (_, e1) -> [ e1 ]
   | Lambda def -> subexprs_of_stmt (H.funcbody_to_stmt def.fbody)
   | Xml { xml_attrs; xml_body; _ } ->
       List_.filter_map
@@ -262,6 +263,7 @@ let subexprs_of_expr_implicit with_symbolic_propagation e =
   | OtherExpr (_, _anys) -> []
   | RawExpr _ -> []
   | Alias (_, _e1) -> []
+  | LocalImportAll (_, _, _e1) -> []
   | Xml _xmlbody -> []
   | Constructor _ -> []
   | RegexpTemplate _ -> []

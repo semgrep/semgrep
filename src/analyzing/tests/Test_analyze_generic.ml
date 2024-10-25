@@ -34,6 +34,7 @@ let test_il_generic ~parse_program file =
   let ast = parse_program file in
   let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
+  Implicit_return.mark_implicit_return lang ast;
 
   let v =
     object
@@ -56,8 +57,9 @@ let test_cfg_il ~parse_program file =
   let ast = parse_program file in
   let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
+  Implicit_return.mark_implicit_return lang ast;
   Visit_function_defs.visit
-    (fun _ fdef ->
+    (fun _ent fdef ->
       let IL.{ fparams = _; fcfg } = CFG_build.cfg_of_gfdef lang fdef in
       Display_IL.display_cfg fcfg)
     ast

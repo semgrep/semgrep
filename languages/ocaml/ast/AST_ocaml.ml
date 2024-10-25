@@ -95,7 +95,6 @@ type expr =
    *)
   | Constructor of name * expr option
   | PolyVariant of (Tok.t (* '`' *) * ident) * expr option
-  | Obj of object_
   (* special case of Constr *)
   | Tuple of expr list
   | List of expr list bracket
@@ -106,17 +105,10 @@ type expr =
    * below will be used instead.
    *)
   | Sequence of expr list bracket (* begin/end, (), or do/done *)
-  (* In most ASTs, and in most parsers, we get rid of those Paren
-   * constructs because they are more useful in CSTs than ASTs. However,
-   * for semgrep, and especially for autofix, parenthesis matter.
-   * We used to have 'Tuple of expr list bracket', but this was not enough
-   * because in code like Foo (1+2), there are no tuple, but
-   * we still want to remember those parenthesis in the AST.
-   * Thus, we keed those parenthesis in the AST and let ocaml_to_generic.ml
-   * do the right thing depending on the context in which those
-   * ParenExpr are used (for Tuple, for Constructor, or for regular grouping).
-   *)
-  | ParenExpr of expr bracket
+  (* we unsugar { x } in { x = x } *)
+  | Record of expr option (* with *) * (name * expr) list bracket
+  | Obj of object_
+  | New of Tok.t * name
   (* todo: Use AST_generic_.op? *)
   | Prefix of string wrap * expr
   | Infix of expr * string wrap * expr
@@ -128,14 +120,12 @@ type expr =
   (* special case of RefAccess and RefAssign *)
   | FieldAccess of expr * Tok.t * name
   | FieldAssign of expr * Tok.t * name * Tok.t (* <- *) * expr
-  (* we unsugar { x } in { x = x } *)
-  | Record of expr option (* with *) * (name * expr) list bracket
-  | New of Tok.t * name
   | ObjAccess of expr * Tok.t (* # *) * ident
   (* > 1 elt for mutually recursive let (let x and y and z) *)
   | LetIn of Tok.t * rec_opt * let_binding list * expr
   | Fun of Tok.t (* 'fun' *) * parameter list (* at least one *) * expr
   | Function of Tok.t (* 'function' *) * match_case list
+  (* those are expressions in OCaml! composability! no need for statement *)
   | If of Tok.t * expr * expr * expr option
   | Match of Tok.t * expr * match_case list
   | Try of Tok.t * expr * match_case list
@@ -143,11 +133,25 @@ type expr =
   | For of Tok.t * ident * expr * for_direction * expr * expr
   (* regular construct but also semgrep-ext: for Typed metavariables *)
   | TypedExpr of expr * Tok.t (* : *) * type_
+  (* OCaml 4.?? *)
+  | LetOpen of Tok.t (* 'let' *) * name * Tok.t (* 'in' *) * expr
+  | LocalOpen of name * Tok.t (* '.' *) * expr
+  (* In most ASTs, and in most parsers, we get rid of those Paren
+   * constructs because they are more useful in CSTs than ASTs. However,
+   * for semgrep, and especially for autofix, parenthesis matter.
+   * We used to have 'Tuple of expr list bracket', but this was not enough
+   * because in code like Foo (1+2), there are no tuple, but
+   * we still want to remember those parenthesis in the AST.
+   * Thus, we keed those parenthesis in the AST and let ocaml_to_generic.ml
+   * do the right thing depending on the context in which those
+   * ParenExpr are used (for Tuple, for Constructor, or for regular grouping).
+   *)
+  | ParenExpr of expr bracket
   (* sgrep-ext: *)
   | Ellipsis of Tok.t
   | DeepEllipsis of expr bracket
   (* TODO:
-   * - LocalOpen, LocalModule
+   * - LocalModule
    * - Array, BigArray (literals, access, set)
    * - Lazy, Assert,
    * - Object, ObjCopy
@@ -242,7 +246,7 @@ and pattern =
   (* sgrep-ext: *)
   | PatEllipsis of Tok.t
   (* TODO:
-   * - LocalOpen,
+   * - PatLocalOpen,
    * - Array, BigArray,
    * - Lazy
    *)
@@ -410,7 +414,7 @@ and item_kind =
   | Type of Tok.t * type_declaration list (* mutually recursive *)
   | Exception of Tok.t * ident * type_ list
   | External of Tok.t * ident * type_ * string wrap list (* primitive decls *)
-  (* TODO: '!' option *)
+  (* TODO: '!' option, and the general open module_expr *)
   | Open of Tok.t * name
   (* only in sig_item *)
   | Val of Tok.t * ident * type_

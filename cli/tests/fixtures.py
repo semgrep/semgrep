@@ -1,4 +1,10 @@
-# TODO: pad: Not sure why this needs to be in a separate file and how it works.
+# Type definitions used in tests
+#
+# These definitions are presumably not placed in 'conftest.py' so they can be
+# shared across semgrep and semgrep-proprietary, each having their own
+# 'conftest.py'.
+# TODO: confirm the assumption above
+#
 from __future__ import annotations
 
 from pathlib import Path
@@ -7,13 +13,24 @@ from typing import TYPE_CHECKING
 
 from semgrep.constants import OutputFormat
 
+
+# TYPE_CHECKING is a constant that ensures some imports (e.g., from
+# tests.conftest) are only processed during type checking (e.g., by
+# mypy), and not at runtime.
+#
+# This is presumably what allows for cyclic dependency between the two
+# modules for typechecking purposes.
+# TODO: simplify!
+#
 if TYPE_CHECKING:
     from tests.conftest import SemgrepResult
 
 
+# The type of run_semgrep functions defined in a project's 'conftest.py'.
+# Run 'make typecheck' to run mypy on the project.
+#
 class RunSemgrep(Protocol):
     def __call__(
-        # if you change these args, mypy will require updating tests.conftest._run_semgrep too
         self,
         config: str | Path | list[str] | None = None,
         *,

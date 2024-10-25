@@ -20,7 +20,18 @@ build:
 
 .PHONY: check
 check:
+	# TODO: also run 'typecheck' after making it work in CI (without git
+	# or pre-commit)
+	# $(MAKE) typecheck
 	$(MAKE) check-markers
+
+# TODO: is there a way to run the same commands as the pre-commit hook
+# without code duplication and without depending on pre-commit?
+# Various issues with external libraries arise when trying to
+# run 'pipenv run mypy' here directly.
+.PHONY: typecheck
+typecheck:
+	pre-commit run mypy -a
 
 # Check that all the test_* functions are categorized by duration.
 .PHONY: check-markers
@@ -59,11 +70,19 @@ PYTEST ?= \
 #
 # coupling: this must run the same tests as 'make test-dev'.
 #
-.PHONY: test
-test:
+.PHONY: ci-test
+ci-test:
 	# To fail faster, consider running 'make test-dev' instead.
 	$(MAKE) check
-	$(PYTEST) tests/default
+	$(PYTEST) -m 'not pysemfail' tests/default
+
+# While 'make typecheck' doesn't work in CI, use 'make ci-test'
+.PHONY: test
+test:
+	# If 'make typecheck' fails, consider calling 'make ci-test' instead
+	# of 'make test'.
+	$(MAKE) typecheck
+	$(MAKE) ci-test
 
 # Run the same tests as 'make test' but try to fail faster.
 #
@@ -111,7 +130,19 @@ test-dev:
 # We exclude the few tests that don't invoke the semgrep command directly.
 .PHONY: e2e
 e2e:
-	$(PYTEST) tests/default/e2e
+	$(PYTEST) -m 'not pysemfail' tests/default/e2e
+
+# Run the end-to-end tests using osemgrep instead of pysemgrep.
+# See tests/semgrep_runner.py for the use of the environment variables below.
+# To run individual tests, export PYTEST_USE_OSEMGREP=true
+# and run 'pytest tests/default/e2e/test_output.py' in a shell for example.
+#TODO: right now we just run the e2e-only because it's our main goal for Q4
+#
+# coupling: must match the 'e2e' target above except for the pysemfail/osemfail
+# markers
+.PHONY: osemgrep-e2e
+osemgrep-e2e:
+	PYTEST_USE_OSEMGREP=true $(PYTEST) -m 'not osemfail' tests/default/e2e
 
 .PHONY: e2e-other
 e2e-other:
@@ -131,15 +162,6 @@ qa:
 ###############################################################################
 # Osemgrep tests
 ###############################################################################
-
-# Run the end-to-end tests using osemgrep instead of pysemgrep.
-# See tests/semgrep_runner.py for the use of the environment variables below.
-# To run individual tests, export PYTEST_USE_OSEMGREP=true
-# and run 'pytest tests/default/e2e/test_output.py' in a shell for example.
-#TODO: right now we just run the e2e-only because it's our main goal for Q4
-.PHONY: osemgrep-e2e
-osemgrep-e2e:
-	PYTEST_USE_OSEMGREP=true $(MAKE) e2e
 
 # Run all the known passing-with-osemgrep tests (not tagged with osemfail)
 # coupling: this is run in CI in .github/workflows/tests.yml
