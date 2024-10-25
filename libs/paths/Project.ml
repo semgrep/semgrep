@@ -42,26 +42,58 @@ let get_project_root_for_nonproject_file (path : Fpath.t) : Rfpath.t =
   if Fpath.is_rel path then Rfpath.getcwd ()
   else Rfpath.of_fpath_exn (Fpath.parent path)
 
+(*
+   A git project created with 'git clone' or 'git init' has a '.git/' folder
+   but if worktrees are created, their root only has a '.git' file that
+   contains a reference to the main worktree that has the '.git/' folder
+   with all the data to manage the local repo and its worktrees.
+
+   For example, my current worktree contains this:
+
+     ~/spro2 $ cat .git
+     gitdir: /home/martin/spro/.git/worktrees/spro2
+*)
+let is_git_project_root dir =
+  let git_folder_or_file = dir / ".git" in
+  if Sys.file_exists !!git_folder_or_file then
+    (* TODO: check that the contents of the '.git' look legit? *)
+    Some (Git_project, dir)
+  else None
+
+(*
+   Check for the presence of a special folder at the project root
+   such as '.hg'. This is imperfect and could be improved if needed.
+*)
+let is_project_with_special_dir kind special_dir_name dir =
+  let special_dir = !!(dir / special_dir_name) in
+  if Sys.file_exists special_dir && Sys.is_directory special_dir then
+    Some (kind, dir)
+  else None
+
+let is_mercurial_project_root =
+  is_project_with_special_dir Mercurial_project ".hg"
+
+let is_darcs_project_root = is_project_with_special_dir Darcs_project "_darcs"
+
+let is_subversion_project_root =
+  is_project_with_special_dir Subversion_project ".svn"
+
 (* alt: use 'git rev-parse --show-toplevel' but this would be git specific
  * and would require to have an external 'git' program.
  *)
 let get_project_root_of_fpath_opt (path : Fpath.t) : (kind * Fpath.t) option =
-  let candidates =
+  let candidates : (Fpath.t -> (kind * Fpath.t) option) list =
     [
-      (".git", Git_project);
-      (".hg", Mercurial_project);
-      ("_darcs", Darcs_project);
-      (".svn", Subversion_project);
+      is_git_project_root;
+      is_mercurial_project_root;
+      is_darcs_project_root;
+      is_subversion_project_root;
     ]
   in
   let rec aux dir =
     let res =
       candidates
-      |> List.find_map (fun (subdir, kind) ->
-             let final = !!(dir / subdir) in
-             if Sys.file_exists final && Sys.is_directory final then
-               Some (kind, dir)
-             else None)
+      |> List.find_map (fun is_xxx_project_root -> is_xxx_project_root dir)
     in
     match res with
     | Some x -> Some x
