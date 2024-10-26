@@ -32,7 +32,9 @@ let test_filter ?excludes:cli_patterns (files : F.t list) selection () =
       printf "--- Filtered files ---\n";
       let filter =
         Semgrepignore.create ?cli_patterns ~builtin_semgrepignore:Empty
-          ~exclusion_mechanism:Gitignore_and_semgrepignore ~project_root:root ()
+          ~exclusion_mechanism:
+            { use_gitignore_files = true; use_semgrepignore_files = true }
+          ~project_root:root ()
       in
       let error = ref false in
       selection

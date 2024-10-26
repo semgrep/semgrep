@@ -54,6 +54,7 @@ let find_targets_conf_of_t settings : Find_targets.conf =
     include_;
     max_target_bytes = settings.max_target_bytes;
     respect_gitignore = true;
+    respect_semgrepignore_files = true;
     baseline_commit = None;
     diff_depth = 0;
     always_select_explicit_targets = false;

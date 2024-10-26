@@ -18,7 +18,11 @@
    we have an extended syntax with sections.
 *)
 type builtin_semgrepignore = Empty | Semgrep_scan_legacy
-type exclusion_mechanism = Gitignore_and_semgrepignore | Only_semgrepignore
+
+type exclusion_mechanism = {
+  use_gitignore_files : bool;
+  use_semgrepignore_files : bool;
+}
 
 (*
    Initialize the data used to filter paths.

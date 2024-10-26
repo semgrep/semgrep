@@ -255,12 +255,12 @@ let get_targets conf (scanning_roots : Scanning_root.t list) =
            match (proj_kind : Project.kind) with
            | Git_project
            | Gitignore_project ->
-               Gitignore_and_semgrepignore
+               { use_gitignore_files = true; use_semgrepignore_files = true }
            | Mercurial_project
            | Subversion_project
            | Darcs_project
            | Other_project ->
-               Only_semgrepignore
+               { use_gitignore_files = false; use_semgrepignore_files = true }
          in
          let ign =
            Semgrepignore.create ~cli_patterns:conf.exclude

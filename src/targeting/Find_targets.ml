@@ -34,7 +34,7 @@ module Log = Log_targeting.Log
      files for a given language etc. If file system changes
      (i.e. git checkout), create a new TargetManager object
 
-     If respect_git_ignore is true then will only consider files that are
+     If respect_gitignore is true then will only consider files that are
      tracked or (untracked but not ignored) by git
 
      If git_baseline_commit is true then will only consider files that have
@@ -128,10 +128,8 @@ type conf = {
   *)
   include_ : string list option;
   max_target_bytes : int;
-  (* Whether or not follow what is specified in the .gitignore
-   * The .semgrepignore are always respected.
-   *)
   respect_gitignore : bool;
+  respect_semgrepignore_files : bool;
   always_select_explicit_targets : bool;
   explicit_targets : Explicit_targets.t;
   (* osemgrep-only: option
@@ -159,6 +157,7 @@ let default_conf : conf =
     *)
     max_target_bytes = 1000000;
     respect_gitignore = true;
+    respect_semgrepignore_files = true;
     always_select_explicit_targets = false;
     explicit_targets = Explicit_targets.empty;
     exclude_minified_files = false;
@@ -594,17 +593,22 @@ let setup_path_filters conf (project_roots : Project.roots) :
     project_roots
   in
   (* filter with .gitignore and .semgrepignore *)
-  let exclusion_mechanism =
+  let exclusion_mechanism : Semgrepignore.exclusion_mechanism =
     match kind with
     | Git_project
     | Gitignore_project ->
-        if conf.respect_gitignore then Semgrepignore.Gitignore_and_semgrepignore
-        else Semgrepignore.Only_semgrepignore
+        {
+          use_gitignore_files = conf.respect_gitignore;
+          use_semgrepignore_files = conf.respect_semgrepignore_files;
+        }
     | Mercurial_project
     | Subversion_project
     | Darcs_project
     | Other_project ->
-        Semgrepignore.Only_semgrepignore
+        {
+          use_gitignore_files = false;
+          use_semgrepignore_files = conf.respect_semgrepignore_files;
+        }
   in
   (* filter also the --include and --exclude from the CLI args
    * (the paths: exclude: include: in a rule are handled elsewhere, in

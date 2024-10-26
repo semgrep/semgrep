@@ -35,10 +35,14 @@ type conf = {
    *)
   include_ : string list option;
   max_target_bytes : int;
-  (* whether or not follow what is specified in the .gitignore
-   * TODO? what about .semgrepignore?
-   *)
+  (* Whether to respect what is specified in the '.gitignore' files
+     found in the project and extended by optional '.semgrepignore' files.
+     Note that Git supports other sources of gitignore patterns, making
+     this option confusing. *)
   respect_gitignore : bool;
+  (* Whether to respect or ignore the '.semgrepignore' files found
+     in the project. *)
+  respect_semgrepignore_files : bool;
   (* Language-specific filtering: CLI option '--scan-unknown-extensions'
      allows explicit targets (files on the command line) to bypass
      normal language detection.

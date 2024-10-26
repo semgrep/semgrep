@@ -95,6 +95,7 @@ val o_gitlab_sast_outputs : string list Cmdliner.Term.t
 val o_gitlab_secrets : bool Cmdliner.Term.t
 val o_gitlab_secrets_outputs : string list Cmdliner.Term.t
 val o_historical_secrets : bool Cmdliner.Term.t
+val o_ignore_semgrepignore_files : bool Cmdliner.Term.t
 val o_incremental_output : bool Cmdliner.Term.t
 val o_json : bool Cmdliner.Term.t
 val o_json_outputs : string list Cmdliner.Term.t
