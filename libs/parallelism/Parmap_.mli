@@ -1,4 +1,4 @@
-(* Capability aware wrapper over Parmap (and a few helpers) *)
+(* Capability and exception aware wrapper over Parmap (and a few helpers) *)
 
 exception Parmap_unhandled_children of (string * int) list
 (** List of children spawned by [Parmap] that were not awaited correctly by
@@ -70,6 +70,15 @@ val parmap :
       Result: 5
     ]}
 *)
+
+(* internal helper useful outside if you want to reproduce with
+ * List.map the semantic of Parmap_.parmap()
+ *)
+val wrap_result :
+  ('a -> 'b) ->
+  exception_handler:('a -> Exception.t -> 'err) ->
+  'a ->
+  ('b, 'err) result
 
 val disable_core_pinning : unit -> unit
 

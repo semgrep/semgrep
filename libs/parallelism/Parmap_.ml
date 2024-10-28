@@ -40,10 +40,31 @@ let () =
           Some (Printf.sprintf "Parmap_unhandled_children([%s])" tuples)
       | _ -> None)
 
+(* alt: use Logs src in Parmap code? *)
 let debugging = Parmap.debugging
 
 let default_exception_handler (_x : 'a) (e : Exception.t) =
   Exception.to_string e
+
+let wrap_result f ~exception_handler x =
+  try Ok (f x) with
+  | exn ->
+      let e = Exception.catch exn in
+      (* From marshal.mli in the OCaml stdlib:
+       *  "Values of extensible variant types, for example exceptions (of
+       *  extensible type [exn]), returned by the unmarshaller should not be
+       *  pattern-matched over through [match ... with] or [try ... with],
+       *  because unmarshalling does not preserve the information required for
+       *  matching their constructors. Structural equalities with other
+       *  extensible variant values does not work either.  Most other uses such
+       *  as Printexc.to_string, will still work as expected."
+       *)
+      (* Because of this we cannot just catch the exception here and return
+         it, as then it won't be super usable. Instead we ask the user of the
+         library to handle it in the process, since then they can pattern
+         match on it. They can choose to convert it to a string, a different
+         datatype etc. *)
+      Error (exception_handler x e)
 
 let parmap _caps ?init ?finalize ~ncores ~chunksize ~exception_handler f xs =
   (* Why do this? The nanny state doesn't trust you to to use parmap AND catch
@@ -53,26 +74,7 @@ let parmap _caps ?init ?finalize ~ncores ~chunksize ~exception_handler f xs =
      of your [f] is almost certainly not [exn]. So what we do here is catch all
      exceptions and return a result instead, meaning parmap will ALWAYS receive
      the correct marshaled data type *)
-  let f' x =
-    try Ok (f x) with
-    | exn ->
-        let e = Exception.catch exn in
-        (* From marshal.mli in the OCaml stdlib:
-         *  "Values of extensible variant types, for example exceptions (of
-         *  extensible type [exn]), returned by the unmarshaller should not be
-         *  pattern-matched over through [match ... with] or [try ... with],
-         *  because unmarshalling does not preserve the information required for
-         *  matching their constructors. Structural equalities with other
-         *  extensible variant values does not work either.  Most other uses such
-         *  as Printexc.to_string, will still work as expected."
-         *)
-        (* Because of this we cannot just catch the exception here and return
-           it, as then it won't be super usable. Instead we ask the user of the
-           library to handle it in the process, since then they can pattern
-           match on it. They can choose to convert it to a string, a different
-           datatype etc. *)
-        Error (exception_handler x e)
-  in
+  let f' x = wrap_result f ~exception_handler x in
   let finally () =
     (* Parmap doesn't handle its child processes that well, and so if they exit
        abnormally (e.g. segfault) then we have to clean up its mess.

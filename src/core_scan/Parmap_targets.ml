@@ -48,10 +48,6 @@ let sort_code_targets_by_decreasing_size (targets : Target.regular list) :
         * instead of ascending, order *)
        (Fun.flip Int.compare)
 
-(* Helper to make all the results from a simple n=1 job similar to parmap's
-   result *)
-let wrap_with_ok (f : 'b -> 'a) (x : 'b) : ('a, 'c) result = Ok (f x)
-
 let core_error_of_path_exc (internal_path : Fpath.t) (e : Exception.t) :
     Core_error.t =
   let exn = Exception.get_exn e in
@@ -123,7 +119,23 @@ let map_targets__run_in_forked_process_do_not_modify_globals caps (ncores : int)
      the two modes, we always sort the target queue in the same way.
   *)
   let targets = sort_targets_by_decreasing_size targets in
-  if ncores <= 1 then List_.map (wrap_with_ok f) targets
+
+  (* Default to core_error and the target here since that's what's most
+     usefule in Core_scan. Maybe we should instead pass this as a parameter? *)
+  let exception_handler (x : Target.t) (e : Exception.t) :
+      Target.t * Core_error.t =
+    let internal_path = Target.internal_path x in
+    (x, core_error_of_path_exc internal_path e)
+  in
+
+  (* old:
+   *    if ncores <= 1 then List_.map (fun x -> Ok (f x)) targets else ( ... )
+   * But this was wrong because 'f' can throw exns and so we would
+   * get a different semantic when ncores > 1 where we capture exns hence
+   * the use of wrap_result below.
+   *)
+  if ncores <= 1 then
+    targets |> List_.map (fun x -> Parmap_.wrap_result f ~exception_handler x)
   else (
     (*
        Parmap creates ncores children processes which listen for
@@ -147,21 +159,12 @@ let map_targets__run_in_forked_process_do_not_modify_globals caps (ncores : int)
      * this issue until this is fixed in a future version of Parmap.
      *)
     Parmap_.disable_core_pinning ();
-    assert (ncores > 0);
     (* TODO: port this functionality to Logs:
        let init _ = Logging.add_PID_tag () in
     *)
     Logs.debug (fun m ->
         m "running parmap with %d cores on %d targets" ncores
           (List.length targets));
-    (* Default to core_error and the target here since that's what's most
-       usefule in Core_scan. Maybe we should instead pass this as a
-       parameter? *)
-    let exception_handler (x : Target.t) (e : Exception.t) :
-        Target.t * Core_error.t =
-      let internal_path = Target.internal_path x in
-      (x, core_error_of_path_exc internal_path e)
-    in
     (* We must pause tracing here as forking with tracing on causes segfaults.
        See comments on this function in Tracing.ml *)
     Tracing.with_tracing_paused (fun () ->
@@ -176,22 +179,21 @@ let map_regular_targets__run_in_forked_process_do_not_modify_globals caps
     (ncores : int) (f : Target.regular -> 'a) (targets : Target.regular list) :
     ('a, Core_error.t) result list =
   let targets = sort_code_targets_by_decreasing_size targets in
-  if ncores <= 1 then List_.map (wrap_with_ok f) targets
+  (* Default to core_error here. Maybe we should instead pass this as a param? *)
+  let exception_handler
+      ({ path = { internal_path_to_content; _ }; _ } : Target.regular)
+      (e : Exception.t) : Core_error.t =
+    core_error_of_path_exc internal_path_to_content e
+  in
+  if ncores <= 1 then
+    targets |> List_.map (fun x -> Parmap_.wrap_result f ~exception_handler x)
   else (
     Parmap_.disable_core_pinning ();
-    assert (ncores > 0);
     Logs.debug (fun m ->
         m "running parmap with %d cores on %d targets" ncores
           (List.length targets));
-    (* Default to core_error here. Maybe we should instead pass this as a
-       parameter? *)
-    let exception_handler
-        ({ path = { internal_path_to_content; _ }; _ } : Target.regular)
-        (e : Exception.t) : Core_error.t =
-      core_error_of_path_exc internal_path_to_content e
-    in
     (* We must pause tracing here as forking with tracing on causes segfaults.
        See comments on this function in Tracing.ml *)
-    Tracing.with_tracing_paused @@ fun () ->
-    Parmap_.parmap caps ~init ~finalize ~ncores ~chunksize:1 ~exception_handler
-      f targets)
+    Tracing.with_tracing_paused (fun () ->
+        Parmap_.parmap caps ~init ~finalize ~ncores ~chunksize:1
+          ~exception_handler f targets))
