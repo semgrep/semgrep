@@ -170,7 +170,7 @@ let error str v pos env =
   let t = mk_tok pos (p_token v) env in
   raise (Parsing_error.Other_error (str, t))
 
-let get_res file = function
+let get_res (file : Fpath.t) = function
   | Result.Error (`Msg str) ->
       let loc = Tok.first_loc_of_file file in
       let tok = Tok.tok_of_loc loc in
@@ -184,7 +184,7 @@ let do_parse env =
       let prefix, tok =
         match env.last_event with
         | None ->
-            let loc = Tok.first_loc_of_file !!(env.file) in
+            let loc = Tok.first_loc_of_file env.file in
             ("(incorrect error location) ", Tok.tok_of_loc loc)
         | Some (v, pos) ->
             ( "(approximate error location; error nearby after) ",
@@ -631,7 +631,7 @@ let parse_yaml_file ~is_target (file : Fpath.t) str =
   let bytepos_to_pos =
     Some (Pos.full_converters_large !!file).bytepos_to_linecol_fun
   in
-  let parser = get_res !!file (S.parser str) in
+  let parser = get_res file (S.parser str) in
   let env =
     {
       file;
@@ -651,7 +651,7 @@ let parse_yaml_file ~is_target (file : Fpath.t) str =
 let any str =
   let file = Fpath.v "<pattern_file>" in
   let str = preprocess_yaml (mask_unicode str) in
-  let parser = get_res !!file (S.parser str) in
+  let parser = get_res file (S.parser str) in
   let env =
     {
       file;

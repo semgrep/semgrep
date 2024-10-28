@@ -24,7 +24,7 @@ type linecol = { l : int; c : int } [@@deriving show, eq]
 (* Helpers *)
 (*****************************************************************************)
 
-val first_pos_of_file : string (* filename *) -> t
+val first_pos_of_file : Fpath.t -> t
 
 (* for error reporting *)
 val string_of_pos : t -> string

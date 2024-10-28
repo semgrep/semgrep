@@ -188,7 +188,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
   let per_files =
     matches
     |> List_.map (fun ({ pm; _ } : Core_result.processed_match) ->
-           (!!(pm.path.internal_path_to_content), pm))
+           (pm.path.internal_path_to_content, pm))
     |> Assoc.group_assoc_bykey_eff
   in
 
@@ -201,14 +201,14 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
   let new_matches =
     matches
     |> List_.exclude (fun ({ pm; _ } : Core_result.processed_match) ->
-           Hashtbl.mem offending_files !!(pm.path.internal_path_to_content))
+           Hashtbl.mem offending_files pm.path.internal_path_to_content)
   in
   let new_errors, new_skipped =
     offending_file_list
-    |> List_.map (fun file ->
+    |> List_.map (fun (file : Fpath.t) ->
            (* logging useful info for rule writers *)
            Logs.warn (fun m ->
-               m "too many matches on %s, generating exn for it" file);
+               m "too many matches on %s, generating exn for it" !!file);
            let sorted_offending_rules =
              let matches = List.assoc file per_files in
              matches
@@ -257,7 +257,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
                            max_match_per_file)
                     in
                     {
-                      Semgrep_output_v1_t.path = Fpath.v file;
+                      Semgrep_output_v1_t.path = file;
                       reason = Too_many_matches;
                       details;
                       rule_id = Some rule_id;
@@ -491,7 +491,7 @@ let log_critical_exn_and_last_rule () =
 let errors_of_timeout_or_memory_exn (exn : exn) (target : Target.t) : ESet.t =
   let internal_path = Target.internal_path target in
   let origin = Target.origin target in
-  let loc = Tok.first_loc_of_file !!internal_path in
+  let loc = Tok.first_loc_of_file internal_path in
   match exn with
   | Match_rules.File_timeout rule_ids ->
       Logs.warn (fun m -> m "Timeout on %s" (Origin.to_string origin));

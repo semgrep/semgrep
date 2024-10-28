@@ -401,7 +401,7 @@ let match_to_match (x : Core_result.processed_match) :
      *)
   with
   | Tok.NoTokenLocation s ->
-      let loc = Tok.first_loc_of_file !!(x.pm.path.internal_path_to_content) in
+      let loc = Tok.first_loc_of_file x.pm.path.internal_path_to_content in
       let s =
         spf "NoTokenLocation with pattern %s, %s" x.pm.rule_id.pattern_string s
       in

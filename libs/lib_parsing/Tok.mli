@@ -91,10 +91,10 @@ val tok_of_loc : location -> t
 val make : str:string -> file:Fpath.t -> bytepos:int -> t
 
 (* the token will be empty, but its pos will be the beginning of the file *)
-val first_tok_of_file : string (* filename *) -> t
+val first_tok_of_file : Fpath.t -> t
 
 (* similar, the location will be empty *)
-val first_loc_of_file : string (* filename *) -> location
+val first_loc_of_file : Fpath.t -> location
 
 (* used mainly by tree-sitter based parsers in semgrep.
  * [combine_toks t1 ts] will return a token where t1::ts

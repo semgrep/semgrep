@@ -80,7 +80,7 @@ let make ?(line = -1) ?(column = -1) file bytepos =
 (* Helpers *)
 (*****************************************************************************)
 
-let first_pos_of_file file = make ~line:1 ~column:0 (Fpath.v file) 0
+let first_pos_of_file file = make ~line:1 ~column:0 file 0
 
 (* for error reporting *)
 let string_of_pos { file; line; column; _ } = spf "%s:%d:%d" !!file line column

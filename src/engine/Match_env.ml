@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open Fpath_.Operators
 module E = Core_error
 module OutJ = Semgrep_output_v1_t
 module PM = Pattern_match
@@ -82,9 +81,7 @@ let error (env : env) msg =
   (* We are not supposed to report errors in the config file for several reasons
    * (one being that it's often a temporary file anyways), so we report them on
    * the target file. *)
-  let loc =
-    Tok.first_loc_of_file !!(env.xtarget.path.internal_path_to_content)
-  in
+  let loc = Tok.first_loc_of_file env.xtarget.path.internal_path_to_content in
   (* TODO: warning or error? MatchingError or ... ? *)
   let err =
     E.mk_error ~rule_id:(fst env.rule.id) ~msg ~loc OutJ.MatchingError

@@ -41,7 +41,7 @@ type timeout_config = { timeout : float; threshold : int; caps : < Cap.alarm > }
 (* Helpers *)
 (*****************************************************************************)
 
-let timeout_function (rule : Rule.t) (file : string)
+let timeout_function (rule : Rule.t) (file : Fpath.t)
     (timeout : timeout_config option) f =
   let timeout =
     match timeout with
@@ -59,7 +59,7 @@ let timeout_function (rule : Rule.t) (file : string)
       Log.err (fun m ->
           m "timeout for rule %s on file %s"
             (Rule_ID.to_string (fst rule.id))
-            file);
+            !!file);
       None
 
 let is_relevant_rule_for_xtarget r xconf xtarget =
@@ -130,7 +130,7 @@ let group_rules xconf rules xtarget =
 let per_rule_boilerplate_fn (timeout : timeout_config option) =
   let cnt_timeout = ref 0 in
   let rule_timeouts = ref [] in
-  fun (file : string) (rule : Rule.t) f ->
+  fun (file : Fpath.t) (rule : Rule.t) f ->
     let rule_id = fst rule.R.id in
     Rule.last_matched_rule := Some rule_id;
     let res_opt =
@@ -202,7 +202,7 @@ let check
       Lazy.force lazy_ast_and_errors |> ignore
   | _else_ -> ());
 
-  let per_rule_boilerplate_fn = per_rule_boilerplate_fn timeout !!file in
+  let per_rule_boilerplate_fn = per_rule_boilerplate_fn timeout file in
 
   (* We separate out the taint rules specifically, because we may want to
      do some rule-wide optimizations, which require analyzing more than

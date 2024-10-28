@@ -1927,7 +1927,7 @@ let partials (env : env) (x : CST.partials) =
 let program (env : env) (file : Fpath.t) (x : CST.program) =
   match x with
   | `Rep_stmt xs ->
-      let tok = Tok.first_tok_of_file !!file in
+      let tok = Tok.first_tok_of_file file in
       AProgram (List_.map (statement env ~tok) xs)
   | `Cons_decl x -> AStmt (DeclStmt (Method (constructor_declaration env x)))
   | `Exp x -> AExpr (expression env x)
