@@ -144,6 +144,18 @@ let propagate_through_indexes env =
 (* Helpers *)
 (*****************************************************************************)
 
+let log_timeout_warning config opt_name timeout =
+  match timeout with
+  | `Ok -> ()
+  | `Timeout ->
+      (* nosemgrep: no-logs-in-library *)
+      Logs.warn (fun m ->
+          m
+            "Fixpoint timeout while performing taint analysis [rule: %s file: \
+             %s func: %s]"
+            (Rule_ID.to_string config.rule_id)
+            config.filepath (opt_name ||| "???"))
+
 let map_check_expr env check_expr xs =
   let rev_taints_and_shapes, lval_env =
     xs
@@ -590,7 +602,7 @@ let effects_of_call_func_arg fun_exp fun_shape args_taints =
   | S.Arg fun_arg ->
       [ Effect.ToSinkInCall { callee = fun_exp; arg = fun_arg; args_taints } ]
   | __else__ ->
-      Log.warn (fun m ->
+      Log.debug (fun m ->
           m "Function (?) %s has shape %s"
             (Display_IL.string_of_exp fun_exp)
             (S.show_shape fun_shape));
@@ -1883,11 +1895,12 @@ let (fixpoint :
   in
   (* THINK: Why I cannot just update mapping here ? if I do, the mapping gets overwritten later on! *)
   (* DataflowX.display_mapping flow init_mapping show_tainted; *)
-  let end_mapping =
+  let end_mapping, timeout =
     DataflowX.fixpoint ~timeout:Limits_semgrep.taint_FIXPOINT_TIMEOUT
       ~eq_env:Lval_env.equal ~init:init_mapping ~trans:(transfer env ~flow)
       ~forward:true ~flow
   in
+  log_timeout_warning config opt_name timeout;
   let exit_lval_env = end_mapping.(flow.exit).D.out_env in
   effects_from_arg_updates_at_exit enter_lval_env exit_lval_env
   |> record_effects env;

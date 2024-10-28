@@ -213,7 +213,7 @@ and find_in_shape offset shape =
   | Obj obj -> find_in_obj offset obj
   | Arg _ ->
       (* TODO: Here we should "refine" the arg shape, it should be an Obj shape. *)
-      Log.warn (fun m ->
+      Log.debug (fun m ->
           m "Could not find offset %s in polymorphic shape %s"
             (debug_offset offset) (show_shape shape));
       None

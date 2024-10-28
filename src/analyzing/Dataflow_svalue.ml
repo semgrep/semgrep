@@ -413,11 +413,17 @@ let transfer :
 let (fixpoint : Lang.t -> IL.fdef_cfg -> mapping) =
  fun lang { fparams = _; fcfg = flow } ->
   let enter_env = VarMap.empty in
-  DataflowX.fixpoint ~timeout:Limits_semgrep.svalue_prop_FIXPOINT_TIMEOUT
-    ~eq_env:(Var_env.eq_env Eval.eq)
-    ~init:(DataflowX.new_node_array flow (Var_env.empty_inout ()))
-    ~trans:(transfer ~lang ~enter_env ~flow) (* svalue is a forward analysis! *)
-    ~forward:true ~flow
+  let mapping, timeout =
+    DataflowX.fixpoint ~timeout:Limits_semgrep.svalue_prop_FIXPOINT_TIMEOUT
+      ~eq_env:(Var_env.eq_env Eval.eq)
+      ~init:(DataflowX.new_node_array flow (Var_env.empty_inout ()))
+      ~trans:(transfer ~lang ~enter_env ~flow)
+        (* svalue is a forward analysis! *)
+      ~forward:true ~flow
+  in
+  if timeout =*= `Timeout then
+    Log.warn (fun m -> m "Fixpoint timeout while performing svalue-propagation");
+  mapping
 
 let update_svalue (flow : F.cfg) mapping =
   flow.graph#nodes#keys

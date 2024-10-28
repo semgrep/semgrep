@@ -138,14 +138,12 @@ module Make (F : Flow) = struct
   let fixpoint_worker ~timeout eq_env mapping trans flow succs workset =
     let t0 = Sys.time () in
     let rec loop work =
-      if NodeiSet.is_empty work then mapping
+      if NodeiSet.is_empty work then (mapping, `Ok)
       else
         (* 'Time_limit.set_timeout' cannot be nested and we want to make sure that
          * fixpoint computations run for a limited amount of time. *)
         let t1 = Sys.time () in
-        if t1 -. t0 >= timeout then (
-          Log.err (fun m -> m "fixpoint_worker timed out");
-          mapping)
+        if t1 -. t0 >= timeout then (mapping, `Timeout)
         else
           let ni = NodeiSet.choose work in
           let work' = NodeiSet.remove ni work in
@@ -178,7 +176,7 @@ module Make (F : Flow) = struct
         trans:'env transfn ->
         flow:F.flow ->
         forward:bool ->
-        'env mapping) =
+        'env mapping * [ `Ok | `Timeout ]) =
    fun ~timeout ~eq_env ~init ~trans ~flow ~forward ->
     let succs = if forward then forward_succs else backward_succs in
     let work =

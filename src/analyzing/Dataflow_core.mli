@@ -48,7 +48,7 @@ module Make (F : Flow) : sig
     trans:'env transfn ->
     flow:F.flow ->
     forward:bool ->
-    'env mapping
+    'env mapping * [ `Ok | `Timeout ]
 
   val new_node_array : F.flow -> 'a -> 'a array
 

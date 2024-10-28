@@ -38,6 +38,7 @@ let locate ?tok s =
   | Some loc -> spf "%s: %s" loc s
   | None -> s
 
+let log_debug ?tok msg = Log.debug (fun m -> m "%s" (locate ?tok msg))
 let log_warning ?tok msg = Log.warn (fun m -> m "%s" (locate ?tok msg))
 let log_error ?tok msg = Log.err (fun m -> m "%s" (locate ?tok msg))
 
@@ -137,7 +138,7 @@ let var_of_id_info id id_info =
     | None ->
         let id_str, id_tok = id in
         let msg = spf "the ident '%s' is not resolved" id_str in
-        log_warning ~tok:id_tok msg;
+        log_debug ~tok:id_tok msg;
         G.SId.unsafe_default
   in
   { ident = id; sid; id_info }
