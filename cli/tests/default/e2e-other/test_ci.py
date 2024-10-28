@@ -444,6 +444,11 @@ def enable_dependency_query() -> bool:
     return False
 
 
+@pytest.fixture
+def always_suppress_errors(mocker):
+    mocker.patch.object(ScanHandler, "always_suppress_errors", False)
+
+
 # Defining these fixtures to return functions allows the hostname (SEMGREP_URL) to be set for each test,
 # permitting tests that use different base URLs to succeed using these mocks.
 @pytest.fixture
@@ -2818,3 +2823,48 @@ def test_existing_reachable_finding_deduplication(
     )
     findings_json = upload_results_mock.last_request.json()
     assert len(findings_json["findings"]) == 0
+
+
+@pytest.mark.parametrize("always_suppress_errors", [True, False], indirect=True)
+@pytest.mark.parametrize(
+    "scan_config",
+    [
+        dedent(
+            """
+        rules:
+        - id: eqeq-bad
+          pattern: $X == $X
+          message: "useless comparison"
+          languages: [python]
+          severity: ERROR
+          metadata:
+            source: https://semgrep.dev/r/eqeq-bad
+        - id: pattern-parse-error
+          pattern: $X ==
+          message: "useless comparison to 5"
+          languages: [python]
+          severity: ERROR
+     """
+        )
+    ],
+)
+@pytest.mark.osemfail
+def test_always_suppress_errors(
+    run_semgrep: RunSemgrep,
+    snapshot,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
+    always_suppress_errors,
+):
+    start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
+
+    result = run_semgrep(
+        options=["ci", "--oss-only", "--no-suppress-errors"],
+        strict=False,
+        assert_exit_code=0 if always_suppress_errors else 2,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,
+    )

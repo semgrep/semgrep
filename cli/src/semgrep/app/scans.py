@@ -82,6 +82,15 @@ class ScanHandler:
         return None
 
     @property
+    def always_suppress_errors(self) -> bool:
+        """
+        Separate property for easy of mocking in test
+        """
+        if self.scan_response:
+            return self.scan_response.engine_params.always_suppress_errors
+        return False
+
+    @property
     def deployment_id(self) -> Optional[int]:
         """
         Separate property for easy of mocking in test

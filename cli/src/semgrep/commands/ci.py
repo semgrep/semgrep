@@ -356,6 +356,10 @@ def ci(
         else:  # impossible state… until we break the code above
             raise RuntimeError("The token and/or config are misconfigured")
 
+        # For account admins to force suppressing errors. This overrides the CLI flag!
+        if scan_handler and scan_handler.always_suppress_errors:
+            state.error_handler.configure(suppress_errors=True)
+
         metadata = generate_meta_from_environment(baseline_commit, subdir)
 
         console.print(Title("Debugging Info"))
