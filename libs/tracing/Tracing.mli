@@ -96,13 +96,23 @@ val trace_data_only :
 (*****************************************************************************)
 
 val configure_tracing :
-  ?env:string -> ?version:string -> string -> Uri.t -> unit
-(** [configure_tracing service_name tracing_endpoint] Before instrumenting
-    anything, configure some settings. This should only be run once in a
-    program, because it creates a backend with threads, HTTP connections, etc.
-    when called. NOTE: this will set the active trace endpoint to whatever is
-    passed. This endpoint will be used when restarting tracing via
-    [restart_tracing] *)
+  ?attrs:(string * user_data) list ->
+  ?env:string ->
+  ?version:string ->
+  string ->
+  Uri.t ->
+  unit
+(** [configure_tracing ~env:"prod" ~version:"v1.0.0" service_name
+    tracing_endpoint] Before instrumenting anything, configure some settings.
+    This should only be run once in a program, because it creates a backend with
+    threads, HTTP connections, etc. when called. [~env] is the environment (e.g.
+    production, staging, development). [~version] is the version of the service.
+    [service_name] is the name of the service. [~attrs] can be used to set
+    additional global attributes, which are tags that will be applied to all
+    outgoing traces/metrics/logs etc.
+
+    NOTE: this will set the active trace endpoint to whatever is passed. This
+    endpoint will be used when restarting tracing via [restart_tracing] *)
 
 val stop_tracing : unit -> unit
 (** [stop_tracing ()] explicitly shuts down the Otel collector. If tracing has

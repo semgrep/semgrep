@@ -856,8 +856,11 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
                 Trace_data.get_top_level_data config.ncores Version.version
                   (Trace_data.no_analysis_features ())
               in
-              Tracing.configure_tracing ?env:tracing.env
-                ~version:Version.version "semgrep-oss" tracing.endpoint;
+              Tracing.configure_tracing
+              (* Let's make sure all traces/logs/metrics etc. are tagged as coming from the pro invocation *)
+                ~attrs:[ ("engine", `String "oss") ]
+                ?env:tracing.env ~version:Version.version "semgrep-core"
+                tracing.endpoint;
               Tracing.with_tracing "Core_command.semgrep_core_dispatch"
                 trace_data (fun span_id ->
                   let tracing =

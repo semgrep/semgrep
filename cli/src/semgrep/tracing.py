@@ -13,6 +13,8 @@ from opentelemetry import propagate
 from opentelemetry import trace as otrace
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
+from opentelemetry.sdk.resources import OTELResourceDetector
+from opentelemetry.sdk.resources import ProcessResourceDetector
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.resources import SERVICE_NAME
 from opentelemetry.sdk.resources import SERVICE_VERSION
@@ -60,13 +62,16 @@ class Traces:
             _DEFAULT_ENDPOINT if trace_endpoint is None else trace_endpoint
         )
         resource = Resource(
+            [ProcessResourceDetector(), OTELResourceDetector()],  # type: ignore
             attributes={
                 SERVICE_NAME: "semgrep-cli",
                 SERVICE_VERSION: __VERSION__,
                 "deployment.environment.name": env_name if env_name else "prod",
-            }
+            },
         )
+
         tracer_provider = TracerProvider(resource=resource)
+
         otrace.set_tracer_provider(tracer_provider)
 
         endpoint = (
@@ -75,8 +80,10 @@ class Traces:
             else _DEFAULT_ENDPOINT
         )
         exporter = OTLPSpanExporter(endpoint + "/v1/traces")
+
         processor = BatchSpanProcessor(exporter)
         tracer_provider.add_span_processor(processor)
+
         RequestsInstrumentor().instrument()
 
         self.extract()

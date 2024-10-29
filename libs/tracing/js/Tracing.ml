@@ -89,8 +89,9 @@ let trace_data_only ?(level = Info) ~__FUNCTION__ ~__FILE__ ~__LINE__ _name
 let stop_tracing () = ()
 let restart_tracing () = ()
 
-let configure_tracing ?(env = "") ?(version = "") (_service_name : string)
-    (_endpoint : Uri.t) =
+let configure_tracing ?(attrs = []) ?(env = "") ?(version = "")
+    (_service_name : string) (_endpoint : Uri.t) =
+  ignore attrs;
   ignore env;
   ignore version;
   ()
