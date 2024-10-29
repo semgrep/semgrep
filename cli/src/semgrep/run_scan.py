@@ -246,6 +246,7 @@ def run_rules(
     with_code_rules: bool = True,
     with_supply_chain: bool = False,
     allow_dynamic_dependency_resolution: bool = False,
+    prioritize_dependency_graph_generation: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -279,6 +280,7 @@ def run_rules(
         ) = resolve_subprojects(
             target_manager,
             allow_dynamic_resolution=allow_dynamic_dependency_resolution,
+            prioritize_dependency_graph_generation=prioritize_dependency_graph_generation,
         )
 
         # Filter rules that match the dependencies
@@ -329,6 +331,7 @@ def run_rules(
                 rule.raw,
                 [target.path for target in target_manager.targets],
                 allow_dynamic_dependency_resolution=allow_dynamic_dependency_resolution,
+                prioritize_dependency_graph_generation=prioritize_dependency_graph_generation,
             )
             join_rule_matches_set = RuleMatches(rule)
             for m in join_rule_matches:
@@ -497,6 +500,7 @@ def run_scan(
     allow_dynamic_dependency_resolution: bool = False,
     dump_n_rule_partitions: Optional[int] = None,
     dump_rule_partitions_dir: Optional[Path] = None,
+    prioritize_dependency_graph_generation: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -768,6 +772,7 @@ def run_scan(
         with_code_rules=with_code_rules,
         with_supply_chain=with_supply_chain,
         allow_dynamic_dependency_resolution=allow_dynamic_dependency_resolution,
+        prioritize_dependency_graph_generation=prioritize_dependency_graph_generation,
     )
     profiler.save("core_time", core_start_time)
     semgrep_errors: List[SemgrepError] = config_errors + scan_errors
@@ -872,6 +877,7 @@ def run_scan(
                         disable_secrets_validation,
                         baseline_target_mode_config,
                         allow_dynamic_dependency_resolution=allow_dynamic_dependency_resolution,
+                        prioritize_dependency_graph_generation=prioritize_dependency_graph_generation,
                     )
                     rule_matches_by_rule = remove_matches_in_baseline(
                         rule_matches_by_rule,

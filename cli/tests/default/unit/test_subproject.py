@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
@@ -37,7 +38,10 @@ class TestFindClosestSubproject:
             root_dir=Path("a/b/c"),
             dependency_source=LockfileDependencySource(
                 lockfile_path=lockfile_path,
-                manifest_path=Path("a/b/c/requirements.in"),
+                manifest=(
+                    out.ManifestKind(value=out.RequirementsIn()),
+                    Path("a/b/c/requirements.in"),
+                ),
                 package_manager_type=PackageManagerType.PIP,
             ),
             found_dependencies=ResolvedDependencies.from_found_dependencies([]),
@@ -49,7 +53,10 @@ class TestFindClosestSubproject:
                 root_dir=Path("a/b"),
                 dependency_source=LockfileDependencySource(
                     lockfile_path=extra_lockfile_path,
-                    manifest_path=Path("a/b/requirements.in"),
+                    manifest=(
+                        out.ManifestKind(value=out.RequirementsIn()),
+                        Path("a/b/requirements.in"),
+                    ),
                     package_manager_type=PackageManagerType.PIP,
                 ),
                 found_dependencies=ResolvedDependencies.from_found_dependencies([]),
@@ -78,7 +85,10 @@ class TestFindClosestSubproject:
             root_dir=Path("a/b"),
             dependency_source=LockfileDependencySource(
                 lockfile_path=lockfile_path,
-                manifest_path=Path("a/b/build.gradle"),
+                manifest=(
+                    out.ManifestKind(value=out.BuildGradle()),
+                    Path("a/b/build.gradle"),
+                ),
                 package_manager_type=PackageManagerType.GRADLE,
             ),
             found_dependencies=ResolvedDependencies.from_found_dependencies([]),
@@ -90,7 +100,10 @@ class TestFindClosestSubproject:
                 root_dir=Path("a/b/c"),
                 dependency_source=LockfileDependencySource(
                     lockfile_path=extra_lockfile_path,
-                    manifest_path=Path("a/b/c/requirements.in"),
+                    manifest=(
+                        out.ManifestKind(value=out.RequirementsIn()),
+                        Path("a/b/c/requirements.in"),
+                    ),
                     package_manager_type=PackageManagerType.PIP,
                 ),
                 found_dependencies=ResolvedDependencies.from_found_dependencies([]),
@@ -126,7 +139,10 @@ class TestSubproject:
             root_dir=Path("a/b/c"),
             dependency_source=LockfileDependencySource(
                 lockfile_path=lockfile_path,
-                manifest_path=Path("a/b/c/requirements.in"),
+                manifest=(
+                    out.ManifestKind(value=out.RequirementsIn()),
+                    Path("a/b/c/requirements.in"),
+                ),
                 package_manager_type=PackageManagerType.PIP,
             ),
             resolution_method=ResolutionMethod.LOCKFILE_PARSING,
@@ -175,12 +191,12 @@ class TestSubproject:
             sources=(
                 LockfileDependencySource(
                     lockfile_path=lockfile_path,
-                    manifest_path=None,
+                    manifest=(out.ManifestKind(value=out.RequirementsIn()), None),
                     package_manager_type=PackageManagerType.PIP,
                 ),
                 LockfileDependencySource(
                     lockfile_path=extra_lockfile_path,
-                    manifest_path=None,
+                    manifest=(out.ManifestKind(value=out.RequirementsIn()), None),
                     package_manager_type=PackageManagerType.PIP,
                 ),
             )
@@ -226,7 +242,10 @@ class TestSubproject:
             root_dir=Path("a/b/c"),
             dependency_source=LockfileDependencySource(
                 lockfile_path=lockfile_path,
-                manifest_path=Path("a/b/c/requirements.in"),
+                manifest=(
+                    out.ManifestKind(value=out.RequirementsIn()),
+                    Path("a/b/c/requirements.in"),
+                ),
                 package_manager_type=PackageManagerType.PIP,
             ),
             resolution_method=ResolutionMethod.LOCKFILE_PARSING,
@@ -255,7 +274,7 @@ class TestLockfileDependencySource:
 
         source = LockfileDependencySource(
             lockfile_path=lockfile_path,
-            manifest_path=None,
+            manifest=(out.ManifestKind(value=out.RequirementsIn()), None),
             package_manager_type=PackageManagerType.PIP,
         )
 
@@ -274,12 +293,12 @@ class TestMultiLockfileDependencySource:
             sources=(
                 LockfileDependencySource(
                     lockfile_path=lockfile_path,
-                    manifest_path=None,
+                    manifest=(out.ManifestKind(value=out.RequirementsIn()), None),
                     package_manager_type=PackageManagerType.PIP,
                 ),
                 LockfileDependencySource(
                     lockfile_path=extra_lockfile_path,
-                    manifest_path=None,
+                    manifest=(out.ManifestKind(value=out.RequirementsIn()), None),
                     package_manager_type=PackageManagerType.PIP,
                 ),
             )

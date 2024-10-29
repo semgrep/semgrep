@@ -127,6 +127,19 @@ class ScanHandler:
         return False
 
     @property
+    def prioritize_dependency_graph_generation(self) -> bool:
+        """
+        Separate property for easy of mocking in test
+
+        If path to transitivity has been enabled for a deployment, default dependency resolution
+        will be overridden and the CLI will attempt to generate a dependency graph for ecosystems
+        which graph generation has been implemented for.
+        """
+        if self.scan_response:
+            return self.scan_response.engine_params.path_to_transitivity
+        return False
+
+    @property
     def generic_slow_rollout(self) -> bool:
         """
         Separate property for easy of mocking in test

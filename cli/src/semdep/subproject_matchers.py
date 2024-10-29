@@ -1,6 +1,7 @@
 from abc import ABC
 from abc import abstractmethod
 from dataclasses import dataclass
+from dataclasses import field
 from fnmatch import fnmatch
 from pathlib import Path
 from typing import Dict
@@ -60,6 +61,7 @@ class LockfileManifestMatcher(SubprojectMatcher):
     Child classes must implement _is_manifest_match, _is_lockfile_match, _lockfile_to_manifest, and _get_subproject_root
     """
 
+    manifest_kind: out.ManifestKind
     package_manager_type: PackageManagerType
 
     @abstractmethod
@@ -147,8 +149,8 @@ class LockfileManifestMatcher(SubprojectMatcher):
                     (matching_manifest_path, lockfile_path)
                 )
             dep_source = LockfileDependencySource(
+                manifest=(self.manifest_kind, matching_manifest_path),
                 package_manager_type=self.package_manager_type,
-                manifest_path=matching_manifest_path,
                 lockfile_path=lockfile_path,
             )
             subprojects.append(
@@ -324,6 +326,9 @@ class PipRequirementsMatcher(SubprojectMatcher):
     manifest_file_extension: str
 
     default_manifest_file_base: str  # without extension
+    manifest_kind: out.ManifestKind = field(
+        default_factory=lambda: out.ManifestKind(value=out.RequirementsIn())
+    )
 
     def _is_requirements_match(self, path: Path) -> bool:
         for ext in self.requirements_file_extensions:
@@ -446,9 +451,9 @@ class PipRequirementsMatcher(SubprojectMatcher):
                     paired_manifests.add(matching_manifest_path)
                 lockfile_sources.append(
                     LockfileDependencySource(
+                        manifest=(self.manifest_kind, matching_manifest_path),
                         package_manager_type=PackageManagerType.PIP,
                         lockfile_path=req_path,
-                        manifest_path=matching_manifest_path,
                     )
                 )
 
@@ -487,45 +492,53 @@ MATCHERS: List[SubprojectMatcher] = [
         lockfile_name="package-lock.json",
         manifest_name="package.json",
         package_manager_type=PackageManagerType.NPM,
+        manifest_kind=out.ManifestKind(out.PackageJson()),
     ),
     ExactLockfileManifestMatcher(
         lockfile_name="yarn.lock",
         manifest_name="package.json",
         package_manager_type=PackageManagerType.YARN,
+        manifest_kind=out.ManifestKind(out.PackageJson()),
     ),
     ExactLockfileManifestMatcher(
         lockfile_name="pnpm-lock.yaml",
         manifest_name="package.json",
         package_manager_type=PackageManagerType.PNPM,
+        manifest_kind=out.ManifestKind(out.PackageJson()),
     ),
     # Gem
     ExactLockfileManifestMatcher(
         lockfile_name="Gemfile.lock",
         manifest_name="Gemfile",
         package_manager_type=PackageManagerType.RUBY_GEM,
+        manifest_kind=out.ManifestKind(out.Gemfile()),
     ),
     # Go modules
     ExactLockfileManifestMatcher(
         lockfile_name="go.mod",
         manifest_name="go.mod",
         package_manager_type=PackageManagerType.GO_MOD,
+        manifest_kind=out.ManifestKind(out.GoMod_()),
     ),
     # Cargo
     ExactLockfileManifestMatcher(
         lockfile_name="Cargo.lock",
         manifest_name="Cargo.toml",
         package_manager_type=PackageManagerType.CARGO,
+        manifest_kind=out.ManifestKind(out.CargoToml()),
     ),
     # Maven
     ExactLockfileManifestMatcher(
         lockfile_name="maven_dep_tree.txt",
         manifest_name="pom.xml",
         package_manager_type=PackageManagerType.MAVEN,
+        manifest_kind=out.ManifestKind(out.PomXml()),
     ),
     ExactLockfileManifestMatcher(
         lockfile_name="gradle.lockfile",
         manifest_name="build.gradle",
         package_manager_type=PackageManagerType.GRADLE,
+        manifest_kind=out.ManifestKind(out.BuildGradle()),
     ),
     ExactManifestOnlyMatcher(
         manifest_kind=out.ManifestKind(out.PomXml()),
@@ -540,42 +553,49 @@ MATCHERS: List[SubprojectMatcher] = [
         lockfile_name="composer.lock",
         manifest_name="composer.json",
         package_manager_type=PackageManagerType.COMPOSER,
+        manifest_kind=out.ManifestKind(out.ComposerJson()),
     ),
     # Nuget
     ExactLockfileManifestMatcher(
         lockfile_name="packages.lock.json",
         manifest_name="nuget.manifest.json",
         package_manager_type=PackageManagerType.NUGET,
+        manifest_kind=out.ManifestKind(out.NugetManifestJson()),
     ),
     # Pub
     ExactLockfileManifestMatcher(
         lockfile_name="pubspec.lock",
         manifest_name="pubspec.yaml",
         package_manager_type=PackageManagerType.DART_PUB,
+        manifest_kind=out.ManifestKind(out.PubspecYaml()),
     ),
     # Swift PM
     ExactLockfileManifestMatcher(
         lockfile_name="Package.resolved",
         manifest_name="Package.swift",
         package_manager_type=PackageManagerType.SWIFT_PM,
+        manifest_kind=out.ManifestKind(out.PackageSwift_()),
     ),
     # Hex
     ExactLockfileManifestMatcher(
         lockfile_name="mix.lock",
         manifest_name="mix.exs",
         package_manager_type=PackageManagerType.ELIXIR_HEX,
+        manifest_kind=out.ManifestKind(out.MixExs()),
     ),
     # Pipenv
     ExactLockfileManifestMatcher(
         lockfile_name="Pipfile.lock",
         manifest_name="Pipfile",
         package_manager_type=PackageManagerType.PIPENV,
+        manifest_kind=out.ManifestKind(out.Pipfile_()),
     ),
     # Poetry
     ExactLockfileManifestMatcher(
         lockfile_name="poetry.lock",
         manifest_name="pyproject.toml",
         package_manager_type=PackageManagerType.POETRY,
+        manifest_kind=out.ManifestKind(out.PyprojectToml_()),
     ),
 ]
 

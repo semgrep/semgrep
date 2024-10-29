@@ -7,6 +7,8 @@ from semgrep.rule import Rule
 from semgrep.run_scan import filter_dependency_aware_rules
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import ManifestKind
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Pipfile_
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.subproject import LockfileDependencySource
@@ -105,8 +107,8 @@ def sample_resolved_deps():
 
     # Create LockfileDependencySource
     dependency_source = LockfileDependencySource(
+        manifest=(ManifestKind(value=Pipfile_()), Path("Pipfile")),
         package_manager_type=PackageManagerType.PIP,
-        manifest_path=Path("Pipfile"),
         lockfile_path=Path("Pipfile.lock"),
     )
 

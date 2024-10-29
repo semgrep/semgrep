@@ -3,6 +3,7 @@ from typing import List
 
 import pytest
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.subproject_matchers import ExactLockfileManifestMatcher
 from semdep.subproject_matchers import filter_dependency_source_files
 from semdep.subproject_matchers import PatternLockfileMatcher
@@ -20,6 +21,7 @@ class TestExactLockfileMatcher:
             package_manager_type=PackageManagerType.PIPENV,
             lockfile_name="Pipfile.lock",
             manifest_name="Pipfile",
+            manifest_kind=out.ManifestKind(value=out.Pipfile_()),
         )
 
         assert matcher.is_match(Path("Pipfile.lock")) is True
@@ -32,6 +34,7 @@ class TestExactLockfileMatcher:
             package_manager_type=PackageManagerType.PIPENV,
             lockfile_name="Pipfile.lock",
             manifest_name="Pipfile",
+            manifest_kind=out.ManifestKind(value=out.Pipfile_()),
         )
 
         assert matcher.is_match(Path("Pipfile")) is True
@@ -52,6 +55,7 @@ class TestExactLockfileMatcher:
             lockfile_name="Pipfile.lock",
             manifest_name="Pipfile",
             package_manager_type=PackageManagerType.PIPENV,
+            manifest_kind=out.ManifestKind(value=out.Pipfile_()),
         )
 
         assert matcher.is_match(manifest_path)
@@ -66,10 +70,14 @@ class TestExactLockfileMatcher:
         assert subproject.root_dir == tmp_path
         assert isinstance(subproject.dependency_source, LockfileDependencySource)
         assert subproject.dependency_source.lockfile_path == lockfile_path
+        _, subproject_manifest_path = subproject.dependency_source.manifest or (
+            None,
+            None,
+        )
         if create_manifest:
-            assert subproject.dependency_source.manifest_path == manifest_path
+            assert subproject_manifest_path == manifest_path
         else:
-            assert subproject.dependency_source.manifest_path is None
+            assert subproject_manifest_path is None
 
 
 class TestPatternLockfileMatcher:
@@ -79,6 +87,7 @@ class TestPatternLockfileMatcher:
             lockfile_pattern="*requirements*.txt",
             manifest_name="requirements.in",
             package_manager_type=PackageManagerType.PIP,
+            manifest_kind=out.ManifestKind(value=out.RequirementsIn()),
         )
 
         # Basic cases
@@ -133,6 +142,7 @@ class TestPatternLockfileMatcher:
             lockfile_pattern="*requirements*.txt",
             manifest_name="requirements.in",
             package_manager_type=PackageManagerType.PIP,
+            manifest_kind=out.ManifestKind(value=out.RequirementsIn()),
         )
 
         # expect the matcher to create four subprojects, with or without manifests
@@ -148,14 +158,18 @@ class TestPatternLockfileMatcher:
         assert len(subprojects) == 4
         for subproject in subprojects:
             assert isinstance(subproject.dependency_source, LockfileDependencySource)
+            _, manifest_path = subproject.dependency_source.manifest or (
+                None,
+                None,
+            )
             expected_root, expected_manifest = test_data[
                 subproject.dependency_source.lockfile_path
             ]
             assert subproject.root_dir == expected_root
             if with_manifest:
-                assert subproject.dependency_source.manifest_path == expected_manifest
+                assert manifest_path == expected_manifest
             else:
-                assert subproject.dependency_source.manifest_path is None
+                assert manifest_path is None
 
 
 class TestRequirementsLockfileMatcher:
@@ -217,7 +231,10 @@ class TestRequirementsLockfileMatcher:
                         root_dir=Path(),
                         dependency_source=LockfileDependencySource(
                             package_manager_type=PackageManagerType.PIP,
-                            manifest_path=Path("requirements.in"),
+                            manifest=(
+                                out.ManifestKind(value=out.RequirementsIn()),
+                                Path("requirements.in"),
+                            ),
                             lockfile_path=Path("requirements.txt"),
                         ),
                     ),
@@ -225,7 +242,10 @@ class TestRequirementsLockfileMatcher:
                         root_dir=Path("a/b/c"),
                         dependency_source=LockfileDependencySource(
                             package_manager_type=PackageManagerType.PIP,
-                            manifest_path=Path("a/b/c/requirements.in"),
+                            manifest=(
+                                out.ManifestKind(value=out.RequirementsIn()),
+                                Path("a/b/c/requirements.in"),
+                            ),
                             lockfile_path=Path("a/b/c/requirements.txt"),
                         ),
                     ),
@@ -243,7 +263,10 @@ class TestRequirementsLockfileMatcher:
                         root_dir=Path(),
                         dependency_source=LockfileDependencySource(
                             package_manager_type=PackageManagerType.PIP,
-                            manifest_path=Path("requirements3.in"),
+                            manifest=(
+                                out.ManifestKind(value=out.RequirementsIn()),
+                                Path("requirements3.in"),
+                            ),
                             lockfile_path=Path("requirements3.txt"),
                         ),
                     ),
@@ -251,7 +274,10 @@ class TestRequirementsLockfileMatcher:
                         root_dir=Path("a/b/c"),
                         dependency_source=LockfileDependencySource(
                             package_manager_type=PackageManagerType.PIP,
-                            manifest_path=Path("a/b/c/requirements.in"),
+                            manifest=(
+                                out.ManifestKind(value=out.RequirementsIn()),
+                                Path("a/b/c/requirements.in"),
+                            ),
                             lockfile_path=Path("a/b/c/requirements3.txt"),
                         ),
                     ),
@@ -270,12 +296,18 @@ class TestRequirementsLockfileMatcher:
                             sources=(
                                 LockfileDependencySource(
                                     package_manager_type=PackageManagerType.PIP,
-                                    manifest_path=Path("requirements.in"),
+                                    manifest=(
+                                        out.ManifestKind(value=out.RequirementsIn()),
+                                        Path("requirements.in"),
+                                    ),
                                     lockfile_path=Path("requirements-dev.txt"),
                                 ),
                                 LockfileDependencySource(
                                     package_manager_type=PackageManagerType.PIP,
-                                    manifest_path=Path("requirements.in"),
+                                    manifest=(
+                                        out.ManifestKind(value=out.RequirementsIn()),
+                                        Path("requirements.in"),
+                                    ),
                                     lockfile_path=Path("requirements-prod.txt"),
                                 ),
                             )
@@ -296,12 +328,18 @@ class TestRequirementsLockfileMatcher:
                             sources=(
                                 LockfileDependencySource(
                                     package_manager_type=PackageManagerType.PIP,
-                                    manifest_path=Path("requirements.in"),
+                                    manifest=(
+                                        out.ManifestKind(value=out.RequirementsIn()),
+                                        Path("requirements.in"),
+                                    ),
                                     lockfile_path=Path("dev-requirements.txt"),
                                 ),
                                 LockfileDependencySource(
                                     package_manager_type=PackageManagerType.PIP,
-                                    manifest_path=Path("requirements.in"),
+                                    manifest=(
+                                        out.ManifestKind(value=out.RequirementsIn()),
+                                        Path("requirements.in"),
+                                    ),
                                     lockfile_path=Path("prod-requirements.txt"),
                                 ),
                             )
@@ -316,7 +354,10 @@ class TestRequirementsLockfileMatcher:
                         root_dir=Path(),
                         dependency_source=LockfileDependencySource(
                             package_manager_type=PackageManagerType.PIP,
-                            manifest_path=Path("requirements.in"),
+                            manifest=(
+                                out.ManifestKind(value=out.RequirementsIn()),
+                                Path("requirements.in"),
+                            ),
                             lockfile_path=Path("requirements_lock.txt"),
                         ),
                     )
@@ -335,12 +376,18 @@ class TestRequirementsLockfileMatcher:
                             sources=(
                                 LockfileDependencySource(
                                     package_manager_type=PackageManagerType.PIP,
-                                    manifest_path=Path("requirements.in"),
+                                    manifest=(
+                                        out.ManifestKind(value=out.RequirementsIn()),
+                                        Path("requirements.in"),
+                                    ),
                                     lockfile_path=Path("requirements/dev.txt"),
                                 ),
                                 LockfileDependencySource(
                                     package_manager_type=PackageManagerType.PIP,
-                                    manifest_path=Path("requirements.in"),
+                                    manifest=(
+                                        out.ManifestKind(value=out.RequirementsIn()),
+                                        Path("requirements.in"),
+                                    ),
                                     lockfile_path=Path("requirements/prod.txt"),
                                 ),
                             )
@@ -362,12 +409,18 @@ class TestRequirementsLockfileMatcher:
                             sources=(
                                 LockfileDependencySource(
                                     package_manager_type=PackageManagerType.PIP,
-                                    manifest_path=Path("requirements.in"),
+                                    manifest=(
+                                        out.ManifestKind(value=out.RequirementsIn()),
+                                        Path("requirements.in"),
+                                    ),
                                     lockfile_path=Path("requirements/dev.txt"),
                                 ),
                                 LockfileDependencySource(
                                     package_manager_type=PackageManagerType.PIP,
-                                    manifest_path=Path("requirements/prod.in"),
+                                    manifest=(
+                                        out.ManifestKind(value=out.RequirementsIn()),
+                                        Path("requirements/prod.in"),
+                                    ),
                                     lockfile_path=Path("requirements/prod.txt"),
                                 ),
                             )
@@ -387,12 +440,18 @@ class TestRequirementsLockfileMatcher:
                             sources=(
                                 LockfileDependencySource(
                                     package_manager_type=PackageManagerType.PIP,
-                                    manifest_path=None,
+                                    manifest=(
+                                        out.ManifestKind(value=out.RequirementsIn()),
+                                        None,
+                                    ),
                                     lockfile_path=Path("requirements/dev.txt"),
                                 ),
                                 LockfileDependencySource(
                                     package_manager_type=PackageManagerType.PIP,
-                                    manifest_path=None,
+                                    manifest=(
+                                        out.ManifestKind(value=out.RequirementsIn()),
+                                        None,
+                                    ),
                                     lockfile_path=Path("requirements/prod.txt"),
                                 ),
                             )

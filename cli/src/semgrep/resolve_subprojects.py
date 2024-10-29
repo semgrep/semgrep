@@ -88,9 +88,47 @@ ECOSYSTEM_BY_PACKAGE_MANAGER_TYPE: Dict[PackageManagerType, Ecosystem] = {
     PackageManagerType.ELIXIR_HEX: Ecosystem(out.Mix()),
 }
 
+DEPENDENCY_GRAPH_SUPPORTED_MANIFEST_KINDS = [
+    out.ManifestKind(out.PomXml()),
+    out.ManifestKind(out.BuildGradle()),
+]
+
+
+def _resolve_dependencies_dynamically(
+    manifest_path: Path, manifest_kind: out.ManifestKind
+) -> Tuple[
+    Optional[Ecosystem], List[FoundDependency], List[DependencyParserError], List[Path]
+]:
+    """
+    Handle the RPC call to resolve dependencies dynamically.
+    """
+    manifest_arg = out.Manifest(kind=manifest_kind, path=out.Fpath(str(manifest_path)))
+    response = resolve_dependencies([manifest_arg])
+    if response is None:
+        # we failed to resolve somehow
+        # TODO: handle this and generate an error
+        return (None, [], [], [])
+    if len(response) > 1:
+        logger.warning(
+            f"Too many responses from dynamic dependency resolution RPC. Expected 1, got {len(response)}"
+        )
+    result = response[0][1]
+    if isinstance(result.value, out.ResolutionOk):
+        resolved_deps = result.value.value
+        # right now we only support lockfileless for the maven ecosystem, so hardcode that here
+        # TODO: move this ecosystem identification into the ocaml code when we redo the interface there
+        ecosystem = Ecosystem(out.Maven())
+        return ecosystem, resolved_deps, [], [manifest_path]
+    else:
+        # some error occured in resolution
+        # TODO: error handling / bubbling up
+        return (None, [], [], [])
+
 
 def _resolve_dependency_source(
-    dep_source: DependencySource, enable_dynamic_resolution: bool = True
+    dep_source: DependencySource,
+    enable_dynamic_resolution: bool = True,
+    prioritize_dependency_graph_generation: bool = False,
 ) -> Tuple[
     Optional[Ecosystem], List[FoundDependency], List[DependencyParserError], List[Path]
 ]:
@@ -102,13 +140,39 @@ def _resolve_dependency_source(
     - The list of paths that should be considered dependency targets
     """
     ecosystem: Optional[Ecosystem] = None
+
     if isinstance(dep_source, LockfileDependencySource):
         parser = PARSERS_BY_PACKAGE_MANAGER_TYPE[dep_source.package_manager_type]
         ecosystem = ECOSYSTEM_BY_PACKAGE_MANAGER_TYPE[dep_source.package_manager_type]
-        resolved_deps, parse_errors = parser(
-            dep_source.lockfile_path, dep_source.manifest_path
+        manifest_kind, manifest_path = (
+            dep_source.manifest if dep_source.manifest else (None, None)
         )
-        return ecosystem, resolved_deps, parse_errors, [dep_source.lockfile_path]
+        if (
+            enable_dynamic_resolution
+            and prioritize_dependency_graph_generation
+            and manifest_path is not None
+            and manifest_kind in DEPENDENCY_GRAPH_SUPPORTED_MANIFEST_KINDS
+        ):
+            (
+                ecosystem,
+                new_deps,
+                new_errors,
+                new_targets,
+            ) = _resolve_dependencies_dynamically(manifest_path, manifest_kind)
+            if ecosystem is not None:
+                # TODO: Reimplement this once more robust error handling for lockfileless resolution is implemented
+                return ecosystem, new_deps, new_errors, new_targets
+            else:
+                # dynamic resolution failed, fall back to lockfile parsing
+                resolved_deps, parse_errors = parser(
+                    dep_source.lockfile_path, manifest_path
+                )
+            return ecosystem, resolved_deps, parse_errors, [dep_source.lockfile_path]
+        else:
+            resolved_deps, parse_errors = parser(
+                dep_source.lockfile_path, manifest_path
+            )
+            return ecosystem, resolved_deps, parse_errors, [dep_source.lockfile_path]
     elif isinstance(dep_source, MultiLockfileDependencySource):
         all_resolved_deps: List[FoundDependency] = []
         all_parse_errors: List[DependencyParserError] = []
@@ -127,29 +191,9 @@ def _resolve_dependency_source(
         isinstance(dep_source, ManifestOnlyDependencySource)
         and enable_dynamic_resolution
     ):
-        manifest_arg = out.Manifest(
-            kind=dep_source.manifest_kind, path=out.Fpath(str(dep_source.manifest_path))
+        return _resolve_dependencies_dynamically(
+            dep_source.manifest_path, dep_source.manifest_kind
         )
-        response = resolve_dependencies([manifest_arg])
-        if response is None:
-            # we failed to resolve somehow
-            # TODO: handle this and generate an error
-            return (None, [], [], [])
-        if len(response) > 1:
-            logger.warning(
-                f"Too many responses from dynamic dependency resolution RPC. Expected 1, got {len(response)}"
-            )
-        result = response[0][1]
-        if isinstance(result.value, out.ResolutionOk):
-            resolved_deps = result.value.value
-            # right now we only support lockfileless for the maven ecosystem, so hardcode that here
-            # TODO: move this ecosystem identification into the ocaml code when we redo the interface there
-            ecosystem = Ecosystem(out.Maven())
-            return ecosystem, resolved_deps, [], [dep_source.manifest_path]
-        else:
-            # some error occured in resolution
-            # TODO: error handling / bubbling up
-            return (None, [], [], [])
 
     else:
         # dependency source type is not supported, do nothing
@@ -179,6 +223,7 @@ def find_subprojects(
 def resolve_subprojects(
     target_manager: TargetManager,
     allow_dynamic_resolution: bool = False,
+    prioritize_dependency_graph_generation: bool = False,
 ) -> Tuple[
     Dict[Ecosystem, List[ResolvedSubproject]], List[DependencyParserError], List[Path]
 ]:
@@ -206,7 +251,9 @@ def resolve_subprojects(
     # Dispatch each subproject to a resolver for resolution
     for to_resolve in unresolved_subprojects:
         ecosystem, deps, errors, targets = _resolve_dependency_source(
-            to_resolve.dependency_source, allow_dynamic_resolution
+            to_resolve.dependency_source,
+            allow_dynamic_resolution,
+            prioritize_dependency_graph_generation,
         )
         dependency_parser_errors.extend(errors)
         dependency_targets.extend(targets)
