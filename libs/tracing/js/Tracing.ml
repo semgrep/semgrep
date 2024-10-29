@@ -29,6 +29,8 @@ type user_data = Trace_core.user_data
 
 type config = {
   endpoint : Uri.t;
+  (* set the deployment environment name for organization reasons in APMs *)
+  env : string option;
   (* To add data to our opentelemetry top span, so easier to filter *)
   top_level_span : span option;
 }
@@ -86,7 +88,12 @@ let trace_data_only ?(level = Info) ~__FUNCTION__ ~__FILE__ ~__LINE__ _name
 
 let stop_tracing () = ()
 let restart_tracing () = ()
-let configure_tracing (_service_name : string) (_endpoint : Uri.t) = ()
+
+let configure_tracing ?(env = "") ?(version = "") (_service_name : string)
+    (_endpoint : Uri.t) =
+  ignore env;
+  ignore version;
+  ()
 
 let with_tracing (_fname : string)
     (_data : (string * Trace_core.user_data) list) f =

@@ -15,9 +15,12 @@ from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExport
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.resources import SERVICE_NAME
+from opentelemetry.sdk.resources import SERVICE_VERSION
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from typing_extensions import ParamSpec
+
+from semgrep import __VERSION__
 
 TRACER = otrace.get_tracer(__name__)
 
@@ -36,6 +39,12 @@ _ENDPOINT_ALIASES = {
     "semgrep-local": _LOCAL_ENDPOINT,
 }
 
+_ENV_ALIASES = {
+    "semgrep-prod": "prod",
+    "semgrep-dev": "dev2",
+    "semgrep-local": "local",
+}
+
 
 @define
 class Traces:
@@ -47,7 +56,16 @@ class Traces:
         if not self.enabled:
             return
 
-        resource = Resource(attributes={SERVICE_NAME: "semgrep-cli"})
+        env_name = _ENV_ALIASES.get(
+            _DEFAULT_ENDPOINT if trace_endpoint is None else trace_endpoint
+        )
+        resource = Resource(
+            attributes={
+                SERVICE_NAME: "semgrep-cli",
+                SERVICE_VERSION: __VERSION__,
+                "deployment.environment.name": env_name if env_name else "prod",
+            }
+        )
         tracer_provider = TracerProvider(resource=resource)
         otrace.set_tracer_provider(tracer_provider)
 

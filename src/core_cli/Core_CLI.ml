@@ -331,16 +331,22 @@ let mk_config () : Core_scan_config.t =
     tracing =
       (match (!trace, !trace_endpoint) with
       | true, Some url ->
-          let endpoint =
+          let endpoint, env =
             match url with
-            | "semgrep-prod" -> default_trace_endpoint
-            | "semgrep-dev" -> default_dev_endpoint
-            | "semgrep-local" -> default_local_endpoint
-            | _ -> Uri.of_string url
+            (* coupling: cli/src/semgrep/tracing.py _ENV_ALIASES *)
+            | "semgrep-prod" -> (default_trace_endpoint, Some "prod")
+            | "semgrep-dev" -> (default_dev_endpoint, Some "dev2")
+            | "semgrep-local" -> (default_local_endpoint, Some "local")
+            | _ -> (Uri.of_string url, None)
           in
-          Some { endpoint; top_level_span = None }
+          Some { endpoint; top_level_span = None; env }
       | true, None ->
-          Some { endpoint = default_trace_endpoint; top_level_span = None }
+          Some
+            {
+              endpoint = default_trace_endpoint;
+              top_level_span = None;
+              env = None;
+            }
       | false, Some _ ->
           Logs.warn (fun m ->
               m
@@ -850,7 +856,8 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
                 Trace_data.get_top_level_data config.ncores Version.version
                   (Trace_data.no_analysis_features ())
               in
-              Tracing.configure_tracing "semgrep-oss" tracing.endpoint;
+              Tracing.configure_tracing ?env:tracing.env
+                ~version:Version.version "semgrep-oss" tracing.endpoint;
               Tracing.with_tracing "Core_command.semgrep_core_dispatch"
                 trace_data (fun span_id ->
                   let tracing =

@@ -76,6 +76,7 @@ type user_data = Trace_core.user_data
 
 type config = {
   endpoint : Uri.t;
+  env : string option;
   (* To add data to our opentelemetry top span, so easier to filter *)
   top_level_span : span option;
 }
@@ -95,6 +96,43 @@ let trace_level_var = "SEMGREP_TRACE_LEVEL"
 let parent_span_id_var = "SEMGREP_TRACE_PARENT_SPAN_ID"
 let parent_trace_id_var = "SEMGREP_TRACE_PARENT_TRACE_ID"
 
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let ( let@ ) = ( @@ )
+
+(* Needed so we can reset span id's randomness on tracing restart *)
+(* See restart_tracing for more detail *)
+let mk_rand_bytes_8 rand_ () : bytes =
+  let@ () = Otel.Lock.with_lock in
+  let b = Bytes.create 8 in
+  for i = 0 to 1 do
+    let r = Random.State.bits rand_ in
+    (* 30 bits, of which we use 24 *)
+    Bytes.set b (i * 3) (Char.chr (r land 0xff));
+    Bytes.set b ((i * 3) + 1) (Char.chr ((r lsr 8) land 0xff));
+    Bytes.set b ((i * 3) + 2) (Char.chr ((r lsr 16) land 0xff))
+  done;
+  let r = Random.State.bits rand_ in
+  Bytes.set b 6 (Char.chr (r land 0xff));
+  Bytes.set b 7 (Char.chr ((r lsr 8) land 0xff));
+  b
+
+let mk_rand_bytes_16 rand_ () : bytes =
+  let@ () = Otel.Lock.with_lock in
+  let b = Bytes.create 16 in
+  for i = 0 to 4 do
+    let r = Random.State.bits rand_ in
+    (* 30 bits, of which we use 24 *)
+    Bytes.set b (i * 3) (Char.chr (r land 0xff));
+    Bytes.set b ((i * 3) + 1) (Char.chr ((r lsr 8) land 0xff));
+    Bytes.set b ((i * 3) + 2) (Char.chr ((r lsr 16) land 0xff))
+  done;
+  let r = Random.State.bits rand_ in
+  Bytes.set b 15 (Char.chr (r land 0xff));
+  (* last byte *)
+  b
 (*****************************************************************************)
 (* Levels *)
 (*****************************************************************************)
@@ -145,18 +183,30 @@ let add_yojson_to_span sp yojson =
 (* Span/Event entrypoints *)
 (*****************************************************************************)
 
-let trace_exn sp ?(escaped = false) exn =
+let trace_exn sp exn =
   let e = Exception.catch exn in
+  let exn_type = Printexc.to_string_default exn in
   let exn_msg = Printexc.to_string exn in
   let exn_stacktrace =
     e |> Exception.get_trace |> Printexc.raw_backtrace_to_string
   in
+
+  (* Datadog friendly attrs for the span
+     See:
+     https://docs.datadoghq.com/tracing/error_tracking/#use-span-tags-to-track-error-spans
+  *)
+
+  (* Note these are not what the otel spec expects, but the ocaml otel libary
+     will do this in a future version:
+     https://github.com/imandra-ai/ocaml-opentelemetry/pull/63
+  *)
   let attrs =
-    (* See: https://opentelemetry.io/docs/specs/semconv/exceptions/exceptions-spans/#stacktrace-representation*)
     [
-      ("exception.escaped", `Bool escaped);
-      ("exception.message", `String exn_msg);
-      ("exception.stacktrace", `String exn_stacktrace);
+      ("error.message", `String exn_msg);
+      ("error.stack", `String exn_stacktrace);
+      ("error.type", `String exn_type);
+      (* Forces datadog to actually track an error *)
+      ("track_error", `Bool true);
     ]
   in
   add_data_to_span sp attrs
@@ -172,13 +222,11 @@ let with_span ?(level = Info) ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data name f =
   let level = level_to_trace_level level in
   Trace_core.with_span ~level ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data name
     (fun sp ->
-      (* TODO: upstream the error catching functionality below:
-               https://github.com/imandra-ai/ocaml-opentelemetry/issues/71 *)
-      (* TODO: set span status to Error so we can get groupings in datadog/sentry *)
+      (* TODO: Otel library does this for us in the next version(current is 0.10) *)
       try f sp with
       | exn ->
           let e = Exception.catch exn in
-          trace_exn sp ~escaped:true exn;
+          trace_exn sp exn;
           mark_span_error sp;
           Trace_core.exit_span sp;
           Exception.reraise e)
@@ -246,8 +294,13 @@ let setup_otel trace_endpoint =
   Opentelemetry_trace.setup_with_otel_backend otel_backend
 
 (* Set according to README of https://github.com/imandra-ai/ocaml-opentelemetry/ *)
-let configure_tracing service_name trace_endpoint =
+let configure_tracing ?(env = "local") ?version service_name trace_endpoint =
   Otel.Globals.service_name := service_name;
+  Otel.Globals.default_span_kind := Otel.Span.Span_kind_internal;
+  version
+  |> Option.iter (fun version ->
+         Otel.Globals.add_global_attribute "service.version" (`String version));
+  Otel.Globals.add_global_attribute "deployment.environment.name" (`String env);
   Log.info (fun m -> m "Setting up tracing with service name %s" service_name);
   Otel.GC_metrics.basic_setup ();
   Ambient_context.set_storage_provider (Ambient_context_lwt.storage ());
@@ -274,6 +327,13 @@ let stop_tracing () =
          Backend.cleanup ())
 
 let restart_tracing () =
+  (* We must re-initialize the randomness on restart since this usually happens
+     after a parmap fork. If we don't do this then all parmap forks will have
+     the same randomness and use duplicate span ids! This behavior is fine in
+     jaeger but duplicates don't show up in datadog *)
+  let new_random_state = Random.State.make_self_init () in
+  Otel.Rand_bytes.rand_bytes_8 := mk_rand_bytes_8 new_random_state;
+  Otel.Rand_bytes.rand_bytes_16 := mk_rand_bytes_16 new_random_state;
   !active_endpoint
   |> Option.iter (fun endpoint ->
          Log.info (fun m -> m "Restarting tracing");

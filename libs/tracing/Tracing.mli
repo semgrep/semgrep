@@ -23,6 +23,10 @@ type span = Trace_core.span [@@deriving show]
 
 type config = {
   endpoint : Uri.t;
+  (* Telemetry software like datadog and opentelemetry will organize traces by
+     the environment they come from (e.g. development, staging, production). env
+     here sets that metadata *)
+  env : string option;
   (* To add data to our opentelemetry top span, so easier to filter *)
   top_level_span : span option;
 }
@@ -91,7 +95,8 @@ val trace_data_only :
 (* Entry points for setting up tracing *)
 (*****************************************************************************)
 
-val configure_tracing : string -> Uri.t -> unit
+val configure_tracing :
+  ?env:string -> ?version:string -> string -> Uri.t -> unit
 (** [configure_tracing service_name tracing_endpoint] Before instrumenting
     anything, configure some settings. This should only be run once in a
     program, because it creates a backend with threads, HTTP connections, etc.
