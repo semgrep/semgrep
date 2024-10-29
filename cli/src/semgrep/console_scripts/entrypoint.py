@@ -180,6 +180,7 @@ def exec_osemgrep():
         # If you call semgrep-core as osemgrep, then we get
         # osemgrep behavior, see src/main/Main.ml
         sys.argv[0] = "osemgrep"
+    # nosem: args.dangerous-os-exec-tainted-env-args
     os.execvp(str(path), sys.argv)
 
 
