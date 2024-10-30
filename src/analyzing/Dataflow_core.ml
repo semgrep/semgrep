@@ -137,13 +137,14 @@ module Make (F : Flow) = struct
 
   let fixpoint_worker ~timeout eq_env mapping trans flow succs workset =
     let t0 = Sys.time () in
-    let rec loop work =
+    let rec loop i work =
       if NodeiSet.is_empty work then (mapping, `Ok)
       else
         (* 'Time_limit.set_timeout' cannot be nested and we want to make sure that
          * fixpoint computations run for a limited amount of time. *)
         let t1 = Sys.time () in
-        if t1 -. t0 >= timeout then (mapping, `Timeout)
+        if i > Limits_semgrep.dataflow_FIXPOINT_MIN_ITERS && t1 -. t0 >= timeout
+        then (mapping, `Timeout)
         else
           let ni = NodeiSet.choose work in
           let work' = NodeiSet.remove ni work in
@@ -155,9 +156,9 @@ module Make (F : Flow) = struct
               mapping.(ni) <- new_;
               NodeiSet.union work' (succs flow ni))
           in
-          loop work''
+          loop (i + 1) work''
     in
-    loop workset
+    loop 0 workset
 
   let forward_succs (f : F.flow) n =
     (f.graph#successors n)#fold

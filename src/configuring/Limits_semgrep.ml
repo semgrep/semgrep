@@ -1,4 +1,16 @@
 (*****************************************************************************)
+(* Dataflow analysis *)
+(*****************************************************************************)
+
+(* Minimum number of fixpoint iterations to run before checking for timeouts,
+ * see 'svalue_prop_FIXPOINT_TIMEOUT' and 'taint_FIXPOINT_TIMEOUT' below. It
+ * appears that when Semgrep is allocating too much memory, perhaps due to the
+ * GC having to do heavy work, we start to get fixpoint timeouts on functions
+ * that should perfectly run within the timeout. But if we just bump the timeouts
+ * then that makes perf worse and in some cases even leads to more rule timeouts. *)
+let dataflow_FIXPOINT_MIN_ITERS = 42
+
+(*****************************************************************************)
 (* Const/sym ("svalue") propagation *)
 (*****************************************************************************)
 
