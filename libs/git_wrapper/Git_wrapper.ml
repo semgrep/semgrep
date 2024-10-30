@@ -714,19 +714,72 @@ let project_url ?cwd () : string option =
   match UCmd.string_of_run ~trim:true cmd with
   | Ok (url, _) -> Some (Uri.to_string (clean_project_url url))
   | Error _ ->
+      (* TODO(dinosaure): this line is pretty weak due to the [".com"] (what
+         happens when the domain is [".io"]?). We probably should handle that by a
+         new environment variable. I just copied what [pysemgrep] does.
+         [git ls-remote --get-url] is also enough and if we can not get such
+         information, that's fine - the metadata is used only [Metrics_] actually.
+      *)
       UFile.find_first_match_with_whole_line (Fpath.v ".git/config") ".com"
 
-(* TODO(dinosaure): this line is pretty weak due to the [".com"] (what happens
-   when the domain is [".io"]?). We probably should handle that by a new
-   environment variable. I just copied what [pysemgrep] does.
-   [git ls-remote --get-url] is also enough and if we can not get such
-   information, that's fine - the metadata is used only [Metrics_] actually. *)
+(* coupling: with semgrep_output_v1.atd contribution type, but
+ * duplicated here to avoid depending on semgrep-specific code from libs/
+ * alt: move logs() below to Parse_contribution.ml which would avoid some
+ * duplication or pass the format string as a parameter and handle the
+ * parsing in the caller
+ *)
+type contribution = {
+  commit_hash : string;
+  commit_timestamp : string;
+      (** use the ISO 8601 format (use Timedesc.Timestamp.of_iso8601) *)
+  commit_author_name : string;
+  commit_author_email : string;
+}
+[@@deriving show]
 
-(* coupling: with semgrep_output_v1.atd contribution type *)
-let git_log_json_format =
-  "--pretty=format:{\"commit_hash\": \"%H\", \"commit_timestamp\": \"%aI\", \
-   \"contributor\": {\"commit_author_name\": \"%an\", \"commit_author_email\": \
-   \"%ae\"}}"
+(* old: was using some --pretty=format:{commit_hash: %H ... to generate
+ * directly some JSON that semgrep_output_v1.atd contributions type could read,
+ * but this was not dealing correctly with special chars (e.g., an
+ * backslash char in the author) so better to not abuse JSON and use
+ * the special null byte char to separate fields.
+ *)
+let git_log_format = "--pretty=format:%H%x00%aI%x00%an%x00%ae"
+
+let parse_git_log_format_line (line : string) : contribution option =
+  match String.split_on_char '\000' line with
+  | [ commit_hash; commit_timestamp; commit_author_name; commit_author_email ]
+    ->
+      Some
+        {
+          commit_hash;
+          commit_timestamp;
+          commit_author_name;
+          commit_author_email;
+        }
+  | _else_ ->
+      (* nosemgrep: no-logs-in-library *)
+      Logs.warn (fun m -> m "wrong git log line: %s" line);
+      None
+
+let () =
+  Testo.test "git log contribution line parsing" (fun () ->
+      let check a b =
+        if not (a =*= b) then
+          failwith (spf "got %s" ([%show: contribution option] a))
+      in
+      let res =
+        parse_git_log_format_line "aa\0002024-01-01\000foo\\bar\000stuff@bar"
+      in
+      let expected =
+        Some
+          {
+            commit_hash = "aa";
+            commit_timestamp = "2024-01-01";
+            commit_author_name = "foo\\bar";
+            commit_author_email = "stuff@bar";
+          }
+      in
+      check res expected)
 
 let time_to_str (timestamp : float) : string =
   let date = Unix.gmtime timestamp in
@@ -735,26 +788,24 @@ let time_to_str (timestamp : float) : string =
   let day = date.tm_mday in
   Printf.sprintf "%04d-%02d-%02d" year month day
 
-(* TODO: should really return a JSON.t list at least *)
-let logs ?cwd ?since (_caps_exec : < Cap.exec >) : string list =
+let logs ?cwd ?since (_caps_exec : < Cap.exec >) : contribution list =
   let cmd : Cmd.t =
     match since with
-    | None -> (git, cd cwd @ [ "log"; git_log_json_format ])
+    | None -> (git, cd cwd @ [ "log"; git_log_format ])
     | Some time ->
         let after = spf "--after=\"%s\"" (time_to_str time) in
-        (git, cd cwd @ [ "log"; after; git_log_json_format ])
+        (git, cd cwd @ [ "log"; after; git_log_format ])
   in
-  let lines =
-    match UCmd.lines_of_run ~trim:true cmd with
-    (* ugly: we should parse those lines and return a proper type,
-     * at least a JSON.t.
-     *)
-    | Ok (lines, (_, `Exited 0)) -> lines
-    (* TODO: maybe should raise an Error instead *)
-    | _ -> []
-  in
-  (* out_lines splits on newlines, so we always have an extra space at the end *)
-  List.filter (fun f -> not (String.trim f = "")) lines
+  match UCmd.lines_of_run ~trim:true cmd with
+  | Ok (lines, (_, `Exited 0)) ->
+      (* out_lines splits on newlines, so always an extra space at the end *)
+      lines
+      |> List.filter (fun f -> not (String.trim f = ""))
+      |> List_.filter_map parse_git_log_format_line
+  | _ ->
+      (* nosemgrep: no-logs-in-library *)
+      Logs.warn (fun m -> m "running %s failed" (Cmd.show cmd));
+      []
 
 let cat_file_blob ?cwd (hash : hash) =
   let cmd = (git, cd cwd @ [ "cat-file"; "blob"; Hash.to_hex hash ]) in

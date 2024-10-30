@@ -1,5 +1,3 @@
-module OutJ = Semgrep_output_v1_j
-
 type caps =
   < Cap.stdout
   ; Cap.network
@@ -20,5 +18,7 @@ val main : caps -> string array -> Exit_code.t
 
 (* internal *)
 val run_conf : caps -> Ci_CLI.conf -> Exit_code.t
+
+(* used by Test_is_blocking_Helpers.ml used itself in Test.ml *)
 val rule_is_blocking : JSON.t -> bool
-val finding_is_blocking : OutJ.cli_match -> bool
+val finding_is_blocking : Semgrep_output_v1_t.cli_match -> bool

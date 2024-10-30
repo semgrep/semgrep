@@ -1,5 +1,5 @@
 open Common
-module OutJ = Semgrep_output_v1_j
+module Out = Semgrep_output_v1_j
 
 (*****************************************************************************)
 (* TODO: migrate this to the new scan endpoint to match the pysemgrep        *)
@@ -124,6 +124,15 @@ let exit_code_of_blocking_findings ~audit_mode ~on ~app_block_override
       Logs.app (fun m -> m "  No blocking findings so exiting with code 0");
       Exit_code.ok ~__LOC__
 
+let sanity_check_contributions (contribs : Out.contribution list) : unit =
+  match contribs with
+  | [] -> Logs.warn (fun m -> m "no contribution found from git log, weird")
+  | x :: _xs ->
+      Logs.debug (fun m ->
+          m "found %d contribs in the last 30 days, last is %s"
+            (List.length contribs)
+            (Out.string_of_contribution x))
+
 (*****************************************************************************)
 (* Scan config *)
 (*****************************************************************************)
@@ -144,7 +153,7 @@ let caps_with_token (token_opt : Auth.token option) caps =
 
 (* if something fails, we Error.exit_code_exn *)
 let deployment_config (caps : < Cap.network ; Auth.cap_token ; .. >) :
-    OutJ.deployment_config =
+    Out.deployment_config =
   match Semgrep_App.get_deployment_from_token caps with
   | None ->
       Logs.app (fun m ->
@@ -156,7 +165,7 @@ let deployment_config (caps : < Cap.network ; Auth.cap_token ; .. >) :
   | Some deployment_config ->
       Logs.debug (fun m ->
           m "received deployment = %s"
-            (OutJ.show_deployment_config deployment_config));
+            (Out.show_deployment_config deployment_config));
       deployment_config
 
 (* eventually output the origin (if the semgrep_url is not semgrep.dev) *)
@@ -188,17 +197,17 @@ let decode_json_rules caps (data : string) : Rule_fetching.rules_and_origin =
           failwith "impossible: received an invalid rule from CI")
 
 let scan_config_and_rules_from_deployment ~dry_run
-    (prj_meta : OutJ.project_metadata)
+    (prj_meta : Out.project_metadata)
     (caps : < Cap.network ; Auth.cap_token ; .. >)
-    (deployment_config : OutJ.deployment_config) :
-    Semgrep_App.scan_id * OutJ.scan_config * Rule_fetching.rules_and_origin list
+    (deployment_config : Out.deployment_config) :
+    Semgrep_App.scan_id * Out.scan_config * Rule_fetching.rules_and_origin list
     =
   Logs.app (fun m -> m "  %a" Fmt.(styled `Underline string) "CONNECTION");
   Logs.app (fun m ->
       m "  Reporting start of scan for %a"
         Fmt.(styled `Bold string)
         deployment_config.name);
-  let scan_metadata : OutJ.scan_metadata =
+  let scan_metadata : Out.scan_metadata =
     {
       cli_version = Version.version;
       unique_id = Uuidm.v4_gen (Stdlib.Random.State.make_self_init ()) ();
@@ -220,7 +229,7 @@ let scan_config_and_rules_from_deployment ~dry_run
       (* TODO: should be concatenated with the "Reporting start ..." *)
       Logs.app (fun m -> m " (scan_id=%s)" scan_id);
       (* TODO: set sca to metadata.is_sca_scan / supply_chain *)
-      let scan_config : OutJ.scan_config =
+      let scan_config : Out.scan_config =
         Logs.app (fun m ->
             m "  Fetching configuration from Semgrep Cloud Platform%a"
               at_url_maybe ());
@@ -321,7 +330,7 @@ let generate_meta_from_environment caps (baseline_ref : Digestif.SHA1.t option)
 (*****************************************************************************)
 (* Partition rules *)
 (*****************************************************************************)
-let finding_is_blocking (m : OutJ.cli_match) =
+let finding_is_blocking (m : Out.cli_match) =
   let contains_blocking xs =
     List.exists
       (function
@@ -330,7 +339,7 @@ let finding_is_blocking (m : OutJ.cli_match) =
       xs
   in
 
-  let validation_state_to_action (vs : OutJ.validation_state) =
+  let validation_state_to_action (vs : Out.validation_state) =
     match vs with
     | `Confirmed_valid -> "valid"
     | `Confirmed_invalid -> "invalid"
@@ -393,12 +402,12 @@ let partition_rules (filtered_rules : Rule.t list) =
   in
   (cai_rules, blocking_rules, non_blocking_rules)
 
-let partition_findings ~keep_ignored (results : OutJ.cli_match list) =
+let partition_findings ~keep_ignored (results : Out.cli_match list) =
   let groups =
     results
-    |> List.filter (fun (m : OutJ.cli_match) ->
+    |> List.filter (fun (m : Out.cli_match) ->
            Option.value ~default:false m.extra.is_ignored && not keep_ignored)
-    |> Assoc.group_by (fun (m : OutJ.cli_match) ->
+    |> Assoc.group_by (fun (m : Out.cli_match) ->
            if
              Common2.string_match_substring
                (Str.regexp "r2c-internal-cai")
@@ -456,9 +465,8 @@ let ord_of_severity (severity : Rule.severity) : int =
       4
   | `Critical -> 5
 
-let finding_of_cli_match _commit_date index (m : OutJ.cli_match) : OutJ.finding
-    =
-  let (r : OutJ.finding) =
+let finding_of_cli_match _commit_date index (m : Out.cli_match) : Out.finding =
+  let (r : Out.finding) =
     {
       check_id = m.check_id;
       path = m.path;
@@ -496,7 +504,7 @@ let finding_of_cli_match _commit_date index (m : OutJ.cli_match) : OutJ.finding
 (* Reporting *)
 (*****************************************************************************)
 
-let report_scan_environment (prj_meta : OutJ.project_metadata) : unit =
+let report_scan_environment (prj_meta : Out.project_metadata) : unit =
   Logs.app (fun m -> m "  %a" Fmt.(styled `Underline string) "SCAN ENVIRONMENT");
   Logs.app (fun m ->
       m "  versions    - semgrep %a on OCaml %a"
@@ -532,13 +540,15 @@ let report_scan_completed ~blocking_findings ~blocking_rules
 
 (* from scans.py *)
 let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
-    (caps : < Cap.exec >) (cli_output : OutJ.cli_output)
-    (rules : Rule.rule list) : OutJ.ci_scan_results * OutJ.ci_scan_complete =
+    (caps : < Cap.exec >) (cli_output : Out.cli_output) (rules : Rule.rule list)
+    : Out.ci_scan_results * Out.ci_scan_complete =
   let targets = cli_output.paths.scanned in
   let skipped = cli_output.paths.skipped in
 
   let rule_ids = rules |> List_.map (fun r -> fst r.Rule.id) in
   let contributions = Parse_contribution.get_contributions caps in
+  sanity_check_contributions contributions;
+
   (*
       we want date stamps assigned by the app to be assigned such that the
       current sort by relevant_since results in findings within a given scan
@@ -550,12 +560,12 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
       Int.compare (ord_of_severity a) (ord_of_severity b)
     in
     all_matches
-    |> List.sort (fun (m1 : OutJ.cli_match) (m2 : OutJ.cli_match) ->
+    |> List.sort (fun (m1 : Out.cli_match) (m2 : Out.cli_match) ->
            sort_severity m1.extra.severity m2.extra.severity)
   in
   let new_ignored, new_matches =
     all_matches
-    |> List.partition (fun (m : OutJ.cli_match) ->
+    |> List.partition (fun (m : Out.cli_match) ->
            Option.value ~default:false m.extra.is_ignored)
   in
   let findings = List_.mapi (finding_of_cli_match commit_date) new_matches in
@@ -571,7 +581,7 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
         | None -> Sys.getenv_opt "BITBUCKET_TOKEN" (* Bitbucket Cloud *))
   in
   (* POST to /api/agent/scans/<scan_id>/results *)
-  let results : OutJ.ci_scan_results =
+  let results : Out.ci_scan_results =
     {
       (* send a backup token in case the app is not available *)
       token = ci_token;
@@ -588,14 +598,13 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
   in
   if
     new_ignored
-    |> List.exists (fun (m : OutJ.cli_match) ->
-           m.extra.severity =*= `Experiment)
+    |> List.exists (fun (m : Out.cli_match) -> m.extra.severity =*= `Experiment)
   then
     Logs.app (fun m -> m "Some experimental rules were run during execution.");
 
   let ignored_ext_freqs =
     Option.value ~default:[] skipped
-    |> Assoc.group_by (fun (skipped_target : OutJ.skipped_target) ->
+    |> Assoc.group_by (fun (skipped_target : Out.skipped_target) ->
            Fpath.get_ext skipped_target.path)
     |> List.filter (fun (ext, _) -> not (String.equal ext ""))
     (* don't count files with no extension *)
@@ -603,7 +612,7 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
   in
 
   (* POST to /api/agent/scans/<scan_id>/complete *)
-  let complete : OutJ.ci_scan_complete =
+  let complete : Out.ci_scan_complete =
     {
       (* TODO: 'and not match.is_ignored for match in all_matches' *)
       exit_code = (if has_blocking_findings then 1 else 0);
@@ -653,9 +662,9 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
 
 let upload_findings ~dry_run
     (caps : < Cap.network ; Auth.cap_token ; Cap.exec ; .. >)
-    (deployment_config : OutJ.deployment_config) (scan_id : Semgrep_App.scan_id)
-    (prj_meta : OutJ.project_metadata) blocking_findings filtered_rules
-    (cli_output : OutJ.cli_output) : Semgrep_App.app_block_override =
+    (deployment_config : Out.deployment_config) (scan_id : Semgrep_App.scan_id)
+    (prj_meta : Out.project_metadata) blocking_findings filtered_rules
+    (cli_output : Out.cli_output) : Semgrep_App.app_block_override =
   Logs.app (fun m -> m "  Uploading findings.");
   let results, complete =
     findings_and_complete
@@ -753,7 +762,7 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   (* TODO: we should use those fields! *)
   let {
     (* this is used in scan_config_and_rules_from_deployment *)
-    OutJ.rule_config = _;
+    Out.rule_config = _;
     (* those two fields do not matter; they should be in a separate
      * scan_response actually in the futur.
      *)

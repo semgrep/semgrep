@@ -201,13 +201,20 @@ val project_url : ?cwd:Fpath.t -> unit -> string option
     TODO: should maybe raise an exn instead if not run from a git repo.
 *)
 
-val logs : ?cwd:Fpath.t -> ?since:float -> < Cap.exec > -> string list
-(** [logs ()] will run 'git log' in the current directory
-    and returns for each log a JSON string that fits the schema
-    defined in semgrep_output_v1.atd contribution type.
+type contribution = {
+  commit_hash : string;
+  (* datetime *)
+  commit_timestamp : string;
+  commit_author_name : string;
+  commit_author_email : string;
+}
+
+val logs : ?cwd:Fpath.t -> ?since:float -> < Cap.exec > -> contribution list
+(** [logs ()] will run 'git log' in the current directory and returns for each
+    log a contribution record.
     It returns an empty list if it found nothing relevant.
-    You can use the [since] parameter to restrict the logs to
-    the commits since the specified time.
+    You can use the [since] parameter to restrict the logs to the commits since
+    the specified time.
  *)
 
 type hash = Digestif.SHA1.t [@@deriving show, eq, ord, yojson]
