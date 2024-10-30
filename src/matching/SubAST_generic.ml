@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open AST_generic
+module Log = Log_matching.Log
 module H = AST_generic_helpers
 
 (*****************************************************************************)
@@ -204,7 +205,8 @@ let subexprs_of_expr ?(symbolic_propagation = false) e =
  * but not necessarily any expressions like 'bar() || foo();'.
  * See tests/ts/deep_exprtmt.ts for more examples.
  *)
-let subexprs_of_expr_implicit with_symbolic_propagation e =
+let subexprs_of_expr_implicit (with_symbolic_propagation : bool) (e : expr) :
+    expr list =
   match e.e with
   | N (Id (_, { id_svalue = { contents = Some (Sym e1) }; _ }))
     when with_symbolic_propagation ->
@@ -274,6 +276,7 @@ let subexprs_of_expr_implicit with_symbolic_propagation e =
   | DeepEllipsis _
   | DotAccessEllipsis _
   | DisjExpr _ ->
+      Log.err (fun m -> m "%s: impossible AST: %s" __FUNCTION__ (show_expr e));
       raise Common.Impossible
 [@@profiling]
 
