@@ -527,7 +527,9 @@ local ignore_md = {
   permissions: gha.write_permissions,
   jobs: {
     'test-semgrep-core': test_semgrep_core_job,
-    'test-osemgrep': test_osemgrep_job,
+    // See semgrep/semgrep-proprietary/pull/2522 for why this is disabled and it
+    // will re-enable it
+    //'test-osemgrep': test_osemgrep_job,
     // Pysemgrep tests that require check-semgrep-pro
     'test-cli': test_cli_job,
     // Pysemgrep tests that require build-test-core-x86
