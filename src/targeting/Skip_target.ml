@@ -177,19 +177,31 @@ let skip_inaccessible_file_path fpath : Out.skipped_target =
     rule_id = None;
   }
 
+open Printf
+
 let dir_has_access_permissions (dir : Fpath.t) =
-  try
-    Unix.access !!dir [ R_OK; X_OK ];
-    true
-  with
-  | Unix.Unix_error _ -> false
+  eprintf "dir_has_access_permissions %S\n%!" !!dir;
+  let res =
+    try
+      Unix.access !!dir [ R_OK; X_OK ];
+      true
+    with
+    | Unix.Unix_error _ -> false
+  in
+  eprintf "dir_has_access_permissions %S -> %B\n%!" !!dir res;
+  res
 
 let file_has_access_permissions (file : Fpath.t) =
-  try
-    Unix.access !!file [ R_OK ];
-    true
-  with
-  | Unix.Unix_error _ -> false
+  eprintf "file_has_access_permissions %S\n%!" !!file;
+  let res =
+    try
+      Unix.access !!file [ R_OK ];
+      true
+    with
+    | Unix.Unix_error _ -> false
+  in
+  eprintf "file_has_access_permissions %S -> %B\n%!" !!file res;
+  res
 
 let filter_dir_access_permissions (dir : Fpath.t) :
     (Fpath.t, Out.skipped_target) result =
