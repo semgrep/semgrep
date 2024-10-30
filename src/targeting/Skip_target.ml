@@ -2,7 +2,8 @@
    Skip targets.
 *)
 open Common
-module Resp = Semgrep_output_v1_t
+open Fpath_.Operators
+module Out = Semgrep_output_v1_t
 
 (****************************************************************************)
 (* Minified files detection (via whitespace stats) *)
@@ -87,7 +88,7 @@ let is_minified (path : Fpath.t) =
       if stat.ws_freq < min_whitespace_frequency then
         Error
           {
-            Resp.path;
+            Out.path;
             reason = Minified;
             details =
               Some
@@ -100,7 +101,7 @@ let is_minified (path : Fpath.t) =
       else if stat.line_freq < min_line_frequency then
         Error
           {
-            Resp.path;
+            Out.path;
             reason = Minified;
             details =
               Some
@@ -133,7 +134,7 @@ let is_big max_bytes path =
   if max_bytes > 0 && size > max_bytes then
     Error
       {
-        Resp.path;
+        Out.path;
         reason = Too_big;
         details =
           Some
@@ -145,3 +146,60 @@ let is_big max_bytes path =
 let exclude_big_files max_target_bytes paths =
   let max_bytes = max_target_bytes in
   paths |> Result_.partition (is_big max_bytes)
+
+(*************************************************************************)
+(* Access permission filtering *)
+(*************************************************************************)
+(*
+   Filter out folders and files that don't have sufficient access permissions.
+
+   For Git projects, we only filter on regular files since folders are not
+   returned to us by 'git ls-files'. This is why semgrep won't report folders
+   with insufficient permissions for Git projects.
+
+   For other projects, we scan the file tree ourselves and need to check
+   folder permissions (read+execute on Unix, read on Windows).
+*)
+
+let skip_inaccessible_dir_path fpath : Out.skipped_target =
+  {
+    Out.path = fpath;
+    reason = Insufficient_permissions;
+    details = Some "folder lacks sufficient access permissions";
+    rule_id = None;
+  }
+
+let skip_inaccessible_file_path fpath : Out.skipped_target =
+  {
+    Out.path = fpath;
+    reason = Insufficient_permissions;
+    details = Some "file lacks sufficient access permissions";
+    rule_id = None;
+  }
+
+let dir_has_access_permissions (dir : Fpath.t) =
+  try
+    Unix.access !!dir [ R_OK; X_OK ];
+    true
+  with
+  | Unix.Unix_error _ -> false
+
+let file_has_access_permissions (file : Fpath.t) =
+  try
+    Unix.access !!file [ R_OK ];
+    true
+  with
+  | Unix.Unix_error _ -> false
+
+let filter_dir_access_permissions (dir : Fpath.t) :
+    (Fpath.t, Out.skipped_target) result =
+  if dir_has_access_permissions dir then Ok dir
+  else Error (skip_inaccessible_dir_path dir)
+
+let filter_file_access_permissions (file : Fpath.t) :
+    (Fpath.t, Out.skipped_target) result =
+  if file_has_access_permissions file then Ok file
+  else Error (skip_inaccessible_file_path file)
+
+let exclude_inaccessible_files files =
+  Result_.partition filter_file_access_permissions files

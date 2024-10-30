@@ -68,7 +68,8 @@ let group_skipped (skipped : OutJ.skipped_target list) : skipped_targets_grouped
         | Dotfile
         | Nonexistent_file
         | Irrelevant_rule
-        | Too_many_matches ->
+        | Too_many_matches
+        | Insufficient_permissions ->
             `Other)
       skipped
   in

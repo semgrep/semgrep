@@ -77,7 +77,6 @@ def assert_path_sets_equal(a: Collection[Path], b: Collection[Path]):
     assert a_abs == b_abs
 
 
-@pytest.mark.quick
 @pytest.fixture(
     scope="session", params=["no-repo", "git-repo", "git-repo-with-ignores"]
 )

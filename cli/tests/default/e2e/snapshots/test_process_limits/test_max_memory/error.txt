@@ -36,6 +36,10 @@ Files skipped:
 
    • <none>
 
+  Files skipped due to insufficient read permissions:
+
+   • <none>
+
   Skipped by limiting to files smaller than 1000000 bytes:
   (Adjust with the --max-target-bytes flag)
 

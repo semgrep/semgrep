@@ -116,6 +116,7 @@ class FileTargetingLog:
     always_skipped: Set[Path] = Factory(set)
     cli_includes: Set[Path] = Factory(set)
     cli_excludes: Set[Path] = Factory(set)
+    insufficient_permissions: Set[Path] = Factory(set)
     size_limit: Set[Path] = Factory(set)
 
     # "None" indicates that all lines were skipped
@@ -163,6 +164,8 @@ class FileTargetingLog:
             res.append((x, "cli_include_flags_do_not_match"))
         for x in self.cli_excludes:
             res.append((x, "cli_exclude_flags_match"))
+        for x in self.insufficient_permissions:
+            res.append((x, "insufficient_permissions"))
         for x in self.size_limit:
             res.append((x, "exceeded_size_limit"))
         return sorted(res)
@@ -201,10 +204,15 @@ class FileTargetingLog:
             skip_fragments.append(
                 f"{len(self.cli_excludes)} files matching --exclude patterns"
             )
+        if self.insufficient_permissions:
+            skip_fragments.append(
+                f"{len(self.insufficient_permissions)} files without read permission"
+            )
         if self.size_limit:
             skip_fragments.append(
                 f"{len(self.size_limit)} files larger than {self.target_manager.max_target_bytes / 1000 / 1000} MB"
             )
+
         if self.semgrepignored:
             skip_fragments.append(
                 f"{len(self.semgrepignored)} files matching .semgrepignore patterns"
@@ -287,6 +295,16 @@ class FileTargetingLog:
 
         yield (
             1,
+            f"Files skipped due to insufficient read permissions:",
+        )
+        if self.insufficient_permissions:
+            for path in sorted(self.insufficient_permissions):
+                yield 2, with_color(Colors.cyan, str(path))
+        else:
+            yield 2, "<none>"
+
+        yield (
+            1,
             f"Skipped by limiting to files smaller than {self.target_manager.max_target_bytes} bytes:",
         )
         yield 1, "(Adjust with the --max-target-bytes flag)"
@@ -362,6 +380,8 @@ class FileTargetingLog:
             yield {"path": str(path), "reason": "cli_include_flags_do_not_match"}
         for path in self.cli_excludes:
             yield {"path": str(path), "reason": "cli_exclude_flags_match"}
+        for path in self.insufficient_permissions:
+            yield {"path": str(path), "reason": "insufficient_permissions"}
         for path in self.size_limit:
             yield {
                 "path": str(path),
@@ -571,7 +591,7 @@ class TargetManager:
         In semgrep, pattern "foo/bar" should match paths "x/foo/bar", "foo/bar/x", and
         "x/foo/bar/x". It implicitly matches zero or more directories at the beginning and the end
         of the pattern. In contrast, we have to explicitly specify the globstar (**) patterns in
-        wcmatch. This function will converts a pattern "foo/bar" into "**/foo/bar" and
+        wcmatch. This function will convert a pattern "foo/bar" into "**/foo/bar" and
         "**/foo/bar/**". We need the pattern without the trailing "/**" because "foo/bar.py/**"
         won't match "foo/bar.py".
         """
@@ -682,6 +702,18 @@ class TargetManager:
         return FilteredFiles(frozenset(candidates - removed), frozenset(removed))
 
     @staticmethod
+    def filter_by_permission(candidates: FrozenSet[Path]) -> FilteredFiles:
+        """
+        Exclude files we can't read
+        """
+        kept, removed = partition(
+            candidates,
+            lambda path: os.access(path, os.R_OK),
+        )
+
+        return FilteredFiles(frozenset(kept), frozenset(removed))
+
+    @staticmethod
     def filter_by_size(
         max_target_bytes: int, *, candidates: FrozenSet[Path]
     ) -> FilteredFiles:
@@ -720,7 +752,7 @@ class TargetManager:
         Return all files that are decendants of any directory in TARGET that have
         an extension matching LANG or are a lockfile for LANG ecosystem that match any pattern in INCLUDES and do not
         match any pattern in EXCLUDES. Any file in TARGET bypasses excludes and includes.
-        If a file in TARGET has a known extension that is not for langugage LANG then
+        If a file in TARGET has a known extension that is not for language LANG then
         it is also filtered out.
 
         Lang can be:
@@ -762,6 +794,9 @@ class TargetManager:
 
         files = self.filter_excludes(PATHS_ALWAYS_SKIPPED, candidates=files.kept)
         self.ignore_log.always_skipped.update(files.removed)
+
+        files = self.filter_by_permission(files.kept)
+        self.ignore_log.insufficient_permissions.update(files.removed)
 
         # Lockfiles are easy to parse, and regularly surpass 1MB for big repos
         if lang != "dependency_source_files":
@@ -806,7 +841,7 @@ class TargetManager:
 
         Given this object's TARGET, self.INCLUDE, and self.EXCLUDE will return list
         of all descendant files of directories in TARGET that end in extension
-        typical for LANG. If self.INCLUDES is non empty then all files will have an ancestor
+        typical for LANG. If self.INCLUDES is nonempty then all files will have an ancestor
         that matches a pattern in self.INCLUDES. Will not include any file that has
         an ancestor that matches a pattern in self.EXCLUDES. Any explicitly named files
         in TARGET will bypass this global INCLUDE/EXCLUDE filter. The local INCLUDE/EXCLUDE

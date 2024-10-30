@@ -8,6 +8,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Callable
+from typing import Optional
 from typing import Protocol
 from typing import TYPE_CHECKING
 
@@ -36,7 +38,7 @@ class RunSemgrep(Protocol):
         *,
         subcommand: str | None = None,
         target_name: str | None = "basic",
-        options: list[str | Path] | None = None,
+        options: Optional[list[str]] = None,
         output_format: OutputFormat | None = OutputFormat.JSON,
         strict: bool = True,
         quiet: bool = False,
@@ -48,5 +50,7 @@ class RunSemgrep(Protocol):
         stdin: str | None = None,
         clean_fingerprint: bool = True,
         use_click_runner: bool = False,
+        prepare_workspace: Callable[[], None] = lambda: None,
+        teardown_workspace: Callable[[], None] = lambda: None,
     ) -> SemgrepResult:
         ...

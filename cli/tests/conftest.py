@@ -384,7 +384,7 @@ def _run_semgrep(
     *,
     target_name: Optional[str] = None,
     subcommand: Optional[str] = None,
-    options: Optional[List[Union[str, Path]]] = None,
+    options: Optional[List[str]] = None,
     output_format: Optional[OutputFormat] = None,
     strict: bool = False,
     quiet: bool = False,
@@ -396,6 +396,8 @@ def _run_semgrep(
     stdin: Optional[str] = None,
     clean_fingerprint: bool = True,
     use_click_runner: bool = False,  # Deprecated! see semgrep_runner.py toplevel comment
+    prepare_workspace: Callable[[], None] = lambda: None,
+    teardown_workspace: Callable[[], None] = lambda: None,
 ) -> SemgrepResult:
     """Run the semgrep CLI.
 
@@ -407,86 +409,96 @@ def _run_semgrep(
     :param settings_file: what setting file for semgrep to use. If None, a random temp file is generated
                           with default params for anonymous_user_id and has_shown_metrics_notification
     """
-    env = {} if not env else env.copy()
+    prepare_workspace()
 
-    if force_color:
-        env["SEMGREP_FORCE_COLOR"] = "true"
-        # NOTE: We should also apply the known color flags to the env
-        env["FORCE_COLOR"] = "1"
-        if "NO_COLOR" in env:
-            del env["NO_COLOR"]
+    # ensure teardown_workspace is called at the end
+    try:
+        env = {} if not env else env.copy()
 
-    if "SEMGREP_USER_AGENT_APPEND" not in env:
-        env["SEMGREP_USER_AGENT_APPEND"] = "pytest"
+        if force_color:
+            env["SEMGREP_FORCE_COLOR"] = "true"
+            # NOTE: We should also apply the known color flags to the env
+            env["FORCE_COLOR"] = "1"
+            if "NO_COLOR" in env:
+                del env["NO_COLOR"]
 
-    # If delete_setting_file is false and a settings file doesnt exist, put a default
-    # as we are not testing said setting. Note that if Settings file exists we want to keep it
-    # Use a unique settings file so multithreaded pytest works well
-    if "SEMGREP_SETTINGS_FILE" not in env:
-        unique_settings_file = tempfile.NamedTemporaryFile().name
-        make_settings_file(Path(unique_settings_file))
-        env["SEMGREP_SETTINGS_FILE"] = unique_settings_file
-    if "SEMGREP_VERSION_CACHE_PATH" not in env:
-        env["SEMGREP_VERSION_CACHE_PATH"] = tempfile.TemporaryDirectory().name
-    if "SEMGREP_ENABLE_VERSION_CHECK" not in env:
-        env["SEMGREP_ENABLE_VERSION_CHECK"] = "0"
-    if force_metrics_off and "SEMGREP_SEND_METRICS" not in env:
-        env["SEMGREP_SEND_METRICS"] = "off"
+        if "SEMGREP_USER_AGENT_APPEND" not in env:
+            env["SEMGREP_USER_AGENT_APPEND"] = "pytest"
 
-    if options is None:
-        options = []
+        # If delete_setting_file is false and a settings file doesnt exist, put a default
+        # as we are not testing said setting. Note that if Settings file exists we want to keep it
+        # Use a unique settings file so multithreaded pytest works well
+        if "SEMGREP_SETTINGS_FILE" not in env:
+            unique_settings_file = tempfile.NamedTemporaryFile().name
+            make_settings_file(Path(unique_settings_file))
+            env["SEMGREP_SETTINGS_FILE"] = unique_settings_file
+        if "SEMGREP_VERSION_CACHE_PATH" not in env:
+            env["SEMGREP_VERSION_CACHE_PATH"] = tempfile.TemporaryDirectory().name
+        if "SEMGREP_ENABLE_VERSION_CHECK" not in env:
+            env["SEMGREP_ENABLE_VERSION_CHECK"] = "0"
+        if force_metrics_off and "SEMGREP_SEND_METRICS" not in env:
+            env["SEMGREP_SEND_METRICS"] = "off"
 
-    if strict:
-        options.append("--strict")
+        if options is None:
+            options = []
 
-    if quiet:
-        options.append("--quiet")
+        if strict:
+            options.append("--strict")
 
-    if config is not None:
-        if isinstance(config, list):
-            for conf in config:
-                options.extend(["--config", conf])
-        else:
-            options.extend(["--config", config])
+        if quiet:
+            options.append("--quiet")
 
-    if output_format == OutputFormat.JSON:
-        options.append("--json")
-    elif output_format == OutputFormat.GITLAB_SAST:
-        options.append("--gitlab-sast")
-    elif output_format == OutputFormat.GITLAB_SECRETS:
-        options.append("--gitlab-secrets")
-    elif output_format == OutputFormat.JUNIT_XML:
-        options.append("--junit-xml")
-    elif output_format == OutputFormat.SARIF:
-        options.append("--sarif")
+        if config is not None:
+            if isinstance(config, list):
+                for conf in config:
+                    options.extend(["--config", conf])
+            else:
+                options.extend(["--config", str(config)])
 
-    targets = []
-    if target_name is not None:
-        targets.append(
-            Path("targets") / target_name if assume_targets_dir else Path(target_name)
+        if output_format == OutputFormat.JSON:
+            options.append("--json")
+        elif output_format == OutputFormat.GITLAB_SAST:
+            options.append("--gitlab-sast")
+        elif output_format == OutputFormat.GITLAB_SECRETS:
+            options.append("--gitlab-secrets")
+        elif output_format == OutputFormat.JUNIT_XML:
+            options.append("--junit-xml")
+        elif output_format == OutputFormat.SARIF:
+            options.append("--sarif")
+
+        targets = []
+        if target_name is not None:
+            targets.append(
+                Path("targets") / target_name
+                if assume_targets_dir
+                else Path(target_name)
+            )
+        args = " ".join(shlex.quote(str(c)) for c in [*options, *targets])
+        env_string = " ".join(f'{k}="{v}"' for k, v in env.items())
+
+        runner = SemgrepRunner(
+            env=env, mix_stderr=False, use_click_runner=use_click_runner
         )
-    args = " ".join(shlex.quote(str(c)) for c in [*options, *targets])
-    env_string = " ".join(f'{k}="{v}"' for k, v in env.items())
+        click_result = runner.invoke(cli, subcommand=subcommand, args=args, input=stdin)
+        subcommand_prefix = f"{subcommand} " if subcommand else ""
+        result = SemgrepResult(
+            # the actual executable was either semgrep or osemgrep. Is it bad?
+            f"{env_string} semgrep {subcommand_prefix}{args}",
+            click_result.stdout,
+            click_result.stderr,
+            click_result.exit_code,
+            clean_fingerprint,
+        )
+        result.print_debug_info()
 
-    runner = SemgrepRunner(env=env, mix_stderr=False, use_click_runner=use_click_runner)
-    click_result = runner.invoke(cli, subcommand=subcommand, args=args, input=stdin)
-    subcommand_prefix = f"{subcommand} " if subcommand else ""
-    result = SemgrepResult(
-        # the actual executable was either semgrep or osemgrep. Is it bad?
-        f"{env_string} semgrep {subcommand_prefix}{args}",
-        click_result.stdout,
-        click_result.stderr,
-        click_result.exit_code,
-        clean_fingerprint,
-    )
-    result.print_debug_info()
+        if isinstance(assert_exit_code, set):
+            assert result.exit_code in assert_exit_code
+        elif isinstance(assert_exit_code, int):
+            assert result.exit_code == assert_exit_code
 
-    if isinstance(assert_exit_code, set):
-        assert result.exit_code in assert_exit_code
-    elif isinstance(assert_exit_code, int):
-        assert result.exit_code == assert_exit_code
-
-    return result
+        return result
+    finally:
+        teardown_workspace()
 
 
 ##############################################################################
@@ -549,7 +561,8 @@ def run_semgrep_in_tmp(
 
 @pytest.fixture
 def run_semgrep_on_copied_files(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> fixtures.RunSemgrep:
     """
     Like run_semgrep_in_tmp, but fully copies rule and target data to avoid

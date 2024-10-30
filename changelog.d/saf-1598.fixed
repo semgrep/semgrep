@@ -1,0 +1,2 @@
+Project files lacking sufficient read permissions are now skipped gracefully
+by semgrep.

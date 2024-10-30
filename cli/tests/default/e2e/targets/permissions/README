@@ -1,0 +1,2 @@
+Target files for test_permissions are added dynamically since it requires
+special permissions on files and folders

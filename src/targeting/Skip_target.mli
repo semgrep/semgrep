@@ -20,3 +20,19 @@ val exclude_big_files :
 (* Detecting and filtering minified files (for Javascript) *)
 val exclude_minified_files :
   Fpath.t list -> Fpath.t list * Semgrep_output_v1_t.skipped_target list
+
+(*************************************************************************)
+(* Access permission filtering *)
+(*************************************************************************)
+(*
+   Filter out folders and files that don't have sufficient access permissions.
+*)
+
+val filter_dir_access_permissions :
+  Fpath.t -> (Fpath.t, Semgrep_output_v1_t.skipped_target) result
+
+val filter_file_access_permissions :
+  Fpath.t -> (Fpath.t, Semgrep_output_v1_t.skipped_target) result
+
+val exclude_inaccessible_files :
+  Fpath.t list -> Fpath.t list * Semgrep_output_v1_t.skipped_target list

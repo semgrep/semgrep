@@ -271,7 +271,14 @@ let filter_paths
   target_files
   |> List.iter (fun fppath ->
          match filter_path ign include_filter fppath with
-         | Keep -> add fppath
+         | Keep -> (
+             (* This section is similar to what we have in
+                'walk_skip_and_collect' but the rest is sufficiently different
+                that sharing code makes things complicated
+                (e.g. no dir access filtering for git targets) *)
+             match Skip_target.filter_file_access_permissions fppath.fpath with
+             | Ok _path -> add fppath
+             | Error skipped -> skip skipped)
          (* shouldn't happen if we work on the output of 'git ls-files *)
          | Dir -> ()
          | Skip x -> skip x
@@ -334,28 +341,34 @@ let walk_skip_and_collect (ign : Gitignore.filter)
 
   (* mostly a copy-paste of List_files.list_regular_files() *)
   let rec aux (dir : Fppath.t) =
-    Log.debug (fun m ->
-        m "listing dir %s (ppath = %s)" !!(dir.fpath)
-          (Ppath.to_string_for_tests dir.ppath));
-    (* TODO? should we sort them first? *)
-    let entries = List_files.read_dir_entries dir.fpath in
-    (* TODO: factorize code with filter_paths? *)
-    entries
-    |> List.iter (fun name ->
-           let fpath =
-             (* if scan_root was "." we want to display paths as "foo/bar"
-              * and not "./foo/bar"
-              *)
-             if Fpath.equal dir.fpath (Fpath.v ".") then Fpath.v name
-             else Fpath.add_seg dir.fpath name
-           in
-           let ppath = Ppath.add_seg dir.ppath name in
-           let fppath : Fppath.t = { fpath; ppath } in
-           match filter_path ign include_filter fppath with
-           | Keep -> add fppath
-           | Skip skipped -> skip skipped
-           | Dir -> aux fppath
-           | Ignore_silently -> ())
+    match Skip_target.filter_dir_access_permissions dir.fpath with
+    | Error skipped -> skip skipped
+    | Ok _path ->
+        Log.debug (fun m ->
+            m "listing dir %s (ppath = %s)" !!(dir.fpath)
+              (Ppath.to_string_for_tests dir.ppath));
+        (* TODO? should we sort them first? *)
+        let entries = List_files.read_dir_entries dir.fpath in
+        (* TODO: factorize code with filter_paths? *)
+        entries
+        |> List.iter (fun name ->
+               let fpath =
+                 (* if scan_root was "." we want to display paths as "foo/bar"
+                  * and not "./foo/bar"
+                  *)
+                 if Fpath.equal dir.fpath (Fpath.v ".") then Fpath.v name
+                 else Fpath.add_seg dir.fpath name
+               in
+               let ppath = Ppath.add_seg dir.ppath name in
+               let fppath : Fppath.t = { fpath; ppath } in
+               match filter_path ign include_filter fppath with
+               | Keep -> (
+                   match Skip_target.filter_file_access_permissions fpath with
+                   | Ok _path -> add fppath
+                   | Error skipped -> skip skipped)
+               | Skip skipped -> skip skipped
+               | Dir -> aux fppath
+               | Ignore_silently -> ())
   in
   aux scan_root;
   (* Let's not worry about file order here until we have to.
@@ -702,6 +715,7 @@ let get_targets_for_project conf (project_roots : Project.roots) =
   let git_untracked = git_list_untracked_files project_roots in
   let selected_targets, skipped_targets =
     match (git_tracked, git_untracked) with
+    (* Git only *)
     | Some tracked, Some untracked ->
         Log.debug (fun m ->
             m "target file candidates from git: tracked: %i, untracked: %i"
@@ -709,6 +723,7 @@ let get_targets_for_project conf (project_roots : Project.roots) =
               (Fppath_set.cardinal untracked));
         let all_files = Fppath_set.union tracked untracked in
         all_files |> Fppath_set.elements |> filter_targets conf project_roots
+    (* Non-Git projects *)
     | None, _
     | _, None ->
         get_targets_from_filesystem conf project_roots

@@ -42,6 +42,10 @@ Files skipped:
    • targets/exclude_include/included/excluded.js
    • targets/exclude_include/included/included.js
 
+  Files skipped due to insufficient read permissions:
+
+   • <none>
+
   Skipped by limiting to files smaller than 1000000 bytes:
   (Adjust with the --max-target-bytes flag)
 

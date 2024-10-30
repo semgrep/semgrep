@@ -1,7 +1,5 @@
-from pathlib import Path
 from typing import List
 from typing import Optional
-from typing import Union
 
 import pytest
 from tests.fixtures import RunSemgrep
@@ -30,7 +28,7 @@ def test_sarif_output(
 ):
     rule, target = rule_and_target
     # The type annotation is there to make the type checker happy
-    options: Optional[List[Union[str, Path]]]
+    options: Optional[List[str]]
     if dataflow_traces:
         options = ["--verbose", "--use-osemgrep-sarif", "--dataflow-traces"]
     else:

@@ -1,0 +1,65 @@
+{
+  "errors": [],
+  "interfile_languages_used": [],
+  "paths": {
+    "scanned": [
+      "targets/permissions/readable_file.py"
+    ],
+    "skipped": [
+      {
+        "path": "targets/permissions/unreadable_file.py",
+        "reason": "insufficient_permissions"
+      },
+      {
+        "path": "targets/permissions/unreadable_subdir",
+        "reason": "insufficient_permissions"
+      }
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.eqeq-is-bad",
+      "end": {
+        "col": 7,
+        "line": 1,
+        "offset": 6
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "is_ignored": false,
+        "lines": "a == a",
+        "message": "useless comparison operation `a == a` or `a != a`",
+        "metadata": {
+          "shortlink": "https://sg.run/xyz1",
+          "source": "https://semgrep.dev/r/eqeq-bad"
+        },
+        "metavars": {
+          "$X": {
+            "abstract_content": "a",
+            "end": {
+              "col": 2,
+              "line": 1,
+              "offset": 1
+            },
+            "start": {
+              "col": 1,
+              "line": 1,
+              "offset": 0
+            }
+          }
+        },
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/permissions/readable_file.py",
+      "start": {
+        "col": 1,
+        "line": 1,
+        "offset": 0
+      }
+    }
+  ],
+  "skipped_rules": [],
+  "version": "0.42"
+}
