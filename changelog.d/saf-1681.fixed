@@ -1,2 +1,0 @@
-semgrep ci should parse correctly git logs to compute the set of contributors
-even if some authors have special characters in their names.

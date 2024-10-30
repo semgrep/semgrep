@@ -21,7 +21,7 @@
 (generate_opam_files)
 
 ;; set here so the semgrep package below can use it and we can easily bump it
-(version 1.93.0)
+(version 1.94.0)
 
 ;; Default attributes of opam packages
 (source (github semgrep/semgrep))

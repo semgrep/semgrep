@@ -1,3 +1,0 @@
-OCaml: matching will now recognized "local open" so that a pattern like
-`Foo.bar ...` will now correctly match code such as `let open Foo in bar 1`
-or `Foo.(bar 1)` in addition to the classic `Foo.bar 1`.

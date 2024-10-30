@@ -1,9 +1,0 @@
-pro: taint-mode: Semgrep should no longer confuse a `return` in a lambda with
-a `return` in its enclosing function.
-
-E.g. In the example below the return value of `foo` is NOT tainted:
-
-    function foo() {
-        bar(() => taint);
-        return ok;
-    }
