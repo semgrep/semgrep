@@ -1723,10 +1723,11 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
       | [ penv ] -> penv
       | penv1 :: penvs -> List.fold_left Lval_env.union penv1 penvs)
 
-let transfer : env -> flow:F.cfg -> Lval_env.t D.transfn =
- fun enter_env ~flow
+let rec transfer : env -> fun_cfg:F.fun_cfg -> Lval_env.t D.transfn =
+ fun enter_env ~fun_cfg
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
+  let flow = fun_cfg.cfg in
   (* DataflowX.display_mapping flow mapping show_tainted; *)
   let in' : Lval_env.t =
     input_env ~enter_env:enter_env.lval_env ~flow mapping ni
@@ -1792,38 +1793,20 @@ let transfer : env -> flow:F.cfg -> Lval_env.t D.transfn =
         let effects = effects_of_tainted_return env taints shape tok in
         record_effects env effects;
         lval_env'
-    | NLambda params ->
-        params
-        |> List.fold_left
-             (fun lval_env param ->
-               match param with
-               | Param { pname = var; _ } ->
-                   (* This is a *new* variable, so we clean any taint that we may have
-                    * attached to it previously. This can happen when a lambda is called
-                    * inside a loop. *)
-                   let lval_env =
-                     Lval_env.clean lval_env (LV.lval_of_var var)
-                   in
-                   (* Now check if the parameter is itself a taint source. *)
-                   let _taints, _shape, lval_env =
-                     check_tainted_var { env with lval_env } var
-                   in
-                   lval_env
-               | PatternParam _ (* TODO *)
-               | FixmeParam ->
-                   lval_env)
-             in'
     | NGoto _
     | Enter
     | Exit
     | TrueNode _
     | FalseNode _
     | Join
-    | OtherJoin
     | NOther _
     | NTodo _ ->
         in'
   in
+  let effects_lambdas, out' =
+    do_lambdas { env with lval_env = out' } fun_cfg.lambdas node
+  in
+  env.effects_acc := Effects.union effects_lambdas !(env.effects_acc);
   let env_at_exit = { env with lval_env = out' } in
   check_tainted_control_at_exit node env_at_exit;
   check_tainted_at_exit_sinks node env_at_exit;
@@ -1834,52 +1817,135 @@ let transfer : env -> flow:F.cfg -> Lval_env.t D.transfn =
         (Lval_env.to_string in') (Lval_env.to_string out'));
   { D.in_env = in'; out_env = out' }
 
-(*****************************************************************************)
-(* Entry point *)
-(*****************************************************************************)
+(* In OSS, lambdas are mostly treated like statement blocks, that is, we
+ * check the body of the lambda at the place where it is called, but we
+ * do not "connect" actual arguments with formals, nor we track if the
+ * lambda returns any taint.
+ *
+ * TODO: In Pro we should do inter-procedural analysis here. *)
+and do_lambdas env (lambdas : IL.lambdas_cfgs) node =
+  let node_is_call =
+    (* See 'out_env' below. *)
+    match node.F.n with
+    | NInstr i -> (
+        match i.i with
+        | Call _
+        | CallSpecial _
+        | New _ ->
+            true
+        | Assign _
+        | AssignAnon _
+        | FixmeInstr _ ->
+            false)
+    | __else__ -> false
+  in
+  (* We visit lambdas at their "use" site (where they are fetched), so we can e.g.
+   * propagate taint from an object receiving a method call, to a lambda being
+   * passed to that method. *)
+  let lambdas_in_node =
+    IL_helpers.rlvals_of_node node.F.n
+    |> List_.filter_map (LV.lval_is_lambda lambdas)
+  in
+  let num_lambdas = List.length lambdas_in_node in
+  if num_lambdas > 0 then
+    Log.debug (fun m ->
+        m "There are %d lambda(s) occurring in: %s" num_lambdas
+          (Display_IL.short_string_of_node_kind node.F.n));
+  let effects_lambdas, out_envs_lambdas =
+    lambdas_in_node
+    |> List_.map (fun (name, lcfg) ->
+           let in_env =
+             (* We do some processing of the lambda parameters but it's mainly
+              * to enable taint propagation, e.g.
+              *
+              *     obj.do_something(lambda x: sink(x))
+              *
+              * so we can propagate taint from `obj` to `x`.
+              *)
+             lcfg.params
+             |> List.fold_left
+                  (fun lval_env param ->
+                    match param with
+                    | Param { pname = var; _ } ->
+                        (* This is a *new* variable, so we clean any taint that we may have
+                         * attached to it previously. This can happen when a lambda is called
+                         * inside a loop. *)
+                        let lval_env =
+                          Lval_env.clean lval_env (LV.lval_of_var var)
+                        in
+                        (* Now check if the parameter is itself a taint source. *)
+                        let _taints, _shape, lval_env =
+                          check_tainted_var { env with lval_env } var
+                        in
+                        lval_env
+                    | PatternParam _ (* TODO *)
+                    | FixmeParam ->
+                        lval_env)
+                  env.lval_env
+           in
+           fixpoint_lambda env.lang env.options env.config env.best_matches
+             env.java_props (IL.str_of_name name) lcfg in_env)
+    |> List_.split
+  in
+  let effects = Effects.union_list effects_lambdas in
+  let out_env =
+    if node_is_call then
+      (* We only take the side-effects of the lambda into consideration if the
+       * node is a call, so the lambda is either the callee or one of its arguments.
+       * E.g.
+       *
+       *     do_something([]() { taint(p) });
+       *     sink(p) // finding wanted
+       *
+       * We assume that these lambdas are beign evaluated and that their side-effects
+       * should affect the subsequent statements.
+       *)
+      Lval_env.union_list ~default:env.lval_env out_envs_lambdas
+    else
+      (* If lambdas are not part of a call, we don't make their side-effects visible.
+       * E.g.
+       *
+       *     void test(int *p) {
+       *       auto f1 = [&p]() {
+       *         source(p);
+       *       };
+       *       auto f2 = [&p]() {
+       *         sink(p); // NO finding wanted
+       *       };
+       *     }
+       *)
+      env.lval_env
+  in
+  (effects, out_env)
 
-let (fixpoint :
-      ?in_env:Lval_env.t ->
-      ?name:Var_env.var ->
-      Lang.t ->
-      Rule_options.t ->
-      config ->
-      java_props_cache ->
-      F.cfg ->
-      Effects.t * mapping) =
- fun ?in_env ?name:opt_name lang options config java_props flow ->
+and fixpoint_lambda lang options config best_matches java_props_cache name
+    lambda_cfg in_env : Effects.t * Lval_env.t =
+  Log.debug (fun m ->
+      m "Analyzing lambda %s (%s)" name (Lval_env.to_string in_env));
+  let effects, mapping =
+    fixpoint_aux ~in_env ~name lang options config best_matches java_props_cache
+      lambda_cfg
+  in
+  let effects =
+    effects
+    |> Effects.filter (function
+         | ToSink _
+         | ToLval _
+         | ToSinkInCall _ ->
+             true
+         | ToReturn _ -> false)
+  in
+  let out_env = mapping.(lambda_cfg.cfg.exit).Dataflow_core.out_env in
+  (effects, out_env)
+
+and fixpoint_aux ?in_env ?name:opt_name lang options config best_matches
+    java_props fun_cfg =
+  let flow = fun_cfg.cfg in
   let init_mapping = DataflowX.new_node_array flow Lval_env.empty_inout in
   let enter_lval_env =
     match in_env with
     | None -> Lval_env.empty
     | Some in_env -> in_env
-  in
-  let best_matches =
-    (* Here we compute the "canonical" or "best" source/sanitizer/sink matches,
-     * for each source/sanitizer/sink we check whether there is a "best match"
-     * among all the potential matches in the CFG.
-     * See NOTE "Best matches" *)
-    TM.best_matches_in_nodes
-      ~sub_matches_of_orig:(fun orig ->
-        let sources =
-          orig_is_source config orig |> List.to_seq
-          |> Seq.filter (fun (m : R.taint_source TM.t) -> m.spec.source_exact)
-          |> Seq.map (fun m -> TM.Any m)
-        in
-        let sanitizers =
-          orig_is_sanitizer config orig
-          |> List.to_seq
-          |> Seq.filter (fun (m : R.taint_sanitizer TM.t) ->
-                 m.spec.sanitizer_exact)
-          |> Seq.map (fun m -> TM.Any m)
-        in
-        let sinks =
-          orig_is_sink config orig |> List.to_seq
-          |> Seq.filter (fun (m : R.taint_sink TM.t) -> m.spec.sink_exact)
-          |> Seq.map (fun m -> TM.Any m)
-        in
-        sources |> Seq.append sanitizers |> Seq.append sinks)
-      flow
   in
   let env =
     {
@@ -1897,7 +1963,7 @@ let (fixpoint :
   (* DataflowX.display_mapping flow init_mapping show_tainted; *)
   let end_mapping, timeout =
     DataflowX.fixpoint ~timeout:Limits_semgrep.taint_FIXPOINT_TIMEOUT
-      ~eq_env:Lval_env.equal ~init:init_mapping ~trans:(transfer env ~flow)
+      ~eq_env:Lval_env.equal ~init:init_mapping ~trans:(transfer env ~fun_cfg)
       ~forward:true ~flow
   in
   log_timeout_warning config opt_name timeout;
@@ -1905,3 +1971,47 @@ let (fixpoint :
   effects_from_arg_updates_at_exit enter_lval_env exit_lval_env
   |> record_effects env;
   (!(env.effects_acc), end_mapping)
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
+and (fixpoint :
+      ?in_env:Lval_env.t ->
+      ?name:Var_env.var ->
+      Lang.t ->
+      Rule_options.t ->
+      config ->
+      java_props_cache ->
+      F.fun_cfg ->
+      Effects.t * mapping) =
+ fun ?in_env ?name:opt_name lang options config java_props fun_cfg ->
+  let best_matches =
+    (* Here we compute the "canonical" or "best" source/sanitizer/sink matches,
+     * for each source/sanitizer/sink we check whether there is a "best match"
+     * among all the potential matches in the CFG.
+     * See NOTE "Best matches" *)
+    fun_cfg
+    |> TM.best_matches_in_nodes ~sub_matches_of_orig:(fun orig ->
+           let sources =
+             orig_is_source config orig |> List.to_seq
+             |> Seq.filter (fun (m : R.taint_source TM.t) ->
+                    m.spec.source_exact)
+             |> Seq.map (fun m -> TM.Any m)
+           in
+           let sanitizers =
+             orig_is_sanitizer config orig
+             |> List.to_seq
+             |> Seq.filter (fun (m : R.taint_sanitizer TM.t) ->
+                    m.spec.sanitizer_exact)
+             |> Seq.map (fun m -> TM.Any m)
+           in
+           let sinks =
+             orig_is_sink config orig |> List.to_seq
+             |> Seq.filter (fun (m : R.taint_sink TM.t) -> m.spec.sink_exact)
+             |> Seq.map (fun m -> TM.Any m)
+           in
+           sources |> Seq.append sanitizers |> Seq.append sinks)
+  in
+  fixpoint_aux ?in_env ?name:opt_name lang options config best_matches
+    java_props fun_cfg

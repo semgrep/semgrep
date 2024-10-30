@@ -1,0 +1,20 @@
+rules:
+- id: test
+  languages:
+    - java
+  severity: ERROR
+  message: Test
+  mode: taint
+  pattern-sources:
+    - patterns:
+      - pattern-inside: |
+          public ResponseEntity<String> $FUNC(...,
+          @RequestParam Map<$TYPE, $TYPE> $VALUE,...) {
+          ...
+          }
+      - pattern: $VALUE.get(...)
+  pattern-sinks:
+    - patterns:
+      - pattern: |
+          applicationJdbcTemplate.query($QUERY,...)          
+      - focus-metavariable: $QUERY

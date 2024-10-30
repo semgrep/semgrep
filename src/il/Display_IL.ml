@@ -71,16 +71,6 @@ let rec string_of_exp_kind e =
 
 and string_of_exp e = string_of_exp_kind e.e
 
-let string_of_name_param { pname; pdefault } =
-  let default_str = if Option.is_some pdefault then " = <EXPR>" else "" in
-  Common.spf "%s%s" (str_of_name pname) default_str
-
-let string_of_param param =
-  match param with
-  | Param name_param -> string_of_name_param name_param
-  | PatternParam _pat -> "<PATTERN>"
-  | FixmeParam -> "<FIXME>"
-
 let string_of_argument arg =
   match arg with
   | Unnamed e
@@ -97,20 +87,16 @@ let short_string_of_node_kind nkind =
   | TrueNode e -> Common.spf "<TRUE %s>" (string_of_exp e)
   | FalseNode e -> Common.spf "<FALSE %s>" (string_of_exp e)
   | Join -> "<join>"
-  | OtherJoin -> "<other join>"
   | NCond _ -> "cond(...)"
   | NGoto (_, l) -> "goto " ^ str_of_label l
   | NReturn (_, e) -> Common.spf "return %s" (string_of_exp e)
   | NThrow _ -> "throw ...;"
-  | NLambda params ->
-      let params_strs = List_.map string_of_param params in
-      "LAMBDA " ^ String.concat ", " params_strs
   | NOther (Noop str) -> Common.spf "<noop: %s>" str
   | NOther _ -> "<other>"
   | NInstr x -> (
       match x.i with
       | Assign (lval, exp) -> string_of_lval lval ^ " = " ^ string_of_exp exp
-      | AssignAnon _ -> " ... = <lambda|class>"
+      | AssignAnon (lval, _) -> string_of_lval lval ^ " = " ^ "<lambda|class>"
       | Call (lval_opt, exp, args) ->
           let lval_str =
             match lval_opt with

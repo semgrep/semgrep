@@ -307,14 +307,16 @@ let transfer_of_assume (assume : bool) (cond : IL.exp_kind)
   | None -> inp
   | Some hook -> hook assume cond inp
 
-let transfer :
+let rec transfer :
     lang:Lang.t ->
     enter_env:G.svalue Var_env.t ->
-    flow:F.cfg ->
+    fun_cfg:F.fun_cfg ->
     G.svalue Var_env.transfn =
- fun ~lang ~enter_env ~flow
+ fun ~lang ~enter_env ~fun_cfg
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
+  let flow = fun_cfg.cfg in
+
   let node = flow.graph#nodes#assoc ni in
 
   let inp' = input_env ~enter_env ~flow mapping ni in
@@ -324,11 +326,9 @@ let transfer :
     | Enter
     | Exit
     | Join
-    | OtherJoin
     | NCond _
     | NGoto _
     | NReturn _
-    | NLambda _
     | NThrow _
     | NOther _
     | NTodo _ ->
@@ -403,21 +403,57 @@ let transfer :
             | None -> inp'
             | Some lvar -> VarMap.remove (IL.str_of_name lvar) inp'))
   in
-
+  let out' = do_lambdas lang fun_cfg.lambdas out' node in
   { D.in_env = inp'; out_env = out' }
 
-(*****************************************************************************)
-(* Entry point *)
-(*****************************************************************************)
+and do_lambdas lang lambdas in_env node =
+  (* In svalue-analysis we only need to visit lambdas at definition site,
+   * we simply propagate svalues into the lambda's body, but whatever
+   * happens inside the lambda is not visible outside it. *)
+  match node.F.n with
+  | NInstr { i = AssignAnon (lval, Lambda _); _ } -> (
+      match LV.lval_is_lambda lambdas lval with
+      | Some (_name, lambda_cfg) ->
+          let mapping = fixpoint_with_env lang in_env lambda_cfg in
+          update_svalue lambda_cfg.cfg mapping;
+          let lambda_env =
+            mapping.(lambda_cfg.cfg.exit).Dataflow_core.out_env
+          in
+          let out_env =
+            (* We look at the svalue info resulting from analyzing the lambda's
+               * body, and we kill the svalue info of any variables that may be altered
+               * by the execution of the lambda. *)
+            VarMap.merge
+              (fun _var opt_env opt_lam ->
+                match (opt_env, opt_lam) with
+                | Some sval1, Some sval2 when Eval.eq sval1 sval2 ->
+                    (* Nothing changed so we keep the same svalue info. *)
+                    opt_env
+                (* Either the svalue of 'var' changed or it was deemed non-constant
+                 * (see 'update_env_with'), once the lambda is defined we don't know
+                 * when it's going to execute, so we just kill the svalue info.
+                 * (We could do better.) *)
+                | Some _, Some _
+                | Some _, None ->
+                    None
+                (* Some new constant was found inside the lambda, but we ignore those
+                 * outside the lambda. *)
+                | None, Some _ -> None
+                (* Cannot happen, just to please the compiler. *)
+                | None, None -> None)
+              in_env lambda_env
+          in
+          out_env
+      | None -> in_env)
+  | __else__ -> in_env
 
-let (fixpoint : Lang.t -> IL.fdef_cfg -> mapping) =
- fun lang { fparams = _; fcfg = flow } ->
-  let enter_env = VarMap.empty in
+and fixpoint_with_env lang enter_env fun_cfg =
+  let flow = fun_cfg.cfg in
   let mapping, timeout =
     DataflowX.fixpoint ~timeout:Limits_semgrep.svalue_prop_FIXPOINT_TIMEOUT
       ~eq_env:(Var_env.eq_env Eval.eq)
       ~init:(DataflowX.new_node_array flow (Var_env.empty_inout ()))
-      ~trans:(transfer ~lang ~enter_env ~flow)
+      ~trans:(transfer ~lang ~enter_env ~fun_cfg)
         (* svalue is a forward analysis! *)
       ~forward:true ~flow
   in
@@ -425,7 +461,16 @@ let (fixpoint : Lang.t -> IL.fdef_cfg -> mapping) =
     Log.warn (fun m -> m "Fixpoint timeout while performing svalue-propagation");
   mapping
 
-let update_svalue (flow : F.cfg) mapping =
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
+and (fixpoint : Lang.t -> IL.fun_cfg -> mapping) =
+ fun lang fun_cfg ->
+  let enter_env = VarMap.empty in
+  fixpoint_with_env lang enter_env fun_cfg
+
+and update_svalue (flow : F.cfg) mapping =
   flow.graph#nodes#keys
   |> List.iter (fun ni ->
          let ni_info = mapping.(ni) in

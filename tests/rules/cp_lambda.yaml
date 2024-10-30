@@ -1,0 +1,7 @@
+rules:
+  - id: test
+    message: Semgrep found a match
+    languages:
+      - cpp
+    severity: WARNING
+    pattern: foo(42)

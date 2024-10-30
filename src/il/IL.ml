@@ -115,6 +115,14 @@ let compare_name name1 name2 =
   | 0 -> String.compare str1 str2
   | cmp -> cmp
 
+module NameOrdered = struct
+  type t = name
+
+  let compare = compare_name
+end
+
+module NameMap = Map.Make (NameOrdered)
+
 (*****************************************************************************)
 (* Fixme constructs *)
 (*****************************************************************************)
@@ -444,27 +452,12 @@ and node_kind =
    * condition as in 'NCond'. *)
   | TrueNode of exp (* same as in Cond *)
   | FalseNode of exp (* same as in Cond *)
-  (* Join is a type of join that follows NCond only,
-   * while OtherJoin follows other nodes (e.g., NInstr, NLambda) but not NCond.
-   *
-   * we need the two kinds of joins because not only do we add joins
-   * after NCond, we also add joins after NInstr/ NLamdba for handling
-   * the insertion of the lambda CFG (see cfg_stmt, cfg_lambda)
-   * and the translation of the set of lambdas used in a node
-   * (see build_cfg_for_lambdas_in). and in some cases, we want to
-   * have a clear distinction between the two uses.
-   *
-   * in general, we can treat Join and OtherJoin as the same, unless
-   * we need to separate out the conditional case, such as in Dataflow_when.ml.
-   *)
   | Join
-  | OtherJoin
   | NInstr of instr
   | NCond of tok * exp
   | NGoto of tok * label
   | NReturn of tok * exp
   | NThrow of tok * exp
-  | NLambda of param list (* just the params, the body nodes follow this one *)
   | NOther of other_stmt
   | NTodo of stmt
 [@@deriving
@@ -476,7 +469,9 @@ and node_kind =
  *)
 type edge = Direct
 type cfg = (node, edge) CFG.t
-type fdef_cfg = { fparams : param list; fcfg : cfg }
+
+type fun_cfg = { params : param list; cfg : cfg; lambdas : lambdas_cfgs }
+and lambdas_cfgs = fun_cfg NameMap.t
 
 (* an int representing the index of a node in the graph *)
 type nodei = Ograph_extended.nodei

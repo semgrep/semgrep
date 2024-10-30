@@ -348,6 +348,7 @@ and Effect : sig
   val show : t -> string
 
   (* Mainly for debugging *)
+  val show_sink : sink -> string
   val show_args_taints : args_taints -> string
   val show_taints_to_sink : taints_to_sink -> string
   val show_taints_to_return : taints_to_return -> string
@@ -547,6 +548,7 @@ and Effects : sig
 
   val show : t -> string
   val add_list : Effect.t list -> t -> t
+  val union_list : t list -> t
 end = struct
   include Set.Make (struct
     type t = Effect.t
@@ -558,6 +560,7 @@ end = struct
     s |> to_seq |> List.of_seq |> List_.map Effect.show |> String.concat "; "
 
   let add_list elts t = List.fold_left (fun set e -> add e set) t elts
+  let union_list ts = List.fold_left union empty ts
 end
 
 (** A (polymorphic) taint signature: simply a set of results for a function.

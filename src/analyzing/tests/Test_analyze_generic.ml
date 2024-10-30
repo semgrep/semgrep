@@ -60,8 +60,10 @@ let test_cfg_il ~parse_program file =
   Implicit_return.mark_implicit_return lang ast;
   Visit_function_defs.visit
     (fun _ent fdef ->
-      let IL.{ fparams = _; fcfg } = CFG_build.cfg_of_gfdef lang fdef in
-      Display_IL.display_cfg fcfg)
+      let IL.{ params = _; cfg; lambdas = _ } =
+        CFG_build.cfg_of_gfdef lang fdef
+      in
+      Display_IL.display_cfg cfg)
     ast
 
 module F2 = IL
@@ -83,11 +85,11 @@ let test_dfg_svalue ~parse_program file =
       inherit [_] AST_generic.iter_no_id_info
 
       method! visit_function_definition _ def =
-        let fdef_cfg = CFG_build.cfg_of_gfdef lang def in
+        let fun_cfg = CFG_build.cfg_of_gfdef lang def in
         UCommon.pr2 "Constness";
-        let mapping = Dataflow_svalue.fixpoint lang fdef_cfg in
-        Dataflow_svalue.update_svalue fdef_cfg.fcfg mapping;
-        DataflowY.display_mapping fdef_cfg.fcfg mapping
+        let mapping = Dataflow_svalue.fixpoint lang fun_cfg in
+        Dataflow_svalue.update_svalue fun_cfg.cfg mapping;
+        DataflowY.display_mapping fun_cfg.cfg mapping
           (Dataflow_var_env.env_to_str (Pretty_print_AST.svalue_to_string lang));
         let s = AST_generic.show_any (S (H.funcbody_to_stmt def.fbody)) in
         UCommon.pr2 s

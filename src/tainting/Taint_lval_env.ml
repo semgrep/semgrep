@@ -24,7 +24,7 @@ module Taints = T.Taint_set
 module H = IL_helpers
 module Var_env = Dataflow_var_env
 module VarMap = Var_env.VarMap
-module NameMap = Map.Make (H.NameOrdered)
+module NameMap = IL.NameMap
 open Shape_and_sig.Shape
 module Shape = Taint_shape
 
@@ -102,6 +102,8 @@ let union le1 le2 =
        * at JOINs. *)
       VarMap.empty;
   }
+
+let union_list ?(default = empty) les = List.fold_left union default les
 
 (* HACK: Because we don't have a "Class" type, classes have themselves as types. *)
 let is_class_name (name : IL.name) =

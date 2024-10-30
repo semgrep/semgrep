@@ -233,14 +233,15 @@ let check_var_def lang options taint_config env id ii expr =
     |> G.e |> G.exprstmt
   in
   let xs = AST_to_IL.stmt lang assign in
-  let flow = CFG_build.cfg_of_stmts xs in
+  let cfg, lambdas = CFG_build.cfg_of_stmts xs in
   let effects, end_mapping =
     (* There could be taint effects indeed, e.g. if 'expr' is `sink(taint)`. *)
     let java_props_cache = D.mk_empty_java_props_cache () in
     Dataflow_tainting.fixpoint ~in_env:env lang options taint_config
-      java_props_cache flow
+      java_props_cache
+      IL.{ params = []; cfg; lambdas }
   in
-  let out_env = end_mapping.(flow.exit).Dataflow_core.out_env in
+  let out_env = end_mapping.(cfg.exit).Dataflow_core.out_env in
   let lval : IL.lval = { base = Var name; rev_offset = [] } in
   let xtaint = Lval_env.find_lval_xtaint out_env lval in
   (xtaint, effects)
@@ -382,16 +383,16 @@ let check_fundef lang options taint_config opt_ent ctx ?glob_env
     Some (IL.str_of_name name)
   in
   let fdef = AST_to_IL.function_definition lang ~ctx fdef in
-  let IL.{ fcfg = flow; _ } = CFG_build.cfg_of_fdef fdef in
+  let fcfg = CFG_build.cfg_of_fdef fdef in
   let in_env, env_effects =
     mk_fun_input_env lang options taint_config ?glob_env fdef
   in
   let effects, mapping =
     Dataflow_tainting.fixpoint ~in_env ?name lang options taint_config
-      java_props_cache flow
+      java_props_cache fcfg
   in
   let effects = Effects.union env_effects effects in
-  (flow, effects, mapping)
+  (fcfg, effects, mapping)
 
 let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
     (xconf : Match_env.xconfig) (xtarget : Xtarget.t) =
@@ -473,10 +474,11 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
         |> G.stmt1
       in
       let stmts = AST_to_IL.stmt lang fields in
-      let flow = CFG_build.cfg_of_stmts stmts in
+      let cfg, lambdas = CFG_build.cfg_of_stmts stmts in
       let init_effects, _mapping =
         Dataflow_tainting.fixpoint lang xconf.config taint_config
-          java_props_cache flow
+          java_props_cache
+          IL.{ params = []; cfg; lambdas }
       in
       record_matches init_effects)
     ast;
@@ -488,10 +490,11 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
   let (), match_time =
     Common.with_time (fun () ->
         let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
-        let flow = CFG_build.cfg_of_stmts xs in
+        let cfg, lambdas = CFG_build.cfg_of_stmts xs in
         let top_effects, _mapping =
           Dataflow_tainting.fixpoint lang xconf.config taint_config
-            java_props_cache flow
+            java_props_cache
+            IL.{ params = []; cfg; lambdas }
         in
         record_matches top_effects)
   in

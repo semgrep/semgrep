@@ -139,7 +139,7 @@ end
 let is_best_match = Best_matches.is_best_match
 
 (* See NOTE "Best matches" for more context. *)
-let best_matches_in_nodes ~sub_matches_of_orig flow =
+let best_matches_in_nodes ~sub_matches_of_orig fun_cfg =
   let find_origs_visitor =
     object (_self : 'self)
       inherit [_] IL.iter as super
@@ -183,9 +183,8 @@ let best_matches_in_nodes ~sub_matches_of_orig flow =
    * thus has a range that contains them all, is the chosen as the "best"
    * match of the sink spec.
    * *)
-  flow.CFG.reachable |> CFG.NodeiSet.to_seq
-  |> Seq.concat_map (fun ni ->
-         let node = flow.CFG.graph#nodes#assoc ni in
+  fun_cfg |> IL_helpers.reachable_nodes
+  |> Seq.concat_map (fun node ->
          let all_origs : IL.orig Seq.t =
            let origs = ref Seq.empty in
            find_origs_visitor#visit_node origs node;

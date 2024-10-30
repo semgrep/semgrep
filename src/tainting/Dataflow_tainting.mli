@@ -104,7 +104,7 @@ val fixpoint :
   Rule_options.t ->
   config ->
   java_props_cache ->
-  IL.cfg ->
+  IL.fun_cfg ->
   Shape_and_sig.Effects.t * mapping
 (** Main entry point, [fixpoint config cfg] returns a mapping (effectively a set)
   * containing all the tainted variables in [cfg]. Besides, if it infers any taint

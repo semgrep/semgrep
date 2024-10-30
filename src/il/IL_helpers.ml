@@ -13,6 +13,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Common
 open IL
 
 (*****************************************************************************)
@@ -125,15 +126,13 @@ let rlvals_of_node = function
   | TrueNode _
   | FalseNode _
   | NGoto _
-  | Join
-  | OtherJoin ->
+  | Join ->
       []
   | NInstr x -> rlvals_of_instr x
   | NCond (_, e)
   | NReturn (_, e)
   | NThrow (_, e) ->
       lvals_of_exp e
-  | NLambda _
   | NOther _
   | NTodo _ ->
       []
@@ -151,14 +150,27 @@ let orig_of_node = function
   | NInstr i -> Some i.iorig
   | NGoto _
   | Join
-  | OtherJoin
-  | NLambda _
   | NOther _
   | NTodo _ ->
       None
 
-module NameOrdered = struct
-  type t = name
+let lval_is_lambda lambdas_cfgs lval =
+  match lval with
+  | { base = Var name; rev_offset = [] } ->
+      let* lambda_cfg = IL.NameMap.find_opt name lambdas_cfgs in
+      Some (name, lambda_cfg)
+  | { base = Var _ | VarSpecial _ | Mem _; rev_offset = _ } ->
+      (* Lambdas are only assigned to plain variables without any offset. *)
+      None
 
-  let compare = IL.compare_name
-end
+let rec reachable_nodes fun_cfg =
+  let get_reachable_nodes cfg =
+    cfg.CFG.reachable |> CFG.NodeiSet.to_seq
+    |> Seq.map cfg.CFG.graph#nodes#assoc
+  in
+  let main_nodes = get_reachable_nodes fun_cfg.cfg in
+  let lambdas_nodes =
+    fun_cfg.lambdas |> NameMap.to_seq
+    |> Seq.map (fun (_lname, lcfg) -> reachable_nodes lcfg)
+  in
+  Seq.concat (Seq.cons main_nodes lambdas_nodes)

@@ -41,7 +41,7 @@ val check_fundef :
   ?glob_env:Taint_lval_env.t ->
   Dataflow_tainting.java_props_cache ->
   AST_generic.function_definition ->
-  IL.cfg * Shape_and_sig.Effects.t * Dataflow_tainting.mapping
+  IL.fun_cfg * Shape_and_sig.Effects.t * Dataflow_tainting.mapping
 (** Check a function definition using a [Dataflow_tainting.config] (which can
   * be obtained with [taint_config_of_rule]). Findings are passed on-the-fly
   * to the [handle_findings] callback in the dataflow config.

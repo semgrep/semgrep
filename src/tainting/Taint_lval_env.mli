@@ -98,6 +98,7 @@ val union : env -> env -> env
      branch, then x.a_1. ... . a_N may no longer be clean, but we assume the
      best case scenario to reduce FPs. *)
 
+val union_list : ?default:env -> env list -> env
 val equal : env -> env -> bool
 
 val equal_by_lval : env -> env -> IL.lval -> bool

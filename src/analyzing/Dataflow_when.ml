@@ -230,7 +230,10 @@ let rec annotate_facts_of_node (cfg : IL.cfg) nodei (ctx : ctx) visited =
         | TrueNode _
         | FalseNode _ ->
             process_successors ([] :: ctx)
-        (* based on the assumption in CFG_build.cfg_lambda that we don't actual traverse
+        (* TODO: Need to revisit this after a major refactoring of how we handle lambdas
+         *       in Pro PR #2477 (that PR also removed 'NLambda' nodes).
+         *
+         * based on the assumption in CFG_build.cfg_lambda that we don't actual traverse
          * into the lambda and perform inter-procedural analysis, we keep the
          * same ctx when we encounter NLambda.
          *
@@ -256,8 +259,6 @@ let rec annotate_facts_of_node (cfg : IL.cfg) nodei (ctx : ctx) visited =
          * we also cannot simply clear the ctx because if we do, we cannot
          * revert it back to the original ctx after exiting the lambda.
          *)
-        | NLambda _
-        | OtherJoin
         | NCond _
         | NInstr _
         | Enter

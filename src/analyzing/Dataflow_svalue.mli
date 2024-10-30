@@ -19,7 +19,7 @@ val eq : AST_generic.svalue -> AST_generic.svalue -> bool
 val union : AST_generic.svalue -> AST_generic.svalue -> AST_generic.svalue
 *)
 
-val fixpoint : Lang.t -> IL.fdef_cfg -> mapping
+val fixpoint : Lang.t -> IL.fun_cfg -> mapping
 (** Flow-sensitive constant-propagation.
  * !Note that this assumes Naming_AST.resolve has been called before!
 *)

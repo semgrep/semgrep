@@ -23,9 +23,8 @@ val rlvals_of_node : IL.node_kind -> IL.lval list
 
 val orig_of_node : IL.node_kind -> IL.orig option
 
-(** Useful to instantiate data strutures like Map and Set. *)
-module NameOrdered : sig
-  type t = IL.name
+val lval_is_lambda : IL.lambdas_cfgs -> IL.lval -> (IL.name * IL.fun_cfg) option
+(** Lookup an 'lval' in a 'lambdas_cfgs' table to obtain the lambda's CFG. *)
 
-  val compare : t -> t -> int
-end
+val reachable_nodes : IL.fun_cfg -> IL.node Seq.t
+(** Get the reachable nodes from function's CFG, including the nodes in the lambdas' CFGs. *)

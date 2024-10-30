@@ -25,13 +25,13 @@ let pr2_ranges (file : Fpath.t) (rwms : RM.t list) : unit =
 let test_tainting (lang : Lang.t) (_file : Fpath.t) options config def =
   UCommon.pr2 "\nDataflow";
   UCommon.pr2 "--------";
-  let flow, _effects_IGNORED, mapping =
+  let fcfg, _effects_IGNORED, mapping =
     Match_tainting_mode.check_fundef lang options config None
       AST_to_IL.empty_ctx
       (Dataflow_tainting.mk_empty_java_props_cache ())
       def
   in
-  DataflowX.display_mapping flow mapping Taint_lval_env.to_string
+  DataflowX.display_mapping fcfg.cfg mapping Taint_lval_env.to_string
 
 let test_dfg_tainting rules_file file =
   let rules_file = Fpath.v rules_file in

@@ -44,8 +44,7 @@ let rec mark_first_instr_ancestor (cfg : IL.cfg) i =
   | Exit
   | NOther (Noop _)
   | NGoto _
-  | Join
-  | OtherJoin ->
+  | Join ->
       CFG.predecessors cfg i
       |> List.iter (fun (pred_i, _) -> mark_first_instr_ancestor cfg pred_i)
   (* Certain instruction nodes may be implicitly returned. *)
@@ -79,7 +78,9 @@ let mark_implicit_return_nodes (cfg : IL.cfg) =
 
 let mark_implicit_return_fdef lang ~tok fdef =
   let fdef_il = AST_to_IL.function_definition lang fdef in
-  let fcfg = CFG_build.cfg_of_stmts ~tok fdef_il.fbody in
+  let fcfg, _flambdas = CFG_build.cfg_of_stmts ~tok fdef_il.fbody in
+  (* Lambdas are separately visited by 'mark_implicit_return',
+   * see 'LambdaKind' case. *)
   mark_implicit_return_nodes fcfg
 
 let mark_implicit_return lang ast =

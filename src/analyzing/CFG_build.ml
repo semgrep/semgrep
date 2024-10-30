@@ -1,7 +1,7 @@
-(* Yoann Padioleau
+(* Yoann Padioleau, Iago Abal
  *
  * Copyright (C) 2009, 2010, 2011 Facebook
- * Copyright (C) 2020 r2c
+ * Copyright (C) 2020-2024 Semgrep
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -48,9 +48,10 @@ type label_key = string * G.sid
  * No need to return a new state.
  *)
 type state = {
-  opt_tok : Tok.t option;
   (* An optional token to point to the function/entity for which we are
    * constructing a CFG. *)
+  opt_tok : Tok.t option;
+  (* The graph under construction. *)
   g : (F.node, F.edge) Ograph_extended.ograph_mutable;
   (* When there is a 'return' we need to know the exit node to link to *)
   exiti : F.nodei;
@@ -67,20 +68,11 @@ type state = {
    * and there is no significant benefit of having these extra arcs.
    *)
   throw_destination : F.nodei option;
-  (* Lambdas are always assigned to a variable in IL, this table records the
-   * name-to-lambda mapping. Whenever a lambda is fetched, we look it up here
-   * and we generate the lambda's CFG right at the use site.
-   *
-   * Why at the use site? So that the fixpoint function will visit them in the
-   * right order. Then we can propagate taint from e.g. an object receiving
-   * a method call, to a lambda being passed to that method. Previously, we
-   * always inserted the lambdas CFGs preceding their use, so taint propagation
-   * could not happen.
-   *)
-  lambdas : (name, IL.function_definition) Hashtbl.t;
-  (* If a lambda is never used, we just insert its CFG at the end of
-     its parent function. *)
-  unused_lambdas : (name, unit) Hashtbl.t;
+  (* The CFG of each lambda is kept here separately; it is not part of the
+   * CFG of its enclosing function. Note that an 'IL.fun_cfg' gives you the
+   * "main" CFG as well as the lambdas' CFGs, and each analysis chooses how to
+   * handle the lambdas. *)
+  lambdas_cfgs : IL.lambdas_cfgs ref;
 }
 
 (*****************************************************************************)
@@ -123,15 +115,6 @@ let resolve_gotos state =
                  m ~tags "Could not resolve label: %s%s" (fst label_key) loc_str)
          | Some dsti -> state.g |> add_arc (srci, dsti));
   state.gotos := []
-
-let lval_is_lambda state l =
-  match l with
-  | { base = Var name; rev_offset = [] } ->
-      let* fdef = Hashtbl.find_opt state.lambdas name in
-      Some (name, fdef)
-  | { base = Var _ | VarSpecial _ | Mem _; rev_offset = _ } ->
-      (* Lambdas are only assigned to plain variables without any offset. *)
-      None
 
 (*****************************************************************************)
 (* Algorithm *)
@@ -180,10 +163,10 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       let new_ = F.NInstr x in
       let newi = state.g#add_node (IL.mk_node new_) in
       state.g |> add_arc_from_opt (previ, newi);
-      let lasti, throws =
+      let throws =
         match x.i with
         | New _
-        | Call _ -> (
+        | Call _ ->
             (* If we are inside a try-catch, we consider the possibility of this call
                * raising an exception, then we add a jump to catch-blocks. This could
                * lead to some false positives when running taint rules (since it's a
@@ -192,21 +175,15 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
                * Ideally we should have a preceeding analysis that infers which calls
                * may (or may not) raise exceptions. *)
             state.g |> add_arc_opt_to_opt (Some newi, state.throw_destination);
-            match build_cfg_for_lambdas_in state (Some newi) new_ with
-            | Some lasti -> (lasti, true)
-            | None -> (newi, true))
+            true
         | AssignAnon ({ base = Var name; rev_offset = [] }, Lambda fdef) ->
-            (* Just in case the lambda CFG needs be inserted here later on (if the
-             * lambda is never dereferenced) then we have to insert a JOIN node here,
-             * see cfg_lambda. *)
-            let lasti = state.g#add_node (IL.mk_node F.OtherJoin) in
-            state.g |> add_arc (newi, lasti);
-            Hashtbl.add state.lambdas name fdef;
-            Hashtbl.add state.unused_lambdas name ();
-            (lasti, false)
-        | __else__ -> (newi, false)
+            let lambda_cfg = cfg_of_fdef fdef in
+            state.lambdas_cfgs :=
+              IL.NameMap.add name lambda_cfg !(state.lambdas_cfgs);
+            false
+        | __else__ -> false
       in
-      CfgFirstLast (newi, Some lasti, throws)
+      CfgFirstLast (newi, Some newi, throws)
   | If (tok, e, st1, st2) -> (
       (* previ -> newi --->  newfakethen -> ... -> finalthen --> lasti -> <rest>
        *                |                                     |
@@ -263,13 +240,8 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       let new_ = F.NReturn (tok, e) in
       let newi = state.g#add_node (IL.mk_node new_) in
       state.g |> add_arc_from_opt (previ, newi);
-      let lasti =
-        match build_cfg_for_lambdas_in state (Some newi) new_ with
-        | Some lasti -> lasti
-        | None -> newi
-      in
-      state.g |> add_arc (lasti, state.exiti);
-      CfgFirstLast (lasti, None, false)
+      state.g |> add_arc (newi, state.exiti);
+      CfgFirstLast (newi, None, false)
   | Try (try_st, catches, else_st, finally_st) ->
       (* previ ->
        * newi ->
@@ -370,62 +342,6 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       CfgFirstLast (newi, Some newi, false)
   | FixmeStmt _ -> cfg_todo state previ stmt
 
-and cfg_lambda state previ joini (fdef : IL.function_definition) =
-  (* Lambdas are treated as statement blocks, the CFG does NOT capture the actual
-   * flow of data that goes into the lambda through its parameters, and back
-   * into the surrounding definition through its `return' statement. We won't
-   * do inter-procedural analysis here, it is a DeepSemgrep thing.
-   *
-   * previ -> NLambda params -> ... (lambda body) -> finallambda -> lasti
-   *
-   * alt: We could inline lambdas perhaps?
-   *
-   * coupling: if we ever decide to capture the flow of data into the lambda
-   * here, the handling of the NLambda case in Dataflow_when has to be updated.
-   *)
-  let newi = state.g#add_node (IL.mk_node (NLambda fdef.fparams)) in
-  state.g |> add_arc_from_opt (previ, newi);
-  let finallambda, _ignore_throws_in_lambda_ =
-    cfg_stmt_list
-      { state with throw_destination = None }
-      (Some newi) fdef.IL.fbody
-  in
-  state.g |> add_arc_from_opt (finallambda, joini)
-
-and build_cfg_for_lambdas_in state previ n =
-  (* We look for all lambdas being fetched within node `n`, and insert their CFGs
-   * right there.
-   *
-   * THINK: Where do we need to call this? Clearly we need to check `NInstr` nodes
-   *   since lambdas will typically be dereferenced in `Call` instructions, either
-   *   as the function being called, or as arguments to a higher-order function. *)
-  let lambda_names, lambda_fdefs =
-    IL_helpers.rlvals_of_node n
-    |> List_.filter_map (lval_is_lambda state)
-    |> List_.split
-  in
-  if lambda_fdefs <> [] then (
-    (* We translate the set of lambdas used in the node as like an IF-ELSEIF-ELSE,
-     * block, with a fall-through case. This is meant to reduce FPs, but we should
-     * revisit it if we are proven wrong. Note that we insert the lambda's CFG at
-     * the site where they occur in the code, but they are not necessarily being
-     * run there (often they are arguments to high-order functions). If the node
-     * has multiple lambdas, it will typically be a call to a function that takes
-     * multiple lambdas as arguments.
-     *
-     * previ ->  (lambda 1)     /-> lasti
-     *       \-> ...         ->/
-     *       \-> (lambda N) ->/
-     *       \_______________/
-     *)
-    let lasti = state.g#add_node (IL.mk_node F.OtherJoin) in
-    state.g |> add_arc_from_opt (previ, lasti);
-    lambda_fdefs |> List.iter (fun fdef -> cfg_lambda state previ lasti fdef);
-    lambda_names
-    |> List.iter (fun name -> Hashtbl.remove state.unused_lambdas name);
-    Some lasti)
-  else None
-
 and cfg_todo state previ stmt =
   let newi = state.g#add_node (IL.mk_node (F.NTodo stmt)) in
   state.g |> add_arc_from_opt (previ, newi);
@@ -468,24 +384,11 @@ and cfg_stmt_list state previ xs =
       (Some dummyi, may_throw)
   | [] -> (lasti_opt, may_throw)
 
-let build_cfg_of_unused_lambdas state previ nexti =
-  state.unused_lambdas
-  |> Hashtbl.iter (fun name _ ->
-         match Hashtbl.find_opt state.lambdas name with
-         | None ->
-             let tok = snd name.ident in
-             Log.warn (fun m ->
-                 m ~tags "Cannot find the definition of a lambda (%s)"
-                   (Tok.stringpos_of_tok tok));
-             ()
-         | Some fdef -> cfg_lambda state previ nexti fdef);
-  Hashtbl.clear state.unused_lambdas
-
 (*****************************************************************************)
 (* Marking nodes *)
 (*****************************************************************************)
 
-let mark_at_exit_nodes cfg =
+and mark_at_exit_nodes cfg =
   let rec loop nodei =
     let node = cfg.CFG.graph#nodes#find nodei in
     match node.n with
@@ -493,14 +396,12 @@ let mark_at_exit_nodes cfg =
     | Exit
     | NOther (Noop _)
     | NGoto _
-    | Join
-    | OtherJoin ->
+    | Join ->
         CFG.predecessors cfg nodei |> List.iter (fun (predi, _) -> loop predi)
     (* These can be at-exit nodes. *)
     | NInstr _
     | NReturn _
     | NThrow _
-    | NLambda _
     | NTodo _ ->
         node.at_exit <- true
     (* Whereas these cannot. *)
@@ -517,8 +418,7 @@ let mark_at_exit_nodes cfg =
 (* Main entry point *)
 (*****************************************************************************)
 
-let (cfg_of_stmts : ?tok:Tok.t -> stmt list -> F.cfg) =
- fun ?tok xs ->
+and cfg_of_stmts ?tok (xs : stmt list) : IL.cfg * IL.lambdas_cfgs =
   (* yes, I sometimes use objects, and even mutable objects in OCaml ... *)
   let g = new Ograph_extended.ograph_mutable in
 
@@ -535,46 +435,24 @@ let (cfg_of_stmts : ?tok:Tok.t -> stmt list -> F.cfg) =
       labels = Hashtbl.create 10;
       gotos = ref [];
       throw_destination = None;
-      lambdas = Hashtbl.create 10;
-      unused_lambdas = Hashtbl.create 10;
+      lambdas_cfgs = ref NameMap.empty;
     }
   in
   let last_node_opt, _ignore_may_throw_ = cfg_stmt_list state (Some newi) xs in
   (* Must wait until all nodes have been labeled before resolving gotos. *)
   resolve_gotos state;
-  (* Previously, we used to insert the CFGs of unused lambdas at the
-     declaration site. However, this approach triggered some false
-     positives. For example, consider the following code:
-     ```
-     void incorrect(int *p) {
-       auto f1 = [&p]() {
-         source(p);
-       };
-       auto f2 = [&p]() {
-         sink(p);
-       };
-     }
-     ```
-     In this code, there's no actual control flow between the source
-     and sink, and the lambdas are never even called. But when we
-     inserted their CFGs at the declaration site, it incorrectly
-     indicated a taint finding. To prevent these types of false
-     positives while still scanning the body of unused lambdas, we now
-     insert their CFGs in parallel at the end of their parent
-     function, right after all other statements and just before the
-     end node. *)
-  build_cfg_of_unused_lambdas state last_node_opt exiti;
   (* maybe the body does not contain a single 'return', so by default
    * connect last stmt to the exit node
    *)
   g |> add_arc_from_opt (last_node_opt, exiti);
-  CFG.make g enteri exiti
+  let cfg = CFG.make g enteri exiti in
+  (cfg, !(state.lambdas_cfgs))
 
-let cfg_of_fdef ?tok fdef =
-  let fcfg = cfg_of_stmts ?tok fdef.fbody in
-  mark_at_exit_nodes fcfg;
-  IL.{ fparams = fdef.fparams; fcfg }
+and cfg_of_fdef fdef =
+  let cfg, lambdas = cfg_of_stmts ~tok:(snd fdef.fkind) fdef.fbody in
+  mark_at_exit_nodes cfg;
+  IL.{ params = fdef.fparams; cfg; lambdas }
 
 let cfg_of_gfdef lang ?ctx fdef =
   let fdef_il = AST_to_IL.function_definition lang ?ctx fdef in
-  cfg_of_fdef ~tok:(snd fdef.fkind) fdef_il
+  cfg_of_fdef fdef_il
