@@ -192,8 +192,8 @@ repos:
   # ----------------------------------------------------------
   # Dogfood! running semgrep in pre-commit!
   # ----------------------------------------------------------
-  - repo: https://github.com/returntocorp/semgrep
-    rev: v1.54.0
+  - repo: https://github.com/semgrep/pre-commit
+    rev: v1.93.0
     hooks:
       - id: semgrep
         name: Semgrep Jsonnet
@@ -246,8 +246,8 @@ repos:
   # Dogfooding .pre-commit-hooks.yml and setup.py
   # Use a fixed version of p/python and p/bandit to not get new findings
   # We run `semgrep ci` for our main rulesets
-  - repo: https://github.com/returntocorp/semgrep
-    rev: v1.51.0
+  - repo: https://github.com/semgrep/pre-commit
+    rev: v1.93.0
     hooks:
       - id: semgrep
         name: Semgrep Python
@@ -262,7 +262,7 @@ repos:
 
   # Run Semgrep Docker images. Only used in CI since it's slower for local developmemt.
   # To run locally use `pre-commit run --hook-stage manual semgrep-docker-develop`
-  - repo: https://github.com/returntocorp/semgrep
+  - repo: https://github.com/semgrep/pre-commit
     # Note that the 'rev:' below is the revision to use to clone the URL
     # above and to fetch its .pre-commit-hooks.yaml file. It does not always
     # mean which version of semgrep to use for the hook itself.
@@ -270,7 +270,7 @@ repos:
     # the 'language: docker_image', the 'entry:' field will then specify
     # which version to use. In the case below, we're actually running
     # returntocorp/semgrep:develop if you look at .pre-commit-hooks.yaml
-    rev: v1.51.0
+    rev: v1.93.0
     hooks:
       - id: semgrep-docker-develop
         name: Semgrep Develop Python

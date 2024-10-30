@@ -43,7 +43,7 @@ let test_common_map =
     let input = List.init len (fun i -> i) in
     let f x = x + 1 in
     let acc = ref [] in
-    let expected_output = List.map f input in
+    let expected_output = List_.map f input in
     let output =
       List_.map
         (fun x ->

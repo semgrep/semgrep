@@ -146,7 +146,7 @@ jobs:
           unset CI
           unset "${!GITHUB_@}"
 
-          PYTEST_EXTRA_ARGS="--snapshot-update --allow-snapshot-deletion" make test
+          PYTEST_EXTRA_ARGS="--snapshot-update --allow-snapshot-deletion" make ci-test
         working-directory: cli
       - if: failure()
         name: Prepare repo for snapshot commit

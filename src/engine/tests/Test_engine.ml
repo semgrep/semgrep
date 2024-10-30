@@ -259,7 +259,7 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
         Test_utils.compare_fixes ~file:target res.matches;
 
         check_profiling rule_file target res;
-        let actual_errors = res.matches |> List.map TCM.location_of_pm in
+        let actual_errors = res.matches |> List_.map TCM.location_of_pm in
         actual_errors
         |> List.iter (fun (_, line) ->
                Logs.debug (fun m -> m "match at line: %d" line));

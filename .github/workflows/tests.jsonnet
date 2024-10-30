@@ -266,7 +266,7 @@ local test_cli_job = {
         unset CI
         unset "${!GITHUB_@}"
 
-        PYTEST_EXTRA_ARGS="--snapshot-update --allow-snapshot-deletion" make test
+        PYTEST_EXTRA_ARGS="--snapshot-update --allow-snapshot-deletion" make ci-test
       |||,
     },
   ] + snapshot_update_pr_steps(

@@ -26,6 +26,8 @@ let test_iter_with_view_into_neighbor_elements name list =
 
 let test_flatten () =
   let list = [ [ 1; 2; 3 ]; []; [ 4 ]; [ 5; 6 ] ] in
+  (* nosemgrep is ok here as we are comparing against STD List.flatten *)
+  (* nosemgrep: no-list-concat *)
   Alcotest.(check (list int)) __LOC__ (List.flatten list) (List_.flatten list)
 
 let test_append () =
