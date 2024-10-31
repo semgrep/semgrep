@@ -120,7 +120,10 @@ let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
   in
 
   let linecol_to_bytepos_fun =
-    (Pos.full_converters_large !!path).linecol_to_bytepos_fun
+    (* bugfix: This is only needed in relatively rare cases, and it's costly to
+     * compute both in time and memory. Making it lazy avoids this computation
+     * when it's not needed. *)
+    lazy (Pos.full_converters_large !!path).linecol_to_bytepos_fun
   in
 
   let previous_line, line =
@@ -184,18 +187,20 @@ let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
           *)
           let id = Common2.strip '"' id in
           let loc =
-            Tok.
-              {
-                str = id;
-                pos =
-                  Pos.
-                    {
-                      bytepos = linecol_to_bytepos_fun (line_num, col);
-                      line = line_num;
-                      column = col;
-                      file = path;
-                    };
-              }
+            lazy
+              Tok.
+                {
+                  str = id;
+                  pos =
+                    Pos.
+                      {
+                        bytepos =
+                          (Lazy.force linecol_to_bytepos_fun) (line_num, col);
+                        line = line_num;
+                        column = col;
+                        file = path;
+                      };
+                }
           in
           (* NOTE(multiple): This behavior was ported from the original Python,
              but I don't think it should exist.
@@ -234,7 +239,7 @@ let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
                   Core_error.rule_id = None;
                   typ = SemgrepWarning;
                   msg;
-                  loc = Some loc;
+                  loc = Some (Lazy.force loc);
                   details = None;
                 }
               in
