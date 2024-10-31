@@ -150,17 +150,23 @@ def upload_result(
         num_lines = 0
         for target in timings["targets"]:
             assert "path" in target
-            with open(target["path"]) as f:
+            try:
+                fd = open(target["path"])
+                f = fd.read()
                 try:
                     num_lines += sum(1 for _ in f)
                 except UnicodeDecodeError:
                     pass
+                finally:
+                    fd.close()
+
+            except FileNotFoundError:
                 # Semgrep creates artificial temporary target files (for
                 # example, the Flask lifecycle harness) to aid in analysis under
                 # some circumstances. It cleans these up after it runs. If we
                 # try to open them here, we'll get an error.
-                except FileNotFoundError:
-                    pass
+                pass
+
         lps = num_lines / (prof_times["total_time"] * num_rules)
 
         lps_url = f"{DASHBOARD_URL}/api/metric/{LPS_ENDPOINT}"
