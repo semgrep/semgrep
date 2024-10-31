@@ -12,6 +12,18 @@ let parse_manifest :
     In.manifest_kind -> Fpath.t -> Dependency.manifest_dependency list =
   function
   (* TODO: add parsers, guard behind semgrep-pro  *)
-  | PackageJson -> fun _ -> []
-  | PomXml -> fun _ -> []
-  | BuildGradle -> fun _ -> []
+  | `RequirementsIn
+  | `PackageJson
+  | `Gemfile
+  | `GoMod
+  | `CargoToml
+  | `PomXml
+  | `BuildGradle
+  | `ComposerJson
+  | `NugetManifestJson
+  | `PubspecYaml
+  | `PackageSwift
+  | `MixExs
+  | `Pipfile
+  | `PyprojectToml ->
+      fun _ -> []

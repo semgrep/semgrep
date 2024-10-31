@@ -110,6 +110,7 @@ let rec string_of_error_type (error_type : OutJ.error_type) : string =
   (* other constructors with arguments *)
   | PatternParseError _ -> string_of_error_type PatternParseError0
   | IncompatibleRule _ -> string_of_error_type IncompatibleRule0
+  | DependencyResolutionError _ -> "Dependency resolution error"
   (* All the other cases don't have arguments in Semgrep_output_v1.atd
    * and have some <json name="..."> annotations to generate the right string
    * so we can mostly just call Out.string_of_error_type (and remove the

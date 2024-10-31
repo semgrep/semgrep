@@ -132,7 +132,8 @@ let exit_code_of_error_type (error_type : Out.error_type) : Exit_code.t =
   | UnknownLanguageError -> Exit_code.invalid_language ~__LOC__
   | IncompatibleRule _
   | IncompatibleRule0
-  | MissingPlugin ->
+  | MissingPlugin
+  | DependencyResolutionError _ ->
       Exit_code.ok ~__LOC__
 
 (* Skipping the intermediate python SemgrepCoreError for now.
@@ -178,7 +179,8 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
         | OutOfMemoryDuringInterfile
         | IncompatibleRule _
         | IncompatibleRule0
-        | MissingPlugin ->
+        | MissingPlugin
+        | DependencyResolutionError _ ->
             rule_id
       in
       let path =
@@ -209,7 +211,8 @@ let cli_error_of_core_error (x : Out.core_error) : Out.cli_error =
         | SemgrepError
         | IncompatibleRule _
         | IncompatibleRule0
-        | MissingPlugin ->
+        | MissingPlugin
+        | DependencyResolutionError _ ->
             location |> Option.map (fun (x : Out.location) -> x.path)
       in
       let message =

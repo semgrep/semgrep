@@ -111,7 +111,8 @@ let mk_error ?rule_id ?(msg = "") ?(loc : Tok.location option)
     | SemgrepError
     | InvalidRuleSchemaError
     | UnknownLanguageError
-    | MissingPlugin ->
+    | MissingPlugin
+    | DependencyResolutionError _ ->
         msg
   in
   { loc; typ = err; msg; details = None; rule_id }
@@ -317,3 +318,4 @@ let severity_of_error (typ : Out.error_type) : Out.error_severity =
   | IncompatibleRule0 ->
       `Info
   | MissingPlugin -> `Info
+  | DependencyResolutionError _ -> `Info

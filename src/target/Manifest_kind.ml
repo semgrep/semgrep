@@ -1,16 +1,20 @@
-type t =
-  | PackageJson
-    (* An NPM package.json manifest file - https://docs.npmjs.com/cli/v10/configuring-npm/package-json *)
-  | PomXml
-    (* A Maven pom.xml manifest file - https://maven.apache.org/guides/introduction/introduction-to-the-pom.html *)
-  | BuildGradle
-    (* A Gradle build.gradle build file  - https://docs.gradle.org/current/userguide/build_file_basics.html *)
-[@@deriving show, eq, yojson]
+type t = Semgrep_output_v1_j.manifest_kind [@@deriving show, eq, yojson]
 
 let to_ecosystem : t -> Semgrep_output_v1_t.ecosystem = function
-  | PackageJson -> `Npm
-  | PomXml -> `Maven
-  | BuildGradle -> `Maven
+  | `RequirementsIn -> `Pypi
+  | `PackageJson -> `Npm
+  | `Gemfile -> `Gem
+  | `GoMod -> `Gomod
+  | `CargoToml -> `Cargo
+  | `PomXml -> `Maven
+  | `BuildGradle -> `Maven
+  | `ComposerJson -> `Composer
+  | `NugetManifestJson -> `Nuget
+  | `PubspecYaml -> `Pub
+  | `PackageSwift -> `SwiftPM
+  | `MixExs -> `Mix
+  | `Pipfile -> `Pypi
+  | `PyprojectToml -> `Pypi
 
 let of_string s =
   let unsupported_manifest_message (manifest_s : string) =
@@ -23,14 +27,25 @@ let of_string s =
   in
 
   match s with
-  | "PackageJson" -> PackageJson
-  | "PomXml" -> PomXml
-  | "BuildGradle" -> BuildGradle
+  | "RequirementsIn" -> `RequirementsIn
+  | "PackageJson" -> `PackageJson
+  | "Gemfile" -> `Gemfile
+  | "GoMod" -> `GoMod
+  | "CargoToml" -> `CargoToml
+  | "PomXml" -> `PomXml
+  | "BuildGradle" -> `BuildGradle
+  | "ComposerJson" -> `ComposerJson
+  | "NugetManifestJson" -> `NugetManifestJson
+  | "PubspecYaml" -> `PubspecYaml
+  | "PackageSwift" -> `PackageSwift
+  | "MixExs" -> `MixExs
+  | "Pipfile" -> `Pipfile
+  | "PyprojectToml" -> `PyprojectToml
   | s -> failwith (unsupported_manifest_message s)
 
 (* For use in Input_to_core.atd *)
 let wrap = of_string
-let unwrap = show
+let unwrap = Semgrep_output_v1_j.show_manifest_kind
 
 let of_lockfile_kind = function
-  | Lockfile_kind.PackageLockJsonV3 -> PackageJson
+  | Lockfile_kind.PackageLockJsonV3 -> `PackageJson
