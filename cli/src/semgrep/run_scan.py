@@ -496,7 +496,6 @@ def run_scan(
     x_ls_long: bool = False,
     path_sensitive: bool = False,
     capture_core_stderr: bool = True,
-    enable_experimental_requirements: bool = False,
     allow_dynamic_dependency_resolution: bool = False,
     dump_n_rule_partitions: Optional[int] = None,
     dump_rule_partitions_dir: Optional[Path] = None,

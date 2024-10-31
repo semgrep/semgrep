@@ -39,7 +39,6 @@ type conf = {
   show : Show_CLI.conf option;
   validate : Validate_CLI.conf option;
   test : Test_CLI.conf option;
-  experimental_requirements_lockfiles : bool;
   allow_dynamic_dependency_resolution : bool;
   (* --x-* options are experimental forever! (= subject to change or removal
      without notice) *)
@@ -87,7 +86,6 @@ val o_emacs : bool Cmdliner.Term.t
 val o_emacs_outputs : string list Cmdliner.Term.t
 val o_exclude_minified_files : bool Cmdliner.Term.t
 val o_exclude_rule_ids : string list Cmdliner.Term.t
-val o_experimental_requirements_lockfiles : bool Cmdliner.Term.t
 val o_files_with_matches : bool Cmdliner.Term.t
 val o_force_color : bool Cmdliner.Term.t
 val o_gitlab_sast : bool Cmdliner.Term.t
