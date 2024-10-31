@@ -22,6 +22,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyPattern
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaInfo
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
@@ -59,6 +60,10 @@ def parse_depends_on_yaml(entries: List[Dict[str, str]]) -> Iterator[DependencyP
             SpecifierSet(semver_range)
         except InvalidSpecifier:
             raise SemgrepError(f"invalid semver range {semver_range}")
+
+        # Pypi package names are case insensitive
+        if ecosystem == Ecosystem(Pypi()):
+            package = package.lower()
 
         yield DependencyPattern(
             ecosystem=ecosystem, package=package, semver_range=semver_range

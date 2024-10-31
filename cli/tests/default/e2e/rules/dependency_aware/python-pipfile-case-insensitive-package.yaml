@@ -1,0 +1,10 @@
+rules:
+  - id: python-pipfile-sca
+    pattern: bad()
+    r2c-internal-project-depends-on:
+      namespace: pypi
+      package: PanDas
+      version: <= 1.4.2
+    message: oh no
+    languages: [python]
+    severity: WARNING

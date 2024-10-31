@@ -1,0 +1,10 @@
+rules:
+  - id: python-poetry-sca
+    pattern: bad()
+    r2c-internal-project-depends-on:
+      namespace: pypi
+      package: FaKer
+      version: <= 13.11.1
+    message: oh no
+    languages: [python]
+    severity: WARNING

@@ -347,6 +347,35 @@ def test_ssc__requirements_lockfiles(
 
 
 @pytest.mark.parametrize(
+    "rule,target",
+    [
+        (
+            "rules/dependency_aware/python-poetry-case-insensitive-package.yaml",
+            "dependency_aware/poetry",
+        ),
+        (
+            "rules/dependency_aware/python-requirements-case-insensitive-package.yaml",
+            "dependency_aware/requirements",
+        ),
+        (
+            "rules/dependency_aware/python-pipfile-case-insensitive-package.yaml",
+            "dependency_aware/pipfile",
+        ),
+    ],
+)
+@pytest.mark.osemfail
+def test_ssc__pypi_package_name_lowercase(
+    run_semgrep_on_copied_files: RunSemgrep, snapshot, rule, target
+):
+    """
+    Pypi package names should be case insensitive
+    """
+    result = run_semgrep_on_copied_files(rule, target_name=target)
+
+    snapshot.assert_match(result.as_snapshot(), "results.txt")
+
+
+@pytest.mark.parametrize(
     "version,specifier,outcome",
     [
         ("1.2-beta-2", "> 1.0, < 1.2", True),
