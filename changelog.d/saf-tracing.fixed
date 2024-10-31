@@ -1,0 +1,1 @@
+Fixed bug where semgrep would crash if --trace was passed
