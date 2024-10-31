@@ -1,2 +1,0 @@
-Remove deprecated `--enable-experimental-requirements` flag. Functionality has
-been always enabled since Semgrep 1.93.0.
