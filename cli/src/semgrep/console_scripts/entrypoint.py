@@ -54,6 +54,8 @@ os.environ["PATH"] = PATH + os.pathsep + os.path.dirname(os.path.abspath(__file_
 
 IS_WINDOWS = platform.system() == "Windows"
 
+PRO_FLAGS = ["--pro", "--pro-languages", "--pro-intrafile"]
+
 
 class CoreNotFound(Exception):
     def __init__(self, value):
@@ -146,7 +148,10 @@ def exec_pysemgrep():
 # they'll get the old behavior.
 def exec_osemgrep():
     argv = sys.argv
-    if "--pro" in argv or "--beta-testing-secrets-enabled" in argv:
+    if (
+        any(pro_flag in argv for pro_flag in PRO_FLAGS)
+        or "--beta-testing-secrets-enabled" in argv
+    ):
         try:
             path = find_semgrep_core_path(
                 pro=True,
