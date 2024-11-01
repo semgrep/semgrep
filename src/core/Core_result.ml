@@ -126,10 +126,6 @@ type result_or_exn = (t, Exception.t) result
 
 let mk_processed_match pm = { pm; is_ignored = false; autofix_edit = None }
 
-(* TODO: should get rid of that *)
-let empty_file_profiling : Core_profiling.file_profiling =
-  { file = Fpath.v "TODO.fake_file"; rule_times = []; run_time = 0.0 }
-
 let empty_match_result : Core_profiling.times match_result =
   {
     matches = [];
@@ -287,17 +283,13 @@ let mk_result (results : Core_profiling.file_profiling match_result list)
            x.errors |> E.ErrorSet.elements)
   in
 
-  (* Create extra *)
-  let get_profiling (result : _ match_result) =
-    match result.profiling with
-    | Some profiling -> profiling
-    | None ->
-        Log.warn (fun m ->
-            m "Mismatch between mode and result while creating final result");
-        empty_file_profiling
-  in
   let (prof : Core_profiling.t) =
-    let file_times = results |> List_.map get_profiling in
+    let file_times =
+      results
+      |> List_.filter_map
+           (fun (result : Core_profiling.file_profiling match_result) ->
+             result.profiling)
+    in
     {
       rules = List_.map fst rules_with_engine;
       rules_parse_time;
