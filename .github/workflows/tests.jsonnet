@@ -159,43 +159,8 @@ local test_osemgrep_job =
     steps: [
       gha.speedy_checkout_step,
       actions.checkout_with_submodules(),
-      gha.git_safedir,
-      {
-        name: 'Build semgrep-core',
-        run: |||
-          eval $(opam env)
-          make install-deps-ALPINE-for-semgrep-core
-          make install-deps-for-semgrep-core
-          make core
-        |||,
-      },
-      {
-        name: 'Install osemgrep',
-        run: |||
-          eval $(opam env)
-          make copy-core-for-cli
-        |||,
-      },
-       // For '--ignore-installed distlib' below see
-       // https://stackoverflow.com/questions/63515454/why-does-pip3-install-pipenv-give-error-error-cannot-uninstall-distlib
-      //
-      {
-        name: 'Install Python dependencies',
-        run: |||
-          apk add --no-cache python3
-          pip install --no-cache-dir --ignore-installed distlib pipenv==%s
-          (cd cli; pipenv install --dev)
-        ||| % actions.pipenv_version,
-      },
-      {
-        name: 'Run pytest for osemgrep known passing tests',
-        'working-directory': 'cli',
-        run: |||
-          git config --global --add safe.directory "$(pwd)"
-          make osempass
-        |||,
-      },
-    ],
+    ] +
+    semgrep.osemgrep_test_steps_after_checkout
   };
 
 // ----------------------------------------------------------------------------
@@ -527,9 +492,7 @@ local ignore_md = {
   permissions: gha.write_permissions,
   jobs: {
     'test-semgrep-core': test_semgrep_core_job,
-    // See semgrep/semgrep-proprietary/pull/2522 for why this is disabled and it
-    // will re-enable it
-    //'test-osemgrep': test_osemgrep_job,
+    'test-osemgrep': test_osemgrep_job,
     // Pysemgrep tests that require check-semgrep-pro
     'test-cli': test_cli_job,
     // Pysemgrep tests that require build-test-core-x86

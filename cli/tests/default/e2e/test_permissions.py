@@ -7,10 +7,30 @@ from tests.fixtures import RunSemgrep
 from semgrep.constants import OutputFormat
 
 
+def skip_test_if_root() -> None:
+    if os.getuid() == 0:
+        pytest.skip("We are root. This test doesn't work as root. We tried.")
+
+
+# These tests are skipped if run as the root user!
+#
+# Problem: the root user has read access to the files even if the file
+# permissions say otherwise. This results in test failures on files that
+# we want to be unreadable.
+#
+# Note that Semgrep should work properly as root, we just don't have tests
+# for it. By properly, we mean that it won't run into files that it can't
+# read and it will scan them happily.
+#
+# To run these tests in CI as root, we tried and failed to change the
+# effective user ID (os.seteuid()) to pretend temporarily that we're
+# an unprivileged user. This came with a flurry of complications and a
+# lot of valuable teachings. In the end, we're better off skipping
+# these tests if they're being run as root.
+#
 def prepare_workspace() -> None:
     print(f"Current dir: {os.getcwd()}", file=sys.stderr)
     print("Creating files with bad permissions in the workspace!", file=sys.stderr)
-
     # Create file tree (assume 'targets/permissions/' already exists)
     with open("targets/permissions/unreadable_file.py", "w") as file:
         file.write("secret content\n")
@@ -32,7 +52,11 @@ def prepare_workspace() -> None:
 # Restore permissions so that the function that cleans up the workspace
 # doesn't fail
 def teardown_workspace() -> None:
-    print(f"Current dir: {os.getcwd()}", file=sys.stderr)
+    print(
+        f"Current dir: {os.getcwd()}, uid={os.getuid()}, euid={os.geteuid()}",
+        file=sys.stderr,
+    )
+    os.system("ls -l targets/permissions/")
     print("Restoring good permissions to allow cleanup!", file=sys.stderr)
     os.chmod("targets/permissions/unreadable_subdir", 0o700)
     os.chmod("targets/permissions/unreadable_file.py", 0o600)
@@ -46,6 +70,12 @@ def teardown_workspace() -> None:
 @pytest.mark.pysemfail
 @pytest.mark.kinda_slow
 def test_permissions_ls(run_semgrep_on_copied_files: RunSemgrep, snapshot):
+    # Giving up on running this as root
+    skip_test_if_root()
+
+    # We make sure to not run as root since it can read files lacking
+    # read permissions. The test would fail to exclude the expected
+    # files.
     stdout, stderr = run_semgrep_on_copied_files(
         "rules/eqeq.yaml",  # ignored by --x-ls
         options=["--x-ls"],
@@ -69,6 +99,9 @@ def test_permissions_ls(run_semgrep_on_copied_files: RunSemgrep, snapshot):
 def run_test_permissions_scan_full(
     run_semgrep_on_copied_files: RunSemgrep, snapshot, verbose: bool
 ):
+    # Giving up on running this as root
+    skip_test_if_root()
+
     options = None
     if verbose:
         options = ["--verbose"]

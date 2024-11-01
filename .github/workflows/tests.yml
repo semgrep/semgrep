@@ -196,6 +196,39 @@ jobs:
           - "3.9"
           - "3.10"
           - "3.11"
+  test-osemgrep:
+    container: returntocorp/ocaml:alpine-2024-01-18
+    env:
+      HOME: /root
+    runs-on: ubuntu-latest
+    steps:
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Configure git safedir properly
+        run: git config --global --add safe.directory $(pwd)
+      - name: Build semgrep-core
+        run: |
+          eval $(opam env)
+          make install-deps-ALPINE
+          make install-deps
+          make core
+      - name: Install osemgrep
+        run: |
+          eval $(opam env)
+          make copy-core-for-cli
+      - name: Install Python dependencies
+        run: |
+          apk add --no-cache python3
+          pip install --no-cache-dir --ignore-installed distlib pipenv==2024.0.1
+          (cd cli; pipenv install --dev)
+      - name: Run pytest for osemgrep known passing tests
+        run: |
+          git config --global --add safe.directory "$(pwd)"
+          make osempass
+        working-directory: cli
   test-qa:
     name: quality assurance on semgrep
     needs:

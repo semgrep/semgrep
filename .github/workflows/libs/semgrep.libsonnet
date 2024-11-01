@@ -19,6 +19,9 @@
 // TODO: How is it built?
 // TODO: if a token is rotated, do we need to update this docker link?
 
+local actions = import 'actions.libsonnet';
+local gha = import 'gha.libsonnet';
+
 local github_bot = {
   get_token_steps: [
    {
@@ -274,6 +277,46 @@ local opam_setup = function(opam_switch="4.14.0") {
 // is fixed.
 local stable_ubuntu_version_for_setup_ocaml = 'ubuntu-22.04';
 
+local osemgrep_test_steps_after_checkout = [
+  gha.git_safedir,
+  {
+    name: 'Build semgrep-core',
+    run: |||
+      eval $(opam env)
+      make install-deps-ALPINE
+      make install-deps
+      make core
+    |||,
+  },
+  {
+    name: 'Install osemgrep',
+    run: |||
+      eval $(opam env)
+      make copy-core-for-cli
+    |||,
+  },
+   // For '--ignore-installed distlib' below see
+   // https://stackoverflow.com/questions/63515454/why-does-pip3-install-pipenv-give-error-error-cannot-uninstall-distlib
+  //
+  {
+    name: 'Install Python dependencies',
+    run: |||
+      apk add --no-cache python3
+      pip install --no-cache-dir --ignore-installed distlib pipenv==%s
+      (cd cli; pipenv install --dev)
+    ||| % actions.pipenv_version,
+  },
+  {
+    name: 'Run pytest for osemgrep known passing tests',
+    'working-directory': 'cli',
+    run: |||
+      git config --global --add safe.directory "$(pwd)"
+      make osempass
+    |||,
+  },
+];
+
+
 // ----------------------------------------------------------------------------
 // Entry point
 // ----------------------------------------------------------------------------
@@ -308,4 +351,7 @@ local stable_ubuntu_version_for_setup_ocaml = 'ubuntu-22.04';
   slack: slack,
 
   stable_ubuntu_version_for_setup_ocaml: stable_ubuntu_version_for_setup_ocaml,
+
+  // Reusable sequences of test steps
+  osemgrep_test_steps_after_checkout: osemgrep_test_steps_after_checkout,
 }

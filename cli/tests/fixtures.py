@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Callable
+from typing import ContextManager
 from typing import Optional
 from typing import Protocol
 from typing import TYPE_CHECKING
@@ -50,7 +51,12 @@ class RunSemgrep(Protocol):
         stdin: str | None = None,
         clean_fingerprint: bool = True,
         use_click_runner: bool = False,
+        # Functions to tweak the workspace after it's been populated with
+        # rules and target files. They are called outside of the
+        # the context manager that can also be provided:
         prepare_workspace: Callable[[], None] = lambda: None,
         teardown_workspace: Callable[[], None] = lambda: None,
+        # Context manager to wrap around the semgrep invocation:
+        context_manager: Optional[ContextManager] = None,
     ) -> SemgrepResult:
         ...

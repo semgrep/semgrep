@@ -374,6 +374,9 @@ WINDOWS_OPAM_DEPEXT_DEPS=\
 # Alpine
 # -------------------------------------------------
 
+.PHONY: install-deps-ALPINE
+install-deps-ALPINE: install-deps-ALPINE-for-semgrep-core
+
 # Note that we're not using --no-cache below otherwise opam does not
 # recognize that pkg-config and other packages have been installed
 # (See https://github.com/ocaml/opam/issues/5186)

@@ -706,6 +706,11 @@ class TargetManager:
         """
         Exclude files we can't read
         """
+        # TODO: os.access() returns True if the user is root, even if the
+        # effective user ID is unpriviledged and results in the file
+        # being not readable!
+        # This is a problem when running pysemgrep as root but only if the
+        # euid is different from the uid.
         kept, removed = partition(
             candidates,
             lambda path: os.access(path, os.R_OK),
