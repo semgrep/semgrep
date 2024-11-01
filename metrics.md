@@ -411,6 +411,12 @@ Additionally, summary data is always included in the top level trace, such as:
 - Is an interfile scan (e.g. `true`)
 - Other scan settings of a similar nature. Summary data will only include information that `semgrep ci` has access to.
 
+Additionally, informational, warning, and error logs will be included when
+tracing is enabled, which may include:
+- Stacktraces from when Semgrep crashes
+- Warnings about high memory usage
+- Informational logs about which stage of scanning Semgrep is performing
+
 No information will be sent in the info mode that would not be sent by `semgrep ci`.
 
 In debug and trace mode only, traces may also include:

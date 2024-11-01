@@ -55,6 +55,9 @@ val add_data_to_span : span -> (string * Trace_core.user_data) list -> unit
 val add_data : (string * Trace_core.user_data) list -> config option -> unit
 (** Convenience version of add_data_to_span for Semgrep *)
 
+val add_global_attribute : string -> Trace_core.user_data -> unit
+(** Expose the Trace function to add global attributes to the top level span *)
+
 val enter_span :
   ?level:level ->
   ?__FUNCTION__:string ->
@@ -64,11 +67,18 @@ val enter_span :
   string ->
   span
 (** [enter_span ~__FILE__ ~__LINE__ "some_name"] will manually enter a span and
-    return it. Must call exit_span after. Prefer [with_span] instead as it has better error handling *)
+    return it. Must call exit_span after. Prefer [with_span] instead as it has
+    better error handling *)
 
 val exit_span : span -> unit
-(** [exit_span span] will exit a span. Must be called after `enter_span`. Prefer [with_span] instead as it has
-    better error handling *)
+(** [exit_span span] will exit a span. Must be called after `enter_span`. Prefer
+    [with_span] instead as it has better error handling *)
+
+val otel_reporter : Logs.reporter
+(** [otel_reporter] is a reporter that can be used with {!Logs.set_reporter} to
+    send logs to the Otel backend*)
+
+(* with span funcs *)
 
 val with_span :
   ?level:level ->

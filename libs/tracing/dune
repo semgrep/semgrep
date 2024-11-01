@@ -6,6 +6,7 @@
     uri
     trace
     yojson
+    logs
   )
  (virtual_modules tracing)
  (default_implementation tracing.unix)

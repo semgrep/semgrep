@@ -84,21 +84,16 @@ let core_error_of_path_exc (internal_path : Fpath.t) (e : Exception.t) :
    :)
 *)
 
-let parmap_child_top_level_span = ref None
-
 let init job =
+  (* Set a global attribute to the job number so we know when we look at
+     traces/logs/metrics which job it came from! *)
+  Tracing.add_global_attribute "parmap.job" (`Int job);
   (* Restart tracing as it is paused before forking below in both
      map_targets___* funcs *)
   (* NOTE: this only restarts tracing in the child *)
-  Tracing.restart_tracing ();
-  (* Keep track of how long the child runs *)
-  parmap_child_top_level_span :=
-    Some
-      (Tracing.enter_span ~__FILE__ ~__LINE__
-         (Printf.sprintf "parmap_job_%d" job))
+  Tracing.restart_tracing ()
 
 let finalize () =
-  !parmap_child_top_level_span |> Option.iter Tracing.exit_span;
   (* Stop tracing to ensure traces are flushed *)
   (* NOTE: this only stops tracing in the child *)
   Tracing.stop_tracing ()

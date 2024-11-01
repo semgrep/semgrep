@@ -77,11 +77,14 @@ let add_data (_data : (string * Trace_core.user_data) list) (_i : config option)
     =
   ()
 
+let add_global_attribute _key _value = ()
+
 let trace_data_only ?(level = Info) ~__FUNCTION__ ~__FILE__ ~__LINE__ _name
     (_f : unit -> (string * Yojson.Safe.t) list) =
   ignore level;
   ()
 
+let otel_reporter : Logs.reporter = Logs.nop_reporter
 (*****************************************************************************)
 (* Entry points for setting up tracing *)
 (*****************************************************************************)

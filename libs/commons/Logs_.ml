@@ -159,8 +159,9 @@ let create_formatter opt_file =
    The Logs library interface makes us write this code that is frankly
    incomprehensible and excessively complicated given how little it provides.
 *)
-let mk_reporter ~dst ~require_one_of_these_tags
-    ~read_tags_from_env_vars:(env_vars : string list) ~highlight () =
+let mk_reporter ?(additional_reporters : Logs.reporter list = []) ~dst
+    ~require_one_of_these_tags ~read_tags_from_env_vars:(env_vars : string list)
+    ~highlight () =
   let require_one_of_these_tags =
     match read_comma_sep_strs_from_env_vars env_vars with
     | Some tags -> tags
@@ -219,7 +220,16 @@ let mk_reporter ~dst ~require_one_of_these_tags
     Format.fprintf dst "%a" pp_style style_off;
     r
   in
-  { Logs.report }
+  (* Copied directly from the Logs.mli docs. Just calls a bunch of reporters in
+     a row *)
+  let combine r1 r2 =
+    let report src level ~over k msgf =
+      let v = r1.Logs.report src level ~over:(fun () -> ()) k msgf in
+      r2.Logs.report src level ~over (fun () -> v) msgf
+    in
+    { Logs.report }
+  in
+  List.fold_left combine { Logs.report } additional_reporters
 
 (*****************************************************************************)
 (* Specifying the log level with an environment variable *)
@@ -255,7 +265,8 @@ let setup_basic ?(level = Some Logs.Warning) () =
   ()
 
 let setup ?(highlight_setting = Console.get_highlight_setting ())
-    ?log_to_file:opt_file ?(require_one_of_these_tags = default_tags)
+    ?log_to_file:opt_file ?(additional_reporters = [])
+    ?(require_one_of_these_tags = default_tags)
     ?(read_level_from_env_vars = [ "LOG_LEVEL" ])
     ?(read_srcs_from_env_vars = [ "LOG_SRCS" ])
     ?(read_tags_from_env_vars = [ "LOG_TAGS" ]) ~level () =
@@ -285,8 +296,8 @@ let setup ?(highlight_setting = Console.get_highlight_setting ())
   Fmt_tty.setup_std_outputs ?style_renderer ();
   Logs.set_level ~all:true level;
   Logs.set_reporter
-    (mk_reporter ~dst ~require_one_of_these_tags ~read_tags_from_env_vars
-       ~highlight ());
+    (mk_reporter ~additional_reporters ~dst ~require_one_of_these_tags
+       ~read_tags_from_env_vars ~highlight ());
   Logs.debug (fun m ->
       m "setup_logging: highlight_setting=%s, highlight=%B"
         (Console.show_highlight_setting highlight_setting)

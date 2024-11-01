@@ -28,7 +28,8 @@ https://www.notion.so/semgrep/Logging-in-semgrep-semgrep-core-osemgrep-67c9046fa
  * TODO: add some --semgrep-log-xxx flags in osemgrep CLI for the envvars so
  * they can be set also with CLI flags and will be part of the man page.
  *)
-let setup ?log_to_file ?require_one_of_these_tags ~force_color ~level () =
+let setup ?log_to_file ?(log_to_otel = false) ?require_one_of_these_tags
+    ~force_color ~level () =
   UConsole.setup ~highlight_setting:(if force_color then On else Auto) ();
   (* We override the default use of LOG_XXX env var in Logs_.setup() with
    * SEMGREP_LOG_XXX env vars because Gitlab was reporting perf problems due
@@ -44,7 +45,35 @@ let setup ?log_to_file ?require_one_of_these_tags ~force_color ~level () =
    * LATER: once we remove pysemgrep and switch from pytest to Testo, we
    * can get rid of those PYTEST_xxx env vars.
    *)
-  Logs_.setup ?log_to_file ?require_one_of_these_tags
+  (* currently only additional reporter is otel. Only set to true when --trace
+     is passed *)
+  let additional_reporters =
+    if log_to_otel then Some [ Tracing.otel_reporter ] else None
+  in
+  (* If we're going to log to otel, let's by default log info since that's
+     incredibly useful for debugging. When we see logs from otel, we may not
+     know the deployment/user or able to ask them to run with a different
+     logging level.
+
+     NOTE that pysemgrep (most) users WILL NOT see these logs anyways as
+     pysemgrep eats the stderr and doesn't print it out (unless semgrep-core
+     exits abnormally, in which case this may be useful anyways). OSemgrep users
+     will, but there's not a good way around that right now...
+  *)
+  (* Datadog and other tools for viewing logs sent to otel make it easy to
+     filter by log level, so maybe we should send all? But that'll be expensive
+     ... *)
+  let level =
+    match level with
+    | Some Logs.Warning
+    | Some Logs.Error
+    | Some Logs.App
+    | None
+      when log_to_otel ->
+        Some Logs.Info
+    | _ -> level
+  in
+  Logs_.setup ?log_to_file ?require_one_of_these_tags ?additional_reporters
     ~read_level_from_env_vars:
       [ "PYTEST_SEMGREP_LOG_LEVEL"; "SEMGREP_LOG_LEVEL" ]
     ~read_srcs_from_env_vars:[ "PYTEST_SEMGREP_LOG_SRCS"; "SEMGREP_LOG_SRCS" ]

@@ -1,7 +1,12 @@
-# Library to use Opentelemetry traces from the python side of Semgrep
+# Library to use Opentelemetry traces and logs from the python side of Semgrep
+#
+# Enables sending traces and logs, currently to Datadog, Jaeger, both with 15
+# days retention policy
+#
 # Communicates with OCaml tracing defined in ../../../libs/tracing/unix/Tracing.ml
 # For more info, see https://www.notion.so/semgrep/How-to-add-tracing-b0e1eaa1531e408cbb074663d1f840a6
 import functools
+import logging
 import os
 from typing import Callable
 from typing import Optional
@@ -11,8 +16,13 @@ from attr import define
 from opentelemetry import context
 from opentelemetry import propagate
 from opentelemetry import trace as otrace
+from opentelemetry._logs import set_logger_provider
+from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
+from opentelemetry.sdk._logs import LoggerProvider
+from opentelemetry.sdk._logs import LoggingHandler
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.resources import get_aggregated_resources
 from opentelemetry.sdk.resources import OTELResourceDetector
 from opentelemetry.sdk.resources import ProcessResourceDetector
@@ -74,7 +84,9 @@ class Traces:
         )
 
         tracer_provider = TracerProvider(resource=resource)
+        logger_provider = LoggerProvider(resource=resource)
 
+        set_logger_provider(logger_provider)
         otrace.set_tracer_provider(tracer_provider)
 
         endpoint = (
@@ -82,13 +94,36 @@ class Traces:
             if trace_endpoint
             else _DEFAULT_ENDPOINT
         )
-        exporter = OTLPSpanExporter(endpoint + "/v1/traces")
+        # See https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/#otel_exporter_otlp_endpoint
+        # for specs on this
+        exporter_spans = OTLPSpanExporter(endpoint + "/v1/traces")
+        exporter_logs = OTLPLogExporter(endpoint + "/v1/logs")
 
-        processor = BatchSpanProcessor(exporter)
-        tracer_provider.add_span_processor(processor)
+        span_processor = BatchSpanProcessor(exporter_spans)
+        log_processor = BatchLogRecordProcessor(exporter_logs)
+
+        tracer_provider.add_span_processor(span_processor)
+        logger_provider.add_log_record_processor(log_processor)
+
+        # add logging handler so we can send logs to Otel and therefore datadog
+        logging_handler = LoggingHandler(
+            # COUPLING: we do something similar in Tracing.ml. If we want to
+            # enable sending debug logs here we probably want to send them from
+            # semgrep-core too!
+            level=logging.INFO,
+            logger_provider=logger_provider,
+        )
+        logging.getLogger().addHandler(logging_handler)
+        # get all existing loggers and add the handler to them, since at this
+        # point we will have already set up loggers most/all places NOTE: we
+        # don't set this up beforehand because we need to parse which
+        # environment we're in and then set the resource attributes before we
+        # can setup the logging handler
+        for logger in logging.Logger.manager.loggerDict.values():
+            if isinstance(logger, logging.Logger):
+                logger.addHandler(logging_handler)
 
         RequestsInstrumentor().instrument()
-
         self.extract()
 
     def extract(self) -> None:

@@ -7,6 +7,7 @@ val ncores : int ref
 val debug : bool ref
 val profile : bool ref
 val log_to_file : Fpath.t option ref
+val trace : bool ref
 val env_extra : string
 
 (* compute Core_scan_config.t given command-line flags *)

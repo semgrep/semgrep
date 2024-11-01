@@ -4,6 +4,7 @@
  (name tracing_js)
  (libraries
    trace
+   logs
  )
  (implements tracing)
   (preprocess (pps

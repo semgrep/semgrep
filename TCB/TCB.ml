@@ -1028,6 +1028,7 @@ module Format = struct
   let fprintf = Format.fprintf
   let sprintf = Format.sprintf
   let kfprintf = Format.kfprintf
+  let kasprintf = Format.kasprintf
   let ikfprintf = Format.ikfprintf
 
   (* pp_xxx are safe *)

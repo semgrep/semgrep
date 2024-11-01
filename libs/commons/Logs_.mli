@@ -70,6 +70,10 @@ val setup_basic : ?level:Logs.level option -> unit -> unit
    via 'require_one_of_these_tags'. This variable is "LOG_TAGS"
    by default.
 
+   'additional_reporters' is a list of additonal loggers that will be called
+   after the default logger. Useful for writing the logs to multiple
+   destinations, e.g. an opentelemetry collector, a log file, etc.
+
    The following shell command shows for example how to
    make semgrep run at the debug level but only show lines tagged with
    'Match_rules' or 'Core_scan'.
@@ -91,9 +95,11 @@ val setup_basic : ?level:Logs.level option -> unit -> unit
      [00.45][DEBUG](Match_rules): checking tests/parsing/ocaml/basic.mli with 1 rules
      ...
 *)
+
 val setup :
   ?highlight_setting:Console.highlight_setting ->
   ?log_to_file:Fpath.t ->
+  ?additional_reporters:Logs.reporter list ->
   ?require_one_of_these_tags:string list ->
   ?read_level_from_env_vars:string list ->
   ?read_srcs_from_env_vars:string list ->
