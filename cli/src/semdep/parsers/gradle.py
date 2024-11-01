@@ -35,12 +35,8 @@ logger = getLogger(__name__)
 # ch.qos.logback.contrib:logback-json-classic:0.1.5=productionRuntimeClasspath,runtimeClasspath,testRuntimeClasspath
 dep = mark_line(regex("([^:]+:[^:]+):([^=]+)=[^\n]+", flags=0, group=(1, 2)))
 
-PREFIX = """\
-# This is a Gradle generated file for dependency locking.
-# Manual edits can break the build and are not advised.
-# This file is expected to be part of source control.
-"""
-
+# Parser for comments
+comment_line = regex(r"#.*\n")
 
 # If we hit a line that isn't simple, like this:
 #     implementation fileTree(dir: "libs", include: ["*.jar"])
@@ -73,7 +69,7 @@ manifest = (
 )
 
 gradle = (
-    string(PREFIX)
+    comment_line.many()  # Optionally parse comments at the beginning
     >> (dep | (regex("empty=[^\n]*").result(None)))
     .sep_by(string("\n"))
     .map(lambda xs: [x for x in xs if x])
