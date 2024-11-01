@@ -66,7 +66,7 @@ module Out = Semgrep_output_v1_t
 (* TODO: should use stdout, right now we abuse Logs.app
  * TODO? why Cap.tmp?
  *)
-type caps = < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.alarm >
+type caps = < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.time_limit >
 
 (* The "meta" rules are stored in the semgrep-rules public repository here:
  * https://github.com/semgrep/semgrep-rules/tree/develop/yaml/semgrep

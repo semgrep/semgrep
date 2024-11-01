@@ -3,7 +3,7 @@
 type func = Core_scan_config.t -> Core_result.result_or_exn
 
 (* alias to avoid repeating ourselves in many callers *)
-type caps = < Cap.fork ; Cap.alarm >
+type caps = < Cap.fork ; Cap.time_limit >
 
 (* Entry point. This is used in Core_CLI.ml for semgrep-core,
  * in Pro_core_CLI for semgrep-core-proprietary, in tests, and finally

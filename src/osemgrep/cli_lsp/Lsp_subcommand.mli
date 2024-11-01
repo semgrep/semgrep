@@ -1,4 +1,4 @@
-type caps = < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.alarm >
+type caps = < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.time_limit >
 
 (*
    Parse a semgrep-lsp command, execute it and exit.

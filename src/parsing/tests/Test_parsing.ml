@@ -338,7 +338,8 @@ let dump_lang_ast (lang : Lang.t) (file : Fpath.t) : unit =
    This is meant to run the same parsers as semgrep-core does for normal
    semgrep scans.
 *)
-let parsing_common (caps : < Cap.alarm >) ?(verbose = true) lang files_or_dirs =
+let parsing_common (caps : < Cap.time_limit >) ?(verbose = true) lang
+    files_or_dirs =
   let timeout_seconds = 10.0 in
   (* Without the use of Memory_limit below, we were getting some
    * 'Fatal error: out of memory' errors in the parsing stat CI job,
@@ -440,7 +441,7 @@ let parsing_common (caps : < Cap.alarm >) ?(verbose = true) lang files_or_dirs =
    be nice to find out about timeouts. I think the timeout threshold should
    in seconds/MB or equivalent units, not seconds per file."
 *)
-let parse_project (caps : < Cap.alarm >) ~verbose lang name files_or_dirs =
+let parse_project (caps : < Cap.time_limit >) ~verbose lang name files_or_dirs =
   let stat_list, _skipped = parsing_common caps ~verbose lang files_or_dirs in
   let stat_list =
     List.filter (fun stat -> not stat.PS.have_timeout) stat_list

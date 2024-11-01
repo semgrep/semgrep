@@ -65,6 +65,6 @@ val handle_client_message :
     went wrong while handling it)  *)
 
 val create :
-  < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.alarm > ->
+  < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.time_limit > ->
   Lsp.Types.ServerCapabilities.t ->
   t

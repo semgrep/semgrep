@@ -45,7 +45,7 @@ type caps =
   ; Cap.tmp
   ; Cap.chdir
   ; Cap.fork
-  ; Cap.alarm >
+  ; Cap.time_limit >
 
 let default_subcommand = "scan"
 
@@ -205,7 +205,7 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
                    ; Cap.tmp
                    ; Cap.chdir
                    ; Cap.fork
-                   ; Cap.alarm >)
+                   ; Cap.time_limit >)
               subcmd_argv
         | "ci" ->
             Ci_subcommand.main
@@ -216,17 +216,21 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
                    ; Cap.tmp
                    ; Cap.chdir
                    ; Cap.fork
-                   ; Cap.alarm >)
+                   ; Cap.time_limit >)
               subcmd_argv
         | "install-semgrep-pro" ->
             Install_semgrep_pro_subcommand.main
-              (caps :> < Cap.network ; Cap.alarm >)
+              (caps :> < Cap.network ; Cap.time_limit >)
               subcmd_argv
         (* osemgrep-only: and by default! no need experimental! *)
         | "lsp" ->
             Lsp_subcommand.main
               (caps
-                :> < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.alarm >)
+                :> < Cap.random
+                   ; Cap.network
+                   ; Cap.tmp
+                   ; Cap.fork
+                   ; Cap.time_limit >)
               subcmd_argv
         | "logout" ->
             Logout_subcommand.main (caps :> < Cap.stdout >) subcmd_argv
@@ -241,12 +245,16 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
               subcmd_argv
         | "test" ->
             Test_subcommand.main
-              (caps :> < Cap.stdout ; Cap.fork ; Cap.alarm ; Cap.tmp >)
+              (caps :> < Cap.stdout ; Cap.fork ; Cap.time_limit ; Cap.tmp >)
               subcmd_argv
         | "validate" ->
             Validate_subcommand.main
               (caps
-                :> < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.alarm >)
+                :> < Cap.stdout
+                   ; Cap.network
+                   ; Cap.tmp
+                   ; Cap.fork
+                   ; Cap.time_limit >)
               subcmd_argv
         | _ ->
             if experimental then

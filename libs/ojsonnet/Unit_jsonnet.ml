@@ -34,7 +34,7 @@ let test_maker_err dir : Testo.t list =
              | Eval_jsonnet_common.Error _ ->
                  Alcotest.(check bool) "this raised an error" true true))
 
-let mk_tests (caps : < Cap.alarm >) (subdir : string)
+let mk_tests (caps : < Cap.time_limit >) (subdir : string)
     (strategys : Conf.eval_strategy list) : Testo.t list =
   Common2.glob (spf "tests/jsonnet/%s/*.jsonnet" subdir)
   |> Fpath_.of_strings
@@ -91,7 +91,7 @@ let mk_tests (caps : < Cap.alarm >) (subdir : string)
                         failwith
                           (spf "this threw an error with %s" str_strategy))))
 
-let tests (caps : < Cap.alarm >) : Testo.t list =
+let tests (caps : < Cap.time_limit >) : Testo.t list =
   Testo.categorize_suites "ojsonnet"
     [
       mk_tests caps "pass/" [ Conf.EvalSubst; Conf.EvalEnvir ];

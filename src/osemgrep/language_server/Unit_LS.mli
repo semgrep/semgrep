@@ -1,2 +1,3 @@
 val tests :
-  < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.alarm > -> Testo.t list
+  < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.time_limit > ->
+  Testo.t list

@@ -32,11 +32,11 @@ module Out = Semgrep_output_v1_j
 (* Types and Constants *)
 (*****************************************************************************)
 
-(* We need alarm because we timeout after 10s if the install fails
+(* We need Cap.time_limit because we timeout after 10s if the install fails
  * TODO: add stdout, but does not even use stdout right now, it abuses
  * Logs.app but we should switch to CapConsole.print
  *)
-type caps = < Cap.network ; Cap.alarm >
+type caps = < Cap.network ; Cap.time_limit >
 
 let version_stamp_filename = "pro-installed-by.txt"
 
@@ -221,7 +221,7 @@ let run_conf (caps : caps) (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
           let cmd = (Cmd.Name !!semgrep_pro_path_tmp, [ "-pro_version" ]) in
           let opt =
             Time_limit.set_timeout
-              (caps :> < Cap.alarm >)
+              (caps :> < Cap.time_limit >)
               ~name:"check pro version" 10.0
               (fun () ->
                 (* TODO?  Bos.OS.Cmd.run_out ~err:Bos.OS.Cmd.err_run_out *)

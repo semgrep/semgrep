@@ -129,14 +129,21 @@ module Process = struct
    * TODO: split signal? use subtypes to make alarm a subtype of signal?
    *)
   type signal = cap
-  type alarm = cap
   type exit = cap
   type pid = cap
   type kill = cap
   type chdir = cap
+
+  (* multi processes *)
   type fork = cap
   type thread = cap
   type domain = cap
+
+  (* old: was alarm, but better rename to be consistent with memory_limit
+   * See libs/process_limits/
+   *)
+  type time_limit = cap
+  type memory_limit = cap
 end
 
 (**************************************************************************)
@@ -208,7 +215,8 @@ type console = < stdin ; stdout ; stderr >
 type argv = < argv : Process.argv >
 type env = < env : Process.env >
 type signal = < signal : Process.signal >
-type alarm = < alarm : Process.signal >
+type time_limit = < time_limit : Process.time_limit >
+type memory_limit = < memory_limit : Process.memory_limit >
 type exit = < exit : Process.exit >
 type pid = < pid : Process.pid >
 type kill = < kill : Process.kill >
@@ -217,7 +225,7 @@ type fork = < fork : Process.fork >
 type domain = < domain : Process.domain >
 type thread = < thread : Process.thread >
 type process_multi = < pid ; kill ; fork ; domain ; thread >
-type process_single = < signal ; alarm ; exit ; chdir >
+type process_single = < signal ; time_limit ; memory_limit ; exit ; chdir >
 type process = < argv ; env ; console ; process_single ; process_multi >
 
 (* exec *)
@@ -272,7 +280,8 @@ let powerbox : all_caps =
     method kill = ()
     method chdir = ()
     method signal = ()
-    method alarm = ()
+    method time_limit = ()
+    method memory_limit = ()
     method fork = ()
     method exit = ()
     method domain = ()
@@ -310,10 +319,10 @@ let stdout_caps_UNSAFE () =
   end
 
 (* !!DO NOT USE!! *)
-let fork_and_alarm_caps_UNSAFE () =
+let fork_and_limits_caps_UNSAFE () =
   object
     method fork = ()
-    method alarm = ()
+    method time_limit = ()
   end
 
 (* !!DO NOT USE!! *)

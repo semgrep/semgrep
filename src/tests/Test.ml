@@ -69,7 +69,9 @@ let tests (caps : Cap.all_caps) =
       Unit_autofix_printer.tests;
       Unit_synthesizer.tests;
       Unit_synthesizer_targets.tests;
-      Unit_dataflow.tests (caps :> < Cap.alarm >) Parse_target.parse_program;
+      Unit_dataflow.tests
+        (caps :> < Cap.time_limit >)
+        Parse_target.parse_program;
       Unit_typing_generic.tests Parse_target.parse_program (fun lang file ->
           Parse_pattern.parse_pattern lang file);
       Unit_naming_generic.tests Parse_target.parse_program;
@@ -78,11 +80,12 @@ let tests (caps : Cap.all_caps) =
       (* TODO Unit_matcher.spatch_unittest ~xxx *)
       (* TODO Unit_matcher_php.unittest; (* sgrep, spatch, refactoring, unparsing *) *)
       Unit_engine.tests ();
-      Unit_jsonnet.tests (caps :> < Cap.alarm >);
+      Unit_jsonnet.tests (caps :> < Cap.time_limit >);
       Unit_metachecking.tests (caps :> Core_scan.caps);
       (* OSemgrep tests *)
       Unit_LS.tests
-        (caps :> < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.alarm >);
+        (caps
+          :> < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.time_limit >);
       Unit_Login.tests caps;
       Unit_Fetching.tests (caps :> < Cap.network ; Cap.tmp >);
       Test_is_blocking_helpers.tests;
@@ -94,9 +97,9 @@ let tests (caps : Cap.all_caps) =
              ; Cap.tmp
              ; Cap.chdir
              ; Cap.fork
-             ; Cap.alarm >);
+             ; Cap.time_limit >);
       Unit_test_subcommand.tests
-        (caps :> < Cap.stdout ; Cap.fork ; Cap.alarm ; Cap.tmp >);
+        (caps :> < Cap.stdout ; Cap.fork ; Cap.time_limit ; Cap.tmp >);
       Test_show_subcommand.tests
         (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >);
       Test_publish_subcommand.tests
@@ -107,7 +110,8 @@ let tests (caps : Cap.all_caps) =
       (* And the SSL issues they've been testing have been stable *)
       (*Unit_Networking.tests;*)
       Test_LS_e2e.tests
-        (caps :> < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.alarm >);
+        (caps
+          :> < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.time_limit >);
       (* End OSemgrep tests *)
       Spacegrep_tests.Test.tests ();
       Aliengrep.Unit_tests.tests;

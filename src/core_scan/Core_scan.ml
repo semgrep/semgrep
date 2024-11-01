@@ -116,7 +116,7 @@ module Out = Semgrep_output_v1_j
 type func = Core_scan_config.t -> Core_result.result_or_exn
 
 (* TODO: stdout (sometimes) *)
-type caps = < Cap.fork ; Cap.alarm >
+type caps = < Cap.fork ; Cap.time_limit >
 
 (* Type of the iter_targets_and_get_matches_and_exn_to_errors callback.
 
@@ -780,7 +780,7 @@ let sca_rules_filtering (target : Target.regular) (rules : Rule.t list) :
 (*****************************************************************************)
 
 (* build the callback for iter_targets_and_get_matches_and_exn_to_errors *)
-let mk_target_handler (caps : < Cap.alarm >) (config : Core_scan_config.t)
+let mk_target_handler (caps : < Cap.time_limit >) (config : Core_scan_config.t)
     (valid_rules : Rule.t list)
     (prefilter_cache_opt : Match_env.prefilter_config) : target_handler =
   (* Note that this function runs in another process *)
@@ -829,7 +829,7 @@ let mk_target_handler (caps : < Cap.alarm >) (config : Core_scan_config.t)
       in
       let rules, dependency_match_table = sca_rules_filtering target rules in
       let timeout =
-        let caps = (caps :> < Cap.alarm >) in
+        let caps = (caps :> < Cap.time_limit >) in
         Some
           Match_rules.
             {
@@ -881,7 +881,7 @@ let scan_exn (caps : caps) (config : Core_scan_config.t)
          (caps :> < Cap.fork >)
          config
          (mk_target_handler
-            (caps :> < Cap.alarm >)
+            (caps :> < Cap.time_limit >)
             config valid_rules prefilter_cache_opt)
   in
 

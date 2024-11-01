@@ -45,7 +45,7 @@ type caps =
   ; (* for Parmap in Core_scan *)
     Cap.fork
   ; (* for Check_rules timeout *)
-    Cap.alarm >
+    Cap.time_limit >
 
 (*****************************************************************************)
 (* Metrics *)
@@ -505,7 +505,7 @@ let adjust_nosemgrep_and_autofix ~keep_ignored (res : Core_runner.result) :
  * caps = topevel caps - Cap.network
  *)
 let check_targets_with_rules
-    (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp ; Cap.fork ; Cap.alarm >)
+    (caps : < Cap.stdout ; Cap.chdir ; Cap.tmp ; Cap.fork ; Cap.time_limit >)
     (conf : Scan_CLI.conf) (profiler : Profiler.t)
     (rules_and_origins : Rule_fetching.rules_and_origin list)
     (targets_and_skipped : Fpath.t list * Out.skipped_target list) :
@@ -793,7 +793,8 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
       (* step3: let's go *)
       let res =
         check_targets_with_rules
-          (caps :> < Cap.stdout ; Cap.chdir ; Cap.tmp ; Cap.fork ; Cap.alarm >)
+          (caps
+            :> < Cap.stdout ; Cap.chdir ; Cap.tmp ; Cap.fork ; Cap.time_limit >)
           conf profiler rules_and_origins targets_and_skipped
       in
 
@@ -880,11 +881,12 @@ let run_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
       Exit_code.ok ~__LOC__
   | _ when conf.test <> None ->
       Test_subcommand.run_conf
-        (caps :> < Cap.stdout ; Cap.fork ; Cap.alarm ; Cap.tmp >)
+        (caps :> < Cap.stdout ; Cap.fork ; Cap.time_limit ; Cap.tmp >)
         (Common2.some conf.test)
   | _ when conf.validate <> None ->
       Validate_subcommand.run_conf
-        (caps :> < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.alarm >)
+        (caps
+          :> < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.time_limit >)
         (Common2.some conf.validate)
   | _ when conf.show <> None ->
       Show_subcommand.run_conf

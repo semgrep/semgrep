@@ -65,7 +65,8 @@ type t = {
   search_config : Search_config.t option;
   metrics : LS_metrics.t;
   is_intellij : bool;
-  caps : < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.alarm >; [@opaque]
+  caps : < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.time_limit >;
+      [@opaque]
 }
 [@@deriving show]
 

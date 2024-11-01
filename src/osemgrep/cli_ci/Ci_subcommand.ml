@@ -96,7 +96,7 @@ type caps =
   ; Cap.tmp
   ; Cap.chdir
   ; Cap.fork
-  ; Cap.alarm >
+  ; Cap.time_limit >
 
 (*****************************************************************************)
 (* Error management *)
@@ -839,7 +839,8 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
     in
     let res =
       Scan_subcommand.check_targets_with_rules
-        (caps :> < Cap.stdout ; Cap.chdir ; Cap.tmp ; Cap.fork ; Cap.alarm >)
+        (caps
+          :> < Cap.stdout ; Cap.chdir ; Cap.tmp ; Cap.fork ; Cap.time_limit >)
         conf profiler rules_and_origin targets_and_ignored
     in
     match res with

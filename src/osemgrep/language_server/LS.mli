@@ -3,6 +3,7 @@ val capabilities : Lsp.Types.ServerCapabilities.t
     the server can do. Exposed for testing *)
 
 val start :
-  < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.alarm > -> unit Lwt.t
+  < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.time_limit > ->
+  unit Lwt.t
 (** Entry point of the language server. This will start the server, and
     communicate over stdin/out using the Language Server Protocol *)

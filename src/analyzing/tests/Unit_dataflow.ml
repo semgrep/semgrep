@@ -12,7 +12,7 @@ let timeout_secs = 1.0
 (* ran from the root of the semgrep repository *)
 let tests_path = "tests"
 
-let tests (caps : < Cap.alarm >)
+let tests (caps : < Cap.time_limit >)
     (parse_program : Fpath.t -> AST_generic.program) : Testo.t list =
   Testo.categorize "dataflow_python"
     [

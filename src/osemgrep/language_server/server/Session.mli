@@ -38,14 +38,15 @@ type t = {
   search_config : Search_config.t option;
   metrics : LS_metrics.t;
   is_intellij : bool;
-  caps : < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.alarm >; [@opaque]
+  caps : < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.time_limit >;
+      [@opaque]
 }
 
 val show : t -> string
 (** [show t] returns a string representation of the session *)
 
 val create :
-  < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.alarm > ->
+  < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.time_limit > ->
   ServerCapabilities.t ->
   t
 (** [create caps capabilities] creates a [Session.t] given server capabilities *)
