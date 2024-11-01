@@ -8,7 +8,7 @@
  * GC having to do heavy work, we start to get fixpoint timeouts on functions
  * that should perfectly run within the timeout. But if we just bump the timeouts
  * then that makes perf worse and in some cases even leads to more rule timeouts. *)
-let dataflow_FIXPOINT_MIN_ITERS = 42
+let dataflow_FIXPOINT_MIN_ITERS = 100
 
 (*****************************************************************************)
 (* Const/sym ("svalue") propagation *)
@@ -45,7 +45,7 @@ let svalue_prop_MAX_VISIT_SYM_IN_CYCLE_CHECK = 1000
 (* Timeout in seconds.
  * So e.g. we limit the amount of time that Pro will spend inferring taint signatures.
  * Note that 'Time_limit.set_timeout' cannot be nested. *)
-let taint_FIXPOINT_TIMEOUT = 0.15
+let taint_FIXPOINT_TIMEOUT = 0.2
 
 (** Bounds the number of variables we can track. *)
 let taint_MAX_TAINTED_VARS = 50
