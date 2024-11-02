@@ -9,7 +9,7 @@
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type caps = < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.time_limit >
+type caps = Session.caps
 
 (* Set IO here since it is specific to the LS entrypoint *)
 (* This one utilizes unix IO, but the JS version does not *)

@@ -1,4 +1,4 @@
-type caps = < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.time_limit >
+type caps = Session.caps
 
 (*
    Parse a semgrep-lsp command, execute it and exit.

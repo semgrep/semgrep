@@ -10,7 +10,8 @@ type caps =
   ; Cap.tmp
   ; Cap.chdir
   ; Cap.fork
-  ; Cap.time_limit >
+  ; Cap.time_limit
+  ; Cap.memory_limit >
 
 (*
    Parse the semgrep command line, run the requested subcommand, and return

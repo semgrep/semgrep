@@ -116,7 +116,7 @@ module Out = Semgrep_output_v1_j
 type func = Core_scan_config.t -> Core_result.result_or_exn
 
 (* TODO: stdout (sometimes) *)
-type caps = < Cap.fork ; Cap.time_limit >
+type caps = < Cap.fork ; Cap.time_limit ; Cap.memory_limit >
 
 (* Type of the iter_targets_and_get_matches_and_exn_to_errors callback.
 
@@ -524,9 +524,9 @@ let errors_of_timeout_or_memory_exn (exn : exn) (target : Target.t) : ESet.t =
 (*****************************************************************************)
 
 (* Returns a list of match results and a separate list of scanned targets *)
-let iter_targets_and_get_matches_and_exn_to_errors (caps : < Cap.fork >)
-    (config : Core_scan_config.t) (handle_target : target_handler)
-    (targets : Target.t list) :
+let iter_targets_and_get_matches_and_exn_to_errors
+    (caps : < Cap.fork ; Cap.memory_limit >) (config : Core_scan_config.t)
+    (handle_target : target_handler) (targets : Target.t list) :
     Core_profiling.file_profiling Core_result.match_result list * Target.t list
     =
   (* The target is None when the file was not scanned *)
@@ -538,7 +538,9 @@ let iter_targets_and_get_matches_and_exn_to_errors (caps : < Cap.fork >)
           list) =
     targets
     |> Parmap_targets.map_targets__run_in_forked_process_do_not_modify_globals
-         caps config.ncores (fun (target : Target.t) ->
+         (caps :> < Cap.fork >)
+         config.ncores
+         (fun (target : Target.t) ->
            let internal_path = Target.internal_path target in
            let noprof = Core_profiling.empty_partial_profiling internal_path in
            Logs.debug (fun m ->
@@ -563,8 +565,10 @@ let iter_targets_and_get_matches_and_exn_to_errors (caps : < Cap.fork >)
              Common.with_time (fun () ->
                  try
                    Memory_limit.run_with_memory_limit
+                     (caps :> < Cap.memory_limit >)
                      ~get_context:(get_context_for_memory_limit target)
-                     ~mem_limit_mb:config.max_memory_mb (fun () ->
+                     ~mem_limit_mb:config.max_memory_mb
+                     (fun () ->
                        (* we used to call Time_limit.set_timeout() here, but
                         * this is now done in Match_rules.check() because we
                         * now timeout per rule, not per file since pysemgrep
@@ -878,7 +882,7 @@ let scan_exn (caps : caps) (config : Core_scan_config.t)
   let file_results, scanned_targets =
     targets
     |> iter_targets_and_get_matches_and_exn_to_errors
-         (caps :> < Cap.fork >)
+         (caps :> < Cap.fork ; Cap.memory_limit >)
          config
          (mk_target_handler
             (caps :> < Cap.time_limit >)

@@ -3,7 +3,7 @@
 type func = Core_scan_config.t -> Core_result.result_or_exn
 
 (* alias to avoid repeating ourselves in many callers *)
-type caps = < Cap.fork ; Cap.time_limit >
+type caps = < Cap.fork ; Cap.time_limit ; Cap.memory_limit >
 
 (* Entry point. This is used in Core_CLI.ml for semgrep-core,
  * in Pro_core_CLI for semgrep-core-proprietary, in tests, and finally
@@ -90,7 +90,7 @@ val print_cli_additional_targets : Core_scan_config.t -> int -> unit
 type target_handler = Target.t -> Core_result.matches_single_file * bool
 
 val iter_targets_and_get_matches_and_exn_to_errors :
-  < Cap.fork > ->
+  < Cap.fork ; Cap.memory_limit > ->
   Core_scan_config.t ->
   target_handler ->
   Target.t list ->

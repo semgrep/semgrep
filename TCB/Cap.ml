@@ -323,6 +323,7 @@ let fork_and_limits_caps_UNSAFE () =
   object
     method fork = ()
     method time_limit = ()
+    method memory_limit = ()
   end
 
 (* !!DO NOT USE!! *)

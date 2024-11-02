@@ -38,6 +38,15 @@ let scan_config_parser_ref = ref OutJ.scan_config_of_string
 (* Types *)
 (*****************************************************************************)
 
+(* =~ Core_scan.caps + random + network + tmp *)
+type caps =
+  < Cap.random
+  ; Cap.network
+  ; Cap.tmp
+  ; Cap.fork
+  ; Cap.time_limit
+  ; Cap.memory_limit >
+
 (* We really don't want mutable state in the server.
    This is the only exception since this stuff requires network requests that
    we want to do asynchronously *)
@@ -65,8 +74,7 @@ type t = {
   search_config : Search_config.t option;
   metrics : LS_metrics.t;
   is_intellij : bool;
-  caps : < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.time_limit >;
-      [@opaque]
+  caps : caps; [@opaque]
 }
 [@@deriving show]
 

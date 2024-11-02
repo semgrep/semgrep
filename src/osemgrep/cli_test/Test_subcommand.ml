@@ -54,7 +54,11 @@ module A = Test_annotation
 (* = Cap.stdout + Core_scan.caps + Cap.tmp (for Deep_scan.caps)
  * (no need for Cap.network; the tested rules should be local)
  *)
-type caps = < Cap.stdout ; Cap.fork ; Cap.time_limit ; Cap.tmp >
+type caps =
+  < Cap.stdout ; Cap.fork ; Cap.time_limit ; Cap.memory_limit ; Cap.tmp >
+
+(* Core_scan.caps | Deep_scan.caps *)
+type scan_caps = < Cap.fork ; Cap.time_limit ; Cap.memory_limit ; Cap.tmp >
 
 (* Rules and targets to test together.
  * Usually the target list contains just one file, but in some cases
@@ -126,10 +130,7 @@ let hook_pro_scan : (Core_scan.caps -> Core_scan.func) ref =
  *    other languages)
  *)
 let hook_deep_scan :
-    (< Cap.tmp ; Cap.fork ; Cap.time_limit > ->
-    Core_scan_config.t ->
-    Fpath.t ->
-    Core_result.result_or_exn)
+    (scan_caps -> Core_scan_config.t -> Fpath.t -> Core_result.result_or_exn)
     ref =
   ref (fun _caps _config _root ->
       failwith "semgrep test --pro not available (need --install-semgrep-pro)")
@@ -461,9 +462,7 @@ let run_rules_against_targets_for_engine caps (env : env) (rules : Rule.t list)
          *)
         let root, _base = Fpath.split_base env.rule_file in
         (* Deep_scan.caps but can't reference it from OSS/ *)
-        !hook_deep_scan
-          (caps :> < Cap.fork ; Cap.time_limit ; Cap.tmp >)
-          config root
+        !hook_deep_scan (caps :> scan_caps) config root
   in
   match res_or_exn with
   | Error exn -> Exception.reraise exn
@@ -703,8 +702,8 @@ let compare_for_autofix (env : env) (rules : Rule.t list)
 (*****************************************************************************)
 
 (* alt: call it run_env? *)
-let run_engine (caps : < Cap.fork ; Cap.time_limit ; Cap.tmp >) (env : env)
-    (rules : Rule.t list) (targets : Target.t list)
+let run_engine (caps : scan_caps) (env : env) (rules : Rule.t list)
+    (targets : Target.t list)
     (files_and_annots : (Fpath.t * A.annotations) list) :
     test_result list * fixtest_result list =
   let res : Core_result.t =
@@ -740,10 +739,9 @@ let run_engine (caps : < Cap.fork ; Cap.time_limit ; Cap.tmp >) (env : env)
   (checks, fixtest)
 
 (* run one test using the different engines if --pro *)
-let run_test (caps : < Cap.fork ; Cap.time_limit ; Cap.tmp >)
-    (conf : Test_CLI.conf) (rule_file : Fpath.t) (rules : Rule.t list)
-    (target_files : Fpath.t list) (errors : error list ref) :
-    test_result list * fixtest_result list =
+let run_test (caps : scan_caps) (conf : Test_CLI.conf) (rule_file : Fpath.t)
+    (rules : Rule.t list) (target_files : Fpath.t list)
+    (errors : error list ref) : test_result list * fixtest_result list =
   (* note that even one target file can result in different targets
    * if the rules contain multiple xlangs.
    *)
@@ -801,8 +799,8 @@ let run_test (caps : < Cap.fork ; Cap.time_limit ; Cap.tmp >)
     (checks_oss @ checks_pro @ checks_deep, fixtest_oss)
   else (checks_oss, fixtest_oss)
 
-let run_tests (caps : < Cap.fork ; Cap.time_limit ; Cap.tmp >)
-    (conf : Test_CLI.conf) (tests : tests) (errors : error list ref) :
+let run_tests (caps : scan_caps) (conf : Test_CLI.conf) (tests : tests)
+    (errors : error list ref) :
     (Fpath.t (* rule file *) * test_result list * fixtest_result list) list =
   (* LATER: in theory we could use Parmap here *)
   tests
@@ -863,11 +861,7 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
   let tests : tests = rules_and_targets conf.target errors in
 
   (* step2: run the tests *)
-  let result : tests_result =
-    run_tests
-      (caps :> < Cap.fork ; Cap.time_limit ; Cap.tmp >)
-      conf tests errors
-  in
+  let result : tests_result = run_tests (caps :> scan_caps) conf tests errors in
 
   (* step3: report the test results *)
   let res : Out.tests_result = tests_result_of_tests_result result !errors in

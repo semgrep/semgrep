@@ -67,6 +67,7 @@ exception ExceededMemoryLimit of string
    - default heap_warning_mb: 500 MiB
 *)
 val run_with_memory_limit :
+  < Cap.memory_limit > ->
   ?get_context:(unit -> string) ->
   ?stack_warning_kb:int ->
   ?heap_warning_mb:int ->

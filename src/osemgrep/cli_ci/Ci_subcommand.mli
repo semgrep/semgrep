@@ -5,7 +5,8 @@ type caps =
   ; Cap.tmp
   ; Cap.chdir
   ; Cap.fork
-  ; Cap.time_limit >
+  ; Cap.time_limit
+  ; Cap.memory_limit >
 
 (*
    Parse a semgrep-ci command, execute it and exit.

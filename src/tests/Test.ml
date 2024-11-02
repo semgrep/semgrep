@@ -59,7 +59,7 @@ let tests (caps : Cap.all_caps) =
       Unit_entropy.tests;
       Unit_ReDoS.tests;
       Unit_guess_lang.tests;
-      Unit_memory_limit.tests;
+      Unit_memory_limit.tests (caps :> < Cap.memory_limit >);
       Unit_tok.tests;
       Unit_Ppath.tests;
       Unit_Rpath.tests;
@@ -83,9 +83,7 @@ let tests (caps : Cap.all_caps) =
       Unit_jsonnet.tests (caps :> < Cap.time_limit >);
       Unit_metachecking.tests (caps :> Core_scan.caps);
       (* OSemgrep tests *)
-      Unit_LS.tests
-        (caps
-          :> < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.time_limit >);
+      Unit_LS.tests (caps :> Session.caps);
       Unit_Login.tests caps;
       Unit_Fetching.tests (caps :> < Cap.network ; Cap.tmp >);
       Test_is_blocking_helpers.tests;
@@ -97,9 +95,15 @@ let tests (caps : Cap.all_caps) =
              ; Cap.tmp
              ; Cap.chdir
              ; Cap.fork
-             ; Cap.time_limit >);
+             ; Cap.time_limit
+             ; Cap.memory_limit >);
       Unit_test_subcommand.tests
-        (caps :> < Cap.stdout ; Cap.fork ; Cap.time_limit ; Cap.tmp >);
+        (caps
+          :> < Cap.stdout
+             ; Cap.fork
+             ; Cap.time_limit
+             ; Cap.memory_limit
+             ; Cap.tmp >);
       Test_show_subcommand.tests
         (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >);
       Test_publish_subcommand.tests
@@ -111,7 +115,12 @@ let tests (caps : Cap.all_caps) =
       (*Unit_Networking.tests;*)
       Test_LS_e2e.tests
         (caps
-          :> < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.time_limit >);
+          :> < Cap.random
+             ; Cap.network
+             ; Cap.tmp
+             ; Cap.fork
+             ; Cap.time_limit
+             ; Cap.memory_limit >);
       (* End OSemgrep tests *)
       Spacegrep_tests.Test.tests ();
       Aliengrep.Unit_tests.tests;

@@ -10,7 +10,7 @@
  *   {"total":111,"bad":0,"percent_correct":100.0}
  *)
 val parsing_stats :
-  < Cap.time_limit > ->
+  < Cap.time_limit ; Cap.memory_limit > ->
   ?json:bool ->
   ?verbose:bool ->
   Lang.t ->
@@ -18,7 +18,8 @@ val parsing_stats :
   unit
 
 (* TODO: parsing regressions as in pfff (unfinished) *)
-val parsing_regressions : < Cap.time_limit > -> Lang.t -> Fpath.t list -> unit
+val parsing_regressions :
+  < Cap.time_limit ; Cap.memory_limit > -> Lang.t -> Fpath.t list -> unit
 
 (* Similar to [parsing_stats], but uses only tree-sitter parsers,
  * and stop the parsing at the tree-sitter CST level (it does not

@@ -51,7 +51,7 @@ let default_heap_warning_mb = 400
    for detailed explanations.
 
 *)
-let run_with_memory_limit ?get_context
+let run_with_memory_limit _caps ?get_context
     ?(stack_warning_kb = default_stack_warning_kb)
     ?(heap_warning_mb = default_heap_warning_mb) ~mem_limit_mb f =
   if stack_warning_kb < 0 then

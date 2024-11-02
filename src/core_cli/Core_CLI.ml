@@ -381,7 +381,8 @@ let all_actions (caps : Cap.all_caps) () =
       " <metachecks file> <files or dirs>",
       Arg_.mk_action_n_conv Fpath.v
         (Check_rule.check_files
-           (caps :> < Cap.stdout ; Cap.fork ; Cap.time_limit >)
+           (caps
+             :> < Cap.stdout ; Cap.fork ; Cap.time_limit ; Cap.memory_limit >)
            !output_format) );
     (* this is run by scripts (stats/.../run-lang) used by some of our workflows
      * (e.g., cron-parsing-stats.jsonnet)
@@ -390,7 +391,7 @@ let all_actions (caps : Cap.all_caps) () =
       " <files or dirs> generate parsing statistics (use -json for JSON output)",
       Arg_.mk_action_n_arg (fun xs ->
           Test_parsing.parsing_stats
-            (caps :> < Cap.time_limit >)
+            (caps :> < Cap.time_limit ; Cap.memory_limit >)
             (Xlang.lang_of_opt_xlang_exn !lang)
             ~json:
               (match !output_format with
@@ -506,7 +507,7 @@ let all_actions (caps : Cap.all_caps) () =
       " <files or dirs> look for parsing regressions",
       Arg_.mk_action_n_arg (fun xs ->
           Test_parsing.parsing_regressions
-            (caps :> < Cap.time_limit >)
+            (caps :> < Cap.time_limit ; Cap.memory_limit >)
             (Xlang.lang_of_opt_xlang_exn !lang)
             (Fpath_.of_strings xs)) );
     ( "-test_parse_tree_sitter",

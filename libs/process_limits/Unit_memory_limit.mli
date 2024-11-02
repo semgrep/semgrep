@@ -11,4 +11,4 @@
    Memory_limit.mli.
 *)
 
-val tests : Testo.t list
+val tests : < Cap.memory_limit > -> Testo.t list

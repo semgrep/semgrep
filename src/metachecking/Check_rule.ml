@@ -326,7 +326,8 @@ let run_checks (caps : Core_scan.caps) (metachecks : Fpath.t)
 (* for semgrep-core -check_rules, called from pysemgrep --validate
  * caps = Core_scan.caps + Cap.stdout
  *)
-let check_files (caps : < Cap.stdout ; Cap.fork ; Cap.time_limit >)
+let check_files
+    (caps : < Cap.stdout ; Cap.fork ; Cap.time_limit ; Cap.memory_limit >)
     (output_format : Core_scan_config.output_format) (input : Fpath.t list) :
     unit =
   let errors =

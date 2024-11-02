@@ -64,7 +64,4 @@ val handle_client_message :
     the message structure itself (but not if the message is valid but something
     went wrong while handling it)  *)
 
-val create :
-  < Cap.random ; Cap.network ; Cap.tmp ; Cap.fork ; Cap.time_limit > ->
-  Lsp.Types.ServerCapabilities.t ->
-  t
+val create : Session.caps -> Lsp.Types.ServerCapabilities.t -> t
