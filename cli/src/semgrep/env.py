@@ -68,6 +68,9 @@ class Env:
     )
     app_token: Optional[str] = field(default=EnvFactory("SEMGREP_APP_TOKEN"))
 
+    # Unique identifier for this scan inside the user's SCM if using SMS
+    scm_run_id: Optional[str] = field(default=EnvFactory("SEMGREP_SCM_RUN_ID"))
+
     version_check_url: str = field(
         default=EnvFactory(
             "SEMGREP_VERSION_CHECK_URL", "https://semgrep.dev/api/check-version"
