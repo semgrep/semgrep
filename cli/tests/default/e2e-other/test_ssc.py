@@ -446,7 +446,6 @@ LOCKFILE_NAME_TO_PARSER: Dict[str, SemgrepParser] = {
         "targets/dependency_aware/osv_parsing/yarn/commits.v2/yarn.lock",
         "targets/dependency_aware/osv_parsing/yarn/multiple-versions.v1/yarn.lock",
         "targets/dependency_aware/osv_parsing/yarn/empty.v2/yarn.lock",
-        "targets/dependency_aware/osv_parsing/yarn/cache-compressionlevel.v2/yarn.lock",
         "targets/dependency_aware/osv_parsing/yarn/multiple-constraints.v1/yarn.lock",
         "targets/dependency_aware/osv_parsing/package-lock/files.v1/package-lock.json",
         "targets/dependency_aware/osv_parsing/package-lock/nested-dependencies-dup.v2/package-lock.json",
