@@ -15,6 +15,7 @@ from semgrep.subproject import LockfileDependencySource
 from semgrep.subproject import PackageManagerType
 from semgrep.subproject import ResolutionMethod
 from semgrep.subproject import ResolvedSubproject
+from semgrep.subproject import Subproject
 
 
 @pytest.fixture
@@ -117,13 +118,11 @@ def sample_resolved_deps():
     # Create ResolvedSubproject with accurate found_dependencies and resolution_method
     subprojects = [
         ResolvedSubproject.from_unresolved(
-            unresolved=ResolvedSubproject(
+            unresolved=Subproject(
                 root_dir=Path("."),
-                ecosystem=Ecosystem(value=Pypi()),
                 dependency_source=dependency_source,
-                found_dependencies=found_dependencies,
-                resolution_method=resolution_method,
             ),
+            resolution_errors=[],
             resolution_method=resolution_method,
             found_dependencies=found_dependencies,
             ecosystem=Ecosystem(value=Pypi()),

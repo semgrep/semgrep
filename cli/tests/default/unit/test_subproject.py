@@ -36,6 +36,7 @@ class TestFindClosestSubproject:
 
         expected = ResolvedSubproject(
             root_dir=Path("a/b/c"),
+            resolution_errors=[],
             dependency_source=LockfileDependencySource(
                 lockfile_path=lockfile_path,
                 manifest=(
@@ -51,6 +52,7 @@ class TestFindClosestSubproject:
         extra = [
             ResolvedSubproject(
                 root_dir=Path("a/b"),
+                resolution_errors=[],
                 dependency_source=LockfileDependencySource(
                     lockfile_path=extra_lockfile_path,
                     manifest=(
@@ -83,6 +85,7 @@ class TestFindClosestSubproject:
 
         expected = ResolvedSubproject(
             root_dir=Path("a/b"),
+            resolution_errors=[],
             dependency_source=LockfileDependencySource(
                 lockfile_path=lockfile_path,
                 manifest=(
@@ -98,6 +101,7 @@ class TestFindClosestSubproject:
         extra = [
             ResolvedSubproject(
                 root_dir=Path("a/b/c"),
+                resolution_errors=[],
                 dependency_source=LockfileDependencySource(
                     lockfile_path=extra_lockfile_path,
                     manifest=(
@@ -137,6 +141,7 @@ class TestSubproject:
 
         subproject = ResolvedSubproject(
             root_dir=Path("a/b/c"),
+            resolution_errors=[],
             dependency_source=LockfileDependencySource(
                 lockfile_path=lockfile_path,
                 manifest=(
@@ -204,6 +209,7 @@ class TestSubproject:
 
         subproject = ResolvedSubproject(
             root_dir=Path("a/b/c"),
+            resolution_errors=[],
             dependency_source=multi_lockfile_source,
             ecosystem=Ecosystem(Pypi()),
             resolution_method=ResolutionMethod.LOCKFILE_PARSING,
@@ -240,6 +246,7 @@ class TestSubproject:
 
         subproject = ResolvedSubproject(
             root_dir=Path("a/b/c"),
+            resolution_errors=[],
             dependency_source=LockfileDependencySource(
                 lockfile_path=lockfile_path,
                 manifest=(

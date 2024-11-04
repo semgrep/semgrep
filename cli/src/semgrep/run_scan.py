@@ -53,6 +53,7 @@ from semgrep.core_runner import Plan
 from semgrep.dependency_aware_rule import dependencies_range_match_any
 from semgrep.dependency_aware_rule import parse_depends_on_yaml
 from semgrep.engine import EngineType
+from semgrep.error import DependencyResolutionError
 from semgrep.error import FilesNotFoundError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import select_real_errors
@@ -86,6 +87,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Product
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.state import get_state
 from semgrep.subproject import ResolvedSubproject
+from semgrep.subproject import UnresolvedSubproject
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import SAST_PRODUCT
 from semgrep.target_manager import SCA_PRODUCT
@@ -267,25 +269,48 @@ def run_rules(
 
     # Initialize data structures for dependencies
     filtered_dependency_aware_rules = []
-    resolved_deps: Dict[Ecosystem, List[ResolvedSubproject]] = {}
     dependency_parser_errors: List[DependencyParserError] = []
     sca_dependency_targets: List[Path] = []
+
+    resolved_subprojects: Dict[Ecosystem, List[ResolvedSubproject]] = {}
+    unresolved_subprojects: List[UnresolvedSubproject] = []
 
     if len(dependency_aware_rules) > 0:
         # Parse lockfiles to get dependency information, if there are relevant rules
         (
-            resolved_deps,
-            dependency_parser_errors,
+            unresolved_subprojects,
+            resolved_subprojects,
             sca_dependency_targets,
         ) = resolve_subprojects(
             target_manager,
             allow_dynamic_resolution=allow_dynamic_dependency_resolution,
             prioritize_dependency_graph_generation=prioritize_dependency_graph_generation,
         )
+        # for each subproject, split the errors into semgrep errors and parser errors.
+        # output the semgrep errors and store the parser errors for printing in print_scan_status below
+        all_subprojects: List[Union[ResolvedSubproject, UnresolvedSubproject]] = []
+        all_subprojects.extend(unresolved_subprojects)
+        for subprojects in resolved_subprojects.values():
+            all_subprojects.extend(subprojects)
+        for subproject in all_subprojects:
+            dependency_parser_errors.extend(
+                [
+                    e
+                    for e in subproject.resolution_errors
+                    if isinstance(e, DependencyParserError)
+                ]
+            )
+            output_handler.handle_semgrep_errors(
+                [
+                    e
+                    for e in subproject.resolution_errors
+                    if isinstance(e, DependencyResolutionError)
+                ]
+            )
 
         # Filter rules that match the dependencies
         filtered_dependency_aware_rules = filter_dependency_aware_rules(
-            dependency_aware_rules, resolved_deps
+            dependency_aware_rules, resolved_subprojects
         )
 
     rest_of_the_rules = [
@@ -297,7 +322,7 @@ def run_rules(
         filtered_rules,
         target_manager,
         target_mode_config,
-        resolved_deps,
+        resolved_subprojects,
         dependency_parser_errors,
         cli_ux=cli_ux,
         with_code_rules=with_code_rules,
@@ -320,7 +345,7 @@ def run_rules(
         run_secrets,
         disable_secrets_validation,
         target_mode_config,
-        resolved_deps,
+        resolved_subprojects,
     )
 
     if join_rules:
@@ -362,7 +387,7 @@ def run_rules(
                 ) = generate_reachable_sca_findings(
                     rule_matches_by_rule.get(rule, []),
                     rule,
-                    resolved_deps,
+                    resolved_subprojects,
                 )
                 rule_matches_by_rule[rule] = dep_rule_matches
                 output_handler.handle_semgrep_errors(dep_rule_errors)
@@ -372,7 +397,7 @@ def run_rules(
                 ) = generate_unreachable_sca_findings(
                     rule,
                     already_reachable,
-                    resolved_deps,
+                    resolved_subprojects,
                 )
                 rule_matches_by_rule[rule].extend(dep_rule_matches)
                 output_handler.handle_semgrep_errors(dep_rule_errors)
@@ -381,15 +406,15 @@ def run_rules(
                     dep_rule_matches,
                     dep_rule_errors,
                 ) = generate_unreachable_sca_findings(
-                    rule, lambda p, d: False, resolved_deps
+                    rule, lambda p, d: False, resolved_subprojects
                 )
                 rule_matches_by_rule[rule] = dep_rule_matches
                 output_handler.handle_semgrep_errors(dep_rule_errors)
 
         # The caller expects a map from lockfile path to `FoundDependency` items rather than our Subproject representation
         deps_by_lockfile: Dict[str, List[FoundDependency]] = {}
-        for ecosystem in resolved_deps:
-            for proj in resolved_deps[ecosystem]:
+        for ecosystem in resolved_subprojects:
+            for proj in resolved_subprojects[ecosystem]:
                 (
                     proj_deps_by_lockfile,
                     unknown_lockfile_deps,

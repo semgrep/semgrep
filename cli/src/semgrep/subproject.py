@@ -9,10 +9,14 @@ from typing import Dict
 from typing import Generator
 from typing import List
 from typing import Optional
+from typing import Sequence
 from typing import Set
 from typing import Tuple
+from typing import Union
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semgrep.error import DependencyResolutionError
+from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 
@@ -220,12 +224,37 @@ class Subproject:
 
 
 @dataclass(frozen=True)
+class UnresolvedSubproject(Subproject):
+    """
+    A subproject for which resolution was attempted but did not succeed.
+    """
+
+    resolution_errors: List[Union[DependencyResolutionError, DependencyParserError]]
+
+    @classmethod
+    def from_subproject(
+        cls,
+        base: Subproject,
+        resolution_errors: Sequence[
+            Union[DependencyParserError, DependencyResolutionError]
+        ],
+    ) -> "UnresolvedSubproject":
+        return cls(
+            root_dir=base.root_dir,
+            dependency_source=base.dependency_source,
+            resolution_errors=list(resolution_errors),
+        )
+
+
+@dataclass(frozen=True)
 class ResolvedSubproject(Subproject):
     """
     A subproject plus its resolved set of dependencies.
     """
 
     ecosystem: Ecosystem
+
+    resolution_errors: List[Union[DependencyParserError, DependencyResolutionError]]
 
     # the resolution method is how we determined the dependencies from the dependency source. This might be
     # lockfile parsing, dependency resolution, SBOM ingest, or something else.
@@ -239,12 +268,16 @@ class ResolvedSubproject(Subproject):
         cls,
         unresolved: Subproject,
         resolution_method: ResolutionMethod,
+        resolution_errors: Sequence[
+            Union[DependencyParserError, DependencyResolutionError]
+        ],
         found_dependencies: List[FoundDependency],
         ecosystem: Ecosystem,
     ) -> "ResolvedSubproject":
         return cls(
             root_dir=unresolved.root_dir,
             dependency_source=unresolved.dependency_source,
+            resolution_errors=list(resolution_errors),
             ecosystem=ecosystem,
             found_dependencies=ResolvedDependencies.from_found_dependencies(
                 found_dependencies

@@ -39,6 +39,7 @@ INVALID_API_KEY_EXIT_CODE = 13
 SCAN_FAIL_EXIT_CODE = 14
 
 default_level = out.ErrorSeverity(out.Error_())
+warning_level = out.ErrorSeverity(out.Warning_())
 
 
 class SemgrepError(Exception):
@@ -457,6 +458,40 @@ class UnknownLanguageError(ErrorWithSpan):
 
     def type_(self) -> out.ErrorType:
         return out.ErrorType(out.UnknownLanguageError())
+
+
+class DependencyResolutionError(SemgrepError):
+    """
+    An error that occurred during dependency resolution.
+    """
+
+    def __init__(
+        self,
+        *args: object,
+        type_: out.ResolutionError,
+        dependency_source_file: Path,
+        code: int = OK_EXIT_CODE,
+        level: out.ErrorSeverity = warning_level,
+    ) -> None:
+        self.error_type = type_
+        self.dependency_source_file = dependency_source_file
+        super().__init__(*args, code=code, level=level)
+
+    def __str__(self) -> str:
+        def print_resolution_error(err: out.ResolutionError) -> str:
+            if isinstance(err.value, out.UnsupportedManifest):
+                return "Unsupported Manifest"
+            elif isinstance(err.value, out.MissingRequirement):
+                return f"Missing Requirement ({err.value.value})"
+            elif isinstance(err.value, out.ResolutionCmdFailed_):
+                return f"Resolution Command Failed (command: {err.value.value.command}) (result: {err.value.value.message})"
+            else:
+                return f"Parsing dependency output failed ({err.value.value})"
+
+        return f"Failed to resolve dependencies for {str(self.dependency_source_file)}. {print_resolution_error(self.error_type)}"
+
+    def type_(self) -> out.ErrorType:
+        return out.ErrorType(out.DependencyResolutionError(self.error_type))
 
 
 # cf. https://stackoverflow.com/questions/1796180/how-can-i-get-a-list-of-all-classes-within-current-module-in-python/1796247#1796247

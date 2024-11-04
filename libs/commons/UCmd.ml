@@ -87,6 +87,22 @@ let string_of_run ~trim cmd =
       (* nosemgrep: forbid-exec *)
       Bos.OS.Cmd.out_string ~trim out)
 
+(* The method of using Testo.with_capture here is odd, but is copied from
+ * capture_and_log_stderr as defined above--see that function for the
+ * reasoning for doing it this way. *)
+(* TODO: this is potentially a source of high memory usage if the captured program
+ * outputs a lot of log spew. We should add a limit on the data read. *)
+let string_of_run_with_stderr ~trim cmd =
+  log_command cmd;
+  let res, err =
+    Testo.with_capture UStdlib.stderr (fun () ->
+        (* nosemgrep: forbid-exec *)
+        let out = Cmd.bos_apply Bos.OS.Cmd.run_out cmd in
+        (* nosemgrep: forbid-exec *)
+        Bos.OS.Cmd.out_string ~trim out)
+  in
+  (res, err)
+
 let lines_of_run ~trim cmd =
   log_command cmd;
   capture_and_log_stderr (fun () ->

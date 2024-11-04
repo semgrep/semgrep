@@ -24,3 +24,10 @@ val with_open_process_in : string -> (in_channel -> 'a) -> 'a
 exception CmdError of Unix.process_status * string
 
 val cmd_to_list : ?verbose:bool -> string -> string list
+
+val string_of_run_with_stderr :
+  trim:bool ->
+  Cmd.t ->
+  (string * Cmd.run_status, [> Rresult.R.msg ]) result * string
+(** Like string_of_run but instead of logging the stderr output, it captures it and returns it (in both success and failure cases). *
+ * The first part of the return type matches the return value of `string_of_run`; the last string part contains the stderr contents *)
