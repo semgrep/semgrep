@@ -63,7 +63,7 @@ class ScanHandler:
         """
         state = get_state()
         self.local_id = str(state.local_scan_id)
-        self.scm_run_id = str(state.env.scm_run_id)
+        self.sms_scan_id = str(state.env.sms_scan_id)
         self.scan_metadata = out.ScanMetadata(
             cli_version=out.Version(__VERSION__),
             unique_id=out.Uuid(self.local_id),
@@ -243,8 +243,8 @@ class ScanHandler:
         returns ignored list
         """
         state = get_state()
-        if self.scm_run_id:
-            logger.debug(f"SCM run id: {self.scm_run_id}")
+        if self.sms_scan_id:
+            logger.debug(f"SMS scan id: {self.sms_scan_id}")
         request = out.ScanRequest(
             meta=out.RawJson(
                 {
