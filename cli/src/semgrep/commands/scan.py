@@ -16,6 +16,7 @@ import click
 from click_option_group import MutuallyExclusiveOptionGroup
 from click_option_group import optgroup
 
+import semgrep.app.auth as auth
 import semgrep.config_resolver
 import semgrep.run_scan
 import semgrep.test
@@ -618,7 +619,7 @@ def scan(
     state.traces.configure(trace, trace_endpoint)
     with tracing.TRACER.start_as_current_span("semgrep.commands.scan"):
         engine_type = EngineType.decide_engine_type(
-            logged_in=state.app_session.token is not None,
+            logged_in=auth.is_logged_in_weak(),
             engine_flag=requested_engine,
             run_secrets=run_secrets_flag,
             interfile_diff_scan_enabled=diff_depth >= 0,

@@ -1,4 +1,5 @@
 import abc
+from dataclasses import dataclass
 from typing import Any
 from typing import Collection
 from typing import FrozenSet
@@ -70,6 +71,13 @@ def to_CliOutput(
     )
 
 
+@dataclass(frozen=True)
+class FormatContext:
+    is_ci_invocation: bool
+    is_logged_in: bool
+    is_using_registry: bool
+
+
 class BaseFormatter(abc.ABC):
     def output(
         self,
@@ -79,7 +87,7 @@ class BaseFormatter(abc.ABC):
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
         shown_severities: Collection[out.MatchSeverity],
-        is_ci_invocation: bool,
+        ctx: FormatContext,
     ) -> str:
         filtered_rules = (r for r in rules if r.severity in shown_severities)
         filtered_matches = (m for m in rule_matches if m.severity in shown_severities)
@@ -89,7 +97,7 @@ class BaseFormatter(abc.ABC):
             semgrep_structured_errors,
             cli_output_extra,
             extra,
-            is_ci_invocation,
+            ctx,
         )
 
     @abc.abstractmethod
@@ -100,7 +108,7 @@ class BaseFormatter(abc.ABC):
         semgrep_structured_errors: Sequence[SemgrepError],
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
-        is_ci_invocation: bool,
+        ctx: FormatContext,
     ) -> str:
         raise NotImplementedError
 

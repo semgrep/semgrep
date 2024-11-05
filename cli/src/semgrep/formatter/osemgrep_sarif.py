@@ -9,11 +9,10 @@ from typing import Mapping
 from typing import Optional
 from typing import Sequence
 
+import semgrep.formatter.base as base
 import semgrep.rpc_call
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.error import SemgrepError
-from semgrep.formatter.base import BaseFormatter
-from semgrep.formatter.base import rule_match_to_CliMatch
 from semgrep.formatter.sarif import SarifFormatter
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
@@ -40,7 +39,7 @@ def normalize_sarif_findings(findings: Mapping, mode: str) -> Mapping:
     return findings
 
 
-class OsemgrepSarifFormatter(BaseFormatter):
+class OsemgrepSarifFormatter(base.BaseFormatter):
     def _osemgrep_format(
         self,
         rules: Iterable[Rule],
@@ -48,7 +47,7 @@ class OsemgrepSarifFormatter(BaseFormatter):
         semgrep_structured_errors: Sequence[SemgrepError],
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
-        _is_ci_invocation: bool,
+        ctx: base.FormatContext,
     ) -> Optional[out.SarifFormatReturn]:
         exit_stack = contextlib.ExitStack()
         with exit_stack:
@@ -68,13 +67,11 @@ class OsemgrepSarifFormatter(BaseFormatter):
             2. use pro engine
             3. are not using registry
             """
-            is_logged_in = extra.get("is_logged_in", False)
             is_pro = (
                 cli_output_extra.engine_requested
                 and cli_output_extra.engine_requested == out.EngineKind(out.PRO_())
             )
-            is_using_registry = extra.get("is_using_registry", False)
-            hide_nudge = is_logged_in or is_pro or not is_using_registry
+            hide_nudge = ctx.is_logged_in or is_pro or not ctx.is_using_registry
 
             engine_label = "PRO" if is_pro else "OSS"
 
@@ -83,7 +80,8 @@ class OsemgrepSarifFormatter(BaseFormatter):
             # Sort according to RuleMatch.get_ordering_key
             sorted_findings = sorted(rule_matches)
             cli_matches = [
-                rule_match_to_CliMatch(rule_match) for rule_match in sorted_findings
+                base.rule_match_to_CliMatch(rule_match)
+                for rule_match in sorted_findings
             ]
             cli_errors = [e.to_CliError() for e in semgrep_structured_errors]
 
@@ -112,19 +110,14 @@ class OsemgrepSarifFormatter(BaseFormatter):
         semgrep_structured_errors: Sequence[SemgrepError],
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
-        is_ci_invocation: bool,
+        ctx: base.FormatContext,
     ) -> str:
         rule_list = list(rules)
         rule_match_list = list(rule_matches)
         error_list = list(semgrep_structured_errors)
         rpc_start = timeit.default_timer()
         rpc_result = self._osemgrep_format(
-            rule_list,
-            rule_match_list,
-            error_list,
-            cli_output_extra,
-            extra,
-            is_ci_invocation,
+            rule_list, rule_match_list, error_list, cli_output_extra, extra, ctx
         )
         rpc_elapse = timeit.default_timer() - rpc_start
 
@@ -136,7 +129,7 @@ class OsemgrepSarifFormatter(BaseFormatter):
             error_list,
             cli_output_extra,
             extra,
-            is_ci_invocation,
+            ctx,
         )
         py_elapse = timeit.default_timer() - py_start
 

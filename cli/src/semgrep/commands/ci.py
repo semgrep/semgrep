@@ -18,6 +18,7 @@ from rich.progress import SpinnerColumn
 from rich.progress import TextColumn
 from rich.table import Table
 
+import semgrep.app.auth as auth
 import semgrep.rpc_call
 import semgrep.run_scan
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
@@ -493,7 +494,7 @@ def ci(
 
         supply_chain_only = supply_chain and not code and not run_secrets
         engine_type = EngineType.decide_engine_type(
-            logged_in=state.app_session.token is not None,
+            logged_in=auth.is_logged_in_weak(),
             engine_flag=requested_engine,
             run_secrets=run_secrets,
             interfile_diff_scan_enabled=diff_depth >= 0,

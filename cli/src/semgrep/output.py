@@ -22,6 +22,8 @@ from typing import Type
 import requests
 from boltons.iterutils import partition
 
+import semgrep.app.auth as auth
+import semgrep.formatter.base as base
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.console import console
 from semgrep.console import Title
@@ -31,7 +33,6 @@ from semgrep.engine import EngineType
 from semgrep.error import FINDINGS_EXIT_CODE
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
-from semgrep.formatter.base import BaseFormatter
 from semgrep.formatter.emacs import EmacsFormatter
 from semgrep.formatter.gitlab_sast import GitlabSastFormatter
 from semgrep.formatter.gitlab_secrets import GitlabSecretsFormatter
@@ -59,7 +60,7 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
-FORMATTERS: Mapping[OutputFormat, Type[BaseFormatter]] = {
+FORMATTERS: Mapping[OutputFormat, Type[base.BaseFormatter]] = {
     OutputFormat.EMACS: EmacsFormatter,
     OutputFormat.GITLAB_SAST: GitlabSastFormatter,
     OutputFormat.GITLAB_SECRETS: GitlabSecretsFormatter,
@@ -71,7 +72,7 @@ FORMATTERS: Mapping[OutputFormat, Type[BaseFormatter]] = {
 }
 
 
-OSEMGREP_FORMATTERS: Mapping[OutputFormat, Type[BaseFormatter]] = {
+OSEMGREP_FORMATTERS: Mapping[OutputFormat, Type[base.BaseFormatter]] = {
     OutputFormat.SARIF: OsemgrepSarifFormatter,
 }
 
@@ -233,10 +234,10 @@ class OutputHandler:
 
         self.final_error: Optional[Exception] = None
 
-        self._formatters: Dict[Optional[str], BaseFormatter] = {}
+        self._formatters: Dict[Optional[str], base.BaseFormatter] = {}
 
         for output_destination, output_format in self.settings.get_outputs():
-            formatter: Optional[BaseFormatter] = None
+            formatter: Optional[base.BaseFormatter] = None
             # If configured to use osemgrep to format the output, use the osemgrep formatter.
             if (
                 output_settings.use_osemgrep_to_format
@@ -507,7 +508,7 @@ class OutputHandler:
                 and num_targets > 0
                 and num_rules > 0
                 and state.metrics.is_using_registry
-                and state.app_session.token is None
+                and (not auth.is_logged_in_weak())
             ):
                 suggestion_line = "\n(need more rules? `semgrep login` for additional free Semgrep Registry rules)\n"
             stats_line = ""
@@ -575,11 +576,6 @@ class OutputHandler:
 
         explanations: Optional[List[out.MatchingExplanation]] = self.explanations
 
-        # Extra, extra! This just in! 🗞️
-        # The extra dict is for blatantly skipping type checking and function signatures.
-        # - The text formatter uses it to store settings
-        # You should use CliOutputExtra for better type checking
-        extra: Dict[str, Any] = {}
         if self.settings.output_time and self.extra and self.extra.core.time:
             cli_timing = _build_time_json(
                 self.filtered_rules,
@@ -587,6 +583,13 @@ class OutputHandler:
                 self.extra.core.time,
                 self.profiler,
             )
+
+        # DO NOT USE THIS local!
+        # The extra dict is for blatantly skipping type checking and function signatures.
+        # - The text formatter uses it to store settings
+        # You should use CliOutputExtra for better type checking
+        extra: Dict[str, Any] = {}
+
         if self.settings.verbose_errors:
             # TODO: use SkippedTarget directly in ignore_log or in yield_json_objects at least
             skipped = sorted(
@@ -618,13 +621,6 @@ class OutputHandler:
         if output_format == OutputFormat.SARIF:
             extra["dataflow_traces"] = self.settings.dataflow_traces
 
-        state = get_state()
-        # If users are not using our registry, we will not nudge them to login
-        extra["is_using_registry"] = (
-            state.metrics.is_using_registry or state.env.mock_using_registry
-        )
-        extra["is_logged_in"] = state.app_session.token is not None
-
         # as opposed to below, we need to distinguish the various kinds of pro engine
         extra["engine_requested"] = self.engine_type
 
@@ -652,6 +648,7 @@ class OutputHandler:
             skipped_rules=[],
         )
 
+        state = get_state()
         formatter = self._formatters[output_destination]
         output = formatter.output(  # the rules are used only by the SARIF formatter
             self.rules,
@@ -660,6 +657,12 @@ class OutputHandler:
             cli_output_extra,
             extra,
             self.severities,
-            is_ci_invocation=self.is_ci_invocation,
+            base.FormatContext(
+                is_ci_invocation=self.is_ci_invocation,
+                is_logged_in=auth.is_logged_in_weak(),
+                # If users are not using our registry, we will not nudge them to login
+                is_using_registry=state.metrics.is_using_registry
+                or state.env.mock_using_registry,
+            ),
         )
         return (output_destination, output)

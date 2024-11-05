@@ -7,9 +7,9 @@ from typing import Iterable
 from typing import Mapping
 from typing import Sequence
 
+import semgrep.formatter.base as base
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.error import SemgrepError
-from semgrep.formatter.base import BaseFormatter
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.state import get_state
@@ -28,7 +28,7 @@ def _to_gitlab_severity(semgrep_severity: out.MatchSeverity) -> str:
     return conversion_table.get(semgrep_severity, "Unknown")
 
 
-class GitlabSastFormatter(BaseFormatter):
+class GitlabSastFormatter(base.BaseFormatter):
     def _format_rule_match(self, rule_match: RuleMatch) -> Mapping[str, Any]:
         result: Dict[str, Any] = {
             "id": str(rule_match.uuid),  # create UUID from sha256 hash
@@ -117,7 +117,7 @@ class GitlabSastFormatter(BaseFormatter):
         semgrep_structured_errors: Sequence[SemgrepError],
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
-        is_ci_invocation: bool,
+        ctx: base.FormatContext,
     ) -> str:
         """
         Format matches in GitLab SAST report compliant JSON.

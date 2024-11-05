@@ -16,6 +16,7 @@ import click
 from rich.console import Console
 from rich.text import Text
 
+import semgrep.formatter.base as base
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.console import console
 from semgrep.console import Title
@@ -23,7 +24,6 @@ from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import Colors
 from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
-from semgrep.formatter.base import BaseFormatter
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import LANGUAGE
@@ -818,7 +818,7 @@ def force_quiet_off(console: Console) -> Iterator[None]:
         console.quiet = was_quiet
 
 
-class TextFormatter(BaseFormatter):
+class TextFormatter(base.BaseFormatter):
     def format(
         self,
         rules: Iterable[Rule],
@@ -826,7 +826,7 @@ class TextFormatter(BaseFormatter):
         semgrep_structured_errors: Sequence[SemgrepError],
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
-        is_ci_invocation: bool,
+        ctx: base.FormatContext,
     ) -> str:
         # all output in this function is captured and returned as a string
         with force_quiet_off(console), console.capture() as captured_output:
@@ -881,7 +881,7 @@ class TextFormatter(BaseFormatter):
             # The rule is ran in the command-line and has no associated rule_id
             code_blocking_rules.discard("-")
 
-            if not is_ci_invocation:
+            if not ctx.is_ci_invocation:
                 grouped_matches[(out.Product(out.SAST()), "merged")] = [
                     *grouped_matches.pop((out.Product(out.SAST()), "nonblocking")),
                     *grouped_matches.pop((out.Product(out.SAST()), "blocking")),
@@ -918,13 +918,13 @@ class TextFormatter(BaseFormatter):
                         extra["dataflow_traces"],
                     )
 
-            if code_blocking_rules and is_ci_invocation:
+            if code_blocking_rules and ctx.is_ci_invocation:
                 console.print(Title("Blocking Code Rules Fired:", order=2))
                 for rule_id in sorted(code_blocking_rules):
                     console.print(f"  {rule_id}")
                 console.reset_title(order=1)
 
-            if secrets_blocking_rules and is_ci_invocation:
+            if secrets_blocking_rules and ctx.is_ci_invocation:
                 console.print(Title("Blocking Secrets Rules Fired:", order=2))
                 for rule_id in sorted(secrets_blocking_rules):
                     console.print(f"  {rule_id}")

@@ -6,11 +6,11 @@ from typing import Mapping
 from typing import Optional
 from typing import Sequence
 
+import semgrep.formatter.base as base
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
 from semgrep.error import error_type_string
 from semgrep.error import SemgrepError
-from semgrep.formatter.base import BaseFormatter
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.verbose_logging import getLogger
@@ -18,7 +18,7 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
-class SarifFormatter(BaseFormatter):
+class SarifFormatter(base.BaseFormatter):
     @staticmethod
     def _taint_source_to_thread_flow_location_sarif(rule_match: RuleMatch) -> Any:
         dataflow_trace = rule_match.dataflow_trace
@@ -407,7 +407,7 @@ class SarifFormatter(BaseFormatter):
         semgrep_structured_errors: Sequence[SemgrepError],
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
-        is_ci_invocation: bool,
+        ctx: base.FormatContext,
     ) -> str:
         """
         Format matches in SARIF v2.1.0 formatted JSON.
@@ -435,9 +435,7 @@ class SarifFormatter(BaseFormatter):
             cli_output_extra.engine_requested
             and cli_output_extra.engine_requested == out.EngineKind(out.PRO_())
         )
-        is_using_registry = extra.get("is_using_registry", False)
-        is_logged_in = extra.get("is_logged_in", False)
-        hide_nudge = is_logged_in or is_pro or not is_using_registry
+        hide_nudge = ctx.is_logged_in or is_pro or not ctx.is_using_registry
 
         output_dict = {
             "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",

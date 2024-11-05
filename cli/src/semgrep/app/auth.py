@@ -86,6 +86,14 @@ def set_token(token: str) -> None:
     settings.set("api_token", token)
 
 
+# "weak" because a real check would interact with the backend to
+# double check that the token is valid.
+# coupling: is_logged_in_weak() in osemgrep
+def is_logged_in_weak() -> bool:
+    token = get_token()
+    return token is not None
+
+
 def is_a_tty() -> bool:
     """
     Whether or not the terminal is interactive (a tty)
