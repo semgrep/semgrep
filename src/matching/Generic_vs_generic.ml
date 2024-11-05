@@ -2569,16 +2569,39 @@ and m_stmt a b =
   (* the order of the matches matters! take care! *)
   (* equivalence: user-defined equivalence! *)
   | G.DisjStmt (a1, a2), _b -> m_stmt a1 b >||> m_stmt a2 b
+  (* useful to test error management around unexpected failures
+   * (see test_semgrep_core_error.py).
+   * Note that we do that in m_stmt instead of m_expr to reduce the number
+   * of those checks (hopefuly OCaml pattern matching compiler does a good job).
+   *)
+  | ( _,
+      G.ExprStmt
+        ( {
+            e =
+              G.Call
+                ({ e = G.N (G.Id (("r_2_c_was_fatal", _), _)); _ }, (_, [], _));
+            _;
+          },
+          _sc ) ) ->
+      failwith "r_2_c_was_fatal"
   (* some marks in the water *)
   | ( _,
       G.ExprStmt
-        ( { e = G.Call ({ e = G.N (G.Id (("r_2_c_was_here", _), _)); _ }, _); _ },
+        ( {
+            e =
+              G.Call
+                ({ e = G.N (G.Id (("r_2_c_was_here", _), _)); _ }, (_, [], _));
+            _;
+          },
           _sc ) ) ->
       return ()
   | ( _,
       G.ExprStmt
         ( {
-            e = G.Call ({ e = G.N (G.Id (("r_2_c_pro_was_here", _), _)); _ }, _);
+            e =
+              G.Call
+                ( { e = G.N (G.Id (("r_2_c_pro_was_here", _), _)); _ },
+                  (_, [], _) );
             _;
           },
           _sc ) )

@@ -1,0 +1,4 @@
+Exceptions thrown during the processing of a target should not fail
+the whole scan anymore (regression introduced in 1.94.0). The scan will
+have an exit code of 0 instead of 2 (unless the user passed --strict in which
+case it will exit with code 2).

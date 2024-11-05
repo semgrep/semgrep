@@ -258,9 +258,23 @@ let exn_to_error ?(file : Fpath.t option) (e : Exception.t) : t =
         let* file = file in
         Some (Tok.first_loc_of_file file)
       in
+      let typ =
+        match file with
+        (* if an exn occurs at a place where we are able to attach a file to it
+         * (e.g., in Core_scan.iter_targets_xxx), which probably means only
+         * one file was concerned by the error, then we should generate
+         * an error with a Warning severity (see severity_of_error() further
+         * below) to avoid making the whole scan fail with exit code 2
+         * (see also test_semgrep_core_error.py).
+         * TODO: ideally we should introduce a new OtherErrorWithAttachedFile
+         * instead of abusing OtherParseError.
+         *)
+        | Some _ -> Out.OtherParseError
+        | None -> Out.FatalError
+      in
       {
         rule_id = None;
-        typ = Out.FatalError;
+        typ;
         loc;
         msg = Printexc.to_string exn;
         details = Some trace;
@@ -288,34 +302,43 @@ let string_of_error (err : t) : string =
 (* Misc *)
 (****************************************************************************)
 
+(* Note that the difference between Error and Warning is important because
+ * pysemgrep/osemgrep will return an exit code of 2 for any semgrep-core
+ * Error happening during a scan (which will make the whole scan fail
+ * if used in CI). Warning will generate also an exit code of 2 but only
+ * if the user ran a scan with --strict.
+ *)
 let severity_of_error (typ : Out.error_type) : Out.error_severity =
   match typ with
-  | SemgrepMatchFound -> `Error
-  | MatchingError -> `Warning
-  | TooManyMatches -> `Warning
-  | LexicalError -> `Warning
-  | ParseError -> `Warning
-  | PartialParsing _ -> `Warning
-  | OtherParseError -> `Warning
-  | SemgrepWarning -> `Warning
-  | AstBuilderError -> `Error
-  | RuleParseError -> `Error
+  (* Warnings *)
+  | MatchingError
+  | TooManyMatches
+  | LexicalError
+  | ParseError
+  | PartialParsing _
+  | OtherParseError
+  | InvalidYaml
+  | Timeout
+  | OutOfMemory
+  | StackOverflow
+  | SemgrepWarning ->
+      `Warning
+  (* Errors *)
+  | SemgrepMatchFound
+  | AstBuilderError
+  | RuleParseError
   | PatternParseError _
-  | PatternParseError0 ->
+  | PatternParseError0
+  | TimeoutDuringInterfile
+  | OutOfMemoryDuringInterfile
+  | SemgrepError
+  | InvalidRuleSchemaError
+  | UnknownLanguageError
+  | FatalError ->
       `Error
-  | InvalidYaml -> `Warning
-  | FatalError -> `Error
-  | Timeout -> `Warning
-  | OutOfMemory -> `Warning
-  | StackOverflow -> `Warning
-  | TimeoutDuringInterfile -> `Error
-  | OutOfMemoryDuringInterfile -> `Error
-  | SemgrepError -> `Error
-  | InvalidRuleSchemaError -> `Error
-  | UnknownLanguageError -> `Error
   (* Running into an incompatible rule may be normal, with nothing to fix *)
   | IncompatibleRule _
-  | IncompatibleRule0 ->
+  | IncompatibleRule0
+  | MissingPlugin
+  | DependencyResolutionError _ ->
       `Info
-  | MissingPlugin -> `Info
-  | DependencyResolutionError _ -> `Info

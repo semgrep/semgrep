@@ -1,0 +1,14 @@
+# subset of the express-redos.yaml rule in the semgrep-rules-pro repo
+# that used to cause some "lexing: empty token" error
+rules:
+- id: redos
+  message: found
+  severity: WARNING
+  languages:
+  - javascript
+  - typescript
+  patterns:
+    - pattern: /$X/
+    - metavariable-analysis:
+        analyzer: redos
+        metavariable: $X
