@@ -57,6 +57,7 @@ let tests (caps : Cap.all_caps) =
       Unit_include_filter.tests;
       Unit_parsing.tests ();
       Unit_entropy.tests;
+      Parser_regexp.Unit_parsing.tests;
       Unit_ReDoS.tests;
       Unit_guess_lang.tests;
       Unit_memory_limit.tests (caps :> < Cap.memory_limit >);

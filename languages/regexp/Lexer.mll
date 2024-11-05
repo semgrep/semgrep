@@ -282,16 +282,6 @@ rule token conf = parse
     }
 
 (***************************************************************************)
-(* POSIX character classes *)
-(***************************************************************************)
-
-  | "[:" {
-      match posix_char_class conf (loc lexbuf) lexbuf with
-      | Ok (loc, x) -> NODE (Char (loc, x))
-      | Error (_loc, code_points) -> NODE (seq_of_code_points code_points)
-    }
-
-(***************************************************************************)
   | '\\' { let loc, x = backslash_escape conf (loc lexbuf) lexbuf in
            NODE (Char (loc, x)) }
 
@@ -359,6 +349,7 @@ and literal_chars = parse
       let code = decode c in
       (loc, code) :: literal_chars lexbuf
     }
+  | eof { (* missing \E: should be an error? *) [] }
 
 and backslash_escape conf start = parse
   | '\\' { (range start (loc lexbuf), Singleton (Char.code '\\')) }
@@ -611,36 +602,42 @@ and posix_char_class conf start = parse
         Ok (loc, compl (Abstract (Unicode_character_property prop_name)))
       in
       let ucp = conf.pcre_ucp in
-      match name with
-      | "alnum" when ucp -> unicode "Xan"
-      | "alnum" -> ascii Char_class.posix_alnum
-      | "alpha" when ucp -> unicode "L"
-      | "alpha" -> ascii Char_class.posix_alpha
-      | "ascii" -> ascii Char_class.posix_ascii
-      | "blank" when ucp -> unicode "h"
-      | "blank" -> ascii Char_class.perl_blank
-      | "cntrl" -> ascii Char_class.posix_cntrl
-      | "digit" when ucp -> unicode "Nd"
-      | "digit" -> ascii Char_class.posix_digit
-      | "graph" -> ascii Char_class.posix_graph
-      | "lower" when ucp -> unicode "Ll"
-      | "lower" -> ascii Char_class.posix_lower
-      | "print" -> ascii Char_class.posix_print
-      | "punct" -> ascii Char_class.posix_punct
-      | "space" when ucp -> unicode "Xps"
-      | "space" -> ascii Char_class.posix_space
-      | "upper" when ucp -> unicode "Lu"
-      | "upper" -> ascii Char_class.posix_upper
-      | "word" when ucp -> unicode "Xwd"
-      | "word" -> ascii Char_class.perl_word
-      | "xdigit" -> ascii Char_class.posix_xdigit
-      | _ ->
-          Error (
-            loc,
-            AST.code_points_of_ascii_string_loc loc
-              ("[:" ^ Lexing.lexeme lexbuf)
-          )
-}
+      (match name with
+       | "alnum" when ucp -> unicode "Xan"
+       | "alnum" -> ascii Char_class.posix_alnum
+       | "alpha" when ucp -> unicode "L"
+       | "alpha" -> ascii Char_class.posix_alpha
+       | "ascii" -> ascii Char_class.posix_ascii
+       | "blank" when ucp -> unicode "h"
+       | "blank" -> ascii Char_class.perl_blank
+       | "cntrl" -> ascii Char_class.posix_cntrl
+       | "digit" when ucp -> unicode "Nd"
+       | "digit" -> ascii Char_class.posix_digit
+       | "graph" -> ascii Char_class.posix_graph
+       | "lower" when ucp -> unicode "Ll"
+       | "lower" -> ascii Char_class.posix_lower
+       | "print" -> ascii Char_class.posix_print
+       | "punct" -> ascii Char_class.posix_punct
+       | "space" when ucp -> unicode "Xps"
+       | "space" -> ascii Char_class.posix_space
+       | "upper" when ucp -> unicode "Lu"
+       | "upper" -> ascii Char_class.posix_upper
+       | "word" when ucp -> unicode "Xwd"
+       | "word" -> ascii Char_class.perl_word
+       | "xdigit" -> ascii Char_class.posix_xdigit
+       | _ ->
+           Error (
+             loc,
+             AST.code_points_of_ascii_string_loc loc
+               ("[:" ^ Lexing.lexeme lexbuf)
+           )
+      )
+    }
+    | _
+    | eof {
+      let loc = range start (loc lexbuf) in
+      Error (loc, [])
+    }
 
 and char_class conf = parse
   | '#' {

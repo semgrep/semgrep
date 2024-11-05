@@ -56,10 +56,10 @@ exception Other_error of string * Tok.t
 (*****************************************************************************)
 
 (* val lexical_error : string -> Lexing.lexbuf -> unit *)
-let lexical_error s lexbuf =
+let lexical_error msg lexbuf =
   let info = Tok.tok_of_lexbuf lexbuf in
-  if !Flag_parsing.exn_when_lexical_error then raise (Lexical_error (s, info))
-  else if !Flag_parsing.verbose_lexing then UCommon.pr2_once ("LEXER: " ^ s)
+  if !Flag_parsing.exn_when_lexical_error then raise (Lexical_error (msg, info))
+  else if !Flag_parsing.verbose_lexing then UCommon.pr2_once ("LEXER: " ^ msg)
   else ()
 
 (****************************************************************************)

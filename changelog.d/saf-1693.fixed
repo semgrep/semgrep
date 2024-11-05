@@ -1,0 +1,2 @@
+Fix regexp parsing error occurring during ReDoS analysis when encountering
+a character class starting with `[:` such as `[:a-z]`.

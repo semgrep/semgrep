@@ -9,6 +9,11 @@ let t = Testo.create
 (* ran from the root of the semgrep repository *)
 let tests_path = "tests"
 
+(* Check that no syntax error is raised (without checking the parse tree) *)
+let test_syntax pat () =
+  let _ = Parse.string pat in
+  ()
+
 let test_valid_files dialect rel_path () =
   let dir = Filename.concat tests_path rel_path in
   let files = Common2.glob (spf "%s/*.regexp" dir) in
@@ -41,6 +46,21 @@ let tests =
     [
       Testo.categorize "pcre"
         [
+          (* The user mostly likely intended '[[:alpha:]]'.
+             PCRE reports an error when encountering a POSIX
+             character class outside of square brackets but we don't. *)
+          t "not a posix character class" (test_syntax {|[:alpha:]|});
+          t "not a broken posix character class" (test_syntax {|[:]|});
+          (* Tolerate some malformed input.
+             We don't necessarily need to tolerate malformed input but
+             we want at least to avoid uninformative errors such as
+             'Failure "lexing: empty token"' *)
+          t "tolerate unfinished character class" (test_syntax {|[a|});
+          t "tolerate unfinished posix character class"
+            (test_syntax {|[[:alpha|});
+          t "tolerate unfinished non-capturing group" (test_syntax {|(?|});
+          t "tolerate unfinished raw sequence" (test_syntax {|\Qabc|});
+          (* Check regexps kept in files *)
           t "valid files" (test_valid_files Dialect.PCRE "regexp/pcre/parsing");
           t "invalid files"
             (test_invalid_files Dialect.PCRE "regexp/pcre/parsing_errors");
