@@ -69,7 +69,7 @@ class PackageManagerDependencySource(DependencySource):
 
 @dataclass(frozen=True)
 class LockfileDependencySource(PackageManagerDependencySource):
-    manifest: Tuple[Optional[out.ManifestKind], Optional[Path]]
+    manifest: Optional[out.Manifest]
     lockfile_path: Path
 
     def get_display_paths(self) -> List[Path]:

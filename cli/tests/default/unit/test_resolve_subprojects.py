@@ -6,10 +6,12 @@ import pytest
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.subproject_matchers import ExactLockfileManifestMatcher
+from semdep.subproject_matchers import ExactManifestOnlyMatcher
 from semdep.subproject_matchers import SubprojectMatcher
 from semgrep.resolve_subprojects import _resolve_dependency_source
 from semgrep.resolve_subprojects import find_subprojects
 from semgrep.subproject import LockfileDependencySource
+from semgrep.subproject import ManifestOnlyDependencySource
 from semgrep.subproject import PackageManagerType
 from semgrep.subproject import Subproject
 
@@ -44,9 +46,9 @@ from semgrep.subproject import Subproject
                     root_dir=Path(),
                     dependency_source=LockfileDependencySource(
                         package_manager_type=PackageManagerType.PIP,
-                        manifest=(
+                        manifest=out.Manifest(
                             out.ManifestKind(value=out.RequirementsIn()),
-                            Path("requirements.in"),
+                            out.Fpath("requirements.in"),
                         ),
                         lockfile_path=Path("requirements.txt"),
                     ),
@@ -55,7 +57,7 @@ from semgrep.subproject import Subproject
                     root_dir=Path(),
                     dependency_source=LockfileDependencySource(
                         package_manager_type=PackageManagerType.PIP,
-                        manifest=(out.ManifestKind(value=out.RequirementsIn()), None),
+                        manifest=None,
                         lockfile_path=Path("requirements3.txt"),
                     ),
                 ),
@@ -87,11 +89,48 @@ from semgrep.subproject import Subproject
                     root_dir=Path(),
                     dependency_source=LockfileDependencySource(
                         package_manager_type=PackageManagerType.PIP,
-                        manifest=(
+                        manifest=out.Manifest(
                             out.ManifestKind(value=out.RequirementsIn()),
-                            Path("requirements.in"),
+                            out.Fpath("requirements.in"),
                         ),
                         lockfile_path=Path("requirements3.txt"),
+                    ),
+                ),
+            ],
+        ),
+        (
+            # verify that when one subproject contains another, both the parent and the child are found separately
+            [
+                Path("pom.xml"),
+                Path("child-a/pom.xml"),
+                Path("child-b/pom.xml"),
+            ],
+            [
+                ExactManifestOnlyMatcher(
+                    manifest_kind=out.ManifestKind(out.PomXml()),
+                    manifest_name="pom.xml",
+                )
+            ],
+            [
+                Subproject(
+                    root_dir=Path(),
+                    dependency_source=ManifestOnlyDependencySource(
+                        manifest_path=Path("pom.xml"),
+                        manifest_kind=out.ManifestKind(out.PomXml()),
+                    ),
+                ),
+                Subproject(
+                    root_dir=Path("child-a"),
+                    dependency_source=ManifestOnlyDependencySource(
+                        manifest_path=Path("child-a/pom.xml"),
+                        manifest_kind=out.ManifestKind(out.PomXml()),
+                    ),
+                ),
+                Subproject(
+                    root_dir=Path("child-b"),
+                    dependency_source=ManifestOnlyDependencySource(
+                        manifest_path=Path("child-b/pom.xml"),
+                        manifest_kind=out.ManifestKind(out.PomXml()),
                     ),
                 ),
             ],
@@ -104,13 +143,15 @@ def test_find_subprojects(
     expected_subprojects: List[Subproject],
 ) -> None:
     result = find_subprojects(frozenset(file_paths), matchers)
-    assert result == expected_subprojects
+    assert sorted(result, key=lambda s: s.root_dir) == sorted(
+        expected_subprojects, key=lambda s: s.root_dir
+    )
 
 
 @pytest.mark.quick
 @patch("semgrep.resolve_subprojects._resolve_dependencies_dynamically")
 def test_ptt_unconditionally_generates_dependency_graphs(
-    mock_dynamic_resolve, tmp_path
+    mock_dynamic_resolve, tmp_path: Path
 ) -> None:
     manifest_file = open(tmp_path / "requirements.in", "w")
     manifest_file.write("requests==2.25.1")
@@ -122,9 +163,9 @@ def test_ptt_unconditionally_generates_dependency_graphs(
     mock_dynamic_resolve.return_value = ["mock_ecosystem", [], [], []]
     dep_source = LockfileDependencySource(
         package_manager_type=PackageManagerType.PIP,
-        manifest=(
+        manifest=out.Manifest(
             out.ManifestKind(value=out.RequirementsIn()),
-            Path(tmp_path / "requirements.in"),
+            out.Fpath(str((tmp_path / "requirements.in"))),
         ),
         lockfile_path=Path(tmp_path / "requirements.txt"),
     )
@@ -139,7 +180,7 @@ def test_ptt_unconditionally_generates_dependency_graphs(
 @patch("semgrep.resolve_subprojects._resolve_dependencies_dynamically")
 @patch("semdep.parsers.requirements.parse_requirements")
 def test_ptt_unconditional_graph_generation_falls_back_on_lockfile_parsing(
-    mock_dynamic_resolve, mock_parse_requirements, tmp_path
+    mock_dynamic_resolve, mock_parse_requirements, tmp_path: Path
 ) -> None:
     manifest_file = open(tmp_path / "requirements.in", "w")
     manifest_file.write("requests==2.25.1")
@@ -163,9 +204,9 @@ def test_ptt_unconditional_graph_generation_falls_back_on_lockfile_parsing(
     )
     dep_source = LockfileDependencySource(
         package_manager_type=PackageManagerType.PIP,
-        manifest=(
+        manifest=out.Manifest(
             out.ManifestKind(value=out.RequirementsIn()),
-            Path(tmp_path / "requirements.in"),
+            out.Fpath(str((tmp_path / "requirements.in"))),
         ),
         lockfile_path=Path(tmp_path / "requirements.txt"),
     )

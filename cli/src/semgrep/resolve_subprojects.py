@@ -157,13 +157,19 @@ def _resolve_dependency_source(
     if isinstance(dep_source, LockfileDependencySource):
         parser = PARSERS_BY_PACKAGE_MANAGER_TYPE[dep_source.package_manager_type]
         ecosystem = ECOSYSTEM_BY_PACKAGE_MANAGER_TYPE[dep_source.package_manager_type]
-        manifest_kind, manifest_path = (
-            dep_source.manifest if dep_source.manifest else (None, None)
+        manifest_path = (
+            Path(dep_source.manifest.path.value)
+            if dep_source.manifest is not None
+            else None
+        )
+        manifest_kind = (
+            dep_source.manifest.kind if dep_source.manifest is not None else None
         )
         if (
             enable_dynamic_resolution
             and prioritize_dependency_graph_generation
             and manifest_path is not None
+            and manifest_kind is not None
             and manifest_kind in DEPENDENCY_GRAPH_SUPPORTED_MANIFEST_KINDS
         ):
             (

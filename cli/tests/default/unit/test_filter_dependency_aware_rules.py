@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.rule import Rule
 from semgrep.run_scan import filter_dependency_aware_rules
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
@@ -108,7 +109,7 @@ def sample_resolved_deps():
 
     # Create LockfileDependencySource
     dependency_source = LockfileDependencySource(
-        manifest=(ManifestKind(value=Pipfile_()), Path("Pipfile")),
+        manifest=out.Manifest(ManifestKind(value=Pipfile_()), out.Fpath("Pipfile")),
         package_manager_type=PackageManagerType.PIP,
         lockfile_path=Path("Pipfile.lock"),
     )
