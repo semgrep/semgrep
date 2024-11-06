@@ -12,7 +12,10 @@
 ; use src/main/flags.sh to generate the OS specific build flags
 (rule
  (targets flags.sexp)
+ (deps
+  (:langs %{project_root}/src/main/tree-sitter-langs.dat))
  (enabled_if (<> %{os_type} Win32))
  (action
-  (with-stdout-to flags.sexp
-   (run %{project_root}/src/main/flags.sh %{ocaml-config:system}))))
+  (with-stdout-to
+   flags.sexp
+   (run %{project_root}/src/main/flags.sh %{ocaml-config:system} %{langs}))))

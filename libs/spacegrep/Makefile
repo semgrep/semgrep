@@ -4,7 +4,8 @@
 #
 .PHONY: build
 build:
-	dune build .
+	cd "$$(git rev-parse --show-toplevel)" && \
+	  dune build _build/install/default/bin/spacegrep
 
 .PHONY: examples
 examples:

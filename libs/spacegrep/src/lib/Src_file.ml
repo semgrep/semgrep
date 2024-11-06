@@ -77,7 +77,10 @@ let of_file ?source ?max_len file =
   let contents = UFile.Legacy.read_file ?max_len file in
   { source; contents }
 
-let to_lexbuf x = Lexing.from_string x.contents
+let to_lexbuf x =
+  let lexbuf = Lexing.from_string x.contents in
+  Lexing.set_filename lexbuf (show_source x.source);
+  lexbuf
 
 (* Find the index (position from the beginning of the string)
    right after the end of the current line. *)

@@ -2,7 +2,11 @@
    Parse a document.
 *)
 
-let of_lexbuf lexbuf =
+module Log = Log_spacegrep.Log
+
+let of_lexbuf (lexbuf : Lexing.lexbuf) =
+  Log.debug (fun m ->
+      m "parse spacegrep target file %S" lexbuf.lex_curr_p.pos_fname);
   match Parse_pattern.of_lexbuf ~is_doc:true lexbuf with
   | Ok pat -> Doc_AST.of_pattern pat
   | Error _ ->

@@ -1,7 +1,7 @@
 (*
    Turn tokenized lines into a tree, based on:
    - indentation,
-   - matching braces within the same line.
+   - matching delimiters (), [], or {} within the same line.
 *)
 
 type error = { loc : Loc.t; msg : string }

@@ -1,0 +1,2 @@
+Fix exponential parsing time with generic mode on input containing many
+unclosed braces on the same line.
