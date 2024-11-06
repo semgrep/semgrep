@@ -826,7 +826,7 @@ class TextFormatter(base.BaseFormatter):
         semgrep_structured_errors: Sequence[SemgrepError],
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
-        ctx: base.FormatContext,
+        ctx: out.FormatContext,
     ) -> str:
         # all output in this function is captured and returned as a string
         with force_quiet_off(console), console.capture() as captured_output:

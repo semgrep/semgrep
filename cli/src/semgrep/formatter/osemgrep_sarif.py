@@ -47,7 +47,7 @@ class OsemgrepSarifFormatter(base.BaseFormatter):
         semgrep_structured_errors: Sequence[SemgrepError],
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
-        ctx: base.FormatContext,
+        ctx: out.FormatContext,
     ) -> Optional[out.SarifFormatReturn]:
         exit_stack = contextlib.ExitStack()
         with exit_stack:
@@ -110,7 +110,7 @@ class OsemgrepSarifFormatter(base.BaseFormatter):
         semgrep_structured_errors: Sequence[SemgrepError],
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
-        ctx: base.FormatContext,
+        ctx: out.FormatContext,
     ) -> str:
         rule_list = list(rules)
         rule_match_list = list(rule_matches)

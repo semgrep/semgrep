@@ -13,11 +13,13 @@ logger = getLogger(__name__)
 ##############################################################################
 
 
-def format(formatter: out.OutputFormat, output: out.CliOutput) -> str:
-    call = out.FunctionCall(out.CallFormatter((formatter, output)))
+def format(
+    formatter: out.OutputFormat, ctx: out.FormatContext, output: out.CliOutput
+) -> str:
+    call = out.FunctionCall(out.CallFormatter((formatter, ctx, output)))
     ret: Optional[out.RetFormatter] = rpc_call(call, out.RetFormatter)
     if ret is None:
-        return "<error missing output>"
+        return "<ERROR: missing output>"
     return ret.value
 
 

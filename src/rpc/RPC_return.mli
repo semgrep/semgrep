@@ -1,7 +1,7 @@
 module Out = Semgrep_output_v1_j
 
 val autofix : bool -> Out.edit list -> int * (int * string list) list
-val format : Out.output_format -> Out.cli_output -> string
+val format : Out.output_format -> Out.format_context -> Out.cli_output -> string
 
 val sarif_format :
   < tmp : Cap.FS.tmp > ->

@@ -39,13 +39,11 @@ let autofix (dryrun : bool) (edits : Out.edit list) :
     in
     (List.length modified_files, [])
 
-let format (kind : Out.output_format) (cli_output : Out.cli_output) : string =
-  let kind' : Output_format.t =
-    match kind with
-    | `Vim -> Output_format.Vim
-    | `Emacs -> Output_format.Emacs
-  in
-  let xs = Output.format kind' cli_output in
+let format (kind : Out.output_format) (ctx : Out.format_context)
+    (cli_output : Out.cli_output) : string =
+  (* TODO: use is_logged_in for the logged_in gated export fields *)
+  ignore ctx;
+  let xs = Output.format kind cli_output in
   String.concat "\n" xs
 
 let sarif_format _caps hide_nudge engine_label show_dataflow_traces

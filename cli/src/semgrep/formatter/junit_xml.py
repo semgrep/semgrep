@@ -37,7 +37,7 @@ class JunitXmlFormatter(base.BaseFormatter):
         semgrep_structured_errors: Sequence[SemgrepError],
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
-        ctx: base.FormatContext,
+        ctx: out.FormatContext,
     ) -> str:
         # Sort according to RuleMatch.get_ordering_key
         sorted_findings = sorted(rule_matches)

@@ -117,7 +117,7 @@ class GitlabSastFormatter(base.BaseFormatter):
         semgrep_structured_errors: Sequence[SemgrepError],
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
-        ctx: base.FormatContext,
+        ctx: out.FormatContext,
     ) -> str:
         """
         Format matches in GitLab SAST report compliant JSON.

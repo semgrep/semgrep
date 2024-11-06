@@ -657,7 +657,7 @@ class OutputHandler:
             cli_output_extra,
             extra,
             self.severities,
-            base.FormatContext(
+            out.FormatContext(
                 is_ci_invocation=self.is_ci_invocation,
                 is_logged_in=auth.is_logged_in_weak(),
                 # If users are not using our registry, we will not nudge them to login

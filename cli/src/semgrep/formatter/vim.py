@@ -19,9 +19,9 @@ class VimFormatter(base.BaseFormatter):
         semgrep_structured_errors: Sequence[SemgrepError],
         cli_output_extra: out.CliOutputExtra,
         extra: Mapping[str, Any],
-        ctx: base.FormatContext,
+        ctx: out.FormatContext,
     ) -> str:
         output = base.to_CliOutput(
             rule_matches, semgrep_structured_errors, cli_output_extra
         )
-        return semgrep.rpc_call.format(out.OutputFormat(out.Vim()), output)
+        return semgrep.rpc_call.format(out.OutputFormat(out.Vim()), ctx, output)

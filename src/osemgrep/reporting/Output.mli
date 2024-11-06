@@ -50,5 +50,5 @@ val output_result :
  *)
 val preprocess_result : fixed_lines:bool -> Core_runner.result -> Out.cli_output
 
-(* used by RPC_return.ml for the vim and emacs formatter for now *)
+(* used by RPC_return.ml for the Vim/Emacs formatter for now *)
 val format : Output_format.t -> Out.cli_output -> string list

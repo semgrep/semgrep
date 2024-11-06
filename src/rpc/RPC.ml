@@ -58,8 +58,8 @@ let handle_call (caps : < Cap.exec ; Cap.tmp >) :
   | `CallContributions ->
       let contribs = RPC_return.contributions (caps :> < Cap.exec >) in
       Ok (`RetContributions contribs)
-  | `CallFormatter (output_format, cli_output) ->
-      let str = RPC_return.format output_format cli_output in
+  | `CallFormatter (output_format, ctx, cli_output) ->
+      let str = RPC_return.format output_format ctx cli_output in
       Ok (`RetFormatter str)
   | `CallValidate path ->
       let valid = RPC_return.validate path in
