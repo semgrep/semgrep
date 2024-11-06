@@ -83,10 +83,10 @@ let format (kind : Output_format.t) (cli_output : Out.cli_output) : string list
   | Sarif
   | Gitlab_sast
   | Gitlab_secrets
-  | Junit_xml
   | Files_with_matches
   | Incremental ->
       failwith (spf "format not supported here: %s" (Output_format.show kind))
+  | Junit_xml -> [ Junit_xml_output.junit_xml_output cli_output ]
   | Vim ->
       cli_output.results
       |> List_.map (fun (m : Out.cli_match) ->
@@ -158,11 +158,12 @@ let dispatch_output_format (caps : < Cap.stdout >) (conf : conf)
   let print = CapConsole.print caps#stdout in
   (* TOPORT? Sort keys for predictable output. Helps with snapshot tests *)
   match conf.output_format with
+  | Vim -> format Vim cli_output |> List.iter print
+  | Emacs -> format Emacs cli_output |> List.iter print
+  | Junit_xml -> format Junit_xml cli_output |> List.iter print
   | Json ->
       let s = Out.string_of_cli_output cli_output in
       print s
-  | Vim -> format Vim cli_output |> List.iter print
-  | Emacs -> format Emacs cli_output |> List.iter print
   | Text ->
       (* TODO: we should switch to Fmt_.with_buffer_to_string +
        * some CapConsole.print_no_nl, but then is_atty fail on
@@ -191,9 +192,6 @@ let dispatch_output_format (caps : < Cap.stdout >) (conf : conf)
           conf.show_dataflow_traces hrules cli_output
       in
       print (Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema sarif_json)
-  | Junit_xml ->
-      let junit_xml = Junit_xml_output.junit_xml_output cli_output in
-      print junit_xml
   | Gitlab_sast ->
       let gitlab_sast_json = Gitlab_output.sast_output cli_output.results in
       print (Yojson.Basic.to_string gitlab_sast_json)

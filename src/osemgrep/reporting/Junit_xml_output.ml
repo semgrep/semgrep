@@ -9,6 +9,44 @@ module OutT = Semgrep_output_v1_t
  * Information about the format can be found here:
  *  - https://github.com/testmoapp/junitxml
  *  - https://github.com/windyroad/JUnit-Schema/blob/master/JUnit.xsd
+ *  - https://github.com/kyrus/python-junit-xml
+ *
+ * Here is an example Based on the understanding of what Jenkins can parse for
+ * JUnit XML files:
+ *
+ * <?xml version="1.0" encoding="utf-8"?>
+ * <testsuites errors="1" failures="1" tests="4" time="45">
+ *   <testsuite errors="1" failures="1" hostname="localhost" id="0" name="test1"
+ *              package="testdb" tests="4" timestamp="2012-11-15T01:02:29">
+ *     <properties>
+ *       <property name="assert-passed" value="1"/></properties>
+ *       <testcase classname="testdb.directory" name="1-passed-test" time="10"/>
+ *       <testcase classname="testdb.directory" name="2-failed-test" time="20">
+ *          <failure message="Assertion FAILED: failed assert" type="failure">
+ *                 the output of the testcase
+ *          </failure>
+ *       </testcase>
+ *       <testcase classname="package.directory" name="3-errord-test" time="15">
+ *         <error message="Assertion ERROR: error assert" type="error">
+ *                the output of the testcase
+ *         </error>
+ *       </testcase>
+ *       <testcase classname="package.directory" name="3-skipped-test" time="0">
+ *          <skipped message="SKIPPED Test" type="skipped">
+ *                  the output of the testcase
+ *          </skipped>
+ *        </testcase>
+ *        <testcase classname="testdb.directory" name="3-passed-test" time="10">
+ *             <system-out>
+ *                 I am system output
+ *             </system-out>
+ *             <system-err>
+ *                 I am the error output
+ *             </system-err>
+ *         </testcase>
+ *     </testsuite>
+ * </testsuites>
+ *
  *)
 
 (*****************************************************************************)
