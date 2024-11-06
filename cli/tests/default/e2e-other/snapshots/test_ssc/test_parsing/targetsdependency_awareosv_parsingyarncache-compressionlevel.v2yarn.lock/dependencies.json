@@ -1,0 +1,15 @@
+[
+  {
+    "package": "balanced-match",
+    "version": "1.0.2",
+    "ecosystem": "npm",
+    "allowed_hashes": {
+      "sha512": [
+        "9308baf0a7e4838a82bbfd11e01b1cb0f0cf2893bc1676c27c2a8c0e70cbae1c59120c3268517a8ae7fb6376b4639ef81ca22582611dbee4ed28df945134aaee"
+      ]
+    },
+    "transitivity": "unknown",
+    "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/cache-compressionlevel.v2/yarn.lock",
+    "line_number": 8
+  }
+]

@@ -193,7 +193,7 @@ YARN2_METADATA_REGEX = """\
 
 __metadata:
   version: \\d+
-  cacheKey: \\d+
+  cacheKey: \\d+(c\\d)?
 """
 yarn2 = (
     string(YARN2_PREFIX)
