@@ -21,7 +21,7 @@ local runs_on = [
 local setup_runner_step = {
   name: 'Setup runner directory',
   run: |||
-    sudo mkdir /Users/runner
+    sudo mkdir -p /Users/runner
     sudo chown admin:staff /Users/runner
     sudo chmod 750 /Users/runner
   |||,

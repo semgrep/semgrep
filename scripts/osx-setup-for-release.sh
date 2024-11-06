@@ -11,6 +11,11 @@ set -eux
 # does not reset the environment between each run, so you may
 # need to do more cleanup than usually necessary.
 
+# bugfix: Answer yes to all opam questions. For example, if there is a
+# pre-existing opam config from an old version, it will ask if we want to
+# upgrade. Without this, that question will bring down the whole run.
+export OPAMYES=true
+
 brew install opam
 opam init --no-setup --bare
 #still needed?
