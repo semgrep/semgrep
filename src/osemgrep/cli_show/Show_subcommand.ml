@@ -63,10 +63,11 @@ let dump_v_to_format ~json (v : OCaml.v) =
 
 let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
-  let stdout = caps#stdout in
+  Logs.debug (fun m -> m "conf = %s" (Show_CLI.show_conf conf));
+  let print = CapConsole.print caps#stdout in
   match conf.show_kind with
   | Version ->
-      CapConsole.print stdout Version.version;
+      print Version.version;
       (* TODO? opportunity to perform version-check? *)
       Exit_code.ok ~__LOC__
   | Identity ->
@@ -74,8 +75,7 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
   | Deployment ->
       Whoami.print (caps :> < Cap.network ; Cap.stdout >) Whoami.Deployment
   | SupportedLanguages ->
-      CapConsole.print stdout
-        (spf "supported languages are: %s" Xlang.supported_xlangs);
+      print (spf "supported languages are: %s" Xlang.supported_xlangs);
       Exit_code.ok ~__LOC__ (* dumpers *)
   (* TODO? error management? improve error message for parse errors?
    * or let CLI.safe_run do the right thing?
@@ -87,13 +87,13 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
       | Ok any ->
           let v = Meta_AST.vof_any any in
           let s = dump_v_to_format ~json:conf.json v in
-          CapConsole.print stdout s;
+          print s;
           Exit_code.ok ~__LOC__
       | Error s ->
           Logs.app (fun m -> m "Parse error: %s" s);
           Exit_code.invalid_pattern ~__LOC__)
   | DumpCST (file, lang) ->
-      Test_parsing.dump_tree_sitter_cst lang (Fpath.to_string file);
+      Test_parsing.dump_tree_sitter_cst lang file;
       Exit_code.ok ~__LOC__
   | DumpAST (file, lang) ->
       (* mostly a copy paste of Core_CLI.dump_ast *)
@@ -111,7 +111,7 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
       (* 80 columns is too little *)
       UFormat.set_margin 120;
       let s = dump_v_to_format ~json:conf.json v in
-      CapConsole.print stdout s;
+      print s;
       Exit_code.ok ~__LOC__
   | DumpConfig config_str ->
       let settings = Semgrep_settings.load () in
@@ -133,8 +133,7 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
                Some (Exit_code.missing_config ~__LOC__) ));
 
       rules_and_errors
-      |> List.iter (fun x ->
-             CapConsole.print stdout (Rule_fetching.show_rules_and_origin x));
+      |> List.iter (fun x -> print (Rule_fetching.show_rules_and_origin x));
       Exit_code.ok ~__LOC__
   | DumpRuleV2 file ->
       (* TODO: use validation ocaml code to enforce the
@@ -144,7 +143,7 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
        * that in rule_schema_v2_adapter.ml?
        *)
       let rules = Parse_rules_with_atd.parse_rules_v2 file in
-      CapConsole.print stdout (Rule_schema_v2_t.show_rules rules);
+      print (Rule_schema_v2_t.show_rules rules);
       Exit_code.ok ~__LOC__
   | DumpEnginePath _pro -> failwith "TODO: dump-engine-path not implemented yet"
   | DumpCommandForCore ->

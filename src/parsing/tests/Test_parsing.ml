@@ -136,115 +136,115 @@ let dump_pfff_ast lang file =
    Inferring the file type from the name doesn't work e.g. '.h' could
    be C or C++, '.py' could be Python 2 or Python 3.
 *)
-let dump_tree_sitter_cst lang file =
+let dump_tree_sitter_cst (lang : Lang.t) (file : Fpath.t) : unit =
   match lang with
   | Lang.Clojure ->
-      Tree_sitter_clojure.Parse.file file
+      Tree_sitter_clojure.Parse.file !!file
       |> dump_and_print_errors Tree_sitter_clojure.Boilerplate.dump_tree
            Tree_sitter_clojure.Boilerplate.dump_extras
   | Lang.R ->
-      Tree_sitter_r.Parse.file file
+      Tree_sitter_r.Parse.file !!file
       |> dump_and_print_errors Tree_sitter_r.Boilerplate.dump_tree
            Tree_sitter_r.Boilerplate.dump_extras
   | Lang.Ruby ->
-      Tree_sitter_ruby.Parse.file file
+      Tree_sitter_ruby.Parse.file !!file
       |> dump_and_print_errors Tree_sitter_ruby.Boilerplate.dump_tree
            Tree_sitter_ruby.Boilerplate.dump_extras
   | Lang.Java ->
-      Tree_sitter_java.Parse.file file
+      Tree_sitter_java.Parse.file !!file
       |> dump_and_print_errors Tree_sitter_java.Boilerplate.dump_tree
            Tree_sitter_java.Boilerplate.dump_extras
   | Lang.Go ->
-      Tree_sitter_go.Parse.file file
+      Tree_sitter_go.Parse.file !!file
       |> dump_and_print_errors Tree_sitter_go.Boilerplate.dump_tree
            Tree_sitter_go.Boilerplate.dump_extras
   | Lang.Csharp ->
-      Tree_sitter_c_sharp.Parse.file file
+      Tree_sitter_c_sharp.Parse.file !!file
       |> dump_and_print_errors Tree_sitter_c_sharp.Boilerplate.dump_tree
            Tree_sitter_c_sharp.Boilerplate.dump_extras
   | Lang.Kotlin ->
-      Tree_sitter_kotlin.Parse.file file
+      Tree_sitter_kotlin.Parse.file !!file
       |> dump_and_print_errors Tree_sitter_kotlin.Boilerplate.dump_tree
            Tree_sitter_kotlin.Boilerplate.dump_extras
   | Lang.Jsonnet ->
-      Tree_sitter_jsonnet.Parse.file file
+      Tree_sitter_jsonnet.Parse.file !!file
       |> dump_and_print_errors Tree_sitter_jsonnet.Boilerplate.dump_tree
            Tree_sitter_jsonnet.Boilerplate.dump_extras
   | Lang.Solidity ->
-      Tree_sitter_solidity.Parse.file file
+      Tree_sitter_solidity.Parse.file !!file
       |> dump_and_print_errors Tree_sitter_solidity.Boilerplate.dump_tree
            Tree_sitter_solidity.Boilerplate.dump_extras
   | Lang.Swift ->
-      Tree_sitter_swift.Parse.file file
+      Tree_sitter_swift.Parse.file !!file
       |> dump_and_print_errors Tree_sitter_swift.Boilerplate.dump_tree
            Tree_sitter_swift.Boilerplate.dump_extras
   | Lang.Js ->
       (* JavaScript/JSX is a strict subset of TSX *)
-      Tree_sitter_tsx.Parse.file file
+      Tree_sitter_tsx.Parse.file !!file
       |> dump_and_print_errors Tree_sitter_tsx.Boilerplate.dump_tree
            Tree_sitter_tsx.Boilerplate.dump_extras
   | Lang.Ts ->
       (* Typescript is mostly a subset of TSX *)
-      Tree_sitter_tsx.Parse.file file
+      Tree_sitter_tsx.Parse.file !!file
       |> dump_and_print_errors Tree_sitter_tsx.Boilerplate.dump_tree
            Tree_sitter_tsx.Boilerplate.dump_extras
   | Lang.Lua ->
-      Tree_sitter_lua.Parse.file file
+      Tree_sitter_lua.Parse.file !!file
       |> dump_and_print_errors Tree_sitter_lua.Boilerplate.dump_tree
            Tree_sitter_lua.Boilerplate.dump_extras
   | Lang.Rust ->
-      Tree_sitter_rust.Parse.file file
+      Tree_sitter_rust.Parse.file !!file
       |> dump_and_print_errors Tree_sitter_rust.Boilerplate.dump_tree
            Tree_sitter_rust.Boilerplate.dump_extras
   | Lang.Ocaml ->
-      Tree_sitter_ocaml.Parse.file file
+      Tree_sitter_ocaml.Parse.file !!file
       |> dump_and_print_errors Tree_sitter_ocaml.Boilerplate.dump_tree
            Tree_sitter_ocaml.Boilerplate.dump_extras
   | Lang.C
   | Lang.Cpp ->
-      Tree_sitter_cpp.Parse.file file
+      Tree_sitter_cpp.Parse.file !!file
       |> dump_and_print_errors Tree_sitter_cpp.Boilerplate.dump_tree
            Tree_sitter_cpp.Boilerplate.dump_extras
   | Lang.Html ->
-      Tree_sitter_html.Parse.file file
+      Tree_sitter_html.Parse.file !!file
       |> dump_and_print_errors Tree_sitter_html.Boilerplate.dump_tree
            Tree_sitter_html.Boilerplate.dump_extras
   | Lang.Php ->
-      Tree_sitter_php.Parse.file file
+      Tree_sitter_php.Parse.file !!file
       |> dump_and_print_errors Tree_sitter_php.Boilerplate.dump_tree
            Tree_sitter_php.Boilerplate.dump_extras
   | Lang.Terraform ->
-      Tree_sitter_hcl.Parse.file file
+      Tree_sitter_hcl.Parse.file !!file
       |> dump_and_print_errors Tree_sitter_hcl.Boilerplate.dump_tree
            Tree_sitter_hcl.Boilerplate.dump_extras
   | Lang.Julia ->
-      Tree_sitter_julia.Parse.file file
+      Tree_sitter_julia.Parse.file !!file
       |> dump_and_print_errors Tree_sitter_julia.Boilerplate.dump_tree
            Tree_sitter_julia.Boilerplate.dump_extras
   | Lang.Dart ->
-      Tree_sitter_dart.Parse.file file
+      Tree_sitter_dart.Parse.file !!file
       |> dump_and_print_errors Tree_sitter_dart.Boilerplate.dump_tree
            Tree_sitter_dart.Boilerplate.dump_extras
   | Lang.Cairo ->
-      Tree_sitter_cairo.Parse.file file
+      Tree_sitter_cairo.Parse.file !!file
       |> dump_and_print_errors Tree_sitter_cairo.Boilerplate.dump_tree
            Tree_sitter_cairo.Boilerplate.dump_extras
   | Lang.Promql ->
-      Tree_sitter_promql.Parse.file file
+      Tree_sitter_promql.Parse.file !!file
       |> dump_and_print_errors Tree_sitter_promql.Boilerplate.dump_tree
            Tree_sitter_promql.Boilerplate.dump_extras
   | Lang.Protobuf ->
-      Tree_sitter_proto.Parse.file file
+      Tree_sitter_proto.Parse.file !!file
       |> dump_and_print_errors Tree_sitter_proto.Boilerplate.dump_tree
            Tree_sitter_proto.Boilerplate.dump_extras
   | Lang.Python2
   | Lang.Python3
   | Lang.Python ->
-      Tree_sitter_python.Parse.file file
+      Tree_sitter_python.Parse.file !!file
       |> dump_and_print_errors Tree_sitter_python.Boilerplate.dump_tree
            Tree_sitter_python.Boilerplate.dump_extras
   | Lang.Dockerfile ->
-      Tree_sitter_dockerfile.Parse.file file
+      Tree_sitter_dockerfile.Parse.file !!file
       |> dump_and_print_errors Tree_sitter_dockerfile.Boilerplate.dump_tree
            Tree_sitter_dockerfile.Boilerplate.dump_extras
   | _ -> failwith "lang not supported by ocaml-tree-sitter"

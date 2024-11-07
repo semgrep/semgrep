@@ -463,7 +463,7 @@ let all_actions (caps : Cap.all_caps) () =
       Arg_.mk_action_1_conv Fpath.v (fun file ->
           Test_parsing.dump_tree_sitter_cst
             (Xlang.lang_of_opt_xlang_exn !lang)
-            !!file) );
+            file) );
     ( "-dump_tree_sitter_pattern_cst",
       " <file>",
       Arg_.mk_action_1_conv Fpath.v (fun file ->

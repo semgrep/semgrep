@@ -29,7 +29,7 @@ val test_parse_tree_sitter : Lang.t -> Fpath.t list -> unit
 
 (* Dump the tree-sitter CST of the given file (it automatically detects
  * the language and parser to use based on the filename extension). *)
-val dump_tree_sitter_cst : Lang.t -> string (* filename *) -> unit
+val dump_tree_sitter_cst : Lang.t -> Fpath.t -> unit
 
 (* Dump the generic AST of the given file but only use a pfff parser *)
 val dump_pfff_ast : Lang.t -> Fpath.t -> unit
