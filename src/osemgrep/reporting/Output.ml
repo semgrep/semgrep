@@ -19,7 +19,10 @@ module Out = Semgrep_output_v1_j
 (* Types *)
 (*****************************************************************************)
 
-(* This is part of Scan_CLI.conf *)
+(* This is part of Scan_CLI.conf
+ *
+ * See also Out.format_context for the runtime params (e.g., is_logged_in).
+ *)
 type conf = {
   (* Display options *)
   (* mix of --json, --emacs, --vim, etc. *)
@@ -41,9 +44,6 @@ type conf = {
   max_log_list_entries : int;
 }
 [@@deriving show]
-
-(* TODO? merge with conf? *)
-type runtime_params = { is_logged_in : bool; is_using_registry : bool }
 
 let default : conf =
   {
@@ -81,12 +81,18 @@ let format (kind : Output_format.t) (cli_output : Out.cli_output) : string list
   | Text
   | Json
   | Sarif
-  | Gitlab_sast
-  | Gitlab_secrets
   | Files_with_matches
   | Incremental ->
       failwith (spf "format not supported here: %s" (Output_format.show kind))
   | Junit_xml -> [ Junit_xml_output.junit_xml_output cli_output ]
+  | Gitlab_sast ->
+      let gitlab_sast_json = Gitlab_output.sast_output cli_output.results in
+      [ Yojson.Basic.to_string gitlab_sast_json ]
+  | Gitlab_secrets ->
+      let gitlab_secrets_json =
+        Gitlab_output.secrets_output cli_output.results
+      in
+      [ Yojson.Basic.to_string gitlab_secrets_json ]
   | Vim ->
       cli_output.results
       |> List_.map (fun (m : Out.cli_match) ->
@@ -153,15 +159,17 @@ let format (kind : Output_format.t) (cli_output : Out.cli_output) : string list
                  String.concat ":" parts)
 
 let dispatch_output_format (caps : < Cap.stdout >) (conf : conf)
-    (runtime_params : runtime_params) (cli_output : Out.cli_output)
+    (runtime_params : Out.format_context) (cli_output : Out.cli_output)
     (hrules : Rule.hrules) : unit =
   let print = CapConsole.print caps#stdout in
-  (* TOPORT? Sort keys for predictable output. Helps with snapshot tests *)
   match conf.output_format with
   | Vim -> format Vim cli_output |> List.iter print
   | Emacs -> format Emacs cli_output |> List.iter print
   | Junit_xml -> format Junit_xml cli_output |> List.iter print
+  | Gitlab_sast -> format Gitlab_sast cli_output |> List.iter print
+  | Gitlab_secrets -> format Gitlab_secrets cli_output |> List.iter print
   | Json ->
+      (* TOPORT? Sort keys for predictable output. Helps with snapshot tests *)
       let s = Out.string_of_cli_output cli_output in
       print s
   | Text ->
@@ -192,14 +200,6 @@ let dispatch_output_format (caps : < Cap.stdout >) (conf : conf)
           conf.show_dataflow_traces hrules cli_output
       in
       print (Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema sarif_json)
-  | Gitlab_sast ->
-      let gitlab_sast_json = Gitlab_output.sast_output cli_output.results in
-      print (Yojson.Basic.to_string gitlab_sast_json)
-  | Gitlab_secrets ->
-      let gitlab_secrets_json =
-        Gitlab_output.secrets_output cli_output.results
-      in
-      print (Yojson.Basic.to_string gitlab_secrets_json)
   | Files_with_matches ->
       cli_output.results
       |> List_.map (fun (x : Out.cli_match) -> !!(x.path))
@@ -230,7 +230,7 @@ let preprocess_result ~fixed_lines (res : Core_runner.result) : Out.cli_output =
  * output.output() all at once.
  *)
 let output_result (caps : < Cap.stdout >) (conf : conf)
-    (runtime_params : runtime_params) (profiler : Profiler.t)
+    (runtime_params : Out.format_context) (profiler : Profiler.t)
     (res : Core_runner.result) : Out.cli_output =
   (* In theory, we should build the JSON CLI output only for the
    * Json conf.output_format, but cli_output contains lots of data-structures

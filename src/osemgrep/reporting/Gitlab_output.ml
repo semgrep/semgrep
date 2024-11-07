@@ -1,5 +1,6 @@
 open Common
-module OutT = Semgrep_output_v1_t
+module Out = Semgrep_output_v1_t
+module J = JSON
 
 (*****************************************************************************)
 (* Prelude *)
@@ -34,18 +35,35 @@ let to_gitlab_severity = function
   | `Inventory ->
       "Unknown"
 
-let format_cli_match (cli_match : OutT.cli_match) =
+type exposure = Reachable | Undetermined | Unreachable
+
+let string_of_exposure = function
+  | Reachable -> "reachable"
+  | Undetermined -> "undetermined"
+  | Unreachable -> "unreachable"
+
+(* python: from rule_match.py exposure_type() *)
+let exposure_opt (cli_match : Out.cli_match) : exposure option =
+  let* { reachable; _ } = cli_match.extra.sca_info in
+  let metadata = JSON.from_yojson cli_match.extra.metadata in
+  match JSON.member "sca-kind" metadata with
+  | Some (J.String "upgrade-only") -> Some Reachable
+  | Some (J.String "legacy") -> Some Undetermined
+  (* TODO: stricter: raise error if Some else_json *)
+  | _ -> if reachable then Some Reachable else Some Unreachable
+
+let format_cli_match (cli_match : Out.cli_match) : (string * JSON.yojson) list =
   let metadata = JSON.from_yojson cli_match.extra.metadata in
   let source =
     match JSON.member "source" metadata with
-    | Some (JSON.String s) -> s
+    | Some (J.String s) -> s
     | Some _
     | None ->
         "not available"
   in
   let confidence_details, confidence_flags =
     match JSON.member "confidence" metadata with
-    | Some (JSON.String c) ->
+    | Some (J.String c) ->
         ( [
             ( "confidence",
               `Assoc
@@ -69,27 +87,36 @@ let format_cli_match (cli_match : OutT.cli_match) =
     | Some _
     | None ->
         ([], [])
-  and exposure_details, exposure_flags =
-    ([], [])
-    (* TODO
-       if rule_match.exposure_type:
-         result["details"]["exposure"] = {
-             "type": "text",
-             "name": "exposure",
-             "value": rule_match.exposure_type,
-         }
-         if rule_match.exposure_type == "unreachable":
-             result["flags"].append(
-                 {
-                     "type": "flagged-as-likely-false-positive",
-                     "origin": "Semgrep Supply Chain",
-                     "description": (
-                         "Semgrep found no way to reach this vulnerability "
-                         "while scanning your code."
-                     ),
-                 }
-             )
-    *)
+  in
+  let exposure_details, exposure_flags =
+    match exposure_opt cli_match with
+    | None -> ([], [])
+    | Some exposure ->
+        ( [
+            ( "exposure",
+              `Assoc
+                [
+                  ("type", `String "text");
+                  ("name", `String "exposure");
+                  ("value", `String (string_of_exposure exposure));
+                ] );
+          ],
+          match exposure with
+          | Unreachable ->
+              [
+                `Assoc
+                  [
+                    ("type", `String "flagged-as-likely-false-positive");
+                    ("origin", `String "Semgrep Supply Chain");
+                    ( "description",
+                      `String
+                        "Semgrep found no way to reach this vulnerability \
+                         while scanning your code." );
+                  ];
+              ]
+          | Reachable
+          | Undetermined ->
+              [] )
   in
   let id =
     (* TODO the ?index argument needs to be provided (for ci_unique_key duplicates) *)
@@ -154,11 +181,30 @@ let format_cli_match (cli_match : OutT.cli_match) =
   in
   r
 
+let secrets_format_cli_match (cli_match : Out.cli_match) =
+  let r = format_cli_match cli_match in
+  let more =
+    [
+      ("category", `String "secret_detection");
+      ( "raw_source_code_extract",
+        `List [ `String (cli_match.extra.lines ^ "\n") ] );
+      ( "commit",
+        `Assoc
+          [
+            ("date", `String "1970-01-01T00:00:00Z");
+            (* Even the native Gitleaks based Gitlab secret detection
+               only provides a dummy value for now on relevant hash. *)
+            ("sha", `String "0000000");
+          ] );
+    ]
+  in
+  r @ more
+
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
 
-let output f (matches : OutT.cli_match list) : JSON.yojson =
+let output f (matches : Out.cli_match list) : JSON.yojson =
   let header =
     [
       ( "$schema",
@@ -194,7 +240,7 @@ let output f (matches : OutT.cli_match list) : JSON.yojson =
   in
   let vulnerabilities =
     List_.filter_map
-      (fun (cli_match : OutT.cli_match) ->
+      (fun (cli_match : Out.cli_match) ->
         match cli_match.extra.severity with
         | `Experiment
         | `Inventory ->
@@ -212,27 +258,8 @@ let output f (matches : OutT.cli_match list) : JSON.yojson =
   `Assoc
     (header @ [ ("scan", scan); ("vulnerabilities", `List vulnerabilities) ])
 
-let sast_output (matches : OutT.cli_match list) =
+let sast_output (matches : Out.cli_match list) : JSON.yojson =
   output format_cli_match matches
 
-let secrets_format_cli_match (cli_match : OutT.cli_match) =
-  let r = format_cli_match cli_match in
-  let more =
-    [
-      ("category", `String "secret_detection");
-      ( "raw_source_code_extract",
-        `List [ `String (cli_match.extra.lines ^ "\n") ] );
-      ( "commit",
-        `Assoc
-          [
-            ("date", `String "1970-01-01T00:00:00Z");
-            (* Even the native Gitleaks based Gitlab secret detection
-               only provides a dummy value for now on relevant hash. *)
-            ("sha", `String "0000000");
-          ] );
-    ]
-  in
-  r @ more
-
-let secrets_output (matches : OutT.cli_match list) : JSON.yojson =
+let secrets_output (matches : Out.cli_match list) : JSON.yojson =
   output secrets_format_cli_match matches

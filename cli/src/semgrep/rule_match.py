@@ -13,7 +13,6 @@ from typing import Iterator
 from typing import List
 from typing import Optional
 from typing import Tuple
-from uuid import UUID
 
 from attrs import evolve
 from attrs import field
@@ -418,13 +417,6 @@ class RuleMatch:
         return (
             "sca-kind" in self.metadata and self.metadata["sca-kind"] == "upgrade-only"
         )
-
-    @property
-    def uuid(self) -> UUID:
-        """
-        A UUID representation of ci_unique_key.
-        """
-        return UUID(hex=self.syntactic_id)
 
     @property
     def is_validation_state_blocking(self) -> bool:

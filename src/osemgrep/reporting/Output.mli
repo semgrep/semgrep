@@ -29,18 +29,17 @@ val default : conf
 (* used with max_log_list_entries *)
 val too_much_data : string
 
-(* Some parameters that are determined at runtime can also affect
- * the output. For example, if a user is not logged in, then in
- * the SARIF output format, we include a message to nudge the user
+(* Output the core results on stdout depending on flags in conf.
+ *
+ * The format_context are parameters that are determined at runtime
+ * that can also affect the output. For example, if a user is not logged in,
+ * then in the SARIF output format, we include a message to nudge the user
  * to log in and try Pro.
  *)
-type runtime_params = { is_logged_in : bool; is_using_registry : bool }
-
-(* Output the core results on stdout depending on flags in conf *)
 val output_result :
   < Cap.stdout > ->
   conf ->
-  runtime_params ->
+  Out.format_context ->
   Profiler.t ->
   Core_runner.result ->
   Out.cli_output
@@ -50,5 +49,5 @@ val output_result :
  *)
 val preprocess_result : fixed_lines:bool -> Core_runner.result -> Out.cli_output
 
-(* used by RPC_return.ml for the Vim/Emacs/Junit_xml formatter for now *)
+(* used by RPC_return.ml for Vim/Emacs/Junit_xml/Gitlab_xxx for now *)
 val format : Output_format.t -> Out.cli_output -> string list

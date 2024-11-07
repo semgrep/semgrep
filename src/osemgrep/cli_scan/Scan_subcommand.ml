@@ -190,14 +190,14 @@ let output_and_exit_from_fatal_core_errors_exn ~exit_code
                   (List_.map Core_error.string_of_error errors)),
              Some (Exit_code.missing_config ~__LOC__) ))
   | _ ->
-      let runtime_params =
-        Output.
-          {
-            is_logged_in = Semgrep_settings.has_api_token ();
-            is_using_registry =
-              Metrics_.g.is_using_registry
-              || !Semgrep_envvars.v.mock_using_registry;
-          }
+      let runtime_params : Out.format_context =
+        {
+          is_logged_in = Semgrep_settings.has_api_token ();
+          is_using_registry =
+            Metrics_.g.is_using_registry
+            || !Semgrep_envvars.v.mock_using_registry;
+          is_ci_invocation = false;
+        }
       in
       let res =
         Core_runner.mk_result [] (Core_result.mk_result_with_just_errors errors)
@@ -645,14 +645,17 @@ let check_targets_with_rules
           Logs.info (fun m -> m "reporting matches if any");
           (* outputting the result on stdout! in JSON/Text/... depending on conf *)
           let cli_output =
-            let runtime_params =
-              Output.
-                {
-                  is_logged_in = Semgrep_settings.has_api_token ();
-                  is_using_registry =
-                    Metrics_.g.is_using_registry
-                    || !Semgrep_envvars.v.mock_using_registry;
-                }
+            let runtime_params : Out.format_context =
+              {
+                is_logged_in = Semgrep_settings.has_api_token ();
+                is_using_registry =
+                  Metrics_.g.is_using_registry
+                  || !Semgrep_envvars.v.mock_using_registry;
+                (* TODO: add an extra arg to check_targets_with_rules to
+                 * give the context (Scan | CI)
+                 *)
+                is_ci_invocation = false;
+              }
             in
             Output.output_result
               (caps :> < Cap.stdout >)

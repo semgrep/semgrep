@@ -1,4 +1,4 @@
-module OutT = Semgrep_output_v1_t
+module Out = Semgrep_output_v1_t
 open Common
 
 (*****************************************************************************)
@@ -10,10 +10,12 @@ open Common
  * scan).
  * This module provides 2 hashing functions:
  *  - "CI/CLI unique key", using murmur, a.k.a "Syntactic ID"
+ *    currently used for our Gitlab output and for baseline finding filtering
  *  - "Match-based" ID
+ *    currently used for the fingerprint of a finding in scan and ci and
+ *    used by our backend
  *
  * Why two hashing functions? From Austin:
- * "
  *  We had the original cli match hash (the one with murmur), but that one
  *  changes whenever file formatting changes. "Match-based" ID tried to fix
  *  this, but in the long term we noticed that it doesn't have as much
@@ -21,13 +23,11 @@ open Common
  *  match-based ID but not be the same. We've discussed getting rid of cli
  *  match (it's also insecure using the murmur hash, especially for secrets...),
  *  but it would be a big effort apparently and break some things.
- * "
  *
  * For full context, see also
  * https://www.notion.so/semgrep/Identifying-unique-findings-match_based_id-and-syntactic_id-cf1a59099c06417d96f777802050ea18#0fde2306cb7c4c5991387b458dcfb064
  *
  * As summarized by Pang:
- *
  * Hashing process:
  * 1. Generate a hash from a combination of:
  *  - The file path
@@ -45,12 +45,16 @@ open Common
 (*****************************************************************************)
 
 (* From rule_match.py:
-   # NOTE: We include the previous scan's rules in the config for consistent fixed status work.
-   # For unique hashing/grouping, previous and current scan rules must have distinct check IDs.
-   # Hence, previous scan rules are annotated with a unique check ID, while the original ID is kept in metadata.
-   # As check_id is used for ci_unique_key, this patch fetches the check ID from metadata for previous scan findings.
+   # NOTE: We include the previous scan's rules in the config for consistent
+   # fixed status work.
+   # For unique hashing/grouping, previous and current scan rules must have
+   # distinct check IDs.
+   # Hence, previous scan rules are annotated with a unique check ID, while
+   # the original ID is kept in metadata.
+   # As check_id is used for ci_unique_key, this patch fetches the check ID
+   # from metadata for previous scan findings.
 *)
-let name (c : OutT.cli_match) =
+let name (c : Out.cli_match) =
   let transient =
     match JSON.member "semgrep.dev" (JSON.from_yojson c.extra.metadata) with
     | Some dev -> (
@@ -80,7 +84,16 @@ let name (c : OutT.cli_match) =
 (* Entry points *)
 (*****************************************************************************)
 
-let ci_unique_key ?(index = 0) (c : OutT.cli_match) =
+let ci_unique_key (c : Out.cli_match) =
+  (* ugly: coupling: Cli_json_output.index_match_based_ids() *)
+  let index =
+    let fingerprint = c.extra.fingerprint in
+    if fingerprint =~ ".*_\\([0-9]+\\)$" then
+      int_of_string (Common.matched1 fingerprint)
+    else (
+      Logs.warn (fun m -> m "wrong fingerprint format: %s" fingerprint);
+      0)
+  in
   (* TODO the third element should be "syntactic_context", as defined in rule_match.py:
         # The code that matched, with whitespace and nosem comments removed.
         #
@@ -97,8 +110,9 @@ let ci_unique_key ?(index = 0) (c : OutT.cli_match) =
         code = code.strip()
         return code
   *)
-  (* TODO the return value in python's ci_unique_key is the hex output of the murmur3 hash,
-     here the binary value is returned directly *)
+  (* TODO the return value in python's ci_unique_key is the hex output of the
+     murmur3 hash, here the binary value is returned directly
+  *)
   let repr = Python_str_repr.repr in
   spf "(%s, %s, %s, %u)"
     (repr (name c))
@@ -122,28 +136,34 @@ let ci_unique_key ?(index = 0) (c : OutT.cli_match) =
  * 5. Hash the tuple `(sorted_pattern_values, path, rule_id)` w/ blake2b
  * 6. Append the index of the match in the list of matches for the rule (see [index_match_based_ids])
  *
- * Austin: I wrote the initial match based ID, and this one below is a port of it.
- * Looking back it seems like I ended up writing a roundabout version of the below algorithm
- * which is how this function works
+ * Austin: I wrote the initial match based ID, and below is a port of it.
+ * Looking back it seems like I ended up writing a roundabout version of the
+ * below algorithm which is how this function works
  * 1. Same as before
- * 2. for each rule: get all xpatterns, then sort them, and concatenate them with a space
+ * 2. for each rule: get all xpatterns, then sort them, and concatenate them
+ *    with a space
  * 3. Sort all of step 2 results alphabetically and concatenate them with a space
  * 4. Same as step 5 and 6
  *
  * Assumptions:
- * Somewhere it seems that all keys are already sorted alphabetically when the rule is parsed.
- * I have not seen this code. I simply have faith that it is true and this will not change.
+ * Somewhere it seems that all keys are already sorted alphabetically when the
+ * rule is parsed.
+ * I have not seen this code. I simply have faith that it is true and this will
+ * not change.
  *
- * I'm also hoping that [interpolate_metavariables] works similar to what we do on the python side
+ * I'm also hoping that [interpolate_metavariables] works similar to what we do
+ * on the python side
  *
  * I have not tested this code beyond checking a bunch of examples manually.
  *
- * There's some weird thing we do w/ join mode. I am hoping that this doesn't matter irl
+ * There's some weird thing we do w/ join mode. I am hoping that this doesn't
+ * matter irl
  *
- * We also don't use pattern sanitizers at all in calculating match based id, which seems
- * weird, but this because if code matches a pattern sanitizer, then its ALWAYS sanitized
- * which means it would never show up as a taint mode finding. So we can safely ignore
- * it, since it shouldn't affect the match based id.
+ * We also don't use pattern sanitizers at all in calculating match based id,
+ * which seems weird, but this because if code matches a pattern sanitizer,
+ * then its ALWAYS sanitized which means it would never show up as a taint mode
+ * finding. So we can safely ignore it, since it shouldn't affect the
+ * match based id.
  *)
 let match_based_id_partial (rule : Rule.t) (rule_id : Rule_ID.t) metavars path :
     string =
