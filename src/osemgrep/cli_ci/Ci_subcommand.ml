@@ -710,6 +710,39 @@ let upload_findings ~dry_run
   override
 
 (*****************************************************************************)
+(* Distributed scans *)
+(*****************************************************************************)
+
+let hook_pro_read_and_merge_partial_scan_results :
+    (input_dir:Fpath.t -> output_json:Fpath.t -> unit) option ref =
+  ref None
+
+let maybe_merge_partial_scan_results_then_exit (ci_conf : Ci_CLI.conf) =
+  match
+    (ci_conf.merge_partial_results_dir, ci_conf.merge_partial_results_output)
+  with
+  | Some _, None
+  | None, Some _ ->
+      Logs.err (fun m ->
+          m
+            "Both or none of --x-merge-partial-results-dir and \
+             --x-merge-partial-results-output must be present.");
+      Error.exit_code_exn (Exit_code.fatal ~__LOC__)
+  | None, None -> ()
+  | Some input_dir, Some output_file -> (
+      match !hook_pro_read_and_merge_partial_scan_results with
+      | None ->
+          Logs.err (fun m ->
+              m
+                "You have requested a setting that requires the pro engine, \
+                 but do not have the pro engine installed.");
+          Error.exit_code_exn (Exit_code.fatal ~__LOC__)
+      | Some read_and_merge_partial_scan_results ->
+          read_and_merge_partial_scan_results input_dir output_file;
+          (* Not really an error, but abusing exit_code_exn for short circuiting *)
+          Error.exit_code_exn (Exit_code.ok ~__LOC__))
+
+(*****************************************************************************)
 (* Main logic *)
 (*****************************************************************************)
 
@@ -757,6 +790,17 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   let prj_meta = generate_meta_from_environment (caps :> < Cap.exec >) None in
   Logs.app (fun m -> m "%a" Fmt_.pp_heading "Debugging Info");
   report_scan_environment prj_meta;
+
+  (* After sanity checking, we either
+   * (1) reach out to the server to get the config and then do a scan
+   * (2) perform one of the distributed scan steps and exit
+   *)
+
+  (* ===== Begin of steps related to distributed scans ===== *)
+  (* If we are doing a distributed scan step, complete the step, then exit *)
+  maybe_merge_partial_scan_results_then_exit ci_conf;
+
+  (* ===== End of steps related to distributed scans ===== *)
 
   (* TODO: fix_head_if_github_action(metadata) *)
   let scan_id, scan_config, rules_and_origin =

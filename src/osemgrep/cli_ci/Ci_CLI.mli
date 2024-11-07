@@ -15,6 +15,8 @@ type conf = {
   subdir : string;
   (* BIG ONE: 'semgrep ci' shares many flags with 'semgrep scan' *)
   scan_conf : Scan_CLI.conf;
+  merge_partial_results_dir : Fpath.t option;
+  merge_partial_results_output : Fpath.t option;
 }
 [@@deriving show]
 
