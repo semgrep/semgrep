@@ -20,6 +20,18 @@ type spec_matches = {
       (** Ranges matched by `pattern-sinks:` *)
 }
 
+type spec_predicates = {
+  is_source : AST_generic.any -> Rule.taint_source Taint_spec_match.t list;
+  is_propagator :
+    AST_generic.any -> Dataflow_tainting.a_propagator Taint_spec_match.t list;
+  is_sanitizer :
+    AST_generic.any -> Rule.taint_sanitizer Taint_spec_match.t list;
+  is_sink : AST_generic.any -> Rule.taint_sink Taint_spec_match.t list;
+}
+
+val hook_mk_taint_spec_match_preds :
+  (Rule.rule -> spec_matches -> spec_predicates) option ref
+
 (* It could be a private function, but it is also used by Deep Semgrep. *)
 (* This [formula_cache] argument is exposed here because this function is also
    a subroutine but the cache itself should be created outside of the any main
@@ -40,3 +52,16 @@ val taint_config_of_rule :
   AST_generic.program * Tok.location list ->
   Rule.taint_rule ->
   Dataflow_tainting.config * spec_matches * Matching_explanation.t list
+
+(* Exposed for Pro *)
+
+val range_of_any : AST_generic.any -> Range.t option
+val overlap_with : match_range:Range.t -> Range.t -> float
+
+val mk_propagator_match :
+  Rule.rule ->
+  propagator_match ->
+  string ->
+  [ `From | `To ] ->
+  Range.t ->
+  Dataflow_tainting.a_propagator Taint_spec_match.t

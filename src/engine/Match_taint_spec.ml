@@ -78,6 +78,19 @@ type spec_matches = {
   sinks : (RM.t * R.taint_sink) list;
 }
 
+type spec_predicates = {
+  is_source : G.any -> R.taint_source Taint_spec_match.t list;
+  is_propagator : G.any -> D.a_propagator Taint_spec_match.t list;
+  is_sanitizer : G.any -> R.taint_sanitizer Taint_spec_match.t list;
+  is_sink : G.any -> R.taint_sink Taint_spec_match.t list;
+}
+
+(*****************************************************************************)
+(* Hooks *)
+(*****************************************************************************)
+
+let hook_mk_taint_spec_match_preds = ref None
+
 (*****************************************************************************)
 (* Finding matches for taint specs *)
 (*****************************************************************************)
@@ -318,27 +331,6 @@ let option_bind_list opt f =
   | None -> []
   | Some x -> f x
 
-module Range_table = struct
-  module T = Hashtbl.Make (struct
-    type t = Range.t
-
-    let equal = Range.equal
-    let hash = Hashtbl.hash
-  end)
-
-  let create () = T.create 100
-
-  let push tbl k v =
-    match T.find_opt tbl k with
-    | None -> T.add tbl k [ v ]
-    | Some vs -> T.replace tbl k (v :: vs)
-
-  let get tbl k =
-    match T.find_opt tbl k with
-    | None -> []
-    | Some vs -> vs
-end
-
 let range_of_any any =
   (* This is potentially slow. We may need to store range position in
    * the AST at some point. *)
@@ -369,67 +361,7 @@ let overlap_with ~match_range r =
   float_of_int (r.Range.end_ - r.Range.start + 1)
   /. float_of_int (r1.Range.end_ - r1.Range.start + 1)
 
-let any_is_in_sources_matches rule any matches =
-  let ( let* ) = option_bind_list in
-  let* r = range_of_any any in
-  matches
-  |> List_.filter_map (fun (rwm, (ts : R.taint_source)) ->
-         if Range.( $<=$ ) r rwm.RM.r then
-           Some
-             (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
-              let overlap = overlap_with ~match_range:rwm.RM.r r in
-              {
-                Taint_spec_match.spec = ts;
-                spec_id = ts.source_id;
-                spec_pm;
-                range = r;
-                overlap;
-              })
-         else None)
-
-(* Builds a table to quickly look up for propagator matches, taking advantage of
- * the requirement that propagators must be exact matches.
- *
- * OBS: Previously we allowed these matches if they had an overlap of >0.99, but
- *   to be honest that was arbitrary and fragile (the overlap largely depends on
- *   the amount of text being matched). Typically propagators from/to match
- *   l-values and those typically we can count as being 100% perfect matches.
- *   If this causes problems we can always roll back, but all tests still work.
- *)
-let propagators_table_of_matches rule matches =
-  let mk_match (prop : propagator_match) var kind r =
-    let spec_pm = RM.range_to_pattern_match_adjusted rule prop.rwm in
-    let spec : D.a_propagator = { kind; prop = prop.spec; var } in
-    {
-      Taint_spec_match.spec;
-      spec_id = prop.spec.propagator_id;
-      spec_pm;
-      range = r;
-      overlap = 1.0;
-    }
-  in
-  let tbl = Range_table.create () in
-  matches
-  |> List.iter (fun (prop : propagator_match) ->
-         let var = prop.id in
-         Range_table.push tbl prop.to_ (mk_match prop var `To prop.to_);
-         Range_table.push tbl prop.from (mk_match prop var `From prop.from));
-  tbl
-
-(* Check whether `any` matches either the `from` or the `to` of any of the
- * `pattern-propagators`. Matches must be exact to make taint propagation
- * more precise and predictable.
- *
- * THINK: Now that we have "Best_matches" we could perhaps use that for
- *   propagators too?
- *)
-let any_is_in_propagators_matches any tbl :
-    D.a_propagator Taint_spec_match.t list =
-  match range_of_any any with
-  | None -> []
-  | Some r -> Range_table.get tbl r
-
-let any_is_in_sanitizers_matches rule any matches =
+let any_is_in_matches_OSS rule matches ~get_id any =
   let ( let* ) = option_bind_list in
   let* r = range_of_any any in
   matches
@@ -438,32 +370,65 @@ let any_is_in_sanitizers_matches rule any matches =
            Some
              (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
               let overlap = overlap_with ~match_range:rwm.RM.r r in
-              {
-                Taint_spec_match.spec;
-                spec_id = spec.R.sanitizer_id;
-                spec_pm;
-                range = r;
-                overlap;
-              })
+              Taint_spec_match.
+                { spec; spec_id = get_id spec; spec_pm; range = r; overlap })
          else None)
 
-let any_is_in_sinks_matches rule any matches =
-  let ( let* ) = option_bind_list in
-  let* r = range_of_any any in
-  matches
-  |> List_.filter_map (fun (rwm, (spec : R.taint_sink)) ->
-         if Range.( $<=$ ) r rwm.RM.r then
-           Some
-             (let spec_pm = RM.range_to_pattern_match_adjusted rule rwm in
-              let overlap = overlap_with ~match_range:rwm.RM.r r in
-              {
-                Taint_spec_match.spec;
-                spec_id = spec.sink_id;
-                spec_pm;
-                range = r;
-                overlap;
-              })
-         else None)
+let is_exact_match ~match_range r =
+  let overlap = overlap_with ~match_range r in
+  let r1 = match_range in
+  Range.( $<=$ ) r r1 && overlap > 0.99
+
+let mk_propagator_match rule (prop : propagator_match) var kind r =
+  let spec_pm = RM.range_to_pattern_match_adjusted rule prop.rwm in
+  let spec : D.a_propagator = { kind; prop = prop.spec; var } in
+  {
+    Taint_spec_match.spec;
+    spec_id = prop.spec.propagator_id;
+    spec_pm;
+    range = r;
+    overlap = 1.0;
+  }
+
+(* Check whether `any` matches either the `from` or the `to` of any of the
+ * `pattern-propagators`. Matches must be exact (overlap > 0.99) to make
+ * taint propagation more precise and predictable. *)
+let any_is_in_propagators_matches_OSS rule matches any :
+    D.a_propagator Taint_spec_match.t list =
+  match range_of_any any with
+  | None -> []
+  | Some r ->
+      matches
+      |> List.concat_map (fun prop ->
+             let var = prop.id in
+             let is_from = is_exact_match ~match_range:prop.from r in
+             let is_to = is_exact_match ~match_range:prop.to_ r in
+             let mk_match kind = mk_propagator_match rule prop var kind r in
+             (if is_from then [ mk_match `From ] else [])
+             @ (if is_to then [ mk_match `To ] else [])
+             @ [])
+
+let mk_taint_spec_match_preds rule matches =
+  match !hook_mk_taint_spec_match_preds with
+  | None ->
+      {
+        is_source =
+          (fun any ->
+            any_is_in_matches_OSS rule matches.sources any
+              ~get_id:(fun (ts : R.taint_source) -> ts.source_id));
+        is_propagator =
+          (fun any ->
+            any_is_in_propagators_matches_OSS rule matches.propagators any);
+        is_sanitizer =
+          (fun any ->
+            any_is_in_matches_OSS rule matches.sanitizers any
+              ~get_id:(fun (ts : R.taint_sanitizer) -> ts.sanitizer_id));
+        is_sink =
+          (fun any ->
+            any_is_in_matches_OSS rule matches.sinks any
+              ~get_id:(fun (ts : R.taint_sink) -> ts.sink_id));
+      }
+  | Some hook -> hook rule matches
 
 (*****************************************************************************)
 (* Entry point *)
@@ -480,22 +445,20 @@ let taint_config_of_rule ~per_file_formula_cache
   in
   let file = Fpath.v file in
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf rule.options in
-  let propagators_tbl =
-    propagators_table_of_matches rule spec_matches.propagators
-  in
   let config = xconf.config in
+  let { is_source; is_propagator; is_sanitizer; is_sink } =
+    mk_taint_spec_match_preds rule spec_matches
+  in
   ( {
       Dataflow_tainting.filepath = !!file;
       rule_id = fst rule.R.id;
       track_control =
         spec.sources |> snd
         |> List.exists (fun (src : R.taint_source) -> src.source_control);
-      is_source =
-        (fun x -> any_is_in_sources_matches rule x spec_matches.sources);
-      is_propagator = (fun x -> any_is_in_propagators_matches x propagators_tbl);
-      is_sanitizer =
-        (fun x -> any_is_in_sanitizers_matches rule x spec_matches.sanitizers);
-      is_sink = (fun x -> any_is_in_sinks_matches rule x spec_matches.sinks);
+      is_source;
+      is_propagator;
+      is_sanitizer;
+      is_sink;
       unify_mvars = config.taint_unify_mvars;
       handle_effects;
     },

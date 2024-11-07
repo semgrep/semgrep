@@ -224,14 +224,18 @@ let orig_is_source config orig = config.is_source (any_of_orig orig)
 
 let orig_is_best_source env orig : R.taint_source TM.t list =
   any_is_best_source env (any_of_orig orig)
+[@@profiling]
 
 let orig_is_sanitizer config orig = config.is_sanitizer (any_of_orig orig)
 
 let orig_is_best_sanitizer env orig =
   any_is_best_sanitizer env (any_of_orig orig)
+[@@profiling]
 
 let orig_is_sink config orig = config.is_sink (any_of_orig orig)
+
 let orig_is_best_sink env orig = any_is_best_sink env (any_of_orig orig)
+[@@profiling]
 
 let any_of_lval lval =
   match lval with
@@ -255,6 +259,7 @@ let lval_is_sink env lval =
   |> List.filter (fun (tm : R.taint_sink TM.t) ->
          (* at-exit sinks are handled in 'check_tainted_at_exit_sinks' *)
          not tm.spec.sink_at_exit)
+[@@profiling]
 
 let taints_of_matches env ~incoming sources =
   let control_sources, data_sources =
@@ -1616,6 +1621,7 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
               lval
       in
       (taints, rhs_shape, lval_env)
+[@@profiling]
 
 (* Test whether a `return' is tainted, and if it is also a sink,
  * report the effect too (by side effect). *)
