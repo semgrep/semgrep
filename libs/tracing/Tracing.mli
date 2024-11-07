@@ -124,8 +124,8 @@ val configure_tracing :
     NOTE: this will set the active trace endpoint to whatever is passed. This
     endpoint will be used when restarting tracing via [restart_tracing] *)
 
-val stop_tracing : unit -> unit
-(** [stop_tracing ()] explicitly shuts down the Otel collector. If tracing has
+val stop_tracing : exit_active_spans:bool -> unit -> unit
+(** [stop_tracing ~exit_active_spans ()] explicitly shuts down the Otel collector. If tracing has
     been setup this MUST be called before forking (such as in {!Parmap}), or you
     WILL experience random segfaults. This is safe to call multiple times in a
     row. See [restart_tracing] to continue tracing after calling this.

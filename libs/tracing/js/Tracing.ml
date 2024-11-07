@@ -89,7 +89,7 @@ let otel_reporter : Logs.reporter = Logs.nop_reporter
 (* Entry points for setting up tracing *)
 (*****************************************************************************)
 
-let stop_tracing () = ()
+let stop_tracing ~exit_active_spans:_ () = ()
 let restart_tracing () = ()
 
 let configure_tracing ?(attrs = []) ?(env = "") ?(version = "")

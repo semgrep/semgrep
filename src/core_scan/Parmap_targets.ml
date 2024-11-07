@@ -96,7 +96,7 @@ let init job =
 let finalize () =
   (* Stop tracing to ensure traces are flushed *)
   (* NOTE: this only stops tracing in the child *)
-  Tracing.stop_tracing ()
+  Tracing.stop_tracing ~exit_active_spans:false ()
 
 (* Run jobs in parallel, using number of cores specified with -j *)
 let map_targets__run_in_forked_process_do_not_modify_globals caps (ncores : int)
