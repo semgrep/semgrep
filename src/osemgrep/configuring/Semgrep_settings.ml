@@ -177,8 +177,7 @@ let load ?maturity ?include_env () =
       Logs.info (fun m -> m "No settings file found, using default settings");
       default_settings
   (* Step 3. *)
-  | Some ({ api_token = None; _ } as settings)
-    when Option.value ~default:false include_env ->
+  | Some ({ api_token = None; _ } as settings) when include_env ||| false ->
       Logs.info (fun m ->
           m
             "Settings file found, but API token is not set in file, pulling \
@@ -215,7 +214,3 @@ let save setting =
       Logs.warn (fun m ->
           m "Could not write settings file at %a: %s" Fpath.pp settings e);
       false
-
-let has_api_token () =
-  let settings = load () in
-  Option.is_some settings.api_token

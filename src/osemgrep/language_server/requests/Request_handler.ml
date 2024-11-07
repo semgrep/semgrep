@@ -111,7 +111,7 @@ let on_request (type r) server (req_id : Id.t) (request : r CR.t) :
       ({ server with session }, Option.value reply_opt ~default:Reply.empty)
   | CR.UnknownRequest { meth; params } ->
       (* Could be handled better but :shrug: *)
-      if meth = Login.meth && Semgrep_settings.has_api_token () then
+      if meth = Login.meth && Semgrep_login.is_logged_in_weak () then
         let reply =
           Reply.now
             (Lsp_.notify_show_message ~kind:MessageType.Info

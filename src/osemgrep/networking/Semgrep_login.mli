@@ -76,3 +76,9 @@ val verify_token_async :
 
 val verify_token : < network : Cap.Network.t ; token : Auth.token > -> bool
 (** [verify_token] verifies that a token is valid with the Semgrep App. *)
+
+val is_logged_in_weak : unit -> bool
+(** this does not really check whether the user is logged in; it just checks
+ * whether a token is defined in ~/.semgrep/settings.yml (or in
+ * SEMGREP_APP_TOKEN.
+ *)

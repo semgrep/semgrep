@@ -192,7 +192,7 @@ let output_and_exit_from_fatal_core_errors_exn ~exit_code
   | _ ->
       let runtime_params : Out.format_context =
         {
-          is_logged_in = Semgrep_settings.has_api_token ();
+          is_logged_in = Semgrep_login.is_logged_in_weak ();
           is_using_registry =
             Metrics_.g.is_using_registry
             || !Semgrep_envvars.v.mock_using_registry;
@@ -647,7 +647,7 @@ let check_targets_with_rules
           let cli_output =
             let runtime_params : Out.format_context =
               {
-                is_logged_in = Semgrep_settings.has_api_token ();
+                is_logged_in = Semgrep_login.is_logged_in_weak ();
                 is_using_registry =
                   Metrics_.g.is_using_registry
                   || !Semgrep_envvars.v.mock_using_registry;

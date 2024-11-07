@@ -22,6 +22,3 @@ val load : ?maturity:Maturity.t -> ?include_env:bool -> unit -> t
 
 (* save and returns whether the save was successful *)
 val save : t -> bool
-
-val has_api_token : unit -> bool
-(** [has_api_token ()] checks if Semgrep has access well formed api token*)

@@ -102,7 +102,7 @@ let save_token_tests caps =
     | Ok _deployment_config ->
         Alcotest.(check bool)
           "logged in" true
-          (Semgrep_settings.has_api_token ())
+          (Semgrep_login.is_logged_in_weak ())
     | Error e -> failwith e
   in
   let invalid_token_test () =
@@ -112,7 +112,7 @@ let save_token_tests caps =
     | Error _ ->
         Alcotest.(check bool)
           "not logged in" false
-          (Semgrep_settings.has_api_token ())
+          (Semgrep_login.is_logged_in_weak ())
   in
   let tests =
     [ ("invalid token", invalid_token_test); ("valid token", valid_token_test) ]
