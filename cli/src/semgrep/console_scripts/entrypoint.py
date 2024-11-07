@@ -32,6 +32,7 @@ import os
 import platform
 import shutil
 import sys
+import sysconfig
 import warnings
 
 # alt: you can also add '-W ignore::DeprecationWarning' after the python3 above,
@@ -50,7 +51,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 # nosem: no-env-vars-on-top-level
 PATH = os.environ.get("PATH", "")
 # nosem: no-env-vars-on-top-level
-os.environ["PATH"] = PATH + os.pathsep + os.path.dirname(os.path.abspath(__file__))
+os.environ["PATH"] = PATH + os.pathsep + sysconfig.get_path("scripts")
 
 IS_WINDOWS = platform.system() == "Windows"
 
