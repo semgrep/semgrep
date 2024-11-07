@@ -47,6 +47,26 @@ jobs:
         run: |
           export PATH=/opt/python/cp38-cp38/bin:$PATH
           echo '1 == 1' | semgrep -l python -e '$X == $X' -
+  test-wheels-venv:
+    container: quay.io/pypa/manylinux2014_x86_64
+    needs:
+      - build-wheels
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: manylinux-x86-wheel
+      - run: unzip dist.zip
+      - name: create venv
+        run: /opt/python/cp38-cp38/bin/python3 -m venv env
+      - name: install package
+        run: env/bin/pip install dist/*.whl
+      - name: test package
+        run: |
+          env/bin/semgrep --version
+      - name: e2e semgrep-core test
+        run: |
+          echo '1 == 1' | env/bin/semgrep -l python -e '$X == $X' -
 name: build-test-manylinux-x86
 on:
   workflow_call: null

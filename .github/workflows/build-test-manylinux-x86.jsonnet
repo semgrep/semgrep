@@ -104,6 +104,44 @@ local test_wheels_job = {
   ],
 };
 
+local test_wheels_venv_job = {
+  'runs-on': 'ubuntu-latest',
+  container: 'quay.io/pypa/manylinux2014_x86_64',
+  needs: [
+    'build-wheels',
+  ],
+  steps: [
+    actions.download_artifact_step(wheel_name),
+    {
+      run: 'unzip dist.zip',
+    },
+    {
+      name: 'create venv',
+      run: '/opt/python/cp38-cp38/bin/python3 -m venv env',
+    },
+    // *.whl is fine here because we're building one wheel with the "any"
+    // platform compatibility tag
+    {
+      name: 'install package',
+      run: 'env/bin/pip install dist/*.whl',
+    },
+    // TODO? could reuse build-test-osx-x86.test_semgrep_steps
+    // only diff is PATH adjustments
+    {
+      name: 'test package',
+      run: |||
+        env/bin/semgrep --version
+      |||,
+    },
+    {
+      name: 'e2e semgrep-core test',
+      run: |||
+        echo '1 == 1' | env/bin/semgrep -l python -e '$X == $X' -
+      |||,
+    },
+  ],
+};
+
 // ----------------------------------------------------------------------------
 // The Workflow
 // ----------------------------------------------------------------------------
@@ -123,5 +161,6 @@ local test_wheels_job = {
   jobs: {
     'build-wheels': build_wheels_job,
     'test-wheels': test_wheels_job,
+    'test-wheels-venv': test_wheels_venv_job,
   },
 }
