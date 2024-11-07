@@ -346,6 +346,24 @@ def test_ignores(tmp_path, monkeypatch):
     dir3_a = dir3 / "a.py"
     dir3_a.touch()
 
+    # Create /dir4/dir/a.py
+    dir4 = tmp_path / "dir4"
+    dir4.mkdir()
+    dir4_dir = dir4 / "dir"
+    dir4_dir.mkdir()
+    dir4_dir_a = dir4_dir / "a.py"
+    dir4_dir_a.touch()
+
+    # Create /dir5/dir4/dir/a.py
+    dir5 = tmp_path / "dir5"
+    dir5.mkdir()
+    dir5_dir4 = dir5 / "dir4"
+    dir5_dir4.mkdir()
+    dir5_dir4_dir = dir5_dir4 / "dir"
+    dir5_dir4_dir.mkdir()
+    dir5_dir4_dir_a = dir5_dir4_dir / "a.py"
+    dir5_dir4_dir_a.touch()
+
     # Ignore nothing
     files = ignore([])
     assert a in files
@@ -361,10 +379,21 @@ def test_ignores(tmp_path, monkeypatch):
     assert dir_b not in files
     assert dir_c not in files
     assert dir3_a not in files
+    assert dir4_dir_a not in files
 
     # Ignore root file
     files = ignore(["/a.py"])
     assert dir3_a in files
+
+    # Ignore anchored directory (not subdirectories)
+    files = ignore(["/dir"])
+    assert dir_a not in files
+    assert dir4_dir_a in files
+
+    # Ignore another kind of anchored directory (not subdirectories)
+    files = ignore(["dir4/dir"])
+    assert dir4_dir_a not in files
+    assert dir5_dir4_dir_a in files
 
     # Ignore root file that does not exist
     files = ignore(["/b.py"])
@@ -378,7 +407,7 @@ def test_ignores(tmp_path, monkeypatch):
     files = ignore(["dir3/"])
     assert dir3_a not in files
 
-    # Ingore nested double star
+    # Ignore nested double star
     files = ignore(["**/dir2/dir3/"])
     assert dir3_a not in files
 

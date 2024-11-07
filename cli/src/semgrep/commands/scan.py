@@ -469,6 +469,11 @@ def scan_options(func: Callable) -> Callable:
 )
 @optgroup.option("--version", is_flag=True, default=False)
 @optgroup.option(
+    "--x-ignore-semgrepignore-files",
+    is_flag=True,
+    default=False,
+)
+@optgroup.option(
     "--x-ls",
     is_flag=True,
     default=False,
@@ -576,6 +581,7 @@ def scan(
     validate: bool,
     verbose: bool,
     version: bool,
+    x_ignore_semgrepignore_files: bool,
     x_ls: bool,
     x_ls_long: bool,
     path_sensitive: bool,
@@ -840,6 +846,7 @@ def scan(
                         dryrun=dryrun,
                         disable_nosem=(not enable_nosem),
                         no_git_ignore=(not use_git_ignore),
+                        respect_semgrepignore=(not x_ignore_semgrepignore_files),
                         timeout=timeout,
                         max_memory=max_memory,
                         timeout_threshold=timeout_threshold,

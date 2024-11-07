@@ -46,8 +46,10 @@ def test_stack_size(run_semgrep_in_tmp: RunSemgrep, snapshot):
     # For too high of ulimit sizes, we will not see a stack overflow.
     ulimit_size = 384
 
+    # '--x-ignore-semgrepignore-files' is needed since our repo has a
+    # .semgrepignore file that excludes '/tests/'.
     output = subprocess.run(
-        f"ulimit -s {ulimit_size} && {SEMGREP_BASE_SCAN_COMMAND_STR} --disable-version-check --metrics off --config {rulepath} --jobs 1 --verbose {targetpath}",
+        f"ulimit -s {ulimit_size} && {SEMGREP_BASE_SCAN_COMMAND_STR} --x-ignore-semgrepignore-files --disable-version-check --metrics off --config {rulepath} --jobs 1 --verbose {targetpath}",
         shell=True,
         capture_output=True,
         encoding="utf-8",

@@ -41,48 +41,35 @@ def path_is_relative_to(p1: Path, p2: Path) -> bool:
 
 @frozen
 class FileIgnore:
+    # Pysemgrep supports only one '.semgrepignore' file, and it must be in the
+    # current folder.
+    # base path = absolute path to current folder = location of '.semgrepignore'
     base_path: Path
-    patterns: FrozenSet[str]
+    fnmatch_patterns: FrozenSet[str]
     max_log_list_entries: int
 
     @lru_cache(maxsize=100_000)  # size aims to be 100x of fully caching this repo
     def _survives(self, path: Path) -> bool:
         """
-        Determines if a single Path survives the ignore filter.
+        Determine if a single Path survives the ignore filter.
         """
-        path_is_dir = path.is_dir()
+        # The path is relative to the base path where the '.semgrepignore' file exists,
+        # which is also the current folder.
+        # A pattern can match the full path or only a prefix.
+        # For example, the fnmatch pattern 'tests' will match the paths
+        # 'tests' and 'tests/foo'.
+
+        path.is_dir()
         path_is_relative_to_base = path_is_relative_to(path, self.base_path)
-        if path_is_relative_to_base:
-            path_relative_to_base = str(path.relative_to(self.base_path))
-        else:
-            path_relative_to_base = ""
-        for p in self.patterns:
-            if path_is_dir and p.endswith("/") and fnmatch.fnmatch(str(path), p[:-1]):
-                return False
-            if fnmatch.fnmatch(str(path), p):
-                return False
-
-            # Check any subpath of path satisfies a pattern
-            # i.e. a/b/c/d is ignored with rule a/b
-            # This is a hack. TargetFileManager should be pruning while searching
-            # instead of post filtering to avoid this
-            # Note: Use relative to base to avoid ignore rules firing on parent directories
-            # i.e. /private/var/.../instabot should not be ignored with var/ rule
-            # in instabot dir as base_path
-            # Note: Append "/" to path before running fnmatch so **/pattern matches with pattern/stuff
-            if (
-                path_is_relative_to_base
-                and p.endswith("/")
-                and fnmatch.fnmatch("/" + path_relative_to_base, p + "*")
-            ):
-                return False
-            if (
-                p.endswith("/")
-                and p.startswith(str(self.base_path))
-                and fnmatch.fnmatch(str(path), p + "*")
-            ):
-                return False
-
+        matchable_path = (
+            str(path.relative_to(self.base_path))
+            if path_is_relative_to_base
+            else str(path)
+        )
+        for pat in self.fnmatch_patterns:
+            if path_is_relative_to_base or pat.startswith("**/"):
+                if fnmatch.fnmatch(matchable_path, pat):
+                    return False
         return True
 
     @lru_cache(maxsize=100_000)  # size aims to be 100x of fully caching this repo
@@ -108,6 +95,7 @@ class FileIgnore:
     def from_unprocessed_patterns(
         cls, base_path: Path, patterns: Iterable[str], max_log_list_entries: int
     ) -> "FileIgnore":
+        patterns = list(patterns)
         return cls(
             base_path,
             frozenset(Processor(base_path).process(patterns)),
@@ -116,6 +104,7 @@ class FileIgnore:
 
 
 # This class is an exact duplicate of the Parser class in semgrep-action
+# ^ wtf? [2024: https://github.com/semgrep/semgrep-action was archived; not touching it]
 @define
 class Parser:
     r"""
@@ -213,6 +202,7 @@ class Parser:
 
 
 # This class is an exact duplicate of the Processor class in semgrep-action
+# ^ wtf? [2024: https://github.com/semgrep/semgrep-action was archived; not touching it]
 @define
 class Processor:
     """
@@ -243,31 +233,63 @@ class Processor:
                 out += c
         yield out
 
-    def to_fnmatch(self, pat: str) -> Iterator[str]:
+    def to_fnmatch(self, git_pat: str) -> Iterator[str]:
         """Convert a single pattern from gitignore to fnmatch syntax"""
-        if pat.rstrip("/").find("/") < 0:
-            # Handles:
-            #   file
-            #   path/
-            pat = os.path.join("**", pat)
-        if pat.startswith("./") or pat.startswith("/"):
-            # Handles:
-            #   /relative/to/root
-            #   ./relative/to/root
-            pat = pat.lstrip(".").lstrip("/")
-        if not pat.startswith("**"):
-            # Handles:
-            #   path/to/absolute
-            #   */to/absolute
-            #   path/**/absolute
-            pat = os.path.join(self.base_path, pat)
-        yield pat
+        # The input path against which we'll match the pattern is assumed to be
+        # relative to current folder = relative to the project root.
+        #
+        # If the input path is a folder, it must end with a slash.
+        #
+        # When matching outside paths such as /tmp/foo, we'll ignore patterns that
+        # are relative to the project root (= not starting with **/).
+        #
+        # gitignore pattern   fnmatch patterns         notes
+        # a                   a, a/**, **/a, **/a/**   unanchored, match files and folders
+        # a/                  a/, a/**, **/a/**        unanchored, match folders
+        # /a                  a, a/**                  anchored, match files and folders
+        # /a/                 a/**                     anchored, match folders
+        # /a/b                a/b, a/b/**              anchored, match files and folders
+        # a/b                 a/b, a/b/**              the middle slash anchors the pattern!
+
+        # For gitignore, a leading slash or a slash in the middle anchors it i.e.
+        # indicates a path relative to the root.
+        is_anchored: bool = git_pat.rstrip("/").find("/") >= 0
+
+        # A trailing slash forces the path to be a folder
+        is_folder: bool = git_pat.endswith("/")
+
+        # Preprocessing for fnmatch
+        pat = git_pat
+        if is_anchored:
+            # Remove any leading slash
+            if git_pat.startswith("./") or git_pat.startswith("/"):
+                pat = git_pat.lstrip(".").lstrip("/")
+
+        # X -> X/**
+        # X/ -> X/**
+        anchored_prefix_pat = os.path.join(pat, "**")
+        yield anchored_prefix_pat
+        if not is_folder:
+            # X
+            yield pat
+
+        if not is_anchored:
+            # Prepend **/ then repeat the steps above:
+            unanchored_pat = os.path.join("**", pat)
+            # **/X -> **/X/**
+            # **/X/ -> **/X/**
+            unanchored_prefix_pat = os.path.join(unanchored_pat, "**")
+            yield unanchored_prefix_pat
+            if not is_folder:
+                # **/X
+                yield unanchored_pat
 
     def process(self, pre: Iterable[str]) -> Set[str]:
         """Post-processes an intermediate representation"""
-        return {
+        patterns = {
             pattern
             for pat in pre
             for unescaped in self.unescape(pat)
             for pattern in self.to_fnmatch(unescaped)
         }
+        return patterns

@@ -504,6 +504,7 @@ def run_scan(
     disable_nosem: bool = False,
     no_git_ignore: bool = False,
     respect_rule_paths: bool = True,
+    respect_semgrepignore: bool = True,
     timeout: int = DEFAULT_TIMEOUT,
     max_memory: int = 0,
     interfile_timeout: int = 0,
@@ -712,6 +713,7 @@ def run_scan(
             ignore_profiles=file_ignore_to_ignore_profiles(
                 get_file_ignore(too_many_entries)
             ),
+            respect_semgrepignore=respect_semgrepignore,
         )
         # Debugging option --x-ls
         if x_ls or x_ls_long:
@@ -873,6 +875,7 @@ def run_scan(
                         ignore_profiles=file_ignore_to_ignore_profiles(
                             get_file_ignore(too_many_entries),
                         ),
+                        respect_semgrepignore=respect_semgrepignore,
                     )
 
                     (

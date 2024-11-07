@@ -570,6 +570,7 @@ class TargetManager:
     ignore_profiles: Mapping[out.Product, FileIgnore] = Factory(dict)
     ignore_log: FileTargetingLog = Factory(FileTargetingLog, takes_self=True)
     targets: Sequence[Target] = field(init=False)
+    respect_semgrepignore: bool = True
 
     _filtered_targets: Dict[Language, FilteredFiles] = field(factory=dict)
 
@@ -808,7 +809,7 @@ class TargetManager:
             files = self.filter_by_size(self.max_target_bytes, candidates=files.kept)
             self.ignore_log.size_limit.update(files.removed)
 
-        if product in self.ignore_profiles:
+        if product in self.ignore_profiles and self.respect_semgrepignore:
             file_ignore = self.ignore_profiles[product]
             files = file_ignore.filter_paths(candidates=files.kept)
             # TODO: Fix ignore_log to log which profile filtered which files.
