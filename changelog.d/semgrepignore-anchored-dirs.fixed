@@ -1,3 +1,0 @@
-Fix in `semgrep scan`: anchored semgrepignore patterns for folders such
-as `/tests` are now honored properly. Such patterns had previously no
-effect of target file filtering.

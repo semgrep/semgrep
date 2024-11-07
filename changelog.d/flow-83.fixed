@@ -1,2 +1,0 @@
-Optimized taint-mode (only in Pro) to scale better when there is a large number
-of matches of sources/propagators/sanitizers/sinks within a function.

@@ -1,1 +1,0 @@
-Reduced memory allocations while processing nosemgrep comments, improving memory use and time for scans with a large number of findings.
