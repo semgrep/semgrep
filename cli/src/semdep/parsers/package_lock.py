@@ -48,6 +48,7 @@ def parse_package_name(package_path: str) -> str:
 def parse_packages_field(
     lockfile_path: Path,
     deps: Dict[str, JSON],
+    manifest_path: Optional[Path],
 ) -> List[FoundDependency]:
     try:
         manifest_deps = set(deps[""].as_dict()["dependencies"].as_dict().keys())
@@ -85,6 +86,7 @@ def parse_packages_field(
                 else transitivity(manifest_deps, [package_name]),
                 line_number=dep_json.line_number,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             )
         )
     return output
@@ -95,6 +97,7 @@ def parse_dependencies_field(
     deps: Dict[str, JSON],
     manifest_deps: Optional[Set[str]],
     nested: bool,
+    manifest_path: Optional[Path],
 ) -> List[FoundDependency]:
     # Dependency dicts in a package-lock.json can be nested:
     # {"foo" : {stuff, "dependencies": {"bar": stuff, "dependencies": {"baz": stuff}}}}
@@ -127,13 +130,18 @@ def parse_dependencies_field(
                 else transitivity(manifest_deps, [package]),
                 line_number=dep_json.line_number,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             )
         )
         nested_deps = fields.get("dependencies")
         if nested_deps:
             output.extend(
                 parse_dependencies_field(
-                    lockfile_path, nested_deps.as_dict(), manifest_deps, True
+                    lockfile_path,
+                    nested_deps.as_dict(),
+                    manifest_deps,
+                    True,
+                    manifest_path,
                 )
             )
     return output
@@ -167,7 +175,10 @@ def parse_package_lock(
         if deps is None:
             logger.debug("Found package-lock with no 'packages'")
             return [], errors
-        return parse_packages_field(lockfile_path, deps.as_dict()), errors
+        return (
+            parse_packages_field(lockfile_path, deps.as_dict(), manifest_path),
+            errors,
+        )
     else:
         deps = lockfile_json.get("dependencies")
         if deps is None:
@@ -186,7 +197,7 @@ def parse_package_lock(
 
         return (
             parse_dependencies_field(
-                lockfile_path, deps.as_dict(), manifest_deps, False
+                lockfile_path, deps.as_dict(), manifest_deps, False, manifest_path
             ),
             errors,
         )

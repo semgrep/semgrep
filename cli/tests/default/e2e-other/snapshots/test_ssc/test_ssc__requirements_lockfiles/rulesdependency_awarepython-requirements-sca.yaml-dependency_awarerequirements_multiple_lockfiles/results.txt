@@ -46,6 +46,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "ecosystem": "pypi",
               "line_number": 1,
               "lockfile_path": "targets/dependency_aware/requirements_multiple_lockfiles/requirements/prod.txt",
+              "manifest_path": "targets/dependency_aware/requirements_multiple_lockfiles/requirements.in",
               "package": "pandas",
               "transitivity": "direct",
               "version": "1.4.2"

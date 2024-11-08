@@ -110,7 +110,7 @@ def get_children(deps: List[Any]) -> List[ParsedDependency]:
 
 
 def parse_pom_tree(
-    tree_path: Path, _: Optional[Path]
+    tree_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
     parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
         DependencyFileToParse(tree_path, pom_tree, ScaParserName(Pomtree())),
@@ -139,6 +139,7 @@ def parse_pom_tree(
                 line_number=match.line_number,
                 children=match.children,
                 lockfile_path=Fpath(str(tree_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             )
         )
     return output, errors

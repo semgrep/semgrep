@@ -38,7 +38,7 @@ def map_to_transitivity(type_value: Optional[str]) -> Transitivity:
 
 
 def parse_dependencies_field(
-    lockfile_path: Path, deps: Dict[str, JSON]
+    lockfile_path: Path, deps: Dict[str, JSON], manifest_path: Optional[Path]
 ) -> List[FoundDependency]:
     output = []
 
@@ -66,6 +66,7 @@ def parse_dependencies_field(
                     transitivity=map_to_transitivity(transitivity_str),
                     line_number=package_json.line_number,
                     lockfile_path=Fpath(str(lockfile_path)),
+                    manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
                 )
             )
 
@@ -91,4 +92,7 @@ def parse_packages_lock(
         logger.warn("Found packages.lock.json with no 'dependencies'")
         return [], errors
 
-    return parse_dependencies_field(lockfile_path, deps.as_dict()), errors
+    return (
+        parse_dependencies_field(lockfile_path, deps.as_dict(), _manifest_path),
+        errors,
+    )

@@ -119,6 +119,7 @@ def parse_composer_lock(
                 transitivity=transitivity(manifest_deps, [package]),
                 line_number=line_number,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             )
         )
     # Return the output list containing FoundDependency objects

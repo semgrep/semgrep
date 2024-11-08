@@ -61,7 +61,7 @@ def parse_package_key_post_9(key: str) -> Optional[Tuple[str, str]]:
 
 
 def parse_pnpm(
-    lockfile_path: Path, _: Optional[Path]
+    lockfile_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
     parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
         DependencyFileToParse(
@@ -140,6 +140,7 @@ def parse_pnpm(
                 line_number=line_number,
                 allowed_hashes={},
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             )
         )
     return output, errors

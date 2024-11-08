@@ -212,6 +212,7 @@ def _build_found_dependencies(
     lockfile_path: Path,
     direct_deps: set[str],
     lockfile_deps: list[tuple[int, tuple[str, str]] | None],
+    manifest_path: Path | None,
 ) -> list[FoundDependency]:
     result = []
     for dep in lockfile_deps:
@@ -227,6 +228,7 @@ def _build_found_dependencies(
                 transitivity=transitivity(direct_deps, [package]),
                 line_number=line_number,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             )
         )
 
@@ -254,7 +256,10 @@ def parse_mix(
         [x for x in parsed_manifest if isinstance(x, tuple)]
     )
     found_deps = _build_found_dependencies(
-        lockfile_path, direct_deps, [x for x in parsed_lockfile if isinstance(x, tuple)]
+        lockfile_path,
+        direct_deps,
+        [x for x in parsed_lockfile if isinstance(x, tuple)],
+        manifest_path,
     )
 
     return found_deps, errors

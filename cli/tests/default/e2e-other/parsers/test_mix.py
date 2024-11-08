@@ -405,6 +405,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="cowboy",
@@ -417,6 +418,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="cowlib",
@@ -429,6 +431,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="ecpool",
@@ -441,6 +444,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="ehttpc",
@@ -453,6 +457,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="ex_aws",
@@ -465,6 +470,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="ex_aws_lambda",
@@ -477,6 +483,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="ex_aws_s3",
@@ -489,6 +496,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="ex_aws_ses",
@@ -501,6 +509,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="gproc",
@@ -513,6 +522,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="grpc",
@@ -525,6 +535,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="gun",
@@ -537,6 +548,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="hackney",
@@ -549,6 +561,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="idna",
@@ -561,6 +574,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="jason",
@@ -573,6 +587,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="joken",
@@ -585,6 +600,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="jose",
@@ -597,6 +613,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="metrics",
@@ -609,6 +626,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="mime",
@@ -621,6 +639,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="mimerl",
@@ -633,6 +652,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="parse_trans",
@@ -645,6 +665,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="pbkdf2",
@@ -657,6 +678,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="ranch",
@@ -669,6 +691,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="rocksdb",
@@ -681,6 +704,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="snabbkaffe",
@@ -693,6 +717,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="ssl_verify_fun",
@@ -705,6 +730,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="sweet_xml",
@@ -717,6 +743,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="telemetry",
@@ -729,6 +756,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="typerefl",
@@ -741,6 +769,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="unicode_util_compat",
@@ -753,6 +782,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
             FoundDependency(
                 package="uuid",
@@ -765,6 +795,7 @@ def test_full_mix_parsing(run_semgrep_on_copied_files: RunSemgrep):
                 children=None,
                 git_ref=None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             ),
         ],
         [],

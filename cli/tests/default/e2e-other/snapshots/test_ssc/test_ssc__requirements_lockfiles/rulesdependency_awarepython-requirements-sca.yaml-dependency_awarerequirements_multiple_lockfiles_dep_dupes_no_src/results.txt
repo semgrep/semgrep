@@ -45,6 +45,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "ecosystem": "pypi",
               "line_number": 37,
               "lockfile_path": "targets/dependency_aware/requirements_multiple_lockfiles_dep_dupes_no_src/requirements.txt",
+              "manifest_path": "targets/dependency_aware/requirements_multiple_lockfiles_dep_dupes_no_src/requirements.in",
               "package": "pandas",
               "transitivity": "direct",
               "version": "1.4.2"
@@ -91,6 +92,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "ecosystem": "pypi",
               "line_number": 1,
               "lockfile_path": "targets/dependency_aware/requirements_multiple_lockfiles_dep_dupes_no_src/requirements/prod.txt",
+              "manifest_path": "targets/dependency_aware/requirements_multiple_lockfiles_dep_dupes_no_src/requirements.in",
               "package": "pandas",
               "transitivity": "direct",
               "version": "1.4.2"

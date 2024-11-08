@@ -43,6 +43,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "ecosystem": "pypi",
               "line_number": 103,
               "lockfile_path": "targets/dependency_aware/poetry_empty_table/poetry.lock",
+              "manifest_path": "targets/dependency_aware/poetry_empty_table/pyproject.toml",
               "package": "faker",
               "transitivity": "direct",
               "version": "1.0.0"

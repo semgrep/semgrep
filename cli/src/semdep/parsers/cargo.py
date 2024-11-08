@@ -29,6 +29,7 @@ def parse_cargo(
             resolved_url=None,
             allowed_hashes=hash,
             transitivity=Transitivity(Unknown()),
+            manifest_path=None,
             lockfile_path=Fpath(str(lockfile_path)),
             line_number=raw_lines.index(lines[0]) + 1,
         )

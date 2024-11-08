@@ -24,7 +24,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 
 
 def parse_pubspec_lock(
-    lockfile_path: Path, _: Optional[Path]
+    lockfile_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
     parsed_lockfile, _, errors = safe_parse_lockfile_and_manifest(
         DependencyFileToParse(
@@ -64,6 +64,7 @@ def parse_pubspec_lock(
                     line_number=key.span.start.line,
                     allowed_hashes={},
                     lockfile_path=Fpath(str(lockfile_path)),
+                    manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
                 )
             )
     except KeyError:

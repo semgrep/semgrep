@@ -100,6 +100,7 @@ def parse_gradle(
                 transitivity=transitivity(parsed_manifest, [package]),
                 line_number=line_number,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             )
         )
     return output, errors

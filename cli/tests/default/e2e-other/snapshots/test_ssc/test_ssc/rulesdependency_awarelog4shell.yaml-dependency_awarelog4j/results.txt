@@ -111,6 +111,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "ecosystem": "maven",
               "line_number": 3,
               "lockfile_path": "targets/dependency_aware/log4j/maven_dep_tree.txt",
+              "manifest_path": "targets/dependency_aware/log4j/pom.xml",
               "package": "org.apache.logging.log4j:log4j-core",
               "transitivity": "direct",
               "version": "0.0.2"

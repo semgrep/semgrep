@@ -106,6 +106,9 @@ def parse_go_mod(
                             line_number=line_number,
                             resolved_url=package,  # Go package names are URLs
                             lockfile_path=Fpath(str(lockfile_path)),
+                            manifest_path=Fpath(str(manifest_path))
+                            if manifest_path
+                            else None,
                         )
                     )
     return [d for d in output if (d.package, d.version) not in exclude], errors

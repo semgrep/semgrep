@@ -271,6 +271,7 @@ def parse_yarn(
                 transitivity=transitivity(manifest_deps, sources),
                 line_number=line_number,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             )
         )
     return output, errors

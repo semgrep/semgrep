@@ -49,6 +49,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "ecosystem": "pypi",
               "line_number": 20,
               "lockfile_path": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock",
+              "manifest_path": "targets/dependency_aware/awscli-with-manifest/Pipfile",
               "package": "awscli",
               "transitivity": "direct",
               "version": "1.11.82"
@@ -100,6 +101,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "ecosystem": "pypi",
               "line_number": 20,
               "lockfile_path": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock",
+              "manifest_path": "targets/dependency_aware/awscli-with-manifest/Pipfile",
               "package": "awscli",
               "transitivity": "direct",
               "version": "1.11.82"
@@ -151,6 +153,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "ecosystem": "pypi",
               "line_number": 20,
               "lockfile_path": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock",
+              "manifest_path": "targets/dependency_aware/awscli-with-manifest/Pipfile",
               "package": "awscli",
               "transitivity": "direct",
               "version": "1.11.82"
@@ -203,6 +206,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "ecosystem": "pypi",
               "line_number": 20,
               "lockfile_path": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock",
+              "manifest_path": "targets/dependency_aware/awscli-with-manifest/Pipfile",
               "package": "awscli",
               "transitivity": "direct",
               "version": "1.11.82"
@@ -255,6 +259,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "ecosystem": "pypi",
               "line_number": 20,
               "lockfile_path": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock",
+              "manifest_path": "targets/dependency_aware/awscli-with-manifest/Pipfile",
               "package": "awscli",
               "transitivity": "direct",
               "version": "1.11.82"
@@ -307,6 +312,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "ecosystem": "pypi",
               "line_number": 20,
               "lockfile_path": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock",
+              "manifest_path": "targets/dependency_aware/awscli-with-manifest/Pipfile",
               "package": "awscli",
               "transitivity": "direct",
               "version": "1.11.82"
@@ -359,6 +365,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "ecosystem": "pypi",
               "line_number": 20,
               "lockfile_path": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock",
+              "manifest_path": "targets/dependency_aware/awscli-with-manifest/Pipfile",
               "package": "awscli",
               "transitivity": "direct",
               "version": "1.11.82"
@@ -411,6 +418,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "ecosystem": "pypi",
               "line_number": 20,
               "lockfile_path": "targets/dependency_aware/awscli-with-manifest/Pipfile.lock",
+              "manifest_path": "targets/dependency_aware/awscli-with-manifest/Pipfile",
               "package": "awscli",
               "transitivity": "direct",
               "version": "1.11.82"

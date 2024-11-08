@@ -44,6 +44,7 @@ SEMGREP_USER_AGENT_APPEND="pytest" SEMGREP_SETTINGS_FILE="<MASKED>" SEMGREP_VERS
               "ecosystem": "gomod",
               "line_number": 17,
               "lockfile_path": "targets/dependency_aware/go/go.mod",
+              "manifest_path": "targets/dependency_aware/go/go.mod",
               "package": "github.com/cheekybits/genny",
               "resolved_url": "github.com/cheekybits/genny",
               "transitivity": "direct",

@@ -116,6 +116,7 @@ def parse_gemfile(
                     transitivity=transitivity(manifest_deps, [dep[0]]),
                     line_number=line_number,
                     lockfile_path=Fpath(str(lockfile_path)),
+                    manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
                 )
             )
     return output, errors

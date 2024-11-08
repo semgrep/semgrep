@@ -111,7 +111,10 @@ package_swift_parser = (
 
 
 def parse_swiftpm_v2(
-    lockfile_path: Path, lockfile: Dict[str, JSON], direct_deps: Set[str]
+    lockfile_path: Path,
+    lockfile: Dict[str, JSON],
+    direct_deps: Set[str],
+    manifest_path: Optional[Path],
 ) -> List[FoundDependency]:
     result = []
 
@@ -151,6 +154,7 @@ def parse_swiftpm_v2(
                 git_ref=revision.as_str() if revision else None,
                 resolved_url=repository_url.as_str() if repository_url else None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             )
         )
 
@@ -158,7 +162,10 @@ def parse_swiftpm_v2(
 
 
 def parse_swiftpm_v1(
-    lockfile_path: Path, lockfile: Dict[str, JSON], direct_deps: Set[str]
+    lockfile_path: Path,
+    lockfile: Dict[str, JSON],
+    direct_deps: Set[str],
+    manifest_path: Optional[Path],
 ) -> List[FoundDependency]:
     result = []
 
@@ -199,6 +206,7 @@ def parse_swiftpm_v1(
                 git_ref=revision.as_str() if revision else None,
                 resolved_url=repository_url.as_str() if repository_url else None,
                 lockfile_path=Fpath(str(lockfile_path)),
+                manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
             )
         )
 
@@ -248,9 +256,13 @@ def parse_package_resolved(
 
     all_deps = []
     if lockfile_version_int == 1:
-        all_deps = parse_swiftpm_v1(lockfile_path, lockfile_json, direct_deps)
+        all_deps = parse_swiftpm_v1(
+            lockfile_path, lockfile_json, direct_deps, manifest_path
+        )
     elif lockfile_version_int == 2:
-        all_deps = parse_swiftpm_v2(lockfile_path, lockfile_json, direct_deps)
+        all_deps = parse_swiftpm_v2(
+            lockfile_path, lockfile_json, direct_deps, manifest_path
+        )
     else:
         errors.append(
             DependencyParserError(

@@ -27,7 +27,7 @@ def test_package_lock_v2_parser_ignores_root():
             },
         )
     }
-    parsed_deps = parse_packages_field(lockfile_path, only_root_dep)
+    parsed_deps = parse_packages_field(lockfile_path, only_root_dep, manifest_path=None)
     assert parsed_deps == []
 
 
@@ -141,7 +141,7 @@ def test_package_lock_v2_parser_produces_correct_deps():
         ),
     }
 
-    parsed_deps = parse_packages_field(lockfile_path, v3_deps)
+    parsed_deps = parse_packages_field(lockfile_path, v3_deps, manifest_path=None)
     assert parsed_deps == [
         FoundDependency(
             package="@popperjs/core",
@@ -158,6 +158,7 @@ def test_package_lock_v2_parser_produces_correct_deps():
             children=None,
             git_ref=None,
             lockfile_path=Fpath(str(lockfile_path)),
+            manifest_path=None,
         ),
         FoundDependency(
             package="legacy-bootstrap",
@@ -174,5 +175,6 @@ def test_package_lock_v2_parser_produces_correct_deps():
             children=None,
             git_ref=None,
             lockfile_path=Fpath(str(lockfile_path)),
+            manifest_path=None,
         ),
     ]
