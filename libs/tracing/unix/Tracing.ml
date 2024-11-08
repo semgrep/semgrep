@@ -417,7 +417,7 @@ let setup_otel trace_endpoint =
   Opentelemetry_trace.setup_with_otel_backend otel_backend
 
 (* Set according to README of https://github.com/imandra-ai/ocaml-opentelemetry/ *)
-let configure_tracing ?(attrs : (string * user_data) list = []) ?(env = "local")
+let configure_tracing ?(attrs : (string * user_data) list = []) ?(env = "prod")
     ?version service_name trace_endpoint =
   Otel.Globals.service_name := service_name;
   Otel.Globals.default_span_kind := Otel.Span.Span_kind_internal;
