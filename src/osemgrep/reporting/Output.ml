@@ -75,8 +75,10 @@ let string_of_severity (severity : Out.match_severity) : string =
 (*****************************************************************************)
 
 (* called also from RPC_return.ml *)
-let format (kind : Output_format.t) (cli_output : Out.cli_output) : string list
-    =
+let format (kind : Output_format.t) (ctx : Out.format_context)
+    (cli_output : Out.cli_output) : string list =
+  (* TODO: use is_logged_in for the logged_in gated export fields *)
+  ignore ctx;
   match kind with
   | Text
   | Sarif
@@ -161,18 +163,18 @@ let format (kind : Output_format.t) (cli_output : Out.cli_output) : string list
                  String.concat ":" parts)
 
 let dispatch_output_format (caps : < Cap.stdout >) (conf : conf)
-    (runtime_params : Out.format_context) (cli_output : Out.cli_output)
+    (ctx : Out.format_context) (cli_output : Out.cli_output)
     (hrules : Rule.hrules) : unit =
   let print = CapConsole.print caps#stdout in
   match conf.output_format with
   (* matches have already been displayed in a file_match_results_hook *)
   | Incremental -> ()
-  | Vim -> format Vim cli_output |> List.iter print
-  | Emacs -> format Emacs cli_output |> List.iter print
-  | Junit_xml -> format Junit_xml cli_output |> List.iter print
-  | Gitlab_sast -> format Gitlab_sast cli_output |> List.iter print
-  | Gitlab_secrets -> format Gitlab_secrets cli_output |> List.iter print
-  | Json -> format Json cli_output |> List.iter print
+  | Vim -> format Vim ctx cli_output |> List.iter print
+  | Emacs -> format Emacs ctx cli_output |> List.iter print
+  | Junit_xml -> format Junit_xml ctx cli_output |> List.iter print
+  | Gitlab_sast -> format Gitlab_sast ctx cli_output |> List.iter print
+  | Gitlab_secrets -> format Gitlab_secrets ctx cli_output |> List.iter print
+  | Json -> format Json ctx cli_output |> List.iter print
   | Text ->
       (* TODO: we should switch to Fmt_.with_buffer_to_string +
        * some CapConsole.print_no_nl, but then is_atty fail on
@@ -191,8 +193,7 @@ let dispatch_output_format (caps : < Cap.stdout >) (conf : conf)
         | Some `PRO -> ("PRO", true)
       in
       let hide_nudge =
-        runtime_params.is_logged_in || is_pro
-        || not runtime_params.is_using_registry
+        ctx.is_logged_in || is_pro || not ctx.is_using_registry
       in
       let sarif_json =
         Sarif_output.sarif_output hide_nudge engine_label

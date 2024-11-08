@@ -50,4 +50,5 @@ val output_result :
 val preprocess_result : fixed_lines:bool -> Core_runner.result -> Out.cli_output
 
 (* used by RPC_return.ml for Vim/Emacs/Junit_xml/Gitlab_xxx for now *)
-val format : Output_format.t -> Out.cli_output -> string list
+val format :
+  Output_format.t -> Out.format_context -> Out.cli_output -> string list
