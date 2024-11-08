@@ -79,11 +79,13 @@ let format (kind : Output_format.t) (cli_output : Out.cli_output) : string list
     =
   match kind with
   | Text
-  | Json
   | Sarif
   | Files_with_matches
   | Incremental ->
       failwith (spf "format not supported here: %s" (Output_format.show kind))
+  | Json ->
+      (* TODO? Sort keys for predictable output. Helps with snapshot tests? *)
+      [ Out.string_of_cli_output cli_output ]
   | Junit_xml -> [ Junit_xml_output.junit_xml_output cli_output ]
   | Gitlab_sast ->
       let gitlab_sast_json = Gitlab_output.sast_output cli_output.results in
@@ -163,15 +165,14 @@ let dispatch_output_format (caps : < Cap.stdout >) (conf : conf)
     (hrules : Rule.hrules) : unit =
   let print = CapConsole.print caps#stdout in
   match conf.output_format with
+  (* matches have already been displayed in a file_match_results_hook *)
+  | Incremental -> ()
   | Vim -> format Vim cli_output |> List.iter print
   | Emacs -> format Emacs cli_output |> List.iter print
   | Junit_xml -> format Junit_xml cli_output |> List.iter print
   | Gitlab_sast -> format Gitlab_sast cli_output |> List.iter print
   | Gitlab_secrets -> format Gitlab_secrets cli_output |> List.iter print
-  | Json ->
-      (* TOPORT? Sort keys for predictable output. Helps with snapshot tests *)
-      let s = Out.string_of_cli_output cli_output in
-      print s
+  | Json -> format Json cli_output |> List.iter print
   | Text ->
       (* TODO: we should switch to Fmt_.with_buffer_to_string +
        * some CapConsole.print_no_nl, but then is_atty fail on
@@ -181,8 +182,6 @@ let dispatch_output_format (caps : < Cap.stdout >) (conf : conf)
         ~max_lines_per_finding:conf.max_lines_per_finding
           (* nosemgrep: forbid-console *)
         ~color_output:conf.force_color Format.std_formatter cli_output
-  (* matches have already been displayed in a file_match_results_hook *)
-  | Incremental -> ()
   | Sarif ->
       let engine_label, is_pro =
         match cli_output.engine_requested with
