@@ -1,4 +1,3 @@
-Snapshot for Test_scan_subcommand.test_basic_verbose_output.(fun)
 --- begin input files ---
 rules.yml
 stupid.py
@@ -20,7 +19,7 @@ Initialized empty Git repository in <TMP>/<MASKED>/.git/
 └─────────────┘
 
 [<MASKED TIMESTAMP>][INFO]: Checking for API token in environment variables
-[<MASKED TIMESTAMP>][INFO]: Environment variable SEMGREP_APP_TOKEN is set but not well-formed, ignoring it
+[<MASKED TIMESTAMP>][INFO]: Found API token in environment variables
 [<MASKED TIMESTAMP>][INFO]: Loading settings from nosettings.yaml
 [<MASKED TIMESTAMP>][INFO]: Settings file 'nosettings.yaml' does not exist or is not a regular file
 [<MASKED TIMESTAMP>][INFO]: No settings file found, using default settings
@@ -30,8 +29,8 @@ Initialized empty Git repository in <TMP>/<MASKED>/.git/
 [32m✔[39m [1mSemgrep OSS[0m
   [32m✔[39m Basic security coverage for first-party code vulnerabilities.
 
-[31m✘[39m [1mSemgrep Code (SAST)[0m
-  [31m✘[39m Find and fix vulnerabilities in the code you write with advanced scanning and expert security rules.
+[32m✔[39m [1mSemgrep Code (SAST)[0m
+  [32m✔[39m Find and fix vulnerabilities in the code you write with advanced scanning and expert security rules.
 
 [31m✘[39m [1mSemgrep Secrets[0m
   [31m✘[39m Detect and validate potential secrets in your code.
@@ -48,8 +47,8 @@ More information: https://semgrep.dev/docs/metrics
 [<MASKED TIMESTAMP>][INFO]: loading local config from rules.yml
 [<MASKED TIMESTAMP>][INFO]: Done loading local config from rules.yml
 [<MASKED TIMESTAMP>][INFO]: Computing the targets
-[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' '-C' '<TMP>/<MASKED>' 'ls-files' '--cached' '<TMP>/<MASKED>/'
-[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' '-C' '<TMP>/<MASKED>' 'ls-files' '--others' '--exclude-standard' '<TMP>/<MASKED>/'
+[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' '-C' '<TMP>/<MASKED>' 'ls-files' '-z' '--cached' '<TMP>/<MASKED>/'
+[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' '-C' '<TMP>/<MASKED>' 'ls-files' '-z' '--others' '--exclude-standard' '<TMP>/<MASKED>/'
 [<MASKED TIMESTAMP>][INFO]: running 1 rules from 1 config rules.yml
 Rules:
 - eqeq-bad
@@ -66,7 +65,7 @@ Rules:
 [<MASKED TIMESTAMP>][INFO]: scan: processing 1 files (skipping 0), with 1 rules (skipping 0 )
 [<MASKED TIMESTAMP>][INFO]: reporting matches if any
 [<MASKED TIMESTAMP>][INFO]: Checking for API token in environment variables
-[<MASKED TIMESTAMP>][INFO]: Environment variable SEMGREP_APP_TOKEN is set but not well-formed, ignoring it
+[<MASKED TIMESTAMP>][INFO]: Found API token in environment variables
 [<MASKED TIMESTAMP>][INFO]: Loading settings from nosettings.yaml
 [<MASKED TIMESTAMP>][INFO]: Settings file found, using settings from file
 

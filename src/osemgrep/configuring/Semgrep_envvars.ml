@@ -39,10 +39,27 @@ let%test_unit "Semgrep_envvars.(/)" =
   [%test_eq: Base.string] ("a/b/" / "c/d" / "foo.c") "a/b/c/d/foo.c"
 *)
 
-let env_opt var = Sys.getenv_opt var
+(*
+   Treat environment variables with an empty value as if they were unset.
+
+   Since OCaml doesn't provide an 'unsetenv' function (which exists in libc),
+   tests that that set environment variable temporarily can't unset them,
+   leaving them with the empty value instead.
+*)
+let env_opt var =
+  match Sys.getenv_opt var with
+  | Some "" -> None
+  | x -> x
+
+(*****************************************************************************)
+(* Don't use Sys.getenv* or Unix.getenv* starting from here!  *)
+(*****************************************************************************)
+(*
+   TODO: ensure that the whole application uses our 'env_opt' function.
+*)
 
 let env_or conv var default =
-  match Sys.getenv_opt var with
+  match env_opt var with
   | None -> default
   | Some x -> conv x
 
@@ -103,9 +120,11 @@ let of_current_sys_env () : t =
       (* In windows USERPROFILE=C:\Users\<user> *)
       if Sys.win32 then "USERPROFILE" else "XDG_CONFIG_HOME"
     in
-    match Sys.getenv_opt home_env_var with
+    match env_opt home_env_var with
     | Some x when Sys.is_directory x -> Fpath.v x
-    | _else_ -> Fpath.v (env_or (fun x -> x) "HOME" "/")
+    | Some _
+    | None ->
+        Fpath.v (env_or (fun x -> x) "HOME" "/")
   in
   let user_dot_semgrep_dir = user_home_dir / ".semgrep" in
   {

@@ -322,20 +322,26 @@ let string_of_ls_files_kind (kind : ls_files_kind) =
   | Cached -> "--cached"
   | Others -> "--others"
 
+(* Parse the output of 'git ls-files -z' *)
+let parse_nul_separated_list_of_files str =
+  String.split_on_char '\000' str |> List.filter (( <> ) "")
+
 let ls_files ?(cwd = Fpath.v ".") ?(exclude_standard = false) ?(kinds = [])
     root_paths =
   let roots = root_paths |> List_.map Fpath.to_string in
   let kinds = kinds |> List_.map string_of_ls_files_kind in
   let cmd =
     ( git,
-      [ "-C"; !!cwd; "ls-files" ]
+      (* Unlike the default, '-z' causes the file path to not be quoted
+         when they contain special characters, simplifying parsing. *)
+      [ "-C"; !!cwd; "ls-files"; "-z" ]
       @ kinds
       @ flag "--exclude-standard" exclude_standard
       @ roots )
   in
   let files =
-    match UCmd.lines_of_run ~trim:true cmd with
-    | Ok (files, (_, `Exited 0)) -> files
+    match UCmd.string_of_run ~trim:true cmd with
+    | Ok (data, (_, `Exited 0)) -> parse_nul_separated_list_of_files data
     | _ -> raise (Error "Could not get files from git ls-files")
   in
   files |> Fpath_.of_strings

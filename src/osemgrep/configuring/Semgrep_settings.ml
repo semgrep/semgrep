@@ -85,8 +85,8 @@ let set_api_token_from_env settings =
      as ocaml cannot unset environment variables *)
   | Some token when Auth.well_formed token ->
       Logs.info (fun m ->
-          m "Found API token in environment variables '%s'"
-            (Auth.string_of_token token));
+          (* SECURITY: Don't log authentication tokens! *)
+          m "Found API token in environment variables");
       { settings with api_token = Some token }
   | Some _ ->
       Logs.info (fun m ->

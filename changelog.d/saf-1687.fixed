@@ -1,0 +1,2 @@
+Target file selection in git projects: files containing special characters
+(according to git) are now scanned correctly instead of being ignored.

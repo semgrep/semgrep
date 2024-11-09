@@ -13,11 +13,61 @@
  * distribute them in their relevant directory (e.g., engine/Unit_engine.ml)
  *)
 
+open Common
+
 let t = Testo.create
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+
+let parse_env_entry ~ignore_empty s =
+  match String.index_opt s '=' with
+  | Some i ->
+      let k = String_.safe_sub s 0 i in
+      let v = String_.safe_sub s (i + 1) (String.length s - i - 1) in
+      if ignore_empty && v = "" then None else Some (k, v)
+  | None -> None
+
+(* Get the set of environment variables and their values, optionally
+   excluding empty values. *)
+let get_environment ~ignore_empty () =
+  Unix.environment () |> Array.to_list
+  |> List_.filter_map (parse_env_entry ~ignore_empty)
+  |> Set_.of_list
+
+let string_of_set (set : (string * string) Set_.t) =
+  set |> Set_.elements
+  |> List_.map (fun (k, v) -> spf "%s=%s" k v)
+  |> String.concat ", "
+
+(*
+   Wrap the test function so as to check no environment variables were altered
+   and not restored during the test.
+
+   TODO: if this proves useful, move it to Testo
+*)
+let with_env_check ?(ignore_empty = false) (test : Testo.t) =
+  let func () =
+    let orig_env = get_environment ~ignore_empty () in
+    Common.protect test.func ~finally:(fun () ->
+        let final_env = get_environment ~ignore_empty () in
+        let removed = Set_.diff orig_env final_env in
+        let added = Set_.diff final_env orig_env in
+        if not (Set_.is_empty removed && Set_.is_empty added) then
+          let msg =
+            spf
+              {|One or more environment variables changed during the test.%s
+  * removed bindings: %s
+  * added bindings: %s|}
+              (if ignore_empty then
+                 "\nVariables bound to empty values are treated as unbound."
+               else "")
+              (string_of_set removed) (string_of_set added)
+          in
+          failwith msg)
+  in
+  Testo.update ~func test
 
 let any_gen_of_string str =
   let any = Parse_python.any_of_string str in
@@ -145,7 +195,7 @@ let tests (caps : Cap.all_caps) =
 let tests_with_delayed_error caps =
   try
     Printf.printf "Gathering tests from %s...\n%!" (Sys.getcwd ());
-    let tests = tests caps in
+    let tests = tests caps |> List_.map (with_env_check ~ignore_empty:true) in
     Printf.printf "Done gathering tests.\n%!";
     tests
   with
@@ -160,6 +210,9 @@ let main (caps : Cap.all_caps) : unit =
   (* find the root of the semgrep repo as many of our tests rely on
      'let test_path = "tests/"' to find their test files *)
   let project_root = Test_LS_e2e.project_root () in
+  (* Don't read ~/.gitconfig since it varies from one developer to another,
+     resulting in variable output *)
+  Unix.putenv "GIT_CONFIG_NOGLOBAL" "true";
   Testutil_files.with_chdir project_root (fun () ->
       (* coupling: partial copy of the content of CLI.main() *)
       Core_CLI.register_exception_printers ();

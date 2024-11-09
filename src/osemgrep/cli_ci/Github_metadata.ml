@@ -16,6 +16,8 @@ module Cmdl = Cmdliner.Cmd
 
 (* See https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables *)
 
+(* TODO: don't start field names with an underscore because it prevents
+   some warnings (e.g. unused variable) *)
 type env = {
   (* actually GITHUB_EVENT_PATH *)
   _GITHUB_EVENT_JSON : Yojson.Basic.t;

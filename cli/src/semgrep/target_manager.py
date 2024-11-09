@@ -438,9 +438,9 @@ class Target:
         """
         return self._is_valid_file_or_dir(path) and path.is_file()
 
-    def _parse_git_output(self, output: str) -> FrozenSet[Path]:
+    def _parse_git_output_nulsep(self, output: str) -> FrozenSet[Path]:
         """
-        Convert a newline delimited list of files to a set of path objects
+        Convert a null-delimited list of files to a set of path objects
         prepends curr_dir to all paths in said list
 
         If list is empty then returns an empty set
@@ -450,7 +450,7 @@ class Target:
         if output:
             files = frozenset(
                 p
-                for p in (self.path / elem for elem in output.strip().split("\n"))
+                for p in (self.path / elem for elem in output.split("\x00") if elem)
                 if self._is_valid_file(p)
             )
         return files
@@ -477,22 +477,23 @@ class Target:
         )
 
         # Tracked files
-        tracked_output = run_git_command(["git", "ls-files"])
+        tracked_output = run_git_command(["git", "ls-files", "-z"])
 
         # Untracked but not ignored files
         untracked_output = run_git_command(
             [
                 "git",
                 "ls-files",
+                "-z",
                 "--others",
                 "--exclude-standard",
             ]
         )
 
-        deleted_output = run_git_command(["git", "ls-files", "--deleted"])
-        tracked = self._parse_git_output(tracked_output)
-        untracked_unignored = self._parse_git_output(untracked_output)
-        deleted = self._parse_git_output(deleted_output)
+        deleted_output = run_git_command(["git", "ls-files", "-z", "--deleted"])
+        tracked = self._parse_git_output_nulsep(tracked_output)
+        untracked_unignored = self._parse_git_output_nulsep(untracked_output)
+        deleted = self._parse_git_output_nulsep(deleted_output)
         return frozenset(tracked | untracked_unignored - deleted)
 
     def files_from_filesystem(self) -> FrozenSet[Path]:

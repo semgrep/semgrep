@@ -69,6 +69,8 @@ let normalize =
 let without_settings f =
   Semgrep_envvars.with_envvar "SEMGREP_SETTINGS_FILE" "nosettings.yaml" f
 
+(* Please run all tests with this to ensure reproducibility from one
+   host to another. *)
 let with_env_app_token ?(token = dummy_app_token) f =
   Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" token f
 
@@ -99,9 +101,8 @@ let test_nosettings ~env_app_token_set () =
     "default settings loaded with app token and no env" true
     (settings_with_no_include_env = Semgrep_settings.default)
 
-let test_basic_output (caps : Scan_subcommand.caps) : Testo.t =
-  t ~checked_output:(Testo.stdxxx ()) ~normalize __FUNCTION__ (fun () ->
-      Logs.app (fun m -> m "Snapshot for %s" __FUNCTION__);
+let test_basic_output (caps : Scan_subcommand.caps) () =
+  with_env_app_token (fun () ->
       let repo_files =
         [
           F.File ("rules.yml", eqeq_basic_content);
@@ -118,9 +119,20 @@ let test_basic_output (caps : Scan_subcommand.caps) : Testo.t =
           in
           Exit_code.Check.ok exit_code))
 
-let test_basic_verbose_output (caps : Scan_subcommand.caps) : Testo.t =
-  t ~checked_output:(Testo.stdxxx ()) ~normalize __FUNCTION__ (fun () ->
-      Logs.app (fun m -> m "Snapshot for %s" __FUNCTION__);
+(* This test fails for me (Martin) when run alone with e.g.
+
+     ./test -s "basic verbose output"
+
+   In this case, it fails to print these two lines that it normally prints
+   when run as part of the full test suite ('./test'):
+
+     [<MASKED TIMESTAMP>][INFO]: Running external command: 'git' 'ls-remote' '--get-url'
+     [<MASKED TIMESTAMP>][INFO]: error output: fatal: No remote configured to list refs from.
+
+   TODO: figure out why and fix it
+*)
+let test_basic_verbose_output (caps : Scan_subcommand.caps) () =
+  with_env_app_token (fun () ->
       let repo_files =
         [
           F.File ("rules.yml", eqeq_basic_content);
@@ -153,6 +165,8 @@ let tests (caps : < Scan_subcommand.caps >) =
       t "no semgrep settings file with env set" (fun () ->
           without_settings (fun () ->
               with_env_app_token (test_nosettings ~env_app_token_set:true)));
-      test_basic_output caps;
-      test_basic_verbose_output caps;
+      t "basic output" ~checked_output:(Testo.stdxxx ()) ~normalize
+        (test_basic_output caps);
+      t "basic verbose output" ~checked_output:(Testo.stdxxx ()) ~normalize
+        (test_basic_verbose_output caps);
     ]

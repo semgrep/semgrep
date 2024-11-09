@@ -1,14 +1,20 @@
 --- begin input files ---
 a/b/target
+a/b/zero​width-space
+a/b/😊
 x/y/z
 --- end input files ---
 Initialized empty Git repository in <TMP>/<MASKED>/.git/
 [main (root-commit) <MASKED>] Add files
- 2 files changed, 0 insertions(+), 0 deletions(-)
+ 4 files changed, 0 insertions(+), 0 deletions(-)
  create mode 100644 a/b/target
+ create mode 100644 "a/b/zero\342\200\213width-space"
+ create mode 100644 "a/b/\360\237\230\212"
  create mode 100644 x/y/z
 project root: <TMP>/<MASKED>
 cwd: <TMP>/<MASKED>/x
 scanning root: ../a
 file list:
   ../a/b/target
+  ../a/b/zero​width-space
+  ../a/b/😊

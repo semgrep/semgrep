@@ -301,6 +301,14 @@ def mask_variable_text(
     return text
 
 
+# GIT_CONFIG_NOGLOBAL=true prevents reading the user's git configuration
+# which varies from one developer to another and causes variable output.
+def create_git_repo() -> None:
+    os.system("GIT_CONFIG_NOGLOBAL=true git init")
+    os.system("GIT_CONFIG_NOGLOBAL=true git add .")
+    os.system("GIT_CONFIG_NOGLOBAL=true git commit -m 'add files'")
+
+
 ##############################################################################
 # Calls to semgrep
 ##############################################################################

@@ -254,7 +254,11 @@ let filter_path (ign : Gitignore.filter)
       (* We need to filter those paths ASAP otherwise we can get some exn later
        * when trying to process targets that actually do not exist.
        *)
-      | exception Unix.Unix_error (_err, _fun, _info) -> Ignore_silently)
+      | exception Unix.Unix_error (err, _fun, _info) ->
+          Log.debug (fun m ->
+              m "lstat: system error on file '%s': %s" !!fpath
+                (Unix.error_message err));
+          Ignore_silently)
 
 (*
    Filter a pre-expanded list of target files, such as a list of files
@@ -282,7 +286,8 @@ let filter_paths
          (* shouldn't happen if we work on the output of 'git ls-files *)
          | Dir -> ()
          | Skip x -> skip x
-         | Ignore_silently -> ());
+         | Ignore_silently ->
+             Log.debug (fun m -> m "ignore silently: %s" !!(fppath.fpath)));
   (Fppath_set.of_list !selected_paths, !skipped)
 
 let filter_size_and_minified max_target_bytes exclude_minified_files paths =

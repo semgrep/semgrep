@@ -33,7 +33,17 @@ let test_ls_files_relative ~mk_cwd ~mk_scanning_root () =
   let repo_files =
     Testutil_files.
       [
-        dir "a" [ dir "b" [ file "target" ] ]; dir "x" [ dir "y" [ file "z" ] ];
+        dir "a"
+          [
+            dir "b"
+              [
+                file "target";
+                file "zero\u{200B}width-space";
+                (* smiley "😊" *)
+                file "\u{1F60A}";
+              ];
+          ];
+        dir "x" [ dir "y" [ file "z" ] ];
       ]
   in
   Testutil_git.with_git_repo ~verbose:true repo_files (fun _cwd ->
