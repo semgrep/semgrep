@@ -260,10 +260,12 @@ let otel_reporter : Logs.reporter =
 (*****************************************************************************)
 (* Span/Event entrypoints *)
 (*****************************************************************************)
-
+(* Essentially
+   https://github.com/imandra-ai/ocaml-opentelemetry/blob/fdee7fe2dd1f91a8d1f78d6ce20d2bc86d555444/src/core/opentelemetry.ml#L980-L993
+   We should switch to this once it's released! *)
 let trace_exn sp exn =
   let e = Exception.catch exn in
-  let exn_type = Printexc.to_string_default exn in
+  let exn_type = Printexc.exn_slot_name exn in
   let exn_msg = Printexc.to_string exn in
   let exn_stacktrace =
     e |> Exception.get_trace |> Printexc.raw_backtrace_to_string
