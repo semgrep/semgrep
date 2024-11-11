@@ -230,7 +230,7 @@ let main (caps : Cap.all_caps) : unit =
       (* Show log messages produced when building the list of tests *)
       reset ();
       (* let's go *)
-      Testo.interpret_argv ~project_name:"semgrep-core" (fun () ->
+      Testo.interpret_argv ~project_name:"semgrep-core" (fun _env ->
           tests_with_delayed_error caps |> cleanup_before_each_test reset))
 
 let () = Cap.main (fun all_caps -> main all_caps)

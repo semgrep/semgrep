@@ -87,7 +87,8 @@ let test_memory_limit_with_stack caps =
 let skip_if_ocaml_5 tests =
   tests
   |> List_.map (fun test ->
-         if Sys.ocaml_release.major = 5 then Testo.update ~skipped:true test
+         if Sys.ocaml_release.major = 5 then
+           Testo.update ~skipped:(Some "ocaml 5") test
          else test)
 
 let tests (caps : < Cap.memory_limit >) =

@@ -167,6 +167,8 @@ let tests (caps : < Scan_subcommand.caps >) =
               with_env_app_token (test_nosettings ~env_app_token_set:true)));
       t "basic output" ~checked_output:(Testo.stdxxx ()) ~normalize
         (test_basic_output caps);
-      t "basic verbose output" ~checked_output:(Testo.stdxxx ()) ~normalize
+      t "basic verbose output"
+        ~skipped:"captured output depends on which tests run before it"
+        ~checked_output:(Testo.stdxxx ()) ~normalize
         (test_basic_verbose_output caps);
     ]

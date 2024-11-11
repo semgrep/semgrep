@@ -19,7 +19,9 @@ NC='\033[0m' # No Color
 # Checking the status of the tests and approving the output is done with
 # './test status' and './test approve'. See './test --help' for options.
 # This uses the in-house project testo.
-./test
+#
+# TODO: fix concurrency bugs to remove '-j0'
+./test -j0
 
 # run inline tests
 # TODO: make them part of the testo test program above.
