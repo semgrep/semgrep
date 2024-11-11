@@ -1,0 +1,4 @@
+Semgrep Pro engine now resolves method invocations on abstract classes. In
+addition to the existing resolution for interface method invocations, this
+change further enhances dataflow tracking accuracy for dynamic method
+invocations.
