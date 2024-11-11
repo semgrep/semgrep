@@ -149,10 +149,7 @@ def exec_pysemgrep():
 # they'll get the old behavior.
 def exec_osemgrep():
     argv = sys.argv
-    if (
-        any(pro_flag in argv for pro_flag in PRO_FLAGS)
-        or "--beta-testing-secrets-enabled" in argv
-    ):
+    if any(pro_flag in argv for pro_flag in PRO_FLAGS):
         try:
             path = find_semgrep_core_path(
                 pro=True,
