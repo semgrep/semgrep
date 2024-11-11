@@ -226,19 +226,17 @@ let pms_of_effect ~match_on (effect : Effect.t) =
 (* Main entry points *)
 (*****************************************************************************)
 
-let check_var_def lang options taint_config env id ii expr =
+let check_var_def (taint_inst : Taint_rule_inst.t) env id ii expr =
   let name = AST_to_IL.var_of_id_info id ii in
   let assign =
     G.Assign (G.N (G.Id (id, ii)) |> G.e, Tok.fake_tok (snd id) "=", expr)
     |> G.e |> G.exprstmt
   in
-  let xs = AST_to_IL.stmt lang assign in
+  let xs = AST_to_IL.stmt taint_inst.lang assign in
   let cfg, lambdas = CFG_build.cfg_of_stmts xs in
   let effects, end_mapping =
     (* There could be taint effects indeed, e.g. if 'expr' is `sink(taint)`. *)
-    let java_props_cache = D.mk_empty_java_props_cache () in
-    Dataflow_tainting.fixpoint ~in_env:env lang options taint_config
-      java_props_cache
+    Dataflow_tainting.fixpoint taint_inst ~in_env:env
       IL.{ params = []; cfg; lambdas }
   in
   let out_env = end_mapping.(cfg.exit).Dataflow_core.out_env in
@@ -246,11 +244,11 @@ let check_var_def lang options taint_config env id ii expr =
   let xtaint = Lval_env.find_lval_xtaint out_env lval in
   (xtaint, effects)
 
-let add_to_env_aux lang options taint_config env id ii opt_expr =
+let add_to_env_aux (taint_inst : Taint_rule_inst.t) env id ii opt_expr =
   let var = AST_to_IL.var_of_id_info id ii in
-  let var_type = Typing.resolved_type_of_id_info lang var.id_info in
+  let var_type = Typing.resolved_type_of_id_info taint_inst.lang var.id_info in
   let id_taints =
-    taint_config.D.is_source (G.Tk (snd id))
+    taint_inst.preds.is_source (G.Tk (snd id))
     |> List_.map (fun (x : _ Taint_spec_match.t) -> (x.spec_pm, x.spec))
     (* These sources come from the parameters to a function,
         which are not within the normal control flow of a code.
@@ -261,28 +259,25 @@ let add_to_env_aux lang options taint_config env id ii opt_expr =
   let expr_taints, expr_effects =
     match opt_expr with
     | Some e ->
-        let xtaint, effects =
-          check_var_def lang options taint_config env id ii e
-        in
+        let xtaint, effects = check_var_def taint_inst env id ii e in
         (Xtaint.to_taints xtaint, effects)
     | None -> (T.Taint_set.empty, Effects.empty)
   in
   let taints = id_taints |> T.Taint_set.union expr_taints in
   let taints =
-    Dataflow_tainting.drop_taints_if_bool_or_number options taints var_type
+    Dataflow_tainting.drop_taints_if_bool_or_number taint_inst.options taints
+      var_type
   in
   let env = env |> Lval_env.add (IL_helpers.lval_of_var var) taints in
   (env, expr_effects)
 
-let add_to_env lang options taint_config (env, effects) id id_info opt_expr =
-  let env, new_effects =
-    add_to_env_aux lang options taint_config env id id_info opt_expr
-  in
+let add_to_env taint_inst (env, effects) id id_info opt_expr =
+  let env, new_effects = add_to_env_aux taint_inst env id id_info opt_expr in
   (env, Effects.union new_effects effects)
 
-let mk_fun_input_env lang options taint_config ?(glob_env = Lval_env.empty)
+let mk_fun_input_env taint_inst ?(glob_env = Lval_env.empty)
     (fdef : IL.function_definition) =
-  let add_to_env = add_to_env lang options taint_config in
+  let add_to_env = add_to_env taint_inst in
   let in_env =
     (* For each argument, check if it's a source and, if so, add it to the input
      * environment. *)
@@ -340,8 +335,8 @@ let is_global (id_info : G.id_info) =
   let* kind, _sid = !(id_info.id_resolved) in
   Some (H.name_is_global kind)
 
-let mk_file_env lang options taint_config ast =
-  let add_to_env = add_to_env lang options taint_config in
+let mk_file_env taint_inst ast =
+  let add_to_env = add_to_env taint_inst in
   let env = ref (Lval_env.empty, Effects.empty) in
   let visitor =
     object (_self : 'self)
@@ -375,21 +370,16 @@ let mk_file_env lang options taint_config ast =
   visitor#visit_program env ast;
   !env
 
-let check_fundef lang options taint_config opt_ent ctx ?glob_env
-    java_props_cache fdef =
+let check_fundef (taint_inst : Taint_rule_inst.t) opt_ent ctx ?glob_env fdef =
   let name =
     let* ent = opt_ent in
-    let* name = AST_to_IL.name_of_entity ent in
-    Some (IL.str_of_name name)
+    AST_to_IL.name_of_entity ent
   in
-  let fdef = AST_to_IL.function_definition lang ~ctx fdef in
+  let fdef = AST_to_IL.function_definition taint_inst.lang ~ctx fdef in
   let fcfg = CFG_build.cfg_of_fdef fdef in
-  let in_env, env_effects =
-    mk_fun_input_env lang options taint_config ?glob_env fdef
-  in
+  let in_env, env_effects = mk_fun_input_env taint_inst ?glob_env fdef in
   let effects, mapping =
-    Dataflow_tainting.fixpoint ~in_env ?name lang options taint_config
-      java_props_cache fcfg
+    Dataflow_tainting.fixpoint taint_inst ~in_env ?name fcfg
   in
   let effects = Effects.union env_effects effects in
   (fcfg, effects, mapping)
@@ -412,9 +402,12 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
            let effect_pms = pms_of_effect ~match_on effect in
            matches := List.rev_append effect_pms !matches)
   in
-
-  let { path = { internal_path_to_content; _ }; xlang; lazy_ast_and_errors; _ }
-      : Xtarget.t =
+  let {
+    path = { internal_path_to_content = file; _ };
+    xlang;
+    lazy_ast_and_errors;
+    _;
+  } : Xtarget.t =
     xtarget
   in
   let lang =
@@ -430,15 +423,15 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
   in
   (* TODO: 'debug_taint' should just be part of 'res'
      * (i.e., add a "debugging" field to 'Report.match_result'). *)
-  let taint_config, _TODO_debug_taint, expls =
-    Match_taint_spec.taint_config_of_rule ~per_file_formula_cache xconf
-      !!internal_path_to_content (ast, []) rule
+  let taint_inst, _TODO_debug_taint, expls =
+    Match_taint_spec.taint_config_of_rule ~per_file_formula_cache xconf lang
+      file (ast, []) rule
   in
 
   (match !hook_setup_hook_function_taint_signature with
   | None -> ()
   | Some setup_hook_function_taint_signature ->
-      setup_hook_function_taint_signature xconf rule taint_config xtarget);
+      setup_hook_function_taint_signature rule taint_inst xtarget);
 
   (* FIXME: This is no longer needed, now we can just check the type 'n'. *)
   let ctx = ref AST_to_IL.empty_ctx in
@@ -450,17 +443,14 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
       | __else__ -> ())
     ast;
 
-  let java_props_cache = Dataflow_tainting.mk_empty_java_props_cache () in
-
-  let glob_env, glob_effects = mk_file_env lang xconf.config taint_config ast in
+  let glob_env, glob_effects = mk_file_env taint_inst ast in
   record_matches glob_effects;
 
   (* Check each function definition. *)
   Visit_function_defs.visit
     (fun opt_ent fdef ->
       let _flow, fdef_effects, _mapping =
-        check_fundef lang xconf.config taint_config opt_ent !ctx ~glob_env
-          java_props_cache fdef
+        check_fundef taint_inst opt_ent !ctx ~glob_env fdef
       in
       record_matches fdef_effects)
     ast;
@@ -473,12 +463,10 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
         |> List_.map (function G.F x -> x)
         |> G.stmt1
       in
-      let stmts = AST_to_IL.stmt lang fields in
+      let stmts = AST_to_IL.stmt taint_inst.lang fields in
       let cfg, lambdas = CFG_build.cfg_of_stmts stmts in
       let init_effects, _mapping =
-        Dataflow_tainting.fixpoint lang xconf.config taint_config
-          java_props_cache
-          IL.{ params = []; cfg; lambdas }
+        Dataflow_tainting.fixpoint taint_inst IL.{ params = []; cfg; lambdas }
       in
       record_matches init_effects)
     ast;
@@ -489,12 +477,10 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
    * treat the program itself as an anonymous function. *)
   let (), match_time =
     Common.with_time (fun () ->
-        let xs = AST_to_IL.stmt lang (G.stmt1 ast) in
+        let xs = AST_to_IL.stmt taint_inst.lang (G.stmt1 ast) in
         let cfg, lambdas = CFG_build.cfg_of_stmts xs in
         let top_effects, _mapping =
-          Dataflow_tainting.fixpoint lang xconf.config taint_config
-            java_props_cache
-            IL.{ params = []; cfg; lambdas }
+          Dataflow_tainting.fixpoint taint_inst IL.{ params = []; cfg; lambdas }
         in
         record_matches top_effects)
   in

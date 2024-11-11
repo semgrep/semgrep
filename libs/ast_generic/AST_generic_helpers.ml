@@ -349,6 +349,11 @@ let has_keyword_attr kwd attrs =
        | KeywordAttr (kwd2, _) -> kwd =*= kwd2
        | _ -> false)
 
+let id_of_name = function
+  | G.Id (id, id_info) -> (id, id_info)
+  | G.IdQualified { G.name_last = id, _typeargs; name_info = id_info; _ } ->
+      (id, id_info)
+
 let name_is_global = function
   | Global (* OSS *)
   | GlobalName _ (* Pro *)

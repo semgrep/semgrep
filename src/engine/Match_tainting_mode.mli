@@ -1,11 +1,5 @@
 val hook_setup_hook_function_taint_signature :
-  (Match_env.xconfig ->
-  Rule.taint_rule ->
-  Dataflow_tainting.config ->
-  Xtarget.t ->
-  unit)
-  option
-  ref
+  (Rule.taint_rule -> Taint_rule_inst.t -> Xtarget.t -> unit) option ref
 (** This is used for intra-file inter-procedural taint-tracking, and the idea is
   * that this hook will do top-sorting and infer the signature of each function
   * in the file, and while doing this it will also setup
@@ -21,9 +15,7 @@ val hook_setup_hook_function_taint_signature :
   *)
 
 val mk_fun_input_env :
-  Language.t ->
-  Rule_options_t.t ->
-  Dataflow_tainting.config ->
+  Taint_rule_inst.t ->
   ?glob_env:Taint_lval_env.t ->
   IL.function_definition ->
   Taint_lval_env.t * Shape_and_sig.Effects.t
@@ -33,13 +25,10 @@ val mk_fun_input_env :
  * It is exposed to be used by inter-file taint analysis in Pro.  *)
 
 val check_fundef :
-  Lang.t ->
-  Rule_options.t ->
-  Dataflow_tainting.config ->
+  Taint_rule_inst.t ->
   AST_generic.entity option (** entity being analyzed *) ->
   AST_to_IL.ctx ->
   ?glob_env:Taint_lval_env.t ->
-  Dataflow_tainting.java_props_cache ->
   AST_generic.function_definition ->
   IL.fun_cfg * Shape_and_sig.Effects.t * Dataflow_tainting.mapping
 (** Check a function definition using a [Dataflow_tainting.config] (which can

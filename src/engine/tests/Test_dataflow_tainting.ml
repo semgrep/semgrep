@@ -22,14 +22,11 @@ let pr2_ranges (file : Fpath.t) (rwms : RM.t list) : unit =
          in
          UCommon.pr2 (code_text ^ " @l." ^ line_str))
 
-let test_tainting (lang : Lang.t) (_file : Fpath.t) options config def =
+let test_tainting taint_inst def =
   UCommon.pr2 "\nDataflow";
   UCommon.pr2 "--------";
   let fcfg, _effects_IGNORED, mapping =
-    Match_tainting_mode.check_fundef lang options config None
-      AST_to_IL.empty_ctx
-      (Dataflow_tainting.mk_empty_java_props_cache ())
-      def
+    Match_tainting_mode.check_fundef taint_inst None AST_to_IL.empty_ctx def
   in
   DataflowX.display_mapping fcfg.cfg mapping Taint_lval_env.to_string
 
@@ -70,9 +67,9 @@ let test_dfg_tainting rules_file file =
      for test purposes.
   *)
   let tbl = Formula_cache.mk_specialized_formula_cache [] in
-  let config, spec_matches, _exps =
-    Match_taint_spec.taint_config_of_rule ~per_file_formula_cache:tbl xconf
-      !!file (ast, []) rule
+  let taint_inst, spec_matches, _exps =
+    Match_taint_spec.taint_config_of_rule ~per_file_formula_cache:tbl xconf lang
+      file (ast, []) rule
   in
   UCommon.pr2 "\nSources";
   UCommon.pr2 "-------";
@@ -88,7 +85,7 @@ let test_dfg_tainting rules_file file =
       inherit [_] AST_generic.iter_no_id_info as super
 
       method! visit_function_definition env def =
-        test_tainting lang file xconf.config config def;
+        test_tainting taint_inst def;
         (* go into nested functions *)
         super#visit_function_definition env def
     end

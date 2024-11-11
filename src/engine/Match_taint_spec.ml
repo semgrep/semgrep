@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-open Fpath_.Operators (* e.g. !! *)
+open Fpath_.Operators
 module Log = Log_tainting.Log
 module G = AST_generic
 module ME = Matching_explanation
@@ -64,7 +64,7 @@ module D = Dataflow_tainting
  *)
 
 type propagator_match = {
-  id : D.var;
+  id : Taint_rule_inst.var;
   rwm : RM.t;
   from : Range.t;
   to_ : Range.t;
@@ -76,13 +76,6 @@ type spec_matches = {
   propagators : propagator_match list;
   sanitizers : (RM.t * R.taint_sanitizer) list;
   sinks : (RM.t * R.taint_sink) list;
-}
-
-type spec_predicates = {
-  is_source : G.any -> R.taint_source Taint_spec_match.t list;
-  is_propagator : G.any -> D.a_propagator Taint_spec_match.t list;
-  is_sanitizer : G.any -> R.taint_sanitizer Taint_spec_match.t list;
-  is_sink : G.any -> R.taint_sink Taint_spec_match.t list;
 }
 
 (*****************************************************************************)
@@ -381,7 +374,7 @@ let is_exact_match ~match_range r =
 
 let mk_propagator_match rule (prop : propagator_match) var kind r =
   let spec_pm = RM.range_to_pattern_match_adjusted rule prop.rwm in
-  let spec : D.a_propagator = { kind; prop = prop.spec; var } in
+  let spec : Taint_rule_inst.a_propagator = { kind; prop = prop.spec; var } in
   {
     Taint_spec_match.spec;
     spec_id = prop.spec.propagator_id;
@@ -394,7 +387,7 @@ let mk_propagator_match rule (prop : propagator_match) var kind r =
  * `pattern-propagators`. Matches must be exact (overlap > 0.99) to make
  * taint propagation more precise and predictable. *)
 let any_is_in_propagators_matches_OSS rule matches any :
-    D.a_propagator Taint_spec_match.t list =
+    Taint_rule_inst.a_propagator Taint_spec_match.t list =
   match range_of_any any with
   | None -> []
   | Some r ->
@@ -411,23 +404,24 @@ let any_is_in_propagators_matches_OSS rule matches any :
 let mk_taint_spec_match_preds rule matches =
   match !hook_mk_taint_spec_match_preds with
   | None ->
-      {
-        is_source =
-          (fun any ->
-            any_is_in_matches_OSS rule matches.sources any
-              ~get_id:(fun (ts : R.taint_source) -> ts.source_id));
-        is_propagator =
-          (fun any ->
-            any_is_in_propagators_matches_OSS rule matches.propagators any);
-        is_sanitizer =
-          (fun any ->
-            any_is_in_matches_OSS rule matches.sanitizers any
-              ~get_id:(fun (ts : R.taint_sanitizer) -> ts.sanitizer_id));
-        is_sink =
-          (fun any ->
-            any_is_in_matches_OSS rule matches.sinks any
-              ~get_id:(fun (ts : R.taint_sink) -> ts.sink_id));
-      }
+      Taint_rule_inst.
+        {
+          is_source =
+            (fun any ->
+              any_is_in_matches_OSS rule matches.sources any
+                ~get_id:(fun (ts : R.taint_source) -> ts.source_id));
+          is_propagator =
+            (fun any ->
+              any_is_in_propagators_matches_OSS rule matches.propagators any);
+          is_sanitizer =
+            (fun any ->
+              any_is_in_matches_OSS rule matches.sanitizers any
+                ~get_id:(fun (ts : R.taint_sanitizer) -> ts.sanitizer_id));
+          is_sink =
+            (fun any ->
+              any_is_in_matches_OSS rule matches.sinks any
+                ~get_id:(fun (ts : R.taint_sink) -> ts.sink_id));
+        }
   | Some hook -> hook rule matches
 
 (*****************************************************************************)
@@ -437,31 +431,28 @@ let mk_taint_spec_match_preds rule matches =
 let default_effect_handler _fun_name new_effects = new_effects
 
 let taint_config_of_rule ~per_file_formula_cache
-    ?(handle_effects = default_effect_handler) xconf file ast_and_errors
+    ?(handle_effects = default_effect_handler) xconf lang file ast_and_errors
     ({ mode = `Taint spec; _ } as rule : R.taint_rule) =
   let spec_matches, expls =
-    spec_matches_of_taint_rule ~per_file_formula_cache xconf file ast_and_errors
-      rule
+    spec_matches_of_taint_rule ~per_file_formula_cache xconf !!file
+      ast_and_errors rule
   in
-  let file = Fpath.v file in
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf rule.options in
-  let config = xconf.config in
-  let { is_source; is_propagator; is_sanitizer; is_sink } =
-    mk_taint_spec_match_preds rule spec_matches
-  in
-  ( {
-      Dataflow_tainting.filepath = !!file;
-      rule_id = fst rule.R.id;
-      track_control =
-        spec.sources |> snd
-        |> List.exists (fun (src : R.taint_source) -> src.source_control);
-      is_source;
-      is_propagator;
-      is_sanitizer;
-      is_sink;
-      unify_mvars = config.taint_unify_mvars;
-      handle_effects;
-    },
+  let options = xconf.config in
+  let preds = mk_taint_spec_match_preds rule spec_matches in
+  ( Taint_rule_inst.
+      {
+        lang;
+        file;
+        rule_id = fst rule.R.id;
+        options;
+        track_control =
+          spec.sources |> snd
+          |> List.exists (fun (src : R.taint_source) -> src.source_control);
+        preds;
+        handle_effects;
+        java_props_cache = Hashtbl.create 30;
+      },
     spec_matches,
     expls )
 [@@trace_trace]
