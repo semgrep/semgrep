@@ -187,9 +187,17 @@ log_config.json
 
 # Ignore bench files
 perf/bench
-!perf/bench/dogfood
-!perf/bench/gitlab
-!perf/bench/dummy
+
+# The following instructions have no effect because 'perf/bench' is a parent
+# directory that is gitignored by the pattern above, causing git's scanner
+# to stop without inspecting the children paths.
+#
+# TODO: If we want to not gitignore these paths, they should
+# go in a separate folder i.e. not side-by-side with temporary folders.
+#
+# !perf/bench/dogfood
+# !perf/bench/gitlab
+# !perf/bench/dummy
 
 # Local actions testing
 act/
