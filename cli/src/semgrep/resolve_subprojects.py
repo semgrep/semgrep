@@ -101,8 +101,7 @@ DEPENDENCY_GRAPH_SUPPORTED_MANIFEST_KINDS = [
 def _resolve_dependencies_dynamically(
     manifest_path: Path, manifest_kind: out.ManifestKind
 ) -> Tuple[
-    Optional[Ecosystem],
-    List[FoundDependency],
+    Optional[Tuple[Ecosystem, List[FoundDependency]]],
     Sequence[Union[DependencyParserError, DependencyResolutionError]],
     List[Path],
 ]:
@@ -114,7 +113,7 @@ def _resolve_dependencies_dynamically(
     if response is None:
         # we failed to resolve somehow
         # TODO: handle this and generate an error
-        return (None, [], [], [])
+        return None, [], []
     if len(response) > 1:
         logger.warning(
             f"Too many responses from dynamic dependency resolution RPC. Expected 1, got {len(response)}"
@@ -125,14 +124,14 @@ def _resolve_dependencies_dynamically(
         # right now we only support lockfileless for the maven ecosystem, so hardcode that here
         # TODO: move this ecosystem identification into the ocaml code when we redo the interface there
         ecosystem = Ecosystem(out.Maven())
-        return ecosystem, resolved_deps, [], [manifest_path]
+        return (ecosystem, resolved_deps), [], [manifest_path]
     else:
         # some error occured in resolution, track it
         error = DependencyResolutionError(
             type_=result.value.value,
             dependency_source_file=manifest_path,
         )
-        return (None, [], [error], [])
+        return (None, [error], [])
 
 
 def _resolve_dependency_source(
@@ -173,14 +172,14 @@ def _resolve_dependency_source(
             and manifest_kind in DEPENDENCY_GRAPH_SUPPORTED_MANIFEST_KINDS
         ):
             (
-                ecosystem,
-                new_deps,
+                resolved_info,
                 new_errors,
                 new_targets,
             ) = _resolve_dependencies_dynamically(manifest_path, manifest_kind)
-            if ecosystem is not None:
+            if resolved_info is not None:
                 # TODO: Reimplement this once more robust error handling for lockfileless resolution is implemented
-                return ecosystem, new_deps, new_errors, new_targets
+                new_ecosystem, new_deps = resolved_info
+                return new_ecosystem, new_deps, new_errors, new_targets
             else:
                 # dynamic resolution failed, fall back to lockfile parsing
                 resolved_deps, parse_errors = parser(
@@ -212,9 +211,13 @@ def _resolve_dependency_source(
         isinstance(dep_source, ManifestOnlyDependencySource)
         and enable_dynamic_resolution
     ):
-        return _resolve_dependencies_dynamically(
+        resolved_info, new_errors, new_targets = _resolve_dependencies_dynamically(
             dep_source.manifest_path, dep_source.manifest_kind
         )
+        if resolved_info is None:
+            return None, [], new_errors, new_targets
+        new_ecosystem, new_deps = resolved_info
+        return new_ecosystem, new_deps, new_errors, new_targets
     else:
         # dependency source type is not supported, do nothing
         return (None, [], [], [])
