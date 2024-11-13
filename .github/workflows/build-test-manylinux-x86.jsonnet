@@ -142,6 +142,50 @@ local test_wheels_venv_job = {
   ],
 };
 
+local test_wheels_wsl_job = {
+  'runs-on': 'windows-latest',
+  needs: [
+    'build-wheels',
+  ],
+  steps: [
+    actions.download_artifact_step(wheel_name),
+    {
+      run: 'unzip dist.zip',
+    },
+    {
+      uses: 'Vampire/setup-wsl@v3',
+    },
+    {
+      name: 'Install Python',
+      shell: 'wsl-bash {0}',
+      run: |||
+        sudo apt update -y
+        sudo apt install -y make python3 python3-pip
+        sudo ln -s /usr/bin/python3 /usr/bin/python
+      |||,
+    },
+    {
+      name: "install package",
+      shell: 'wsl-bash {0}',
+      run: "python3 -m pip install dist/*.whl"
+    },
+    {
+      name: 'test package',
+      shell: 'wsl-bash {0}',
+      run: |||
+        semgrep --version
+      |||,
+    },
+    {
+      name: 'e2e semgrep-core test',
+      shell: 'wsl-bash {0}',
+      run: |||
+        echo '1 == 1' | semgrep -l python -e '$X == $X' -
+      |||,
+    },
+  ],
+};
+
 // ----------------------------------------------------------------------------
 // The Workflow
 // ----------------------------------------------------------------------------
@@ -162,5 +206,6 @@ local test_wheels_venv_job = {
     'build-wheels': build_wheels_job,
     'test-wheels': test_wheels_job,
     'test-wheels-venv': test_wheels_venv_job,
+    'test-wheels-wsl': test_wheels_wsl_job,
   },
 }

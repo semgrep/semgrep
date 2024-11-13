@@ -67,6 +67,33 @@ jobs:
       - name: e2e semgrep-core test
         run: |
           echo '1 == 1' | env/bin/semgrep -l python -e '$X == $X' -
+  test-wheels-wsl:
+    needs:
+      - build-wheels
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: manylinux-x86-wheel
+      - run: unzip dist.zip
+      - uses: Vampire/setup-wsl@v3
+      - name: Install Python
+        run: |
+          sudo apt update -y
+          sudo apt install -y make python3 python3-pip
+          sudo ln -s /usr/bin/python3 /usr/bin/python
+        shell: wsl-bash {0}
+      - name: install package
+        run: python3 -m pip install dist/*.whl
+        shell: wsl-bash {0}
+      - name: test package
+        run: |
+          semgrep --version
+        shell: wsl-bash {0}
+      - name: e2e semgrep-core test
+        run: |
+          echo '1 == 1' | semgrep -l python -e '$X == $X' -
+        shell: wsl-bash {0}
 name: build-test-manylinux-x86
 on:
   workflow_call: null
