@@ -1662,6 +1662,27 @@ def test_generic_secrets_output(
     assert "generic secrets rule message" not in result.raw_stdout
 
 
+@pytest.mark.osemfail
+def test_semgrep_managed_scan_id(run_semgrep: RunSemgrep, requests_mock):
+    MANAGED_SCAN_ID = "12321"
+    scan_create = requests_mock.post("https://semgrep.dev/api/cli/scans")
+    run_semgrep(
+        subcommand="ci",
+        options=["--no-suppress-errors", "--oss-only"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=None,
+        env={
+            "SEMGREP_APP_TOKEN": "fake-key-from-tests",
+            "SEMGREP_MANAGED_SCAN_ID": MANAGED_SCAN_ID,
+        },
+        use_click_runner=True,  # TODO: probably because rely on some mocking
+    )
+    assert scan_create.call_count == 1
+    request_body = scan_create.request_history[-1].json()
+    assert request_body["scan_metadata"]["sms_scan_id"] == MANAGED_SCAN_ID
+
+
 @pytest.mark.parametrize("mocked_scan_id", [None])
 @pytest.mark.osemfail
 def test_dryrun(
