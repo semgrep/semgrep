@@ -265,7 +265,7 @@ local opam_switch = '4.14.0';
 // locally in the project folder (/home/runner/work/semgrep/semgrep/_opam)
 // coupling: default is above opam_switch
 local opam_setup = function(opam_switch="4.14.0") {
-      uses: 'ocaml/setup-ocaml@v2',
+      uses: 'ocaml/setup-ocaml@v3',
       with: {
         'ocaml-compiler': opam_switch,
         'opam-depext': false,
