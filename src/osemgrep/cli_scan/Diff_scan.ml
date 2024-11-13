@@ -62,8 +62,9 @@ let remove_matches_in_baseline caps (commit : string) (baseline : Core_result.t)
       |> Option.value ~default:p
     in
     let start_range, end_range = m.range_loc in
+    (* TODO: what if we get an exn? *)
     let syntactic_ctx =
-      UFile.lines_of_file
+      UFile.lines_of_file_exn
         (start_range.pos.line, end_range.pos.line)
         m.path.internal_path_to_content
     in

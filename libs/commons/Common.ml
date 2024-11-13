@@ -164,6 +164,7 @@ exception Todo
 exception Impossible
 exception Multi_found (* to be consistent with Not_found *)
 exception UnixExit of int
+exception ErrorOnFile of string * Fpath.t
 
 let exn_to_s exn = Printexc.to_string exn
 

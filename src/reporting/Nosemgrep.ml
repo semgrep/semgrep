@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Common
 open Fpath_.Operators
 module OutJ = Semgrep_output_v1_j
 
@@ -115,7 +116,7 @@ let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
     (* Minus one, because we need the preceding line. *)
     let start, end_ = pm.range_loc in
     let start_line = max 0 (start.pos.line - 1) in
-    UFile.lines_of_file (start_line, end_.pos.line) path
+    UFile.lines_of_file_exn (start_line, end_.pos.line) path
     |> List_.mapi (fun idx x -> (start_line + idx, x))
   in
 
@@ -259,8 +260,20 @@ let produce_ignored (matches : Core_result.processed_match list) :
   let matches, wide_errors =
     matches
     |> List_.map (fun (pm : Core_result.processed_match) ->
-           let is_ignored, errors = rule_match_nosem pm.pm in
-           ({ pm with is_ignored }, errors))
+           try
+             let is_ignored, errors = rule_match_nosem pm.pm in
+             ({ pm with is_ignored }, errors)
+           with
+           | (Time_limit.Timeout _ | Common.ErrorOnFile _) as exn ->
+               Exception.catch_and_reraise exn
+           | exn ->
+               let msg = Printexc.to_string exn in
+               let exn =
+                 Common.ErrorOnFile
+                   ( spf "produce_ignored: %s" msg,
+                     pm.pm.path.internal_path_to_content )
+               in
+               Exception.catch_and_reraise exn)
     |> List_.split
   in
   (matches, List_.flatten wide_errors)

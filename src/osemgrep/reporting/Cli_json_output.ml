@@ -309,7 +309,7 @@ let cli_match_of_core_match ~fixed_lines fixed_env (hrules : Rule.hrules)
        * entirety of every line involved in the match, not just the text that
        * matched. *)
       let lines =
-        Semgrep_output_utils.lines_of_file_at_range (start, end_) path
+        Semgrep_output_utils.lines_of_file_at_range_exn (start, end_) path
       in
       let lines = lines |> String.concat "\n" in
       {

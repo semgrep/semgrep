@@ -40,10 +40,10 @@ let first_and_last = function
  * python: # 'lines' already contains '\n' at the end of each line
  *   lines="".join(rule_match.lines).rstrip(),
  *)
-let lines_of_file_at_range (range : position * position) (file : Fpath.t) :
+let lines_of_file_at_range_exn (range : position * position) (file : Fpath.t) :
     string list =
   let start, end_ = range in
-  UFile.lines_of_file (start.line, end_.line) file
+  UFile.lines_of_file_exn (start.line, end_.line) file
 [@@profiling]
 
 (* Returns the text between the positions; start inclusive, end exclusive.

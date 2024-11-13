@@ -4,8 +4,9 @@
 
 (* internal function used for the 'lines:' field in the JSON output
  * but also now in Output.ml for the Emacs output.
+ * This may raise Common.ErrorOnFile "out of bound access".
  *)
-val lines_of_file_at_range :
+val lines_of_file_at_range_exn :
   Semgrep_output_v1_t.position * Semgrep_output_v1_t.position ->
   Fpath.t ->
   string list

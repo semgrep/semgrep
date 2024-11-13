@@ -63,7 +63,7 @@ val on : ('b -> 'b -> 'c) -> ('a -> 'b) -> 'a -> 'a -> 'c
 (* Exceptions *)
 (*****************************************************************************)
 (* see also Exception.ml functions as well as Time_limit.Timeout
- * in the process_limits library.
+ * and Memory_limit.ExceededMemoryLimit in the process_limits library.
  *)
 
 exception Todo
@@ -73,6 +73,12 @@ exception Impossible
 
 (* similar to Not_found but to use when something returns too many findings *)
 exception Multi_found
+
+(* it's usually far easier to diagnose an error when you know on which
+ * file it occured. An [Invalid_argument("index out of bounds")] is not
+ * as good as [ErrorOnFile("out of bounds in lines_of_file()", 'foo.c')]
+ *)
+exception ErrorOnFile of string (* error message *) * Fpath.t
 
 (* If the user use some [exit 0] in his code, then no one can intercept this
  * exit and do something before exiting. There is exn handler for exit 0

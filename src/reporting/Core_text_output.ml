@@ -56,7 +56,7 @@ let print_match_lines ?(str = "") ?(spaces = 0) (caps : < Cap.stdout >)
     (file : Fpath.t) (start_line : int) (end_line : int) : unit =
   let print = CapConsole.print caps#stdout in
   let prefix = spf "%s:%d" !!file start_line in
-  let lines_str = UFile.lines_of_file (start_line, end_line) file in
+  let lines_str = UFile.lines_of_file_exn (start_line, end_line) file in
   let prefix = if str = "" then prefix else prefix ^ " " ^ str in
   let spaces_string = String.init spaces (fun _ -> ' ') in
   print (spaces_string ^ prefix);

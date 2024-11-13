@@ -1,6 +1,6 @@
 (* Martin Jambon
  *
- * Copyright (C) 2023 Semgrep Inc.
+ * Copyright (C) 2023-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -273,10 +273,19 @@ let find_first_match_with_whole_line path ?split term =
  * each time the same file for each match.
  * Note that the returned lines do not contain \n.
  *)
-let lines_of_file (start_line, end_line) file : string list =
+let lines_of_file_exn (start_line, end_line) file : string list =
   let arr = cat_array file in
   let lines = List_.enum start_line end_line in
   match arr with
   (* This is the case of the empty file. *)
   | [| "" |] -> []
-  | _ -> lines |> List_.map (fun i -> arr.(i))
+  | _ ->
+      lines
+      |> List_.map (fun i ->
+             try arr.(i) with
+             | Invalid_argument s ->
+                 let exn =
+                   Common.ErrorOnFile
+                     (spf "lines_of_file(): %s on index %d" s i, file)
+                 in
+                 Exception.catch_and_reraise exn)

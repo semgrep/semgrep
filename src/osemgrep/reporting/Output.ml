@@ -143,8 +143,8 @@ let format (kind : Output_format.t) (ctx : Out.format_context)
                     * contains a string, not a string list.
                     *)
                    match
-                     Semgrep_output_utils.lines_of_file_at_range (start, end_)
-                       path
+                     Semgrep_output_utils.lines_of_file_at_range_exn
+                       (start, end_) path
                    with
                    | [] -> ""
                    | x :: _ -> x (* TOPORT rstrip? *)

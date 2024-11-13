@@ -245,9 +245,16 @@ let known_exn_to_error ?(file : Fpath.t option) (e : Exception.t) : t option =
         Some (Tok.first_loc_of_file file)
       in
       Some (mk_error ~msg:"Heap space exceeded" ?loc Out.OutOfMemory)
+  | Common.ErrorOnFile (s, file) ->
+      let loc = Some (Tok.first_loc_of_file file) in
+      (* TODO: see the comment below we want OtherErrorWithAttachedFile *)
+      Some (mk_error ~msg:s ?loc Out.OtherParseError)
   (* general case, can't extract line information from it, default to line 1 *)
   | _exn -> None
 
+(* TODO: remove the file parameter and instead rewrap exns in the caller
+ * using Common.ErrorOnFile
+ *)
 let exn_to_error ?(file : Fpath.t option) (e : Exception.t) : t =
   match known_exn_to_error ?file e with
   | Some err -> err
