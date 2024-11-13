@@ -2329,26 +2329,32 @@ and map_universally_allowed_pattern (env : env)
       in
       pat_init |> add_pat_args (G.Id (id, id_info)) |> add_pat_type
 
-and map_parameter (env : env) ((v1, v2, v3, v4, v5, v6) : CST.parameter)
-    ?(attrs = []) default =
-  let _v1TODO =
-    (* If present, this is the externally-visible label for this parameter. In
-     * this context, the local name will be more relevant, so since we can
-     * currently only represent one in the AST, let's omit this one. *)
-    (* TODO include the externally-visible param label in the AST? *)
-    Option.map (map_simple_identifier env) v1
-  in
-  let v2 = map_simple_identifier env v2 in
-  let _tcolon = (* ":" *) token env v3 in
-  let attrs = map_parameter_modifiers_opt env v4 @ attrs in
-  let v5 = map_possibly_implicitly_unwrapped_type env v5 in
-  let ptype = { v5 with G.t_attrs = attrs @ v5.G.t_attrs } in
-  let param = G.param_of_id ?pdefault:default ~ptype v2 in
-  match v6 with
-  | Some tok ->
-      let dots = (* three_dot_operator_custom *) token env tok in
-      G.ParamRest (dots, param)
-  | None -> G.Param param
+and map_parameter (env : env) (x : CST.parameter) ?(attrs = []) default =
+  match x with
+  | `Opt_simple_id_simple_id_COLON_opt_param_modifs_poss_impl_unwr_type_opt_three_dot_op
+      (v1, v2, v3, v4, v5, v6) -> (
+      let _v1TODO =
+        (* If present, this is the externally-visible label for this parameter. In
+         * this context, the local name will be more relevant, so since we can
+         * currently only represent one in the AST, let's omit this one. *)
+        (* TODO include the externally-visible param label in the AST? *)
+        Option.map (map_simple_identifier env) v1
+      in
+      let v2 = map_simple_identifier env v2 in
+      let _tcolon = (* ":" *) token env v3 in
+      let attrs = map_parameter_modifiers_opt env v4 @ attrs in
+      let v5 = map_possibly_implicitly_unwrapped_type env v5 in
+      let ptype = { v5 with G.t_attrs = attrs @ v5.G.t_attrs } in
+      let param = G.param_of_id ?pdefault:default ~ptype v2 in
+      match v6 with
+      | Some tok ->
+          let dots = (* three_dot_operator_custom *) token env tok in
+          G.ParamRest (dots, param)
+      | None -> G.Param param)
+  | `Semg_ellips tok -> G.ParamEllipsis (token env tok)
+  | `Semg_ellips_meta tok ->
+      let id = str env tok in
+      G.Param (G.param_of_id id)
 
 and map_possibly_implicitly_unwrapped_type (env : env)
     ((v1, _v2TODO) : CST.possibly_implicitly_unwrapped_type) =
