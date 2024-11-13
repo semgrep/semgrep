@@ -588,6 +588,41 @@ class TestGradleMatcher:
                 ],
             ),
             (
+                # a variant with no lockfile at the top level, but lockfile for one of the children
+                [
+                    Path("build.gradle"),
+                    Path("settings.gradle"),
+                    Path("buildSrc/build.gradle"),
+                    Path("buildSrc/gradle.lockfile"),
+                    Path("subdir_a/build.gradle"),
+                    Path("subdir_b/build.gradle"),
+                ],
+                [
+                    Subproject(
+                        root_dir=Path(),
+                        dependency_source=ManifestOnlyDependencySource(
+                            manifest_kind=out.ManifestKind(value=out.BuildGradle()),
+                            manifest_path=Path("build.gradle"),
+                        ),
+                    ),
+                    Subproject(
+                        root_dir=Path("buildSrc"),
+                        dependency_source=LockfileDependencySource(
+                            package_manager_type=PackageManagerType.GRADLE,
+                            manifest=out.Manifest(
+                                kind=out.ManifestKind(value=out.BuildGradle()),
+                                path=out.Fpath("buildSrc/build.gradle"),
+                            ),
+                            lockfile_path=Path("buildSrc/gradle.lockfile"),
+                        ),
+                    ),
+                ],
+                [
+                    Path("subdir_a/build.gradle"),
+                    Path("subdir_b/build.gradle"),
+                ],
+            ),
+            (
                 # a variant with no build.gradle in the standalone project
                 [
                     Path("gradle.lockfile"),
