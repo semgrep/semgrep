@@ -98,10 +98,6 @@ let set_api_token_from_env settings =
       Logs.info (fun m -> m "No API token found in environment variables");
       settings
 
-(* See cli/src/semgrep/settings.py `generate_default_settings` *)
-let generate_default_settings ?(include_env = true) () =
-  if include_env then set_api_token_from_env default else default
-
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
@@ -154,22 +150,27 @@ let from_file ?(maturity = Maturity.Default) () =
           m "Failed to load settings from %s: %s" !!settings msg);
       None
 
-(* Try loading from the file, and/or environment  *)
-(* coupling: cli/src/semgrep/settings.py get_default_contents *)
-(* You may ask WTF is this behavior. In pysemgrep we: *)
-(* 1. Generate default settings, but set the api token from the envrionment if *)
-(*    it exists. *)
-(* 2. Check if the settings file exists, if not return the default settings *)
-(* 3. If the settings file exists, but the api token is not set, set it from *)
-(*    the environment. *)
-(* 4. If the settings file exists and the api token is set, return the settings *)
-(*    file *)
-(* This happens due to some weird unpacking python semantics :/ *)
-(* This is a bit convoluted, but we need to keep the same behavior as pysemgrep *)
-(* to avoid breaking changes. *)
-let load ?maturity ?include_env () =
-  (* Step 1. *)
-  let default_settings = generate_default_settings ?include_env () in
+(* Try loading settings from the file and/or environment.
+ * coupling: cli/src/semgrep/settings.py get_default_contents()
+ * You may ask WTF is this behavior. In pysemgrep we:
+ * 1. Generate default settings, but set the api token from the envrionment if
+ *    it exists.
+ * 2. Check if the settings file exists, if not return the default settings
+ * 3. If the settings file exists, but the api token is not set in the settings
+ *    file, set it from the environment.
+ * 4. If the settings file exists and the api token is set, return the settings
+ *    file
+ * This happens due to some weird unpacking python semantics :/
+ * This is a bit convoluted, but we need to keep the same behavior as pysemgrep
+ * to avoid breaking changes.
+ *)
+let load ?maturity ?(include_env = true) () =
+  (* Step 1.
+   * See cli/src/semgrep/settings.py `generate_default_settings`
+   *)
+  let default_settings =
+    if include_env then set_api_token_from_env default else default
+  in
   (* Step 2. *)
   match from_file ?maturity () with
   (* Step 2. iff settings file doesn't exist *)
@@ -177,7 +178,7 @@ let load ?maturity ?include_env () =
       Logs.info (fun m -> m "No settings file found, using default settings");
       default_settings
   (* Step 3. *)
-  | Some ({ api_token = None; _ } as settings) when include_env ||| false ->
+  | Some ({ api_token = None; _ } as settings) when include_env ->
       Logs.info (fun m ->
           m
             "Settings file found, but API token is not set in file, pulling \

@@ -12,8 +12,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-
-open Printf
+open Common
+open Fpath_.Operators
 
 let t = Testo.create
 
@@ -66,6 +66,13 @@ let normalize =
     Testo.mask_line ~after:"Semgrep version: " ();
   ]
 
+let with_settings settings f =
+  UTmp.with_temp_file (fun file ->
+      Semgrep_envvars.with_envvar "SEMGREP_SETTINGS_FILE" !!file (fun () ->
+          let res = Semgrep_settings.save settings in
+          assert res;
+          f ()))
+
 let without_settings f =
   Semgrep_envvars.with_envvar "SEMGREP_SETTINGS_FILE" "nosettings.yaml" f
 
@@ -79,9 +86,9 @@ let with_env_app_token ?(token = dummy_app_token) f =
 (*****************************************************************************)
 
 let test_nosettings ~env_app_token_set () =
-  printf "cwd: %s\n%!" (Unix.getcwd ());
+  Logs.debug (fun m -> m "cwd: %s\n%!" (Unix.getcwd ()));
   let settings_opt = Semgrep_settings.from_file () in
-  Alcotest.(check bool) "no settings from file" true (settings_opt = None);
+  Alcotest.(check bool) "no settings from file" true (settings_opt =*= None);
   let settings_with_include_env = Semgrep_settings.load () in
   let expected_settings =
     if env_app_token_set then
@@ -93,13 +100,13 @@ let test_nosettings ~env_app_token_set () =
   in
   Alcotest.(check bool)
     "default settings loaded" true
-    (expected_settings = settings_with_include_env);
+    (expected_settings =*= settings_with_include_env);
   let settings_with_no_include_env =
     Semgrep_settings.load ~include_env:false ()
   in
   Alcotest.(check bool)
     "default settings loaded with app token and no env" true
-    (settings_with_no_include_env = Semgrep_settings.default)
+    (settings_with_no_include_env =*= Semgrep_settings.default)
 
 let test_basic_output (caps : Scan_subcommand.caps) () =
   with_env_app_token (fun () ->
@@ -165,6 +172,17 @@ let tests (caps : < Scan_subcommand.caps >) =
       t "no semgrep settings file with env set" (fun () ->
           without_settings (fun () ->
               with_env_app_token (test_nosettings ~env_app_token_set:true)));
+      t "semgrep settings file with env set" (fun () ->
+          with_settings Semgrep_settings.default (fun () ->
+              with_env_app_token (fun () ->
+                  let settings_with_include_env = Semgrep_settings.load () in
+                  match settings_with_include_env with
+                  | { api_token = Some tok; _ }
+                    when tok =*= Auth.unsafe_token_of_string dummy_app_token ->
+                      ()
+                  | _ ->
+                      failwith
+                        "SEMGREP_APP_TOKEN should override the settings file")));
       t "basic output" ~checked_output:(Testo.stdxxx ()) ~normalize
         (test_basic_output caps);
       t "basic verbose output"
