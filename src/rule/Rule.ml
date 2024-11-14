@@ -457,6 +457,7 @@ type aws_request = {
   secret_access_key : string;
   access_key_id : string;
   region : string;
+  session_token : string option;
 }
 [@@deriving show]
 

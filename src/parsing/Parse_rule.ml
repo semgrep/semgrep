@@ -786,7 +786,8 @@ let parse_aws_request env key value : (Rule.aws_request, Rule_error.t) result =
   in
   let/ access_key_id = take_key request_dict env parse_string "access_key_id" in
   let/ region = take_key request_dict env parse_string "region" in
-  Ok Rule.{ secret_access_key; access_key_id; region }
+  let/ session_token = take_opt request_dict env parse_string "session_token" in
+  Ok Rule.{ secret_access_key; access_key_id; region; session_token }
 
 let parse_aws_validator env key value : (Rule.validator, Rule_error.t) result =
   let/ validator_dict = parse_dict env key value in
