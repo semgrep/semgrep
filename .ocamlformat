@@ -1,5 +1,12 @@
 profile = conventional
 
+# Preserve begin/end or parentheses to group expressions. Discussed November
+# 2024 with mixed opinions. Some prefer the consistency of always using
+# parentheses. Others find it easier to visually parse large blocks when
+# delimited by begin/end. For now we'll relax the constraints and let people
+# experiment. We can easily move back to enforcing parens only if we want to.
+exp-grouping = preserve
+
 # 'all' is now deprecated in ocamlformat >= 0.20.0. I don't understand why.
 # See https://github.com/ocaml-ppx/ocamlformat/issues/1882
 break-cases = all
