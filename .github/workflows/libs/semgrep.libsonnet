@@ -269,6 +269,7 @@ local opam_setup = function(opam_switch="4.14.0") {
       with: {
         'ocaml-compiler': opam_switch,
         'opam-depext': false,
+	'opam-pin': false,
       },
     };
 
