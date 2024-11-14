@@ -1,12 +1,10 @@
-(*
-   Configures metrics upload.
-
-   On   - Metrics always sent
-   Off  - Metrics never sent
-   Auto - Metrics only sent if config is pulled from the registry
-          or if using the Semgrep App.
-*)
-type config = On | Off | Auto [@@deriving show]
+(** Metrics upload configuration *)
+type config =
+  | On  (** Always send metrics *)
+  | Off  (** Never send metrics *)
+  | Auto
+      (** Send metrics when config is pulled from registry or using the Semgrep Cloud Platform *)
+[@@deriving show]
 
 (* For Cmdliner, to process the --metrics=<xxx> flag *)
 val converter : config Cmdliner.Arg.conv
@@ -16,32 +14,30 @@ val metrics_url : Uri.t
 
 type t = {
   mutable config : config;
-  (* this works with the Auto option *)
   mutable is_using_registry : bool;
   mutable is_using_app : bool;
-  (* The user agent used when sending data to https://metrics.semgrep.dev.
-   * We override the default value (e.g. "ocaml-cohttp/5.3.0") with a
-   * custom string built from:
-   *  - the version of semgrep
-   *  - the subcommand
-   *  - any custom value specified in $SEMGREP_USER_AGENT_APPEND.
-   *    For example, we set this variable to "Docker" when running
-   *    from a Docker container (see Dockerfile) allowing us to measure
-   *    usage of semgrep running from Docker container images that
-   *    we distribute.
-   *
-   * For example, this field might contain
-   *    ["Semgrep/1.39.0"; "(Docker)"; "(command/scan)"]
-   * which when concatenated will look like
-   *   "Semgrep/1.39.0 (Docker) (command/scan)"
-   *
-   * alt: we could encode this information in the payload instead.
-   *)
   mutable user_agent : string list;
-  (* The stuff we send to https://metrics.semgrep.dev
-   * Note that the user_agent itself contain useful metrics.
-   *)
+      (** The user agent used when sending data to {v https://metrics.semgrep.dev v}.
+
+          We override the default value (e.g. ["ocaml-cohttp/MAJOR.MINOR.PATCH"])
+          with a custom string built from:
+          - the version of semgrep
+          - the subcommand
+          - any custom value specified in [SEMGREP_USER_AGENT_APPEND]. For
+            example, we set this variable to ["Docker"] when running from a Docker
+            container (see Dockerfile) allowing us to measure usage of semgrep
+            running from Docker container images that we distribute.
+
+          For example, this field might contain
+          [["Semgrep/1.39.0"; "(Docker)"; "(command/scan)"]],
+          which when concatenated will look like
+          ["Semgrep/1.39.0 (Docker) (command/scan)"].
+
+          alt: we could encode this information in the payload instead. *)
   mutable payload : Semgrep_metrics_t.payload;
+      (** The actual metrics payload to send to {v https://metrics.semgrep.dev v}.
+
+          Note that the {!user_agent} itself contains useful metrics. *)
 }
 
 (* g stands for global. This is initialized with a default payload,

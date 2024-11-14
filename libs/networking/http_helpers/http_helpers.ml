@@ -105,11 +105,10 @@ let get_proxy uri =
       Some (Uri.of_string proxy_uri)
   | None -> None
 
-(* Why this wrapper function? Client.call takes a uri, and some other things *)
-(* and then makes a Request.t with said uri and sends that request to the same uri *)
-(* By using Client.callv, we can make a request that has some uri, but then really *)
-(* send it to a different uri. This is used for proxying requests *)
-
+(* Why this wrapper function? Client.call takes a uri, and some other things
+   and then makes a Request.t with said uri and sends that request to the same
+   uri By using Client.callv, we can make a request that has some uri, but then
+   really send it to a different uri. This is used for proxying requests *)
 let default_resp_handler (response, body) =
   let%lwt body_str = Cohttp_lwt.Body.to_string body in
   Lwt.return (response, body_str)
@@ -173,7 +172,6 @@ let call_client ?(body = Cohttp_lwt.Body.empty) ?(headers = [])
        node. Currently, AWS does not support specifying a minimum TLS version
        of v1.3, and we will need to figure out a better solution for ensuring
        reliable metrics delivery. *)
-    (* try%lwt here since callv will raise a Lwt error not a normal one *)
     try%lwt
       let%lwt responses_stream = Client.callv url stream_req in
       Lwt.return_ok responses_stream
@@ -187,14 +185,15 @@ let call_client ?(body = Cohttp_lwt.Body.empty) ?(headers = [])
   in
   let handle_responses responses_stream =
     (* Assume that we only get one response back *)
-    (* MUST USE GET HERE *)
-    let%lwt repsonses =
+    match%lwt
       responses_stream |> Lwt_stream.map_s resp_handler |> Lwt_stream.to_list
-    in
-    match repsonses with
+    with
     | [ (response, response_body) ] -> Lwt.return_ok (response, response_body)
     | [] -> Lwt.return_error "No responses from a single request"
-    | _ -> Lwt.return_error "Multiple responses from a single request"
+    | _ :: _ -> Lwt.return_error "Multiple responses from a single request"
+    | exception Cohttp_lwt.Connection.Retry ->
+        Lwt.return_error
+          "Error in request: maybe the server hung up prematurely?"
   in
   Lwt_result.bind responses_stream_opt handle_responses
 

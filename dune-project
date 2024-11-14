@@ -520,9 +520,7 @@ For more information see https://semgrep.dev
     ; web stuff
     uri
     (uuidm (>= 0.9.9))
-    ; cohttp >= 6.0.0 requires opam 2.1.0 which used to not available in Windows
-    ; TODO: now that opam 2.2.0 is out and support windows, upgrade to 6.0.0
-    (cohttp (= 5.3.0))
+    (cohttp (= 6.0.0~beta2))
     cohttp-lwt-unix
     cohttp-lwt-jsoo
     tls-lwt ; needed for TLS support in the cohttp HTTP client (only TLS 1.3 seems to work)

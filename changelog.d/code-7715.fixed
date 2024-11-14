@@ -1,0 +1,3 @@
+Improved error handling for some networking errors (e.g., premature server
+disconnection). In some cases this would previously cause a fatal error, but we
+should instead be able to recover in most instances (and now can).
