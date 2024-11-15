@@ -267,13 +267,17 @@ let produce_ignored (matches : Core_result.processed_match list) :
            | (Time_limit.Timeout _ | Common.ErrorOnFile _) as exn ->
                Exception.catch_and_reraise exn
            | exn ->
+               (* let's rewrap the exn with ErrorOnFile *)
+               let e = Exception.catch exn in
+               let trace = Exception.get_trace e in
                let msg = Printexc.to_string exn in
                let exn =
                  Common.ErrorOnFile
                    ( spf "produce_ignored: %s" msg,
                      pm.pm.path.internal_path_to_content )
                in
-               Exception.catch_and_reraise exn)
+               let e = Exception.create exn trace in
+               Exception.reraise e)
     |> List_.split
   in
   (matches, List_.flatten wide_errors)
