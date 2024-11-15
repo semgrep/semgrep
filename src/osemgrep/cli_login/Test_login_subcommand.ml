@@ -27,6 +27,28 @@ let t = Testo.create
  *)
 
 (*****************************************************************************)
+(* Constants *)
+(*****************************************************************************)
+
+(* This token does not have to be valid because we mock the deployment
+ * request and response that is supposed to come from our endpoint and
+ * check for its validity.
+ *)
+let fake_token = "token1234"
+
+(* deployment_response in semgrep_output_v1.atd
+ * alt: we could build it using Semgrep_output_v1_t deployment_response record.
+ *)
+let fake_deployment =
+  {|
+  { "deployment":
+    { "id": 1234,
+      "name": "deployment1234"
+    }
+  }
+|}
+
+(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
@@ -40,6 +62,10 @@ let with_fake_deployment_response return_value f =
     | url -> Alcotest.fail (spf "unexpected request: %s" url)
   in
   Http_mock_client.with_testing_client make_response_fn f ()
+
+let with_semgrep_logged_in f =
+  Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" fake_token (fun () ->
+      with_fake_deployment_response fake_deployment f)
 
 (*****************************************************************************)
 (* Tests *)
@@ -72,24 +98,6 @@ let test_login_no_tty caps : Testo.t =
          let exit_code = Login_subcommand.main caps [| "semgrep-login" |] in
          Unix.dup2 old_stdin Unix.stdin;
          Exit_code.Check.fatal exit_code))
-
-(* This token does not have to be valid because we mock the deployment
- * request and response that is supposed to come from our endpoint and
- * check for its validity.
- *)
-let fake_token = "token1234"
-
-(* deployment_response in semgrep_output_v1.atd
- * alt: we could build it using Semgrep_output_v1_t deployment_response record.
- *)
-let fake_deployment =
-  {|
-  { "deployment":
-    { "id": 1234,
-      "name": "deployment1234"
-    }
-  }
-|}
 
 let test_login_with_env_token caps : Testo.t =
   t ~checked_output:(Testo.stderr ())
