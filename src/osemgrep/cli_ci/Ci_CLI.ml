@@ -50,8 +50,7 @@ type conf = {
    * opti flags.
    *)
   scan_conf : Scan_CLI.conf;
-  merge_partial_results_dir : Fpath.t option;
-  merge_partial_results_output : Fpath.t option;
+  x_distributed_scan_conf : Distributed_scan_stub.conf;
 }
 [@@deriving show]
 
@@ -173,6 +172,20 @@ let o_x_merge_partial_results_dir : string option Term.t =
 let o_x_merge_partial_results_output : string option Term.t =
   let info =
     Arg.info [ "x-merge-partial-results-output" ] ~doc:{|Internal flag.|}
+  in
+  Arg.value (Arg.opt (Arg.some' Arg.string) None info)
+
+(* internal *)
+let o_x_validate_partial_results_expected : string option Term.t =
+  let info =
+    Arg.info [ "x-validate-partial-results-expected" ] ~doc:{|Internal flag.|}
+  in
+  Arg.value (Arg.opt (Arg.some' Arg.string) None info)
+
+(* internal *)
+let o_x_validate_partial_results_actual : string option Term.t =
+  let info =
+    Arg.info [ "x-validate-partial-results-actual" ] ~doc:{|Internal flag.|}
   in
   Arg.value (Arg.opt (Arg.some' Arg.string) None info)
 
@@ -356,7 +369,8 @@ let cmdline_term : conf Term.t =
   let combine scan_conf audit_on code secrets dry_run _internal_ci_scan_results
       _x_dump_n_rule_partitions _x_dump_rule_partitions_dir
       x_merge_partial_results_dir x_merge_partial_results_output
-      _x_partial_config _x_partial_output subdir supply_chain suppress_errors
+      _x_partial_config _x_partial_output x_validate_partial_results_actual
+      x_validate_partial_results_expected subdir supply_chain suppress_errors
       _git_meta _github_meta =
     let products =
       (if secrets then [ `Secrets ] else [])
@@ -370,9 +384,17 @@ let cmdline_term : conf Term.t =
       suppress_errors;
       products;
       subdir;
-      merge_partial_results_dir = Option.map Fpath.v x_merge_partial_results_dir;
-      merge_partial_results_output =
-        Option.map Fpath.v x_merge_partial_results_output;
+      x_distributed_scan_conf =
+        {
+          merge_partial_results_dir =
+            Option.map Fpath.v x_merge_partial_results_dir;
+          merge_partial_results_output =
+            Option.map Fpath.v x_merge_partial_results_output;
+          validate_partial_results_expected =
+            Option.map Fpath.v x_validate_partial_results_expected;
+          validate_partial_results_actual =
+            Option.map Fpath.v x_validate_partial_results_actual;
+        };
     }
   in
   Term.(
@@ -380,7 +402,9 @@ let cmdline_term : conf Term.t =
     $ SC.o_secrets $ o_dry_run $ o_internal_ci_scan_results
     $ o_x_dump_n_rule_partitions $ o_x_dump_rule_partitions_dir
     $ o_x_merge_partial_results_dir $ o_x_merge_partial_results_output
-    $ o_x_partial_config $ o_x_partial_output $ o_subdir $ o_supply_chain
+    $ o_x_partial_config $ o_x_partial_output
+    $ o_x_validate_partial_results_actual
+    $ o_x_validate_partial_results_expected $ o_subdir $ o_supply_chain
     $ o_suppress_errors $ Git_metadata.env $ Github_metadata.env)
 
 let doc = "the recommended way to run semgrep in CI"

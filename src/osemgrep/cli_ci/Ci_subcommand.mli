@@ -23,7 +23,3 @@ val run_conf : caps -> Ci_CLI.conf -> Exit_code.t
 (* used by Test_is_blocking_Helpers.ml used itself in Test.ml *)
 val rule_is_blocking : JSON.t -> bool
 val finding_is_blocking : Semgrep_output_v1_t.cli_match -> bool
-
-(* internal *)
-val hook_pro_read_and_merge_partial_scan_results :
-  (input_dir:Fpath.t -> output_json:Fpath.t -> unit) option ref

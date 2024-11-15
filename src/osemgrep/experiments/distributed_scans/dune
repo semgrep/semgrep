@@ -1,0 +1,13 @@
+(library
+  (public_name semgrep.osemgrep_distributed_scan_stub)
+  (name osemgrep_distributed_scan_stub)
+  (wrapped false)
+  (libraries
+    osemgrep_core
+  )
+ (preprocess
+   (pps
+     ppx_deriving.show
+   )
+ )
+)
