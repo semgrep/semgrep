@@ -20,6 +20,11 @@ local defaults = {
 // The job
 // ----------------------------------------------------------------------------
 local build_core_job = {
+  // This job is currently disabled because it fails with the ocaml/setup-ocaml@v3
+  // github action, which we need for the latest cohttp and for OCaml 5. Currently,
+  // `ocamlfind` fails to build when we run this workflow in CI. The ticket for
+  // re-enabling the job is https://linear.app/semgrep/issue/SAF-1728/restore-windows-workflow
+  'if': 'false',
   'runs-on': runs_on,
   defaults: defaults,
   steps: [
