@@ -319,11 +319,9 @@ def ci(
             )
             sys.exit(FATAL_EXIT_CODE)
 
-        if (partial_config and not partial_output) or (
-            not partial_config and partial_output
-        ):
+        if partial_config and not partial_output:
             logger.info(
-                "Both or none of --x-partial-config and --x-partial-output must be specified."
+                "When --x-partial-config is specified, --x-partial-output must also be specified."
             )
             sys.exit(FATAL_EXIT_CODE)
 
