@@ -9,5 +9,6 @@
  (libraries
    unix
    commons
+   tracing
  )
 )

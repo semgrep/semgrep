@@ -4,6 +4,7 @@
  (name tracing_js)
  (libraries
    trace
+   commons
    logs
  )
  (implements tracing)

@@ -123,7 +123,9 @@ val setup :
      ...
      Logs.info (fun m -> m ~tags "Hello.");
 *)
+val create_tag : string -> string Logs.Tag.def
 val create_tags : string list -> Logs.Tag.set
+val create_tag_set : string Logs.Tag.def list -> Logs.Tag.set
 
 (*
    Log a string directly.

@@ -84,6 +84,8 @@ let trace_data_only ?(level = Info) ~__FUNCTION__ ~__FILE__ ~__LINE__ _name
   ignore level;
   ()
 
+let no_telemetry_tag = Logs_.create_tag "no_telemetry"
+let no_telemetry_tag_set = Logs_.create_tag_set [ no_telemetry_tag ]
 let otel_reporter : Logs.reporter = Logs.nop_reporter
 (*****************************************************************************)
 (* Entry points for setting up tracing *)
