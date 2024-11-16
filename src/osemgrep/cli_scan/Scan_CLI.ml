@@ -894,6 +894,16 @@ let o_allow_dynamic_dependency_resolution : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
+let o_no_dynamic_dependency_resolution : bool Term.t =
+  let info =
+    Arg.info
+      [ "no-dynamic-dependency-resolution" ]
+      ~doc:
+        {|Experimental: disable resolving dependencies dynamically by communicating with package managers during the scan.
+          This is the default, so this flag currently has no effect.|}
+  in
+  Arg.value (Arg.flag info)
+
 (* ------------------------------------------------------------------ *)
 (* Test and debug options *)
 (* ------------------------------------------------------------------ *)
@@ -1294,15 +1304,15 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       gitlab_secrets_outputs _historical_secrets include_ incremental_output
       json json_outputs junit_xml junit_xml_outputs lang matching_explanations
       max_chars_per_line max_lines_per_finding max_log_list_entries
-      max_memory_mb max_target_bytes metrics num_jobs no_secrets_validation
-      nosem optimizations oss output pattern pro project_root pro_intrafile
-      pro_lang pro_path_sensitive remote replacement respect_gitignore
-      rewrite_rule_ids sarif sarif_outputs scan_unknown_extensions secrets
-      severity show_supported_languages strict target_roots test
-      test_ignore_todo text text_outputs time_flag timeout
-      _timeout_interfileTODO timeout_threshold trace trace_endpoint
-      _use_osemgrep_sarif validate version version_check vim vim_outputs
-      x_ignore_semgrepignore_files x_ls x_ls_long =
+      max_memory_mb max_target_bytes metrics num_jobs
+      _no_dynamic_dependency_resolution no_secrets_validation nosem
+      optimizations oss output pattern pro project_root pro_intrafile pro_lang
+      pro_path_sensitive remote replacement respect_gitignore rewrite_rule_ids
+      sarif sarif_outputs scan_unknown_extensions secrets severity
+      show_supported_languages strict target_roots test test_ignore_todo text
+      text_outputs time_flag timeout _timeout_interfileTODO timeout_threshold
+      trace trace_endpoint _use_osemgrep_sarif validate version version_check
+      vim vim_outputs x_ignore_semgrepignore_files x_ls x_ls_long =
     (* Print a warning if any of the internal or experimental options.
        We don't want users to start relying on these. *)
     if x_ignore_semgrepignore_files || x_ls || x_ls_long then
@@ -1513,16 +1523,17 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     $ o_json_outputs $ o_junit_xml $ o_junit_xml_outputs $ o_lang
     $ o_matching_explanations $ o_max_chars_per_line $ o_max_lines_per_finding
     $ o_max_log_list_entries $ o_max_memory_mb $ o_max_target_bytes $ o_metrics
-    $ o_num_jobs $ o_no_secrets_validation $ o_nosem $ o_optimizations $ o_oss
-    $ o_output $ o_pattern $ o_pro $ o_project_root $ o_pro_intrafile
-    $ o_pro_languages $ o_pro_path_sensitive $ o_remote $ o_replacement
-    $ o_respect_gitignore $ o_rewrite_rule_ids $ o_sarif $ o_sarif_outputs
-    $ o_scan_unknown_extensions $ o_secrets $ o_severity
-    $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
-    $ Test_CLI.o_test_ignore_todo $ o_text $ o_text_outputs $ o_time $ o_timeout
-    $ o_timeout_interfile $ o_timeout_threshold $ o_trace $ o_trace_endpoint
-    $ o_use_osemgrep_sarif $ o_validate $ o_version $ o_version_check $ o_vim
-    $ o_vim_outputs $ o_ignore_semgrepignore_files $ o_ls $ o_ls_long)
+    $ o_num_jobs $ o_no_dynamic_dependency_resolution $ o_no_secrets_validation
+    $ o_nosem $ o_optimizations $ o_oss $ o_output $ o_pattern $ o_pro
+    $ o_project_root $ o_pro_intrafile $ o_pro_languages $ o_pro_path_sensitive
+    $ o_remote $ o_replacement $ o_respect_gitignore $ o_rewrite_rule_ids
+    $ o_sarif $ o_sarif_outputs $ o_scan_unknown_extensions $ o_secrets
+    $ o_severity $ o_show_supported_languages $ o_strict $ o_target_roots
+    $ o_test $ Test_CLI.o_test_ignore_todo $ o_text $ o_text_outputs $ o_time
+    $ o_timeout $ o_timeout_interfile $ o_timeout_threshold $ o_trace
+    $ o_trace_endpoint $ o_use_osemgrep_sarif $ o_validate $ o_version
+    $ o_version_check $ o_vim $ o_vim_outputs $ o_ignore_semgrepignore_files
+    $ o_ls $ o_ls_long)
 
 let doc = "run semgrep rules on files"
 

@@ -208,11 +208,11 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
       json json_outputs junit_xml junit_xml_outputs matching_explanations
       max_chars_per_line max_lines_per_finding max_log_list_entries
       max_memory_mb max_target_bytes metrics num_jobs no_secrets_validation
-      nosem optimizations oss output pro pro_intrafile pro_lang
-      pro_path_sensitive respect_gitignore rewrite_rule_ids sarif sarif_outputs
-      scan_unknown_extensions secrets text text_outputs timeout
-      _timeout_interfileTODO timeout_threshold trace trace_endpoint
-      version_check vim vim_outputs =
+      _no_dynamic_dependency_resolution nosem optimizations oss output pro
+      pro_intrafile pro_lang pro_path_sensitive respect_gitignore
+      rewrite_rule_ids sarif sarif_outputs scan_unknown_extensions secrets text
+      text_outputs timeout _timeout_interfileTODO timeout_threshold trace
+      trace_endpoint version_check vim vim_outputs =
     let output_format : Output_format.t =
       Scan_CLI.output_format_conf ~text ~files_with_matches ~json ~emacs ~vim
         ~sarif ~gitlab_sast ~gitlab_secrets ~junit_xml
@@ -348,13 +348,14 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
     $ SC.o_matching_explanations $ SC.o_max_chars_per_line
     $ SC.o_max_lines_per_finding $ SC.o_max_log_list_entries
     $ SC.o_max_memory_mb $ SC.o_max_target_bytes $ SC.o_metrics $ SC.o_num_jobs
-    $ SC.o_no_secrets_validation $ SC.o_nosem $ SC.o_optimizations $ SC.o_oss
-    $ SC.o_output $ SC.o_pro $ SC.o_pro_intrafile $ SC.o_pro_languages
-    $ SC.o_pro_path_sensitive $ SC.o_respect_gitignore $ SC.o_rewrite_rule_ids
-    $ SC.o_sarif $ SC.o_sarif_outputs $ SC.o_scan_unknown_extensions
-    $ SC.o_secrets $ SC.o_text $ SC.o_text_outputs $ SC.o_timeout
-    $ SC.o_timeout_interfile $ SC.o_timeout_threshold $ SC.o_trace
-    $ SC.o_trace_endpoint $ SC.o_version_check $ SC.o_vim $ SC.o_vim_outputs)
+    $ SC.o_no_secrets_validation $ SC.o_no_dynamic_dependency_resolution
+    $ SC.o_nosem $ SC.o_optimizations $ SC.o_oss $ SC.o_output $ SC.o_pro
+    $ SC.o_pro_intrafile $ SC.o_pro_languages $ SC.o_pro_path_sensitive
+    $ SC.o_respect_gitignore $ SC.o_rewrite_rule_ids $ SC.o_sarif
+    $ SC.o_sarif_outputs $ SC.o_scan_unknown_extensions $ SC.o_secrets
+    $ SC.o_text $ SC.o_text_outputs $ SC.o_timeout $ SC.o_timeout_interfile
+    $ SC.o_timeout_threshold $ SC.o_trace $ SC.o_trace_endpoint
+    $ SC.o_version_check $ SC.o_vim $ SC.o_vim_outputs)
 
 (*************************************************************************)
 (* Turn argv into conf *)

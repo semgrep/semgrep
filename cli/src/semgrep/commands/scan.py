@@ -377,8 +377,9 @@ _scan_options: List[Callable] = [
         "allow_untrusted_validators",
         is_flag=True,
     ),
+    # the slash below defines one flag to enable and another to disable; see https://click.palletsprojects.com/en/stable/options/#boolean-flags
     optgroup.option(
-        "--allow-dynamic-dependency-resolution",
+        "--allow-dynamic-dependency-resolution/--no-dynamic-dependency-resolution",
         "allow_dynamic_dependency_resolution",
         is_flag=True,
         default=False,

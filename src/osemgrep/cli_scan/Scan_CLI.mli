@@ -107,6 +107,7 @@ val o_max_memory_mb : int Cmdliner.Term.t
 val o_max_target_bytes : int Cmdliner.Term.t
 val o_metrics : Metrics_.config Cmdliner.Term.t
 val o_num_jobs : int Cmdliner.Term.t
+val o_no_dynamic_dependency_resolution : bool Cmdliner.Term.t
 val o_no_secrets_validation : bool Cmdliner.Term.t
 val o_nosem : bool Cmdliner.Term.t
 val o_optimizations : bool Cmdliner.Term.t
