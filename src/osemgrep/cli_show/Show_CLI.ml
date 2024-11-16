@@ -129,12 +129,12 @@ let cmdline_term : conf Term.t =
 
   Term.(const combine $ o_args $ CLI_common.o_common $ o_json)
 
-let doc = "Show various information"
+let doc = "Show various types of information"
 
 let man : Cmdliner.Manpage.block list =
   [
     `S Cmdliner.Manpage.s_description;
-    `P "Display various information";
+    `P "Display various types of information";
     `P "Here are the different subcommands";
     (* the sub(sub)commands *)
     `Pre "semgrep show version";
