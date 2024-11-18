@@ -44,16 +44,10 @@ if WHEEL_CMD in sys.argv:
             # tags. Instead, package maintainers must explicitly identify if their package
             # supports glibc and/or libmusl. Semgrep-core is statically compiled,
             # so this isn't a concern for us.
-            #
-            # For linux_aarch64, we indicate that we support both platforms
-            #   (musllinux_1_0 == libmusl, manylinux2014 == glibc)
-            #
-            # For linux_x86_64, we use the catch-all "any" tag
-            #
             if plat == "linux_aarch64":
                 plat = "musllinux_1_0_aarch64.manylinux2014_aarch64"
             elif plat == "linux_x86_64":
-                plat = "any"
+                plat = "musllinux_1_0_x86_64.manylinux2014_x86_64"
             return python, abi, plat
 
     cmdclass = {WHEEL_CMD: BdistWheel}
