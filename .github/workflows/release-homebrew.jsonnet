@@ -61,7 +61,7 @@ local unless_dry_run = {
 // brew bump-formula-pr below can update Pypi dependency hashes in semgrep.rb
 // This job assumes the presence of a workflow with a 'inputs.dry-mode'
 local homebrew_core_pr_job(version) = {
-  'runs-on': 'macos-12',
+  'runs-on': 'macos-latest',
   steps: [
     {
       run: 'brew update',
@@ -176,7 +176,7 @@ local env = {
 //    Homebrew formula if needed.
 local brew_build_job = {
   name: 'Build Semgrep via Brew from HEAD',
-  'runs-on': 'macos-12',
+  'runs-on': 'macos-latest',
   steps: [
     {
       run: 'brew update --debug --verbose',

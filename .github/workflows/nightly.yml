@@ -2,7 +2,7 @@
 jobs:
   brew-build:
     name: Build Semgrep via Brew from HEAD
-    runs-on: macos-12
+    runs-on: macos-latest
     steps:
       - env:
           HOMEBREW_NO_INSTALL_FROM_API: 1

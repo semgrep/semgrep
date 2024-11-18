@@ -15,7 +15,9 @@ local wheel_name = 'osx-x86-wheel';
 // See https://github.com/actions/runner-images/blob/main/images/macos/macos-12-Readme.md
 // This already comes with Python installed so no need to
 // have a setup_python_step like in build-test-osx-arm64.jsonnet
-local runs_on = 'macos-12';
+// Macos 13 is the last version that has x86 + osx; macos-14 and above are arm
+// only
+local runs_on = 'macos-13';
 
 // This is reused in build-test-osx-arm64.jsonnet
 local test_semgrep_steps = [
