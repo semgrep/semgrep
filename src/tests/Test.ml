@@ -137,6 +137,7 @@ let tests (caps : Cap.all_caps) =
       Unit_LS.tests (caps :> Session.caps);
       Unit_Login.tests caps;
       Unit_Fetching.tests (caps :> < Cap.network ; Cap.tmp >);
+      Unit_reporting.tests (caps :> < >);
       Test_is_blocking_helpers.tests;
       Test_login_subcommand.tests (caps :> < Cap.stdout ; Cap.network >);
       Test_scan_subcommand.tests

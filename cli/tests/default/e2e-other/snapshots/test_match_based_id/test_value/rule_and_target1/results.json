@@ -1,0 +1,129 @@
+{
+  "errors": [],
+  "interfile_languages_used": [],
+  "paths": {
+    "scanned": [
+      "targets/basic/stupid.py"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.rule-with-cwe-tag",
+      "end": {
+        "col": 17,
+        "line": 3,
+        "offset": 60
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "c14751d4f27243ab3fc24c8e9993358c58673b1f8cb907fc90f66a33826c9183a0386cc160cf4457cf7e175c9efb083d250a3b52fe3154a003fc9b9955802118_0",
+        "is_ignored": false,
+        "lines": "    return a + b == a + b",
+        "message": "Fake message.",
+        "metadata": {
+          "cwe": [
+            "CWE-99999999: Fake CWE",
+            "CWE-99999999: Fake CWE",
+            "CWE-88888888: Another fake CWE"
+          ]
+        },
+        "metavars": {
+          "$X": {
+            "abstract_content": "a",
+            "end": {
+              "col": 13,
+              "line": 3,
+              "offset": 56
+            },
+            "start": {
+              "col": 12,
+              "line": 3,
+              "offset": 55
+            }
+          },
+          "$Y": {
+            "abstract_content": "b",
+            "end": {
+              "col": 17,
+              "line": 3,
+              "offset": 60
+            },
+            "start": {
+              "col": 16,
+              "line": 3,
+              "offset": 59
+            }
+          }
+        },
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/basic/stupid.py",
+      "start": {
+        "col": 12,
+        "line": 3,
+        "offset": 55
+      }
+    },
+    {
+      "check_id": "rules.rule-with-cwe-tag",
+      "end": {
+        "col": 26,
+        "line": 3,
+        "offset": 69
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "c14751d4f27243ab3fc24c8e9993358c58673b1f8cb907fc90f66a33826c9183a0386cc160cf4457cf7e175c9efb083d250a3b52fe3154a003fc9b9955802118_1",
+        "is_ignored": false,
+        "lines": "    return a + b == a + b",
+        "message": "Fake message.",
+        "metadata": {
+          "cwe": [
+            "CWE-99999999: Fake CWE",
+            "CWE-99999999: Fake CWE",
+            "CWE-88888888: Another fake CWE"
+          ]
+        },
+        "metavars": {
+          "$X": {
+            "abstract_content": "a",
+            "end": {
+              "col": 22,
+              "line": 3,
+              "offset": 65
+            },
+            "start": {
+              "col": 21,
+              "line": 3,
+              "offset": 64
+            }
+          },
+          "$Y": {
+            "abstract_content": "b",
+            "end": {
+              "col": 26,
+              "line": 3,
+              "offset": 69
+            },
+            "start": {
+              "col": 25,
+              "line": 3,
+              "offset": 68
+            }
+          }
+        },
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/basic/stupid.py",
+      "start": {
+        "col": 21,
+        "line": 3,
+        "offset": 64
+      }
+    }
+  ],
+  "skipped_rules": [],
+  "version": "0.42"
+}

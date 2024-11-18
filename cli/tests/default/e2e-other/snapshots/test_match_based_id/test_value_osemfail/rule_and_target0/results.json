@@ -1,0 +1,157 @@
+{
+  "errors": [],
+  "interfile_languages_used": [],
+  "paths": {
+    "scanned": [
+      "targets/taint/taint_trace.cpp"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.taint-trace",
+      "end": {
+        "col": 14,
+        "line": 17,
+        "offset": 522
+      },
+      "extra": {
+        "dataflow_trace": {
+          "intermediate_vars": [
+            {
+              "content": "res1",
+              "location": {
+                "end": {
+                  "col": 11,
+                  "line": 10,
+                  "offset": 223
+                },
+                "path": "targets/taint/taint_trace.cpp",
+                "start": {
+                  "col": 7,
+                  "line": 10,
+                  "offset": 219
+                }
+              }
+            },
+            {
+              "content": "curBase",
+              "location": {
+                "end": {
+                  "col": 12,
+                  "line": 15,
+                  "offset": 427
+                },
+                "path": "targets/taint/taint_trace.cpp",
+                "start": {
+                  "col": 5,
+                  "line": 15,
+                  "offset": 420
+                }
+              }
+            },
+            {
+              "content": "res2",
+              "location": {
+                "end": {
+                  "col": 11,
+                  "line": 12,
+                  "offset": 311
+                },
+                "path": "targets/taint/taint_trace.cpp",
+                "start": {
+                  "col": 7,
+                  "line": 12,
+                  "offset": 307
+                }
+              }
+            }
+          ],
+          "taint_sink": [
+            "CliLoc",
+            [
+              {
+                "end": {
+                  "col": 14,
+                  "line": 17,
+                  "offset": 522
+                },
+                "path": "targets/taint/taint_trace.cpp",
+                "start": {
+                  "col": 10,
+                  "line": 17,
+                  "offset": 518
+                }
+              },
+              "res2"
+            ]
+          ],
+          "taint_source": [
+            "CliLoc",
+            [
+              {
+                "end": {
+                  "col": 22,
+                  "line": 10,
+                  "offset": 234
+                },
+                "path": "targets/taint/taint_trace.cpp",
+                "start": {
+                  "col": 14,
+                  "line": 10,
+                  "offset": 226
+                }
+              },
+              "SOURCE()"
+            ]
+          ]
+        },
+        "engine_kind": "OSS",
+        "fingerprint": "c103a760f6ce7176c2d5127a8c5afa47e83d41bef95586322d99febf0f148c2808bc6b168b31948e8fd10576f7f4edd69fb6d341c25ed9c259cde4e9164d7b96_0",
+        "is_ignored": false,
+        "lines": "    SINK(res2);                               // (5) sink res2",
+        "message": "found an error",
+        "metadata": {
+          "interfile": true
+        },
+        "metavars": {
+          "$RHS": {
+            "abstract_content": "res1",
+            "end": {
+              "col": 44,
+              "line": 15,
+              "offset": 459
+            },
+            "start": {
+              "col": 40,
+              "line": 15,
+              "offset": 455
+            }
+          },
+          "$SRC": {
+            "abstract_content": "res2",
+            "end": {
+              "col": 14,
+              "line": 17,
+              "offset": 522
+            },
+            "start": {
+              "col": 10,
+              "line": 17,
+              "offset": 518
+            }
+          }
+        },
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/taint/taint_trace.cpp",
+      "start": {
+        "col": 10,
+        "line": 17,
+        "offset": 518
+      }
+    }
+  ],
+  "skipped_rules": [],
+  "version": "0.42"
+}

@@ -119,8 +119,7 @@ let format_cli_match (cli_match : Out.cli_match) : (string * JSON.yojson) list =
               [] )
   in
   let id =
-    (* TODO the ?index argument needs to be provided (for ci_unique_key duplicates) *)
-    Semgrep_hashing_functions.ci_unique_key cli_match
+    Semgrep_hashing_functions.syntactic_id cli_match
     |> Uuidm.of_binary_string |> Option.get |> Uuidm.to_string
   in
   let r =

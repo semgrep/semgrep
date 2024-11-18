@@ -1,0 +1,55 @@
+{
+  "errors": [],
+  "interfile_languages_used": [],
+  "paths": {
+    "scanned": [
+      "targets/basic/stupid.py"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.eqeq-is-bad",
+      "end": {
+        "col": 26,
+        "line": 3,
+        "offset": 69
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "62b4a09c4569768898c43c09fa0a5b95b7e93257ef3a0911a5c379b6265b4d49fa4aecd5782461632e9aef4779af02d7cad4405b9a5318a0e5ffe9a5bd8daeae_0",
+        "is_ignored": false,
+        "lines": "    return a + b == a + b",
+        "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`",
+        "metadata": {
+          "shortlink": "https://sg.run/xyz1",
+          "source": "https://semgrep.dev/r/eqeq-bad"
+        },
+        "metavars": {
+          "$X": {
+            "abstract_content": "a+b",
+            "end": {
+              "col": 17,
+              "line": 3,
+              "offset": 60
+            },
+            "start": {
+              "col": 12,
+              "line": 3,
+              "offset": 55
+            }
+          }
+        },
+        "severity": "ERROR",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/basic/stupid.py",
+      "start": {
+        "col": 12,
+        "line": 3,
+        "offset": 55
+      }
+    }
+  ],
+  "skipped_rules": [],
+  "version": "0.42"
+}

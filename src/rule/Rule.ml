@@ -821,7 +821,7 @@ let kind_of_formula = function
   | Not _ ->
       "formula"
 
-let rec formula_of_mode (mode : mode) =
+let rec formulas_of_mode (mode : mode) : formula list =
   match mode with
   | `Search formula -> [ formula ]
   | `Taint { sources = _, sources; sanitizers; sinks = _, sinks; propagators }
@@ -836,7 +836,7 @@ let rec formula_of_mode (mode : mode) =
   | `Extract { formula; extract = _; _ } -> [ formula ]
   | `Steps steps ->
       List.concat_map
-        (fun step -> formula_of_mode (step.step_mode :> mode))
+        (fun step -> formulas_of_mode (step.step_mode :> mode))
         steps
   | `SCA _ -> []
 

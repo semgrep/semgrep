@@ -8,6 +8,50 @@ from tests.fixtures import RunSemgrep
 from semgrep.constants import OutputFormat
 
 
+# It should generate the right *fixed* fingerprint based on the rule and match.
+# The fingerprint should not change across semgrep versions; it must remain
+# stable.
+@pytest.mark.kinda_slow
+@pytest.mark.parametrize(
+    "rule_and_target",
+    [
+        # similar to test_output_sarif.py
+        ("rules/eqeq.yaml", "basic/stupid.py"),
+        ("rules/cwe_tag.yaml", "basic/stupid.py"),
+    ],
+)
+@pytest.mark.kinda_slow
+def test_value(run_semgrep_in_tmp: RunSemgrep, snapshot, rule_and_target):
+    (rule, target) = rule_and_target
+    results, _errors = run_semgrep_in_tmp(
+        rule,
+        target_name=target,
+        output_format=OutputFormat.JSON,
+        clean_fingerprint=False,
+    )
+    snapshot.assert_match(results, "results.json")
+
+
+# TODO: this currently don't pass with osemgrep, mostly because
+# of rule.py formula_string() not being fully ported to osemgrep
+@pytest.mark.kinda_slow
+@pytest.mark.parametrize(
+    "rule_and_target",
+    [("rules/taint_trace.yaml", "taint/taint_trace.cpp")],
+)
+@pytest.mark.kinda_slow
+@pytest.mark.osemfail
+def test_value_osemfail(run_semgrep_in_tmp: RunSemgrep, snapshot, rule_and_target):
+    (rule, target) = rule_and_target
+    results, _errors = run_semgrep_in_tmp(
+        rule,
+        target_name=target,
+        output_format=OutputFormat.JSON,
+        clean_fingerprint=False,
+    )
+    snapshot.assert_match(results, "results.json")
+
+
 @pytest.mark.kinda_slow
 def test_duplicate_matches_indexing(run_semgrep_in_tmp: RunSemgrep, snapshot):
     results, _errors = run_semgrep_in_tmp(

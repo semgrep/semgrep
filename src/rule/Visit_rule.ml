@@ -52,8 +52,8 @@ let visit_xpatterns (func : Xpattern.t -> inside:bool -> unit)
   aux func formula
 
 let xpatterns_of_rule (rule : Rule.t) : Xpattern.t list =
-  let formulae = formula_of_mode rule.mode in
+  let xs = formulas_of_mode rule.mode in
   let xpat_store = ref [] in
   let visit xpat ~inside:_ = xpat_store := xpat :: !xpat_store in
-  List.iter (visit_xpatterns visit) formulae;
+  List.iter (visit_xpatterns visit) xs;
   !xpat_store

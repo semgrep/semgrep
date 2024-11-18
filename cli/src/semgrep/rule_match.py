@@ -30,7 +30,9 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.util import get_lines_from_file
 from semgrep.util import get_lines_from_git_blob
+from semgrep.verbose_logging import getLogger
 
+logger = getLogger(__name__)
 
 CliUniqueKey = Tuple[str, str, int, int, str, Optional[str]]
 
@@ -340,7 +342,9 @@ class RuleMatch:
     def get_match_based_id(self) -> str:
         match_id = self.get_match_based_key()
         match_id_str = str(match_id)
-        return f"{hashlib.blake2b(str.encode(match_id_str)).hexdigest()}_{str(self.match_based_index)}"
+        code = f"{hashlib.blake2b(str.encode(match_id_str)).hexdigest()}_{str(self.match_based_index)}"
+        logger.debug(f"match_key = {match_id_str} match_id = {code}")
+        return code
 
     @code_hash.default
     def get_code_hash(self) -> str:

@@ -314,9 +314,12 @@ class Rule:
             for k in sorted(RuleValidation.PATTERN_KEYS):
                 next_raw = self.raw.get(k)
                 if next_raw is not None:
+                    # print(k)
+                    # print(next_raw)
                     patterns_to_add.append(get_subrules(next_raw))
                     if k == "join" and "on" in next_raw:
                         patterns_to_add += get_subrules(next_raw["on"])
+            # print(patterns_to_add)
             res = " ".join(sorted(patterns_to_add))
             if not res:
                 raise ValueError(f"This rule contains no hashable patterns: {self.id}")

@@ -49,7 +49,7 @@ let mk_specialized_formula_cache (rules : R.taint_rule list) =
     rules
     |> List.concat_map (fun (rule : R.taint_mode R.rule_info) ->
            let (`Taint (spec : R.taint_spec)) = rule.R.mode in
-           R.formula_of_mode (`Taint spec))
+           R.formulas_of_mode (`Taint spec))
   in
   flat_formulas
   |> List.iter (fun formula ->
