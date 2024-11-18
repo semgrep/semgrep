@@ -1057,8 +1057,8 @@ and class_body (env : env) ((v1, v2, v3) : CST.class_body) :
               match v1 with
               | `Abst_meth_sign x ->
                   (* TODO: types *)
-                  let _v = abstract_method_signature env x in
-                  None
+                  let v = abstract_method_signature env x in
+                  Some (Field v)
               | `Index_sign x ->
                   let _t = index_signature env x in
                   None

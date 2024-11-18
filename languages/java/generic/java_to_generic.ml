@@ -158,7 +158,7 @@ let rec modifier (x, tok) =
   | Volatile -> G.attr G.Volatile tok
   | Synchronized -> G.unhandled_keywordattr (s, tok)
   | Native -> G.unhandled_keywordattr (s, tok)
-  | DefaultModifier -> G.unhandled_keywordattr (s, tok)
+  | DefaultModifier -> G.attr G.DefaultImpl tok
   | Sealed -> G.attr G.SealedClass tok
   | NonSealed -> G.unhandled_keywordattr (s, tok)
   | Annotation v1 -> annotation v1
