@@ -35,12 +35,13 @@ type path = {
 type manifest = { path : path; kind : Manifest_kind.t }
 [@@deriving show, yojson]
 
-type lockfile = {
-  path : path;
-  kind : Lockfile_kind.t;
-  manifest : manifest option;
-}
+type lockfile = { path : path; kind : Lockfile_kind.t }
 [@@deriving show, yojson]
+
+type dependency_source =
+  | ManifestOnly of manifest
+  | LockfileOnly of lockfile
+  | ManifestAndLockfile of manifest * lockfile
 
 let pp_debug_lockfile f t =
   Format.fprintf f "%s" (t.path.internal_path_to_content |> Fpath.to_string)
@@ -76,6 +77,8 @@ type regular = {
   products : Out.product list;
       [@to_yojson out_product_list_to_yojson]
       [@of_yojson out_product_list_of_yojson]
+  (* TODO: (sca) associate each target with a dependency_source here rather than only a lockfile.
+   * We did not do this at the time that we added dependency_source because this code was unused at that point. *)
   lockfile : lockfile option;
 }
 [@@deriving show, yojson]
@@ -123,8 +126,8 @@ let path_of_origin (origin : Origin.t) : path =
 let mk_regular ?lockfile analyzer products (origin : Origin.t) : regular =
   { path = path_of_origin origin; analyzer; products; lockfile }
 
-let mk_lockfile ?manifest kind (origin : Origin.t) : lockfile =
-  { path = path_of_origin origin; kind; manifest }
+let mk_lockfile kind (origin : Origin.t) : lockfile =
+  { path = path_of_origin origin; kind }
 
 let mk_manifest kind (origin : Origin.t) : manifest =
   { path = path_of_origin origin; kind }
@@ -139,15 +142,9 @@ let mk_target (xlang : Xlang.t) (file : Fpath.t) : t =
 (* Input_to_core -> Target *)
 (*****************************************************************************)
 
-let manifest_target_of_input_to_core
-    ({ path; manifest_kind = kind } : In.manifest_target) : manifest =
-  mk_manifest kind (File (Fpath.v path))
-
 let lockfile_target_of_input_to_core
-    ({ path; lockfile_kind = kind; manifest_target } : In.lockfile_target) :
-    lockfile =
-  let manifest = Option.map manifest_target_of_input_to_core manifest_target in
-  mk_lockfile ?manifest kind (File (Fpath.v path))
+    ({ path; lockfile_kind = kind } : In.lockfile_target) : lockfile =
+  mk_lockfile kind (File (Fpath.v path))
 
 let code_target_location_of_input_to_core
     ({ path; analyzer; products; lockfile_target } : In.code_target) : regular =
@@ -158,6 +155,28 @@ let target_of_input_to_core (input : In.target) : t =
   match input with
   | `CodeTarget x -> Regular (code_target_location_of_input_to_core x)
   | `LockfileTarget x -> Lockfile (lockfile_target_of_input_to_core x)
+
+(*****************************************************************************)
+(* Semgrep_output -> Target *)
+(*****************************************************************************)
+
+let manifest_of_semgrep_output ({ path; kind } : Out.manifest) : manifest =
+  mk_manifest kind (File path)
+
+let lockfile_of_semgrep_output ({ path; kind } : Out.lockfile) : lockfile =
+  mk_lockfile kind (File path)
+
+let dependency_source_of_semgrep_output (output_source : Out.dependency_source)
+    =
+  match output_source with
+  | ManifestOnlyDependencySource manifest ->
+      ManifestOnly (manifest_of_semgrep_output manifest)
+  | LockfileOnlyDependencySource lockfile ->
+      LockfileOnly (lockfile_of_semgrep_output lockfile)
+  | ManifestLockfileDependencySource (manifest, lockfile) ->
+      ManifestAndLockfile
+        ( manifest_of_semgrep_output manifest,
+          lockfile_of_semgrep_output lockfile )
 
 (*****************************************************************************)
 (* Accessors *)

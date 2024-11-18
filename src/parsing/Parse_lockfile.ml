@@ -6,7 +6,23 @@ let parse_lockfile :
     Fpath.t ->
     Dependency.t list = function
   (* TODO: add parsers, guard behind semgrep-pro  *)
-  | PackageLockJsonV3 -> fun _ _ -> []
+  | PipRequirementsTxt
+  | PoetryLock
+  | PipfileLock
+  | NpmPackageLockJson
+  | YarnLock
+  | PnpmLock
+  | GemfileLock
+  | GoMod
+  | CargoLock
+  | MavenDepTree
+  | GradleLockfile
+  | ComposerLock
+  | NugetPackagesLockJson
+  | PubspecLock
+  | SwiftPackageResolved
+  | MixLock ->
+      fun _ _ -> []
 
 let parse_manifest :
     In.manifest_kind -> Fpath.t -> Dependency.manifest_dependency list =
@@ -19,6 +35,7 @@ let parse_manifest :
   | `CargoToml
   | `PomXml
   | `BuildGradle
+  | `SettingsGradle
   | `ComposerJson
   | `NugetManifestJson
   | `PubspecYaml

@@ -9,10 +9,10 @@ from semdep.matchers.base import PatternLockfileMatcher
 from semdep.matchers.gradle import GradleMatcher
 from semdep.matchers.pip_requirements import PipRequirementsMatcher
 from semdep.subproject_matchers import filter_dependency_source_files
-from semgrep.subproject import LockfileDependencySource
+from semgrep.subproject import LockfileOnlyDependencySource
+from semgrep.subproject import ManifestLockfileDependencySource
 from semgrep.subproject import ManifestOnlyDependencySource
 from semgrep.subproject import MultiLockfileDependencySource
-from semgrep.subproject import PackageManagerType
 from semgrep.subproject import Subproject
 
 
@@ -20,10 +20,10 @@ class TestExactLockfileMatcher:
     @pytest.mark.quick
     def test_lockfile_match(self):
         matcher = ExactLockfileManifestMatcher(
-            package_manager_type=PackageManagerType.PIPENV,
             lockfile_name="Pipfile.lock",
             manifest_name="Pipfile",
             manifest_kind=out.ManifestKind(value=out.Pipfile_()),
+            lockfile_kind=out.LockfileKind(value=out.PipfileLock()),
         )
 
         assert matcher.is_match(Path("Pipfile.lock")) is True
@@ -33,10 +33,10 @@ class TestExactLockfileMatcher:
     @pytest.mark.quick
     def test_manifest_match(self):
         matcher = ExactLockfileManifestMatcher(
-            package_manager_type=PackageManagerType.PIPENV,
             lockfile_name="Pipfile.lock",
             manifest_name="Pipfile",
             manifest_kind=out.ManifestKind(value=out.Pipfile_()),
+            lockfile_kind=out.LockfileKind(value=out.PipfileLock()),
         )
 
         assert matcher.is_match(Path("Pipfile")) is True
@@ -56,8 +56,8 @@ class TestExactLockfileMatcher:
         matcher = ExactLockfileManifestMatcher(
             lockfile_name="Pipfile.lock",
             manifest_name="Pipfile",
-            package_manager_type=PackageManagerType.PIPENV,
             manifest_kind=out.ManifestKind(value=out.Pipfile_()),
+            lockfile_kind=out.LockfileKind(value=out.PipfileLock()),
         )
 
         assert matcher.is_match(manifest_path)
@@ -70,21 +70,21 @@ class TestExactLockfileMatcher:
         assert len(subprojects) == 1
         subproject = subprojects[0]
         assert subproject.root_dir == tmp_path
-        assert isinstance(subproject.dependency_source, LockfileDependencySource)
-        assert subproject.dependency_source.lockfile_path == lockfile_path
-        subproject_manifest_path = (
-            subproject.dependency_source.manifest.path
-            if subproject.dependency_source.manifest is not None
-            else None
-        )
+        assert subproject.dependency_source.lockfile.path.value == str(lockfile_path)
 
         if create_manifest:
+            assert isinstance(
+                subproject.dependency_source, ManifestLockfileDependencySource
+            )
+            subproject_manifest_path = subproject.dependency_source.manifest.path
             assert (
                 subproject_manifest_path is not None
                 and Path(subproject_manifest_path.value) == manifest_path
             )
         else:
-            assert subproject_manifest_path is None
+            assert isinstance(
+                subproject.dependency_source, LockfileOnlyDependencySource
+            )
 
 
 class TestPatternLockfileMatcher:
@@ -93,7 +93,7 @@ class TestPatternLockfileMatcher:
         matcher = PatternLockfileMatcher(
             lockfile_pattern="*requirements*.txt",
             manifest_name="requirements.in",
-            package_manager_type=PackageManagerType.PIP,
+            lockfile_kind=out.LockfileKind(out.PipRequirementsTxt()),
             manifest_kind=out.ManifestKind(value=out.RequirementsIn()),
         )
 
@@ -148,8 +148,8 @@ class TestPatternLockfileMatcher:
         matcher = PatternLockfileMatcher(
             lockfile_pattern="*requirements*.txt",
             manifest_name="requirements.in",
-            package_manager_type=PackageManagerType.PIP,
             manifest_kind=out.ManifestKind(value=out.RequirementsIn()),
+            lockfile_kind=out.LockfileKind(value=out.PipRequirementsTxt()),
         )
 
         # expect the matcher to create four subprojects, with or without manifests
@@ -164,23 +164,27 @@ class TestPatternLockfileMatcher:
         assert used_files == files
         assert len(subprojects) == 4
         for subproject in subprojects:
-            assert isinstance(subproject.dependency_source, LockfileDependencySource)
-            manifest_path = (
-                subproject.dependency_source.manifest.path
-                if subproject.dependency_source.manifest is not None
-                else None
+            assert isinstance(
+                subproject.dependency_source,
+                (ManifestLockfileDependencySource, LockfileOnlyDependencySource),
             )
             expected_root, expected_manifest = test_data[
-                subproject.dependency_source.lockfile_path
+                Path(subproject.dependency_source.lockfile.path.value)
             ]
             assert subproject.root_dir == expected_root
             if with_manifest:
+                assert isinstance(
+                    subproject.dependency_source, ManifestLockfileDependencySource
+                )
+                manifest_path = subproject.dependency_source.manifest.path
                 assert (
                     manifest_path is not None
                     and Path(manifest_path.value) == expected_manifest
                 )
             else:
-                assert manifest_path is None
+                assert isinstance(
+                    subproject.dependency_source, LockfileOnlyDependencySource
+                )
 
 
 class TestRequirementsLockfileMatcher:
@@ -240,24 +244,28 @@ class TestRequirementsLockfileMatcher:
                 [
                     Subproject(
                         root_dir=Path(),
-                        dependency_source=LockfileDependencySource(
-                            package_manager_type=PackageManagerType.PIP,
+                        dependency_source=ManifestLockfileDependencySource(
                             manifest=out.Manifest(
                                 out.ManifestKind(out.RequirementsIn()),
                                 out.Fpath("requirements.in"),
                             ),
-                            lockfile_path=Path("requirements.txt"),
+                            lockfile=out.Lockfile(
+                                out.LockfileKind(out.PipRequirementsTxt()),
+                                out.Fpath("requirements.txt"),
+                            ),
                         ),
                     ),
                     Subproject(
                         root_dir=Path("a/b/c"),
-                        dependency_source=LockfileDependencySource(
-                            package_manager_type=PackageManagerType.PIP,
+                        dependency_source=ManifestLockfileDependencySource(
                             manifest=out.Manifest(
                                 out.ManifestKind(out.RequirementsIn()),
                                 out.Fpath("a/b/c/requirements.in"),
                             ),
-                            lockfile_path=Path("a/b/c/requirements.txt"),
+                            lockfile=out.Lockfile(
+                                out.LockfileKind(out.PipRequirementsTxt()),
+                                out.Fpath("a/b/c/requirements.txt"),
+                            ),
                         ),
                     ),
                 ],
@@ -272,24 +280,28 @@ class TestRequirementsLockfileMatcher:
                 [
                     Subproject(
                         root_dir=Path(),
-                        dependency_source=LockfileDependencySource(
-                            package_manager_type=PackageManagerType.PIP,
+                        dependency_source=ManifestLockfileDependencySource(
                             manifest=out.Manifest(
                                 out.ManifestKind(out.RequirementsIn()),
                                 out.Fpath("requirements3.in"),
                             ),
-                            lockfile_path=Path("requirements3.txt"),
+                            lockfile=out.Lockfile(
+                                out.LockfileKind(out.PipRequirementsTxt()),
+                                out.Fpath("requirements3.txt"),
+                            ),
                         ),
                     ),
                     Subproject(
                         root_dir=Path("a/b/c"),
-                        dependency_source=LockfileDependencySource(
-                            package_manager_type=PackageManagerType.PIP,
+                        dependency_source=ManifestLockfileDependencySource(
                             manifest=out.Manifest(
                                 out.ManifestKind(out.RequirementsIn()),
                                 out.Fpath("a/b/c/requirements.in"),
                             ),
-                            lockfile_path=Path("a/b/c/requirements3.txt"),
+                            lockfile=out.Lockfile(
+                                out.LockfileKind(out.PipRequirementsTxt()),
+                                out.Fpath("a/b/c/requirements3.txt"),
+                            ),
                         ),
                     ),
                 ],
@@ -305,21 +317,25 @@ class TestRequirementsLockfileMatcher:
                         root_dir=Path(),
                         dependency_source=MultiLockfileDependencySource(
                             sources=(
-                                LockfileDependencySource(
-                                    package_manager_type=PackageManagerType.PIP,
+                                ManifestLockfileDependencySource(
                                     manifest=out.Manifest(
                                         out.ManifestKind(out.RequirementsIn()),
                                         out.Fpath("requirements.in"),
                                     ),
-                                    lockfile_path=Path("requirements-dev.txt"),
+                                    lockfile=out.Lockfile(
+                                        out.LockfileKind(out.PipRequirementsTxt()),
+                                        out.Fpath("requirements-dev.txt"),
+                                    ),
                                 ),
-                                LockfileDependencySource(
-                                    package_manager_type=PackageManagerType.PIP,
+                                ManifestLockfileDependencySource(
                                     manifest=out.Manifest(
                                         out.ManifestKind(out.RequirementsIn()),
                                         out.Fpath("requirements.in"),
                                     ),
-                                    lockfile_path=Path("requirements-prod.txt"),
+                                    lockfile=out.Lockfile(
+                                        out.LockfileKind(out.PipRequirementsTxt()),
+                                        out.Fpath("requirements-prod.txt"),
+                                    ),
                                 ),
                             )
                         ),
@@ -337,21 +353,25 @@ class TestRequirementsLockfileMatcher:
                         root_dir=Path(),
                         dependency_source=MultiLockfileDependencySource(
                             sources=(
-                                LockfileDependencySource(
-                                    package_manager_type=PackageManagerType.PIP,
+                                ManifestLockfileDependencySource(
                                     manifest=out.Manifest(
                                         out.ManifestKind(out.RequirementsIn()),
                                         out.Fpath("requirements.in"),
                                     ),
-                                    lockfile_path=Path("dev-requirements.txt"),
+                                    lockfile=out.Lockfile(
+                                        out.LockfileKind(out.PipRequirementsTxt()),
+                                        out.Fpath("dev-requirements.txt"),
+                                    ),
                                 ),
-                                LockfileDependencySource(
-                                    package_manager_type=PackageManagerType.PIP,
+                                ManifestLockfileDependencySource(
                                     manifest=out.Manifest(
                                         out.ManifestKind(out.RequirementsIn()),
                                         out.Fpath("requirements.in"),
                                     ),
-                                    lockfile_path=Path("prod-requirements.txt"),
+                                    lockfile=out.Lockfile(
+                                        out.LockfileKind(out.PipRequirementsTxt()),
+                                        out.Fpath("prod-requirements.txt"),
+                                    ),
                                 ),
                             )
                         ),
@@ -363,13 +383,15 @@ class TestRequirementsLockfileMatcher:
                 [
                     Subproject(
                         root_dir=Path(),
-                        dependency_source=LockfileDependencySource(
-                            package_manager_type=PackageManagerType.PIP,
+                        dependency_source=ManifestLockfileDependencySource(
                             manifest=out.Manifest(
                                 out.ManifestKind(out.RequirementsIn()),
                                 out.Fpath("requirements.in"),
                             ),
-                            lockfile_path=Path("requirements_lock.txt"),
+                            lockfile=out.Lockfile(
+                                out.LockfileKind(out.PipRequirementsTxt()),
+                                out.Fpath("requirements_lock.txt"),
+                            ),
                         ),
                     )
                 ],
@@ -385,21 +407,25 @@ class TestRequirementsLockfileMatcher:
                         root_dir=Path(),
                         dependency_source=MultiLockfileDependencySource(
                             sources=(
-                                LockfileDependencySource(
-                                    package_manager_type=PackageManagerType.PIP,
+                                ManifestLockfileDependencySource(
                                     manifest=out.Manifest(
                                         out.ManifestKind(out.RequirementsIn()),
                                         out.Fpath("requirements.in"),
                                     ),
-                                    lockfile_path=Path("requirements/dev.txt"),
+                                    lockfile=out.Lockfile(
+                                        out.LockfileKind(out.PipRequirementsTxt()),
+                                        out.Fpath("requirements/dev.txt"),
+                                    ),
                                 ),
-                                LockfileDependencySource(
-                                    package_manager_type=PackageManagerType.PIP,
+                                ManifestLockfileDependencySource(
                                     manifest=out.Manifest(
                                         out.ManifestKind(out.RequirementsIn()),
                                         out.Fpath("requirements.in"),
                                     ),
-                                    lockfile_path=Path("requirements/prod.txt"),
+                                    lockfile=out.Lockfile(
+                                        out.LockfileKind(out.PipRequirementsTxt()),
+                                        out.Fpath("requirements/prod.txt"),
+                                    ),
                                 ),
                             )
                         ),
@@ -418,21 +444,25 @@ class TestRequirementsLockfileMatcher:
                         root_dir=Path(),
                         dependency_source=MultiLockfileDependencySource(
                             sources=(
-                                LockfileDependencySource(
-                                    package_manager_type=PackageManagerType.PIP,
+                                ManifestLockfileDependencySource(
                                     manifest=out.Manifest(
                                         out.ManifestKind(out.RequirementsIn()),
                                         out.Fpath("requirements.in"),
                                     ),
-                                    lockfile_path=Path("requirements/dev.txt"),
+                                    lockfile=out.Lockfile(
+                                        out.LockfileKind(out.PipRequirementsTxt()),
+                                        out.Fpath("requirements/dev.txt"),
+                                    ),
                                 ),
-                                LockfileDependencySource(
-                                    package_manager_type=PackageManagerType.PIP,
+                                ManifestLockfileDependencySource(
                                     manifest=out.Manifest(
                                         out.ManifestKind(out.RequirementsIn()),
                                         out.Fpath("requirements/prod.in"),
                                     ),
-                                    lockfile_path=Path("requirements/prod.txt"),
+                                    lockfile=out.Lockfile(
+                                        out.LockfileKind(out.PipRequirementsTxt()),
+                                        out.Fpath("requirements/prod.txt"),
+                                    ),
                                 ),
                             )
                         ),
@@ -449,15 +479,17 @@ class TestRequirementsLockfileMatcher:
                         root_dir=Path(),
                         dependency_source=MultiLockfileDependencySource(
                             sources=(
-                                LockfileDependencySource(
-                                    package_manager_type=PackageManagerType.PIP,
-                                    manifest=None,
-                                    lockfile_path=Path("requirements/dev.txt"),
+                                LockfileOnlyDependencySource(
+                                    lockfile=out.Lockfile(
+                                        out.LockfileKind(out.PipRequirementsTxt()),
+                                        out.Fpath("requirements/dev.txt"),
+                                    )
                                 ),
-                                LockfileDependencySource(
-                                    package_manager_type=PackageManagerType.PIP,
-                                    manifest=None,
-                                    lockfile_path=Path("requirements/prod.txt"),
+                                LockfileOnlyDependencySource(
+                                    lockfile=out.Lockfile(
+                                        out.LockfileKind(out.PipRequirementsTxt()),
+                                        out.Fpath("requirements/prod.txt"),
+                                    )
                                 ),
                             )
                         ),
@@ -534,15 +566,19 @@ class TestGradleMatcher:
                     Subproject(
                         root_dir=Path(),
                         dependency_source=ManifestOnlyDependencySource(
-                            manifest_kind=out.ManifestKind(value=out.BuildGradle()),
-                            manifest_path=Path("build.gradle"),
+                            manifest=out.Manifest(
+                                out.ManifestKind(out.BuildGradle()),
+                                out.Fpath("build.gradle"),
+                            )
                         ),
                     ),
                     Subproject(
                         root_dir=Path("buildSrc"),
                         dependency_source=ManifestOnlyDependencySource(
-                            manifest_kind=out.ManifestKind(value=out.BuildGradle()),
-                            manifest_path=Path("buildSrc/build.gradle"),
+                            manifest=out.Manifest(
+                                out.ManifestKind(out.BuildGradle()),
+                                out.Fpath("buildSrc/build.gradle"),
+                            )
                         ),
                     ),
                 ],
@@ -565,20 +601,24 @@ class TestGradleMatcher:
                 [
                     Subproject(
                         root_dir=Path(),
-                        dependency_source=LockfileDependencySource(
-                            package_manager_type=PackageManagerType.GRADLE,
+                        dependency_source=ManifestLockfileDependencySource(
                             manifest=out.Manifest(
                                 kind=out.ManifestKind(value=out.BuildGradle()),
                                 path=out.Fpath("build.gradle"),
                             ),
-                            lockfile_path=Path("gradle.lockfile"),
+                            lockfile=out.Lockfile(
+                                out.LockfileKind(out.GradleLockfile_()),
+                                out.Fpath("gradle.lockfile"),
+                            ),
                         ),
                     ),
                     Subproject(
                         root_dir=Path("buildSrc"),
                         dependency_source=ManifestOnlyDependencySource(
-                            manifest_kind=out.ManifestKind(value=out.BuildGradle()),
-                            manifest_path=Path("buildSrc/build.gradle"),
+                            manifest=out.Manifest(
+                                kind=out.ManifestKind(value=out.BuildGradle()),
+                                path=out.Fpath("buildSrc/build.gradle"),
+                            ),
                         ),
                     ),
                 ],
@@ -601,19 +641,23 @@ class TestGradleMatcher:
                     Subproject(
                         root_dir=Path(),
                         dependency_source=ManifestOnlyDependencySource(
-                            manifest_kind=out.ManifestKind(value=out.BuildGradle()),
-                            manifest_path=Path("build.gradle"),
+                            out.Manifest(
+                                kind=out.ManifestKind(value=out.BuildGradle()),
+                                path=out.Fpath("build.gradle"),
+                            )
                         ),
                     ),
                     Subproject(
                         root_dir=Path("buildSrc"),
-                        dependency_source=LockfileDependencySource(
-                            package_manager_type=PackageManagerType.GRADLE,
+                        dependency_source=ManifestLockfileDependencySource(
+                            lockfile=out.Lockfile(
+                                kind=out.LockfileKind(out.GradleLockfile_()),
+                                path=out.Fpath("buildSrc/gradle.lockfile"),
+                            ),
                             manifest=out.Manifest(
                                 kind=out.ManifestKind(value=out.BuildGradle()),
                                 path=out.Fpath("buildSrc/build.gradle"),
                             ),
-                            lockfile_path=Path("buildSrc/gradle.lockfile"),
                         ),
                     ),
                 ],
@@ -635,20 +679,24 @@ class TestGradleMatcher:
                 [
                     Subproject(
                         root_dir=Path(),
-                        dependency_source=LockfileDependencySource(
-                            package_manager_type=PackageManagerType.GRADLE,
+                        dependency_source=ManifestLockfileDependencySource(
                             manifest=out.Manifest(
                                 kind=out.ManifestKind(value=out.BuildGradle()),
                                 path=out.Fpath("build.gradle"),
                             ),
-                            lockfile_path=Path("gradle.lockfile"),
+                            lockfile=out.Lockfile(
+                                out.LockfileKind(out.GradleLockfile_()),
+                                out.Fpath("gradle.lockfile"),
+                            ),
                         ),
                     ),
                     Subproject(
                         root_dir=Path("buildSrc"),
                         dependency_source=ManifestOnlyDependencySource(
-                            manifest_kind=out.ManifestKind(value=out.BuildGradle()),
-                            manifest_path=Path("buildSrc/settings.gradle"),
+                            manifest=out.Manifest(
+                                kind=out.ManifestKind(value=out.SettingsGradle()),
+                                path=out.Fpath("buildSrc/settings.gradle"),
+                            ),
                         ),
                     ),
                 ],
@@ -666,8 +714,10 @@ class TestGradleMatcher:
                     Subproject(
                         root_dir=Path(),
                         dependency_source=ManifestOnlyDependencySource(
-                            manifest_kind=out.ManifestKind(value=out.BuildGradle()),
-                            manifest_path=Path("build.gradle"),
+                            manifest=out.Manifest(
+                                kind=out.ManifestKind(value=out.BuildGradle()),
+                                path=out.Fpath("build.gradle"),
+                            ),
                         ),
                     ),
                 ],
@@ -694,8 +744,6 @@ class TestGradleMatcher:
 
         # and expect the returned subprojects to match, ignoring order
         expected = set(expected_subprojects)
-        print("real subprojects", subprojects)
-        print("expected subprojects", expected_subprojects)
         assert len(subprojects) == len(expected_subprojects)
         for subproject in subprojects:
             assert subproject in expected

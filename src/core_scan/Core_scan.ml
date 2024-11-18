@@ -726,9 +726,10 @@ let rules_for_target ~analyzer ~products ~origin ~respect_rule_paths rules =
 (* SCA *)
 (*****************************************************************************)
 
-let lockfile_xtarget_resolve (lockfile : Target.lockfile) : Lockfile_xtarget.t =
+let lockfile_xtarget_resolve (manifest : Target.manifest option)
+    (lockfile : Target.lockfile) : Lockfile_xtarget.t =
   Lockfile_xtarget.resolve Parse_lockfile.parse_manifest
-    Parse_lockfile.parse_lockfile lockfile
+    Parse_lockfile.parse_lockfile lockfile manifest
 
 let rules_for_lockfile_kind ~lockfile_kind rules =
   rules
@@ -754,7 +755,7 @@ let supply_chain_rules ~lockfile_kind ~respect_rule_paths ~origin rules =
 let sca_rules_filtering (target : Target.regular) (rules : Rule.t list) :
     Rule.t list * Match_dependency.dependency_match_table =
   let lockfile_xtarget_opt =
-    target.lockfile |> Option.map lockfile_xtarget_resolve
+    target.lockfile |> Option.map (lockfile_xtarget_resolve None)
   in
   (* If a rule tried to a find a dependency match and failed, then it will
      never produce any matches of any kind *)
@@ -791,7 +792,10 @@ let mk_target_handler (caps : < Cap.time_limit >) (config : Core_scan_config.t)
   function
   | Lockfile
       ({ path = { internal_path_to_content; origin }; kind; _ } as lockfile) ->
-      let lockfile_xtarget = lockfile_xtarget_resolve lockfile in
+      (* TODO: (sca) we always pass None as the manifest target here, but this code path only
+       * applies to Supply Chain scans in the core which we never use. We should pass the real
+       * manifest here. *)
+      let lockfile_xtarget = lockfile_xtarget_resolve None lockfile in
       let rules =
         supply_chain_rules ~lockfile_kind:kind ~origin
           ~respect_rule_paths:config.respect_rule_paths valid_rules

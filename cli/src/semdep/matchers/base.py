@@ -11,9 +11,9 @@ from typing import Tuple
 from typing import Union
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
-from semgrep.subproject import LockfileDependencySource
+from semgrep.subproject import LockfileOnlyDependencySource
+from semgrep.subproject import ManifestLockfileDependencySource
 from semgrep.subproject import ManifestOnlyDependencySource
-from semgrep.subproject import PackageManagerType
 from semgrep.subproject import Subproject
 
 
@@ -58,7 +58,7 @@ class LockfileManifestMatcher(SubprojectMatcher):
     """
 
     manifest_kind: out.ManifestKind
-    package_manager_type: PackageManagerType
+    lockfile_kind: out.LockfileKind
 
     @abstractmethod
     def _is_manifest_match(self, path: Path) -> bool:
@@ -144,15 +144,22 @@ class LockfileManifestMatcher(SubprojectMatcher):
                 root_dir = self._get_subproject_root(
                     (matching_manifest_path, lockfile_path)
                 )
-            dep_source = LockfileDependencySource(
-                manifest=out.Manifest(
-                    kind=self.manifest_kind, path=out.Fpath(str(matching_manifest_path))
+
+            lockfile = out.Lockfile(self.lockfile_kind, out.Fpath(str(lockfile_path)))
+            dep_source: Union[
+                ManifestLockfileDependencySource, LockfileOnlyDependencySource
+            ]
+            if matching_manifest_path:
+                dep_source = ManifestLockfileDependencySource(
+                    manifest=out.Manifest(
+                        kind=self.manifest_kind,
+                        path=out.Fpath(str(matching_manifest_path)),
+                    ),
+                    lockfile=lockfile,
                 )
-                if matching_manifest_path
-                else None,
-                package_manager_type=self.package_manager_type,
-                lockfile_path=lockfile_path,
-            )
+            else:
+                dep_source = LockfileOnlyDependencySource(lockfile)
+
             subprojects.append(
                 Subproject(root_dir=root_dir, dependency_source=dep_source)
             )
@@ -287,8 +294,9 @@ class ManifestOnlyMatcher(SubprojectMatcher):
         for manifest_path in manifests:
             root_dir = self._get_subproject_root(manifest_path)
             manifest_dep_source = ManifestOnlyDependencySource(
-                manifest_kind=self.manifest_kind,
-                manifest_path=manifest_path,
+                manifest=out.Manifest(
+                    kind=self.manifest_kind, path=out.Fpath(str(manifest_path))
+                ),
             )
             subprojects.append(
                 Subproject(root_dir=root_dir, dependency_source=manifest_dep_source)

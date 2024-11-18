@@ -8,9 +8,9 @@ from typing import Tuple
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.matchers.base import SubprojectMatcher
-from semgrep.subproject import LockfileDependencySource
+from semgrep.subproject import LockfileOnlyDependencySource
+from semgrep.subproject import ManifestLockfileDependencySource
 from semgrep.subproject import ManifestOnlyDependencySource
-from semgrep.subproject import PackageManagerType
 from semgrep.subproject import Subproject
 
 
@@ -105,6 +105,11 @@ class GradleMatcher(SubprojectMatcher):
                 lockfile_path, dep_source_files
             )
 
+            lockfile = out.Lockfile(
+                kind=out.LockfileKind(out.GradleLockfile_()),
+                path=out.Fpath(str(lockfile_path)),
+            )
+
             # track that these build and settings files are already accounted for
             if build_path is not None:
                 used_build_paths.add(build_path)
@@ -126,16 +131,22 @@ class GradleMatcher(SubprojectMatcher):
                     path=out.Fpath(str(settings_path)),
                 )
 
-            subprojects.append(
-                Subproject(
-                    root_dir=project_root,
-                    dependency_source=LockfileDependencySource(
-                        package_manager_type=PackageManagerType.GRADLE,
-                        manifest=manifest,
-                        lockfile_path=lockfile_path,
-                    ),
+            if manifest is not None:
+                subprojects.append(
+                    Subproject(
+                        root_dir=project_root,
+                        dependency_source=ManifestLockfileDependencySource(
+                            manifest=manifest, lockfile=lockfile
+                        ),
+                    )
                 )
-            )
+            else:
+                subprojects.append(
+                    Subproject(
+                        root_dir=project_root,
+                        dependency_source=LockfileOnlyDependencySource(lockfile),
+                    )
+                )
 
         # next, handle settings.gradle files. Settings.gradle defines a multi-project gradle build,
         # so any time we see one, we know that it is at the root of a gradle project.
@@ -147,12 +158,19 @@ class GradleMatcher(SubprojectMatcher):
 
             project_root = settings_path.parent
             possible_build_path = settings_path.parent / self.BUILD_FILENAME
-            manifest_path: Optional[Path] = None
             if possible_build_path in dep_source_files:
+                # if a build file is present, favor using that as the manifest file, but build
+                # files might be missing for multi-project builds
                 used_build_paths.add(possible_build_path)
-                manifest_path = possible_build_path
+                manifest = out.Manifest(
+                    kind=out.ManifestKind(out.BuildGradle()),
+                    path=out.Fpath(str(possible_build_path)),
+                )
             else:
-                manifest_path = settings_path
+                manifest = out.Manifest(
+                    kind=out.ManifestKind(out.SettingsGradle()),
+                    path=out.Fpath(str(settings_path)),
+                )
 
             root_dirs.add(project_root)
             used_settings_paths.add(settings_path)
@@ -160,10 +178,7 @@ class GradleMatcher(SubprojectMatcher):
             subprojects.append(
                 Subproject(
                     root_dir=project_root,
-                    dependency_source=ManifestOnlyDependencySource(
-                        manifest_kind=out.ManifestKind(out.BuildGradle()),
-                        manifest_path=manifest_path,
-                    ),
+                    dependency_source=ManifestOnlyDependencySource(manifest),
                 )
             )
 
@@ -186,8 +201,10 @@ class GradleMatcher(SubprojectMatcher):
                 Subproject(
                     root_dir=build_path.parent,
                     dependency_source=ManifestOnlyDependencySource(
-                        manifest_kind=out.ManifestKind(out.BuildGradle()),
-                        manifest_path=build_path,
+                        manifest=out.Manifest(
+                            kind=out.ManifestKind(out.BuildGradle()),
+                            path=out.Fpath(str(build_path)),
+                        )
                     ),
                 )
             )

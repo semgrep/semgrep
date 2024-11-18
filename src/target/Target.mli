@@ -45,12 +45,16 @@ type lockfile = {
   kind : Lockfile_kind.t;
       (** The type of lockfile this is. Analogous to analyzer for a source code
           target. *)
-  manifest : manifest option;
-      (** Optionally, a manifest file associated with this lockfile. *)
 }
 [@@deriving show, yojson]
 (** A lockfile to be used during matching. See also {!Lockfile_xtarget.t}, an
     augmented version with the contents of the lockfile. *)
+
+type dependency_source =
+  | ManifestOnly of manifest
+  | LockfileOnly of lockfile
+  | ManifestAndLockfile of manifest * lockfile
+      (** A source to resolve dependencies from. Can be either a lockfile or a manifest, or both. *)
 
 val pp_debug_lockfile : Format.formatter -> lockfile -> unit
 
@@ -112,7 +116,7 @@ val mk_regular :
       a target from certain types of origins, such as generating a tempfile.
  *)
 
-val mk_lockfile : ?manifest:manifest -> Lockfile_kind.t -> Origin.t -> lockfile
+val mk_lockfile : Lockfile_kind.t -> Origin.t -> lockfile
 (** [mk_lockfile k origin] is the a {!lockfile} target
       originating from [origin] of kind [k]. If [manifest] is specified, it
       shall be used as the associated manifest.
@@ -138,6 +142,13 @@ val mk_target : Xlang.t -> Fpath.t -> t
 (* Input_to_core -> Target *)
 (*****************************************************************************)
 val target_of_input_to_core : Input_to_core_t.target -> t
+
+(*****************************************************************************)
+(* Semgrep_output -> Target *)
+(*****************************************************************************)
+
+val dependency_source_of_semgrep_output :
+  Semgrep_output_v1_t.dependency_source -> dependency_source
 
 (*****************************************************************************)
 (* Accessors *)

@@ -21,25 +21,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 
 
-class PackageManagerType(Enum):
-    PIP = auto()
-    POETRY = auto()
-    PIPENV = auto()
-    NPM = auto()
-    YARN = auto()
-    PNPM = auto()
-    RUBY_GEM = auto()
-    GO_MOD = auto()
-    CARGO = auto()
-    MAVEN = auto()
-    GRADLE = auto()
-    COMPOSER = auto()
-    NUGET = auto()
-    DART_PUB = auto()
-    SWIFT_PM = auto()
-    ELIXIR_HEX = auto()
-
-
 class ResolutionMethod(Enum):
     LOCKFILE_PARSING = auto()
 
@@ -52,37 +33,50 @@ class DependencySource(ABC):
 
 @dataclass(frozen=True)
 class ManifestOnlyDependencySource(DependencySource):
-    manifest_path: Path
-    # we don't include package manager type for the manifest-only source,
-    # because it's possible that we don't know (e.g. package.json, pyproject.toml
-    # are both used for multiple package managers.)
-    manifest_kind: out.ManifestKind
+    manifest: out.Manifest
 
     def get_display_paths(self) -> List[Path]:
-        return [self.manifest_path]
+        return [Path(self.manifest.path.value)]
+
+    def to_semgrep_output(self) -> out.DependencySource:
+        return out.DependencySource(out.ManifestOnlyDependencySource(self.manifest))
 
 
 @dataclass(frozen=True)
-class PackageManagerDependencySource(DependencySource):
-    package_manager_type: PackageManagerType
+class LockfileOnlyDependencySource(DependencySource):
+    lockfile: out.Lockfile
+
+    def get_display_paths(self) -> List[Path]:
+        return [Path(self.lockfile.path.value)]
+
+    def to_semgrep_output(self) -> out.DependencySource:
+        return out.DependencySource(out.LockfileOnlyDependencySource(self.lockfile))
 
 
 @dataclass(frozen=True)
-class LockfileDependencySource(PackageManagerDependencySource):
-    manifest: Optional[out.Manifest]
-    lockfile_path: Path
+class ManifestLockfileDependencySource(DependencySource):
+    manifest: out.Manifest
+    lockfile: out.Lockfile
 
     def get_display_paths(self) -> List[Path]:
-        return [self.lockfile_path]
+        return [Path(self.lockfile.path.value)]
+
+    def to_semgrep_output(self) -> out.DependencySource:
+        return out.DependencySource(
+            out.ManifestLockfileDependencySource((self.manifest, self.lockfile))
+        )
 
 
 @dataclass(frozen=True)
 class MultiLockfileDependencySource(DependencySource):
     # note: we use a tuple instead of a list here to allow hashing the whole type
-    sources: Tuple[LockfileDependencySource, ...]
+    sources: Tuple[
+        Union[LockfileOnlyDependencySource, ManifestLockfileDependencySource], ...
+    ]
 
     def get_display_paths(self) -> List[Path]:
-        return [source.lockfile_path for source in self.sources]
+        # aggregate all display paths for each of the child sources
+        return [path for source in self.sources for path in source.get_display_paths()]
 
 
 @dataclass(frozen=True)
@@ -98,7 +92,7 @@ class ResolvedDependencies:
     def from_resolved_interfaces(
         cls, resolved: out.ResolutionOk
     ) -> "ResolvedDependencies":
-        return cls.from_found_dependencies(resolved.value)
+        return cls.from_found_dependencies(resolved.value[0])
 
     @classmethod
     def from_found_dependencies(

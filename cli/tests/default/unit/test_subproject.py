@@ -11,9 +11,9 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 from semgrep.subproject import find_closest_subproject
-from semgrep.subproject import LockfileDependencySource
+from semgrep.subproject import LockfileOnlyDependencySource
+from semgrep.subproject import ManifestLockfileDependencySource
 from semgrep.subproject import MultiLockfileDependencySource
-from semgrep.subproject import PackageManagerType
 from semgrep.subproject import ResolutionMethod
 from semgrep.subproject import ResolvedDependencies
 from semgrep.subproject import ResolvedSubproject
@@ -39,13 +39,15 @@ class TestFindClosestSubproject:
         expected = ResolvedSubproject(
             root_dir=Path("a/b/c"),
             resolution_errors=[],
-            dependency_source=LockfileDependencySource(
-                lockfile_path=lockfile_path,
+            dependency_source=ManifestLockfileDependencySource(
                 manifest=out.Manifest(
                     out.ManifestKind(out.RequirementsIn()),
                     out.Fpath("a/b/c/requirements.in"),
                 ),
-                package_manager_type=PackageManagerType.PIP,
+                lockfile=out.Lockfile(
+                    out.LockfileKind(out.PipRequirementsTxt()),
+                    out.Fpath(str(lockfile_path)),
+                ),
             ),
             found_dependencies=ResolvedDependencies.from_found_dependencies([]),
             ecosystem=Ecosystem(Pypi()),
@@ -55,13 +57,15 @@ class TestFindClosestSubproject:
             ResolvedSubproject(
                 root_dir=Path("a/b"),
                 resolution_errors=[],
-                dependency_source=LockfileDependencySource(
-                    lockfile_path=extra_lockfile_path,
+                dependency_source=ManifestLockfileDependencySource(
                     manifest=out.Manifest(
                         out.ManifestKind(out.RequirementsIn()),
                         out.Fpath("a/b/requirements.in"),
                     ),
-                    package_manager_type=PackageManagerType.PIP,
+                    lockfile=out.Lockfile(
+                        out.LockfileKind(out.PipRequirementsTxt()),
+                        out.Fpath(str(extra_lockfile_path)),
+                    ),
                 ),
                 found_dependencies=ResolvedDependencies.from_found_dependencies([]),
                 ecosystem=Ecosystem(Pypi()),
@@ -88,13 +92,15 @@ class TestFindClosestSubproject:
         expected = ResolvedSubproject(
             root_dir=Path("a/b"),
             resolution_errors=[],
-            dependency_source=LockfileDependencySource(
-                lockfile_path=lockfile_path,
+            dependency_source=ManifestLockfileDependencySource(
                 manifest=out.Manifest(
                     out.ManifestKind(out.RequirementsIn()),
                     out.Fpath("a/b/build.gradle"),
                 ),
-                package_manager_type=PackageManagerType.GRADLE,
+                lockfile=out.Lockfile(
+                    out.LockfileKind(out.GradleLockfile_()),
+                    out.Fpath(str(lockfile_path)),
+                ),
             ),
             found_dependencies=ResolvedDependencies.from_found_dependencies([]),
             ecosystem=Ecosystem(Maven()),
@@ -104,13 +110,15 @@ class TestFindClosestSubproject:
             ResolvedSubproject(
                 root_dir=Path("a/b/c"),
                 resolution_errors=[],
-                dependency_source=LockfileDependencySource(
-                    lockfile_path=extra_lockfile_path,
+                dependency_source=ManifestLockfileDependencySource(
                     manifest=out.Manifest(
                         out.ManifestKind(out.RequirementsIn()),
                         out.Fpath("a/b/c/requirements.in"),
                     ),
-                    package_manager_type=PackageManagerType.PIP,
+                    lockfile=out.Lockfile(
+                        out.LockfileKind(out.PipRequirementsTxt()),
+                        out.Fpath(str(extra_lockfile_path)),
+                    ),
                 ),
                 found_dependencies=ResolvedDependencies.from_found_dependencies([]),
                 ecosystem=Ecosystem(Pypi()),
@@ -144,13 +152,15 @@ class TestSubproject:
         subproject = ResolvedSubproject(
             root_dir=Path("a/b/c"),
             resolution_errors=[],
-            dependency_source=LockfileDependencySource(
-                lockfile_path=lockfile_path,
+            dependency_source=ManifestLockfileDependencySource(
                 manifest=out.Manifest(
                     out.ManifestKind(out.RequirementsIn()),
                     out.Fpath("a/b/c/requirements.in"),
                 ),
-                package_manager_type=PackageManagerType.PIP,
+                lockfile=out.Lockfile(
+                    out.LockfileKind(out.PipRequirementsTxt()),
+                    out.Fpath(str(lockfile_path)),
+                ),
             ),
             resolution_method=ResolutionMethod.LOCKFILE_PARSING,
             ecosystem=Ecosystem(Pypi()),
@@ -196,15 +206,17 @@ class TestSubproject:
 
         multi_lockfile_source = MultiLockfileDependencySource(
             sources=(
-                LockfileDependencySource(
-                    lockfile_path=lockfile_path,
-                    manifest=None,
-                    package_manager_type=PackageManagerType.PIP,
+                LockfileOnlyDependencySource(
+                    lockfile=out.Lockfile(
+                        out.LockfileKind(out.PipRequirementsTxt()),
+                        out.Fpath(str(lockfile_path)),
+                    )
                 ),
-                LockfileDependencySource(
-                    lockfile_path=extra_lockfile_path,
-                    manifest=None,
-                    package_manager_type=PackageManagerType.PIP,
+                LockfileOnlyDependencySource(
+                    lockfile=out.Lockfile(
+                        out.LockfileKind(out.PipRequirementsTxt()),
+                        out.Fpath(str(extra_lockfile_path)),
+                    )
                 ),
             )
         )
@@ -249,13 +261,15 @@ class TestSubproject:
         subproject = ResolvedSubproject(
             root_dir=Path("a/b/c"),
             resolution_errors=[],
-            dependency_source=LockfileDependencySource(
-                lockfile_path=lockfile_path,
+            dependency_source=ManifestLockfileDependencySource(
                 manifest=out.Manifest(
                     out.ManifestKind(value=out.RequirementsIn()),
                     out.Fpath("a/b/c/requirements.in"),
                 ),
-                package_manager_type=PackageManagerType.PIP,
+                lockfile=out.Lockfile(
+                    out.LockfileKind(out.PipRequirementsTxt()),
+                    out.Fpath(str(lockfile_path)),
+                ),
             ),
             resolution_method=ResolutionMethod.LOCKFILE_PARSING,
             ecosystem=Ecosystem(Pypi()),
@@ -281,10 +295,11 @@ class TestLockfileDependencySource:
     def test_base_case(self):
         lockfile_path = Path("a/b/c/requirements.txt")
 
-        source = LockfileDependencySource(
-            lockfile_path=lockfile_path,
-            manifest=None,
-            package_manager_type=PackageManagerType.PIP,
+        source = LockfileOnlyDependencySource(
+            lockfile=out.Lockfile(
+                out.LockfileKind(out.PipRequirementsTxt()),
+                out.Fpath(str(lockfile_path)),
+            )
         )
 
         assert source.get_display_paths() == [
@@ -300,15 +315,17 @@ class TestMultiLockfileDependencySource:
 
         source = MultiLockfileDependencySource(
             sources=(
-                LockfileDependencySource(
-                    lockfile_path=lockfile_path,
-                    manifest=None,
-                    package_manager_type=PackageManagerType.PIP,
+                LockfileOnlyDependencySource(
+                    lockfile=out.Lockfile(
+                        out.LockfileKind(out.PipRequirementsTxt()),
+                        out.Fpath(str(lockfile_path)),
+                    )
                 ),
-                LockfileDependencySource(
-                    lockfile_path=extra_lockfile_path,
-                    manifest=None,
-                    package_manager_type=PackageManagerType.PIP,
+                LockfileOnlyDependencySource(
+                    lockfile=out.Lockfile(
+                        out.LockfileKind(out.PipRequirementsTxt()),
+                        out.Fpath(str(extra_lockfile_path)),
+                    )
                 ),
             )
         )

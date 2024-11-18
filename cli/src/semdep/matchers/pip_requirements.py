@@ -8,13 +8,14 @@ from typing import List
 from typing import Optional
 from typing import Set
 from typing import Tuple
+from typing import Union
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.matchers.base import SubprojectMatcher
 from semgrep.subproject import DependencySource
-from semgrep.subproject import LockfileDependencySource
+from semgrep.subproject import LockfileOnlyDependencySource
+from semgrep.subproject import ManifestLockfileDependencySource
 from semgrep.subproject import MultiLockfileDependencySource
-from semgrep.subproject import PackageManagerType
 from semgrep.subproject import Subproject
 
 
@@ -38,6 +39,9 @@ class PipRequirementsMatcher(SubprojectMatcher):
     default_manifest_file_base: str  # without extension
     manifest_kind: out.ManifestKind = field(
         default_factory=lambda: out.ManifestKind(value=out.RequirementsIn())
+    )
+    lockfile_kind: out.LockfileKind = field(
+        default_factory=lambda: out.LockfileKind(value=out.PipRequirementsTxt())
     )
 
     def _is_requirements_match(self, path: Path) -> bool:
@@ -150,7 +154,9 @@ class PipRequirementsMatcher(SubprojectMatcher):
             root_dir,
             local_requirements_paths,
         ) in requirements_files_by_root_dir.items():
-            lockfile_sources: List[LockfileDependencySource] = []
+            lockfile_sources: List[
+                Union[LockfileOnlyDependencySource, ManifestLockfileDependencySource]
+            ] = []
             for req_path in sorted(
                 local_requirements_paths
             ):  # sorting so that there is a deterministic order in tests
@@ -165,13 +171,17 @@ class PipRequirementsMatcher(SubprojectMatcher):
                     )
                 else:
                     manifest = None
-                lockfile_sources.append(
-                    LockfileDependencySource(
-                        manifest=manifest,
-                        package_manager_type=PackageManagerType.PIP,
-                        lockfile_path=req_path,
-                    )
+
+                lockfile = out.Lockfile(
+                    kind=self.lockfile_kind, path=out.Fpath(str(req_path))
                 )
+
+                if manifest is not None:
+                    lockfile_sources.append(
+                        ManifestLockfileDependencySource(manifest, lockfile)
+                    )
+                else:
+                    lockfile_sources.append(LockfileOnlyDependencySource(lockfile))
 
             # use the correct dependency source type depending on the number
             # of lockfiles

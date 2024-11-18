@@ -54,14 +54,18 @@ let resolve_manifest parser (target : Target.manifest) : manifest =
       lazy (parser target.kind target.path.internal_path_to_content);
   }
 
-let resolve manifest_parser parser (target : Target.lockfile) : t =
+let resolve manifest_parser parser (lockfile_target : Target.lockfile)
+    (manifest_target : Target.manifest option) : t =
   let manifest =
-    Option.map (resolve_manifest manifest_parser) target.manifest
+    Option.map (resolve_manifest manifest_parser) manifest_target
   in
   {
-    target;
+    target = lockfile_target;
     manifest;
-    lazy_content = lazy (UFile.read_file target.path.internal_path_to_content);
+    lazy_content =
+      lazy (UFile.read_file lockfile_target.path.internal_path_to_content);
     lazy_dependencies =
-      lazy (parser target.kind manifest target.path.internal_path_to_content);
+      lazy
+        (parser lockfile_target.kind manifest
+           lockfile_target.path.internal_path_to_content);
   }

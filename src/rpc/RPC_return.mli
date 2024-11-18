@@ -18,8 +18,8 @@ val validate : Out.fpath -> bool
 
 val hook_resolve_dependencies :
   (< Cap.exec ; Cap.tmp > ->
-  Out.manifest list ->
-  (Out.manifest * Out.resolution_result) list)
+  Out.dependency_source list ->
+  (Out.dependency_source * Out.resolution_result) list)
   option
   ref
 

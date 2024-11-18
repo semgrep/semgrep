@@ -8,6 +8,7 @@ let to_ecosystem : t -> Semgrep_output_v1_t.ecosystem = function
   | `CargoToml -> `Cargo
   | `PomXml -> `Maven
   | `BuildGradle -> `Maven
+  | `SettingsGradle -> `Maven
   | `ComposerJson -> `Composer
   | `NugetManifestJson -> `Nuget
   | `PubspecYaml -> `Pub
@@ -46,6 +47,3 @@ let of_string s =
 (* For use in Input_to_core.atd *)
 let wrap = of_string
 let unwrap = Semgrep_output_v1_j.show_manifest_kind
-
-let of_lockfile_kind = function
-  | Lockfile_kind.PackageLockJsonV3 -> `PackageJson

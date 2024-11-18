@@ -62,8 +62,8 @@ def validate(fp: out.Fpath) -> bool:
 
 
 def resolve_dependencies(
-    args: List[out.Manifest],
-) -> Optional[List[Tuple[out.Manifest, out.ResolutionResult]]]:
+    args: List[out.DependencySource],
+) -> Optional[List[Tuple[out.DependencySource, out.ResolutionResult]]]:
     call = out.FunctionCall(out.CallResolveDependencies(args))
     ret: Optional[out.RetResolveDependencies] = rpc_call(
         call, out.RetResolveDependencies

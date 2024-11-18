@@ -40,13 +40,10 @@ type manifest_target <ocaml attr="deriving show"> = {
   manifest_kind : manifest_kind;
 }
 
-
 (* A lockfile to be matched against dependency patterns *)
-(* Optionally associated to a [manifest_target], which specifies which dependencies are direct *)
 type lockfile_target <ocaml attr="deriving show"> = {
   path : string;
   lockfile_kind : lockfile_kind;
-  manifest_target : manifest_target option;
 }
 
 

@@ -6,10 +6,12 @@
 open Common
 
 module Fpath = struct
-  type t = Fpath.t [@@deriving show]
+  type t = Fpath.t [@@deriving show, eq]
 
   let unwrap = Fpath.to_string
   let wrap = Fpath.v
+  let to_yojson = Fpath_.to_yojson
+  let of_yojson = Fpath_.of_yojson
 end
 
 module Uri = struct

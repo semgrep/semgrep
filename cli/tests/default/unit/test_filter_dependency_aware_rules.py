@@ -12,8 +12,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import ManifestKind
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pipfile_
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
-from semgrep.subproject import LockfileDependencySource
-from semgrep.subproject import PackageManagerType
+from semgrep.subproject import ManifestLockfileDependencySource
 from semgrep.subproject import ResolutionMethod
 from semgrep.subproject import ResolvedSubproject
 from semgrep.subproject import Subproject
@@ -107,11 +106,12 @@ def sample_resolved_deps():
         ),
     ]
 
-    # Create LockfileDependencySource
-    dependency_source = LockfileDependencySource(
+    # Create dependency source
+    dependency_source = ManifestLockfileDependencySource(
         manifest=out.Manifest(ManifestKind(value=Pipfile_()), out.Fpath("Pipfile")),
-        package_manager_type=PackageManagerType.PIP,
-        lockfile_path=Path("Pipfile.lock"),
+        lockfile=out.Lockfile(
+            out.LockfileKind(value=out.PipfileLock()), out.Fpath("Pipfile.lock")
+        ),
     )
 
     resolution_method = ResolutionMethod.LOCKFILE_PARSING
