@@ -1,0 +1,19 @@
+--- begin input files ---
+error.js
+--- end input files ---
+Pr([])
+[<MASKED TIMESTAMP>][ERROR]: errors=File error.js, line 1, characters 0-10:
+function (
+^^^^^^^^^^
+parent: program, no left sibling, first child: "function"
+node type: ERROR
+children: [
+  "function"
+  "("
+]
+Unrecognized construct
+tolerated errors=
+skipped={ str = "function (";
+  pos = { Pos.bytepos = 0; line = 1; column = 0; file = error.js } }
+inserted=
+ASSERT exit code

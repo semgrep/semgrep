@@ -134,7 +134,6 @@ let test_version (caps : caps) : Testo.t =
 (* similar to test_misc.py test_cli_test_show_supported_languages *)
 let test_supported_languages (caps : caps) : Testo.t =
   t ~checked_output:(Testo.stdout ()) __FUNCTION__ (fun () ->
-      CapConsole.print caps#stdout (spf "Snapshot for %s" __FUNCTION__);
       let exit_code =
         Show_subcommand.main caps [| "semgrep-show"; "supported-languages" |]
       in
@@ -150,7 +149,6 @@ let test_dump_config (caps : caps) : Testo.t =
       ]
     __FUNCTION__
     (fun () ->
-      CapConsole.print caps#stdout (spf "Snapshot for %s" __FUNCTION__);
       let files = [ F.File ("rule.yml", eqeq_basic_content) ] in
       let exit_code =
         Testutil_files.with_tempfiles ~chdir:true ~verbose:true files
@@ -162,7 +160,6 @@ let test_dump_config (caps : caps) : Testo.t =
 
 let test_dump_rule_v2 (caps : caps) : Testo.t =
   t ~checked_output:(Testo.stdout ()) __FUNCTION__ (fun () ->
-      CapConsole.print caps#stdout (spf "Snapshot for %s" __FUNCTION__);
       let files = [ F.File ("rule.yml", eqeq_basic_content_v2) ] in
       let exit_code =
         Testutil_files.with_tempfiles ~chdir:true ~verbose:true files
@@ -187,7 +184,6 @@ let test_dump_ast (caps : caps) : Testo.t =
       ]
     __FUNCTION__
     (fun () ->
-      CapConsole.print caps#stdout (spf "Snapshot for %s" __FUNCTION__);
       let files = [ F.File ("foo.py", foo_py_content) ] in
       let exit_code =
         Testutil_files.with_tempfiles ~chdir:true ~verbose:true files
@@ -196,6 +192,18 @@ let test_dump_ast (caps : caps) : Testo.t =
               [| "semgrep-show"; "dump-ast"; "python"; "foo.py" |])
       in
       Exit_code.Check.ok exit_code)
+
+let test_dump_ast_when_error (caps : caps) : Testo.t =
+  t ~checked_output:(Testo.stdxxx ()) ~normalize:[ Testutil_logs.mask_time ]
+    __FUNCTION__ (fun () ->
+      let files = [ F.File ("error.js", "function (") ] in
+      let exit_code =
+        Testutil_files.with_tempfiles ~chdir:true ~verbose:true files
+          (fun _cwd ->
+            Show_subcommand.main caps
+              [| "semgrep-show"; "dump-ast"; "error.js" |])
+      in
+      Exit_code.Check.invalid_code exit_code)
 
 let test_dump_pattern (caps : caps) : Testo.t =
   t ~checked_output:(Testo.stdout ())
@@ -206,7 +214,6 @@ let test_dump_pattern (caps : caps) : Testo.t =
       ]
     __FUNCTION__
     (fun () ->
-      CapConsole.print caps#stdout (spf "Snapshot for %s" __FUNCTION__);
       let exit_code =
         Show_subcommand.main caps
           [| "semgrep-show"; "dump-pattern"; "python"; "foo(..., $X == $X)" |]
@@ -219,7 +226,6 @@ let test_identity (caps : caps) : Testo.t =
    * and just capture stdout here.
    *)
   t ~checked_output:(Testo.stdxxx ()) __FUNCTION__ (fun () ->
-      CapConsole.print caps#stdout (spf "Snapshot for %s" __FUNCTION__);
       let exit_code =
         (* we need to be logged in otherwise we will not contact the server *)
         with_fake_login fake_settings (fun () ->
@@ -230,7 +236,6 @@ let test_identity (caps : caps) : Testo.t =
 
 let test_deployment (caps : caps) : Testo.t =
   t ~checked_output:(Testo.stdxxx ()) __FUNCTION__ (fun () ->
-      CapConsole.print caps#stdout (spf "Snapshot for %s" __FUNCTION__);
       let exit_code =
         with_fake_login fake_settings (fun () ->
             with_fake_deployment_response fake_deployment (fun () ->
@@ -255,6 +260,7 @@ let tests (caps : caps) =
       test_deployment caps;
       test_dump_pattern caps;
       test_dump_ast caps;
+      test_dump_ast_when_error caps;
       test_dump_config caps;
       test_dump_rule_v2 caps;
       (* TODO? engine_path and command_for_core *)

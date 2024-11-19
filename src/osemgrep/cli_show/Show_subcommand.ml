@@ -95,9 +95,17 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
   | DumpCST (file, lang) ->
       Test_parsing.dump_tree_sitter_cst lang file;
       Exit_code.ok ~__LOC__
-  | DumpAST (file, lang) ->
+  | DumpAST (file, lang) -> (
       (* mostly a copy paste of Core_CLI.dump_ast *)
-      let { Parsing_result2.ast; skipped_tokens = _; _ } =
+      let Parsing_result2.
+            {
+              ast;
+              errors;
+              tolerated_errors;
+              skipped_tokens;
+              inserted_tokens;
+              stat = _;
+            } =
         (* alt: call Parse_target.just_parse_with_lang()
          * but usually we also want the naming/typing info.
          * we could add a flag --naming, but simpler to just call
@@ -112,7 +120,20 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
       UFormat.set_margin 120;
       let s = dump_v_to_format ~json:conf.json v in
       print s;
-      Exit_code.ok ~__LOC__
+      match (errors @ tolerated_errors, skipped_tokens @ inserted_tokens) with
+      | [], [] -> Exit_code.ok ~__LOC__
+      | _, _ ->
+          Logs.err (fun m ->
+              m "errors=%s\ntolerated errors=%s\nskipped=%s\ninserted=%s"
+                (Parsing_result2.format_errors errors)
+                (Parsing_result2.format_errors tolerated_errors)
+                (skipped_tokens
+                |> List_.map Tok.show_location
+                |> String.concat ", ")
+                (inserted_tokens
+                |> List_.map Tok.show_location
+                |> String.concat ", "));
+          Exit_code.invalid_code ~__LOC__)
   | DumpConfig config_str ->
       let settings = Semgrep_settings.load () in
       let token_opt = settings.api_token in
