@@ -1,0 +1,2 @@
+Improved logic for interfile analysis in TypeScript projects using
+[project references](https://www.typescriptlang.org/docs/handbook/project-references.html).
