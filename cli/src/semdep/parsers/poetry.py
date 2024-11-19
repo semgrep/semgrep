@@ -77,8 +77,17 @@ quoted_value = (
 # foo
 plain_value = upto("\n")
 
+# Multi-line string handling for both single and double triple quotes
+multi_line_quoted_value = (
+    (string("'''") | string('"""'))  # Match both triple single and triple double quotes
+    >> any_char.until(
+        (string("'''") | string('"""')) << string("\n").optional()
+    ).result("")
+    << (string("'''\n") | string('"""\n'))
+)
+
 # A value in a key-value pair.
-value = list_value | object_value | quoted_value | plain_value
+value = multi_line_quoted_value | list_value | object_value | quoted_value | plain_value
 
 key = regex(r'("[^"]*"|[^\s=]+)\s*=\s*', flags=0, group=1).map(lambda x: x.strip('"'))
 

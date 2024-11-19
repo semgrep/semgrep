@@ -1,0 +1,1 @@
+Poetry.lock & Pyproject.toml parsers can now handle multiline strings.
