@@ -43,7 +43,9 @@ repos:
       - id: destroyed-symlinks
       - id: detect-private-key
       - id: end-of-file-fixer
-        exclude: "^\\.github/workflows/.+|semgrep\\.opam|.gitmodules$"
+        # Exclude generated files.
+        # coupling: apply the same exclusions in semgrep-proprietary
+        exclude: "^\\.github/workflows/.+|semgrep\\.opam|.gitmodules|.dockerignore$"
       - id: fix-byte-order-marker
       - id: fix-encoding-pragma
         args: [--remove]
