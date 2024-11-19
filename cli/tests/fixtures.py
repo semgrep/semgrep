@@ -58,5 +58,12 @@ class RunSemgrep(Protocol):
         teardown_workspace: Callable[[], None] = lambda: None,
         # Context manager to wrap around the semgrep invocation:
         context_manager: Optional[ContextManager] = None,
+        # The --project-root option is used to prevent the .semgrepignore
+        # at the root of the git project to be taken into account when testing,
+        # which is a new behavior in osemgrep. It makes semgrep view the
+        # project as a non-git project. This option is only used to manage
+        # the transition from pysemgrep to osemgrep. Avoid using it if
+        # you can.
+        osemgrep_force_project_root: bool = False,
     ) -> SemgrepResult:
         ...

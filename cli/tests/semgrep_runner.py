@@ -15,6 +15,7 @@
 # call-semgrep-in-a-subprocess does not provide yet.
 import os
 import shlex
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from subprocess import PIPE
@@ -37,11 +38,6 @@ USE_OSEMGREP = "PYTEST_USE_OSEMGREP" in os.environ
 # The --experimental is to force the use of osemgrep.
 _OSEMGREP_EXTRA_ARGS = ["--experimental"]
 
-# The --project-root option is used to prevent the .semgrepignore
-# at the root of the git project to be taken into account when testing,
-# which is a new behavior in osemgrep.
-_OSEMGREP_SCAN_EXTRA_ARGS = _OSEMGREP_EXTRA_ARGS + ["--project-root", "."]
-
 _SEMGREP_PATH = str(
     (
         Path(__file__).parent.parent
@@ -57,7 +53,7 @@ _SEMGREP_PATH = str(
 # For instance, SEMGREP_BASE_SCAN_COMMAND + ["logout"] will fail with osemgrep,
 # because the subcommand must come first.
 SEMGREP_BASE_SCAN_COMMAND: List[str] = (
-    [_SEMGREP_PATH] + _OSEMGREP_SCAN_EXTRA_ARGS if USE_OSEMGREP else [_SEMGREP_PATH]
+    [_SEMGREP_PATH] + _OSEMGREP_EXTRA_ARGS if USE_OSEMGREP else [_SEMGREP_PATH]
 )
 
 SEMGREP_BASE_SCAN_COMMAND_STR: str = " ".join(SEMGREP_BASE_SCAN_COMMAND)
@@ -124,6 +120,7 @@ def fork_semgrep(
     full_env = dict(os.environ, **env_dict)
 
     # let's fork and use a pipe to communicate with the external semgrep
+    print(f"[fork] semgrep command: {' '.join(argv)}", file=sys.stderr)
     proc = Popen(argv, stdout=PIPE, stderr=PIPE, env=full_env)
     stdout, stderr = proc.communicate()
     return Result(proc.returncode, stdout.decode("utf-8"), stderr.decode("utf-8"))
@@ -171,6 +168,9 @@ class SemgrepRunner:
         if self._use_click_runner:
             if subcommand:
                 arg_list = [subcommand] + arg_list
+            print(
+                f"[click] semgrep command args: {' '.join(arg_list)}", file=sys.stderr
+            )
             result = self._runner.invoke(python_cli, arg_list, input=input, env=env)
             stderr = result.stderr if not self._mix_stderr else ""
             return Result(result.exit_code, result.stdout, stderr)

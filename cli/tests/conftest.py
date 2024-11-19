@@ -23,6 +23,7 @@ import os
 import re
 import shlex
 import subprocess
+import sys
 import tempfile
 from dataclasses import dataclass
 from functools import partial
@@ -44,6 +45,7 @@ import pytest
 from ruamel.yaml import YAML
 from tests import fixtures
 from tests.semgrep_runner import SemgrepRunner
+from tests.semgrep_runner import USE_OSEMGREP
 
 from semgrep import __VERSION__
 from semgrep.cli import cli
@@ -351,9 +353,6 @@ class SemgrepResult:
         # This is a list of pairs (title, data) containing different
         # kinds of output to put into the snapshot.
         sections = {
-            "command": mask_variable_text(
-                self.command, mask, clean_fingerprint=self.clean_fingerprint
-            ),
             "exit code": self.exit_code,
             "stdout - plain": self.strip_color(stdout),
             "stderr - plain": self.strip_color(stderr),
@@ -374,16 +373,17 @@ class SemgrepResult:
 
     def print_debug_info(self) -> None:
         print(
-            "=== to reproduce (run with `pytest --pdb` to suspend while temp dirs exist)"
+            "=== to reproduce (run with `pytest --pdb` to suspend while temp dirs exist)",
+            file=sys.stderr,
         )
-        print(f"$ cd {os.getcwd()}")
-        print(f"$ {self.command}")
-        print("=== exit code")
-        print(self.exit_code)
-        print("=== stdout")
-        print(self.stdout)
-        print("=== stderr")
-        print(self.stderr)
+        print(f"$ cd {os.getcwd()}", file=sys.stderr)
+        print(f"$ {self.command}", file=sys.stderr)
+        print("=== exit code", file=sys.stderr)
+        print(self.exit_code, file=sys.stderr)
+        print("=== stdout", file=sys.stderr)
+        print(self.stdout, file=sys.stderr)
+        print("=== stderr", file=sys.stderr)
+        print(self.stderr, file=sys.stderr)
 
     def __iter__(self):
         """For backwards compat with usages like `stdout, stderr = run_semgrep(...)`"""
@@ -414,6 +414,7 @@ def _run_semgrep(
     prepare_workspace: Callable[[], None] = lambda: None,
     teardown_workspace: Callable[[], None] = lambda: None,
     context_manager: Optional[ContextManager] = None,
+    osemgrep_force_project_root: bool = False,
 ) -> SemgrepResult:
     """Run the semgrep CLI.
 
@@ -457,6 +458,21 @@ def _run_semgrep(
 
             if options is None:
                 options = []
+
+            # This is a hack to make osemgrep's new semgrepignore behavior
+            # compatible with pysemgrep when the current folder is not
+            # the project's root.
+            # - pysemgrep will use the .semgrepignore in the current folder
+            # - osemgrep will locate the project root and use all the
+            #   .semgrepignore and .gitignore files it finds in the project.
+            # In tests, we want to ignore the project-wide's semgrepignore.
+            # This is what the '--project-root .' option achieves.
+            if (
+                (subcommand is None or subcommand == "scan")
+                and USE_OSEMGREP
+                and osemgrep_force_project_root
+            ):
+                options.extend(["--project-root", "."])
 
             if strict:
                 options.append("--strict")
@@ -560,7 +576,11 @@ def unique_home_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
 
 # Provide a run_semgrep function with alternate defaults
 _run_strict_semgrep_on_basic_targets_with_json_output: fixtures.RunSemgrep = partial(
-    _run_semgrep, strict=True, target_name="basic", output_format=OutputFormat.JSON
+    _run_semgrep,
+    strict=True,
+    target_name="basic",
+    output_format=OutputFormat.JSON,
+    osemgrep_force_project_root=True,
 )
 
 
