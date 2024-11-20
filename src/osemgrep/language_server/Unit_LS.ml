@@ -263,9 +263,11 @@ let ci_tests caps =
       let body =
         match uri with
         | "/api/agent/deployments/scans/config" ->
-            Http_mock_client.body_of_file "./tests/ls/ci/rule_conf_resp.json"
+            Http_mock_client.body_of_file
+              (Fpath.v "./tests/ls/ci/rule_conf_resp.json")
         | "/api/agent/deployments/current" ->
-            Http_mock_client.body_of_file "./tests/login/ok_response.json"
+            Http_mock_client.body_of_file
+              (Fpath.v "./tests/login/ok_response.json")
         | _ ->
             failwith (Printf.sprintf "Unexpected request to %s in CI tests" uri)
       in
