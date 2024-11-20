@@ -58,7 +58,7 @@ if IS_WINDOWS and not SEMGREP_FORCE_INSTALL:
     raise Exception(
         "Semgrep does not support Windows yet, please try again with WSL "
         "or visit the following for more information: "
-        "https://github.com/returntocorp/semgrep/issues/1330"
+        "https://github.com/semgrep/semgrep/issues/1330"
     )
 
 try:
