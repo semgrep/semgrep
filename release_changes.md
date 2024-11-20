@@ -1,63 +1,27 @@
-## [1.96.0](https://github.com/returntocorp/semgrep/releases/tag/v1.96.0) - 2024-11-07
+## [1.97.0](https://github.com/returntocorp/semgrep/releases/tag/v1.97.0) - 2024-11-19
 
 
 ### Added
 
 
-- The pro engine now handles duplicate function names in C. When duplicate
-  functions are found, we assume that any of the duplicated functions could be
-  called. For example, if the function `foo` is defined in two different files,
-  taint errors will be reported for both instances:
-
-  ```
-  // "a/test.h"
-  void foo(int x) {
-      //deepruleid: dup-symbols
-      sink(x);
-  }
-
-  // "b/test.h"
-  void foo(int x) {
-      //deepruleid: dup-symbols
-      sink(x);
-  }
-
-  // "main.c"
-  #ifdef HEADER_A
-      #include "a/test.h"
-  #else
-      #include "b/test.h"
-  #endif
-
-  int main() {
-      int x = source();
-      foo(x);
-  }
-  ``` (code-7654)
-
-
-### Changed
-
-
-- Reduced memory allocations while processing nosemgrep comments, improving memory use and time for scans with a large number of findings. (nosem-mem)
+- Improved logic for interfile analysis in TypeScript projects using
+  [project references](https://www.typescriptlang.org/docs/handbook/project-references.html). (code-7677)
+- Semgrep Pro engine now resolves method invocations on abstract classes. In
+  addition to the existing resolution for interface method invocations, this
+  change further enhances dataflow tracking accuracy for dynamic method
+  invocations. (code-7750)
+- Added the ability to validate temporary AWS tokens in the secrets product. (gh-2554)
+- Poetry.lock & Pyproject.toml parsers can now handle multiline strings. (ssc-1942)
 
 
 ### Fixed
 
 
-- Optimized taint-mode (only in Pro) to scale better when there is a large number
-  of matches of sources/propagators/sanitizers/sinks within a function. (flow-83)
-- Fixed a bug in the supply chain scanner's gradle lockfile parser. Previously, semgrep would fail to parse
-  any gradle lockfile which did not start with a specific block comment. Now, semgrep will parse gradle
-  lockfiles correctly by ignoring the comment (allowing any or no comment at all to exist). (gh-10508)
-- Exceptions thrown during the processing of a target should not fail
-  the whole scan anymore (regression introduced in 1.94.0). The scan will
-  have an exit code of 0 instead of 2 (unless the user passed --strict in which
-  case it will exit with code 2). (incid-110)
-- Fix exponential parsing time with generic mode on input containing many
-  unclosed braces on the same line. (saf-1667)
-- Fix regexp parsing error occurring during ReDoS analysis when encountering
-  a character class starting with `[:` such as `[:a-z]`. (saf-1693)
-- Fix in `semgrep scan`: anchored semgrepignore patterns for folders such
-  as `/tests` are now honored properly. Such patterns had previously no
-  effect of target file filtering. (semgrepignore-anchored-dirs)
+- Improved error handling for some networking errors (e.g., premature server
+  disconnection). In some cases this would previously cause a fatal error, but we
+  should instead be able to recover in most instances (and now can). (code-7715)
+- Target file selection in git projects: files containing special characters
+  (according to git) are now scanned correctly instead of being ignored. (saf-1687)
+- Swift: Ellipses and metavariable ellipses can now be used as function parameters in patterns. (saf-1721)
+- Semgrep will no longer freeze when tracing is enabled and it has a low memory limit (saf-1722)
+- osemgrep-pro: Autofix and nosemgrep now work properly (saf-1724)
