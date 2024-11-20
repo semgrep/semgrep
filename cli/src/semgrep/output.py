@@ -38,7 +38,6 @@ from semgrep.formatter.gitlab_sast import GitlabSastFormatter
 from semgrep.formatter.gitlab_secrets import GitlabSecretsFormatter
 from semgrep.formatter.json import JsonFormatter
 from semgrep.formatter.junit_xml import JunitXmlFormatter
-from semgrep.formatter.osemgrep_sarif import OsemgrepSarifFormatter
 from semgrep.formatter.sarif import SarifFormatter
 from semgrep.formatter.text import TextFormatter
 from semgrep.formatter.vim import VimFormatter
@@ -70,12 +69,6 @@ FORMATTERS: Mapping[OutputFormat, Type[base.BaseFormatter]] = {
     OutputFormat.TEXT: TextFormatter,
     OutputFormat.VIM: VimFormatter,
 }
-
-
-OSEMGREP_FORMATTERS: Mapping[OutputFormat, Type[base.BaseFormatter]] = {
-    OutputFormat.SARIF: OsemgrepSarifFormatter,
-}
-
 
 # Experiment and Inventory are not below on purpose
 DEFAULT_SHOWN_SEVERITIES: Collection[out.MatchSeverity] = frozenset(
@@ -164,7 +157,6 @@ class OutputSettings(NamedTuple):
     output_time: bool = False
     timeout_threshold: int = 0
     dataflow_traces: bool = False
-    use_osemgrep_to_format: Optional[Set[OutputFormat]] = None
     max_log_list_entries: int = 0
 
     def normalize(self) -> NormalizedOutputSettings:
@@ -238,25 +230,10 @@ class OutputHandler:
 
         for output_destination, output_format in self.settings.get_outputs():
             formatter: Optional[base.BaseFormatter] = None
-            # If configured to use osemgrep to format the output, use the osemgrep formatter.
-            if (
-                output_settings.use_osemgrep_to_format
-                and output_format in output_settings.use_osemgrep_to_format
-            ):
-                if output_format in OSEMGREP_FORMATTERS:
-                    formatter = OSEMGREP_FORMATTERS[output_format]()
-                else:
-                    logger.verbose(
-                        f"Osemgrep formatter for {output_format} is not supported yet. "
-                        "Falling back to pysemgrep formatter."
-                    )
-
-            # If the formatter is not yet supported, fallback to the pysemgrep formatter
             if formatter is None:
                 formatter_type = FORMATTERS.get(output_format)
                 if formatter_type is not None:
                     formatter = formatter_type()
-
             if formatter is None:
                 raise RuntimeError(f"Invalid output format: {output_format}")
 
@@ -416,7 +393,6 @@ class OutputHandler:
         is_ci_invocation: bool = False,
         executed_rule_count: int = 0,
         missed_rule_count: int = 0,
-        use_osemgrep_format_output: bool = False,
     ) -> None:
         state = get_state()
         self.has_output = True

@@ -45,8 +45,6 @@ from semgrep.semgrep_interfaces.semgrep_metrics import FileStats
 from semgrep.semgrep_interfaces.semgrep_metrics import Interfile
 from semgrep.semgrep_interfaces.semgrep_metrics import Interprocedural
 from semgrep.semgrep_interfaces.semgrep_metrics import Intraprocedural
-from semgrep.semgrep_interfaces.semgrep_metrics import OsemgrepFormatOutput
-from semgrep.semgrep_interfaces.semgrep_metrics import OsemgrepMetrics
 from semgrep.semgrep_interfaces.semgrep_metrics import ParseStat
 from semgrep.semgrep_interfaces.semgrep_metrics import Payload
 from semgrep.semgrep_interfaces.semgrep_metrics import Performance
@@ -375,12 +373,6 @@ class Metrics:
         self.payload.errors.errors = [
             met.Error(error_type_string(e.type_())) for e in errors
         ]
-
-    @suppress_errors
-    def add_osemgrep_format_output_metrics(self, o: OsemgrepFormatOutput) -> None:
-        if self.payload.osemgrep is None:
-            self.payload.osemgrep = OsemgrepMetrics()
-        self.payload.osemgrep.format_output = o
 
     @suppress_errors
     def add_profiling(self, profiler: ProfileManager) -> None:

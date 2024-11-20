@@ -6,8 +6,70 @@ from tests.fixtures import RunSemgrep
 from semgrep.constants import OutputFormat
 
 
-# If there are nosemgrep comments to ignore findings, SARIF output should include them
-# labeled as suppressed.
+@pytest.mark.kinda_slow
+@pytest.mark.parametrize(
+    "rule_and_target",
+    [
+        # Simple case that should pass.
+        ("rules/eqeq.yaml", "basic/stupid.py"),
+        # Whenever there's a CWE tag, there should be a security tag.
+        ("rules/cwe_tag.yaml", "basic/stupid.py"),
+        # Rules with metavariable-type need parser initialization to parse correctly.
+        ("rules/metavariable_type.yaml", "basic/stupid.py"),
+    ],
+)
+@pytest.mark.parametrize("dataflow_traces", [True, False])
+def test_sarif_output(
+    run_semgrep_in_tmp: RunSemgrep, snapshot, rule_and_target, dataflow_traces
+):
+    rule, target = rule_and_target
+    if dataflow_traces:
+        options = ["--verbose", "--dataflow-traces"]
+    else:
+        options = ["--verbose"]
+
+    res = run_semgrep_in_tmp(
+        rule,
+        target_name=target,
+        options=options,
+        output_format=OutputFormat.SARIF,
+        assert_exit_code=0,
+    )
+    snapshot.assert_match(res.stdout, "results.sarif")
+
+
+@pytest.mark.kinda_slow
+@pytest.mark.parametrize(
+    "rule_and_target",
+    [
+        # TODO: osemgrep does not take into account labels
+        # and the rule.py formula_string() is not fully ported
+        ("rules/taint_trace.yaml", "taint/taint_trace.cpp"),
+    ],
+)
+@pytest.mark.parametrize("dataflow_traces", [True, False])
+@pytest.mark.osemfail
+def test_sarif_output_osemfail(
+    run_semgrep_in_tmp: RunSemgrep, snapshot, rule_and_target, dataflow_traces
+):
+    rule, target = rule_and_target
+    if dataflow_traces:
+        options = ["--verbose", "--dataflow-traces"]
+    else:
+        options = ["--verbose"]
+
+    res = run_semgrep_in_tmp(
+        rule,
+        target_name=target,
+        options=options,
+        output_format=OutputFormat.SARIF,
+        assert_exit_code=0,
+    )
+    snapshot.assert_match(res.stdout, "results.sarif")
+
+
+# If there are nosemgrep comments to ignore findings, SARIF output should
+# include them labeled as suppressed.
 @pytest.mark.kinda_slow
 def test_sarif_output_include_nosemgrep(run_semgrep_in_tmp: RunSemgrep, snapshot):
     snapshot.assert_match(

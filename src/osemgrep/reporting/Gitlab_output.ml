@@ -35,23 +35,6 @@ let to_gitlab_severity = function
   | `Inventory ->
       "Unknown"
 
-type exposure = Reachable | Undetermined | Unreachable
-
-let string_of_exposure = function
-  | Reachable -> "reachable"
-  | Undetermined -> "undetermined"
-  | Unreachable -> "unreachable"
-
-(* python: from rule_match.py exposure_type() *)
-let exposure_opt (cli_match : Out.cli_match) : exposure option =
-  let* { reachable; _ } = cli_match.extra.sca_info in
-  let metadata = JSON.from_yojson cli_match.extra.metadata in
-  match JSON.member "sca-kind" metadata with
-  | Some (J.String "upgrade-only") -> Some Reachable
-  | Some (J.String "legacy") -> Some Undetermined
-  (* TODO: stricter: raise error if Some else_json *)
-  | _ -> if reachable then Some Reachable else Some Unreachable
-
 let format_cli_match (cli_match : Out.cli_match) : (string * JSON.yojson) list =
   let metadata = JSON.from_yojson cli_match.extra.metadata in
   let source =
@@ -89,7 +72,7 @@ let format_cli_match (cli_match : Out.cli_match) : (string * JSON.yojson) list =
         ([], [])
   in
   let exposure_details, exposure_flags =
-    match exposure_opt cli_match with
+    match Exposure.of_cli_match_opt cli_match with
     | None -> ([], [])
     | Some exposure ->
         ( [
@@ -98,7 +81,7 @@ let format_cli_match (cli_match : Out.cli_match) : (string * JSON.yojson) list =
                 [
                   ("type", `String "text");
                   ("name", `String "exposure");
-                  ("value", `String (string_of_exposure exposure));
+                  ("value", `String (Exposure.string_of exposure));
                 ] );
           ],
           match exposure with

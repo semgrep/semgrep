@@ -19,8 +19,11 @@ type t = Semgrep_output_v1_t.output_format =
   | Incremental
 [@@deriving show]
 
-let keep_ignores (format : t) =
+let keep_ignores (format : t) : bool =
   match format with
+  (* SARIF output includes ignored findings, but labels them as suppressed.
+   * https://docs.oasis-open.org/sarif/sarif/v2.1.0/csprd01/sarif-v2.1.0-csprd01.html#_Toc10541099
+   *)
   | Sarif -> true
   | Text
   | Json

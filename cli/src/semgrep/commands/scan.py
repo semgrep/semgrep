@@ -509,13 +509,6 @@ def scan_options(func: Callable) -> Callable:
     "run_secrets_flag",
     is_flag=True,
 )
-@optgroup.group("Osemgrep migration options")
-@optgroup.option(
-    "--use-osemgrep-sarif",
-    "use_osemgrep_sarif",
-    is_flag=True,
-    default=False,
-)
 @scan_options
 @handle_command_errors
 def scan(
@@ -578,7 +571,6 @@ def scan(
     trace: bool,
     trace_endpoint: Optional[str],
     use_git_ignore: bool,
-    use_osemgrep_sarif: bool,
     validate: bool,
     verbose: bool,
     version: bool,
@@ -687,10 +679,6 @@ def scan(
             semgrep.config_resolver.adjust_for_docker()
             targets = (os.curdir,)
 
-        use_osemgrep_to_format: Set[OutputFormat] = set()
-        if use_osemgrep_sarif:
-            use_osemgrep_to_format.add(OutputFormat.SARIF)
-
         outputs = collect_additional_outputs(
             outputs_text=outputs_text,
             outputs_emacs=outputs_emacs,
@@ -714,7 +702,6 @@ def scan(
             dataflow_traces=dataflow_traces,
             max_log_list_entries=max_log_list_entries,
             # those are not set in ci.py as they are scan-specific flags
-            use_osemgrep_to_format=use_osemgrep_to_format,
             error_on_findings=error_on_findings,
             strict=strict,
         )

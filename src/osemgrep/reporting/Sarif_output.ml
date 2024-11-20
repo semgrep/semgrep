@@ -7,15 +7,25 @@ module Sarif = Sarif.Sarif_v_2_1_0_v
 (*****************************************************************************)
 (* Formats the CLI output to the SARIF format using the sarif OPAM package.
  *
- * The sarif spec is available at:
- * https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html
+ * Originally written based on:
+ *  - https://help.github.com/en/github/finding-security-vulnerabilities-and-errors-in-your-code/about-sarif-support-for-code-scanning
+ *   - Which links to this schema:
+ *     https://github.com/oasis-tcs/sarif-spec/blob/master/Schemata/sarif-schema-2.1.0.json
+ *
+ * Full spec:
+ *  https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html (2023)
+ *
+ * Ported from formatters/sarif.py
  *)
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-(* See the "level" property in the spec *)
+(* SARIF v2.1.0-compliant severity string.
+ * See the "level" property in the spec
+ * See https://github.com/oasis-tcs/sarif-spec/blob/a6473580/Schemata/sarif-schema-2.1.0.json#L1566
+ *)
 let severity_of_severity sev : Sarif.notification_level =
   match sev with
   | `Info
@@ -50,6 +60,7 @@ let region ?message ?snippet (start : Out.position) (end_ : Out.position) =
   Sarif.create_region ~start_line ~start_column ~end_line ~end_column ?message
     ?snippet ()
 
+(* Tags to display on SARIF-compliant UIs, such as GitHub security scans. *)
 let tags_of_metadata metadata =
   (* XXX: Tags likely have to be strings, but what do we do with non-string json?! *)
   let best_effort_string = function
@@ -360,12 +371,17 @@ let results show_dataflow_traces (cli_output : Out.cli_output) =
     let code_flows =
       if show_dataflow_traces then sarif_codeflow cli_match else None
     in
+    let properties =
+      match Exposure.of_cli_match_opt cli_match with
+      | None -> []
+      | Some exposure -> [ ("exposure", `String (Exposure.string_of exposure)) ]
+    in
     Sarif.create_result
       ~rule_id:(Rule_ID.to_string cli_match.check_id)
       ~message:(message cli_match.extra.message)
       ~locations:[ location ]
       ~fingerprints:[ ("matchBasedId/v1", cli_match.extra.fingerprint) ]
-      ~properties:[] ?code_flows ?fixes ?suppressions ()
+      ~properties ?code_flows ?fixes ?suppressions ()
   in
   List_.map result cli_output.results
 

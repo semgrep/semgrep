@@ -569,12 +569,6 @@ let o_junit_xml : bool Term.t =
   in
   Arg.value (Arg.flag info)
 
-let o_use_osemgrep_sarif : bool Term.t =
-  let info =
-    Arg.info [ "use-osemgrep-sarif" ] ~doc:{|Output results using osemgrep.|}
-  in
-  Arg.value (Arg.flag info)
-
 (* ------------------------------------------------------------------ *)
 (* Write additional outputs *)
 (* ------------------------------------------------------------------ *)
@@ -1311,8 +1305,8 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       sarif sarif_outputs scan_unknown_extensions secrets severity
       show_supported_languages strict target_roots test test_ignore_todo text
       text_outputs time_flag timeout _timeout_interfileTODO timeout_threshold
-      trace trace_endpoint _use_osemgrep_sarif validate version version_check
-      vim vim_outputs x_ignore_semgrepignore_files x_ls x_ls_long =
+      trace trace_endpoint validate version version_check vim vim_outputs
+      x_ignore_semgrepignore_files x_ls x_ls_long =
     (* Print a warning if any of the internal or experimental options.
        We don't want users to start relying on these. *)
     if x_ignore_semgrepignore_files || x_ls || x_ls_long then
@@ -1531,9 +1525,8 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     $ o_severity $ o_show_supported_languages $ o_strict $ o_target_roots
     $ o_test $ Test_CLI.o_test_ignore_todo $ o_text $ o_text_outputs $ o_time
     $ o_timeout $ o_timeout_interfile $ o_timeout_threshold $ o_trace
-    $ o_trace_endpoint $ o_use_osemgrep_sarif $ o_validate $ o_version
-    $ o_version_check $ o_vim $ o_vim_outputs $ o_ignore_semgrepignore_files
-    $ o_ls $ o_ls_long)
+    $ o_trace_endpoint $ o_validate $ o_version $ o_version_check $ o_vim
+    $ o_vim_outputs $ o_ignore_semgrepignore_files $ o_ls $ o_ls_long)
 
 let doc = "run semgrep rules on files"
 
