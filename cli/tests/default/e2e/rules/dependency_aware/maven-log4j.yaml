@@ -1,0 +1,9 @@
+rules:
+  - id: maven-log4j
+    r2c-internal-project-depends-on:
+      namespace: maven
+      package: org.apache.logging.log4j:log4j-core
+      version: "<= 2.15.0"
+    message: got em
+    languages: [java]
+    severity: WARNING

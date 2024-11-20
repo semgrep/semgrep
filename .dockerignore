@@ -235,6 +235,8 @@ cli/src/semgrep/semgrep_interfaces/**/Language
 cli/src/semgrep/semgrep_interfaces/tests/**/__pycache__
 cli/src/semgrep/semgrep_interfaces/tests/**/*.ast.json
 
+# From cli/tests/default/e2e/targets/dependency_aware/gradle-no-lockfile/.gitignore
+cli/tests/default/e2e/targets/dependency_aware/gradle-no-lockfile/**/.gradle
 # From cli/tests/default/e2e/targets/ignores_default/.gitignore
 cli/tests/default/e2e/targets/ignores_default/**/ignore.js
 # From cli/tests/default/e2e/targets/ignores/.gitignore

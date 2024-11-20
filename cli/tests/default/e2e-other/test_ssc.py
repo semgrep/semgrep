@@ -1,6 +1,7 @@
 import json
 import logging
 from pathlib import Path
+from typing import Any
 from typing import Dict
 
 import pytest
@@ -341,12 +342,51 @@ def test_ssc(run_semgrep_on_copied_files: RunSemgrep, snapshot, rule, target):
 )
 @pytest.mark.osemfail
 def test_ssc__requirements_lockfiles(
-    run_semgrep_on_copied_files: RunSemgrep, snapshot, rule, target
+    run_semgrep_on_copied_files: RunSemgrep, snapshot, rule: str, target: str
 ):
     """
     Separated out from test_ssc to avoid polluting with extra requirements lockfile tests
     """
     result = run_semgrep_on_copied_files(rule, target_name=target)
+
+    snapshot.assert_match(
+        result.as_snapshot(),
+        "results.txt",
+    )
+
+
+@pytest.mark.parametrize(
+    "rule,target",
+    [
+        (
+            "rules/dependency_aware/java-gradle-sca.yaml",
+            "dependency_aware/gradle-no-lockfile",
+        ),
+        (
+            "rules/dependency_aware/java-gradle-sca.yaml",
+            "dependency_aware/gradle-no-lockfile-missing-gradlew",
+        ),
+        (
+            "rules/dependency_aware/maven-log4j.yaml",
+            "dependency_aware/maven-no-lockfile",
+        ),
+        # also include some where lockfiles are present to check that we don't break those
+        (
+            "rules/dependency_aware/java-gradle-sca.yaml",
+            "dependency_aware/gradle",
+        ),
+    ],
+)
+@pytest.mark.requires_lockfileless_deps
+def test_ssc__lockfileless(
+    run_semgrep_on_copied_files: RunSemgrep, snapshot: Any, rule: str, target: str
+):
+    """
+    Run end-to-end SSC tests with lockfileless resolution enabled.
+    """
+    result = run_semgrep_on_copied_files(
+        rule, target_name=target, options=["--allow-dynamic-dependency-resolution"]
+    )
 
     snapshot.assert_match(
         result.as_snapshot(),

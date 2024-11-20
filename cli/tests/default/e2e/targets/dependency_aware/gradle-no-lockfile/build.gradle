@@ -1,0 +1,11 @@
+plugins {
+    id("application")
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+    implementation 'org.webjars.npm:swagger-ui-dist:3.35.1'
+}

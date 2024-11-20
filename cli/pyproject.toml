@@ -28,6 +28,7 @@ markers = [
     "no_semgrep_cli: this test doesn't invoke the semgrep CLI or osemgrep",
     "osemfail: this test currently fails with osemgrep",
     "pysemfail: this test currently fails with pysemgrep",
+    "requires_lockfileless_deps: this test requires lockfileless environment dependencies (java, etc)",
 ]
 
 [tool.tox]

@@ -1,0 +1,54 @@
+plugins {
+  id "com.github.mxenabled.coppuccino" version "3.2.1"
+  id "com.github.mxenabled.vogue" version "1.0.2"
+  id "java"
+  id "maven-publish"
+  id "groovy"
+  id "io.freefair.lombok" version "6.4.3"
+}
+
+group "com.mx.path.example"
+version "0.0.1"
+jar.archiveBaseName = "path-examples"
+
+allprojects {
+  repositories {
+    mavenCentral()
+    mavenLocal()
+  }
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+dependencies {
+  implementation platform("com.mx.path-facilities:platform:[1.0,2.0[")
+  implementation platform("com.mx.path-mdx-model:platform:[1.0,2.0[")
+  implementation "com.mx.path-core:http"
+  implementation "com.mx.path-facilities:message-broker-nats"
+  implementation "com.mx.path-mdx-model:mdx-gateways"
+
+  implementation "info.picocli:picocli:4.6.3" // for commandline features
+  implementation "commons-io:commons-io:20030203.000550" // for file reading
+  implementation "org.slf4j:slf4j-nop:[1.7.0,1.8[" // silence log messages
+  implementation "io.opentracing:opentracing-mock:0.33.0" // for request tracing
+
+  testImplementation "org.mockito:mockito-inline:[4.0,5.0["
+  testImplementation "org.spockframework:spock-core:[2.0,3.0["
+  testImplementation "org.junit.jupiter:junit-jupiter-api:[5.0,6.0["
+}
+
+sourceSets {
+  main {
+    java {
+      exclude "path/e100_spring_app/**"
+    }
+  }
+}
+
+artifacts { archives jar }
+
+wrapper {
+  gradleVersion = "7.4.2"
+  distributionType = Wrapper.DistributionType.ALL
+}

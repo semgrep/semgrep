@@ -1,0 +1,9 @@
+initscript {
+  repositories {
+      gradlePluginPortal()
+  }
+  dependencies {
+      classpath "org.gradle:github-dependency-graph-gradle-plugin:+"
+  }
+}
+apply plugin: org.gradle.dependencygraph.simple.SimpleDependencyGraphPlugin

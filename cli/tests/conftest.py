@@ -73,9 +73,18 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         help="Filter test execution to tests that use pytest-snapshot",
     )
 
+    parser.addoption(
+        "--run-lockfileless",
+        action="store_true",
+        default=False,
+        help="Include tests marked as requiring lockfileless environment dependencies.",
+    )
+
 
 # ???
-def pytest_collection_modifyitems(items: pytest.Item, config: pytest.Config) -> None:
+def pytest_collection_modifyitems(
+    items: List[pytest.Item], config: pytest.Config
+) -> None:
     if config.getoption("--run-only-snapshots"):
         selected_items: List[pytest.Item] = []
         deselected_items: List[pytest.Item] = []
@@ -90,6 +99,12 @@ def pytest_collection_modifyitems(items: pytest.Item, config: pytest.Config) -> 
 
         config.hook.pytest_deselected(items=deselected_items)
         items[:] = selected_items
+
+    skip_lockfileless = pytest.mark.skip(reason="need --run-lockfileless to run")
+    if not config.getoption("--run-lockfileless"):
+        for item in items:
+            if "requires_lockfileless_deps" in item.keywords:
+                item.add_marker(skip_lockfileless)
 
 
 ##############################################################################
