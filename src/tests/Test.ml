@@ -1,3 +1,21 @@
+(* Yoann Padioleau
+ *
+ * Copyright (C) 2024 Semgrep, Inc.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file LICENSE.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * LICENSE for more details.
+ *)
+open Common
+
+let t = Testo.create
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -12,10 +30,6 @@
  * This file used to contain lots of tests, but it's better to now
  * distribute them in their relevant directory (e.g., engine/Unit_engine.ml)
  *)
-
-open Common
-
-let t = Testo.create
 
 (*****************************************************************************)
 (* Helpers *)
@@ -87,7 +101,6 @@ let cleanup_before_each_test (reset : unit -> unit) (tests : Testo.t list) :
 (*****************************************************************************)
 (* All tests *)
 (*****************************************************************************)
-
 (*
    Some test suites are created from files present in file system.
    To avoid errors during module initialization when running 'dune utop'
@@ -129,33 +142,22 @@ let tests (caps : Cap.all_caps) =
       (* just expression vs expression testing for one language (Python) *)
       Unit_matcher.tests ~any_gen_of_string;
       (* TODO Unit_matcher.spatch_unittest ~xxx *)
-      (* TODO Unit_matcher_php.unittest; (* sgrep, spatch, refactoring, unparsing *) *)
+      (* TODO Unit_matcher_php.unittest; sgrep/spatch/refactoring/unparsing *)
       Unit_engine.tests ();
       Unit_jsonnet.tests (caps :> < Cap.time_limit >);
       Unit_metachecking.tests (caps :> Core_scan.caps);
-      (* OSemgrep tests *)
+      (* osemgrep unit tests *)
       Unit_LS.tests (caps :> Session.caps);
       Unit_Login.tests caps;
       Unit_Fetching.tests (caps :> < Cap.network ; Cap.tmp >);
       Unit_reporting.tests (caps :> < >);
+      Unit_ci.tests;
       Test_is_blocking_helpers.tests;
+      (* osemgrep e2e subcommand tests *)
       Test_login_subcommand.tests (caps :> < Cap.stdout ; Cap.network >);
-      Test_scan_subcommand.tests
-        (caps
-          :> < Cap.stdout
-             ; Cap.network
-             ; Cap.tmp
-             ; Cap.chdir
-             ; Cap.fork
-             ; Cap.time_limit
-             ; Cap.memory_limit >);
-      Unit_test_subcommand.tests
-        (caps
-          :> < Cap.stdout
-             ; Cap.fork
-             ; Cap.time_limit
-             ; Cap.memory_limit
-             ; Cap.tmp >);
+      Test_scan_subcommand.tests (caps :> Scan_subcommand.caps);
+      Test_ci_subcommand.tests (caps :> Ci_subcommand.caps);
+      Unit_test_subcommand.tests (caps :> Test_subcommand.caps);
       Test_show_subcommand.tests
         (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >);
       Test_publish_subcommand.tests
@@ -165,15 +167,8 @@ let tests (caps : Cap.all_caps) =
       (* Networking tests disabled as they will get rate limited sometimes *)
       (* And the SSL issues they've been testing have been stable *)
       (*Unit_Networking.tests;*)
-      Test_LS_e2e.tests
-        (caps
-          :> < Cap.random
-             ; Cap.network
-             ; Cap.tmp
-             ; Cap.fork
-             ; Cap.time_limit
-             ; Cap.memory_limit >);
-      (* End OSemgrep tests *)
+      Test_LS_e2e.tests (caps :> Lsp_subcommand.caps);
+      (* End osemgrep tests *)
       Spacegrep_tests.Test.tests ();
       Aliengrep.Unit_tests.tests;
       Unit_core_json_output.tests;

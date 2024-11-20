@@ -43,6 +43,10 @@ type t = {
   in_docker : bool;
   (* $GITHUB_WORKSPACE *)
   in_gh_action : bool;
+  (* Unique identifier for the managed_scan in semgrep-app
+   * $SEMGREP_MANAGED_SCAN_ID
+   *)
+  sms_scan_id : string option;
   (* $SEMGREP_AGENT (deprecated) *)
   in_agent : bool;
   (* $SEMGREP_xxx *)

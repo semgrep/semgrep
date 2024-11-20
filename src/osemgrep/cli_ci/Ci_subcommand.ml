@@ -135,6 +135,90 @@ let sanity_check_contributions (contribs : Out.contribution list) : unit =
             (Out.string_of_contribution x))
 
 (*****************************************************************************)
+(* Project metadata *)
+(*****************************************************************************)
+
+(* from meta.py
+ * coupling: if you add more cases below, you probably need to modify
+ * Ci_CLI.cmdline_term to pass more env there.
+ *)
+let generate_meta_from_environment caps (baseline_ref : Digestif.SHA1.t option)
+    : Project_metadata.t =
+  let extract_env term =
+    let argv = [| "empty" |] and info_ = Cmdliner.Cmd.info "" in
+    let eval term =
+      match Cmdliner.Cmd.(eval_value ~argv (v info_ term)) with
+      | Ok (`Ok env) -> env
+      | Ok `Version
+      | Ok `Help ->
+          invalid_arg "unexpected version or help"
+      | Error _e -> invalid_arg "couldn't decode environment"
+    in
+    eval term
+  in
+
+  match Sys.getenv_opt "GITHUB_ACTIONS" with
+  | Some "true" ->
+      let env = extract_env Git_metadata.env in
+      let gha_env = extract_env Github_metadata.env in
+      (new Github_metadata.meta caps baseline_ref env gha_env)#project_metadata
+  | _else ->
+      let env = extract_env Git_metadata.env in
+      (new Git_metadata.meta caps ~scan_environment:"git" ~baseline_ref env)
+        #project_metadata
+
+(* https://docs.gitlab.com/ee/ci/variables/predefined_variables.html *)
+(* match Sys.getenv_opt "GITLAB_CI" with
+   | Some "true" -> return GitlabMeta(baseline_ref)
+   | _else -> *)
+(* https://circleci.com/docs/2.0/env-vars/#built-in-environment-variables *)
+(* match Sys.getenv_opt "CIRCLECI" with
+   | Some "true" -> return CircleCIMeta(baseline_ref)
+   | _else -> *)
+(* https://e.printstacktrace.blog/jenkins-pipeline-environment-variables-the-definitive-guide/ *)
+(* match Sys.getenv_opt "JENKINS_URL" with
+    | Some _ -> return JenkinsMeta(baseline_ref)
+    | None -> *)
+(* https://support.atlassian.com/bitbucket-cloud/docs/variables-and-secrets/ *)
+(* match Sys.getenv_opt "BITBUCKET_BUILD_NUMBER" with
+   | Some _ -> return BitbucketMeta(baseline_ref)
+   | None -> *)
+(* https://github.com/DataDog/dd-trace-py/blob/f583fec63c4392a0784b4199b0e20931f9aae9b5/ddtrace/ext/ci.py#L90
+   picked an env var that is only defined by Azure Pipelines *)
+(* match Sys.getenv_opt "BUILD_BUILDID" with
+   | Some _ -> AzurePipelinesMeta(baseline_ref)
+   | None -> *)
+(* https://buildkite.com/docs/pipelines/environment-variables#bk-env-vars-buildkite-build-author-email *)
+(* match Sys.getenv_opt "BUILDKITE" with
+   | Some "true" -> return BuildkiteMeta(baseline_ref)
+   | _else -> *)
+(* https://docs.travis-ci.com/user/environment-variables/ *)
+(* match Sys.getenv_opt "TRAVIS" with
+   | Some "true" -> return TravisMeta(baseline_ref)
+   | _else -> return GitMeta(baseline_ref) *)
+
+(*****************************************************************************)
+(* Scan metadata *)
+(*****************************************************************************)
+
+let scan_metadata () : Out.scan_metadata =
+  let res =
+    Out.
+      {
+        cli_version = Version.version;
+        unique_id = Uuidm.v4_gen (Stdlib.Random.State.make_self_init ()) ();
+        (* TODO: should look at conf.secrets, conf.sca, conf.code, etc. *)
+        requested_products = [];
+        dry_run = false;
+        sms_scan_id = !Semgrep_envvars.v.sms_scan_id;
+      }
+  in
+  res.sms_scan_id
+  |> Option.iter (fun scan_id ->
+         Logs.debug (fun m -> m "SMS scan id: %s" scan_id));
+  res
+
+(*****************************************************************************)
 (* Scan config *)
 (*****************************************************************************)
 (* token -> deployment_config -> scan_id -> scan_config -> rules *)
@@ -208,23 +292,13 @@ let scan_config_and_rules_from_deployment ~dry_run
       m "  Reporting start of scan for %a"
         Fmt.(styled `Bold string)
         deployment_config.name);
-  let scan_metadata : Out.scan_metadata =
-    {
-      cli_version = Version.version;
-      unique_id = Uuidm.v4_gen (Stdlib.Random.State.make_self_init ()) ();
-      (* TODO: should look at conf.secrets, conf.sca, conf.code, etc. *)
-      requested_products = [];
-      dry_run = false;
-      (* TODO: should come from environment variable if defined *)
-      sms_scan_id = None;
-    }
-  in
+  let scan_meta : Out.scan_metadata = scan_metadata () in
   (* TODO:
       metadata_dict["is_sca_scan"] = supply_chain
       proj_config = ProjectConfig.load_all()
       metadata_dict = {**metadata_dict, **proj_config.to_dict()}
   *)
-  match Semgrep_App.start_scan ~dry_run caps prj_meta scan_metadata with
+  match Semgrep_App.start_scan ~dry_run caps prj_meta scan_meta with
   | Error msg ->
       Logs.err (fun m -> m "Could not start scan %s" msg);
       Error.exit_code_exn (Exit_code.fatal ~__LOC__)
@@ -266,69 +340,6 @@ let scan_config_and_rules_from_deployment ~dry_run
             Exception.reraise e
       in
       (scan_id, scan_config, [ rules_and_origins ])
-
-(*****************************************************************************)
-(* Project metadata *)
-(*****************************************************************************)
-
-(* from meta.py
- * coupling: if you add more cases below, you probably need to modify
- * Ci_CLI.cmdline_term to pass more env there.
- *)
-let generate_meta_from_environment caps (baseline_ref : Digestif.SHA1.t option)
-    : Project_metadata.t =
-  let extract_env term =
-    let argv = [| "empty" |] and info_ = Cmdliner.Cmd.info "" in
-    let eval term =
-      match Cmdliner.Cmd.(eval_value ~argv (v info_ term)) with
-      | Ok (`Ok env) -> env
-      | Ok `Version
-      | Ok `Help ->
-          invalid_arg "unexpected version or help"
-      | Error _e -> invalid_arg "couldn't decode environment"
-    in
-    eval term
-  in
-
-  match Sys.getenv_opt "GITHUB_ACTIONS" with
-  | Some "true" ->
-      let env = extract_env Git_metadata.env in
-      let gha_env = extract_env Github_metadata.env in
-      (new Github_metadata.meta caps baseline_ref env gha_env)#project_metadata
-  | _else ->
-      let env = extract_env Git_metadata.env in
-      (new Git_metadata.meta caps ~scan_environment:"git" ~baseline_ref env)
-        #project_metadata
-
-(* https://docs.gitlab.com/ee/ci/variables/predefined_variables.html *)
-(* match Sys.getenv_opt "GITLAB_CI" with
-   | Some "true" -> return GitlabMeta(baseline_ref)
-   | _else -> *)
-(* https://circleci.com/docs/2.0/env-vars/#built-in-environment-variables *)
-(* match Sys.getenv_opt "CIRCLECI" with
-   | Some "true" -> return CircleCIMeta(baseline_ref)
-   | _else -> *)
-(* https://e.printstacktrace.blog/jenkins-pipeline-environment-variables-the-definitive-guide/ *)
-(* match Sys.getenv_opt "JENKINS_URL" with
-    | Some _ -> return JenkinsMeta(baseline_ref)
-    | None -> *)
-(* https://support.atlassian.com/bitbucket-cloud/docs/variables-and-secrets/ *)
-(* match Sys.getenv_opt "BITBUCKET_BUILD_NUMBER" with
-   | Some _ -> return BitbucketMeta(baseline_ref)
-   | None -> *)
-(* https://github.com/DataDog/dd-trace-py/blob/f583fec63c4392a0784b4199b0e20931f9aae9b5/ddtrace/ext/ci.py#L90
-   picked an env var that is only defined by Azure Pipelines *)
-(* match Sys.getenv_opt "BUILD_BUILDID" with
-   | Some _ -> AzurePipelinesMeta(baseline_ref)
-   | None -> *)
-(* https://buildkite.com/docs/pipelines/environment-variables#bk-env-vars-buildkite-build-author-email *)
-(* match Sys.getenv_opt "BUILDKITE" with
-   | Some "true" -> return BuildkiteMeta(baseline_ref)
-   | _else -> *)
-(* https://docs.travis-ci.com/user/environment-variables/ *)
-(* match Sys.getenv_opt "TRAVIS" with
-   | Some "true" -> return TravisMeta(baseline_ref)
-   | _else -> return GitMeta(baseline_ref) *)
 
 (*****************************************************************************)
 (* Partition rules *)

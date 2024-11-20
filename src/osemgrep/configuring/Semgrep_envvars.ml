@@ -101,6 +101,7 @@ type t = {
   is_ci : bool;
   in_docker : bool;
   in_gh_action : bool;
+  sms_scan_id : string option;
   (* deprecated *)
   in_agent : bool;
   min_fetch_depth : int;
@@ -168,6 +169,7 @@ let of_current_sys_env () : t =
     is_ci = in_env "CI";
     in_docker = in_env "SEMGREP_IN_DOCKER";
     in_gh_action = in_env "GITHUB_WORKSPACE";
+    sms_scan_id = env_opt "SEMGREP_MANAGED_SCAN_ID";
     in_agent = in_env "SEMGREP_AGENT";
     min_fetch_depth = env_or int_of_string "SEMGREP_GHA_MIN_FETCH_DEPTH" 0;
     mock_using_registry = in_env "MOCK_USING_REGISTRY";

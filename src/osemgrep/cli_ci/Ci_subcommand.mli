@@ -23,3 +23,6 @@ val run_conf : caps -> Ci_CLI.conf -> Exit_code.t
 (* used by Test_is_blocking_Helpers.ml used itself in Test.ml *)
 val rule_is_blocking : JSON.t -> bool
 val finding_is_blocking : Semgrep_output_v1_t.cli_match -> bool
+
+(* used by Unit_ci.ml *)
+val scan_metadata : unit -> Semgrep_output_v1_t.scan_metadata

@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2023 Semgrep Inc.
+ * Copyright (C) 2023-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-module OutJ = Semgrep_output_v1_j
+module Out = Semgrep_output_v1_j
 
 (*****************************************************************************)
 (* Prelude *)
@@ -63,7 +63,7 @@ let complete_route scan_id = "/api/agent/scans/" ^ scan_id ^ "/complete"
 (* Returns the scan config if the token is valid, otherwise None *)
 let get_scan_config_from_token_async
     (caps : < Auth.cap_token ; Cap.network ; .. >) :
-    OutJ.scan_config option Lwt.t =
+    Out.scan_config option Lwt.t =
   let url = Uri.with_path !Semgrep_envvars.v.semgrep_url scan_config_route in
   let headers =
     [
@@ -75,7 +75,7 @@ let get_scan_config_from_token_async
   let scan_config_opt =
     match response with
     | Ok { body = Ok body; _ } -> (
-        try Some (OutJ.scan_config_of_string body) with
+        try Some (Out.scan_config_of_string body) with
         | Yojson.Json_error msg ->
             Logs.err (fun m ->
                 m "failed to parse body as scan_config %s: %s" msg body);
@@ -122,13 +122,12 @@ let extract_scan_id (data : string) : (scan_id, string) result =
 
 (* the server reply when POST to "/api/agent/scans/<scan_id>/results"  *)
 let extract_errors (data : string) : string list =
-  match OutJ.ci_scan_results_response_of_string data with
+  match Out.ci_scan_results_response_of_string data with
   | { errors; task_id = _ } as response ->
       Logs.debug (fun m ->
-          m "results response = %s"
-            (OutJ.show_ci_scan_results_response response));
+          m "results response = %s" (Out.show_ci_scan_results_response response));
       errors
-      |> List_.map (fun (x : OutJ.ci_scan_results_response_error) -> x.message)
+      |> List_.map (fun (x : Out.ci_scan_results_response_error) -> x.message)
   | exception exn ->
       Logs.err (fun m ->
           m "Failed to decode server reply as json %s: %s"
@@ -138,11 +137,11 @@ let extract_errors (data : string) : string list =
 (* the server reply when POST to "/api/agent/scans/<scan_id>/complete" *)
 let extract_block_override (data : string) : (app_block_override, string) result
     =
-  match OutJ.ci_scan_complete_response_of_string data with
+  match Out.ci_scan_complete_response_of_string data with
   | { success = _; app_block_override; app_block_reason } as response ->
       Logs.debug (fun m ->
           m "complete response = %s"
-            (OutJ.show_ci_scan_complete_response response));
+            (Out.show_ci_scan_complete_response response));
       if app_block_override then Ok (Some app_block_reason)
         (* TODO? can we have a app_block_reason set when override is false? *)
       else Ok None
@@ -156,7 +155,7 @@ let extract_block_override (data : string) : (app_block_override, string) result
 (*****************************************************************************)
 
 (* Returns the deployment config if the token is valid, otherwise None *)
-let get_deployment_from_token_async caps : OutJ.deployment_config option Lwt.t =
+let get_deployment_from_token_async caps : Out.deployment_config option Lwt.t =
   let headers =
     [
       ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
@@ -168,7 +167,7 @@ let get_deployment_from_token_async caps : OutJ.deployment_config option Lwt.t =
   let deployment_opt =
     match response with
     | Ok { body = Ok body; _ } ->
-        let x = OutJ.deployment_response_of_string body in
+        let x = Out.deployment_response_of_string body in
         Some x.deployment
     | Ok { body = Error msg; code; _ } ->
         Logs.err (fun m ->
@@ -191,7 +190,7 @@ let get_deployment_from_token token =
 
 (* TODO: pass project_config *)
 let start_scan_async ~dry_run caps (prj_meta : Project_metadata.t)
-    (scan_meta : OutJ.scan_metadata) : (scan_id, string) result Lwt.t =
+    (scan_meta : Out.scan_metadata) : (scan_id, string) result Lwt.t =
   if dry_run then (
     Logs.app (fun m -> m "Would have sent POST request to create scan");
     Lwt.return_ok "")
@@ -212,9 +211,9 @@ let start_scan_async ~dry_run caps (prj_meta : Project_metadata.t)
     (* TODO: should concatenate with raw_json project_config *)
     let meta =
       (* ugly: would be good for ATDgen to generate also a json_of_xxx *)
-      prj_meta |> OutJ.string_of_project_metadata |> Yojson.Basic.from_string
+      prj_meta |> Out.string_of_project_metadata |> Yojson.Basic.from_string
     in
-    let request : OutJ.scan_request =
+    let request : Out.scan_request =
       {
         meta;
         scan_metadata = Some scan_meta;
@@ -223,7 +222,7 @@ let start_scan_async ~dry_run caps (prj_meta : Project_metadata.t)
         project_config = None;
       }
     in
-    let body = OutJ.string_of_scan_request request in
+    let body = Out.string_of_scan_request request in
     let pretty_body =
       body |> Yojson.Basic.from_string |> Yojson.Basic.pretty_to_string
     in
@@ -324,12 +323,12 @@ let fetch_scan_config_string ~dry_run ~sca ~full_scan ~repository caps :
   Lwt.return conf_string
 
 let fetch_scan_config_async ~dry_run ~sca ~full_scan ~repository caps :
-    (OutJ.scan_config, string) result Lwt.t =
+    (Out.scan_config, string) result Lwt.t =
   let%lwt scan_config_string =
     fetch_scan_config_string ~dry_run ~sca ~full_scan ~repository caps
   in
   let scan_config_opt =
-    Result.bind scan_config_string (fun c -> Ok (OutJ.scan_config_of_string c))
+    Result.bind scan_config_string (fun c -> Ok (Out.scan_config_of_string c))
   in
   Lwt.return scan_config_opt
 
@@ -344,8 +343,8 @@ let fetch_scan_config ~dry_run ~sca ~full_scan ~repository caps =
 (* python: was called report_findings *)
 let upload_findings_async ~dry_run ~scan_id ~results ~complete caps :
     (app_block_override, string) result Lwt.t =
-  let results = OutJ.string_of_ci_scan_results results in
-  let complete = OutJ.string_of_ci_scan_complete complete in
+  let results = Out.string_of_ci_scan_results results in
+  let complete = Out.string_of_ci_scan_complete complete in
   if dry_run then (
     Logs.app (fun m ->
         m "Would have sent findings and ignores blob: %s" results);
@@ -447,11 +446,11 @@ let report_failure_async ~dry_run ~scan_id caps (exit_code : Exit_code.t) :
       Uri.with_path !Semgrep_envvars.v.semgrep_url
         ("/api/agent/scans/" ^ scan_id ^ "/error")
     in
-    let failure : OutJ.ci_scan_failure =
+    let failure : Out.ci_scan_failure =
       { exit_code = int_code; (* TODO *)
                               stderr = "" }
     in
-    let body = OutJ.string_of_ci_scan_failure failure in
+    let body = Out.string_of_ci_scan_failure failure in
     match%lwt Http_helpers.post ~body ~headers caps#network url with
     | Ok { body = Ok _; _ } -> Lwt.return_unit
     | Ok { body = Error msg; code; _ } ->
