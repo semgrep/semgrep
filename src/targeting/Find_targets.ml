@@ -135,6 +135,7 @@ type conf = {
   (* osemgrep-only: option
      (see Git_project.find_any_project_root and the force_root parameter) *)
   force_project_root : project_root option;
+  force_novcs_project : bool;
   (* osemgrep-only option, exclude scanning minified files, default false *)
   exclude_minified_files : bool;
   (* TODO? remove it? This is now done in Diff_scan.ml instead? *)
@@ -150,6 +151,7 @@ type conf = {
 let default_conf : conf =
   {
     force_project_root = None;
+    force_novcs_project = false;
     exclude = [];
     include_ = None;
     (* Must be kept in sync w/ pysemgrep.
@@ -517,19 +519,21 @@ let git_list_tracked_files (project_roots : Project.roots) : Fppath_set.t option
 
    This is the complement of git_list_tracked_files (except for '.git/').
 *)
-let git_list_untracked_files (project_roots : Project.roots) :
-    Fppath_set.t option =
-  git_list_files ~exclude_standard:true [ Others ] project_roots
+let git_list_untracked_files ~respect_gitignore (project_roots : Project.roots)
+    : Fppath_set.t option =
+  git_list_files ~exclude_standard:respect_gitignore [ Others ] project_roots
 
 (*************************************************************************)
 (* Grouping *)
 (*************************************************************************)
 
-let scanning_root_by_project (force_root : Project.t option)
-    (scanning_root : Scanning_root.t) : Project.t * Fppath.t =
+let scanning_root_by_project ~(force_root : Project.t option)
+    ~(force_novcs : bool) (scanning_root : Scanning_root.t) :
+    Project.t * Fppath.t =
   let scanning_root_fpath = Scanning_root.to_fpath scanning_root in
   let kind, scanning_root_info =
-    Project.find_any_project_root ?force_root scanning_root_fpath
+    Project.find_any_project_root ~fallback_root:None ~force_novcs ~force_root
+      scanning_root_fpath
   in
   let project : Project.t = { kind; root = scanning_root_info.project_root } in
   let path : Fppath.t =
@@ -587,7 +591,9 @@ let group_scanning_roots_by_files_and_projects (conf : conf)
   in
   let project_roots =
     dir_scanning_roots
-    |> List_.map (scanning_root_by_project force_root)
+    |> List_.map
+         (scanning_root_by_project ~force_novcs:conf.force_novcs_project
+            ~force_root)
     (* Using a realpath (physical path) in Project.t ensures we group
        correctly even if the scanning_roots went through different symlink paths.
     *)
@@ -622,7 +628,7 @@ let setup_path_filters conf (project_roots : Project.roots) :
     | Mercurial_project
     | Subversion_project
     | Darcs_project
-    | Other_project ->
+    | No_VCS_project ->
         {
           use_gitignore_files = false;
           use_semgrepignore_files = conf.respect_semgrepignore_files;
@@ -717,7 +723,10 @@ let get_targets_for_project conf (project_roots : Project.roots) =
   (* Obtain the list of files from git if possible because it does it
      faster than what we can do by scanning the filesystem: *)
   let git_tracked = git_list_tracked_files project_roots in
-  let git_untracked = git_list_untracked_files project_roots in
+  let git_untracked =
+    git_list_untracked_files ~respect_gitignore:conf.respect_gitignore
+      project_roots
+  in
   let selected_targets, skipped_targets =
     match (git_tracked, git_untracked) with
     (* Git only *)

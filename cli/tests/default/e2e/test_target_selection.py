@@ -6,6 +6,7 @@ import shutil
 import sys
 from dataclasses import dataclass
 from dataclasses import field
+from enum import Enum
 from pathlib import Path
 from typing import List
 from typing import Optional
@@ -14,6 +15,25 @@ from typing import Tuple
 
 import pytest
 from tests.fixtures import RunSemgrep
+
+
+# Identify how the repo should be set up and scanned by semgrep
+class Config(Enum):
+    # git: a git project scanned with the default semgrep options
+    GIT = "git"
+    # novcs: the same project from which '.git' was removed, scanned with
+    # the default semgrep options
+    NOVCS = "novcs"
+    # ignoregit: run on the git project with the '--no-git-ignore' option
+    # (does several things that are not obvious from its name)
+    IGNOREGIT = "ignoregit"
+
+
+def is_git_project(config: Config) -> bool:
+    if config is Config.GIT or config is Config.IGNOREGIT:
+        return True
+    else:
+        return False
 
 
 # The expectations regarding a particular target file path
@@ -32,7 +52,7 @@ class Expect:
 def check_expectation(
     expect: Expect,
     is_running_osemgrep: bool,
-    is_git_project: bool,
+    config: Config,
     selected_targets: Set[str],
 ):
     paths = expect.paths
@@ -49,7 +69,7 @@ def check_expectation(
         expect_selected = expect.selected_by_pysemgrep
 
     label = "[osemgrep]" if is_running_osemgrep else "[pysemgrep]"
-    label = label + (" [git project]" if is_git_project else " [nongit project]")
+    label = label + (f" [{config.value}]")
     for path in paths:
         if expect_selected:
             print(
@@ -68,7 +88,7 @@ def check_expectation(
 # - run semgrep from the project root
 # - run semgrep on the project root
 # - no optional command-line flags
-# - shared expectations in git and nongit projects
+# - shared expectations in git and novcs projects
 #
 # To cover a new test case, add a file to the test repo and specify
 # the expectations for the new path below.
@@ -145,7 +165,7 @@ COMMON_EXPECTATIONS = [
 ]
 
 GIT_PROJECT_EXPECTATIONS = [
-    # common expectations for a git project (but not for a nongit project)
+    # common expectations for a git project (but not for a novcs project)
     Expect(
         selected=False,
         paths=[
@@ -168,14 +188,14 @@ GIT_PROJECT_EXPECTATIONS = [
     ),
 ]
 
-NONGIT_PROJECT_EXPECTATIONS = [
-    # common expectations for a nongit project (but not for a git project)
+NOVCS_PROJECT_EXPECTATIONS = [
+    # common expectations for a novcs project (but not for a git project)
     Expect(
         selected=True,
         paths=[
             # regular file in what was a git submodule
             "submodules/semgrep-test-project2/hello.py",
-            # we don't consult .gitignore files in nongit projects
+            # we don't consult .gitignore files in novcs projects
             "src/gitignored.py",
             "src/gitignored-only-in-src-and-below.py",
             "src/gitignored-only-in-src.py",
@@ -203,18 +223,24 @@ PROJECT: Tuple[str, str] = (
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     # a list of extra semgrep CLI options and osemgrep-specific options
-    "is_git_project,options,osemgrep_options,expectations",
+    "config,options,osemgrep_options,expectations",
     [
-        (True, [], [], COMMON_EXPECTATIONS + GIT_PROJECT_EXPECTATIONS),
-        (False, [], [], COMMON_EXPECTATIONS + NONGIT_PROJECT_EXPECTATIONS),
+        (Config.GIT, [], [], COMMON_EXPECTATIONS + GIT_PROJECT_EXPECTATIONS),
+        (Config.NOVCS, [], [], COMMON_EXPECTATIONS + NOVCS_PROJECT_EXPECTATIONS),
+        (
+            Config.IGNOREGIT,
+            ["--no-git-ignore"],
+            [],
+            COMMON_EXPECTATIONS + NOVCS_PROJECT_EXPECTATIONS,
+        ),
     ],
-    ids=["git", "nongit"],
+    ids=[Config.GIT.value, Config.NOVCS.value, Config.IGNOREGIT.value],
 )
 def test_project_target_selection(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
     run_semgrep: RunSemgrep,
-    is_git_project: bool,
+    config: Config,
     options: List[str],
     osemgrep_options: List[str],
     expectations: List[Expect],
@@ -232,8 +258,8 @@ def test_project_target_selection(
     print(f"check out submodules", file=sys.stderr)
     os.system(f"git submodule update --init --recursive")
 
-    if not is_git_project:
-        print(f"remove .git to make this a non-git project", file=sys.stderr)
+    if config is Config.NOVCS:
+        print(f"remove .git to make this a no-VCS project", file=sys.stderr)
         shutil.rmtree(".git")
 
     is_running_osemgrep = True if os.environ.get("PYTEST_USE_OSEMGREP") else False
@@ -259,4 +285,4 @@ def test_project_target_selection(
 
     # Check the status of each file path we want to check.
     for expect in expectations:
-        check_expectation(expect, is_running_osemgrep, is_git_project, selected_targets)
+        check_expectation(expect, is_running_osemgrep, config, selected_targets)

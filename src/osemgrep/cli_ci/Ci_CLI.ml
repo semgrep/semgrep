@@ -209,10 +209,10 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
       max_chars_per_line max_lines_per_finding max_log_list_entries
       max_memory_mb max_target_bytes metrics num_jobs no_secrets_validation
       _no_dynamic_dependency_resolution nosem optimizations oss output pro
-      pro_intrafile pro_lang pro_path_sensitive respect_gitignore
-      rewrite_rule_ids sarif sarif_outputs scan_unknown_extensions secrets text
-      text_outputs timeout _timeout_interfileTODO timeout_threshold trace
-      trace_endpoint version_check vim vim_outputs =
+      pro_intrafile pro_lang pro_path_sensitive rewrite_rule_ids sarif
+      sarif_outputs scan_unknown_extensions secrets text text_outputs timeout
+      _timeout_interfileTODO timeout_threshold trace trace_endpoint use_git
+      version_check vim vim_outputs =
     let output_format : Output_format.t =
       Scan_CLI.output_format_conf ~text ~files_with_matches ~json ~emacs ~vim
         ~sarif ~gitlab_sast ~gitlab_secrets ~junit_xml
@@ -270,6 +270,7 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
     let targeting_conf : Find_targets.conf =
       {
         force_project_root = None;
+        force_novcs_project = false;
         exclude = exclude_;
         include_;
         baseline_commit;
@@ -277,7 +278,7 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
         max_target_bytes;
         always_select_explicit_targets = scan_unknown_extensions;
         explicit_targets = Find_targets.Explicit_targets.empty;
-        respect_gitignore;
+        respect_gitignore = use_git;
         respect_semgrepignore_files = not ignore_semgrepignore_files;
         exclude_minified_files;
       }
@@ -351,10 +352,10 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
     $ SC.o_no_secrets_validation $ SC.o_no_dynamic_dependency_resolution
     $ SC.o_nosem $ SC.o_optimizations $ SC.o_oss $ SC.o_output $ SC.o_pro
     $ SC.o_pro_intrafile $ SC.o_pro_languages $ SC.o_pro_path_sensitive
-    $ SC.o_respect_gitignore $ SC.o_rewrite_rule_ids $ SC.o_sarif
-    $ SC.o_sarif_outputs $ SC.o_scan_unknown_extensions $ SC.o_secrets
-    $ SC.o_text $ SC.o_text_outputs $ SC.o_timeout $ SC.o_timeout_interfile
-    $ SC.o_timeout_threshold $ SC.o_trace $ SC.o_trace_endpoint
+    $ SC.o_rewrite_rule_ids $ SC.o_sarif $ SC.o_sarif_outputs
+    $ SC.o_scan_unknown_extensions $ SC.o_secrets $ SC.o_text
+    $ SC.o_text_outputs $ SC.o_timeout $ SC.o_timeout_interfile
+    $ SC.o_timeout_threshold $ SC.o_trace $ SC.o_trace_endpoint $ SC.o_use_git
     $ SC.o_version_check $ SC.o_vim $ SC.o_vim_outputs)
 
 (*************************************************************************)

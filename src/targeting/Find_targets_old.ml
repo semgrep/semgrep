@@ -113,7 +113,8 @@ let group_roots_by_project conf (paths : Scanning_root.t list) =
            let ( kind,
                  ({ project_root = root; inproject_path = git_path } :
                    Project.scanning_root_info) ) =
-             Project.find_any_project_root ?force_root
+             Project.find_any_project_root ~fallback_root:None
+               ~force_novcs:conf.force_novcs_project ~force_root
                (Scanning_root.to_fpath path)
            in
            ((kind, root), Ppath.to_fpath ~root:(Rfpath.to_fpath root) git_path))
@@ -125,7 +126,7 @@ let group_roots_by_project conf (paths : Scanning_root.t list) =
                  : Project.scanning_root_info) =
              Project.force_project_root (Scanning_root.to_fpath path)
            in
-           ( (Project.Other_project, root),
+           ( (Project.No_VCS_project, root),
              Ppath.to_fpath ~root:(Rfpath.to_fpath root) git_path ))
 
 (*************************************************************************)
@@ -260,7 +261,7 @@ let get_targets conf (scanning_roots : Scanning_root.t list) =
            | Mercurial_project
            | Subversion_project
            | Darcs_project
-           | Other_project ->
+           | No_VCS_project ->
                { use_gitignore_files = false; use_semgrepignore_files = true }
          in
          let ign =

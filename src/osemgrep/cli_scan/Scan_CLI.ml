@@ -220,22 +220,20 @@ negative value disables this filter. Defaults to %d bytes|}
   Arg.value (Arg.opt Cmdliner_.number_of_bytes_converter default info)
 
 (*
-   TODO: clarify what happens with osemgrep since its semgrepignore
-   filtering uses .gitignore and .semgrepignore files together.
-   Maybe we just wait until pysemgrep target filtering is gone?
+   TODO: deprecate this confusing option as soon as we have alternatives
+   and we're migrated to osemgrep for file targeting.
 *)
-let o_respect_gitignore : bool Term.t =
+let o_use_git : bool Term.t =
   H.negatable_flag [ "use-git-ignore" ] ~neg_options:[ "no-git-ignore" ]
     ~default:default.targeting_conf.respect_gitignore
     ~doc:
-      {|Skip files ignored by git. Scanning starts from the root
-folder specified on the Semgrep command line. Normally, if the
-scanning root is within a git repository, only the tracked files and
-the new files would be scanned. Git submodules and git- ignored files
-would normally be skipped. --no-git-ignore will disable git-aware
-filtering. Setting this flag does nothing if the scanning root is not
-in a git repository.
-|}
+      {|'--no-git-ignore' causes semgrep to not call 'git' and not consult
+        '.gitignore' files to determine which files semgrep should scan.
+        As a result of '--no-git-ignore', gitignored files and git submodules
+        will be scanned.
+        This flag has no effect if the scanning root is not
+        in a git repository.
+        '--use-git-ignore' is semgrep's default behavior.|}
 
 let o_ignore_semgrepignore_files : bool Term.t =
   let info =
@@ -924,14 +922,15 @@ let o_project_root : string option Term.t =
   let info =
     Arg.info [ "project-root" ]
       ~doc:
-        {|The project root for gitignore and semgrepignore purposes is
-          detected automatically from the presence of a .git/ directory in
-          the current directory or one of its parents. If not found,
-          the current directory is used as the project root. This option
-          forces a specific directory to be the project root. This is useful
-          for testing or for restoring compatibility with older semgrep
-          implementations that only looked for a .semgrepignore file
-          in the current directory. REQUIRES --experimental|}
+        {|Semgrep normally determines the type of project (git or novcs)
+          and the project root automatically. The project root is then used
+          to locate and use '.gitignore' and '.semgrepignore' files which
+          determine target files that should be ignored by semgrep.
+          This option forces the project root to be a specific folder
+          and assumes a local project without version control (novcs).
+          This option is useful to ensure the '.semgrepignore' file that
+          may exist at the project root is consulted when the scanning root
+          is not the current folder '.'. REQUIRES --experimental|}
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 
@@ -939,9 +938,9 @@ let o_remote : string option Term.t =
   let info =
     Arg.info [ "remote" ]
       ~doc:
-        {|Remote will quickly checkout and scan a remote git repository of
+        {|Remote will quickly check out and scan a remote git repository of
         the format "http[s]://<WEBSITE>/.../<REPO>.git". Must be run with
-        --pro Incompatible with --project-root. Note this requires an empty
+        --pro. Incompatible with --project-root. Note this requires an empty
         CWD as this command will clone the repository into the CWD.
         REQUIRES --experimental|}
   in
@@ -1301,11 +1300,11 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       max_memory_mb max_target_bytes metrics num_jobs
       _no_dynamic_dependency_resolution no_secrets_validation nosem
       optimizations oss output pattern pro project_root pro_intrafile pro_lang
-      pro_path_sensitive remote replacement respect_gitignore rewrite_rule_ids
-      sarif sarif_outputs scan_unknown_extensions secrets severity
-      show_supported_languages strict target_roots test test_ignore_todo text
-      text_outputs time_flag timeout _timeout_interfileTODO timeout_threshold
-      trace trace_endpoint validate version version_check vim vim_outputs
+      pro_path_sensitive remote replacement rewrite_rule_ids sarif sarif_outputs
+      scan_unknown_extensions secrets severity show_supported_languages strict
+      target_roots test test_ignore_todo text text_outputs time_flag timeout
+      _timeout_interfileTODO timeout_threshold trace trace_endpoint use_git
+      validate version version_check vim vim_outputs
       x_ignore_semgrepignore_files x_ls x_ls_long =
     (* Print a warning if any of the internal or experimental options.
        We don't want users to start relying on these. *)
@@ -1396,9 +1395,12 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       | [] -> None
       | nonempty -> Some nonempty
     in
+    let respect_gitignore = use_git in
+    let force_novcs_project = force_project_root <> None || not use_git in
     let targeting_conf : Find_targets.conf =
       {
         force_project_root;
+        force_novcs_project;
         exclude = exclude_;
         include_;
         baseline_commit;
@@ -1520,12 +1522,12 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     $ o_num_jobs $ o_no_dynamic_dependency_resolution $ o_no_secrets_validation
     $ o_nosem $ o_optimizations $ o_oss $ o_output $ o_pattern $ o_pro
     $ o_project_root $ o_pro_intrafile $ o_pro_languages $ o_pro_path_sensitive
-    $ o_remote $ o_replacement $ o_respect_gitignore $ o_rewrite_rule_ids
-    $ o_sarif $ o_sarif_outputs $ o_scan_unknown_extensions $ o_secrets
-    $ o_severity $ o_show_supported_languages $ o_strict $ o_target_roots
-    $ o_test $ Test_CLI.o_test_ignore_todo $ o_text $ o_text_outputs $ o_time
-    $ o_timeout $ o_timeout_interfile $ o_timeout_threshold $ o_trace
-    $ o_trace_endpoint $ o_validate $ o_version $ o_version_check $ o_vim
+    $ o_remote $ o_replacement $ o_rewrite_rule_ids $ o_sarif $ o_sarif_outputs
+    $ o_scan_unknown_extensions $ o_secrets $ o_severity
+    $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
+    $ Test_CLI.o_test_ignore_todo $ o_text $ o_text_outputs $ o_time $ o_timeout
+    $ o_timeout_interfile $ o_timeout_threshold $ o_trace $ o_trace_endpoint
+    $ o_use_git $ o_validate $ o_version $ o_version_check $ o_vim
     $ o_vim_outputs $ o_ignore_semgrepignore_files $ o_ls $ o_ls_long)
 
 let doc = "run semgrep rules on files"

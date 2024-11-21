@@ -7,23 +7,27 @@ type t = { kind : kind; root : Rfpath.t } [@@deriving show]
    system (VCS) it uses.
 *)
 and kind =
-  (* .git/ *)
+  (* A git project as determined by calling git. *)
   | Git_project
-  (* .hg/ *)
+  (* TODO: these other VCS aren't fully supported (ignored paths and/or
+     fast listing of project files like we do with git).
+     They're only used to determine the project root. *)
   | Mercurial_project
-  (* .svn/ *)
   | Subversion_project
-  (* _darcs/ *)
   | Darcs_project
   (* A gitignore project is a fake git project. It doesn't have a valid
    *  '.git/' folder but its '.gitignore' files should be read as part
    * of the semgrepignore mechanism.
    *)
   | Gitignore_project
-  (* whatever else (e.g., untarred project tarballs) where the user will have
-   * to use a --project-root option to specify/force the project root.
-   *)
-  | Other_project
+  (* A no-VCS project is any project for which we don't support the
+     version-control system or for which it is unknown or purposefully
+     ignored with a special option.
+     A common case includes untarred project tarballs. The user may
+     have to resort to the '--project-root' option to specify/force
+     the project root where a root '.semgrepignore' may exist.
+  *)
+  | No_VCS_project
 [@@deriving show]
 
 (* In many CLI tools (e.g., semgrep), the user can specify a set of
@@ -49,7 +53,8 @@ type scanning_root_info = {
 }
 
 (*
-   Find a project root given a path in this project.
+   Find a project root given a path in this project and determine the project
+   kind.
 
    This returns the project root and the path relative to that root
    (see the scanning_root_info type above).
@@ -69,8 +74,9 @@ type scanning_root_info = {
    the root of a project.
 *)
 val find_any_project_root :
-  ?fallback_root:Rfpath.t ->
-  ?force_root:t ->
+  fallback_root:Rfpath.t option ->
+  force_novcs:bool ->
+  force_root:t option ->
   Fpath.t ->
   kind * scanning_root_info
 

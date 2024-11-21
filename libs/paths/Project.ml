@@ -20,7 +20,7 @@ and kind =
   | Subversion_project
   | Darcs_project
   | Gitignore_project
-  | Other_project
+  | No_VCS_project
 [@@deriving show]
 
 type roots = {
@@ -131,25 +131,30 @@ let force_project_root ?(project_root : Rfpath.t option) (path : Fpath.t) :
   | Ok inproject_path -> { project_root; inproject_path }
   | Error msg -> failwith msg
 
-let find_any_project_root ?fallback_root ?force_root (fpath : Fpath.t) :
-    kind * scanning_root_info =
+let find_any_project_root ~fallback_root ~force_novcs ~force_root
+    (fpath : Fpath.t) : kind * scanning_root_info =
   Log.debug (fun m ->
       m "find_any_project_root: fallback_root=%s force_root=%s %s"
         (Logs_.option Rfpath.show fallback_root)
         (Logs_.option show force_root)
         !!fpath);
-  match force_root with
-  | Some { kind; root = project_root } ->
-      (kind, force_project_root ~project_root fpath)
-  | None -> (
-      match get_project_root_of_fpath_opt fpath with
-      | Some (kind, project_root) ->
-          let project_root = Rfpath.of_fpath_exn project_root in
-          let inproject_path =
-            match Ppath.in_project ~root:project_root fpath with
-            | Ok x -> x
-            | Error msg -> failwith msg
-          in
-          (kind, { project_root; inproject_path })
-      | None ->
-          (Other_project, force_project_root ?project_root:fallback_root fpath))
+  let inferred_kind, root_info =
+    match force_root with
+    | Some { kind; root = project_root } ->
+        (kind, force_project_root ~project_root fpath)
+    | None -> (
+        match get_project_root_of_fpath_opt fpath with
+        | Some (kind, project_root) ->
+            let project_root = Rfpath.of_fpath_exn project_root in
+            let inproject_path =
+              match Ppath.in_project ~root:project_root fpath with
+              | Ok x -> x
+              | Error msg -> failwith msg
+            in
+            (kind, { project_root; inproject_path })
+        | None ->
+            ( No_VCS_project,
+              force_project_root ?project_root:fallback_root fpath ))
+  in
+  let kind = if force_novcs then No_VCS_project else inferred_kind in
+  (kind, root_info)

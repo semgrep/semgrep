@@ -50,17 +50,14 @@ let find_targets_conf_of_t settings : Find_targets.conf =
     if settings.include_ <> [] then Some settings.include_ else None
   in
   {
+    Find_targets.default_conf with
     exclude = settings.exclude;
     include_;
     max_target_bytes = settings.max_target_bytes;
-    respect_gitignore = true;
-    respect_semgrepignore_files = true;
-    baseline_commit = None;
+    (* TODO: explain or use the default value of default_conf.diff_depth *)
     diff_depth = 0;
-    always_select_explicit_targets = false;
-    explicit_targets = Find_targets.Explicit_targets.empty;
-    force_project_root = None;
-    (* If you're editing minified files then ??? *)
+    (* If you're editing minified files then ???
+       TODO: explain or use the same default as in default_conf. *)
     exclude_minified_files = true;
   }
 

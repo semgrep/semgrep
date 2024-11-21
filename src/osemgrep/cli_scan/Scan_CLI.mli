@@ -117,7 +117,6 @@ val o_pro : bool Cmdliner.Term.t
 val o_pro_intrafile : bool Cmdliner.Term.t
 val o_pro_languages : bool Cmdliner.Term.t
 val o_pro_path_sensitive : bool Cmdliner.Term.t
-val o_respect_gitignore : bool Cmdliner.Term.t
 val o_rewrite_rule_ids : bool Cmdliner.Term.t
 val o_sarif : bool Cmdliner.Term.t
 val o_sarif_outputs : string list Cmdliner.Term.t
@@ -131,6 +130,7 @@ val o_timeout_interfile : int Cmdliner.Term.t
 val o_timeout_threshold : int Cmdliner.Term.t
 val o_trace : bool Cmdliner.Term.t
 val o_trace_endpoint : string option Cmdliner.Term.t
+val o_use_git : bool Cmdliner.Term.t
 val o_version_check : bool Cmdliner.Term.t
 val o_vim : bool Cmdliner.Term.t
 val o_vim_outputs : string list Cmdliner.Term.t
