@@ -30,14 +30,14 @@ class GradleMatcher(SubprojectMatcher):
     https://docs.gradle.org/current/userguide/intro_multi_project_builds.htm
     """
 
-    BUILD_FILENAME = "build.gradle"
-    SETTINGS_FILENAME = "settings.gradle"
+    BUILD_FILENAMES = ["build.gradle", "build.gradle.kts"]
+    SETTINGS_FILENAMES = ["settings.gradle", "settings.gradle.kts"]
     LOCKFILE_FILENAME = "gradle.lockfile"
 
     def is_match(self, path: Path) -> bool:
         return path.name in [
-            self.BUILD_FILENAME,
-            self.SETTINGS_FILENAME,
+            *self.BUILD_FILENAMES,
+            *self.SETTINGS_FILENAMES,
             self.LOCKFILE_FILENAME,
         ]
 
@@ -50,15 +50,21 @@ class GradleMatcher(SubprojectMatcher):
 
         Returns (settings_path, build_path) if each path exists in candidates.
         """
-        possible_build_path = lockfile_path.parent / self.BUILD_FILENAME
-        possible_settings_path = lockfile_path.parent / self.SETTINGS_FILENAME
+        possible_build_paths = [lockfile_path.parent / x for x in self.BUILD_FILENAMES]
+        possible_settings_paths = [
+            lockfile_path.parent / x for x in self.SETTINGS_FILENAMES
+        ]
 
         build_path: Optional[Path] = None
         settings_path: Optional[Path] = None
-        if possible_build_path in candidates:
-            build_path = possible_build_path
-        if possible_settings_path in candidates:
-            settings_path = possible_settings_path
+        for possible_build_path in possible_build_paths:
+            if possible_build_path in candidates:
+                build_path = possible_build_path
+                break
+        for possible_settings_path in possible_settings_paths:
+            if possible_settings_path in candidates:
+                settings_path = possible_settings_path
+                break
         return settings_path, build_path
 
     def _sort_source_files(
@@ -74,9 +80,9 @@ class GradleMatcher(SubprojectMatcher):
         lockfiles: Set[Path] = set()
 
         for path in dep_source_files:
-            if path.name == self.BUILD_FILENAME:
+            if path.name in self.BUILD_FILENAMES:
                 build_files.add(path)
-            elif path.name == self.SETTINGS_FILENAME:
+            elif path.name in self.SETTINGS_FILENAMES:
                 settings_files.add(path)
             elif path.name == self.LOCKFILE_FILENAME:
                 lockfiles.add(path)
@@ -157,14 +163,18 @@ class GradleMatcher(SubprojectMatcher):
                 continue
 
             project_root = settings_path.parent
-            possible_build_path = settings_path.parent / self.BUILD_FILENAME
-            if possible_build_path in dep_source_files:
+            build_paths = dep_source_files.intersection(
+                settings_path.parent / x for x in self.BUILD_FILENAMES
+            )
+            if len(build_paths) > 0:
+                # it doesn't really make sense for there to be multiple build files, so pick one arbitrarily
+                first_build_path = next(x for x in build_paths)
                 # if a build file is present, favor using that as the manifest file, but build
                 # files might be missing for multi-project builds
-                used_build_paths.add(possible_build_path)
+                used_build_paths.add(first_build_path)
                 manifest = out.Manifest(
                     kind=out.ManifestKind(out.BuildGradle()),
-                    path=out.Fpath(str(possible_build_path)),
+                    path=out.Fpath(str(first_build_path)),
                 )
             else:
                 manifest = out.Manifest(

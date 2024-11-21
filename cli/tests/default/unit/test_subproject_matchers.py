@@ -706,6 +706,45 @@ class TestGradleMatcher:
                 ],
             ),
             (
+                # mixing .gradle and .gradle.kts
+                [
+                    Path("gradle.lockfile"),
+                    Path("build.gradle"),
+                    Path("settings.gradle"),
+                    Path("buildSrc/settings.gradle.kts"),
+                    Path("subdir_a/build.gradle.kts"),
+                    Path("subdir_b/build.gradle"),
+                ],
+                [
+                    Subproject(
+                        root_dir=Path(),
+                        dependency_source=ManifestLockfileDependencySource(
+                            manifest=out.Manifest(
+                                kind=out.ManifestKind(value=out.BuildGradle()),
+                                path=out.Fpath("build.gradle"),
+                            ),
+                            lockfile=out.Lockfile(
+                                out.LockfileKind(out.GradleLockfile_()),
+                                out.Fpath("gradle.lockfile"),
+                            ),
+                        ),
+                    ),
+                    Subproject(
+                        root_dir=Path("buildSrc"),
+                        dependency_source=ManifestOnlyDependencySource(
+                            manifest=out.Manifest(
+                                kind=out.ManifestKind(value=out.SettingsGradle()),
+                                path=out.Fpath("buildSrc/settings.gradle.kts"),
+                            ),
+                        ),
+                    ),
+                ],
+                [
+                    Path("subdir_a/build.gradle.kts"),
+                    Path("subdir_b/build.gradle"),
+                ],
+            ),
+            (
                 # a very simple single-project build with only a build.gradle
                 [
                     Path("build.gradle"),
