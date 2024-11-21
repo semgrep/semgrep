@@ -109,13 +109,24 @@ package_swift_parser = (
     any_char.until(regex(r"dependencies\s*:")) >> dependencies_block << any_char.many()
 )
 
+# versions of Package.resolved are defined in swift source code at
+# https://github.com/swiftlang/swift-package-manager/blob/4c206fb9edf118b213485f295295e41eed995bb1/Sources/PackageGraph/ResolvedPackagesStore.swift#L319
 
-def parse_swiftpm_v2(
+
+def parse_swiftpm_v2_v3(
     lockfile_path: Path,
     lockfile: Dict[str, JSON],
     direct_deps: Set[str],
     manifest_path: Optional[Path],
 ) -> List[FoundDependency]:
+    """
+    Parse a SwiftPM Package.resolved file of version 2 or version 3. The only difference between v2
+    and v3 is a single 'originHash' field that is used as a performance optimization in SwiftPM and that
+    we do not care about, so the same parser is used for v2 and v3.
+
+    See https://github.com/swiftlang/swift-package-manager/blob/4c206fb9edf118b213485f295295e41eed995bb1/Sources/PackageGraph/ResolvedPackagesStore.swift#L421-L519
+    for the source code defining V2 and V3 to see the difference. The PR that introduced V3 can be found at https://github.com/swiftlang/swift-package-manager/pull/6698
+    """
     result = []
 
     deps = lockfile.get("pins")
@@ -259,8 +270,8 @@ def parse_package_resolved(
         all_deps = parse_swiftpm_v1(
             lockfile_path, lockfile_json, direct_deps, manifest_path
         )
-    elif lockfile_version_int == 2:
-        all_deps = parse_swiftpm_v2(
+    elif lockfile_version_int == 2 or lockfile_version_int == 3:
+        all_deps = parse_swiftpm_v2_v3(
             lockfile_path, lockfile_json, direct_deps, manifest_path
         )
     else:
@@ -268,7 +279,7 @@ def parse_package_resolved(
             DependencyParserError(
                 str(lockfile_path),
                 ScaParserName(PackageResolved()),
-                "Invalid lockfile version. Expected 1 or 2.",
+                "Invalid lockfile version. Expected 1, 2, or 3.",
             )
         )
 

@@ -367,7 +367,7 @@ def test_swift_lockfile_v2_parser():
     """
     ).as_dict()
 
-    found_deps = swiftpm.parse_swiftpm_v2(
+    found_deps = swiftpm.parse_swiftpm_v2_v3(
         lockfile_path, lockfile_v2, {""}, manifest_path=None
     )
     expected_deps = [

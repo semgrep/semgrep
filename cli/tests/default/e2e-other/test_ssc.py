@@ -245,6 +245,10 @@ pytestmark = pytest.mark.kinda_slow
         ),
         (
             "rules/dependency_aware/swift-sca.yaml",
+            "dependency_aware/swiftpm/v3",
+        ),
+        (
+            "rules/dependency_aware/swift-sca.yaml",
             "dependency_aware/swiftpm_missing_version",
         ),
     ],
