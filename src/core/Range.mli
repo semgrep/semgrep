@@ -26,10 +26,10 @@ val ( $<$ ) : t -> t -> bool
 val ( $<>$ ) : t -> t -> bool
 
 (* start_line - end_line -> filename -> range *)
-val range_of_line_spec : string -> string (* filename *) -> t
+val range_of_line_spec : string -> Fpath.t -> t
 
 (* start_line:start_col - end_line:end_col -> filename -> range *)
-val range_of_linecol_spec : string -> string (* filename *) -> t
+val range_of_linecol_spec : string -> Fpath.t -> t
 val range_of_token_locations : Tok.location -> Tok.location -> t
 val range_of_tokens : Tok.t list -> t option
 

@@ -50,7 +50,7 @@ module Legacy = struct
     let chan = UStdlib.open_in_bin file in
     try
       while true do
-        acc := input_text_line chan :: !acc
+        acc := Common.input_text_line chan :: !acc
       done;
       assert false
     with

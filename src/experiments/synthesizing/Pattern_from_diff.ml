@@ -1,4 +1,3 @@
-open Fpath_.Operators
 module In = Input_to_core_j
 module R = Range
 module Set = Set_
@@ -103,7 +102,7 @@ let range_of_ast ast = R.range_of_tokens (AST_generic_helpers.ii_of_any ast)
 let pattern_from_diff f =
   let file = Fpath.v f.In.filename in
   let function_from_range file_ast range =
-    let r = R.range_of_line_spec range !!file in
+    let r = R.range_of_line_spec range file in
     let func = Range_to_AST.function_at_range r file_ast in
     match func with
     | None -> None

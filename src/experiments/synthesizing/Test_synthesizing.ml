@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2020 r2c
+ * Copyright (C) 2020 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -17,8 +17,8 @@ open Fpath_.Operators
 module J = JSON
 module In = Input_to_core_j
 
-let expr_at_range s file =
-  let r = Range.range_of_linecol_spec s !!file in
+let expr_at_range (s : string) (file : Fpath.t) : unit =
+  let r = Range.range_of_linecol_spec s file in
   UCommon.pr2_gen r;
   let ast = Parse_target.parse_program file in
   (* just to see if it works with Naming on *)

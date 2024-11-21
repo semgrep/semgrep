@@ -56,11 +56,10 @@ type bytepos_linecol_converters = {
  *)
 
 (* f(i) will contain the (line x col) of the i char position *)
-val full_converters_large : string (* filename *) -> bytepos_linecol_converters
+val full_converters_large : Fpath.t -> bytepos_linecol_converters
 val full_converters_str : string -> bytepos_linecol_converters
 
 (* fill in the line and column field of a position that were not set
  * during lexing because of limitations of ocamllex and Lexing.position.
  *)
-val complete_position :
-  string (* filename *) -> bytepos_linecol_converters -> t -> t
+val complete_position : Fpath.t -> bytepos_linecol_converters -> t -> t

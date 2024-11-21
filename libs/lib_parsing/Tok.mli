@@ -253,10 +253,7 @@ val adjust_loc_wrt_base : location -> location -> location
  * during lexing because of limitations of ocamllex and Lexing.position.
  *)
 val complete_location :
-  string (* filename *) ->
-  Pos.bytepos_linecol_converters ->
-  location ->
-  location
+  Fpath.t -> Pos.bytepos_linecol_converters -> location -> location
 
 (*****************************************************************************)
 (* Misc *)

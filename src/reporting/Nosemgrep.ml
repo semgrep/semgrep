@@ -124,7 +124,7 @@ let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
     (* bugfix: This is only needed in relatively rare cases, and it's costly to
      * compute both in time and memory. Making it lazy avoids this computation
      * when it's not needed. *)
-    lazy (Pos.full_converters_large !!path).linecol_to_bytepos_fun
+    lazy (Pos.full_converters_large path).linecol_to_bytepos_fun
   in
 
   let previous_line, line =

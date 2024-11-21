@@ -537,7 +537,7 @@ let fix_pos fix loc = { loc with pos = fix loc.pos }
 (* Adjust line x col *)
 (*****************************************************************************)
 
-let complete_location filename table (x : location) =
+let complete_location (filename : Fpath.t) table (x : location) =
   { x with pos = Pos.complete_position filename table x.pos }
 
 (*

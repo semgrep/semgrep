@@ -200,7 +200,7 @@ let tests =
                       (* BUG? resolve again? already done above *)
                       Naming_AST.resolve lang ast;
 
-                      let r = Range.range_of_linecol_spec range !!file in
+                      let r = Range.range_of_linecol_spec range file in
 
                       let check_pats (str, pat) =
                         try

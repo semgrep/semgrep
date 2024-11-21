@@ -1,4 +1,5 @@
 open Common
+open Fpath_.Operators
 module R = Rule
 module E = Core_error
 module OutJ = Semgrep_output_v1_t
@@ -6,7 +7,7 @@ module OutJ = Semgrep_output_v1_t
 let t = Testo.create
 
 (* ran from the root of the semgrep repository *)
-let test_path = "tests/synthesizing/targets/"
+let test_path = Fpath.v "tests/synthesizing/targets/"
 
 (* Format: file, list of target ranges, expected pattern line. *)
 let stmt_tests =
@@ -83,10 +84,10 @@ let ranges_matched (lang : Lang.t) (file : Fpath.t) pattern : Range.t list =
   in
   List_.map extract_range matches
 
-let run_single_test file linecols expected_pattern =
+let run_single_test (file : Fpath.t) linecols expected_pattern =
   let lang, _, inferred_pattern =
     Synthesizer.generate_pattern_from_targets Rule_options.default
-      (linecols @ [ file ])
+      (linecols @ [ !!file ])
   in
   let actual_pattern =
     Pretty_print_pattern.pattern_to_string lang inferred_pattern
@@ -95,7 +96,7 @@ let run_single_test file linecols expected_pattern =
   let ranges_expected =
     List_.map (fun lcs -> Range.range_of_linecol_spec lcs file) linecols
   in
-  let ranges_actual = ranges_matched lang (Fpath.v file) inferred_pattern in
+  let ranges_actual = ranges_matched lang file inferred_pattern in
   let ranges_correct =
     List.for_all
       (fun r -> List.exists (compare_range r) ranges_actual)
@@ -116,5 +117,5 @@ let tests =
     t "pattern from targets" (fun () ->
         stmt_tests @ statement_list_tests
         |> List.iter (fun (file, linecols, expected_pattern) ->
-               run_single_test (test_path ^ file) linecols expected_pattern));
+               run_single_test (test_path / file) linecols expected_pattern));
   ]

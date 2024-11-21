@@ -110,10 +110,10 @@ type bytepos_linecol_converters = {
  *   - in each lexer you need to take care of newlines and update manually
  *     the field.
  *)
-let complete_position (filename : string) converters (x : t) =
+let complete_position (file : Fpath.t) converters (x : t) =
   {
     x with
-    file = Fpath.v filename;
+    file;
     line = fst (converters.bytepos_to_linecol_fun x.bytepos);
     column = snd (converters.bytepos_to_linecol_fun x.bytepos);
   }
@@ -163,8 +163,8 @@ let converters_of_arrays line_arr col_arr : bytepos_linecol_converters =
              | Ok (bytepos, _) -> bytepos);
       }
 
-let full_converters_large (file : string) : bytepos_linecol_converters =
-  let size = UFile.filesize (Fpath.v file) + 2 in
+let full_converters_large (file : Fpath.t) : bytepos_linecol_converters =
+  let size = UFile.filesize file + 2 in
 
   (* old: let arr = Array.create size  (0,0) in *)
   let arr1 = Bigarray.Array1.create Bigarray.int Bigarray.c_layout size in
@@ -175,7 +175,7 @@ let full_converters_large (file : string) : bytepos_linecol_converters =
   let charpos = ref 0 in
   let line = ref 0 in
 
-  UFile.Legacy.with_open_infile file (fun chan ->
+  UFile.with_open_in file (fun chan ->
       let full_charpos_to_pos_aux () =
         try
           while true do

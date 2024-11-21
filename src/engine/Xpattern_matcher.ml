@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Common
-open Fpath_.Operators
 module MV = Metavariable
 module PM = Pattern_match
 module RP = Core_result
@@ -115,7 +114,7 @@ let () =
 
 let line_col_of_charpos (file : Fpath.t) (charpos : int) : int * int =
   let conv =
-    Common.memoized hmemo file (fun () -> Pos.full_converters_large !!file)
+    Common.memoized hmemo file (fun () -> Pos.full_converters_large file)
   in
   conv.bytepos_to_linecol_fun charpos
 

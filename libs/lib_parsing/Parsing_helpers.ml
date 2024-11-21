@@ -88,7 +88,8 @@ let yyback n lexbuf =
  *  - we can have comments as tokens (useful for codemap/efuns) and
  *    skip them easily with one Common.exclude
  *)
-let tokenize_and_adjust_pos lexbuf table filename tokenizer visitor_tok is_eof =
+let tokenize_and_adjust_pos lexbuf table (filename : Fpath.t) tokenizer
+    visitor_tok is_eof =
   let adjust_info (ii : Tok.t) =
     (* could assert pinfo.filename = file ? *)
     Tok.(
@@ -117,12 +118,12 @@ let tokenize_all_and_adjust_pos input_source tokenizer visitor_tok is_eof =
   | Str str ->
       let lexbuf = Lexing.from_string str in
       let table = Pos.full_converters_str str in
-      (* TODO: don't pass "<file>" where an actual file is expected.
+      (* TODO: don't use fake_file! where an actual file is expected.
          This results in cryptic errors later when the file can't be opened. *)
-      tokenize_and_adjust_pos lexbuf table "<file>" tokenizer visitor_tok is_eof
-  | File path ->
-      let file = Fpath.to_string path in
-      UFile.Legacy.with_open_infile file (fun chan ->
+      tokenize_and_adjust_pos lexbuf table Fpath_.fake_file tokenizer
+        visitor_tok is_eof
+  | File file ->
+      UFile.with_open_in file (fun chan ->
           let lexbuf = Lexing.from_channel chan in
           let table = Pos.full_converters_large file in
           tokenize_and_adjust_pos lexbuf table file tokenizer visitor_tok is_eof)

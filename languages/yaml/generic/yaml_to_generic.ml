@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open Fpath_.Operators
 module Y = Yaml
 module S = Yaml.Stream
 module E = Yaml.Stream.Event
@@ -629,7 +628,7 @@ let parse_yaml_file ~is_target (file : Fpath.t) str =
   (* we do not preprocess the yaml here; ellipsis should be transformed
    * only in the pattern *)
   let bytepos_to_pos =
-    Some (Pos.full_converters_large !!file).bytepos_to_linecol_fun
+    Some (Pos.full_converters_large file).bytepos_to_linecol_fun
   in
   let parser = get_res file (S.parser str) in
   let env =
