@@ -156,8 +156,7 @@ def _resolve_dependency_source(
     enable_dynamic_resolution: bool = True,
     prioritize_dependency_graph_generation: bool = False,
 ) -> Tuple[
-    Optional[Ecosystem],
-    List[FoundDependency],
+    Optional[Tuple[Ecosystem, ResolutionMethod, List[FoundDependency]]],
     Sequence[Union[DependencyParserError, DependencyResolutionError]],
     List[Path],
 ]:
@@ -191,11 +190,19 @@ def _resolve_dependency_source(
             if resolved_info is not None:
                 # TODO: Reimplement this once more robust error handling for lockfileless resolution is implemented
                 new_ecosystem, new_deps = resolved_info
-                return new_ecosystem, new_deps, new_errors, new_targets
+                return (
+                    (new_ecosystem, ResolutionMethod.DYNAMIC, new_deps),
+                    new_errors,
+                    new_targets,
+                )
             else:
                 # dynamic resolution failed, fall back to lockfile parsing
                 resolved_deps, parse_errors = parser(lockfile_path, manifest_path)
-            return ecosystem, resolved_deps, parse_errors, [lockfile_path]
+            return (
+                (ecosystem, ResolutionMethod.LOCKFILE_PARSING, resolved_deps),
+                parse_errors,
+                [lockfile_path],
+            )
         else:
             resolved_deps, parse_errors = parser(
                 lockfile_path,
@@ -203,7 +210,11 @@ def _resolve_dependency_source(
                 if isinstance(dep_source, ManifestLockfileDependencySource)
                 else None,
             )
-            return ecosystem, resolved_deps, parse_errors, [lockfile_path]
+            return (
+                (ecosystem, ResolutionMethod.LOCKFILE_PARSING, resolved_deps),
+                parse_errors,
+                [lockfile_path],
+            )
     elif isinstance(dep_source, MultiLockfileDependencySource):
         all_resolved_deps: List[FoundDependency] = []
         all_parse_errors: List[
@@ -211,15 +222,33 @@ def _resolve_dependency_source(
         ] = []
         all_dep_targets: List[Path] = []
 
+        resolution_methods: Set[ResolutionMethod] = set()
         for lockfile_source in dep_source.sources:
-            ecosystem, new_deps, new_errors, new_targets = _resolve_dependency_source(
+            new_resolved_info, new_errors, new_targets = _resolve_dependency_source(
                 lockfile_source
             )
-            all_resolved_deps.extend(new_deps)
+            if new_resolved_info is not None:
+                # overwrite ecosystem each time, using the last one arbitrarily (they should all be the same)
+                ecosystem, resolution_method, new_deps = new_resolved_info
+                resolution_methods.add(resolution_method)
+                all_resolved_deps.extend(new_deps)
             all_parse_errors.extend(new_errors)
             all_dep_targets.extend(new_targets)
 
-        return ecosystem, all_resolved_deps, all_parse_errors, all_dep_targets
+        # if any of the files were resolved using dynamic resolution, mark the whole subproject as resolved that way
+        reported_resolution_method = (
+            ResolutionMethod.DYNAMIC
+            if ResolutionMethod.DYNAMIC in resolution_methods
+            else ResolutionMethod.LOCKFILE_PARSING
+        )
+        if ecosystem is not None:
+            return (
+                (ecosystem, reported_resolution_method, all_resolved_deps),
+                all_parse_errors,
+                all_dep_targets,
+            )
+        else:
+            return None, all_parse_errors, all_dep_targets
     elif (
         isinstance(dep_source, ManifestOnlyDependencySource)
         and enable_dynamic_resolution
@@ -228,12 +257,16 @@ def _resolve_dependency_source(
             dep_source
         )
         if resolved_info is None:
-            return None, [], new_errors, new_targets
+            return None, new_errors, new_targets
         new_ecosystem, new_deps = resolved_info
-        return new_ecosystem, new_deps, new_errors, new_targets
+        return (
+            (new_ecosystem, ResolutionMethod.DYNAMIC, new_deps),
+            new_errors,
+            new_targets,
+        )
     else:
         # dependency source type is not supported, do nothing
-        return (None, [], [], [])
+        return (None, [], [])
 
 
 def find_subprojects(
@@ -290,17 +323,18 @@ def resolve_subprojects(
     unresolved: List[UnresolvedSubproject] = []
     # Dispatch each subproject to a resolver for resolution
     for to_resolve in found_subprojects:
-        ecosystem, deps, errors, targets = _resolve_dependency_source(
+        resolved_info, errors, targets = _resolve_dependency_source(
             to_resolve.dependency_source,
             allow_dynamic_resolution,
             prioritize_dependency_graph_generation,
         )
         dependency_targets.extend(targets)
 
-        if ecosystem is not None:
-            # ecosystem is only None when dependency resolution failed in some way
+        if resolved_info is not None:
+            # resolved_info is only None when dependency resolution failed in some way
+            ecosystem, resolution_method, deps = resolved_info
             resolved_subproject = ResolvedSubproject.from_unresolved(
-                to_resolve, ResolutionMethod.LOCKFILE_PARSING, errors, deps, ecosystem
+                to_resolve, resolution_method, errors, deps, ecosystem
             )
 
             if ecosystem not in resolved:

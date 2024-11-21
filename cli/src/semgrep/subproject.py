@@ -22,7 +22,11 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 
 
 class ResolutionMethod(Enum):
+    # we parsed a lockfile that was already included in the repository
     LOCKFILE_PARSING = auto()
+
+    # we communicated with the package manager to resolve dependencies
+    DYNAMIC = auto()
 
 
 class DependencySource(ABC):
