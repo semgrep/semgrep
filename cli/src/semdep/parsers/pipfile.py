@@ -25,7 +25,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Jsondoc
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Pipfile
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Pipfile_
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.verbose_logging import getLogger
@@ -73,7 +73,7 @@ def parse_pipfile(
         DependencyFileToParse(
             manifest_path,
             manifest,
-            ScaParserName(Pipfile()),
+            ScaParserName(Pipfile_()),
             preprocessors.CommentRemover(),
         )
         if manifest_path

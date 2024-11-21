@@ -22,7 +22,7 @@ class TestExactLockfileMatcher:
         matcher = ExactLockfileManifestMatcher(
             lockfile_name="Pipfile.lock",
             manifest_name="Pipfile",
-            manifest_kind=out.ManifestKind(value=out.Pipfile_()),
+            manifest_kind=out.ManifestKind(value=out.Pipfile()),
             lockfile_kind=out.LockfileKind(value=out.PipfileLock()),
         )
 
@@ -35,7 +35,7 @@ class TestExactLockfileMatcher:
         matcher = ExactLockfileManifestMatcher(
             lockfile_name="Pipfile.lock",
             manifest_name="Pipfile",
-            manifest_kind=out.ManifestKind(value=out.Pipfile_()),
+            manifest_kind=out.ManifestKind(value=out.Pipfile()),
             lockfile_kind=out.LockfileKind(value=out.PipfileLock()),
         )
 
@@ -56,7 +56,7 @@ class TestExactLockfileMatcher:
         matcher = ExactLockfileManifestMatcher(
             lockfile_name="Pipfile.lock",
             manifest_name="Pipfile",
-            manifest_kind=out.ManifestKind(value=out.Pipfile_()),
+            manifest_kind=out.ManifestKind(value=out.Pipfile()),
             lockfile_kind=out.LockfileKind(value=out.PipfileLock()),
         )
 
@@ -607,7 +607,7 @@ class TestGradleMatcher:
                                 path=out.Fpath("build.gradle"),
                             ),
                             lockfile=out.Lockfile(
-                                out.LockfileKind(out.GradleLockfile_()),
+                                out.LockfileKind(out.GradleLockfile()),
                                 out.Fpath("gradle.lockfile"),
                             ),
                         ),
@@ -651,7 +651,7 @@ class TestGradleMatcher:
                         root_dir=Path("buildSrc"),
                         dependency_source=ManifestLockfileDependencySource(
                             lockfile=out.Lockfile(
-                                kind=out.LockfileKind(out.GradleLockfile_()),
+                                kind=out.LockfileKind(out.GradleLockfile()),
                                 path=out.Fpath("buildSrc/gradle.lockfile"),
                             ),
                             manifest=out.Manifest(
@@ -685,7 +685,7 @@ class TestGradleMatcher:
                                 path=out.Fpath("build.gradle"),
                             ),
                             lockfile=out.Lockfile(
-                                out.LockfileKind(out.GradleLockfile_()),
+                                out.LockfileKind(out.GradleLockfile()),
                                 out.Fpath("gradle.lockfile"),
                             ),
                         ),

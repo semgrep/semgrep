@@ -106,7 +106,7 @@ class GradleMatcher(SubprojectMatcher):
             )
 
             lockfile = out.Lockfile(
-                kind=out.LockfileKind(out.GradleLockfile_()),
+                kind=out.LockfileKind(out.GradleLockfile()),
                 path=out.Fpath(str(lockfile_path)),
             )
 

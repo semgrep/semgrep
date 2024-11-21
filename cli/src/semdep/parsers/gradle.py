@@ -24,7 +24,7 @@ from semdep.parsers.util import transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
-from semgrep.semgrep_interfaces.semgrep_output_v1 import GradleLockfile
+from semgrep.semgrep_interfaces.semgrep_output_v1 import GradleLockfile_
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.verbose_logging import getLogger
@@ -81,8 +81,8 @@ def parse_gradle(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
     parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
-        DependencyFileToParse(lockfile_path, gradle, ScaParserName(GradleLockfile())),
-        DependencyFileToParse(manifest_path, manifest, ScaParserName(GradleLockfile()))
+        DependencyFileToParse(lockfile_path, gradle, ScaParserName(GradleLockfile_())),
+        DependencyFileToParse(manifest_path, manifest, ScaParserName(GradleLockfile_()))
         if manifest_path
         else None,
     )

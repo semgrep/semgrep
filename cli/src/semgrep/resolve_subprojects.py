@@ -57,41 +57,41 @@ logger = getLogger(__name__)
 PARSERS_BY_LOCKFILE_KIND: Dict[out.LockfileKind, SemgrepParser] = {
     out.LockfileKind(out.PipfileLock()): parse_pipfile,
     out.LockfileKind(out.PipRequirementsTxt()): parse_requirements,
-    out.LockfileKind(out.PoetryLock_()): parse_poetry,
+    out.LockfileKind(out.PoetryLock()): parse_poetry,
     out.LockfileKind(out.NpmPackageLockJson()): parse_package_lock,
     out.LockfileKind(out.YarnLock()): parse_yarn,
-    out.LockfileKind(out.PnpmLock_()): parse_pnpm,
-    out.LockfileKind(out.GemfileLock_()): parse_gemfile,
-    out.LockfileKind(out.ComposerLock_()): parse_composer_lock,
-    out.LockfileKind(out.GoMod2()): parse_go_mod,
+    out.LockfileKind(out.PnpmLock()): parse_pnpm,
+    out.LockfileKind(out.GemfileLock()): parse_gemfile,
+    out.LockfileKind(out.ComposerLock()): parse_composer_lock,
+    out.LockfileKind(out.GoMod_()): parse_go_mod,
     out.LockfileKind(out.CargoLock()): to_parser(
         parse_cargo, ScaParserName(CargoParser())
     ),
     out.LockfileKind(out.MavenDepTree()): parse_pom_tree,
-    out.LockfileKind(out.GradleLockfile_()): parse_gradle,
+    out.LockfileKind(out.GradleLockfile()): parse_gradle,
     out.LockfileKind(out.NugetPackagesLockJson()): parse_packages_lock_c_sharp,
-    out.LockfileKind(out.PubspecLock_()): parse_pubspec_lock,
+    out.LockfileKind(out.PubspecLock()): parse_pubspec_lock,
     out.LockfileKind(out.SwiftPackageResolved()): parse_package_resolved,
-    out.LockfileKind(out.MixLock_()): parse_mix,
+    out.LockfileKind(out.MixLock()): parse_mix,
 }
 
 ECOSYSTEM_BY_LOCKFILE_KIND: Dict[out.LockfileKind, Ecosystem] = {
     out.LockfileKind(out.PipfileLock()): Ecosystem(out.Pypi()),
     out.LockfileKind(out.PipRequirementsTxt()): Ecosystem(out.Pypi()),
-    out.LockfileKind(out.PoetryLock_()): Ecosystem(out.Pypi()),
+    out.LockfileKind(out.PoetryLock()): Ecosystem(out.Pypi()),
     out.LockfileKind(out.NpmPackageLockJson()): Ecosystem(out.Npm()),
     out.LockfileKind(out.YarnLock()): Ecosystem(out.Npm()),
-    out.LockfileKind(out.PnpmLock_()): Ecosystem(out.Npm()),
-    out.LockfileKind(out.GemfileLock_()): Ecosystem(out.Gem()),
-    out.LockfileKind(out.ComposerLock_()): Ecosystem(out.Composer()),
-    out.LockfileKind(out.GoMod2()): Ecosystem(out.Gomod()),
+    out.LockfileKind(out.PnpmLock()): Ecosystem(out.Npm()),
+    out.LockfileKind(out.GemfileLock()): Ecosystem(out.Gem()),
+    out.LockfileKind(out.ComposerLock()): Ecosystem(out.Composer()),
+    out.LockfileKind(out.GoMod_()): Ecosystem(out.Gomod()),
     out.LockfileKind(out.CargoLock()): Ecosystem(out.Cargo()),
     out.LockfileKind(out.MavenDepTree()): Ecosystem(out.Maven()),
-    out.LockfileKind(out.GradleLockfile_()): Ecosystem(out.Maven()),
+    out.LockfileKind(out.GradleLockfile()): Ecosystem(out.Maven()),
     out.LockfileKind(out.NugetPackagesLockJson()): Ecosystem(out.Nuget()),
-    out.LockfileKind(out.PubspecLock_()): Ecosystem(out.Pub()),
+    out.LockfileKind(out.PubspecLock()): Ecosystem(out.Pub()),
     out.LockfileKind(out.SwiftPackageResolved()): Ecosystem(out.SwiftPM()),
-    out.LockfileKind(out.MixLock_()): Ecosystem(out.Mix()),
+    out.LockfileKind(out.MixLock()): Ecosystem(out.Mix()),
 }
 
 DEPENDENCY_GRAPH_SUPPORTED_MANIFEST_KINDS = [
@@ -103,7 +103,7 @@ DEPENDENCY_GRAPH_SUPPORTED_MANIFEST_KINDS = [
 def _resolve_dependencies_dynamically(
     dependency_source: Union[
         ManifestOnlyDependencySource, ManifestLockfileDependencySource
-    ]
+    ],
 ) -> Tuple[
     Optional[Tuple[Ecosystem, List[FoundDependency]]],
     Sequence[Union[DependencyParserError, DependencyResolutionError]],

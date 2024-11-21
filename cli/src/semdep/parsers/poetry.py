@@ -26,9 +26,9 @@ from semdep.parsers.util import upto
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
-from semgrep.semgrep_interfaces.semgrep_output_v1 import PoetryLock
+from semgrep.semgrep_interfaces.semgrep_output_v1 import PoetryLock_
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
-from semgrep.semgrep_interfaces.semgrep_output_v1 import PyprojectToml
+from semgrep.semgrep_interfaces.semgrep_output_v1 import PyprojectToml_
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 
 
@@ -194,13 +194,13 @@ def parse_poetry(
         DependencyFileToParse(
             lockfile_path,
             poetry,
-            ScaParserName(PoetryLock()),
+            ScaParserName(PoetryLock_()),
             preprocessors.CommentRemover(),
         ),
         DependencyFileToParse(
             manifest_path,
             manifest,
-            ScaParserName(PyprojectToml()),
+            ScaParserName(PyprojectToml_()),
             preprocessors.CommentRemover(),
         )
         if manifest_path

@@ -14,6 +14,7 @@ from typing import List
 from typing import Optional
 from typing import Set
 from typing import TYPE_CHECKING
+from typing import Union
 
 import click
 import requests
@@ -33,13 +34,15 @@ from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
+from semgrep.subproject import ResolvedSubproject
+from semgrep.subproject import UnresolvedSubproject
 from semgrep.target_manager import ALL_PRODUCTS
 from semgrep.verbose_logging import getLogger
+
 
 if TYPE_CHECKING:
     from semgrep.engine import EngineType
     from rich.progress import Progress
-
 logger = getLogger(__name__)
 
 
@@ -346,6 +349,7 @@ class ScanHandler:
         commit_date: str,
         lockfile_dependencies: Dict[str, List[out.FoundDependency]],
         dependency_parser_errors: List[DependencyParserError],
+        all_subprojects: List[Union[UnresolvedSubproject, ResolvedSubproject]],
         contributions: out.Contributions,
         engine_requested: "EngineType",
         progress_bar: "Progress",
@@ -459,6 +463,11 @@ class ScanHandler:
             name = USER_FRIENDLY_PRODUCT_NAMES.get(r.product, r.product.to_json())
             findings_by_product[f"{name}"] += len(f)
 
+        subproject_stats: List[out.SubprojectStats] = []
+        if all_subprojects:
+            for subproject in all_subprojects:
+                subproject_stats.append(subproject.to_stats_output())
+
         complete = out.CiScanComplete(
             exit_code=cli_suggested_exit_code,
             dependency_parser_errors=dependency_parser_errors,
@@ -481,6 +490,9 @@ class ScanHandler:
                 },
                 engine_requested=engine_requested.name,
                 findings_by_product=findings_by_product,
+                supply_chain_stats=out.SupplyChainStats(
+                    subprojects_stats=subproject_stats
+                ),
             ),
         )
 

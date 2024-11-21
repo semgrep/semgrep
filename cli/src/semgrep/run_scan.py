@@ -256,6 +256,7 @@ def run_rules(
     Dict[str, List[FoundDependency]],
     List[DependencyParserError],
     List[Plan],
+    List[Union[UnresolvedSubproject, ResolvedSubproject]],
 ]:
     if not target_mode_config:
         target_mode_config = TargetModeConfig.whole_scan()
@@ -274,6 +275,7 @@ def run_rules(
 
     resolved_subprojects: Dict[Ecosystem, List[ResolvedSubproject]] = {}
     unresolved_subprojects: List[UnresolvedSubproject] = []
+    all_subprojects: List[Union[ResolvedSubproject, UnresolvedSubproject]] = []
 
     if len(dependency_aware_rules) > 0:
         # Parse lockfiles to get dependency information, if there are relevant rules
@@ -288,7 +290,6 @@ def run_rules(
         )
         # for each subproject, split the errors into semgrep errors and parser errors.
         # output the semgrep errors and store the parser errors for printing in print_scan_status below
-        all_subprojects: List[Union[ResolvedSubproject, UnresolvedSubproject]] = []
         all_subprojects.extend(unresolved_subprojects)
         for subprojects in resolved_subprojects.values():
             all_subprojects.extend(subprojects)
@@ -448,6 +449,7 @@ def run_rules(
         deps_by_lockfile,
         dependency_parser_errors,
         plans,
+        all_subprojects,
     )
 
 
@@ -539,6 +541,7 @@ def run_scan(
     List[DependencyParserError],
     int,  # Executed Rule Count
     int,  # Missed Rule Count
+    List[Union[UnresolvedSubproject, ResolvedSubproject]],
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
 
@@ -782,6 +785,7 @@ def run_scan(
         dependencies,
         dependency_parser_errors,
         plans,
+        all_subprojects,
     ) = run_rules(
         filtered_rules,
         target_manager,
@@ -885,6 +889,7 @@ def run_scan(
                         _,
                         _,
                         _plans,
+                        _,
                     ) = run_rules(
                         # only the rules that had a match
                         [
@@ -965,6 +970,7 @@ def run_scan(
         dependency_parser_errors,
         executed_rule_count,
         missed_rule_count,
+        all_subprojects,
     )
 
 
@@ -1002,6 +1008,7 @@ def run_scan_and_return_json(
         _,
         _,
         _,
+        _all_subprojects,
     ) = run_scan(
         output_handler=output_handler,
         target=[str(t) for t in targets],

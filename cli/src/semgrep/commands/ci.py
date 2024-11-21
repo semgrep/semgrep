@@ -650,6 +650,7 @@ def ci(
                 dependency_parser_errors,
                 _executed_rule_count,
                 _missed_rule_count,
+                all_subprojects,
             ) = semgrep.run_scan.run_scan(**run_scan_args)
         except SemgrepError as e:
             # We place output_handler calls after scan_handler calls
@@ -712,6 +713,7 @@ def ci(
                     # Usage limits currently only consider last 30 days.
                     _executed_rule_count,
                     _missed_rule_count,
+                    _historical_all_subprojects,
                 ) = semgrep.run_scan.run_scan(
                     **run_scan_args,
                     historical_secrets=True,
@@ -845,6 +847,7 @@ def ci(
                     metadata.commit_datetime,
                     dependencies,
                     dependency_parser_errors,
+                    all_subprojects,
                     contributions,
                     engine_type,
                     progress_bar,

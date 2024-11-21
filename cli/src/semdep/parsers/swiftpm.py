@@ -29,7 +29,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Jsondoc
 from semgrep.semgrep_interfaces.semgrep_output_v1 import PackageResolved
-from semgrep.semgrep_interfaces.semgrep_output_v1 import PackageSwift
+from semgrep.semgrep_interfaces.semgrep_output_v1 import PackageSwift_
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import SwiftPM
 from semgrep.verbose_logging import getLogger
@@ -227,7 +227,7 @@ def parse_package_resolved(
     parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
         DependencyFileToParse(lockfile_path, json_doc, ScaParserName(Jsondoc())),
         DependencyFileToParse(
-            manifest_path, package_swift_parser, ScaParserName(PackageSwift())
+            manifest_path, package_swift_parser, ScaParserName(PackageSwift_())
         )
         if manifest_path
         else None,

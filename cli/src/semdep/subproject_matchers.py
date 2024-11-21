@@ -36,22 +36,22 @@ MATCHERS: List[SubprojectMatcher] = [
     ExactLockfileManifestMatcher(
         lockfile_name="pnpm-lock.yaml",
         manifest_name="package.json",
-        lockfile_kind=out.LockfileKind(out.PnpmLock_()),
+        lockfile_kind=out.LockfileKind(out.PnpmLock()),
         manifest_kind=out.ManifestKind(out.PackageJson()),
     ),
     # Gem
     ExactLockfileManifestMatcher(
         lockfile_name="Gemfile.lock",
         manifest_name="Gemfile",
-        lockfile_kind=out.LockfileKind(out.GemfileLock_()),
+        lockfile_kind=out.LockfileKind(out.GemfileLock()),
         manifest_kind=out.ManifestKind(out.Gemfile()),
     ),
     # Go modules
     ExactLockfileManifestMatcher(
         lockfile_name="go.mod",
         manifest_name="go.mod",
-        lockfile_kind=out.LockfileKind(out.GoMod2()),
-        manifest_kind=out.ManifestKind(out.GoMod_()),
+        lockfile_kind=out.LockfileKind(out.GoMod_()),
+        manifest_kind=out.ManifestKind(out.GoMod()),
     ),
     # Cargo
     ExactLockfileManifestMatcher(
@@ -76,7 +76,7 @@ MATCHERS: List[SubprojectMatcher] = [
     ExactLockfileManifestMatcher(
         lockfile_name="composer.lock",
         manifest_name="composer.json",
-        lockfile_kind=out.LockfileKind(out.ComposerLock_()),
+        lockfile_kind=out.LockfileKind(out.ComposerLock()),
         manifest_kind=out.ManifestKind(out.ComposerJson()),
     ),
     # Nuget
@@ -90,7 +90,7 @@ MATCHERS: List[SubprojectMatcher] = [
     ExactLockfileManifestMatcher(
         lockfile_name="pubspec.lock",
         manifest_name="pubspec.yaml",
-        lockfile_kind=out.LockfileKind(out.PubspecLock_()),
+        lockfile_kind=out.LockfileKind(out.PubspecLock()),
         manifest_kind=out.ManifestKind(out.PubspecYaml()),
     ),
     # Swift PM
@@ -98,13 +98,13 @@ MATCHERS: List[SubprojectMatcher] = [
         lockfile_name="Package.resolved",
         manifest_name="Package.swift",
         lockfile_kind=out.LockfileKind(out.SwiftPackageResolved()),
-        manifest_kind=out.ManifestKind(out.PackageSwift_()),
+        manifest_kind=out.ManifestKind(out.PackageSwift()),
     ),
     # Hex
     ExactLockfileManifestMatcher(
         lockfile_name="mix.lock",
         manifest_name="mix.exs",
-        lockfile_kind=out.LockfileKind(out.MixLock_()),
+        lockfile_kind=out.LockfileKind(out.MixLock()),
         manifest_kind=out.ManifestKind(out.MixExs()),
     ),
     # Pipenv
@@ -112,14 +112,14 @@ MATCHERS: List[SubprojectMatcher] = [
         lockfile_name="Pipfile.lock",
         manifest_name="Pipfile",
         lockfile_kind=out.LockfileKind(out.PipfileLock()),
-        manifest_kind=out.ManifestKind(out.Pipfile_()),
+        manifest_kind=out.ManifestKind(out.Pipfile()),
     ),
     # Poetry
     ExactLockfileManifestMatcher(
         lockfile_name="poetry.lock",
         manifest_name="pyproject.toml",
-        lockfile_kind=out.LockfileKind(out.PoetryLock_()),
-        manifest_kind=out.ManifestKind(out.PyprojectToml_()),
+        lockfile_kind=out.LockfileKind(out.PoetryLock()),
+        manifest_kind=out.ManifestKind(out.PyprojectToml()),
     ),
 ]
 

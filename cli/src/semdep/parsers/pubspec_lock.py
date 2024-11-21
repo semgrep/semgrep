@@ -16,7 +16,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pub
-from semgrep.semgrep_interfaces.semgrep_output_v1 import PubspecLock
+from semgrep.semgrep_interfaces.semgrep_output_v1 import PubspecLock_
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
@@ -32,7 +32,7 @@ def parse_pubspec_lock(
             lambda text: parse_yaml_preserve_spans(
                 text, str(lockfile_path), allow_null=True
             ),
-            ScaParserName(PubspecLock()),
+            ScaParserName(PubspecLock_()),
         ),
         None,
     )

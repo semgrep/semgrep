@@ -808,6 +808,7 @@ def scan(
                         _dependency_parser_errors,
                         executed_rule_count,
                         missed_rule_count,
+                        _all_subprojects,
                     ) = semgrep.run_scan.run_scan(
                         diff_depth=diff_depth,
                         dump_command_for_core=dump_command_for_core,
