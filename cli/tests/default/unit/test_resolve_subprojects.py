@@ -8,7 +8,7 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.subproject_matchers import ExactLockfileManifestMatcher
 from semdep.subproject_matchers import ExactManifestOnlyMatcher
 from semdep.subproject_matchers import SubprojectMatcher
-from semgrep.resolve_subprojects import _resolve_dependency_source
+from semgrep.resolve_dependency_source import resolve_dependency_source
 from semgrep.resolve_subprojects import find_subprojects
 from semgrep.subproject import LockfileOnlyDependencySource
 from semgrep.subproject import ManifestLockfileDependencySource
@@ -160,7 +160,7 @@ def test_find_subprojects(
 
 
 @pytest.mark.quick
-@patch("semgrep.resolve_subprojects._resolve_dependencies_dynamically")
+@patch("semgrep.resolve_dependency_source._resolve_dependencies_dynamically")
 def test_ptt_unconditionally_generates_dependency_graphs(
     mock_dynamic_resolve, tmp_path: Path
 ) -> None:
@@ -182,7 +182,7 @@ def test_ptt_unconditionally_generates_dependency_graphs(
             out.Fpath(str(tmp_path / "requirements.txt")),
         ),
     )
-    _resolve_dependency_source(dep_source, True, True)
+    resolve_dependency_source(dep_source, True, True)
 
     mock_dynamic_resolve.mock_assert_called_once_with(
         Path("requirements.txt"), out.ManifestKind(value=out.RequirementsIn())
@@ -190,7 +190,7 @@ def test_ptt_unconditionally_generates_dependency_graphs(
 
 
 @pytest.mark.quick
-@patch("semgrep.resolve_subprojects._resolve_dependencies_dynamically")
+@patch("semgrep.resolve_dependency_source._resolve_dependencies_dynamically")
 @patch("semdep.parsers.requirements.parse_requirements")
 def test_ptt_unconditional_graph_generation_falls_back_on_lockfile_parsing(
     mock_dynamic_resolve, mock_parse_requirements, tmp_path: Path
@@ -225,7 +225,7 @@ def test_ptt_unconditional_graph_generation_falls_back_on_lockfile_parsing(
             out.Fpath(str(tmp_path / "requirements.txt")),
         ),
     )
-    _resolve_dependency_source(dep_source, True, True)
+    resolve_dependency_source(dep_source, True, True)
 
     mock_parse_requirements.mock_assert_called_once_with(
         Path(tmp_path / "requirements.txt"), Path(tmp_path / "requirements.in")
