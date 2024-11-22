@@ -724,7 +724,7 @@ class TestGradleMatcher:
                                 path=out.Fpath("build.gradle"),
                             ),
                             lockfile=out.Lockfile(
-                                out.LockfileKind(out.GradleLockfile_()),
+                                out.LockfileKind(out.GradleLockfile()),
                                 out.Fpath("gradle.lockfile"),
                             ),
                         ),
