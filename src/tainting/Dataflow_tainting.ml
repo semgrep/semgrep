@@ -1184,8 +1184,8 @@ and check_tainted_expr env exp : Taints.t * S.shape * Lval_env.t =
         (taints, S.Bot, lval_env)
     | Composite ((CTuple | CArray | CList), (_, es, _)) ->
         let taints_and_shapes, lval_env = map_check_expr env check es in
-        let obj = Shape.tuple_like_obj taints_and_shapes in
-        (Taints.empty, Obj obj, lval_env)
+        let tuple_shape = Shape.tuple_like_obj taints_and_shapes in
+        (Taints.empty, tuple_shape, lval_env)
     | Composite ((CSet | Constructor _ | Regexp), (_, es, _)) ->
         let taints, lval_env = union_map_taints_and_vars env check es in
         (taints, S.Bot, lval_env)

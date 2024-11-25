@@ -6,7 +6,7 @@ val taints_and_shape_are_relevant : Taint.taints -> shape -> bool
 (** [true] iff the union of [taints] and [gather_all_taints_in_shape shape]
  * is non-empty, or if [shape] contains a cleaned offset. *)
 
-val tuple_like_obj : (Taint.taints * shape) list -> obj
+val tuple_like_obj : (Taint.taints * shape) list -> shape
 (** Constructs a 0-indexed tuple-like 'obj' from a list of pairs, taints and shape,
  * for each element in the tuple.  *)
 

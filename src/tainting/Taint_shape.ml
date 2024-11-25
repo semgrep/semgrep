@@ -69,7 +69,7 @@ let taints_and_shape_are_relevant taints shape =
 (* Object shapes *)
 (*********************************************************)
 
-let tuple_like_obj taints_and_shapes : obj =
+let tuple_like_obj taints_and_shapes : shape =
   let _index, obj =
     taints_and_shapes
     |> List.fold_left
@@ -83,7 +83,8 @@ let tuple_like_obj taints_and_shapes : obj =
                (i + 1, Fields.add (T.Oint i) cell obj))
          (0, Fields.empty)
   in
-  obj
+  (* See INVARIANT(cell) *)
+  if Fields.is_empty obj then Bot else Obj obj
 
 (*********************************************************)
 (* Unification (merging shapes) *)
