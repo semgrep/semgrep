@@ -144,7 +144,8 @@ let rec is_symbolic_expr expr =
   | G.New (_, _, _, args) ->
       let args = Tok.unbracket args in
       List.for_all is_symbolic_arg args
-  | _else -> false
+  | G.Record (_, fields, _) -> List.for_all is_symbolic_field fields
+  | __else__ -> false
 
 and is_symbolic_arg arg =
   match arg with
@@ -154,6 +155,18 @@ and is_symbolic_arg arg =
       is_symbolic_expr e
   | G.ArgType _ -> true
   | G.OtherArg _ -> false
+
+and is_symbolic_field field =
+  match field with
+  | G.F
+      {
+        s =
+          G.DefStmt
+            ({ name = G.EN _; _ }, G.FieldDefColon { vinit = Some expr; _ });
+        _;
+      } ->
+      is_symbolic_expr expr
+  | __else__ -> false
 
 let sym_prop eorig =
   match eorig with

@@ -1,0 +1,14 @@
+rules:
+- id: test
+  message: Test
+  severity: WARNING
+  languages:
+  - js
+  - ts
+  options:
+    symbolic_propagation: true
+  patterns:
+    - pattern: |
+        foo({...,connection: {...,password:'...',...},...})
+    - pattern-not: |
+        foo({...,connection: {...,password:'',...},...})
