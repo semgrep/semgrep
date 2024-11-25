@@ -31,7 +31,7 @@ let test_filter ?excludes:cli_patterns (files : F.t list) selection () =
       assert (files2 = files);
       printf "--- Filtered files ---\n";
       let filter =
-        Semgrepignore.create ?cli_patterns ~builtin_semgrepignore:Empty
+        Semgrepignore.create ?cli_patterns ~default_semgrepignore_patterns:Empty
           ~exclusion_mechanism:
             { use_gitignore_files = true; use_semgrepignore_files = true }
           ~project_root:root ()

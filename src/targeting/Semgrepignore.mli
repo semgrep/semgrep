@@ -13,11 +13,8 @@
    or empty when scanning for secrets.
 
    The 'Empty' case is useful for testing.
-
-   TODO: combine the built-in semgrepignore files into one once
-   we have an extended syntax with sections.
 *)
-type builtin_semgrepignore = Empty | Semgrep_scan_legacy
+type default_semgrepignore_patterns = Empty | Semgrep_scan_legacy
 
 type exclusion_mechanism = {
   use_gitignore_files : bool;
@@ -36,7 +33,7 @@ type exclusion_mechanism = {
 *)
 val create :
   ?cli_patterns:string list ->
-  builtin_semgrepignore:builtin_semgrepignore ->
+  default_semgrepignore_patterns:default_semgrepignore_patterns ->
   exclusion_mechanism:exclusion_mechanism ->
   project_root:Fpath.t ->
   unit ->

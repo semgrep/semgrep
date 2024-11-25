@@ -651,7 +651,7 @@ let setup_path_filters conf (project_roots : Project.roots) :
    *)
   let semgrepignore_filter =
     Semgrepignore.create ~cli_patterns:conf.exclude
-      ~builtin_semgrepignore:Semgrep_scan_legacy ~exclusion_mechanism
+      ~default_semgrepignore_patterns:Semgrep_scan_legacy ~exclusion_mechanism
       ~project_root:(Rfpath.to_fpath project_root)
       ()
   in

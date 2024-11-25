@@ -11,29 +11,41 @@ from pathlib import Path
 from typing import List
 from typing import Optional
 from typing import Set
-from typing import Tuple
 
 import pytest
 from tests.fixtures import RunSemgrep
+
+
+# Specify how to download the test project
+@dataclass
+class GitProject:
+    name: str
+    # The git project URL (not the web page)
+    url: str
+    # SHA1 commit ID
+    commit: str
 
 
 # Identify how the repo should be set up and scanned by semgrep
 class Config(Enum):
     # git: a git project scanned with the default semgrep options
     GIT = "git"
+
     # novcs: the same project from which '.git' was removed, scanned with
     # the default semgrep options
     NOVCS = "novcs"
+
     # ignoregit: run on the git project with the '--no-git-ignore' option
     # (does several things that are not obvious from its name)
     IGNOREGIT = "ignoregit"
 
+    # default ignores: test a project that doesn't have .semgrepignore files
+    GIT_DEFAULT_SEMGREPIGNORE = "git_default_semgrepignore"
+    NOVCS_DEFAULT_SEMGREPIGNORE = "novcs_default_semgrepignore"
 
-def is_git_project(config: Config) -> bool:
-    if config is Config.GIT or config is Config.IGNOREGIT:
-        return True
-    else:
-        return False
+    # test a blank .semgrepignore
+    GIT_EMPTY_SEMGREPIGNORE = "git_empty_semgrepignore"
+    NOVCS_EMPTY_SEMGREPIGNORE = "novcs_empty_semgrepignore"
 
 
 # The expectations regarding a particular target file path
@@ -45,6 +57,24 @@ class Expect:
     ignore_pysemgrep_result: bool = False
     ignore_osemgrep_result: bool = False
     paths: List[str] = field(default_factory=lambda: [])
+
+
+# This is an artificial git project that offers all the difficulties we could
+# think of for file targeting.
+#
+# Do we need to run on several projects?
+PROJECT = GitProject(
+    name="semgrep-test-project1",
+    url="https://github.com/semgrep/semgrep-test-project1.git",
+    commit="adecf8260eb7dac06c9257d3648d879584e94e60",
+)
+
+
+def is_git_project(config: Config) -> bool:
+    if config is Config.GIT or config is Config.IGNOREGIT:
+        return True
+    else:
+        return False
 
 
 # Check whether a target path was selected or ignored by semgrep, depending
@@ -71,6 +101,10 @@ def check_expectation(
     label = "[osemgrep]" if is_running_osemgrep else "[pysemgrep]"
     label = label + (f" [{config.value}]")
     for path in paths:
+        # Sanity checks (important when checking that a path is not selected)
+        if not os.path.lexists(path):
+            raise Exception(f"path {path} doesn't exist in the file system!")
+        # Tests
         if expect_selected:
             print(
                 f"{label} check that target path was selected: {path}", file=sys.stderr
@@ -210,14 +244,96 @@ NOVCS_PROJECT_EXPECTATIONS = [
     ),
 ]
 
-# This is an artificial git project that offers all the difficulties we could
-# think of for file targeting.
-#
-# Do we need to run on several projects?
-PROJECT: Tuple[str, str] = (
-    "semgrep-test-project1",
-    "https://github.com/semgrep/semgrep-test-project1.git",
-)
+GIT_DEFAULT_SEMGREPIGNORE_EXPECTATIONS = [
+    Expect(
+        selected=True,
+        paths=[
+            # sanity check
+            "hello.py",
+            # this is not ignored by the default semgrepignore patterns
+            "semgrepignored/hello.py",
+        ],
+    ),
+    Expect(
+        selected=False,
+        paths=[
+            # .git is excluded by 'git ls-files'
+            ".git/HEAD",
+            # tests/ is excluded by the default semgrepignore patterns
+            "tests/hello.py",
+            # git submodules are ignored
+            "submodules/semgrep-test-project2/hello.py",
+        ],
+    ),
+]
+
+NOVCS_DEFAULT_SEMGREPIGNORE_EXPECTATIONS = [
+    Expect(
+        selected=True,
+        paths=[
+            # sanity check
+            "hello.py",
+            # this is not ignored by the default semgrepignore patterns
+            "semgrepignored/hello.py",
+            # git submodules are not ignored
+            "submodules/semgrep-test-project2/hello.py",
+            # this is not ignored by the default semgrepignore patterns
+            "submodules/semgrep-test-project2/semgrepignored/hello.py",
+        ],
+    ),
+    Expect(
+        selected=False,
+        paths=[
+            # any .git file is excluded by the default semgrepignore patterns
+            "submodules/semgrep-test-project2/.git",
+            # tests/ is excluded by the default semgrepignore patterns
+            "tests/hello.py",
+            "submodules/semgrep-test-project2/tests/hello.py",
+        ],
+    ),
+]
+
+GIT_EMPTY_SEMGREPIGNORE_EXPECTATIONS = [
+    Expect(
+        selected=True,
+        paths=[
+            "hello.py",
+            "semgrepignored/hello.py",
+            "tests/hello.py",
+        ],
+    ),
+    Expect(
+        selected=False,
+        paths=[
+            # always excluded by git
+            ".git/HEAD",
+            # submodule, excluded by git
+            "submodules/semgrep-test-project2/hello.py",
+        ],
+    ),
+]
+
+NOVCS_EMPTY_SEMGREPIGNORE_EXPECTATIONS = [
+    Expect(
+        selected=True,
+        paths=[
+            "hello.py",
+            "semgrepignored/hello.py",
+            "tests/hello.py",
+            "submodules/semgrep-test-project2/hello.py",
+            "submodules/semgrep-test-project2/semgrepignored/hello.py",
+            "submodules/semgrep-test-project2/tests/hello.py",
+        ],
+    ),
+    # pysemgrep bugs
+    Expect(
+        selected=True,
+        selected_by_pysemgrep=False,
+        paths=[
+            "submodules/semgrep-test-project2/.git",
+        ],
+    ),
+]
 
 
 @pytest.mark.kinda_slow
@@ -233,8 +349,35 @@ PROJECT: Tuple[str, str] = (
             [],
             COMMON_EXPECTATIONS + NOVCS_PROJECT_EXPECTATIONS,
         ),
+        (
+            Config.GIT_DEFAULT_SEMGREPIGNORE,
+            [],
+            [],
+            GIT_DEFAULT_SEMGREPIGNORE_EXPECTATIONS,
+        ),
+        (
+            Config.NOVCS_DEFAULT_SEMGREPIGNORE,
+            [],
+            [],
+            NOVCS_DEFAULT_SEMGREPIGNORE_EXPECTATIONS,
+        ),
+        (Config.GIT_EMPTY_SEMGREPIGNORE, [], [], GIT_EMPTY_SEMGREPIGNORE_EXPECTATIONS),
+        (
+            Config.NOVCS_EMPTY_SEMGREPIGNORE,
+            [],
+            [],
+            NOVCS_EMPTY_SEMGREPIGNORE_EXPECTATIONS,
+        ),
     ],
-    ids=[Config.GIT.value, Config.NOVCS.value, Config.IGNOREGIT.value],
+    ids=[
+        Config.GIT.value,
+        Config.NOVCS.value,
+        Config.IGNOREGIT.value,
+        Config.GIT_DEFAULT_SEMGREPIGNORE.value,
+        Config.NOVCS_DEFAULT_SEMGREPIGNORE.value,
+        Config.GIT_EMPTY_SEMGREPIGNORE.value,
+        Config.NOVCS_EMPTY_SEMGREPIGNORE.value,
+    ],
 )
 def test_project_target_selection(
     monkeypatch: pytest.MonkeyPatch,
@@ -245,22 +388,45 @@ def test_project_target_selection(
     osemgrep_options: List[str],
     expectations: List[Expect],
 ) -> None:
+    project = PROJECT
     # Instead of copying or symlinking the git submodule that sits nicely
     # in our semgrep repo, we clone it as standalone repo to avoid problems
     # due to having the structure of a submodule but no parent git project.
-    project_name, project_url = PROJECT
     print(f"cd into {tmp_path}", file=sys.stderr)
     monkeypatch.chdir(tmp_path)
-    print(f"clone {project_url}", file=sys.stderr)
-    os.system(f"git clone {project_url} {project_name}")
-    print(f"cd into {project_name}", file=sys.stderr)
-    monkeypatch.chdir(Path(project_name))
+    print(f"clone {project.url}", file=sys.stderr)
+    os.system(f"git clone {project.url} {project.name}")
+    print(f"cd into {project.name}", file=sys.stderr)
+    monkeypatch.chdir(Path(project.name))
+    print(f"check out commit {project.commit}", file=sys.stderr)
+    os.system(f"git checkout {project.commit}")
     print(f"check out submodules", file=sys.stderr)
     os.system(f"git submodule update --init --recursive")
 
-    if config is Config.NOVCS:
+    if (
+        config is Config.NOVCS
+        or config is Config.NOVCS_DEFAULT_SEMGREPIGNORE
+        or config is Config.NOVCS_EMPTY_SEMGREPIGNORE
+    ):
         print(f"remove .git to make this a no-VCS project", file=sys.stderr)
         shutil.rmtree(".git")
+
+    if (
+        config is Config.GIT_DEFAULT_SEMGREPIGNORE
+        or config is Config.NOVCS_DEFAULT_SEMGREPIGNORE
+        or config is Config.GIT_EMPTY_SEMGREPIGNORE
+        or config is Config.NOVCS_EMPTY_SEMGREPIGNORE
+    ):
+        print(f"remove .semgrepignore files", file=sys.stderr)
+        os.remove(".semgrepignore")
+        os.remove("src/.semgrepignore")
+        os.remove("submodules/semgrep-test-project2/.semgrepignore")
+        if (
+            config is Config.GIT_EMPTY_SEMGREPIGNORE
+            or config is Config.NOVCS_EMPTY_SEMGREPIGNORE
+        ):
+            print(f"create an empty .semgrepignore", file=sys.stderr)
+            open(".semgrepignore", "w").close()
 
     is_running_osemgrep = True if os.environ.get("PYTEST_USE_OSEMGREP") else False
 

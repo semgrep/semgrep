@@ -266,7 +266,7 @@ let get_targets conf (scanning_roots : Scanning_root.t list) =
          in
          let ign =
            Semgrepignore.create ~cli_patterns:conf.exclude
-             ~builtin_semgrepignore:Empty ~exclusion_mechanism
+             ~default_semgrepignore_patterns:Empty ~exclusion_mechanism
              ~project_root:(Rfpath.to_fpath project_root)
              ()
          in
