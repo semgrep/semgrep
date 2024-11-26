@@ -37,10 +37,10 @@ type 'a env = {
 }
 
 (*****************************************************************************)
-(* Helpers *)
+(* API *)
 (*****************************************************************************)
 
-(* mostly a copy-paste of Pos.full_charpos_to_pos_large *)
+(* coupling: mostly a copy-paste of Pos.full_charpos_to_pos_large *)
 let line_col_to_pos file =
   let size = UFile.filesize file + 2 in
   let h = Hashtbl.create size in
@@ -52,9 +52,10 @@ let line_col_to_pos file =
         try
           while true do
             let s = input_line chan in
+            (* we are using 1-based lines *)
             incr line;
 
-            (* '... +1 do'  cos input_line dont return the trailing \n *)
+            (* '... +1 do'  cos input_line does not return the trailing \n *)
             for i = 0 to String.length s - 1 + 1 do
               Hashtbl.add h (!line, i) (!charpos + i)
             done;

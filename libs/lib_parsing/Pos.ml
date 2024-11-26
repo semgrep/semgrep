@@ -1,7 +1,7 @@
 (* Yoann Padioleau
  *
  * Copyright (C) 2010 Facebook
- * Copyright (C) 2023 Semgrep Inc.
+ * Copyright (C) 2023-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -148,10 +148,11 @@ let converters_of_arrays line_arr col_arr : bytepos_linecol_converters =
                line_arr
                |> Ord.binary_search_bigarr1 ~f:(fun bytepos line' ->
                       let col' = col_arr.{bytepos} in
-                      (* We want the relationship of the varying line' with respect to the
-                         line we are trying to search for.
-                         For instance, if we want to find line 5, but are given line 3, we
-                         should want to say Greater, because we want to go greater.
+                      (* We want the relationship of the varying line' with
+                         respect to the line we are trying to search for.
+                         For instance, if we want to find line 5, but are given
+                         line 3, we should want to say Greater, because we want
+                         to go greater.
                       *)
                       match cmp line line' with
                       | Ord.Equal -> cmp col col'
@@ -163,6 +164,7 @@ let converters_of_arrays line_arr col_arr : bytepos_linecol_converters =
              | Ok (bytepos, _) -> bytepos);
       }
 
+(* coupling: see also Parse_tree_sitter_helpers.line_col_to_pos *)
 let full_converters_large (file : Fpath.t) : bytepos_linecol_converters =
   let size = UFile.filesize file + 2 in
 
@@ -189,17 +191,24 @@ let full_converters_large (file : Fpath.t) : bytepos_linecol_converters =
               (* old: arr.(!charpos + i) <- (!line, i); *)
               arr1.{!charpos + i} <- !line;
               arr2.{!charpos + i} <- !col;
-              (* ugly: hack for weird windows files containing a single
-               * carriage return (\r) instead of a carriage return + newline
-               * (\r\n) to delimit newlines. Not recognizing those single
-               * \r as a newline marker prevents Javascript ASI to correctly
-               * insert semicolons.
-               * note: we could fix info_from_charpos() too, but it's not
-               * used for ASI so simpler to leave it as is.
+              (* old: hack for weird Windows files containing a single
+               * carriage return (CR) (\r) instead of a carriage return +
+               * newline feed (LF) (\r\n) to delimit newlines.
+               *   if i < len - 1 && String.get s i =$= '\r' then (
+               *      incr line;
+               *      col := -1);
+               * Not recognizing those single \r as a newline marker prevents
+               * Javascript ASI to correctly insert semicolons.
+               * However, this hack is commented because having one part
+               * of the program recognizing those single CR as newlines
+               * (e.g., the Javascript parser), and other parts not
+               * (e.g., any function using Stdlib.input_line such as
+               * UFile.lines_of_file_exn) can cause a mismatch such as
+               * array out of bound exceptions in some functions.
+               * Simpler to be consistent. Note that tools such
+               * as `wc -l` do not recognize either those single CR as newlines.
+               * Same for the tree-sitter libraries.
                *)
-              if i < len - 1 && String.get s i =$= '\r' then (
-                incr line;
-                col := -1);
               incr col
             done;
             charpos := !charpos + len + 1
@@ -226,7 +235,6 @@ let full_converters_large (file : Fpath.t) : bytepos_linecol_converters =
 let full_converters_str (s : string) : bytepos_linecol_converters =
   let size = String.length s + 2 in
 
-  (* old: let arr = Array.create size  (0,0) in *)
   let arr1 = Bigarray.Array1.create Bigarray.int Bigarray.c_layout size in
   let arr2 = Bigarray.Array1.create Bigarray.int Bigarray.c_layout size in
   Bigarray.Array1.fill arr1 0;
@@ -241,24 +249,10 @@ let full_converters_str (s : string) : bytepos_linecol_converters =
       (fun s ->
         incr line;
         let len = String.length s in
-
-        (* '... +1 do'  cos input_line does not return the trailing \n *)
         let col = ref 0 in
         for i = 0 to len - 1 + 1 do
-          (* old: arr.(!charpos + i) <- (!line, i); *)
           arr1.{!charpos + i} <- !line;
           arr2.{!charpos + i} <- !col;
-          (* ugly: hack for weird windows files containing a single
-           * carriage return (\r) instead of a carriage return + newline
-           * (\r\n) to delimit newlines. Not recognizing those single
-           * \r as a newline marker prevents Javascript ASI to correctly
-           * insert semicolons.
-           * note: we could fix info_from_charpos() too, but it's not
-           * used for ASI so simpler to leave it as is.
-           *)
-          if i < len - 1 && String.get s i =$= '\r' then (
-            incr line;
-            col := -1);
           incr col
         done;
         charpos := !charpos + len + 1)

@@ -11,4 +11,5 @@ let tests =
       Unit_regexp_engine.tests;
       Unit_String_.tests;
       Unit_List_.tests;
+      Unit_File.tests;
     ]
