@@ -1969,52 +1969,56 @@ and pat_or_assign_pat (env : env) (x : CST.anon_choice_pat_3297d92) :
       pat
 
 and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
-  let id_or_pat, opt_type, opt_default =
-    match x with
-    | `Requ_param (v1, v2, v3) ->
-        (* required_parameter *)
-        let id_or_pat = parameter_name env v1 in
-        let type_ =
-          match v2 with
-          | Some x -> Some (type_annotation env x |> snd)
-          | None -> None
+  let parameter_of_id_or_pat id_or_pat opt_type opt_default =
+    match id_or_pat with
+    | Left (id, attrs) ->
+        ParamClassic
+          {
+            p_name = id;
+            p_default = opt_default;
+            p_dots = None;
+            p_type = opt_type;
+            p_attrs = attrs;
+          }
+    | Right pat ->
+        let pat =
+          match opt_type with
+          | None -> pat
+          | Some type_ -> Cast (pat, Tok.unsafe_fake_tok ":", type_)
         in
-        let default = initializer_opt env v3 in
-        (id_or_pat, type_, default)
-    | `Opt_param (v1, v2, v3, v4) ->
-        (* optional_parameter *)
-        let id_or_pat = parameter_name env v1 in
-        let _questionmark_TODO = token env v2 (* "?" *) in
-        let opt_type =
-          match v3 with
-          | Some x -> Some (type_annotation env x |> snd)
-          | None -> None
+        let pat =
+          match opt_default with
+          | None -> pat
+          | Some expr -> Assign (pat, Tok.unsafe_fake_tok "=", expr)
         in
-        let opt_default = initializer_opt env v4 in
-        (id_or_pat, opt_type, opt_default)
+        ParamPattern pat
   in
-  match id_or_pat with
-  | Left (id, attrs) ->
-      ParamClassic
-        {
-          p_name = id;
-          p_default = opt_default;
-          p_dots = None;
-          p_type = opt_type;
-          p_attrs = attrs;
-        }
-  | Right pat ->
-      let pat =
-        match opt_type with
-        | None -> pat
-        | Some type_ -> Cast (pat, Tok.unsafe_fake_tok ":", type_)
+
+  match x with
+  | `Requ_param (v1, v2, v3) ->
+      (* required_parameter *)
+      let id_or_pat = parameter_name env v1 in
+      let type_ =
+        match v2 with
+        | Some x -> Some (type_annotation env x |> snd)
+        | None -> None
       in
-      let pat =
-        match opt_default with
-        | None -> pat
-        | Some expr -> Assign (pat, Tok.unsafe_fake_tok "=", expr)
+      let default = initializer_opt env v3 in
+      parameter_of_id_or_pat id_or_pat type_ default
+  | `Opt_param (v1, v2, v3, v4) ->
+      (* optional_parameter *)
+      let id_or_pat = parameter_name env v1 in
+      let _questionmark_TODO = token env v2 (* "?" *) in
+      let opt_type =
+        match v3 with
+        | Some x -> Some (type_annotation env x |> snd)
+        | None -> None
       in
-      ParamPattern pat
+      let opt_default = initializer_opt env v4 in
+      parameter_of_id_or_pat id_or_pat opt_type opt_default
+  | `Semg_ellips v1 ->
+      let tok = token env v1 in
+      ParamEllipsis tok
 
 and formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) :
     parameter list bracket =

@@ -1,0 +1,13 @@
+The TypeScript parser now supports ellipses in function parameters. For
+example, the following code is TypeScript (as opposed to pure JavaScript)
+because it uses decorators on function parameters:
+
+```
+foo(x, @Bar() y, z): string { return ''; }
+```
+
+You can match this method using the following pattern:
+
+```
+function $FN(..., @Bar(...) $X, ...) { ... }
+```

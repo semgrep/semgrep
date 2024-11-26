@@ -139,7 +139,7 @@ let experimental_features =
     "dots_string";
     "metavar_arg";
     "metavar_call";
-    "metavar_equality_var" (* TODO: add dots_params? *);
+    "metavar_equality_var";
   ]
 
 let beta_features =
@@ -159,6 +159,7 @@ let ga_features =
   @ [
       "deep_expr_operator";
       "dots_method_chaining";
+      "dots_params";
       "equivalence_constant_propagation";
       "equivalence_naming_import";
       "metavar_anno";
@@ -187,7 +188,8 @@ let language_exceptions =
     (* GA languages *)
 
     (* TODO: why not regexp_string? NA for naming_import? *)
-    (Lang.Csharp, [ "equivalence_naming_import"; "regexp_string" ]);
+    ( Lang.Csharp,
+      [ "equivalence_naming_import"; "regexp_string"; "dots_params" ] );
     (* TODO: metavar_anno sounds like an NA, but the other?? *)
     (Lang.Go, [ "metavar_class_def"; "metavar_import"; "metavar_anno" ]);
     (* TODO: NA for Java? *)
@@ -202,13 +204,24 @@ let language_exceptions =
         "metavar_class_def";
       ] );
     ( Lang.Php,
-      [ "equivalence_naming_import"; "metavar_key_value"; "metavar_typed" ] );
+      [
+        "equivalence_naming_import";
+        "metavar_key_value";
+        "metavar_typed";
+        "dots_params";
+      ] );
     (* good boy, metavar_typed is working just for constants though *)
     (Lang.Python, []);
     (* metavar_typed is NA (dynamic language), metavar_anno also NA? *)
-    (Lang.Ruby, [ "equivalence_naming_import"; "metavar_typed"; "metavar_anno" ]);
+    ( Lang.Ruby,
+      [
+        "equivalence_naming_import";
+        "metavar_typed";
+        "metavar_anno";
+        "dots_params";
+      ] );
     (* regexp_string feature has been deprecated *)
-    (Lang.Scala, [ "regexp_string"; "metavar_ellipsis_args" ]);
+    (Lang.Scala, [ "regexp_string"; "metavar_ellipsis_args"; "dots_params" ]);
     (* Beta languages *)
 
     (* TODO: to fix *)

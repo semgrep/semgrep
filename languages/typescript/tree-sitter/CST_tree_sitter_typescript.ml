@@ -887,7 +887,8 @@ and for_header = (
 )
 
 and formal_parameter = [
-    `Requ_param of (
+    `Semg_ellips of Token.t (* "..." *)
+  | `Requ_param of (
         parameter_name
       * type_annotation option
       * initializer_ option
