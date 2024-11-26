@@ -233,6 +233,16 @@ class Processor:
                 out += c
         yield out
 
+    # TODO: fnmatch doesn't support '**'!!! Somebody do something!
+    # It's only good for matching individual path segments not containing
+    # slashes.
+    #
+    # Possible fixes:
+    # 1. Do nothing and migrate to osemgrep
+    # 2. Upgrade to Python 3.13 and use PurePath.full_match
+    # 3. Install the wcmatch library and use
+    #      wcmatch.pathlib.PurePath(str).globmatch(pat)
+    #
     def to_fnmatch(self, git_pat: str) -> Iterator[str]:
         """Convert a single pattern from gitignore to fnmatch syntax"""
         # The input path against which we'll match the pattern is assumed to be

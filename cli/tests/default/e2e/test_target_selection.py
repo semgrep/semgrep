@@ -47,6 +47,14 @@ class Config(Enum):
     GIT_EMPTY_SEMGREPIGNORE = "git_empty_semgrepignore"
     NOVCS_EMPTY_SEMGREPIGNORE = "novcs_empty_semgrepignore"
 
+    # test --exclude options with an empty .semgrepignore
+    GIT_EXCLUDE = "git_exclude"
+    NOVCS_EXCLUDE = "novcs_exclude"
+
+    # test --include options with an empty .semgrepignore
+    GIT_INCLUDE = "git_include"
+    NOVCS_INCLUDE = "novcs_include"
+
 
 # The expectations regarding a particular target file path
 @dataclass
@@ -66,7 +74,7 @@ class Expect:
 PROJECT = GitProject(
     name="semgrep-test-project1",
     url="https://github.com/semgrep/semgrep-test-project1.git",
-    commit="adecf8260eb7dac06c9257d3648d879584e94e60",
+    commit="6544a7438d4d0f030e7d4570f1582cd63aa93fb2",
 )
 
 
@@ -144,15 +152,16 @@ COMMON_EXPECTATIONS = [
             "semgrepignored-folder",
             "semgrepignored-only-in-src-and-below.py",
             "semgrepignored-only-in-src.py",
-            "sempignored-py-contents/hello.rb",
+            "semgrepignored-py-contents/hello.rb",
             "src/.gitignore",
             "src/.hidden.py",
             "src/.semgrepignore",
             "src/10KiB.py",
             "src/hello.py",
+            "src/semgrepignored-at-root/scanme",
             "src/semgrepignored-root",
             "src/semgrepignored-root-folder/hello.py",
-            "src/sempignored-py-contents/hello.rb",
+            "src/semgrepignored-py-contents/hello.rb",
             "src/src/semgrepignored-anchored/hello.py",
             "src/subdir/gitignored-only-in-src.py",
             "src/subdir/semgrepignored-only-in-src.py",
@@ -175,7 +184,7 @@ COMMON_EXPECTATIONS = [
             "src/broken-symlink.py",
             "src/semgrepignored-everywhere/hello.py",
             "src/semgrepignored-folder/hello.py",
-            "src/sempignored-py-contents/hello.py",
+            "src/semgrepignored-py-contents/hello.py",
             "src/symlink.py",
         ],
     ),
@@ -194,7 +203,10 @@ COMMON_EXPECTATIONS = [
     Expect(
         selected=False,
         selected_by_pysemgrep=True,
-        paths=["sempignored-py-contents/hello.py"],
+        paths=[
+            "semgrepignored-py-contents/hello.py",
+            "semgrepignored-at-root/ignoreme",
+        ],
     ),
 ]
 
@@ -336,6 +348,114 @@ NOVCS_EMPTY_SEMGREPIGNORE_EXPECTATIONS = [
 ]
 
 
+GIT_EXCLUDE_EXPECTATIONS = [
+    Expect(
+        selected=True,
+        paths=[
+            "hello.py",
+        ],
+    ),
+    Expect(
+        selected=False,
+        paths=[
+            "semgrepignored-at-root/ignoreme",
+            "semgrepignored-at-root2/ignoreme",
+        ],
+    ),
+    # pysemgrep bugs
+    Expect(
+        selected=True,
+        selected_by_pysemgrep=False,
+        paths=[
+            "src/semgrepignored-at-root/scanme",
+            "src/semgrepignored-at-root2/scanme",
+        ],
+    ),
+]
+
+
+NOVCS_EXCLUDE_EXPECTATIONS = [
+    Expect(
+        selected=True,
+        paths=[
+            "hello.py",
+        ],
+    ),
+    Expect(
+        selected=False,
+        paths=[
+            "semgrepignored-at-root/ignoreme",
+            "semgrepignored-at-root2/ignoreme",
+        ],
+    ),
+    # pysemgrep bugs
+    Expect(
+        selected=True,
+        selected_by_pysemgrep=False,
+        paths=[
+            "src/semgrepignored-at-root/scanme",
+            "src/semgrepignored-at-root2/scanme",
+        ],
+    ),
+]
+
+
+# In the --include tests, the meanings of 'ignoreme' and 'scanme' are
+# reversed, sorry about the confusion.
+GIT_INCLUDE_EXPECTATIONS = [
+    Expect(
+        selected=True,
+        paths=[
+            "semgrepignored-at-root/ignoreme",
+            "semgrepignored-at-root2/ignoreme",
+        ],
+    ),
+    Expect(
+        selected=False,
+        paths=[
+            "hello.py",
+        ],
+    ),
+    # pysemgrep bugs
+    Expect(
+        selected=False,
+        selected_by_pysemgrep=True,
+        paths=[
+            "src/semgrepignored-at-root/scanme",
+            "src/semgrepignored-at-root2/scanme",
+        ],
+    ),
+]
+
+
+# In the --include tests, the meanings of 'ignoreme' and 'scanme' are
+# reversed, sorry about the confusion.
+NOVCS_INCLUDE_EXPECTATIONS = [
+    Expect(
+        selected=True,
+        paths=[
+            "semgrepignored-at-root/ignoreme",
+            "semgrepignored-at-root2/ignoreme",
+        ],
+    ),
+    Expect(
+        selected=False,
+        paths=[
+            "hello.py",
+        ],
+    ),
+    # pysemgrep bugs
+    Expect(
+        selected=False,
+        selected_by_pysemgrep=True,
+        paths=[
+            "src/semgrepignored-at-root/scanme",
+            "src/semgrepignored-at-root2/scanme",
+        ],
+    ),
+]
+
+
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     # a list of extra semgrep CLI options and osemgrep-specific options
@@ -368,6 +488,50 @@ NOVCS_EMPTY_SEMGREPIGNORE_EXPECTATIONS = [
             [],
             NOVCS_EMPTY_SEMGREPIGNORE_EXPECTATIONS,
         ),
+        (
+            Config.GIT_EXCLUDE,
+            [
+                "--exclude",
+                "/semgrepignored-at-root",
+                "--exclude",
+                "semgrepignored-at-root2/**",
+            ],
+            [],
+            GIT_EXCLUDE_EXPECTATIONS,
+        ),
+        (
+            Config.NOVCS_EXCLUDE,
+            [
+                "--exclude",
+                "/semgrepignored-at-root",
+                "--exclude",
+                "semgrepignored-at-root2/**",
+            ],
+            [],
+            NOVCS_EXCLUDE_EXPECTATIONS,
+        ),
+        (
+            Config.GIT_INCLUDE,
+            [
+                "--include",
+                "/semgrepignored-at-root",
+                "--include",
+                "semgrepignored-at-root2/**",
+            ],
+            [],
+            GIT_INCLUDE_EXPECTATIONS,
+        ),
+        (
+            Config.NOVCS_INCLUDE,
+            [
+                "--include",
+                "/semgrepignored-at-root",
+                "--include",
+                "semgrepignored-at-root2/**",
+            ],
+            [],
+            NOVCS_INCLUDE_EXPECTATIONS,
+        ),
     ],
     ids=[
         Config.GIT.value,
@@ -377,6 +541,10 @@ NOVCS_EMPTY_SEMGREPIGNORE_EXPECTATIONS = [
         Config.NOVCS_DEFAULT_SEMGREPIGNORE.value,
         Config.GIT_EMPTY_SEMGREPIGNORE.value,
         Config.NOVCS_EMPTY_SEMGREPIGNORE.value,
+        Config.GIT_EXCLUDE.value,
+        Config.NOVCS_EXCLUDE.value,
+        Config.GIT_INCLUDE.value,
+        Config.NOVCS_INCLUDE.value,
     ],
 )
 def test_project_target_selection(
@@ -416,6 +584,10 @@ def test_project_target_selection(
         or config is Config.NOVCS_DEFAULT_SEMGREPIGNORE
         or config is Config.GIT_EMPTY_SEMGREPIGNORE
         or config is Config.NOVCS_EMPTY_SEMGREPIGNORE
+        or config is Config.GIT_EXCLUDE
+        or config is Config.NOVCS_EXCLUDE
+        or config is Config.GIT_INCLUDE
+        or config is Config.NOVCS_INCLUDE
     ):
         print(f"remove .semgrepignore files", file=sys.stderr)
         os.remove(".semgrepignore")
@@ -424,6 +596,10 @@ def test_project_target_selection(
         if (
             config is Config.GIT_EMPTY_SEMGREPIGNORE
             or config is Config.NOVCS_EMPTY_SEMGREPIGNORE
+            or config is Config.GIT_EXCLUDE
+            or config is Config.NOVCS_EXCLUDE
+            or config is Config.GIT_INCLUDE
+            or config is Config.NOVCS_INCLUDE
         ):
             print(f"create an empty .semgrepignore", file=sys.stderr)
             open(".semgrepignore", "w").close()
