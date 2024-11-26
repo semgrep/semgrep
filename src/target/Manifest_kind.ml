@@ -16,6 +16,9 @@ let to_ecosystem : t -> Semgrep_output_v1_t.ecosystem = function
   | `MixExs -> `Mix
   | `Pipfile -> `Pypi
   | `PyprojectToml -> `Pypi
+  | `ConanFilePy
+  | `ConanFileTxt ->
+      failwith "TODO"
 
 let of_string s =
   let unsupported_manifest_message (manifest_s : string) =

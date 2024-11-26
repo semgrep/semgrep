@@ -17,6 +17,9 @@ let to_ecosystem : t -> Semgrep_output_v1_t.ecosystem = function
   | PubspecLock -> `Pub
   | SwiftPackageResolved -> `SwiftPM
   | MixLock -> `Hex
+  | UvLock
+  | ConanLock ->
+      failwith "TODO"
 
 let supported_lockfiles = String.concat "," [ "package-lock.json v3" ]
 

@@ -21,7 +21,9 @@ let parse_lockfile :
   | NugetPackagesLockJson
   | PubspecLock
   | SwiftPackageResolved
-  | MixLock ->
+  | MixLock
+  | UvLock
+  | ConanLock ->
       fun _ _ -> []
 
 let parse_manifest :
@@ -42,5 +44,7 @@ let parse_manifest :
   | `PackageSwift
   | `MixExs
   | `Pipfile
-  | `PyprojectToml ->
+  | `PyprojectToml
+  | `ConanFilePy
+  | `ConanFileTxt ->
       fun _ -> []
