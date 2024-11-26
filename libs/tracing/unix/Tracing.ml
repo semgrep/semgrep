@@ -414,7 +414,6 @@ let stop_tracing ~exit_active_spans () =
 
 (* setup_otel sets the Otel tracing backend and Trace_core tracing backend *)
 let setup_otel trace_endpoint =
-  (* nosemgrep: no-logs-in-library *)
   let url = Uri.to_string trace_endpoint in
   Log.info (fun m -> m "Tracing endpoint set to %s" url);
   let config = Opentelemetry_client_ocurl.Config.make ~url () in
@@ -423,10 +422,22 @@ let setup_otel trace_endpoint =
      instead of having to pass it down everywhere. We will assume that we will
      only ever report to one endpoint for the lifetime of the program *)
   active_endpoint := Some trace_endpoint;
-  (* This forwards the spans from Trace to the Opentelemetry collector *)
-  (* coupling: if we change the backend here, make sure to update with_span and
-     restart_tracing to not use Opentelemetry_trace/Trace_core! *)
-  Opentelemetry_trace.setup_with_otel_backend otel_backend
+  (* Set the Otel Collector *)
+  Otel.Collector.set_backend otel_backend;
+  if Trace.enabled () then
+    (* This would only happen if this function is called multiple times which is
+       fine, or if someone /else/ has some Trace_core backend setup, but not
+       sure when else we'd use it *)
+    (* nosemgrep: no-logs-in-library *)
+    Logs.warn (fun m ->
+        m
+          "Tracing core is already setup, and so cannot setup the \
+           Opentelemetry trace core backend. Tracing may not work as expected.")
+  else
+    (* This forwards the spans from Trace to the Opentelemetry collector *)
+    (* coupling: if we change the backend here, make sure to update with_span and
+       restart_tracing to not use Opentelemetry_trace/Trace_core! *)
+    Opentelemetry_trace.setup ()
 
 (* Set according to README of https://github.com/imandra-ai/ocaml-opentelemetry/ *)
 let configure_tracing ?(attrs : (string * user_data) list = []) ?(env = "prod")
