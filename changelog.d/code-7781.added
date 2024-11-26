@@ -1,0 +1,12 @@
+taint-mode: Semgrep will now track invididual fields/keys in record/dict
+expressions.
+
+For example, in Semgrep Pro:
+
+    def foo():
+        return { 0: "safe", 1: taint }
+
+    def test():
+        t = foo()
+        sink(t[0]) # safe thus NO finding
+        sink(t[1]) # finding

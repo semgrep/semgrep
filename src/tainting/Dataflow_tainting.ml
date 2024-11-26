@@ -1261,18 +1261,39 @@ and check_tainted_expr env exp : Taints.t * S.shape * Lval_env.t =
         (op_taints, S.Bot, lval_env)
     | RecordOrDict fields ->
         (* TODO: Construct a proper record/dict shape here. *)
-        let fields_exprs =
+        let (lval_env, taints), taints_and_shapes =
           fields
-          |> List.concat_map (function
-               | Field (_, e)
-               | Spread e ->
-                   [ e ]
-               | Entry (ke, ve) -> [ ke; ve ])
+          |> List.fold_left_map
+               (fun (lval_env, taints_acc) field ->
+                 match field with
+                 | Field (id, e) ->
+                     (* TODO: Check 'id' for taint? *)
+                     let e_taints, e_shape, lval_env =
+                       check { env with lval_env } e
+                     in
+                     ((lval_env, taints_acc), `Field (id, e_taints, e_shape))
+                 | Spread e ->
+                     let e_taints, e_shape, lval_env =
+                       check { env with lval_env } e
+                     in
+                     ((lval_env, e_taints), `Spread e_shape)
+                 | Entry (ke, ve) ->
+                     let ke_taints, ke_shape, lval_env =
+                       check { env with lval_env } ke
+                     in
+                     let taints_acc =
+                       taints_acc |> Taints.union ke_taints
+                       |> Taints.union
+                            (Shape.gather_all_taints_in_shape ke_shape)
+                     in
+                     let ve_taints, ve_shape, lval_env =
+                       check { env with lval_env } ve
+                     in
+                     ((lval_env, taints_acc), `Entry (ke, ve_taints, ve_shape)))
+               (env.lval_env, Taints.empty)
         in
-        let taints, lval_env =
-          union_map_taints_and_vars env check fields_exprs
-        in
-        (taints, S.Bot, lval_env)
+        let record_shape = Shape.record_or_dict_like_obj taints_and_shapes in
+        (taints, record_shape, lval_env)
     | Cast (_, e) -> check env e
   in
   match exp_is_sanitized env exp with

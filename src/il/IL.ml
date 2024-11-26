@@ -321,7 +321,7 @@ and exp_kind =
       * exp (* partial translation *) option
 
 and field_or_entry =
-  | Field of ident * exp  (** struct field *)
+  | Field of name * exp  (** struct field *)
   | Entry of exp * exp  (** dictionary entry, key and value *)
   | Spread of exp
 

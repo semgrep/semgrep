@@ -514,7 +514,7 @@ and assign_to_record env (tok1, fields, tok2) rhs_exp lhs_orig =
             (related_tok tok)
         in
         add_instr env (mk_i (Assign (vari_lval, ei)) (related_tok tok));
-        Field (fldi.ident, mk_e (Fetch vari_lval) (related_tok tok))
+        Field (fldi, mk_e (Fetch vari_lval) (related_tok tok))
     | G.F
         {
           s =
@@ -529,16 +529,23 @@ and assign_to_record env (tok1, fields, tok2) rhs_exp lhs_orig =
         let fldi = var_of_id_info id1 ii1 in
         let offset = { o = Dot fldi; oorig = NoOrig } in
         let fields = do_fields (offset :: acc_rev_offsets) fields in
-        Field (fldi.ident, mk_e (RecordOrDict fields) (related_tok tok))
+        Field (fldi, mk_e (RecordOrDict fields) (related_tok tok))
     | field ->
         (* TODO: What other patterns could be nested ? *)
         (* __FIXME_AST_to_IL__: FixmeExp ToDo *)
         let xi = ("__FIXME_AST_to_IL_assign_to_record__", tok1) in
+        let xn =
+          {
+            ident = xi;
+            sid = G.SId.unsafe_default;
+            id_info = G.empty_id_info ();
+          }
+        in
         let ei = fixme_exp ToDo (G.Fld field) (related_tok tok1) in
         let tmpi = fresh_var env tok2 in
         let tmpi_lval = lval_of_base (Var tmpi) in
         add_instr env (mk_i (Assign (tmpi_lval, ei)) (related_tok tok1));
-        Field (xi, mk_e (Fetch tmpi_lval) (Related (G.Fld field)))
+        Field (xn, mk_e (Fetch tmpi_lval) (Related (G.Fld field)))
   in
   let fields : field_or_entry list = do_fields [] fields in
   (* {x1: E1, ..., xN: En} *)
@@ -1021,10 +1028,11 @@ and record env ((_tok, origfields, _) as record_def) =
              {
                s =
                  G.DefStmt
-                   ( { G.name = G.EN (G.Id (id, _)); tparams = None; _ },
+                   ( { G.name = G.EN (G.Id (id, id_info)); tparams = None; _ },
                      def_kind );
                _;
              } as forig ->
+             let field_name = var_of_id_info id id_info in
              let field_def =
                match def_kind with
                (* TODO: Consider what to do with vtype. *)
@@ -1044,7 +1052,7 @@ and record env ((_tok, origfields, _) as record_def) =
                    mk_e (Fetch lval) forig
                | ___else___ -> todo (G.E e_gen)
              in
-             Some (Field (id, field_def))
+             Some (Field (field_name, field_def))
          | G.F
              {
                s =
@@ -1066,7 +1074,7 @@ and record env ((_tok, origfields, _) as record_def) =
                    ( ({
                         e =
                           Call
-                            ( { e = N (Id (id, _)); _ },
+                            ( { e = N (Id (id, id_info)); _ },
                               (_, [ Arg { e = Record fields; _ } ], _) );
                         _;
                       } as prior_expr),
@@ -1089,11 +1097,13 @@ and record env ((_tok, origfields, _) as record_def) =
                 We don't actually really care for it to be specifically defining the name `s`.
                 we just want it in there at all so that we can use it as a sink.
              *)
+             let field_name = var_of_id_info id id_info in
              let field_expr = record env fields in
              (* We need to use the entire `prior_expr` here, or the range won't be quite
                 right (we'll leave out the identifier)
              *)
-             Some (Field (id, { field_expr with eorig = SameAs prior_expr }))
+             Some
+               (Field (field_name, { field_expr with eorig = SameAs prior_expr }))
          | _ when is_hcl env.lang ->
              (* For HCL constructs such as `lifecycle` blocks within a module call, the
                 IL translation engine will brick the whole record if it is encountered.
@@ -1160,10 +1170,17 @@ and xml_expr env ~void eorig xml =
         |> List_.filter_map (function
              | G.XmlAttr (id, tok, eorig) ->
                  (* e.g. <Foo x={y}/> *)
+                 let attr_name =
+                   {
+                     ident = id;
+                     sid = G.SId.unsafe_default;
+                     id_info = G.empty_id_info ();
+                   }
+                 in
                  let e = expr env eorig in
                  let _, lval = mk_aux_var env tok e in
                  let e = mk_e (Fetch lval) (SameAs eorig) in
-                 Some (Field (id, e))
+                 Some (Field (attr_name, e))
              | G.XmlAttrExpr (_l, eorig, _r) ->
                  let e = expr env eorig in
                  Some (Spread e)
@@ -1176,7 +1193,14 @@ and xml_expr env ~void eorig xml =
           (Composite (CArray, Tok.unsafe_fake_bracket body))
           (Related (G.Xmls xml.G.xml_body))
       in
-      let fields = Field (("children", G.fake ""), body_exp) :: fields in
+      let children_field_name =
+        {
+          ident = ("children", G.fake "children");
+          sid = G.SId.unsafe_default;
+          id_info = G.empty_id_info ();
+        }
+      in
+      let fields = Field (children_field_name, body_exp) :: fields in
       let fields_orig =
         let attrs = xml.G.xml_attrs |> List_.map (fun attr -> G.XmlAt attr) in
         let body = G.Xmls xml.G.xml_body in

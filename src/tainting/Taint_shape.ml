@@ -66,27 +66,6 @@ let taints_and_shape_are_relevant taints shape =
       true
 
 (*********************************************************)
-(* Object shapes *)
-(*********************************************************)
-
-let tuple_like_obj taints_and_shapes : shape =
-  let _index, obj =
-    taints_and_shapes
-    |> List.fold_left
-         (fun (i, obj) (taints, shape) ->
-           match (Xtaint.of_taints taints, shape) with
-           | `None, Bot ->
-               (* We skip this index to maintain INVARIANT(cell). *)
-               (i + 1, obj)
-           | xtaint, shape ->
-               let cell = Cell (xtaint, shape) in
-               (i + 1, Fields.add (T.Oint i) cell obj))
-         (0, Fields.empty)
-  in
-  (* See INVARIANT(cell) *)
-  if Fields.is_empty obj then Bot else Obj obj
-
-(*********************************************************)
 (* Unification (merging shapes) *)
 (*********************************************************)
 
@@ -157,6 +136,67 @@ and unify_shape shape1 shape2 =
 and unify_obj obj1 obj2 =
   (* THINK: Apply taint_MAX_OBJ_FIELDS limit ? *)
   Fields.union (fun _ x y -> Some (unify_cell x y)) obj1 obj2
+
+(*********************************************************)
+(* Object shapes *)
+(*********************************************************)
+
+let add_field_to_obj_check_invariant obj offset taints shape =
+  match (Xtaint.of_taints taints, shape) with
+  | `None, Bot ->
+      (* We skip this offset to maintain INVARIANT(cell). *)
+      obj
+  | xtaint, shape -> Fields.add offset (Cell (xtaint, shape)) obj
+
+let tuple_like_obj taints_and_shapes : shape =
+  let _index, obj =
+    taints_and_shapes
+    |> List.fold_left
+         (fun (i, obj) (taints, shape) ->
+           let obj =
+             add_field_to_obj_check_invariant obj (T.Oint i) taints shape
+           in
+           (i + 1, obj))
+         (0, Fields.empty)
+  in
+  (* See INVARIANT(cell) *)
+  if Fields.is_empty obj then Bot else Obj obj
+
+let record_or_dict_like_obj taints_and_shapes : shape =
+  let obj =
+    taints_and_shapes
+    |> List.fold_left
+         (fun obj field ->
+           match field with
+           | `Field (name, taints, shape) ->
+               add_field_to_obj_check_invariant obj (T.Ofld name) taints shape
+           | `Entry (e, taints, shape) ->
+               let offset =
+                 match e.IL.e with
+                 | Literal (Int pi) -> (
+                     match Parsed_int.to_int_opt pi with
+                     | None -> T.Oany
+                     | Some i -> T.Oint i)
+                 | Literal (String (_, (s, _), _)) -> Ostr s
+                 | __else__ -> T.Oany
+               in
+               add_field_to_obj_check_invariant obj offset taints shape
+           | `Spread shape -> (
+               match shape with
+               | Obj obj' -> unify_obj obj obj'
+               | Bot
+               | Arg _
+               | Fun _ ->
+                   Log.err (fun m ->
+                       m
+                         "record_or_dict_like_obj: expected Obj shape but \
+                          found %s"
+                         (show_shape shape));
+                   obj))
+         Fields.empty
+  in
+  (* See INVARIANT(cell) *)
+  if Fields.is_empty obj then Bot else Obj obj
 
 (*********************************************************)
 (* Collect/union all taints *)

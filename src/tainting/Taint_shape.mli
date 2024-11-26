@@ -10,6 +10,17 @@ val tuple_like_obj : (Taint.taints * shape) list -> shape
 (** Constructs a 0-indexed tuple-like 'obj' from a list of pairs, taints and shape,
  * for each element in the tuple.  *)
 
+(* THINK: Replace polymorphic variant with a parameterized IL.field_or_entry ? *)
+val record_or_dict_like_obj :
+  [< `Entry of IL.exp * Taint.taints * shape
+  | `Field of IL.name * Taint.taints * shape
+  | `Spread of shape ]
+  list
+  (** see 'IL.field_or_entry' *) ->
+  shape
+(** Constructs an 'Obj' shape from a list of taints and shapes associated with
+    a record/dict expression. *)
+
 val unify_cell : cell -> cell -> cell
 (** Unify two 'cell's into one. *)
 

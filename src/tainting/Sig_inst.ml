@@ -505,7 +505,7 @@ let lval_of_sig_lval (fun_exp : IL.exp) fparams args_exps (sig_lval : T.lval) :
                    (* The 'o' is the offset that 'sig_lval' is referring to, here
                     * we look for a `fld=lval` field in the record object such that
                     * 'fld' has the same name as 'o'. *)
-                   | Field (fld, _) -> fst fld = fst o.ident
+                   | Field (fld, _) -> IL.compare_name fld o =|= 0
                    | Entry _
                    | Spread _ ->
                        false)
