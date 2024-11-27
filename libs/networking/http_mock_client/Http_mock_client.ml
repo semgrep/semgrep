@@ -120,7 +120,7 @@ end
 
 let basic_response ?(status = 200) ?(headers = Header.init ()) body =
   let status = Cohttp.Code.status_of_code status in
-  let response = Response.make ~status ~headers ~flush:true () in
+  let response = Response.make ~status ~headers () in
   { response; body }
 
 let body_of_file ?(trim = false) (path : Fpath.t) =
@@ -325,7 +325,7 @@ let parse_resp =
           in
           let headers = parse_headers headers in
           let body = String.concat "\n" body |> Body.of_string in
-          (Cohttp.Response.make ~version ~status ~flush:true ~headers (), body))
+          (Cohttp.Response.make ~version ~status ~headers (), body))
 
 let client_from_file (req_resp_file : Fpath.t) =
   let contents = UFile.read_file req_resp_file in

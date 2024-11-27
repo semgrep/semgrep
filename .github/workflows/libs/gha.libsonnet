@@ -21,6 +21,12 @@
     workflow_dispatch: null,
     workflow_call: null,
   },
+  on_schedule(cron): {
+    workflow_dispatch: null,
+    schedule: [{
+      cron: cron,
+    }],
+  },
   write_permissions: {
     // Needed when we want to upload data to s3 or more generally
     // when connecting to cloud services that use Open ID Connect.

@@ -316,6 +316,24 @@ local osemgrep_test_steps_after_checkout = [
   },
 ];
 
+local setup_nix_step =
+    {
+        name: "Set up Nix",
+        uses: "DeterminateSystems/nix-installer-action@main",
+        with: {
+            // pysemgrep and osemgrep have networking tests that rely on the
+            // actual internet (i.e. semgrep.dev). When sandbox=false nix builds
+            // everything fine, but all networking tests fail. So we set sandbox
+            // to false here so networking tests succeed
+            //
+            // TODO: disable networking tests for nix? that would be the nix way
+            // of doing things
+
+            // extra substituters and public keys use https://app.cachix.org/cache/semgrep
+            // to cache the build dependencies!
+            "extra-conf": "sandbox = false",
+        }
+    };
 
 // ----------------------------------------------------------------------------
 // Entry point
@@ -354,4 +372,5 @@ local osemgrep_test_steps_after_checkout = [
 
   // Reusable sequences of test steps
   osemgrep_test_steps_after_checkout: osemgrep_test_steps_after_checkout,
+  setup_nix_step: setup_nix_step,
 }

@@ -443,6 +443,10 @@ For more information see https://semgrep.dev
 ;coupling: because of the way we need to statically link on macOS, if
 ; you add a library here, you'll probably need to update src/main/flags.sh
 ; if this library has some C stubs.
+;
+; coupling: if you add a dependency here and the nix workflow fails, you may
+; need to manually trigger the "nix-weekly-update-flake" workflow
+;
 ;TODO: restore  "bisect_ppx" {>= "2.5.0"} once can use ppxlib 0.22.0
   (depends
     ; core deps
@@ -520,7 +524,7 @@ For more information see https://semgrep.dev
     ; web stuff
     uri
     (uuidm (>= 0.9.9))
-    (cohttp (= 6.0.0~beta2))
+    (cohttp (= 6.0.0)) ; 6.0.0 for better error handling
     cohttp-lwt-unix
     cohttp-lwt-jsoo
     tls-lwt ; needed for TLS support in the cohttp HTTP client (only TLS 1.3 seems to work)
