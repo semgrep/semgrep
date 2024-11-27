@@ -3,7 +3,7 @@
    on the ?gitignore_filenames parameter below.
 *)
 val create :
-  ?gitignore_filenames:(string * string) list ->
+  ?gitignore_filenames:Gitignore.gitignore_filename list ->
   project_root:Fpath.t ->
   unit ->
   Gitignore.gitignores_cache

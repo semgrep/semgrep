@@ -8,6 +8,7 @@
 
 val from_file :
   anchor:Glob.Pattern.t ->
+  format:Gitignore.format ->
   source_kind:string ->
   Fpath.t ->
   Gitignore.path_selectors

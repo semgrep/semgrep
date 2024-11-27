@@ -290,8 +290,28 @@ val extract_all :
   string ->
   string array array
 
+val quote : string -> string
+(** [quote str] is the quoted version of [str], i.e., it is [str] but with any
+    characters or sequences which need escaping to be treated literally
+    modified in the required manner.
+ *)
+
+(*****************************************************************************)
+(* Subpattern extraction *)
+(*****************************************************************************)
+
 (*
-   Exception-less version of Pcre2.get_named_substring and Pcre2.get_named_substring_ofs
+   Exception-less version of Pcre2.get_substring
+
+   Ok None: subpattern exists but is unbound
+   Error msg: no such subpattern in the original pattern
+*)
+val get_substring :
+  t -> Pcre2.substrings -> int -> (string option, string) Result.t
+
+(*
+   Exception-less version of Pcre2.get_named_substring and
+   Pcre2.get_named_substring_ofs
 
    Ok None: variable name is valid but unbound
    Error msg: no such variable in the original pattern
@@ -301,9 +321,3 @@ val get_named_substring_and_ofs :
   string ->
   Pcre2.substrings ->
   ((string * (int * int)) option, string) Result.t
-
-val quote : string -> string
-(** [quote str] is the quoted version of [str], i.e., it is [str] but with any
-    characters or sequences which need escaping to be treated literally
-    modified in the required manner.
- *)

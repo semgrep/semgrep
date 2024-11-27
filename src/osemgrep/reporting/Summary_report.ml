@@ -82,17 +82,14 @@ let pp_summary ~respect_gitignore ~(maturity : Maturity.t) ~max_target_bytes
   in
   match (out_skipped, out_partial, out_limited, skipped_groups.ignored) with
   | [], None, None, [] -> ()
-  | xs, parts, limited, _ignored ->
-      Fmt.pf ppf "Some files were skipped or only partially analyzed.@.";
-      Option.iter (fun txt -> Fmt.pf ppf "  %s" txt) limited;
-      Option.iter
-        (fun txt -> Fmt.pf ppf "  Partially scanned: %s@.\n" txt)
-        parts;
-      (match xs with
+  | xs, parts, limited, _ignored -> (
+      Fmt.pf ppf "Some files were skipped or only partially analyzed.@\n";
+      Option.iter (fun txt -> Fmt.pf ppf "  %s@\n" txt) limited;
+      Option.iter (fun txt -> Fmt.pf ppf "  Partially scanned: %s@\n" txt) parts;
+      match xs with
       | [] -> ()
       | xs ->
-          Fmt.pf ppf "  Scan skipped: %s.@." (String.concat ", " xs);
+          Fmt.pf ppf "  Scan skipped: %s.@\n" (String.concat ", " xs);
           Fmt.pf ppf
             "  For a full list of skipped files, run semgrep with the \
-             --verbose flag.@.");
-      Fmt.pf ppf "@."
+             --verbose flag.@\n")

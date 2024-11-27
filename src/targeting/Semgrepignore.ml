@@ -88,8 +88,14 @@ testsuite/
 .semgrep_logs/
 |}
 
-let gitignore_files = ("gitignore", ".gitignore")
-let semgrepignore_files = ("semgrepignore", ".semgrepignore")
+let gitignore_files = Gitignore.default_gitignore_filename
+
+let semgrepignore_files : Gitignore.gitignore_filename =
+  {
+    source_kind = "semgrepignore";
+    filename = ".semgrepignore";
+    format = Gitignore.Legacy_semgrepignore;
+  }
 
 let contents_of_builtin_semgrepignore = function
   | Empty -> ""

@@ -99,6 +99,7 @@ let exec_all ?iflags ?flags ~rex ?pos ?callout subj =
   | Not_found -> Ok [||]
   | Pcre2.Error err -> Error err
 
+(* for debugging *)
 let exec_to_strings ?iflags ?flags ~rex ?pos ?callout subj =
   match exec_all ?iflags ?flags ~rex ?pos ?callout subj with
   | Ok a -> Ok (Array.map Pcre2.get_substrings a)
@@ -190,6 +191,16 @@ let replace_first ?iflags ?flags ~rex ?pos ?callout ~template subj =
 let extract_all ?iflags ?flags ~rex ?pos ?full_match ?callout subj =
   Pcre2.extract_all ?iflags ?flags ~rex:rex.regexp ?pos ?full_match ?callout
     subj
+
+(*****************************************************************************)
+(* Subpattern extraction *)
+(*****************************************************************************)
+
+let get_substring rex substrings n =
+  try Ok (Some (Pcre2.get_substring substrings n)) with
+  | Not_found -> Ok None
+  | Invalid_argument msg ->
+      Error (sprintf "Invalid argument: %s\nSource pattern: %S" msg rex.pattern)
 
 let get_named_substring_and_ofs rex name substrings =
   try

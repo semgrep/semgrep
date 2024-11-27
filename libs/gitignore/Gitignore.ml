@@ -61,6 +61,34 @@ type level = {
   patterns : path_selectors;
 }
 
+(* The legacy semgrepignore format adds ':include' directives. *)
+type format = Gitignore | Legacy_semgrepignore
+
+(* 'gitignore_filename' exists because we want to support reading gitignore
+   patterns from files other than '.gitignore' such as '.semgrepignore'.
+
+   The order of the file names defines
+   the order in which multiples file in the same folder are loaded,
+   as if they were concatenated. Multiple files found in the same folder
+   are treated as part of the same level, i.e. the fate of a file is unknown
+   until the patterns of all the gitignore files in the folder were scanned.
+*)
+type gitignore_filename = {
+  (* The file kind is the name for the conventional file kind
+     chosen by the user (e.g. "semgrepignore" for ".semgrepignore" files).
+     This is used in error messages and such.
+  *)
+  source_kind : string;
+  (* The filename is e.g. '.gitignore' or '.semgrepignore'.
+  *)
+  filename : string;
+  (* Specify if the format is strict Gitignore or some extension. *)
+  format : format;
+}
+
+let default_gitignore_filename =
+  { source_kind = "gitignore"; filename = ".gitignore"; format = Gitignore }
+
 (*
    A project usually contains a single toplevel .gitignore, but each subdir
    of this project can also contain a "refining" .gitignore that
@@ -71,17 +99,9 @@ type level = {
 *)
 type gitignores_cache = {
   project_root : Fpath.t;
-  (* gitignore_filenames is the list of pairs (file kind, file name)
-     for gitignore files. The file kind is the conventional file kind
-     chosen be the user (e.g. "semgrepignore" for ".semgrepignore" files).
-     The default is ["gitignore", ".gitignore"]. In Semgrep, we use
-     [".gitignore"; ".semgrepignore"]. The order of the file names defines
-     the order in which multiples file in the same folder are loaded,
-     as if they were concatenated. Multiple files found in the same folder
-     are treated as part of the same level, i.e. the fate of a file is unknown
-     until the patterns of all the gitignore files in the folder were scanned.
-  *)
-  gitignore_filenames : (string (* kind *) * string (* file name *)) list;
+  (* List of gitignore-like files to look for in each of the project's
+     source folders. *)
+  gitignore_filenames : gitignore_filename list;
   (* TODO? why we use a cache? Why not loading all those .gitiginore at once?*)
   cache : (string, level option) Hashtbl.t;
 }

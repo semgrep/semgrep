@@ -89,12 +89,55 @@ val is_executable : Fpath.t -> bool
 val filesize : Fpath.t -> int
 val filemtime : Fpath.t -> float
 
+(*
+   TODO: the current interface for checking the existence and kind of files
+   is confusing and raises exceptions that we usually want to ignore.
+   Provide a new interface that is convenient, unambiguous,
+   and covers the most common situations.
+
+   Design guideline: make common tasks easy and uncommon ones possible.
+
+   Here are some ideas:
+
+   - input 1: follow symlinks?
+   - input 2: which kind of files we accept: regular file, a folder (dir),
+              or a symlink? (don't care about the exotic kinds)
+   - input 3: is the file readable or writable? -> out of scope
+   - result: bool, turn all Unix_error exceptions into 'false'
+
+     val is_dir : follow_symlinks:bool -> Fpath.t -> bool
+     val is_reg : follow_symlinks:bool -> Fpath.t -> bool
+
+     (* follow_symlinks is implicitly false when one of the allowed file
+        kinds is symlink *)
+     val is_lnk : Fpath.t -> bool
+     val is_lnk_or_reg : Fpath.t -> bool
+     val is_dir_or_lnk_or_reg : Fpath.t -> bool
+
+   For other file kinds (pipes, sockets, ...) or unusual combinations
+   (dir or lnk), use the Unix module directly.
+*)
+
 (* raise Unix_error if the directory does not exist *)
 val is_directory : Fpath.t -> bool
 
-(* raise Unix_error if the file does not exist *)
+(* Check if a file is a regular file or a symbolic link that references
+   a regular file.
+
+   Raise Unix_error if the file doesn't exist or if the symlink is broken.
+*)
 val is_file : Fpath.t -> bool
+
+(* Check if a file is a symlink. It may be a broken symlink.
+
+   Raise Unix_error if the file (symlink) doesn't exist.
+*)
 val is_symlink : Fpath.t -> bool
+
+(*
+   Check if a file is a regular file or a symlink, possibly a broken symlink.
+   Return false if the file doesn't exist or is of the wrong kind.
+*)
 val lfile_exists : Fpath.t -> bool
 
 (* no raised Unix_error if the directory does not exist *)

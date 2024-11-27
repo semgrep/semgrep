@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 import pytest
@@ -10,6 +11,12 @@ from tests.fixtures import RunSemgrep
 def test_semgrepignore(run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot):
     (tmp_path / ".semgrepignore").symlink_to(
         Path(TARGETS_PATH / "ignores" / ".semgrepignore").resolve()
+    )
+    # BUG: pysemgrep doesn't complain if an included file is missing
+    # This file is included by the .semgrepignore above.
+    # It must be a regular file, not a symlink (enforced in osemgrep).
+    shutil.copyfile(
+        Path(TARGETS_PATH / "ignores" / ".gitignore"), tmp_path / ".gitignore"
     )
 
     snapshot.assert_match(

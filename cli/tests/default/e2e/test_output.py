@@ -1,6 +1,7 @@
 import collections
 import json
 import re
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Dict
@@ -358,13 +359,19 @@ IGNORE_LOG_REPORT_LAST_LINE = (
 )
 
 
+# pysemgrep/osemgrep status: osemgrep reports 2 more files that are being
+# excluded. They're excluded in both implementations.
 @pytest.mark.kinda_slow
-@pytest.mark.osemfail
+@pytest.mark.pysemfail
 def test_semgrepignore_ignore_log_report(
     run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot
 ):
     (tmp_path / ".semgrepignore").symlink_to(
         Path(TARGETS_PATH / "ignores" / ".semgrepignore").resolve()
+    )
+    # See remarks in test_ignores.py:
+    shutil.copyfile(
+        Path(TARGETS_PATH / "ignores" / ".gitignore"), tmp_path / ".gitignore"
     )
 
     _, stderr = run_semgrep_in_tmp(
@@ -397,13 +404,28 @@ def test_semgrepignore_ignore_log_report(
     snapshot.assert_match(report.group(), "report.txt")
 
 
+# Tolerate a different snapshot with pysemgrep than osemgrep.
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
+def test_semgrepignore_ignore_log_report_pysemgrep(
+    run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot
+):
+    test_semgrepignore_ignore_log_report(run_semgrep_in_tmp, tmp_path, snapshot)
+
+
+# pysemgrep/osemgrep status: osemgrep reports 2 more files that are being
+# excluded. They're excluded in both implementations.
+@pytest.mark.kinda_slow
+@pytest.mark.pysemfail
 def test_semgrepignore_ignore_log_json_report(
     run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot
 ):
     (tmp_path / ".semgrepignore").symlink_to(
         Path(TARGETS_PATH / "ignores" / ".semgrepignore").resolve()
+    )
+    # See remarks in test_ignores.py:
+    shutil.copyfile(
+        Path(TARGETS_PATH / "ignores" / ".gitignore"), tmp_path / ".gitignore"
     )
 
     stdout, _ = run_semgrep_in_tmp(
@@ -429,6 +451,15 @@ def test_semgrepignore_ignore_log_json_report(
     snapshot.assert_match(
         json.dumps(parsed_output["paths"], indent=2, sort_keys=True), "report.json"
     )
+
+
+# Tolerate a different snapshot with pysemgrep than osemgrep.
+@pytest.mark.kinda_slow
+@pytest.mark.osemfail
+def test_semgrepignore_ignore_log_json_report_pysemgrep(
+    run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot
+):
+    test_semgrepignore_ignore_log_json_report(run_semgrep_in_tmp, tmp_path, snapshot)
 
 
 @pytest.mark.kinda_slow

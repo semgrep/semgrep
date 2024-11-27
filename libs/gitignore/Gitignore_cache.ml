@@ -3,7 +3,7 @@
 *)
 open Gitignore
 
-let create ?(gitignore_filenames = [ ("gitignore", ".gitignore") ])
+let create ?(gitignore_filenames = [ Gitignore.default_gitignore_filename ])
     ~project_root () =
   let cache = Hashtbl.create 100 in
   { project_root; gitignore_filenames; cache }
@@ -21,10 +21,12 @@ let load t dir_path =
       let path = Ppath.to_fpath ~root:t.project_root dir_path in
       let patterns =
         List.fold_left
-          (fun acc (source_kind, name) ->
-            let file_path = Fpath.add_seg path name in
+          (fun acc (file : gitignore_filename) ->
+            let file_path = Fpath.add_seg path file.filename in
             if Sys.file_exists (Fpath.to_string file_path) then
-              acc @ Parse_gitignore.from_file ~anchor ~source_kind file_path
+              acc
+              @ Parse_gitignore.from_file ~format:file.format ~anchor
+                  ~source_kind:file.source_kind file_path
             else acc)
           [] t.gitignore_filenames
       in

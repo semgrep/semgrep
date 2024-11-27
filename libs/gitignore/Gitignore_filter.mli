@@ -1,11 +1,12 @@
 (*
    Create a gitignore filter meant to be reused to filter many target paths.
 
-   gitignore_filenames: pairs (file kind, file name);
-                        see Gitignore_files.create
+   gitignore_filenames: set this option to consult other files than
+                        '.gitignore'.
+
 *)
 val create :
-  ?gitignore_filenames:(string * string) list ->
+  ?gitignore_filenames:Gitignore.gitignore_filename list ->
   ?higher_priority_levels:Gitignore.level list ->
   ?lower_priority_levels:Gitignore.level list ->
   project_root:Fpath.t ->
