@@ -623,7 +623,7 @@ and id_info = {
    *   because the first `foo` has type `Foo` but that `Foo` has SId.t "n",
    *   whereas the second `foo` has type `Foo` but with SId.t "m".
    *)
-  id_type : type_ option ref; [@equal fun _a _b -> true]
+  id_type : type_ option ref; [@hash.ignore] [@equal fun _a _b -> true]
   (* type checker (typing) *)
   (* sgrep: this is for sgrep constant propagation hack.
    * todo? associate only with Id?
@@ -632,15 +632,15 @@ and id_info = {
    * meaning the same variable might have different id_svalue value
    * depending where it is used.
    *)
-  id_svalue : svalue option ref; [@equal fun _a _b -> true]
+  id_svalue : svalue option ref; [@hash.ignore] [@equal fun _a _b -> true]
   (* ^^^ THINK: Drop option? *)
   (* See module 'IdFlags'. Previously we compared 'id_flags' with 'IdFlags.equal'
    * but, once we added the 'final' flag which is only set at definition site,
    * the same identifier can now have different flags. In fact we did not really
    * have to compare 'id_flags' anyways. *)
-  id_flags : id_flags ref; [@equal fun _a _b -> true]
+  id_flags : id_flags ref; [@hash.ignore] [@equal fun _a _b -> true]
   (* this is used by Naming_SAST in semgrep-pro *)
-  id_info_id : id_info_id; [@equal fun _a _b -> true]
+  id_info_id : id_info_id; [@hash.ignore] [@equal fun _a _b -> true]
 }
 
 (* See explanation for @name where the visitors are generated at the end of
