@@ -42,7 +42,7 @@ depends: [
   "sarif" {>= "0.3.0"}
   "cmdliner"
   "ppxlib"
-  "ppx_deriving"
+  "ppx_deriving" {>= "6.0.3"}
   "ppx_deriving_yojson"
   "ppx_hash"
   "ppx_inline_test"
