@@ -126,6 +126,18 @@ let find_range_w_metas formula_cache (xconf : Match_env.xconfig)
          in
          (ranges |> List_.map (fun rwm -> (rwm, x)), expls))
 
+let find_sources_ranges formula_cache xconf xtarget rule (spec : R.taint_spec) =
+  find_range_w_metas formula_cache xconf xtarget rule
+    (spec.sources |> snd
+    |> List_.map (fun (src : R.taint_source) -> (src.source_formula, src)))
+[@@trace_trace]
+
+let find_sinks_ranges formula_cache xconf xtarget rule (spec : R.taint_spec) =
+  find_range_w_metas formula_cache xconf xtarget rule
+    (spec.sinks |> snd
+    |> List_.map (fun (sink : R.taint_sink) -> (sink.sink_formula, sink)))
+[@@trace_trace]
+
 let find_sanitizers_matches formula_cache (xconf : Match_env.xconfig)
     (xtarget : Xtarget.t) (rule : R.t) (specs : R.taint_sanitizer list) :
     (bool * RM.t * R.taint_sanitizer) list * ME.t list =
@@ -140,6 +152,7 @@ let find_sanitizers_matches formula_cache (xconf : Match_env.xconfig)
          ( ranges
            |> List_.map (fun x -> (sanitizer.R.not_conflicting, x, sanitizer)),
            expls ))
+[@@trace_trace]
 
 (* Finds all matches of `pattern-propagators`. *)
 let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
@@ -203,6 +216,7 @@ let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
                         to_.Range.end_
                     in
                     Some { id; rwm; from; to_; spec = p }))
+[@@trace_trace]
 
 (*****************************************************************************)
 (* Spec matches *)
@@ -224,15 +238,13 @@ let spec_matches_of_taint_rule ~per_file_formula_cache xconf file ast_and_errors
     }
   in
   let (sources_ranges : (RM.t * R.taint_source) list), expls_sources =
-    find_range_w_metas formula_cache xconf xtarget rule
-      (spec.sources |> snd
-      |> List_.map (fun (src : R.taint_source) -> (src.source_formula, src)))
-  and (propagators_ranges : propagator_match list) =
+    find_sources_ranges formula_cache xconf xtarget rule spec
+  in
+  let (propagators_ranges : propagator_match list) =
     find_propagators_matches formula_cache xconf xtarget rule spec.propagators
-  and (sinks_ranges : (RM.t * R.taint_sink) list), expls_sinks =
-    find_range_w_metas formula_cache xconf xtarget rule
-      (spec.sinks |> snd
-      |> List_.map (fun (sink : R.taint_sink) -> (sink.sink_formula, sink)))
+  in
+  let (sinks_ranges : (RM.t * R.taint_sink) list), expls_sinks =
+    find_sinks_ranges formula_cache xconf xtarget rule spec
   in
   let sanitizers_ranges, expls_sanitizers =
     match spec.sanitizers with
