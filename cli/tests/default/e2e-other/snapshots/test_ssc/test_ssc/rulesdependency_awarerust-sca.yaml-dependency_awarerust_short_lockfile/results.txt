@@ -5,7 +5,6 @@
 === stdout - plain
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/dependency_aware/rust_short_lockfile/Cargo.lock",
@@ -23,11 +22,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "let x = bad();",
+        "lines": "requires login",
         "message": "oh no",
         "metadata": {},
-        "metavars": {},
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {

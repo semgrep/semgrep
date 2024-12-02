@@ -1,6 +1,5 @@
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "<MASKED>"
@@ -17,11 +16,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "a",
+        "lines": "requires login",
         "message": "a",
         "metadata": {},
-        "metavars": {},
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },

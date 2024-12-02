@@ -1,6 +1,5 @@
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/aliengrep/long-match.txt"
@@ -17,11 +16,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "begin find me end",
+        "lines": "requires login",
         "message": "found something",
         "metadata": {},
-        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -42,11 +39,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "begin\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\nend",
+        "lines": "requires login",
         "message": "found something",
         "metadata": {},
-        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },

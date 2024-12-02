@@ -5,7 +5,6 @@
 === stdout - plain
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/dependency_aware/nuget/packages.lock.json"
@@ -22,11 +21,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "        \"Newtonsoft.Json\": {",
+        "lines": "requires login",
         "message": "let's assume newtonsoft json has a vulnerability",
         "metadata": {},
-        "metavars": {},
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
@@ -68,11 +65,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "        \"System.Linq\": {",
+        "lines": "requires login",
         "message": "Depends on vulnerable System.Linq",
         "metadata": {},
-        "metavars": {},
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {

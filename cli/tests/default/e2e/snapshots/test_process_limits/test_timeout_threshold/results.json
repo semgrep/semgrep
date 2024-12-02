@@ -9,7 +9,6 @@
       "type": "Timeout"
     }
   ],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/equivalence/open_redirect.py"

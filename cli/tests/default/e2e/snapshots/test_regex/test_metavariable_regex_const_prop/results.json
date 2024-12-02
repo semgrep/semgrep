@@ -1,6 +1,5 @@
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/metavariable_propagation/metavariable-regex-const-prop.dockerfile"
@@ -18,8 +17,7 @@
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "WORKDIR /$WORD",
-        "is_ignored": false,
-        "lines": "WORKDIR usr/src/app",
+        "lines": "requires login",
         "message": "Detected a relative WORKDIR. Use absolute paths. This prevents issues based on assumptions about the WORKDIR of previous containers.",
         "metadata": {
           "category": "best-practice",
@@ -30,47 +28,6 @@
           "technology": [
             "dockerfile"
           ]
-        },
-        "metavars": {
-          "$1": {
-            "abstract_content": "usr/src/app",
-            "end": {
-              "col": 12,
-              "line": 1,
-              "offset": 11
-            },
-            "start": {
-              "col": 1,
-              "line": 1,
-              "offset": 0
-            }
-          },
-          "$2": {
-            "abstract_content": "/app",
-            "end": {
-              "col": 12,
-              "line": 1,
-              "offset": 11
-            },
-            "start": {
-              "col": 8,
-              "line": 1,
-              "offset": 7
-            }
-          },
-          "$DIR": {
-            "abstract_content": "usr/src/app",
-            "end": {
-              "col": 20,
-              "line": 4,
-              "offset": 64
-            },
-            "start": {
-              "col": 9,
-              "line": 4,
-              "offset": 53
-            }
-          }
         },
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
@@ -93,8 +50,7 @@
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "WORKDIR /$WORD",
-        "is_ignored": false,
-        "lines": "WORKDIR ${dirpath}",
+        "lines": "requires login",
         "message": "Detected a relative WORKDIR. Use absolute paths. This prevents issues based on assumptions about the WORKDIR of previous containers.",
         "metadata": {
           "category": "best-practice",
@@ -105,34 +61,6 @@
           "technology": [
             "dockerfile"
           ]
-        },
-        "metavars": {
-          "$1": {
-            "abstract_content": "bar",
-            "end": {
-              "col": 4,
-              "line": 1,
-              "offset": 3
-            },
-            "start": {
-              "col": 1,
-              "line": 1,
-              "offset": 0
-            }
-          },
-          "$DIR": {
-            "abstract_content": "$$dirpath}",
-            "end": {
-              "col": 19,
-              "line": 11,
-              "offset": 180
-            },
-            "start": {
-              "col": 9,
-              "line": 11,
-              "offset": 170
-            }
-          }
         },
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"

@@ -1,6 +1,5 @@
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/message_interpolation/pattern_either_basic.py"
@@ -17,25 +16,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "def one(x):\n    print(x)",
+        "lines": "requires login",
         "message": "method one detected",
         "metadata": {},
-        "metavars": {
-          "$FUNC": {
-            "abstract_content": "one",
-            "end": {
-              "col": 8,
-              "line": 1,
-              "offset": 7
-            },
-            "start": {
-              "col": 5,
-              "line": 1,
-              "offset": 4
-            }
-          }
-        },
         "severity": "INFO",
         "validation_state": "NO_VALIDATOR"
       },
@@ -56,25 +39,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "def two(y):\n    print(y)",
+        "lines": "requires login",
         "message": "method two detected",
         "metadata": {},
-        "metavars": {
-          "$FUNC": {
-            "abstract_content": "two",
-            "end": {
-              "col": 8,
-              "line": 4,
-              "offset": 33
-            },
-            "start": {
-              "col": 5,
-              "line": 4,
-              "offset": 30
-            }
-          }
-        },
         "severity": "INFO",
         "validation_state": "NO_VALIDATOR"
       },
@@ -95,25 +62,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "def three(z):\n    print(z)",
+        "lines": "requires login",
         "message": "method three detected",
         "metadata": {},
-        "metavars": {
-          "$FUNC": {
-            "abstract_content": "three",
-            "end": {
-              "col": 10,
-              "line": 7,
-              "offset": 61
-            },
-            "start": {
-              "col": 5,
-              "line": 7,
-              "offset": 56
-            }
-          }
-        },
         "severity": "INFO",
         "validation_state": "NO_VALIDATOR"
       },

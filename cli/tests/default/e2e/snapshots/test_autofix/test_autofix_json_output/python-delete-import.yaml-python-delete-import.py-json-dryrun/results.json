@@ -1,6 +1,5 @@
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/autofix/python-delete-import.py"
@@ -18,25 +17,9 @@
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "",
-        "is_ignored": false,
-        "lines": "from typing import Dict",
+        "lines": "requires login",
         "message": "found one",
         "metadata": {},
-        "metavars": {
-          "$X": {
-            "abstract_content": "Dict",
-            "end": {
-              "col": 24,
-              "line": 2,
-              "offset": 34
-            },
-            "start": {
-              "col": 20,
-              "line": 2,
-              "offset": 30
-            }
-          }
-        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -58,25 +41,9 @@
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "",
-        "is_ignored": false,
-        "lines": "from typing import List",
+        "lines": "requires login",
         "message": "found one",
         "metadata": {},
-        "metavars": {
-          "$X": {
-            "abstract_content": "List",
-            "end": {
-              "col": 24,
-              "line": 3,
-              "offset": 58
-            },
-            "start": {
-              "col": 20,
-              "line": 3,
-              "offset": 54
-            }
-          }
-        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },

@@ -1,6 +1,5 @@
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/autofix/csv-writer.py"
@@ -21,8 +20,7 @@
         "fixed_lines": [
           "csv.writer(csvfile, delimiter=',', quotechar='\"', quoting=csv.QUOTE_ALL)"
         ],
-        "is_ignored": false,
-        "lines": "csv.writer(csvfile, delimiter=',', quotechar='\"')",
+        "lines": "requires login",
         "message": "Found an unquoted CSV writer. This is susceptible to injection. Use 'quoting=csv.QUOTE_ALL'.",
         "metadata": {
           "cwe": "CWE-1236: Improper Neutralization of Formula Elements in a CSV File",
@@ -31,7 +29,6 @@
             "https://affinity-it-security.com/how-to-prevent-csv-injection/"
           ]
         },
-        "metavars": {},
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -56,8 +53,7 @@
         "fixed_lines": [
           "csv.writer(get_file(), delimiter=',', quotechar='\"', quoting=csv.QUOTE_ALL)"
         ],
-        "is_ignored": false,
-        "lines": "csv.writer(get_file(), delimiter=',', quotechar='\"')",
+        "lines": "requires login",
         "message": "Found an unquoted CSV writer. This is susceptible to injection. Use 'quoting=csv.QUOTE_ALL'.",
         "metadata": {
           "cwe": "CWE-1236: Improper Neutralization of Formula Elements in a CSV File",
@@ -66,7 +62,6 @@
             "https://affinity-it-security.com/how-to-prevent-csv-injection/"
           ]
         },
-        "metavars": {},
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },

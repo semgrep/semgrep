@@ -1,6 +1,5 @@
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/rule_id/hello.txt"
@@ -17,11 +16,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "hello",
+        "lines": "requires login",
         "message": "found something",
         "metadata": {},
-        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
