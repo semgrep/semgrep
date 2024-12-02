@@ -148,7 +148,6 @@ class Metrics:
             anonymous_user_id="",
             parse_rate=[],
             sent_at=Datetime(""),
-            osemgrep=None,
         )
     )
 

@@ -204,7 +204,6 @@ let default_payload =
         autofixCount = None;
         ignoreCount = None;
       };
-    osemgrep = None;
   }
 
 let default =
