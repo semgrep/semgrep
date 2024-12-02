@@ -248,7 +248,7 @@ end
 (* Taint results & signatures *)
 (*****************************************************************************)
 and Effect : sig
-  type sink = { pm : Pattern_match.t; rule_sink : R.taint_sink }
+  type sink = { pm : Core_match.t; rule_sink : R.taint_sink }
   (** A sink match with its corresponding sink specification (one of the `pattern-sinks`). *)
 
   type taint_to_sink_item = {
@@ -370,7 +370,7 @@ and Effect : sig
 end = struct
   module Taints = Taint.Taint_set
 
-  type sink = { pm : Pattern_match.t; rule_sink : R.taint_sink }
+  type sink = { pm : Core_match.t; rule_sink : R.taint_sink }
   type taint_to_sink_item = { taint : T.taint; sink_trace : unit T.call_trace }
 
   type taints_to_sink = {
@@ -511,7 +511,7 @@ end = struct
       Range.content_at_range pm.path.internal_path_to_content r
     in
     let matched_line =
-      let loc1, _ = pm.Pattern_match.range_loc in
+      let loc1, _ = pm.range_loc in
       loc1.Tok.pos.line
     in
     spf "(%s at l.%d by %s)" matched_str matched_line rule_sink.R.sink_id

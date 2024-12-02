@@ -12,7 +12,7 @@
  * worry about sub-expressions, they will be visited regardless.
  *)
 val check :
-  hook:(Pattern_match.t -> unit) ->
+  hook:(Core_match.t -> unit) ->
   (* as-metavariable: whether this rule whose patterns we are matching
      contains an `as-metavariable`
   *)
@@ -22,7 +22,7 @@ val check :
   Rule_options.t * Equivalence.equivalences ->
   Mini_rule.rules ->
   Fpath.t * Origin.t * Lang.t * AST_generic.program ->
-  Pattern_match.t list
+  Core_match.t list
 
 val last_matched_rule : Mini_rule.t option ref
 

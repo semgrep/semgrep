@@ -65,7 +65,7 @@ rule.yml
      target_selector = (Some [Python]);
      target_analyzer = (Xlang.L (Python, [])); options = None;
      equivalences = None; fix = None; fix_regexp = None; paths = None;
-     product = `SAST; metadata = None; validators = None; min_version = None;
-     max_version = None; dependency_formula = None }
+     product = `SAST; dependency_formula = None; validators = None;
+     metadata = None; min_version = None; max_version = None }
     ];
   invalid_rules = []; origin = (Rule_fetching.Local_file rule.yml) }

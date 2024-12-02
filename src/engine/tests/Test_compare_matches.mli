@@ -1,6 +1,6 @@
 (* Helpers for unit testing *)
 
-val location_of_pm : Pattern_match.t -> Fpath.t * int
+val location_of_pm : Core_match.t -> Fpath.t * int
 val location_of_core_error : Core_error.t -> Fpath.t * int
 
 (* extract all the lines with ERROR: comment in test files *)

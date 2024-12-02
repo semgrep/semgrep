@@ -1,5 +1,6 @@
+(* One match *)
 type processed_match = {
-  pm : Pattern_match.t;
+  pm : Core_match.t;
   (* semgrep-core is now responsible for the nosemgrep and autofix *)
   is_ignored : bool;
   autofix_edit : Textedit.t option;
@@ -40,7 +41,7 @@ type t = {
 type result_or_exn = (t, Exception.t) result
 
 (* just set default values for is_ignored (false) and autofix_edit (None) *)
-val mk_processed_match : Pattern_match.t -> processed_match
+val mk_processed_match : Core_match.t -> processed_match
 
 (* Intermediate match result.
  * The 'a below can be substituted with different profiling types
@@ -50,7 +51,7 @@ val mk_processed_match : Pattern_match.t -> processed_match
  *)
 
 type 'a match_result = {
-  matches : Pattern_match.t list;
+  matches : Core_match.t list;
   errors : Core_error.ErrorSet.t;
   profiling : 'a option;
   explanations : Matching_explanation.t list;
@@ -83,7 +84,7 @@ val mk_result_with_just_errors : Core_error.t list -> t
 val empty_match_result : Core_profiling.times match_result
 
 val mk_match_result :
-  Pattern_match.t list -> Core_error.ErrorSet.t -> 'a -> 'a match_result
+  Core_match.t list -> Core_error.ErrorSet.t -> 'a -> 'a match_result
 
 (* match results profiling adjustment helpers *)
 val map_profiling : ('a -> 'b) -> 'a match_result -> 'b match_result

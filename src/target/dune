@@ -1,5 +1,7 @@
-; This library contains just the data structures for a target. The
-; actual targeting code is in ../targeting/
+; Library defining mostly Target.ml and a few related modules.
+;
+; Note that the actual targeting code is in ../targeting/
+
 (library
  (public_name semgrep.target)
  (name semgrep_core_target)
@@ -8,9 +10,9 @@
    ; standard libraries
    ; in libs/
    commons
-   lib_parsing ; Origin
    ; in src/
-   ; We should also not depend on any other semgrep libs
+   ; We should not depend on any other semgrep libs
+   semgrep.sca ; for SCA_depencency.ml in Lockfile_xtarget.ml and more
    semgrep.rule ; for semgrep_output_v1.atd core types like 'ecosystem'
  )
  (preprocess
@@ -25,7 +27,7 @@
  )
 )
 
-; this is for Lockfile_xtarget.ml which contains multiple types
+; this is for a few files in this directory which contain multiple types
 ; using the same field names
 (env
   (_

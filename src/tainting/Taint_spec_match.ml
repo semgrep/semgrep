@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-module PM = Pattern_match
+module PM = Core_match
 module Effect = Shape_and_sig.Effect
 
 type overlap = float

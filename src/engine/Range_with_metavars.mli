@@ -10,7 +10,7 @@ type t = {
   r : Range.t;
   mvars : Metavariable.bindings;
   kind : range_kind;
-  origin : Pattern_match.t;
+  origin : Core_match.t;
 }
 [@@deriving show]
 
@@ -18,8 +18,8 @@ type ranges = t list [@@deriving show]
 
 (* Functions *)
 
-val match_result_to_range : Pattern_match.t -> t
-val range_to_pattern_match_adjusted : Rule.rule -> t -> Pattern_match.t
+val match_result_to_range : Core_match.t -> t
+val range_to_pattern_match_adjusted : Rule.rule -> t -> Core_match.t
 
 (* Set functions *)
 

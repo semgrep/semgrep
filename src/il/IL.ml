@@ -1,7 +1,6 @@
-(* Yoann Padioleau
- * Iago Abal
+(* Yoann Padioleau, Iago Abal
  *
- * Copyright (C) 2019-2022 r2c
+ * Copyright (C) 2019-2022 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License

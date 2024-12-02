@@ -15,7 +15,7 @@
 open Common
 open Fpath_.Operators
 module R = Rule
-module PM = Pattern_match
+module PM = Core_match
 module RP = Core_result
 module E = Core_error
 module OutJ = Semgrep_output_v1_t
@@ -160,8 +160,8 @@ let per_rule_boilerplate_fn (timeout : timeout_config option) =
           (Core_error.ErrorSet.singleton error)
           (Core_profiling.empty_rule_profiling rule)
 
-let scc_match_hook (match_hook : PM.t -> unit)
-    (dependency_match_table : Match_dependency.dependency_match_table option) :
+let scc_match_hook (match_hook : Core_match.t -> unit)
+    (dependency_match_table : Match_SCA_mode.dependency_match_table option) :
     PM.t list -> PM.t list =
   let get_dep_matches =
     match dependency_match_table with
@@ -170,10 +170,10 @@ let scc_match_hook (match_hook : PM.t -> unit)
   in
   fun pms ->
     pms
-    |> List.concat_map (fun (pm : Pattern_match.t) ->
+    |> List.concat_map (fun (pm : Core_match.t) ->
            let dependency_matches = get_dep_matches pm.rule_id.id in
            let pms' =
-             Match_dependency.annotate_pattern_match dependency_matches pm
+             Match_SCA_mode.annotate_pattern_match dependency_matches pm
            in
            pms' |> List.iter match_hook;
            pms')
@@ -183,7 +183,7 @@ let scc_match_hook (match_hook : PM.t -> unit)
 (*****************************************************************************)
 
 let check
-    ?(dependency_match_table : Match_dependency.dependency_match_table option)
+    ?(dependency_match_table : Match_SCA_mode.dependency_match_table option)
     ~match_hook ~(timeout : timeout_config option) (xconf : Match_env.xconfig)
     (rules : Rule.rules) (xtarget : Xtarget.t) : Core_result.matches_single_file
     =

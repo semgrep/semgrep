@@ -21,7 +21,7 @@ module F = IL
 module D = Dataflow_core
 module Var_env = Dataflow_var_env
 module VarMap = Var_env.VarMap
-module PM = Pattern_match
+module PM = Core_match
 module R = Rule
 module LV = IL_helpers
 module T = Taint
@@ -477,7 +477,7 @@ let effects_of_tainted_sink env taints_with_traces (sink : Effect.sink) :
                  match taint.T.orig with
                  | T.Src source ->
                      let src_pm, _ = T.pm_of_trace source.call_trace in
-                     src_pm.PM.env
+                     src_pm.env
                  | Var _
                  | Shape_var _
                  | Control ->

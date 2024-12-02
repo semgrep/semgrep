@@ -1,0 +1,36 @@
+; Library defining mostly SCA_dependency.ml and a few related modules.
+;
+; Note that many of the modules in this directory are just alias to
+; SCA types defined now in semgrep_output_v1.atd as those types are used
+; for RPC calls or are part of the Semgrep CLI output.
+;
+; The actual SCA code is split in many dirs and files
+;  - rule/{SCA_version.ml,SCA_pattern.ml}
+;  - target/Lockfile_xtarget.ml
+;  - core/SCA_match.ml
+;  - engine/Match_SCA_mode.ml
+;  - ...
+
+(library
+ (public_name semgrep.sca)
+ (name semgrep_core_sca)
+ (wrapped false)
+ (libraries
+   ; standard libraries
+   ; in libs/
+   commons
+   ; in src/
+   ; We should not depend on any other semgrep libs
+   semgrep.rule ; for semgrep_output_v1.atd core types like 'ecosystem'
+ )
+ (preprocess
+   (pps
+     ppx_profiling
+     ppx_deriving.show
+     ppx_deriving.eq
+     ppx_deriving.ord
+     ppx_deriving_yojson
+     ppx_hash
+   )
+ )
+)

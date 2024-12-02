@@ -18,11 +18,11 @@ module FT = File_type
 open Rule
 module R = Rule
 module E = Core_error
-module P = Pattern_match
+module PM = Core_match
 module RP = Core_result
 module SJ = Semgrep_output_v1_j
 module Set = Set_
-module OutJ = Semgrep_output_v1_t
+module Out = Semgrep_output_v1_t
 
 (*****************************************************************************)
 (* Prelude *)
@@ -74,7 +74,7 @@ let error (rule : Rule.t) (t : Tok.t) (s : string) : Core_error.t =
   in
   let _check_idTODO = "semgrep-metacheck-builtin" in
   let rule_id, _ = rule.id in
-  E.mk_error ~rule_id ~msg:s ?loc OutJ.SemgrepMatchFound
+  E.mk_error ~rule_id ~msg:s ?loc Out.SemgrepMatchFound
 
 (*****************************************************************************)
 (* Checks *)
@@ -255,13 +255,13 @@ let check r =
 
 let semgrep_check (caps : Core_scan.caps) (metachecks : Fpath.t)
     (rules : Fpath.t list) : Core_error.t list =
-  let match_to_semgrep_error (m : Pattern_match.t) : Core_error.t =
-    let loc, _ = m.P.range_loc in
+  let match_to_semgrep_error (m : Core_match.t) : Core_error.t =
+    let loc, _ = m.range_loc in
     (* TODO use the end location in errors *)
     let s = m.rule_id.message in
     let _check_id = m.rule_id.id in
     (* TODO: why not set ~rule_id here?? bug? *)
-    E.mk_error ~msg:s ~loc OutJ.SemgrepMatchFound
+    E.mk_error ~msg:s ~loc Out.SemgrepMatchFound
   in
   (* LATER: what if the rule is written in Jsonnet or JSON ? *)
   let lang : Lang.t = Yaml in

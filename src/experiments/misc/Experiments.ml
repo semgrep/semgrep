@@ -15,11 +15,11 @@ open Fpath_.Operators
  * can still be useful for deeper debugging.
  *)
 let stat_matches (caps : < Cap.stdout >) (file : Fpath.t) =
-  let (matches : Pattern_match.t list) = UMarshal_.get_value file in
+  let (matches : Core_match.t list) = UMarshal_.get_value file in
   CapConsole.print caps#stdout (spf "matched: %d" (List.length matches));
   let per_files =
     matches
-    |> List_.map (fun (m : Pattern_match.t) ->
+    |> List_.map (fun (m : Core_match.t) ->
            (m.path.internal_path_to_content, m))
     |> Assoc.group_assoc_bykey_eff
     |> List_.map (fun (file, xs) -> (file, List.length xs))

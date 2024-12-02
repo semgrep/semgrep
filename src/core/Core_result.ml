@@ -31,7 +31,7 @@ module Log = Log_semgrep.Log
  * There's also Core_runner.result in osemgrep.
  *
  * From the simplest matches to the most complex we have:
- * Pattern_match.t (and its alias Rule_match.t)
+ * Core_match.t
  * -> Core_result.processed_match (in this file)
  * -> Core_result.matches_single_file (this file)
  * -> Core_result.t (this file)
@@ -57,7 +57,7 @@ let fmt_errors fmt errors =
 
 (* For each file, substitute in the profiling type we have *)
 type 'a match_result = {
-  matches : Pattern_match.t list;
+  matches : Core_match.t list;
   errors : E.ErrorSet.t; [@printer fmt_errors]
   profiling : 'a option;
   explanations : Matching_explanation.t list;
@@ -81,7 +81,7 @@ type matches_single_file = Core_profiling.partial_profiling match_result
    These edits start as all None, but will be filled in by
    `Autofix.produce_autofixes`, and the associated Autofix_processor step.
 
-   alt: we could have added this to `Pattern_match.t`, but felt a bit early.
+   alt: we could have added this to `Core_match.t`, but felt a bit early.
    alt: we could have produced this information when going from Core_result.t
    to Out.core_output, but this would require us to do autofixing and ignoring
    at the same time as output, which conflates process of producing output and
@@ -89,14 +89,14 @@ type matches_single_file = Core_profiling.partial_profiling match_result
    and `Nosemgrep` modules are not available from that directory.
 *)
 type processed_match = {
-  pm : Pattern_match.t;
+  pm : Core_match.t;
   is_ignored : bool;
   autofix_edit : Textedit.t option;
 }
 [@@deriving show]
 
 type t = {
-  (* old: matches : Pattern_match.t list *)
+  (* old: matches : Core_match.t list *)
   processed_matches : processed_match list;
   errors : Core_error.t list;
   (* A target is scanned when semgrep found some applicable rules.

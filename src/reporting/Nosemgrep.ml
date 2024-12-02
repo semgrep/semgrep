@@ -110,7 +110,7 @@ let recognise_and_collect ~rex (line_num, line) =
    If [strict:true], we returns possible errors when [nosem] is used with an
    ID which is not equal to the rule's ID.
 *)
-let rule_match_nosem (pm : Pattern_match.t) : bool * Core_error.t list =
+let rule_match_nosem (pm : Core_match.t) : bool * Core_error.t list =
   let path = pm.path.internal_path_to_content in
   let lines =
     (* Minus one, because we need the preceding line. *)

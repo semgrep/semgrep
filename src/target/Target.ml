@@ -12,8 +12,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-module Out = Semgrep_output_v1_t
-module OutJ = Semgrep_output_v1_j
+open Fpath_.Operators
+module Out = Semgrep_output_v1_j
 module In = Input_to_core_t
 
 (*****************************************************************************)
@@ -32,36 +32,22 @@ type path = {
 }
 [@@deriving show, eq, yojson]
 
-type manifest = { path : path; kind : Manifest_kind.t }
-[@@deriving show, yojson]
-
-type lockfile = { path : path; kind : Lockfile_kind.t }
-[@@deriving show, yojson]
-
-type dependency_source =
-  | ManifestOnly of manifest
-  | LockfileOnly of lockfile
-  | ManifestAndLockfile of manifest * lockfile
-
-let pp_debug_lockfile f t =
-  Format.fprintf f "%s" (t.path.internal_path_to_content |> Fpath.to_string)
-
-(* TODO: Put this somewhere else? *)
+(* TODO: Put this in Product.ml *)
 let out_product_list_to_yojson product_list =
   `List
     (List_.map
        (* A little redundant *)
-         (fun p -> p |> OutJ.string_of_product |> Yojson.Safe.from_string)
+         (fun p -> p |> Out.string_of_product |> Yojson.Safe.from_string)
        product_list)
 
-(* TODO: Put this somewhere else? *)
+(* TODO: Put this in Product.ml *)
 let out_product_list_of_yojson yojson =
   match yojson with
   | `List products -> (
       try
         Ok
           (List_.map
-             (fun p -> p |> Yojson.Safe.to_string |> OutJ.product_of_string)
+             (fun p -> p |> Yojson.Safe.to_string |> Out.product_of_string)
              products)
       with
       | e -> Error (Printexc.to_string e))
@@ -74,25 +60,38 @@ let out_product_list_of_yojson yojson =
 type regular = {
   path : path;
   analyzer : Xlang.t;
-  products : Out.product list;
+  products : Product.t list;
       [@to_yojson out_product_list_to_yojson]
       [@of_yojson out_product_list_of_yojson]
-  (* TODO: (sca) associate each target with a dependency_source here rather than only a lockfile.
-   * We did not do this at the time that we added dependency_source because this code was unused at that point. *)
-  lockfile : lockfile option;
+  (* TODO: (sca) associate each target with a dependency_source here rather
+   * than only a lockfile.
+   * We did not do this at the time that we added dependency_source because
+   * this code was unused at that point.
+   *)
+  lockfile : Lockfile.t option;
 }
 [@@deriving show, yojson]
 
-let pp_debug_regular f t =
+type t = Regular of regular | Lockfile of Lockfile.t [@@deriving show, yojson]
+
+(*****************************************************************************)
+(* Dumpers *)
+(*****************************************************************************)
+
+let pp_debug_lockfile f (t : Lockfile.t) = Format.fprintf f "%s" !!(t.path)
+
+let pp_debug_regular f (t : regular) =
   Format.fprintf f "%s (%s)"
     (t.path.internal_path_to_content |> Fpath.to_string)
     (t.analyzer |> Xlang.to_string)
 
-type t = Regular of regular | Lockfile of lockfile [@@deriving show, yojson]
-
 let pp_debug f = function
   | Regular t -> Format.fprintf f "target file: %a" pp_debug_regular t
   | Lockfile t -> Format.fprintf f "target lockfile: %a" pp_debug_lockfile t
+
+(*****************************************************************************)
+(* Misc *)
+(*****************************************************************************)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -126,12 +125,6 @@ let path_of_origin (origin : Origin.t) : path =
 let mk_regular ?lockfile analyzer products (origin : Origin.t) : regular =
   { path = path_of_origin origin; analyzer; products; lockfile }
 
-let mk_lockfile kind (origin : Origin.t) : lockfile =
-  { path = path_of_origin origin; kind }
-
-let mk_manifest kind (origin : Origin.t) : manifest =
-  { path = path_of_origin origin; kind }
-
 let mk_target (xlang : Xlang.t) (file : Fpath.t) : t =
   let all = Product.all in
   (* TODO: should do the check in the other mk_xxx ? *)
@@ -143,8 +136,8 @@ let mk_target (xlang : Xlang.t) (file : Fpath.t) : t =
 (*****************************************************************************)
 
 let lockfile_target_of_input_to_core
-    ({ path; lockfile_kind = kind } : In.lockfile_target) : lockfile =
-  mk_lockfile kind (File (Fpath.v path))
+    ({ path; lockfile_kind = kind } : In.lockfile_target) : Lockfile.t =
+  Lockfile.mk_lockfile kind (Fpath.v path)
 
 let code_target_location_of_input_to_core
     ({ path; analyzer; products; lockfile_target } : In.code_target) : regular =
@@ -157,42 +150,19 @@ let target_of_input_to_core (input : In.target) : t =
   | `LockfileTarget x -> Lockfile (lockfile_target_of_input_to_core x)
 
 (*****************************************************************************)
-(* Semgrep_output -> Target *)
-(*****************************************************************************)
-
-let manifest_of_semgrep_output ({ path; kind } : Out.manifest) : manifest =
-  mk_manifest kind (File path)
-
-let lockfile_of_semgrep_output ({ path; kind } : Out.lockfile) : lockfile =
-  mk_lockfile kind (File path)
-
-let dependency_source_of_semgrep_output (output_source : Out.dependency_source)
-    =
-  match output_source with
-  | ManifestOnlyDependencySource manifest ->
-      ManifestOnly (manifest_of_semgrep_output manifest)
-  | LockfileOnlyDependencySource lockfile ->
-      LockfileOnly (lockfile_of_semgrep_output lockfile)
-  | ManifestLockfileDependencySource (manifest, lockfile) ->
-      ManifestAndLockfile
-        ( manifest_of_semgrep_output manifest,
-          lockfile_of_semgrep_output lockfile )
-
-(*****************************************************************************)
 (* Accessors *)
 (*****************************************************************************)
 
 let internal_path (target : t) : Fpath.t =
   match target with
-  | Regular { path = { internal_path_to_content; _ }; _ }
-  | Lockfile { path = { internal_path_to_content; _ }; _ } ->
+  | Regular { path = { internal_path_to_content; _ }; _ } ->
       internal_path_to_content
+  | Lockfile { path; _ } -> path
 
 let origin (target : t) : Origin.t =
   match target with
-  | Regular { path = { origin; _ }; _ }
-  | Lockfile { path = { origin; _ }; _ } ->
-      origin
+  | Regular { path = { origin; _ }; _ } -> origin
+  | Lockfile { path; _ } -> Origin.File path
 
 let analyzer (target : t) : Xlang.t option =
   match target with

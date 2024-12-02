@@ -1,4 +1,4 @@
-(* See Pattern_match.ml for more info *)
+(* See Core_match.ml for more info *)
 type t = {
   (* rule (or mini rule) responsible for the pattern match found *)
   rule_id : rule_id;
@@ -10,12 +10,12 @@ type t = {
   tokens : Tok.t list Lazy.t;
   env : Metavariable.bindings;
   (* trace *)
-  taint_trace : taint_trace Lazy.t option;
+  taint_trace : Taint_trace.t Lazy.t option;
   (* for secrets *)
   validation_state : Rule.validation_state;
   severity_override : Rule.severity option;
   metadata_override : JSON.t option;
-  dependency : dependency option;
+  dependency : SCA_match.kind option;
   (* A field to be populated based on intra-formula `fix` keys.
      This is _prior_ to AST-based autofix and interpolation, which occurs in
      Autofix.ml.
@@ -29,21 +29,6 @@ type t = {
   facts : AST_generic.facts;
 }
 
-and dependency =
-  (* Rule had both code patterns and dependency patterns,
-     got matches on *both*, the Pattern Match is in code,
-     annotated with this dependency match
-  *)
-  | CodeAndLockfileMatch of dependency_match
-  (* Rule had dependency patterns, they matched,
-     the Pattern Match is in a lockfile
-     So the range_loc of the Dependency.t in this dependency_match
-     should be *the same* as the range_loc in the PatternMatch.t
-  *)
-  | LockfileOnlyMatch of dependency_match
-
-and dependency_match = Dependency.t * Rule.dependency_pattern
-
 (* a record but really only the [id] field should matter *)
 and rule_id = {
   id : Rule_ID.t;
@@ -55,25 +40,7 @@ and rule_id = {
   langs : Lang.t list;
   pattern_string : string;
 }
-
-and taint_trace = taint_trace_item list
-
-and taint_trace_item = {
-  source_trace : taint_call_trace;
-  tokens : tainted_tokens;
-  sink_trace : taint_call_trace;
-}
-
-and taint_call_trace =
-  | Toks of pattern_match_tokens
-  | Call of {
-      call_toks : pattern_match_tokens;
-      intermediate_vars : tainted_tokens;
-      call_trace : taint_call_trace;
-    }
-
-and pattern_match_tokens = Tok.t list
-and tainted_tokens = Tok.t list [@@deriving show, eq]
+[@@deriving show, eq]
 
 (* remove duplicate *)
 val uniq : t list -> t list

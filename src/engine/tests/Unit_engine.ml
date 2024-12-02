@@ -2,9 +2,9 @@ open Common
 open Fpath_.Operators
 module R = Rule
 module MR = Mini_rule
-module P = Pattern_match
+module PM = Core_match
 module E = Core_error
-module OutJ = Semgrep_output_v1_t
+module Out = Semgrep_output_v1_t
 module TCM = Test_compare_matches
 
 let t = Testo.create
@@ -665,11 +665,11 @@ let tainting_test (lang : Lang.t) (rules_file : Fpath.t) (file : Fpath.t) =
   in
   let actual =
     matches
-    |> List_.map (fun (m : P.t) ->
+    |> List_.map (fun (m : PM.t) ->
            E.
              {
                rule_id = Some m.rule_id.id;
-               typ = OutJ.SemgrepMatchFound;
+               typ = Out.SemgrepMatchFound;
                loc = Some (fst m.range_loc);
                msg = m.rule_id.message;
                details = None;

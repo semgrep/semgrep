@@ -5,9 +5,10 @@
     these types have expanded information about the targets' locations). *)
 
 (*****************************************************************************)
-(* Types *)
+(* Target path *)
 (*****************************************************************************)
 
+(* Yet another path (Fpath.t -> Origin.t -> Target.path) *)
 type path = {
   origin : Origin.t;
       (** The origin of the data as is relevant to the user. This could be,
@@ -30,41 +31,17 @@ type path = {
     {- obtaining the contents: [internal_path_to_content]}
   } *)
 
-type manifest = {
-  path : path;
-  kind : Manifest_kind.t;
-      (** The type of manifest this is. Analogous to analyzer for a source code
-        target. *)
-}
-[@@deriving show, yojson]
-(** A manifest file to be used during matching. See also
-    {!Lockfile_xtarget.manifest}, which also has the contents. *)
-
-type lockfile = {
-  path : path;
-  kind : Lockfile_kind.t;
-      (** The type of lockfile this is. Analogous to analyzer for a source code
-          target. *)
-}
-[@@deriving show, yojson]
-(** A lockfile to be used during matching. See also {!Lockfile_xtarget.t}, an
-    augmented version with the contents of the lockfile. *)
-
-type dependency_source =
-  | ManifestOnly of manifest
-  | LockfileOnly of lockfile
-  | ManifestAndLockfile of manifest * lockfile
-      (** A source to resolve dependencies from. Can be either a lockfile or a manifest, or both. *)
-
-val pp_debug_lockfile : Format.formatter -> lockfile -> unit
+(*****************************************************************************)
+(* Regular target *)
+(*****************************************************************************)
 
 type regular = {
   path : path;
   analyzer : Xlang.t;  (** The analyzer to use when scanning this target. *)
-  products : Semgrep_output_v1_t.product list;
+  products : Product.t list;
       (** The products which should scan this target. This is used for
           selecting the relevant set of rules. *)
-  lockfile : lockfile option;
+  lockfile : Lockfile.t option;
       (** Optional lockfile associated with this target.
 
           The association is namely that this target has its dependencies
@@ -73,12 +50,13 @@ type regular = {
           generation process must resolve these connections as part of
           generating regular targets. *)
 }
-[@@deriving show, yojson]
 (** A regular semgrep target, comprising source code (or, for
    regex/generic, arbitrary text data) to be executed. See also {!Xtarget.t},
    an augmented version which also has the contents. *)
 
-val pp_debug_regular : Format.formatter -> regular -> unit
+(*****************************************************************************)
+(* Main type *)
+(*****************************************************************************)
 
 (** A Semgrep target. This contains all of the details needed to be able to
     determine how to scan a target, e.g.,
@@ -92,20 +70,14 @@ val pp_debug_regular : Format.formatter -> regular -> unit
     However, it does not contain the actual contents (parsed or otherwise) of
     the target itself. For that, see {!Xtarget.t} or {!Lockfile_xtarget}.
  *)
-type t = Regular of regular | Lockfile of lockfile [@@deriving show, yojson]
-
-val pp_debug : Format.formatter -> t -> unit
+type t = Regular of regular | Lockfile of Lockfile.t [@@deriving show, yojson]
 
 (*****************************************************************************)
 (* Builders *)
 (*****************************************************************************)
 
 val mk_regular :
-  ?lockfile:lockfile ->
-  Xlang.t ->
-  Semgrep_output_v1_t.product list ->
-  Origin.t ->
-  regular
+  ?lockfile:Lockfile.t -> Xlang.t -> Product.t list -> Origin.t -> regular
 (** [mk_regular analyzer products origin] is a {!regular} target
       originating from [origin] to be analyzed with [analyzer] for [products].
       If [lockfile] is specified then it shall be used as the associated
@@ -116,25 +88,6 @@ val mk_regular :
       a target from certain types of origins, such as generating a tempfile.
  *)
 
-val mk_lockfile : Lockfile_kind.t -> Origin.t -> lockfile
-(** [mk_lockfile k origin] is the a {!lockfile} target
-      originating from [origin] of kind [k]. If [manifest] is specified, it
-      shall be used as the associated manifest.
-
-      This function should be generally preferred over creating a record
-      directly, since it can peform actions which may be required when creating
-      a target from certain types of origins, such as generating a tempfile.
- *)
-
-val mk_manifest : Manifest_kind.t -> Origin.t -> manifest
-(** [mk_manifest k origin] is a {!manifest} target
-    originating from [origin] of kind [k].
-
-    This function should be generally preferred over creating a record
-    directly, since it can peform actions which may be required when creating a
-    target from certain types of origins, such as generating a tempfile.
- *)
-
 (* useful in tests *)
 val mk_target : Xlang.t -> Fpath.t -> t
 
@@ -142,13 +95,6 @@ val mk_target : Xlang.t -> Fpath.t -> t
 (* Input_to_core -> Target *)
 (*****************************************************************************)
 val target_of_input_to_core : Input_to_core_t.target -> t
-
-(*****************************************************************************)
-(* Semgrep_output -> Target *)
-(*****************************************************************************)
-
-val dependency_source_of_semgrep_output :
-  Semgrep_output_v1_t.dependency_source -> dependency_source
 
 (*****************************************************************************)
 (* Accessors *)
@@ -162,3 +108,16 @@ val origin : t -> Origin.t
 (** [origin target] is the user-reportable origin of [target]. *)
 
 val analyzer : t -> Xlang.t option
+
+(*****************************************************************************)
+(* Dumpers *)
+(*****************************************************************************)
+
+val pp_debug : Format.formatter -> t -> unit
+val pp_debug_regular : Format.formatter -> regular -> unit
+val pp_debug_lockfile : Format.formatter -> Lockfile.t -> unit
+
+(*****************************************************************************)
+(* Helpers used internally but also in other files *)
+(*****************************************************************************)
+val path_of_origin : Origin.t -> path

@@ -227,7 +227,7 @@ let mk_file_match_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
     (* need to go through a series of transformation so that we can
      * get something that Matches_report.pp_text_outputs can operate on
      *)
-    let pms : Pattern_match.t list = match_results.matches in
+    let pms : Core_match.t list = match_results.matches in
     let core_matches : Out.core_match list =
       pms
       (* OK, because we don't need the postprocessing to report the matches. *)

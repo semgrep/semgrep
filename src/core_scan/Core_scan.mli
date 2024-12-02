@@ -28,7 +28,7 @@ type caps = < Cap.fork ; Cap.time_limit ; Cap.memory_limit >
  * or UConsole. In theory, scan() can be completely pure.
  *
  * We require Cap.fork for Parmap.
- * We require Cap.alarm for timeout in Check_rules().
+ * We require Cap.time_limit for timeout in Check_rules().
  *
  * The scan function has the type [func] defined above.
  *

@@ -821,7 +821,7 @@ let parse_ecosystem env key value =
   | _ -> error_at_key env.id key "Non-string data for ecosystem?"
 
 let parse_dependency_pattern key env value :
-    (R.dependency_pattern, Rule_error.t) result =
+    (SCA_pattern.t, Rule_error.t) result =
   let/ rd = parse_dict env key value in
   let/ ecosystem = take_key rd env parse_ecosystem "namespace" in
   let/ package_name = take_key rd env parse_string "package" in
@@ -829,13 +829,13 @@ let parse_dependency_pattern key env value :
     (* TODO: version parser *)
     take_key rd env parse_string "version"
     |> Result.map (fun _ ->
-           Dependency.And
-             [ { version = Other "not implemented"; constraint_ = Eq } ])
+           SCA_pattern.SCA_And
+             [ { version = SCA_version.Other "not implemented"; op = Eq } ])
   in
-  Ok R.{ ecosystem; package_name; version_constraints }
+  Ok SCA_pattern.{ ecosystem; package_name; version_constraints }
 
 let parse_dependency_formula env key value :
-    (R.dependency_formula, Rule_error.t) result =
+    (R.sca_dependency_formula, Rule_error.t) result =
   let/ rd = parse_dict env key value in
   if Hashtbl.mem rd.h "depends-on-either" then
     take_key rd env
@@ -957,7 +957,7 @@ let check_version_compatibility rule_id ~min_version ~max_version =
    products. This basically just copies the logic of
    semgrep/cli/src/semgrep/rule.py::Rule.product *)
 let parse_product (metadata : J.t option)
-    (dep_formula_opt : R.dependency_formula option) :
+    (dep_formula_opt : R.sca_dependency_formula option) :
     Semgrep_output_v1_t.product =
   match dep_formula_opt with
   | Some _ -> `SCA

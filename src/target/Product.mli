@@ -1,6 +1,8 @@
-(* This modules uses the ocaml type system to prove that the
-   Input_to_core_t.product is the same as
-   Semgrep_output_v1_t.product. *)
+type t = Semgrep_output_v1_t.product (* = Input_to_core.product *)
+[@@deriving show]
 
-val all : Semgrep_output_v1_t.product list
-val of_cli_match : Semgrep_output_v1_t.cli_match -> Semgrep_output_v1_t.product
+(* currently [`SAST; `SCA; `Secrets] *)
+val all : t list
+
+(* use the metadata.product field to derive the product of a match *)
+val of_cli_match : Semgrep_output_v1_t.cli_match -> t

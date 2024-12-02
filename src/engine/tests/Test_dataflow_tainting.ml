@@ -17,7 +17,7 @@ let pr2_ranges (file : Fpath.t) (rwms : RM.t list) : unit =
          let code_text = Range.content_at_range file rwm.RM.r in
          let line_str =
            let pm = rwm.RM.origin in
-           let loc1, _ = pm.Pattern_match.range_loc in
+           let loc1, _ = pm.range_loc in
            string_of_int loc1.Tok.pos.line
          in
          UCommon.pr2 (code_text ^ " @l." ^ line_str))

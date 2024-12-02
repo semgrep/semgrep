@@ -1,5 +1,5 @@
 (* core algorithm, using AST-based or basic or regex fix strategy *)
-val render_fix : Pattern_match.t -> Textedit.t option
+val render_fix : Core_match.t -> Textedit.t option
 
 (* Produce the fixes for the list of matches. Currently used for tests but
  * also in the Pre_post_core_scan.Autofix_processor now that we handle

@@ -27,7 +27,6 @@ module Log = Log_semgrep.Log
  * Semgrep_output_v1.core_error, then processed in pysemgrep (or osemgrep)
  * and translated again in Semgrep_output_v1.error.
  * There's also Error.ml in osemgrep.
- *
  * LATER: it would be good to remove some intermediate types.
  *)
 

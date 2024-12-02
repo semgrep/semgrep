@@ -83,7 +83,7 @@ let check lang { target; pattern; fix_pattern; expected } =
       in
       (* Replace the fake target contents with the rendered fix *)
       let start, end_ =
-        let start, end_ = match_.Pattern_match.range_loc in
+        let start, end_ = match_.range_loc in
         let _, _, end_charpos = Tok.end_pos_of_loc end_ in
         (start.Tok.pos.bytepos, end_charpos)
       in

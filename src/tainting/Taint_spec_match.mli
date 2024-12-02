@@ -16,7 +16,7 @@ type 'spec t = {
       * This spec should have a pattern formula. *)
   spec_id : string;
       (** See 'source_id' etc in 'Rule' and 'Parse_rule', this is the very same id. *)
-  spec_pm : Pattern_match.t;
+  spec_pm : Core_match.t;
       (** What the spec's pattern formula actually matches in the target file. *)
   range : Range.t;
       (** The range of this particular match, which will be a subrange of 'spec_pm',

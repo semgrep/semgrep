@@ -52,7 +52,7 @@ let compare_range (r1 : Range.t) (r2 : Range.t) : bool =
 let parse_file lang file : AST_generic.program =
   Parse_target.parse_and_resolve_name_fail_if_partial lang file
 
-let extract_range (m : Pattern_match.t) : Range.t =
+let extract_range (m : Core_match.t) : Range.t =
   let start_token_loc, end_token_loc = m.range_loc in
   Range.range_of_token_locations start_token_loc end_token_loc
 

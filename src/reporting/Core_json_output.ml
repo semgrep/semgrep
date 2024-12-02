@@ -19,8 +19,8 @@ module E = Core_error
 module J = JSON
 module MV = Metavariable
 module RP = Core_result
-module PM = Pattern_match
-open Pattern_match
+module PM = Core_match
+open Core_match
 module Out = Semgrep_output_v1_j
 module OutUtils = Semgrep_output_utils
 module Log = Log_reporting.Log
@@ -258,7 +258,7 @@ let token_to_intermediate_var token : Out.match_intermediate_var option =
 let tokens_to_intermediate_vars tokens =
   List_.filter_map token_to_intermediate_var tokens
 
-let rec taint_call_trace (trace : PM.taint_call_trace) :
+let rec taint_call_trace (trace : Taint_trace.call_trace) :
     Out.match_call_trace option =
   match trace with
   | Toks toks ->
@@ -271,7 +271,7 @@ let rec taint_call_trace (trace : PM.taint_call_trace) :
       Some
         (Out.CliCall ((loc, content_of_loc loc), intermediate_vars, call_trace))
 
-let taint_trace_to_dataflow_trace (traces : PM.taint_trace_item list) :
+let taint_trace_to_dataflow_trace (traces : Taint_trace.item list) :
     Out.match_dataflow_trace =
   (* Here, we ignore all but the first taint trace, for source or sink.
      This is because we added support for multiple sources/sinks in a single
@@ -287,7 +287,7 @@ let taint_trace_to_dataflow_trace (traces : PM.taint_trace_item list) :
   let source_call_trace, tokens, sink_call_trace =
     match traces with
     | [] -> raise Common.Impossible
-    | { Pattern_match.source_trace; tokens; sink_trace } :: _ ->
+    | { Taint_trace.source_trace; tokens; sink_trace } :: _ ->
         (source_trace, tokens, sink_trace)
   in
   Out.

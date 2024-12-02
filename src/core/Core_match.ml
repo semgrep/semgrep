@@ -16,68 +16,33 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Type to represent a pattern match.
+(* Type to represent a semgrep "match" (a.k.a. a finding).
  *
- * old: used to be called Match_result.t
+ * Note that the "core" match are translated at some point in
+ * Semgrep_output_v1.core_match, then processed in pysemgrep (or osemgrep)
+ * and translated again in Semgrep_output_v1.cli_match, and
+ * translated even further by pysemgrep (or osemgrep) ci in
+ * Semgrep_output_v1.finding.
+ * LATER: it would be good to remove some intermediate types.
+ *
+ * old: used to be called Pattern_match.t, and before that Match_result.t
+ * alt: rename to Finding.ml
  *)
 
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-
 (* We use 'eq' below to possibly remove redundant equivalent matches. Indeed,
  * Generic_vs_generic sometimes return multiple times the same match,
  * sometimes because of some bugs we didn't fix, sometimes it's normal
  * because of the way '...' operate. TODO: add an example of such situation.
  *
- * Note that you should not ignore the rule id when comparing 2 matches!
+ * Note that you should not ignore the rule id when comparing two matches!
  * One match can come from a pattern-not: in which case
  * even if it returns the same match than a similar match coming
  * from a pattern:, we should not merge them!
  *)
 
-(* The locations of variables which taint propagates through *)
-type tainted_tokens = Tok.t list [@@deriving show, eq]
-
-(* The tokens associated with a single pattern match involved in a taint trace *)
-type pattern_match_tokens = Tok.t list [@@deriving show, eq]
-
-(* Simplified version of Taint.source_to_sink meant for finding reporting *)
-type taint_call_trace =
-  (* A direct match *)
-  | Toks of pattern_match_tokens
-  (* An indirect match through a function call *)
-  | Call of {
-      call_toks : pattern_match_tokens;
-      intermediate_vars : tainted_tokens;
-      call_trace : taint_call_trace;
-    }
-[@@deriving show, eq]
-
-(* The trace of a single source of taint, to the sink.
-   There may be many of these, taking different paths. For a single
-   sink, the fact that it produces a finding might be the product of
-   many taints, due to labels.
-   These taints may also take their own paths, because they might arrive
-   via different variables.
-*)
-type taint_trace_item = {
-  source_trace : taint_call_trace;
-      (** This is the path that the taint takes, from the source, to get to
-        the current function in which the taint finding is reported. *)
-  tokens : tainted_tokens;
-      (** This is the path taken within the current function, to link the
-        taint source obtained earlier with a sink. Both of these might
-        be done through a chain of function calls. *)
-  sink_trace : taint_call_trace;
-      (** This is the path that the taint takes, from the function context,
-        to get to the sink. *)
-}
-[@@deriving show, eq]
-
-type taint_trace = taint_trace_item list [@@deriving show, eq]
-
-(* ! main type ! *)
 type t = {
   (* rule (or mini rule) responsible for the pattern match found *)
   rule_id : rule_id; [@equal fun a b -> a.id = b.id]
@@ -128,7 +93,7 @@ type t = {
      in deduplication.
      We now rely on equality of taint traces, which in turn relies on equality of `Parse_info.t`.
   *)
-  taint_trace : taint_trace Lazy.t option; (* secrets stuff *)
+  taint_trace : Taint_trace.t Lazy.t option; (* secrets stuff *)
   (* Indicates whether a postprocessor ran and validated this result. *)
   validation_state : Rule.validation_state;
   (* Indicates if the rule default severity should be modified to a different
@@ -144,7 +109,7 @@ type t = {
      the override is applied on top of the default and only changes the fields
      present in the override. *)
   metadata_override : JSON.t option;
-  dependency : dependency option;
+  dependency : SCA_match.kind option;
   (* A field to be populated based on intra-formula `fix` keys.
      This is _prior_ to AST-based autofix and interpolation, which occurs in
      Autofix.ml.
@@ -152,15 +117,6 @@ type t = {
   fix_text : string option;
   facts : AST_generic.facts;
 }
-
-and dependency =
-  (* Rule had both code patterns and dependency patterns, got matches on *both*, the Pattern Match is in code, annotated with this dependency match *)
-  | CodeAndLockfileMatch of dependency_match
-  (* Rule had dependency patterns, they matched, the Pattern Match is in a lockfile *)
-  (* So the range_loc of the Dependency.t in this dependency_match should be *the same* as the range_loc in the PatternMatch.t *)
-  | LockfileOnlyMatch of dependency_match
-
-and dependency_match = Dependency.t * Rule.dependency_pattern
 
 (* This is currently a record, but really only the rule id should matter.
  *
@@ -170,10 +126,11 @@ and dependency_match = Dependency.t * Rule.dependency_pattern
  * some functions are simpler (we use the same trick with Parse_info.t
  * where for example we embed the filename in it, not just a position).
  * alt: reuse Mini_rule.t
+ *
+ * !!WARNING!!: If you add a field to this type, if you would like it to be
+ * passed down to the Core_match.t, you need to touch
+ * `range_to_pattern_match_adjusted`!
  *)
-(* !!WARNING!!: If you add a field to this type, if you would like it to be passed
-   down to the Pattern_match.t, you need to touch `range_to_pattern_match_adjusted`!
-*)
 and rule_id = {
   (* This id is usually a string like 'check-double-equal'.
    * It can be the id of a rule or mini rule.
@@ -256,31 +213,3 @@ let no_submatches pms =
 [@@profiling]
 
 let to_proprietary pm = { pm with engine_of_match = `PRO }
-
-(* DEAD ?
-
-   (* This special Set is used in the dataflow tainting code,
-      which manipulates sets of matches associated to each variables.
-      We only care about the metavariable environment carried by the pattern
-      matches at the moment.
-   *)
-   module Set = Set.Make (struct
-     type previous_t = t
-
-     (* alt: use type nonrec t = t, but this causes pad's codegraph to blowup *)
-     type t = previous_t
-
-     (* If the pattern matches are obviously different (have different ranges),
-        this is enough to compare them.
-        If their ranges are the same, compare their metavariable environments.
-        This is not robust to reordering metavariable environments.
-        [("$A",e1);("$B",e2)] is not equal to [("$B",e2);("$A",e1)]. This should
-        be ok but is potentially a source of duplicate findings in taint mode,
-        where these sets are used.
-     *)
-     let compare pm1 pm2 =
-       match compare pm1.range_loc pm2.range_loc with
-       | 0 -> compare pm1.env pm2.env
-       | c -> c
-   end)
-*)

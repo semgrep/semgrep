@@ -19,7 +19,7 @@ module Var_env = Dataflow_var_env
 module G = AST_generic
 module H = AST_generic_helpers
 module R = Rule
-module PM = Pattern_match
+module PM = Core_match
 module RP = Core_result
 module T = Taint
 module Lval_env = Taint_lval_env
@@ -81,10 +81,10 @@ let preferred_label_of_sink ({ rule_sink; _ } : Effect.sink) =
 
 let rec convert_taint_call_trace = function
   | Taint.PM (pm, _) ->
-      let toks = Lazy.force pm.PM.tokens |> List.filter Tok.is_origintok in
-      PM.Toks toks
+      let toks = Lazy.force pm.tokens |> List.filter Tok.is_origintok in
+      Taint_trace.Toks toks
   | Taint.Call (expr, toks, ct) ->
-      PM.Call
+      Taint_trace.Call
         {
           call_toks =
             AST_generic_helpers.ii_of_any (G.E expr)
@@ -150,7 +150,7 @@ let sources_of_taints ?preferred_label taints =
 let trace_of_source source =
   let src, tokens, sink_trace = source in
   {
-    PM.source_trace = convert_taint_call_trace src.T.call_trace;
+    Taint_trace.source_trace = convert_taint_call_trace src.T.call_trace;
     tokens;
     sink_trace = convert_taint_call_trace sink_trace;
   }
@@ -210,7 +210,7 @@ let pms_of_effect ~match_on (effect : Effect.t) =
                    let src_pm, _ = T.pm_of_trace src.T.call_trace in
                    let trace =
                      {
-                       PM.source_trace =
+                       Taint_trace.source_trace =
                          convert_taint_call_trace src.T.call_trace;
                        tokens;
                        sink_trace = convert_taint_call_trace sink_trace;

@@ -1,7 +1,10 @@
+; Library defining an Intermediate Language (IL) to ease certain
+; static analysis.
+;
 ; Try to not add too many dependencies in this directory. This library
-; used to be in pfff and is still used in projects outside semgrep (e.g.,
-; codemap/efuns) which rely on this pfff-lang_... name and rely on
-; small dependencies.
+; is still used in projects outside semgrep (e.g., codemap/efuns) which rely
+; on small dependencies.
+
 (library
  (public_name semgrep.il)
  (name semgrep_core_il)

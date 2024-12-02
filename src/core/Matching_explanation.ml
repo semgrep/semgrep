@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2022 r2c
+ * Copyright (C) 2022 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
-module OutJ = Semgrep_output_v1_j
+module Out = Semgrep_output_v1_j
 
 (*****************************************************************************)
 (* Prelude *)
@@ -29,18 +29,18 @@ module OutJ = Semgrep_output_v1_j
 (* coupling: semgrep_output_v1.atd matching_explanation_extra type *)
 type extra = {
   (* only present for And kind *)
-  before_negation_matches : Pattern_match.t list option;
+  before_negation_matches : Core_match.t list option;
   (* only present in nodes which have children Filter nodes *)
-  before_filter_matches : Pattern_match.t list option;
+  before_filter_matches : Core_match.t list option;
 }
 [@@deriving show]
 
 (* coupling: semgrep_output_v1.atd matching_explanation type *)
 type t = {
-  op : OutJ.matching_operation;
+  op : Out.matching_operation;
   children : t list;
   (* resulting ranges *)
-  matches : Pattern_match.t list;
+  matches : Core_match.t list;
   (* TODO: should be a range loc in the rule file *)
   pos : Rule.tok;
   extra : extra option;
@@ -52,16 +52,16 @@ type t = {
 (*****************************************************************************)
 
 (* less: could also display short info on metavar values *)
-let match_to_charpos_range (pm : Pattern_match.t) : string =
+let match_to_charpos_range (pm : Core_match.t) : string =
   let min_loc, max_loc = pm.range_loc in
   let startp, endp = Semgrep_output_utils.position_range min_loc max_loc in
-  spf "%d-%d" startp.OutJ.offset endp.OutJ.offset
+  spf "%d-%d" startp.Out.offset endp.Out.offset
 
 (* alt: use Format module *)
 let rec print_indent indent { op; children; matches; pos; extra = _ } =
   let s =
     spf "%s op = %s (at %d), matches = %s" (Common2.n_space indent)
-      (OutJ.show_matching_operation op)
+      (Out.show_matching_operation op)
       (Tok.bytepos_of_tok pos)
       (matches |> List_.map match_to_charpos_range |> String.concat " ")
   in

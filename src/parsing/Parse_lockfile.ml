@@ -4,7 +4,7 @@ let parse_lockfile :
     In.lockfile_kind ->
     Lockfile_xtarget.manifest option ->
     Fpath.t ->
-    Dependency.t list = function
+    SCA_dependency.t list = function
   (* TODO: add parsers, guard behind semgrep-pro  *)
   | PipRequirementsTxt
   | PoetryLock
@@ -27,7 +27,7 @@ let parse_lockfile :
       fun _ _ -> []
 
 let parse_manifest :
-    In.manifest_kind -> Fpath.t -> Dependency.manifest_dependency list =
+    In.manifest_kind -> Fpath.t -> SCA_dependency.manifest_dependency list =
   function
   (* TODO: add parsers, guard behind semgrep-pro  *)
   | `RequirementsIn

@@ -17,7 +17,7 @@ open Fpath_.Operators
 open AST_generic
 module MR = Mini_rule
 module Eq = Equivalence
-module PM = Pattern_match
+module PM = Core_match
 module GG = Generic_vs_generic
 module MV = Metavariable
 module Flag = Flag_semgrep
@@ -137,7 +137,7 @@ let match_raw_raw rule a b env =
 (* Helpers *)
 (*****************************************************************************)
 
-let (rule_id_of_mini_rule : Mini_rule.t -> Pattern_match.rule_id) =
+let (rule_id_of_mini_rule : Mini_rule.t -> Core_match.rule_id) =
  fun (mr : Mini_rule.t) ->
   {
     PM.id = mr.id;

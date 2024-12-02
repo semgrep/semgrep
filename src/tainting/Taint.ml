@@ -14,7 +14,7 @@
  *)
 
 module G = AST_generic
-module PM = Pattern_match
+module PM = Core_match
 module R = Rule
 module LabelSet = Set.Make (String)
 module Log = Log_tainting.Log
@@ -119,7 +119,7 @@ let rec show_call_trace show_thing = function
         Range.content_at_range pm.path.internal_path_to_content r
       in
       let matched_line =
-        let loc1, _ = pm.Pattern_match.range_loc in
+        let loc1, _ = pm.range_loc in
         loc1.Tok.pos.line
       in
       Printf.sprintf "%s at l.%d [%s]" matched_str matched_line (show_thing x)
@@ -328,7 +328,7 @@ let rec show_source { call_trace; label; precondition } =
     Range.content_at_range pm.path.internal_path_to_content r
   in
   let matched_line =
-    let loc1, _ = pm.Pattern_match.range_loc in
+    let loc1, _ = pm.range_loc in
     loc1.Tok.pos.line
   in
   let num_calls = length_of_call_trace call_trace in

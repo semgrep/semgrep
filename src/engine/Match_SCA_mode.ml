@@ -1,14 +1,11 @@
 module R = Rule
-module PM = Pattern_match
-module D = Dependency
 module Out = Semgrep_output_v1_t
 
-type dependency_match_table =
-  (Rule_ID.t, Pattern_match.dependency_match list) Hashtbl.t
-
+(* TODO? could move to SCA_match.ml *)
+type dependency_match_table = (Rule_ID.t, SCA_match.t list) Hashtbl.t
 type cmp = [ `EQ | `GT | `LT ]
 
-let compare_version_core c1 c2 =
+let compare_version_core (c1 : SCA_version.core) (c2 : SCA_version.core) =
   let cmp n m : cmp = if n > m then `GT else if n < m then `LT else `EQ in
   let rec check = function
     | (i, j) :: is -> (
@@ -18,28 +15,28 @@ let compare_version_core c1 c2 =
         | `LT -> `LT)
     | [] -> `EQ
   in
-  (c1.D.major, c2.D.major) :: (c1.minor, c2.minor)
+  (c1.major, c2.major) :: (c1.minor, c2.minor)
   :: Common2.zip c1.incrementals c2.incrementals
   |> check
 
-let check_constraint D.{ version; constraint_ } v' =
+let check_constraint SCA_pattern.{ version; op } v' =
   match (version, v') with
-  | D.Version v, D.Version v' -> (
-      match constraint_ with
-      | D.Eq -> compare_version_core v' v = `EQ
+  | SCA_version.V v, SCA_version.V v' -> (
+      match op with
+      | SCA_pattern.Eq -> compare_version_core v' v = `EQ
       | Gte -> compare_version_core v' v <> `LT
       | Lte -> compare_version_core v' v <> `GT
       | Gt -> compare_version_core v' v = `GT
       | Lt -> compare_version_core v' v = `LT)
   | _ -> false
 
-let match_dependency_pattern (deps : Dependency.t list)
-    (pat : Rule.dependency_pattern) : Pattern_match.dependency_match list =
+let match_dependency_pattern (deps : SCA_dependency.t list)
+    (pat : SCA_pattern.t) : SCA_match.t list =
   deps
-  |> List_.filter_map @@ fun (dep : Dependency.t) ->
+  |> List_.filter_map @@ fun (dep : SCA_dependency.t) ->
      if
        String.equal dep.package_name pat.package_name
-       && pat.version_constraints |> fun (And cs) ->
+       && pat.version_constraints |> fun (SCA_pattern.SCA_And cs) ->
           List.for_all
             (fun constr -> check_constraint constr dep.package_version)
             cs
@@ -48,9 +45,7 @@ let match_dependency_pattern (deps : Dependency.t list)
 
 (* Return the set of dependency/pattern pairs that matched *)
 let match_dependency_formula :
-    Lockfile_xtarget.t ->
-    Rule.dependency_formula ->
-    Pattern_match.dependency_match list =
+    Lockfile_xtarget.t -> Rule.sca_dependency_formula -> SCA_match.t list =
  fun { lazy_dependencies; _ } ->
   List.concat_map (fun pat ->
       match_dependency_pattern (Lazy.force lazy_dependencies) pat)
@@ -73,8 +68,8 @@ let check_rule rule (xtarget : Lockfile_xtarget.t) dependency_formula =
   in
   let matches =
     matches
-    |> List_.map (fun ((dep, pat) : PM.dependency_match) ->
-           PM.
+    |> List_.map (fun ((dep, pat) : SCA_match.t) ->
+           Core_match.
              {
                rule_id =
                  {
@@ -87,20 +82,20 @@ let check_rule rule (xtarget : Lockfile_xtarget.t) dependency_formula =
                    (* TODO: What should this be? *)
                    pattern_string = "";
                  };
-               path = xtarget.target.path;
+               path = Target.path_of_origin (Origin.File xtarget.target.path);
                (* TODO: should be pro if the pro engine is used in the match *)
                engine_of_match = `OSS;
-               range_loc = dep.Dependency.loc;
+               range_loc = dep.loc;
                (* TODO? *)
                ast_node = None;
-               tokens = lazy dep.Dependency.toks;
+               tokens = lazy dep.toks;
                env = [];
                taint_trace = None;
                (* TODO: What if I have a secrets rule with a dependency pattern *)
                validation_state = `No_validator;
                severity_override = None;
                metadata_override = None;
-               dependency = Some (LockfileOnlyMatch (dep, pat));
+               dependency = Some (SCA_match.LockfileOnlyMatch (dep, pat));
                fix_text = None;
                facts = [];
              })
@@ -125,11 +120,11 @@ let annotate_pattern_match dep_matches pm =
                 this is what the python code does
              *)
              if
-               Dependency.(
+               SCA_dependency.(
                  Out.equal_transitivity (fst dm).transitivity `Transitive)
                && dep_matches
                   |> List.exists (fun (dep, _) ->
-                         Dependency.(
+                         SCA_dependency.(
                            Out.equal_transitivity dep.transitivity `Direct
                            && String.equal dep.package_name
                                 (fst dm).package_name))
@@ -138,5 +133,5 @@ let annotate_pattern_match dep_matches pm =
                Some
                  {
                    pm with
-                   Pattern_match.dependency = Some (CodeAndLockfileMatch dm);
+                   Core_match.dependency = Some (CodeAndLockfileMatch dm);
                  })

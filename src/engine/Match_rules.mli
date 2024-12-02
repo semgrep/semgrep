@@ -30,8 +30,8 @@ type timeout_config = {
  * !This can also raise File_timeout!
  *)
 val check :
-  ?dependency_match_table:Match_dependency.dependency_match_table ->
-  match_hook:(Pattern_match.t -> unit) ->
+  ?dependency_match_table:Match_SCA_mode.dependency_match_table ->
+  match_hook:(Core_match.t -> unit) ->
   timeout:timeout_config option ->
   Match_env.xconfig ->
   Rule.rules ->

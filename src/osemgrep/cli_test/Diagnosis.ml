@@ -50,7 +50,7 @@ type diagnosis = Out.matching_diagnosis
 (*****************************************************************************)
 
 let indent s = "  " ^ s
-let line_of_pm (pm : Pattern_match.t) = (fst pm.range_loc).pos.line
+let line_of_pm (pm : Core_match.t) = (fst pm.range_loc).pos.line
 let hash_of_tok (tok : Rule.tok) = Tok.bytepos_of_tok tok
 
 let rec get_focus_nodes (explanation : ME.t) : ME.t list =
@@ -253,7 +253,7 @@ let rec traverse ~f (explanation : ME.t) =
             ~after:before_negation_matches explanation;
           (* negative node and filter nodes *)
           List.fold_left
-            (fun (prior_matches : Pattern_match.t list) (child : ME.t) ->
+            (fun (prior_matches : Core_match.t list) (child : ME.t) ->
               f ~before:prior_matches ~after:child.matches child;
               child.matches)
             before_negation_matches negative_and_filters

@@ -13,8 +13,8 @@
  * LICENSE for more details.
  *)
 module E = Core_error
-module OutJ = Semgrep_output_v1_t
-module PM = Pattern_match
+module Out = Semgrep_output_v1_t
+module PM = Core_match
 
 (*****************************************************************************)
 (* Prelude *)
@@ -29,7 +29,7 @@ module PM = Pattern_match
  * the matching results corresponding to this id.
  *)
 type pattern_id = Xpattern.pattern_id
-type id_to_match_results = (pattern_id, Pattern_match.t list ref) Hashtbl.t
+type id_to_match_results = (pattern_id, Core_match.t list ref) Hashtbl.t
 
 (* alt: prefilter_cache option *)
 type prefilter_config =
@@ -83,9 +83,7 @@ let error (env : env) msg =
    * the target file. *)
   let loc = Tok.first_loc_of_file env.xtarget.path.internal_path_to_content in
   (* TODO: warning or error? MatchingError or ... ? *)
-  let err =
-    E.mk_error ~rule_id:(fst env.rule.id) ~msg ~loc OutJ.MatchingError
-  in
+  let err = E.mk_error ~rule_id:(fst env.rule.id) ~msg ~loc Out.MatchingError in
   env.errors := Core_error.ErrorSet.add err !(env.errors)
 
 (* this will be adjusted later in range_to_pattern_match_adjusted *)

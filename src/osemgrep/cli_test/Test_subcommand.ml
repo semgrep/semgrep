@@ -229,7 +229,7 @@ let unix_diff (str1 : string) (str2 : string) : string list =
           Common2.unix_diff !!file1 !!file2))
 
 let fixtest_result_for_target (_env : env) (target : Fpath.t)
-    (fixtest_target : Fpath.t) (pms : Pattern_match.t list) : fixtest_result =
+    (fixtest_target : Fpath.t) (pms : Core_match.t list) : fixtest_result =
   Logs.info (fun m -> m "Using %s for fixtest" !!fixtest_target);
   let (textedits : Textedit.t list) =
     pms |> List.concat_map (fun pm -> Autofix.render_fix pm |> Option.to_list)
@@ -525,7 +525,7 @@ let diff_findings (actual : int list) (expected : int list) : string =
  * it does not handle the actual rule id in the annotations and is
  * not compatible with what 'pysemgrep test' was doing when comparing.
  *)
-let compare_actual_to_expected (env : env) (matches : Pattern_match.t list)
+let compare_actual_to_expected (env : env) (matches : Core_match.t list)
     (annots : (Fpath.t * A.annotations) list)
     (explanations : Matching_explanation.t list option) : test_result list =
   let xtra =
@@ -536,16 +536,16 @@ let compare_actual_to_expected (env : env) (matches : Pattern_match.t list)
   in
   (* actual matches *)
   let matches_by_ruleid_and_file :
-      (Rule_ID.t, (Fpath.t, Pattern_match.t list) Assoc.t) Assoc.t =
+      (Rule_ID.t, (Fpath.t, Core_match.t list) Assoc.t) Assoc.t =
     if List_.null matches then
       (* stricter: *)
       Logs.warn (fun m -> m "nothing matched for %s%s" !!(env.rule_file) xtra);
     matches
-    |> Assoc.group_by (fun (pm : Pattern_match.t) -> pm.rule_id.id)
+    |> Assoc.group_by (fun (pm : Core_match.t) -> pm.rule_id.id)
     |> List_.map (fun (rule_id, pms) ->
            ( rule_id,
              pms
-             |> Assoc.group_by (fun (pm : Pattern_match.t) ->
+             |> Assoc.group_by (fun (pm : Core_match.t) ->
                     (* We need Fpath.normalize because for unclear reasons DeepScan
                      * returns matches with paths that may differ from
                      * the one below in the annotations so simpler to normalize
@@ -580,7 +580,7 @@ let compare_actual_to_expected (env : env) (matches : Pattern_match.t list)
   let checks : (Rule_ID.t * Out.rule_result) list =
     all_rule_ids
     |> List_.map (fun (id : Rule_ID.t) ->
-           let actual : (Fpath.t, Pattern_match.t list) Assoc.t =
+           let actual : (Fpath.t, Core_match.t list) Assoc.t =
              matches_by_ruleid_and_file |> Assoc.find_opt id
              |> List_.optlist_to_list
            in
@@ -592,12 +592,12 @@ let compare_actual_to_expected (env : env) (matches : Pattern_match.t list)
            let res : (bool * (Fpath.t * Out.expected_reported)) list =
              all_files
              |> List_.map (fun (target : Fpath.t) ->
-                    let matches : Pattern_match.t list =
+                    let matches : Core_match.t list =
                       actual |> Assoc.find_opt target |> List_.optlist_to_list
                     in
                     let (reported_lines : A.linenb list) =
                       matches
-                      |> List_.map (fun (pm : Pattern_match.t) ->
+                      |> List_.map (fun (pm : Core_match.t) ->
                              pm.range_loc |> fst |> fun (loc : Loc.t) ->
                              loc.pos.line)
                       |> List.sort_uniq Int.compare
@@ -666,7 +666,7 @@ let compare_actual_to_expected (env : env) (matches : Pattern_match.t list)
   checks
 
 let compare_for_autofix (env : env) (rules : Rule.t list)
-    (matches : Pattern_match.t list) : fixtest_result list =
+    (matches : Core_match.t list) : fixtest_result list =
   env.target_files
   |> List_.filter_map (fun target ->
          match
@@ -692,7 +692,7 @@ let compare_for_autofix (env : env) (rules : Rule.t list)
          | Some fixtest_target, true ->
              let matches =
                matches
-               |> List.filter (fun (pm : Pattern_match.t) ->
+               |> List.filter (fun (pm : Core_match.t) ->
                       Fpath.equal pm.path.internal_path_to_content target)
              in
              Some (fixtest_result_for_target env target fixtest_target matches))

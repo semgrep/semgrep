@@ -20,7 +20,7 @@ open Fpath_.Operators
 
 let default_error_regexp = ".*\\(ERROR\\|MATCH\\):"
 
-let location_of_pm { Pattern_match.range_loc; _ } =
+let location_of_pm { Core_match.range_loc; _ } =
   let { Tok.pos = { line; file; _ }; _ }, _ = range_loc in
   (file, line)
 

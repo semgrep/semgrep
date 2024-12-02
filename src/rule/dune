@@ -1,8 +1,11 @@
-; This library now also includes semgrep_output_v1.atd (see the dune rules below).
-; This ATD file used to be in reporting/ because it was concerned mostly with
-; JSON reporting of a scan result, but it now contains core data definitions
-; (e.g., engine_kind, core_error_kind, skip_reason, matching_operation) reused
-; in the OCaml core code, which is why it was moved here.
+; Library defining mostly Rule.ml and a few related modules.
+;
+; This library now also includes semgrep_output_v1.atd (see the dune rules
+; below). This ATD file used to be in reporting/ because it was concerned
+; mostly with JSON reporting of a scan result, but it now contains core data
+; definitions (e.g., engine_kind, core_error_kind, skip_reason,
+; matching_operation) reused in the OCaml core code, which is why it was moved
+; here.
 
 (library
  (public_name semgrep.rule)
@@ -27,7 +30,7 @@
    parser_javascript.ast
 
    ; in src/
-   ; We should also not depend on any other semgrep libs (except the 1 below
+   ; We should also not depend on any other semgrep libs (except the one below
    ; because of our use of Rule_options.atd)
    semgrep.configuring
 

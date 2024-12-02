@@ -22,7 +22,7 @@ type t = {
    * to keep around the Inside. 'And' would be commutative again!
    *)
   kind : range_kind;
-  origin : Pattern_match.t;
+  origin : Core_match.t;
 }
 [@@deriving show]
 
@@ -33,19 +33,17 @@ type ranges = t list [@@deriving show]
 (* Convertors *)
 (*****************************************************************************)
 
-let (match_result_to_range : Pattern_match.t -> t) =
- fun m ->
-  let { Pattern_match.range_loc = start_loc, end_loc; env = mvars; _ } = m in
+let match_result_to_range (m : Core_match.t) : t =
+  let Core_match.{ range_loc = start_loc, end_loc; env = mvars; _ } = m in
   let r = Range.range_of_token_locations start_loc end_loc in
   { r; mvars; origin = m; kind = Plain }
 
-let (range_to_pattern_match_adjusted : Rule.t -> t -> Pattern_match.t) =
- fun (r : Rule.t) range ->
+let range_to_pattern_match_adjusted (r : Rule.t) (range : t) : Core_match.t =
   let m = range.origin in
   let rule_id = m.rule_id in
   let langs = Xlang.to_langs r.target_analyzer in
   (* adjust the rule id *)
-  let rule_id : Pattern_match.rule_id =
+  let rule_id : Core_match.rule_id =
     {
       rule_id with
       id = fst r.id;
