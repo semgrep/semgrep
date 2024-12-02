@@ -23,7 +23,7 @@
         "driver": {
           "name": "Semgrep OSS",
           "rules": [],
-          "semanticVersion": "placeholder"
+          "semanticVersion": "<MASKED>"
         }
       }
     }

@@ -534,7 +534,7 @@
               }
             }
           ],
-          "semanticVersion": "placeholder"
+          "semanticVersion": "<MASKED>"
         }
       }
     }

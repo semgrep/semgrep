@@ -208,34 +208,6 @@ def _clean_output_if_json(output_json: str, clean_fingerprint: bool) -> str:
     return json.dumps(output, indent=2, sort_keys=True)
 
 
-def _clean_output_if_sarif(output_json: str) -> str:
-    try:
-        output = json.loads(output_json)
-    except json.decoder.JSONDecodeError:
-        return output_json
-
-    # Rules are logically a set so the JSON list's order doesn't matter
-    # we make the order deterministic here so that snapshots match across runs
-    # the proper solution will be https://github.com/joseph-roitman/pytest-snapshot/issues/14
-    try:
-        output["runs"][0]["tool"]["driver"]["rules"] = sorted(
-            output["runs"][0]["tool"]["driver"]["rules"],
-            key=lambda rule: str(rule["id"]),
-        )
-    except (KeyError, IndexError):
-        pass
-
-    # Semgrep version is included in sarif output. Verify this independently so
-    # snapshot does not need to be updated on version bump
-    try:
-        assert output["runs"][0]["tool"]["driver"]["semanticVersion"] == __VERSION__
-        output["runs"][0]["tool"]["driver"]["semanticVersion"] = "placeholder"
-    except (KeyError, IndexError):
-        pass
-
-    return json.dumps(output, indent=2, sort_keys=True)
-
-
 Maskers = Iterable[Union[str, re.Pattern, Callable[[str], str]]]
 
 
@@ -276,7 +248,6 @@ def mask_floats(text_output: str) -> str:
 # ProTip: make sure your regexps can't match JSON quotes so as to keep any
 # JSON parseable after a substitution!
 ALWAYS_MASK: Maskers = (
-    _clean_output_if_sarif,
     __VERSION__,
     re.compile(r"python (\d+[.]\d+[.]\d+[ ]+)"),
     re.compile(r'SEMGREP_SETTINGS_FILE="(.+?)"'),

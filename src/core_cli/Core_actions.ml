@@ -162,6 +162,10 @@ let dump_rule (file : Fpath.t) : unit =
   rules |> Result.iter (List.iter (fun r -> UCommon.pr (Rule.show r)))
 [@@action]
 
+(*****************************************************************************)
+(* Other non-dumpers actions *)
+(*****************************************************************************)
+
 let prefilter_of_rules file =
   let cache = Some (Hashtbl.create 101) in
   match Parse_rule.parse file with
@@ -183,4 +187,71 @@ let prefilter_of_rules file =
       UCommon.pr s
   (* TODO: handle parse errors gracefully instead of silently ignoring *)
   | Error _ -> ()
+[@@action]
+
+module S = Sarif.Sarif_v_2_1_0_v
+
+let sarif_sort (file : Fpath.t) =
+  let str = UFile.read_file file in
+  let (x : S.sarif_json_schema) =
+    Sarif.Sarif_v_2_1_0_j.sarif_json_schema_of_string str
+  in
+  let x =
+    {
+      x with
+      runs =
+        x.runs
+        |> List_.map (fun (r : S.run) ->
+               {
+                 r with
+                 invocations =
+                   r.invocations
+                   |> Option.map
+                        (List_.map (fun (i : S.invocation) ->
+                             {
+                               i with
+                               tool_execution_notifications =
+                                 i.tool_execution_notifications
+                                 |> Option.map
+                                      (List.sort
+                                         (fun
+                                           (a : S.notification)
+                                           (b : S.notification)
+                                         ->
+                                           match
+                                             (a.message.text, b.message.text)
+                                           with
+                                           | Some a1, Some b1 -> compare a1 b1
+                                           | _else_ -> failwith "wrong format"));
+                             }));
+                 results =
+                   r.results
+                   |> Option.map
+                        (List.sort (fun (a : S.result) (b : S.result) ->
+                             match (a.fingerprints, b.fingerprints) with
+                             | ( Some [ ("matchBasedId/v1", a1) ],
+                                 Some [ ("matchBasedId/v1", b1) ] ) ->
+                                 compare a1 b1
+                             | _else_ -> failwith "wrong format"));
+                 tool =
+                   {
+                     r.tool with
+                     driver =
+                       {
+                         r.tool.driver with
+                         rules =
+                           r.tool.driver.rules
+                           |> Option.map
+                                (List.sort
+                                   (fun
+                                     (a : S.reporting_descriptor)
+                                     (b : S.reporting_descriptor)
+                                   -> compare a.id b.id));
+                       };
+                   };
+               });
+    }
+  in
+  let str = Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema x in
+  UCommon.pr str
 [@@action]

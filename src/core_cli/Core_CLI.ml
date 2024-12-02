@@ -532,6 +532,9 @@ let all_actions (caps : Cap.all_caps) () =
       Arg_.mk_action_2_arg (fun a b ->
           Datalog_experiment.gen_facts (Fpath.v a) (Fpath.v b)) );
     ("-test_eval", " <JSON file>", Arg_.mk_action_1_arg Eval_generic.test_eval);
+    ( "-sarif_sort",
+      " <JSON file>",
+      Arg_.mk_action_1_conv Fpath.v Core_actions.sarif_sort );
   ]
   @ Test_analyze_generic.actions ~parse_program:Parse_target.parse_program
   @ Test_dataflow_tainting.actions ()
