@@ -1,5 +1,6 @@
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/autofix/python-assert-statement.py"
@@ -17,9 +18,25 @@
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "assert \"a\"",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "assert_eq(\n    True, \"a\"\n)",
         "message": "Change assert_eq(True, x) to assert x",
         "metadata": {},
+        "metavars": {
+          "$ACTUAL": {
+            "abstract_content": "\"a\"",
+            "end": {
+              "col": 14,
+              "line": 2,
+              "offset": 24
+            },
+            "start": {
+              "col": 11,
+              "line": 2,
+              "offset": 21
+            }
+          }
+        },
         "severity": "INFO",
         "validation_state": "NO_VALIDATOR"
       },
@@ -41,9 +58,25 @@
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "assert \"b\"",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "assert_eq(\n    True, \"b\"\n)",
         "message": "Change assert_eq(True, x) to assert x",
         "metadata": {},
+        "metavars": {
+          "$ACTUAL": {
+            "abstract_content": "\"b\"",
+            "end": {
+              "col": 14,
+              "line": 5,
+              "offset": 51
+            },
+            "start": {
+              "col": 11,
+              "line": 5,
+              "offset": 48
+            }
+          }
+        },
         "severity": "INFO",
         "validation_state": "NO_VALIDATOR"
       },

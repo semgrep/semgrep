@@ -1,5 +1,6 @@
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/basic/inside.py",
@@ -26,9 +27,25 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "    return a + b == a + b",
         "message": "a + b == a + b is a useless equality check",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "a+b",
+            "end": {
+              "col": 17,
+              "line": 3,
+              "offset": 60
+            },
+            "start": {
+              "col": 12,
+              "line": 3,
+              "offset": 55
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -49,9 +66,25 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "    x == x",
         "message": "x == x is a useless equality check",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 6,
+              "line": 8,
+              "offset": 169
+            },
+            "start": {
+              "col": 5,
+              "line": 8,
+              "offset": 168
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -72,9 +105,25 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "assertTrue(x == x)",
         "message": "x == x is a useless equality check",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 13,
+              "line": 12,
+              "offset": 261
+            },
+            "start": {
+              "col": 12,
+              "line": 12,
+              "offset": 260
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },

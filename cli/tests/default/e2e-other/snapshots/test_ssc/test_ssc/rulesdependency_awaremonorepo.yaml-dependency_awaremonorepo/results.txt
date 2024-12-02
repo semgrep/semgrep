@@ -5,6 +5,7 @@
 === stdout - plain
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/dependency_aware/monorepo/build.js",
@@ -26,9 +27,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "bad()",
         "message": "oh no",
         "metadata": {},
+        "metavars": {},
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
@@ -72,9 +75,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "bad-lib@0.0.7:",
         "message": "oh no",
         "metadata": {},
+        "metavars": {},
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {

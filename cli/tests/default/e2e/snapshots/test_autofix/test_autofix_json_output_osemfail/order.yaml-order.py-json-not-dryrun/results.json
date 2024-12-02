@@ -1,5 +1,6 @@
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/autofix/order.py"
@@ -17,9 +18,11 @@
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "replaced_lines_a_to_b_OK",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "a\nb",
         "message": "slice a-b matches",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -41,9 +44,11 @@
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "replaced_lines_b_to_c_BAD",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "b\nc",
         "message": "slice b-c matches",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -65,9 +70,11 @@
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "replaced_lines_b_to_c_OK",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "b\nc",
         "message": "slice b-c matches",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -89,9 +96,11 @@
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "replaced_lines_d_to_f_OK",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "d\ne\nf",
         "message": "slice d-f matches",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -113,9 +122,11 @@
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "replaced_lines_e_to_g_BAD",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "e\nf\ng",
         "message": "slice e-g matches",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -137,9 +148,11 @@
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "replaced_lines_g_to_h_OK",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "g\nh",
         "message": "slice g-h matches",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },

@@ -5,6 +5,7 @@
 === stdout - plain
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/dependency_aware/ansi/ansi.js",
@@ -22,7 +23,8 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "ansi-html@0.0.7:",
         "message": "This affects all versions of package ansi-html. If an attacker provides a malicious string, it will get stuck processing the input for an extremely long time. There is no upgrade fix at this time (the package is no longer being maintained), but you can change to use the 'ansi-html-community@0.0.8' package instead.\n",
         "metadata": {
           "category": "security",
@@ -38,6 +40,7 @@
             "ts"
           ]
         },
+        "metavars": {},
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {

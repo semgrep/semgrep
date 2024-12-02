@@ -5,6 +5,7 @@
 === stdout - plain
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/dependency_aware/yarn_at_in_version/yarn.lock"

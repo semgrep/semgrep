@@ -9,6 +9,7 @@
       "type": "Internal matching error"
     }
   ],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/metavariable-pattern/test1.yml"
@@ -25,7 +26,8 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "        run: |\n          if ${{ steps.pss.outcome=='failure' }}; then FAILED=pss; fi\n          if ${{ steps.soc.outcome=='failure' }}; then FAILED=soc; fi\n          if ${{ steps.pushsync-chunks-1.outcome=='failure' }}; then FAILED=pushsync-chunks-1; fi\n          if ${{ steps.pushsync-chunks-2.outcome=='failure' }}; then FAILED=pushsync-chunks-2; fi\n          if ${{ steps.retrieval.outcome=='failure' }}; then FAILED=retrieval; fi\n          if ${{ steps.manifest.outcome=='failure' }}; then FAILED=manifest; fi\n          if ${{ steps.content-availability.outcome=='failure' }}; then FAILED=content-availability; fi\n          curl -sSf -X POST -H \"Content-Type: application/json\" -d \"{\\\"text\\\": \\\"**${RUN_TYPE}** Test Error\\nBranch: \\`${{ github.head_ref }}\\`\\nUser: @${{ github.event.pull_request.user.login }}\\nDebugging artifacts: [click](https://$BUCKET_NAME.$AWS_ENDPOINT/artifacts_$VERTAG.tar.gz)\\nStep failed: \\`${FAILED}\\`\\\"}\" https://foobar.test.org/hooks/${{ secrets.TUNSHELL_KEY }}",
         "message": "Using variable interpolation `${{...}}` with `github` context data in a `run:` step could allow an attacker to inject their own code into the runner. This would allow them to steal secrets and code. `github` context data can have arbitrary user input and should be treated as untrusted. Instead, use an intermediate environment variable with `env:` to store the data and use the environment variable in the `run:` script. Be sure to use double-quotes the environment variable, like this: \"$ENVVAR\".",
         "metadata": {
           "category": "security",
@@ -62,6 +64,21 @@
           "technology": [
             "github-actions"
           ]
+        },
+        "metavars": {
+          "$SHELL": {
+            "abstract_content": "\n          if ${{ steps.pss.outcome=='failure' }}; then FAILED=pss; fi\n          if ${{ steps.soc.outcome=='failure' }}; then FAILED=soc; fi\n          if ${{ steps.pushsync-chunks-1.outcome=='failure' }}; then FAILED=pushsync-chunks-1; fi\n          if ${{ steps.pushsync-chunks-2.outcome=='failure' }}; then FAILED=pushsync-chunks-2; fi\n          if ${{ steps.retrieval.outcome=='failure' }}; then FAILED=retrieval; fi\n          if ${{ steps.manifest.outcome=='failure' }}; then FAILED=manifest; fi\n          if ${{ steps.content-availability.outcome=='failure' }}; then FAILED=content-availability; fi\n          curl -sSf -X POST -H \"Content-Type: application/json\" -d \"{\\\"text\\\": \\\"**${RUN_TYPE}** Test Error\\nBranch: \\`${{ github.head_ref }}\\`\\nUser: @${{ github.event.pull_request.user.login }}\\nDebugging artifacts: [click](https://$BUCKET_NAME.$AWS_ENDPOINT/artifacts_$VERTAG.tar.gz)\\nStep failed: \\`${FAILED}\\`\\\"}\" https://foobar.test.org/hooks/${{ secrets.TUNSHELL_KEY }}\n",
+            "end": {
+              "col": 378,
+              "line": 15,
+              "offset": 1093
+            },
+            "start": {
+              "col": 15,
+              "line": 7,
+              "offset": 113
+            }
+          }
         },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"

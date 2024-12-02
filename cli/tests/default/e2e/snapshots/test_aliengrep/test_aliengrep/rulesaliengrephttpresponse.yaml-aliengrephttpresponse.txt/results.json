@@ -1,5 +1,6 @@
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/aliengrep/httpresponse.txt"
@@ -16,9 +17,38 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "Content-Type: text/html",
         "message": "Detected text/html",
         "metadata": {},
+        "metavars": {
+          "$READABLE": {
+            "abstract_content": "OK",
+            "end": {
+              "col": 16,
+              "line": 1,
+              "offset": 15
+            },
+            "start": {
+              "col": 14,
+              "line": 1,
+              "offset": 13
+            }
+          },
+          "$STATUS": {
+            "abstract_content": "200",
+            "end": {
+              "col": 13,
+              "line": 1,
+              "offset": 12
+            },
+            "start": {
+              "col": 10,
+              "line": 1,
+              "offset": 9
+            }
+          }
+        },
         "severity": "INFO",
         "validation_state": "NO_VALIDATOR"
       },

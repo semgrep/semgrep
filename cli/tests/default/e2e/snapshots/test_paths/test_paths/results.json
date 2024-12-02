@@ -1,5 +1,6 @@
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/exclude_include/excluded/included.js",
@@ -18,9 +19,38 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -41,9 +71,38 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -64,9 +123,38 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -87,9 +175,38 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -110,9 +227,38 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -133,9 +279,38 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -156,9 +331,38 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -179,9 +383,38 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -202,9 +435,38 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -225,9 +487,38 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -248,9 +539,38 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -271,9 +591,38 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -294,9 +643,38 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -317,9 +695,38 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "console.log(x == x)",
         "message": "possibly useless comparison but in eq function",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 25
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "1",
+              "svalue_end": {
+                "col": 10,
+                "line": 1,
+                "offset": 9
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 24
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },

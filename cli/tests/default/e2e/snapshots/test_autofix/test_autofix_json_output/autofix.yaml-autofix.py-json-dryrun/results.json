@@ -1,5 +1,6 @@
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/autofix/autofix.py"
@@ -20,9 +21,38 @@
         "fixed_lines": [
           "  inputs.get(x) = 1"
         ],
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "  inputs[x] = 1",
         "message": "Use `.get()` method to avoid a KeyNotFound error",
         "metadata": {},
+        "metavars": {
+          "$DICT": {
+            "abstract_content": "inputs",
+            "end": {
+              "col": 9,
+              "line": 5,
+              "offset": 51
+            },
+            "start": {
+              "col": 3,
+              "line": 5,
+              "offset": 45
+            }
+          },
+          "$KEY": {
+            "abstract_content": "x",
+            "end": {
+              "col": 11,
+              "line": 5,
+              "offset": 53
+            },
+            "start": {
+              "col": 10,
+              "line": 5,
+              "offset": 52
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -47,9 +77,38 @@
         "fixed_lines": [
           "  if inputs.get((x + 1)) == True:"
         ],
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "  if inputs[x + 1] == True:",
         "message": "Use `.get()` method to avoid a KeyNotFound error",
         "metadata": {},
+        "metavars": {
+          "$DICT": {
+            "abstract_content": "inputs",
+            "end": {
+              "col": 12,
+              "line": 6,
+              "offset": 70
+            },
+            "start": {
+              "col": 6,
+              "line": 6,
+              "offset": 64
+            }
+          },
+          "$KEY": {
+            "abstract_content": "x+1",
+            "end": {
+              "col": 18,
+              "line": 6,
+              "offset": 76
+            },
+            "start": {
+              "col": 13,
+              "line": 6,
+              "offset": 71
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },

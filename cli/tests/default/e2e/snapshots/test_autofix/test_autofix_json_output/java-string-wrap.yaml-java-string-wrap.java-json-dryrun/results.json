@@ -1,5 +1,6 @@
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/autofix/java-string-wrap.java"
@@ -20,9 +21,25 @@
         "fixed_lines": [
           "        return wrap(\"a\") + \"b\";"
         ],
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "        return \"a\" + \"b\";",
         "message": "Wrap strings",
         "metadata": {},
+        "metavars": {
+          "$S": {
+            "abstract_content": "\"a\"",
+            "end": {
+              "col": 19,
+              "line": 3,
+              "offset": 52
+            },
+            "start": {
+              "col": 16,
+              "line": 3,
+              "offset": 49
+            }
+          }
+        },
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -47,9 +64,25 @@
         "fixed_lines": [
           "        return \"a\" + wrap(\"b\");"
         ],
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "        return \"a\" + \"b\";",
         "message": "Wrap strings",
         "metadata": {},
+        "metavars": {
+          "$S": {
+            "abstract_content": "\"b\"",
+            "end": {
+              "col": 25,
+              "line": 3,
+              "offset": 58
+            },
+            "start": {
+              "col": 22,
+              "line": 3,
+              "offset": 55
+            }
+          }
+        },
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },

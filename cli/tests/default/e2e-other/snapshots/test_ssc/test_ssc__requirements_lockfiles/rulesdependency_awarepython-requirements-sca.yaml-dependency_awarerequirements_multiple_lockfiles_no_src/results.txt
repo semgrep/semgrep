@@ -5,6 +5,7 @@
 === stdout - plain
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/dependency_aware/requirements_multiple_lockfiles_no_src/requirements/prod.txt",
@@ -23,9 +24,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "pandas==1.4.2",
         "message": "oh no",
         "metadata": {},
+        "metavars": {},
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {

@@ -1,5 +1,6 @@
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/basic/inside.py",
@@ -26,9 +27,38 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "metavariable_regex_test.method1(arg1)",
         "message": "Metavariable regex test multi regex",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "method1",
+            "end": {
+              "col": 32,
+              "line": 1,
+              "offset": 31
+            },
+            "start": {
+              "col": 25,
+              "line": 1,
+              "offset": 24
+            }
+          },
+          "$Y": {
+            "abstract_content": "arg1",
+            "end": {
+              "col": 37,
+              "line": 1,
+              "offset": 36
+            },
+            "start": {
+              "col": 33,
+              "line": 1,
+              "offset": 32
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },

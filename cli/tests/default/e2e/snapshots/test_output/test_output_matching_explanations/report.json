@@ -196,6 +196,7 @@
       "op": "And"
     }
   ],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/basic/stupid.js"
@@ -212,9 +213,38 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "console.log(x == x)",
         "message": "useless comparison",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 62
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "window.prompt()",
+              "svalue_end": {
+                "col": 24,
+                "line": 1,
+                "offset": 23
+              },
+              "svalue_start": {
+                "col": 9,
+                "line": 1,
+                "offset": 8
+              }
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 61
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },

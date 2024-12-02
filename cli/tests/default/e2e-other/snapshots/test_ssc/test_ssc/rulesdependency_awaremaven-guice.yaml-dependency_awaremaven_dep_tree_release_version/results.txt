@@ -5,6 +5,7 @@
 === stdout - plain
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/dependency_aware/maven_dep_tree_release_version/maven_dep_tree.txt"
@@ -21,9 +22,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "+- com.google.inject:guice:jar:no_aop:4.2.2.RELEASE:test (optional)",
         "message": "got em",
         "metadata": {},
+        "metavars": {},
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {

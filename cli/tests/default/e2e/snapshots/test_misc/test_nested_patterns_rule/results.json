@@ -1,5 +1,6 @@
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/basic/nested-patterns.js",
@@ -18,9 +19,25 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "    nested_patterns_func('foo', 1)",
         "message": "test",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "'foo'",
+            "end": {
+              "col": 31,
+              "line": 2,
+              "offset": 48
+            },
+            "start": {
+              "col": 26,
+              "line": 2,
+              "offset": 43
+            }
+          }
+        },
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -41,9 +58,25 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "    nested_patterns_func('bar', 2)",
         "message": "test",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "'bar'",
+            "end": {
+              "col": 31,
+              "line": 3,
+              "offset": 83
+            },
+            "start": {
+              "col": 26,
+              "line": 3,
+              "offset": 78
+            }
+          }
+        },
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },

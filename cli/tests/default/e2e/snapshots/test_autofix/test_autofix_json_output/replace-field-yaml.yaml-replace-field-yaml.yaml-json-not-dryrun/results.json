@@ -1,5 +1,6 @@
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/autofix/replace-field-yaml.yaml"
@@ -17,10 +18,26 @@
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "y: false",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "  y:\n    foo: true",
         "message": "If semgrep is not smart enough, it will match beyond the specified pattern and capture all text until `z`. So the fix will result in `y: falsez: \"z\"`\n",
         "metadata": {
           "issue": "https://github.com/returntocorp/semgrep/issues/5698"
+        },
+        "metavars": {
+          "$X": {
+            "abstract_content": "y",
+            "end": {
+              "col": 4,
+              "line": 3,
+              "offset": 41
+            },
+            "start": {
+              "col": 3,
+              "line": 3,
+              "offset": 40
+            }
+          }
         },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"

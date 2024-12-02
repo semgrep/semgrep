@@ -379,7 +379,7 @@ class SemgrepResult:
 
 # Implements the 'RunSemgrep' function type (type checking is done
 # right after this definition) defined in 'fixtures.py'
-# coupling: if you add params, you'll need to also modify fixtures.py
+#
 def _run_semgrep(
     config: Optional[Union[str, Path, List[str]]] = None,
     *,
@@ -392,17 +392,14 @@ def _run_semgrep(
     env: Optional[Dict[str, str]] = None,
     assert_exit_code: Union[None, int, Set[int]] = 0,
     force_color: Optional[bool] = None,
-    # See e2e/test_dependency_aware_rule.py for why this is here
-    assume_targets_dir: bool = True,
+    assume_targets_dir: bool = True,  # See e2e/test_dependency_aware_rule.py for why this is here
     force_metrics_off: bool = True,
     stdin: Optional[str] = None,
     clean_fingerprint: bool = True,
-    # Deprecated! see semgrep_runner.py toplevel comment
-    use_click_runner: bool = False,
+    use_click_runner: bool = False,  # Deprecated! see semgrep_runner.py toplevel comment
     prepare_workspace: Callable[[], None] = lambda: None,
     teardown_workspace: Callable[[], None] = lambda: None,
     context_manager: Optional[ContextManager] = None,
-    is_logged_in_weak=False,
     osemgrep_force_project_root: bool = False,
 ) -> SemgrepResult:
     """Run the semgrep CLI.
@@ -444,12 +441,6 @@ def _run_semgrep(
                 env["SEMGREP_ENABLE_VERSION_CHECK"] = "0"
             if force_metrics_off and "SEMGREP_SEND_METRICS" not in env:
                 env["SEMGREP_SEND_METRICS"] = "off"
-
-            # In https://github.com/semgrep/semgrep-proprietary/pull/2605
-            # we started to gate some JSON fields with an is_logged_in check
-            # and certain tests needs those JSON fields hence this parameter
-            if is_logged_in_weak and "SEMGREP_APP_TOKEN" not in env:
-                env["SEMGREP_APP_TOKEN"] = "fake_token"
 
             if options is None:
                 options = []

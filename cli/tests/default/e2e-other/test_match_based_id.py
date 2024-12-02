@@ -28,7 +28,6 @@ def test_value(run_semgrep_in_tmp: RunSemgrep, snapshot, rule_and_target):
         target_name=target,
         output_format=OutputFormat.JSON,
         clean_fingerprint=False,
-        is_logged_in_weak=True,
     )
     snapshot.assert_match(results, "results.json")
 
@@ -49,7 +48,6 @@ def test_value_osemfail(run_semgrep_in_tmp: RunSemgrep, snapshot, rule_and_targe
         target_name=target,
         output_format=OutputFormat.JSON,
         clean_fingerprint=False,
-        is_logged_in_weak=True,
     )
     snapshot.assert_match(results, "results.json")
 
@@ -61,8 +59,6 @@ def test_duplicate_matches_indexing(run_semgrep_in_tmp: RunSemgrep, snapshot):
         target_name="match_based_id/duplicates",
         output_format=OutputFormat.JSON,
         clean_fingerprint=False,
-        # we now need to be logged in to access match_based_id fingerprints
-        is_logged_in_weak=True,
     )
     snapshot.assert_match(results, "results.json")
 
@@ -76,14 +72,12 @@ def test_id_change(
     run_semgrep_on_copied_files: RunSemgrep, tmp_path, rule, target_name, expect_change
 ):
     """
-    Ensures that match-based IDs are resistant to various types of changes in
-    code.
+    Ensures that match-based IDs are resistant to various types of changes in code.
 
     These changes are enumerated in
        targets / match_based_id / (before|after) / <target_name>
 
-    To edit these cases, edit these files directly. To add new cases, add a
-    corresponding pair
+    To edit these cases, edit these files directly. To add new cases, add a corresponding pair
     of files, and update the parameterization above.
 
     :param rule: The Semgrep rule that should trigger a finding
@@ -91,12 +85,10 @@ def test_id_change(
     :param expect_change: Whether or not to expect an ID change
     """
 
-    # Since the match_based_id includes the target path, we must create a static
-    # target path.
-    # Note that b/c we use run_semgrep_on_copied_files, the current working
-    # directory for Semgrep is tmp_path; I specify the target as an absolute
-    # path so that things will bomb out if, for whatever reason, the working
-    # directory changes.
+    # Since the match_based_id includes the target path, we must create a static target path.
+    # Note that b/c we use run_semgrep_on_copied_files, the current working directory
+    # for Semgrep is tmp_path; I specify the target as an absolute path so that things
+    # will bomb out if, for whatever reason, the working directory changes.
     static_target = (
         tmp_path / "targets" / ("_match_based_id" + Path(target_name).suffix)
     )
@@ -109,7 +101,6 @@ def test_id_change(
             target_name=static_target,
             output_format=OutputFormat.JSON,
             clean_fingerprint=False,
-            is_logged_in_weak=True,
         )
         return json.loads(results)["results"][0]["extra"]["fingerprint"]
 

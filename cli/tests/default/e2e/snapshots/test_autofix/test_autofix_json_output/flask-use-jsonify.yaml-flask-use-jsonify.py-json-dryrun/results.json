@@ -1,5 +1,6 @@
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/autofix/flask-use-jsonify.py"
@@ -20,9 +21,25 @@
         "fixed_lines": [
           "    return flask.jsonify(user_dict)"
         ],
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "    return json.dumps(user_dict)",
         "message": "flask.jsonify() is a Flask helper method which handles the correct settings for returning JSON from Flask routes",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "user",
+            "end": {
+              "col": 9,
+              "line": 7,
+              "offset": 99
+            },
+            "start": {
+              "col": 5,
+              "line": 7,
+              "offset": 95
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -47,9 +64,25 @@
         "fixed_lines": [
           "    return flask.jsonify(user_dict)"
         ],
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "    return dumps(user_dict)",
         "message": "flask.jsonify() is a Flask helper method which handles the correct settings for returning JSON from Flask routes",
         "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "user",
+            "end": {
+              "col": 9,
+              "line": 15,
+              "offset": 263
+            },
+            "start": {
+              "col": 5,
+              "line": 15,
+              "offset": 259
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },

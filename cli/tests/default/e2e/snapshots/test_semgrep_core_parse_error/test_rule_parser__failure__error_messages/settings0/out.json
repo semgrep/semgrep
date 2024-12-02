@@ -8,6 +8,7 @@
       "type": "Rule parse error"
     }
   ],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/bad/basic_java.java"

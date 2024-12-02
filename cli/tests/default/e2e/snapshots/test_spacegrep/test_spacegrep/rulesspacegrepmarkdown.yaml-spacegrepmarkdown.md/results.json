@@ -1,5 +1,6 @@
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/spacegrep/markdown.md"
@@ -16,9 +17,25 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "## Getting Started",
         "message": "Detected h2 Markdown header",
         "metadata": {},
+        "metavars": {
+          "$TEXT": {
+            "abstract_content": "Getting",
+            "end": {
+              "col": 11,
+              "line": 62,
+              "offset": 2591
+            },
+            "start": {
+              "col": 4,
+              "line": 62,
+              "offset": 2584
+            }
+          }
+        },
         "severity": "INFO",
         "validation_state": "NO_VALIDATOR"
       },
@@ -39,9 +56,25 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "## Examples",
         "message": "Detected h2 Markdown header",
         "metadata": {},
+        "metavars": {
+          "$TEXT": {
+            "abstract_content": "Examples",
+            "end": {
+              "col": 12,
+              "line": 97,
+              "offset": 3702
+            },
+            "start": {
+              "col": 4,
+              "line": 97,
+              "offset": 3694
+            }
+          }
+        },
         "severity": "INFO",
         "validation_state": "NO_VALIDATOR"
       },
@@ -62,9 +95,25 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "## Resources",
         "message": "Detected h2 Markdown header",
         "metadata": {},
+        "metavars": {
+          "$TEXT": {
+            "abstract_content": "Resources",
+            "end": {
+              "col": 13,
+              "line": 145,
+              "offset": 8847
+            },
+            "start": {
+              "col": 4,
+              "line": 145,
+              "offset": 8838
+            }
+          }
+        },
         "severity": "INFO",
         "validation_state": "NO_VALIDATOR"
       },
@@ -85,9 +134,25 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "## Usage",
         "message": "Detected h2 Markdown header",
         "metadata": {},
+        "metavars": {
+          "$TEXT": {
+            "abstract_content": "Usage",
+            "end": {
+              "col": 9,
+              "line": 159,
+              "offset": 9242
+            },
+            "start": {
+              "col": 4,
+              "line": 159,
+              "offset": 9237
+            }
+          }
+        },
         "severity": "INFO",
         "validation_state": "NO_VALIDATOR"
       },
@@ -108,9 +173,25 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "## Contributing",
         "message": "Detected h2 Markdown header",
         "metadata": {},
+        "metavars": {
+          "$TEXT": {
+            "abstract_content": "Contributing",
+            "end": {
+              "col": 16,
+              "line": 188,
+              "offset": 9805
+            },
+            "start": {
+              "col": 4,
+              "line": 188,
+              "offset": 9793
+            }
+          }
+        },
         "severity": "INFO",
         "validation_state": "NO_VALIDATOR"
       },
@@ -131,9 +212,25 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "## Commercial Support",
         "message": "Detected h2 Markdown header",
         "metadata": {},
+        "metavars": {
+          "$TEXT": {
+            "abstract_content": "Commercial",
+            "end": {
+              "col": 14,
+              "line": 203,
+              "offset": 10946
+            },
+            "start": {
+              "col": 4,
+              "line": 203,
+              "offset": 10936
+            }
+          }
+        },
         "severity": "INFO",
         "validation_state": "NO_VALIDATOR"
       },

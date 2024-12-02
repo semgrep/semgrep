@@ -5,6 +5,7 @@
 === stdout - plain
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/dependency_aware/log4j/log4shell.java",
@@ -22,9 +23,77 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "            logger.error(userName);",
         "message": "log4j logger.error tainted argument",
         "metadata": {},
+        "metavars": {
+          "$ARG": {
+            "abstract_content": "userName",
+            "end": {
+              "col": 34,
+              "line": 33,
+              "offset": 1035
+            },
+            "propagated_value": {
+              "svalue_abstract_content": "req.getParameter(\"uname\")",
+              "svalue_end": {
+                "col": 52,
+                "line": 19,
+                "offset": 562
+              },
+              "svalue_start": {
+                "col": 27,
+                "line": 19,
+                "offset": 537
+              }
+            },
+            "start": {
+              "col": 26,
+              "line": 33,
+              "offset": 1027
+            }
+          },
+          "$LOGGER": {
+            "abstract_content": "logger",
+            "end": {
+              "col": 19,
+              "line": 33,
+              "offset": 1020
+            },
+            "start": {
+              "col": 13,
+              "line": 33,
+              "offset": 1014
+            }
+          },
+          "$METHOD": {
+            "abstract_content": "error",
+            "end": {
+              "col": 25,
+              "line": 33,
+              "offset": 1026
+            },
+            "start": {
+              "col": 20,
+              "line": 33,
+              "offset": 1021
+            }
+          },
+          "$PKG": {
+            "abstract_content": "LogManager",
+            "end": {
+              "col": 43,
+              "line": 9,
+              "offset": 235
+            },
+            "start": {
+              "col": 33,
+              "line": 9,
+              "offset": 225
+            }
+          }
+        },
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {

@@ -5,6 +5,7 @@
 === stdout - plain
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/dependency_aware/yarn/yarn.lock"
@@ -21,11 +22,13 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "sass@^1.43.4:",
         "message": "that's a bad lib",
         "metadata": {
           "sca-kind": "upgrade-only"
         },
+        "metavars": {},
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {

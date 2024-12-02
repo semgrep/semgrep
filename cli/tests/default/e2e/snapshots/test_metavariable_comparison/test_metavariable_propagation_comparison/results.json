@@ -1,5 +1,6 @@
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/metavariable_propagation/metavariable-comparison-propagation.py"
@@ -16,9 +17,25 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "    b = 10",
         "message": "Semgrep found a match 2\n",
         "metadata": {},
+        "metavars": {
+          "$INT": {
+            "abstract_content": "2",
+            "end": {
+              "col": 10,
+              "line": 7,
+              "offset": 66
+            },
+            "start": {
+              "col": 9,
+              "line": 7,
+              "offset": 65
+            }
+          }
+        },
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -39,9 +56,25 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "    b = 10",
         "message": "Semgrep found a match 3\n",
         "metadata": {},
+        "metavars": {
+          "$INT": {
+            "abstract_content": "3",
+            "end": {
+              "col": 10,
+              "line": 12,
+              "offset": 112
+            },
+            "start": {
+              "col": 9,
+              "line": 12,
+              "offset": 111
+            }
+          }
+        },
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },

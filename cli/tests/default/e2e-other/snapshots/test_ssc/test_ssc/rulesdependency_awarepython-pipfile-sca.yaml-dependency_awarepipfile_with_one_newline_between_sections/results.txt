@@ -5,6 +5,7 @@
 === stdout - plain
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/dependency_aware/pipfile_with_one_newline_between_sections/Pipfile.lock",
@@ -22,9 +23,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "bad()",
         "message": "oh no",
         "metadata": {},
+        "metavars": {},
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {

@@ -1,5 +1,6 @@
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/sort-findings/b.py",
@@ -18,9 +19,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "f()",
         "message": "found something (2)",
         "metadata": {},
+        "metavars": {},
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -41,9 +44,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "f()\nf()",
         "message": "found something (1)",
         "metadata": {},
+        "metavars": {},
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -64,9 +69,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "f()\nf()\nf()",
         "message": "found something (1)",
         "metadata": {},
+        "metavars": {},
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -87,9 +94,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "f()",
         "message": "found something (2)",
         "metadata": {},
+        "metavars": {},
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -110,9 +119,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "f()\nf()",
         "message": "found something (1)",
         "metadata": {},
+        "metavars": {},
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -133,9 +144,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "f()",
         "message": "found something (2)",
         "metadata": {},
+        "metavars": {},
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -156,9 +169,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "f()",
         "message": "found something (2)",
         "metadata": {},
+        "metavars": {},
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -179,9 +194,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "f()\nf()",
         "message": "found something (1)",
         "metadata": {},
+        "metavars": {},
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -202,9 +219,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "f()\nf()\nf()",
         "message": "found something (1)",
         "metadata": {},
+        "metavars": {},
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -225,9 +244,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "f()",
         "message": "found something (2)",
         "metadata": {},
+        "metavars": {},
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -248,9 +269,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "f()\nf()",
         "message": "found something (1)",
         "metadata": {},
+        "metavars": {},
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -271,9 +294,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "f()",
         "message": "found something (2)",
         "metadata": {},
+        "metavars": {},
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -294,9 +319,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "f()",
         "message": "found something (2)",
         "metadata": {},
+        "metavars": {},
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -317,9 +344,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "f()\nf()",
         "message": "found something (1)",
         "metadata": {},
+        "metavars": {},
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -340,9 +369,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "f()",
         "message": "found something (2)",
         "metadata": {},
+        "metavars": {},
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },

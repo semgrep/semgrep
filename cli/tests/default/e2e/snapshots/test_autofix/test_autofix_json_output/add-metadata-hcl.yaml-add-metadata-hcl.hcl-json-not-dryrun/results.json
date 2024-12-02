@@ -1,5 +1,6 @@
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/autofix/add-metadata-hcl.hcl"
@@ -17,9 +18,25 @@
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "resource \"aws_instance\" \"example1\" {\n  ami           = \"ami-005e54dee72cc1d01\"\n  instance_type = \"t2.micro\"\n\n  metadata_options {\n    http_tokens = \"required\"\n  }\n}",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "resource \"aws_instance\" \"example1\" {\n  ami           = \"ami-005e54dee72cc1d01\"\n  instance_type = \"t2.micro\"\n}",
         "message": "EC2 instance does not set metadata options",
         "metadata": {},
+        "metavars": {
+          "$RESNAME": {
+            "abstract_content": "example1",
+            "end": {
+              "col": 34,
+              "line": 1,
+              "offset": 33
+            },
+            "start": {
+              "col": 26,
+              "line": 1,
+              "offset": 25
+            }
+          }
+        },
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -41,9 +58,25 @@
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "resource \"aws_instance\" \"example2\" {\n  ami           = \"ami-005e54dee72cc1d02\"\n  instance_type = \"t2.micro\"\n\n  metadata_options {\n    http_tokens = \"required\"\n  }\n}",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "resource \"aws_instance\" \"example2\" {\n  ami           = \"ami-005e54dee72cc1d02\"\n  instance_type = \"t2.micro\"\n}",
         "message": "EC2 instance does not set metadata options",
         "metadata": {},
+        "metavars": {
+          "$RESNAME": {
+            "abstract_content": "example2",
+            "end": {
+              "col": 34,
+              "line": 6,
+              "offset": 144
+            },
+            "start": {
+              "col": 26,
+              "line": 6,
+              "offset": 136
+            }
+          }
+        },
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },

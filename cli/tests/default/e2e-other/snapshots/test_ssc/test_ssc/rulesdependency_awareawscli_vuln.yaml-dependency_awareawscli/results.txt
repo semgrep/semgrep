@@ -5,6 +5,7 @@
 === stdout - plain
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/dependency_aware/awscli/Pipfile.lock",
@@ -22,9 +23,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "        \"awscli\": {",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 2",
         "metadata": {},
+        "metavars": {},
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
@@ -71,9 +74,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "        \"awscli\": {",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 1",
         "metadata": {},
+        "metavars": {},
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
@@ -120,9 +125,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "            s3_client = boto3.client(\"s3\")",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 3",
         "metadata": {},
+        "metavars": {},
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
@@ -170,9 +177,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "            s3_client = boto3.client(\"s3\")",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 1",
         "metadata": {},
+        "metavars": {},
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
@@ -220,9 +229,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "            s3_client = boto3.client(\"s3\")",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 1",
         "metadata": {},
+        "metavars": {},
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
@@ -270,9 +281,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "            s3_client = boto3.client(\"s3\", region_name=region)",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 3",
         "metadata": {},
+        "metavars": {},
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
@@ -320,9 +333,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "            s3_client = boto3.client(\"s3\", region_name=region)",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 1",
         "metadata": {},
+        "metavars": {},
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
@@ -370,9 +385,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "            s3_client = boto3.client(\"s3\", region_name=region)",
         "message": "this version of awscli is subject to a directory traversal vulnerability in the s3 module 1",
         "metadata": {},
+        "metavars": {},
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {

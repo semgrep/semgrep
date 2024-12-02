@@ -1,5 +1,6 @@
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/metavariable_propagation/metavariable-regex-propagation.py"
@@ -16,9 +17,38 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "    return 1",
         "message": "Semgrep found a match foo\n",
         "metadata": {},
+        "metavars": {
+          "$1": {
+            "abstract_content": "foo",
+            "end": {
+              "col": 4,
+              "line": 1,
+              "offset": 3
+            },
+            "start": {
+              "col": 1,
+              "line": 1,
+              "offset": 0
+            }
+          },
+          "$FUNC": {
+            "abstract_content": "foo",
+            "end": {
+              "col": 8,
+              "line": 1,
+              "offset": 7
+            },
+            "start": {
+              "col": 5,
+              "line": 1,
+              "offset": 4
+            }
+          }
+        },
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -39,9 +69,38 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "    return 2",
         "message": "Semgrep found a match bar\n",
         "metadata": {},
+        "metavars": {
+          "$1": {
+            "abstract_content": "bar",
+            "end": {
+              "col": 4,
+              "line": 1,
+              "offset": 3
+            },
+            "start": {
+              "col": 1,
+              "line": 1,
+              "offset": 0
+            }
+          },
+          "$FUNC": {
+            "abstract_content": "bar",
+            "end": {
+              "col": 8,
+              "line": 4,
+              "offset": 32
+            },
+            "start": {
+              "col": 5,
+              "line": 4,
+              "offset": 29
+            }
+          }
+        },
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },

@@ -1,5 +1,6 @@
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/basic/inside.py",
@@ -32,9 +33,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": true,
+        "lines": "    test_nosem_func();",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -55,9 +58,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": true,
+        "lines": "    test_nosem_func(); // nosem: rules.test-nosem",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -78,9 +83,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "    test_nosem_func();",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -101,9 +108,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": true,
+        "lines": "\ttest_nosem_func() // nosem: rules.test-nosem",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -124,9 +133,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "\ttest_nosem_func()",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -147,9 +158,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": true,
+        "lines": "        test_nosem_func();",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -170,9 +183,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": true,
+        "lines": "        test_nosem_func(); // nosem: rules.test-nosem",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -193,9 +208,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "        test_nosem_func();",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -216,9 +233,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": true,
+        "lines": "test_nosem_func() // nosem",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -239,9 +258,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": true,
+        "lines": "test_nosem_func() // nosem: rules.test-nosem",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -262,9 +283,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": true,
+        "lines": "test_nosem_func() // NOSEM: rules.test-nosem",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -285,9 +308,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "test_nosem_func(\n    invalid_line // nosem: rules.test-nosem\n)",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -308,9 +333,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": true,
+        "lines": "test_nosem_func()",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -331,9 +358,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": true,
+        "lines": "test_nosem_func()",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -354,9 +383,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": true,
+        "lines": "test_nosem_func()",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -377,9 +408,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "test_nosem_func(\n  // nosem: rules.test-nosem\n  invalid_line\n)",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -400,9 +433,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "test_nosem_func()",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -423,9 +458,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": true,
+        "lines": "test_nosem_func()",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -446,9 +483,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": true,
+        "lines": "test_nosem_func()",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -469,9 +508,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": true,
+        "lines": "test_nosem_func()",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -492,9 +533,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": true,
+        "lines": "test_nosem_func()",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -515,9 +558,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": true,
+        "lines": "test_nosem_func()",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -538,9 +583,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": true,
+        "lines": "test_nosem_func()  # nosem: rules.test-nosem",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -561,9 +608,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": true,
+        "lines": "test_nosem_func()  # NOSEM: rules.test-nosem",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -584,9 +633,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": true,
+        "lines": "test_nosem_func()  # nosemgrep: rules.test-nosem",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -607,9 +658,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": true,
+        "lines": "test_nosem_func()  # NOSEMGREP",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -630,9 +683,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": true,
+        "lines": "test_nosem_func()  # nOseMgREP: rules.test-nosem",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -653,9 +708,11 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "test_nosem_func()",
         "message": "test-nosem-message",
         "metadata": {},
+        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },

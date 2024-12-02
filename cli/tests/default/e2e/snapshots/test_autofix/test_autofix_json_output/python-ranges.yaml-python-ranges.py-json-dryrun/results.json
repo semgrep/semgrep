@@ -1,5 +1,6 @@
 {
   "errors": [],
+  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/autofix/python-ranges.py"
@@ -20,9 +21,25 @@
         "fixed_lines": [
           "bar('abc')"
         ],
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "foo('abc')",
         "message": "change it",
         "metadata": {},
+        "metavars": {
+          "$E": {
+            "abstract_content": "'abc'",
+            "end": {
+              "col": 10,
+              "line": 1,
+              "offset": 9
+            },
+            "start": {
+              "col": 5,
+              "line": 1,
+              "offset": 4
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -47,9 +64,25 @@
         "fixed_lines": [
           "bar(\"abc\")"
         ],
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "foo(\"abc\")",
         "message": "change it",
         "metadata": {},
+        "metavars": {
+          "$E": {
+            "abstract_content": "\"abc\"",
+            "end": {
+              "col": 10,
+              "line": 2,
+              "offset": 20
+            },
+            "start": {
+              "col": 5,
+              "line": 2,
+              "offset": 15
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -74,9 +107,25 @@
         "fixed_lines": [
           "bar(\"\"\"abc\"\"\")"
         ],
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "foo(\"\"\"abc\"\"\")",
         "message": "change it",
         "metadata": {},
+        "metavars": {
+          "$E": {
+            "abstract_content": "\"\"\"abc\"\"\"",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 35
+            },
+            "start": {
+              "col": 5,
+              "line": 3,
+              "offset": 26
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -101,9 +150,25 @@
         "fixed_lines": [
           "bar(r\"abc\")"
         ],
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "foo(r\"abc\")",
         "message": "change it",
         "metadata": {},
+        "metavars": {
+          "$E": {
+            "abstract_content": "r\"abc\"",
+            "end": {
+              "col": 11,
+              "line": 4,
+              "offset": 47
+            },
+            "start": {
+              "col": 5,
+              "line": 4,
+              "offset": 41
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -128,9 +193,25 @@
         "fixed_lines": [
           "bar(f\"abc\")"
         ],
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "foo(f\"abc\")",
         "message": "change it",
         "metadata": {},
+        "metavars": {
+          "$E": {
+            "abstract_content": "f\"abc\"",
+            "end": {
+              "col": 11,
+              "line": 5,
+              "offset": 59
+            },
+            "start": {
+              "col": 5,
+              "line": 5,
+              "offset": 53
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -155,9 +236,25 @@
         "fixed_lines": [
           "bar([1])"
         ],
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "foo([1])",
         "message": "change it",
         "metadata": {},
+        "metavars": {
+          "$E": {
+            "abstract_content": "[1]",
+            "end": {
+              "col": 8,
+              "line": 6,
+              "offset": 68
+            },
+            "start": {
+              "col": 5,
+              "line": 6,
+              "offset": 65
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -182,9 +279,25 @@
         "fixed_lines": [
           "bar([1, 2])"
         ],
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "foo([1, 2])",
         "message": "change it",
         "metadata": {},
+        "metavars": {
+          "$E": {
+            "abstract_content": "[1 2]",
+            "end": {
+              "col": 11,
+              "line": 7,
+              "offset": 80
+            },
+            "start": {
+              "col": 5,
+              "line": 7,
+              "offset": 74
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -209,9 +322,25 @@
         "fixed_lines": [
           "bar(x[1])"
         ],
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "foo(x[1])",
         "message": "change it",
         "metadata": {},
+        "metavars": {
+          "$E": {
+            "abstract_content": "x[1]",
+            "end": {
+              "col": 9,
+              "line": 8,
+              "offset": 90
+            },
+            "start": {
+              "col": 5,
+              "line": 8,
+              "offset": 86
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -236,9 +365,25 @@
         "fixed_lines": [
           "bar(x[1, 2])"
         ],
-        "lines": "requires login",
+        "is_ignored": false,
+        "lines": "foo(x[1, 2])",
         "message": "change it",
         "metadata": {},
+        "metavars": {
+          "$E": {
+            "abstract_content": "x[1 2]",
+            "end": {
+              "col": 12,
+              "line": 9,
+              "offset": 103
+            },
+            "start": {
+              "col": 5,
+              "line": 9,
+              "offset": 96
+            }
+          }
+        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
