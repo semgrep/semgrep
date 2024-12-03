@@ -107,6 +107,8 @@ type ident = G.ident [@@deriving show]
 type name = { ident : ident; sid : G.sid; id_info : G.id_info }
 [@@deriving show]
 
+let str_of_name name = Common.spf "%s:%s" (fst name.ident) (G.SId.show name.sid)
+
 let compare_name name1 name2 =
   let { ident = str1, _tok1; sid = sid1; id_info = _ } = name1 in
   let { ident = str2, _tok2; sid = sid2; id_info = _ } = name2 in
@@ -118,6 +120,19 @@ module NameOrdered = struct
   type t = name
 
   let compare = compare_name
+end
+
+module NameSet : sig
+  include Set.S with type elt = name
+
+  val show : t -> string
+end = struct
+  include Set.Make (NameOrdered)
+
+  let show nameset =
+    "{"
+    ^ (nameset |> elements |> List_.map str_of_name |> String.concat ", ")
+    ^ "}"
 end
 
 module NameMap = Map.Make (NameOrdered)
@@ -492,7 +507,7 @@ type any = L of lval | E of exp | I of instr | S of stmt | Ss of stmt list
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let str_of_name name = Common.spf "%s:%s" (fst name.ident) (G.SId.show name.sid)
+
 let ident_str_of_name name = fst name.ident
 let str_of_label ((n, _), _) = n
 

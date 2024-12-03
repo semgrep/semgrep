@@ -226,158 +226,12 @@ let pms_of_effect ~match_on (effect : Effect.t) =
 (* Main entry points *)
 (*****************************************************************************)
 
-let check_var_def (taint_inst : Taint_rule_inst.t) env id ii expr =
-  let name = AST_to_IL.var_of_id_info id ii in
-  let assign =
-    G.Assign (G.N (G.Id (id, ii)) |> G.e, Tok.fake_tok (snd id) "=", expr)
-    |> G.e |> G.exprstmt
-  in
-  let xs = AST_to_IL.stmt taint_inst.lang assign in
-  let cfg, lambdas = CFG_build.cfg_of_stmts xs in
-  let effects, end_mapping =
-    (* There could be taint effects indeed, e.g. if 'expr' is `sink(taint)`. *)
-    Dataflow_tainting.fixpoint taint_inst ~in_env:env
-      IL.{ params = []; cfg; lambdas }
-  in
-  let out_env = end_mapping.(cfg.exit).Dataflow_core.out_env in
-  let lval : IL.lval = { base = Var name; rev_offset = [] } in
-  let xtaint = Lval_env.find_lval_xtaint out_env lval in
-  (xtaint, effects)
-
-let add_to_env_aux (taint_inst : Taint_rule_inst.t) env id ii opt_expr =
-  let var = AST_to_IL.var_of_id_info id ii in
-  let var_type = Typing.resolved_type_of_id_info taint_inst.lang var.id_info in
-  let id_taints =
-    taint_inst.preds.is_source (G.Tk (snd id))
-    |> List_.map (fun (x : _ Taint_spec_match.t) -> (x.spec_pm, x.spec))
-    (* These sources come from the parameters to a function,
-        which are not within the normal control flow of a code.
-        We can safely say there's no incoming taints to these sources.
-    *)
-    |> T.taints_of_pms ~incoming:T.Taint_set.empty
-  in
-  let expr_taints, expr_effects =
-    match opt_expr with
-    | Some e ->
-        let xtaint, effects = check_var_def taint_inst env id ii e in
-        (Xtaint.to_taints xtaint, effects)
-    | None -> (T.Taint_set.empty, Effects.empty)
-  in
-  let taints = id_taints |> T.Taint_set.union expr_taints in
-  let taints =
-    Dataflow_tainting.drop_taints_if_bool_or_number taint_inst.options taints
-      var_type
-  in
-  let env = env |> Lval_env.add (IL_helpers.lval_of_var var) taints in
-  (env, expr_effects)
-
-let add_to_env taint_inst (env, effects) id id_info opt_expr =
-  let env, new_effects = add_to_env_aux taint_inst env id id_info opt_expr in
-  (env, Effects.union new_effects effects)
-
-let mk_fun_input_env taint_inst ?(glob_env = Lval_env.empty)
-    (fdef : IL.function_definition) =
-  let add_to_env = add_to_env taint_inst in
-  let in_env =
-    (* For each argument, check if it's a source and, if so, add it to the input
-     * environment. *)
-    List.fold_left
-      (fun env_and_effects par ->
-        match par with
-        | IL.Param { pname = name; pdefault } ->
-            add_to_env env_and_effects name.ident name.id_info pdefault
-        (* JS: {arg} : type *)
-        | IL.PatternParam
-            (G.OtherPat
-              ( ("ExprToPattern", _),
-                [
-                  G.E
-                    { e = G.Cast (_, _, { e = G.Record (_, fields, _); _ }); _ };
-                ] ))
-        (* JS: {arg} *)
-        | IL.PatternParam
-            (G.OtherPat
-              (("ExprToPattern", _), [ G.E { e = G.Record (_, fields, _); _ } ]))
-          ->
-            List.fold_left
-              (fun env field ->
-                match field with
-                | G.F
-                    {
-                      s =
-                        G.DefStmt
-                          ( _,
-                            G.FieldDefColon
-                              { vinit = Some { e = G.N (G.Id (id, ii)); _ }; _ }
-                          );
-                      _;
-                    } ->
-                    add_to_env env id ii None
-                | G.F _ -> env)
-              env_and_effects fields
-        | IL.PatternParam pat ->
-            (* Here, we just get all the identifiers in the pattern, which may
-               themselves be sources.
-               This is so we can handle patterns such as:
-               (x, (y, z, (a, b)))
-               and taint all the inner identifiers
-            *)
-            let ids = Visit_pattern_ids.visit (G.P pat) in
-            List.fold_left
-              (fun env (id, pinfo) -> add_to_env env id pinfo None)
-              env_and_effects ids
-        | IL.FixmeParam -> env_and_effects)
-      (glob_env, Effects.empty) fdef.fparams
-  in
-  in_env
-
-let is_global (id_info : G.id_info) =
-  let* kind, _sid = !(id_info.id_resolved) in
-  Some (H.name_is_global kind)
-
-let mk_file_env taint_inst ast =
-  let add_to_env = add_to_env taint_inst in
-  let env = ref (Lval_env.empty, Effects.empty) in
-  let visitor =
-    object (_self : 'self)
-      inherit [_] G.iter_no_id_info as super
-
-      method! visit_definition env (entity, def_kind) =
-        match (entity, def_kind) with
-        | { name = EN (Id (id, id_info)); _ }, VarDef { vinit; _ }
-          when IdFlags.is_final !(id_info.id_flags)
-               && is_global id_info =*= Some true ->
-            env := add_to_env !env id id_info vinit
-        | __else__ -> super#visit_definition env (entity, def_kind)
-
-      method! visit_Assign env lhs tok expr =
-        match lhs with
-        | {
-         e =
-           ( N (Id (id, id_info))
-           | DotAccess
-               ( { e = IdSpecial ((This | Self), _); _ },
-                 _,
-                 FN (Id (id, id_info)) ) );
-         _;
-        }
-          when IdFlags.is_final !(id_info.id_flags)
-               && is_global id_info =*= Some true ->
-            env := add_to_env !env id id_info (Some expr)
-        | __else__ -> super#visit_Assign env lhs tok expr
-    end
-  in
-  visitor#visit_program env ast;
-  !env
-
-let check_fundef (taint_inst : Taint_rule_inst.t) opt_ent ctx ?glob_env fdef =
-  let name =
-    let* ent = opt_ent in
-    AST_to_IL.name_of_entity ent
-  in
+let check_fundef (taint_inst : Taint_rule_inst.t) name ctx ?glob_env fdef =
   let fdef = AST_to_IL.function_definition taint_inst.lang ~ctx fdef in
   let fcfg = CFG_build.cfg_of_fdef fdef in
-  let in_env, env_effects = mk_fun_input_env taint_inst ?glob_env fdef in
+  let in_env, env_effects =
+    Taint_input_env.mk_fun_input_env taint_inst ?glob_env fdef.fparams
+  in
   let effects, mapping =
     Dataflow_tainting.fixpoint taint_inst ~in_env ?name fcfg
   in
@@ -386,6 +240,13 @@ let check_fundef (taint_inst : Taint_rule_inst.t) opt_ent ctx ?glob_env fdef =
 
 let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
     (xconf : Match_env.xconfig) (xtarget : Xtarget.t) =
+  Log.info (fun m ->
+      m
+        "Match_tainting_mode:\n\
+         ====================\n\
+         Running rule %s\n\
+         ===================="
+        (Rule_ID.to_string (fst rule.R.id)));
   let matches = ref [] in
   let match_on =
     (* TEMPORARY HACK to support both taint_match_on (DEPRECATED) and
@@ -443,21 +304,46 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
       | __else__ -> ())
     ast;
 
-  let glob_env, glob_effects = mk_file_env taint_inst ast in
+  let glob_env, glob_effects = Taint_input_env.mk_file_env taint_inst ast in
   record_matches glob_effects;
 
   (* Check each function definition. *)
   Visit_function_defs.visit
     (fun opt_ent fdef ->
-      let _flow, fdef_effects, _mapping =
-        check_fundef taint_inst opt_ent !ctx ~glob_env fdef
-      in
-      record_matches fdef_effects)
+      match fst fdef.fkind with
+      | LambdaKind
+      | Arrow ->
+          (* We do not need to analyze lambdas here, they will be analyzed
+             together with their enclosing function. This would just duplicate
+             work. *)
+          ()
+      | Function
+      | Method
+      | BlockCases ->
+          let opt_name =
+            let* ent = opt_ent in
+            AST_to_IL.name_of_entity ent
+          in
+          Log.info (fun m ->
+              m
+                "Match_tainting_mode:\n\
+                 --------------------\n\
+                 Checking func def: %s\n\
+                 --------------------"
+                (Option.map IL.str_of_name opt_name ||| "???"));
+          let _flow, fdef_effects, _mapping =
+            check_fundef taint_inst opt_name !ctx ~glob_env fdef
+          in
+          record_matches fdef_effects)
     ast;
 
   (* Check execution of statements during object initialization. *)
   Visit_class_defs.visit
-    (fun _ cdef ->
+    (fun opt_ent cdef ->
+      let opt_name =
+        let* ent = opt_ent in
+        AST_to_IL.name_of_entity ent
+      in
       let fields =
         cdef.G.cbody |> Tok.unbracket
         |> List_.map (function G.F x -> x)
@@ -465,8 +351,16 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
       in
       let stmts = AST_to_IL.stmt taint_inst.lang fields in
       let cfg, lambdas = CFG_build.cfg_of_stmts stmts in
+      Log.info (fun m ->
+          m
+            "Match_tainting_mode:\n\
+             --------------------\n\
+             Checking object initialization: %s\n\
+             --------------------"
+            (Option.map IL.str_of_name opt_name ||| "???"));
       let init_effects, _mapping =
-        Dataflow_tainting.fixpoint taint_inst IL.{ params = []; cfg; lambdas }
+        Dataflow_tainting.fixpoint taint_inst ?name:opt_name
+          IL.{ params = []; cfg; lambdas }
       in
       record_matches init_effects)
     ast;
@@ -479,6 +373,12 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
     Common.with_time (fun () ->
         let xs = AST_to_IL.stmt taint_inst.lang (G.stmt1 ast) in
         let cfg, lambdas = CFG_build.cfg_of_stmts xs in
+        Log.info (fun m ->
+            m
+              "Match_tainting_mode:\n\
+               --------------------\n\
+               Checking top-level program\n\
+               --------------------");
         let top_effects, _mapping =
           Dataflow_tainting.fixpoint taint_inst IL.{ params = []; cfg; lambdas }
         in

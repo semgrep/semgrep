@@ -80,13 +80,30 @@ type java_props_cache = (string * G.SId.t, IL.name) Hashtbl.t
 
 let mk_empty_java_props_cache () = Hashtbl.create 30
 
+type func = {
+  fname : IL.name option;
+  best_matches : TM.Best_matches.t;
+      (** Best matches for the taint sources/etc, see 'Taint_spec_match'. *)
+  used_lambdas : IL.NameSet.t;
+      (** Set of lambda names that are *used* within the function. If a lambda
+        is used, we analyze it at use-site, otherwise we analyze it at def site. *)
+}
+(** Data about the top-level function definition under analysis, this does not
+ * vary when analyzing lambdas. *)
+
+(* REFACTOR: Rename 'Taint_lval_env' as 'Taint_var_env' and create a new module
+    for this 'env' type called 'Taint_env' or 'Taint_state' or sth, then we could
+    e.g. move all lambda stuff to 'Taint_lambda'. *)
 (* THINK: Separate read-only enviroment into a new a "cfg" type? *)
 type env = {
   taint_inst : Taint_rule_inst.t;
-  fun_name : IL.name option;
+  func : func;
   in_lambda : IL.name option;
+  needed_vars : IL.NameSet.t;
+      (** Vars that we need to track in the current function/lambda under analysis,
+    other vars can be filtered out, see 'fixpoint_lambda' as well as
+    'Taint_lambda.find_vars_to_track_across_lambdas'. *)
   lval_env : Lval_env.t;
-  best_matches : TM.Best_matches.t;
   effects_acc : Effects.t ref;
 }
 
@@ -171,7 +188,8 @@ let gather_all_taints_in_args_taints args_taints =
 let any_is_best_sanitizer env any =
   env.taint_inst.preds.is_sanitizer any
   |> List.filter (fun (m : R.taint_sanitizer TM.t) ->
-         (not m.spec.sanitizer_exact) || TM.is_best_match env.best_matches m)
+         (not m.spec.sanitizer_exact)
+         || TM.is_best_match env.func.best_matches m)
 
 (* TODO: We could return source matches already split by `by-side-effect` here ? *)
 let any_is_best_source ?(is_lval = false) env any =
@@ -184,13 +202,14 @@ let any_is_best_source ?(is_lval = false) env any =
           *  backwards compatibility we keep it this way. *)
          | Yes
          | No ->
-             (not m.spec.source_exact) || TM.is_best_match env.best_matches m)
+             (not m.spec.source_exact)
+             || TM.is_best_match env.func.best_matches m)
 
 let any_is_best_sink env any =
   env.taint_inst.preds.is_sink any
   |> List.filter (fun (tm : R.taint_sink TM.t) ->
          (* at-exit sinks are handled in 'check_tainted_at_exit_sinks' *)
-         (not tm.spec.sink_at_exit) && TM.is_best_match env.best_matches tm)
+         (not tm.spec.sink_at_exit) && TM.is_best_match env.func.best_matches tm)
 
 let orig_is_source (taint_inst : Taint_rule_inst.t) orig =
   taint_inst.preds.is_source (any_of_orig orig)
@@ -259,7 +278,9 @@ let taints_of_matches env ~incoming sources =
 
 let record_effects env new_effects =
   if not (List_.null new_effects) then
-    let new_effects = env.taint_inst.handle_effects env.fun_name new_effects in
+    let new_effects =
+      env.taint_inst.handle_effects env.func.fname new_effects
+    in
     env.effects_acc := Effects.add_list new_effects !(env.effects_acc)
 
 let unify_mvars_sets env mvars1 mvars2 =
@@ -600,6 +621,40 @@ let lookup_signature env fun_exp =
   | __else__ -> None
 
 (*****************************************************************************)
+(* Lambdas *)
+(*****************************************************************************)
+
+let lambdas_used_in_node lambdas node =
+  LV.rlvals_of_node node.IL.n |> List_.filter_map (LV.lval_is_lambda lambdas)
+
+let lambdas_used_in_cfg fun_cfg =
+  fun_cfg |> LV.reachable_nodes
+  |> Seq.fold_left
+       (fun used_lambdas_acc node ->
+         let lambdas_in_node =
+           node
+           |> lambdas_used_in_node fun_cfg.lambdas
+           |> List.to_seq
+           |> Seq.map (fun (lname, _) -> lname)
+           |> IL.NameSet.of_seq
+         in
+         IL.NameSet.union lambdas_in_node used_lambdas_acc)
+       IL.NameSet.empty
+
+let lambdas_to_analyze_in_node env lambdas node =
+  let unused_lambda_def =
+    let* instr =
+      match node.F.n with
+      | NInstr i -> Some i
+      | __else__ -> None
+    in
+    let* lval = LV.lval_of_instr_opt instr in
+    let* ((lname, _) as lambda) = LV.lval_is_lambda lambdas lval in
+    if IL.NameSet.mem lname env.func.used_lambdas then None else Some lambda
+  in
+  Option.to_list unused_lambda_def @ lambdas_used_in_node lambdas node
+
+(*****************************************************************************)
 (* Miscellaneous *)
 (*****************************************************************************)
 
@@ -912,7 +967,7 @@ let rec check_tainted_lval env (lval : IL.lval) :
   in
   let sinks =
     lval_is_sink env lval
-    |> List.filter (TM.is_best_match env.best_matches)
+    |> List.filter (TM.is_best_match env.func.best_matches)
     |> List_.map TM.sink_of_match
   in
   let effects = effects_of_tainted_sinks { env with lval_env } taints sinks in
@@ -1631,7 +1686,7 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
 let check_tainted_return env tok e : Taints.t * S.shape * Lval_env.t =
   let sinks =
     any_is_best_sink env (G.Tk tok) @ orig_is_best_sink env e.eorig
-    |> List.filter (TM.is_best_match env.best_matches)
+    |> List.filter (TM.is_best_match env.func.best_matches)
     |> List_.map TM.sink_of_match
   in
   let taints, shape, var_env' = check_tainted_expr env e in
@@ -1695,7 +1750,7 @@ let check_tainted_control_at_exit node env =
            * `Taint.compare_source` does not compare the length of the
            * call trace. And that could cause some calls to be missing
            * in the call trace of a finding. *)
-          match env.fun_name with
+          match env.func.fname with
           | None -> G.fake "return"
           | Some name -> G.fake (IL.str_of_name name ^ "/return")
         in
@@ -1741,22 +1796,18 @@ let mk_lambda_in_env env lcfg =
    * so we can propagate taint from `obj` to `x`.
    *)
   lcfg.params
-  |> List.fold_left
-       (fun lval_env param ->
-         match param with
-         | Param { pname = var; _ } ->
-             (* This is a *new* variable, so we clean any taint that we may have
-              * attached to it previously. This can happen when a lambda is called
-              * inside a loop. *)
-             let lval_env = Lval_env.clean lval_env (LV.lval_of_var var) in
-             (* Now check if the parameter is itself a taint source. *)
-             let _taints, _shape, lval_env =
-               check_tainted_var { env with lval_env } var
-             in
-             lval_env
-         | PatternParam _ (* TODO *)
-         | FixmeParam ->
-             lval_env)
+  |> Fold_IL_params.fold
+       (fun lval_env id id_info _pdefault ->
+         let var = AST_to_IL.var_of_id_info id id_info in
+         (* This is a *new* variable, so we clean any taint that we may have
+            * attached to it previously. This can happen when a lambda is called
+            * inside a loop. *)
+         let lval_env = Lval_env.clean lval_env (LV.lval_of_var var) in
+         (* Now check if the parameter is itself a taint source. *)
+         let taints, shape, lval_env =
+           check_tainted_var { env with lval_env } var
+         in
+         lval_env |> Lval_env.add_shape (LV.lval_of_var var) taints shape)
        env.lval_env
 
 let rec transfer : env -> fun_cfg:F.fun_cfg -> Lval_env.t D.transfn =
@@ -1847,8 +1898,12 @@ let rec transfer : env -> fun_cfg:F.fun_cfg -> Lval_env.t D.transfn =
   check_tainted_control_at_exit node env_at_exit;
   check_tainted_at_exit_sinks node env_at_exit;
   Log.debug (fun m ->
-      m ~tags:transfer_tag "Taint transfer %s\n  %s:\n  IN:  %s\n  OUT: %s"
-        (Option.map IL.str_of_name env.fun_name ||| "<FUN>")
+      m ~tags:transfer_tag "Taint transfer %s%s\n  %s:\n  IN:  %s\n  OUT: %s"
+        (Option.map IL.str_of_name env.func.fname ||| "<FUN>")
+        (Option.map
+           (fun lname -> spf "(in lambda %s)" (IL.str_of_name lname))
+           env.in_lambda
+        ||| "")
         (Display_IL.short_string_of_node_kind node.F.n)
         (Lval_env.to_string in') (Lval_env.to_string out'));
   { D.in_env = in'; out_env = out' }
@@ -1878,21 +1933,18 @@ and do_lambdas env (lambdas : IL.lambdas_cfgs) node =
   (* We visit lambdas at their "use" site (where they are fetched), so we can e.g.
    * propagate taint from an object receiving a method call, to a lambda being
    * passed to that method. *)
-  let lambdas_in_node =
-    IL_helpers.rlvals_of_node node.F.n
-    |> List_.filter_map (LV.lval_is_lambda lambdas)
-  in
-  let num_lambdas = List.length lambdas_in_node in
+  let lambdas_to_analyze = lambdas_to_analyze_in_node env lambdas node in
+  let num_lambdas = List.length lambdas_to_analyze in
   if num_lambdas > 0 then
     Log.debug (fun m ->
         m "There are %d lambda(s) occurring in: %s" num_lambdas
           (Display_IL.short_string_of_node_kind node.F.n));
   let effects_lambdas, out_envs_lambdas =
-    lambdas_in_node
-    |> List_.map (fun (name, lcfg) ->
-           let in_env = mk_lambda_in_env env lcfg in
-           fixpoint_lambda env.taint_inst env.best_matches env.fun_name name
-             lcfg in_env)
+    lambdas_to_analyze
+    |> List_.map (fun (lambda_name, lambda_cfg) ->
+           let lambda_in_env = mk_lambda_in_env env lambda_cfg in
+           fixpoint_lambda env.taint_inst env.func env.needed_vars lambda_name
+             lambda_cfg lambda_in_env)
     |> List_.split
   in
   let effects = Effects.union_list effects_lambdas in
@@ -1905,7 +1957,7 @@ and do_lambdas env (lambdas : IL.lambdas_cfgs) node =
        *     do_something([]() { taint(p) });
        *     sink(p) // finding wanted
        *
-       * We assume that these lambdas are beign evaluated and that their side-effects
+       * We assume that these lambdas are being evaluated and that their side-effects
        * should affect the subsequent statements.
        *)
       Lval_env.union_list ~default:env.lval_env out_envs_lambdas
@@ -1926,15 +1978,15 @@ and do_lambdas env (lambdas : IL.lambdas_cfgs) node =
   in
   (effects, out_env)
 
-and fixpoint_lambda taint_inst best_matches fun_name lambda_name lambda_cfg
-    in_env : Effects.t * Lval_env.t =
+and fixpoint_lambda taint_inst func needed_vars lambda_name lambda_cfg in_env :
+    Effects.t * Lval_env.t =
   Log.debug (fun m ->
       m "Analyzing lambda %s (%s)"
         (IL.str_of_name lambda_name)
         (Lval_env.to_string in_env));
   let effects, mapping =
-    fixpoint_aux taint_inst ~in_env ?name:fun_name ~in_lambda:(Some lambda_name)
-      best_matches lambda_cfg
+    fixpoint_aux taint_inst func ~needed_vars ~enter_lval_env:in_env
+      ~in_lambda:(Some lambda_name) lambda_cfg
   in
   let effects =
     effects
@@ -1946,24 +1998,33 @@ and fixpoint_lambda taint_inst best_matches fun_name lambda_name lambda_cfg
          | ToReturn _ -> false)
   in
   let out_env = mapping.(lambda_cfg.cfg.exit).Dataflow_core.out_env in
-  (effects, out_env)
+  let out_env' =
+    out_env
+    |> Lval_env.filter_tainted (fun var -> IL.NameSet.mem var needed_vars)
+  in
+  Log.debug (fun m ->
+      m ~tags:transfer_tag "Lambda out_env %s --FILTER(%s)--> %s"
+        (Lval_env.to_string out_env)
+        (IL.NameSet.show needed_vars)
+        (Lval_env.to_string out_env'));
+  (effects, out_env')
 
-and fixpoint_aux taint_inst ?in_env ?name:opt_name ~in_lambda best_matches
-    fun_cfg =
+and fixpoint_aux taint_inst func ?(needed_vars = IL.NameSet.empty)
+    ~enter_lval_env ~in_lambda fun_cfg =
   let flow = fun_cfg.cfg in
   let init_mapping = DataflowX.new_node_array flow Lval_env.empty_inout in
-  let enter_lval_env =
-    match in_env with
-    | None -> Lval_env.empty
-    | Some in_env -> in_env
+  let needed_vars =
+    needed_vars
+    |> IL.NameSet.union
+         (Taint_lambdas.find_vars_to_track_across_lambdas fun_cfg)
   in
   let env =
     {
       taint_inst;
-      fun_name = opt_name;
+      func;
       in_lambda;
       lval_env = enter_lval_env;
-      best_matches;
+      needed_vars;
       effects_acc = ref Effects.empty;
     }
   in
@@ -1974,7 +2035,7 @@ and fixpoint_aux taint_inst ?in_env ?name:opt_name ~in_lambda best_matches
       ~eq_env:Lval_env.equal ~init:init_mapping ~trans:(transfer env ~fun_cfg)
       ~forward:true ~flow
   in
-  log_timeout_warning taint_inst opt_name timeout;
+  log_timeout_warning taint_inst env.func.fname timeout;
   let exit_lval_env = end_mapping.(flow.exit).D.out_env in
   effects_from_arg_updates_at_exit enter_lval_env exit_lval_env
   |> record_effects env;
@@ -1990,7 +2051,7 @@ and (fixpoint :
       ?name:IL.name ->
       F.fun_cfg ->
       Effects.t * mapping) =
- fun taint_inst ?in_env ?name:opt_name fun_cfg ->
+ fun taint_inst ?(in_env = Lval_env.empty) ?name:opt_name fun_cfg ->
   let best_matches =
     (* Here we compute the "canonical" or "best" source/sanitizer/sink matches,
      * for each source/sanitizer/sink we check whether there is a "best match"
@@ -2020,5 +2081,11 @@ and (fixpoint :
            in
            sources |> Seq.append sanitizers |> Seq.append sinks)
   in
-  fixpoint_aux taint_inst ?in_env ?name:opt_name ~in_lambda:None best_matches
-    fun_cfg
+  let used_lambdas = lambdas_used_in_cfg fun_cfg in
+  let func = { fname = opt_name; best_matches; used_lambdas } in
+  fixpoint_aux taint_inst func ~enter_lval_env:in_env ~in_lambda:None fun_cfg
+[@@profiling]
+
+let fixpoint taint_inst ?in_env ?name fun_cfg =
+  fixpoint taint_inst ?in_env ?name fun_cfg
+[@@profiling]

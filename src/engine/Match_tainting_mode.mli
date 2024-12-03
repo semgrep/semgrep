@@ -14,19 +14,9 @@ val hook_setup_hook_function_taint_signature :
   *   (or we could infer a signature for them too...).
   *)
 
-val mk_fun_input_env :
-  Taint_rule_inst.t ->
-  ?glob_env:Taint_lval_env.t ->
-  IL.function_definition ->
-  Taint_lval_env.t * Shape_and_sig.Effects.t
-(** Constructs the initial taint environment for a given function definition.
- * Essentially, it records the parameters that are taint sources, or whose
- * default value is a taint source.
- * It is exposed to be used by inter-file taint analysis in Pro.  *)
-
 val check_fundef :
   Taint_rule_inst.t ->
-  AST_generic.entity option (** entity being analyzed *) ->
+  IL.name option (** entity being analyzed *) ->
   AST_to_IL.ctx ->
   ?glob_env:Taint_lval_env.t ->
   AST_generic.function_definition ->

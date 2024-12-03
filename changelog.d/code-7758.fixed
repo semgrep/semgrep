@@ -1,0 +1,11 @@
+taint-mode: Fixed what is considered a sink when a sink formula matches a
+lambda expression: it is the lambda itself that is the sink, not the
+individual statements in the lambda.
+
+Example:
+
+    function test() {
+      // no longer generates finding
+      // note that `log(taint)` is *not* a sink
+      sink(() => { log(taint); return "ok" });
+    }

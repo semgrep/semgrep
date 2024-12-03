@@ -46,6 +46,9 @@ let make (graph : _ Ograph_extended.ograph_mutable) entry exit : _ t =
   in
   { graph; entry; exit; reachable = aux entry NodeiSet.empty }
 
+let reachable_nodes cfg =
+  cfg.reachable |> NodeiSet.to_seq |> Seq.map cfg.graph#nodes#assoc
+
 (* Predecessors of a node (that can be reached from the entry node). *)
 let predecessors cfg nodei : (nodei * 'node) list =
   (cfg.graph#predecessors nodei)#tolist

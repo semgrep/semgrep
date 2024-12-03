@@ -1,0 +1,13 @@
+rules:
+  - id: eval-express
+    languages:
+      - js
+    severity: ERROR
+    message: Test
+    mode: taint
+    pattern-sources:
+      - pattern: input
+    pattern-sinks:
+      - patterns:
+          - pattern: setTimeout($SINK, ...)
+          - focus-metavariable: $SINK

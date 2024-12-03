@@ -302,6 +302,10 @@ let clean
         (* THINK: Should we clean propagations before they are executed? *)
       }
 
+let filter_tainted pred ({ tainted; _ } as lval_env) =
+  let tainted = tainted |> NameMap.filter (fun var _cell -> pred var) in
+  { lval_env with tainted }
+
 let add_control_taints lval_env taints =
   if Taints.is_empty taints then lval_env
   else { lval_env with control = Taints.union taints lval_env.control }

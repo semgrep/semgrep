@@ -1,0 +1,18 @@
+rules:
+- id: test
+  message: Test
+  mode: taint
+  pattern-sources:
+  - patterns:
+    - pattern-inside: |
+        function($scope, $sce) {
+        ...
+        }
+    - pattern: $scope
+  pattern-sinks:
+  - patterns:
+    - pattern: $sce.sink($SINK)
+    - focus-metavariable: $SINK
+  languages:
+  - javascript
+  severity: WARNING

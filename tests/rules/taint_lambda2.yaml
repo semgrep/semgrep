@@ -1,0 +1,18 @@
+rules:
+- id: test
+  message: Test
+  severity: ERROR
+  languages:
+  - javascript
+  - typescript
+  mode: taint
+  pattern-sources:
+  - label: TAINT
+    pattern: req.query
+  - label: DB
+    pattern: client(...)
+  pattern-sinks:
+  - patterns:
+    - pattern-either:
+      - pattern: $DB.sink($SINK)
+    requires: TAINT and DB

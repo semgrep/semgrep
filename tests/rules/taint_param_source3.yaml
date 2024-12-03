@@ -1,0 +1,20 @@
+rules:
+- id: test
+  languages:
+    - js
+  severity: ERROR
+  message: Test
+  mode: taint
+  options:
+    interfile: true
+  pattern-sources:
+  - patterns:
+    - pattern-either:
+      - pattern-inside: function ... ($REQ, $RES) {...}
+      - pattern-inside: function ... ($REQ, $RES, $NEXT) {...}
+    - patterns:
+      - pattern: $REQ.on('data', function ($CHUNK) { ... })
+      - focus-metavariable: $CHUNK
+  pattern-sinks:
+    - pattern: sink(...)
+

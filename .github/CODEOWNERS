@@ -1,2 +1,3 @@
+src/engine/*taint* @IagoAbal
 src/analyzing @IagoAbal
 src/tainting @IagoAbal
