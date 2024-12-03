@@ -1,0 +1,1 @@
+Renames the flag to enable experimental lockfileless scanning from `--allow-dynamic-dependency-resolution` to `--allow-local-builds` to reflect the security risk that enabling the feature introduces. Also removes the opt-out flag, since we do not plan to make the feature enabled by default.

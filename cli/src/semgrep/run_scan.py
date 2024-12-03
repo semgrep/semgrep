@@ -247,7 +247,7 @@ def run_rules(
     *,
     with_code_rules: bool = True,
     with_supply_chain: bool = False,
-    allow_dynamic_dependency_resolution: bool = False,
+    allow_local_builds: bool = False,
     prioritize_dependency_graph_generation: bool = False,
 ) -> Tuple[
     RuleMatchMap,
@@ -285,7 +285,7 @@ def run_rules(
             sca_dependency_targets,
         ) = resolve_subprojects(
             target_manager,
-            allow_dynamic_resolution=allow_dynamic_dependency_resolution,
+            allow_dynamic_resolution=allow_local_builds,
             prioritize_dependency_graph_generation=prioritize_dependency_graph_generation,
         )
         # for each subproject, split the errors into semgrep errors and parser errors.
@@ -356,7 +356,7 @@ def run_rules(
             join_rule_matches, join_rule_errors = join_rule.run_join_rule(
                 rule.raw,
                 [target.path for target in target_manager.targets],
-                allow_dynamic_dependency_resolution=allow_dynamic_dependency_resolution,
+                allow_local_builds=allow_local_builds,
                 prioritize_dependency_graph_generation=prioritize_dependency_graph_generation,
             )
             join_rule_matches_set = RuleMatches(rule)
@@ -524,7 +524,7 @@ def run_scan(
     x_ls_long: bool = False,
     path_sensitive: bool = False,
     capture_core_stderr: bool = True,
-    allow_dynamic_dependency_resolution: bool = False,
+    allow_local_builds: bool = False,
     dump_n_rule_partitions: Optional[int] = None,
     dump_rule_partitions_dir: Optional[Path] = None,
     prioritize_dependency_graph_generation: bool = False,
@@ -801,7 +801,7 @@ def run_scan(
         target_mode_config,
         with_code_rules=with_code_rules,
         with_supply_chain=with_supply_chain,
-        allow_dynamic_dependency_resolution=allow_dynamic_dependency_resolution,
+        allow_local_builds=allow_local_builds,
         prioritize_dependency_graph_generation=prioritize_dependency_graph_generation,
     )
     profiler.save("core_time", core_start_time)
@@ -908,7 +908,7 @@ def run_scan(
                         run_secrets,
                         disable_secrets_validation,
                         baseline_target_mode_config,
-                        allow_dynamic_dependency_resolution=allow_dynamic_dependency_resolution,
+                        allow_local_builds=allow_local_builds,
                         prioritize_dependency_graph_generation=prioritize_dependency_graph_generation,
                     )
                     rule_matches_by_rule = remove_matches_in_baseline(

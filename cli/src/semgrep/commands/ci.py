@@ -266,7 +266,7 @@ def ci(
     use_git_ignore: bool,
     verbose: bool,
     path_sensitive: bool,
-    allow_dynamic_dependency_resolution: bool,
+    allow_local_builds: bool,
     dump_n_rule_partitions: Optional[int],
     dump_rule_partitions_dir: Optional[Path],
     partial_config: Optional[Path],
@@ -613,7 +613,7 @@ def ci(
             "baseline_commit_is_mergebase": True,
             "diff_depth": diff_depth,
             "capture_core_stderr": capture_core_stderr,
-            "allow_dynamic_dependency_resolution": allow_dynamic_dependency_resolution,
+            "allow_local_builds": allow_local_builds,
             "dump_n_rule_partitions": dump_n_rule_partitions,
             "dump_rule_partitions_dir": dump_rule_partitions_dir,
             "prioritize_dependency_graph_generation": scan_handler.prioritize_dependency_graph_generation

@@ -401,7 +401,7 @@ def json_to_rule_match(join_rule: Dict[str, Any], match: Dict[str, Any]) -> Rule
 def run_join_rule(
     join_rule: Dict[str, Any],
     targets: List[Path],
-    allow_dynamic_dependency_resolution: bool = False,
+    allow_local_builds: bool = False,
     prioritize_dependency_graph_generation: bool = False,
 ) -> Tuple[List[RuleMatch], List[SemgrepError]]:
     """
@@ -493,7 +493,7 @@ def run_join_rule(
             targets=targets,
             no_rewrite_rule_ids=True,
             optimizations="all",
-            allow_dynamic_dependency_resolution=allow_dynamic_dependency_resolution,
+            allow_local_builds=allow_local_builds,
             prioritize_dependency_graph_generation=prioritize_dependency_graph_generation,
         )
 

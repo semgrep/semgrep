@@ -389,7 +389,7 @@ def test_ssc__lockfileless(
     Run end-to-end SSC tests with lockfileless resolution enabled.
     """
     result = run_semgrep_on_copied_files(
-        rule, target_name=target, options=["--allow-dynamic-dependency-resolution"]
+        rule, target_name=target, options=["--allow-local-builds"]
     )
 
     snapshot.assert_match(

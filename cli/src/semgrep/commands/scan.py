@@ -377,10 +377,9 @@ _scan_options: List[Callable] = [
         "allow_untrusted_validators",
         is_flag=True,
     ),
-    # the slash below defines one flag to enable and another to disable; see https://click.palletsprojects.com/en/stable/options/#boolean-flags
     optgroup.option(
-        "--allow-dynamic-dependency-resolution/--no-dynamic-dependency-resolution",
-        "allow_dynamic_dependency_resolution",
+        "--allow-local-builds",
+        "allow_local_builds",
         is_flag=True,
         default=False,
     ),
@@ -578,7 +577,7 @@ def scan(
     x_ls: bool,
     x_ls_long: bool,
     path_sensitive: bool,
-    allow_dynamic_dependency_resolution: bool,
+    allow_local_builds: bool,
 ) -> Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]:
     if version:
         print(__VERSION__)
@@ -851,7 +850,7 @@ def scan(
                         x_ls_long=x_ls_long,
                         path_sensitive=path_sensitive,
                         capture_core_stderr=capture_core_stderr,
-                        allow_dynamic_dependency_resolution=allow_dynamic_dependency_resolution,
+                        allow_local_builds=allow_local_builds,
                     )
                 except SemgrepError as e:
                     output_handler.handle_semgrep_errors([e])
