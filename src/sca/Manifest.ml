@@ -1,4 +1,4 @@
-(* Cooper Pierce
+(* Matthew McQuaid, Cooper Pierce
  *
  * Copyright (c) 2024, Semgrep Inc.
  *
@@ -34,8 +34,30 @@ type t = Semgrep_output_v1_t.manifest [@@deriving show]
 (** A manifest file to be used during matching. See also
     {!Lockfile_xtarget.manifest}, which also has the contents. *)
 
+type kind = Semgrep_output_v1_j.manifest_kind [@@deriving show, eq]
+
 (*****************************************************************************)
 (* API *)
 (*****************************************************************************)
 
-let mk_manifest (kind : Manifest_kind.t) (path : Fpath.t) : t = { path; kind }
+let mk_manifest (kind : kind) (path : Fpath.t) : t = { path; kind }
+
+let kind_to_ecosystem : kind -> Semgrep_output_v1_t.ecosystem = function
+  | `RequirementsIn -> `Pypi
+  | `PackageJson -> `Npm
+  | `Gemfile -> `Gem
+  | `GoMod -> `Gomod
+  | `CargoToml -> `Cargo
+  | `PomXml -> `Maven
+  | `BuildGradle -> `Maven
+  | `SettingsGradle -> `Maven
+  | `ComposerJson -> `Composer
+  | `NugetManifestJson -> `Nuget
+  | `PubspecYaml -> `Pub
+  | `PackageSwift -> `SwiftPM
+  | `MixExs -> `Mix
+  | `Pipfile -> `Pypi
+  | `PyprojectToml -> `Pypi
+  | `ConanFilePy
+  | `ConanFileTxt ->
+      failwith "conan not supported"

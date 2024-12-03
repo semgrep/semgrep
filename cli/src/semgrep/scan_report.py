@@ -216,11 +216,9 @@ def _print_sca_parse_errors(errors: List[out.DependencyParserError]) -> None:
     for error in errors:
         # These are zero indexed but most editors are one indexed
         line_prefix = f"{error.line} | "
-
+        path = error.path.value
         if error.line and error.col and error.text:
-            location = (
-                f"[bold]{error.path}[/bold] at [bold]{error.line}:{error.col}[/bold]"
-            )
+            location = f"[bold]{path}[/bold] at [bold]{error.line}:{error.col}[/bold]"
 
             console.print(
                 f"Failed to parse {location} - {error.reason}\n"
@@ -228,17 +226,17 @@ def _print_sca_parse_errors(errors: List[out.DependencyParserError]) -> None:
                 f"{' ' * (error.col - 1 + len(line_prefix))}^"
             )
         elif error.line and error.text:
-            location = f"[bold]{error.path}[/bold] at [bold]{error.line}[/bold]"
+            location = f"[bold]{path}[/bold] at [bold]{error.line}[/bold]"
 
             console.print(
                 f"Failed to parse {location} - {error.reason}\n"
                 f"{line_prefix}{error.text}\n"
             )
         elif error.line:
-            location = f"[bold]{error.path}[/bold] at [bold]{error.line}[/bold]"
+            location = f"[bold]{path}[/bold] at [bold]{error.line}[/bold]"
             console.print(f"Failed to parse {location} - {error.reason}")
         else:
-            location = f"[bold]{error.path}[/bold]"
+            location = f"[bold]{path}[/bold]"
             console.print(f"Failed to parse {location} - {error.reason}")
 
 

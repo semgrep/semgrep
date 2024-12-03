@@ -5,6 +5,7 @@ from typing import Optional
 from typing import Set
 from typing import Tuple
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.external.parsy import any_char
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
@@ -254,7 +255,7 @@ def parse_package_resolved(
         logger.info("no version in lockfile %s", lockfile_path)
         errors.append(
             DependencyParserError(
-                str(lockfile_path),
+                out.Fpath(str(lockfile_path)),
                 ScaParserName(PackageResolved()),
                 "Unable to determine version of swift lockfile",
             )
@@ -277,7 +278,7 @@ def parse_package_resolved(
     else:
         errors.append(
             DependencyParserError(
-                str(lockfile_path),
+                out.Fpath(str(lockfile_path)),
                 ScaParserName(PackageResolved()),
                 "Invalid lockfile version. Expected 1, 2, or 3.",
             )

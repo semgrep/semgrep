@@ -111,7 +111,7 @@ def generate_unreachable_sca_findings(
                 dep_match = DependencyMatch(
                     dependency_pattern=dep_pat,
                     found_dependency=found_dep,
-                    lockfile=str(lockfile_path),
+                    lockfile=out.Fpath(str(lockfile_path)),
                 )
                 match = RuleMatch(
                     message=rule.message,
@@ -224,7 +224,7 @@ def generate_reachable_sca_findings(
                     dep_match = DependencyMatch(
                         dependency_pattern=dep_pat,
                         found_dependency=found_dep,
-                        lockfile=str(lockfile_path),
+                        lockfile=out.Fpath(str(lockfile_path)),
                     )
                     # ! deepcopy is necessary here since we might iterate over the
                     # ! same match for multiple dependencies

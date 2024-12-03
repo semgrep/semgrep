@@ -421,7 +421,7 @@ def test_rule_match_to_app_finding(snapshot, mocker):
             },
             transitivity=out.Transitivity(out.Direct()),
         ),
-        lockfile="foo/Pipfile.lock",
+        lockfile=out.Fpath("foo/Pipfile.lock"),
     )
     match = RuleMatch(
         message="message",
@@ -514,7 +514,7 @@ def create_sca_rule_match(sca_kind, reachable_in_code, transitivity):
             },
             transitivity=out.Transitivity(transitivity),
         ),
-        lockfile="foo/Pipfile.lock",
+        lockfile=out.Fpath("foo/Pipfile.lock"),
     )
     return RuleMatch(
         message="message",

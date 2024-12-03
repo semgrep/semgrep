@@ -2,6 +2,7 @@ module Out = Semgrep_output_v1_j
 module R = Range
 module Set = Set_
 module J = JSON
+open Fpath_.Operators
 
 (*****************************************************************************)
 (* Prelude *)
@@ -100,7 +101,7 @@ module J = JSON
 let range_of_ast ast = R.range_of_tokens (AST_generic_helpers.ii_of_any ast)
 
 let pattern_from_diff (f : Out.diff_file) : JSON.t =
-  let file = Fpath.v f.filename in
+  let file = f.filename in
   let function_from_range file_ast range =
     let r = R.range_of_line_spec range file in
     let func = Range_to_AST.function_at_range r file_ast in
@@ -132,6 +133,6 @@ let pattern_from_diff (f : Out.diff_file) : JSON.t =
   J.Object
     [
       ("url", J.String f.url);
-      ("filename", J.String f.filename);
+      ("filename", J.String !!(f.filename));
       ("funcnames", J.Array (functions |> List_.map (fun f -> J.String f)));
     ]

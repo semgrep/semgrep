@@ -47,8 +47,8 @@ and manifest = {
 *)
 
 val resolve :
-  (Manifest_kind.t -> Fpath.t -> SCA_dependency.manifest_dependency list) ->
-  (Lockfile_kind.t -> manifest option -> Fpath.t -> SCA_dependency.t list) ->
+  (Manifest.kind -> Fpath.t -> SCA_dependency.manifest_dependency list) ->
+  (Lockfile.kind -> manifest option -> Fpath.t -> SCA_dependency.t list) ->
   Lockfile.t ->
   Manifest.t option ->
   t

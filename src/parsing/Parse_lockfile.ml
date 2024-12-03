@@ -1,5 +1,5 @@
 let parse_lockfile :
-    Lockfile_kind.t ->
+    Lockfile.kind ->
     Lockfile_xtarget.manifest option ->
     Fpath.t ->
     SCA_dependency.t list = function
@@ -25,7 +25,7 @@ let parse_lockfile :
       fun _ _ -> []
 
 let parse_manifest :
-    Manifest_kind.t -> Fpath.t -> SCA_dependency.manifest_dependency list =
+    Manifest.kind -> Fpath.t -> SCA_dependency.manifest_dependency list =
   function
   (* TODO: add parsers, guard behind semgrep-pro  *)
   | `RequirementsIn

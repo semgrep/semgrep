@@ -639,10 +639,9 @@ def print_text_output(
         )
         message = rule_match.message
         fix = rule_match.fix
+        lockfile: Optional[str] = None
         if "sca_info" in rule_match.extra and (rule_match.extra["sca_info"].reachable):
-            lockfile = rule_match.extra["sca_info"].dependency_match.lockfile
-        else:
-            lockfile = None
+            lockfile = rule_match.extra["sca_info"].dependency_match.lockfile.value
         if last_file is None or last_file != current_file:
             if last_file is not None:
                 console.print()

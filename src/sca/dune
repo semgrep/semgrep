@@ -11,7 +11,7 @@
 ;  - target/Lockfile_xtarget.ml
 ;  - core/SCA_match.ml
 ;  - engine/Match_SCA_mode.ml
-;  - ...
+;  - core_scan/Core_scan.ml and its SCA related functions
 
 (library
  (public_name semgrep.sca)

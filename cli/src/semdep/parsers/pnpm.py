@@ -8,6 +8,7 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers.util import DependencyFileToParse
 from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import safe_parse_lockfile_and_manifest
@@ -118,7 +119,7 @@ def parse_pnpm(
                 else:
                     errors.append(
                         DependencyParserError(
-                            path=str(lockfile_path),
+                            path=out.Fpath(str(lockfile_path)),
                             parser=ScaParserName(PnpmLock_()),
                             reason=f"Could not parse package key {key.value}",
                             line=line,

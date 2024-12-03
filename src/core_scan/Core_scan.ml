@@ -737,7 +737,7 @@ let rules_for_lockfile_kind ~lockfile_kind rules =
                formula
                |> List.exists (fun SCA_pattern.{ ecosystem; _ } ->
                       Semgrep_output_v1_t.equal_ecosystem ecosystem
-                        (Lockfile_kind.to_ecosystem lockfile_kind))
+                        (Lockfile.kind_to_ecosystem lockfile_kind))
              then Some (r, formula)
              else None)
 

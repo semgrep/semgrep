@@ -1,4 +1,4 @@
-(* Cooper Pierce
+(* Matthew McQuaid, Cooper Pierce
  *
  * Copyright (c) 2024, Semgrep Inc.
  *
@@ -29,9 +29,33 @@
  * old: used to be path : Target.path but no need complex origin for manifest
  *)
 type t = Semgrep_output_v1_t.lockfile [@@deriving show]
+type kind = Semgrep_output_v1_t.lockfile_kind [@@deriving show, eq]
 
 (*****************************************************************************)
 (* API *)
 (*****************************************************************************)
 
 let mk_lockfile kind (path : Fpath.t) : t = { path; kind }
+
+(* coupling: if you need to add a case here, you probably need to also
+ * extend of_string() above
+ *)
+let kind_to_ecosystem : kind -> Semgrep_output_v1_t.ecosystem = function
+  | PipRequirementsTxt -> `Pypi
+  | PoetryLock -> `Pypi
+  | PipfileLock -> `Pypi
+  | NpmPackageLockJson -> `Npm
+  | YarnLock -> `Npm
+  | PnpmLock -> `Npm
+  | GemfileLock -> `Gem
+  | GoMod -> `Gomod
+  | CargoLock -> `Cargo
+  | MavenDepTree -> `Maven
+  | GradleLockfile -> `Maven
+  | ComposerLock -> `Composer
+  | NugetPackagesLockJson -> `Nuget
+  | PubspecLock -> `Pub
+  | SwiftPackageResolved -> `SwiftPM
+  | MixLock -> `Hex
+  | UvLock -> `Pypi
+  | ConanLock -> failwith "Conan not supported"
