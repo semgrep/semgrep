@@ -306,7 +306,7 @@
             ];
           });
         };
-        scope' = scope.overrideScope' scopeOverlay;
+        scope' = scope.overrideScope scopeOverlay;
 
         # for development
         devOpamPackages = builtins.attrValues
