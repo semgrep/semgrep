@@ -27,7 +27,7 @@
 (* TODO: factorize with Out.manifest
  * old: used to be path : Target.path but no need complex origin for manifest
  *)
-type t = { path : Fpath_.t; kind : Manifest_kind.t } [@@deriving show, yojson]
+type t = { path : Fpath_.t; kind : Manifest_kind.t } [@@deriving show]
 (** A manifest file to be used during matching. See also
     {!Lockfile_xtarget.manifest}, which also has the contents. *)
 

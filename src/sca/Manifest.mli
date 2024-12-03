@@ -4,7 +4,7 @@ type t = {
       (** The type of manifest this is. Analogous to analyzer for a source code
         target. *)
 }
-[@@deriving show, yojson]
+[@@deriving show]
 (** A manifest file to be used during matching. See also
     {!Lockfile_xtarget.manifest}, which also has the contents. *)
 

@@ -1,5 +1,5 @@
 type t = Semgrep_output_v1_j.manifest_kind (* = Input_to_core.manifest_kind *)
-[@@deriving show, eq, yojson]
+[@@deriving show, eq]
 
 (* for the 'string wrap' in Input_to_core.atd *)
 val unwrap : t -> string
