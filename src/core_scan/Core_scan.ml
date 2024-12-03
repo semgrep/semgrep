@@ -19,7 +19,6 @@ module E = Core_error
 module ESet = Core_error.ErrorSet
 module MR = Mini_rule
 module R = Rule
-module In = Input_to_core_j
 module Out = Semgrep_output_v1_j
 
 (*****************************************************************************)
@@ -32,8 +31,8 @@ module Out = Semgrep_output_v1_j
  * When invoked by `pysemgrep`, `semgrep-core` will always be passed
  * `-rules` and `-targets`.
  * While the `rules` file is just the collection of rules, the `targets` file
- * describes the mapping of targets to rules. See `Input_to_core.atd` target
- * type. `semgrep-core` follows the target-to-rulemappings without validation
+ * describes the mapping of targets to rules.
+ * `semgrep-core` follows the target-to-rulemappings without validation
  * or filtering.
  *
  * ## Performance
@@ -317,8 +316,8 @@ let targets_of_config (config : Core_scan_config.t) :
   | Targets x -> x |> filter_existing_targets
   | Target_file target_file ->
       UFile.read_file target_file
-      |> In.targets_of_string
-      |> List_.map Target.target_of_input_to_core
+      |> Out.targets_of_string
+      |> List_.map Target.target_of_target
       |> filter_existing_targets
 
 (*****************************************************************************)
@@ -416,11 +415,10 @@ let handle_target_with_trace (handle_target : Target.t -> 'a) (t : Target.t) :
     'a =
   let target_name = Target.internal_path t in
   let data () =
-    let target_json_str = Target.to_yojson t |> Yojson.Safe.to_string in
     [
       ("filename", `String !!target_name);
       ("num_bytes", `Int (UFile.filesize target_name));
-      ("target", `String target_json_str);
+      ("target", `String (Target.show t));
     ]
   in
   Tracing.with_span ~__FILE__ ~__LINE__ ~data "scan.handle_target" (fun _sp ->

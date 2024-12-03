@@ -15,51 +15,13 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Helpers around semgrep_output_v1.atd and Input_to_core.atd manifest.
- *
- * TODO: use the same technique than in Product.ml and define lockfile_kind in
- * both .atd and make sure they are equal via a compile-time check.
- *)
+(* Manifest kind *)
 
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 
-type t = Semgrep_output_v1_j.manifest_kind (* = Input_to_core.manifest_kind *)
-[@@deriving show, eq]
-
-(*****************************************************************************)
-(* ATD string wrap  *)
-(*****************************************************************************)
-
-let of_string s =
-  let unsupported_manifest_message (manifest_s : string) =
-    let supported_manifests =
-      String.concat "," [ "package.json"; "pom.xml"; "build.gradle" ]
-    in
-    Common.spf "unsupported manifest: %s; supported manifest types are: %s"
-      manifest_s supported_manifests
-  in
-  match s with
-  | "RequirementsIn" -> `RequirementsIn
-  | "PackageJson" -> `PackageJson
-  | "Gemfile" -> `Gemfile
-  | "GoMod" -> `GoMod
-  | "CargoToml" -> `CargoToml
-  | "PomXml" -> `PomXml
-  | "BuildGradle" -> `BuildGradle
-  | "ComposerJson" -> `ComposerJson
-  | "NugetManifestJson" -> `NugetManifestJson
-  | "PubspecYaml" -> `PubspecYaml
-  | "PackageSwift" -> `PackageSwift
-  | "MixExs" -> `MixExs
-  | "Pipfile" -> `Pipfile
-  | "PyprojectToml" -> `PyprojectToml
-  | s -> failwith (unsupported_manifest_message s)
-
-(* for the 'string wrap' in Input_to_core.atd *)
-let unwrap = show
-let wrap = of_string
+type t = Semgrep_output_v1_j.manifest_kind [@@deriving show, eq]
 
 (*****************************************************************************)
 (* Misc  *)

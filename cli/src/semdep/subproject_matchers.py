@@ -50,8 +50,8 @@ MATCHERS: List[SubprojectMatcher] = [
     ExactLockfileManifestMatcher(
         lockfile_name="go.mod",
         manifest_name="go.mod",
-        lockfile_kind=out.LockfileKind(out.GoMod_()),
-        manifest_kind=out.ManifestKind(out.GoMod()),
+        lockfile_kind=out.LockfileKind(out.GoMod()),
+        manifest_kind=out.ManifestKind(out.GoMod_()),
     ),
     # Cargo
     ExactLockfileManifestMatcher(

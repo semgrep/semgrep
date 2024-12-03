@@ -20,7 +20,6 @@ open Jsonrpc
 open Fpath_.Operators
 module Env = Semgrep_envvars
 module OutJ = Semgrep_output_v1_t
-module In = Input_to_core_t
 module SR = Server_request
 module CR = Client_request
 module CN = Client_notification

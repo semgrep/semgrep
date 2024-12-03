@@ -25,7 +25,7 @@
    ; call Parse_pattern from Eval_generic)
    semgrep_parsing
    ; TODO: we should get rid of this dependency
-   semgrep_targeting ; for Input_to_core.atd
+   semgrep_targeting
    semgrep_reporting; for Test_engine.ml, we should split in tests/ separate dir
  )
  (inline_tests)

@@ -1,7 +1,7 @@
 open Common
 open Fpath_.Operators
 module J = JSON
-module In = Input_to_core_j
+module Out = Semgrep_output_v1_j
 
 let range_to_ast (file : Fpath.t) (lang : Lang.t) (s : string) : AST_generic.any
     =
@@ -26,8 +26,8 @@ let synthesize_patterns config s file =
 let locate_patched_functions f =
   let f = UFile.read_file f in
 
-  let d = In.diff_files_of_string f in
-  let diff_files = d.In.cve_diffs in
+  let d = Out.diff_files_of_string f in
+  let diff_files = d.cve_diffs in
   let diffs = List_.map Pattern_from_diff.pattern_from_diff diff_files in
   let json = J.Array diffs in
   J.string_of_json json

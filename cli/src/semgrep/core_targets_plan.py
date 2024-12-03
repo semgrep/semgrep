@@ -2,7 +2,7 @@
 # Prelude
 ##############################################################################
 # Generate what will be passed to semgrep-core via --targets
-# and specified in Input_to_core.atd
+# and specified now in semgrep_output_v1.atd
 import collections
 from functools import lru_cache
 from typing import Any
@@ -55,6 +55,7 @@ class Task:
             else self.analyzer.definition.id
         )
 
+    # TODO: we should use the ATD generated python helpers
     def to_json(self) -> Any:
         # Once we start sending supply chain rules to semgrep-core,
         # we'll need to start sending LockfileTargets as well
@@ -98,7 +99,7 @@ class Plan:
     """
     Saves and displays knowledge of what will be run
 
-    to_json: creates the json passed to semgrep_core - see Input_to_core.atd
+    to_json: creates the json passed to semgrep_core -
     log: outputs a summary of how many files will be scanned for each file
     """
 

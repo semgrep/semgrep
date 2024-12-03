@@ -719,7 +719,8 @@ class CoreRunner:
 
         Returns this information as a list of rule ids and a list of targets with
         language + index of the rule ids for the rules to run each target on.
-        Semgrep-core will use this to determine what to run (see Input_to_core.atd).
+        Semgrep-core will use this to determine what to run
+        (see semgrep_output_v1.atd and the target types).
         Also updates all_targets if set, used by core_runner
 
         Note: this is a list because a target can appear twice (e.g. Java + Generic)

@@ -87,7 +87,6 @@ type blob_with_extra = { blob : blob; path : Fpath.t; size : int }
 let commit_digest = Commit.digest
 let commit_author = Commit.author
 let hex_of_hash = Hash.to_hex
-let hash_of_hex = Hash.of_hex
 let blob_digest = Blob.digest
 let string_of_blob = Blob.to_string
 
@@ -100,17 +99,6 @@ exception Error of string
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
-let hash_to_yojson hash = `String (hex_of_hash hash)
-
-let hash_of_yojson yojson =
-  match yojson with
-  | `String hex -> Ok (hash_of_hex hex)
-  | json ->
-      Error
-        (Printf.sprintf
-           "Could not convert to Hash.t expected `String, received %s"
-           Yojson.Safe.(to_string json))
 
 (* diff unified format regex:
  * https://www.gnu.org/software/diffutils/manual/html_node/Detailed-Unified.html#Detailed-Unified

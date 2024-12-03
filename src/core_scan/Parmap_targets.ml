@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Fpath_.Operators
-module In = Input_to_core_t
 
 (*****************************************************************************)
 (* Prelude *)

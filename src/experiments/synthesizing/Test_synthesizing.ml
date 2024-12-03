@@ -15,7 +15,6 @@
 open Common
 open Fpath_.Operators
 module J = JSON
-module In = Input_to_core_j
 
 let expr_at_range (s : string) (file : Fpath.t) : unit =
   let r = Range.range_of_linecol_spec s file in

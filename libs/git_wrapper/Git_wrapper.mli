@@ -217,7 +217,7 @@ val logs : ?cwd:Fpath.t -> ?since:float -> < Cap.exec > -> contribution list
     the specified time.
  *)
 
-type hash = Digestif.SHA1.t [@@deriving show, eq, ord, yojson]
+type hash = Digestif.SHA1.t [@@deriving show, eq, ord]
 type value = hash Git.Value.t [@@deriving show, eq, ord]
 type commit = hash Git.Commit.t [@@deriving show, eq, ord]
 type author = Git.User.t [@@deriving show, eq, ord]

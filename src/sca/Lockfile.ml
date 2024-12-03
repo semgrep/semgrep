@@ -16,17 +16,19 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Lockfile (e.g., package-lock.json in the NPM ecosystem)
+(* Lockfile kind and path (e.g., package-lock.json in the NPM ecosystem).
+ *
+ * This module is just to designate a lockfile. The actual parsed content
+ * of a lockfile is defined in SCA_dependency.ml (and Lockfile_xtarget.ml)
  *)
 
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-(* TODO: factorize with semgrep_output_v1.atd lockfile type
- * TODO? add a manifest option in it? to know the origin of the lockfile?
+(* TODO? add a manifest option in it? to know the origin of the lockfile?
  * old: used to be path : Target.path but no need complex origin for manifest
  *)
-type t = { path : Fpath_.t; kind : Lockfile_kind.t } [@@deriving show, yojson]
+type t = Semgrep_output_v1_t.lockfile [@@deriving show]
 
 (*****************************************************************************)
 (* API *)

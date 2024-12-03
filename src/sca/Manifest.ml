@@ -16,18 +16,21 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* SCA manifest file (e.g., a package.json for the NPM ecosystem), which is
- * different from a lock file (e.g., a package-lock.json for NPM).
+(* Manifest kind and path (e.g., a package.json for the NPM ecosystem).
+ * Note that this is different from a lock file (e.g., a package-lock.json for
+ * NPM).
+ *
+ * Like for Lockfile.ml, this module is just to designate a manifest file.
+ * The actual parsed content of a manifest is defined in SCA_dependency.ml
+ * (and Lockfile_xtarget.ml)
  *)
 
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 
-(* TODO: factorize with Out.manifest
- * old: used to be path : Target.path but no need complex origin for manifest
- *)
-type t = { path : Fpath_.t; kind : Manifest_kind.t } [@@deriving show]
+(* old: used to be path : Target.path but no need complex origin for manifest*)
+type t = Semgrep_output_v1_t.manifest [@@deriving show]
 (** A manifest file to be used during matching. See also
     {!Lockfile_xtarget.manifest}, which also has the contents. *)
 

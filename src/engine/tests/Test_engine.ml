@@ -18,7 +18,6 @@ module FT = File_type
 module R = Rule
 module E = Core_error
 module RP = Core_result
-module In = Input_to_core_t
 module TCM = Test_compare_matches
 module OutJ = Semgrep_output_v1_j
 

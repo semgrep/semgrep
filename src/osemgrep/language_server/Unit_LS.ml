@@ -1,6 +1,5 @@
 open Fpath_.Operators
-module OutJ = Semgrep_output_v1_t
-module In = Input_to_core_t
+module Out = Semgrep_output_v1_t
 
 let t = Testo.create
 
@@ -54,7 +53,7 @@ let mock_run_results (files : string list) : Core_runner.result =
   let hrules = Rule.hrules_of_rules [ rule ] in
   let scanned = List_.map (fun f -> Fpath.v f) files |> Set_.of_list in
   let match_of_file file =
-    let (extra : OutJ.core_match_extra) =
+    let (extra : Out.core_match_extra) =
       {
         message = Some "test";
         metavars = [];
@@ -69,7 +68,7 @@ let mock_run_results (files : string list) : Core_runner.result =
         metadata = None;
       }
     in
-    let (m : OutJ.core_match) =
+    let (m : Out.core_match) =
       {
         check_id = Rule_ID.of_string_exn "print";
         (* inherited location *)
@@ -82,7 +81,7 @@ let mock_run_results (files : string list) : Core_runner.result =
     m
   in
   let matches = List_.map match_of_file files in
-  let (core : OutJ.core_output) =
+  let (core : Out.core_output) =
     {
       version = Version.version;
       results = matches;
@@ -212,7 +211,7 @@ let processed_run () =
     let results = mock_run_results files in
     let matches = Processed_run.of_matches ~only_git_dirty results in
     let final_files =
-      matches |> List_.map (fun (m : OutJ.cli_match) -> !!(m.path))
+      matches |> List_.map (fun (m : Out.cli_match) -> !!(m.path))
     in
     let final_files = List_.sort final_files in
     let expected = List_.sort expected in

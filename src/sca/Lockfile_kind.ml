@@ -15,63 +15,13 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Helpers around semgrep_output_v1.atd and Input_to_core.atd for lockfiles.
- *
- * LATER: once osemgrep is finished, we could get rid of Input_to_core.atd
- * and remove the need for those ATD 'string wrap' helpers. This is partly
- * because ATD does not support modules right now and so we can't reuse
- * the lockfile types defined in semgrep_output_v1.atd in Input_to_core.atd
- * and have to abuse 'string wrap'.
- *
- * TODO: use the same technique than in Product.ml and define lockfile_kind in
- * both .atd and make sure they are equal via a compile-time check.
- *)
+(* Lockfile kind *)
 
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 
-type t = Semgrep_output_v1_t.lockfile_kind (* = Input_to_core.lockfile_kind *)
-[@@deriving show, eq, yojson]
-
-(*****************************************************************************)
-(* ATD string wrap  *)
-(*****************************************************************************)
-
-(* TODO: alt: now that lockfile_kind is defined in semgrep_output_v1.atd,
- * we could reuse its of_string function or better use the same tech
- * than in Product.ml as mentioned above.
- *)
-let of_string (s : string) : t =
-  let supported_lockfiles = String.concat "," [ "package-lock.json v3" ] in
-  let unsupported_lockfile_message (lockfile_s : string) =
-    Common.spf "unsupported lockfile: %s; supported lockfile tags are: %s"
-      lockfile_s supported_lockfiles
-  in
-  match s with
-  | "PipRequirementsTxt" -> PipRequirementsTxt
-  | "PoetryLock" -> PoetryLock
-  | "PipfileLock" -> PipfileLock
-  | "NpmPackageLockJson" -> NpmPackageLockJson
-  | "YarnLock" -> YarnLock
-  | "PnpmLock" -> PnpmLock
-  | "GemfileLock" -> GemfileLock
-  | "GoMod" -> GoMod
-  | "CargoLock" -> CargoLock
-  | "MavenDepTree" -> MavenDepTree
-  | "GradleLockfile" -> GradleLockfile
-  | "ComposerLock" -> ComposerLock
-  | "NugetPackagesLockJson" -> NugetPackagesLockJson
-  | "PubspecLock" -> PubspecLock
-  | "SwiftPackageResolved" -> SwiftPackageResolved
-  | "MixLock" -> MixLock
-  | "UvLock" -> UvLock
-  | "ConanLock" -> ConanLock
-  | s -> failwith (unsupported_lockfile_message s)
-
-(* for the 'string wrap' in Input_to_core.atd *)
-let unwrap = show
-let wrap = of_string
+type t = Semgrep_output_v1_t.lockfile_kind [@@deriving show, eq]
 
 (*****************************************************************************)
 (* Misc  *)

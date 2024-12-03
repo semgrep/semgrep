@@ -1,6 +1,6 @@
 (* Austin Theriault
  *
- * Copyright (C) Semgrep, Inc.
+ * Copyright (C) 2024, Semgrep, Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -12,24 +12,24 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Fpath_.Operators
 
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
 
-(* Commentary *)
-(* This file contains useful debugging info we can glean from targets. Think *)
-(* Linux `stat` but more specific to Semgrep. We collect line count, file kind *)
-(*  (regular, symlink etc.), if it was minified, size, if it's a textual file *)
-(*  type and more *)
-(*
-Try the following with the yojson'd version of annotated_target_list:
-```bash
-pbpaste > annotated_targets.json # paste json
-jq ".[] | select(.stat.textual | not) | .internal_path" annotated_targets.json # get list of non text files
-jq "sort_by(.stat.line_count) | .[] | select(.stat.line_count > 4000) | {path: .internal_path, line_count:.stat.line_count}" annotated_targets.json # get list of files w/ line count > 4k
-jq ".[] | select(.minified) | .internal_path" annotated_targets.json # get list of minified files
-```
+(* This file contains useful debugging info we can glean from targets.
+ * Linux `stat` but more specific to Semgrep. We collect line count, file kind
+ *  (regular, symlink etc.), if it was minified, size, if it's a textual file
+ *  type and more
+ *
+ * Try the following with the yojson'd version of annotated_target_list:
+ * ```bash
+ * pbpaste > annotated_targets.json # paste json
+ * jq ".[] | select(.stat.textual | not) | .internal_path" annotated_targets.json # get list of non text files
+ * jq "sort_by(.stat.line_count) | .[] | select(.stat.line_count > 4000) | {path: .internal_path, line_count:.stat.line_count}" annotated_targets.json # get list of files w/ line count > 4k
+ * jq ".[] | select(.minified) | .internal_path" annotated_targets.json # get list of minified files
+ * ```
  *)
 
 (*****************************************************************************)
@@ -48,9 +48,10 @@ type stat = {
   type_ : File_type.file_type; [@key "type"]
 }
 [@@deriving yojson]
-(* Similar info to linux's stat, but without things we may not care about (ino, *)
-(* utime etc) *)
 
+(* Similar info to linux's stat, but without things we may not care about
+ * (ino, utime etc)
+ *)
 type annotated_target = {
   internal_path : string; (* here so it's easily jq-able *)
   targets : Target.t list; (* associate the file with its possible targets *)
@@ -61,8 +62,8 @@ type annotated_target = {
 
 type annotated_target_list = annotated_target list [@@deriving yojson]
 
-let stat_file file =
-  let stats = Unix.stat (Fpath.to_string file) in
+let stat_file (file : Fpath.t) =
+  let stats = Unix.stat !!file in
   let line_count = List.length (UFile.cat file) in
   let type_ = File_type.file_type_of_file file in
   let textual = File_type.is_textual_file file in
@@ -88,7 +89,10 @@ let stat_file file =
 
 let annotate_targets (targets : Target.t list) : annotated_target_list =
   let targets_by_path = Assoc.group_by Target.internal_path targets in
-  List_.map
-    (fun (path, targets) ->
-      { internal_path = Fpath.to_string path; stat = stat_file path; targets })
-    targets_by_path
+  targets_by_path
+  |> List_.map (fun (path, targets) ->
+         {
+           internal_path = Fpath.to_string path;
+           stat = stat_file path;
+           targets;
+         })

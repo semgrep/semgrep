@@ -56,7 +56,7 @@ PARSERS_BY_LOCKFILE_KIND: Dict[out.LockfileKind, SemgrepParser] = {
     out.LockfileKind(out.PnpmLock()): parse_pnpm,
     out.LockfileKind(out.GemfileLock()): parse_gemfile,
     out.LockfileKind(out.ComposerLock()): parse_composer_lock,
-    out.LockfileKind(out.GoMod_()): parse_go_mod,
+    out.LockfileKind(out.GoMod()): parse_go_mod,
     out.LockfileKind(out.CargoLock()): to_parser(
         parse_cargo, ScaParserName(CargoParser())
     ),
@@ -77,7 +77,7 @@ ECOSYSTEM_BY_LOCKFILE_KIND: Dict[out.LockfileKind, Ecosystem] = {
     out.LockfileKind(out.PnpmLock()): Ecosystem(out.Npm()),
     out.LockfileKind(out.GemfileLock()): Ecosystem(out.Gem()),
     out.LockfileKind(out.ComposerLock()): Ecosystem(out.Composer()),
-    out.LockfileKind(out.GoMod_()): Ecosystem(out.Gomod()),
+    out.LockfileKind(out.GoMod()): Ecosystem(out.Gomod()),
     out.LockfileKind(out.CargoLock()): Ecosystem(out.Cargo()),
     out.LockfileKind(out.MavenDepTree()): Ecosystem(out.Maven()),
     out.LockfileKind(out.GradleLockfile()): Ecosystem(out.Maven()),

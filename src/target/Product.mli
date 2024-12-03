@@ -1,5 +1,4 @@
-type t = Semgrep_output_v1_t.product (* = Input_to_core.product *)
-[@@deriving show]
+type t = Semgrep_output_v1_t.product [@@deriving show]
 
 (* currently [`SAST; `SCA; `Secrets] *)
 val all : t list

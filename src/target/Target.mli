@@ -1,6 +1,6 @@
 (** Types for describing targets.
 
-    See also {!Input_to_core_t}, which has a similar set of types used when
+    See also semgrep_output_v1.atd which has a similar set of types used when
     pysemgrep generates targets that have slightly less information (e.g.,
     these types have expanded information about the targets' locations). *)
 
@@ -24,7 +24,7 @@ type path = {
           should be used to obtain the contents of the target, but not for
           reporting to the user, other than possibly for debugging purposes. *)
 }
-[@@deriving show, eq, yojson]
+[@@deriving show, eq]
 (** Information about where a target from for both the purpose of
    {ul
     {- informing the user: [origin]}
@@ -70,7 +70,7 @@ type regular = {
     However, it does not contain the actual contents (parsed or otherwise) of
     the target itself. For that, see {!Xtarget.t} or {!Lockfile_xtarget}.
  *)
-type t = Regular of regular | Lockfile of Lockfile.t [@@deriving show, yojson]
+type t = Regular of regular | Lockfile of Lockfile.t [@@deriving show]
 
 (*****************************************************************************)
 (* Builders *)
@@ -92,9 +92,9 @@ val mk_regular :
 val mk_target : Xlang.t -> Fpath.t -> t
 
 (*****************************************************************************)
-(* Input_to_core -> Target *)
+(* Semgrep_output_v1.target -> Target.t *)
 (*****************************************************************************)
-val target_of_input_to_core : Input_to_core_t.target -> t
+val target_of_target : Semgrep_output_v1_t.target -> t
 
 (*****************************************************************************)
 (* Accessors *)
@@ -114,8 +114,14 @@ val analyzer : t -> Xlang.t option
 (*****************************************************************************)
 
 val pp_debug : Format.formatter -> t -> unit
-val pp_debug_regular : Format.formatter -> regular -> unit
-val pp_debug_lockfile : Format.formatter -> Lockfile.t -> unit
+
+(* used by Targeting_stats.ml for telemetry *)
+val to_yojson : t -> Yojson.Safe.t
+
+(* This is not implemented; we should not need it but we need a signature here
+ * to typecheck the deriving yojson in other files.
+ *)
+val of_yojson : Yojson.Safe.t -> (t, string) result
 
 (*****************************************************************************)
 (* Helpers used internally but also in other files *)
