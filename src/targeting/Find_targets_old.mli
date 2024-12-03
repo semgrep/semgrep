@@ -1,11 +1,3 @@
-(* old implementation, returning bad absolute fpaths instead of
- * "readable" fpaths
- *)
-val get_targets :
-  Find_targets.conf ->
-  Scanning_root.t list ->
-  Fpath.t list * Semgrep_output_v1_t.skipped_target list
-
 (*
    [legacy implementation used in semgrep-core]
 
