@@ -1063,9 +1063,13 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
    *)
   | ( G.DotAccess (({ e = G.DotAccessEllipsis (a1_1, _a1_2); _ } as a1), at, a2),
       B.DotAccess (b1, bt, b2) ) ->
+      (* opti: Match field name first so we can bail quickly if it doesn't
+       * match. This can allow us to avoid a relatively expensive match between
+       * `a1` and `b1`, particularly when the target is a long chain of
+       * `a.b.c.d.e` etc. and the pattern is of the form `$X. ... .foo`. *)
+      let* () = m_field_name a2 b2 in
       let* () = m_expr a1 b1 >||> m_expr a1_1 b1 in
-      let* () = m_tok at bt in
-      m_field_name a2 b2
+      m_tok at bt
   | G.DotAccess (a1, at, a2), B.DotAccess (b1, bt, b2) ->
       m_expr a1 b1 >>= fun () ->
       m_tok at bt >>= fun () -> m_field_name a2 b2
