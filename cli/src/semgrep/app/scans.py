@@ -490,9 +490,7 @@ class ScanHandler:
                 },
                 engine_requested=engine_requested.name,
                 findings_by_product=findings_by_product,
-                supply_chain_stats=out.SupplyChainStats(
-                    subprojects_stats=subproject_stats
-                ),
+                supply_chain_stats=out.SupplyChainStats(subproject_stats),
             ),
         )
 

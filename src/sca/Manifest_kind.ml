@@ -44,4 +44,4 @@ let to_ecosystem : t -> Semgrep_output_v1_t.ecosystem = function
   | `PyprojectToml -> `Pypi
   | `ConanFilePy
   | `ConanFileTxt ->
-      failwith "TODO"
+      failwith "Conan is not supported"

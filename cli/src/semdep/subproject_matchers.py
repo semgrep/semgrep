@@ -121,6 +121,13 @@ MATCHERS: List[SubprojectMatcher] = [
         lockfile_kind=out.LockfileKind(out.PoetryLock()),
         manifest_kind=out.ManifestKind(out.PyprojectToml()),
     ),
+    # UV
+    ExactLockfileManifestMatcher(
+        lockfile_name="uv.lock",
+        manifest_name="pyproject.toml",
+        lockfile_kind=out.LockfileKind(out.UvLock()),
+        manifest_kind=out.ManifestKind(out.PyprojectToml()),
+    ),
 ]
 
 

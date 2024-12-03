@@ -34,6 +34,7 @@ let to_ecosystem : t -> Semgrep_output_v1_t.ecosystem = function
   | PipRequirementsTxt -> `Pypi
   | PoetryLock -> `Pypi
   | PipfileLock -> `Pypi
+  | UvLock -> `Pypi
   | NpmPackageLockJson -> `Npm
   | YarnLock -> `Npm
   | PnpmLock -> `Npm
@@ -47,6 +48,4 @@ let to_ecosystem : t -> Semgrep_output_v1_t.ecosystem = function
   | PubspecLock -> `Pub
   | SwiftPackageResolved -> `SwiftPM
   | MixLock -> `Hex
-  | UvLock
-  | ConanLock ->
-      failwith "TODO"
+  | ConanLock -> failwith "Conan is not supported"

@@ -47,10 +47,11 @@ logger = getLogger(__name__)
 
 
 # argument order is lockfile path, manifest path
-PARSERS_BY_LOCKFILE_KIND: Dict[out.LockfileKind, SemgrepParser] = {
+PARSERS_BY_LOCKFILE_KIND: Dict[out.LockfileKind, Union[SemgrepParser, None]] = {
     out.LockfileKind(out.PipfileLock()): parse_pipfile,
     out.LockfileKind(out.PipRequirementsTxt()): parse_requirements,
     out.LockfileKind(out.PoetryLock()): parse_poetry,
+    out.LockfileKind(out.UvLock()): None,
     out.LockfileKind(out.NpmPackageLockJson()): parse_package_lock,
     out.LockfileKind(out.YarnLock()): parse_yarn,
     out.LockfileKind(out.PnpmLock()): parse_pnpm,
@@ -72,6 +73,7 @@ ECOSYSTEM_BY_LOCKFILE_KIND: Dict[out.LockfileKind, Ecosystem] = {
     out.LockfileKind(out.PipfileLock()): Ecosystem(out.Pypi()),
     out.LockfileKind(out.PipRequirementsTxt()): Ecosystem(out.Pypi()),
     out.LockfileKind(out.PoetryLock()): Ecosystem(out.Pypi()),
+    out.LockfileKind(out.UvLock()): Ecosystem(out.Pypi()),
     out.LockfileKind(out.NpmPackageLockJson()): Ecosystem(out.Npm()),
     out.LockfileKind(out.YarnLock()): Ecosystem(out.Npm()),
     out.LockfileKind(out.PnpmLock()): Ecosystem(out.Npm()),
@@ -236,6 +238,10 @@ def _handle_lockfile_source(
                 new_errors,
                 new_targets,
             )
+
+    # if there is no parser for the lockfile, we can't resolve it
+    if parser is None:
+        return None, [], []
 
     # Parse lockfile (used for both standard parsing and as fallback for failed dynamic resolution)
     manifest_path = (

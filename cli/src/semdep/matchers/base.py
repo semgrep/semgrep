@@ -182,7 +182,7 @@ class ExactLockfileManifestMatcher(LockfileManifestMatcher):
     """
 
     lockfile_name: str
-    manifest_name: str  # might want to make this optional and remove the manifests that weren't there before in the config
+    manifest_name: Optional[str]
 
     def _is_manifest_match(self, path: Path) -> bool:
         return path.name == self.manifest_name
