@@ -20,11 +20,14 @@
 // https://isdown.app/integrations/quay-io
 // We use it because the manylinux project is using it.
 
-local gha = import "libs/gha.libsonnet";
 local actions = import "libs/actions.libsonnet";
 local core_x86 = import "build-test-core-x86.jsonnet";
+local gha = import "libs/gha.libsonnet";
 
 local wheel_name = 'manylinux-x86-wheel';
+// The '2_28' is the minimum version of GLIBC supported by the image, we need
+// 2.28 since GHA runners use node20, which has 2.28 as a dependancy.
+local manylinux_container = 'quay.io/pypa/manylinux_2_28_x86_64';
 
 // ----------------------------------------------------------------------------
 // The jobs
@@ -32,23 +35,17 @@ local wheel_name = 'manylinux-x86-wheel';
 
 local build_wheels_job = {
   'runs-on': 'ubuntu-latest',
-  // This is a 4 years old container, built from a 4 years old file
-  // https://github.com/semgrep/sgrep-build-docker/blob/master/Dockerfile
-  // TODO: switch to a standard container (use quay.io/manylinux_2014_x86_64 ?)
-  container: 'returntocorp/sgrep-build:ubuntu-18.04',
+  container: manylinux_container,
   steps: [
     actions.checkout_with_submodules(),
     {
-      run: 'apt-get update && apt install -y zip musl-tools software-properties-common python3-pip',
-    },
-    {
       run: |||
-        add-apt-repository ppa:deadsnakes/ppa
-        apt install -y python3.8
-        update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.6 1
-        update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 2
-        update-alternatives --config python3
-      |||
+        yum update
+        yum install -y zip python3-pip python3.8
+        alternatives --remove-all python3
+        alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 1
+        alternatives --auto python3
+      |||,
     },
     actions.download_artifact_step(core_x86.export.artifact_name),
     {
@@ -70,7 +67,7 @@ local build_wheels_job = {
 
 local test_wheels_job = {
   'runs-on': 'ubuntu-latest',
-  container: 'quay.io/pypa/manylinux2014_x86_64',
+  container: manylinux_container,
   needs: [
     'build-wheels',
   ],
@@ -106,7 +103,7 @@ local test_wheels_job = {
 
 local test_wheels_venv_job = {
   'runs-on': 'ubuntu-latest',
-  container: 'quay.io/pypa/manylinux2014_x86_64',
+  container: manylinux_container,
   needs: [
     'build-wheels',
   ],
@@ -193,15 +190,6 @@ local test_wheels_wsl_job = {
 {
   name: 'build-test-manylinux-x86',
   on: gha.on_dispatch_or_call,
-  // ugly: this is a temporary solution to avoid some recent glibc linking
-  // error in GHA because we're using very old containers (ubuntu 18.04).
-  // See https://github.com/actions/checkout/issues/1590
-  // for more context.
-  // TODO: ww should update to a more recent one but nobody fully understand
-  // this workflow and what is returntocorp/sgrep-build:ubuntu-18.04
-  env: {
-    'ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION': true,
-  },
   jobs: {
     'build-wheels': build_wheels_job,
     'test-wheels': test_wheels_job,
