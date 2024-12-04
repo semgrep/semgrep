@@ -1,3 +1,0 @@
-A single carriage return (CR) is not recognized anymore as a
-newline. This avoids out of bound error when reporting findings
-on old windows files using this old format.

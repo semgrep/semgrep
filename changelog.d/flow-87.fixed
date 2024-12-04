@@ -1,7 +1,0 @@
-taint-mode: Semgrep will no longer report an unexpected finding in cases like:
-
-    var x = [taint];
-    x = ["ok"];
-    sink(x); // no finding, x is ok
-
-Variable `x` will be correctly cleaned after `x = ["ok"]`.

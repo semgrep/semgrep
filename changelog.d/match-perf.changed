@@ -1,1 +1,0 @@
-Optimize matching performance of dot access ellipsis (`x. ... .foo`) on very long strings of dot accesses in source files.
