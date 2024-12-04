@@ -42,22 +42,23 @@ type kind = Semgrep_output_v1_j.manifest_kind [@@deriving show, eq]
 
 let mk_manifest (kind : kind) (path : Fpath.t) : t = { path; kind }
 
-let kind_to_ecosystem : kind -> Semgrep_output_v1_t.ecosystem = function
-  | `RequirementsIn -> `Pypi
-  | `PackageJson -> `Npm
-  | `Gemfile -> `Gem
-  | `GoMod -> `Gomod
-  | `CargoToml -> `Cargo
-  | `PomXml -> `Maven
-  | `BuildGradle -> `Maven
-  | `SettingsGradle -> `Maven
-  | `ComposerJson -> `Composer
-  | `NugetManifestJson -> `Nuget
-  | `PubspecYaml -> `Pub
-  | `PackageSwift -> `SwiftPM
-  | `MixExs -> `Mix
-  | `Pipfile -> `Pypi
-  | `PyprojectToml -> `Pypi
+let kind_to_ecosystem_opt : kind -> Semgrep_output_v1_t.ecosystem option =
+  function
+  | `RequirementsIn -> Some `Pypi
+  | `PackageJson -> Some `Npm
+  | `Gemfile -> Some `Gem
+  | `GoMod -> Some `Gomod
+  | `CargoToml -> Some `Cargo
+  | `PomXml -> Some `Maven
+  | `BuildGradle -> Some `Maven
+  | `SettingsGradle -> Some `Maven
+  | `ComposerJson -> Some `Composer
+  | `NugetManifestJson -> Some `Nuget
+  | `PubspecYaml -> Some `Pub
+  | `PackageSwift -> Some `SwiftPM
+  | `MixExs -> Some `Mix
+  | `Pipfile -> Some `Pypi
+  | `PyprojectToml -> Some `Pypi
   | `ConanFilePy
   | `ConanFileTxt ->
-      failwith "conan not supported"
+      None

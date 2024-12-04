@@ -730,16 +730,14 @@ let lockfile_xtarget_resolve (manifest : Manifest.t option)
 let rules_for_lockfile_kind ~lockfile_kind rules =
   rules
   |> List_.filter_map (fun ({ Rule.dependency_formula; _ } as r) ->
-         match dependency_formula with
-         | None -> None
-         | Some formula ->
-             if
-               formula
-               |> List.exists (fun SCA_pattern.{ ecosystem; _ } ->
-                      Semgrep_output_v1_t.equal_ecosystem ecosystem
-                        (Lockfile.kind_to_ecosystem lockfile_kind))
-             then Some (r, formula)
-             else None)
+         let* formula = dependency_formula in
+         let* ecosystem = Lockfile.kind_to_ecosystem_opt lockfile_kind in
+         if
+           formula
+           |> List.exists (fun SCA_pattern.{ ecosystem = rule_ecosystem; _ } ->
+                  Semgrep_output_v1_t.equal_ecosystem rule_ecosystem ecosystem)
+         then Some (r, formula)
+         else None)
 
 let supply_chain_rules ~lockfile_kind ~respect_rule_paths ~origin rules =
   let rules = rules_for_lockfile_kind ~lockfile_kind rules in

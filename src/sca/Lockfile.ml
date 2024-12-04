@@ -40,22 +40,23 @@ let mk_lockfile kind (path : Fpath.t) : t = { path; kind }
 (* coupling: if you need to add a case here, you probably need to also
  * extend of_string() above
  *)
-let kind_to_ecosystem : kind -> Semgrep_output_v1_t.ecosystem = function
-  | PipRequirementsTxt -> `Pypi
-  | PoetryLock -> `Pypi
-  | PipfileLock -> `Pypi
-  | NpmPackageLockJson -> `Npm
-  | YarnLock -> `Npm
-  | PnpmLock -> `Npm
-  | GemfileLock -> `Gem
-  | GoMod -> `Gomod
-  | CargoLock -> `Cargo
-  | MavenDepTree -> `Maven
-  | GradleLockfile -> `Maven
-  | ComposerLock -> `Composer
-  | NugetPackagesLockJson -> `Nuget
-  | PubspecLock -> `Pub
-  | SwiftPackageResolved -> `SwiftPM
-  | MixLock -> `Hex
-  | UvLock -> `Pypi
-  | ConanLock -> failwith "Conan not supported"
+let kind_to_ecosystem_opt : kind -> Semgrep_output_v1_t.ecosystem option =
+  function
+  | PipRequirementsTxt -> Some `Pypi
+  | PoetryLock -> Some `Pypi
+  | PipfileLock -> Some `Pypi
+  | NpmPackageLockJson -> Some `Npm
+  | YarnLock -> Some `Npm
+  | PnpmLock -> Some `Npm
+  | GemfileLock -> Some `Gem
+  | GoMod -> Some `Gomod
+  | CargoLock -> Some `Cargo
+  | MavenDepTree -> Some `Maven
+  | GradleLockfile -> Some `Maven
+  | ComposerLock -> Some `Composer
+  | NugetPackagesLockJson -> Some `Nuget
+  | PubspecLock -> Some `Pub
+  | SwiftPackageResolved -> Some `SwiftPM
+  | MixLock -> Some `Hex
+  | UvLock -> Some `Pypi
+  | ConanLock -> None

@@ -46,6 +46,10 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
+# Maps lockfile kinds to their corresponding parsers. A None value indicates
+# we've identified this lockfile format but don't yet have parser support
+# for its ecosystem.
+#
 # argument order is lockfile path, manifest path
 PARSERS_BY_LOCKFILE_KIND: Dict[out.LockfileKind, Union[SemgrepParser, None]] = {
     out.LockfileKind(out.PipfileLock()): parse_pipfile,
@@ -67,9 +71,14 @@ PARSERS_BY_LOCKFILE_KIND: Dict[out.LockfileKind, Union[SemgrepParser, None]] = {
     out.LockfileKind(out.PubspecLock()): parse_pubspec_lock,
     out.LockfileKind(out.SwiftPackageResolved()): parse_package_resolved,
     out.LockfileKind(out.MixLock()): parse_mix,
+    out.LockfileKind(out.ConanLock()): None,  # No parser support yet
 }
 
-ECOSYSTEM_BY_LOCKFILE_KIND: Dict[out.LockfileKind, Ecosystem] = {
+# Maps lockfile kinds to their corresponding package ecosystems.
+#
+# A `None` value indicates we've identified this lockfile format but don't yet
+# support its ecosystem. If `None`, the dependency source will remain unresolved.
+ECOSYSTEM_BY_LOCKFILE_KIND: Dict[out.LockfileKind, Union[Ecosystem, None]] = {
     out.LockfileKind(out.PipfileLock()): Ecosystem(out.Pypi()),
     out.LockfileKind(out.PipRequirementsTxt()): Ecosystem(out.Pypi()),
     out.LockfileKind(out.PoetryLock()): Ecosystem(out.Pypi()),
@@ -87,6 +96,7 @@ ECOSYSTEM_BY_LOCKFILE_KIND: Dict[out.LockfileKind, Ecosystem] = {
     out.LockfileKind(out.PubspecLock()): Ecosystem(out.Pub()),
     out.LockfileKind(out.SwiftPackageResolved()): Ecosystem(out.SwiftPM()),
     out.LockfileKind(out.MixLock()): Ecosystem(out.Mix()),
+    out.LockfileKind(out.ConanLock()): None,  # Ecosystem (C++, Conan) not yet supported
 }
 
 DEPENDENCY_GRAPH_SUPPORTED_MANIFEST_KINDS = [
@@ -239,8 +249,8 @@ def _handle_lockfile_source(
                 new_targets,
             )
 
-    # if there is no parser for the lockfile, we can't resolve it
-    if parser is None:
+    # if there is no parser or ecosystem for the lockfile, we can't resolve it
+    if parser is None or ecosystem is None:
         return None, [], []
 
     # Parse lockfile (used for both standard parsing and as fallback for failed dynamic resolution)
