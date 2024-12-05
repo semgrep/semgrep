@@ -206,13 +206,18 @@ let output f (matches : Out.cli_match list) : JSON.yojson =
         ("vendor", `Assoc [ ("name", `String "Semgrep") ]);
       ]
   in
-  let start_time = Metrics_.g.payload.started_at
-  and end_time = Timedesc.Timestamp.now () in
+  let start_time = Metrics_.g.payload.started_at in
+  let end_time = Timedesc.Timestamp.now () in
+  (* bugfix: gitlab does not use the RFC 3339 date format but instead a
+   * yyyy-mm-ddThh:mm:ss custom format.
+   * See https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/941f497a3824d4393eb8a7efced497f738895ab4/dist/sast-report-format.json#L710
+   *)
+  let format = "{year}-{mon:0X}-{day:0X}T{hour:0X}:{min:0X}:{sec:0X}" in
   let scan =
     `Assoc
       [
-        ("start_time", `String (Timedesc.Timestamp.to_rfc3339 start_time));
-        ("end_time", `String (Timedesc.Timestamp.to_rfc3339 end_time));
+        ("start_time", `String (Timedesc.Timestamp.to_string ~format start_time));
+        ("end_time", `String (Timedesc.Timestamp.to_string ~format end_time));
         ("analyzer", tool);
         ("scanner", tool);
         ("version", `String Version.version);
