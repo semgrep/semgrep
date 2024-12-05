@@ -40,7 +40,7 @@ local build_wheels_job = {
     actions.checkout_with_submodules(),
     {
       run: |||
-        yum update
+        yum update -y
         yum install -y zip python3-pip python3.8
         alternatives --remove-all python3
         alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 1
