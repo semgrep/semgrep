@@ -16,6 +16,21 @@ type analysis_flags = {
 }
 [@@derving show]
 
+(* constants *)
+module Attributes : sig
+  val semgrep_managed_scan : string
+  val engine : string
+  val repo_name : string
+  val jobs : string
+  val job : string
+  val folder : string
+  val pro_secrets_validators : string
+  val pro_historical_scanning : string
+  val pro_deep_intrafile : string
+  val pro_deep_interfile : string
+  val pro_secrets_allowed_origins : string
+end
+
 (* Helpers *)
 
 val no_analysis_features : unit -> analysis_flags
@@ -24,7 +39,28 @@ val no_analysis_features : unit -> analysis_flags
 val data_of_languages : Xlang.t list -> (string * Tracing.user_data) list
 (** Convenience function to turn a list of interfile languages into otel data *)
 
-val get_top_level_data :
-  int -> string -> analysis_flags -> (string * Tracing.user_data) list
-(** Create the tags for the top level span. These tags make it easy to see
-    the traces we care about *)
+val get_resource_attrs :
+  ?env:string ->
+  engine:string ->
+  analysis_flags:analysis_flags ->
+  jobs:int ->
+  unit ->
+  (string * Tracing.user_data) list
+(** [get_resource_data ~engine:"oss" ~env:"prod" ~analysis_flags () ] creates
+    tags for the resource we report traces to. This is essentially info about
+    the "service" itself, that is immutable once the service/program starts.
+    This data is usually useful for grouping large sets of
+    logs/traces/errors/metrics and discovering or investigating other macro
+    trends about Semgrep. Example: Service Version, OCaml runtime version,
+    telemetry sdk version. See module commentary for more info
+
+    Other data besides what's passed in as flags to this function may be
+    gathered from the environment such as Semgrep's version number.
+
+    [engine] is the engine we are using, e.g. "oss" or "pro"
+
+    [env] is the environment we are working in ("prod","dev2" etc.). Defaults to
+    "prod"
+
+    [analysis_flags] see {!analysis_flags}
+  *)

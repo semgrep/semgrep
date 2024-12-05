@@ -97,6 +97,15 @@ let trace_level_var = "SEMGREP_TRACE_LEVEL"
 let parent_span_id_var = "SEMGREP_TRACE_PARENT_SPAN_ID"
 let parent_trace_id_var = "SEMGREP_TRACE_PARENT_TRACE_ID"
 
+(* Service related attributes *)
+module Attributes = struct
+  open Opentelemetry.Conventions
+
+  let version = Attributes.Service.version
+  let instance_id = Attributes.Service.instance_id
+  let deployment_environment_name = "deployment.environment.name"
+end
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -266,6 +275,10 @@ let otel_reporter : Logs.reporter =
           fmt)
   in
   { Logs.report }
+
+(*****************************************************************************)
+(* Metrics *)
+(*****************************************************************************)
 
 (*****************************************************************************)
 (* Span/Event entrypoints *)
@@ -440,15 +453,11 @@ let setup_otel trace_endpoint =
     Opentelemetry_trace.setup ()
 
 (* Set according to README of https://github.com/imandra-ai/ocaml-opentelemetry/ *)
-let configure_tracing ?(attrs : (string * user_data) list = []) ?(env = "prod")
-    ?version service_name trace_endpoint =
+let configure_tracing ?(attrs : (string * user_data) list = []) service_name
+    trace_endpoint =
   Otel.Globals.service_name := service_name;
   Otel.Globals.default_span_kind := Otel.Span.Span_kind_internal;
-  version
-  |> Option.iter (fun version ->
-         add_global_attribute Otel.Conventions.Attributes.Service.version
-           (`String version));
-  add_global_attribute "deployment.environment.name" (`String env);
+  let attrs = attrs @ Otel.GC_metrics.get_runtime_attributes () in
   List.iter
     (fun (key, value) -> Otel.Globals.add_global_attribute key value)
     attrs;

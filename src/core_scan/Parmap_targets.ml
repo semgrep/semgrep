@@ -86,7 +86,7 @@ let core_error_of_path_exc (internal_path : Fpath.t) (e : Exception.t) :
 let init job =
   (* Set a global attribute to the job number so we know when we look at
      traces/logs/metrics which job it came from! *)
-  Tracing.add_global_attribute "parmap.job" (`Int job);
+  Tracing.add_global_attribute Trace_data.Attributes.job (`Int job);
   (* Restart tracing as it is paused before forking below in both
      map_targets___* funcs *)
   (* NOTE: this only restarts tracing in the child *)

@@ -858,17 +858,17 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
           match config.tracing with
           | None -> run caps config
           | Some tracing ->
-              let trace_data =
-                Trace_data.get_top_level_data config.ncores Version.version
-                  (Trace_data.no_analysis_features ())
+              let resource_attrs =
+                (* Let's make sure all traces/logs/metrics etc. are tagged as
+                   coming from the OSS invocation *)
+                Trace_data.get_resource_attrs ?env:tracing.env ~engine:"oss"
+                  ~analysis_flags:(Trace_data.no_analysis_features ())
+                  ~jobs:config.ncores ()
               in
-              Tracing.configure_tracing
-              (* Let's make sure all traces/logs/metrics etc. are tagged as coming from the pro invocation *)
-                ~attrs:[ ("engine", `String "oss") ]
-                ?env:tracing.env ~version:Version.version "semgrep-core"
+              Tracing.configure_tracing ~attrs:resource_attrs "semgrep-core"
                 tracing.endpoint;
-              Tracing.with_tracing "Core_command.semgrep_core_dispatch"
-                trace_data (fun span_id ->
+              Tracing.with_tracing "Core_command.semgrep_core_dispatch" []
+                (fun span_id ->
                   let tracing =
                     { tracing with top_level_span = Some span_id }
                   in
