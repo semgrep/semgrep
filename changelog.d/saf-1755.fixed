@@ -1,3 +1,0 @@
-Fix the date format used in --gitlab-sast option to match
-the spec and not use the RFC 3339.
-Thanks to Elias Haeussler for the fix.
