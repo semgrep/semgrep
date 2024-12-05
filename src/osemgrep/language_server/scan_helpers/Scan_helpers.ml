@@ -138,8 +138,7 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
                        available, as the user is not logged in, or there is no \
                        pro binary available. Running with the OSS engine \
                        instead.");
-              Core_runner.mk_core_run_for_osemgrep
-                (Core_scan.scan (session.caps :> Core_scan.caps))
+              Core_runner.mk_core_run_for_osemgrep (Core_scan.scan session.caps)
         in
         Logs.debug (fun m ->
             m "Running Semgrep with %d rules" (List.length rules));

@@ -395,8 +395,9 @@ let display_rule_source ~(rule_source : Rules_source.t) : unit =
 (*************************************************************************)
 
 (* Select and execute the scan func based on the configured engine settings *)
-let mk_core_run_for_osemgrep (caps : Core_scan.caps) (conf : Scan_CLI.conf)
-    (diff_config : Differential_scan_config.t) : Core_runner.func =
+let mk_core_run_for_osemgrep (caps : < Core_scan.caps ; .. >)
+    (conf : Scan_CLI.conf) (diff_config : Differential_scan_config.t) :
+    Core_runner.func =
   let core_run_for_osemgrep : Core_runner.func =
     match conf.engine_type with
     | OSS -> Core_runner.mk_core_run_for_osemgrep (Core_scan.scan caps)
@@ -601,9 +602,8 @@ let check_targets_with_rules
         | None ->
             Profiler.record profiler ~name:"core_time" (fun () ->
                 let { run } : Core_runner.func =
-                  mk_core_run_for_osemgrep
-                    (caps :> Core_scan.caps)
-                    conf Differential_scan_config.WholeScan
+                  mk_core_run_for_osemgrep caps conf
+                    Differential_scan_config.WholeScan
                 in
                 run ?file_match_hook conf.core_runner_conf conf.targeting_conf
                   (rules, invalid_rules) targets)
@@ -614,9 +614,7 @@ let check_targets_with_rules
              fun ?(diff_config = Differential_scan_config.WholeScan) targets
                  rules ->
               let { run } : Core_runner.func =
-                mk_core_run_for_osemgrep
-                  (caps :> Core_scan.caps)
-                  conf diff_config
+                mk_core_run_for_osemgrep caps conf diff_config
               in
               run ?file_match_hook conf.core_runner_conf conf.targeting_conf
                 (rules, invalid_rules) targets

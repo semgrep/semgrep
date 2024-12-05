@@ -1,8 +1,6 @@
 (* The type of the semgrep "core" scan. We define it here so that
    semgrep and semgrep-proprietary use the same definition *)
 type func = Core_scan_config.t -> Core_result.result_or_exn
-
-(* alias to avoid repeating ourselves in many callers *)
 type caps = < Cap.fork ; Cap.time_limit ; Cap.memory_limit >
 
 (* Entry point. This is used in Core_CLI.ml for semgrep-core,
@@ -35,7 +33,7 @@ type caps = < Cap.fork ; Cap.time_limit ; Cap.memory_limit >
  * Note that this function will run the pre/post scan hook defined
  * in Pre_post_core_scan.hook_processor.
  *)
-val scan : caps -> Core_scan_config.t -> Core_result.result_or_exn
+val scan : < caps ; .. > -> Core_scan_config.t -> Core_result.result_or_exn
 
 (*****************************************************************************)
 (* Utilities functions used in tests or semgrep-pro *)

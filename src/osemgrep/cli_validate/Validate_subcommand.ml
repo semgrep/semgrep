@@ -186,8 +186,7 @@ let check_targets_rules (caps : < caps ; .. >) ~token_opt targets_rules
 
   (* TODO? why using Core_runner instead of directly Core_scan? *)
   let core_run_func =
-    Core_runner.mk_core_run_for_osemgrep
-      (Core_scan.scan (caps :> Core_scan.caps))
+    Core_runner.mk_core_run_for_osemgrep (Core_scan.scan caps)
   in
   let result_or_exn =
     core_run_func.run core_runner_conf Find_targets.default_conf (metarules, [])

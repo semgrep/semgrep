@@ -738,7 +738,7 @@ let register_exception_printers () =
 (* if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc (); *)
 
 let run caps (config : Core_scan_config.t) : unit =
-  let res = Core_scan.scan (caps :> Core_scan.caps) config in
+  let res = Core_scan.scan caps config in
   output_core_results
     (caps :> < Cap.stdout ; Cap.stderr ; Cap.exit >)
     res config

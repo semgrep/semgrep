@@ -454,7 +454,7 @@ let run_rules_against_targets_for_engine caps (env : env) (rules : Rule.t list)
   let config = core_scan_config env.conf rules targets in
   let res_or_exn : Core_result.result_or_exn =
     match env.engine with
-    | A.OSS -> Core_scan.scan (caps :> Core_scan.caps) config
+    | A.OSS -> Core_scan.scan caps config
     | A.Pro -> !hook_pro_scan (caps :> Core_scan.caps) config
     | A.Deep ->
         (* LATER: support also interfile tests where many targets are in
@@ -702,7 +702,7 @@ let compare_for_autofix (env : env) (rules : Rule.t list)
 (*****************************************************************************)
 
 (* alt: call it run_env? *)
-let run_engine (caps : scan_caps) (env : env) (rules : Rule.t list)
+let run_engine (caps : < scan_caps ; .. >) (env : env) (rules : Rule.t list)
     (targets : Target.t list)
     (files_and_annots : (Fpath.t * A.annotations) list) :
     test_result list * fixtest_result list =
@@ -739,8 +739,8 @@ let run_engine (caps : scan_caps) (env : env) (rules : Rule.t list)
   (checks, fixtest)
 
 (* run one test using the different engines if --pro *)
-let run_test (caps : scan_caps) (conf : Test_CLI.conf) (rule_file : Fpath.t)
-    (rules : Rule.t list) (target_files : Fpath.t list)
+let run_test (caps : < scan_caps ; .. >) (conf : Test_CLI.conf)
+    (rule_file : Fpath.t) (rules : Rule.t list) (target_files : Fpath.t list)
     (errors : error list ref) : test_result list * fixtest_result list =
   (* note that even one target file can result in different targets
    * if the rules contain multiple xlangs.
@@ -799,7 +799,7 @@ let run_test (caps : scan_caps) (conf : Test_CLI.conf) (rule_file : Fpath.t)
     (checks_oss @ checks_pro @ checks_deep, fixtest_oss)
   else (checks_oss, fixtest_oss)
 
-let run_tests (caps : scan_caps) (conf : Test_CLI.conf) (tests : tests)
+let run_tests (caps : < scan_caps ; .. >) (conf : Test_CLI.conf) (tests : tests)
     (errors : error list ref) :
     (Fpath.t (* rule file *) * test_result list * fixtest_result list) list =
   (* LATER: in theory we could use Parmap here *)
@@ -861,7 +861,7 @@ let run_conf (caps : < caps ; .. >) (conf : Test_CLI.conf) : Exit_code.t =
   let tests : tests = rules_and_targets conf.target errors in
 
   (* step2: run the tests *)
-  let result : tests_result = run_tests (caps :> scan_caps) conf tests errors in
+  let result : tests_result = run_tests caps conf tests errors in
 
   (* step3: report the test results *)
   let res : Out.tests_result = tests_result_of_tests_result result !errors in

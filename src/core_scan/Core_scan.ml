@@ -521,7 +521,7 @@ let errors_of_timeout_or_memory_exn (exn : exn) (target : Target.t) : ESet.t =
 
 (* Returns a list of match results and a separate list of scanned targets *)
 let iter_targets_and_get_matches_and_exn_to_errors
-    (caps : < Cap.fork ; Cap.memory_limit >) (config : Core_scan_config.t)
+    (caps : < Cap.fork ; Cap.memory_limit ; .. >) (config : Core_scan_config.t)
     (handle_target : target_handler) (targets : Target.t list) :
     Core_profiling.file_profiling Core_result.match_result list * Target.t list
     =
@@ -855,7 +855,7 @@ let mk_target_handler (caps : < Cap.time_limit >) (config : Core_scan_config.t)
       (matches, was_scanned)
 
 (* coupling: with Deep_scan.scan_aux() *)
-let scan_exn (caps : caps) (config : Core_scan_config.t)
+let scan_exn (caps : < caps ; .. >) (config : Core_scan_config.t)
     (rules : Rule_error.rules_and_invalid * float) : Core_result.t =
   Logs.debug (fun m -> m "Core_scan.scan_exn %s" (Core_scan_config.show config));
   (* the rules *)
@@ -926,8 +926,8 @@ let scan_exn (caps : caps) (config : Core_scan_config.t)
  * coupling: If you modify this function, you probably need also to modify
  * Deep_scan.scan() in semgrep-pro which is mostly a copy-paste of this file.
  *)
-let scan (caps : caps) (config : Core_scan_config.t) : Core_result.result_or_exn
-    =
+let scan (caps : < caps ; .. >) (config : Core_scan_config.t) :
+    Core_result.result_or_exn =
   try
     let timed_rules =
       Common.with_time (fun () ->
