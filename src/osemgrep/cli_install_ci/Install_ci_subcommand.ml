@@ -11,7 +11,8 @@ open Fpath_.Operators
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type caps = < Cap.random ; Cap.chdir ; Cap.tmp >
+(* we need Cap.exec for calling 'git', 'gh', 'command' *)
+type caps = < Cap.random ; Cap.chdir ; Cap.tmp ; Cap.exec >
 
 (*****************************************************************************)
 (* Helpers *)
@@ -89,12 +90,12 @@ let mkdir_if_needed path : unit =
  * the SEMGREP_APP_TOKEN secret in github, and more.
  *)
 
-let install_gh_cli () : unit =
+let install_gh_cli (caps : < Cap.exec >) : unit =
   (* NOTE: This only supports mac users and we would need to direct users to
      their own platform-specific instructions at https://github.com/cli/cli#installation
   *)
   let cmd = (Cmd.Name "brew", [ "install"; "github" ]) in
-  match UCmd.status_of_run cmd with
+  match CapExec.status_of_run caps#exec cmd with
   | Ok _ -> Logs.app (fun m -> m "Github cli installed successfully")
   | _ ->
       Logs.err (fun m ->
@@ -108,49 +109,49 @@ let install_gh_cli () : unit =
             instructions at %s"
            "https://github.com/cli/cli#installation")
 
-let gh_cli_exists () : bool =
+let gh_cli_exists (caps : < Cap.exec >) : bool =
   (* 'command' can be used to test the presence of another command
    * see https://askubuntu.com/questions/512770/what-is-the-bash-command-command
    * alt: run gh --version and check for exit code
    *)
   let cmd = (Cmd.Name "command", [ "-v"; "gh" ]) in
-  match UCmd.status_of_run cmd with
+  match CapExec.status_of_run caps#exec cmd with
   | Ok _ -> true
   | _ -> false
 
-let install_gh_cli_if_needed () : unit =
-  if gh_cli_exists () then
+let install_gh_cli_if_needed (caps : < Cap.exec >) : unit =
+  if gh_cli_exists caps then
     Logs.info (fun m -> m "Github CLI already installed, skipping installation")
   else (
     Logs.info (fun m -> m "Github CLI not installed, installing now");
-    install_gh_cli ())
+    install_gh_cli caps)
 
-let gh_authed () : bool =
+let gh_authed (caps : < Cap.exec >) : bool =
   let cmd = (Cmd.Name "gh", [ "auth"; "status" ]) in
-  match UCmd.status_of_run cmd with
+  match CapExec.status_of_run caps#exec cmd with
   | Ok _ -> true
   | _ -> false
 
-let prompt_gh_auth () : unit =
+let prompt_gh_auth (caps : < Cap.exec >) : unit =
   let cmd = (Cmd.Name "gh", [ "auth"; "login"; "--web" ]) in
-  match UCmd.status_of_run cmd with
+  match CapExec.status_of_run caps#exec cmd with
   | _ -> ()
 
-let prompt_gh_auth_if_needed () : unit =
-  if gh_authed () then
+let prompt_gh_auth_if_needed (caps : < Cap.exec >) : unit =
+  if gh_authed caps then
     Logs.info (fun m ->
         m "Github CLI already logged in, skipping authentication")
   else (
     Logs.info (fun m -> m "Prompting Github CLI authentication");
-    prompt_gh_auth ())
+    prompt_gh_auth caps)
 
 (* TODO: handle GitHub Enterprise *)
-let set_ssh_as_default () : unit =
+let set_ssh_as_default (caps : < Cap.exec >) : unit =
   let cmd =
     ( Cmd.Name "gh",
       [ "config"; "set"; "git_protocol"; "ssh"; "--host"; "github.com" ] )
   in
-  match UCmd.status_of_run cmd with
+  match CapExec.status_of_run caps#exec cmd with
   | Ok _ -> ()
   | _ -> Error.abort "failed to set git_protocol as ssh"
 
@@ -163,20 +164,20 @@ let set_ssh_as_default () : unit =
    both OWNER/REPO and cannonical GitHub URLs as arguments
    to clone the repo.
 *)
-let clone_repo ~repo : unit =
+let clone_repo (caps : < Cap.exec >) ~repo : unit =
   let cmd =
     (Cmd.Name "gh", [ "repo"; "clone"; !!repo; "--"; "--depth"; "1" ])
   in
-  match UCmd.status_of_run cmd with
+  match CapExec.status_of_run caps#exec cmd with
   | Ok _ -> ()
   | _ -> Error.abort (Printf.sprintf "failed to clone remote repo: %s" !!repo)
 
-let clone_repo_to ~repo ~dst : unit =
-  match Bos.OS.Dir.with_current dst (fun () -> clone_repo ~repo) () with
+let clone_repo_to (caps : < Cap.exec >) ~repo ~dst : unit =
+  match Bos.OS.Dir.with_current dst (fun () -> clone_repo caps ~repo) () with
   | Ok _ -> Logs.info (fun m -> m "Cloned repo %s to %s." !!repo !!dst)
   | _ -> Logs.warn (fun m -> m "Failed to clone repo %s to %s." !!repo !!dst)
 
-let create_pr ~default_branch:branch : unit =
+let create_pr (caps : < Cap.exec >) ~default_branch:branch : unit =
   let branch = chop_origin_if_needed branch in
   let cmd =
     ( Cmd.Name "gh",
@@ -196,13 +197,13 @@ This PR enables Semgrep scans with your repository.
         get_new_branch ();
       ] )
   in
-  match UCmd.string_of_run ~trim:false cmd with
+  match CapExec.string_of_run caps#exec ~trim:false cmd with
   | Ok (out, _status) -> Logs.app (fun m -> m "Created PR: %s" out)
   | _ ->
       Logs.warn (fun m -> m "Failed to create PR!");
       Error.abort "Failed to create PR. Please create manually"
 
-let merge_pr () : unit =
+let merge_pr (caps : < Cap.exec >) : unit =
   let cmd =
     ( Cmd.Name "gh",
       [
@@ -216,18 +217,18 @@ let merge_pr () : unit =
         get_new_branch ();
       ] )
   in
-  match UCmd.string_of_run ~trim:false cmd with
+  match CapExec.string_of_run caps#exec ~trim:false cmd with
   | Ok (out, _status) -> Logs.app (fun m -> m "Merged PR: %s" out)
   | _ ->
       Logs.warn (fun m -> m "Failed to merge PR!");
       Error.abort "Failed to merge PR. Please merge manually"
 
-let semgrep_app_token_secret_exists ~git_dir:dir : bool =
+let semgrep_app_token_secret_exists (caps : < Cap.exec >) ~git_dir:dir : bool =
   let cmd = (Cmd.Name "gh", [ "secret"; "list"; "-a"; "actions" ]) in
   match
     Bos.OS.Dir.with_current dir
       (fun () ->
-        match UCmd.lines_of_run ~trim:true cmd with
+        match CapExec.lines_of_run caps#exec ~trim:true cmd with
         | Ok (lines, _status) ->
             List.exists (String.starts_with ~prefix:"SEMGREP_APP_TOKEN") lines
         | _ ->
@@ -240,7 +241,8 @@ let semgrep_app_token_secret_exists ~git_dir:dir : bool =
   | Ok b -> b
   | _ -> false
 
-let add_semgrep_gh_secret ~git_dir:dir ~(token : Auth.token) : unit =
+let add_semgrep_gh_secret (caps : < Cap.exec >) ~git_dir:dir
+    ~(token : Auth.token) : unit =
   let str_token = Auth.string_of_token token in
   let cmd =
     ( Cmd.Name "gh",
@@ -256,7 +258,7 @@ let add_semgrep_gh_secret ~git_dir:dir ~(token : Auth.token) : unit =
   in
   Bos.OS.Dir.with_current dir
     (fun () ->
-      match UCmd.status_of_run cmd with
+      match CapExec.status_of_run caps#exec cmd with
       | Ok _ -> Logs.debug (fun m -> m "Set SEMGREP_APP_TOKEN=%s" str_token)
       | _ ->
           Logs.warn (fun m -> m "Failed to set SEMGREP_APP_TOKEN for %s" !!dir);
@@ -269,19 +271,21 @@ let add_semgrep_gh_secret ~git_dir:dir ~(token : Auth.token) : unit =
 (*****************************************************************************)
 (* TODO? add in Git_wrapper.ml instead? *)
 
-let get_default_branch () : string =
+let get_default_branch (caps : < Cap.exec >) : string =
   let cmd =
     (Cmd.Name "git", [ "symbolic-ref"; "refs/remotes/origin/HEAD"; "--short" ])
   in
-  match UCmd.string_of_run ~trim:true cmd with
+  match CapExec.string_of_run caps#exec ~trim:true cmd with
   | Ok (s, _status) -> s
   | _ ->
       Logs.warn (fun m -> m "Failed to get default branch");
       "origin/main"
 
-let get_default_branch_in ~dst : string =
+let get_default_branch_in caps ~dst : string =
   let default = "origin/main" in
-  let res = Bos.OS.Dir.with_current dst (fun () -> get_default_branch ()) () in
+  let res =
+    Bos.OS.Dir.with_current dst (fun () -> get_default_branch caps) ()
+  in
   match res with
   | Ok branch -> branch
   | _ ->
@@ -289,16 +293,16 @@ let get_default_branch_in ~dst : string =
           m "Failed to get default branch in %s, defaulting to %s" !!dst default);
       default
 
-let add_all_to_git () : unit =
+let add_all_to_git (caps : < Cap.exec >) : unit =
   let cmd = (Cmd.Name "git", [ "add"; "." ]) in
-  match UCmd.status_of_run cmd with
+  match CapExec.status_of_run caps#exec cmd with
   | Ok _ -> ()
   | _ -> Error.abort "Failed to add files to git"
 
-let git_push () : unit =
+let git_push (caps : < Cap.exec >) : unit =
   let branch = get_new_branch () in
   let cmd = (Cmd.Name "git", [ "push"; "--set-upstream"; "origin"; branch ]) in
-  match UCmd.status_of_run cmd with
+  match CapExec.status_of_run caps#exec cmd with
   | Ok _ -> ()
   | _ ->
       Logs.warn (fun m -> m "Failed to push to branch %s" branch);
@@ -306,7 +310,7 @@ let git_push () : unit =
         (Printf.sprintf "Failed to push to branch %s. Please push manually"
            branch)
 
-let git_commit () : unit =
+let git_commit (caps : < Cap.exec >) : unit =
   let cmd =
     ( Cmd.Name "git",
       [
@@ -316,7 +320,7 @@ let git_commit () : unit =
         "--author=\"Semgrep CI Installer <support@semgrep.com>\"";
       ] )
   in
-  match UCmd.status_of_run cmd with
+  match CapExec.status_of_run caps#exec cmd with
   | Ok _ -> ()
   | _ ->
       Logs.warn (fun m -> m "Failed to commit changes to current branch!");
@@ -330,7 +334,7 @@ let git_commit () : unit =
  * NOTE: This only checks for the presence of the file, not the contents
  * or version
  *)
-let semgrep_workflow_exists ~repo : bool =
+let semgrep_workflow_exists (caps : < Cap.exec >) ~repo : bool =
   let dir, cmd =
     if UFile.dir_exists repo then
       ( Fpath.to_dir_path repo,
@@ -341,7 +345,11 @@ let semgrep_workflow_exists ~repo : bool =
       )
   in
   Logs.debug (fun m -> m "Checking for semgrep workflow from %s" !!dir);
-  let res = Bos.OS.Dir.with_current dir (fun () -> UCmd.status_of_run cmd) () in
+  let res =
+    Bos.OS.Dir.with_current dir
+      (fun () -> CapExec.status_of_run caps#exec cmd)
+      ()
+  in
   match res with
   | Ok (Ok _) -> true
   | _else_ -> false
@@ -350,7 +358,7 @@ let semgrep_workflow_exists ~repo : bool =
    we first clone the repo to a temporary directory,
    and then return the path to the cloned repo.
 *)
-let prep_repo (caps : caps) (repo : Fpath.t) : Fpath.t =
+let prep_repo (caps : < caps ; .. >) (repo : Fpath.t) : Fpath.t =
   if UFile.dir_exists repo then repo
   else
     let tmp_dir =
@@ -358,7 +366,7 @@ let prep_repo (caps : caps) (repo : Fpath.t) : Fpath.t =
       / spf "semgrep_install_ci_%6X" (CapRandom.int caps#random 0xFFFFFF)
     in
     mkdir_if_needed !!tmp_dir;
-    clone_repo_to ~repo ~dst:tmp_dir;
+    clone_repo_to (caps :> < Cap.exec >) ~repo ~dst:tmp_dir;
     (* NOTE: when we clone we get a directory with the repo name.
        we need to strip the owner from the repo name if it is present
        and then join the tmp_dir with the repo name to get the full path
@@ -370,13 +378,16 @@ let prep_repo (caps : caps) (repo : Fpath.t) : Fpath.t =
     in
     tmp_dir / repo
 
-let write_workflow_file (caps : < Cap.chdir ; Cap.tmp >) ~git_dir:dir : unit =
-  let commit = get_default_branch_in ~dst:dir in
+let write_workflow_file (caps : < Cap.chdir ; Cap.tmp ; Cap.exec ; .. >)
+    ~git_dir:dir : unit =
+  let commit = get_default_branch_in (caps :> < Cap.exec >) ~dst:dir in
   Logs.debug (fun m -> m "Using '%s' as default branch." commit);
   let res =
     Bos.OS.Dir.with_current dir
       (fun () ->
-        Git_wrapper.run_with_worktree caps ~commit ~branch:(get_new_branch ())
+        Git_wrapper.run_with_worktree
+          (caps :> < Cap.chdir ; Cap.tmp >)
+          ~commit ~branch:(get_new_branch ())
           (fun () ->
             let github_dir = ".github" in
             mkdir_if_needed github_dir;
@@ -390,11 +401,11 @@ let write_workflow_file (caps : < Cap.chdir ; Cap.tmp >) ~git_dir:dir : unit =
             let cwd = Bos.OS.Dir.current () |> Rresult.R.get_ok in
             Logs.info (fun m ->
                 m "Preparing to run git operations in dir: %s" !!cwd);
-            add_all_to_git ();
-            git_commit ();
-            git_push ();
-            create_pr ~default_branch:commit;
-            merge_pr ()))
+            add_all_to_git (caps :> < Cap.exec >);
+            git_commit (caps :> < Cap.exec >);
+            git_push (caps :> < Cap.exec >);
+            create_pr (caps :> < Cap.exec >) ~default_branch:commit;
+            merge_pr (caps :> < Cap.exec >)))
       ()
   in
   match res with
@@ -417,22 +428,26 @@ let add_semgrep_workflow caps ~(token : Auth.token) (conf : Install_ci_CLI.conf)
   match () with
   | _ when conf.dry_run ->
       Logs.info (fun m -> m "Skipping actual workflow operations for dry-run")
-  | _ when semgrep_workflow_exists ~repo && not conf.update ->
+  | _
+    when semgrep_workflow_exists (caps :> < Cap.exec >) ~repo && not conf.update
+    ->
       Logs.info (fun m -> m "Semgrep workflow already present, skipping")
   | _else_ ->
       Logs.info (fun m -> m "Preparing Semgrep workflow for %s" !!repo);
       let dir = prep_repo caps repo in
-      write_workflow_file (caps :> < Cap.chdir ; Cap.tmp >) ~git_dir:dir;
-      if semgrep_app_token_secret_exists ~git_dir:dir && not conf.update then
-        Logs.info (fun m -> m "Semgrep secret already present, skipping")
-      else add_semgrep_gh_secret ~git_dir:dir ~token;
+      write_workflow_file caps ~git_dir:dir;
+      if
+        semgrep_app_token_secret_exists (caps :> < Cap.exec >) ~git_dir:dir
+        && not conf.update
+      then Logs.info (fun m -> m "Semgrep secret already present, skipping")
+      else add_semgrep_gh_secret (caps :> < Cap.exec >) ~git_dir:dir ~token;
       Logs.info (fun m -> m "Semgrep workflow added to %s" !!repo)
 
 (*****************************************************************************)
 (* Main logic *)
 (*****************************************************************************)
 
-let run_conf (caps : caps) (conf : Install_ci_CLI.conf) : Exit_code.t =
+let run_conf (caps : < caps ; .. >) (conf : Install_ci_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:true ~level:conf.common.logging_level;
   (* In theory, we should use the same --metrics=xxx as in scan,
      but given that this is an experimental command that we need to validate
@@ -454,9 +469,9 @@ let run_conf (caps : caps) (conf : Install_ci_CLI.conf) : Exit_code.t =
       Exit_code.fatal ~__LOC__
   | Some token ->
       (* setup gh *)
-      install_gh_cli_if_needed ();
-      prompt_gh_auth_if_needed ();
-      set_ssh_as_default ();
+      install_gh_cli_if_needed (caps :> < Cap.exec >);
+      prompt_gh_auth_if_needed (caps :> < Cap.exec >);
+      set_ssh_as_default (caps :> < Cap.exec >);
       (* let's go! this may raise some errors (catched in CLI.safe_run()) *)
       add_semgrep_workflow caps ~token conf;
       Logs.app (fun m ->
@@ -467,6 +482,6 @@ let run_conf (caps : caps) (conf : Install_ci_CLI.conf) : Exit_code.t =
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let main (caps : caps) (argv : string array) : Exit_code.t =
+let main (caps : < caps ; .. >) (argv : string array) : Exit_code.t =
   let conf = Install_ci_CLI.parse_argv argv in
   run_conf caps conf

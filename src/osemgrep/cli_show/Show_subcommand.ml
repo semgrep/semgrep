@@ -61,7 +61,7 @@ let dump_v_to_format ~json (v : OCaml.v) =
 (* Main logic *)
 (*****************************************************************************)
 
-let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
+let run_conf (caps : < caps ; .. >) (conf : Show_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
   Logs.debug (fun m -> m "conf = %s" (Show_CLI.show_conf conf));
   let print = CapConsole.print caps#stdout in
@@ -173,6 +173,6 @@ let run_conf (caps : caps) (conf : Show_CLI.conf) : Exit_code.t =
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let main (caps : caps) (argv : string array) : Exit_code.t =
+let main (caps : < caps ; .. >) (argv : string array) : Exit_code.t =
   let conf = Show_CLI.parse_argv argv in
   run_conf caps conf

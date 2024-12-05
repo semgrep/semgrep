@@ -1,5 +1,4 @@
-(* alt: use Login_subcommand.caps *)
-val tests : < Cap.network ; Cap.stdout > -> Testo.t list
+val tests : Login_subcommand.caps -> Testo.t list
 
 (* to be reused in other tests *)
 

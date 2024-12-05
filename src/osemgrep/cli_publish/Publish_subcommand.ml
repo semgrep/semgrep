@@ -160,7 +160,7 @@ let upload_rule caps rule_file (conf : Publish_CLI.conf) test_code_file =
 (* Main logic *)
 (*****************************************************************************)
 
-let run_conf (caps : caps) (conf : Publish_CLI.conf) : Exit_code.t =
+let run_conf (caps : < caps ; .. >) (conf : Publish_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
   let settings = Semgrep_settings.load () in
   match settings.Semgrep_settings.api_token with
@@ -227,6 +227,6 @@ let run_conf (caps : caps) (conf : Publish_CLI.conf) : Exit_code.t =
 (* Entry point *)
 (*****************************************************************************)
 
-let main (caps : caps) (argv : string array) : Exit_code.t =
+let main (caps : < caps ; .. >) (argv : string array) : Exit_code.t =
   let conf = Publish_CLI.parse_argv argv in
   run_conf caps conf

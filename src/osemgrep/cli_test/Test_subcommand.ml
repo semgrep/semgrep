@@ -841,7 +841,7 @@ let run_tests (caps : scan_caps) (conf : Test_CLI.conf) (tests : tests)
 (*****************************************************************************)
 (* Run the conf *)
 (*****************************************************************************)
-let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
+let run_conf (caps : < caps ; .. >) (conf : Test_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:true ~level:conf.common.logging_level;
   (* Metrics_.configure Metrics_.On; ?? and allow to disable it?
    * semgrep-rules/Makefile is running semgrep --test with metrics=off
@@ -897,6 +897,6 @@ let run_conf (caps : caps) (conf : Test_CLI.conf) : Exit_code.t =
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let main (caps : caps) (argv : string array) : Exit_code.t =
+let main (caps : < caps ; .. >) (argv : string array) : Exit_code.t =
   let conf = Test_CLI.parse_argv argv in
   run_conf caps conf

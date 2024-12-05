@@ -145,7 +145,7 @@ let test_login_with_env_token caps : Testo.t =
 (* Entry point *)
 (*****************************************************************************)
 
-let tests (caps : < Cap.network ; Cap.stdout >) =
+let tests (caps : Login_subcommand.caps) =
   Testo.categorize "Osemgrep Login (e2e)"
     [
       test_logout_not_logged_in (caps :> < Cap.stdout >);

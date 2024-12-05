@@ -36,11 +36,14 @@ local unix_funcs = [
           // Feather
           ['Feather.run'] +
           // UCmd
-          //  TODO, especially cmd_to_list
+	  ['UCmd.$F'] +
           [],
       },
       languages: ['ocaml'],
-      paths: common.exclude,
+      paths: {
+	// TODO: fix Git_wrapper.ml
+	exclude: common.exclude_paths + ["CapExec.ml", "Git_wrapper.ml"]
+      },
       severity: 'ERROR',
       message: |||
         Do not invoke directly external commands. Use the safer CapExec.ml module.

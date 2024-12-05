@@ -33,10 +33,12 @@ module Out = Semgrep_output_v1_j
 (*****************************************************************************)
 
 (* We need Cap.time_limit because we timeout after 10s if the install fails
+ * We need Cap.exec because we run semgrep -pro_version as part of
+ * the install process.
  * TODO: add stdout, but does not even use stdout right now, it abuses
  * Logs.app but we should switch to CapConsole.print
  *)
-type caps = < Cap.network ; Cap.time_limit >
+type caps = < Cap.network ; Cap.time_limit ; Cap.exec >
 
 let version_stamp_filename = "pro-installed-by.txt"
 
@@ -111,7 +113,8 @@ let download_semgrep_pro caps platform_kind dest =
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run_conf (caps : caps) (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
+let run_conf (caps : < caps ; .. >) (conf : Install_semgrep_pro_CLI.conf) :
+    Exit_code.t =
   (match conf.common.maturity with
   | Maturity.Default -> (
       (* TODO: handle more confs, or fallback to pysemgrep further down *)
@@ -166,7 +169,8 @@ let run_conf (caps : caps) (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
       Exit_code.fatal ~__LOC__
   | _ ->
       let platform_kind =
-        match (Platform.kernel (), Platform.arch ()) with
+        let caps_exec = (caps :> < Cap.exec >) in
+        match (Platform.kernel caps_exec, Platform.arch caps_exec) with
         | Darwin, Arm
         | Darwin, Arm64 ->
             Semgrep_App.Osx_arm64
@@ -180,7 +184,7 @@ let run_conf (caps : caps) (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
             Manylinux_x86_64
       in
 
-      (* Download the binary into a temporary location, check it, then install it.
+      (* Download the binary into a temp location, check it, then install it.
          This should prevent bad installations.
       *)
       let semgrep_pro_path_tmp =
@@ -197,11 +201,12 @@ let run_conf (caps : caps) (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
 
       if not download_succeeded then Exit_code.fatal ~__LOC__
       else (
-        (* THINK: Do we need to give exec permissions to everybody? Can this be a security risk?
-         *        The binary should not have setuid or setgid rights, so letting others
-         *        execute it should not be a problem.
-         *
-         * Also, some OSes require read permissions to run the executable, so add the permission.
+        (* THINK: Do we need to give exec permissions to everybody? Can this be
+         * a security risk?
+         * The binary should not have setuid or setgid rights, so letting others
+         * execute it should not be a problem.
+         * Also, some OSes require read permissions to run the executable, so
+         * add the permission.
          *)
         FileUtil.chmod
           (`Symbolic
@@ -225,7 +230,7 @@ let run_conf (caps : caps) (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
               ~name:"check pro version" 10.0
               (fun () ->
                 (* TODO?  Bos.OS.Cmd.run_out ~err:Bos.OS.Cmd.err_run_out *)
-                let result = UCmd.string_of_run ~trim:true cmd in
+                let result = CapExec.string_of_run caps#exec ~trim:true cmd in
                 match result with
                 | Ok (output, _) -> Some output
                 | Error _ -> None)
@@ -253,6 +258,6 @@ let run_conf (caps : caps) (conf : Install_semgrep_pro_CLI.conf) : Exit_code.t =
 (* Entry point *)
 (*****************************************************************************)
 
-let main (caps : caps) (argv : string array) : Exit_code.t =
+let main (caps : < caps ; .. >) (argv : string array) : Exit_code.t =
   let conf = Install_semgrep_pro_CLI.parse_argv argv in
   run_conf caps conf

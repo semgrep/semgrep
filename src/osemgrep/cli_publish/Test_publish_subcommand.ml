@@ -87,7 +87,10 @@ let with_mocks f =
 (* Tests *)
 (*****************************************************************************)
 
-let test_publish (caps : < Cap.network ; Cap.stdout ; Cap.tmp >) () =
+(* we need Cap.exec just for login which might open a URL to login but
+ * will not in our case because of the fake_token passed in the env.
+ *)
+let test_publish (caps : < Cap.network ; Cap.stdout ; Cap.tmp ; Cap.exec >) () =
   let tests_path = tests_path () in
   with_test_env (fun () ->
       with_mocks (fun () ->
@@ -114,7 +117,7 @@ let test_publish (caps : < Cap.network ; Cap.stdout ; Cap.tmp >) () =
           Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" fake_token (fun () ->
               let exit_code =
                 Login_subcommand.main
-                  (caps :> < Cap.network ; Cap.stdout >)
+                  (caps :> Login_subcommand.caps)
                   [| "semgrep-login" |]
               in
               Exit_code.Check.ok exit_code);
@@ -163,7 +166,7 @@ let test_publish (caps : < Cap.network ; Cap.stdout ; Cap.tmp >) () =
 (* Entry point *)
 (*****************************************************************************)
 
-let tests (caps : < Cap.network ; Cap.stdout ; Cap.tmp >) =
+let tests (caps : < Cap.network ; Cap.stdout ; Cap.tmp ; Cap.exec >) =
   Testo.categorize "Osemgrep Publish (e2e)"
     [
       t

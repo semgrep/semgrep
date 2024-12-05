@@ -95,7 +95,7 @@ let hook_pro_init : (unit -> unit) ref =
 (*****************************************************************************)
 (* Targeting (finding the semgrep yaml files to validate) *)
 (*****************************************************************************)
-let find_targets_rules (caps : caps) ~(strict : bool) ~token_opt
+let find_targets_rules (caps : < caps ; .. >) ~(strict : bool) ~token_opt
     (rules_source : Rules_source.t) : Fpath.t list * int * int * int =
   (* Checking (1) and (2). Parsing the rules is already a form of validation.
    * Before running metachecks on those rules, we make sure we can parse them.
@@ -165,8 +165,8 @@ let find_targets_rules (caps : caps) ~(strict : bool) ~token_opt
 (*****************************************************************************)
 
 (* Checking (3) *)
-let check_targets_rules (caps : caps) ~token_opt targets_rules core_runner_conf
-    =
+let check_targets_rules (caps : < caps ; .. >) ~token_opt targets_rules
+    core_runner_conf =
   let in_docker = !Semgrep_envvars.v.in_docker in
   let (config : Rules_config.t) =
     Rules_config.parse_config_string ~in_docker metarules_pack
@@ -257,7 +257,7 @@ let report_errors (_caps : < Cap.stdout >) ~metacheck_errors ~num_errors
 (* Run the conf *)
 (*****************************************************************************)
 
-let run_conf (caps : caps) (conf : Validate_CLI.conf) : Exit_code.t =
+let run_conf (caps : < caps ; .. >) (conf : Validate_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:true ~level:conf.common.logging_level;
   (* Metrics_.configure Metrics_.On; ?? and allow to disable it?
    * semgrep-rules/Makefile is running semgrep --validate with metrics=off
@@ -302,6 +302,6 @@ let run_conf (caps : caps) (conf : Validate_CLI.conf) : Exit_code.t =
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let main (caps : caps) (argv : string array) : Exit_code.t =
+let main (caps : < caps ; .. >) (argv : string array) : Exit_code.t =
   let conf = Validate_CLI.parse_argv argv in
   run_conf caps conf

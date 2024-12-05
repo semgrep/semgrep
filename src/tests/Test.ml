@@ -27,7 +27,7 @@ let t = Testo.create
  *
  * to run all the OCaml tests containing foo in their test name.
  *
- * This file used to contain lots of tests, but it's better to now
+ * hisyory: this file used to contain lots of tests, but it's better to now
  * distribute them in their relevant directory (e.g., engine/Unit_engine.ml)
  *)
 
@@ -154,14 +154,14 @@ let tests (caps : Cap.all_caps) =
       Unit_ci.tests;
       Test_is_blocking_helpers.tests;
       (* osemgrep e2e subcommand tests *)
-      Test_login_subcommand.tests (caps :> < Cap.stdout ; Cap.network >);
+      Test_login_subcommand.tests (caps :> Login_subcommand.caps);
       Test_scan_subcommand.tests (caps :> Scan_subcommand.caps);
       Test_ci_subcommand.tests (caps :> Ci_subcommand.caps);
       Unit_test_subcommand.tests (caps :> Test_subcommand.caps);
-      Test_show_subcommand.tests
-        (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >);
+      Test_show_subcommand.tests (caps :> Show_subcommand.caps);
       Test_publish_subcommand.tests
-        (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >);
+        (* = Publish_subcommand.caps + Cap.exec for 'semgrep login' *)
+        (caps :> < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.exec >);
       Test_osemgrep.tests (caps :> CLI.caps);
       Test_target_selection.tests (caps :> CLI.caps);
       (* Networking tests disabled as they will get rate limited sometimes *)

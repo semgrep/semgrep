@@ -15,7 +15,10 @@
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type caps = < Cap.stdout ; Cap.network >
+(* We need Cap.exec because we call the 'open' command line tool to
+ * open a browser.
+ *)
+type caps = < Cap.stdout ; Cap.network ; Cap.exec >
 
 (*****************************************************************************)
 (* Helpers *)
@@ -76,8 +79,8 @@ Plus, you can manage your rules and code findings with Semgrep Cloud Platform.
   in
   Logs.app (fun m -> m "%s" preamble)
 
-(* Print out the flow, create the activation url and open the url in the browser *)
-let start_interactive_flow () : Uuidm.t option =
+(* Print out the flow, create the activation url and open the url in a browser *)
+let start_interactive_flow (caps : < Cap.exec ; .. >) : Uuidm.t option =
   if not Unix.(isatty stdin) then (
     let msg =
       Ocolor_format.asprintf
@@ -100,7 +103,7 @@ You can pass @{<cyan>`SEMGREP_APP_TOKEN`@} as an environment variable instead.|}
       Some session_id)
     else
       let cmd = (Cmd.Name "open", [ Uri.to_string url ]) in
-      match UCmd.status_of_run cmd with
+      match CapExec.status_of_run caps#exec cmd with
       | Ok _ ->
           Logs.app (fun m -> m "Opening your sign-in link automatically...");
           let msg =
@@ -134,7 +137,7 @@ let fetch_token caps session_id =
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run_conf (caps : caps) (conf : Login_CLI.conf) : Exit_code.t =
+let run_conf (caps : < caps ; .. >) (conf : Login_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
   Logs.debug (fun m -> m "conf = %s" (Login_CLI.show_conf conf));
   (* stricter: the login/logout metrics are actually not tracked in pysemgrep *)
@@ -202,7 +205,7 @@ let run_conf (caps : caps) (conf : Login_CLI.conf) : Exit_code.t =
             "Token is not set in settings file, and environment variable \
              (SEMGREP_API_TOKEN) is not set or not well formed, starting \
              interactive login flow");
-      let session_id = start_interactive_flow () in
+      let session_id = start_interactive_flow caps in
       match session_id with
       | None -> Exit_code.fatal ~__LOC__
       | Some session_id -> (
@@ -224,6 +227,6 @@ let run_conf (caps : caps) (conf : Login_CLI.conf) : Exit_code.t =
 (* Entry point *)
 (*****************************************************************************)
 
-let main (caps : caps) (argv : string array) : Exit_code.t =
+let main (caps : < caps ; .. >) (argv : string array) : Exit_code.t =
   let conf = Login_CLI.parse_argv argv in
   run_conf caps conf

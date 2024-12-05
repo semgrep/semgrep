@@ -513,7 +513,8 @@ let check_targets_with_rules
       ; Cap.tmp
       ; Cap.fork
       ; Cap.time_limit
-      ; Cap.memory_limit >) (conf : Scan_CLI.conf) (profiler : Profiler.t)
+      ; Cap.memory_limit
+      ; .. >) (conf : Scan_CLI.conf) (profiler : Profiler.t)
     (rules_and_origins : Rule_fetching.rules_and_origin list)
     (targets_and_skipped : Fpath.t list * Out.skipped_target list) :
     (Rule.rule list * Core_runner.result * Out.cli_output, Exit_code.t) result =
@@ -731,7 +732,7 @@ let check_targets_with_rules
 (* Run the real 'scan' subcommand *)
 (*****************************************************************************)
 
-let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
+let run_scan_conf (caps : < caps ; .. >) (conf : Scan_CLI.conf) : Exit_code.t =
   (* step0: more initializations *)
   (* Print The logo ASAP to minimize time to first meaningful content paint *)
   if new_cli_ux then print_logo ();
@@ -830,7 +831,7 @@ let run_scan_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
+let run_conf (caps : < caps ; .. >) (conf : Scan_CLI.conf) : Exit_code.t =
   (* coupling: if you modify the pysemgrep fallback code below, you
    * probably also need to modify it in Ci_subcommand.ml
    *)
@@ -930,6 +931,6 @@ let run_conf (caps : caps) (conf : Scan_CLI.conf) : Exit_code.t =
 (* Entry point *)
 (*****************************************************************************)
 
-let main (caps : caps) (argv : string array) : Exit_code.t =
+let main (caps : < caps ; .. >) (argv : string array) : Exit_code.t =
   let conf = Scan_CLI.parse_argv (caps :> < Cap.tmp >) argv in
   run_conf caps conf

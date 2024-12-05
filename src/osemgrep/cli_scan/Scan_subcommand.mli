@@ -18,11 +18,11 @@ type caps =
   ; Cap.time_limit
   ; Cap.memory_limit >
 
-val main : caps -> string array -> Exit_code.t
+val main : < caps ; .. > -> string array -> Exit_code.t
 
 (* internal *)
-val run_conf : caps -> Scan_CLI.conf -> Exit_code.t
-val run_scan_conf : caps -> Scan_CLI.conf -> Exit_code.t
+val run_conf : < caps ; .. > -> Scan_CLI.conf -> Exit_code.t
+val run_scan_conf : < caps ; .. > -> Scan_CLI.conf -> Exit_code.t
 
 (* internal: also used in CI *)
 val check_targets_with_rules :
@@ -32,7 +32,8 @@ val check_targets_with_rules :
   ; Cap.tmp
   ; Cap.fork
   ; Cap.time_limit
-  ; Cap.memory_limit > ->
+  ; Cap.memory_limit
+  ; .. > ->
   Scan_CLI.conf ->
   Profiler.t ->
   Rule_fetching.rules_and_origin list ->

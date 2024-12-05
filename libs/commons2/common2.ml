@@ -1777,6 +1777,7 @@ let files_of_dir_or_files_no_vcs ext xs =
   xs
   |> List_.map (fun x ->
          if USys.is_directory x then
+           (* nosemgrep: forbid-exec *)
            UCmd.cmd_to_list
              ("find " ^ arg_symlink () ^ x ^ " -noleaf -type f -name \"*." ^ ext
             ^ "\"" ^ grep_dash_v_str)
@@ -2426,6 +2427,7 @@ let nblines_with_wc a = nblines_eff a
 
 let unix_diff file1 file2 =
   let cmd = (Cmd.Name "diff", [ "-u"; file1; file2 ]) in
+  (* nosemgrep: forbid-exec *)
   match UCmd.lines_of_run ~trim:true cmd with
   | Ok (xs, _status) -> xs
   | Error (`Msg s) -> failwith (spf "unix_diff problem: %s" s)

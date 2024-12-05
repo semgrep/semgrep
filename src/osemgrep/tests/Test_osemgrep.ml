@@ -66,7 +66,7 @@ let test_scan_config_registry_with_invalid_token caps : Testo.t =
                   *)
                  let exit_code =
                    Login_subcommand.main
-                     (caps :> < Cap.stdout ; Cap.network >)
+                     (caps :> Login_subcommand.caps)
                      [| "semgrep-login" |]
                  in
                  Exit_code.Check.ok exit_code));
@@ -81,7 +81,8 @@ let test_scan_config_registry_with_invalid_token caps : Testo.t =
           * TODO: test_login.py assert exit_code == 7
           *)
          try
-           Scan_subcommand.main caps
+           Scan_subcommand.main
+             (caps :> Scan_subcommand.caps)
              [|
                "semgrep-scan";
                "--experimental";
@@ -187,7 +188,7 @@ let tests (caps : CLI.caps) =
   Testo.categorize "Osemgrep multi subcommands (e2e)"
     [
       test_scan_config_registry_no_token caps;
-      test_scan_config_registry_with_invalid_token scan_caps;
+      test_scan_config_registry_with_invalid_token caps;
       test_absolute_target_path scan_caps;
       test_named_pipe scan_caps;
     ]

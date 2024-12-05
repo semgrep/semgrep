@@ -343,7 +343,7 @@ let rec find_branchoff_point (caps : < Cap.exec ; Cap.network >)
           Digestif.SHA1.to_hex head_branch_hash;
         ] )
     in
-    match UCmd.string_of_run ~trim:true cmd with
+    match CapExec.string_of_run caps#exec ~trim:true cmd with
     | Ok (merge_base, (_, `Exited 0)) ->
         Lwt.return (Digestif.SHA1.of_hex_opt merge_base)
     | Ok (_, _) when attempt_count < _MAX_FETCH_ATTEMPT_COUNT ->

@@ -53,7 +53,7 @@ let test_il_generic ~parse_program file =
   in
   v#visit_program () ast
 
-let test_cfg_il ~parse_program file =
+let test_cfg_il (caps : < Cap.exec >) ~parse_program file =
   let ast = parse_program file in
   let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
@@ -63,7 +63,7 @@ let test_cfg_il ~parse_program file =
       let IL.{ params = _; cfg; lambdas = _ } =
         CFG_build.cfg_of_gfdef lang fdef
       in
-      Display_IL.display_cfg cfg)
+      Display_IL.display_cfg caps cfg)
     ast
 
 module F2 = IL
@@ -97,7 +97,7 @@ let test_dfg_svalue ~parse_program file =
   in
   v#visit_program () ast
 
-let actions ~parse_program =
+let actions (caps : < Cap.exec >) ~parse_program =
   [
     ( "-typing_generic",
       " <file>",
@@ -111,7 +111,7 @@ let actions ~parse_program =
       Arg_.mk_action_1_conv Fpath.v (test_il_generic ~parse_program) );
     ( "-cfg_il",
       " <file>",
-      Arg_.mk_action_1_conv Fpath.v (test_cfg_il ~parse_program) );
+      Arg_.mk_action_1_conv Fpath.v (test_cfg_il caps ~parse_program) );
     ( "-dfg_svalue",
       " <file>",
       Arg_.mk_action_1_conv Fpath.v (test_dfg_svalue ~parse_program) );

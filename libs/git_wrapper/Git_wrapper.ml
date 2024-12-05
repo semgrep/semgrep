@@ -254,9 +254,9 @@ let blobs_by_commit objects commits =
 (*****************************************************************************)
 
 (* Similar to Sys.command, but specific to git *)
-let command (_caps_exec : < Cap.exec >) (args : Cmd.args) : string =
+let command (caps : < Cap.exec >) (args : Cmd.args) : string =
   let cmd : Cmd.t = (git, args) in
-  match UCmd.string_of_run ~trim:true cmd with
+  match CapExec.string_of_run caps#exec ~trim:true cmd with
   | Ok (str, (_, `Exited 0)) -> str
   | Ok _
   | Error (`Msg _) ->

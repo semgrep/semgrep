@@ -728,7 +728,7 @@ let upload_findings ~dry_run
 
 (* All the business logic after command-line parsing. Return the desired
    exit code. *)
-let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
+let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   let conf = ci_conf.scan_conf in
   (match conf.common.maturity with
   (* coupling: copy-pasted from Scan_subcommand.ml *)
@@ -946,6 +946,6 @@ let run_conf (caps : caps) (ci_conf : Ci_CLI.conf) : Exit_code.t =
 (* Entry point *)
 (*****************************************************************************)
 
-let main (caps : caps) (argv : string array) : Exit_code.t =
+let main (caps : < caps ; .. >) (argv : string array) : Exit_code.t =
   let conf = Ci_CLI.parse_argv argv in
   run_conf caps conf

@@ -672,6 +672,10 @@ module Sys = struct
   type extra_info = Sys.extra_info
   type ocaml_release_info = Sys.ocaml_release_info
 
+  (* alt: keep them in USys *)
+  let unix = Sys.unix
+  let win32 = Sys.win32
+  let cygwin = Sys.cygwin
   (* less: Immediate64 submodule *)
 end
 

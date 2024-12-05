@@ -1,3 +1,4 @@
+type caps = < Cap.stdout ; Cap.network ; Cap.tmp >
 (*
    Parse a semgrep-publish command, execute it and exit.
 
@@ -6,4 +7,4 @@
    This function returns an exit code to be passed to the 'exit' function.
 *)
 
-val main : < Cap.stdout ; Cap.network ; Cap.tmp > -> string array -> Exit_code.t
+val main : < caps ; .. > -> string array -> Exit_code.t
