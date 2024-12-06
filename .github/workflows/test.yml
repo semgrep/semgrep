@@ -1,6 +1,5 @@
+jobs:
   test-wheels-wsl:
-    needs:
-      - build-wheels
     runs-on: windows-latest
     steps:
       - uses: Vampire/setup-wsl@v3
