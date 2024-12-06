@@ -834,7 +834,8 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
           let target_source : Core_scan_config.target_source =
             match (!target_file, !lang, roots) with
             | Some file, None, [] -> Target_file file
-            | None, Some lang, [ file ] when UFile.is_file file ->
+            | None, Some lang, [ file ]
+              when UFile.is_reg ~follow_symlinks:true file ->
                 Targets [ Target.mk_target lang file ]
             | _ ->
                 (* alt: use the file targeting in targets_of_config_DEPRECATED

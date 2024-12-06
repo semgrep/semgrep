@@ -101,7 +101,7 @@ let mk_regular ?lockfile analyzer products (origin : Origin.t) : regular =
 let mk_target (xlang : Xlang.t) (file : Fpath.t) : t =
   let all = Product.all in
   (* TODO: should do the check in the other mk_xxx ? *)
-  assert (UFile.is_file file);
+  assert (UFile.is_reg ~follow_symlinks:true file);
   Regular (mk_regular xlang all (Origin.File file))
 
 (*****************************************************************************)

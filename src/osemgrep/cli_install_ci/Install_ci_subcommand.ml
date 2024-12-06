@@ -336,7 +336,7 @@ let git_commit (caps : < Cap.exec >) : unit =
  *)
 let semgrep_workflow_exists (caps : < Cap.exec >) ~repo : bool =
   let dir, cmd =
-    if UFile.dir_exists repo then
+    if UFile.is_dir ~follow_symlinks:true repo then
       ( Fpath.to_dir_path repo,
         (Cmd.Name "gh", [ "workflow"; "view"; "semgrep.yml" ]) )
     else
@@ -359,7 +359,7 @@ let semgrep_workflow_exists (caps : < Cap.exec >) ~repo : bool =
    and then return the path to the cloned repo.
 *)
 let prep_repo (caps : < caps ; .. >) (repo : Fpath.t) : Fpath.t =
-  if UFile.dir_exists repo then repo
+  if UFile.is_dir ~follow_symlinks:true repo then repo
   else
     let tmp_dir =
       CapTmp.get_temp_dir_name caps#tmp

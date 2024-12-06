@@ -2565,7 +2565,7 @@ let sanity_check_files_and_adjust ext files =
            if not (file =~ ".*\\." ^ ext) then (
              pr2 ("warning: seems not a ." ^ ext ^ " file");
              false)
-           else if UFile.is_directory (Fpath.v file) then (
+           else if UFile.is_dir ~follow_symlinks:true (Fpath.v file) then (
              pr2 (spf "warning: %s is a directory" file);
              false)
            else true)
@@ -4966,7 +4966,7 @@ let _ = example
 let inits_of_absolute_dir dir =
   if not (is_absolute dir) then
     failwith (spf "inits_of_absolute_dir: %s is not an absolute path" dir);
-  if not (UFile.is_directory (Fpath.v dir)) then
+  if not (UFile.is_dir ~follow_symlinks:true (Fpath.v dir)) then
     failwith (spf "inits_of_absolute_dir: %s is not a directory" dir);
   let dir = chop_dirsymbol dir in
 

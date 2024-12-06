@@ -196,7 +196,7 @@ let regression_information ~ext (xs : Fpath.t list) (newscore : Common2.score) :
       let xs = Fpath_.to_strings xs in
       let dirname_opt =
         match xs with
-        | [ x ] when UFile.is_directory (Fpath.v x) -> Some x
+        | [ x ] when UFile.is_dir ~follow_symlinks:true (Fpath.v x) -> Some x
         | _ -> None
       in
       (* TODO Config_pfff.regression_data_dir *)

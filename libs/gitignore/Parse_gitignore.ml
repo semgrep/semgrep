@@ -141,10 +141,8 @@ let rec expand_includes ~orig_semgrepignore_path lines =
         let include_path =
           get_include_path ~orig_semgrepignore_path relative_include_path
         in
-        if
-          Sys.file_exists (Fpath.to_string include_path)
-          && UFile.is_file include_path
-        then include_path |> UFile.read_file |> read_lines_from_string
+        if UFile.is_reg ~follow_symlinks:true include_path then
+          include_path |> UFile.read_file |> read_lines_from_string
         else
           (* ignore silently
              (why: git also ignores .gitignore files that are broken

@@ -217,39 +217,72 @@ let filemtime file =
   if !Common.jsoo then failwith "JSOO:filemtime"
   else (UUnix.stat !!file).st_mtime
 
-(* TODO? there's also USys.is_directory? *)
-let is_directory file = (UUnix.stat !!file).st_kind =*= Unix.S_DIR
-let is_file file = (UUnix.stat !!file).st_kind =*= Unix.S_REG
-let is_symlink file = (UUnix.lstat !!file).st_kind =*= Unix.S_LNK
+let is_dir ~follow_symlinks path =
+  let stat = if follow_symlinks then UUnix.stat else UUnix.lstat in
+  match (stat !!path).st_kind with
+  | S_DIR -> true
+  | _ -> false
+  | exception UUnix.Unix_error _ -> false
+
+let is_reg ~follow_symlinks path =
+  let stat = if follow_symlinks then UUnix.stat else UUnix.lstat in
+  match (stat !!path).st_kind with
+  | S_REG -> true
+  | _ -> false
+  | exception UUnix.Unix_error _ -> false
+
+let is_dir_or_reg ~follow_symlinks path =
+  let stat = if follow_symlinks then UUnix.stat else UUnix.lstat in
+  match (stat !!path).st_kind with
+  | S_DIR
+  | S_REG ->
+      true
+  | _ -> false
+  | exception UUnix.Unix_error _ -> false
+
+let is_lnk path =
+  match (UUnix.lstat !!path).st_kind with
+  | S_LNK -> true
+  | _ -> false
+  | exception UUnix.Unix_error _ -> false
+
+let is_lnk_or_reg path =
+  match (UUnix.lstat !!path).st_kind with
+  | S_LNK
+  | S_REG ->
+      true
+  | _ -> false
+  | exception UUnix.Unix_error _ -> false
+
+(* This function isn't very useful but we offer it for completeness. *)
+let is_dir_or_lnk path =
+  match (UUnix.lstat !!path).st_kind with
+  | S_LNK
+  | S_DIR ->
+      true
+  | _ -> false
+  | exception UUnix.Unix_error _ -> false
+
+let is_dir_or_lnk_or_reg path =
+  match (UUnix.lstat !!path).st_kind with
+  | S_DIR
+  | S_LNK
+  | S_REG ->
+      true
+  | _ -> false
+  | exception UUnix.Unix_error _ -> false
 
 let is_executable file =
   let stat = UUnix.stat !!file in
   let perms = stat.st_perm in
   stat.st_kind =*= Unix.S_REG && perms land 0o011 <> 0
 
-let lfile_exists filename =
-  try
-    match (UUnix.lstat !!filename).st_kind with
-    | Unix.S_REG
-    | Unix.S_LNK ->
-        true
-    | _ -> false
-  with
-  | UUnix.Unix_error (Unix.ENOENT, _, _) -> false
-
-(* Helps avoid the `Fatal error: exception Unix_error: No such file or directory stat` *)
-let dir_exists path =
-  try
-    match (UUnix.lstat !!path).st_kind with
-    | S_DIR -> true
-    | _ -> false
-  with
-  | UUnix.Unix_error (Unix.ENOENT, _, _) -> false
-
 let rec make_directories dir =
   try UUnix.mkdir !!dir 0o755 with
   (* The directory already exists *)
-  | UUnix.Unix_error ((EEXIST | EISDIR), _, _) when is_directory dir -> ()
+  | UUnix.Unix_error ((EEXIST | EISDIR), _, _)
+    when is_dir ~follow_symlinks:false dir ->
+      ()
   (* parent doesn't exist *)
   | UUnix.Unix_error (ENOENT, _, _) ->
       let parent = Fpath.parent dir in

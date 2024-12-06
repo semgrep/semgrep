@@ -585,7 +585,7 @@ let group_scanning_roots_by_files_and_projects (conf : conf)
   let dir_scanning_roots, file_scanning_roots =
     List.partition
       (fun x ->
-        UFile.dir_exists
+        UFile.is_dir ~follow_symlinks:true
           (Fpath.append (Fpath.v (Sys.getcwd ())) (Scanning_root.to_fpath x)))
       scanning_roots
   in
