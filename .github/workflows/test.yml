@@ -2,7 +2,7 @@ jobs:
   test-wheels-wsl:
     runs-on: windows-latest
     steps:
-      - uses: Vampire/setup-wsl@v3
+      - uses: Vampire/setup-wsl@v4
       - name: Install Python
         run: |
           sudo apt update -y
