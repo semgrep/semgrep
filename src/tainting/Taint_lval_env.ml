@@ -254,7 +254,16 @@ let find_var { tainted; _ } var = NameMap.find_opt var tainted
 let find_lval { tainted; _ } lval =
   let* var, offsets = normalize_lval lval in
   let* var_ref = NameMap.find_opt var tainted in
-  Shape.find_in_cell offsets var_ref
+  match Shape.find_in_cell offsets var_ref with
+  | `Clean
+  | `Not_found _ ->
+      None
+  | `Found cell -> Some cell
+
+let find_lval_poly { tainted; _ } lval =
+  let* var, offsets = normalize_lval lval in
+  let* var_ref = NameMap.find_opt var tainted in
+  Shape.find_in_cell_poly offsets var_ref
 
 let find_lval_xtaint env lval =
   match find_lval env lval with

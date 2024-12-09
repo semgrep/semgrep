@@ -65,6 +65,82 @@ let taints_and_shape_are_relevant taints shape =
        * by INVARIANT(cell) it contains some taint or has field marked clean. *)
       true
 
+(* TODO: This should fix shapes too. *)
+let fix_poly_taint_with_offset offset taints =
+  let type_of_offset o =
+    match o with
+    | T.Ofld n -> !(n.id_info.id_type)
+    | _ -> None
+  in
+  let add_offset_to_lval o ({ offset; _ } as orig_lval : T.lval) =
+    let extended_lval = { orig_lval with offset = orig_lval.offset @ [ o ] } in
+    if
+      (* If the offset we are trying to take is already in the
+           list of offsets, don't append it! This is so we don't
+           never-endingly loop the dataflow and make it think the
+           Arg taint is never-endingly changing.
+
+           For instance, this code example would previously loop,
+           if `x` started with an `Arg` taint:
+           while (true) { x = x.getX(); }
+      *)
+      (not (List.mem o offset))
+      && (* For perf reasons we don't allow offsets to get too long.
+          * Otherwise in a long chain of function calls where each
+          * function adds some offset, we could end up a very large
+          * amount of polymorphic taint.
+          * This actually happened with rule
+          * semgrep.perf.rules.express-fs-filename from the Pro
+          * benchmarks, and file
+          * WebGoat/src/main/resources/webgoat/static/js/libs/ace.js.
+          *
+          * TODO: This is way less likely to happen if we had better
+          *   type info and we used it to remove taint, e.g. if Boolean
+          *   and integer expressions didn't propagate taint. *)
+      List.length offset < Limits_semgrep.taint_MAX_POLY_OFFSET
+    then extended_lval
+    else (
+      Log.warn (fun m ->
+          m "Taint_lval_env.fix_poly_taint_with_offset: %s is too long"
+            (T.show_lval extended_lval));
+      orig_lval)
+  in
+  offset
+  |> List.fold_left
+       (fun taints o ->
+         match (type_of_offset o, o) with
+         | Some { t = TyFun _; _ }, _ ->
+             (* We have an l-value like `o.f` where `f` has a function type,
+              * so it's a method call, we return nothing here. We cannot just
+              * return `xtaint`, which is the taint of `o` in the environment;
+              * whether that taint propagates or not is determined in
+              * 'check_tainted_instr'/'Call'. Otherwise, if `o` had taint var
+              * 'o@i', the call `o.getX()` would have taints '{o@i, o@i.x}'
+              * when it should only have taints '{o@i.x}'. *)
+             Taints.empty
+         | _, Oany ->
+             (* Cannot handle this offset. *)
+             taints
+         | __any__, ((Ofld _ | Ostr _ | Oint _) as o) ->
+             (* Not a method call (to the best of our knowledge) or
+              * an unresolved Java `getX` method. *)
+             let taints' =
+               taints
+               |> Taints.map (fun taint ->
+                      match taint.orig with
+                      | Var lval ->
+                          let lval' = add_offset_to_lval o lval in
+                          { taint with orig = Var lval' }
+                      | Shape_var lval ->
+                          let lval' = add_offset_to_lval o lval in
+                          { taint with orig = Shape_var lval' }
+                      | Src _
+                      | Control ->
+                          taint)
+             in
+             taints')
+       taints
+
 (*********************************************************)
 (* Unification (merging shapes) *)
 (*********************************************************)
@@ -241,54 +317,90 @@ let gather_all_taints_in_shape = gather_all_taints_in_shape_acc Taints.empty
 (* Find an offset *)
 (*********************************************************)
 
-let rec find_in_cell offset cell =
-  let (Cell (_xtaint, shape)) = cell in
+let rec find_in_cell_w_carry ~taints offset cell =
+  let (Cell (xtaint, shape)) = cell in
   match offset with
-  | [] -> Some cell
-  | _ :: _ -> find_in_shape offset shape
+  | [] -> `Found cell
+  | _ :: _ -> (
+      match xtaint with
+      | `Clean ->
+          if shape <> Bot then
+            Log.err (fun m ->
+                m "BUG: Taint_shape.find_in_cell: INVARIANT(cell).2 is broken");
+          `Clean
+      | `None -> find_in_shape_w_carry ~taints offset shape
+      | `Tainted taints -> find_in_shape_w_carry ~taints offset shape)
 
-and find_in_shape offset shape =
+and find_in_shape_w_carry ~taints offset shape =
+  let not_found = `Not_found (taints, shape, offset) in
   match shape with
   (* offset <> [] *)
-  | Bot -> None
-  | Obj obj -> find_in_obj offset obj
+  | Bot -> not_found
+  | Obj obj -> find_in_obj_w_carry ~taints offset obj
   | Arg _ ->
       (* TODO: Here we should "refine" the arg shape, it should be an Obj shape. *)
       Log.debug (fun m ->
           m "Could not find offset %s in polymorphic shape %s"
             (debug_offset offset) (show_shape shape));
-      None
+      not_found
   | Fun _ ->
       (* This is an error, we just don't want to crash here. *)
       Log.err (fun m ->
           m "Could not find offset %s in function shape %s"
             (debug_offset offset) (show_shape shape));
-      None
+      not_found
 
-and find_in_obj (offset : T.offset list) obj =
+and find_in_obj_w_carry ~taints (offset : T.offset list) obj =
+  let not_found = `Not_found (taints, Obj obj, offset) in
   (* offset <> [] *)
   match offset with
   | [] ->
-      Log.err (fun m -> m "fix_xtaint_obj: Impossible happened: empty offset");
-      None
+      Log.err (fun m -> m "BUG: Taint_shape.fix_xtaint_obj: empty offset");
+      not_found
   | o :: offset -> (
       match o with
-      | Oany (* arbitrary index [*] *) ->
+      | Oany (* arbitrary index [*] *) -> (
           (* consider all fields/indexes *)
-          Fields.fold
-            (fun _ cell acc ->
-              match (acc, find_in_cell offset cell) with
-              | None, None -> None
-              | Some cell, None
-              | None, Some cell ->
-                  Some cell
-              | Some cell1, Some cell2 -> Some (unify_cell cell1 cell2))
-            obj None
+          match
+            Fields.fold
+              (fun _ cell acc ->
+                match (acc, find_in_cell_w_carry ~taints offset cell) with
+                | None, (`Not_found _ | `Clean) -> None
+                | Some cell, (`Not_found _ | `Clean)
+                | None, `Found cell ->
+                    Some cell
+                | Some cell1, `Found cell2 -> Some (unify_cell cell1 cell2))
+              obj None
+          with
+          | None -> not_found
+          | Some cell -> `Found cell)
       | Ofld _
       | Oint _
-      | Ostr _ ->
-          let* o_cell = Fields.find_opt o obj in
-          find_in_cell offset o_cell)
+      | Ostr _ -> (
+          match Fields.find_opt o obj with
+          | None -> not_found
+          | Some o_cell -> find_in_cell_w_carry ~taints offset o_cell))
+
+let find_in_cell offset cell =
+  find_in_cell_w_carry ~taints:Taints.empty offset cell
+
+let option_of_find_result res =
+  match res with
+  | `Clean -> None
+  | `Not_found (taints, _shape, offset) ->
+      (* TODO: Fix _shape too. *)
+      let taints = fix_poly_taint_with_offset offset taints in
+      Some (taints, Bot)
+  | `Found (Cell (xtaint, shape)) -> Some (Xtaint.to_taints xtaint, shape)
+
+let find_in_cell_poly offset cell =
+  find_in_cell offset cell |> option_of_find_result
+
+let find_in_shape_poly ~taints offset shape =
+  match offset with
+  | [] -> Some (taints, shape)
+  | _ :: _ ->
+      find_in_shape_w_carry ~taints offset shape |> option_of_find_result
 
 (*********************************************************)
 (* Update the xtaint and shape of an offset *)

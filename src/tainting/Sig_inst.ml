@@ -495,29 +495,6 @@ let lval_of_sig_lval (fun_exp : IL.exp) fparams args_exps (sig_lval : T.lval) :
               { arg_lval with rev_offset = rev_offset @ arg_lval.rev_offset }
             in
             Some (lval, obj)
-        | RecordOrDict fields, [ Ofld o ] -> (
-            (* JS: The argument of a function call may be a record expression such as
-             * `{x="tainted", y="safe"}`, if 'sig_lval' refers to the `x` field then
-             * we want to resolve it to `"tainted"`. *)
-            match
-              fields
-              |> List.find_opt (function
-                   (* The 'o' is the offset that 'sig_lval' is referring to, here
-                    * we look for a `fld=lval` field in the record object such that
-                    * 'fld' has the same name as 'o'. *)
-                   | Field (fld, _) -> IL.compare_name fld o =|= 0
-                   | Entry _
-                   | Spread _ ->
-                       false)
-            with
-            | Some (Field (_, { e = Fetch ({ base = Var obj; _ } as lval); _ }))
-              ->
-                (* Actual argument is of the form {..., fld=lval, ...} and the offset is 'fld',
-                 * we return 'lval'. *)
-                Some (lval, obj)
-            | Some _
-            | None ->
-                None)
         | __else__ -> None)
   in
   Some (lval, snd obj.ident)
@@ -628,15 +605,10 @@ let taints_of_lval lval_env fparams (fun_exp : IL.exp) args_taints lval :
         let* (Cell (xtaints, shape)) = Lval_env.find_var lval_env var in
         Some (Xtaint.to_taints xtaints, shape)
   in
-  match (base_shape, offset) with
-  | base_shape, [] -> Some (base_taints, base_shape)
-  | Bot, _ :: _ -> None
-  | base_shape, _ :: _ ->
-      let* (Cell (xtaints, shape)) = Shape.find_in_shape offset base_shape in
-      Some (Xtaint.to_taints xtaints, shape)
+  Shape.find_in_shape_poly ~taints:base_taints offset base_shape
 
 (* What is the taint denoted by 'sig_lval' ? *)
-let taints_of_sig_lval lval_env ~check_lval fparams fun_exp args_exps
+let taints_of_sig_lval lval_env fparams fun_exp args_exps
     (args_taints : (Taints.t * shape) IL.argument list) (sig_lval : T.lval) =
   match taints_of_lval lval_env fparams fun_exp args_taints sig_lval with
   | Some (taints, shape) -> Some (taints, shape)
@@ -657,7 +629,11 @@ let taints_of_sig_lval lval_env ~check_lval fparams fun_exp args_exps
           let* lval, _obj =
             lval_of_sig_lval fun_exp fparams args_exps sig_lval
           in
-          let lval_taints, shape = check_lval lval in
+          let lval_taints, shape =
+            match Lval_env.find_lval_poly lval_env lval with
+            | None -> (Taints.empty, Bot)
+            | Some (taints, shape) -> (taints, shape)
+          in
           let lval_taints =
             lval_taints
             |> fix_lval_taints_if_global_or_a_field_of_this_class fun_exp
@@ -672,8 +648,8 @@ let taints_of_sig_lval lval_env ~check_lval fparams fun_exp args_exps
    2) Are there any effects that occur within the function due to taints being
       input into the function body, from the calling context?
 *)
-let rec instantiate_function_signature lval_env ~check_lval
-    (taint_sig : Signature.t) ~callee ~(args : _ option)
+let rec instantiate_function_signature lval_env (taint_sig : Signature.t)
+    ~callee ~(args : _ option)
     (args_taints : (Taints.t * shape) IL.argument list) : call_effects option =
   let lval_to_taints lval =
     (* This function simply produces the corresponding taints to the
@@ -687,8 +663,7 @@ let rec instantiate_function_signature lval_env ~check_lval
        So we will isolate this as a specific step to be applied as necessary.
     *)
     let opt_taints_shape =
-      taints_of_sig_lval lval_env ~check_lval taint_sig.params callee args
-        args_taints lval
+      taints_of_sig_lval lval_env taint_sig.params callee args args_taints lval
     in
     Log.debug (fun m ->
         m ~tags:sigs_tag "- Instantiating %s: %s -> %s"
@@ -882,8 +857,8 @@ let rec instantiate_function_signature lval_env ~check_lval
               (Effect.show_args_taints fun_args_taints)
               (Effect.show_args_taints args_taints));
         match
-          instantiate_function_signature lval_env ~check_lval fun_sig
-            ~callee:fun_exp ~args:None args_taints
+          instantiate_function_signature lval_env fun_sig ~callee:fun_exp
+            ~args:None args_taints
         with
         | Some call_effects -> call_effects
         | None ->

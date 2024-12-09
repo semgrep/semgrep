@@ -82,58 +82,60 @@ module rec Shape : sig
     | Bot  (** _|_, don't know or don't care *)
     | Obj of obj
         (** An "object" or struct-like thing.
-          *
-          * Tuples or lists are also represented by 'Obj' shapes! We just treat
-          * constant indexes as if they were fields, and use 'Oany' to capture the
-          * non-constant indexes.
+
+           Tuples or lists are also represented by 'Obj' shapes! We just treat
+           constant indexes as if they were fields, and use 'Oany' to capture the
+           non-constant indexes.
           *)
     | Arg of Taint.arg
         (** Represents the yet-unknown shape of a function/method parameter. It is
-          * a polymorphic shape variable that is meant to be instantiated at call
-          * site. Before adding 'Arg' we assumed parameters had shape 'Bot', and
-          * 'Arg' still acts like 'Bot' in some places. *)
+            a polymorphic shape variable that is meant to be instantiated at call
+            site. Before adding 'Arg' we assumed parameters had shape 'Bot', and
+            'Arg' still acts like 'Bot' in some places.
+
+            TODO: Generalize to 'Taint.lval', e.g. `function test(o) { return o.x }`. *)
     | Fun of Signature.t
         (** Function shapes. These enable Semgrep to handle HOFs. *)
 
   and cell =
     | Cell of Xtaint.t * shape
         (** A cell or "reference" represents the "storage" of a value, like
-          * a variable in C.
-          *
-          * A cell may be explicitly tainted ('`Tainted'), not explicitly tainted
-          * ('`None' / "0"),  or explicitly clean ('`Clean' / "C").
-          *
-          * A cell that is not explicitly tainted inherits any taints from "parent"
-          * refs. A cell that is explicitly clean it is clean regardless.
-          *
-          * For example, given a variable `x` and the following statements:
-          *
-          *     x.a := "taint";
-          *     x.a.u := "clean";
-          *
-          * We could assign the following shape to `x`:
-          *
-          *     Cell(`None, Obj {
-          *             .a -> Cell({"taint"}, Obj {
-          *                     .u -> Cell(`Clean, _|_)
-          *                     })
-          *             })
-          *
-          * We have that `x` itself has no taint directly assigned to it, but `x.a` is
-          * tainted (by the string `"taint"`). Other fields like `x.b` are not tainted.
-          * When it comes to `x.a`, we have that `x.a.u` has been explicitly marked clean,
-          * so `x.a.u` will be considered clean despite `x.a` being tainted. Any other field
-          * of `x.a` such as `x.a.v` will inherit the same taint as `x.a`.
-          *
-          * INVARIANT(cell): To keep shapes minimal:
-          *   1. If the xtaint is '`None', then the shape is not 'Bot' and we can reach
-          *      another 'cell' whose xtaint is either '`Tainted' or '`Clean'.
-          *   2. If the xtaint is '`Clean', then the shape is 'Bot'.
-          *      (If we add aliasing we may need to revisit this, and instead just mark
-          *       every reachable 'cell' as clean too.)
-          *
-          * TODO: We can attach "region ids" to refs and assign taints to regions rather than
-          *   to refs directly, then we can have alias analysis.
+            a variable in C.
+
+            A cell may be explicitly tainted ('`Tainted'), not explicitly tainted
+            ('`None' / "0"),  or explicitly clean ('`Clean' / "C").
+
+            A cell that is not explicitly tainted inherits any taints from "parent"
+            refs. A cell that is explicitly clean it is clean regardless.
+
+            For example, given a variable `x` and the following statements:
+
+                x.a := "taint";
+                x.a.u := "clean";
+
+            We could assign the following shape to `x`:
+
+                Cell(`None, Obj {
+                        .a -> Cell({"taint"}, Obj {
+                                .u -> Cell(`Clean, _|_)
+                                })
+                        })
+
+            We have that `x` itself has no taint directly assigned to it, but `x.a` is
+            tainted (by the string `"taint"`). Other fields like `x.b` are not tainted.
+            When it comes to `x.a`, we have that `x.a.u` has been explicitly marked clean,
+            so `x.a.u` will be considered clean despite `x.a` being tainted. Any other field
+            of `x.a` such as `x.a.v` will inherit the same taint as `x.a`.
+
+            INVARIANT(cell): To keep shapes minimal:
+              1. If the xtaint is '`None', then the shape is not 'Bot' and we can reach
+                 another 'cell' whose xtaint is either '`Tainted' or '`Clean'.
+              2. If the xtaint is '`Clean', then the shape is 'Bot'.
+                 (If we add aliasing we may need to revisit this, and instead just mark
+                  every reachable 'cell' as clean too.)
+
+            TODO: We can attach "region ids" to refs and assign taints to regions rather than
+              to refs directly, then we can have alias analysis.
           *)
 
   and obj = cell Fields.t

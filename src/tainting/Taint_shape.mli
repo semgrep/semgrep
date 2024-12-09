@@ -6,6 +6,13 @@ val taints_and_shape_are_relevant : Taint.taints -> shape -> bool
 (** [true] iff the union of [taints] and [gather_all_taints_in_shape shape]
  * is non-empty, or if [shape] contains a cleaned offset. *)
 
+val fix_poly_taint_with_offset :
+  Taint.offset list -> Taint.taints -> Taint.taints
+(** Fix taints with an offset. It just attaches the offset to each polymorphic
+    taint variable (see 'Taint.Var') in the set.
+
+    FEATURE(field-sensitivity) *)
+
 val tuple_like_obj : (Taint.taints * shape) list -> shape
 (** Constructs a 0-indexed tuple-like 'obj' from a list of pairs, taints and shape,
  * for each element in the tuple.  *)
@@ -33,8 +40,41 @@ val gather_all_taints_in_cell : cell -> Taint.taints
 val gather_all_taints_in_shape : shape -> Taint.taints
 (** Gather and union all taints reachable through a shape. *)
 
-val find_in_cell : Taint.offset list -> cell -> cell option
-val find_in_shape : Taint.offset list -> shape -> cell option
+val find_in_cell :
+  Taint.offset list ->
+  cell ->
+  [ `Found of cell
+  | `Clean
+  | `Not_found of Taint.taints * shape * Taint.offset list ]
+(** Find an offset in a cell.
+
+    This is a somewhat "low-level" version.
+
+    If the offset could not be found in the cell, then it returns `Not_found
+    with the base taints and shape for the offset prefix that was found, and
+    the offset suffix that was not. *)
+
+val find_in_cell_poly :
+  Taint.offset list -> cell -> (Taint.taints * shape) option
+(** Find an offset in a cell, BUT if the full offset cannot be found, then
+    it returns the taints of the offset prefix that was found; and if those
+    taints are polymorphic, then it adds to them the remaining offset.
+
+    For example, if `x` is tainted but `x.a` is not being tracked, it just
+    assigns to `x.a` the same taints as `x`. If `x` had polymorphic taint
+    (see 'Taint.Var'), then it would attach the offset `.a` to it.
+
+    TODO: We need to fix polymorphic shapes too instad of just returning 'Bot'.
+
+    FEATURE(field-sensitivity) *)
+
+val find_in_shape_poly :
+  taints:Taint.taints ->
+  Taint.offset list ->
+  shape ->
+  (Taint.taints * shape) option
+(** Like 'find_in_cell_poly' but to find an offset in a shape, the 'taints'
+    are the "base taints" in case the offset cannot be found. *)
 
 val update_offset_in_cell :
   f:(Xtaint.t -> shape -> Xtaint.t * shape) ->

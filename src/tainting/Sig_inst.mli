@@ -12,10 +12,6 @@ type call_effects = call_effect list
 
 val instantiate_function_signature :
   Taint_lval_env.t ->
-  check_lval:(IL.lval -> Taint.Taint_set.t * Shape_and_sig.Shape.shape) ->
-  (* TODO: 'check_lval' is just a way to avoid a recursive dependency with
-   *   'Dataflow_tainting'. We should not need this when all field-sensitive
-   *   taint tracking happens through shapes. *)
   Shape_and_sig.Signature.t ->
   callee:IL.exp ->
   args:IL.exp IL.argument list option (** actual arguments *) ->

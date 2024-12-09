@@ -163,9 +163,10 @@ let show_offset offset =
   | Ostr s -> Printf.sprintf "[%s]" s
   | Oany -> "[*]"
 
-let show_lval { base; offset = os } =
-  show_base base
-  ^ if os <> [] then os |> List_.map show_offset |> String.concat "" else ""
+let show_offset_list offset =
+  offset |> List_.map show_offset |> String.concat ""
+
+let show_lval { base; offset } = show_base base ^ show_offset_list offset
 
 let offset_of_IL (o : IL.offset) =
   match !hook_offset_of_IL with

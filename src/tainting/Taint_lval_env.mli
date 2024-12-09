@@ -65,6 +65,9 @@ val find_var : env -> IL.name -> cell option
 val find_lval : env -> IL.lval -> cell option
 (** Find the 'cell' of an l-value. *)
 
+val find_lval_poly : env -> IL.lval -> (Taint.taints * shape) option
+(** Find the 'cell' of an l-value. *)
+
 val find_lval_xtaint : env -> IL.lval -> Xtaint.t
 (** Look up an l-value on the environemnt and return whether it's tainted, clean,
     or we hold no info about it. It does not check sub-lvalues, e.g. if we record

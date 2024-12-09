@@ -53,6 +53,7 @@ type offset =
 
 val compare_offset : offset -> offset -> int
 val show_offset : offset -> string
+val show_offset_list : offset list -> string
 val offset_of_IL : IL.offset -> offset
 val offset_of_rev_IL_offset : rev_offset:IL.offset list -> offset list
 
@@ -64,7 +65,12 @@ val rev_IL_offset_of_offset : offset list -> IL.offset list option
   * (if there is no `Oany`).
   *)
 
-type lval = { base : base; offset : offset list }
+type lval = {
+  base : base;
+  offset : offset list;
+      (** An offset `.a.b.c` is encoded as `[.a; .b; .c]`, note the difference
+          wrt 'IL.offset', this offset list is **not** reversed! *)
+}
 (** A restriction of 'IL.lval', the l-values that are in the scope of a
  * function/method, and on which we can track taint:
  *

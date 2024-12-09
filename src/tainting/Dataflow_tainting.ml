@@ -677,87 +677,19 @@ let check_orig_if_sink env ?filter_sinks orig taints shape =
   let effects = effects_of_tainted_sinks env taints sinks in
   record_effects env effects
 
-let fix_poly_taint_with_field env lval xtaint =
-  let type_of_il_offset il_offset =
-    match il_offset.IL.o with
-    | Dot n -> !(n.id_info.id_type)
-    | Index _ -> None
-  in
-  let add_offset_to_lval o ({ offset; _ } as lval : T.lval) =
-    if
-      (* If the offset we are trying to take is already in the
-           list of offsets, don't append it! This is so we don't
-           never-endingly loop the dataflow and make it think the
-           Arg taint is never-endingly changing.
-
-           For instance, this code example would previously loop,
-           if `x` started with an `Arg` taint:
-           while (true) { x = x.getX(); }
-      *)
-      (not (List.mem o offset))
-      && (* For perf reasons we don't allow offsets to get too long.
-          * Otherwise in a long chain of function calls where each
-          * function adds some offset, we could end up a very large
-          * amount of polymorphic taint.
-          * This actually happened with rule
-          * semgrep.perf.rules.express-fs-filename from the Pro
-          * benchmarks, and file
-          * WebGoat/src/main/resources/webgoat/static/js/libs/ace.js.
-          *
-          * TODO: This is way less likely to happen if we had better
-          *   type info and we used it to remove taint, e.g. if Boolean
-          *   and integer expressions didn't propagate taint. *)
-      List.length offset < Limits_semgrep.taint_MAX_POLY_OFFSET
-    then { lval with offset = lval.offset @ [ o ] }
-    else lval
-  in
-  (* TODO: Aren't we missing here C# and Go ? *)
-  if
-    env.taint_inst.lang =*= Lang.Java
-    || Lang.is_js env.taint_inst.lang
-    || env.taint_inst.lang =*= Lang.Python
-  then
-    match xtaint with
-    | `Sanitized
-    | `Clean
-    | `None ->
-        xtaint
-    | `Tainted taints -> (
-        match lval.rev_offset with
-        | o :: _ -> (
-            match (type_of_il_offset o, T.offset_of_IL o) with
-            | Some { t = TyFun _; _ }, _ ->
-                (* We have an l-value like `o.f` where `f` has a function type,
-                 * so it's a method call, we return nothing here. We cannot just
-                 * return `xtaint`, which is the taint of `o` in the environment;
-                 * whether that taint propagates or not is determined in
-                 * 'check_tainted_instr'/'Call'. Otherwise, if `o` had taint var
-                 * 'o@i', the call `o.getX()` would have taints '{o@i, o@i.x}'
-                 * when it should only have taints '{o@i.x}'. *)
-                `None
-            | _, Oany ->
-                (* Cannot handle this offset. *)
-                xtaint
-            | __any__, ((Ofld _ | Ostr _ | Oint _) as o) ->
-                (* Not a method call (to the best of our knowledge) or
-                 * an unresolved Java `getX` method. *)
-                let taints' =
-                  taints
-                  |> Taints.map (fun taint ->
-                         match taint.orig with
-                         | Var lval ->
-                             let lval' = add_offset_to_lval o lval in
-                             { taint with orig = Var lval' }
-                         | Shape_var lval ->
-                             let lval' = add_offset_to_lval o lval in
-                             { taint with orig = Shape_var lval' }
-                         | Src _
-                         | Control ->
-                             taint)
-                in
-                `Tainted taints')
-        | [] -> xtaint)
-  else xtaint
+let fix_poly_taint_with_field lval xtaint =
+  match xtaint with
+  | `Sanitized
+  | `Clean
+  | `None ->
+      xtaint
+  | `Tainted taints -> (
+      match lval.rev_offset with
+      | o :: _ ->
+          let o = T.offset_of_IL o in
+          let taints = Shape.fix_poly_taint_with_offset [ o ] taints in
+          `Tainted taints
+      | [] -> xtaint)
 
 (*****************************************************************************)
 (* Tainted *)
@@ -1139,7 +1071,7 @@ and check_tainted_lval_aux env (lval : IL.lval) :
                      * where `obj.y` is tainted but `obj.x` is not tainted, we will not
                      * produce a finding.
                   *)
-                  fix_poly_taint_with_field env lval sub_xtaint
+                  fix_poly_taint_with_field lval sub_xtaint
             in
             (xtaint', shape)
       in
@@ -1450,12 +1382,8 @@ let check_function_call env fun_exp args
           m ~tags:sigs_tag "Call to %s : %s"
             (Display_IL.string_of_exp fun_exp)
             (Signature.show fun_sig));
-      let check_lval lval =
-        let taints, shape, _sub, _lval_env = check_tainted_lval env lval in
-        (taints, shape)
-      in
       let* call_effects =
-        Sig_inst.instantiate_function_signature env.lval_env ~check_lval fun_sig
+        Sig_inst.instantiate_function_signature env.lval_env fun_sig
           ~callee:fun_exp ~args:(Some args) args_taints
       in
       Some
@@ -1487,8 +1415,8 @@ let check_function_call env fun_exp args
                    (taints_acc, shape_acc, lval_env |> Lval_env.add lval taints))
              (Taints.empty, Bot, env.lval_env))
   | None ->
-      Log.debug (fun m ->
-          m ~tags:sigs_tag "Call to %s : NO SIGNATURE !!!!"
+      Log.info (fun m ->
+          m "No taint signature found for `%s'"
             (Display_IL.string_of_exp fun_exp));
       None
 
