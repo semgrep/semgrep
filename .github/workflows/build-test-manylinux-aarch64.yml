@@ -39,7 +39,7 @@ jobs:
           #
           # we ended up hitting an edge case where the final ~100kb doesn't always get written to disk, which results in a corrupted zip file.
           # our theory is that the pipe between the container and the host is being closed prematurely.
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: manylinux-aarch64-wheel
           path: semgrep/cli/dist.zip

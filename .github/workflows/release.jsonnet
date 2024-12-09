@@ -232,7 +232,7 @@ local park_pypi_packages_job = {
 
 local download_step(name) = {
   name: 'Download %s' % name,
-  uses: 'actions/download-artifact@v3',
+  uses: 'actions/download-artifact@v4',
   with: {
     name: name,
     path: name,

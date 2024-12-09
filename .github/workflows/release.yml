@@ -188,22 +188,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download manylinux-x86-wheel
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: manylinux-x86-wheel
           path: manylinux-x86-wheel
       - name: Download manylinux-aarch64-wheel
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: manylinux-aarch64-wheel
           path: manylinux-aarch64-wheel
       - name: Download osx-x86-wheel
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: osx-x86-wheel
           path: osx-x86-wheel
       - name: Download osx-arm64-wheel
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: osx-arm64-wheel
           path: osx-arm64-wheel

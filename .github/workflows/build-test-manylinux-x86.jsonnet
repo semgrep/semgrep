@@ -56,7 +56,7 @@ local build_wheels_job = {
       |||,
     },
     {
-      uses: 'actions/upload-artifact@v3',
+      uses: 'actions/upload-artifact@v4',
       with: {
         name: wheel_name,
         path: 'cli/dist.zip',

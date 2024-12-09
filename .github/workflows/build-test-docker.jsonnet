@@ -127,7 +127,7 @@ local job = {
       run: './scripts/validate-docker-build.sh ${{ steps.build-image.outputs.imageid }} linux/${{ matrix.architecture }}',
     },
     {
-      uses: 'actions/upload-artifact@v3',
+      uses: 'actions/upload-artifact@v4',
       with: {
         name: '${{ inputs.artifact-name }}-arch-${{ matrix.architecture }}',
         path: '/tmp/image.tar',

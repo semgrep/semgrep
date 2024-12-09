@@ -32,7 +32,7 @@ jobs:
           mkdir artifacts
           cp bin/semgrep-core artifacts/
           tar czf artifacts.tgz artifacts
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: semgrep-core-x86-artifact
           path: artifacts.tgz

@@ -35,7 +35,7 @@ jobs:
           mkdir artifacts
           cp ./bin/semgrep-core artifacts/
           tar czf artifacts.tgz artifacts
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: semgrep-osx-arm64-${{ github.sha }}
           path: artifacts.tgz
@@ -61,14 +61,14 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: true
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: semgrep-osx-arm64-${{ github.sha }}
       - run: |
           tar xvfz artifacts.tgz
           cp artifacts/semgrep-core cli/src/semgrep/bin
           ./scripts/build-wheels.sh --plat-name macosx_11_0_arm64
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: osx-arm64-wheel
           path: cli/dist.zip
@@ -89,7 +89,7 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.11"
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: osx-arm64-wheel
       - run: unzip dist.zip

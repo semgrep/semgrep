@@ -101,7 +101,7 @@ jobs:
           cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libintl-8.dll artifacts/
 
           tar czvf artifacts.tgz artifacts
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: semgrep-core-and-dependent-libs-w64-artifact-${{ github.sha }}
           path: artifacts.tgz
@@ -116,7 +116,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: true
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: semgrep-core-and-dependent-libs-w64-artifact-${{ github.sha }}
       - env:
@@ -125,7 +125,7 @@ jobs:
           tar xvfz artifacts.tgz
           cp artifacts/* cli/src/semgrep/bin
           ./scripts/build-wheels.sh --plat-name win_amd64
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: windows-x86-wheel
           path: cli/dist.tgz
@@ -137,7 +137,7 @@ jobs:
       - build-wheels
     runs-on: windows-latest
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: windows-x86-wheel
       - run: tar xzvf dist.tgz

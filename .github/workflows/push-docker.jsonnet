@@ -52,7 +52,7 @@ local job = {
       uses: 'iarekylew00t/regctl-installer@v1',
     },
     {
-      uses: 'actions/download-artifact@v3',
+      uses: 'actions/download-artifact@v4',
       with: {
         path: '/tmp/artifacts',
       },

@@ -75,16 +75,15 @@
           tar czf artifacts.tgz artifacts
         ||| % path,
   },
-  // TODO: switch to v4 for upload/download below
   upload_artifact_step: function(artifact_name, path='artifacts.tgz') {
-       uses: 'actions/upload-artifact@v3',
+       uses: 'actions/upload-artifact@v4',
        with: {
           path: path,
           name: artifact_name,
         },
   },
   download_artifact_step(artifact_name): {
-      uses: 'actions/download-artifact@v3',
+      uses: 'actions/download-artifact@v4',
       with: {
         name: artifact_name,
       },
