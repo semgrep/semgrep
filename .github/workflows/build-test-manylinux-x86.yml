@@ -9,9 +9,9 @@ jobs:
           submodules: true
       - run: |
           yum update -y
-          yum install -y zip python3-pip python3.8
+          yum install -y zip python3-pip python3.9
           alternatives --remove-all python3
-          alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 1
+          alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1
           alternatives --auto python3
       - uses: actions/download-artifact@v3
         with:
@@ -35,14 +35,14 @@ jobs:
           name: manylinux-x86-wheel
       - run: unzip dist.zip
       - name: install package
-        run: /opt/python/cp38-cp38/bin/pip install dist/*.whl
+        run: /opt/python/cp39-cp39/bin/pip install dist/*.whl
       - name: test package
         run: |
-          export PATH=/opt/python/cp38-cp38/bin:$PATH
+          export PATH=/opt/python/cp39-cp39/bin:$PATH
           semgrep --version
       - name: e2e semgrep-core test
         run: |
-          export PATH=/opt/python/cp38-cp38/bin:$PATH
+          export PATH=/opt/python/cp39-cp39/bin:$PATH
           echo '1 == 1' | semgrep -l python -e '$X == $X' -
   test-wheels-venv:
     container: quay.io/pypa/manylinux_2_28_x86_64
@@ -55,7 +55,7 @@ jobs:
           name: manylinux-x86-wheel
       - run: unzip dist.zip
       - name: create venv
-        run: /opt/python/cp38-cp38/bin/python3 -m venv env
+        run: /opt/python/cp39-cp39/bin/python3 -m venv env
       - name: install package
         run: env/bin/pip install dist/*.whl
       - name: test package

@@ -206,7 +206,6 @@ local test_cli_job = {
   strategy: {
     matrix: {
       python: [
-        '3.8',
         '3.9',
         '3.10',
         '3.11',

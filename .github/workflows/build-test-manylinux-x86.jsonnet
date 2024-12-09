@@ -41,9 +41,9 @@ local build_wheels_job = {
     {
       run: |||
         yum update -y
-        yum install -y zip python3-pip python3.8
+        yum install -y zip python3-pip python3.9
         alternatives --remove-all python3
-        alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 1
+        alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1
         alternatives --auto python3
       |||,
     },
@@ -80,21 +80,21 @@ local test_wheels_job = {
     // platform compatibility tag
     {
       name: 'install package',
-      run: '/opt/python/cp38-cp38/bin/pip install dist/*.whl',
+      run: '/opt/python/cp39-cp39/bin/pip install dist/*.whl',
     },
     // TODO? could reuse build-test-osx-x86.test_semgrep_steps
     // only diff is PATH adjustments
     {
       name: 'test package',
       run: |||
-        export PATH=/opt/python/cp38-cp38/bin:$PATH
+        export PATH=/opt/python/cp39-cp39/bin:$PATH
         semgrep --version
       |||,
     },
     {
       name: 'e2e semgrep-core test',
       run: |||
-        export PATH=/opt/python/cp38-cp38/bin:$PATH
+        export PATH=/opt/python/cp39-cp39/bin:$PATH
         echo '1 == 1' | semgrep -l python -e '$X == $X' -
       |||,
     },
@@ -114,7 +114,7 @@ local test_wheels_venv_job = {
     },
     {
       name: 'create venv',
-      run: '/opt/python/cp38-cp38/bin/python3 -m venv env',
+      run: '/opt/python/cp39-cp39/bin/python3 -m venv env',
     },
     // *.whl is fine here because we're building one wheel with the "any"
     // platform compatibility tag
