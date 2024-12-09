@@ -44,21 +44,25 @@ let mk_manifest (kind : kind) (path : Fpath.t) : t = { path; kind }
 
 let kind_to_ecosystem_opt : kind -> Semgrep_output_v1_t.ecosystem option =
   function
-  | `RequirementsIn -> Some `Pypi
+  | `RequirementsIn
+  | `Pipfile
+  | `PyprojectToml ->
+      Some `Pypi
   | `PackageJson -> Some `Npm
   | `Gemfile -> Some `Gem
   | `GoMod -> Some `Gomod
   | `CargoToml -> Some `Cargo
-  | `PomXml -> Some `Maven
-  | `BuildGradle -> Some `Maven
-  | `SettingsGradle -> Some `Maven
+  | `PomXml
+  | `BuildGradle
+  | `SettingsGradle ->
+      Some `Maven
   | `ComposerJson -> Some `Composer
-  | `NugetManifestJson -> Some `Nuget
+  | `NugetManifestJson
+  | `Csproj ->
+      Some `Nuget
   | `PubspecYaml -> Some `Pub
   | `PackageSwift -> Some `SwiftPM
   | `MixExs -> Some `Mix
-  | `Pipfile -> Some `Pypi
-  | `PyprojectToml -> Some `Pypi
   | `ConanFilePy
   | `ConanFileTxt ->
       None

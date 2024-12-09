@@ -44,5 +44,6 @@ let parse_manifest :
   | `Pipfile
   | `PyprojectToml
   | `ConanFilePy
-  | `ConanFileTxt ->
+  | `ConanFileTxt
+  | `Csproj ->
       fun _ -> []

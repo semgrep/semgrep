@@ -35,10 +35,9 @@ type scan_id = string
 val start_scan :
   dry_run:bool ->
   < Cap.network ; Auth.cap_token ; .. > ->
-  Project_metadata.t ->
-  Semgrep_output_v1_t.scan_metadata ->
+  Semgrep_output_v1_t.scan_request ->
   (scan_id, string) result
-(** [start_scan ~dry_run ~token url prj] informs the Semgrep App that a scan
+(** [start_scan ~dry_run caps req] informs the Semgrep App that a scan
     is about to be started, and returns the scan id from the server. If
     [dry_run] is [true], the empty string will be returned ([Ok ""]). *)
 
@@ -119,8 +118,6 @@ val fetch_scan_config_async :
   repository:string ->
   < Cap.network ; Auth.cap_token ; .. > ->
   (Semgrep_output_v1_t.scan_config, string) result Lwt.t
-(** [fetch_scan_config_async ~token ~sca ~dry_run ~full_scan repo] returns a
-     promise of the rules for the provided configuration. *)
 
 val report_failure_async :
   dry_run:bool ->
@@ -132,12 +129,8 @@ val report_failure_async :
 val start_scan_async :
   dry_run:bool ->
   < Cap.network ; Auth.cap_token ; .. > ->
-  Project_metadata.t ->
-  Semgrep_output_v1_t.scan_metadata ->
+  Semgrep_output_v1_t.scan_request ->
   (scan_id, string) result Lwt.t
-(** [start_scan_async ~dry_run ~token url prj] informs the Semgrep App that a
-    scan is about to be started, and returns the scan id from the server. If
-    [dry_run] is [true], the empty string will be returned ([Ok ""]). *)
 
 val upload_findings_async :
   dry_run:bool ->
@@ -146,8 +139,6 @@ val upload_findings_async :
   complete:Semgrep_output_v1_t.ci_scan_complete ->
   < Cap.network ; Auth.cap_token ; .. > ->
   (app_block_override, string) result Lwt.t
-(** [upload_findings_async ~dry_run ~token ~scan_id ~results ~complete]
-    reports the findings to Semgrep App. *)
 
 val upload_rule_to_registry_async :
   < Cap.network ; Auth.cap_token ; .. > ->

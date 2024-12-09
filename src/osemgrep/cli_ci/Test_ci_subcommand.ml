@@ -96,10 +96,8 @@ let test_sms_scan_id (caps : Ci_subcommand.caps) =
                           in
                           (* similar to Unit_ci.ml sms_scan_id assert *)
                           match scan with
-                          | {
-                           scan_metadata = Some { sms_scan_id = Some str; _ };
-                           _;
-                          } ->
+                          | { scan_metadata = { sms_scan_id = Some str; _ }; _ }
+                            ->
                               Alcotest.(check string)
                                 "checking sms_scan_id" sms_scan_id str
                           | _ -> failwith (spf "wrong scan request: %s" s))))))

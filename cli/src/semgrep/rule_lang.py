@@ -387,7 +387,7 @@ def _validation_error_message(error: jsonschema.exceptions.ValidationError) -> s
     return contexts[0].message
 
 
-DUMMY_POSITION = out.Position(line=1, col=0)
+DUMMY_POSITION = out.Position(line=1, col=0, offset=0)
 
 
 def safe_relative_to(a: Path, b: Path) -> Path:

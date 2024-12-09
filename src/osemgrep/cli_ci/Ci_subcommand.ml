@@ -219,6 +219,14 @@ let scan_metadata () : Out.scan_metadata =
   res
 
 (*****************************************************************************)
+(* Project config *)
+(*****************************************************************************)
+(* TODO: read the .semgrepconfig.yml in the repo *)
+let project_config () : Out.ci_config_from_repo option =
+  (* alt: Out.{ version = "v1"; tags = None; } *)
+  None
+
+(*****************************************************************************)
 (* Scan config *)
 (*****************************************************************************)
 (* token -> deployment_config -> scan_id -> scan_config -> rules *)
@@ -292,13 +300,30 @@ let scan_config_and_rules_from_deployment ~dry_run
       m "  Reporting start of scan for %a"
         Fmt.(styled `Bold string)
         deployment_config.name);
-  let scan_meta : Out.scan_metadata = scan_metadata () in
+  let scan_metadata : Out.scan_metadata = scan_metadata () in
+  let project_config : Out.ci_config_from_repo option = project_config () in
+
+  (* TODO: deprecated from 1.43 *)
+  (* less: should concatenate with raw_json project_config *)
+  let meta =
+    (* ugly: would be good for ATDgen to generate also a json_of_xxx *)
+    prj_meta |> Out.string_of_project_metadata |> Yojson.Basic.from_string
+  in
+  let request : Out.scan_request =
+    {
+      meta = Some meta;
+      project_metadata = prj_meta;
+      scan_metadata;
+      project_config;
+    }
+  in
+
   (* TODO:
       metadata_dict["is_sca_scan"] = supply_chain
       proj_config = ProjectConfig.load_all()
       metadata_dict = {**metadata_dict, **proj_config.to_dict()}
   *)
-  match Semgrep_App.start_scan ~dry_run caps prj_meta scan_meta with
+  match Semgrep_App.start_scan ~dry_run caps request with
   | Error msg ->
       Logs.err (fun m -> m "Could not start scan %s" msg);
       Error.exit_code_exn (Exit_code.fatal ~__LOC__)

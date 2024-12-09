@@ -138,7 +138,12 @@ let extract_errors (data : string) : string list =
 let extract_block_override (data : string) : (app_block_override, string) result
     =
   match Out.ci_scan_complete_response_of_string data with
-  | { success = _; app_block_override; app_block_reason } as response ->
+  | {
+      success = _;
+      app_block_override;
+      app_block_reason;
+      app_blocking_match_based_ids = _TODO;
+    } as response ->
       Logs.debug (fun m ->
           m "complete response = %s"
             (Out.show_ci_scan_complete_response response));
@@ -188,9 +193,8 @@ let get_deployment_from_token token =
 (* Step1 : start scan *)
 (*****************************************************************************)
 
-(* TODO: pass project_config *)
-let start_scan_async ~dry_run caps (prj_meta : Project_metadata.t)
-    (scan_meta : Out.scan_metadata) : (scan_id, string) result Lwt.t =
+let start_scan_async ~dry_run caps (request : Out.scan_request) :
+    (scan_id, string) result Lwt.t =
   if dry_run then (
     Logs.app (fun m -> m "Would have sent POST request to create scan");
     Lwt.return_ok "")
@@ -207,21 +211,6 @@ let start_scan_async ~dry_run caps (prj_meta : Project_metadata.t)
       ]
     in
     let url = Uri.with_path !Semgrep_envvars.v.semgrep_url start_scan_route in
-    (* deprecated from 1.43 *)
-    (* TODO: should concatenate with raw_json project_config *)
-    let meta =
-      (* ugly: would be good for ATDgen to generate also a json_of_xxx *)
-      prj_meta |> Out.string_of_project_metadata |> Yojson.Basic.from_string
-    in
-    let request : Out.scan_request =
-      {
-        meta;
-        scan_metadata = Some scan_meta;
-        project_metadata = Some prj_meta;
-        (* TODO *)
-        project_config = None;
-      }
-    in
     let body = Out.string_of_scan_request request in
     let pretty_body =
       body |> Yojson.Basic.from_string |> Yojson.Basic.pretty_to_string
@@ -245,8 +234,8 @@ Please make sure they have been set correctly.
         Lwt.return_error msg
     | Error e -> Lwt.return_error (spf "Failed to start scan: %s" e)
 
-let start_scan ~dry_run caps prj_meta scan_meta =
-  Lwt_platform.run (start_scan_async ~dry_run caps prj_meta scan_meta)
+let start_scan ~dry_run caps request =
+  Lwt_platform.run (start_scan_async ~dry_run caps request)
 
 (*****************************************************************************)
 (* Step2 : fetch scan config (version 2) *)
