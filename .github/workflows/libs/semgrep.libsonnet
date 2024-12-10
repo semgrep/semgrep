@@ -362,6 +362,10 @@ local setup_nix_step =
   depot_project_id: 'fhmxj6w9z8',
   opam_switch: opam_switch,
   opam_setup: opam_setup,
+  // coupling: cli/setup.py, the matrix in run-cli-tests.libsonnet,
+  // build-test-manylinux-x86.jsonnet in pro, tests.jsonnet in OSS
+  // TODO? could switch to higher like 3.11
+  default_python_version: '3.9',
   containers: containers,
 
   github_bot: github_bot,

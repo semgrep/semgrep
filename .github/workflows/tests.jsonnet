@@ -315,7 +315,7 @@ local test_qa_job = {
 local bench_prepare_steps = [
   actions.checkout(),
   fetch_submodules_step,
-  actions.setup_python_step('3.8'),
+  actions.setup_python_step(semgrep.default_python_version),
   actions.pipenv_install_step,
   download_x86_artifacts,
   install_x86_artifacts,
