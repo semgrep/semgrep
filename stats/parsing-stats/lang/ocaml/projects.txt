@@ -2,8 +2,7 @@
 # one per line.
 
 # R2C'S OCaml projects
-https://github.com/returntocorp/semgrep
-https://github.com/returntocorp/pfff
+https://github.com/semgrep/semgrep
 
 # Projects with more than 1000 stars on GitHub.
 # (we could add more, we're looking for large amounts of handwritten

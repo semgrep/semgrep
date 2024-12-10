@@ -252,7 +252,7 @@ jobs:
           draft: true
           name: Release v${{ github.event.inputs.semgrep-version }}
           prerelease: false
-          repository: returntocorp/semgrep-interfaces
+          repository: semgrep/semgrep-interfaces
           tag_name: v${{ github.event.inputs.semgrep-version }}
           token: ${{ steps.token.outputs.token }}
   create-tag:
@@ -350,7 +350,7 @@ jobs:
         run: |
           # POST a webhook to Zapier to allow for public notifications to our users via Twitter
           curl "${{ secrets.ZAPIER_WEBHOOK_URL }}" \
-            -d '{"version":"${VERSION}","changelog_url":"https://github.com/returntocorp/semgrep/releases/tag/v${VERSION}"}'
+            -d '{"version":"${VERSION}","changelog_url":"https://github.com/semgrep/semgrep/releases/tag/v${VERSION}"}'
       - name: Notify Success on Slack
         run: |
           curl --request POST \
@@ -458,26 +458,26 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         name: Wait for checks to register
         run: |
-          LEN_CHECKS=$(gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
+          LEN_CHECKS=$(gh pr -R semgrep/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
           while [ ${LEN_CHECKS} = "0" ]; do
             echo "No checks available yet"
             sleep 1
-            LEN_CHECKS=$(gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
+            LEN_CHECKS=$(gh pr -R semgrep/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
           done
           echo "checks are valid"
           echo ${LEN_CHECKS}
-          gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup
+          gh pr -R semgrep/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup
       - env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         id: wait-checks
         name: Wait for checks to complete
-        run: gh pr -R returntocorp/semgrep checks "${{ needs.release-setup.outputs.pr-number }}" --interval 90 --watch
+        run: gh pr -R semgrep/semgrep checks "${{ needs.release-setup.outputs.pr-number }}" --interval 90 --watch
       - env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         id: num-checks
         name: Get Current Num Checks
         run: |
-          LEN_CHECKS=$(gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
+          LEN_CHECKS=$(gh pr -R semgrep/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
           echo "num-checks=${LEN_CHECKS}" >> $GITHUB_OUTPUT
   wait-for-release-checks:
     if: ${{ ! inputs.dry-run }}
@@ -491,20 +491,20 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         name: Wait for checks to register
         run: |
-          LEN_CHECKS=$(gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
+          LEN_CHECKS=$(gh pr -R semgrep/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
           while [ ${LEN_CHECKS} = "${{ needs.wait-for-pr-checks.outputs.num-checks }}" ]; do
             echo "No checks available yet"
             sleep 1
-            LEN_CHECKS=$(gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
+            LEN_CHECKS=$(gh pr -R semgrep/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup --jq '.statusCheckRollup | length');
           done
           echo "checks are valid"
           echo ${LEN_CHECKS}
-          gh pr -R returntocorp/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup
+          gh pr -R semgrep/semgrep view "${{ needs.release-setup.outputs.pr-number }}" --json statusCheckRollup
       - env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         id: wait-checks
         name: Wait for checks to complete
-        run: gh pr -R returntocorp/semgrep checks "${{ needs.release-setup.outputs.pr-number }}" --interval 90 --watch
+        run: gh pr -R semgrep/semgrep checks "${{ needs.release-setup.outputs.pr-number }}" --interval 90 --watch
 name: start-release
 on:
   workflow_dispatch:

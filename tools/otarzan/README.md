@@ -13,7 +13,7 @@ boilerplate that a human can start from and would like to further edit
 (e.g., for AST_to_IL.ml in semgrep, for AST_to_SAST.ml in semgrep-pro).
 Otarzan is such a tool.
 
-See https://github.com/returntocorp/semgrep/issues/6440 for more
+See https://github.com/semgrep/semgrep/issues/6440 for more
 context on this work.
 
 alternatives:

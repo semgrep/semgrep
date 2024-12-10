@@ -8,7 +8,7 @@ module J = JSON
 (* Output findings compatible with GitLab SAST JSON format.
 
    - Written based on:
-     https://github.com/returntocorp/semgrep-action/blob/678eff1a4269ed04b76631771688c8be860ec4e9/src/semgrep_agent/findings.py#L137-L165
+     https://github.com/semgrep/semgrep-action/blob/678eff1a4269ed04b76631771688c8be860ec4e9/src/semgrep_agent/findings.py#L137-L165
    - Docs:
      https://docs.gitlab.com/ee/user/application_security/sast/#reports-json-format
    - Schema:

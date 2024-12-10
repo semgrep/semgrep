@@ -79,7 +79,7 @@ end)
 
 let please_file_issue_text =
   "An error occurred while invoking the Semgrep engine. Please help us fix \
-   this by creating an issue at https://github.com/returntocorp/semgrep"
+   this by creating an issue at https://github.com/semgrep/semgrep"
 
 let mk_error ?rule_id ?(msg = "") ?(loc : Tok.location option)
     (err : Out.error_type) : t =

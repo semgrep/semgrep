@@ -675,7 +675,7 @@ let resolve lang prog =
              * Function-name resolution is useful for interprocedural analysis,
              * feature that was requested by JS/TS users, see:
              *
-             *     https://github.com/returntocorp/semgrep/issues/2787.
+             *     https://github.com/semgrep/semgrep/issues/2787.
              *)
             | Lang.Js
             | Lang.Ts ->

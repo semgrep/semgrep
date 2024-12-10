@@ -109,7 +109,7 @@ let inside_compatible x y =
  *
  * alt: we could force the user to first And the metavariable-regex
  * with the pattern-inside, to have the right scope.
- * See https://github.com/returntocorp/semgrep/issues/2664
+ * See https://github.com/semgrep/semgrep/issues/2664
  * alt: we could do the rewriting ourselves, detecting that the
  * metavariable-regex has the wrong scope.
  *

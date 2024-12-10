@@ -65,7 +65,7 @@ jobs:
         id: wait-draft-release
         name: Wait for Draft Release if not Ready
         run: |
-          while ! gh release --repo returntocorp/semgrep list -L 5 | grep -q "${{ steps.get-version.outputs.VERSION }}"; do
+          while ! gh release --repo semgrep/semgrep list -L 5 | grep -q "${{ steps.get-version.outputs.VERSION }}"; do
             echo "release not yet ready, sleeping for 5 seconds"
             sleep 5
           done
@@ -73,7 +73,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         id: publish_release
         name: Publish Release
-        run: gh release --repo returntocorp/semgrep edit ${{ steps.get-version.outputs.VERSION }} --draft=false
+        run: gh release --repo semgrep/semgrep edit ${{ steps.get-version.outputs.VERSION }} --draft=false
   create-release-interfaces:
     if: ${{ ! inputs.dry-run }}
     needs:
@@ -108,12 +108,12 @@ jobs:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         id: upload-semgrep-schema-files
         name: Upload Schema Files
-        run: gh release --repo returntocorp/semgrep-interfaces upload ${{ steps.get-version.outputs.VERSION }} cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml
+        run: gh release --repo semgrep/semgrep-interfaces upload ${{ steps.get-version.outputs.VERSION }} cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml
       - env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         id: publish_release_semgrep_interfaces
         name: Publish Release Semgrep Interfaces
-        run: gh release --repo returntocorp/semgrep-interfaces edit ${{ steps.get-version.outputs.VERSION }} --draft=false
+        run: gh release --repo semgrep/semgrep-interfaces edit ${{ steps.get-version.outputs.VERSION }} --draft=false
   park-pypi-packages:
     defaults:
       run:

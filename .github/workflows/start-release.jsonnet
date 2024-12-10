@@ -86,7 +86,7 @@ local bump_job(repository) = {
 // Wait PR checks helpers
 // ----------------------------------------------------------------------------
 
-local len_checks = "$(gh pr -R returntocorp/semgrep view %s --json statusCheckRollup --jq '.statusCheckRollup | length')" % pr_number;
+local len_checks = "$(gh pr -R semgrep/semgrep view %s --json statusCheckRollup --jq '.statusCheckRollup | length')" % pr_number;
 
 local wait_pr_checks_to_register(while_cond) = |||
   LEN_CHECKS=%s;
@@ -97,7 +97,7 @@ local wait_pr_checks_to_register(while_cond) = |||
   done
   echo "checks are valid"
   echo ${LEN_CHECKS}
-  gh pr -R returntocorp/semgrep view %s --json statusCheckRollup
+  gh pr -R semgrep/semgrep view %s --json statusCheckRollup
 ||| % [len_checks, while_cond, len_checks, pr_number];
 
 local wait_pr_checks_to_register_step(while_cond) = {
@@ -115,7 +115,7 @@ local wait_pr_checks_to_complete_step = {
     GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
   },
   // Wait for PR checks to finish
-  run: 'gh pr -R returntocorp/semgrep checks %s --interval 90 --watch' % pr_number,
+  run: 'gh pr -R semgrep/semgrep checks %s --interval 90 --watch' % pr_number,
 };
 
 local get_current_num_checks_step = {
@@ -365,7 +365,7 @@ local create_draft_release_job = {
         token: semgrep.github_bot.token_ref,
         prerelease: false,
         draft: true,
-        repository: 'returntocorp/semgrep-interfaces',
+        repository: 'semgrep/semgrep-interfaces',
       },
     },
   ],
@@ -446,7 +446,7 @@ local notify_success_job = {
       run: |||
         # POST a webhook to Zapier to allow for public notifications to our users via Twitter
         curl "${{ secrets.ZAPIER_WEBHOOK_URL }}" \
-          -d '{"version":"${VERSION}","changelog_url":"https://github.com/returntocorp/semgrep/releases/tag/v${VERSION}"}'
+          -d '{"version":"${VERSION}","changelog_url":"https://github.com/semgrep/semgrep/releases/tag/v${VERSION}"}'
       |||
     },
     {

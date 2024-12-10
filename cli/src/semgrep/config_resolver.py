@@ -573,7 +573,8 @@ class Config:
 
         for i, config in enumerate(configs):
             try:
-                # Patch config_id to fix https://github.com/returntocorp/semgrep/issues/1912
+                # Patch config_id to fix
+                # https://github.com/semgrep/semgrep/issues/1912
                 resolved_config, config_errors = resolve_config(
                     config, project_url, force_jsonschema=force_jsonschema
                 )

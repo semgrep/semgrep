@@ -305,7 +305,7 @@ and expr (x : expr) =
       let e = G.Lambda def |> G.e in
       (* Since the attrs aren't included in the AST, at least update the range
        * to include them. See
-       * https://github.com/returntocorp/semgrep/issues/7353 *)
+       * https://github.com/semgrep/semgrep/issues/7353 *)
       let attrs_any = List_.map (fun attr -> G.At attr) more_attrs in
       H.set_e_range_with_anys (G.Dk (G.FuncDef def) :: attrs_any) e;
       e

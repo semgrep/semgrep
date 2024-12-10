@@ -23,4 +23,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
         run: |
-          gh api repos/returntocorp/semgrep-docs/dispatches -f event_type=new_release --verbose
+          gh api repos/semgrep/semgrep-docs/dispatches -f event_type=new_release --verbose

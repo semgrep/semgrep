@@ -72,7 +72,7 @@ on:
         required: true
         type: string
       repository-name:
-        description: The repository/name of the docker image to push, e.g., returntocorp/semgrep
+        description: The repository/name of the docker image to push, e.g., semgrep/semgrep
         required: true
         type: string
       target:
@@ -104,7 +104,7 @@ on:
         type: string
       repository-name:
         default: returntocorp/semgrep
-        description: The repository/name of the docker image to push, e.g., returntocorp/semgrep
+        description: The repository/name of the docker image to push, e.g., semgrep/semgrep
         required: true
         type: string
       target:

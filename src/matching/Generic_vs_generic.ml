@@ -2093,8 +2093,8 @@ and m_type_ a b =
    *
    * See the following for context about why this is done here, and not with
    * desugaring earlier in the pipeline:
-   * - https://github.com/returntocorp/semgrep/pull/5540
-   * - https://github.com/returntocorp/semgrep/pull/4682
+   * - https://github.com/semgrep/semgrep/pull/5540
+   * - https://github.com/semgrep/semgrep/pull/4682
    *)
   | G.TyN a1, B.TyExpr { e = N b1; _ } ->
       m_name a1 b1
@@ -3653,7 +3653,7 @@ and m_directive a b =
  * `require` nodes with the `ImportFrom` but instead added the `ImportFrom`.
  *
  * Having two places where the same symbol was defined complicated downstream
- * analysis. See https://github.com/returntocorp/semgrep/pull/6532 for some
+ * analysis. See https://github.com/semgrep/semgrep/pull/6532 for some
  * of the issues that it caused.
  *
  * So, in order to simplify naming and maintain the existing matching behavior,

@@ -197,7 +197,7 @@ let match_formula_interpolated_str (rule : Rule.t) metavars : string =
  * quirks.
  *
  * The way match based ID is calculated on the python side is as follows:
- * (see https://github.com/returntocorp/semgrep/blob/2d34ce584d16c4e954349690a5f12fae877a94d6/cli/src/semgrep/rule.py#L289-L334)
+ * (see https://github.com/semgrep/semgrep/blob/2d34ce584d16c4e954349690a5f12fae877a94d6/cli/src/semgrep/rule.py#L289-L334)
  * 1. Sort all top level keys (i.e pattern, patterns etc.) alphabetically
  * 2. For each key: DFS the tree and find all pattern values (i.e. the rhs of
  *    pattern: <THING>)

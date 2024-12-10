@@ -5,7 +5,7 @@ See https://docs.github.com/en/actions/learn-github-actions/understanding-github
 for more information on GHA or our Notion page on "Github actions".
 
 Most of those workflows have the 'workflow_dispatch:' directive so you can
-also trigger them manually here: https://github.com/returntocorp/semgrep/actions
+also trigger them manually here: https://github.com/semgrep/semgrep/actions
 
 Note that many workflows are now written using Jsonnet
 (see https://jsonnet.org/learning/tutorial.html for a great intro to Jsonnet)

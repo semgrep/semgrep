@@ -66,7 +66,7 @@ val with_temp_file :
  * rely on the cached lookup table for the previous file with that filename,
  * and chaos ensues.
  *
- * See https://github.com/returntocorp/semgrep/issues/5277 for more info.
+ * See https://github.com/semgrep/semgrep/issues/5277 for more info.
  *)
 val register_temp_file_cleanup_hook : (Fpath.t -> unit) -> unit
 

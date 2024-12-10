@@ -1,1 +1,1 @@
-https://github.com/returntocorp/semgrep-rules.git
+https://github.com/semgrep/semgrep-rules.git

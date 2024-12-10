@@ -30,7 +30,7 @@ let parse_pattern options lang str =
   (* coupling: update the files semgrep/js/languages/<lang>/Parser.ml
      when updating this function.
      TODO: Share the logic of which parser to try for each language to
-     remove this coupling. https://github.com/returntocorp/semgrep/issues/8331
+     remove this coupling. https://github.com/semgrep/semgrep/issues/8331
   *)
   match lang with
   (* use adhoc parser (neither menhir nor tree-sitter) *)

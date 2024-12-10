@@ -64,10 +64,9 @@ let man =
       "Read an arbitrary program from stdin and print the parse tree\n\
       \      to stdout.";
     `S Manpage.s_authors;
-    `P "Martin Jambon <martin@returntocorp.com>";
+    `P "Martin Jambon <martin@semgrep.com>";
     `S Manpage.s_bugs;
-    `P
-      "Check out bug reports at https://github.com/returntocorp/semgrep/issues.";
+    `P "Check out bug reports at https://github.com/semgrep/semgrep/issues.";
     `S Manpage.s_see_also;
     `P "spacegrep(1)";
   ]

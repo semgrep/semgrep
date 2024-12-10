@@ -879,7 +879,7 @@ and evaluate_formula env opt_context
       *  - bind closer metavariable-regexp with the relevant pattern
       *  - propagate metavariables when intersecting ranges
       *  - distribute filter_range in intersect_range?
-      * See https://github.com/returntocorp/semgrep/issues/2664
+      * See https://github.com/semgrep/semgrep/issues/2664
   *)
   let ranges, filter_expls =
     fold_with_expls

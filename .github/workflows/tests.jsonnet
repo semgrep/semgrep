@@ -376,14 +376,14 @@ local trigger_semgrep_comparison_argo = {
 // In the jobs below, we set certain docker "tags".
 // To make a comparison to git:
 // - docker image == git repository
-//   example: returntocorp/semgrep
+//   example: semgrep/semgrep
 // - docker digest == git commit
 //   example: sha256:98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3
 // - docker tag == git ref
 //   example: :latest, :canary, 1.2.3, pr-4434
 //
 // You can see those tags in use here:
-// https://hub.docker.com/r/returntocorp/semgrep/tags
+// https://hub.docker.com/r/semgrep/semgrep/tags
 //
 // Example of docker tags:
 // - # tag image with full version (ex. "1.2.3")

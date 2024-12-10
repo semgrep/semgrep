@@ -56,7 +56,7 @@
   },
   // workflow_inputs is a JSON object that looks like [{ "name": "name_1", "value": "value_1" }, ...]
   // "value_1" should be a string that can include GHA expression for the value, e.g.,
-  // "returntocorp/semgrep:${{ needs.setup-docker-tag.outputs.docker-tag }}".
+  // "semgrep/semgrep:${{ needs.setup-docker-tag.outputs.docker-tag }}".
   // This will be converted into env vars to avoid accidental script injections
   // and reconstructed as the JSON body in the POST request to Argo.
   trigger_argo_workflow: function(trigger_url, workflow_inputs) {

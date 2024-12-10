@@ -1,2 +1,2 @@
-https://github.com/returntocorp/semgrep-go.git
-https://github.com/returntocorp/semgrep-ruby.git
+https://github.com/semgrep/semgrep-go.git
+https://github.com/semgrep/semgrep-ruby.git

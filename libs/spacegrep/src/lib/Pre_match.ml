@@ -6,7 +6,7 @@
    optimization that operates directly on the source files rather than the
    AST. It would be better since it turns out parsing is usually more
    expensive than matching, and that would allow skipping the parsing step.
-   See https://github.com/returntocorp/semgrep/issues/3461
+   See https://github.com/semgrep/semgrep/issues/3461
 *)
 
 (*

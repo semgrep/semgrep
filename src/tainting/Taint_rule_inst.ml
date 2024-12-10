@@ -46,7 +46,7 @@ type spec_predicates = {
        *
        * Propagators allow to specify how taint propagates through side effects.
        *
-       * Note that we tried to solve this with a hack in returntocorp/semgrep#5150
+       * Note that we tried to solve this with a hack in semgrep/semgrep#5150
        * but it caused a bunch of FPs in semgrep-rules. The hack was essentially
        * to assume that in `x.f(y)` taint always propagated from `y` to `x`.
        *

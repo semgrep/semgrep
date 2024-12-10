@@ -103,7 +103,7 @@ and formula_kind =
    * The same is true for pattern-not and pattern-not-inside
    * (see tests/rules/negation_exact.yaml)
    * todo: try to remove this at some point, but difficult. See
-   * https://github.com/returntocorp/semgrep/issues/1218
+   * https://github.com/semgrep/semgrep/issues/1218
    *)
   | Inside of tok * formula
   (* alt: Could do this under a `where` (call it something like `also`).

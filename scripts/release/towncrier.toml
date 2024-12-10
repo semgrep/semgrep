@@ -2,7 +2,7 @@
     directory = "../../changelog.d"
     filename = "../../CHANGELOG.md"
     name = "semgrep"
-    title_format = "## [{version}](https://github.com/returntocorp/semgrep/releases/tag/v{version}) - {project_date}"
+    title_format = "## [{version}](https://github.com/semgrep/semgrep/releases/tag/v{version}) - {project_date}"
     start_string = "<!-- insertion point -->\n"
     underlines = ["", ""]
     [[tool.towncrier.type]]

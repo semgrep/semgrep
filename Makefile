@@ -633,7 +633,7 @@ DOCKER_IMAGE=semgrep/semgrep:develop
 
 # If you get parsing errors while running this command, maybe you have an old
 # cached version of the docker image. You can invalidate the cache with
-#   'docker rmi returntocorp/semgrep:develop`
+#   'docker rmi semgrep/semgrep:develop`
 check_with_docker:
 	docker run --rm -v "${PWD}:/src" $(DOCKER_IMAGE) semgrep $(SEMGREP_ARGS)
 

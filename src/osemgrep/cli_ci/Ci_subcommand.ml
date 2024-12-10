@@ -30,7 +30,7 @@ module Out = Semgrep_output_v1_j
    to look at the latest errors.
 
    As an example, here is a workflow that failed in the past:
-   https://github.com/returntocorp/semgrep/actions/runs/6599573075/job/17928762827
+   https://github.com/semgrep/semgrep/actions/runs/6599573075/job/17928762827
    Looking at the job log, we can see a problem when connecting to
    the https://semgrep.dev/api/agent/scans/14253285/complete endpoint.
    Then in Sentry you can paste this 'url: <URL>' in the query and search

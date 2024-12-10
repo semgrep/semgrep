@@ -159,7 +159,7 @@ RUN apk upgrade --no-cache && \
 #
 # history: we used to install here various utilities needed by some of our
 # scripts under scripts/. Indeed, those scripts are run from CI jobs using the
-# returntocorp/semgrep docker image as the container because they rely on semgrep
+# semgrep/semgrep docker image as the container because they rely on semgrep
 # or semgrep-core. Those scripts must also perform different
 # tasks that require utilities other than semgrep (e.g., compute parsing
 # statistics and then run 'jq' to filter the JSON). It is convenient to add
@@ -241,7 +241,7 @@ ENV SEMGREP_IN_DOCKER=1 \
     SEMGREP_USER_AGENT_APPEND="Docker"
 
 # The command we tell people to run for testing semgrep in Docker is
-#   docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep --config=auto
+#   docker run --rm -v "${PWD}:/src" semgrep/semgrep semgrep --config=auto
 # (see https://semgrep.dev/docs/getting-started/ ), hence this WORKDIR directive
 WORKDIR /src
 
@@ -261,11 +261,9 @@ RUN printf "[safe]\n	directory = /src"  > ~semgrep/.gitconfig && \
 
 # Note that we just use CMD below. Why not using ENTRYPOINT ["semgrep"] ?
 # so that people can simply run
-# `docker run --rm -v "${PWD}:/src" returntocorp/semgrep --help` instead of
-# `docker run --rm -v "${PWD}:/src" returntocorp/semgrep semgrep --help`?
-# (It's even worse now that we've switched company name with
-# `docker run --rm -v "${PWD}:/src" semgrep/semgrep semgrep --help`, we now
-# have three semgrep, hmmm).
+# `docker run --rm -v "${PWD}:/src" semgrep/semgrep --help` instead of
+# `docker run --rm -v "${PWD}:/src" semgrep/semgrep semgrep --help`?
+# (Yes, that's 3 semgrep in a row, hmmm)
 #
 # This is mainly to play well with CI providers like Gitlab. Indeed,
 # gitlab CI sets up all CI jobs by first running other commands in the
@@ -311,7 +309,7 @@ RUN rm -rf /root/.semgrep
 # We can't make this the default in the semgrep-cli stage above because of
 # permissions errors on the mounted volume when using instructions for running
 # semgrep with docker:
-#   `docker run -v "${PWD}:/src" -i returntocorp/semgrep semgrep`
+#   `docker run -v "${PWD}:/src" -i semgrep/semgrep semgrep`
 
 #coupling: the 'nonroot' name is used in release.jsonnet
 FROM semgrep-cli AS nonroot

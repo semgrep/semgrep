@@ -1,5 +1,5 @@
 // Daily cron to check end-to-end (e2e) that the 'semgrep ci' subcommand,
-// run from a returntocorp/semgrep:develop docker image, works correctly.
+// run from a semgrep/semgrep:develop docker image, works correctly.
 // This is very important because 'semgrep ci' and our docker images
 // are the main things the users of our Semgrep WebApp are using in their CIs.
 // This cron also double checks that "fail-open" is working as expected, that is
@@ -77,7 +77,7 @@ local semgrep_ci_job = {
   },
   needs: 'get-inputs',
   container: {
-    image: 'returntocorp/semgrep:' + docker_tag,
+    image: 'semgrep/semgrep:' + docker_tag,
   },
   steps: [
     actions.checkout(),
@@ -100,7 +100,7 @@ local semgrep_ci_fail_open_job = {
   },
   needs: 'get-inputs',
   container: {
-    image: 'returntocorp/semgrep:' + docker_tag,
+    image: 'semgrep/semgrep:' + docker_tag,
   },
   steps: [
     actions.checkout(),
@@ -134,7 +134,7 @@ local semgrep_ci_fail_open_blocking_findings_job = {
   },
   needs: 'get-inputs',
   container: {
-    image: 'returntocorp/semgrep:' + docker_tag,
+    image: 'semgrep/semgrep:' + docker_tag,
   },
   steps: [
     actions.checkout(),
@@ -183,7 +183,7 @@ local semgrep_ci_fail_open_blocking_findings_job = {
 // PR check on another repo
 // ----------------------------------------------------------------------------
 
-// The two jobs below work together and with the returntocorp/e2e repo
+// The two jobs below work together and with the semgrep/e2e repo
 // to check that 'semgrep ci' reports only new findings on PRs.
 // This 'e2e' repo contains:
 //  - a file-under-test.py with a '10 == 10' that
@@ -196,7 +196,7 @@ local semgrep_ci_fail_open_blocking_findings_job = {
 // Because semgrep ci reports only new findings, the goal of the jobs below is to
 // make sure no finding are reported since we don't modify file-under-test.py
 
-// just open a PR on the returntocorp/e2e repo
+// just open a PR on the semgrep/e2e repo
 local semgrep_ci_on_pr_job = {
   'runs-on': 'ubuntu-22.04',
   needs: 'get-inputs',
@@ -207,7 +207,7 @@ local semgrep_ci_on_pr_job = {
     {
       uses: 'actions/checkout@v3',
       with: {
-        repository: 'returntocorp/e2e',
+        repository: 'semgrep/e2e',
         ref: '${{ github.event.repository.default_branch }}',
         token: semgrep.github_bot.token_ref,
       },
@@ -240,7 +240,7 @@ local semgrep_ci_on_pr_job = {
 
 
 // TODO: factorize with start-release.jsonnet
-local len_checks = "$(gh pr -R returntocorp/e2e view %s --json statusCheckRollup --jq '.statusCheckRollup | length')" % pr_number;
+local len_checks = "$(gh pr -R semgrep/e2e view %s --json statusCheckRollup --jq '.statusCheckRollup | length')" % pr_number;
 
 // TODO: factorize with start-release.jsonnet
 local wait_for_checks_job = {
@@ -261,7 +261,7 @@ local wait_for_checks_job = {
         done
         echo "checks are valid"
         echo ${LEN_CHECKS}
-        gh pr -R returntocorp/e2e view %s --json statusCheckRollup
+        gh pr -R semgrep/e2e view %s --json statusCheckRollup
       ||| % [len_checks, len_checks, pr_number],
     },
     {
@@ -269,7 +269,7 @@ local wait_for_checks_job = {
       env: {
         GITHUB_TOKEN: semgrep.github_bot.token_ref,
       },
-      run: 'gh pr -R returntocorp/e2e checks %s --interval 30 --watch' % pr_number,
+      run: 'gh pr -R semgrep/e2e checks %s --interval 30 --watch' % pr_number,
     },
   ],
 };
@@ -298,7 +298,7 @@ local wait_for_checks_job = {
     'wait-for-checks': wait_for_checks_job,
     'notify-failure':
        semgrep.slack.notify_failure_job
-        ("The End to end semgrep ci workflow failed with docker tag %s. The PR in `returntocorp/e2e` that had the failure was %s. See https://github.com/semgrep/semgrep/actions/workflows/test-e2e-semgrep-ci.yml for more info" % [docker_tag, pr_number])
+        ("The End to end semgrep ci workflow failed with docker tag %s. The PR in `semgrep/e2e` that had the failure was %s. See https://github.com/semgrep/semgrep/actions/workflows/test-e2e-semgrep-ci.yml for more info" % [docker_tag, pr_number])
        + { needs: [
           'semgrep-ci',
           'semgrep-ci-on-pr',

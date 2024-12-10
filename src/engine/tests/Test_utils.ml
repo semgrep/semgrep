@@ -33,7 +33,7 @@ let related_file_of_target ?polyglot_pattern_path ~ext file =
  * also exercise autofix.
  *
  * Semgrep's `--test` flag can also test autofix
- * (https://github.com/returntocorp/semgrep/pull/5190), but it has the same
+ * (https://github.com/semgrep/semgrep/pull/5190), but it has the same
  * problems as the existing autofix e2e tests for these purposes. *)
 let compare_fixes ?polyglot_pattern_path ~file matches =
   let expected_fixed_text =

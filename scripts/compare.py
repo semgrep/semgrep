@@ -66,7 +66,7 @@ def compare(start: str, end: str, snippet: str, use_podman: bool) -> int:
             *(["--security-opt", "label=disable"] if use_podman else []),
             "-v",
             f"{dir}:/src",
-            f"returntocorp/semgrep:{version}",
+            f"semgrep/semgrep:{version}",
             "semgrep",
             "scan",
             "--config",
