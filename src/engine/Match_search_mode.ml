@@ -428,7 +428,7 @@ let apply_focus_on_ranges (env : env) (focus_mvars_list : R.focus_mv_list list)
                validation_state = `No_validator;
                severity_override = None;
                metadata_override = None;
-               dependency = None;
+               sca_match = None;
                fix_text = None;
                facts = [];
              })

@@ -57,15 +57,16 @@ let mock_run_results (files : string list) : Core_runner.result =
       {
         message = Some "test";
         metavars = [];
-        dataflow_trace = None;
+        severity = None;
+        metadata = None;
         fix = None;
         is_ignored = false;
         engine_kind = `OSS;
+        dataflow_trace = None;
+        sca_match = None;
         validation_state = Some `No_validator;
         historical_info = None;
         extra_extra = None;
-        severity = None;
-        metadata = None;
       }
     in
     let (m : Out.core_match) =

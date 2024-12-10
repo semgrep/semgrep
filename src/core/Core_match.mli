@@ -3,19 +3,20 @@ type t = {
   (* rule (or mini rule) responsible for the pattern match found *)
   rule_id : rule_id;
   engine_of_match : Engine_kind.engine_of_finding;
+  env : Metavariable.bindings;
   (* location info *)
   path : Target.path;
   range_loc : Tok.location * Tok.location;
   ast_node : AST_generic.any option;
   tokens : Tok.t list Lazy.t;
-  env : Metavariable.bindings;
   (* trace *)
   taint_trace : Taint_trace.t Lazy.t option;
-  (* for secrets *)
+  (* for SCA *)
+  sca_match : SCA_match.t option;
+  (* for Secrets *)
   validation_state : Rule.validation_state;
   severity_override : Rule.severity option;
   metadata_override : JSON.t option;
-  dependency : SCA_match.kind option;
   (* A field to be populated based on intra-formula `fix` keys.
      This is _prior_ to AST-based autofix and interpolation, which occurs in
      Autofix.ml.

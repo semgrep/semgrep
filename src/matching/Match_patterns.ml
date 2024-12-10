@@ -186,10 +186,9 @@ let match_rules_and_recurse
                         validation_state = `No_validator;
                         severity_override = None;
                         metadata_override = None;
-                        dependency = None;
-                        (* NOTE: the global rule fix and fix_regexp in rule_id will be
-                           applied _later_, in `Autofix.ml`
-                        *)
+                        sca_match = None;
+                        (* NOTE: the global rule fix and fix_regexp in rule_id
+                         * will be applied _later_, in `Autofix.ml` *)
                         fix_text = None;
                         facts = [];
                       }
@@ -448,7 +447,7 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
                                 validation_state = `No_validator;
                                 severity_override = None;
                                 metadata_override = None;
-                                dependency = None;
+                                sca_match = None;
                                 fix_text = None;
                                 facts = x.facts;
                               }
@@ -516,7 +515,7 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
                                   validation_state = `No_validator;
                                   severity_override = None;
                                   metadata_override = None;
-                                  dependency = None;
+                                  sca_match = None;
                                   fix_text = None;
                                   facts;
                                 }
@@ -571,7 +570,7 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
                                     validation_state = `No_validator;
                                     severity_override = None;
                                     metadata_override = None;
-                                    dependency = None;
+                                    sca_match = None;
                                     fix_text = None;
                                     facts = [];
                                   }
@@ -671,7 +670,7 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
                                     validation_state = `No_validator;
                                     severity_override = None;
                                     metadata_override = None;
-                                    dependency = None;
+                                    sca_match = None;
                                     fix_text = None;
                                     facts = [];
                                   }

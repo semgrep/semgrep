@@ -1,6 +1,7 @@
 module Out = Semgrep_output_v1_t
 
-type sca_operator = Eq | Gte | Lte | Gt | Lt [@@deriving show, eq]
+type sca_operator = Eq | Gte | Lte | Gt | Lt
+[@@deriving show { with_path = false }, eq]
 
 (* Something like (>= 2.0.0) or (== 5.1.7) *)
 type version_constraint = { op : sca_operator; version : SCA_version.t }
@@ -25,4 +26,4 @@ type t = {
  * union.
  *)
 and version_constraints = SCA_And of version_constraint list
-[@@deriving show, eq]
+[@@deriving show { with_path = false }, eq]

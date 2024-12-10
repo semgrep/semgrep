@@ -724,8 +724,8 @@ let rules_for_target ~analyzer ~products ~origin ~respect_rule_paths rules =
 
 let lockfile_xtarget_resolve (manifest : Manifest.t option)
     (lockfile : Lockfile.t) : Lockfile_xtarget.t =
-  Lockfile_xtarget.resolve Parse_lockfile.parse_manifest
-    Parse_lockfile.parse_lockfile lockfile manifest
+  Lockfile_xtarget.resolve Parse_lockfile.parse_manifest Parse_lockfile.parse
+    lockfile manifest
 
 let rules_for_lockfile_kind ~lockfile_kind rules =
   rules
@@ -840,7 +840,7 @@ let mk_target_handler (caps : < Cap.time_limit >) (config : Core_scan_config.t)
               caps;
             }
       in
-      let matches =
+      let matches : Core_result.matches_single_file =
         (* !!Calling Match_rules!! Calling the matching engine!! *)
         Match_rules.check ~match_hook ~timeout ~dependency_match_table xconf
           rules xtarget

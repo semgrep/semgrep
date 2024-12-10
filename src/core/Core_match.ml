@@ -16,9 +16,9 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Type to represent a semgrep "match" (a.k.a. a finding).
+(* Type to represent a semgrep "match" (a.k.a. finding).
  *
- * Note that the "core" match are translated at some point in
+ * Note that the "core" matches are translated at some point in
  * Semgrep_output_v1.core_match, then processed in pysemgrep (or osemgrep)
  * and translated again in Semgrep_output_v1.cli_match, and
  * translated even further by pysemgrep (or osemgrep) ci in
@@ -53,6 +53,18 @@ type t = {
    * as separate matches? or better make them equal for dedup purpose?
    *)
   engine_of_match : Engine_kind.engine_of_finding; [@equal fun _a _b -> true]
+  (* metavars for the pattern match *)
+  env : Metavariable.bindings;
+      [@equal
+        fun a b ->
+          List.equal
+            (fun (s1, m1) (s2, m2) ->
+              (* See the comment in Metavariable.mli for location_aware_equal_mvalue,
+                 but basically we would like to consider matches different if they
+                 metavariables bound to the same content, but at different locations.
+              *)
+              s1 = s2 && Metavariable.location_aware_equal_mvalue m1 m2)
+            a b]
   (* location info *)
   path : Target.path;
   (* less: redundant with location? *)
@@ -75,18 +87,6 @@ type t = {
   ast_node : AST_generic.any option;
   (* less: do we need to be lazy? *)
   tokens : Tok.t list Lazy.t; [@equal fun _a _b -> true]
-  (* metavars for the pattern match *)
-  env : Metavariable.bindings;
-      [@equal
-        fun a b ->
-          List.equal
-            (fun (s1, m1) (s2, m2) ->
-              (* See the comment in Metavariable.mli for location_aware_equal_mvalue,
-                 but basically we would like to consider matches different if they
-                 metavariables bound to the same content, but at different locations.
-              *)
-              s1 = s2 && Metavariable.location_aware_equal_mvalue m1 m2)
-            a b]
   (* Lazy since construction involves forcing lazy token lists. *)
   (* We used to have `[@equal fun _a _b -> true]` here, but this causes issues with
      multiple findings to the same sink (but different sources) being removed
@@ -94,7 +94,9 @@ type t = {
      We now rely on equality of taint traces, which in turn relies on equality of `Parse_info.t`.
   *)
   taint_trace : Taint_trace.t Lazy.t option; (* secrets stuff *)
-  (* Indicates whether a postprocessor ran and validated this result. *)
+  (* SCA extra info about a match (e.g., the satisfied version constraint) *)
+  sca_match : SCA_match.t option;
+  (* Secrets. Indicates whether a postprocessor ran and validated this result. *)
   validation_state : Rule.validation_state;
   (* Indicates if the rule default severity should be modified to a different
      severity. Currently this is just used by secrets validators in order to
@@ -109,7 +111,6 @@ type t = {
      the override is applied on top of the default and only changes the fields
      present in the override. *)
   metadata_override : JSON.t option;
-  dependency : SCA_match.kind option;
   (* A field to be populated based on intra-formula `fix` keys.
      This is _prior_ to AST-based autofix and interpolation, which occurs in
      Autofix.ml.

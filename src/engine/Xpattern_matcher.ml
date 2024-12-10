@@ -97,7 +97,7 @@ let (matches_of_matcher :
                               validation_state = `No_validator;
                               severity_override = None;
                               metadata_override = None;
-                              dependency = None;
+                              sca_match = None;
                               fix_text = None;
                               facts = [];
                             })))

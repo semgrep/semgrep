@@ -14,7 +14,7 @@
    dependencies between matches, which would impede parallelism.
 *)
 val check_rule :
-  Rule.rule ->
+  Rule.t ->
   Lockfile_xtarget.t ->
   Rule.sca_dependency_formula ->
   Core_profiling.rule_profiling Core_result.match_result

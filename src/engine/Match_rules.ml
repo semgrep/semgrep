@@ -103,7 +103,9 @@ let group_rules xconf rules xtarget =
            | _ when not relevant_rule -> Right3 r
            | `Taint _ as mode -> Left3 { r with mode }
            | (`Extract _ | `Search _) as mode -> Middle3 { r with mode }
-           | `SCA _ -> failwith "SCA rule not available in core."
+           | `SCA _ ->
+               (* alt: failwith "SCA rule not available in core." *)
+               Right3 r
            | `Steps _ ->
                Log.warn (fun m ->
                    m "Step rule not handled: %s" (Rule.show_rule r));

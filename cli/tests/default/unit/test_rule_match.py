@@ -403,7 +403,7 @@ def test_rule_match_set_indexes(mocker):
 def test_rule_match_to_app_finding(snapshot, mocker):
     mocker.patch.object(RuleMatch, "get_lines", lambda self: "foo()")
     dependency_match = out.DependencyMatch(
-        dependency_pattern=out.DependencyPattern(
+        dependency_pattern=out.ScaPattern(
             ecosystem=out.Ecosystem(out.Pypi()),
             package="awscli",
             semver_range="== 1.11.82",
@@ -438,7 +438,7 @@ def test_rule_match_to_app_finding(snapshot, mocker):
             ),
         ),
         extra={
-            "sca_info": out.ScaInfo(
+            "sca_info": out.ScaMatch(
                 sca_finding_schema=SCA_FINDING_SCHEMA,
                 reachable=True,
                 reachability_rule=True,
@@ -496,7 +496,7 @@ def test_rule_match_to_app_finding_historical_info(snapshot, mocker):
 
 def create_sca_rule_match(sca_kind, reachable_in_code, transitivity):
     dependency_match = out.DependencyMatch(
-        dependency_pattern=out.DependencyPattern(
+        dependency_pattern=out.ScaPattern(
             ecosystem=out.Ecosystem(out.Pypi()),
             package="awscli",
             semver_range="== 1.11.82",
@@ -532,7 +532,7 @@ def create_sca_rule_match(sca_kind, reachable_in_code, transitivity):
             ),
         ),
         extra={
-            "sca_info": out.ScaInfo(
+            "sca_info": out.ScaMatch(
                 sca_finding_schema=SCA_FINDING_SCHEMA,
                 reachable=reachable_in_code,
                 reachability_rule=sca_kind == "reachable",

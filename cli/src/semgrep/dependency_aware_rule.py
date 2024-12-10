@@ -18,12 +18,10 @@ from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyMatch
-from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyPattern
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
-from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaInfo
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.subproject import find_closest_subproject
@@ -36,7 +34,7 @@ logger = getLogger(__name__)
 SCA_FINDING_SCHEMA = 20220913
 
 
-def parse_depends_on_yaml(entries: List[Dict[str, str]]) -> Iterator[DependencyPattern]:
+def parse_depends_on_yaml(entries: List[Dict[str, str]]) -> Iterator[out.ScaPattern]:
     """
     Convert the entries in the Yaml to ProjectDependsOnEntry objects that specify
     namespace, package name, and semver ranges
@@ -65,7 +63,7 @@ def parse_depends_on_yaml(entries: List[Dict[str, str]]) -> Iterator[DependencyP
         if ecosystem == Ecosystem(Pypi()):
             package = package.lower()
 
-        yield DependencyPattern(
+        yield out.ScaPattern(
             ecosystem=ecosystem, package=package, semver_range=semver_range
         )
 
@@ -136,7 +134,7 @@ def generate_unreachable_sca_findings(
                         ),
                     ),
                     extra={
-                        "sca_info": ScaInfo(
+                        "sca_info": out.ScaMatch(
                             sca_finding_schema=SCA_FINDING_SCHEMA,
                             reachable=False,
                             reachability_rule=rule.should_run_on_semgrep_core,
@@ -229,7 +227,7 @@ def generate_reachable_sca_findings(
                     # ! deepcopy is necessary here since we might iterate over the
                     # ! same match for multiple dependencies
                     new_match = copy.deepcopy(match)
-                    new_match.extra["sca_info"] = ScaInfo(
+                    new_match.extra["sca_info"] = out.ScaMatch(
                         sca_finding_schema=SCA_FINDING_SCHEMA,
                         reachable=True,
                         reachability_rule=rule.should_run_on_semgrep_core,

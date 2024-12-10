@@ -1,5 +1,6 @@
 open Common
 module Env = Semgrep_envvars
+module Out = Semgrep_output_v1_t
 
 (*************************************************************************)
 (* Prelude *)
@@ -283,6 +284,55 @@ let targets_for_files_and_rules (files : Fpath.t list) (rules : Rule.t list) :
   lang_jobs |> List.concat_map targets_of_lang_job
 
 (*************************************************************************)
+(* SCA targeting *)
+(*************************************************************************)
+
+(* TODO: port subproject_matchers.py
+ * TODO(matthew): We'll ultimately need to do something different, because
+ * right now if a lockfile is ignored by .semgrepignore, it should still
+ * be possible to produce reachable findings that reference that lockfile,
+ * though we won't produce any lockfile-only findings for it
+ *)
+let find_lockfiles (targets : Fpath.t list) : Lockfile.t list =
+  targets
+  |> List_.filter_map (fun (target : Fpath.t) ->
+         let res =
+           match Fpath.basename target with
+           | "package-lock.json" ->
+               Some (Lockfile.mk_lockfile Out.NpmPackageLockJson target)
+           | _else_ -> None
+         in
+         res
+         |> Option.iter (fun (lockfile : Lockfile.t) ->
+                Logs.debug (fun m ->
+                    m "found lockfile %s" (Lockfile.show lockfile)));
+         res)
+
+(* TODO: take just Target.regular instead
+ * TODO: port subproject_matchers.py and more
+ * TODO: we should use the path in the lockfile and the path in the
+ *  target to associate the most precise lockfile.
+ * TODO: the code below is wrong; it's just a v0 to get a demo working;
+ * it will just attach the very first lockfile we found to every single
+ * JS target.
+ *)
+let add_possibly_lockfile_to_regular_target (lockfiles : Lockfile.t list)
+    (targets : Target.t list) : Target.t list =
+  lockfiles
+  |> List.fold_left
+       (fun acc (lockfile : Lockfile.t) ->
+         acc
+         |> List_.map (fun (target : Target.t) ->
+                match target with
+                | Lockfile _ -> target
+                | Regular
+                    ({ analyzer = Xlang.L (Lang.Js, _); lockfile = None; _ } as
+                     regular) ->
+                    Regular { regular with lockfile = Some lockfile }
+                | Regular _ -> target))
+       targets
+
+(*************************************************************************)
 (* Input/output adapters to Core_scan input/output *)
 (*************************************************************************)
 
@@ -371,9 +421,9 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
        work or findings.
        TODO: do this even earlier? *)
     let valid_rules =
-      List_.deduplicate_gen
-        ~get_key:(fun r -> Rule_ID.to_string (fst r.Rule.id))
-        valid_rules
+      valid_rules
+      |> List_.deduplicate_gen ~get_key:(fun r ->
+             Rule_ID.to_string (fst r.Rule.id))
     in
     let rule_errors : Core_error.t list =
       invalid_rules |> List_.map Core_error.error_of_invalid_rule
@@ -393,7 +443,14 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
     report_status_and_add_metrics_languages
       ~respect_gitignore:targeting_conf.respect_gitignore lang_jobs valid_rules
       targets;
-    let targets, applicable_rules = targets_and_rules_of_lang_jobs lang_jobs in
+    let code_targets, applicable_rules =
+      targets_and_rules_of_lang_jobs lang_jobs
+    in
+    let lockfiles = find_lockfiles targets in
+    let final_targets =
+      add_possibly_lockfile_to_regular_target lockfiles code_targets
+      @ (lockfiles |> List_.map (fun x -> Target.Lockfile x))
+    in
     Logs.debug (fun m ->
         m "core runner: %i applicable rules of %i valid rules, %i invalid rules"
           (List.length applicable_rules)
@@ -402,7 +459,7 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
     let config =
       {
         config with
-        target_source = Targets targets;
+        target_source = Targets final_targets;
         rule_source = Rules applicable_rules;
       }
     in

@@ -10,7 +10,6 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatches
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyMatch
-from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyPattern
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
@@ -142,12 +141,12 @@ def get_lockfile_only_rule_match(
             ),
         ),
         extra={
-            "sca_info": out.ScaInfo(
+            "sca_info": out.ScaMatch(
                 reachable=False,
                 reachability_rule=False,
                 sca_finding_schema=SCA_FINDING_SCHEMA,
                 dependency_match=DependencyMatch(
-                    dependency_pattern=DependencyPattern(
+                    dependency_pattern=out.ScaPattern(
                         ecosystem=Ecosystem(Pypi()),
                         package="foo",
                         semver_range=">=1.0.0",

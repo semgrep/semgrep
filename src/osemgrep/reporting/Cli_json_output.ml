@@ -273,6 +273,7 @@ let cli_match_of_core_match ~fixed_lines fixed_env (hrules : Rule.hrules)
        fix;
        is_ignored;
        dataflow_trace;
+       sca_match;
      };
   } ->
       let rule =
@@ -327,15 +328,13 @@ let cli_match_of_core_match ~fixed_lines fixed_env (hrules : Rule.hrules)
             metadata;
             fix;
             is_ignored = Some is_ignored;
-            (* TODO: extra fields *)
             fingerprint =
               Semgrep_hashing_functions.match_based_id_partial rule rule_id
                 metavars !!path;
-            sca_info = None;
+            sca_info = sca_match;
             fixed_lines;
             dataflow_trace;
-            (* It's optional in the CLI output, but not in the core match results!
-             *)
+            (* It's optional in the CLI output, but not in core match results!*)
             engine_kind = Some engine_kind;
             validation_state;
             historical_info;

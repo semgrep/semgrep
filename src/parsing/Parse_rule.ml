@@ -825,12 +825,13 @@ let parse_dependency_pattern key env value :
   let/ rd = parse_dict env key value in
   let/ ecosystem = take_key rd env parse_ecosystem "namespace" in
   let/ package_name = take_key rd env parse_string "package" in
+  let/ version_str = take_key rd env parse_string "version" in
   let/ version_constraints =
-    (* TODO: version parser *)
-    take_key rd env parse_string "version"
-    |> Result.map (fun _ ->
-           SCA_pattern.SCA_And
-             [ { version = SCA_version.Other "not implemented"; op = Eq } ])
+    try Ok (Parse_SCA_version.parse_constraints version_str) with
+    | Parse_SCA_version.Error error_str ->
+        error_at_key env.id key
+          (spf "bad version constraint format for %s, error = %s" version_str
+             error_str)
   in
   Ok SCA_pattern.{ ecosystem; package_name; version_constraints }
 
@@ -1224,7 +1225,7 @@ let parse_fake_xpattern xlang str =
 (* Useful for tests *)
 (*****************************************************************************)
 
-let parse file =
+let parse (file : Fpath.t) : (Rule.rules, Rule_error.t) result =
   let/ xs, _skipped = parse_file ~error_recovery:false file in
   (* The skipped rules include Apex rules and other rules that are always
      skippable. *)
