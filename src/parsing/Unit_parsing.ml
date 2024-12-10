@@ -181,7 +181,14 @@ let parsing_rules_tests () =
      in
      tests |> Fpath_.of_strings
      |> List_.map (fun file ->
-            t (Fpath.basename file) (fun () -> Parse_rule.parse file |> ignore)))
+            t (Fpath.basename file) (fun () ->
+                let res = Parse_rule.parse file in
+                match res with
+                | Ok _ -> ()
+                | Error err ->
+                    failwith
+                      (spf "error %s while parsing %s" (Rule_error.show err)
+                         !!file))))
 
 let parsing_rules_with_atd_tests () =
   let dir = tests_path / "rules_v2" in

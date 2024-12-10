@@ -1,0 +1,15 @@
+rules:
+- id: some-rule
+  message: >-
+    This package contains malicious code. Remove it immediately.
+  severity: ERROR
+  r2c-internal-project-depends-on:
+    depends-on-either:
+    - namespace: npm
+      package: portal-shell
+      # we accept the lack of space after the operator and we also
+      # accept version like just 0 (instead of 0.1.2 or even 0.1)
+      version: '>=0'
+  languages:
+  - js
+  - ts

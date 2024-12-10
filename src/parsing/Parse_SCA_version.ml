@@ -63,6 +63,10 @@ let parse (str : string) : SCA_version.t =
           minor = int_of_string s2;
           incrementals = [];
         }
+  (* "40" *)
+  | _ when str =~ "^\\([0-9]+\\)$" ->
+      let s1 = Common.matched1 str in
+      SCA_version.V { major = int_of_string s1; minor = 0; incrementals = [] }
   (* alt: raise (Error (spf "wrong version format for %s" str)) in *)
   | _ ->
       (* nosemgrep: no-logs-in-library *)
@@ -82,7 +86,7 @@ let parse_constraints (s : string) : SCA_pattern.version_constraints =
     |> List_.map (fun s ->
            (* "> 1.0.2" *)
            let s = String.trim s in
-           if s =~ "^\\([=<>]+\\)[ \t]+\\([^ ]+\\)$" then
+           if s =~ "^\\([=<>]+\\)[ \t]*\\([^ ]+\\)$" then
              let op, ver = Common.matched2 s in
              let op : SCA_pattern.sca_operator =
                match op with
