@@ -1,0 +1,12 @@
+Fixed bug affecting taint tracking through static fields when mixing accesses
+using the class name and using an instance object, e.g.:
+
+    class C {
+        static String s;
+    }
+
+    ...
+
+            C o = new C();
+            C.s = taint;
+            sink(o.s); // finding !

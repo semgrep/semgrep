@@ -2275,7 +2275,8 @@ let empty_id_info ?(hidden = false) ?(case_insensitive = false)
     id_resolved_alternatives = ref [];
     id_type = ref None;
     id_svalue = ref None;
-    id_flags = ref (IdFlags.make ~hidden ~case_insensitive ~final:false);
+    id_flags =
+      ref (IdFlags.make ~hidden ~case_insensitive ~final:false ~static:false);
     id_info_id = id;
   }
 

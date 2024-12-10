@@ -4,7 +4,8 @@ type t [@@deriving show, eq, ord, hash]
 val empty : t
 (** No flags set *)
 
-val make : hidden:bool -> case_insensitive:bool -> final:bool -> t
+val make :
+  hidden:bool -> case_insensitive:bool -> final:bool -> static:bool -> t
 
 val is_hidden : t -> bool
 (**
@@ -42,9 +43,20 @@ val set_case_insensitive : t -> t
 
 val is_final : t -> bool
 (** Flag 'is_final' is used within variable definitions/assignments to record
- * whether the variable being defined is "effectively final" (as in Java).
- * This is used by e.g. taint analysis to propagate taint via globals and
- * private class attributes. *)
+    whether the variable being defined is "effectively final" (as in Java).
+    This is used by e.g. taint analysis to propagate taint via globals and
+    private class attributes. *)
 
 val set_final : t -> t
+
+val is_static : t -> bool
+(** Flag 'is_static' indicates that the identifier is "static",
+    e.g. to mark a static class field/variable. *)
+
+val set_static : t -> t
+
+val union : t -> t -> t
+(** Union two sets of flags. *)
+
 val to_int : t -> int
+(** Get the underlying representation of a set of flags. *)

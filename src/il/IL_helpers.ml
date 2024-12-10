@@ -94,6 +94,19 @@ let is_pro_resolved_global name =
   | None ->
       false
 
+(* HACK: Because we don't have a "Class" type, classes have themselves as types. *)
+let is_class_name (name : name) =
+  match (!(name.id_info.id_resolved), !(name.id_info.id_type)) with
+  | Some resolved1, Some { t = TyN (Id (_, { id_resolved; _ })); _ } -> (
+      match !id_resolved with
+      | None -> false
+      | Some resolved2 ->
+          (* If 'name' has type 'name' then we assume it's a class. *)
+          AST_generic.equal_resolved_name resolved1 resolved2)
+  | _, None
+  | _, Some _ ->
+      false
+
 (***********************************************)
 (* L-values *)
 (***********************************************)
