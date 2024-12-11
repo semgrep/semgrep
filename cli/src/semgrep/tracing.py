@@ -14,26 +14,34 @@ from typing import TypeVar
 
 from attr import define
 from opentelemetry import context
+from opentelemetry import context as context_api
 from opentelemetry import propagate
 from opentelemetry import trace as otrace
 from opentelemetry._logs import set_logger_provider
+from opentelemetry.attributes import BoundedAttributes  # type: ignore
 from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
+from opentelemetry.sdk._logs import LogData
 from opentelemetry.sdk._logs import LoggerProvider
 from opentelemetry.sdk._logs import LoggingHandler
+from opentelemetry.sdk._logs import LogRecordProcessor
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
+from opentelemetry.sdk.environment_variables import OTEL_RESOURCE_ATTRIBUTES
 from opentelemetry.sdk.resources import get_aggregated_resources
 from opentelemetry.sdk.resources import OTELResourceDetector
 from opentelemetry.sdk.resources import ProcessResourceDetector
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.resources import SERVICE_NAME
 from opentelemetry.sdk.resources import SERVICE_VERSION
+from opentelemetry.sdk.trace import Span
+from opentelemetry.sdk.trace import SpanProcessor
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from typing_extensions import ParamSpec
 
 from semgrep import __VERSION__
+from semgrep.semgrep_interfaces.semgrep_output_v1 import ScanInfo
 
 TRACER = otrace.get_tracer(__name__)
 
@@ -59,9 +67,70 @@ _ENV_ALIASES = {
 }
 
 
+def scan_info_to_dict(scan_info: ScanInfo) -> dict:
+    info = {
+        "scan.deployment_id": scan_info.deployment_id,
+        "scan.deployment_name": scan_info.deployment_name,
+    }
+    if scan_info.id:
+        info["scan.id"] = scan_info.id
+    return info
+
+
+# Useful for attaching scan info to trace spans
+class ScanInfoSpanProcessor(SpanProcessor):
+    def __init__(self: "ScanInfoSpanProcessor") -> None:
+        self.scan_info: Optional[ScanInfo] = None
+
+    # let's just set the attributes on the span when it starts
+    def on_start(
+        self: "ScanInfoSpanProcessor",
+        span: "Span",
+        parent_context: Optional[context_api.Context] = None,
+    ) -> None:
+        if self.scan_info:
+            scan_info_dict = scan_info_to_dict(self.scan_info)
+            for k, v in scan_info_dict.items():
+                span.set_attribute(k, v)
+
+
+# Useful for attaching scan info to log records
+class ScanInfoLogProcessor(LogRecordProcessor):
+    # We use a base processor here, since we only see the log record once
+    # they're emitted, so we can't attach the scan info to the log record and
+    # guaruntee other processors will emit before/after that happens, unlike
+    # with span processors
+    def __init__(
+        self: "ScanInfoLogProcessor", base_processor: LogRecordProcessor
+    ) -> None:
+        self.base_processor: LogRecordProcessor = base_processor
+        self.scan_info: Optional[ScanInfo] = None
+
+    def emit(self: "ScanInfoLogProcessor", log_data: LogData) -> None:
+        if self.scan_info:
+            scan_info_dict = scan_info_to_dict(self.scan_info)
+            log_record = log_data.log_record
+            mut_attrs = dict(log_record.attributes)  # type: ignore
+            for k, v in scan_info_dict.items():
+                mut_attrs[k] = v
+            # a bit hacky but the only way we can set the log_record attrs
+            attrs = BoundedAttributes(attributes=mut_attrs)
+            log_record.attributes = attrs
+
+        self.base_processor.emit(log_data)
+
+    def shutdown(self: "ScanInfoLogProcessor") -> None:
+        self.base_processor.shutdown()  # type: ignore
+
+    def force_flush(self: "ScanInfoLogProcessor", timeout_millis: int = 30000) -> bool:
+        return self.base_processor.force_flush(timeout_millis)  # type: ignore
+
+
 @define
 class Traces:
     enabled: bool = False
+    scan_info_span_processor = ScanInfoSpanProcessor()
+    scan_info_log_processor: Optional[ScanInfoLogProcessor] = None
 
     def configure(self, enabled: bool, trace_endpoint: Optional[str]) -> None:
         self.enabled = enabled
@@ -72,6 +141,9 @@ class Traces:
         env_name = _ENV_ALIASES.get(
             _DEFAULT_ENDPOINT if trace_endpoint is None else trace_endpoint
         )
+        # Note that resource here is immutable, so if we want to blanket attach
+        # attributes to Otel info after tracing is setup, we can't do it here.
+        # Instead we have to do it in the corresponding kind of processor
         resource = get_aggregated_resources(
             detectors=[ProcessResourceDetector(), OTELResourceDetector()],  # type: ignore
             initial_resource=Resource(
@@ -100,10 +172,12 @@ class Traces:
         exporter_logs = OTLPLogExporter(endpoint + "/v1/logs")
 
         span_processor = BatchSpanProcessor(exporter_spans)
-        log_processor = BatchLogRecordProcessor(exporter_logs)
+        log_processor = ScanInfoLogProcessor(BatchLogRecordProcessor(exporter_logs))
+        self.scan_info_log_processor = log_processor
 
         tracer_provider.add_span_processor(span_processor)
         logger_provider.add_log_record_processor(log_processor)
+        tracer_provider.add_span_processor(self.scan_info_span_processor)
 
         # add logging handler so we can send logs to Otel and therefore datadog
         logging_handler = LoggingHandler(
@@ -140,6 +214,26 @@ class Traces:
         if not self.enabled:
             return
 
+        # Inject relevant resource attributes for semgrep-core
+        base_resource_attributes = os.environ.get(OTEL_RESOURCE_ATTRIBUTES, "")
+        scan_info_dict: dict = (
+            scan_info_to_dict(self.scan_info_span_processor.scan_info)
+            if self.scan_info_span_processor.scan_info
+            else dict()
+        )
+        # Let's inject info about the scan the format for these is
+        # "<key>=<value>" concatenated by commas. Note that if there is a comma
+        # or = in the key or value name, even if escaped, ocaml's otel sdk will
+        # not parse it correctly, and just drop all of these
+        scan_info_kv = [f"{k}={str(v)}" for k, v in scan_info_dict.items()]
+
+        resource_attributes = ",".join(
+            scan_info_kv
+            + ([base_resource_attributes] if base_resource_attributes else [])
+        )
+        os.environ[OTEL_RESOURCE_ATTRIBUTES] = resource_attributes
+
+        # Set current context info for semgrep-core
         current_span = otrace.get_current_span()
         current_context = current_span.get_span_context()
         os.environ[_SEMGREP_TRACE_PARENT_TRACE_ID] = otrace.format_trace_id(
@@ -148,6 +242,11 @@ class Traces:
         os.environ[_SEMGREP_TRACE_PARENT_SPAN_ID] = otrace.format_span_id(
             current_context.span_id
         )
+
+    def set_scan_info(self, scan_info: ScanInfo) -> None:
+        self.scan_info_span_processor.scan_info = scan_info
+        if self.scan_info_log_processor:
+            self.scan_info_log_processor.scan_info = scan_info
 
 
 P = ParamSpec("P")

@@ -293,13 +293,8 @@ class ScanHandler:
         logger.debug(f"Scan started: {json.dumps(x.to_json(), indent=4)}")
         x.config.rules = save
 
-        current_span = otel_trace.get_current_span()
-        if self.scan_id:
-            current_span.set_attribute("semgrep.scan_id", self.scan_id)
-        if self.deployment_id:
-            current_span.set_attribute("semgrep.deployment_id", self.deployment_id)
-        if self.deployment_name:
-            current_span.set_attribute("semgrep.deployment_name", self.deployment_name)
+        otel_trace.get_current_span()
+        get_state().traces.set_scan_info(self.scan_response.info)
 
     def report_failure(self, exit_code: int) -> None:
         """
