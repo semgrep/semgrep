@@ -360,6 +360,7 @@ class ConfigLoader:
                 )
 
             scan_response = out.ScanResponse.from_json(response.json())
+            get_state().traces.set_scan_info(scan_response.info)
             return ConfigFile(None, scan_response.config.rules.to_json_string(), url)
 
         except requests.exceptions.RetryError as ex:
