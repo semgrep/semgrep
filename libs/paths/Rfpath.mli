@@ -51,3 +51,8 @@ val getcwd : unit -> t
    (cwd) changes. This is intended for debugging.
 *)
 val is_valid : t -> bool
+
+(*
+   Return the parent folder of the physical path.
+*)
+val parent : t -> t

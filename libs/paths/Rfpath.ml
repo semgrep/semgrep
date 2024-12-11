@@ -61,3 +61,18 @@ let getcwd () = create ~fpath:(Fpath.v ".") ~rpath:(Rpath.getcwd ())
 
 let is_valid (x : t) =
   Fpath.is_rel x.fpath && String.equal (Sys.getcwd ()) (Rpath.to_string x.cwd)
+
+let parent x =
+  let rparent =
+    match Rpath.parent x.rpath with
+    | None -> x.rpath
+    | Some x -> x
+  in
+  if UFile.is_lnk x.fpath then
+    (* The fpath becomes an ugly physical path *)
+    { fpath = Rpath.to_fpath rparent; rpath = rparent; cwd = x.cwd }
+  else
+    (* dangerous!
+       This is only correct if fpath is not a symlink. However, it doesn't have
+       to be a physical path. *)
+    { fpath = Fpath.parent x.fpath; rpath = rparent; cwd = x.cwd }

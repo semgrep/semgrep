@@ -28,6 +28,7 @@ type roots = {
   (* scanning roots that belong to the project *)
   scanning_roots : Fppath.t list;
 }
+[@@deriving show]
 
 (* TODO? get rid of? seems redundant with all the other type
  * TODO? factorize also with semgrep src/core/Scanning_root.ml
@@ -37,10 +38,38 @@ type scanning_root_info = { project_root : Rfpath.t; inproject_path : Ppath.t }
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-(* when path is not identified as being in a well-defined project *)
+(* When the path is not identified as being in a well-defined project,
+   we use the following complicated rules:
+
+   - scanning root is a folder: the project root is the folder itself!
+   - scanning root is a regular file: the project root is its containing folder
+
+   These rules apply regardless of whether the path is absolute or relative.
+
+   Symbolic links to regular files result in a project root that is
+   in general "elsewhere" i.e. not a prefix of the scanning root path:
+
+     scanning root: a.py -> foo/a.py
+     project root: /path/to/foo  (not '.')
+
+   To avoid relying on this nonobvious behavior, we recommend that users
+   run semgrep on the current folder '.'.
+
+   This function assumes that the path exists.
+*)
 let get_project_root_for_nonproject_file (path : Fpath.t) : Rfpath.t =
-  if Fpath.is_rel path then Rfpath.getcwd ()
-  else Rfpath.of_fpath_exn (Fpath.parent path)
+  if UFile.is_dir ~follow_symlinks:true path then Rfpath.of_fpath_exn path
+  else if
+    (* regular file or symlink to a regular file *)
+    (* Be careful with symlinks here! *)
+    UFile.is_lnk path
+  then
+    (* correct but results in an ugly absolute, physical path *)
+    path |> Rfpath.of_fpath_exn |> Rfpath.parent
+  else
+    (* produce a good-looking path but this works only because path
+       isn't a symlink *)
+    path |> Fpath.parent |> Rfpath.of_fpath_exn
 
 (*
    A git project created with 'git clone' or 'git init' has a '.git/' folder

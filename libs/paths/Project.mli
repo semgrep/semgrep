@@ -39,6 +39,7 @@ type roots = {
   (* scanning roots that belong to the project *)
   scanning_roots : Fppath.t list;
 }
+[@@deriving show]
 
 (* The result of searching for the project root from the filesystem path
  * of a scanning root.

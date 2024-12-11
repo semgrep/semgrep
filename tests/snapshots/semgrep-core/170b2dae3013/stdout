@@ -1,0 +1,16 @@
+Test name: with git > scan explicit target
+--- Files added before 'git add' ---
+.semgrepignore
+a.py
+--- begin input files ---
+.semgrepignore
+a.py
+--- end input files ---
+Initialized empty Git repository in <TMP>/<MASKED>/.git/
+[main (root-commit) <MASKED>] Add files
+ 2 files changed, 1 insertion(+)
+ create mode 100644 .semgrepignore
+ create mode 100644 a.py
+--- Selected targets ---
+selected a.py
+--- Skipped targets ---
