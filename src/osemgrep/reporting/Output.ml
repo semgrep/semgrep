@@ -70,11 +70,8 @@ let string_of_severity (severity : Out.match_severity) : string =
   Out.string_of_match_severity severity
   |> JSON.remove_enclosing_quotes_of_jstring
 
-let gated = "requires login"
-
-(* alt: move in separate file Gated_loggin_output.ml *)
-let adjust_fields_cli_outpout ~is_logged_in (x : Out.cli_output) :
-    Out.cli_output =
+(* alt: move in Gated_data.ml *)
+let adjust_fields_cli_outpout_logged_out (x : Out.cli_output) : Out.cli_output =
   (* note: I could use { x with ... } but better to explicitely list the fields
    * here so we see explicitely what we filter and what we do not.
    *)
@@ -92,67 +89,65 @@ let adjust_fields_cli_outpout ~is_logged_in (x : Out.cli_output) :
   } : Out.cli_output =
     x
   in
-  if is_logged_in then x
-  else
-    let interfile_languages_used = None in
-    let results =
-      results
-      |> List_.map (fun res ->
-             let { check_id; extra; path; start; end_ } : Out.cli_match = res in
-             let {
-               metavars = _;
-               message;
-               fix;
-               fixed_lines;
-               metadata;
-               severity;
-               fingerprint = _;
-               lines = _;
-               is_ignored = _;
-               sca_info;
-               dataflow_trace = _;
-               engine_kind;
-               validation_state;
-               historical_info;
-               extra_extra;
-             } : Out.cli_match_extra =
-               extra
-             in
-             let extra =
-               Out.
-                 {
-                   metavars = None;
-                   message;
-                   fix;
-                   fixed_lines;
-                   (* TODO? metadata filtering? *)
-                   metadata;
-                   severity;
-                   fingerprint = gated;
-                   lines = gated;
-                   is_ignored = None;
-                   sca_info;
-                   dataflow_trace = None;
-                   engine_kind;
-                   validation_state;
-                   historical_info;
-                   extra_extra;
-                 }
-             in
-             Out.{ check_id; extra; path; start; end_ })
-    in
-    {
-      version;
-      results;
-      errors;
-      paths;
-      skipped_rules;
-      explanations;
-      interfile_languages_used;
-      time;
-      rules_by_engine;
-      engine_requested;
-    }
+  let interfile_languages_used = None in
+  let results =
+    results
+    |> List_.map (fun res ->
+           let { check_id; extra; path; start; end_ } : Out.cli_match = res in
+           let {
+             metavars = _;
+             message;
+             fix;
+             fixed_lines;
+             metadata;
+             severity;
+             fingerprint = _;
+             lines = _;
+             is_ignored = _;
+             sca_info;
+             dataflow_trace = _;
+             engine_kind;
+             validation_state;
+             historical_info;
+             extra_extra;
+           } : Out.cli_match_extra =
+             extra
+           in
+           let extra =
+             Out.
+               {
+                 metavars = None;
+                 message;
+                 fix;
+                 fixed_lines;
+                 (* TODO? metadata filtering? *)
+                 metadata;
+                 severity;
+                 fingerprint = Gated_data.msg;
+                 lines = Gated_data.msg;
+                 is_ignored = None;
+                 sca_info;
+                 dataflow_trace = None;
+                 engine_kind;
+                 validation_state;
+                 historical_info;
+                 extra_extra;
+               }
+           in
+           Out.{ check_id; extra; path; start; end_ })
+  in
+  {
+    version;
+    results;
+    errors;
+    paths;
+    skipped_rules;
+    explanations;
+    interfile_languages_used;
+    time;
+    rules_by_engine;
+    engine_requested;
+  }
 
 (*****************************************************************************)
 (* Format dispatcher *)
@@ -171,7 +166,8 @@ let format (kind : Output_format.t) (ctx : Out.format_context)
       failwith (spf "format not supported here: %s" (Output_format.show kind))
   | Json ->
       let cli_output =
-        adjust_fields_cli_outpout ~is_logged_in:ctx.is_logged_in cli_output
+        if ctx.is_logged_in then cli_output
+        else adjust_fields_cli_outpout_logged_out cli_output
       in
       [ Out.string_of_cli_output cli_output ]
   | Junit_xml -> [ Junit_xml_output.junit_xml_output cli_output ]
@@ -282,8 +278,8 @@ let dispatch_output_format (caps : < Cap.stdout >) (conf : conf)
         ctx.is_logged_in || is_pro || not ctx.is_using_registry
       in
       let sarif_json =
-        Sarif_output.sarif_output hide_nudge engine_label
-          conf.show_dataflow_traces hrules cli_output
+        Sarif_output.sarif_output hrules ctx cli_output hide_nudge engine_label
+          conf.show_dataflow_traces
       in
       print (Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema sarif_json)
   | Files_with_matches ->

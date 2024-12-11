@@ -331,7 +331,8 @@ let sarif_codeflow (cli_match : Out.cli_match) : Sarif.code_flow list option =
             ~thread_flows ();
         ]
 
-let result show_dataflow_traces (cli_match : Out.cli_match) : Sarif.result =
+let result (ctx : Out.format_context) show_dataflow_traces
+    (cli_match : Out.cli_match) : Sarif.result =
   let location =
     let physical_location =
       Sarif.create_physical_location
@@ -361,12 +362,16 @@ let result show_dataflow_traces (cli_match : Out.cli_match) : Sarif.result =
     | None -> []
     | Some exposure -> [ ("exposure", `String (Exposure.string_of exposure)) ]
   in
+  let fingerprints =
+    if ctx.is_logged_in then
+      [ ("matchBasedId/v1", cli_match.extra.fingerprint) ]
+    else [ ("matchBasedId/v1", Gated_data.msg) ]
+  in
   Sarif.create_result
     ~rule_id:(Rule_ID.to_string cli_match.check_id)
     ~message:(message cli_match.extra.message)
-    ~locations:[ location ]
-    ~fingerprints:[ ("matchBasedId/v1", cli_match.extra.fingerprint) ]
-    ~properties ?code_flows ?fixes ?suppressions ()
+    ~locations:[ location ] ~fingerprints ~properties ?code_flows ?fixes
+    ?suppressions ()
 
 let error_to_sarif_notification (e : Out.cli_error) =
   let level = severity_of_severity e.level in
@@ -382,29 +387,33 @@ let error_to_sarif_notification (e : Out.cli_error) =
 (* Entry point *)
 (*****************************************************************************)
 
-let sarif_output ~hide_nudge ~engine_label ~show_dataflow_traces hrules
-    (cli_output : Out.cli_output) : Sarif.sarif_json_schema =
+let sarif_output hrules (ctx : Out.format_context) (cli_output : Out.cli_output)
+    ~hide_nudge ~engine_label ~show_dataflow_traces : Sarif.sarif_json_schema =
   let sarif_schema =
     "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json"
   in
+  let show_dataflow_traces = ctx.is_logged_in && show_dataflow_traces in
   let run =
     let rules =
-      hrules |> Hashtbl.to_seq |> List.of_seq
-      (* sorting for snapshot stability *)
-      |> List.sort (fun (aid, _) (bid, _) -> Rule_ID.compare aid bid)
-      |> List_.map (rule hide_nudge)
+      if ctx.is_logged_in then
+        Some
+          (hrules |> Hashtbl.to_seq |> List.of_seq
+          (* sorting for snapshot stability *)
+          |> List.sort (fun (aid, _) (bid, _) -> Rule_ID.compare aid bid)
+          |> List_.map (rule hide_nudge))
+      else None
     in
     let tool =
       let driver =
         Sarif.create_tool_component
           ~name:(spf "Semgrep %s" engine_label)
-          ~semantic_version:Version.version ~rules ()
+          ~semantic_version:Version.version ?rules ()
       in
       Sarif.create_tool ~driver ()
     in
     let results =
       cli_output.results |> Semgrep_output_utils.sort_cli_matches
-      |> List_.map (result show_dataflow_traces)
+      |> List_.map (result ctx show_dataflow_traces)
     in
     let invocation =
       (* TODO no test case(s) for executionNotifications being non-empty *)

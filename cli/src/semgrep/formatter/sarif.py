@@ -19,6 +19,9 @@ class SarifFormatter(base.BaseFormatter):
     def keep_ignores(self) -> bool:
         return True
 
+    # TODO: remove many params, use just output and ctx
+    # so we can get sarif RPC be the same than other formatter RPC
+    # and remove this intermediate function and inline code in format() below
     def _osemgrep_format(
         self,
         rules: Iterable[Rule],
@@ -54,7 +57,7 @@ class SarifFormatter(base.BaseFormatter):
 
             engine_label = "PRO" if is_pro else "OSS"
 
-            show_dataflow_traces = extra["dataflow_traces"]
+            show_dataflow_traces = extra.get("dataflow_traces", False)
 
             # Sort according to RuleMatch.get_ordering_key
             sorted_findings = sorted(rule_matches)
@@ -65,14 +68,14 @@ class SarifFormatter(base.BaseFormatter):
             cli_errors = [e.to_CliError() for e in semgrep_structured_errors]
 
             rpc_params = out.SarifFormatParams(
-                hide_nudge,
-                engine_label,
-                rules_path,
-                cli_matches,
-                cli_errors,
-                show_dataflow_traces,
+                hide_nudge=hide_nudge,
+                engine_label=engine_label,
+                rules=rules_path,
+                cli_matches=cli_matches,
+                cli_errors=cli_errors,
+                show_dataflow_traces=show_dataflow_traces,
             )
-            formatted_output = semgrep.rpc_call.sarif_format(rpc_params)
+            formatted_output = semgrep.rpc_call.sarif_format(ctx, rpc_params)
             if formatted_output:
                 return formatted_output.value
         return None
@@ -89,7 +92,7 @@ class SarifFormatter(base.BaseFormatter):
         # TODO: use regular OutputFormat RPC but SARIF needs a few
         #   more things such as the rules so we use a different RPC for now
         # output = base.to_CliOutput(
-        #     rule_matches, semgrep_structured_errors, cli_output_extra
+        #    rule_matches, semgrep_structured_errors, cli_output_extra
         # )
         # return semgrep.rpc_call.format(out.OutputFormat(out.Sarif()), ctx, output)
         rule_list = list(rules)
