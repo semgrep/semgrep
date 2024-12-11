@@ -44,8 +44,8 @@ let format (kind : Out.output_format) (ctx : Out.format_context)
   let xs = Output.format kind ctx cli_output in
   String.concat "\n" xs
 
-let sarif_format _caps hide_nudge engine_label show_dataflow_traces
-    (rules : Out.fpath) (cli_matches : Out.cli_match list)
+let sarif_format _caps (rules : Out.fpath) (ctx : Out.format_context) hide_nudge
+    engine_label show_dataflow_traces (cli_matches : Out.cli_match list)
     (cli_errors : Out.cli_error list) =
   let fake_config =
     {
@@ -57,12 +57,14 @@ let sarif_format _caps hide_nudge engine_label show_dataflow_traces
     Core_scan.rules_of_config ~filter_by_targets:false fake_config
   in
   let hrules = Rule.hrules_of_rules rules in
+  (* TODO: reuse the one now passed as a parameter *)
   let cli_output : Out.cli_output =
     {
       results = cli_matches;
       errors = cli_errors;
-      (* The only fields that matter for sarif are cli_output.results and cli_output.errors,
-       * so the rest of the fields are just populated with the minimal amount of info
+      (* The only fields that matter for sarif are cli_output.results and
+       * cli_output.errors, so the rest of the fields are just populated with
+       * the minimal amount of info
        *)
       version = None;
       paths = { scanned = []; skipped = None };
@@ -77,8 +79,8 @@ let sarif_format _caps hide_nudge engine_label show_dataflow_traces
   let output, format_time_seconds =
     Common.with_time (fun () ->
         let sarif_json =
-          Sarif_output.sarif_output hide_nudge engine_label show_dataflow_traces
-            hrules cli_output
+          Sarif_output.sarif_output hrules ctx cli_output hide_nudge
+            engine_label show_dataflow_traces
         in
         Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema sarif_json)
   in

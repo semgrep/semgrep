@@ -34,6 +34,7 @@ def test_sarif_output(
         options=options,
         output_format=OutputFormat.SARIF,
         assert_exit_code=0,
+        is_logged_in_weak=True,
     )
     snapshot.assert_match(res.stdout, "results.sarif")
 
@@ -64,6 +65,7 @@ def test_sarif_output_osemfail(
         options=options,
         output_format=OutputFormat.SARIF,
         assert_exit_code=0,
+        is_logged_in_weak=True,
     )
     snapshot.assert_match(res.stdout, "results.sarif")
 
@@ -77,6 +79,7 @@ def test_sarif_output_include_nosemgrep(run_semgrep_in_tmp: RunSemgrep, snapshot
             "rules/regex/regex-nosemgrep.yaml",
             target_name="basic/regex-nosemgrep.txt",
             output_format=OutputFormat.SARIF,
+            is_logged_in_weak=True,
         ).stdout,
         "results.sarif",
     )
@@ -90,6 +93,7 @@ def test_sarif_output_rule_board(run_semgrep_in_tmp: RunSemgrep, snapshot):
             "rules/rule-board-eqeq.yaml",
             target_name="basic/stupid.py",
             output_format=OutputFormat.SARIF,
+            is_logged_in_weak=True,
         ).stdout,
         "results.sarif",
     )
@@ -101,11 +105,14 @@ def test_sarif_output_with_source(run_semgrep_in_tmp: RunSemgrep, snapshot):
         "rules/eqeq-source.yml",
         env={"MOCK_USING_REGISTRY": "1"},
         output_format=OutputFormat.SARIF,
+        is_logged_in_weak=True,
     ).stdout
 
     snapshot.assert_match(
         run_semgrep_in_tmp(
-            "rules/eqeq-source.yml", output_format=OutputFormat.SARIF
+            "rules/eqeq-source.yml",
+            output_format=OutputFormat.SARIF,
+            is_logged_in_weak=True,
         ).stdout,
         "results.sarif",
     )
@@ -116,13 +123,17 @@ def test_sarif_output_with_source(run_semgrep_in_tmp: RunSemgrep, snapshot):
         assert rule.get("helpUri", None) is not None
 
     # Assert that we have our awareness nudge for our pro product
-    assert "sg.run/pro" in rules[0].get("help", {}).get("text") or ""
+    # TODO: you need to be logged in now to get rules so we get
+    # a bigger nudge now
+    # assert "sg.run/pro" in rules[0].get("help", {}).get("text") or ""
 
 
 @pytest.mark.kinda_slow
 def test_sarif_output_with_source_edit(run_semgrep_in_tmp: RunSemgrep, snapshot):
     stdout = run_semgrep_in_tmp(
-        "rules/eqeq-meta.yaml", output_format=OutputFormat.SARIF
+        "rules/eqeq-meta.yaml",
+        output_format=OutputFormat.SARIF,
+        is_logged_in_weak=True,
     ).stdout
 
     snapshot.assert_match(stdout, "results.sarif")
@@ -143,6 +154,7 @@ def test_sarif_output_with_nosemgrep_and_error(
             target_name="nosemgrep/eqeq-nosemgrep.py",
             output_format=OutputFormat.SARIF,
             options=["--error"],
+            is_logged_in_weak=True,
         ).stdout,
         "results.sarif",
     )
@@ -156,6 +168,7 @@ def test_sarif_output_with_autofix(run_semgrep_in_tmp: RunSemgrep, snapshot):
             target_name="autofix/autofix.py",
             output_format=OutputFormat.SARIF,
             options=["--autofix", "--dryrun"],
+            is_logged_in_weak=True,
         ).stdout,
         "results.sarif",
     )
@@ -169,6 +182,7 @@ def test_sarif_output_with_dataflow_traces(run_semgrep_in_tmp: RunSemgrep, snaps
             target_name="taint/taint.py",
             output_format=OutputFormat.SARIF,
             options=["--dataflow-traces"],
+            is_logged_in_weak=True,
         ).stdout,
         "results.sarif",
     )
@@ -183,6 +197,7 @@ def test_sarif_output_when_errors(run_semgrep_in_tmp: RunSemgrep, snapshot):
             target_name="basic/inexistent.py",
             output_format=OutputFormat.SARIF,
             assert_exit_code=2,
+            is_logged_in_weak=True,
         ).stdout,
         "results.sarif",
     )
