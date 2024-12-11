@@ -1,0 +1,16 @@
+Test name: with git > scanning root as a symlink to a regular file
+--- Files added before 'git add' ---
+a.py
+b.py
+--- begin input files ---
+a.py
+b.py
+--- end input files ---
+Initialized empty Git repository in <TMP>/<MASKED>/.git/
+[main (root-commit) <MASKED>] Add files
+ 2 files changed, 2 insertions(+)
+ create mode 120000 a.py
+ create mode 100644 b.py
+--- Selected targets ---
+selected a.py
+--- Skipped targets ---

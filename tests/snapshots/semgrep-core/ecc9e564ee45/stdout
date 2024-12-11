@@ -1,0 +1,7 @@
+Test name: without git > scanning root as a symlink to a missing regular file
+--- Files not added to git ---
+a.py
+--- begin input files ---
+--- end input files ---
+--- Selected targets ---
+--- Skipped targets ---
