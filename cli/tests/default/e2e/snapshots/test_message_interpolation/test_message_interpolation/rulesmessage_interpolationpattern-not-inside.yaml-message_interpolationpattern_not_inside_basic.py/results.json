@@ -1,6 +1,5 @@
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/message_interpolation/pattern_not_inside_basic.py"
@@ -17,25 +16,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "def D():\n    print(\"asdf\")",
+        "lines": "requires login",
         "message": "method D is not inside $CLASS",
         "metadata": {},
-        "metavars": {
-          "$FUNC": {
-            "abstract_content": "D",
-            "end": {
-              "col": 6,
-              "line": 8,
-              "offset": 86
-            },
-            "start": {
-              "col": 5,
-              "line": 8,
-              "offset": 85
-            }
-          }
-        },
         "severity": "INFO",
         "validation_state": "NO_VALIDATOR"
       },

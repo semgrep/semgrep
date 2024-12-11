@@ -1,6 +1,5 @@
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/autofix/two-autofixes.txt"
@@ -21,11 +20,9 @@
         "fixed_lines": [
           "one"
         ],
-        "is_ignored": false,
-        "lines": "one\ntwo",
+        "lines": "requires login",
         "message": "This rule changes the line numbers for the other rule's match",
         "metadata": {},
-        "metavars": {},
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -50,11 +47,9 @@
         "fixed_lines": [
           "four"
         ],
-        "is_ignored": false,
-        "lines": "three\nfour",
+        "lines": "requires login",
         "message": "If semgrep is not smart enough, the match of this rule will be out of range",
         "metadata": {},
-        "metavars": {},
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },

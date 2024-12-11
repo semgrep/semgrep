@@ -1,6 +1,5 @@
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/basic/regex-utf8.txt"
@@ -17,11 +16,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "\ud83d\ude0a (smiley)",
+        "lines": "requires login",
         "message": "check different ways to match UTF-8-encoded Unicode text",
         "metadata": {},
-        "metavars": {},
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -42,11 +39,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "\ud83d\ude80 (rocket)",
+        "lines": "requires login",
         "message": "check different ways to match UTF-8-encoded Unicode text",
         "metadata": {},
-        "metavars": {},
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -67,11 +62,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "<\u03b2\u03b3\u03b4> (Greek letters)",
+        "lines": "requires login",
         "message": "check different ways to match UTF-8-encoded Unicode text",
         "metadata": {},
-        "metavars": {},
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },

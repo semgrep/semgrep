@@ -5,7 +5,6 @@
 === stdout - plain
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/dependency_aware/gradle_empty=/gradle.lockfile"
@@ -22,11 +21,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "org.webjars.npm:swagger-ui-dist:3.35.2=productionRuntimeClasspath,runtimeClasspath,testRuntimeClasspath",
+        "lines": "requires login",
         "message": "oh no",
         "metadata": {},
-        "metavars": {},
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {

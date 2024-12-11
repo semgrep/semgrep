@@ -1,6 +1,5 @@
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/basic/inside.py",
@@ -27,38 +26,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "    open(path)",
+        "lines": "requires login",
         "message": "Unsafe open from request data",
         "metadata": {},
-        "metavars": {
-          "$X": {
-            "abstract_content": "path",
-            "end": {
-              "col": 14,
-              "line": 4,
-              "offset": 95
-            },
-            "propagated_value": {
-              "svalue_abstract_content": "request.get(\"unsafe\")",
-              "svalue_end": {
-                "col": 33,
-                "line": 3,
-                "offset": 81
-              },
-              "svalue_start": {
-                "col": 12,
-                "line": 3,
-                "offset": 60
-              }
-            },
-            "start": {
-              "col": 10,
-              "line": 4,
-              "offset": 91
-            }
-          }
-        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },
@@ -79,38 +49,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "    open(z)",
+        "lines": "requires login",
         "message": "Unsafe open from request data",
         "metadata": {},
-        "metavars": {
-          "$X": {
-            "abstract_content": "z",
-            "end": {
-              "col": 11,
-              "line": 14,
-              "offset": 261
-            },
-            "propagated_value": {
-              "svalue_abstract_content": "request.get(\"unsafe\")",
-              "svalue_end": {
-                "col": 26,
-                "line": 12,
-                "offset": 239
-              },
-              "svalue_start": {
-                "col": 5,
-                "line": 12,
-                "offset": 218
-              }
-            },
-            "start": {
-              "col": 10,
-              "line": 14,
-              "offset": 260
-            }
-          }
-        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },

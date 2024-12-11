@@ -1,6 +1,5 @@
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/aliengrep/metavariable-pattern.conf"
@@ -17,25 +16,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "key = value",
+        "lines": "requires login",
         "message": "found 'value'\n",
         "metadata": {},
-        "metavars": {
-          "$X": {
-            "abstract_content": "value",
-            "end": {
-              "col": 12,
-              "line": 1,
-              "offset": 11
-            },
-            "start": {
-              "col": 7,
-              "line": 1,
-              "offset": 6
-            }
-          }
-        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },

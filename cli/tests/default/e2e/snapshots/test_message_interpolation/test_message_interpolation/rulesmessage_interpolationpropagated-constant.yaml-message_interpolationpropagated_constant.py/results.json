@@ -1,6 +1,5 @@
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/message_interpolation/propagated_constant.py"
@@ -17,51 +16,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "       return x == 0",
+        "lines": "requires login",
         "message": "equal comparison of x (0) in A",
         "metadata": {},
-        "metavars": {
-          "$CLASS": {
-            "abstract_content": "A",
-            "end": {
-              "col": 8,
-              "line": 1,
-              "offset": 7
-            },
-            "start": {
-              "col": 7,
-              "line": 1,
-              "offset": 6
-            }
-          },
-          "$X": {
-            "abstract_content": "x",
-            "end": {
-              "col": 16,
-              "line": 4,
-              "offset": 52
-            },
-            "propagated_value": {
-              "svalue_abstract_content": "0",
-              "svalue_end": {
-                "col": 13,
-                "line": 3,
-                "offset": 36
-              },
-              "svalue_start": {
-                "col": 12,
-                "line": 3,
-                "offset": 35
-              }
-            },
-            "start": {
-              "col": 15,
-              "line": 4,
-              "offset": 51
-            }
-          }
-        },
         "severity": "INFO",
         "validation_state": "NO_VALIDATOR"
       },
@@ -82,38 +39,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "       return 0 == 0",
+        "lines": "requires login",
         "message": "equal comparison of 0 (0) in A",
         "metadata": {},
-        "metavars": {
-          "$CLASS": {
-            "abstract_content": "A",
-            "end": {
-              "col": 8,
-              "line": 1,
-              "offset": 7
-            },
-            "start": {
-              "col": 7,
-              "line": 1,
-              "offset": 6
-            }
-          },
-          "$X": {
-            "abstract_content": "0",
-            "end": {
-              "col": 16,
-              "line": 7,
-              "offset": 87
-            },
-            "start": {
-              "col": 15,
-              "line": 7,
-              "offset": 86
-            }
-          }
-        },
         "severity": "INFO",
         "validation_state": "NO_VALIDATOR"
       },

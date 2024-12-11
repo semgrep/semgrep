@@ -8,7 +8,6 @@
       "type": "Out of memory"
     }
   ],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/equivalence/open_redirect.py"

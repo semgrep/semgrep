@@ -124,6 +124,8 @@ def test_yaml_metavariables(run_semgrep_in_tmp: RunSemgrep, snapshot):
         "rules/yaml_key.yaml",
         target_name="yaml/target.yaml",
         output_format=OutputFormat.JSON,
+        # we now need to be logged in to access metavariables
+        is_logged_in_weak=True,
     )
     parsed_output = json.loads(stdout)
     assert "results" in parsed_output

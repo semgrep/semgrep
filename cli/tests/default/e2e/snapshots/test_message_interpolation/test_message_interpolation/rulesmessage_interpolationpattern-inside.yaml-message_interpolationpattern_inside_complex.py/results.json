@@ -1,6 +1,5 @@
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/message_interpolation/pattern_inside_complex.py"
@@ -17,38 +16,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "    def B():\n        print(\"hey\")",
+        "lines": "requires login",
         "message": "method B is in A",
         "metadata": {},
-        "metavars": {
-          "$CLASS": {
-            "abstract_content": "A",
-            "end": {
-              "col": 8,
-              "line": 1,
-              "offset": 7
-            },
-            "start": {
-              "col": 7,
-              "line": 1,
-              "offset": 6
-            }
-          },
-          "$FUNC": {
-            "abstract_content": "B",
-            "end": {
-              "col": 10,
-              "line": 2,
-              "offset": 20
-            },
-            "start": {
-              "col": 9,
-              "line": 2,
-              "offset": 19
-            }
-          }
-        },
         "severity": "INFO",
         "validation_state": "NO_VALIDATOR"
       },
@@ -69,38 +39,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "    def C():\n        print(\"yeh\")",
+        "lines": "requires login",
         "message": "method C is in A",
         "metadata": {},
-        "metavars": {
-          "$CLASS": {
-            "abstract_content": "A",
-            "end": {
-              "col": 8,
-              "line": 1,
-              "offset": 7
-            },
-            "start": {
-              "col": 7,
-              "line": 1,
-              "offset": 6
-            }
-          },
-          "$FUNC": {
-            "abstract_content": "C",
-            "end": {
-              "col": 10,
-              "line": 5,
-              "offset": 55
-            },
-            "start": {
-              "col": 9,
-              "line": 5,
-              "offset": 54
-            }
-          }
-        },
         "severity": "INFO",
         "validation_state": "NO_VALIDATOR"
       },
@@ -121,38 +62,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "    def C():\n        print(\"\")",
+        "lines": "requires login",
         "message": "method C is in B",
         "metadata": {},
-        "metavars": {
-          "$CLASS": {
-            "abstract_content": "B",
-            "end": {
-              "col": 8,
-              "line": 8,
-              "offset": 88
-            },
-            "start": {
-              "col": 7,
-              "line": 8,
-              "offset": 87
-            }
-          },
-          "$FUNC": {
-            "abstract_content": "C",
-            "end": {
-              "col": 10,
-              "line": 9,
-              "offset": 101
-            },
-            "start": {
-              "col": 9,
-              "line": 9,
-              "offset": 100
-            }
-          }
-        },
         "severity": "INFO",
         "validation_state": "NO_VALIDATOR"
       },
