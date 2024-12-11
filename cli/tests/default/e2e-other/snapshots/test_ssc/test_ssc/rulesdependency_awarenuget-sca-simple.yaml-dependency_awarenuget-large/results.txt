@@ -5,7 +5,6 @@
 === stdout - plain
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/dependency_aware/nuget-large/packages.lock.json"
@@ -22,11 +21,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "        \"System.Text.Encoding.CodePages\": {",
+        "lines": "requires login",
         "message": "Usage of CodePagesEncodingProvider.Instance detected",
         "metadata": {},
-        "metavars": {},
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
@@ -68,11 +65,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "        \"System.Runtime.CompilerServices.Unsafe\": {",
+        "lines": "requires login",
         "message": "let's assume System.Linq.Expressions has a vulnerability",
         "metadata": {},
-        "metavars": {},
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
@@ -114,11 +109,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "        \"System.Text.Encoding.CodePages\": {",
+        "lines": "requires login",
         "message": "Usage of CodePagesEncodingProvider.Instance detected",
         "metadata": {},
-        "metavars": {},
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
@@ -160,11 +153,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "        \"System.Runtime.CompilerServices.Unsafe\": {",
+        "lines": "requires login",
         "message": "let's assume System.Linq.Expressions has a vulnerability",
         "metadata": {},
-        "metavars": {},
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
@@ -206,11 +197,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "        \"System.Text.Encoding.CodePages\": {",
+        "lines": "requires login",
         "message": "Usage of CodePagesEncodingProvider.Instance detected",
         "metadata": {},
-        "metavars": {},
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
@@ -252,11 +241,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "        \"System.Runtime.CompilerServices.Unsafe\": {",
+        "lines": "requires login",
         "message": "let's assume System.Linq.Expressions has a vulnerability",
         "metadata": {},
-        "metavars": {},
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {

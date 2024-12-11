@@ -1,6 +1,5 @@
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/autofix/requests-use-timeout.py"
@@ -18,11 +17,9 @@
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "requests.get(url, timeout=30)",
-        "is_ignored": false,
-        "lines": "r = requests.get(url)",
+        "lines": "requires login",
         "message": "'requests' calls default to waiting until the connection is closed.\nThis means a 'requests' call without a timeout will hang the program\nif a response is never received. Consider setting a timeout for all\n'requests'.\n",
         "metadata": {},
-        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -44,11 +41,9 @@
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "requests.post(url, timeout=30)",
-        "is_ignored": false,
-        "lines": "r = requests.post(url)",
+        "lines": "requires login",
         "message": "'requests' calls default to waiting until the connection is closed.\nThis means a 'requests' call without a timeout will hang the program\nif a response is never received. Consider setting a timeout for all\n'requests'.\n",
         "metadata": {},
-        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -70,11 +65,9 @@
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "requests.request(\"GET\", url, timeout=30)",
-        "is_ignored": false,
-        "lines": "r = requests.request(\"GET\", url)",
+        "lines": "requires login",
         "message": "'requests' calls default to waiting until the connection is closed.\nThis means a 'requests' call without a timeout will hang the program\nif a response is never received. Consider setting a timeout for all\n'requests'.\n",
         "metadata": {},
-        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -96,11 +89,9 @@
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "requests.request(\"GET\", return_url(), timeout=30)",
-        "is_ignored": false,
-        "lines": "r = requests.request(\"GET\", return_url())",
+        "lines": "requires login",
         "message": "'requests' calls default to waiting until the connection is closed.\nThis means a 'requests' call without a timeout will hang the program\nif a response is never received. Consider setting a timeout for all\n'requests'.\n",
         "metadata": {},
-        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -122,11 +113,9 @@
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "post(url, timeout=30)",
-        "is_ignored": false,
-        "lines": "    r = post(url)",
+        "lines": "requires login",
         "message": "'requests' calls default to waiting until the connection is closed.\nThis means a 'requests' call without a timeout will hang the program\nif a response is never received. Consider setting a timeout for all\n'requests'.\n",
         "metadata": {},
-        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },

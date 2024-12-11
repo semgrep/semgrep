@@ -1,6 +1,5 @@
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/pattern-not-regex/issue2465.requirements.txt"
@@ -17,11 +16,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "Foo==1.1.1",
+        "lines": "requires login",
         "message": "Found $TAG",
         "metadata": {},
-        "metavars": {},
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },

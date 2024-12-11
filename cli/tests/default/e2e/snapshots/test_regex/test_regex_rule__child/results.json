@@ -1,6 +1,5 @@
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/basic/inside.py",
@@ -27,11 +26,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "boto3.client(host=\"123.123.123.123\")",
+        "lines": "requires login",
         "message": "test regex message",
         "metadata": {},
-        "metavars": {},
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },

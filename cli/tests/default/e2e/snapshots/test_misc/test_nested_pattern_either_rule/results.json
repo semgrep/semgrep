@@ -1,6 +1,5 @@
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/basic/nested-patterns.js",
@@ -19,11 +18,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "    nested_patterns_func('foo', 1)",
+        "lines": "requires login",
         "message": "test",
         "metadata": {},
-        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -44,11 +41,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "    nested_patterns_func('bar', 2)",
+        "lines": "requires login",
         "message": "test",
         "metadata": {},
-        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -69,11 +64,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "    nested_patterns_func('bar', 3)",
+        "lines": "requires login",
         "message": "test",
         "metadata": {},
-        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -94,25 +87,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "    nested_patterns_func('baz', 1)",
+        "lines": "requires login",
         "message": "test",
         "metadata": {},
-        "metavars": {
-          "$X": {
-            "abstract_content": "'baz'",
-            "end": {
-              "col": 31,
-              "line": 5,
-              "offset": 153
-            },
-            "start": {
-              "col": 26,
-              "line": 5,
-              "offset": 148
-            }
-          }
-        },
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },

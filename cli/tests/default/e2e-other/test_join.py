@@ -31,7 +31,13 @@ from tests.fixtures import RunSemgrep
 @pytest.mark.osemfail
 def test_basic(run_semgrep_in_tmp: RunSemgrep, snapshot, rule, target):
     snapshot.assert_match(
-        run_semgrep_in_tmp(rule, target_name=target).stdout,
+        run_semgrep_in_tmp(
+            rule,
+            target_name=target,
+            # we now need to be logged in to access metavariables
+            # which are needed for join mode to work
+            is_logged_in_weak=True,
+        ).stdout,
         "results.json",
     )
 
@@ -73,5 +79,6 @@ def test_basic(run_semgrep_in_tmp: RunSemgrep, snapshot, rule, target):
 @pytest.mark.osemfail
 def test_recursive(run_semgrep_in_tmp: RunSemgrep, snapshot, rule, target):
     snapshot.assert_match(
-        run_semgrep_in_tmp(rule, target_name=target).stdout, "results.json"
+        run_semgrep_in_tmp(rule, target_name=target, is_logged_in_weak=True).stdout,
+        "results.json",
     )

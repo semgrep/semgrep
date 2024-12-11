@@ -1,6 +1,5 @@
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/autofix/imported-entity.py"
@@ -21,25 +20,9 @@
         "fixed_lines": [
           "  raise RandomError"
         ],
-        "is_ignored": false,
-        "lines": "  raise RandomError()",
+        "lines": "requires login",
         "message": "Found useless parentheses",
         "metadata": {},
-        "metavars": {
-          "$X": {
-            "abstract_content": "RandomError RandomError RandomError",
-            "end": {
-              "col": 20,
-              "line": 4,
-              "offset": 78
-            },
-            "start": {
-              "col": 9,
-              "line": 4,
-              "offset": 67
-            }
-          }
-        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },

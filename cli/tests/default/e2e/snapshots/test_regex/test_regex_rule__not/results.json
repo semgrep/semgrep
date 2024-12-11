@@ -1,6 +1,5 @@
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/basic/stupid.py"
@@ -17,25 +16,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "    return a + b == a + b",
+        "lines": "requires login",
         "message": "test regex message",
         "metadata": {},
-        "metavars": {
-          "$X": {
-            "abstract_content": "a+b",
-            "end": {
-              "col": 17,
-              "line": 3,
-              "offset": 60
-            },
-            "start": {
-              "col": 12,
-              "line": 3,
-              "offset": 55
-            }
-          }
-        },
         "severity": "ERROR",
         "validation_state": "NO_VALIDATOR"
       },

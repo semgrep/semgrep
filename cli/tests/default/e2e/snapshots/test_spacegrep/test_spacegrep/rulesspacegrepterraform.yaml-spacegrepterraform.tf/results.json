@@ -1,6 +1,5 @@
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/spacegrep/terraform.tf"
@@ -17,11 +16,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "    allowed_origins = [\"*\"]",
+        "lines": "requires login",
         "message": "CORS rule on bucket permits any origin",
         "metadata": {},
-        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },

@@ -1,6 +1,5 @@
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/autofix/collision.py"
@@ -21,11 +20,9 @@
         "fixed_lines": [
           "a = once"
         ],
-        "is_ignored": false,
-        "lines": "a = 1",
+        "lines": "requires login",
         "message": "Semgrep found a match",
         "metadata": {},
-        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -47,11 +44,9 @@
         "engine_kind": "OSS",
         "fingerprint": "0x42",
         "fix": "twice",
-        "is_ignored": false,
-        "lines": "a = 1",
+        "lines": "requires login",
         "message": "Semgrep found a match",
         "metadata": {},
-        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },

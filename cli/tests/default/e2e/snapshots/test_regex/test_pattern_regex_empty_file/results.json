@@ -1,6 +1,5 @@
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/empty/totally_empty_file"
@@ -17,11 +16,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "",
+        "lines": "requires login",
         "message": "Match any file",
         "metadata": {},
-        "metavars": {},
         "severity": "INFO",
         "validation_state": "NO_VALIDATOR"
       },

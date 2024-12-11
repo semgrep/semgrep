@@ -1,6 +1,5 @@
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/autofix/utf-8.py"
@@ -21,11 +20,9 @@
         "fixed_lines": [
           "print('\ud83d\ude0a')"
         ],
-        "is_ignored": false,
-        "lines": "print('a')",
+        "lines": "requires login",
         "message": "Unnecessary parameter which matches the default",
         "metadata": {},
-        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -50,11 +47,9 @@
         "fixed_lines": [
           "y = '\ud83d\ude0a'; print('\ud83d\ude0a'); print('a')"
         ],
-        "is_ignored": false,
-        "lines": "y = '\ud83d\ude0a'; print('a'); print('a')",
+        "lines": "requires login",
         "message": "Unnecessary parameter which matches the default",
         "metadata": {},
-        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
@@ -79,11 +74,9 @@
         "fixed_lines": [
           "y = '\ud83d\ude0a'; print('a'); print('\ud83d\ude0a')"
         ],
-        "is_ignored": false,
-        "lines": "y = '\ud83d\ude0a'; print('a'); print('a')",
+        "lines": "requires login",
         "message": "Unnecessary parameter which matches the default",
         "metadata": {},
-        "metavars": {},
         "severity": "WARNING",
         "validation_state": "NO_VALIDATOR"
       },
