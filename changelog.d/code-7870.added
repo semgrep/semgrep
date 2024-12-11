@@ -1,0 +1,3 @@
+Pro engine now correctly distinguishes overloaded Scala methods based on their
+arity and parameter types, e.g., `foo(x: Int, y: String)` vs. `foo(x: String,
+y: Int)`.
