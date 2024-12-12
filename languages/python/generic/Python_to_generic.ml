@@ -216,6 +216,13 @@ let rec expr env (x : expr) =
    * and what is the first parameter of a method?
    *)
   | Name (("self", t), _expr_ctx) -> G.IdSpecial (G.Self, t) |> G.e
+  (* new: We have now included `cls`, as another canonical name
+     for class self-reference
+     it behaves slightly differently than `self`, as it indicates the
+     type of the class, not the instance of the class, so let's inject
+     it into a separate variant
+  *)
+  | Name (("cls", t), _expr_ctx) -> G.IdSpecial (G.Cls, t) |> G.e
   | Name (v1, _expr_ctx) ->
       let v1 = name env v1 in
       G.N (G.Id (v1, G.empty_id_info ())) |> G.e

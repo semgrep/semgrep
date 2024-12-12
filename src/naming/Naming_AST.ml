@@ -968,8 +968,13 @@ let resolve lang prog =
                   error tok (spf "could not find '%s' in environment" s));
             recurse := false
         | DotAccess
-            ({ e = IdSpecial ((This | Self), _); _ }, _, FN (Id (id, id_info)))
-          -> (
+            (* new: we added `Cls` to indicate references to the type of the class,
+               not just the instance of the class itself
+               this may introduce incorrectness in name resolution, to be fixed later
+               for now, let us consider it the same as the instance itself *)
+            ( { e = IdSpecial ((This | Self | Cls), _); _ },
+              _,
+              FN (Id (id, id_info)) ) -> (
             match lookup_scope_opt ~class_attr:true id env with
             (* TODO: this is a v0 for doing naming and typing of fields.
              * we should really use a different lookup_scope_class, that

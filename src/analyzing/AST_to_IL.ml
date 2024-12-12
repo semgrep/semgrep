@@ -979,6 +979,7 @@ and call_special _env (x, tok) =
     | G.This
     | G.Super
     | G.Self
+    | G.Cls
     | G.Parent
     | G.InterpolatedElement ->
         impossible (G.E (G.IdSpecial (x, tok) |> G.e))

@@ -178,7 +178,7 @@
  * convenient to correspond mostly to Semgrep versions. So version below
  * can jump from "1.12.1" to "1.20.0" and that's fine.
  *)
-let version = "1.93.0"
+let version = "1.100.0"
 
 (*****************************************************************************)
 (* Some notes on deriving *)
@@ -972,6 +972,8 @@ and special =
   | Super (* called 'base' in C# *)
   (* less: how different self/parent is from this/super? *)
   | Self
+  (* like `cls` in Python, which indicates the type, not the instance *)
+  | Cls
   | Parent
   (* for Lua, todo: just remove it, create Dict without key *)
   | NextArrayIndex

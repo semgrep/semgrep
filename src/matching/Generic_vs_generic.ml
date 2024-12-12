@@ -144,6 +144,7 @@ let should_match_call = function
   (* e.g. `super()` in JS constructor. Should be Java too, but Java doesn't use
    * IdSpecial for super calls *)
   | G.Super
+  | G.Cls
   | G.Self
   | G.Parent
   (* JS `require("fs")` *)
@@ -1430,6 +1431,7 @@ and m_special a b =
   | G.This, B.This -> return ()
   | G.Super, B.Super -> return ()
   | G.Self, B.Self -> return ()
+  | G.Cls, B.Cls -> return ()
   | G.Parent, B.Parent -> return ()
   | G.Eval, B.Eval -> return ()
   | G.Typeof, B.Typeof -> return ()
@@ -1450,6 +1452,7 @@ and m_special a b =
   | G.This, _
   | G.Super, _
   | G.Self, _
+  | G.Cls, _
   | G.Parent, _
   | G.Eval, _
   | G.Typeof, _

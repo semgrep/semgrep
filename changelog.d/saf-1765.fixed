@@ -1,0 +1,14 @@
+Python (pro-only): Taint now correctly tracks through calls to class methods
+within a class, via the `cls` parameter.
+
+So for instance, we would be able to determine a source-to-sink
+vulnerability in the following code snippet:
+```
+class A:
+  def foo(self, x):
+    sink(x)
+
+  @classmethod
+  def bar(cls):
+    cls.foo(source)
+```

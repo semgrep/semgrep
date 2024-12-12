@@ -470,6 +470,7 @@ and map_special x =
   | This -> `This
   | Super -> `Super
   | Self -> `Self
+  | Cls -> `Cls
   | Parent -> `Parent
   | Eval -> `Eval
   | Typeof -> `Typeof

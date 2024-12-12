@@ -545,6 +545,7 @@ and vof_special = function
   | This -> OCaml.VSum ("This", [])
   | Super -> OCaml.VSum ("Super", [])
   | Self -> OCaml.VSum ("Self", [])
+  | Cls -> OCaml.VSum ("Cls", [])
   | Parent -> OCaml.VSum ("Parent", [])
   | Eval -> OCaml.VSum ("Eval", [])
   | Typeof -> OCaml.VSum ("Typeof", [])
