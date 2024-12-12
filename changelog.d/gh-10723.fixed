@@ -1,3 +1,0 @@
-No more RPC error when using --sarif with some join-mode rules.
-Moreover, regular rules without the 'languages:' field will be skipped
-instead of aborting the whole scan.

@@ -1,2 +1,0 @@
-The minimum Python version for semgrep is now 3.9.
-We are dropping support for Python 3.8
