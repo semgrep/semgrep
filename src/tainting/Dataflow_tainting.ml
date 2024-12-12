@@ -837,7 +837,7 @@ let handle_taint_propagators env thing taints shape =
              * subsequent uses of `y` are tainted if `x` was previously tainted. *)
             | `Lval lval ->
                 if Option.is_some opt_propagated then
-                  lval_env |> Lval_env.add lval taints_from_prop
+                  lval_env |> Lval_env.add_lval lval taints_from_prop
                 else
                   (* If we did not find any taint to be propagated, it could
                    * be because we have not encountered the 'from' yet, so we
@@ -881,7 +881,7 @@ let find_lval_taint_sources env incoming_taints lval =
   let taints_to_add_to_env =
     by_side_effect_only_taints |> Taints.union by_side_effect_yes_taints
   in
-  let lval_env = lval_env |> Lval_env.add lval taints_to_add_to_env in
+  let lval_env = lval_env |> Lval_env.add_lval lval taints_to_add_to_env in
   let taints_to_return =
     Taints.union by_side_effect_no_taints by_side_effect_yes_taints
   in
@@ -974,8 +974,8 @@ and propagate_taint_via_java_getters_and_setters_without_definition env e args
             Some
               ( Taints.empty,
                 Bot,
-                env.lval_env |> Lval_env.add (mk_prop_lval ()) all_args_taints
-              )
+                env.lval_env
+                |> Lval_env.add_lval (mk_prop_lval ()) all_args_taints )
           else Some (Taints.empty, Bot, env.lval_env)
       | __else__ -> None)
   | __else__ -> None
@@ -1411,8 +1411,10 @@ let check_function_call env fun_exp args
                    ( Taints.union taints taints_acc,
                      Shape.unify_shape shape shape_acc,
                      Lval_env.add_control_taints lval_env control_taints )
-               | ToLval (taints, lval) ->
-                   (taints_acc, shape_acc, lval_env |> Lval_env.add lval taints))
+               | ToLval (taints, var, offset) ->
+                   ( taints_acc,
+                     shape_acc,
+                     lval_env |> Lval_env.add var offset taints ))
              (Taints.empty, Bot, env.lval_env))
   | None ->
       Log.info (fun m ->
@@ -1735,7 +1737,7 @@ let mk_lambda_in_env env lcfg =
          let taints, shape, lval_env =
            check_tainted_var { env with lval_env } var
          in
-         lval_env |> Lval_env.add_shape (LV.lval_of_var var) taints shape)
+         lval_env |> Lval_env.add_lval_shape (LV.lval_of_var var) taints shape)
        env.lval_env
 
 let rec transfer : env -> fun_cfg:F.fun_cfg -> Lval_env.t D.transfn =
@@ -1774,7 +1776,7 @@ let rec transfer : env -> fun_cfg:F.fun_cfg -> Lval_env.t D.transfn =
               if Shape.taints_and_shape_are_relevant taints shape then
                 (* Instruction returns tainted data, add taints to lval.
                  * See [Taint_lval_env] for details. *)
-                lval_env' |> Lval_env.add_shape lval taints shape
+                lval_env' |> Lval_env.add_lval_shape lval taints shape
               else
                 (* The RHS returns no taint, but taint could propagate by
                  * side-effect too. So, we check whether the taint assigned

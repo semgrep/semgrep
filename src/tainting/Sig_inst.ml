@@ -36,16 +36,16 @@ let bad_tag = Log_tainting.bad_tag
 type call_effect =
   | ToSink of Effect.taints_to_sink
   | ToReturn of Effect.taints_to_return
-  | ToLval of Taint.taints * IL.lval
+  | ToLval of Taint.taints * IL.name * Taint.offset list
 
 type call_effects = call_effect list
 
 let show_call_effect = function
   | ToSink tts -> Effect.show_taints_to_sink tts
   | ToReturn ttr -> Effect.show_taints_to_return ttr
-  | ToLval (taints, lval) ->
-      Printf.sprintf "%s ----> %s" (T.show_taints taints)
-        (Display_IL.string_of_lval lval)
+  | ToLval (taints, var, offset) ->
+      Printf.sprintf "%s ----> %s%s" (T.show_taints taints) (IL.str_of_name var)
+        (T.show_offset_list offset)
 
 let show_call_effects call_effects =
   call_effects |> List_.map show_call_effect |> String.concat "; "
@@ -414,90 +414,105 @@ let find_pos_in_actual_args ?(err_ctx = "???") args_taints fparams :
             "Cannot match taint variable with function arguments (%i: %s)" i s);
     taint_opt
 
-(* TODO(shapes): This is needed for stuff that is not yet fully adapted to shapes
- *               such as records and dicts, it will be superseeded by 'taints_of_lval'.
- *
- * Given a function/method call 'fun_exp'('args_exps'), and an argument
- * spec 'sig_lval' from the taint signature of the called function/method,
- * determine what lvalue corresponds to 'sig_lval'.
- *
- * In the simplest case this just obtains the actual argument:
- * E.g. `lval_of_sig_lval f [x;y;z] [a;b;c] (x,0) = a`
- *
- * The 'sig_lval' may refer to `this` and also have an offset:
- * E.g. `lval_of_sig_lval o.f [] [] (this,-1).x = o.x`
- *)
-let lval_of_sig_lval (fun_exp : IL.exp) fparams args_exps (sig_lval : T.lval) :
-    (* Besides the 'lval', we also return a "tainted token" pointing to an
-     * identifier in the actual code that relates to 'sig_lval', to be used
-     * in the taint trace.  For example, if we're calling `obj.method` and
-     * `this.x` were tainted, then we would record that taint went through
-     * `obj`. *)
-    (IL.lval * T.tainted_token) option =
-  let open IL in
+(* Given a function/method call 'fun_exp'('args_exps'), and a taint variable 'tlval'
+    from the taint signature of the called function/method 'fun_exp', we want to
+   determine the actual l-value that corresponds to 'lval' in the caller's context.
+
+    The return value is a triplet '(variable, offset, token)', where 'token' is to
+    be added to the taint trace, and it may even be the token of 'variable'.
+    For example, if we are calling `obj.method` and `this.x` were tainted, then we
+    would record that taint went through `obj`.
+
+    TODO(shapes): This is needed for stuff that is not yet fully adapted to shapes,
+             in theory we should only need 'instantiate_lval_using_shape'.
+*)
+let instantiate_lval_using_actual_exps (fun_exp : IL.exp) fparams args_exps
+    (tlval : T.lval) : (IL.name * T.offset list * T.tainted_token) option =
+  (* Error handling  *)
+  let log_error () =
+    Log.err (fun m ->
+        m "instantiate_lval_using_actual_exps FAILED: %s(...): %s"
+          (Display_IL.string_of_exp fun_exp)
+          (T.show_lval tlval))
+  in
   let ( let* ) opt f =
     match opt with
     | None -> None
     | Some x -> (
         match f x with
         | None ->
-            Log.err (fun m ->
-                m "Could not instantiate taint signature of %s: %s"
-                  (Display_IL.string_of_exp fun_exp)
-                  (T.show_lval sig_lval));
+            log_error ();
             None
         | Some r -> Some r)
   in
-  let* rev_offset = T.rev_IL_offset_of_offset sig_lval.offset in
-  let* lval, obj =
-    match sig_lval.base with
-    | BGlob gvar -> Some ({ base = Var gvar; rev_offset }, gvar)
-    | BThis -> (
-        (* For the call trace, we try to record variables that correspond to objects,
-         * but if not possible then we record method names. *)
-        match fun_exp with
-        | {
-         e = Fetch { base = Var obj; rev_offset = [ { o = Dot _method; _ } ] };
-         _;
-        } ->
-            (* We're calling `obj.method(...)`, so `this.x` is actually `obj.x`. *)
-            Some ({ base = Var obj; rev_offset }, obj)
-        | { e = Fetch { base = Var method_; rev_offset = [] }; _ } ->
-            (* We're calling a `method(...)` on the same instace of the caller,
-             * and `this.x` is just `this.x`. *)
-            let this =
-              VarSpecial (This, Tok.fake_tok (snd method_.ident) "this")
-            in
-            Some ({ base = this; rev_offset }, method_)
-        | {
-         e =
-           Fetch
-             {
-               base;
-               rev_offset = { o = Dot method_; _ } :: exp_obj_rev_offset';
-             };
-         _;
-        } ->
-            (* We're calling e.g. `this.obj.method(...)`,
-             * so `this.x` is actually `this.obj.x`. *)
-            Some
-              ({ base; rev_offset = rev_offset @ exp_obj_rev_offset' }, method_)
-        | __else__ -> None)
-    | BArg pos -> (
-        let* arg_exp =
-          find_pos_in_actual_args
-            ~err_ctx:(Display_IL.string_of_exp fun_exp)
-            args_exps fparams pos
-        in
-        match (arg_exp.e, sig_lval.offset) with
-        | Fetch ({ base = Var obj; _ } as arg_lval), _ ->
-            let lval =
-              { arg_lval with rev_offset = rev_offset @ arg_lval.rev_offset }
-            in
-            Some (lval, obj)
-        | __else__ -> None)
-  in
-  Some (lval, snd obj.ident)
+  match tlval.base with
+  | BGlob gvar -> Some (gvar, tlval.offset, snd gvar.ident)
+  | BArg pos -> (
+      (*
+          An actual argument from 'args_exps', e.g.
+
+              instantiate_lval_using_actual_exps f [x;y;z] [a.q;b;c]
+                                { base = BArg {name = "x"; index = 0}; offset = [.u] }
+              = (a, [.q.u], tok)
+        *)
+      let* (arg_exp : IL.exp) =
+        find_pos_in_actual_args
+          ~err_ctx:(Display_IL.string_of_exp fun_exp)
+          args_exps fparams pos
+      in
+      match (arg_exp.e, tlval.offset) with
+      | Fetch ({ base = Var obj; _ } as arg_lval), _ ->
+          let* var, offset = Lval_env.normalize_lval arg_lval in
+          Some (var, offset @ tlval.offset, snd obj.ident)
+      | __else__ -> None)
+  | BThis -> (
+      (*
+          A field of the callee object, e.g.:
+
+              instantiate_lval_using_actual_exps o.f [] []
+                                { base = BThis; offset = [.x] }
+              = (o, [.x], tok)
+
+          For the call trace, we try to record variables that correspond to objects,
+          but if not possible then we record method names.
+        *)
+      match fun_exp with
+      | { e = Fetch { base = Var method_; rev_offset = [] }; _ }
+      (* fun_exp = `method(...)` *) -> (
+          (* lval = `this.x.y.z` so we assume to be calling a class method, and
+             because the call `method(...)` has no explicit receiver object, then
+             we assume it is the `this` object in the caller's context. Thus,
+             the instantiated l-vale is `x.y.z`. *)
+          match tlval.offset with
+          | Ofld var :: offset -> Some (var, offset, snd method_.ident)
+          | []
+          | (Oint _ | Ostr _ | Oany) :: _ ->
+              (* we have no 'var' to take here *)
+              log_error ();
+              None)
+      | {
+       (* fun_exp = `<base>. ... .method(...)` *)
+       e = Fetch { base; rev_offset = { o = Dot method_; _ } :: rev_offset' };
+       _;
+      } -> (
+          match (base, rev_offset', tlval.offset) with
+          | Var obj, [], _offset ->
+              (* fun_exp = `obj.method(...)`, given lval = `this.x`
+                 the instantiated l-value is `obj.x` *)
+              Some (obj, tlval.offset, snd obj.ident)
+          | VarSpecial (This, _), [], Ofld var :: offset ->
+              (* fun_exp = `this.method(...)`, given lval = `this.x.y.z`
+                 the instantiated l-value is `x.y.z`. *)
+              Some (var, offset, snd method_.ident)
+          | __else__ ->
+              (* fun_exp = `this.obj.method(...)` (e.g.), given lval = `this.x.y`
+                 the instantiated l-value is `obj.x.y`. *)
+              let lval = IL.{ base; rev_offset = rev_offset' } in
+              let* var, offset = Lval_env.normalize_lval lval in
+              Some (var, offset @ tlval.offset, snd method_.ident))
+      | __else__ ->
+          log_error ();
+          None)
 
 (* HACK(implicit-taint-variables-in-env):
  * We have a function call with a taint variable, corresponding to a global or
@@ -570,13 +585,14 @@ let fix_lval_taints_if_global_or_a_field_of_this_class (fun_exp : IL.exp)
        * return it as a type variable. *)
       Taints.singleton { orig = Var lval; tokens = [] }
 
-let taints_of_lval lval_env fparams (fun_exp : IL.exp) args_taints lval :
-    (Taints.t * shape) option =
+let instantiate_lval_using_shape lval_env fparams (fun_exp : IL.exp) args_taints
+    lval : (Taints.t * shape) option =
   let { T.base; offset } = lval in
   let* base, offset =
     match base with
     | T.BArg pos -> Some (`Arg pos, offset)
     | BThis -> (
+        (* TODO: Should we refactor this with 'instantiate_lval_using_actual_exps' ? *)
         match fun_exp with
         | {
          e = Fetch { base = Var obj; rev_offset = [ { o = Dot _method; _ } ] };
@@ -608,9 +624,11 @@ let taints_of_lval lval_env fparams (fun_exp : IL.exp) args_taints lval :
   Shape.find_in_shape_poly ~taints:base_taints offset base_shape
 
 (* What is the taint denoted by 'sig_lval' ? *)
-let taints_of_sig_lval lval_env fparams fun_exp args_exps
+let instantiate_lval lval_env fparams fun_exp args_exps
     (args_taints : (Taints.t * shape) IL.argument list) (sig_lval : T.lval) =
-  match taints_of_lval lval_env fparams fun_exp args_taints sig_lval with
+  match
+    instantiate_lval_using_shape lval_env fparams fun_exp args_taints sig_lval
+  with
   | Some (taints, shape) -> Some (taints, shape)
   | None -> (
       match args_exps with
@@ -626,11 +644,12 @@ let taints_of_sig_lval lval_env fparams fun_exp args_exps
            * TODO: We should not need this when we cover everything with shapes,
            *   see 'lval_of_sig_lval'.
            *)
-          let* lval, _obj =
-            lval_of_sig_lval fun_exp fparams args_exps sig_lval
+          let* var, offset, _obj =
+            instantiate_lval_using_actual_exps fun_exp fparams args_exps
+              sig_lval
           in
           let lval_taints, shape =
-            match Lval_env.find_lval_poly lval_env lval with
+            match Lval_env.find_poly lval_env var offset with
             | None -> (Taints.empty, Bot)
             | Some (taints, shape) -> (taints, shape)
           in
@@ -663,7 +682,7 @@ let rec instantiate_function_signature lval_env (taint_sig : Signature.t)
        So we will isolate this as a specific step to be applied as necessary.
     *)
     let opt_taints_shape =
-      taints_of_sig_lval lval_env taint_sig.params callee args args_taints lval
+      instantiate_lval lval_env taint_sig.params callee args args_taints lval
     in
     Log.debug (fun m ->
         m ~tags:sigs_tag "- Instantiating %s: %s -> %s"
@@ -781,7 +800,7 @@ let rec instantiate_function_signature lval_env (taint_sig : Signature.t)
         (* Taints 'taints' go into an argument of the call, by side-effect.
          * Right now this is mainly used to track taint going into specific
          * fields of the callee object, like `this.x = "tainted"`. *)
-        let+ dst_lval, tainted_tok =
+        let+ dst_var, dst_offset, tainted_tok =
           (* 'dst_lval' is the actual argument/l-value that corresponds
              * to the formal argument 'dst_sig_lval'. *)
           match args with
@@ -793,7 +812,8 @@ let rec instantiate_function_signature lval_env (taint_sig : Signature.t)
                     (T.show_lval dst_sig_lval));
               None
           | Some args ->
-              lval_of_sig_lval callee taint_sig.params args dst_sig_lval
+              instantiate_lval_using_actual_exps callee taint_sig.params args
+                dst_sig_lval
         in
         let taints =
           taints
@@ -811,7 +831,8 @@ let rec instantiate_function_signature lval_env (taint_sig : Signature.t)
                }
         in
 
-        if Taints.is_empty taints then [] else [ ToLval (taints, dst_lval) ]
+        if Taints.is_empty taints then []
+        else [ ToLval (taints, dst_var, dst_offset) ]
     | Effect.ToSinkInCall
         { callee = fun_exp; arg = fun_arg; args_taints = fun_args_taints } -> (
         Log.debug (fun m ->

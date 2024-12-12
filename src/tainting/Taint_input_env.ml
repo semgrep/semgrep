@@ -68,7 +68,9 @@ let add_to_env_aux (taint_inst : Taint_rule_inst.t) env id ii opt_expr =
     Dataflow_tainting.drop_taints_if_bool_or_number taint_inst.options taints
       var_type
   in
-  let env = env |> Taint_lval_env.add (IL_helpers.lval_of_var var) taints in
+  let env =
+    env |> Taint_lval_env.add_lval (IL_helpers.lval_of_var var) taints
+  in
   (env, expr_effects)
 
 let add_to_env taint_inst (env, effects) id id_info opt_expr =

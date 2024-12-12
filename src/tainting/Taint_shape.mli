@@ -52,7 +52,28 @@ val find_in_cell :
 
     If the offset could not be found in the cell, then it returns `Not_found
     with the base taints and shape for the offset prefix that was found, and
-    the offset suffix that was not. *)
+    the offset suffix that was not.
+
+    For example, given this shape:
+
+        Cell(`None, Obj {
+                .a -> Cell({"taint"}, Obj {
+                        .u -> Cell(`Clean, _|_)
+                        })
+                })
+
+    with the offset .a we get:
+
+        `Found (Cell({"taint"}, Obj { .u -> Cell(`Clean, _|_) }))
+
+    with the offset .a.u we get:
+
+        `Clean
+
+    and with the offset .a.v we get:
+
+        `Not_found({"taint"}, Obj { .u -> Cell(`Clean, _|_) }, .v)
+  *)
 
 val find_in_cell_poly :
   Taint.offset list -> cell -> (Taint.taints * shape) option

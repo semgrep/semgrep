@@ -6,7 +6,7 @@
 type call_effect =
   | ToSink of Shape_and_sig.Effect.taints_to_sink
   | ToReturn of Shape_and_sig.Effect.taints_to_return
-  | ToLval of Taint.taints * IL.lval
+  | ToLval of Taint.taints * IL.name * Taint.offset list
 
 type call_effects = call_effect list
 

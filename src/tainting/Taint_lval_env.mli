@@ -45,15 +45,21 @@ val hook_propagate_to :
 
 val empty : env
 val empty_inout : env Dataflow_core.inout
+val normalize_lval : IL.lval -> (IL.name * Taint.offset list) option
 
-val add_shape : IL.lval -> Taint.taints -> shape -> env -> env
+val add_shape :
+  IL.name -> Taint.offset list -> Taint.taints -> shape -> env -> env
+
+val add_lval_shape : IL.lval -> Taint.taints -> shape -> env -> env
 (** Add taints & shape to an l-value.
 
     Adding taints to x.a_1. ... .a_N will NOT taint the prefixes
     x.a_1. ... .a_i (i < N) (unless they become tainted separately).
  *)
 
-val add : add_fn
+val add : IL.name -> Taint.offset list -> Taint.taints -> env -> env
+
+val add_lval : add_fn
 (** Assign a set of taints (but no specific shape) to an l-value. *)
 
 (* THINK: Perhaps keep propagators outside of this environment? *)
@@ -65,8 +71,39 @@ val find_var : env -> IL.name -> cell option
 val find_lval : env -> IL.lval -> cell option
 (** Find the 'cell' of an l-value. *)
 
+val find_poly :
+  env -> IL.name -> Taint.offset list -> (Taint.taints * shape) option
+(** Find the taints and shape associated to a variable (name) and an offset.
+    If an offset is not being explicitly recorded, then it returns the
+    taint associated to the longest offset prefix that is recorded. If that
+    taint is polymorphic, then it attaches the remaining offset suffix.
+
+    For example, given this shape (where 't is a taint variable):
+
+        Cell(`None, Obj {
+                .a -> Cell({"taint"}, Bot);
+                .b -> Cell({'t}, Bot)
+                })
+
+    With the offset .a we get:
+
+        Some ({"taint"}, Bot)
+
+    With the offset .b we get:
+
+        Some ({'t}, Bot)
+
+    With the offset .a.u we get:
+
+        Some ({"taint"}, Bot)
+
+    With the offset .b.u we get:
+
+        Some ({'t.u}, Bot)
+  *)
+
 val find_lval_poly : env -> IL.lval -> (Taint.taints * shape) option
-(** Find the 'cell' of an l-value. *)
+(** Same as 'find_poly' for l-values. *)
 
 val find_lval_xtaint : env -> IL.lval -> Xtaint.t
 (** Look up an l-value on the environemnt and return whether it's tainted, clean,

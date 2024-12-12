@@ -187,38 +187,44 @@ let check_tainted_lvals_limit tainted new_var =
         None)
   else Some tainted
 
-let add_shape lval new_taints new_shape
+let add_shape var offset new_taints new_shape
     ({ tainted; control; taints_to_propagate; pending_propagation_dests } as
      lval_env) =
+  match check_tainted_lvals_limit tainted var with
+  | None -> lval_env
+  | Some tainted ->
+      let new_taints =
+        let var_tok = snd var.ident in
+        if Tok.is_fake var_tok then new_taints
+        else
+          new_taints
+          |> Taints.map (fun t -> { t with tokens = var_tok :: t.tokens })
+      in
+      {
+        tainted =
+          NameMap.update var
+            (fun opt_var_ref ->
+              Shape.update_offset_and_unify new_taints new_shape offset
+                opt_var_ref)
+            tainted;
+        control;
+        taints_to_propagate;
+        pending_propagation_dests;
+      }
+
+let add_lval_shape lval new_taints new_shape lval_env =
   match normalize_lval lval with
   | None ->
       (* Cannot track taint for this l-value; e.g. because the base is not a simple
          variable. We just return the same environment untouched. *)
       lval_env
-  | Some (var, offset) -> (
-      match check_tainted_lvals_limit tainted var with
-      | None -> lval_env
-      | Some tainted ->
-          let new_taints =
-            let var_tok = snd var.ident in
-            if Tok.is_fake var_tok then new_taints
-            else
-              new_taints
-              |> Taints.map (fun t -> { t with tokens = var_tok :: t.tokens })
-          in
-          {
-            tainted =
-              NameMap.update var
-                (fun opt_var_ref ->
-                  Shape.update_offset_and_unify new_taints new_shape offset
-                    opt_var_ref)
-                tainted;
-            control;
-            taints_to_propagate;
-            pending_propagation_dests;
-          })
+  | Some (var, offset) -> add_shape var offset new_taints new_shape lval_env
 
-let add lval new_taints lval_env = add_shape lval new_taints Bot lval_env
+let add var offset new_taints lval_env =
+  add_shape var offset new_taints Bot lval_env
+
+let add_lval lval new_taints lval_env =
+  add_lval_shape lval new_taints Bot lval_env
 
 let propagate_to prop_var taints env =
   (* THINK: Should we record empty propagations anyways so that we can always
@@ -239,7 +245,7 @@ let propagate_to prop_var taints env =
           ~pending_propagation_dests:env.pending_propagation_dests
           ~prop:(fun ~taints_to_propagate ~pending_propagation_dests ->
             { env with taints_to_propagate; pending_propagation_dests })
-          ~add
+          ~add:add_lval
 
 let find_var { tainted; _ } var = NameMap.find_opt var tainted
 
@@ -252,10 +258,13 @@ let find_lval { tainted; _ } lval =
       None
   | `Found cell -> Some cell
 
-let find_lval_poly { tainted; _ } lval =
-  let* var, offsets = normalize_lval lval in
+let find_poly { tainted; _ } var offsets =
   let* var_ref = NameMap.find_opt var tainted in
   Shape.find_in_cell_poly offsets var_ref
+
+let find_lval_poly lval_env lval =
+  let* var, offsets = normalize_lval lval in
+  find_poly lval_env var offsets
 
 let find_lval_xtaint env lval =
   match find_lval env lval with
