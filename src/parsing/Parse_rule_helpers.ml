@@ -69,7 +69,8 @@ let yaml_error_at_expr (e : G.expr) s =
 
 let yaml_error_at_key (key : key) s = yaml_error (snd key) s
 
-let error rule_id t s =
+let error (rule_id : Rule_ID.t) (t : Tok.t) (s : string) :
+    ('a, Rule_error.t) result =
   Error
     (Rule_error.mk_error ~rule_id (InvalidRule (InvalidOther s, rule_id, t)))
 

@@ -53,9 +53,17 @@ let sarif_format _caps (rules : Out.fpath) (ctx : Out.format_context) hide_nudge
       rule_source = Core_scan_config.Rule_file rules;
     }
   in
-  let rules, _invalid_rules =
+  let rules, invalid_rules =
     Core_scan.rules_of_config ~filter_by_targets:false fake_config
   in
+  (* we already use Log.warn in Parse_rule.ml but worth repeating with Logs
+   * TODO? where do the RPC logs go? using --debug does not show RPCs
+   * logs; only failures are visible.
+   *)
+  if not (List_.null invalid_rules) then
+    (* nosemgrep: no-logs-in-library *)
+    Logs.warn (fun m ->
+        m "skipping %d invalid rules in SARIF RPC" (List.length invalid_rules));
   let hrules = Rule.hrules_of_rules rules in
   (* TODO: reuse the one now passed as a parameter *)
   let cli_output : Out.cli_output =

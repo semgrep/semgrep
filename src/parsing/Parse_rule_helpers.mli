@@ -33,11 +33,14 @@ type dict = private {
 (* Error Management *)
 (*****************************************************************************)
 
+(* will return InvalidRule (InvalidOther _) errors *)
+val error : Rule_ID.t -> Tok.t -> string -> ('a, Rule_error.t) result
+val error_at_key : Rule_ID.t -> key -> string -> ('a, Rule_error.t) result
+
+(* will return InvalidYaml error *)
 val yaml_error : Tok.t -> string -> ('a, Rule_error.t) result
 val yaml_error_at_expr : AST_generic.expr -> string -> ('a, Rule_error.t) result
 val yaml_error_at_key : key -> string -> ('a, Rule_error.t) result
-val error : Rule_ID.t -> Tok.t -> string -> ('a, Rule_error.t) result
-val error_at_key : Rule_ID.t -> key -> string -> ('a, Rule_error.t) result
 
 val error_at_opt_key :
   Rule_ID.t -> key option -> string -> ('a, Rule_error.t) result

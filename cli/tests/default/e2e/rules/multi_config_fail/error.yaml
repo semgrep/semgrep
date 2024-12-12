@@ -4,7 +4,10 @@ rules:
     message: Avoid use of exec; it can lead to a remote code execution.
     languages: [js]
     severity: WARNING
-  - id: boto3-internal-network
+  # Missing the 'languages:' field used to cause a yaml error and missing
+  # config exit code 7 but now we skip the rule instead so we need
+  # a stronger error like a missing id:
+  - idx: boto3-internal-network
     patterns:
       - pattern-inside: boto3.client(host="...")
       - pattern-regex: '192.168\.\d{1,3}\.\d{1,3}'

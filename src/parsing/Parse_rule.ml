@@ -989,7 +989,19 @@ let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) :
   let/ max_version = take_opt_no_env rd parse_version "max-version" in
   let/ () = check_version_compatibility rule_id ~min_version ~max_version in
 
-  let/ languages = take_no_env rd parse_string_wrap_list_no_env "languages" in
+  let/ languages_opt =
+    take_opt_no_env rd parse_string_wrap_list_no_env "languages"
+  in
+  let/ languages =
+    match languages_opt with
+    | Some languages -> Ok languages
+    (* TODO: join-mode does not have languages and is not recognized right now
+     * by semgrep-core
+     * TODO? steps-mode or rules using just pattern-regex could also skip
+     * the languages section? (and use target selector instead)
+     *)
+    | None -> H.error rule_id tok "missing languages"
+  in
   let/ options_opt, options_key =
     let/ options = take_opt_no_env rd (parse_options rule_id) "options" in
     match options with
