@@ -620,6 +620,13 @@ let lookup_signature env fun_exp =
       hook env.taint_inst eorig
   | __else__ -> None
 
+let lookup_fun_signature env fun_exp =
+  match lookup_signature env fun_exp with
+  | Some (taint_sig, `Fun) -> Some taint_sig
+  | Some (_, `Var)
+  | None ->
+      None
+
 (*****************************************************************************)
 (* Lambdas *)
 (*****************************************************************************)
@@ -1152,6 +1159,33 @@ and check_tainted_lval_offset env offset =
       in
       (taints, lval_env)
 
+and check_tainted_lval_with_sig env lval eorig =
+  let exp = { e = Fetch lval; eorig } in
+  let taints, shape, _sub, lval_env = check_tainted_lval env lval in
+  match (shape, lookup_signature env exp) with
+  | __any__, None -> (taints, shape, lval_env)
+  | S.Bot, Some (fun_sig, `Fun) ->
+      (* This 'lval' is a function, with a known taint signature, so we give it a
+         `Fun` shape. *)
+      (taints, S.Fun fun_sig, lval_env)
+  | _non_Bot_shape, Some (fun_sig, `Fun) ->
+      (* A top-level function/method is expected to have shape 'Bot'. *)
+      Log.warn (fun m ->
+          m "'%s' has a taint signature (%s) but has also shape '%s'"
+            (Display_IL.string_of_exp exp)
+            (Signature.show fun_sig) (S.show_shape shape));
+      (taints, shape, lval_env)
+  | __any__, Some (var_sig, `Var) -> (
+      (* We instantiate 'var_sig' as if 'lval' were a 0-arity function. *)
+      match
+        instantiate_function_signature { env with lval_env } exp var_sig [] []
+      with
+      | Some (call_taints, call_shape, lval_env) ->
+          ( taints |> Taints.union call_taints,
+            shape |> Shape.unify_shape call_shape,
+            lval_env )
+      | None -> (taints, shape, lval_env))
+
 (* Test whether an expression is tainted, and if it is also a sink,
  * report the finding too (by side effect). *)
 and check_tainted_expr env exp : Taints.t * S.shape * Lval_env.t =
@@ -1298,25 +1332,7 @@ and check_tainted_expr env exp : Taints.t * S.shape * Lval_env.t =
   | None ->
       let taints, shape, lval_env =
         match exp.e with
-        | Fetch lval ->
-            let taints, shape, _sub, lval_env = check_tainted_lval env lval in
-            let shape =
-              (* Check if 'exp' is a known top-level function/method and, if it is,
-               * give it a proper 'Fun' shape. *)
-              match (lookup_signature env exp, shape) with
-              | Some fun_sig, S.Bot -> S.Fun fun_sig
-              | Some fun_sig, _non_Bot_shape ->
-                  (* A top-level function/method is expected to have shape 'Bot'. *)
-                  Log.warn (fun m ->
-                      m
-                        "'%s' has a taint signature (%s) but as an expression \
-                         its shape is '%s'"
-                        (Display_IL.string_of_exp exp)
-                        (Signature.show fun_sig) (S.show_shape shape));
-                  shape
-              | None (* no signature *), _any_shape -> shape
-            in
-            (taints, shape, lval_env)
+        | Fetch lval -> check_tainted_lval_with_sig env lval exp.eorig
         | __else__ ->
             let taints_exp, shape, lval_env = check_subexpr exp in
             let taints_sources, lval_env =
@@ -1360,11 +1376,47 @@ and check_function_call_arguments env args =
   let all_args_taints = List.fold_left Taints.union Taints.empty rev_taints in
   (args_taints, all_args_taints, lval_env)
 
-let check_tainted_var env (var : IL.name) : Taints.t * S.shape * Lval_env.t =
+and check_tainted_var env (var : IL.name) : Taints.t * S.shape * Lval_env.t =
   let taints, shape, _sub, lval_env =
     check_tainted_lval env (LV.lval_of_var var)
   in
   (taints, shape, lval_env)
+
+and instantiate_function_signature env fun_exp fun_sig args args_taints =
+  let* call_effects =
+    Sig_inst.instantiate_function_signature env.lval_env fun_sig ~callee:fun_exp
+      ~args:(Some args) args_taints
+  in
+  Some
+    (call_effects
+    |> List.fold_left
+         (fun (taints_acc, shape_acc, lval_env)
+              (call_effect : Sig_inst.call_effect) ->
+           match call_effect with
+           | ToSink
+               {
+                 taints_with_precondition = incoming_taints, _requires;
+                 sink;
+                 _;
+               } ->
+               effects_of_tainted_sink env incoming_taints sink
+               |> record_effects env;
+               (taints_acc, shape_acc, lval_env)
+           | ToReturn
+               {
+                 data_taints = taints;
+                 data_shape = shape;
+                 control_taints;
+                 return_tok = _;
+               } ->
+               ( Taints.union taints taints_acc,
+                 Shape.unify_shape shape shape_acc,
+                 Lval_env.add_control_taints lval_env control_taints )
+           | ToLval (taints, var, offset) ->
+               ( taints_acc,
+                 shape_acc,
+                 lval_env |> Lval_env.add var offset taints ))
+         (Taints.empty, Bot, env.lval_env))
 
 (* This function is consuming the taint signature of a function to determine
    a few things:
@@ -1373,49 +1425,16 @@ let check_tainted_var env (var : IL.name) : Taints.t * S.shape * Lval_env.t =
    2) Are there any effects that occur within the function due to taints being
       input into the function body, from the calling context?
 *)
-let check_function_call env fun_exp args
+and check_function_call env fun_exp args
     (args_taints : (Taints.t * S.shape) argument list) :
     (Taints.t * S.shape * Lval_env.t) option =
-  match lookup_signature env fun_exp with
+  match lookup_fun_signature env fun_exp with
   | Some fun_sig ->
       Log.debug (fun m ->
           m ~tags:sigs_tag "Call to %s : %s"
             (Display_IL.string_of_exp fun_exp)
             (Signature.show fun_sig));
-      let* call_effects =
-        Sig_inst.instantiate_function_signature env.lval_env fun_sig
-          ~callee:fun_exp ~args:(Some args) args_taints
-      in
-      Some
-        (call_effects
-        |> List.fold_left
-             (fun (taints_acc, shape_acc, lval_env)
-                  (call_effect : Sig_inst.call_effect) ->
-               match call_effect with
-               | ToSink
-                   {
-                     taints_with_precondition = incoming_taints, _requires;
-                     sink;
-                     _;
-                   } ->
-                   effects_of_tainted_sink env incoming_taints sink
-                   |> record_effects env;
-                   (taints_acc, shape_acc, lval_env)
-               | ToReturn
-                   {
-                     data_taints = taints;
-                     data_shape = shape;
-                     control_taints;
-                     return_tok = _;
-                   } ->
-                   ( Taints.union taints taints_acc,
-                     Shape.unify_shape shape shape_acc,
-                     Lval_env.add_control_taints lval_env control_taints )
-               | ToLval (taints, var, offset) ->
-                   ( taints_acc,
-                     shape_acc,
-                     lval_env |> Lval_env.add var offset taints ))
-             (Taints.empty, Bot, env.lval_env))
+      instantiate_function_signature env fun_exp fun_sig args args_taints
   | None ->
       Log.info (fun m ->
           m "No taint signature found for `%s'"

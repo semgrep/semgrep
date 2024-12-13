@@ -9,7 +9,9 @@ type java_props_cache
 val mk_empty_java_props_cache : unit -> java_props_cache
 
 val hook_function_taint_signature :
-  (Taint_rule_inst.t -> AST_generic.expr -> Shape_and_sig.Signature.t option)
+  (Taint_rule_inst.t ->
+  AST_generic.expr ->
+  (Shape_and_sig.Signature.t * [ `Fun | `Var ]) option)
   option
   ref
 (** Pro inter-file (aka deep) *)
