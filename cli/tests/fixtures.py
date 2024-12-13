@@ -65,6 +65,6 @@ class RunSemgrep(Protocol):
         # project as a non-git project. This option is only used to manage
         # the transition from pysemgrep to osemgrep. Avoid using it if
         # you can.
-        osemgrep_force_project_root: bool = False,
+        osemgrep_force_project_root: Optional[str] = None,
     ) -> SemgrepResult:
         ...

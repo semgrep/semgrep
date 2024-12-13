@@ -921,7 +921,17 @@ let o_project_root : string option Term.t =
           and assumes a local project without version control (novcs).
           This option is useful to ensure the '.semgrepignore' file that
           may exist at the project root is consulted when the scanning root
-          is not the current folder '.'. REQUIRES --experimental|}
+          is not the current folder '.'.
+          A valid project root must be a folder (path referencing
+          a directory) whose physical path
+          is a prefix of the physical path of the scanning roots passed
+          on the command line. For example, the command
+          'semgrep scan --project-root . src' is valid
+          if '.' is '/home/me' and 'src' is a directory or a symbolic link
+          to a '/home/me/sources' directory or a symbolic link to a
+          'sources' directory but not if it is a symbolic link to
+          a directory '/var/sources' (assuming '/var' is not a symbolic link).
+          REQUIRES --experimental|}
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 

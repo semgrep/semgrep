@@ -403,7 +403,7 @@ def _run_semgrep(
     teardown_workspace: Callable[[], None] = lambda: None,
     context_manager: Optional[ContextManager] = None,
     is_logged_in_weak=False,
-    osemgrep_force_project_root: bool = False,
+    osemgrep_force_project_root: Optional[str] = None,
 ) -> SemgrepResult:
     """Run the semgrep CLI.
 
@@ -467,7 +467,7 @@ def _run_semgrep(
                 and USE_OSEMGREP
                 and osemgrep_force_project_root
             ):
-                options.extend(["--project-root", "."])
+                options.extend(["--project-root", osemgrep_force_project_root])
 
             if strict:
                 options.append("--strict")
@@ -575,7 +575,11 @@ _run_strict_semgrep_on_basic_targets_with_json_output: fixtures.RunSemgrep = par
     strict=True,
     target_name="basic",
     output_format=OutputFormat.JSON,
-    osemgrep_force_project_root=True,
+    # In the setup we use, 'targets' is a symlink in a temporary folder.
+    # It's incompatible with the project root being '.' because
+    # the real path of the project root must be a prefix of the real path
+    # of the scanning root.
+    osemgrep_force_project_root="targets/..",
 )
 
 

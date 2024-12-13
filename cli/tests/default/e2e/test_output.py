@@ -361,22 +361,25 @@ IGNORE_LOG_REPORT_LAST_LINE = (
 )
 
 
+# TODO: remove this test: too many things being tested at once, too hard
+#       to debug.
+#
 # pysemgrep/osemgrep status: osemgrep reports 2 more files that are being
 # excluded. They're excluded in both implementations.
 @pytest.mark.kinda_slow
 @pytest.mark.pysemfail
 def test_semgrepignore_ignore_log_report(
-    run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot
+    run_semgrep_on_copied_files: RunSemgrep, tmp_path, snapshot
 ):
-    (tmp_path / ".semgrepignore").symlink_to(
-        Path(TARGETS_PATH / "ignores" / ".semgrepignore").resolve()
+    shutil.copyfile(
+        Path(TARGETS_PATH / "ignores" / ".semgrepignore"), tmp_path / ".semgrepignore"
     )
     # See remarks in test_ignores.py:
     shutil.copyfile(
         Path(TARGETS_PATH / "ignores" / ".gitignore"), tmp_path / ".gitignore"
     )
 
-    _, stderr = run_semgrep_in_tmp(
+    _, stderr = run_semgrep_on_copied_files(
         "rules/eqeq-basic.yaml",
         # This set of options is carefully crafted
         # to trigger one entry for most ignore reasons.
@@ -410,27 +413,32 @@ def test_semgrepignore_ignore_log_report(
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
 def test_semgrepignore_ignore_log_report_pysemgrep(
-    run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot
+    run_semgrep_on_copied_files: RunSemgrep, tmp_path, snapshot
 ):
-    test_semgrepignore_ignore_log_report(run_semgrep_in_tmp, tmp_path, snapshot)
+    test_semgrepignore_ignore_log_report(
+        run_semgrep_on_copied_files, tmp_path, snapshot
+    )
 
 
+# TODO: remove this test: too many things being tested at once, too hard
+#       to review when something changes.
+#
 # pysemgrep/osemgrep status: osemgrep reports 2 more files that are being
 # excluded. They're excluded in both implementations.
 @pytest.mark.kinda_slow
 @pytest.mark.pysemfail
 def test_semgrepignore_ignore_log_json_report(
-    run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot
+    run_semgrep_on_copied_files: RunSemgrep, tmp_path, snapshot
 ):
-    (tmp_path / ".semgrepignore").symlink_to(
-        Path(TARGETS_PATH / "ignores" / ".semgrepignore").resolve()
+    shutil.copyfile(
+        Path(TARGETS_PATH / "ignores" / ".semgrepignore"), tmp_path / ".semgrepignore"
     )
     # See remarks in test_ignores.py:
     shutil.copyfile(
         Path(TARGETS_PATH / "ignores" / ".gitignore"), tmp_path / ".gitignore"
     )
 
-    stdout, _ = run_semgrep_in_tmp(
+    stdout, _ = run_semgrep_on_copied_files(
         "rules/eqeq-basic.yaml",
         # This set of options is carefully crafted
         # to trigger one entry for most ignore reasons.
@@ -459,9 +467,11 @@ def test_semgrepignore_ignore_log_json_report(
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
 def test_semgrepignore_ignore_log_json_report_pysemgrep(
-    run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot
+    run_semgrep_on_copied_files: RunSemgrep, tmp_path, snapshot
 ):
-    test_semgrepignore_ignore_log_json_report(run_semgrep_in_tmp, tmp_path, snapshot)
+    test_semgrepignore_ignore_log_json_report(
+        run_semgrep_on_copied_files, tmp_path, snapshot
+    )
 
 
 @pytest.mark.kinda_slow

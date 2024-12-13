@@ -14,3 +14,16 @@
 type t = { fpath : Fpath.t; ppath : Ppath.t } [@@deriving show]
 
 let compare a b = Fpath.compare a.fpath b.fpath
+
+let append_relative_fpath root fpath =
+  let fpath_append a b =
+    match Fpath.to_string a with
+    | "."
+    | "./" ->
+        b
+    | _ -> Fpath.append a b
+  in
+  {
+    fpath = fpath_append root.fpath fpath;
+    ppath = Ppath.append_fpath root.ppath fpath;
+  }

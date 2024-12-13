@@ -1,3 +1,4 @@
+open Common
 open Fpath_.Operators
 module Log = Log_paths.Log
 
@@ -23,17 +24,20 @@ and kind =
   | No_VCS_project
 [@@deriving show]
 
-type roots = {
-  project : t;
-  (* scanning roots that belong to the project *)
-  scanning_roots : Fppath.t list;
+type scanning_root_info = {
+  path : Rfpath.t;
+  (* Path of a Semgrep scanning root express within the project, relative to
+     the project root. *)
+  inproject_path : Ppath.t;
 }
 [@@deriving show]
 
-(* TODO? get rid of? seems redundant with all the other type
- * TODO? factorize also with semgrep src/core/Scanning_root.ml
- *)
-type scanning_root_info = { project_root : Rfpath.t; inproject_path : Ppath.t }
+type scanning_roots = {
+  project : t;
+  (* scanning roots that belong to the project *)
+  scanning_roots : scanning_root_info list;
+}
+[@@deriving show]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -57,19 +61,21 @@ type scanning_root_info = { project_root : Rfpath.t; inproject_path : Ppath.t }
 
    This function assumes that the path exists.
 *)
-let get_project_root_for_nonproject_file (path : Fpath.t) : Rfpath.t =
-  if UFile.is_dir ~follow_symlinks:true path then Rfpath.of_fpath_exn path
+let get_project_root_for_nonproject_file (path : Rfpath.t) : Rfpath.t =
+  let orig_path = path.fpath in
+  let phys_path = path |> Rfpath.to_rpath |> Rpath.to_fpath in
+  if UFile.is_dir ~follow_symlinks:true phys_path then path
   else if
-    (* regular file or symlink to a regular file *)
+    (* the original path is a regular file or a symlink to a regular file *)
     (* Be careful with symlinks here! *)
-    UFile.is_lnk path
+    UFile.is_lnk orig_path
   then
     (* correct but results in an ugly absolute, physical path *)
-    path |> Rfpath.of_fpath_exn |> Rfpath.parent
+    phys_path |> Rfpath.of_fpath_exn |> Rfpath.parent
   else
     (* produce a good-looking path but this works only because path
        isn't a symlink *)
-    path |> Fpath.parent |> Rfpath.of_fpath_exn
+    orig_path |> Fpath.parent |> Rfpath.of_fpath_exn
 
 (*
    A git project created with 'git clone' or 'git init' has a '.git/' folder
@@ -110,7 +116,7 @@ let is_subversion_project_root =
 (* alt: use 'git rev-parse --show-toplevel' but this would be git specific
  * and would require to have an external 'git' program.
  *)
-let get_project_root_of_fpath_opt (path : Fpath.t) : (kind * Fpath.t) option =
+let get_project_root_of_path_opt (path : Rfpath.t) : (kind * Rfpath.t) option =
   let candidates : (Fpath.t -> (kind * Fpath.t) option) list =
     [
       is_git_project_root;
@@ -119,71 +125,91 @@ let get_project_root_of_fpath_opt (path : Fpath.t) : (kind * Fpath.t) option =
       is_subversion_project_root;
     ]
   in
-  let rec aux dir =
+  let rec aux phys_dir =
     let res =
       candidates
-      |> List.find_map (fun is_xxx_project_root -> is_xxx_project_root dir)
+      |> List.find_map (fun is_xxx_project_root -> is_xxx_project_root phys_dir)
     in
     match res with
-    | Some x -> Some x
+    | Some (project_kind, project_root) ->
+        Some (project_kind, Rfpath.of_fpath_exn project_root)
     | None ->
-        let parent = Fpath.parent dir in
+        let parent = Fpath.parent phys_dir in
         (* reached the root of the filesystem *)
-        if parent = dir then None else aux parent
+        if Fpath.equal parent phys_dir then None else aux parent
   in
-  if not (Sys.file_exists !!path) then (
-    Log.err (fun m ->
-        m "get_project_root_of_fpath_opt: not existing path %s" !!path);
-    None)
-  else
-    let rpath = Rpath.of_fpath_exn path in
-    let path = Rpath.to_fpath rpath in
-    let start_dir =
-      if Sys.is_directory !!path then path else Fpath.parent path
-    in
-    aux start_dir
+  let phys_path = path.rpath |> Rpath.to_fpath in
+  let start_dir =
+    if UFile.is_dir ~follow_symlinks:false phys_path then phys_path
+    else Fpath.parent phys_path
+  in
+  aux start_dir
 
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
 
-let force_project_root ?(project_root : Rfpath.t option) (path : Fpath.t) :
-    scanning_root_info =
+let fppath_of_scanning_root_info (scan_root : scanning_root_info) : Fppath.t =
+  { fpath = scan_root.path.fpath; ppath = scan_root.inproject_path }
+
+let check_scanning_root ~project_root:(proj_path : Rfpath.t)
+    (scan_path : Rfpath.t) =
+  if Rpath.contains proj_path.rpath scan_path.rpath then Ok ()
+  else
+    Error
+      (spf
+         "The project root '%s' (real path '%s') does not contain the scanning \
+          root '%s' (real path '%s')."
+         !!(proj_path.fpath)
+         !!(proj_path.rpath |> Rpath.to_fpath)
+         !!(scan_path.fpath)
+         !!(scan_path.rpath |> Rpath.to_fpath))
+
+let force_project_root ?(project_root : Rfpath.t option) (path : Rfpath.t) :
+    (Rfpath.t * scanning_root_info, string) Result.t =
   let project_root =
     match project_root with
     | Some x -> x
     | None -> get_project_root_for_nonproject_file path
   in
   Log.debug (fun m ->
-      m "project_root=%s path=%s" (Rfpath.show project_root) !!path);
-  match Ppath.in_project ~root:project_root path with
-  | Ok inproject_path -> { project_root; inproject_path }
-  | Error msg -> failwith msg
+      m "project_root=%s path=%s" (Rfpath.show project_root) (Rfpath.show path));
+  match check_scanning_root ~project_root path with
+  | Error _ as err -> err
+  | Ok () -> (
+      match Ppath.in_project ~root:project_root path with
+      | Error _ as err -> err
+      | Ok inproject_path -> Ok (project_root, { path; inproject_path }))
 
 let find_any_project_root ~fallback_root ~force_novcs ~force_root
-    (fpath : Fpath.t) : kind * scanning_root_info =
+    (scanning_root_fpath : Fpath.t) : (t * scanning_root_info, string) Result.t
+    =
   Log.debug (fun m ->
       m "find_any_project_root: fallback_root=%s force_root=%s %s"
         (Logs_.option Rfpath.show fallback_root)
         (Logs_.option show force_root)
-        !!fpath);
-  let inferred_kind, root_info =
-    match force_root with
-    | Some { kind; root = project_root } ->
-        (kind, force_project_root ~project_root fpath)
-    | None -> (
-        match get_project_root_of_fpath_opt fpath with
-        | Some (kind, project_root) ->
-            let project_root = Rfpath.of_fpath_exn project_root in
-            let inproject_path =
-              match Ppath.in_project ~root:project_root fpath with
-              | Ok x -> x
-              | Error msg -> failwith msg
-            in
-            (kind, { project_root; inproject_path })
-        | None ->
-            ( No_VCS_project,
-              force_project_root ?project_root:fallback_root fpath ))
-  in
-  let kind = if force_novcs then No_VCS_project else inferred_kind in
-  (kind, root_info)
+        !!scanning_root_fpath);
+  match Rfpath.of_fpath scanning_root_fpath with
+  | Error _ as err -> err
+  | Ok path -> (
+      let inferred_kind, res =
+        match force_root with
+        | Some { kind; root = project_root } ->
+            (kind, force_project_root ~project_root path)
+        | None -> (
+            match get_project_root_of_path_opt path with
+            | Some (project_kind, project_root) -> (
+                match Ppath.in_project ~root:project_root path with
+                | Error _ as err -> (project_kind, err)
+                | Ok inproject_path ->
+                    (project_kind, Ok (project_root, { path; inproject_path })))
+            | None ->
+                ( No_VCS_project,
+                  force_project_root ?project_root:fallback_root path ))
+      in
+      match res with
+      | Error _ as err -> err
+      | Ok (project_root, scanning_root_info) ->
+          let kind = if force_novcs then No_VCS_project else inferred_kind in
+          let project = { kind; root = project_root } in
+          Ok (project, scanning_root_info))

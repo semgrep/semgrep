@@ -63,8 +63,7 @@ let test_conversions () =
       let mk_abs path_str = Fpath.(v "/fake/cwd" // v path_str) in
       let test_in_project_ok root path expected =
         match
-          Ppath.in_project_unsafe_for_tests ~phys_root:(mk_abs root)
-            (mk_abs path)
+          Ppath.in_project_unsafe ~phys_root:(mk_abs root) (mk_abs path)
         with
         | Ok res ->
             Alcotest.(check string)
@@ -74,8 +73,7 @@ let test_conversions () =
       in
       let test_in_project_fail root path =
         match
-          Ppath.in_project_unsafe_for_tests ~phys_root:(Fpath.v root)
-            (Fpath.v path)
+          Ppath.in_project_unsafe ~phys_root:(Fpath.v root) (Fpath.v path)
         with
         | Ok res -> Alcotest.fail (Ppath.to_string_for_tests res)
         | Error _ -> ()

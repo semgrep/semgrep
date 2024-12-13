@@ -469,7 +469,7 @@ let walk_skip_and_collect (ign : Gitignore.filter)
 *)
 let git_list_files ~exclude_standard
     (file_kinds : Git_wrapper.ls_files_kind list)
-    (project_roots : Project.roots) : Fppath_set.t option =
+    (project_roots : Project.scanning_roots) : Fppath_set.t option =
   Log.debug (fun m ->
       m "Find_targets.git_list_files for project %s"
         (Project.show project_roots.project));
@@ -480,95 +480,28 @@ let git_list_files ~exclude_standard
    *)
   match project.kind with
   | Git_project ->
-      let cwd = Fpath.v (Sys.getcwd ()) in
       Some
         (project_roots.scanning_roots
-        |> List.concat_map (fun (sc_root : Fppath.t) ->
+        |> List.concat_map (fun (sc_root_info : Project.scanning_root_info) ->
+               Log.info (fun m ->
+                   m "List git files for scanning root %s"
+                     (Project.show_scanning_root_info sc_root_info));
+               let sc_root = sc_root_info.path in
+               let sc_root_fppath =
+                 Project.fppath_of_scanning_root_info sc_root_info
+               in
                if UFile.is_reg ~follow_symlinks:true sc_root.fpath then
-                 [ sc_root ]
-               else if UFile.is_dir ~follow_symlinks:true sc_root.fpath then (
-                 Log.info (fun m ->
-                     m "List git files for scanning root %s"
-                       (Fppath.show sc_root));
-                 let project_root = Rfpath.to_rpath project.root in
-                 (* The path prefix we want for all the target file paths
-                    that we return *)
-                 let orig_scanning_root_path = sc_root.fpath in
-                 (* Best effort to get a relative scanning root path
-                    (will fail in file systems with multiple roots) *)
-                 let rel_scanning_root_path_or_absolute =
-                   if Fpath.is_rel orig_scanning_root_path then
-                     orig_scanning_root_path
-                   else
-                     match
-                       Fpath.relativize ~root:cwd orig_scanning_root_path
-                     with
-                     | Some rel_scanning_root -> rel_scanning_root
-                     | None ->
-                         (* absolute, on another volume than cwd *)
-                         orig_scanning_root_path
-                 in
-                 (* We can't just cd into the scanning root to obtain paths
-                    relative to it because the scanning root may be a regular
-                    file. It could also be the root of the file system, so we
-                    also can't cd into its parent.
-                    This is why we stay in the same cwd and only later convert
-                    the resulting paths to be relative to the scanning root. *)
-                 Git_wrapper.ls_files_relative ~exclude_standard
-                   ~kinds:file_kinds ~project_root
-                   [ orig_scanning_root_path ]
-                 |> List_.map (fun target_relative_to_cwd_or_absolute ->
-                        (* Invariant: the target path is a descendant of the
-                           scanning root path *)
-                        (* Obtain a path whose prefix is the original scanning
-                           root if possible.
-                           If the scanning root is './proj/lib',
-                           then we want a result target path to be
-                           './proj/lib/../hello.c', not the equivalent
-                           'proj/hello.c'.
-                           The only exception is if the scanning root is '.',
-                           in which case we don't produce './foo' but 'foo'.
-                        *)
-                        let target_fpath =
-                          match
-                            (* 'root' must be a folder *)
-                            Fpath.relativize
-                              ~root:rel_scanning_root_path_or_absolute
-                              target_relative_to_cwd_or_absolute
-                          with
-                          | Some target_relative_to_scan_root ->
-                              Fpath_.append_no_dot orig_scanning_root_path
-                                target_relative_to_scan_root
-                          | None -> target_relative_to_cwd_or_absolute
-                        in
-                        (* Obtain a path relative to the project root *)
-                        let target_ppath =
-                          match
-                            Fpath.relativize
-                              ~root:(Rpath.to_fpath project_root)
-                              (cwd // target_relative_to_cwd_or_absolute)
-                          with
-                          | None ->
-                              (* TODO: return an Error instead and let the
-                                 caller decide instead of assert false
-                              *)
-                              (* nosemgrep: no-logs-in-library *)
-                              Logs.err (fun m ->
-                                  m
-                                    "Internal error: cannot obtain path \
-                                     relative to project root from \
-                                     project_root=%s, cwd=%S, \
-                                     path_relative_to_cwd=%S"
-                                    !!(Rpath.to_fpath project_root)
-                                    !!cwd
-                                    !!target_relative_to_cwd_or_absolute);
-                              assert false
-                          | Some fpath_relative_to_project_root ->
-                              Ppath.of_relative_fpath
-                                fpath_relative_to_project_root
-                        in
-                        ({ fpath = target_fpath; ppath = target_ppath }
-                          : Fppath.t)))
+                 [ sc_root_fppath ]
+               else if UFile.is_dir ~follow_symlinks:true sc_root.fpath then
+                 (* We can cd into the scanning root to obtain paths
+                    relative to it because at this point, the scanning root
+                    is known to be a folder. *)
+                 Git_wrapper.ls_files ~exclude_standard ~kinds:file_kinds
+                   ~cwd:(sc_root.rpath |> Rpath.to_fpath)
+                   []
+                 |> List_.map (fun rel_target_fpath ->
+                        Fppath.append_relative_fpath sc_root_fppath
+                          rel_target_fpath)
                else (
                  (* scanning root is neither a file nor a folder *)
                  Log.warn (fun m ->
@@ -592,8 +525,8 @@ let git_list_files ~exclude_standard
    We could also provide similar functions for other file tracking systems
    (Mercurial/hg, Subversion/svn, ...)
 *)
-let git_list_tracked_files (project_roots : Project.roots) : Fppath_set.t option
-    =
+let git_list_tracked_files (project_roots : Project.scanning_roots) :
+    Fppath_set.t option =
   git_list_files ~exclude_standard:false [ Cached ] project_roots
 
 (*
@@ -602,27 +535,13 @@ let git_list_tracked_files (project_roots : Project.roots) : Fppath_set.t option
 
    This is the complement of git_list_tracked_files (except for '.git/').
 *)
-let git_list_untracked_files ~respect_gitignore (project_roots : Project.roots)
-    : Fppath_set.t option =
+let git_list_untracked_files ~respect_gitignore
+    (project_roots : Project.scanning_roots) : Fppath_set.t option =
   git_list_files ~exclude_standard:respect_gitignore [ Others ] project_roots
 
 (*************************************************************************)
 (* Grouping *)
 (*************************************************************************)
-
-let scanning_root_by_project ~(force_root : Project.t option)
-    ~(force_novcs : bool) (scanning_root : Scanning_root.t) :
-    Project.t * Fppath.t =
-  let scanning_root_fpath = Scanning_root.to_fpath scanning_root in
-  let kind, scanning_root_info =
-    Project.find_any_project_root ~fallback_root:None ~force_novcs ~force_root
-      scanning_root_fpath
-  in
-  let project : Project.t = { kind; root = scanning_root_info.project_root } in
-  let path : Fppath.t =
-    { fpath = scanning_root_fpath; ppath = scanning_root_info.inproject_path }
-  in
-  (project, path)
 
 (*
    Identify the project root for each scanning root and group them
@@ -634,7 +553,7 @@ let scanning_root_by_project ~(force_root : Project.t option)
    TODO? move in paths/Project.ml?
 *)
 let group_scanning_roots_by_project (conf : conf)
-    (scanning_roots : Scanning_root.t list) : Project.roots list =
+    (scanning_roots : Scanning_root.t list) : Project.scanning_roots list =
   (* Force root relativizes scan roots to project roots.
      I.e. if the project_root is /repo/src/ and the scanning root is /src/foo
      it would make the scanning root /foo. So it doesn't make sense to
@@ -651,10 +570,9 @@ let group_scanning_roots_by_project (conf : conf)
     match conf.force_project_root with
     | Some (Filesystem proj_root) ->
         (* This is when --project-root is specified on the command line.
-           It doesn't use 'git ls-files' to list files. This is required
-           for some tests to pass within our semgrep repo but it's not clear
-           why it's like this.
-           TODO: make tests work without requiring --project-root? *)
+           It allows choosing the location of the root '.semgrepignore'
+           in no-VCS projects or ignore the root '.semgrepignore' in a
+           Git project (like we do in our tests). *)
         Some Project.{ kind = Project.Gitignore_project; root = proj_root }
     | Some (Git_remote _)
     | None ->
@@ -666,11 +584,20 @@ let group_scanning_roots_by_project (conf : conf)
          let fpath = Scanning_root.to_fpath sc_root in
          if UFile.is_dir_or_reg ~follow_symlinks:true fpath then true
          else (
-           Log.warn (fun m -> m "invalid scanning root: %s" !!fpath);
+           (* nosemgrep: no-logs-in-library *)
+           Logs.warn (fun m -> m "Invalid scanning root: %s" !!fpath);
            false))
-  |> List_.map
-       (scanning_root_by_project ~force_novcs:conf.force_novcs_project
-          ~force_root)
+  |> List_.filter_map (fun (sc_root : Scanning_root.t) ->
+         match
+           Project.find_any_project_root ~fallback_root:None
+             ~force_novcs:conf.force_novcs_project ~force_root
+             (Scanning_root.to_fpath sc_root)
+         with
+         | Ok x -> Some x
+         | Error msg ->
+             (* nosemgrep: no-logs-in-library *)
+             Logs.warn (fun m -> m "%s" msg);
+             None)
   (* Using a realpath (physical path) in Project.t ensures we group
      correctly even if the scanning_roots went through different symlink paths.
   *)
@@ -686,7 +613,7 @@ let group_scanning_roots_by_project (conf : conf)
    git project. Most of the logic is done at a project level, though.
 *)
 
-let setup_path_filters conf (project_roots : Project.roots) :
+let setup_path_filters conf (project_roots : Project.scanning_roots) :
     Gitignore.filter * Include_filter.t option =
   let Project.{ project = { kind; root = project_root }; scanning_roots = _ } =
     project_roots
@@ -742,10 +669,10 @@ let filter_targets conf project_roots (all_files : Fppath.t list) =
   let ign = setup_path_filters conf project_roots in
   filter_paths ign all_files
 
-let get_targets_from_filesystem conf (project_roots : Project.roots) =
+let get_targets_from_filesystem conf (project_roots : Project.scanning_roots) =
   let ign, include_filter = setup_path_filters conf project_roots in
   List.fold_left
-    (fun (selected, skipped) (scan_root : Fppath.t) ->
+    (fun (selected, skipped) (scan_root : Project.scanning_root_info) ->
       (* better: Note that we use Unix.stat below, not Unix.lstat, so
        * osemgrep accepts symlink paths on the command--line;
        * you can do 'osemgrep -e ... ~/symlink-to-proj' or even
@@ -754,11 +681,13 @@ let get_targets_from_filesystem conf (project_roots : Project.roots) =
        * Note: This may raise Unix.Unix_error.
        * TODO? improve Unix.Unix_error in Find_targets specific exn?
        *)
+      let phys_path = scan_root.path.rpath |> Rpath.to_fpath in
+      let fppath = Project.fppath_of_scanning_root_info scan_root in
       let selected2, skipped2 =
-        match (Unix.stat !!(scan_root.fpath)).st_kind with
+        match (Unix.stat !!phys_path).st_kind with
         (* TOPORT? make sure has right permissions (readable) *)
-        | S_REG -> ([ scan_root ], [])
-        | S_DIR -> walk_skip_and_collect ign include_filter scan_root
+        | S_REG -> ([ fppath ], [])
+        | S_DIR -> walk_skip_and_collect ign include_filter fppath
         | S_LNK ->
             (* already dereferenced by Unix.stat *)
             raise Impossible
@@ -780,12 +709,13 @@ let get_targets_from_filesystem conf (project_roots : Project.roots) =
    --exclude, ...).
    If they already occur in the list of skipped targets, they will be removed.
 *)
-let force_select_scanning_roots (project_roots : Project.roots)
+let force_select_scanning_roots (project_roots : Project.scanning_roots)
     (selected_targets : Fppath_set.t)
     (skipped_targets : Out.skipped_target list) :
     Fppath_set.t * Out.skipped_target list =
   let regular_files_to_add =
     project_roots.scanning_roots
+    |> List_.map Project.fppath_of_scanning_root_info
     |> List.filter (fun (sc_root : Fppath.t) ->
            UFile.is_reg ~follow_symlinks:true sc_root.fpath)
   in
@@ -823,7 +753,7 @@ let force_select_scanning_roots (project_roots : Project.roots)
       Typically, the sets of files produced by (2) and (3) overlap vastly.
    4. Take the union of (2) and (3).
 *)
-let get_targets_for_project conf (project_roots : Project.roots) =
+let get_targets_for_project conf (project_roots : Project.scanning_roots) =
   Log.debug (fun m -> m "Find_target.get_targets_for_project");
   (* Obtain the list of files from git if possible because it does it
      faster than what we can do by scanning the filesystem: *)
@@ -850,6 +780,8 @@ let get_targets_for_project conf (project_roots : Project.roots) =
   let selected_targets, skipped_targets =
     force_select_scanning_roots project_roots selected_targets skipped_targets
   in
+  Log.debug (fun m ->
+      m "selected targets: %s" (Fppath_set.show selected_targets));
   (selected_targets, skipped_targets)
 
 (* for semgrep query console *)

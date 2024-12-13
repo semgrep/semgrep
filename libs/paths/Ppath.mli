@@ -34,7 +34,10 @@ type t [@@deriving show]
 
    Note that the input path may be a symbolic link.
 *)
-val in_project : root:Rfpath.t -> Fpath.t -> (t, string) result
+val in_project : root:Rfpath.t -> Rfpath.t -> (t, string) result
+
+(* Both arguments must be physical paths. Use only in tests. *)
+val in_project_unsafe : phys_root:Fpath.t -> Fpath.t -> (t, string) result
 
 (* Creates a ppath from a list of segments. Segments may not contain
    slashes. The first segment must be "" because ppath must be
@@ -126,6 +129,3 @@ val of_string_for_tests : string -> t
    path in the file system.
 *)
 val to_string_for_tests : t -> string
-
-val in_project_unsafe_for_tests :
-  phys_root:Fpath.t -> Fpath.t -> (t, string) result

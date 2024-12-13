@@ -85,3 +85,12 @@ let getcwd () =
 let parent (Rpath path) =
   let res = Fpath.parent path |> Fpath.rem_empty_seg in
   if res <> path then Some (Rpath res) else None
+
+let contains (Rpath a) (Rpath b) =
+  let rec aux segs_a segs_b =
+    match (segs_a, segs_b) with
+    | seg_a :: segs_a, seg_b :: segs_b when seg_a = seg_b -> aux segs_a segs_b
+    | [], _ -> true
+    | _, _ -> false
+  in
+  aux (Fpath.segs a) (Fpath.segs b)

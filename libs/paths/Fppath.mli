@@ -11,3 +11,7 @@ type t = { fpath : Fpath.t; ppath : Ppath.t } [@@deriving show]
 
 (* Compare based on the original fpath *)
 val compare : t -> t -> int
+
+(* Append a relative fpath to an existing root path.
+   Raise Invalid_argument is the provided fpath isn't relative. *)
+val append_relative_fpath : t -> Fpath.t -> t

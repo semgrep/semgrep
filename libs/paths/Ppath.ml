@@ -158,11 +158,11 @@ let add_seg path seg = create (path.segments @ [ seg ])
 (* saving you 3 neurons *)
 let add_segs (path : t) segs = create (path.segments @ segs)
 
-let append_fpath (path : t) fpath =
+let append_fpath (base : t) fpath =
   match Fpath.segs fpath with
   | "" :: _ ->
       invalid_arg ("Ppath.append_fpath: not a relative path: " ^ !!fpath)
-  | segs -> add_segs path segs
+  | segs -> create (base.segments @ segs)
 
 module Operators = struct
   let ( / ) = add_seg
@@ -287,47 +287,29 @@ let remove_prefix root path =
 (* Builder entry points *)
 (*****************************************************************************)
 
-(*
-   Make a path absolute, using getcwd() if needed.
-   I hesitated to put this into Fpath_ since Fpath is purely syntactic.
-*)
-let make_absolute path =
-  if Fpath.is_rel path then Fpath.(v (Unix.getcwd ()) // path)
-  else
-    (* Here, we must make a syscall, bceause we are making an unnormalized path absolute
-       so that we can compare it to a normalized path.
-       However, in the presence of symlinks, certain relationships like prefixes and
-       naive string operations do not work properly, because they are not cognizant of
-       how certain paths are actually related on the filesystem.
-       For instance, on Mac systems, `/var/` is actually the same as `/private/var`, so
-       our absolute form for `/var/` would prefer to be `/private/var`.
-       So we turn our path into an rpath. *)
-    match Rpath.of_fpath path with
-    | Ok path -> Rpath.to_fpath path
-    | Error err ->
-        failwith (Common.spf "Failed to make path %s absolute: %s" !!path err)
-
 let of_relative_fpath (fpath : Fpath.t) =
   if Fpath.is_rel fpath then create ("" :: Fpath.segs fpath)
   else invalid_arg ("Ppath.of_relative_fpath: " ^ !!fpath)
 
 (*
-   This assumes the input paths are normalized. We use this
-   in tests to avoid having to create actual files.
+   This assumes the input paths are physical paths.
+
+   We use this in tests directly to avoid having to create actual files.
 *)
-let in_project_unsafe_for_tests ~(phys_root : Fpath.t) (path : Fpath.t) =
-  let abs_path = make_absolute path in
-  match remove_prefix phys_root abs_path with
+let in_project_unsafe ~(phys_root : Fpath.t) (phys_path : Fpath.t) =
+  match remove_prefix phys_root phys_path with
   | None ->
       Error
         (Common.spf
            "cannot make path %S relative to project root %S.\n\
             cwd: %s\n\
             realpath for .: %s\n\
-            Sys.argv: %s" !!path !!phys_root (Sys.getcwd ())
+            Sys.argv: %s" !!phys_path !!phys_root (Sys.getcwd ())
            (Rfpath.of_string_exn "." |> Rfpath.show)
            (Sys.argv |> Array.to_list |> String.concat " "))
   | Some rel_path -> Ok (of_relative_fpath rel_path)
 
-let in_project ~(root : Rfpath.t) (path : Fpath.t) =
-  in_project_unsafe_for_tests ~phys_root:(root.rpath |> Rpath.to_fpath) path
+let in_project ~(root : Rfpath.t) (path : Rfpath.t) =
+  in_project_unsafe
+    ~phys_root:(root.rpath |> Rpath.to_fpath)
+    (path.rpath |> Rpath.to_fpath)

@@ -43,25 +43,6 @@ val ls_files :
   Fpath.t list ->
   Fpath.t list
 
-(*
-   This is identical to the 'ls_files' but works even if the current directory
-   is outside the git project.
-
-   The result is a list of file paths that are specified relative to the
-   current directory (unless it's not possible like on Windows if the
-   project is on another volume than the current directory; in that case,
-   we return absolute paths).
-
-   The behavior is unspecified if 'project_root' is not the root of a git
-   project.
-*)
-val ls_files_relative :
-  ?exclude_standard:bool ->
-  ?kinds:ls_files_kind list ->
-  project_root:Rpath.t ->
-  Fpath.t list ->
-  Fpath.t list
-
 (* get merge base between arg and HEAD *)
 val merge_base : string -> string
 

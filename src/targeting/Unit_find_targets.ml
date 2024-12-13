@@ -112,14 +112,15 @@ let tests_with_or_without_git ~with_git =
       [ F.dir "dir" [ F.file "a"; F.file "b" ] ];
     test_find_targets ~with_git ~scanning_root:"a.py" "scanning root as a file"
       [ F.file "a.py" ];
+    (* Select the symlink and not the regular file it's pointing to. *)
     test_find_targets ~with_git ~scanning_root:"a.py"
       "scanning root as a symlink to a regular file"
       [ F.Symlink ("a.py", "b.py"); F.File ("b.py", "some content") ];
     test_find_targets ~with_git ~scanning_root:"a.py"
       "scanning root as a symlink to a missing regular file"
       [ F.Symlink ("a.py", "b.py") ];
-    test_find_targets ~expected_outcome:(Should_fail "TODO") ~with_git
-      ~scanning_root:"link-to-src" "scanning root as a symlink to a folder"
+    test_find_targets ~with_git ~scanning_root:"link-to-src"
+      "scanning root as a symlink to a folder"
       [ F.dir "src" [ F.file "a.py" ]; F.Symlink ("link-to-src", "src") ];
     (*
        Test that the '--include' filter takes place after all the other
@@ -138,6 +139,16 @@ let tests_with_or_without_git ~with_git =
        (.semgrepignore, --include, --exclude) *)
     test_find_targets ~with_git ~scanning_root:"a.py" "scan explicit target"
       [ F.file "a.py"; F.File (".semgrepignore", "a.py\n") ];
+    (* Unspecified behavior: what to do with a scanning root that's
+       a symlink to a file that's semgrepignored? Should it be considered
+       an explicit target? This test assumes so. We could change it. *)
+    test_find_targets ~with_git ~scanning_root:"symlink.py"
+      "scan symlink to semgrepignored target"
+      [
+        F.symlink "symlink.py" "semgrepignored.py";
+        F.file "semgrepignored.py";
+        F.File (".semgrepignore", "semgrepignored.py\n");
+      ];
   ]
 
 (*

@@ -1,5 +1,5 @@
-(* "Real paths" - Absolute physical filesystem paths as returned
-   by 'Unix.realpath'.
+(* "Real paths" aka "physical paths"
+    Absolute and unique filesystem paths as returned by 'Unix.realpath'
 
    Here is some terminology:
    - relative path: a path relative to a directory
@@ -82,3 +82,12 @@ val getcwd : unit -> t
    than returning itself.
 *)
 val parent : t -> t option
+
+(*
+   Return whether a path is a prefix of another. Since they're real paths,
+   the corresponding files or folders are assumed to exist.
+
+   For example, '/a' contains '/a', '/a/b', and '/a/b/c' but does not
+   contain '/', '/c', or '/aa'.
+*)
+val contains : t -> t -> bool

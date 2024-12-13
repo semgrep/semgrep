@@ -1,9 +1,10 @@
-Test name: without git > scanning root as a symlink to a folder
+Test name: without git > scan symlink to semgrepignored target
 --- Files not added to git ---
-link-to-src
-src/a.py
+.semgrepignore
+semgrepignored.py
+symlink.py
 --- begin input files ---
 --- end input files ---
 --- Selected targets ---
-selected link-to-src/a.py
+selected symlink.py
 --- Skipped targets ---

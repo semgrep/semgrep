@@ -1,0 +1,19 @@
+Test name: with git > scan symlink to semgrepignored target
+--- Files added before 'git add' ---
+.semgrepignore
+semgrepignored.py
+symlink.py
+--- begin input files ---
+.semgrepignore
+semgrepignored.py
+symlink.py
+--- end input files ---
+Initialized empty Git repository in <TMP>/<MASKED>/.git/
+[main (root-commit) <MASKED>] Add files
+ 3 files changed, 2 insertions(+)
+ create mode 100644 .semgrepignore
+ create mode 100644 semgrepignored.py
+ create mode 120000 symlink.py
+--- Selected targets ---
+selected symlink.py
+--- Skipped targets ---
