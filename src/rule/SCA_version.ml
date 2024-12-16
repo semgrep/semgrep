@@ -12,3 +12,11 @@ type t =
   (* Versions are sometimes listed as arbitrary strings, like a github URL *)
   | Other of string
 [@@deriving show { with_path = false }, eq]
+
+(* pretty printer *)
+let to_string (v : t) : string =
+  match v with
+  | Other s -> s
+  | V { major; minor; incrementals } ->
+      major :: minor :: incrementals
+      |> List_.map string_of_int |> String.concat "."

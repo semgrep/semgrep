@@ -1,3 +1,4 @@
+open Common
 module Out = Semgrep_output_v1_t
 
 type sca_operator = Eq | Gte | Lte | Gt | Lt
@@ -27,3 +28,20 @@ type t = {
  *)
 and version_constraints = SCA_And of version_constraint list
 [@@deriving show { with_path = false }, eq]
+
+(* Pretty printer
+ * alt: store a version_constraints_string above
+ *)
+let version_constraints_to_string (SCA_And xs) =
+  xs
+  |> List_.map (fun { op; version } ->
+         let op_str =
+           match op with
+           | Eq -> "==" (* or = ? *)
+           | Gte -> ">="
+           | Lte -> "<="
+           | Gt -> ">"
+           | Lt -> "<"
+         in
+         spf "%s %s" op_str (SCA_version.to_string version))
+  |> String.concat ", "
