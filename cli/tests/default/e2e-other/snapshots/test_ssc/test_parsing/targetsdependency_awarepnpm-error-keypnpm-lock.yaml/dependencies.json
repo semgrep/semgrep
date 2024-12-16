@@ -6,7 +6,8 @@
     "allowed_hashes": {},
     "transitivity": "transitive",
     "lockfile_path": "targets/dependency_aware/pnpm-error-key/pnpm-lock.yaml",
-    "line_number": 21
+    "line_number": 21,
+    "children": []
   },
   {
     "package": "@babel/helper-validator-identifier",
@@ -15,7 +16,8 @@
     "allowed_hashes": {},
     "transitivity": "transitive",
     "lockfile_path": "targets/dependency_aware/pnpm-error-key/pnpm-lock.yaml",
-    "line_number": 25
+    "line_number": 25,
+    "children": []
   },
   {
     "package": "@babel/parser",
@@ -24,7 +26,13 @@
     "allowed_hashes": {},
     "transitivity": "transitive",
     "lockfile_path": "targets/dependency_aware/pnpm-error-key/pnpm-lock.yaml",
-    "line_number": 29
+    "line_number": 29,
+    "children": [
+      {
+        "package": "@babel/types",
+        "version": "7.20.7"
+      }
+    ]
   },
   {
     "package": "@types/jsdom",
@@ -33,7 +41,21 @@
     "allowed_hashes": {},
     "transitivity": "direct",
     "lockfile_path": "targets/dependency_aware/pnpm-error-key/pnpm-lock.yaml",
-    "line_number": 36
+    "line_number": 36,
+    "children": [
+      {
+        "package": "@types/node",
+        "version": "18.11.18"
+      },
+      {
+        "package": "@types/tough-cookie",
+        "version": "4.0.2"
+      },
+      {
+        "package": "parse5",
+        "version": "7.1.2"
+      }
+    ]
   },
   {
     "package": "stream",
@@ -42,7 +64,13 @@
     "allowed_hashes": {},
     "transitivity": "direct",
     "lockfile_path": "targets/dependency_aware/pnpm-error-key/pnpm-lock.yaml",
-    "line_number": 54
+    "line_number": 54,
+    "children": [
+      {
+        "package": "emitter-component",
+        "version": "1.1.1"
+      }
+    ]
   },
   {
     "package": "typescript",
@@ -51,7 +79,8 @@
     "allowed_hashes": {},
     "transitivity": "direct",
     "lockfile_path": "targets/dependency_aware/pnpm-error-key/pnpm-lock.yaml",
-    "line_number": 60
+    "line_number": 60,
+    "children": []
   },
   {
     "package": "pinia",
@@ -60,7 +89,17 @@
     "allowed_hashes": {},
     "transitivity": "direct",
     "lockfile_path": "targets/dependency_aware/pnpm-error-key/pnpm-lock.yaml",
-    "line_number": 65
+    "line_number": 65,
+    "children": [
+      {
+        "package": "@vue/devtools-api",
+        "version": "6.4.5"
+      },
+      {
+        "package": "vue-demi",
+        "version": "0.13.11_vue@3.2.45"
+      }
+    ]
   },
   {
     "package": "http-proxy-agent",
@@ -69,6 +108,20 @@
     "allowed_hashes": {},
     "transitivity": "transitive",
     "lockfile_path": "targets/dependency_aware/pnpm-error-key/pnpm-lock.yaml",
-    "line_number": 83
+    "line_number": 83,
+    "children": [
+      {
+        "package": "@tootallnate/once",
+        "version": "2.0.0"
+      },
+      {
+        "package": "agent-base",
+        "version": "6.0.2"
+      },
+      {
+        "package": "debug",
+        "version": "4.3.4"
+      }
+    ]
   }
 ]

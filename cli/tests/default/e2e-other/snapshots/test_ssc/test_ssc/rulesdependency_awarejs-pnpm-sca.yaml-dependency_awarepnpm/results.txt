@@ -34,6 +34,20 @@
             },
             "found_dependency": {
               "allowed_hashes": {},
+              "children": [
+                {
+                  "package": "follow-redirects",
+                  "version": "1.15.2"
+                },
+                {
+                  "package": "form-data",
+                  "version": "4.0.0"
+                },
+                {
+                  "package": "proxy-from-env",
+                  "version": "1.1.0"
+                }
+              ],
               "ecosystem": "npm",
               "line_number": 44,
               "lockfile_path": "targets/dependency_aware/pnpm/pnpm-lock.yaml",

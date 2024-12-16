@@ -6,7 +6,8 @@
     "allowed_hashes": {},
     "transitivity": "transitive",
     "lockfile_path": "targets/dependency_aware/osv_parsing/pnpm/exotic/pnpm-lock.yaml",
-    "line_number": 10
+    "line_number": 10,
+    "children": []
   },
   {
     "package": "@foo/bar",
@@ -15,7 +16,8 @@
     "allowed_hashes": {},
     "transitivity": "transitive",
     "lockfile_path": "targets/dependency_aware/osv_parsing/pnpm/exotic/pnpm-lock.yaml",
-    "line_number": 11
+    "line_number": 11,
+    "children": []
   },
   {
     "package": "foo",
@@ -24,7 +26,8 @@
     "allowed_hashes": {},
     "transitivity": "transitive",
     "lockfile_path": "targets/dependency_aware/osv_parsing/pnpm/exotic/pnpm-lock.yaml",
-    "line_number": 17
+    "line_number": 17,
+    "children": []
   },
   {
     "package": "foo",
@@ -33,6 +36,7 @@
     "allowed_hashes": {},
     "transitivity": "transitive",
     "lockfile_path": "targets/dependency_aware/osv_parsing/pnpm/exotic/pnpm-lock.yaml",
-    "line_number": 18
+    "line_number": 18,
+    "children": []
   }
 ]

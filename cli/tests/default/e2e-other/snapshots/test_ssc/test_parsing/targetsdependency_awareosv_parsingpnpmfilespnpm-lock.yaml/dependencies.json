@@ -6,7 +6,8 @@
     "allowed_hashes": {},
     "transitivity": "direct",
     "lockfile_path": "targets/dependency_aware/osv_parsing/pnpm/files/pnpm-lock.yaml",
-    "line_number": 10
+    "line_number": 10,
+    "children": []
   },
   {
     "package": "a-local-package",
@@ -15,7 +16,8 @@
     "allowed_hashes": {},
     "transitivity": "transitive",
     "lockfile_path": "targets/dependency_aware/osv_parsing/pnpm/files/pnpm-lock.yaml",
-    "line_number": 16
+    "line_number": 16,
+    "children": []
   },
   {
     "package": "a-nested-local-package",
@@ -24,7 +26,8 @@
     "allowed_hashes": {},
     "transitivity": "transitive",
     "lockfile_path": "targets/dependency_aware/osv_parsing/pnpm/files/pnpm-lock.yaml",
-    "line_number": 22
+    "line_number": 22,
+    "children": []
   },
   {
     "package": "one-up",
@@ -33,7 +36,8 @@
     "allowed_hashes": {},
     "transitivity": "transitive",
     "lockfile_path": "targets/dependency_aware/osv_parsing/pnpm/files/pnpm-lock.yaml",
-    "line_number": 28
+    "line_number": 28,
+    "children": []
   },
   {
     "package": "one-up-with-peer",
@@ -42,6 +46,7 @@
     "allowed_hashes": {},
     "transitivity": "transitive",
     "lockfile_path": "targets/dependency_aware/osv_parsing/pnpm/files/pnpm-lock.yaml",
-    "line_number": 34
+    "line_number": 34,
+    "children": []
   }
 ]

@@ -6,6 +6,7 @@
     "allowed_hashes": {},
     "transitivity": "direct",
     "lockfile_path": "targets/dependency_aware/osv_parsing/pnpm/tarball/pnpm-lock.yaml",
-    "line_number": 10
+    "line_number": 10,
+    "children": []
   }
 ]

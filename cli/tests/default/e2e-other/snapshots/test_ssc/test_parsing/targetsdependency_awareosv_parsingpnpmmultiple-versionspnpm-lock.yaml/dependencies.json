@@ -6,7 +6,8 @@
     "allowed_hashes": {},
     "transitivity": "direct",
     "lockfile_path": "targets/dependency_aware/osv_parsing/pnpm/multiple-versions/pnpm-lock.yaml",
-    "line_number": 13
+    "line_number": 13,
+    "children": []
   },
   {
     "package": "uuid",
@@ -15,7 +16,8 @@
     "allowed_hashes": {},
     "transitivity": "direct",
     "lockfile_path": "targets/dependency_aware/osv_parsing/pnpm/multiple-versions/pnpm-lock.yaml",
-    "line_number": 19
+    "line_number": 19,
+    "children": []
   },
   {
     "package": "xmlbuilder",
@@ -24,6 +26,7 @@
     "allowed_hashes": {},
     "transitivity": "transitive",
     "lockfile_path": "targets/dependency_aware/osv_parsing/pnpm/multiple-versions/pnpm-lock.yaml",
-    "line_number": 24
+    "line_number": 24,
+    "children": []
   }
 ]

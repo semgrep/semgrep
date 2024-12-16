@@ -33,6 +33,7 @@
             },
             "found_dependency": {
               "allowed_hashes": {},
+              "children": [],
               "ecosystem": "npm",
               "line_number": 6219,
               "lockfile_path": "targets/dependency_aware/pnpm-v9/pnpm-lock.yaml",

@@ -557,12 +557,17 @@ def test_parsing(caplog, target: str, snapshot, lockfile_path_in_tmp):
 
     # Assert
 
-    # These two files have some packages we cannot really make sense of, so we ignore them
+    # Some of these files either contain incomplete dependency graphs,
+    # or have some packages we cannot really make sense of, so we ignore them
     # We include our failures in the error output for informational purposes
+    # if target.endswith("osv_parsing/pnpm/commits/pnpm-lock.yaml"):
+    #     assert len(error) == 1
     if target.endswith("files/pnpm-lock.yaml"):
         assert len(error) == 1
     elif target.endswith("exotic/pnpm-lock.yaml"):
         assert len(error) == 5
+    # elif target.endswith("osv_parsing/pnpm/peer-dependencies-advanced/pnpm-lock.yaml"):
+    #     assert len(error) == 1
     elif target.endswith("pnpm-error-key/pnpm-lock.yaml"):
         assert len(error) == 1
     else:

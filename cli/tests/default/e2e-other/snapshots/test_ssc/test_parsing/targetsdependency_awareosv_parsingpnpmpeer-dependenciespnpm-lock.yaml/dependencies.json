@@ -6,7 +6,8 @@
     "allowed_hashes": {},
     "transitivity": "direct",
     "lockfile_path": "targets/dependency_aware/osv_parsing/pnpm/peer-dependencies/pnpm-lock.yaml",
-    "line_number": 13
+    "line_number": 13,
+    "children": []
   },
   {
     "package": "acorn",
@@ -15,6 +16,7 @@
     "allowed_hashes": {},
     "transitivity": "direct",
     "lockfile_path": "targets/dependency_aware/osv_parsing/pnpm/peer-dependencies/pnpm-lock.yaml",
-    "line_number": 21
+    "line_number": 21,
+    "children": []
   }
 ]

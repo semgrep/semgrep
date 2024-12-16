@@ -6,7 +6,8 @@
     "allowed_hashes": {},
     "transitivity": "direct",
     "lockfile_path": "targets/dependency_aware/osv_parsing/pnpm/commits/pnpm-lock.yaml",
-    "line_number": 14
+    "line_number": 14,
+    "children": []
   },
   {
     "package": "@my-scope/my-package",
@@ -15,7 +16,13 @@
     "allowed_hashes": {},
     "transitivity": "direct",
     "lockfile_path": "targets/dependency_aware/osv_parsing/pnpm/commits/pnpm-lock.yaml",
-    "line_number": 20
+    "line_number": 20,
+    "children": [
+      {
+        "package": "@my-scope/my-other-package",
+        "version": "github.com/my-org/my-other-package/1b54f894c648dde79b6f2060f9a6b47bb62c1125"
+      }
+    ]
   },
   {
     "package": "@my-scope/my-other-package",
@@ -24,7 +31,8 @@
     "allowed_hashes": {},
     "transitivity": "transitive",
     "lockfile_path": "targets/dependency_aware/osv_parsing/pnpm/commits/pnpm-lock.yaml",
-    "line_number": 28
+    "line_number": 28,
+    "children": []
   },
   {
     "package": "faker-parser",
@@ -33,7 +41,13 @@
     "allowed_hashes": {},
     "transitivity": "transitive",
     "lockfile_path": "targets/dependency_aware/osv_parsing/pnpm/commits/pnpm-lock.yaml",
-    "line_number": 34
+    "line_number": 34,
+    "children": [
+      {
+        "package": "faker",
+        "version": "5.5.3"
+      }
+    ]
   },
   {
     "package": "mocks",
@@ -42,6 +56,12 @@
     "allowed_hashes": {},
     "transitivity": "direct",
     "lockfile_path": "targets/dependency_aware/osv_parsing/pnpm/commits/pnpm-lock.yaml",
-    "line_number": 42
+    "line_number": 42,
+    "children": [
+      {
+        "package": "faker-parser",
+        "version": "github.com/my-org/faker-parser/d2dc42a9351d4d89ec48c525e34f612b6d77993f"
+      }
+    ]
   }
 ]
