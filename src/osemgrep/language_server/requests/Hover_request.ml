@@ -32,7 +32,7 @@ let on_request server ({ position; textDocument; _ } : HoverParams.t) =
         If you return `None` instead, the client will still be
         expecting a response!
     *)
-    (Some `Null, server)
+    (server, Some `Null)
   else
     let file = Uri.to_path textDocument.uri |> Fpath.v in
     (* Add 1 to each list for the newline! *)
@@ -56,7 +56,7 @@ let on_request server ({ position; textDocument; _ } : HoverParams.t) =
     in
     let res = AST_generic_helpers.nearest_any_of_pos ast charpos in
     match res with
-    | None -> (Some `Null, server)
+    | None -> (server, Some `Null)
     | Some (any, (t1, t2)) ->
         let v = Meta_AST.vof_any any in
         (* 80 columns is too little *)
@@ -79,4 +79,4 @@ let on_request server ({ position; textDocument; _ } : HoverParams.t) =
                   };
             }
         in
-        (Some (Hover.yojson_of_t hover), server)
+        (server, Some (Hover.yojson_of_t hover))

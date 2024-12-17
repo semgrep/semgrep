@@ -1,7 +1,7 @@
 val on_request :
   RPC_server.t ->
   Lsp.Types.InitializeParams.t ->
-  Lsp.Types.InitializeResult.t * RPC_server.t
+  RPC_server.t * Lsp.Types.InitializeResult.t
 (** [on_request server params] is the result of handling the initialize request
   * [params] on the server [server].
   *

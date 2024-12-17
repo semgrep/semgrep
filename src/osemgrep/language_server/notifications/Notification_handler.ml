@@ -37,13 +37,12 @@ module Conv = Convert_utils
 (* Dispatch to the various custom request handlers. *)
 let handle_custom_notification session (meth : string)
     (params : Jsonrpc.Structured.t option) : Reply.t option =
-  match
-    [ (LoginFinish.meth, LoginFinish.on_notification) ] |> List.assoc_opt meth
-  with
+  match [ (* Currently no custom notifications *) ] |> List.assoc_opt meth with
   | None ->
       Logs.warn (fun m -> m "Unhandled custom notification %s" meth);
       None
-  | Some handler -> Some (handler session params)
+  | Some (handler : Session.t -> Jsonrpc.Structured.t option -> Reply.t) ->
+      Some (handler session params)
 
 let on_notification (server : RPC_server.t) notification =
   Logs.debug (fun m ->

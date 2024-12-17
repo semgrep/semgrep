@@ -141,4 +141,4 @@ let on_request server
            List.mem (Conv.range_of_cli_match m) ranges)
   in
   let actions = code_actions_of_cli_matches matches [ file ] in
-  (Some actions, server)
+  (server, Some actions)

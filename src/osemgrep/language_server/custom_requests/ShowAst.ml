@@ -57,7 +57,7 @@ end
 
 let meth = "semgrep/showAst"
 
-let on_request _server (params : Jsonrpc.Structured.t option) =
+let on_request session id (params : Jsonrpc.Structured.t option) =
   let { Request_params.document_uri; named } =
     Request_params.of_jsonrpc_params_exn params
   in
@@ -72,4 +72,4 @@ let on_request _server (params : Jsonrpc.Structured.t option) =
   (* 80 columns is too little *)
   Format.set_margin 120;
   let s = OCaml.string_of_v v in
-  Some (`String s)
+  (session, Lsp_.Reply.now (Lsp_.respond_json id (`String s)))

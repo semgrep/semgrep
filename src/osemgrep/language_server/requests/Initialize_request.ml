@@ -126,4 +126,4 @@ let on_request server (params : InitializeParams.t) =
   in
   let server = initialize_server server params in
   (* TODO we should create a progress symbol before calling initialize server! *)
-  (init, server)
+  (server, init)

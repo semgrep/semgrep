@@ -2,7 +2,7 @@
    nullary response
 *)
 val on_request :
-  RPC_server.t -> Lsp.Types.HoverParams.t -> Yojson.Safe.t option * RPC_server.t
+  RPC_server.t -> Lsp.Types.HoverParams.t -> RPC_server.t * Yojson.Safe.t option
 (** [on_request server params] is the response to a hover request.
   *
   * See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_hover

@@ -10,4 +10,8 @@
    glob
    semgrep_core
  )
+ (preprocess
+   (pps
+     ppx_deriving_yojson
+     lwt_ppx))
 )

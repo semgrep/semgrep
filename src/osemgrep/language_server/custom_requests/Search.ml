@@ -473,7 +473,7 @@ let json_of_matches
         `Assoc [ ("uri", `String uri); ("matches", `List matches) ])
       matches_by_file
   in
-  Some (`Assoc [ ("locations", `List json) ])
+  `Assoc [ ("locations", `List json) ]
 
 (*****************************************************************************)
 (* Running Semgrep! *)
@@ -496,8 +496,7 @@ let rec search_single_target (session : Session.t) =
       (* Since we are done with our searches (no more targets), reset our internal state to
          no longer have this scan config.
       *)
-      ( { session with search_config = None },
-        Some (`Assoc [ ("locations", `List []) ]) )
+      ({ session with search_config = None }, `Assoc [ ("locations", `List []) ])
   | Some (session, (rules, file, xconf)) -> (
       try
         let matches =
@@ -523,11 +522,12 @@ let rec search_single_target (session : Session.t) =
 (** on a semgrep/search request, get the pattern and (optional) language params.
     We then try and parse the pattern in every language (or specified lang), and
     scan like normal, only returning the match ranges per file *)
-let start_search (session : Session.t) (params : Jsonrpc.Structured.t option) =
+let start_search (session : Session.t) (id : Jsonrpc.Id.t)
+    (params : Jsonrpc.Structured.t option) =
   match Request_params.of_jsonrpc_params params with
   | None ->
       Logs.debug (fun m -> m "no params received in semgrep/search");
-      (session, None)
+      (session, Lsp_.Reply.empty)
   | Some params -> (
       let env = mk_env session params in
       match get_relevant_rules env with
@@ -535,7 +535,7 @@ let start_search (session : Session.t) (params : Jsonrpc.Structured.t option) =
           Logs.warn (fun m ->
               m "error parsing patterns for semgrep/search: %s"
                 (Rule_error.string_of_error e));
-          (session, None)
+          (session, Lsp_.Reply.empty)
       | Ok rules ->
           let xconf =
             {
@@ -544,12 +544,17 @@ let start_search (session : Session.t) (params : Jsonrpc.Structured.t option) =
             }
           in
           (* !!calling the engine!! *)
-          search_single_target
-            {
-              session with
-              search_config = Some { rules; files = env.initial_files; xconf };
-            })
+          let session, json =
+            search_single_target
+              {
+                session with
+                search_config = Some { rules; files = env.initial_files; xconf };
+              }
+          in
+          (session, Lsp_.Reply.now (Lsp_.respond_json id json)))
 
-let search_next_file (session : Session.t) _params =
+let search_next_file (session : Session.t) (id : Jsonrpc.Id.t) _params :
+    Session.t * Lsp_.Reply.t =
   (* The params are nullary, so we don't actually need to check them. *)
-  search_single_target session
+  let session, json = search_single_target session in
+  (session, Lsp_.Reply.now (Lsp_.respond_json id json))
