@@ -44,7 +44,8 @@
 
   SUPPLY CHAIN RULES
   Scanning 1 file.
-
+  Uploading scan results
+  Finalizing scan
 
 ┌──────────────┐
 │ Scan Summary │
@@ -56,8 +57,7 @@ Some files were skipped or only partially analyzed.
 
 CI scan completed successfully.
   Found 1 finding (0 blocking) from 7 rules.
-  Uploading scan results
-  Finalizing scan           View results in Semgrep Cloud Platform:
+  View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings?repo=local_scan/checkout_project_name&ref=some/branch-name
     https://semgrep.dev/orgs/org_name/supply-chain/vulnerabilities?repo=local_scan/checkout_project_name&ref=some/branch-name
   semgrep.dev is suggesting a non-zero exit code (Test Reason)

@@ -33,7 +33,6 @@ from tests.fixtures import RunSemgrep
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
-from semgrep.app.scans import ScanCompleteResult
 from semgrep.app.scans import ScanHandler
 from semgrep.constants import OutputFormat
 from semgrep.engine import EngineType
@@ -509,14 +508,18 @@ def upload_results_mock_maker(requests_mock, mocked_scan_id, mocked_task_id):
 
 
 @pytest.fixture
-def complete_scan_mock_maker(requests_mock, mocked_scan_id):
+def mocked_complete_response():
+    return out.CiScanCompleteResponse(
+        success=True, app_block_override=True, app_block_reason="Test Reason"
+    )
+
+
+@pytest.fixture
+def complete_scan_mock_maker(requests_mock, mocked_scan_id, mocked_complete_response):
     def _complete_scan_func(semgrep_url: str = "https://semgrep.dev"):
-        complete_response = out.CiScanCompleteResponse(
-            success=True, app_block_override=True, app_block_reason="Test Reason"
-        )
         return requests_mock.post(
             f"{semgrep_url}/api/agent/scans/{mocked_scan_id}/complete",
-            json=complete_response.to_json(),
+            json=mocked_complete_response.to_json(),
         )
 
     return _complete_scan_func
@@ -2024,7 +2027,7 @@ def test_backend_exit_code(
     mocker.patch.object(
         ScanHandler,
         "report_findings",
-        return_value=ScanCompleteResult(True, True, "some reason to fail"),
+        return_value=out.CiScanCompleteResponse(True, True, "some reason to fail"),
     )
 
     start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
@@ -2888,4 +2891,66 @@ def test_always_suppress_errors(
         assert_exit_code=0 if always_suppress_errors else 2,
         env={"SEMGREP_APP_TOKEN": "fake_key"},
         use_click_runner=True,
+    )
+
+
+@pytest.mark.parametrize(
+    "mocked_complete_response",
+    [
+        # Should produce output showing all findings as blocking
+        out.CiScanCompleteResponse(
+            success=True,
+            app_block_override=True,
+            app_block_reason="",
+            app_blocking_match_based_ids=[
+                out.MatchBasedId(
+                    "186b96f64aca90b7f5a9c75f2e44538885d0e727ed3161ef7b6d46c40b3d078acfc8859b290e118cb8ca42f5b41e61afe73b0f416f47a2f16abce67b1be307d3_0"
+                ),
+                out.MatchBasedId(
+                    "2c4ff12fcdf80ef1c00dd0f566ae102d792c7ba68e560d70f111aae3b3216c0b1b943e74d2ce29c0361f1fbc37bd4e9aafd32c3435a36c61b8bd3963efe0d7a1_0"
+                ),
+            ],
+        ),
+        # Should produce output showing all findings as blocking, and also mention the 'Test reason'
+        out.CiScanCompleteResponse(
+            success=True,
+            app_block_override=True,
+            app_block_reason="Test reason",
+            app_blocking_match_based_ids=[
+                out.MatchBasedId(
+                    "186b96f64aca90b7f5a9c75f2e44538885d0e727ed3161ef7b6d46c40b3d078acfc8859b290e118cb8ca42f5b41e61afe73b0f416f47a2f16abce67b1be307d3_0"
+                ),
+                out.MatchBasedId(
+                    "2c4ff12fcdf80ef1c00dd0f566ae102d792c7ba68e560d70f111aae3b3216c0b1b943e74d2ce29c0361f1fbc37bd4e9aafd32c3435a36c61b8bd3963efe0d7a1_0"
+                ),
+            ],
+        ),
+    ],
+)
+@pytest.mark.osemfail
+def test_app_blocked_findings(
+    git_tmp_path_with_commit,
+    snapshot,
+    mocker,
+    run_semgrep: RunSemgrep,
+    start_scan_mock_maker,
+    complete_scan_mock_maker,
+    upload_results_mock_maker,
+):
+    start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
+    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
+    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
+
+    result = run_semgrep(
+        subcommand="ci",
+        options=["--no-suppress-errors", "--oss-only"],
+        target_name=None,
+        strict=False,
+        assert_exit_code=None,
+        env={"SEMGREP_APP_TOKEN": "fake_key"},
+        use_click_runner=True,
+    )
+    snapshot.assert_match(
+        result.as_snapshot(),
+        "output.txt",
     )

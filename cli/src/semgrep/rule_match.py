@@ -90,6 +90,7 @@ class RuleMatch:
     # This could be derived, if we wanted to keep the rule as a field of the
     # match. Seems easier to just calculate it w/index
     match_formula_string: str = ""
+    blocked_by_app: bool = False
 
     # derived attributes
     lines: List[str] = field(init=False, repr=False)
@@ -454,6 +455,9 @@ class RuleMatch:
         """
         Returns if this finding indicates it should block CI
         """
+        if self.blocked_by_app:
+            return True
+
         blocking = "block" in self.metadata.get("dev.semgrep.actions", ["block"])
         if "sca_info" in self.extra:
             if (

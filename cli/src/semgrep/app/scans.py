@@ -3,7 +3,6 @@ import json
 import os
 import sys
 from collections import Counter
-from dataclasses import dataclass
 from datetime import datetime
 from datetime import timedelta
 from pathlib import Path
@@ -44,13 +43,6 @@ if TYPE_CHECKING:
     from semgrep.engine import EngineType
     from rich.progress import Progress
 logger = getLogger(__name__)
-
-
-@dataclass
-class ScanCompleteResult:
-    success: bool
-    app_block_override: bool
-    app_block_reason: str
 
 
 class ScanHandler:
@@ -348,7 +340,7 @@ class ScanHandler:
         contributions: out.Contributions,
         engine_requested: "EngineType",
         progress_bar: "Progress",
-    ) -> ScanCompleteResult:
+    ) -> out.CiScanCompleteResponse:
         """
         commit_date here for legacy reasons. epoch time of latest commit
 
@@ -503,7 +495,7 @@ class ScanHandler:
             logger.info(
                 f"Would have sent complete blob: {json.dumps(complete.to_json(), indent=4)}"
             )
-            return ScanCompleteResult(True, False, "")
+            return out.CiScanCompleteResponse(success=True)
 
         # old: was also logging {json.dumps(findings_and_ignores, indent=4)}
         # alt: save it in ~/.semgrep/logs/findings_and_ignores.json?
@@ -565,16 +557,11 @@ class ScanHandler:
                     f"API server at {state.env.semgrep_url} returned this error: {response.text}"
                 )
 
-            ret = response.json()
-            success = ret.get("success", False)
+            ret = out.CiScanCompleteResponse.from_json(response.json())
+            success = ret.success
 
             if success or complete.final_attempt:
                 progress_bar.update(complete_task, completed=100)
-                return ScanCompleteResult(
-                    success,
-                    bool(ret.get("app_block_override", False)),
-                    ret.get("app_block_reason", ""),
-                )
-
+                return ret
             progress_bar.advance(complete_task)
             sleep(5 if datetime.now().replace(tzinfo=None) < slow_down_after else 30)

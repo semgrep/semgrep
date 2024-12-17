@@ -96,7 +96,8 @@ Creating git worktree from '<MASKED>' to scan baseline.
 
   SUPPLY CHAIN RULES
   Scanning 1 file.
-
+  Uploading scan results
+  Finalizing scan
 
 ┌──────────────┐
 │ Scan Summary │
@@ -106,8 +107,7 @@ Some files were skipped or only partially analyzed.
 
 CI scan completed successfully.
   Found 7 findings (6 blocking) from 7 rules.
-  Uploading scan results
-  Finalizing scan           View results in Semgrep Cloud Platform:
+  View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings?repo=project_name/project_name&ref=some/branch-name
     https://semgrep.dev/orgs/org_name/supply-chain/vulnerabilities?repo=project_name/project_name&ref=some/branch-name
   Has findings for blocking rules so exiting with code 1

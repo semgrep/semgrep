@@ -12,6 +12,7 @@ from typing import Sequence
 from typing import Tuple
 
 import click
+from attr import evolve
 from rich.padding import Padding
 from rich.progress import Progress
 from rich.progress import SpinnerColumn
@@ -24,7 +25,6 @@ import semgrep.run_scan
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import tracing
 from semgrep.app.project_config import ProjectConfig
-from semgrep.app.scans import ScanCompleteResult
 from semgrep.app.scans import ScanHandler
 from semgrep.commands.install import run_install_semgrep_pro
 from semgrep.commands.scan import collect_additional_outputs
@@ -807,26 +807,29 @@ def ci(
         # the cli depends on the apps response to compute its own exit code!
         cli_suggested_exit_code = 1 if num_blocking_findings > 0 else 0
 
-        if not internal_ci_scan_results:
-            output_handler.output(
-                non_cai_matches_by_rule,
-                all_targets=output_extra.all_targets,
-                engine_type=engine_type,
-                ignore_log=ignore_log,
-                profiler=profiler,
-                filtered_rules=filtered_rules,
-                extra=output_extra,
-                severities=shown_severities,
-                is_ci_invocation=True,
-                print_summary=False,
+        if scan_handler is None:
+            # This is a slightly weird case, where we're running `semgrep ci` while logged out with an explicitly provided config
+            # There's no app to report to, so we just print the results immediately
+            if not internal_ci_scan_results:
+                output_handler.output(
+                    non_cai_matches_by_rule,
+                    all_targets=output_extra.all_targets,
+                    engine_type=engine_type,
+                    ignore_log=ignore_log,
+                    profiler=profiler,
+                    filtered_rules=filtered_rules,
+                    extra=output_extra,
+                    severities=shown_severities,
+                    is_ci_invocation=True,
+                    print_summary=False,
+                )
+
+            logger.info("CI scan completed successfully.")
+            logger.info(
+                f"  Found {unit_str(num_blocking_findings + num_nonblocking_findings, 'finding')} ({num_blocking_findings} blocking) from {unit_str(len(filtered_rules), 'rule')}."
             )
 
-        logger.info("CI scan completed successfully.")
-        logger.info(
-            f"  Found {unit_str(num_blocking_findings + num_nonblocking_findings, 'finding')} ({num_blocking_findings} blocking) from {unit_str(len(filtered_rules), 'rule')}."
-        )
-
-        complete_result: ScanCompleteResult | None = None
+        complete_result: out.CiScanCompleteResponse | None = None
         contributions = semgrep.rpc_call.contributions()
         if scan_handler:
             with Progress(
@@ -852,6 +855,44 @@ def ci(
                     engine_type,
                     progress_bar,
                 )
+            app_blocked_mids = set()
+            if (
+                complete_result.app_block_override
+                and len(complete_result.app_blocking_match_based_ids) > 0
+            ):
+                num_blocking_findings = 0
+                num_nonblocking_findings = 0
+                app_blocked_mids = set(
+                    [x.value for x in complete_result.app_blocking_match_based_ids]
+                )
+                for matches in non_cai_matches_by_rule.values():
+                    for i in range(len(matches)):
+                        if matches[i].match_based_id in app_blocked_mids:
+                            matches[i] = evolve(matches[i], blocked_by_app=True)
+
+                        if matches[i].is_blocking:
+                            num_blocking_findings += 1
+                        else:
+                            num_nonblocking_findings += 1
+
+            if not internal_ci_scan_results:
+                output_handler.output(
+                    non_cai_matches_by_rule,
+                    all_targets=output_extra.all_targets,
+                    engine_type=engine_type,
+                    ignore_log=ignore_log,
+                    profiler=profiler,
+                    filtered_rules=filtered_rules,
+                    extra=output_extra,
+                    severities=shown_severities,
+                    is_ci_invocation=True,
+                    print_summary=False,
+                )
+
+            logger.info("CI scan completed successfully.")
+            logger.info(
+                f"  Found {unit_str(num_blocking_findings + num_nonblocking_findings, 'finding')} ({num_blocking_findings} blocking) from {unit_str(len(filtered_rules), 'rule')}."
+            )
 
             if internal_ci_scan_results:
                 # console.print() would go to stderr; here we print() directly to stdout
@@ -888,25 +929,47 @@ def ci(
 
         # Although the cli came up with a suggested exit code, we could still
         # exit with a different exit code, as the cli depends on the app to
-        # compute its own exit code
+        # compute its own exit code.
         audit_mode = metadata.event_name in audit_on
-        if cli_suggested_exit_code == 1:
+
+        # The app is saying that some specific findings are blocking
+        app_policy_block = (
+            complete_result
+            and complete_result.app_block_override
+            and complete_result.app_blocking_match_based_ids
+        )
+
+        # The app is saying that there is some other reason for blocking (currently only ever used for SCA license scanning)
+        app_other_block = (
+            complete_result
+            and complete_result.app_block_override
+            and complete_result.app_block_reason
+        )
+
+        if cli_suggested_exit_code == 1 or app_policy_block:
             if audit_mode:
                 logger.info(
                     f"  Audit mode is on for {metadata.event_name}, so exiting with code 0 even if matches found",
                 )
                 exit_code = 0
             else:
-                logger.info("  Has findings for blocking rules so exiting with code 1")
                 exit_code = 1
-                if complete_result and complete_result.app_block_override:
+                logger.info("  Has findings for blocking rules so exiting with code 1")
+                if app_other_block:
+                    assert (
+                        complete_result is not None
+                    )  # Here to appease mypy. This must be true by the definition of `app_other_block`
                     logger.info(complete_result.app_block_reason)
         else:
-            if (
-                complete_result
-                and complete_result.app_block_override
-                and not audit_mode
-            ):
+            if app_other_block and not audit_mode:
+                # When the app causes the CLI to block for SCA license reasons, we need to make
+                # it clear to the user that there is a reason for the block, but when
+                # the app causes the CLI to block because of certain findings, we already
+                # display them as blocking, so there's no need to say
+                # "we blocked because the app said these are blocking"
+                assert (
+                    complete_result is not None
+                )  # Here to appease mypy. This must be true by the definition of `app_other_block`
                 logger.info(
                     f"  semgrep.dev is suggesting a non-zero exit code ({complete_result.app_block_reason})"
                 )

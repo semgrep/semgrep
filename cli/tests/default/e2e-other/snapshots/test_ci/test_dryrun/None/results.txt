@@ -88,16 +88,6 @@
 
   SUPPLY CHAIN RULES
   Scanning 1 file.
-
-
-┌──────────────┐
-│ Scan Summary │
-└──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-
-CI scan completed successfully.
-  Found 8 findings (6 blocking) from 7 rules.
 Would have sent findings and ignores blob: {
     "findings": [
         {
@@ -806,6 +796,16 @@ Would have sent complete blob: {
     },
     "dependency_parser_errors": []
 }
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+Some files were skipped or only partially analyzed.
+  Scan was limited to files tracked by git.
+
+CI scan completed successfully.
+  Found 8 findings (6 blocking) from 7 rules.
   Has findings for blocking rules so exiting with code 1
 
 === end of stderr - plain

@@ -71,7 +71,8 @@ Creating git worktree from '<MASKED>' to scan baseline.
   Basic          2
   Unknown        1
 
-
+  Uploading scan results
+  Finalizing scan
 
 ┌──────────────┐
 │ Scan Summary │
@@ -81,8 +82,7 @@ Some files were skipped or only partially analyzed.
 
 CI scan completed successfully.
   Found 0 findings (0 blocking) from 3 rules.
-  Uploading scan results
-  Finalizing scan           View results in Semgrep Cloud Platform:
+  View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings?repo=local_scan/checkout_project_name&ref=some/branch-name
     https://semgrep.dev/orgs/org_name/supply-chain/vulnerabilities?repo=local_scan/checkout_project_name&ref=some/branch-name
   semgrep.dev is suggesting a non-zero exit code (Test Reason)
