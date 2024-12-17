@@ -1,5 +1,4 @@
-(* this type is used both for Skipped_report.ml and Summary_report.ml *)
-type skipped_targets_grouped = {
+type t = {
   (* targets skipped because of file targeting semantic *)
   ignored : Semgrep_output_v1_t.skipped_target list;
   size : Semgrep_output_v1_t.skipped_target list;
@@ -8,20 +7,13 @@ type skipped_targets_grouped = {
   always : Semgrep_output_v1_t.skipped_target list;
   other : Semgrep_output_v1_t.skipped_target list;
   (* targets skipped because there was parsing/matching
-   * errors while running the engine on it
-   * (see errors_skipped())
+   * errors while running the engine on it (see errors_to_skipped())
    *)
   errors : Semgrep_output_v1_t.skipped_target list;
 }
 
+val group : Semgrep_output_v1_t.skipped_target list -> t
+
+(* internal also used in Scan_subcommand.ml *)
 val errors_to_skipped :
   Semgrep_output_v1_t.core_error list -> Semgrep_output_v1_t.skipped_target list
-
-val group_skipped :
-  Semgrep_output_v1_t.skipped_target list -> skipped_targets_grouped
-
-val pp_skipped :
-  too_many_entries:int ->
-  Format.formatter ->
-  bool * Maturity.t * int * skipped_targets_grouped ->
-  unit

@@ -1,7 +1,11 @@
 module Out = Semgrep_output_v1_j
 
-(* Entry point.
- * when fixed_lines is true, the JSON output contains the fixed lines
+(* Entry point *)
+val json_output : Out.format_context -> Out.cli_output -> string
+
+(* Helper used to build a cli_output from a Core_runner result used
+ * by other Xxx_output.ml files.
+ * When fixed_lines is true, the JSON output contains the fixed lines
  * (and in Scan_subcommand.ml we do not apply the autofix on the files).
  *)
 val cli_output_of_runner_result :
@@ -12,7 +16,7 @@ val cli_output_of_runner_result :
   Fpath.t Set_.t ->
   Out.cli_output
 
-(* internals used in Scan_subcommant.ml *)
+(* internals used in Scan_subcommand.ml *)
 val exit_code_of_error_type : Out.error_type -> Exit_code.t
 
 (* internals used also for incremental display of matches. The Fixed_lines.env is

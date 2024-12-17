@@ -1,4 +1,7 @@
-(* ??? *)
+(* [unit_str cnt prefix] will print "%d %s" cnt prefix
+ * but with an additional "s" at the end if the cnt is > 1.
+ * ex: unit_str 2 "file" -> "2 files"
+ *)
 val unit_str : ?pad:bool -> int -> string -> string
 
 val search : term:string -> string -> int option

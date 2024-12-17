@@ -30,6 +30,7 @@ local unix_funcs = [
         ['Fmt.pr', 'Fmt.stdout'] +
         // Ocolor
         ['Ocolor_format.printf']
+        // TODO: ANSITerminal.print_string prerr_string printf eprintf
         //TODO 'UConsole.$F'
         //TODO 'UCommon.pr' 'UCommon.pr2', ...
       },

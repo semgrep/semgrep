@@ -49,13 +49,14 @@ let reset () =
   (* TODO?
    * - the internal parser refs in Parsing_plugin.ml
    * - Http_helpers.client_ref ?
-   * - Std_msg.highlight_xxx
+   * - Console.highlight_xxx
    * - Logs library state
    * - Xpattern.count
    * - GenSym.MkId for AST_generic.SId and AST_generic.IdInfoId
    * - Tracing.ml active_endpoint
    * - Parmap_targets.ml parmap_child_top_level_span
    * - Session.ml scan_config_parser_ref
+   * - Some pro hooks (e.g., the one for metavariable-name)
    * - many more
    *)
   ()

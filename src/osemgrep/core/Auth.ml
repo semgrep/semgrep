@@ -1,6 +1,6 @@
 (* A Semgrep.dev token representing your identity.
  * This is stored in ~/.semgrep/settings.yml and initially fetched
- * from https://semgrep.dev during 'semgrep loging'
+ * from https://semgrep.dev during 'semgrep login'
  *)
 type token = Token of string
 

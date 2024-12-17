@@ -99,7 +99,7 @@ let mock_run_results (files : string list) : Core_runner.result =
       interfile_languages_used = Some [];
     }
   in
-  Core_runner.{ core; hrules; scanned }
+  Core_runner_result.{ core; hrules; scanned }
 
 let mock_workspace ?(git = false) () : Fpath.t =
   let rand_dir () =

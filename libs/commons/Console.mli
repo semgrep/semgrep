@@ -5,14 +5,7 @@
    Programs such as Semgrep use both stdout and stderr to display
    human-readable messages.
 
-   The 'Logs_' module depends on this module because logging
-   is done on stderr by default.
-
-   TODO: use this module for printing all user-facing messages.
-   Maybe it's only possible once we drop pysemgrep because of bugs and
-   quirks we have to reproduce for now.
-
-   See UConsole.ml (or better CapConsole.ml) to actually print messages.
+   See UConsole.ml or better CapConsole.ml to actually print messages.
    This is the shared "safe" part of console management.
 *)
 
@@ -30,12 +23,43 @@ type highlight = On | Off [@@deriving show]
  * by UConsole.setup() (or CapConsole.setup())
  *)
 
-(*
-   Query the global state.
-   This setting is shared by stdout and stderr.
-*)
-val get_highlight_setting : unit -> highlight_setting
-val get_highlight : unit -> highlight
+type color = ANSITerminal.color =
+  | Black
+  | Red
+  | Green
+  | Yellow
+  | Blue
+  | Magenta
+  | Cyan
+  | White
+  | Default  (** Default color of the terminal *)
+
+type style = ANSITerminal.style =
+  | Reset
+  | Bold
+  | Underlined
+  | Blink
+  | Inverse
+  | Hidden
+  | Foreground of color
+  | Background of color
+
+(* Shortcuts for [Foreground xxx] *)
+val black : style
+val red : style
+val green : style
+val yellow : style
+val blue : style
+val magenta : style
+val cyan : style
+val white : style
+val default : style
+
+(* Will display special color/style ANSI sequence if highlighting is on.
+ * Note that this will not work on the default Windows terminal
+ * (install a fancier ANSI compatible one or use VSCode which integrates one)
+ *)
+val sprintf : style list -> ('a, unit, string) format -> 'a
 
 (*
    These functions turn a string into color (red, yellow, or green)
@@ -45,14 +69,6 @@ val error : string -> string
 val warning : string -> string
 val success : string -> string
 
-(*
-   These functions turn a string into bold white face with a background
-   color (red, yellow, or green) if highlighting is on.
-*)
-val strong_error : string -> string
-val strong_warning : string -> string
-val strong_success : string -> string
-
 (* Constant messages " ERROR ", " WARNING ", etc. whose formatting depends
    on the 'highlight' setting.
    TODO: explain why they're padded with one space character.
@@ -60,6 +76,39 @@ val strong_success : string -> string
 val error_tag : unit -> string
 val warning_tag : unit -> string
 val success_tag : unit -> string
+
+(* Pretty-prints the heading in a box: [heading "Hello"] is layouted as:
+    ---------
+    | Hello |
+    ---------
+*)
+val heading : string -> string
+
+(* Pretty-prints the table with the heading. The first row are strings,
+   the remaining are integers. The first row is left-aligned, all others
+   right-aligned.
+   [table ("H1", [ "H2"; "H3"]) [ ("A", [ 1; 2 ]); ("B", [ 100; 20 ]) ]]
+
+     H1  H2 H3
+     ---------
+     A    1  2
+     B  100 20
+*)
+val table : string * string list -> (string * int list) list -> string
+
+(* Pretty-prints two tables with headings side by side, with some spacing in
+   between. Look at [table] for the individual arguments. *)
+val tables :
+  string * string list * (string * int list) list ->
+  string * string list * (string * int list) list ->
+  string
+
+(*
+   Query the global state.
+   This setting is shared by stdout and stderr.
+*)
+val get_highlight_setting : unit -> highlight_setting
+val get_highlight : unit -> highlight
 
 (* internals, you should not change that, only UConsole.setup can *)
 val highlight_setting : highlight_setting ref

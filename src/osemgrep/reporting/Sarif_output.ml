@@ -15,6 +15,9 @@ module Sarif = Sarif.Sarif_v_2_1_0_v
  * Full spec:
  *  https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html (2023)
  *
+ * coupling: if you modify which fields are gated by ctx.is_logged_in update also
+ * https://semgrep.dev/docs/semgrep-appsec-platform/json-and-sarif#sarif
+ *
  * Ported from formatters/sarif.py
  *)
 

@@ -28,3 +28,11 @@ val pp_tables :
     Look at [pp_table] for the individual arguments. *)
 
 val with_buffer_to_string : (Format.formatter -> unit) -> string
+
+(* internals now also used by Console.ml *)
+
+(* ex: line 5 --> "|---|" ? *)
+val line : int -> string
+
+val layout_table :
+  string * string list -> (string * int list) list -> string list

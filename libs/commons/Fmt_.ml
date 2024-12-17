@@ -7,7 +7,7 @@
 (* Helpers *)
 (*****************************************************************************)
 
-let line width =
+let line (width : int) : string =
   String.init (3 * width) (fun i ->
       char_of_int
         (match i mod 3 with

@@ -54,17 +54,7 @@ type pro_conf = {
 }
 
 (* output *)
-(* LATER: ideally we should just return Core_result.t
-   without the need for the intermediate Out.core_output.
-*)
-type result = {
-  (* ocaml: not in original python implem, but just enough to get
-   * Cli_json_output.cli_output_of_core_results to work
-   *)
-  core : Semgrep_output_v1_t.core_output;
-  hrules : Rule.hrules;
-  scanned : Fpath.t Set_.t;
-}
+type result = Core_runner_result.t
 
 (* Type for the scan function, which can either be built by
    mk_core_run_for_osemgrep() or set in Scan_subcommand.hook_pro_scan_func
@@ -144,13 +134,11 @@ let report_status_and_add_metrics_languages ~respect_gitignore
     (lang_jobs : Lang_job.t list) (rules : Rule.t list) (targets : Fpath.t list)
     =
   Logs.app (fun m ->
-      m "%a"
-        (fun ppf () ->
-          (* TODO: validate if target is actually within a git repo and
-             perhaps set respect_git_ignore to false otherwise *)
-          Status_report.pp_status ~num_rules:(List.length rules)
-            ~num_targets:(List.length targets) ~respect_gitignore lang_jobs ppf)
-        ());
+      m "%s"
+        (* TODO: validate if target is actually within a git repo and
+           perhaps set respect_git_ignore to false otherwise *)
+        (Text_reports.scan_status ~num_rules:(List.length rules)
+           ~num_targets:(List.length targets) ~respect_gitignore lang_jobs));
   lang_jobs
   |> List.iter (fun { Lang_job.xlang; _ } ->
          Metrics_.add_feature "language" (Xlang.to_string xlang));

@@ -23,11 +23,7 @@ type conf = {
 [@@deriving show]
 
 (* output *)
-type result = {
-  core : Semgrep_output_v1_t.core_output;
-  hrules : Rule.hrules;
-  scanned : Fpath.t Set_.t;
-}
+type result = Core_runner_result.t
 
 (* This type is similar to Core_scan.func, but taking a list of
  * rules and targets and a simpler conf type instead of the very

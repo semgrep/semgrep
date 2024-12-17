@@ -5,7 +5,7 @@
  (wrapped false)
  (libraries
    commons
-   fmt
+   fmt ; TODO: get rid of this dependency
    terminal_size
    digestif
    xmlm
@@ -18,9 +18,10 @@
    murmur3
    osemgrep_configuring
    osemgrep_core
-   osemgrep_core_runner
    semgrep.reporting
    semgrep.targeting
+   semgrep.fixing ; for Cli_json_output.ml
+   semgrep.parsing ; for Unit_reporting use of Parse_rule.ml
  )
  (preprocess
    (pps

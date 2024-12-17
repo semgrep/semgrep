@@ -1,6 +1,6 @@
 (* A Semgrep.dev token representing your identity.
  * This is stored in ~/.semgrep/settings.yml and initially fetched
- * from https://semgrep.dev during 'semgrep loging'
+ * from https://semgrep.dev during 'semgrep login'
  *)
 type token
 
@@ -18,7 +18,6 @@ val well_formed : token -> bool
     expected. Currently this just checks if the string is non-empty *)
 
 val equal : token -> token -> bool
-(** [equal token1 token2] checks if two tokens are equal *)
 
 (* TODO? rename semgrep_token? *)
 type cap_token = < token : token >

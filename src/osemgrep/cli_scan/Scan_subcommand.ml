@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Common
-open Fpath_.Operators
 module C = Rules_config
 module Env = Semgrep_envvars
 module Out = Semgrep_output_v1_t
@@ -453,7 +452,7 @@ let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~strict caps
 
 let adjust_skipped (skipped : Out.skipped_target list)
     (res : Core_runner.result) : Core_runner.result =
-  let errors_skipped = Skipped_report.errors_to_skipped res.core.errors in
+  let errors_skipped = Skipped_groups.errors_to_skipped res.core.errors in
   let skipped = skipped @ errors_skipped in
   (* TODO: what is in core.skipped_targets? should we add them to
    * skipped above too?
@@ -520,19 +519,20 @@ let check_targets_with_rules
     (targets_and_skipped : Fpath.t list * Out.skipped_target list) :
     (Rule.rule list * Core_runner.result * Out.cli_output, Exit_code.t) result =
   Metrics_.add_engine_type conf.engine_type;
+
   (* step 1: last touch on rules *)
   let rules, invalid_rules =
     Rule_fetching.partition_rules_and_invalid rules_and_origins
   in
   (* TODO: we should probably warn the user about rules using the same id *)
   let rules =
-    List_.deduplicate_gen
-      ~get_key:(fun r -> Rule_ID.to_string (fst r.Rule.id))
-      rules
+    rules
+    |> List_.deduplicate_gen ~get_key:(fun r ->
+           Rule_ID.to_string (fst r.Rule.id))
   in
   let too_many_entries = conf.output_conf.max_log_list_entries in
   Logs.info (fun m ->
-      m "%a" (Rules_report.pp_rules ~too_many_entries) (conf.rules_source, rules));
+      m "%s" (Text_reports.rules ~too_many_entries conf.rules_source rules));
 
   match rules with
   | [] ->
@@ -557,8 +557,8 @@ let check_targets_with_rules
          - tolerate different output between pysemgrep and osemgrep
            for tests that we would mark as such.
       *)
-      (* Here, we output again, because we need to make sure that invalid rule errors
-         are also surfaced to users who request --json or similar.
+      (* Here, we output again, because we need to make sure that invalid rule
+         errors are also surfaced to users who request --json or similar.
       *)
       let core_errors =
         List_.map Core_error.error_of_invalid_rule invalid_rules
@@ -568,23 +568,16 @@ let check_targets_with_rules
            ~exit_code:(Exit_code.missing_config ~__LOC__)
            (caps :> < Cap.stdout >)
            conf profiler core_errors)
-  | _ -> (
-      (* It's important that this step happens _after_ we check whether we have no rules.
-         Otherwise, if we filter to have 0 rules, we will signal that there is something
-         wrong with the configuration.
-      *)
+  | _ -> begin
+      (* It's important that this step happens _after_ we check whether we have
+       * no rules. Otherwise, if we filter to have 0 rules, we will signal that
+       * there is something wrong with the configuration.
+       *)
       let rules = Rule_filtering.filter_rules conf.rule_filtering_conf rules in
       (* step 2: printing the skipped targets *)
       let targets, skipped = targets_and_skipped in
       Log_targeting.Log.debug (fun m ->
-          m "%a" Targets_report.pp_targets_debug
-            (conf.target_roots, skipped, targets));
-      Log_targeting.Log.debug (fun m ->
-          skipped
-          |> List.iter (fun (x : Semgrep_output_v1_t.skipped_target) ->
-                 m "Ignoring %s due to %s (%s)" !!(x.path)
-                   (Semgrep_output_v1_t.show_skip_reason x.reason)
-                   (x.details ||| "")));
+          m "%s" (Text_reports.targets conf.target_roots skipped targets));
 
       (* step 3: choose the right engine and right hooks *)
       let output_format, file_match_hook =
@@ -608,7 +601,7 @@ let check_targets_with_rules
                 run ?file_match_hook conf.core_runner_conf conf.targeting_conf
                   (rules, invalid_rules) targets)
         | Some baseline_commit ->
-            (* scan_baseline calls internally Profiler.record "head_core_time"  *)
+            (* scan_baseline calls internally Profiler.record "head_core_time"*)
             (* diff scan mode *)
             let diff_scan_func : Diff_scan.diff_scan_func =
              fun ?(diff_config = Differential_scan_config.WholeScan) targets
@@ -629,7 +622,7 @@ let check_targets_with_rules
           Exception.reraise exn
       | Ok result ->
           let (res : Core_runner.result) = Core_runner.mk_result rules result in
-          (* step 3'': adjust the matches, filter via nosemgrep and part1 autofix *)
+          (* step 3'': adjust matches, filter via nosemgrep and part1 autofix *)
           let keep_ignored =
             (not conf.core_runner_conf.nosem)
             (* --disable-nosem *)
@@ -642,7 +635,7 @@ let check_targets_with_rules
 
           (* step 5: report the matches *)
           Logs.info (fun m -> m "reporting matches if any");
-          (* outputting the result on stdout! in JSON/Text/... depending on conf *)
+          (* outputting result on stdout! in JSON/Text/... depending on conf *)
           let cli_output =
             let runtime_params : Out.format_context =
               {
@@ -674,38 +667,32 @@ let check_targets_with_rules
             | Error _ -> []
           in
 
-          if Metrics_.is_enabled () then (
+          if Metrics_.is_enabled () then begin
             Metrics_.add_errors cli_output.errors;
             Metrics_.add_rules_hashes_and_rules_profiling
               ?profiling:res.core.time rules;
             Metrics_.add_rules_hashes_and_findings_count
               (rules_and_counted_matches res);
-            Metrics_.add_profiling profiler);
+            Metrics_.add_profiling profiler
+          end;
 
-          let skipped_groups = Skipped_report.group_skipped skipped in
+          let skipped_groups = Skipped_groups.group skipped in
           Logs.info (fun m ->
-              m "%a"
-                (Skipped_report.pp_skipped ~too_many_entries)
-                ( conf.targeting_conf.respect_gitignore,
-                  conf.common.maturity,
-                  conf.targeting_conf.max_target_bytes,
-                  skipped_groups ));
+              m "%s"
+                (Text_reports.skipped ~too_many_entries
+                   ~respect_git_ignore:conf.targeting_conf.respect_gitignore
+                   ~max_target_bytes:conf.targeting_conf.max_target_bytes
+                   conf.common.maturity skipped_groups));
           (* Note that Logs.app() is printing on stderr (but without any [XXX]
            * prefix), and is filtered when using --quiet.
            *)
           Logs.app (fun m ->
-              m "%a"
-                (Summary_report.pp_summary
+              m "%s"
+                (Text_reports.scan_summary
                    ~respect_gitignore:conf.targeting_conf.respect_gitignore
-                   ~maturity:conf.common.maturity
                    ~max_target_bytes:conf.targeting_conf.max_target_bytes
-                   ~skipped_groups)
-                ());
-          Logs.app (fun m ->
-              m "Ran %s on %s: %s."
-                (String_.unit_str (List.length valid_rules) "rule")
-                (String_.unit_str (List.length cli_output.paths.scanned) "file")
-                (String_.unit_str (List.length cli_output.results) "finding"));
+                   ~num_valid_rules:(List.length valid_rules)
+                   conf.common.maturity cli_output skipped_groups));
 
           (* step 6: apply autofixes *)
           (* this must happen posterior to reporting matches, or will report the
@@ -724,7 +711,8 @@ let check_targets_with_rules
                """
                return False
           *)
-          Ok (rules, res, cli_output))
+          Ok (rules, res, cli_output)
+    end
 
 (*****************************************************************************)
 (* Run the real 'scan' subcommand *)

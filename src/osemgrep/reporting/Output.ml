@@ -70,85 +70,6 @@ let string_of_severity (severity : Out.match_severity) : string =
   Out.string_of_match_severity severity
   |> JSON.remove_enclosing_quotes_of_jstring
 
-(* alt: move in Gated_data.ml *)
-let adjust_fields_cli_outpout_logged_out (x : Out.cli_output) : Out.cli_output =
-  (* note: I could use { x with ... } but better to explicitely list the fields
-   * here so we see explicitely what we filter and what we do not.
-   *)
-  let {
-    version;
-    results;
-    errors;
-    paths;
-    skipped_rules;
-    explanations;
-    interfile_languages_used = _;
-    time;
-    rules_by_engine;
-    engine_requested;
-  } : Out.cli_output =
-    x
-  in
-  let interfile_languages_used = None in
-  let results =
-    results
-    |> List_.map (fun res ->
-           let { check_id; extra; path; start; end_ } : Out.cli_match = res in
-           let {
-             metavars = _;
-             message;
-             fix;
-             fixed_lines;
-             metadata;
-             severity;
-             fingerprint = _;
-             lines = _;
-             is_ignored = _;
-             sca_info;
-             dataflow_trace = _;
-             engine_kind;
-             validation_state;
-             historical_info;
-             extra_extra;
-           } : Out.cli_match_extra =
-             extra
-           in
-           let extra =
-             Out.
-               {
-                 metavars = None;
-                 message;
-                 fix;
-                 fixed_lines;
-                 (* TODO? metadata filtering? *)
-                 metadata;
-                 severity;
-                 fingerprint = Gated_data.msg;
-                 lines = Gated_data.msg;
-                 is_ignored = None;
-                 sca_info;
-                 dataflow_trace = None;
-                 engine_kind;
-                 validation_state;
-                 historical_info;
-                 extra_extra;
-               }
-           in
-           Out.{ check_id; extra; path; start; end_ })
-  in
-  {
-    version;
-    results;
-    errors;
-    paths;
-    skipped_rules;
-    explanations;
-    interfile_languages_used;
-    time;
-    rules_by_engine;
-    engine_requested;
-  }
-
 (*****************************************************************************)
 (* Format dispatcher *)
 (*****************************************************************************)
@@ -164,12 +85,7 @@ let format (kind : Output_format.t) (ctx : Out.format_context)
   | Files_with_matches
   | Incremental ->
       failwith (spf "format not supported here: %s" (Output_format.show kind))
-  | Json ->
-      let cli_output =
-        if ctx.is_logged_in then cli_output
-        else adjust_fields_cli_outpout_logged_out cli_output
-      in
-      [ Out.string_of_cli_output cli_output ]
+  | Json -> [ Cli_json_output.json_output ctx cli_output ]
   | Junit_xml -> [ Junit_xml_output.junit_xml_output cli_output ]
   | Gitlab_sast ->
       let gitlab_sast_json = Gitlab_output.sast_output cli_output.results in
@@ -294,18 +210,19 @@ let dispatch_output_format (caps : < Cap.stdout >) (conf : conf)
 
 (* This function takes a core runner output and makes it suitable for the user,
  * by filtering out nosem, setting messages, adding fingerprinting etc.
- * TODO? remove this intermediate?
+ * TODO? remove this intermediate? rename postprocess? or just
+ * cli_output_of_core_runner ?
  *)
-let preprocess_result ~fixed_lines (res : Core_runner.result) : Out.cli_output =
+let preprocess_result ~fixed_lines (res : Core_runner_result.t) : Out.cli_output
+    =
   let cli_output : Out.cli_output =
     Cli_json_output.cli_output_of_runner_result ~fixed_lines res.core res.hrules
       res.scanned
   in
-  cli_output |> fun results ->
   {
-    results with
+    cli_output with
     (* TODO? why not do that in cli_output_of_core_results? *)
-    results = Cli_json_output.index_match_based_ids results.results;
+    results = Cli_json_output.index_match_based_ids cli_output.results;
   }
 
 (* python: mix of output.OutputSettings(), output.OutputHandler(), and
@@ -313,7 +230,7 @@ let preprocess_result ~fixed_lines (res : Core_runner.result) : Out.cli_output =
  *)
 let output_result (caps : < Cap.stdout >) (conf : conf)
     (runtime_params : Out.format_context) (profiler : Profiler.t)
-    (res : Core_runner.result) : Out.cli_output =
+    (res : Core_runner_result.t) : Out.cli_output =
   (* In theory, we should build the JSON CLI output only for the
    * Json conf.output_format, but cli_output contains lots of data-structures
    * that are useful for the other formats (e.g., Vim, Emacs), so we build

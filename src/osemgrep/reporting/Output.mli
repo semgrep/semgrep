@@ -29,26 +29,31 @@ val default : conf
 (* used with max_log_list_entries *)
 val too_much_data : string
 
-(* Output the core results on stdout depending on flags in conf.
+(* Output the Semgrep result (matches, errors, etc.) on stdout depending on
+ * flags in conf (and also return an Out.cli_output for further processing in
+ * the caller).
  *
- * The format_context are parameters that are determined at runtime
- * that can also affect the output. For example, if a user is not logged in,
- * then in the SARIF output format, we include a message to nudge the user
+ * The format_context contains fields that are determined at runtime and
+ * which can also affect the output. For example, if a user is not logged in
+ * then in the SARIF output format we include a message to nudge the user
  * to log in and try Pro.
  *)
 val output_result :
   < Cap.stdout > ->
+  (* derived from CLI flags *)
   conf ->
+  (* derived from runtime info *)
   Out.format_context ->
   Profiler.t ->
-  Core_runner.result ->
+  Core_runner_result.t ->
   Out.cli_output
 
 (* helper used in output_result() and other callsites.
  * This handles nosemgrep, interpolating messages, and more.
  *)
-val preprocess_result : fixed_lines:bool -> Core_runner.result -> Out.cli_output
+val preprocess_result :
+  fixed_lines:bool -> Core_runner_result.t -> Out.cli_output
 
-(* used by RPC_return.ml for Vim/Emacs/Junit_xml/Gitlab_xxx for now *)
+(* Called by pysemgrep via RPC for Vim/Emacs/Junit_xml/Gitlab_xxx formats *)
 val format :
   Output_format.t -> Out.format_context -> Out.cli_output -> string list
