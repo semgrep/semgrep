@@ -1,0 +1,4 @@
+A few fields in the JSON output (e.g., "fingerprint", "metavars") require now
+the user to be logged in to see them.
+See https://semgrep.dev/docs/semgrep-appsec-platform/json-and-sarif#json
+for more information.
