@@ -158,6 +158,13 @@ let name_of_dot_access e =
   let* xs = fetch_ids e.e in
   Some (name_of_ids xs)
 
+let resolved_name_of_dot_access e =
+  match e.e with
+  | G.N (G.Id (_, { id_resolved; _ })) -> !id_resolved
+  | G.N (G.IdQualified { name_info = { id_resolved; _ }; _ }) -> !id_resolved
+  | G.DotAccess (_, _, G.FN (G.Id (_, { id_resolved; _ }))) -> !id_resolved
+  | ___else___ -> None
+
 (* TODO: you should not need to use that. This is mostly because
  * Constructor and PatConstructor currently takes a dotted_ident instead
  * of a name, and because module_name accepts only DottedName

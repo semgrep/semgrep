@@ -73,6 +73,8 @@ let rec translate_metavar_cond cond : [> `O of (string * Yaml.value) list ] =
         ([ ("metavariable", `String mvar) ]
         @ (match kind with
           | Some DjangoView -> [ ("kind", `String "django-view") ]
+          | Some ExpressApp -> [ ("kind", `String "express-app") ]
+          | Some ExpressController -> [ ("kind", `String "express-controller") ]
           | None -> [])
         @
         match modules with

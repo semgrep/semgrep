@@ -168,7 +168,7 @@ and entropy_analysis_mode = Lax | Default | Strict
  * instead improve the engine (e.g., finish steps mode) instead of
  * writing adhoc analysis.
  *)
-and metavar_name_kind = DjangoView
+and metavar_name_kind = DjangoView | ExpressApp | ExpressController
 
 (* Represents all of the metavariables that are being focused by a single
    `focus-metavariable`. *)

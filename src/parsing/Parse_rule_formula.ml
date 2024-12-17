@@ -650,6 +650,8 @@ and parse_extra (env : env) (key : key) (value : G.expr) :
       let/ mvar = take_key mv_name_dict env parse_string "metavariable" in
       let parse_kind = function
         | "django-view", _ -> Ok R.DjangoView
+        | "express-app", _ -> Ok R.ExpressApp
+        | "express-controller", _ -> Ok R.ExpressController
         | str, _ -> error_at_key env.id key ("unsupported kind: " ^ str)
       in
       let/ kind_str = take_opt mv_name_dict env parse_string_wrap "kind" in
