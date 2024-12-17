@@ -109,27 +109,42 @@ let tags_of_metadata metadata =
   let all_tags = cwe @ owasp @ confidence @ semgrep_policy_slug @ tags in
   List.sort_uniq String.compare all_tags
 
-(* We want to produce a json object? with the following shape:
+(* We want to produce a JSON object with the following shape:
    { id; name;
+     defaultConfiguration = { level };
      shortDescription; fullDescription;
      helpUri; help;
-     defaultConfiguration = { level };
-     properties }
+     properties
+   }
 *)
-let rule hide_nudge (rule_id, rule) : Sarif.reporting_descriptor =
+let rule ~(hide_nudge : bool) (ctx : Out.format_context) (rule : Rule.t) :
+    Sarif.reporting_descriptor =
+  ignore ctx;
+  (* in SARIF the severity of the finding is stored with in "rules", not
+   * in "results"
+   *)
+  let rule_id_str = Rule_ID.to_string (fst rule.id) in
+  let default_configuration =
+    Sarif.create_reporting_configuration
+      ~level:(severity_of_severity rule.severity)
+      ()
+  in
+  (* metadata to SARIF official fields *)
   let metadata = rule.Rule.metadata ||| JSON.Null in
   let short_description =
     match JSON.member "shortDescription" metadata with
     | Some (JSON.String shortDescription) -> shortDescription
     | Some _ -> raise Impossible
-    | None -> spf "Semgrep Finding: %s" (Rule_ID.to_string rule_id)
-  and source =
+    | None -> spf "Semgrep Finding: %s" rule_id_str
+  in
+  let source =
     match JSON.member "source" metadata with
     | Some (JSON.String source) -> Some source
     | Some _
     | None ->
         None
-  and rule_help_text =
+  in
+  let rule_help_text =
     match JSON.member "help" metadata with
     | Some (JSON.String txt) -> txt
     | Some _
@@ -151,6 +166,7 @@ let rule hide_nudge (rule_id, rule) : Sarif.reporting_descriptor =
     ]
     @ security_severity
   in
+  (* nudge *)
   let nudge_base = "💎 Enable cross-file analysis and Pro rules for free at"
   and nudge_url = "sg.run/pro" in
   let nudge_plaintext = spf "\n%s %s" nudge_base nudge_url
@@ -183,15 +199,10 @@ let rule hide_nudge (rule_id, rule) : Sarif.reporting_descriptor =
     | [] -> ""
     | xs -> "\n\n<b>References:</b>\n" ^ String.concat "" xs
   in
-  Sarif.create_reporting_descriptor
-    ~id:(Rule_ID.to_string rule_id)
-    ~name:(Rule_ID.to_string rule_id)
+  Sarif.create_reporting_descriptor ~id:rule_id_str ~name:rule_id_str
     ~short_description:(multiformat_message short_description)
     ~full_description:(multiformat_message rule.message)
-    ~default_configuration:
-      (Sarif.create_reporting_configuration
-         ~level:(severity_of_severity rule.severity)
-         ())
+    ~default_configuration
     ~help:
       (multiformat_message
          ~markdown:(rule_help_text ^ markdown_interstitial ^ references_markdown)
@@ -390,27 +401,25 @@ let error_to_sarif_notification (e : Out.cli_error) =
 (* Entry point *)
 (*****************************************************************************)
 
-let sarif_output hrules (ctx : Out.format_context) (cli_output : Out.cli_output)
-    ~hide_nudge ~engine_label ~show_dataflow_traces : Sarif.sarif_json_schema =
+let sarif_output (hrules : Rule.hrules) (ctx : Out.format_context)
+    (cli_output : Out.cli_output) ~hide_nudge ~engine_label
+    ~show_dataflow_traces : Sarif.sarif_json_schema =
   let sarif_schema =
     "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json"
   in
   let show_dataflow_traces = ctx.is_logged_in && show_dataflow_traces in
   let run =
     let rules =
-      if ctx.is_logged_in then
-        Some
-          (hrules |> Hashtbl.to_seq |> List.of_seq
-          (* sorting for snapshot stability *)
-          |> List.sort (fun (aid, _) (bid, _) -> Rule_ID.compare aid bid)
-          |> List_.map (rule hide_nudge))
-      else None
+      hrules |> Hashtbl.to_seq |> List.of_seq
+      (* sorting for snapshot stability *)
+      |> List.sort (fun (aid, _) (bid, _) -> Rule_ID.compare aid bid)
+      |> List_.map (fun (_ruleid, r) -> rule ~hide_nudge ctx r)
     in
     let tool =
       let driver =
         Sarif.create_tool_component
           ~name:(spf "Semgrep %s" engine_label)
-          ~semantic_version:Version.version ?rules ()
+          ~semantic_version:Version.version ~rules ()
       in
       Sarif.create_tool ~driver ()
     in

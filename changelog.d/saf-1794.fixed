@@ -1,0 +1,1 @@
+Restored the "rules" field in the SARIF output, even when logged out.
