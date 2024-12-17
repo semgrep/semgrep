@@ -124,6 +124,23 @@ def is_git_repo_root_approx() -> bool:
     return os.path.exists(".git/")
 
 
+def is_git_repo_empty() -> bool:
+    """
+    Checks if the repo is empty.
+    """
+    # Run git status to cover most common edge cases i.e that the
+    # - Git binary is available
+    # - cwd is a git repository
+    # - cwd is marked safe
+    git_check_output(["git", "status"])
+    try:
+        # This command should only fail in the case that HEAD is empty
+        git_check_output(["git", "rev-parse", "HEAD"])
+        return False
+    except Exception:
+        return True
+
+
 class GitStatus(NamedTuple):
     added: List[Path]
     modified: List[Path]

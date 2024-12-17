@@ -39,6 +39,7 @@ from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.git import git_check_output
+from semgrep.git import is_git_repo_empty
 from semgrep.git import is_git_repo_root_approx
 from semgrep.ignores import IGNORE_FILE_NAME
 from semgrep.meta import generate_meta_from_environment
@@ -47,6 +48,7 @@ from semgrep.meta import GitMeta
 from semgrep.metrics import MetricsState
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
+from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
@@ -353,6 +355,55 @@ def ci(
             scan_handler = ScanHandler(dry_run=dry_run, partial_output=partial_output)
         else:  # impossible state… until we break the code above
             raise RuntimeError("The token and/or config are misconfigured")
+
+        # Empty repo case:
+        # `semgrep ci` should report success if we are scanning an empty repo;
+        # check if the repo was empty and exit accordingly only after
+        # 1) Informing the App that a scan started
+        # 2) Sending scan results to the App
+        #
+        # The rest of the ``
+        if is_git_repo_empty():
+            # Prep any necessary metadata
+            engine_type = EngineType.decide_engine_type(
+                logged_in=auth.is_logged_in_weak(),
+                engine_flag=requested_engine,
+                ci_scan_handler=scan_handler,
+            )
+            # A lot of project metadata depends on git commands that fail in
+            # empty repos; we gather whatever metadata we can and move forwards
+            project_metadata = generate_meta_from_environment(
+                None, subdir
+            ).to_project_metadata()
+            project_config = ProjectConfig.load_all()
+            contributions = semgrep.rpc_call.contributions()
+            if scan_handler:
+                with Progress(
+                    TextColumn("  {task.description}"),
+                    SpinnerColumn(spinner_name="simpleDotsScrolling"),
+                    console=console,
+                ) as progress_bar:
+                    # Inform the App that the scan started & ended
+                    scan_handler.start_scan(project_metadata, project_config)
+                    scan_handler.report_findings(
+                        dict(),
+                        [],
+                        [],
+                        set(),
+                        set(),
+                        frozenset(),
+                        0,  # Inform app that we are exiting with code 0
+                        ParsingData(),
+                        0.0,
+                        "",
+                        dict(),
+                        [],
+                        [],
+                        contributions,
+                        engine_type,
+                        progress_bar,
+                    )
+                    sys.exit(0)
 
         # For account admins to force suppressing errors. This overrides the CLI flag!
         if scan_handler and scan_handler.always_suppress_errors:

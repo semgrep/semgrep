@@ -155,6 +155,35 @@ DEFAULT_GITHUB_VARS = {
 
 
 @pytest.fixture
+def git_path_empty_repo(monkeypatch, tmp_path):
+    """
+    Initialize a git repo with no commits
+    """
+    repo_base = tmp_path / REPO_DIR_NAME
+    repo_base.mkdir()
+
+    monkeypatch.chdir(repo_base)
+    subprocess.run(["git", "init"], check=True, capture_output=True)
+    # Initialize State
+    subprocess.run(
+        ["git", "config", "user.email", AUTHOR_EMAIL],
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", AUTHOR_NAME],
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "checkout", "-B", MAIN_BRANCH_NAME],
+        check=True,
+        capture_output=True,
+    )
+    yield repo_base
+
+
+@pytest.fixture
 def git_tmp_path_with_commit(monkeypatch, tmp_path, mocker):
     """
     Initialize a git repo at a temp directory with one dummy commit.
@@ -1484,6 +1513,33 @@ def test_config_run(
     snapshot.assert_match(
         result.as_snapshot(),
         "results.txt",
+    )
+
+
+# Testing semgrep ci on an empty repo, where the expected behavior
+# is that the run succeeds
+@pytest.mark.osemfail
+def test_empty_repo_run(
+    run_semgrep: RunSemgrep,
+    start_scan_mock_maker,
+    git_path_empty_repo,
+    requests_mock,
+    scan_config,
+):
+    requests_mock.get("https://semgrep.dev/p/something", text=scan_config)
+    # Here we only test that the run exits with an exit code of 0
+    # i.e the cli succeeding
+    run_semgrep(
+        "p/something",
+        subcommand="ci",
+        options=["--no-suppress-errors"],
+        strict=False,
+        assert_exit_code=0,  # This run must succeed
+        env={
+            "SEMGREP_APP_TOKEN": "",
+            "SEMGREP_REPO_URL": REMOTE_REPO_URL,
+        },
+        use_click_runner=True,
     )
 
 

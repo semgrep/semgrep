@@ -20,6 +20,7 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep import __VERSION__
 from semgrep.external.git_url_parser import Parser
 from semgrep.git import git_check_output
+from semgrep.git import is_git_repo_empty
 from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
 
@@ -206,10 +207,29 @@ class GitMeta:
     def is_full_scan(self) -> bool:
         return self.merge_base_ref is None
 
+    @property
+    def is_empty(self) -> bool:
+        return is_git_repo_empty()
+
     def to_project_metadata(self) -> out.ProjectMetadata:
-        commit_title = git_check_output(["git", "show", "-s", "--format=%B"])
-        commit_author_email = git_check_output(["git", "show", "-s", "--format=%ae"])
-        commit_author_name = git_check_output(["git", "show", "-s", "--format=%an"])
+        # Many of these optional fields for the semgrep-app backend depend on git
+        # commands that assume the repo not to be empty.
+        commit_title = None
+        commit_author_email = None
+        commit_author_name = None
+        branch = None
+        commit = None
+        commit_timestamp = None
+
+        if not self.is_empty:
+            commit_title = git_check_output(["git", "show", "-s", "--format=%B"])
+            commit_author_email = git_check_output(
+                ["git", "show", "-s", "--format=%ae"]
+            )
+            commit_author_name = git_check_output(["git", "show", "-s", "--format=%an"])
+            branch = self.branch
+            commit = sha1_opt(self.commit_sha)
+            commit_timestamp = self.commit_timestamp
 
         return out.ProjectMetadata(
             semgrep_version=out.Version(__VERSION__),
@@ -218,15 +238,15 @@ class GitMeta:
             repo_display_name=self.repo_display_name,
             # OPTIONAL for semgrep-app backend
             repo_url=uri_opt(self.repo_url),
-            branch=self.branch,
+            branch=branch,
             ci_job_url=uri_opt(self.ci_job_url),
-            commit=sha1_opt(self.commit_sha),
+            commit=commit,
             commit_author_email=commit_author_email,
             commit_author_name=commit_author_name,
             commit_author_username=None,
             commit_author_image_url=None,
             commit_title=commit_title,
-            commit_timestamp=self.commit_timestamp,
+            commit_timestamp=commit_timestamp,
             on=self.event_name,
             pull_request_author_username=None,
             pull_request_author_image_url=None,
