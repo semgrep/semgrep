@@ -31,7 +31,7 @@ type 'spec call_trace =
 
 val show_call_trace : ('spec -> string) -> 'spec call_trace -> string
 
-type arg = { name : string; index : int } [@@deriving eq, ord]
+type arg = { name : IL.name; index : int } [@@deriving eq, ord]
 (** A formal argument of a function given by its name and it's index/position. *)
 
 val show_arg : arg -> string

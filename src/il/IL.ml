@@ -109,6 +109,11 @@ type name = { ident : ident; sid : G.sid; id_info : G.id_info }
 
 let str_of_name name = Common.spf "%s:%s" (fst name.ident) (G.SId.show name.sid)
 
+let equal_name name1 name2 =
+  let { ident = str1, _tok1; sid = sid1; id_info = _ } = name1 in
+  let { ident = str2, _tok2; sid = sid2; id_info = _ } = name2 in
+  G.SId.equal sid1 sid2 && String.equal str1 str2
+
 let compare_name name1 name2 =
   let { ident = str1, _tok1; sid = sid1; id_info = _ } = name1 in
   let { ident = str2, _tok2; sid = sid2; id_info = _ } = name2 in

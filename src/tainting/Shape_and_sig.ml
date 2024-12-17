@@ -614,7 +614,7 @@ and Signature : sig
     * parameter kinds that we do not support yet. We don't want to just remove
     * those unsupported parameters because we rely on the position of a parameter
     * to represent taint variables, see 'Taint.arg'. *)
-  type param = P of string | Other [@@deriving eq, ord]
+  type param = P of IL.name | Other [@@deriving eq, ord]
 
   type params = param list [@@deriving eq, ord]
 
@@ -632,12 +632,12 @@ end = struct
   (*************************************)
 
   (* TODO: Now with HOFs we run the risk of shadowing... *)
-  type param = P of string | Other
+  type param = P of IL.name | Other
   type params = param list
 
   let equal_param param1 param2 =
     match (param1, param2) with
-    | P s1, P s2 -> String.equal s1 s2
+    | P n1, P n2 -> IL.equal_name n1 n2
     | Other, Other -> true
     | P _, Other
     | Other, P _ ->
@@ -645,13 +645,13 @@ end = struct
 
   let compare_param param1 param2 =
     match (param1, param2) with
-    | P s1, P s2 -> String.compare s1 s2
+    | P n1, P n2 -> IL.compare_name n1 n2
     | Other, Other -> 0
     | P _, Other -> -1
     | Other, P _ -> 1
 
   let show_param = function
-    | P s -> s
+    | P n -> IL.str_of_name n
     | Other -> "_?"
 
   let equal_params params1 params2 = List.equal equal_param params1 params2
@@ -664,7 +664,7 @@ end = struct
   let of_IL_params il_params =
     il_params
     |> List_.map (function
-         | IL.Param { pname = { ident = s, _; _ }; _ } -> P s
+         | IL.Param { pname; _ } -> P pname
          | IL.PatternParam _
          | IL.FixmeParam ->
              Other)

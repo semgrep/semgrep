@@ -132,7 +132,7 @@ let rec show_call_trace show_thing = function
 (* Taint arguments ("variables", kind of) *)
 (*****************************************************************************)
 
-type arg = { name : string; index : int } [@@deriving eq, ord]
+type arg = { name : IL.name; index : int } [@@deriving eq, ord]
 type base = BGlob of IL.name | BThis | BArg of arg [@@deriving ord]
 
 type offset = Ofld of IL.name | Oint of int | Ostr of string | Oany
@@ -148,7 +148,8 @@ let compare_lval { base = base1; offset = offset1 }
   | 0 -> List.compare compare_offset offset1 offset2
   | other -> other
 
-let show_arg { name = s; index = i } = Printf.sprintf "arg(%s#%d)" s i
+let show_arg { name; index = i } =
+  Printf.sprintf "arg(%s#%d)" (IL.str_of_name name) i
 
 let show_base base =
   match base with

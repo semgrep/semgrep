@@ -366,12 +366,12 @@ let find_pos_in_actual_args ?(err_ctx = "???") args_taints fparams :
     List_.fold_right
       (fun (param : Signature.param) acc ->
         match param with
-        | P s' -> (
-            match SMap.find_opt s' named_arg_map with
+        | P n -> (
+            match SMap.find_opt (fst n.ident) named_arg_map with
             | Some taints ->
                 (* If this parameter is one of our arguments, insert a mapping and then remove it
                    from the list of remaining parameters.*)
-                Hashtbl.add name_to_taints s' taints;
+                Hashtbl.add name_to_taints n taints;
                 acc
                 (* Otherwise, it has not been consumed, so keep it in the remaining parameters.*)
             | None -> param :: acc (* Same as above. *))
@@ -398,10 +398,10 @@ let find_pos_in_actual_args ?(err_ctx = "???") args_taints fparams :
          (0, remaining_params)
   in
   (* lookup function *)
-  fun ({ name = s; index = i } : Taint.arg) ->
+  fun ({ name; index = i } : Taint.arg) ->
     let taint_opt =
       match
-        (Hashtbl.find_opt name_to_taints s, Hashtbl.find_opt idx_to_taints i)
+        (Hashtbl.find_opt name_to_taints name, Hashtbl.find_opt idx_to_taints i)
       with
       | Some taints, _ -> Some taints
       | _, Some taints -> Some taints
@@ -411,7 +411,8 @@ let find_pos_in_actual_args ?(err_ctx = "???") args_taints fparams :
       Log.debug (fun m ->
           (* TODO: provide more context for debugging *)
           m ~tags:bad_tag
-            "Cannot match taint variable with function arguments (%i: %s)" i s);
+            "Cannot match taint variable with function arguments (%i: %s)" i
+            (IL.str_of_name name));
     taint_opt
 
 (* Given a function/method call 'fun_exp'('args_exps'), and a taint variable 'tlval'
