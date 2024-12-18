@@ -1,2 +1,0 @@
-pro: Fixed bug when generating inter-procedural taint traces, that it could
-cause a call-step to be missing in the trace.

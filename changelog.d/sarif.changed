@@ -1,4 +1,0 @@
-A few fields in the SARIF output (e.g., "fingerprints") require now
-the user to be logged in to see them.
-See https://semgrep.dev/docs/semgrep-appsec-platform/json-and-sarif#sarif
-for more information.

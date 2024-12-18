@@ -1,1 +1,0 @@
-Re-ordered some terminal output of `semgrep ci` to allow semgrep-app to block scans based on specific findings
