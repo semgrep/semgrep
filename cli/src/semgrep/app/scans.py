@@ -123,7 +123,7 @@ class ScanHandler:
         return False
 
     @property
-    def prioritize_dependency_graph_generation(self) -> bool:
+    def ptt_enabled(self) -> bool:
         """
         Separate property for easy of mocking in test
 

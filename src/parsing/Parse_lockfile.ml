@@ -43,7 +43,7 @@ let parse_npm_package_json (file : Fpath.t) : SCA_dependency.t list =
   let loc1 = Tok.first_loc_of_file file in
   let tok1 = Tok.first_tok_of_file file in
   let loc = (loc1, loc1) in
-  let toks = [ tok1 ] in
+  let tokens = lazy [ tok1 ] in
 
   UChan.with_open_in file (fun chan ->
       let json = JSON.json_of_chan chan in
@@ -73,7 +73,7 @@ let parse_npm_package_json (file : Fpath.t) : SCA_dependency.t list =
                          transitivity = `Unknown;
                          url = Uri_.of_string_opt url;
                          loc;
-                         toks;
+                         tokens;
                        }
                  | _ -> raise (WrongFormat "package-lock.json"))
       | _ -> raise (WrongFormat "package-lock.json"))

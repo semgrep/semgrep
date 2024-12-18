@@ -41,7 +41,7 @@ def find_subprojects(
 def resolve_subprojects(
     target_manager: TargetManager,
     allow_dynamic_resolution: bool = False,
-    prioritize_dependency_graph_generation: bool = False,
+    ptt_enabled: bool = False,
 ) -> Tuple[
     List[UnresolvedSubproject], Dict[Ecosystem, List[ResolvedSubproject]], List[Path]
 ]:
@@ -75,7 +75,7 @@ def resolve_subprojects(
         resolved_info, errors, targets = resolve_dependency_source(
             to_resolve.dependency_source,
             allow_dynamic_resolution,
-            prioritize_dependency_graph_generation,
+            ptt_enabled,
         )
         dependency_targets.extend(targets)
 

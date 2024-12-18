@@ -402,7 +402,7 @@ def run_join_rule(
     join_rule: Dict[str, Any],
     targets: List[Path],
     allow_local_builds: bool = False,
-    prioritize_dependency_graph_generation: bool = False,
+    ptt_enabled: bool = False,
 ) -> Tuple[List[RuleMatch], List[SemgrepError]]:
     """
     Run a 'join' mode rule.
@@ -494,7 +494,7 @@ def run_join_rule(
             no_rewrite_rule_ids=True,
             optimizations="all",
             allow_local_builds=allow_local_builds,
-            prioritize_dependency_graph_generation=prioritize_dependency_graph_generation,
+            ptt_enabled=ptt_enabled,
         )
 
     assert isinstance(output, dict)  # placate mypy

@@ -135,7 +135,7 @@ let check_rule (rule : Rule.t) (xtarget : Lockfile_xtarget.t)
                range_loc = dep.loc;
                (* TODO? *)
                ast_node = None;
-               tokens = lazy dep.toks;
+               tokens = dep.tokens;
                env = [];
                taint_trace = None;
                (* TODO: What if I have a secrets rule with a dependency pattern *)

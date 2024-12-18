@@ -160,7 +160,7 @@ def test_find_subprojects(
 
 
 @pytest.mark.quick
-@patch("semgrep.resolve_dependency_source._resolve_dependencies_dynamically")
+@patch("semgrep.resolve_dependency_source._resolve_dependencies_rpc")
 def test_ptt_unconditionally_generates_dependency_graphs(
     mock_dynamic_resolve, tmp_path: Path
 ) -> None:
@@ -190,7 +190,7 @@ def test_ptt_unconditionally_generates_dependency_graphs(
 
 
 @pytest.mark.quick
-@patch("semgrep.resolve_dependency_source._resolve_dependencies_dynamically")
+@patch("semgrep.resolve_dependency_source._resolve_dependencies_rpc")
 @patch("semdep.parsers.requirements.parse_requirements")
 def test_ptt_unconditional_graph_generation_falls_back_on_lockfile_parsing(
     mock_dynamic_resolve, mock_parse_requirements, tmp_path: Path

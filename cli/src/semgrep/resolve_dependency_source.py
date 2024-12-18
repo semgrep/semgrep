@@ -34,6 +34,8 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import CargoParser
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
+from semgrep.semgrep_interfaces.semgrep_output_v1 import ParseDependenciesFailed
+from semgrep.semgrep_interfaces.semgrep_output_v1 import ResolutionError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.subproject import DependencySource
 from semgrep.subproject import LockfileOnlyDependencySource
@@ -99,9 +101,35 @@ ECOSYSTEM_BY_LOCKFILE_KIND: Dict[out.LockfileKind, Union[Ecosystem, None]] = {
     out.LockfileKind(out.ConanLock()): None,  # Ecosystem (C++, Conan) not yet supported
 }
 
-DEPENDENCY_GRAPH_SUPPORTED_MANIFEST_KINDS = [
-    out.ManifestKind(out.PomXml()),
-    out.ManifestKind(out.BuildGradle()),
+ECOSYSTEM_BY_MANIFEST_KIND: Dict[out.ManifestKind, Union[Ecosystem, None]] = {
+    out.ManifestKind(out.RequirementsIn()): Ecosystem(out.Pypi()),
+    out.ManifestKind(out.PackageJson()): Ecosystem(out.Npm()),
+    out.ManifestKind(out.Gemfile()): Ecosystem(out.Gem()),
+    out.ManifestKind(out.GoMod_()): Ecosystem(out.Gomod()),
+    out.ManifestKind(out.CargoToml()): Ecosystem(out.Cargo()),
+    out.ManifestKind(out.PomXml()): Ecosystem(out.Maven()),
+    out.ManifestKind(out.BuildGradle()): Ecosystem(out.Maven()),
+    out.ManifestKind(out.SettingsGradle()): Ecosystem(out.Maven()),
+    out.ManifestKind(out.ComposerJson()): Ecosystem(out.Composer()),
+    out.ManifestKind(out.NugetManifestJson()): Ecosystem(out.Nuget()),
+    out.ManifestKind(out.PubspecYaml()): Ecosystem(out.Pub()),
+    out.ManifestKind(out.PackageSwift()): Ecosystem(out.SwiftPM()),
+    out.ManifestKind(out.MixExs()): Ecosystem(out.Mix()),
+    out.ManifestKind(out.Pipfile()): Ecosystem(out.Pypi()),
+    out.ManifestKind(out.PyprojectToml()): Ecosystem(out.Pypi()),
+    out.ManifestKind(
+        out.ConanFilePy()
+    ): None,  # Ecosystem (C++, Conan) not yet supported
+}
+
+PTT_OCAML_PARSER_SUBPROJECT_KINDS = [
+    (out.ManifestKind(out.PackageJson()), out.LockfileKind(out.NpmPackageLockJson())),
+]
+
+PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS = [
+    (out.ManifestKind(out.PomXml()), None),
+    (out.ManifestKind(out.BuildGradle()), None),
+    (out.ManifestKind(out.BuildGradle()), out.LockfileKind(out.GradleLockfile())),
 ]
 
 DependencyResolutionResult = Tuple[
@@ -111,7 +139,7 @@ DependencyResolutionResult = Tuple[
 ]
 
 
-def _resolve_dependencies_dynamically(
+def _resolve_dependencies_rpc(
     dependency_source: Union[
         ManifestOnlyDependencySource, ManifestLockfileDependencySource
     ],
@@ -121,7 +149,7 @@ def _resolve_dependencies_dynamically(
     List[Path],
 ]:
     """
-    Handle the RPC call to resolve dependencies dynamically.
+    Handle the RPC call to resolve dependencies in ocaml
     """
     response = resolve_dependencies([dependency_source.to_semgrep_output()])
     if response is None:
@@ -130,14 +158,18 @@ def _resolve_dependencies_dynamically(
         return None, [], []
     if len(response) > 1:
         logger.warning(
-            f"Too many responses from dynamic dependency resolution RPC. Expected 1, got {len(response)}"
+            f"Too many responses from dependency resolution RPC. Expected 1, got {len(response)}"
         )
     result = response[0][1]
-    if isinstance(result.value, out.ResolutionOk):
+    # TODO: move this ecosystem identification into the ocaml code when we redo the interface there
+    ecosystem = (
+        ECOSYSTEM_BY_MANIFEST_KIND[dependency_source.manifest.kind]
+        if isinstance(dependency_source, ManifestOnlyDependencySource)
+        else ECOSYSTEM_BY_LOCKFILE_KIND[dependency_source.lockfile.kind]
+    )
+    if isinstance(result.value, out.ResolutionOk) and ecosystem is not None:
         resolved_deps, errors = result.value.value
-        # right now we only support lockfileless for the maven ecosystem, so hardcode that here
-        # TODO: move this ecosystem identification into the ocaml code when we redo the interface there
-        ecosystem = Ecosystem(out.Maven())
+
         wrapped_errors = [
             DependencyResolutionError(
                 type_=e_type,
@@ -148,17 +180,35 @@ def _resolve_dependencies_dynamically(
         return (
             (ecosystem, resolved_deps),
             wrapped_errors,
-            [Path(dependency_source.manifest.path.value)],
+            [Path(dependency_source.manifest.path.value)]
+            if isinstance(dependency_source, ManifestOnlyDependencySource)
+            else [Path(dependency_source.lockfile.path.value)],
         )
     else:
         # some error occured in resolution, track it
-        wrapped_errors = [
-            DependencyResolutionError(
-                type_=e_type,
-                dependency_source_file=Path(dependency_source.manifest.path.value),
-            )
-            for e_type in result.value.value
-        ]
+        wrapped_errors = (
+            [
+                DependencyResolutionError(
+                    type_=e_type,
+                    dependency_source_file=Path(dependency_source.manifest.path.value),
+                )
+                for e_type in result.value.value
+            ]
+            if not isinstance(result.value, out.ResolutionOk)
+            else [
+                # This is here because we have manifest/lockfile kinds for Conan, which we use
+                # for data tracking reasons, but SCA doesn't support Conan, and we have no ecosystem
+                # for it. Basically this case should never happen, if it does then something went very wrong.
+                DependencyResolutionError(
+                    type_=ResolutionError(
+                        ParseDependenciesFailed(
+                            "Trying to use RPC to resolve dependencies from a manifest we don't support"
+                        )
+                    ),
+                    dependency_source_file=Path(dependency_source.manifest.path.value),
+                )
+            ]
+        )
         return (None, wrapped_errors, [])
 
 
@@ -166,9 +216,7 @@ def _handle_manifest_only_source(
     dep_source: ManifestOnlyDependencySource,
 ) -> DependencyResolutionResult:
     """Handle dependency resolution for manifest-only sources."""
-    resolved_info, new_errors, new_targets = _resolve_dependencies_dynamically(
-        dep_source
-    )
+    resolved_info, new_errors, new_targets = _resolve_dependencies_rpc(dep_source)
     if resolved_info is None:
         return None, new_errors, new_targets
     new_ecosystem, new_deps = resolved_info
@@ -221,33 +269,38 @@ def _handle_multi_lockfile_source(
 def _handle_lockfile_source(
     dep_source: Union[LockfileOnlyDependencySource, ManifestLockfileDependencySource],
     enable_dynamic_resolution: bool,
-    prioritize_dependency_graph_generation: bool,
+    ptt_enabled: bool,
 ) -> DependencyResolutionResult:
     """Handle dependency resolution for lockfile-based sources."""
     lockfile_path = Path(dep_source.lockfile.path.value)
     parser = PARSERS_BY_LOCKFILE_KIND[dep_source.lockfile.kind]
     ecosystem = ECOSYSTEM_BY_LOCKFILE_KIND[dep_source.lockfile.kind]
 
-    if (
-        enable_dynamic_resolution
-        and prioritize_dependency_graph_generation
-        and isinstance(dep_source, ManifestLockfileDependencySource)
-        and dep_source.manifest.kind in DEPENDENCY_GRAPH_SUPPORTED_MANIFEST_KINDS
-    ):
-        (
-            resolved_info,
-            new_errors,
-            new_targets,
-        ) = _resolve_dependencies_dynamically(dep_source)
-
-        if resolved_info is not None:
-            # TODO: Reimplement this once more robust error handling for lockfileless resolution is implemented
-            new_ecosystem, new_deps = resolved_info
-            return (
-                (new_ecosystem, ResolutionMethod.DYNAMIC, new_deps),
+    if ptt_enabled and isinstance(dep_source, ManifestLockfileDependencySource):
+        use_nondynamic_ocaml_parsing = (
+            dep_source.manifest.kind,
+            dep_source.lockfile.kind,
+        ) in PTT_OCAML_PARSER_SUBPROJECT_KINDS
+        use_dynamic_resolution = (
+            enable_dynamic_resolution
+            and (dep_source.manifest.kind, dep_source.lockfile.kind)
+            in PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS
+        )
+        if use_nondynamic_ocaml_parsing or use_dynamic_resolution:
+            (
+                resolved_info,
                 new_errors,
                 new_targets,
-            )
+            ) = _resolve_dependencies_rpc(dep_source)
+
+            if resolved_info is not None:
+                # TODO: Reimplement this once more robust error handling for lockfileless resolution is implemented
+                new_ecosystem, new_deps = resolved_info
+                return (
+                    (new_ecosystem, ResolutionMethod.DYNAMIC, new_deps),
+                    new_errors,
+                    new_targets,
+                )
 
     # if there is no parser or ecosystem for the lockfile, we can't resolve it
     if parser is None or ecosystem is None:
@@ -272,7 +325,7 @@ def _handle_lockfile_source(
 def resolve_dependency_source(
     dep_source: DependencySource,
     enable_dynamic_resolution: bool = True,
-    prioritize_dependency_graph_generation: bool = False,
+    ptt_enabled: bool = False,
 ) -> DependencyResolutionResult:
     """
     Resolve the dependencies in the dependency source. Returns:
@@ -287,13 +340,14 @@ def resolve_dependency_source(
         return _handle_lockfile_source(
             dep_source,
             enable_dynamic_resolution,
-            prioritize_dependency_graph_generation,
+            ptt_enabled,
         )
     elif isinstance(dep_source, MultiLockfileDependencySource):
         return _handle_multi_lockfile_source(dep_source)
     elif (
         isinstance(dep_source, ManifestOnlyDependencySource)
         and enable_dynamic_resolution
+        and (dep_source.manifest.kind, None) in PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS
     ):
         return _handle_manifest_only_source(dep_source)
     else:

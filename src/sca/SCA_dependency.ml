@@ -7,7 +7,9 @@ type t = {
   url : Uri.t option;
   (* ?? locs in lockfile? *)
   loc : Tok.location * Tok.location;
-  toks : Tok.t list;
+  (* All the tokens from section of the generic AST we read the dependency from
+     So all the tokens inside the range defined by loc *)
+  tokens : Tok.t list Lazy.t;
 }
 [@@deriving show, eq]
 
@@ -21,6 +23,6 @@ type manifest_dependency = {
   package_version_constraint_string : string;
   ecosystem : SCA_ecosystem.t;
   loc : Tok.location * Tok.location;
-  toks : Tok.t list;
+  tokens : Tok.t list Lazy.t;
 }
 [@@deriving show, eq]

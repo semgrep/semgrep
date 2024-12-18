@@ -364,7 +364,7 @@ let sca_dependency_to_found_dependency (dep : SCA_dependency.t) :
           transitivity;
           url;
           loc = _;
-          toks = _;
+          tokens = _;
         } =
     dep
   in

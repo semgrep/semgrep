@@ -248,7 +248,7 @@ def run_rules(
     with_code_rules: bool = True,
     with_supply_chain: bool = False,
     allow_local_builds: bool = False,
-    prioritize_dependency_graph_generation: bool = False,
+    ptt_enabled: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -286,7 +286,7 @@ def run_rules(
         ) = resolve_subprojects(
             target_manager,
             allow_dynamic_resolution=allow_local_builds,
-            prioritize_dependency_graph_generation=prioritize_dependency_graph_generation,
+            ptt_enabled=ptt_enabled,
         )
         # for each subproject, split the errors into semgrep errors and parser errors.
         # output the semgrep errors and store the parser errors for printing in print_scan_status below
@@ -357,7 +357,7 @@ def run_rules(
                 rule.raw,
                 [target.path for target in target_manager.targets],
                 allow_local_builds=allow_local_builds,
-                prioritize_dependency_graph_generation=prioritize_dependency_graph_generation,
+                ptt_enabled=ptt_enabled,
             )
             join_rule_matches_set = RuleMatches(rule)
             for m in join_rule_matches:
@@ -527,7 +527,7 @@ def run_scan(
     allow_local_builds: bool = False,
     dump_n_rule_partitions: Optional[int] = None,
     dump_rule_partitions_dir: Optional[Path] = None,
-    prioritize_dependency_graph_generation: bool = False,
+    ptt_enabled: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -802,7 +802,7 @@ def run_scan(
         with_code_rules=with_code_rules,
         with_supply_chain=with_supply_chain,
         allow_local_builds=allow_local_builds,
-        prioritize_dependency_graph_generation=prioritize_dependency_graph_generation,
+        ptt_enabled=ptt_enabled,
     )
     profiler.save("core_time", core_start_time)
     semgrep_errors: List[SemgrepError] = config_errors + scan_errors
@@ -909,7 +909,7 @@ def run_scan(
                         disable_secrets_validation,
                         baseline_target_mode_config,
                         allow_local_builds=allow_local_builds,
-                        prioritize_dependency_graph_generation=prioritize_dependency_graph_generation,
+                        ptt_enabled=ptt_enabled,
                     )
                     rule_matches_by_rule = remove_matches_in_baseline(
                         rule_matches_by_rule,

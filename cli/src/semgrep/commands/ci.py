@@ -667,9 +667,7 @@ def ci(
             "allow_local_builds": allow_local_builds,
             "dump_n_rule_partitions": dump_n_rule_partitions,
             "dump_rule_partitions_dir": dump_rule_partitions_dir,
-            "prioritize_dependency_graph_generation": scan_handler.prioritize_dependency_graph_generation
-            if scan_handler
-            else False,
+            "ptt_enabled": scan_handler.ptt_enabled if scan_handler else False,
         }
 
         try:
