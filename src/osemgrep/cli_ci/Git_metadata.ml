@@ -121,10 +121,15 @@ class meta (caps : < Cap.exec >) ~scan_environment
       let commit_title : string =
         Git_wrapper.command caps [ "show"; "-s"; "--format=%B" ]
       in
-      let commit_author_email : Emile.mailbox =
+      let commit_author_email_str : string =
         Git_wrapper.command caps [ "show"; "-s"; "--format=%ae" ]
-        |> Emile.of_string |> Result.get_ok
       in
+      (* old: |> Emile.of_string |> Result.get_ok
+       * but github generates emails like
+       * 106279034+semgrep-ci[bot]@users.noreply.github.com
+       * which are not valid for Emile so simpler to use
+       * the raw string as in pysemgrep
+       *)
       let commit_author_name : string =
         Git_wrapper.command caps [ "show"; "-s"; "--format=%an" ]
       in
@@ -143,7 +148,7 @@ class meta (caps : < Cap.exec >) ~scan_environment
         branch = self#branch;
         ci_job_url = self#ci_job_url;
         commit = self#commit_sha;
-        commit_author_email = Some (Emile.to_string commit_author_email);
+        commit_author_email = Some commit_author_email_str;
         commit_author_name = Some commit_author_name;
         commit_author_username = None;
         commit_author_image_url = None;

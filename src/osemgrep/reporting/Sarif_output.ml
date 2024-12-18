@@ -120,8 +120,9 @@ let tags_of_metadata metadata =
 let rule ~(hide_nudge : bool) (ctx : Out.format_context) (rule : Rule.t) :
     Sarif.reporting_descriptor =
   ignore ctx;
-  (* in SARIF the severity of the finding is stored with in "rules", not
-   * in "results"
+  (* in SARIF the definition of the finding,
+   * including the severity of the finding is stored within "rules".
+   * The results then reference the ID of the rule
    *)
   let rule_id_str = Rule_ID.to_string (fst rule.id) in
   let default_configuration =
