@@ -1,0 +1,19 @@
+rules:
+- id: aws-dynamodb-table-unencrypted
+  patterns:
+  - pattern: |
+      resource "aws_dynamodb_table" $ANYTHING {
+        ...
+      }
+  - pattern-not-inside: |
+      resource "aws_dynamodb_table" $ANYTHING {
+        ...
+        server_side_encryption {
+          enabled = true
+          kms_key_arn = ...
+        }
+        ...
+      }
+  message: messsage
+  languages: [hcl]
+  severity: WARNING

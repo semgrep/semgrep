@@ -112,12 +112,24 @@ let recognise_and_collect ~rex (line_num, line) =
 *)
 let rule_match_nosem (pm : Core_match.t) : bool * Core_error.t list =
   let path = pm.path.internal_path_to_content in
-  let lines =
+  let lines : (int * string) list =
     (* Minus one, because we need the preceding line. *)
     let start, end_ = pm.range_loc in
+    (* TODO: should be max 0 ... below as lines are 1-based *)
     let start_line = max 0 (start.pos.line - 1) in
-    UFile.lines_of_file_exn (start_line, end_.pos.line) path
-    |> List_.mapi (fun idx x -> (start_line + idx, x))
+    let end_line = end_.pos.line in
+    match UFile.lines_of_file (start_line, end_line) path with
+    | Ok xs -> xs |> List_.mapi (fun idx x -> (start_line + idx, x))
+    | Error err ->
+        (* nosemgrep: no-logs-in-library *)
+        Logs.warn (fun m ->
+            m
+              "error on accessing lines of %s; match was with rule %s; \
+               skipping nosemgrep analysis for this match (error was %s)"
+              !!path
+              (Rule_ID.to_string pm.rule_id.id)
+              err);
+        []
   in
 
   let linecol_to_bytepos_fun =
@@ -132,7 +144,8 @@ let rule_match_nosem (pm : Core_match.t) : bool * Core_error.t list =
     | line0 :: line1 :: _ when (fst pm.range_loc).pos.line > 0 ->
         (Some line0, Some line1)
     | line :: _ -> (None, Some line)
-    | [] (* XXX(dinosaure): is it possible? *) -> (None, None)
+    (* possible when getting a lines_of_file error above *)
+    | [] -> (None, None)
   in
 
   let no_ids = List.for_all Option.is_none in
@@ -149,10 +162,7 @@ let rule_match_nosem (pm : Core_match.t) : bool * Core_error.t list =
         recognise_and_collect ~rex:nosem_previous_line_re previous_line
   in
 
-  match
-    ( Option.value ~default:[] ids_line,
-      Option.value ~default:[] ids_previous_line )
-  with
+  match (ids_line ||| [], ids_previous_line ||| []) with
   | [], [] ->
       (* no lines or no [nosemgrep] occurrences found, keep the [rule_match]. *)
       (false, [])

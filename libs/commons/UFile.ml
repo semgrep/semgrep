@@ -306,19 +306,36 @@ let find_first_match_with_whole_line path ?split term =
  * each time the same file for each match.
  * Note that the returned lines do not contain \n.
  *)
-let lines_of_file_exn (start_line, end_line) file : string list =
+let lines_of_file (start_line, end_line) (file : Fpath.t) :
+    (string list, string) result =
   let arr = cat_array file in
-  let lines = List_.enum start_line end_line in
-  match arr with
-  (* This is the case of the empty file. *)
-  | [| "" |] -> []
-  | _ ->
-      lines
-      |> List_.map (fun i ->
-             try arr.(i) with
-             | Invalid_argument s ->
-                 let exn =
-                   Common.ErrorOnFile
-                     (spf "lines_of_file(): %s on index %d" s i, file)
-                 in
-                 Exception.catch_and_reraise exn)
+  if not (start_line <= end_line) then
+    Error
+      (spf "lines_of_file: start line %d > end line %d for %s" start_line
+         end_line !!file)
+  else
+    let line_idx = List_.enum start_line end_line in
+    match arr with
+    (* This is the case of the empty file.
+     * TODO: but then we should also thrown an ex if line_idx is not null?
+     *)
+    | [| "" |] -> Ok []
+    | _ -> (
+        try
+          Ok
+            (line_idx
+            |> List_.map (fun i ->
+                   try arr.(i) with
+                   | Invalid_argument s ->
+                       raise (Invalid_argument (spf "%s on index %d" s i))))
+        with
+        | Invalid_argument s -> Error (spf "lines_of_file: %s" s))
+
+(* alt: we could also provide the variant below but probably better to force the
+ * caller to propery handle out of bounds errors
+ *
+ * let lines_of_file_exn (start_line, end_line) (file: Fpath.t) : string list =
+ *  match lines_of_file (start_line, end_line) file with
+ *  | Ok xs -> xs
+ *  | Error s -> raise (Common.ErrorOnFile (spf "lines_of_file_exn(): %s" s, file))
+ *)

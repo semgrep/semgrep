@@ -310,9 +310,20 @@ let cli_match_of_core_match ~fixed_lines fixed_env (hrules : Rule.hrules)
        * entirety of every line involved in the match, not just the text that
        * matched. *)
       let lines =
-        Semgrep_output_utils.lines_of_file_at_range_exn (start, end_) path
+        match
+          Semgrep_output_utils.lines_of_file_at_range (start, end_) path
+        with
+        | Ok xs -> xs |> String.concat "\n"
+        | Error err ->
+            Logs.warn (fun m ->
+                m
+                  "error on accessing lines of %s; match was with rule %s; \
+                   skipping lines field for this match (error was %s)"
+                  !!path
+                  (Rule_ID.to_string rule_id)
+                  err);
+            ""
       in
-      let lines = lines |> String.concat "\n" in
       {
         check_id;
         path;

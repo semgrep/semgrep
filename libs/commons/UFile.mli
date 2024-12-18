@@ -31,19 +31,22 @@ val files_of_dirs_or_files_no_vcs_nofilter : Fpath.t list -> Fpath.t list
 *)
 val cat : Fpath.t -> string list
 
-(* this is 1-based access, line 1 is at res.[1] *)
+(* this is 1-based access, line 1 is at res.[1]
+ * (res.[0] is a fake empty string)
+ *)
 val cat_array : Fpath.t -> string array
 val write_file : file:Fpath.t -> string -> unit
 
-(* [lines_of_file_exn (start_line, end_line) file] returns
- * the list of lines from start_line to end_line included.
+(* [lines_of_file (start_line, end_line) file] returns
+ * the list of lines from start_line to end_line included
+ * or an error message (for example in case of out of bounds access).
  *
  * Note that the returned lines do not contain \n.
+ * Note also that line numbers are 1-based.
  *
  * This function is slow, you should not use it!
- * This may raise Common.ErrorOnFile for out of bounds access.
  *)
-val lines_of_file_exn : int * int -> Fpath.t -> string list
+val lines_of_file : int * int -> Fpath.t -> (string list, string) result
 
 (* Read the contents of file.
 

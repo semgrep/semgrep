@@ -1,0 +1,4 @@
+Fixed another crash due to exception in lines_of_file. The code
+should now be more robust and not abort the whole scan when
+an out of bound line access happens during the nosemgrep analysis
+or when outputing the lines of a match.

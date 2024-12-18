@@ -62,12 +62,21 @@ let remove_matches_in_baseline caps (commit : string) (baseline : Core_result.t)
       |> Option.value ~default:p
     in
     let start_range, end_range = m.range_loc in
-    (* TODO: what if we get an exn? *)
-    let syntactic_ctx =
-      UFile.lines_of_file_exn
-        (start_range.pos.line, end_range.pos.line)
-        m.path.internal_path_to_content
+    let path' = m.path.internal_path_to_content in
+    let syntactic_ctx : string list =
+      match
+        UFile.lines_of_file (start_range.pos.line, end_range.pos.line) path'
+      with
+      | Ok xs -> xs
+      | Error err ->
+          Logs.warn (fun m ->
+              m
+                "error on accessing lines of %s; skipping syntactic_ctx (error \
+                 was %s)"
+                !!path' err);
+          []
     in
+
     (rule_id, path, syntactic_ctx)
   in
   let sigs = Hashtbl.create 10 in
