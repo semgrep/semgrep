@@ -7,7 +7,8 @@
     "transitivity": "unknown",
     "resolved_url": "https://registry.yarnpkg.com/etag/-/etag-1.8.1.tgz",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/files.v1/yarn.lock",
-    "line_number": 5
+    "line_number": 5,
+    "children": []
   },
   {
     "package": "filedep",
@@ -16,7 +17,8 @@
     "allowed_hashes": {},
     "transitivity": "unknown",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/files.v1/yarn.lock",
-    "line_number": 9
+    "line_number": 9,
+    "children": []
   },
   {
     "package": "lodash",
@@ -26,7 +28,8 @@
     "transitivity": "unknown",
     "resolved_url": "https://registry.yarnpkg.com/lodash/-/lodash-1.3.1.tgz",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/files.v1/yarn.lock",
-    "line_number": 12
+    "line_number": 12,
+    "children": []
   },
   {
     "package": "other_package",
@@ -35,7 +38,13 @@
     "allowed_hashes": {},
     "transitivity": "unknown",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/files.v1/yarn.lock",
-    "line_number": 16
+    "line_number": 16,
+    "children": [
+      {
+        "package": "lodash",
+        "version": "1.3.1"
+      }
+    ]
   },
   {
     "package": "sprintf-js",
@@ -44,7 +53,8 @@
     "allowed_hashes": {},
     "transitivity": "unknown",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/files.v1/yarn.lock",
-    "line_number": 24
+    "line_number": 24,
+    "children": []
   },
   {
     "package": "etag",
@@ -53,6 +63,7 @@
     "allowed_hashes": {},
     "transitivity": "unknown",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/files.v1/yarn.lock",
-    "line_number": 27
+    "line_number": 27,
+    "children": []
   }
 ]

@@ -11,6 +11,7 @@
     "transitivity": "unknown",
     "resolved_url": "https://registry.yarnpkg.com/balanced-match/-/balanced-match-1.0.2.tgz",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/one-package.v1/yarn.lock",
-    "line_number": 5
+    "line_number": 5,
+    "children": []
   }
 ]

@@ -555,6 +555,11 @@ def test_parsing(caplog, target: str, snapshot, lockfile_path_in_tmp):
     parser: SemgrepParser = LOCKFILE_NAME_TO_PARSER[target_path.name]
     dependencies, error = parser(Path(target), None)  # no manifest for any of these
 
+    # The purpose of these tests is to ensure that parsers can handle a variety of lockfiles. As such,
+    # they may contain invalid dependency graphs which can result in DependencyParserErrors. Since these
+    # are out of scope for the parser tests, we ignore them here.
+    error = [e for e in error if "Child dependency version not found" not in e.reason]
+
     # Assert
 
     # Some of these files either contain incomplete dependency graphs,

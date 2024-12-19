@@ -12,7 +12,8 @@
       "transitivity": "unknown",
       "resolved_url": "https://registry.yarnpkg.com/lodash/-/lodash-4.17.18.tgz",
       "lockfile_path": "yarn.lock",
-      "line_number": 5
+      "line_number": 5,
+      "children": []
     }
   ],
   "poetry.lock": [

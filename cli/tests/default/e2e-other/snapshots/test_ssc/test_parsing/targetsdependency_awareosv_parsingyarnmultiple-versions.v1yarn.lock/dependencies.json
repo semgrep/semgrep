@@ -11,7 +11,8 @@
     "transitivity": "unknown",
     "resolved_url": "https://registry.yarnpkg.com/define-properties/-/define-properties-1.1.3.tgz",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/multiple-versions.v1/yarn.lock",
-    "line_number": 5
+    "line_number": 5,
+    "children": []
   },
   {
     "package": "define-property",
@@ -25,7 +26,8 @@
     "transitivity": "unknown",
     "resolved_url": "https://registry.yarnpkg.com/define-property/-/define-property-0.2.5.tgz",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/multiple-versions.v1/yarn.lock",
-    "line_number": 12
+    "line_number": 12,
+    "children": []
   },
   {
     "package": "define-property",
@@ -39,7 +41,8 @@
     "transitivity": "unknown",
     "resolved_url": "https://registry.yarnpkg.com/define-property/-/define-property-1.0.0.tgz",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/multiple-versions.v1/yarn.lock",
-    "line_number": 19
+    "line_number": 19,
+    "children": []
   },
   {
     "package": "define-property",
@@ -53,6 +56,7 @@
     "transitivity": "unknown",
     "resolved_url": "https://registry.yarnpkg.com/define-property/-/define-property-2.0.2.tgz",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/multiple-versions.v1/yarn.lock",
-    "line_number": 26
+    "line_number": 26,
+    "children": []
   }
 ]

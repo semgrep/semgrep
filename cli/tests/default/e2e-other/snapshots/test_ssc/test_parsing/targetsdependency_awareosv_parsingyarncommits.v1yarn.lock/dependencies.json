@@ -7,7 +7,8 @@
     "transitivity": "unknown",
     "resolved_url": "git+ssh://git@github.com:G-Rath/npm-git-repo-2",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v1/yarn.lock",
-    "line_number": 5
+    "line_number": 5,
+    "children": []
   },
   {
     "package": "mine2",
@@ -17,7 +18,8 @@
     "transitivity": "unknown",
     "resolved_url": "https://codeload.github.com/G-Rath/npm-git-repo-2/tar.gz/0a2d2506c1fe299691fc5db53a2097db3bd615bc",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v1/yarn.lock",
-    "line_number": 11
+    "line_number": 11,
+    "children": []
   },
   {
     "package": "mine3",
@@ -27,7 +29,8 @@
     "transitivity": "unknown",
     "resolved_url": "https://codeload.github.com/G-Rath/npm-git-repo-1/tar.gz/094e581aaf927d010e4b61d706ba584551dac502",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v1/yarn.lock",
-    "line_number": 17
+    "line_number": 17,
+    "children": []
   },
   {
     "package": "mine4",
@@ -37,7 +40,8 @@
     "transitivity": "unknown",
     "resolved_url": "git+ssh://git@github.com:G-Rath/npm-git-repo-2",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v1/yarn.lock",
-    "line_number": 21
+    "line_number": 21,
+    "children": []
   },
   {
     "package": "mine4",
@@ -47,7 +51,8 @@
     "transitivity": "unknown",
     "resolved_url": "https://codeload.github.com/G-Rath/npm-git-repo-2/tar.gz/aa3bdfcb1d845c79f14abb66f60d35b8a3ee5998",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v1/yarn.lock",
-    "line_number": 25
+    "line_number": 25,
+    "children": []
   },
   {
     "package": "my-package",
@@ -57,7 +62,8 @@
     "transitivity": "unknown",
     "resolved_url": "git+https://git@github.com/my-org/my-package.git",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v1/yarn.lock",
-    "line_number": 29
+    "line_number": 29,
+    "children": []
   },
   {
     "package": "bower_components/angular-animate",
@@ -67,7 +73,8 @@
     "transitivity": "unknown",
     "resolved_url": "git://github.com/angular/bower-angular-animate.git",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v1/yarn.lock",
-    "line_number": 33
+    "line_number": 33,
+    "children": []
   },
   {
     "package": "bower_components/alertify",
@@ -77,7 +84,8 @@
     "transitivity": "unknown",
     "resolved_url": "https://codeload.github.com/fabien-d/alertify.js-shim/tar.gz/e7b6c46d76604d297c389d830817b611c9a8f17c",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v1/yarn.lock",
-    "line_number": 37
+    "line_number": 37,
+    "children": []
   },
   {
     "package": "minimist",
@@ -87,7 +95,8 @@
     "transitivity": "unknown",
     "resolved_url": "ssh://github.com/substack/minimist.git",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v1/yarn.lock",
-    "line_number": 41
+    "line_number": 41,
+    "children": []
   },
   {
     "package": "bats-assert",
@@ -97,7 +106,8 @@
     "transitivity": "unknown",
     "resolved_url": "https://github.com/bats-core/bats-assert",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v1/yarn.lock",
-    "line_number": 45
+    "line_number": 45,
+    "children": []
   },
   {
     "package": "bats-support",
@@ -107,7 +117,8 @@
     "transitivity": "unknown",
     "resolved_url": "https://github.com/bats-core/bats-support",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v1/yarn.lock",
-    "line_number": 49
+    "line_number": 49,
+    "children": []
   },
   {
     "package": "bats",
@@ -117,7 +128,8 @@
     "transitivity": "unknown",
     "resolved_url": "https://github.com/bats-core/bats-core",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v1/yarn.lock",
-    "line_number": 53
+    "line_number": 53,
+    "children": []
   },
   {
     "package": "vue",
@@ -127,7 +139,8 @@
     "transitivity": "unknown",
     "resolved_url": "https://github.com/vuejs/vue.git",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v1/yarn.lock",
-    "line_number": 57
+    "line_number": 57,
+    "children": []
   },
   {
     "package": "kit",
@@ -137,7 +150,8 @@
     "transitivity": "unknown",
     "resolved_url": "git+https://bitbucket.org/kettlelogic/kit.git",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v1/yarn.lock",
-    "line_number": 61
+    "line_number": 61,
+    "children": []
   },
   {
     "package": "casadistance",
@@ -147,7 +161,8 @@
     "transitivity": "unknown",
     "resolved_url": "git+ssh://git@bitbucket.org/casasoftag/casadistance.git",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v1/yarn.lock",
-    "line_number": 68
+    "line_number": 68,
+    "children": []
   },
   {
     "package": "babel-preset-php",
@@ -157,7 +172,8 @@
     "transitivity": "unknown",
     "resolved_url": "https://gitlab.com/kornelski/babel-preset-php/repository/archive.tar.gz?ref=c5a7ba5e0ad98b8db1cb8ce105403dd4b768cced",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v1/yarn.lock",
-    "line_number": 72
+    "line_number": 72,
+    "children": []
   },
   {
     "package": "is-number",
@@ -167,7 +183,8 @@
     "transitivity": "unknown",
     "resolved_url": "https://codeload.github.com/jonschlinkert/is-number/tar.gz/d5ac0584ee9ae7bd9288220a39780f155b9ad4c8",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v1/yarn.lock",
-    "line_number": 78
+    "line_number": 78,
+    "children": []
   },
   {
     "package": "is-number",
@@ -177,6 +194,7 @@
     "transitivity": "unknown",
     "resolved_url": "https://dummy-token@github.com/jonschlinkert/is-number.git",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v1/yarn.lock",
-    "line_number": 82
+    "line_number": 82,
+    "children": []
   }
 ]

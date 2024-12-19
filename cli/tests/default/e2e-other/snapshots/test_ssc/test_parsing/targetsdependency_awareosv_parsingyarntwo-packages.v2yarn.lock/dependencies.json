@@ -3,14 +3,11 @@
     "package": "compare-func",
     "version": "2.0.0",
     "ecosystem": "npm",
-    "allowed_hashes": {
-      "sha512": [
-        "fb71d70632baa1e93283cf9d80f30ac97f003aabee026e0b4426c9716678079ef5fea7519b84d012cbed938c476493866a38a79760564a9e21ae9433e40e6f0d"
-      ]
-    },
+    "allowed_hashes": {},
     "transitivity": "unknown",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/two-packages.v2/yarn.lock",
-    "line_number": 8
+    "line_number": 8,
+    "children": []
   },
   {
     "package": "concat-map",
@@ -23,6 +20,7 @@
     },
     "transitivity": "unknown",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/two-packages.v2/yarn.lock",
-    "line_number": 18
+    "line_number": 18,
+    "children": []
   }
 ]

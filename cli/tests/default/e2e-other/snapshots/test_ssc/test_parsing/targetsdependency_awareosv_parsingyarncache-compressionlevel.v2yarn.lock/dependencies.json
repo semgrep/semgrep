@@ -10,6 +10,7 @@
     },
     "transitivity": "unknown",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/cache-compressionlevel.v2/yarn.lock",
-    "line_number": 8
+    "line_number": 8,
+    "children": []
   }
 ]

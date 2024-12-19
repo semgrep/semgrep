@@ -39,6 +39,7 @@
                   "6aee0bd6ad0729c69a6b7eea39da565a1c330e707fb5a6097d188a50b9da4fe325f5468122327648e24c78bb5279e2d3fb351dc85326d3eb6cfa3e1e7ae52920"
                 ]
               },
+              "children": [],
               "ecosystem": "npm",
               "line_number": 5,
               "lockfile_path": "targets/dependency_aware/yarn-v1-without-version-constraint/yarn.lock",

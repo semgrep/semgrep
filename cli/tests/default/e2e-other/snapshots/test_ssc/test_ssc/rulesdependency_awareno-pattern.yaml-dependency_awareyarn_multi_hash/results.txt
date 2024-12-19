@@ -15,7 +15,7 @@
       "check_id": "rules.dependency_aware.no-pattern",
       "end": {
         "col": 1,
-        "line": 13,
+        "line": 11,
         "offset": 1
       },
       "extra": {
@@ -42,8 +42,9 @@
                   "b96edfa1d0faa725b61593599e9fd9de1bd629e116d58f11d7ed429c4ac4f1c5c55f39796e504ea15078d42bcc7abe8fe90d12e455c3c1c1e015dd568f453dce"
                 ]
               },
+              "children": [],
               "ecosystem": "npm",
-              "line_number": 13,
+              "line_number": 11,
               "lockfile_path": "targets/dependency_aware/yarn_multi_hash/yarn.lock",
               "package": "bad-yarn-lib",
               "resolved_url": "https://registry.yarnpkg.com/lodash/-/lodash-4.17.18.tgz",
@@ -61,7 +62,7 @@
       "path": "targets/dependency_aware/yarn_multi_hash/yarn.lock",
       "start": {
         "col": 1,
-        "line": 13,
+        "line": 11,
         "offset": 1
       }
     }

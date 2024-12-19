@@ -3,39 +3,30 @@
     "package": "debug",
     "version": "4.3.3",
     "ecosystem": "npm",
-    "allowed_hashes": {
-      "sha512": [
-        "14472d56fe4a94dbcfaa6dbed2dd3849f1d72ba78104a1a328047bb564643ca49df0224c3a17fa63533fd11dd3d4c8636cd861191232a2c6735af00cc2d4de16"
-      ]
-    },
+    "allowed_hashes": {},
     "transitivity": "unknown",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/multiple-versions.v2/yarn.lock",
-    "line_number": 8
+    "line_number": 8,
+    "children": []
   },
   {
     "package": "debug",
     "version": "2.6.9",
     "ecosystem": "npm",
-    "allowed_hashes": {
-      "sha512": [
-        "d2f51589ca66df60bf36e1fa6e4386b318c3f1e06772280eea5b1ae9fd3d05e9c2b7fd8a7d862457d00853c75b00451aa2d7459b924629ee385287a650f58fe6"
-      ]
-    },
+    "allowed_hashes": {},
     "transitivity": "unknown",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/multiple-versions.v2/yarn.lock",
-    "line_number": 20
+    "line_number": 20,
+    "children": []
   },
   {
     "package": "debug",
     "version": "3.2.7",
     "ecosystem": "npm",
-    "allowed_hashes": {
-      "sha512": [
-        "b3d8c5940799914d30314b7c3304a43305fd0715581a919dacb8b3176d024a782062368405b47491516d2091d6462d4d11f2f4974a405048094f8bfebfa3071c"
-      ]
-    },
+    "allowed_hashes": {},
     "transitivity": "unknown",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/multiple-versions.v2/yarn.lock",
-    "line_number": 29
+    "line_number": 29,
+    "children": []
   }
 ]

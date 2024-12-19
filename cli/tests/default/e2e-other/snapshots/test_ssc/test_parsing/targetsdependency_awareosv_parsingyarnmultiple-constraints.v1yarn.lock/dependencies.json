@@ -11,7 +11,8 @@
     "transitivity": "unknown",
     "resolved_url": "https://registry.yarnpkg.com/domelementtype/-/domelementtype-1.3.1.tgz",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/multiple-constraints.v1/yarn.lock",
-    "line_number": 5
+    "line_number": 5,
+    "children": []
   },
   {
     "package": "babel/code-frame",
@@ -25,6 +26,7 @@
     "transitivity": "unknown",
     "resolved_url": "https://registry.yarnpkg.com/@babel/code-frame/-/code-frame-7.12.13.tgz",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/multiple-constraints.v1/yarn.lock",
-    "line_number": 10
+    "line_number": 10,
+    "children": []
   }
 ]

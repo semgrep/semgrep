@@ -10,7 +10,8 @@
     },
     "transitivity": "unknown",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/versions-with-build-strings.v2/yarn.lock",
-    "line_number": 8
+    "line_number": 8,
+    "children": []
   },
   {
     "package": "gensync",
@@ -23,7 +24,8 @@
     },
     "transitivity": "unknown",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/versions-with-build-strings.v2/yarn.lock",
-    "line_number": 15
+    "line_number": 15,
+    "children": []
   },
   {
     "package": "eslint-plugin-jest",
@@ -32,6 +34,7 @@
     "allowed_hashes": {},
     "transitivity": "unknown",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/versions-with-build-strings.v2/yarn.lock",
-    "line_number": 22
+    "line_number": 22,
+    "children": []
   }
 ]

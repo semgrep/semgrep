@@ -11,7 +11,8 @@
     "transitivity": "unknown",
     "resolved_url": "https://registry.npmjs.org/css-tree/-/css-tree-1.0.0-alpha.37.tgz",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/versions-with-build-strings.v1/yarn.lock",
-    "line_number": 5
+    "line_number": 5,
+    "children": []
   },
   {
     "package": "gensync",
@@ -25,7 +26,8 @@
     "transitivity": "unknown",
     "resolved_url": "https://registry.yarnpkg.com/gensync/-/gensync-1.0.0-beta.2.tgz",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/versions-with-build-strings.v1/yarn.lock",
-    "line_number": 13
+    "line_number": 13,
+    "children": []
   },
   {
     "package": "node-fetch",
@@ -39,7 +41,8 @@
     "transitivity": "unknown",
     "resolved_url": "https://registry.npmjs.org/node-fetch/-/node-fetch-3.0.0-beta.9.tgz",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/versions-with-build-strings.v1/yarn.lock",
-    "line_number": 18
+    "line_number": 18,
+    "children": []
   },
   {
     "package": "resolve",
@@ -53,7 +56,8 @@
     "transitivity": "unknown",
     "resolved_url": "https://registry.npmjs.org/resolve/-/resolve-1.20.0.tgz",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/versions-with-build-strings.v1/yarn.lock",
-    "line_number": 26
+    "line_number": 26,
+    "children": []
   },
   {
     "package": "resolve",
@@ -67,6 +71,7 @@
     "transitivity": "unknown",
     "resolved_url": "https://registry.npmjs.org/resolve/-/resolve-2.0.0-next.3.tgz",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/versions-with-build-strings.v1/yarn.lock",
-    "line_number": 34
+    "line_number": 34,
+    "children": []
   }
 ]

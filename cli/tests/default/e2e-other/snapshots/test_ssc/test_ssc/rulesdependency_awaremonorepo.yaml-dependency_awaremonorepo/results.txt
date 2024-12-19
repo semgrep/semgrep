@@ -38,6 +38,7 @@
             },
             "found_dependency": {
               "allowed_hashes": {},
+              "children": [],
               "ecosystem": "npm",
               "line_number": 10,
               "lockfile_path": "targets/dependency_aware/monorepo/webapp1/yarn.lock",
@@ -84,6 +85,7 @@
             },
             "found_dependency": {
               "allowed_hashes": {},
+              "children": [],
               "ecosystem": "npm",
               "line_number": 5,
               "lockfile_path": "targets/dependency_aware/monorepo/webapp2/yarn.lock",

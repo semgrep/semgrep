@@ -6,33 +6,28 @@
     "allowed_hashes": {},
     "transitivity": "unknown",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v2/yarn.lock",
-    "line_number": 8
+    "line_number": 8,
+    "children": []
   },
   {
     "package": "my-second-package",
     "version": "0.2.2",
     "ecosystem": "npm",
-    "allowed_hashes": {
-      "sha512": [
-        "709b31cf9d0b7deb3ed3d591dbb1f1af3f199fd88c63a93eb02aedacc074902353f5a9776c7895e5fb87a4d72f5218a844bfc4d7422927e11403484c8ba9f4a0"
-      ]
-    },
+    "allowed_hashes": {},
     "transitivity": "unknown",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v2/yarn.lock",
-    "line_number": 12
+    "line_number": 12,
+    "children": []
   },
   {
     "package": "@typegoose/typegoose",
     "version": "7.2.0",
     "ecosystem": "npm",
-    "allowed_hashes": {
-      "sha512": [
-        "f02168420eba060a09b6b3771e17e2ebc224997b5e417e81e0b108128bf4fc5020a1816d15ce2a857ef2a8f33fbb79925a76020e3fc80250b998ad5328458900"
-      ]
-    },
+    "allowed_hashes": {},
     "transitivity": "unknown",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v2/yarn.lock",
-    "line_number": 21
+    "line_number": 21,
+    "children": []
   },
   {
     "package": "vuejs",
@@ -45,7 +40,8 @@
     },
     "transitivity": "unknown",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v2/yarn.lock",
-    "line_number": 37
+    "line_number": 37,
+    "children": []
   },
   {
     "package": "my-third-package",
@@ -54,7 +50,8 @@
     "allowed_hashes": {},
     "transitivity": "unknown",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v2/yarn.lock",
-    "line_number": 44
+    "line_number": 44,
+    "children": []
   },
   {
     "package": "my-node-sdk",
@@ -67,7 +64,8 @@
     },
     "transitivity": "unknown",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v2/yarn.lock",
-    "line_number": 48
+    "line_number": 48,
+    "children": []
   },
   {
     "package": "is-really-great",
@@ -80,6 +78,7 @@
     },
     "transitivity": "unknown",
     "lockfile_path": "targets/dependency_aware/osv_parsing/yarn/commits.v2/yarn.lock",
-    "line_number": 55
+    "line_number": 55,
+    "children": []
   }
 ]
