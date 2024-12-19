@@ -1,5 +1,47 @@
 (* Pre and Post Processors Hook around a core scan *)
 
+(*****************************************************************************)
+(* SimpleProcessor *)
+(*****************************************************************************)
+
+type post_process_result = {
+  (* Could be an option if we want to use the post processor to filter findings.
+   * *)
+  match_ : Core_result.processed_match;
+  (* Must be a persistent sequence. Mainly used to avoid the time complexity of
+   * List concatenation *)
+  errors : Core_error.t Seq.t;
+}
+
+val post_process_result_of_match :
+  Core_result.processed_match -> post_process_result
+
+(* A simpler interface for a pre/post processor that leaves less error handling
+ * burden on the implementer. *)
+module type SimpleProcessor = sig
+  type state
+
+  (* TODO Change to a per-rule interface for better default error handling. *)
+  val pre_process : Core_scan_config.t -> Rule.t list -> Rule.t list * state
+
+  (* Post process a single match, optionally updating the state. *)
+  val post_process :
+    Core_scan_config.t ->
+    state ->
+    Core_result.processed_match ->
+    state * post_process_result
+end
+
+(*****************************************************************************)
+(* Processor *)
+(*****************************************************************************)
+
+(* Fully general pre/post processor. Avoid in favor of SimpleProcessor when
+ * possible.
+ *
+ * Implementers of this module type MUST catch and handle exceptions
+ * appropriately, containing them to single rules, files, or matches whenever
+ * possible. *)
 module type Processor = sig
   (* Each processor can define its own state/environment data structure *)
   type state
@@ -12,8 +54,9 @@ module type Processor = sig
     Core_scan_config.t -> state -> Core_result.t -> Core_result.t
 end
 
-(* The no-op processor is the identity processor which does nothing. *)
-module No_Op_Processor : Processor
+(*****************************************************************************)
+(* Entry Points *)
+(*****************************************************************************)
 
 (* Registers a processor for usage.
    This processor will act as an "outer layer", preprocessing before other
@@ -35,6 +78,10 @@ val call_with_pre_and_post_processor :
   ('config -> Core_scan_config.t) ->
   'config core_scan_func_with_rules ->
   'config core_scan_func_with_rules
+
+(*****************************************************************************)
+(* TEST ONLY *)
+(*****************************************************************************)
 
 (* Exposed only for testing purposes. These can be used to arbitrarily change
  * the set of pre and post processors. *)

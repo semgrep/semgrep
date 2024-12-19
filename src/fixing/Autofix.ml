@@ -383,11 +383,12 @@ let render_fix (pm : Core_match.t) : Textedit.t option =
 (* Entry points *)
 (*****************************************************************************)
 
+let produce_autofix (m : Core_result.processed_match) =
+  { m with autofix_edit = render_fix m.pm }
+
 let produce_autofixes (matches : Core_result.processed_match list) =
-  List_.map
-    (fun (m : Core_result.processed_match) ->
-      { m with autofix_edit = render_fix m.pm })
-    matches
+  (* TODO Simple function, inline at callsites? *)
+  List_.map produce_autofix matches
 
 (* This is used for testing only. This is why it raises an exception. *)
 let apply_fixes_to_file_exn path edits =

@@ -8,6 +8,8 @@ val render_fix : Core_match.t -> Textedit.t option
 val produce_autofixes :
   Core_result.processed_match list -> Core_result.processed_match list
 
+val produce_autofix : Core_result.processed_match -> Core_result.processed_match
+
 (* Apply the fix for the list of matches to the given file, returning the
    resulting file contents. Currently used only for tests.
 

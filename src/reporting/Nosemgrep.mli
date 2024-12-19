@@ -9,6 +9,9 @@ val produce_ignored :
   Core_result.processed_match list ->
   Core_result.processed_match list * Core_error.t list
 
+val produce_single_ignored :
+  Core_result.processed_match -> Core_result.processed_match * Core_error.t list
+
 (* remove the matches in that were whitelisted by a 'nosemgrep:' comment in
    the code by the user.
    requires the ignores to have been "produced" via [produce_ignored] above first!

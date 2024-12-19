@@ -264,31 +264,33 @@ let rule_match_nosem (pm : Core_match.t) : bool * Core_error.t list =
 (* Entry points *)
 (*****************************************************************************)
 
+let produce_single_ignored (match_ : Core_result.processed_match) :
+    Core_result.processed_match * Core_error.t list =
+  try
+    let is_ignored, errors = rule_match_nosem match_.pm in
+    ({ match_ with is_ignored }, errors)
+  with
+  | (Time_limit.Timeout _ | Common.ErrorOnFile _) as exn ->
+      Exception.catch_and_reraise exn
+  | exn ->
+      (* let's rewrap the exn with ErrorOnFile *)
+      let e = Exception.catch exn in
+      let trace = Exception.get_trace e in
+      let msg = Printexc.to_string exn in
+      let exn =
+        Common.ErrorOnFile
+          ( spf "produce_ignored: %s" msg,
+            match_.pm.path.internal_path_to_content )
+      in
+      let e = Exception.create exn trace in
+      Exception.reraise e
+
+(* TODO Inline at callsites? *)
 let produce_ignored (matches : Core_result.processed_match list) :
     Core_result.processed_match list * Core_error.t list =
   (* filters [rule_match]s by the [nosemgrep] tag. *)
   let matches, wide_errors =
-    matches
-    |> List_.map (fun (pm : Core_result.processed_match) ->
-           try
-             let is_ignored, errors = rule_match_nosem pm.pm in
-             ({ pm with is_ignored }, errors)
-           with
-           | (Time_limit.Timeout _ | Common.ErrorOnFile _) as exn ->
-               Exception.catch_and_reraise exn
-           | exn ->
-               (* let's rewrap the exn with ErrorOnFile *)
-               let e = Exception.catch exn in
-               let trace = Exception.get_trace e in
-               let msg = Printexc.to_string exn in
-               let exn =
-                 Common.ErrorOnFile
-                   ( spf "produce_ignored: %s" msg,
-                     pm.pm.path.internal_path_to_content )
-               in
-               let e = Exception.create exn trace in
-               Exception.reraise e)
-    |> List_.split
+    matches |> List_.map produce_single_ignored |> List_.split
   in
   (matches, List_.flatten wide_errors)
 

@@ -42,9 +42,58 @@ type 'config core_scan_func_with_rules =
   Rule_error.rules_and_invalid * float (* rule parse time *) ->
   Core_result.t
 
+type post_process_result = {
+  (* Could be an option if we want to use the post processor to filter findings.
+   * *)
+  match_ : Core_result.processed_match;
+  (* Must be a persistent sequence. Mainly used to avoid the time complexity of
+   * List concatenation *)
+  errors : Core_error.t Seq.t;
+}
+
+module type SimpleProcessor = sig
+  type state
+
+  val pre_process : Core_scan_config.t -> Rule.t list -> Rule.t list * state
+
+  val post_process :
+    Core_scan_config.t ->
+    state ->
+    Core_result.processed_match ->
+    state * post_process_result
+end
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let post_process_result_of_match match_ = { match_; errors = Seq.empty }
+
 (*****************************************************************************)
 (* Processors *)
 (*****************************************************************************)
+
+module WrapSimpleProcessor (P : SimpleProcessor) : Processor = struct
+  type state = P.state
+
+  let pre_process = P.pre_process
+
+  let post_process config state (res : Core_result.t) =
+    let matches = res.processed_matches in
+    let _state, matches_rev, new_errors =
+      List.fold_left
+        (fun (state, matches, errors_acc) match_ ->
+          let state, { match_; errors } =
+            (* TODO Error handling here! *)
+            P.post_process config state match_
+          in
+          (state, match_ :: matches, Seq.append errors_acc errors))
+        (state, [], Seq.empty) matches
+    in
+    let matches = List.rev matches_rev in
+    let new_errors = List.of_seq new_errors in
+    { res with processed_matches = matches; errors = res.errors @ new_errors }
+end
 
 (* The default processor is the identity processor which does nothing. *)
 module No_Op_Processor : Processor = struct
@@ -58,34 +107,45 @@ end
  * between pysemgrep (which uses core_scan) and osemgrep.
  * LATER: once pysemgrep is gone, we can do that directly in the core_scan.
  *)
-module Autofix_processor : Processor = struct
+module Autofix_processor : SimpleProcessor = struct
   type state = unit
 
   let pre_process _config rules = (rules, ())
 
-  let post_process (_config : Core_scan_config.t) () (res : Core_result.t) =
-    Logs_.with_debug_trace ~__FUNCTION__ (fun () ->
-        let matches_with_fixes =
-          Autofix.produce_autofixes res.processed_matches
-        in
-        { res with processed_matches = matches_with_fixes })
+  let post_process (_config : Core_scan_config.t) ()
+      (res : Core_result.processed_match) =
+    Logs_.with_debug_trace ~__FUNCTION__
+      begin
+        fun () ->
+          ((), post_process_result_of_match (Autofix.produce_autofix res))
+      end
 end
 
 (* Similar motivation than Autofix above *)
-module Nosemgrep_processor : Processor = struct
+module Nosemgrep_processor : SimpleProcessor = struct
   type state = unit
 
   let pre_process _config rules = (rules, ())
 
-  let post_process (config : Core_scan_config.t) () (res : Core_result.t) =
-    Logs_.with_debug_trace ~__FUNCTION__ (fun () ->
-        let processed_matches_with_ignores, errors =
-          Nosemgrep.produce_ignored res.processed_matches
-        in
-        let errors =
-          if config.strict then errors @ res.errors else res.errors
-        in
-        { res with processed_matches = processed_matches_with_ignores; errors })
+  let post_process (config : Core_scan_config.t) ()
+      (res : Core_result.processed_match) =
+    Logs_.with_debug_trace ~__FUNCTION__
+      begin
+        fun () ->
+          let processed_match_with_ignores, errors =
+            Nosemgrep.produce_single_ignored res
+          in
+          let errors =
+            (* TODO should this check be in call_with_pre_and_post_processor or
+             * WrapSimpleProcessor? *)
+            if config.strict then errors else []
+          in
+          ( (),
+            {
+              match_ = processed_match_with_ignores;
+              errors = List.to_seq errors;
+            } )
+      end
 end
 
 (*****************************************************************************)
@@ -113,17 +173,22 @@ end
 (* Global *)
 (*****************************************************************************)
 
-(* In semgrep OSS we just run the nosemgrep and autofix processors. In Pro we
- * also add the secrets post processor (see Secrets.setup()).
- *)
-module Initial_processor =
-  MkPairProcessor (Nosemgrep_processor) (Autofix_processor)
-
-let hook_processor = ref (module Initial_processor : Processor)
+let hook_processor = ref (module No_Op_Processor : Processor)
 
 let push_processor (module P : Processor) =
   let module Paired = MkPairProcessor (P) ((val !hook_processor)) in
   hook_processor := (module Paired)
+
+let push_simple_processor (module SP : SimpleProcessor) =
+  let module P = WrapSimpleProcessor (SP) in
+  push_processor (module P)
+
+(* In semgrep OSS we just run the nosemgrep and autofix processors. In Pro we
+ * also add the secrets post processor (see Secrets.setup()).
+ *)
+let () =
+  push_simple_processor (module Autofix_processor);
+  push_simple_processor (module Nosemgrep_processor)
 
 (*****************************************************************************)
 (* Entry point *)
