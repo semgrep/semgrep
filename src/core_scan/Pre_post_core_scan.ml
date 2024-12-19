@@ -61,6 +61,13 @@ module type SimpleProcessor = sig
     state ->
     Core_result.processed_match ->
     state * post_process_result
+
+  val handle_post_process_exn :
+    Core_scan_config.t ->
+    state ->
+    Core_result.processed_match ->
+    Exception.t ->
+    state * post_process_result
 end
 
 (*****************************************************************************)
@@ -68,6 +75,16 @@ end
 (*****************************************************************************)
 
 let post_process_result_of_match match_ = { match_; errors = Seq.empty }
+
+let default_handle_post_process_exn _config state
+    (match_ : Core_result.processed_match) exn =
+  let file =
+    match match_.pm.path.origin with
+    | File file -> Some file
+    | GitBlob _ -> None
+  in
+  let error = Core_error.exn_to_error ?file exn in
+  (state, { match_; errors = Seq.return error })
 
 (*****************************************************************************)
 (* Processors *)
@@ -85,7 +102,12 @@ module WrapSimpleProcessor (P : SimpleProcessor) : Processor = struct
         (fun (state, matches, errors_acc) match_ ->
           let state, { match_; errors } =
             (* TODO Error handling here! *)
-            P.post_process config state match_
+            try P.post_process config state match_ with
+            | (Time_limit.Timeout _ | Common.UnixExit _) as e ->
+                Exception.catch_and_reraise e
+            | exn ->
+                let e = Exception.catch exn in
+                P.handle_post_process_exn config state match_ e
           in
           (state, match_ :: matches, Seq.append errors_acc errors))
         (state, [], Seq.empty) matches
@@ -119,6 +141,8 @@ module Autofix_processor : SimpleProcessor = struct
         fun () ->
           ((), post_process_result_of_match (Autofix.produce_autofix res))
       end
+
+  let handle_post_process_exn = default_handle_post_process_exn
 end
 
 (* Similar motivation than Autofix above *)
@@ -146,6 +170,8 @@ module Nosemgrep_processor : SimpleProcessor = struct
               errors = List.to_seq errors;
             } )
       end
+
+  let handle_post_process_exn = default_handle_post_process_exn
 end
 
 (*****************************************************************************)

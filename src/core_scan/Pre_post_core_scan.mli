@@ -16,6 +16,15 @@ type post_process_result = {
 val post_process_result_of_match :
   Core_result.processed_match -> post_process_result
 
+(* Default implementation for `handle_post_process_exn` that passes through the
+ * match unmodified and adds the exception to the error list. *)
+val default_handle_post_process_exn :
+  Core_scan_config.t ->
+  'state ->
+  Core_result.processed_match ->
+  Exception.t ->
+  'state * post_process_result
+
 (* A simpler interface for a pre/post processor that leaves less error handling
  * burden on the implementer. *)
 module type SimpleProcessor = sig
@@ -29,6 +38,16 @@ module type SimpleProcessor = sig
     Core_scan_config.t ->
     state ->
     Core_result.processed_match ->
+    state * post_process_result
+
+  (* What should happen if `post_process` raises an exception? It is recommended
+   * to produce an error but salvage the finding. If there is no reasonable
+   * alternative, implementers may re-raise and bring down the whole scan. *)
+  val handle_post_process_exn :
+    Core_scan_config.t ->
+    state ->
+    Core_result.processed_match ->
+    Exception.t ->
     state * post_process_result
 end
 
