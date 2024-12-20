@@ -138,13 +138,15 @@ let get_targets session (root : Fpath.t) =
     User_settings.find_targets_conf_of_t session.user_settings
   in
   let proj_root = Rfpath.of_fpath_exn root in
-  Find_targets.get_target_fpaths
-    {
-      targets_conf with
-      force_project_root = Some (Find_targets.Filesystem proj_root);
-    }
-    [ Scanning_root.of_fpath root ]
-  |> fst
+  let targets, _errors, _skipped_targets =
+    Find_targets.get_target_fpaths
+      {
+        targets_conf with
+        force_project_root = Some (Find_targets.Filesystem proj_root);
+      }
+      [ Scanning_root.of_fpath root ]
+  in
+  targets
 
 let send_metrics ?core_time ?profiler ?cli_output session =
   if session.metrics.client_metrics.enabled then (

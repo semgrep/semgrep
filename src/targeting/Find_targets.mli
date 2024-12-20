@@ -99,13 +99,17 @@ val default_conf : conf
 val get_targets :
   conf ->
   Scanning_root.t list ->
-  Fppath.t list * Semgrep_output_v1_t.skipped_target list
+  Fppath.t list
+  * Semgrep_output_v1_t.core_error list
+  * Semgrep_output_v1_t.skipped_target list
 
 (* Same as get_targets but drop the ppath (path within the project) *)
 val get_target_fpaths :
   conf ->
   Scanning_root.t list ->
-  Fpath.t list * Semgrep_output_v1_t.skipped_target list
+  Fpath.t list
+  * Semgrep_output_v1_t.core_error list
+  * Semgrep_output_v1_t.skipped_target list
 
 (* internals used also in Find_targets_old.ml *)
 val get_reason_for_exclusion :

@@ -13,3 +13,8 @@ type t = {
   hrules : Rule.hrules;
   scanned : Fpath.t Set_.t;
 }
+
+(* Add errors that were obtained previously but didn't block the run *)
+let add_errors (errors : Semgrep_output_v1_t.core_error list) (res : t) : t =
+  let core = res.core in
+  { res with core = { core with errors = errors @ core.errors } }

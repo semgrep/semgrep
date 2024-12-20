@@ -19,6 +19,7 @@ Initialized empty Git repository in <TMP>/<MASKED>/.git/
  create mode 100644 dir/b.c
 --- '--include' patterns ---
 *.c
+--- Errors ---
 --- Selected targets ---
 selected c.c
 --- Skipped targets ---

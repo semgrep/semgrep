@@ -37,7 +37,7 @@ Files skipped:
 
    • <none>
 
-  [1m[24mFiles skipped due to insufficient read permissions:[0m
+  [1m[24mFiles that couldn't be accessed:[0m
 
    • <none>
 

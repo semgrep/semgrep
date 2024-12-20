@@ -8,6 +8,7 @@ dir/b.c
 --- end input files ---
 --- '--include' patterns ---
 *.c
+--- Errors ---
 --- Selected targets ---
 selected c.c
 --- Skipped targets ---

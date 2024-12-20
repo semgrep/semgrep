@@ -14,6 +14,7 @@
 import json
 import sys
 import time
+import traceback
 from io import StringIO
 from os import environ
 from pathlib import Path
@@ -54,7 +55,7 @@ from semgrep.dependency_aware_rule import dependencies_range_match_any
 from semgrep.dependency_aware_rule import parse_depends_on_yaml
 from semgrep.engine import EngineType
 from semgrep.error import DependencyResolutionError
-from semgrep.error import FilesNotFoundError
+from semgrep.error import InvalidScanningRootError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import select_real_errors
 from semgrep.error import SemgrepError
@@ -695,9 +696,13 @@ def run_scan(
             baseline_handler = BaselineHandler(
                 baseline_commit, is_mergebase=baseline_commit_is_mergebase
             )
-        # TODO better handling
-        except Exception as e:
-            raise SemgrepError(e)
+        except Exception:
+            # Display a trace because we have no idea where the exception
+            # was raised.
+            exception_with_trace: str = traceback.format_exc()
+            raise SemgrepError(
+                f"Exception in BaselineHandler initialization: {exception_with_trace}"
+            )
 
     respect_git_ignore = not no_git_ignore
     target_strings = frozenset(Path(t) for t in target)
@@ -723,7 +728,7 @@ def run_scan(
             list_targets_and_exit(
                 target_manager, out.Product(out.SAST()), long_format=x_ls_long
             )
-    except FilesNotFoundError as e:
+    except InvalidScanningRootError as e:
         raise SemgrepError(e)
 
     if historical_secrets:

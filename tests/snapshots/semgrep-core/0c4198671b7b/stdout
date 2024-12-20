@@ -5,6 +5,7 @@ semgrepignored.py
 symlink.py
 --- begin input files ---
 --- end input files ---
+--- Errors ---
 --- Selected targets ---
 selected symlink.py
 --- Skipped targets ---

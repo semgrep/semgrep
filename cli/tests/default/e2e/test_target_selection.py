@@ -74,7 +74,7 @@ class Expect:
 PROJECT = GitProject(
     name="semgrep-test-project1",
     url="https://github.com/semgrep/semgrep-test-project1.git",
-    commit="6544a7438d4d0f030e7d4570f1582cd63aa93fb2",
+    commit="e0c5109b96ec52a5d972fc0bb96d60f1c343cfd9",
 )
 
 
@@ -186,6 +186,8 @@ COMMON_EXPECTATIONS = [
             "src/semgrepignored-folder/hello.py",
             "src/semgrepignored-py-contents/hello.py",
             "src/symlink.py",
+            "src/semgrepignored-via-include.py",
+            "linux/link-to-file-in-dir-without-read-perm",
         ],
     ),
     # accepted differences between pysemgrep and osemgrep
@@ -227,6 +229,7 @@ GIT_PROJECT_EXPECTATIONS = [
         selected_by_pysemgrep=True,
         paths=[
             # pysemgrep doesn't consult .gitignore files
+            # (except for the one included in the .semgrepignore file)
             "src/gitignored.py",
             "src/gitignored-only-in-src-and-below.py",
             "src/gitignored-only-in-src.py",
@@ -250,6 +253,7 @@ NOVCS_PROJECT_EXPECTATIONS = [
     Expect(
         selected=False,
         paths=[
+            "src/semgrepignored-via-include.py",
             # folder, not a regular file
             "submodules/semgrep-test-project2",
         ],

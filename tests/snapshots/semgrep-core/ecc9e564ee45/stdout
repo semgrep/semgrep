@@ -3,5 +3,7 @@ Test name: without git > scanning root as a symlink to a missing regular file
 a.py
 --- begin input files ---
 --- end input files ---
+--- Errors ---
+{"error_type":"SemgrepError","severity":"error","message":"Invalid scanning root: a.py"}
 --- Selected targets ---
 --- Skipped targets ---

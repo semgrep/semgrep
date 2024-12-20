@@ -3,6 +3,11 @@ from tests.conftest import _clean_stdout
 from tests.fixtures import RunSemgrep
 
 
+# Check that a missing explicit target results in the following:
+# - an error message explaining that the file is missing;
+# - an error (in JSON) explaining that the file is missing;
+# - a nonzero exit code.
+#
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
 def test_missing_file(run_semgrep_in_tmp: RunSemgrep, snapshot):

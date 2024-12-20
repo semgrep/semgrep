@@ -36,7 +36,7 @@ Files skipped:
 
    • <none>
 
-  Files skipped due to insufficient read permissions:
+  Files that couldn't be accessed:
 
    • <none>
 

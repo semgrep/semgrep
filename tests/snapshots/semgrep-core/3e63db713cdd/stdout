@@ -17,6 +17,7 @@ Initialized empty Git repository in <TMP>/<MASKED>/.git/
  create mode 100644 c
 --- '--include' patterns ---
 a
+--- Errors ---
 --- Selected targets ---
 --- Skipped targets ---
 ignored .gitignore [Semgrep_output_v1_t.Cli_include_flags_do_not_match]

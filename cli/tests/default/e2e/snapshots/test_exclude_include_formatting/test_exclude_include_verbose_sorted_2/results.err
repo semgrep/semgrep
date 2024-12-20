@@ -52,7 +52,7 @@ Files skipped:
    • targets/basic/stupid.js
    • targets/basic/stupid.py
 
-  Files skipped due to insufficient read permissions:
+  Files that couldn't be accessed:
 
    • <none>
 

@@ -473,7 +473,7 @@ let adjust_skipped (skipped : Out.skipped_target list)
     in
     Some skipped
   in
-  (* Add the targets that were semgrepignored or errorneous *)
+  (* Add the targets that were semgrepignored or erroneous *)
   { res with core = { res.core with paths = { res.core.paths with skipped } } }
 
 (*****************************************************************************)
@@ -516,7 +516,8 @@ let check_targets_with_rules
       ; Cap.memory_limit
       ; .. >) (conf : Scan_CLI.conf) (profiler : Profiler.t)
     (rules_and_origins : Rule_fetching.rules_and_origin list)
-    (targets_and_skipped : Fpath.t list * Out.skipped_target list) :
+    ((targets, errors, skipped) :
+      Fpath.t list * Out.core_error list * Out.skipped_target list) :
     (Rule.rule list * Core_runner.result * Out.cli_output, Exit_code.t) result =
   Metrics_.add_engine_type conf.engine_type;
 
@@ -575,7 +576,6 @@ let check_targets_with_rules
        *)
       let rules = Rule_filtering.filter_rules conf.rule_filtering_conf rules in
       (* step 2: printing the skipped targets *)
-      let targets, skipped = targets_and_skipped in
       Log_targeting.Log.debug (fun m ->
           m "%s" (Text_reports.targets conf.target_roots skipped targets));
 
@@ -622,6 +622,7 @@ let check_targets_with_rules
           Exception.reraise exn
       | Ok result ->
           let (res : Core_runner.result) = Core_runner.mk_result rules result in
+          let res = Core_runner_result.add_errors errors res in
           (* step 3'': adjust matches, filter via nosemgrep and part1 autofix *)
           let keep_ignored =
             (not conf.core_runner_conf.nosem)

@@ -58,8 +58,33 @@ def is_truthy(value: Any) -> bool:
     return value is not None and val in ["true", "1", "y", "on", "yes"]
 
 
-def path_has_permissions(path: Path, permissions: int) -> bool:
-    return path.exists() and path.stat().st_mode & permissions == permissions
+def path_exists(path: Path, follow_symlinks: bool = True) -> bool:
+    """
+    path.exists(follow_links=False) is only supported with Python >= 12.
+    This provides the same functionality for older versions of Python.
+    Also, it returns False instead of raising exceptions in some situations.
+    """
+    try:
+        if follow_symlinks:
+            return path.exists()
+        else:
+            if path.is_symlink():
+                return True
+            else:
+                return path.exists()
+    except Exception:
+        return False
+
+
+def path_has_permissions(
+    path: Path, permissions: int, follow_symlinks: bool = True
+) -> bool:
+    return (
+        # path.stat(follow_symlinks=follow_symlinks): requires python >= 3.10
+        path_exists(path, follow_symlinks=follow_symlinks)
+        and (path.stat() if follow_symlinks else path.lstat()).st_mode & permissions
+        == permissions
+    )
 
 
 def abort(message: str) -> None:

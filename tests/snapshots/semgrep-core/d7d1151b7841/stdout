@@ -14,6 +14,7 @@ Initialized empty Git repository in <TMP>/<MASKED>/.git/
  2 files changed, 1 insertion(+)
  create mode 100644 .gitignore
  create mode 100644 c
+--- Errors ---
 --- Selected targets ---
 selected .gitignore
 selected a

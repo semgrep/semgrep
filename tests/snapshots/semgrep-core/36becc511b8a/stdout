@@ -13,6 +13,7 @@ Initialized empty Git repository in <TMP>/<MASKED>/.git/
  create mode 100644 dir/b
 --- '--include' patterns ---
 a
+--- Errors ---
 --- Selected targets ---
 selected dir/a
 --- Skipped targets ---

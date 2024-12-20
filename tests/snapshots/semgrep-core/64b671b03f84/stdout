@@ -4,6 +4,7 @@ Test name: without git > scan explicit target
 a.py
 --- begin input files ---
 --- end input files ---
+--- Errors ---
 --- Selected targets ---
 selected a.py
 --- Skipped targets ---

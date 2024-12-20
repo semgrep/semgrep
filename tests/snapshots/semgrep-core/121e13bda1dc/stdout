@@ -8,5 +8,7 @@ Initialized empty Git repository in <TMP>/<MASKED>/.git/
 [main (root-commit) <MASKED>] Add files
  1 file changed, 1 insertion(+)
  create mode 120000 a.py
+--- Errors ---
+{"error_type":"SemgrepError","severity":"error","message":"Invalid scanning root: a.py"}
 --- Selected targets ---
 --- Skipped targets ---

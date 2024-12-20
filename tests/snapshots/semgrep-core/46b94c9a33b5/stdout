@@ -14,6 +14,7 @@ Initialized empty Git repository in <TMP>/<MASKED>/.git/
  create mode 100644 .semgrepignore
  create mode 100644 semgrepignored.py
  create mode 120000 symlink.py
+--- Errors ---
 --- Selected targets ---
 selected symlink.py
 --- Skipped targets ---

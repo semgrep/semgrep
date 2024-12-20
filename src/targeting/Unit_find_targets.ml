@@ -62,7 +62,7 @@ let test_find_targets ?expected_outcome ?includes ?(excludes = [])
             exclude = excludes;
           }
         in
-        let targets, skipped_targets =
+        let targets, errors, skipped_targets =
           Find_targets.get_target_fpaths conf
             [ Scanning_root.of_fpath (Fpath.v scanning_root) ]
         in
@@ -76,6 +76,11 @@ let test_find_targets ?expected_outcome ?includes ?(excludes = [])
         | patterns ->
             printf "--- '--exclude' patterns ---\n";
             patterns |> List.iter (fun pat -> printf "%s\n" pat));
+        printf "--- Errors ---\n";
+        errors
+        |> List.iter (fun err ->
+               (* showing some ugly JSON is better than nothing *)
+               printf "%s\n" (Semgrep_output_v1_j.string_of_core_error err));
         printf "--- Selected targets ---\n";
         targets |> List.iter (fun path -> printf "selected %s\n" !!path);
         printf "--- Skipped targets ---\n";

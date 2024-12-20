@@ -250,13 +250,13 @@ class SemgrepCoreError(SemgrepError):
 
 
 @attr.s(auto_attribs=True, frozen=True)
-class FilesNotFoundError(SemgrepError):
+class InvalidScanningRootError(SemgrepError):
     level = out.ErrorSeverity(out.Error_())
     code = FATAL_EXIT_CODE
     paths: Sequence[Path]
 
     def __str__(self) -> str:
-        lines = (f"File not found: {pathname}" for pathname in self.paths)
+        lines = (f"Invalid scanning root: {pathname}" for pathname in self.paths)
         return "\n".join(lines)
 
 

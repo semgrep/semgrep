@@ -712,7 +712,8 @@ def test_commit_doesnt_exist(git_tmp_path, snapshot):
 
     output = run_sentinel_scan(base_commit="12345", check=False)
     assert output.returncode != 0
-    assert_err_match(snapshot, output, "error.txt")
+    # Don't snapshot stderr because it contains a stack trace that
+    # shows different paths to the source code depending on the host.
 
 
 @pytest.fixture

@@ -8,7 +8,7 @@ from typing import List
 
 import pytest
 
-from semgrep.error import FilesNotFoundError
+from semgrep.error import InvalidScanningRootError
 from semgrep.git import BaselineHandler
 from semgrep.ignores import FileIgnore
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
@@ -25,7 +25,7 @@ from semgrep.target_manager import TargetManager
 def test_nonexistent(tmp_path, monkeypatch):
     """
     Test that initializing TargetManager with targets that do not exist
-    raises FilesNotFoundError
+    raises InvalidScanningRootError
     """
     foo = tmp_path / "foo"
     foo.mkdir()
@@ -37,7 +37,7 @@ def test_nonexistent(tmp_path, monkeypatch):
     # shouldnt raise an error
     TargetManager(["foo/a.py"])
 
-    with pytest.raises(FilesNotFoundError) as e:
+    with pytest.raises(InvalidScanningRootError) as e:
         TargetManager(["foo/a.py", "foo/doesntexist.py"])
     assert e.value.paths == (Path("foo/doesntexist.py"),)
 
@@ -178,7 +178,7 @@ def test_get_files_for_language(
         targets = [str(Path(target).resolve()) for target in targets]
 
     if expected is None:
-        with pytest.raises(FilesNotFoundError):
+        with pytest.raises(InvalidScanningRootError):
             target_manager = paths.TargetManager(targets)
         return
     else:
@@ -205,7 +205,7 @@ def test_skip_symlink(tmp_path, monkeypatch):
         {foo / "a.py"},
     )
 
-    with pytest.raises(FilesNotFoundError):
+    with pytest.raises(InvalidScanningRootError):
         TargetManager([str(foo / "link.py")]).get_files_for_language(PY, SAST_PRODUCT)
 
 

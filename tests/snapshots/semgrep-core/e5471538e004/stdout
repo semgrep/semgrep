@@ -3,6 +3,7 @@ Test name: without git > scanning root as a file
 a.py
 --- begin input files ---
 --- end input files ---
+--- Errors ---
 --- Selected targets ---
 selected a.py
 --- Skipped targets ---

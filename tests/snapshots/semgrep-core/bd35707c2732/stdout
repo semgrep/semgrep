@@ -4,6 +4,7 @@ link-to-src
 src/a.py
 --- begin input files ---
 --- end input files ---
+--- Errors ---
 --- Selected targets ---
 selected link-to-src/a.py
 --- Skipped targets ---

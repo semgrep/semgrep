@@ -11,6 +11,7 @@ Initialized empty Git repository in <TMP>/<MASKED>/.git/
  2 files changed, 1 insertion(+)
  create mode 120000 link-to-src
  create mode 100644 src/a.py
+--- Errors ---
 --- Selected targets ---
 selected link-to-src/a.py
 --- Skipped targets ---

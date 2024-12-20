@@ -1011,7 +1011,11 @@ let replace_target_roots_by_regular_files_where_needed (caps : < Cap.tmp >)
                  Fpath.v "/dev/stdin"
            | str ->
                let orig_path = Fpath.v str in
-               if experimental then (
+               if
+                 experimental
+                 && Skip_target.filter_file_access_permissions orig_path
+                    |> Result.is_ok
+               then (
                  match
                    CapTmp.replace_named_pipe_by_regular_file_if_needed caps#tmp
                      ~prefix:"osemgrep-named-pipe-" (Fpath.v str)

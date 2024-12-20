@@ -180,7 +180,7 @@ let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp >)
               let baseline_targets, baseline_diff_targets =
                 match conf.engine_type with
                 | PRO Engine_type.{ analysis = Interprocedural; _ } ->
-                    let all_in_baseline, _ =
+                    let all_in_baseline, _errors, _skipped =
                       Find_targets.get_target_fpaths conf.targeting_conf
                         conf.target_roots
                     in

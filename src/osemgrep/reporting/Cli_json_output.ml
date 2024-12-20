@@ -68,6 +68,11 @@ let error_message ~rule_id ~(location : Out.location option)
         | None -> ""
         | Some loc -> spf "at line %s:%d" !!(loc.path) loc.start.line)
   in
+  (* TODO: this error message can be ugly. It shouldn't contain special
+     formatting such as significant newlines and indentation. It should
+     also not print the JSON constructor because most of them are not
+     English text. Revise this once all the CLI text output is migrated
+     to OCaml. *)
   spf "%s %s:\n %s"
     (Error.string_of_error_type error_type)
     error_context core_message

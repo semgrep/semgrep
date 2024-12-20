@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open List_.Operators
 open Fpath_.Operators
 module Out = Semgrep_output_v1_t
 module Log = Log_targeting.Log
@@ -503,7 +504,9 @@ let git_list_files ~exclude_standard
                         Fppath.append_relative_fpath sc_root_fppath
                           rel_target_fpath)
                else (
-                 (* scanning root is neither a file nor a folder *)
+                 (* scanning root is neither a file nor a folder
+                    (shouldn't happen if the scanning roots were already
+                    sanitized) *)
                  Log.warn (fun m ->
                      m "invalid scanning root %s" !!(sc_root.fpath));
                  []))
@@ -553,7 +556,8 @@ let git_list_untracked_files ~respect_gitignore
    TODO? move in paths/Project.ml?
 *)
 let group_scanning_roots_by_project (conf : conf)
-    (scanning_roots : Scanning_root.t list) : Project.scanning_roots list =
+    (scanning_roots : Scanning_root.t list) :
+    Project.scanning_roots list * Out.core_error list =
   (* Force root relativizes scan roots to project roots.
      I.e. if the project_root is /repo/src/ and the scanning root is /src/foo
      it would make the scanning root /foo. So it doesn't make sense to
@@ -579,31 +583,47 @@ let group_scanning_roots_by_project (conf : conf)
         (* Usual case when scanning the local file system *)
         None
   in
-  scanning_roots
-  |> List.filter (fun sc_root ->
-         let fpath = Scanning_root.to_fpath sc_root in
-         if UFile.is_dir_or_reg ~follow_symlinks:true fpath then true
-         else (
-           (* nosemgrep: no-logs-in-library *)
-           Logs.warn (fun m -> m "Invalid scanning root: %s" !!fpath);
-           false))
-  |> List_.filter_map (fun (sc_root : Scanning_root.t) ->
-         match
-           Project.find_any_project_root ~fallback_root:None
-             ~force_novcs:conf.force_novcs_project ~force_root
-             (Scanning_root.to_fpath sc_root)
-         with
-         | Ok x -> Some x
-         | Error msg ->
+  let errors = ref [] in
+  let groups =
+    scanning_roots
+    |> List.filter (fun sc_root ->
+           let fpath = Scanning_root.to_fpath sc_root in
+           if UFile.is_dir_or_reg ~follow_symlinks:true fpath then true
+           else (
              (* nosemgrep: no-logs-in-library *)
-             Logs.warn (fun m -> m "%s" msg);
-             None)
-  (* Using a realpath (physical path) in Project.t ensures we group
-     correctly even if the scanning_roots went through different symlink paths.
-  *)
-  |> Assoc.group_assoc_bykey_eff
-  |> List_.map (fun (project, scanning_roots) ->
-         Project.{ project; scanning_roots })
+             Logs.err (fun m -> m "Invalid scanning root: %s" !!fpath);
+             Stack_.push
+               ({
+                  (* TODO: introduce a more specific error type? *)
+                  error_type = SemgrepError;
+                  severity = `Error;
+                  message = spf "Invalid scanning root: %s" !!fpath;
+                  details = None;
+                  location = None;
+                  rule_id = None;
+                }
+                 : Out.core_error)
+               errors;
+             false))
+    |> List_.filter_map (fun (sc_root : Scanning_root.t) ->
+           match
+             Project.find_any_project_root ~fallback_root:None
+               ~force_novcs:conf.force_novcs_project ~force_root
+               (Scanning_root.to_fpath sc_root)
+           with
+           | Ok x -> Some x
+           | Error msg ->
+               (* nosemgrep: no-logs-in-library *)
+               Logs.warn (fun m -> m "%s" msg);
+               None)
+    (* Using a realpath (physical path) in Project.t ensures we group
+       correctly even if the scanning_roots went through different symlink
+       paths. *)
+    |> Assoc.group_assoc_bykey_eff
+    |> List_.map (fun (project, scanning_roots) ->
+           Project.{ project; scanning_roots })
+  in
+  (groups, List.rev !errors)
 
 (*************************************************************************)
 (* Work on a single project *)
@@ -807,9 +827,13 @@ let clone_if_remote_project_root conf =
 (* Entry point *)
 (*************************************************************************)
 
-let get_targets conf scanning_roots : Fppath.t list * Out.skipped_target list =
+let get_targets conf scanning_roots :
+    Fppath.t list * Out.core_error list * Out.skipped_target list =
   clone_if_remote_project_root conf;
-  let grouped_scanning_roots =
+  (* Skipped scanning roots are more serious errors than ordinary skipped
+     targets. They are reported as errors, normally causing the
+     semgrep run to terminate with an error status. *)
+  let grouped_scanning_roots, errors =
     scanning_roots |> group_scanning_roots_by_project conf
   in
   grouped_scanning_roots
@@ -832,9 +856,9 @@ let get_targets conf scanning_roots : Fppath.t list * Out.skipped_target list =
     |> List.sort (fun (a : Out.skipped_target) (b : Out.skipped_target) ->
            Fpath.compare a.path b.path)
   in
-  (paths, sorted_skipped_targets)
+  (paths, errors, sorted_skipped_targets)
 [@@profiling]
 
 let get_target_fpaths conf scanning_roots =
-  let selected, skipped = get_targets conf scanning_roots in
-  (List_.map (fun { Fppath.fpath; _ } -> fpath) selected, skipped)
+  let selected, errors, skipped = get_targets conf scanning_roots in
+  (List_.map (fun { Fppath.fpath; _ } -> fpath) selected, errors, skipped)

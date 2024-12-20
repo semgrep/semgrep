@@ -13,7 +13,7 @@ let list_targets_internal ?(conf = Find_targets.default_conf) ?roots () =
     | None -> [ Scanning_root.of_string "." ]
     | Some roots -> roots
   in
-  let selected, _skipped = Find_targets.get_target_fpaths conf roots in
+  let selected, _errors, _skipped = Find_targets.get_target_fpaths conf roots in
   printf "Target files:\n";
   selected |> List.iter (fun fpath -> printf "  %s\n" (Fpath.to_string fpath))
 

@@ -1,0 +1,4 @@
+Fix the behavior of semgrep when running into broken symlinks.
+If such a path is passed explicitly as a scanning root on the
+command line, it results in an error. Otherwise if it's a file discovered
+while scanning the file system, it's a warning.

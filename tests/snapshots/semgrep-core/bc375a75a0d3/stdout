@@ -3,6 +3,7 @@ Test name: without git > basic test
 .gitignore
 --- begin input files ---
 --- end input files ---
+--- Errors ---
 --- Selected targets ---
 selected .gitignore
 --- Skipped targets ---

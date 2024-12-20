@@ -730,7 +730,8 @@ def scan(
             # mostly repeating the loop in write_pipes_to_disk to detect if we
             # need --scan-unknown-extensions.
             for t in targets:
-                if t == "-" or Path(t).is_fifo():
+                path = Path(t)
+                if t == "-" or (os.access(path, os.R_OK) and path.is_fifo()):
                     logger.debug(
                         "stdin or piped targets, adding --scan-unknown-extensions"
                     )

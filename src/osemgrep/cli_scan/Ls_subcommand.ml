@@ -14,7 +14,9 @@ type format = Paths_only | Long [@@deriving show]
 let default_format = Paths_only
 
 let run ~target_roots ~targeting_conf:conf ~format () =
-  let selected, skipped = Find_targets.get_target_fpaths conf target_roots in
+  let selected, errors, skipped =
+    Find_targets.get_target_fpaths conf target_roots
+  in
   selected |> List.sort Fpath.compare
   |> List.iter (fun (x : Fpath.t) ->
          match format with
@@ -31,4 +33,14 @@ let run ~target_roots ~targeting_conf:conf ~format () =
                (spf "ignored %s [%s]" (Fpath.to_string x.path)
                   (x.reason |> OutJ.string_of_skip_reason
                  |> JSON.remove_enclosing_quotes_of_jstring))));
-  Exit_code.ok ~__LOC__
+  let has_error =
+    List.exists
+      (fun (err : OutJ.core_error) ->
+        match err.severity with
+        | `Error -> true
+        | `Warning
+        | `Info ->
+            false)
+      errors
+  in
+  if has_error then Exit_code.fatal ~__LOC__ else Exit_code.ok ~__LOC__

@@ -6,6 +6,7 @@ b
 --- end input files ---
 --- '--include' patterns ---
 a
+--- Errors ---
 --- Selected targets ---
 selected a
 --- Skipped targets ---

@@ -12,7 +12,7 @@
               },
               "level": "error",
               "message": {
-                "text": "File not found: targets/basic/inexistent.py"
+                "text": "Invalid scanning root: targets/basic/inexistent.py"
               }
             }
           ]

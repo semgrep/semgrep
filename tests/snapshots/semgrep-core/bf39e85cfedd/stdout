@@ -8,6 +8,7 @@ Initialized empty Git repository in <TMP>/<MASKED>/.git/
 [main (root-commit) <MASKED>] Add files
  1 file changed, 0 insertions(+), 0 deletions(-)
  create mode 100644 a.py
+--- Errors ---
 --- Selected targets ---
 selected a.py
 --- Skipped targets ---

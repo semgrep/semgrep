@@ -42,7 +42,7 @@ Files skipped:
    • targets/exclude_include/included/excluded.js
    • targets/exclude_include/included/included.js
 
-  Files skipped due to insufficient read permissions:
+  Files that couldn't be accessed:
 
    • <none>
 

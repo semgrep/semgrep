@@ -6,6 +6,7 @@ dir/b
 --- end input files ---
 --- '--include' patterns ---
 a
+--- Errors ---
 --- Selected targets ---
 selected dir/a
 --- Skipped targets ---

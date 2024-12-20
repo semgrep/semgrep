@@ -44,7 +44,7 @@ from boltons.iterutils import partition
 
 from semgrep.constants import TOO_MUCH_DATA
 from semgrep.constants import Colors, UNSUPPORTED_EXT_IGNORE_LANGS
-from semgrep.error import FilesNotFoundError
+from semgrep.error import InvalidScanningRootError
 from semgrep.formatter.text import BASE_WIDTH as width
 from semgrep.ignores import FileIgnore
 from semgrep.semgrep_types import FileExtension
@@ -87,17 +87,22 @@ def write_pipes_to_disk(targets: Sequence[str], temp_dir: Path) -> Sequence[str]
 
     out_targets = []
     for t in targets:
+        path = Path(t)
         if t == "-":
             with (temp_dir / "stdin").open("wb") as fd:
                 fd.write(sys.stdin.buffer.read())
             out_targets.append(fd.name)
-        elif Path(t).is_fifo():
-            with (temp_dir / t[1:].replace("/", "_")).open("wb") as fd:
-                with Path(t).open("rb") as td:
-                    fd.write(td.read())
-            out_targets.append(fd.name)
         else:
-            out_targets.append(t)
+            if os.access(path, os.R_OK) and path.is_fifo():
+                with (temp_dir / t[1:].replace("/", "_")).open("wb") as fd:
+                    with Path(t).open("rb") as td:
+                        fd.write(td.read())
+                out_targets.append(fd.name)
+            else:
+                # We keep the scanning root even if we already
+                # know it doesn't exist. This will be reported cleanly
+                # later.
+                out_targets.append(t)
     return out_targets
 
 
@@ -205,8 +210,11 @@ class FileTargetingLog:
                 f"{len(self.cli_excludes)} files matching --exclude patterns"
             )
         if self.insufficient_permissions:
+            # Show a list of broken symlinks or files we can't open for reading.
+            # This is a best effort. What we can show depends on the method
+            # used to list the files.
             skip_fragments.append(
-                f"{len(self.insufficient_permissions)} files without read permission"
+                f"{len(self.insufficient_permissions)} files without read access"
             )
         if self.size_limit:
             skip_fragments.append(
@@ -295,7 +303,7 @@ class FileTargetingLog:
 
         yield (
             1,
-            f"Files skipped due to insufficient read permissions:",
+            f"Files that couldn't be accessed:",
         )
         if self.insufficient_permissions:
             for path in sorted(self.insufficient_permissions):
@@ -398,7 +406,7 @@ class FileTargetingLog:
 @frozen(eq=False)  #
 class Target:
     """
-    Represents one path that was given as a target.
+    Represents one path that was given as a scanning root.
     Then target.paths returns all paths that target expands to.
     This does not do any include/exclude filtering.
 
@@ -420,12 +428,15 @@ class Target:
         If not, the path might be a socket.
         """
         if not self._is_valid_file_or_dir(value):
-            raise FilesNotFoundError(paths=tuple([value]))
+            raise InvalidScanningRootError(paths=tuple([value]))
         return None
 
     def _is_valid_file_or_dir(self, path: Path) -> bool:
         """Check this is a valid file or directory for semgrep scanning."""
-        return path_has_permissions(path, stat.S_IRUSR) and not path.is_symlink()
+        return (
+            path_has_permissions(path, stat.S_IRUSR, follow_symlinks=False)
+            and not path.is_symlink()
+        )
 
     def _is_valid_file(self, path: Path) -> bool:
         """Check if file is a readable regular file.
@@ -496,23 +507,31 @@ class Target:
         deleted = self._parse_git_output_nulsep(deleted_output)
         return frozenset(tracked | untracked_unignored - deleted)
 
-    def files_from_filesystem(self) -> FrozenSet[Path]:
-        return frozenset(
-            match
-            for match in self.path.glob("**/*")
-            if match.is_file() and not match.is_symlink()
+    def files_from_filesystem(self) -> Tuple[FrozenSet[Path], FrozenSet[Path]]:
+        all = frozenset(match for match in self.path.glob("**/*"))
+        # We need to check for access permission before checking file kind
+        insufficient_permissions = frozenset(
+            match for match in all if not os.access(match, os.R_OK)
         )
+        access_ok = all - insufficient_permissions
+        regular_files = frozenset(
+            match for match in access_ok if match.is_file() and not match.is_symlink()
+        )
+        return (regular_files, insufficient_permissions)
 
     @lru_cache(maxsize=None)
-    def files(self, ignore_baseline_handler: bool = False) -> FrozenSet[Path]:
+    def _files(
+        self, ignore_baseline_handler: bool = False
+    ) -> Tuple[FrozenSet[Path], FrozenSet[Path]]:
         """
         Recursively go through a directory and return list of all files with
-        default file extension of language
+        default file extension of language.
+        Return the selected files and the files with insufficient permissions.
 
         ignore_baseline_handler: if True, will ignore the baseline handler and scan all files. Used in the context of scanning unchanged lockfiles for their dependencies and doing reachability analysis.
         """
         if not self.path.is_dir() and self.path.is_file():
-            return frozenset([self.path])
+            return (frozenset([self.path]), frozenset())
 
         if self.baseline_handler is not None:
             # Adding this conditional to scan all lockfiles for their dependencies, even in diff-aware scans
@@ -520,7 +539,7 @@ class Target:
                 return self.files_from_filesystem()
 
             try:
-                return self.files_from_git_diff()
+                return (self.files_from_git_diff(), frozenset())
             except (subprocess.CalledProcessError, FileNotFoundError):
                 logger.verbose(
                     f"Unable to target only the changed files since baseline commit. Running on all git tracked files instead..."
@@ -528,13 +547,29 @@ class Target:
 
         if self.git_tracked_only:
             try:
-                return self.files_from_git_ls()
+                return (self.files_from_git_ls(), frozenset())
             except (subprocess.CalledProcessError, FileNotFoundError):
                 logger.verbose(
                     f"Unable to ignore files ignored by git ({self.path} is not a git directory or git is not installed). Running on all files instead..."
                 )
 
         return self.files_from_filesystem()
+
+    # cached (see _files())
+    def files(self, ignore_baseline_handler: bool = False) -> FrozenSet[Path]:
+        selected, _insufficient_permissions = self._files(
+            ignore_baseline_handler=ignore_baseline_handler
+        )
+        return selected
+
+    # cached (see _files())
+    def paths_with_insufficient_permissions(
+        self, ignore_baseline_handler: bool = False
+    ) -> FrozenSet[Path]:
+        _selected, insufficient_permissions = self._files(
+            ignore_baseline_handler=ignore_baseline_handler
+        )
+        return insufficient_permissions
 
 
 @define(eq=False)
@@ -749,6 +784,21 @@ class TargetManager:
         )
 
     @lru_cache(maxsize=None)
+    def get_paths_with_insufficient_permissions(
+        self, ignore_baseline_handler: bool = False
+    ) -> FrozenSet[Path]:
+        """
+        Return paths with insufficient permissions we already know about.
+        This is not always all of them depending on how these paths were
+        obtained.
+        """
+        return frozenset(
+            f
+            for target in self.targets
+            for f in target.paths_with_insufficient_permissions(ignore_baseline_handler)
+        )
+
+    @lru_cache(maxsize=None)
     def get_files_for_language(
         self,
         lang: Union[None, Language, Literal["dependency_source_files"]],
@@ -802,8 +852,15 @@ class TargetManager:
         files = self.filter_excludes(PATHS_ALWAYS_SKIPPED, candidates=files.kept)
         self.ignore_log.always_skipped.update(files.removed)
 
+        paths_with_insufficient_permissions = (
+            self.get_paths_with_insufficient_permissions(ignore_baseline_handler)
+        )
+        # Depending on how the files were obtained, we need to check
+        # for file permissions here
         files = self.filter_by_permission(files.kept)
-        self.ignore_log.insufficient_permissions.update(files.removed)
+        self.ignore_log.insufficient_permissions.update(
+            set(files.removed | paths_with_insufficient_permissions)
+        )
 
         # Lockfiles are easy to parse, and regularly surpass 1MB for big repos
         if lang != "dependency_source_files":
