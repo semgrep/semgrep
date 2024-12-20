@@ -5,7 +5,6 @@
 === stdout - plain
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/dependency_aware/maven-no-lockfile/pom.xml"
@@ -22,11 +21,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
+        "lines": "requires login",
         "message": "got em",
         "metadata": {},
-        "metavars": {},
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
@@ -43,6 +40,7 @@
                 }
               ],
               "ecosystem": "maven",
+              "line_number": 1,
               "lockfile_path": "targets/dependency_aware/maven-no-lockfile/pom.xml",
               "manifest_path": "targets/dependency_aware/maven-no-lockfile/pom.xml",
               "package": "org.apache.logging.log4j:log4j-core",

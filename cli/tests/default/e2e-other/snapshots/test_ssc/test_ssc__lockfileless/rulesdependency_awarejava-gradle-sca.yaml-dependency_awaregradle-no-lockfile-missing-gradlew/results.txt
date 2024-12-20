@@ -18,7 +18,6 @@
       ]
     }
   ],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": []
   },

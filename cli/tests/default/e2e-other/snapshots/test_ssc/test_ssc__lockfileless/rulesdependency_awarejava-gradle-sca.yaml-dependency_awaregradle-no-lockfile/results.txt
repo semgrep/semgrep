@@ -5,7 +5,6 @@
 === stdout - plain
 {
   "errors": [],
-  "interfile_languages_used": [],
   "paths": {
     "scanned": [
       "targets/dependency_aware/gradle-no-lockfile/build.gradle",
@@ -23,11 +22,9 @@
       "extra": {
         "engine_kind": "OSS",
         "fingerprint": "0x42",
-        "is_ignored": false,
-        "lines": "        return bad();",
+        "lines": "requires login",
         "message": "oh no",
         "metadata": {},
-        "metavars": {},
         "sca_info": {
           "dependency_match": {
             "dependency_pattern": {
@@ -39,6 +36,7 @@
               "allowed_hashes": {},
               "children": [],
               "ecosystem": "maven",
+              "line_number": 1,
               "lockfile_path": "targets/dependency_aware/gradle-no-lockfile/build.gradle",
               "manifest_path": "targets/dependency_aware/gradle-no-lockfile/build.gradle",
               "package": "org.webjars.npm:swagger-ui-dist",
