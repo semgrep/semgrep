@@ -71,6 +71,9 @@ let notify_user_about_metrics_once (settings : Semgrep_settings.t) : unit =
        Tip: to visualize special characters that are otherwise invisible
        in a diff, use something like this:
          grep 'METRICS: Using' path/to/output | LESS="X-E"
+       TODO: use Console.yellow and Console.sprintf which automatically handle
+       the highlight mode
+       TODO: move to Text_reports.ml
     *)
     let pysemgrep_hack1, pysemgrep_hack2 =
       (*
@@ -309,61 +312,6 @@ let new_cli_ux =
       | "pytest" -> false
       | _ -> true)
   | _ -> true
-
-let print_logo () : unit =
-  let logo =
-    Ocolor_format.asprintf
-      {|
-┌──── @{<green>○○○@} ────┐
-│ Semgrep CLI │
-└─────────────┘
-|}
-  in
-  Logs.app (fun m -> m "%s" logo);
-  ()
-
-let feature_status ~(enabled : bool) : string =
-  if enabled then Ocolor_format.asprintf {|@{<green>✔@}|}
-  else Ocolor_format.asprintf {|@{<red>✘@}|}
-
-let print_feature_section ~(includes_token : bool) ~(engine : Engine_type.t) :
-    unit =
-  let secrets_enabled =
-    match engine with
-    | PRO
-        Engine_type.
-          { secrets_config = Some Engine_type.{ allow_all_origins = _; _ }; _ }
-      ->
-        true
-    | OSS
-    | PRO Engine_type.{ secrets_config = None; _ } ->
-        false
-  in
-  let features =
-    [
-      ( "Semgrep OSS",
-        "Basic security coverage for first-party code vulnerabilities.",
-        true );
-      ( "Semgrep Code (SAST)",
-        "Find and fix vulnerabilities in the code you write with advanced \
-         scanning and expert security rules.",
-        includes_token );
-      ( "Semgrep Secrets",
-        "Detect and validate potential secrets in your code.",
-        secrets_enabled );
-    ]
-  in
-  (* Print our set of features and whether each is enabled *)
-  List.iter
-    (fun (feature_name, desc, is_enabled) ->
-      Logs.app (fun m ->
-          m "%s %s"
-            (feature_status ~enabled:is_enabled)
-            (Ocolor_format.asprintf {|@{<bold>%s@}|} feature_name));
-      Logs.app (fun m ->
-          m "  %s %s\n" (feature_status ~enabled:is_enabled) desc))
-    features;
-  ()
 
 let display_rule_source ~(rule_source : Rules_source.t) : unit =
   let msg =
@@ -722,7 +670,7 @@ let check_targets_with_rules
 let run_scan_conf (caps : < caps ; .. >) (conf : Scan_CLI.conf) : Exit_code.t =
   (* step0: more initializations *)
   (* Print The logo ASAP to minimize time to first meaningful content paint *)
-  if new_cli_ux then print_logo ();
+  if new_cli_ux then Logs.app (fun m -> m "%s" Text_reports.logo);
 
   (* imitate pysemgrep for backward compatible profiling metrics ? *)
   let profiler = Profiler.make () in
@@ -743,21 +691,12 @@ let run_scan_conf (caps : < caps ; .. >) (conf : Scan_CLI.conf) : Exit_code.t =
     |> Profiler.record profiler ~name:"config_time"
   in
 
-  (* Print feature section for enabled products if pattern mode is not used.
-     Ideally, pattern mode should be a different subcommand, but for now we will
-     conditionally print the feature section.
-  *)
-  (if new_cli_ux then
-     match conf.rules_source with
-     | Pattern _ ->
-         Logs.app (fun m ->
-             m "%s"
-               (Ocolor_format.asprintf {|@{<bold>  %s@}|}
-                  "Code scanning at ludicrous speed.\n"))
-     | _ ->
-         print_feature_section
-           ~includes_token:(settings.api_token <> None)
-           ~engine:conf.engine_type);
+  if new_cli_ux then
+    Logs.app (fun m ->
+        m "%s"
+          (Text_reports.product_selection
+             ~includes_token:(settings.api_token <> None)
+             conf.rules_source conf.engine_type));
 
   notify_user_about_metrics_once settings;
 

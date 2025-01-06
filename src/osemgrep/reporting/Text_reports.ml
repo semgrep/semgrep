@@ -1,6 +1,6 @@
 (* Yoann Padioleau, Robur
  *
- * Copyright (C) 2024 Semgrep Inc.
+ * Copyright (C) 2024-2025 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -36,13 +36,7 @@ module Out = Semgrep_output_v1_t
  * to /dev/null.
  *
  * The order of the functions in this file is mostly the order in which
- * the information is displayed to the user in the terminal:
- *  - running rules (Logs.info)
- *  - roots, skipped part1, and selected targets (Log_targeting.Log.debug)
- *  - TODO Code/SCA/Secret rules, language/origin, targets (Logs.app)
- * # (Findings in Text_output.ml/Sarif_output.ml/... on stdout)
- *  - File skipped part2 (Logs.info)
- *  - Scan summary (Logs.app)
+ * the information is displayed to the user in the terminal.
  *
  * Partially translated from:
  *  - formatter/text.py ??
@@ -97,6 +91,69 @@ let xlang_label = function
   | Xlang.LRegex ->
       "<multilang>"
   | Xlang.L (l, _) -> Lang.to_lowercase_alnum l
+
+(*****************************************************************************)
+(* Logo *)
+(*****************************************************************************)
+let logo =
+  Ocolor_format.asprintf
+    {|
+┌──── @{<green>○○○@} ────┐
+│ Semgrep CLI │
+└─────────────┘
+|}
+
+(*****************************************************************************)
+(* Product selection *)
+(*****************************************************************************)
+
+let feature_status ~(enabled : bool) : string =
+  if enabled then Ocolor_format.asprintf {|@{<green>✔@}|}
+  else Ocolor_format.asprintf {|@{<red>✘@}|}
+
+let product_selection ~(includes_token : bool) (rules_src : Rules_source.t)
+    (engine : Engine_type.t) : string =
+  Buffer_.with_buffer_to_string (fun buf ->
+      let prf fmt = Printf.bprintf buf fmt in
+
+      (* Print feature section for enabled products if pattern mode is not used.
+         Ideally, pattern mode should be a different subcommand, but for now we will
+         conditionally print the feature section.
+      *)
+      match rules_src with
+      | Pattern _ ->
+          prf "%s"
+            (Ocolor_format.asprintf {|@{<bold>  %s@}|}
+               "Code scanning at ludicrous speed.\n")
+      | _ ->
+          let secrets_enabled =
+            match engine with
+            | PRO { secrets_config = Some { allow_all_origins = _; _ }; _ } ->
+                true
+            | OSS
+            | PRO { secrets_config = None; _ } ->
+                false
+          in
+          let features =
+            [
+              ( "Semgrep OSS",
+                "Basic security coverage for first-party code vulnerabilities.",
+                true );
+              ( "Semgrep Code (SAST)",
+                "Find and fix vulnerabilities in the code you write with \
+                 advanced scanning and expert security rules.",
+                includes_token );
+              ( "Semgrep Secrets",
+                "Detect and validate potential secrets in your code.",
+                secrets_enabled );
+            ]
+          in
+          (* Print our set of features and whether each is enabled *)
+          features
+          |> List.iter (fun (feature_name, desc, enabled) ->
+                 prf "%s %s\n" (feature_status ~enabled)
+                   (Ocolor_format.asprintf {|@{<bold>%s@}|} feature_name);
+                 prf "  %s %s\n\n" (feature_status ~enabled) desc))
 
 (*****************************************************************************)
 (* Targets debug *)

@@ -1,12 +1,19 @@
 (* The order of the functions in this file is mostly the order in which
  * the information is displayed to the user in the terminal:
+ *  - logo (Logs.app)
+ *  - product selection (Logs.app)
  *  - running rules (Logs.info)
- *  - roots, skipped, and selected targets (Log_targeting.Log.debug)
+ *  - roots, skipped part1, and selected targets (Log_targeting.Log.debug)
  *  - SEMI Code/SCA/Secret rules, language/origin, targets (Logs.app)
  *  # (Findings in Text_output.ml/Sarif_output.ml/...)
- *  - file skipped (Logs.info)
+ *  - file skipped part2 (Logs.info)
  *  - scan summary (Logs.app)
  *)
+
+val logo : string
+
+val product_selection :
+  includes_token:bool -> Rules_source.t -> Engine_type.t -> string
 
 val rules : too_many_entries:int -> Rules_source.t -> Rule.t list -> string
 
