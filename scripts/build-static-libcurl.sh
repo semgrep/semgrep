@@ -18,6 +18,8 @@ curl -L "https://curl.se/download/curl-${CURL_VERSION}.tar.gz" | tar xz
 
 cd /tmp/curl-${CURL_VERSION}
 
-./configure --disable-shared --with-ssl --disable-ldap --without-brotli --without-nghttp2 --without-libidn2
+# Jan 2025: Disabling libpsl (a cookie checking library apparently) because it started
+# to cause linking errors later in semgrep about a "missing -lpsl"
+./configure --disable-shared --with-ssl --disable-ldap --without-brotli --without-nghttp2 --without-libidn2 --without-libpsl
 
 make install
