@@ -382,10 +382,11 @@ let with_debug_trace ?(src = debug_trace_src) ~__FUNCTION__
 (* Missing basic functions *)
 (*****************************************************************************)
 
-let sdebug ?src ?tags str = Logs.debug ?src (fun m -> m ?tags "%s" str)
-let sinfo ?src ?tags str = Logs.info ?src (fun m -> m ?tags "%s" str)
-let swarn ?src ?tags str = Logs.warn ?src (fun m -> m ?tags "%s" str)
-let serr ?src ?tags str = Logs.err ?src (fun m -> m ?tags "%s" str)
+let app ?src ?tags str = Logs.app ?src (fun m -> m ?tags "%s" str)
+let err ?src ?tags str = Logs.err ?src (fun m -> m ?tags "%s" str)
+let warn ?src ?tags str = Logs.warn ?src (fun m -> m ?tags "%s" str)
+let info ?src ?tags str = Logs.info ?src (fun m -> m ?tags "%s" str)
+let debug ?src ?tags str = Logs.debug ?src (fun m -> m ?tags "%s" str)
 
 let list to_string xs =
   Printf.sprintf "[%s]" (xs |> List_.map to_string |> String.concat ";")

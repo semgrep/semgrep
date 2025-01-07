@@ -17,14 +17,14 @@ Initialized empty Git repository in <TMP>/<MASKED>/.git/
 │ Semgrep CLI │
 └─────────────┘
 
-[32m✔[39m [1mSemgrep OSS[0m
-  [32m✔[39m Basic security coverage for first-party code vulnerabilities.
+✔ Semgrep OSS
+  ✔ Basic security coverage for first-party code vulnerabilities.
 
-[32m✔[39m [1mSemgrep Code (SAST)[0m
-  [32m✔[39m Find and fix vulnerabilities in the code you write with advanced scanning and expert security rules.
+✔ Semgrep Code (SAST)
+  ✔ Find and fix vulnerabilities in the code you write with advanced scanning and expert security rules.
 
-[31m✘[39m [1mSemgrep Secrets[0m
-  [31m✘[39m Detect and validate potential secrets in your code.
+✘ Semgrep Secrets
+  ✘ Detect and validate potential secrets in your code.
 
 
 METRICS: Using configs from the Registry (like --config=p/ci) reports pseudonymous rule metrics to semgrep.dev.
@@ -33,7 +33,7 @@ Using configs only from local files (like --config=xyz.yml) does not enable metr
 
 More information: https://semgrep.dev/docs/metrics
 
-[1m  Loading rules from local config...[0m
+  Loading rules from local config...
 
 
 ┌─────────────┐

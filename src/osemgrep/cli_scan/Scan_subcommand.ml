@@ -300,43 +300,6 @@ let choose_output_format_and_match_hook (caps : < Cap.stdout >)
         Some (mk_file_match_hook conf rules (incremental_json_printer caps)) )
   | { output_conf; _ } -> (output_conf.output_format, None)
 
-(*****************************************************************************)
-(* Printing stuff for CLI UX *)
-(*****************************************************************************)
-
-(* TODO: Update pysemgrep and osemgrep snapshot tests to match new output *)
-let new_cli_ux =
-  match !Env.v.user_agent_append with
-  | Some x -> (
-      match String.lowercase_ascii x with
-      | "pytest" -> false
-      | _ -> true)
-  | _ -> true
-
-let display_rule_source ~(rule_source : Rules_source.t) : unit =
-  let msg =
-    match rule_source with
-    | Configs xs
-      when List.exists
-             (function
-               | C.A _
-               | R _ ->
-                   true
-               | _ -> false)
-             (List_.map
-                (fun str ->
-                  Rules_config.parse_config_string ~in_docker:false str)
-                xs) ->
-        Ocolor_format.asprintf {|@{<bold>  %s@}|}
-          "Loading rules from registry..."
-    | Configs _ ->
-        Ocolor_format.asprintf {|@{<bold>  %s@}|}
-          "Loading rules from local config..."
-    | Pattern _ -> Ocolor_format.asprintf {|@{  %s@}|} "Using custom pattern."
-  in
-  Logs.app (fun m -> m "%s" msg);
-  ()
-
 (*************************************************************************)
 (* Helpers *)
 (*************************************************************************)
@@ -423,6 +386,15 @@ let adjust_skipped (skipped : Out.skipped_target list)
   in
   (* Add the targets that were semgrepignored or erroneous *)
   { res with core = { res.core with paths = { res.core.paths with skipped } } }
+
+(* TODO: Update pysemgrep and osemgrep snapshot tests to match new output *)
+let new_cli_ux =
+  match !Env.v.user_agent_append with
+  | Some x -> (
+      match String.lowercase_ascii x with
+      | "pytest" -> false
+      | _ -> true)
+  | _ -> true
 
 (*****************************************************************************)
 (* Nosemgrep and autofix *)
@@ -632,9 +604,6 @@ let check_targets_with_rules
                    ~respect_git_ignore:conf.targeting_conf.respect_gitignore
                    ~max_target_bytes:conf.targeting_conf.max_target_bytes
                    conf.common.maturity skipped_groups));
-          (* Note that Logs.app() is printing on stderr (but without any [XXX]
-           * prefix), and is filtered when using --quiet.
-           *)
           Logs.app (fun m ->
               m "%s"
                 (Text_reports.scan_summary
@@ -668,15 +637,18 @@ let check_targets_with_rules
 (*****************************************************************************)
 
 let run_scan_conf (caps : < caps ; .. >) (conf : Scan_CLI.conf) : Exit_code.t =
+  (* Print The logo ASAP to minimize time to first meaningful content paint.
+   * Note that Logs.app() is printing on stderr (but without any [XXX] prefix),
+   * and is filtered when using --quiet.
+   *)
+  if new_cli_ux then Logs_.app Text_reports.logo;
+
   (* step0: more initializations *)
-  (* Print The logo ASAP to minimize time to first meaningful content paint *)
-  if new_cli_ux then Logs.app (fun m -> m "%s" Text_reports.logo);
 
   (* imitate pysemgrep for backward compatible profiling metrics ? *)
   let profiler = Profiler.make () in
   (* the corresponding stop is done in check_targets_with_rules () *)
   Profiler.start profiler ~name:"total_time";
-
   Core_profiling.profiling := conf.core_runner_conf.time_flag;
 
   (* Metrics initialization (and finalization) is done in CLI.ml,
@@ -702,8 +674,15 @@ let run_scan_conf (caps : < caps ; .. >) (conf : Scan_CLI.conf) : Exit_code.t =
 
   (* step1: getting the rules *)
   Logs.info (fun m -> m "Getting the rules");
-  (* Display a (possibly interactive) message to denote rule fetching *)
-  if new_cli_ux then display_rule_source ~rule_source:conf.rules_source;
+  (* TODO? In pysemgrep the "loading rules from ..." message is removed once done
+   * (not sure I like it).
+   * TODO: very weird but the message below is never shown when osemgrep is
+   * run from a terminal (it appears in our Testo snapshots though).
+   * There are some weird missing flushing somewhere. If you add another
+   * Logs.app further below then it's this one that will be never shown.
+   *)
+  if new_cli_ux then
+    Logs.app (fun m -> m "%s" (Text_reports.rules_source conf.rules_source));
   let rules_and_origins, fatal_errors =
     rules_from_rules_source
       (caps :> < Cap.network ; Cap.tmp >)

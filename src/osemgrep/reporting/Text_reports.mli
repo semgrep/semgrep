@@ -1,10 +1,13 @@
 (* The order of the functions in this file is mostly the order in which
- * the information is displayed to the user in the terminal:
+ * the information is displayed to the user in the terminal and most functions
+ * are called from Scan_subcommand.ml:
  *  - logo (Logs.app)
  *  - product selection (Logs.app)
+ *  - rules source (Logs.app)
  *  - running rules (Logs.info)
  *  - roots, skipped part1, and selected targets (Log_targeting.Log.debug)
- *  - SEMI Code/SCA/Secret rules, language/origin, targets (Logs.app)
+ *  - Code/SCA/Secret rules, language/origin, targets (Logs.app)
+ *  - scan status (Logs.app) from Core_runner.ml this time
  *  # (Findings in Text_output.ml/Sarif_output.ml/...)
  *  - file skipped part2 (Logs.info)
  *  - scan summary (Logs.app)
@@ -15,6 +18,7 @@ val logo : string
 val product_selection :
   includes_token:bool -> Rules_source.t -> Engine_type.t -> string
 
+val rules_source : Rules_source.t -> string
 val rules : too_many_entries:int -> Rules_source.t -> Rule.t list -> string
 
 val targets :

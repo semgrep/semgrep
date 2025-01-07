@@ -72,6 +72,8 @@ let compare_lang_job (lang, rules_targets) (lang', rules_targets') =
 
 let bold s = Console.sprintf [ Console.Bold ] "%s" s
 let cyan s = Console.sprintf [ Console.cyan ] "%s" s
+let green s = Console.sprintf [ Console.green ] "%s" s
+let red s = Console.sprintf [ Console.red ] "%s" s
 
 let opt_msg msg = function
   | [] -> None
@@ -104,12 +106,32 @@ let logo =
 |}
 
 (*****************************************************************************)
+(* Rules source *)
+(*****************************************************************************)
+
+let rules_source (rule_source : Rules_source.t) : string =
+  match rule_source with
+  | Configs xs ->
+      let parsed_configs =
+        xs |> List_.map (Rules_config.parse_config_string ~in_docker:false)
+      in
+      if
+        parsed_configs
+        |> List.exists (function
+             | Rules_config.R _
+             | Rules_config.A _ ->
+                 true
+             | _ -> false)
+      then bold "  Loading rules from registry..."
+      else bold "  Loading rules from local config..."
+  | Pattern _ -> "  Using custom pattern."
+
+(*****************************************************************************)
 (* Product selection *)
 (*****************************************************************************)
 
 let feature_status ~(enabled : bool) : string =
-  if enabled then Ocolor_format.asprintf {|@{<green>✔@}|}
-  else Ocolor_format.asprintf {|@{<red>✘@}|}
+  if enabled then green "✔" else red "✘"
 
 let product_selection ~(includes_token : bool) (rules_src : Rules_source.t)
     (engine : Engine_type.t) : string =
@@ -121,10 +143,7 @@ let product_selection ~(includes_token : bool) (rules_src : Rules_source.t)
          conditionally print the feature section.
       *)
       match rules_src with
-      | Pattern _ ->
-          prf "%s"
-            (Ocolor_format.asprintf {|@{<bold>  %s@}|}
-               "Code scanning at ludicrous speed.\n")
+      | Pattern _ -> prf "%s" (bold "  Code scanning at ludicrous speed.\n")
       | _ ->
           let secrets_enabled =
             match engine with
@@ -151,8 +170,7 @@ let product_selection ~(includes_token : bool) (rules_src : Rules_source.t)
           (* Print our set of features and whether each is enabled *)
           features
           |> List.iter (fun (feature_name, desc, enabled) ->
-                 prf "%s %s\n" (feature_status ~enabled)
-                   (Ocolor_format.asprintf {|@{<bold>%s@}|} feature_name);
+                 prf "%s %s\n" (feature_status ~enabled) (bold feature_name);
                  prf "  %s %s\n\n" (feature_status ~enabled) desc))
 
 (*****************************************************************************)
@@ -222,9 +240,8 @@ let rules ~too_many_entries (src : Rules_source.t) (rules : Rule.t list) :
 (* Product x rules x targets x languages *)
 (*****************************************************************************)
 
-(*
-  Partially translated from semgrep_main.py (print_scan_status()) and from
-  core_runner.py (print()).
+(* Partially translated from semgrep_main.py (print_scan_status()) and from
+   core_runner.py (print()).
 *)
 let origin rule =
   (match rule.Rule.metadata with

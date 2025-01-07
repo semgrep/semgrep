@@ -8,11 +8,8 @@
    should be moved to the Debug level!
 
    - App: unlike the other levels, this prints ordinary messages without any
-     special formatting.
-     TODO: enable normal logging formatting and/or deprecate it
-     and convert the existing code to use 'Std_msg.print' or 'Std_msg.eprint'.
-     The issue is that right now, redirecting logs also redirects the verbose
-     stderr output because it uses 'Logs.app'.
+     special formatting. Note that this still prints the message on stderr,
+     not stdout (use Console.ml and CapConsole.ml for printing on stdout).
 
    - Error ('err'): error condition that prevent the program from running
      normally.
@@ -48,7 +45,7 @@ val setup_basic : ?level:Logs.level option -> unit -> unit
 
    'highlight_setting': whether the output should be formatted with color
    and font effects. It defaults to the current setting we have for stderr
-   in Stderr_msg. This option can be useful when redirecting the logs to
+   in Console.ml. This option can be useful when redirecting the logs to
    a file with the 'log_to_file' option.
 
    'require_one_of_these_tags': if a list of tags is provided, at least one
@@ -118,10 +115,12 @@ val setup :
 
    Suggested usage:
 
-
      let tags = Logs_.create_tag_set [__MODULE__; "autofix"]
      ...
      Logs.info (fun m -> m ~tags "Hello.");
+
+   Note that tags are mostly deprecated. In practice you should prefer
+   to use Logs src instead of tags.
 *)
 val create_tag : string -> string Logs.Tag.def
 val create_tags : string list -> Logs.Tag.set
@@ -130,26 +129,26 @@ val create_tag_set : string Logs.Tag.def list -> Logs.Tag.set
 (*
    Log a string directly.
 
-   Those functions are useful because 'Log.debug (fun m -> m "%s" str)' is a
+   Those functions are useful because 'Logs.debug (fun m -> m "%s" str)' is a
    bit heavy. Note that the Logs library use closures by default for the logs
    so one can have heavy computation in the closure and this will
    not slow-down the app if the log is not shown. However, if
    the log is a constant string, there is no need for the closure
    hence the shorcuts below.
 *)
-val sdebug : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
-val sinfo : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
-val swarn : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
-val serr : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
-val debug_trace_src : Logs.src
+val app : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
+val err : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
+val warn : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
+val info : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
+val debug : ?src:Logs.src -> ?tags:Logs.Tag.set -> string -> unit
 
 (* [with_debug_trace ?src ?__FUNCTION__ ?__LOC__ ?pp_input f]
  * will use __FUNCTION__ as <str> and will
  * first log a "starting <str>" on the src, then run f,
  * then log a "finished <str>" and return the result of f.
- * If f is throwing an exception, this will also be logged as
+ * If [f] is throwing an exception, this will also be logged as
  * "exception during <str>". If no src is given,
- * with_debug_trace will use the debug_trace_src above
+ * with_debug_trace will use the debug_trace_src below
  * and so you might need to run your program with
  * LOG_SRCS=debug_trace ...
  * Note, execeptions are always logged on the application src.
@@ -162,6 +161,8 @@ val with_debug_trace :
   ?pp_input:(unit -> string) ->
   (unit -> 'a) ->
   'a
+
+val debug_trace_src : Logs.src
 
 (*
    Formatting utilities for common containers:
