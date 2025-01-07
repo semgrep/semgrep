@@ -4,6 +4,7 @@
     "version": "1.0.0",
     "main": "ansi.js",
     "devDependencies": {
-      "lodash" : "4.17.20"
+      "lodash" : "4.17.20",
+      "ansi-html" : "0.0.7"
     }
   }

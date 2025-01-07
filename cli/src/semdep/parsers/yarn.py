@@ -287,9 +287,14 @@ def get_manifest_deps(
         return None
     json = parsed_manifest.as_dict()
     deps = json.get("dependencies")
-    if not deps:
-        return set()
-    return {(x[0], x[1].as_str()) for x in deps.as_dict().items()}
+    dev_deps = json.get("devDependencies")
+    all_deps = set()
+    if deps:
+        all_deps.update([(x[0], x[1].as_str()) for x in deps.as_dict().items()])
+    if dev_deps:
+        all_deps.update([(x[0], x[1].as_str()) for x in dev_deps.as_dict().items()])
+
+    return all_deps
 
 
 def remove_trailing_octothorpe(s: Optional[str]) -> Optional[str]:

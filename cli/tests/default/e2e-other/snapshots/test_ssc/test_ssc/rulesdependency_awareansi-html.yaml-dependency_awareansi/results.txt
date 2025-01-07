@@ -54,7 +54,7 @@
               "manifest_path": "targets/dependency_aware/ansi/package.json",
               "package": "ansi-html",
               "resolved_url": "https://registry.yarnpkg.com/ansi-html/-/ansi-html-0.0.7.tgz",
-              "transitivity": "unknown",
+              "transitivity": "direct",
               "version": "0.0.7"
             },
             "lockfile": "targets/dependency_aware/ansi/yarn.lock"
