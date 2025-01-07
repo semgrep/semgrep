@@ -109,11 +109,13 @@ def _print_scan_plan_header(
     Prints the number of files intended to be scanned and (optionally)
     the number of rules to be run based on the current configuration.
     """
+    # TODO: this value of file_count is unused. Why compute it?
     file_count = len(target_manager.get_all_files())
     legacy_cli_ux = cli_ux == DesignTreatment.LEGACY
     simple_ux = cli_ux == DesignTreatment.SIMPLE
 
     if target_mode_config.is_pro_diff_scan:
+        # TODO: total_file_count is unused. Why compute it?
         total_file_count = len(
             evolve(target_manager, baseline_handler=None).get_all_files()
         )
@@ -122,6 +124,7 @@ def _print_scan_plan_header(
             f"Inter-file Differential Scanning {unit_str(diff_file_count, 'file')}"
         )
     else:
+        # TODO: why compute this again?
         file_count = len(target_manager.get_all_files())
         summary_line = f"Scanning {unit_str(file_count, 'file')}"
 
