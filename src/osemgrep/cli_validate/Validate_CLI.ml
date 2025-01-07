@@ -81,7 +81,8 @@ let cmdline_term : conf Term.t =
   in
   Term.(const combine $ o_args $ CLI_common.o_common $ o_pro)
 
-let doc = "validating the rules"
+let doc =
+  "validating the rules (EXPERIMENTAL improvements over scan --validate)"
 
 let man : Cmdliner.Manpage.block list =
   [

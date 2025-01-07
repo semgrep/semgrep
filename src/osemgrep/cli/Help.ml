@@ -87,6 +87,6 @@ let print_semgrep_dashdash_help (stdout : Cap.Console.stdout) =
   @{<cyan>publish@}              Upload rule to @{<cyan;ul>semgrep.dev@}
   @{<cyan>scan@}                 Run Semgrep rules on local folders or files
   @{<cyan>show@}                 Show various types of information
-  @{<cyan>test@}                 Test the rules
-  @{<cyan>validate@}             Validate the rules
+  @{<cyan>test@}                 Test the rules (EXPERIMENTAL improvements over scan --test)
+  @{<cyan>validate@}             Validate the rules (EXPERIMENTAL improvements over scan --validate)
 |}

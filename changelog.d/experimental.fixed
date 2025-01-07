@@ -1,0 +1,8 @@
+The `semgrep test` and `semgrep validate` commands have been
+correctly documented as EXPERIMENTAL (in semgrep --help).
+Those commands are not GA yet and people should still
+use the `semgrep scan --test` and `semgrep scan --validate` (or
+the variants without the implicit "scan") commands (unless
+they want to experiment with getting results faster and are ok
+with incomplete coverage of the legacy `semgrep --test`
+and `semgrep --validate`).

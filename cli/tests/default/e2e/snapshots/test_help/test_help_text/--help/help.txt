@@ -18,5 +18,5 @@
   [36mpublish[39m              Upload rule to [36m[4msemgrep.dev[39m[24m
   [36mscan[39m                 Run Semgrep rules on local folders or files
   [36mshow[39m                 Show various types of information
-  [36mtest[39m                 Test the rules
-  [36mvalidate[39m             Validate the rules
+  [36mtest[39m                 Test the rules (EXPERIMENTAL improvements over scan --test)
+  [36mvalidate[39m             Validate the rules (EXPERIMENTAL improvements over scan --validate)

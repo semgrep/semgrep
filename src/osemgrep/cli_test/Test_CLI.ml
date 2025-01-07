@@ -165,7 +165,7 @@ let cmdline_term : conf Term.t =
     const combine $ o_args $ CLI_common.o_common $ o_config $ o_json
     $ o_matching_diagnosis $ o_pro $ o_strict $ o_test_ignore_todo)
 
-let doc = "testing the rules"
+let doc = "testing the rules (EXPERIMENTAL improvements over scan --test)"
 
 let man : Cmdliner.Manpage.block list =
   [
