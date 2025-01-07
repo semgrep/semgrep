@@ -34,6 +34,16 @@
             },
             "found_dependency": {
               "allowed_hashes": {},
+              "children": [
+                {
+                  "package": "python-dateutil",
+                  "version": "2.8.2"
+                },
+                {
+                  "package": "typing-extensions",
+                  "version": "4.2.0"
+                }
+              ],
               "ecosystem": "pypi",
               "line_number": 19,
               "lockfile_path": "targets/dependency_aware/poetry_with_arbitrary_starting_comment/poetry.lock",

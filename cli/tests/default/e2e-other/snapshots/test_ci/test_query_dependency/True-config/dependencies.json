@@ -24,7 +24,8 @@
       "allowed_hashes": {},
       "transitivity": "unknown",
       "lockfile_path": "poetry.lock",
-      "line_number": 2
+      "line_number": 2,
+      "children": []
     },
     {
       "package": "mypy",
@@ -33,7 +34,8 @@
       "allowed_hashes": {},
       "transitivity": "unknown",
       "lockfile_path": "poetry.lock",
-      "line_number": 10
+      "line_number": 10,
+      "children": []
     },
     {
       "package": "python-dateutil",
@@ -42,7 +44,8 @@
       "allowed_hashes": {},
       "transitivity": "unknown",
       "lockfile_path": "poetry.lock",
-      "line_number": 18
+      "line_number": 18,
+      "children": []
     }
   ]
 }

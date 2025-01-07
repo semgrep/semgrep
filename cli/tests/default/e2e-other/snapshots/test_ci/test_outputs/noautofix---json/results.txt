@@ -435,6 +435,7 @@
             },
             "found_dependency": {
               "allowed_hashes": {},
+              "children": [],
               "ecosystem": "pypi",
               "line_number": 2,
               "lockfile_path": "poetry.lock",

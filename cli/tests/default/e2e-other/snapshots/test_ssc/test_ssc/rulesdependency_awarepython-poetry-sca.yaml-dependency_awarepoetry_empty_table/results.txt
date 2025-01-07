@@ -33,6 +33,7 @@
             },
             "found_dependency": {
               "allowed_hashes": {},
+              "children": [],
               "ecosystem": "pypi",
               "line_number": 103,
               "lockfile_path": "targets/dependency_aware/poetry_empty_table/poetry.lock",

@@ -6,6 +6,7 @@
     "allowed_hashes": {},
     "transitivity": "unknown",
     "lockfile_path": "targets/dependency_aware/osv_parsing/poetry/one-package/poetry.lock",
-    "line_number": 2
+    "line_number": 2,
+    "children": []
   }
 ]

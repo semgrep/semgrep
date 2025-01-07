@@ -138,7 +138,8 @@
             "allowed_hashes": {},
             "transitivity": "unknown",
             "lockfile_path": "poetry.lock",
-            "line_number": 2
+            "line_number": 2,
+            "children": []
           },
           "lockfile": "poetry.lock"
         }

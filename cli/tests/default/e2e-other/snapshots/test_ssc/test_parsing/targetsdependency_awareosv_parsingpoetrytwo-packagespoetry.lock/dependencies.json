@@ -6,7 +6,13 @@
     "allowed_hashes": {},
     "transitivity": "unknown",
     "lockfile_path": "targets/dependency_aware/osv_parsing/poetry/two-packages/poetry.lock",
-    "line_number": 2
+    "line_number": 2,
+    "children": [
+      {
+        "package": "protobuf",
+        "version": "4.21.5"
+      }
+    ]
   },
   {
     "package": "protobuf",
@@ -15,6 +21,7 @@
     "allowed_hashes": {},
     "transitivity": "unknown",
     "lockfile_path": "targets/dependency_aware/osv_parsing/poetry/two-packages/poetry.lock",
-    "line_number": 16
+    "line_number": 16,
+    "children": []
   }
 ]

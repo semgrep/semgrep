@@ -9,10 +9,15 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
+from semdep.external.parsy import any_char
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
 from semdep.parsers import preprocessors
-from semdep.parsers.poetry import key_value
+from semdep.parsers.poetry import key
+from semdep.parsers.poetry import list_value
+from semdep.parsers.poetry import multi_line_quoted_value
+from semdep.parsers.poetry import object_value
+from semdep.parsers.poetry import plain_value
 from semdep.parsers.util import DependencyFileToParse
 from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import json_doc
@@ -32,6 +37,15 @@ from semgrep.verbose_logging import getLogger
 
 
 logger = getLogger(__name__)
+
+quoted_value = (
+    string('"')
+    >> any_char.until(string('"\n')).concat().map(lambda x: x.strip('"'))
+    << string('"')
+)
+
+value = multi_line_quoted_value | list_value | object_value | quoted_value | plain_value
+key_value = pair(key, value)
 
 
 manifest_block = pair(

@@ -6,14 +6,17 @@ Here's the docs for poetry: https://python-poetry.org/docs/
 """
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
+from typing import TypedDict
 
 from semdep.external.parsy import any_char
 from semdep.external.parsy import eof
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
+from semdep.external.parsy import success
 from semdep.parsers import preprocessors
 from semdep.parsers.util import DependencyFileToParse
 from semdep.parsers.util import DependencyParserError
@@ -23,6 +26,7 @@ from semdep.parsers.util import pair
 from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semdep.parsers.util import transitivity
 from semdep.parsers.util import upto
+from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyChild
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
@@ -37,6 +41,15 @@ class ValueLineWrapper:
     # A wrapper for a line of a value in a key-value pair so we don't use an ugly tuple
     line_number: int
     value: str
+
+
+class DependencyDict(TypedDict):
+    # Type def for the returned value from safe_parse_lockfile_and_manifest() when using the
+    # poetry parser
+    name: ValueLineWrapper
+    version: ValueLineWrapper
+    description: ValueLineWrapper
+    children: List[str]
 
 
 # These use [until] instead of [upto] because [upto] only works on single characters
@@ -69,8 +82,9 @@ object_value = (
 # "foo[bar]"
 quoted_value = (
     string('"')
-    >> any_char.until(string('"\n')).concat().map(lambda x: x.strip('"'))
+    >> any_char.until(string('"')).concat().map(lambda x: x.strip('"'))
     << string('"')
+    << any_char.optional().until(string("\n") | eof)
 )
 
 # Examples:
@@ -94,13 +108,32 @@ key = regex(r'("[^"]*"|[^\s=]+)\s*=\s*', flags=0, group=1).map(lambda x: x.strip
 # A key-value pair.
 # Examples:
 # foo = bar
-
 # foo = [
 #     bar, baz
 # ]
 key_value = pair(key, value)
 
 key_value_list = mark_line(key_value).sep_by(new_lines)
+
+
+def dict_to_dependency_dict(
+    dep: Tuple[int, Dict[str, ValueLineWrapper]], deps: Dict[str, List[str]]
+) -> Tuple[int, DependencyDict]:
+    """
+    Transforms a parsed poetry dependency and its children from a raw dict into a typed DependencyDict
+    """
+    return (
+        dep[0],
+        DependencyDict(
+            {
+                "name": dep[1]["name"],
+                "version": dep[1]["version"],
+                "description": dep[1]["description"],
+                "children": deps["children"],
+            }
+        ),
+    )
+
 
 # A poetry dependency
 # Example:
@@ -120,6 +153,47 @@ poetry_dep = mark_line(
         }
     )
 )
+
+# Parses dependency relationships from poetry.lock for a single dependency
+# Example:
+# [package.dependencies]
+# aiohappyeyeballs = ">=2.3.0"
+# aiosignal = ">=1.1.2"
+# async-timeout = {version = ">=4.0,<6.0", markers = "python_version < \"3.11\""}
+# attrs = ">=17.3.0"
+# frozenlist = ">=1.1.1"
+# multidict = ">=4.5,<7.0"
+# yarl = ">=1.12.0,<2.0"
+#
+# will be transformed into a raw dict:
+# {
+#     "children": [
+#         "aiohappyeyeballs",
+#         "aiosignal",
+#         ...
+#     ]
+# }
+#
+# Accepts a parsed poetry dependency and adds its parsed children (returned by the dependencies_parser)
+# in a typed format (handled by dict_to_dependency_dict)
+dependencies_parser = new_lines.many() >> string(
+    "[package.dependencies]\n"
+).optional().bind(
+    lambda title: key_value_list.map(
+        lambda child_info: {"children": [dep[0] for _, dep in child_info]}
+    )
+    if title
+    else success({"children": []})
+)
+
+# Enriches the output of the poetry_dep parser with dependency relationships for
+# the single dependency being parsed
+poetry_dep_ptt_parser = poetry_dep.bind(
+    lambda poetry_dep_info: dependencies_parser.map(
+        lambda deps: dict_to_dependency_dict(poetry_dep_info, deps)
+    )
+)
+
 
 # Poetry Source which we ignore
 # Example:
@@ -153,7 +227,9 @@ poetry_dep_extra = (string("[") >> upto("]") << string("]\n")).at_least(
 # A whole poetry file
 poetry = (
     string("\n").many()
-    >> (poetry_dep | poetry_dep_extra | (string("package = []").result(None)))
+    >> (
+        poetry_dep_ptt_parser | poetry_dep_extra | (string("package = []").result(None))
+    )
     .sep_by(new_lines.optional())
     .map(lambda xs: [x for x in xs if x])
     << new_lines.optional()
@@ -188,7 +264,8 @@ manifest = (
 
 
 def parse_poetry(
-    lockfile_path: Path, manifest_path: Optional[Path]
+    lockfile_path: Path,
+    manifest_path: Optional[Path],
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
     parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
         DependencyFileToParse(
@@ -220,6 +297,13 @@ def parse_poetry(
     )
 
     output = []
+    dep_version_map = {}
+    for _line_number, dep in parsed_lockfile:
+        if "name" not in dep or "version" not in dep:
+            continue
+        dep_version_map[dep["name"].value.lower().replace("_", "-")] = dep[
+            "version"
+        ].value
     for _line_number, dep in parsed_lockfile:
         if "name" not in dep or "version" not in dep:
             continue
@@ -236,6 +320,16 @@ def parse_poetry(
                 line_number=dep["name"].line_number,
                 lockfile_path=Fpath(str(lockfile_path)),
                 manifest_path=Fpath(str(manifest_path)) if manifest_path else None,
+                children=[
+                    DependencyChild(
+                        package=child.lower().replace(
+                            "_", "-"
+                        ),  # See earlier comment about PEP 426 (dependencies are currently stored with hyphens)
+                        version=dep_version_map[child.lower().replace("_", "-")],
+                    )
+                    for child in dep.get("children", [])
+                    if child.lower().replace("_", "-") in dep_version_map
+                ],
             )
         )
     return output, errors
