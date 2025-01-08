@@ -644,6 +644,13 @@ libs/spacegrep/tmp
 # From libs/testo/.gitignore
 libs/testo/_build
 
+# Symbolic links created dynamically
+libs/testo/failing-test
+libs/testo/meta-test
+libs/testo/parallel-test
+libs/testo/test
+libs/testo/test-alcotest
+
 # From libs/testo/docsrc/tutorial/.gitignore
 libs/testo/docsrc/tutorial/my_project
 
