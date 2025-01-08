@@ -23,6 +23,8 @@
 (* API *)
 (*****************************************************************************)
 
+let show (uri : Uri.t) : string = Fmt_.to_show Uri.pp uri
+
 let of_string_opt (str : string) : Uri.t option =
   let uri = Uri.of_string str in
   if Uri.equal uri Uri.empty then None else Some uri

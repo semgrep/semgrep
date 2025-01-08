@@ -274,7 +274,7 @@ let scan_status ~num_rules ~num_targets ~respect_gitignore
         (String_.unit_str num_rules "Code rule");
 
       (* TODO if sca_rules ...
-         Fmt.(option ~none:(any "") (any ", " ++ int ++ any "Supply Chain rule" *)
+         option ~none:(any "") (any ", " ++ int ++ any "Supply Chain rule" *)
       (* TODO pro_rule
              if get_path(rule.metadata, ("semgrep.dev", "rule", "origin"), default=None)
              == "pro_rules"
@@ -363,7 +363,7 @@ let skipped ~too_many_entries ~respect_git_ignore ~max_target_bytes
       in
 
       (* TODO: Why pysemgrep does not use the classic heading for skipped?? *)
-      (* nope: Fmt_helpers.pp_heading ppf "Files skipped"; *)
+      (* nope: Console.heading "Files skipped"; *)
       prf "\n%s\nFiles skipped:\n%s\n\n" (String.make 40 '=')
         (String.make 40 '=');
 

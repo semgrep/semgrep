@@ -807,7 +807,7 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   let depl = deployment_config caps' in
   (* TODO: pass baseline commit! *)
   let prj_meta = generate_meta_from_environment (caps :> < Cap.exec >) None in
-  Logs.app (fun m -> m "%a" Fmt_.pp_heading "Debugging Info");
+  Logs.app (fun m -> m "%s" (Console.heading "Debugging Info"));
   report_scan_environment prj_meta;
 
   (* After sanity checking, we either

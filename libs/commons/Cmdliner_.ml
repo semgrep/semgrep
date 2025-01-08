@@ -34,7 +34,7 @@ let sha1 =
   let parser str =
     match Digestif.SHA1.of_hex_opt str with
     | Some sha1 -> Ok sha1
-    | None -> Error (`Msg (Fmt.str "Invalid SHA1 value: %S" str))
+    | None -> Error (`Msg (spf "Invalid SHA1 value: %s" str))
   in
   let pp = Digestif.SHA1.pp in
   Arg.conv ~docv:"<SHA1>" (parser, pp)

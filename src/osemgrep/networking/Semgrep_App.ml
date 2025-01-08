@@ -67,7 +67,7 @@ let get_scan_config_from_token_async
   let url = Uri.with_path !Semgrep_envvars.v.semgrep_url scan_config_route in
   let headers =
     [
-      ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
+      ("User-Agent", spf "Semgrep/%s" Version.version);
       Auth.auth_header_of_token caps#token;
     ]
   in
@@ -163,7 +163,7 @@ let extract_block_override (data : string) : (app_block_override, string) result
 let get_deployment_from_token_async caps : Out.deployment_config option Lwt.t =
   let headers =
     [
-      ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
+      ("User-Agent", spf "Semgrep/%s" Version.version);
       Auth.auth_header_of_token caps#token;
     ]
   in
@@ -206,7 +206,7 @@ let start_scan_async ~dry_run caps (request : Out.scan_request) :
          * @require_supported_cli_version()
          * alt: use Metrics_.string_of_user_agent()
          *)
-        ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
+        ("User-Agent", spf "Semgrep/%s" Version.version);
         Auth.auth_header_of_token caps#token;
       ]
     in
@@ -288,7 +288,7 @@ let fetch_scan_config_string ~dry_run ~sca ~full_scan ~repository caps :
   let url = scan_config_uri ~sca ~dry_run ~full_scan repository in
   let headers =
     [
-      ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
+      ("User-Agent", spf "Semgrep/%s" Version.version);
       Auth.auth_header_of_token caps#token;
     ]
   in
@@ -346,7 +346,7 @@ let upload_findings_async ~dry_run ~scan_id ~results ~complete caps :
     let headers =
       [
         ("Content-Type", "application/json");
-        ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
+        ("User-Agent", spf "Semgrep/%s" Version.version);
         Auth.auth_header_of_token caps#token;
       ]
     in
@@ -379,7 +379,7 @@ let upload_findings_async ~dry_run ~scan_id ~results ~complete caps :
     | Ok { body = Ok body; _ } -> Lwt.return (extract_block_override body)
     | Ok { body = Error msg; code; _ } ->
         let msg =
-          Fmt.str
+          spf
             "Failed to upload findings, API server returned %u, this error: %s"
             code msg
         in
@@ -427,7 +427,7 @@ let report_failure_async ~dry_run ~scan_id caps (exit_code : Exit_code.t) :
     let headers =
       [
         ("Content-Type", "application/json");
-        ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
+        ("User-Agent", spf "Semgrep/%s" Version.version);
         Auth.auth_header_of_token caps#token;
       ]
     in
@@ -460,7 +460,7 @@ let report_failure ~dry_run ~scan_id caps exit_code =
 let get_identity_async caps =
   let headers =
     [
-      ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
+      ("User-Agent", spf "Semgrep/%s" Version.version);
       Auth.auth_header_of_token caps#token;
     ]
   in
@@ -484,7 +484,7 @@ let upload_rule_to_registry_async caps json =
   let headers =
     [
       ("Content-Type", "application/json");
-      ("User-Agent", Fmt.str "Semgrep/%s" Version.version);
+      ("User-Agent", spf "Semgrep/%s" Version.version);
       Auth.auth_header_of_token caps#token;
     ]
   in
@@ -493,7 +493,7 @@ let upload_rule_to_registry_async caps json =
   | Ok { body = Ok body; _ } -> Lwt.return_ok body
   | Ok { body = Error msg; code; _ } ->
       let msg =
-        Fmt.str
+        spf
           "Failed to upload rule to registry, API server returned %u, this \
            error: %s"
           code msg

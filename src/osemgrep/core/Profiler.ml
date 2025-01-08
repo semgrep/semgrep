@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Common
 
 (*****************************************************************************)
 (* Prelude *)
@@ -49,8 +50,8 @@ let stop profiler ~name =
   match Hashtbl.find_opt profiler name with
   | Some (Start _) -> start profiler ~name
   | Some (Recorded _) ->
-      Fmt.invalid_arg "Profiler.stop: %s already recorded" name
-  | None -> Fmt.invalid_arg "Profiler.stop: %s does not exist" name
+      invalid_arg (spf "Profiler.stop: %s already recorded" name)
+  | None -> invalid_arg (spf "Profiler.stop: %s does not exist" name)
 
 let stop_ign profiler ~name =
   try stop profiler ~name with

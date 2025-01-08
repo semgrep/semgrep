@@ -66,6 +66,14 @@ let with_buffer_to_string f =
   Format.pp_print_flush ppf ();
   Buffer.contents buf
 
+(* Make a pp function "show-compliant". Equivalent to Fmt.to_to_string.
+ * alt: with_buffer_to_string (fun ppf -> pp ppf x)
+ *)
+let to_show = Fmt.to_to_string
+
+(* Make a show function "pp-compliant" *)
+let of_show = Fmt.of_to_string
+
 let () =
   Testo.test "Fmt_.with_buffer_to_string" (fun () ->
       assert (
@@ -105,9 +113,3 @@ let pp_tables ppf (h1, heading1, entries1) (h2, heading2, entries2) =
         one (idx + 1) [] rb
   in
   one 0 lines1 lines2
-
-let pp_heading ppf txt =
-  let line = line (String.length txt + 2) in
-  Fmt.pf ppf "@.@.┌%s┐@." line;
-  Fmt.pf ppf "│ %s │@." txt;
-  Fmt.pf ppf "└%s┘@." line

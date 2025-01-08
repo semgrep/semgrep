@@ -1,14 +1,17 @@
+open Common
+
 (* GitHub REST API *)
 
 let find_branchoff_point_async caps ~gh_token ~api_url ~repo_name
     ~base_branch_hash head_branch_hash =
   let str = Auth.string_of_token gh_token in
-  let headers = [ ("Authorization", Fmt.str "Bearer %s" str) ] in
+  let headers = [ ("Authorization", spf "Bearer %s" str) ] in
   let%lwt response =
     Http_helpers.get ~headers caps#network
       (Uri.of_string
-         (Fmt.str "%a/repos/%s/compare/%a...%a" Uri.pp api_url repo_name
-            Digestif.SHA1.pp base_branch_hash Digestif.SHA1.pp head_branch_hash))
+         (spf "%s/repos/%s/compare/%s...%s" (Uri_.show api_url) repo_name
+            (Fmt_.to_show Digestif.SHA1.pp base_branch_hash)
+            (Fmt_.to_show Digestif.SHA1.pp head_branch_hash)))
   in
   match response with
   | Ok { body = Ok body; _ } ->

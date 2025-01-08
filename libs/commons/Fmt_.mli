@@ -1,10 +1,10 @@
-val pp_heading : string Fmt.t
-(** Pretty-prints the heading in a box: [pp_heading ppf "Hello"] is layouted as:
-    {[
-      ---------
-      | Hello |
-      ---------
-    ]} *)
+val with_buffer_to_string : (Format.formatter -> unit) -> string
+
+(* Make a pp function "show-compliant" (equivalent to Fmt.to_to_string) *)
+val to_show : 'a Fmt.t -> 'a -> string
+
+(* Make a show function "pp-compliant" (equivalent to Fmt.of_to_string) *)
+val of_show : ('a -> string) -> 'a Fmt.t
 
 val pp_table : string * string list -> (string * int list) list Fmt.t
 (** Pretty-prints the table with the heading. The first row are strings,
@@ -26,8 +26,6 @@ val pp_tables :
   unit
 (** Pretty-prints two tables with headings side by side, with some spacing in between.
     Look at [pp_table] for the individual arguments. *)
-
-val with_buffer_to_string : (Format.formatter -> unit) -> string
 
 (* internals now also used by Console.ml *)
 

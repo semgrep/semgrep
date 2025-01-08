@@ -1,15 +1,16 @@
+open Common
+
 type t = Yojson.Basic.t
 
 let cli =
   let parser str =
     if USys.file_exists str then
       try Ok (str, Yojson.Basic.from_file ~fname:str str) with
-      | Yojson.Json_error _ ->
-          Error (`Msg (Fmt.str "Invalid JSON file: %s" str))
-    else Error (`Msg (Fmt.str "%s does not exist" str))
+      | Yojson.Json_error _ -> Error (`Msg (spf "Invalid JSON file: %s" str))
+    else Error (`Msg (spf "%s does not exist" str))
   in
-  let pp ppf (filename, _) = Fmt.string ppf filename in
-  Cmdliner.Arg.conv ~docv:"<JSON file>" (parser, pp)
+  let show (filename, _) = filename in
+  Cmdliner.Arg.conv ~docv:"<JSON file>" (parser, Fmt_.of_show show)
 
 let default = (String.empty, `Null)
 

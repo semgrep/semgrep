@@ -5,7 +5,7 @@ open Pat_AST
 let t = Testo.create
 let slconf = Conf.default_singleline_conf
 let mlconf = Conf.default_multiline_conf
-let ast = Alcotest.testable (Fmt.of_to_string Pat_AST.show) ( = )
+let ast = Alcotest.testable (Fmt_.of_show Pat_AST.show) ( = )
 
 let check conf pat expected_ast =
   let res = Pat_parser.from_string conf pat in

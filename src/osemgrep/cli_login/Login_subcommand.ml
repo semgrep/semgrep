@@ -63,7 +63,7 @@ let save_token ?display_name token =
       Exit_code.fatal ~__LOC__
 
 let print_preamble () : unit =
-  Logs.app (fun m -> m "%a" Fmt_.pp_heading "Login");
+  Logs.app (fun m -> m "%s" (Console.heading "Login"));
   let preamble =
     Ocolor_format.asprintf
       {|

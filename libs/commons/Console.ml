@@ -171,7 +171,7 @@ let success str = style_string Success str
 (* Ascii art for headings and tables *)
 (*****************************************************************************)
 
-(* copy paste of Fmt_.pp_heading but not using Fmt *)
+(* old: was Fmt_.pp_heading before but better not using Fmt when not needed *)
 let heading (str : string) : string =
   let line = Fmt_.line (String.length str + 2) in
   spf "\n\n┌%s┐\n" line ^ spf "│ %s │\n" str ^ spf "└%s┘\n" line
