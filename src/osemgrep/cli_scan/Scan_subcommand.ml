@@ -255,26 +255,20 @@ let mk_file_match_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
         Unix.lockf Unix.stdout Unix.F_ULOCK 0))
 
 (* coupling: similar to Output.dispatch_output_format for Text *)
-let incremental_text_printer (_caps : < Cap.stdout >) (conf : Scan_CLI.conf)
+let incremental_text_printer (caps : < Cap.stdout >) (conf : Scan_CLI.conf)
     (cli_matches : Out.cli_match list) : unit =
-  (* TODO: we should switch to Fmt_.with_buffer_to_string +
-   * some CapConsole.print_no_nl, but then is_atty fail on
-   * a string buffer and we lose the colors
-   *)
-  Matches_report.pp_text_outputs
-    ~max_chars_per_line:conf.output_conf.max_chars_per_line
-    ~max_lines_per_finding:conf.output_conf.max_lines_per_finding
-      (* nosemgrep: forbid-console *)
-    ~color_output:conf.output_conf.force_color Format.std_formatter cli_matches
+  CapConsole.print_no_nl caps#stdout
+    (Text_output.matches_output
+       ~max_chars_per_line:conf.output_conf.max_chars_per_line
+       ~max_lines_per_finding:conf.output_conf.max_lines_per_finding cli_matches)
 
 let incremental_json_printer (caps : < Cap.stdout >) (conf : Scan_CLI.conf)
     (cli_matches : Out.cli_match list) : unit =
   ignore conf;
-  List.iter
-    (fun cli_match ->
-      CapConsole.print caps#stdout
-        (Semgrep_output_v1_j.string_of_cli_match cli_match))
-    cli_matches
+  cli_matches
+  |> List.iter (fun cli_match ->
+         CapConsole.print caps#stdout
+           (Semgrep_output_v1_j.string_of_cli_match cli_match))
 
 let choose_output_format_and_match_hook (caps : < Cap.stdout >)
     (conf : Scan_CLI.conf) (rules : Rule.rules) =

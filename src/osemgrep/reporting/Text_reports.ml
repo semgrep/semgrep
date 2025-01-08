@@ -70,10 +70,9 @@ let compare_lang_job (lang, rules_targets) (lang', rules_targets') =
       | cmp -> cmp)
   | _ -> failwith "Unexpected pattern"
 
-let bold s = Console.sprintf [ Console.Bold ] "%s" s
-let cyan s = Console.sprintf [ Console.cyan ] "%s" s
-let green s = Console.sprintf [ Console.green ] "%s" s
-let red s = Console.sprintf [ Console.red ] "%s" s
+let cyan s = Console.color Console.cyan s
+let green s = Console.color Console.green s
+let red s = Console.color Console.red s
 
 let opt_msg msg = function
   | [] -> None
@@ -122,8 +121,8 @@ let rules_source (rule_source : Rules_source.t) : string =
              | Rules_config.A _ ->
                  true
              | _ -> false)
-      then bold "  Loading rules from registry..."
-      else bold "  Loading rules from local config..."
+      then Console.bold "  Loading rules from registry..."
+      else Console.bold "  Loading rules from local config..."
   | Pattern _ -> "  Using custom pattern."
 
 (*****************************************************************************)
@@ -143,7 +142,8 @@ let product_selection ~(includes_token : bool) (rules_src : Rules_source.t)
          conditionally print the feature section.
       *)
       match rules_src with
-      | Pattern _ -> prf "%s" (bold "  Code scanning at ludicrous speed.\n")
+      | Pattern _ ->
+          prf "%s" (Console.bold "  Code scanning at ludicrous speed.\n")
       | _ ->
           let secrets_enabled =
             match engine with
@@ -170,7 +170,8 @@ let product_selection ~(includes_token : bool) (rules_src : Rules_source.t)
           (* Print our set of features and whether each is enabled *)
           features
           |> List.iter (fun (feature_name, desc, enabled) ->
-                 prf "%s %s\n" (feature_status ~enabled) (bold feature_name);
+                 prf "%s %s\n" (feature_status ~enabled)
+                   (Console.bold feature_name);
                  prf "  %s %s\n\n" (feature_status ~enabled) desc))
 
 (*****************************************************************************)
@@ -260,7 +261,6 @@ let origin rule =
 
 let scan_status ~num_rules ~num_targets ~respect_gitignore
     (lang_jobs : Lang_job.t list) : string =
-  ignore (num_rules, num_targets, respect_gitignore, lang_jobs, origin);
   Buffer_.with_buffer_to_string (fun buf ->
       let prf fmt = Printf.bprintf buf fmt in
 
@@ -367,55 +367,56 @@ let skipped ~too_many_entries ~respect_git_ignore ~max_target_bytes
       prf "\n%s\nFiles skipped:\n%s\n\n" (String.make 40 '=')
         (String.make 40 '=');
 
-      prf "  %s\n\n" (bold "Always skipped by Semgrep:");
+      prf "  %s\n\n" (Console.bold "Always skipped by Semgrep:");
       prf_list groups.always;
       prf "\n";
-      prf "  %s\n" (bold "Skipped by .gitignore:");
+      prf "  %s\n" (Console.bold "Skipped by .gitignore:");
       if respect_git_ignore then begin
-        prf "  %s\n\n" (bold "(Disable by passing --no-git-ignore)");
+        prf "  %s\n\n" (Console.bold "(Disable by passing --no-git-ignore)");
         prf "   • <all files not listed by `git ls-files` were skipped>\n"
       end
       else begin
-        prf "  %s\n\n" (bold "(Disabled with --no-git-ignore)");
+        prf "  %s\n\n" (Console.bold "(Disabled with --no-git-ignore)");
         prf "   • <none>\n"
       end;
       prf "\n";
 
       prf "  %s\n  %s\n\n"
-        (bold "Skipped by .semgrepignore:")
-        (bold
+        (Console.bold "Skipped by .semgrepignore:")
+        (Console.bold
            "(See: \
             https://semgrep.dev/docs/ignoring-files-folders-code/#understand-semgrep-defaults)");
       prf_list groups.ignored;
       prf "\n";
 
-      prf "  %s\n\n" (bold "Skipped by --include patterns:");
+      prf "  %s\n\n" (Console.bold "Skipped by --include patterns:");
       prf_list groups.include_;
       prf "\n";
 
-      prf "  %s\n\n" (bold "Skipped by --exclude patterns:");
+      prf "  %s\n\n" (Console.bold "Skipped by --exclude patterns:");
       if too_many_entries > 0 && List.length groups.exclude > too_many_entries
       then prf "   • %s\n" Output.too_much_data
       else prf_list groups.exclude;
       prf "\n";
 
       prf "  %s\n  %s\n\n"
-        (bold
+        (Console.bold
            (spf "Skipped by limiting to files smaller than %d bytes:"
               max_target_bytes))
-        (bold "(Adjust with the --max-target-bytes flag)");
+        (Console.bold "(Adjust with the --max-target-bytes flag)");
       prf_list groups.size;
       prf "\n";
 
       (match maturity with
       | Maturity.Develop ->
-          prf "  %s\n\n" (bold "Skipped for other reasons:");
+          prf "  %s\n\n" (Console.bold "Skipped for other reasons:");
           prf_list groups.other;
           prf "\n"
       | _else_ -> ());
 
       prf "  %s\n\n"
-        (bold "Partially analyzed due to parsing or internal Semgrep errors");
+        (Console.bold
+           "Partially analyzed due to parsing or internal Semgrep errors");
       prf_list groups.errors;
       prf "\n")
 

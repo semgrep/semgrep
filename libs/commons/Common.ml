@@ -197,7 +197,7 @@ let const x _y = x
 let do_nothing () = ()
 let rec applyn n f o = if n =|= 0 then o else applyn (n - 1) f (f o)
 
-(* I think Brandon added that, not sure where it comes from *)
+(* I think Brandon or Robur added that, not sure where it comes from *)
 let on g f x y = g (f x) (f y)
 
 (*****************************************************************************)

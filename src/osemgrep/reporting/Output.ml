@@ -175,14 +175,9 @@ let dispatch_output_format (caps : < Cap.stdout >) (conf : conf)
   | Gitlab_secrets -> format Gitlab_secrets ctx cli_output |> List.iter print
   | Json -> format Json ctx cli_output |> List.iter print
   | Text ->
-      (* TODO: we should switch to Fmt_.with_buffer_to_string +
-       * some CapConsole.print_no_nl, but then is_atty fail on
-       * a string buffer and we lose the colors
-       *)
-      Matches_report.pp_cli_output ~max_chars_per_line:conf.max_chars_per_line
-        ~max_lines_per_finding:conf.max_lines_per_finding
-          (* nosemgrep: forbid-console *)
-        ~color_output:conf.force_color Format.std_formatter cli_output
+      CapConsole.print_no_nl caps#stdout
+        (Text_output.text_output ~max_chars_per_line:conf.max_chars_per_line
+           ~max_lines_per_finding:conf.max_lines_per_finding cli_output)
   | Sarif ->
       let engine_label, is_pro =
         match cli_output.engine_requested with

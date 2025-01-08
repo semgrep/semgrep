@@ -1,6 +1,6 @@
 (* Martin Jambon, Yoann Padioleau
  *
- * Copyright (C) 2024 Semgrep Inc.
+ * Copyright (C) 2024-2025 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,7 +19,7 @@ open Common
 (*****************************************************************************)
 (* Centralize and unify the use of the standard output (and error) of a
  * program and automatically handle whether or not to display colors
- * depending on the terminal and/or CLI flags.
+ * depending on the terminal capabilities and/or CLI flags.
  *
  * There are many different ways a program can output a string on
  * the standard output:
@@ -140,6 +140,10 @@ let sprintf styles =
   match get_highlight () with
   | Off -> Printf.sprintf
   | On -> ANSITerminal.sprintf styles
+
+(* shortcuts *)
+let bold s = sprintf [ Bold ] "%s" s
+let color c s = sprintf [ c ] "%s" s
 
 (*****************************************************************************)
 (* Error/Warning/Success messages *)
