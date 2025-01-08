@@ -27,7 +27,7 @@ local ocaml_rules =
 local yml = import 'semgrep.yml';
 
 // ----------------------------------------------------------------------------
-// jsonnet rules
+// new rules written in Jsonnet and using the new syntax
 // ----------------------------------------------------------------------------
 
 local semgrep_rules = [
@@ -51,6 +51,38 @@ local semgrep_rules = [
       exclude: ['common2.ml'],
     },
   },
+  // See also TCB/forbid_console.jsonnet
+  {
+    id: 'no-fmt',
+    match: { any: ['Fmt.$X ...'] },
+    paths: {
+      //TODO: fix it
+      exclude: ['Http_mock_client.ml'],
+    },
+    languages: ['ocaml'],
+    severity: 'ERROR',
+    //coupling: toplevel comment in Fmt_.ml
+    message: |||
+      Do not use the Fmt library. Fmt and Format are a bit complicated to use
+      and are needed only when doing complex box-based pretty printing.
+      Just use sprintf or some Console.ml helpers.
+    |||,
+  },
+  {
+    id: 'no-ansiterminal',
+    match: { any: ['ANSITerminal.$X ...'] },
+    paths: {
+      exclude: ['Console.ml', 'Console_Spinner.ml'],
+    },
+    languages: ['ocaml'],
+    severity: 'ERROR',
+    message: |||
+      Do not use the ANSITerminal library. Use Console.ml instead
+      which wraps most of the good stuff from ANSITerminal.
+    |||,
+  },
+  //TODO: 'no-format' and 'no-ocolor-format'
+
   // See also TCB/forbid_network.jsonnet
   {
     id: 'no-http-outside-networking',
