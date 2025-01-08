@@ -367,6 +367,7 @@ and Effect : sig
   (* Mainly for debugging *)
   val show_sink : sink -> string
   val show_args_taints : args_taints -> string
+  val show_taint_to_sink_item : taint_to_sink_item -> string
   val show_taints_to_sink : taints_to_sink -> string
   val show_taints_to_return : taints_to_return -> string
 end = struct

@@ -728,23 +728,24 @@ let taints_of_pms ~incoming pms =
     3
   in
   (* Since labels can have a 'requires' constraint, we need to try adding
-   * more labels until we reach a fixpoint. E.g., we could have a PM adding
-   * label 'A', and another PM adding label 'B' but requiring 'A', so until
-   * we add 'A' to the taint set we cannot add 'B'.
-   * alt: Top-sort and then a fold ? *)
-  let rec go i taints pms_i =
+     more labels until we reach a fixpoint. E.g., we could have a PM adding
+     label 'A', and another PM adding label 'B' but requiring 'A', so until
+     we add 'A' to the taint set we cannot add 'B'.
+
+     Note that if 'incoming' contains a taint variable, then any labeled PM
+     will succeed using that variable as a precondition. But there may another
+     PM that would allow us to get the same label unconditionally. Hence we
+     reconsider all the PMs in every iteration. *)
+  let rec go i taints =
     if i >= max_ITERS then taints
     else
       let incoming = taints |> Taint_set.union incoming in
-      let new_taint_list, pms_left =
-        pms_i |> Common2.fpartition (taint_of_pm ~incoming)
+      let new_taint_list = pms |> List_.filter_map (taint_of_pm ~incoming) in
+      let taints' =
+        Taint_set.of_list new_taint_list |> Taint_set.union taints
       in
-      match new_taint_list with
-      | [] -> taints
-      | _ :: _ ->
-          let taints' =
-            Taint_set.of_list new_taint_list |> Taint_set.union taints
-          in
-          go (i + 1) taints' pms_left
+      if Taint_set.cardinal taints' > Taint_set.cardinal taints then
+        go (i + 1) taints'
+      else taints'
   in
-  go 0 Taint_set.empty pms
+  go 0 Taint_set.empty

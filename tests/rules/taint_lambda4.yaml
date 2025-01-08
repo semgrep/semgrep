@@ -1,0 +1,28 @@
+rules:
+- id: test
+  message: Test
+  severity: ERROR
+  languages:
+  - javascript
+  - typescript
+  mode: taint
+  options:
+    interfile: true
+  pattern-sources:
+  - pattern-either:
+    - patterns:
+      - pattern-either:
+        - pattern-inside: function ... ($REQ) {...}
+      - pattern: $REQ.query
+      - focus-metavariable: $REQ
+  - label: EDGECASE
+    patterns:
+    - patterns:
+      - pattern: $X.$Y. ... + foobar
+      - focus-metavariable: $X
+    requires: __SOURCE__
+  pattern-sinks:
+  - patterns:
+    - pattern: sink($URL)
+    - focus-metavariable: $URL
+    requires: __SOURCE__ and EDGECASE
