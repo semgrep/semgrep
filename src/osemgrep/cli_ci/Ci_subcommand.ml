@@ -276,15 +276,13 @@ let deployment_config (caps : < Cap.network ; Auth.cap_token ; .. >) :
       deployment_config
 
 (* eventually output the origin (if the semgrep_url is not semgrep.dev) *)
-let at_url_maybe ppf () : unit =
+let at_url_maybe () : string =
   if
     Uri.equal !Semgrep_envvars.v.semgrep_url
       (Uri.of_string "https://semgrep.dev")
-  then Fmt.string ppf ""
+  then ""
   else
-    Fmt.pf ppf " at %a"
-      Fmt.(styled `Bold string)
-      (Uri.to_string !Semgrep_envvars.v.semgrep_url)
+    spf " at %s" (Console.bold (Uri.to_string !Semgrep_envvars.v.semgrep_url))
 
 (* [data] contains the rules in JSON format. That's how the registry send
  * them because it's faster than using YAML.
@@ -309,11 +307,9 @@ let scan_config_and_rules_from_deployment ~dry_run
     (deployment_config : Out.deployment_config) :
     Semgrep_App.scan_id * Out.scan_config * Rule_fetching.rules_and_origin list
     =
-  Logs.app (fun m -> m "  %a" Fmt.(styled `Underline string) "CONNECTION");
+  Logs.app (fun m -> m "  %s" (Console.underline "CONNECTION"));
   Logs.app (fun m ->
-      m "  Reporting start of scan for %a"
-        Fmt.(styled `Bold string)
-        deployment_config.name);
+      m "  Reporting start of scan for %s" (Console.bold deployment_config.name));
   let scan_metadata : Out.scan_metadata = scan_metadata () in
   let project_config : Out.ci_config_from_repo option = project_config () in
 
@@ -347,8 +343,8 @@ let scan_config_and_rules_from_deployment ~dry_run
       (* TODO: set sca to metadata.is_sca_scan / supply_chain *)
       let scan_config : Out.scan_config =
         Logs.app (fun m ->
-            m "  Fetching configuration from Semgrep Cloud Platform%a"
-              at_url_maybe ());
+            m "  Fetching configuration from Semgrep Cloud Platform%s"
+              (at_url_maybe ()));
         match
           (* TODO: should pass and use scan_id *)
           Semgrep_App.fetch_scan_config caps ~sca:false ~dry_run
@@ -558,19 +554,15 @@ let finding_of_cli_match _commit_date index (m : Out.cli_match) : Out.finding =
 (*****************************************************************************)
 
 let report_scan_environment (prj_meta : Out.project_metadata) : unit =
-  Logs.app (fun m -> m "  %a" Fmt.(styled `Underline string) "SCAN ENVIRONMENT");
+  Logs.app (fun m -> m "  %s" (Console.underline "SCAN ENVIRONMENT"));
   Logs.app (fun m ->
-      m "  versions    - semgrep %a on OCaml %a"
-        Fmt.(styled `Bold string)
-        Version.version
-        Fmt.(styled `Bold string)
-        Sys.ocaml_version);
+      m "  versions    - semgrep %s on OCaml %s"
+        (Console.bold Version.version)
+        (Console.bold Sys.ocaml_version));
   Logs.app (fun m ->
-      m "  environment - running in environment %a, triggering event is %a@."
-        Fmt.(styled `Bold string)
-        prj_meta.scan_environment
-        Fmt.(styled `Bold string)
-        prj_meta.on);
+      m "  environment - running in environment %s, triggering event is %s\n"
+        (Console.bold prj_meta.scan_environment)
+        (Console.bold prj_meta.on));
   ()
 
 let report_scan_completed ~blocking_findings ~blocking_rules

@@ -143,6 +143,7 @@ let sprintf styles =
 
 (* shortcuts *)
 let bold s = sprintf [ Bold ] "%s" s
+let underline s = sprintf [ Underlined ] "%s" s
 let color c s = sprintf [ c ] "%s" s
 
 (*****************************************************************************)
@@ -168,17 +169,73 @@ let warning str = style_string Warning str
 let success str = style_string Success str
 
 (*****************************************************************************)
+(* Helpers for table() below *)
+(*****************************************************************************)
+
+(* ex: line 5 --> "|---|" ? *)
+let line (width : int) : string =
+  String.init (3 * width) (fun i ->
+      char_of_int
+        (match i mod 3 with
+        | 0 -> 0xE2
+        | 1 -> 0x94
+        | 2 -> 0x80
+        | _not_possible -> assert false))
+
+(* val layout_table :
+    string * string list -> (string * int list) list -> string list
+*)
+let layout_table (h1, heading) entries =
+  let int_size i =
+    let rec dec acc = function
+      | 0 -> acc
+      | n -> dec (succ acc) (n / 10)
+    in
+    if i =|= 0 then 1 else dec 0 i
+  in
+  let len1, lengths =
+    let acc = List_.map String.length heading in
+    List.fold_left
+      (fun (n1, needed) (c1, curr) ->
+        ( max (String.length c1) n1,
+          List_.map2 max needed (List_.map int_size curr) ))
+      (String.length h1, acc)
+      entries
+  in
+  let lengths = List_.map (fun i -> i + 3) lengths in
+  let line = List.fold_left (fun acc w -> acc + w) (len1 + 2) lengths |> line in
+  let pad str_size len =
+    let to_pad = len - str_size in
+    String.make to_pad ' '
+  in
+  String.concat ""
+    (List_.flatten
+       ([ h1; pad (String.length h1) len1 ]
+       :: List_.map2 (fun h l -> [ pad (String.length h) l; h ]) heading lengths
+       ))
+  :: line
+  :: List_.map
+       (fun (e1, entries) ->
+         String.concat ""
+           (List_.flatten
+              ([ e1; pad (String.length e1) len1 ]
+              :: List_.map2
+                   (fun e l -> [ pad (int_size e) l; string_of_int e ])
+                   entries lengths)))
+       entries
+
+(*****************************************************************************)
 (* Ascii art for headings and tables *)
 (*****************************************************************************)
 
 (* old: was Fmt_.pp_heading before but better not using Fmt when not needed *)
 let heading (str : string) : string =
-  let line = Fmt_.line (String.length str + 2) in
+  let line = line (String.length str + 2) in
   spf "\n\n┌%s┐\n" line ^ spf "│ %s │\n" str ^ spf "└%s┘\n" line
 
-(* copy paste of Fmt_.pp_table but not using Fmt *)
+(* old: was Fmt_.pp_table before *)
 let table (h1, heading) entries : string =
-  let lines = Fmt_.layout_table (h1, heading) entries in
+  let lines = layout_table (h1, heading) entries in
   Buffer_.with_buffer_to_string (fun buf ->
       let prf fmt = Printf.bprintf buf fmt in
       lines
@@ -186,10 +243,10 @@ let table (h1, heading) entries : string =
              prf "%s%s\n" (if idx =|= 1 then " " else "  ") line);
       prf "\n")
 
-(* copy paste of Fmt_.pp_tables but not using Fmt *)
+(* old: was Fmt_.pp_tables before *)
 let tables (h1, heading1, entries1) (h2, heading2, entries2) : string =
-  let lines1 = Fmt_.layout_table (h1, heading1) entries1
-  and lines2 = Fmt_.layout_table (h2, heading2) entries2 in
+  let lines1 = layout_table (h1, heading1) entries1
+  and lines2 = layout_table (h2, heading2) entries2 in
   let l1_space =
     String.make
       (String.length (List_.hd_exn "unexpected empty list" lines1))

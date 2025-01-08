@@ -64,6 +64,7 @@ val sprintf : style list -> ('a, unit, string) format -> 'a
 (* sprintf shortcuts *)
 val color : style -> string -> string
 val bold : string -> string
+val underline : string -> string
 
 (*
    These functions turn a string into color (red, yellow, or green)
