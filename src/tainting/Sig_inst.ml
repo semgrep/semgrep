@@ -209,12 +209,12 @@ let subst_in_precondition inst_var taint =
            | Src _ -> [ t ]
            | Var lval -> (
                match inst_var.inst_lval lval with
-               | None -> []
+               | None -> [ t ]
                | Some (call_taints, _call_shape) ->
                    call_taints |> Taints.elements)
            | Shape_var lval -> (
                match inst_var.inst_lval lval with
-               | None -> []
+               | None -> [ t ]
                | Some (_call_taints, call_shape) ->
                    (* Taint shape-variable, stands for the taints reachable
                     * through the shape of the 'lval', it's like a delayed
@@ -263,7 +263,7 @@ let instantiate_taint inst_var inst_trace taint =
   | Shape_var _
   | Control -> (
       match inst_taint_var taint with
-      | None -> Taints.empty
+      | None -> Taints.singleton taint
       | Some (call_taints, _Bot_shape) ->
           call_taints
           |> Taints.map (fun taint' ->
@@ -632,6 +632,9 @@ let instantiate_lval lval_env fparams fun_exp args_exps
   with
   | Some (taints, shape) -> Some (taints, shape)
   | None -> (
+      Log.debug (fun m ->
+          m "Cannot find the taint&shape of %s via instantiate_lval_using_shape"
+            (T.show_lval sig_lval));
       match args_exps with
       | None ->
           Log.warn (fun m ->
@@ -643,7 +646,7 @@ let instantiate_lval lval_env fparams fun_exp args_exps
       | Some args_exps ->
           (* We want to know what's the taint carried by 'arg_exp.x1. ... .xN'.
            * TODO: We should not need this when we cover everything with shapes,
-           *   see 'lval_of_sig_lval'.
+           *   see 'instantiate_lval_using_actual_exps'.
            *)
           let* var, offset, _obj =
             instantiate_lval_using_actual_exps fun_exp fparams args_exps
@@ -690,7 +693,7 @@ let rec instantiate_function_signature lval_env (taint_sig : Signature.t)
           (Display_IL.string_of_exp callee)
           (T.show_lval lval)
           (match opt_taints_shape with
-          | None -> "nothing :/"
+          | None -> "nothing"
           | Some (taints, shape) ->
               spf "%s & %s" (T.show_taints taints) (show_shape shape)));
     opt_taints_shape
@@ -698,7 +701,9 @@ let rec instantiate_function_signature lval_env (taint_sig : Signature.t)
   (* Instantiation helpers *)
   let taints_in_ctrl () = Lval_env.get_control_taints lval_env in
   let inst_var = { inst_lval = lval_to_taints; inst_ctrl = taints_in_ctrl } in
-  let inst_taint_var taint = instantiate_taint_var inst_var taint in
+  let inst_taint_var taint =
+    instantiate_taint_var inst_var taint ||| (Taints.singleton taint, Bot)
+  in
   let subst_in_precondition = subst_in_precondition inst_var in
   let inst_trace =
     {
@@ -777,7 +782,7 @@ let rec instantiate_function_signature lval_env (taint_sig : Signature.t)
                          taint.tokens sink_trace
                        ||| sink_trace
                      in
-                     let+ call_taints, call_shape = inst_taint_var taint in
+                     let call_taints, call_shape = inst_taint_var taint in
                      (* See NOTE(gather-all-taints) *)
                      let call_taints =
                        call_taints
