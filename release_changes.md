@@ -1,47 +1,33 @@
-## [1.101.0](https://github.com/semgrep/semgrep/releases/tag/v1.101.0) - 2024-12-18
+## [1.102.0](https://github.com/semgrep/semgrep/releases/tag/v1.102.0) - 2025-01-08
 
 
 ### Added
 
 
-- Improved pnpm-lock.yaml parsing. (gh-2663)
-
-
-### Changed
-
-
-- Re-ordered some terminal output of `semgrep ci` to allow semgrep-app to block scans based on specific findings (SECW-2740)
-- A few fields in the JSON output (e.g., "fingerprint", "metavars") require now
-  the user to be logged in to see them.
-  See https://semgrep.dev/docs/semgrep-appsec-platform/json-and-sarif#json
-  for more information. (json)
-- We're renaming semgrep OSS to Semgrep Community Edition.
-  See https://semgrep.dev/blog/2024/important-updates-to-semgrep-oss/
-  for more information. (rename)
-- A few fields in the SARIF output (e.g., "fingerprints") require now
-  the user to be logged in to see them.
-  See https://semgrep.dev/docs/semgrep-appsec-platform/json-and-sarif#sarif
-  for more information. (sarif)
+- Added pro-only support for parsing a dependency graph from package-lock.json v1 files (SC-1858)
+- Added pro-only support for parsing a dependency graph from package-lock.json v2 and v3 files (SC-1991)
+- The poetry.lock parser can now parse dependency relationships (ssc-1970)
+- The Yarn.lock V1 and V2 parsers can parse dependency relationships. (ssc-1988)
 
 
 ### Fixed
 
 
-- pro: Improved inter-file tracking of tainted global variables. (code-7054)
-- Python (pro-only): Taint now correctly tracks through calls to class methods
-  within a class, via the `cls` parameter.
-
-  So for instance, we would be able to determine a source-to-sink
-  vulnerability in the following code snippet:
-  ```
-  class A:
-    def foo(self, x):
-      sink(x)
-
-    @classmethod
-    def bar(cls):
-      cls.foo(source)
-  ``` (saf-1765)
-- pro: Fixed bug when generating inter-procedural taint traces, that it could
-  cause a call-step to be missing in the trace. (saf-1783)
-- Restored the "rules" field in the SARIF output, even when logged out. (saf-1794)
+- The `semgrep test` and `semgrep validate` commands have been
+  correctly documented as EXPERIMENTAL (in semgrep --help).
+  Those commands are not GA yet and people should still
+  use the `semgrep scan --test` and `semgrep scan --validate` (or
+  the variants without the implicit "scan") commands (unless
+  they want to experiment with getting results faster and are ok
+  with incomplete coverage of the legacy `semgrep --test`
+  and `semgrep --validate`). (experimental)
+- Improve error handling for functionality ancillary to a scan (such as looking for nosemgrep comments and rendering autofixes) to reduce the likelihood of an unexpected error in such a component bringing down the entire scan. (saf-1737)
+- Fix the behavior of semgrep when running into broken symlinks.
+  If such a path is passed explicitly as a scanning root on the
+  command line, it results in an error. Otherwise if it's a file discovered
+  while scanning the file system, it's a warning. (saf-1776)
+- Fixed another crash due to exception in lines_of_file. The code
+  should now be more robust and not abort the whole scan when
+  an out of bound line access happens during the nosemgrep analysis
+  or when outputing the lines of a match. (saf-1778)
+- Direct dev dependencies in yarn/npm lockfiles are now correctly marked as direct (sc-1996)
