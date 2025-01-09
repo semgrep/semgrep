@@ -141,9 +141,14 @@ RUN make install-deps-for-semgrep-core &&\
 ###############################################################################
 # We change container, bringing the 'semgrep-core' binary with us.
 
-#TODO: switch to 3.12 at some point
+# Start from scratch with a fresh Alpine image. We used to use
+# `python:3.11-alpine` but want to avoid shipping a bunch of unneeded Python
+# packages in our production image. Instead we'll install exactly what we need.
+#
+# TODO: Update beyond Alpine 3.19 to pick up Python versions newer than 3.11
+
 #coupling: the 'semgrep-oss' name is used in 'make build-docker'
-FROM python:3.11-alpine AS semgrep-oss
+FROM alpine:3.19 AS semgrep-oss
 
 WORKDIR /pysemgrep
 
@@ -184,8 +189,10 @@ RUN apk upgrade --no-cache && \
 # - bash: many users customize their call to semgrep via bash script
 # - jq: useful to process the JSON output of semgrep
 # - curl: useful to connect to some webhooks
+# - python3: to run pysemgrep
+# - py3-setuptools: necessary runtime dependency for opentelemetry
 	git git-lfs openssh \
-	bash jq curl
+	bash jq curl python3 py3-setuptools
 
 # We just need the Python code in cli/.
 # The semgrep-core stuff would be copied from the other container
@@ -197,29 +204,21 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=true \
     PYTHONIOENCODING=utf8 \
     PYTHONUNBUFFERED=1
 
-# For some reason, using pip version 24 (the one that comes with they
-# python:3.11-alpine docker image as of June 21, 2024) will cause
-#     pip install /pysemgrep
-# below to fail because it couldn't find the wheel module, but the
-# wheel module actually exists.
-#
-# With this is workaround, without actually getting to the bottom of
-# the issue, to allow us to build semgrep docker images successfully
-# for now. If anyone understand exactly why pip version 24 fails the
-# docker build, we'd be happy to fix it at the root cause.
-# TODO: thos seems to work in the pro Dockerfile so we can probably
-# remove it now
-RUN pip install --force-reinstall -v "pip==23.3.2"
-
 # Let's now simply use 'pip' to install semgrep.
 # Note the difference between .run-deps and .build-deps below.
 # We use a single command to install packages, install semgrep, and remove
 # packages to keep a small Docker image (classic Docker trick).
 # Here is why we need the apk packages below:
 #  - build-base: ??
+#
+# Using --break-system-packages so that Semgrep is installed globally in this
+# container. Given that Alpine doesn't even ship with Python off the shelf and
+# we are installing it only to run Semgrep, the risk of unintended consequences
+# here is minimal.
+#
 # hadolint ignore=DL3013
-RUN apk add --no-cache --virtual=.build-deps build-base make &&\
-     pip install /pysemgrep &&\
+RUN apk add --no-cache --virtual=.build-deps build-base make py3-pip && \
+     pip install /pysemgrep --break-system-packages &&\
      apk del .build-deps
 
 # Get semgrep-core from step1
