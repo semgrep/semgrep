@@ -106,7 +106,8 @@ let parse (kind : Lockfile.kind)
   | SwiftPackageResolved
   | MixLock
   | UvLock
-  | ConanLock ->
+  | ConanLock
+  | PodfileLock ->
       raise (UnsupportedFormat (Lockfile.show_kind kind))
 
 let parse_manifest :
@@ -130,5 +131,6 @@ let parse_manifest :
   | `PyprojectToml
   | `ConanFilePy
   | `ConanFileTxt
-  | `Csproj ->
+  | `Csproj
+  | `Podfile ->
       fun _ -> []
