@@ -239,12 +239,6 @@ class ScanHandler:
         """
         state = get_state()
         request = out.ScanRequest(
-            meta=out.RawJson(
-                {
-                    **project_metadata.to_json(),
-                    **project_config.to_CiConfigFromRepo().to_json(),
-                }
-            ),
             scan_metadata=self.scan_metadata,
             project_metadata=project_metadata,
             project_config=project_config.to_CiConfigFromRepo(),

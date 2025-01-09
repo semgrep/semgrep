@@ -1,5 +1,5 @@
 {
-  "meta": {
+  "project_metadata": {
     "semgrep_version": "<sanitized version>",
     "scan_environment": "jenkins",
     "repository": "a/repo/name",
@@ -22,7 +22,15 @@
     "commit_timestamp": "1970-01-01T00:00:00Z",
     "is_sca_scan": false,
     "is_code_scan": false,
-    "is_secrets_scan": false,
+    "is_secrets_scan": false
+  },
+  "scan_metadata": {
+    "cli_version": "<sanitized version>",
+    "unique_id": "<sanitized id>",
+    "requested_products": [],
+    "dry_run": false
+  },
+  "project_config": {
     "version": "v1"
   }
 }

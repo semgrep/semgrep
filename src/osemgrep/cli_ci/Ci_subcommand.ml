@@ -313,18 +313,13 @@ let scan_config_and_rules_from_deployment ~dry_run
   let scan_metadata : Out.scan_metadata = scan_metadata () in
   let project_config : Out.ci_config_from_repo option = project_config () in
 
-  (* TODO: deprecated from 1.43 *)
-  (* less: should concatenate with raw_json project_config *)
-  let meta =
-    (* ugly: would be good for ATDgen to generate also a json_of_xxx *)
-    prj_meta |> Out.string_of_project_metadata |> Yojson.Basic.from_string
-  in
   let request : Out.scan_request =
     {
-      meta = Some meta;
       project_metadata = prj_meta;
       scan_metadata;
       project_config;
+      (* deprecated field in 1.43 and really deprecated in 1.100.0 *)
+      meta = None;
     }
   in
 

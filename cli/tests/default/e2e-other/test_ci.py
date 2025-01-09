@@ -1004,19 +1004,25 @@ def test_full_run(
 
     # Check correct metadata
     scan_create_json = start_scan_mock.last_request.json()
-    meta_json = scan_create_json["meta"]
+    prj_meta_json = scan_create_json["project_metadata"]
+    scan_meta_json = scan_create_json["scan_metadata"]
 
     if "SEMGREP_COMMIT" in env:
-        assert meta_json["commit"] == env["SEMGREP_COMMIT"]
-        meta_json["commit"] = "sanitized semgrep commit"
+        assert prj_meta_json["commit"] == env["SEMGREP_COMMIT"]
+        prj_meta_json["commit"] = "sanitized semgrep commit"
     else:
-        assert meta_json["commit"] == head_commit
-        meta_json["commit"] = "sanitized"
+        assert prj_meta_json["commit"] == head_commit
+        prj_meta_json["commit"] = "sanitized"
 
-    assert meta_json["semgrep_version"] == __VERSION__
-    meta_json["semgrep_version"] = "<sanitized version>"
+    # TODO: should get rid of this redundant version and rely on scan_meta_json
+    # instead
+    assert prj_meta_json["semgrep_version"] == __VERSION__
+    prj_meta_json["semgrep_version"] = "<sanitized version>"
 
-    assert meta_json["commit_timestamp"] == FROZEN_ISOTIMESTAMP.value
+    scan_meta_json["cli_version"] = "<sanitized version>"
+    scan_meta_json["unique_id"] = "<sanitized id>"
+
+    assert prj_meta_json["commit_timestamp"] == FROZEN_ISOTIMESTAMP.value
 
     if env.get("GITLAB_CI"):
         # If in a merge pipeline, base_sha is defined, otherwise is None
@@ -1024,13 +1030,9 @@ def test_full_run(
             base_commit if env.get("CI_MERGE_REQUEST_TARGET_BRANCH_NAME") else None
         )
         if gitlab_base_sha != None:
-            assert meta_json["base_sha"] == gitlab_base_sha
-            meta_json["base_sha"] = "sanitized"
+            assert prj_meta_json["base_sha"] == gitlab_base_sha
+            prj_meta_json["base_sha"] = "sanitized"
 
-    # TODO: we should add those in the snapshots at some point
-    del scan_create_json["project_metadata"]
-    del scan_create_json["project_config"]
-    del scan_create_json["scan_metadata"]
     snapshot.assert_match(json.dumps(scan_create_json, indent=2), "meta.json")
 
     findings_and_ignores_json = upload_results_mock.last_request.json()
