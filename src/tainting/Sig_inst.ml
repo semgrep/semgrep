@@ -515,77 +515,6 @@ let instantiate_lval_using_actual_exps (fun_exp : IL.exp) fparams args_exps
           log_error ();
           None)
 
-(* HACK(implicit-taint-variables-in-env):
- * We have a function call with a taint variable, corresponding to a global or
- * a field in the same class as the caller, that reaches a sink. However, in
- * the caller we have no taint for the corresponding l-value.
- *
- * Why?
- * In 'find_instance_and_global_variables_in_fdef' we only add to the input-env
- * those globals and fields that occur in the  definition of a method, but just
- * because a global/field is not in there, it does not mean it's not in scope!
- *
- * What to do?
- * We can just propagate the very same taint variable, assuming that it is
- * implicitly in scope.
- *
- * Example (see SAF-1059):
- *
- *     string bad;
- *
- *     void test() {
- *         bad = "taint";
- *         // Thanks to this HACK we will know that calling 'foo'
- *         // here makes "taint" go into a sink.
- *         foo();
- *     }
- *
- *     void foo() {
- *         // We instantiate `bar` and we see 'bad ~~~> sink',
- *         // but `bad` is not in the environment, however we
- *         // know `bad` is a field in the same class as `foo`,
- *         // so we propagate it as-is.
- *         bar();
- *     }
- *
- *     // signature: bad ~~~> sink
- *     void bar() {
- *         sink(bad);
- *     }
- *
- * ALTERNATIVE:
- * In 'Deep_tainting.infer_taint_sigs_of_fdef', when we build
- * the taint input-env, we could collect all the globals and
- * class fields in scope, regardless of whether they occur or
- * not in the method definition. Main concern here is whether
- * input environments could end up being too big.
- *)
-let fix_lval_taints_if_global_or_a_field_of_this_class (fun_exp : IL.exp)
-    (lval : T.lval) lval_taints =
-  let is_method_in_this_class =
-    match fun_exp with
-    | { e = Fetch { base = Var _method; rev_offset = [] }; _ } ->
-        (* We're calling a `method` on the same instance of the caller,
-           so `this.x` in the taint signature of the callee corresponds to
-           `this.x` in the caller. *)
-        true
-    | __else__ -> false
-  in
-  match lval.base with
-  | BArg _ -> lval_taints
-  | BThis when not is_method_in_this_class -> lval_taints
-  | BGlob _
-  | BThis
-    when not (Taints.is_empty lval_taints) ->
-      lval_taints
-  | BGlob _
-  | BThis ->
-      (* 'lval' is either a global variable or a field in the same class
-       * as the caller of 'fun_exp', and no taints are found for 'lval':
-       * we assume 'lval' is implicitly in the input-environment and
-       * return it as a type variable. *)
-      Taints.singleton { orig = Var lval; tokens = [] }
-
 let instantiate_lval_using_shape lval_env fparams (fun_exp : IL.exp) args_taints
     lval : (Taints.t * shape) option =
   let { T.base; offset } = lval in
@@ -652,16 +581,7 @@ let instantiate_lval lval_env fparams fun_exp args_exps
             instantiate_lval_using_actual_exps fun_exp fparams args_exps
               sig_lval
           in
-          let lval_taints, shape =
-            match Lval_env.find_poly lval_env var offset with
-            | None -> (Taints.empty, Bot)
-            | Some (taints, shape) -> (taints, shape)
-          in
-          let lval_taints =
-            lval_taints
-            |> fix_lval_taints_if_global_or_a_field_of_this_class fun_exp
-                 sig_lval
-          in
+          let* lval_taints, shape = Lval_env.find_poly lval_env var offset in
           Some (lval_taints, shape))
 
 (* This function is consuming the taint signature of a function to determine
