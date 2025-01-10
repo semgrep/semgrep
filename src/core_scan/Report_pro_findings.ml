@@ -91,7 +91,9 @@ let annotate_pro_findings (xtarget : Xtarget.t)
     matches =
       res.matches
       |> List_.map (fun (x : Core_match.t) ->
-             let proprietary_language = Xlang.is_proprietary xtarget.xlang in
+             let proprietary_language =
+               Analyzer.is_proprietary xtarget.analyzer
+             in
              let interproc_taint, interfile_taint =
                match x.taint_trace with
                | None -> (false, false)

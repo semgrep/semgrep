@@ -205,8 +205,8 @@ let no_analysis_features () =
     deep_inter_file = false;
   }
 
-let data_of_languages (languages : Xlang.t list) =
-  languages |> List_.map (fun l -> (Xlang.to_string l, `Bool true))
+let data_of_languages (languages : Analyzer.t list) =
+  languages |> List_.map (fun l -> (Analyzer.to_string l, `Bool true))
 
 (* NOTE: If this IS NOT semgrep specific stick it in Tracing.ml *)
 (* WARNING: Let's be careful what we add as a resource attribute. TL;DR; these

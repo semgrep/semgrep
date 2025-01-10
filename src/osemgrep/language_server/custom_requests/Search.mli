@@ -2,7 +2,7 @@ val start_meth : string
 (** method to match on: semgrep/search *)
 
 val mk_params :
-  lang:Xlang.t option ->
+  lang:Analyzer.t option ->
   fix:string option ->
   includes:string list ->
   excludes:string list ->

@@ -125,7 +125,7 @@ let check_rule (rule : Rule.t) (xtarget : Lockfile_xtarget.t)
                    metadata = rule.R.metadata;
                    fix = rule.R.fix;
                    fix_regexp = rule.R.fix_regexp;
-                   langs = Xlang.to_langs rule.R.target_analyzer;
+                   langs = Analyzer.to_langs rule.R.target_analyzer;
                    (* TODO: What should this be? *)
                    pattern_string = "";
                  };

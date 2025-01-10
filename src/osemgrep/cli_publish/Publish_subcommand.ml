@@ -90,7 +90,7 @@ let upload_rule caps rule_file (conf : Publish_CLI.conf) test_code_file =
 
       let request_json =
         let language =
-          match Xlang.to_langs rule.target_analyzer with
+          match Analyzer.to_langs rule.target_analyzer with
           | [] -> `Null
           | lang :: _ -> `String (Lang.to_string lang)
         in

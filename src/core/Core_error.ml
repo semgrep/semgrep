@@ -160,7 +160,7 @@ let error_of_rule_error (err : Rule_error.t) : t =
   let file = err.file in
   match err.kind with
   | InvalidRule
-      (InvalidPattern (pattern, xlang, message, yaml_path), rule_id, pos) ->
+      (InvalidPattern (pattern, analyzer, message, yaml_path), rule_id, pos) ->
       {
         rule_id = Some rule_id;
         typ = Out.PatternParseError yaml_path;
@@ -173,7 +173,8 @@ let error_of_rule_error (err : Rule_error.t) : t =
              %s\n\
              --- end pattern ---\n\
              Pattern error: %s\n"
-            (Xlang.to_string xlang) pattern message;
+            (Analyzer.to_string analyzer)
+            pattern message;
         details = None;
       }
   | InvalidRule err -> error_of_invalid_rule err

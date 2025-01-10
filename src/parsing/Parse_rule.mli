@@ -22,9 +22,10 @@ val parse_and_filter_invalid_rules :
  * Error (Rule.InvalidRegexp _) for regexp errors.
  *)
 val parse_xpattern :
-  Xlang.t -> string Rule.wrap -> (Xpattern.t, Rule_error.t) result
+  Analyzer.t -> string Rule.wrap -> (Xpattern.t, Rule_error.t) result
 
-val parse_fake_xpattern : Xlang.t -> string -> (Xpattern.t, Rule_error.t) result
+val parse_fake_xpattern :
+  Analyzer.t -> string -> (Xpattern.t, Rule_error.t) result
 
 (* This should be used mostly in testing code. Otherwise you should
  * use parse_and_filter_invalid_rules.

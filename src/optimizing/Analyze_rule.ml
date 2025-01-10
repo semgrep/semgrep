@@ -601,9 +601,9 @@ let compute_final_cnf ~(is_id_mvar : is_id_mvar) f =
   Some cnf
 [@@profiling]
 
-let regexp_prefilter_of_formula ~xlang f : prefilter option =
+let regexp_prefilter_of_formula ~analyzer f : prefilter option =
   let is_id_mvar =
-    match (xlang : Xlang.t) with
+    match (analyzer : Analyzer.t) with
     | LRegex
     | LSpacegrep
     | LAliengrep ->
@@ -628,7 +628,7 @@ let regexp_prefilter_of_formula ~xlang f : prefilter option =
   with
   | GeneralPattern -> None
 
-let regexp_prefilter_of_taint_rule ~xlang (_rule_id, rule_tok) taint_spec =
+let regexp_prefilter_of_taint_rule ~analyzer (_rule_id, rule_tok) taint_spec =
   (* We must be able to match some source _and_ some sink. *)
   let sources =
     taint_spec.R.sources |> snd
@@ -647,7 +647,7 @@ let regexp_prefilter_of_taint_rule ~xlang (_rule_id, rule_tok) taint_spec =
         [ R.f (R.Or (rule_tok, sources)); R.f (R.Or (rule_tok, sinks)) ] )
     |> R.f
   in
-  regexp_prefilter_of_formula ~xlang f
+  regexp_prefilter_of_formula ~analyzer f
 
 let regexp_prefilter_of_rule ~cache (r : R.rule) =
   let rule_id, _t = r.R.id in
@@ -663,9 +663,9 @@ let regexp_prefilter_of_rule ~cache (r : R.rule) =
       match r.mode with
       | `Search f
       | `Extract { formula = f; _ } ->
-          regexp_prefilter_of_formula ~xlang:r.target_analyzer f
+          regexp_prefilter_of_formula ~analyzer:r.target_analyzer f
       | `Taint spec ->
-          regexp_prefilter_of_taint_rule ~xlang:r.target_analyzer r.R.id spec
+          regexp_prefilter_of_taint_rule ~analyzer:r.target_analyzer r.R.id spec
       | `Steps _ -> (* TODO *) None
       | `SCA _ -> None
     with

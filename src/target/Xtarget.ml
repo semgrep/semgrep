@@ -17,12 +17,12 @@
 
 type t = {
   path : Target.path;
-  xlang : Xlang.t;
+  analyzer : Analyzer.t;
   lazy_content : string lazy_t;
   lazy_ast_and_errors : (AST_generic.program * Tok.location list) lazy_t;
 }
 
-let parse_file parser (analyzer : Xlang.t) path =
+let parse_file parser (analyzer : Analyzer.t) path =
   let lang =
     (* Possibly better to determine this sooner/change how lazy_ast_and_errors
        works for regex or other non-parsing analyzers *)
@@ -30,7 +30,7 @@ let parse_file parser (analyzer : Xlang.t) path =
     | L (lang, []) -> lang
     | L (_lang, _ :: _) ->
         failwith
-          "xlang from the language field in -target should be unique (this \
+          "analyzer from the language field in -target should be unique (this \
            shouldn't happen FIXME)"
     | _ ->
         (* alt: could return an empty program, but better to be defensive *)
@@ -41,7 +41,7 @@ let parse_file parser (analyzer : Xlang.t) path =
 let resolve_with_ast ast (target : Target.regular) : t =
   {
     path = target.path;
-    xlang = target.analyzer;
+    analyzer = target.analyzer;
     lazy_content = lazy (UFile.read_file target.path.internal_path_to_content);
     lazy_ast_and_errors = ast;
   }

@@ -147,7 +147,7 @@ let set_matches_to_proprietary_origin_if_needed (xtarget : Xtarget.t)
   if
     Option.is_some !Match_tainting_mode.hook_setup_hook_function_taint_signature
     || Option.is_some !Dataflow_tainting.hook_function_taint_signature
-    || Xlang.is_proprietary xtarget.xlang
+    || Analyzer.is_proprietary xtarget.analyzer
   then Report_pro_findings.annotate_pro_findings xtarget matches
   else matches
 
@@ -343,7 +343,7 @@ let mk_analyzer_set targets =
   List.iter
     (fun target ->
       let langs =
-        Option.fold (Target.analyzer target) ~none:[] ~some:Xlang.to_langs
+        Option.fold (Target.analyzer target) ~none:[] ~some:Analyzer.to_langs
       in
       List.iter (fun lang -> Hashtbl.add analyzer_set lang ()) langs)
     targets;
@@ -352,7 +352,7 @@ let mk_analyzer_set targets =
 (* Lang heuristic to determine if a rule is relevant or can be filtered out *)
 let is_rule_used_by_targets analyzer_set (rule : Rule.t) =
   match rule.target_analyzer with
-  | Xlang.L (l, ls) -> List.exists (Hashtbl.mem analyzer_set) (l :: ls)
+  | Analyzer.L (l, ls) -> List.exists (Hashtbl.mem analyzer_set) (l :: ls)
   | _ -> true
 
 (* Opt(rules): we observed in some traces that large rulesets (e.g p/default)
@@ -667,7 +667,7 @@ let rules_for_analyzer ~analyzer rules =
   rules
   |> List.filter (fun (r : Rule.t) ->
          (* Don't run a Python rule on a JavaScript target *)
-         Xlang.is_compatible ~require:analyzer ~provide:r.target_analyzer)
+         Analyzer.is_compatible ~require:analyzer ~provide:r.target_analyzer)
 
 (* Note that filtering is applied on the basis of the target's origin, not the
  * target's "file". This is because filtering should apply to the user's

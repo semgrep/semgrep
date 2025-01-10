@@ -52,7 +52,7 @@ let test_dfg_tainting rules_file file =
     rules
     |> List.filter (fun r ->
            match r.Rule.target_analyzer with
-           | Xlang.L (x, xs) -> List.mem lang (x :: xs)
+           | Analyzer.L (x, xs) -> List.mem lang (x :: xs)
            | _ -> false)
   in
   let _search_rules, taint_rules, _extract_rules, _join_rules =

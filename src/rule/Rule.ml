@@ -130,13 +130,13 @@ and metavar_cond =
       Mvar.t * Xpattern.regexp_string * bool (* constant-propagation *)
   | CondType of
       Mvar.t
-      * Xlang.t option
+      * Analyzer.t option
       (* when the type expression is in different lang *)
       * string list (* raw input string saved for regenerating rule yaml *)
       * AST_generic.type_ list
     (* LATER: could parse lazily, like the patterns *)
   | CondAnalysis of Mvar.t * metavar_analysis_kind
-  | CondNestedFormula of Mvar.t * Xlang.t option * formula
+  | CondNestedFormula of Mvar.t * Analyzer.t option * formula
   | CondName of metavar_cond_name
 
 and metavar_cond_name = {
@@ -397,7 +397,7 @@ type sca_dependency_formula = (* SCA_Or of *) SCA_pattern.t list
 (* See also Extract.ml for extract mode helpers *)
 type extract = {
   formula : formula;
-  dst_lang : Xlang.t;
+  dst_lang : Analyzer.t;
   (* e.g., $...BODY, $CMD *)
   extract : Mvar.t;
   extract_rule_ids : extract_rule_ids option;
@@ -504,7 +504,7 @@ type http_match_clause = {
   status_code : Parsed_int.t option;
   (* Optional. Empty list if not set *)
   headers : header list;
-  content : (formula * Xlang.t) option;
+  content : (formula * Analyzer.t) option;
 }
 [@@deriving show]
 
@@ -591,7 +591,7 @@ type steps_mode = [ `Steps of step list ] [@@deriving show]
 and step = {
   step_mode : mode_for_step;
   step_selector : Target_selector.t option;
-  step_analyzer : Xlang.t;
+  step_analyzer : Analyzer.t;
   step_paths : paths option;
 }
 
@@ -612,7 +612,7 @@ type 'mode rule_info = {
   (* Currently a dummy value for extract mode rules *)
   severity : severity;
   (* Note: The two fields target_seletor and target_analyzer below used to
-   * be a single 'languages: Xlang.t' field.
+   * be a single 'languages: Analyzer.t' field.
    * Indeed, for historical reasons, the 'languages:' field in the
    * YAML file is a list of strings. There is no distinction between
    * target *selection* and target *analysis*. This led to oddities for
@@ -663,7 +663,7 @@ type 'mode rule_info = {
    *
    *   target_analyzer = L (Typescript, []);
    *)
-  target_analyzer : Xlang.t;
+  target_analyzer : Analyzer.t;
   (* --------------------------------- *)
   (* OPTIONAL fields *)
   (* --------------------------------- *)
@@ -837,14 +837,14 @@ let rec formulas_of_mode (mode : mode) : formula list =
 (* Converters *)
 (*****************************************************************************)
 
-let selector_and_analyzer_of_xlang (xlang : Xlang.t) :
-    Target_selector.t option * Xlang.t =
-  match xlang with
+let selector_and_analyzer_of_analyzer (analyzer : Analyzer.t) :
+    Target_selector.t option * Analyzer.t =
+  match analyzer with
   | LRegex
   | LAliengrep
   | LSpacegrep ->
-      (None, xlang)
-  | L (lang, other_langs) -> (Some (lang :: other_langs), xlang)
+      (None, analyzer)
+  | L (lang, other_langs) -> (Some (lang :: other_langs), analyzer)
 
 (* return list of "positive" x list of Not *)
 let split_and (xs : formula list) : formula list * (tok * formula) list =
@@ -865,9 +865,11 @@ let split_and (xs : formula list) : formula list * (tok * formula) list =
  * This is used when someone calls `semgrep -e print -l python`
  *)
 
-let rule_of_formula ?fix (xlang : Xlang.t) (formula : formula) : rule =
+let rule_of_formula ?fix (analyzer : Analyzer.t) (formula : formula) : rule =
   let fk = Tok.unsafe_fake_tok "" in
-  let target_selector, target_analyzer = selector_and_analyzer_of_xlang xlang in
+  let target_selector, target_analyzer =
+    selector_and_analyzer_of_analyzer analyzer
+  in
   {
     id = (Rule_ID.dash_e, fk);
     mode = `Search formula;
@@ -893,8 +895,8 @@ let rule_of_formula ?fix (xlang : Xlang.t) (formula : formula) : rule =
     dependency_formula = None;
   }
 
-let rule_of_xpattern ?fix (xlang : Xlang.t) (xpat : Xpattern.t) : rule =
-  rule_of_formula xlang ?fix (f (P xpat))
+let rule_of_xpattern ?fix (analyzer : Analyzer.t) (xpat : Xpattern.t) : rule =
+  rule_of_formula analyzer ?fix (f (P xpat))
 
 (* TODO(dinosaure): Currently, on the Python side, we remove the metadatas and
    serialise the rule into JSON format, then produce the hash from this

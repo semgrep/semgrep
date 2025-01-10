@@ -12,7 +12,7 @@ type key = string Rule.wrap
 (* TODO: make this definition private or completely opaque? *)
 type env = {
   id : Rule_ID.t;
-  target_analyzer : Xlang.t;
+  target_analyzer : Analyzer.t;
   in_metavariable_pattern : bool;
   path : string list;
   options_key : key option;

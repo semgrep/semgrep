@@ -27,9 +27,10 @@ module Log = Log_engine.Log
 (* Helpers *)
 (*****************************************************************************)
 
-let adjust_content_for_language (xlang : Xlang.t) (content : string) : string =
-  match xlang with
-  | Xlang.L (Lang.Php, _)
+let adjust_content_for_language (analyzer : Analyzer.t) (content : string) :
+    string =
+  match analyzer with
+  | Analyzer.L (Lang.Php, _)
     when not (content =~ {|[ \t\n]*<\?\(php\|=\)?[ \t\n]+|}) ->
       (* THINK:
          * - Shouldn't the parser just handle the absence of `<?php` ?
@@ -102,7 +103,7 @@ let get_persistent_bindings revert_loc r nested_matches =
 (* Entry point *)
 (*****************************************************************************)
 let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
-    (opt_xlang : Xlang.t option) formula =
+    (opt_analyzer : Analyzer.t option) formula =
   let bindings = r.RM.mvars in
   (* If anything goes wrong the default is to filter out! *)
   match List.assoc_opt mvar bindings with
@@ -173,7 +174,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
             in
             { loc with pos }
           in
-          match opt_xlang with
+          match opt_analyzer with
           | None -> (
               (* We match wrt the same language as the rule. *)
               match MV.program_of_mvalue mval with
@@ -214,7 +215,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                       *)
                       get_nested_formula_matches { env with xtarget } formula r'
                       |> get_persistent_bindings revert_loc r))
-          | Some xlang -> (
+          | Some analyzer -> (
               let content =
                 (* Previously we only allowed metavariable-pattern with a
                  * different language when the metavariable was bound to a
@@ -231,7 +232,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                  * a metavariable binding. For this case, we just use the
                  * original program text as it exists in the target program, at
                  * the range to which the metavariable is bound. *)
-                match (xlang, mval) with
+                match (analyzer, mval) with
                 | _, MV.Text (content, _tok, _)
                 | _, MV.Xmls [ XmlText (content, _tok) ]
                 | _, MV.E { e = G.L (G.String (_, (content, _tok), _)); _ } ->
@@ -255,17 +256,19 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                         mvar (MV.show_mvalue mval));
                   []
               | Some contents ->
-                  let contents = adjust_content_for_language xlang contents in
+                  let contents =
+                    adjust_content_for_language analyzer contents
+                  in
                   Log.info (fun m ->
                       m "nested analysis of |||%s||| with lang '%s'" contents
-                        (Xlang.to_string xlang));
-                  (* We re-parse the matched text as `xlang`. *)
+                        (Analyzer.to_string analyzer));
+                  (* We re-parse the matched text as `analyzer`. *)
                   (* TODO: find a way to not use tmp files! parse strings *)
                   (* nosemgrep: forbid-tmp *)
                   UTmp.with_temp_file ~contents ~suffix:".mvar-pattern"
                     (fun file ->
                       let ast_and_errors_res =
-                        match xlang with
+                        match analyzer with
                         | L (lang, _) -> (
                             try
                               let { Parsing_result2.ast; skipped_tokens; _ } =
@@ -306,7 +309,9 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                                "rule %s: metavariable-pattern failed when \
                                 parsing %s's content as %s: %s"
                                (Rule_ID.to_string (fst env.rule.Rule.id))
-                               mvar (Xlang.to_string xlang) msg);
+                               mvar
+                               (Analyzer.to_string analyzer)
+                               msg);
                           []
                       | Ok lazy_ast_and_errors ->
                           let xtarget : Xtarget.t =
@@ -316,7 +321,7 @@ let get_nested_metavar_pattern_bindings get_nested_formula_matches env r mvar
                                   origin = File mval_file;
                                   internal_path_to_content = file;
                                 };
-                              xlang;
+                              analyzer;
                               lazy_ast_and_errors;
                               lazy_content = lazy contents;
                             }

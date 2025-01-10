@@ -39,7 +39,7 @@ logger = getLogger(__name__)
 @frozen
 class Task:
     path: str = field(converter=str)
-    analyzer: Language  # Xlang; see Xlang.mli
+    analyzer: Language  # Analyzer; see Analyzer.mli
     products: Tuple[out.Product, ...]
     # semgrep-core no longer uses the rule_nums field.
     # We're keeping it for now because it's needed by

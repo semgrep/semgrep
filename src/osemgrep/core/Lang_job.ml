@@ -9,4 +9,4 @@
    related code:
     - interfaces/Input_to_core.atd (used for semgrep-core -target)
 *)
-type t = { xlang : Xlang.t; targets : Fpath.t list; rules : Rule.t list }
+type t = { analyzer : Analyzer.t; targets : Fpath.t list; rules : Rule.t list }

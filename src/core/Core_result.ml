@@ -114,7 +114,7 @@ type t = {
   profiling : Core_profiling.t option;
   explanations : Matching_explanation.t list option;
   rules_by_engine : (Rule_ID.t * Engine_kind.t) list;
-  interfile_languages_used : Xlang.t list;
+  interfile_languages_used : Analyzer.t list;
 }
 [@@deriving show]
 
@@ -264,7 +264,7 @@ let collate_rule_results (file : Fpath.t)
 let mk_result (results : Core_profiling.file_profiling match_result list)
     (rules_with_engine : (Rule.t * Engine_kind.t) list)
     (skipped_rules : Rule_error.invalid_rule list) (scanned : Target.t list)
-    (interfile_languages_used : Xlang.t list) ~rules_parse_time : t =
+    (interfile_languages_used : Analyzer.t list) ~rules_parse_time : t =
   (* concatenating information from the match_result list *)
   let unprocessed_matches =
     results

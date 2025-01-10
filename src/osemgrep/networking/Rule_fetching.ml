@@ -430,22 +430,22 @@ let rules_from_dashdash_config ~rewrite_rule_ids ~token_opt caps kind :
 (* Entry point *)
 (*****************************************************************************)
 
-let langs_of_pattern (pat, xlang_opt) : Xlang.t list =
-  let xlang_compatible_with_pat xlang =
-    let/ _xpat = Parse_rule.parse_fake_xpattern xlang pat in
-    Ok xlang
+let langs_of_pattern (pat, analyzer_opt) : Analyzer.t list =
+  let analyzer_compatible_with_pat analyzer =
+    let/ _xpat = Parse_rule.parse_fake_xpattern analyzer pat in
+    Ok analyzer
   in
-  match xlang_opt with
-  | Some xlang ->
+  match analyzer_opt with
+  | Some analyzer ->
       (* TODO? capture also parse errors here? and transform the pattern
          * parse error in invalid_rule_error to return in rules_and_origin? *)
-      [ xlang_compatible_with_pat xlang |> Result.get_ok ]
+      [ analyzer_compatible_with_pat analyzer |> Result.get_ok ]
   (* osemgrep-only: better: can use -e without -l! we try all languages *)
   | None ->
       (* We need uniq_by because Lang.assoc contain multiple times the
          * same value, for instance we have ("cpp", Cpp); ("c++", Cpp) in
          * Lang.assoc
-         * TODO? use Xlang.assoc instead?
+         * TODO? use Analyzer.assoc instead?
       *)
       let all_langs =
         Lang.assoc
@@ -460,12 +460,14 @@ let langs_of_pattern (pat, xlang_opt) : Xlang.t list =
       all_langs
       |> List_.filter_map (fun l ->
              match
-               let xlang = Xlang.of_lang l |> xlang_compatible_with_pat in
+               let analyzer =
+                 Analyzer.of_lang l |> analyzer_compatible_with_pat
+               in
                Logs.debug (fun m ->
                    m "language %s valid for the pattern" (Lang.show l));
-               xlang
+               analyzer
              with
-             | Ok xlang -> Some xlang
+             | Ok analyzer -> Some analyzer
              | Error _
              | (exception Failure _) ->
                  None)
@@ -514,19 +516,19 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict:_ caps
        *  (got a weird 'invalid pattern clause' error)
        * better: '-e foo -l generic' was not handled in semgrep-core
     *)
-    | Pattern (pat, xlang_opt, fix) ->
-        let valid_langs = langs_of_pattern (pat, xlang_opt) in
+    | Pattern (pat, analyzer_opt, fix) ->
+        let valid_langs = langs_of_pattern (pat, analyzer_opt) in
         let rules_and_origins =
           valid_langs
-          |> List_.map (fun xlang ->
+          |> List_.map (fun analyzer ->
                  let xpat =
-                   match Parse_rule.parse_fake_xpattern xlang pat with
+                   match Parse_rule.parse_fake_xpattern analyzer pat with
                    | Ok xpat -> xpat
                    (* TODO: this shouldn't be any worse than the status quo but
                       this should be more robust *)
                    | Error e -> failwith (Rule_error.string_of_error e)
                  in
-                 let rule = Rule.rule_of_xpattern ?fix xlang xpat in
+                 let rule = Rule.rule_of_xpattern ?fix analyzer xpat in
                  rules_and_origin_of_rule rule)
         in
         (* In run_scan.py, in the pattern case, we would do this:

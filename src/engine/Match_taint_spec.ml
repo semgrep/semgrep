@@ -232,7 +232,7 @@ let spec_matches_of_taint_rule ~per_file_formula_cache xconf file ast_and_errors
   let xtarget : Xtarget.t =
     {
       path = { origin = File file; internal_path_to_content = file };
-      xlang = rule.target_analyzer;
+      analyzer = rule.target_analyzer;
       lazy_content = lazy (UFile.read_file file);
       lazy_ast_and_errors;
     }

@@ -41,7 +41,7 @@ let match_result_to_range (m : Core_match.t) : t =
 let range_to_pattern_match_adjusted (r : Rule.t) (range : t) : Core_match.t =
   let m = range.origin in
   let rule_id = m.rule_id in
-  let langs = Xlang.to_langs r.target_analyzer in
+  let langs = Analyzer.to_langs r.target_analyzer in
   (* adjust the rule id *)
   let rule_id : Core_match.rule_id =
     {

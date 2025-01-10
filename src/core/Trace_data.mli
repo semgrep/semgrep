@@ -36,7 +36,7 @@ end
 val no_analysis_features : unit -> analysis_flags
 (** For analysis run with the oss engine, we know all the flags will be false *)
 
-val data_of_languages : Xlang.t list -> (string * Tracing.user_data) list
+val data_of_languages : Analyzer.t list -> (string * Tracing.user_data) list
 (** Convenience function to turn a list of interfile languages into otel data *)
 
 val get_resource_attrs :

@@ -123,16 +123,16 @@ let aliengrep_conf_of_options (env : env) :
 
 let rec parse_type env key (str, tok) =
   match env.target_analyzer with
-  | Xlang.L (lang, _) ->
+  | Analyzer.L (lang, _) ->
       let/ str = wrap_type_expr env key lang str in
       let/ p =
         try_and_raise_invalid_pattern_if_error env (str, tok) (fun () ->
             parse_pattern_with_rule_error env (str, tok) lang str)
       in
       unwrap_type_expr env key lang p
-  | Xlang.LRegex
-  | Xlang.LSpacegrep
-  | Xlang.LAliengrep ->
+  | Analyzer.LRegex
+  | Analyzer.LSpacegrep
+  | Analyzer.LAliengrep ->
       error_at_key env.id key
         "`type` is not supported with regex, spacegrep or aliengrep."
 
@@ -158,7 +158,7 @@ and unwrap_type_expr env key lang expr =
 (* NOTE: I don't think this can raise any more *)
 let parse_rule_xpattern env (str, tok) =
   match env.target_analyzer with
-  | Xlang.L (lang, _) ->
+  | Analyzer.L (lang, _) ->
       let+ pat =
         (* we need to raise the right error *)
         try_and_raise_invalid_pattern_if_error env (str, tok) (fun () ->
@@ -166,16 +166,16 @@ let parse_rule_xpattern env (str, tok) =
               ?rule_options:env.options lang str)
       in
       XP.mk_xpat (XP.Sem (pat, lang)) (str, tok)
-  | Xlang.LRegex ->
+  | Analyzer.LRegex ->
       let+ re = parse_regexp env (str, tok) in
       XP.mk_xpat (XP.Regexp re) (str, tok)
-  | Xlang.LSpacegrep -> (
+  | Analyzer.LSpacegrep -> (
       let src = Spacegrep.Src_file.of_string str in
       match Spacegrep.Parse_pattern.of_src src with
       | Ok ast -> Ok (XP.mk_xpat (XP.Spacegrep ast) (str, tok))
       (* TODO: use R.Err exn instead? *)
       | Error err -> failwith err.msg)
-  | Xlang.LAliengrep ->
+  | Analyzer.LAliengrep ->
       let+ conf = aliengrep_conf_of_options env in
       let pat = Aliengrep.Pat_compile.from_string conf str in
       XP.mk_xpat (XP.Aliengrep pat) (str, tok)
@@ -232,8 +232,8 @@ let parse_xpattern_expr env e =
 (* extra conditions, usually on metavariable content *)
 type extra =
   | MetavarRegexp of MV.mvar * Xpattern.regexp_string * bool
-  | MetavarType of MV.mvar * Xlang.t option * string list * G.type_ list
-  | MetavarPattern of MV.mvar * Xlang.t option * Rule.formula
+  | MetavarType of MV.mvar * Analyzer.t option * string list * G.type_ list
+  | MetavarPattern of MV.mvar * Analyzer.t option * Rule.formula
   | MetavarComparison of metavariable_comparison
   | MetavarAnalysis of MV.mvar * Rule.metavar_analysis_kind
   | MetavarName of MV.mvar * Rule.metavar_name_kind option * string list option
@@ -402,10 +402,10 @@ and parse_pair_old env ((key, value) : key * G.expr) :
             let process_extra extra =
               match extra with
               | MetavarRegexp (mvar, regex, b) -> R.CondRegexp (mvar, regex, b)
-              | MetavarType (mvar, xlang_opt, s, t) ->
-                  R.CondType (mvar, xlang_opt, s, t)
-              | MetavarPattern (mvar, xlang_opt, formula) ->
-                  R.CondNestedFormula (mvar, xlang_opt, formula)
+              | MetavarType (mvar, analyzer_opt, s, t) ->
+                  R.CondType (mvar, analyzer_opt, s, t)
+              | MetavarPattern (mvar, analyzer_opt, formula) ->
+                  R.CondNestedFormula (mvar, analyzer_opt, formula)
               | MetavarComparison { comparison; strip; _ } ->
                   R.CondEval
                     (match strip with
@@ -581,49 +581,51 @@ and parse_extra (env : env) (key : key) (value : G.expr) :
         error env.id mv_type_dict.first_tok
           "Missing required field: type or types"
       else
-        let/ env', opt_xlang =
+        let/ env', opt_analyzer =
           let+ lang = take_opt mv_type_dict env parse_string "language" in
           match lang with
           | Some s ->
-              let xlang =
-                Xlang.of_string ~rule_id:(Rule_ID.to_string env.id) s
+              let analyzer =
+                Analyzer.of_string ~rule_id:(Rule_ID.to_string env.id) s
               in
               let env' =
                 {
                   env with
-                  target_analyzer = xlang;
+                  target_analyzer = analyzer;
                   path = "metavariable-type" :: "metavariable" :: env.path;
                 }
               in
-              (env', Some xlang)
+              (env', Some analyzer)
           | ___else___ -> (env, None)
         in
         let/ ts =
           type_strs |> List_.map (parse_type env' key) |> Base.Result.all
         in
-        Ok (MetavarType (metavar, opt_xlang, type_strs |> List_.map fst, ts))
+        Ok (MetavarType (metavar, opt_analyzer, type_strs |> List_.map fst, ts))
   | "metavariable-pattern" ->
       let/ mv_pattern_dict = parse_dict env key value in
       let/ metavar = take_key mv_pattern_dict env parse_string "metavariable" in
-      let/ env', opt_xlang =
+      let/ env', opt_analyzer =
         let+ lang = take_opt mv_pattern_dict env parse_string "language" in
         match lang with
         | Some s ->
-            let xlang = Xlang.of_string ~rule_id:(Rule_ID.to_string env.id) s in
+            let analyzer =
+              Analyzer.of_string ~rule_id:(Rule_ID.to_string env.id) s
+            in
             let env' =
               {
                 env with
-                target_analyzer = xlang;
+                target_analyzer = analyzer;
                 path = "metavariable-pattern" :: "metavariable" :: env.path;
               }
             in
-            (env', Some xlang)
+            (env', Some analyzer)
         | ___else___ -> (env, None)
       in
       let env' = { env' with in_metavariable_pattern = true } in
       let/ formula_root = find_formula_old env mv_pattern_dict in
       let/ formula_old = parse_pair_old env' formula_root in
-      Ok (MetavarPattern (metavar, opt_xlang, formula_old))
+      Ok (MetavarPattern (metavar, opt_analyzer, formula_old))
   | "metavariable-comparison" ->
       let/ mv_comparison_dict = parse_dict env key value in
       let/ metavariable =
@@ -818,10 +820,11 @@ and produce_constraint (env : env) (key : key) dict tok indicator =
          [language: ...]
       *)
       let/ metavar, t = take_key dict env parse_string_wrap "metavariable" in
-      let/ opt_xlang =
+      let/ opt_analyzer =
         let+ lang = take_opt dict env parse_string "language" in
         match lang with
-        | Some s -> Some (Xlang.of_string ~rule_id:(Rule_ID.to_string env.id) s)
+        | Some s ->
+            Some (Analyzer.of_string ~rule_id:(Rule_ID.to_string env.id) s)
         | ___else___ -> None
       in
       let/ type_strs = take_opt dict env parse_string_wrap "type" in
@@ -841,7 +844,8 @@ and produce_constraint (env : env) (key : key) dict tok indicator =
               Left
                 ( snd ts,
                   R.CondType
-                    (metavar, opt_xlang, type_strs |> List_.map fst, types) );
+                    (metavar, opt_analyzer, type_strs |> List_.map fst, types)
+                );
             ]
         | _ -> [])
   | Cmetavar ->
@@ -850,19 +854,21 @@ and produce_constraint (env : env) (key : key) dict tok indicator =
          [language: ...]
       *)
       let/ metavar, t = take_key dict env parse_string_wrap "metavariable" in
-      let/ env', opt_xlang =
+      let/ env', opt_analyzer =
         let+ lang = take_opt dict env parse_string "language" in
         match lang with
         | Some s ->
-            let xlang = Xlang.of_string ~rule_id:(Rule_ID.to_string env.id) s in
+            let analyzer =
+              Analyzer.of_string ~rule_id:(Rule_ID.to_string env.id) s
+            in
             let env' =
               {
                 env with
-                target_analyzer = xlang;
+                target_analyzer = analyzer;
                 path = "metavariable-pattern" :: "metavariable" :: env.path;
               }
             in
-            (env', Some xlang)
+            (env', Some analyzer)
         | ___else___ -> (env, None)
       in
       let env' = { env' with in_metavariable_pattern = true } in
@@ -879,7 +885,7 @@ and produce_constraint (env : env) (key : key) dict tok indicator =
             [ Left (t, R.CondRegexp (metavar, regexp, true)) ]
         | _ ->
             let pat =
-              [ Left (t, R.CondNestedFormula (metavar, opt_xlang, formula)) ]
+              [ Left (t, R.CondNestedFormula (metavar, opt_analyzer, formula)) ]
             in
             pat)
 

@@ -7,8 +7,8 @@ val make_tests :
      int (* num errors *) ->
     string (* msg *) ->
     unit) ->
-  (* default to Test_engine.single_xlang_from_rules *)
-  ?get_xlang:(Fpath.t -> Rule.rules -> Xlang.t) ->
+  (* default to Test_engine.single_analyzer_from_rules *)
+  ?get_analyzer:(Fpath.t -> Rule.rules -> Analyzer.t) ->
   (* default to false *)
   ?prepend_lang:bool ->
   Fpath.t list ->
@@ -16,14 +16,14 @@ val make_tests :
 
 (* For Pro tests *)
 val collect_tests :
-  ?get_xlang:(Fpath.t -> Rule.rules -> Xlang.t) ->
+  ?get_analyzer:(Fpath.t -> Rule.rules -> Analyzer.t) ->
   Fpath.t list (* roots *) ->
-  (Fpath.t (* rule file *) * Fpath.t (* target file *) * Xlang.t) list
+  (Fpath.t (* rule file *) * Fpath.t (* target file *) * Analyzer.t) list
 
 (* helpers used in Test_subcommand.ml
  * TODO? Move in Rule_tests.mli?
  *)
 val find_target_of_yaml_file_opt : Fpath.t -> Fpath.t option
-val xlangs_of_rules : Rule.t list -> Xlang.t list
-val first_xlang_of_rules : Rule.t list -> Xlang.t
-val xtarget_of_file : Xlang.t -> Fpath.t -> Xtarget.t
+val analyzers_of_rules : Rule.t list -> Analyzer.t list
+val first_analyzer_of_rules : Rule.t list -> Analyzer.t
+val xtarget_of_file : Analyzer.t -> Fpath.t -> Xtarget.t

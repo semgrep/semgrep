@@ -38,37 +38,38 @@ module OutJ = Semgrep_output_v1_j
  *)
 
 (*****************************************************************************)
-(* Xlang helpers *)
+(* Analyzer helpers *)
 (*****************************************************************************)
 
-let (xlangs_of_rules : Rule.t list -> Xlang.t list) =
+let (analyzers_of_rules : Rule.t list -> Analyzer.t list) =
  fun rs ->
   rs |> List_.map (fun r -> r.R.target_analyzer) |> List.sort_uniq compare
 
-let first_xlang_of_rules (rs : Rule.t list) : Xlang.t =
+let first_analyzer_of_rules (rs : Rule.t list) : Analyzer.t =
   match rs with
   | [] -> failwith "no rules"
   | { R.target_analyzer = x; _ } :: _ -> x
 
-let single_xlang_from_rules (file : Fpath.t) (rules : Rule.t list) : Xlang.t =
-  let xlangs = xlangs_of_rules rules in
-  match xlangs with
+let single_analyzer_from_rules (file : Fpath.t) (rules : Rule.t list) :
+    Analyzer.t =
+  let analyzers = analyzers_of_rules rules in
+  match analyzers with
   | [] -> failwith (spf "no language found in %s" !!file)
   | [ x ] -> x
   | _ :: _ :: _ ->
-      let fst = first_xlang_of_rules rules in
+      let fst = first_analyzer_of_rules rules in
       UCommon.pr2
         (spf "too many languages found in %s, picking the first one: %s" !!file
-           (Xlang.show fst));
+           (Analyzer.show fst));
       fst
 
 (*****************************************************************************)
 (* Xtarget helpers *)
 (*****************************************************************************)
 
-let xtarget_of_file (xlang : Xlang.t) (target : Fpath.t) : Xtarget.t =
-  let xlang : Xlang.t =
-    match xlang with
+let xtarget_of_file (analyzer : Analyzer.t) (target : Fpath.t) : Xtarget.t =
+  let analyzer : Analyzer.t =
+    match analyzer with
     (* Required to be able to factorize with Xtarget.resolve; it cannot handle
        non-nil lists at least as of 2024-02-14. *)
     | L (lang, _) -> L (lang, [])
@@ -76,15 +77,15 @@ let xtarget_of_file (xlang : Xlang.t) (target : Fpath.t) : Xtarget.t =
     | LRegex
     | LSpacegrep
     | LAliengrep ->
-        xlang
+        analyzer
   in
-  let parser xlang file =
+  let parser analyzer file =
     let { ast; skipped_tokens; _ } : Parsing_result2.t =
-      Parse_target.parse_and_resolve_name xlang file
+      Parse_target.parse_and_resolve_name analyzer file
     in
     (ast, skipped_tokens)
   in
-  Xtarget.resolve parser (Target.mk_regular xlang Product.all (File target))
+  Xtarget.resolve parser (Target.mk_regular analyzer Product.all (File target))
 
 (*****************************************************************************)
 (* target helpers *)
@@ -182,7 +183,7 @@ let check_parse_errors (rule_file : Fpath.t) (errors : Core_error.ErrorSet.t) :
 (* Main logic *)
 (*****************************************************************************)
 
-let read_rules_file ~get_xlang ?fail_callback rule_file =
+let read_rules_file ~get_analyzer ?fail_callback rule_file =
   match Parse_rule.parse rule_file with
   (* TODO: fail better with invalid rules? *)
   | Error _ -> None
@@ -197,31 +198,31 @@ let read_rules_file ~get_xlang ?fail_callback rule_file =
             (spf "file %s is empty or all rules were skipped" !!rule_file));
       None
   | Ok rules ->
-      let xlang = get_xlang rule_file rules in
+      let analyzer = get_analyzer rule_file rules in
       let target = find_target_of_yaml_file rule_file in
       Logs.info (fun m ->
-          m "processing target %s (with xlang %s)" !!target
-            (Xlang.to_string xlang));
+          m "processing target %s (with analyzer %s)" !!target
+            (Analyzer.to_string analyzer));
 
       (* ugly: this is just for tests/rules/inception2.yaml, to use JSON
          to parse the pattern but YAML to parse the target *)
-      let xlang =
-        match (xlang, Lang.langs_of_filename target) with
-        | Xlang.L (l, [ l2 ]), xs when not (List.mem l xs) ->
+      let analyzer =
+        match (analyzer, Lang.langs_of_filename target) with
+        | Analyzer.L (l, [ l2 ]), xs when not (List.mem l xs) ->
             UCommon.pr2 (spf "switching to another language: %s" (Lang.show l2));
-            Xlang.L (l2, [])
-        | _ -> xlang
+            Analyzer.L (l2, [])
+        | _ -> analyzer
       in
-      Some (rules, target, xlang)
+      Some (rules, target, analyzer)
 
 let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
-    ?(get_xlang = single_xlang_from_rules) ?(prepend_lang = false)
+    ?(get_analyzer = single_analyzer_from_rules) ?(prepend_lang = false)
     (rule_file : Fpath.t) : Testo.t =
   let test () =
     Logs.info (fun m -> m "processing rules  %s" !!rule_file);
-    match read_rules_file ~get_xlang ~fail_callback rule_file with
+    match read_rules_file ~get_analyzer ~fail_callback rule_file with
     | None -> ()
-    | Some (rules, target, xlang) -> (
+    | Some (rules, target, analyzer) -> (
         (* expected *)
         (* not tororuleid! not ok:! not todook:
            see https://semgrep.dev/docs/writing-rules/testing-rules/
@@ -236,7 +237,7 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
         in
 
         (* actual *)
-        let xtarget = xtarget_of_file xlang target in
+        let xtarget = xtarget_of_file analyzer target in
         let xconf = Match_env.default_xconfig in
 
         Core_profiling.profiling := true;
@@ -299,13 +300,16 @@ let find_rule_files roots =
  * (or wait that we switch to osemgrep test for our own test infra in which
  * case this whole file will be deleted)
  *)
-let collect_tests ?(get_xlang = single_xlang_from_rules) (xs : Fpath.t list) =
+let collect_tests ?(get_analyzer = single_analyzer_from_rules)
+    (xs : Fpath.t list) =
   xs |> find_rule_files
   |> List_.filter_map (fun rule_file ->
-         let* _rules, target, xlang = read_rules_file ~get_xlang rule_file in
-         Some (rule_file, target, xlang))
+         let* _rules, target, analyzer =
+           read_rules_file ~get_analyzer rule_file
+         in
+         Some (rule_file, target, analyzer))
 
-let make_tests ?fail_callback ?get_xlang ?prepend_lang (xs : Fpath.t list) :
+let make_tests ?fail_callback ?get_analyzer ?prepend_lang (xs : Fpath.t list) :
     Testo.t list =
   xs |> find_rule_files
-  |> List_.map (make_test_rule_file ?fail_callback ?get_xlang ?prepend_lang)
+  |> List_.map (make_test_rule_file ?fail_callback ?get_analyzer ?prepend_lang)

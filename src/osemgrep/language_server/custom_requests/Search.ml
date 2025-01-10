@@ -85,7 +85,7 @@ let mk_params ~lang ~fix ~includes ~excludes pattern =
   let lang =
     match lang with
     | None -> `Null
-    | Some lang -> `String (Xlang.to_string lang)
+    | Some lang -> `String (Analyzer.to_string lang)
   in
   let fix =
     match fix with
@@ -124,7 +124,7 @@ module Request_params = struct
   (* coupling: you must change the `mk_params` function above if you change this type! *)
   type t = {
     patterns : signed_pattern list;
-    lang : Xlang.t option;
+    lang : Analyzer.t option;
     fix : string option;
     includes : Glob.Match.compiled_pattern list;
     excludes : Glob.Match.compiled_pattern list;
@@ -158,7 +158,7 @@ module Request_params = struct
         in
         let lang_opt =
           match lang with
-          | `String lang -> Some (Xlang.of_string lang)
+          | `String lang -> Some (Analyzer.of_string lang)
           | _ -> None
         in
         let fix_opt =
@@ -227,10 +227,10 @@ let filter_by_includes_excludes ~project_root (file : Fpath.t)
       in
       is_included && not is_excluded
 
-let formula_of_signed_patterns xlang patterns =
+let formula_of_signed_patterns analyzer patterns =
   let of_signed_pattern ({ positive; pattern } : Request_params.signed_pattern)
       =
-    let/ xpat = Parse_rule.parse_fake_xpattern xlang pattern in
+    let/ xpat = Parse_rule.parse_fake_xpattern analyzer pattern in
     if positive then Ok (Rule.f (Rule.P xpat))
     else Ok (Rule.f (Rule.Not (Tok.unsafe_fake_tok "", Rule.f (Rule.P xpat))))
   in
@@ -250,7 +250,7 @@ let filter_out_multiple_python (rules : Rule.search_rule list) :
     List.exists
       (fun x ->
         match x.Rule.target_analyzer with
-        | Xlang.L (Python3, _) -> true
+        | Analyzer.L (Python3, _) -> true
         | _ -> false)
       rules
   in
@@ -259,8 +259,8 @@ let filter_out_multiple_python (rules : Rule.search_rule list) :
     List.filter
       (fun x ->
         match x.Rule.target_analyzer with
-        | Xlang.L (Python2, _) -> false
-        | Xlang.L (Python, _) -> false
+        | Analyzer.L (Python2, _) -> false
+        | Analyzer.L (Python, _) -> false
         | _ -> true)
       rules
   else rules
@@ -301,14 +301,14 @@ let mk_env (session : Session.t) (params : Request_params.t) =
    I tried Find_targets.get_targets, but this ran into an error because of some
    path relativity stuff, I think.
 *)
-let get_relevant_xlangs (env : env) : Xlang.t list =
+let get_relevant_analyzers (env : env) : Analyzer.t list =
   let lang_set = Hashtbl.create 10 in
   List.iter
     (fun file ->
       let file_langs = Lang.langs_of_filename file in
       List.iter (fun lang -> Hashtbl.replace lang_set lang ()) file_langs)
     env.initial_files;
-  Hashtbl.to_seq_keys lang_set |> List.of_seq |> List_.map Xlang.of_lang
+  Hashtbl.to_seq_keys lang_set |> List.of_seq |> List_.map Analyzer.of_lang
 
 (* Get the rules to run based on the pattern and state of the LSP. *)
 let get_relevant_rules ({ params = { patterns; fix; lang; _ }; _ } as env : env)
@@ -326,30 +326,35 @@ let get_relevant_rules ({ params = { patterns; fix; lang; _ }; _ } as env : env)
   (* We want languages which are part of the languages known to the workspace,
      and which also may parse properly in each language.
      Note that we haven't yet enforced that _every_ pattern parses in this
-     language, so a valid xlang might be one which only one pattern successfully
+     language, so a valid analyzer might be one which only one pattern successfully
      parses in.
   *)
-  let valid_xlangs =
+  let valid_analyzers =
     match langs_of_patterns with
     | [] -> failwith "no patterns given to /semgrep/search"
-    | xlangs :: _ ->
-        let relevant_xlangs = get_relevant_xlangs env in
-        List.filter (fun xlang -> List.mem xlang relevant_xlangs) xlangs
+    | analyzers :: _ ->
+        let relevant_analyzers = get_relevant_analyzers env in
+        List.filter
+          (fun analyzer -> List.mem analyzer relevant_analyzers)
+          analyzers
   in
-  (* Returns Some if we every pattern is parseable in `xlang` *)
-  let rule_of_lang_opt xlang : (Rule.search_rule option, Rule_error.t) result =
+  (* Returns Some if we every pattern is parseable in `analyzer` *)
+  let rule_of_lang_opt analyzer : (Rule.search_rule option, Rule_error.t) result
+      =
     (* Get all valid lang -> patterns pairings, for valid languages
         which are valid for all patterns
     *)
     let valid_for_all_xpats : bool =
       List.for_all
-        (fun xlangs ->
-          List.exists (fun xlang' -> Xlang.equal xlang xlang') xlangs)
+        (fun analyzers ->
+          List.exists
+            (fun analyzer' -> Analyzer.equal analyzer analyzer')
+            analyzers)
         langs_of_patterns
     in
     if valid_for_all_xpats then
-      let/ formula = formula_of_signed_patterns xlang patterns in
-      match Rule.rule_of_formula ?fix xlang formula with
+      let/ formula = formula_of_signed_patterns analyzer patterns in
+      match Rule.rule_of_formula ?fix analyzer formula with
       | { mode = `Search f; _ } as r ->
           (* repack here so we get the right search_rule type *)
           Ok (Some { r with mode = `Search f })
@@ -365,7 +370,7 @@ let get_relevant_rules ({ params = { patterns; fix; lang; _ }; _ } as env : env)
           (match x with
           | Some x -> x :: acc
           | None -> acc))
-      (Ok []) valid_xlangs
+      (Ok []) valid_analyzers
   in
   match search_rules with
   (* Unfortunately, almost everything parses as YAML, because you can specify
@@ -374,9 +379,9 @@ let get_relevant_rules ({ params = { patterns; fix; lang; _ }; _ } as env : env)
      safe to say it's a non-language-specific pattern.
   *)
   | []
-  | [ { target_analyzer = Xlang.L (Yaml, _); _ } ] ->
+  | [ { target_analyzer = Analyzer.L (Yaml, _); _ } ] ->
       (* should be a singleton *)
-      let/ rule = rule_of_lang_opt Xlang.LRegex in
+      let/ rule = rule_of_lang_opt Analyzer.LRegex in
       Ok (rule |> Option.to_list)
   | other -> Ok (other |> filter_out_multiple_python)
 

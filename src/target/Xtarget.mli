@@ -6,10 +6,10 @@
 
 type t = {
   path : Target.path;
-  xlang : Xlang.t;  (** The analyzer to use when scanning this target. *)
+  analyzer : Analyzer.t;  (** The analyzer to use when scanning this target. *)
   lazy_content : string lazy_t;
   lazy_ast_and_errors : (AST_generic.program * Tok.location list) lazy_t;
-      (** This is valid only for xlang = Xlang.L ..., not for LRegex|LGeneric *)
+      (** This is valid only for analyzer = Analyzer.L ..., not for LRegex|LGeneric *)
 }
 
 val resolve :

@@ -663,7 +663,8 @@ let core_output_of_matches_and_errors (res : Core_result.t) : Out.core_output =
       res.explanations |> Option.map (List_.map explanation_to_explanation);
     rules_by_engine = Some res.rules_by_engine;
     interfile_languages_used =
-      Some (List_.map (fun l -> Xlang.to_string l) res.interfile_languages_used);
+      Some
+        (List_.map (fun l -> Analyzer.to_string l) res.interfile_languages_used);
     engine_requested = Some `OSS;
     version = Version.version;
   }

@@ -166,7 +166,7 @@ let log_parsing_errors file (res : Parsing_result2.t) =
 let dump_pattern (file : Fpath.t) =
   let s = UFile.read_file file in
   (* mostly copy-paste of parse_pattern in runner, but with better error report *)
-  let lang = Xlang.lang_of_opt_xlang_exn !lang in
+  let lang = Analyzer.lang_of_opt_analyzer_exn !lang in
   Core_actions.try_with_log_exn_and_reraise file (fun () ->
       (* TODO? enable "semgrep.parsing" log level *)
       match Parse_pattern.parse_pattern lang s with
@@ -392,7 +392,7 @@ let all_actions (caps : Cap.all_caps) () =
       Arg_.mk_action_n_arg (fun xs ->
           Test_parsing.parsing_stats
             (caps :> < Cap.time_limit ; Cap.memory_limit >)
-            (Xlang.lang_of_opt_xlang_exn !lang)
+            (Analyzer.lang_of_opt_analyzer_exn !lang)
             ~json:
               (match !output_format with
               | Json _ -> true
@@ -427,13 +427,13 @@ let all_actions (caps : Cap.all_caps) () =
         Arg_.mk_action_1_conv Fpath.v
           (dump_ast ~naming:false
              (caps :> < Cap.stdout ; Cap.exit >)
-             (Xlang.lang_of_opt_xlang_exn !lang))
+             (Analyzer.lang_of_opt_analyzer_exn !lang))
           file );
     ( "-dump_lang_ast",
       " <file>",
       fun file ->
         Arg_.mk_action_1_conv Fpath.v
-          (Test_parsing.dump_lang_ast (Xlang.lang_of_opt_xlang_exn !lang))
+          (Test_parsing.dump_lang_ast (Analyzer.lang_of_opt_analyzer_exn !lang))
           file );
     ( "-dump_named_ast",
       " <file>",
@@ -441,7 +441,7 @@ let all_actions (caps : Cap.all_caps) () =
         Arg_.mk_action_1_conv Fpath.v
           (dump_ast ~naming:true
              (caps :> < Cap.stdout ; Cap.exit >)
-             (Xlang.lang_of_opt_xlang_exn !lang))
+             (Analyzer.lang_of_opt_analyzer_exn !lang))
           file );
     ( "-dump_il_all",
       " <file>",
@@ -462,19 +462,20 @@ let all_actions (caps : Cap.all_caps) () =
       " <file> dump the CST obtained from a tree-sitter parser",
       Arg_.mk_action_1_conv Fpath.v (fun file ->
           Test_parsing.dump_tree_sitter_cst
-            (Xlang.lang_of_opt_xlang_exn !lang)
+            (Analyzer.lang_of_opt_analyzer_exn !lang)
             file) );
     ( "-dump_tree_sitter_pattern_cst",
       " <file>",
       Arg_.mk_action_1_conv Fpath.v (fun file ->
           Parse_pattern2.dump_tree_sitter_pattern_cst
-            (Xlang.lang_of_opt_xlang_exn !lang)
+            (Analyzer.lang_of_opt_analyzer_exn !lang)
             file) );
     ( "-dump_pfff_ast",
       " <file> dump the generic AST obtained from a pfff parser",
       Arg_.mk_action_1_conv Fpath.v (fun file ->
-          Test_parsing.dump_pfff_ast (Xlang.lang_of_opt_xlang_exn !lang) file)
-    );
+          Test_parsing.dump_pfff_ast
+            (Analyzer.lang_of_opt_analyzer_exn !lang)
+            file) );
     ( "-diff_pfff_tree_sitter",
       " <file>",
       Arg_.mk_action_n_arg (fun xs ->
@@ -508,13 +509,13 @@ let all_actions (caps : Cap.all_caps) () =
       Arg_.mk_action_n_arg (fun xs ->
           Test_parsing.parsing_regressions
             (caps :> < Cap.time_limit ; Cap.memory_limit >)
-            (Xlang.lang_of_opt_xlang_exn !lang)
+            (Analyzer.lang_of_opt_analyzer_exn !lang)
             (Fpath_.of_strings xs)) );
     ( "-test_parse_tree_sitter",
       " <files or dirs> test tree-sitter parser on target files",
       Arg_.mk_action_n_arg (fun xs ->
           Test_parsing.test_parse_tree_sitter
-            (Xlang.lang_of_opt_xlang_exn !lang)
+            (Analyzer.lang_of_opt_analyzer_exn !lang)
             (Fpath_.of_strings xs)) );
     ( "-translate_rules",
       " <files or dirs>",
@@ -555,11 +556,11 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
       Arg.String (fun s -> target_file := Some (Fpath.v s)),
       " <file> obtain list of targets to run patterns on" );
     ( "-lang",
-      Arg.String (fun s -> lang := Some (Xlang.of_string s)),
+      Arg.String (fun s -> lang := Some (Analyzer.of_string s)),
       spf " <str> choose language (valid choices:\n     %s)"
-        Xlang.supported_xlangs );
+        Analyzer.supported_analyzers );
     ( "-l",
-      Arg.String (fun s -> lang := Some (Xlang.of_string s)),
+      Arg.String (fun s -> lang := Some (Analyzer.of_string s)),
       spf " <str> shortcut for -lang" );
     ( "-equivalences",
       Arg.String (fun s -> equivalences_file := Some (Fpath.v s)),

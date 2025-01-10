@@ -75,7 +75,7 @@ let run_conf (caps : < caps ; .. >) (conf : Show_CLI.conf) : Exit_code.t =
   | Deployment ->
       Whoami.print (caps :> < Cap.network ; Cap.stdout >) Whoami.Deployment
   | SupportedLanguages ->
-      print (spf "supported languages are: %s" Xlang.supported_xlangs);
+      print (spf "supported languages are: %s" Analyzer.supported_analyzers);
       Exit_code.ok ~__LOC__ (* dumpers *)
   (* TODO? error management? improve error message for parse errors?
    * or let CLI.safe_run do the right thing?

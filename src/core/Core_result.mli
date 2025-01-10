@@ -34,7 +34,7 @@ type t = {
   profiling : Core_profiling.t option;
   explanations : Matching_explanation.t list option;
   rules_by_engine : (Rule_ID.t * Engine_kind.t) list;
-  interfile_languages_used : Xlang.t list;
+  interfile_languages_used : Analyzer.t list;
 }
 [@@deriving show]
 
@@ -70,7 +70,7 @@ val mk_result :
   (Rule.rule * Engine_kind.t) list ->
   Rule_error.invalid_rule list ->
   Target.t list ->
-  Xlang.t list ->
+  Analyzer.t list ->
   rules_parse_time:float ->
   t
 

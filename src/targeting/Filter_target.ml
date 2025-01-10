@@ -24,8 +24,8 @@
 (*************************************************************************)
 
 (* Used by Core_runner.split_jobs_by_language() *)
-let filter_target_for_xlang (xlang : Xlang.t) (path : Fpath.t) : bool =
-  match xlang with
+let filter_target_for_analyzer (analyzer : Analyzer.t) (path : Fpath.t) : bool =
+  match analyzer with
   | L (lang, langs) ->
       (* ok if the file appears to be in one of rule's languages *)
       lang :: langs

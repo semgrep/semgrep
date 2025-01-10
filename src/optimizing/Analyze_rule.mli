@@ -38,7 +38,7 @@ val regexp_prefilter_of_rule :
 
 (* WARNING: internal, do not use directly, not memoized
  *
- * The 'xlang' is used when determining whether we can use a `metavariable-regex`
+ * The 'analyzer' is used when determining whether we can use a `metavariable-regex`
  * for pre-filtering. When the target-analyzer is Spacegrep/Aliengrep, then we
  * can always use `metavariable-regex`es for pre-filtering, because there is no
  * constant folding in generic mode. But, when running semantic analysis for a
@@ -49,7 +49,7 @@ val regexp_prefilter_of_rule :
  * runtime, and that can be known to Semgrep statically via constant folding.
  * *)
 val regexp_prefilter_of_formula :
-  xlang:Xlang.t -> Rule.formula -> prefilter option
+  analyzer:Analyzer.t -> Rule.formula -> prefilter option
 
 (* For external tools like Semgrep query console to be able to
  * also prune certain rules/files.

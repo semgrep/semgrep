@@ -194,15 +194,15 @@ let check
   let {
     path = { internal_path_to_content = file; _ };
     lazy_ast_and_errors;
-    xlang;
+    analyzer;
     _;
   } : Xtarget.t =
     xtarget
   in
   Log.info (fun m -> m "checking %s with %d rules" !!file (List.length rules));
-  (match (!Profiling.profile, xlang) with
+  (match (!Profiling.profile, analyzer) with
   (* coupling: see Run_semgrep.xtarget_of_file() *)
-  | Profiling.ProfAll, Xlang.L (_lang, []) ->
+  | Profiling.ProfAll, Analyzer.L (_lang, []) ->
       Log.debug (fun m ->
           m "forcing parsing of AST outside of rules, for better profile");
       Lazy.force lazy_ast_and_errors |> ignore

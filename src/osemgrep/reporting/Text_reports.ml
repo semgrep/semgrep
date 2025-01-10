@@ -86,12 +86,12 @@ let opt_msg msg = function
  * executed separately from each other. However, for simplicity, we merge
  * the stats for these "languages" into a single "<multilang>" row.
  *)
-let xlang_label = function
-  | Xlang.LSpacegrep
-  | Xlang.LAliengrep
-  | Xlang.LRegex ->
+let analyzer_label = function
+  | Analyzer.LSpacegrep
+  | Analyzer.LAliengrep
+  | Analyzer.LRegex ->
       "<multilang>"
-  | Xlang.L (l, _) -> Lang.to_lowercase_alnum l
+  | Analyzer.L (l, _) -> Lang.to_lowercase_alnum l
 
 (*****************************************************************************)
 (* Logo *)
@@ -299,12 +299,12 @@ let scan_status ~num_rules ~num_targets ~respect_gitignore
           prf "\n";
           let lang_stats : (string * int * int) list =
             lang_jobs
-            (* Unpack each job, transforming xlang into its mapped language key *)
-            |> List_.map (fun Lang_job.{ xlang; targets; rules } ->
-                   (xlang_label xlang, rules, targets))
+            (* Unpack each job, transforming analyzer into its mapped language key *)
+            |> List_.map (fun Lang_job.{ analyzer; targets; rules } ->
+                   (analyzer_label analyzer, rules, targets))
             (* Merge jobs by mapped language key *)
-            |> Assoc.group_by (fun (xlang, _, _) -> xlang)
-            |> List_.map (fun (xlang, xxs) ->
+            |> Assoc.group_by (fun (analyzer, _, _) -> analyzer)
+            |> List_.map (fun (analyzer, xxs) ->
                    let targets =
                      xxs
                      |> List.concat_map (fun (_, _, targets) -> targets)
@@ -319,7 +319,7 @@ let scan_status ~num_rules ~num_targets ~respect_gitignore
                      |> List_.map (fun (rules, _) -> rules)
                      |> List.length
                    in
-                   (xlang, rules, targets))
+                   (analyzer, rules, targets))
           in
           prf "%s"
             (Console.tables

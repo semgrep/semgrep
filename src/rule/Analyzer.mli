@@ -1,14 +1,33 @@
 (*
-   The type of a language analyzer.
+   The type of a program analyzer. Formerly known as 'Xlang'.
+
+   An analyzer is a tool or component used by Semgrep to analyze a
+   project and return findings. An analyzer has an evocative name that
+   appears in Semgrep rules and in Semgrep results. An analyzer takes
+   parameters whose validity depends from one analyzer to another.
+
+   Examples:
+   - The "python" analyzer takes Python patterns combined into
+     a search query. It will analyze only project files that look like
+     Python files.
+   - The "entropy" analyzer takes no search query but
+     some options can be specified to override defaults. It will analyze
+     any text file. Currently this particular analyzer runs only on
+     string literals that are extracted from programs but it could apply
+     directly to a whole file secret-key.txt.
+   - A "JavaScript in PDF" analyzer that reports JavaScript code
+     embedded in PDF documents.
 
    In most cases, the language analyzer is the name of the programming
    language (Lang.t). These languages are regular Semgrep languages
    using the generic AST. Other analyzers exist, though, and they are
    included in this type.
 
-   See also Lang.mli.
+   In code that references 'Analyzer' a lot, define a local module alias:
 
-   eXtended languages: everything from Lang.t + spacegrep (generic) and regex.
+     module A = Analyzer
+
+   See also Lang.mli.
 *)
 
 type t =
@@ -42,7 +61,7 @@ val to_lang_exn : t -> Lang.t
 val to_langs : t -> Lang.t list
 
 (* raises an exception with error message *)
-val lang_of_opt_xlang_exn : t option -> Lang.t
+val lang_of_opt_analyzer_exn : t option -> Lang.t
 
 (*
    Determine whether a single analyzer exist in an set of
@@ -68,17 +87,17 @@ val is_compatible : require:t -> provide:t -> bool
 *)
 val flatten : t -> t list
 
-(* map from valid extended language names to unique xlang ID *)
+(* map from valid extended language names to unique analyzer ID *)
 val assoc : (string * t) list
 
-(* efficient map from valid extended language names to unique xlang ID *)
+(* efficient map from valid extended language names to unique analyzer ID *)
 val map : (string, t) Hashtbl.t
 
 (* list of valid names for extended languages, sorted alphabetically *)
 val keys : string list
 
 (* comma-separated list of the supported languages *)
-val supported_xlangs : string
+val supported_analyzers : string
 
 (*
    Convert from a string or raise an exception with an error message.
@@ -88,7 +107,7 @@ val to_string : t -> string
 val is_proprietary : t -> bool
 
 (* of_string/to_string for ATD e.g.
-   type xlang = string wrap <ocaml module="Xlang">
+   type analyzer = string wrap <ocaml module="Analyzer">
 *)
 val wrap : string -> t
 val unwrap : t -> string

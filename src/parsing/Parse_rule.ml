@@ -80,11 +80,11 @@ let parse_language ~id ((s, t) as _lang) : (Lang.t, Rule_error.t) result =
    This decouples target selection from pattern parsing.
 
    TODO: note that there's a few places in this file where we use
-   Xlang.of_string which allows "spacegrep" and "aliengrep" so
+   Analyzer.of_string which allows "spacegrep" and "aliengrep" so
    this might lead to inconsistencies as here we allow just "generic".
 *)
 let parse_languages ~id (options : Rule_options_t.t) langs :
-    (Target_selector.t option * Xlang.t, Rule_error.t) result =
+    (Target_selector.t option * Analyzer.t, Rule_error.t) result =
   match langs with
   | [ (("none" | "regex"), _t) ] -> Ok (None, LRegex)
   | [ ("generic", _t) ] -> (
@@ -101,7 +101,7 @@ let parse_languages ~id (options : Rule_options_t.t) langs :
       in
       match langs with
       | [] -> error rule_id (snd id) "we need at least one language"
-      | x :: xs -> Ok (Some langs, Xlang.L (x, xs)))
+      | x :: xs -> Ok (Some langs, Analyzer.L (x, xs)))
 
 let parse_severity ~id (s, t) : (Rule.severity, Rule_error.t) result =
   match s with
@@ -500,14 +500,14 @@ let parse_taint_pattern env key (value : G.expr) =
 (*****************************************************************************)
 
 (* TODO: factorize code with parse_languages *)
-let parse_extract_dest ~id lang : (Xlang.t, Rule_error.t) result =
+let parse_extract_dest ~id lang : (Analyzer.t, Rule_error.t) result =
   match lang with
   | ("none" | "regex"), _ -> Ok LRegex
   | ("generic" | "spacegrep"), _ -> Ok LSpacegrep
   | "aliengrep", _ -> Ok LAliengrep
   | lang ->
       let/ lang = parse_language ~id lang in
-      Ok (Xlang.L (lang, []))
+      Ok (Analyzer.L (lang, []))
 
 let parse_extract_reduction ~id (s, t) =
   match s with
@@ -731,8 +731,8 @@ let parse_http_matcher_clause key env value :
           take_opt content env parse_string "language"
           |> Result.map
                (Option.map
-                  (Xlang.of_string ~rule_id:(Rule_ID.to_string env.id)))
-          |> Result.map (Option.value ~default:Xlang.LAliengrep)
+                  (Analyzer.of_string ~rule_id:(Rule_ID.to_string env.id)))
+          |> Result.map (Option.value ~default:Analyzer.LAliengrep)
         in
         Ok (Some (formula, language))
     | Ok None -> Ok None
@@ -1216,11 +1216,11 @@ let parse_and_filter_invalid_rules ?rewrite_rule_ids (file : Fpath.t) :
   Ok (rules, errors)
 [@@profiling]
 
-let parse_xpattern xlang (str, tok) =
+let parse_xpattern analyzer (str, tok) =
   let env =
     {
       id = Rule_ID.of_string_exn "anon-pattern";
-      target_analyzer = xlang;
+      target_analyzer = analyzer;
       in_metavariable_pattern = false;
       path = [];
       options_key = None;
@@ -1229,9 +1229,9 @@ let parse_xpattern xlang (str, tok) =
   in
   Parse_rule_formula.parse_rule_xpattern env (str, tok)
 
-let parse_fake_xpattern xlang str =
+let parse_fake_xpattern analyzer str =
   let fk = Tok.unsafe_fake_tok "" in
-  parse_xpattern xlang (str, fk)
+  parse_xpattern analyzer (str, fk)
 
 (*****************************************************************************)
 (* Useful for tests *)

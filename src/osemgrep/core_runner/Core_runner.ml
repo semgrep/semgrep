@@ -140,24 +140,24 @@ let report_status_and_add_metrics_languages ~respect_gitignore
         (Text_reports.scan_status ~num_rules:(List.length rules)
            ~num_targets:(List.length targets) ~respect_gitignore lang_jobs));
   lang_jobs
-  |> List.iter (fun { Lang_job.xlang; _ } ->
-         Metrics_.add_feature "language" (Xlang.to_string xlang));
+  |> List.iter (fun { Lang_job.analyzer; _ } ->
+         Metrics_.add_feature "language" (Analyzer.to_string analyzer));
   ()
 
 (*************************************************************************)
 (* Extract mode *)
 (*************************************************************************)
 
-(* TODO? move to Xlang.ml? *)
-module XlangSet = Set.Make (struct
+(* TODO? move to Analyzer.ml? *)
+module AnalyzerSet = Set.Make (struct
   let compare
       (* This only compares the first language in the case of `L (lang :: _)`.
-         That should be fine because for the use of Xlang in this file,
+         That should be fine because for the use of Analyzer in this file,
          `L _` should always be flattened out *)
         a b =
-    String.compare (Xlang.to_string a) (Xlang.to_string b)
+    String.compare (Analyzer.to_string a) (Analyzer.to_string b)
 
-  type t = Xlang.t
+  type t = Analyzer.t
 end)
 
 (* Extract mode: we need to make sure to include rules that will apply
@@ -170,9 +170,9 @@ let detect_extract_languages all_rules =
   |> List.fold_left
        (fun acc { Rule.mode; _ } ->
          match mode with
-         | `Extract { Rule.dst_lang; _ } -> XlangSet.add dst_lang acc
+         | `Extract { Rule.dst_lang; _ } -> AnalyzerSet.add dst_lang acc
          | _ -> acc)
-       XlangSet.empty
+       AnalyzerSet.empty
 
 (*************************************************************************)
 (* Targeting (Fpath.t -> Target.t) *)
@@ -182,14 +182,14 @@ let detect_extract_languages all_rules =
    some patterns can be interpreted in multiple languages.
 *)
 let group_rules_by_target_language (rules : Rule.t list) :
-    (Xlang.t * Rule.t list) list =
+    (Analyzer.t * Rule.t list) list =
   (* target language -> rules *)
   (* TODO: use Assoc.group_by *)
   let tbl = Hashtbl.create 100 in
   rules
   |> List.iter (fun (rule : Rule.t) ->
          let pattern_lang = rule.target_analyzer in
-         let target_langs = Xlang.flatten pattern_lang in
+         let target_langs = Analyzer.flatten pattern_lang in
          target_langs
          |> List.iter (fun lang ->
                 let rules =
@@ -228,7 +228,7 @@ let split_jobs_by_language (conf : Find_targets.conf) (rules : Rule.t list)
   let rules = add_typescript_to_javascript_rules_hack rules in
   let extract_languages = detect_extract_languages rules in
   rules |> group_rules_by_target_language
-  |> List_.filter_map (fun (xlang, rules) ->
+  |> List_.filter_map (fun (analyzer, rules) ->
          let targets =
            targets
            |> List.filter (fun path ->
@@ -240,16 +240,18 @@ let split_jobs_by_language (conf : Find_targets.conf) (rules : Rule.t list)
                          path
                   in
                   bypass_language_detection
-                  || Filter_target.filter_target_for_xlang xlang path)
+                  || Filter_target.filter_target_for_analyzer analyzer path)
          in
-         if List_.null targets && not (XlangSet.mem xlang extract_languages)
+         if
+           List_.null targets
+           && not (AnalyzerSet.mem analyzer extract_languages)
          then None
-         else Some ({ xlang; targets; rules } : Lang_job.t))
+         else Some ({ analyzer; targets; rules } : Lang_job.t))
 
 let targets_of_lang_job (x : Lang_job.t) : Target.t list =
   x.targets
   |> List_.map (fun (path : Fpath.t) : Target.t ->
-         Target.mk_target x.xlang path)
+         Target.mk_target x.analyzer path)
 
 let targets_and_rules_of_lang_jobs (lang_jobs : Lang_job.t list) :
     Target.t list * Rule.t list =
@@ -314,8 +316,8 @@ let add_possibly_lockfile_to_regular_target (lockfiles : Lockfile.t list)
                 match target with
                 | Lockfile _ -> target
                 | Regular
-                    ({ analyzer = Xlang.L (Lang.Js, _); lockfile = None; _ } as
-                     regular) ->
+                    ({ analyzer = Analyzer.L (Lang.Js, _); lockfile = None; _ }
+                     as regular) ->
                     Regular { regular with lockfile = Some lockfile }
                 | Regular _ -> target))
        targets

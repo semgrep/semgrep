@@ -447,7 +447,7 @@ let core_scan_config (conf : Test_CLI.conf) (rules : Rule.t list)
 let run_rules_against_targets_for_engine caps (env : env) (rules : Rule.t list)
     (targets : Target.t list) : Core_result.t =
   (* old:
-   * let xtarget = Test_engine.xtarget_of_file xlang target in
+   * let xtarget = Test_engine.xtarget_of_file analyzer target in
    * let xconf = { Match_env.default_xconfig with matching_explanations = true}in
    * Match_rules.check ~match_hook:(fun _ ->()) ~timeout:None xconf rules xtarget
    *)
@@ -743,7 +743,7 @@ let run_test (caps : < scan_caps ; .. >) (conf : Test_CLI.conf)
     (rule_file : Fpath.t) (rules : Rule.t list) (target_files : Fpath.t list)
     (errors : error list ref) : test_result list * fixtest_result list =
   (* note that even one target file can result in different targets
-   * if the rules contain multiple xlangs.
+   * if the rules contain multiple analyzers.
    *)
   let targets : Target.t list =
     Core_runner.targets_for_files_and_rules target_files rules

@@ -626,7 +626,7 @@ let tainting_test (lang : Lang.t) (rules_file : Fpath.t) (file : Fpath.t) =
     rules
     |> List.filter (fun r ->
            match r.Rule.target_analyzer with
-           | Xlang.L (x, xs) -> List.mem lang (x :: xs)
+           | Analyzer.L (x, xs) -> List.mem lang (x :: xs)
            | _ -> false)
   in
   let search_rules, taint_rules, extract_rules, join_rules =
@@ -643,7 +643,7 @@ let tainting_test (lang : Lang.t) (rules_file : Fpath.t) (file : Fpath.t) =
            let xtarget : Xtarget.t =
              {
                path = { origin = File file; internal_path_to_content = file };
-               xlang = Xlang.L (lang, []);
+               analyzer = Analyzer.L (lang, []);
                lazy_content = lazy (UFile.read_file file);
                lazy_ast_and_errors = lazy (ast, []);
              }

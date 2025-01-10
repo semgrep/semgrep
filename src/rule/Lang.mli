@@ -7,7 +7,7 @@
 
    File analysis: a Lang.t guarantees that we have a parser for that language.
    Other ways to parse and analyze files are supported by Semgrep (Regex,
-   Spacegrep, ...). To represent a way to analyze a file, use Xlang.t,
+   Spacegrep, ...). To represent a way to analyze a file, use Analyzer.t,
    not Lang.t.
 
    See Rule.language for more on the distinction between target selection and

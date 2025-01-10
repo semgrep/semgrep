@@ -37,7 +37,7 @@ type path = {
 
 type regular = {
   path : path;
-  analyzer : Xlang.t;  (** The analyzer to use when scanning this target. *)
+  analyzer : Analyzer.t;  (** The analyzer to use when scanning this target. *)
   products : Product.t list;
       (** The products which should scan this target. This is used for
           selecting the relevant set of rules. *)
@@ -77,7 +77,7 @@ type t = Regular of regular | Lockfile of Lockfile.t [@@deriving show]
 (*****************************************************************************)
 
 val mk_regular :
-  ?lockfile:Lockfile.t -> Xlang.t -> Product.t list -> Origin.t -> regular
+  ?lockfile:Lockfile.t -> Analyzer.t -> Product.t list -> Origin.t -> regular
 (** [mk_regular analyzer products origin] is a {!regular} target
       originating from [origin] to be analyzed with [analyzer] for [products].
       If [lockfile] is specified then it shall be used as the associated
@@ -89,7 +89,7 @@ val mk_regular :
  *)
 
 (* useful in tests *)
-val mk_target : Xlang.t -> Fpath.t -> t
+val mk_target : Analyzer.t -> Fpath.t -> t
 
 (*****************************************************************************)
 (* Semgrep_output_v1.target -> Target.t *)
@@ -107,7 +107,7 @@ val internal_path : t -> Fpath.t
 val origin : t -> Origin.t
 (** [origin target] is the user-reportable origin of [target]. *)
 
-val analyzer : t -> Xlang.t option
+val analyzer : t -> Analyzer.t option
 
 (*****************************************************************************)
 (* Dumpers *)

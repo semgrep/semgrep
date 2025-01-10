@@ -42,13 +42,13 @@ let mock_run_results (files : string list) : Core_runner.result =
   let pattern_string = "print(...)" in
   let lang = Lang.Python in
   let fk = Tok.unsafe_fake_tok "" in
-  let xlang = Xlang.L (lang, []) in
+  let analyzer = Analyzer.L (lang, []) in
   let pattern =
     Parse_pattern.parse_pattern lang pattern_string |> Result.get_ok
   in
   let xpat = Xpattern.mk_xpat (Xpattern.Sem (pattern, lang)) in
   let xpat = xpat (pattern_string, fk) in
-  let rule = Rule.rule_of_xpattern xlang xpat in
+  let rule = Rule.rule_of_xpattern analyzer xpat in
   let rule = { rule with id = (Rule_ID.of_string_exn "print", fk) } in
   let hrules = Rule.hrules_of_rules [ rule ] in
   let scanned = List_.map (fun f -> Fpath.v f) files |> Set_.of_list in

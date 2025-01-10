@@ -201,15 +201,15 @@ let run_semgrep_detached ?targets ?rules ?git_ref (session : Session.t) =
 *)
 let run_core_search xconf rule (file : Fpath.t) =
   let hook = Fun.id in
-  let xlang = rule.Rule.target_analyzer in
+  let analyzer = rule.Rule.target_analyzer in
   (* We have to look at all the initial files again when we do this.
      TODO: Maybe could be better to infer languages from each file,
      so we only have to look at each file once.
   *)
-  if Filter_target.filter_target_for_xlang xlang file then
+  if Filter_target.filter_target_for_analyzer analyzer file then
     let xtarget =
       Xtarget.resolve parse_and_resolve_name
-        (Target.mk_regular xlang Product.all (File file))
+        (Target.mk_regular analyzer Product.all (File file))
     in
     try
       let is_relevant_rule =

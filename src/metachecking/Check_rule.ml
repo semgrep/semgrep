@@ -206,7 +206,7 @@ let unknown_metavar_in_comparison r f =
 (* call Check_pattern subchecker *)
 exception CheckPatternFailure of string wrap
 
-let check_pattern (lang : Xlang.t) f =
+let check_pattern (lang : Analyzer.t) f =
   try
     Ok
       ((* TODO: can we ditch the exceptions and just have this be some sort of
@@ -231,7 +231,7 @@ let check_pattern (lang : Xlang.t) f =
 (* Formula *)
 (*****************************************************************************)
 
-let check_formula r (lang : Xlang.t) f =
+let check_formula r (lang : Analyzer.t) f =
   let errors =
     check_pattern lang f
     |> Result.map_error (fun (s, t) -> error r t s)
@@ -267,7 +267,8 @@ let semgrep_check (caps : < Core_scan.caps ; .. >) (metachecks : Fpath.t)
   let lang : Lang.t = Yaml in
   (* the targets are actually the rules! metachecking! *)
   let targets : Target.t list =
-    rules |> List_.map (fun file -> Target.mk_target (Xlang.of_lang lang) file)
+    rules
+    |> List_.map (fun file -> Target.mk_target (Analyzer.of_lang lang) file)
   in
   let (config : Core_scan_config.t) =
     {

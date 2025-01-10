@@ -4,7 +4,7 @@ and invalid_rule_kind =
   | InvalidLanguage of string (* the language string *)
   | InvalidPattern of
       string (* pattern *)
-      * Xlang.t
+      * Analyzer.t
       * string (* exn *)
       * string list (* yaml path *)
   | InvalidRegexp of string (* PCRE error message *)

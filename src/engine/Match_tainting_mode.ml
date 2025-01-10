@@ -265,14 +265,14 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
   in
   let {
     path = { internal_path_to_content = file; _ };
-    xlang;
+    analyzer;
     lazy_ast_and_errors;
     _;
   } : Xtarget.t =
     xtarget
   in
   let lang =
-    match xlang with
+    match analyzer with
     | L (lang, _) -> lang
     | LSpacegrep
     | LAliengrep

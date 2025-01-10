@@ -1044,7 +1044,7 @@ let replace_target_roots_by_regular_files_where_needed (caps : < Cap.tmp >)
 
 let rule_source_conf ~config ~pattern ~lang ~replacement ~allow_empty_config
     ~maturity : Rules_source.t =
-  let explicit_analyzer = Option.map Xlang.of_string lang in
+  let explicit_analyzer = Option.map Analyzer.of_string lang in
   match (config, (pattern, explicit_analyzer, replacement)) with
   (* TOPORT: handle get_project_url() if empty Configs? *)
   | [], (None, _, _) ->

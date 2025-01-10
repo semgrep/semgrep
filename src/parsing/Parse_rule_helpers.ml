@@ -30,7 +30,7 @@ type env = {
   (* id of the current rule (needed by some exns) *)
   id : Rule_ID.t;
   (* analyzer of the current rule (needed by parse_pattern) *)
-  target_analyzer : Xlang.t;
+  target_analyzer : Analyzer.t;
   (* whether we are underneath a `metavariable-pattern` *)
   in_metavariable_pattern : bool;
   (* emma: save the path within the yaml file for each pattern

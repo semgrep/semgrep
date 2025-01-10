@@ -62,7 +62,7 @@ let check_if_missing lang =
   if Hashtbl.mem missing_plugins lang then Error (missing_plugin_msg lang)
   else Ok ()
 
-let check_if_missing_analyzer (analyzer : Xlang.t) =
+let check_if_missing_analyzer (analyzer : Analyzer.t) =
   match analyzer with
   | LRegex
   | LSpacegrep

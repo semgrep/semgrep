@@ -29,7 +29,7 @@ type path = { origin : Origin.t; internal_path_to_content : Fpath.t }
 
 type regular = {
   path : path;
-  analyzer : Xlang.t;
+  analyzer : Analyzer.t;
   products : Product.t list;
   (* TODO: (sca) associate each target with a dependency_source here rather
    * than only a lockfile.
@@ -51,7 +51,7 @@ let pp_debug_lockfile f (t : Lockfile.t) = Format.fprintf f "%s" !!(t.path)
 let pp_debug_regular f (t : regular) =
   Format.fprintf f "%s (%s)"
     (t.path.internal_path_to_content |> Fpath.to_string)
-    (t.analyzer |> Xlang.to_string)
+    (t.analyzer |> Analyzer.to_string)
 
 let pp_debug f = function
   | Regular t -> Format.fprintf f "target file: %a" pp_debug_regular t
@@ -98,11 +98,11 @@ let path_of_origin (origin : Origin.t) : path =
 let mk_regular ?lockfile analyzer products (origin : Origin.t) : regular =
   { path = path_of_origin origin; analyzer; products; lockfile }
 
-let mk_target (xlang : Xlang.t) (file : Fpath.t) : t =
+let mk_target (analyzer : Analyzer.t) (file : Fpath.t) : t =
   let all = Product.all in
   (* TODO: should do the check in the other mk_xxx ? *)
   assert (UFile.is_reg ~follow_symlinks:true file);
-  Regular (mk_regular xlang all (Origin.File file))
+  Regular (mk_regular analyzer all (Origin.File file))
 
 (*****************************************************************************)
 (* Semgrep_output_v1.target -> Target.t *)
@@ -134,7 +134,7 @@ let origin (target : t) : Origin.t =
   | Regular { path = { origin; _ }; _ } -> origin
   | Lockfile { path; _ } -> Origin.File path
 
-let analyzer (target : t) : Xlang.t option =
+let analyzer (target : t) : Analyzer.t option =
   match target with
   | Regular r -> Some r.analyzer
   | Lockfile _ -> None
