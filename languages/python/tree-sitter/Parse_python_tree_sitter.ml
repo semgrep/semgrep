@@ -1161,26 +1161,49 @@ let map_anon_choice_dotted_name_c5c573a (env : env)
 
 let map_with_clause (env : env) (x : CST.with_clause) (twith : tok)
     (body : stmt list) =
+  let combine_mapped_with_items items =
+    List_.fold_right
+      (fun wclause acc ->
+        match acc with
+        | None -> Some (With (twith, wclause, body))
+        | Some acc -> Some (With (twith, wclause, [ acc ])))
+      items None
+  in
   match x with
+  (* this implies something like
+      ```
+      with ():
+        ...
+      ```
+  *)
+  | `With_item_rep_COMMA_with_item (`Prim_exp (`Tuple (_, None, _)), []) -> None
+  (* in Python 3.10 you can have multiple with items in a tuple, like this:
+     with (
+       f() as a,
+       g() as b,
+     ):
+       ...
+     which will reach this case instead of the LPAR_with_item case below
+     we have preconditions against mapping `As_pat`s directly, so we need to
+     destructure a bit here first
+  *)
+  | `With_item_rep_COMMA_with_item
+      (`Prim_exp (`Tuple (_, Some (x, xs, _), _)), []) ->
+      let items =
+        List_.map
+          (fun x ->
+            match x with
+            | `Exp x -> map_with_item env x
+            | _ -> (map_anon_choice_type_03d361f env x, None))
+          (x :: List_.map snd xs)
+      in
+      combine_mapped_with_items items
   | `With_item_rep_COMMA_with_item (w, ws)
   | `LPAR_with_item_rep_COMMA_with_item_RPAR (_, w, ws, _) ->
-      let w = map_with_item env w in
-      let ws =
-        List_.map
-          (fun (v1, v2) ->
-            let _v1 = (* "," *) token env v1 in
-            let v2 = map_with_item env v2 in
-            v2)
-          ws
+      let items =
+        List_.map (fun x -> map_with_item env x) (w :: List_.map snd ws)
       in
-      List_.fold_right
-        (fun wclause acc ->
-          match acc with
-          | None -> Some (With (twith, wclause, body))
-          | Some acc -> Some (With (twith, wclause, [ acc ])))
-        (w :: ws) None
-      (* This is safe because v1::v2 will never be empty. *)
-      |> Option.get
+      combine_mapped_with_items items
 
 let map_expression_statement (env : env) (x : CST.expression_statement) : stmt =
   match x with
@@ -1514,12 +1537,17 @@ and map_compound_statement (env : env) (x : CST.compound_statement) : stmt =
             TryExcept (ttry, body, [], None, finally_opt)
       in
       res
-  | `With_stmt (v1, v2, v3, v4, v5) ->
+  | `With_stmt (v1, v2, v3, v4, v5) -> (
       let _asyncTODO = map_async_opt env v1 in
       let twith = (* "with" *) token env v2 in
       let _tcolon = (* ":" *) token env v4 in
       let body = map_suite env v5 in
-      map_with_clause env v3 twith body
+      match map_with_clause env v3 twith body with
+      (* This shouldn't be produced outside of degenerate cases like `with ():`
+         Unrealistic, but let's handle gracefully just in case.
+      *)
+      | None -> With (twith, (Tuple (CompList (fb []), no_ctx), None), body)
+      | Some s -> s)
   | `Func_defi x ->
       let def = map_function_definition env x in
       FunctionDef def

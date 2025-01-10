@@ -1,0 +1,8 @@
+Python: Now correctly parsing files with parenthesized `with`s, like this:
+```
+with (
+  f() as a,
+  g() as b,
+):
+  pass
+```
