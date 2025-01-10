@@ -294,6 +294,10 @@ LABEL maintainer="support@semgrep.com"
 #coupling: the 'semgrep-cli' name is used in release.jsonnet
 FROM semgrep-oss AS semgrep-cli
 
+# Expects to find a secret named SEMGREP_APP_TOKEN in Github Actions. To run
+# locally, set the SEMGREP_APP_TOKEN environment variable and then run:
+#
+# $ docker build --secret id=SEMGREP_APP_TOKEN ...
 RUN --mount=type=secret,id=SEMGREP_APP_TOKEN SEMGREP_APP_TOKEN=$(cat /run/secrets/SEMGREP_APP_TOKEN) semgrep install-semgrep-pro --debug
 
 # Clear out any detritus from the pro install (especially credentials)
