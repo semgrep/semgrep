@@ -1,6 +1,6 @@
 (* Yoann Padioleau, Robur
  *
- * Copyright (C) 2023-2024 Semgrep Inc.
+ * Copyright (C) 2023-2025 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -14,11 +14,6 @@
  *)
 open Common
 module Out = Semgrep_output_v1_j
-
-(*****************************************************************************)
-(* TODO: migrate this to the new scan endpoint to match the pysemgrep        *)
-(*       changes in https://github.com/semgrep/semgrep/pull/9129             *)
-(*****************************************************************************)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -50,7 +45,6 @@ module Out = Semgrep_output_v1_j
    Then in Sentry you can paste this 'url: <URL>' in the query and search
    for errors related to this endpoint (you may need to replace the 'https'
    by 'http' sometimes to find something).
-
 
    Debugging trick #2:
    --------------------
@@ -97,11 +91,10 @@ module Out = Semgrep_output_v1_j
 
 (* This is mostly a superset of Scan_subcommand.caps so see the comment
  * in Scan_subcommand.ml for some explanations of why we need those
- * capabilities. Otherwise, here are CI-specific explanations:
+ * capabilities. Otherwise, here are the CI-specific explanations:
  * - Cap.exec for git
  * - Cap.tmp for decode_json_rules
- *
- * TODO: probably far more needed at some point
+ * TODO: remain fs related capabilities (mostly Cap.FS.files_argv_r)
  *)
 type caps =
   < Cap.stdout
@@ -275,20 +268,16 @@ let deployment_config (caps : < Cap.network ; Auth.cap_token ; .. >) :
             (Out.show_deployment_config deployment_config));
       deployment_config
 
-(* eventually output the origin (if the semgrep_url is not semgrep.dev) *)
-let at_url_maybe () : string =
-  if
-    Uri.equal !Semgrep_envvars.v.semgrep_url
-      (Uri.of_string "https://semgrep.dev")
-  then ""
-  else
-    spf " at %s" (Console.bold (Uri.to_string !Semgrep_envvars.v.semgrep_url))
-
-(* [data] contains the rules in JSON format. That's how the registry send
+(* [rules] contains the rules in JSON format. That's how the registry send
  * them because it's faster than using YAML.
  * TODO: factorize with Session.decode_rules()
  *)
-let decode_json_rules caps (data : string) : Rule_fetching.rules_and_origin =
+let decode_json_rules caps (rules : Yojson.Basic.t) :
+    Rule_fetching.rules_and_origin =
+  (* TODO: ugly to have to convert back to string and use intermediate tmp
+   * file. We should optimize and parse directly from the JSON data structure
+   *)
+  let data = Yojson.Basic.to_string rules in
   CapTmp.with_temp_file caps#tmp ~contents:data ~suffix:".json" (fun file ->
       match
         Rule_fetching.load_rules_from_file ~rewrite_rule_ids:false ~origin:App
@@ -301,15 +290,17 @@ let decode_json_rules caps (data : string) : Rule_fetching.rules_and_origin =
           *)
           failwith "impossible: received an invalid rule from CI")
 
-let scan_config_and_rules_from_deployment ~dry_run
-    (prj_meta : Out.project_metadata)
+let scan_config_and_rules_from_deployment
     (caps : < Cap.network ; Auth.cap_token ; .. >)
+    (prj_meta : Out.project_metadata)
     (deployment_config : Out.deployment_config) :
-    Semgrep_App.scan_id * Out.scan_config * Rule_fetching.rules_and_origin list
-    =
+    Semgrep_App.scan_id
+    * Out.scan_response
+    * Rule_fetching.rules_and_origin list =
   Logs.app (fun m -> m "  %s" (Console.underline "CONNECTION"));
+  (* TODO: pysemgrep: console spinner with Initializing scan ... instead *)
   Logs.app (fun m ->
-      m "  Reporting start of scan for %s" (Console.bold deployment_config.name));
+      m "  Requesting scan (deployment = %s)" deployment_config.name);
   let scan_metadata : Out.scan_metadata = scan_metadata () in
   let project_config : Out.ci_config_from_repo option = project_config () in
 
@@ -322,42 +313,30 @@ let scan_config_and_rules_from_deployment ~dry_run
       meta = None;
     }
   in
-
   (* TODO:
       metadata_dict["is_sca_scan"] = supply_chain
       proj_config = ProjectConfig.load_all()
-      metadata_dict = {**metadata_dict, **proj_config.to_dict()}
   *)
-  match Semgrep_App.start_scan ~dry_run caps request with
+  match Semgrep_App.start_scan caps request with
   | Error msg ->
       Logs.err (fun m -> m "Could not start scan %s" msg);
       Error.exit_code_exn (Exit_code.fatal ~__LOC__)
-  | Ok scan_id ->
-      (* TODO: should be concatenated with the "Reporting start ..." *)
-      Logs.app (fun m -> m " (scan_id=%s)" scan_id);
-      (* TODO: set sca to metadata.is_sca_scan / supply_chain *)
-      let scan_config : Out.scan_config =
-        Logs.app (fun m ->
-            m "  Fetching configuration from Semgrep Cloud Platform%s"
-              (at_url_maybe ()));
-        match
-          (* TODO: should pass and use scan_id *)
-          Semgrep_App.fetch_scan_config caps ~sca:false ~dry_run
-            ~full_scan:prj_meta.is_full_scan ~repository:prj_meta.repository
-        with
-        | Error msg ->
-            Logs.err (fun m -> m "Failed to download configuration: %s" msg);
-            let r = Exit_code.fatal ~__LOC__ in
-            Semgrep_App.report_failure ~dry_run caps ~scan_id r;
-            Error.exit_code_exn r
-        | Ok config -> config
+  | Ok scan_response ->
+      let scan_id =
+        match scan_response.info.id with
+        | Some id -> id
+        | None -> failwith "TODO: handle dry-run"
       in
+      (* TODO: pysemgrep: should replace the Requesting scan of before *)
+      Logs.app (fun m ->
+          m "  Initializing scan (deployment=%s, scan_id=%d)"
+            deployment_config.name scan_id);
 
       let rules_and_origins =
         try
           decode_json_rules
             (caps :> < Cap.network ; Cap.tmp >)
-            scan_config.rule_config
+            scan_response.config.rules
         with
         | Error.Semgrep_error (_, opt_ex) as e ->
             let ex =
@@ -365,11 +344,11 @@ let scan_config_and_rules_from_deployment ~dry_run
               | None -> Exit_code.fatal ~__LOC__
               | Some exit_code -> exit_code
             in
-            Semgrep_App.report_failure ~dry_run caps ~scan_id ex;
+            Semgrep_App.report_failure caps ~scan_id ex;
             let e = Exception.catch e in
             Exception.reraise e
       in
-      (scan_id, scan_config, [ rules_and_origins ])
+      (scan_id, scan_response, [ rules_and_origins ])
 
 (*****************************************************************************)
 (* Partition rules *)
@@ -702,8 +681,7 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
   in
   (results, complete)
 
-let upload_findings ~dry_run
-    (caps : < Cap.network ; Auth.cap_token ; Cap.exec ; .. >)
+let upload_findings (caps : < Cap.network ; Auth.cap_token ; Cap.exec ; .. >)
     (deployment_config : Out.deployment_config) (scan_id : Semgrep_App.scan_id)
     (prj_meta : Out.project_metadata) blocking_findings filtered_rules
     (cli_output : Out.cli_output) : Semgrep_App.app_block_override =
@@ -715,9 +693,7 @@ let upload_findings ~dry_run
       ~commit_date:"" ~engine_requested:`OSS cli_output filtered_rules
   in
   let override =
-    match
-      Semgrep_App.upload_findings caps ~scan_id ~dry_run ~results ~complete
-    with
+    match Semgrep_App.upload_findings caps ~scan_id ~results ~complete with
     | Ok a -> a
     | Error msg ->
         Logs.err (fun m -> m "Failed to report findings: %s" msg);
@@ -775,7 +751,7 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   (* TODO? we probably want to set the metrics to On by default in CI ctx? *)
   Metrics_.configure conf.metrics;
   let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
-  let dry_run = conf.output_conf.fixed_lines in
+  let _dry_runTODO = conf.output_conf.fixed_lines in
 
   (* step2: sanity checking *)
   (match conf.rules_source with
@@ -812,51 +788,56 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   (* ===== End of steps related to distributed scans ===== *)
 
   (* TODO: fix_head_if_github_action(metadata) *)
-  let scan_id, scan_config, rules_and_origin =
-    scan_config_and_rules_from_deployment ~dry_run prj_meta caps' depl
+  let scan_id, scan_response, rules_and_origin =
+    scan_config_and_rules_from_deployment caps' prj_meta depl
   in
-  (* TODO: we should use those fields! *)
+
+  (* TODO: we should use those fields!
+   * TODO: add 'actions' to scan_response and 'ci_config_from_cloud'
+   *)
   let {
-    (* this is used in scan_config_and_rules_from_deployment *)
-    Out.rule_config = _;
-    (* those two fields do not matter; they should be in a separate
-     * scan_response actually in the futur.
-     *)
-    deployment_id = _;
-    deployment_name = _;
-    (* since 1.64.0 *)
-    actions;
-    (* TODO: seems unused *)
-    policy_names = _;
-    (* TODO: lots of info in there to customize, should
-     * adjust the environment and maybe recall
-     * generate_meta_from_environment
-     *)
-    ci_config_from_cloud = _;
-    (* TODO *)
-    autofix = _;
-    deepsemgrep = _;
-    dependency_query = _;
-    ignored_files = _;
-    enabled_products = _;
-    triage_ignored_match_based_ids = _;
-    triage_ignored_syntactic_ids = _;
-    path_to_transitivity = _;
-  } =
-    scan_config
+    info =
+      {
+        (* used in scan_config_and_rules_from_deployment *)
+        id = _;
+        (* TODO: use! *)
+        enabled_products = _;
+        (* TODO? redundant with info from deployment ? *)
+        deployment_id = _;
+        deployment_name = _;
+      };
+    config =
+      {
+        (* used in scan_config_and_rules_from_deployment *)
+        rules = _;
+        (* TODO: use ? *)
+        triage_ignored_syntactic_ids = _;
+        triage_ignored_match_based_ids = _;
+      };
+    (* TODO: lots of things to use there *)
+    engine_params =
+      {
+        autofix = _;
+        deepsemgrep = _;
+        dependency_query = _;
+        path_to_transitivity = _;
+        ignored_files = _;
+        product_ignored_files = _;
+        generic_slow_rollout = _;
+        historical_config = _;
+        always_suppress_errors = _;
+      };
+  } : Out.scan_response =
+    scan_response
   in
-  actions |> List.iter Eval_ci_action.eval;
 
   (* TODO:
      if dataflow_traces is None:
        dataflow_traces = engine_type.has_dataflow_traces
-
      if max_memory is None:
        max_memory = engine_type.default_max_memory
-
      if interfile_timeout is None:
        interfile_timeout = engine_type.default_interfile_timeout
-
      if engine_type.is_pro:
        console.print(Padding(Title("Engine", order=2), (1, 0, 0, 0)))
        if engine_type.check_if_installed():
@@ -907,7 +888,7 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
     in
     match res with
     | Error e ->
-        Semgrep_App.report_failure ~dry_run caps' ~scan_id e;
+        Semgrep_App.report_failure caps' ~scan_id e;
         Logs.err (fun m -> m "Encountered error when running rules");
         e
     | Ok (filtered_rules, _res, cli_output) ->
@@ -952,7 +933,7 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
         report_scan_completed ~blocking_findings ~blocking_rules
           ~non_blocking_findings ~non_blocking_rules;
         let app_block_override =
-          upload_findings ~dry_run caps' depl scan_id prj_meta blocking_findings
+          upload_findings caps' depl scan_id prj_meta blocking_findings
             filtered_rules cli_output
         in
         let audit_mode = false in
@@ -962,7 +943,7 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   with
   | Error.Semgrep_error (_, ex) as e ->
       let r = ex ||| Exit_code.fatal ~__LOC__ in
-      Semgrep_App.report_failure ~dry_run caps' ~scan_id r;
+      Semgrep_App.report_failure caps' ~scan_id r;
       Logs.err (fun m ->
           m "Encountered error when running rules: %s" (Printexc.to_string e));
       let e = Exception.catch e in

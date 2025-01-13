@@ -63,7 +63,7 @@ let test_sms_scan_id (caps : Ci_subcommand.caps) =
             let response_body = fake_deployment |> Cohttp_lwt.Body.of_string in
             Lwt.return (Http_mock_client.basic_response response_body)
         (* step2: initiate scan (Semgrep_App.start_scan_route) *)
-        | "/api/agent/deployments/scans" ->
+        | "/api/cli/scans" ->
             Http_mock_client.check_method `POST req.meth;
             Logs.debug (fun m -> m "request = %s" (Dumper.dump req));
             let%lwt body = Cohttp_lwt.Body.to_string body in

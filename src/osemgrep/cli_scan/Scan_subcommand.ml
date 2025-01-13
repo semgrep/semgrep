@@ -30,7 +30,7 @@ module Out = Semgrep_output_v1_t
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-(* TODO: probably far more needed at some point *)
+(* TODO: remain mostly Cap.FS.files_argv_r and Cap.FS.files_argv_w if autofix *)
 type caps =
   < Cap.stdout
   ; (* mainly to access the registry *)

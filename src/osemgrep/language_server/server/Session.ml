@@ -205,13 +205,15 @@ let scan_config_of_token caps = function
   | Some token -> (
       let caps = Auth.cap_token_and_network token caps in
       let%lwt config_string =
-        Semgrep_App.fetch_scan_config_string caps ~sca:false ~dry_run:true
+        Semgrep_App.fetch_scan_config_string_async caps ~sca:false ~dry_run:true
           ~full_scan:true ~repository:""
       in
       match config_string with
       | Ok config_string ->
-          (* TODO: Check config string hash, and update rules iff its different, and cache rules in file *)
-          (* See [scan_config_parser_ref] declaration for why we do this *)
+          (* TODO: Check config string hash, and update rules iff its different,
+           * and cache rules in file. See [scan_config_parser_ref] declaration
+           * for why we do this
+           *)
           let scan_config = !scan_config_parser_ref config_string in
           Lwt.return_some scan_config
       | Error e ->
