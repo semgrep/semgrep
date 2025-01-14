@@ -316,24 +316,38 @@ local osemgrep_test_steps_after_checkout = [
   },
 ];
 
-local setup_nix_step =
-    {
-        name: "Set up Nix",
-        uses: "DeterminateSystems/nix-installer-action@main",
-        with: {
-            // pysemgrep and osemgrep have networking tests that rely on the
-            // actual internet (i.e. semgrep.dev). When sandbox=false nix builds
-            // everything fine, but all networking tests fail. So we set sandbox
-            // to false here so networking tests succeed
-            //
-            // TODO: disable networking tests for nix? that would be the nix way
-            // of doing things
+local setup_nix_step = [
+  {
+    name: "Set up Nix",
+    uses: "DeterminateSystems/nix-installer-action@main",
+    with: {
+      // need to pin until
+      // https://github.com/DeterminateSystems/nix-installer-action/issues/133
+      // is fixed
+      "source-tag": "v0.32.3",
+        // pysemgrep and osemgrep have networking tests that rely on the
+        // actual internet (i.e. semgrep.dev). When sandbox=false nix builds
+        // everything fine, but all networking tests fail. So we set sandbox
+        // to false here so networking tests succeed
+        //
+        // TODO: disable networking tests for nix? that would be the nix way
+        // of doing things
 
-            // extra substituters and public keys use https://app.cachix.org/cache/semgrep
-            // to cache the build dependencies!
-            "extra-conf": "sandbox = false",
-        }
-    };
+        // extra substituters and public keys use https://app.cachix.org/cache/semgrep
+        // to cache the build dependencies!
+        "extra-conf": "sandbox = false",
+    },
+  },
+  // This will automatically install cachix and upload to cachix
+  {
+      name: "Install Cachix",
+      uses: "cachix/cachix-action@v14",
+      with: {
+          name: "semgrep",
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}",
+      },
+  }
+];
 
 // ----------------------------------------------------------------------------
 // Entry point
