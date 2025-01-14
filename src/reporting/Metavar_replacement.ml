@@ -77,7 +77,7 @@ let of_out (metavars : OutJ.metavars) =
          in
          (mvar, { mval_content; propagated_content }))
 
-let interpolate_metavars (text : string) (ctx : replacement_ctx) : string =
+let interpolate_metavars ?fmt (text : string) (ctx : replacement_ctx) : string =
   (* sort by metavariable length to avoid name collisions
    * (eg. $X2 must be handled before $X)
    *)
@@ -102,5 +102,8 @@ let interpolate_metavars (text : string) (ctx : replacement_ctx) : string =
                 | Some s -> s (* default to the matched value *)
                 | None -> Lazy.force mval_content)
          |> Str.global_substitute (Str.regexp_string mvar) (fun _whole_str ->
-                Lazy.force mval_content))
+                let mval_content = Lazy.force mval_content in
+                Option.fold ~none:mval_content
+                  ~some:(fun fmt -> fmt mval_content)
+                  fmt))
        text

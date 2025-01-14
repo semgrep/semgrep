@@ -1,0 +1,7 @@
+rules:
+  - id: eqeq-bad
+    patterns:
+      - pattern: $X = $X
+    message: "useless comparison"
+    languages: [c, cpp]
+    severity: ERROR

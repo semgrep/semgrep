@@ -544,3 +544,16 @@ def test_file_count_multifile(run_semgrep_in_tmp: RunSemgrep, snapshot, target_d
         options=[],
     )
     snapshot.assert_match(stderr, "result.out")
+
+
+@pytest.mark.slow
+@pytest.mark.osemfail
+def test_output_truncated_messages(run_semgrep_in_tmp: RunSemgrep, snapshot):
+    stdout, _ = run_semgrep_in_tmp(
+        "rules/eqeq-basic-c.yaml",
+        target_name="bad/invalid_c_long.c",
+        output_format=OutputFormat.JSON,
+        assert_exit_code=3,
+    )
+    snapshot.assert_match(stdout, "report.json")
+    # NOTE if we display these in text mode then we should also test that

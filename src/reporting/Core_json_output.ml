@@ -37,6 +37,12 @@ module Log = Log_reporting.Log
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+let max_truncated_length = 2048
+
+let truncate_for_output =
+  String_.truncate_with_message max_truncated_length
+    (* nosemgrep *)
+    (spf "%s... (truncated %d more characters)")
 
 let range_of_any_opt startp_of_match_range any =
   let empty_range = (startp_of_match_range, startp_of_match_range) in
@@ -442,7 +448,8 @@ let unsafe_match_to_match
   (* message where the metavars have been interpolated *)
   (* TODO(secrets): apply masking logic here *)
   let message =
-    Metavar_replacement.interpolate_metavars pm.rule_id.message
+    Metavar_replacement.interpolate_metavars ~fmt:truncate_for_output
+      pm.rule_id.message
       (Metavar_replacement.of_bindings pm.env)
   in
   let path, historical_info = path_and_historical pm.path ~min_loc ~max_loc in
@@ -510,7 +517,13 @@ let error_to_error (err : Core_error.t) : Out.core_error =
   let rule_id = err.rule_id in
   let error_type = err.typ in
   let severity = E.severity_of_error err.typ in
-  let message = err.msg in
+  (* A lot of times if a file is minified/1 or 2 lines, we'll not be able to
+     parse it, and raise a syntax error, and that error message contains the
+     content of the line it can't parse. this results in essentially including
+     the whole file in the json blob which is not good for security or perf
+     reasons. We've seen upwards of 4mb of text in these messages. So let's
+     truncate it *)
+  let message = truncate_for_output err.msg in
   let details = err.details in
   { error_type; rule_id; severity; location; message; details }
 

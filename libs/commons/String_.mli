@@ -5,9 +5,9 @@
 val unit_str : ?pad:bool -> int -> string -> string
 
 val search : term:string -> string -> int option
-(** [contains_opt term str] is a {b naive} implementation which tries to
-    find [term] into the given [str]. It returns the position where it find
-    the {b first} occurrence of [term]. Otherwise, it returns [None]. *)
+(** [contains_opt term str] is a {b naive} implementation which tries to find
+    [term] into the given [str]. It returns the position where it find the
+    {b first} occurrence of [term]. Otherwise, it returns [None]. *)
 
 (* [contains term str] returns true if [term] is inside [str] *)
 val contains : term:string -> string -> bool
@@ -45,3 +45,8 @@ val trim_cr : string -> string
  * line. See unit tests for examples. *)
 val lines_of_range : int * int -> string -> string list
 val is_capitalized : string -> bool
+
+val truncate_with_message : int -> (string -> int -> string) -> string -> string
+(** [truncate max_len fmt str] truncates the string [str] to at most [max_len]
+    bytes. If the string is truncated, [fmt] is called with the original string
+    and the number of characters that were removed. *)

@@ -90,3 +90,10 @@ let is_capitalized s =
   (* https://ocaml.org/manual/5.2/patterns.html#sss:pat-range *)
   | 'A' .. 'Z' -> true
   | _ -> false
+
+let truncate_with_message max_len fmt s =
+  if String.length s > max_len then
+    let truncated_length = String.length s - max_len in
+    let trunc_s = Str.first_chars s max_len in
+    fmt trunc_s truncated_length
+  else s
