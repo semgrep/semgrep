@@ -18,23 +18,14 @@ let handle_call (caps : < Cap.exec ; Cap.tmp >) :
   | `CallApplyFixes { dryrun; edits } ->
       let modified_file_count, fixed_lines = RPC_return.autofix dryrun edits in
       Ok (`RetApplyFixes { modified_file_count; fixed_lines })
-  | `CallSarifFormat
-      ( ctx,
-        {
-          hide_nudge;
-          engine_label;
-          rules;
-          cli_matches;
-          cli_errors;
-          show_dataflow_traces;
-        } ) ->
-      let output, format_time_seconds =
+  | `CallSarifFormat ({ rules; is_pro; show_dataflow_traces }, ctx, cli_output)
+    ->
+      let output =
         RPC_return.sarif_format
           (caps :> < Cap.tmp >)
-          rules ctx hide_nudge engine_label show_dataflow_traces cli_matches
-          cli_errors
+          rules ctx ~is_pro ~show_dataflow_traces cli_output
       in
-      Ok (`RetSarifFormat { output; format_time_seconds })
+      Ok (`RetSarifFormat output)
   | `CallContributions ->
       let contribs = RPC_return.contributions (caps :> < Cap.exec >) in
       Ok (`RetContributions contribs)

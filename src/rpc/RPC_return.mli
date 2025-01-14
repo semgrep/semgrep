@@ -7,12 +7,10 @@ val sarif_format :
   < tmp : Cap.FS.tmp > ->
   Out.fpath (* path to a temporary files containing the rules *) ->
   Out.format_context ->
-  bool ->
-  string ->
-  bool ->
-  Out.cli_match list ->
-  Out.cli_error list ->
-  string * float
+  is_pro:bool ->
+  show_dataflow_traces:bool ->
+  Out.cli_output ->
+  string
 
 val contributions : < Cap.exec > -> Out.contributions
 val validate : Out.fpath -> bool

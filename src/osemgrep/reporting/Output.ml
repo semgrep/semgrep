@@ -77,8 +77,6 @@ let string_of_severity (severity : Out.match_severity) : string =
 (* called also from RPC_return.ml *)
 let format (kind : Output_format.t) (ctx : Out.format_context)
     (cli_output : Out.cli_output) : string list =
-  (* TODO: use is_logged_in for the logged_in gated export fields *)
-  ignore ctx;
   match kind with
   | Text
   | Sarif
@@ -179,19 +177,16 @@ let dispatch_output_format (caps : < Cap.stdout >) (conf : conf)
         (Text_output.text_output ~max_chars_per_line:conf.max_chars_per_line
            ~max_lines_per_finding:conf.max_lines_per_finding cli_output)
   | Sarif ->
-      let engine_label, is_pro =
+      let is_pro =
         match cli_output.engine_requested with
         | Some `OSS
         | None ->
-            ("OSS", false)
-        | Some `PRO -> ("PRO", true)
-      in
-      let hide_nudge =
-        ctx.is_logged_in || is_pro || not ctx.is_using_registry
+            false
+        | Some `PRO -> true
       in
       let sarif_json =
-        Sarif_output.sarif_output hrules ctx cli_output hide_nudge engine_label
-          conf.show_dataflow_traces
+        Sarif_output.sarif_output hrules ctx cli_output ~is_pro
+          ~show_dataflow_traces:conf.show_dataflow_traces
       in
       print (Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema sarif_json)
   | Files_with_matches ->

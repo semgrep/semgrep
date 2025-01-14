@@ -44,9 +44,8 @@ let format (kind : Out.output_format) (ctx : Out.format_context)
   let xs = Output.format kind ctx cli_output in
   String.concat "\n" xs
 
-let sarif_format _caps (rules : Out.fpath) (ctx : Out.format_context) hide_nudge
-    engine_label show_dataflow_traces (cli_matches : Out.cli_match list)
-    (cli_errors : Out.cli_error list) =
+let sarif_format _caps (rules : Out.fpath) (ctx : Out.format_context) ~is_pro
+    ~show_dataflow_traces (cli_output : Out.cli_output) : string =
   let fake_config =
     {
       Core_scan_config.default with
@@ -65,34 +64,11 @@ let sarif_format _caps (rules : Out.fpath) (ctx : Out.format_context) hide_nudge
     Logs.warn (fun m ->
         m "skipping %d invalid rules in SARIF RPC" (List.length invalid_rules));
   let hrules = Rule.hrules_of_rules rules in
-  (* TODO: reuse the one now passed as a parameter *)
-  let cli_output : Out.cli_output =
-    {
-      results = cli_matches;
-      errors = cli_errors;
-      (* The only fields that matter for sarif are cli_output.results and
-       * cli_output.errors, so the rest of the fields are just populated with
-       * the minimal amount of info
-       *)
-      version = None;
-      paths = { scanned = []; skipped = None };
-      time = None;
-      explanations = None;
-      rules_by_engine = None;
-      engine_requested = None;
-      interfile_languages_used = None;
-      skipped_rules = [];
-    }
+  let sarif_json =
+    Sarif_output.sarif_output hrules ctx cli_output ~is_pro
+      ~show_dataflow_traces
   in
-  let output, format_time_seconds =
-    Common.with_time (fun () ->
-        let sarif_json =
-          Sarif_output.sarif_output hrules ctx cli_output hide_nudge
-            engine_label show_dataflow_traces
-        in
-        Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema sarif_json)
-  in
-  (output, format_time_seconds)
+  Sarif.Sarif_v_2_1_0_j.string_of_sarif_json_schema sarif_json
 
 let contributions (caps : < Cap.exec >) : Out.contributions =
   Parse_contribution.get_contributions caps

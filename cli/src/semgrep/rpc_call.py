@@ -34,9 +34,9 @@ def apply_fixes(args: out.ApplyFixesParams) -> Optional[out.ApplyFixesReturn]:
 
 
 def sarif_format(
-    ctx: out.FormatContext, other: out.SarifFormatParams
+    sarif_format: out.SarifFormat, ctx: out.FormatContext, cli_out: out.CliOutput
 ) -> Optional[out.RetSarifFormat]:
-    call = out.FunctionCall(out.CallSarifFormat((ctx, other)))
+    call = out.FunctionCall(out.CallSarifFormat((sarif_format, ctx, cli_out)))
     ret: Optional[out.RetSarifFormat] = rpc_call(call, out.RetSarifFormat)
     if ret is None:
         # No real point in logging here. We log for each of the conditions that

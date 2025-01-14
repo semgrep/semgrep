@@ -403,8 +403,10 @@ let error_to_sarif_notification (e : Out.cli_error) =
 (*****************************************************************************)
 
 let sarif_output (hrules : Rule.hrules) (ctx : Out.format_context)
-    (cli_output : Out.cli_output) ~hide_nudge ~engine_label
-    ~show_dataflow_traces : Sarif.sarif_json_schema =
+    (cli_output : Out.cli_output) ~is_pro ~show_dataflow_traces :
+    Sarif.sarif_json_schema =
+  let hide_nudge = ctx.is_logged_in || is_pro || not ctx.is_using_registry in
+  let engine_label = if is_pro then "PRO" else "OSS" in
   let sarif_schema =
     "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json"
   in
