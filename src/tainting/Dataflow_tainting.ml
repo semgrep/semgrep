@@ -504,8 +504,7 @@ let effects_of_tainted_sink env taints_with_traces (sink : Effect.sink) :
                  | Control ->
                      []
                in
-               let new_taint = { taint with tokens = List.rev taint.tokens } in
-               ({ item with taint = new_taint }, bindings))
+               (item, bindings))
       in
       (* If `unify_mvars` is set, then we will just do the previous behavior,
          and emit a finding for every single source coming into the sink.
@@ -591,12 +590,9 @@ let effects_of_tainted_return env taints shape return_tok : Effect.t list =
     Shape.taints_and_shape_are_relevant taints shape
     || not (Taints.is_empty control_taints)
   then
-    let data_taints =
-      taints |> Taints.map (fun t -> { t with T.tokens = List.rev t.T.tokens })
-    in
     [
       Effect.ToReturn
-        { data_taints; data_shape = shape; control_taints; return_tok };
+        { data_taints = taints; data_shape = shape; control_taints; return_tok };
     ]
   else []
 

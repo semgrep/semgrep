@@ -293,7 +293,9 @@ and gather_all_taints_in_shape_acc acc = function
   | Bot -> acc
   | Obj obj -> gather_all_taints_in_obj_acc acc obj
   | Arg arg ->
-      let taint = { T.orig = T.Shape_var (T.lval_of_arg arg); tokens = [] } in
+      let taint =
+        { T.orig = T.Shape_var (T.lval_of_arg arg); rev_tokens = [] }
+      in
       Taints.add taint acc
   | Fun _ ->
       (* Consider a third-party/opaque function to which we pass a record that

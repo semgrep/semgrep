@@ -66,11 +66,12 @@ type inst_var = {
  * general. *)
 type inst_trace = {
   add_call_to_trace_for_src :
-    Tok.t list ->
+    tainted_tokens:T.tainted_tokens ->
     Rule.taint_source T.call_trace ->
     Rule.taint_source T.call_trace option;
       (** For sources we extend the call trace. *)
-  fix_token_trace_for_var : var_tokens:Tok.t list -> Tok.t list -> Tok.t list;
+  fix_token_trace_for_var :
+    var_rev_tokens:T.rev_tainted_tokens -> T.rev_tainted_tokens -> Tok.t list;
       (** For variables we should too, but due to limitations in our call-trace
    * representation, we just record the path as tainted tokens. *)
 }
@@ -102,7 +103,7 @@ let get_ident_of_callee callee =
       | __else__ -> None)
   | __else__ -> None
 
-let add_call_to_trace_if_callee_has_eorig ~callee tainted_tokens call_trace =
+let add_call_to_trace_if_callee_has_eorig ~callee ~tainted_tokens call_trace =
   (* E.g. (ToReturn) the call to 'bar' in:
    *
    *     1 def bar():
@@ -142,7 +143,7 @@ let add_call_to_trace_if_callee_has_eorig ~callee tainted_tokens call_trace =
        * maybe for that we need to change `Taint.Call` to accept a token. *)
       None
 
-let add_call_to_token_trace ~callee ~var_tokens caller_tokens =
+let add_call_to_token_trace ~callee ~var_rev_tokens caller_rev_tokens =
   (* E.g. (ToReturn) the call to 'bar' in:
    *
    *     1 def bar(x):
@@ -164,12 +165,12 @@ let add_call_to_token_trace ~callee ~var_tokens caller_tokens =
     (match get_ident_of_callee callee with
     | None -> []
     | Some ident -> [ snd ident ])
-    @ List.rev var_tokens
+    @ List.rev var_rev_tokens
   in
-  List.rev_append call_tokens caller_tokens
+  List.rev_append call_tokens caller_rev_tokens
 
-let add_lval_update_to_token_trace ~callee:_TODO lval_tok ~var_tokens
-    caller_tokens =
+let add_lval_update_to_token_trace ~callee:_TODO lval_tok ~var_rev_tokens
+    caller_rev_tokens =
   (* E.g. (ToLval) the call to 'bar' in:
    *
    *     1 s = set([])
@@ -193,9 +194,9 @@ let add_lval_update_to_token_trace ~callee:_TODO lval_tok ~var_tokens
    *)
   let call_tokens =
     (* TODO: Use `get_ident_of_callee callee` to add the callee to the trace. *)
-    lval_tok :: List.rev var_tokens
+    lval_tok :: List.rev var_rev_tokens
   in
-  List.rev_append call_tokens caller_tokens
+  List.rev_append call_tokens caller_rev_tokens
 
 (*****************************************************************************)
 (* Instatiation *)
@@ -247,10 +248,12 @@ let instantiate_taint inst_var inst_trace taint =
   | Src src -> (
       let taint =
         match
-          inst_trace.add_call_to_trace_for_src taint.tokens src.call_trace
+          inst_trace.add_call_to_trace_for_src
+            ~tainted_tokens:(List.rev taint.rev_tokens)
+            src.call_trace
         with
         | Some call_trace ->
-            { T.orig = Src { src with call_trace }; tokens = [] }
+            { T.orig = Src { src with call_trace }; rev_tokens = [] }
         | None -> taint
       in
       match subst_in_precondition inst_var taint with
@@ -269,9 +272,9 @@ let instantiate_taint inst_var inst_trace taint =
           |> Taints.map (fun taint' ->
                  {
                    taint' with
-                   tokens =
-                     inst_trace.fix_token_trace_for_var ~var_tokens:taint.tokens
-                       taint'.tokens;
+                   rev_tokens =
+                     inst_trace.fix_token_trace_for_var
+                       ~var_rev_tokens:taint.rev_tokens taint'.rev_tokens;
                  }))
 
 let instantiate_taints inst_var inst_trace taints =
@@ -699,7 +702,8 @@ let rec instantiate_function_signature lval_env (taint_sig : Signature.t)
                  | Control ->
                      let sink_trace =
                        add_call_to_trace_if_callee_has_eorig ~callee
-                         taint.tokens sink_trace
+                         ~tainted_tokens:(List.rev taint.rev_tokens)
+                         sink_trace
                        ||| sink_trace
                      in
                      let call_taints, call_shape = inst_taint_var taint in

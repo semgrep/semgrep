@@ -66,6 +66,7 @@ open Common
 
 type tainted_token = G.tok [@@deriving show]
 type tainted_tokens = tainted_token list [@@deriving show]
+type rev_tainted_tokens = tainted_tokens [@@deriving show]
 (* TODO: Given that the analysis is path-insensitive, the trace should capture
  * all potential paths. So a set of tokens seems more appropriate than a list.
  * TODO: May have to annotate each tainted token with a `call_trace` that explains
@@ -247,7 +248,7 @@ and orig = Src of source | Var of lval | Shape_var of lval | Control
  * 'Var' with a "kind" parameter. But we need to be careful about perf when
  * adding an extra level of indirection here (due to memory allocations). *)
 
-and taint = { orig : orig; tokens : tainted_tokens }
+and taint = { orig : orig; rev_tokens : rev_tainted_tokens }
 
 let compare_precondition (_ts1, f1) (_ts2, f2) =
   (* We don't consider the "incoming" taints here, assuming both
@@ -438,7 +439,8 @@ module Taint_set = struct
     | Shape_var _, Shape_var _
     | Control, Control ->
         (* Polymorphic taint should only be intraprocedural so the call-trace is irrelevant. *)
-        if List.length taint1.tokens < List.length taint2.tokens then taint1
+        if List.length taint1.rev_tokens < List.length taint2.rev_tokens then
+          taint1
         else taint2
     | Src src1, Src src2 ->
         let precondition =
@@ -483,8 +485,8 @@ module Taint_set = struct
         if call_trace_cmp < 0 then taint1
         else if call_trace_cmp > 0 then taint2
         else if
-          (* same length *)
-          List.length taint1.tokens < List.length taint2.tokens
+          (* same call trace length, compare tokens *)
+          List.length taint1.rev_tokens < List.length taint2.rev_tokens
         then taint1
         else taint2
     | (Src _ | Var _ | Shape_var _ | Control), _ ->
@@ -719,7 +721,7 @@ let src_of_pm ~incoming (pm, (source : Rule.taint_source)) =
 
 let taint_of_pm ~incoming pm =
   match src_of_pm ~incoming pm with
-  | Some orig -> Some { orig; tokens = [] }
+  | Some orig -> Some { orig; rev_tokens = [] }
   | None -> None
 
 let taints_of_pms ~incoming pms =

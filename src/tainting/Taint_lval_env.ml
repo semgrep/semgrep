@@ -198,7 +198,8 @@ let add_shape var offset new_taints new_shape
         if Tok.is_fake var_tok then new_taints
         else
           new_taints
-          |> Taints.map (fun t -> { t with tokens = var_tok :: t.tokens })
+          |> Taints.map (fun t ->
+                 { t with rev_tokens = var_tok :: t.rev_tokens })
       in
       {
         tainted =

@@ -9,14 +9,16 @@ module LabelSet : Set.S with type elt = string
 
 (* TODO: Use mutual-rec modules as in 'Shape_and_sig' so we can use 'Taint_set.t`
  *   everywhere it is needed, instead of `taint list`s. *)
-
-type tainted_token = AST_generic.tok [@@deriving show]
+type tainted_token = Tok.t [@@deriving show]
 
 type tainted_tokens = tainted_token list [@@deriving show]
 (** A list of tokens showing where the taint passed through,
   * at present these represent only code variables. For example,
   * when passing through a statement like `x = tainted`, the token
   * corresponding to `x` will be added to this list. *)
+
+type rev_tainted_tokens = tainted_tokens [@@deriving show]
+(** Reversed to add new tokens with a simple O(1) cons. *)
 
 (** A call trace to a source or sink match.
   * E.g. Call('foo()', PM('sink(x)')) tells us that by calling `foo(a)` we reach
@@ -161,7 +163,7 @@ and orig =
         * shape of the 'lval', see 'Taint_sig.gather_all_taints_in_shape'. *)
   | Control  (** Polymorphic taint variable, but for the "control-flow". *)
 
-and taint = { orig : orig; tokens : tainted_tokens }
+and taint = { orig : orig; rev_tokens : rev_tainted_tokens }
 (** At a given program location, taint is given by its origin (i.e. 'orig') and
  * the path it took from that origin to the current location (i.e. 'tokens'). *)
 
