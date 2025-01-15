@@ -1,6 +1,0 @@
-pro: python: Semgrep will now consider top-level lambdas like `x` below for
-inter-procedural analysis:
-
-    x = lambda s: sink(s) # now we get a finding !
-
-    x(taint)

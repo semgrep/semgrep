@@ -1,1 +1,0 @@
-Removed `pip` from the Semgrep Docker image. If you need it, you may install it by running `apk add py3-pip`.
