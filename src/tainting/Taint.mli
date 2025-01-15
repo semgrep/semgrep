@@ -40,7 +40,7 @@ val show_arg : arg -> string
 
 (** Base of an 'lval'. *)
 type base =
-  | BGlob of IL.name  (** A global variable or a static class field. *)
+  | BVar of IL.name  (** A global variable or a static class field. *)
   | BThis  (** The 'this' or 'self' object. *)
   | BArg of arg  (** A formal parameter in a function/method definition. *)
 

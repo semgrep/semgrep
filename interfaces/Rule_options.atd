@@ -51,6 +51,7 @@ type t = {
   (* when you are paranoid about minimizing FPs, and probably useful for
    * writing secret detection rules *)
   ~taint_only_propagate_through_assignments <ocaml default="false"> : bool;
+  ~taint_interproc_lambdas <ocaml default="true"> : bool;
 
   (* 'ac' stands for associative-commutative matching *)
   ~ac_matching <ocaml default="true"> : bool;

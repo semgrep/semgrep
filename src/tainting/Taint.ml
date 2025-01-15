@@ -134,7 +134,7 @@ let rec show_call_trace show_thing = function
 (*****************************************************************************)
 
 type arg = { name : IL.name; index : int } [@@deriving eq, ord]
-type base = BGlob of IL.name | BThis | BArg of arg [@@deriving ord]
+type base = BVar of IL.name | BThis | BArg of arg [@@deriving ord]
 
 type offset = Ofld of IL.name | Oint of int | Ostr of string | Oany
 [@@deriving ord]
@@ -154,7 +154,7 @@ let show_arg { name; index = i } =
 
 let show_base base =
   match base with
-  | BGlob name -> fst name.ident
+  | BVar name -> fst name.ident
   | BThis -> "this"
   | BArg arg -> show_arg arg
 

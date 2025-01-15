@@ -450,7 +450,7 @@ let instantiate_lval_using_actual_exps (fun_exp : IL.exp) fparams args_exps
         | Some r -> Some r)
   in
   match tlval.base with
-  | BGlob gvar -> Some (gvar, tlval.offset, snd gvar.ident)
+  | BVar gvar -> Some (gvar, tlval.offset, snd gvar.ident)
   | BArg pos -> (
       (*
           An actual argument from 'args_exps', e.g.
@@ -459,6 +459,7 @@ let instantiate_lval_using_actual_exps (fun_exp : IL.exp) fparams args_exps
                                 { base = BArg {name = "x"; index = 0}; offset = [.u] }
               = (a, [.q.u], tok)
         *)
+      let* args_exps = args_exps in
       let* (arg_exp : IL.exp) =
         find_pos_in_actual_args
           ~err_ctx:(Display_IL.string_of_exp fun_exp)
@@ -542,7 +543,7 @@ let instantiate_lval_using_shape lval_env fparams (fun_exp : IL.exp) args_taints
             | Ofld var :: offset -> Some (`Var var, offset)
             | (Oint _ | Ostr _ | Oany) :: _ -> None)
         | __else__ -> None)
-    | BGlob var -> Some (`Var var, offset)
+    | BVar var -> Some (`Var var, offset)
   in
   let* base_taints, base_shape =
     match base with
@@ -563,29 +564,18 @@ let instantiate_lval lval_env fparams fun_exp args_exps
     instantiate_lval_using_shape lval_env fparams fun_exp args_taints sig_lval
   with
   | Some (taints, shape) -> Some (taints, shape)
-  | None -> (
-      Log.debug (fun m ->
+  | None ->
+      Log.warn (fun m ->
           m "Cannot find the taint&shape of %s via instantiate_lval_using_shape"
             (T.show_lval sig_lval));
-      match args_exps with
-      | None ->
-          Log.warn (fun m ->
-              m
-                "Cannot find the taint&shape of %s because we lack the actual \
-                 arguments"
-                (T.show_lval sig_lval));
-          None
-      | Some args_exps ->
-          (* We want to know what's the taint carried by 'arg_exp.x1. ... .xN'.
-           * TODO: We should not need this when we cover everything with shapes,
-           *   see 'instantiate_lval_using_actual_exps'.
-           *)
-          let* var, offset, _obj =
-            instantiate_lval_using_actual_exps fun_exp fparams args_exps
-              sig_lval
-          in
-          let* lval_taints, shape = Lval_env.find_poly lval_env var offset in
-          Some (lval_taints, shape))
+      (* We want to know what's the taint carried by 'arg_exp.x1. ... .xN'.
+
+         THINK: Should we need this when we cover everything with shapes? *)
+      let* var, offset, _obj =
+        instantiate_lval_using_actual_exps fun_exp fparams args_exps sig_lval
+      in
+      let* lval_taints, shape = Lval_env.find_poly lval_env var offset in
+      Some (lval_taints, shape)
 
 (* This function is consuming the taint signature of a function to determine
    a few things:
@@ -733,17 +723,8 @@ let rec instantiate_function_signature lval_env (taint_sig : Signature.t)
         let+ dst_var, dst_offset, tainted_tok =
           (* 'dst_lval' is the actual argument/l-value that corresponds
              * to the formal argument 'dst_sig_lval'. *)
-          match args with
-          | None ->
-              Log.warn (fun m ->
-                  m
-                    "Cannot instantiate '%s' because we lack the actual \
-                     arguments"
-                    (T.show_lval dst_sig_lval));
-              None
-          | Some args ->
-              instantiate_lval_using_actual_exps callee taint_sig.params args
-                dst_sig_lval
+          instantiate_lval_using_actual_exps callee taint_sig.params args
+            dst_sig_lval
         in
         let taints =
           taints

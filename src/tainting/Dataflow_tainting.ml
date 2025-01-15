@@ -99,6 +99,7 @@ type env = {
   taint_inst : Taint_rule_inst.t;
   func : func;
   in_lambda : IL.name option;
+  lambdas : IL.lambdas_cfgs;
   needed_vars : IL.NameSet.t;
       (** Vars that we need to track in the current function/lambda under analysis,
     other vars can be filtered out, see 'fixpoint_lambda' as well as
@@ -114,6 +115,7 @@ type env = {
 let hook_function_taint_signature = ref None
 let hook_find_attribute_in_class = ref None
 let hook_check_tainted_at_exit_sinks = ref None
+let hook_infer_sig_for_lambda = ref None
 
 (*****************************************************************************)
 (* Options *)
@@ -630,7 +632,7 @@ let lookup_fun_signature env fun_exp =
 let lambdas_used_in_node lambdas node =
   LV.rlvals_of_node node.IL.n |> List_.filter_map (LV.lval_is_lambda lambdas)
 
-let lambdas_used_in_cfg fun_cfg =
+let lambdas_used_in_cfg (fun_cfg : fun_cfg) =
   fun_cfg |> LV.reachable_nodes
   |> Seq.fold_left
        (fun used_lambdas_acc node ->
@@ -1174,7 +1176,7 @@ and check_tainted_lval_with_sig env lval eorig =
   | __any__, Some (var_sig, `Var) -> (
       (* We instantiate 'var_sig' as if 'lval' were a 0-arity function. *)
       match
-        instantiate_function_signature { env with lval_env } exp var_sig [] []
+        instantiate_function_signature { env with lval_env } exp var_sig None []
       with
       | Some (call_taints, call_shape, lval_env) ->
           ( taints |> Taints.union call_taints,
@@ -1381,7 +1383,7 @@ and check_tainted_var env (var : IL.name) : Taints.t * S.shape * Lval_env.t =
 and instantiate_function_signature env fun_exp fun_sig args args_taints =
   let* call_effects =
     Sig_inst.instantiate_function_signature env.lval_env fun_sig ~callee:fun_exp
-      ~args:(Some args) args_taints
+      ~args args_taints
   in
   Some
     (call_effects
@@ -1421,7 +1423,7 @@ and instantiate_function_signature env fun_exp fun_sig args args_taints =
    2) Are there any effects that occur within the function due to taints being
       input into the function body, from the calling context?
 *)
-and check_function_call env fun_exp args
+and check_function_call env fun_exp (args : exp argument list)
     (args_taints : (Taints.t * S.shape) argument list) :
     (Taints.t * S.shape * Lval_env.t) option =
   match lookup_fun_signature env fun_exp with
@@ -1430,7 +1432,7 @@ and check_function_call env fun_exp args
           m ~tags:sigs_tag "Call to %s : %s"
             (Display_IL.string_of_exp fun_exp)
             (Signature.show fun_sig));
-      instantiate_function_signature env fun_exp fun_sig args args_taints
+      instantiate_function_signature env fun_exp fun_sig (Some args) args_taints
   | None ->
       Log.info (fun m ->
           m "No taint signature found for `%s'"
@@ -1453,6 +1455,41 @@ let check_function_call_callee env e =
       let taints, shape, lval_env = check_tainted_expr env e in
       (`Fun, taints, shape, lval_env)
 
+let mk_lambda_in_env env lcfg =
+  (* We do some processing of the lambda parameters but it's mainly
+   * to enable taint propagation, e.g.
+   *
+   *     obj.do_something(lambda x: sink(x))
+   *
+   * so we can propagate taint from `obj` to `x`.
+   *)
+  lcfg.params
+  |> Fold_IL_params.fold
+       (fun lval_env id id_info _pdefault ->
+         let var = AST_to_IL.var_of_id_info id id_info in
+         (* This is a *new* variable, so we clean any taint that we may have
+            attached to it previously. This can happen when a lambda is called
+            inside a loop. *)
+         let lval_env = Lval_env.clean lval_env (LV.lval_of_var var) in
+         (* Now check if the parameter is itself a taint source. *)
+         let taints, shape, lval_env =
+           check_tainted_var { env with lval_env } var
+         in
+         lval_env |> Lval_env.add_lval_shape (LV.lval_of_var var) taints shape)
+       env.lval_env
+
+let check_lambda env lval fdef =
+  if env.taint_inst.options.taint_interproc_lambdas then
+    let opt_lshape =
+      let* lname, lcfg = LV.lval_is_lambda env.lambdas lval in
+      let in_env = mk_lambda_in_env env lcfg in
+      let* hook = !hook_infer_sig_for_lambda in
+      let lsig = hook env.taint_inst env.func ~in_env lname fdef lcfg in
+      Some (S.Fun lsig)
+    in
+    (Taints.empty, opt_lshape ||| S.Bot, env.lval_env)
+  else (Taints.empty, S.Bot, env.lval_env)
+
 (* Test whether an instruction is tainted, and if it is also a sink,
  * report the effect too (by side effect). *)
 let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
@@ -1464,6 +1501,7 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
           check_type_and_drop_taints_if_bool_or_number env taints type_of_expr e
         in
         (taints, shape, lval_env)
+    | AssignAnon (lval, Lambda fdef) -> check_lambda env lval fdef
     | AssignAnon _ -> (Taints.empty, Bot, env.lval_env)
     | Call (_, e, args) ->
         let args_taints, all_args_taints, lval_env =
@@ -1643,14 +1681,31 @@ let check_tainted_return env tok e : Taints.t * S.shape * Lval_env.t =
   record_effects env effects;
   (taints, shape, var_env')
 
-let effects_from_arg_updates_at_exit enter_env exit_env : Effect.t list =
-  (* TOOD: We need to get a map of `lval` to `Taint.arg`, and if an extension
+let effects_from_arg_updates_at_exit ~in_lambda enter_env exit_env :
+    Effect.t list =
+  (* TODO: We need to get a map of `lval` to `Taint.arg`, and if an extension
    * of `lval` has new taints, then we can compute its correspoding `Taint.arg`
    * extension and generate a `ToLval` effect too. *)
   exit_env |> Lval_env.seq_of_tainted
   |> Seq.map (fun (var, exit_var_ref) ->
          match Lval_env.find_var enter_env var with
-         | None -> Seq.empty
+         | None when in_lambda && Tok.is_origintok (snd var.ident) ->
+             (* The 'var' is in the 'exit_env', and although it's not in the
+                'enter_env', we are analyzing a lambda, so this 'var' is of
+                 interest to the enclosing function, and we want to generate
+                 a ToLval here. *)
+             Shape.enum_in_cell exit_var_ref
+             |> Seq.filter_map (fun (offset, new_taints) ->
+                    let lval = T.{ base = BVar var; offset } in
+                    (* TODO: Also report if taints are _cleaned_. *)
+                    if not (Taints.is_empty new_taints) then
+                      Some (Effect.ToLval (new_taints, lval))
+                    else None)
+         | None ->
+             (* For top-level functions we already set up an env that contains all
+                the globals... so we expect any relevant variable to be found in
+                'enter_env' and do nothing here... but maybe we should re-evaluate. *)
+             Seq.empty
          | Some (Cell ((`Clean | `None), _)) -> Seq.empty
          | Some (Cell (`Tainted enter_taints, _)) -> (
              (* For each lval in the enter_env, we get its `T.lval`, and check
@@ -1731,29 +1786,6 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
       | [] -> Lval_env.empty
       | [ penv ] -> penv
       | penv1 :: penvs -> List.fold_left Lval_env.union penv1 penvs)
-
-let mk_lambda_in_env env lcfg =
-  (* We do some processing of the lambda parameters but it's mainly
-   * to enable taint propagation, e.g.
-   *
-   *     obj.do_something(lambda x: sink(x))
-   *
-   * so we can propagate taint from `obj` to `x`.
-   *)
-  lcfg.params
-  |> Fold_IL_params.fold
-       (fun lval_env id id_info _pdefault ->
-         let var = AST_to_IL.var_of_id_info id id_info in
-         (* This is a *new* variable, so we clean any taint that we may have
-            * attached to it previously. This can happen when a lambda is called
-            * inside a loop. *)
-         let lval_env = Lval_env.clean lval_env (LV.lval_of_var var) in
-         (* Now check if the parameter is itself a taint source. *)
-         let taints, shape, lval_env =
-           check_tainted_var { env with lval_env } var
-         in
-         lval_env |> Lval_env.add_lval_shape (LV.lval_of_var var) taints shape)
-       env.lval_env
 
 let rec transfer : env -> fun_cfg:F.fun_cfg -> Lval_env.t D.transfn =
  fun enter_env ~fun_cfg
@@ -1888,8 +1920,53 @@ and do_lambdas env (lambdas : IL.lambdas_cfgs) node =
     lambdas_to_analyze
     |> List_.map (fun (lambda_name, lambda_cfg) ->
            let lambda_in_env = mk_lambda_in_env env lambda_cfg in
-           fixpoint_lambda env.taint_inst env.func env.needed_vars lambda_name
-             lambda_cfg lambda_in_env)
+           match Lval_env.find_var env.lval_env lambda_name with
+           | Some (S.Cell (_, S.Fun tsig)) ->
+               if env.taint_inst.options.taint_interproc_lambdas then
+                 let args_taints =
+                   (* Enables propagation from the enclosing function to the
+                      parameters of the lambda. *)
+                   lambda_cfg.params
+                   |> List_.map (function
+                        | Param { pname; _ } -> (
+                            match Lval_env.find_var lambda_in_env pname with
+                            | None -> Named (pname.ident, (Taints.empty, S.Bot))
+                            | Some (S.Cell (xtaints, shape)) ->
+                                let taints = Xtaint.to_taints xtaints in
+                                Named (pname.ident, (taints, shape)))
+                        | PatternParam _ (* TODO *)
+                        | FixmeParam ->
+                            Unnamed (Taints.empty, S.Bot))
+                 in
+                 match
+                   instantiate_function_signature env
+                     { e = Fetch (LV.lval_of_var lambda_name); eorig = NoOrig }
+                     tsig None args_taints
+                 with
+                 | None -> (Effects.empty, env.lval_env)
+                 | Some (_taints, _shape, lval_env) ->
+                     (* We are just interested in the side-effects of the lambda. *)
+                     (Effects.empty, lval_env)
+               else
+                 (* This allows for propagators like:
+
+                        $FROM.foobar($X => {
+                          ...
+                          $TO.$ANY(...)
+                          ...
+                        })
+
+                    that do not work if we use inter-procedural analysis to check lambdas.
+
+                    TODO: Make propagation work inter-proc, may be related to extra-requires?
+                 *)
+                 fixpoint_lambda env.taint_inst env.func env.needed_vars
+                   lambda_name lambda_cfg lambda_in_env
+           | Some _
+           | None ->
+               (* We are in OSS or we could not infer a taint signature for the lambda. *)
+               fixpoint_lambda env.taint_inst env.func env.needed_vars
+                 lambda_name lambda_cfg lambda_in_env)
     |> List_.split
   in
   let effects = Effects.union_list effects_lambdas in
@@ -1968,6 +2045,7 @@ and fixpoint_aux taint_inst func ?(needed_vars = IL.NameSet.empty)
       taint_inst;
       func;
       in_lambda;
+      lambdas = fun_cfg.lambdas;
       lval_env = enter_lval_env;
       needed_vars;
       effects_acc = ref Effects.empty;
@@ -1982,7 +2060,8 @@ and fixpoint_aux taint_inst func ?(needed_vars = IL.NameSet.empty)
   in
   log_timeout_warning taint_inst env.func.fname timeout;
   let exit_lval_env = end_mapping.(flow.exit).D.out_env in
-  effects_from_arg_updates_at_exit enter_lval_env exit_lval_env
+  effects_from_arg_updates_at_exit ~in_lambda:(Option.is_some in_lambda)
+    enter_lval_env exit_lval_env
   |> record_effects env;
   (!(env.effects_acc), end_mapping)
 
