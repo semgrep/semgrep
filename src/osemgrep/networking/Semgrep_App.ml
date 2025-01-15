@@ -205,7 +205,7 @@ let start_scan caps request = Lwt_platform.run (start_scan_async caps request)
 (*****************************************************************************)
 
 (* python: was called report_findings *)
-let upload_findings_async ~scan_id ~results ~complete caps :
+let upload_findings_async caps ~scan_id ~results ~complete :
     (app_block_override, string) result Lwt.t =
   let results = Out.string_of_ci_scan_results results in
   let complete = Out.string_of_ci_scan_complete complete in
@@ -252,15 +252,15 @@ let upload_findings_async ~scan_id ~results ~complete caps :
       Lwt.return_error msg
   | Error e -> Lwt.return_error (spf "Failed to upload findings: %s" e)
 
-let upload_findings ~scan_id ~results ~complete caps =
-  Lwt_platform.run (upload_findings_async ~scan_id ~results ~complete caps)
+let upload_findings caps ~scan_id ~results ~complete =
+  Lwt_platform.run (upload_findings_async caps ~scan_id ~results ~complete)
 
 (*****************************************************************************)
 (* Error reporting to the backend *)
 (*****************************************************************************)
 
 (* report a failure for [scan_id] to Semgrep App *)
-let report_failure_async ~scan_id caps (exit_code : Exit_code.t) : unit Lwt.t =
+let report_failure_async caps ~scan_id (exit_code : Exit_code.t) : unit Lwt.t =
   let int_code = Exit_code.to_int exit_code in
   let headers =
     [
@@ -286,8 +286,8 @@ let report_failure_async ~scan_id caps (exit_code : Exit_code.t) : unit Lwt.t =
       Logs.warn (fun m -> m "Failed to report failure: %s" e);
       Lwt.return_unit
 
-let report_failure ~scan_id caps exit_code =
-  Lwt_platform.run (report_failure_async ~scan_id caps exit_code)
+let report_failure caps ~scan_id exit_code =
+  Lwt_platform.run (report_failure_async caps ~scan_id exit_code)
 
 (*****************************************************************************)
 (* Other ways to fetch a config (deprecated?) *)

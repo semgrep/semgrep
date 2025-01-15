@@ -26,15 +26,15 @@ type app_block_override = string (* reason *) option
 
 (* upload both the scan results and complete *)
 val upload_findings :
+  < Cap.network ; Auth.cap_token ; .. > ->
   scan_id:scan_id ->
   results:Semgrep_output_v1_t.ci_scan_results ->
   complete:Semgrep_output_v1_t.ci_scan_complete ->
-  < Cap.network ; Auth.cap_token ; .. > ->
   (app_block_override, string) result
 
 val report_failure :
-  scan_id:scan_id ->
   < Cap.network ; Auth.cap_token ; .. > ->
+  scan_id:scan_id ->
   Exit_code.t ->
   unit
 
@@ -98,15 +98,15 @@ val start_scan_async :
   (Semgrep_output_v1_t.scan_response, string) result Lwt.t
 
 val upload_findings_async :
+  < Cap.network ; Auth.cap_token ; .. > ->
   scan_id:scan_id ->
   results:Semgrep_output_v1_t.ci_scan_results ->
   complete:Semgrep_output_v1_t.ci_scan_complete ->
-  < Cap.network ; Auth.cap_token ; .. > ->
   (app_block_override, string) result Lwt.t
 
 val report_failure_async :
-  scan_id:scan_id ->
   < Cap.network ; Auth.cap_token ; .. > ->
+  scan_id:scan_id ->
   Exit_code.t ->
   unit Lwt.t
 

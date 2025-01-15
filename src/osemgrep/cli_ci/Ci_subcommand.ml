@@ -107,6 +107,46 @@ type caps =
   ; Cap.memory_limit >
 
 (*****************************************************************************)
+(* Test infra (mocking the backend) *)
+(*****************************************************************************)
+
+(* This type will allow to mock our connections to the Semgrep WebApp backend
+ * and make it easier to test osemgrep ci.
+ * This might also be needed at some point when porting test_ci.py
+ *
+ * alt: we could use Http_mock_client.ml to mock Semgrep_App.ml but
+ *  it seems simpler to mock at the Semgrep_output_v1.atd "RPC" level the
+ *  response rather than the Http GET/POST level.
+ * alt: move in Semgrep_App.mli instead
+ *
+ * Note that we need to have ['caps] polymorphic param below even though we
+ * always use further below '<Cap.network; Auth.cap_token; ..>' because
+ * we can't have '..' (a row type variable) inside a monomorphic record.
+ *)
+type 'caps app = {
+  (* TODO: rename just deployment? Also in Semgrep_App.mli? *)
+  get_deployment_from_token : 'caps -> Out.deployment_config option;
+  start_scan : 'caps -> Out.scan_request -> (Out.scan_response, string) result;
+  upload_findings :
+    'caps ->
+    scan_id:int ->
+    results:Out.ci_scan_results ->
+    complete:Out.ci_scan_complete ->
+    (Semgrep_App.app_block_override, string) result;
+  report_failure : 'caps -> scan_id:int -> Exit_code.t -> unit;
+}
+
+let real_backend : < Cap.network ; Auth.cap_token ; .. > app =
+  {
+    get_deployment_from_token = Semgrep_App.get_deployment_from_token;
+    start_scan = Semgrep_App.start_scan;
+    upload_findings = Semgrep_App.upload_findings;
+    report_failure = Semgrep_App.report_failure;
+  }
+
+(* TODO: let mk_fake_backend dir_with_fake_jsons = ...
+ *)
+(*****************************************************************************)
 (* Error management *)
 (*****************************************************************************)
 
@@ -252,9 +292,9 @@ let caps_with_token (token_opt : Auth.token option) caps =
   Auth.cap_token_and_network_and_tmp_and_exec token caps
 
 (* if something fails, we Error.exit_code_exn *)
-let deployment_config (caps : < Cap.network ; Auth.cap_token ; .. >) :
+let deployment_config (caps : < Cap.network ; Auth.cap_token ; .. >) app :
     Out.deployment_config =
-  match Semgrep_App.get_deployment_from_token caps with
+  match app.get_deployment_from_token caps with
   | None ->
       Logs.app (fun m ->
           m
@@ -291,7 +331,7 @@ let decode_json_rules caps (rules : Yojson.Basic.t) :
           failwith "impossible: received an invalid rule from CI")
 
 let scan_config_and_rules_from_deployment
-    (caps : < Cap.network ; Auth.cap_token ; .. >)
+    (caps : < Cap.network ; Auth.cap_token ; .. >) app
     (prj_meta : Out.project_metadata)
     (deployment_config : Out.deployment_config) :
     Semgrep_App.scan_id
@@ -317,7 +357,7 @@ let scan_config_and_rules_from_deployment
       metadata_dict["is_sca_scan"] = supply_chain
       proj_config = ProjectConfig.load_all()
   *)
-  match Semgrep_App.start_scan caps request with
+  match app.start_scan caps request with
   | Error msg ->
       Logs.err (fun m -> m "Could not start scan %s" msg);
       Error.exit_code_exn (Exit_code.fatal ~__LOC__)
@@ -344,7 +384,7 @@ let scan_config_and_rules_from_deployment
               | None -> Exit_code.fatal ~__LOC__
               | Some exit_code -> exit_code
             in
-            Semgrep_App.report_failure caps ~scan_id ex;
+            app.report_failure caps ~scan_id ex;
             let e = Exception.catch e in
             Exception.reraise e
       in
@@ -682,9 +722,10 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
   (results, complete)
 
 let upload_findings (caps : < Cap.network ; Auth.cap_token ; Cap.exec ; .. >)
-    (deployment_config : Out.deployment_config) (scan_id : Semgrep_App.scan_id)
-    (prj_meta : Out.project_metadata) blocking_findings filtered_rules
-    (cli_output : Out.cli_output) : Semgrep_App.app_block_override =
+    app (deployment_config : Out.deployment_config)
+    (scan_id : Semgrep_App.scan_id) (prj_meta : Out.project_metadata)
+    blocking_findings filtered_rules (cli_output : Out.cli_output) :
+    Semgrep_App.app_block_override =
   Logs.app (fun m -> m "  Uploading findings.");
   let results, complete =
     findings_and_complete
@@ -693,7 +734,7 @@ let upload_findings (caps : < Cap.network ; Auth.cap_token ; Cap.exec ; .. >)
       ~commit_date:"" ~engine_requested:`OSS cli_output filtered_rules
   in
   let override =
-    match Semgrep_App.upload_findings caps ~scan_id ~results ~complete with
+    match app.upload_findings caps ~scan_id ~results ~complete with
     | Ok a -> a
     | Error msg ->
         Logs.err (fun m -> m "Failed to report findings: %s" msg);
@@ -744,6 +785,8 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   | Maturity.Develop ->
       ());
   Logs.debug (fun m -> m "conf = %s" (Ci_CLI.show_conf ci_conf));
+  (* TODO: support a --fake-backend /tmp/dir/with/jsons/answers/ *)
+  let app = real_backend in
 
   (* step1: initialization *)
   CLI_common.setup_logging ~force_color:conf.output_conf.force_color
@@ -767,7 +810,7 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
 
   (* step3: token -> deployment_config -> scan_id -> scan_config -> rules *)
   let caps' = caps_with_token settings.api_token caps in
-  let depl = deployment_config caps' in
+  let depl = deployment_config caps' app in
   (* TODO: pass baseline commit! *)
   let prj_meta = generate_meta_from_environment (caps :> < Cap.exec >) None in
   Logs.app (fun m -> m "%s" (Console.heading "Debugging Info"));
@@ -789,7 +832,7 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
 
   (* TODO: fix_head_if_github_action(metadata) *)
   let scan_id, scan_response, rules_and_origin =
-    scan_config_and_rules_from_deployment caps' prj_meta depl
+    scan_config_and_rules_from_deployment caps' app prj_meta depl
   in
 
   (* TODO: we should use those fields!
@@ -888,7 +931,7 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
     in
     match res with
     | Error e ->
-        Semgrep_App.report_failure caps' ~scan_id e;
+        app.report_failure caps' ~scan_id e;
         Logs.err (fun m -> m "Encountered error when running rules");
         e
     | Ok (filtered_rules, _res, cli_output) ->
@@ -933,7 +976,7 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
         report_scan_completed ~blocking_findings ~blocking_rules
           ~non_blocking_findings ~non_blocking_rules;
         let app_block_override =
-          upload_findings caps' depl scan_id prj_meta blocking_findings
+          upload_findings caps' app depl scan_id prj_meta blocking_findings
             filtered_rules cli_output
         in
         let audit_mode = false in
@@ -943,7 +986,7 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   with
   | Error.Semgrep_error (_, ex) as e ->
       let r = ex ||| Exit_code.fatal ~__LOC__ in
-      Semgrep_App.report_failure caps' ~scan_id r;
+      app.report_failure caps' ~scan_id r;
       Logs.err (fun m ->
           m "Encountered error when running rules: %s" (Printexc.to_string e));
       let e = Exception.catch e in
