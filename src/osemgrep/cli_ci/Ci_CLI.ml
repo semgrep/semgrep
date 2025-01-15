@@ -43,8 +43,8 @@ type conf = {
   suppress_errors : bool;
   (* --code/--sca/--secrets/ *)
   products : Semgrep_output_v1_t.product list;
-  (* for monorepos *)
-  subdir : string;
+  (* for monorepos. TODO: not implemented, port behavior from pysemgrep *)
+  subdir : Fpath.t option;
   (* BIG ONE: 'semgrep ci' shares most of its flags with 'semgrep scan'
    * TODO: we should reduce it actually, maybe just accept the core_runner
    * opti flags.
@@ -109,7 +109,7 @@ let o_internal_ci_scan_results : bool Term.t =
   Arg.value (Arg.flag info)
 
 (* for monorepos *)
-let o_subdir : string Term.t =
+let o_subdir : string option Term.t =
   let info =
     Arg.info [ "subdir" ]
       ~doc:
@@ -119,7 +119,7 @@ relative path. (Note that when two scans have the same SEMGREP_REPO_DISPLAY_NAME
 but different targeted directories, the results of the second scan overwrite
 the first.)|}
   in
-  Arg.value (Arg.opt Arg.string (Sys.getcwd ()) info)
+  Arg.value (Arg.opt Arg.(some string) None info)
 
 let o_suppress_errors : bool Term.t =
   H.negatable_flag_with_env [ "suppress-errors" ]
@@ -384,7 +384,7 @@ let cmdline_term : conf Term.t =
       dry_run;
       suppress_errors;
       products;
-      subdir;
+      subdir = Option.map Fpath.v subdir;
       x_distributed_scan_conf =
         {
           merge_partial_results_dir =

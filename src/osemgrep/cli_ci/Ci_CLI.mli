@@ -12,7 +12,7 @@ type conf = {
   (* --code/--sca/--secrets/ *)
   products : Semgrep_output_v1_t.product list;
   (* for monorepos *)
-  subdir : string;
+  subdir : Fpath.t option;
   (* BIG ONE: 'semgrep ci' shares many flags with 'semgrep scan' *)
   scan_conf : Scan_CLI.conf;
   (* internal only *)

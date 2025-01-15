@@ -784,13 +784,15 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   | Maturity.Experimental
   | Maturity.Develop ->
       ());
-  Logs.debug (fun m -> m "conf = %s" (Ci_CLI.show_conf ci_conf));
+
   (* TODO: support a --fake-backend /tmp/dir/with/jsons/answers/ *)
   let app = real_backend in
 
   (* step1: initialization *)
   CLI_common.setup_logging ~force_color:conf.output_conf.force_color
     ~level:conf.common.logging_level;
+  Logs.debug (fun m -> m "conf = %s" (Ci_CLI.show_conf ci_conf));
+
   (* TODO? we probably want to set the metrics to On by default in CI ctx? *)
   Metrics_.configure conf.metrics;
   let settings = Semgrep_settings.load ~maturity:conf.common.maturity () in
@@ -807,6 +809,8 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
              from rules configured there. Drop the `--config` to use rules \
              configured on semgrep.dev or use semgrep scan.");
       Error.exit_code_exn (Exit_code.fatal ~__LOC__));
+  (* see Ci_CLI.scan_subset_cmdline_term() *)
+  assert (conf.target_roots =*= []);
 
   (* step3: token -> deployment_config -> scan_id -> scan_config -> rules *)
   let caps' = caps_with_token settings.api_token caps in
@@ -904,7 +908,6 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   (* step4: run the scan *)
   try
     (* TODO: call with:
-       target = os.curdir
        autofix=scan_handler.autofix if scan_handler else False,
        dryrun=True,
        # Always true, as we want to always report all findings, even
@@ -914,8 +917,14 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
        baseline_commit_is_mergebase=True,
     *)
     let profiler = Profiler.make () in
+    (* TODO? use ci_conf.subdir at some point? *)
+    let target_root : Scanning_root.t =
+      (* alt: Sys.getcwd () *)
+      Scanning_root.of_string "."
+    in
+
     let targets_and_ignored =
-      Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
+      Find_targets.get_target_fpaths conf.targeting_conf [ target_root ]
     in
     let res =
       Scan_subcommand.check_targets_with_rules
