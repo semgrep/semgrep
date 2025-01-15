@@ -26,6 +26,7 @@ let rule_leading_indent_size = 3
 let rule_indent_size =
   rule_leading_indent_size + 4 (* severity icon and 1 for space *)
 
+let _base_indent = 8
 let detail_indent_size = 10
 let findings_indent_size = 12
 let rule_leading_indent = String.make rule_leading_indent_size ' '
@@ -90,6 +91,8 @@ let sort_by_groups als =
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+
+let lookup_field = Yojson.Basic.Util.member
 
 let is_blocking (json : Yojson.Basic.t) =
   match Yojson.Basic.Util.member "dev.semgrep.actions" json with
@@ -314,18 +317,13 @@ let matches_output ~max_chars_per_line ~max_lines_per_finding
 
       let print_one_match ~(prev : Out.cli_match option) ~(cur : Out.cli_match)
           ~(next : Out.cli_match option) =
-        (* Separation of concerns:
-           Keep side effect separate from value-returning computations *)
-        (match prev with
-        | None -> prf "\n"
-        | Some _ -> ());
         (* Nesting hierarchy:
            file > rule > message derived from template in rule *)
         let must_print_file =
           (* must print file because it's a match in a new file *)
           match prev with
           | None -> true
-          | Some m -> m.path <> cur.path
+          | Some prev -> prev.path <> cur.path
         in
         let must_print_rule =
           (* must print rule name because it's a match for a new rule *)
@@ -333,7 +331,7 @@ let matches_output ~max_chars_per_line ~max_lines_per_finding
           ||
           match prev with
           | None -> true
-          | Some m -> not (Rule_ID.equal m.check_id cur.check_id)
+          | Some prev -> not (Rule_ID.equal prev.check_id cur.check_id)
         in
         let must_print_message =
           (* must print message derived from template it's different from the
@@ -342,50 +340,76 @@ let matches_output ~max_chars_per_line ~max_lines_per_finding
           ||
           match prev with
           | None -> true
-          | Some m -> m.extra.message <> cur.extra.message
+          | Some prev -> prev.extra.message <> cur.extra.message
         in
-        let has_rule_name = cur.check_id <> Rule_ID.dash_e in
-        (if must_print_file then
-           (* ugly: hack for pysemgrep compatibility on our snapshots for
-            * test_output.py. The 22m and 24m are "normal color or intensity", and
-            * "underline off"
-            *)
-           let esc =
-             match Console.get_highlight () with
-             | On -> "\027[22m\027[24m  "
-             | Off -> "  "
-           in
-           prf "  %s\n" (Console.color Console.cyan (esc ^ !!(cur.path))));
-        (if must_print_rule || must_print_message then
-           let rule_name_lines =
-             if has_rule_name then (
-               prf "%s" (severity cur.extra.severity);
-               indent_and_wrap_lines ~indent:rule_indent_size
-                 ~max_width:text_width
-                 (Rule_ID.to_string cur.check_id))
-             else []
-           in
-           match rule_name_lines with
-           | [] -> ()
-           | (_, txt) :: rest ->
-               (* Print indented severity with 1 trailing space and then
-                  first line *)
-               prf " %s\n" (Console.bold txt);
-               rest
-               |> List.iter (fun (indentation, txt) ->
-                      prf "%s%s\n" indentation (Console.bold txt));
-               if must_print_message then
-                 List.iter
-                   (fun (indentation, txt) -> prf "%s%s\n" indentation txt)
-                   (indent_and_wrap_lines ~indent:detail_indent_size
-                      ~max_width:(text_width - detail_indent_size)
-                      cur.extra.message);
-               (match
-                  Yojson.Basic.Util.member "shortlink" cur.extra.metadata
-                with
-               | `String txt -> prf "%sDetails: %s\n" detail_indent txt
-               | _ -> ());
-               prf "\n");
+
+        if prev =*= None then prf "\n";
+        if must_print_file then begin
+          let lockfile_str =
+            match cur.extra.sca_info with
+            | None -> ""
+            | Some { reachable; dependency_match = { lockfile; _ }; _ } ->
+                if not reachable then ""
+                else
+                  spf " with lockfile %s"
+                    (Console.color Console.cyan !!lockfile)
+          in
+          (* ugly: hack for pysemgrep compatibility on our snapshots for
+           * test_output.py. The 22m and 24m are "normal color or intensity"
+           * and "underline off"
+           *)
+          let esc =
+            match Console.get_highlight () with
+            | On -> "\027[22m\027[24m  "
+            | Off -> "  "
+          in
+          prf "  %s%s\n"
+            (Console.color Console.cyan (esc ^ !!(cur.path)))
+            lockfile_str
+        end;
+        if must_print_rule || must_print_message then begin
+          (* list of indent x line of text *)
+          let rulename_wrapped : (string * string) list =
+            let has_rule_name = cur.check_id <> Rule_ID.dash_e in
+            if has_rule_name then begin
+              prf "%s" (severity cur.extra.severity);
+              indent_and_wrap_lines ~indent:rule_indent_size
+                ~max_width:text_width
+                (Rule_ID.to_string cur.check_id)
+            end
+            else []
+          in
+          match rulename_wrapped with
+          | [] -> ()
+          | (_, txt) :: rest ->
+              (* Print indented severity with 1 trailing space and then
+                 first line *)
+              prf " %s\n" (Console.bold txt);
+              rest
+              |> List.iter (fun (indentation, txt) ->
+                     prf "%s%s\n" indentation (Console.bold txt));
+              cur.extra.sca_info
+              |> Option.iter (fun _ ->
+                     match lookup_field "sca-severity" cur.extra.metadata with
+                     | `String txt ->
+                         (* TODO? was base_indent instead of detail_indent *)
+                         prf "%sSeverity: %s\n" detail_indent (Console.bold txt)
+                     | _ -> ());
+
+              if must_print_message then (
+                let message_wrapped =
+                  indent_and_wrap_lines ~indent:detail_indent_size
+                    ~max_width:(text_width - detail_indent_size)
+                    cur.extra.message
+                in
+                message_wrapped
+                |> List.iter (fun (indentation, txt) ->
+                       prf "%s%s\n" indentation txt);
+                (match lookup_field "shortlink" cur.extra.metadata with
+                | `String txt -> prf "%sDetails: %s\n" detail_indent txt
+                | _ -> ());
+                prf "\n")
+        end;
         (* TODO autofix *)
         let same_file_next =
           match next with
@@ -397,11 +421,10 @@ let matches_output ~max_chars_per_line ~max_lines_per_finding
           | None -> false
           | Some next -> Rule_ID.equal next.check_id cur.check_id
         in
-        prf "%s"
+        prf "%s\n"
           (finding ~max_chars_per_line ~max_lines_per_finding
              ~append_separator:(same_file_next && same_rule_next)
-             cur);
-        prf "\n"
+             cur)
       in
       matches |> List_.iter_with_view_into_neighbor_elements print_one_match)
 
