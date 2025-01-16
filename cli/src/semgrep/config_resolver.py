@@ -272,7 +272,6 @@ class ConfigLoader:
                 repo_name = "unknown"
 
         return out.ProjectMetadata(
-            semgrep_version=out.Version(__VERSION__),
             scan_environment="semgrep-scan",
             repository=repo_name,
             repo_display_name=repo_display_name,
@@ -310,7 +309,6 @@ class ConfigLoader:
         )
 
         request = out.ScanRequest(
-            meta=out.RawJson({}),  # required for now, but we won't populate it
             scan_metadata=out.ScanMetadata(
                 cli_version=out.Version(__VERSION__),
                 unique_id=out.Uuid(str(state.local_scan_id)),

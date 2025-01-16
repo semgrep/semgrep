@@ -1,6 +1,5 @@
 {
   "project_metadata": {
-    "semgrep_version": "<sanitized version>",
     "scan_environment": "travis-ci",
     "repository": "project_name/project_name",
     "repo_url": "https://github.com/project_name/project_name",

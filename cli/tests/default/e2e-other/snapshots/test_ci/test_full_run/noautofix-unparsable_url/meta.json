@@ -1,6 +1,5 @@
 {
   "project_metadata": {
-    "semgrep_version": "<sanitized version>",
     "scan_environment": "git",
     "repository": "org_name/project_name/project_name",
     "repo_url": "https://gitlab.net/foo.bar/a-b/a-b-c-d",

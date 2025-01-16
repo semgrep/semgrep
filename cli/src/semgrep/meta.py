@@ -17,7 +17,6 @@ from glom import T
 from glom.core import TType
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
-from semgrep import __VERSION__
 from semgrep.external.git_url_parser import Parser
 from semgrep.git import git_check_output
 from semgrep.git import is_git_repo_empty
@@ -232,7 +231,6 @@ class GitMeta:
             commit_timestamp = self.commit_timestamp
 
         return out.ProjectMetadata(
-            semgrep_version=out.Version(__VERSION__),
             # REQUIRED for semgrep-app backend
             repository=self.repo_name,
             repo_display_name=self.repo_display_name,

@@ -1,6 +1,5 @@
 {
   "project_metadata": {
-    "semgrep_version": "<sanitized version>",
     "scan_environment": "gitlab-ci",
     "repository": "project_name/project_name",
     "repo_url": "https://example.com/gitlab-org/gitlab-foss",

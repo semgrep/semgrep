@@ -32,7 +32,6 @@ from tests.default.e2e.test_baseline import _git_merge
 from tests.fixtures import RunSemgrep
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
-from semgrep import __VERSION__
 from semgrep.app.scans import ScanHandler
 from semgrep.constants import OutputFormat
 from semgrep.engine import EngineType
@@ -1013,11 +1012,6 @@ def test_full_run(
     else:
         assert prj_meta_json["commit"] == head_commit
         prj_meta_json["commit"] = "sanitized"
-
-    # TODO: should get rid of this redundant version and rely on scan_meta_json
-    # instead
-    assert prj_meta_json["semgrep_version"] == __VERSION__
-    prj_meta_json["semgrep_version"] = "<sanitized version>"
 
     scan_meta_json["cli_version"] = "<sanitized version>"
     scan_meta_json["unique_id"] = "<sanitized id>"

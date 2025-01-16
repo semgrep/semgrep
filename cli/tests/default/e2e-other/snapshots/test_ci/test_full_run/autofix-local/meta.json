@@ -1,6 +1,5 @@
 {
   "project_metadata": {
-    "semgrep_version": "<sanitized version>",
     "scan_environment": "git",
     "repository": "local_scan/checkout_project_name",
     "repo_url": "https://github.com/example/fake",

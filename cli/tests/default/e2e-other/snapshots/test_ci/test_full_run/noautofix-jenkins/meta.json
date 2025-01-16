@@ -1,6 +1,5 @@
 {
   "project_metadata": {
-    "semgrep_version": "<sanitized version>",
     "scan_environment": "jenkins",
     "repository": "org/repo",
     "repo_url": "https://github.com/org/repo",

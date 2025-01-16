@@ -143,7 +143,6 @@ class TestConfigLoaderForProducts:
         ]
 
         request = out.ScanRequest(
-            meta=out.RawJson({}),
             scan_metadata=out.ScanMetadata(
                 cli_version=out.Version(__VERSION__),
                 unique_id=out.Uuid(str(uuid4())),

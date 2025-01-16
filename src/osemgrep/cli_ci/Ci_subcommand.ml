@@ -446,13 +446,7 @@ let scan_config_and_rules_from_deployment
   let project_config : Out.ci_config_from_repo option = project_config () in
 
   let request : Out.scan_request =
-    {
-      project_metadata = prj_meta;
-      scan_metadata;
-      project_config;
-      (* deprecated field in 1.43 and really deprecated in 1.100.0 *)
-      meta = None;
-    }
+    { project_metadata = prj_meta; scan_metadata; project_config }
   in
   (* TODO:
       metadata_dict["is_sca_scan"] = supply_chain

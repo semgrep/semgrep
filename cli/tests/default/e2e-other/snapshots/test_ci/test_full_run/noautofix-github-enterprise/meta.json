@@ -1,6 +1,5 @@
 {
   "project_metadata": {
-    "semgrep_version": "<sanitized version>",
     "scan_environment": "github-actions",
     "repository": "project_name/project_name",
     "repo_url": "https://some.enterprise.url.com/project_name/project_name",

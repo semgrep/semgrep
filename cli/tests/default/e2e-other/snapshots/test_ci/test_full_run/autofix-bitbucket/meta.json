@@ -1,6 +1,5 @@
 {
   "project_metadata": {
-    "semgrep_version": "<sanitized version>",
     "scan_environment": "bitbucket",
     "repository": "project_name/project_name",
     "repo_url": "http://bitbucket.org/project_name/project_name",

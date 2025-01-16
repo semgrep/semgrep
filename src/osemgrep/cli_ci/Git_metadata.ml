@@ -139,10 +139,9 @@ class meta (caps : < Cap.exec >) ~scan_environment
         |> Timedesc.Timestamp.of_iso8601 |> Result.get_ok
       in
       {
-        semgrep_version = Version.version;
-        (* REQUIRED for semgrep backed *)
+        (* REQUIRED for semgrep backend *)
         repository = self#repo_name;
-        (* OPTIONAL for semgrep backed *)
+        (* OPTIONAL for semgrep backend *)
         repo_url = self#repo_url;
         repo_display_name = Some self#repo_display_name;
         branch = self#branch;
