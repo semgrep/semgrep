@@ -17,6 +17,11 @@ type conf = {
   scan_conf : Scan_CLI.conf;
   (* internal only *)
   x_distributed_scan_conf : Distributed_scan_stub.conf;
+  (* osemgrep-only options *)
+  (* path to fake responses for testing purpose (see tests/ci/fake_backend/) *)
+  fake_backend : Fpath.t option;
+  (* path to log dir to save all comms with backend for debugging purpose *)
+  log_backend : Fpath.t option;
 }
 [@@deriving show]
 

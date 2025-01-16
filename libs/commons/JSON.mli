@@ -36,16 +36,22 @@ val member : string -> t -> t option
   * key `s` in the JSON Object `j` or `None` if no such value exists (either
   * `j` is not an object or no such key is present). *)
 
+(* converters *)
 val to_yojson : t -> yojson
 val from_yojson : yojson -> t
 val yojson_to_ezjsonm : yojson -> ezjsonm
 val ezjsonm_to_yojson : ezjsonm -> yojson
-val json_of_string : str -> t
-val json_of_chan : Chan.i -> t
 
+(* string_of, of_string *)
 val string_of_json :
   ?compact:bool -> ?recursive:bool -> ?allow_nan:bool -> t -> str
 (** NOTE: compact, recursive, allow_nan all currently unused *)
+
+val json_of_string : str -> t
+val json_of_chan : Chan.i -> t
+
+(* alias for Yojson.Basic.prettify *)
+val prettify : str -> str
 
 val update : yojson -> yojson -> yojson
 (** [update old new] makes a new JSON value by, in the case of an object [old]

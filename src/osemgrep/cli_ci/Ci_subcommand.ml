@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Fpath_.Operators
 module Out = Semgrep_output_v1_j
 
 (*****************************************************************************)
@@ -24,7 +25,8 @@ module Out = Semgrep_output_v1_j
    Translated from ci.py (and partially from scans.py)
 
    See https://www.notion.so/semgrep/Architecture-Overview-CI-Scans-afe6193a6cc84abd96cff5f2d91cecaa
-   for an excellent overview of how 'semgrep ci' works with the backend.
+   for an excellent overview of how 'semgrep ci' communicate with the
+   Semgrep App backend (the backend code is in semgrep-app/server/).
    See also https://www.notion.so/semgrep/Scan-reliability-next-steps-Oct-2023-cf3dad02d1ff4e1a98db8acf7f7bbded
 
    Debugging trick #1:
@@ -79,10 +81,13 @@ module Out = Semgrep_output_v1_j
    Tip: you can store those environment variables in a dev2.sh env file
    that you can source instead.
 
-   Debugging trick #4?:
+   Debugging trick #4:
    --------------------
 
-   TODO You can also inspect the backend logs in cloudwatch, and Metabase?
+   Use the --log-backend <dir> option to save all comms with the backend
+   to a log directory and inspect the generated JSON files.
+   See also --fake-backend <dir> option.
+
 *)
 
 (*****************************************************************************)
@@ -107,24 +112,24 @@ type caps =
   ; Cap.memory_limit >
 
 (*****************************************************************************)
-(* Test infra (mocking the backend) *)
+(* Log and test infra (logging/mocking the backend) *)
 (*****************************************************************************)
 
 (* This type will allow to mock our connections to the Semgrep WebApp backend
- * and make it easier to test osemgrep ci.
+ * and make it easier to debug osemgrep ci.
  * This might also be needed at some point when porting test_ci.py
  *
  * alt: we could use Http_mock_client.ml to mock Semgrep_App.ml but
  *  it seems simpler to mock at the Semgrep_output_v1.atd "RPC" level the
- *  response rather than the Http GET/POST level.
- * alt: move in Semgrep_App.mli instead
+ *  response rather than the HTTP GET/POST level.
+ * alt: move in Semgrep_App.mli instead or in a Mock_Semgrep_App.mli
  *
  * Note that we need to have ['caps] polymorphic param below even though we
  * always use further below '<Cap.network; Auth.cap_token; ..>' because
  * we can't have '..' (a row type variable) inside a monomorphic record.
  *)
 type 'caps app = {
-  (* TODO: rename just deployment? Also in Semgrep_App.mli? *)
+  (* TODO: get rid of this, should not be needed anymore *)
   get_deployment_from_token : 'caps -> Out.deployment_config option;
   start_scan : 'caps -> Out.scan_request -> (Out.scan_response, string) result;
   upload_findings :
@@ -144,8 +149,104 @@ let real_backend : < Cap.network ; Auth.cap_token ; .. > app =
     report_failure = Semgrep_App.report_failure;
   }
 
-(* TODO: let mk_fake_backend dir_with_fake_jsons = ...
+(* This is for 'osemgrep ci --log-backend /tmp/log_dir/' to save all comms
+ * with the backend for debugging purpose. The generated data can also
+ * be useful for --fake-backend as a first draft (see further below).
+ *
+ * alt: do that in Semgrep_App.ml
+ * alt: use Logs.debug instead of saving in files but those JSON can be really
+ *  bit so better not use Logs.debug(). We spent lots of time making the --debug
+ *  logs reasonable in size (that is fitting in GHA log window) so let's keep it
+ *  that way.
+ *  Moreover it is easier with those separate JSON files to go directly to the
+ *  relevant logged JSON response from the backend.
  *)
+
+let mk_log_backend (dir : Fpath.t) : < Cap.network ; Auth.cap_token ; .. > app =
+  if not (UFile.is_dir ~follow_symlinks:false dir) then
+    UFile.make_directories dir;
+  {
+    get_deployment_from_token = real_backend.get_deployment_from_token;
+    start_scan =
+      (fun caps request ->
+        let file = dir / "scan_request.json" in
+        Logs.debug (fun m -> m "saving scan_request in %s" !!file);
+        let str = Out.string_of_scan_request request |> JSON.prettify in
+        UFile.write_file ~file str;
+        let res = real_backend.start_scan caps request in
+        (match res with
+        | Error _ -> ()
+        | Ok scan_response ->
+            let file = dir / "scan_response.json" in
+            Logs.debug (fun m -> m "saving start_scan response in %s" !!file);
+            (* let's not prettify here as the string can be 50MB sometimes *)
+            let str = Out.string_of_scan_response scan_response in
+            UFile.write_file ~file str);
+        res);
+    upload_findings =
+      (fun caps ~scan_id ~results ~complete ->
+        let file = dir / "results.json" in
+        Logs.debug (fun m -> m "saving results in %s" !!file);
+        let str = Out.string_of_ci_scan_results results |> JSON.prettify in
+        UFile.write_file ~file str;
+
+        let file = dir / "complete.json" in
+        Logs.debug (fun m -> m "saving complete in %s" !!file);
+        let str = Out.string_of_ci_scan_complete complete |> JSON.prettify in
+        UFile.write_file ~file str;
+
+        (* less: save the response from the backend *)
+        real_backend.upload_findings caps ~scan_id ~results ~complete);
+    report_failure = real_backend.report_failure;
+  }
+
+(* This is for 'osemgrep ci --fake-backend tests/ci/fake_backend/' to
+ * fake all comms with the backend for debugging (and possibly testing) purpose.
+ *
+ * alt: we could create a separate toy repo and setup the CI config for it
+ *  via the WebApp so one could debug osemgrep ci more easily than on the
+ *  semgrep repo which downloads 50MB of rules each time. However, using
+ *  the --fake-backend option is faster as one can modify directly
+ *  some /fake_backend/.../scan_response.json and we can use those
+ *  fake CI config on the semgrep repo itself.
+ *)
+let mk_fake_backend base (dir : Fpath.t) :
+    < Cap.network ; Auth.cap_token ; .. > app =
+  {
+    get_deployment_from_token = base.get_deployment_from_token;
+    start_scan =
+      (fun _caps _request ->
+        let file = dir / "scan_response.json" in
+        let str = UFile.read_file file in
+        let resp = Out.scan_response_of_string str in
+        Logs.debug (fun m -> m "faking start_scan response from %s" !!file);
+
+        (* This gives the ability to override what is in scan_response.json
+         * rules field with the content of a separate file so one can more
+         * easily adjust the rules.
+         *)
+        let rule_file = dir / "rules.json" in
+        let resp =
+          if Sys.file_exists !!rule_file then begin
+            Logs.debug (fun m ->
+                m "overriding rules in %s using %s" !!file !!rule_file);
+            let rules = UFile.read_file rule_file |> Yojson.Basic.from_string in
+            { resp with config = { resp.config with rules } }
+          end
+          else resp
+        in
+        Ok resp);
+    (* Note that you will most likely get an error from the backend
+     * when uploading the findings because the scan_id in the
+     * scan_response.json has already been used for a previous scan.
+     *
+     * LATER: we could also mock this endpoint and possibly intercept and save
+     * in some JSON files for snapshot testing like in test_ci.py
+     *)
+    upload_findings = base.upload_findings;
+    report_failure = base.report_failure;
+  }
+
 (*****************************************************************************)
 (* Error management *)
 (*****************************************************************************)
@@ -785,8 +886,15 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   | Maturity.Develop ->
       ());
 
-  (* TODO: support a --fake-backend /tmp/dir/with/jsons/answers/ *)
-  let app = real_backend in
+  (* test infra. see tests/ci/fake_backend/ for more info *)
+  let app : _ app =
+    match (ci_conf.fake_backend, ci_conf.log_backend) with
+    | None, None -> real_backend
+    | None, Some dir -> mk_log_backend dir
+    | Some dir, None -> mk_fake_backend real_backend dir
+    | Some dir_fake, Some dir_log ->
+        mk_fake_backend (mk_log_backend dir_log) dir_fake
+  in
 
   (* step1: initialization *)
   CLI_common.setup_logging ~force_color:conf.output_conf.force_color

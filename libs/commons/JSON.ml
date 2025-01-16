@@ -1,4 +1,23 @@
+(* Yoann Padioleau
+ *
+ * Copyright (C) 1998-2025 Yoann Padioleau
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
+ *)
+
 module Y = Yojson.Basic
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
 
 (* a JSON value as a string, e.g., "\"Foobar\"", "true", "[1,2]".
  * TODO: use a JsonStr of string instead of an alias for stricter typeing?
@@ -35,13 +54,9 @@ type ezjsonm =
   | `A of ezjsonm list
   | `O of (string * ezjsonm) list ]
 
-let member m j =
-  match j with
-  | Object members ->
-      List.find_map
-        (fun (m', x) -> if String.equal m m' then Some x else None)
-        members
-  | _ -> None
+(*****************************************************************************)
+(* Converters *)
+(*****************************************************************************)
 
 let rec (to_yojson : t -> yojson) = function
   | Object xs -> `Assoc (xs |> List_.map (fun (s, t) -> (s, to_yojson t)))
@@ -85,6 +100,10 @@ let rec ezjsonm_to_yojson (json : ezjsonm) : yojson =
   | `Float f -> `Float f
   | `Null -> `Null
 
+(*****************************************************************************)
+(* of_string, string_of *)
+(*****************************************************************************)
+
 let json_of_string str =
   let y = Y.from_string str in
   from_yojson y
@@ -97,6 +116,20 @@ let string_of_json ?compact ?recursive ?allow_nan json =
   ignore (compact, recursive, allow_nan);
   let y = to_yojson json in
   Y.to_string ~std:true y
+
+(*****************************************************************************)
+(* Misc *)
+(*****************************************************************************)
+
+let prettify (str : str) : str = Yojson.Basic.prettify str
+
+let member m j =
+  match j with
+  | Object members ->
+      List.find_map
+        (fun (m', x) -> if String.equal m m' then Some x else None)
+        members
+  | _ -> None
 
 (* Essentially List.merge, but with a function for how to combine elements
    which compare equal. *)

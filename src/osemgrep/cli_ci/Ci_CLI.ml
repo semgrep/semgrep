@@ -50,7 +50,13 @@ type conf = {
    * opti flags.
    *)
   scan_conf : Scan_CLI.conf;
+  (* internal only *)
   x_distributed_scan_conf : Distributed_scan_stub.conf;
+  (* osemgrep-only options *)
+  (* path to fake responses for testing purpose (see tests/ci/fake_backend/) *)
+  fake_backend : Fpath.t option;
+  (* path to log dir to save all comms with backend for debugging purpose *)
+  log_backend : Fpath.t option;
 }
 [@@deriving show]
 
@@ -138,6 +144,15 @@ let o_config : string list Term.t =
     Arg.info [ "c"; "f"; "config" ] ~doc:{|Not supported in 'ci' mode|}
   in
   Arg.value (Arg.opt_all Arg.string [] info)
+
+(* osemgrep-only and internal *)
+let o_fake_backend : string option Term.t =
+  let info = Arg.info [ "fake-backend" ] ~doc:{|Internal flag.|} in
+  Arg.value (Arg.opt Arg.(some string) None info)
+
+let o_log_backend : string option Term.t =
+  let info = Arg.info [ "log-backend" ] ~doc:{|Internal flag.|} in
+  Arg.value (Arg.opt Arg.(some string) None info)
 
 (* internal *)
 let o_x_dump_n_rule_partitions : int Term.t =
@@ -367,12 +382,12 @@ let cmdline_term : conf Term.t =
    * it below so we can get a nice man page documenting those environment
    * variables (Romain's idea).
    *)
-  let combine scan_conf audit_on code secrets dry_run _internal_ci_scan_results
+  let combine scan_conf audit_on code dry_run fake_backend log_backend secrets
+      subdir supply_chain suppress_errors _internal_ci_scan_results
       _x_dump_n_rule_partitions _x_dump_rule_partitions_dir
       x_merge_partial_results_dir x_merge_partial_results_output
       _x_partial_config _x_partial_output x_validate_partial_results_actual
-      x_validate_partial_results_expected subdir supply_chain suppress_errors
-      _git_meta _github_meta =
+      x_validate_partial_results_expected _git_meta _github_meta =
     let products =
       (if secrets then [ `Secrets ] else [])
       @ (if code then [ `SAST ] else [])
@@ -396,17 +411,20 @@ let cmdline_term : conf Term.t =
           validate_partial_results_actual =
             Option.map Fpath.v x_validate_partial_results_actual;
         };
+      fake_backend = Option.map Fpath.v fake_backend;
+      log_backend = Option.map Fpath.v log_backend;
     }
   in
   Term.(
-    const combine $ scan_subset_cmdline_term $ o_audit_on $ o_code
-    $ SC.o_secrets $ o_dry_run $ o_internal_ci_scan_results
+    const combine $ scan_subset_cmdline_term $ o_audit_on $ o_code $ o_dry_run
+    $ o_fake_backend $ o_log_backend $ SC.o_secrets $ o_subdir $ o_supply_chain
+    $ o_suppress_errors $ o_internal_ci_scan_results
     $ o_x_dump_n_rule_partitions $ o_x_dump_rule_partitions_dir
     $ o_x_merge_partial_results_dir $ o_x_merge_partial_results_output
     $ o_x_partial_config $ o_x_partial_output
     $ o_x_validate_partial_results_actual
-    $ o_x_validate_partial_results_expected $ o_subdir $ o_supply_chain
-    $ o_suppress_errors $ Git_metadata.env $ Github_metadata.env)
+    $ o_x_validate_partial_results_expected $ Git_metadata.env
+    $ Github_metadata.env)
 
 let doc = "the recommended way to run semgrep in CI"
 
