@@ -380,7 +380,7 @@ let map_import_declaration (env : env) ((v1, v2) : CST.import_declaration) =
     | Some (v1, v2) ->
         let _v1 = (* "as" *) token env v1 in
         let v2 = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v2 in
-        Some (v2, G.empty_id_info ())
+        Some v2
     | None -> None
   in
   (v1, v2)
@@ -662,16 +662,23 @@ let map_import_clause (env : env) (x : CST.import_clause) =
           (fun (v1, v2) ->
             let _v1 = (* "as" *) token env v1 in
             let id = (* pattern [a-zA-Z$_][a-zA-Z0-9$_]* *) str env v2 in
-            (id, G.empty_id_info ()))
+            id)
           v2
       in
       fun timport modname ->
         match (v1, alias_opt) with
         | Left tstar, None -> [ ImportAll (timport, modname, tstar) |> G.d ]
         | Left _tstar, Some alias ->
-            [ ImportAs (timport, modname, Some alias) |> G.d ]
+            [
+              ImportAs (timport, modname, Some (alias, G.empty_id_info ()))
+              |> G.d;
+            ]
         | Right id, alias_opt ->
-            [ ImportFrom (timport, modname, [ (id, alias_opt) ]) |> G.d ])
+            [
+              ImportFrom
+                (timport, modname, [ H2.mk_import_from_kind id alias_opt ])
+              |> G.d;
+            ])
   | `Mult_import (v1, v2, v3) ->
       let _lb = (* "{" *) token env v1 in
       let xs =
@@ -694,7 +701,9 @@ let map_import_clause (env : env) (x : CST.import_clause) =
       fun timport modname ->
         xs
         |> List_.map (fun (id, aliasopt) ->
-               ImportFrom (timport, modname, [ (id, aliasopt) ]) |> G.d)
+               ImportFrom
+                 (timport, modname, [ H2.mk_import_from_kind id aliasopt ])
+               |> G.d)
 
 let map_mapping_key (env : env) (x : CST.mapping_key) : type_ =
   match x with

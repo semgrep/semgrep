@@ -740,7 +740,16 @@ let resolve lang prog =
         | ImportFrom (_, DottedName xs, imported_names) ->
             List.iter
               (function
-                | id, Some (alias, id_info) ->
+                | Aliased (id, (alias, alias_id_info)) ->
+                    (* for python *)
+                    let sid = SId.mk () in
+                    let canonical = dotted_to_canonical (xs @ [ id ]) in
+                    let resolved =
+                      untyped_ent (ImportedEntity canonical, sid)
+                    in
+                    set_resolved env alias_id_info resolved;
+                    add_ident_imported_scope alias resolved env.names
+                | Direct (id, id_info) ->
                     (* for python *)
                     let sid = SId.mk () in
                     let canonical = dotted_to_canonical (xs @ [ id ]) in
@@ -748,20 +757,12 @@ let resolve lang prog =
                       untyped_ent (ImportedEntity canonical, sid)
                     in
                     set_resolved env id_info resolved;
-                    add_ident_imported_scope alias resolved env.names
-                | id, None ->
-                    (* for python *)
-                    let sid = SId.mk () in
-                    let canonical = dotted_to_canonical (xs @ [ id ]) in
-                    let resolved =
-                      untyped_ent (ImportedEntity canonical, sid)
-                    in
                     add_ident_imported_scope id resolved env.names)
               imported_names
         | ImportFrom (_, FileName (s, tok), imported_names) ->
             List.iter
               (function
-                | id, None
+                | Direct (id, id_info)
                   when Lang.is_js lang && fst id <> Ast_js.default_entity ->
                     (* for JS we consider import { x } from 'a/b/foo' as foo.x.
                      * Note that we guard this code with is_js lang, because Python
@@ -774,8 +775,9 @@ let resolve lang prog =
                     let resolved =
                       untyped_ent (ImportedEntity canonical, sid)
                     in
+                    set_resolved env id_info resolved;
                     add_ident_imported_scope id resolved env.names
-                | id, Some (alias, id_info)
+                | Aliased (id, (alias, alias_id_info))
                   when Lang.is_js lang && fst id <> Ast_js.default_entity ->
                     (* for JS *)
                     let sid = SId.mk () in
@@ -785,7 +787,7 @@ let resolve lang prog =
                     let resolved =
                       untyped_ent (ImportedEntity canonical, sid)
                     in
-                    set_resolved env id_info resolved;
+                    set_resolved env alias_id_info resolved;
                     add_ident_imported_scope alias resolved env.names
                 | _ -> ())
               imported_names

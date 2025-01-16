@@ -692,11 +692,11 @@ and map_import_subject (env : env) (x : CST.anon_choice_impo_a542259) =
   | `Impo x -> (
       (* We cannot import as a scoped identifier. *)
       match map_importable env x with
-      | Some [ id ] -> Some (id, None)
+      | Some [ id ] -> Some (H2.mk_import_from_kind id None)
       | __else__ -> None)
   | `Import_alias x -> (
       match map_import_alias env x with
-      | Some ([ id ], alias) -> Some (id, Some alias)
+      | Some ([ id ], alias) -> Some (H2.mk_import_from_kind id (Some alias))
       | _ -> None)
 
 and map_anon_choice_impo_a542259 (env : env) (x : CST.anon_choice_impo_a542259)
@@ -1524,11 +1524,11 @@ and map_function_signature ~body ~func_tok (env : env)
   (ent, { fkind = (Function, func_tok); fparams; frettype; fbody = body })
 
 and map_import_alias (env : env) ((v1, v2, v3) : CST.import_alias) :
-    (dotted_ident * alias) option =
+    (dotted_ident * ident) option =
   let* v1 = map_importable env v1 in
   let _v2 = (* "as" *) token env v2 in
   let v3 = map_identifier env v3 in
-  Some (v1, (v3, empty_id_info ()))
+  Some (v1, v3)
 
 and map_import_list (env : env) ((v1, v2) : CST.import_list) =
   let v1 = map_anon_choice_impo_a542259 env v1 in
@@ -2154,14 +2154,14 @@ and map_statement (env : env) (x : CST.statement) : stmt list =
                 map_import_list env x
                 (* Filter map here, as unrelated imports need not interfere with each other. *)
                 |> List_.filter_map Fun.id
-                |> List_.map (fun (dotted, aliasopt) ->
+                |> List_.map (fun (dotted, idopt) ->
                        if is_using then
                          let dk =
                            ImportAll (tk, DottedName dotted, tk) |> G.d
                          in
-                         match aliasopt with
+                         match idopt with
                          | None -> dk
-                         | Some (id, _idinfo) ->
+                         | Some id ->
                              (* It doesn't really make sense to me how you would use an `as`
                                  in conjunction with something which is like a wildcard import.
                                  In fact, the Julia documentation says you're not supposed to do
@@ -2173,7 +2173,13 @@ and map_statement (env : env) (x : CST.statement) : stmt list =
                                ( ("using_as", G.fake "using_as"),
                                  [ G.Dir dk; G.I id ] )
                              |> G.d
-                       else ImportAs (tk, DottedName dotted, aliasopt) |> G.d)
+                       else
+                         let aliasopt =
+                           match idopt with
+                           | None -> None
+                           | Some id -> Some (id, G.empty_id_info ())
+                         in
+                         ImportAs (tk, DottedName dotted, aliasopt) |> G.d)
             | `Sele_import x -> (
                 match map_selected_import ~import_tok:tk env x with
                 | None -> []

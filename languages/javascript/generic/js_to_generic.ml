@@ -728,8 +728,8 @@ and module_directive x =
       let v1 =
         List_.map
           (fun (v1, v2) ->
-            let v1 = name v1 and v2 = option alias v2 in
-            (v1, v2))
+            let v1 = name v1 and v2 = option name v2 in
+            H.mk_import_from_kind v1 v2)
           v1
       in
       let v2 = filename v2 in

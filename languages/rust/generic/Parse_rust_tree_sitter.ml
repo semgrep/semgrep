@@ -2976,7 +2976,10 @@ and map_use_clause (env : env) (x : CST.use_clause) use : G.directive list =
   | `Choice_self x ->
       let dots, ident = map_path_ident env x in
       let modname = G.DottedName dots in
-      [ G.ImportFrom (use, modname, [ (ident, None) ]) |> G.d ]
+      [
+        G.ImportFrom (use, modname, [ H2.mk_import_from_kind ident None ])
+        |> G.d;
+      ]
   | `Use_as_clause (v1, v2, v3) ->
       let dots, ident_ = map_path_ident env v1 in
       let modname = G.DottedName dots in
@@ -2985,7 +2988,7 @@ and map_use_clause (env : env) (x : CST.use_clause) use : G.directive list =
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
       [
         G.ImportFrom
-          (use, modname, [ (ident_, Some (alias, G.empty_id_info ())) ])
+          (use, modname, [ H2.mk_import_from_kind ident_ (Some alias) ])
         |> G.d;
       ]
   | `Use_list x -> map_use_list env x use None

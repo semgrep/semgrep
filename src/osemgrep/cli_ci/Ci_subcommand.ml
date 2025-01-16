@@ -868,6 +868,7 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
         deepsemgrep = _;
         dependency_query = _;
         path_to_transitivity = _;
+        scan_all_deps_in_diff_scan = _;
         ignored_files = _;
         product_ignored_files = _;
         generic_slow_rollout = _;

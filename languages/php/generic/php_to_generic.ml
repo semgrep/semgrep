@@ -182,7 +182,9 @@ let rec stmt_aux = function
               [
                 G.DirectiveStmt
                   (G.ImportFrom
-                     (t, G.DottedName (List.rev path), [ (name, None) ])
+                     ( t,
+                       G.DottedName (List.rev path),
+                       [ H.mk_import_from_kind name None ] )
                   |> G.d)
                 |> G.s;
               ]

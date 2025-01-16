@@ -129,16 +129,21 @@ and v_import_expr tk import_expr =
       v_import_spec tk module_name spec
   | ImportExprMvar id ->
       (* same as Java *)
-      [ G.ImportFrom (tk, G.DottedName [], [ (v_ident id, None) ]) |> G.d ]
+      [
+        G.ImportFrom
+          (tk, G.DottedName [], [ H.mk_import_from_kind (v_ident id) None ])
+        |> G.d;
+      ]
 
 and v_named_selector tk path ((v1, v2) : named_selector) =
   let id = id_of_import_path_elem v1 in
   let alias =
     match v2 with
     | None -> None
-    | Some id -> Some (v_ident_or_wildcard id, G.empty_id_info ())
+    | Some id -> Some (v_ident_or_wildcard id)
   in
-  G.ImportFrom (tk, G.DottedName path, [ (id, alias) ]) |> G.d
+  G.ImportFrom (tk, G.DottedName path, [ H.mk_import_from_kind id alias ])
+  |> G.d
 
 and v_wildcard_selector tk path (x : wildcard_selector) =
   match x with

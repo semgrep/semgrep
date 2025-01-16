@@ -1470,7 +1470,7 @@ and vof_directive_kind = function
   | ImportFrom (t, v1, v2) ->
       let t = vof_tok t in
       let v1 = vof_module_name v1 in
-      let v2 = OCaml.vof_list vof_alias v2 in
+      let v2 = OCaml.vof_list vof_import_from_kind v2 in
       OCaml.VSum ("ImportFrom", [ t; v1; v2 ])
   | ImportAs (t, v1, v2) ->
       let t = vof_tok t in
@@ -1495,9 +1495,15 @@ and vof_directive_kind = function
       let v1 = vof_todo_kind v1 and v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("OtherDirective", [ v1; v2 ])
 
-and vof_alias (v1, v2) =
-  let v1 = vof_ident v1 and v2 = OCaml.vof_option vof_ident_and_id_info v2 in
-  OCaml.VTuple [ v1; v2 ]
+and vof_alias x = vof_ident_and_id_info x
+
+and vof_import_from_kind = function
+  | Direct v1 ->
+      let v1 = vof_alias v1 in
+      OCaml.VSum ("Direct", [ v1 ])
+  | Aliased (v1, v2) ->
+      let v1 = vof_ident v1 and v2 = vof_alias v2 in
+      OCaml.VSum ("Aliased", [ v1; v2 ])
 
 and vof_item x = vof_stmt x
 and vof_program v = OCaml.vof_list vof_item v

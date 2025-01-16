@@ -178,7 +178,7 @@
  * convenient to correspond mostly to Semgrep versions. So version below
  * can jump from "1.12.1" to "1.20.0" and that's fine.
  *)
-let version = "1.100.0"
+let version = "1.103.0"
 
 (*****************************************************************************)
 (* Some notes on deriving *)
@@ -2058,7 +2058,7 @@ and directive_kind =
          * those documented in #5305 and #6532. Removing this desugaring lets us
          * match, for example, a pattern and a target which import the same
          * things but in a different order. *)
-      * (ident * alias option (* as name alias *)) list
+      * import_from_kind list
   | ImportAs of tok * module_name * alias option (* as name *)
   (* Bad practice! hard to resolve name locally.
    * We use ImportAll for C/C++ '#include', C++ 'using namespace', wildcard
@@ -2087,6 +2087,14 @@ and directive_kind =
 
 (* xxx as name *)
 and alias = ident * id_info
+
+and import_from_kind =
+  (* non-aliased import, like Python `from a import b` *)
+  | Direct of alias
+  (* import which is aliased into a different name, like Python
+     `from a import b as c`
+  *)
+  | Aliased of ident * alias
 
 (*****************************************************************************)
 (* Toplevel *)

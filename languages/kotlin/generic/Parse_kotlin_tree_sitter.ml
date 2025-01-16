@@ -430,7 +430,8 @@ let import_header (env : env) ((v1, v2, v3, v4) : CST.import_header) : directive
           | [] -> raise Common.Impossible
           | x :: xs -> (x, List.rev xs)
         in
-        ImportFrom (v1, DottedName module_name, [ (ident, None) ])
+        ImportFrom
+          (v1, DottedName module_name, [ H2.mk_import_from_kind ident None ])
   in
   let _v4 = semi env v4 (* pattern [\r\n]+ *) in
   v3 |> G.d

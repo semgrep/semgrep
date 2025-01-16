@@ -805,7 +805,7 @@ and stmt_aux env x =
       let mname = module_name env v1 and v2 = info v2 in
       [ G.DirectiveStmt (G.ImportAll (t, mname, v2) |> G.d) |> G.s ]
   | ImportFrom (t, v1, v2) ->
-      let v1 = module_name env v1 and v2 = list (alias env) v2 in
+      let v1 = module_name env v1 and v2 = list (import_from_kind env) v2 in
       [ G.DirectiveStmt (G.ImportFrom (t, v1, v2) |> G.d) |> G.s ]
   | Global (t, v1)
   | NonLocal (t, v1) ->
@@ -855,6 +855,8 @@ and case env = function
 and ident_and_id_info env x =
   let x = name env x in
   (x, G.empty_id_info ())
+
+and import_from_kind _env (ident, asopt) = H.mk_import_from_kind ident asopt
 
 (* try avoid using that function as it may introduce
  * intermediate Block that could prevent some semgrep matching
@@ -950,16 +952,6 @@ and decorator env (t, v1) =
   | None ->
       let v1 = expr env v1 in
       pip0614_expr_attr t [ G.E v1 ]
-
-and alias env (v1, v2) =
-  let v1 = name env v1 and v2 = option (ident_and_id_info env) v2 in
-  let imported_ident =
-    match v2 with
-    | None -> v1
-    | Some (id, _) -> id
-  in
-  env.imported <- fst imported_ident :: env.imported;
-  (v1, v2)
 
 let program ?(assign_to_vardef = false) v =
   let env : env = empty_env ~assign_to_vardef InSourceToplevel in

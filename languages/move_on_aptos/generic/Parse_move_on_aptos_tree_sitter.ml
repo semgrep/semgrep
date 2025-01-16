@@ -298,13 +298,11 @@ let map_type_param (env : env) attrs (x : CST.type_param) : G.type_parameter =
 let map_numerical_addr (env : env) (x : CST.numerical_addr) = map_number env x
 
 let map_use_member (env : env) (x : CST.use_member) :
-    (G.ident * G.alias option) option =
+    (G.ident * G.ident option) option =
   match x with
   | `Id_opt_use_alias (v1, v2) ->
       let name = (* identifier *) str env v1 in
-      let alias =
-        Option.map (fun x -> (map_use_alias env x, G.empty_id_info ())) v2
-      in
+      let alias = Option.map (fun x -> map_use_alias env x) v2 in
       Some (name, alias)
   | `Ellips tok -> (* "..." *) None
 
@@ -527,11 +525,15 @@ let map_use_decl (env : env) attrs ((v1, v2, v3, v4) : CST.use_decl) :
               G.ImportFrom
                 ( use_,
                   G.DottedName [ addr ],
-                  [ (mod_name, Some (alias, G.empty_id_info ())) ] );
+                  [ H2.mk_import_from_kind mod_name (Some alias) ] );
             ]
         | None ->
-            [ G.ImportFrom (use_, G.DottedName [ addr ], [ (mod_name, None) ]) ]
-        )
+            [
+              G.ImportFrom
+                ( use_,
+                  G.DottedName [ addr ],
+                  [ H2.mk_import_from_kind mod_name None ] );
+            ])
     | `COLONCOLON_use_member (v1, v2) ->
         let v1 = (* "::" *) token env v1 in
         map_use_member env v2
@@ -539,10 +541,14 @@ let map_use_decl (env : env) attrs ((v1, v2, v3, v4) : CST.use_decl) :
                match name with
                | "Self", _ ->
                    G.ImportFrom
-                     (use_, G.DottedName [ addr ], [ (mod_name, alias) ])
+                     ( use_,
+                       G.DottedName [ addr ],
+                       [ H2.mk_import_from_kind mod_name alias ] )
                | _ ->
                    G.ImportFrom
-                     (use_, G.DottedName [ addr; mod_name ], [ (name, alias) ]))
+                     ( use_,
+                       G.DottedName [ addr; mod_name ],
+                       [ H2.mk_import_from_kind name alias ] ))
         |> Option.to_list
     | `COLONCOLON_LCURL_opt_use_member_rep_COMMA_use_member_opt_COMMA_RCURL
         (v1, v2, v3, v4, v5) ->
@@ -568,16 +574,20 @@ let map_use_decl (env : env) attrs ((v1, v2, v3, v4) : CST.use_decl) :
         let _comma = v4 |> Option.map (fun x -> (* "," *) token env x) in
         let v5 = (* "}" *) token env v5 in
 
-        (* [ G.ImportFrom (use_, G.DottedName [ addr; mod_name ], members) ] *)
+        (* [ G.ImportFrom (use_, G.DottedName [ addr; mod_name_resolvable ], members) ] *)
         members
         |> List_.map (fun (name, alias) ->
                match name with
                | "Self", _ ->
                    G.ImportFrom
-                     (use_, G.DottedName [ addr ], [ (mod_name, alias) ])
+                     ( use_,
+                       G.DottedName [ addr ],
+                       [ H2.mk_import_from_kind mod_name alias ] )
                | _ ->
                    G.ImportFrom
-                     (use_, G.DottedName [ addr; mod_name ], [ (name, alias) ]))
+                     ( use_,
+                       G.DottedName [ addr; mod_name ],
+                       [ H2.mk_import_from_kind name alias ] ))
   in
 
   let _semicolon = (* ";" *) token env v4 in

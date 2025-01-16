@@ -731,7 +731,7 @@ and import = function
   | ImportAll (t, xs, tok) -> G.ImportAll (t, G.DottedName xs, tok)
   | ImportFrom (t, xs, id) ->
       let id = ident id in
-      G.ImportFrom (t, G.DottedName xs, [ (id, None) ])
+      G.ImportFrom (t, G.DottedName xs, [ H.mk_import_from_kind id None ])
 
 and directive = function
   | Import (static, v2) ->

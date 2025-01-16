@@ -3115,7 +3115,9 @@ let map_import_specification (env : env) (x : CST.import_specification) =
               ImportAll (v1, uri, sc)
           | _ ->
               (* If there are selective imports, convert to an ImportFrom. *)
-              let selected = List_.map (fun id -> (id, None)) v4 in
+              let selected =
+                List_.map (fun id -> H2.mk_import_from_kind id None) v4
+              in
               ImportFrom (v1, uri, selected)))
   | `Import_uri_defe_as_id_rep_comb_semi (v1, v2, v3, v4, v5, v6, v7) ->
       (* This is a 'lazy import'.

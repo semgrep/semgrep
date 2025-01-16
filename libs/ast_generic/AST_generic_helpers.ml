@@ -135,6 +135,23 @@ let add_suffix_to_name suffix name =
           name_middle = new_name_middle;
         }
 
+let alias_of_ident id : AST_generic.alias = (id, empty_id_info ())
+
+let mk_import_from_kind (ident : ident) (as_ : ident option) :
+    AST_generic.import_from_kind =
+  match as_ with
+  | None -> Direct (ident, empty_id_info ())
+  | Some as_ -> Aliased (ident, (as_, empty_id_info ()))
+
+let id_of_import_from_kind = function
+  | Direct (id, _)
+  | Aliased (id, _) ->
+      id
+
+let alias_opt_of_import_from_kind = function
+  | Direct _ -> None
+  | Aliased (_, alias) -> Some alias
+
 let name_of_id ?(case_insensitive = false) id =
   Id (id, empty_id_info ~case_insensitive ())
 

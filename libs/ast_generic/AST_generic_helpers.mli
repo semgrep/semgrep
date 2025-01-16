@@ -42,6 +42,18 @@ val funcbody_to_stmt : AST_generic.function_body -> AST_generic.stmt
 
 (* name building *)
 
+val alias_of_ident : AST_generic.ident -> AST_generic.alias
+
+val mk_import_from_kind :
+  (* from *) AST_generic.ident ->
+  (* as *) AST_generic.ident option ->
+  AST_generic.import_from_kind
+
+val id_of_import_from_kind : AST_generic.import_from_kind -> AST_generic.ident
+
+val alias_opt_of_import_from_kind :
+  AST_generic.import_from_kind -> AST_generic.alias option
+
 val name_of_id : ?case_insensitive:bool -> AST_generic.ident -> AST_generic.name
 
 val name_of_ids :

@@ -1288,7 +1288,7 @@ and map_directive_kind = function
   | ImportFrom (t, v1, v2) ->
       let t = map_tok t in
       let v1 = map_module_name v1 in
-      let v2 = map_of_list map_alias v2 in
+      let v2 = map_of_list map_import_from_kind v2 in
       `ImportFrom (t, v1, v2)
   | ImportAs (t, v1, v2) ->
       let t = map_tok t in
@@ -1319,9 +1319,15 @@ and map_ident_and_id_info (v1, v2) =
   let v2 = map_id_info v2 in
   (v1, v2)
 
-and map_alias (v1, v2) =
-  let v1 = map_ident v1 and v2 = map_of_option map_ident_and_id_info v2 in
-  (v1, v2)
+and map_alias v = map_ident_and_id_info v
+
+and map_import_from_kind = function
+  | Direct v1 ->
+      let v1 = map_alias v1 in
+      `Direct v1
+  | Aliased (v1, v2) ->
+      let v1 = map_ident v1 and v2 = map_alias v2 in
+      `Aliased (v1, v2)
 
 and map_item x = map_stmt x
 and map_program v = map_of_list map_item v

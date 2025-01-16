@@ -205,16 +205,17 @@ let get_members_from_member_list member_list =
 
 let map_inner_directive (address, mod_name, name, label) : G.directive_kind =
   let use = G.fake "use" in
-  let alias =
-    match label with
-    | Some x -> Some (x, G.empty_id_info ())
-    | None -> None
-  in
   match name with
   | "Self", _ ->
-      G.ImportFrom (use, G.DottedName [ address ], [ (mod_name, alias) ])
+      G.ImportFrom
+        ( use,
+          G.DottedName [ address ],
+          [ H2.mk_import_from_kind mod_name label ] )
   | _ ->
-      G.ImportFrom (use, G.DottedName [ address; mod_name ], [ (name, alias) ])
+      G.ImportFrom
+        ( use,
+          G.DottedName [ address; mod_name ],
+          [ H2.mk_import_from_kind name label ] )
 
 let map_inner_directive_mod (address, mod_name, label) : G.directive_kind =
   let use = G.fake "use" in
@@ -223,7 +224,8 @@ let map_inner_directive_mod (address, mod_name, label) : G.directive_kind =
     | Some x -> Some (x, G.empty_id_info ())
     | None -> None
   in
-  G.ImportFrom (use, G.DottedName [ address ], [ (mod_name, alias) ])
+  G.ImportFrom
+    (use, G.DottedName [ address ], [ H2.mk_import_from_kind mod_name label ])
 
 let map_member_to_directive member_list : G.directive_kind list =
   let out =
@@ -712,12 +714,14 @@ let map_use_module (env : env) ((v1, v2) : CST.use_module) : directive_kind list
           G.ImportFrom
             ( use,
               G.DottedName [ adderss_ident ],
-              [ (mod_name_ident, Some (alias_ident, G.empty_id_info ())) ] );
+              [ H2.mk_import_from_kind mod_name_ident (Some alias_ident) ] );
         ]
     | None ->
         [
           G.ImportFrom
-            (use, G.DottedName [ adderss_ident ], [ (mod_name_ident, None) ]);
+            ( use,
+              G.DottedName [ adderss_ident ],
+              [ H2.mk_import_from_kind mod_name_ident None ] );
         ]
   in
   directive
@@ -818,8 +822,8 @@ let map_use_fun (env : env) ((v1, v2, v3, v4, v5, v6) : CST.use_fun) :
                 ( use,
                   G.DottedName [ address_ident ],
                   [
-                    ( mod_name_ident,
-                      Some (alias_mod_name_ident, G.empty_id_info ()) );
+                    H2.mk_import_from_kind mod_name_ident
+                      (Some alias_mod_name_ident);
                   ] );
             ]
         | None ->
@@ -827,7 +831,7 @@ let map_use_fun (env : env) ((v1, v2, v3, v4, v5, v6) : CST.use_fun) :
               G.ImportFrom
                 ( use,
                   G.DottedName [ address_ident; mod_name_ident ],
-                  [ (function_ident, None) ] );
+                  [ H2.mk_import_from_kind function_ident None ] );
             ])
     | _ -> []
   in

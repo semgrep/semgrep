@@ -3629,8 +3629,8 @@ and m_directive a b =
            (function
              (* None here means that there is no local alias for the imported
               * name. *)
-             | _imported_name, None -> true
-             | _imported_name, Some _aliases -> false)
+             | G.Direct _ -> true
+             | Aliased _ -> false)
            imports ->
       m_normalized_imports a.d b.d
   | G.ImportAs (_, _, None) -> m_normalized_imports a.d b.d
@@ -3740,21 +3740,42 @@ and m_directive_vs_def a b =
 (* This is specific to JS/TS. See m_directive_vs_def. *)
 and m_import_vs_field a b =
   match (a, b) with
-  | ( (ida, aliasa),
+  | ( _,
       B.F
         {
           s =
             DefStmt
-              ( { name = EN (Id (idb, _)); attrs = []; tparams = None },
-                FieldDefColon { vinit = Some { e = N (Id (aliasb, _)); _ }; _ }
-              );
+              ( { name = EN (Id (id_b, _id_info_b)); attrs = []; tparams = None },
+                FieldDefColon
+                  {
+                    vinit = Some { e = N (Id (alias_id_b, alias_id_info_b)); _ };
+                    _;
+                  } );
           _;
         } ) -> (
-      let* () = m_ident ida idb in
-      match aliasa with
-      | None -> m_ident ida aliasb
-      | Some (aliasa, _) -> m_ident aliasa aliasb)
+      let id_a =
+        match a with
+        | G.Direct (id_a, _id_info_a) -> id_a
+        | Aliased (id_a, _) -> id_a
+      in
+      let alias_a =
+        match a with
+        | G.Direct _ -> None
+        | Aliased (_, alias_a) -> Some alias_a
+      in
+      let* () = m_ident id_a id_b in
+      match alias_a with
+      | None -> m_ident id_a alias_id_b
+      | Some aliasa -> m_ident_and_id_info aliasa (alias_id_b, alias_id_info_b))
   | _ -> fail ()
+
+and m_import_from_kind a b : tin -> tout =
+  let ident_a = H.id_of_import_from_kind a
+  and ident_b = H.id_of_import_from_kind b in
+  let alias_a = H.alias_opt_of_import_from_kind a
+  and alias_b = H.alias_opt_of_import_from_kind b in
+  m_ident_and_empty_id_info ident_a ident_b >>= fun () ->
+  m_option_none_can_match_some m_ident_and_id_info alias_a alias_b
 
 (* less-is-ok: a few of these below with the use of m_module_name_prefix and
  * m_option_none_can_match_some.
@@ -3765,21 +3786,21 @@ and m_directive_basic a b =
   (* metavar: import $LIB should bind $LIB to the full qualified name *)
   (* TODO Should we handle imports with multiple imported names here? Which
    * import would the metavar bind to? *)
-  | ( G.ImportFrom (a0, DottedName [], [ ((str, tok), a3) ]),
-      B.ImportFrom (b0, DottedName xs, [ (x, b3) ]) )
-    when Mvar.is_metavar_name str ->
+  | ( G.ImportFrom (a0, DottedName [], [ ifk_a ]),
+      B.ImportFrom (b0, DottedName xs, [ ifk_b ]) )
+    when Mvar.is_metavar_name (fst (H.id_of_import_from_kind ifk_a)) ->
+      let str, tok = H.id_of_import_from_kind ifk_a in
+      let x = H.id_of_import_from_kind ifk_b in
       let name = H.name_of_ids (xs @ [ x ]) in
+      let alias_a = H.alias_opt_of_import_from_kind ifk_a in
+      let alias_b = H.alias_opt_of_import_from_kind ifk_b in
       let* () = m_tok a0 b0 in
       let* () = envf (str, tok) (MV.N name) in
-      (m_option_none_can_match_some m_ident_and_id_info) a3 b3
+      (m_option_none_can_match_some m_ident_and_id_info) alias_a alias_b
   | G.ImportFrom (a0, a1, a2), B.ImportFrom (b0, b1, b2) ->
       m_tok a0 b0 >>= fun () ->
       m_module_name_prefix a1 b1 >>= fun () ->
-      let f (x1, x2) (y1, y2) =
-        m_ident_and_empty_id_info x1 y1 >>= fun () ->
-        (m_option_none_can_match_some m_ident_and_id_info) x2 y2
-      in
-      m_list_in_any_order ~less_is_ok:true f a2 b2
+      m_list_in_any_order ~less_is_ok:true m_import_from_kind a2 b2
   | G.ImportAs (a0, a1, a2), B.ImportAs (b0, b1, b2) ->
       m_tok a0 b0 >>= fun () ->
       m_module_name_prefix a1 b1 >>= fun () ->

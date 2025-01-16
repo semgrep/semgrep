@@ -57,10 +57,14 @@ let full_module_names is_pattern from_module_name imports_opt =
 
 let normalize_import_opt is_pattern i =
   match i with
-  | ImportFrom (t, module_name, imports) ->
+  | ImportFrom (t, module_name, import_from_kinds) ->
       let imports =
         (* Drop the local aliases *)
-        List_.map fst imports
+        List_.map
+          (function
+            | Direct (id, _id_info) -> id
+            | Aliased (id, _) -> id)
+          import_from_kinds
       in
       let* x = full_module_names is_pattern module_name (Some imports) in
       Some (t, x)

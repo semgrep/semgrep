@@ -2033,7 +2033,10 @@ and map_using_kind env x : G.tok -> (G.directive, G.definition) Either.t =
         | [] -> error tk "Empty name in UsingName"
         | x :: xs ->
             let dots = List.rev xs in
-            Left (G.ImportFrom (tk, G.DottedName dots, [ (x, None) ]) |> G.d))
+            Left
+              (G.ImportFrom
+                 (tk, G.DottedName dots, [ H.mk_import_from_kind x None ])
+              |> G.d))
   | UsingNamespace (v1, v2) ->
       let v1 = map_tok env v1 and v2 = map_a_ident_name env v2 in
       fun tk ->
@@ -2056,7 +2059,10 @@ and map_using_kind env x : G.tok -> (G.directive, G.definition) Either.t =
         | [] -> error tk "Empty name in UsingName"
         | x :: xs ->
             let dots = List.rev xs in
-            Left (G.ImportFrom (tk, G.DottedName dots, [ (x, None) ]) |> G.d))
+            Left
+              (G.ImportFrom
+                 (tk, G.DottedName dots, [ H.mk_import_from_kind x None ])
+              |> G.d))
 
 and map_cpp_directive env x : (G.directive, G.definition) Either.t =
   match x with
