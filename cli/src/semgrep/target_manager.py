@@ -480,10 +480,15 @@ class Target:
         git ls-files is significantly faster than os.walk when performed on a git project,
         so identify the git files first, then filter those
         """
+        # Instead of crashing when we encounter a file with non utf-8 characters, we replace invalid
+        # characters e.g if 'c' was not a utf-8 char then abc.ml -> ab?.ml. Since ab?.ml doesn't
+        # exist, the file abc.ml will not be processed, and any attempts to access ab?.ml by semgrep
+        # later is handled properly.
         run_git_command = partial(
             sub_check_output,
             cwd=self.path.resolve(),
             encoding="utf-8",
+            errors="replace",
             stderr=subprocess.DEVNULL,
         )
 
