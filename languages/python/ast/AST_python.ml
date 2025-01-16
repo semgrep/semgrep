@@ -100,21 +100,24 @@ type module_name =
 (*****************************************************************************)
 (* Expression *)
 (*****************************************************************************)
-type expr =
+
+type literal =
   | Num of number (* n *)
   (* TODO: cleanup strings, have prefix in string wrap, then
    * content is string wrap bracket where bracket are enclosing
    * quote/double-quote/triple-quotes
    *)
   | Str of string wrap
+  | Bool of bool wrap
+  | None_ of tok
+
+and expr =
+  | Literal of literal
   (* s *)
   (* TODO bracket *)
   (* TODO: we should split the token in r'foo' in two, one string wrap
    * for the prefix and a string wrap for the string itself. *)
   | EncodedStr of string wrap * string (* prefix *)
-  (* python3: true/false are now officially reserved keywords *)
-  | Bool of bool wrap
-  | None_ of tok
   (* Introduce new vars when expr_context = Store.
    * Note that the ident can be "self".
    * alt: we could use an IdSpecial for it but self is actually not a
@@ -160,6 +163,11 @@ type expr =
   (* =~ ObjAccess *)
   | Attribute of
       expr (* value *) * tok (* . *) * name (* attr *) * expr_context (* ctx *)
+  (* type-only:
+     this should not show up in ordinary exprs, but we share the same type
+     for both exprs and types right now
+  *)
+  | ConstrainedType of type_ * tok * expr
   (* sgrep-ext: typing-ext: *)
   | Ellipsis of tok (* should be only in .pyi, types Dict[str,...], or sgrep *)
   (* sgrep-ext: *)
@@ -262,7 +270,7 @@ and parameter =
    * TODO? merge with ParamDefault
    *)
   | ParamPattern of param_pattern * type_ option
-  | ParamDefault of (name * type_ option) * expr (* default value *)
+  | ParamDefault of (param_pattern * type_ option) * expr (* default value *)
   (* TODO: tree-sitter-python allows also a Subscript or Attribute instead
    * of just name, what is that?? *)
   | ParamStar of tok (* '*' *) * (name * type_ option)
@@ -306,8 +314,24 @@ and type_parent = argument
 (*****************************************************************************)
 (* Name, Tuple (CompList), List( CompList), Attribute, Subscript,
  * or ExprStar(Name|Attribute|Subscript), or more? *)
-and pattern = expr [@@deriving show { with_path = false }]
 (* with tarzan *)
+and pattern =
+  | PatName of name
+  | PatInterpolatedString of tok * interpolated list * tok
+  | PatConcatenatedString of interpolated list (* always Str *)
+  | PatAttribute of pattern * tok * name
+  | PatConstructor of dotted_name * pattern list bracket
+  | PatSplat of tok * pattern
+  | PatDisj of pattern list
+  | PatList of pattern list bracket
+  | PatTuple of pattern list bracket
+  | PatDict of pattern list bracket
+  | PatLiteral of literal
+  | PatAs of pattern * (* as *) tok * name
+  | PatUnderscore of tok
+  | PatComplex of tok option * number * tok * number
+  | PatKeyVal of pattern * (* = *) tok * pattern
+[@@deriving show { with_path = false }]
 
 (*****************************************************************************)
 (* Statement *)
@@ -331,7 +355,7 @@ type stmt =
   | Cast of expr * tok * type_
   | For of
       tok
-      * pattern (* (pattern) introduce new vars *)
+      * expr (* (pattern) introduce new vars *)
       * tok
       * expr (* 'in' iter *)
       * stmt list (* body *)
@@ -387,6 +411,7 @@ type stmt =
   (* should be allowed just at the toplevel *)
   | FunctionDef of function_definition
   | ClassDef of class_definition
+  | TypeAliasDef of tok * expr * expr
 
 and case_and_body =
   | CasesAndBody of case list * stmt list

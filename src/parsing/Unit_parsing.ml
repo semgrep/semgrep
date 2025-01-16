@@ -248,6 +248,7 @@ let langs_with_error_tolerance =
     (Lang.C, Strict);
     (Lang.Cpp, Strict);
     (Lang.Php, Strict);
+    (Lang.Python, Strict);
     (Lang.Ocaml, Strict);
     (* recursive descent parser *)
     (Lang.Scala, Strict);

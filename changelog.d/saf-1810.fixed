@@ -1,0 +1,2 @@
+Python: Parser updated to the most recent tree-sitter grammar.
+Parse rate from 99.8% -> 99.998%.

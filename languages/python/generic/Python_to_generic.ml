@@ -147,24 +147,13 @@ let rec expr env (x : expr) =
   | DotAccessEllipsis (v1, v2) ->
       let v1 = expr env v1 in
       G.DotAccessEllipsis (v1, v2) |> G.e
-  | Bool v1 ->
-      let v1 = wrap bool v1 in
-      G.L (G.Bool v1) |> G.e
-  | None_ x ->
-      let x = info x in
-      G.L (G.Null x) |> G.e
   | Ellipsis x ->
       let x = info x in
       G.Ellipsis x |> G.e
   | DeepEllipsis x ->
       let x = bracket (expr env) x in
       G.DeepEllipsis x |> G.e
-  | Num v1 ->
-      let v1 = number v1 in
-      G.L v1 |> G.e
-  | Str v1 ->
-      let v1 = wrap string v1 in
-      G.L (G.String (fb v1)) |> G.e
+  | Literal l -> G.L (literal env l) |> G.e
   | EncodedStr (v1, pre) ->
       let v1 = wrap string v1 in
       (* bugfix: do not reuse the same tok! otherwise in semgrep
@@ -249,6 +238,10 @@ let rec expr env (x : expr) =
   | Attribute (v1, t, v2, _expr_ctx) ->
       let v1 = expr env v1 and t = info t and v2 = name env v2 in
       G.DotAccess (v1, t, G.FN (G.Id (v2, G.empty_id_info ()))) |> G.e
+  (* this shouldn't occur in expr position but let's handle it gracefully *)
+  | ConstrainedType (v1, v2, v3) ->
+      let v1 = type_ env v1 and v3 = expr env v3 in
+      G.OtherExpr (("ConstrainedType", v2), [ G.T v1; G.E v3 ]) |> G.e
   | DictOrSet (CompList (t1, v, t2)) ->
       let v' = list (dictorset_elt env) v in
       let kind =
@@ -327,6 +320,20 @@ let rec expr env (x : expr) =
       let e = expr env e in
       H.set_e_range l r e;
       e
+
+and literal _env = function
+  | Bool v1 ->
+      let v1 = wrap bool v1 in
+      G.Bool v1
+  | None_ x ->
+      let x = info x in
+      G.Null x
+  | Num v1 ->
+      let v1 = number v1 in
+      v1
+  | Str v1 ->
+      let v1 = wrap string v1 in
+      G.String (fb v1)
 
 and argument env = function
   | Arg e ->
@@ -453,26 +460,30 @@ and slice env e = function
       and v3 = option (expr env) v3 in
       G.SliceAccess (e, fb (v1, v2, v3)) |> G.e
 
-and param_pattern env = function
+and param_pattern_pat env = function
   | PatternName n -> G.PatId (name env n, G.empty_id_info ())
   | PatternTuple t ->
-      let t = list (param_pattern env) t in
-      G.PatTuple (Tok.unsafe_fake_bracket t)
+      let t = list (param_pattern_pat env) t in
+      PatTuple (Tok.unsafe_fake_bracket t)
 
 and parameters env xs : G.parameter list =
+  let param_of_param_pattern ~topt ~eopt = function
+    | PatternName n ->
+        let n = name env n in
+        G.Param { (G.param_of_id n) with G.ptype = topt; pdefault = eopt }
+    | PatternTuple ps ->
+        let ps = list (param_pattern_pat env) ps in
+        G.ParamPattern (PatTuple (fb ps))
+  in
   xs
   |> List_.map (function
-       | ParamDefault ((n, topt), e) ->
-           let n = name env n in
+       | ParamDefault ((param_pat, topt), e) ->
            let topt = option (type_ env) topt in
            let e = expr env e in
-           G.Param { (G.param_of_id n) with G.ptype = topt; pdefault = Some e }
-       | ParamPattern (PatternName n, topt) ->
-           let n = name env n and topt = option (type_ env) topt in
-           G.Param { (G.param_of_id n) with G.ptype = topt }
-       | ParamPattern (PatternTuple pat, _) ->
-           let pat = list (param_pattern env) pat in
-           G.ParamPattern (G.PatTuple (Tok.unsafe_fake_bracket pat))
+           param_of_param_pattern ~topt ~eopt:(Some e) param_pat
+       | ParamPattern (param_pat, topt) ->
+           let topt = option (type_ env) topt in
+           param_of_param_pattern ~topt ~eopt:None param_pat
        | ParamStar (t, (n, topt)) ->
            let n = name env n in
            let topt = option (type_ env) topt in
@@ -486,8 +497,17 @@ and parameters env xs : G.parameter list =
        | ParamSlash tok -> G.OtherParam (("SlashParam", tok), []))
 
 and type_ env v =
-  let v = expr env v in
-  H.expr_to_type v
+  match v with
+  (* coupling: This variant was added only for `type_` nodes, which are represented
+     using `AST_python.expr`.
+     As such, we must explicitly handle it before calling `expr`.
+  *)
+  | ConstrainedType (v1, v2, v3) ->
+      let v1 = type_ env v1 and v3 = type_ env v3 in
+      G.OtherType (("ConstrainedType", v2), [ G.T v1; G.T v3 ]) |> G.t
+  | _ ->
+      let v = expr env v in
+      H.expr_to_type v
 
 (* TODO: recognize idioms? *)
 and type_parent env v : G.class_parent =
@@ -564,6 +584,60 @@ and fieldstmt x =
       G.fld (ent, G.VarDef vdef)
   | _ -> G.F x
 
+(* All the types which are allowed to appear in parameter position, e.g.
+   a, b, and c in `type T[a, b, c] = int`
+*)
+and type_parameter env = function
+  | Name (id, _) -> G.tparam_of_id id
+  | ConstrainedType (Name (id, _), _v2, v3) ->
+      let v3 = type_ env v3 in
+      G.tparam_of_id ~tp_bounds:[ v3 ] (name env id)
+  | ExprStar t ->
+      let t = type_ env t in
+      G.OtherTypeParam (("ExprStar", unsafe_fake "OtherTypeParam"), [ G.T t ])
+  | t ->
+      let t = type_ env t in
+      G.OtherTypeParam
+        (("OtherTypeParam", unsafe_fake "OtherTypeParam"), [ G.T t ])
+
+and type_alias_def env (_tok, v1, v2) =
+  let v2 = type_ env v2 in
+  let def = G.TypeDef { tbody = G.AliasType v2 } in
+  match v1 with
+  (* Case 1: The type has generic parameters. Like:
+      type IntFunc[T: Hashable, **P] = int
+  *)
+  | Subscript (lhs, (l, args, r), _ctx) -> (
+      let tparams =
+        List_.filter_map
+          (fun slice ->
+            match slice with
+            (* Don't know how to interpret these, they shouldn't be allowed, so skip
+               This is like `type t[1:2] = int`
+            *)
+            | Slice _ -> None
+            | Index e -> Some (type_parameter env e))
+          args
+      in
+      match H.expr_to_entity_name_opt (expr env lhs) with
+      | Some en ->
+          let ent =
+            { G.name = en; tparams = Some (l, tparams, r); attrs = [] }
+          in
+          [ G.DefStmt (ent, def) |> G.s ]
+      | _ ->
+          let tparam_anys = List_.map (fun x -> G.Tp x) tparams in
+          [ G.OtherStmt (G.OS_Todo, [ G.Anys tparam_anys; G.Dk def ]) |> G.s ])
+  (* Case 2: The type does not, in which case it is likely just a `Name`.
+      But, let's call `expr_to_entity_name_opt` for future-proofing.
+  *)
+  | _ -> (
+      match H.expr_to_entity_name_opt (expr env v1) with
+      | None -> [ G.OtherStmt (G.OS_Todo, [ G.Dk def ]) |> G.s ]
+      | Some en ->
+          let ent = { G.name = en; attrs = []; tparams = None } in
+          [ G.DefStmt (ent, def) |> G.s ])
+
 and stmt_aux env x =
   match x with
   | FunctionDef (t, v1, v2, v3, v4, v5) ->
@@ -606,6 +680,7 @@ and stmt_aux env x =
         }
       in
       [ G.DefStmt (ent, G.ClassDef def) |> G.s ]
+  | TypeAliasDef (tok, v1, v2) -> type_alias_def env (tok, v1, v2)
   | Return (t, v1) ->
       let v1 = option (expr env) v1 in
       [ G.Return (t, v1, G.sc) |> G.s ]
@@ -637,11 +712,11 @@ and stmt_aux env x =
             |> G.s;
           ])
   | For (t, v1, t2, v2, v3, v4) -> (
-      let foreach = pattern env v1
+      let foreach = expr env v1
       and ins = expr env v2
       and body = list_stmt1 env v3
       and orelse = list_stmt env v4 in
-      let header = G.ForEach (foreach, t2, ins) in
+      let header = G.ForEach (H.expr_to_pattern foreach, t2, ins) in
       match orelse with
       | [] -> [ G.For (t, header, body) |> G.s ]
       | _ ->
@@ -849,8 +924,8 @@ and cases_and_body env = function
 and case env = function
   | Case (tok, pat) ->
       let x = info tok in
-      let pat = expr env pat in
-      G.Case (x, H.expr_to_pattern pat)
+      let pat = pattern env pat in
+      G.Case (x, pat)
 
 and ident_and_id_info env x =
   let x = name env x in
@@ -863,9 +938,80 @@ and import_from_kind _env (ident, asopt) = H.mk_import_from_kind ident asopt
  *)
 and stmt env x = G.stmt1 (stmt_aux env x)
 
-and pattern env e =
-  let e = expr env e in
-  H.expr_to_pattern e
+and pattern_attribute env = function
+  | PatAttribute (v1, _v2, v3) ->
+      let v1 = pattern_attribute env v1 and v2 = name env v3 in
+      v1 @ [ v2 ]
+  | PatName n -> [ name env n ]
+  | _ -> []
+
+and pattern env (p : AST_python.pattern) =
+  match p with
+  | PatName n -> G.PatId (name env n, G.empty_id_info ())
+  | PatInterpolatedString (t1, xs, t2) ->
+      let xs =
+        list (fun x -> G.E (expr env (InterpolatedString (t1, [ x ], t2)))) xs
+      in
+      OtherPat
+        ( ("PatInterpolatedString", Tok.unsafe_fake_tok "PatInterpolatedString"),
+          xs )
+  | PatConcatenatedString xs ->
+      let xs = list (fun x -> G.E (expr env (ConcatenatedString [ x ]))) xs in
+      OtherPat
+        ( ("PatConcatenatedString", Tok.unsafe_fake_tok "PatConcatenatedString"),
+          xs )
+  | PatAttribute _ ->
+      let ns = pattern_attribute env p in
+      OtherPat
+        ( ("PatAttribute", Tok.unsafe_fake_tok "PatAttribute"),
+          [ G.Name (H.name_of_ids ns) ] )
+  | PatConstructor (dn, (_l, ps, _r)) ->
+      let dn = dotted_name env dn in
+      let ps = list (pattern env) ps in
+      G.PatConstructor (H.name_of_ids dn, ps)
+  | PatSplat (t, p) ->
+      let p = pattern env p in
+      G.OtherPat (("PatSplat", t), [ G.P p ])
+  | PatDisj ps -> (
+      match ps with
+      | [] -> raise Impossible
+      | [ p ] -> pattern env p
+      | p :: ps -> G.PatDisj (pattern env p, pattern env (PatDisj ps)))
+  | PatList (l, ps, r) ->
+      let ps = list (pattern env) ps in
+      G.PatList (l, ps, r)
+  | PatTuple (l, ps, r) ->
+      let ps = list (pattern env) ps in
+      G.PatTuple (l, ps, r)
+  | PatDict (l, ps, r) ->
+      let ps =
+        list
+          (fun p ->
+            match pattern env p with
+            | PatKeyVal (PatId (id, _), p2) -> ([ id ], p2)
+            | _ -> raise Impossible)
+          ps
+      in
+      G.PatRecord (l, ps, r)
+  | PatLiteral l -> G.PatLiteral (literal env l)
+  | PatAs (p, _t, n) ->
+      let p = pattern env p in
+      let n = name env n in
+      G.PatAs (p, (n, G.empty_id_info ()))
+  | PatUnderscore t -> G.PatWildcard t
+  | PatComplex (t1, n1, t2, n2) ->
+      let t =
+        match t1 with
+        | None -> Tok.unsafe_fake_tok "PatComplex"
+        | Some t -> t
+      in
+      let n1 = G.PatLiteral (number n1) in
+      let n2 = G.PatLiteral (number n2) in
+      G.OtherPat (("PatComplex", t), [ G.P n1; G.Tk t2; G.P n2 ])
+  | PatKeyVal (p1, _t, p2) ->
+      let p1 = pattern env p1 in
+      let p2 = pattern env p2 in
+      G.PatKeyVal (p1, p2)
 
 and excepthandler env = function
   | ExceptHandler (t, v1, v2, v3) ->
