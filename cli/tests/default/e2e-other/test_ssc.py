@@ -236,6 +236,14 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/dart",
         ),
         (
+            "rules/dependency_aware/js-sca.yaml",
+            "dependency_aware/npm-empty",
+        ),
+        (
+            "rules/dependency_aware/js-sca.yaml",
+            "dependency_aware/npm-malformed",
+        ),
+        (
             "rules/dependency_aware/swift-sca.yaml",
             "dependency_aware/swiftpm/v1",
         ),
@@ -574,6 +582,10 @@ def test_parsing(caplog, target: str, snapshot, lockfile_path_in_tmp):
     # elif target.endswith("osv_parsing/pnpm/peer-dependencies-advanced/pnpm-lock.yaml"):
     #     assert len(error) == 1
     elif target.endswith("pnpm-error-key/pnpm-lock.yaml"):
+        assert len(error) == 1
+    elif target.endswith("requirements/empty/requirements.txt"):
+        assert len(error) == 1
+    elif target.endswith("requirements/only-comments/requirements.txt"):
         assert len(error) == 1
     else:
         assert len(error) == 0

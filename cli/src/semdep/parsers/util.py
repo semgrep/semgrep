@@ -292,6 +292,12 @@ def parse_dependency_file(
     text = file_to_parse.path.read_text(errors="replace")
     text = file_to_parse.preprocessor(text)
 
+    if not text.strip():
+        reason = f"{file_to_parse.path} is unexpectedly empty."
+        return DependencyParserError(
+            out.Fpath(str(file_to_parse.path)), file_to_parse.parser_name, reason
+        )
+
     try:
         if isinstance(file_to_parse.parser, Parser):
             return file_to_parse.parser.parse(text)
@@ -324,6 +330,13 @@ def parse_dependency_file(
                 line + 1,
                 col + 1,
                 offending_line,
+            )
+        elif line == 0 and col == 0:
+            reason = (
+                f"Parser failed at the beginning of {file_to_parse.path}.\n{error_str}"
+            )
+            return DependencyParserError(
+                out.Fpath(str(file_to_parse.path)), file_to_parse.parser_name, reason
             )
         else:
             reason = f"{error_str}\nInternal Error - line {line + 1} is past the end of {file_to_parse.path}?"
