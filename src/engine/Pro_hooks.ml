@@ -81,6 +81,3 @@ let save_pro_hooks_and_reset f0 =
          f0
   in
   f ()
-
-let reset_pro_hooks () =
-  pro_hooks_refs |> List.iter (fun (Pro_hook_ref pro_hook) -> pro_hook := None)
