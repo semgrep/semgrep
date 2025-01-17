@@ -224,297 +224,133 @@
 {
   description =
     "Semgrep OSS is a fast, open-source, static analysis tool for searching code, finding bugs, and enforcing code standards at editor, commit, and CI time.";
+  nixConfig = {
+    extra-substituters = "https://semgrep.cachix.org";
+    extra-trusted-public-keys =
+      "semgrep.cachix.org-1:waxSNb3ism0Vkmfa31//YYrOC2eMghZmTwy9bvMAGBI=";
+    extra-experimental-features = "nix-command flakes";
+  };
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    flake-parts.url = "github:hercules-ci/flake-parts";
     # all the follows here are so we don't use diff versions of
     # nixpkgs/flake-utils than semgrep. This is good for debugging, and reducing
     # build time/cache size
-    flake-utils.url = "github:numtide/flake-utils";
     opam-nix = {
       url = "github:tweag/opam-nix";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "flake-utils";
     };
+    # pin the opam repository to a specific commit! This way we can ensure that
+    # things don't break
     opam-repository = {
       url = "github:ocaml/opam-repository";
       flake = false;
     };
   };
-  outputs = { self, nixpkgs, flake-utils, opam-nix, opam-repository }@inputs:
-    let package = "semgrep";
-    in flake-utils.lib.eachDefaultSystem (system:
-      let
-        # TODO Use pkgsStatic if on linux
-        pkgs = nixpkgs.legacyPackages.${system};
-        on = opam-nix.lib.${system};
-        pythonPackages = pkgs.python310Packages;
-        opamRepos = [ "${opam-repository}" ];
-        lib = pkgs.lib;
-        isDarwin = lib.strings.hasSuffix "darwin" system;
-        hasSubmodules = !builtins.hasAttr "submodules" self || self.submodules;
-        # TODO split out osemgrep and pysemgrep into diff nix files
-      in let
-
-        # osemgrep/semgrep-core inputs
-        osemgrepInputs = with pkgs; [ pcre2 tree-sitter ];
-        devOpamPackagesQuery = {
-          # You can add "development" ocaml packages here. They will get added
-          # to the devShell automatically.
-          ocaml-lsp-server = "*";
-          utop = "*";
-          ocamlformat = "*";
-          earlybird = "*";
-          merlin = "*";
-        };
-        opamQuery = devOpamPackagesQuery // {
-          ## You can force versions of certain packages here
-          # force the ocaml compiler to be 4.14.2 and from opam
-          ocaml-base-compiler = "4.14.2";
-          #TODO: needed for semgrep pro, should be in ../flake.nix instead
-          #coupling: if you add one thing here, need to update also the
-          # buildInputs overlay below
-          junit_alcotest = "*";
-          git-unix = "*";
-          mirage-runtime = "4.4.2";
-          notty = "*";
-          tsort = "*";
-          # needed for tests
-          tyxml = "*";
-        };
-
-        # repos = opamRepos to force newest version of opam
-        # pkgs = pkgs to force newest version of nixpkgs instead of using opam-nix's
-        scope = on.buildOpamProject' {
-          pkgs = pkgs;
-          repos = opamRepos;
-        } ./. opamQuery;
-        scopeOverlay = final: prev: {
-          # You can add overrides here
-          conf-pkg-config = prev.conf-pkg-config.overrideAttrs (prev: {
-            # We need to add the pkg-config path to the PATH so that dune can find it
-            nativeBuildInputs = prev.nativeBuildInputs ++ [ pkgs.pkg-config ];
-          });
-          ${package} = prev.${package}.overrideAttrs (prev: {
-            # Prevent the ocaml dependencies from leaking into dependent environments
-            doNixSupport = false;
-            buildInputs = prev.buildInputs ++ [
-              final.tsort
-              final.notty
-              final.tyxml
-              final.git-unix
-              final.junit_alcotest
-            ];
-          });
-        };
-        scope' = scope.overrideScope scopeOverlay;
-
-        # for development
-        devOpamPackages = builtins.attrValues
-          (pkgs.lib.getAttrs (builtins.attrNames devOpamPackagesQuery) scope');
-
-        # osemgrep/semgrep-core
-        # package with all opam deps but nothing else
-        baseOpamPackage = scope'.${package}; # Packages from devPackagesQuery
-
-        # Special environment variables for osemgrep for linking stuff
-        osemgrepEnvDarwin = {
-          # all the dune files of semgrep treesitter <LANG> are missing the
-          # :standard field. Basically all compilers autodetct if something is c
-          # or c++ based on file extension, and add the c stdlib based on that.
-          # Nix doesn't because reasons:
-          # https://github.com/NixOS/nixpkgs/issues/150655 Dune also passes
-          # -xc++ if it detects a c++ file (again sane), but it's included in
-          # the :standard var, which we don't add because ??? TODO add and
-          # commit them instead of doing this
-          NIX_CFLAGS_COMPILE = "-I${pkgs.libcxx.dev}/include/c++/v1";
-        };
-        osemgrepEnv = {
-          SEMGREP_NIX_BUILD = "1";
-        } // lib.optionalAttrs (isDarwin) osemgrepEnvDarwin;
-        #
-        # osemgrep
-        #
-
-        osemgrep = baseOpamPackage.overrideAttrs (prev: rec {
-          pname = "osemgrep";
-          env = osemgrepEnv;
-          buildInputs = prev.buildInputs ++ osemgrepInputs;
-          buildPhase' = ''
-            make core
-          '';
-          buildPhaseFail = ''
-            echo "Derivation ${pname} won't build outside of a nix shell without submodules:"
-            echo "  nix build '.?submodules=1#' # build from local sources"
-            echo "  nix build '<uri>?submodules=1#' # build from remote sources"
-            echo "  nix run '.?submodules=1#osemgrep' # run osemgrep from local sources"
-            echo "  nix run '<uri>.?submodules=1#osemgrep' # run osemgrep from remote source"
-            exit 1
-          '';
-          # make sure we have submodules
-          # See https://github.com/NixOS/nix/pull/7862
-          buildPhase = if hasSubmodules then
-            osemgrep.buildPhase'
-          else
-            osemgrep.buildPhaseFail;
-          nativeCheckInputs = (with pkgs; [ cacert git ]);
-          # git init is needed so tests work successfully since many rely on git root existing
-          checkPhase = ''
-            git init
-            make test
-          '';
-
-          # DONE! Copy semgrep binaries!!!!
-          installPhase = ''
-            mkdir -p $out/bin
-            cp _build/install/default/bin/* $out/bin
-          '';
-
-        });
-
+  outputs = inputs@{ self, nixpkgs, flake-parts, opam-nix, opam-repository }:
+    let
+      hasSubmodules = !builtins.hasAttr "submodules" self || self.submodules;
+      mkSemgrep = import ./semgrep.nix {
+        inherit opam-nix opam-repository hasSubmodules;
+      };
+      mkPysemgrep = import ./pysemgrep.nix { };
+    in flake-parts.lib.mkFlake { inherit inputs; } {
+      systems =
+        [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+      perSystem = { pkgs, system, ... }:
         # TODO semgrep-js
         # needs new emscripten: https://github.com/NixOS/nixpkgs/issues/306649
         # for the special wasm pass
+        let
+          semgrepAttrs = mkSemgrep { inherit pkgs system; };
+          semgrep = semgrepAttrs.pkg;
 
-        # pysemgrep inputs
-        # coupling: anything added to pysemgrep for testing should be added here
-        devPipInputs = with pythonPackages; [
-          pkgs.git
-          flaky
-          pytest-snapshot
-          pytest-mock
-          pytest-freezegun
-          types-freezegun
-        ];
+          pysemgrepAttrs = mkPysemgrep { inherit pkgs semgrep; };
+          pysemgrep = pysemgrepAttrs.pkg;
 
-        #
-        # pysemgrep
-        #
-
-        pysemgrep = with pythonPackages;
-          buildPythonApplication {
-            # thanks to @06kellyjac
-            pname = "semgrep";
-            inherit (osemgrep) version;
-            src = ./cli;
-            # TODO checks
-            doCheck = false;
-
-            # coupling: anything added to the pysemgrep setup.py should be added here
-            propagatedBuildInputs = [
-              attrs
-              boltons
-              colorama
-              click
-              click-option-group
-              glom
-              requests
-              rich
-              ruamel-yaml
-              tqdm
-              packaging
-              jsonschema
-              wcmatch
-              peewee
-              defusedxml
-              urllib3
-              typing-extensions
-              tomli
-            ];
-            # doesn't work for some reason
-            dontUseSetuptoolsShellHook = true;
-
-            preFixup = ''
-              makeWrapperArgs+=(--prefix PATH : ${osemgrep}/bin)
-            '';
+          devShell = pkgs.callPackage ./devShell.nix {
+            inherit pkgs;
+            extraInputs = (with pkgs; [ pre-commit yq-go ]);
+            # TODO add pysmgrepAttrs when I fix it
+            devAttrs = [ semgrepAttrs ];
           };
-        # TODO semgrep-js
-      in {
-        # For a lot of nix commands, nix uses the cwd's flake. So
-        #   nix develop
-        # will run the current flake. But because semgrep has submodules we have
-        # to specify `.?submodules=1#` to enable checking out submodules`
-        #
-        # The target of the command is structured
-        # `<FLAKE_LOCATION>(?OPTIONAL_PARAMS)#<TARGET>` so you can run
-        #   nix run nixpkgs#gcc
-        # to run gcc from the default nix repository nixpkgs.
-        #
-        # But the location is similar to a url! So you can run
-        #   nix run github:DeterminateSystems/flake-checker
-        # to run DeterminateSystem's
-        # cool flake checker, without ever needing to install it or anything! Or
-        # other nix users who want to try osemgrep can run
-        #   nix run github:semgrep/semgrep?submodules=1#osemgrep
-        #
-        # See: https://nixos.org/manual/nix/stable/command-ref/new-cli/nix3-flake.html#types
-        # for more on flake refs
-        #
-        # See: https://nixos.org/manual/nix/stable/command-ref/experimental-commands
-        # for other useful commands
 
-        #   nix build ".?submodules=1#<PKG_NAME>"
-        # builds the below package leaving it empty builds the default. The
-        # output will be linked into the cwd in a folder called "result". Also
-        # exports packages for other nix packages to use
-        packages.osemgrep = osemgrep;
-        packages.semgrep = pysemgrep;
-        packages.default = pysemgrep;
+        in {
+          # For a lot of nix commands, nix uses the cwd's flake. So
+          #   nix develop
+          # will run the current flake. But because semgrep has submodules we have
+          # to specify `.?submodules=1#` to enable checking out submodules`
+          #
+          # The target of the command is structured
+          # `<FLAKE_LOCATION>(?OPTIONAL_PARAMS)#<TARGET>` so you can run
+          #   nix run nixpkgs#gcc
+          # to run gcc from the default nix repository nixpkgs.
+          #
+          # But the location is similar to a url! So you can run
+          #   nix run github:DeterminateSystems/flake-checker
+          # to run DeterminateSystem's
+          # cool flake checker, without ever needing to install it or anything! Or
+          # other nix users who want to try osemgrep can run
+          #   nix run github:semgrep/semgrep?submodules=1#osemgrep
+          #
+          # See: https://nixos.org/manual/nix/stable/command-ref/new-cli/nix3-flake.html#types
+          # for more on flake refs
+          #
+          # See: https://nixos.org/manual/nix/stable/command-ref/experimental-commands
+          # for other useful commands
 
-        #   nix run ".?submodules=1#<PKG_NAME>"
-        # builds and runs the package specified, without linking the output
-        # result into the cwd. You can try other nixpkgs similarly by running
-        # `nix run nixpkgs#<PKG_NAME>` like `nix run nixpkgs#hello_world`.
-        apps = {
-          osemgrep = {
-            type = "app";
-            program = "${osemgrep}/bin/osemgrep";
+          #   nix build ".?submodules=1#<PKG_NAME>"
+          # builds the below package leaving it empty builds the default. The
+          # output will be linked into the cwd in a folder called "result". Also
+          # exports packages for other nix packages to use
+          packages = {
+            semgrep = semgrep;
+            pysemgrep = pysemgrep;
+            default = pysemgrep;
           };
-          semgrep-core = {
-            type = "app";
-            program = "${osemgrep}/bin/semgrep-core";
+
+          #   nix run ".?submodules=1#<PKG_NAME>"
+          # builds and runs the package specified, without linking the output
+          # result into the cwd. You can try other nixpkgs similarly by running
+          # `nix run nixpkgs#<PKG_NAME>` like `nix run nixpkgs#hello_world`.
+          apps = {
+            osemgrep = {
+              type = "app";
+              program = "${semgrep}/bin/osemgrep";
+            };
+            semgrep-core = {
+              type = "app";
+              program = "${semgrep}/bin/semgrep-core";
+            };
+            semgrep = {
+              type = "app";
+              program = "${pysemgrep}/bin/semgrep";
+            };
+            pysemgrep = {
+              type = "app";
+              program = "${pysemgrep}/bin/pysemgrep";
+            };
+            default = {
+              type = "app";
+              program = "${pysemgrep}/bin/semgrep";
+            };
           };
-          semgrep = {
-            type = "app";
-            program = "${pysemgrep}/bin/semgrep";
-          };
-          pysemgrep = {
-            type = "app";
-            program = "${pysemgrep}/bin/pysemgrep";
-          };
-          default = {
-            type = "app";
-            program = "${pysemgrep}/bin/semgrep";
-          };
-        };
-        #   nix flake check ".?submodules=1#"
-        # makes sure the flake is a valid structure, all the derivations are
-        # valid, and runs anyting put in checks
-        checks = {
-          osemgrep = osemgrep.overrideAttrs (prev: {
+          #   nix flake check ".?submodules=1#"
+          # makes sure the flake is a valid structure, all the derivations are
+          # valid, and runs anyting put in checks
+          checks = {
             # We don't want to force people to run the test suite everytime they
-            # build semgrep, but we do want to run it here
-            doCheck = true;
-          });
-        };
+            # build semgrep, but we do want to run it here, so check doCheck
+            semgrep = semgrep.overrideAttrs (_: { doCheck = true; });
+          };
 
-        #   nix fmt
-        # formats this file. In the future we can add ocaml, python, and other
-        # formatters here to run also
-        formatter = pkgs.nixpkgs-fmt;
-        #   nix develop -c $SHELL
-        # runs this shell which has all dependencies needed to make semgrep
-        devShells.default = pkgs.mkShell {
-          # See comment above osemgrep.buildPhase for why we need this
-          # This doesnt work there because idk
-          env = {
-            # add env vars here
-          } // osemgrepEnv;
-          inputsFrom = [ osemgrep pysemgrep ];
-          buildInputs = devOpamPackages ++ devPipInputs ++ (with pkgs; [
-            pre-commit
-            pipenv
-            yq-go # for GHA workflows
-          ]);
+          #   nix fmt
+          # formats this file. In the future we can add ocaml, python, and other
+          # formatters here to run also
+          formatter = pkgs.nixpkgs-fmt;
+          #   nix develop -c $SHELL
+          # runs this shell which has all dependencies needed to make semgrep
+          devShells.default = devShell;
         };
-      });
+    };
 }
