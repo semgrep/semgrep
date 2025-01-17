@@ -170,7 +170,7 @@ let mk_log_backend (dir : Fpath.t) : < Cap.network ; Auth.cap_token ; .. > app =
     start_scan =
       (fun caps request ->
         let file = dir / "scan_request.json" in
-        Logs.debug (fun m -> m "saving scan_request in %s" !!file);
+        Logs.info (fun m -> m "saving scan_request in %s" !!file);
         let str = Out.string_of_scan_request request |> JSON.prettify in
         UFile.write_file ~file str;
         let res = real_backend.start_scan caps request in
@@ -178,7 +178,7 @@ let mk_log_backend (dir : Fpath.t) : < Cap.network ; Auth.cap_token ; .. > app =
         | Error _ -> ()
         | Ok scan_response ->
             let file = dir / "scan_response.json" in
-            Logs.debug (fun m -> m "saving start_scan response in %s" !!file);
+            Logs.info (fun m -> m "saving start_scan response in %s" !!file);
             (* let's not prettify here as the string can be 50MB sometimes *)
             let str = Out.string_of_scan_response scan_response in
             UFile.write_file ~file str);
@@ -186,12 +186,12 @@ let mk_log_backend (dir : Fpath.t) : < Cap.network ; Auth.cap_token ; .. > app =
     upload_findings =
       (fun caps ~scan_id ~results ~complete ->
         let file = dir / "results.json" in
-        Logs.debug (fun m -> m "saving results in %s" !!file);
+        Logs.info (fun m -> m "saving results in %s" !!file);
         let str = Out.string_of_ci_scan_results results |> JSON.prettify in
         UFile.write_file ~file str;
 
         let file = dir / "complete.json" in
-        Logs.debug (fun m -> m "saving complete in %s" !!file);
+        Logs.info (fun m -> m "saving complete in %s" !!file);
         let str = Out.string_of_ci_scan_complete complete |> JSON.prettify in
         UFile.write_file ~file str;
 
@@ -219,21 +219,36 @@ let mk_fake_backend base (dir : Fpath.t) :
         let file = dir / "scan_response.json" in
         let str = UFile.read_file file in
         let resp = Out.scan_response_of_string str in
-        Logs.debug (fun m -> m "faking start_scan response from %s" !!file);
+        Logs.info (fun m -> m "faking start_scan response from %s" !!file);
 
         (* This gives the ability to override what is in scan_response.json
-         * rules field with the content of a separate file so one can more
-         * easily adjust the rules.
+         * rules field with the content of a separate YAML or JSON file so one
+         * can more easily adjust the rules.
          *)
-        let rule_file = dir / "rules.json" in
+        let yaml_file = dir / "rules.yaml" in
+        let json_file = dir / "rules.json" in
+        let rule_file_opt =
+          match (Sys.file_exists !!yaml_file, Sys.file_exists !!json_file) with
+          | true, false -> Some yaml_file
+          | false, true -> Some json_file
+          | false, false -> None
+          | true, true ->
+              failwith (spf "can't have both %s and %s" !!yaml_file !!json_file)
+        in
         let resp =
-          if Sys.file_exists !!rule_file then begin
-            Logs.debug (fun m ->
-                m "overriding rules in %s using %s" !!file !!rule_file);
-            let rules = UFile.read_file rule_file |> Yojson.Basic.from_string in
-            { resp with config = { resp.config with rules } }
-          end
-          else resp
+          match rule_file_opt with
+          | None -> resp
+          | Some rule_file ->
+              Logs.info (fun m ->
+                  m "overriding rules in %s using %s" !!file !!rule_file);
+              let rules =
+                (* alt: look at the Fpath.ext of rule_file *)
+                if Sys.file_exists !!yaml_file then
+                  UFile.read_file rule_file |> Yaml.of_string_exn
+                  |> JSON.ezjsonm_to_yojson
+                else UFile.read_file rule_file |> Yojson.Basic.from_string
+              in
+              { resp with config = { resp.config with rules } }
         in
         Ok resp);
     (* Note that you will most likely get an error from the backend
