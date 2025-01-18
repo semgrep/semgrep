@@ -657,10 +657,55 @@ and m_qualifier a b =
   (* Like for m_dotted_name, [$X] should match anything *)
   | G.QDots [ ((str, t), _) ], B.QDots b when Mvar.is_metavar_name str ->
       envf (str, t) (MV.E (make_dotted (List_.map fst b)))
+  | G.QDots (_ :: _ :: _ as a), B.QDots [ b ] ->
+      (* This cannot be matched with `m_list`, so the only way we could get a
+         match would be if `b` was an absolute path like those used by Pro
+         module resolution, e.g. "/home/<user>/repo/app/shared/models/foobar".
+         See 'm_qdots_global_name' for details. *)
+      m_qdots_global_name a b
   | G.QDots a, B.QDots b -> m_list m_ident_and_type_arguments a b
   | G.QExpr (a1, a2), B.QExpr (b1, b2) -> m_expr a1 b1 >>= fun () -> m_tok a2 b2
   | G.QDots _, _
   | G.QExpr _, _ ->
+      fail ()
+
+(* 'a' is a list of ids such as ["app"; "shared"; "models"; "foobar"]
+   'b' is a single id, expected to be an absolute file path (without extension)
+      used by Pro naming to uniquely identify modules in languages such as Python,
+      e.g. "/home/<user>/repo/app/shared/models/foobar" (no .py extension).
+   To match them, we split 'b' into its segments, and check if there is a suffix
+   that matches 'a'. In our example, we have the suffix "app/shared/models/foobar"
+   that matches 'a'.
+
+   HACK: We should not be guessing that 'b' comes from Pro naming. We could
+         perhaps have a new variant in 'AST_generic.qualifier' to capture
+         file paths used as module qualifiers as we do in Pro naming?
+*)
+and m_qdots_global_name a b =
+  let rec go a_rev_ids b_rev_segs =
+    match (a_rev_ids, b_rev_segs) with
+    | ((a, _tok), None) :: a_rev_ids, b_seg :: b_rev_segs ->
+        let* () = m_string a b_seg in
+        go a_rev_ids b_rev_segs
+    | [], _any_ -> return ()
+    | (_, Some _) :: _, __any__ ->
+        (* we don't expect type arguments here so if we find them we fail just in case *)
+        fail ()
+    | _ :: _, [] ->
+        (* could not match all the ids in pattern *)
+        fail ()
+  in
+  match b with
+  | (b, _tok), None -> (
+      match Fpath.of_string b with
+      | Ok b_path when Fpath.is_abs b_path ->
+          let b_segs = Fpath.segs b_path in
+          go (List.rev a) (List.rev b_segs)
+      | Ok _
+      | Error _ ->
+          fail ())
+  | _, Some _ ->
+      (* we don't expect type arguments here so if we find them we fail just in case *)
       fail ()
 
 (* semantic! try to handle typed metavariables by querying LSP
