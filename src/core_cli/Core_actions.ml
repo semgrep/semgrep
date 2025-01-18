@@ -1,5 +1,4 @@
 open Common
-open Fpath_.Operators
 module J = JSON
 module E = Core_error
 
@@ -101,40 +100,6 @@ let dump_il (caps : < Cap.stdout >) file =
     print s
   in
   Visit_function_defs.visit report_func_def_with_name ast
-[@@action]
-
-let dump_v1_json ~(get_lang : unit -> Language.t option) file =
-  let lang =
-    match get_lang () with
-    | Some x -> x
-    | None -> (
-        (* This guessing doesn't work with dockerfiles "foo.dockerfile"
-           or "Dockerfile". Not sure why. *)
-        match Lang.langs_of_filename file with
-        | x :: _ -> x
-        | [] -> failwith (spf "unsupported language for %s" !!file))
-  in
-  try_with_log_exn_and_reraise file (fun () ->
-      let { Parsing_result2.ast; skipped_tokens; _ } =
-        Parse_target.parse_and_resolve_name lang file
-      in
-      let v1 = AST_generic_to_v1.program ast in
-      let s = Ast_generic_v1_j.string_of_program v1 in
-      UCommon.pr s;
-      if skipped_tokens <> [] then
-        Logs.warn (fun m -> m "fail to fully parse %s" !!file))
-[@@action]
-
-let generate_ast_json file =
-  match Lang.langs_of_filename file with
-  | lang :: _ ->
-      let ast = Parse_target.parse_and_resolve_name_warn_if_partial lang file in
-      let v1 = AST_generic_to_v1.program ast in
-      let s = Ast_generic_v1_j.string_of_program v1 in
-      let file = !!file ^ ".ast.json" |> Fpath.v in
-      UFile.write_file file s;
-      Logs.info (fun m -> m "saved JSON output in %s" !!file)
-  | [] -> failwith (spf "unsupported language for %s" !!file)
 [@@action]
 
 let dump_ext_of_lang (caps : < Cap.stdout >) () =

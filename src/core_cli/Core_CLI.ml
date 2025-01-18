@@ -360,20 +360,6 @@ let mk_config () : Core_scan_config.t =
 (* The actions *)
 (*****************************************************************************)
 
-(* Obtain the language set with -lang if it provides a generic AST
-   TODO: don't rely on a ref being initialized to do this.
-*)
-let get_lang () =
-  match !lang with
-  | None -> None
-  | Some x -> (
-      match x with
-      | L (lang, _other_langs) -> Some lang
-      | LRegex
-      | LSpacegrep
-      | LAliengrep ->
-          None)
-
 let all_actions (caps : Cap.all_caps) () =
   [
     (* this is run by pysemgrep --validate *)
@@ -401,14 +387,6 @@ let all_actions (caps : Cap.all_caps) () =
                   false)
             ~verbose:true xs) );
     (* The rest should be used just interactively by PA developers *)
-
-    (* possibly useful to the user *)
-    ( "-show_ast_json",
-      " <file> dump on stdout the generic AST of file in JSON",
-      Arg_.mk_action_1_conv Fpath.v (Core_actions.dump_v1_json ~get_lang) );
-    ( "-generate_ast_json",
-      " <file> save in file.ast.json the generic AST of file in JSON",
-      Arg_.mk_action_1_conv Fpath.v Core_actions.generate_ast_json );
     ( "-prefilter_of_rules",
       " <file> dump the prefilter regexps of rules in JSON ",
       Arg_.mk_action_1_conv Fpath.v Core_actions.prefilter_of_rules );
