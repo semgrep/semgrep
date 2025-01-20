@@ -22,10 +22,5 @@
     semgrep.analyzing.tests ; Test_analyze_generic.actions
     semgrep.data
     semgrep.osemgrep_reporting
-
-    ; experiments
-    semgrep.synthesizing
-    ojsonnet ; ojsonnet dumper
-    otarzan
  )
 )

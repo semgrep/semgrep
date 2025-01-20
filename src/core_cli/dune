@@ -27,7 +27,6 @@
     semgrep_rpc
 
     ; experiments
-    semgrep.synthesizing
     ojsonnet ; ojsonnet dumper
     otarzan
  )

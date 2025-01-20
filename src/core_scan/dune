@@ -13,9 +13,7 @@
     semgrep.parsing
     semgrep.matching
     semgrep.reporting
-    semgrep.datalog
     semgrep.engine
-    semgrep_experiments_misc
  )
  (preprocess (pps
       ppx_deriving.show

@@ -131,8 +131,6 @@ let tests (caps : Cap.all_caps) =
       Unit_ugly_print_AST.tests;
       Unit_autofix.tests;
       Unit_autofix_printer.tests;
-      Unit_synthesizer.tests;
-      Unit_synthesizer_targets.tests;
       Unit_dataflow.tests
         (caps :> < Cap.time_limit >)
         Parse_target.parse_program;

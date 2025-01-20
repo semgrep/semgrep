@@ -459,29 +459,6 @@ let all_actions (caps : Cap.all_caps) () =
       Arg_.mk_action_n_arg (fun xs ->
           Test_parsing.diff_pfff_tree_sitter (Fpath_.of_strings xs)) );
     (* Misc stuff *)
-    ( "-expr_at_range",
-      " <l:c-l:c> <file>",
-      Arg_.mk_action_2_arg (fun range file ->
-          Test_synthesizing.expr_at_range range (Fpath.v file)) );
-    ( "-synthesize_patterns",
-      " <l:c-l:c> <file>",
-      Arg_.mk_action_2_arg (fun range file ->
-          Test_synthesizing.synthesize_patterns range (Fpath.v file)) );
-    ( "-generate_patterns",
-      " <l:c-l:c>+ <file>",
-      Arg_.mk_action_n_arg Test_synthesizing.generate_pattern_choices );
-    ( "-locate_patched_functions",
-      " <file>",
-      Arg_.mk_action_1_conv Fpath.v Test_synthesizing.locate_patched_functions
-    );
-    ( "-stat_matches",
-      " <marshalled file>",
-      Arg_.mk_action_1_conv Fpath.v
-        (Experiments.stat_matches (caps :> < Cap.stdout >)) );
-    ( "-ebnf_to_menhir",
-      " <ebnf file>",
-      Arg_.mk_action_1_conv Fpath.v
-        (Experiments.ebnf_to_menhir (caps :> < Cap.stdout >)) );
     ( "-parsing_regressions",
       " <files or dirs> look for parsing regressions",
       Arg_.mk_action_n_arg (fun xs ->
@@ -506,10 +483,6 @@ let all_actions (caps : Cap.all_caps) () =
     ( "-parse_rules",
       " <files or dirs>",
       Arg_.mk_action_n_conv Fpath.v Test_parsing.test_parse_rules );
-    ( "-datalog_experiment",
-      " <file> <dir>",
-      Arg_.mk_action_2_arg (fun a b ->
-          Datalog_experiment.gen_facts (Fpath.v a) (Fpath.v b)) );
     ("-test_eval", " <JSON file>", Arg_.mk_action_1_arg Eval_generic.test_eval);
     ( "-sarif_sort",
       " <JSON file>",

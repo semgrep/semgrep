@@ -25,7 +25,6 @@
     semgrep.parsing
     semgrep.parsing_languages
     semgrep.matching
-    semgrep.synthesizing
     semgrep.engine
     parser_python.menhir parser_python.ast_generic
     semgrep.data
