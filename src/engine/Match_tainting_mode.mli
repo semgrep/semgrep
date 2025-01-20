@@ -1,5 +1,5 @@
 val hook_setup_hook_function_taint_signature :
-  (Rule.taint_rule -> Taint_rule_inst.t -> Xtarget.t -> unit) option ref
+  (Rule.taint_rule -> Taint_rule_inst.t -> Xtarget.t -> unit) option Hook.t
 (** This is used for intra-file inter-procedural taint-tracking, and the idea is
   * that this hook will do top-sorting and infer the signature of each function
   * in the file, and while doing this it will also setup

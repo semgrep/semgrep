@@ -145,7 +145,8 @@ let set_matches_to_proprietary_origin_if_needed (xtarget : Xtarget.t)
    * we're using Pro features.
    *)
   if
-    Option.is_some !Match_tainting_mode.hook_setup_hook_function_taint_signature
+    Option.is_some
+      (Hook.get Match_tainting_mode.hook_setup_hook_function_taint_signature)
     || Option.is_some !Dataflow_tainting.hook_function_taint_signature
     || Analyzer.is_proprietary xtarget.analyzer
   then Report_pro_findings.annotate_pro_findings xtarget matches

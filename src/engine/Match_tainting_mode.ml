@@ -41,7 +41,7 @@ module Signature = Shape_and_sig.Signature
 (* Hooks *)
 (*****************************************************************************)
 
-let hook_setup_hook_function_taint_signature = ref None
+let hook_setup_hook_function_taint_signature = Hook.create None
 
 (*****************************************************************************)
 (* Helpers *)
@@ -290,7 +290,7 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
       file (ast, []) rule
   in
 
-  (match !hook_setup_hook_function_taint_signature with
+  (match Hook.get hook_setup_hook_function_taint_signature with
   | None -> ()
   | Some setup_hook_function_taint_signature ->
       setup_hook_function_taint_signature rule taint_inst xtarget);

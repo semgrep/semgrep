@@ -30,28 +30,28 @@
 (* Types and constants *)
 (*****************************************************************************)
 
-type pro_hook_ref =
-  | Pro_hook_ref : 'a option ref -> pro_hook_ref
-      (** 'pro_hook_ref' is a GADT, this allows us to do an "existential"
-       * quantification over `'a`. That is, you can take any hook with
-       * type '... option ref' and wrap it as a 'pro_hook_ref'. Of course,
-       * when you pattern match on one of this, you cannot make any assumptions
-       * on what that `'a` is, but it is enough to reset the hooks.
-       * So we can enumerate Pro hooks in 'pro_hooks_refs' and then write
-       * 'reset_pro_hooks' and 'save_pro_hooks_and_reset' based on that list.
-       *)
+(** 'pro_hook' is a GADT, this allows us to do an "existential" quantification
+ * over `'a`. That is, you can take any hook with type '... option ref' and wrap
+ * it as a 'pro_hook'. Of course, when you pattern match on one of this, you
+ * cannot make any assumptions on what that `'a` is, but it is enough to reset
+ * the hooks. So we can enumerate Pro hooks in 'pro_hooks_refs' and then write
+ * 'reset_pro_hooks' and 'save_pro_hooks_and_reset' based on that list. *)
+type pro_hook =
+  (* TODO Remove all remaining ref-style hooks in favor of the safer Hook.t *)
+  | Pro_hook_ref : 'a option ref -> pro_hook
+  | Pro_hook : 'a option Hook.t -> pro_hook
 
 (* TODO: a steps-mode rule to ensure we have all the pro hooks.
  * Do we have all of them?
  *)
-let pro_hooks_refs =
+let pro_hooks =
   [
     Pro_hook_ref Generic_vs_generic.hook_find_possible_parents;
     Pro_hook_ref Generic_vs_generic.hook_r2c_pro_was_here;
     Pro_hook_ref Constant_propagation.hook_propagate_basic_visitor;
     Pro_hook_ref Dataflow_svalue.hook_constness_of_function;
     Pro_hook_ref Dataflow_svalue.hook_transfer_of_assume;
-    Pro_hook_ref Match_tainting_mode.hook_setup_hook_function_taint_signature;
+    Pro_hook Match_tainting_mode.hook_setup_hook_function_taint_signature;
     Pro_hook_ref Taint.hook_offset_of_IL;
     Pro_hook_ref Taint_lval_env.hook_propagate_to;
     Pro_hook_ref Dataflow_tainting.hook_function_taint_signature;
@@ -74,10 +74,12 @@ let pro_hooks_refs =
  *)
 let save_pro_hooks_and_reset f0 =
   let f =
-    pro_hooks_refs
+    pro_hooks
     |> List.fold_left
-         (fun f (Pro_hook_ref pro_hook) () ->
-           Common.save_excursion pro_hook None f)
+         (fun f hook () ->
+           match hook with
+           | Pro_hook pro_hook -> Hook.with_hook_set pro_hook None f
+           | Pro_hook_ref pro_hook -> Common.save_excursion pro_hook None f)
          f0
   in
   f ()
