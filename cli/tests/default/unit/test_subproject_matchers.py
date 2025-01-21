@@ -24,6 +24,7 @@ class TestExactLockfileMatcher:
             manifest_name="Pipfile",
             manifest_kind=out.ManifestKind(value=out.Pipfile()),
             lockfile_kind=out.LockfileKind(value=out.PipfileLock()),
+            ecosystem=out.Ecosystem(value=out.Pypi()),
         )
 
         assert matcher.is_match(Path("Pipfile.lock")) is True
@@ -37,6 +38,7 @@ class TestExactLockfileMatcher:
             manifest_name="Pipfile",
             manifest_kind=out.ManifestKind(value=out.Pipfile()),
             lockfile_kind=out.LockfileKind(value=out.PipfileLock()),
+            ecosystem=out.Ecosystem(value=out.Pypi()),
         )
 
         assert matcher.is_match(Path("Pipfile")) is True
@@ -58,6 +60,7 @@ class TestExactLockfileMatcher:
             manifest_name="Pipfile",
             manifest_kind=out.ManifestKind(value=out.Pipfile()),
             lockfile_kind=out.LockfileKind(value=out.PipfileLock()),
+            ecosystem=out.Ecosystem(value=out.Pypi()),
         )
 
         assert matcher.is_match(manifest_path)
@@ -95,6 +98,7 @@ class TestPatternLockfileMatcher:
             manifest_name="requirements.in",
             lockfile_kind=out.LockfileKind(out.PipRequirementsTxt()),
             manifest_kind=out.ManifestKind(value=out.RequirementsIn()),
+            ecosystem=out.Ecosystem(value=out.Pypi()),
         )
 
         # Basic cases
@@ -150,6 +154,7 @@ class TestPatternLockfileMatcher:
             manifest_name="requirements.in",
             manifest_kind=out.ManifestKind(value=out.RequirementsIn()),
             lockfile_kind=out.LockfileKind(value=out.PipRequirementsTxt()),
+            ecosystem=out.Ecosystem(value=out.Pypi()),
         )
 
         # expect the matcher to create four subprojects, with or without manifests
@@ -254,6 +259,7 @@ class TestRequirementsLockfileMatcher:
                                 out.Fpath("requirements.txt"),
                             ),
                         ),
+                        ecosystem=out.Ecosystem(value=out.Pypi()),
                     ),
                     Subproject(
                         root_dir=Path("a/b/c"),
@@ -267,6 +273,7 @@ class TestRequirementsLockfileMatcher:
                                 out.Fpath("a/b/c/requirements.txt"),
                             ),
                         ),
+                        ecosystem=out.Ecosystem(value=out.Pypi()),
                     ),
                 ],
             ),
@@ -290,6 +297,7 @@ class TestRequirementsLockfileMatcher:
                                 out.Fpath("requirements3.txt"),
                             ),
                         ),
+                        ecosystem=out.Ecosystem(value=out.Pypi()),
                     ),
                     Subproject(
                         root_dir=Path("a/b/c"),
@@ -303,6 +311,7 @@ class TestRequirementsLockfileMatcher:
                                 out.Fpath("a/b/c/requirements3.txt"),
                             ),
                         ),
+                        ecosystem=out.Ecosystem(value=out.Pypi()),
                     ),
                 ],
             ),
@@ -339,6 +348,7 @@ class TestRequirementsLockfileMatcher:
                                 ),
                             )
                         ),
+                        ecosystem=out.Ecosystem(value=out.Pypi()),
                     )
                 ],
             ),
@@ -375,6 +385,7 @@ class TestRequirementsLockfileMatcher:
                                 ),
                             )
                         ),
+                        ecosystem=out.Ecosystem(value=out.Pypi()),
                     )
                 ],
             ),
@@ -393,6 +404,7 @@ class TestRequirementsLockfileMatcher:
                                 out.Fpath("requirements_lock.txt"),
                             ),
                         ),
+                        ecosystem=out.Ecosystem(value=out.Pypi()),
                     )
                 ],
             ),
@@ -429,6 +441,7 @@ class TestRequirementsLockfileMatcher:
                                 ),
                             )
                         ),
+                        ecosystem=out.Ecosystem(value=out.Pypi()),
                     )
                 ],
             ),
@@ -466,6 +479,7 @@ class TestRequirementsLockfileMatcher:
                                 ),
                             )
                         ),
+                        ecosystem=out.Ecosystem(value=out.Pypi()),
                     )
                 ],
             ),
@@ -493,6 +507,7 @@ class TestRequirementsLockfileMatcher:
                                 ),
                             )
                         ),
+                        ecosystem=out.Ecosystem(value=out.Pypi()),
                     )
                 ],
             ),
@@ -571,6 +586,7 @@ class TestGradleMatcher:
                                 out.Fpath("build.gradle"),
                             )
                         ),
+                        ecosystem=out.Ecosystem(value=out.Maven()),
                     ),
                     Subproject(
                         root_dir=Path("buildSrc"),
@@ -580,6 +596,7 @@ class TestGradleMatcher:
                                 out.Fpath("buildSrc/build.gradle"),
                             )
                         ),
+                        ecosystem=out.Ecosystem(value=out.Maven()),
                     ),
                 ],
                 [
@@ -611,6 +628,7 @@ class TestGradleMatcher:
                                 out.Fpath("gradle.lockfile"),
                             ),
                         ),
+                        ecosystem=out.Ecosystem(value=out.Maven()),
                     ),
                     Subproject(
                         root_dir=Path("buildSrc"),
@@ -620,6 +638,7 @@ class TestGradleMatcher:
                                 path=out.Fpath("buildSrc/build.gradle"),
                             ),
                         ),
+                        ecosystem=out.Ecosystem(value=out.Maven()),
                     ),
                 ],
                 [
@@ -646,6 +665,7 @@ class TestGradleMatcher:
                                 path=out.Fpath("build.gradle"),
                             )
                         ),
+                        ecosystem=out.Ecosystem(value=out.Maven()),
                     ),
                     Subproject(
                         root_dir=Path("buildSrc"),
@@ -659,6 +679,7 @@ class TestGradleMatcher:
                                 path=out.Fpath("buildSrc/build.gradle"),
                             ),
                         ),
+                        ecosystem=out.Ecosystem(value=out.Maven()),
                     ),
                 ],
                 [
@@ -689,6 +710,7 @@ class TestGradleMatcher:
                                 out.Fpath("gradle.lockfile"),
                             ),
                         ),
+                        ecosystem=out.Ecosystem(value=out.Maven()),
                     ),
                     Subproject(
                         root_dir=Path("buildSrc"),
@@ -698,6 +720,7 @@ class TestGradleMatcher:
                                 path=out.Fpath("buildSrc/settings.gradle"),
                             ),
                         ),
+                        ecosystem=out.Ecosystem(value=out.Maven()),
                     ),
                 ],
                 [
@@ -728,6 +751,7 @@ class TestGradleMatcher:
                                 out.Fpath("gradle.lockfile"),
                             ),
                         ),
+                        ecosystem=out.Ecosystem(value=out.Maven()),
                     ),
                     Subproject(
                         root_dir=Path("buildSrc"),
@@ -737,6 +761,7 @@ class TestGradleMatcher:
                                 path=out.Fpath("buildSrc/settings.gradle.kts"),
                             ),
                         ),
+                        ecosystem=out.Ecosystem(value=out.Maven()),
                     ),
                 ],
                 [
@@ -758,6 +783,7 @@ class TestGradleMatcher:
                                 path=out.Fpath("build.gradle"),
                             ),
                         ),
+                        ecosystem=out.Ecosystem(value=out.Maven()),
                     ),
                 ],
                 [],

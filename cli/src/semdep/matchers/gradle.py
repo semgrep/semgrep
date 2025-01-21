@@ -33,6 +33,7 @@ class GradleMatcher(SubprojectMatcher):
     BUILD_FILENAMES = ["build.gradle", "build.gradle.kts"]
     SETTINGS_FILENAMES = ["settings.gradle", "settings.gradle.kts"]
     LOCKFILE_FILENAME = "gradle.lockfile"
+    ECOSYSTEM = out.Ecosystem(out.Maven())
 
     def is_match(self, path: Path) -> bool:
         return path.name in [
@@ -144,6 +145,7 @@ class GradleMatcher(SubprojectMatcher):
                         dependency_source=ManifestLockfileDependencySource(
                             manifest=manifest, lockfile=lockfile
                         ),
+                        ecosystem=self.ECOSYSTEM,
                     )
                 )
             else:
@@ -151,6 +153,7 @@ class GradleMatcher(SubprojectMatcher):
                     Subproject(
                         root_dir=project_root,
                         dependency_source=LockfileOnlyDependencySource(lockfile),
+                        ecosystem=self.ECOSYSTEM,
                     )
                 )
 
@@ -189,6 +192,7 @@ class GradleMatcher(SubprojectMatcher):
                 Subproject(
                     root_dir=project_root,
                     dependency_source=ManifestOnlyDependencySource(manifest),
+                    ecosystem=self.ECOSYSTEM,
                 )
             )
 
@@ -216,6 +220,7 @@ class GradleMatcher(SubprojectMatcher):
                             path=out.Fpath(str(build_path)),
                         )
                     ),
+                    ecosystem=self.ECOSYSTEM,
                 )
             )
             root_dirs.add(build_path.parent)

@@ -72,6 +72,11 @@ def resolve_subprojects(
     unresolved: List[UnresolvedSubproject] = []
     # Dispatch each subproject to a resolver for resolution
     for to_resolve in found_subprojects:
+        if to_resolve.ecosystem is None:
+            # no reason to resolve subprojects that we don't support. We only recognize them
+            # for tracking purposes
+            unresolved.append(UnresolvedSubproject.from_subproject(to_resolve, []))
+            continue
         resolved_info, errors, targets = resolve_dependency_source(
             to_resolve.dependency_source,
             allow_dynamic_resolution,
@@ -81,14 +86,14 @@ def resolve_subprojects(
 
         if resolved_info is not None:
             # resolved_info is only None when dependency resolution failed in some way
-            ecosystem, resolution_method, deps = resolved_info
+            resolution_method, deps = resolved_info
             resolved_subproject = ResolvedSubproject.from_unresolved(
-                to_resolve, resolution_method, errors, deps, ecosystem
+                to_resolve, resolution_method, errors, deps, to_resolve.ecosystem
             )
 
-            if ecosystem not in resolved:
-                resolved[ecosystem] = []
-            resolved[ecosystem].append(resolved_subproject)
+            if resolved_subproject.ecosystem not in resolved:
+                resolved[resolved_subproject.ecosystem] = []
+            resolved[resolved_subproject.ecosystem].append(resolved_subproject)
         else:
             # we were not able to resolve the subproject, so track it as an unresolved subproject
             unresolved.append(UnresolvedSubproject.from_subproject(to_resolve, errors))

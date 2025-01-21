@@ -122,6 +122,7 @@ def sample_resolved_deps():
             unresolved=Subproject(
                 root_dir=Path("."),
                 dependency_source=dependency_source,
+                ecosystem=Ecosystem(value=Pypi()),
             ),
             resolution_errors=[],
             resolution_method=resolution_method,

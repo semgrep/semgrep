@@ -33,12 +33,14 @@ from semgrep.subproject import Subproject
                     manifest_name="requirements.in",
                     lockfile_kind=out.LockfileKind(value=out.PipRequirementsTxt()),
                     manifest_kind=out.ManifestKind(value=out.RequirementsIn()),
+                    ecosystem=out.Ecosystem(value=out.Pypi()),
                 ),
                 ExactLockfileManifestMatcher(
                     lockfile_name="requirements3.txt",
                     manifest_name="requirements.in",
                     lockfile_kind=out.LockfileKind(value=out.PipRequirementsTxt()),
                     manifest_kind=out.ManifestKind(value=out.RequirementsIn()),
+                    ecosystem=out.Ecosystem(value=out.Pypi()),
                 ),
             ],
             [
@@ -54,6 +56,7 @@ from semgrep.subproject import Subproject
                             out.Fpath("requirements.txt"),
                         ),
                     ),
+                    ecosystem=out.Ecosystem(value=out.Pypi()),
                 ),
                 Subproject(
                     root_dir=Path(),
@@ -63,6 +66,7 @@ from semgrep.subproject import Subproject
                             out.Fpath("requirements3.txt"),
                         )
                     ),
+                    ecosystem=out.Ecosystem(value=out.Pypi()),
                 ),
             ],
         ),
@@ -79,12 +83,14 @@ from semgrep.subproject import Subproject
                     manifest_name="requirements.in",
                     lockfile_kind=out.LockfileKind(value=out.PipRequirementsTxt()),
                     manifest_kind=out.ManifestKind(value=out.RequirementsIn()),
+                    ecosystem=out.Ecosystem(value=out.Pypi()),
                 ),
                 ExactLockfileManifestMatcher(
                     lockfile_name="requirements3.txt",
                     manifest_name="requirements.in",
                     lockfile_kind=out.LockfileKind(value=out.PipRequirementsTxt()),
                     manifest_kind=out.ManifestKind(value=out.RequirementsIn()),
+                    ecosystem=out.Ecosystem(value=out.Pypi()),
                 ),
             ],
             [
@@ -100,6 +106,7 @@ from semgrep.subproject import Subproject
                             out.Fpath("requirements3.txt"),
                         ),
                     ),
+                    ecosystem=out.Ecosystem(value=out.Pypi()),
                 ),
             ],
         ),
@@ -114,6 +121,7 @@ from semgrep.subproject import Subproject
                 ExactManifestOnlyMatcher(
                     manifest_kind=out.ManifestKind(out.PomXml()),
                     manifest_name="pom.xml",
+                    ecosystem=out.Ecosystem(value=out.Pypi()),
                 )
             ],
             [
@@ -125,6 +133,7 @@ from semgrep.subproject import Subproject
                             out.Fpath("pom.xml"),
                         )
                     ),
+                    ecosystem=out.Ecosystem(value=out.Pypi()),
                 ),
                 Subproject(
                     root_dir=Path("child-a"),
@@ -134,6 +143,7 @@ from semgrep.subproject import Subproject
                             out.Fpath("child-a/pom.xml"),
                         )
                     ),
+                    ecosystem=out.Ecosystem(value=out.Pypi()),
                 ),
                 Subproject(
                     root_dir=Path("child-b"),
@@ -143,6 +153,7 @@ from semgrep.subproject import Subproject
                             out.Fpath("child-b/pom.xml"),
                         )
                     ),
+                    ecosystem=out.Ecosystem(value=out.Pypi()),
                 ),
             ],
         ),

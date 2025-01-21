@@ -304,6 +304,7 @@ class TestSubproject:
         subproject = Subproject(
             root_dir=Path("a/b/c"),
             dependency_source=dependency_source,
+            ecosystem=Ecosystem(Pypi()),
         )
 
         subproject_id = hashlib.sha256(

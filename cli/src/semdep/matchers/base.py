@@ -59,6 +59,7 @@ class LockfileManifestMatcher(SubprojectMatcher):
 
     manifest_kind: out.ManifestKind
     lockfile_kind: out.LockfileKind
+    ecosystem: out.Ecosystem
 
     @abstractmethod
     def _is_manifest_match(self, path: Path) -> bool:
@@ -161,7 +162,11 @@ class LockfileManifestMatcher(SubprojectMatcher):
                 dep_source = LockfileOnlyDependencySource(lockfile)
 
             subprojects.append(
-                Subproject(root_dir=root_dir, dependency_source=dep_source)
+                Subproject(
+                    root_dir=root_dir,
+                    dependency_source=dep_source,
+                    ecosystem=self.ecosystem,
+                )
             )
 
         return subprojects, frozenset(paired_manifests | lockfiles)
@@ -265,6 +270,7 @@ class ManifestOnlyMatcher(SubprojectMatcher):
     """
 
     manifest_kind: out.ManifestKind
+    ecosystem: out.Ecosystem
 
     @abstractmethod
     def _is_manifest_match(self, path: Path) -> bool:
@@ -299,7 +305,11 @@ class ManifestOnlyMatcher(SubprojectMatcher):
                 ),
             )
             subprojects.append(
-                Subproject(root_dir=root_dir, dependency_source=manifest_dep_source)
+                Subproject(
+                    root_dir=root_dir,
+                    dependency_source=manifest_dep_source,
+                    ecosystem=self.ecosystem,
+                )
             )
 
         return subprojects, manifests

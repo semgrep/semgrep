@@ -29,6 +29,8 @@ class PipRequirementsMatcher(SubprojectMatcher):
     Also supports multiple lockfiles in a single root directory.
     """
 
+    ECOSYSTEM = out.Ecosystem(out.Pypi())
+
     # base file pattern is everything except for the last extension. Applies to both
     # requirements and manifests
     base_file_pattern: str  # without extension
@@ -191,7 +193,7 @@ class PipRequirementsMatcher(SubprojectMatcher):
             else:
                 dep_source = MultiLockfileDependencySource(tuple(lockfile_sources))
 
-            subprojects.append(Subproject(root_dir, dep_source))
+            subprojects.append(Subproject(root_dir, dep_source, self.ECOSYSTEM))
 
         # TODO: (bk) handle lone manifests.
         # there could be lone manifests remaining (manifests - paired_manifests)

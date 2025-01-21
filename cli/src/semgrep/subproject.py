@@ -279,6 +279,13 @@ class Subproject:
     # but in the future it might also be dynamic resolution based on a manifest, an SBOM, or something else
     dependency_source: DependencySource
 
+    # the ecosystem that the subproject belongs to. This is used to match code files with subprojects. It is necessary to have it
+    # here, even before a subproject's dependencies are resolved, in order to decide whether
+    # a certain subproject must be resolved given the changes included in a certain diff scan.
+    # ecosystem can be None if this subproject is for a package manager whose ecosystem is not yet supported (i.e. one that is identified
+    # only for tracking purposes)
+    ecosystem: Optional[Ecosystem]
+
     def to_stats_output(self) -> out.SubprojectStats:
         # subproject id is a hash based on the dependency field paths
         normalized_paths = sorted(
@@ -314,6 +321,7 @@ class UnresolvedSubproject(Subproject):
         return cls(
             root_dir=base.root_dir,
             dependency_source=base.dependency_source,
+            ecosystem=base.ecosystem,
             resolution_errors=list(resolution_errors),
         )
 
@@ -346,11 +354,16 @@ class ResolvedSubproject(Subproject):
         found_dependencies: List[FoundDependency],
         ecosystem: Ecosystem,
     ) -> "ResolvedSubproject":
+        """
+        Note that the ecosystem of the resolved subproject is passed separately. We could read it from the
+        unresolved subproject, but by having it separately we can expose the fact that ecosystem must not
+        be None in the type signature rather than relying on a runtime check.
+        """
         return cls(
             root_dir=unresolved.root_dir,
             dependency_source=unresolved.dependency_source,
-            resolution_errors=list(resolution_errors),
             ecosystem=ecosystem,
+            resolution_errors=list(resolution_errors),
             found_dependencies=ResolvedDependencies.from_found_dependencies(
                 found_dependencies
             ),

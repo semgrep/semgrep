@@ -26,18 +26,21 @@ MATCHERS: List[SubprojectMatcher] = [
         manifest_name="package.json",
         lockfile_kind=out.LockfileKind(out.NpmPackageLockJson()),
         manifest_kind=out.ManifestKind(out.PackageJson()),
+        ecosystem=out.Ecosystem(out.Npm()),
     ),
     ExactLockfileManifestMatcher(
         lockfile_name="yarn.lock",
         manifest_name="package.json",
         lockfile_kind=out.LockfileKind(out.YarnLock()),
         manifest_kind=out.ManifestKind(out.PackageJson()),
+        ecosystem=out.Ecosystem(out.Npm()),
     ),
     ExactLockfileManifestMatcher(
         lockfile_name="pnpm-lock.yaml",
         manifest_name="package.json",
         lockfile_kind=out.LockfileKind(out.PnpmLock()),
         manifest_kind=out.ManifestKind(out.PackageJson()),
+        ecosystem=out.Ecosystem(out.Npm()),
     ),
     # Gem
     ExactLockfileManifestMatcher(
@@ -45,6 +48,7 @@ MATCHERS: List[SubprojectMatcher] = [
         manifest_name="Gemfile",
         lockfile_kind=out.LockfileKind(out.GemfileLock()),
         manifest_kind=out.ManifestKind(out.Gemfile()),
+        ecosystem=out.Ecosystem(out.Gem()),
     ),
     # Go modules
     ExactLockfileManifestMatcher(
@@ -52,6 +56,7 @@ MATCHERS: List[SubprojectMatcher] = [
         manifest_name="go.mod",
         lockfile_kind=out.LockfileKind(out.GoMod()),
         manifest_kind=out.ManifestKind(out.GoMod_()),
+        ecosystem=out.Ecosystem(out.Gomod()),
     ),
     # Cargo
     ExactLockfileManifestMatcher(
@@ -59,6 +64,7 @@ MATCHERS: List[SubprojectMatcher] = [
         manifest_name="Cargo.toml",
         lockfile_kind=out.LockfileKind(out.CargoLock()),
         manifest_kind=out.ManifestKind(out.CargoToml()),
+        ecosystem=out.Ecosystem(out.Cargo()),
     ),
     # Maven
     ExactLockfileManifestMatcher(
@@ -66,10 +72,12 @@ MATCHERS: List[SubprojectMatcher] = [
         manifest_name="pom.xml",
         lockfile_kind=out.LockfileKind(out.MavenDepTree()),
         manifest_kind=out.ManifestKind(out.PomXml()),
+        ecosystem=out.Ecosystem(out.Maven()),
     ),
     ExactManifestOnlyMatcher(
         manifest_kind=out.ManifestKind(out.PomXml()),
         manifest_name="pom.xml",
+        ecosystem=out.Ecosystem(out.Maven()),
     ),
     GradleMatcher(),
     # Composer
@@ -78,6 +86,7 @@ MATCHERS: List[SubprojectMatcher] = [
         manifest_name="composer.json",
         lockfile_kind=out.LockfileKind(out.ComposerLock()),
         manifest_kind=out.ManifestKind(out.ComposerJson()),
+        ecosystem=out.Ecosystem(out.Composer()),
     ),
     # Nuget
     ExactLockfileManifestMatcher(
@@ -85,6 +94,7 @@ MATCHERS: List[SubprojectMatcher] = [
         manifest_name="nuget.manifest.json",
         lockfile_kind=out.LockfileKind(out.NugetPackagesLockJson()),
         manifest_kind=out.ManifestKind(out.NugetManifestJson()),
+        ecosystem=out.Ecosystem(out.Nuget()),
     ),
     # Pub
     ExactLockfileManifestMatcher(
@@ -92,6 +102,7 @@ MATCHERS: List[SubprojectMatcher] = [
         manifest_name="pubspec.yaml",
         lockfile_kind=out.LockfileKind(out.PubspecLock()),
         manifest_kind=out.ManifestKind(out.PubspecYaml()),
+        ecosystem=out.Ecosystem(out.Pub()),
     ),
     # Swift PM
     ExactLockfileManifestMatcher(
@@ -99,6 +110,7 @@ MATCHERS: List[SubprojectMatcher] = [
         manifest_name="Package.swift",
         lockfile_kind=out.LockfileKind(out.SwiftPackageResolved()),
         manifest_kind=out.ManifestKind(out.PackageSwift()),
+        ecosystem=out.Ecosystem(out.SwiftPM()),
     ),
     # Hex
     ExactLockfileManifestMatcher(
@@ -106,6 +118,7 @@ MATCHERS: List[SubprojectMatcher] = [
         manifest_name="mix.exs",
         lockfile_kind=out.LockfileKind(out.MixLock()),
         manifest_kind=out.ManifestKind(out.MixExs()),
+        ecosystem=out.Ecosystem(out.Hex()),
     ),
     # Pipenv
     ExactLockfileManifestMatcher(
@@ -113,6 +126,7 @@ MATCHERS: List[SubprojectMatcher] = [
         manifest_name="Pipfile",
         lockfile_kind=out.LockfileKind(out.PipfileLock()),
         manifest_kind=out.ManifestKind(out.Pipfile()),
+        ecosystem=out.Ecosystem(out.Pypi()),
     ),
     # Poetry
     ExactLockfileManifestMatcher(
@@ -120,6 +134,7 @@ MATCHERS: List[SubprojectMatcher] = [
         manifest_name="pyproject.toml",
         lockfile_kind=out.LockfileKind(out.PoetryLock()),
         manifest_kind=out.ManifestKind(out.PyprojectToml()),
+        ecosystem=out.Ecosystem(out.Pypi()),
     ),
     # UV
     ExactLockfileManifestMatcher(
@@ -127,6 +142,7 @@ MATCHERS: List[SubprojectMatcher] = [
         manifest_name="pyproject.toml",
         lockfile_kind=out.LockfileKind(out.UvLock()),
         manifest_kind=out.ManifestKind(out.PyprojectToml()),
+        ecosystem=out.Ecosystem(out.Pypi()),
     ),
 ]
 
