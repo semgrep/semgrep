@@ -8,12 +8,12 @@ type conf = {
 [@@deriving show]
 
 let hook_pro_read_and_merge_partial_scan_results :
-    (input_dir:Fpath.t -> output_json:Fpath.t -> unit) option ref =
-  ref None
+    (input_dir:Fpath.t -> output_json:Fpath.t -> unit) option Hook.t =
+  Hook.create None
 
 let hook_pro_read_and_validate_partial_scan_results :
-    (expected:Fpath.t -> actual:Fpath.t -> bool) option ref =
-  ref None
+    (expected:Fpath.t -> actual:Fpath.t -> bool) option Hook.t =
+  Hook.create None
 
 let maybe_merge_partial_scan_results_then_exit (conf : conf) =
   match (conf.merge_partial_results_dir, conf.merge_partial_results_output) with
@@ -26,7 +26,7 @@ let maybe_merge_partial_scan_results_then_exit (conf : conf) =
       Error.exit_code_exn (Exit_code.fatal ~__LOC__)
   | None, None -> ()
   | Some input_dir, Some output_file -> (
-      match !hook_pro_read_and_merge_partial_scan_results with
+      match Hook.get hook_pro_read_and_merge_partial_scan_results with
       | None ->
           Logs.err (fun m ->
               m
@@ -52,7 +52,7 @@ let maybe_validate_partial_scan_results_then_exit (conf : conf) =
       Error.exit_code_exn (Exit_code.fatal ~__LOC__)
   | None, None -> ()
   | Some expected, Some actual -> (
-      match !hook_pro_read_and_validate_partial_scan_results with
+      match Hook.get hook_pro_read_and_validate_partial_scan_results with
       | None ->
           Logs.err (fun m ->
               m

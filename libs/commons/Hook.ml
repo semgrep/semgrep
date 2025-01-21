@@ -17,3 +17,8 @@ type 'a t = 'a ref
 let create = ref
 let with_hook_set = Common.save_excursion
 let get = ( ! )
+
+(* small helper so we can combine calls to [with_] with [@@]
+ * alt: 'let f () = Hook.with_hook_set ... f in let f () = ...'
+ *)
+let with_ hook v f () = with_hook_set hook v f

@@ -116,12 +116,12 @@ let break_line =
 (* Pro hooks *)
 (*****************************************************************************)
 
-let hook_pro_init : (unit -> unit) ref =
-  ref (fun () ->
+let hook_pro_init : (unit -> unit) Hook.t =
+  Hook.create (fun () ->
       failwith "semgrep test --pro not available (need --install-semgrep-pro)")
 
-let hook_pro_scan : (Core_scan.caps -> Core_scan.func) ref =
-  ref (fun _caps _config ->
+let hook_pro_scan : (Core_scan.caps -> Core_scan.func) Hook.t =
+  Hook.create (fun _caps _config ->
       failwith "semgrep test --pro not available (need --install-semgrep-pro)")
 
 (* note that we run DeepScan with
@@ -131,8 +131,8 @@ let hook_pro_scan : (Core_scan.caps -> Core_scan.func) ref =
  *)
 let hook_deep_scan :
     (scan_caps -> Core_scan_config.t -> Fpath.t -> Core_result.result_or_exn)
-    ref =
-  ref (fun _caps _config _root ->
+    Hook.t =
+  Hook.create (fun _caps _config _root ->
       failwith "semgrep test --pro not available (need --install-semgrep-pro)")
 
 (*****************************************************************************)
@@ -455,14 +455,14 @@ let run_rules_against_targets_for_engine caps (env : env) (rules : Rule.t list)
   let res_or_exn : Core_result.result_or_exn =
     match env.engine with
     | A.OSS -> Core_scan.scan caps config
-    | A.Pro -> !hook_pro_scan (caps :> Core_scan.caps) config
+    | A.Pro -> (Hook.get hook_pro_scan) (caps :> Core_scan.caps) config
     | A.Deep ->
         (* LATER: support also interfile tests where many targets are in
          * a subdir (using the same name than the rule file)
          *)
         let root, _base = Fpath.split_base env.rule_file in
         (* Deep_scan.caps but can't reference it from OSS/ *)
-        !hook_deep_scan (caps :> scan_caps) config root
+        (Hook.get hook_deep_scan) (caps :> scan_caps) config root
   in
   match res_or_exn with
   | Error exn -> Exception.reraise exn
@@ -850,7 +850,7 @@ let run_conf (caps : < caps ; .. >) (conf : Test_CLI.conf) : Exit_code.t =
    * those options and we should disable metrics (and version-check) by default.
    *)
   Logs.debug (fun m -> m "conf = %s" (Test_CLI.show_conf conf));
-  if conf.pro then !hook_pro_init ();
+  if conf.pro then (Hook.get hook_pro_init) ();
   let matching_diagnosis = conf.matching_diagnosis in
   let errors = ref [] in
 

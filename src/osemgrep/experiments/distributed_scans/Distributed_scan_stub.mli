@@ -7,10 +7,10 @@ type conf = {
 [@@deriving show]
 
 val hook_pro_read_and_merge_partial_scan_results :
-  (input_dir:Fpath.t -> output_json:Fpath.t -> unit) option ref
+  (input_dir:Fpath.t -> output_json:Fpath.t -> unit) option Hook.t
 
 val hook_pro_read_and_validate_partial_scan_results :
-  (expected:Fpath.t -> actual:Fpath.t -> bool) option ref
+  (expected:Fpath.t -> actual:Fpath.t -> bool) option Hook.t
 
 val maybe_merge_partial_scan_results_then_exit : conf -> unit
 val maybe_validate_partial_scan_results_then_exit : conf -> unit

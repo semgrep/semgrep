@@ -22,4 +22,4 @@ val main : < caps ; .. > -> string array -> Exit_code.t
 val run_conf : < caps ; .. > -> Validate_CLI.conf -> Exit_code.t
 
 (* pro hooks *)
-val hook_pro_init : (unit -> unit) ref
+val hook_pro_init : (unit -> unit) Hook.t

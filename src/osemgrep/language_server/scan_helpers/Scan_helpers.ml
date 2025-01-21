@@ -89,7 +89,7 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
             session.user_settings.pro_intrafile
             && Semgrep_login.is_logged_in_weak ()
           in
-          match !Core_runner.hook_mk_pro_core_run_for_osemgrep with
+          match Hook.get Core_runner.hook_mk_pro_core_run_for_osemgrep with
           | Some pro_scan_func when pro_intrafile ->
               (* THINK: files or folders?
                  Note that converting many target files to scanning roots

@@ -87,8 +87,8 @@ let metarules_pack = "p/semgrep-rule-lints"
 (*****************************************************************************)
 
 (* alt: could reuse the one in Test_subcommand.ml *)
-let hook_pro_init : (unit -> unit) ref =
-  ref (fun () ->
+let hook_pro_init : (unit -> unit) Hook.t =
+  Hook.create (fun () ->
       failwith
         "semgrep validate --pro not available (need --install-semgrep-pro)")
 
@@ -265,7 +265,7 @@ let run_conf (caps : < caps ; .. >) (conf : Validate_CLI.conf) : Exit_code.t =
    * those options and we should disable metrics (and version-check) by default.
    *)
   Logs.debug (fun m -> m "conf = %s" (Validate_CLI.show_conf conf));
-  if conf.pro then !hook_pro_init ();
+  if conf.pro then (Hook.get hook_pro_init) ();
 
   let settings = Semgrep_settings.load () in
   (* needed for fetching the metachecking rules ? those are not public?

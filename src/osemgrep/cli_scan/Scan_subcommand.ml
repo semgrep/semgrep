@@ -306,7 +306,7 @@ let mk_core_run_for_osemgrep (caps : < Core_scan.caps ; .. >)
     match conf.engine_type with
     | OSS -> Core_runner.mk_core_run_for_osemgrep (Core_scan.scan caps)
     | PRO _ -> (
-        match !Core_runner.hook_mk_pro_core_run_for_osemgrep with
+        match Hook.get Core_runner.hook_mk_pro_core_run_for_osemgrep with
         | None ->
             (* TODO: improve this error message depending on what the
              * instructions should be *)
@@ -325,7 +325,7 @@ let mk_core_run_for_osemgrep (caps : < Core_scan.caps ; .. >)
   let core_run_for_osemgrep : Core_runner.func =
     match conf.targeting_conf.force_project_root with
     | Some (Find_targets.Git_remote _) -> (
-        match !Core_runner.hook_pro_git_remote_scan_setup with
+        match Hook.get Core_runner.hook_pro_git_remote_scan_setup with
         | None ->
             failwith
               "You have requested running semgrep with a setting that requires \

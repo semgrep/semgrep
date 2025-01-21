@@ -117,15 +117,16 @@ let default_conf : conf =
  * and executed by osemgrep-pro. When linked from osemgrep-pro, this
  * hook below will be set.
  *)
-let (hook_mk_pro_core_run_for_osemgrep : (pro_conf -> func) option ref) =
-  ref None
+let hook_mk_pro_core_run_for_osemgrep : (pro_conf -> func) option Hook.t =
+  Hook.create None
 
 (* This hooks into the proprietary part of Semgrep, in order to access a
  * function that helps us quickly checkout and scan a remote git repo.
  * If a repo is checked out sparsely, this will only checkout the files
  * that are needed for the scan.
  *)
-let (hook_pro_git_remote_scan_setup : (func -> func) option ref) = ref None
+let hook_pro_git_remote_scan_setup : (func -> func) option Hook.t =
+  Hook.create None
 
 (*************************************************************************)
 (* Metrics and reporting *)

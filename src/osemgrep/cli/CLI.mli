@@ -27,4 +27,4 @@ type caps =
 val main : caps -> string array -> Exit_code.t
 
 (* set in semgrep-pro *)
-val hook_semgrep_interactive : (string array -> Exit_code.t) ref
+val hook_semgrep_interactive : (string array -> Exit_code.t) Hook.t
