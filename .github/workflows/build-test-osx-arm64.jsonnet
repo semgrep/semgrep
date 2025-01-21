@@ -11,12 +11,7 @@ local wheel_name = 'osx-arm64-wheel';
 // ----------------------------------------------------------------------------
 // Helpers
 // ----------------------------------------------------------------------------
-local runs_on = [
-  'self-hosted',
-  'macOS',
-  'ARM64',
-  'ghcr.io/cirruslabs/macos-monterey-xcode:latest',
-];
+local runs_on = 'macos-latest';
 
 local setup_runner_step = {
   name: 'Setup runner directory',
