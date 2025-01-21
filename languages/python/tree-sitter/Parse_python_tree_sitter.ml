@@ -2048,18 +2048,31 @@ and map_except_clause (env : env) ((v1, v2, v3, v4) : CST.except_clause) :
 and map_except_group_clause (env : env)
     ((v1, v2, v3, v4, v5) : CST.except_group_clause) =
   let texcept = (* "except*" *) token env v1 in
-  let e = map_expression env v2 in
-  let nameopt =
-    match v3 with
-    | Some (v1, v2) ->
+  let v1, aspat =
+    match v2 with
+    | `As_pat_ (v1, v2, v3) ->
+        (* This site should be guarded, so it shouldn't be reached ideally.
+            As-patterns are not truly expressions, but they can occur in the context of a `with` or
+            `except`.
+        *)
+        let v1 = map_expression env v1 in
+        let v2 = (* "as" *) token env v2 in
+        let v3 = map_expression env v3 in
+        (Some v1, id_opt_of_expr v3)
+    | e -> (Some (map_expression env e), None)
+  in
+  let aspat =
+    match (aspat, v3) with
+    | Some _, _ -> aspat
+    | None, Some (v1, v2) ->
         let v1 = (* "as" *) token env v1 in
         let v2 = map_expression env v2 in
         id_opt_of_expr v2
-    | None -> None
+    | _ -> None
   in
   let v4 = (* ":" *) token env v4 in
   let body = map_suite env v5 in
-  ExceptHandler (texcept, Some e, nameopt, body)
+  ExceptHandler (texcept, v1, aspat, body)
 
 and map_try_else_clause (env : env) ((v1, v2, v3) : CST.finally_clause) =
   let telse = (* "else" *) token env v1 in
