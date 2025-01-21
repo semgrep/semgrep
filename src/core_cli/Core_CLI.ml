@@ -489,7 +489,7 @@ let all_actions (caps : Cap.all_caps) () =
       Arg_.mk_action_1_conv Fpath.v Core_actions.sarif_sort );
   ]
   @ Test_analyze_generic.actions
-      (caps :> < Cap.exec >)
+      (caps :> < Cap.exec ; Cap.tmp >)
       ~parse_program:Parse_target.parse_program
   @ Test_dataflow_tainting.actions ()
   @ Test_naming_generic.actions ~parse_program:Parse_target.parse_program

@@ -123,8 +123,14 @@ let short_string_of_node_kind nkind =
 let at_exit_mark node str = if node.at_exit then str ^ " @exit" else str
 
 (* using internally graphviz dot and ghostview on X11 *)
-let display_cfg (caps : < Cap.exec >) (flow : cfg) : unit =
+let display_cfg (caps : < Cap.exec ; Cap.tmp >) ?title (flow : cfg) : unit =
   flow.graph
-  |> Ograph_call_dot_gv.print_ograph_mutable_generic caps
+  |> Ograph_call_dot_gv.print_ograph_mutable_generic
+       (caps :> < Cap.exec >)
+       ?title
+       ?output_file:
+         (Option.map
+            (fun s -> Fpath.(CapTmp.get_temp_dir_name caps#tmp / (s ^ ".dot")))
+            title)
        ~s_of_node:(fun (_nodei, node) ->
          (short_string_of_node_kind node.n |> at_exit_mark node, None, None))

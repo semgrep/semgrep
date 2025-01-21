@@ -10,7 +10,7 @@ val print_ograph_mutable_generic :
   ?title:string ->
   (* label for the entire graph *)
   ?display_graph:bool ->
-  ?output_file:string (* filename *) ->
+  ?output_file:Fpath.t ->
   (* what string to print for a node and how to color it *)
   s_of_node:(nodei * 'node -> string * string option * string option) ->
   ('node, 'edge) ograph_mutable ->

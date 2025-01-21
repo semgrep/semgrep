@@ -53,17 +53,29 @@ let test_il_generic ~parse_program file =
   in
   v#visit_program () ast
 
-let test_cfg_il (caps : < Cap.exec >) ~parse_program file =
+let test_cfg_il (caps : < Cap.exec ; Cap.tmp >) ~parse_program file =
   let ast = parse_program file in
   let lang = Lang.lang_of_filename_exn file in
   Naming_AST.resolve lang ast;
   Implicit_return.mark_implicit_return lang ast;
+  let i = ref 0 in
   Visit_function_defs.visit
-    (fun _ent fdef ->
+    (fun ent fdef ->
       let IL.{ params = _; cfg; lambdas = _ } =
         CFG_build.cfg_of_gfdef lang fdef
       in
-      Display_IL.display_cfg caps cfg)
+      Display_IL.display_cfg
+        ~title:
+          (match ent with
+          | Some { name = EN (Id ((name, _), _)); _ }
+          | Some { name = EN (IdQualified { name_last = (name, _), _; _ }); _ }
+            ->
+              name
+          | _ ->
+              let name = "func" ^ Int.to_string !i in
+              incr i;
+              name)
+        caps cfg)
     ast
 
 module F2 = IL
@@ -97,7 +109,7 @@ let test_dfg_svalue ~parse_program file =
   in
   v#visit_program () ast
 
-let actions (caps : < Cap.exec >) ~parse_program =
+let actions (caps : < Cap.exec ; Cap.tmp >) ~parse_program =
   [
     ( "-typing_generic",
       " <file>",

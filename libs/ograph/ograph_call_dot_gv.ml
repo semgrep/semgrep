@@ -101,6 +101,7 @@ let print_ograph_mutable caps g filename display_graph =
   if display_graph then display_graph_cmd caps filename
 
 let print_ograph_mutable_generic caps ?title ?(display_graph = true)
-    ?(output_file = "/tmp/ograph.dot") ~s_of_node g =
-  generate_ograph_generic g title s_of_node output_file;
-  if display_graph then display_graph_cmd caps output_file
+    ?(output_file = Fpath.(UTmp.get_temp_dir_name () / "ograph.dot")) ~s_of_node
+    g =
+  generate_ograph_generic g title s_of_node (Fpath.to_string output_file);
+  if display_graph then display_graph_cmd caps (Fpath.to_string output_file)
