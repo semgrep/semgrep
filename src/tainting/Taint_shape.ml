@@ -560,6 +560,45 @@ and clean_obj offset obj =
           Fields.update o (Option.map (fun cell -> clean_cell offset cell)) obj)
 
 (*********************************************************)
+(* Update token trace *)
+(*********************************************************)
+
+let rec internal_UNSAFE_map_xtaint_cell f cell =
+  let (Cell (xtaint, shape)) = cell in
+  let xtaint' = f xtaint in
+  let shape' = internal_UNSAFE_map_xtaint_shape f shape in
+  if phys_equal xtaint' xtaint && phys_equal shape' shape then cell
+  else Cell (xtaint', shape')
+
+and internal_UNSAFE_map_xtaint_shape f shape =
+  match shape with
+  | Bot
+  | Arg _
+  | Fun _ ->
+      shape
+  | Obj obj ->
+      let obj' = internal_UNSAFE_map_xtaint_obj f obj in
+      if phys_equal obj' obj then shape else Obj obj'
+
+and internal_UNSAFE_map_xtaint_obj f obj =
+  Fields.map (internal_UNSAFE_map_xtaint_cell f) obj
+
+let add_tainted_token_to_shape tok shape =
+  shape
+  |> internal_UNSAFE_map_xtaint_shape (fun xtaint ->
+         match xtaint with
+         | `None
+         | `Clean ->
+             xtaint
+         | `Tainted taints ->
+             let taints =
+               taints
+               |> Taints.map (fun t ->
+                      { t with rev_tokens = tok :: t.rev_tokens })
+             in
+             `Tainted taints)
+
+(*********************************************************)
 (* Enumerate tainted offsets *)
 (*********************************************************)
 

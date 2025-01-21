@@ -193,13 +193,17 @@ let add_shape var offset new_taints new_shape
   match check_tainted_lvals_limit tainted var with
   | None -> lval_env
   | Some tainted ->
-      let new_taints =
+      let new_taints, new_shape =
         let var_tok = snd var.ident in
-        if Tok.is_fake var_tok then new_taints
+        if Tok.is_fake var_tok then (new_taints, new_shape)
         else
-          new_taints
-          |> Taints.map (fun t ->
-                 { t with rev_tokens = var_tok :: t.rev_tokens })
+          let new_taints =
+            new_taints
+            |> Taints.map (fun t ->
+                   { t with rev_tokens = var_tok :: t.rev_tokens })
+          in
+          let new_shape = Shape.add_tainted_token_to_shape var_tok new_shape in
+          (new_taints, new_shape)
       in
       {
         tainted =

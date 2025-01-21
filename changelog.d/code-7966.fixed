@@ -1,0 +1,9 @@
+taint-mode: Make traces record assignments that transfer taint via shapes.
+
+For example, in code like:
+
+    B b = new B(taint);
+    B b1 = b;
+    sink(b1.getTaintedData());
+
+The assignment `b1 = b` should be recorded in the trace but previously it was not.

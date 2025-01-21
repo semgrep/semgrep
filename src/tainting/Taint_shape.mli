@@ -113,6 +113,9 @@ val update_offset_and_unify :
 val clean_cell : Taint.offset list -> cell -> cell
 (** [clean_cell offset cell] marks the 'offset' in 'cell' as clean.  *)
 
+val add_tainted_token_to_shape : Taint.tainted_token -> shape -> shape
+(** Adds a tainted token to the trace of every taint in a shape. *)
+
 val enum_in_cell : cell -> (Taint.offset list * Taint.taints) Seq.t
 (**
  * Enumerate all offsets in a cell and their taint.
