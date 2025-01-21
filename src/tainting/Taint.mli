@@ -88,6 +88,38 @@ val lval_of_arg : arg -> lval
 val hook_offset_of_IL : (IL.offset -> offset) option ref
 (** Pro index sensitivity *)
 
+type var =
+  | Taint_var of lval
+      (** Polymorphic taint variable.
+       *
+       * Taint variables are introduced by variables that are in the scope of
+       * a function/method definition, and that are considered like "inputs"
+       * or parameters. We identify the variables with the l-value from which
+       * they originate. For example given:
+       *
+       *     def foo(x):
+       *       return x.a
+       *
+       * We assign `x` the taint variable `x` too, that is:
+       *
+       *     { base = BArg {name = "x"; index = 0}; offset = [] }
+       *
+       * And `x.a` would be another taint variable resulting from adding the
+       * offset `.a` to the taint of `x`, that is:
+       *
+       *     { base = BArg {name = "x"; index = 0}; offset = [Ofld "a"] }
+       *
+       * It is then trivial to instantiate taint variables, for a concrete call.
+       * If we encounter a call `foo(obj)`, we can easily compute the taint
+       * returned by that function by 1) subtituting `x` with `obj` thus obtaining
+       * the l-value `obj.a`, and 2) looking up the taint attached to `obj.a` in
+       * the environment.
+       *)
+  | Taint_in_shape_var of lval
+      (** A taint shape-variable stands for the taints reachable through the
+        * shape of the 'lval', see 'Taint_sig.gather_all_taints_in_shape'. *)
+  | Control_var  (** Polymorphic taint variable, but for the "control-flow". *)
+
 type source = {
   call_trace : Rule.taint_source call_trace;
   label : string;
@@ -132,36 +164,7 @@ type source = {
 (** The origin of taint, where does taint comes from? *)
 and orig =
   | Src of source  (** An actual taint source (a `pattern-sources` match). *)
-  | Var of lval
-      (** Polymorphic taint variable.
-       *
-       * Taint variables are introduced by variables that are in the scope of
-       * a function/method definition, and that are considered like "inputs"
-       * or parameters. We identify the variables with the l-value from which
-       * they originate. For example given:
-       *
-       *     def foo(x):
-       *       return x.a
-       *
-       * We assign `x` the taint variable `x` too, that is:
-       *
-       *     { base = BArg {name = "x"; index = 0}; offset = [] }
-       *
-       * And `x.a` would be another taint variable resulting from adding the
-       * offset `.a` to the taint of `x`, that is:
-       *
-       *     { base = BArg {name = "x"; index = 0}; offset = [Ofld "a"] }
-       *
-       * It is then trivial to instantiate taint variables, for a concrete call.
-       * If we encounter a call `foo(obj)`, we can easily compute the taint
-       * returned by that function by 1) subtituting `x` with `obj` thus obtaining
-       * the l-value `obj.a`, and 2) looking up the taint attached to `obj.a` in
-       * the environment.
-       *)
-  | Shape_var of lval
-      (** A taint shape-variable stands for the taints reachable through the
-        * shape of the 'lval', see 'Taint_sig.gather_all_taints_in_shape'. *)
-  | Control  (** Polymorphic taint variable, but for the "control-flow". *)
+  | Var of var  (** Taint variable *)
 
 and taint = { orig : orig; rev_tokens : rev_tainted_tokens }
 (** At a given program location, taint is given by its origin (i.e. 'orig') and

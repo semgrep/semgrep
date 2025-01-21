@@ -202,35 +202,10 @@ let add_lval_update_to_token_trace ~callee:_TODO lval_tok ~var_rev_tokens
 (* Instatiation *)
 (*****************************************************************************)
 
-let subst_in_precondition inst_var taint =
-  let subst taints =
-    taints
-    |> List.concat_map (fun t ->
-           match t.T.orig with
-           | Src _ -> [ t ]
-           | Var lval -> (
-               match inst_var.inst_lval lval with
-               | None -> [ t ]
-               | Some (call_taints, _call_shape) ->
-                   call_taints |> Taints.elements)
-           | Shape_var lval -> (
-               match inst_var.inst_lval lval with
-               | None -> [ t ]
-               | Some (_call_taints, call_shape) ->
-                   (* Taint shape-variable, stands for the taints reachable
-                    * through the shape of the 'lval', it's like a delayed
-                    * call to 'Shape.gather_all_taints_in_shape'. *)
-                   Shape.gather_all_taints_in_shape call_shape
-                   |> Taints.elements)
-           | Control -> inst_var.inst_ctrl () |> Taints.elements)
-  in
-  T.map_preconditions subst taint
-
-let instantiate_taint_var inst_var taint =
-  match taint.T.orig with
-  | Src _ -> None
-  | Var lval -> inst_var.inst_lval lval
-  | Shape_var lval ->
+let instantiate_taint_var inst_var (var : T.var) =
+  match var with
+  | Taint_var lval -> inst_var.inst_lval lval
+  | Taint_in_shape_var lval ->
       (* This is just a delayed 'gather_all_taints_in_shape'. *)
       let* taints =
         inst_var.inst_lval lval
@@ -238,12 +213,26 @@ let instantiate_taint_var inst_var taint =
                Shape.gather_all_taints_in_shape shape)
       in
       Some (taints, Bot)
-  | Control ->
+  | Control_var ->
       (* 'Control' is pretty much like a taint variable so we handle all together. *)
       Some (inst_var.inst_ctrl (), Bot)
 
+let subst_in_precondition inst_var taint =
+  let subst_in_var var =
+    let* taints, _shape = instantiate_taint_var inst_var var in
+    Some (Taints.elements taints)
+  in
+  let subst taints =
+    taints
+    |> List.concat_map (fun t ->
+           match t.T.orig with
+           | Src _ -> [ t ]
+           | Var var -> subst_in_var var ||| [ t ])
+  in
+  T.map_preconditions subst taint
+
 let instantiate_taint inst_var inst_trace taint =
-  let inst_taint_var taint = instantiate_taint_var inst_var taint in
+  let inst_taint_var var = instantiate_taint_var inst_var var in
   match taint.T.orig with
   | Src src -> (
       let taint =
@@ -262,10 +251,8 @@ let instantiate_taint inst_var inst_trace taint =
           Taints.empty
       | Some taint -> Taints.singleton taint)
   (* Taint variables *)
-  | Var _
-  | Shape_var _
-  | Control -> (
-      match inst_taint_var taint with
+  | Var var -> (
+      match inst_taint_var var with
       | None -> Taints.singleton taint
       | Some (call_taints, _Bot_shape) ->
           call_taints
@@ -614,9 +601,7 @@ let rec instantiate_function_signature lval_env (taint_sig : Signature.t)
   (* Instantiation helpers *)
   let taints_in_ctrl () = Lval_env.get_control_taints lval_env in
   let inst_var = { inst_lval = lval_to_taints; inst_ctrl = taints_in_ctrl } in
-  let inst_taint_var taint =
-    instantiate_taint_var inst_var taint ||| (Taints.singleton taint, Bot)
-  in
+  let inst_taint_var var = instantiate_taint_var inst_var var in
   let subst_in_precondition = subst_in_precondition inst_var in
   let inst_trace =
     {
@@ -687,16 +672,16 @@ let rec instantiate_function_signature lval_env (taint_sig : Signature.t)
                      *)
                      let+ taint = taint |> subst_in_precondition in
                      [ { Effect.taint; sink_trace } ]
-                 | Var _
-                 | Shape_var _
-                 | Control ->
+                 | Var var ->
                      let sink_trace =
                        add_call_to_trace_if_callee_has_eorig ~callee
                          ~tainted_tokens:(List.rev taint.rev_tokens)
                          sink_trace
                        ||| sink_trace
                      in
-                     let call_taints, call_shape = inst_taint_var taint in
+                     let call_taints, call_shape =
+                       inst_taint_var var ||| (Taints.singleton taint, Bot)
+                     in
                      (* See NOTE(gather-all-taints) *)
                      let call_taints =
                        call_taints

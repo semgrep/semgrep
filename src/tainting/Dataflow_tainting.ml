@@ -391,10 +391,7 @@ let get_control_taints_to_return env =
   |> Taints.filter (fun ({ orig; _ } : T.taint) ->
          match orig with
          | T.Src _ -> true
-         | Var _
-         | Shape_var _
-         | Control ->
-             false)
+         | Var _ -> false)
 
 (*****************************************************************************)
 (* Types *)
@@ -466,7 +463,7 @@ let propagate_taint_to_label replace_labels label (taint : T.taint) =
     | Src src, None -> T.Src { src with label }
     | Src src, Some replace_labels when List.mem src.T.label replace_labels ->
         T.Src { src with label }
-    | ((Src _ | Var _ | Shape_var _ | Control) as orig), _ -> orig
+    | ((Src _ | Var _) as orig), _ -> orig
   in
   { taint with orig = new_orig }
 
@@ -501,10 +498,7 @@ let effects_of_tainted_sink env taints_with_traces (sink : Effect.sink) :
                  | T.Src source ->
                      let src_pm, _ = T.pm_of_trace source.call_trace in
                      src_pm.env
-                 | Var _
-                 | Shape_var _
-                 | Control ->
-                     []
+                 | Var _ -> []
                in
                (item, bindings))
       in
@@ -1714,7 +1708,7 @@ let effects_from_arg_updates_at_exit ~in_lambda enter_env exit_env :
                enter_taints |> Taints.elements
                |> List_.filter_map (fun taint ->
                       match taint.T.orig with
-                      | T.Var lval -> Some lval
+                      | T.Var (Taint_var lval) -> Some lval
                       | _ -> None)
              with
              | []

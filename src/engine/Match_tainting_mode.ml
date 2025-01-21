@@ -110,10 +110,7 @@ let sources_of_taints ?preferred_label taints =
            | Src src -> Some (src, List.rev rev_tokens, sink_trace)
            (* even if there is any taint "variable", it's irrelevant for the
             * finding, since the precondition is satisfied. *)
-           | Var _
-           | Shape_var _
-           | Control ->
-               None)
+           | Var _ -> None)
   in
   let taint_sources =
     (* If there is a "preferred label", then sort sources to make sure this

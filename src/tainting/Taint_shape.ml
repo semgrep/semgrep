@@ -105,6 +105,15 @@ let fix_poly_taint_with_offset offset taints =
             (T.show_lval extended_lval));
       orig_lval)
   in
+  let fix_var o : T.var -> T.var = function
+    | Taint_var lval ->
+        let lval' = add_offset_to_lval o lval in
+        Taint_var lval'
+    | Taint_in_shape_var lval ->
+        let lval' = add_offset_to_lval o lval in
+        Taint_in_shape_var lval'
+    | Control_var -> Control_var
+  in
   offset
   |> List.fold_left
        (fun taints o ->
@@ -128,15 +137,8 @@ let fix_poly_taint_with_offset offset taints =
                taints
                |> Taints.map (fun taint ->
                       match taint.orig with
-                      | Var lval ->
-                          let lval' = add_offset_to_lval o lval in
-                          { taint with orig = Var lval' }
-                      | Shape_var lval ->
-                          let lval' = add_offset_to_lval o lval in
-                          { taint with orig = Shape_var lval' }
-                      | Src _
-                      | Control ->
-                          taint)
+                      | Var var -> { taint with orig = Var (fix_var o var) }
+                      | Src _ -> taint)
              in
              taints')
        taints
@@ -294,7 +296,10 @@ and gather_all_taints_in_shape_acc acc = function
   | Obj obj -> gather_all_taints_in_obj_acc acc obj
   | Arg arg ->
       let taint =
-        { T.orig = T.Shape_var (T.lval_of_arg arg); rev_tokens = [] }
+        {
+          T.orig = Var (Taint_in_shape_var (T.lval_of_arg arg));
+          rev_tokens = [];
+        }
       in
       Taints.add taint acc
   | Fun _ ->
