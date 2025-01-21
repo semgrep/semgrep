@@ -1,6 +1,6 @@
 (* Iago Abal
  *
- * Copyright (C) 2022-2024 Semgrep Inc.
+ * Copyright (C) 2022-2025 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -29,15 +29,16 @@ open Common
  * comparisons that silently change as you change data types. Automagic comparisons
  * are very convenient but sometimes the comparison is not what you want. Initially
  * I just thought that if you carefully considered whether that automagic comparison
- * is OK for each data type then you are fine... So we used `Stdlib.compare` in several
- * places, until one day `Taint.arg` evolved, and we added an `offset` to it, and we
- * forgot to revisit whether `Stdlib.compare` was still a good option (it wasn't)...
- * and this led to duplicates which led to an explosion in the size of taint sets and
- * to big perf problems. I think the only way to get warned about this is to write these
- * comparisons manually, no matter how painful it is, so the typechecker will force
- * you to revisit the comparison functions if the types change. It's safe to use
- * ppx_deriving when all the types are primitive, but if any is not then it can cause
- * these problems.
+ * is OK for each data type then you are fine... So we used `Stdlib.compare` in
+ * several places, until one day `Taint.arg` evolved, and we added an `offset` to
+ * it, and we forgot to revisit whether `Stdlib.compare` was still a good option
+ * (it wasn't)... and this led to duplicates which led to an explosion in the size
+ * of taint sets and to big perf problems. I think the only way to get warned about
+ * this is to write these comparisons manually, no matter how painful it is, so the
+ * typechecker will force you to revisit the comparison functions if the types
+ * change. It can be OK to use ppx_deriving in some cases, like when all the types
+ * are primitive, but in principle we prefer NOT to use it here because it also
+ * suffers from the aforementioned problems.
  *
  * Besides, we now favor the use of pattern matching over record field access, e.g.
  * ```ocaml
@@ -56,7 +57,7 @@ open Common
  *     (sink2.rule_sink.Rule.sink_id, sink2.pm.rule_id, ...)
  * ```
  * If we pattern-match, and later we add new fields to the record, the typechecker
- * will let us know that we need to revisit `compare_sink`---this does not happen
+ * will let us know that we need to revisit `compare_sink`. This does not happen
  * when you use dot accesses.
  *)
 
@@ -86,6 +87,7 @@ let length_of_call_trace ct =
   in
   loop 0 ct
 
+(* See NOTE "on compare functions" *)
 let compare_metavar_env env1 env2 =
   (* It's important that we only return 0 if the two bindings are
      structurally equal. Otherwise, there will be many duplicates.
@@ -94,6 +96,7 @@ let compare_metavar_env env1 env2 =
      matter. *)
   if Metavariable.equal_bindings env1 env2 then 0 else Stdlib.compare env1 env2
 
+(* See NOTE "on compare functions" *)
 let compare_matches pm1 pm2 =
   match
     String.compare
@@ -143,6 +146,7 @@ type lval = { base : base; offset : offset list }
 
 let hook_offset_of_IL = ref None
 
+(* See NOTE "on compare functions" *)
 let compare_lval { base = base1; offset = offset1 }
     { base = base2; offset = offset2 } =
   match compare_base base1 base2 with
@@ -248,12 +252,14 @@ type source = {
 and orig = Src of source | Var of var
 and taint = { orig : orig; rev_tokens : rev_tainted_tokens }
 
+(* See NOTE "on compare functions" *)
 let compare_precondition (_ts1, f1) (_ts2, f2) =
   (* We don't consider the "incoming" taints here, assuming both
      preconditions come from otherwise the same source.
      See 'pick_taint' below for details. *)
   R.compare_precondition f1 f2
 
+(* See NOTE "on compare functions" *)
 let compare_var v1 v2 =
   match (v1, v2) with
   | Taint_var lv1, Taint_var lv2 -> compare_lval lv1 lv2
@@ -266,6 +272,7 @@ let compare_var v1 v2 =
   | Taint_in_shape_var _, Taint_var _ -> 1
   | Control_var, (Taint_in_shape_var _ | Taint_var _) -> 1
 
+(* See NOTE "on compare functions" *)
 let compare_source
     { call_trace = call_trace1; label = label1; precondition = precondition1 }
     { call_trace = call_trace2; label = label2; precondition = precondition2 } =
@@ -300,6 +307,7 @@ let compare_source
       | other -> other)
   | other -> other
 
+(* See NOTE "on compare functions" *)
 let compare_orig orig1 orig2 =
   match (orig1, orig2) with
   | Src p, Src q -> compare_source p q
@@ -309,6 +317,7 @@ let compare_orig orig1 orig2 =
   (* greater than *)
   | Var _, Src _ -> 1
 
+(* See NOTE "on compare functions" *)
 let compare_taint taint1 taint2 =
   (* THINK: Right now we disregard the trace because we just want to keep one
    * potential path. *)
