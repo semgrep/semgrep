@@ -29,7 +29,7 @@ val check_fundef :
   *)
 
 val check_rules :
-  match_hook:(Core_match.t list -> Core_match.t list) ->
+  matches_hook:(Core_match.t list -> Core_match.t list) ->
   per_rule_boilerplate_fn:
     (Rule.rule ->
     (unit -> Core_profiling.rule_profiling Core_result.match_result) ->

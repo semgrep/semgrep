@@ -239,7 +239,7 @@ let check_fundef (taint_inst : Taint_rule_inst.t) name ctx ?glob_env fdef =
   let effects = Effects.union env_effects effects in
   (fcfg, effects, mapping)
 
-let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
+let check_rule per_file_formula_cache (rule : R.taint_rule) ~matches_hook
     (xconf : Match_env.xconfig) (xtarget : Xtarget.t) =
   Log.info (fun m ->
       m
@@ -389,7 +389,7 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
     !matches
     (* same post-processing as for search-mode in Match_rules.ml *)
     |> PM.uniq
-    |> PM.no_submatches (* see "Taint-tracking via ranges" *) |> match_hook
+    |> PM.no_submatches (* see "Taint-tracking via ranges" *) |> matches_hook
   in
   let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
   let report =
@@ -416,7 +416,7 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) match_hook
   let report = { report with explanations } in
   report
 
-let check_rules ~match_hook
+let check_rules ~matches_hook
     ~(per_rule_boilerplate_fn :
        R.rule ->
        (unit -> Core_profiling.rule_profiling Core_result.match_result) ->
@@ -461,4 +461,5 @@ let check_rules ~match_hook
                  ^ "\nruleid: "
                  ^ (rule.id |> fst |> Rule_ID.to_string))
                (fun () ->
-                 check_rule per_file_formula_cache rule match_hook xconf xtarget)))
+                 check_rule per_file_formula_cache rule ~matches_hook xconf
+                   xtarget)))

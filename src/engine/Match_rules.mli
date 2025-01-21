@@ -31,7 +31,7 @@ type timeout_config = {
  *)
 val check :
   ?dependency_match_table:Match_SCA_mode.dependency_match_table ->
-  match_hook:(Core_match.t -> unit) ->
+  matches_hook:(Core_match.t list -> Core_match.t list) ->
   timeout:timeout_config option ->
   Match_env.xconfig ->
   Rule.rules ->

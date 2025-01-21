@@ -1,7 +1,7 @@
 (* main entry point *)
 val check_rule :
+  matches_hook:(Core_match.t list -> Core_match.t list) ->
   Rule.search_rule ->
-  (Core_match.t list -> Core_match.t list) ->
   Match_env.xconfig ->
   Xtarget.t ->
   Core_profiling.rule_profiling Core_result.match_result

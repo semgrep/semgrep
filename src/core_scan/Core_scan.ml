@@ -820,7 +820,6 @@ let mk_target_handler (caps : < Cap.time_limit >) (config : Core_scan_config.t)
       (* TODO: can we skip all of this if there are no applicable
           rules? In particular, can we skip print_cli_progress? *)
       let xtarget = Xtarget.resolve parse_and_resolve_name target in
-      let match_hook _ = () in
       let xconf =
         {
           Match_env.config = Rule_options.default;
@@ -843,8 +842,8 @@ let mk_target_handler (caps : < Cap.time_limit >) (config : Core_scan_config.t)
       in
       let matches : Core_result.matches_single_file =
         (* !!Calling Match_rules!! Calling the matching engine!! *)
-        Match_rules.check ~match_hook ~timeout ~dependency_match_table xconf
-          rules xtarget
+        Match_rules.check ~matches_hook:Fun.id ~timeout ~dependency_match_table
+          xconf rules xtarget
         |> set_matches_to_proprietary_origin_if_needed xtarget
       in
       (* So we can display matches incrementally in osemgrep!

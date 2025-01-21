@@ -244,9 +244,8 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
         let res =
           try
             (* !!!!let's go!!!! *)
-            Match_rules.check
-              ~match_hook:(fun _pm -> ())
-              ~timeout:None xconf rules xtarget
+            Match_rules.check ~matches_hook:Fun.id ~timeout:None xconf rules
+              xtarget
           with
           | exn ->
               failwith

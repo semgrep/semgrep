@@ -162,7 +162,7 @@ let per_rule_boilerplate_fn (timeout : timeout_config option) =
           (Core_error.ErrorSet.singleton error)
           (Core_profiling.empty_rule_profiling rule)
 
-let scc_match_hook (match_hook : Core_match.t -> unit)
+let scc_match_hook (matches_hook : PM.t list -> PM.t list)
     (dependency_match_table : Match_SCA_mode.dependency_match_table option) :
     PM.t list -> PM.t list =
   let get_dep_matches =
@@ -172,13 +172,10 @@ let scc_match_hook (match_hook : Core_match.t -> unit)
   in
   fun pms ->
     pms
-    |> List.concat_map (fun (pm : Core_match.t) ->
+    |> List.concat_map (fun (pm : PM.t) ->
            let dependency_matches = get_dep_matches pm.rule_id.id in
-           let pms' =
-             Match_SCA_mode.annotate_pattern_match dependency_matches pm
-           in
-           pms' |> List.iter match_hook;
-           pms')
+           Match_SCA_mode.annotate_pattern_match dependency_matches pm)
+    |> matches_hook
 
 (*****************************************************************************)
 (* Entry point *)
@@ -186,10 +183,10 @@ let scc_match_hook (match_hook : Core_match.t -> unit)
 
 let check
     ?(dependency_match_table : Match_SCA_mode.dependency_match_table option)
-    ~match_hook ~(timeout : timeout_config option) (xconf : Match_env.xconfig)
+    ~matches_hook ~(timeout : timeout_config option) (xconf : Match_env.xconfig)
     (rules : Rule.rules) (xtarget : Xtarget.t) : Core_result.matches_single_file
     =
-  let match_hook = scc_match_hook match_hook dependency_match_table in
+  let matches_hook = scc_match_hook matches_hook dependency_match_table in
 
   let {
     path = { internal_path_to_content = file; _ };
@@ -224,8 +221,8 @@ let check
   let res_taint_rules =
     taint_rules_groups
     |> List.concat_map (fun taint_rules ->
-           Match_tainting_mode.check_rules ~match_hook ~per_rule_boilerplate_fn
-             taint_rules xconf xtarget)
+           Match_tainting_mode.check_rules ~matches_hook
+             ~per_rule_boilerplate_fn taint_rules xconf xtarget)
   in
   let res_nontaint_rules =
     nontaint_rules
@@ -244,12 +241,12 @@ let check
                    (* dispatching *)
                    match r.R.mode with
                    | `Search _ as mode ->
-                       Match_search_mode.check_rule { r with mode } match_hook
-                         xconf xtarget
+                       Match_search_mode.check_rule { r with mode }
+                         ~matches_hook xconf xtarget
                    | `Extract extract_spec ->
                        Match_search_mode.check_rule
                          { r with mode = `Search extract_spec.R.formula }
-                         match_hook xconf xtarget
+                         ~matches_hook xconf xtarget
                    | `Steps _ -> raise Multistep_rules_not_available)))
   in
   let res_total = res_taint_rules @ res_nontaint_rules in

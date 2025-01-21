@@ -1139,7 +1139,8 @@ and matches_of_formula xconf rule xtarget formula opt_context :
 (* Main entry point *)
 (*****************************************************************************)
 
-let check_rule ({ R.mode = `Search formula; _ } as r) hook xconf xtarget =
+let check_rule ~matches_hook ({ R.mode = `Search formula; _ } as r) xconf
+    xtarget =
   let rule_id = fst r.id in
 
   let%trace_debug sp = "Match_search_mode.check_rule" in
@@ -1159,6 +1160,6 @@ let check_rule ({ R.mode = `Search formula; _ } as r) hook xconf xtarget =
        * but different mini-rules matches can now become the same match)
        *)
       |> PM.uniq
-      |> hook;
+      |> matches_hook;
     errors;
   }
