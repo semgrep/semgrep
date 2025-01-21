@@ -237,7 +237,12 @@ def _handle_lockfile_source(
             if new_deps is not None:
                 # TODO: Reimplement this once more robust error handling for lockfileless resolution is implemented
                 return (
-                    (ResolutionMethod.DYNAMIC, new_deps),
+                    (
+                        ResolutionMethod.LOCKFILE_PARSING
+                        if use_nondynamic_ocaml_parsing
+                        else ResolutionMethod.DYNAMIC,
+                        new_deps,
+                    ),
                     new_errors,
                     new_targets,
                 )
