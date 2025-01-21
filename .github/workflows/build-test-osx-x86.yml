@@ -14,8 +14,13 @@ jobs:
         with:
           key: ${{ runner.os }}-${{ runner.arch }}-v1-opam-4.14.0-${{hashFiles('semgrep.opam')}}
           path: ~/.opam
+      - uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: 4.14.0
+          opam-pin: false
       - name: Install dependencies
-        run: ./scripts/osx-setup-for-release.sh "4.14.0"
+        run: |
+          make install-deps-MACOS-for-semgrep-core
       - name: Compile semgrep (in case of linking errors, adjust src/main/flags.sh)
         run: opam exec -- make core
       - name: Make artifact for ./bin/semgrep-core

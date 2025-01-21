@@ -63,9 +63,12 @@ local build_core_job = {
     semgrep.cache_opam.step(
          key=semgrep.opam_switch + "-${{hashFiles('semgrep.opam')}}")
       + semgrep.cache_opam.if_cache_inputs,
+    semgrep.opam_setup(),
     {
       name: 'Install dependencies',
-      run: './scripts/osx-setup-for-release.sh "%s"' % semgrep.opam_switch,
+      run: |||
+        make install-deps-MACOS-for-semgrep-core
+      |||,
     },
     {
       name: 'Compile semgrep (in case of linking errors, adjust src/main/flags.sh)',
