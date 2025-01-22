@@ -162,32 +162,13 @@ let per_rule_boilerplate_fn (timeout : timeout_config option) =
           (Core_error.ErrorSet.singleton error)
           (Core_profiling.empty_rule_profiling rule)
 
-let scc_match_hook (matches_hook : PM.t list -> PM.t list)
-    (dependency_match_table : Match_SCA_mode.dependency_match_table option) :
-    PM.t list -> PM.t list =
-  let get_dep_matches =
-    match dependency_match_table with
-    | Some table -> Hashtbl.find_opt table
-    | None -> fun _ -> None
-  in
-  fun pms ->
-    pms
-    |> List.concat_map (fun (pm : PM.t) ->
-           let dependency_matches = get_dep_matches pm.rule_id.id in
-           Match_SCA_mode.annotate_pattern_match dependency_matches pm)
-    |> matches_hook
-
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let check
-    ?(dependency_match_table : Match_SCA_mode.dependency_match_table option)
-    ~matches_hook ~(timeout : timeout_config option) (xconf : Match_env.xconfig)
-    (rules : Rule.rules) (xtarget : Xtarget.t) : Core_result.matches_single_file
-    =
-  let matches_hook = scc_match_hook matches_hook dependency_match_table in
-
+let check ~matches_hook ~(timeout : timeout_config option)
+    (xconf : Match_env.xconfig) (rules : Rule.rules) (xtarget : Xtarget.t) :
+    Core_result.matches_single_file =
   let {
     path = { internal_path_to_content = file; _ };
     lazy_ast_and_errors;

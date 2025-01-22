@@ -81,6 +81,14 @@ val rules_for_target :
 *)
 val rules_for_analyzer : analyzer:Analyzer.t -> Rule.t list -> Rule.t list
 
+(* for SCA_scan *)
+val rules_for_origin : Rule.paths option -> Origin.t -> bool
+
+val set_matches_to_proprietary_origin_if_needed :
+  Xtarget.t ->
+  Core_result.matches_single_file ->
+  Core_result.matches_single_file
+
 (* This function prints a dot, which is consumed by pysemgrep to update
    the progress bar if the output_format is Json true.
    See also `core_runner.py`
@@ -95,6 +103,14 @@ val print_cli_progress : Core_scan_config.t -> unit
 val print_cli_additional_targets : Core_scan_config.t -> int -> unit
 
 type target_handler = Target.t -> Core_result.matches_single_file * bool
+
+val mk_target_handler_hook :
+  (< Cap.time_limit > ->
+  Core_scan_config.t ->
+  Rule.t list ->
+  Match_env.prefilter_config ->
+  target_handler)
+  Hook.t
 
 val iter_targets_and_get_matches_and_exn_to_errors :
   < Cap.fork ; Cap.memory_limit > ->

@@ -35,7 +35,7 @@
  * it as a 'pro_hook'. Of course, when you pattern match on one of this, you
  * cannot make any assumptions on what that `'a` is, but it is enough to reset
  * the hooks. So we can enumerate Pro hooks in 'pro_hooks_refs' and then write
- * 'reset_pro_hooks' and 'save_pro_hooks_and_reset' based on that list. *)
+ * 'save_pro_hooks_and_reset' based on that list. *)
 type pro_hook =
   (* TODO Remove all remaining ref-style hooks in favor of the safer Hook.t *)
   | Pro_hook_ref : 'a option ref -> pro_hook

@@ -133,6 +133,7 @@ type target_handler = Target.t -> Core_result.matches_single_file * bool
 (* Helpers *)
 (*****************************************************************************)
 
+(* TODO: move that in Pro_scan.ml *)
 let set_matches_to_proprietary_origin_if_needed (xtarget : Xtarget.t)
     (matches : Core_result.matches_single_file) :
     Core_result.matches_single_file =
@@ -764,90 +765,18 @@ let rules_for_target ~analyzer ~products ~origin ~respect_rule_paths rules =
   else rules
 
 (*****************************************************************************)
-(* SCA *)
-(*****************************************************************************)
-
-let lockfile_xtarget_resolve (manifest : Manifest.t option)
-    (lockfile : Lockfile.t) : Lockfile_xtarget.t =
-  Lockfile_xtarget.resolve Parse_lockfile.parse_manifest Parse_lockfile.parse
-    lockfile manifest
-
-let rules_for_lockfile_kind ~lockfile_kind rules =
-  rules
-  |> List_.filter_map (fun ({ Rule.dependency_formula; _ } as r) ->
-         let* formula = dependency_formula in
-         let* ecosystem = Lockfile.kind_to_ecosystem_opt lockfile_kind in
-         if
-           formula
-           |> List.exists (fun SCA_pattern.{ ecosystem = rule_ecosystem; _ } ->
-                  Semgrep_output_v1_t.equal_ecosystem rule_ecosystem ecosystem)
-         then Some (r, formula)
-         else None)
-
-let supply_chain_rules ~lockfile_kind ~respect_rule_paths ~origin rules =
-  let rules = rules_for_lockfile_kind ~lockfile_kind rules in
-  if respect_rule_paths then
-    rules
-    |> List.filter (fun ((r : R.rule), _) -> rules_for_origin r.paths origin)
-  else rules
-
-let sca_rules_filtering (target : Target.regular) (rules : Rule.t list) :
-    Rule.t list * Match_SCA_mode.dependency_match_table =
-  let lockfile_xtarget_opt =
-    target.lockfile |> Option.map (lockfile_xtarget_resolve None)
-  in
-  (* If a rule tried to a find a dependency match and failed, then it will
-     never produce any matches of any kind *)
-  let _skipped_supply_chain, rules_with_dep_matches =
-    match lockfile_xtarget_opt with
-    | None -> ([], rules |> List_.map (fun x -> (x, None)))
-    | Some lockfile_target ->
-        rules
-        |> Match_SCA_mode.match_all_dependencies lockfile_target
-        |> Either_.partition (function
-             | rule, Some [] -> Left rule
-             | x -> Right x)
-  in
-  let dependency_match_table =
-    rules_with_dep_matches
-    |> List_.filter_map (function
-         | _, None -> None
-         | rule, Some dep_matches -> Some (fst rule.R.id, dep_matches))
-    |> Hashtbl_.hash_of_list
-  in
-
-  let rules = rules_with_dep_matches |> List_.map fst in
-  (rules, dependency_match_table)
-
-(*****************************************************************************)
 (* a "core" scan *)
 (*****************************************************************************)
 
-(* build the callback for iter_targets_and_get_matches_and_exn_to_errors *)
+(* build the callback for iter_targets_and_get_matches_and_exn_to_errors
+ * coupling: with SCA_scan.mk_target_handler
+ *)
 let mk_target_handler (caps : < Cap.time_limit >) (config : Core_scan_config.t)
     (valid_rules : Rule.t list)
     (prefilter_cache_opt : Match_env.prefilter_config) : target_handler =
   (* Note that this function runs in another process *)
   function
-  | Lockfile ({ path; kind } as lockfile) ->
-      (* TODO: (sca) we always pass None as the manifest target here, but this
-       * code path only applies to Supply Chain scans in the core which we
-       * never use. We should pass the real manifest here.
-       *)
-      let lockfile_xtarget = lockfile_xtarget_resolve None lockfile in
-      let origin = Origin.File path in
-      let rules =
-        supply_chain_rules ~lockfile_kind:kind ~origin
-          ~respect_rule_paths:config.respect_rule_paths valid_rules
-      in
-      let dep_matches =
-        rules
-        |> List_.map (fun (rule, dep_formula) ->
-               Match_SCA_mode.check_rule rule lockfile_xtarget dep_formula)
-      in
-      let was_scanned = not (List_.null rules) in
-      (* TODO: run all the right hooks *)
-      (Core_result.collate_rule_results path dep_matches, was_scanned)
+  | Lockfile _ -> failwith "SCA requires semgrep Pro"
   | Regular
       ({
          analyzer;
@@ -873,7 +802,6 @@ let mk_target_handler (caps : < Cap.time_limit >) (config : Core_scan_config.t)
           filter_irrelevant_rules = prefilter_cache_opt;
         }
       in
-      let rules, dependency_match_table = sca_rules_filtering target rules in
       let timeout =
         let caps = (caps :> < Cap.time_limit >) in
         Some
@@ -886,8 +814,7 @@ let mk_target_handler (caps : < Cap.time_limit >) (config : Core_scan_config.t)
       in
       let matches : Core_result.matches_single_file =
         (* !!Calling Match_rules!! Calling the matching engine!! *)
-        Match_rules.check ~matches_hook:Fun.id ~timeout ~dependency_match_table
-          xconf rules xtarget
+        Match_rules.check ~matches_hook:Fun.id ~timeout xconf rules xtarget
         |> set_matches_to_proprietary_origin_if_needed xtarget
       in
       (* So we can display matches incrementally in osemgrep!
@@ -897,6 +824,8 @@ let mk_target_handler (caps : < Cap.time_limit >) (config : Core_scan_config.t)
       config.file_match_hook |> Option.iter (fun hook -> hook file matches);
       print_cli_progress config;
       (matches, was_scanned)
+
+let mk_target_handler_hook = Hook.create mk_target_handler
 
 (* coupling: with Deep_scan.scan_aux() *)
 let scan_exn (caps : < caps ; .. >) (config : Core_scan_config.t)
@@ -929,7 +858,7 @@ let scan_exn (caps : < caps ; .. >) (config : Core_scan_config.t)
     |> iter_targets_and_get_matches_and_exn_to_errors
          (caps :> < Cap.fork ; Cap.memory_limit >)
          config
-         (mk_target_handler
+         ((Hook.get mk_target_handler_hook)
             (caps :> < Cap.time_limit >)
             config valid_rules prefilter_cache_opt)
   in
