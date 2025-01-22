@@ -47,7 +47,7 @@ type pro_hook =
  *)
 let pro_hooks =
   [
-    Pro_hook_ref Generic_vs_generic.hook_find_possible_parents;
+    Pro_hook Generic_vs_generic.hook_find_possible_parents;
     Pro_hook_bool Generic_vs_generic.hook_r2c_pro_was_here;
     Pro_hook_ref Constant_propagation.hook_propagate_basic_visitor;
     Pro_hook_ref Dataflow_svalue.hook_constness_of_function;
@@ -60,7 +60,7 @@ let pro_hooks =
     Pro_hook_ref Dataflow_tainting.hook_check_tainted_at_exit_sinks;
     Pro_hook_ref Dataflow_when.hook_annotate_facts;
     Pro_hook_ref Dataflow_when.hook_facts_satisfy_e;
-    Pro_hook_ref Typing.pro_hook_type_of_expr;
+    Pro_hook Typing.pro_hook_type_of_expr;
   ]
 
 (*****************************************************************************)

@@ -29,7 +29,7 @@ module H = AST_generic_helpers
 open Matching_generic
 module Log = Log_matching.Log
 
-let hook_find_possible_parents = ref None
+let hook_find_possible_parents = Hook.create None
 let hook_r2c_pro_was_here = Hook.create false
 
 (*****************************************************************************)
@@ -390,7 +390,7 @@ let rec m_name_inner a b =
   let m_name = m_name_inner in
   let try_parents dotted =
     let parents =
-      match !hook_find_possible_parents with
+      match Hook.get hook_find_possible_parents with
       | None -> []
       | Some f -> f dotted
     in
@@ -1586,7 +1586,7 @@ and m_container_ordered_elements a b =
  *)
 and m_compatible_type lang typed_mvar t e =
   let t =
-    match !Naming_AST.pro_hook_normalize_ast_generic_type with
+    match Hook.get Naming_AST.pro_hook_normalize_ast_generic_type with
     | Some f -> f lang t
     | None -> t
   in
@@ -3565,7 +3565,7 @@ and m_class_parent a b =
       in
       (* deep: *)
       let candidates =
-        match !hook_find_possible_parents with
+        match Hook.get hook_find_possible_parents with
         | None -> []
         | Some f -> f xs
       in

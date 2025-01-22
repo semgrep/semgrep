@@ -20,4 +20,4 @@ val guess_type_of_dotaccess :
   Lang.t -> (string * 'a Type.type_argument list) option -> string -> 'a Type.t
 
 val pro_hook_type_of_expr :
-  (Lang.t -> AST_generic.expr -> AST_generic.name Type.t option) option ref
+  (Lang.t -> AST_generic.expr -> AST_generic.name Type.t option) option Hook.t

@@ -21,7 +21,7 @@ val m_raw_tree : AST_generic.raw_tree Matching_generic.matcher
 val m_any : AST_generic.any Matching_generic.matcher
 
 val hook_find_possible_parents :
-  (AST_generic.dotted_ident -> AST_generic.name list) option ref
+  (AST_generic.dotted_ident -> AST_generic.name list) option Hook.t
 
 val hook_r2c_pro_was_here : bool Hook.t
 

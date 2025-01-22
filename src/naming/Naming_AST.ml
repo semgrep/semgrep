@@ -138,7 +138,7 @@ let error_report = false
 
 (* Performing normalization of types e.g. A | B => Union[A, B] in
    Python. This hook will be linked to Type_aliasing.ml *)
-let pro_hook_normalize_ast_generic_type = ref None
+let pro_hook_normalize_ast_generic_type = Hook.create None
 
 (*****************************************************************************)
 (* Scope *)
@@ -292,7 +292,7 @@ let set_resolved env id_info x =
    *)
   id_info.id_resolved := Some x.entname;
   let normalize_type =
-    match !pro_hook_normalize_ast_generic_type with
+    match Hook.get pro_hook_normalize_ast_generic_type with
     | Some f -> f
     | None -> fun _ x -> x
   in
@@ -362,7 +362,7 @@ let rec get_resolved_type lang (vinit, vtype) =
          scans, as opposed to `Naming_SAST`.
       *)
       let pro_type =
-        match (!Typing.pro_hook_type_of_expr, vinit) with
+        match (Hook.get Typing.pro_hook_type_of_expr, vinit) with
         | Some f, Some e ->
             let* type_ = f lang e in
             Type.to_ast_generic_type_ lang (fun name _alts -> name) type_
