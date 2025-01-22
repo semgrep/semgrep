@@ -754,10 +754,14 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
 
   (* hacks to reduce the size of engine.js
    * coupling: if you add an init() call here, you probably need to modify
-   * also tests/Test.ml and osemgrep/cli/CLI.ml
+   * also tests/Test.ml, CLI.ml, and Pro_core_CLI.ml
    *)
   Parsing_init.init ();
   Data_init.init ();
+
+  (* TODO? Http_helpers.set_client_ref (module Cohttp_lwt_unix.Client);
+   * we do it in Pro_core_CLI.ml so why not here too?
+   *)
 
   (* must be done after Arg.parse, because Common.profile is set by it *)
   Profiling.profile_code "Main total" (fun () ->

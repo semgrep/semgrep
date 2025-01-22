@@ -671,8 +671,8 @@ let mk_expls_after_formula_kind ~formula_kind_expls ~filter_expls ~focus_expls
 (*****************************************************************************)
 
 let hook_pro_entropy_analysis :
-    (mode:Rule.entropy_analysis_mode -> string -> bool) option ref =
-  ref None
+    (mode:Rule.entropy_analysis_mode -> string -> bool) option Hook.t =
+  Hook.create None
 
 let hook_pro_metavariable_name :
     (G.expr -> Rule.metavar_cond_name -> bool) option ref =
@@ -785,7 +785,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
              | Some capture_bindings -> Some (r, capture_bindings @ new_bindings)
              )
          | R.CondAnalysis (mvar, CondEntropyV2 mode) -> (
-             match !hook_pro_entropy_analysis with
+             match Hook.get hook_pro_entropy_analysis with
              | None ->
                  (* TODO - nice UX handling of this for pysemgrep - tell the user
                   * that they ran a rule in OSS w/o Pro hook and so their rule

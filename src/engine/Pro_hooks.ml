@@ -40,6 +40,7 @@ type pro_hook =
   (* TODO Remove all remaining ref-style hooks in favor of the safer Hook.t *)
   | Pro_hook_ref : 'a option ref -> pro_hook
   | Pro_hook : 'a option Hook.t -> pro_hook
+  | Pro_hook_bool : bool Hook.t -> pro_hook
 
 (* TODO: a steps-mode rule to ensure we have all the pro hooks.
  * Do we have all of them?
@@ -47,7 +48,7 @@ type pro_hook =
 let pro_hooks =
   [
     Pro_hook_ref Generic_vs_generic.hook_find_possible_parents;
-    Pro_hook_ref Generic_vs_generic.hook_r2c_pro_was_here;
+    Pro_hook_bool Generic_vs_generic.hook_r2c_pro_was_here;
     Pro_hook_ref Constant_propagation.hook_propagate_basic_visitor;
     Pro_hook_ref Dataflow_svalue.hook_constness_of_function;
     Pro_hook_ref Dataflow_svalue.hook_transfer_of_assume;
@@ -79,7 +80,8 @@ let save_pro_hooks_and_reset f0 =
          (fun f hook () ->
            match hook with
            | Pro_hook pro_hook -> Hook.with_hook_set pro_hook None f
-           | Pro_hook_ref pro_hook -> Common.save_excursion pro_hook None f)
+           | Pro_hook_ref pro_hook -> Common.save_excursion pro_hook None f
+           | Pro_hook_bool pro_hook -> Hook.with_hook_set pro_hook false f)
          f0
   in
   f ()

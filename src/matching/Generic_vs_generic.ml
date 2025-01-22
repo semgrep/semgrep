@@ -30,7 +30,7 @@ open Matching_generic
 module Log = Log_matching.Log
 
 let hook_find_possible_parents = ref None
-let hook_r2c_pro_was_here = ref None
+let hook_r2c_pro_was_here = Hook.create false
 
 (*****************************************************************************)
 (* Prelude *)
@@ -2657,7 +2657,7 @@ and m_stmt a b =
             _;
           },
           _sc ) )
-    when !hook_r2c_pro_was_here =*= Some true ->
+    when Hook.get hook_r2c_pro_was_here ->
       return ()
   (* metavar: *)
   (* Note that we can't consider $S a statement metavariable only if the

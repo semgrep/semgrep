@@ -316,6 +316,7 @@ let main (caps : caps) (argv : string array) : Exit_code.t =
   (* pad poor's man profiler *)
   if profile then Profiling.profile := Profiling.ProfAll;
 
+  (* coupling: Core_CLI.ml and Pro_core_CLI.ml *)
   (* hacks for having a smaller engine.js file *)
   Parsing_init.init ();
   Data_init.init ();
