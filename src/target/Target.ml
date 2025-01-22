@@ -138,3 +138,13 @@ let analyzer (target : t) : Analyzer.t option =
   match target with
   | Regular r -> Some r.analyzer
   | Lockfile _ -> None
+
+let analyzers_of_targets (targets : t list) : Analyzer.t Set_.t =
+  List.fold_left
+    (fun set target ->
+      match analyzer target with
+      | None -> set
+      | Some a ->
+          let analyzers = Analyzer.flatten a in
+          List_.fold_right Set_.add analyzers set)
+    Set_.empty targets

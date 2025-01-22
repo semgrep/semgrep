@@ -25,13 +25,20 @@ let chop_dirsymbol = function
 (* pre: prj_path must not contain regexp symbol *)
 let filename_without_leading_path prj_path s =
   let prj_path = chop_dirsymbol prj_path in
-  if s = prj_path then "."
-  else if
-    (* Note that we should handle multiple consecutive '/' as in 'path/to//file' *)
-    s =~ "^" ^ prj_path ^ "/+\\(.*\\)$"
-  then Common.matched1 s
-  else
-    failwith (spf "cant find filename_without_project_path: %s  %s" prj_path s)
+  match prj_path with
+  | ""
+  | "." ->
+      s
+  | _ ->
+      if s = prj_path then "."
+      else if
+        (* Note that we should handle multiple consecutive '/'
+           as in 'path/to//file' *)
+        s =~ "^" ^ prj_path ^ "/+\\(.*\\)$"
+      then Common.matched1 s
+      else
+        failwith
+          (spf "can't find filename_without_project_path: %S %S" prj_path s)
 
 (* Deprecated: use the Ppath.ml module instead! *)
 let readable ~root s =
@@ -45,7 +52,7 @@ let readable ~root s =
       | _ -> s)
   (* ugly: to support readable "./foo/bar" "foo/bar/foo.c" *)
   | _ when (not (s =~ "^\\./")) && root =~ "^\\./\\(.*\\)$" ->
-      let root = Common.matched1 root in
+      (* root can be "" *)
       filename_without_leading_path root s
   | _ -> filename_without_leading_path root s
 

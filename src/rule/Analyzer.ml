@@ -48,7 +48,9 @@ open Ppx_hash_lib.Std.Hash.Builtin
    but some options).
 *)
 type t =
-  (* for "real" semgrep (the first language is used to parse the pattern) *)
+  (* for "real" semgrep (the first language is used to parse the pattern)
+     TODO: get rid of Lang.t list (see .ml)
+  *)
   | L of Lang.t * Lang.t list
   (* for pattern-regex (referred as 'regex' or 'none' in languages:) *)
   | LRegex

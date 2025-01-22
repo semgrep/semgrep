@@ -16,6 +16,7 @@
     commons
 
     semgrep_core
+    semgrep.core_scan
   )
  (preprocess
    (pps

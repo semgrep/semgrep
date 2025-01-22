@@ -80,7 +80,7 @@ let test_find_targets ?expected_outcome ?includes ?(excludes = [])
         errors
         |> List.iter (fun err ->
                (* showing some ugly JSON is better than nothing *)
-               printf "%s\n" (Semgrep_output_v1_j.string_of_core_error err));
+               printf "%s\n" (Core_error.show err));
         printf "--- Selected targets ---\n";
         targets |> List.iter (fun path -> printf "selected %s\n" !!path);
         printf "--- Skipped targets ---\n";

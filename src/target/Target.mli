@@ -1,4 +1,4 @@
-(** Types for describing targets.
+(** Types for describing target files provided by pysemgrep.
 
     See also semgrep_output_v1.atd which has a similar set of types used when
     pysemgrep generates targets that have slightly less information (e.g.,
@@ -108,6 +108,15 @@ val origin : t -> Origin.t
 (** [origin target] is the user-reportable origin of [target]. *)
 
 val analyzer : t -> Analyzer.t option
+
+(*
+   The set of all lang analyzers associated with targets.
+   This is used to filter out rules that don't apply to any of the targets
+   we receive from pysemgrep.
+   The analyzers are flattened i.e. each of them contains at most one Lang.t
+   (L (lang, []).
+*)
+val analyzers_of_targets : t list -> Analyzer.t Set_.t
 
 (*****************************************************************************)
 (* Dumpers *)

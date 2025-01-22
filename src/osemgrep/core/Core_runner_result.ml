@@ -15,6 +15,7 @@ type t = {
 }
 
 (* Add errors that were obtained previously but didn't block the run *)
-let add_errors (errors : Semgrep_output_v1_t.core_error list) (res : t) : t =
+let add_errors (errors : Core_error.t list) (res : t) : t =
+  let errors = List_.map Core_json_output.error_to_error errors in
   let core = res.core in
   { res with core = { core with errors = errors @ core.errors } }

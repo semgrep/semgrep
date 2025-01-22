@@ -33,14 +33,6 @@ let run ~target_roots ~targeting_conf:conf ~format () =
                (spf "ignored %s [%s]" (Fpath.to_string x.path)
                   (x.reason |> OutJ.string_of_skip_reason
                  |> JSON.remove_enclosing_quotes_of_jstring))));
-  let has_error =
-    List.exists
-      (fun (err : OutJ.core_error) ->
-        match err.severity with
-        | `Error -> true
-        | `Warning
-        | `Info ->
-            false)
-      errors
-  in
-  if has_error then Exit_code.fatal ~__LOC__ else Exit_code.ok ~__LOC__
+  match errors with
+  | [] -> Exit_code.ok ~__LOC__
+  | _ -> Exit_code.fatal ~__LOC__

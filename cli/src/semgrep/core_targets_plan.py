@@ -5,7 +5,6 @@
 # and specified now in semgrep_output_v1.atd
 import collections
 from functools import lru_cache
-from typing import Any
 from typing import DefaultDict
 from typing import Dict
 from typing import List
@@ -55,18 +54,18 @@ class Task:
             else self.analyzer.definition.id
         )
 
-    # TODO: we should use the ATD generated python helpers
-    def to_json(self) -> Any:
+    def to_target(self) -> out.Target:
         # Once we start sending supply chain rules to semgrep-core,
         # we'll need to start sending LockfileTargets as well
-        return [
-            "CodeTarget",
-            {
-                "path": self.path,
-                "analyzer": self.analyzer,
-                "products": tuple(x.to_json() for x in self.products),
-            },
-        ]
+        return out.Target(
+            out.CodeTarget_(
+                out.CodeTarget(
+                    path=out.Fpath(self.path),
+                    analyzer=out.Analyzer(self.analyzer),
+                    products=list(self.products),
+                )
+            )
+        )
 
 
 class TargetMappings(List[Task]):
@@ -188,8 +187,11 @@ class Plan:
 
         return result
 
-    def to_json(self) -> List[Any]:
-        return [task.to_json() for task in self.target_mappings]
+    def to_targets(self) -> out.Targets:
+        """Produce the input to semgrep-core in the form of a list of target files"""
+        return out.Targets(
+            out.Targets_([task.to_target() for task in self.target_mappings])
+        )
 
     @property
     def num_targets(self) -> int:

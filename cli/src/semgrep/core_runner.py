@@ -904,7 +904,7 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                 cmd.extend(["-historical", "-only_validated"])
             else:
                 parsing_data.add_targets(plan)
-                target_file_contents = json.dumps(plan.to_json())
+                target_file_contents = plan.to_targets().to_json_string()
                 target_file.write(target_file_contents)
                 target_file.flush()
                 cmd.extend(["-targets", target_file.name])

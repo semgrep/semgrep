@@ -39,19 +39,28 @@ val scan : < caps ; .. > -> Core_scan_config.t -> Core_result.result_or_exn
 (* Utilities functions used in tests or semgrep-pro *)
 (*****************************************************************************)
 
-val targets_of_config :
-  Core_scan_config.t -> Target.t list * Semgrep_output_v1_t.skipped_target list
-(**
+(*
    Compute the set of targets, either by reading what was passed
    in -target, or passed explicitly in Core_scan_config.Targets.
-*)
 
-val rules_of_config :
-  filter_by_targets:bool -> Core_scan_config.t -> Rule_error.rules_and_invalid
-(** Get the rules
- *  if filter_by_targets is true (default false): use targeting info in config
- *  to filter irrelevant rules.
- *)
+   The rules are required to associate analyzers (language specified
+   in the rule) with target paths. This is for compatibility with
+   the legacy pysemgrep/semgrep-core interface where a target path
+   is associated with an analyzer or language as reflected by the
+   Target.t type.
+*)
+val targets_of_config :
+  Core_scan_config.t ->
+  Rule.t list ->
+  Target.t list * Core_error.t list * Semgrep_output_v1_t.skipped_target list
+
+(* Get the rules *)
+val rules_of_config : Core_scan_config.t -> Rule_error.rules_and_invalid
+
+(* Get the rules, using targeting info in config to filter irrelevant rules.
+   TODO: See comments in the .ml about the implementation *)
+val applicable_rules_of_config :
+  Core_scan_config.t -> Rule_error.rules_and_invalid
 
 (* This is also used by semgrep-proprietary. It filters the rules that
    apply to a given target file for a given analyzer.
@@ -109,10 +118,11 @@ val parse_and_resolve_name :
 
 val log_scan_inputs :
   Core_scan_config.t ->
-  targets:'a list ->
-  skipped:'b list ->
-  valid_rules:'c list ->
-  invalid_rules:'d list ->
+  targets:_ list ->
+  errors:_ list ->
+  skipped:_ list ->
+  valid_rules:_ list ->
+  invalid_rules:_ list ->
   unit
 
 val log_scan_results :

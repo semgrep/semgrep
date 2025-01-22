@@ -36,8 +36,17 @@ type t =
      The other languages are extra target languages that can use the
      same pattern.
 
-     TODO: enforce the ordering of the list for the derived equality function
-     to be correct (could be done by making the type private)
+     TODO: get rid of the 'Lang.t list'. If multiple analyzers are supported,
+     then let's use a list of analyzers (Xlang.t list).
+     We shouldn't pack them into a single case. The type should be:
+
+     | L of Lang.t
+     | LRegex
+     | LSpacegrep
+     | LAliengrep
+
+     then this will avoid problems when trying to identify or compare
+     analyzers.
   *)
   | L of Lang.t * Lang.t list
   (* for pattern-regex (referred as 'regex' or 'none' in languages:) *)

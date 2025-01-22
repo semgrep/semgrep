@@ -431,7 +431,7 @@ let check_targets_with_rules
       ; .. >) (conf : Scan_CLI.conf) (profiler : Profiler.t)
     (rules_and_origins : Rule_fetching.rules_and_origin list)
     ((targets, errors, skipped) :
-      Fpath.t list * Out.core_error list * Out.skipped_target list) :
+      Fpath.t list * Core_error.t list * Out.skipped_target list) :
     (Rule.rule list * Core_runner.result * Out.cli_output, Exit_code.t) result =
   Metrics_.add_engine_type conf.engine_type;
 

@@ -557,7 +557,7 @@ let git_list_untracked_files ~respect_gitignore
 *)
 let group_scanning_roots_by_project (conf : conf)
     (scanning_roots : Scanning_root.t list) :
-    Project.scanning_roots list * Out.core_error list =
+    Project.scanning_roots list * Core_error.t list =
   (* Force root relativizes scan roots to project roots.
      I.e. if the project_root is /repo/src/ and the scanning root is /src/foo
      it would make the scanning root /foo. So it doesn't make sense to
@@ -595,14 +595,13 @@ let group_scanning_roots_by_project (conf : conf)
              Stack_.push
                ({
                   (* TODO: introduce a more specific error type? *)
-                  error_type = SemgrepError;
-                  severity = `Error;
-                  message = spf "Invalid scanning root: %s" !!fpath;
-                  details = None;
-                  location = None;
+                  typ = SemgrepError;
+                  msg = spf "Invalid scanning root: %s" !!fpath;
+                  loc = None;
                   rule_id = None;
+                  details = None;
                 }
-                 : Out.core_error)
+                 : Core_error.t)
                errors;
              false))
     |> List_.filter_map (fun (sc_root : Scanning_root.t) ->
@@ -828,7 +827,7 @@ let clone_if_remote_project_root conf =
 (*************************************************************************)
 
 let get_targets conf scanning_roots :
-    Fppath.t list * Out.core_error list * Out.skipped_target list =
+    Fppath.t list * Core_error.t list * Out.skipped_target list =
   clone_if_remote_project_root conf;
   (* Skipped scanning roots are more serious errors than ordinary skipped
      targets. They are reported as errors, normally causing the

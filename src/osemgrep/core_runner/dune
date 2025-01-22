@@ -8,7 +8,6 @@
    osemgrep_configuring
    osemgrep_reporting ; for scan status report
    semgrep.core_scan
-
   )
  (preprocess
    (pps

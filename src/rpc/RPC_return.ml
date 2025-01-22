@@ -52,9 +52,7 @@ let sarif_format _caps (rules : Out.fpath) (ctx : Out.format_context) ~is_pro
       rule_source = Core_scan_config.Rule_file rules;
     }
   in
-  let rules, invalid_rules =
-    Core_scan.rules_of_config ~filter_by_targets:false fake_config
-  in
+  let rules, invalid_rules = Core_scan.rules_of_config fake_config in
   (* we already use Log.warn in Parse_rule.ml but worth repeating with Logs
    * TODO? where do the RPC logs go? using --debug does not show RPCs
    * logs; only failures are visible.

@@ -4,6 +4,8 @@ a.py
 --- begin input files ---
 --- end input files ---
 --- Errors ---
-{"error_type":"SemgrepError","severity":"error","message":"Invalid scanning root: a.py"}
+{ Core_error.typ = Semgrep_output_v1_t.SemgrepError;
+  msg = "Invalid scanning root: a.py"; loc = None; rule_id = None;
+  details = None }
 --- Selected targets ---
 --- Skipped targets ---
