@@ -1,3 +1,0 @@
-pro: Fixed bug in inter-file matching of subtypes. When looking to match some
-type `A`, Semgrep will match any type `B` that is a subtype of `A`, but in certain
-situations this did not work.
