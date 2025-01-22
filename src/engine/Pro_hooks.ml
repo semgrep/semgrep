@@ -24,6 +24,9 @@
  *
  * alt: this could could be moved to semgrep-pro. It's only used by
  * Globals.reset() which itself is not used.
+ *
+ * TODO: once all the hooks are using Hook.t, we can get rid of this file
+ * as there will be no need for save_pro_hooks_and_reset safeguard.
  *)
 
 (*****************************************************************************)
@@ -49,7 +52,7 @@ let pro_hooks =
   [
     Pro_hook Generic_vs_generic.hook_find_possible_parents;
     Pro_hook_bool Generic_vs_generic.hook_r2c_pro_was_here;
-    Pro_hook_ref Constant_propagation.hook_propagate_basic_visitor;
+    Pro_hook Constant_propagation.hook_propagate_basic_visitor;
     Pro_hook_ref Dataflow_svalue.hook_constness_of_function;
     Pro_hook_ref Dataflow_svalue.hook_transfer_of_assume;
     Pro_hook Match_tainting_mode.hook_setup_hook_function_taint_signature;
@@ -58,8 +61,9 @@ let pro_hooks =
     Pro_hook_ref Dataflow_tainting.hook_function_taint_signature;
     Pro_hook_ref Dataflow_tainting.hook_find_attribute_in_class;
     Pro_hook_ref Dataflow_tainting.hook_check_tainted_at_exit_sinks;
-    Pro_hook_ref Dataflow_when.hook_annotate_facts;
-    Pro_hook_ref Dataflow_when.hook_facts_satisfy_e;
+    Pro_hook Dataflow_when.hook_annotate_facts;
+    Pro_hook Dataflow_when.hook_facts_satisfy_e;
+    (* TODO? there is also Dataflow_when.hook_path_sensitive! *)
     Pro_hook Typing.pro_hook_type_of_expr;
   ]
 

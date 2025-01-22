@@ -5,6 +5,7 @@ module Log = Log_analyzing.Log
 (* Prelude *)
 (*****************************************************************************)
 (* Support for pattern-when, allowing for control flow-related comparisons.
+ *
  * This code is behind -path_sensitive flag which sets hook_path_sensitive below.
  *
  * Example usage:
@@ -25,7 +26,9 @@ module Log = Log_analyzing.Log
  *    foo(x);
  * }
  *
+ * TODO? we might want to move that to Pro.
  *)
+
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -370,9 +373,13 @@ let facts_satisfy_e (mvars : Metavariable.bindings) (facts : facts) (e : expr) =
       Log.debug (fun m -> m "not a condition for when");
       false
 
-let hook_annotate_facts = ref None
-let hook_facts_satisfy_e = ref None
+let hook_annotate_facts = Hook.create None
+let hook_facts_satisfy_e = Hook.create None
 
 let with_pro_hooks f =
-  Common.save_excursion hook_annotate_facts (Some annotate_facts) (fun () ->
-      Common.save_excursion hook_facts_satisfy_e (Some facts_satisfy_e) f)
+  let f =
+    Hook.with_ hook_annotate_facts (Some annotate_facts)
+    @@ Hook.with_ hook_facts_satisfy_e (Some facts_satisfy_e)
+    @@ f
+  in
+  f ()

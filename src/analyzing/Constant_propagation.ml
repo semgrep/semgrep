@@ -419,8 +419,8 @@ type propagate_basic_visitor_funcs = {
     Eval.env * Iter_with_context.context -> AST_generic.definition -> unit;
 }
 
-let hook_propagate_basic_visitor : propagate_basic_visitor_funcs option ref =
-  ref None
+let hook_propagate_basic_visitor : propagate_basic_visitor_funcs option Hook.t =
+  Hook.create None
 
 (* !Note that this assumes Naming_AST.resolve has been called before! *)
 let propagate_basic lang prog =
@@ -503,7 +503,7 @@ let propagate_basic lang prog =
               | None, _ -> ());
             super#visit_definition (env, ctx) x
         | _ ->
-            !hook_propagate_basic_visitor
+            Hook.get hook_propagate_basic_visitor
             |> Option.iter (fun v -> v.visit_definition (env, ctx) x);
             super#visit_definition (env, ctx) x
 
@@ -639,7 +639,7 @@ let propagate_dataflow lang ast =
               *
               * TODO: refactor this code if we don't incorporate when into svalue analysis.
               *)
-             (match !Dataflow_when.hook_annotate_facts with
+             (match Hook.get Dataflow_when.hook_annotate_facts with
              | None -> ()
              | Some annotate_facts -> annotate_facts fun_cfg.cfg);
              propagate_dataflow_one_function lang fun_cfg);

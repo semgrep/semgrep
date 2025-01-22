@@ -613,11 +613,11 @@ let eval_bool env e facts bindings =
        * and $Y > 0 needs the facts. perhaps instead of raise (NotHandled code) in
        * eval_op, we can first try to find a fact that implies $X > 0 or its negation.
        *)
-      match !Dataflow_when.hook_facts_satisfy_e with
+      match Hook.get Dataflow_when.hook_facts_satisfy_e with
       | None -> false
       | Some facts_satisfy_e -> facts_satisfy_e bindings facts e)
   | None -> (
       Log.err (fun m -> m "got exn during eval_bool");
-      match !Dataflow_when.hook_facts_satisfy_e with
+      match Hook.get Dataflow_when.hook_facts_satisfy_e with
       | None -> false
       | Some facts_satisfy_e -> facts_satisfy_e bindings facts e)
