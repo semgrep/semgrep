@@ -13,6 +13,7 @@ from typing import Optional
 from typing import Sequence
 from typing import Set
 from typing import Tuple
+from typing import TypeVar
 from typing import Union
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
@@ -47,6 +48,10 @@ class DependencySource(ABC):
     def to_stats_output(self) -> List[out.DependencySourceFile]:
         pass
 
+    @abstractmethod
+    def get_all_source_files(self) -> List[Path]:
+        pass
+
 
 @dataclass(frozen=True)
 class ManifestOnlyDependencySource(DependencySource):
@@ -68,6 +73,9 @@ class ManifestOnlyDependencySource(DependencySource):
             )
         ]
 
+    def get_all_source_files(self) -> List[Path]:
+        return [Path(self.manifest.path.value)]
+
 
 @dataclass(frozen=True)
 class LockfileOnlyDependencySource(DependencySource):
@@ -88,6 +96,9 @@ class LockfileOnlyDependencySource(DependencySource):
                 path=self.lockfile.path,
             )
         ]
+
+    def get_all_source_files(self) -> List[Path]:
+        return [Path(self.lockfile.path.value)]
 
 
 @dataclass(frozen=True)
@@ -120,6 +131,9 @@ class ManifestLockfileDependencySource(DependencySource):
 
         return [lockfile_entry, manifest_entry]
 
+    def get_all_source_files(self) -> List[Path]:
+        return [Path(self.manifest.path.value), Path(self.lockfile.path.value)]
+
 
 @dataclass(frozen=True)
 class MultiLockfileDependencySource(DependencySource):
@@ -134,6 +148,13 @@ class MultiLockfileDependencySource(DependencySource):
 
     def to_stats_output(self) -> List[out.DependencySourceFile]:
         return [item for source in self.sources for item in source.to_stats_output()]
+
+    def get_all_source_files(self) -> List[Path]:
+        return [
+            source_file
+            for source in self.sources
+            for source_file in source.get_all_source_files()
+        ]
 
 
 @dataclass(frozen=True)
@@ -302,18 +323,26 @@ class Subproject:
         )
 
 
+class UnresolvedReason(Enum):
+    FAILED = "failed"
+    SKIPPED = "skipped"
+    UNSUPPORTED = "unsupported"
+
+
 @dataclass(frozen=True)
 class UnresolvedSubproject(Subproject):
     """
     A subproject for which resolution was attempted but did not succeed.
     """
 
+    unresolved_reason: UnresolvedReason
     resolution_errors: List[Union[DependencyResolutionError, DependencyParserError]]
 
     @classmethod
     def from_subproject(
         cls,
         base: Subproject,
+        unresolved_reason: UnresolvedReason,
         resolution_errors: Sequence[
             Union[DependencyParserError, DependencyResolutionError]
         ],
@@ -323,6 +352,7 @@ class UnresolvedSubproject(Subproject):
             dependency_source=base.dependency_source,
             ecosystem=base.ecosystem,
             resolution_errors=list(resolution_errors),
+            unresolved_reason=unresolved_reason,
         )
 
 
@@ -384,25 +414,31 @@ class ResolvedSubproject(Subproject):
         )
 
 
+S = TypeVar("S", bound=Subproject)
+
+
 def find_closest_subproject(
-    path: Path, ecosystem: Ecosystem, candidates: List[ResolvedSubproject]
-) -> Optional[ResolvedSubproject]:
+    path: Path, ecosystem: Ecosystem, candidates: List[S]
+) -> Optional[S]:
     """
-    Find the best SCA project for the given match by looking at the parent path of the match
-    and comparing it to the root directories of the provided candidates. The best SCA project is
-    the one with the closest root directory to the match that has the provided ecosystem
+    Attempt to find the best SCA project for the given match by looking at the parent path of the match
+    and comparing it to the root directories of the provided candidates. The best subproject is
+    the one that matches the given `ecosystem` and whose root directory is the longest prefix of
+    the given `path`.
 
-    ! All provided candidates must have the same ecosystem.
-
-    We also order the candidates by root directory length so that we prefer
-    more specific subprojects over more general ones.
+    Note that this function finds the closest subproject, which is likely to be but not necessarily the
+    relevant subproject. Many package managers will allow a subproject to be associated with
+    a code file in an arbitrary location; potentially entirely outside the subproject's root directory.
+    We cannot handle that case without extensive per-package-manager logic, so we assume that each code file
+    is associated with the closest subproject up the directory tree
 
     Args:
         path (Path): The path to search for the closest subproject.
-        ecosystem (Ecosystem): The ecosystem to search lockfiles for.
+        ecosystem (Ecosystem): The ecosystem to consider subprojects for
         candidates (List[Subproject]): List of candidate subprojects.
     """
-
+    # We order the candidates by root directory length so that we prefer
+    # more specific subprojects over more general ones.
     sorted_candidates = sorted(
         candidates, key=lambda x: len(x.root_dir.parts), reverse=True
     )

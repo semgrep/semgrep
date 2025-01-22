@@ -668,6 +668,9 @@ def ci(
             "dump_n_rule_partitions": dump_n_rule_partitions,
             "dump_rule_partitions_dir": dump_rule_partitions_dir,
             "ptt_enabled": scan_handler.ptt_enabled if scan_handler else False,
+            "resolve_all_deps_in_diff_scan": scan_handler.resolve_all_deps_in_diff_scan
+            if scan_handler
+            else False,
         }
 
         try:

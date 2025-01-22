@@ -69,7 +69,7 @@
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 1 file tracked by git with 4 Code rules, 3 Supply Chain rules:
+  Scanning 1 file tracked by git with 4 Code rules, 1 Supply Chain rule:
 
 
   CODE RULES

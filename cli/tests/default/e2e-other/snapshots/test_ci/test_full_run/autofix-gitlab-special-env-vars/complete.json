@@ -31,12 +31,7 @@
               ],
               "path": "yarn.lock"
             }
-          ],
-          "resolved_stats": {
-            "resolution_method": "LockfileParsing",
-            "dependency_count": 1,
-            "ecosystem": "npm"
-          }
+          ]
         },
         {
           "subproject_id": "f53a023eedfa3fbf2925ec7dc76eecdc954ea94b7e47065393dbad519613dc89",

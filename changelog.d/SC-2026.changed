@@ -1,0 +1,1 @@
+Supply chain diff scans now skip resolving dependencies for subprojects without changes.

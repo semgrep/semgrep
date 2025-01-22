@@ -250,6 +250,7 @@ def run_rules(
     with_supply_chain: bool = False,
     allow_local_builds: bool = False,
     ptt_enabled: bool = False,
+    resolve_all_deps_in_diff_scan: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -267,7 +268,9 @@ def run_rules(
     )
 
     # Get rules that rely on dependencies from the project's lockfile
-    dependency_aware_rules = [r for r in rest_of_the_rules if r.project_depends_on]
+    dependency_aware_rules: List[Rule] = [
+        r for r in rest_of_the_rules if r.project_depends_on
+    ]
 
     # Initialize data structures for dependencies
     filtered_dependency_aware_rules = []
@@ -286,9 +289,12 @@ def run_rules(
             sca_dependency_targets,
         ) = resolve_subprojects(
             target_manager,
+            dependency_aware_rules,
             allow_dynamic_resolution=allow_local_builds,
             ptt_enabled=ptt_enabled,
+            resolve_untargeted_subprojects=resolve_all_deps_in_diff_scan,
         )
+
         # for each subproject, split the errors into semgrep errors and parser errors.
         # output the semgrep errors and store the parser errors for printing in print_scan_status below
         all_subprojects.extend(unresolved_subprojects)
@@ -529,6 +535,7 @@ def run_scan(
     dump_n_rule_partitions: Optional[int] = None,
     dump_rule_partitions_dir: Optional[Path] = None,
     ptt_enabled: bool = False,
+    resolve_all_deps_in_diff_scan: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -808,6 +815,7 @@ def run_scan(
         with_supply_chain=with_supply_chain,
         allow_local_builds=allow_local_builds,
         ptt_enabled=ptt_enabled,
+        resolve_all_deps_in_diff_scan=resolve_all_deps_in_diff_scan,
     )
     profiler.save("core_time", core_start_time)
     semgrep_errors: List[SemgrepError] = config_errors + scan_errors

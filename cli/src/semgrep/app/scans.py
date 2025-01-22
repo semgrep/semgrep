@@ -123,6 +123,19 @@ class ScanHandler:
         return False
 
     @property
+    def resolve_all_deps_in_diff_scan(self) -> bool:
+        """
+        Normally, diff scans will resolve only the dependencies that are relevant to the changes
+        in the diff. If this flag is set, a diff scan will resolve all dependencies and include
+        the in the response to the app.
+
+        Separate property for easy of mocking in test
+        """
+        if self.scan_response:
+            return self.scan_response.engine_params.scan_all_deps_in_diff_scan
+        return True
+
+    @property
     def ptt_enabled(self) -> bool:
         """
         Separate property for easy of mocking in test
