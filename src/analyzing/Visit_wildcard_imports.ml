@@ -43,7 +43,7 @@ module G = AST_generic
    let's not consider those.
 
    UPDATE: we now have LocalImportAll in AST_generic.ml and we perform
-   scoped wildcard imports in Generic_vs_generic.ml
+   scoped wildcard imports in Pattern_vs_code.ml
 *)
 
 let visit_toplevel prog : G.dotted_ident list =

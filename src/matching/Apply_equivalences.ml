@@ -26,7 +26,7 @@ module Eq = Equivalence
 
 let match_e_e_for_equivalences _ruleid env a b =
   Common.save_excursion Flag.equivalence_mode true (fun () ->
-      Generic_vs_generic.m_expr_root a b env)
+      Pattern_vs_code.m_expr_root a b env)
 
 (*****************************************************************************)
 (* Substituters *)

@@ -76,7 +76,7 @@ let extract_strings_and_mvars ?lang any =
                && (* deprecated *) not (Pattern.is_regexp_string str) ->
             (* Semgrep can match "foo" against "foo/bar", so we just
              * overapproximate taking the sub-strings, see
-             * Generic_vs_generic.m_module_name_prefix. *)
+             * Pattern_vs_code.m_module_name_prefix. *)
             String_.split ~sep:{|/\|\\|} str
             |> List.iter (fun s -> Stack_.push s strings);
             super#visit_directive env x

@@ -202,14 +202,14 @@ and stmt e : G.stmt =
       (* bugfix: I was using 'G.exprstmt e' before, but then a pattern
        * like useless-else as 'if $E then $E1 else ()' will actually
        * match code like 'if foo then 1 else fail ()' because of
-       * the special code in Generic_vs_generic around ExprStmt where
+       * the special code in Pattern_vs_code around ExprStmt where
        * we use m_expr_deep to look deep for (), which in this case
        * will also match 'fail ()'. So better not use ExprStmt and
        * use a separate construct for now.
-       * alt: disable ExprStmt magic for OCaml in Generic_vs_generic.
+       * alt: disable ExprStmt magic for OCaml in Pattern_vs_code.
        *
        * update: there are cases though where we want to generate an
-       * ExprStmt for Ellipsis otherwise Generic_vs_generic will not work.
+       * ExprStmt for Ellipsis otherwise Pattern_vs_code will not work.
        *)
       match e.G.e with
       | G.Ellipsis _

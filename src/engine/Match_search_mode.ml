@@ -23,7 +23,6 @@ module RP = Core_result
 module RM = Range_with_metavars
 module E = Core_error
 module ME = Matching_explanation
-module GG = Generic_vs_generic
 module OutJ = Semgrep_output_v1_j
 module Log = Log_engine.Log
 open Match_env
@@ -46,7 +45,7 @@ let debug_matches = ref false
  * Thus, we can decompose the engine in 3 main components:
  *  - composing matching results using boolean/set logic (this file)
  *  - visiting code (=~ Match_patterns.ml)
- *  - matching code (=~ Generic_vs_generic.ml)
+ *  - matching code (=~ Pattern_vs_code.ml)
  *
  * There are also "preprocessing" steps before:
  *  - parsing (lexing, parsing) rules, code, patterns
@@ -727,7 +726,7 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
                       connected by "or" logical operators. *)
                    ts
                    |> List.concat_map (fun t ->
-                          GG.m_compatible_type lang
+                          Pattern_vs_code.m_compatible_type lang
                             (mvar, Tok.unsafe_fake_tok "")
                             t e env)
                  in

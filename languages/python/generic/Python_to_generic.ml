@@ -568,7 +568,7 @@ and list_stmt env xs = list (stmt_aux env) xs |> List_.flatten
  * a VarDef (actually a FieldDef, but VarDef works too), so let's
  * transform those.
  *
- * This tranformation is useful for Generic_vs_generic in m_list__m_field
+ * This tranformation is useful for m_list__m_field
  * where we do some special magic to allow a definition using a metavariable
  * to be matched at any position. If this definition was actually
  * an Assign, we don't do the magic.
@@ -803,7 +803,7 @@ and stmt_aux env x =
           (* TODO: We should turn more Assign in G.VarDef!
            * Is it bad for semgrep to turn all those Assign in VarDef?
            * In theory no because we have some magic equivalences to
-           * convert some Vardef back in Assign in Generic_vs_generic anyway.
+           * convert some Vardef back in Assign in Pattern_vs_code anyway.
            * In practice this leads to regressions in semgrep-rules, probably
            * because we transform them in the target but not in the pattern
            *)

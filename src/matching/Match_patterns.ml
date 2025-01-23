@@ -18,7 +18,7 @@ open AST_generic
 module MR = Mini_rule
 module Eq = Equivalence
 module PM = Core_match
-module GG = Generic_vs_generic
+module PvC = Pattern_vs_code
 module MV = Metavariable
 module Flag = Flag_semgrep
 module Options = Rule_options_t
@@ -70,11 +70,11 @@ let set_last_matched_rule (rule : Mini_rule.t) f =
 (*****************************************************************************)
 
 let match_e_e rule a b env =
-  set_last_matched_rule rule (fun () -> GG.m_expr_root a b env)
+  set_last_matched_rule rule (fun () -> PvC.m_expr_root a b env)
 [@@profiling]
 
 let match_st_st rule a b env =
-  set_last_matched_rule rule (fun () -> GG.m_stmt a b env)
+  set_last_matched_rule rule (fun () -> PvC.m_stmt a b env)
 [@@profiling]
 
 let match_sts_sts rule a b env =
@@ -91,46 +91,46 @@ let match_sts_sts rule a b env =
         | [] -> env
         | stmt :: _ -> MG.extend_stmts_matched stmt env
       in
-      GG.m_stmts_deep ~inside:rule.MR.inside ~less_is_ok:true a b env)
+      PvC.m_stmts_deep ~inside:rule.MR.inside ~less_is_ok:true a b env)
 [@@profiling]
 
 (* for unit testing *)
-let match_any_any pattern e env = GG.m_any pattern e env
+let match_any_any pattern e env = PvC.m_any pattern e env
 
 let match_t_t rule a b env =
-  set_last_matched_rule rule (fun () -> GG.m_type_ a b env)
+  set_last_matched_rule rule (fun () -> PvC.m_type_ a b env)
 [@@profiling]
 
 let match_p_p rule a b env =
-  set_last_matched_rule rule (fun () -> GG.m_pattern a b env)
+  set_last_matched_rule rule (fun () -> PvC.m_pattern a b env)
 [@@profiling]
 
 let match_partial_partial rule a b env =
-  set_last_matched_rule rule (fun () -> GG.m_partial a b env)
+  set_last_matched_rule rule (fun () -> PvC.m_partial a b env)
 [@@profiling]
 
 let match_at_at rule a b env =
-  set_last_matched_rule rule (fun () -> GG.m_attribute a b env)
+  set_last_matched_rule rule (fun () -> PvC.m_attribute a b env)
 [@@profiling]
 
 let match_fld_fld rule a b env =
-  set_last_matched_rule rule (fun () -> GG.m_field a b env)
+  set_last_matched_rule rule (fun () -> PvC.m_field a b env)
 [@@profiling]
 
 let match_flds_flds rule a b env =
-  set_last_matched_rule rule (fun () -> GG.m_fields a b env)
+  set_last_matched_rule rule (fun () -> PvC.m_fields a b env)
 [@@profiling]
 
 let match_name_name rule a b env =
-  set_last_matched_rule rule (fun () -> GG.m_name a b env)
+  set_last_matched_rule rule (fun () -> PvC.m_name a b env)
 [@@profiling]
 
 let match_xml_attribute_xml_attribute rule a b env =
-  set_last_matched_rule rule (fun () -> GG.m_xml_attr a b env)
+  set_last_matched_rule rule (fun () -> PvC.m_xml_attr a b env)
 [@@profiling]
 
 let match_raw_raw rule a b env =
-  set_last_matched_rule rule (fun () -> GG.m_raw_tree a b env)
+  set_last_matched_rule rule (fun () -> PvC.m_raw_tree a b env)
 [@@profiling]
 
 (*****************************************************************************)

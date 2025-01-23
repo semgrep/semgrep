@@ -14,7 +14,7 @@
  *)
 open Common
 
-(* See the comment in Generic_vs_generic for the choice of B below *)
+(* See the comment in Pattern_vs_code for the choice of B below *)
 module B = AST_generic
 module G = AST_generic
 module MV = Metavariable
@@ -25,8 +25,8 @@ module Log = Log_matching.Log
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Helper types and functions for Generic_vs_generic.ml.
- * See Generic_vs_generic.ml top comment for more information.
+(* Helper types and functions for Pattern_vs_code.ml.
+ * See its top comment for more information.
  *
  * todo:
  *  - use m_list_in_any_order at some point for:
@@ -108,7 +108,7 @@ type tin = {
    * part of this new tin?
    * alt: use globals or have an another 'env' parameter in the matcher in
    * additionto tin instead of passing them through tin (but that's maybe a big
-   * refactoring of Generic_vs_generic).
+   * refactoring of Pattern_vs_code).
    *)
   lang : Lang.t;
   config : Rule_options.t;
@@ -187,7 +187,7 @@ let (return : tin -> tout) = fun tin -> [ tin ]
 
 let (fail : tin -> tout) =
  fun _tin ->
-  if !Flag.debug_matching then failwith "Generic_vs_generic.fail: Match failure";
+  if !Flag.debug_matching then failwith "Pattern_vs_code.fail: Match failure";
   []
 
 let or_list m a bs =
@@ -210,7 +210,7 @@ let ( let* ) o f = o >>= f
      match o with
      | None -> fail ()
      | Some x -> f x
-   useful in Generic_vs_generic when see code like 'None -> fail()'
+   useful in Pattern_vs_code when see code like 'None -> fail()'
 *)
 
 (*****************************************************************************)
@@ -347,7 +347,7 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
         (* Allow identifier nodes to match pure identifier expressions *)
 
         (* You should prefer to add metavar as expression (G.E), not id (G.I),
-         * (see Generic_vs_generic.m_ident_and_id_info_add_in_env_Expr)
+         * (see m_ident_and_id_info_add_in_env_Expr)
          * but in some cases you have no choice and you need to match an expr
          * metavar with an id metavar.
          * For example, we want the pattern 'const $X = foo.$X' to match

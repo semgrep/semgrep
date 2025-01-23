@@ -50,8 +50,8 @@ type pro_hook =
  *)
 let pro_hooks =
   [
-    Pro_hook Generic_vs_generic.hook_find_possible_parents;
-    Pro_hook_bool Generic_vs_generic.hook_r2c_pro_was_here;
+    Pro_hook Pattern_vs_code.hook_find_possible_parents;
+    Pro_hook_bool Pattern_vs_code.hook_r2c_pro_was_here;
     Pro_hook Constant_propagation.hook_propagate_basic_visitor;
     Pro_hook Dataflow_svalue.hook_constness_of_function;
     Pro_hook Dataflow_svalue.hook_transfer_of_assume;

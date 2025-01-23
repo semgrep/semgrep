@@ -124,16 +124,16 @@ let parse_target lang text =
 let transform_fix lang ast =
   match lang with
   | Lang.Python ->
-      (* Due to unordered keyword argument matching (see
-       * Generic_vs_generic.m_list__m_argument), we can end up generating
-       * autofixes where keyword arguments are moved before positional
-       * arguments. In some languages (OCaml, for example) this doesn't change
-       * the semantics, but in Python this is actually syntactically invalid.
-       * So, to avoid generating invalid autofixes, we move the positional
-       * arguments in front of the keyword arguments.
-       *
-       * See the fix_ellipsis_metavar.py test case for an example of when this
-       * can happen. *)
+      (* Due to unordered keyword argument matching (see m_list__m_argument),
+         * we can end up generating
+         * autofixes where keyword arguments are moved before positional
+         * arguments. In some languages (OCaml, for example) this doesn't change
+         * the semantics, but in Python this is actually syntactically invalid.
+         * So, to avoid generating invalid autofixes, we move the positional
+         * arguments in front of the keyword arguments.
+         *
+         * See the fix_ellipsis_metavar.py test case for an example of when this
+         * can happen. *)
       let mapper =
         object (_self : 'self)
           inherit [_] AST_generic.map as super

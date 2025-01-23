@@ -74,7 +74,7 @@
  *    tuple assignments (e.g., a,b=1,2) are not expanded in multiple assigns
  *    because this is not always possible (e.g., a,b=foo()) and people may
  *    want to explicitely match tuples assignments (we do some magic in
- *    Generic_vs_generic though to let 'a=1' matches also 'a,b=1,2').
+ *    Pattern_vs_code though to let 'a=1' matches also 'a,b=1,2').
  *  - multiple entity imports in one declaration (e.g., from foo import {a,b})
  *    are expanded in multiple individual imports
  *    (in the example, from foo import a; from foo import b).

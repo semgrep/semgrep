@@ -471,7 +471,7 @@ let text_of_binding mvar mval =
       (* Note that `text` may be produced by constant folding, in which
        * case we will not have range info. *)
       Some text
-  (* There are a few places in Generic_vs_generic where we build artificial
+  (* There are a few places in Pattern_vs_code where we build artificial
    * code on-the-fly (e.g., a Name from an ImportedEntity), in which case the
    * tokens in this code should not be used to get the string content
    * of the code. Unfortunately, a metavariable can be bound to such

@@ -41,7 +41,7 @@
  *    to know OCaml (we go back to the argument of sgrep vs AST visitors)
  *
  * Note that some code equivalences are handled directly in the engine
- * in Generic_vs_generic.ml or normalize_ast.ml because they are too
+ * in Pattern_vs_code.ml or normalize_ast.ml because they are too
  * difficult to encode otherwise (e.g., the less-is-ok).
  * todo: we should give them name too, so they can be disabled too.
  *

@@ -350,7 +350,7 @@ let make_type type_string tok =
 
 (* This is only one part of the code to handle typed metavariables. Here
  * the goal is to help is setting the id_info.id_type for a few
- * identifiers in VarDef or Assign. Then, Generic_vs_generic.m_compatible_type
+ * identifiers in VarDef or Assign. Then, m_compatible_type
  * can leverage the info.
  *)
 let rec get_resolved_type lang (vinit, vtype) =

@@ -222,7 +222,7 @@ let quote = Pcre2.quote
 (* Small wrapper to the actual regexp engine(s).
  *
  * Regexps are used in many places in Semgrep:
- *  - in Generic_vs_generic to support the "=~/.../",
+ *  - in Pattern_vs_code to support the "=~/.../",
  *  - in Semgrep.ml for the metavariable-regexp and pattern-regexp
  *  - in Optimizing/ for skipping rules or target files
  *    (See Analyze_pattern.ml for more information).
@@ -243,7 +243,7 @@ let quote = Pcre2.quote
  *  - PCRE: powerful, but C dependency
  *
  * TODO:
- *  - move the regexp-related code in Generic_vs_generic here!
+ *  - move the regexp-related code in Pattern_vs_code here!
  *  - use Re.Glob just for globbing?
  *
  *)

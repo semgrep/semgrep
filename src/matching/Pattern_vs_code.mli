@@ -1,3 +1,12 @@
+(* Set of functions to match a Pattern against some code.
+ *
+ * Both are represented by an AST_generic type but the pattern
+ * can contain construct such as Ellipsis that are not possible
+ * to have in the code.
+ *
+ * See Matching_generic.matcher for more information.
+ *)
+
 (* entry points, used in the sgrep_generic visitors *)
 val m_expr_root : AST_generic.expr Matching_generic.matcher
 val m_stmt : AST_generic.stmt Matching_generic.matcher

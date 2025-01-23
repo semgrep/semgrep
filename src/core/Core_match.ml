@@ -33,7 +33,7 @@
 (* Types *)
 (*****************************************************************************)
 (* We use 'eq' below to possibly remove redundant equivalent matches. Indeed,
- * Generic_vs_generic sometimes return multiple times the same match,
+ * Pattern_vs_code sometimes return multiple times the same match,
  * sometimes because of some bugs we didn't fix, sometimes it's normal
  * because of the way '...' operate. TODO: add an example of such situation.
  *
