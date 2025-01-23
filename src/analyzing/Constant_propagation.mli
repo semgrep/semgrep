@@ -15,9 +15,6 @@ val add_constant_env :
   Eval_generic_partial.env ->
   unit
 
-(* used by pro engine *)
-val hook_propagate_basic_visitor : propagate_basic_visitor_funcs option Hook.t
-
 (* Works by side effect on the generic AST by modifying its refs.
  * We pass the lang because some constant propagation algorithm may be
  * specific to a language.
@@ -32,3 +29,6 @@ val propagate_dataflow_one_function :
   Lang.t -> IL.fun_cfg (* function CFG *) -> unit
 
 val propagate_dataflow : Lang.t -> AST_generic.program -> unit
+
+(* pro-scan hook *)
+val hook_propagate_basic_visitor : propagate_basic_visitor_funcs option Hook.t

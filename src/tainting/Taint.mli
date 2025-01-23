@@ -85,8 +85,8 @@ type lval = {
 
 val lval_of_arg : arg -> lval
 
-val hook_offset_of_IL : (IL.offset -> offset) option ref
-(** Pro index sensitivity *)
+(* pro-scan hook *)
+val hook_offset_of_IL : (IL.offset -> offset) option Hook.t
 
 type var =
   | Taint_var of lval

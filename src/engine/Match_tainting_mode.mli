@@ -1,19 +1,3 @@
-val hook_setup_hook_function_taint_signature :
-  (Rule.taint_rule -> Taint_rule_inst.t -> Xtarget.t -> unit) option Hook.t
-(** This is used for intra-file inter-procedural taint-tracking, and the idea is
-  * that this hook will do top-sorting and infer the signature of each function
-  * in the file, and while doing this it will also setup
-  * 'Dataflow_tainting.hook_function_taint_signature'.
-  *
-  * Doing it here (vs what DeepSemgrep does) has the advantage that we can re-use
-  * the same 'Dataflow_tainting.config' without having to do any caching on disk.
-  *
-  * FIXME: Once we have the taint signature of a function we do not need to run
-  *   taint tracking on it anymore... but we still do it hence duplicating work.
-  *   We only need to analyze anonymous functions which do not get taint signatures
-  *   (or we could infer a signature for them too...).
-  *)
-
 val check_fundef :
   Taint_rule_inst.t ->
   IL.name option (** entity being analyzed *) ->
@@ -43,3 +27,7 @@ val check_rules :
   * same language. Running on multiple rules at once enables inter-rule
   * optimizations.
   *)
+
+(* pro-scan hook *)
+val hook_setup_hook_function_taint_signature :
+  (Rule.taint_rule -> Taint_rule_inst.t -> Xtarget.t -> unit) option Hook.t

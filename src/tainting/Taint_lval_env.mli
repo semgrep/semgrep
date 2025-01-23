@@ -31,6 +31,8 @@ type prop_fn =
 
 type add_fn = IL.lval -> Taint.taints -> env -> env
 
+(* pro-scan hook. The signature is complicated to avoid having to expose
+ * `t`s internals. *)
 val hook_propagate_to :
   (Dataflow_var_env.var ->
   Taint.taints ->
@@ -40,8 +42,7 @@ val hook_propagate_to :
   add:add_fn ->
   t)
   option
-  ref
-(** Pro hook, this is a bit complicated to avoid exposing `t`s internals. *)
+  Hook.t
 
 val empty : env
 val empty_inout : env Dataflow_core.inout

@@ -12,11 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-
-(* TODO: This needs some clean up, maybe we shouldn't expect clients of this module
- * to ensure that lvals satisfy IL_helpers.lval_is_var_and_dots, but rather handle
- * that internally. *)
-
 open Common
 module Log = Log_tainting.Log
 module T = Taint
@@ -29,6 +24,19 @@ open Shape_and_sig.Shape
 module Shape = Taint_shape
 
 let limits_tags = Logs_.create_tags [ "bad"; "limits" ]
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+
+(* TODO: This needs some clean up, maybe we shouldn't expect clients of this
+ * module to ensure that lvals satisfy IL_helpers.lval_is_var_and_dots, but
+ * rather handle that internally.
+ *)
+
+(*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
 
 type taints_to_propagate = T.taints VarMap.t
 type pending_propagation_dests = IL.lval VarMap.t
@@ -71,8 +79,8 @@ let hook_propagate_to :
     add:add_fn ->
     t)
     option
-    ref =
-  ref None
+    Hook.t =
+  Hook.create None
 
 let empty =
   {
@@ -83,6 +91,10 @@ let empty =
   }
 
 let empty_inout = { Dataflow_core.in_env = empty; out_env = empty }
+
+(*****************************************************************************)
+(* API *)
+(*****************************************************************************)
 
 let union le1 le2 =
   let tainted =
@@ -243,7 +255,7 @@ let propagate_to prop_var taints env =
         taints_to_propagate = VarMap.add prop_var taints env.taints_to_propagate;
       }
     in
-    match !hook_propagate_to with
+    match Hook.get hook_propagate_to with
     | None -> env
     | Some hook ->
         hook prop_var taints ~taints_to_propagate:env.taints_to_propagate

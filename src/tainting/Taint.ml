@@ -12,13 +12,12 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-
+open Common
 module G = AST_generic
 module PM = Core_match
 module R = Rule
 module LabelSet = Set.Make (String)
 module Log = Log_tainting.Log
-open Common
 
 (* TODO: Consider renaming the `show_xyz` functions to `pretty_xyz` and
  * generate `show_xyz` ones via `deriving show`. *)
@@ -144,7 +143,7 @@ type offset = Ofld of IL.name | Oint of int | Ostr of string | Oany
 
 type lval = { base : base; offset : offset list }
 
-let hook_offset_of_IL = ref None
+let hook_offset_of_IL = Hook.create None
 
 (* See NOTE "on compare functions" *)
 let compare_lval { base = base1; offset = offset1 }
@@ -175,7 +174,7 @@ let show_offset_list offset =
 let show_lval { base; offset } = show_base base ^ show_offset_list offset
 
 let offset_of_IL (o : IL.offset) =
-  match !hook_offset_of_IL with
+  match Hook.get hook_offset_of_IL with
   | None -> (
       match o.o with
       | Dot n -> Ofld n

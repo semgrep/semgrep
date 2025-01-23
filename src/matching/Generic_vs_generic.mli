@@ -20,6 +20,7 @@ val m_raw_tree : AST_generic.raw_tree Matching_generic.matcher
 (* used only for unit testing *)
 val m_any : AST_generic.any Matching_generic.matcher
 
+(* deep-scan hook *)
 val hook_find_possible_parents :
   (AST_generic.dotted_ident -> AST_generic.name list) option Hook.t
 
