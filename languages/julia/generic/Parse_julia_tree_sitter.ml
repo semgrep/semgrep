@@ -793,12 +793,8 @@ and map_assignment (env : env) ((v1, v2, v3) : CST.assignment) :
     expr * tok * expr =
   let v1 =
     match v1 with
-    | `Quot x -> map_quotable env x
-    | `Field_exp x -> map_field_expression env x
-    | `Index_exp x -> map_index_expression env x
-    | `Para_type_exp x -> map_parametrized_type_expression env x
-    | `Interp_exp x -> map_interpolation_expression env x
-    | `Quote_exp x -> map_quote_expression env x
+    (* TODO: Short function def needs to handled here now *)
+    | `Prim_exp -> map_primary_expression env x
     | `Typed_exp x -> map_typed_expression_exp env x
     | `Op x -> map_operator_exp env x
     | `Bin_exp x -> map_binary_expression env x
@@ -1602,7 +1598,16 @@ and map_interpolation_expression_either (env : env)
         match v2 with
         | `Int_lit x -> map_integer_literal env x
         | `Float_lit x -> map_float_literal env x
-        | `Quot x -> map_quotable env x
+        | `Id tok ->
+            let s, tok = map_identifier env tok in
+            G.N (H2.name_of_id (s, tok)) |> G.e
+        | `Curl_exp x -> todo env x
+        | `Paren_exp x -> map_parenthesized_expression env x
+        | `Tuple_exp x ->
+            let l, xs, r = map_tuple_expression env x in
+            Container (Tuple, (l, xs, r)) |> G.e
+        | `Array x -> map_array_ env x
+        | `Str x -> map_string_literal env x
       in
       match v2.e with
       (* Actually, we might want to inject into Left even if it's not a pattern...
@@ -1622,14 +1627,22 @@ and map_interpolation_expression (env : env) (x : CST.interpolation_expression)
 and map_interpolation_parameter (env : env) (x : CST.interpolation_expression) :
     parameter =
   match x with
-  | `DOLLAR_choice_num (v1, v2) -> (
+  | `DOLLAR_choice_int_lit (v1, v2) -> (
       let ((s1, t1) as v1) = (* "$" *) str env v1 in
       let v2 =
         match v2 with
-        | `Bool_lit x -> map_boolean_literal env x
         | `Int_lit x -> map_integer_literal env x
         | `Float_lit x -> map_float_literal env x
-        | `Quot x -> map_quotable env x
+        | `Id tok ->
+            let s, tok = map_identifier env tok in
+            G.N (H2.name_of_id (s, tok)) |> G.e
+        | `Curl_exp x -> todo env x
+        | `Paren_exp x -> map_parenthesized_expression env x
+        | `Tuple_exp x ->
+            let l, xs, r = map_tuple_expression env x in
+            Container (Tuple, (l, xs, r)) |> G.e
+        | `Array x -> map_array_ env x
+        | `Str x -> map_string_literal env x
       in
       match v2.e with
       (* When this is a pattern, this parameter is not an interpolation, but a metavariable.
@@ -1810,7 +1823,24 @@ and map_parametrized_type_expression (env : env)
 
 and map_primary_expression (env : env) (x : CST.primary_expression) : expr =
   match x with
-  | `Quot x -> map_quotable env x
+  | `Id tok ->
+      let s, tok = map_identifier env tok in
+      G.N (H2.name_of_id (s, tok)) |> G.e
+  | `Bool_lit x -> map_boolean_literal env x
+  | `Curl_exp x ->
+      (* This can be called while looking for the subject of a where clause.
+       *)
+      let _, tparams, _ = map_type_parameter_list env x in
+      OtherExpr
+        ( ("curly", fake "curly"),
+          [ G.Anys (List_.map (fun x -> G.Tp x) tparams) ] )
+      |> G.e
+  | `Paren_exp x -> map_parenthesized_expression env x
+  | `Tuple_exp x ->
+      let l, xs, r = map_tuple_expression env x in
+      Container (Tuple, (l, xs, r)) |> G.e
+  | `Array x -> map_array_ env x
+  | `Str x -> map_string_literal env x
   | `Adjo_exp x -> map_adjoint_expression env x
   | `Broa_call_exp (v1, v2, v3, v4, v5) ->
       (* These are broadcasted vectorized functions.
@@ -1876,26 +1906,6 @@ and map_parenthesized_expression (env : env)
       let comp = map_comprehension_clause env x in
       Comprehension (List, (v1, (base, comp), v6)) |> G.e
   | None -> base
-
-and map_quotable (env : env) (x : CST.quotable) : expr =
-  match x with
-  | `Array x -> map_array_ env x
-  | `Id tok ->
-      let s, tok = map_identifier env tok in
-      G.N (H2.name_of_id (s, tok)) |> G.e
-  | `Curl_exp x ->
-      (* This can be called while looking for the subject of a where clause.
-       *)
-      let _, tparams, _ = map_type_parameter_list env x in
-      OtherExpr
-        ( ("curly", fake "curly"),
-          [ G.Anys (List_.map (fun x -> G.Tp x) tparams) ] )
-      |> G.e
-  | `Paren_exp x -> map_parenthesized_expression env x
-  | `Tuple_exp x ->
-      let l, xs, r = map_tuple_expression env x in
-      Container (Tuple, (l, xs, r)) |> G.e
-  | `Str x -> map_string_literal env x
 
 and map_quote_expression (env : env) ((v1, v2) : CST.quote_expression) : expr =
   let v1 = (* ":" *) str env v1 in
