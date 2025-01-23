@@ -371,8 +371,8 @@ and map_multi_assign ?(attrs = []) (env : env) x =
         ( { name = EDynamic l_exp; attrs; tparams = None },
           VarDef { vinit = None; vtype = Some ty; vtok = G.no_sc } )
       |> G.s
-  | `Bare_tuple x ->
-      let e = map_bare_tuple_exp env x in
+  | `Open_tuple x ->
+      let e = map_open_tuple_exp env x in
       DefStmt ({ name = EDynamic e; attrs; tparams = None }, VarDef G.empty_var)
       |> G.s
   | `Func_defi x -> map_function_definition env x
@@ -405,7 +405,7 @@ and map_anon_choice_exp_3c18676 (env : env) (x : CST.anon_choice_exp_3c18676) =
   match x with
   | `Exp x -> map_expression env x
   | `Assign x -> map_assignment_exp env x
-  | `Bare_tuple x -> map_bare_tuple_exp env x
+  | `Open_tuple x -> map_open_tuple_exp env x
 
 and map_anon_choice_exp_91c2553 (env : env) (x : CST.anon_choice_exp_91c2553) :
     argument =
@@ -448,7 +448,7 @@ and map_anon_choice_exp_772c79a_stmt (env : env)
       match AST_generic_helpers.assign_to_vardef_opt (l, t, r) with
       | None -> ExprStmt (Assign (l, t, r) |> G.e, G.sc) |> G.s
       | Some stmt -> stmt)
-  | `Bare_tuple x -> ExprStmt (map_bare_tuple_exp env x, G.sc) |> G.s
+  | `Open_tuple x -> ExprStmt (map_open_tuple_exp env x, G.sc) |> G.s
   | `Short_func_defi x -> map_short_function_definition env x
 
 and map_anon_choice_exp_772c79a_args (env : env)
@@ -464,7 +464,7 @@ and map_anon_choice_exp_772c79a_args (env : env)
             OtherArg
               (("assign", fake "assign"), [ G.E (Assign (e1, tok, e2) |> G.e) ]);
           ])
-  | `Bare_tuple x -> map_bare_tuple env x |> List_.map (fun x -> Arg x)
+  | `Open_tuple x -> map_open_tuple env x |> List_.map (fun x -> Arg x)
   | `Short_func_defi x ->
       (* who on earth is passing a short function def as an argument...
        *)
@@ -803,7 +803,7 @@ and map_assignment (env : env) ((v1, v2, v3) : CST.assignment) :
     | `Op x -> map_operator_exp env x
     | `Bin_exp x -> map_binary_expression env x
     | `Un_exp x -> map_unary_expression env x
-    | `Bare_tuple x -> map_bare_tuple_exp env x
+    | `Open_tuple x -> map_open_tuple_exp env x
   in
   let v2 = (* "=" *) token env v2 in
   let v3 = map_anon_choice_exp_3c18676 env v3 in
@@ -813,7 +813,7 @@ and map_assignment_exp (env : env) ((v1, v2, v3) : CST.assignment) : expr =
   let l_exp, tok, r_exp = map_assignment env (v1, v2, v3) in
   Assign (l_exp, tok, r_exp) |> G.e
 
-and map_bare_tuple (env : env) ((v1, v2) : CST.bare_tuple) : expr list =
+and map_open_tuple (env : env) ((v1, v2) : CST.open_tuple) : expr list =
   let v1 = map_expression env v1 in
   let v2 =
     List_.map
@@ -825,8 +825,8 @@ and map_bare_tuple (env : env) ((v1, v2) : CST.bare_tuple) : expr list =
   in
   v1 :: v2
 
-and map_bare_tuple_exp (env : env) ((v1, v2) : CST.bare_tuple) : expr =
-  let xs = map_bare_tuple env (v1, v2) in
+and map_open_tuple_exp (env : env) ((v1, v2) : CST.open_tuple) : expr =
+  let xs = map_open_tuple env (v1, v2) in
   Container (Tuple, fb xs) |> G.e
 
 and map_binary_expression (env : env) (x : CST.binary_expression) : expr =
