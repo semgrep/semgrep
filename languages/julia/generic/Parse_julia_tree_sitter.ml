@@ -1349,7 +1349,8 @@ and map_expression (env : env) (x : CST.expression) : expr =
           | [ { s = ExprStmt (expr, _); _ } ] -> expr
           | [ x ] -> StmtExpr x |> G.e
           | __else__ -> StmtExpr (Block (fb stmt) |> G.s) |> G.e)
-      | `Num x -> map_number env x
+      | `Int_lit x -> map_integer_literal env x
+      | `Float_lit x -> map_float_literal env x
       | `Prim_exp x -> map_primary_expression env x
       | `Choice_un_exp x -> map_operation env x
       | `Macr_exp (v1, v2, v3) -> (
@@ -1595,11 +1596,12 @@ and map_index_expression (env : env) ((v1, v2, v3) : CST.index_expression) =
 and map_interpolation_expression_either (env : env)
     (x : CST.interpolation_expression) =
   match x with
-  | `DOLLAR_choice_num (v1, v2) -> (
+  | `DOLLAR_choice_int_lit (v1, v2) -> (
       let ((s1, t1) as v1) = (* "$" *) str env v1 in
       let v2 =
         match v2 with
-        | `Num x -> map_number env x
+        | `Int_lit x -> map_integer_literal env x
+        | `Float_lit x -> map_float_literal env x
         | `Quot x -> map_quotable env x
       in
       match v2.e with
@@ -1624,7 +1626,9 @@ and map_interpolation_parameter (env : env) (x : CST.interpolation_expression) :
       let ((s1, t1) as v1) = (* "$" *) str env v1 in
       let v2 =
         match v2 with
-        | `Num x -> map_number env x
+        | `Bool_lit x -> map_boolean_literal env x
+        | `Int_lit x -> map_integer_literal env x
+        | `Float_lit x -> map_float_literal env x
         | `Quot x -> map_quotable env x
       in
       match v2.e with
@@ -1654,12 +1658,6 @@ and map_keyword_parameters (env : env)
     | None -> None
   in
   v2 :: v3
-
-and map_number (env : env) (x : CST.number) =
-  match x with
-  | `Bool_lit x -> map_boolean_literal env x
-  | `Int_lit x -> map_integer_literal env x
-  | `Float_lit x -> map_float_literal env x
 
 and map_macro_argument_list (env : env) (xs : CST.macro_argument_list) =
   List.concat_map (map_anon_choice_exp_772c79a_args env) xs
@@ -1903,7 +1901,8 @@ and map_quote_expression (env : env) ((v1, v2) : CST.quote_expression) : expr =
   let v1 = (* ":" *) str env v1 in
   let v2 =
     match v2 with
-    | `Num x -> map_number env x
+    | `Int_lit x -> map_integer_literal env x
+    | `Float_lit x -> map_float_literal env x
     | `Str x -> map_string_literal env x
     | `Id x -> map_identifier_exp env x
     | `Op x -> map_operator_exp env x
