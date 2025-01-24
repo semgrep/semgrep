@@ -47,7 +47,10 @@ logger = getLogger(__name__)
 
 class ScanHandler:
     def __init__(
-        self, dry_run: bool = False, partial_output: Optional[Path] = None
+        self,
+        dry_run: bool = False,
+        partial_output: Optional[Path] = None,
+        dump_scan_id_path: Optional[Path] = None,
     ) -> None:
         """
         When dry_run is True, semgrep ci would get the config from the app,
@@ -70,6 +73,7 @@ class ScanHandler:
         self._scan_params: str = ""
         self.ci_scan_results: Optional[out.CiScanResults] = None
         self.partial_output = partial_output
+        self.dump_scan_id_path = dump_scan_id_path
 
     @property
     def scan_id(self) -> Optional[int]:
@@ -291,6 +295,10 @@ class ScanHandler:
         x.config.rules = out.RawJson(TOO_MUCH_DATA)
         logger.debug(f"Scan started: {json.dumps(x.to_json(), indent=4)}")
         x.config.rules = save
+
+        if self.dump_scan_id_path and self.scan_id:
+            self.dump_scan_id_path.parent.mkdir(parents=True, exist_ok=True)
+            self.dump_scan_id_path.write_text(str(self.scan_id))
 
         otel_trace.get_current_span()
         get_state().traces.set_scan_info(self.scan_response.info)

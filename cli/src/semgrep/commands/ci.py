@@ -344,15 +344,22 @@ def ci(
             )
             sys.exit(FATAL_EXIT_CODE)
         elif token:
-            # Dumping partitions implies a dry run because we are not
-            # scanning or uploading results to the app.
-            if dump_n_rule_partitions:
-                dry_run = True
+            # Dumping partitions also signals the start of a scan.
+            # Save the scan ID here so it can be used at a later stage.
+            dump_scan_id_path = None
+            if dump_rule_partitions_dir:
+                dump_scan_id_path = dump_rule_partitions_dir / "scan_id.txt"
+
             # Partial scans also implies a dry run. We'll be saving results
             # to disk, but not upload them yet.
             if partial_output:
                 dry_run = True
-            scan_handler = ScanHandler(dry_run=dry_run, partial_output=partial_output)
+
+            scan_handler = ScanHandler(
+                dry_run=dry_run,
+                partial_output=partial_output,
+                dump_scan_id_path=dump_scan_id_path,
+            )
         else:  # impossible state… until we break the code above
             raise RuntimeError("The token and/or config are misconfigured")
 
