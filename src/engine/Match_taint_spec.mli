@@ -31,6 +31,7 @@ val hook_mk_taint_spec_match_preds :
 *)
 val taint_config_of_rule :
   per_file_formula_cache:Formula_cache.t ->
+  pro_hooks:Taint_pro_hooks.t option ->
   ?handle_effects:Taint_rule_inst.effects_handler
     (** Use 'handle_effects' to e.g. apply hash-consing (see 'Deep_tainting'), or
         to do some side-effect if needed.

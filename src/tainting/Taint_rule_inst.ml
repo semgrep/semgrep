@@ -95,6 +95,7 @@ type t = {
       (** Whether the rule requires tracking "control taint". If it does not,
        * then we avoid adding control taint-variables to environment. *)
   preds : spec_predicates;
+  pro_hooks : Taint_pro_hooks.t option;
   handle_effects : effects_handler;  (** Callback to report effects. *)
   java_props_cache : java_props_cache;
       (** Pro should be autogenerating definitions for these getters/setters,

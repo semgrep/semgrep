@@ -34,6 +34,7 @@ module Shape = Taint_shape
 module Effect = Shape_and_sig.Effect
 module Effects = Shape_and_sig.Effects
 module Signature = Shape_and_sig.Signature
+module Instantiated_signature = Shape_and_sig.Instantiated_signature
 
 (* TODO: Rename things to make clear that there are "sub-matches" and there are
  * "best matches". *)
@@ -1380,15 +1381,16 @@ and check_tainted_var env (var : IL.name) : Taints.t * S.shape * Lval_env.t =
   (taints, shape, lval_env)
 
 and instantiate_function_signature env fun_exp fun_sig args args_taints =
+  let* pro_hooks = env.taint_inst.pro_hooks in
   let* call_effects =
-    Sig_inst.instantiate_function_signature env.lval_env fun_sig ~callee:fun_exp
-      ~args args_taints
+    pro_hooks.instantiate_function_signature env.lval_env fun_sig
+      ~callee:fun_exp ~args args_taints
   in
   Some
     (call_effects
     |> List.fold_left
          (fun (taints_acc, shape_acc, lval_env)
-              (call_effect : Sig_inst.call_effect) ->
+              (call_effect : Instantiated_signature.effect) ->
            match call_effect with
            | ToSink
                {

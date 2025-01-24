@@ -59,6 +59,7 @@ let pro_hooks =
     Pro_hook Taint.hook_offset_of_IL;
     Pro_hook Taint_lval_env.hook_propagate_to;
     Pro_hook Dataflow_tainting.hook_function_taint_signature;
+    Pro_hook Taint_pro_hooks.hook_taint_pro_hooks;
     Pro_hook_ref Dataflow_tainting.hook_find_attribute_in_class;
     Pro_hook_ref Dataflow_tainting.hook_check_tainted_at_exit_sinks;
     Pro_hook Dataflow_when.hook_annotate_facts;

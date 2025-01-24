@@ -287,11 +287,14 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) ~matches_hook
   let (ast, skipped_tokens), parse_time =
     Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
   in
+  let pro_hooks : Taint_pro_hooks.t option =
+    Hook.get Taint_pro_hooks.hook_taint_pro_hooks
+  in
   (* TODO: 'debug_taint' should just be part of 'res'
      * (i.e., add a "debugging" field to 'Report.match_result'). *)
   let taint_inst, _TODO_debug_taint, expls =
-    Match_taint_spec.taint_config_of_rule ~per_file_formula_cache xconf lang
-      file (ast, []) rule
+    Match_taint_spec.taint_config_of_rule ~per_file_formula_cache ~pro_hooks
+      xconf lang file (ast, []) rule
   in
   let with_hook f =
     match Hook.get hook_mk_hook_function_taint_signature with

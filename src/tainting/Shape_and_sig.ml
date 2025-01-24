@@ -696,3 +696,31 @@ module Effects_tbl = Hashtbl.Make (struct
   let equal r1 r2 = Effect.compare r1 r2 =|= 0
   let hash r = Hashtbl.hash r
 end)
+
+(*************************************)
+(* Instantiated signature *)
+(*************************************)
+
+module Instantiated_signature = struct
+  (* THINK: Merge with Effect.t ? *)
+  (** Like 'Effect.t' but instantiated for a specific call site.
+      In particular, there is no 'ToSinkInCall' effect, and 'ToLval' effects
+      refer to specific 'IL.lval's rather than to 'Taint.lval's. *)
+  type effect =
+    | ToSink of Effect.taints_to_sink
+    | ToReturn of Effect.taints_to_return
+    | ToLval of Taint.taints * IL.name * Taint.offset list
+
+  type t = effect list
+
+  let show_effect = function
+    | ToSink tts -> Effect.show_taints_to_sink tts
+    | ToReturn ttr -> Effect.show_taints_to_return ttr
+    | ToLval (taints, var, offset) ->
+        Printf.sprintf "%s ----> %s%s" (T.show_taints taints)
+          (IL.str_of_name var)
+          (T.show_offset_list offset)
+
+  let show call_effects =
+    call_effects |> List_.map show_effect |> String.concat "; "
+end

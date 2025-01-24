@@ -442,7 +442,7 @@ let mk_taint_spec_match_preds rule matches =
 
 let default_effect_handler _fun_name new_effects = new_effects
 
-let taint_config_of_rule ~per_file_formula_cache
+let taint_config_of_rule ~per_file_formula_cache ~pro_hooks
     ?(handle_effects = default_effect_handler) xconf lang file ast_and_errors
     ({ mode = `Taint spec; _ } as rule : R.taint_rule) =
   let spec_matches, expls =
@@ -462,6 +462,7 @@ let taint_config_of_rule ~per_file_formula_cache
           spec.sources |> snd
           |> List.exists (fun (src : R.taint_source) -> src.source_control);
         preds;
+        pro_hooks;
         handle_effects;
         java_props_cache = Hashtbl.create 30;
       },
