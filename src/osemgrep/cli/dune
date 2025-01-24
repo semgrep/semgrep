@@ -19,7 +19,6 @@
     osemgrep_cli_lsp
     osemgrep_cli_install
     osemgrep_cli_install_semgrep_pro
-    osemgrep_cli_publish
     osemgrep_cli_show
     osemgrep_cli_test
     osemgrep_configuring

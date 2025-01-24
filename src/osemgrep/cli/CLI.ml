@@ -58,7 +58,13 @@ let default_subcommand = "scan"
  *)
 let hook_semgrep_interactive : (string array -> Exit_code.t) Hook.t =
   Hook.create (fun _argv ->
-      failwith "semgrep interactive not available (requires --pro)")
+      failwith "semgrep interactive not available (requires semgrep pro)")
+
+let hook_semgrep_publish :
+    (< Cap.stdout ; Cap.network ; Cap.tmp > -> string array -> Exit_code.t)
+    Hook.t =
+  Hook.create (fun _argv ->
+      failwith "semgrep publsh not available (requires semgrep pro)")
 
 (*****************************************************************************)
 (* Helpers *)
@@ -190,7 +196,9 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
          * down when we know we don't handle certain kind of arguments).
          *)
         | "publish" when experimental ->
-            Publish_subcommand.main caps subcmd_argv
+            (Hook.get hook_semgrep_publish)
+              (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >)
+              subcmd_argv
         | "login" when experimental -> Login_subcommand.main caps subcmd_argv
         (* partial support, still use Pysemgrep.Fallback in it *)
         | "scan" -> Scan_subcommand.main caps subcmd_argv
