@@ -275,6 +275,9 @@ let targets session =
   in
   (* Filter targets by if only_git_dirty, if they are a dirty file *)
   targets |> List.filter member_workspaces
+let is_url config_path =
+    let url_regex = Str.regexp "^\\(http\\|https\\)://" in
+    Str.string_match url_regex config_path 0
 
 let fetch_rules session =
   let%lwt ci_rules =
@@ -283,12 +286,15 @@ let fetch_rules session =
   in
   let home = !Semgrep_envvars.v.user_home_dir in
   let rules_source =
-    session.user_settings.configuration |> List_.map Fpath.v
-    |> List_.map Fpath.normalize
-    |> List_.map (fun f ->
-           let p = Fpath.rem_prefix (Fpath.v "~/") f in
-           Option.bind p (fun f -> Some (home // f)) |> Option.value ~default:f)
-    |> List_.map Fpath.to_string
+    session.user_settings.configuration
+    |> List_.map (fun config_path ->
+           if is_url config_path then
+             config_path
+           else
+             let f = Fpath.v config_path |> Fpath.normalize in
+             let p = Fpath.rem_prefix (Fpath.v "~/") f in
+             Option.value ~default:f (Option.map (fun f -> home // f) p)
+             |> Fpath.to_string)
   in
   let rules_source =
     if rules_source = [] && ci_rules = None then (
