@@ -46,7 +46,7 @@ Semgrep is a fast, open-source, static analysis tool that searches code, finds b
 
 Semgrep is semantic grep for code. While running `grep "2"` would only match the exact string _2_, Semgrep would [match `x = 1; y = x + 1` when searching for _2_](https://semgrep.dev/playground/s/5rKgj). Semgrep rules look like the code you already write; no abstract syntax trees, regex wrestling, or painful DSLs.
 
-Note that in security contexts, Semgrep OSS will miss many true positives as it can only analyze code within the boundaries of a single function or file. If you want to use Semgrep for security purposes (**SAST**, **SCA**, or **secrets scanning**), the Semgrep AppSec Platform is strongly recommended since it adds the following critical capabilities:
+Note that in security contexts, Semgrep Community Edition will miss many true positives as it can only analyze code within the boundaries of a single function or file. If you want to use Semgrep for security purposes (**SAST**, **SCA**, or **secrets scanning**), the Semgrep AppSec Platform is strongly recommended since it adds the following critical capabilities:
 
 1. Improved core analysis capabilities (cross-file, cross-function, data-flow reachability) that greatly reduce false positives by 25% and increase detected true positives by 250%
 2. Contextual post-processing of findings with Semgrep Assistant (AI) to further reduce noise by [~20%](https://a.storyblok.com/f/151984/x/2d12dc0223/whitepaper_-ai-powered-appsec-engineer-automate.pdf?cv=1728584410408).  In addition, Assistant enriches findings with tailored, step-by-step remediation guidance that humans find actionable >80% of the time.
@@ -129,7 +129,7 @@ Logging into Semgrep gets you access to:
 
 The Semgrep ecosystem includes the following:
 
-- [Semgrep OSS](https://semgrep.dev/docs/cli-reference/) - The open-source program analysis engine at the heart of everything. Suitable for ad-hoc use cases with a high tolerance for false positives - think consultants, security auditors, or pentesters.
+- [Semgrep Community Edition](https://semgrep.dev/docs/cli-reference/) - The open-source program analysis engine at the heart of everything. Suitable for ad-hoc use cases with a high tolerance for false positives - think consultants, security auditors, or pentesters.
 
 - [Semgrep AppSec Platform](https://semgrep.dev/login?utm_medium=readme&utm_source=github&utm_content=appsec-platform) - Easily orchestrate and scale SAST, SCA, and Secrets scanning across an organization, with no risk of overwhelming developers.  Customize which findings developers see, where they see them, and integrate with CI providers like GitHub, GitLab, CircleCI, and more. Includes both free and paid tiers.
 
