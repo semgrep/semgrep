@@ -1287,7 +1287,7 @@ and lvalue_expression (env : env) (x : CST.lvalue_expression) : G.expr =
   match x with
   | `This_exp tok ->
       let t = token env tok (* "this" *) in
-      Special (This, t) |> G.e
+      N (IdSpecial ((This, t), G.empty_id_info ())) |> G.e
   | `Member_access_exp x -> member_access_expression env x
   | `Tuple_exp x -> tuple_expression env x
   | `Simple_name x -> simple_name_expression env x
@@ -1407,7 +1407,7 @@ and non_lvalue_expression (env : env) (x : CST.non_lvalue_expression) : G.expr =
       Cast (v3, v2, v1) |> G.e
   | `Base_exp tok ->
       let x = token env tok (* "base" *) in
-      Special (Super, x) |> G.e
+      N (IdSpecial ((Super, x), G.empty_id_info ())) |> G.e
   | `Bin_exp x -> binary_expression env x
   | `Cast_exp x -> cast_expression env x
   | `Chec_exp x -> checked_expression env x
@@ -2671,8 +2671,11 @@ let constructor_initializer (env : env)
   let _v1 = token env v1 (* ":" *) in
   let v2 =
     match v2 with
-    | `Base tok -> Special (Super, token env tok) (* "base" *) |> G.e
-    | `This tok -> Special (This, token env tok) |> G.e
+    | `Base tok ->
+        N (IdSpecial ((Super, token env tok), G.empty_id_info ()))
+        (* "base" *) |> G.e
+    | `This tok ->
+        N (IdSpecial ((This, token env tok), G.empty_id_info ())) |> G.e
     (* "this" *)
   in
   let v3 = argument_list env v3 in

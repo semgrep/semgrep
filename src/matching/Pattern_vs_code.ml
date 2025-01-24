@@ -139,14 +139,6 @@ let module_name_of_filename file =
 
 (* Should `$X(...)` match a call to an IdSpecial function? *)
 let should_match_call = function
-  (* e.g. `this()` in Java constructors *)
-  | G.This
-  (* e.g. `super()` in JS constructor. Should be Java too, but Java doesn't use
-   * IdSpecial for super calls *)
-  | G.Super
-  | G.Cls
-  | G.Self
-  | G.Parent
   (* JS `require("fs")` *)
   | G.Require
   | G.Eval ->
@@ -402,23 +394,22 @@ let rec m_name_inner a b =
     in
     aux parents
   in
-  let try_alternate_names idb resolved =
-    let _, tidb = idb in
+  let try_alternate_names tok resolved =
     match resolved with
     | B.GlobalName (_, alternate_names) ->
         List.fold_left
           (fun acc alternate_name ->
-            let dotted = G.canonical_to_dotted tidb alternate_name in
+            let dotted = G.canonical_to_dotted tok alternate_name in
             acc >||> m_name a (H.name_of_ids dotted))
           (fail ()) alternate_names
     | _ -> fail ()
   in
   let try_with_equivalences a b =
     (* equivalence: aliasing (name resolving) part 1 *)
-    match (a, b) with
-    | ( a,
-        B.Id
-          ( idb,
+    let x =
+      match b with
+      | B.Id
+          ( ((_, tok) as idb),
             ({
                B.id_resolved =
                  {
@@ -430,33 +421,60 @@ let rec m_name_inner a b =
                          _sid );
                  };
                _;
-             } as infob) ) ) ->
-        let dotted = G.canonical_to_dotted (snd idb) canonical in
+             } as infob) ) ->
+          Some
+            ( tok,
+              resolved,
+              canonical,
+              B.Id (idb, { infob with B.id_resolved = ref None }) )
+      | B.IdSpecial
+          ( ((_, tok) as idb),
+            ({
+               B.id_resolved =
+                 {
+                   contents =
+                     Some
+                       ( (( B.ImportedEntity canonical
+                          | B.ImportedModule canonical
+                          | B.GlobalName (canonical, _) ) as resolved),
+                         _sid );
+                 };
+               _;
+             } as infob) ) ->
+          Some
+            ( tok,
+              resolved,
+              canonical,
+              B.IdSpecial (idb, { infob with B.id_resolved = ref None }) )
+      | _ -> None
+    in
+    match x with
+    | Some (tok, resolved, canonical, reify) -> (
+        let dotted = G.canonical_to_dotted tok canonical in
         (* coupling: resolved names with wildcards *)
-        wipe_wildcard_imports
-          (m_name a (B.Id (idb, { infob with B.id_resolved = ref None }))
-          >||> try_alternate_names idb resolved
-          (* Try the resolved entity *)
-          >||> m_name a (H.name_of_ids dotted)
-          >||>
-          (* Try the resolved entity and parents *)
-          match a with
-          (* > If we're matching against a metavariable, don't bother checking
-           * > the resolved entity or parents. It will only cause duplicate matches
-           * > that can't be deduped, since the captured metavariable will be
-           * > different.
-           *
-           * FIXME:
-           * This is actually not the correct way of dealing with the problem,
-           * because there could be `metavariable-xyz` operators filtering the
-           * potential values of the metavariable. See DeepSemgrep commit
-           *
-           *     5b2766ee30e "test: Tests for matching metavariable patterns against resolved names"
-           *)
-          | G.Id ((str, _tok), _info) when Mvar.is_metavar_name str -> fail ()
-          | _ ->
-              (* Try matching against parent classes *)
-              try_parents dotted)
+        wipe_wildcard_imports (m_name a reify)
+        >||> try_alternate_names tok resolved
+        (* Try the resolved entity *)
+        >||> m_name a (H.name_of_ids dotted)
+        >||>
+        (* Try the resolved entity and parents *)
+        match a with
+        (* > If we're matching against a metavariable, don't bother checking
+         * > the resolved entity or parents. It will only cause duplicate matches
+         * > that can't be deduped, since the captured metavariable will be
+         * > different.
+         *
+         * FIXME:
+         * This is actually not the correct way of dealing with the problem,
+         * because there could be `metavariable-xyz` operators filtering the
+         * potential values of the metavariable. See DeepSemgrep commit
+         *
+         *     5b2766ee30e "test: Tests for matching metavariable patterns against resolved names"
+         *)
+        | G.Id ((str, _tok), _info) when Mvar.is_metavar_name str -> fail ()
+        | _ ->
+            (* Try matching against parent classes *)
+            try_parents dotted)
     | __else__ -> fail ()
   in
   match (a, b) with
@@ -469,7 +487,8 @@ let rec m_name_inner a b =
       (* this will handle metavariables in Id *)
       m_ident_and_id_info (a1, a2) (b1, b2) >!> fun () ->
       try_with_equivalences a b
-  | G.Id ((str, tok), _info), G.IdQualified _ when Mvar.is_metavar_name str ->
+  | G.Id ((str, tok), _info), (G.IdQualified _ | G.IdSpecial _)
+    when Mvar.is_metavar_name str ->
       envf (str, tok) (MV.N b)
   (* equivalence: aliasing (name resolving) part 2 (mostly for OCaml) *)
   | ( G.IdQualified _a1,
@@ -495,7 +514,7 @@ let rec m_name_inner a b =
       (* coupling: resolved names with wildcards *)
       wipe_wildcard_imports
         (try_parents dotted
-        >||> try_alternate_names idb resolved
+        >||> try_alternate_names (snd idb) resolved
         (* try without resolving anything *)
         >||> m_name a
                (B.IdQualified { nameinfo with name_info = static_empty_id_info })
@@ -557,14 +576,19 @@ let rec m_name_inner a b =
       (* coupling: resolved names with wildcards *)
       wipe_wildcard_imports
         (try_parents dotted
-        >||> try_alternate_names idb resolved
+        >||> try_alternate_names (snd idb) resolved
         >||>
         match a with
         | IdQualified a1 -> m_name_info a1 b1
-        | Id _ -> fail ())
+        | Id _
+        | IdSpecial _ ->
+            fail ())
   | G.IdQualified a1, B.IdQualified b1 -> m_name_info a1 b1
+  | G.IdSpecial (a1, _), B.IdSpecial (b1, _) ->
+      m_wrap m_special_ident a1 b1 >!> fun () -> try_with_equivalences a b
   | G.Id _, _
-  | G.IdQualified _, _ ->
+  | G.IdQualified _, _
+  | G.IdSpecial _, _ ->
       try_with_equivalences a b
 
 (* This is just an entry point for m_name_inner, which just ensures that we only
@@ -963,11 +987,9 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
       | None -> fail ()
       | Some a1 -> m_name a1 b1)
       >||> m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
-  (* $X should not match an IdSpecial in a call context,
+  (* $X should not match an Special in a call context,
    * otherwise $X(...) would match a+b because this is transformed in a
    * Call(IdSpecial Plus, ...).
-   * bugfix: note that we must forbid that only in a Call context; we want
-   * $THIS to match IdSpecial (This) for example.
    *)
   | ( G.Call ({ e = G.N (G.Id ((str, _tok), _id_info)); _ }, _argsa),
       B.Call ({ e = B.Special (idspec, _); _ }, _argsb) )
@@ -983,9 +1005,10 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
       fail ()
   (* Important to bind to MV.Id when we can, so this must be before
    * the next case where we bind to the more general MV.E.
-   * TODO: should be B.N (B.Id _ | B.IdQualified _)?
+   * TODO: should be B.N (B.Id _ | B.IdQualified _ | B.IdSpecial _)?
    *)
-  | G.N (G.Id _ as na), B.N (B.Id _ as nb) ->
+  | G.N ((G.Id _ | G.IdSpecial _) as na), B.N ((B.Id _ | B.IdSpecial _) as nb)
+    ->
       m_name na nb
       >||> m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
   | G.N (G.Id ((str, tok), _id_info)), _b when Mvar.is_metavar_name str ->
@@ -1194,7 +1217,8 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
   | G.OtherExpr (a1, a2), B.OtherExpr (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.RawExpr a, B.RawExpr b -> m_raw_tree a b
-  | G.N (G.Id _ as a), B.N (B.IdQualified _ as b) -> m_name a b
+  | G.N ((G.Id _ | G.IdSpecial _) as a), B.N (B.IdQualified _ as b) ->
+      m_name a b
   | _, G.N (G.Id _) ->
       m_with_symbolic_propagation ~is_root (fun b1 -> m_expr a b1) b
   | G.ArrayAccess _, _
@@ -1206,7 +1230,7 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
   | G.RegexpTemplate _, _
   | G.Lambda _, _
   | G.AnonClass _, _
-  | G.N _, _
+  | G.N (G.Id _ | G.IdQualified _ | G.IdSpecial _), _
   | G.New _, _
   | G.Special _, _
   | G.Xml _, _
@@ -1471,13 +1495,22 @@ and m_arithmetic_operator a b =
   | _ when a =*= b -> return ()
   | _ -> fail ()
 
-and m_special a b =
+and m_special_ident a b =
   match (a, b) with
   | G.This, B.This -> return ()
   | G.Super, B.Super -> return ()
   | G.Self, B.Self -> return ()
   | G.Cls, B.Cls -> return ()
   | G.Parent, B.Parent -> return ()
+  | G.This, _
+  | G.Super, _
+  | G.Self, _
+  | G.Cls, _
+  | G.Parent, _ ->
+      fail ()
+
+and m_special a b =
+  match (a, b) with
   | G.Eval, B.Eval -> return ()
   | G.Typeof, B.Typeof -> return ()
   | G.Instanceof, B.Instanceof -> return ()
@@ -1494,11 +1527,6 @@ and m_special a b =
       m_eq a1 b1 >>= fun () -> m_eq a2 b2
   | G.NextArrayIndex, B.NextArrayIndex -> return ()
   | G.Require, B.Require -> return ()
-  | G.This, _
-  | G.Super, _
-  | G.Self, _
-  | G.Cls, _
-  | G.Parent, _
   | G.Eval, _
   | G.Typeof, _
   | G.Instanceof, _

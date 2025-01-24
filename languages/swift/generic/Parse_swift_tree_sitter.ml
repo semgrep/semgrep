@@ -2438,7 +2438,10 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : G.expr =
       let rb = (* "]" *) token env v4 in
       G.Container (G.Dict, (lb, xs, rb)) |> G.e
   | `Self_exp tok -> map_self_expression env tok
-  | `Super_exp v1 -> G.Special (G.Super, (* "super" *) token env v1) |> G.e
+  | `Super_exp v1 ->
+      G.N
+        (G.IdSpecial ((G.Super, (* "super" *) token env v1), G.empty_id_info ()))
+      |> G.e
   | `Try_exp (v1, v2) ->
       let v1 = map_try_operator env v1 in
       let v2 =
@@ -2506,7 +2509,8 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : G.expr =
         G.opcall op [ G.L (G.Null tok) |> G.e; G.L (G.Null tok) |> G.e ]
 
 and map_self_expression (env : env) tok =
-  G.Special (G.Self, (* "self" *) token env tok) |> G.e
+  G.N (G.IdSpecial ((G.Self, (* "self" *) token env tok), G.empty_id_info ()))
+  |> G.e
 
 and map_property_declaration (env : env) ((v1, v2) : CST.property_declaration) =
   (* These modifiers apply to each consecutive declaration here.

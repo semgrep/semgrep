@@ -262,7 +262,8 @@ and expr (x : expr) =
             G.FDynamic
               (G.OtherExpr (("RhsCast", unsafe_fake ""), [ G.T (type_ ty) ])
               |> G.e)
-        | RhsSuper tok -> G.FDynamic (G.Special (G.Super, tok) |> G.e)
+        | RhsSuper tok ->
+            G.FN (G.IdSpecial ((G.Super, tok), G.empty_id_info ()))
       in
       G.DotAccess (lhs, v2, field) |> G.e
   | Ellipsis x ->
@@ -281,7 +282,7 @@ and argument = function
 
 and special (x, tk) =
   match x with
-  | This -> G.Special (G.This, tk) |> G.e
+  | This -> G.N (G.IdSpecial ((G.This, tk), G.empty_id_info ())) |> G.e
   | Result -> G.N (H.name_of_id ("result", tk)) |> G.e
   | NoneId -> G.N (H.name_of_id ("none", tk)) |> G.e
   | Not -> G.Special (G.Op G.Not, tk) |> G.e

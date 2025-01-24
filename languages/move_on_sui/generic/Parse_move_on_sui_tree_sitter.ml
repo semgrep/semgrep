@@ -1992,6 +1992,7 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
               ->
                 let s, t = (s ^ "!", Tok.combine_toks i1 [ bang ]) in
                 G.IdQualified { qualified_info with name_last = ((s, t), topt) }
+            | G.IdSpecial _ -> (* Should be impossible *) name
           in
           let _type_args =
             (*todo use*)
@@ -2157,6 +2158,7 @@ and map_expression_term (env : env) (x : CST.expression_term) =
               ->
                 let s, t = (s ^ "!", Tok.combine_toks i1 [ bang ]) in
                 G.IdQualified { qualified_info with name_last = ((s, t), topt) }
+            | G.IdSpecial _ -> (* Should be impossible? *) name
           in
           let _type_args =
             (*todo use*)

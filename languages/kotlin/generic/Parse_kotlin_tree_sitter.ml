@@ -868,7 +868,7 @@ and constructor_delegation_call (env : env)
     (* "super" *)
   in
   let v2 = value_arguments env v2 in
-  let e = Special v1 |> G.e in
+  let e = G.N (G.IdSpecial (v1, G.empty_id_info ())) |> G.e in
   Call (e, v2) |> G.e
 
 and constructor_invocation (env : env) ((v1, v2) : CST.constructor_invocation) =
@@ -1730,11 +1730,11 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
       Container (List, (v1, v2 :: v3, v4)) |> G.e
   | `This_exp tok ->
       let tok = token env tok in
-      Special (This, tok) |> G.e
+      G.N (IdSpecial ((This, tok), G.empty_id_info ())) |> G.e
       (* "this" *)
   | `Super_exp v1 ->
       let tok = token env v1 in
-      Special (Super, tok) |> G.e
+      G.N (IdSpecial ((Super, tok), G.empty_id_info ())) |> G.e
   | `Call_exp (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = call_suffix env v2 in

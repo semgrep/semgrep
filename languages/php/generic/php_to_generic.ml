@@ -472,9 +472,9 @@ and argument = function
 
 and special (spec, tok) =
   match spec with
-  | This -> G.Special (G.This, tok) |> G.e
-  | Self -> G.Special (G.Self, tok) |> G.e
-  | Parent -> G.Special (G.Parent, tok) |> G.e
+  | This -> G.N (G.IdSpecial ((G.This, tok), G.empty_id_info ())) |> G.e
+  | Self -> G.N (G.IdSpecial ((G.Self, tok), G.empty_id_info ())) |> G.e
+  | Parent -> G.N (G.IdSpecial ((G.Parent, tok), G.empty_id_info ())) |> G.e
   | FuncLike Empty -> G.N (G.Id (("empty", tok), G.empty_id_info ())) |> G.e
   | FuncLike Eval -> G.Special (G.Eval, tok) |> G.e
   | FuncLike Exit -> G.N (G.Id (("exit", tok), G.empty_id_info ())) |> G.e

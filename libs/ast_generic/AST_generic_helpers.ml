@@ -59,6 +59,7 @@ let name_to_qualifier = function
         | Some (QExpr _) -> []
       in
       rest @ [ (id, topt) ]
+  | IdSpecial _ -> []
 
 (* used for Parse_csharp_tree_sitter.ml
  * less: could move there? *)
@@ -94,6 +95,14 @@ let add_type_args_to_name name type_args =
           (* Never should have to overwrite type args, but also doesn't make sense to merge *)
       | id, None ->
           IdQualified { qualified_info with name_last = (id, Some type_args) })
+  | IdSpecial ((s, tok), id_info) ->
+      IdQualified
+        {
+          name_last = ((G.show_special_ident s, tok), Some type_args);
+          name_middle = None;
+          name_top = None;
+          name_info = id_info;
+        }
 
 let add_type_args_opt_to_name name topt =
   match topt with
@@ -133,6 +142,14 @@ let add_suffix_to_name suffix name =
           q_info with
           name_last = (suffix, None);
           name_middle = new_name_middle;
+        }
+  | IdSpecial ((_, tok), name_info) ->
+      IdQualified
+        {
+          name_last = (suffix, None);
+          name_middle = Some (QExpr (N name |> G.e, tok));
+          name_top = None;
+          name_info;
         }
 
 let alias_of_ident id : AST_generic.alias = (id, empty_id_info ())
@@ -201,6 +218,10 @@ let dotted_ident_of_name (n : name) : dotted_ident =
         | None -> []
       in
       before @ [ ident ]
+  | IdSpecial ((s, tok), _) -> (
+      match Tok.content_of_tok_opt tok with
+      | Some x -> [ (x, tok) ]
+      | None -> [ (G.show_special_ident s, tok) ])
 
 let expr_to_stmt e =
   match e.e with
@@ -306,12 +327,16 @@ let is_boolean_operator = function
  *)
 let entity_name_to_expr name idinfo_opt =
   match (name, idinfo_opt) with
-  (* assert idinfo = _idinfo below? *)
-  | EN (Id (id, idinfo)), None -> N (Id (id, idinfo)) |> G.e
-  | EN (Id (id, _idinfo)), Some idinfo -> N (Id (id, idinfo)) |> G.e
-  | EN (IdQualified n), None -> N (IdQualified n) |> G.e
-  | EN (IdQualified n), Some idinfo ->
-      N (IdQualified { n with name_info = idinfo }) |> G.e
+  (* assert idinfo = _ below? *)
+  | EN (Id (id, idinfo)), None
+  | EN (Id (id, _)), Some idinfo ->
+      N (Id (id, idinfo)) |> G.e
+  | EN (IdQualified ({ name_info = id_info; _ } as n)), None
+  | EN (IdQualified n), Some id_info ->
+      N (IdQualified { n with name_info = id_info }) |> G.e
+  | EN (IdSpecial (id, id_info)), None
+  | EN (IdSpecial (id, _)), Some id_info ->
+      N (IdSpecial (id, id_info)) |> G.e
   | EDynamic e, _ -> e
   | EPattern pat, _ -> G.OtherExpr (("EPattern", fake ""), [ P pat ]) |> G.e
   | OtherEntity (categ, xs), _ -> G.OtherExpr (categ, xs) |> G.e
@@ -377,6 +402,7 @@ let id_of_name = function
   | G.Id (id, id_info) -> (id, id_info)
   | G.IdQualified { G.name_last = id, _typeargs; name_info = id_info; _ } ->
       (id, id_info)
+  | G.IdSpecial ((s, tok), id_info) -> ((G.show_special_ident s, tok), id_info)
 
 let name_is_global = function
   | Global (* OSS *)

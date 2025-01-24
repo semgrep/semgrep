@@ -87,7 +87,7 @@ let v_simple_ref = function
       Either.Left v1
   | This (v1, v2) ->
       let _v1TODO = v_option v_ident v1 and v2 = v_tok v2 in
-      Either.Right (G.Special (G.This, v2) |> G.e)
+      Either.Right (G.N (G.IdSpecial ((G.This, v2), G.empty_id_info ())) |> G.e)
   | Super (v1, v2, v3, v4) ->
       let _v1TODO = v_option v_ident v1
       and v2 = v_tok v2
@@ -95,7 +95,11 @@ let v_simple_ref = function
       and v4 = v_ident v4 in
       let fld = G.FN (G.Id (v4, G.empty_id_info ())) in
       Either.Right
-        (G.DotAccess (G.Special (G.Super, v2) |> G.e, fake ".", fld) |> G.e)
+        (G.DotAccess
+           ( G.N (G.IdSpecial ((G.Super, v2), G.empty_id_info ())) |> G.e,
+             fake ".",
+             fld )
+        |> G.e)
 
 (* TODO: should not use *)
 let id_of_simple_ref = function

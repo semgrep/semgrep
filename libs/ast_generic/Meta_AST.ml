@@ -297,6 +297,10 @@ and vof_name = function
   | IdQualified v1 ->
       let v1 = vof_name_info v1 in
       OCaml.VSum ("IdQualified", [ v1 ])
+  | IdSpecial (v1, v2) ->
+      let v1 = vof_wrap vof_special_ident v1 in
+      let v2 = vof_id_info v2 in
+      OCaml.VSum ("IdSpecial", [ v1; v2 ])
 
 and vof_expr e =
   (* TODO: also dump e_id? *)
@@ -539,14 +543,16 @@ and vof_for_or_if_comp = function
       let v2 = vof_expr v2 in
       OCaml.VSum ("CompIf", [ v1; v2 ])
 
-and vof_special = function
-  | ForOf -> OCaml.VSum ("ForOf", [])
-  | Defined -> OCaml.VSum ("Defined", [])
+and vof_special_ident = function
   | This -> OCaml.VSum ("This", [])
   | Super -> OCaml.VSum ("Super", [])
   | Self -> OCaml.VSum ("Self", [])
   | Cls -> OCaml.VSum ("Cls", [])
   | Parent -> OCaml.VSum ("Parent", [])
+
+and vof_special = function
+  | ForOf -> OCaml.VSum ("ForOf", [])
+  | Defined -> OCaml.VSum ("Defined", [])
   | Eval -> OCaml.VSum ("Eval", [])
   | Typeof -> OCaml.VSum ("Typeof", [])
   | Instanceof -> OCaml.VSum ("Instanceof", [])

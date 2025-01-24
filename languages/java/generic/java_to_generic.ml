@@ -246,7 +246,7 @@ and literal = function
 
 and expr e =
   (match e with
-  | This t -> G.Special (G.This, t)
+  | This t -> G.N (G.IdSpecial ((G.This, t), G.empty_id_info ()))
   | ObjAccessEllipsis (v1, v2) ->
       let v1 = expr v1 in
       G.DotAccessEllipsis (v1, v2)

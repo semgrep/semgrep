@@ -74,6 +74,7 @@ let find_name env name =
   match name with
   | Id (id, id_info) -> find_id env id id_info
   | IdQualified _ -> None
+  | IdSpecial _ -> None
 
 let fold_args1 f args =
   match args with
@@ -160,7 +161,7 @@ let rec eval (env : env) (x : G.expr) : G.svalue option =
   | L x -> Some (Lit x)
   | N (Id (_, { id_svalue = { contents = Some x }; _ }))
   | DotAccess
-      ( { e = Special ((This | Self), _); _ },
+      ( { e = N (IdSpecial (((This | Self), _), _)); _ },
         _,
         FN (Id (_, { id_svalue = { contents = Some x }; _ })) ) ->
       Some x

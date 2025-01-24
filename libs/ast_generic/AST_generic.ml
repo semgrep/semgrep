@@ -565,7 +565,10 @@ class virtual ['self] map_parent =
  *
  * sgrep-ext: note that ident can be a metavariable.
  *)
-type name = Id of ident * id_info | IdQualified of qualified_info
+type name =
+  | Id of ident * id_info
+  | IdQualified of qualified_info
+  | IdSpecial of special_ident wrap * id_info
 
 (* A qualified (via type arguments or module/namespace/package) id.
  * The type should be enough to represent Java/Rust/C++ generics.
@@ -956,18 +959,7 @@ and field_name =
    *)
   | FDynamic of expr
 
-(* It's useful to keep track in the AST of all those special identifiers.
- * They need to be handled in a special way by certain analysis and just
- * using Name for them would be error-prone.
- * Note though that by putting all of them together in a type, we lose
- * typing information. For example, Eval takes only one argument and
- * InstanceOf takes a type and an expr. This is a tradeoff to also not
- * polluate too much expr with too many constructs.
- * TODO: split in IdSpecial of special_id and CallSpecial of special_op
- * and then also just CallOp. And also a separate InterpolatedString.
- *)
-and special =
-  (* special vars *)
+and special_ident =
   | This
   | Super (* called 'base' in C# *)
   (* less: how different self/parent is from this/super? *)
@@ -975,6 +967,17 @@ and special =
   (* like `cls` in Python, which indicates the type, not the instance *)
   | Cls
   | Parent
+
+(* It's useful to keep track in the AST of all those special identifiers.
+   They need to be handled in a special way by certain analysis and just using
+   Name for them would be error-prone. Note though that by putting all of them
+   together in a type, we lose typing information. For example, Eval takes only
+   one argument and InstanceOf takes a type and an expr. This is a tradeoff to
+   also not polluate too much expr with too many constructs. TODO: split up
+   further. E.g., separate callable pseudofunctions from operators, separate
+   InterpolatedString.
+*)
+and special =
   (* for Lua, todo: just remove it, create Dict without key *)
   | NextArrayIndex
   (* special calls *)

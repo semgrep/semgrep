@@ -110,8 +110,9 @@ let mk_file_env taint_inst ast =
          e =
            ( N (Id (id, id_info))
            | DotAccess
-               ({ e = Special ((This | Self), _); _ }, _, FN (Id (id, id_info)))
-             );
+               ( { e = N (IdSpecial (((This | Self), _), _)); _ },
+                 _,
+                 FN (Id (id, id_info)) ) );
          _;
         }
           when IdFlags.is_final !(id_info.id_flags)

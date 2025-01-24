@@ -259,6 +259,7 @@ class virtual common_printer =
       function
       | G.Id (ident, _) -> self#print_ident ident
       | G.IdQualified _ -> print_fail ()
+      | G.IdSpecial _ -> print_fail ()
 
     method print_ident (str, _) = Ok (b str)
 

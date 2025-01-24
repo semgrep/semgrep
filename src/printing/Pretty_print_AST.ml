@@ -591,6 +591,7 @@ and expr env e =
   match e.e with
   | N (Id ((s, _), idinfo)) -> id env (s, idinfo)
   | N (IdQualified qualified_info) -> id_qualified env qualified_info
+  | N (IdSpecial (special, _)) -> id_special special
   | Special (sp, tok) -> special env (sp, tok)
   | Call (e1, e2) -> call env (e1, e2)
   | New (_, t, _, es) -> new_call env (t, es)
@@ -637,12 +638,14 @@ and id_qualified env { name_last = id, _toptTODO; name_middle; name_top; _ } =
   | Some (QExpr (e, _t)) -> expr env e ^ "::"
   | None -> ident id
 
-and special env = function
+and id_special = function
   | This, tok -> token ~d:"this" tok
   | Self, tok -> token ~d:"self" tok
   | Super, tok -> token ~d:"super" tok
   | Parent, tok -> token ~d:"parent" tok
   | Cls, tok -> token ~d:"cls" tok
+
+and special env = function
   | Op op, tok -> arithop env (op, tok)
   | IncrDecr _, _ -> "" (* should be captured in the call *)
   | sp, tok -> todo (E (Special (sp, tok) |> G.e))
@@ -729,6 +732,7 @@ and field_ident env fi =
   match fi with
   | FN (Id (id, _idinfo)) -> ident id
   | FN (IdQualified qualified_info) -> id_qualified env qualified_info
+  | FN (IdSpecial (special, _idinfo)) -> id_special special
   | FDynamic e -> expr env e
 
 and tyvar env (id, typ) =

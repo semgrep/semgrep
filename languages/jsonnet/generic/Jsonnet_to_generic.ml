@@ -188,8 +188,10 @@ and map_string_content env v = (map_list (map_wrap map_string)) env v
 
 and map_special _env v =
   match v with
-  | Self -> fun tk -> G.Special (G.Self, tk) |> G.e
-  | Super -> fun tk -> G.Special (G.Super, tk) |> G.e
+  | Self ->
+      fun tk -> G.N (G.IdSpecial ((G.Self, tk), G.empty_id_info ())) |> G.e
+  | Super ->
+      fun tk -> G.N (G.IdSpecial ((G.Super, tk), G.empty_id_info ())) |> G.e
   | Dollar -> fun tk -> G.N (G.Id (("$", tk), G.empty_id_info ())) |> G.e
 
 and map_argument env v : G.argument =

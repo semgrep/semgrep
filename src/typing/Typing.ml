@@ -192,6 +192,7 @@ and type_of_name lang = function
   | IdQualified { name_last = _, Some _; _ } ->
       (* TODO What to do with type arguments? *)
       (Type.NoType, None)
+  | IdSpecial (_, id_info) -> (resolved_type_of_id_info lang id_info, None)
 
 and resolved_type_of_svalue lang = function
   | Some (G.Lit lit) -> type_of_lit lang lit

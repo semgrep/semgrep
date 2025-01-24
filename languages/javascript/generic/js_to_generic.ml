@@ -70,8 +70,8 @@ let special (x, tok) =
   | UseStrict -> other_expr "UseStrict"
   | Null -> SR_Literal (G.Null tok)
   | Undefined -> SR_Literal (G.Undefined tok)
-  | This -> SR_Special (G.This, tok)
-  | Super -> SR_Special (G.Super, tok)
+  | This -> SR_Expr (G.N (G.IdSpecial ((G.This, tok), G.empty_id_info ())))
+  | Super -> SR_Expr (G.N (G.IdSpecial ((G.Super, tok), G.empty_id_info ())))
   | Require -> SR_Special (G.Require, tok)
   (* We could add a new IdSpecial to Semgrep and DeepSemgrep for `module` and
    * `exports` like we did for `Require`, but we only need to analyze CJS

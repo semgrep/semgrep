@@ -664,7 +664,7 @@ and map_expr env x : G.expr =
 
 and map_special_wrap _env (spec, tk) =
   (match spec with
-  | This -> Special (G.This, tk)
+  | This -> N (IdSpecial ((G.This, tk), G.empty_id_info ()))
   | Defined -> Special (G.Defined, tk)
   | SizeOf -> Special (G.Sizeof, tk)
   | AlignOf -> N (Id (("alignof", tk), G.empty_id_info ()))

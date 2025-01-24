@@ -79,8 +79,8 @@ let rec expr e =
   | Atom (tk, x) -> atom tk x
   | Id (id, kind) -> (
       match kind with
-      | ID_Self -> G.Special (G.Self, snd id)
-      | ID_Super -> G.Special (G.Super, snd id)
+      | ID_Self -> G.N (G.IdSpecial ((G.Self, snd id), G.empty_id_info ()))
+      | ID_Super -> G.N (G.IdSpecial ((G.Super, snd id), G.empty_id_info ()))
       | _ -> G.N (G.Id (ident id, G.empty_id_info ())))
   | ScopedId x ->
       let name = scope_resolution x in

@@ -1407,7 +1407,9 @@ and map_expression_except_range (env : env) (x : CST.expression_except_range) =
   | `Choice_defa x ->
       let ident = map_reserved_identifier env x in
       G.N (H2.name_of_id ident)
-  | `Self tok -> G.Special (G.Self, token env tok) (* "self" *)
+  | `Self tok ->
+      G.N
+        (G.IdSpecial ((G.Self, token env tok) (* "self" *), G.empty_id_info ()))
   | `Scoped_id x ->
       let x = map_scoped_identifier_name env x in
       G.N x
@@ -2235,6 +2237,7 @@ and map_macro_invocation (env : env) ((v1, v2, v3) : CST.macro_invocation) :
     | G.IdQualified ({ name_last = (s, i1), topt; _ } as qualified_info) ->
         let s, t = (s ^ "!", Tok.combine_toks i1 [ bang ]) in
         G.IdQualified { qualified_info with name_last = ((s, t), topt) }
+    | G.IdSpecial _ -> (* Should be impossible? *) name
   in
   let l, xs, r = map_delim_token_tree env v3 in
   let anys = macro_items_to_anys xs in

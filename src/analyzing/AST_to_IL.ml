@@ -148,6 +148,7 @@ let var_of_name name =
   | G.Id (id, id_info) -> var_of_id_info id id_info
   | G.IdQualified { G.name_last = id, _typeargsTODO; name_info = id_info; _ } ->
       var_of_id_info id id_info
+  | G.IdSpecial _ -> todo (G.E (G.N name |> G.e))
 
 let lval_of_id_info _env id id_info =
   let var = var_of_id_info id id_info in
@@ -222,7 +223,9 @@ let ident_of_entity_opt ent =
   (* TODO: use name_middle? name_top? *)
   | G.EN (G.IdQualified { name_last = i, _topt; name_info = pinfo; _ }) ->
       Some (i, pinfo)
-  | G.EDynamic _ -> None
+  | G.EN (G.IdSpecial _)
+  | G.EDynamic _ ->
+      None
   (* TODO *)
   | G.EPattern _
   | G.OtherEntity _ ->
@@ -291,8 +294,7 @@ let is_constructor env ret_ty id_info =
 
 let rec lval env eorig =
   match eorig.G.e with
-  | G.N n -> name env n
-  | G.Special (G.This, tok) -> lval_of_base (VarSpecial (This, tok))
+  | G.N n -> name env eorig n
   | G.DotAccess (e1orig, tok, field) ->
       let offset' =
         match field with
@@ -326,7 +328,7 @@ and nested_lval env tok e_gen : lval =
       add_instr env (mk_i (Assign (fresh, rhs)) (related_exp e_gen));
       fresh
 
-and name env = function
+and name env eorig = function
   | G.Id (("_", tok), _) ->
       (* wildcard *)
       fresh_lval env tok
@@ -336,6 +338,8 @@ and name env = function
   | G.IdQualified qualified_info ->
       let lval = lval_of_id_qualified env qualified_info in
       lval
+  | G.IdSpecial ((G.This, tok), _) -> lval_of_base (VarSpecial (This, tok))
+  | _ -> todo (G.E eorig)
 
 (*****************************************************************************)
 (* Pattern *)
@@ -590,7 +594,12 @@ and expr_aux env ?(void = false) g_expr =
             add_call env tok eorig ~void (fun res -> Call (res, method_, args'))
       )
   | G.Call
-      ( ({ e = G.Special ((G.This | G.Super | G.Self | G.Parent), tok); _ } as e),
+      ( ({
+           e =
+             G.N
+               (G.IdSpecial (((G.This | G.Super | G.Self | G.Parent), tok), _));
+           _;
+         } as e),
         args ) ->
       call_generic env ~void tok eorig e args
   | G.Call
@@ -685,8 +694,7 @@ and expr_aux env ?(void = false) g_expr =
       let args = arguments env (Tok.unbracket args) in
       add_instr env (mk_i (New (lval, type_ env ty, None, args)) eorig);
       mk_e (Fetch lval) NoOrig
-  | G.Call ({ e = G.Special spec; _ }, args) -> (
-      let tok = snd spec in
+  | G.Call ({ e = G.Special ((_, tok) as spec); _ }, args) -> (
       let args = arguments env (Tok.unbracket args) in
       try
         let special = call_special env spec in
@@ -707,12 +715,29 @@ and expr_aux env ?(void = false) g_expr =
          as tainted by the taint engine.
       *)
       expr_aux env (G.N (Id (("var." ^ s, t), id_info)) |> G.e)
-  | G.N _
+  | G.N (IdSpecial ((spec, tok), _)) -> (
+      let opt_var_special =
+        match spec with
+        | G.This -> Some This
+        | G.Super -> Some Super
+        | G.Self -> Some Self
+        | G.Parent -> Some Parent
+        | G.Cls -> None
+      in
+      match opt_var_special with
+      | Some var_special ->
+          let lval = lval_of_base (VarSpecial (var_special, tok)) in
+          mk_e (Fetch lval) eorig
+      | None -> impossible (G.E g_expr))
+  | G.N (Id _)
+  | G.N (IdQualified _)
   | G.DotAccess (_, _, _)
   | G.ArrayAccess (_, _)
   | G.DeRef (_, _) ->
       let lval = lval env g_expr in
       let exp = mk_e (Fetch lval) eorig in
+      (* TODO: Does this really need to be a name (?) in the first place? Why
+         can't this be call? Syntactic ambiguity? *)
       let ident_function_call_hack exp =
         (* Taking into account Ruby's ability to allow function calls without
          * parameters or parentheses, we are conducting a check to determine
@@ -825,20 +850,7 @@ and expr_aux env ?(void = false) g_expr =
       let lval = fresh_lval env tok in
       add_instr env (mk_i (AssignAnon (lval, AnonClass def)) eorig);
       mk_e (Fetch lval) eorig
-  | G.Special (spec, tok) -> (
-      let opt_var_special =
-        match spec with
-        | G.This -> Some This
-        | G.Super -> Some Super
-        | G.Self -> Some Self
-        | G.Parent -> Some Parent
-        | _ -> None
-      in
-      match opt_var_special with
-      | Some var_special ->
-          let lval = lval_of_base (VarSpecial (var_special, tok)) in
-          mk_e (Fetch lval) eorig
-      | None -> impossible (G.E g_expr))
+  | G.Special _ -> impossible (G.E g_expr)
   | G.SliceAccess (_, _) -> todo (G.E g_expr)
   (* e1 ? e2 : e3 ==>
    *  pre: lval = e1;
@@ -974,11 +986,6 @@ and call_special _env (x, tok) =
   ( (match x with
     | G.Op _
     | G.IncrDecr _
-    | G.This
-    | G.Super
-    | G.Self
-    | G.Cls
-    | G.Parent
     | G.InterpolatedElement ->
         impossible (G.E (G.Special (x, tok) |> G.e))
     (* should be intercepted before *)
@@ -1160,9 +1167,9 @@ and xml_expr env ~void eorig xml =
        * This works for functional components, which are standard practice these
        * days. In order to correctly model older kinds of React components,
        * we'll need to do more work. *)
-      let name_eorig = SameAs (G.N jsx_name |> G.e) in
-      let name_lval = name env jsx_name in
-      let e = mk_e (Fetch name_lval) name_eorig in
+      let name_eorig = G.N jsx_name |> G.e in
+      let name_lval = name env name_eorig jsx_name in
+      let e = mk_e (Fetch name_lval) (SameAs name_eorig) in
       let fields =
         xml.G.xml_attrs
         |> List_.filter_map (function

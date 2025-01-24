@@ -1896,7 +1896,6 @@ and map_name_expr (env : env) (x : CST.name_expr) : G.expr =
   | `Macro_call_expr (v1, v2, v3) ->
       let name = map_name_access_chain env v1 in
       let bang = (* "!" *) token env v2 in
-
       let name =
         match name with
         | G.Id ((s, i1), info) ->
@@ -1904,6 +1903,7 @@ and map_name_expr (env : env) (x : CST.name_expr) : G.expr =
         | G.IdQualified ({ name_last = (s, i1), topt; _ } as qualified_info) ->
             let s, t = (s ^ "!", Tok.combine_toks i1 [ bang ]) in
             G.IdQualified { qualified_info with name_last = ((s, t), topt) }
+        | G.IdSpecial _ -> (* Should be impossible? *) name
       in
       let args = map_call_args env v3 in
       G.Call (G.N name |> G.e, args) |> G.e
