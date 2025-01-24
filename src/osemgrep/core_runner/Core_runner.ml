@@ -128,6 +128,9 @@ let hook_mk_pro_core_run_for_osemgrep : (pro_conf -> func) option Hook.t =
 let hook_pro_git_remote_scan_setup : (func -> func) option Hook.t =
   Hook.create None
 
+(* TODO: find a way to make it a Core_scan hook instead of osemgrep one *)
+let hook_adjust_targets = Hook.create (fun _paths targets -> targets)
+
 (*************************************************************************)
 (* Metrics and reporting *)
 (*************************************************************************)
@@ -144,55 +147,6 @@ let report_status_and_add_metrics_languages ~respect_gitignore
   |> List.iter (fun { Lang_job.analyzer; _ } ->
          Metrics_.add_feature "language" (Analyzer.to_string analyzer));
   ()
-
-(*************************************************************************)
-(* SCA targeting *)
-(*************************************************************************)
-
-(* TODO: port subproject_matchers.py
- * TODO(matthew): We'll ultimately need to do something different, because
- * right now if a lockfile is ignored by .semgrepignore, it should still
- * be possible to produce reachable findings that reference that lockfile,
- * though we won't produce any lockfile-only findings for it
- *)
-let find_lockfiles (targets : Fpath.t list) : Lockfile.t list =
-  targets
-  |> List_.filter_map (fun (target : Fpath.t) ->
-         let res =
-           match Fpath.basename target with
-           | "package-lock.json" ->
-               Some (Lockfile.mk_lockfile Out.NpmPackageLockJson target)
-           | _else_ -> None
-         in
-         res
-         |> Option.iter (fun (lockfile : Lockfile.t) ->
-                Logs.debug (fun m ->
-                    m "found lockfile %s" (Lockfile.show lockfile)));
-         res)
-
-(* TODO: take just Target.regular instead
- * TODO: port subproject_matchers.py and more
- * TODO: we should use the path in the lockfile and the path in the
- *  target to associate the most precise lockfile.
- * TODO: the code below is wrong; it's just a v0 to get a demo working;
- * it will just attach the very first lockfile we found to every single
- * JS target.
- *)
-let add_possibly_lockfile_to_regular_target (lockfiles : Lockfile.t list)
-    (targets : Target.t list) : Target.t list =
-  lockfiles
-  |> List.fold_left
-       (fun acc (lockfile : Lockfile.t) ->
-         acc
-         |> List_.map (fun (target : Target.t) ->
-                match target with
-                | Lockfile _ -> target
-                | Regular
-                    ({ analyzer = Analyzer.L (Lang.Js, _); lockfile = None; _ }
-                     as regular) ->
-                    Regular { regular with lockfile = Some lockfile }
-                | Regular _ -> target))
-       targets
 
 (*************************************************************************)
 (* Input/output adapters to Core_scan input/output *)
@@ -270,7 +224,7 @@ let mk_result (all_rules : Rule.rule list) (res : Core_result.t) : result =
 let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
   let run ?file_match_hook (conf : conf) (targeting_conf : Find_targets.conf)
       (rules_and_invalid : Rule_error.rules_and_invalid)
-      (targets : Fpath.t list) : Core_result.result_or_exn =
+      (target_paths : Fpath.t list) : Core_result.result_or_exn =
     (*
        At this point, we already have the full list of targets. These targets
        will populate the 'target_source' field of the config object
@@ -302,18 +256,17 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
        See https://www.notion.so/r2cdev/Osemgrep-scanning-algorithm-5962232bfd74433ba50f97c86bd1a0f3
     *)
     let lang_jobs =
-      Core_targeting.split_jobs_by_language targeting_conf valid_rules targets
+      Core_targeting.split_jobs_by_language targeting_conf valid_rules
+        target_paths
     in
     report_status_and_add_metrics_languages
       ~respect_gitignore:targeting_conf.respect_gitignore lang_jobs valid_rules
-      targets;
+      target_paths;
     let code_targets, applicable_rules =
       Core_targeting.targets_and_rules_of_lang_jobs lang_jobs
     in
-    let lockfiles = find_lockfiles targets in
     let final_targets =
-      add_possibly_lockfile_to_regular_target lockfiles code_targets
-      @ (lockfiles |> List_.map (fun x -> Target.Lockfile x))
+      (Hook.get hook_adjust_targets) target_paths code_targets
     in
     Logs.debug (fun m ->
         m "core runner: %i applicable rules of %i valid rules, %i invalid rules"

@@ -64,7 +64,7 @@ let pro_hooks =
     Pro_hook Dataflow_when.hook_annotate_facts;
     Pro_hook Dataflow_when.hook_facts_satisfy_e;
     (* TODO? there is also Dataflow_when.hook_path_sensitive! *)
-    Pro_hook Typing.pro_hook_type_of_expr;
+    Pro_hook Typing.hook_type_of_expr;
   ]
 
 (*****************************************************************************)

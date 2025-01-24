@@ -17,9 +17,8 @@ open Common
 module G = AST_generic
 module H = AST_generic_helpers
 
-(* hook to allow pro-only type inference for expressions *)
-let pro_hook_type_of_expr :
-    (Lang.t -> G.expr -> G.name Type.t option) option Hook.t =
+let hook_type_of_expr : (Lang.t -> G.expr -> G.name Type.t option) option Hook.t
+    =
   Hook.create None
 
 (* returns possibly the inferred type of the expression,
@@ -27,7 +26,7 @@ let pro_hook_type_of_expr :
  * type of the ident. *)
 let rec type_of_expr lang e : G.name Type.t * G.ident option =
   let pro_type =
-    match Hook.get pro_hook_type_of_expr with
+    match Hook.get hook_type_of_expr with
     | None -> None
     | Some f -> f lang e
   in

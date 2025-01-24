@@ -362,7 +362,7 @@ let rec get_resolved_type lang (vinit, vtype) =
          scans, as opposed to `Naming_SAST`.
       *)
       let pro_type =
-        match (Hook.get Typing.pro_hook_type_of_expr, vinit) with
+        match (Hook.get Typing.hook_type_of_expr, vinit) with
         | Some f, Some e ->
             let* type_ = f lang e in
             Type.to_ast_generic_type_ lang (fun name _alts -> name) type_
