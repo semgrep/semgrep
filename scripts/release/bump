@@ -79,6 +79,10 @@ update_dune_project() {
   git add "$target"
 }
 
+# Update the semgrep version in 'semgrep.opam'.
+# Normally, this would be done with 'dune build semgrep.opam'
+# after we update 'dune-project'. This solution avoids having to set up the
+# build environment with 'dune'.
 update_opam_file() {
   target=semgrep.opam
   echo "Updating $target"
