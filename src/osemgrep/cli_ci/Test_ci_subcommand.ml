@@ -33,15 +33,6 @@ let sms_scan_id = "SMS_1234"
 (* copy paste of Test_login_subcommand.ml (see this file for more info) *)
 let fake_token = "token1234"
 
-let fake_deployment =
-  {|
-  { "deployment":
-    { "id": 1234,
-      "name": "deployment1234"
-    }
-  }
-|}
-
 exception Return of string
 
 (*****************************************************************************)
@@ -57,12 +48,6 @@ let test_sms_scan_id (caps : Ci_subcommand.caps) =
       (* the network mock *)
       let make_response_fn (req : Cohttp.Request.t) (body : Cohttp_lwt.Body.t) =
         match Uri.path (Cohttp.Request.uri req) with
-        (* step1: get deployment (Semgrep_App.deployment_route) *)
-        | "/api/agent/deployments/current" ->
-            Http_mock_client.check_method `GET req.meth;
-            let response_body = fake_deployment |> Cohttp_lwt.Body.of_string in
-            Lwt.return (Http_mock_client.basic_response response_body)
-        (* step2: initiate scan (Semgrep_App.start_scan_route) *)
         | "/api/cli/scans" ->
             Http_mock_client.check_method `POST req.meth;
             Logs.debug (fun m -> m "request = %s" (Dumper.dump req));

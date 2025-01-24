@@ -18,9 +18,9 @@ module Out = Semgrep_output_v1_j
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Gather Semgrep App (backend) related code.
+(* Gather code to communicate with the semgrep App backend.
  *
- * See semgrep_output_v1.atd section on comms with the backend to
+ * See semgrep_output_v1.atd section on "comms with the backend" to
  * learn about the sequence of HTTP requests used by semgrep ci.
  *
  * invariant: this module and directory should be the only places where we
@@ -50,19 +50,23 @@ type pro_engine_arch = Osx_arm64 | Osx_x86_64 | Manylinux_x86_64
 (* Routes *)
 (*****************************************************************************)
 
-(* used by semgrep ci *)
-let deployment_route = "/api/agent/deployments/current"
-
-(* old: was "/api/agent/deployments/scans" *)
+(* routes used by semgrep ci
+ * old: was "/api/agent/deployments/scans"
+ *)
 let start_scan_route = "/api/cli/scans"
 let results_route scan_id = spf "/api/agent/scans/%d/results" scan_id
 let complete_route scan_id = spf "/api/agent/scans/%d/complete" scan_id
 let error_route scan_id = spf "/api/agent/scans/%d/error" scan_id
 
-(* used by semgrep lsp: TODO: diff with api/agent/scans/<scan_id>/config? *)
+(* used by semgrep login and semgrep show deployment *)
+let deployment_route = "/api/agent/deployments/current"
+
+(* used by semgrep lsp
+ * TODO: diff with api/agent/scans/<scan_id>/config?
+ *)
 let scan_config_route = "/api/agent/deployments/scans/config"
 
-(* used by ? *)
+(* used by semgrep show identity *)
 let identity_route = "/api/agent/identity"
 
 (* used by semgrep publish *)
@@ -118,49 +122,11 @@ let extract_block_override (data : string) : (app_block_override, string) result
            (Printexc.to_string exn) data)
 
 (*****************************************************************************)
-(* Step1: deployment config *)
-(*****************************************************************************)
-
-(* Returns the deployment config if the token is valid, otherwise None *)
-let get_deployment_from_token_async caps : Out.deployment_config option Lwt.t =
-  let headers =
-    [
-      (* The agent is needed by many endpoints in our backend guarded by
-       * @require_supported_cli_version()
-       * alt: use Metrics_.string_of_user_agent()
-       *)
-      ("User-Agent", spf "Semgrep/%s" Version.version);
-      Auth.auth_header_of_token caps#token;
-    ]
-  in
-  let url = Uri.with_path !Semgrep_envvars.v.semgrep_url deployment_route in
-  let%lwt response = Http_helpers.get ~headers caps#network url in
-  let deployment_opt =
-    match response with
-    | Ok { body = Ok body; _ } ->
-        let x = Out.deployment_response_of_string body in
-        Some x.deployment
-    | Ok { body = Error msg; code; _ } ->
-        Logs.err (fun m ->
-            m "error while retrieving deployment, %s returned %u: %s"
-              (Uri.to_string url) code msg);
-        None
-    | Error e ->
-        Logs.err (fun m -> m "error while retrieving deployment: %s" e);
-        None
-  in
-  Lwt.return deployment_opt
-
-(* from auth.py *)
-let get_deployment_from_token token =
-  Lwt_platform.run (get_deployment_from_token_async token)
-
-(*****************************************************************************)
-(* Step2 : start scan *)
+(* Step1 : start scan *)
 (*****************************************************************************)
 
 let start_scan_async caps (request : Out.scan_request) :
-    (Out.scan_response, string) result Lwt.t =
+    (Out.scan_response, string * Exit_code.t option) result Lwt.t =
   let headers =
     [
       ("Content-Type", "application/json");
@@ -181,27 +147,33 @@ let start_scan_async caps (request : Out.scan_request) :
         let x = Out.scan_response_of_string body in
         Ok x
     | Ok { body = Error err; code; _ } ->
-        (* TODO: handle code 401 and exit with invalid_api_key error *)
-        let pre_msg =
-          if code =|= 404 then
-            {|Failed to create a scan with given token and deployment_id.
+        let pre_msg, exit_code_opt =
+          match code with
+          | 401 ->
+              ( "API token not valid. Try to run `semgrep logout` and `semgrep \
+                 login` again. Or in CI, ensure your SEMGREP_APP_TOKEN \
+                 variable is set correctly.",
+                Some (Exit_code.invalid_api_key ~__LOC__) )
+          | 404 ->
+              ( {|Failed to create a scan with given token and deployment_id.
 Please make sure they have been set correctly.
-|}
-          else ""
+|},
+                None )
+          | _else_ -> ("", None)
         in
         let msg =
           spf "%sAPI server at %s returned this error: %s" pre_msg
             (Uri.to_string url) err
         in
-        Error msg
-    | Error e -> Error (spf "Failed to start scan: %s" e)
+        Error (msg, exit_code_opt)
+    | Error e -> Error (spf "Failed to start scan: %s" e, None)
   in
   Lwt.return res
 
 let start_scan caps request = Lwt_platform.run (start_scan_async caps request)
 
 (*****************************************************************************)
-(* Step3 : upload findings *)
+(* Step2 : upload findings *)
 (*****************************************************************************)
 
 (* python: was called report_findings *)
@@ -293,6 +265,45 @@ let report_failure caps ~scan_id exit_code =
 (* Other ways to fetch a config (deprecated?) *)
 (*****************************************************************************)
 
+(* Returns the deployment config if the token is valid, otherwise None.
+ * This is mostly used by 'semgrep login' to sanity check whether the
+ * token is valid before saving it.
+ * old: this endpoint used to be one of the three HTTP requests of 'semgrep ci'
+ * to start a scan but now everything is done in one via start_scan().
+ * pysemgrep: called get_deployment_from_token
+ *)
+let deployment_config_async caps : Out.deployment_config option Lwt.t =
+  let headers =
+    [
+      (* The agent is needed by many endpoints in our backend guarded by
+       * @require_supported_cli_version()
+       * alt: use Metrics_.string_of_user_agent()
+       *)
+      ("User-Agent", spf "Semgrep/%s" Version.version);
+      Auth.auth_header_of_token caps#token;
+    ]
+  in
+  let url = Uri.with_path !Semgrep_envvars.v.semgrep_url deployment_route in
+  let%lwt response = Http_helpers.get ~headers caps#network url in
+  let deployment_opt =
+    match response with
+    | Ok { body = Ok body; _ } ->
+        let x = Out.deployment_response_of_string body in
+        Some x.deployment
+    | Ok { body = Error msg; code; _ } ->
+        Logs.err (fun m ->
+            m "error while retrieving deployment, %s returned %u: %s"
+              (Uri.to_string url) code msg);
+        None
+    | Error e ->
+        Logs.err (fun m -> m "error while retrieving deployment: %s" e);
+        None
+  in
+  Lwt.return deployment_opt
+
+(* from auth.py *)
+let deployment_config token = Lwt_platform.run (deployment_config_async token)
+
 (* deprecated? *)
 let scan_config_uri ?(sca = false) ?(dry_run = true) ?(full_scan = true)
     repo_name =
@@ -311,8 +322,8 @@ let scan_config_uri ?(sca = false) ?(dry_run = true) ?(full_scan = true)
 (* Returns a url with scan config encoded via search params based on a magic
  * environment variable *)
 let url_for_policy caps =
-  let deployment_config = get_deployment_from_token caps in
-  match deployment_config with
+  let depl_config_opt = deployment_config caps in
+  match depl_config_opt with
   | None ->
       Error.abort
         (spf "Invalid API Key. Run `semgrep logout` and `semgrep login` again.")

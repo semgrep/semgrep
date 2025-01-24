@@ -95,7 +95,7 @@ let upload_rule caps rule_file (conf : Publish_CLI.conf) test_code_file =
           | lang :: _ -> `String (Lang.to_string lang)
         in
         let deployment_id =
-          match Semgrep_App.get_deployment_from_token caps with
+          match Semgrep_App.deployment_config caps with
           | None -> `Null
           | Some config -> `Int config.id
         in

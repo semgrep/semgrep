@@ -129,9 +129,10 @@ type caps =
  * we can't have '..' (a row type variable) inside a monomorphic record.
  *)
 type 'caps app = {
-  (* TODO: get rid of this, should not be needed anymore *)
-  get_deployment_from_token : 'caps -> Out.deployment_config option;
-  start_scan : 'caps -> Out.scan_request -> (Out.scan_response, string) result;
+  start_scan :
+    'caps ->
+    Out.scan_request ->
+    (Out.scan_response, string * Exit_code.t option) result;
   upload_findings :
     'caps ->
     scan_id:int ->
@@ -143,7 +144,6 @@ type 'caps app = {
 
 let real_backend : < Cap.network ; Auth.cap_token ; .. > app =
   {
-    get_deployment_from_token = Semgrep_App.get_deployment_from_token;
     start_scan = Semgrep_App.start_scan;
     upload_findings = Semgrep_App.upload_findings;
     report_failure = Semgrep_App.report_failure;
@@ -166,7 +166,6 @@ let mk_log_backend (dir : Fpath.t) : < Cap.network ; Auth.cap_token ; .. > app =
   if not (UFile.is_dir ~follow_symlinks:false dir) then
     UFile.make_directories dir;
   {
-    get_deployment_from_token = real_backend.get_deployment_from_token;
     start_scan =
       (fun caps request ->
         let file = dir / "scan_request.json" in
@@ -213,7 +212,6 @@ let mk_log_backend (dir : Fpath.t) : < Cap.network ; Auth.cap_token ; .. > app =
 let mk_fake_backend base (dir : Fpath.t) :
     < Cap.network ; Auth.cap_token ; .. > app =
   {
-    get_deployment_from_token = base.get_deployment_from_token;
     start_scan =
       (fun _caps _request ->
         let file = dir / "scan_response.json" in
@@ -407,23 +405,6 @@ let caps_with_token (token_opt : Auth.token option) caps =
   in
   Auth.cap_token_and_network_and_tmp_and_exec token caps
 
-(* if something fails, we Error.exit_code_exn *)
-let deployment_config (caps : < Cap.network ; Auth.cap_token ; .. >) app :
-    Out.deployment_config =
-  match app.get_deployment_from_token caps with
-  | None ->
-      Logs.app (fun m ->
-          m
-            "API token not valid. Try to run `semgrep logout` and `semgrep \
-             login` again. Or in CI, ensure your SEMGREP_APP_TOKEN variable is \
-             set correctly.");
-      Error.exit_code_exn (Exit_code.invalid_api_key ~__LOC__)
-  | Some deployment_config ->
-      Logs.debug (fun m ->
-          m "received deployment = %s"
-            (Out.show_deployment_config deployment_config));
-      deployment_config
-
 (* [rules] contains the rules in JSON format. That's how the registry send
  * them because it's faster than using YAML.
  * TODO: factorize with Session.decode_rules()
@@ -446,17 +427,14 @@ let decode_json_rules caps (rules : Yojson.Basic.t) :
           *)
           failwith "impossible: received an invalid rule from CI")
 
-let scan_config_and_rules_from_deployment
-    (caps : < Cap.network ; Auth.cap_token ; .. >) app
-    (prj_meta : Out.project_metadata)
-    (deployment_config : Out.deployment_config) :
+let scan_response_and_rules (caps : < Cap.network ; Auth.cap_token ; .. >) app
+    (prj_meta : Out.project_metadata) :
     Semgrep_App.scan_id
     * Out.scan_response
     * Rule_fetching.rules_and_origin list =
   Logs.app (fun m -> m "  %s" (Console.underline "CONNECTION"));
   (* TODO: pysemgrep: console spinner with Initializing scan ... instead *)
-  Logs.app (fun m ->
-      m "  Requesting scan (deployment = %s)" deployment_config.name);
+  Logs.app (fun m -> m "  Requesting scan");
   let scan_metadata : Out.scan_metadata = scan_metadata () in
   let project_config : Out.ci_config_from_repo option = project_config () in
 
@@ -468,9 +446,11 @@ let scan_config_and_rules_from_deployment
       proj_config = ProjectConfig.load_all()
   *)
   match app.start_scan caps request with
-  | Error msg ->
+  | Error (msg, exit_code_opt) -> (
       Logs.err (fun m -> m "Could not start scan %s" msg);
-      Error.exit_code_exn (Exit_code.fatal ~__LOC__)
+      match exit_code_opt with
+      | None -> Error.exit_code_exn (Exit_code.fatal ~__LOC__)
+      | Some code -> Error.exit_code_exn code)
   | Ok scan_response ->
       let scan_id =
         match scan_response.info.id with
@@ -480,7 +460,7 @@ let scan_config_and_rules_from_deployment
       (* TODO: pysemgrep: should replace the Requesting scan of before *)
       Logs.app (fun m ->
           m "  Initializing scan (deployment=%s, scan_id=%d)"
-            deployment_config.name scan_id);
+            scan_response.info.deployment_name scan_id);
 
       let rules_and_origins =
         try
@@ -832,10 +812,9 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
   (results, complete)
 
 let upload_findings (caps : < Cap.network ; Auth.cap_token ; Cap.exec ; .. >)
-    app (deployment_config : Out.deployment_config)
-    (scan_id : Semgrep_App.scan_id) (prj_meta : Out.project_metadata)
-    blocking_findings filtered_rules (cli_output : Out.cli_output) :
-    Semgrep_App.app_block_override =
+    app (deployment_name : string) (scan_id : Semgrep_App.scan_id)
+    (prj_meta : Out.project_metadata) blocking_findings filtered_rules
+    (cli_output : Out.cli_output) : Semgrep_App.app_block_override =
   Logs.app (fun m -> m "  Uploading findings.");
   let results, complete =
     findings_and_complete
@@ -862,7 +841,7 @@ let upload_findings (caps : < Cap.network ; Auth.cap_token ; Cap.exec ; .. >)
   Logs.app (fun m ->
       m "    %s/orgs/%s/findings?repo=%s%s"
         (Uri.to_string !Semgrep_envvars.v.semgrep_url)
-        deployment_config.name repo_display_name ref_if_branch_detected);
+        deployment_name repo_display_name ref_if_branch_detected);
   if
     filtered_rules
     |> List.exists (fun r ->
@@ -872,7 +851,7 @@ let upload_findings (caps : < Cap.network ; Auth.cap_token ; Cap.exec ; .. >)
     Logs.app (fun m ->
         m "    %s/orgs/%s/supply-chain"
           (Uri.to_string !Semgrep_envvars.v.semgrep_url)
-          deployment_config.name);
+          deployment_name);
   override
 
 (*****************************************************************************)
@@ -929,9 +908,8 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
   (* see Ci_CLI.scan_subset_cmdline_term() *)
   assert (conf.target_roots =*= []);
 
-  (* step3: token -> deployment_config -> scan_id -> scan_config -> rules *)
+  (* step3: token -> start_scan -> scan_id x scan_response -> rules *)
   let caps' = caps_with_token settings.api_token caps in
-  let depl = deployment_config caps' app in
   (* TODO: pass baseline commit! *)
   let prj_meta = generate_meta_from_environment (caps :> < Cap.exec >) None in
   Logs.app (fun m -> m "%s" (Console.heading "Debugging Info"));
@@ -953,7 +931,7 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
 
   (* TODO: fix_head_if_github_action(metadata) *)
   let scan_id, scan_response, rules_and_origin =
-    scan_config_and_rules_from_deployment caps' app prj_meta depl
+    scan_response_and_rules caps' app prj_meta
   in
 
   (* TODO: we should use those fields!
@@ -964,11 +942,10 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
       {
         (* used in scan_config_and_rules_from_deployment *)
         id = _;
+        deployment_name;
         (* TODO: use! *)
         enabled_products = _;
-        (* TODO? redundant with info from deployment ? *)
         deployment_id = _;
-        deployment_name = _;
       };
     config =
       {
@@ -1103,8 +1080,8 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
         report_scan_completed ~blocking_findings ~blocking_rules
           ~non_blocking_findings ~non_blocking_rules;
         let app_block_override =
-          upload_findings caps' app depl scan_id prj_meta blocking_findings
-            filtered_rules cli_output
+          upload_findings caps' app deployment_name scan_id prj_meta
+            blocking_findings filtered_rules cli_output
         in
         let audit_mode = false in
         (* TODO: audit_mode = metadata.event_name in audit_on *)

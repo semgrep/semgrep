@@ -1778,6 +1778,8 @@ def test_dryrun(
     )
 
 
+# this test is passing with osemgrep but only because we're using an
+# 'assert not' below on the mock
 def test_fail_auth_invalid_key(
     run_semgrep: RunSemgrep, mocker, git_tmp_path_with_commit, requests_mock
 ):

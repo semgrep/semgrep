@@ -20,7 +20,7 @@ let print (caps : < Cap.network ; Cap.stdout >) (kind : identity_kind) :
               m "%s You are logged in as %s" (Console.success_tag ()) id)
       | Deployment -> (
           let (x : OutJ.deployment_config option) =
-            Lwt_platform.run (Semgrep_App.get_deployment_from_token_async caps)
+            Lwt_platform.run (Semgrep_App.deployment_config_async caps)
           in
           match x with
           | None -> failwith "no deployment_config"

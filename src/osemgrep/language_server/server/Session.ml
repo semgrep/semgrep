@@ -412,9 +412,7 @@ let fetch_deployment_id caps =
   match auth_token with
   | Some token -> (
       let caps = Auth.cap_token_and_network token caps in
-      let%lwt deployment_opt =
-        Semgrep_App.get_deployment_from_token_async caps
-      in
+      let%lwt deployment_opt = Semgrep_App.deployment_config_async caps in
       match deployment_opt with
       | Some deployment -> Lwt.return_some deployment.id
       | None -> Lwt.return None)

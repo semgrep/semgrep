@@ -65,7 +65,7 @@ let save_token_async ?ident caps =
     (fun v -> Logs.debug (fun m -> m "saving token for user %s" v))
     ident;
   let settings = Semgrep_settings.load () in
-  Semgrep_App.get_deployment_from_token_async caps
+  Semgrep_App.deployment_config_async caps
   |> Lwt.map (function
        | None -> Error "Login token is not valid. Please try again."
        | Some deployment_config
@@ -78,7 +78,7 @@ let save_token_async ?ident caps =
 let save_token ?ident caps = Lwt_platform.run (save_token_async ?ident caps)
 
 let verify_token_async token =
-  let%lwt resopt = Semgrep_App.get_deployment_from_token_async token in
+  let%lwt resopt = Semgrep_App.deployment_config_async token in
   Lwt.return (Option.is_some resopt)
 
 let verify_token token = Lwt_platform.run (verify_token_async token)

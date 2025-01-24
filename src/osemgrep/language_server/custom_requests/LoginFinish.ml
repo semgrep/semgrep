@@ -76,7 +76,7 @@ let on_request session id params : Session.t * Reply.t =
             in
             let caps = Auth.cap_token_and_network token caps in
             let^ _deployment =
-              Semgrep_App.get_deployment_from_token_async caps
+              Semgrep_App.deployment_config_async caps
               |> Lwt.map (Option.to_result ~none:"failed to get deployment")
             in
             (* TODO: state.app_session.authenticate()

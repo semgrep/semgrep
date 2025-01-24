@@ -7,18 +7,13 @@
 (* CLI<->backend comms for semgrep ci *)
 (*****************************************************************************)
 
-(* retrieves the deployment config from the provided token. *)
-val get_deployment_from_token :
-  < Cap.network ; Auth.cap_token ; .. > ->
-  Semgrep_output_v1_t.deployment_config option
-
 (* [start_scan caps req] informs the Semgrep App that a scan
  * is about to be started, and returns the scan_response from the server.
  *)
 val start_scan :
   < Cap.network ; Auth.cap_token ; .. > ->
   Semgrep_output_v1_t.scan_request ->
-  (Semgrep_output_v1_t.scan_response, string) result
+  (Semgrep_output_v1_t.scan_response, string * Exit_code.t option) result
 
 (* the scan_id was a field returned in scan_response from start_scan() *)
 type scan_id = int
@@ -69,7 +64,12 @@ val fetch_pro_binary :
   pro_engine_arch ->
   Http_helpers.client_result Lwt.t
 
-(* used by 'semgrep show whomai' *)
+(* used by 'semgrep show deployment' and 'semgrep login' *)
+val deployment_config :
+  < Cap.network ; Auth.cap_token ; .. > ->
+  Semgrep_output_v1_t.deployment_config option
+
+(* used by 'semgrep show identity' *)
 val get_identity_async : < Cap.network ; Auth.cap_token ; .. > -> string Lwt.t
 
 (* used by 'semgrep lsp' *)
@@ -88,14 +88,10 @@ val fetch_scan_config_string_async :
 (* Async variants of functions above *)
 (*****************************************************************************)
 
-val get_deployment_from_token_async :
-  < Cap.network ; Auth.cap_token ; .. > ->
-  Semgrep_output_v1_t.deployment_config option Lwt.t
-
 val start_scan_async :
   < Cap.network ; Auth.cap_token ; .. > ->
   Semgrep_output_v1_t.scan_request ->
-  (Semgrep_output_v1_t.scan_response, string) result Lwt.t
+  (Semgrep_output_v1_t.scan_response, string * Exit_code.t option) result Lwt.t
 
 val upload_findings_async :
   < Cap.network ; Auth.cap_token ; .. > ->
@@ -109,6 +105,10 @@ val report_failure_async :
   scan_id:scan_id ->
   Exit_code.t ->
   unit Lwt.t
+
+val deployment_config_async :
+  < Cap.network ; Auth.cap_token ; .. > ->
+  Semgrep_output_v1_t.deployment_config option Lwt.t
 
 val upload_rule_to_registry_async :
   < Cap.network ; Auth.cap_token ; .. > ->
