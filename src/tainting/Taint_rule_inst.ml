@@ -27,58 +27,6 @@
  * taint rule intance and a function from that file.
  *)
 
-type var = Dataflow_var_env.var
-(** A string of the form "<source name>:<sid>". *)
-
-type a_propagator = {
-  kind : [ `From | `To ];
-  prop : Rule.taint_propagator;
-  var : var; (* TODO: Use prop.id instead ? *)
-}
-
-type spec_predicates = {
-  is_source : AST_generic.any -> Rule.taint_source Taint_spec_match.t list;
-      (** Test whether 'any' is a taint source, this corresponds to
-      * 'pattern-sources:' in taint-mode. *)
-  is_propagator : AST_generic.any -> a_propagator Taint_spec_match.t list;
-      (** Test whether 'any' matches a taint propagator, this corresponds to
-       * 'pattern-propagators:' in taint-mode.
-       *
-       * Propagators allow to specify how taint propagates through side effects.
-       *
-       * Note that we tried to solve this with a hack in semgrep/semgrep#5150
-       * but it caused a bunch of FPs in semgrep-rules. The hack was essentially
-       * to assume that in `x.f(y)` taint always propagated from `y` to `x`.
-       *
-       * The typical FP was a call that incorrectly tainted an object or module,
-       * that also happened to be part of a sink specification. For example, in
-       * rule ruby.rails.security.audit.avoid-tainted-shell-call the `Shell` class
-       * does not really get tainted even if we call `Shell.cat` on tainted data:
-       *
-       *     # ruleid: avoid-tainted-shell-call
-       *     Shell.cat(params[:filename])
-       *
-       * But with the hack, `Shell` becomes tainted. Later on, when we call
-       * `Shell.cat` on safe data, it triggered an FP. Why? Because the entire
-       * `Shell.cat(...)` was marked as a sink, and `Shell` was considered
-       * tainted!
-       *
-       *     # ok: avoid-tainted-shell-call
-       *     Shell.cat("/var/log/www/access.log")
-       *
-       * Most of these FPs could be prevented by fine tuning pattern-sinks. But
-       * anyhow it's clearly incorrect to taint `Shell`, so a better solution was
-       * needed (hence `pattern-propagators`).
-       *)
-  is_sanitizer :
-    AST_generic.any -> Rule.taint_sanitizer Taint_spec_match.t list;
-      (** Test whether 'any' is a sanitizer, this corresponds to
-      * 'pattern-sanitizers:' in taint-mode. *)
-  is_sink : AST_generic.any -> Rule.taint_sink Taint_spec_match.t list;
-      (** Test whether 'any' is a sink, this corresponds to 'pattern-sinks:'
-      * in taint-mode. *)
-}
-
 type effects_handler =
   IL.name option (** name of the function definition ('None' if anonymous) *) ->
   Shape_and_sig.Effect.t list ->
@@ -94,7 +42,7 @@ type t = {
   track_control : bool;
       (** Whether the rule requires tracking "control taint". If it does not,
        * then we avoid adding control taint-variables to environment. *)
-  preds : spec_predicates;
+  preds : Taint_spec_preds.t;
   pro_hooks : Taint_pro_hooks.t option;
   handle_effects : effects_handler;  (** Callback to report effects. *)
   java_props_cache : java_props_cache;

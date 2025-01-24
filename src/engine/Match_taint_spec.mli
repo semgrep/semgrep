@@ -1,5 +1,5 @@
 type propagator_match = {
-  id : Taint_rule_inst.var;
+  id : Taint_spec_preds.var;
       (** An unique identifier for the propagator match. This is used as an
    * auxiliary variable to store the taints flowing from `from` to `to`. *)
   rwm : Range_with_metavars.t;
@@ -21,7 +21,7 @@ type spec_matches = {
 }
 
 val hook_mk_taint_spec_match_preds :
-  (Rule.rule -> spec_matches -> Taint_rule_inst.spec_predicates) option ref
+  (Rule.rule -> spec_matches -> Taint_spec_preds.t) option ref
 
 (* It could be a private function, but it is also used by Deep Semgrep. *)
 (* This [formula_cache] argument is exposed here because this function is also
@@ -57,4 +57,4 @@ val mk_propagator_match :
   string ->
   [ `From | `To ] ->
   Range.t ->
-  Taint_rule_inst.a_propagator Taint_spec_match.t
+  Taint_spec_preds.a_propagator Taint_spec_match.t

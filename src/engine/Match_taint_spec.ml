@@ -64,7 +64,7 @@ module D = Dataflow_tainting
  *)
 
 type propagator_match = {
-  id : Taint_rule_inst.var;
+  id : Taint_spec_preds.var;
   rwm : RM.t;
   from : Range.t;
   to_ : Range.t;
@@ -386,7 +386,7 @@ let is_exact_match ~match_range r =
 
 let mk_propagator_match rule (prop : propagator_match) var kind r =
   let spec_pm = RM.range_to_pattern_match_adjusted rule prop.rwm in
-  let spec : Taint_rule_inst.a_propagator = { kind; prop = prop.spec; var } in
+  let spec : Taint_spec_preds.a_propagator = { kind; prop = prop.spec; var } in
   {
     Taint_spec_match.spec;
     spec_id = prop.spec.propagator_id;
@@ -399,7 +399,7 @@ let mk_propagator_match rule (prop : propagator_match) var kind r =
  * `pattern-propagators`. Matches must be exact (overlap > 0.99) to make
  * taint propagation more precise and predictable. *)
 let any_is_in_propagators_matches_OSS rule matches any :
-    Taint_rule_inst.a_propagator Taint_spec_match.t list =
+    Taint_spec_preds.a_propagator Taint_spec_match.t list =
   match range_of_any any with
   | None -> []
   | Some r ->
@@ -416,7 +416,7 @@ let any_is_in_propagators_matches_OSS rule matches any :
 let mk_taint_spec_match_preds rule matches =
   match !hook_mk_taint_spec_match_preds with
   | None ->
-      Taint_rule_inst.
+      Taint_spec_preds.
         {
           is_source =
             (fun any ->

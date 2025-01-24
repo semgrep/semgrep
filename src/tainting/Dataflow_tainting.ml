@@ -120,7 +120,6 @@ type hook_function_taint_signature =
 
 let hook_function_taint_signature = Hook.create None
 let hook_find_attribute_in_class = Hook.create None
-let hook_check_tainted_at_exit_sinks = Hook.create None
 let hook_infer_sig_for_lambda = Hook.create None
 
 (*****************************************************************************)
@@ -761,7 +760,9 @@ let handle_taint_propagators env thing taints shape =
     env.taint_inst.preds.is_propagator any
   in
   let propagate_froms, propagate_tos =
-    List.partition (fun p -> p.TM.spec.TRI.kind =*= `From) propagators
+    List.partition
+      (fun p -> p.TM.spec.Taint_spec_preds.kind =*= `From)
+      propagators
   in
   let lval_env =
     (* `thing` is the source (the "from") of propagation, we add its taints to
@@ -798,7 +799,7 @@ let handle_taint_propagators env thing taints shape =
         *)
         match
           T.solve_precondition ~ignore_poly_taint:false ~taints
-            (R.get_propagator_precondition prop.TM.spec.TRI.prop)
+            (R.get_propagator_precondition prop.TM.spec.Taint_spec_preds.prop)
         with
         | Some true ->
             (* If we have an output label, change the incoming taints to be
@@ -826,7 +827,7 @@ let handle_taint_propagators env thing taints shape =
     List.fold_left
       (fun (taints_in_acc, lval_env) prop ->
         let opt_propagated, lval_env =
-          Lval_env.propagate_from prop.TM.spec.TRI.var lval_env
+          Lval_env.propagate_from prop.TM.spec.Taint_spec_preds.var lval_env
         in
         let taints_from_prop =
           match opt_propagated with
@@ -834,7 +835,7 @@ let handle_taint_propagators env thing taints shape =
           | Some taints -> taints
         in
         let lval_env =
-          if prop.spec.TRI.prop.propagator_by_side_effect then
+          if prop.spec.Taint_spec_preds.prop.propagator_by_side_effect then
             match thing with
             (* If `thing` is an l-value of the form `x.a.b.c`, then taint can be
              *  propagated by side-effect. A pattern-propagator may use this to
@@ -1763,13 +1764,17 @@ let check_tainted_control_at_exit node env =
         record_effects env effects
 
 let check_tainted_at_exit_sinks node env =
-  Hook.get hook_check_tainted_at_exit_sinks
-  |> Option.iter (fun hook ->
-         match hook env.taint_inst env.lval_env node with
-         | None -> ()
-         | Some (taints_at_exit, sink_matches_at_exit) ->
-             effects_of_tainted_sinks env taints_at_exit sink_matches_at_exit
-             |> record_effects env)
+  match env.taint_inst.pro_hooks with
+  | None -> ()
+  | Some pro_hooks -> (
+      match
+        pro_hooks.check_tainted_at_exit_sinks env.taint_inst.preds env.lval_env
+          node
+      with
+      | None -> ()
+      | Some (taints_at_exit, sink_matches_at_exit) ->
+          effects_of_tainted_sinks env taints_at_exit sink_matches_at_exit
+          |> record_effects env)
 
 (*****************************************************************************)
 (* Transfer *)
