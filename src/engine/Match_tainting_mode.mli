@@ -29,5 +29,10 @@ val check_rules :
   *)
 
 (* pro-scan hook *)
-val hook_setup_hook_function_taint_signature :
-  (Rule.taint_rule -> Taint_rule_inst.t -> Xtarget.t -> unit) option Hook.t
+val hook_mk_hook_function_taint_signature :
+  (Rule.taint_rule ->
+  Taint_rule_inst.t ->
+  Xtarget.t ->
+  Dataflow_tainting.hook_function_taint_signature)
+  option
+  Hook.t

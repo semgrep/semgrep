@@ -17,13 +17,13 @@ type func = {
 
 val mk_empty_java_props_cache : unit -> java_props_cache
 
-val hook_function_taint_signature :
-  (Taint_rule_inst.t ->
+type hook_function_taint_signature =
+  Taint_rule_inst.t ->
   AST_generic.expr ->
-  (Shape_and_sig.Signature.t * [ `Fun | `Var ]) option)
-  option
-  ref
-(** Pro inter-file (aka deep) *)
+  (Shape_and_sig.Signature.t * [ `Fun | `Var ]) option
+
+(* deep-scan (and pro-scan) hook *)
+val hook_function_taint_signature : hook_function_taint_signature option Hook.t
 
 val hook_find_attribute_in_class :
   (AST_generic.name -> string -> AST_generic.name option) option ref

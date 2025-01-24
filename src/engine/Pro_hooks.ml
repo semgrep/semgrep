@@ -55,10 +55,10 @@ let pro_hooks =
     Pro_hook Constant_propagation.hook_propagate_basic_visitor;
     Pro_hook Dataflow_svalue.hook_constness_of_function;
     Pro_hook Dataflow_svalue.hook_transfer_of_assume;
-    Pro_hook Match_tainting_mode.hook_setup_hook_function_taint_signature;
+    Pro_hook Match_tainting_mode.hook_mk_hook_function_taint_signature;
     Pro_hook Taint.hook_offset_of_IL;
     Pro_hook Taint_lval_env.hook_propagate_to;
-    Pro_hook_ref Dataflow_tainting.hook_function_taint_signature;
+    Pro_hook Dataflow_tainting.hook_function_taint_signature;
     Pro_hook_ref Dataflow_tainting.hook_find_attribute_in_class;
     Pro_hook_ref Dataflow_tainting.hook_check_tainted_at_exit_sinks;
     Pro_hook Dataflow_when.hook_annotate_facts;

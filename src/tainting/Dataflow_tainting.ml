@@ -112,7 +112,12 @@ type env = {
 (* Hooks *)
 (*****************************************************************************)
 
-let hook_function_taint_signature = ref None
+type hook_function_taint_signature =
+  Taint_rule_inst.t ->
+  AST_generic.expr ->
+  (Shape_and_sig.Signature.t * [ `Fun | `Var ]) option
+
+let hook_function_taint_signature = Hook.create None
 let hook_find_attribute_in_class = ref None
 let hook_check_tainted_at_exit_sinks = ref None
 let hook_infer_sig_for_lambda = ref None
@@ -607,7 +612,7 @@ let effects_of_call_func_arg fun_exp fun_shape args_taints =
       []
 
 let lookup_signature env fun_exp =
-  match (!hook_function_taint_signature, fun_exp) with
+  match (Hook.get hook_function_taint_signature, fun_exp) with
   | Some hook, { e = Fetch _f; eorig = SameAs eorig } ->
       hook env.taint_inst eorig
   | __else__ -> None
