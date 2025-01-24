@@ -132,8 +132,7 @@ main() {
     ./upload-parsing-rates lang/"$lang"/stats.json
   fi
   echo "stats available in lang/$lang/stats.json"
-  #alt: cat lang/$lang/stats.json | jq .global
-  "$semgrep_core" -lang json -e '"global": { ... }' lang/"$lang"/stats.json
+  cat lang/$lang/stats.json | jq .global
 }
 
 main
