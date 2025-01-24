@@ -204,6 +204,18 @@ let o_x_validate_partial_results_actual : string option Term.t =
   in
   Arg.value (Arg.opt (Arg.some' Arg.string) None info)
 
+(* internal *)
+let o_x_upload_partial_results_scan_id : int option Term.t =
+  let info =
+    Arg.info [ "x-upload-partial-results-scan-id" ] ~doc:{|Internal flag.|}
+  in
+  Arg.value (Arg.opt (Arg.some' Arg.int) None info)
+
+(* internal *)
+let o_x_upload_partial_results : string option Term.t =
+  let info = Arg.info [ "x-upload-partial-results" ] ~doc:{|Internal flag.|} in
+  Arg.value (Arg.opt (Arg.some' Arg.string) None info)
+
 (*************************************************************************)
 (* 'scan' subset supported by 'ci' *)
 (*************************************************************************)
@@ -386,7 +398,8 @@ let cmdline_term : conf Term.t =
       subdir supply_chain suppress_errors _internal_ci_scan_results
       _x_dump_n_rule_partitions _x_dump_rule_partitions_dir
       x_merge_partial_results_dir x_merge_partial_results_output
-      _x_partial_config _x_partial_output x_validate_partial_results_actual
+      _x_partial_config _x_partial_output x_upload_partial_results
+      x_upload_partial_results_scan_id x_validate_partial_results_actual
       x_validate_partial_results_expected _git_meta _github_meta =
     let products =
       (if secrets then [ `Secrets ] else [])
@@ -410,6 +423,8 @@ let cmdline_term : conf Term.t =
             Option.map Fpath.v x_validate_partial_results_expected;
           validate_partial_results_actual =
             Option.map Fpath.v x_validate_partial_results_actual;
+          upload_partial_results = Option.map Fpath.v x_upload_partial_results;
+          upload_partial_results_scan_id = x_upload_partial_results_scan_id;
         };
       fake_backend = Option.map Fpath.v fake_backend;
       log_backend = Option.map Fpath.v log_backend;
@@ -421,8 +436,8 @@ let cmdline_term : conf Term.t =
     $ o_suppress_errors $ o_internal_ci_scan_results
     $ o_x_dump_n_rule_partitions $ o_x_dump_rule_partitions_dir
     $ o_x_merge_partial_results_dir $ o_x_merge_partial_results_output
-    $ o_x_partial_config $ o_x_partial_output
-    $ o_x_validate_partial_results_actual
+    $ o_x_partial_config $ o_x_partial_output $ o_x_upload_partial_results
+    $ o_x_upload_partial_results_scan_id $ o_x_validate_partial_results_actual
     $ o_x_validate_partial_results_expected $ Git_metadata.env
     $ Github_metadata.env)
 

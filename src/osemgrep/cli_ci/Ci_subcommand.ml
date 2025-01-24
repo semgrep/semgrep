@@ -926,6 +926,9 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
     ci_conf.x_distributed_scan_conf;
   Distributed_scan_stub.maybe_validate_partial_scan_results_then_exit
     ci_conf.x_distributed_scan_conf;
+  Distributed_scan_stub.maybe_upload_partial_scan_results_then_exit
+    (caps' :> < Cap.network ; Auth.cap_token >)
+    ci_conf.x_distributed_scan_conf;
 
   (* ===== End of steps related to distributed scans ===== *)
 
