@@ -1273,54 +1273,8 @@ and map_operation (env : env) (x : CST.operation) =
       let v1 = map_expression env v1 in
       let tok = (* "..." *) token env v2 in
       special (Spread, tok) [ v1 ]
-  | `Tern_exp (v1, v2, v3, v4, v5) ->
-      let v1 = map_expression env v1 in
-      let _v2 = (* "?" *) token env v2 in
-      let v3 = map_anon_choice_exp_b833738 env v3 in
-      let _v4 = (* ":" *) token env v4 in
-      let v5 = map_anon_choice_exp_b833738 env v5 in
-      Conditional (v1, v3, v5) |> G.e
   | `Typed_exp x -> map_typed_expression_exp env x
-  | `Func_exp (v1, v2, v3) ->
-      let fparams =
-        match v1 with
-        | `Id tok -> fb [ map_id_parameter env tok ]
-        | `Param_list x -> map_parameter_list env x
-        | `Typed_exp x ->
-            let exp, _tok, ty = map_typed_expression env x in
-            fb [ OtherParam (("typed", fake "typed"), [ G.E exp; G.T ty ]) ]
-      in
-      let _v2 = (* "->" *) token env v2 in
-      let v3 = map_anon_choice_exp_b833738 env v3 in
-      Lambda
-        {
-          fkind = (LambdaKind, fake "lambda");
-          fparams;
-          frettype = None;
-          fbody = FBExpr v3;
-        }
-      |> G.e
-  | `Juxt_exp (v1, v2) ->
-      (* As far as I can tell, this allows literals like "2x" to be syntactic sugar for
-          2 * x.
-      *)
-      let v1 =
-        match v1 with
-        | `Int_lit x -> map_integer_literal env x
-        | `Float_lit x -> map_float_literal env x
-        | `Adjo_exp x -> map_adjoint_expression env x
-      in
-      let v2 = map_primary_expression env v2 in
-      opcall (Mult, fake "") [ v1; v2 ]
-  | `Comp_assign_exp (v1, v2, v3) ->
-      let v1 = map_primary_expression env v1 in
-      let v2 =
-        match v2 with
-        | `Assign_op tok -> tok
-        | `Tilde_op tok -> tok
-      in
-      let v3 = map_expression env v3 in
-      map_assign_operator env v2 v1 v3
+  | `Un_typed_exp x -> map_unary_typed_expression env x
   | `Where_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = (* "where" *) str env v2 in
@@ -1349,6 +1303,53 @@ and map_expression (env : env) (x : CST.expression) : expr =
       | `Float_lit x -> map_float_literal env x
       | `Prim_exp x -> map_primary_expression env x
       | `Choice_un_exp x -> map_operation env x
+      | `Tern_exp (v1, v2, v3, v4, v5) ->
+          let v1 = map_expression env v1 in
+          let _v2 = (* "?" *) token env v2 in
+          let v3 = map_anon_choice_exp_b833738 env v3 in
+          let _v4 = (* ":" *) token env v4 in
+          let v5 = map_anon_choice_exp_b833738 env v5 in
+          Conditional (v1, v3, v5) |> G.e
+      | `Func_exp (v1, v2, v3) ->
+          let fparams =
+            match v1 with
+            | `Id tok -> fb [ map_id_parameter env tok ]
+            | `Param_list x -> map_parameter_list env x
+            | `Typed_exp x ->
+                let exp, _tok, ty = map_typed_expression env x in
+                fb [ OtherParam (("typed", fake "typed"), [ G.E exp; G.T ty ]) ]
+          in
+          let _v2 = (* "->" *) token env v2 in
+          let v3 = map_anon_choice_exp_b833738 env v3 in
+          Lambda
+            {
+              fkind = (LambdaKind, fake "lambda");
+              fparams;
+              frettype = None;
+              fbody = FBExpr v3;
+            }
+          |> G.e
+      | `Juxt_exp (v1, v2) ->
+          (* As far as I can tell, this allows literals like "2x" to be syntactic sugar for
+              2 * x.
+          *)
+          let v1 =
+            match v1 with
+            | `Int_lit x -> map_integer_literal env x
+            | `Float_lit x -> map_float_literal env x
+            | `Adjo_exp x -> map_adjoint_expression env x
+          in
+          let v2 = map_primary_expression env v2 in
+          opcall (Mult, fake "") [ v1; v2 ]
+      | `Comp_assign_exp (v1, v2, v3) ->
+          let v1 = map_primary_expression env v1 in
+          let v2 =
+            match v2 with
+            | `Assign_op tok -> tok
+            | `Tilde_op tok -> tok
+          in
+          let v3 = map_expression env v3 in
+          map_assign_operator env v2 v1 v3
       | `Macr_exp (v1, v2, v3) -> (
           (* As mentioned elsewhere, I believe this to be a parser shenanigan and not
              actually indicating that this is part of the macro.
@@ -2343,6 +2344,11 @@ and map_typed_expression (env : env) ((v1, v2, v3) : CST.typed_expression) =
     | `Prim_exp x -> map_type env x
   in
   (v1, tok, v3)
+
+(* Fallback in case we find `::T` outside function signatures. *)
+and map_unary_typed_expression (env : env)
+    ((_v1, v2) : CST.unary_typed_expression) =
+  todo env v2
 
 and map_typed_expression_exp (env : env) ((v1, v2, v3) : CST.typed_expression) :
     expr =
