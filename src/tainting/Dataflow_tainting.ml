@@ -119,9 +119,9 @@ type hook_function_taint_signature =
   (Shape_and_sig.Signature.t * [ `Fun | `Var ]) option
 
 let hook_function_taint_signature = Hook.create None
-let hook_find_attribute_in_class = ref None
-let hook_check_tainted_at_exit_sinks = ref None
-let hook_infer_sig_for_lambda = ref None
+let hook_find_attribute_in_class = Hook.create None
+let hook_check_tainted_at_exit_sinks = Hook.create None
+let hook_infer_sig_for_lambda = Hook.create None
 
 (*****************************************************************************)
 (* Options *)
@@ -955,7 +955,9 @@ and propagate_taint_via_java_getters_and_setters_without_definition env e args
                   prop_name;
                 prop_name
               in
-              match (!(obj.id_info.id_type), !hook_find_attribute_in_class) with
+              match
+                (!(obj.id_info.id_type), Hook.get hook_find_attribute_in_class)
+              with
               | Some { t = TyN class_name; _ }, Some hook -> (
                   match hook class_name prop_str with
                   | None -> mk_default_prop_name ()
@@ -1484,7 +1486,7 @@ let check_lambda env lval fdef =
     let opt_lshape =
       let* lname, lcfg = LV.lval_is_lambda env.lambdas lval in
       let in_env = mk_lambda_in_env env lcfg in
-      let* hook = !hook_infer_sig_for_lambda in
+      let* hook = Hook.get hook_infer_sig_for_lambda in
       let lsig = hook env.taint_inst env.func ~in_env lname fdef lcfg in
       Some (S.Fun lsig)
     in
@@ -1761,14 +1763,13 @@ let check_tainted_control_at_exit node env =
         record_effects env effects
 
 let check_tainted_at_exit_sinks node env =
-  match !hook_check_tainted_at_exit_sinks with
-  | None -> ()
-  | Some hook -> (
-      match hook env.taint_inst env.lval_env node with
-      | None -> ()
-      | Some (taints_at_exit, sink_matches_at_exit) ->
-          effects_of_tainted_sinks env taints_at_exit sink_matches_at_exit
-          |> record_effects env)
+  Hook.get hook_check_tainted_at_exit_sinks
+  |> Option.iter (fun hook ->
+         match hook env.taint_inst env.lval_env node with
+         | None -> ()
+         | Some (taints_at_exit, sink_matches_at_exit) ->
+             effects_of_tainted_sinks env taints_at_exit sink_matches_at_exit
+             |> record_effects env)
 
 (*****************************************************************************)
 (* Transfer *)

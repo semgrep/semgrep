@@ -40,8 +40,6 @@
  * the hooks. So we can enumerate Pro hooks in 'pro_hooks_refs' and then write
  * 'save_pro_hooks_and_reset' based on that list. *)
 type pro_hook =
-  (* TODO Remove all remaining ref-style hooks in favor of the safer Hook.t *)
-  | Pro_hook_ref : 'a option ref -> pro_hook
   | Pro_hook : 'a option Hook.t -> pro_hook
   | Pro_hook_bool : bool Hook.t -> pro_hook
 
@@ -59,9 +57,10 @@ let pro_hooks =
     Pro_hook Taint.hook_offset_of_IL;
     Pro_hook Taint_lval_env.hook_propagate_to;
     Pro_hook Dataflow_tainting.hook_function_taint_signature;
+    (* TODO? what about Dataflow_tainting.hook_infer_sig_for_lambda ? *)
+    Pro_hook Dataflow_tainting.hook_find_attribute_in_class;
+    Pro_hook Dataflow_tainting.hook_check_tainted_at_exit_sinks;
     Pro_hook Taint_pro_hooks.hook_taint_pro_hooks;
-    Pro_hook_ref Dataflow_tainting.hook_find_attribute_in_class;
-    Pro_hook_ref Dataflow_tainting.hook_check_tainted_at_exit_sinks;
     Pro_hook Dataflow_when.hook_annotate_facts;
     Pro_hook Dataflow_when.hook_facts_satisfy_e;
     (* TODO? there is also Dataflow_when.hook_path_sensitive! *)
@@ -85,7 +84,6 @@ let save_pro_hooks_and_reset f0 =
          (fun f hook () ->
            match hook with
            | Pro_hook pro_hook -> Hook.with_hook_set pro_hook None f
-           | Pro_hook_ref pro_hook -> Common.save_excursion pro_hook None f
            | Pro_hook_bool pro_hook -> Hook.with_hook_set pro_hook false f)
          f0
   in

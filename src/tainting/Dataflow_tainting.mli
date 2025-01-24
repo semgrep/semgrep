@@ -25,9 +25,18 @@ type hook_function_taint_signature =
 (* deep-scan (and pro-scan) hook *)
 val hook_function_taint_signature : hook_function_taint_signature option Hook.t
 
+(* deep-scan hook *)
 val hook_find_attribute_in_class :
-  (AST_generic.name -> string -> AST_generic.name option) option ref
-(** Pro inter-file (aka deep) *)
+  (AST_generic.name -> string -> AST_generic.name option) option Hook.t
+
+(* pro-scan hook *)
+val hook_check_tainted_at_exit_sinks :
+  (Taint_rule_inst.t ->
+  Taint_lval_env.t ->
+  IL.node ->
+  (Taint.taints * Shape_and_sig.Effect.sink list) option)
+  option
+  Hook.t
 
 val hook_infer_sig_for_lambda :
   (Taint_rule_inst.t ->
@@ -38,16 +47,7 @@ val hook_infer_sig_for_lambda :
   IL.fun_cfg ->
   Shape_and_sig.Signature.t)
   option
-  ref
-
-val hook_check_tainted_at_exit_sinks :
-  (Taint_rule_inst.t ->
-  Taint_lval_env.t ->
-  IL.node ->
-  (Taint.taints * Shape_and_sig.Effect.sink list) option)
-  option
-  ref
-(** Pro: support for `at-exit: true` sinks *)
+  Hook.t
 
 val fixpoint_aux :
   Taint_rule_inst.t ->
