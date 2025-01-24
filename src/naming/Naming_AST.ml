@@ -569,7 +569,7 @@ let resolve lang prog =
                     {
                       e =
                         Call
-                          ( { e = IdSpecial (Require, _); _ },
+                          ( { e = Special (Require, _); _ },
                             (_, [ Arg { e = L (String (_, file, _)); _ } ], _)
                           );
                       _;
@@ -599,7 +599,7 @@ let resolve lang prog =
                             {
                               e =
                                 Call
-                                  ( { e = IdSpecial (Require, _); _ },
+                                  ( { e = Special (Require, _); _ },
                                     ( _,
                                       [ Arg { e = L (String (_, file, _)); _ } ],
                                       _ ) );
@@ -974,7 +974,7 @@ let resolve lang prog =
                not just the instance of the class itself
                this may introduce incorrectness in name resolution, to be fixed later
                for now, let us consider it the same as the instance itself *)
-            ( { e = IdSpecial ((This | Self | Cls), _); _ },
+            ( { e = Special ((This | Self | Cls), _); _ },
               _,
               FN (Id (id, id_info)) ) -> (
             match lookup_scope_opt ~class_attr:true id env with

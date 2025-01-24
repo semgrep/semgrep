@@ -308,8 +308,7 @@ and expr e : G.expr =
   | InstanceOf (t, v1, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
       G.Call
-        ( G.IdSpecial (G.Instanceof, t) |> G.e,
-          fb ([ v1; v2 ] |> List_.map G.arg) )
+        (G.Special (G.Instanceof, t) |> G.e, fb ([ v1; v2 ] |> List_.map G.arg))
       |> G.e
   (* v[] = 1 --> v <append>= 1.
    * update: because we must generate an OE_ArrayAppend in other contexts,
@@ -337,7 +336,7 @@ and expr e : G.expr =
           G.Assign
             ( v1,
               t,
-              G.Call (G.IdSpecial (special, t) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
+              G.Call (G.Special (special, t) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
               |> G.e )
           |> G.e)
   | List v1 ->
@@ -352,7 +351,7 @@ and expr e : G.expr =
   | Unpack v1 ->
       let v1 = expr v1 in
       G.Call
-        ( G.IdSpecial (G.Spread, fake "...") |> G.e,
+        ( G.Special (G.Spread, fake "...") |> G.e,
           Tok.unsafe_fake_bracket [ G.Arg v1 ] )
       |> G.e
   | Call (v1, v2) ->
@@ -364,24 +363,23 @@ and expr e : G.expr =
       G.StmtExpr st |> G.e
   | Infix ((v1, t), v2) ->
       let v1 = fixOp v1 and v2 = expr v2 in
-      G.Call (G.IdSpecial (G.IncrDecr (v1, G.Prefix), t) |> G.e, fb [ G.Arg v2 ])
+      G.Call (G.Special (G.IncrDecr (v1, G.Prefix), t) |> G.e, fb [ G.Arg v2 ])
       |> G.e
   | Postfix ((v1, t), v2) ->
       let v1 = fixOp v1 and v2 = expr v2 in
-      G.Call
-        (G.IdSpecial (G.IncrDecr (v1, G.Postfix), t) |> G.e, fb [ G.Arg v2 ])
+      G.Call (G.Special (G.IncrDecr (v1, G.Postfix), t) |> G.e, fb [ G.Arg v2 ])
       |> G.e
   | Binop (v1, v2, v3) -> (
       let v2 = binaryOp v2 and v1 = expr v1 and v3 = expr v3 in
       match v2 with
       | Left (op, t) ->
-          G.Call (G.IdSpecial (G.Op op, t) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
+          G.Call (G.Special (G.Op op, t) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
           |> G.e
-      | Right x ->
-          G.Call (G.IdSpecial x |> G.e, fb [ G.Arg v1; G.Arg v3 ]) |> G.e)
+      | Right x -> G.Call (G.Special x |> G.e, fb [ G.Arg v1; G.Arg v3 ]) |> G.e
+      )
   | Unop ((v1, t), v2) ->
       let v1 = unaryOp v1 and v2 = expr v2 in
-      G.Call (G.IdSpecial (G.Op v1, t) |> G.e, fb [ G.Arg v2 ]) |> G.e
+      G.Call (G.Special (G.Op v1, t) |> G.e, fb [ G.Arg v2 ]) |> G.e
   | Guil (l, xs, r) -> (
       let xs = list expr xs in
       match xs with
@@ -474,13 +472,13 @@ and argument = function
 
 and special (spec, tok) =
   match spec with
-  | This -> G.IdSpecial (G.This, tok) |> G.e
-  | Self -> G.IdSpecial (G.Self, tok) |> G.e
-  | Parent -> G.IdSpecial (G.Parent, tok) |> G.e
+  | This -> G.Special (G.This, tok) |> G.e
+  | Self -> G.Special (G.Self, tok) |> G.e
+  | Parent -> G.Special (G.Parent, tok) |> G.e
   | FuncLike Empty -> G.N (G.Id (("empty", tok), G.empty_id_info ())) |> G.e
-  | FuncLike Eval -> G.IdSpecial (G.Eval, tok) |> G.e
+  | FuncLike Eval -> G.Special (G.Eval, tok) |> G.e
   | FuncLike Exit -> G.N (G.Id (("exit", tok), G.empty_id_info ())) |> G.e
-  | FuncLike Isset -> G.IdSpecial (G.Defined, tok) |> G.e
+  | FuncLike Isset -> G.Special (G.Defined, tok) |> G.e
   | FuncLike Unset -> G.N (G.Id (("unset", tok), G.empty_id_info ())) |> G.e
 
 and foreach_pattern v =

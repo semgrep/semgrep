@@ -87,7 +87,7 @@ let v_simple_ref = function
       Either.Left v1
   | This (v1, v2) ->
       let _v1TODO = v_option v_ident v1 and v2 = v_tok v2 in
-      Either.Right (G.IdSpecial (G.This, v2) |> G.e)
+      Either.Right (G.Special (G.This, v2) |> G.e)
   | Super (v1, v2, v3, v4) ->
       let _v1TODO = v_option v_ident v1
       and v2 = v_tok v2
@@ -95,7 +95,7 @@ let v_simple_ref = function
       and v4 = v_ident v4 in
       let fld = G.FN (G.Id (v4, G.empty_id_info ())) in
       Either.Right
-        (G.DotAccess (G.IdSpecial (G.Super, v2) |> G.e, fake ".", fld) |> G.e)
+        (G.DotAccess (G.Special (G.Super, v2) |> G.e, fake ".", fld) |> G.e)
 
 (* TODO: should not use *)
 let id_of_simple_ref = function
@@ -200,7 +200,7 @@ and v_literal = function
   | Interpolated (v1, v2, v3) ->
       let v1 = v_ident v1 and v2 = v_list v_encaps v2 and v3 = v_tok v3 in
       let special =
-        G.IdSpecial (G.ConcatString (G.FString (fst v1)), snd v1) |> G.e
+        G.Special (G.ConcatString (G.FString (fst v1)), snd v1) |> G.e
       in
       let args =
         v2
@@ -208,7 +208,7 @@ and v_literal = function
              | Either.Left lit -> G.Arg (G.L lit |> G.e)
              | Either.Right e ->
                  let special =
-                   G.IdSpecial (G.InterpolatedElement, fake "") |> G.e
+                   G.Special (G.InterpolatedElement, fake "") |> G.e
                  in
                  G.Arg (G.Call (special, fb [ G.Arg e ]) |> G.e))
       in
@@ -556,8 +556,7 @@ and v_arguments = function
           { e = Call ({ e = N (Id (("*", tok), _)); _ }, (lb', [ e ], rb')); _ }
         :: rest ->
           let splatted_last_arg =
-            G.Call (G.IdSpecial (G.Spread, tok) |> G.e, (lb', [ e ], rb'))
-            |> G.e
+            G.Call (G.Special (G.Spread, tok) |> G.e, (lb', [ e ], rb')) |> G.e
           in
           (lb, List.rev rest @ [ G.Arg splatted_last_arg ], rb)
       | _ -> (lb, v1, rb))

@@ -347,9 +347,9 @@ and vof_expr e =
   | N v1 ->
       let v1 = vof_name v1 in
       OCaml.VSum ("N", [ v1 ])
-  | IdSpecial v1 ->
+  | Special v1 ->
       let v1 = vof_wrap vof_special v1 in
-      OCaml.VSum ("IdSpecial", [ v1 ])
+      OCaml.VSum ("Special", [ v1 ])
   | Call (v1, v2) ->
       let v1 = vof_expr v1 and v2 = vof_arguments v2 in
       OCaml.VSum ("Call", [ v1; v2 ])

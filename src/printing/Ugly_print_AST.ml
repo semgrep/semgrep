@@ -200,7 +200,7 @@ class base_printer : printer_t =
       match e.G.e with
       (* Binary operator expressions are desugared to calls, but are different
        * enough that they merit a separate method here. *)
-      | G.IdSpecial (G.Op _, _) -> self#print_opcall e args
+      | G.Special (G.Op _, _) -> self#print_opcall e args
       (* TODO also handle other kinds of IdSpecial *)
       | _ -> self#print_ordinary_call e args
 
@@ -214,7 +214,7 @@ class base_printer : printer_t =
      * actually needed. *)
     method private needs_parens =
       function
-      | G.E { e = G.Call ({ e = G.IdSpecial (G.Op _, _); _ }, _); _ } -> true
+      | G.E { e = G.Call ({ e = G.Special (G.Op _, _); _ }, _); _ } -> true
       | _ -> false
 
     method private add_parens_if_needed any res =

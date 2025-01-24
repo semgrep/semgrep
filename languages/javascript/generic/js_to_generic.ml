@@ -122,7 +122,7 @@ let special (x, tok) =
         SR_NeedArgs
           (fun args ->
             G.Call
-              ( G.IdSpecial (G.ConcatString G.InterpolatedConcat, tok) |> G.e,
+              ( G.Special (G.ConcatString G.InterpolatedConcat, tok) |> G.e,
                 args |> List_.map (fun e -> G.Arg e) |> fb ))
       else
         SR_NeedArgs
@@ -136,7 +136,7 @@ let special (x, tok) =
                       [
                         G.Arg
                           (G.Call
-                             ( G.IdSpecial
+                             ( G.Special
                                  (* update: we don't use InterpolatedConcat
                                   * here anymore, to differentiate it from
                                   * the above case.
@@ -253,7 +253,7 @@ and expr (x : expr) =
   | IdSpecial v1 ->
       (let x = special v1 in
        match x with
-       | SR_Special v -> G.IdSpecial v
+       | SR_Special v -> G.Special v
        | SR_NeedArgs _ ->
            error (snd v1) "Impossible: should have been matched in Call first"
        | SR_Literal l -> G.L l
@@ -291,8 +291,8 @@ and expr (x : expr) =
         | QuestDot, tok ->
             let t = info tok in
             ( t,
-              G.Call (G.IdSpecial (G.Op G.Elvis, t) |> G.e, fb [ G.Arg e ])
-              |> G.e )
+              G.Call (G.Special (G.Op G.Elvis, t) |> G.e, fb [ G.Arg e ]) |> G.e
+            )
       in
       let v2 = property_name v2 in
       (match v2 with
@@ -313,8 +313,7 @@ and expr (x : expr) =
       let x = special v1 in
       let v2 = bracket (list expr) v2 in
       (match x with
-      | SR_Special v ->
-          G.Call (G.IdSpecial v |> G.e, bracket (List_.map G.arg) v2)
+      | SR_Special v -> G.Call (G.Special v |> G.e, bracket (List_.map G.arg) v2)
       | SR_Literal l ->
           Log.warn (fun m -> m "Weird: literal in call position");
           (* apparently there's code like (null)("fs"), no idea what that is *)
@@ -458,9 +457,7 @@ and for_header = function
             let e = expr e in
             H.expr_to_pattern e
       in
-      let e =
-        G.Call (G.IdSpecial (G.ForOf, t) |> G.e, fb [ G.Arg v2 ]) |> G.e
-      in
+      let e = G.Call (G.Special (G.ForOf, t) |> G.e, fb [ G.Arg v2 ]) |> G.e in
       G.ForEach (pattern, t, e)
   | ForEllipsis v1 -> G.ForEllipsis v1
 

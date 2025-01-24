@@ -297,13 +297,13 @@ let top_func () =
         G.Ref (v1, v2)
     | Unary (v1, v2) ->
         let v1, tok = wrap arithmetic_operator v1 and v2 = expr v2 in
-        G.Call (G.IdSpecial (G.Op v1, tok) |> G.e, fb [ G.arg v2 ])
+        G.Call (G.Special (G.Op v1, tok) |> G.e, fb [ G.arg v2 ])
     | Binary (v1, v2, v3) ->
         let v1 = expr v1
         and v2, tok = wrap arithmetic_operator v2
         and v3 = expr v3 in
         G.Call
-          (G.IdSpecial (G.Op v2, tok) |> G.e, fb ([ v1; v3 ] |> List_.map G.arg))
+          (G.Special (G.Op v2, tok) |> G.e, fb ([ v1; v3 ] |> List_.map G.arg))
     | CompositeLit (v1, v2) ->
         let v1 = type_ v1
         and l, v2, r = bracket (list init_for_composite_lit) v2 in
@@ -318,7 +318,7 @@ let top_func () =
     | TypeAssert (v1, (lp, v2, rp)) ->
         let v1 = expr v1 and v2 = type_ v2 in
         G.Call
-          ( G.IdSpecial (G.Instanceof, fake lp "instanceof") |> G.e,
+          ( G.Special (G.Instanceof, fake lp "instanceof") |> G.e,
             (lp, [ G.Arg v1; G.ArgType v2 ], rp) )
     | Ellipsis v1 ->
         let v1 = tok v1 in
@@ -375,7 +375,7 @@ let top_func () =
         let v1 = expr v1 in
         let v2 = tok v2 in
         let special =
-          G.Call (G.IdSpecial (G.Spread, v2) |> G.e, fb [ G.arg v1 ]) |> G.e
+          G.Call (G.Special (G.Spread, v2) |> G.e, fb [ G.arg v1 ]) |> G.e
         in
         G.Arg special
   and init = function
@@ -438,7 +438,7 @@ let top_func () =
         let v1 = expr v1
         and v2, tok = wrap incr_decr v2
         and v3 = prefix_postfix v3 in
-        G.Call (G.IdSpecial (G.IncrDecr (v2, v3), tok) |> G.e, fb [ G.Arg v1 ])
+        G.Call (G.Special (G.IncrDecr (v2, v3), tok) |> G.e, fb [ G.Arg v1 ])
         |> G.e
   (* invariant: you should not use 'list stmt', but instead always
    * use list stmt_aux ... |> List_.flatten
@@ -486,8 +486,7 @@ let top_func () =
                    (match s with
                    | ExprStmt (TypeSwitchExpr (e, tok1)) ->
                        let e = expr e in
-                       G.Call
-                         (G.IdSpecial (G.Typeof, tok1) |> G.e, fb [ G.Arg e ])
+                       G.Call (G.Special (G.Typeof, tok1) |> G.e, fb [ G.Arg e ])
                        |> G.e
                    | DShortVars (xs, tok1, [ TypeSwitchExpr (e, tok2) ]) ->
                        let xs = list expr xs in
@@ -496,8 +495,7 @@ let top_func () =
                          ( list_to_tuple_or_expr xs,
                            tok1,
                            G.Call
-                             ( G.IdSpecial (G.Typeof, tok2) |> G.e,
-                               fb [ G.Arg e ] )
+                             (G.Special (G.Typeof, tok2) |> G.e, fb [ G.Arg e ])
                            |> G.e )
                        |> G.e
                    | s -> simple s))

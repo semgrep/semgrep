@@ -718,17 +718,15 @@ and postfix_unary_expression (env : env) (x : CST.postfix_unary_expression) =
   | `Exp_PLUSPLUS (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "++" *) in
-      Call (IdSpecial (IncrDecr (Incr, Postfix), v2) |> G.e, fb [ Arg v1 ])
-      |> G.e
+      Call (Special (IncrDecr (Incr, Postfix), v2) |> G.e, fb [ Arg v1 ]) |> G.e
   | `Exp_DASHDASH (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "--" *) in
-      Call (IdSpecial (IncrDecr (Decr, Postfix), v2) |> G.e, fb [ Arg v1 ])
-      |> G.e
+      Call (Special (IncrDecr (Decr, Postfix), v2) |> G.e, fb [ Arg v1 ]) |> G.e
   | `Exp_BANG (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "!" *) in
-      Call (IdSpecial (Op NotNullPostfix, v2) |> G.e, fb [ Arg v1 ]) |> G.e
+      Call (Special (Op NotNullPostfix, v2) |> G.e, fb [ Arg v1 ]) |> G.e
 
 and when_clause (env : env) ((v1, v2) : CST.when_clause) =
   let _v1 = token env v1 (* "when" *) in
@@ -768,102 +766,102 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v1 = expression env v1 in
       let v2 = token env v2 (* "&&" *) in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op And, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
+      Call (Special (Op And, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
   | `Exp_BARBAR_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "||" *) in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op Or, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
+      Call (Special (Op Or, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
   | `Exp_GTGT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* ">>" *) in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op ASR, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
+      Call (Special (Op ASR, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
   | `Exp_GTGTGT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* ">>>" *) in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op LSR, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
+      Call (Special (Op LSR, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
   | `Exp_LTLT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "<<" *) in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op LSL, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
+      Call (Special (Op LSL, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
   | `Exp_AMP_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "&" *) in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op BitAnd, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
+      Call (Special (Op BitAnd, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
   | `Exp_HAT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "^" *) in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op BitXor, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
+      Call (Special (Op BitXor, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
   | `Exp_BAR_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "|" *) in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op BitOr, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
+      Call (Special (Op BitOr, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
   | `Exp_PLUS_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "+" *) in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op Plus, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
+      Call (Special (Op Plus, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
   | `Exp_DASH_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "-" *) in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op Minus, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
+      Call (Special (Op Minus, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
   | `Exp_STAR_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "*" *) in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op Mult, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
+      Call (Special (Op Mult, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
   | `Exp_SLASH_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "/" *) in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op Div, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
+      Call (Special (Op Div, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
   | `Exp_PERC_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "%" *) in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op Mod, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
+      Call (Special (Op Mod, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
   | `Exp_LT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "<" *) in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op Lt, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
+      Call (Special (Op Lt, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
   | `Exp_LTEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "<=" *) in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op LtE, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
+      Call (Special (Op LtE, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
   | `Exp_EQEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "==" *) in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op Eq, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
+      Call (Special (Op Eq, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
   | `Exp_BANGEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "!=" *) in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op NotEq, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
+      Call (Special (Op NotEq, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
   | `Exp_GTEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* ">=" *) in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op GtE, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
+      Call (Special (Op GtE, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
   | `Exp_GT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* ">" *) in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op Gt, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
+      Call (Special (Op Gt, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
   | `Exp_QMARKQMARK_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "??" *) in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op Nullish, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
+      Call (Special (Op Nullish, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
 
 and block (env : env) ((v1, v2, v3) : CST.block) : stmt =
   let v1 = token env v1 (* "{" *) in
@@ -910,7 +908,7 @@ and prefix_unary_expression (env : env) (x : CST.prefix_unary_expression) =
   | `BANG_exp (v1, v2) ->
       let v1 = token env v1 (* "!" *) in
       let v2 = expression env v2 in
-      Call (IdSpecial (Op Not, v1) |> G.e, fb [ Arg v2 ]) |> G.e
+      Call (Special (Op Not, v1) |> G.e, fb [ Arg v2 ]) |> G.e
   | `AMP_exp (v1, v2) ->
       let v1 = token env v1 (* "&" *) in
       let v2 = expression env v2 in
@@ -918,21 +916,19 @@ and prefix_unary_expression (env : env) (x : CST.prefix_unary_expression) =
   | `PLUS_exp (v1, v2) ->
       let v1 = token env v1 (* "+" *) in
       let v2 = expression env v2 in
-      Call (IdSpecial (Op Plus, v1) |> G.e, fb [ Arg v2 ]) |> G.e
+      Call (Special (Op Plus, v1) |> G.e, fb [ Arg v2 ]) |> G.e
   | `PLUSPLUS_exp (v1, v2) ->
       let v1 = token env v1 (* "++" *) in
       let v2 = expression env v2 in
-      Call (IdSpecial (IncrDecr (Incr, Prefix), v1) |> G.e, fb [ Arg v2 ])
-      |> G.e
+      Call (Special (IncrDecr (Incr, Prefix), v1) |> G.e, fb [ Arg v2 ]) |> G.e
   | `DASH_exp (v1, v2) ->
       let v1 = token env v1 (* "-" *) in
       let v2 = expression env v2 in
-      Call (IdSpecial (Op Minus, v1) |> G.e, fb [ Arg v2 ]) |> G.e
+      Call (Special (Op Minus, v1) |> G.e, fb [ Arg v2 ]) |> G.e
   | `DASHDASH_exp (v1, v2) ->
       let v1 = token env v1 (* "--" *) in
       let v2 = expression env v2 in
-      Call (IdSpecial (IncrDecr (Decr, Prefix), v1) |> G.e, fb [ Arg v2 ])
-      |> G.e
+      Call (Special (IncrDecr (Decr, Prefix), v1) |> G.e, fb [ Arg v2 ]) |> G.e
   | `HAT_exp (v1, v2) ->
       let v1 = token env v1 (* "^" *) in
       let v2 = expression env v2 in
@@ -940,7 +936,7 @@ and prefix_unary_expression (env : env) (x : CST.prefix_unary_expression) =
   | `TILDE_exp (v1, v2) ->
       let v1 = token env v1 (* "~" *) in
       let v2 = expression env v2 in
-      Call (IdSpecial (Op BitNot, v1) |> G.e, fb [ Arg v2 ]) |> G.e
+      Call (Special (Op BitNot, v1) |> G.e, fb [ Arg v2 ]) |> G.e
 
 and name (env : env) (x : CST.name) : G.name =
   match x with
@@ -1206,14 +1202,14 @@ and size_of_expression env (v1, v2, v3, v4) =
   let v2 = token env v2 (* "(" *) in
   let v3 = type_pattern env v3 in
   let v4 = token env v4 (* ")" *) in
-  Call (IdSpecial (Sizeof, v1) |> G.e, (v2, [ ArgType v3 ], v4)) |> G.e
+  Call (Special (Sizeof, v1) |> G.e, (v2, [ ArgType v3 ], v4)) |> G.e
 
 and type_of_expression env (v1, v2, v3, v4) =
   let v1 = token env v1 (* "typeof" *) in
   let v2 = token env v2 (* "(" *) in
   let v3 = type_pattern env v3 in
   let v4 = token env v4 (* ")" *) in
-  Call (IdSpecial (Typeof, v1) |> G.e, (v2, [ ArgType v3 ], v4)) |> G.e
+  Call (Special (Typeof, v1) |> G.e, (v2, [ ArgType v3 ], v4)) |> G.e
 
 and member_access_expression env (v1, v2, v3) =
   let v1 =
@@ -1291,7 +1287,7 @@ and lvalue_expression (env : env) (x : CST.lvalue_expression) : G.expr =
   match x with
   | `This_exp tok ->
       let t = token env tok (* "this" *) in
-      IdSpecial (This, t) |> G.e
+      Special (This, t) |> G.e
   | `Member_access_exp x -> member_access_expression env x
   | `Tuple_exp x -> tuple_expression env x
   | `Simple_name x -> simple_name_expression env x
@@ -1411,7 +1407,7 @@ and non_lvalue_expression (env : env) (x : CST.non_lvalue_expression) : G.expr =
       Cast (v3, v2, v1) |> G.e
   | `Base_exp tok ->
       let x = token env tok (* "base" *) in
-      IdSpecial (Super, x) |> G.e
+      Special (Super, x) |> G.e
   | `Bin_exp x -> binary_expression env x
   | `Cast_exp x -> cast_expression env x
   | `Chec_exp x -> checked_expression env x
@@ -1419,7 +1415,7 @@ and non_lvalue_expression (env : env) (x : CST.non_lvalue_expression) : G.expr =
       let v1 = expression env v1 in
       let v2 = token env v2 (* "?" *) in
       let inner =
-        G.Call (G.IdSpecial (G.Op G.Elvis, v2) |> G.e, fb [ G.Arg v1 ]) |> G.e
+        G.Call (G.Special (G.Op G.Elvis, v2) |> G.e, fb [ G.Arg v1 ]) |> G.e
       in
       match v3 with
       | `Elem_bind_exp x ->
@@ -1472,7 +1468,7 @@ and non_lvalue_expression (env : env) (x : CST.non_lvalue_expression) : G.expr =
       let v1 = expression env v1 in
       let v2 = token env v2 (* "is" *) in
       let v3 = type_ env v3 in
-      Call (IdSpecial (Instanceof, v2) |> G.e, fb [ Arg v1; ArgType v3 ]) |> G.e
+      Call (Special (Instanceof, v2) |> G.e, fb [ Arg v1; ArgType v3 ]) |> G.e
   | `Is_pat_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let _v2 = token env v2 (* "is" *) in
@@ -1526,7 +1522,7 @@ and non_lvalue_expression (env : env) (x : CST.non_lvalue_expression) : G.expr =
         | Some x -> expression env x
         | None -> new_index_from_end v2 fake_zero
       in
-      Call (IdSpecial (Op Range, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
+      Call (Special (Op Range, v2) |> G.e, fb [ Arg v1; Arg v3 ]) |> G.e
   | `Ref_exp (v1, v2) ->
       let v1 = token env v1 (* "ref" *) in
       let v2 = expression env v2 in
@@ -1537,8 +1533,7 @@ and non_lvalue_expression (env : env) (x : CST.non_lvalue_expression) : G.expr =
       let v3 = expression env v3 in
       let v4 = token env v4 (* ")" *) in
       Call
-        ( IdSpecial (Typeof, v1) |> G.e,
-          (v2, [ Arg (DeRef (v1, v3) |> G.e) ], v4) )
+        (Special (Typeof, v1) |> G.e, (v2, [ Arg (DeRef (v1, v3) |> G.e) ], v4))
       |> G.e
   | `Ref_value_exp (v1, v2, v3, v4, v5, v6) ->
       let v1 = token env v1 (* "__refvalue" *) in
@@ -2023,7 +2018,7 @@ and interpolated_string_expression (env : env)
   let v1, v2, _v3 = x in
   let args = fb (List_.map (fun e -> Arg e) v2) in
   (* TODO should we use FString here instead of InterpolatedConcat? *)
-  Call (IdSpecial (ConcatString InterpolatedConcat, v1) |> G.e, args) |> G.e
+  Call (Special (ConcatString InterpolatedConcat, v1) |> G.e, args) |> G.e
 
 and tuple_element (env : env) ((v1, v2) : CST.tuple_element) =
   let v1 = type_pattern env v1 in
@@ -2676,8 +2671,8 @@ let constructor_initializer (env : env)
   let _v1 = token env v1 (* ":" *) in
   let v2 =
     match v2 with
-    | `Base tok -> IdSpecial (Super, token env tok) (* "base" *) |> G.e
-    | `This tok -> IdSpecial (This, token env tok) |> G.e
+    | `Base tok -> Special (Super, token env tok) (* "base" *) |> G.e
+    | `This tok -> Special (This, token env tok) |> G.e
     (* "this" *)
   in
   let v3 = argument_list env v3 in

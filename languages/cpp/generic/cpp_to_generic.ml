@@ -519,7 +519,7 @@ and map_expr env x : G.expr =
   | Generic (tk, (_l, (e, assocs), _r)) ->
       let e = map_expr env e in
       let cond =
-        G.Cond (Call (IdSpecial (Typeof, tk) |> G.e, fb [ G.Arg e ]) |> G.e)
+        G.Cond (Call (Special (Typeof, tk) |> G.e, fb [ G.Arg e ]) |> G.e)
       in
       let cases =
         List_.map
@@ -664,9 +664,9 @@ and map_expr env x : G.expr =
 
 and map_special_wrap _env (spec, tk) =
   (match spec with
-  | This -> IdSpecial (G.This, tk)
-  | Defined -> IdSpecial (G.Defined, tk)
-  | SizeOf -> IdSpecial (G.Sizeof, tk)
+  | This -> Special (G.This, tk)
+  | Defined -> Special (G.Defined, tk)
+  | SizeOf -> Special (G.Sizeof, tk)
   | AlignOf -> N (Id (("alignof", tk), G.empty_id_info ()))
   | OffsetOf -> N (Id (("offsetof", tk), G.empty_id_info ())))
   |> G.e

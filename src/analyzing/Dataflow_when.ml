@@ -332,7 +332,7 @@ let facts_satisfy_e (mvars : Metavariable.bindings) (facts : facts) (e : expr) =
   (* when conditions should be in the form of id <op> expr,
    * e.g. x == 0.
    *)
-  | Call ({ e = IdSpecial (Op op, _); _ }, (_, args, _)) -> (
+  | Call ({ e = Special (Op op, _); _ }, (_, args, _)) -> (
       match args with
       (* id <op> expr *)
       | [ Arg { e = N (Id (((en, _) as e_id), _)); _ }; Arg e ] ->

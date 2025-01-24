@@ -462,7 +462,7 @@ let ac_matching_nf op args =
     |> List_.map nf_one |> List_.flatten
   and nf_one e =
     match e.e with
-    | Call ({ e = IdSpecial (Op op1, _tok1); _ }, (_, args1, _)) when op =*= op1
+    | Call ({ e = Special (Op op1, _tok1); _ }, (_, args1, _)) when op =*= op1
       ->
         nf args1
     | _ -> [ e ]
@@ -483,8 +483,7 @@ let undo_ac_matching_nf tok op : expr list -> expr option = function
   | a1 :: a2 :: args ->
       let mk_op x y =
         Call
-          ( IdSpecial (Op op, tok) |> G.e,
-            Tok.unsafe_fake_bracket [ Arg x; Arg y ] )
+          (Special (Op op, tok) |> G.e, Tok.unsafe_fake_bracket [ Arg x; Arg y ])
         |> G.e
       in
       Some (List.fold_left mk_op (mk_op a1 a2) args)

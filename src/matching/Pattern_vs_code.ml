@@ -970,15 +970,15 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
    * $THIS to match IdSpecial (This) for example.
    *)
   | ( G.Call ({ e = G.N (G.Id ((str, _tok), _id_info)); _ }, _argsa),
-      B.Call ({ e = B.IdSpecial (idspec, _); _ }, _argsb) )
+      B.Call ({ e = B.Special (idspec, _); _ }, _argsb) )
     when Mvar.is_metavar_name str && not (should_match_call idspec) ->
       fail ()
   (* metavar: *)
   (* Matching a generic Id metavariable to an IdSpecial will fail as it is
    * missing the token info; instead the Id should match Call(IdSpecial _, _)
    *)
-  | G.N (G.Id ((str, _), _)), B.IdSpecial (B.ConcatString _, _)
-  | G.N (G.Id ((str, _), _)), B.IdSpecial (B.Instanceof, _)
+  | G.N (G.Id ((str, _), _)), B.Special (B.ConcatString _, _)
+  | G.N (G.Id ((str, _), _)), B.Special (B.Instanceof, _)
     when Mvar.is_metavar_name str ->
       fail ()
   (* Important to bind to MV.Id when we can, so this must be before
@@ -999,13 +999,13 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
   | G.Ellipsis _a1, _ -> return ()
   | G.DeepEllipsis (_, a1, _), _b -> m_expr_deep a1 b
   (* equivalence: (-) E vs -n ==> E vs n *)
-  | ( G.Call ({ e = G.IdSpecial (G.Op G.Minus, _); _ }, (_, [ G.Arg arga ], _)),
+  | ( G.Call ({ e = G.Special (G.Op G.Minus, _); _ }, (_, [ G.Arg arga ], _)),
       B.L (B.Int int_lit) ) ->
       m_expr arga (B.L (B.Int (Parsed_int.neg int_lit)) |> B.e)
   (* equivalence: -n vs (-) E ==> n vs E *)
   | ( G.L (G.Int int_lit),
-      B.Call ({ e = B.IdSpecial (B.Op B.Minus, _); _ }, (_, [ B.Arg argb ], _))
-    ) ->
+      B.Call ({ e = B.Special (B.Op B.Minus, _); _ }, (_, [ B.Arg argb ], _)) )
+    ->
       m_expr (G.L (G.Int (Parsed_int.neg int_lit)) |> G.e) argb
   (* must be before constant propagation case below *)
   | G.L a1, B.L b1 -> m_literal a1 b1
@@ -1049,8 +1049,8 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
    * otherwise regular call patterns like foo("...") would match code like
    * foo().
    *)
-  | ( G.Call ({ e = G.IdSpecial (G.ConcatString akind, _a1); _ }, a2),
-      B.Call ({ e = B.IdSpecial (B.ConcatString bkind, _b1); _ }, b2) ) ->
+  | ( G.Call ({ e = G.Special (G.ConcatString akind, _a1); _ }, a2),
+      B.Call ({ e = B.Special (B.ConcatString bkind, _b1); _ }, b2) ) ->
       m_concat_string_kind akind bkind >>= fun () ->
       m_bracket m_arguments_concat a2 b2
   (* The pattern '$X = 1 + 2 + ...' is parsed as '$X = (1 + 2) + ...', but
@@ -1061,11 +1061,11 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
    * in Call() means we need to go deeper.
    *)
   | ( G.Call
-        ( { e = G.IdSpecial (G.Op aop, _toka); _ },
+        ( { e = G.Special (G.Op aop, _toka); _ },
           (_, [ G.Arg a1; G.Arg { e = G.Ellipsis _tdots; _ } ], _) ),
       B.Call
-        ( { e = B.IdSpecial (B.Op bop, _tokb); _ },
-          (_, [ B.Arg b1; B.Arg _b2 ], _) ) )
+        ({ e = B.Special (B.Op bop, _tokb); _ }, (_, [ B.Arg b1; B.Arg _b2 ], _))
+    )
   (* This applies to any binary operation! Associative operators (declared
    * in AST_generic_helpers.is_associative_operator) are better handled by
    * m_call_op below. *)
@@ -1074,8 +1074,8 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
       m_expr a1 b1 >!> fun () ->
       (* try again deeper on b1 *)
       m_expr a b1
-  | ( G.Call ({ e = G.IdSpecial (G.Op aop, toka); _ }, aargs),
-      B.Call ({ e = B.IdSpecial (B.Op bop, tokb); _ }, bargs) ) ->
+  | ( G.Call ({ e = G.Special (G.Op aop, toka); _ }, aargs),
+      B.Call ({ e = B.Special (B.Op bop, tokb); _ }, bargs) ) ->
       m_call_op aop toka aargs bop tokb bargs
   (* boilerplate *)
   | G.Call (a1, a2), B.Call (b1, b2) ->
@@ -1155,7 +1155,7 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
   | G.Lambda a1, B.Lambda b1 ->
       m_function_definition a1 b1 >>= fun () -> return ()
   | G.AnonClass a1, B.AnonClass b1 -> m_class_definition a1 b1
-  | G.IdSpecial a1, B.IdSpecial b1 -> m_wrap m_special a1 b1
+  | G.Special a1, B.Special b1 -> m_wrap m_special a1 b1
   (* This is mainly for Go which generates an AssignOp (Eq)
    * for the x := a short variable declaration.
    * TODO: this should be a configurable equivalence: $X = $Y ==> $X := $Y.
@@ -1208,7 +1208,7 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
   | G.AnonClass _, _
   | G.N _, _
   | G.New _, _
-  | G.IdSpecial _, _
+  | G.Special _, _
   | G.Xml _, _
   | G.Assign _, _
   | G.AssignOp _, _
@@ -1951,9 +1951,9 @@ and m_call_op aop toka aargs bop tokb bargs tin =
                   "Will not perform AC-matching, something went wrong when \
                    trying to convert operands to AC normal form: %s vs %s"
                   (G.show_expr
-                     (G.Call (G.IdSpecial (G.Op aop, toka) |> G.e, aargs) |> G.e))
+                     (G.Call (G.Special (G.Op aop, toka) |> G.e, aargs) |> G.e))
                   (B.show_expr
-                     (B.Call (B.IdSpecial (B.Op bop, tokb) |> G.e, bargs) |> G.e)));
+                     (B.Call (B.Special (B.Op bop, tokb) |> G.e, bargs) |> G.e)));
             m_op_default aargs bargs tin)
     | false, true (* not assoc and comm *) -> (
         match (aargs, bargs) with
@@ -3723,7 +3723,7 @@ and m_directive_vs_def a b =
                   {
                     e =
                       B.Call
-                        ( { e = B.IdSpecial (B.Require, _); _ },
+                        ( { e = B.Special (B.Require, _); _ },
                           ( _,
                             [ B.Arg { e = B.L (B.String (_, fileb, _)); _ } ],
                             _ ) );
@@ -3750,7 +3750,7 @@ and m_directive_vs_def a b =
                           {
                             e =
                               B.Call
-                                ( { e = B.IdSpecial (Require, _); _ },
+                                ( { e = B.Special (Require, _); _ },
                                   ( _,
                                     [
                                       B.Arg

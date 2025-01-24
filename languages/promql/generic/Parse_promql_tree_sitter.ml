@@ -370,7 +370,7 @@ and map_operator_expression (env : env) (x : CST.operator_expression) =
   in
   let l = map_query env v1 in
   let r = map_query env v4 in
-  G.Call (G.IdSpecial (G.Op op, tok) |> G.e, fb [ G.arg l; G.arg r ]) |> G.e
+  G.Call (G.Special (G.Op op, tok) |> G.e, fb [ G.arg l; G.arg r ]) |> G.e
 
 and map_query_expression (env : env) (x : CST.query_expression) =
   match x with

@@ -1239,8 +1239,8 @@ let rec transpile_let_bind (env : env) (left : G.pattern) (right : G.expr) :
       |> List_.flatten
   | G.OtherPat (("ExprToPattern", _), [ E e ]) -> (
       match e.e with
-      | G.IdSpecial (G.Spread, tok) ->
-          [ G.F (G.IdSpecial (G.Spread, tok) |> G.e |> G.exprstmt) ]
+      | G.Special (G.Spread, tok) ->
+          [ G.F (G.Special (G.Spread, tok) |> G.e |> G.exprstmt) ]
       | _ ->
           Log.err (fun m ->
               m "Unsupported pattern in let binding %s \n\n \n %s "
@@ -1469,7 +1469,7 @@ and map_bind_field (env : env) (x : CST.bind_field) =
           let ident : G.ident = str env tok in
           let spread_tok = token env tok in
           ( [ ident ],
-            G.IdSpecial (G.Spread, spread_tok) |> G.e |> H2.expr_to_pattern ))
+            G.Special (G.Spread, spread_tok) |> G.e |> H2.expr_to_pattern ))
   | `Ellips tok ->
       let ident = str env tok in
       ([ ident ], G.PatEllipsis (token env tok))

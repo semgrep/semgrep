@@ -96,11 +96,11 @@ let extract_strings_and_mvars ?lang any =
              * e.g. `"foo" + "bar"`. *)
             super#visit_expr env x
         | Call
-            ( { e = IdSpecial (Require, _); _ },
+            ( { e = Special (Require, _); _ },
               (_, [ Arg { e = L (String (_, (str, _tok), _)); _ } ], _) ) ->
             if not (Pattern.is_special_string_literal str) then
               Stack_.push str strings
-        | IdSpecial (Eval, t) ->
+        | Special (Eval, t) ->
             if Tok.is_origintok t then
               Stack_.push (Tok.content_of_tok t) strings
         | TypedMetavar (_, _, type_) -> (

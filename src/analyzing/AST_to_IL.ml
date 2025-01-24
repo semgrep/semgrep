@@ -292,7 +292,7 @@ let is_constructor env ret_ty id_info =
 let rec lval env eorig =
   match eorig.G.e with
   | G.N n -> name env n
-  | G.IdSpecial (G.This, tok) -> lval_of_base (VarSpecial (This, tok))
+  | G.Special (G.This, tok) -> lval_of_base (VarSpecial (This, tok))
   | G.DotAccess (e1orig, tok, field) ->
       let offset' =
         match field with
@@ -564,12 +564,12 @@ and expr_aux env ?(void = false) g_expr =
   let eorig = SameAs g_expr in
   match g_expr.G.e with
   | G.Call
-      ( { e = G.IdSpecial (G.Op ((G.And | G.Or) as op), tok); _ },
+      ( { e = G.Special (G.Op ((G.And | G.Or) as op), tok); _ },
         (_, arg0 :: args, _) )
     when not void ->
       expr_lazy_op env op tok arg0 args eorig
   (* args_with_pre_stmts *)
-  | G.Call ({ e = G.IdSpecial (G.Op op, tok); _ }, args) -> (
+  | G.Call ({ e = G.Special (G.Op op, tok); _ }, args) -> (
       let args = arguments env (Tok.unbracket args) in
       if not void then mk_e (Operator ((op, tok), args)) eorig
       else
@@ -590,12 +590,11 @@ and expr_aux env ?(void = false) g_expr =
             add_call env tok eorig ~void (fun res -> Call (res, method_, args'))
       )
   | G.Call
-      ( ({ e = G.IdSpecial ((G.This | G.Super | G.Self | G.Parent), tok); _ } as
-         e),
+      ( ({ e = G.Special ((G.This | G.Super | G.Self | G.Parent), tok); _ } as e),
         args ) ->
       call_generic env ~void tok eorig e args
   | G.Call
-      ({ e = G.IdSpecial (G.IncrDecr (incdec, _prepostIGNORE), tok); _ }, args)
+      ({ e = G.Special (G.IncrDecr (incdec, _prepostIGNORE), tok); _ }, args)
     -> (
       (* in theory in expr() we should return each time a list of pre-instr
        * and a list of post-instrs to execute before and after the use
@@ -671,8 +670,7 @@ and expr_aux env ?(void = false) g_expr =
       let args = arguments env (Tok.unbracket args) in
       add_instr env (mk_i (CallSpecial (Some lval, special, args)) eorig);
       mk_e (Fetch lval) (related_tok tok)
-  | G.Call
-      ({ e = G.IdSpecial (G.InterpolatedElement, _); _ }, (_, [ G.Arg e ], _))
+  | G.Call ({ e = G.Special (G.InterpolatedElement, _); _ }, (_, [ G.Arg e ], _))
     ->
       (* G.InterpolatedElement is useful for matching certain patterns against
        * interpolated strings, but we do not have an use for it yet during
@@ -687,7 +685,7 @@ and expr_aux env ?(void = false) g_expr =
       let args = arguments env (Tok.unbracket args) in
       add_instr env (mk_i (New (lval, type_ env ty, None, args)) eorig);
       mk_e (Fetch lval) NoOrig
-  | G.Call ({ e = G.IdSpecial spec; _ }, args) -> (
+  | G.Call ({ e = G.Special spec; _ }, args) -> (
       let tok = snd spec in
       let args = arguments env (Tok.unbracket args) in
       try
@@ -827,7 +825,7 @@ and expr_aux env ?(void = false) g_expr =
       let lval = fresh_lval env tok in
       add_instr env (mk_i (AssignAnon (lval, AnonClass def)) eorig);
       mk_e (Fetch lval) eorig
-  | G.IdSpecial (spec, tok) -> (
+  | G.Special (spec, tok) -> (
       let opt_var_special =
         match spec with
         | G.This -> Some This
@@ -982,7 +980,7 @@ and call_special _env (x, tok) =
     | G.Cls
     | G.Parent
     | G.InterpolatedElement ->
-        impossible (G.E (G.IdSpecial (x, tok) |> G.e))
+        impossible (G.E (G.Special (x, tok) |> G.e))
     (* should be intercepted before *)
     | G.Eval -> Eval
     | G.Typeof -> Typeof
@@ -996,7 +994,7 @@ and call_special _env (x, tok) =
     | G.HashSplat
     | G.ForOf
     | G.NextArrayIndex ->
-        todo (G.E (G.IdSpecial (x, tok) |> G.e))),
+        todo (G.E (G.Special (x, tok) |> G.e))),
     tok )
 
 and composite_kind ~g_expr = function
@@ -1060,8 +1058,7 @@ and record env ((_tok, origfields, _) as record_def) =
                  G.ExprStmt
                    ( {
                        e =
-                         Call
-                           ({ e = IdSpecial (Spread, _); _ }, (_, [ Arg e ], _));
+                         Call ({ e = Special (Spread, _); _ }, (_, [ Arg e ], _));
                        _;
                      },
                      _ );

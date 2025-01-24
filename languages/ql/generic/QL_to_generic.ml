@@ -214,7 +214,7 @@ and expr (x : expr) =
   | BinOp (v1, (v2, tok), v3) ->
       let v1 = expr v1 and v2 = operator v2 and v3 = expr v3 in
       G.Call
-        (G.IdSpecial (G.Op v2, tok) |> G.e, fb ([ v1; v3 ] |> List_.map G.arg))
+        (G.Special (G.Op v2, tok) |> G.e, fb ([ v1; v3 ] |> List_.map G.arg))
       |> G.e
   | UnaryOp ((v1, tok), v2) ->
       let op = unaryop v1 and v2 = expr v2 in
@@ -262,7 +262,7 @@ and expr (x : expr) =
             G.FDynamic
               (G.OtherExpr (("RhsCast", unsafe_fake ""), [ G.T (type_ ty) ])
               |> G.e)
-        | RhsSuper tok -> G.FDynamic (G.IdSpecial (G.Super, tok) |> G.e)
+        | RhsSuper tok -> G.FDynamic (G.Special (G.Super, tok) |> G.e)
       in
       G.DotAccess (lhs, v2, field) |> G.e
   | Ellipsis x ->
@@ -281,10 +281,10 @@ and argument = function
 
 and special (x, tk) =
   match x with
-  | This -> G.IdSpecial (G.This, tk) |> G.e
+  | This -> G.Special (G.This, tk) |> G.e
   | Result -> G.N (H.name_of_id ("result", tk)) |> G.e
   | NoneId -> G.N (H.name_of_id ("none", tk)) |> G.e
-  | Not -> G.IdSpecial (G.Op G.Not, tk) |> G.e
+  | Not -> G.Special (G.Op G.Not, tk) |> G.e
 
 and arguments x = list argument x
 

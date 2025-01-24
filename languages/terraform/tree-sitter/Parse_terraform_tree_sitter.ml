@@ -502,7 +502,7 @@ and map_splat (env : env) (x : CST.splat) =
   | `Attr_splat (v1, v2) ->
       let v1 = (* ".*" *) token env v1 in
       let f1 e =
-        let access = G.FDynamic (G.IdSpecial (G.HashSplat, v1) |> G.e) in
+        let access = G.FDynamic (G.Special (G.HashSplat, v1) |> G.e) in
         G.DotAccess (e, v1, access) |> G.e
       in
       let v2 = List_.map (map_anon_choice_get_attr_7bbf24f env) v2 in
@@ -510,7 +510,7 @@ and map_splat (env : env) (x : CST.splat) =
   | `Full_splat (v1, v2) ->
       let v1 = (* "[*]" *) token env v1 in
       let f1 e =
-        let access = G.IdSpecial (G.HashSplat, v1) |> G.e in
+        let access = G.Special (G.HashSplat, v1) |> G.e in
         G.ArrayAccess (e, (v1, access, v1)) |> G.e
       in
       let v2 = List_.map (map_anon_choice_get_attr_7bbf24f env) v2 in

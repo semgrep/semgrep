@@ -591,7 +591,7 @@ and expr env e =
   match e.e with
   | N (Id ((s, _), idinfo)) -> id env (s, idinfo)
   | N (IdQualified qualified_info) -> id_qualified env qualified_info
-  | IdSpecial (sp, tok) -> special env (sp, tok)
+  | Special (sp, tok) -> special env (sp, tok)
   | Call (e1, e2) -> call env (e1, e2)
   | New (_, t, _, es) -> new_call env (t, es)
   | L x -> literal env x
@@ -640,9 +640,12 @@ and id_qualified env { name_last = id, _toptTODO; name_middle; name_top; _ } =
 and special env = function
   | This, tok -> token ~d:"this" tok
   | Self, tok -> token ~d:"self" tok
+  | Super, tok -> token ~d:"super" tok
+  | Parent, tok -> token ~d:"parent" tok
+  | Cls, tok -> token ~d:"cls" tok
   | Op op, tok -> arithop env (op, tok)
   | IncrDecr _, _ -> "" (* should be captured in the call *)
-  | sp, tok -> todo (E (IdSpecial (sp, tok) |> G.e))
+  | sp, tok -> todo (E (Special (sp, tok) |> G.e))
 
 and new_call env (t, (_, es, _)) =
   let s1 = type_ t in
@@ -651,13 +654,13 @@ and new_call env (t, (_, es, _)) =
 and call env (e, (_, es, _)) =
   let s1 = expr env e in
   match (e.e, es) with
-  | IdSpecial (Op In, _), [ e1; e2 ] ->
+  | Special (Op In, _), [ e1; e2 ] ->
       F.sprintf "%s in %s" (argument env e1) (argument env e2)
-  | IdSpecial (Op NotIn, _), [ e1; e2 ] ->
+  | Special (Op NotIn, _), [ e1; e2 ] ->
       F.sprintf "%s not in %s" (argument env e1) (argument env e2)
-  | IdSpecial (Op _, _), [ x; y ] ->
+  | Special (Op _, _), [ x; y ] ->
       F.sprintf "%s %s %s" (argument env x) s1 (argument env y)
-  | IdSpecial (IncrDecr (i_d, pre_post), _), [ x ] -> (
+  | Special (IncrDecr (i_d, pre_post), _), [ x ] -> (
       let op_str =
         match i_d with
         | Incr -> "++"

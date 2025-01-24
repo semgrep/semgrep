@@ -447,7 +447,7 @@ let rec map_additive_expression (env : env) (x : CST.additive_expression) =
       in
       List.fold_left
         (fun acc ((op, t), rhs) ->
-          Call (IdSpecial (Op op, t) |> G.e, fb [ Arg acc; Arg rhs ]) |> G.e)
+          Call (Special (Op op, t) |> G.e, fb [ Arg acc; Arg rhs ]) |> G.e)
         v1 v2
   | `Super_rep1_addi_op_real_exp (v1, v2) ->
       let v1 = (* "super" *) token env v1 in
@@ -461,8 +461,8 @@ let rec map_additive_expression (env : env) (x : CST.additive_expression) =
       in
       List.fold_left
         (fun acc ((op, t), rhs) ->
-          Call (IdSpecial (Op op, t) |> G.e, fb [ Arg acc; Arg rhs ]) |> G.e)
-        (IdSpecial (Super, v1) |> G.e)
+          Call (Special (Op op, t) |> G.e, fb [ Arg acc; Arg rhs ]) |> G.e)
+        (Special (Super, v1) |> G.e)
         v2
 
 and map_annotation_ (env : env) (x : CST.annotation_) : G.attribute =
@@ -609,7 +609,7 @@ and map_assignable_expression (env : env) (x : CST.assignable_expression) : expr
       v2 v1
   | `Super_unco_assi_sele (v1, v2) ->
       let v1 = (* "super" *) token env v1 in
-      let expr = IdSpecial (Super, v1) |> G.e in
+      let expr = Special (Super, v1) |> G.e in
       let v2 = map_unconditional_assignable_selector env v2 in
       v2 expr
   | `Cons_invo_assi_sele_part (v1, v2) ->
@@ -676,7 +676,7 @@ and map_bitwise_and_expression (env : env) (x : CST.bitwise_and_expression) :
             (v1, v2))
           v2
       in
-      map_bitwise_expression_base env BitAnd (IdSpecial (Super, v1) |> G.e) v2
+      map_bitwise_expression_base env BitAnd (Special (Super, v1) |> G.e) v2
 
 and map_bitwise_or_expression (env : env) (x : CST.bitwise_or_expression) =
   match x with
@@ -701,7 +701,7 @@ and map_bitwise_or_expression (env : env) (x : CST.bitwise_or_expression) =
             (v1, v2))
           v2
       in
-      map_bitwise_expression_base env BitOr (IdSpecial (Super, v1) |> G.e) v2
+      map_bitwise_expression_base env BitOr (Special (Super, v1) |> G.e) v2
 
 and map_bitwise_xor_expression (env : env) (x : CST.bitwise_xor_expression) =
   match x with
@@ -726,7 +726,7 @@ and map_bitwise_xor_expression (env : env) (x : CST.bitwise_xor_expression) =
             (v1, v2))
           v2
       in
-      map_bitwise_expression_base env BitXor (IdSpecial (Super, v1) |> G.e) v2
+      map_bitwise_expression_base env BitXor (Special (Super, v1) |> G.e) v2
 
 and map_block (env : env) ((v1, v2, v3) : CST.block) : stmt list bracket =
   let v1 = (* "{" *) token env v1 in
@@ -958,7 +958,7 @@ and map_equality_expression (env : env) (x : CST.equality_expression) : expr =
       | _, tk -> special (Op Eq, tk) [ v1; v3 ])
   | `Super_equa_op_real_exp (v1, v2, v3) -> (
       let v1 = (* "super" *) token env v1 in
-      let v1 = IdSpecial (Super, v1) |> G.e in
+      let v1 = Special (Super, v1) |> G.e in
       let v2 = (* equality_operator *) str env v2 in
       let v3 = map_real_expression env v3 in
       match v2 with
@@ -1492,11 +1492,11 @@ and map_multiplicative_expression (env : env)
       in
       List.fold_left
         (fun acc ((op, t), rhs) ->
-          Call (IdSpecial (Op op, t) |> G.e, fb [ Arg acc; Arg rhs ]) |> G.e)
+          Call (Special (Op op, t) |> G.e, fb [ Arg acc; Arg rhs ]) |> G.e)
         v1 v2
   | `Super_rep1_mult_op_un_exp (v1, v2) ->
       let v1 = (* "super" *) token env v1 in
-      let v1 = IdSpecial (Super, v1) |> G.e in
+      let v1 = Special (Super, v1) |> G.e in
       let v2 =
         List_.map
           (fun (v1, v2) ->
@@ -1507,7 +1507,7 @@ and map_multiplicative_expression (env : env)
       in
       List.fold_left
         (fun acc ((op, t), rhs) ->
-          Call (IdSpecial (Op op, t) |> G.e, fb [ Arg acc; Arg rhs ]) |> G.e)
+          Call (Special (Op op, t) |> G.e, fb [ Arg acc; Arg rhs ]) |> G.e)
         v1 v2
 
 and map_named_argument (env : env) ((v1, v2) : CST.named_argument) =
@@ -1821,10 +1821,10 @@ and map_primary (env : env) (x : CST.primary) : expr =
       *)
       New (v1, v2, empty_id_info (), v4) |> G.e
   | `LPAR_exp_RPAR x -> map_parenthesized_expression env x
-  | `This tok -> IdSpecial (This, (* "this" *) token env tok) |> G.e
+  | `This tok -> Special (This, (* "this" *) token env tok) |> G.e
   | `Super_unco_assi_sele (v1, v2) ->
       let v1 = (* "super" *) token env v1 in
-      let v1 = IdSpecial (Super, v1) |> G.e in
+      let v1 = Special (Super, v1) |> G.e in
       let v2 = map_unconditional_assignable_selector env v2 in
       v2 v1
 
@@ -1890,7 +1890,7 @@ and map_relational_expression (env : env) (x : CST.relational_expression) =
       special (Op op, tk) [ v1; v3 ]
   | `Super_rela_op_real_exp (v1, v2, v3) ->
       let v1 = (* "super" *) token env v1 in
-      let v1 = IdSpecial (Super, v1) |> G.e in
+      let v1 = Special (Super, v1) |> G.e in
       let op, tk = map_relational_operator env v2 in
       let v3 = map_real_expression env v3 in
       special (Op op, tk) [ v1; v3 ]
@@ -1936,11 +1936,11 @@ and map_shift_expression (env : env) (x : CST.shift_expression) =
       in
       List.fold_left
         (fun acc ((op, t), rhs) ->
-          Call (IdSpecial (Op op, t) |> G.e, fb [ Arg acc; Arg rhs ]) |> G.e)
+          Call (Special (Op op, t) |> G.e, fb [ Arg acc; Arg rhs ]) |> G.e)
         v1 v2
   | `Super_rep1_shift_op_real_exp (v1, v2) ->
       let v1 = (* "super" *) token env v1 in
-      let v1 = IdSpecial (Super, v1) |> G.e in
+      let v1 = Special (Super, v1) |> G.e in
       let v2 =
         List_.map
           (fun (v1, v2) ->
@@ -1951,7 +1951,7 @@ and map_shift_expression (env : env) (x : CST.shift_expression) =
       in
       List.fold_left
         (fun acc ((op, t), rhs) ->
-          Call (IdSpecial (Op op, t) |> G.e, fb [ Arg acc; Arg rhs ]) |> G.e)
+          Call (Special (Op op, t) |> G.e, fb [ Arg acc; Arg rhs ]) |> G.e)
         v1 v2
 
 and map_simple_formal_parameter (env : env) (x : CST.simple_formal_parameter) :
@@ -2148,7 +2148,7 @@ and map_strict_formal_parameter_list (env : env)
 
 and map_string_literal (env : env) (xs : CST.string_literal) : G.expr =
   G.Call
-    ( G.IdSpecial (G.ConcatString G.SequenceConcat, fake "concat") |> G.e,
+    ( G.Special (G.ConcatString G.SequenceConcat, fake "concat") |> G.e,
       fb
         (xs
         |> List_.map (fun x ->
@@ -2438,7 +2438,7 @@ and map_type_parameters (env : env) ((v1, v2, v3, v4) : CST.type_parameters) :
 and map_type_test (env : env) ((v1, v2) : CST.type_test) exp : expr =
   let op, tk = map_is_operator env v1 in
   let v2 = map_type_not_void env v2 in
-  Call (IdSpecial (Op op, tk) |> G.e, fb [ G.Arg exp; G.ArgType v2 ]) |> G.e
+  Call (Special (Op op, tk) |> G.e, fb [ G.Arg exp; G.ArgType v2 ]) |> G.e
 
 and map_typed_identifier (env : env) ((v1, v2) : CST.typed_identifier) :
     type_ * ident =
@@ -2468,7 +2468,7 @@ and map_unary_expression_ (env : env) (x : CST.unary_expression_) : expr =
         | `Tilde_op tok -> (BitNot, (* "~" *) token env tok)
       in
       let v2 = (* "super" *) token env v2 in
-      special (Op op, tk) [ IdSpecial (Super, v2) |> G.e ]
+      special (Op op, tk) [ Special (Super, v2) |> G.e ]
   | `Incr_op_assi_exp (v1, v2) ->
       let s, t = (* increment_operator *) str env v1 in
       let incr_decr =
@@ -2866,7 +2866,7 @@ let map_initializer_list_entry (env : env) (x : CST.initializer_list_entry) :
   match x with
   | `Super_opt_DOT_qual_args (v1, v2, v3) ->
       let v1 = (* "super" *) token env v1 in
-      let super = IdSpecial (Super, v1) |> G.e in
+      let super = Special (Super, v1) |> G.e in
       let v2 =
         match v2 with
         | Some (v1, v2) ->
@@ -2886,7 +2886,7 @@ let map_initializer_list_entry (env : env) (x : CST.initializer_list_entry) :
         | Some (v1, v2) ->
             let v1 = (* "this" *) token env v1 in
             let v2 = (* "." *) token env v2 in
-            DotAccess (IdSpecial (This, v1) |> G.e, v2, FN offset) |> G.e
+            DotAccess (Special (This, v1) |> G.e, v2, FN offset) |> G.e
         | None -> G.N offset |> G.e
       in
       let v3 = (* "=" *) token env v3 in
@@ -3070,7 +3070,7 @@ let map_anon_choice_redi_3f8cf96 (env : env) (x : CST.anon_choice_redi_3f8cf96)
   | `Redi (v1, v2, v3, v4) ->
       let _v1 = (* ":" *) token env v1 in
       let v2 = (* "this" *) token env v2 in
-      let this = IdSpecial (This, v2) |> G.e in
+      let this = Special (This, v2) |> G.e in
       let v3 =
         match v3 with
         | Some x ->

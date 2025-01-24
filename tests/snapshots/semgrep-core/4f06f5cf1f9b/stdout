@@ -13,7 +13,7 @@ rule.yml
                               (E
                                  { e =
                                    (Call (
-                                      { e = (IdSpecial ((Op Eq), ()));
+                                      { e = (Special ((Op Eq), ()));
                                         e_id = 0; e_range = None;
                                         is_implicit_return = false;
                                         facts = <opaque> },

@@ -160,7 +160,7 @@ let rec eval (env : env) (x : G.expr) : G.svalue option =
   | L x -> Some (Lit x)
   | N (Id (_, { id_svalue = { contents = Some x }; _ }))
   | DotAccess
-      ( { e = IdSpecial ((This | Self), _); _ },
+      ( { e = Special ((This | Self), _); _ },
         _,
         FN (Id (_, { id_svalue = { contents = Some x }; _ })) ) ->
       Some x
@@ -192,7 +192,7 @@ let rec eval (env : env) (x : G.expr) : G.svalue option =
       let* v3 = eval env e3 in
       Some (Eval_il_partial.union v2 v3)
   | Call
-      ( { e = IdSpecial (EncodedString str_kind, _); _ },
+      ( { e = Special (EncodedString str_kind, _); _ },
         (_, [ Arg { e = L (String (_, (str, str_tok), _) as str_lit); _ } ], _)
       ) -> (
       match str_kind with
@@ -205,9 +205,9 @@ let rec eval (env : env) (x : G.expr) : G.svalue option =
       | _else ->
           (* THINK: is this good enough for "b" and "u"? *)
           Some (Lit str_lit))
-  | Call ({ e = IdSpecial (InterpolatedElement, _); _ }, (_, [ Arg e ], _)) ->
+  | Call ({ e = Special (InterpolatedElement, _); _ }, (_, [ Arg e ], _)) ->
       eval env e
-  | Call ({ e = IdSpecial special; _ }, args) -> eval_special env special args
+  | Call ({ e = Special special; _ }, args) -> eval_special env special args
   | Call ({ e = N name; _ }, args) -> eval_call env name args
   | Call (({ e = DotAccess (_, _, FN (Id _)); _ } as e), args) ->
       let* name = H.name_of_dot_access e in

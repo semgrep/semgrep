@@ -235,10 +235,10 @@ let requires_expr_to_precondition env key e =
           ("Invalid `requires' expression, metavariables cannot be used as \
             labels: " ^ str)
     | G.N (G.Id ((str, _), _)) -> Ok (R.PLabel str)
-    | G.Call ({ e = G.IdSpecial (G.Op G.Not, _); _ }, (_, [ Arg e1 ], _)) ->
+    | G.Call ({ e = G.Special (G.Op G.Not, _); _ }, (_, [ Arg e1 ], _)) ->
         let/ precond = expr_to_precondition e1 in
         Ok (R.PNot precond)
-    | G.Call ({ e = G.IdSpecial (G.Op op, _); _ }, (_, args, _)) -> (
+    | G.Call ({ e = G.Special (G.Op op, _); _ }, (_, args, _)) -> (
         let/ precond = args_to_precondition args in
         match (op, precond) with
         | G.And, xs -> Ok (R.PAnd xs)

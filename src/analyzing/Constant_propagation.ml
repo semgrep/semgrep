@@ -96,7 +96,7 @@ let rec lvars_in_lhs expr =
   match expr.e with
   | N (Id (id, { id_resolved = { contents = Some (_kind, sid) }; _ }))
   | DotAccess
-      ( { e = IdSpecial (This, _); _ },
+      ( { e = Special (This, _); _ },
         _,
         FN (Id (id, { id_resolved = { contents = Some (_kind, sid) }; _ })) ) ->
       [ (id, sid) ]
@@ -277,7 +277,7 @@ let stats_of_prog prog : stats =
                    | AssignOp _ -> incr stat.rvalue
                    | _ -> ())
         | Call
-            ( { e = IdSpecial (IncrDecr _, _); _ },
+            ( { e = Special (IncrDecr _, _); _ },
               ( _,
                 [
                   Arg
@@ -521,7 +521,7 @@ let propagate_basic lang prog =
         match x.e with
         | N (Id (id, id_info))
         | DotAccess
-            ({ e = IdSpecial ((This | Self), _); _ }, _, FN (Id (id, id_info)))
+            ({ e = Special ((This | Self), _); _ }, _, FN (Id (id, id_info)))
           when not ctx.in_lvalue ->
             let/ svalue = Eval.find_id env id id_info in
             Dataflow_svalue.set_svalue_ref id_info svalue
@@ -556,7 +556,7 @@ let propagate_basic lang prog =
                             _;
                           } ))
                   | DotAccess
-                      ( { e = IdSpecial ((This | Self), _); _ },
+                      ( { e = Special ((This | Self), _); _ },
                         _,
                         FN
                           (Id

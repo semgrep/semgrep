@@ -503,16 +503,16 @@ let map_referenceable_operator (env : env) (x : CST.referenceable_operator) =
       ((s, tok), G.N (H2.name_of_id ident))
   | `Comp_op x ->
       let op, (s, tok) = map_comparison_operator env x in
-      ((s, tok), G.IdSpecial (G.Op op, tok))
+      ((s, tok), G.Special (G.Op op, tok))
   | `Addi_op x ->
       let op, (s, tok) = map_additive_operator env x in
-      ((s, tok), G.IdSpecial (G.Op op, tok))
+      ((s, tok), G.Special (G.Op op, tok))
   | `Mult_op x ->
       let op, (s, tok) = map_multiplicative_operator env x in
-      ((s, tok), G.IdSpecial (G.Op op, tok))
+      ((s, tok), G.Special (G.Op op, tok))
   | `Equa_op x ->
       let op, (s, tok) = map_equality_operator env x in
-      ((s, tok), G.IdSpecial (G.Op op, tok))
+      ((s, tok), G.Special (G.Op op, tok))
   | `Assign_and_op x ->
       let _op, (s, tok) = map_assignment_and_operator env x in
       (* TODO What is the correct translation here? Desugaring? *)
@@ -523,35 +523,35 @@ let map_referenceable_operator (env : env) (x : CST.referenceable_operator) =
   | `PLUSPLUS tok ->
       (* "++" *)
       let s, tok = str env tok in
-      ((s, tok), G.IdSpecial (G.IncrDecr (G.Incr, G.Postfix), tok))
+      ((s, tok), G.Special (G.IncrDecr (G.Incr, G.Postfix), tok))
   | `DASHDASH tok ->
       (* "--" *)
       let s, tok = str env tok in
-      ((s, tok), G.IdSpecial (G.IncrDecr (G.Decr, G.Postfix), tok))
+      ((s, tok), G.Special (G.IncrDecr (G.Decr, G.Postfix), tok))
   | `Bang tok ->
       (* bang *)
       let s, tok = str env tok in
-      ((s, tok), G.IdSpecial (G.Op G.Not, tok))
+      ((s, tok), G.Special (G.Op G.Not, tok))
   | `TILDE tok ->
       (* "~" *)
       let s, tok = str env tok in
-      ((s, tok), G.IdSpecial (G.Op G.BitNot, tok))
+      ((s, tok), G.Special (G.Op G.BitNot, tok))
   | `BAR tok ->
       (* "|" *)
       let s, tok = str env tok in
-      ((s, tok), G.IdSpecial (G.Op G.BitOr, tok))
+      ((s, tok), G.Special (G.Op G.BitOr, tok))
   | `HAT tok ->
       (* "^" *)
       let s, tok = str env tok in
-      ((s, tok), G.IdSpecial (G.Op G.BitXor, tok))
+      ((s, tok), G.Special (G.Op G.BitXor, tok))
   | `LTLT tok ->
       (* "<<" *)
       let s, tok = str env tok in
-      ((s, tok), G.IdSpecial (G.Op G.LSL, tok))
+      ((s, tok), G.Special (G.Op G.LSL, tok))
   | `GTGT tok ->
       (* ">>" *)
       let s, tok = str env tok in
-      ((s, tok), G.IdSpecial (G.Op G.ASR, tok))
+      ((s, tok), G.Special (G.Op G.ASR, tok))
 
 let map_operator_declaration (env : env)
     ((v1, v2, v3, v4, v5) : CST.operator_declaration) : G.stmt =
@@ -1061,7 +1061,7 @@ and map_binary_expression (env : env) (x : CST.binary_expression) =
       let tis = (* "is" *) token env v2 in
       let ty = map_type_ env v3 in
       G.Call
-        ( G.IdSpecial (G.Instanceof, tis) |> G.e,
+        ( G.Special (G.Instanceof, tis) |> G.e,
           Tok.unsafe_fake_bracket [ G.Arg e; G.ArgType ty ] )
       |> G.e
   | `Equa_exp (v1, v2, v3) ->
@@ -1584,7 +1584,7 @@ and combine_conds cond conds =
   List.fold_left
     (fun acc x ->
       G.Call
-        ( G.IdSpecial (G.Op G.And, G.fake "&&") |> G.e,
+        ( G.Special (G.Op G.And, G.fake "&&") |> G.e,
           Tok.unsafe_fake_bracket [ G.Arg acc; G.Arg x ] )
       |> G.e)
     cond conds
@@ -2438,7 +2438,7 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : G.expr =
       let rb = (* "]" *) token env v4 in
       G.Container (G.Dict, (lb, xs, rb)) |> G.e
   | `Self_exp tok -> map_self_expression env tok
-  | `Super_exp v1 -> G.IdSpecial (G.Super, (* "super" *) token env v1) |> G.e
+  | `Super_exp v1 -> G.Special (G.Super, (* "super" *) token env v1) |> G.e
   | `Try_exp (v1, v2) ->
       let v1 = map_try_operator env v1 in
       let v2 =
@@ -2506,7 +2506,7 @@ and map_primary_expression (env : env) (x : CST.primary_expression) : G.expr =
         G.opcall op [ G.L (G.Null tok) |> G.e; G.L (G.Null tok) |> G.e ]
 
 and map_self_expression (env : env) tok =
-  G.IdSpecial (G.Self, (* "self" *) token env tok) |> G.e
+  G.Special (G.Self, (* "self" *) token env tok) |> G.e
 
 and map_property_declaration (env : env) ((v1, v2) : CST.property_declaration) =
   (* These modifiers apply to each consecutive declaration here.

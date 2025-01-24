@@ -716,11 +716,11 @@ and expr_kind =
   | Constructor of name * expr list bracket
   (* see also New(...) for other values *)
   | N of name
-  | IdSpecial of special wrap
+  | Special of special wrap
   (* operators and function application *)
   | Call of expr * arguments
   (* IntepolatedString of expr list is simulated with a
-   * Call(IdSpecial (Concat ...)) *)
+   * Call(Special (Concat ...)) *)
   (* Regexp templates are interpolated strings. Constant regexps aren't
      represented here but under 'literal' so as to benefit from constant
      propagation. This is meant to be similar to how string literals
@@ -738,7 +738,7 @@ and expr_kind =
    * 'id_info' refers to the constructor.
    * Note that certain languages do not have a 'new' keyword
    * (e.g., Python, Scala 3), instead certain 'Call' are really 'New'.
-   * old: this is used to be an IdSpecial used in conjunction with
+   * old: this is used to be an Special used in conjunction with
    * Call ([ArgType _; ...]) but better to be more precise here as
    * New is really important for typing (and other program analysis).
    * note: see also AnonClass which is also a New.
@@ -1022,11 +1022,11 @@ and special =
   | Op of operator
   (* less: should be lift up and transformed in Assign at stmt level *)
   | IncrDecr of (incr_decr * prefix_postfix)
-  (* JS: `require('foo')`. Calls to require are different than imports as
-   * represented by e.g. `ImportFrom`. They are expressions rather than top
-   * level statements, and can therefore appear inline in any expression, so
-   * it's not generally possible to desugar to imports. *)
   | Require
+      (** JS: [require('foo')]. Calls to require are different than imports as
+          represented by e.g. [ImportFrom]. They are expressions rather than
+          top level statements, and can therefore appear inline in any
+          expression, so it's not generally possible to desugar to imports. *)
 
 (* mostly binary operators.
  * less: could be divided in really Arith vs Logical (bool) operators,
@@ -1181,7 +1181,7 @@ and arguments = argument list bracket
 
 and argument =
   (* regular argument *)
-  | Arg of expr (* can be Call (IdSpecial Spread, Id foo) *)
+  | Arg of expr (* can be Call (Special Spread, Id foo) *)
   (* keyword argument *)
   | ArgKwd of ident * expr
   (* optional keyword argument. This is the same as a keyword argument
@@ -1267,7 +1267,7 @@ and stmt_kind =
       * stmt list (* resource acquisition *)
       * stmt (* newscope: block *)
   (* old: was 'expr * expr option' for Python/Java, but better to generalize.
-   * alt: could move in expr and have Assert be an IdSpecial
+   * alt: could move in expr and have Assert be an Special
    *)
   | Assert of tok * arguments * sc
   (* TODO? move this out of stmt and have a stmt_or_def_or_dir in Block?
@@ -1946,7 +1946,7 @@ and or_type_element =
  * Note: the FieldStmt(DefStmt(FuncDef(...))) can have empty body
  * for interface methods.
  * old: there was a special FieldSpread before (just for JS and Go) but we
- * now abuse ExprStmt(IdSpecial(Spread)) to represent it.
+ * now abuse ExprStmt(Special(Spread)) to represent it.
  *)
 and field = F of stmt
 
@@ -2322,7 +2322,7 @@ let arg e = Arg e
 (* Expressions *)
 (* ------------------------------------------------------------------------- *)
 let special spec es =
-  Call (IdSpecial spec |> e, Tok.unsafe_fake_bracket (es |> List_.map arg)) |> e
+  Call (Special spec |> e, Tok.unsafe_fake_bracket (es |> List_.map arg)) |> e
 
 let opcall (op, tok) exprs : expr = special (Op op, tok) exprs
 
@@ -2343,7 +2343,7 @@ let interpolated (lquote, xs, rquote) =
   | [ Either_.Left3 (str, tstr) ] ->
       L (String (lquote, (str, tstr), rquote)) |> e
   | __else__ ->
-      let special = IdSpecial (ConcatString InterpolatedConcat, lquote) |> e in
+      let special = Special (ConcatString InterpolatedConcat, lquote) |> e in
       Call
         ( special,
           ( lquote,
@@ -2352,9 +2352,7 @@ let interpolated (lquote, xs, rquote) =
                  | Either_.Left3 x ->
                      Arg (L (String (Tok.unsafe_fake_bracket x)) |> e)
                  | Either_.Right3 (lbrace, eopt, rbrace) ->
-                     let special =
-                       IdSpecial (InterpolatedElement, lbrace) |> e
-                     in
+                     let special = Special (InterpolatedElement, lbrace) |> e in
                      let args = eopt |> Option.to_list |> List_.map arg in
                      Arg (Call (special, (lbrace, args, rbrace)) |> e)
                  | Either_.Middle3 e -> Arg e),

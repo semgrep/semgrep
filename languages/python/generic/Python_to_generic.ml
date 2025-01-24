@@ -163,14 +163,13 @@ let rec expr env (x : expr) =
        * todo: the right fix is to have EncodedStr of string wrap * string wrap
        *)
       G.Call
-        ( G.IdSpecial (G.EncodedString pre, fake (snd v1) "") |> G.e,
+        ( G.Special (G.EncodedString pre, fake (snd v1) "") |> G.e,
           fb [ G.Arg (G.L (G.String (fb v1)) |> G.e) ] )
       |> G.e
   | InterpolatedString (v1, xs, v3) ->
       G.Call
         (* Python interpolated strings are always of the form f"...", we need to support arbitary strings in the generic AST because Scala has custom interpolators *)
-        ( G.IdSpecial (G.ConcatString (G.FString "f"), unsafe_fake "concat")
-          |> G.e,
+        ( G.Special (G.ConcatString (G.FString "f"), unsafe_fake "concat") |> G.e,
           ( v1,
             xs
             |> List_.map (fun x ->
@@ -180,7 +179,7 @@ let rec expr env (x : expr) =
       |> G.e
   | ConcatenatedString xs ->
       G.Call
-        ( G.IdSpecial (G.ConcatString G.SequenceConcat, unsafe_fake "concat")
+        ( G.Special (G.ConcatString G.SequenceConcat, unsafe_fake "concat")
           |> G.e,
           fb
             (xs
@@ -194,8 +193,7 @@ let rec expr env (x : expr) =
       G.TypedMetavar (v1, v2, v3) |> G.e
   | ExprStar v1 ->
       let v1 = expr env v1 in
-      G.Call
-        (G.IdSpecial (G.Spread, unsafe_fake "spread") |> G.e, fb [ G.arg v1 ])
+      G.Call (G.Special (G.Spread, unsafe_fake "spread") |> G.e, fb [ G.arg v1 ])
       |> G.e
   (* In theory one can use any name for "self" in Python; it just has
    * to be the first parameter of a method. In practice, it's
@@ -204,14 +202,14 @@ let rec expr env (x : expr) =
    * TODO? we could use 'env' to store that we are in a method
    * and what is the first parameter of a method?
    *)
-  | Name (("self", t), _expr_ctx) -> G.IdSpecial (G.Self, t) |> G.e
+  | Name (("self", t), _expr_ctx) -> G.Special (G.Self, t) |> G.e
   (* new: We have now included `cls`, as another canonical name
      for class self-reference
      it behaves slightly differently than `self`, as it indicates the
      type of the class, not the instance of the class, so let's inject
      it into a separate variant
   *)
-  | Name (("cls", t), _expr_ctx) -> G.IdSpecial (G.Cls, t) |> G.e
+  | Name (("cls", t), _expr_ctx) -> G.Special (G.Cls, t) |> G.e
   | Name (v1, _expr_ctx) ->
       let v1 = name env v1 in
       G.N (G.Id (v1, G.empty_id_info ())) |> G.e
@@ -263,12 +261,12 @@ let rec expr env (x : expr) =
       G.Comprehension (G.Dict, (l, e1, r)) |> G.e
   | BoolOp ((v1, tok), v2) ->
       let v1 = boolop v1 and v2 = list (expr env) v2 in
-      G.Call (G.IdSpecial (G.Op v1, tok) |> G.e, fb (v2 |> List_.map G.arg))
+      G.Call (G.Special (G.Op v1, tok) |> G.e, fb (v2 |> List_.map G.arg))
       |> G.e
   | BinOp (v1, (v2, tok), v3) ->
       let v1 = expr env v1 and v2 = operator v2 and v3 = expr env v3 in
       G.Call
-        (G.IdSpecial (G.Op v2, tok) |> G.e, fb ([ v1; v3 ] |> List_.map G.arg))
+        (G.Special (G.Op v2, tok) |> G.e, fb ([ v1; v3 ] |> List_.map G.arg))
       |> G.e
   | UnaryOp ((v1, tok), v2) ->
       let op = unaryop v1 and v2 = expr env v2 in
@@ -278,14 +276,13 @@ let rec expr env (x : expr) =
       match (v2, v3) with
       | [ (op, tok) ], [ e ] ->
           G.Call
-            ( G.IdSpecial (G.Op op, tok) |> G.e,
-              fb ([ v1; e ] |> List_.map G.arg) )
+            (G.Special (G.Op op, tok) |> G.e, fb ([ v1; e ] |> List_.map G.arg))
           |> G.e
       | _ ->
           let anyops =
             v2
             |> List_.map (function arith, tok ->
-                   G.E (G.IdSpecial (G.Op arith, tok) |> G.e))
+                   G.E (G.Special (G.Op arith, tok) |> G.e))
           in
           let anys = anyops @ (v3 |> List_.map (fun e -> G.E e)) in
           G.OtherExpr (("CmpOps", unsafe_fake ""), anys) |> G.e)
@@ -341,10 +338,10 @@ and argument env = function
       G.Arg e
   | ArgStar (t, e) ->
       let e = expr env e in
-      G.Arg (G.Call (G.IdSpecial (G.Spread, t) |> G.e, fb [ G.arg e ]) |> G.e)
+      G.Arg (G.Call (G.Special (G.Spread, t) |> G.e, fb [ G.arg e ]) |> G.e)
   | ArgPow (t, e) ->
       let e = expr env e in
-      G.Arg (G.Call (G.IdSpecial (G.HashSplat, t) |> G.e, fb [ G.arg e ]) |> G.e)
+      G.Arg (G.Call (G.Special (G.HashSplat, t) |> G.e, fb [ G.arg e ]) |> G.e)
   | ArgKwd (n, e) ->
       let n = name env n in
       let e = expr env e in
@@ -377,8 +374,7 @@ and dictorset_elt env = function
   (* TODO: Spread? this is a DictSpread? *)
   | PowInline v1 ->
       let v1 = expr env v1 in
-      G.Call
-        (G.IdSpecial (G.Spread, unsafe_fake "spread") |> G.e, fb [ G.arg v1 ])
+      G.Call (G.Special (G.Spread, unsafe_fake "spread") |> G.e, fb [ G.arg v1 ])
       |> G.e
 
 and number = function

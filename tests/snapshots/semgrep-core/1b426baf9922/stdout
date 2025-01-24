@@ -7,7 +7,7 @@ E(
          None); })),
     [Arg(Ellipsis(()));
      Arg(
-       Call(IdSpecial((Op(Eq), ())),
+       Call(Special((Op(Eq), ())),
          [Arg(
             N(
               Id(("$X", ()),

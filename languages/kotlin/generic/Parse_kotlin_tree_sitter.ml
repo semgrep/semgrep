@@ -517,7 +517,7 @@ and type_test (env : env) ((v1, v2) : CST.type_test) =
   let op, tok = is_operator env v1 in
   let t2 = type_ env v2 in
   fun e1 ->
-    G.Call (G.IdSpecial (G.Op op, tok) |> G.e, fb [ G.Arg e1; G.ArgType t2 ])
+    G.Call (G.Special (G.Op op, tok) |> G.e, fb [ G.Arg e1; G.ArgType t2 ])
     |> G.e
 
 and binary_expression (env : env) (x : CST.binary_expression) =
@@ -868,7 +868,7 @@ and constructor_delegation_call (env : env)
     (* "super" *)
   in
   let v2 = value_arguments env v2 in
-  let e = IdSpecial v1 |> G.e in
+  let e = Special v1 |> G.e in
   Call (e, v2) |> G.e
 
 and constructor_invocation (env : env) ((v1, v2) : CST.constructor_invocation) =
@@ -1730,11 +1730,11 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
       Container (List, (v1, v2 :: v3, v4)) |> G.e
   | `This_exp tok ->
       let tok = token env tok in
-      IdSpecial (This, tok) |> G.e
+      Special (This, tok) |> G.e
       (* "this" *)
   | `Super_exp v1 ->
       let tok = token env v1 in
-      IdSpecial (Super, tok) |> G.e
+      Special (Super, tok) |> G.e
   | `Call_exp (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = call_suffix env v2 in
@@ -2233,7 +2233,7 @@ and when_condition (env : env) (x : CST.when_condition) : G.expr =
   | `Type_test (v1, v2) ->
       let op, tok = is_operator env v1 in
       let t = type_ env v2 in
-      G.Call (G.IdSpecial (G.Op op, tok) |> G.e, fb [ G.ArgType t ]) |> G.e
+      G.Call (G.Special (G.Op op, tok) |> G.e, fb [ G.ArgType t ]) |> G.e
 
 and when_entry (env : env) ((v1, v2, v3, v4) : CST.when_entry) =
   let v1 =

@@ -124,7 +124,7 @@ let subexprs_of_expr with_symbolic_propagation e =
       [ e1 ]
   | L _
   | N _
-  | IdSpecial _
+  | Special _
   | Ellipsis _
   | TypedMetavar _ ->
       []
@@ -250,7 +250,7 @@ let subexprs_of_expr_implicit (with_symbolic_propagation : bool) (e : expr) :
   (* cases where we should not extract a subexpr *)
   | L _
   | N _
-  | IdSpecial _
+  | Special _
   | Ellipsis _ ->
       []
   | Ref (_, _e)

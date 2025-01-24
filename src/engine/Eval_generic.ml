@@ -263,7 +263,7 @@ let rec eval env code =
         FN (Id (_, { id_svalue = { contents = Some (Lit lit); _ }; _ })) )
     when env.constant_propagation ->
       value_of_lit ~code lit
-  | G.Call ({ e = IdSpecial (ConcatString op, _); _ }, (_, args, _)) ->
+  | G.Call ({ e = Special (ConcatString op, _); _ }, (_, args, _)) ->
       String (eval_concat_string_op env code op args)
   | G.N (G.Id ((s, _t), _idinfo))
     when Mvar.is_metavar_name s || Mvar.is_metavar_ellipsis s -> (
@@ -281,7 +281,7 @@ let rec eval env code =
           | Some (Some i, _) -> Int i
           | _ -> raise (NotHandled code))
       | __else__ -> raise (NotHandled code))
-  | G.Call ({ e = G.IdSpecial (G.Op op, _t); _ }, (_, args, _)) ->
+  | G.Call ({ e = G.Special (G.Op op, _t); _ }, (_, args, _)) ->
       let values =
         args
         |> List_.map (function
@@ -347,17 +347,14 @@ and eval_concat_string_element env code arg =
   match arg with
   | G.Arg { e = L (G.String (_, (s, _), _)); _ } -> s
   | G.Arg
-      {
-        e = G.Call ({ e = IdSpecial (ConcatString op, _); _ }, (_, args, _));
-        _;
-      } ->
+      { e = G.Call ({ e = Special (ConcatString op, _); _ }, (_, args, _)); _ }
+    ->
       eval_concat_string_op env code op args
   | G.Arg
       {
         e =
           Call
-            ( { e = IdSpecial (InterpolatedElement, _); _ },
-              (_, [ G.Arg elem ], _) );
+            ({ e = Special (InterpolatedElement, _); _ }, (_, [ G.Arg elem ], _));
         _;
       }
   | G.Arg elem ->

@@ -132,9 +132,10 @@ let result_of_function_call_constant lang f args =
  *)
 let rec is_symbolic_expr expr =
   match expr.G.e with
-  | G.L _ -> true
-  | G.N _ -> true
-  | G.IdSpecial _ -> true
+  | G.L _
+  | G.N _
+  | G.Special _ ->
+      true
   | G.Cast (_, _, e)
   | G.DotAccess (e, _, FN _) ->
       is_symbolic_expr e

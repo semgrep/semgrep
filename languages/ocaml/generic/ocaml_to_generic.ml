@@ -186,7 +186,7 @@ and stmt e : G.stmt =
         G.AssignOp (n, (nextop, tok), G.L (G.Int (Some 1L, tok)) |> G.e) |> G.e
       in
       let cond =
-        G.Call (G.IdSpecial (G.Op condop, tok) |> G.e, fb [ G.Arg n; G.Arg v4 ])
+        G.Call (G.Special (G.Op condop, tok) |> G.e, fb [ G.Arg n; G.Arg v4 ])
         |> G.e
       in
       let header =
@@ -307,7 +307,7 @@ and expr e =
       let v1 = wrap string v1 and v2 = expr v2 in
       G.Call (G.N (G.Id (v1, G.empty_id_info ())) |> G.e, fb [ G.Arg v2 ])
       |> G.e
-  (* todo? convert some v2 in IdSpecial Op? *)
+  (* todo? convert some v2 in Special Op? *)
   | Infix (v1, v2, v3) ->
       let v1 = expr v1 and v3 = expr v3 in
       G.Call

@@ -246,7 +246,7 @@ and literal = function
 
 and expr e =
   (match e with
-  | This t -> G.IdSpecial (G.This, t)
+  | This t -> G.Special (G.This, t)
   | ObjAccessEllipsis (v1, v2) ->
       let v1 = expr v1 in
       G.DotAccessEllipsis (v1, v2)
@@ -333,17 +333,16 @@ and expr e =
   | Postfix (v1, (v2, tok)) ->
       let v1 = expr v1 and v2 = fix_op v2 in
       G.Call
-        (G.IdSpecial (G.IncrDecr (v2, G.Postfix), tok) |> G.e, fb [ G.Arg v1 ])
+        (G.Special (G.IncrDecr (v2, G.Postfix), tok) |> G.e, fb [ G.Arg v1 ])
   | Prefix ((v1, tok), v2) ->
       let v1 = fix_op v1 and v2 = expr v2 in
-      G.Call
-        (G.IdSpecial (G.IncrDecr (v1, G.Prefix), tok) |> G.e, fb [ G.Arg v2 ])
+      G.Call (G.Special (G.IncrDecr (v1, G.Prefix), tok) |> G.e, fb [ G.Arg v2 ])
   | Unary (v1, v2) ->
       let v1, tok = v1 and v2 = expr v2 in
-      G.Call (G.IdSpecial (G.Op v1, tok) |> G.e, fb [ G.Arg v2 ])
+      G.Call (G.Special (G.Op v1, tok) |> G.e, fb [ G.Arg v2 ])
   | Infix (v1, (v2, tok), v3) ->
       let v1 = expr v1 and v2 = v2 and v3 = expr v3 in
-      G.Call (G.IdSpecial (G.Op v2, tok) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.Special (G.Op v2, tok) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | Cast ((l, v1, _), v2) ->
       let v1 = list typ v1 and v2 = expr v2 in
       let t =
@@ -353,7 +352,7 @@ and expr e =
   | InstanceOf (v1, v2) ->
       let v1 = expr v1 and v2 = ref_type v2 in
       G.Call
-        ( G.IdSpecial (G.Instanceof, unsafe_fake "instanceof") |> G.e,
+        ( G.Special (G.Instanceof, unsafe_fake "instanceof") |> G.e,
           fb [ G.Arg v1; G.ArgType v2 ] )
   | Conditional (v1, v2, v3) ->
       let v1 = expr v1 and v2 = expr v2 and v3 = expr v3 in

@@ -771,7 +771,7 @@ and map_yul_function_call (env : env) (x : CST.yul_function_call) =
             N (H2.name_of_id id) |> G.e
         | `Yul_evm_buil x ->
             let id = map_yul_evm_builtin env x in
-            (* TODO: IdSpecial (Builtin ?) *)
+            (* TODO: Special (Builtin ?) *)
             N (H2.name_of_id id) |> G.e
       in
       let lp = (* "(" *) token env v2 in
@@ -809,7 +809,7 @@ let map_literal (env : env) (x : CST.literal) : expr =
       | xs ->
           (* like in c_to_generic.ml *)
           let operand =
-            G.IdSpecial (G.ConcatString G.SequenceConcat, fake " ") |> G.e
+            G.Special (G.ConcatString G.SequenceConcat, fake " ") |> G.e
           in
           G.Call
             ( operand,
@@ -1228,7 +1228,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
           let t = map_type_name env v3 in
           let rp = (* ")" *) token env v4 in
           let arg = ArgType t in
-          let op = IdSpecial (Typeof, ttype) |> G.e in
+          let op = Special (Typeof, ttype) |> G.e in
           Call (op, (lp, [ arg ], rp)) |> G.e
       | `Prim_exp x -> map_primary_expression env x
       | `Struct_exp (v1, v2, v3, v4) ->

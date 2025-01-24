@@ -79,8 +79,8 @@ let rec expr e =
   | Atom (tk, x) -> atom tk x
   | Id (id, kind) -> (
       match kind with
-      | ID_Self -> G.IdSpecial (G.Self, snd id)
-      | ID_Super -> G.IdSpecial (G.Super, snd id)
+      | ID_Self -> G.Special (G.Self, snd id)
+      | ID_Super -> G.Special (G.Super, snd id)
       | _ -> G.N (G.Id (ident id, G.empty_id_info ())))
   | ScopedId x ->
       let name = scope_resolution x in
@@ -130,7 +130,7 @@ let rec expr e =
   | DotAccessEllipsis (e, t) -> G.DotAccessEllipsis (expr e, t)
   | Splat (t, eopt) ->
       let xs = option expr eopt |> Option.to_list |> List_.map G.arg in
-      let special = G.IdSpecial (G.Spread, t) |> G.e in
+      let special = G.Special (G.Spread, t) |> G.e in
       G.Call (special, fb xs)
   | CodeBlock ((t1, _, t2), params_opt, xs) ->
       let params =
@@ -395,14 +395,14 @@ and interpolated_string (t1, xs, t2) : G.expr_kind =
   in
   let xs = xs |> fold_constants |> list (string_contents t1) in
   G.Call
-    ( G.IdSpecial (G.ConcatString G.InterpolatedConcat, t1) |> G.e,
+    ( G.Special (G.ConcatString G.InterpolatedConcat, t1) |> G.e,
       (t1, xs |> List_.map (fun e -> G.Arg e), t2) )
 
 and string_contents tok = function
   | StrChars s -> G.L (G.String (fb s)) |> G.e
   | StrExpr (l, e, r) ->
       G.Call
-        ( G.IdSpecial (G.InterpolatedElement, tok) |> G.e,
+        ( G.Special (G.InterpolatedElement, tok) |> G.e,
           (l, [ G.Arg (expr e) ], r) )
       |> G.e
 
@@ -443,13 +443,13 @@ and binary (op, t) e1 e2 =
   match op with
   | B msg ->
       let op = binary_msg msg in
-      G.Call (G.IdSpecial (G.Op op, t) |> G.e, fb [ G.Arg e1; G.Arg e2 ])
+      G.Call (G.Special (G.Op op, t) |> G.e, fb [ G.Arg e1; G.Arg e2 ])
   | Op_kAND
   | Op_AND ->
-      G.Call (G.IdSpecial (G.Op G.And, t) |> G.e, fb [ G.Arg e1; G.Arg e2 ])
+      G.Call (G.Special (G.Op G.And, t) |> G.e, fb [ G.Arg e1; G.Arg e2 ])
   | Op_kOR
   | Op_OR ->
-      G.Call (G.IdSpecial (G.Op G.Or, t) |> G.e, fb [ G.Arg e1; G.Arg e2 ])
+      G.Call (G.Special (G.Op G.Or, t) |> G.e, fb [ G.Arg e1; G.Arg e2 ])
   | Op_ASSIGN -> G.Assign (e1, t, e2)
   | Op_OP_ASGN op ->
       let op =
@@ -464,7 +464,7 @@ and binary (op, t) e1 e2 =
   | Op_ASSOC -> (G.keyval e1 t e2).e
   | Op_DOT3 ->
       (* coupling: make sure to check for the string in generic_vs_generic *)
-      G.Call (G.IdSpecial (G.Op G.Range, t) |> G.e, fb [ G.Arg e1; G.Arg e2 ])
+      G.Call (G.Special (G.Op G.Range, t) |> G.e, fb [ G.Arg e1; G.Arg e2 ])
 
 and unary (op, t) e =
   match op with
@@ -476,11 +476,11 @@ and unary (op, t) e =
         | Op_UBang -> G.Not
         | Op_UTilde -> G.BitNot
       in
-      G.Call (G.IdSpecial (G.Op op, t) |> G.e, fb [ G.Arg e ])
-  | Op_UNot -> G.Call (G.IdSpecial (G.Op G.Not, t) |> G.e, fb [ G.Arg e ])
+      G.Call (G.Special (G.Op op, t) |> G.e, fb [ G.Arg e ])
+  | Op_UNot -> G.Call (G.Special (G.Op G.Not, t) |> G.e, fb [ G.Arg e ])
   | Op_DefinedQuestion ->
-      G.Call (G.IdSpecial (G.Defined, t) |> G.e, fb [ G.Arg e ])
-  | Op_UStarStar -> G.Call (G.IdSpecial (G.HashSplat, t) |> G.e, fb [ G.Arg e ])
+      G.Call (G.Special (G.Defined, t) |> G.e, fb [ G.Arg e ])
+  | Op_UStarStar -> G.Call (G.Special (G.HashSplat, t) |> G.e, fb [ G.Arg e ])
   (* should be only in arguments, to pass procs. I abuse Ref for now *)
   | Op_UAmper -> G.Ref (t, e)
 
@@ -591,7 +591,7 @@ and stmt st =
       G.While (t, G.Cond e, st) |> G.s
   | Until (t, _bool, e, st) ->
       let e = expr e in
-      let special = G.IdSpecial (G.Op G.Not, t) |> G.e in
+      let special = G.Special (G.Op G.Not, t) |> G.e in
       let e = G.Call (special, fb [ G.Arg e ]) |> G.e in
       let st = list_stmt1 st in
       G.While (t, G.Cond e, st) |> G.s
@@ -599,7 +599,7 @@ and stmt st =
       let e = expr e in
       let st = list_stmt1 st in
       let elseopt = option_tok_stmts elseopt in
-      let special = G.IdSpecial (G.Op G.Not, t) |> G.e in
+      let special = G.Special (G.Op G.Not, t) |> G.e in
       let e = G.Call (special, fb [ G.Arg e ]) |> G.e in
       let st1 =
         match elseopt with
@@ -738,7 +738,7 @@ and patlist_arg = function
         | Some x -> [ G.Arg (G.N (G.Id (ident x, G.empty_id_info ())) |> G.e) ]
       in
       let exp =
-        G.E (G.Call (G.IdSpecial (G.Spread, tk) |> G.e, arg |> fb) |> G.e)
+        G.E (G.Call (G.Special (G.Spread, tk) |> G.e, arg |> fb) |> G.e)
       in
       G.OtherPat (("PArgSplat", G.fake "PArgSplat"), [ exp ])
   | PArgKeyVal (p1, tk, p2) ->

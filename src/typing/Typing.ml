@@ -62,8 +62,7 @@ let rec type_of_expr lang e : G.name Type.t * G.ident option =
        * instantiation. *)
       | G.New (_tk, t, _ii, _) -> (type_of_ast_generic_type lang t, None)
       (* Binary operator *)
-      | G.Call ({ e = IdSpecial (Op op, _); _ }, (_l, [ Arg e1; Arg e2 ], _r))
-        ->
+      | G.Call ({ e = Special (Op op, _); _ }, (_l, [ Arg e1; Arg e2 ], _r)) ->
           let t1, _id = type_of_expr lang e1 in
           let t2, _id = type_of_expr lang e2 in
           let t =
@@ -107,7 +106,7 @@ let rec type_of_expr lang e : G.name Type.t * G.ident option =
           in
           (t, None)
       (* Unary operator *)
-      | G.Call ({ e = IdSpecial (Op op, _); _ }, (_l, [ Arg e ], _r)) ->
+      | G.Call ({ e = Special (Op op, _); _ }, (_l, [ Arg e ], _r)) ->
           let t, _id = type_of_expr lang e in
           let t =
             match (op, t) with
