@@ -159,6 +159,7 @@ local semgrep_rules = [
        //    with code under src/experiments
        //  - test (tests/*)
        'osemgrep/',
+       'lsp/',
        'metachecking/',
        'core_cli/',
        'core_scan/',
