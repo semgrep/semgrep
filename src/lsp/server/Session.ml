@@ -275,9 +275,6 @@ let targets session =
   in
   (* Filter targets by if only_git_dirty, if they are a dirty file *)
   targets |> List.filter member_workspaces
-let is_url config_path =
-    let url_regex = Str.regexp "^\\(http\\|https\\)://" in
-    Str.string_match url_regex config_path 0
 
 let fetch_rules session =
   let%lwt ci_rules =
