@@ -94,7 +94,9 @@ DependencyResolutionResult = Tuple[
 
 def _resolve_dependencies_rpc(
     dependency_source: Union[
-        ManifestOnlyDependencySource, ManifestLockfileDependencySource
+        ManifestOnlyDependencySource,
+        ManifestLockfileDependencySource,
+        LockfileOnlyDependencySource,
     ],
 ) -> Tuple[
     Optional[List[FoundDependency]],
@@ -120,7 +122,11 @@ def _resolve_dependencies_rpc(
         wrapped_errors = [
             DependencyResolutionError(
                 type_=e_type,
-                dependency_source_file=Path(dependency_source.manifest.path.value),
+                dependency_source_file=Path(
+                    dependency_source.lockfile.path.value
+                    if isinstance(dependency_source, LockfileOnlyDependencySource)
+                    else dependency_source.manifest.path.value
+                ),
             )
             for e_type in errors
         ]
@@ -137,7 +143,11 @@ def _resolve_dependencies_rpc(
             [
                 DependencyResolutionError(
                     type_=e_type,
-                    dependency_source_file=Path(dependency_source.manifest.path.value),
+                    dependency_source_file=Path(
+                        dependency_source.lockfile.path.value
+                        if isinstance(dependency_source, LockfileOnlyDependencySource)
+                        else dependency_source.manifest.path.value
+                    ),
                 )
                 for e_type in result.value.value
             ]
@@ -152,7 +162,11 @@ def _resolve_dependencies_rpc(
                             "Trying to use RPC to resolve dependencies from a manifest we don't support"
                         )
                     ),
-                    dependency_source_file=Path(dependency_source.manifest.path.value),
+                    dependency_source_file=Path(
+                        dependency_source.lockfile.path.value
+                        if isinstance(dependency_source, LockfileOnlyDependencySource)
+                        else dependency_source.manifest.path.value
+                    ),
                 )
             ]
         )
@@ -217,16 +231,25 @@ def _handle_lockfile_source(
     lockfile_path = Path(dep_source.lockfile.path.value)
     parser = PARSERS_BY_LOCKFILE_KIND[dep_source.lockfile.kind]
 
-    if ptt_enabled and isinstance(dep_source, ManifestLockfileDependencySource):
+    if ptt_enabled:
+        manifest_kind = (
+            dep_source.manifest.kind
+            if isinstance(dep_source, ManifestLockfileDependencySource)
+            else None
+        )
+        lockfile_kind = dep_source.lockfile.kind
+
         use_nondynamic_ocaml_parsing = (
-            dep_source.manifest.kind,
-            dep_source.lockfile.kind,
+            manifest_kind,
+            lockfile_kind,
         ) in PTT_OCAML_PARSER_SUBPROJECT_KINDS
+
         use_dynamic_resolution = (
             enable_dynamic_resolution
-            and (dep_source.manifest.kind, dep_source.lockfile.kind)
+            and (manifest_kind, lockfile_kind)
             in PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS
         )
+
         if use_nondynamic_ocaml_parsing or use_dynamic_resolution:
             (
                 new_deps,
