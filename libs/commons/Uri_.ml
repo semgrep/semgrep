@@ -28,3 +28,7 @@ let show (uri : Uri.t) : string = Fmt_.to_show Uri.pp uri
 let of_string_opt (str : string) : Uri.t option =
   let uri = Uri.of_string str in
   if Uri.equal uri Uri.empty then None else Some uri
+
+let is_url config_path =
+  let url_regex = Str.regexp "^\\(http\\|https\\)://" in
+  Str.string_match url_regex config_path 0
