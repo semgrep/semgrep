@@ -18,6 +18,13 @@ from semdep.parsers import yarn
             ("@types/ol-ext", "@siedlerchr/types-ol-ext@3.0.6"),
             ("@siedlerchr/types-ol-ext", "3.0.6"),
         ),
+        (
+            (
+                "tailwindcss@npm:@tailwindcss/postcss7-compat",
+                "npm:@tailwindcss/postcss7-compat",
+            ),
+            ("@tailwindcss/postcss7-compat", ""),
+        ),
     ],
 )
 def test_dep_version_pair(original, expected) -> None:

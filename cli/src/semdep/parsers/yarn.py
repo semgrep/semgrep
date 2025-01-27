@@ -86,7 +86,12 @@ def dep_version_pair(dep: str, version: str) -> Tuple[str, str]:
         if (
             split_stripped_version[0] == ""
         ):  # Indicates that the package being aliased is scoped itself - use the next element for the package name instead
-            return (f"@{split_stripped_version[1]}", split_stripped_version[2])
+            if len(split_stripped_version) > 2:
+                return (f"@{split_stripped_version[1]}", split_stripped_version[2])
+            else:
+                # Indicates that the package being aliased was aliased with no version constraint
+                # Discard the version constraint since the "version" field will be populated in the lockfile anyway
+                return (f"@{split_stripped_version[1]}", "")
         return (split_stripped_version[0], split_stripped_version[1])
     else:
         return (dep, stripped_version)
