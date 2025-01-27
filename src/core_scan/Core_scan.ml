@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2020-2024 Semgrep Inc.
+ * Copyright (C) 2020-2025 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -276,12 +276,11 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
 (*****************************************************************************)
 
 (* In some context, a target passed in might have disappeared, or have been
- * encoded in the wrong way in the Inputs_to_core.atd (for example
- * in the case of filenames with special unicode bytes in it), in which case
+ * encoded in the wrong way in the semgrep_output_v1.atd code_target (e.g.,
+ * filenames with special unicode bytes in it), in which case
  * Common2.filesize above would fail and crash the whole scan as the
  * raised exn is outside the iter_targets_and_get_matches_and_exn_to_errors
- * big try. This is why it's better to filter those problematic targets
- * early on.
+ * big try. This is why it's better to filter those problematic targets early on.
  *)
 let filter_existing_targets (targets : Target.t list) :
     Target.t list * Out.skipped_target list =
