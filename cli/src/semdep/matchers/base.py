@@ -54,12 +54,16 @@ class LockfileManifestMatcher(SubprojectMatcher):
     Subprojects are a match only when the lockfile is found, and are created whether the manifest
     is found or not.
 
+    If `make_manifest_only_subprojects` is true, then subprojects are created for manifests that
+    do not have a corresponding lockfile.
+
     Child classes must implement _is_manifest_match, _is_lockfile_match, _lockfile_to_manifest, and _get_subproject_root
     """
 
     manifest_kind: out.ManifestKind
     lockfile_kind: out.LockfileKind
     ecosystem: out.Ecosystem
+    make_manifest_only_subprojects: bool
 
     @abstractmethod
     def _is_manifest_match(self, path: Path) -> bool:
@@ -121,7 +125,7 @@ class LockfileManifestMatcher(SubprojectMatcher):
         """
         # grab all lockfiles and all manifests matching the pattern for this matcher.
         # we will use these to construct subprojects
-        _manifests, lockfiles = self._filter_manifest_lockfiles(dep_source_files)
+        manifests, lockfiles = self._filter_manifest_lockfiles(dep_source_files)
 
         # track the manifests that we use in the first lockfile-based step. These manifests
         # should be skipped in the second manifest-based step.
@@ -169,15 +173,33 @@ class LockfileManifestMatcher(SubprojectMatcher):
                 )
             )
 
-        return subprojects, frozenset(paired_manifests | lockfiles)
+        # if we are making manifest-only subprojects, then we need to create subprojects for
+        # manifests that do not have a corresponding lockfile
+        lone_manifests = set()
+        if self.make_manifest_only_subprojects:
+            for manifest_path in manifests - paired_manifests:
+                subprojects.append(
+                    Subproject(
+                        root_dir=manifest_path.parent,
+                        dependency_source=ManifestOnlyDependencySource(
+                            manifest=out.Manifest(
+                                kind=self.manifest_kind,
+                                path=out.Fpath(str(manifest_path)),
+                            )
+                        ),
+                        ecosystem=self.ecosystem,
+                    )
+                )
+                lone_manifests.add(manifest_path)
+
+        return subprojects, frozenset(paired_manifests | lone_manifests | lockfiles)
 
 
 @dataclass(frozen=True)
 class ExactLockfileManifestMatcher(LockfileManifestMatcher):
     """
     Matcher for lockfiles and manifests that have an exact filename.
-    Both manifest and lockfile name must be defined, but a subproject
-    is generated if at least one of the two is present.
+    Both manifest and lockfile name must be defined.
 
     Attributes:
         lockfile_name (str): The exact name of the lockfile.
@@ -219,32 +241,37 @@ class ExactLockfileManifestMatcher(LockfileManifestMatcher):
 
 
 @dataclass(frozen=True)
-class PatternLockfileMatcher(LockfileManifestMatcher):
+class PatternManifestStaticLockfileMatcher(LockfileManifestMatcher):
     """
-    Matcher for lockfiles and manifests that follow a specific pattern
+    Matcher for manifests that follow a specific pattern and a static lockfile name.
     Attributes:
-        lockfile_pattern: The pattern that the lockfile name should match.
-            This lockfile name must be at the subproject root.
-        manifest_name: The exact name that the corresponding manifest should match.
-            The manifest is not required, so a match will still
-            be generated if no manifest is found.
+        manifest_pattern: The pattern that the manifest name should match.
+                This manifest file must be at the subproject root.
+        lockfile_name: The exact name of the lockfile.
     """
 
-    lockfile_pattern: str
-    manifest_name: str  # we might want to let this be None sometimes, if we have lockfile-only package managers
+    manifest_pattern: str
+    lockfile_name: str
 
     def _is_lockfile_match(self, path: Path) -> bool:
-        return fnmatch(str(path), self.lockfile_pattern)
+        return path.name == self.lockfile_name
 
     def _is_manifest_match(self, path: Path) -> bool:
-        return path.name == self.manifest_name
+        return fnmatch(str(path), self.manifest_pattern)
 
     def _lockfile_to_manifest(
         self, lockfile_path: Path, candidates: FrozenSet[Path]
     ) -> Optional[Path]:
-        manifest_path = lockfile_path.parent / self.manifest_name
-        if manifest_path in candidates:
-            return manifest_path
+        manifest_candidates = {
+            path for path in candidates if self._is_manifest_match(path)
+        }
+        if not manifest_candidates:
+            return None
+
+        # Assume that the manifest is in the same directory as the lockfile
+        for manifest_candidate in manifest_candidates:
+            if manifest_candidate.parent == lockfile_path.parent:
+                return manifest_candidate
         return None
 
     def _get_subproject_root(

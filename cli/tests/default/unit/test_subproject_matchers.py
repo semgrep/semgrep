@@ -5,7 +5,7 @@ import pytest
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.matchers.base import ExactLockfileManifestMatcher
-from semdep.matchers.base import PatternLockfileMatcher
+from semdep.matchers.base import PatternManifestStaticLockfileMatcher
 from semdep.matchers.gradle import GradleMatcher
 from semdep.matchers.pip_requirements import PipRequirementsMatcher
 from semdep.subproject_matchers import filter_dependency_source_files
@@ -25,6 +25,7 @@ class TestExactLockfileMatcher:
             manifest_kind=out.ManifestKind(value=out.Pipfile()),
             lockfile_kind=out.LockfileKind(value=out.PipfileLock()),
             ecosystem=out.Ecosystem(value=out.Pypi()),
+            make_manifest_only_subprojects=False,
         )
 
         assert matcher.is_match(Path("Pipfile.lock")) is True
@@ -39,6 +40,7 @@ class TestExactLockfileMatcher:
             manifest_kind=out.ManifestKind(value=out.Pipfile()),
             lockfile_kind=out.LockfileKind(value=out.PipfileLock()),
             ecosystem=out.Ecosystem(value=out.Pypi()),
+            make_manifest_only_subprojects=False,
         )
 
         assert matcher.is_match(Path("Pipfile")) is True
@@ -61,6 +63,7 @@ class TestExactLockfileMatcher:
             manifest_kind=out.ManifestKind(value=out.Pipfile()),
             lockfile_kind=out.LockfileKind(value=out.PipfileLock()),
             ecosystem=out.Ecosystem(value=out.Pypi()),
+            make_manifest_only_subprojects=False,
         )
 
         assert matcher.is_match(manifest_path)
@@ -90,40 +93,22 @@ class TestExactLockfileMatcher:
             )
 
 
-class TestPatternLockfileMatcher:
+class TestPatternManifestStaticLockfileMatcher:
     @pytest.mark.quick
     def test_is_match(self):
-        matcher = PatternLockfileMatcher(
-            lockfile_pattern="*requirements*.txt",
-            manifest_name="requirements.in",
-            lockfile_kind=out.LockfileKind(out.PipRequirementsTxt()),
-            manifest_kind=out.ManifestKind(value=out.RequirementsIn()),
-            ecosystem=out.Ecosystem(value=out.Pypi()),
+        matcher = PatternManifestStaticLockfileMatcher(
+            lockfile_name="packages.lock.json",
+            manifest_pattern="*.csproj",
+            lockfile_kind=out.LockfileKind(out.NugetPackagesLockJson()),
+            manifest_kind=out.ManifestKind(value=out.NugetManifestJson()),
+            ecosystem=out.Ecosystem(value=out.Nuget()),
+            make_manifest_only_subprojects=False,
         )
 
-        # Basic cases
-        assert matcher.is_match(Path("requirements.txt")) is True
-        assert matcher.is_match(Path("requirements3.txt")) is True
-        assert matcher.is_match(Path("a/b/c/requirements.txt")) is True
-        assert matcher.is_match(Path("a/b/c/requirements3.txt")) is True
-
-        # Non-standard requirements cases
-        assert matcher.is_match(Path("requirements.dev.txt")) is True
-        assert matcher.is_match(Path("requirements.dev3.txt")) is True
-        assert matcher.is_match(Path("requirements-prod.txt")) is True
-        assert matcher.is_match(Path("requirements-dev.txt")) is True
-        assert matcher.is_match(Path("dev-requirements.txt")) is True
-        assert matcher.is_match(Path("dev-requirements3.txt")) is True
-        assert matcher.is_match(Path("prod-requirements.txt")) is True
-        assert matcher.is_match(Path("requirements_lock.txt")) is True
-
-        # Requirement folder cases
-        assert matcher.is_match(Path("requirements/prod.txt")) is True
-        assert matcher.is_match(Path("a/b/c/requirements/base.txt")) is True
-        assert matcher.is_match(Path("a/b/c/requirements/hello/dev.txt")) is True
-
-        # Non-requirements cases
-        assert matcher.is_match(Path("a/b/c/requirements.in")) is True
+        assert matcher.is_match(Path("packages.lock.json")) is True
+        assert matcher.is_match(Path("test_proj.csproj")) is True
+        assert matcher.is_match(Path("a/b/c/packages.lock.json")) is True
+        assert matcher.is_match(Path("a/b/c/test_proj.csproj")) is True
         assert matcher.is_match(Path("unknown.lock")) is False
         assert matcher.is_match(Path("a/b/c/requirements/hello/unknown.lock")) is False
 
@@ -133,28 +118,24 @@ class TestPatternLockfileMatcher:
         self,
         with_manifest: bool,
     ):
-        # with four lockfiles and four corresponding manifests
+        # with two lockfiles and two corresponding manifests
         # map lockfile to root directory and manifest path
         test_data = {
-            Path("requirements.txt"): (Path(""), Path("requirements.in")),
-            Path("requirements3.txt"): (Path(""), Path("requirements.in")),
-            Path("a/b/c/requirements.txt"): (
+            Path("packages.lock.json"): (Path(""), Path("test_proj.csproj")),
+            Path("a/b/c/packages.lock.json"): (
                 Path("a/b/c"),
-                Path("a/b/c/requirements.in"),
-            ),
-            Path("a/b/c/requirements3.txt"): (
-                Path("a/b/c"),
-                Path("a/b/c/requirements.in"),
+                Path("a/b/c/test_proj.csproj"),
             ),
         }
 
         # and a pattern matcher
-        matcher = PatternLockfileMatcher(
-            lockfile_pattern="*requirements*.txt",
-            manifest_name="requirements.in",
-            manifest_kind=out.ManifestKind(value=out.RequirementsIn()),
-            lockfile_kind=out.LockfileKind(value=out.PipRequirementsTxt()),
-            ecosystem=out.Ecosystem(value=out.Pypi()),
+        matcher = PatternManifestStaticLockfileMatcher(
+            lockfile_name="packages.lock.json",
+            manifest_pattern="*.csproj",
+            manifest_kind=out.ManifestKind(value=out.NugetManifestJson()),
+            lockfile_kind=out.LockfileKind(value=out.NugetPackagesLockJson()),
+            ecosystem=out.Ecosystem(value=out.Nuget()),
+            make_manifest_only_subprojects=False,
         )
 
         # expect the matcher to create four subprojects, with or without manifests
@@ -167,7 +148,7 @@ class TestPatternLockfileMatcher:
         files = frozenset(manifests + lockfiles)
         subprojects, used_files = matcher.make_subprojects(files)
         assert used_files == files
-        assert len(subprojects) == 4
+        assert len(subprojects) == 2
         for subproject in subprojects:
             assert isinstance(
                 subproject.dependency_source,
@@ -190,6 +171,24 @@ class TestPatternLockfileMatcher:
                 assert isinstance(
                     subproject.dependency_source, LockfileOnlyDependencySource
                 )
+
+    @pytest.mark.quick
+    def test_make_manifest_only_subprojects(self):
+        matcher = PatternManifestStaticLockfileMatcher(
+            lockfile_name="packages.lock.json",
+            manifest_pattern="*.csproj",
+            manifest_kind=out.ManifestKind(value=out.NugetManifestJson()),
+            lockfile_kind=out.LockfileKind(value=out.NugetPackagesLockJson()),
+            ecosystem=out.Ecosystem(value=out.Nuget()),
+            make_manifest_only_subprojects=True,
+        )
+
+        files = frozenset([Path("test_proj.csproj")])
+        subprojects, used_files = matcher.make_subprojects(files)
+        assert used_files == files
+        assert len(subprojects) == 1
+        subproject = subprojects[0]
+        assert isinstance(subproject.dependency_source, ManifestOnlyDependencySource)
 
 
 class TestRequirementsLockfileMatcher:

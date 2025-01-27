@@ -34,6 +34,7 @@ from semgrep.subproject import Subproject
                     lockfile_kind=out.LockfileKind(value=out.PipRequirementsTxt()),
                     manifest_kind=out.ManifestKind(value=out.RequirementsIn()),
                     ecosystem=out.Ecosystem(value=out.Pypi()),
+                    make_manifest_only_subprojects=False,
                 ),
                 ExactLockfileManifestMatcher(
                     lockfile_name="requirements3.txt",
@@ -41,6 +42,7 @@ from semgrep.subproject import Subproject
                     lockfile_kind=out.LockfileKind(value=out.PipRequirementsTxt()),
                     manifest_kind=out.ManifestKind(value=out.RequirementsIn()),
                     ecosystem=out.Ecosystem(value=out.Pypi()),
+                    make_manifest_only_subprojects=False,
                 ),
             ],
             [
@@ -84,6 +86,7 @@ from semgrep.subproject import Subproject
                     lockfile_kind=out.LockfileKind(value=out.PipRequirementsTxt()),
                     manifest_kind=out.ManifestKind(value=out.RequirementsIn()),
                     ecosystem=out.Ecosystem(value=out.Pypi()),
+                    make_manifest_only_subprojects=False,
                 ),
                 ExactLockfileManifestMatcher(
                     lockfile_name="requirements3.txt",
@@ -91,6 +94,7 @@ from semgrep.subproject import Subproject
                     lockfile_kind=out.LockfileKind(value=out.PipRequirementsTxt()),
                     manifest_kind=out.ManifestKind(value=out.RequirementsIn()),
                     ecosystem=out.Ecosystem(value=out.Pypi()),
+                    make_manifest_only_subprojects=False,
                 ),
             ],
             [
