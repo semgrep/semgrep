@@ -218,7 +218,8 @@ val ( ||| ) : 'a option -> 'a -> 'a
 (*****************************************************************************)
 (* Result *)
 (*****************************************************************************)
-(* Now in Result_.mli *)
+
+(* similar to let* above but for Result instead of Option *)
 val ( let/ ) :
   ('a, 'e) Result.t -> ('a -> ('b, 'e) Result.t) -> ('b, 'e) Result.t
 

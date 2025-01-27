@@ -1,4 +1,4 @@
-(* "Real paths" aka "physical paths"
+(* "Real paths" a.k.a. "physical paths"
     Absolute and unique filesystem paths as returned by 'Unix.realpath'
 
    Here is some terminology:
