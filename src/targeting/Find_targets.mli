@@ -3,13 +3,6 @@
    regardless of rules or languages.
  *)
 
-type project_root =
-  | Filesystem of Rfpath.t
-  (* currently used to optimize Semgrep query console *)
-  | Git_remote of git_remote
-
-and git_remote = { url : Uri.t } [@@deriving show]
-
 (*
    Abstract type designed for quickly determining whether a path is in the
    set of explicit targets. An explicit target is a target file passed directly
@@ -28,12 +21,12 @@ module Explicit_targets : sig
 end
 
 type conf = {
-  (* global exclude list, passed via semgrep --exclude (a glob) *)
-  exclude : string list;
-  (* global include list, passed via semgrep --include (a glob)
+  (* global exclude list, passed via semgrep --exclude *)
+  exclude : glob list;
+  (* global include list, passed via semgrep --include
    * Those are flags copied from grep (and ripgrep).
    *)
-  include_ : string list option;
+  include_ : glob list option;
   max_target_bytes : int;
   (* Whether to respect what is specified in the '.gitignore' files
      found in the project and extended by optional '.semgrepignore' files.
@@ -76,7 +69,15 @@ type conf = {
   baseline_commit : string option;
   diff_depth : int;
 }
-[@@deriving show]
+
+and glob = string
+
+and project_root =
+  | Filesystem of Rfpath.t
+  (* currently used to optimize Semgrep query console *)
+  | Git_remote of git_remote
+
+and git_remote = { url : Uri.t } [@@deriving show]
 
 val default_conf : conf
 
@@ -101,7 +102,14 @@ val get_targets :
   Scanning_root.t list ->
   Fppath.t list * Core_error.t list * Semgrep_output_v1_t.skipped_target list
 
-(* Same as get_targets but drop the ppath (path within the project) *)
+(* Same as get_targets but drop the ppath (path within the project).
+ *
+ * Note that if you use this function in a test context on a
+ * testing folder such as tests/foo/bar, you might need to set
+ * 'force_project_root' in the conf structure otherwise you might get
+ * an empty list of targets as the default conf usually skip
+ * files in tests/ directories.
+ *)
 val get_target_fpaths :
   conf ->
   Scanning_root.t list ->

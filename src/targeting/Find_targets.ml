@@ -182,11 +182,12 @@ module Explicit_targets = struct
   let mem x path = Hashtbl.mem x.tbl path
 end
 
+(* TODO: should have stronger type? use Glob.Pattern.t? *)
+type glob = string [@@deriving show]
+
 type conf = {
-  (* global exclude list, passed via semgrep '--exclude'.
-   * TODO? use Glob.Pattern.t instead? same for include_
-   *)
-  exclude : string list;
+  (* global exclude list, passed via semgrep '--exclude' *)
+  exclude : glob list;
   (* !!! '--include' is very different from '--exclude' !!!
       The include filter is applied after after gitignore and
       semgrepignore filters. It doesn't override them.
@@ -198,7 +199,7 @@ type conf = {
      ('--require' might make a better flag name, but both grep and ripgrep
       use the '--exclude' and '--include' names).
   *)
-  include_ : string list option;
+  include_ : glob list option;
   max_target_bytes : int;
   respect_gitignore : bool;
   respect_semgrepignore_files : bool;
