@@ -87,10 +87,6 @@ let map_identifier (env : env) (x : CST.identifier) =
 let map_identifier_exp (env : env) (x : CST.identifier) =
   G.N (H2.name_of_id (map_identifier env x)) |> G.e
 
-let map_tok_abst_pat_3d340f6_type (env : env)
-    (tok : CST.tok_abst_pat_3d340f6_type) =
-  (* tok_abst_pat_3d340f6_type *) token env tok
-
 let map_assign_operator (env : env) (tok : Tree_sitter_run.Token.t) =
   (* assign_operator *)
   let tok = token env tok in
@@ -1121,9 +1117,9 @@ and map_definition (env : env) (x : CST.definition) : stmt =
       let v4 = map_source_file env v4 in
       let _v5 = (* "end" *) token env v5 in
       DefStmt (ent, ModuleDef { mbody = ModuleStruct (None, v4) }) |> G.s
-  | `Abst_defi (v1, v2, v3, v4, v5) ->
+  | `Abst_defi (v0, _v1, v2, v3, v4, v5) ->
       (* abstract type *)
-      let v1 = map_tok_abst_pat_3d340f6_type env v1 in
+      let v0 = token env v0 in
       let tparams =
         match v3 with
         | None -> None
@@ -1132,8 +1128,8 @@ and map_definition (env : env) (x : CST.definition) : stmt =
       let attrs = map_type_clause_opt env v4 in
       let ent = map_anon_choice_id_00cc266_ent ~attrs ?tparams env v2 in
       let _v5 = (* "end" *) token env v5 in
-      DefStmt (ent, TypeDef { tbody = AbstractType v1 }) |> G.s
-  | `Prim_defi (v1, v2, v3, v4, v5, v6) ->
+      DefStmt (ent, TypeDef { tbody = AbstractType v0 }) |> G.s
+  | `Prim_defi (v0, _v1, v2, v3, v4, v5, v6) ->
       (* primitive type *)
       let tparams =
         match v3 with
@@ -1144,7 +1140,7 @@ and map_definition (env : env) (x : CST.definition) : stmt =
       let ent = map_anon_choice_id_00cc266_ent ~attrs ?tparams env v2 in
       let i = map_integer_literal env v5 in
       let _v6 = (* "end" *) token env v6 in
-      DefStmt (ent, TypeDef { tbody = OtherTypeKind (str env v1, [ G.E i ]) })
+      DefStmt (ent, TypeDef { tbody = OtherTypeKind (str env v0, [ G.E i ]) })
       |> G.s
   | `Struct_defi (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let v1 =
