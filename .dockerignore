@@ -636,11 +636,6 @@ libs/pcre2/**/.merlin
 libs/pcre2/**/*.install
 libs/pcre2/**/_build
 
-# From libs/spacegrep/.gitignore
-libs/spacegrep/**/_build
-libs/spacegrep/**/.merlin
-libs/spacegrep/tmp
-
 # From libs/testo/.gitignore
 libs/testo/_build
 
@@ -666,6 +661,11 @@ perf/perf-matching/input/**/*.tmp.yaml
 
 # uncompressed from .gz
 perf/perf-matching/input/**/semgrep_targets.txt
+
+# From src/spacegrep/.gitignore
+src/spacegrep/**/_build
+src/spacegrep/**/.merlin
+src/spacegrep/tmp
 
 # From stats/autofix-printing-stats/.gitignore
 stats/autofix-printing-stats/**/tmp

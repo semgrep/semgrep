@@ -29,6 +29,7 @@ let loc_of_substring target_str substrings capture_id =
             m "failed to extract capture %i. Captures are [%s]" capture_id
               (Pcre.get_substrings substrings
               |> Array.to_list
+                 (* nosemgrep: ocaml.lang.best-practice.string.ocamllint-useless-sprintf *)
               |> List_.map (Printf.sprintf "%S")
               |> String.concat ";"));
         assert false

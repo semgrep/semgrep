@@ -1,3 +1,5 @@
+; this library might be used outside semgrep (e.g., in pad's codemap)
+; so try to _not_ make it depend on semgrep.xxx libs
 (library
  (public_name ast_generic)
  (wrapped false)
