@@ -25,10 +25,6 @@ type hook_function_taint_signature =
 (* deep-scan (and pro-scan) hook *)
 val hook_function_taint_signature : hook_function_taint_signature option Hook.t
 
-(* deep-scan hook *)
-val hook_find_attribute_in_class :
-  (AST_generic.name -> string -> AST_generic.name option) option Hook.t
-
 val hook_infer_sig_for_lambda :
   (Taint_rule_inst.t ->
   func ->

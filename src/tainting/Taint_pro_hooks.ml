@@ -13,6 +13,9 @@ type t = {
     (Taint.Taint_set.t * Shape.shape) IL.argument list ->
     Instantiated_signature.t option;
       (** Support for inter-procedural analysis. *)
+  find_attribute_in_class :
+    AST_generic.name -> string -> AST_generic.name option;
+      (** Helps support implicit getters/setters in deep/inter-file analysis. *)
   check_tainted_at_exit_sinks :
     Taint_spec_preds.t ->
     Taint_lval_env.t ->

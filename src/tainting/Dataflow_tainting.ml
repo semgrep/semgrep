@@ -119,7 +119,6 @@ type hook_function_taint_signature =
   (Shape_and_sig.Signature.t * [ `Fun | `Var ]) option
 
 let hook_function_taint_signature = Hook.create None
-let hook_find_attribute_in_class = Hook.create None
 let hook_infer_sig_for_lambda = Hook.create None
 
 (*****************************************************************************)
@@ -956,11 +955,11 @@ and propagate_taint_via_java_getters_and_setters_without_definition env e args
                   prop_name;
                 prop_name
               in
-              match
-                (!(obj.id_info.id_type), Hook.get hook_find_attribute_in_class)
-              with
-              | Some { t = TyN class_name; _ }, Some hook -> (
-                  match hook class_name prop_str with
+              match (!(obj.id_info.id_type), env.taint_inst.pro_hooks) with
+              | Some { t = TyN class_name; _ }, Some pro_hooks -> (
+                  match
+                    pro_hooks.find_attribute_in_class class_name prop_str
+                  with
                   | None -> mk_default_prop_name ()
                   | Some prop_name ->
                       let prop_name = AST_to_IL.var_of_name prop_name in
