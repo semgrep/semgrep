@@ -334,7 +334,6 @@ let translate_targeting_conf_from_pysemgrep (conf : Out.targeting_conf) :
     force_novcs_project = conf.force_novcs_project;
     exclude_minified_files = conf.exclude_minified_files;
     baseline_commit = conf.baseline_commit;
-    diff_depth = conf.diff_depth;
   }
 
 (* Compute the set of targets, either by reading what was passed

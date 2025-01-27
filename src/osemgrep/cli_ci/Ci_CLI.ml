@@ -227,7 +227,7 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
   let combine allow_local_builds allow_untrusted_validators autofix
-      baseline_commit common config dataflow_traces diff_depth dryrun
+      baseline_commit common config dataflow_traces _diff_depthTODO dryrun
       _dump_command_for_core emacs emacs_outputs exclude_ exclude_minified_files
       exclude_rule_ids files_with_matches force_color gitlab_sast
       gitlab_sast_outputs gitlab_secrets gitlab_secrets_outputs
@@ -301,7 +301,6 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
         exclude = exclude_;
         include_;
         baseline_commit;
-        diff_depth;
         max_target_bytes;
         always_select_explicit_targets = scan_unknown_extensions;
         explicit_targets = Find_targets.Explicit_targets.empty;

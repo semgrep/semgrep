@@ -67,7 +67,6 @@ type conf = {
   exclude_minified_files : bool;
   (* TODO: not used for now *)
   baseline_commit : string option;
-  diff_depth : int;
 }
 
 and glob = string

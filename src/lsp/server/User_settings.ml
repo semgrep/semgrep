@@ -54,8 +54,6 @@ let find_targets_conf_of_t settings : Find_targets.conf =
     exclude = settings.exclude;
     include_;
     max_target_bytes = settings.max_target_bytes;
-    (* TODO: explain or use the default value of default_conf.diff_depth *)
-    diff_depth = 0;
     (* If you're editing minified files then ???
        TODO: explain or use the same default as in default_conf. *)
     exclude_minified_files = true;

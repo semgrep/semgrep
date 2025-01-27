@@ -281,18 +281,6 @@ given baseline hash doesn't exist.
   in
   Arg.value (Arg.opt Arg.(some string) None info)
 
-let o_diff_depth : int Term.t =
-  let info =
-    Arg.info [ "diff-depth" ]
-      ~doc:
-        {|The depth of the Pro (interfile) differential scan, the number of
-       steps (both in the caller and callee sides) from the targets in the
-       call graph tracked by the deep preprocessor. Only applied in differential
-       scan mode. Default to 2.
-       |}
-  in
-  Arg.value (Arg.opt Arg.int default.targeting_conf.diff_depth info)
-
 (* ------------------------------------------------------------------ *)
 (* Performance and memory options *)
 (* ------------------------------------------------------------------ *)
@@ -602,6 +590,26 @@ let o_gitlab_secrets_outputs =
 let o_junit_xml_outputs = make_o_format_outputs ~fancy:"JUnit XML" "junit-xml"
 
 (* ------------------------------------------------------------------ *)
+(* SCA flags                                  *)
+(* ------------------------------------------------------------------ *)
+
+(* This is just intended to be around temporarily while we roll out and test
+ * the feature. Once we are confident that the lockfileless approach will not
+ * cause failures for customers, we should remove this flag and replace it with
+ * a flag to _disable_ dynamic dependency resolution.
+ * TODO: (bk) delete this flag
+ *)
+let o_allow_local_builds : bool Term.t =
+  let info =
+    Arg.info [ "allow-local-builds" ]
+      ~doc:
+        {|Experimental: allow building projects contained in the repository. This allows Semgrep to identify dependencies
+          and dependency relationships when lockfiles are not present or are insufficient. However, building code may inherently
+          require the execution of code contained in the scanned project or in its dependencies, which is a security risk.|}
+  in
+  Arg.value (Arg.flag info)
+
+(* ------------------------------------------------------------------ *)
 (* Run Secrets Post Processors                                  *)
 (* ------------------------------------------------------------------ *)
 
@@ -667,6 +675,18 @@ let o_pro_intrafile : bool Term.t =
        ^ C.blurb_pro)
   in
   Arg.value (Arg.flag info)
+
+let o_diff_depth : int Term.t =
+  let info =
+    Arg.info [ "diff-depth" ]
+      ~doc:
+        {|The depth of the Pro (interfile) differential scan, the number of
+       steps (both in the caller and callee sides) from the targets in the
+       call graph tracked by the deep preprocessor. Only applied in differential
+       scan mode. Default to 2.
+       |}
+  in
+  Arg.value (Arg.opt Arg.int 2 info)
 
 let o_pro_path_sensitive : bool Term.t =
   let info =
@@ -868,22 +888,6 @@ let o_dump_engine_path : bool Term.t =
 let o_dump_command_for_core : bool Term.t =
   let info =
     Arg.info [ "d"; "dump-command-for-core" ] ~doc:{|<internal, do not use>|}
-  in
-  Arg.value (Arg.flag info)
-
-(* This is just intended to be around temporarily while we roll out and test the feature. Once we
-   are confident that the lockfileless
-   approach will not cause failures for customers, we should remove this flag and replace it with
-   a flag to _disable_ dynamic dependency resolution.
-   TODO: (bk) delete this flag
-*)
-let o_allow_local_builds : bool Term.t =
-  let info =
-    Arg.info [ "allow-local-builds" ]
-      ~doc:
-        {|Experimental: allow building projects contained in the repository. This allows Semgrep to identify dependencies
-          and dependency relationships when lockfiles are not present or are insufficient. However, building code may inherently
-          require the execution of code contained in the scanned project or in its dependencies, which is a security risk.|}
   in
   Arg.value (Arg.flag info)
 
@@ -1295,21 +1299,21 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
      of the corresponding '$ o_xx $' further below!
   *)
   let combine allow_local_builds allow_untrusted_validators autofix
-      baseline_commit common config dataflow_traces diff_depth dryrun dump_ast
-      dump_command_for_core dump_engine_path emacs emacs_outputs error exclude_
-      exclude_minified_files exclude_rule_ids files_with_matches force_color
-      gitlab_sast gitlab_sast_outputs gitlab_secrets gitlab_secrets_outputs
-      _historical_secrets include_ incremental_output json json_outputs
-      junit_xml junit_xml_outputs lang matching_explanations max_chars_per_line
-      max_lines_per_finding max_log_list_entries max_memory_mb max_target_bytes
-      metrics num_jobs no_secrets_validation nosem optimizations oss output
-      pattern pro project_root pro_intrafile pro_lang pro_path_sensitive remote
-      replacement rewrite_rule_ids sarif sarif_outputs scan_unknown_extensions
-      secrets severity show_supported_languages strict target_roots test
-      test_ignore_todo text text_outputs time_flag timeout
-      _timeout_interfileTODO timeout_threshold trace trace_endpoint use_git
-      validate version version_check vim vim_outputs
-      x_ignore_semgrepignore_files x_ls x_ls_long =
+      baseline_commit common config dataflow_traces _diff_depthTODO dryrun
+      dump_ast dump_command_for_core dump_engine_path emacs emacs_outputs error
+      exclude_ exclude_minified_files exclude_rule_ids files_with_matches
+      force_color gitlab_sast gitlab_sast_outputs gitlab_secrets
+      gitlab_secrets_outputs _historical_secrets include_ incremental_output
+      json json_outputs junit_xml junit_xml_outputs lang matching_explanations
+      max_chars_per_line max_lines_per_finding max_log_list_entries
+      max_memory_mb max_target_bytes metrics num_jobs no_secrets_validation
+      nosem optimizations oss output pattern pro project_root pro_intrafile
+      pro_lang pro_path_sensitive remote replacement rewrite_rule_ids sarif
+      sarif_outputs scan_unknown_extensions secrets severity
+      show_supported_languages strict target_roots test test_ignore_todo text
+      text_outputs time_flag timeout _timeout_interfileTODO timeout_threshold
+      trace trace_endpoint use_git validate version version_check vim
+      vim_outputs x_ignore_semgrepignore_files x_ls x_ls_long =
     (* Print a warning if any of the internal or experimental options.
        We don't want users to start relying on these. *)
     if x_ignore_semgrepignore_files || x_ls || x_ls_long then
@@ -1408,7 +1412,6 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
         exclude = exclude_;
         include_;
         baseline_commit;
-        diff_depth;
         max_target_bytes;
         always_select_explicit_targets =
           scan_unknown_extensions || imply_always_select_explicit_targets;
