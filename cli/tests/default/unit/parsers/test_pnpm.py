@@ -25,6 +25,8 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyChild
             "2.8.3(@sveltejs/vite-plugin-svelte@4.0.0-next.6(svelte@packages+svelte)(vite@5.4.6(@types/node@20.12.7)(lightningcss@1.23.0)(sass@1.70.0)(terser@5.27.0)))(svelte@packages+svelte)(vite@5.4.6(@types/node@20.12.7)(lightningcss@1.23.0)(sass@1.70.0)(terser@5.27.0))",
             "2.8.3",
         ),
+        ("/@pnpm/node-fetch@1.0.0", "1.0.0"),
+        ("/random-path/other-package@5.0.0", "5.0.0"),
         # Edge cases
         ("", ""),  # Empty string
         ("8.2.0(", "8.2.0"),  # Malformed version with an unclosed parenthesis

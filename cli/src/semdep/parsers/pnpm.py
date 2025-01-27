@@ -34,6 +34,9 @@ SNAPSHOT_KEY_PATTERN = re.compile(
 )
 BASE_VERSION_PATTERN_SIMPLE = re.compile(r"(?P<version>^[^\(]+)")
 BASE_VERSION_PATTERN = re.compile(r"^(?P<version>[^\(\+]+(?:\+[^\(]+)?)\(")
+BASE_VERSION_PATTERN_LESS_SIMPLE = re.compile(
+    r"(?:/[@]?[^@]+@)?(?P<version>[^\(\+]+(?:\+[^\(]+)?)"
+)
 PACKAGE_ALIAS_PATTERN = re.compile(r"^(?P<package>[^\(\)@]+)@(?P<version>[^\(\)]+)")
 
 
@@ -146,7 +149,7 @@ def extract_base_version(version_string: str) -> str:
     Returns:
         The base version string, e.g., '8.2.0' or '8.2.0+build'.
     """
-    match = BASE_VERSION_PATTERN.match(version_string)
+    match = BASE_VERSION_PATTERN_LESS_SIMPLE.match(version_string)
     return match.group("version") if match else version_string
 
 
