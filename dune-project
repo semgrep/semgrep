@@ -508,7 +508,7 @@ For more information see https://semgrep.dev
     parmap
     semver
     (timedesc (>= 2.0.0)) ; used via git-wrapper
-    (lsp (= 1.15.1-5.0))
+    (lsp (= 1.20.0))
     git
     ; tracing
     trace

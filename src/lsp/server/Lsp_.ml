@@ -130,7 +130,7 @@ let create_progress title message =
   in
   let request, _id = request progress in
   let start =
-    SN.Progress.Begin (WorkDoneProgressBegin.create ~message ~title ())
+    Progress.Begin (WorkDoneProgressBegin.create ~message ~title ())
   in
   let progress = SN.WorkDoneProgress (ProgressParams.create token start) in
   ([ request; notify progress ], token)
@@ -140,7 +140,7 @@ let end_progress token =
   Logs.debug (fun m ->
       m "Ending progress token %s"
         (token |> ProgressToken.yojson_of_t |> Yojson.Safe.pretty_to_string));
-  let end_ = SN.Progress.End (WorkDoneProgressEnd.create ()) in
+  let end_ = Progress.End (WorkDoneProgressEnd.create ()) in
   let progress = SN.WorkDoneProgress (ProgressParams.create token end_) in
   notify progress
 
