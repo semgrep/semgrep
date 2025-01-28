@@ -1,0 +1,95 @@
+=== exit code
+0
+=== end of exit code
+
+=== stdout - plain
+{
+  "errors": [],
+  "paths": {
+    "scanned": [
+      "targets/dependency_aware/nuget_no_lockfile/NugetNoLockfile.csproj"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.dependency_aware.nuget-newtonsoft-json-parity",
+      "end": {
+        "col": 1,
+        "line": 1,
+        "offset": 1
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "lines": "requires login",
+        "message": "A parity rule which fires on a bad version of Newtonsoft.Json",
+        "metadata": {},
+        "sca_info": {
+          "dependency_match": {
+            "dependency_pattern": {
+              "ecosystem": "nuget",
+              "package": "Newtonsoft.Json",
+              "semver_range": "> 9.0.0"
+            },
+            "found_dependency": {
+              "allowed_hashes": {},
+              "children": [],
+              "ecosystem": "nuget",
+              "lockfile_path": "targets/dependency_aware/nuget_no_lockfile/NugetNoLockfile.csproj",
+              "manifest_path": "targets/dependency_aware/nuget_no_lockfile/NugetNoLockfile.csproj",
+              "package": "Newtonsoft.Json",
+              "transitivity": "direct",
+              "version": "13.0.3"
+            },
+            "lockfile": "targets/dependency_aware/nuget_no_lockfile/NugetNoLockfile.csproj"
+          },
+          "reachability_rule": false,
+          "reachable": false,
+          "sca_finding_schema": 20220913
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/dependency_aware/nuget_no_lockfile/NugetNoLockfile.csproj",
+      "start": {
+        "col": 1,
+        "line": 1,
+        "offset": 1
+      }
+    }
+  ],
+  "skipped_rules": [],
+  "version": "0.42"
+}
+=== end of stdout - plain
+
+=== stderr - plain
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 7 files tracked by git with 0 Code rules, 1 Supply Chain rule:
+
+
+  CODE RULES
+  Nothing to scan.
+
+  SUPPLY CHAIN RULES
+  Nothing to scan.
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+
+Ran 1 rule on 1 file: 1 finding.
+
+=== end of stderr - plain
+
+=== stdout - color
+<same as above: stdout - plain>
+=== end of stdout - color
+
+=== stderr - color
+<same as above: stderr - plain>
+=== end of stderr - color

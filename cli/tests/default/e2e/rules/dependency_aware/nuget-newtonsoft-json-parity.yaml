@@ -1,0 +1,9 @@
+rules:
+  - id: nuget-newtonsoft-json-parity
+    r2c-internal-project-depends-on:
+      namespace: nuget
+      package: Newtonsoft.Json
+      version: "> 9.0.0"
+    message: A parity rule which fires on a bad version of Newtonsoft.Json
+    languages: [csharp]
+    severity: WARNING

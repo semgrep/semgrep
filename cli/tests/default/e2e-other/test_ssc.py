@@ -382,6 +382,10 @@ def test_ssc__requirements_lockfiles(
             "rules/dependency_aware/maven-log4j.yaml",
             "dependency_aware/maven-no-lockfile",
         ),
+        (
+            "rules/dependency_aware/nuget-newtonsoft-json-parity.yaml",
+            "dependency_aware/nuget_no_lockfile",
+        ),
         # also include some where lockfiles are present to check that we don't break those
         (
             "rules/dependency_aware/java-gradle-sca.yaml",

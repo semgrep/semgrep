@@ -77,12 +77,14 @@ PARSERS_BY_LOCKFILE_KIND: Dict[out.LockfileKind, Union[SemgrepParser, None]] = {
 
 PTT_OCAML_PARSER_SUBPROJECT_KINDS = [
     (out.ManifestKind(out.PackageJson()), out.LockfileKind(out.NpmPackageLockJson())),
+    (out.ManifestKind(out.Csproj()), out.LockfileKind(out.NugetPackagesLockJson())),
 ]
 
 PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS = [
     (out.ManifestKind(out.PomXml()), None),
     (out.ManifestKind(out.BuildGradle()), None),
     (out.ManifestKind(out.BuildGradle()), out.LockfileKind(out.GradleLockfile())),
+    (out.ManifestKind(out.Csproj()), None),
 ]
 
 DependencyResolutionResult = Tuple[

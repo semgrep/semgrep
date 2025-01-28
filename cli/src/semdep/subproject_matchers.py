@@ -5,6 +5,7 @@ from typing import List
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.matchers.base import ExactLockfileManifestMatcher
 from semdep.matchers.base import ExactManifestOnlyMatcher
+from semdep.matchers.base import PatternManifestStaticLockfileMatcher
 from semdep.matchers.base import SubprojectMatcher
 from semdep.matchers.gradle import GradleMatcher
 from semdep.matchers.pip_requirements import PipRequirementsMatcher
@@ -97,13 +98,13 @@ MATCHERS: List[SubprojectMatcher] = [
         make_manifest_only_subprojects=False,
     ),
     # Nuget
-    ExactLockfileManifestMatcher(
+    PatternManifestStaticLockfileMatcher(
         lockfile_name="packages.lock.json",
-        manifest_name="nuget.manifest.json",
+        manifest_pattern="*.csproj",
         lockfile_kind=out.LockfileKind(out.NugetPackagesLockJson()),
-        manifest_kind=out.ManifestKind(out.NugetManifestJson()),
+        manifest_kind=out.ManifestKind(out.Csproj()),
         ecosystem=out.Ecosystem(out.Nuget()),
-        make_manifest_only_subprojects=False,
+        make_manifest_only_subprojects=True,
     ),
     # Pub
     ExactLockfileManifestMatcher(
