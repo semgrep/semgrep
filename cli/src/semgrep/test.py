@@ -544,24 +544,27 @@ def generate_test_results(
         str(c) for c, _fixtest in config_without_fixtests if config_contains_fix_key(c)
     ]
 
+    # TODO: dead code due to configs_with_fixtests being unused and commented out below!
     # this saves execution time: fix will not be correct, if regular test is not correct
-    passed_test_filenames = [
-        filename
-        for _config_filename, matches, soft_errors in tested
-        for _check_id, filename_and_matches in matches.items()
-        for filename, expected_and_reported_lines in filename_and_matches.items()
-        if expected_and_reported_lines["expected_lines"]
-        == expected_and_reported_lines["reported_lines"]
-        and not soft_errors
-    ]
-    configs_with_fixtests = {
-        config: [
-            (target, fixtest)
-            for target, fixtest in testfiles
-            if os.path.abspath(target) in passed_test_filenames
-        ]
-        for config, testfiles in config_with_fixtests
-    }
+    # passed_test_filenames = [
+    #    filename
+    #    for _config_filename, matches, soft_errors in tested
+    #    for _check_id, filename_and_matches in matches.items()
+    #    for filename, expected_and_reported_lines in filename_and_matches.items()
+    #    if expected_and_reported_lines["expected_lines"]
+    #    == expected_and_reported_lines["reported_lines"]
+    #    and not soft_errors
+    # ]
+
+    # TODO: unused misspelled variable 'configs_with_fixtests'! Enable this code?
+    # configs_with_fixtests = {
+    #    config: [
+    #        (target, fixtest)
+    #        for target, fixtest in testfiles
+    #        if os.path.abspath(target) in passed_test_filenames
+    #    ]
+    #    for config, testfiles in config_with_fixtests
+    # }
 
     temp_copies: Dict[Path, str] = {
         target: create_temporary_copy(target)

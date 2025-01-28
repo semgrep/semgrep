@@ -470,12 +470,6 @@ def ci(
                     SpinnerColumn(spinner_name="simpleDotsScrolling"),
                     console=console,
                 ) as progress_bar:
-                    at_url_maybe = (
-                        f" at [bold]{state.env.semgrep_url}[/bold]"
-                        if state.env.semgrep_url != "https://semgrep.dev"
-                        else ""
-                    )
-
                     start_scan_desc = "Initializing scan"
                     start_scan_task = progress_bar.add_task(start_scan_desc)
                     scan_handler.start_scan(project_meta, project_config)

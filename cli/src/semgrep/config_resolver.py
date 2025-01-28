@@ -712,8 +712,6 @@ def validate_single_rule(config_id: str, rule_yaml: YamlTree[YamlMap]) -> Rule:
     Validate that a rule dictionary contains all necessary keys
     and can be correctly parsed.
     """
-    rule: YamlMap = rule_yaml.value
-
     # Defaults to search mode if mode is not specified
     return Rule.from_yamltree(rule_yaml)
 

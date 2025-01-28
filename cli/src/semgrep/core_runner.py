@@ -166,7 +166,7 @@ def open_and_ignore(fname: str) -> None:
     be seen by 'strace'.
     """
     try:
-        with open(fname, "rb") as in_file:
+        with open(fname, "rb"):
             pass  # Not expected, but not a problem.
     except BaseException:
         pass  # Expected outcome
