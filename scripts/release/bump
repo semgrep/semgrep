@@ -79,6 +79,13 @@ update_dune_project() {
   git add "$target"
 }
 
+update_opam_file() {
+  target=semgrep.opam
+  echo "Updating $target"
+  sed_in_place 's/^version: ".*"$/version: "'"$release"'"/' "$target"
+  git add "$target"
+}
+
 # Update files containing the release ID.
 #
 # Ideally this shouldn't modify source files,
@@ -89,6 +96,7 @@ bump() {
   update_cli_setup_py
   update_version_ml
   update_dune_project
+  update_opam_file
 }
 
 release="${SEMGREP_RELEASE_NEXT_VERSION}"
