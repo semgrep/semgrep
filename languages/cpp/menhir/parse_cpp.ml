@@ -438,7 +438,7 @@ let parse file : (Ast.program, T.token) Parsing_result.t =
           {
             Parsing_result.ast = [];
             tokens = [];
-            stat = { (PS.bad_stat !!file) with PS.have_timeout = true };
+            stat = { (PS.bad_stat file) with PS.have_timeout = true };
           })
 
 let parse_program file =

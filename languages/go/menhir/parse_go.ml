@@ -68,7 +68,7 @@ let parse filename =
     {
       Parsing_result.ast = xs;
       tokens = toks_orig;
-      stat = Parsing_stat.correct_stat !!filename;
+      stat = Parsing_stat.correct_stat filename;
     }
   with
   | Parsing.Parse_error ->
@@ -88,7 +88,7 @@ let parse filename =
       {
         Parsing_result.ast = [];
         tokens = toks_orig;
-        stat = Parsing_stat.bad_stat !!filename;
+        stat = Parsing_stat.bad_stat filename;
       }
 [@@profiling]
 

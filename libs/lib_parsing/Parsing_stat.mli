@@ -19,8 +19,8 @@ type t = {
 }
 
 val default_stat : string (* filename *) -> t
-val bad_stat : string (* filename *) -> t
-val correct_stat : string (* filename *) -> t
+val bad_stat : Fpath.t -> t
+val correct_stat : Fpath.t -> t
 
 (*
    Print file name and number of lines and error lines in compact format

@@ -64,10 +64,10 @@ let process_exn () =
   store := res :: !store;
   ()
 
-let print_exn file e =
+let print_exn (file : Fpath.t) (e : exn) : unit =
   let trace = Printexc.get_backtrace () in
   process_exn ();
-  UCommon.pr2 (spf "%s: exn = %s\n%s" file (Common.exn_to_s e) trace)
+  UCommon.pr2 (spf "%s: exn = %s\n%s" !!file (Common.exn_to_s e) trace)
 
 (* This function collects all the function name and line number pairs, and then
    sorts them in descending order of frequency.
@@ -249,51 +249,53 @@ let dump_tree_sitter_cst (lang : Lang.t) (file : Fpath.t) : unit =
            Tree_sitter_dockerfile.Boilerplate.dump_extras
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
-let test_parse_tree_sitter lang root_paths =
-  let paths, _skipped_paths =
-    Find_targets_old.files_of_dirs_or_files (Some lang) root_paths
+let test_parse_tree_sitter lang roots =
+  let paths, _skipped =
+    Find_targets_old.files_of_dirs_or_files (Some lang) roots
   in
   let stat_list = ref [] in
-  paths |> Fpath_.to_strings
+  paths
   |> List.iter (fun file ->
-         Logs.info (fun m -> m ~tags "processing %s" file);
+         Logs.info (fun m -> m ~tags "processing %s" !!file);
          let stat =
            try
              (match lang with
              (* less: factorize with dump_tree_sitter_cst_lang *)
              | Lang.Ruby ->
-                 Tree_sitter_ruby.Parse.file file |> fail_on_error |> ignore
+                 Tree_sitter_ruby.Parse.file !!file |> fail_on_error |> ignore
              | Lang.Java ->
-                 Tree_sitter_java.Parse.file file |> fail_on_error |> ignore
+                 Tree_sitter_java.Parse.file !!file |> fail_on_error |> ignore
              | Lang.Go ->
-                 Tree_sitter_go.Parse.file file |> fail_on_error |> ignore
+                 Tree_sitter_go.Parse.file !!file |> fail_on_error |> ignore
              | Lang.Csharp ->
-                 Tree_sitter_c_sharp.Parse.file file |> fail_on_error |> ignore
+                 Tree_sitter_c_sharp.Parse.file !!file
+                 |> fail_on_error |> ignore
              | Lang.Kotlin ->
-                 Tree_sitter_kotlin.Parse.file file |> fail_on_error |> ignore
+                 Tree_sitter_kotlin.Parse.file !!file |> fail_on_error |> ignore
              | Lang.Js ->
-                 Tree_sitter_tsx.Parse.file file |> fail_on_error |> ignore
+                 Tree_sitter_tsx.Parse.file !!file |> fail_on_error |> ignore
              | Lang.Jsonnet ->
-                 Tree_sitter_jsonnet.Parse.file file |> fail_on_error |> ignore
+                 Tree_sitter_jsonnet.Parse.file !!file
+                 |> fail_on_error |> ignore
              | Lang.Ts ->
-                 Tree_sitter_tsx.Parse.file file |> fail_on_error |> ignore
+                 Tree_sitter_tsx.Parse.file !!file |> fail_on_error |> ignore
              | Lang.Rust ->
-                 Tree_sitter_rust.Parse.file file |> fail_on_error |> ignore
+                 Tree_sitter_rust.Parse.file !!file |> fail_on_error |> ignore
              | Lang.Ocaml ->
-                 Tree_sitter_ocaml.Parse.file file |> fail_on_error |> ignore
+                 Tree_sitter_ocaml.Parse.file !!file |> fail_on_error |> ignore
              | Lang.C
              | Lang.Cpp ->
-                 Tree_sitter_cpp.Parse.file file |> fail_on_error |> ignore
+                 Tree_sitter_cpp.Parse.file !!file |> fail_on_error |> ignore
              | Lang.Html ->
-                 Tree_sitter_html.Parse.file file |> fail_on_error |> ignore
+                 Tree_sitter_html.Parse.file !!file |> fail_on_error |> ignore
              | Lang.Php ->
-                 Tree_sitter_php.Parse.file file |> fail_on_error |> ignore
+                 Tree_sitter_php.Parse.file !!file |> fail_on_error |> ignore
              | Lang.Terraform ->
-                 Tree_sitter_hcl.Parse.file file |> fail_on_error |> ignore
+                 Tree_sitter_hcl.Parse.file !!file |> fail_on_error |> ignore
              | Lang.Dart ->
-                 Tree_sitter_dart.Parse.file file |> fail_on_error |> ignore
+                 Tree_sitter_dart.Parse.file !!file |> fail_on_error |> ignore
              | Lang.Move_on_sui ->
-                 Tree_sitter_move_on_sui.Parse.file file
+                 Tree_sitter_move_on_sui.Parse.file !!file
                  |> fail_on_error |> ignore
              | _ ->
                  failwith
@@ -339,7 +341,7 @@ let dump_lang_ast (lang : Lang.t) (file : Fpath.t) : unit =
    semgrep scans.
 *)
 let parsing_common (caps : < Cap.time_limit ; Cap.memory_limit >)
-    ?(verbose = true) lang files_or_dirs =
+    ?(verbose = true) (lang : Lang.t) files_or_dirs =
   let timeout_seconds = 10.0 in
   (* Without the use of Memory_limit below, we were getting some
    * 'Fatal error: out of memory' errors in the parsing stat CI job,
@@ -406,16 +408,16 @@ let parsing_common (caps : < Cap.time_limit ; Cap.memory_limit >)
                    let ast_stat = AST_stat.stat res.ast in
                    { res.Parsing_result2.stat with ast_stat = Some ast_stat }
                | None ->
-                   { (Parsing_stat.bad_stat !!file) with have_timeout = true }
+                   { (Parsing_stat.bad_stat file) with have_timeout = true }
              with
              | Time_limit.Timeout _ -> assert false
              | exn ->
-                 if verbose then print_exn !!file exn;
+                 if verbose then print_exn file exn;
                  (* bugfix: bad_stat() could actually triggering some
                     Sys_error "Out of memory" when implemented naively,
                     and this exn in the exn handler was stopping the whole job.
                  *)
-                 Parsing_stat.bad_stat !!file
+                 Parsing_stat.bad_stat file
            in
            if verbose && stat.PS.error_line_count > 0 then
              UCommon.pr2 (spf "FAILED TO FULLY PARSE: %s" stat.PS.filename);

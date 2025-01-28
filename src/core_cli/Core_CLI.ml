@@ -794,8 +794,7 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
               when UFile.is_reg ~follow_symlinks:true file ->
                 Targets [ Target.mk_target lang file ]
             | _ ->
-                (* alt: use the file targeting in targets_of_config_DEPRECATED
-                 * with the deprecated use of Find_targets_old, but better
+                (* alt: use the file targeting in Find_targets_lang but better
                  * to "dumb-down" semgrep-core to its minimum.
                  *)
                 failwith

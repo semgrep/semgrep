@@ -27,6 +27,7 @@ open Common
 type ast_stat = { total_node_count : int; untranslated_node_count : int }
 
 type t = {
+  (* TODO: use Fpath.t *)
   filename : string;
   total_line_count : int;
   mutable error_line_count : int;
@@ -70,12 +71,12 @@ let default_stat file =
     ast_stat = None;
   }
 
-let bad_stat file =
-  let stat = default_stat file in
+let bad_stat (file : Fpath.t) =
+  let stat = default_stat (Fpath.to_string file) in
   stat.error_line_count <- stat.total_line_count;
   stat
 
-let correct_stat file = default_stat file
+let correct_stat (file : Fpath.t) = default_stat (Fpath.to_string file)
 
 (*****************************************************************************)
 (* Parsing statistics *)

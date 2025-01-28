@@ -68,7 +68,7 @@ let just_parse_with_lang (lang : Lang.t) (file : Fpath.t) : Res.t =
         [
           Pfff
             (fun file ->
-              (Parse_json.parse_program file, Parsing_stat.correct_stat !!file));
+              (Parse_json.parse_program file, Parsing_stat.correct_stat file));
         ]
         Json_to_generic.program
   | Lang.Js
