@@ -11,3 +11,4 @@ val show : Uri.t -> string
  * Note: This only validates the scheme prefix, not the full URL structure.
  *)
  val is_url : string -> bool
+ 
