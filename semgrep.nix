@@ -7,9 +7,20 @@ let
   in rec {
     patchesOverlay = final: prev: {
       # See https://github.com/tweag/opam-nix/issues/109
-      conf-pkg-config = prev.conf-pkg-config.overrideAttrs (prev: {
-        # We need to add the pkg-conf path to the PATH so that dune can find it
-        nativeBuildInputs = prev.nativeBuildInputs ++ [ pkgs.pkgconf ];
+      conf-libpcre = prev.conf-libpcre.overrideAttrs (prev: {
+        # We need to add the pkg-config path to the PATH so that dune can find
+        # it TODO fix
+        # https://github.com/ocaml/opam-repository/blob/master/packages/conf-libpcre/conf-libpcre.2/opam
+        # to use pkg-conf on macos
+        nativeBuildInputs = prev.nativeBuildInputs ++ [ pkgs.pkg-config ];
+      });
+
+      conf-libffi = prev.conf-libffi.overrideAttrs (prev: {
+        # We need to add the pkg-config path to the PATH so that dune can find
+        # it TODO fix
+        # https://github.com/ocaml/opam-repository/blob/master/packages/conf-libffi/conf-libffi.2/opam
+        # to use pkg-conf on macos
+        nativeBuildInputs = prev.nativeBuildInputs ++ [ pkgs.pkg-config ];
       });
     };
 
@@ -67,12 +78,14 @@ let
       tsort = "*";
     };
     # needed for octs and pcre2
+    # TODO move to depexts
     inputs = (with pkgs; [ tree-sitter pcre2 ]);
   };
 
   devOptional = lib.buildOpamPkg {
     name = "optional";
     src = src + "/dev";
+    query = { utop = "2.15.0"; };
   };
 
   devRequired = lib.buildOpamPkg {

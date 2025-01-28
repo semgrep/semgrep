@@ -472,14 +472,12 @@ shell-pure:
 # Build targets
 # For all the .?submodules=1 we need because nix is weird:
 # https://github.com/NixOS/nix/issues/4423#issuecomment-791352686
-nix-osemgrep:
-	$(NIX) build ".?submodules=1#osemgrep"
-
-nix-semgrep-core:
-	$(NIX) build ".?submodules=1#semgrep-core"
-
 nix-semgrep:
 	$(NIX) build ".?submodules=1#semgrep"
+
+nix-pysemgrep:
+	$(NIX) build ".?submodules=1#pysemgrep"
+
 
 # Build + run tests (doesn't run python tests yet)
 nix-check:

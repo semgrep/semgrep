@@ -319,12 +319,10 @@ local osemgrep_test_steps_after_checkout = [
 local setup_nix_step = [
   {
     name: "Set up Nix",
-    uses: "DeterminateSystems/nix-installer-action@main",
+    uses: "DeterminateSystems/nix-installer-action@v16",
     with: {
-      // need to pin until
-      // https://github.com/DeterminateSystems/nix-installer-action/issues/133
-      // is fixed
-      "source-tag": "v0.32.3",
+      // pin for more stability
+      "source-tag": "v0.34.0",
         // pysemgrep and osemgrep have networking tests that rely on the
         // actual internet (i.e. semgrep.dev). When sandbox=false nix builds
         // everything fine, but all networking tests fail. So we set sandbox
