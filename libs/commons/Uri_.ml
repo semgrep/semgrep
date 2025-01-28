@@ -30,5 +30,4 @@ let of_string_opt (str : string) : Uri.t option =
   if Uri.equal uri Uri.empty then None else Some uri
 
 let url_regex = Pcre2_.regexp "^https?://"
-let is_url config_path =
-  Pcre2_.pmatch_noerr ~rex:url_regex config_path
+let is_url config_path = Pcre2_.pmatch_noerr ~rex:url_regex config_path

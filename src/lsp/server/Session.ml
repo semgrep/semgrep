@@ -285,13 +285,12 @@ let fetch_rules session =
   let rules_source =
     session.user_settings.configuration
     |> List_.map (fun config_path ->
-      if Uri_.is_url config_path then
-        config_path
-      else
-        let f = Fpath.v config_path |> Fpath.normalize in
-        let p = Fpath.rem_prefix (Fpath.v "~/") f in
-        Option.value ~default:f (Option.map (fun f -> home // f) p)
-        |> Fpath.to_string)
+           if Uri_.is_url config_path then config_path
+           else
+             let f = Fpath.v config_path |> Fpath.normalize in
+             let p = Fpath.rem_prefix (Fpath.v "~/") f in
+             Option.value ~default:f (Option.map (fun f -> home // f) p)
+             |> Fpath.to_string)
   in
   let rules_source =
     if rules_source = [] && ci_rules = None then (

@@ -10,5 +10,4 @@ val show : Uri.t -> string
  * Returns true only for valid HTTP(S) URL prefixes.
  * Note: This only validates the scheme prefix, not the full URL structure.
  *)
- val is_url : string -> bool
- 
+val is_url : string -> bool
