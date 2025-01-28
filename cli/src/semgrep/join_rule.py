@@ -400,7 +400,7 @@ def json_to_rule_match(join_rule: Dict[str, Any], match: Dict[str, Any]) -> Rule
 
 def run_join_rule(
     join_rule: Dict[str, Any],
-    targets: List[Path],
+    scanning_roots: List[Path],
     allow_local_builds: bool = False,
     ptt_enabled: bool = False,
 ) -> Tuple[List[RuleMatch], List[SemgrepError]]:
@@ -486,11 +486,11 @@ def run_join_rule(
         rule_path.seek(0)
 
         logger.debug(
-            f"Running join mode rule {join_rule.get('id')} on {len(targets)} files."
+            f"Running join mode rule {join_rule.get('id')} on {len(scanning_roots)} files."
         )
         output = semgrep.run_scan.run_scan_and_return_json(
             config=Path(rule_path.name),
-            targets=targets,
+            scanning_roots=scanning_roots,
             no_rewrite_rule_ids=True,
             optimizations="all",
             allow_local_builds=allow_local_builds,

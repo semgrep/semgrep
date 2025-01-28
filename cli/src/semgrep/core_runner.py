@@ -976,9 +976,9 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                     )
 
                 if engine is EngineType.PRO_INTERFILE:
-                    targets = target_manager.targets
-                    if len(targets) == 1:
-                        root = str(targets[0].path)
+                    scanning_roots = target_manager.scanning_roots
+                    if len(scanning_roots) == 1:
+                        root = str(scanning_roots[0].path)
                     else:
                         raise SemgrepError(
                             "Inter-file analysis can only take a single target (for multiple files pass a directory)"

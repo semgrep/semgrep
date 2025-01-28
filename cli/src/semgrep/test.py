@@ -294,10 +294,12 @@ def _generate_fixcheck_output_line(
 
 
 def invoke_semgrep_multi(
-    config: Path, targets: List[Path], **kwargs: Any
+    config: Path, scanning_roots: List[Path], **kwargs: Any
 ) -> Tuple[Path, Optional[str], Any]:
     try:
-        output = semgrep.run_scan.run_scan_and_return_json(config, targets, **kwargs)
+        output = semgrep.run_scan.run_scan_and_return_json(
+            config=config, scanning_roots=scanning_roots, **kwargs
+        )
     except Exception:
         # We must get the string of the error because the multiprocessing library
         # will fail the marshal the error and hang
@@ -698,7 +700,7 @@ def generate_test_results(
 
 def test_main(
     *,
-    target: Sequence[str],
+    scanning_roots: Sequence[str],
     config: Optional[Sequence[str]],
     test_ignore_todo: bool,
     strict: bool,
@@ -706,21 +708,21 @@ def test_main(
     optimizations: str,
     engine_type: EngineType,
 ) -> None:
-    if len(target) != 1:
+    if len(scanning_roots) != 1:
         raise Exception("only one target directory allowed for tests")
-    target_path = Path(target[0])
+    scanning_root_path = Path(scanning_roots[0])
 
     if config:
         if len(config) != 1:
             raise Exception("only one config directory allowed for tests")
         config_path = Path(config[0])
     else:
-        if target_path.is_file():
+        if scanning_root_path.is_file():
             raise Exception("--config is required when running a test on single file")
-        config_path = target_path
+        config_path = scanning_root_path
 
     generate_test_results(
-        target=target_path,
+        target=scanning_root_path,
         config=config_path,
         strict=strict,
         json_output=json,

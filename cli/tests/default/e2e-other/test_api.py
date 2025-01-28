@@ -24,8 +24,11 @@ def test_api(unique_home_dir, capsys, run_semgrep_in_tmp: RunSemgrep):
     # unique_home_dir is used to ensure that the test runs with it's own
     # settings.yaml file to avoid reading one corrupted by another concurrent test run.
     output = run_scan_and_return_json(
-        Path("rules/eqeq.yaml"),
-        [Path("targets/bad/invalid_python.py"), Path("targets/basic/stupid.py")],
+        config=Path("rules/eqeq.yaml"),
+        scanning_roots=[
+            Path("targets/bad/invalid_python.py"),
+            Path("targets/basic/stupid.py"),
+        ],
     )
 
     captured = capsys.readouterr()
@@ -49,7 +52,7 @@ def test_api_via_cli(unique_home_dir, run_semgrep_in_tmp: RunSemgrep):
         [
             sys.executable,
             "-c",
-            "from semgrep.run_scan import run_scan_and_return_json; from pathlib import Path; run_scan_and_return_json(Path('rules/eqeq.yaml'),[Path('targets/bad/invalid_python.py'), Path('targets/basic/stupid.py')],)",
+            "from semgrep.run_scan import run_scan_and_return_json; from pathlib import Path; run_scan_and_return_json(config=Path('rules/eqeq.yaml'),scanning_roots=[Path('targets/bad/invalid_python.py'), Path('targets/basic/stupid.py')],)",
         ],
         encoding="utf-8",
         capture_output=True,

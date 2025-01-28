@@ -81,7 +81,7 @@
     "features": [
       "cli-flag/config",
       "cli-flag/metrics",
-      "cli-flag/targets",
+      "cli-flag/scanning_roots",
       "cli-flag/time_flag",
       "config/local",
       "language/csharp",

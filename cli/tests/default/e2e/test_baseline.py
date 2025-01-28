@@ -114,6 +114,7 @@ def run_sentinel_scan(check: bool = True, base_commit: Optional[str] = None):
         cmd.extend(["--baseline-commit", base_commit])
 
     try:
+        print(f"run: {cmd}")
         return subprocess.run(
             cmd,
             capture_output=True,

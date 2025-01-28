@@ -625,9 +625,9 @@ def ci(
         for product in ALL_PRODUCTS:
             per_product_excludes[product].extend(additional_exclude_paths[product])
 
-        target = os.curdir
+        scanning_root = os.curdir
         if subdir:
-            target += f"/{subdir}"
+            scanning_root += f"/{subdir}"
 
         # Base arguments for actually running the scan. This is done here so we can
         # re-use this in the event we need to perform a second scan. Currently the
@@ -641,7 +641,7 @@ def ci(
             "run_secrets": run_secrets,
             "disable_secrets_validation": disable_secrets_validation_flag,
             "output_handler": output_handler,
-            "target": [target],
+            "scanning_roots": [scanning_root],
             "pattern": None,
             "lang": None,
             "configs": config,
@@ -695,7 +695,7 @@ def ci(
                     )
 
             # TODO? we're not passing time_flag below (or matching_explanations),
-            # is it indended?
+            # is it intended?
             (
                 filtered_matches_by_rule,
                 semgrep_errors,

@@ -75,35 +75,35 @@ ALL_EXTENSIONS: Collection[FileExtension] = {
 }
 
 
-def write_pipes_to_disk(targets: Sequence[str], temp_dir: Path) -> Sequence[str]:
+def write_pipes_to_disk(scanning_roots: Sequence[str], temp_dir: Path) -> Sequence[str]:
     """
     Writes FIFOs into temp files
 
     This is necessary as we can not easily rewire these pipes into the called semgrep-core
     process.
 
-    :param targets: Input target specifiers
+    :param scanning_roots: Input scanning root specifiers (files, folders, '-', ...)
     """
 
-    out_targets = []
-    for t in targets:
+    out_scanning_roots = []
+    for t in scanning_roots:
         path = Path(t)
         if t == "-":
             with (temp_dir / "stdin").open("wb") as fd:
                 fd.write(sys.stdin.buffer.read())
-            out_targets.append(fd.name)
+            out_scanning_roots.append(fd.name)
         else:
             if os.access(path, os.R_OK) and path.is_fifo():
                 with (temp_dir / t[1:].replace("/", "_")).open("wb") as fd:
                     with Path(t).open("rb") as td:
                         fd.write(td.read())
-                out_targets.append(fd.name)
+                out_scanning_roots.append(fd.name)
             else:
                 # We keep the scanning root even if we already
                 # know it doesn't exist. This will be reported cleanly
                 # later.
-                out_targets.append(t)
-    return out_targets
+                out_scanning_roots.append(t)
+    return out_scanning_roots
 
 
 @define
@@ -190,7 +190,7 @@ class FileTargetingLog:
             # need to check if any target is a git repo and not just the cwd
             targets_not_in_git = 0
             dir_targets = 0
-            for t in self.target_manager.targets:
+            for t in self.target_manager.scanning_roots:
                 if t.path.is_dir():
                     dir_targets += 1
                     try:
@@ -404,10 +404,10 @@ class FileTargetingLog:
 
 
 @frozen(eq=False)  #
-class Target:
+class ScanningRoot:
     """
     Represents one path that was given as a scanning root.
-    Then target.paths returns all paths that target expands to.
+    Then scanning_root.paths returns all target paths it expands to.
     This does not do any include/exclude filtering.
 
     Three strategies are available for gathering targets:
@@ -600,7 +600,7 @@ class TargetManager:
     TargetManager not to be confused with https://jobs.target.com/search-jobs/store%20manager
     """
 
-    target_strings: FrozenSet[Path]
+    scanning_root_strings: FrozenSet[Path]
     includes: Sequence[str] = Factory(list)
     excludes: Mapping[out.Product, Sequence[str]] = Factory(dict)
     max_target_bytes: int = -1
@@ -610,19 +610,19 @@ class TargetManager:
     allow_unknown_extensions: bool = False
     ignore_profiles: Mapping[out.Product, FileIgnore] = Factory(dict)
     ignore_log: FileTargetingLog = Factory(FileTargetingLog, takes_self=True)
-    targets: Sequence[Target] = field(init=False)
+    scanning_roots: Sequence[ScanningRoot] = field(init=False)
     respect_semgrepignore: bool = True
 
     _filtered_targets: Dict[Language, FilteredFiles] = field(factory=dict)
 
     def __attrs_post_init__(self) -> None:
-        self.targets = [
-            Target(
-                target,
+        self.scanning_roots = [
+            ScanningRoot(
+                root,
                 git_tracked_only=self.respect_git_ignore,
                 baseline_handler=self.baseline_handler,
             )
-            for target in self.target_strings
+            for root in self.scanning_root_strings
         ]
         return None
 
@@ -785,7 +785,9 @@ class TargetManager:
     @lru_cache(maxsize=None)
     def get_all_files(self, ignore_baseline_handler: bool = False) -> FrozenSet[Path]:
         return frozenset(
-            f for target in self.targets for f in target.files(ignore_baseline_handler)
+            f
+            for root in self.scanning_roots
+            for f in root.files(ignore_baseline_handler)
         )
 
     @lru_cache(maxsize=None)
@@ -799,8 +801,8 @@ class TargetManager:
         """
         return frozenset(
             f
-            for target in self.targets
-            for f in target.paths_with_insufficient_permissions(ignore_baseline_handler)
+            for root in self.scanning_roots
+            for f in root.paths_with_insufficient_permissions(ignore_baseline_handler)
         )
 
     @lru_cache(maxsize=None)
@@ -811,7 +813,7 @@ class TargetManager:
         ignore_baseline_handler: bool = False,
     ) -> FilteredFiles:
         """
-        Return all files that are decendants of any directory in TARGET that have
+        Return all files that are descendants of any directory in TARGET that have
         an extension matching LANG or are a lockfile for LANG ecosystem that match any pattern in INCLUDES and do not
         match any pattern in EXCLUDES. Any file in TARGET bypasses excludes and includes.
         If a file in TARGET has a known extension that is not for language LANG then
@@ -881,7 +883,9 @@ class TargetManager:
         kept_files = files.kept
 
         explicit_files = frozenset(
-            t.path for t in self.targets if not t.path.is_dir() and t.path.is_file()
+            t.path
+            for t in self.scanning_roots
+            if not t.path.is_dir() and t.path.is_file()
         )
         explicit_files_for_lang = self.filter_by_language(
             lang if isinstance(lang, Language) else None, candidates=explicit_files
@@ -906,14 +910,14 @@ class TargetManager:
         rule_product: out.Product,
     ) -> FrozenSet[Path]:
         """
-        Returns list of files that should be analyzed for a LANG
+        Returns list of target files that should be analyzed for a LANG
 
-        Given this object's TARGET, self.INCLUDE, and self.EXCLUDE will return list
-        of all descendant files of directories in TARGET that end in extension
+        Given this object's SCANNING_ROOT, self.INCLUDE, and self.EXCLUDE will return list
+        of all descendant files of directories in SCANNING_ROOT that end in extension
         typical for LANG. If self.INCLUDES is nonempty then all files will have an ancestor
         that matches a pattern in self.INCLUDES. Will not include any file that has
         an ancestor that matches a pattern in self.EXCLUDES. Any explicitly named files
-        in TARGET will bypass this global INCLUDE/EXCLUDE filter. The local INCLUDE/EXCLUDE
+        in SCANNING_ROOT will bypass this global INCLUDE/EXCLUDE filter. The local INCLUDE/EXCLUDE
         filter is then applied.
         """
         paths = self.get_files_for_language(lang, rule_product)

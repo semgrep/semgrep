@@ -350,7 +350,7 @@ def print_scan_status(
         target_manager
         if not target_mode_config.is_pro_diff_scan
         else evolve(
-            target_manager, target_strings=target_mode_config.get_diff_targets()
+            target_manager, scanning_root_strings=target_mode_config.get_diff_targets()
         ),
         product=out.Product(
             out.SAST()

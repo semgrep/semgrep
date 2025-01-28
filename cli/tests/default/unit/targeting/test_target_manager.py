@@ -16,8 +16,8 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.semgrep_types import Language
 from semgrep.target_manager import SAST_PRODUCT
 from semgrep.target_manager import SCA_PRODUCT
+from semgrep.target_manager import ScanningRoot
 from semgrep.target_manager import SECRETS_PRODUCT
-from semgrep.target_manager import Target
 from semgrep.target_manager import TargetManager
 
 
@@ -60,7 +60,7 @@ def test_delete_git(tmp_path, monkeypatch):
     foo.unlink()
     subprocess.run(["git", "status"])
 
-    assert_path_sets_equal(Target(".", True).files(), {bar})
+    assert_path_sets_equal(ScanningRoot(".", True).files(), {bar})
 
 
 @pytest.mark.quick
@@ -542,7 +542,7 @@ def test_ignore_baseline_handler(monkeypatch, tmp_path):
     # Set up TargetManager
     baseline_handler = BaselineHandler(base_commit, True)
     target_manager = TargetManager(
-        target_strings=frozenset(targets), baseline_handler=baseline_handler
+        scanning_root_strings=frozenset(targets), baseline_handler=baseline_handler
     )
 
     # Call get_files_for_language with ignore_baseline_handler=False

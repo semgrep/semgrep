@@ -363,7 +363,7 @@ def run_rules(
         for rule in join_rules:
             join_rule_matches, join_rule_errors = join_rule.run_join_rule(
                 rule.raw,
-                [target.path for target in target_manager.targets],
+                [scanning_root.path for scanning_root in target_manager.scanning_roots],
                 allow_local_builds=allow_local_builds,
                 ptt_enabled=ptt_enabled,
             )
@@ -495,7 +495,7 @@ def run_scan(
     run_secrets: bool = False,
     disable_secrets_validation: bool = False,
     output_handler: OutputHandler,
-    target: Sequence[str],
+    scanning_roots: Sequence[str],
     historical_secrets: bool = False,
     pattern: Optional[str],
     lang: Optional[str],
@@ -713,7 +713,7 @@ def run_scan(
             )
 
     respect_git_ignore = not no_git_ignore
-    target_strings = frozenset(Path(t) for t in target)
+    scanning_root_strings = frozenset(Path(t) for t in scanning_roots)
     too_many_entries = output_handler.settings.max_log_list_entries
 
     try:
@@ -721,7 +721,7 @@ def run_scan(
             includes=include,
             excludes=exclude,
             max_target_bytes=max_target_bytes,
-            target_strings=target_strings,
+            scanning_root_strings=scanning_root_strings,
             respect_git_ignore=respect_git_ignore,
             respect_rule_paths=respect_rule_paths,
             baseline_handler=baseline_handler,
@@ -890,7 +890,7 @@ def run_scan(
             logger.info("")
             try:
                 with baseline_handler.baseline_context():
-                    baseline_target_strings = target_strings
+                    baseline_scanning_root_strings = scanning_root_strings
                     baseline_target_mode_config = target_mode_config
                     if target_mode_config.is_pro_diff_scan:
                         scanned = [
@@ -913,7 +913,7 @@ def run_scan(
                             0,  # scanning the same set of files in the second run
                         )
                     else:
-                        baseline_target_strings = frozenset(
+                        baseline_scanning_root_strings = frozenset(
                             Path(t)
                             for t in baseline_targets
                             if t.exists() and not t.is_symlink()
@@ -923,7 +923,7 @@ def run_scan(
                         excludes=exclude,
                         max_target_bytes=max_target_bytes,
                         # only target the paths that had a match, ignoring symlinks and non-existent files
-                        target_strings=baseline_target_strings,
+                        scanning_root_strings=baseline_scanning_root_strings,
                         respect_git_ignore=respect_git_ignore,
                         allow_unknown_extensions=not skip_unknown_extensions,
                         ignore_profiles=file_ignore_to_ignore_profiles(
@@ -1031,8 +1031,9 @@ def run_scan(
 # instead wrap the CLI, not this internal Python function that will
 # soon disappear.
 def run_scan_and_return_json(
+    *,
     config: Path,
-    targets: List[Path],
+    scanning_roots: List[Path],
     output_settings: Optional[OutputSettings] = None,
     **kwargs: Any,
 ) -> Union[Dict[str, Any], str]:
@@ -1061,7 +1062,7 @@ def run_scan_and_return_json(
         _all_subprojects,
     ) = run_scan(
         output_handler=output_handler,
-        target=[str(t) for t in targets],
+        scanning_roots=[str(t) for t in scanning_roots],
         pattern="",
         lang="",
         configs=[str(config)],

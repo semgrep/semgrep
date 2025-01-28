@@ -431,7 +431,7 @@ def scan_options(func: Callable) -> Callable:
 
 # Those are the scan-only options (not reused in ci.py)
 @click.command()
-@click.argument("targets", nargs=-1, type=click.Path(allow_dash=True))
+@click.argument("scanning_roots", nargs=-1, type=click.Path(allow_dash=True))
 @click.option(
     "--replacement",
 )
@@ -560,7 +560,7 @@ def scan(
     scan_unknown_extensions: bool,
     severity: Optional[Tuple[str, ...]],
     strict: bool,
-    targets: Sequence[str],
+    scanning_roots: Sequence[str],
     test: bool,
     test_ignore_todo: bool,
     time_flag: bool,
@@ -674,9 +674,9 @@ def scan(
         possibly_notify_user()
 
         # change cwd if using docker
-        if not targets:
+        if not scanning_roots:
             semgrep.config_resolver.adjust_for_docker()
-            targets = (os.curdir,)
+            scanning_roots = (os.curdir,)
 
         outputs = collect_additional_outputs(
             outputs_text=outputs_text,
@@ -712,7 +712,7 @@ def scan(
             # machinery to evaluate semgrep performance) uses
             # managed_output internally
             semgrep.test.test_main(
-                target=targets,
+                scanning_roots=scanning_roots,
                 config=config,
                 test_ignore_todo=test_ignore_todo,
                 strict=strict,
@@ -729,7 +729,7 @@ def scan(
         with tempfile.TemporaryDirectory() as pipes_dir:
             # mostly repeating the loop in write_pipes_to_disk to detect if we
             # need --scan-unknown-extensions.
-            for t in targets:
+            for t in scanning_roots:
                 path = Path(t)
                 if t == "-" or (os.access(path, os.R_OK) and path.is_fifo()):
                     logger.debug(
@@ -737,7 +737,7 @@ def scan(
                     )
                     scan_unknown_extensions = True
 
-            targets = write_pipes_to_disk(targets, Path(pipes_dir))
+            scanning_roots = write_pipes_to_disk(scanning_roots, Path(pipes_dir))
 
             output_handler = OutputHandler(output_settings)
             return_data: Optional[
@@ -819,7 +819,7 @@ def scan(
                         disable_secrets_validation=disable_secrets_validation_flag,
                         historical_secrets=historical_secrets,
                         output_handler=output_handler,
-                        target=targets,
+                        scanning_roots=scanning_roots,
                         pattern=pattern,
                         lang=lang,
                         configs=(config or ["auto"]),
