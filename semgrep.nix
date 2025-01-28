@@ -1,5 +1,4 @@
-{ opam-nix, opam-repository, hasSubmodules, ocamlVersion ? "4.14.0", src ? ./.,
-}:
+{ opam-nix, opam-repository, hasSubmodules, ocamlVersion ? "4.14.0" }:
 { pkgs, system, }:
 let
 
@@ -33,7 +32,19 @@ let
     scopeToPkgs = query: scope:
       builtins.attrValues (pkgs.lib.getAttrs (builtins.attrNames query) scope);
 
+    # Pass a src and list of paths in that source to get a src that is only
+    # those paths
+    strictSrc = src: paths:
+      # Use cleanSource, but limit it to only include srcs explicitly listed
+      with pkgs.lib.fileset;
+      (toSource {
+        root = src;
+        fileset = (intersection (fromSource (pkgs.lib.sources.cleanSource src))
+          (unions paths));
+      });
+
     # TODO https://github.com/tweag/opam-nix/blob/main/DOCUMENTATION.md#materialization
+    # Will speed it up
     buildOpamPkg = { name, src, query ? { }
       , overlays ? [ patchesOverlay on.defaultOverlay ], inputs ? [ ] }:
       let
@@ -56,19 +67,16 @@ let
         buildPhaseFail = ''
           echo "Derivation won't build outside of a nix shell without submodules:"
           echo "  nix build '.?submodules=1#' # build from local sources"
-          echo "  nix build '<uri>?submodules=1#' # build from remote sources"
-          echo "  nix run '.?submodules=1#osemgrep' # run osemgrep from local sources"
-          echo "  nix run '<uri>.?submodules=1#osemgrep' # run osemgrep from remote source"
           exit 1
         '';
 
       in if hasSubmodules then buildPhase else buildPhaseFail;
-
   };
 
-  semgrepBase = lib.buildOpamPkg {
+  # Grab opam packages from opam file
+  semgrepOpam = lib.buildOpamPkg {
     name = "semgrep";
-    inherit src;
+    src = ./.;
     # You can force versions of certain packages here
     query = {
       # needed or else the newest version breaks. Not sure why this doesn't happen
@@ -84,13 +92,13 @@ let
 
   devOptional = lib.buildOpamPkg {
     name = "optional";
-    src = src + "/dev";
+    src = ./dev;
     query = { utop = "2.15.0"; };
   };
 
   devRequired = lib.buildOpamPkg {
     name = "required";
-    src = src + "/dev";
+    src = ./dev;
   };
 in let
 
@@ -113,8 +121,31 @@ in let
     # Needed so we don't pass any flags in flags.sh
     SEMGREP_NIX_BUILD = "1";
   } // (if pkgs.stdenv.isDarwin then darwinEnv else { });
-  semgrep = semgrepBase.overrideAttrs (prev: rec {
+  semgrep = semgrepOpam.overrideAttrs (prev: rec {
     # Special environment variables for osemgrep for linking stuff
+
+    src = (lib.strictSrc ./. (with pkgs.lib.fileset; [
+      ./Makefile
+      ./TCB
+      ./bin
+      # might be missing due to submodule issue (dumb)
+      (maybeMissing ./cli/src/semgrep/semgrep_interfaces)
+      ./dune
+      ./dune-project
+      ./interfaces
+      ./languages
+      ./libs
+      ./src
+      ./tools
+
+      # only needed for testing
+      # TODO split out into separate derivation
+      ./cli/tests/default/e2e/targets/ls
+      ./scripts/run-core-test
+      ./scripts/make-symlinks
+      ./test
+      ./tests
+    ]));
 
     inherit env;
 

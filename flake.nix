@@ -339,8 +339,6 @@
           # makes sure the flake is a valid structure, all the derivations are
           # valid, and runs anyting put in checks
           checks = {
-            # We don't want to force people to run the test suite everytime they
-            # build semgrep, but we do want to run it here, so check doCheck
             semgrep = semgrep.overrideAttrs (_: { doCheck = true; });
           };
 
