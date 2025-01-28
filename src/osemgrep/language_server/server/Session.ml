@@ -285,7 +285,7 @@ let fetch_rules session =
   let rules_source =
     session.user_settings.configuration
     |> List_.map (fun config_path ->
-           if is_url config_path then
+           if Uri_.is_url config_path then
              config_path
            else
              let f = Fpath.v config_path |> Fpath.normalize in
