@@ -313,7 +313,7 @@ let in_project_unsafe ~(phys_root : Fpath.t) (phys_path : Fpath.t) =
   match remove_prefix phys_root phys_path with
   | None ->
       Error
-        (Common.spf
+        (spf
            "cannot make path %S relative to project root %S.\n\
             cwd: %s\n\
             realpath for .: %s\n\

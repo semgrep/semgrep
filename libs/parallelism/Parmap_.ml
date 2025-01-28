@@ -1,3 +1,27 @@
+(* Austin Theriault, Yoann Padioleau
+ *
+ * Copyright (C) 2022-2025 Semgrep Inc.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file LICENSE.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * LICENSE for more details.
+ *)
+
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* Small wrapper around Parmap with better error management and capabilities *)
+
+(*****************************************************************************)
+(* Error management *)
+(*****************************************************************************)
+
 exception Parmap_unhandled_children of (string * int) list
 (** List of children spawned by [Parmap] that were not awaited correctly by
     [Parmap]. The list is tuples of [status, code] where [code] is a standard
@@ -65,6 +89,10 @@ let wrap_result f ~exception_handler x =
          match on it. They can choose to convert it to a string, a different
          datatype etc. *)
       Error (exception_handler x e)
+
+(*****************************************************************************)
+(* API *)
+(*****************************************************************************)
 
 let parmap _caps ?init ?finalize ~ncores ~chunksize ~exception_handler f xs =
   (* Why do this? The nanny state doesn't trust you to to use parmap AND catch
