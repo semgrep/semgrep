@@ -29,6 +29,11 @@ let of_string_opt (str : string) : Uri.t option =
   let uri = Uri.of_string str in
   if Uri.equal uri Uri.empty then None else Some uri
 
+let url_regex = Pcre2_.regexp "^https?://"
 let is_url config_path =
-  let url_regex = Str.regexp "^\\(http\\|https\\)://" in
-  Str.string_match url_regex config_path 0
+  match Pcre2_.pmatch ~rex:url_regex config_path with
+  | Ok true -> true
+  | Ok false -> false 
+  | Error err ->
+      Log.warn (fun m -> m "Error Validation URL: %a" pp_error err);
+      false
