@@ -95,6 +95,7 @@ from semgrep.target_manager import SCA_PRODUCT
 from semgrep.target_manager import SECRETS_PRODUCT
 from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
+from semgrep.util import flatten
 from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
 
@@ -834,9 +835,45 @@ def run_scan(
     if baseline_handler:
         logger.info(f"  Current version has {unit_str(findings_count, 'finding')}.")
         logger.info("")
-        baseline_targets: Set[Path] = set(paths_with_matches).union(
-            set(baseline_handler.status.renamed.values())
-        ) - set(baseline_handler.status.added)
+        # The idea of the baseline scan is that we want to find out which of the findings from the head commit
+        # that we just scanned are really "new", and not already present on the baseline commit.
+        # We don't want to bother scanning the entire project on the baseline commit, because if we only
+        # found matches in one file of a huge monorepo on our head commit scan, it would be a waste of time to
+        # scan the entire monorepo on the baseline commit to find out which of those matches were aleady present
+        # To this end, the files we want to scan on the baseline commit are the following:
+
+        # All the files that had a match in the head commit
+        baseline_targets = set(paths_with_matches)
+
+        # For each dependency subproject, if we resolved it in the head commit,
+        # and there was a match in any file associated with that subproject,
+        # either a code file or a lockfile, we want to include the lockfile and
+        # (if present) the manifest file of that subproject
+        # Instead of trying to compute this, we just include all the resolved subprojects,
+        # which is guaranteed to include all the files we really need
+        baseline_targets |= set(
+            flatten(
+                [
+                    x.dependency_source.get_all_source_files()
+                    for x in all_subprojects
+                    if isinstance(x, ResolvedSubproject)
+                ]
+            )
+        )
+
+        # If a file was renamed between the baseline commit and the head commit,
+        # [baseline_handler.status.renamed] maps the new path to the old path
+        # If a renamed file had matches in the head commit, we still want to
+        # scan it in the baseline commit, so we add the original path of all renamed files
+        # this technically includes more targets than necessary:
+        # if `foo.py` is renamed to `bar.py`, and `bar.py` had no matches in the head commit,
+        # we still scan `foo.py` in the baseline commit, but it seems safer to not change this
+        baseline_targets |= set(baseline_handler.status.renamed.values())
+
+        # We want to *exclude* any files that were added between the baseline commit and the head commit,
+        # because they won't exist on the baseline commit
+        baseline_targets -= set(baseline_handler.status.added)
+
         if not paths_with_matches:
             logger.info(
                 "Skipping baseline scan, because there are no current findings."
