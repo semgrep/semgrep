@@ -289,7 +289,7 @@ let record_effects env new_effects =
     in
     env.effects_acc := Effects.add_list new_effects !(env.effects_acc)
 
-let unify_mvars_sets env mvars1 mvars2 =
+let unify_mvars_sets options mvars1 mvars2 =
   let xs =
     List.fold_left
       (fun xs_opt (mvar, mval) ->
@@ -297,10 +297,8 @@ let unify_mvars_sets env mvars1 mvars2 =
         match List.assoc_opt mvar mvars2 with
         | None -> Some ((mvar, mval) :: xs)
         | Some mval' ->
-            if
-              Matching_generic.equal_ast_bound_code env.taint_inst.options mval
-                mval'
-            then Some ((mvar, mval) :: xs)
+            if Matching_generic.equal_ast_bound_code options mval mval' then
+              Some ((mvar, mval) :: xs)
             else None)
       (Some []) mvars1
   in
@@ -320,7 +318,7 @@ let sink_biased_union_mvars source_mvars sink_mvars =
 (* Takes the bindings of multiple taint sources and filters the bindings ($MVAR, MVAL)
  * such that either $MVAR is bound by a single source, or all MVALs bounds to $MVAR
  * can be unified. *)
-let merge_source_mvars env bindings =
+let merge_source_mvars (options : Rule_options.t) bindings =
   let flat_bindings = List_.flatten bindings in
   let bindings_tbl =
     flat_bindings
@@ -342,10 +340,7 @@ let merge_source_mvars env bindings =
              *)
              Hashtbl.replace bindings_tbl mvar (Some mval)
          | Some (Some mval') ->
-             if
-               not
-                 (Matching_generic.equal_ast_bound_code env.taint_inst.options
-                    mval mval')
+             if not (Matching_generic.equal_ast_bound_code options mval mval')
              then Hashtbl.remove bindings_tbl mvar);
   (* After this, the only surviving bindings should be those where
      there was no conflict between bindings in different sources.
@@ -361,14 +356,14 @@ let merge_source_mvars env bindings =
          | Some mval -> Some (mvar, mval))
 
 (* Merge source's and sink's bound metavariables. *)
-let merge_source_sink_mvars env source_mvars sink_mvars =
-  if env.taint_inst.options.taint_unify_mvars then
+let merge_source_sink_mvars (options : Rule_options.t) source_mvars sink_mvars =
+  if options.taint_unify_mvars then
     (* This used to be the default, but it turned out to be confusing even for
      * r2c's security team! Typically you think of `pattern-sources` and
      * `pattern-sinks` as independent. We keep this option mainly for
      * backwards compatibility, it may be removed later on if no real use
      * is found. *)
-    unify_mvars_sets env source_mvars sink_mvars
+    unify_mvars_sets options source_mvars sink_mvars
   else
     (* The union of both sets, but taking the sink mvars in case of collision. *)
     sink_biased_union_mvars source_mvars sink_mvars
@@ -481,8 +476,8 @@ let propagate_taint_to_label replace_labels label (taint : T.taint) =
    We will figure out how many actual Semgrep findings are generated
    when this information is used, later.
 *)
-let effects_of_tainted_sink env taints_with_traces (sink : Effect.sink) :
-    Effect.t list =
+let effects_of_tainted_sink (options : Rule_options.t) taints_with_traces
+    (sink : Effect.sink) : Effect.t list =
   match taints_with_traces with
   | [] -> []
   | _ :: _ -> (
@@ -531,13 +526,12 @@ let effects_of_tainted_sink env taints_with_traces (sink : Effect.sink) :
          try to keep this behavior here.
       *)
       if
-        env.taint_inst.options.taint_unify_mvars
-        || Option.is_none sink.rule_sink.sink_requires
+        options.taint_unify_mvars || Option.is_none sink.rule_sink.sink_requires
       then
         taints_and_bindings
         |> List_.filter_map (fun (t, bindings) ->
                let* merged_env =
-                 merge_source_sink_mvars env sink_pm.PM.env bindings
+                 merge_source_sink_mvars options sink_pm.PM.env bindings
                in
                Some
                  (Effect.ToSink
@@ -548,8 +542,8 @@ let effects_of_tainted_sink env taints_with_traces (sink : Effect.sink) :
                     }))
       else
         match
-          taints_and_bindings |> List_.map snd |> merge_source_mvars env
-          |> merge_source_sink_mvars env sink_pm.PM.env
+          taints_and_bindings |> List_.map snd |> merge_source_mvars options
+          |> merge_source_sink_mvars options sink_pm.PM.env
         with
         | None -> []
         | Some merged_env ->
@@ -582,7 +576,8 @@ let effects_of_tainted_sinks env taints sinks : Effect.t list =
              |> List_.map (fun t ->
                     { Effect.taint = t; sink_trace = T.PM (sink.Effect.pm, ()) })
            in
-           effects_of_tainted_sink env taints_with_traces sink)
+           effects_of_tainted_sink env.taint_inst.options taints_with_traces
+             sink)
 
 let effects_of_tainted_return env taints shape return_tok : Effect.t list =
   let control_taints = get_control_taints_to_return env in
@@ -1384,40 +1379,12 @@ and check_tainted_var env (var : IL.name) : Taints.t * S.shape * Lval_env.t =
 
 and instantiate_function_signature env fun_exp fun_sig args args_taints =
   let* pro_hooks = env.taint_inst.pro_hooks in
-  let* call_effects =
-    pro_hooks.instantiate_function_signature env.lval_env fun_sig
-      ~callee:fun_exp ~args args_taints
+  let* taints, shape, lval_env, new_effects =
+    pro_hooks.instantiate_function_signature env.taint_inst.options env.lval_env
+      fun_sig ~callee:fun_exp ~args args_taints
   in
-  Some
-    (call_effects
-    |> List.fold_left
-         (fun (taints_acc, shape_acc, lval_env)
-              (call_effect : Instantiated_signature.effect) ->
-           match call_effect with
-           | ToSink
-               {
-                 taints_with_precondition = incoming_taints, _requires;
-                 sink;
-                 _;
-               } ->
-               effects_of_tainted_sink env incoming_taints sink
-               |> record_effects env;
-               (taints_acc, shape_acc, lval_env)
-           | ToReturn
-               {
-                 data_taints = taints;
-                 data_shape = shape;
-                 control_taints;
-                 return_tok = _;
-               } ->
-               ( Taints.union taints taints_acc,
-                 Shape.unify_shape shape shape_acc,
-                 Lval_env.add_control_taints lval_env control_taints )
-           | ToLval (taints, var, offset) ->
-               ( taints_acc,
-                 shape_acc,
-                 lval_env |> Lval_env.add var offset taints ))
-         (Taints.empty, Bot, env.lval_env))
+  new_effects |> Effects.elements |> record_effects env;
+  Some (taints, shape, lval_env)
 
 (* This function is consuming the taint signature of a function to determine
    a few things:

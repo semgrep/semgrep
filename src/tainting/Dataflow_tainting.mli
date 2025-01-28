@@ -64,3 +64,10 @@ val fixpoint :
 (* TODO: Move to module 'Taint' maybe. *)
 val drop_taints_if_bool_or_number :
   Rule_options.t -> Taint.Taint_set.t -> 'a Type.t -> Taint.Taint_set.t
+
+val effects_of_tainted_sink :
+  Rule_options.t ->
+  Shape_and_sig.Effect.taint_to_sink_item list ->
+  Shape_and_sig.Effect.sink ->
+  Shape_and_sig.Effect.t list
+(** Exposed for Pro *)
