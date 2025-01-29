@@ -1,0 +1,95 @@
+=== exit code
+0
+=== end of exit code
+
+=== stdout - plain
+{
+  "errors": [],
+  "paths": {
+    "scanned": [
+      "targets/dependency_aware/pnpm-v9-no-snapshots-this-is-wrong-btw/pnpm-lock.yaml"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.dependency_aware.js-pnpm-workspaces-sca",
+      "end": {
+        "col": 1,
+        "line": 6219,
+        "offset": 1
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "lines": "requires login",
+        "message": "oh no",
+        "metadata": {},
+        "sca_info": {
+          "dependency_match": {
+            "dependency_pattern": {
+              "ecosystem": "npm",
+              "package": "vercel",
+              "semver_range": "< 28.16.13"
+            },
+            "found_dependency": {
+              "allowed_hashes": {},
+              "children": [],
+              "ecosystem": "npm",
+              "line_number": 6219,
+              "lockfile_path": "targets/dependency_aware/pnpm-v9-no-snapshots-this-is-wrong-btw/pnpm-lock.yaml",
+              "package": "vercel",
+              "transitivity": "transitive",
+              "version": "28.16.12"
+            },
+            "lockfile": "targets/dependency_aware/pnpm-v9-no-snapshots-this-is-wrong-btw/pnpm-lock.yaml"
+          },
+          "reachability_rule": false,
+          "reachable": false,
+          "sca_finding_schema": 20220913
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/dependency_aware/pnpm-v9-no-snapshots-this-is-wrong-btw/pnpm-lock.yaml",
+      "start": {
+        "col": 1,
+        "line": 6219,
+        "offset": 1
+      }
+    }
+  ],
+  "skipped_rules": [],
+  "version": "0.42"
+}
+=== end of stdout - plain
+
+=== stderr - plain
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 1 file tracked by git with 0 Code rules, 2 Supply Chain rules:
+
+
+  CODE RULES
+  Nothing to scan.
+
+  SUPPLY CHAIN RULES
+  Nothing to scan.
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+
+Ran 2 rules on 1 file: 1 finding.
+
+=== end of stderr - plain
+
+=== stdout - color
+<same as above: stdout - plain>
+=== end of stdout - color
+
+=== stderr - color
+<same as above: stderr - plain>
+=== end of stderr - color

@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import List
 from typing import Optional
 from typing import Tuple
+from typing import Union
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers.util import DependencyFileToParse
@@ -119,13 +120,13 @@ def build_package_key_mapping_post_v9(
         value: '@vitest/coverage-v8@2.0.5(vitest@2.0.5(@types/node@20.12.7)(jsdom@25.0.1)(lightningcss@1.23.0)(sass@1.70.0)(terser@5.27.0))'
     """
 
-    snapshots: YamlTree[YamlMap] = parsed_lockfile.value["snapshots"].value
-    if not snapshots or not isinstance(snapshots, YamlMap):
+    snapshots: YamlTree[YamlMap] | None = parsed_lockfile.value.get("snapshots")
+    if not snapshots or not isinstance(snapshots.value, YamlMap):
         return {}
 
     package_key_mapping: dict[str, str] = {}
 
-    for key, _value in snapshots.items():
+    for key, _value in snapshots.value.items():
         package_key_match = SNAPSHOT_KEY_PATTERN.match(key.value)
         if not package_key_match:
             continue
@@ -267,7 +268,7 @@ def parse_package_key_post_v9(key: str) -> Optional[Tuple[str, str]]:
 
 # Dependency children
 def parse_dependencies(
-    dependencies: YamlTree[YamlMap],
+    dependencies: Union[YamlTree[YamlMap], None],
 ) -> List[DependencyChild]:
     """
     Parses a YamlMap of dependencies into a list of DependencyChild objects.
@@ -278,7 +279,7 @@ def parse_dependencies(
     Returns:
         A list of DependencyChild objects with package names and versions.
     """
-    if not dependencies.value:
+    if not dependencies or not isinstance(dependencies.value, YamlMap):
         return []
 
     return [
@@ -326,7 +327,7 @@ def parse_dep_children_pre_v9(
     if not package_info.value or "dependencies" not in package_info.value:
         return []
 
-    all_dependencies = parse_dependencies(package_info.value["dependencies"])
+    all_dependencies = parse_dependencies(package_info.value.get("dependencies"))
 
     # Filter out peer dependencies from dependency graph construction
     peer_dependencies = parse_peer_dependencies(package_info)
@@ -401,17 +402,17 @@ def parse_dep_children_post_v9(
         - Peer dependencies are included in the "dependencies" field of the snapshot but are filtered out for correctness.
         - Aliased and contextual versions are normalized to their canonical forms.
     """
-    all_snapshots: YamlTree[YamlMap] = full_file.value["snapshots"].value
+    all_snapshots: YamlTree[YamlMap] | None = full_file.value.get("snapshots")
 
-    if not all_snapshots or not isinstance(all_snapshots, YamlMap):
+    if not all_snapshots or not isinstance(all_snapshots.value, YamlMap):
         return []
 
-    snapshot = all_snapshots.get(package_key)
+    snapshot = all_snapshots.value.get(package_key)
     if not snapshot or "dependencies" not in snapshot.value:
         return []
 
     all_dependencies: List[DependencyChild] = parse_dependencies(
-        snapshot.value["dependencies"]
+        snapshot.value.get("dependencies")
     )
     peer_dependencies: List[str] = parse_peer_dependencies(package_info)
 

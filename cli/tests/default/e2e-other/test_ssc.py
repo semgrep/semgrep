@@ -137,6 +137,10 @@ pytestmark = pytest.mark.kinda_slow
         ("rules/dependency_aware/js-pnpm-sca.yaml", "dependency_aware/pnpm-v6"),
         ("rules/dependency_aware/js-pnpm-sca.yaml", "dependency_aware/pnpm-v9"),
         (
+            "rules/dependency_aware/js-pnpm-sca.yaml",
+            "dependency_aware/pnpm-v9-no-snapshots-this-is-wrong-btw",
+        ),
+        (
             "rules/dependency_aware/python-requirements-sca.yaml",
             "dependency_aware/requirements",
         ),
