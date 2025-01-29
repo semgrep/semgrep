@@ -2,7 +2,7 @@
 val main : Cap.all_caps -> string array -> unit
 
 (* internals used also in semgrep-core-proprietary *)
-val lang : Lang.t option ref
+val lang : Analyzer.t option ref
 val ncores : int ref
 val debug : bool ref
 val profile : bool ref

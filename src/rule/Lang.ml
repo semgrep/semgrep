@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2019-2025 Semgrep Inc.
+ * Copyright (C) 2019-2024 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +21,7 @@ module FT = File_type
  * (in the semgrep-langs repository) in OCaml.
  * See semgrep-langs/README.md for more information.
  *
- * history: the languages supported by Semgrep used to be defined in a simple
+ * The languages supported by Semgrep used to be defined in a simple
  * Lang.ml file. However, this list of languages was duplicated in Python
  * for the Semgrep CLI and partially duplicated also for Semgrep App.
  * This info is now kept in a shared repo and OCaml files are generated
@@ -193,8 +193,3 @@ let of_string string =
   match of_string_opt string with
   | None -> failwith (unsupported_language_message string)
   | Some l -> l
-
-let of_opt_exn lang_opt =
-  match lang_opt with
-  | None -> failwith (unsupported_language_message "unset")
-  | Some x -> x

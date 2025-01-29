@@ -88,6 +88,11 @@ let to_langs (x : t) : Lang.t list =
   | LAliengrep ->
       []
 
+let lang_of_opt_analyzer_exn (x : t option) : Lang.t =
+  match x with
+  | None -> failwith (Lang.unsupported_language_message "unset")
+  | Some analyzer -> to_lang_exn analyzer
+
 let is_compatible ~require ~provide =
   match (require, provide) with
   | LRegex, LRegex
