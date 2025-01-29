@@ -61,7 +61,7 @@ type conf = {
 [@@deriving show]
 
 (*************************************************************************)
-(* 'ci' only Command-line flags *)
+(* 'ci'-only Command-line flags *)
 (*************************************************************************)
 
 (* ------------------------------------------------------------------ *)
@@ -108,12 +108,6 @@ findings. Instead will print out json objects it would have sent.|}
   in
   Arg.value (Arg.flag info)
 
-let o_internal_ci_scan_results : bool Term.t =
-  let info =
-    Arg.info [ "internal-ci-scan-results" ] ~doc:{|<internal, do not use>|}
-  in
-  Arg.value (Arg.flag info)
-
 (* for monorepos *)
 let o_subdir : string option Term.t =
   let info =
@@ -145,73 +139,72 @@ let o_config : string list Term.t =
   in
   Arg.value (Arg.opt_all Arg.string [] info)
 
-(* osemgrep-only and internal *)
+(* ------------------------------------------------------------------ *)
+(* Internals *)
+(* ------------------------------------------------------------------ *)
+
+(* osemgrep-only *)
 let o_fake_backend : string option Term.t =
   let info = Arg.info [ "fake-backend" ] ~doc:{|Internal flag.|} in
   Arg.value (Arg.opt Arg.(some string) None info)
 
+(* osemgrep-only *)
 let o_log_backend : string option Term.t =
   let info = Arg.info [ "log-backend" ] ~doc:{|Internal flag.|} in
   Arg.value (Arg.opt Arg.(some string) None info)
 
-(* internal *)
+let o_internal_ci_scan_results : bool Term.t =
+  let info = Arg.info [ "internal-ci-scan-results" ] ~doc:{|Internal flag.|} in
+  Arg.value (Arg.flag info)
+
 let o_x_dump_n_rule_partitions : int Term.t =
   let info = Arg.info [ "x-dump-rule-partitions" ] ~doc:{|Internal flag.|} in
   Arg.value (Arg.opt Arg.int 0 info)
 
-(* internal *)
 let o_x_dump_rule_partitions_dir : string Term.t =
   let info =
     Arg.info [ "x-dump-rule-partitions-dir" ] ~doc:{|Internal flag.|}
   in
   Arg.value (Arg.opt Arg.string "" info)
 
-(* internal *)
 let o_x_partial_config : string Term.t =
   let info = Arg.info [ "x-partial-config" ] ~doc:{|Internal flag.|} in
   Arg.value (Arg.opt Arg.string "" info)
 
-(* internal *)
 let o_x_partial_output : string Term.t =
   let info = Arg.info [ "x-partial-output" ] ~doc:{|Internal flag.|} in
   Arg.value (Arg.opt Arg.string "" info)
 
-(* internal *)
 let o_x_merge_partial_results_dir : string option Term.t =
   let info =
     Arg.info [ "x-merge-partial-results-dir" ] ~doc:{|Internal flag.|}
   in
   Arg.value (Arg.opt (Arg.some' Arg.dir) None info)
 
-(* internal *)
 let o_x_merge_partial_results_output : string option Term.t =
   let info =
     Arg.info [ "x-merge-partial-results-output" ] ~doc:{|Internal flag.|}
   in
   Arg.value (Arg.opt (Arg.some' Arg.string) None info)
 
-(* internal *)
 let o_x_validate_partial_results_expected : string option Term.t =
   let info =
     Arg.info [ "x-validate-partial-results-expected" ] ~doc:{|Internal flag.|}
   in
   Arg.value (Arg.opt (Arg.some' Arg.string) None info)
 
-(* internal *)
 let o_x_validate_partial_results_actual : string option Term.t =
   let info =
     Arg.info [ "x-validate-partial-results-actual" ] ~doc:{|Internal flag.|}
   in
   Arg.value (Arg.opt (Arg.some' Arg.string) None info)
 
-(* internal *)
 let o_x_upload_partial_results_scan_id : int option Term.t =
   let info =
     Arg.info [ "x-upload-partial-results-scan-id" ] ~doc:{|Internal flag.|}
   in
   Arg.value (Arg.opt (Arg.some' Arg.int) None info)
 
-(* internal *)
 let o_x_upload_partial_results : string option Term.t =
   let info = Arg.info [ "x-upload-partial-results" ] ~doc:{|Internal flag.|} in
   Arg.value (Arg.opt (Arg.some' Arg.string) None info)
@@ -388,18 +381,13 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
 (*************************************************************************)
 
 let cmdline_term : conf Term.t =
-  (* Note that we ignore the _xxx_meta; The actual environment variables
-   * grabbing is done in Ci_subcommand.generate_meta_from_env, but we pass
-   * it below so we can get a nice man page documenting those environment
-   * variables (Romain's idea).
-   *)
   let combine scan_conf audit_on code dry_run fake_backend log_backend secrets
       subdir supply_chain suppress_errors _internal_ci_scan_results
       _x_dump_n_rule_partitions _x_dump_rule_partitions_dir
       x_merge_partial_results_dir x_merge_partial_results_output
       _x_partial_config _x_partial_output x_upload_partial_results
       x_upload_partial_results_scan_id x_validate_partial_results_actual
-      x_validate_partial_results_expected _git_meta _github_meta =
+      x_validate_partial_results_expected =
     let products =
       (if secrets then [ `Secrets ] else [])
       @ (if code then [ `SAST ] else [])
@@ -429,6 +417,13 @@ let cmdline_term : conf Term.t =
       log_backend = Option.map Fpath.v log_backend;
     }
   in
+  (* LATER: we could add Git_metadata.env and Github_metadata.env below
+   * so that environment variables used by those modules would appear
+   * automatically in the 'semgrep ci --help' ENVIRONMENT section, but for
+   * now we can't because Cmdliner generates then some -semgrep-xxx
+   * flags (e.g., '--semgrep-branch') that pysemgrep does not recognize
+   * alt: add those flags in pysemgrep too manually
+   *)
   Term.(
     const combine $ scan_subset_cmdline_term $ o_audit_on $ o_code $ o_dry_run
     $ o_fake_backend $ o_log_backend $ SC.o_secrets $ o_subdir $ o_supply_chain
@@ -437,11 +432,16 @@ let cmdline_term : conf Term.t =
     $ o_x_merge_partial_results_dir $ o_x_merge_partial_results_output
     $ o_x_partial_config $ o_x_partial_output $ o_x_upload_partial_results
     $ o_x_upload_partial_results_scan_id $ o_x_validate_partial_results_actual
-    $ o_x_validate_partial_results_expected $ Git_metadata.env
-    $ Github_metadata.env)
+    $ o_x_validate_partial_results_expected)
 
 let doc = "the recommended way to run semgrep in CI"
 
+(* TODO: update the ENVIRONMENT and EXIT STATUS sections to better
+ * reflect all the env vars and exit codes used by semgrep
+ * (see Exit_code.mli and Semgrep_envvars.ml),
+ * especially since we removed Git_metadata.env and Git_metadata.env above
+ * that was automatically populating the ENVIRONMENT section.
+ *)
 let man : Cmdliner.Manpage.block list =
   [
     `S Cmdliner.Manpage.s_description;

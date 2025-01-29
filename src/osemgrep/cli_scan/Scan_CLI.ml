@@ -1539,7 +1539,10 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
 
 let doc = "run semgrep rules on files"
 
-(* TODO: document the exit codes as defined in Exit_code.mli *)
+(* TODO: update the ENVIRONMENT and EXIT STATUS sections to better
+ * reflect all the env vars and exit codes used by semgrep
+ * (see Exit_code.mli and Semgrep_envvars.ml).
+ *)
 let man : Cmdliner.Manpage.block list =
   [
     `S Cmdliner.Manpage.s_description;
