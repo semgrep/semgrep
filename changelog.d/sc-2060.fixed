@@ -1,1 +1,0 @@
-Fixed bug where supply chain diff scans of package-lock.json v2 projects incorrectly produced non-new findings

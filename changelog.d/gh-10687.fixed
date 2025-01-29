@@ -1,2 +1,0 @@
-LSP shortlinks in diagnostics should no longer drop anchors or query parameters
-in URIs.
