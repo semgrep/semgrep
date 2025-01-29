@@ -69,9 +69,6 @@ val to_lang_exn : t -> Lang.t
 (* Does not raise, but returns empty list for all but the L variant *)
 val to_langs : t -> Lang.t list
 
-(* raises an exception with error message *)
-val lang_of_opt_analyzer_exn : t option -> Lang.t
-
 (*
    Determine whether a single analyzer exist in an set of
    analyzers. If the first analyzer is more than one language, it's

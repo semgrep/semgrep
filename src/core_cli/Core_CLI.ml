@@ -66,12 +66,17 @@ let rule_source = ref None
 (* -targets (takes the list of files in a file given by pysemgrep) *)
 let target_file : Fpath.t option ref = ref None
 
-(* used for `semgrep-core -l <lang> <single file>` instead of
- * `semgrep-core -targets`. It is also used for semgrep-core "actions" as in
- * `semgrep-core -l <lang> -dump_ast <file`
- * less: we could infer it from basename argv(0) ?
+(* This used to be used for `semgrep-core -l <lang> -e <pattern> <single file>`
+ * instead of `semgrep-core -targets`. But we now use osemgrep directly for
+ * such use cases. Now, this is mostly useful for semgrep-core "actions" as
+ * in `semgrep-core -l <lang> -dump_ast <file` (even if in this case
+ * you should use 'osemgrep show dump-ast file' where we even infer the language
+ * from the filename)
+ * old: this used to be an Analyzer.t option, but "regex" and "generic" are
+ * not useful for the new uses of -lang, and in any case if it was we should
+ * rename the flag -analyzer instead of -lang.
  *)
-let lang = ref None
+let lang : Lang.t option ref = ref None
 
 (* this is used not only by pysemgrep but also by a few actions *)
 let output_format = ref Core_scan_config.default.output_format
@@ -166,7 +171,7 @@ let log_parsing_errors file (res : Parsing_result2.t) =
 let dump_pattern (file : Fpath.t) =
   let s = UFile.read_file file in
   (* mostly copy-paste of parse_pattern in runner, but with better error report *)
-  let lang = Analyzer.lang_of_opt_analyzer_exn !lang in
+  let lang = Lang.of_opt_exn !lang in
   Core_actions.try_with_log_exn_and_reraise file (fun () ->
       (* TODO? enable "semgrep.parsing" log level *)
       match Parse_pattern.parse_pattern lang s with
@@ -378,7 +383,7 @@ let all_actions (caps : Cap.all_caps) () =
       Arg_.mk_action_n_arg (fun xs ->
           Test_parsing.parsing_stats
             (caps :> < Cap.time_limit ; Cap.memory_limit >)
-            (Analyzer.lang_of_opt_analyzer_exn !lang)
+            (Lang.of_opt_exn !lang)
             ~json:
               (match !output_format with
               | Json _ -> true
@@ -405,13 +410,13 @@ let all_actions (caps : Cap.all_caps) () =
         Arg_.mk_action_1_conv Fpath.v
           (dump_ast ~naming:false
              (caps :> < Cap.stdout ; Cap.exit >)
-             (Analyzer.lang_of_opt_analyzer_exn !lang))
+             (Lang.of_opt_exn !lang))
           file );
     ( "-dump_lang_ast",
       " <file>",
       fun file ->
         Arg_.mk_action_1_conv Fpath.v
-          (Test_parsing.dump_lang_ast (Analyzer.lang_of_opt_analyzer_exn !lang))
+          (Test_parsing.dump_lang_ast (Lang.of_opt_exn !lang))
           file );
     ( "-dump_named_ast",
       " <file>",
@@ -419,7 +424,7 @@ let all_actions (caps : Cap.all_caps) () =
         Arg_.mk_action_1_conv Fpath.v
           (dump_ast ~naming:true
              (caps :> < Cap.stdout ; Cap.exit >)
-             (Analyzer.lang_of_opt_analyzer_exn !lang))
+             (Lang.of_opt_exn !lang))
           file );
     ( "-dump_il_all",
       " <file>",
@@ -439,21 +444,16 @@ let all_actions (caps : Cap.all_caps) () =
     ( "-dump_tree_sitter_cst",
       " <file> dump the CST obtained from a tree-sitter parser",
       Arg_.mk_action_1_conv Fpath.v (fun file ->
-          Test_parsing.dump_tree_sitter_cst
-            (Analyzer.lang_of_opt_analyzer_exn !lang)
-            file) );
+          Test_parsing.dump_tree_sitter_cst (Lang.of_opt_exn !lang) file) );
     ( "-dump_tree_sitter_pattern_cst",
       " <file>",
       Arg_.mk_action_1_conv Fpath.v (fun file ->
-          Parse_pattern2.dump_tree_sitter_pattern_cst
-            (Analyzer.lang_of_opt_analyzer_exn !lang)
+          Parse_pattern2.dump_tree_sitter_pattern_cst (Lang.of_opt_exn !lang)
             file) );
     ( "-dump_pfff_ast",
       " <file> dump the generic AST obtained from a pfff parser",
       Arg_.mk_action_1_conv Fpath.v (fun file ->
-          Test_parsing.dump_pfff_ast
-            (Analyzer.lang_of_opt_analyzer_exn !lang)
-            file) );
+          Test_parsing.dump_pfff_ast (Lang.of_opt_exn !lang) file) );
     ( "-diff_pfff_tree_sitter",
       " <file>",
       Arg_.mk_action_n_arg (fun xs ->
@@ -464,13 +464,11 @@ let all_actions (caps : Cap.all_caps) () =
       Arg_.mk_action_n_arg (fun xs ->
           Test_parsing.parsing_regressions
             (caps :> < Cap.time_limit ; Cap.memory_limit >)
-            (Analyzer.lang_of_opt_analyzer_exn !lang)
-            (Fpath_.of_strings xs)) );
+            (Lang.of_opt_exn !lang) (Fpath_.of_strings xs)) );
     ( "-test_parse_tree_sitter",
       " <files or dirs> test tree-sitter parser on target files",
       Arg_.mk_action_n_arg (fun xs ->
-          Test_parsing.test_parse_tree_sitter
-            (Analyzer.lang_of_opt_analyzer_exn !lang)
+          Test_parsing.test_parse_tree_sitter (Lang.of_opt_exn !lang)
             (Fpath_.of_strings xs)) );
     ( "-translate_rules",
       " <files or dirs>",
@@ -507,11 +505,11 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
       Arg.String (fun s -> target_file := Some (Fpath.v s)),
       " <file> obtain list of targets to run patterns on" );
     ( "-lang",
-      Arg.String (fun s -> lang := Some (Analyzer.of_string s)),
+      Arg.String (fun s -> lang := Some (Lang.of_string s)),
       spf " <str> choose language (valid choices:\n     %s)"
         Analyzer.supported_analyzers );
     ( "-l",
-      Arg.String (fun s -> lang := Some (Analyzer.of_string s)),
+      Arg.String (fun s -> lang := Some (Lang.of_string s)),
       spf " <str> shortcut for -lang" );
     ( "-equivalences",
       Arg.String (fun s -> equivalences_file := Some (Fpath.v s)),
@@ -792,7 +790,7 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
             | Some file, None, [] -> Target_file file
             | None, Some lang, [ file ]
               when UFile.is_reg ~follow_symlinks:true file ->
-                Targets [ Target.mk_target lang file ]
+                Targets [ Target.mk_target (Analyzer.of_lang lang) file ]
             | _ ->
                 (* alt: use the file targeting in Find_targets_lang but better
                  * to "dumb-down" semgrep-core to its minimum.

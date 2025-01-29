@@ -137,6 +137,11 @@ val langs_of_filename : Fpath.t -> t list
  *)
 val lang_of_filename_exn : Fpath.t -> t
 
+(* Useful in testing or "actions" code when accessing -lang flag ref.
+ * This will raise Failure unsupported_language_message if None
+ *)
+val of_opt_exn : t option -> t
+
 (* accept any variants *)
 val is_js : t -> bool
 
