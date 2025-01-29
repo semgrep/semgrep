@@ -25,17 +25,15 @@ from semdep.parsers.pom_tree import parse_pom_tree
 from semdep.parsers.pubspec_lock import parse_pubspec_lock
 from semdep.parsers.requirements import parse_requirements
 from semdep.parsers.swiftpm import parse_package_resolved
-from semdep.parsers.util import SemgrepParser
+from semdep.parsers.util import DependencyParser
 from semdep.parsers.util import to_parser
 from semdep.parsers.yarn import parse_yarn
 from semgrep.error import DependencyResolutionError
 from semgrep.rpc_call import resolve_dependencies
-from semgrep.semgrep_interfaces.semgrep_output_v1 import CargoParser
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ParseDependenciesFailed
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ResolutionError
-from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.subproject import DependencySource
 from semgrep.subproject import LockfileOnlyDependencySource
 from semgrep.subproject import ManifestLockfileDependencySource
@@ -52,26 +50,28 @@ logger = getLogger(__name__)
 # for its ecosystem.
 #
 # argument order is lockfile path, manifest path
-PARSERS_BY_LOCKFILE_KIND: Dict[out.LockfileKind, Union[SemgrepParser, None]] = {
-    out.LockfileKind(out.PipfileLock()): parse_pipfile,
-    out.LockfileKind(out.PipRequirementsTxt()): parse_requirements,
-    out.LockfileKind(out.PoetryLock()): parse_poetry,
+PARSERS_BY_LOCKFILE_KIND: Dict[out.LockfileKind, Union[DependencyParser, None]] = {
+    out.LockfileKind(out.PipfileLock()): DependencyParser(parse_pipfile),
+    out.LockfileKind(out.PipRequirementsTxt()): DependencyParser(parse_requirements),
+    out.LockfileKind(out.PoetryLock()): DependencyParser(parse_poetry),
     out.LockfileKind(out.UvLock()): None,
-    out.LockfileKind(out.NpmPackageLockJson()): parse_package_lock,
-    out.LockfileKind(out.YarnLock()): parse_yarn,
-    out.LockfileKind(out.PnpmLock()): parse_pnpm,
-    out.LockfileKind(out.GemfileLock()): parse_gemfile,
-    out.LockfileKind(out.ComposerLock()): parse_composer_lock,
-    out.LockfileKind(out.GoMod()): parse_go_mod,
-    out.LockfileKind(out.CargoLock()): to_parser(
-        parse_cargo, ScaParserName(CargoParser())
+    out.LockfileKind(out.NpmPackageLockJson()): DependencyParser(parse_package_lock),
+    out.LockfileKind(out.YarnLock()): DependencyParser(parse_yarn),
+    out.LockfileKind(out.PnpmLock()): DependencyParser(parse_pnpm),
+    out.LockfileKind(out.GemfileLock()): DependencyParser(parse_gemfile),
+    out.LockfileKind(out.ComposerLock()): DependencyParser(parse_composer_lock),
+    out.LockfileKind(out.GoMod()): DependencyParser(parse_go_mod),
+    out.LockfileKind(out.CargoLock()): to_parser(parse_cargo),
+    out.LockfileKind(out.MavenDepTree()): DependencyParser(parse_pom_tree),
+    out.LockfileKind(out.GradleLockfile()): DependencyParser(parse_gradle),
+    out.LockfileKind(out.NugetPackagesLockJson()): DependencyParser(
+        parse_packages_lock_c_sharp
     ),
-    out.LockfileKind(out.MavenDepTree()): parse_pom_tree,
-    out.LockfileKind(out.GradleLockfile()): parse_gradle,
-    out.LockfileKind(out.NugetPackagesLockJson()): parse_packages_lock_c_sharp,
-    out.LockfileKind(out.PubspecLock()): parse_pubspec_lock,
-    out.LockfileKind(out.SwiftPackageResolved()): parse_package_resolved,
-    out.LockfileKind(out.MixLock()): parse_mix,
+    out.LockfileKind(out.PubspecLock()): DependencyParser(parse_pubspec_lock),
+    out.LockfileKind(out.SwiftPackageResolved()): DependencyParser(
+        parse_package_resolved
+    ),
+    out.LockfileKind(out.MixLock()): DependencyParser(parse_mix),
     out.LockfileKind(out.ConanLock()): None,  # No parser support yet
 }
 

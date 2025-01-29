@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from semdep.parsers.pom_tree import parse_pom_tree
-from semdep.parsers.util import SemgrepParser
+from semdep.parsers.util import DependencyParser
 
 pytestmark = pytest.mark.kinda_slow
 
@@ -66,13 +66,16 @@ paths_to_transitivity = {
 @pytest.mark.parametrize(
     ("target_supports_path_to_transitivity", "parser"),
     [
-        ("targets/dependency_aware/log4j/maven_dep_tree.txt", parse_pom_tree),
+        (
+            "targets/dependency_aware/log4j/maven_dep_tree.txt",
+            DependencyParser(parse_pom_tree),
+        ),
     ],
 )
 def test_child_construction(
     lockfile_path_in_tmp,
     target_supports_path_to_transitivity: str,
-    parser: SemgrepParser,
+    parser: DependencyParser,
 ):
     dependencies, error = parser(Path(target_supports_path_to_transitivity), None)
 

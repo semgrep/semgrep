@@ -39,7 +39,7 @@ from semdep.external.parsy import Parser
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
 from semdep.external.parsy import success
-from semgrep.console import console
+from semgrep.error import DependencyResolutionError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyChild
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
@@ -60,17 +60,41 @@ C = TypeVar("C")
 
 Pos = Tuple[int, int]
 
-SemgrepParser = Callable[
-    [Path, Optional[Path]],
-    Tuple[List[FoundDependency], List[DependencyParserError]],
-]
 
-LegacySemgrepParser = Callable[
+@dataclass
+class DependencyParser:
+    parser: Callable[
+        [Path, Optional[Path]],
+        Tuple[List[FoundDependency], List[DependencyParserError]],
+    ]
+
+    def __call__(
+        self, lockfile_path: Path, manifest_path: Optional[Path]
+    ) -> Tuple[
+        List[FoundDependency], List[DependencyParserError | DependencyResolutionError]
+    ]:
+        try:
+            # Covariant subtyping doesn't work in mypy :(
+            return self.parser(lockfile_path, manifest_path)  # type: ignore[return-value]
+        except Exception as e:
+            logger.error(f"Failed to parse {lockfile_path} with exception {e}")
+            return (
+                [],
+                [
+                    DependencyResolutionError(
+                        type_=out.ResolutionError(out.ParseDependenciesFailed(str(e))),
+                        dependency_source_file=lockfile_path,
+                    )
+                ],
+            )
+
+
+LegacyDependencyParser = Callable[
     [Path, str, Optional[str]], Generator[FoundDependency, None, None]
 ]
 
 
-def to_parser(parser: LegacySemgrepParser, parser_type: ScaParserName) -> SemgrepParser:
+def to_parser(parser: LegacyDependencyParser) -> DependencyParser:
     """
     Converts a legacy parser to a new parser format.
     Legacy parsers return a generator of FoundDependency objects, while new parsers
@@ -80,23 +104,12 @@ def to_parser(parser: LegacySemgrepParser, parser_type: ScaParserName) -> Semgre
     def wrapped_parser(
         lockfile_path: Path, manifest_path: Optional[Path]
     ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
-        try:
-            lockfile_text = lockfile_path.read_text()
-            manifest_text = manifest_path.read_text() if manifest_path else None
-            dependencies = list(parser(lockfile_path, lockfile_text, manifest_text))
-            return dependencies, []
-        except Exception as e:
-            console.print(f"Failed to parse {lockfile_path} with exception {e}")
-            return (
-                [],
-                [
-                    DependencyParserError(
-                        out.Fpath(str(lockfile_path)), parser_type, str(e)
-                    )
-                ],
-            )
+        lockfile_text = lockfile_path.read_text()
+        manifest_text = manifest_path.read_text() if manifest_path else None
+        dependencies = list(parser(lockfile_path, lockfile_text, manifest_text))
+        return dependencies, []
 
-    return wrapped_parser
+    return DependencyParser(wrapped_parser)
 
 
 def not_any(*chars: str) -> Parser[str]:

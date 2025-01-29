@@ -11,7 +11,7 @@ from semdep.parsers.pipfile import parse_pipfile
 from semdep.parsers.poetry import parse_poetry
 from semdep.parsers.pom_tree import parse_pom_tree
 from semdep.parsers.requirements import parse_requirements
-from semdep.parsers.util import SemgrepParser
+from semdep.parsers.util import DependencyParser
 from semdep.parsers.yarn import parse_yarn
 
 
@@ -26,15 +26,15 @@ from semdep.parsers.yarn import parse_yarn
         # update: 10k is actually taking more time locally, 3.5 on pad's Linux machine
         for file_size, max_time in [("10k", 4), ("50k", 15), ("100k", 30)]
         for target, parser in [
-            ("Gemfile.lock", parse_gemfile),
-            ("go.mod", parse_go_mod),
-            ("gradle.lockfile", parse_gradle),
-            ("maven_dep_tree.txt", parse_pom_tree),
-            ("package-lock.json", parse_package_lock),
-            ("poetry.lock", parse_poetry),
-            ("requirements.txt", parse_requirements),
-            ("yarn.lock", parse_yarn),
-            ("Pipfile.lock", parse_pipfile),
+            ("Gemfile.lock", DependencyParser(parse_gemfile)),
+            ("go.mod", DependencyParser(parse_go_mod)),
+            ("gradle.lockfile", DependencyParser(parse_gradle)),
+            ("maven_dep_tree.txt", DependencyParser(parse_pom_tree)),
+            ("package-lock.json", DependencyParser(parse_package_lock)),
+            ("poetry.lock", DependencyParser(parse_poetry)),
+            ("requirements.txt", DependencyParser(parse_requirements)),
+            ("yarn.lock", DependencyParser(parse_yarn)),
+            ("Pipfile.lock", DependencyParser(parse_pipfile)),
         ]
     ],
 )
@@ -43,7 +43,7 @@ def test_dependency_aware_timing(
     file_size: str,
     target: str,
     max_time: int,
-    parser: SemgrepParser,
+    parser: DependencyParser,
 ):
     start = time()
 

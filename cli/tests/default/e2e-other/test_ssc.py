@@ -15,7 +15,7 @@ from semdep.parsers.pipfile import parse_pipfile
 from semdep.parsers.pnpm import parse_pnpm
 from semdep.parsers.poetry import parse_poetry
 from semdep.parsers.requirements import parse_requirements
-from semdep.parsers.util import SemgrepParser
+from semdep.parsers.util import DependencyParser
 from semdep.parsers.yarn import parse_yarn
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
@@ -463,13 +463,13 @@ def test_maven_version_comparison(version, specifier, outcome):
     assert is_in_range(Ecosystem(Maven()), specifier, version) == outcome
 
 
-LOCKFILE_NAME_TO_PARSER: Dict[str, SemgrepParser] = {
-    "requirements.txt": parse_requirements,
-    "yarn.lock": parse_yarn,
-    "package-lock.json": parse_package_lock,
-    "Pipfile.lock": parse_pipfile,
-    "poetry.lock": parse_poetry,
-    "pnpm-lock.yaml": parse_pnpm,
+LOCKFILE_NAME_TO_PARSER: Dict[str, DependencyParser] = {
+    "requirements.txt": DependencyParser(parse_requirements),
+    "yarn.lock": DependencyParser(parse_yarn),
+    "package-lock.json": DependencyParser(parse_package_lock),
+    "Pipfile.lock": DependencyParser(parse_pipfile),
+    "poetry.lock": DependencyParser(parse_poetry),
+    "pnpm-lock.yaml": DependencyParser(parse_pnpm),
 }
 
 
@@ -564,7 +564,7 @@ def test_parsing(caplog, target: str, snapshot, lockfile_path_in_tmp):
 
     target_path = Path(target)
     # Parse
-    parser: SemgrepParser = LOCKFILE_NAME_TO_PARSER[target_path.name]
+    parser: DependencyParser = LOCKFILE_NAME_TO_PARSER[target_path.name]
     dependencies, error = parser(Path(target), None)  # no manifest for any of these
 
     # The purpose of these tests is to ensure that parsers can handle a variety of lockfiles. As such,
