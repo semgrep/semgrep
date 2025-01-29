@@ -289,17 +289,15 @@ let semgrep_check (caps : < Core_scan.caps ; .. >) (metachecks : Fpath.t)
 
 let run_checks (caps : < Core_scan.caps ; .. >) (metachecks : Fpath.t)
     (xs : Fpath.t list) : Core_error.t list =
-  let yaml_xs, skipped_paths =
+  let yaml_xs =
     xs
     |> File_type.files_of_dirs_or_files (function
          | FT.Config (FT.Yaml (*FT.Json |*) | FT.Jsonnet) -> true
          | _ -> false)
-    |> Skip_code.filter_files_if_skip_list ~root:xs
   in
-  let rules, more_skipped_paths =
+  let rules, _skipped_paths =
     List.partition (fun file -> not (!!file =~ ".*\\.test\\.yaml")) yaml_xs
   in
-  let _skipped_paths = more_skipped_paths @ skipped_paths in
   match rules with
   | [] ->
       Logs.err (fun m ->
@@ -356,12 +354,11 @@ let check_files
 
 (* for semgrep-core -stat_rules *)
 let stat_files (caps : < Cap.stdout >) xs =
-  let fullxs, _skipped_paths =
+  let fullxs =
     xs
     |> File_type.files_of_dirs_or_files (function
          | FT.Config (FT.Yaml (*FT.Json |*) | FT.Jsonnet) -> true
          | _ -> false)
-    |> Skip_code.filter_files_if_skip_list ~root:xs
   in
   let good = ref 0 in
   let bad = ref 0 in

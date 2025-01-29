@@ -32,7 +32,7 @@ module TCM = Test_compare_matches
 (*****************************************************************************)
 
 let test_rules ?(unit_testing = false) (caps : Core_scan.caps) xs =
-  let fullxs, _skipped_paths =
+  let fullxs =
     xs
     |> File_type.files_of_dirs_or_files (function
          | FT.Config FT.Yaml -> true
@@ -41,7 +41,6 @@ let test_rules ?(unit_testing = false) (caps : Core_scan.caps) xs =
            (* .test.yaml files are YAML target files rather than config files! *)
            Fpath.has_ext ".test.yaml" filepath
            || Fpath.has_ext ".rule.yaml" filepath)
-    |> Skip_code.filter_files_if_skip_list ~root:xs
   in
 
   let newscore = Common2.empty_score () in
