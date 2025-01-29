@@ -98,11 +98,16 @@ let path_of_origin (origin : Origin.t) : path =
 let mk_regular ?lockfile analyzer products (origin : Origin.t) : regular =
   { path = path_of_origin origin; analyzer; products; lockfile }
 
+(* useful in test context *)
 let mk_target (analyzer : Analyzer.t) (file : Fpath.t) : t =
   let all = Product.all in
   (* TODO: should do the check in the other mk_xxx ? *)
   assert (UFile.is_reg ~follow_symlinks:true file);
   Regular (mk_regular analyzer all (Origin.File file))
+
+(* useful in test context or DeepScan context *)
+let mk_lang_target (lang : Lang.t) (file : Fpath.t) : regular =
+  mk_regular (Analyzer.of_lang lang) Product.all (File file)
 
 (*****************************************************************************)
 (* Semgrep_output_v1.target -> Target.t *)

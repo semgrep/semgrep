@@ -90,6 +90,7 @@ val mk_regular :
 
 (* useful in tests *)
 val mk_target : Analyzer.t -> Fpath.t -> t
+val mk_lang_target : Lang.t -> Fpath.t -> regular
 
 (*****************************************************************************)
 (* Semgrep_output_v1.target -> Target.t *)

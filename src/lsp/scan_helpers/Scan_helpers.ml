@@ -199,8 +199,8 @@ let run_semgrep_detached ?targets ?rules ?git_ref (session : Session.t) =
    on django) before the notifications are received by the extension.
    In the interim, we will just continue to hook into core.
 *)
-let run_core_search xconf rule (file : Fpath.t) =
-  let analyzer = rule.Rule.target_analyzer in
+let run_core_search xconf (rule : Rule.search_rule) (file : Fpath.t) =
+  let analyzer = rule.target_analyzer in
   (* We have to look at all the initial files again when we do this.
      TODO: Maybe could be better to infer languages from each file,
      so we only have to look at each file once.

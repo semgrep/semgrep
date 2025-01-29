@@ -1,3 +1,7 @@
+(* This function should be used mostly in testing code to quickly get a list
+ * of targets for a certain language. For real semgrep targeting, use the
+ * Core_targeting module.
+ *)
 let get_target_fpaths (root : Fpath.t) (lang : Lang.t) : Fpath.t list =
   let conf =
     {
@@ -8,6 +12,7 @@ let get_target_fpaths (root : Fpath.t) (lang : Lang.t) : Fpath.t list =
   in
   (* coupling: similar to what we do Scan_subcommand.run_scan_conf()
    * old: Find_targets_old.files_of_dirs_or_files (Some lang) [ root ]
+   * TODO? at least Logs the errors and skipped?
    *)
   let files, _errors, _skipped =
     Find_targets.get_target_fpaths conf [ Scanning_root.of_fpath root ]
