@@ -96,6 +96,14 @@
         "version": "6.4.5"
       },
       {
+        "package": "typescript",
+        "version": "4.7.4"
+      },
+      {
+        "package": "vue",
+        "version": "3.2.45"
+      },
+      {
         "package": "vue-demi",
         "version": "0.13.11_vue@3.2.45"
       }

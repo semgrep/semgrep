@@ -7,7 +7,12 @@
     "transitivity": "direct",
     "lockfile_path": "targets/dependency_aware/osv_parsing/pnpm/peer-dependencies/pnpm-lock.yaml",
     "line_number": 13,
-    "children": []
+    "children": [
+      {
+        "package": "acorn",
+        "version": "8.7.0"
+      }
+    ]
   },
   {
     "package": "acorn",

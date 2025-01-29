@@ -329,13 +329,9 @@ def parse_dep_children_pre_v9(
 
     all_dependencies = parse_dependencies(package_info.value.get("dependencies"))
 
-    # Filter out peer dependencies from dependency graph construction
-    peer_dependencies = parse_peer_dependencies(package_info)
-
     return [
         DependencyChild(package=dep.package, version=extract_base_version(dep.version))
         for dep in all_dependencies
-        if dep.package not in peer_dependencies
     ]
 
 
@@ -414,14 +410,7 @@ def parse_dep_children_post_v9(
     all_dependencies: List[DependencyChild] = parse_dependencies(
         snapshot.value.get("dependencies")
     )
-    peer_dependencies: List[str] = parse_peer_dependencies(package_info)
-
-    # all_dependencies contain peer dependencies as well, so we need to filter them out, and also correct the version to remove any contexts
-    return [
-        sanitize_dependency_post_v9(dep)
-        for dep in all_dependencies
-        if dep.package not in peer_dependencies
-    ]
+    return [sanitize_dependency_post_v9(dep) for dep in all_dependencies]
 
 
 # Main Course
