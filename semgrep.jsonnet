@@ -133,6 +133,19 @@ local semgrep_rules = [
     }
   },
   {
+    id: 'no-filename-readable',
+    match: 'Filename_.readable',
+    languages: ['ocaml'],
+    severity: 'ERROR',
+    message: |||
+      `Filename_.readable` is not working on Windows and is fragile. Use the Ppath
+      module instead.
+    |||,
+    paths: {
+      exclude: ['Unit_*']
+    }
+  },
+  {
     id: 'no-logs-in-library',
     match: {
       all: [

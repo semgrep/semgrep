@@ -93,7 +93,8 @@ let filter_files skip_list ~root relative_paths : Fpath.t list * Fpath.t list =
   let relative_paths =
     relative_paths
     |> List.filter (fun rel_path ->
-           let path = Fpath_.readable ~root rel_path in
+           (* nosemgrep: no-filename-readable *)
+           let path = Filename_.readable ~root:!!root !!rel_path |> Fpath.v in
            if
              Hashtbl.mem skip_files path
              || skip_dirs |> List.exists (fun dir -> !!path =~ !!dir ^ ".*")
@@ -178,7 +179,8 @@ let reorder_files_skip_errors_last skip_list root xs =
   let skip_errors, ok =
     xs
     |> List.partition (fun file ->
-           let readable = Fpath_.readable ~root file in
+           (* nosemgrep: no-filename-readable *)
+           let readable = Filename_.readable ~root:!!root !!file |> Fpath.v in
            is_file_want_to_skip_error readable)
   in
   ok @ skip_errors
