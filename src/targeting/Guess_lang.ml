@@ -65,7 +65,7 @@ let prepend_period_if_needed s =
 let has_extension extensions =
   has_suffix (List_.map prepend_period_if_needed extensions)
 
-let has_lang_extension lang = has_extension (Lang.ext_of_lang lang)
+let has_lang_extension lang = has_extension (Lang.exts_of_lang lang)
 
 let has_excluded_lang_extension lang =
   has_extension (Lang.excluded_exts_of_lang lang)
@@ -185,7 +185,7 @@ let is_executable_script cmd_names =
 
 (*
    Matches if either
-   - language has extension in Lang.ext_of_lang
+   - language has extension in Lang.exts_of_lang
    - language is script with shebang in Lang.shebangs_of_lang
 
    General test for a script:

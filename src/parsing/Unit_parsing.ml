@@ -95,7 +95,7 @@ let parsing_tests_for_lang error_tolerance files lang =
 let pack_parsing_tests_for_lang ?(error_tolerance = Strict) lang =
   let slang = Lang.show lang in
   let dir = Lang.to_lowercase_alnum lang in
-  let exts = Lang.ext_of_lang lang in
+  let exts = Lang.exts_of_lang lang in
   let dir, subcategory =
     match error_tolerance with
     | Strict -> (tests_path_parsing / dir, None)

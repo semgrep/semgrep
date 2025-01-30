@@ -102,13 +102,13 @@ let dump_il (caps : < Cap.stdout >) file =
   Visit_function_defs.visit report_func_def_with_name ast
 [@@action]
 
-let dump_ext_of_lang (caps : < Cap.stdout >) () =
+let dump_exts_of_lang (caps : < Cap.stdout >) () =
   let lang_to_exts =
     Lang.keys
     |> List_.map (fun lang_str ->
            match Lang.of_string_opt lang_str with
            | Some lang ->
-               lang_str ^ "->" ^ String.concat ", " (Lang.ext_of_lang lang)
+               lang_str ^ "->" ^ String.concat ", " (Lang.exts_of_lang lang)
            | None -> "")
   in
   CapConsole.print caps#stdout

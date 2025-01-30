@@ -177,7 +177,7 @@ let unwrap analyzer = to_string analyzer
 let informative_suffix analyzer =
   match analyzer with
   | L (lang, _) -> (
-      match Lang.ext_of_lang lang with
+      match Lang.exts_of_lang lang with
       | x :: _ -> x
       | [] -> "." ^ Lang.to_string lang)
   | LRegex

@@ -110,7 +110,8 @@ val to_capitalized_alnum : t -> string
    languages and we don't return <no extension> as a valid suffix
    for these languages.
 *)
-val ext_of_lang : t -> string list
+val exts_of_lang : t -> string list
+val interface_exts_of_lang : t -> string list
 
 (*
    Return a list of extensions that Semgrep will never scan.

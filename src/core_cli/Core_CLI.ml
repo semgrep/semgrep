@@ -394,7 +394,7 @@ let all_actions (caps : Cap.all_caps) () =
     ( "-dump_extensions",
       " print file extension to language mapping",
       Arg_.mk_action_0_arg
-        (Core_actions.dump_ext_of_lang (caps :> < Cap.stdout >)) );
+        (Core_actions.dump_exts_of_lang (caps :> < Cap.stdout >)) );
     ("-dump_pattern", " <file>", Arg_.mk_action_1_conv Fpath.v dump_pattern);
     ( "-dump_patterns_of_rule",
       " <file>",

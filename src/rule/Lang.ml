@@ -179,9 +179,21 @@ let to_capitalized_alnum lang = show lang
 (*
    Exclusive file extensions for the language. See mli.
 *)
-let ext_of_lang lang = (info lang).exts
+let exts_of_lang lang = (info lang).exts
 let excluded_exts_of_lang lang = (info lang).excluded_exts
 let shebangs_of_lang lang = (info lang).shebangs
+
+let interface_exts_of_lang lang =
+  match lang with
+  | Python
+  | Python2
+  | Python3 ->
+      [ ".pyi" ]
+  | C
+  | Cpp ->
+      [ ".h" ]
+  | Ocaml -> [ ".mli" ]
+  | _ -> []
 
 let unsupported_language_message lang =
   if lang = "unset" then "no language specified; use -lang"

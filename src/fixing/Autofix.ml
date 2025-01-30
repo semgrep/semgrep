@@ -106,7 +106,7 @@ let parse_pattern lang pattern =
  * more flexible origin/source
  *)
 let parse_target lang text =
-  (* ext shouldn't matter, but could use Lang.ext_of_lang if needed *)
+  (* ext shouldn't matter, but could use Lang.exts_of_lang if needed *)
   (* nosemgrep: forbid-tmp *)
   UTmp.with_temp_file ~contents:text ~suffix:".check" (fun file ->
       try Ok (Parse_target.just_parse_with_lang lang file) with
