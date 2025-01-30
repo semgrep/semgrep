@@ -653,15 +653,6 @@ libs/testo/docsrc/tutorial/my_project
 # These files are created by the meta-test
 libs/testo/tests/custom-snapshots
 
-# From perf/perf-matching/input/.gitignore
-perf/perf-matching/input/**/l5000.cs
-
-# rules generated from .sgrep files
-perf/perf-matching/input/**/*.tmp.yaml
-
-# uncompressed from .gz
-perf/perf-matching/input/**/semgrep_targets.txt
-
 # From src/spacegrep/.gitignore
 src/spacegrep/**/_build
 src/spacegrep/**/.merlin

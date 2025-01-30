@@ -319,8 +319,6 @@ jobs:
       - if: github.ref == 'refs/heads/develop'
         name: Report Number of Tests Stats
         run: ./scripts/report_test_metrics.sh
-      - name: Publish match performance
-        run: opam exec -- make report-perf-matching
   trigger-semgrep-comparison-argo:
     if: ${{ github.event_name == 'pull_request' && !startsWith(github.event.pull_request.base.ref, 'release') && !startsWith(github.head_ref, 'release') }}
     needs:

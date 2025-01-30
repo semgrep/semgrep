@@ -1,4 +1,0 @@
-// try this on l50000.js
-function (..., $Y, ...) {
-  ...
-}

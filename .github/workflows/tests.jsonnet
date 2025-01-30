@@ -138,17 +138,6 @@ local test_semgrep_core_job =
         'if': "github.ref == 'refs/heads/develop'",
         run: './scripts/report_test_metrics.sh',
       },
-      // TODO: move this to a stable host for more reliable results.
-      // It's not clear how to push the stats only when "on the main
-      // branch". The GitHub Actions documentation is unhelpful. So we
-      // keep things simple and publish the results every time.
-      {
-        name: 'Publish match performance',
-        // This runs a short test suite to track the match performance
-        // of semgrep-core over time. The results are pushed to the
-        // dashboard at https://dashboard.semgrep.dev/
-        run: 'opam exec -- make report-perf-matching',
-      },
     ],
   };
 

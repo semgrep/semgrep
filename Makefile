@@ -574,25 +574,6 @@ install-deps-for-semgrep-core-bc: install-deps-for-semgrep-core
 perf-bench:
 	scripts/run-benchmarks.sh
 
-# Run matching performance tests
-.PHONY: perf-matching
-perf-matching:
-	@echo "--- default settings ---"
-	cd ./perf/perf-matching && ./run-perf-suite
-	@echo "--- no caching ---"
-	cd ./perf/perf-matching && ./run-perf-suite --no-cache
-	@echo "--- maximum caching ---"
-	cd ./perf/perf-matching && ./run-perf-suite --max-cache
-
-# Run matching performance tests and post them to the semgrep dashboard
-# at https://dashboard.semgrep.dev/
-#
-# This is meant for CI, which hopefully runs on similar machines each time.
-#
-.PHONY: report-perf-matching
-report-perf-matching:
-	cd ./perf/perf-matching && ./run-perf-suite --upload
-
 ###############################################################################
 # Dogfood!
 ###############################################################################

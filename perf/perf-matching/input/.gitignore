@@ -1,7 +1,0 @@
-l5000.cs
-
-# rules generated from .sgrep files
-*.tmp.yaml
-
-# uncompressed from .gz
-semgrep_targets.txt
