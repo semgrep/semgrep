@@ -20,8 +20,6 @@ module J = JSON
 module FT = File_type
 module Resp = Semgrep_output_v1_t
 
-let tags = Logs_.create_tags [ __MODULE__ ]
-
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -249,14 +247,12 @@ let dump_tree_sitter_cst (lang : Lang.t) (file : Fpath.t) : unit =
            Tree_sitter_dockerfile.Boilerplate.dump_extras
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
-let test_parse_tree_sitter lang roots =
-  let paths, _skipped =
-    Find_targets_old.files_of_dirs_or_files (Some lang) roots
-  in
+let test_parse_tree_sitter lang root =
+  let paths = Find_targets_lang.get_target_fpaths root lang in
   let stat_list = ref [] in
   paths
   |> List.iter (fun file ->
-         Logs.info (fun m -> m ~tags "processing %s" !!file);
+         Logs.info (fun m -> m "processing %s" !!file);
          let stat =
            try
              (match lang with
@@ -334,14 +330,14 @@ let dump_lang_ast (lang : Lang.t) (file : Fpath.t) : unit =
 (*****************************************************************************)
 
 (*
-   Expand the list of files or directories into a list of files in the
-   specified language, and return a record for each file.
+   Expand the root into a list of files in the specified language, and return
+   a record for each file.
 
    This is meant to run the same parsers as semgrep-core does for normal
    semgrep scans.
 *)
 let parsing_common (caps : < Cap.time_limit ; Cap.memory_limit >)
-    ?(verbose = true) (lang : Lang.t) files_or_dirs =
+    ?(verbose = true) (lang : Lang.t) (root : Fpath.t) =
   let timeout_seconds = 10.0 in
   (* Without the use of Memory_limit below, we were getting some
    * 'Fatal error: out of memory' errors in the parsing stat CI job,
@@ -376,15 +372,12 @@ let parsing_common (caps : < Cap.time_limit ; Cap.memory_limit >)
    *)
   Gc.set { (Gc.get ()) with Gc.space_overhead = 30 };
 
-  Logs.info (fun m -> m ~tags "running with a timeout of %f.1s" timeout_seconds);
-  Logs.info (fun m ->
-      m ~tags "running with a memory limit of %d MiB" mem_limit_mb);
+  Logs.info (fun m -> m "running with a timeout of %f.1s" timeout_seconds);
+  Logs.info (fun m -> m "running with a memory limit of %d MiB" mem_limit_mb);
 
-  (* less: use realpath? *)
-  let paths = files_or_dirs in
-  let paths, skipped =
-    Find_targets_old.files_of_dirs_or_files (Some lang) paths
-  in
+  let paths = Find_targets_lang.get_target_fpaths root lang in
+  (* TODO? remove the skipped returned? *)
+  let skipped = [] in
   let stats =
     paths
     |> List.rev_map (fun file ->
@@ -448,8 +441,8 @@ let parsing_common (caps : < Cap.time_limit ; Cap.memory_limit >)
    in seconds/MB or equivalent units, not seconds per file."
 *)
 let parse_project (caps : < Cap.time_limit ; Cap.memory_limit >) ~verbose lang
-    name files_or_dirs =
-  let stat_list, _skipped = parsing_common caps ~verbose lang files_or_dirs in
+    name root =
+  let stat_list, _skipped = parsing_common caps ~verbose lang root in
   let stat_list =
     List.filter (fun stat -> not stat.PS.have_timeout) stat_list
   in
@@ -563,7 +556,7 @@ let parse_projects caps ~verbose lang project_dirs =
   project_dirs
   |> List_.map (fun dir ->
          let name = dir in
-         parse_project caps ~verbose lang name [ Fpath.v dir ])
+         parse_project caps ~verbose lang name (Fpath.v dir))
 
 let parsing_stats caps ?(json = false) ?(verbose = false) lang project_dirs =
   let stat_list = parse_projects caps ~verbose lang project_dirs in
@@ -572,10 +565,6 @@ let parsing_stats caps ?(json = false) ?(verbose = false) lang project_dirs =
   else
     let flat_stat = List.concat_map snd stat_list in
     UCommon.pr (Parsing_stat.string_of_stats flat_stat)
-
-let parsing_regressions caps lang files_or_dirs =
-  let _stat_list = parsing_common caps lang files_or_dirs in
-  raise Todo
 
 let diff_pfff_tree_sitter xs =
   UCommon.pr2 "NOTE: consider using -full_token_info to get also diff on tokens";
@@ -600,13 +589,11 @@ let diff_pfff_tree_sitter xs =
 (* Rule parsing *)
 (*****************************************************************************)
 
-let test_parse_rules roots =
-  let targets, _skipped_paths =
-    Find_targets_old.files_of_dirs_or_files (Some Lang.Yaml) roots
-  in
+let test_parse_rules root =
+  let targets = Find_targets_lang.get_target_fpaths root Lang.Yaml in
   targets
   |> List.iter (fun file ->
-         Logs.info (fun m -> m ~tags "processing %s" !!file);
+         Logs.info (fun m -> m "processing %s" !!file);
          let _r = Parse_rule.parse file in
          ());
-  Logs.info (fun m -> m ~tags "done test_parse_rules")
+  Logs.info (fun m -> m "done test_parse_rules")

@@ -20,9 +20,6 @@ let pfff_only = ref false
 (* look if identifiers in pattern intersect with file using simple regexps *)
 let filter_irrelevant_patterns = ref false
 
-(* Maximum size of a single target file, in bytes (exceptions apply). *)
-let max_target_bytes = ref 5_000_000
-
 (* Maximum number of tainted lvals to save. *)
 let max_tainted_vars = ref Limits_semgrep.taint_MAX_TAINTED_VARS
 

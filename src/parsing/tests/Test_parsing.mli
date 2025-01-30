@@ -17,15 +17,11 @@ val parsing_stats :
   string (* filename *) list ->
   unit
 
-(* TODO: parsing regressions as in pfff (unfinished) *)
-val parsing_regressions :
-  < Cap.time_limit ; Cap.memory_limit > -> Lang.t -> Fpath.t list -> unit
-
 (* Similar to [parsing_stats], but uses only tree-sitter parsers,
  * and stop the parsing at the tree-sitter CST level (it does not
  * try to convert this CST in the generic AST).
  *)
-val test_parse_tree_sitter : Lang.t -> Fpath.t list -> unit
+val test_parse_tree_sitter : Lang.t -> Fpath.t (* root *) -> unit
 
 (* Dump the tree-sitter CST of the given file (it automatically detects
  * the language and parser to use based on the filename extension). *)
@@ -44,8 +40,8 @@ val dump_lang_ast : Lang.t -> Fpath.t -> unit
  *)
 val diff_pfff_tree_sitter : Fpath.t list -> unit
 
-(* [test_parse_rules paths] recursively explores [paths] to
+(* [test_parse_rules root] recursively explores [root] to
  * find YAML files containing rules and check if they
  * parse correctly using Parse_rule.parse.
  *)
-val test_parse_rules : Fpath.t list -> unit
+val test_parse_rules : Fpath.t (* root *) -> unit

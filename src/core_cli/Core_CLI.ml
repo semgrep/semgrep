@@ -459,19 +459,12 @@ let all_actions (caps : Cap.all_caps) () =
       Arg_.mk_action_n_arg (fun xs ->
           Test_parsing.diff_pfff_tree_sitter (Fpath_.of_strings xs)) );
     (* Misc stuff *)
-    ( "-parsing_regressions",
-      " <files or dirs> look for parsing regressions",
-      Arg_.mk_action_n_arg (fun xs ->
-          Test_parsing.parsing_regressions
-            (caps :> < Cap.time_limit ; Cap.memory_limit >)
-            (Analyzer.lang_of_opt_analyzer_exn !lang)
-            (Fpath_.of_strings xs)) );
     ( "-test_parse_tree_sitter",
-      " <files or dirs> test tree-sitter parser on target files",
-      Arg_.mk_action_n_arg (fun xs ->
+      " <dir> test tree-sitter parser on target files",
+      Arg_.mk_action_1_arg (fun root ->
           Test_parsing.test_parse_tree_sitter
             (Analyzer.lang_of_opt_analyzer_exn !lang)
-            (Fpath_.of_strings xs)) );
+            (Fpath.v root)) );
     ( "-translate_rules",
       " <files or dirs>",
       Arg_.mk_action_n_conv Fpath.v
@@ -481,8 +474,8 @@ let all_actions (caps : Cap.all_caps) () =
       Arg_.mk_action_n_conv Fpath.v
         (Check_rule.stat_files (caps :> < Cap.stdout >)) );
     ( "-parse_rules",
-      " <files or dirs>",
-      Arg_.mk_action_n_conv Fpath.v Test_parsing.test_parse_rules );
+      " <dir>",
+      Arg_.mk_action_1_conv Fpath.v Test_parsing.test_parse_rules );
     ("-test_eval", " <JSON file>", Arg_.mk_action_1_arg Eval_generic.test_eval);
     ( "-sarif_sort",
       " <JSON file>",
@@ -517,11 +510,6 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
       Arg.String (fun s -> equivalences_file := Some (Fpath.v s)),
       " <file> obtain list of code equivalences from YAML file" );
     ("-j", Arg.Set_int ncores, " <int> number of cores to use (default = 1)");
-    ( "-max_target_bytes",
-      Arg.Set_int Flag.max_target_bytes,
-      " maximum size of a single target file, in bytes. This applies to \
-       regular target filtering and might be overridden in some contexts. \
-       Specify '0' to disable this filtering. Default: 5 MB" );
     ( "-no_gc_tuning",
       Arg.Clear Flag.gc_tuning,
       " use OCaml's default garbage collector settings" );
