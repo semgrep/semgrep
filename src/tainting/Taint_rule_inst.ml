@@ -29,8 +29,8 @@
 
 type effects_handler =
   IL.name option (** name of the function definition ('None' if anonymous) *) ->
-  Shape_and_sig.Effect.t list ->
-  Shape_and_sig.Effect.t list
+  Shape_and_sig.Effect.poly list ->
+  Shape_and_sig.Effect.poly list
 
 type java_props_cache = (string * AST_generic.SId.t, IL.name) Hashtbl.t
 

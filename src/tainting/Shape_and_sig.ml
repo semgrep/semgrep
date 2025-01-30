@@ -304,9 +304,22 @@ and Effect : sig
     return_tok : AST_generic.tok;
   }
 
+  type _ lval =
+    | Lm : IL.name * Taint.offset list -> [ `Mono ] lval
+    | Lp : Taint.lval -> [ `Poly ] lval
+
   type args_taints = (Taint.taints * Shape.shape) IL.argument list
   (** The taints and shapes associated with the actual arguments in a
     * function call. *)
+
+  type call = {
+    callee : IL.exp;
+        (** The function expression being called, it is used for recording a taint trace. *)
+    arg : Taint.arg;
+        (** The formal parameter corresponding to the function shape,
+                        this is what we instantiate at a specific call site. *)
+    args_taints : args_taints;
+  }
 
   (** Function-level result.
   *
@@ -319,8 +332,8 @@ and Effect : sig
   * polymorphic/context-sensitive, as the 'lval' taints can be instantiated
   * accordingly at each call site.
   *)
-  type t =
-    | ToSink of taints_to_sink
+  type _ t =
+    | ToSink : taints_to_sink -> 'a t
         (** Taints reach a sink.
         *
         * For example:
@@ -336,7 +349,7 @@ and Effect : sig
         *              sink = "sink(y)";
         *              ... }
         *)
-    | ToReturn of taints_to_return
+    | ToReturn : taints_to_return -> 'a t
         (** Taints reach a `return` statement.
         *
         * For example:
@@ -349,7 +362,7 @@ and Effect : sig
         *
         *     ToReturn(["taint"], Bot, ...)
         *)
-    | ToLval of Taint.taints * Taint.lval
+    | ToLval : Taint.taints * 'a lval -> 'a t
         (** Taints reach an l-value in the scope of the function/method.
         *
         * For example:
@@ -366,14 +379,7 @@ and Effect : sig
         *
         * TODO: Record taint shapes.
         *)
-    | ToSinkInCall of {
-        callee : IL.exp;
-            (** The function expression being called, it is used for recording a taint trace. *)
-        arg : Taint.arg;
-            (** The formal parameter corresponding to the function shape,
-                        this is what we instantiate at a specific call site. *)
-        args_taints : args_taints;
-      }
+    | ToSinkInCall : call -> [ `Poly ] t
         (** Essentially a preliminary form of "effect variable". It represents
           * the 'ToSink' effects of a function call where the function is not
           * yet known (the function is an argument to be instantiated at call
@@ -382,8 +388,11 @@ and Effect : sig
           * TODO: Handle 'ToReturn' (probably easy) and 'ToLval' (may be trickier).
           *)
 
-  val compare : t -> t -> int
-  val show : t -> string
+  type poly = [ `Poly ] t
+  type mono = [ `Mono ] t
+
+  val compare : poly -> poly -> int
+  val show : 'a t -> string
 
   (* Mainly for debugging *)
   val show_sink : sink -> string
@@ -416,17 +425,21 @@ end = struct
     return_tok : AST_generic.tok;
   }
 
-  type args_taints = (Taints.t * Shape.shape) IL.argument list
+  type _ lval =
+    | Lm : IL.name * Taint.offset list -> [ `Mono ] lval
+    | Lp : Taint.lval -> [ `Poly ] lval
 
-  type t =
-    | ToSink of taints_to_sink
-    | ToReturn of taints_to_return
-    | ToLval of T.taints * T.lval (* TODO: CleanArg ? *)
-    | ToSinkInCall of {
-        callee : IL.exp;
-        arg : Taint.arg;
-        args_taints : args_taints;
-      }
+  type args_taints = (Taints.t * Shape.shape) IL.argument list
+  type call = { callee : IL.exp; arg : Taint.arg; args_taints : args_taints }
+
+  type _ t =
+    | ToSink : taints_to_sink -> 'a t
+    | ToReturn : taints_to_return -> 'a t
+    | ToLval : T.taints * 'a lval (* TODO: CleanArg ? *) -> 'a t
+    | ToSinkInCall : call -> [ `Poly ] t
+
+  type poly = [ `Poly ] t
+  type mono = [ `Mono ] t
 
   (*************************************)
   (* Comparison *)
@@ -499,11 +512,11 @@ end = struct
     | Unnamed _, Named _ -> -1
     | Named _, Unnamed _ -> 1
 
-  let compare r1 r2 =
+  let compare (r1 : poly) (r2 : poly) =
     match (r1, r2) with
     | ToSink tts1, ToSink tts2 -> compare_taints_to_sink tts1 tts2
     | ToReturn ttr1, ToReturn ttr2 -> compare_taints_to_return ttr1 ttr2
-    | ToLval (ts1, lv1), ToLval (ts2, lv2) -> (
+    | ToLval (ts1, Lp lv1), ToLval (ts2, Lp lv2) -> (
         match Taints.compare ts1 ts2 with
         | 0 -> T.compare_lval lv1 lv2
         | other -> other)
@@ -569,28 +582,33 @@ end = struct
         spf "%s:(%s & %s)" (fst ident) (T.show_taints taints)
           (Shape.show_shape shape)
 
+  let show_lval : type a. a lval -> string = function
+    | Lm (name, offset) ->
+        spf "%s%s" (IL.str_of_name name) (T.show_offset_list offset)
+    | Lp lv -> T.show_lval lv
+
   let show_args_taints (args : _ IL.argument list) =
     spf "(%s)" (List_.map show_arg args |> String.concat ", ")
 
-  let show = function
+  let show : type a. a t -> string = function
     | ToSink tts -> show_taints_to_sink tts
     | ToReturn ttr -> show_taints_to_return ttr
     | ToLval (taints, lval) ->
-        Printf.sprintf "%s ----> %s" (T.show_taints taints) (T.show_lval lval)
+        Printf.sprintf "%s ----> %s" (T.show_taints taints) (show_lval lval)
     | ToSinkInCall { callee = _; arg; args_taints } ->
         Printf.sprintf "'call<%s>%s" (T.show_arg arg)
           (show_args_taints args_taints)
 end
 
 and Effects : sig
-  include Set.S with type elt = Effect.t
+  include Set.S with type elt = Effect.poly
 
   val show : t -> string
-  val add_list : Effect.t list -> t -> t
+  val add_list : Effect.poly list -> t -> t
   val union_list : t list -> t
 end = struct
   include Set.Make (struct
-    type t = Effect.t
+    type t = Effect.poly
 
     let compare effect1 effect2 = Effect.compare effect1 effect2
   end)
@@ -712,7 +730,7 @@ end = struct
 end
 
 module Effects_tbl = Hashtbl.Make (struct
-  type t = Effect.t
+  type t = Effect.poly
 
   let equal r1 r2 = Effect.compare r1 r2 =|= 0
   let hash r = Hashtbl.hash r
@@ -723,25 +741,13 @@ end)
 (*************************************)
 
 module Instantiated_signature = struct
-  (* THINK: Merge with Effect.t ? *)
+  type effect = Effect.mono
   (** Like 'Effect.t' but instantiated for a specific call site.
       In particular, there is no 'ToSinkInCall' effect, and 'ToLval' effects
       refer to specific 'IL.lval's rather than to 'Taint.lval's. *)
-  type effect =
-    | ToSink of Effect.taints_to_sink
-    | ToReturn of Effect.taints_to_return
-    | ToLval of Taint.taints * IL.name * Taint.offset list
 
   type t = effect list
 
-  let show_effect = function
-    | ToSink tts -> Effect.show_taints_to_sink tts
-    | ToReturn ttr -> Effect.show_taints_to_return ttr
-    | ToLval (taints, var, offset) ->
-        Printf.sprintf "%s ----> %s%s" (T.show_taints taints)
-          (IL.str_of_name var)
-          (T.show_offset_list offset)
-
   let show call_effects =
-    call_effects |> List_.map show_effect |> String.concat "; "
+    call_effects |> List_.map Effect.show |> String.concat "; "
 end

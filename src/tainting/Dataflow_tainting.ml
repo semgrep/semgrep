@@ -477,7 +477,7 @@ let propagate_taint_to_label replace_labels label (taint : T.taint) =
    when this information is used, later.
 *)
 let effects_of_tainted_sink (options : Rule_options.t) taints_with_traces
-    (sink : Effect.sink) : Effect.t list =
+    (sink : Effect.sink) : Effect.poly list =
   match taints_with_traces with
   | [] -> []
   | _ :: _ -> (
@@ -558,7 +558,7 @@ let effects_of_tainted_sink (options : Rule_options.t) taints_with_traces
             ])
 
 (* Produces a finding for every unifiable source-sink pair. *)
-let effects_of_tainted_sinks env taints sinks : Effect.t list =
+let effects_of_tainted_sinks env taints sinks : Effect.poly list =
   let taints =
     let control_taints = Lval_env.get_control_taints env.lval_env in
     taints |> Taints.union control_taints
@@ -579,7 +579,7 @@ let effects_of_tainted_sinks env taints sinks : Effect.t list =
            effects_of_tainted_sink env.taint_inst.options taints_with_traces
              sink)
 
-let effects_of_tainted_return env taints shape return_tok : Effect.t list =
+let effects_of_tainted_return env taints shape return_tok : Effect.poly list =
   let control_taints = get_control_taints_to_return env in
   if
     Shape.taints_and_shape_are_relevant taints shape
@@ -1652,7 +1652,7 @@ let check_tainted_return env tok e : Taints.t * S.shape * Lval_env.t =
   (taints, shape, var_env')
 
 let effects_from_arg_updates_at_exit ~in_lambda enter_env exit_env :
-    Effect.t list =
+    Effect.poly list =
   (* TODO: We need to get a map of `lval` to `Taint.arg`, and if an extension
    * of `lval` has new taints, then we can compute its correspoding `Taint.arg`
    * extension and generate a `ToLval` effect too. *)
@@ -1669,7 +1669,7 @@ let effects_from_arg_updates_at_exit ~in_lambda enter_env exit_env :
                     let lval = T.{ base = BVar var; offset } in
                     (* TODO: Also report if taints are _cleaned_. *)
                     if not (Taints.is_empty new_taints) then
-                      Some (Effect.ToLval (new_taints, lval))
+                      Some (Effect.ToLval (new_taints, Lp lval))
                     else None)
          | None ->
              (* For top-level functions we already set up an env that contains all
@@ -1699,7 +1699,7 @@ let effects_from_arg_updates_at_exit ~in_lambda enter_env exit_env :
                         let new_taints = Taints.diff exit_taints enter_taints in
                         (* TODO: Also report if taints are _cleaned_. *)
                         if not (Taints.is_empty new_taints) then
-                          Some (Effect.ToLval (new_taints, lval))
+                          Some (Effect.ToLval (new_taints, Lp lval))
                         else None)))
   |> Seq.concat |> List.of_seq
 

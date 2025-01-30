@@ -160,7 +160,7 @@ let trace_of_source source =
     sink_trace = convert_taint_call_trace sink_trace;
   }
 
-let pms_of_effect ~match_on (effect : Effect.t) =
+let pms_of_effect ~match_on (effect : Effect.poly) =
   match effect with
   | ToLval _
   | ToReturn _

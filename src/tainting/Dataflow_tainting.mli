@@ -69,5 +69,5 @@ val effects_of_tainted_sink :
   Rule_options.t ->
   Shape_and_sig.Effect.taint_to_sink_item list ->
   Shape_and_sig.Effect.sink ->
-  Shape_and_sig.Effect.t list
+  Shape_and_sig.Effect.poly list
 (** Exposed for Pro *)
