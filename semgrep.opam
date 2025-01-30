@@ -58,6 +58,7 @@ depends: [
   "lsp" {= "1.20.0"}
   "git"
   "trace"
+  "memtrace"
   "ppx_trace"
   "opentelemetry" {>= "0.9"}
   "ocurl" {= "0.9.1"}

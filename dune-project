@@ -512,6 +512,7 @@ For more information see https://semgrep.dev
     git
     ; tracing
     trace
+    memtrace
     ppx_trace
     (opentelemetry (>= 0.9))
     ; needed by opentelemetry-client-ocurl but the latest, 0.9.2

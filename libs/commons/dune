@@ -31,6 +31,8 @@
    ; async stuff
    lwt
    alcotest-lwt
+   ; tracing
+   memtrace
  )
  (inline_tests)
  ; can't use profiling.ppx because of circular dependencies :(

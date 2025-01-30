@@ -5,6 +5,7 @@
  (wrapped false)
  (libraries
     unix
+    memtrace
  )
  (preprocess
    (pps
