@@ -668,25 +668,27 @@ let rec map_preconditions f taint =
   | Src { precondition = None; _ } -> Some taint
   | Src ({ precondition = Some (incoming, expr); _ } as src) -> (
       let new_incoming =
-        incoming
-        |> List_.filter_map (map_preconditions f)
-        |> f |> Taint_set.of_list
+        incoming |> List_.filter_map_endo (map_preconditions f) |> f
       in
-      let new_incoming = filter_relevant_taints expr new_incoming in
-      match
-        solve_precondition ~ignore_poly_taint:false ~taints:new_incoming expr
-      with
-      | Some false -> None
-      | Some true ->
-          Some { taint with orig = Src { src with precondition = None } }
-      | None ->
-          let new_incoming = new_incoming |> Taint_set.elements in
-          let new_precondition = Some (new_incoming, expr) in
-          Some
-            {
-              taint with
-              orig = Src { src with precondition = new_precondition };
-            })
+      if phys_equal new_incoming incoming then Some taint
+      else
+        let new_incoming =
+          new_incoming |> Taint_set.of_list |> filter_relevant_taints expr
+        in
+        match
+          solve_precondition ~ignore_poly_taint:false ~taints:new_incoming expr
+        with
+        | Some false -> None
+        | Some true ->
+            Some { taint with orig = Src { src with precondition = None } }
+        | None ->
+            let new_incoming = new_incoming |> Taint_set.elements in
+            let new_precondition = Some (new_incoming, expr) in
+            Some
+              {
+                taint with
+                orig = Src { src with precondition = new_precondition };
+              })
 
 (*****************************************************************************)
 (* New taints *)

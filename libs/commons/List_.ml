@@ -328,6 +328,23 @@ let filter_map f xs =
     [] xs
   |> List.rev
 
+let filter_map_endo f xs =
+  let changed = ref false in
+  let xs' =
+    List.fold_left
+      (fun acc x ->
+        match f x with
+        | None ->
+            changed := true;
+            acc
+        | Some y ->
+            if Eq.phys_not_equal x y then changed := true;
+            y :: acc)
+      [] xs
+    |> List.rev
+  in
+  if !changed then xs' else xs
+
 let filter_some xs = filter_map (fun x -> x) xs
 
 let rec find_some_opt p = function

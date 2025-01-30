@@ -415,14 +415,15 @@ let find_in_shape_poly ~taints offset shape =
 
 (* Finds an 'offset' within a 'cell' and updates it via 'f'. *)
 let rec update_offset_in_cell ~f offset cell =
-  let xtaint, shape =
-    match (cell, offset) with
-    | Cell (xtaint, shape), [] -> f xtaint shape
-    | Cell (xtaint, shape), _ :: _ ->
+  let (Cell (xtaint, shape)) = cell in
+  let xtaint', shape' =
+    match offset with
+    | [] -> f xtaint shape
+    | _ :: _ ->
         let shape = update_offset_in_shape ~f offset shape in
         (xtaint, shape)
   in
-  match (xtaint, shape) with
+  match (xtaint', shape') with
   (* Restore INVARIANT(cell).1 *)
   | `None, Bot -> None
   | `Tainted taints, Bot when Taints.is_empty taints -> None
@@ -430,11 +431,12 @@ let rec update_offset_in_cell ~f offset cell =
   | `Clean, (Obj _ | Arg _ | Fun _) ->
       (* If we are tainting an offset of this cell, the cell cannot be
          considered clean anymore. *)
-      Some (Cell (`None, shape))
+      Some (Cell (`None, shape'))
   | `Clean, Bot
   | `None, (Obj _ | Arg _ | Fun _)
   | `Tainted _, (Bot | Obj _ | Arg _ | Fun _) ->
-      Some (Cell (xtaint, shape))
+      if phys_equal xtaint' xtaint && phys_equal shape' shape then Some cell
+      else Some (Cell (xtaint', shape'))
 
 and update_offset_in_shape ~f offset shape =
   match shape with
@@ -445,7 +447,7 @@ and update_offset_in_shape ~f offset shape =
   | Obj obj -> (
       match update_offset_in_obj ~f offset obj with
       | None -> Bot
-      | Some obj -> Obj obj)
+      | Some obj' -> if phys_equal obj' obj then shape else Obj obj')
   | Fun _ ->
       (* This is an error, we just don't want to crash here. *)
       Log.err (fun m ->

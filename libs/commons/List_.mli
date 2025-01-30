@@ -119,6 +119,11 @@ val deduplicate : 'a list -> 'a list
 val filter_map : ('a -> 'b option) -> 'a list -> 'b list
 (** Same as [List.filter_map] but tail recursive. *)
 
+val filter_map_endo : ('a -> 'a option) -> 'a list -> 'a list
+(** Like 'filter_map' but the mapping must be an endomorphism.
+    It guarantees that, if the mapping does not change anything, then
+    the output list is the *exact same* as the input list. *)
+
 val find_some : ('a -> 'b option) -> 'a list -> 'b
 val find_some_opt : ('a -> 'b option) -> 'a list -> 'b option
 val filter_some : 'a option list -> 'a list

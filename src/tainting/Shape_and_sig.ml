@@ -23,25 +23,46 @@ module T = Taint
 (* Taint shapes *)
 (*****************************************************************************)
 
-module Fields = Map.Make (struct
-  type t = T.offset
+module Fields = struct
+  module F = Map.Make (struct
+    type t = T.offset
 
-  (* In taint shapes we consider 'Ofld' and 'Ostr' to be the same, given that
-     in some languages like JS/TS you can treat records as if they were dicts
-     with string keys. *)
-  let compare (o1 : t) (o2 : t) =
-    match (o1, o2) with
-    | Ofld fld1, Ofld fld2 -> String.compare (fst fld1.ident) (fst fld2.ident)
-    | Ostr str1, Ostr str2 -> String.compare str1 str2
-    | Ofld fld1, Ostr str2 -> String.compare (fst fld1.ident) str2
-    | Ostr str1, Ofld fld2 -> String.compare str1 (fst fld2.ident)
-    | Oint i1, Oint i2 -> Int.compare i1 i2
-    | Oany, Oany -> 0
-    | (Ofld _ | Ostr _), (Oint _ | Oany) -> -1
-    | Oint _, Oany -> -1
-    | Oany, (Ofld _ | Ostr _ | Oint _) -> 1
-    | Oint _, (Ofld _ | Ostr _) -> 1
-end)
+    (* In taint shapes we consider 'Ofld' and 'Ostr' to be the same, given that
+       in some languages like JS/TS you can treat records as if they were dicts
+       with string keys. *)
+    let compare (o1 : t) (o2 : t) =
+      match (o1, o2) with
+      | Ofld fld1, Ofld fld2 -> String.compare (fst fld1.ident) (fst fld2.ident)
+      | Ostr str1, Ostr str2 -> String.compare str1 str2
+      | Ofld fld1, Ostr str2 -> String.compare (fst fld1.ident) str2
+      | Ostr str1, Ofld fld2 -> String.compare str1 (fst fld2.ident)
+      | Oint i1, Oint i2 -> Int.compare i1 i2
+      | Oany, Oany -> 0
+      | (Ofld _ | Ostr _), (Oint _ | Oany) -> -1
+      | Oint _, Oany -> -1
+      | Oany, (Ofld _ | Ostr _ | Oint _) -> 1
+      | Oint _, (Ofld _ | Ostr _) -> 1
+  end)
+
+  include F
+
+  (* At present Map.filter_map does not guarantee physical equality when
+     the map ends up being the same because nothing really changed. *)
+  let filter_map f fields =
+    let changed = ref false in
+    let fields' =
+      fields
+      |> filter_map (fun o cell ->
+             let opt_cell' = f o cell in
+             (match opt_cell' with
+             | Some cell' when phys_equal cell' cell -> ()
+             | None
+             | Some _ ->
+                 changed := true);
+             opt_cell')
+    in
+    if !changed then fields' else fields
+end
 
 (** A shape approximates an object or data structure, and tracks the taint
  * associated with its fields and indexes.
