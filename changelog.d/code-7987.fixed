@@ -1,0 +1,2 @@
+pro: python: Fixed resolution of calls to the implementation of abstract methods.
+See https://semgrep.dev/playground/s/X5kZ4.

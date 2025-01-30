@@ -1062,9 +1062,12 @@ and decorator env (t, v1) =
   match dotted_name with
   | Some d_name -> (
       match (d_name, args) with
-      (* Use standard static keyword for staticmethod attribute. This
-         is used by other parts of the pro-engine to check if a method
-         is static. *)
+      (* Use standard 'abstract' keyword for 'abstractmethod' attribute.
+         This is used by other parts of the pro-engine to check if a method
+         is abstract. *)
+      | [ ("abstractmethod", tok) ], (None | Some (_, [], _)) ->
+          G.attr G.Abstract tok
+      (* Same as for "abstractmethod" above. *)
       | [ ("staticmethod", tok) ], (None | Some (_, [], _)) ->
           G.attr G.Static tok
       | [ x ], args ->
