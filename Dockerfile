@@ -298,7 +298,7 @@ FROM semgrep-oss AS semgrep-cli
 # locally, set the SEMGREP_APP_TOKEN environment variable and then run:
 #
 # $ docker build --secret id=SEMGREP_APP_TOKEN ...
-RUN --mount=type=secret,id=SEMGREP_APP_TOKEN if [[ -f /run/secrets/SEMGREP_APP_TOKEN ]]; then ( SEMGREP_APP_TOKEN=$(cat /run/secrets/SEMGREP_APP_TOKEN) semgrep install-semgrep-pro --debug ); else ( echo "SEMGREP_APP_TOKEN secret not set, skipping semgrep-pro install" >&2 ); fi
+RUN --mount=type=secret,id=SEMGREP_APP_TOKEN if [ -f /run/secrets/SEMGREP_APP_TOKEN ]; then ( SEMGREP_APP_TOKEN=$(cat /run/secrets/SEMGREP_APP_TOKEN) semgrep install-semgrep-pro --debug ); else ( echo "SEMGREP_APP_TOKEN secret not set, skipping semgrep-pro install" >&2 ); fi
 
 # Clear out any detritus from the pro install (especially credentials)
 RUN rm -rf /root/.semgrep
