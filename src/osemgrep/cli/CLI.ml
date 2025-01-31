@@ -66,6 +66,9 @@ let hook_semgrep_publish :
   Hook.create (fun _argv ->
       failwith "semgrep publsh not available (requires semgrep pro)")
 
+let hook_semgrep_show : (caps -> string array -> Exit_code.t) Hook.t =
+  Hook.create Show_subcommand.main
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -211,7 +214,7 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
             Logout_subcommand.main (caps :> < Cap.stdout >) subcmd_argv
         | "install-ci" -> Install_ci_subcommand.main caps subcmd_argv
         | "interactive" -> (Hook.get hook_semgrep_interactive) subcmd_argv
-        | "show" -> Show_subcommand.main caps subcmd_argv
+        | "show" -> (Hook.get hook_semgrep_show) caps subcmd_argv
         | "test" -> Test_subcommand.main caps subcmd_argv
         | "validate" -> Validate_subcommand.main caps subcmd_argv
         | _ ->

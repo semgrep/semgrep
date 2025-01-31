@@ -10,41 +10,37 @@ open Common
 (* Dot generation *)
 (*****************************************************************************)
 
-let generate_ograph_generic g label fnode filename =
-  UFile.Legacy.with_open_outfile filename (fun (xpr, _) ->
-      xpr "digraph misc {\n";
-      xpr "size = \"10,10\";\n";
-      (match label with
-      | None -> ()
-      | Some x -> xpr (spf "label = \"%s\";\n" x));
+let generate_ograph_generic g label fnode (buf : Format.formatter) =
+  Format.fprintf buf "digraph misc {\n";
+  Format.fprintf buf "size = \"10,10\";\n";
+  (match label with
+  | None -> ()
+  | Some x -> Format.fprintf buf "label = \"%s\";\n" x);
+  let nodes = g#nodes in
+  nodes#iter (fun (k, node) ->
+      let str, border_color, inner_color = fnode (k, node) in
+      let color =
+        match inner_color with
+        | None -> (
+            match border_color with
+            | None -> ""
+            | Some x -> spf ", style=\"setlinewidth(3)\", color = %s" x)
+        | Some x -> (
+            match border_color with
+            | None -> spf ", style=\"setlinewidth(3),filled\", fillcolor = %s" x
+            | Some x' ->
+                spf
+                  ", style=\"setlinewidth(3),filled\", fillcolor = %s, color = \
+                   %s"
+                  x x')
+      in
+      (* so can see if nodes without arcs were created *)
+      Format.fprintf buf "%d [label=\"%s   [%d]\"%s];\n" k str k color);
 
-      let nodes = g#nodes in
-      nodes#iter (fun (k, node) ->
-          let str, border_color, inner_color = fnode (k, node) in
-          let color =
-            match inner_color with
-            | None -> (
-                match border_color with
-                | None -> ""
-                | Some x -> spf ", style=\"setlinewidth(3)\", color = %s" x)
-            | Some x -> (
-                match border_color with
-                | None ->
-                    spf ", style=\"setlinewidth(3),filled\", fillcolor = %s" x
-                | Some x' ->
-                    spf
-                      ", style=\"setlinewidth(3),filled\", fillcolor = %s, \
-                       color = %s"
-                      x x')
-          in
-          (* so can see if nodes without arcs were created *)
-          xpr (spf "%d [label=\"%s   [%d]\"%s];\n" k str k color));
-
-      nodes#iter (fun (k, _node) ->
-          let succ = g#successors k in
-          succ#iter (fun (j, _edge) -> xpr (spf "%d -> %d;\n" k j)));
-      xpr "}\n");
-  ()
+  nodes#iter (fun (k, _node) ->
+      let succ = g#successors k in
+      succ#iter (fun (j, _edge) -> Format.fprintf buf "%d -> %d;\n" k j));
+  Format.fprintf buf "}\n"
 
 let generate_ograph_xxx g filename =
   UFile.Legacy.with_open_outfile filename (fun (xpr, _) ->
@@ -103,5 +99,26 @@ let print_ograph_mutable caps g filename display_graph =
 let print_ograph_mutable_generic caps ?title ?(display_graph = true)
     ?(output_file = Fpath.(UTmp.get_temp_dir_name () / "ograph.dot")) ~s_of_node
     g =
-  generate_ograph_generic g title s_of_node (Fpath.to_string output_file);
+  UFile.with_open_out output_file (fun (_, oc) ->
+      let f = Format.formatter_of_out_channel oc in
+      generate_ograph_generic g title s_of_node f);
   if display_graph then display_graph_cmd caps (Fpath.to_string output_file)
+
+let pp_ograph_mutable_generic caps ?title ~s_of_node f g : unit =
+  CapTmp.with_temp_file caps#tmp (fun tmp ->
+      (* Write dot code *)
+      UFile.with_open_out tmp (fun (_, oc) ->
+          let f = Format.formatter_of_out_channel oc in
+          generate_ograph_generic g title s_of_node f);
+      (* Generate svg and put in original buffer *)
+      match
+        CapExec.string_of_run caps#exec ~trim:false
+          (Name "dot", [ "-Tsvg_inline"; Format.asprintf "%a" Fpath.pp tmp ])
+      with
+      | Ok (s, (_, `Exited 0)) -> Format.fprintf f "<pre>%s</pre>" s
+      | Ok (_, (_, `Exited n)) ->
+          Format.fprintf f "<pre>failed to print: exit code %d</pre>" n
+      | Ok (_, (_, `Signaled n)) ->
+          Format.fprintf f "<pre>failed to print: sig %d</pre>" n
+      | Error (`Msg err) ->
+          Format.fprintf f "<pre>failed to print: %s</pre>" err)

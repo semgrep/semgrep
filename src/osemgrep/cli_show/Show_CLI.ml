@@ -13,6 +13,10 @@ module Cmd = Cmdliner.Cmd
 (*****************************************************************************)
 (* Types and constants *)
 (*****************************************************************************)
+
+type debug_settings = { output_dir : Fpath.t option; root : Fpath.t }
+[@@deriving show]
+
 (*
    The result of parsing a 'semgrep show' command.
    This is also used in Scan_CLI.ml to transform legacy
@@ -57,6 +61,7 @@ and show_kind =
    * accessible also as 'semgrep scan --dump-command-for-core' (or just '-d')
    * LATER: get rid of it *)
   | DumpCommandForCore
+  | Debug of debug_settings
 [@@deriving show]
 
 (*************************************************************************)
@@ -116,6 +121,12 @@ let cmdline_term : conf Term.t =
       | [ "supported-languages" ] -> SupportedLanguages
       | [ "identity" ] -> Identity
       | [ "deployment" ] -> Deployment
+      (* TODO: These should use Cmdliner so we don't have this match *)
+      | [ "debug"; dir; root ] ->
+          Debug { output_dir = Some (Fpath.v dir); root = Fpath.v root }
+      | [ "debug"; root ] -> Debug { output_dir = None; root = Fpath.v root }
+      | [ "debug" ] ->
+          Debug { output_dir = None; root = Fpath.v @@ Sys.getcwd () }
       | [] ->
           Error.abort
             (spf

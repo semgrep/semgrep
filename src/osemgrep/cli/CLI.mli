@@ -31,3 +31,5 @@ val hook_semgrep_interactive : (string array -> Exit_code.t) Hook.t
 
 val hook_semgrep_publish :
   (< Cap.stdout ; Cap.network ; Cap.tmp > -> string array -> Exit_code.t) Hook.t
+
+val hook_semgrep_show : (caps -> string array -> Exit_code.t) Hook.t

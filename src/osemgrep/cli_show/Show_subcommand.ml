@@ -169,6 +169,7 @@ let run_conf (caps : < caps ; .. >) (conf : Show_CLI.conf) : Exit_code.t =
   | DumpEnginePath _pro -> failwith "TODO: dump-engine-path not implemented yet"
   | DumpCommandForCore ->
       failwith "TODO: dump-command-for-core not implemented yet"
+  | Debug _ -> failwith "TODO: CE-only show debug not implemented yet"
 
 (*****************************************************************************)
 (* Entry point *)

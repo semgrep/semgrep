@@ -16,6 +16,14 @@ val print_ograph_mutable_generic :
   ('node, 'edge) ograph_mutable ->
   unit
 
+val pp_ograph_mutable_generic :
+  < Cap.exec ; Cap.tmp > ->
+  ?title:string ->
+  s_of_node:(nodei * 'node -> string * string option * string option) ->
+  Format.formatter ->
+  ('node, 'edge) ograph_mutable ->
+  unit
+
 val print_ograph_extended :
   < Cap.exec > ->
   ('node * string, 'edge) ograph_extended ->

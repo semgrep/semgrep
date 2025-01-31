@@ -28,6 +28,15 @@ and show_kind =
   | DumpRuleV2 of Fpath.t
   | DumpEnginePath of bool (* pro = true *)
   | DumpCommandForCore
+  | Debug of debug_settings  (** Open an interactive debugging view. *)
+
+and debug_settings = {
+  output_dir : Fpath.t option;
+      (** Directory to save the output to, if it should persist after program
+        termination *)
+  root : Fpath.t;
+      (** Scanning root for debug. TODO: do exactly what scan does here *)
+}
 [@@deriving show]
 
 (*
