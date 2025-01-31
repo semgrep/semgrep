@@ -17,16 +17,22 @@ type t = {
     * Taint_lval_env.t
     * Shape_and_sig.Effects.t)
     option;
-      (** Support for inter-procedural analysis. *)
+      (** pro-scan hook *)
+  infer_update_effects_at_exit :
+    in_lambda:bool ->
+    enter_env:Taint_lval_env.t ->
+    Taint_lval_env.t ->
+    Effect.poly list;
+      (** pro-scan hook *)
   find_attribute_in_class :
     AST_generic.name -> string -> AST_generic.name option;
-      (** Helps support implicit getters/setters in deep/inter-file analysis. *)
+      (** deep-scan hook *)
   check_tainted_at_exit_sinks :
     Taint_spec_preds.t ->
     Taint_lval_env.t ->
     IL.node ->
     (Taint.taints * Shape_and_sig.Effect.sink list) option;
-      (** Support for `at-exit: true` sinks *)
+      (** pro-scan hook *)
 }
 
 let hook_taint_pro_hooks : t option Hook.t = Hook.create None

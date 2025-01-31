@@ -1651,57 +1651,12 @@ let check_tainted_return env tok e : Taints.t * S.shape * Lval_env.t =
   record_effects env effects;
   (taints, shape, var_env')
 
-let effects_from_arg_updates_at_exit ~in_lambda enter_env exit_env :
-    Effect.poly list =
-  (* TODO: We need to get a map of `lval` to `Taint.arg`, and if an extension
-   * of `lval` has new taints, then we can compute its correspoding `Taint.arg`
-   * extension and generate a `ToLval` effect too. *)
-  exit_env |> Lval_env.seq_of_tainted
-  |> Seq.map (fun (var, exit_var_ref) ->
-         match Lval_env.find_var enter_env var with
-         | None when in_lambda && Tok.is_origintok (snd var.ident) ->
-             (* The 'var' is in the 'exit_env', and although it's not in the
-                'enter_env', we are analyzing a lambda, so this 'var' is of
-                 interest to the enclosing function, and we want to generate
-                 a ToLval here. *)
-             Shape.enum_in_cell exit_var_ref
-             |> Seq.filter_map (fun (offset, new_taints) ->
-                    let lval = T.{ base = BVar var; offset } in
-                    (* TODO: Also report if taints are _cleaned_. *)
-                    if not (Taints.is_empty new_taints) then
-                      Some (Effect.ToLval (new_taints, Lp lval))
-                    else None)
-         | None ->
-             (* For top-level functions we already set up an env that contains all
-                the globals... so we expect any relevant variable to be found in
-                'enter_env' and do nothing here... but maybe we should re-evaluate. *)
-             Seq.empty
-         | Some (Cell ((`Clean | `None), _)) -> Seq.empty
-         | Some (Cell (`Tainted enter_taints, _)) -> (
-             (* For each lval in the enter_env, we get its `T.lval`, and check
-              * if it got new taints at the exit_env. If so, we generate a 'ToLval'. *)
-             match
-               enter_taints |> Taints.elements
-               |> List_.filter_map (fun taint ->
-                      match taint.T.orig with
-                      | T.Var (Taint_var lval) -> Some lval
-                      | _ -> None)
-             with
-             | []
-             | _ :: _ :: _ ->
-                 Seq.empty
-             | [ lval ] ->
-                 Shape.enum_in_cell exit_var_ref
-                 |> Seq.filter_map (fun (offset, exit_taints) ->
-                        let lval =
-                          { lval with offset = lval.offset @ offset }
-                        in
-                        let new_taints = Taints.diff exit_taints enter_taints in
-                        (* TODO: Also report if taints are _cleaned_. *)
-                        if not (Taints.is_empty new_taints) then
-                          Some (Effect.ToLval (new_taints, Lp lval))
-                        else None)))
-  |> Seq.concat |> List.of_seq
+let effects_from_arg_updates_at_exit (pro_hooks : Taint_pro_hooks.t option)
+    ~in_lambda ~enter_env exit_env : Effect.poly list =
+  match pro_hooks with
+  | None -> []
+  | Some pro_hooks ->
+      pro_hooks.infer_update_effects_at_exit ~in_lambda ~enter_env exit_env
 
 let check_tainted_control_at_exit node env =
   match node.F.n with
@@ -2033,8 +1988,9 @@ and fixpoint_aux taint_inst func ?(needed_vars = IL.NameSet.empty)
   in
   log_timeout_warning taint_inst env.func.fname timeout;
   let exit_lval_env = end_mapping.(flow.exit).D.out_env in
-  effects_from_arg_updates_at_exit ~in_lambda:(Option.is_some in_lambda)
-    enter_lval_env exit_lval_env
+  effects_from_arg_updates_at_exit taint_inst.pro_hooks
+    ~in_lambda:(Option.is_some in_lambda) ~enter_env:enter_lval_env
+    exit_lval_env
   |> record_effects env;
   (!(env.effects_acc), end_mapping)
 
