@@ -132,7 +132,7 @@ COPY --from=semgrep-core-files /src/semgrep ./
 #alt: use 'opam exec -- ...' instead of eval
 RUN make install-deps-for-semgrep-core &&\
     eval "$(opam env)" &&\
-    make minimal-build &&\
+    make core &&\
     # Sanity check
     /src/semgrep/_build/default/src/main/Main.exe -version
 

@@ -97,11 +97,6 @@ all:
 	cd cli && pipenv install --dev
 	$(MAKE) -C cli build
 
-#history: was called the 'all' target in semgrep-core/Makefile before
-.PHONY: core
-core:
-	$(MAKE) minimal-build
-
 # Make binaries available to pysemgrep
 .PHONY: copy-core-for-cli
 copy-core-for-cli:
@@ -113,8 +108,8 @@ copy-core-for-cli:
 # We do not use .../bin/{semgrep-core,osemgrep,semgrep} below to
 # factorize because make under Alpine uses busybox/ash for /bin/sh which
 # does not support this bash feature.
-.PHONY: minimal-build
-minimal-build:
+.PHONY: core
+core:
 	dune build $(BUILD)/install/default/bin/semgrep-core$(EXE)
 	dune build $(BUILD)/install/default/bin/osemgrep$(EXE)
 	dune build $(BUILD)/install/default/bin/semgrep$(EXE)
