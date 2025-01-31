@@ -1614,7 +1614,10 @@ and map_if_condition_sequence_item (env : env)
       G.LetPattern (v1, v2) |> G.e
   | `Exp x -> map_expression env x
   | `Avai_cond (v1, v2, v3, v4, v5) ->
-      let _v1TODO = (* "#available" *) token env v1 in
+      let _v1TODO = (* "#available" *) match v1 with
+        | `HASH_8da4fa1 v1 -> (* "#available" *) token env v1
+        | `HASH_459dd9a v1 -> (* "#unavailable" *) token env v1
+      in
       let _lp = (* "(" *) token env v2 in
       let v3 = map_availability_argument env v3 in
       let v4 =
