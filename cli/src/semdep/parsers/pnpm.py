@@ -3,6 +3,7 @@ Parsers for pnpm-lock.yaml files
 Based on https://github.com/pnpm/spec/blob/master/lockfile/5.2.md
 """
 import re
+from dataclasses import dataclass
 from pathlib import Path
 from typing import List
 from typing import Optional
@@ -154,43 +155,74 @@ def extract_base_version(version_string: str) -> str:
     return match.group("version") if match else version_string
 
 
-def sanitize_dependency_post_v9(dependency: DependencyChild) -> DependencyChild:
+@dataclass
+class ParseResult:
+    package: str
+    version: str
+
+
+def parse_dependency_version(version_str: str) -> ParseResult:
     """
-    Sanitizes a DependencyChild object by:
-    1. Resolving version aliases (e.g., `string-width-cjs: string-width@4.2.3`).
-    2. Extracting the base version, ignoring contexts like `(eslint@9.9.1)(typescript@5.5.4)`.
-
-    Args:
-        dependency: A DependencyChild object to sanitize.
-
-    Returns:
-        A sanitized DependencyChild with canonical package name and version.
+    Parses a dependency version string into its components.
 
     Examples:
-
-    input: `DependencyChild(package="string-width-cjs" version="string-width@4.2.3")`
-    output: `DependencyChild(package="string-width" version="4.2.3")`
-
-    input: `DependencyChild(package="string-width-cjs" version="string-width@4.2.3+build")`
-    output: `DependencyChild(package="string-width" version="4.2.3+build")`
-
-    input: `DependencyChild(package="typescript-eslint" version="8.2.0(eslint@9.9.1)(typescript@5.5.4)")`
-    output: `DependencyChild(package="typescript-eslint" version="8.2.0")`
+    - "4.2.3" -> ParseResult("", "4.2.3")
+    - "string-width@4.2.3" -> ParseResult("string-width", "4.2.3")
+    - "@docusaurus/react-loadable@6.0.0" -> ParseResult("@docusaurus/react-loadable", "6.0.0")
+    - "/@pnpm/node-fetch@1.0.0" -> ParseResult("@pnpm/node-fetch", "1.0.0")
     """
-    # Handle aliasing, i.e. cases where the version itself may be a package reference (e.g., version="string-width@4.2.3").
-    alias_match = PACKAGE_ALIAS_PATTERN.match(dependency.version)
+    if not version_str:
+        return ParseResult("", "")
 
-    if alias_match:
-        canonical_package = alias_match.group("package")
-        version_with_context = alias_match.group("version")
+    base_version = version_str.split("(")[0]
+
+    if base_version.startswith("/"):
+        base_version = base_version[1:]
+
+    if "_" in base_version:
+        base_version = base_version.split("_")[0]
+
+    if "@" not in base_version:
+        return ParseResult("", base_version)
+
+    if base_version.startswith("@"):
+        package_end = base_version.rindex("@")
+        return ParseResult(
+            package=base_version[:package_end], version=base_version[package_end + 1 :]
+        )
     else:
-        canonical_package = dependency.package
-        version_with_context = dependency.version
+        package, version = base_version.split("@", 1)
+        return ParseResult(package=package, version=version)
 
-    # Remove nested contexts from the version, such as `(eslint@1.2.3)(typescript@4.5.6)`
-    base_version = extract_base_version(version_with_context)
 
-    return DependencyChild(package=canonical_package, version=base_version)
+def sanitize_dependency_post_v9(dependency: DependencyChild) -> DependencyChild:
+    """
+    Sanitizes a DependencyChild object by resolving aliases and removing contexts.
+
+    Examples:
+    1. Regular package:
+       Input:  DependencyChild(package="string-width", version="4.2.3")
+       Output: DependencyChild(package="string-width", version="4.2.3")
+
+    2. Aliased package:
+       Input:  DependencyChild(package="string-width-cjs", version="string-width@4.2.3")
+       Output: DependencyChild(package="string-width", version="4.2.3")
+
+    3. Scoped package:
+       Input:  DependencyChild(package="react-loadable", version="@docusaurus/react-loadable@6.0.0")
+       Output: DependencyChild(package="@docusaurus/react-loadable", version="6.0.0")
+    """
+    # Parse the version string to extract any embedded package name
+    result = parse_dependency_version(dependency.version)
+
+    # Use the package name from the version string if present, as it's the canonical name from the registry
+    # (e.g. "@docusaurus/react-loadable" in "react-loadable: '@docusaurus/react-loadable@6.0.0'")
+    canonical_package = result.package or dependency.package
+
+    # Use the parsed version
+    canonical_version = result.version
+
+    return DependencyChild(package=canonical_package, version=canonical_version)
 
 
 # Direct dependencies
@@ -321,18 +353,37 @@ def parse_dep_children_pre_v9(
 ) -> List[DependencyChild]:
     """
     Parses the dependencies of a package from a pnpm-lock.yaml file (version >5.4 <9.0).
-    The provided package_info is a YamlMap containing the package information of a single package under the key "packages".
-    Returns a list of DependencyChild objects representing the dependencies of the package.
+
+    Args:
+        package_info: YamlMap containing the package information under "packages"
+        full_file: The complete pnpm-lock.yaml file
+        package_key: The key of the current package
+
+    Returns:
+        List of DependencyChild objects representing the dependencies
+
+    Example package_info:
+        dependencies:
+          string-width-cjs: string-width@4.2.3
+          react-loadable: @docusaurus/react-loadable@6.0.0
+          node-fetch: /@pnpm/node-fetch@1.0.0
+          core-loggers: 10.0.4(@pnpm/logger@5.2.0)
     """
     if not package_info.value or "dependencies" not in package_info.value:
         return []
 
     all_dependencies = parse_dependencies(package_info.value.get("dependencies"))
 
-    return [
-        DependencyChild(package=dep.package, version=extract_base_version(dep.version))
-        for dep in all_dependencies
-    ]
+    sanitized_deps = []
+    for dep in all_dependencies:
+        parsed = parse_dependency_version(dep.version)
+        sanitized_deps.append(
+            DependencyChild(
+                package=parsed.package or dep.package, version=parsed.version
+            )
+        )
+
+    return sanitized_deps
 
 
 def parse_dep_children_post_v9(

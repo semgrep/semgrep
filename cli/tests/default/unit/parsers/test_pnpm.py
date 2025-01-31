@@ -1,6 +1,8 @@
 import pytest
 
 from semdep.parsers.pnpm import extract_base_version
+from semdep.parsers.pnpm import parse_dependency_version
+from semdep.parsers.pnpm import ParseResult
 from semdep.parsers.pnpm import sanitize_dependency_post_v9
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyChild
 
@@ -95,7 +97,124 @@ def test_extract_base_version(input_version, expected_base_version):
             DependencyChild(package="", version=""),
             DependencyChild(package="", version=""),
         ),
+        (
+            DependencyChild(
+                package="react-loadable",
+                version="@docusaurus/react-loadable@6.0.0(react@18.3.1)",
+            ),
+            DependencyChild(package="@docusaurus/react-loadable", version="6.0.0"),
+        ),
+        (
+            DependencyChild(
+                package="react-loadable-ssr-addon-v5-slorber",
+                version="1.0.1(@docusaurus/react-loadable@6.0.0(react@18.3.1))(webpack@5.96.1(@swc/core@1.6.5))",
+            ),
+            DependencyChild(
+                package="react-loadable-ssr-addon-v5-slorber", version="1.0.1"
+            ),
+        ),
     ],
 )
 def test_sanitize_dependency_post_v9(input_dependency, expected_dependency):
     assert sanitize_dependency_post_v9(input_dependency) == expected_dependency
+
+
+@pytest.mark.quick
+@pytest.mark.parametrize(
+    "input_version, expected_result",
+    [
+        # Basic versions
+        (
+            "4.2.3",
+            ParseResult(package="", version="4.2.3"),
+        ),
+        # Build metadata
+        (
+            "4.2.3+build",
+            ParseResult(package="", version="4.2.3+build"),
+        ),
+        # Simple package@version
+        (
+            "string-width@4.2.3",
+            ParseResult(package="string-width", version="4.2.3"),
+        ),
+        # Scoped packages
+        (
+            "@types/node@12.0.0",
+            ParseResult(package="@types/node", version="12.0.0"),
+        ),
+        # Scoped package with build metadata
+        (
+            "@babel/core@7.0.0+build",
+            ParseResult(package="@babel/core", version="7.0.0+build"),
+        ),
+        # Package with context
+        (
+            "10.0.4(@pnpm/logger@5.2.0)",
+            ParseResult(package="", version="10.0.4"),
+        ),
+        # Package with multiple contexts
+        (
+            "8.2.0(eslint@9.9.1)(typescript@5.5.4)",
+            ParseResult(package="", version="8.2.0"),
+        ),
+        # Scoped package with context
+        (
+            "@pnpm/core-loggers@10.0.4(@pnpm/logger@5.2.0)",
+            ParseResult(package="@pnpm/core-loggers", version="10.0.4"),
+        ),
+        # Leading slash in package name
+        (
+            "/@pnpm/node-fetch@1.0.0",
+            ParseResult(package="@pnpm/node-fetch", version="1.0.0"),
+        ),
+        # Empty string
+        (
+            "",
+            ParseResult(package="", version=""),
+        ),
+        # Build metadata with context
+        (
+            "4.2.3+build(dependency@1.0.0)",
+            ParseResult(package="", version="4.2.3+build"),
+        ),
+        # Multiple @ symbols in package name
+        (
+            "@org/pkg@name@1.0.0",
+            ParseResult(package="@org/pkg@name", version="1.0.0"),
+        ),
+        # PNPM v5+ peer dependency hash suffixes
+        (
+            "5.13.0_33fffc354ccfa91fbe7d1677b9395a0a",
+            ParseResult(package="", version="5.13.0"),
+        ),
+        # Scoped package with peer dependency hash
+        (
+            "@typescript-eslint/eslint-plugin@5.13.0_33fffc354ccfa91fbe7d1677b9395a0a",
+            ParseResult(package="@typescript-eslint/eslint-plugin", version="5.13.0"),
+        ),
+        # With context and peer dependency hash
+        (
+            "5.13.0_33fffc354ccfa91fbe7d1677b9395a0a(@typescript-eslint/parser@5.0.0)",
+            ParseResult(package="", version="5.13.0"),
+        ),
+        (
+            "3.21.0_typescript@4.6.2",
+            ParseResult(package="", version="3.21.0"),
+        ),
+    ],
+)
+def test_parse_dependency_version(input_version, expected_result):
+    """
+    Test parsing of dependency versions from pnpm-lock.yaml.
+
+    Tests various formats that can appear in any version of pnpm-lock.yaml:
+    - Basic versions (4.2.3)
+    - Build metadata (4.2.3+build)
+    - Package@version format (string-width@4.2.3)
+    - Scoped packages (@types/node@12.0.0)
+    - Context dependencies (10.0.4(@pnpm/logger@5.2.0))
+    - Leading slash (/@pnpm/node-fetch@1.0.0)
+    - Empty strings
+    """
+    assert parse_dependency_version(input_version) == expected_result
