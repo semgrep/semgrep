@@ -379,7 +379,7 @@ and Effect : sig
         *
         * TODO: Record taint shapes.
         *)
-    | ToSinkInCall : call -> [ `Poly ] t
+    | ToSinkInCall : call -> 'a t
         (** Essentially a preliminary form of "effect variable". It represents
           * the 'ToSink' effects of a function call where the function is not
           * yet known (the function is an argument to be instantiated at call
@@ -436,7 +436,7 @@ end = struct
     | ToSink : taints_to_sink -> 'a t
     | ToReturn : taints_to_return -> 'a t
     | ToLval : T.taints * 'a lval (* TODO: CleanArg ? *) -> 'a t
-    | ToSinkInCall : call -> [ `Poly ] t
+    | ToSinkInCall : call -> 'a t
 
   type poly = [ `Poly ] t
   type mono = [ `Mono ] t
