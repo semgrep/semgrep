@@ -76,7 +76,7 @@ def test_manifest_deps_parser() -> None:
 @pytest.mark.quick
 def test_manifest_sections_extra_parser() -> None:
     original = textwrap.dedent(
-        """        [tool.black]
+        r"""        [tool.black]
         line-length = 120
         include = '\.pyi?$'
         exclude = '''
@@ -121,7 +121,7 @@ def test_poetry_source_extra_parser() -> None:
 @pytest.mark.quick
 def test_manifest_parser() -> None:
     original = textwrap.dedent(
-        """        [tool.poetry.dependencies]
+        r"""        [tool.poetry.dependencies]
         python = "^3.9"
         toml = "^0.10.2"
         requests = "^2.26.0"
