@@ -1,0 +1,4 @@
+The pro engine now respects the correct order of field resolution in Scala's
+multiple inheritance. The type that appears later takes precedence when
+resolving fields. For example, in `class A extends B with C with D`, the order
+of precedence is D, C, B, and A.
