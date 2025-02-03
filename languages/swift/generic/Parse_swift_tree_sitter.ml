@@ -552,6 +552,10 @@ let map_referenceable_operator (env : env) (x : CST.referenceable_operator) =
       (* ">>" *)
       let s, tok = str env tok in
       ((s, tok), G.Special (G.Op G.ASR, tok))
+  | `AMP tok ->
+      (* "&" *)
+      let ((s, tok) as ident) = str env tok in
+      ((s, tok), G.N (H2.name_of_id ident))
 
 let map_operator_declaration (env : env)
     ((v1, v2, v3, v4, v5) : CST.operator_declaration) : G.stmt =
