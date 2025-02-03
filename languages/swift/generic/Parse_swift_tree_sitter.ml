@@ -1429,7 +1429,10 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
       | `Async tok ->
           (* In this context, async is just a normal identifier *)
           let id = str env tok in
-          G.N (H2.name_of_id id) |> G.e)
+          G.N (H2.name_of_id id) |> G.e
+      | `If_stmt x -> G.stmt_to_expr (map_if_statement env x)
+      | `Switch_stmt x -> G.stmt_to_expr (map_switch_statement env x)
+    )
   | `Semg_exp_ellips tok ->
       let tok = (* three_dot_operator_custom *) token env tok in
       G.Ellipsis tok |> G.e
@@ -3125,7 +3128,13 @@ and map_unary_expression (env : env) (x : CST.unary_expression) : G.expr =
       G.New (G.fake "new", v1, G.empty_id_info (), v2) |> G.e
   | `Navi_exp x -> map_navigation_expression env x
   | `Prefix_exp (v1, v2) ->
-      let e = map_expression env v2 in
+    let e =
+    match v2 with
+    | `Exp x -> map_expression env x
+    | `Choice_async _ ->
+       (* TODO: NinjaLikesCheez - investigate this *)
+        failwith "Unsure if this is valid Swift, see: https://github.com/alex-pinkus/tree-sitter-swift/commit/f3063c6c25f71061421f456883eb0b55b56159c0"
+      in
       map_prefix_unary_operator env v1 e
   | `As_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
@@ -3218,6 +3227,12 @@ and map_value_argument_label (env : env) (x : CST.value_argument_label) =
       (* TODO It might be worth handling this specially, since it's
        * special-cased in the grammar. *)
       (* "async" *)
+      str env tok
+  | `If tok ->
+      (* "if" *)
+      str env tok
+  | `Switch tok ->
+      (* "switch" *)
       str env tok
 
 and map_value_arguments (env : env) (v1 : CST.value_arguments) : G.arguments =
