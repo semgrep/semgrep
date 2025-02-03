@@ -2220,6 +2220,22 @@ and map_navigable_type_expression (env : env)
   | `Array_type x -> map_array_type env x
   | `Dict_type x -> map_dictionary_type env x
 
+and map_parenthesized_type_expression (env : env) ((_, v2, _) : CST.parenthesized_type) =
+  match v2 with
+  | `Opaque_type x -> map_opaque_type env x
+  | `Exis_type x -> map_existential_type env x
+  | `Dict_type x -> map_dictionary_type env x
+
+and map_opaque_type (env : env) ((v1, v2) : CST.opaque_type) =
+  let _v1TODO = (* "some" *) token env v1 in
+  let ty = map_unannotated_type env v2 in
+  { ty with G.t_attrs = G.unhandled_keywordattr (str env v1) :: ty.G.t_attrs }
+
+and map_existential_type (env : env) ((v1, v2) : CST.existential_type) =
+  let tany = (* "any" *) token env v1 in
+  let ty = map_unannotated_type env v2 in
+  G.OtherType (("Any", tany), [ G.T ty ]) |> G.t
+
 and map_navigation_expression (env : env) ((v1, v2) : CST.navigation_expression)
     : G.expr =
   let v1 =
@@ -2237,6 +2253,10 @@ and map_navigation_expression (env : env) ((v1, v2) : CST.navigation_expression)
         let type_ = map_navigable_type_expression env x in
         G.OtherExpr (("TypeExpr", Tok.unsafe_fake_tok ""), [ G.T type_ ]) |> G.e
     | `Exp x -> map_expression env x
+    | `Paren_type x ->
+        let type_ = map_parenthesized_type_expression env x in
+        G.OtherExpr (("TypeExpr", Tok.unsafe_fake_tok ""), [ G.T type_ ])
+        |> G.e
   in
   match v2 with
   | `Dot_choice_simple_id (s1, s2) ->
@@ -3090,16 +3110,8 @@ and map_unannotated_type (env : env) (x : CST.unannotated_type) : G.type_ =
         | `Prot tok -> (* "Protocol" *) G.unhandled_keywordattr (str env tok)
       in
       { v1 with G.t_attrs = v3 :: v1.G.t_attrs }
-  | `Opaque_type (v1, v2) ->
-      let v2 = map_unannotated_type env v2 in
-      {
-        v2 with
-        G.t_attrs = G.unhandled_keywordattr (str env v1) :: v2.G.t_attrs;
-      }
-  | `Exis_type (v1, v2) ->
-      let tany = (* "any" *) token env v1 in
-      let ty = map_unannotated_type env v2 in
-      G.OtherType (("Any", tany), [ G.T ty ]) |> G.t
+  | `Opaque_type (v1, v2) -> map_opaque_type env (v1, v2)
+  | `Exis_type (v1, v2) -> map_existential_type env (v1, v2)
   | `Prot_comp_type (v1, v2) ->
       let v1 = map_unannotated_type env v1 in
       let v2 =
