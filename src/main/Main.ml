@@ -131,4 +131,12 @@ let () =
                   (String.concat " " (Array.to_list argv)));
           CapStdlib.exit caps#exit exit_code.code
       (* legacy semgrep-core *)
-      | _else_ -> Core_CLI.main caps argv)
+      | _else_ -> begin
+          (* Added as part of the upgrade to OCaml 5. Under our typical workloads, this
+           * appears to yield similar performance to the default value of space_overhead
+           * under OCaml 4. *)
+          (* TODO Remove this gate once we have all builds migrated to OCaml 5 *)
+          if USys.ocaml_release.major = 5 then
+            Gc.set { (Gc.get ()) with space_overhead = 40 };
+          Core_CLI.main caps argv
+        end)
