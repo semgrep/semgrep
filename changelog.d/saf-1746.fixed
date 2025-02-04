@@ -1,2 +1,0 @@
-Fixed the semgrep ci --help to not include experimental options
-like --semgrep-branch
