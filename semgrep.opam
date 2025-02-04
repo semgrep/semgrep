@@ -60,7 +60,7 @@ depends: [
   "trace"
   "memtrace"
   "ppx_trace"
-  "opentelemetry" {>= "0.9"}
+  "opentelemetry" {= "0.10"}
   "ocurl" {= "0.9.1"}
   "opentelemetry-client-ocurl"
   "ambient-context-lwt"
