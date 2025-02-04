@@ -3148,8 +3148,8 @@ and map_unary_expression (env : env) (x : CST.unary_expression) : G.expr =
     match v2 with
     | `Exp x -> map_expression env x
     | `Choice_async _ ->
-       (* TODO: NinjaLikesCheez - investigate this *)
-        failwith "Unsure if this is valid Swift, see: https://github.com/alex-pinkus/tree-sitter-swift/commit/f3063c6c25f71061421f456883eb0b55b56159c0"
+       (* This is not valid swift code, a hack in the grammar: see: https://github.com/alex-pinkus/tree-sitter-swift/issues/468 *)
+        failwith "Invalid Swift"
       in
       map_prefix_unary_operator env v1 e
   | `As_exp (v1, v2, v3) ->
