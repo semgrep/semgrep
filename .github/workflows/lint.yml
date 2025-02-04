@@ -33,40 +33,14 @@ jobs:
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
       - uses: actions/setup-python@v4
         with:
-          cache: pip
-          cache-dependency-path: .github/workflows/lint.yml
+          cache: pipenv
           python-version: "3.11"
-      - env:
-          SKIP_OCAMLFORMAT: yes
-        uses: pre-commit/action@v3.0.0
-  pre-commit-manual:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Configure git safedir properly
-        run: git config --global --add safe.directory $(pwd)
-      - uses: actions/setup-python@v4
+      - uses: ocaml/setup-ocaml@v3
         with:
-          python-version: "3.11"
+          ocaml-compiler: 4.14.0
+          opam-pin: false
+      - run: opam install -y ocamlformat.0.26.2
       - uses: pre-commit/action@v3.0.0
-        with:
-          extra_args: --hook-stage manual
-  pre-commit-ocaml:
-    container: returntocorp/ocaml:ubuntu-2023-10-17
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - env:
-          HOME: /root
-        name: Check OCaml code with ocamlformat
-        run: |
-          # When installing ocamlformat OPAM will try to rebuild some packages
-          # and for that it requires 'autoconf'.
-          apt-get install -y autoconf
-          opam update
-          opam install -y ocamlformat.0.26.2
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          opam exec -- pre-commit run --verbose --all lint-ocaml
 name: lint
 on:
   pull_request: null
