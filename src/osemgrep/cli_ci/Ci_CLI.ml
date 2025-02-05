@@ -232,7 +232,9 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
       pro_path_sensitive rewrite_rule_ids sarif sarif_outputs
       scan_unknown_extensions secrets text text_outputs timeout
       _timeout_interfileTODO timeout_threshold trace trace_endpoint use_git
-      version_check vim vim_outputs =
+      version_check vim vim_outputs x_trTODO =
+    (* this is just handled by psemgrep for now *)
+    ignore x_trTODO;
     let output_format : Output_format.t =
       Scan_CLI.output_format_conf ~text ~files_with_matches ~json ~emacs ~vim
         ~sarif ~gitlab_sast ~gitlab_secrets ~junit_xml
@@ -374,7 +376,7 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
     $ SC.o_sarif_outputs $ SC.o_scan_unknown_extensions $ SC.o_secrets
     $ SC.o_text $ SC.o_text_outputs $ SC.o_timeout $ SC.o_timeout_interfile
     $ SC.o_timeout_threshold $ SC.o_trace $ SC.o_trace_endpoint $ SC.o_use_git
-    $ SC.o_version_check $ SC.o_vim $ SC.o_vim_outputs)
+    $ SC.o_version_check $ SC.o_vim $ SC.o_vim_outputs $ SC.o_tr)
 
 (*************************************************************************)
 (* Turn argv into conf *)

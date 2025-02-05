@@ -87,6 +87,10 @@ class MetricsStateType(click.ParamType):
 METRICS_STATE_TYPE = MetricsStateType()
 
 # This subset of scan options is reused in ci.py
+# coupling: if you add an option below, you'll need to modify also the
+# list of parameters of scan() further below, of run_scan() in run_scan.py,
+# of ci() in ci.py and adjust run_sca_args in ci.py and the call to
+# semgrep.run_scan.run_scan() in this file.
 _scan_options: List[Callable] = [
     click.help_option("--help", "-h"),
     click.option(
@@ -383,6 +387,12 @@ _scan_options: List[Callable] = [
         is_flag=True,
         default=False,
     ),
+    optgroup.option(
+        "--x-tr",
+        "x_tr",
+        is_flag=True,
+        default=False,
+    ),
 ]
 
 
@@ -576,6 +586,7 @@ def scan(
     x_ignore_semgrepignore_files: bool,
     x_ls: bool,
     x_ls_long: bool,
+    x_tr: bool,
     path_sensitive: bool,
     allow_local_builds: bool,
 ) -> Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]:
@@ -849,6 +860,7 @@ def scan(
                         baseline_commit=baseline_commit,
                         x_ls=x_ls,
                         x_ls_long=x_ls_long,
+                        x_tr=x_tr,
                         path_sensitive=path_sensitive,
                         capture_core_stderr=capture_core_stderr,
                         allow_local_builds=allow_local_builds,

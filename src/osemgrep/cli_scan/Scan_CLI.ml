@@ -981,6 +981,11 @@ CHANGE OR DISAPPEAR WITHOUT NOTICE.
   in
   Arg.value (Arg.flag info)
 
+(* LATER: move in SCA section with allow-local-build *)
+let o_tr : bool Term.t =
+  let info = Arg.info [ "x-tr" ] ~doc:"<internal, do not use>" in
+  Arg.value (Arg.flag info)
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -1313,10 +1318,10 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       show_supported_languages strict target_roots test test_ignore_todo text
       text_outputs time_flag timeout _timeout_interfileTODO timeout_threshold
       trace trace_endpoint use_git validate version version_check vim
-      vim_outputs x_ignore_semgrepignore_files x_ls x_ls_long =
+      vim_outputs x_ignore_semgrepignore_files x_ls x_ls_long x_tr =
     (* Print a warning if any of the internal or experimental options.
        We don't want users to start relying on these. *)
-    if x_ignore_semgrepignore_files || x_ls || x_ls_long then
+    if x_ignore_semgrepignore_files || x_ls || x_ls_long || x_tr then
       Logs.warn (fun m ->
           m
             "!!! You're using one or more options starting with '--x-'. These \
@@ -1535,7 +1540,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     $ o_text_outputs $ o_time $ o_timeout $ o_timeout_interfile
     $ o_timeout_threshold $ o_trace $ o_trace_endpoint $ o_use_git $ o_validate
     $ o_version $ o_version_check $ o_vim $ o_vim_outputs
-    $ o_ignore_semgrepignore_files $ o_ls $ o_ls_long)
+    $ o_ignore_semgrepignore_files $ o_ls $ o_ls_long $ o_tr)
 
 let doc = "run semgrep rules on files"
 

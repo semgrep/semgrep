@@ -530,6 +530,7 @@ def run_scan(
     baseline_commit_is_mergebase: bool = False,
     x_ls: bool = False,
     x_ls_long: bool = False,
+    x_tr: bool = False,
     path_sensitive: bool = False,
     capture_core_stderr: bool = True,
     allow_local_builds: bool = False,
@@ -553,6 +554,8 @@ def run_scan(
     List[Union[UnresolvedSubproject, ResolvedSubproject]],
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
+    if x_tr:
+        logger.info(f"SCA TR is on!")
 
     # Some of the lockfile parsers are defined recursively
     # This does not play well with python's conservative recursion limit, so we manually increase

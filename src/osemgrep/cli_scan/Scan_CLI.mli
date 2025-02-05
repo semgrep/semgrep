@@ -127,6 +127,7 @@ val o_time : bool Cmdliner.Term.t
 val o_timeout : float Cmdliner.Term.t
 val o_timeout_interfile : int Cmdliner.Term.t
 val o_timeout_threshold : int Cmdliner.Term.t
+val o_tr : bool Cmdliner.Term.t
 val o_trace : bool Cmdliner.Term.t
 val o_trace_endpoint : string option Cmdliner.Term.t
 val o_use_git : bool Cmdliner.Term.t
