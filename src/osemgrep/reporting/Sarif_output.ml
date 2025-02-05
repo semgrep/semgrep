@@ -377,6 +377,9 @@ let result (ctx : Out.format_context) show_dataflow_traces
     | None -> []
     | Some exposure -> [ ("exposure", `String (Exposure.string_of exposure)) ]
   in
+  (* coupling: if you modify which fields are gated by ctx.is_logged_in update
+   * also https://semgrep.dev/docs/semgrep-appsec-platform/json-and-sarif#sarif
+   *)
   let fingerprints =
     if ctx.is_logged_in then
       [ ("matchBasedId/v1", cli_match.extra.fingerprint) ]

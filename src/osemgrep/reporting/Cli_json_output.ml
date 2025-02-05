@@ -300,6 +300,7 @@ let cli_match_of_core_match ~fixed_lines fixed_env (hrules : Rule.hrules)
         | None -> `Assoc []
         | Some json -> json
       in
+
       (* LATER: this should be a variant in semgrep_output_v1.atd
        * and merged with Constants.rule_severity
        *)
@@ -457,6 +458,18 @@ let adjust_fields_cli_outpout_logged_out (x : Out.cli_output) : Out.cli_output =
            } : Out.cli_match_extra =
              extra
            in
+           let metadata =
+             match metadata with
+             | `Assoc xs ->
+                 let xs =
+                   xs
+                   |> List_.exclude (fun (fld, _v) ->
+                          List.mem fld [ "semgrep.dev"; "semgrep.policy" ])
+                 in
+                 `Assoc xs
+             | _else_ -> metadata
+           in
+
            let extra =
              Out.
                {
@@ -464,7 +477,6 @@ let adjust_fields_cli_outpout_logged_out (x : Out.cli_output) : Out.cli_output =
                  message;
                  fix;
                  fixed_lines;
-                 (* TODO? metadata filtering? *)
                  metadata;
                  severity;
                  fingerprint = Gated_data.msg;

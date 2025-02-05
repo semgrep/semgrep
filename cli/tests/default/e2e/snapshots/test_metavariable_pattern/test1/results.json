@@ -46,14 +46,6 @@
             "https://docs.github.com/en/actions/learn-github-actions/security-hardening-for-github-actions#understanding-the-risk-of-script-injections",
             "https://securitylab.github.com/research/github-actions-untrusted-input/"
           ],
-          "semgrep.dev": {
-            "rule": {
-              "origin": "community",
-              "rule_id": "v8UjQj",
-              "url": "https://semgrep.dev/playground/r/K3TPZA/yaml.github-actions.security.run-shell-injection.run-shell-injection",
-              "version_id": "K3TPZA"
-            }
-          },
           "shortlink": "https://sg.run/pkzk",
           "source": "https://semgrep.dev/r/yaml.github-actions.security.run-shell-injection.run-shell-injection",
           "subcategory": [
