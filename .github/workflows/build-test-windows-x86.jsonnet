@@ -15,6 +15,9 @@ local defaults = {
     shell: 'bash',
   },
 };
+// TODO: We can remove this and switch to semgrep.opam_switch once we move to
+// OCaml 5 everywhere.
+local opam_switch = '5.2.1';
 
 // ----------------------------------------------------------------------------
 // The job
@@ -24,27 +27,37 @@ local build_core_job = {
   // github action, which we need for the latest cohttp and for OCaml 5. Currently,
   // `ocamlfind` fails to build when we run this workflow in CI. The ticket for
   // re-enabling the job is https://linear.app/semgrep/issue/SAF-1728/restore-windows-workflow
-  'if': 'false',
   'runs-on': runs_on,
   defaults: defaults,
   steps: [
     actions.checkout_with_submodules(),
     {
-      uses: 'ocaml/setup-ocaml@v2',
+      uses: 'ocaml/setup-ocaml@v3',
       with: {
-        'ocaml-compiler': '4.14',
-        // we switch from fdopen's opam mingw repo to the official one
-        // otherwise we can't install recent packages like ocamlformat 0.26.2
-        // the opam-repository-mingw has the "sunset" branch because it should
-        // soon be unecessary once opam 2.2 is released.
-        'opam-repositories': |||
-           opam-repository-mingw: https://github.com/ocaml-opam/opam-repository-mingw.git#sunset
-           default: https://github.com/ocaml/opam-repository.git
-        |||,
+        'ocaml-compiler': opam_switch,
         // bogus filename to prevent the action from attempting to install
         // anything (we want deps only)
         'opam-local-packages': 'dont_install_local_packages.opam',
       },
+    },
+    {
+      // TODO: Remove this once the stable version of `mingw64-x86_64-openssl`
+      // is updated in Cygwin.
+      //
+      // setup-ocaml@v3 uses a newer version of `mingw64-x86_64-openssl` which
+      // isn't marked as "stable"; see:
+      // https://github.com/ocaml/setup-ocaml/issues/856#issuecomment-2439978460
+      //
+      // But, we need an older version of `mingw64-x86_64-openssl` for our
+      // build since some of our depexts, for instance, `mingw64-x86_64-curl`
+      // would be compiled against the stable (older) version of
+      // `mingw64-x86_64-openssl`. So, we install an older version here.
+      name: 'Install older openssl in Cygwin',
+      run: |||
+        PACKAGES='mingw64-x86_64-openssl=1.0.2u+za-1,mingw64-i686-openssl=1.0.2u+za-1'
+        CYGWIN_ROOT=$(cygpath -w /)
+        $CYGWIN_ROOT/setup-x86_64.exe -P $PACKAGES --quiet-mode -R $CYGWIN_ROOT
+      |||
     },
     // Why this cache when ocaml/setup-ocaml is already caching things?
     // - setup-ocaml caches the cygwin and downloaded opam packages, but not the
@@ -54,11 +67,34 @@ local build_core_job = {
     // Note: we must cache after setup-ocaml, not before, because
     // setup-ocaml would reset the cached _opam
     semgrep.cache_opam.step(
-      key=semgrep.opam_switch + "-${{ hashFiles('semgrep.opam') }}",
+      key=opam_switch + "-${{ hashFiles('semgrep-pro.opam', 'OSS/semgrep.opam') }}",
       // ocaml/setup-ocaml creates the opam switch local to the repository
       // (vs. ~/.opam in our other workflows)
       path='_opam',
     ),
+    {
+      // TODO: We can remove this once these flexdll PRs are merged and a new
+      // version of flexdll is released:
+      // - https://github.com/ocaml/flexdll/pull/151
+      // - https://github.com/ocaml/flexdll/pull/152
+
+      // Currently, flexlink only uses response files with MSVC and LIGHTLD
+      // compilers. With the MINGW64 compiler, we get an "argument list too
+      // long error". We use a patched version of flexlink that uses response
+      // files with MINGW64.
+
+      // flexlink also calls cygpath to normalize a bunch of paths, and our
+      // build has too many search paths which causes an "argument list too
+      // long" error. We use a patched flexlink which passes these arguments
+      // in a file to cygpath.
+      name: 'Install flexlink patched to use response files and cygpath -file arg',
+      run: |||
+          git clone -b argument-list-too-long https://github.com/punchagan/flexdll.git
+          cd flexdll/
+          opam exec -- make all MSVC_DETECT=0 CHAINS="mingw64"
+          cp flexlink.exe ../_opam/bin/
+      |||
+    },
     { name: 'Debug stuff',
       run: |||
         ls
@@ -69,8 +105,6 @@ local build_core_job = {
         # CC=x86_64-w64-mingw32-gcc but there is no AR=x86_64-w64-mingw32-ar
         which ar
         ar --version
-        # GHA installs cygwin in a special place
-        export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
         which ar
         ar --version
         which opam
@@ -107,15 +141,23 @@ local build_core_job = {
     {
       name: 'Install OPAM deps',
       run: |||
-        export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
         make install-deps-WINDOWS-for-semgrep-core
+        # NOTE: ocurl's ./configure fails with an error finding curl/curl.h.
+        # Setting PKG_CONFIG_PATH to $(x86_64-w64-mingw32-gcc
+        # -print-sysroot)/mingw/include would set UNIX paths for CFLAG and
+        # LDFLAG, but that doesn't work. Setting Windows PATHs for them gets
+        # the ocurl build to work. To avoid setting these PATHs for all the
+        # package builds, we first try to install all the dependencies, and
+        # then install ocurl and later other dependencies that depend on ocurl.
+        make install-opam-deps || true
+        export CYGWIN_SYS_ROOT="$(x86_64-w64-mingw32-gcc --print-sysroot)"
+        CFLAGS="-I$(cygpath -w $CYGWIN_SYS_ROOT/mingw/include)" LDFLAGS="-L$(cygpath -w $CYGWIN_SYS_ROOT/mingw/lib)" opam install -y ocurl.0.9.1
         make install-opam-deps
       |||,
     },
     {
       name: 'Build semgrep-core',
       run: |||
-        export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"
         export TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include
         export TREESITTER_LIBDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/lib
         # We have to strip rpath from the tree-sitter projects because there's no

@@ -64,7 +64,7 @@ depends: [
   "ocurl" {= "0.9.1"}
   "opentelemetry-client-ocurl"
   "ambient-context-lwt"
-  "conf-libcurl" {= "1"}
+  "conf-libcurl"
   "uri"
   "uuidm" {>= "0.9.9"}
   "cohttp" {= "6.0.0"}

@@ -4,26 +4,33 @@ jobs:
     defaults:
       run:
         shell: bash
-    if: "false"
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: true
-      - uses: ocaml/setup-ocaml@v2
+      - uses: ocaml/setup-ocaml@v3
         with:
-          ocaml-compiler: "4.14"
+          ocaml-compiler: 5.2.1
           opam-local-packages: dont_install_local_packages.opam
-          opam-repositories: |
-            opam-repository-mingw: https://github.com/ocaml-opam/opam-repository-mingw.git#sunset
-            default: https://github.com/ocaml/opam-repository.git
+      - name: Install older openssl in Cygwin
+        run: |
+          PACKAGES='mingw64-x86_64-openssl=1.0.2u+za-1,mingw64-i686-openssl=1.0.2u+za-1'
+          CYGWIN_ROOT=$(cygpath -w /)
+          $CYGWIN_ROOT/setup-x86_64.exe -P $PACKAGES --quiet-mode -R $CYGWIN_ROOT
       - env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
         name: Set GHA cache for OPAM in _opam
         uses: actions/cache@v3
         with:
-          key: ${{ runner.os }}-${{ runner.arch }}-v1-opam-4.14.0-${{ hashFiles('semgrep.opam') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-v1-opam-5.2.1-${{ hashFiles('semgrep-pro.opam', 'OSS/semgrep.opam') }}
           path: _opam
+      - name: Install flexlink patched to use response files and cygpath -file arg
+        run: |
+          git clone -b argument-list-too-long https://github.com/punchagan/flexdll.git
+          cd flexdll/
+          opam exec -- make all MSVC_DETECT=0 CHAINS="mingw64"
+          cp flexlink.exe ../_opam/bin/
       - name: Debug stuff
         run: |
           ls
@@ -34,8 +41,6 @@ jobs:
           # CC=x86_64-w64-mingw32-gcc but there is no AR=x86_64-w64-mingw32-ar
           which ar
           ar --version
-          # GHA installs cygwin in a special place
-          export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
           which ar
           ar --version
           which opam
@@ -57,12 +62,20 @@ jobs:
           make PREFIX="$prefix" install
       - name: Install OPAM deps
         run: |
-          export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
           make install-deps-WINDOWS-for-semgrep-core
+          # NOTE: ocurl's ./configure fails with an error finding curl/curl.h.
+          # Setting PKG_CONFIG_PATH to $(x86_64-w64-mingw32-gcc
+          # -print-sysroot)/mingw/include would set UNIX paths for CFLAG and
+          # LDFLAG, but that doesn't work. Setting Windows PATHs for them gets
+          # the ocurl build to work. To avoid setting these PATHs for all the
+          # package builds, we first try to install all the dependencies, and
+          # then install ocurl and later other dependencies that depend on ocurl.
+          make install-opam-deps || true
+          export CYGWIN_SYS_ROOT="$(x86_64-w64-mingw32-gcc --print-sysroot)"
+          CFLAGS="-I$(cygpath -w $CYGWIN_SYS_ROOT/mingw/include)" LDFLAGS="-L$(cygpath -w $CYGWIN_SYS_ROOT/mingw/lib)" opam install -y ocurl.0.9.1
           make install-opam-deps
       - name: Build semgrep-core
         run: |
-          export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"
           export TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include
           export TREESITTER_LIBDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/lib
           # We have to strip rpath from the tree-sitter projects because there's no

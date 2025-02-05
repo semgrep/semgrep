@@ -488,7 +488,12 @@ nix-check-verbose:
 
 # used in build-test-windows-x86.jsonnet
 install-deps-WINDOWS-for-semgrep-core:
-	opam depext $(WINDOWS_OPAM_DEPEXT_DEPS)
+	opam install --depext-only $(WINDOWS_OPAM_DEPEXT_DEPS)
+	# Installing conf-pkg-config *reinstalls* mingw-w64-shims; the PATH changes
+	# done in the shims need to be available when installing other packages
+	# (conf-libcurl, for instance). So, we install conf-pkg-config before other
+	# packages are installed.
+	opam install conf-pkg-config
 
 ###############################################################################
 # Developer targets
