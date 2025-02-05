@@ -743,6 +743,7 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
       contributions = Some contributions;
       (* TODO: Figure out correct value for this. *)
       dependencies = None;
+      symbol_analysis = None;
     }
   in
   if
