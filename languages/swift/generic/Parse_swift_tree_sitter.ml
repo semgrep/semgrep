@@ -3288,6 +3288,66 @@ and map_while_statement (env : env)
   in
   G.While (while_tok, G.Cond cond, stmt) |> G.s
 
+and map_type_parameters_to_idents (env : env) (type_parameters : G.type_parameters) : G.ident list =
+  match type_parameters with
+  | (_, tparams, _) -> List_.map (ident_of_tparam env) tparams
+
+and ident_of_tparam (_ : env) (x : G.type_parameter) : G.ident =
+	match x with
+	| G.TP { tp_id; _ } -> tp_id
+	| _ -> failwith "Invalid type parameter"
+
+and map_macro_declaration (env : env) ((macro_head, bound_identifier, type_parameters, macro_signature, macro_definition, type_constraints) : CST.macro_declaration) =
+  let attrs = map_macro_head env macro_head in
+  let name = map_bound_identifier env bound_identifier in
+  let type_params = Option.map (map_type_parameters env) type_parameters in
+	let type_params_idents = match type_params with
+		| Some x -> map_type_parameters_to_idents env x
+		| None -> [] in
+  let _signature = map_macro_signature env macro_signature in
+  let definition = Option.map (map_macro_definition env) macro_definition in
+  let _constraints = Option.map (map_type_constraints env) type_constraints in
+	G.DefStmt (
+		{
+			name = G.EN (G.Id (name, G.empty_id_info ()));
+			attrs = attrs;
+			tparams = type_params;
+		},
+		G.MacroDef {
+			macroparams = type_params_idents;
+			macrobody = match definition with
+				| Some x -> [G.E x ]
+				| None -> [];
+		}
+	) |> G.s
+
+and map_macro_head (env : env) ((modifiers, _) : CST.macro_head) =
+  map_modifiers_opt env modifiers
+
+and map_macro_signature (env : env) ((function_parameters, return_declaration) : CST.macro_signature) =
+  let params = map_function_value_parameters env function_parameters in
+  let return_type =
+    match return_declaration with
+    | Some (arrow, typ) ->
+        let _arrow_tok = token env arrow in
+        Some (map_unannotated_type env typ)
+    | None -> None
+  in
+  (params, return_type)
+
+and map_macro_definition (env : env) ((eq, definition) : CST.macro_definition) =
+  let _eq = (* "=" *) token env eq in
+  let definition = match definition with
+  | `Exp x -> map_expression env x
+  | `Exte_macro_defi x -> map_external_macro_definition env x
+  in
+  definition
+
+and map_external_macro_definition (env : env) ((v1, v2) : CST.external_macro_definition) =
+  let v1 = (* "#externalMacro" *) str env v1 in
+  let v2 = map_expr_hack_at_ternary_binary_call_suffix env v2 in
+  G.Call (G.N (H2.name_of_id v1) |> G.e, v2) |> G.e
+
 let map_global_declaration (env : env) (x : CST.global_declaration) :
     G.stmt list =
   match x with
@@ -3300,6 +3360,7 @@ let map_global_declaration (env : env) (x : CST.global_declaration) :
   | `Op_decl x -> [ map_operator_declaration env x ]
   | `Prec_group_decl x -> [ map_precedence_group_declaration env x ]
   | `Asso_decl x -> [ map_associatedtype_declaration env x ]
+  | `Macro_decl x -> [ map_macro_declaration env x ]
 
 let map_top_level_statement (env : env) (x : CST.top_level_statement)
     (semi : CST.semi option) =
