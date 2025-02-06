@@ -155,7 +155,7 @@ let map_assignment_and_operator (env : env) (x : CST.assignment_and_operator) =
   | `STAREQ tok -> (Some G.Mult, (* "*=" *) str env tok)
   | `SLASHEQ tok -> (Some G.Div, (* "/=" *) str env tok)
   | `PERCEQ tok -> (Some G.Mod, (* "%=" *) str env tok)
-  | `EQ tok -> (None, (* "=" *) str env tok)
+  | `Equal_sign tok -> (None, (* "=" *) str env tok)
 
 let map_ownership_modifier (env : env) (x : CST.ownership_modifier) =
   (* These have to do with garbage collection and probably do not matter. *)
