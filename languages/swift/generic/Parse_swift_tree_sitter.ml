@@ -1512,15 +1512,23 @@ and map_for_statement (env : env)
   in
   let header =
     let in_tok = (* "in" *) token env v6 in
-    let exp = map_expression env v7 in
+    let exp = map_for_statement_collection env v7 in
     G.ForEach (pat, in_tok, exp)
   in
   let body = map_function_body env v9 in
   G.For (for_tok, header, body) |> G.s
 
+and map_for_statement_collection (env : env)
+    (x : CST.for_statement_collection) =
+  match x with
+  | `Exp x -> map_expression env x
+  | `For_stmt_await (v1, v2) ->
+      let v1 = (* "await" *) token env v1 in
+      let v2 = map_expression env v2 in
+      G.Await (v1, v2) |> G.e
+
 and map_function_body (env : env) (x : CST.function_body) : G.stmt =
   map_block env x
-
 and map_function_declaration (env : env) ~in_class
     ((v1, v2) : CST.function_declaration) =
   let v2 = map_function_body env v2 in
