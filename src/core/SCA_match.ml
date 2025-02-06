@@ -6,6 +6,7 @@ type t = {
   kind : kind;
 }
 
+(* TODO: reuse the new Out.sca_match_kind *)
 and kind =
   (* Rule had both code patterns and dependency patterns, got matches on *both*,
    * the Pattern Match is in code, annotated with this dependency match *)

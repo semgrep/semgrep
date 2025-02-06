@@ -416,11 +416,13 @@ let sca_to_sca (m : SCA_match.t) : Out.sca_match =
   in
   Out.
     {
-      reachable;
       reachability_rule;
       (* coupling: dependency_aware_rule.py:SCA_FINDING_SCHEMA *)
       sca_finding_schema = 20220913;
       dependency_match;
+      reachable;
+      (* TODO: use m.kind at some point *)
+      kind = None;
     }
 
 (* "unsafe" because can raise NoTokenLocation which is captured in

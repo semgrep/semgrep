@@ -58,6 +58,8 @@ let handle_call (caps : < Cap.exec ; Cap.tmp >) :
           Error
             "Dump rule partitions is a proprietary feature, but semgreep-pro \
              has not been loaded")
+  | `CallTransitiveReachabilityFilter _xs ->
+      Error "TODO: CallTransitiveReachabilityFilter not implemented yet"
 
 (*****************************************************************************)
 (* Helpers *)
