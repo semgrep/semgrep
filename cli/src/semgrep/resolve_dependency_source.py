@@ -85,6 +85,14 @@ PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS = [
     (out.ManifestKind(out.BuildGradle()), None),
     (out.ManifestKind(out.BuildGradle()), out.LockfileKind(out.GradleLockfile())),
     (out.ManifestKind(out.Csproj()), None),
+    (
+        out.ManifestKind(out.RequirementsIn()),
+        out.LockfileKind(out.PipRequirementsTxt()),
+    ),
+    (
+        None,
+        out.LockfileKind(out.PipRequirementsTxt()),
+    ),
 ]
 
 DependencyResolutionResult = Tuple[

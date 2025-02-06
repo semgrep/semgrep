@@ -13,6 +13,7 @@ from semgrep.resolve_subprojects import find_subprojects
 from semgrep.subproject import LockfileOnlyDependencySource
 from semgrep.subproject import ManifestLockfileDependencySource
 from semgrep.subproject import ManifestOnlyDependencySource
+from semgrep.subproject import ResolutionMethod
 from semgrep.subproject import Subproject
 
 
@@ -186,7 +187,7 @@ def test_ptt_unconditionally_generates_dependency_graphs(
     lockfile_file.write("requests==2.25.1")
     lockfile_file.close()
 
-    mock_dynamic_resolve.return_value = ["mock_ecosystem", [], [], []]
+    mock_dynamic_resolve.return_value = [[], [], []]
     dep_source = ManifestLockfileDependencySource(
         manifest=out.Manifest(
             out.ManifestKind(value=out.RequirementsIn()),
@@ -197,7 +198,10 @@ def test_ptt_unconditionally_generates_dependency_graphs(
             out.Fpath(str(tmp_path / "requirements.txt")),
         ),
     )
-    resolve_dependency_source(dep_source, True, True)
+
+    deps, _, _ = resolve_dependency_source(dep_source, True, True)
+    assert deps is not None
+    assert deps[0] == ResolutionMethod.DYNAMIC
 
     mock_dynamic_resolve.mock_assert_called_once_with(
         Path("requirements.txt"), out.ManifestKind(value=out.RequirementsIn())
@@ -205,8 +209,8 @@ def test_ptt_unconditionally_generates_dependency_graphs(
 
 
 @pytest.mark.quick
-@patch("semgrep.resolve_dependency_source._resolve_dependencies_rpc")
 @patch("semdep.parsers.requirements.parse_requirements")
+@patch("semgrep.resolve_dependency_source._resolve_dependencies_rpc")
 def test_ptt_unconditional_graph_generation_falls_back_on_lockfile_parsing(
     mock_dynamic_resolve, mock_parse_requirements, tmp_path: Path
 ) -> None:
@@ -217,7 +221,7 @@ def test_ptt_unconditional_graph_generation_falls_back_on_lockfile_parsing(
     lockfile_file.write("requests==2.25.1")
     lockfile_file.close()
 
-    mock_dynamic_resolve.return_value = [None, [], [], []]
+    mock_dynamic_resolve.return_value = [None, [], []]
     mock_parse_requirements.return_value = (
         [
             out.FoundDependency(
@@ -230,6 +234,7 @@ def test_ptt_unconditional_graph_generation_falls_back_on_lockfile_parsing(
         ],
         [],
     )
+
     dep_source = ManifestLockfileDependencySource(
         manifest=out.Manifest(
             out.ManifestKind(value=out.RequirementsIn()),
@@ -240,7 +245,11 @@ def test_ptt_unconditional_graph_generation_falls_back_on_lockfile_parsing(
             out.Fpath(str(tmp_path / "requirements.txt")),
         ),
     )
-    resolve_dependency_source(dep_source, True, True)
+    deps, _, _ = resolve_dependency_source(dep_source, True, True)
+    assert deps is not None
+    assert deps[0] == ResolutionMethod.LOCKFILE_PARSING
+    assert len(deps[1]) == 1
+    assert deps[1][0].package == "requests"
 
     mock_parse_requirements.mock_assert_called_once_with(
         Path(tmp_path / "requirements.txt"), Path(tmp_path / "requirements.in")
