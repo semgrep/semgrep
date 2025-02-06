@@ -150,6 +150,45 @@ def assert_err_match(snapshot, output, snapshot_name, replace_base_commit=None):
     return snapshot.assert_match(textwrap.dedent(err), snapshot_name)
 
 
+@pytest.mark.osemfail
+def test_worktree_state_restored(git_tmp_path, snapshot):
+    # Test when head contains all findings and baseline doesnt contain any
+    foo = git_tmp_path / "foo.py"
+    foo.write_text(f"x = 1")
+
+    # Add baseline files
+    subprocess.run(["git", "add", "."], check=True, capture_output=True)
+    _git_commit(1)
+    base_commit = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], encoding="utf-8"
+    ).strip()
+
+    # Write a finding
+    foo.write_text(f"x = {SENTINEL_1}\n")
+    subprocess.run(["git", "add", "."], check=True, capture_output=True)
+    _git_commit(2)
+
+    # Save the git worktree state to ensure we clean it up
+    # Note: This test has been arbitrarily chosen to check that the
+    # git worktree state is cleaned up
+    worktree_state_before = subprocess.run(
+        ["git", "worktree", "list"], capture_output=True
+    )
+
+    # Run non-baseline scan and sanity check findings
+    output = run_sentinel_scan()
+    assert_out_match(snapshot, output, "output.txt")
+
+    # Run baseline scan
+    run_sentinel_scan(base_commit=base_commit)
+
+    # Check that the git worktree state was not changed by the scans
+    worktree_state_after = subprocess.run(
+        ["git", "worktree", "list"], capture_output=True
+    )
+    assert worktree_state_before.stdout == worktree_state_after.stdout
+
+
 def test_one_commit_with_baseline(git_tmp_path, snapshot):
     foo = git_tmp_path / "foo.py"
     foo.write_text(f"x = {SENTINEL_1}\n")

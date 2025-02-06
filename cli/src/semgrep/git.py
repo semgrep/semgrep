@@ -31,7 +31,10 @@ def zsplit(s: str) -> List[str]:
         return []
 
 
-def git_check_output(command: Sequence[str], cwd: Optional[str] = None) -> str:
+def git_check_output(
+    command: Sequence[str],
+    cwd: Optional[str] = None,
+) -> str:
     """
     Helper function to run a GIT command that prints out helpful debugging information
     """
@@ -323,6 +326,33 @@ class BaselineHandler:
         else:
             return git_check_output(["git", "merge-base", self._base_commit, "HEAD"])
 
+    def _remove_worktree_with_check(self, worktree_dir: str) -> None:
+        # To help clean up a worktree in a `finally` clause
+        # In most cases, if `git worktree add` fails, we should get
+        # an error anyway, but there's no point in cleaning up a
+        # worktree that we know doesn't exist and this prevents us
+        # from failing if we get an unusual error
+        logger.debug("Checking that the worktree exists")
+        # nosemgrep: use-git-check-output-helper - we should continue when this fails
+        res = subprocess.run(["git", "worktree", "list"], capture_output=True)
+        list_stdout = res.stdout.decode() if res.stdout else "<No stdout>"
+        list_stderr = res.stderr.decode() if res.stderr else "<No stderr>"
+        if res.returncode != 0:
+            logger.debug(
+                f"Error running `git worktree list`:\n----stdout----\n{list_stdout}\n----stderr:----\n{list_stderr}\n`git worktree list` is invoked via a subprocess, this should not be possible"
+            )
+        else:
+            if worktree_dir in list_stdout.strip():
+                logger.debug("Removing the worktree")
+                # nosemgrep: use-git-check-output-helper - we should continue when this fails
+                res = subprocess.run(["git", "worktree", "remove", worktree_dir])
+                remove_stdout = res.stdout.decode() if res.stdout else "<No stdout>"
+                remove_stderr = res.stderr.decode() if res.stderr else "<No stdout>"
+                if res.returncode != 0:
+                    logger.debug(
+                        f"Error cleaning up the git worktree via `git worktree remove`:\n----stdout:---\n{remove_stdout}\n----stderr:----\n{remove_stderr}\n-----git worktree list output\n{list_stdout}"
+                    )
+
     @contextmanager
     def baseline_context(self) -> Iterator[None]:
         """
@@ -375,9 +405,9 @@ class BaselineHandler:
                 yield
             finally:
                 os.chdir(cwd)
-                logger.debug("Cleaning up git worktree")
-                # Remove the working tree
-                git_check_output(["git", "worktree", "remove", tmpdir])
+                # Cleanup the worktree
+                logger.debug("Cleaning up the worktree")
+                self._remove_worktree_with_check(tmpdir)
                 logger.debug("Finished cleaning up git worktree")
 
     def print_git_log(self) -> None:

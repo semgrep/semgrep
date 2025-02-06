@@ -1,0 +1,4 @@
+This PR changes the way we handle failures in `git worktree remove` more gracefully.
+Instead of erroring, we continue to scan so that the user can still get results, but
+log the error. It also adds a guard so that this failure is less likely to happen
+and will include more debugging information when it does.
