@@ -73,8 +73,12 @@ end
 (* FS *)
 (**************************************************************************)
 
-(* TODO: read vs write, specific dir (in_chan or out_chan of opened dir *)
 module FS = struct
+  type readdir = cap
+  type open_r = cap
+  type open_w = cap
+
+  (* TODO: read vs write, specific dir (in_chan or out_chan of opened dir *)
   type root_r = cap
   type root_w = cap
   type root_all_r = cap
@@ -193,6 +197,7 @@ end
  *)
 
 (* fs *)
+type readdir = < readdir : FS.readdir >
 type root = < root_r : FS.root_r ; root_w : FS.root_w >
 type root_all = < root_all_r : FS.root_all_r ; root_all_w : FS.root_all_w >
 type cwd = < cwd_r : FS.cwd_r ; cwd_w : FS.cwd_w >
@@ -203,7 +208,17 @@ type tmp = < tmp : FS.tmp >
 type files_argv =
   < files_argv_r : FS.files_argv_r ; files_argv_w : FS.files_argv_w >
 
-type fs = < root ; root_all ; cwd ; home ; dotfiles ; tmp ; files_argv >
+type fs =
+  < readdir
+  ; open_r : FS.open_r
+  ; open_w : FS.open_w
+  ; root
+  ; root_all
+  ; cwd
+  ; home
+  ; dotfiles
+  ; tmp
+  ; files_argv >
 
 (* console *)
 type stdin = < stdin : Console.stdin >
@@ -254,6 +269,9 @@ let no_caps : no_caps = object end
 let powerbox : all_caps =
   object
     (* fs *)
+    method readdir = ()
+    method open_r = ()
+    method open_w = ()
     method root_r = ()
     method root_w = ()
     method root_all_r = ()
@@ -331,6 +349,11 @@ let exec_and_tmp_caps_UNSAFE () =
   object
     method exec = ()
     method tmp = ()
+  end
+
+let readdir_UNSAFE () =
+  object
+    method readdir = ()
   end
 
 (**************************************************************************)

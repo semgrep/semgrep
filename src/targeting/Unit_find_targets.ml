@@ -62,8 +62,9 @@ let test_find_targets ?expected_outcome ?includes ?(excludes = [])
             exclude = excludes;
           }
         in
+        let caps = Cap.readdir_UNSAFE () in
         let targets, errors, skipped_targets =
-          Find_targets.get_target_fpaths conf
+          Find_targets.get_target_fpaths caps conf
             [ Scanning_root.of_fpath (Fpath.v scanning_root) ]
         in
         (match includes with

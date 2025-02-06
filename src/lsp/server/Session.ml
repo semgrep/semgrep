@@ -134,12 +134,13 @@ let decode_rules caps data =
           failwith "impossible: received invalid rules from Deployment")
 
 let get_targets session (root : Fpath.t) =
+  let caps = Cap.readdir_UNSAFE () in
   let targets_conf =
     User_settings.find_targets_conf_of_t session.user_settings
   in
   let proj_root = Rfpath.of_fpath_exn root in
   let targets, _errors, _skipped_targets =
-    Find_targets.get_target_fpaths
+    Find_targets.get_target_fpaths caps
       {
         targets_conf with
         force_project_root = Some (Find_targets.Filesystem proj_root);

@@ -1023,7 +1023,8 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
     in
 
     let targets_and_ignored =
-      Find_targets.get_target_fpaths conf.targeting_conf [ target_root ]
+      let caps = Cap.readdir_UNSAFE () in
+      Find_targets.get_target_fpaths caps conf.targeting_conf [ target_root ]
     in
     let res =
       Scan_subcommand.check_targets_with_rules

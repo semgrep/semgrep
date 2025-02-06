@@ -97,6 +97,7 @@ val default_conf : conf
    This may raise Unix.Unix_error if the scanning root does not exist.
 *)
 val get_targets :
+  < Cap.readdir ; .. > ->
   conf ->
   Scanning_root.t list ->
   Fppath.t list * Core_error.t list * Semgrep_output_v1_t.skipped_target list
@@ -110,6 +111,7 @@ val get_targets :
  * files in tests/ directories.
  *)
 val get_target_fpaths :
+  < Cap.readdir ; .. > ->
   conf ->
   Scanning_root.t list ->
   Fpath.t list * Core_error.t list * Semgrep_output_v1_t.skipped_target list

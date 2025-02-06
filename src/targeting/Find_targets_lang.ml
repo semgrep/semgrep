@@ -10,12 +10,13 @@ let get_target_fpaths (root : Fpath.t) (lang : Lang.t) : Fpath.t list =
       force_project_root = Some (Filesystem (Rfpath.of_fpath_exn root));
     }
   in
+  let caps = Cap.readdir_UNSAFE () in
   (* coupling: similar to what we do Scan_subcommand.run_scan_conf()
    * old: Find_targets_old.files_of_dirs_or_files (Some lang) [ root ]
    * TODO? at least Logs the errors and skipped?
    *)
   let files, _errors, _skipped =
-    Find_targets.get_target_fpaths conf [ Scanning_root.of_fpath root ]
+    Find_targets.get_target_fpaths caps conf [ Scanning_root.of_fpath root ]
   in
   (* filter out files that are not relevant to the language here, because
    * `Find_targets` fetches _all_ the possibly relevant files it can.

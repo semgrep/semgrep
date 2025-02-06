@@ -353,8 +353,9 @@ let targets_of_config (config : Core_scan_config.t) (rules : Rule.t list) :
           let targeting_conf =
             translate_targeting_conf_from_pysemgrep targeting_conf
           in
+          let caps = Cap.readdir_UNSAFE () in
           let target_paths, errors, skipped =
-            Find_targets.get_target_fpaths targeting_conf scanning_roots
+            Find_targets.get_target_fpaths caps targeting_conf scanning_roots
           in
           let targets =
             Core_targeting.targets_for_files_and_rules target_paths rules

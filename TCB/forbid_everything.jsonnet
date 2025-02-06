@@ -16,6 +16,7 @@ local forbid_chdir = import 'forbid_chdir.jsonnet';
 local forbid_tmp = import "forbid_tmp.jsonnet";
 local forbid_console = import 'forbid_console.jsonnet';
 local forbid_process = import 'forbid_process.jsonnet';
+local forbid_fs = import 'forbid_fs.jsonnet';
 local forbid_misc = import 'forbid_misc.jsonnet';
 
 { rules:
@@ -26,5 +27,6 @@ local forbid_misc = import 'forbid_misc.jsonnet';
     forbid_tmp.rules +
     forbid_console.rules +
     forbid_process.rules +
+    forbid_fs.rules +
     forbid_misc.rules
 }

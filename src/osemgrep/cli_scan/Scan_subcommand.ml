@@ -697,7 +697,9 @@ let run_scan_conf (caps : < caps ; .. >) (conf : Scan_CLI.conf) : Exit_code.t =
       (* step2: getting the targets *)
       Logs.info (fun m -> m "Computing the targets");
       let targets_and_skipped =
-        Find_targets.get_target_fpaths conf.targeting_conf conf.target_roots
+        let caps = Cap.readdir_UNSAFE () in
+        Find_targets.get_target_fpaths caps conf.targeting_conf
+          conf.target_roots
       in
 
       (* step3: let's go *)

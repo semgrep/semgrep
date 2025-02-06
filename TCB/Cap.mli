@@ -44,6 +44,13 @@ end
 
 (* read/write on root|cwd|tmp|~|~.xxx| (and files/dirs mentioned in argv) *)
 module FS : sig
+  type readdir
+
+  (* a.k.a open_in and open_out in OCaml world *)
+  type open_r
+  type open_w
+
+  (* TODO: finer-grained readdir and open_r, open_w *)
   type root_r
   type root_w
 
@@ -101,6 +108,7 @@ end
 (**************************************************************************)
 
 (* fs *)
+type readdir = < readdir : FS.readdir >
 type root = < root_r : FS.root_r ; root_w : FS.root_w >
 type root_all = < root_all_r : FS.root_all_r ; root_all_w : FS.root_all_w >
 type cwd = < cwd_r : FS.cwd_r ; cwd_w : FS.cwd_w >
@@ -111,7 +119,17 @@ type tmp = < tmp : FS.tmp >
 type files_argv =
   < files_argv_r : FS.files_argv_r ; files_argv_w : FS.files_argv_w >
 
-type fs = < root ; root_all ; cwd ; home ; dotfiles ; tmp ; files_argv >
+type fs =
+  < readdir
+  ; open_r : FS.open_r
+  ; open_w : FS.open_w
+  ; root
+  ; root_all
+  ; cwd
+  ; home
+  ; dotfiles
+  ; tmp
+  ; files_argv >
 
 (* console *)
 type stdin = < stdin : Console.stdin >
@@ -179,6 +197,7 @@ val tmp_caps_UNSAFE : unit -> < tmp >
 val stdout_caps_UNSAFE : unit -> < stdout >
 val fork_and_limits_caps_UNSAFE : unit -> < fork ; time_limit ; memory_limit >
 val exec_and_tmp_caps_UNSAFE : unit -> < exec ; tmp >
+val readdir_UNSAFE : unit -> < readdir >
 
 (**************************************************************************)
 (* Entry point *)

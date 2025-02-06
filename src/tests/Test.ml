@@ -112,7 +112,7 @@ let tests (caps : Cap.all_caps) =
   List_.flatten
     [
       Commons_tests.tests;
-      Unit_list_files.tests;
+      Unit_list_files.tests (caps :> < Cap.readdir >);
       Glob.Unit_glob.tests;
       Unit_find_targets.tests;
       Unit_semgrepignore.tests;

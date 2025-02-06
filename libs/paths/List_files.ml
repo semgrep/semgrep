@@ -33,11 +33,11 @@ let with_dir_handle path func =
   Common.protect ~finally:(fun () -> Unix.closedir dir) (fun () -> func dir)
 
 (* Read the names found in a directory, excluding "." and "..". *)
-let read_dir_entries path =
+let read_dir_entries (caps : < Cap.readdir ; .. >) path =
   with_dir_handle path (fun dir ->
       let rec loop acc =
         try
-          let name = Unix.readdir dir in
+          let name = CapFS.readdir caps#readdir dir in
           let acc =
             if
               name = Filename.current_dir_name (* "." *)
@@ -51,20 +51,21 @@ let read_dir_entries path =
       in
       loop [])
 
-let read_dir_entries_fpath path = read_dir_entries path |> List_.map Fpath.v
+let read_dir_entries_fpath caps path =
+  read_dir_entries caps path |> List_.map Fpath.v
 
-let rec iter_dir_entries func dir names =
-  List.iter (iter_dir_entry func dir) names
+let rec iter_dir_entries caps func dir names =
+  List.iter (iter_dir_entry caps func dir) names
 
-and iter_dir_entry func dir name =
+and iter_dir_entry caps func dir name =
   let path = Fpath.add_seg dir name in
-  iter func path
+  iter caps func path
 
 (*************************************************************************)
 (* Entry points *)
 (*************************************************************************)
 
-and iter func path =
+and iter caps func path =
   let stat =
     try Some (Unix.lstat !!path) with
     | Unix.Unix_error (_error_kind, _func, _info) ->
@@ -72,27 +73,27 @@ and iter func path =
         None
   in
   match stat with
-  | Some { Unix.st_kind = S_DIR; _ } -> iter_dir func path
+  | Some { Unix.st_kind = S_DIR; _ } -> iter_dir caps func path
   | Some stat (* regular file, symlink, etc. *) -> func path stat
   | None -> ()
 
-and iter_dir func dir =
-  let names = read_dir_entries dir in
-  iter_dir_entries func dir names
+and iter_dir caps func dir =
+  let names = read_dir_entries caps dir in
+  iter_dir_entries caps func dir names
 
-let fold_left func init path =
+let fold_left caps func init path =
   let acc = ref init in
-  iter (fun path stat -> acc := func !acc path stat) path;
+  iter caps (fun path stat -> acc := func !acc path stat) path;
   !acc
 
-let list_with_stat path =
-  fold_left (fun acc path stat -> (path, stat) :: acc) [] path |> List.rev
+let list_with_stat caps path =
+  fold_left caps (fun acc path stat -> (path, stat) :: acc) [] path |> List.rev
 
-let list path = list_with_stat path |> List_.map fst
+let list caps path = list_with_stat caps path |> List_.map fst
 
 (* python: Target.files_from_filesystem *)
-let list_regular_files ?(keep_root = false) root_path =
-  list_with_stat root_path
+let list_regular_files ?(keep_root = false) caps root_path =
+  list_with_stat caps root_path
   |> List_.filter_map (fun (path, (stat : Unix.stats)) ->
          Log.debug (fun m -> m "root: %s path: %s" !!root_path !!path);
          if keep_root && path = root_path then Some path

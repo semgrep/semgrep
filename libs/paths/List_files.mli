@@ -10,7 +10,7 @@
    List all files recursively. Exclude folders/directories.
    For further filtering based on file type, use 'list_with_stat'.
 *)
-val list : Fpath.t -> Fpath.t list
+val list : < Cap.readdir ; .. > -> Fpath.t -> Fpath.t list
 
 (*
    List all regular files recursively. This excludes symlinks, among other.
@@ -27,26 +27,33 @@ val list : Fpath.t -> Fpath.t list
    Moreover while traversing dirs, list_regular_files ignores all
    Unix.Unix_error exceptions raised by Unix.lstat.
 *)
-val list_regular_files : ?keep_root:bool -> Fpath.t -> Fpath.t list
+val list_regular_files :
+  ?keep_root:bool -> < Cap.readdir ; .. > -> Fpath.t -> Fpath.t list
 
 (*
    List all files recursively. Exclude folders/directories.
    Use List_.map_filter to exclude more file types.
 *)
-val list_with_stat : Fpath.t -> (Fpath.t * Unix.stats) list
+val list_with_stat :
+  < Cap.readdir ; .. > -> Fpath.t -> (Fpath.t * Unix.stats) list
 
 (*
    Iterate over files recursively. Exclude folders/directories.
 *)
 val fold_left :
-  ('acc -> Fpath.t -> Unix.stats -> 'acc) -> 'acc -> Fpath.t -> 'acc
+  < Cap.readdir ; .. > ->
+  ('acc -> Fpath.t -> Unix.stats -> 'acc) ->
+  'acc ->
+  Fpath.t ->
+  'acc
 
-val iter : (Fpath.t -> Unix.stats -> unit) -> Fpath.t -> unit
+val iter :
+  < Cap.readdir ; .. > -> (Fpath.t -> Unix.stats -> unit) -> Fpath.t -> unit
 
 (* internals *)
 
 (* Read the names found in a directory, excluding "." and "..". *)
-val read_dir_entries : Fpath.t -> string list
+val read_dir_entries : < Cap.readdir ; .. > -> Fpath.t -> string list
 
 (* same than read_dir_entries but return single segment Fpath.t *)
-val read_dir_entries_fpath : Fpath.t -> Fpath.t list
+val read_dir_entries_fpath : < Cap.readdir ; .. > -> Fpath.t -> Fpath.t list

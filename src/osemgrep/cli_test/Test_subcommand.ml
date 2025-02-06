@@ -144,7 +144,9 @@ let find_targets_for_rule (rule_file : Fpath.t) : Fpath.t list =
   let dir, base = Fpath.split_base rule_file in
   (* ex: "useless-if" (without the ".yaml") *)
   let base_no_ext = Fpath.rem_ext base in
-  dir |> List_files.read_dir_entries_fpath
+  let caps = Cap.readdir_UNSAFE () in
+  dir
+  |> List_files.read_dir_entries_fpath caps
   |> List_.exclude (fun p ->
          Fpath.equal p base || List.mem "fixed" (Fpath_.exts p))
   |> List_.filter_map (fun p ->

@@ -401,7 +401,7 @@ let filter_size_and_minified max_target_bytes exclude_minified_files paths =
  *
  * pre: the scan_root must be a path to a directory
  *)
-let walk_skip_and_collect (ign : Gitignore.filter)
+let walk_skip_and_collect (caps : < Cap.readdir ; .. >) (ign : Gitignore.filter)
     (include_filter : Include_filter.t option) (scan_root : Fppath.t) :
     Fppath.t list * Out.skipped_target list =
   Log.info (fun m ->
@@ -426,7 +426,7 @@ let walk_skip_and_collect (ign : Gitignore.filter)
             m "listing dir %s (ppath = %s)" !!(dir.fpath)
               (Ppath.to_string_for_tests dir.ppath));
         (* TODO? should we sort them first? *)
-        let entries = List_files.read_dir_entries dir.fpath in
+        let entries = List_files.read_dir_entries caps dir.fpath in
         (* TODO: factorize code with filter_paths? *)
         entries
         |> List.iter (fun name ->
@@ -687,7 +687,8 @@ let filter_targets conf project_roots (all_files : Fppath.t list) =
   let ign = setup_path_filters conf project_roots in
   filter_paths ign all_files
 
-let get_targets_from_filesystem conf (project_roots : Project.scanning_roots) =
+let get_targets_from_filesystem (caps : < Cap.readdir ; .. >) (conf : conf)
+    (project_roots : Project.scanning_roots) =
   let ign, include_filter = setup_path_filters conf project_roots in
   List.fold_left
     (fun (selected, skipped) (scan_root : Project.scanning_root_info) ->
@@ -705,7 +706,7 @@ let get_targets_from_filesystem conf (project_roots : Project.scanning_roots) =
         match (Unix.stat !!phys_path).st_kind with
         (* TOPORT? make sure has right permissions (readable) *)
         | S_REG -> ([ fppath ], [])
-        | S_DIR -> walk_skip_and_collect ign include_filter fppath
+        | S_DIR -> walk_skip_and_collect caps ign include_filter fppath
         | S_LNK ->
             (* already dereferenced by Unix.stat *)
             raise Impossible
@@ -771,7 +772,8 @@ let force_select_scanning_roots (project_roots : Project.scanning_roots)
       Typically, the sets of files produced by (2) and (3) overlap vastly.
    4. Take the union of (2) and (3).
 *)
-let get_targets_for_project conf (project_roots : Project.scanning_roots) =
+let get_targets_for_project (caps : < Cap.readdir ; .. >) (conf : conf)
+    (project_roots : Project.scanning_roots) =
   Log.debug (fun m -> m "Find_target.get_targets_for_project");
   (* Obtain the list of files from git if possible because it does it
      faster than what we can do by scanning the filesystem: *)
@@ -793,7 +795,7 @@ let get_targets_for_project conf (project_roots : Project.scanning_roots) =
     (* Non-Git projects *)
     | None, _
     | _, None ->
-        get_targets_from_filesystem conf project_roots
+        get_targets_from_filesystem caps conf project_roots
   in
   let selected_targets, skipped_targets =
     force_select_scanning_roots project_roots selected_targets skipped_targets
@@ -825,7 +827,8 @@ let clone_if_remote_project_root conf =
 (* Entry point *)
 (*************************************************************************)
 
-let get_targets conf scanning_roots :
+let get_targets (caps : < Cap.readdir ; .. >) (conf : conf)
+    (scanning_roots : Scanning_root.t list) :
     Fppath.t list * Core_error.t list * Out.skipped_target list =
   clone_if_remote_project_root conf;
   (* Skipped scanning roots are more serious errors than ordinary skipped
@@ -835,7 +838,7 @@ let get_targets conf scanning_roots :
     scanning_roots |> group_scanning_roots_by_project conf
   in
   grouped_scanning_roots
-  |> List_.map (get_targets_for_project conf)
+  |> List_.map (get_targets_for_project caps conf)
   |> List_.split
   |> fun (path_set_list, skipped_paths_list) ->
   let paths, skipped_size_minified =
@@ -857,6 +860,6 @@ let get_targets conf scanning_roots :
   (paths, errors, sorted_skipped_targets)
 [@@profiling]
 
-let get_target_fpaths conf scanning_roots =
-  let selected, errors, skipped = get_targets conf scanning_roots in
+let get_target_fpaths (caps : < Cap.readdir ; .. >) conf scanning_roots =
+  let selected, errors, skipped = get_targets caps conf scanning_roots in
   (List_.map (fun { Fppath.fpath; _ } -> fpath) selected, errors, skipped)
