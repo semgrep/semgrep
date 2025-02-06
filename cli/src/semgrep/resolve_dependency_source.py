@@ -116,7 +116,12 @@ def _resolve_dependencies_rpc(
     """
     Handle the RPC call to resolve dependencies in ocaml
     """
-    response = resolve_dependencies([dependency_source.to_semgrep_output()])
+    try:
+        response = resolve_dependencies([dependency_source.to_semgrep_output()])
+    except Exception as e:
+        logger.verbose(f"RPC call failed: {e}")
+        return None, [], []
+
     if response is None:
         # we failed to resolve somehow
         # TODO: handle this and generate an error
@@ -199,6 +204,8 @@ def _handle_manifest_only_source(
 
 def _handle_multi_lockfile_source(
     dep_source: MultiLockfileDependencySource,
+    enable_dynamic_resolution: bool,
+    ptt_enabled: bool,
 ) -> DependencyResolutionResult:
     """Handle dependency resolution for sources with multiple lockfiles."""
     all_resolved_deps: List[FoundDependency] = []
@@ -208,8 +215,16 @@ def _handle_multi_lockfile_source(
     resolution_methods: Set[ResolutionMethod] = set()
 
     for lockfile_source in dep_source.sources:
+        # We resolve each lockfile source independently.
+        #
+        # NOTE(sal): In the case of dynamic resolution, we should try to resolve all the lockfiles together,
+        #            and then get a single response for all of them. Until then, I explicitly disable
+        #            dynamic resolution and path-to-transitivity (PTT) for multi-lockfile sources. They were
+        #            never enabled in the first place anyway.
         new_resolved_info, new_errors, new_targets = resolve_dependency_source(
-            lockfile_source
+            lockfile_source,
+            enable_dynamic_resolution=False,
+            ptt_enabled=False,
         )
         if new_resolved_info is not None:
             resolution_method, new_deps = new_resolved_info
@@ -261,11 +276,18 @@ def _handle_lockfile_source(
         )
 
         if use_nondynamic_ocaml_parsing or use_dynamic_resolution:
+            logger.verbose(
+                f"Dynamically resolving path(s): {[str(path) for path in dep_source.get_display_paths()]}"
+            )
+
             (
                 new_deps,
                 new_errors,
                 new_targets,
             ) = _resolve_dependencies_rpc(dep_source)
+
+            for error in new_errors:
+                logger.verbose(f"Dynamic resolution RPC error: '{error}'")
 
             if new_deps is not None:
                 # TODO: Reimplement this once more robust error handling for lockfileless resolution is implemented
@@ -320,7 +342,11 @@ def resolve_dependency_source(
             ptt_enabled,
         )
     elif isinstance(dep_source, MultiLockfileDependencySource):
-        return _handle_multi_lockfile_source(dep_source)
+        return _handle_multi_lockfile_source(
+            dep_source,
+            enable_dynamic_resolution,
+            ptt_enabled,
+        )
     elif (
         isinstance(dep_source, ManifestOnlyDependencySource)
         and enable_dynamic_resolution
