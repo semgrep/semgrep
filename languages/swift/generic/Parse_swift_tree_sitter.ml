@@ -247,11 +247,20 @@ let map_member_modifier (env : env) (x : CST.member_modifier) =
       (* nonisolated *)
       G.unhandled_keywordattr (str env tok)
 
-let map_try_operator (env : env) (x : CST.try_operator) =
-  match x with
-  | `Try tok -> (* "try" *) token env tok
-  | `TryB tok -> (* "try!" *) token env tok
-  | `TryQ tok -> (* "try?" *) token env tok
+let map_try_operator (env : env) ((try_token, operator) : CST.try_operator) =
+  let try_tok = (* "try" *) token env try_token in
+  let operator_tok = match operator with
+    | `Fake_try_bang tok -> Some ((* "!" *) token env tok)
+    | `Opt_try_op_type x -> match x with
+      | Some x -> (match x with
+        | `Imm_tok_bang tok -> Some ((* "!" *) token env tok)
+        | `Imm_tok_qmark tok -> Some ((* "?" *) token env tok)
+        )
+      | None -> None
+  in
+  match operator_tok with
+  | Some op -> Tok.combine_toks try_tok [op]
+  | None -> try_tok
 
 let map_special_literal (env : env) (x : CST.special_literal) =
   (match x with
@@ -324,8 +333,9 @@ let map_postfix_unary_operator (env : env) (x : CST.postfix_unary_operator)
       G.special (G.IncrDecr (G.Incr, G.Postfix), (* "++" *) token env tok) [ e ]
   | `DASHDASH tok ->
       G.special (G.IncrDecr (G.Decr, G.Postfix), (* "--" *) token env tok) [ e ]
-  | `Bang tok ->
-      G.special (G.Op G.NotNullPostfix, (* bang *) token env tok) [ e ]
+  | `Bang tok -> match tok with
+      | `Bang_custom tok -> G.special (G.Op G.NotNullPostfix, (* bang *) token env tok) [ e ]
+      | `BANG tok -> G.special (G.Op G.NotNullPostfix, (* ! *) token env tok) [ e ]
 
 let map_locally_permitted_modifier (env : env)
     (x : CST.locally_permitted_modifier) =
@@ -459,8 +469,15 @@ let map_prefix_unary_operator (env : env) (x : CST.prefix_unary_operator)
       let op = (G.Plus, (* "+" *) token env tok) in
       G.opcall op [ e ]
   | `Bang tok ->
-      let op = (G.Not, (* bang *) token env tok) in
-      G.opcall op [ e ]
+      (match tok with
+      | `BANG tok ->
+        let op = (G.Not, (* bang *) token env tok) in
+        G.opcall op [ e ]
+      | `Bang_custom tok ->
+        (* TODO: NinjaLikesCheez is there a way to represent this as a custom Op? *)
+        let op = (G.Not, (* bang *) token env tok) in
+        G.opcall op [ e ]
+      )
   | `AMP tok -> G.Ref ((* "&" *) token env tok, e) |> G.e
   | `TILDE tok ->
       let op = (G.BitNot, (* "~" *) token env tok) in
@@ -529,9 +546,17 @@ let map_referenceable_operator (env : env) (x : CST.referenceable_operator) =
       let s, tok = str env tok in
       ((s, tok), G.Special (G.IncrDecr (G.Decr, G.Postfix), tok))
   | `Bang tok ->
-      (* bang *)
+    (match tok with
+    | `Bang_custom tok ->
+        (* TODO: NinjaLikesCheez: is there a way of representing an Op as 'custom'? Doesn't seem so *)
+        (* bang *)
+        let s, tok = str env tok in
+        ((s, tok), G.Special (G.Op G.Not, tok))
+    | `BANG tok ->
+      (* ! *)
       let s, tok = str env tok in
       ((s, tok), G.Special (G.Op G.Not, tok))
+    )
   | `TILDE tok ->
       (* "~" *)
       let s, tok = str env tok in
@@ -1762,7 +1787,12 @@ and map_key_path_component (env : env) (x : CST.key_path_component) =
 and map_key_path_postfixes (env : env) (x : CST.key_path_postfixes) =
   match x with
   | `QMARK tok -> (* "?" *) token env tok
-  | `Bang tok -> (* bang *) token env tok
+  | `Bang tok ->
+    (match tok with
+    | `BANG tok -> (* ! *) token env tok
+    | `Bang_custom _ ->
+      failwith "Bang_custom should not exist in this context - ! is a reserved postfix operator"
+    )
   | `Self tok -> (* "self" *) token env tok
   | `LBRACK_opt_value_arg_rep_COMMA_value_arg_RBRACK (v1, v2, v3) ->
       let lb = (* "[" *) token env v1 in
