@@ -2205,16 +2205,98 @@ and map_single_modifierless_property_declaration (env : env)
     |> Option.map (fun x ->
            let x =
              match x with
-             | `Equal_sign_exp (v1, v2) ->
+             | `Exp_with_will_didset_6031240 (v1, v2, v3) ->
                  let _v1TODO = (* eq_custom *) token env v1 in
                  let v2 = map_expression env v2 in
-                 v2
+                 let v3 = map_willset_didset_block env v3 in
+                 (* TODO: this is passed to VarDef so wrap expression & block together *)
+                 G.Seq ([v2; v3]) |> G.e
+             | `Exp_with_will_didset_3bae343 (v1, v2) ->
+                let _v1TODO = (* eq_custom *) token env v1 in
+                let v2 = map_expression env v2 in
+                v2
+             | `Will_didset_blk x ->
+                map_willset_didset_block env x
              | `Comp_prop x -> G.StmtExpr (map_computed_property env x) |> G.e
            in
            x)
   in
   G.DefStmt (entity, G.VarDef { vinit = init; vtype = tannot; vtok = G.no_sc })
   |> G.s
+
+and map_willset_didset_block (env : env) (x : CST.willset_didset_block) =
+  match x with
+  | `LCURL_will_clause_opt_didset_clause_RCURL (v1, v2, v3, v4) ->
+      let v1 = (* "{" *) token env v1 in
+      let v2 = map_willset_clause env v2 in
+      let v3 = Option.map (map_didset_clause env) v3 in
+      let v4 = (* "}" *) token env v4 in
+      (* TODO: combine these into a declaration (definition) of a block and pass up as statement *)
+      let stmts = match v3 with
+        | Some x -> [v2; x]
+        | None -> [v2]
+      in
+      G.StmtExpr (G.Block (v1, stmts, v4) |> G.s) |> G.e
+  | `LCURL_didset_clause_opt_will_clause_RCURL (v1, v2, v3, v4) ->
+      let v1 = (* "{" *) token env v1 in
+      let v2 = map_didset_clause env v2 in
+      let v3 = Option.map (map_willset_clause env) v3 in
+      let v4 = (* "}" *) token env v4 in
+      let stmts = match v3 with
+        | Some x -> [v2; x]
+        | None -> [v2]
+      in
+      G.StmtExpr (G.Block (v1, stmts, v4) |> G.s) |> G.e
+
+and map_willset_clause (env : env) ((modifiers, tok, identifier, body) : CST.willset_clause) =
+  let modifiers = Option.map (map_modifiers env) modifiers in
+  let tok = (* "willSet" *) token env tok in
+  let params = match identifier with
+  | Some (_, identifier, _) ->
+      let param = G.tparam_of_id (map_bound_identifier env identifier) in
+      Some (Tok.unsafe_fake_bracket [param])
+  | None -> None
+  in
+  let body = map_function_body env body in
+  G.DefStmt (
+    {
+      G.name = G.EN (G.Id (("willSet", tok), G.empty_id_info ()));
+      attrs = Option.value ~default:[] modifiers;
+      tparams = params
+    },
+    G.FuncDef {
+      fkind = (G.Function, tok);
+      (* TODO: NinjaLikesCheez this currently doesn't infer the type of the parameter (or indeed set it) *)
+      fparams = fb [];
+      frettype = None;
+      fbody = G.FBStmt body
+    }
+  ) |> G.s
+
+and map_didset_clause (env : env) ((modifiers, tok, identifier, body) : CST.didset_clause) =
+  let modifiers = Option.map (map_modifiers env) modifiers in
+  let tok = (* "didSet" *) token env tok in
+  let params = match identifier with
+    | Some (_, identifier, _) ->
+        let param = G.tparam_of_id (map_bound_identifier env identifier) in
+        Some (fb [param])
+    | None -> None
+  in
+  let body = map_function_body env body in
+  G.DefStmt (
+    {
+      G.name = G.EN (G.Id (("didSet", tok), G.empty_id_info ()));
+      attrs = Option.value ~default:[] modifiers;
+      tparams = params
+    },
+    G.FuncDef {
+      fkind = (G.Function, tok);
+      (* TODO: NinjaLikesCheez this currently doesn't infer the type of the parameter (or indeed set it) *)
+      fparams = fb [];
+      frettype = None;
+      fbody = G.FBStmt body
+    }
+  ) |> G.s
 
 and map_modifierless_property_declaration (env : env) (attrs : G.attribute list)
     ((v1, v2, v3) : CST.modifierless_property_declaration) : G.stmt list =
