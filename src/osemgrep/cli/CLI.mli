@@ -1,5 +1,5 @@
 (* no exit, no argv
- * TODO: Cap.files_argv, Cap.domain, Cap.thread, Cap.alarm
+ * TODO: Cap.files_argv, Cap.domain, Cap.thread
  *)
 type caps =
   < Cap.stdout
@@ -8,6 +8,7 @@ type caps =
   ; Cap.random
   ; Cap.signal
   ; Cap.tmp
+  ; Cap.readdir
   ; Cap.chdir
   ; Cap.fork
   ; Cap.time_limit
@@ -27,7 +28,8 @@ type caps =
 val main : caps -> string array -> Exit_code.t
 
 (* osemgrep-pro hooks *)
-val hook_semgrep_interactive : (string array -> Exit_code.t) Hook.t
+val hook_semgrep_interactive :
+  (< Cap.readdir > -> string array -> Exit_code.t) Hook.t
 
 val hook_semgrep_publish :
   (< Cap.stdout ; Cap.network ; Cap.tmp > -> string array -> Exit_code.t) Hook.t
