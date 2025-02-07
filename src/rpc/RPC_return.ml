@@ -88,3 +88,4 @@ let validate (path : Out.fpath) : bool =
 (*****************************************************************************)
 let hook_resolve_dependencies = ref None
 let hook_dump_rule_partitions = ref None
+let hook_transitive_reachability_filter = ref None

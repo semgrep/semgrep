@@ -252,6 +252,7 @@ def run_rules(
     allow_local_builds: bool = False,
     ptt_enabled: bool = False,
     resolve_all_deps_in_diff_scan: bool = False,
+    x_tr: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -385,9 +386,12 @@ def run_rules(
         for rule in dependency_aware_rules:
             if rule.should_run_on_semgrep_core:
                 # If we have a reachability rule (contains a pattern)
-                # First we check if each match has a lockfile with the correct vulnerability and turn these into SCA findings
-                # Then we generate unreachable findings in all the remaining targeted lockfiles
-                # For each rule, we do not want to generate an unreachable finding in a lockfile
+                # First we check if each match has a lockfile with the correct
+                # vulnerability and turn these into SCA findings
+                # Then we generate unreachable findings in all the remaining
+                # targeted lockfiles
+                # For each rule, we do not want to generate an unreachable
+                # finding in a lockfile
                 # that already has a reachable finding, so we exclude them
                 (
                     dep_rule_matches,
@@ -398,6 +402,7 @@ def run_rules(
                     rule,
                     resolved_subprojects,
                 )
+
                 rule_matches_by_rule[rule] = dep_rule_matches
                 output_handler.handle_semgrep_errors(dep_rule_errors)
                 (
@@ -407,6 +412,7 @@ def run_rules(
                     rule,
                     already_reachable,
                     resolved_subprojects,
+                    x_tr=x_tr,
                 )
                 rule_matches_by_rule[rule].extend(dep_rule_matches)
                 output_handler.handle_semgrep_errors(dep_rule_errors)
@@ -415,12 +421,13 @@ def run_rules(
                     dep_rule_matches,
                     dep_rule_errors,
                 ) = generate_unreachable_sca_findings(
-                    rule, lambda p, d: False, resolved_subprojects
+                    rule, lambda p, d: False, resolved_subprojects, x_tr=False
                 )
                 rule_matches_by_rule[rule] = dep_rule_matches
                 output_handler.handle_semgrep_errors(dep_rule_errors)
 
-        # The caller expects a map from lockfile path to `FoundDependency` items rather than our Subproject representation
+        # The caller expects a map from lockfile path to `FoundDependency` items
+        # rather than our Subproject representation
         deps_by_lockfile: Dict[str, List[FoundDependency]] = {}
         for ecosystem in resolved_subprojects:
             for proj in resolved_subprojects[ecosystem]:
@@ -554,8 +561,6 @@ def run_scan(
     List[Union[UnresolvedSubproject, ResolvedSubproject]],
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
-    if x_tr:
-        logger.info(f"SCA TR is on!")
 
     # Some of the lockfile parsers are defined recursively
     # This does not play well with python's conservative recursion limit, so we manually increase
@@ -820,6 +825,7 @@ def run_scan(
         allow_local_builds=allow_local_builds,
         ptt_enabled=ptt_enabled,
         resolve_all_deps_in_diff_scan=resolve_all_deps_in_diff_scan,
+        x_tr=x_tr,
     )
     profiler.save("core_time", core_start_time)
     semgrep_errors: List[SemgrepError] = config_errors + scan_errors

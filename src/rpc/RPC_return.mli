@@ -15,12 +15,16 @@ val sarif_format :
 val contributions : < Cap.exec > -> Out.contributions
 val validate : Out.fpath -> bool
 
+(* TODO: switch all those option ref to Hook.t *)
 val hook_resolve_dependencies :
   (< Cap.exec ; Cap.tmp > ->
   Out.dependency_source list ->
   (Out.dependency_source * Out.resolution_result) list)
   option
   ref
+
+val hook_transitive_reachability_filter :
+  (Out.transitive_finding list -> Out.transitive_finding list) option ref
 
 val hook_dump_rule_partitions :
   (Out.raw_json -> int -> Fpath.t -> bool) option ref

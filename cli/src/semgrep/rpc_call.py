@@ -76,6 +76,20 @@ def resolve_dependencies(
     return ret.value
 
 
+def transitive_reachability_filter(
+    args: List[out.TransitiveFinding],
+) -> List[out.TransitiveFinding]:
+    call = out.FunctionCall(out.CallTransitiveReachabilityFilter(args))
+    ret: Optional[out.RetTransitiveReachabilityFilter] = rpc_call(
+        call, out.RetTransitiveReachabilityFilter
+    )
+    if ret is None:
+        logger.warning("failed to filter transitive findings")
+        # return the same findings
+        return args
+    return ret.value
+
+
 def dump_rule_partitions(args: out.DumpRulePartitionsParams) -> bool:
     call = out.FunctionCall(out.CallDumpRulePartitions(args))
     ret: Optional[out.RetDumpRulePartitions] = rpc_call(call, out.RetDumpRulePartitions)

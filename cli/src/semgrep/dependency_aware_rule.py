@@ -10,6 +10,7 @@ from typing import Tuple
 
 from attr import evolve
 
+import semgrep.rpc_call as rpc_call
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.external.packaging.specifiers import InvalidSpecifier  # type: ignore
 from semdep.external.packaging.specifiers import SpecifierSet  # type: ignore
@@ -68,13 +69,16 @@ def parse_depends_on_yaml(entries: List[Dict[str, str]]) -> Iterator[out.ScaPatt
         )
 
 
+# TODO: should be renamed undetermined_or_unreachable_...
 def generate_unreachable_sca_findings(
     rule: Rule,
     already_reachable: Callable[[Path, FoundDependency], bool],
     resolved_deps: Dict[Ecosystem, List[ResolvedSubproject]],
+    x_tr: bool,
 ) -> Tuple[List[RuleMatch], List[SemgrepError]]:
     """
-    Returns matches to a only a rule's sca-depends-on patterns; ignoring any reachabiliy patterns it has
+    Returns matches to a only a rule's sca-depends-on patterns; ignoring any
+    reachabiliy patterns it has
     """
     depends_on_keys = rule.project_depends_on
     dep_rule_errors: List[SemgrepError] = []
@@ -93,9 +97,10 @@ def generate_unreachable_sca_findings(
             )
             for dep_pat, found_dep in dependency_matches:
                 if found_dep.lockfile_path is None:
-                    # In rare cases, it's possible for a dependency to not have a lockfile
-                    # path. This indicates a dev error and usually means that the parser
-                    # did not associate the dep with a lockfile. So we'll just skip this dependency.
+                    # In rare cases, it's possible for a dependency to not have
+                    # a lockfile path. This indicates a dev error and usually
+                    # means that the parser did not associate the dep with a
+                    # lockfile. So we'll just skip this dependency.
                     logger.warning(
                         f"Found a dependency ({found_dep.package}) without a lockfile path. Skipping..."
                     )
@@ -103,6 +108,9 @@ def generate_unreachable_sca_findings(
 
                 lockfile_path = Path(found_dep.lockfile_path.value)
 
+                # for TR even if we could find a reachable finding in the
+                # 1st party code, we could also investigate the 3rd party code
+                # but let's KISS for now and just consider undetermined findings
                 if already_reachable(lockfile_path, found_dep):
                     continue
 
@@ -111,42 +119,55 @@ def generate_unreachable_sca_findings(
                     found_dependency=found_dep,
                     lockfile=out.Fpath(str(lockfile_path)),
                 )
+                sca_match = out.ScaMatch(
+                    sca_finding_schema=SCA_FINDING_SCHEMA,
+                    reachable=False,
+                    reachability_rule=rule.should_run_on_semgrep_core,
+                    dependency_match=dep_match,
+                )
+                core_match = out.CoreMatch(
+                    check_id=out.RuleId(rule.id),
+                    path=out.Fpath(str(lockfile_path)),
+                    start=out.Position(found_dep.line_number or 1, 1, 1),
+                    end=out.Position(
+                        (found_dep.line_number if found_dep.line_number else 1),
+                        1,
+                        1,
+                    ),
+                    # TODO: we need to define the fields below in
+                    # Output_from_core.atd so we can reuse out.MatchExtra
+                    extra=out.CoreMatchExtra(
+                        metavars=out.Metavars({}),
+                        engine_kind=out.EngineOfFinding(out.OSS()),
+                        is_ignored=False,
+                        sca_match=sca_match,
+                    ),
+                )
+
                 match = RuleMatch(
                     message=rule.message,
                     metadata=rule.metadata,
                     severity=rule.severity,
                     fix=None,
-                    match=out.CoreMatch(
-                        check_id=out.RuleId(rule.id),
-                        path=out.Fpath(str(lockfile_path)),
-                        start=out.Position(found_dep.line_number or 1, 1, 1),
-                        end=out.Position(
-                            (found_dep.line_number if found_dep.line_number else 1),
-                            1,
-                            1,
-                        ),
-                        # TODO: we need to define the fields below in
-                        # Output_from_core.atd so we can reuse out.MatchExtra
-                        extra=out.CoreMatchExtra(
-                            metavars=out.Metavars({}),
-                            engine_kind=out.EngineOfFinding(out.OSS()),
-                            is_ignored=False,
-                        ),
-                    ),
-                    extra={
-                        "sca_info": out.ScaMatch(
-                            sca_finding_schema=SCA_FINDING_SCHEMA,
-                            reachable=False,
-                            reachability_rule=rule.should_run_on_semgrep_core,
-                            dependency_match=dep_match,
-                        )
-                    },
+                    match=core_match,
+                    # TODO: remove, sca_info is now part of core_match
+                    extra={"sca_info": sca_match},
                 )
                 match = evolve(
                     match, match_based_index=match_based_keys[match.match_based_key]
                 )
                 match_based_keys[match.match_based_key] += 1
                 non_reachable_matches.append(match)
+
+    if x_tr:
+        logger.info(f"SCA TR is on!")
+        transitive_findings = [
+            out.TransitiveFinding(m=rm.match) for rm in non_reachable_matches
+        ]
+        res = rpc_call.transitive_reachability_filter(transitive_findings)
+        logger.info(f"TR result = {res}")
+        # TODO: result is ignored for now but we should reset the
+        # match field of non_reachable_matches and return them
 
     return non_reachable_matches, dep_rule_errors
 
