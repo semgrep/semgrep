@@ -884,7 +884,7 @@ let semgrep_rules_repo_tests () : Testo.t list =
                  Some (String.capitalize_ascii s)
              (* this skips the semgrep-rules/.github entries *)
              | _ ->
-                 Logs.info (fun m -> m "skipping %s" test.name);
+                 Logs.debug (fun m -> m "skipping %s" test.name);
                  None
            in
            group_opt |> Option.map (fun groupname -> (groupname, test)))

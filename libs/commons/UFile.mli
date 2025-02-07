@@ -17,9 +17,14 @@ val follow_symlinks : bool ref
 
 (* use the command 'find' internally and tries to skip files in
  * version control system (vcs) (e.g., .git, _darcs, etc.).
+ *
+ * strict: fail hard (Invalid_argument exception) if the paths given
+ * as arguments don't exist.
+ *
  * Deprecated?
  *)
-val files_of_dirs_or_files_no_vcs_nofilter : Fpath.t list -> Fpath.t list
+val files_of_dirs_or_files_no_vcs_nofilter :
+  ?strict:bool -> Fpath.t list -> Fpath.t list
 
 (*****************************************************************************)
 (* IO *)
@@ -152,7 +157,7 @@ val make_directories : Fpath.t -> unit
 (* Deprecated! *)
 module Legacy : sig
   val files_of_dirs_or_files_no_vcs_nofilter :
-    string (* root *) list -> string (* filename *) list
+    ?strict:bool -> string (* root *) list -> string (* filename *) list
 
   val cat : string (* filename *) -> string list
   val write_file : file:string (* filename *) -> string -> unit
@@ -164,6 +169,7 @@ module Legacy : sig
   val with_open_infile : string (* filename *) -> (in_channel -> 'a) -> 'a
 
   (* NOT IN MAIN API *)
-  val dir_contents : string (* filename *) -> string (* filename *) list
+  val dir_contents :
+    ?strict:bool -> string (* filename *) -> string (* filename *) list
   (** [dir_contents dir] will return a recursive list of all files in a dir *)
 end
