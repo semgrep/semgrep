@@ -761,11 +761,15 @@ val is_directory_eff : path -> bool
 val is_file_eff : path -> bool
 val is_executable_eff : filename -> bool
 val capsule_unix : ('a -> unit) -> 'a -> unit
-val readdir_to_kind_list : string -> Unix.file_kind -> string list
-val readdir_to_dir_list : string -> dirname list
-val readdir_to_file_list : string -> filename list
-val readdir_to_link_list : string -> string list
-val readdir_to_dir_size_list : string -> (string * int) list
+
+(* deprecated, should use CapFS or libs/paths/List_files.mli
+   val readdir_to_kind_list : string -> Unix.file_kind -> string list
+   val readdir_to_dir_list : string -> dirname list
+   val readdir_to_file_list : string -> filename list
+   val readdir_to_link_list : string -> string list
+   val readdir_to_dir_size_list : string -> (string * int) list
+*)
+
 val unixname : unit -> string
 
 val glob : string -> filename list

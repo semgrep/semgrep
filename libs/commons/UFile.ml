@@ -140,7 +140,9 @@ module Legacy = struct
           match f with
           | f when not (USys.file_exists f) -> loop result fs
           | f when USys.is_directory f ->
-              USys.readdir f |> Array.to_list
+              let caps = Cap.readdir_UNSAFE () in
+              let entries = CapFS.read_dir_entries caps (Fpath.v f) in
+              entries
               |> List_.map (Filename.concat f)
               |> List.append fs |> loop result
           | f -> loop (f :: result) fs)

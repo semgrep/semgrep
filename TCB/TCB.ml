@@ -939,8 +939,13 @@ module Filename = struct
   let is_relative = Filename.is_relative
   let quote = Filename.quote
 
+  (* "." *)
+  let current_dir_name = Filename.current_dir_name
+
+  (* ".." *)
+  let parent_dir_name = Filename.parent_dir_name
+
   (* FORBIDDEN:
-     - current_dir_name, parent_dir_name
      - temp files stuff
      - ...
   *)

@@ -2510,8 +2510,8 @@ let capsule_unix f args =
         (Printf.sprintf "exn Unix_error: %s %s %s\n" (Unix.error_message e) fm
            argm)
 
-let (readdir_to_kind_list : string -> Unix.file_kind -> string list) =
- fun path kind ->
+(*
+let readdir_to_kind_list (path : string) (kind : Unix.file_kind) : string list =
   USys.readdir path |> Array.to_list
   |> List.filter (fun s ->
          try
@@ -2537,6 +2537,7 @@ let (readdir_to_dir_size_list : string -> (string * int) list) =
   |> List_.filter_map (fun s ->
          let stat = UUnix.lstat (path ^ "/" ^ s) in
          if stat.st_kind =*= Unix.S_DIR then Some (s, stat.st_size) else None)
+*)
 
 let unixname () =
   let uid = UUnix.getuid () in

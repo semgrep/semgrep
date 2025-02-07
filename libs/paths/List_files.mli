@@ -9,6 +9,7 @@
 (*
    List all files recursively. Exclude folders/directories.
    For further filtering based on file type, use 'list_with_stat'.
+   ex: [list caps "a/" --> ["a/foo.txt"; "a/bar.txt"; "a/b/foobar.txt"]]
 *)
 val list : < Cap.readdir ; .. > -> Fpath.t -> Fpath.t list
 
@@ -49,11 +50,3 @@ val fold_left :
 
 val iter :
   < Cap.readdir ; .. > -> (Fpath.t -> Unix.stats -> unit) -> Fpath.t -> unit
-
-(* internals *)
-
-(* Read the names found in a directory, excluding "." and "..". *)
-val read_dir_entries : < Cap.readdir ; .. > -> Fpath.t -> string list
-
-(* same than read_dir_entries but return single segment Fpath.t *)
-val read_dir_entries_fpath : < Cap.readdir ; .. > -> Fpath.t -> Fpath.t list

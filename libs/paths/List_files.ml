@@ -28,37 +28,11 @@ module Log = Log_paths.Log
 (* Helpers *)
 (*************************************************************************)
 
-let with_dir_handle path func =
-  let dir = Unix.opendir !!path in
-  Common.protect ~finally:(fun () -> Unix.closedir dir) (fun () -> func dir)
-
-(* Read the names found in a directory, excluding "." and "..". *)
-let read_dir_entries (caps : < Cap.readdir ; .. >) path =
-  with_dir_handle path (fun dir ->
-      let rec loop acc =
-        try
-          let name = CapFS.readdir caps#readdir dir in
-          let acc =
-            if
-              name = Filename.current_dir_name (* "." *)
-              || name = Filename.parent_dir_name (* ".." *)
-            then acc
-            else name :: acc
-          in
-          loop acc
-        with
-        | End_of_file -> List.rev acc
-      in
-      loop [])
-
-let read_dir_entries_fpath caps path =
-  read_dir_entries caps path |> List_.map Fpath.v
-
 let rec iter_dir_entries caps func dir names =
   List.iter (iter_dir_entry caps func dir) names
 
 and iter_dir_entry caps func dir name =
-  let path = Fpath.add_seg dir name in
+  let path = dir / name in
   iter caps func path
 
 (*************************************************************************)
@@ -78,7 +52,7 @@ and iter caps func path =
   | None -> ()
 
 and iter_dir caps func dir =
-  let names = read_dir_entries caps dir in
+  let names = CapFS.read_dir_entries caps dir in
   iter_dir_entries caps func dir names
 
 let fold_left caps func init path =

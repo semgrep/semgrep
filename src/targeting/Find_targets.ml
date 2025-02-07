@@ -426,7 +426,7 @@ let walk_skip_and_collect (caps : < Cap.readdir ; .. >) (ign : Gitignore.filter)
             m "listing dir %s (ppath = %s)" !!(dir.fpath)
               (Ppath.to_string_for_tests dir.ppath));
         (* TODO? should we sort them first? *)
-        let entries = List_files.read_dir_entries caps dir.fpath in
+        let entries = CapFS.read_dir_entries caps dir.fpath in
         (* TODO: factorize code with filter_paths? *)
         entries
         |> List.iter (fun name ->

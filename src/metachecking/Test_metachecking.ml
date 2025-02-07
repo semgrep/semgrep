@@ -56,7 +56,9 @@ let test_rules ?(unit_testing = false) (caps : Core_scan.caps) xs =
          let target =
            try
              let d, b, ext = Filename_.dbe_of_filename !!file in
-             Common2.readdir_to_file_list d @ Common2.readdir_to_link_list d
+             let caps = Cap.readdir_UNSAFE () in
+             let entries = CapFS.read_dir_entries caps (Fpath.v d) in
+             entries
              |> List_.find_some (fun file2 ->
                     let path2 = Filename.concat d file2 |> Fpath.v in
                     (* Config files have a single .yaml extension (assumption),

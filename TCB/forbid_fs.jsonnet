@@ -6,6 +6,7 @@ local unix_funcs = [
 ];
 
 local sys_funcs = [
+  'readdir',
 ];
 
 {
@@ -26,7 +27,7 @@ local sys_funcs = [
       languages: ['ocaml'],
       paths: {
         exclude: common.exclude_paths +
-	['CapFS.ml']
+	['CapFS.ml', 'spacegrep/src/lib/Find_files.ml']
       },
       severity: 'ERROR',
       message: |||

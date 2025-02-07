@@ -146,7 +146,8 @@ let find_targets_for_rule (rule_file : Fpath.t) : Fpath.t list =
   let base_no_ext = Fpath.rem_ext base in
   let caps = Cap.readdir_UNSAFE () in
   dir
-  |> List_files.read_dir_entries_fpath caps
+  |> CapFS.read_dir_entries caps
+  |> List_.map Fpath.v
   |> List_.exclude (fun p ->
          Fpath.equal p base || List.mem "fixed" (Fpath_.exts p))
   |> List_.filter_map (fun p ->
