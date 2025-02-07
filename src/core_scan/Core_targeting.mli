@@ -6,7 +6,7 @@
    by the legacy semgrep-core input interface.
 *)
 
-(* reused in semgrep-server in pro and for Git_remote.ml in pro *)
+(* reused for Git_remote.ml in pro *)
 val split_jobs_by_language :
   Find_targets.conf -> Rule.t list -> Fpath.t list -> Lang_job.t list
 
