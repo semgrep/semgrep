@@ -369,21 +369,6 @@ let map_modify_specifier (env : env) ((v1, v2) : CST.modify_specifier) =
   let v2 = (* "_modify" *) str env v2 in
   v2
 
-let map_constructor_function_decl (env : env)
-    ((v1, v2) : CST.constructor_function_decl) =
-  (* TODO special-case the constructor somehow? *)
-  let v1 = (* "init" *) str env v1 in
-  (* Bangs won't change the type, so we don't care about them. Question marks will, though. *)
-  let is_quest =
-    match v2 with
-    | Some x -> (
-        match x with
-        | `Quest _tok -> (* "?" *) true
-        | `Bang _tok -> (* bang *) false)
-    | None -> false
-  in
-  (is_quest, v1)
-
 let map_additive_operator (env : env) (x : CST.additive_operator) :
     G.operator * G.ident =
   match x with
@@ -2162,11 +2147,7 @@ and map_modifierless_function_declaration_no_body (env : env) ~in_class
     ?(attrs = [])
     ((v1, v2, v3, v4, v5, v6, v7) :
       CST.modifierless_function_declaration_no_body) (body : G.function_body) =
-  let is_quest, v1 =
-    match v1 with
-    | `Cons_func_decl x -> map_constructor_function_decl env x
-    | `Non_cons_func_decl x -> (false, map_non_constructor_function_decl env x)
-  in
+  let is_quest, v1 = (false, map_non_constructor_function_decl env v1) in
   let v2 = Option.map (map_type_parameters env) v2 in
   let fparams = map_function_value_parameters env v3 in
   let rettype_attrs =
@@ -2281,7 +2262,7 @@ and map_willset_clause (env : env)
       },
       G.FuncDef
         {
-          fkind = (G.Function, tok);
+          G.fkind = (G.Function, tok);
           (* TODO: NinjaLikesCheez this currently doesn't infer the type of the parameter (or indeed set it) *)
           fparams = fb [];
           frettype = None;
@@ -2309,7 +2290,7 @@ and map_didset_clause (env : env)
       },
       G.FuncDef
         {
-          fkind = (G.Function, tok);
+          G.fkind = (G.Function, tok);
           (* TODO: NinjaLikesCheez this currently doesn't infer the type of the parameter (or indeed set it) *)
           fparams = fb [];
           frettype = None;
@@ -2741,6 +2722,7 @@ and map_protocol_member_declaration (env : env)
   | `Typeas_decl x -> G.F (map_typealias_declaration env x)
   | `Asso_decl x -> G.F (map_associatedtype_declaration env x)
   | `Subs_decl x -> G.F (map_subscript_declaration env x)
+  | `Init_decl x -> G.F (map_init_declaration env x)
 
 and map_protocol_member_declarations (env : env)
     ((v1, v2, v3) : CST.protocol_member_declarations) : G.field list =
@@ -3169,7 +3151,9 @@ and map_type_level_declaration (env : env) (x : CST.type_level_declaration) :
       | `Subs_decl x -> [ map_subscript_declaration env x ]
       | `Op_decl x -> [ map_operator_declaration env x ]
       | `Prec_group_decl x -> [ map_precedence_group_declaration env x ]
-      | `Asso_decl x -> [ map_associatedtype_declaration env x ])
+      | `Asso_decl x -> [ map_associatedtype_declaration env x ]
+      | `Init_decl x -> [ map_init_declaration env x ]
+    )
   | `Semg_ellips tok (* "..." *) ->
       let tok = (* three_dot_operator_custom *) token env tok in
       [ G.ExprStmt (G.Ellipsis tok |> G.e, G.sc) |> G.s ]
@@ -3505,6 +3489,38 @@ and map_external_macro_definition (env : env)
   let v2 = map_expr_hack_at_ternary_binary_call_suffix env v2 in
   G.Call (G.N (H2.name_of_id v1) |> G.e, v2) |> G.e
 
+and map_init_declaration (env : env) ((v1, v2, v3, _, v5, v6, v7, v8, v9, v10) : CST.init_declaration) =
+  let v1 = map_modifiers_opt env v1 in
+  let v2 = (* "class" *) Option.map (token env) v2 in
+  let v3 = (* "init" *) token env v3 in
+  (* We don't have access to the type, so we can't add optionality *)
+  let v5 = Option.map (map_type_parameters env) v5 in
+  let v6 = map_function_value_parameters env v6 in
+  let v7 = (* async *) Option.map (map_async_keyword env) v7 in
+  let v8 = (* throws *) Option.map (map_throws env) v8 in
+  let v9 = Option.map (map_type_constraints env) v9 in
+  let v10 = Option.map (map_function_body env) v10 in
+  let fbody = match v10 with
+    | Some x -> G.FBStmt x
+    | None -> G.FBNothing
+  in
+
+  let attrs = v1 @ Option.to_list v7 @ Option.to_list v8 @ Option.value ~default:[] v9 in
+
+  G.DefStmt (
+    {
+      name = G.EN (G.Id (("init", v3), G.empty_id_info ()));
+      attrs = attrs;
+      tparams = v5;
+    },
+    G.FuncDef {
+      fkind = (G.Method, Tok.combine_toks (Option.value ~default:(Tok.unsafe_fake_tok "") v2) [v3]);
+      fparams = fb v6;
+      frettype = None;
+      fbody = fbody;
+    }
+  ) |> G.s
+
 let map_global_declaration (env : env) (x : CST.global_declaration) :
     G.stmt list =
   match x with
@@ -3518,6 +3534,7 @@ let map_global_declaration (env : env) (x : CST.global_declaration) :
   | `Prec_group_decl x -> [ map_precedence_group_declaration env x ]
   | `Asso_decl x -> [ map_associatedtype_declaration env x ]
   | `Macro_decl x -> [ map_macro_declaration env x ]
+  | `Init_decl x -> [ map_init_declaration env x ]
 
 let map_top_level_statement (env : env) (x : CST.top_level_statement)
     (semi : CST.semi option) =
