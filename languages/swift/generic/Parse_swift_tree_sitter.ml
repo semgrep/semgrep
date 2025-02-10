@@ -306,6 +306,9 @@ let map_property_modifier (env : env) (x : CST.property_modifier) =
   | `Class tok ->
       (* "class" *)
       G.unhandled_keywordattr (str env tok)
+  | `Dist tok ->
+      (* "distributed" *)
+      G.attr G.Distributed (token env tok)
 
 let map_parameter_modifier (env : env) (x : CST.parameter_modifier) =
   (* TODO? I don't think any of these will actually matter.

@@ -394,3 +394,9 @@ struct Foo {
 protocol Bar {
 	consuming func foo()
 }
+
+distributed func foo() { }
+distributed actor Worker {
+	distributed func foo() { }
+	distributed var bar: Int
+}
