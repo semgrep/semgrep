@@ -4,6 +4,7 @@ type caps =
   ; Cap.exec
   ; Cap.tmp
   ; Cap.chdir
+  ; Cap.readdir
   ; Cap.fork
   ; Cap.time_limit
   ; Cap.memory_limit >

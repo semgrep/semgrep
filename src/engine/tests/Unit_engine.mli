@@ -3,7 +3,7 @@
    to the current location. Having them created on demand allows running
    'dune utop' from any location.
 *)
-val tests : unit -> Testo.t list
+val tests : < Cap.readdir ; .. > -> Testo.t list
 
 type fix_type =
   | Fix of string

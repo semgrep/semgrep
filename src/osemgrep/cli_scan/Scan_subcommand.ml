@@ -41,6 +41,8 @@ type caps =
      * differential scans as we use Git_wrapper.run_with_worktree.
      *)
     Cap.chdir
+  ; (* for Test_subcommand dispatch and Core_scan scanning root targeting *)
+    Cap.readdir
   ; (* for Parmap in Core_scan *)
     Cap.fork
   ; (* for Check_rules timeout *)
@@ -697,22 +699,14 @@ let run_scan_conf (caps : < caps ; .. >) (conf : Scan_CLI.conf) : Exit_code.t =
       (* step2: getting the targets *)
       Logs.info (fun m -> m "Computing the targets");
       let targets_and_skipped =
-        let caps = Cap.readdir_UNSAFE () in
         Find_targets.get_target_fpaths caps conf.targeting_conf
           conf.target_roots
       in
 
-      (* step3: let's go *)
+      (* step3: let's go (no need for network caps from now on) *)
       let res =
-        check_targets_with_rules
-          (caps
-            :> < Cap.stdout
-               ; Cap.chdir
-               ; Cap.tmp
-               ; Cap.fork
-               ; Cap.time_limit
-               ; Cap.memory_limit >)
-          conf profiler rules_and_origins targets_and_skipped
+        check_targets_with_rules caps conf profiler rules_and_origins
+          targets_and_skipped
       in
 
       (* step4: exit with the right exit code *)
@@ -797,14 +791,7 @@ let run_conf (caps : < caps ; .. >) (conf : Scan_CLI.conf) : Exit_code.t =
       (* TOPORT: if enable_version_check: version_check() *)
       Exit_code.ok ~__LOC__
   | _ when conf.test <> None ->
-      Test_subcommand.run_conf
-        (caps
-          :> < Cap.stdout
-             ; Cap.fork
-             ; Cap.time_limit
-             ; Cap.memory_limit
-             ; Cap.tmp >)
-        (Common2.some conf.test)
+      Test_subcommand.run_conf caps (Common2.some conf.test)
   | _ when conf.validate <> None ->
       Validate_subcommand.run_conf
         (caps
@@ -820,8 +807,8 @@ let run_conf (caps : < caps ; .. >) (conf : Scan_CLI.conf) : Exit_code.t =
         (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >)
         (Common2.some conf.show)
   | _ when conf.ls ->
-      Ls_subcommand.run ~target_roots:conf.target_roots
-        ~targeting_conf:conf.targeting_conf ~format:conf.ls_format ()
+      Ls_subcommand.run caps ~target_roots:conf.target_roots
+        ~targeting_conf:conf.targeting_conf ~format:conf.ls_format
   | _ ->
       (* --------------------------------------------------------- *)
       (* Let's go, this is an actual scan subcommand *)

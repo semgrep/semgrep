@@ -13,8 +13,8 @@ type format = Paths_only | Long [@@deriving show]
 
 let default_format = Paths_only
 
-let run ~target_roots ~targeting_conf:conf ~format () =
-  let caps = Cap.readdir_UNSAFE () in
+let run (caps : < Cap.readdir ; .. >) ~target_roots ~targeting_conf:conf ~format
+    =
   let selected, errors, skipped =
     Find_targets.get_target_fpaths caps conf target_roots
   in

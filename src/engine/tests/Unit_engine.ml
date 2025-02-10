@@ -763,11 +763,11 @@ let lang_tainting_tests () =
 (* DEPRECATED: this is redundant because we now have 'make rules-test'
  * which calls 'osemgrep-pro test --pro tests/rules tests/rules_v2'
  *)
-let full_rule_regression_tests () =
+let full_rule_regression_tests (caps : < Cap.readdir ; .. >) =
   let path = tests_path / "rules" in
-  let tests1 = Test_engine.make_tests ~prepend_lang:true [ path ] in
+  let tests1 = Test_engine.make_tests ~prepend_lang:true caps [ path ] in
   let path = tests_path / "rules_v2" in
-  let tests2 = Test_engine.make_tests ~prepend_lang:true [ path ] in
+  let tests2 = Test_engine.make_tests ~prepend_lang:true caps [ path ] in
   let tests = tests1 @ tests2 in
   let groups =
     tests
@@ -795,9 +795,9 @@ let full_rule_regression_tests () =
  * DEPRECATED: this is redundant because we now have 'make rules-test'
  * which calls 'osemgrep-pro test --pro tests/taint_maturity'
  *)
-let full_rule_taint_maturity_tests () =
+let full_rule_taint_maturity_tests caps =
   let path = tests_path / "taint_maturity" in
-  Testo.categorize "taint maturity" (Test_engine.make_tests [ path ])
+  Testo.categorize "taint maturity" (Test_engine.make_tests caps [ path ])
 
 (*
    Special exclusions for Semgrep JS
@@ -825,9 +825,9 @@ let mark_todo_js (test : Testo.t) =
  * DEPRECATED: this is redundant because we now have 'make rules-test'
  * which calls 'osemgrep-pro test --pro tests/semgrep-rules'
  *)
-let semgrep_rules_repo_tests () : Testo.t list =
+let semgrep_rules_repo_tests caps : Testo.t list =
   let path = tests_path / "semgrep-rules" in
-  let tests = Test_engine.make_tests [ path ] in
+  let tests = Test_engine.make_tests caps [ path ] in
   let groups =
     tests
     |> List_.filter_map (fun (test : Testo.t) ->
@@ -912,7 +912,7 @@ let semgrep_rules_repo_tests () : Testo.t list =
 (* All tests *)
 (*****************************************************************************)
 
-let tests () =
+let tests (caps : < Cap.readdir ; .. >) =
   List_.flatten
     [
       (* full testing for many languages *)
@@ -922,7 +922,7 @@ let tests () =
       filter_irrelevant_rules_tests ();
       lang_tainting_tests ();
       maturity_tests ();
-      full_rule_taint_maturity_tests ();
-      full_rule_regression_tests ();
-      semgrep_rules_repo_tests ();
+      full_rule_taint_maturity_tests caps;
+      full_rule_regression_tests caps;
+      semgrep_rules_repo_tests caps;
     ]

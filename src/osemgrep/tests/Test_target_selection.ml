@@ -7,13 +7,12 @@ open Printf
 (*
    List targets by invoking Find_targets.get_targets directly.
 *)
-let list_targets_internal ?(conf = Find_targets.default_conf) ?roots () =
+let list_targets_internal ?(conf = Find_targets.default_conf) ?roots caps =
   let roots =
     match roots with
     | None -> [ Scanning_root.of_string "." ]
     | Some roots -> roots
   in
-  let caps = Cap.readdir_UNSAFE () in
   let selected, _errors, _skipped =
     Find_targets.get_target_fpaths caps conf roots
   in
@@ -49,16 +48,16 @@ type repo_with_tests = {
 
 let test_list_from_project_root =
   ( "list target files from project root (internal)",
-    fun _caps -> list_targets_internal () )
+    fun caps -> list_targets_internal caps )
 
 let test_cli_list_from_project_root =
   ("list target files from project root", fun caps -> osemgrep_ls caps)
 
 let test_list_targets_from_subdir ?roots cwd =
-  let func _caps =
+  let func caps =
     Testutil_files.with_chdir cwd (fun () ->
         printf "cwd: %s\n" (Sys.getcwd ());
-        list_targets_internal ?roots ())
+        list_targets_internal ?roots caps)
   in
   let name = "list target files from " ^ Fpath.to_string cwd in
   (name, func)

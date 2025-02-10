@@ -11,19 +11,23 @@ val make_tests :
   ?get_analyzer:(Fpath.t -> Rule.rules -> Analyzer.t) ->
   (* default to false *)
   ?prepend_lang:bool ->
+  < Cap.readdir ; .. > ->
   Fpath.t list ->
   Testo.t list
 
 (* For Pro tests *)
 val collect_tests :
   ?get_analyzer:(Fpath.t -> Rule.rules -> Analyzer.t) ->
+  < Cap.readdir ; .. > ->
   Fpath.t list (* roots *) ->
   (Fpath.t (* rule file *) * Fpath.t (* target file *) * Analyzer.t) list
 
 (* helpers used in Test_subcommand.ml
  * TODO? Move in Rule_tests.mli?
  *)
-val find_target_of_yaml_file_opt : Fpath.t -> Fpath.t option
+val find_target_of_yaml_file_opt :
+  < Cap.readdir ; .. > -> Fpath.t -> Fpath.t option
+
 val analyzers_of_rules : Rule.t list -> Analyzer.t list
 val first_analyzer_of_rules : Rule.t list -> Analyzer.t
 val xtarget_of_file : Analyzer.t -> Fpath.t -> Xtarget.t

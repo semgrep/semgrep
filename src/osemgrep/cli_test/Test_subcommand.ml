@@ -51,14 +51,13 @@ module A = Test_annotation
 (*****************************************************************************)
 (* Types and constants *)
 (*****************************************************************************)
-(* = Cap.stdout + Core_scan.caps + Cap.tmp (for Deep_scan.caps)
+(* = Cap.tmp is for Deep_scan.caps
  * (no need for Cap.network; the tested rules should be local)
  *)
-type caps =
-  < Cap.stdout ; Cap.fork ; Cap.time_limit ; Cap.memory_limit ; Cap.tmp >
+type caps = < Cap.stdout ; Core_scan.caps ; Cap.tmp ; Cap.readdir >
 
 (* Core_scan.caps | Deep_scan.caps *)
-type scan_caps = < Cap.fork ; Cap.time_limit ; Cap.memory_limit ; Cap.tmp >
+type scan_caps = < Core_scan.caps ; Cap.tmp >
 
 (* Rules and targets to test together.
  * Usually the target list contains just one file, but in some cases
@@ -140,11 +139,11 @@ let hook_deep_scan :
 (*****************************************************************************)
 
 (* TODO? Move to Rule_tests.ml? *)
-let find_targets_for_rule (rule_file : Fpath.t) : Fpath.t list =
+let find_targets_for_rule (caps : < Cap.readdir ; .. >) (rule_file : Fpath.t) :
+    Fpath.t list =
   let dir, base = Fpath.split_base rule_file in
   (* ex: "useless-if" (without the ".yaml") *)
   let base_no_ext = Fpath.rem_ext base in
-  let caps = Cap.readdir_UNSAFE () in
   dir
   |> CapFS.read_dir_entries caps
   |> List_.map Fpath.v
@@ -156,8 +155,8 @@ let find_targets_for_rule (rule_file : Fpath.t) : Fpath.t list =
            Some (dir // p)
          else None)
 
-let rules_and_targets (kind : Test_CLI.target_kind) (errors : error list ref) :
-    tests =
+let rules_and_targets (caps : < Cap.readdir ; .. >)
+    (kind : Test_CLI.target_kind) (errors : error list ref) : tests =
   match kind with
   | Test_CLI.Dir (dir, None) ->
       (* coupling: similar to Test_engine.test_rules() *)
@@ -167,7 +166,7 @@ let rules_and_targets (kind : Test_CLI.target_kind) (errors : error list ref) :
       in
       rule_files
       |> List_.filter_map (fun (rule_file : Fpath.t) ->
-             match find_targets_for_rule rule_file with
+             match find_targets_for_rule caps rule_file with
              | [] ->
                  (* stricter: (but reported via config_missing_tests in JSON)*)
                  Logs.warn (fun m ->
@@ -861,7 +860,7 @@ let run_conf (caps : < caps ; .. >) (conf : Test_CLI.conf) : Exit_code.t =
   (* We now support multiple targets (e.g., .jsx/.tsx) analyzed independently.
    * TODO: multiple targets analyzed together for --pro interfile analysis.
    *)
-  let tests : tests = rules_and_targets conf.target errors in
+  let tests : tests = rules_and_targets caps conf.target errors in
 
   (* step2: run the tests *)
   let result : tests_result = run_tests caps conf tests errors in

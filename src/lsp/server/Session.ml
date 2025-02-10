@@ -38,14 +38,8 @@ let scan_config_parser_ref = ref OutJ.scan_config_of_string
 (* Types *)
 (*****************************************************************************)
 
-(* =~ Core_scan.caps + random + network + tmp *)
 type caps =
-  < Cap.random
-  ; Cap.network
-  ; Cap.tmp
-  ; Cap.fork
-  ; Cap.time_limit
-  ; Cap.memory_limit >
+  < Core_scan.caps ; Cap.random ; Cap.network ; Cap.tmp ; Cap.readdir >
 
 (* We really don't want mutable state in the server.
    This is the only exception since this stuff requires network requests that
@@ -133,14 +127,13 @@ let decode_rules caps data =
           (* There shouldn't be any errors, because we got these rules from CI. *)
           failwith "impossible: received invalid rules from Deployment")
 
-let get_targets session (root : Fpath.t) =
-  let caps = Cap.readdir_UNSAFE () in
+let get_targets (session : t) (root : Fpath.t) =
   let targets_conf =
     User_settings.find_targets_conf_of_t session.user_settings
   in
   let proj_root = Rfpath.of_fpath_exn root in
   let targets, _errors, _skipped_targets =
-    Find_targets.get_target_fpaths caps
+    Find_targets.get_target_fpaths session.caps
       {
         targets_conf with
         force_project_root = Some (Find_targets.Filesystem proj_root);

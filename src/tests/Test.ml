@@ -141,9 +141,9 @@ let tests (caps : Cap.all_caps) =
       Unit_matcher.tests ~any_gen_of_string;
       (* TODO Unit_matcher.spatch_unittest ~xxx *)
       (* TODO Unit_matcher_php.unittest; sgrep/spatch/refactoring/unparsing *)
-      Unit_engine.tests ();
+      Unit_engine.tests (caps :> < Cap.readdir >);
       Unit_jsonnet.tests (caps :> < Cap.time_limit >);
-      Unit_metachecking.tests (caps :> Core_scan.caps);
+      Unit_metachecking.tests (caps :> < Core_scan.caps ; Cap.readdir >);
       (* osemgrep unit tests *)
       Unit_LS.tests (caps :> Session.caps);
       Unit_Login.tests caps;

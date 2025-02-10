@@ -1,6 +1,5 @@
-(* = Cap.stdout + Core_scan.caps | Deep_scan.caps *)
-type caps =
-  < Cap.stdout ; Cap.fork ; Cap.time_limit ; Cap.memory_limit ; Cap.tmp >
+(* tmp is for Deep_scan.caps *)
+type caps = < Cap.stdout ; Core_scan.caps ; Cap.tmp ; Cap.readdir >
 
 (*
    Parse a semgrep-test command, execute it and exit.

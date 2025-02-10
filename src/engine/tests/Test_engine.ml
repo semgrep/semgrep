@@ -91,9 +91,9 @@ let xtarget_of_file (analyzer : Analyzer.t) (target : Fpath.t) : Xtarget.t =
 (* target helpers *)
 (*****************************************************************************)
 
-let find_target_of_yaml_file_opt (file : Fpath.t) : Fpath.t option =
+let find_target_of_yaml_file_opt (caps : < Cap.readdir ; .. >) (file : Fpath.t)
+    : Fpath.t option =
   let d, b, ext = Filename_.dbe_of_filename !!file in
-  let caps = Cap.readdir_UNSAFE () in
   let entries = CapFS.read_dir_entries caps (Fpath.v d) in
   entries
   |> List_.find_some_opt (fun file2 ->
@@ -118,8 +118,8 @@ let find_target_of_yaml_file_opt (file : Fpath.t) : Fpath.t option =
              then Some (Fpath.v path2)
              else None)
 
-let find_target_of_yaml_file (file : Fpath.t) : Fpath.t =
-  match find_target_of_yaml_file_opt file with
+let find_target_of_yaml_file caps (file : Fpath.t) : Fpath.t =
+  match find_target_of_yaml_file_opt caps file with
   | Some x -> x
   | None -> failwith (spf "could not find a target for %s" !!file)
 
@@ -185,7 +185,8 @@ let check_parse_errors (rule_file : Fpath.t) (errors : Core_error.ErrorSet.t) :
 (* Main logic *)
 (*****************************************************************************)
 
-let read_rules_file ~get_analyzer ?fail_callback rule_file =
+let read_rules_file ~get_analyzer ?fail_callback (caps : < Cap.readdir ; .. >)
+    rule_file =
   match Parse_rule.parse rule_file with
   (* TODO: fail better with invalid rules? *)
   | Error _ -> None
@@ -201,7 +202,7 @@ let read_rules_file ~get_analyzer ?fail_callback rule_file =
       None
   | Ok rules ->
       let analyzer = get_analyzer rule_file rules in
-      let target = find_target_of_yaml_file rule_file in
+      let target = find_target_of_yaml_file caps rule_file in
       Logs.info (fun m ->
           m "processing target %s (with analyzer %s)" !!target
             (Analyzer.to_string analyzer));
@@ -219,10 +220,10 @@ let read_rules_file ~get_analyzer ?fail_callback rule_file =
 
 let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
     ?(get_analyzer = single_analyzer_from_rules) ?(prepend_lang = false)
-    (rule_file : Fpath.t) : Testo.t =
+    (caps : < Cap.readdir ; .. >) (rule_file : Fpath.t) : Testo.t =
   let test () =
     Logs.info (fun m -> m "processing rules  %s" !!rule_file);
-    match read_rules_file ~get_analyzer ~fail_callback rule_file with
+    match read_rules_file ~get_analyzer ~fail_callback caps rule_file with
     | None -> ()
     | Some (rules, target, analyzer) -> (
         (* expected *)
@@ -276,7 +277,7 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
   in
 
   (* end of let test () *)
-  match find_target_of_yaml_file_opt rule_file with
+  match find_target_of_yaml_file_opt caps rule_file with
   | Some target_path ->
       (* This assumes we can guess the target programming language
          from the file extension. *)
@@ -301,16 +302,17 @@ let find_rule_files roots =
  * (or wait that we switch to osemgrep test for our own test infra in which
  * case this whole file will be deleted)
  *)
-let collect_tests ?(get_analyzer = single_analyzer_from_rules)
+let collect_tests ?(get_analyzer = single_analyzer_from_rules) caps
     (xs : Fpath.t list) =
   xs |> find_rule_files
   |> List_.filter_map (fun rule_file ->
          let* _rules, target, analyzer =
-           read_rules_file ~get_analyzer rule_file
+           read_rules_file ~get_analyzer caps rule_file
          in
          Some (rule_file, target, analyzer))
 
-let make_tests ?fail_callback ?get_analyzer ?prepend_lang (xs : Fpath.t list) :
-    Testo.t list =
+let make_tests ?fail_callback ?get_analyzer ?prepend_lang caps
+    (xs : Fpath.t list) : Testo.t list =
   xs |> find_rule_files
-  |> List_.map (make_test_rule_file ?fail_callback ?get_analyzer ?prepend_lang)
+  |> List_.map
+       (make_test_rule_file ?fail_callback ?get_analyzer ?prepend_lang caps)

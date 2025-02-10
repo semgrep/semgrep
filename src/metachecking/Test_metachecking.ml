@@ -31,7 +31,8 @@ module TCM = Test_compare_matches
 (* Entry point *)
 (*****************************************************************************)
 
-let test_rules ?(unit_testing = false) (caps : Core_scan.caps) xs =
+let test_rules ?(unit_testing = false)
+    (caps : < Core_scan.caps ; Cap.readdir ; .. >) xs =
   let fullxs =
     xs
     |> File_type.files_of_dirs_or_files (function
@@ -56,7 +57,6 @@ let test_rules ?(unit_testing = false) (caps : Core_scan.caps) xs =
          let target =
            try
              let d, b, ext = Filename_.dbe_of_filename !!file in
-             let caps = Cap.readdir_UNSAFE () in
              let entries = CapFS.read_dir_entries caps (Fpath.v d) in
              entries
              |> List_.find_some (fun file2 ->

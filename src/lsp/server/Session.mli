@@ -5,14 +5,8 @@ val scan_config_parser_ref : (string -> Semgrep_output_v1_t.scan_config) ref
 (** [scan_config_parser_ref] is a reference to a function that parses a scan
     config from a string *)
 
-(* =~ Core_scan.caps + random + network + tmp *)
 type caps =
-  < Cap.random
-  ; Cap.network
-  ; Cap.tmp
-  ; Cap.fork
-  ; Cap.time_limit
-  ; Cap.memory_limit >
+  < Core_scan.caps ; Cap.random ; Cap.network ; Cap.tmp ; Cap.readdir >
 
 type session_cache = {
   mutable rules : Rule.t list;

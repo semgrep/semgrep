@@ -1,1 +1,1 @@
-val tests : Core_scan.caps -> Testo.t list
+val tests : < Core_scan.caps ; Cap.readdir ; .. > -> Testo.t list
