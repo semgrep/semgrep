@@ -382,3 +382,15 @@ struct WillSetDidSet {
     didSet(identifier) { print(identifier) }
   }
 }
+
+func foo(_ bar: borrowing Bar) { }
+func foo(_ bar: consuming Bar) { }
+let f: (borrowing Foo) -> Void = { a in a.foo() }
+let f: (consuming Foo) -> Void = { a in a.foo() }
+struct Foo {
+  consuming func foo() {}
+  borrowing func foo() {}
+}
+protocol Bar {
+	consuming func foo()
+}

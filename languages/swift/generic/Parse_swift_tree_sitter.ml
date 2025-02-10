@@ -322,6 +322,9 @@ let map_parameter_modifier (env : env) (x : CST.parameter_modifier) =
   | `ATau tok ->
       (* "@autoclosure" *)
       G.unhandled_keywordattr (str env tok)
+  | `Param_owne_modi x -> match x with
+    | `Borr tok -> (* "borrowing" *) G.unhandled_keywordattr (str env tok)
+    | `Cons tok -> (* "consuming" *) G.unhandled_keywordattr (str env tok)
 
 let map_throws (env : env) (x : CST.throws) : G.attribute =
   match x with
@@ -434,6 +437,9 @@ let map_simple_identifier (env : env) (x : CST.simple_identifier) : G.ident =
   | `Tok_dollar_pat_88eeeaa tok -> (* tok_dollar_pat_9d0cc04 *) str env tok
   | `Actor tok -> (* "actor" *) str env tok
   | `Lazy tok -> (* "lazy" *) str env tok
+  | `Param_owne_modi x -> match x with
+    | `Borr tok -> (* "borrowing" *) str env tok
+    | `Cons tok -> (* "consuming" *) str env tok
 
 let map_bound_identifier (env : env) (x : CST.bound_identifier) =
   map_simple_identifier env x
