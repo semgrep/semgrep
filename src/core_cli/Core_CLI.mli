@@ -9,6 +9,7 @@ val profile : bool ref
 val log_to_file : Fpath.t option ref
 val trace : bool ref
 val env_extra : string
+val symbol_analysis : bool ref
 
 (* compute Core_scan_config.t given command-line flags *)
 val mk_config : unit -> Core_scan_config.t

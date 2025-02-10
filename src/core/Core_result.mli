@@ -35,6 +35,12 @@ type t = {
   explanations : Matching_explanation.t list option;
   rules_by_engine : (Rule_ID.t * Engine_kind.t) list;
   interfile_languages_used : Analyzer.t list;
+  (* Scan-adjacent information optionally collected to enable
+     SSC features.
+     This information must be collected here, at the point that we
+     return from the core engine.
+  *)
+  symbol_analysis : Semgrep_output_v1_t.symbol_analysis option;
 }
 [@@deriving show]
 

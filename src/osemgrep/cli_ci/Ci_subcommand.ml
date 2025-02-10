@@ -744,7 +744,6 @@ let findings_and_complete ~has_blocking_findings ~commit_date ~engine_requested
       contributions = Some contributions;
       (* TODO: Figure out correct value for this. *)
       dependencies = None;
-      symbol_analysis = None;
     }
   in
   if
@@ -968,6 +967,7 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
         dependency_query = _;
         path_to_transitivity = _;
         scan_all_deps_in_diff_scan = _;
+        symbol_analysis;
         ignored_files = _;
         product_ignored_files = _;
         generic_slow_rollout = _;
@@ -976,6 +976,16 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
       };
   } : Out.scan_response =
     scan_response
+  in
+
+  (* coupling(symbol-analysis): we should update our config with the
+     scan-relevant flags we receive from our scan config
+  *)
+  let conf =
+    {
+      conf with
+      core_runner_conf = { conf.core_runner_conf with symbol_analysis };
+    }
   in
 
   (* TODO:
@@ -1043,7 +1053,7 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
         app.report_failure caps' ~scan_id e;
         Logs.err (fun m -> m "Encountered error when running rules");
         e
-    | Ok (filtered_rules, _res, cli_output) ->
+    | Ok (filtered_rules, res, cli_output) ->
         (* step5: upload the findings *)
         let _cai_rules, blocking_rules, non_blocking_rules =
           partition_rules filtered_rules
@@ -1088,6 +1098,14 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
           upload_findings caps' app deployment_name scan_id prj_meta
             blocking_findings filtered_rules cli_output
         in
+        (* Upload scan-adjacent information, such as symbol analysis
+           (needed for SSC features)
+           This will not return anything interesting, but will report its
+           status in the logs. We shouldn't let symbol analysis affect
+           the actual scan's behavior.
+        *)
+        Semgrep_App.upload_symbol_analysis caps' scan_id
+          res.core.symbol_analysis;
         let audit_mode = false in
         (* TODO: audit_mode = metadata.event_name in audit_on *)
         exit_code_of_blocking_findings ~audit_mode ~on:prj_meta.on

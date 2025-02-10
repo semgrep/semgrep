@@ -19,6 +19,10 @@ type conf = {
   time_flag : bool;
   matching_explanations : bool;
   dataflow_traces : bool;
+  (* extra scan-adjacent information
+     only set by the scan config from the app
+  *)
+  symbol_analysis : bool;
 }
 [@@deriving show]
 

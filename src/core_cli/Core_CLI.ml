@@ -116,6 +116,12 @@ let filter_irrelevant_rules =
   ref Core_scan_config.default.filter_irrelevant_rules
 
 (* ------------------------------------------------------------------------- *)
+(* scan-adjacent information *)
+(* ------------------------------------------------------------------------- *)
+
+let symbol_analysis = ref Core_scan_config.default.symbol_analysis
+
+(* ------------------------------------------------------------------------- *)
 (* pad's action flag *)
 (* ------------------------------------------------------------------------- *)
 
@@ -359,6 +365,8 @@ let mk_config () : Core_scan_config.t =
                  without -trace.");
           None
       | false, None -> None);
+    (* only settable via the Pro binary *)
+    symbol_analysis = !symbol_analysis;
   }
 
 (*****************************************************************************)

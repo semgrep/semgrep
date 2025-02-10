@@ -84,6 +84,12 @@ val fetch_scan_config_string_async :
     rules (as a RAW string containing JSON data) for the provided
     configuration. *)
 
+val upload_symbol_analysis :
+  < Cap.network ; Auth.cap_token ; .. > ->
+  scan_id:int ->
+  Semgrep_output_v1_t.symbol_analysis option ->
+  unit
+
 (*****************************************************************************)
 (* Async variants of functions above *)
 (*****************************************************************************)
@@ -114,3 +120,9 @@ val upload_rule_to_registry_async :
   < Cap.network ; Auth.cap_token ; .. > ->
   JSON.yojson ->
   (string, string) result Lwt.t
+
+val upload_symbol_analysis_async :
+  < Cap.network ; Auth.cap_token ; .. > ->
+  scan_id:int ->
+  Semgrep_output_v1_t.symbol_analysis option ->
+  unit Lwt.t

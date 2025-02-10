@@ -682,6 +682,7 @@ let core_output_of_matches_and_errors (res : Core_result.t) : Out.core_output =
         (List_.map (fun l -> Analyzer.to_string l) res.interfile_languages_used);
     engine_requested = Some `OSS;
     version = Version.version;
+    symbol_analysis = res.symbol_analysis;
   }
 [@@profiling]
 

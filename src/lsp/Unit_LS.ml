@@ -97,6 +97,7 @@ let mock_run_results (files : string list) : Core_runner.result =
       (* If the engine requested is OSS, there must be no
          interfile requested languages *)
       interfile_languages_used = Some [];
+      symbol_analysis = None;
     }
   in
   Core_runner_result.{ core; hrules; scanned }

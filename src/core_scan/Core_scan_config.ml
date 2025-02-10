@@ -77,6 +77,7 @@ type t = {
   filter_irrelevant_rules : bool;
   (* telemetry *)
   tracing : Tracing.config option;
+  symbol_analysis : bool;
 }
 [@@deriving show]
 
@@ -116,4 +117,5 @@ let default =
     filter_irrelevant_rules = true;
     (* debugging and telemetry flags *)
     tracing = None;
+    symbol_analysis = false;
   }

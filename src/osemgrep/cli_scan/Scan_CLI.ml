@@ -1402,6 +1402,8 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
         strict;
         time_flag;
         matching_explanations;
+        (* only relevant for CI scans *)
+        symbol_analysis = Core_runner.default_conf.symbol_analysis;
       }
     in
     let include_ =

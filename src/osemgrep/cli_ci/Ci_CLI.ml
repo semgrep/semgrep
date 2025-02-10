@@ -282,6 +282,8 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
         strict = false;
         time_flag = false;
         matching_explanations;
+        (* coupling(symbol-analysis): this will be set later by the scan config *)
+        symbol_analysis = false;
       }
     in
     let include_ =

@@ -530,6 +530,11 @@ let cli_output_of_runner_result ~fixed_lines (core : Out.core_output)
    (* LATER *)
    rules_by_engine = _;
    engine_requested = _;
+   (* We deliberately choose not to embed the symbol analysis into the CLI
+      output, as it is conceivably quite large and irrelevant information
+      for the actual Semgrep scan.
+   *)
+   symbol_analysis = _;
   } ->
       (* TODO: not sure how it's sorted. Look at rule_match.py keys? *)
       let matches =

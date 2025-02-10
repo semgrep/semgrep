@@ -115,6 +115,8 @@ type t = {
   explanations : Matching_explanation.t list option;
   rules_by_engine : (Rule_ID.t * Engine_kind.t) list;
   interfile_languages_used : Analyzer.t list;
+  (* extra information *)
+  symbol_analysis : Semgrep_output_v1_t.symbol_analysis option;
 }
 [@@deriving show]
 
@@ -148,6 +150,7 @@ let mk_result_with_just_errors (errors : Core_error.t list) : t =
     explanations = None;
     rules_by_engine = [];
     interfile_languages_used = [];
+    symbol_analysis = None;
   }
 
 (* Create a match result *)
@@ -316,4 +319,5 @@ let mk_result (results : Core_profiling.file_profiling match_result list)
     rules_by_engine =
       rules_with_engine |> List_.map (fun (r, ek) -> (fst r.Rule.id, ek));
     interfile_languages_used;
+    symbol_analysis = None;
   }

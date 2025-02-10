@@ -43,6 +43,8 @@ type conf = {
    * even if it was not requested by the CLI
    *)
   dataflow_traces : bool;
+  (* set by the scan config from the app *)
+  symbol_analysis : bool;
 }
 [@@deriving show]
 
@@ -99,6 +101,7 @@ let default_conf : conf =
     time_flag = false;
     nosem = true;
     strict = false;
+    symbol_analysis = false;
   }
 
 (*****************************************************************************)
@@ -167,6 +170,7 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
    time_flag;
    (* TODO *)
    dataflow_traces = _;
+   symbol_analysis;
   } ->
       (* We do our own output in osemgrep, no need for Core_scan.scan() output *)
       let output_format = Core_scan_config.NoOutput in
@@ -193,6 +197,7 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
         respect_rule_paths = true;
         max_match_per_file = Core_scan_config.default.max_match_per_file;
         tracing = None;
+        symbol_analysis;
       }
 
 (* output adapter to Core_scan.scan.

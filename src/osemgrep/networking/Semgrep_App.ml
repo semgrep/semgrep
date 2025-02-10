@@ -82,6 +82,8 @@ let pro_binary_route (platform_kind : pro_engine_arch) =
   in
   "api/agent/deployments/deepbinary/" ^ arch_str
 
+let symbol_analysis_route scan_id = spf "/api/agent/scans/%d/symbols" scan_id
+
 (*****************************************************************************)
 (* Extractors *)
 (*****************************************************************************)
@@ -438,3 +440,56 @@ let upload_rule_to_registry_async caps json =
 
 let upload_rule_to_registry caps json =
   Lwt_platform.run (upload_rule_to_registry_async caps json)
+
+let upload_symbol_analysis_async caps ~scan_id symbol_analysis : unit Lwt.t =
+  try
+    let url =
+      Uri.with_path !Semgrep_envvars.v.semgrep_url
+        (symbol_analysis_route scan_id)
+    in
+    match symbol_analysis with
+    | None -> Lwt.return_unit
+    | Some symbol_analysis -> (
+        Logs.debug (fun m ->
+            m "Uploading symbol analysis for %d symbols"
+              (List.length symbol_analysis));
+
+        let headers =
+          [
+            ("Content-Type", "application/json");
+            ("User-Agent", spf "Semgrep/%s" Version.version);
+            Auth.auth_header_of_token caps#token;
+          ]
+        in
+        let body = Out.string_of_symbol_analysis symbol_analysis in
+        match%lwt Http_helpers.post ~body ~headers caps#network url with
+        | Ok { body = Ok _body; _ } -> Lwt.return_unit
+        | Ok { body = Error msg; code; _ } ->
+            Logs.warn (fun m ->
+                m
+                  "Failed to upload symbol analysis, API server returned %u, \
+                   this error: %s"
+                  code msg);
+            Lwt.return_unit
+        | Error e ->
+            Logs.warn (fun m -> m "Failed to upload symbol analysis: %s" e);
+            Lwt.return_unit)
+    (* `try ... with exn ->` is horrendous. But hear me out.
+       We are adding this symbol analysis information to arbitrary Semgrep scans, but they are not
+       very related to the actual scan, it's just scan-adjacent information that we want to
+       collect.
+       If there is any error related to symbol analysis, we do _not_ want it to affect the actual
+       scan. Any exception that this raises _cannot_ stop the show.
+       So let's catch it and log unconditionally, but don't crash the program.
+    *)
+  with
+  | exn ->
+      Logs.err (fun m ->
+          m
+            "Got show-stopping exception %s while trying to upload symbol \
+             analysis."
+            (Printexc.to_string exn));
+      Lwt.return_unit
+
+let upload_symbol_analysis caps ~scan_id symbol_analysis =
+  Lwt_platform.run (upload_symbol_analysis_async caps ~scan_id symbol_analysis)
