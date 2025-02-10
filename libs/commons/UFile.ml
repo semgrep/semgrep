@@ -206,7 +206,6 @@ let cat path = Legacy.cat !!path
 let cat_array file = "" :: cat file |> Array.of_list
 let write_file ~file data = Legacy.write_file ~file:!!file data
 let read_file ?max_len path = Legacy.read_file ?max_len !!path
-let with_open_out path func = Legacy.with_open_outfile !!path func
 let with_open_in path func = Legacy.with_open_infile !!path func
 
 let filesize file =
@@ -294,6 +293,10 @@ let rec make_directories dir =
       let parent = Fpath.parent dir in
       make_directories parent;
       make_directories dir
+
+let with_open_out ?(make_ancestors = false) path func =
+  if make_ancestors then make_directories (Fpath.parent path);
+  Legacy.with_open_outfile !!path func
 
 let find_first_match_with_whole_line path ?split:(chr = '\n') =
   Bos.OS.File.with_ic path @@ fun ic term ->

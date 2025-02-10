@@ -72,7 +72,17 @@ val read_file : ?max_len:int -> Fpath.t -> string
  *     pr "this goes in foo.txt"
  *   )
  *)
-val with_open_out : Fpath.t -> ((string -> unit) * out_channel -> 'a) -> 'a
+val with_open_out :
+  ?make_ancestors:bool ->
+  Fpath.t ->
+  ((string -> unit) * out_channel -> 'a) ->
+  'a
+(** [with_open_out ~make_ancestors path f] opens, creating if necessary, [path]
+    and applies [f] to the resulting [out_channel].
+
+    If [make_ancestors] is specified and true, it creates any necessary
+    ancestory directories too. *)
+
 val with_open_in : Fpath.t -> (in_channel -> 'a) -> 'a
 
 val find_first_match_with_whole_line :
