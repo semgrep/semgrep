@@ -3021,25 +3021,29 @@ and map_tuple_expression (env : env)
   | _, [ e ] -> e
   | _ -> G.Container (G.Tuple, (v1, exprs, v5)) |> G.e
 
-and map_tuple_type (env : env) ((v1, v2, v3) : CST.tuple_type) =
-  let v1 = (* "(" *) token env v1 in
-  let v2 =
-    match v2 with
-    | Some (v1, v2) ->
-        let v1 = map_tuple_type_item env v1 in
-        let v2 =
-          List_.map
-            (fun (v1, v2) ->
-              let _v1 = (* "," *) token env v1 in
-              let v2 = map_tuple_type_item env v2 in
-              v2)
-            v2
-        in
-        List_.map (fun x -> G.F x) (v1 :: v2)
-    | None -> []
-  in
-  let v3 = (* ")" *) token env v3 in
-  G.TyRecordAnon ((G.Class, v1), (v1, v2, v3)) |> G.t
+and map_tuple_type (env : env) (x : CST.tuple_type) =
+	match x with
+	| `Paren_type _ ->
+		failwith "parenthesized type is not a tuple type"
+	| `LPAR_opt_tuple_type_item_rep_COMMA_tuple_type_item_RPAR (v1, v2, v3) ->
+		let v1 = (* "(" *) token env v1 in
+		let v2 =
+			match v2 with
+			| Some (v1, v2) ->
+					let v1 = map_tuple_type_item env v1 in
+					let v2 =
+						List_.map
+							(fun (v1, v2) ->
+								let _v1 = (* "," *) token env v1 in
+								let v2 = map_tuple_type_item env v2 in
+								v2)
+							v2
+					in
+					List_.map (fun x -> G.F x) (v1 :: v2)
+			| None -> []
+		in
+		let v3 = (* ")" *) token env v3 in
+		G.TyRecordAnon ((G.Class, v1), (v1, v2, v3)) |> G.t
 
 and map_tuple_type_item (env : env) ((v1, v2, v3) : CST.tuple_type_item) =
   let ent =

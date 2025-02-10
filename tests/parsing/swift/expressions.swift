@@ -341,3 +341,5 @@ func *() {}
 func ==() {}
 func /() {}
 func >>=() {}
+
+(any SomeProtocol).self

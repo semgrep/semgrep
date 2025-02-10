@@ -1,0 +1,1 @@
+let $FOO = (any $PROTO).self
