@@ -416,6 +416,17 @@ let map_parameter_modifiers (env : env) (xs : CST.parameter_modifiers) :
 let map_parameter_modifiers_opt env v : G.attribute list =
   Option.map (map_parameter_modifiers env) v |> List_.optlist_to_list
 
+let map_contextual_simple_identifier (env : env) (x : CST.contextual_simple_identifier) : G.ident =
+  match x with
+  | `Actor tok -> (* "actor" *) str env tok
+  | `Async tok -> (* "async" *) str env tok
+  | `Each tok -> (* "each" *) str env tok
+  | `Lazy tok -> (* "lazy" *) str env tok
+  | `Repeat tok -> (* "repeat" *) str env tok
+  | `Param_owne_modi x -> match x with
+    | `Borr tok -> (* "borrowing" *) str env tok
+    | `Cons tok -> (* "consuming" *) str env tok
+
 let map_simple_identifier (env : env) (x : CST.simple_identifier) : G.ident =
   match x with
   | `Pat_88eeeaa tok ->
@@ -423,11 +434,7 @@ let map_simple_identifier (env : env) (x : CST.simple_identifier) : G.ident =
   | `Pat_97d645c tok -> (* pattern `[^\r\n` ]*` *) str env tok
   | `Pat_c332828 tok -> (* pattern \$[0-9]+ *) str env tok
   | `Tok_dollar_pat_88eeeaa tok -> (* tok_dollar_pat_9d0cc04 *) str env tok
-  | `Actor tok -> (* "actor" *) str env tok
-  | `Lazy tok -> (* "lazy" *) str env tok
-  | `Param_owne_modi x -> match x with
-    | `Borr tok -> (* "borrowing" *) str env tok
-    | `Cons tok -> (* "consuming" *) str env tok
+  | `Cont_simple_id tok -> map_contextual_simple_identifier env tok
 
 let map_bound_identifier (env : env) (x : CST.bound_identifier) =
   map_simple_identifier env x
@@ -1452,12 +1459,11 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
            * it's an optional chain is just discarded when analyzing JS, so this
            * should be fine for now. *)
           v1
-      | `Async tok ->
-          (* In this context, async is just a normal identifier *)
-          let id = str env tok in
-          G.N (H2.name_of_id id) |> G.e
       | `If_stmt x -> G.stmt_to_expr (map_if_statement env x)
-      | `Switch_stmt x -> G.stmt_to_expr (map_switch_statement env x))
+      | `Switch_stmt x -> G.stmt_to_expr (map_switch_statement env x)
+      | `Value_param_pack x -> map_value_parameter_pack env x
+      | `Value_pack_expa x -> map_value_pack_expansion env x
+      )
   | `Semg_exp_ellips tok ->
       let tok = (* three_dot_operator_custom *) token env tok in
       G.Ellipsis tok |> G.e
@@ -1476,6 +1482,16 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
        * *)
       if str = "...>" then G.DeepEllipsis (l, e, r) |> G.e
       else raise (Parsing_error.Syntax_error r)
+
+and map_value_parameter_pack (env : env) ((v1, v2) : CST.value_parameter_pack) : G.expr =
+  let v1 = (* each *) token env v1 in
+  let v2 = map_expression env v2 in
+  G.OtherExpr (("each", v1), [ G.E v2 ]) |> G.e
+
+and map_value_pack_expansion (env : env) ((v1, v2) : CST.value_pack_expansion) : G.expr =
+  let v1 = (* repeat *) token env v1 in
+  let v2 = map_expression env v2 in
+  G.OtherExpr (("repeat", v1), [ G.E v2 ]) |> G.e
 
 and map_for_statement (env : env)
     ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : CST.for_statement) =
@@ -3255,6 +3271,21 @@ and map_unannotated_type (env : env) (x : CST.unannotated_type) : G.type_ =
       |> List.fold_left
            (fun acc (tand, ty) -> G.TyAnd (acc, tand, ty) |> G.t)
            v1
+  | `Type_param_pack x -> map_type_parameter_pack env x
+  | `Type_pack_expa x -> map_type_pack_expansion env x
+
+and map_type_parameter_pack (env : env) ((v1, v2) : CST.type_parameter_pack) : G.type_ =
+  let v1 = (* each *) token env v1 in
+  let v2 = map_unannotated_type env v2 in
+  G.OtherType (("each", v1), [ G.T v2 ]) |> G.t
+
+and map_type_pack_expansion (env : env) ((v1, v2) : CST.type_pack_expansion) : G.type_ =
+  (* this is how it's done in the CPP AST to Generic *)
+  (* G.OtherExpr (("Pack", v2), [ G.E v1 ]) |> G.e *)
+  (* Ultimately, we want to end in a Type.. Maybe OtherType or TyN? *)
+  let v1 = (* repeat *) token env v1 in
+  let v2 = map_unannotated_type env v2 in
+  G.OtherType (("repeat", v1), [ G.T v2 ]) |> G.t
 
 and map_unary_expression (env : env) (x : CST.unary_expression) : G.expr =
   match x with
