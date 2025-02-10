@@ -383,6 +383,7 @@ struct WillSetDidSet {
   }
 }
 
+// Borrowing/Consuming
 func foo(_ bar: borrowing Bar) { }
 func foo(_ bar: consuming Bar) { }
 let f: (borrowing Foo) -> Void = { a in a.foo() }
@@ -395,8 +396,22 @@ protocol Bar {
 	consuming func foo()
 }
 
+// Distributed
 distributed func foo() { }
 distributed actor Worker {
 	distributed func foo() { }
 	distributed var bar: Int
 }
+
+// Packs
+func zip<each S>(_ sequence: repeat each S) where repeat each S: Sequence {}
+func makePairs<each First, each Second>(
+  firsts first: repeat each First,
+  seconds second: repeat each Second
+) -> (repeat Pair<each First, each Second>) {
+  return (repeat Pair(each first, each second))
+}
+func variadic<each T, each U>(
+  t: repeat each T,
+  u: repeat each U
+) -> (Int, repeat ((each T) -> each U)) {}

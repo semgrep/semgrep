@@ -18,6 +18,7 @@ module H = Parse_tree_sitter_helpers
 module G = AST_generic
 module H2 = AST_generic_helpers
 module R = Raw_tree
+module Log = Logs
 
 (*****************************************************************************)
 (* Prelude *)
@@ -83,6 +84,15 @@ let map_trailing_comma env v =
   match v with
   | Some tok -> Some ((* "," *) token env tok)
   | None -> None
+
+  (* TODO: NinjaLikesCheez this is horrible and should not make it to production without a hard stare in the mirror and questioning life choices *)
+let rec dotted_ident_of_type (typ: G.type_) : G.dotted_ident =
+  match typ.t with
+  | G.TyN name -> H2.dotted_ident_of_name name
+  | G.OtherType (_, [G.T t]) -> dotted_ident_of_type t
+  | _ ->
+    Log.warn (fun m -> m "Other types are not yet implemented: %s" (G.show_type_ typ));
+    failwith "Other types are not yet implemented"
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -2765,7 +2775,7 @@ and map_raw_str_interpolation (env : env)
   (l, xs, r)
 
 and map_repeat_while_statement (env : env)
-    ((v1, v2, v3, v4, v5, v6, v7) : CST.repeat_while_statement) =
+    ((v1, v2, v3, v4, _, v6, v7, v8) : CST.repeat_while_statement) =
   let repeat_tok = (* "repeat" *) token env v1 in
   let stmt =
     let l = (* "{" *) token env v2 in
@@ -2773,8 +2783,8 @@ and map_repeat_while_statement (env : env)
     let r = (* "}" *) token env v4 in
     G.Block (l, xs, r) |> G.s
   in
-  let _twhile = (* "while" *) token env v5 in
-  let expr = map_if_condition_sequence_item env v6 in
+  let _twhile = (* "while" *) token env v6 in
+  let expr = map_if_condition_sequence_item env v7 in
   (* TODO: multiple conds *)
   let v7 =
     List_.map
@@ -2782,7 +2792,7 @@ and map_repeat_while_statement (env : env)
         let _v1 = (* "," *) token env v1 in
         let v2 = map_if_condition_sequence_item env v2 in
         v2)
-      v7
+      v8
   in
   let cond = combine_conds expr v7 in
   G.DoWhile (repeat_tok, stmt, cond) |> G.s
@@ -3119,7 +3129,7 @@ and map_type_constraint (env : env) (x : CST.type_constraint) =
   match x with
   | `Inhe_cons (v1, v2, v3, v4) ->
       let _v1TODO = List_.map (map_attribute env) v1 in
-      let v2 = map_identifier env v2 in
+      let v2 = map_constrained_type_identifiers env v2 in
       let v4 = map_possibly_implicitly_unwrapped_type env v4 in
       let base_type = G.ArgType (G.TyN (H2.name_of_ids v2) |> G.t) in
       let conformed_protocol = G.ArgType v4 in
@@ -3129,7 +3139,7 @@ and map_type_constraint (env : env) (x : CST.type_constraint) =
           Tok.unsafe_fake_bracket [ base_type; conformed_protocol ] )
   | `Equa_cons (v1, v2, v3, v4) ->
       let _v1TODO = List_.map (map_attribute env) v1 in
-      let v2 = map_identifier env v2 in
+      let v2 = map_constrained_type_identifiers env v2 in
       let first_type = G.ArgType (G.TyN (H2.name_of_ids v2) |> G.t) in
       let ((_, v3_tok) as v3_str) =
         match v3 with
@@ -3141,6 +3151,30 @@ and map_type_constraint (env : env) (x : CST.type_constraint) =
         ( v3_tok,
           H2.name_of_id v3_str,
           Tok.unsafe_fake_bracket [ first_type; G.ArgType v4 ] )
+
+and map_constrained_type_identifiers (env : env) (x : CST.constrained_type) : G.ident list =
+  match x with
+  | `Id x -> map_identifier env x
+  | `Unan_type_opt_DOT_simple_id_rep_DOT_simple_id (v1, v2) ->
+    (* TODO: See map_identifier as that handles this well! *)
+    let v1 = map_unannotated_type env v1 in
+    let v2 =
+      match v2 with
+      | Some (v1, v2, v3) ->
+          let _v1TODO = (* dot_custom *) token env v1 in
+          let v2 = map_bound_identifier env v2 in
+          let v3 =
+            List_.map
+              (fun (v1, v2) ->
+                let _v1TODO = (* dot_custom *) token env v1 in
+                let v2 = map_bound_identifier env v2 in
+                v2)
+              v3
+          in
+          Some (v2 :: v3)
+      | None -> None
+    in
+    dotted_ident_of_type v1 @ Option.value ~default:[] v2
 
 and map_type_constraints (env : env) ((v1, v2, v3) : CST.type_constraints) =
   let _v1TODO = (* where_keyword *) token env v1 in
@@ -3182,13 +3216,14 @@ and map_type_modifiers (env : env) (x : CST.type_modifiers) =
 
 and map_type_parameter (env : env) (x : CST.type_parameter) : G.type_parameter =
   match x with
-  | `Opt_type_param_modifs_simple_id_opt_COLON_type (v1, v2, v3) ->
+  | `Opt_type_param_modifs_type_param_poss_packed_opt_COLON_type (v1, v2, v3) ->
       let v1 =
         Option.map (map_type_parameter_modifiers env) v1
         |> List_.optlist_to_list
       in
 
-      let v2 = map_simple_identifier env v2 in
+      (* TODO: NinjaLikesCheez this seems wrong... do we want the fully qualified type name?? *)
+      let v2 = List.hd (List.rev (map_type_parameter_possibly_packed env v2)) in
       let v3 =
         match v3 with
         | Some (v1, v2) ->
@@ -3199,6 +3234,13 @@ and map_type_parameter (env : env) (x : CST.type_parameter) : G.type_parameter =
       in
       G.tparam_of_id ~tp_attrs:v1 ~tp_bounds:v3 v2
   | `Semg_ellips tok -> G.TParamEllipsis ((* "..." *) token env tok)
+
+and map_type_parameter_possibly_packed (env : env) (x : CST.type_parameter_possibly_packed) : G.ident list =
+  match x with
+  | `Simple_id x -> [map_bound_identifier env x]
+  | `Type_param_pack x ->
+    let pack = map_type_parameter_pack env x in
+    dotted_ident_of_type pack
 
 and map_type_parameter_modifiers (env : env) (xs : CST.type_parameter_modifiers)
     =
@@ -3399,11 +3441,6 @@ and map_value_argument (env : env) ((v1, v2) : CST.value_argument) :
 and map_value_argument_label (env : env) (x : CST.value_argument_label) =
   match x with
   | `Simple_id x -> map_simple_identifier env x
-  | `Async tok ->
-      (* TODO It might be worth handling this specially, since it's
-       * special-cased in the grammar. *)
-      (* "async" *)
-      str env tok
   | `If tok ->
       (* "if" *)
       str env tok
