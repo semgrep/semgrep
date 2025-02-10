@@ -227,7 +227,10 @@ COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe
 # installed them under /usr/local/lib/python3.xx/site-packages/semgrep/
 RUN ln -s semgrep-core /usr/local/bin/osemgrep && rm -rf /pysemgrep
 
-
+###############################################################################
+# Step2 bis: setup the docker image
+###############################################################################
+# In theory we could do this in a different container
 
 # Let the user know how their container was built
 COPY Dockerfile /Dockerfile
