@@ -125,8 +125,7 @@ let cmdline_term : conf Term.t =
       | [ "debug"; dir; root ] ->
           Debug { output_dir = Some (Fpath.v dir); root = Fpath.v root }
       | [ "debug"; root ] -> Debug { output_dir = None; root = Fpath.v root }
-      | [ "debug" ] ->
-          Debug { output_dir = None; root = Fpath.v @@ Sys.getcwd () }
+      | [ "debug" ] -> Debug { output_dir = None; root = Fpath.v "." }
       | [] ->
           Error.abort
             (spf
