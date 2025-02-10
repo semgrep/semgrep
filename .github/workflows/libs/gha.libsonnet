@@ -9,7 +9,11 @@
     // can be run manually from the GHA dashboard
     workflow_dispatch: null,
     // on the PR
-    pull_request: null,
+    pull_request: {
+      types: ['opened', 'reopened', 'synchronize'],
+      // https://graphite.dev/docs/merge-pull-requests#ignoring-graphites-temporary-branches-in-your-ci
+      'branches-ignore': ['**/graphite-base/**'],
+    },
     // and another time once the PR is merged on develop
     push: {
       branches: [

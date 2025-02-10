@@ -43,7 +43,13 @@ jobs:
       - uses: pre-commit/action@v3.0.0
 name: lint
 on:
-  pull_request: null
+  pull_request:
+    branches-ignore:
+      - '**/graphite-base/**'
+    types:
+      - opened
+      - reopened
+      - synchronize
   push:
     branches:
       - develop
