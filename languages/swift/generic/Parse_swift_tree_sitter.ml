@@ -249,17 +249,19 @@ let map_member_modifier (env : env) (x : CST.member_modifier) =
 
 let map_try_operator (env : env) ((try_token, operator) : CST.try_operator) =
   let try_tok = (* "try" *) token env try_token in
-  let operator_tok = match operator with
+  let operator_tok =
+    match operator with
     | `Fake_try_bang tok -> Some ((* "!" *) token env tok)
-    | `Opt_try_op_type x -> match x with
-      | Some x -> (match x with
-        | `Imm_tok_bang tok -> Some ((* "!" *) token env tok)
-        | `Imm_tok_qmark tok -> Some ((* "?" *) token env tok)
-        )
-      | None -> None
+    | `Opt_try_op_type x -> (
+        match x with
+        | Some x -> (
+            match x with
+            | `Imm_tok_bang tok -> Some ((* "!" *) token env tok)
+            | `Imm_tok_qmark tok -> Some ((* "?" *) token env tok))
+        | None -> None)
   in
   match operator_tok with
-  | Some op -> Tok.combine_toks try_tok [op]
+  | Some op -> Tok.combine_toks try_tok [ op ]
   | None -> try_tok
 
 let map_special_literal (env : env) (x : CST.special_literal) =
@@ -333,9 +335,12 @@ let map_postfix_unary_operator (env : env) (x : CST.postfix_unary_operator)
       G.special (G.IncrDecr (G.Incr, G.Postfix), (* "++" *) token env tok) [ e ]
   | `DASHDASH tok ->
       G.special (G.IncrDecr (G.Decr, G.Postfix), (* "--" *) token env tok) [ e ]
-  | `Bang tok -> match tok with
-      | `Bang_custom tok -> G.special (G.Op G.NotNullPostfix, (* bang *) token env tok) [ e ]
-      | `BANG tok -> G.special (G.Op G.NotNullPostfix, (* ! *) token env tok) [ e ]
+  | `Bang tok -> (
+      match tok with
+      | `Bang_custom tok ->
+          G.special (G.Op G.NotNullPostfix, (* bang *) token env tok) [ e ]
+      | `BANG tok ->
+          G.special (G.Op G.NotNullPostfix, (* ! *) token env tok) [ e ])
 
 let map_locally_permitted_modifier (env : env)
     (x : CST.locally_permitted_modifier) =
@@ -468,16 +473,15 @@ let map_prefix_unary_operator (env : env) (x : CST.prefix_unary_operator)
   | `PLUS tok ->
       let op = (G.Plus, (* "+" *) token env tok) in
       G.opcall op [ e ]
-  | `Bang tok ->
-      (match tok with
+  | `Bang tok -> (
+      match tok with
       | `BANG tok ->
-        let op = (G.Not, (* bang *) token env tok) in
-        G.opcall op [ e ]
+          let op = (G.Not, (* bang *) token env tok) in
+          G.opcall op [ e ]
       | `Bang_custom tok ->
-        (* TODO: NinjaLikesCheez is there a way to represent this as a custom Op? *)
-        let op = (G.Not, (* bang *) token env tok) in
-        G.opcall op [ e ]
-      )
+          (* TODO: NinjaLikesCheez is there a way to represent this as a custom Op? *)
+          let op = (G.Not, (* bang *) token env tok) in
+          G.opcall op [ e ])
   | `AMP tok -> G.Ref ((* "&" *) token env tok, e) |> G.e
   | `TILDE tok ->
       let op = (G.BitNot, (* "~" *) token env tok) in
@@ -545,18 +549,17 @@ let map_referenceable_operator (env : env) (x : CST.referenceable_operator) =
       (* "--" *)
       let s, tok = str env tok in
       ((s, tok), G.Special (G.IncrDecr (G.Decr, G.Postfix), tok))
-  | `Bang tok ->
-    (match tok with
-    | `Bang_custom tok ->
-        (* TODO: NinjaLikesCheez: is there a way of representing an Op as 'custom'? Doesn't seem so *)
-        (* bang *)
-        let s, tok = str env tok in
-        ((s, tok), G.Special (G.Op G.Not, tok))
-    | `BANG tok ->
-      (* ! *)
-      let s, tok = str env tok in
-      ((s, tok), G.Special (G.Op G.Not, tok))
-    )
+  | `Bang tok -> (
+      match tok with
+      | `Bang_custom tok ->
+          (* TODO: NinjaLikesCheez: is there a way of representing an Op as 'custom'? Doesn't seem so *)
+          (* bang *)
+          let s, tok = str env tok in
+          ((s, tok), G.Special (G.Op G.Not, tok))
+      | `BANG tok ->
+          (* ! *)
+          let s, tok = str env tok in
+          ((s, tok), G.Special (G.Op G.Not, tok)))
   | `TILDE tok ->
       (* "~" *)
       let s, tok = str env tok in
@@ -1460,8 +1463,7 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
           let id = str env tok in
           G.N (H2.name_of_id id) |> G.e
       | `If_stmt x -> G.stmt_to_expr (map_if_statement env x)
-      | `Switch_stmt x -> G.stmt_to_expr (map_switch_statement env x)
-    )
+      | `Switch_stmt x -> G.stmt_to_expr (map_switch_statement env x))
   | `Semg_exp_ellips tok ->
       let tok = (* three_dot_operator_custom *) token env tok in
       G.Ellipsis tok |> G.e
@@ -1518,8 +1520,8 @@ and map_for_statement (env : env)
   let body = map_function_body env v9 in
   G.For (for_tok, header, body) |> G.s
 
-and map_for_statement_collection (env : env)
-    (x : CST.for_statement_collection) =
+and map_for_statement_collection (env : env) (x : CST.for_statement_collection)
+    =
   match x with
   | `Exp x -> map_expression env x
   | `For_stmt_await (v1, v2) ->
@@ -1529,6 +1531,7 @@ and map_for_statement_collection (env : env)
 
 and map_function_body (env : env) (x : CST.function_body) : G.stmt =
   map_block env x
+
 and map_function_declaration (env : env) ~in_class
     ((v1, v2) : CST.function_declaration) =
   let v2 = map_function_body env v2 in
@@ -1654,7 +1657,9 @@ and map_if_condition_sequence_item (env : env)
       G.LetPattern (v1, v2) |> G.e
   | `Exp x -> map_expression env x
   | `Avai_cond (v1, v2, v3, v4, v5) ->
-      let _v1TODO = (* "#available" *) match v1 with
+      let _v1TODO =
+        (* "#available" *)
+        match v1 with
         | `HASH_8da4fa1 v1 -> (* "#available" *) token env v1
         | `HASH_459dd9a v1 -> (* "#unavailable" *) token env v1
       in
@@ -1795,12 +1800,13 @@ and map_key_path_component (env : env) (x : CST.key_path_component) =
 and map_key_path_postfixes (env : env) (x : CST.key_path_postfixes) =
   match x with
   | `QMARK tok -> (* "?" *) token env tok
-  | `Bang tok ->
-    (match tok with
-    | `BANG tok -> (* ! *) token env tok
-    | `Bang_custom _ ->
-      failwith "Bang_custom should not exist in this context - ! is a reserved postfix operator"
-    )
+  | `Bang tok -> (
+      match tok with
+      | `BANG tok -> (* ! *) token env tok
+      | `Bang_custom _ ->
+          failwith
+            "Bang_custom should not exist in this context - ! is a reserved \
+             postfix operator")
   | `Self tok -> (* "self" *) token env tok
   | `LBRACK_opt_value_arg_rep_COMMA_value_arg_RBRACK (v1, v2, v3) ->
       let lb = (* "[" *) token env v1 in
@@ -2210,13 +2216,12 @@ and map_single_modifierless_property_declaration (env : env)
                  let v2 = map_expression env v2 in
                  let v3 = map_willset_didset_block env v3 in
                  (* TODO: this is passed to VarDef so wrap expression & block together *)
-                 G.Seq ([v2; v3]) |> G.e
+                 G.Seq [ v2; v3 ] |> G.e
              | `Exp_with_will_didset_3bae343 (v1, v2) ->
-                let _v1TODO = (* eq_custom *) token env v1 in
-                let v2 = map_expression env v2 in
-                v2
-             | `Will_didset_blk x ->
-                map_willset_didset_block env x
+                 let _v1TODO = (* eq_custom *) token env v1 in
+                 let v2 = map_expression env v2 in
+                 v2
+             | `Will_didset_blk x -> map_willset_didset_block env x
              | `Comp_prop x -> G.StmtExpr (map_computed_property env x) |> G.e
            in
            x)
@@ -2232,9 +2237,10 @@ and map_willset_didset_block (env : env) (x : CST.willset_didset_block) =
       let v3 = Option.map (map_didset_clause env) v3 in
       let v4 = (* "}" *) token env v4 in
       (* TODO: combine these into a declaration (definition) of a block and pass up as statement *)
-      let stmts = match v3 with
-        | Some x -> [v2; x]
-        | None -> [v2]
+      let stmts =
+        match v3 with
+        | Some x -> [ v2; x ]
+        | None -> [ v2 ]
       in
       G.StmtExpr (G.Block (v1, stmts, v4) |> G.s) |> G.e
   | `LCURL_didset_clause_opt_will_clause_RCURL (v1, v2, v3, v4) ->
@@ -2242,61 +2248,68 @@ and map_willset_didset_block (env : env) (x : CST.willset_didset_block) =
       let v2 = map_didset_clause env v2 in
       let v3 = Option.map (map_willset_clause env) v3 in
       let v4 = (* "}" *) token env v4 in
-      let stmts = match v3 with
-        | Some x -> [v2; x]
-        | None -> [v2]
+      let stmts =
+        match v3 with
+        | Some x -> [ v2; x ]
+        | None -> [ v2 ]
       in
       G.StmtExpr (G.Block (v1, stmts, v4) |> G.s) |> G.e
 
-and map_willset_clause (env : env) ((modifiers, tok, identifier, body) : CST.willset_clause) =
+and map_willset_clause (env : env)
+    ((modifiers, tok, identifier, body) : CST.willset_clause) =
   let modifiers = Option.map (map_modifiers env) modifiers in
   let tok = (* "willSet" *) token env tok in
-  let params = match identifier with
-  | Some (_, identifier, _) ->
-      let param = G.tparam_of_id (map_bound_identifier env identifier) in
-      Some (Tok.unsafe_fake_bracket [param])
-  | None -> None
-  in
-  let body = map_function_body env body in
-  G.DefStmt (
-    {
-      G.name = G.EN (G.Id (("willSet", tok), G.empty_id_info ()));
-      attrs = Option.value ~default:[] modifiers;
-      tparams = params
-    },
-    G.FuncDef {
-      fkind = (G.Function, tok);
-      (* TODO: NinjaLikesCheez this currently doesn't infer the type of the parameter (or indeed set it) *)
-      fparams = fb [];
-      frettype = None;
-      fbody = G.FBStmt body
-    }
-  ) |> G.s
-
-and map_didset_clause (env : env) ((modifiers, tok, identifier, body) : CST.didset_clause) =
-  let modifiers = Option.map (map_modifiers env) modifiers in
-  let tok = (* "didSet" *) token env tok in
-  let params = match identifier with
+  let params =
+    match identifier with
     | Some (_, identifier, _) ->
         let param = G.tparam_of_id (map_bound_identifier env identifier) in
-        Some (fb [param])
+        Some (Tok.unsafe_fake_bracket [ param ])
     | None -> None
   in
   let body = map_function_body env body in
-  G.DefStmt (
-    {
-      G.name = G.EN (G.Id (("didSet", tok), G.empty_id_info ()));
-      attrs = Option.value ~default:[] modifiers;
-      tparams = params
-    },
-    G.FuncDef {
-      fkind = (G.Function, tok);
-      (* TODO: NinjaLikesCheez this currently doesn't infer the type of the parameter (or indeed set it) *)
-      fparams = fb [];
-      frettype = None;
-      fbody = G.FBStmt body
-    }
-  ) |> G.s
+  G.DefStmt
+    ( {
+        G.name = G.EN (G.Id (("willSet", tok), G.empty_id_info ()));
+        attrs = Option.value ~default:[] modifiers;
+        tparams = params;
+      },
+      G.FuncDef
+        {
+          fkind = (G.Function, tok);
+          (* TODO: NinjaLikesCheez this currently doesn't infer the type of the parameter (or indeed set it) *)
+          fparams = fb [];
+          frettype = None;
+          fbody = G.FBStmt body;
+        } )
+  |> G.s
+
+and map_didset_clause (env : env)
+    ((modifiers, tok, identifier, body) : CST.didset_clause) =
+  let modifiers = Option.map (map_modifiers env) modifiers in
+  let tok = (* "didSet" *) token env tok in
+  let params =
+    match identifier with
+    | Some (_, identifier, _) ->
+        let param = G.tparam_of_id (map_bound_identifier env identifier) in
+        Some (fb [ param ])
+    | None -> None
+  in
+  let body = map_function_body env body in
+  G.DefStmt
+    ( {
+        G.name = G.EN (G.Id (("didSet", tok), G.empty_id_info ()));
+        attrs = Option.value ~default:[] modifiers;
+        tparams = params;
+      },
+      G.FuncDef
+        {
+          fkind = (G.Function, tok);
+          (* TODO: NinjaLikesCheez this currently doesn't infer the type of the parameter (or indeed set it) *)
+          fparams = fb [];
+          frettype = None;
+          fbody = G.FBStmt body;
+        } )
+  |> G.s
 
 and map_modifierless_property_declaration (env : env) (attrs : G.attribute list)
     ((v1, v2, v3) : CST.modifierless_property_declaration) : G.stmt list =
@@ -2340,7 +2353,8 @@ and map_navigable_type_expression (env : env)
   | `Array_type x -> map_array_type env x
   | `Dict_type x -> map_dictionary_type env x
 
-and map_parenthesized_type_expression (env : env) ((_, v2, _) : CST.parenthesized_type) =
+and map_parenthesized_type_expression (env : env)
+    ((_, v2, _) : CST.parenthesized_type) =
   match v2 with
   | `Opaque_type x -> map_opaque_type env x
   | `Exis_type x -> map_existential_type env x
@@ -2375,8 +2389,7 @@ and map_navigation_expression (env : env) ((v1, v2) : CST.navigation_expression)
     | `Exp x -> map_expression env x
     | `Paren_type x ->
         let type_ = map_parenthesized_type_expression env x in
-        G.OtherExpr (("TypeExpr", Tok.unsafe_fake_tok ""), [ G.T type_ ])
-        |> G.e
+        G.OtherExpr (("TypeExpr", Tok.unsafe_fake_tok ""), [ G.T type_ ]) |> G.e
   in
   match v2 with
   | `Dot_choice_simple_id (s1, s2) ->
@@ -3022,28 +3035,27 @@ and map_tuple_expression (env : env)
   | _ -> G.Container (G.Tuple, (v1, exprs, v5)) |> G.e
 
 and map_tuple_type (env : env) (x : CST.tuple_type) =
-	match x with
-	| `Paren_type _ ->
-		failwith "parenthesized type is not a tuple type"
-	| `LPAR_opt_tuple_type_item_rep_COMMA_tuple_type_item_RPAR (v1, v2, v3) ->
-		let v1 = (* "(" *) token env v1 in
-		let v2 =
-			match v2 with
-			| Some (v1, v2) ->
-					let v1 = map_tuple_type_item env v1 in
-					let v2 =
-						List_.map
-							(fun (v1, v2) ->
-								let _v1 = (* "," *) token env v1 in
-								let v2 = map_tuple_type_item env v2 in
-								v2)
-							v2
-					in
-					List_.map (fun x -> G.F x) (v1 :: v2)
-			| None -> []
-		in
-		let v3 = (* ")" *) token env v3 in
-		G.TyRecordAnon ((G.Class, v1), (v1, v2, v3)) |> G.t
+  match x with
+  | `Paren_type _ -> failwith "parenthesized type is not a tuple type"
+  | `LPAR_opt_tuple_type_item_rep_COMMA_tuple_type_item_RPAR (v1, v2, v3) ->
+      let v1 = (* "(" *) token env v1 in
+      let v2 =
+        match v2 with
+        | Some (v1, v2) ->
+            let v1 = map_tuple_type_item env v1 in
+            let v2 =
+              List_.map
+                (fun (v1, v2) ->
+                  let _v1 = (* "," *) token env v1 in
+                  let v2 = map_tuple_type_item env v2 in
+                  v2)
+                v2
+            in
+            List_.map (fun x -> G.F x) (v1 :: v2)
+        | None -> []
+      in
+      let v3 = (* ")" *) token env v3 in
+      G.TyRecordAnon ((G.Class, v1), (v1, v2, v3)) |> G.t
 
 and map_tuple_type_item (env : env) ((v1, v2, v3) : CST.tuple_type_item) =
   let ent =
@@ -3268,12 +3280,12 @@ and map_unary_expression (env : env) (x : CST.unary_expression) : G.expr =
       G.New (G.fake "new", v1, G.empty_id_info (), v2) |> G.e
   | `Navi_exp x -> map_navigation_expression env x
   | `Prefix_exp (v1, v2) ->
-    let e =
-    match v2 with
-    | `Exp x -> map_expression env x
-    | `Choice_async _ ->
-       (* This is not valid swift code, a hack in the grammar: see: https://github.com/alex-pinkus/tree-sitter-swift/issues/468 *)
-        failwith "Invalid Swift"
+      let e =
+        match v2 with
+        | `Exp x -> map_expression env x
+        | `Choice_async _ ->
+            (* This is not valid swift code, a hack in the grammar: see: https://github.com/alex-pinkus/tree-sitter-swift/issues/468 *)
+            failwith "Invalid Swift"
       in
       map_prefix_unary_operator env v1 e
   | `As_exp (v1, v2, v3) ->
@@ -3412,43 +3424,56 @@ and map_while_statement (env : env)
   in
   G.While (while_tok, G.Cond cond, stmt) |> G.s
 
-and map_type_parameters_to_idents (env : env) (type_parameters : G.type_parameters) : G.ident list =
+and map_type_parameters_to_idents (env : env)
+    (type_parameters : G.type_parameters) : G.ident list =
   match type_parameters with
-  | (_, tparams, _) -> List_.map (ident_of_tparam env) tparams
+  | _, tparams, _ -> List_.map (ident_of_tparam env) tparams
 
 and ident_of_tparam (_ : env) (x : G.type_parameter) : G.ident =
-	match x with
-	| G.TP { tp_id; _ } -> tp_id
-	| _ -> failwith "Invalid type parameter"
+  match x with
+  | G.TP { tp_id; _ } -> tp_id
+  | _ -> failwith "Invalid type parameter"
 
-and map_macro_declaration (env : env) ((macro_head, bound_identifier, type_parameters, macro_signature, macro_definition, type_constraints) : CST.macro_declaration) =
+and map_macro_declaration (env : env)
+    (( macro_head,
+       bound_identifier,
+       type_parameters,
+       macro_signature,
+       macro_definition,
+       type_constraints ) :
+      CST.macro_declaration) =
   let attrs = map_macro_head env macro_head in
   let name = map_bound_identifier env bound_identifier in
   let type_params = Option.map (map_type_parameters env) type_parameters in
-	let type_params_idents = match type_params with
-		| Some x -> map_type_parameters_to_idents env x
-		| None -> [] in
+  let type_params_idents =
+    match type_params with
+    | Some x -> map_type_parameters_to_idents env x
+    | None -> []
+  in
   let _signature = map_macro_signature env macro_signature in
   let definition = Option.map (map_macro_definition env) macro_definition in
   let _constraints = Option.map (map_type_constraints env) type_constraints in
-	G.DefStmt (
-		{
-			name = G.EN (G.Id (name, G.empty_id_info ()));
-			attrs = attrs;
-			tparams = type_params;
-		},
-		G.MacroDef {
-			macroparams = type_params_idents;
-			macrobody = match definition with
-				| Some x -> [G.E x ]
-				| None -> [];
-		}
-	) |> G.s
+  G.DefStmt
+    ( {
+        name = G.EN (G.Id (name, G.empty_id_info ()));
+        attrs;
+        tparams = type_params;
+      },
+      G.MacroDef
+        {
+          macroparams = type_params_idents;
+          macrobody =
+            (match definition with
+            | Some x -> [ G.E x ]
+            | None -> []);
+        } )
+  |> G.s
 
 and map_macro_head (env : env) ((modifiers, _) : CST.macro_head) =
   map_modifiers_opt env modifiers
 
-and map_macro_signature (env : env) ((function_parameters, return_declaration) : CST.macro_signature) =
+and map_macro_signature (env : env)
+    ((function_parameters, return_declaration) : CST.macro_signature) =
   let params = map_function_value_parameters env function_parameters in
   let return_type =
     match return_declaration with
@@ -3461,13 +3486,15 @@ and map_macro_signature (env : env) ((function_parameters, return_declaration) :
 
 and map_macro_definition (env : env) ((eq, definition) : CST.macro_definition) =
   let _eq = (* "=" *) token env eq in
-  let definition = match definition with
-  | `Exp x -> map_expression env x
-  | `Exte_macro_defi x -> map_external_macro_definition env x
+  let definition =
+    match definition with
+    | `Exp x -> map_expression env x
+    | `Exte_macro_defi x -> map_external_macro_definition env x
   in
   definition
 
-and map_external_macro_definition (env : env) ((v1, v2) : CST.external_macro_definition) =
+and map_external_macro_definition (env : env)
+    ((v1, v2) : CST.external_macro_definition) =
   let v1 = (* "#externalMacro" *) str env v1 in
   let v2 = map_expr_hack_at_ternary_binary_call_suffix env v2 in
   G.Call (G.N (H2.name_of_id v1) |> G.e, v2) |> G.e
