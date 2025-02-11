@@ -83,20 +83,11 @@ let with_mock_envvars f () =
 let with_mock_envvars_and_normal_responses f =
   with_mock_normal_responses (with_mock_envvars f)
 
-let with_logged_in f =
-  let token = ok_token in
-  let caps = Cap.network_caps_UNSAFE () in
-  let caps = Auth.cap_token_and_network token caps in
-  match Semgrep_login.save_token caps with
-  | Ok _deployment_config -> f ()
-  | Error e -> failwith e
-
 (*****************************************************************************)
 (* Tests *)
 (*****************************************************************************)
 
 let save_token_tests caps =
-  ignore with_logged_in;
   let valid_token_test () =
     let caps = Auth.cap_token_and_network ok_token caps in
     match Semgrep_login.save_token caps with
