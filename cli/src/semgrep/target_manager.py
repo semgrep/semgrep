@@ -578,7 +578,7 @@ class ScanningRoot:
         return insufficient_permissions
 
 
-@define(eq=False)
+@define(eq=False, kw_only=True)
 class TargetManager:
     """
     Handles all file include/exclude logic for semgrep
@@ -809,6 +809,7 @@ class TargetManager:
     @lru_cache(maxsize=None)
     def get_files_for_language(
         self,
+        *,
         lang: Union[None, Language, Literal["dependency_source_files"]],
         product: out.Product,
         ignore_baseline_handler: bool = False,
@@ -921,7 +922,7 @@ class TargetManager:
         in SCANNING_ROOT will bypass this global INCLUDE/EXCLUDE filter. The local INCLUDE/EXCLUDE
         filter is then applied.
         """
-        paths = self.get_files_for_language(lang, rule_product)
+        paths = self.get_files_for_language(lang=lang, product=rule_product)
 
         if self.respect_rule_paths:
             paths = self.filter_includes(rule_includes, candidates=paths.kept)
@@ -940,6 +941,8 @@ class TargetManager:
         Return all files that might be used as a source of dependency information
         """
         all_files = self.get_files_for_language(
-            "dependency_source_files", out.Product(out.SCA()), ignore_baseline_handler
+            lang="dependency_source_files",
+            product=out.Product(out.SCA()),
+            ignore_baseline_handler=ignore_baseline_handler,
         )
         return all_files.kept

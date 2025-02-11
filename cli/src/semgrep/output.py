@@ -413,7 +413,11 @@ class OutputHandler:
         else:
             # ignore log was not created, so the run failed before it even started
             # create a fake log to track the errors
-            self.ignore_log = FileTargetingLog(TargetManager(frozenset([Path(".")])))
+            self.ignore_log = FileTargetingLog(
+                TargetManager(
+                    scanning_root_strings=frozenset([Path(".")]),
+                )
+            )
 
         if extra:
             self.extra = extra

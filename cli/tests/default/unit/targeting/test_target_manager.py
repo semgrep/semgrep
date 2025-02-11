@@ -35,10 +35,12 @@ def test_nonexistent(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
 
     # shouldnt raise an error
-    TargetManager(["foo/a.py"])
+    TargetManager(scanning_root_strings=["foo/a.py"])
 
     with pytest.raises(InvalidScanningRootError) as e:
-        TargetManager(["foo/a.py", "foo/doesntexist.py"])
+        TargetManager(
+            scanning_root_strings=["foo/a.py", "foo/doesntexist.py"],
+        )
     assert e.value.paths == (Path("foo/doesntexist.py"),)
 
 
@@ -179,12 +181,16 @@ def test_get_files_for_language(
 
     if expected is None:
         with pytest.raises(InvalidScanningRootError):
-            target_manager = paths.TargetManager(targets)
+            target_manager = paths.TargetManager(scanning_root_strings=targets)
         return
     else:
-        target_manager = paths.TargetManager(targets)
+        target_manager = paths.TargetManager(
+            scanning_root_strings=targets,
+        )
 
-    actual = target_manager.get_files_for_language(LANG_PY, SAST_PRODUCT).kept
+    actual = target_manager.get_files_for_language(
+        lang=LANG_PY, product=SAST_PRODUCT
+    ).kept
 
     assert_path_sets_equal(actual, getattr(paths, expected))
 
@@ -201,12 +207,16 @@ def test_skip_symlink(tmp_path, monkeypatch):
     PY = Language("python")
 
     assert_path_sets_equal(
-        TargetManager([str(foo)]).get_files_for_language(PY, SAST_PRODUCT).kept,
+        TargetManager(scanning_root_strings=[str(foo)])
+        .get_files_for_language(lang=PY, product=SAST_PRODUCT)
+        .kept,
         {foo / "a.py"},
     )
 
     with pytest.raises(InvalidScanningRootError):
-        TargetManager([str(foo / "link.py")]).get_files_for_language(PY, SAST_PRODUCT)
+        TargetManager(
+            scanning_root_strings=[str(foo / "link.py")],
+        ).get_files_for_language(lang=PY, product=SAST_PRODUCT)
 
 
 @pytest.mark.quick
@@ -220,7 +230,7 @@ def test_ignore_git_dir(tmp_path, monkeypatch):
 
     monkeypatch.chdir(tmp_path)
     language = Language("generic")
-    assert frozenset() == TargetManager([foo]).get_files_for_rule(
+    assert frozenset() == TargetManager(scanning_root_strings=[foo]).get_files_for_rule(
         language, [], [], "dummy_rule_id", SAST_PRODUCT
     )
 
@@ -245,55 +255,63 @@ def test_explicit_path(tmp_path, monkeypatch):
     python_language = Language("python")
 
     assert foo_a in TargetManager(
-        ["foo/a.py"], allow_unknown_extensions=True
+        scanning_root_strings=["foo/a.py"],
+        allow_unknown_extensions=True,
     ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
-    assert foo_a in TargetManager(["foo/a.py"]).get_files_for_rule(
-        python_language, [], [], "dummy_rule_id", SAST_PRODUCT
-    )
+    assert foo_a in TargetManager(
+        scanning_root_strings=["foo/a.py"]
+    ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
 
     # Should include explicitly passed python file even if is in excludes
     assert foo_a not in TargetManager(
-        ["."], [], {SAST_PRODUCT: ["foo/a.py"]}
+        scanning_root_strings=["."],
+        includes=[],
+        excludes={SAST_PRODUCT: ["foo/a.py"]},
     ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
     assert foo_a in TargetManager(
-        [".", "foo/a.py"], [], {SAST_PRODUCT: ["foo/a.py"]}
+        scanning_root_strings=[".", "foo/a.py"],
+        includes=[],
+        excludes={SAST_PRODUCT: ["foo/a.py"]},
     ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
 
     # Should ignore expliclty passed .go file when requesting python
     assert (
-        TargetManager(["foo/a.go"]).get_files_for_rule(
-            python_language, [], [], "dummy_rule_id", SAST_PRODUCT
-        )
+        TargetManager(
+            scanning_root_strings=["foo/a.go"],
+        ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
         == frozenset()
     )
 
     # Should include explicitly passed file with unknown extension if allow_unknown_extensions=True
     assert_path_sets_equal(
-        TargetManager(["foo/noext"], allow_unknown_extensions=True).get_files_for_rule(
-            python_language, [], [], "dummy_rule_id", SAST_PRODUCT
-        ),
+        TargetManager(
+            scanning_root_strings=["foo/noext"],
+            allow_unknown_extensions=True,
+        ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT),
         {foo_noext},
     )
 
     # Should not include explicitly passed file with unknown extension by default
     assert_path_sets_equal(
-        TargetManager(["foo/noext"]).get_files_for_rule(
-            python_language, [], [], "dummy_rule_id", SAST_PRODUCT
-        ),
+        TargetManager(
+            scanning_root_strings=["foo/noext"],
+        ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT),
         set(),
     )
 
     # Should include explicitly passed file with correct extension even if skip_unknown_extensions=True
     assert_path_sets_equal(
-        TargetManager(["foo/noext", "foo/a.py"]).get_files_for_rule(
-            python_language, [], [], "dummy_rule_id", SAST_PRODUCT
-        ),
+        TargetManager(
+            scanning_root_strings=["foo/noext", "foo/a.py"],
+        ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT),
         {foo_a},
     )
 
     # Should respect includes/excludes passed to get_files even if target explicitly passed
     assert_path_sets_equal(
-        TargetManager(["foo/a.py", "foo/b.py"]).get_files_for_rule(
+        TargetManager(
+            scanning_root_strings=["foo/a.py", "foo/b.py"],
+        ).get_files_for_rule(
             python_language, ["a.py"], [], "dummy_rule_id", SAST_PRODUCT
         ),
         {foo_a},
@@ -302,7 +320,8 @@ def test_explicit_path(tmp_path, monkeypatch):
     # Should respect excludes on a per-product basis
     assert_path_sets_equal(
         TargetManager(
-            ["foo/a.py", "foo/b.py"], excludes={SAST_PRODUCT: ["*.py"]}
+            scanning_root_strings=["foo/a.py", "foo/b.py"],
+            excludes={SAST_PRODUCT: ["*.py"]},
         ).get_files_for_rule(
             python_language, ["a.py"], [], "dummy_rule_id", SECRETS_PRODUCT
         ),
@@ -314,7 +333,7 @@ def test_explicit_path(tmp_path, monkeypatch):
 def test_ignores(tmp_path, monkeypatch):
     def ignore(ignore_pats, profile_product=SAST_PRODUCT, rule_product=SAST_PRODUCT):
         return TargetManager(
-            [tmp_path],
+            scanning_root_strings=[tmp_path],
             ignore_profiles={
                 profile_product: FileIgnore.from_unprocessed_patterns(
                     tmp_path, ignore_pats, max_log_list_entries=0
@@ -445,11 +464,11 @@ def test_unsupported_lang_paths(tmp_path, monkeypatch):
             if os.path.splitext(path)[1] != ".py":
                 expected_unsupported.add(path)
 
-    target_manager = TargetManager(targets)
+    target_manager = TargetManager(scanning_root_strings=targets)
 
-    target_manager.get_files_for_language(LANG_PY, SAST_PRODUCT)
-    target_manager.get_files_for_language(LANG_GENERIC, SAST_PRODUCT)
-    target_manager.get_files_for_language(LANG_REGEX, SAST_PRODUCT)
+    target_manager.get_files_for_language(lang=LANG_PY, product=SAST_PRODUCT)
+    target_manager.get_files_for_language(lang=LANG_GENERIC, product=SAST_PRODUCT)
+    target_manager.get_files_for_language(lang=LANG_REGEX, product=SAST_PRODUCT)
 
     assert_path_sets_equal(
         target_manager.ignore_log.unsupported_lang_paths, expected_unsupported
@@ -481,10 +500,10 @@ def test_unsupported_lang_paths_2(tmp_path, monkeypatch):
             targets.append(str(path))
             expected_unsupported.add(path)
 
-    target_manager = TargetManager(targets)
+    target_manager = TargetManager(scanning_root_strings=targets)
 
-    target_manager.get_files_for_language(LANG_GENERIC, SAST_PRODUCT)
-    target_manager.get_files_for_language(LANG_REGEX, SAST_PRODUCT)
+    target_manager.get_files_for_language(lang=LANG_GENERIC, product=SAST_PRODUCT)
+    target_manager.get_files_for_language(lang=LANG_REGEX, product=SAST_PRODUCT)
 
     assert_path_sets_equal(
         target_manager.ignore_log.unsupported_lang_paths, expected_unsupported
@@ -548,7 +567,7 @@ def test_ignore_baseline_handler(monkeypatch, tmp_path):
     # Call get_files_for_language with ignore_baseline_handler=False
     # Should only return lockfiles in dir_b and dir_c as they were changed after base_commit
     diff_files = target_manager.get_files_for_language(
-        Ecosystem(Pypi()), SCA_PRODUCT, False
+        lang=Ecosystem(Pypi()), product=SCA_PRODUCT, ignore_baseline_handler=False
     ).kept
     assert {str(dir_b_poetry), str(dir_c_poetry)} == {
         str(path) for path in diff_files
@@ -557,7 +576,7 @@ def test_ignore_baseline_handler(monkeypatch, tmp_path):
     # Call get_files_for_language with ignore_baseline_handler=True
     # Should return all three lockfiles
     all_files = target_manager.get_files_for_language(
-        Ecosystem(Pypi()), SCA_PRODUCT, True
+        lang=Ecosystem(Pypi()), product=SCA_PRODUCT, ignore_baseline_handler=True
     ).kept
     assert {str(dir_a_poetry), str(dir_b_poetry), str(dir_c_poetry)} == {
         str(path) for path in all_files

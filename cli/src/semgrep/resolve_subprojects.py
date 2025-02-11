@@ -99,7 +99,7 @@ def filter_changed_subprojects(
     # note that this logic re-implements the logic in `dependency_aware_rule.py`
     for language, ecosystems in ecosystems_by_language.items():
         for code_file in target_manager.get_files_for_language(
-            language, out.Product
+            lang=language, product=out.Product
         ).kept:
             # there may be multiple ecosystems for a single language, and the finding-generation
             # logic will find a different closest subproject for each one. So we need to mark

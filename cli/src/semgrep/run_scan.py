@@ -472,7 +472,7 @@ def run_rules(
 def list_targets_and_exit(
     target_manager: TargetManager, product: out.Product, long_format: bool = False
 ) -> None:
-    targets = target_manager.get_files_for_language(None, product)
+    targets = target_manager.get_files_for_language(lang=None, product=product)
     for path in sorted(targets.kept):
         if long_format:
             print(f"selected {path}")

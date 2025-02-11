@@ -73,7 +73,7 @@ def test_without_baseline(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     subprocess.check_call(["git", "commit", "-m", "first"])
 
     # Set up TargetManager
-    target_manager = TargetManager(frozenset([Path(".")]))
+    target_manager = TargetManager(scanning_root_strings=frozenset([Path(".")]))
 
     subprojects = [make_subproject(foo_a, foo_b, out.Ecosystem(out.Pypi()))]
 
@@ -193,7 +193,8 @@ def test_with_baseline__new_code_files(
     # Set up TargetManager
     baseline_handler = BaselineHandler(base_commit, True)
     target_manager = TargetManager(
-        frozenset([Path(".")]), baseline_handler=baseline_handler
+        scanning_root_strings=frozenset([Path(".")]),
+        baseline_handler=baseline_handler,
     )
 
     relevant, irrelevant = filter_changed_subprojects(
@@ -331,7 +332,8 @@ def test_with_baseline__changed_source_files(
     # Set up TargetManager
     baseline_handler = BaselineHandler(base_commit, True)
     target_manager = TargetManager(
-        frozenset([Path(".")]), baseline_handler=baseline_handler
+        scanning_root_strings=frozenset([Path(".")]),
+        baseline_handler=baseline_handler,
     )
 
     relevant, irrelevant = filter_changed_subprojects(
