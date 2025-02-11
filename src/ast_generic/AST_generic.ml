@@ -1637,6 +1637,7 @@ and keyword_attribute =
   | Throws
   | Rethrows
   | Distributed
+  | PackageVisibility
 
 (* By name application in Scala, via => T, in parameter *)
 

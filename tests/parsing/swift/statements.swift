@@ -415,3 +415,9 @@ func variadic<each T, each U>(
   t: repeat each T,
   u: repeat each U
 ) -> (Int, repeat ((each T) -> each U)) {}
+
+package func foo() { }
+struct Foo {
+	package func foo() { }
+	package var bar: Int
+}

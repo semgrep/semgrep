@@ -408,7 +408,8 @@ let map_non_local_scope_modifier (env : env) (x : CST.non_local_scope_modifier)
           | `Priv tok -> (* "private" *) (G.Private, token env tok)
           | `Inte tok -> (* "internal" *) (G.Protected, token env tok)
           | `File tok -> (* "fileprivate" *) (G.Public, token env tok)
-          | `Open tok -> (* "open" *) (G.Public, token env tok))
+          | `Open tok -> (* "open" *) (G.Public, token env tok)
+          | `Pack tok -> (* "package" *) (G.PackageVisibility, token env tok))
       in
       match v2 with
       | Some (_v1TODO, v2, _v3TODO) ->
@@ -433,6 +434,7 @@ let map_contextual_simple_identifier (env : env) (x : CST.contextual_simple_iden
   | `Each tok -> (* "each" *) str env tok
   | `Lazy tok -> (* "lazy" *) str env tok
   | `Repeat tok -> (* "repeat" *) str env tok
+  | `Pack tok -> (* "package" *) str env tok
   | `Param_owne_modi x -> match x with
     | `Borr tok -> (* "borrowing" *) str env tok
     | `Cons tok -> (* "consuming" *) str env tok
