@@ -5,3 +5,4 @@ val of_string_opt : string -> Uri.t option
 
 (* rely on Uri.pp *)
 val show : Uri.t -> string
+val of_fpath : Fpath.t -> Uri.t
