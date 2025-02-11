@@ -195,6 +195,9 @@ class BaselineHandler:
                 f"Error initializing baseline. While running command {e.cmd} received non-zero exit status of {e.returncode}.\n(stdout)->{e.stdout}\n(strerr)->{e.stderr}"
             )
 
+    def base_commit(self) -> str:
+        return self._base_commit
+
     def _get_git_status(self) -> GitStatus:
         """
         Read and parse git diff output to keep track of all status types
