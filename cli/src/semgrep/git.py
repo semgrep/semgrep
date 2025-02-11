@@ -170,9 +170,10 @@ class BaselineHandler:
     """
     base_commit: Git ref to compare against
 
-    is_mergebase: Is it safe to assume that the given commit is the mergebase?
-    If not, we have to compute the mergebase ourselves, which can be impossible
-    on shallow checkouts.
+    is_mergebase: Is it safe to assume that the given commit is the merge base?
+    If not, we have to compute the merge base ourselves, which can be impossible
+    on shallow checkouts. A merge base is the most recent common ancestor
+    between two commits.
     """
 
     def __init__(self, base_commit: str, is_mergebase: bool = False) -> None:
