@@ -277,75 +277,36 @@ let rec map_adjoint_expression (env : env) ((v1, v2) : CST.adjoint_expression) =
   let id = str env v2 in
   Call (N (H2.name_of_id id) |> G.e, fb [ Arg v1 ]) |> G.e
 
-and map_function_definition (env : env) ((v1, v2, v3) : CST.function_definition)
-    =
+and map_function_definition (env : env)
+    ((v1, v2, v3, v4, v5) : CST.function_definition) =
   let func_tok = (* "function" *) token env v1 in
-  let _v3 = (* "end" *) token env v3 in
-  match v2 with
-  | `Choice_func_sign_opt_choice_LF_opt_blk (v1, v2, v3) -> (
-      let _v2 = map_terminator_opt env v2 in
-      let body = map_source_file_stmt env v3 in
-      match v1 with
-      | `Func_sign x ->
-          let ent, fun_def =
-            map_function_signature ~body:(FBStmt body) ~func_tok:(Some func_tok)
-              env x
-          in
-          DefStmt (ent, FuncDef fun_def) |> G.s
-      | `Param_list_opt_COLONCOLON_prim_exp_opt_where_clause (v1, v2, v3) ->
-          let fparams = map_parameter_list env v1 in
-          let frettype =
-            match v2 with
-            | Some (v1, v2) ->
-                let _v1 = (* "::" *) token env v1 in
-                let v2 = map_primary_expression env v2 in
-                Some (TyExpr v2 |> G.t)
-            | None -> None
-          in
-          let _where =
-            match v3 with
-            | None -> None
-            | Some x -> Some (map_where_clause env x)
-          in
-          (* I don't really have anywhere else to put this "where" in a
-             lambda. We used to put it in the return type, but now the Julia
-             grammar has a real return type, so we can't put it there. Let's
-             just drop it for now.
-             The "where" is a restriction on the types which may appear in the
-             parameters, for instance:
-             function (x :: T, y :: T2) where T <: Int64 where T2 <: String return 1 end
-          *)
-          ExprStmt
-            ( Lambda
-                {
-                  fkind = (LambdaKind, func_tok);
-                  fparams;
-                  frettype;
-                  fbody = FBStmt body;
-                }
-              |> G.e,
-              G.sc )
-          |> G.s)
-  | `Choice_id x ->
-      (* I have no idea what this means.
-         This allows things like:
-
-         function f
-         end
-
-         Kinda useless.
-      *)
-      let id = map_anon_choice_id_267a5f7 env x in
-      let ent = basic_entity id in
+  let _v3 = map_terminator_opt env v3 in
+  let body = map_source_file_stmt env v4 in
+  let _v5 = (* "end" *) token env v5 in
+  let ent, fparams, frettype = map_signature env v2 in
+  match ent with
+  | Some x ->
       DefStmt
-        ( ent,
+        ( x,
           FuncDef
             {
               fkind = (Function, func_tok);
-              fparams = fb [];
-              frettype = None;
-              fbody = FBNothing;
+              fparams;
+              frettype;
+              fbody = FBStmt body;
             } )
+      |> G.s
+  | None ->
+      ExprStmt
+        ( Lambda
+            {
+              fkind = (LambdaKind, func_tok);
+              fparams;
+              frettype;
+              fbody = FBStmt body;
+            }
+          |> G.e,
+          G.sc )
       |> G.s
 
 and map_multi_assign ?(attrs = []) (env : env) x =
@@ -1163,51 +1124,21 @@ and map_definition (env : env) (x : CST.definition) : stmt =
         (ent, TypeDef { tbody = AndType (v2, List_.map (fun x -> F x) v7, v8) })
       |> G.s
   | `Func_defi x -> map_function_definition env x
-  | `Macro_defi (v1, v2, v3, v4, v5, v6, v7) -> (
+  | `Macro_defi (v1, v2, v3, v4, v5) -> (
       let _v1 = (* "macro" *) token env v1 in
-      let ent =
-        match v2 with
-        | `Id tok -> basic_entity (map_identifier env tok)
-        | `Op x -> basic_entity (map_operator env x)
-        | `Interp_exp x -> (
-            match map_interpolation_expression_either env x with
-            | Left id -> basic_entity id
-            | Right exp ->
-                (* What kind of a sick, twisted psychopath would make the name of a macro
-                   the result of a run-time value????
-                *)
-                { name = EDynamic exp; attrs = []; tparams = None })
-      in
-      let _v3 = (* immediate_paren *) token env v3 in
-      let _, v4, _ = map_parameter_list env v4 in
-      let macroparams =
-        List_.map
-          (function
-            | Param { pname = Some id; _ } -> Some id
-            (* TODO: Accommodate this, macros currently just can't take in arguments which are not idents...
-         *)
-            | _ -> None)
-          v4
-      in
-      let _v5 = map_terminator_opt env v5 in
-      let v6 = map_source_file env v6 in
-      let _v7 = (* "end" *) token env v7 in
-      match option_all macroparams with
-      | None ->
-          (* In this case, just don't inject it into MacroDef.
-           *)
+      let ent, macroparams, _ = map_signature env v2 in
+      let _v3 = map_terminator_opt env v3 in
+      let body = map_source_file env v4 in
+      let _v5 = (* "end" *) token env v5 in
+      match ent with
+      | Some x ->
           DefStmt
-            ( ent,
-              OtherDef
-                ( ("macro", fake "macro"),
-                  List_.map (fun x -> G.Pa x) v4 @ [ G.Ss v6 ] ) )
-          |> G.s
-      | Some macroparams ->
-          DefStmt
-            ( ent,
+            ( x,
               MacroDef
-                { macroparams; macrobody = List_.map (fun x -> G.S x) v6 } )
-          |> G.s)
+                { macroparams; macrobody = List_.map (fun x -> G.S x) body } )
+          |> G.s
+      (* there's no anonymous macros *)
+      | None -> todo env x)
 
 and map_do_clause (env : env) ((v1, v2, v3, v4) : CST.do_clause) =
   let v1 = (* "do" *) token env v1 in
@@ -1442,80 +1373,50 @@ and map_for_clause (env : env) ((v1, v2, v3) : CST.for_clause) =
   in
   List_.map (fun (x, y, z) -> CompFor (v1, x, y, z)) (v2 :: v3)
 
-and map_function_signature ~body ~func_tok (env : env)
-    ((v1, v2, v3, v4, v5, v6) : CST.function_signature) =
-  let ent =
-    let attrs =
-      match v6 with
-      | None -> []
-      | Some x -> [ map_where_clause env x ]
-    in
-    let tparams =
-      match v2 with
-      | None -> None
-      | Some (_, x) -> Some (map_type_parameter_list env x)
-    in
-    match v1 with
-    | `Id tok ->
-        let id = map_identifier env tok in
-        basic_entity ?tparams ~attrs id
-    | `Op x ->
-        let id = map_operator env x in
-        basic_entity ?tparams ~attrs id
-    | `LPAR_choice_id_RPAR (v1, v2, v3) ->
-        let _v1 = (* "(" *) token env v1 in
-        let id = map_anon_choice_id_267a5f7 env v2 in
-        let _v3 = (* ")" *) token env v3 in
-        basic_entity ?tparams ~attrs id
-    | `Field_exp x ->
-        { name = EDynamic (map_field_expression env x); attrs; tparams }
-    | `LPAR_typed_param_RPAR (v1, v2, v3) ->
-        (* This is really weird and probably like, a lambda.
-           As far as I can tell functions that fit this case should look like:
-
-           function (f :: String)(x :: Int64) return 1 end
-
-           Which is really an anonymous function taking in `f`, with two arguments.
-
-           What you can do with this is attach a method to a particular type, as in this example:
-           struct Name
-             x
-           end
-           (D::Name)(x) = 2)
-
-           then
-
-           Name(5)(3) will return 2
-        *)
-        let _v1 = (* "(" *) token env v1 in
-        let param = map_typed_parameter env v2 in
-        let _v3 = (* ")" *) token env v3 in
-        {
-          name = OtherEntity (("anonymous", fake "anonymous"), [ G.Pa param ]);
-          attrs;
-          tparams;
-        }
-    | `Interp_exp x -> (
-        match map_interpolation_expression_either env x with
-        | Left id -> basic_entity ~attrs ?tparams id
-        | Right exp -> { name = EDynamic exp; attrs; tparams })
-  in
-  let func_tok =
-    match func_tok with
-    | None -> fake "function"
-    | Some tok -> tok
-  in
-  let _v3 = (* immediate_paren *) token env v3 in
-  let fparams = map_parameter_list env v4 in
-  let frettype =
-    match v5 with
-    | Some (v1, v2) ->
-        let _v1 = (* "::" *) token env v1 in
-        let v2 = map_type env v2 in
-        Some v2
-    | None -> None
-  in
-  (ent, { fkind = (Function, func_tok); fparams; frettype; fbody = body })
+and map_signature (env : env) (x : CST.signature) =
+  match x with
+  (* Zero parameter function definition, i.e. a function declaration. *)
+  | `Id x ->
+      let id = map_identifier env x in
+      (* TODO: zero parameters *)
+      (Some (basic_entity id), todo env x, None)
+  | `Choice_call_exp_opt_un_typed_exp_opt_where_clause (v1, v2, _v3) ->
+      let frettype =
+        match v2 with
+        | Some (v1, v2) ->
+            let _v1 = (* "::" *) token env v1 in
+            let v2 = map_primary_expression env v2 in
+            Some (TyExpr v2 |> G.t)
+        | None -> None
+      in
+      let ent, params =
+        match v1 with
+        | `Call_exp (v1, _v2, v3, _v4) ->
+            let ent =
+              match v1 with
+              | `Prim_exp x -> (
+                  match x with
+                  | `Id tok ->
+                      let id = map_identifier env tok in
+                      basic_entity id
+                  | `Field_exp x ->
+                      {
+                        name = EDynamic (map_field_expression env x);
+                        attrs = [];
+                        tparams = None;
+                      }
+                  (* TODO: extract type parameters *)
+                  | _ -> todo env x)
+              | `Op x ->
+                  let id = map_operator env x in
+                  basic_entity id
+            in
+            (Some ent, map_parameter_list v3)
+        (* Anonymous function *)
+        | `Arg_list x -> (None, map_parameter_list x)
+      in
+      (* TODO: Handle where_clause *)
+      (ent, params, frettype)
 
 and map_import_alias (env : env) ((v1, v2, v3) : CST.import_alias) :
     (dotted_ident * ident) option =
