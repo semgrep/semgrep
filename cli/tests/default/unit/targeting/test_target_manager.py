@@ -60,7 +60,7 @@ def test_delete_git(tmp_path, monkeypatch):
     foo.unlink()
     subprocess.run(["git", "status"])
 
-    assert_path_sets_equal(ScanningRoot(".", True).files(), {bar})
+    assert_path_sets_equal(ScanningRoot(".", True).target_files(), {bar})
 
 
 @pytest.mark.quick

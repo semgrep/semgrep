@@ -525,7 +525,7 @@ class ScanningRoot:
         return (regular_files, insufficient_permissions)
 
     @lru_cache(maxsize=None)
-    def _files(
+    def _target_files(
         self, ignore_baseline_handler: bool = False
     ) -> Tuple[FrozenSet[Path], FrozenSet[Path]]:
         """
@@ -560,18 +560,19 @@ class ScanningRoot:
 
         return self.files_from_filesystem()
 
-    # cached (see _files())
-    def files(self, ignore_baseline_handler: bool = False) -> FrozenSet[Path]:
-        selected, _insufficient_permissions = self._files(
+    # cached (see _target_files())
+    def target_files(self, ignore_baseline_handler: bool = False) -> FrozenSet[Path]:
+        """Discover target files from the scanning root and cache the result"""
+        selected, _insufficient_permissions = self._target_files(
             ignore_baseline_handler=ignore_baseline_handler
         )
         return selected
 
-    # cached (see _files())
+    # cached (see _target_files())
     def paths_with_insufficient_permissions(
         self, ignore_baseline_handler: bool = False
     ) -> FrozenSet[Path]:
-        _selected, insufficient_permissions = self._files(
+        _selected, insufficient_permissions = self._target_files(
             ignore_baseline_handler=ignore_baseline_handler
         )
         return insufficient_permissions
@@ -787,7 +788,7 @@ class TargetManager:
         return frozenset(
             f
             for root in self.scanning_roots
-            for f in root.files(ignore_baseline_handler)
+            for f in root.target_files(ignore_baseline_handler)
         )
 
     @lru_cache(maxsize=None)
