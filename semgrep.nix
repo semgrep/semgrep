@@ -49,7 +49,11 @@ let
       , overlays ? [ patchesOverlay on.defaultOverlay ], inputs ? [ ] }:
       let
         # Force ocaml version
-        baseQuery = { ocaml-base-compiler = ocamlVersion; };
+        baseQuery = {
+          ocaml-base-compiler = ocamlVersion;
+          # https://github.com/tweag/opam-nix/issues/112
+          ocamlfind = "1.9.6";
+        };
         repos = [ "${opam-repository}" ];
         # repos = opamRepos to force newest version of opam
         # pkgs = pkgs to force newest version of nixpkgs instead of using opam-nix's
