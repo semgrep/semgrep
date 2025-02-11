@@ -3,8 +3,7 @@ open Common
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Call 'dot', 'gv', or 'open' to display a graph
- *)
+(* Call 'dot', 'gv', or 'open' to display a graph *)
 
 (*****************************************************************************)
 (* Dot generation *)
@@ -65,13 +64,13 @@ let generate_ograph_xxx g filename =
 (* TODO: switch from cmd_to_list to UCmd.status_of_run with
  * properly built Cmd, or even switch to CapExec!
  *)
-let launch_png_cmd (caps : < Cap.exec >) filename =
+let launch_png_cmd (caps : < Cap.exec ; .. >) filename =
   CapExec.cmd_to_list caps#exec (spf "dot -Tpng %s -o %s.png" filename filename)
   |> ignore;
   CapExec.cmd_to_list caps#exec (spf "open %s.png" filename) |> ignore;
   ()
 
-let launch_gv_cmd (caps : < Cap.exec >) filename =
+let launch_gv_cmd (caps : < Cap.exec ; .. >) filename =
   CapExec.cmd_to_list caps#exec
     ("dot " ^ filename ^ " -Tps  -o " ^ filename ^ ".ps;")
   |> ignore;
@@ -82,7 +81,7 @@ let launch_gv_cmd (caps : < Cap.exec >) filename =
    *)
   ()
 
-let display_graph_cmd (caps : < Cap.exec >) filename =
+let display_graph_cmd (caps : < Cap.exec ; .. >) filename =
   match Platform.kernel caps with
   | Platform.Darwin -> launch_png_cmd caps filename
   | Platform.Linux -> launch_gv_cmd caps filename
@@ -96,7 +95,8 @@ let print_ograph_mutable caps g filename display_graph =
   generate_ograph_xxx g filename;
   if display_graph then display_graph_cmd caps filename
 
-let print_ograph_mutable_generic caps ?title ?(display_graph = true)
+let print_ograph_mutable_generic (caps : < Cap.exec >) ?title
+    ?(display_graph = true)
     ?(output_file = Fpath.(UTmp.get_temp_dir_name () / "ograph.dot")) ~s_of_node
     g =
   UFile.with_open_out output_file (fun (_, oc) ->
@@ -104,7 +104,8 @@ let print_ograph_mutable_generic caps ?title ?(display_graph = true)
       generate_ograph_generic g title s_of_node f);
   if display_graph then display_graph_cmd caps (Fpath.to_string output_file)
 
-let pp_ograph_mutable_generic caps ?title ~s_of_node f g : unit =
+let pp_ograph_mutable_generic (caps : < Cap.exec ; .. >) ?title ~s_of_node f g :
+    unit =
   CapTmp.with_temp_file caps#tmp (fun tmp ->
       (* Write dot code *)
       UFile.with_open_out tmp (fun (_, oc) ->

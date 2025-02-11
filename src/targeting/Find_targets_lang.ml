@@ -2,7 +2,8 @@
  * of targets for a certain language. For real semgrep targeting, use the
  * Core_targeting module.
  *)
-let get_target_fpaths (root : Fpath.t) (lang : Lang.t) : Fpath.t list =
+let get_target_fpaths (caps : < Cap.readdir ; .. >) (root : Fpath.t)
+    (lang : Lang.t) : Fpath.t list =
   let conf =
     {
       Find_targets.default_conf with
@@ -10,7 +11,6 @@ let get_target_fpaths (root : Fpath.t) (lang : Lang.t) : Fpath.t list =
       force_project_root = Some (Filesystem (Rfpath.of_fpath_exn root));
     }
   in
-  let caps = Cap.readdir_UNSAFE () in
   (* coupling: similar to what we do Scan_subcommand.run_scan_conf()
    * old: Find_targets_old.files_of_dirs_or_files (Some lang) [ root ]
    * TODO? at least Logs the errors and skipped?

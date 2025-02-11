@@ -390,7 +390,7 @@ let all_actions (caps : Cap.all_caps) () =
       " <files or dirs> generate parsing statistics (use -json for JSON output)",
       Arg_.mk_action_n_arg (fun xs ->
           Test_parsing.parsing_stats
-            (caps :> < Cap.time_limit ; Cap.memory_limit >)
+            (caps :> < Cap.time_limit ; Cap.memory_limit ; Cap.readdir >)
             (Lang.of_opt_exn !lang)
             ~json:
               (match !output_format with
@@ -470,8 +470,9 @@ let all_actions (caps : Cap.all_caps) () =
     ( "-test_parse_tree_sitter",
       " <dir> test tree-sitter parser on target files",
       Arg_.mk_action_1_arg (fun root ->
-          Test_parsing.test_parse_tree_sitter (Lang.of_opt_exn !lang)
-            (Fpath.v root)) );
+          Test_parsing.test_parse_tree_sitter
+            (caps :> < Cap.readdir >)
+            (Lang.of_opt_exn !lang) (Fpath.v root)) );
     ( "-translate_rules",
       " <files or dirs>",
       Arg_.mk_action_n_conv Fpath.v
@@ -482,7 +483,8 @@ let all_actions (caps : Cap.all_caps) () =
         (Check_rule.stat_files (caps :> < Cap.stdout >)) );
     ( "-parse_rules",
       " <dir>",
-      Arg_.mk_action_1_conv Fpath.v Test_parsing.test_parse_rules );
+      Arg_.mk_action_1_conv Fpath.v
+        (Test_parsing.test_parse_rules (caps :> < Cap.readdir >)) );
     ("-test_eval", " <JSON file>", Arg_.mk_action_1_arg Eval_generic.test_eval);
     ( "-sarif_sort",
       " <JSON file>",

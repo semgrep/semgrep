@@ -5,6 +5,7 @@
  *)
 open Ograph_extended
 
+(* TODO: not sure why but I can't make it < Cap.exec; ..> below *)
 val print_ograph_mutable_generic :
   < Cap.exec > ->
   ?title:string ->
@@ -17,7 +18,7 @@ val print_ograph_mutable_generic :
   unit
 
 val pp_ograph_mutable_generic :
-  < Cap.exec ; Cap.tmp > ->
+  < Cap.exec ; Cap.tmp ; .. > ->
   ?title:string ->
   s_of_node:(nodei * 'node -> string * string option * string option) ->
   Format.formatter ->
@@ -38,4 +39,4 @@ val print_ograph_mutable :
   bool (* launch gv / show png ? *) ->
   unit
 
-val launch_gv_cmd : < Cap.exec > -> string (* filename *) -> unit
+val launch_gv_cmd : < Cap.exec ; .. > -> string (* filename *) -> unit

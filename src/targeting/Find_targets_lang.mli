@@ -8,4 +8,5 @@
  * and the targets will not be filtered by the toplevel .gitignore
  * or .semgrepignore of the repo containing those tests).
  *)
-val get_target_fpaths : Fpath.t (* root *) -> Lang.t -> Fpath.t list
+val get_target_fpaths :
+  < Cap.readdir ; .. > -> Fpath.t (* root *) -> Lang.t -> Fpath.t list

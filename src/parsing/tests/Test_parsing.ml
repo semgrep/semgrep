@@ -28,6 +28,10 @@ module Resp = Semgrep_output_v1_t
  *)
 
 (*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+
+(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
@@ -247,8 +251,8 @@ let dump_tree_sitter_cst (lang : Lang.t) (file : Fpath.t) : unit =
            Tree_sitter_dockerfile.Boilerplate.dump_extras
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
-let test_parse_tree_sitter lang root =
-  let paths = Find_targets_lang.get_target_fpaths root lang in
+let test_parse_tree_sitter (caps : < Cap.readdir ; .. >) lang root =
+  let paths = Find_targets_lang.get_target_fpaths caps root lang in
   let stat_list = ref [] in
   paths
   |> List.iter (fun file ->
@@ -336,7 +340,8 @@ let dump_lang_ast (lang : Lang.t) (file : Fpath.t) : unit =
    This is meant to run the same parsers as semgrep-core does for normal
    semgrep scans.
 *)
-let parsing_common (caps : < Cap.time_limit ; Cap.memory_limit >)
+let parsing_common
+    (caps : < Cap.time_limit ; Cap.memory_limit ; Cap.readdir ; .. >)
     ?(verbose = true) (lang : Lang.t) (root : Fpath.t) =
   let timeout_seconds = 10.0 in
   (* Without the use of Memory_limit below, we were getting some
@@ -375,7 +380,7 @@ let parsing_common (caps : < Cap.time_limit ; Cap.memory_limit >)
   Logs.info (fun m -> m "running with a timeout of %f.1s" timeout_seconds);
   Logs.info (fun m -> m "running with a memory limit of %d MiB" mem_limit_mb);
 
-  let paths = Find_targets_lang.get_target_fpaths root lang in
+  let paths = Find_targets_lang.get_target_fpaths caps root lang in
   (* TODO? remove the skipped returned? *)
   let skipped = [] in
   let stats =
@@ -440,8 +445,9 @@ let parsing_common (caps : < Cap.time_limit ; Cap.memory_limit >)
    be nice to find out about timeouts. I think the timeout threshold should
    in seconds/MB or equivalent units, not seconds per file."
 *)
-let parse_project (caps : < Cap.time_limit ; Cap.memory_limit >) ~verbose lang
-    name root =
+let parse_project
+    (caps : < Cap.time_limit ; Cap.memory_limit ; Cap.readdir ; .. >) ~verbose
+    lang name root =
   let stat_list, _skipped = parsing_common caps ~verbose lang root in
   let stat_list =
     List.filter (fun stat -> not stat.PS.have_timeout) stat_list
@@ -589,8 +595,8 @@ let diff_pfff_tree_sitter xs =
 (* Rule parsing *)
 (*****************************************************************************)
 
-let test_parse_rules root =
-  let targets = Find_targets_lang.get_target_fpaths root Lang.Yaml in
+let test_parse_rules (caps : < Cap.readdir ; .. >) root =
+  let targets = Find_targets_lang.get_target_fpaths caps root Lang.Yaml in
   targets
   |> List.iter (fun file ->
          Logs.info (fun m -> m "processing %s" !!file);
