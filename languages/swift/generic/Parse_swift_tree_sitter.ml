@@ -18,7 +18,6 @@ module H = Parse_tree_sitter_helpers
 module G = AST_generic
 module H2 = AST_generic_helpers
 module R = Raw_tree
-module Log = Logs
 
 (*****************************************************************************)
 (* Prelude *)
@@ -85,14 +84,12 @@ let map_trailing_comma env v =
   | Some tok -> Some ((* "," *) token env tok)
   | None -> None
 
-  (* TODO: NinjaLikesCheez this is horrible and should not make it to production without a hard stare in the mirror and questioning life choices *)
-let rec dotted_ident_of_type (typ: G.type_) : G.dotted_ident =
+(* TODO: NinjaLikesCheez this is horrible and should not make it to production without a hard stare in the mirror and questioning life choices *)
+let rec dotted_ident_of_type (typ : G.type_) : G.dotted_ident =
   match typ.t with
   | G.TyN name -> H2.dotted_ident_of_name name
-  | G.OtherType (_, [G.T t]) -> dotted_ident_of_type t
-  | _ ->
-    Log.warn (fun m -> m "Other types are not yet implemented: %s" (G.show_type_ typ));
-    failwith "Other types are not yet implemented"
+  | G.OtherType (_, [ G.T t ]) -> dotted_ident_of_type t
+  | _ -> failwith "Other types are not yet implemented"
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -335,9 +332,10 @@ let map_parameter_modifier (env : env) (x : CST.parameter_modifier) =
   | `ATau tok ->
       (* "@autoclosure" *)
       G.unhandled_keywordattr (str env tok)
-  | `Param_owne_modi x -> match x with
-    | `Borr tok -> (* "borrowing" *) G.unhandled_keywordattr (str env tok)
-    | `Cons tok -> (* "consuming" *) G.unhandled_keywordattr (str env tok)
+  | `Param_owne_modi x -> (
+      match x with
+      | `Borr tok -> (* "borrowing" *) G.unhandled_keywordattr (str env tok)
+      | `Cons tok -> (* "consuming" *) G.unhandled_keywordattr (str env tok))
 
 let map_throws (env : env) (x : CST.throws) : G.attribute =
   match x with
@@ -427,7 +425,8 @@ let map_parameter_modifiers (env : env) (xs : CST.parameter_modifiers) :
 let map_parameter_modifiers_opt env v : G.attribute list =
   Option.map (map_parameter_modifiers env) v |> List_.optlist_to_list
 
-let map_contextual_simple_identifier (env : env) (x : CST.contextual_simple_identifier) : G.ident =
+let map_contextual_simple_identifier (env : env)
+    (x : CST.contextual_simple_identifier) : G.ident =
   match x with
   | `Actor tok -> (* "actor" *) str env tok
   | `Async tok -> (* "async" *) str env tok
@@ -435,9 +434,10 @@ let map_contextual_simple_identifier (env : env) (x : CST.contextual_simple_iden
   | `Lazy tok -> (* "lazy" *) str env tok
   | `Repeat tok -> (* "repeat" *) str env tok
   | `Pack tok -> (* "package" *) str env tok
-  | `Param_owne_modi x -> match x with
-    | `Borr tok -> (* "borrowing" *) str env tok
-    | `Cons tok -> (* "consuming" *) str env tok
+  | `Param_owne_modi x -> (
+      match x with
+      | `Borr tok -> (* "borrowing" *) str env tok
+      | `Cons tok -> (* "consuming" *) str env tok)
 
 let map_simple_identifier (env : env) (x : CST.simple_identifier) : G.ident =
   match x with
@@ -1474,8 +1474,7 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
       | `If_stmt x -> G.stmt_to_expr (map_if_statement env x)
       | `Switch_stmt x -> G.stmt_to_expr (map_switch_statement env x)
       | `Value_param_pack x -> map_value_parameter_pack env x
-      | `Value_pack_expa x -> map_value_pack_expansion env x
-      )
+      | `Value_pack_expa x -> map_value_pack_expansion env x)
   | `Semg_exp_ellips tok ->
       let tok = (* three_dot_operator_custom *) token env tok in
       G.Ellipsis tok |> G.e
@@ -1495,12 +1494,14 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
       if str = "...>" then G.DeepEllipsis (l, e, r) |> G.e
       else raise (Parsing_error.Syntax_error r)
 
-and map_value_parameter_pack (env : env) ((v1, v2) : CST.value_parameter_pack) : G.expr =
+and map_value_parameter_pack (env : env) ((v1, v2) : CST.value_parameter_pack) :
+    G.expr =
   let v1 = (* each *) token env v1 in
   let v2 = map_expression env v2 in
   G.OtherExpr (("each", v1), [ G.E v2 ]) |> G.e
 
-and map_value_pack_expansion (env : env) ((v1, v2) : CST.value_pack_expansion) : G.expr =
+and map_value_pack_expansion (env : env) ((v1, v2) : CST.value_pack_expansion) :
+    G.expr =
   let v1 = (* repeat *) token env v1 in
   let v2 = map_expression env v2 in
   G.OtherExpr (("repeat", v1), [ G.E v2 ]) |> G.e
@@ -3152,28 +3153,29 @@ and map_type_constraint (env : env) (x : CST.type_constraint) =
           H2.name_of_id v3_str,
           Tok.unsafe_fake_bracket [ first_type; G.ArgType v4 ] )
 
-and map_constrained_type_identifiers (env : env) (x : CST.constrained_type) : G.ident list =
+and map_constrained_type_identifiers (env : env) (x : CST.constrained_type) :
+    G.ident list =
   match x with
   | `Id x -> map_identifier env x
   | `Unan_type_opt_DOT_simple_id_rep_DOT_simple_id (v1, v2) ->
-    let v1 = map_unannotated_type env v1 in
-    let v2 =
-      match v2 with
-      | Some (v1, v2, v3) ->
-          let _v1TODO = (* dot_custom *) token env v1 in
-          let v2 = map_bound_identifier env v2 in
-          let v3 =
-            List_.map
-              (fun (v1, v2) ->
-                let _v1TODO = (* dot_custom *) token env v1 in
-                let v2 = map_bound_identifier env v2 in
-                v2)
-              v3
-          in
-          Some (v2 :: v3)
-      | None -> None
-    in
-    dotted_ident_of_type v1 @ Option.value ~default:[] v2
+      let v1 = map_unannotated_type env v1 in
+      let v2 =
+        match v2 with
+        | Some (v1, v2, v3) ->
+            let _v1TODO = (* dot_custom *) token env v1 in
+            let v2 = map_bound_identifier env v2 in
+            let v3 =
+              List_.map
+                (fun (v1, v2) ->
+                  let _v1TODO = (* dot_custom *) token env v1 in
+                  let v2 = map_bound_identifier env v2 in
+                  v2)
+                v3
+            in
+            Some (v2 :: v3)
+        | None -> None
+      in
+      dotted_ident_of_type v1 @ Option.value ~default:[] v2
 
 and map_type_constraints (env : env) ((v1, v2, v3) : CST.type_constraints) =
   let _v1TODO = (* where_keyword *) token env v1 in
@@ -3204,8 +3206,7 @@ and map_type_level_declaration (env : env) (x : CST.type_level_declaration) :
       | `Op_decl x -> [ map_operator_declaration env x ]
       | `Prec_group_decl x -> [ map_precedence_group_declaration env x ]
       | `Asso_decl x -> [ map_associatedtype_declaration env x ]
-      | `Init_decl x -> [ map_init_declaration env x ]
-    )
+      | `Init_decl x -> [ map_init_declaration env x ])
   | `Semg_ellips tok (* "..." *) ->
       let tok = (* three_dot_operator_custom *) token env tok in
       [ G.ExprStmt (G.Ellipsis tok |> G.e, G.sc) |> G.s ]
@@ -3222,7 +3223,12 @@ and map_type_parameter (env : env) (x : CST.type_parameter) : G.type_parameter =
       in
 
       (* TODO: NinjaLikesCheez this seems wrong... do we want the fully qualified type name?? *)
-      let v2 = List.hd (List.rev (map_type_parameter_possibly_packed env v2)) in
+      let packed_ident_list = map_type_parameter_possibly_packed env v2 in
+      let v2 =
+        match packed_ident_list with
+        | [] -> assert false
+        | x :: _ -> x
+      in
       let v3 =
         match v3 with
         | Some (v1, v2) ->
@@ -3234,12 +3240,13 @@ and map_type_parameter (env : env) (x : CST.type_parameter) : G.type_parameter =
       G.tparam_of_id ~tp_attrs:v1 ~tp_bounds:v3 v2
   | `Semg_ellips tok -> G.TParamEllipsis ((* "..." *) token env tok)
 
-and map_type_parameter_possibly_packed (env : env) (x : CST.type_parameter_possibly_packed) : G.ident list =
+and map_type_parameter_possibly_packed (env : env)
+    (x : CST.type_parameter_possibly_packed) : G.ident list =
   match x with
-  | `Simple_id x -> [map_bound_identifier env x]
+  | `Simple_id x -> [ map_bound_identifier env x ]
   | `Type_param_pack x ->
-    let pack = map_type_parameter_pack env x in
-    dotted_ident_of_type pack
+      let pack = map_type_parameter_pack env x in
+      dotted_ident_of_type pack
 
 and map_type_parameter_modifiers (env : env) (xs : CST.type_parameter_modifiers)
     =
@@ -3315,12 +3322,14 @@ and map_unannotated_type (env : env) (x : CST.unannotated_type) : G.type_ =
   | `Type_param_pack x -> map_type_parameter_pack env x
   | `Type_pack_expa x -> map_type_pack_expansion env x
 
-and map_type_parameter_pack (env : env) ((v1, v2) : CST.type_parameter_pack) : G.type_ =
+and map_type_parameter_pack (env : env) ((v1, v2) : CST.type_parameter_pack) :
+    G.type_ =
   let v1 = (* each *) token env v1 in
   let v2 = map_unannotated_type env v2 in
   G.OtherType (("each", v1), [ G.T v2 ]) |> G.t
 
-and map_type_pack_expansion (env : env) ((v1, v2) : CST.type_pack_expansion) : G.type_ =
+and map_type_pack_expansion (env : env) ((v1, v2) : CST.type_pack_expansion) :
+    G.type_ =
   (* this is how it's done in the CPP AST to Generic *)
   (* G.OtherExpr (("Pack", v2), [ G.E v1 ]) |> G.e *)
   (* Ultimately, we want to end in a Type.. Maybe OtherType or TyN? *)
@@ -3559,7 +3568,8 @@ and map_external_macro_definition (env : env)
   let v2 = map_expr_hack_at_ternary_binary_call_suffix env v2 in
   G.Call (G.N (H2.name_of_id v1) |> G.e, v2) |> G.e
 
-and map_init_declaration (env : env) ((v1, v2, v3, _, v5, v6, v7, v8, v9, v10) : CST.init_declaration) =
+and map_init_declaration (env : env)
+    ((v1, v2, v3, _, v5, v6, v7, v8, v9, v10) : CST.init_declaration) =
   let v1 = map_modifiers_opt env v1 in
   let v2 = (* "class" *) Option.map (token env) v2 in
   let v3 = (* "init" *) token env v3 in
@@ -3570,26 +3580,34 @@ and map_init_declaration (env : env) ((v1, v2, v3, _, v5, v6, v7, v8, v9, v10) :
   let v8 = (* throws *) Option.map (map_throws env) v8 in
   let v9 = Option.map (map_type_constraints env) v9 in
   let v10 = Option.map (map_function_body env) v10 in
-  let fbody = match v10 with
+  let fbody =
+    match v10 with
     | Some x -> G.FBStmt x
     | None -> G.FBNothing
   in
 
-  let attrs = v1 @ Option.to_list v7 @ Option.to_list v8 @ Option.value ~default:[] v9 in
+  let attrs =
+    v1 @ Option.to_list v7 @ Option.to_list v8 @ Option.value ~default:[] v9
+  in
 
-  G.DefStmt (
-    {
-      name = G.EN (G.Id (("init", v3), G.empty_id_info ()));
-      attrs = attrs;
-      tparams = v5;
-    },
-    G.FuncDef {
-      fkind = (G.Method, Tok.combine_toks (Option.value ~default:(Tok.unsafe_fake_tok "") v2) [v3]);
-      fparams = fb v6;
-      frettype = None;
-      fbody = fbody;
-    }
-  ) |> G.s
+  G.DefStmt
+    ( {
+        name = G.EN (G.Id (("init", v3), G.empty_id_info ()));
+        attrs;
+        tparams = v5;
+      },
+      G.FuncDef
+        {
+          fkind =
+            ( G.Method,
+              Tok.combine_toks
+                (Option.value ~default:(Tok.unsafe_fake_tok "") v2)
+                [ v3 ] );
+          fparams = fb v6;
+          frettype = None;
+          fbody;
+        } )
+  |> G.s
 
 let map_global_declaration (env : env) (x : CST.global_declaration) :
     G.stmt list =
