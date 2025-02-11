@@ -139,13 +139,20 @@ let test_supported_languages (caps : caps) : Testo.t =
       in
       Exit_code.Check.ok exit_code)
 
+(* fragile: due to smart formatting by the Format module and IDs of variable
+   lengths, the output can vary from one test run to another even after
+   masking the variable IDs.
+   TODO: replace all sequences of blanks and newlines by a single newline?
+*)
 let test_dump_config (caps : caps) : Testo.t =
-  t ~checked_output:(Testo.stdout ())
+  t ~checked_output:(Testo.stdout ()) ~tags:[ Test_tags.flaky ]
     ~normalize:
       [
         (* because of the use of Xpattern.count global for pattern id *)
-        Testo.mask_line ~after:"pid = " ~before:" }" ();
-        Testo.mask_line ~after:"id_info_id = " ~before:" }" ();
+        Testo.mask_pcre_pattern "pid = [0-9]+" ~replace:(fun _ ->
+            "pid = <MASKED NUM>");
+        Testo.mask_pcre_pattern "id_info_id = [0-9]+" ~replace:(fun _ ->
+            "id_info_id = <MASKED NUM>");
       ]
     __FUNCTION__
     (fun () ->

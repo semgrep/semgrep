@@ -9,6 +9,9 @@ open Common
 (* Should this be "js.todo"? Feel free to change it. *)
 let todo_js = Testo.Tag.declare "todo.js"
 
+(* A test that sometimes fails for unknown reasons *)
+let flaky = Testo.Tag.declare "flaky"
+
 (* "lang.none" would be shorter but possibly confusing since we're using
    the term "generic" everywhere. *)
 let lang_generic = Testo.Tag.declare "lang.generic"

@@ -12,6 +12,7 @@
     lwt
     networking.http_helpers
     lwt_platform
+    testo
 
     semgrep.parsing
     semgrep.parsing.tests ; Test_parsing.dump_tree_sitter_cst

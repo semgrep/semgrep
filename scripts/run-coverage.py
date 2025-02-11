@@ -1,6 +1,11 @@
 #!/usr/bin/python3
+#
+# TODO: CONTEXT NEEDED
+# TODO: What/who uses this script?
+#
 import os
 import re
+
 
 path = "_build/default/tests"
 

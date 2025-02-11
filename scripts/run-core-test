@@ -20,8 +20,7 @@ NC='\033[0m' # No Color
 # './test status' and './test approve'. See './test --help' for options.
 # This uses the in-house project testo.
 #
-# TODO: fix concurrency bugs to remove '-j0'
-./test -j0
+./test
 
 # run inline tests
 # TODO: make them part of the testo test program above.

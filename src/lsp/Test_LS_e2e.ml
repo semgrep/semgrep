@@ -1061,7 +1061,7 @@ let test_ls_multi caps () =
       ignore info;
       Lwt.return_unit)
 
-let _test_login caps () =
+let test_login caps () =
   with_session caps (fun { server = info; root } ->
       (* If we don't log out prior to starting this test, the LS will complain
          we're already logged in, and not display the correct behavior.
@@ -1238,19 +1238,39 @@ let sync f () = Lwt_platform.run (f ())
 
 (* Create an lwt test and a synchronous test right away because we run
    both and it's hard to convert from one to the other. *)
-let pair ?tolerate_chdir name func =
-  ( Testo.create ?tolerate_chdir name (sync func),
-    Testo_lwt.create ?tolerate_chdir name func )
+let pair ?expected_outcome ?skipped ?tags ?tolerate_chdir name func =
+  let expected_outcome_lwt : Testo_lwt.expected_outcome option =
+    (* ugh: Testo.expected_outcome and Testo_lwt.expected_outcome
+       are considered different types so we need to do this translation *)
+    match (expected_outcome : Testo.expected_outcome option) with
+    | None -> None
+    | Some (Should_fail msg) -> Some (Should_fail msg)
+    | Some Should_succeed -> Some Should_succeed
+  in
+  (* We prevent runs in parallel with other tests because the test 'LS specs'
+     sometimes fails.
+     TODO: make sure the tests can run in parallel and remove '~solo'. *)
+  let solo = "possibly flaky when run in parallel" in
+  ( Testo.create ?tags ?expected_outcome ?skipped ~solo ?tolerate_chdir name
+      (sync func),
+    Testo_lwt.create ?tags ?expected_outcome:expected_outcome_lwt ?skipped ~solo
+      ?tolerate_chdir name func )
 
 let promise_tests caps =
   [
-    pair "LS specs" (test_ls_specs caps) ~tolerate_chdir:true;
+    pair "LS specs" (test_ls_specs caps) ~tags:[ Test_tags.flaky ]
+      ~tolerate_chdir:true;
     (* Keep this test commented out while it is xfail.
         Because logging in is side-effecting, if the test never completes, we
         will stay log in, which can mangle some of the later tests.
-       Test_lwt.create "Test LS login" (test_login caps)
-       ~expected_outcome:
-         (Should_fail "TODO: currently failing in js tests in CI"); *)
+    *)
+    pair "Test LS login" (test_login caps)
+      ~skipped:
+        {|Keep this test commented out while it is xfail.
+Because logging in is side-effecting, if the test never completes, we
+will stay log in, which can mangle some of the later tests.|}
+      ~expected_outcome:
+        (Should_fail "TODO: currently failing in js tests in CI");
     pair "LS /semgrep/search includes/excludes"
       (test_search_includes_excludes caps)
       ~tolerate_chdir:true;

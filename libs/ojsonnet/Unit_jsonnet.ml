@@ -64,6 +64,7 @@ let mk_tests (caps : < Cap.time_limit >) (subdir : string)
                          to take over 1s on my machine without me touching
                          ojsonnet's code. *)
                       let timeout = 2.0 in
+                      let t1 = Unix.gettimeofday () in
                       let json_opt =
                         Common.save_excursion Conf.eval_strategy strategy
                           (fun () ->
@@ -76,9 +77,14 @@ let mk_tests (caps : < Cap.time_limit >) (subdir : string)
                       in
                       match json_opt with
                       | None ->
+                          let t2 = Unix.gettimeofday () in
+                          let dt = t2 -. t1 in
                           failwith
-                            (spf "%gs timeout on %s with %s" timeout !!file
-                               str_strategy)
+                            (spf
+                               "%.3fs (%gs) timeout on %s with %s - sometimes \
+                                happens when running the tests with excessive \
+                                parallelism"
+                               dt timeout !!file str_strategy)
                       | Some json ->
                           if not (Y.equal json expected) then
                             failwith
