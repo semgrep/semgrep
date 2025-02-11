@@ -3330,9 +3330,6 @@ and map_type_parameter_pack (env : env) ((v1, v2) : CST.type_parameter_pack) :
 
 and map_type_pack_expansion (env : env) ((v1, v2) : CST.type_pack_expansion) :
     G.type_ =
-  (* this is how it's done in the CPP AST to Generic *)
-  (* G.OtherExpr (("Pack", v2), [ G.E v1 ]) |> G.e *)
-  (* Ultimately, we want to end in a Type.. Maybe OtherType or TyN? *)
   let v1 = (* repeat *) token env v1 in
   let v2 = map_unannotated_type env v2 in
   G.OtherType (("repeat", v1), [ G.T v2 ]) |> G.t
