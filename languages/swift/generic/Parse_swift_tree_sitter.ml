@@ -2233,7 +2233,6 @@ and map_single_modifierless_property_declaration (env : env)
                  let _v1TODO = (* eq_custom *) token env v1 in
                  let v2 = map_expression env v2 in
                  let v3 = map_willset_didset_block env v3 in
-                 (* TODO: this is passed to VarDef so wrap expression & block together *)
                  G.Seq [ v2; v3 ] |> G.e
              | `Exp_with_will_didset_3bae343 (v1, v2) ->
                  let _v1TODO = (* eq_custom *) token env v1 in
@@ -2254,7 +2253,6 @@ and map_willset_didset_block (env : env) (x : CST.willset_didset_block) =
       let v2 = map_willset_clause env v2 in
       let v3 = Option.map (map_didset_clause env) v3 in
       let v4 = (* "}" *) token env v4 in
-      (* TODO: combine these into a declaration (definition) of a block and pass up as statement *)
       let stmts =
         match v3 with
         | Some x -> [ v2; x ]
@@ -3158,7 +3156,6 @@ and map_constrained_type_identifiers (env : env) (x : CST.constrained_type) : G.
   match x with
   | `Id x -> map_identifier env x
   | `Unan_type_opt_DOT_simple_id_rep_DOT_simple_id (v1, v2) ->
-    (* TODO: See map_identifier as that handles this well! *)
     let v1 = map_unannotated_type env v1 in
     let v2 =
       match v2 with
