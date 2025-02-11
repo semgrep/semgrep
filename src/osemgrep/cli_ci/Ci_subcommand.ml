@@ -1098,14 +1098,26 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
           upload_findings caps' app deployment_name scan_id prj_meta
             blocking_findings filtered_rules cli_output
         in
+
         (* Upload scan-adjacent information, such as symbol analysis
            (needed for SSC features)
            This will not return anything interesting, but will report its
            status in the logs. We shouldn't let symbol analysis affect
            the actual scan's behavior.
         *)
-        Semgrep_App.upload_symbol_analysis caps' scan_id
-          res.core.symbol_analysis;
+        (match res.core.symbol_analysis with
+        | None -> ()
+        | Some symbol_analysis -> (
+            match
+              Semgrep_App.upload_symbol_analysis caps' ~token:caps'#token
+                ~scan_id symbol_analysis
+            with
+            | Error msg ->
+                Logs.warn (fun m ->
+                    m "Failed to upload symbol analysis: %s" msg)
+            | Ok msg ->
+                Logs.debug (fun m ->
+                    m "Uploading symbol analysis succeeded with %s" msg)));
         let audit_mode = false in
         (* TODO: audit_mode = metadata.event_name in audit_on *)
         exit_code_of_blocking_findings ~audit_mode ~on:prj_meta.on

@@ -631,7 +631,7 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
       ( "-rpc",
         Arg.Unit
           (fun () ->
-            RPC.main (caps :> < Cap.exec ; Cap.tmp >);
+            RPC.main (caps :> < Cap.exec ; Cap.tmp ; Cap.network >);
             Core_exit_code.(exit_semgrep caps#exit Success)),
         " don't use this unless you already know" );
     ]

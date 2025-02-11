@@ -13,7 +13,7 @@ module Out = Semgrep_output_v1_j
 (* Dispatcher *)
 (*****************************************************************************)
 
-let handle_call (caps : < Cap.exec ; Cap.tmp >) :
+let handle_call (caps : < Cap.exec ; Cap.tmp ; Cap.network >) :
     Out.function_call -> (Out.function_return, string) result = function
   | `CallApplyFixes { dryrun; edits } ->
       let modified_file_count, fixed_lines = RPC_return.autofix dryrun edits in
@@ -48,6 +48,18 @@ let handle_call (caps : < Cap.exec ; Cap.tmp >) :
           Error
             "Dependency resolution is a proprietary feature, but semgrep-pro \
              has not been loaded")
+  | `CallUploadSymbolAnalysis (token, scan_id, symbol_analysis) -> (
+      (* Caps are kind of a crap shoot whyen working across programming language
+         boundaries anyways.
+      *)
+      let token = Auth.unsafe_token_of_string token in
+      match
+        Semgrep_App.upload_symbol_analysis
+          (caps :> < Cap.network >)
+          ~token ~scan_id symbol_analysis
+      with
+      | Error msg -> Error msg
+      | Ok msg -> Ok (`RetUploadSymbolAnalysis msg))
   | `CallDumpRulePartitions params -> (
       match !RPC_return.hook_dump_rule_partitions with
       | Some dump_rule_partitions ->
@@ -98,7 +110,7 @@ let write_packet chan str =
   flush chan
 
 (* Blocks until a request comes in, then handles it and sends the result back *)
-let handle_single_request (caps : < Cap.exec ; Cap.tmp >) =
+let handle_single_request (caps : < Cap.exec ; Cap.tmp ; Cap.network >) =
   let res =
     let/ call_str = read_packet stdin in
     let/ call =
@@ -129,10 +141,12 @@ let handle_single_request (caps : < Cap.exec ; Cap.tmp >) =
 (* Entry point *)
 (*****************************************************************************)
 
-let main (caps : < Cap.exec ; Cap.tmp >) =
+let main (caps : < Cap.exec ; Cap.tmp ; Cap.network >) =
   (* For some requests, such as SARIF formatting, we need to parse rules
    * so we need to init the parsers as well. *)
   Parsing_init.init ();
+
+  Http_helpers.set_client_ref (module Cohttp_lwt_unix.Client);
 
   (* For now, just handle one request and then exit. *)
   handle_single_request caps

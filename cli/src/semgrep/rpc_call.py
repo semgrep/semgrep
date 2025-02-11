@@ -76,6 +76,23 @@ def resolve_dependencies(
     return ret.value
 
 
+def upload_symbol_analysis(
+    token: str, scan_id: int, symbol_analysis: out.SymbolAnalysis
+) -> None:
+    call = out.FunctionCall(
+        out.CallUploadSymbolAnalysis((token, scan_id, symbol_analysis))
+    )
+    ret: Optional[out.RetUploadSymbolAnalysis] = rpc_call(
+        call, out.RetUploadSymbolAnalysis
+    )
+    if ret is None:
+        logger.warning(
+            "Failed to upload symbol analysis, somehow. Continuing with scan..."
+        )
+    else:
+        logger.debug(f"Uploading symbol analysis succeeded with {ret.value}")
+
+
 def transitive_reachability_filter(
     args: List[out.TransitiveFinding],
 ) -> List[out.TransitiveFinding]:

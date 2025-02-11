@@ -674,6 +674,7 @@ def ci(
             "resolve_all_deps_in_diff_scan": scan_handler.resolve_all_deps_in_diff_scan
             if scan_handler
             else False,
+            "symbol_analysis": scan_handler.symbol_analysis if scan_handler else False,
         }
 
         try:
@@ -929,6 +930,24 @@ def ci(
                             num_blocking_findings += 1
                         else:
                             num_nonblocking_findings += 1
+
+            # Before we finish the scan, let's upload our symbol analysis if we have it.
+            # This is "scan-adjacent information", which is information we want to save,
+            # but doesn't really have to do with the meat of the scan (findings, etc).
+            # We upload it separately, and outsource to `osemgrep` so we don't duplicate
+            # the implementation.
+            if (
+                output_extra.core.symbol_analysis is not None
+                and scan_handler.scan_id
+                and token
+            ):
+                logger.debug(
+                    f"Attempting to upload symbol analysis of {len(output_extra.core.symbol_analysis.value)} symbols"
+                )
+                symbol_analysis = output_extra.core.symbol_analysis
+                semgrep.rpc_call.upload_symbol_analysis(
+                    token, scan_handler.scan_id, symbol_analysis
+                )
 
             if not internal_ci_scan_results:
                 output_handler.output(

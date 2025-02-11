@@ -545,6 +545,7 @@ def run_scan(
     dump_rule_partitions_dir: Optional[Path] = None,
     ptt_enabled: bool = False,
     resolve_all_deps_in_diff_scan: bool = False,
+    symbol_analysis: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -777,6 +778,7 @@ def run_scan(
         allow_untrusted_validators=allow_untrusted_validators,
         respect_rule_paths=respect_rule_paths,
         path_sensitive=path_sensitive,
+        symbol_analysis=symbol_analysis,
     )
 
     experimental_rules, normal_rules = partition(

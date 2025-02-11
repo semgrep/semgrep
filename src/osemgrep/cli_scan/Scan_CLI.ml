@@ -1402,7 +1402,9 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
         strict;
         time_flag;
         matching_explanations;
-        (* only relevant for CI scans *)
+        (* only relevant for CI scans, but must be here for when we make
+           the `Core_runner_conf.t`
+        *)
         symbol_analysis = Core_runner.default_conf.symbol_analysis;
       }
     in

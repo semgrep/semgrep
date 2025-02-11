@@ -85,10 +85,11 @@ val fetch_scan_config_string_async :
     configuration. *)
 
 val upload_symbol_analysis :
-  < Cap.network ; Auth.cap_token ; .. > ->
+  < Cap.network ; .. > ->
+  token:Auth.token ->
   scan_id:int ->
-  Semgrep_output_v1_t.symbol_analysis option ->
-  unit
+  Semgrep_output_v1_t.symbol_analysis ->
+  (string, string) result
 
 (*****************************************************************************)
 (* Async variants of functions above *)
@@ -122,7 +123,8 @@ val upload_rule_to_registry_async :
   (string, string) result Lwt.t
 
 val upload_symbol_analysis_async :
-  < Cap.network ; Auth.cap_token ; .. > ->
+  < Cap.network ; .. > ->
+  token:Auth.token ->
   scan_id:int ->
-  Semgrep_output_v1_t.symbol_analysis option ->
-  unit Lwt.t
+  Semgrep_output_v1_t.symbol_analysis ->
+  (string, string) result Lwt.t

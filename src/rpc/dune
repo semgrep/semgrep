@@ -13,6 +13,8 @@
     ; we now also depends on spacegrep with full-rule-in-ocaml
     spacegrep
 
+    cohttp-lwt-unix
+
     ; internal deps in src/
     semgrep.core
     semgrep.core_scan
@@ -22,5 +24,7 @@
     semgrep.analyzing.tests ; Test_analyze_generic.actions
     semgrep.data
     semgrep.osemgrep_reporting
+    semgrep.osemgrep_networking
+    semgrep.osemgrep_core
  )
 )

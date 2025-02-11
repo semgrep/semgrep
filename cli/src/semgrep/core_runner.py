@@ -520,6 +520,7 @@ class CoreRunner:
         allow_untrusted_validators: bool,
         respect_rule_paths: bool = True,
         path_sensitive: bool = False,
+        symbol_analysis: bool = False,
     ):
         self._binary_path = engine_type.get_binary_path()
         self._jobs = jobs or engine_type.default_jobs
@@ -535,6 +536,7 @@ class CoreRunner:
         self._path_sensitive = path_sensitive
         self._respect_rule_paths = respect_rule_paths
         self._capture_stderr = capture_stderr
+        self._symbol_analysis = symbol_analysis
 
     def _extract_core_output(
         self,
@@ -960,6 +962,12 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
 
             if self._path_sensitive:
                 cmd.append("-path_sensitive")
+
+            # This flag is only in the pro binary, so make sure we're pro
+            # More than that, `symbol_analysis` is only collectible on interfile
+            # scans. So let's only add it if that's the case.
+            if self._symbol_analysis and engine.is_interfile:
+                cmd.append("-symbol_analysis")
 
             # TODO: use exact same command-line arguments so just
             # need to replace the SemgrepCore.path() part.
