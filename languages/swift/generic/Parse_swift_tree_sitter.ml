@@ -3225,7 +3225,7 @@ and map_type_parameter (env : env) (x : CST.type_parameter) : G.type_parameter =
       (* TODO: NinjaLikesCheez this seems wrong... do we want the fully qualified type name?? *)
       let packed_ident_list = map_type_parameter_possibly_packed env v2 in
       let v2 =
-        match packed_ident_list with
+        match List.rev packed_ident_list with
         | [] -> assert false
         | x :: _ -> x
       in
