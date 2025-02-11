@@ -379,6 +379,7 @@ dependencies data are:
 - Package name (e.g., lodash)
 - Package version (e.g., 1.2.3)
 - File path for lockfile (e.g., frontend/yarn.lock)
+- Analysis of external dependency calls. (e.g., from flask import Response, Response(status=204))
 
 ## Debugging data collected when traces are requested
 
