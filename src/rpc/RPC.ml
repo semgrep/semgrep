@@ -79,6 +79,7 @@ let handle_call (caps : < Cap.exec ; Cap.tmp ; Cap.network >) :
           Error
             "Transitive reachability is a proprietary feature, but semgrep-pro \
              has not been loaded")
+  | `CallGetTargets _scanning_roots -> Error "Not yet implemented"
 
 (*****************************************************************************)
 (* Helpers *)
