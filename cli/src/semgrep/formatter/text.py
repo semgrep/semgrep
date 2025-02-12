@@ -894,7 +894,7 @@ class TextFormatter(base.BaseFormatter):
                 # matches in the output.
                 # Instead, they are sent to the App for LLM validation. We expect this to
                 # be noisy, so we won't print out all of the findings here.
-                if group[1] == "generic-secrets":
+                if group[1] == "generic-secrets" and ctx.is_ci_invocation:
                     url = get_state().env.semgrep_url
                     console.print(
                         textwrap.dedent(
@@ -902,7 +902,7 @@ class TextFormatter(base.BaseFormatter):
                         Your deployment has generic secrets enabled. {len(matches)} potential line locations
                         will be uploaded to the Semgrep platform and then analyzed by Semgrep Assistant.
                         Any findings that appear actionable will be available in the Semgrep Platform.
-                        You can view the secrets analyzed by Assistant at {url}/orgs/-/secrets?status=open&type=AI-detected+secret
+                        You can view the secrets analyzed by Assistant at {url}/orgs/-/secrets?status=open&type=AI-detected+secret+%28beta%29
                         """
                         )
                     )
