@@ -1,4 +1,0 @@
-The semgrep-appsec-platform specific metadata fields "semgrep.dev:" and
-"semgrep.policy:" are now filtered from the JSON output unless you
-are logged in with the Semgrep appsec platform.
-See https://semgrep.dev/docs/semgrep-appsec-platform/json-and-sarif#json for more information.

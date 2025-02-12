@@ -1,1 +1,0 @@
-pro: Semgrep can now dynamically resolve dependencies for Python projects using pip, allowing it to determine transitive dependencies automatically.

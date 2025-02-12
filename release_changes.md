@@ -1,30 +1,27 @@
-## [1.107.0](https://github.com/semgrep/semgrep/releases/tag/v1.107.0) - 2025-02-04
+## [1.108.0](https://github.com/semgrep/semgrep/releases/tag/v1.108.0) - 2025-02-12
 
 
 ### Added
 
 
-- More testing of pnpm-lock.yaml dependency parsing. (gh-2999)
-- Added a progress indicator during dependency resolution for supply chain scans. (sc-2045)
+- pro: Semgrep can now dynamically resolve dependencies for Python projects using pip, allowing it to determine transitive dependencies automatically. (sc-2069)
+
+
+### Changed
+
+
+- Bump base Alpine docker image from 3.19 to 3.21. (alpine-version)
+- The semgrep-appsec-platform specific metadata fields "semgrep.dev:" and
+  "semgrep.policy:" are now filtered from the JSON output unless you
+  are logged in with the Semgrep appsec platform.
+  See https://semgrep.dev/docs/semgrep-appsec-platform/json-and-sarif#json for more information. (metadata-filter)
+- The Semgrep Docker image now uses Python 3.12 (bumped from 3.11). (python-version)
 
 
 ### Fixed
 
 
-- The pro engine now respects the correct order of field resolution in Scala's
-  multiple inheritance. The type that appears later takes precedence when
-  resolving fields. For example, in `class A extends B with C with D`, the order
-  of precedence is D, C, B, and A. (code-7891)
-- pro: taint: Fixed bug in callback support, see https://semgrep.dev/playground/s/oqobX (code-7976)
-- pro: python: Fixed resolution of calls to the implementation of abstract methods.
-  See https://semgrep.dev/playground/s/X5kZ4. (code-7987)
-- Fixed the semgrep ci --help to not include experimental options
-  like --semgrep-branch (saf-1746)
-- Peer dependency relationships in package-lock.json files are tracked when parsing a dependency graph (sc-2032)
-- Peer dependency relationships in pnpm-lock.yaml files are tracked when parsing a dependency graph (sc-2033)
-
-
-### Infra/Release Changes
-
-
-- Upgrade from OCaml 4.14.0 to OCaml 5.2.1 for our Docker images (ocaml5-docker)
+- This PR changes the way we handle failures in `git worktree remove` more gracefully.
+  Instead of erroring, we continue to scan so that the user can still get results, but
+  log the error. It also adds a guard so that this failure is less likely to happen
+  and will include more debugging information when it does. (sms-521)
