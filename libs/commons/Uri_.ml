@@ -29,9 +29,11 @@ let of_string_opt (str : string) : Uri.t option =
   let uri = Uri.of_string str in
   if Uri.equal uri Uri.empty then None else Some uri
 
-let is_url config_path =
-  match Option.bind Uri.scheme (of_string_opt config_path) with
+let is_url (str : string) : bool =
+  match Uri.scheme (Uri.of_string str) with
   | Some "http"
-  | Some "https" -> true
+  | Some "https" ->
+      true
   | Some _
-  | None -> false
+  | None ->
+      false
