@@ -378,6 +378,7 @@ local setup_nix_step = [
   // build-test-manylinux-x86.jsonnet in pro, tests.jsonnet in OSS
   // TODO? could switch to higher like 3.11
   default_python_version: '3.9',
+  python_version: '3.12',
   containers: containers,
 
   github_bot: github_bot,

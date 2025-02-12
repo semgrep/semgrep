@@ -147,7 +147,7 @@ RUN make install-deps-for-semgrep-core &&\
 # TODO: Update beyond Alpine 3.19 to pick up Python versions newer than 3.11
 
 #coupling: the 'semgrep-oss' name is used in 'make build-docker'
-FROM alpine:3.19 AS semgrep-oss
+FROM alpine:3.21 AS semgrep-oss
 
 WORKDIR /pysemgrep
 

@@ -19,8 +19,6 @@ jobs:
     runs-on: macos-latest
     steps:
       - run: brew update
-      - name: 'ugly: fix the python path for brew bump-formula-pr'
-        run: cd /usr/local/Cellar/python@3.11; ln -s 3.11.6_1 3.11.7
       - env:
           HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.SEMGREP_HOMEBREW_RELEASE_PAT }}
         if: ${{ inputs.dry-run }}

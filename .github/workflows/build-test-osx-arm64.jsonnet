@@ -21,7 +21,7 @@ local runs_on = 'macos-latest';
 local setup_python_step =  {
   uses: 'actions/setup-python@v4',
   with: {
-    'python-version': '3.11',
+    'python-version': semgrep.python_version,
   }
 };
 

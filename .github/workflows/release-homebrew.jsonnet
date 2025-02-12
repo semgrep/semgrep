@@ -66,14 +66,6 @@ local homebrew_core_pr_job(version) = {
     {
       run: 'brew update',
     },
-    // ugly:  'brew bump-formula-pr' below internally calls
-    // /path/to/python -m pip install -q ... semgrep==1.xxx.yyy
-    // to fetch Semgrep python dependencies from Pypi but this path to python
-    // seems currently broken hence the ugly fix below
-    {
-      name: 'ugly: fix the python path for brew bump-formula-pr',
-      run: 'cd /usr/local/Cellar/python@3.11; ln -s 3.11.6_1 3.11.7'
-    },
     {
       name: 'Dry Run bump semgrep.rb',
       // This step does some brew oddities (setting a fake version, and
