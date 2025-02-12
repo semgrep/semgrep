@@ -12,6 +12,8 @@ from typing import Optional
 from typing import Tuple
 from typing import TypedDict
 
+import tomli
+
 from semdep.external.parsy import any_char
 from semdep.external.parsy import eof
 from semdep.external.parsy import regex
@@ -236,65 +238,52 @@ poetry = (
 )
 
 
-# Direct dependencies listed in a pyproject.toml file
-# Example:
-# [tool.poetry.dependencies]
-# python = "^3.10"
-# faker = "^13.11.0"
-manifest_deps = (
-    string("[tool.poetry.dependencies]\n")
-    << new_lines.optional()
-    >> key_value.map(lambda x: x[0]).sep_by(new_lines)
-)
-
-manifest_sections_extra = (
-    (string("[") >> upto("]") << string("]\n")).at_least(1)
-    >> new_lines.optional()
-    >> key_value_list.map(lambda _: None)
-)
-
-# A whole pyproject.toml file. We only about parsing the manifest_deps
-manifest = (
-    string("\n").many()
-    >> (manifest_deps | manifest_sections_extra | poetry_source_extra)
-    .sep_by(new_lines.optional())
-    .map(lambda xs: {y for x in xs if x for y in x})
-    << new_lines.optional()
-)
+def parse_pyproject_toml(
+    raw_manifest: str,
+) -> set[str]:
+    parsed_manifest = tomli.loads(raw_manifest)
+    manifest_deps: set[str] = set(
+        parsed_manifest.get("tool", {}).get("poetry", {}).get("dependencies", {}).keys()
+    )
+    return manifest_deps
 
 
 def parse_poetry(
     lockfile_path: Path,
     manifest_path: Optional[Path],
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
-    parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
+    parsed_lockfile, _, errors = safe_parse_lockfile_and_manifest(
         DependencyFileToParse(
             lockfile_path,
             poetry,
             ScaParserName(PoetryLock_()),
             preprocessors.CommentRemover(),
         ),
-        DependencyFileToParse(
-            manifest_path,
-            manifest,
-            ScaParserName(PyprojectToml_()),
-            preprocessors.CommentRemover(),
-        )
-        if manifest_path
-        else None,
+        None,
     )
+    if manifest_path:
+        try:
+            raw_manifest = manifest_path.read_text()
+            manifest_deps = parse_pyproject_toml(raw_manifest)
+        except Exception as e:
+            errors.append(
+                DependencyParserError(
+                    path=Fpath(str(manifest_path)),
+                    parser=ScaParserName(
+                        PyprojectToml_()
+                    ),  # There is actually no longer a custom parser for this since pyproject.toml is now parsed by a TOML parser (tomli)
+                    reason=f"Failed to parse [bold]{manifest_path}[/bold]: {str(e)}",
+                )
+            )
+            manifest_deps = set()
+    else:
+        manifest_deps = set()
+
     if not parsed_lockfile:
         return [], errors
 
     # According to PEP 426: pypi distributions are case insensitive and consider hyphens and underscores to be equivalent
-    sanitized_manifest_deps = (
-        {
-            dep.lower().replace("-", "_")
-            for dep in (parsed_manifest if parsed_manifest else set())
-        }
-        if parsed_manifest
-        else parsed_manifest
-    )
+    sanitized_manifest_deps = {dep.lower().replace("-", "_") for dep in manifest_deps}
 
     output = []
     dep_version_map = {}

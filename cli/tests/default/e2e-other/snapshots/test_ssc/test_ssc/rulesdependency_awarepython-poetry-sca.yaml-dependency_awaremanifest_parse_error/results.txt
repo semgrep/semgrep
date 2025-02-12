@@ -77,10 +77,9 @@
 
   SUPPLY CHAIN RULES
   Nothing to scan.
-  Failed to parse [bold]targets/dependency_aware/manifest_parse_error/pyproject.toml[/bold] at [bold]3:1[/bold] -
-  expected one of ['\n+', '("[^"]*"|[^\\s=]+)\\s*=\\s*', 'EOF', '[', '[[', '[tool.poetry.dependencies]\n']
-  3 | name ~ "test"
-      ^
+  Failed to parse [bold]targets/dependency_aware/manifest_parse_error/pyproject.toml[/bold] - Failed to parse
+  [bold]targets/dependency_aware/manifest_parse_error/pyproject.toml[/bold]: Expected '=' after a key in a key/value
+  pair (at line 3, column 6)
 
 
 ┌──────────────┐
