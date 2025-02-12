@@ -719,27 +719,10 @@ let exp_is_sanitized env exp =
           Some (sanitize_lval_by_side_effect env.lval_env sanitizer_pms lval)
       | __else__ -> Some env.lval_env)
 
-(* Checks if `thing' is a propagator `from' and if so propagates `taints' through it.
-   Checks if `thing` is a propagator `'to' and if so fetches any taints that had been
+(* Checks if `thing' is a propagator's `from' and if so propagates `taints' through it.
+   Checks if `thing` is a propagator's `to' and if so fetches any taints that had been
    previously propagated. Returns *only* the newly propagated taint. *)
 let handle_taint_propagators env thing taints shape =
-  (* We propagate taints via an auxiliary variable (the propagator id). This is
-   * simple but it has limitations. It works well to propagate "forward" and,
-   * within an instruction node, to propagate in the order in which we visit the
-   * subexpressions. E.g. in `x.f(y,z)` we can easily propagate taint from `y` or
-   * `z` to `x`, or from `y` to `z`.
-   *
-   * So, how to propagate taint from `x` to `y` or `z`, or from `z` to `y` ?
-   * In Pro, we do it by recording them as "pending" (see
-   * 'Taint_lval_env.pending_propagation_dests'). The problem with that kind of
-   * "delayed" propagation is that it **only** works by side-effect, but not at
-   * the very location of the destination. So we can propagate taint by side-effect
-   * from `z` to `y` in `x.f(y,z)`, but the `y` occurrence that is the actual
-   * destination (i.e. the `$TO`) will not have the taints coming from `z`, only
-   * the subsequent occurrences of `y` will.
-   * TODO: To support that, we may need to introduce taint variables that we can
-   *       later substitute, like we do for labels.
-   * *)
   let taints =
     taints |> Taints.union (Shape.gather_all_taints_in_shape shape)
   in
@@ -758,11 +741,11 @@ let handle_taint_propagators env thing taints shape =
       (fun p -> p.TM.spec.Taint_spec_preds.kind =*= `From)
       propagators
   in
-  let lval_env =
+  let pending, lval_env =
     (* `thing` is the source (the "from") of propagation, we add its taints to
      * the environment. *)
     List.fold_left
-      (fun lval_env prop ->
+      (fun (pending, lval_env) prop ->
         (* Only propagate if the current set of taint labels can satisfy the
            propagator's requires precondition.
         *)
@@ -809,11 +792,29 @@ let handle_taint_propagators env thing taints shape =
                        prop.spec.prop.propagator_replace_labels label)
                     taints
             in
-            Lval_env.propagate_to prop.spec.var new_taints lval_env
+            let lval_env, is_pending =
+              Lval_env.propagate_to prop.spec.var new_taints lval_env
+            in
+            let pending =
+              match is_pending with
+              | `Recorded -> pending
+              | `Pending -> VarMap.add prop.spec.var new_taints pending
+            in
+            (pending, lval_env)
         | Some false
         | None ->
-            lval_env)
-      lval_env propagate_froms
+            (pending, lval_env))
+      (VarMap.empty, lval_env) propagate_froms
+  in
+  let lval_env =
+    match env.taint_inst.pro_hooks with
+    | None -> lval_env
+    | Some pro_hooks ->
+        let lval_env, effects_acc =
+          pro_hooks.run_pending_propagators pending lval_env !(env.effects_acc)
+        in
+        env.effects_acc := effects_acc;
+        lval_env
   in
   let taints_propagated, lval_env =
     (* `thing` is the destination (the "to") of propagation. we collect all the
@@ -825,24 +826,33 @@ let handle_taint_propagators env thing taints shape =
         in
         let taints_from_prop =
           match opt_propagated with
-          | None -> Taints.empty
+          | None ->
+              (* Metavariable *)
+              Taints.singleton
+                T.
+                  {
+                    orig = T.Var (Propagator_var prop.TM.spec.var);
+                    rev_tokens = [];
+                  }
           | Some taints -> taints
+        in
+        let lval_env =
+          if Option.is_some opt_propagated then lval_env
+          else
+            (* If we did not find any taint to be propagated, it could
+               be because we have not encountered the 'from' yet, so we
+               add the 'lval' to a "pending" queue. *)
+            lval_env |> Lval_env.pending_propagation prop.TM.spec.var
         in
         let lval_env =
           if prop.spec.Taint_spec_preds.prop.propagator_by_side_effect then
             match thing with
-            (* If `thing` is an l-value of the form `x.a.b.c`, then taint can be
-             *  propagated by side-effect. A pattern-propagator may use this to
-             * e.g. propagate taint from `x` to `y` in `f(x,y)`, so that
-             * subsequent uses of `y` are tainted if `x` was previously tainted. *)
             | `Lval lval ->
-                if Option.is_some opt_propagated then
-                  lval_env |> Lval_env.add_lval lval taints_from_prop
-                else
-                  (* If we did not find any taint to be propagated, it could
-                   * be because we have not encountered the 'from' yet, so we
-                   * add the 'lval' to a "pending" queue. *)
-                  lval_env |> Lval_env.pending_propagation prop.TM.spec.var lval
+                (* If `thing` is an l-value of the form `x.a.b.c`, then taint can be
+                   propagated by side-effect. A pattern-propagator may use this to
+                   e.g. propagate taint from `x` to `y` in `f(x,y)`, so that
+                   subsequent uses of `y` are tainted if `x` was previously tainted. *)
+                lval_env |> Lval_env.add_lval lval taints_from_prop
             | `Exp _
             | `Ins _ ->
                 lval_env

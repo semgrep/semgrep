@@ -210,10 +210,12 @@ let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
                         mval_to_end_loc
                     in
                     let id =
-                      Common.spf "propagator:%d:%d:%d:%d:%d:%d"
-                        loc_pfrom.pos.bytepos loc_pto.pos.bytepos
-                        from.Range.start from.Range.end_ to_.Range.start
-                        to_.Range.end_
+                      Common.spf
+                        "propagator<%d,%d>(%s@l.%d/%d-%d-->%s@l.%d/%d-%d)"
+                        loc_pfrom.pos.bytepos loc_pto.pos.bytepos mvar_pfrom
+                        mval_from_start_loc.Tok.pos.line from.Range.start
+                        from.Range.end_ mvar_pto mval_to_start_loc.Tok.pos.line
+                        to_.Range.start to_.Range.end_
                     in
                     Some { id; rwm; from; to_; spec = p }))
 [@@trace_trace]
@@ -241,6 +243,42 @@ let spec_matches_of_taint_rule ~per_file_formula_cache xconf file ast_and_errors
     find_sources_ranges formula_cache xconf xtarget rule spec
   in
   let (propagators_ranges : propagator_match list) =
+    (* NOTE "Symbolic-propagation & Taint-propagation"
+
+       Symbolic-propagation and taint-propagation can interact in a rather
+       unfortunate way leading to unexpected results.
+
+       E.g. Give the code below and the propagator `$TO.prepare_url($FROM)`
+       we would get a finding in line 4!
+
+           1 def test():
+           2      tainted_url = taint
+           3      r = safe
+           4      sink(r) # unexpected finding :-(
+           5      r.prepare_url(tainted_url)
+
+       This is due to symbolic-propagation tracking that `r = safe` and
+       `tainted_url = taint`, so the propagator `$TO.prepare_url($FROM)`
+       produces **four** matches rather than just one, where `$FROM` is
+       either `tainted_url` or `taint`, and `$TO` is either `r` or `safe`.
+       So, we end up propagating taint from `taint` (line 2) to `safe`
+       (line 3), thus producing a false positive.
+
+       Thus we disable symbolic-propagation to match taint propagators.
+
+       [Iago] I am not sure whether symbolic-propagation should produce
+       these four findings, but rather just one. I think we should just
+       have `$FROM=tainted_url` and `$TO=r`, and e.g. if we later apply
+       a `metavariable-regex` to `$TO` then that needs to take the
+       sym-prop'ed value of `r` into account. In fact, that is how it
+       works for const-prop'ed values already. But while that gets fixed
+       then this is an OK solution.
+    *)
+    Log.warn (fun m ->
+        m "Disabling symbolic-propagation to match taint propagators");
+    let xconf =
+      { xconf with config = { xconf.config with symbolic_propagation = false } }
+    in
     find_propagators_matches formula_cache xconf xtarget rule spec.propagators
   in
   let (sinks_ranges : (RM.t * R.taint_sink) list), expls_sinks =

@@ -140,7 +140,25 @@ end = struct
     ^ "}"
 end
 
-module NameMap = Map.Make (NameOrdered)
+module NameMap = struct
+  include Map.Make (NameOrdered)
+
+  (* Guarantees physical equality if nothing changes. *)
+  let filter_map_endo f m =
+    let changed = ref false in
+    let m' =
+      m
+      |> filter_map (fun _k x ->
+             let res = f x in
+             (match f x with
+             | Some y when Eq.phys_equal x y -> ()
+             | None
+             | Some _ (* x != y *) ->
+                 changed := true);
+             res)
+    in
+    if !changed then m' else m
+end
 
 (*****************************************************************************)
 (* Fixme constructs *)

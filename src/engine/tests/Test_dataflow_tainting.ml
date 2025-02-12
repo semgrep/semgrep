@@ -11,16 +11,30 @@ module DataflowX = Dataflow_core.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.IL.n
 end)
 
+let show_range (file : Fpath.t) (r : Range.t) : string =
+  let code_text = Range.content_at_range file r in
+  let byte_str = string_of_int r.start in
+  code_text ^ " @b." ^ byte_str
+
+let show_rwm (file : Fpath.t) (rwm : RM.t) : string =
+  let code_text = Range.content_at_range file rwm.RM.r in
+  let line_str =
+    let pm = rwm.RM.origin in
+    let loc1, _ = pm.range_loc in
+    string_of_int loc1.Tok.pos.line
+  in
+  code_text ^ " @l." ^ line_str
+
 let pr2_ranges (file : Fpath.t) (rwms : RM.t list) : unit =
-  rwms
-  |> List.iter (fun rwm ->
-         let code_text = Range.content_at_range file rwm.RM.r in
-         let line_str =
-           let pm = rwm.RM.origin in
-           let loc1, _ = pm.range_loc in
-           string_of_int loc1.Tok.pos.line
-         in
-         UCommon.pr2 (code_text ^ " @l." ^ line_str))
+  rwms |> List.iter (fun rwm -> UCommon.pr2 (show_rwm file rwm))
+
+let pr2_prop_matches (file : Fpath.t) prop_matches : unit =
+  prop_matches
+  |> List.iter (fun (prop_match : Match_taint_spec.propagator_match) ->
+         let prop_str = show_rwm file prop_match.rwm in
+         let from_str = show_range file prop_match.from in
+         let to_str = show_range file prop_match.to_ in
+         UCommon.pr2 (spf "%s : %s -> %s" prop_str from_str to_str))
 
 let test_tainting taint_inst def =
   UCommon.pr2 "\nDataflow";
@@ -74,6 +88,9 @@ let test_dfg_tainting rules_file file =
   UCommon.pr2 "\nSources";
   UCommon.pr2 "-------";
   pr2_ranges file (spec_matches.sources |> List_.map fst);
+  UCommon.pr2 "\nPropagators";
+  UCommon.pr2 "-----------";
+  pr2_prop_matches file spec_matches.propagators;
   UCommon.pr2 "\nSanitizers";
   UCommon.pr2 "----------";
   pr2_ranges file (spec_matches.sanitizers |> List_.map fst);

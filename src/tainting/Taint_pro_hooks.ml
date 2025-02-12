@@ -33,6 +33,12 @@ type t = {
     IL.node ->
     (Taint.taints * Shape_and_sig.Effect.sink list) option;
       (** pro-scan hook *)
+  run_pending_propagators :
+    Taint.taints Dataflow_var_env.VarMap.t ->
+    Taint_lval_env.t ->
+    Shape_and_sig.Effects.t ->
+    Taint_lval_env.t * Shape_and_sig.Effects.t;
+      (** pro-scan hook *)
 }
 
 let hook_taint_pro_hooks : t option Hook.t = Hook.create None

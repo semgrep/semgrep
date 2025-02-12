@@ -1,0 +1,2 @@
+pro: taint-mode: Fixed limitation in custom taint propagators.
+See https://semgrep.dev/playground/s/ReJQO

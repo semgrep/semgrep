@@ -105,14 +105,23 @@ let fix_poly_taint_with_offset offset taints =
             (T.show_lval extended_lval));
       orig_lval)
   in
-  let fix_var o : T.var -> T.var = function
+  let fix_var o (var : T.var) : T.var =
+    match var with
     | Taint_var lval ->
         let lval' = add_offset_to_lval o lval in
         Taint_var lval'
     | Taint_in_shape_var lval ->
         let lval' = add_offset_to_lval o lval in
         Taint_in_shape_var lval'
-    | Control_var -> Control_var
+    | Propagator_var _ ->
+        (* This means that we may be losing field-sensitivity here.
+           If we e.g. had `$FROM.sink($TO)` and `obj.sink(x.a)`, the `.a` will
+           not be attached to the taint coming from `obj`. Don't know yet if
+           that is going to be a big problem, if it is we'll find a solution.
+           Right now I am just expecting `obj` to have a taint label encoding
+           its type, in which case this limitation should not be a problem. *)
+        var
+    | Control_var -> var
   in
   offset
   |> List.fold_left

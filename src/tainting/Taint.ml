@@ -234,7 +234,11 @@ let lval_of_arg arg = { base = BArg arg; offset = [] }
 (* Taint *)
 (*****************************************************************************)
 
-type var = Taint_var of lval | Taint_in_shape_var of lval | Control_var
+type var =
+  | Taint_var of lval
+  | Propagator_var of Dataflow_var_env.var
+  | Taint_in_shape_var of lval
+  | Control_var
 
 type source = {
   call_trace : R.taint_source call_trace;
@@ -262,14 +266,17 @@ let compare_precondition (_ts1, f1) (_ts2, f2) =
 let compare_var v1 v2 =
   match (v1, v2) with
   | Taint_var lv1, Taint_var lv2 -> compare_lval lv1 lv2
+  | Propagator_var pv1, Propagator_var pv2 -> String.compare pv1 pv2
   | Taint_in_shape_var lv1, Taint_in_shape_var lv2 -> compare_lval lv1 lv2
   | Control_var, Control_var -> 0
   (* smaller than *)
-  | Taint_var _, (Taint_in_shape_var _ | Control_var) -> -1
+  | Taint_var _, (Propagator_var _ | Taint_in_shape_var _ | Control_var) -> -1
+  | Propagator_var _, (Taint_in_shape_var _ | Control_var) -> -1
   | Taint_in_shape_var _, Control_var -> -1
   (* greater than *)
-  | Taint_in_shape_var _, Taint_var _ -> 1
-  | Control_var, (Taint_in_shape_var _ | Taint_var _) -> 1
+  | Propagator_var _, Taint_var _ -> 1
+  | Taint_in_shape_var _, (Propagator_var _ | Taint_var _) -> 1
+  | Control_var, (Propagator_var _ | Taint_in_shape_var _ | Taint_var _) -> 1
 
 (* See NOTE "on compare functions" *)
 let compare_source
@@ -334,6 +341,7 @@ let rec show_precondition = function
 let show_var var =
   match var with
   | Taint_var lval -> "'" ^ show_lval lval
+  | Propagator_var pvar -> "?" ^ pvar
   | Taint_in_shape_var lval -> "'<" ^ show_lval lval ^ ">"
   | Control_var -> "'<control>"
 

@@ -21,28 +21,6 @@ open Shape_and_sig.Shape
 
 type t
 type env = t
-type taints_to_propagate = Taint.taints Dataflow_var_env.VarMap.t
-type pending_propagation_dests = IL.lval Dataflow_var_env.VarMap.t
-
-type prop_fn =
-  taints_to_propagate:taints_to_propagate ->
-  pending_propagation_dests:pending_propagation_dests ->
-  env
-
-type add_fn = IL.lval -> Taint.taints -> env -> env
-
-(* pro-scan hook. The signature is complicated to avoid having to expose
- * `t`s internals. *)
-val hook_propagate_to :
-  (Dataflow_var_env.var ->
-  Taint.taints ->
-  taints_to_propagate:taints_to_propagate ->
-  pending_propagation_dests:pending_propagation_dests ->
-  prop:prop_fn ->
-  add:add_fn ->
-  t)
-  option
-  Hook.t
 
 val empty : env
 val empty_inout : env Dataflow_core.inout
@@ -60,11 +38,12 @@ val add_lval_shape : IL.lval -> Taint.taints -> shape -> env -> env
 
 val add : IL.name -> Taint.offset list -> Taint.taints -> env -> env
 
-val add_lval : add_fn
+val add_lval : IL.lval -> Taint.taints -> env -> env
 (** Assign a set of taints (but no specific shape) to an l-value. *)
 
 (* THINK: Perhaps keep propagators outside of this environment? *)
-val propagate_to : Dataflow_var_env.var -> Taint.taints -> env -> env
+val propagate_to :
+  Dataflow_var_env.var -> Taint.taints -> env -> env * [ `Pending | `Recorded ]
 
 val find_var : env -> IL.name -> cell option
 (** Find the 'cell' of a variable. *)
@@ -114,7 +93,7 @@ val find_lval_xtaint : env -> IL.lval -> Xtaint.t
     is a "bit" more complex, see Dataflow_tainting.check_tainted_lval. *)
 
 val propagate_from : Dataflow_var_env.var -> env -> Taint.taints option * env
-val pending_propagation : Dataflow_var_env.var -> IL.lval -> env -> env
+val pending_propagation : Dataflow_var_env.var -> env -> env
 
 val clean : env -> IL.lval -> env
 (** Remove taint from an lvalue.
@@ -141,6 +120,14 @@ val union : env -> env -> env
      best case scenario to reduce FPs. *)
 
 val union_list : ?default:env -> env list -> env
+
+val subst :
+  subst_taints:(Taint.taints -> Taint.taints) ->
+  subst_cell:(cell -> cell option)
+    (** if 'None' then the 'cell' should be removed *) ->
+  env ->
+  env
+
 val equal : env -> env -> bool
 
 val equal_by_lval : env -> env -> IL.lval -> bool
