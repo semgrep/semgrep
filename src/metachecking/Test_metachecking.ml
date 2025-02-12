@@ -35,7 +35,7 @@ let test_rules ?(unit_testing = false)
     (caps : < Core_scan.caps ; Cap.readdir ; .. >) xs =
   let fullxs =
     xs
-    |> File_type.files_of_dirs_or_files (function
+    |> File_type.files_of_dirs_or_files caps (function
          | FT.Config FT.Yaml -> true
          | _ -> false)
     |> List_.exclude (fun filepath ->

@@ -287,11 +287,11 @@ let semgrep_check (caps : < Core_scan.caps ; .. >) (metachecks : Fpath.t)
       |> List_.map match_to_semgrep_error
   | Error exn -> Exception.reraise exn
 
-let run_checks (caps : < Core_scan.caps ; .. >) (metachecks : Fpath.t)
-    (xs : Fpath.t list) : Core_error.t list =
+let run_checks (caps : < Core_scan.caps ; Cap.readdir ; .. >)
+    (metachecks : Fpath.t) (xs : Fpath.t list) : Core_error.t list =
   let yaml_xs =
     xs
-    |> File_type.files_of_dirs_or_files (function
+    |> File_type.files_of_dirs_or_files caps (function
          | FT.Config (FT.Yaml (*FT.Json |*) | FT.Jsonnet) -> true
          | _ -> false)
   in
@@ -325,8 +325,7 @@ let run_checks (caps : < Core_scan.caps ; .. >) (metachecks : Fpath.t)
 (* for semgrep-core -check_rules, called from pysemgrep --validate
  * caps = Core_scan.caps + Cap.stdout
  *)
-let check_files
-    (caps : < Cap.stdout ; Cap.fork ; Cap.time_limit ; Cap.memory_limit ; .. >)
+let check_files (caps : < Cap.stdout ; Core_scan.caps ; Cap.readdir ; .. >)
     (output_format : Core_scan_config.output_format) (input : Fpath.t list) :
     unit =
   let errors =
@@ -353,10 +352,10 @@ let check_files
       CapConsole.print caps#stdout (SJ.string_of_core_output json)
 
 (* for semgrep-core -stat_rules *)
-let stat_files (caps : < Cap.stdout >) xs =
+let stat_files (caps : < Cap.stdout ; Cap.readdir ; .. >) xs =
   let fullxs =
     xs
-    |> File_type.files_of_dirs_or_files (function
+    |> File_type.files_of_dirs_or_files caps (function
          | FT.Config (FT.Yaml (*FT.Json |*) | FT.Jsonnet) -> true
          | _ -> false)
   in

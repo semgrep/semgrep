@@ -161,7 +161,8 @@ let rules_and_targets (caps : < Cap.readdir ; .. >)
   | Test_CLI.Dir (dir, None) ->
       (* coupling: similar to Test_engine.test_rules() *)
       let rule_files =
-        [ dir ] |> UFile.files_of_dirs_or_files_no_vcs_nofilter
+        [ dir ]
+        |> UFile.files_of_dirs_or_files_no_vcs_nofilter caps
         |> List.filter Rule_file.is_valid_rule_filename
       in
       rule_files

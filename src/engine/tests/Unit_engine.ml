@@ -590,13 +590,13 @@ let test_irrelevant_rule_file target_file =
    any files, place the rule/target pair in the rules folder but annotate
    in a comment that the test targets filter_irrelevant_rules to help
    future debuggers. *)
-let filter_irrelevant_rules_tests () =
+let filter_irrelevant_rules_tests (caps : < Cap.readdir ; .. >) =
   Testo.categorize "filter irrelevant rules"
     (let dir = tests_path / "irrelevant_rules" in
      let target_files =
        Common2.glob (spf "%s/*" !!dir)
        |> Fpath_.of_strings
-       |> File_type.files_of_dirs_or_files (function
+       |> File_type.files_of_dirs_or_files caps (function
             | File_type.Config File_type.Yaml -> false
             | _ -> true (* TODO include .test.yaml*))
      in
@@ -919,7 +919,7 @@ let tests (caps : < Cap.readdir ; .. >) =
       lang_regression_tests ~polyglot_pattern_path;
       lang_autofix_tests ~polyglot_pattern_path;
       eval_regression_tests ();
-      filter_irrelevant_rules_tests ();
+      filter_irrelevant_rules_tests caps;
       lang_tainting_tests ();
       maturity_tests ();
       full_rule_taint_maturity_tests caps;

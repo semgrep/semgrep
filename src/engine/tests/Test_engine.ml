@@ -290,8 +290,9 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
       let reason = spf "Missing target file for rule file %s" !!rule_file in
       Testo.create name test ~expected_outcome:(Should_fail reason)
 
-let find_rule_files roots =
-  roots |> UFile.files_of_dirs_or_files_no_vcs_nofilter
+let find_rule_files (caps : < Cap.readdir ; .. >) roots =
+  roots
+  |> UFile.files_of_dirs_or_files_no_vcs_nofilter caps
   |> List.filter Rule_file.is_valid_rule_filename
 
 (*****************************************************************************)
@@ -304,7 +305,7 @@ let find_rule_files roots =
  *)
 let collect_tests ?(get_analyzer = single_analyzer_from_rules) caps
     (xs : Fpath.t list) =
-  xs |> find_rule_files
+  xs |> find_rule_files caps
   |> List_.filter_map (fun rule_file ->
          let* _rules, target, analyzer =
            read_rules_file ~get_analyzer caps rule_file
@@ -313,6 +314,6 @@ let collect_tests ?(get_analyzer = single_analyzer_from_rules) caps
 
 let make_tests ?fail_callback ?get_analyzer ?prepend_lang caps
     (xs : Fpath.t list) : Testo.t list =
-  xs |> find_rule_files
+  xs |> find_rule_files caps
   |> List_.map
        (make_test_rule_file ?fail_callback ?get_analyzer ?prepend_lang caps)

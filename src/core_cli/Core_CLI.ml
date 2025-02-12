@@ -380,8 +380,7 @@ let all_actions (caps : Cap.all_caps) () =
       " <metachecks file> <files or dirs>",
       Arg_.mk_action_n_conv Fpath.v
         (Check_rule.check_files
-           (caps
-             :> < Cap.stdout ; Cap.fork ; Cap.time_limit ; Cap.memory_limit >)
+           (caps :> < Cap.stdout ; Core_scan.caps ; Cap.readdir >)
            !output_format) );
     (* this is run by scripts (stats/.../run-lang) used by some of our workflows
      * (e.g., cron-parsing-stats.jsonnet)
@@ -480,7 +479,7 @@ let all_actions (caps : Cap.all_caps) () =
     ( "-stat_rules",
       " <files or dirs>",
       Arg_.mk_action_n_conv Fpath.v
-        (Check_rule.stat_files (caps :> < Cap.stdout >)) );
+        (Check_rule.stat_files (caps :> < Cap.stdout ; Cap.readdir >)) );
     ( "-parse_rules",
       " <dir>",
       Arg_.mk_action_1_conv Fpath.v
