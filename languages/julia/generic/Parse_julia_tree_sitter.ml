@@ -364,16 +364,30 @@ and map_anon_choice_exp_3c18676 (env : env) (x : CST.anon_choice_exp_3c18676) =
   | `Assign x -> map_assignment_exp env x
   | `Open_tuple x -> map_open_tuple_exp env x
 
-and map_anon_choice_exp_91c2553 (env : env) (x : CST.anon_choice_exp_91c2553) :
-    argument =
+and map_argument (env : env) (x : CST.anon_choice_exp_095959f) : argument =
   match x with
   | `Exp x -> Arg (map_expression env x)
-  | `Named_field x -> (
-      let either, _, exp = map_named_field env x in
-      match either with
-      | Left id -> ArgKwd (id, exp)
-      | Right e1 -> OtherArg (("namedarg", fake "namedarg"), [ G.E e1; G.E exp ])
-      )
+  | `Closed_assign (v1, v2, v3) ->
+      let _v2 = (* "=" *) token env v2 in
+      let rhs =
+        match v3 with
+        | `Exp x -> map_expression env x
+        | `Closed_assign x -> todo env x (* TODO map_closed_assignment env x *)
+      in
+      let lhs =
+        match v1 with
+        | `Prim_exp p -> (
+            match p with
+            | `Id tok -> map_identifier env tok
+            | `Interp_exp x -> map_interpolation_expression_either env x
+            | _ -> todo env p)
+        | _ -> todo env v1
+      in
+      ArgKwd (lhs, rhs)
+  | `Exp_comp_clause (v1, v2) ->
+      let v1 = map_expression env v1 in
+      let v2 = map_comprehension_clause env v2 in
+      Arg (mk_comprehension (v1, v2))
 
 and map_anon_choice_exp_91c2553_exp (env : env)
     (x : CST.anon_choice_exp_91c2553) : expr =
@@ -429,20 +443,6 @@ and map_anon_choice_exp_772c79a_args (env : env)
       [
         OtherArg (("shortfunc", fake "shortfunc"), [ G.E (StmtExpr exp |> G.e) ]);
       ]
-
-and map_anon_choice_exp_rep_COMMA_choice_exp_7e6cb67 (env : env)
-    ((v1, v2) : CST.anon_choice_exp_rep_COMMA_choice_exp_7e6cb67) :
-    argument list =
-  let v1 = map_anon_choice_exp_91c2553 env v1 in
-  let v2 =
-    List_.map
-      (fun (v1, v2) ->
-        let _v1 = (* "," *) token env v1 in
-        let v2 = map_anon_choice_exp_91c2553 env v2 in
-        v2)
-      v2
-  in
-  v1 :: v2
 
 and map_anon_choice_exp_rep_COMMA_choice_exp_7e6cb67_exp (env : env)
     ((v1, v2) : CST.anon_choice_exp_rep_COMMA_choice_exp_7e6cb67) : expr list =
@@ -693,58 +693,31 @@ and map_anon_choice_str_content_838a78d (env : env)
 
 and mk_comprehension (v1, v2) = Comprehension (List, fb (v1, v2)) |> G.e
 
-and map_argument_list (env : env) ((v1, v2, v3, v4, v5) : CST.argument_list) :
+and map_argument_list (env : env) ((v1, _v2, v3, v4, v5) : CST.argument_list) :
     argument list bracket =
   let l = (* "(" *) token env v1 in
   let args =
-    match v2 with
-    | Some x -> (
-        match x with
-        | `Choice_exp_rep_COMMA_choice_exp_opt_COMMA_opt_exp_comp_clause
-            (v1, v2, v3) ->
-            let v1 = map_anon_choice_exp_91c2553 env v1 in
-            let v2 =
-              List_.map
-                (fun (v1, v2) ->
-                  let _v1 = (* "," *) token env v1 in
-                  let v2 = map_anon_choice_exp_91c2553 env v2 in
-                  v2)
-                v2
-            in
-            let v3 =
-              match v3 with
-              | Some (v1, v2) -> (
-                  let _v1 = (* "," *) token env v1 in
-                  match v2 with
-                  | Some (v1, v2) ->
-                      let v1 = map_expression env v1 in
-                      let v2 = map_comprehension_clause env v2 in
-                      [ Arg (mk_comprehension (v1, v2)) ]
-                  | None -> [])
-              | None -> []
-            in
-            (v1 :: v2) @ v3
-        | `Exp_comp_clause (v1, v2) ->
-            let v1 = map_expression env v1 in
-            let v2 = map_comprehension_clause env v2 in
-            [ Arg (Comprehension (List, fb (v1, v2)) |> G.e) ])
-    | None -> []
-  in
-  let kwdargs =
     match v3 with
     | Some (v1, v2) ->
-        let _v1 = (* ";" *) token env v1 in
-        let v2 =
-          match v2 with
-          | Some x -> map_anon_choice_exp_rep_COMMA_choice_exp_7e6cb67 env x
-          | None -> []
+        let first = map_argument env v1 in
+        let rest =
+          List_.map
+            (fun (v1, v2) ->
+              let _sep =
+                match v1 with
+                | `COMMA x -> token env x
+                | `SEMI x -> token env x
+              in
+              let param = map_argument env v2 in
+              param)
+            v2
         in
-        v2
+        first :: rest
     | None -> []
   in
   let _v4 = map_trailing_comma env v4 in
   let r = (* ")" *) token env v5 in
-  (l, args @ kwdargs, r)
+  (l, args, r)
 
 and map_assignment (env : env) ((v1, v2, v3) : CST.assignment) :
     expr * tok * expr =
@@ -1241,7 +1214,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
           let fparams =
             match v1 with
             | `Id tok -> fb [ map_id_parameter env tok ]
-            | `Param_list x -> map_parameter_list env x
+            | `Arg_list x -> map_parameter_list env x
             | `Typed_exp x ->
                 let exp, _tok, ty = map_typed_expression env x in
                 fb [ OtherParam (("typed", fake "typed"), [ G.E exp; G.T ty ]) ]
@@ -1673,36 +1646,60 @@ and map_optional_parameter (env : env) ((v1, v2, v3) : CST.optional_parameter) =
   | Param ({ pdefault = None; _ } as p) -> Param { p with pdefault = Some v3 }
   | __else__ -> OtherParam (("optional", fake "optional"), [ G.Pa v1; G.E v3 ])
 
-and map_parameter_list (env : env) ((v1, v2, v3, v4, v5) : CST.parameter_list) :
+(* Try to interpret an arbitrary expression as a pattern.
+ * Since only a few expressions can be used as parameters,
+ * there's a lot of stuff that gets ignored.
+ *)
+and map_parameter (env : env) (x : CST.anon_choice_exp_095959f) =
+  match x with
+  | `Exp x -> (
+      match x with
+      | `Choice_choice_module_defi expr -> (
+          match expr with
+          | `Prim_exp p -> (
+              match p with
+              | `Id tok -> map_id_parameter env tok
+              | _ -> todo env p)
+          | `Choice_un_exp operation -> (
+              match operation with
+              | `Typed_exp x -> map_typed_parameter env x
+              | `Splat_exp x -> map_slurp_parameter env x
+              | _ -> todo env x)
+          (* TODO: Fix for semgrep/semgrep#10487 should go here. *)
+          | _ -> todo env x)
+      | `Semg_ellips tok -> todo env tok
+      | `Deep_exp x -> todo env x)
+  | `Closed_assign x -> map_optional_parameter env x
+  | `Exp_comp_clause x -> todo env x
+
+(* This function handles parameters in function signatures.
+ * TODO: Should args and kwargs be handled differently?
+ *)
+and map_parameter_list (env : env) ((v1, _v2, v3, v4, v5) : CST.argument_list) :
     parameters =
   let l = (* "(" *) token env v1 in
-  let v2 =
-    match v2 with
+  let params =
+    match v3 with
     | Some (v1, v2) ->
-        let v1 = map_anon_choice_id_c087cf9 env v1 in
-        let v2 =
+        let first = map_parameter env v1 in
+        let rest =
           List_.map
             (fun (v1, v2) ->
-              let _v1 = (* "," *) token env v1 in
-              let v2 = map_anon_choice_id_c087cf9 env v2 in
-              v2)
+              let _sep =
+                match v1 with
+                | `COMMA x -> token env x
+                | `SEMI x -> token env x
+              in
+              let param = map_parameter env v2 in
+              param)
             v2
         in
-        v1 :: v2
+        first :: rest
     | None -> []
   in
-  let _v3 =
-    match v3 with
-    | Some tok -> (* "," *) Some (token env tok)
-    | None -> None
-  in
-  let v4 =
-    match v4 with
-    | Some x -> map_keyword_parameters env x
-    | None -> []
-  in
+  let _v4 = map_trailing_comma env v4 in
   let r = (* ")" *) token env v5 in
-  (l, v2 @ v4, r)
+  (l, params, r)
 
 and map_parametrized_type_expression (env : env)
     ((v1, v2, v3) : CST.parametrized_type_expression) =
