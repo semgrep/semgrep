@@ -266,6 +266,7 @@ def ci(
     trace: bool,
     trace_endpoint: str,
     use_git_ignore: bool,
+    use_semgrepignore_v2: bool,
     verbose: bool,
     x_tr: bool,
     path_sensitive: bool,

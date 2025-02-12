@@ -235,6 +235,16 @@ let o_use_git : bool Term.t =
         in a git repository.
         '--use-git-ignore' is semgrep's default behavior.|}
 
+(*
+   This is a temporary option that has an effect only in pysemgrep during
+   the process of migration from Python's file targeting to the OCaml
+   implementation in semgrep-core. It's only here so that we get
+   it documented in '--help'!
+*)
+let o_use_semgrepignore_v2 : bool Cmdliner.Term.t =
+  H.negatable_flag [ "semgrepignore-v2" ] ~neg_options:[ "no-semgrepignore-v2" ]
+    ~default:false ~doc:"Under development. Not currently recommended."
+
 let o_ignore_semgrepignore_files : bool Term.t =
   let info =
     Arg.info
@@ -1318,8 +1328,9 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       sarif_outputs scan_unknown_extensions secrets severity
       show_supported_languages strict target_roots test test_ignore_todo text
       text_outputs time_flag timeout _timeout_interfileTODO timeout_threshold
-      trace trace_endpoint use_git validate version version_check vim
-      vim_outputs x_ignore_semgrepignore_files x_ls x_ls_long x_tr =
+      trace trace_endpoint use_git _use_semgrepignore_v2 validate version
+      version_check vim vim_outputs x_ignore_semgrepignore_files x_ls x_ls_long
+      x_tr =
     (* Print a warning if any of the internal or experimental options.
        We don't want users to start relying on these. *)
     if x_ignore_semgrepignore_files || x_ls || x_ls_long || x_tr then
@@ -1543,9 +1554,9 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     $ o_secrets $ o_severity $ o_show_supported_languages $ o_strict
     $ o_target_roots $ o_test $ Test_CLI.o_test_ignore_todo $ o_text
     $ o_text_outputs $ o_time $ o_timeout $ o_timeout_interfile
-    $ o_timeout_threshold $ o_trace $ o_trace_endpoint $ o_use_git $ o_validate
-    $ o_version $ o_version_check $ o_vim $ o_vim_outputs
-    $ o_ignore_semgrepignore_files $ o_ls $ o_ls_long $ o_tr)
+    $ o_timeout_threshold $ o_trace $ o_trace_endpoint $ o_use_git
+    $ o_use_semgrepignore_v2 $ o_validate $ o_version $ o_version_check $ o_vim
+    $ o_vim_outputs $ o_ignore_semgrepignore_files $ o_ls $ o_ls_long $ o_tr)
 
 let doc = "run semgrep rules on files"
 

@@ -111,6 +111,14 @@ _scan_options: List[Callable] = [
     optgroup.group(
         "Path options",
     ),
+    # temporary option, specific to pysemgrep. Will be removed
+    # once everyone is happy with Semgrepignore v2 (OCaml file targeting)
+    optgroup.option(
+        "--semgrepignore-v2/--no-semgrepignore-v2",
+        "use_semgrepignore_v2",
+        is_flag=True,
+        default=False,
+    ),
     optgroup.option(
         "--exclude",
         multiple=True,
@@ -580,6 +588,7 @@ def scan(
     trace: bool,
     trace_endpoint: Optional[str],
     use_git_ignore: bool,
+    use_semgrepignore_v2: bool,
     validate: bool,
     verbose: bool,
     version: bool,

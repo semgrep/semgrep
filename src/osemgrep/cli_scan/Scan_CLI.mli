@@ -131,6 +131,7 @@ val o_tr : bool Cmdliner.Term.t
 val o_trace : bool Cmdliner.Term.t
 val o_trace_endpoint : string option Cmdliner.Term.t
 val o_use_git : bool Cmdliner.Term.t
+val o_use_semgrepignore_v2 : bool Cmdliner.Term.t
 val o_version_check : bool Cmdliner.Term.t
 val o_vim : bool Cmdliner.Term.t
 val o_vim_outputs : string list Cmdliner.Term.t
