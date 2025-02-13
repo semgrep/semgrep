@@ -277,12 +277,14 @@ let fetch_rules session =
   in
   let home = !Semgrep_envvars.v.user_home_dir in
   let rules_source =
-    session.user_settings.configuration |> List_.map Fpath.v
-    |> List_.map Fpath.normalize
-    |> List_.map (fun f ->
-           let p = Fpath.rem_prefix (Fpath.v "~/") f in
-           Option.bind p (fun f -> Some (home // f)) |> Option.value ~default:f)
-    |> List_.map Fpath.to_string
+    session.user_settings.configuration
+    |> List_.map (fun config_path ->
+           if Uri_.is_url config_path then config_path
+           else
+             let f = Fpath.v config_path |> Fpath.normalize in
+             let p = Fpath.rem_prefix (Fpath.v "~/") f in
+             Option.value ~default:f (Option.map (fun f -> home // f) p)
+             |> Fpath.to_string)
   in
   let rules_source =
     if rules_source = [] && ci_rules = None then (
