@@ -353,6 +353,14 @@ let targets_of_config (config : Core_scan_config.t) (rules : Rule.t list) :
           let targeting_conf =
             translate_targeting_conf_from_pysemgrep targeting_conf
           in
+          (* Ideally Core_Scan.scan does not require Cap.readdir because all
+           * file targeting processing would be done before and just call scan()
+           * with prepared Targets. However there is experimental work to move
+           * pysemgrep file targeting to OCaml and pass scanning_roots to
+           * semgrep-core hence the need for readdir, but because this
+           * is experimental, let's forge it for now to avoid modifying
+           * all the callers.
+           *)
           let caps = Cap.readdir_UNSAFE () in
           let target_paths, errors, skipped =
             Find_targets.get_target_fpaths caps targeting_conf scanning_roots

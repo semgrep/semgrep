@@ -119,7 +119,7 @@ let remove_matches_in_baseline caps (commit : string) (baseline : Core_result.t)
    the files and rules linked with matches from the head checkout
    scan. Subsequently, eliminate any previously identified matches
    from the results of the head checkout scan. *)
-let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp >)
+let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp ; .. >)
     (conf : Scan_CLI.conf) (profiler : Profiler.t)
     (result_or_exn : Core_result.result_or_exn) (rules : Rule.rules)
     (commit : string) (status : Git_wrapper.status)
@@ -179,6 +179,10 @@ let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp >)
               in
               let baseline_targets, baseline_diff_targets =
                 match conf.engine_type with
+                (* TODO? This is not for Interfile (DeepScan), but for
+                 * Interprocedural (ProScan) so either this match is wrong
+                 * or the comment further below is wrong
+                 *)
                 | PRO Engine_type.{ analysis = Interprocedural; _ } ->
                     let caps = Cap.readdir_UNSAFE () in
                     let all_in_baseline, _errors, _skipped =
@@ -209,7 +213,7 @@ let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp >)
 (* Entry point *)
 (*****************************************************************************)
 
-let scan_baseline (caps : < Cap.chdir ; Cap.tmp >) (conf : Scan_CLI.conf)
+let scan_baseline (caps : < Cap.chdir ; Cap.tmp ; .. >) (conf : Scan_CLI.conf)
     (profiler : Profiler.t) (baseline_commit : string) (targets : Fpath.t list)
     (rules : Rule.rules) (diff_scan_func : diff_scan_func) :
     Core_result.result_or_exn =

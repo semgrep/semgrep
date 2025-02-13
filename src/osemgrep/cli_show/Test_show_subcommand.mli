@@ -1,1 +1,1 @@
-val tests : < Cap.stdout ; Cap.network ; Cap.tmp > -> Testo.t list
+val tests : < Show_subcommand.caps ; .. > -> Testo.t list

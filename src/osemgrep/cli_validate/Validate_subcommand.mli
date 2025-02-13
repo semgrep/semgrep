@@ -1,11 +1,5 @@
-(* Cap.stdout + Core_scan.caps + network (we run metachecking rules) *)
-type caps =
-  < Cap.stdout
-  ; Cap.network
-  ; Cap.tmp
-  ; Cap.fork
-  ; Cap.time_limit
-  ; Cap.memory_limit >
+(* we run metachecking rules hence the need to fetch those rules *)
+type caps = < Cap.stdout ; Rule_fetching.caps ; Core_scan.caps >
 
 (*
    Parse a semgrep-validate command, execute it and exit.

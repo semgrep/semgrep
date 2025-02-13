@@ -63,8 +63,7 @@ let hook_semgrep_interactive :
       failwith "semgrep interactive not available (requires semgrep pro)")
 
 let hook_semgrep_publish :
-    (< Cap.stdout ; Cap.network ; Cap.tmp > -> string array -> Exit_code.t)
-    Hook.t =
+    (< Cap.stdout ; Cap.network > -> string array -> Exit_code.t) Hook.t =
   Hook.create (fun _caps _argv ->
       failwith "semgrep publsh not available (requires semgrep pro)")
 
@@ -202,7 +201,7 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
          *)
         | "publish" when experimental ->
             (Hook.get hook_semgrep_publish)
-              (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >)
+              (caps :> < Cap.stdout ; Cap.network >)
               subcmd_argv
         | "login" when experimental -> Login_subcommand.main caps subcmd_argv
         (* partial support, still use Pysemgrep.Fallback in it *)

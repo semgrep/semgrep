@@ -63,7 +63,7 @@ val merge_base : string -> string
    don't need to git stash anything, or expect a clean working tree.
 *)
 val run_with_worktree :
-  < Cap.chdir ; Cap.tmp > ->
+  < Cap.chdir ; Cap.tmp ; .. > ->
   commit:string ->
   ?branch:string ->
   (unit -> 'a) ->

@@ -32,6 +32,14 @@ module XP = Xpattern
 (* Types *)
 (*****************************************************************************)
 
+(* capabilities required to fetch rules from a Rules_source.t
+ * network: for registry rules
+ * tmp: for saving the downloaded rules somewhere so we can
+ * loading them from disk (alt: parse rules from a buffer instead of a file)
+ * readdir: for config_string denotating local directories
+ *)
+type caps = < Cap.network ; Cap.tmp ; Cap.readdir >
+
 (* python: was called ConfigFile, and called a 'config' in text output.
  * TODO? maybe we don't need this intermediate type anymore; just return
  * a pair, which would remove the need for partition_rules_and_invalid.
@@ -347,7 +355,8 @@ let load_rules_from_url ~origin ?token_opt ?(ext = "yaml") caps url :
 [@@profiling]
 
 (* TODO: merge caps and token_opt and caps_opt? *)
-let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt caps kind :
+let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
+    (caps : < caps ; .. >) kind :
     (* alt: (rules_and_origin list, Rule.Error.t list) result
        here and below:
        we could do this, but it lacks flexibility compared with this output type
@@ -373,8 +382,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt caps kind :
        * we used to fetch rules from ~/.semgrep/ implicitely when --config
        * was not given, but this feature was removed, so now we can KISS.
        *)
-      let caps_dir = Cap.readdir_UNSAFE () in
-      List_files.list caps_dir dir
+      List_files.list caps dir
       |> List.filter Rule_file.is_valid_rule_filename
       |> List_.map (fun file ->
              load_rules_from_file ~rewrite_rule_ids ~origin:(Local_file file)

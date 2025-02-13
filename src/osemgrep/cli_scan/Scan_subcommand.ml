@@ -41,7 +41,7 @@ type caps =
      * differential scans as we use Git_wrapper.run_with_worktree.
      *)
     Cap.chdir
-  ; (* for Test_subcommand dispatch and Core_scan scanning root targeting *)
+  ; (* for scan file targeting (and for Test_subcommand dispatch) *)
     Cap.readdir
   ; (* for Parmap in Core_scan *)
     Cap.fork
@@ -351,7 +351,7 @@ let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~strict caps
   let rules_and_origins =
     Rule_fetching.rules_from_rules_source_async ~token_opt ~rewrite_rule_ids
       ~strict
-      (caps :> < Cap.network ; Cap.tmp >)
+      (caps :> < Cap.network ; Cap.tmp ; Cap.readdir >)
       rules_source
   in
   Lwt_platform.run (Lwt.pick (rules_and_origins :: spinner_ls))
@@ -681,7 +681,7 @@ let run_scan_conf (caps : < caps ; .. >) (conf : Scan_CLI.conf) : Exit_code.t =
     Logs.app (fun m -> m "%s" (Text_reports.rules_source conf.rules_source));
   let rules_and_origins, fatal_errors =
     rules_from_rules_source
-      (caps :> < Cap.network ; Cap.tmp >)
+      (caps :> < Cap.network ; Cap.tmp ; Cap.readdir >)
       ~token_opt:settings.api_token ~rewrite_rule_ids:conf.rewrite_rule_ids
       ~strict:conf.core_runner_conf.strict conf.rules_source
   in
@@ -793,19 +793,9 @@ let run_conf (caps : < caps ; .. >) (conf : Scan_CLI.conf) : Exit_code.t =
   | _ when conf.test <> None ->
       Test_subcommand.run_conf caps (Common2.some conf.test)
   | _ when conf.validate <> None ->
-      Validate_subcommand.run_conf
-        (caps
-          :> < Cap.stdout
-             ; Cap.network
-             ; Cap.tmp
-             ; Cap.fork
-             ; Cap.time_limit
-             ; Cap.memory_limit >)
-        (Common2.some conf.validate)
+      Validate_subcommand.run_conf caps (Common2.some conf.validate)
   | _ when conf.show <> None ->
-      Show_subcommand.run_conf
-        (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >)
-        (Common2.some conf.show)
+      Show_subcommand.run_conf caps (Common2.some conf.show)
   | _ when conf.ls ->
       Ls_subcommand.run caps ~target_roots:conf.target_roots
         ~targeting_conf:conf.targeting_conf ~format:conf.ls_format

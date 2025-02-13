@@ -27,3 +27,7 @@ let read_dir_entries (caps : < Cap.readdir ; .. >) path =
         | End_of_file -> List.rev acc
       in
       loop [])
+
+let is_empty_dir (path : Fpath.t) : bool =
+  (* note that Sys.readdir already filters the "." and ".." entries *)
+  Array.length (USys.readdir !!path) = 0

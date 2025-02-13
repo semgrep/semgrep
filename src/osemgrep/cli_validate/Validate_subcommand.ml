@@ -62,17 +62,8 @@ module Out = Semgrep_output_v1_t
 (* Types and constants *)
 (*****************************************************************************)
 
-(* Cap.stdout + Core_scan.caps + network (we run metachecking rules) *)
-(* TODO: should use stdout, right now we abuse Logs.app
- * TODO? why Cap.tmp?
- *)
-type caps =
-  < Cap.stdout
-  ; Cap.network
-  ; Cap.tmp
-  ; Cap.fork
-  ; Cap.time_limit
-  ; Cap.memory_limit >
+(* We use Cap.network to run metachecking rules and call Rule_fetching *)
+type caps = < Cap.stdout ; Rule_fetching.caps ; Core_scan.caps >
 
 (* The "meta" rules are stored in the semgrep-rules public repository here:
  * https://github.com/semgrep/semgrep-rules/tree/develop/yaml/semgrep
@@ -111,7 +102,7 @@ let find_targets_rules (caps : < caps ; .. >) ~(strict : bool) ~token_opt
   let rules_and_origin, fatal_errors =
     Rule_fetching.rules_from_rules_source ~token_opt ~rewrite_rule_ids:true
       ~strict
-      (caps :> < Cap.network ; Cap.tmp >)
+      (caps :> < Cap.network ; Cap.tmp ; Cap.readdir >)
       rules_source
   in
   (* ex: missing toplevel 'rules:' (probably not a semgrep rule file) *)
@@ -175,7 +166,7 @@ let check_targets_rules (caps : < caps ; .. >) ~token_opt targets_rules
   let metarules_and_origin, _errors =
     Rule_fetching.rules_from_dashdash_config ~token_opt
       ~rewrite_rule_ids:true (* default *)
-      (caps :> < Cap.network ; Cap.tmp >)
+      (caps :> < Cap.network ; Cap.tmp ; Cap.readdir >)
       config
   in
   let metarules, metaerrors =

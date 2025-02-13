@@ -27,8 +27,7 @@ let t = Testo.create
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-(* alt: define Show_subcommand.caps *)
-type caps = < Cap.stdout ; Cap.network ; Cap.tmp >
+type caps = Show_subcommand.caps
 
 (* for dump-config test *)
 let eqeq_basic_content =
@@ -107,7 +106,7 @@ let fake_deployment = {|{"deployment":{"id":42,"name":"fake_deployment"}}|}
 (*****************************************************************************)
 (* Tests *)
 (*****************************************************************************)
-let test_error_no_arguments (caps : caps) : Testo.t =
+let test_error_no_arguments (caps : < caps ; .. >) : Testo.t =
   t __FUNCTION__ (fun () ->
       try
         let _exit = Show_subcommand.main caps [| "semgrep-show" |] in
@@ -132,7 +131,7 @@ let test_version (caps : caps) : Testo.t =
 *)
 
 (* similar to test_misc.py test_cli_test_show_supported_languages *)
-let test_supported_languages (caps : caps) : Testo.t =
+let test_supported_languages (caps : < caps ; .. >) : Testo.t =
   t ~checked_output:(Testo.stdout ()) __FUNCTION__ (fun () ->
       let exit_code =
         Show_subcommand.main caps [| "semgrep-show"; "supported-languages" |]
@@ -144,7 +143,7 @@ let test_supported_languages (caps : caps) : Testo.t =
    masking the variable IDs.
    TODO: replace all sequences of blanks and newlines by a single newline?
 *)
-let test_dump_config (caps : caps) : Testo.t =
+let test_dump_config (caps : < caps ; .. >) : Testo.t =
   t ~checked_output:(Testo.stdout ()) ~tags:[ Test_tags.flaky ]
     ~normalize:
       [
@@ -165,7 +164,7 @@ let test_dump_config (caps : caps) : Testo.t =
       in
       Exit_code.Check.ok exit_code)
 
-let test_dump_rule_v2 (caps : caps) : Testo.t =
+let test_dump_rule_v2 (caps : < caps ; .. >) : Testo.t =
   t ~checked_output:(Testo.stdout ()) __FUNCTION__ (fun () ->
       let files = [ F.File ("rule.yml", eqeq_basic_content_v2) ] in
       let exit_code =
@@ -177,7 +176,7 @@ let test_dump_rule_v2 (caps : caps) : Testo.t =
       Exit_code.Check.ok exit_code)
 
 (* less: could also test the dump-ast -json *)
-let test_dump_ast (caps : caps) : Testo.t =
+let test_dump_ast (caps : < caps ; .. >) : Testo.t =
   t ~checked_output:(Testo.stdout ())
     ~normalize:
       [
@@ -200,7 +199,7 @@ let test_dump_ast (caps : caps) : Testo.t =
       in
       Exit_code.Check.ok exit_code)
 
-let test_dump_ast_when_error (caps : caps) : Testo.t =
+let test_dump_ast_when_error (caps : < caps ; .. >) : Testo.t =
   t ~checked_output:(Testo.stdxxx ()) ~normalize:[ Testutil_logs.mask_time ]
     __FUNCTION__ (fun () ->
       let files = [ F.File ("error.js", "function (") ] in
@@ -212,7 +211,7 @@ let test_dump_ast_when_error (caps : caps) : Testo.t =
       in
       Exit_code.Check.invalid_code exit_code)
 
-let test_dump_pattern (caps : caps) : Testo.t =
+let test_dump_pattern (caps : < caps ; .. >) : Testo.t =
   t ~checked_output:(Testo.stdout ())
     ~normalize:
       [
@@ -227,7 +226,7 @@ let test_dump_pattern (caps : caps) : Testo.t =
       in
       Exit_code.Check.ok exit_code)
 
-let test_identity (caps : caps) : Testo.t =
+let test_identity (caps : < caps ; .. >) : Testo.t =
   (* TODO: we use stdxxx here because we're using Logs.app for some of the output
    * instead of CapConsole in Whoami.ml, but we should really use CapConsole
    * and just capture stdout here.
@@ -241,7 +240,7 @@ let test_identity (caps : caps) : Testo.t =
       in
       Exit_code.Check.ok exit_code)
 
-let test_deployment (caps : caps) : Testo.t =
+let test_deployment (caps : < caps ; .. >) : Testo.t =
   t ~checked_output:(Testo.stdxxx ()) __FUNCTION__ (fun () ->
       let exit_code =
         with_fake_login fake_settings (fun () ->
@@ -254,7 +253,7 @@ let test_deployment (caps : caps) : Testo.t =
 (* Entry point *)
 (*****************************************************************************)
 
-let tests (caps : caps) =
+let tests (caps : < caps ; .. >) =
   Testo.categorize "Osemgrep Show (e2e)"
     [
       test_error_no_arguments caps;

@@ -1106,9 +1106,7 @@ let project_root_conf ~project_root ~remote : Find_targets.project_root option =
       Some (Find_targets.Filesystem (Rfpath.of_string_exn root))
   | None, Some url when is_git_repo url ->
       (* CWD must be empty for this to work *)
-      let caps = Cap.readdir_UNSAFE () in
-      let has_files = not (List_.null (List_files.list caps (Fpath.v "."))) in
-      if has_files then
+      if not (CapFS.is_empty_dir (Fpath.v ".")) then
         Error.abort
           "Cannot use --remote with a git remote when the current directory is \
            not empty";

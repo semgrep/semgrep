@@ -2556,6 +2556,9 @@ let glob pattern =
   Str.search_forward dir_regex pattern 0 |> ignore;
   let dir = Str.matched_string pattern in
   let regex = pattern |> Re.Glob.glob ~anchored:true |> Re.compile in
+  (* TODO: should remove, but that would require modifying many call sites
+   * so let's forge one for now
+   *)
   let caps = Cap.readdir_UNSAFE () in
   let files = UFile.Legacy.dir_contents caps dir in
   files |> List.filter (fun s -> Re.execp regex s)

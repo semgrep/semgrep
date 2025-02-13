@@ -1,1 +1,1 @@
-val tests : < Cap.network ; Cap.tmp > -> Testo.t list
+val tests : < Rule_fetching.caps ; .. > -> Testo.t list

@@ -147,7 +147,7 @@ let tests (caps : Cap.all_caps) =
       (* osemgrep unit tests *)
       Unit_LS.tests (caps :> Session.caps);
       Unit_Login.tests caps;
-      Unit_Fetching.tests (caps :> < Cap.network ; Cap.tmp >);
+      Unit_Fetching.tests (caps :> < Cap.network ; Cap.tmp ; Cap.readdir >);
       Unit_reporting.tests (caps :> < >);
       Unit_ci.tests;
       Test_is_blocking_helpers.tests;
