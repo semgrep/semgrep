@@ -326,6 +326,8 @@ install-deps: install-deps-for-semgrep-core
 # - openssl: ??
 # - zlib: ??
 # - openssl-libs-static: dependency of curl-static
+# - zstd-static needed since alpine 3.21 and OCaml 5.2.1 to produce
+#   static OCaml binaries
 ALPINE_APK_DEPS_CORE=\
   pkgconf \
   pcre-dev \
@@ -334,7 +336,8 @@ ALPINE_APK_DEPS_CORE=\
   libev-dev \
   curl-dev \
   openssl-libs-static \
-  zlib-static
+  zlib-static \
+  zstd-static
 
 # Here is why we need those external packages:
 # - pkg-config?

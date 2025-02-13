@@ -53,7 +53,7 @@ COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 # Step1: build semgrep-core
 ###############################################################################
 
-# We're now using a simple alpine:3.19 image in the FROM below.
+# We're now using a simple alpine:3.xx image in the FROM below.
 # TL;DR this used to be too slow but our use of https://depot.dev to accelerate
 # our docker build made this a viable and simpler option.
 #
@@ -143,8 +143,9 @@ RUN make install-deps-for-semgrep-core &&\
 # Start from scratch with a fresh Alpine image. We used to use
 # `python:3.11-alpine` but want to avoid shipping a bunch of unneeded Python
 # packages in our production image. Instead we'll install exactly what we need.
-#
-# TODO: Update beyond Alpine 3.19 to pick up Python versions newer than 3.11
+# Note that we're currently using alpine 3.21 for the pysemgrep part and 3.19
+# for the semgrep-core part (see above); it should be fine because we currently
+# build semgrep-core as a static binary but something to keep in mind!
 
 #coupling: the 'semgrep-oss' name is used in 'make build-docker'
 FROM alpine:3.21 AS semgrep-oss
@@ -341,6 +342,7 @@ USER semgrep
 # don't need to use this.
 
 #coupling: 'semgrep-wheel' is used in build-test-manylinux-aarch64.jsonnet
+#TODO: we should switch to alpine 3.21 for consistency with the other stages
 FROM python:3.11-alpine AS semgrep-wheel
 
 WORKDIR /semgrep
