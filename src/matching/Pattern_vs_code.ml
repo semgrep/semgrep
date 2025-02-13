@@ -2191,6 +2191,12 @@ and m_type_ a b =
       in
       (m_bracket (partial_m_list_with_dots ~less_is_ok:false)) a1 b1
   | G.TyAny a1, B.TyAny b1 -> m_tok a1 b1
+  (* less-is-ok:
+     its ok to match a type to its parameterized version, so long as the
+     names match
+     this lets us match, for instance, `new Reader(...)` to `new Reader<T>(...)`
+  *)
+  | G.TyN a1, B.TyApply ({ t = TyN b1; _ }, _b2) -> m_name a1 b1
   | G.TyApply (a1, a2), B.TyApply (b1, b2) ->
       m_type_ a1 b1 >>= fun () -> m_type_arguments a2 b2
   | G.TyVar a1, B.TyVar b1 -> m_ident a1 b1
