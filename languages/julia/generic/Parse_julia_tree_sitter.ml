@@ -309,7 +309,9 @@ and map_function_definition (env : env)
           G.sc )
       |> G.s
 
-and map_multi_assign ?(attrs = []) (env : env) x =
+(* assignment inside local, global, const *)
+and map_qualified_assignment ?(attrs = []) (env : env)
+    (x : CST.anon_choice_exp_9468126) =
   (* THINK: EDynamic, versus Assign? Unclear.
    *)
   match x with
@@ -319,30 +321,35 @@ and map_multi_assign ?(attrs = []) (env : env) x =
         ( { name = EDynamic l_exp; attrs; tparams = None },
           VarDef { vinit = Some r_exp; vtype = None; vtok = G.no_sc } )
       |> G.s
-  | `Id tok ->
-      let id = map_identifier env tok in
-      DefStmt (basic_entity ~attrs id, VarDef G.empty_var) |> G.s
-  | `Typed_exp x ->
-      let l_exp, _, ty = map_typed_expression env x in
-      DefStmt
-        ( { name = EDynamic l_exp; attrs; tparams = None },
-          VarDef { vinit = None; vtype = Some ty; vtok = G.no_sc } )
-      |> G.s
   | `Open_tuple x ->
       let e = map_open_tuple_exp env x in
       DefStmt ({ name = EDynamic e; attrs; tparams = None }, VarDef G.empty_var)
       |> G.s
-  | `Func_defi x -> map_function_definition env x
-  | `Short_func_defi x -> map_short_function_definition env x
-
-and map_anon_choice_decl_f2ab0d0 (env : env) (x : CST.anon_choice_exp_0ff8d07) :
-    expr =
-  match x with
-  | `Exp x -> map_expression env x
-  | `Assign x ->
-      let l, t, r = map_assignment env x in
-      Assign (l, t, r) |> G.e
-  | `Short_func_defi x -> StmtExpr (map_short_function_definition env x) |> G.e
+  | `Exp x -> (
+      match x with
+      | `Choice_choice_module_defi x -> (
+          match x with
+          | `Prim_exp p -> (
+              match p with
+              | `Id tok ->
+                  let id = map_identifier env tok in
+                  DefStmt (basic_entity ~attrs id, VarDef G.empty_var) |> G.s
+              | _ -> todo env x)
+          | `Choice_un_exp x -> (
+              match x with
+              | `Typed_exp x ->
+                  let l_exp, _, ty = map_typed_expression env x in
+                  DefStmt
+                    ( { name = EDynamic l_exp; attrs; tparams = None },
+                      VarDef { vinit = None; vtype = Some ty; vtok = G.no_sc }
+                    )
+                  |> G.s
+              | _ -> todo env x)
+          | _ -> todo env x)
+      (* TODO: This shouldn't be a todo because it breaks `local $X` patterns
+       * What *Stmt variant should go here?
+       *)
+      | _ -> todo env x)
 
 and map_type_parameter (env : env) (x : CST.anon_choice_exp_91c2553) :
     G.type_parameter =
@@ -358,7 +365,7 @@ and map_type_parameter (env : env) (x : CST.anon_choice_exp_91c2553) :
       | __else__ -> OtherTypeParam (("tparam", fake "tparam"), [ G.E exp ]))
   | `Named_field x -> map_named_field_type_parameter env x
 
-and map_anon_choice_exp_3c18676 (env : env) (x : CST.anon_choice_exp_3c18676) =
+and map_top_level (env : env) (x : CST.anon_choice_exp_9468126) =
   match x with
   | `Exp x -> map_expression env x
   | `Assign x -> map_assignment_exp env x
@@ -372,7 +379,7 @@ and map_argument (env : env) (x : CST.anon_choice_exp_095959f) : argument =
       let rhs =
         match v3 with
         | `Exp x -> map_expression env x
-        | `Closed_assign x -> todo env x (* TODO map_closed_assignment env x *)
+        | `Closed_assign x -> map_closed_assignment env x
       in
       let lhs =
         match v1 with
@@ -407,23 +414,9 @@ and map_anon_choice_exp_b833738 (env : env) (x : CST.anon_choice_exp_b833738) =
   | `Exp x -> map_expression env x
   | `Assign x -> map_assignment_exp env x
 
-and map_anon_choice_exp_772c79a_stmt (env : env)
-    (x : CST.anon_choice_exp_772c79a) : stmt =
-  match x with
-  | `Exp x -> H2.expr_to_stmt (map_expression env x)
-  | `Assign x -> (
-      (* TODO: Might be good to translate this to a `DefStmt` in the future.
-         Python just lets it be an `Assign`, though, so we will too.
-      *)
-      let l, t, r = map_assignment env x in
-      match AST_generic_helpers.assign_to_vardef_opt (l, t, r) with
-      | None -> ExprStmt (Assign (l, t, r) |> G.e, G.sc) |> G.s
-      | Some stmt -> stmt)
-  | `Open_tuple x -> ExprStmt (map_open_tuple_exp env x, G.sc) |> G.s
-  | `Short_func_defi x -> map_short_function_definition env x
-
-and map_anon_choice_exp_772c79a_args (env : env)
-    (x : CST.anon_choice_exp_772c79a) : argument list =
+(* TODO: This is the same as map_top_level but for macro_argument_list *)
+and map_macro_arguments (env : env) (x : CST.anon_choice_exp_9468126) :
+    argument list =
   match x with
   | `Exp x -> [ Arg (map_expression env x) ]
   | `Assign x -> (
@@ -436,13 +429,6 @@ and map_anon_choice_exp_772c79a_args (env : env)
               (("assign", fake "assign"), [ G.E (Assign (e1, tok, e2) |> G.e) ]);
           ])
   | `Open_tuple x -> map_open_tuple env x |> List_.map (fun x -> Arg x)
-  | `Short_func_defi x ->
-      (* who on earth is passing a short function def as an argument...
-       *)
-      let exp = map_short_function_definition env x in
-      [
-        OtherArg (("shortfunc", fake "shortfunc"), [ G.E (StmtExpr exp |> G.e) ]);
-      ]
 
 and map_anon_choice_exp_rep_COMMA_choice_exp_7e6cb67_exp (env : env)
     ((v1, v2) : CST.anon_choice_exp_rep_COMMA_choice_exp_7e6cb67) : expr list =
@@ -719,25 +705,65 @@ and map_argument_list (env : env) ((v1, _v2, v3, v4, v5) : CST.argument_list) :
   let r = (* ")" *) token env v5 in
   (l, args, r)
 
-and map_assignment (env : env) ((v1, v2, v3) : CST.assignment) :
-    expr * tok * expr =
-  let v1 =
-    match v1 with
-    (* TODO: Short function def needs to handled here now *)
-    | `Prim_exp -> map_primary_expression env x
-    | `Typed_exp x -> map_typed_expression_exp env x
-    | `Op x -> map_operator_exp env x
-    | `Bin_exp x -> map_binary_expression env x
-    | `Un_exp x -> map_unary_expression env x
-    | `Open_tuple x -> map_open_tuple_exp env x
-  in
+and map_assignment (env : env) ((v1, v2, v3) : CST.assignment) =
   let v2 = (* "=" *) token env v2 in
-  let v3 = map_anon_choice_exp_3c18676 env v3 in
-  (v1, v2, v3)
+  let lhs, rhs =
+    match v1 with
+    (* Transform function definition into lambda assignment.
+     * That is, turn `f(...) = ...` into `f = (...) -> ...`.
+     *)
+    | `Prim_exp p -> (
+        match p with
+        | `Call_exp (callee, _semi, params, _do) ->
+            let lhs =
+              match callee with
+              | `Prim_exp x -> map_primary_expression env x
+              | `Op x -> map_operator_exp env x
+            in
+            let rhs =
+              Lambda
+                {
+                  fkind = (LambdaKind, v2);
+                  fparams = map_parameter_list env params;
+                  frettype = None;
+                  fbody = FBExpr (map_top_level env v3);
+                }
+              |> G.e
+            in
+            (lhs, Some rhs)
+        | _ -> (map_primary_expression env p, None))
+    | `Choice_un_exp x -> (map_operation env x, None)
+    | `Op x -> (map_operator_exp env x, None)
+    | `Open_tuple x -> (map_open_tuple_exp env x, None)
+  in
+  let rhs =
+    match rhs with
+    | Some x -> x
+    | None -> map_top_level env v3
+  in
+  (lhs, v2, rhs)
 
 and map_assignment_exp (env : env) ((v1, v2, v3) : CST.assignment) : expr =
   let l_exp, tok, r_exp = map_assignment env (v1, v2, v3) in
   Assign (l_exp, tok, r_exp) |> G.e
+
+(* _closed_assignment when used as assignment (not kwarg) *)
+and map_closed_assignment (env : env) ((v1, v2, v3) : CST.closed_assignment) =
+  let lhs =
+    match v1 with
+    | `Prim_exp x -> map_primary_expression env x
+    | `Choice_un_exp x -> map_operation env x
+    | `Op x -> map_operator_exp env x
+  in
+  let v2 = (* "=" *) token env v2 in
+  let rhs = map_bracket_level env v3 in
+  Assign (lhs, v2, rhs) |> G.e
+
+(* expression or closed_assignment inside brackets *)
+and map_bracket_level (env : env) (x : CST.anon_choice_exp_c3aa41b) =
+  match x with
+  | `Exp x -> map_expression env x
+  | `Closed_assign x -> map_closed_assignment env x
 
 and map_open_tuple (env : env) ((v1, v2) : CST.open_tuple) : expr list =
   let v1 = map_expression env v1 in
@@ -892,12 +918,12 @@ and map_binary_expression (env : env) (x : CST.binary_expression) : expr =
       OtherExpr (v2, [ E v1; E v3 ]) |> G.e
 
 and map_block (env : env) ((v1, v2, v3) : CST.block) =
-  let v1 = map_anon_choice_exp_772c79a_stmt env v1 in
+  let v1 = map_top_level env v1 in
   let v2 =
     List_.map
       (fun (v1, v2) ->
         let _v1 = map_terminator env v1 in
-        let v2 = map_anon_choice_exp_772c79a_stmt env v2 in
+        let v2 = map_top_level env v2 in
         v2)
       v2
   in
@@ -1544,7 +1570,7 @@ and map_keyword_parameters (env : env)
   v2 :: v3
 
 and map_macro_argument_list (env : env) (xs : CST.macro_argument_list) =
-  List.concat_map (map_anon_choice_exp_772c79a_args env) xs
+  List.concat_map (map_macro_arguments env) xs
 
 and map_macro_identifier_exp (env : env) ((v1, v2) : CST.macro_identifier) :
     expr =
@@ -1771,12 +1797,12 @@ and map_array_ (env : env) (x : CST.array_) =
 and map_parenthesized_expression (env : env)
     ((v1, v2, v3, v4, v5, v6) : CST.parenthesized_expression) =
   let v1 = (* "(" *) token env v1 in
-  let v2 = map_anon_choice_decl_f2ab0d0 env v2 in
+  let v2 = map_bracket_level env v2 in
   let v3 =
     List_.map
       (fun (v1, v2) ->
         let _v1 = (* ";" *) token env v1 in
-        let v2 = map_anon_choice_decl_f2ab0d0 env v2 in
+        let v2 = map_bracket_level env v2 in
         v2)
       v3
   in
@@ -1887,15 +1913,6 @@ and map_selected_import ~import_tok (env : env)
   in
   let* import_subjects = v3 :: v4 |> option_all in
   Some (ImportFrom (import_tok, DottedName v1, import_subjects))
-
-and map_short_function_definition (env : env)
-    ((v1, v2, v3) : CST.short_function_definition) =
-  let _v2 = (* "=" *) token env v2 in
-  let v3 = map_anon_choice_exp_3c18676 env v3 in
-  let ent, fun_def =
-    map_function_signature ~body:(FBExpr v3) ~func_tok:None env v1
-  in
-  DefStmt (ent, FuncDef fun_def) |> G.s
 
 and map_slurp_parameter (env : env) ((v1, v2) : CST.slurp_parameter) =
   let v1 =
@@ -2031,7 +2048,7 @@ and map_statement (env : env) (x : CST.statement) : stmt list =
           let v1 = (* "return" *) token env v1 in
           let v2 =
             match v2 with
-            | Some x -> Some (map_anon_choice_exp_3c18676 env x)
+            | Some x -> Some (map_top_level env x)
             | None -> None
           in
           [ Return (v1, v2, sc v1) |> G.s ]
@@ -2094,36 +2111,21 @@ and map_statement (env : env) (x : CST.statement) : stmt list =
           List_.map
             (fun dir -> DirectiveStmt { dir with d_attrs = [ attr ] } |> G.s)
             dirs
-      | `Const_stmt (v1, v2) -> (
-          let v1 = (* "const" *) token env v1 in
-          let attrs = [ KeywordAttr (Const, v1) ] in
-          match v2 with
-          | `Assign x ->
-              let l_exp, _, r_exp = map_assignment env x in
-              [
-                DefStmt
-                  ( { name = EDynamic l_exp; attrs; tparams = None },
-                    VarDef { vinit = Some r_exp; vtype = None; vtok = G.no_sc }
-                  )
-                |> G.s;
-              ]
-          | `Id tok ->
-              let id = map_identifier env tok in
-              [ DefStmt (basic_entity ~attrs id, VarDef G.empty_var) |> G.s ]
-          | `Typed_exp x ->
-              let l_exp, _, ty = map_typed_expression env x in
-              [
-                DefStmt
-                  ( { name = EDynamic l_exp; attrs; tparams = None },
-                    VarDef { vinit = None; vtype = Some ty; vtok = G.no_sc } )
-                |> G.s;
-              ])
+      | `Const_stmt (v1, v2) ->
+          (* TODO: const_statement is also used for struct fields, but the grammar currently doesn't reflect that. *)
+          let v1 = (* "const" *) str env v1 in
+          [
+            map_qualified_assignment
+              ~attrs:[ OtherAttribute (v1, []) ]
+              env (`Assign v2);
+          ]
       | `Local_stmt (v1, v2) ->
           let v1 = (* "local" *) str env v1 in
-          [ map_multi_assign ~attrs:[ OtherAttribute (v1, []) ] env v2 ]
+          [ map_qualified_assignment ~attrs:[ OtherAttribute (v1, []) ] env v2 ]
       | `Global_stmt (v1, v2) ->
           let v1 = (* "global" *) str env v1 in
-          [ map_multi_assign ~attrs:[ OtherAttribute (v1, []) ] env v2 ])
+          [ map_qualified_assignment ~attrs:[ OtherAttribute (v1, []) ] env v2 ]
+      )
 
 and map_string_literal (env : env) (x : CST.string_) : expr =
   match x with
