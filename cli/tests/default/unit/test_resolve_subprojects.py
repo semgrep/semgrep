@@ -13,7 +13,6 @@ from semgrep.resolve_subprojects import find_subprojects
 from semgrep.subproject import LockfileOnlyDependencySource
 from semgrep.subproject import ManifestLockfileDependencySource
 from semgrep.subproject import ManifestOnlyDependencySource
-from semgrep.subproject import ResolutionMethod
 from semgrep.subproject import Subproject
 
 
@@ -201,7 +200,7 @@ def test_ptt_unconditionally_generates_dependency_graphs(
 
     deps, _, _ = resolve_dependency_source(dep_source, True, True)
     assert deps is not None
-    assert deps[0] == ResolutionMethod.DYNAMIC
+    assert deps[0] == out.ResolutionMethod(out.DynamicResolution())
 
     mock_dynamic_resolve.mock_assert_called_once_with(
         Path("requirements.txt"), out.ManifestKind(value=out.RequirementsIn())
@@ -247,7 +246,7 @@ def test_ptt_unconditional_graph_generation_falls_back_on_lockfile_parsing(
     )
     deps, _, _ = resolve_dependency_source(dep_source, True, True)
     assert deps is not None
-    assert deps[0] == ResolutionMethod.LOCKFILE_PARSING
+    assert deps[0] == out.ResolutionMethod(out.LockfileParsing())
     assert len(deps[1]) == 1
     assert deps[1][0].package == "requests"
 

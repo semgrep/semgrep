@@ -13,7 +13,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Pipfile_
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.subproject import ManifestLockfileDependencySource
-from semgrep.subproject import ResolutionMethod
 from semgrep.subproject import ResolvedSubproject
 from semgrep.subproject import Subproject
 
@@ -114,7 +113,7 @@ def sample_resolved_deps():
         ),
     )
 
-    resolution_method = ResolutionMethod.LOCKFILE_PARSING
+    resolution_method = out.ResolutionMethod(out.LockfileParsing())
 
     # Create ResolvedSubproject with accurate found_dependencies and resolution_method
     subprojects = [

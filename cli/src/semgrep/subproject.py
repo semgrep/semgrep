@@ -3,7 +3,6 @@ from abc import ABC
 from abc import abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
-from enum import auto
 from enum import Enum
 from pathlib import Path
 from typing import Dict
@@ -18,25 +17,6 @@ from typing import Union
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.error import DependencyResolutionError
-from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
-
-
-class ResolutionMethod(Enum):
-    # we parsed a lockfile that was already included in the repository
-    LOCKFILE_PARSING = auto()
-
-    # we communicated with the package manager to resolve dependencies
-    DYNAMIC = auto()
-
-    def to_stats_output(self) -> out.ResolutionMethod:
-        if self == ResolutionMethod.LOCKFILE_PARSING:
-            return out.ResolutionMethod(value=out.LockfileParsing())
-        elif self == ResolutionMethod.DYNAMIC:
-            return out.ResolutionMethod(value=out.DynamicResolution())
-        else:
-            raise ValueError(f"Unsupported resolution method: {self}")
 
 
 class DependencySource(ABC):
@@ -159,11 +139,12 @@ class MultiLockfileDependencySource(DependencySource):
 
 @dataclass(frozen=True)
 class ResolvedDependencies:
-    # we use this mapping to efficiently find child dependencies from a FoundDependency
-    # We need to store multiple FoundDependencies per package/version pair because a package
-    # might come from multiple places in a lockfile
+    # We use this mapping to efficiently find child dependencies from a
+    # FoundDependency. We need to store multiple FoundDependencies per
+    # package/version pair because a package might come from multiple places
+    # in a lockfile
     _dependencies_by_package_version_pair: Dict[
-        out.DependencyChild, List[FoundDependency]
+        out.DependencyChild, List[out.FoundDependency]
     ]
 
     @classmethod
@@ -174,9 +155,9 @@ class ResolvedDependencies:
 
     @classmethod
     def from_found_dependencies(
-        cls, found_deps: List[FoundDependency]
+        cls, found_deps: List[out.FoundDependency]
     ) -> "ResolvedDependencies":
-        mapping: Dict[out.DependencyChild, List[FoundDependency]] = {}
+        mapping: Dict[out.DependencyChild, List[out.FoundDependency]] = {}
         for dep in found_deps:
             k = out.DependencyChild(dep.package, dep.version)
             if k not in mapping:
@@ -184,21 +165,21 @@ class ResolvedDependencies:
             mapping[k].append(dep)
         return cls(mapping)
 
-    def iter_found_dependencies(self) -> Generator[FoundDependency, None, None]:
+    def iter_found_dependencies(self) -> Generator[out.FoundDependency, None, None]:
         for dep_group in self._dependencies_by_package_version_pair.values():
             for dep in dep_group:
                 yield dep
 
     def make_dependencies_by_source_path(
         self,
-    ) -> Tuple[Dict[str, List[FoundDependency]], List[FoundDependency]]:
+    ) -> Tuple[Dict[str, List[out.FoundDependency]], List[out.FoundDependency]]:
         """
         Returns a mapping of lockfile paths to dependencies found in that lockfile.
 
         Also returns a list of FoundDependencies that did not have a lockfile available.
         """
-        lockfile_to_deps: Dict[str, List[FoundDependency]] = defaultdict(list)
-        unknown_lockfile: List[FoundDependency] = []
+        lockfile_to_deps: Dict[str, List[out.FoundDependency]] = defaultdict(list)
+        unknown_lockfile: List[out.FoundDependency] = []
 
         for dep in self.iter_found_dependencies():
             if dep.lockfile_path is not None:
@@ -215,7 +196,7 @@ class ResolvedDependencies:
         """
 
         def pretty_print_dependency(
-            dep: FoundDependency,
+            dep: out.FoundDependency,
             indent: int = 0,
             already_printed: Optional[Set[out.DependencyChild]] = None,
         ) -> Set[out.DependencyChild]:
@@ -305,7 +286,7 @@ class Subproject:
     # a certain subproject must be resolved given the changes included in a certain diff scan.
     # ecosystem can be None if this subproject is for a package manager whose ecosystem is not yet supported (i.e. one that is identified
     # only for tracking purposes)
-    ecosystem: Optional[Ecosystem]
+    ecosystem: Optional[out.Ecosystem]
 
     def to_stats_output(self) -> out.SubprojectStats:
         # subproject id is a hash based on the dependency field paths
@@ -336,7 +317,7 @@ class UnresolvedSubproject(Subproject):
     """
 
     unresolved_reason: UnresolvedReason
-    resolution_errors: List[Union[DependencyResolutionError, DependencyParserError]]
+    resolution_errors: List[Union[DependencyResolutionError, out.DependencyParserError]]
 
     @classmethod
     def from_subproject(
@@ -344,7 +325,7 @@ class UnresolvedSubproject(Subproject):
         base: Subproject,
         unresolved_reason: UnresolvedReason,
         resolution_errors: Sequence[
-            Union[DependencyParserError, DependencyResolutionError]
+            Union[out.DependencyParserError, DependencyResolutionError]
         ],
     ) -> "UnresolvedSubproject":
         return cls(
@@ -362,13 +343,14 @@ class ResolvedSubproject(Subproject):
     A subproject plus its resolved set of dependencies.
     """
 
-    ecosystem: Ecosystem
+    ecosystem: out.Ecosystem
 
-    resolution_errors: List[Union[DependencyParserError, DependencyResolutionError]]
+    resolution_errors: List[Union[out.DependencyParserError, DependencyResolutionError]]
 
-    # the resolution method is how we determined the dependencies from the dependency source. This might be
-    # lockfile parsing, dependency resolution, SBOM ingest, or something else.
-    resolution_method: ResolutionMethod
+    # The resolution method is how we determined the dependencies from the
+    # dependency source. This might be lockfile parsing, dependency resolution,
+    # SBOM ingest, or something else.
+    resolution_method: out.ResolutionMethod
 
     # the dependencies that were found
     found_dependencies: ResolvedDependencies
@@ -377,12 +359,12 @@ class ResolvedSubproject(Subproject):
     def from_unresolved(
         cls,
         unresolved: Subproject,
-        resolution_method: ResolutionMethod,
+        resolution_method: out.ResolutionMethod,
         resolution_errors: Sequence[
-            Union[DependencyParserError, DependencyResolutionError]
+            Union[out.DependencyParserError, DependencyResolutionError]
         ],
-        found_dependencies: List[FoundDependency],
-        ecosystem: Ecosystem,
+        found_dependencies: List[out.FoundDependency],
+        ecosystem: out.Ecosystem,
     ) -> "ResolvedSubproject":
         """
         Note that the ecosystem of the resolved subproject is passed separately. We could read it from the
@@ -408,7 +390,7 @@ class ResolvedSubproject(Subproject):
             dependency_sources=base_stats.dependency_sources,
             resolved_stats=out.DependencyResolutionStats(
                 ecosystem=self.ecosystem,
-                resolution_method=self.resolution_method.to_stats_output(),
+                resolution_method=self.resolution_method,
                 dependency_count=self.found_dependencies.count(),
             ),
         )
@@ -418,7 +400,7 @@ S = TypeVar("S", bound=Subproject)
 
 
 def find_closest_subproject(
-    path: Path, ecosystem: Ecosystem, candidates: List[S]
+    path: Path, ecosystem: out.Ecosystem, candidates: List[S]
 ) -> Optional[S]:
     """
     Attempt to find the best SCA project for the given match by looking at the parent path of the match

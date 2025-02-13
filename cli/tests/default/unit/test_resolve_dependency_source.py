@@ -9,7 +9,6 @@ from semdep.parsers.util import DependencyParser
 from semgrep.error import DependencyResolutionError
 from semgrep.resolve_dependency_source import _handle_lockfile_source
 from semgrep.subproject import ManifestLockfileDependencySource
-from semgrep.subproject import ResolutionMethod
 
 
 @pytest.mark.quick
@@ -66,7 +65,7 @@ def test_dependency_parser_exception(mock_parsers_dict) -> None:
 
     result = _handle_lockfile_source(dep_source, False, False)
 
-    assert result[0] == (ResolutionMethod.LOCKFILE_PARSING, [])
+    assert result[0] == (out.ResolutionMethod(out.LockfileParsing()), [])
     assert len(result[1]) == 1
     assert str(result[1][0]) == str(
         DependencyResolutionError(

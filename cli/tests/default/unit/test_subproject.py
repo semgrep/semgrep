@@ -16,7 +16,6 @@ from semgrep.subproject import LockfileOnlyDependencySource
 from semgrep.subproject import ManifestLockfileDependencySource
 from semgrep.subproject import ManifestOnlyDependencySource
 from semgrep.subproject import MultiLockfileDependencySource
-from semgrep.subproject import ResolutionMethod
 from semgrep.subproject import ResolvedDependencies
 from semgrep.subproject import ResolvedSubproject
 from semgrep.subproject import Subproject
@@ -54,7 +53,7 @@ class TestFindClosestSubproject:
             ),
             found_dependencies=ResolvedDependencies.from_found_dependencies([]),
             ecosystem=Ecosystem(Pypi()),
-            resolution_method=ResolutionMethod.LOCKFILE_PARSING,
+            resolution_method=out.ResolutionMethod(out.LockfileParsing()),
         )
         extra = [
             ResolvedSubproject(
@@ -72,7 +71,7 @@ class TestFindClosestSubproject:
                 ),
                 found_dependencies=ResolvedDependencies.from_found_dependencies([]),
                 ecosystem=Ecosystem(Pypi()),
-                resolution_method=ResolutionMethod.LOCKFILE_PARSING,
+                resolution_method=out.ResolutionMethod(out.LockfileParsing()),
             )
         ]
 
@@ -107,7 +106,7 @@ class TestFindClosestSubproject:
             ),
             found_dependencies=ResolvedDependencies.from_found_dependencies([]),
             ecosystem=Ecosystem(Maven()),
-            resolution_method=ResolutionMethod.LOCKFILE_PARSING,
+            resolution_method=out.ResolutionMethod(out.LockfileParsing()),
         )
         extra = [
             ResolvedSubproject(
@@ -125,7 +124,7 @@ class TestFindClosestSubproject:
                 ),
                 found_dependencies=ResolvedDependencies.from_found_dependencies([]),
                 ecosystem=Ecosystem(Pypi()),
-                resolution_method=ResolutionMethod.LOCKFILE_PARSING,
+                resolution_method=out.ResolutionMethod(out.LockfileParsing()),
             )
         ]
 
@@ -165,7 +164,7 @@ class TestSubproject:
                     out.Fpath(str(lockfile_path)),
                 ),
             ),
-            resolution_method=ResolutionMethod.LOCKFILE_PARSING,
+            resolution_method=out.ResolutionMethod(out.LockfileParsing()),
             ecosystem=Ecosystem(Pypi()),
             found_dependencies=ResolvedDependencies.from_found_dependencies(
                 found_dependencies
@@ -229,7 +228,7 @@ class TestSubproject:
             resolution_errors=[],
             dependency_source=multi_lockfile_source,
             ecosystem=Ecosystem(Pypi()),
-            resolution_method=ResolutionMethod.LOCKFILE_PARSING,
+            resolution_method=out.ResolutionMethod(out.LockfileParsing()),
             found_dependencies=ResolvedDependencies.from_found_dependencies(
                 found_dependencies
             ),
@@ -274,7 +273,7 @@ class TestSubproject:
                     out.Fpath(str(lockfile_path)),
                 ),
             ),
-            resolution_method=ResolutionMethod.LOCKFILE_PARSING,
+            resolution_method=out.ResolutionMethod(out.LockfileParsing()),
             ecosystem=Ecosystem(Pypi()),
             found_dependencies=ResolvedDependencies.from_found_dependencies(
                 found_dependencies
@@ -334,7 +333,7 @@ class TestResolvedSubproject:
             root_dir=Path("a/b/c"),
             resolution_errors=[],
             dependency_source=dependency_source,
-            resolution_method=ResolutionMethod.LOCKFILE_PARSING,
+            resolution_method=out.ResolutionMethod(out.LockfileParsing()),
             ecosystem=ecosystem,
             found_dependencies=ResolvedDependencies.from_found_dependencies([]),
         )
@@ -345,7 +344,7 @@ class TestResolvedSubproject:
             subproject_id=subproject_id,
             dependency_sources=dependency_source.to_stats_output(),
             resolved_stats=out.DependencyResolutionStats(
-                resolution_method=ResolutionMethod.LOCKFILE_PARSING.to_stats_output(),
+                resolution_method=out.ResolutionMethod(out.LockfileParsing()),
                 dependency_count=0,
                 ecosystem=ecosystem,
             ),
@@ -548,15 +547,3 @@ class TestManifestLockfileDependencySource:
                 path=out.Fpath(str(manifest_path)),
             ),
         ]
-
-
-class TestResolutionMethod:
-    @pytest.mark.quick
-    def test_to_stats_output(self):
-        assert (
-            ResolutionMethod.LOCKFILE_PARSING.to_stats_output()
-            == out.ResolutionMethod(out.LockfileParsing())
-        )
-        assert ResolutionMethod.DYNAMIC.to_stats_output() == out.ResolutionMethod(
-            out.DynamicResolution()
-        )

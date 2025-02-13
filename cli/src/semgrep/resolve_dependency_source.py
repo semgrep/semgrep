@@ -39,7 +39,6 @@ from semgrep.subproject import LockfileOnlyDependencySource
 from semgrep.subproject import ManifestLockfileDependencySource
 from semgrep.subproject import ManifestOnlyDependencySource
 from semgrep.subproject import MultiLockfileDependencySource
-from semgrep.subproject import ResolutionMethod
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -96,7 +95,7 @@ PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS = [
 ]
 
 DependencyResolutionResult = Tuple[
-    Optional[Tuple[ResolutionMethod, List[FoundDependency]]],
+    Optional[Tuple[out.ResolutionMethod, List[FoundDependency]]],
     Sequence[Union[DependencyParserError, DependencyResolutionError]],
     List[Path],
 ]
@@ -196,7 +195,7 @@ def _handle_manifest_only_source(
     if new_deps is None:
         return None, new_errors, new_targets
     return (
-        (ResolutionMethod.DYNAMIC, new_deps),
+        (out.ResolutionMethod(out.DynamicResolution()), new_deps),
         new_errors,
         new_targets,
     )
@@ -212,7 +211,7 @@ def _handle_multi_lockfile_source(
     all_parse_errors: List[Union[DependencyParserError, DependencyResolutionError]] = []
     all_dep_targets: List[Path] = []
 
-    resolution_methods: Set[ResolutionMethod] = set()
+    resolution_methods: Set[out.ResolutionMethod] = set()
 
     for lockfile_source in dep_source.sources:
         # We resolve each lockfile source independently.
@@ -235,9 +234,9 @@ def _handle_multi_lockfile_source(
 
     # if any of the files were resolved using dynamic resolution, mark the whole subproject as resolved that way. This is sort of an arbitrary choice.
     resolution_method = (
-        ResolutionMethod.DYNAMIC
-        if ResolutionMethod.DYNAMIC in resolution_methods
-        else ResolutionMethod.LOCKFILE_PARSING
+        out.ResolutionMethod(out.DynamicResolution())
+        if out.ResolutionMethod(out.DynamicResolution()) in resolution_methods
+        else out.ResolutionMethod(out.LockfileParsing())
     )
 
     return (
@@ -293,9 +292,9 @@ def _handle_lockfile_source(
                 # TODO: Reimplement this once more robust error handling for lockfileless resolution is implemented
                 return (
                     (
-                        ResolutionMethod.LOCKFILE_PARSING
+                        out.ResolutionMethod(out.LockfileParsing())
                         if use_nondynamic_ocaml_parsing
-                        else ResolutionMethod.DYNAMIC,
+                        else out.ResolutionMethod(out.DynamicResolution()),
                         new_deps,
                     ),
                     new_errors,
@@ -316,7 +315,7 @@ def _handle_lockfile_source(
     resolved_deps, parse_errors = parser(lockfile_path, manifest_path)
 
     return (
-        (ResolutionMethod.LOCKFILE_PARSING, resolved_deps),
+        (out.ResolutionMethod(out.LockfileParsing()), resolved_deps),
         parse_errors,
         [lockfile_path],
     )
