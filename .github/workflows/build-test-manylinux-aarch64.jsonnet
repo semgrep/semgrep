@@ -20,7 +20,7 @@ local build_wheels_job = {
       uses: 'docker/setup-qemu-action@v3',
     },
     {
-      uses: 'docker/setup-buildx-action@v2',
+      uses: 'docker/setup-buildx-action@v3',
     },
     {
       uses: 'depot/setup-action@v1',

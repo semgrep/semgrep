@@ -75,7 +75,7 @@ local job = {
       uses: 'docker/setup-qemu-action@v3',
     },
     {
-      uses: 'docker/setup-buildx-action@v2',
+      uses: 'docker/setup-buildx-action@v3',
     },
     {
       id: 'meta',
