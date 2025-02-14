@@ -47,7 +47,7 @@ local action_lint_job(checkout_steps) = {
   steps: checkout_steps + [
     gha.git_safedir,
     {
-      uses: 'actions/setup-go@v4',
+      uses: 'actions/setup-go@v5',
       with: {
         'go-version': '1.19',
       },
