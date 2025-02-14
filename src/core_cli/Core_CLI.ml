@@ -627,6 +627,13 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
             CapConsole.print caps#stdout version;
             Core_exit_code.(exit_semgrep caps#exit Success)),
         "  guess what" );
+      ( "-ocaml_version",
+        Arg.Unit
+          (fun () ->
+            let version = spf "OCaml version: %s" Sys.ocaml_version in
+            CapConsole.print caps#stdout version;
+            Core_exit_code.(exit_semgrep caps#exit Success)),
+        "  The version of OCaml that was used to build this binary" );
       ( "-rpc",
         Arg.Unit
           (fun () ->
