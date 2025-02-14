@@ -16,6 +16,12 @@ type name = Name of string [@@deriving show]
 type args = string list [@@deriving show]
 type t = name * args [@@deriving show]
 
+(* alt: we could also make it part of [t] and have a triple *)
+type env = string Astring.String.Map.t (* Bos.Os.Env.t *)
+
+let env_of_list (xs : (string * string) list) : env =
+  Astring.String.Map.of_list xs
+
 (* shortcut *)
 type run_status = Bos.OS.Cmd.run_status
 

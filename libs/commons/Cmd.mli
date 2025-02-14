@@ -16,5 +16,10 @@ val bos_apply : (Bos.Cmd.t -> 'a) -> t -> 'a
 
 type run_status = Bos.OS.Cmd.run_status
 
+(* environment variables *)
+type env = string Astring.String.map
+
+val env_of_list : (string * string) list -> env
+
 (* for error messages *)
 val to_string : t -> string

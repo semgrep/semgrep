@@ -31,3 +31,9 @@ let read_dir_entries (caps : < Cap.readdir ; .. >) path =
 let is_empty_dir (path : Fpath.t) : bool =
   (* note that Sys.readdir already filters the "." and ".." entries *)
   Array.length (USys.readdir !!path) = 0
+
+(* also in Testo.ml, Testutil_files.ml and autofix-printing-stats *)
+let with_chdir (caps : < Cap.chdir ; .. >) (path : Fpath.t) func =
+  let orig_cwd = UUnix.getcwd () in
+  CapSys.chdir caps#chdir !!path;
+  Common.protect ~finally:(fun () -> CapSys.chdir caps#chdir orig_cwd) func
