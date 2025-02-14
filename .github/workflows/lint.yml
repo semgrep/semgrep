@@ -3,7 +3,7 @@ jobs:
   github-actions:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Configure git safedir properly
         run: git config --global --add safe.directory $(pwd)
       - uses: actions/setup-go@v4
@@ -14,7 +14,7 @@ jobs:
   jsonnet-gha:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Check GitHub workflow files are up to date
         run: |
           sudo apt-get update
@@ -26,7 +26,7 @@ jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Configure git safedir properly
         run: git config --global --add safe.directory $(pwd)
       - name: Fetch semgrep-cli submodules

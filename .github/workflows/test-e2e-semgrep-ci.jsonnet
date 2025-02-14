@@ -205,7 +205,7 @@ local semgrep_ci_on_pr_job = {
   },
   steps: semgrep.github_bot.get_token_steps + [
     {
-      uses: 'actions/checkout@v3',
+      uses: 'actions/checkout@v4',
       with: {
         repository: 'semgrep/e2e',
         ref: '${{ github.event.repository.default_branch }}',

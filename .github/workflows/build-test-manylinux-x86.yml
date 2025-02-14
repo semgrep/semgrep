@@ -4,7 +4,7 @@ jobs:
     container: quay.io/pypa/manylinux_2_28_x86_64
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
       - run: |

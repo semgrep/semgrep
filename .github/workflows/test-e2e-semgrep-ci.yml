@@ -39,7 +39,7 @@ jobs:
     needs: get-inputs
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: semgrep ci
   semgrep-ci-fail-open:
     container:
@@ -51,7 +51,7 @@ jobs:
     needs: get-inputs
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Remove Git Exe
         run: |
           which git
@@ -66,7 +66,7 @@ jobs:
     needs: get-inputs
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - id: create-code
         name: Create code under test
         run: |
@@ -105,7 +105,7 @@ jobs:
           jq -r .token)"
           echo "::add-mask::$TOKEN"
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.repository.default_branch }}
           repository: semgrep/e2e

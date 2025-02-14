@@ -34,7 +34,7 @@ jobs:
         name: Load image
         run: docker load --input /tmp/image.tar
       - if: ${{ inputs.enable-tests }}
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - if: ${{ inputs.enable-tests }}
         name: Test Image
         run: ./scripts/validate-docker-build.sh ${{ steps.build-image.outputs.imageid }} linux/${{ matrix.architecture }}

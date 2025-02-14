@@ -196,7 +196,7 @@ local release_setup_job = {
   // the repo of the workflow, can't we just checkout?
   steps: semgrep.github_bot.get_token_steps + [
     {
-      uses: 'actions/checkout@v3',
+      uses: 'actions/checkout@v4',
       with: {
         submodules: 'recursive',
         ref: '${{ github.event.repository.default_branch }}',
@@ -286,7 +286,7 @@ local create_tag_job = {
   // TODO? why special token again?
   steps: semgrep.github_bot.get_token_steps + [
     {
-      uses: 'actions/checkout@v3',
+      uses: 'actions/checkout@v4',
       with: {
         submodules: true,
         // checkout the release branch this time
@@ -336,7 +336,7 @@ local create_draft_release_job = {
     // I just made an additional file contained in the repo called
     // OSS/release_changes.md .
     {
-      uses: 'actions/checkout@v3',
+      uses: 'actions/checkout@v4',
       with: {
         ref: release_branch,
         token: semgrep.github_bot.token_ref,
@@ -398,7 +398,7 @@ local validate_release_trigger_job = {
   },
   steps: [
     {
-      uses: 'actions/checkout@v3',
+      uses: 'actions/checkout@v4',
       // I don't think it's important to checkout here this specific version;
       // the actual important check is done in the script below.
       with: {

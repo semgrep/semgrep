@@ -8,13 +8,13 @@
   // What about 'persist-credentials': false? needed? A few of
   // our workflows was using that, but not consistently
   checkout: function() {
-    uses: 'actions/checkout@v3',
+    uses: 'actions/checkout@v4',
   },
   // The right checkout to call in most cases; slower but correct.
   // There is also 'submodules: "recursive" (which is even slower).
   checkout_with_submodules: function()
     {
-      uses: 'actions/checkout@v3',
+      uses: 'actions/checkout@v4',
       with: {
         submodules: true,
       },

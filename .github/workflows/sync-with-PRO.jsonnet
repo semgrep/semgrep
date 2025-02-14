@@ -22,7 +22,7 @@ local job = {
   steps: semgrep.github_bot.get_token_steps + [
      {
       name: 'Checkout OSS',
-      uses: 'actions/checkout@v3',
+      uses: 'actions/checkout@v4',
        with: {
         ref: 'develop',
         // fetch all history, seems needed to reference develop^ below
@@ -33,7 +33,7 @@ local job = {
      },
      {
       name: 'Checkout PRO',
-      uses: 'actions/checkout@v3',
+      uses: 'actions/checkout@v4',
       with: {
         repository: 'semgrep/semgrep-proprietary',
         path: 'PRO',

@@ -190,7 +190,7 @@ local park_pypi_packages_job = {
   },
   steps: [
     {
-      uses: 'actions/checkout@v3',
+      uses: 'actions/checkout@v4',
     },
     actions.setup_python_step('3.10'),
     {
@@ -315,7 +315,7 @@ local create_release_interfaces_job = {
   steps: semgrep.github_bot.get_token_steps + [
     get_version_step,
     {
-      uses: 'actions/checkout@v3',
+      uses: 'actions/checkout@v4',
       with: {
         submodules: true,
         token: semgrep.github_bot.token_ref,

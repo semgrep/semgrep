@@ -100,7 +100,7 @@ jobs:
       - id: get-version
         name: Get the version
         run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
           token: ${{ steps.token.outputs.token }}
@@ -121,7 +121,7 @@ jobs:
     if: ${{ ! inputs.dry-run }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           cache: pipenv

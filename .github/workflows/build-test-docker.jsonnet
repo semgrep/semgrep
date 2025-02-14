@@ -118,7 +118,7 @@ local job = {
       run: 'docker load --input /tmp/image.tar',
     },
     {
-      uses: 'actions/checkout@v3',
+      uses: 'actions/checkout@v4',
       'if': '${{ inputs.enable-tests }}',
     },
     {

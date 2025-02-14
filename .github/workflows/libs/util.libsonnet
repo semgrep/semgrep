@@ -34,7 +34,7 @@
     },
     steps: [
       {
-        uses: 'actions/checkout@v3',
+        uses: 'actions/checkout@v4',
       },
       {
         id: 'get-sha',

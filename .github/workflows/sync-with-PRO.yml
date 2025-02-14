@@ -24,13 +24,13 @@ jobs:
           echo "::add-mask::$TOKEN"
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
       - name: Checkout OSS
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: develop
           token: ${{ steps.token.outputs.token }}
       - name: Checkout PRO
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: PRO
           repository: semgrep/semgrep-proprietary

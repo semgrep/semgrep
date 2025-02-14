@@ -9,7 +9,7 @@ jobs:
     if: (github.actor != 'dependabot[bot]')
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: semgrep ci
   semgrep-ci-debug:
     container:
@@ -20,7 +20,7 @@ jobs:
     if: (github.actor != 'dependabot[bot]')
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: semgrep ci --debug
   semgrep-ci-oss:
     container:
@@ -31,7 +31,7 @@ jobs:
     if: (github.actor != 'dependabot[bot]')
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: semgrep ci --oss-only
 name: semgrep
 on:

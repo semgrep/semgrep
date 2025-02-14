@@ -5,7 +5,7 @@ jobs:
       - build-test-core-x86
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
       - uses: actions/setup-python@v4
@@ -121,7 +121,7 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
       - uses: actions/setup-python@v4
@@ -204,7 +204,7 @@ jobs:
     steps:
       - name: Make checkout speedy
         run: git config --global fetch.parallel 50
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
       - name: Configure git safedir properly
@@ -235,7 +235,7 @@ jobs:
       - build-test-core-x86
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces tests/semgrep-rules
       - uses: actions/setup-python@v4
@@ -286,7 +286,7 @@ jobs:
     steps:
       - name: Make checkout speedy
         run: git config --global fetch.parallel 50
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
       - name: Configure git safedir properly
