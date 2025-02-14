@@ -62,7 +62,7 @@ local github_bot = {
 // OPAM caching
 // ----------------------------------------------------------------------------
 
-// The step below uses the actions/cache@v3 GHA extension to cache
+// The step below uses the actions/cache@v4 GHA extension to cache
 // the ~/.opam directory which speedups a lot the "Install opam dependencies"
 // steps in our workflows, especially the one where we can't use ocaml-layer.
 // See also actions.libsonnet for other GHA caching helpers.
@@ -90,7 +90,7 @@ local github_bot = {
 //    anything, and the build are guaranteed to be hermetic. The only problem
 //    originally was that it was slower, and for unknown reasons ocamlc was
 //    not working well on those macos-12 GHA runners, but caching the ~/.opam
-//    with actions/cache@v3 seems to solve the speed issue (and maybe ocamlc
+//    with actions/cache@v4 seems to solve the speed issue (and maybe ocamlc
 //    works now well under macos-12).
 //  - use a technique similar to what we do for Linux with our special
 //    ocaml-layer container, but can this be done for macos?
@@ -141,7 +141,7 @@ local bump_cache = 1;
 local cache_opam = {
   step(key, path="~/.opam"): {
     name: 'Set GHA cache for OPAM in ' + path,
-    uses: 'actions/cache@v3',
+    uses: 'actions/cache@v4',
     env: {
       SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2,
     },

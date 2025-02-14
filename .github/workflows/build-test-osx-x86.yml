@@ -10,7 +10,7 @@ jobs:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
         if: ${{ inputs.use-cache}}
         name: Set GHA cache for OPAM in ~/.opam
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           key: ${{ runner.os }}-${{ runner.arch }}-v1-opam-4.14.0-${{hashFiles('semgrep.opam')}}
           path: ~/.opam

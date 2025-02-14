@@ -256,7 +256,7 @@ jobs:
           export PATH=/github/home/.local/bin:$PATH
           pipenv install --dev
         working-directory: cli
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           key: qa-public-repos-${{ hashFiles('semgrep/tests/qa/*public_repos*') }}-${{ matrix.split }}
           path: ~/.cache/qa-public-repos
@@ -294,7 +294,7 @@ jobs:
       - env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
         name: Set GHA cache for OPAM in ~/.opam
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           key: ${{ runner.os }}-${{ runner.arch }}-v1-opam-4.14.0-${{hashFiles('semgrep.opam')}}
           path: ~/.opam

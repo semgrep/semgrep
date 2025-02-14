@@ -93,7 +93,7 @@
   guard_cache_hit: {
     step(path, key='${{ github.sha}}', bump_cache=1): {
       name: 'Set GHA cache for ' + key +' in ' + path,
-      uses: 'actions/cache@v3',
+      uses: 'actions/cache@v4',
       env: {
         SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2,
       },

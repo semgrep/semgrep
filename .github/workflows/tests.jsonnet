@@ -272,7 +272,7 @@ local test_qa_job = {
       |||,
     },
     {
-      uses: 'actions/cache@v3',
+      uses: 'actions/cache@v4',
       with: {
         path: '~/.cache/qa-public-repos',
         key: "qa-public-repos-${{ hashFiles('semgrep/tests/qa/*public_repos*') }}-${{ matrix.split }}",
