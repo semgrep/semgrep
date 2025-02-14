@@ -14,6 +14,7 @@ from typing import TypedDict
 
 import tomli
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.external.parsy import any_char
 from semdep.external.parsy import eof
 from semdep.external.parsy import regex
@@ -32,9 +33,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyChild
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
-from semgrep.semgrep_interfaces.semgrep_output_v1 import PoetryLock_
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
-from semgrep.semgrep_interfaces.semgrep_output_v1 import PyprojectToml_
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 
 
@@ -256,7 +255,7 @@ def parse_poetry(
         DependencyFileToParse(
             lockfile_path,
             poetry,
-            ScaParserName(PoetryLock_()),
+            ScaParserName(out.PPoetryLock()),
             preprocessors.CommentRemover(),
         ),
         None,
@@ -270,7 +269,7 @@ def parse_poetry(
                 DependencyParserError(
                     path=Fpath(str(manifest_path)),
                     parser=ScaParserName(
-                        PyprojectToml_()
+                        out.PPyprojectToml()
                     ),  # There is actually no longer a custom parser for this since pyproject.toml is now parsed by a TOML parser (tomli)
                     reason=f"Failed to parse [bold]{manifest_path}[/bold]: {str(e)}",
                 )

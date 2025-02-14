@@ -28,12 +28,9 @@ from semdep.parsers.swiftpm import parse_package_resolved
 from semdep.parsers.util import DependencyParser
 from semdep.parsers.util import to_parser
 from semdep.parsers.yarn import parse_yarn
-from semgrep.error import DependencyResolutionError
 from semgrep.rpc_call import resolve_dependencies
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
-from semgrep.semgrep_interfaces.semgrep_output_v1 import ParseDependenciesFailed
-from semgrep.semgrep_interfaces.semgrep_output_v1 import ResolutionError
 from semgrep.subproject import DependencySource
 from semgrep.subproject import LockfileOnlyDependencySource
 from semgrep.subproject import ManifestLockfileDependencySource
@@ -96,7 +93,7 @@ PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS = [
 
 DependencyResolutionResult = Tuple[
     Optional[Tuple[out.ResolutionMethod, List[FoundDependency]]],
-    Sequence[Union[DependencyParserError, DependencyResolutionError]],
+    Sequence[Union[DependencyParserError, out.ScaResolutionError]],
     List[Path],
 ]
 
@@ -109,7 +106,7 @@ def _resolve_dependencies_rpc(
     ],
 ) -> Tuple[
     Optional[List[FoundDependency]],
-    Sequence[DependencyResolutionError],
+    Sequence[out.ScaResolutionError],
     List[Path],
 ]:
     """
@@ -134,13 +131,11 @@ def _resolve_dependencies_rpc(
         resolved_deps, errors = result.value.value
 
         wrapped_errors = [
-            DependencyResolutionError(
+            out.ScaResolutionError(
                 type_=e_type,
-                dependency_source_file=Path(
-                    dependency_source.lockfile.path.value
-                    if isinstance(dependency_source, LockfileOnlyDependencySource)
-                    else dependency_source.manifest.path.value
-                ),
+                dependency_source_file=dependency_source.lockfile.path
+                if isinstance(dependency_source, LockfileOnlyDependencySource)
+                else dependency_source.manifest.path,
             )
             for e_type in errors
         ]
@@ -155,13 +150,11 @@ def _resolve_dependencies_rpc(
         # some error occured in resolution, track it
         wrapped_errors = (
             [
-                DependencyResolutionError(
+                out.ScaResolutionError(
                     type_=e_type,
-                    dependency_source_file=Path(
-                        dependency_source.lockfile.path.value
-                        if isinstance(dependency_source, LockfileOnlyDependencySource)
-                        else dependency_source.manifest.path.value
-                    ),
+                    dependency_source_file=dependency_source.lockfile.path
+                    if isinstance(dependency_source, LockfileOnlyDependencySource)
+                    else dependency_source.manifest.path,
                 )
                 for e_type in result.value.value
             ]
@@ -170,17 +163,15 @@ def _resolve_dependencies_rpc(
                 # This is here because we have manifest/lockfile kinds for Conan, which we use
                 # for data tracking reasons, but SCA doesn't support Conan, and we have no ecosystem
                 # for it. Basically this case should never happen, if it does then something went very wrong.
-                DependencyResolutionError(
-                    type_=ResolutionError(
-                        ParseDependenciesFailed(
+                out.ScaResolutionError(
+                    type_=out.ResolutionErrorKind(
+                        out.ParseDependenciesFailed(
                             "Trying to use RPC to resolve dependencies from a manifest we don't support"
                         )
                     ),
-                    dependency_source_file=Path(
-                        dependency_source.lockfile.path.value
-                        if isinstance(dependency_source, LockfileOnlyDependencySource)
-                        else dependency_source.manifest.path.value
-                    ),
+                    dependency_source_file=dependency_source.lockfile.path
+                    if isinstance(dependency_source, LockfileOnlyDependencySource)
+                    else dependency_source.manifest.path,
                 )
             ]
         )
@@ -208,7 +199,7 @@ def _handle_multi_lockfile_source(
 ) -> DependencyResolutionResult:
     """Handle dependency resolution for sources with multiple lockfiles."""
     all_resolved_deps: List[FoundDependency] = []
-    all_parse_errors: List[Union[DependencyParserError, DependencyResolutionError]] = []
+    all_parse_errors: List[Union[DependencyParserError, out.ScaResolutionError]] = []
     all_dep_targets: List[Path] = []
 
     resolution_methods: Set[out.ResolutionMethod] = set()

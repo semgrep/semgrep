@@ -9,6 +9,7 @@ from typing import Optional
 from typing import Tuple
 from typing import TypeVar
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.external.parsy import alt
 from semdep.external.parsy import Parser
 from semdep.external.parsy import regex
@@ -23,7 +24,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Gomod
-from semgrep.semgrep_interfaces.semgrep_output_v1 import GoMod2
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
@@ -78,7 +78,7 @@ def parse_go_mod(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
     parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
-        DependencyFileToParse(lockfile_path, go_mod, ScaParserName(GoMod2())), None
+        DependencyFileToParse(lockfile_path, go_mod, ScaParserName(out.PGoMod())), None
     )
     if not parsed_lockfile:
         return [], errors

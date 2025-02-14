@@ -36,6 +36,7 @@ from rich.progress import Progress
 from rich.progress import SpinnerColumn
 from rich.progress import TextColumn
 
+import semgrep.error as error
 import semgrep.scan_report as scan_report
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers.util import DependencyParserError
@@ -54,7 +55,6 @@ from semgrep.core_runner import Plan
 from semgrep.dependency_aware_rule import dependencies_range_match_any
 from semgrep.dependency_aware_rule import parse_depends_on_yaml
 from semgrep.engine import EngineType
-from semgrep.error import DependencyResolutionError
 from semgrep.error import InvalidScanningRootError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import select_real_errors
@@ -312,9 +312,12 @@ def run_rules(
             )
             output_handler.handle_semgrep_errors(
                 [
-                    e
+                    error.DependencyResolutionSemgrepError(
+                        type_=e.type_,
+                        dependency_source_file=Path(e.dependency_source_file.value),
+                    )
                     for e in subproject.resolution_errors
-                    if isinstance(e, DependencyResolutionError)
+                    if isinstance(e, out.ScaResolutionError)
                 ]
             )
 

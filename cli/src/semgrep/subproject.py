@@ -16,7 +16,6 @@ from typing import TypeVar
 from typing import Union
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
-from semgrep.error import DependencyResolutionError
 
 
 class DependencySource(ABC):
@@ -317,7 +316,7 @@ class UnresolvedSubproject(Subproject):
     """
 
     unresolved_reason: UnresolvedReason
-    resolution_errors: List[Union[DependencyResolutionError, out.DependencyParserError]]
+    resolution_errors: List[Union[out.ScaResolutionError, out.DependencyParserError]]
 
     @classmethod
     def from_subproject(
@@ -325,7 +324,7 @@ class UnresolvedSubproject(Subproject):
         base: Subproject,
         unresolved_reason: UnresolvedReason,
         resolution_errors: Sequence[
-            Union[out.DependencyParserError, DependencyResolutionError]
+            Union[out.DependencyParserError, out.ScaResolutionError]
         ],
     ) -> "UnresolvedSubproject":
         return cls(
@@ -345,7 +344,7 @@ class ResolvedSubproject(Subproject):
 
     ecosystem: out.Ecosystem
 
-    resolution_errors: List[Union[out.DependencyParserError, DependencyResolutionError]]
+    resolution_errors: List[Union[out.DependencyParserError, out.ScaResolutionError]]
 
     # The resolution method is how we determined the dependencies from the
     # dependency source. This might be lockfile parsing, dependency resolution,
@@ -361,7 +360,7 @@ class ResolvedSubproject(Subproject):
         unresolved: Subproject,
         resolution_method: out.ResolutionMethod,
         resolution_errors: Sequence[
-            Union[out.DependencyParserError, DependencyResolutionError]
+            Union[out.DependencyParserError, out.ScaResolutionError]
         ],
         found_dependencies: List[out.FoundDependency],
         ecosystem: out.Ecosystem,

@@ -11,6 +11,7 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.external.parsy import any_char
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
@@ -24,7 +25,6 @@ from semdep.parsers.util import transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
-from semgrep.semgrep_interfaces.semgrep_output_v1 import GradleLockfile_
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.verbose_logging import getLogger
@@ -81,8 +81,12 @@ def parse_gradle(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
     parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
-        DependencyFileToParse(lockfile_path, gradle, ScaParserName(GradleLockfile_())),
-        DependencyFileToParse(manifest_path, manifest, ScaParserName(GradleLockfile_()))
+        DependencyFileToParse(
+            lockfile_path, gradle, ScaParserName(out.PGradleLockfile())
+        ),
+        DependencyFileToParse(
+            manifest_path, manifest, ScaParserName(out.PGradleLockfile())
+        )
         if manifest_path
         else None,
     )

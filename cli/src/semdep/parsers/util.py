@@ -39,7 +39,6 @@ from semdep.external.parsy import Parser
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
 from semdep.external.parsy import success
-from semgrep.error import DependencyResolutionError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyChild
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
@@ -71,7 +70,7 @@ class DependencyParser:
     def __call__(
         self, lockfile_path: Path, manifest_path: Optional[Path]
     ) -> Tuple[
-        List[FoundDependency], List[DependencyParserError | DependencyResolutionError]
+        List[FoundDependency], List[DependencyParserError | out.ScaResolutionError]
     ]:
         try:
             # Covariant subtyping doesn't work in mypy :(
@@ -81,9 +80,11 @@ class DependencyParser:
             return (
                 [],
                 [
-                    DependencyResolutionError(
-                        type_=out.ResolutionError(out.ParseDependenciesFailed(str(e))),
-                        dependency_source_file=lockfile_path,
+                    out.ScaResolutionError(
+                        type_=out.ResolutionErrorKind(
+                            out.ParseDependenciesFailed(str(e))
+                        ),
+                        dependency_source_file=out.Fpath(str(lockfile_path)),
                     )
                 ],
             )

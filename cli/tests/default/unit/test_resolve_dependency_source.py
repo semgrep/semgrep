@@ -1,4 +1,3 @@
-from pathlib import Path
 from pathlib import PosixPath
 from unittest.mock import patch
 
@@ -6,7 +5,6 @@ import pytest
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers.util import DependencyParser
-from semgrep.error import DependencyResolutionError
 from semgrep.resolve_dependency_source import _handle_lockfile_source
 from semgrep.subproject import ManifestLockfileDependencySource
 
@@ -68,11 +66,11 @@ def test_dependency_parser_exception(mock_parsers_dict) -> None:
     assert result[0] == (out.ResolutionMethod(out.LockfileParsing()), [])
     assert len(result[1]) == 1
     assert str(result[1][0]) == str(
-        DependencyResolutionError(
-            type_=out.ResolutionError(
+        out.ScaResolutionError(
+            type_=out.ResolutionErrorKind(
                 value=out.ParseDependenciesFailed(value=str(KeyError("Oh No")))
             ),
-            dependency_source_file=Path("poetry.lock"),
+            dependency_source_file=out.Fpath("poetry.lock"),
         )
     )
     assert result[2] == [PosixPath("poetry.lock")]
