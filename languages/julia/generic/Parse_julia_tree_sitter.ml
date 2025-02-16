@@ -468,72 +468,16 @@ and map_anon_choice_id_00cc266_ent ?(attrs = []) ?tparams (env : env)
       | Left id -> { name = EN (H2.name_of_id id); attrs; tparams }
       | Right exp -> { name = EDynamic exp; attrs; tparams })
 
-and map_anon_choice_id_6965274 (env : env) (x : CST.anon_choice_id_6965274) =
-  match x with
-  | `Id tok -> map_id_parameter env tok
-  | `Slurp_param x -> map_slurp_parameter env x
-  | `Typed_param x -> map_typed_parameter env x
-  | `LPAR_choice_id_RPAR x -> map_paren_parameter env x
-  | `Tuple_exp x -> ParamPattern (map_tuple_pat env x)
-
 and map_id_parameter env (tok : CST.identifier) =
   let id = map_identifier env tok in
   Param (param_of_id id)
-
-and map_paren_parameter env (l, param, r) =
-  let _v1 = (* "(" *) token env l in
-  let v2 = map_anon_choice_id_6314bc3 env param in
-  let _v3 = (* ")" *) token env r in
-  v2
-
-and map_tuple_parameter env x = ParamPattern (map_tuple_pat env x)
-
-and map_call_parameter env x =
-  (* It is unclear to me why a parameter to a function ought to be a function call.
-      According to the tree-sitter parser, this is for "Gen.jl".
-  *)
-  let exp = map_call_expression env x in
-  OtherParam (("pattern", fake "pattern"), [ G.E exp ])
 
 and map_closed_macro_parameter env x =
   let exp = map_closed_macrocall_expression env x in
   OtherParam (("pattern", fake "pattern"), [ G.E exp ])
 
-and map_anon_choice_id_6314bc3 (env : env) (x : CST.anon_choice_id_6314bc3) =
-  match x with
-  | `Id tok -> map_id_parameter env tok
-  | `Slurp_param x -> map_slurp_parameter env x
-  | `Typed_param x -> map_typed_parameter env x
-
-and map_anon_choice_id_687d935 (env : env) (x : CST.anon_choice_id_687d935) =
-  match x with
-  | `Id tok -> map_id_parameter env tok
-  | `Slurp_param x -> map_slurp_parameter env x
-  | `Opt_param x -> map_optional_parameter env x
-  | `Typed_param x -> map_typed_parameter env x
-  | `Interp_exp x -> map_interpolation_parameter env x
-  | `Closed_macr_exp x ->
-      let exp = map_closed_macrocall_expression env x in
-      OtherParam (("pattern", fake "pattern"), [ G.E exp ])
-
-and map_anon_choice_id_150150 (env : env) x =
-  match x with
-  | `Id tok -> map_id_parameter env tok
-  | `Typed_param x -> map_typed_parameter env x
-  | `Tuple_exp x -> ParamPattern (map_tuple_pat env x)
-
-and map_anon_choice_id_c087cf9 (env : env) (x : CST.anon_choice_id_c087cf9) =
-  match x with
-  | `Id tok -> map_id_parameter env tok
-  | `Slurp_param x -> map_slurp_parameter env x
-  | `Opt_param x -> map_optional_parameter env x
-  | `Typed_param x -> map_typed_parameter env x
-  | `Tuple_exp x -> map_tuple_parameter env x
-  | `Interp_exp x -> map_interpolation_parameter env x
-  | `Closed_macr_exp x -> map_closed_macro_parameter env x
-  | `Call_exp x -> map_call_parameter env x
-
-and map_anon_choice_id_c313bb1 (env : env) (x : CST.anon_choice_id_c313bb1) =
+(* NOTE: It's very annoying that this must return a DefStmt instead of an Assign *)
+and map_let_binding (env : env) (x : CST.anon_choice_id_0627c2a) =
   match x with
   | `Id tok ->
       let id = map_identifier env tok in
@@ -1342,7 +1286,7 @@ and map_for_binding (env : env) ((v1, v2, v3) : CST.for_binding) =
        Perhaps there should be an `exp_to_pat`, so this doesn't have to be duplicated...
     *)
     | `Tuple_exp x -> map_tuple_pat env x
-    | `Typed_param x ->
+    | `Typed_exp x ->
         let param = map_typed_parameter env x in
         OtherPat (("pat", fake "pat"), [ G.Pa param ])
     | `Interp_exp x -> (
@@ -1410,9 +1354,9 @@ and map_signature (env : env) (x : CST.signature) =
                   let id = map_operator env x in
                   basic_entity id
             in
-            (Some ent, map_parameter_list v3)
+            (Some ent, map_parameter_list env v3)
         (* Anonymous function *)
-        | `Arg_list x -> (None, map_parameter_list x)
+        | `Arg_list x -> (None, map_parameter_list env x)
       in
       (* TODO: Handle where_clause *)
       (ent, params, frettype)
@@ -1550,25 +1494,6 @@ and map_interpolation_parameter (env : env) (x : CST.interpolation_expression) :
       | __else__ -> OtherParam (v1, [ G.E v2 ]))
   | `Semg_exte_meta x -> Param (param_of_id (str env x))
 
-and map_keyword_parameters (env : env)
-    ((v1, v2, v3, v4) : CST.keyword_parameters) =
-  let _v1 = (* ";" *) token env v1 in
-  let v2 = map_anon_choice_id_687d935 env v2 in
-  let v3 =
-    List_.map
-      (fun (v1, v2) ->
-        let _v1 = (* "," *) token env v1 in
-        let v2 = map_anon_choice_id_687d935 env v2 in
-        v2)
-      v3
-  in
-  let _v4 =
-    match v4 with
-    | Some tok -> (* "," *) Some (token env tok)
-    | None -> None
-  in
-  v2 :: v3
-
 and map_macro_argument_list (env : env) (xs : CST.macro_argument_list) =
   List.concat_map (map_macro_arguments env) xs
 
@@ -1664,10 +1589,22 @@ and map_named_field (env : env) ((v1, v2, v3) : CST.named_field) =
   in
   (v1, v2, v3)
 
-and map_optional_parameter (env : env) ((v1, v2, v3) : CST.optional_parameter) =
-  let v1 = map_anon_choice_id_150150 env v1 in
+and map_optional_parameter (env : env) ((v1, v2, v3) : CST.closed_assignment) =
+  let v1 =
+    match v1 with
+    | `Prim_exp p -> (
+        match p with
+        | `Id tok -> map_id_parameter env tok
+        | `Tuple_exp x -> ParamPattern (map_tuple_pat env x)
+        | _ -> todo env p)
+    | `Choice_un_exp x -> (
+        match x with
+        | `Typed_exp x -> map_typed_parameter env x
+        | _ -> todo env x)
+    | _ -> todo env v1
+  in
   let _v2 = (* "=" *) token env v2 in
-  let v3 = map_expression env v3 in
+  let v3 = map_bracket_level env v3 in
   match v1 with
   | Param ({ pdefault = None; _ } as p) -> Param { p with pdefault = Some v3 }
   | __else__ -> OtherParam (("optional", fake "optional"), [ G.Pa v1; G.E v3 ])
@@ -1685,6 +1622,11 @@ and map_parameter (env : env) (x : CST.anon_choice_exp_095959f) =
           | `Prim_exp p -> (
               match p with
               | `Id tok -> map_id_parameter env tok
+              | `Tuple_exp x ->
+                  let pat = map_tuple_pat env x in
+                  OtherParam (("param", fake "param"), [ G.P pat ])
+              | `Interp_exp x -> map_interpolation_parameter env x
+              | `Closed_macr_exp x -> map_closed_macro_parameter env x
               | _ -> todo env p)
           | `Choice_un_exp operation -> (
               match operation with
@@ -1698,7 +1640,7 @@ and map_parameter (env : env) (x : CST.anon_choice_exp_095959f) =
   | `Closed_assign x -> map_optional_parameter env x
   | `Exp_comp_clause x -> todo env x
 
-(* This function handles parameters in function signatures.
+(* Handle parameters in function signatures (not arguments in function calls).
  * TODO: Should args and kwargs be handled differently?
  *)
 and map_parameter_list (env : env) ((v1, _v2, v3, v4, v5) : CST.argument_list) :
@@ -1914,11 +1856,23 @@ and map_selected_import ~import_tok (env : env)
   let* import_subjects = v3 :: v4 |> option_all in
   Some (ImportFrom (import_tok, DottedName v1, import_subjects))
 
-and map_slurp_parameter (env : env) ((v1, v2) : CST.slurp_parameter) =
+and map_slurp_parameter (env : env) ((v1, v2) : CST.splat_expression) =
   let v1 =
     match v1 with
-    | `Id tok -> param_of_id (map_identifier env tok)
-    | `Typed_param x -> map_typed_parameter_classic env x
+    | `Choice_choice_module_defi x -> (
+        match x with
+        | `Prim_exp p -> (
+            match p with
+            | `Id tok -> param_of_id (map_identifier env tok)
+            (* doesn't make sense to have tuple_exp here *)
+            | _ -> todo env p)
+        | `Choice_un_exp x -> (
+            match x with
+            | `Typed_exp x -> map_typed_parameter_classic env x
+            | _ -> todo env x)
+        | _ -> todo env v1)
+    | `Semg_ellips tok -> ParamEllipsis (token env tok)
+    | `Deep_exp x -> todo env x
   in
   let v2 = (* "..." *) token env v2 in
   ParamRest (v2, v1)
@@ -2256,46 +2210,33 @@ and map_typed_expression_exp (env : env) ((v1, v2, v3) : CST.typed_expression) :
   in
   Cast (TyExpr v3 |> G.t, tok, v1) |> G.e
 
-and map_typed_parameter (env : env) (v1 : CST.typed_parameter) : parameter =
+and map_typed_parameter (env : env) ((v1, v2, v3) : CST.typed_expression) :
+    parameter =
+  let _v2 = (* :: *) token env v2 in
+  let v3 =
+    match v3 with
+    | `Prim_exp x -> map_type env x
+  in
   match v1 with
-  | `Semg_ellips tok -> ParamEllipsis (token env tok)
-  | `Opt_choice_id_COLONCOLON_prim_exp_opt_where_clause (v1, v2, v3, v4) -> (
-      let _v2 = (* "::" *) token env v2 in
-      let v3 = map_type env v3 in
-      let pattrs =
-        match v4 with
-        | Some x -> [ map_where_clause env x ]
-        | None -> []
-      in
-      match v1 with
-      | Some x -> (
-          match x with
-          | `Id tok ->
-              Param (param_of_id ~pattrs ~ptype:v3 (map_identifier env tok))
+  | `Choice_choice_module_defi x -> (
+      match x with
+      | `Prim_exp p -> (
+          match p with
+          | `Id tok -> Param (param_of_id ~ptype:v3 (map_identifier env tok))
           | `Tuple_exp x ->
               let pat = map_tuple_pat env x in
               OtherParam (("param", fake "param"), [ G.P pat ])
           | `Interp_exp x -> (
               match map_interpolation_expression_either env x with
               | Left id -> Param (param_of_id id)
-              | Right exp -> OtherParam (("param", fake "param"), [ G.E exp ])))
-      | None ->
-          (* For some absolutely absurd reason, you can elide the pattern, but still enforce a type
-              on it, meaning that the parameter here might not actually exist.
-              Absurd.
+              | Right exp -> OtherParam (("param", fake "param"), [ G.E exp ]))
+          | _ -> todo env x)
+      | _ -> todo env x)
+  | `Semg_ellips tok -> ParamEllipsis (token env tok)
+  (* TODO: Do we need deep expressions in patterns? *)
+  | `Deep_exp x -> todo env x
 
-              function f(:: Int64) return 1 end
-          *)
-          Param
-            {
-              pname = None;
-              ptype = Some v3;
-              pdefault = None;
-              pattrs;
-              pinfo = empty_id_info ();
-            })
-
-and map_typed_parameter_classic (env : env) (v1 : CST.typed_parameter) :
+and map_typed_parameter_classic (env : env) (v1 : CST.typed_expression) :
     parameter_classic =
   match map_typed_parameter env v1 with
   | Param classic -> classic
