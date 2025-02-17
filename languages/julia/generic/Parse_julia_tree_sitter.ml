@@ -466,6 +466,22 @@ and map_closed_macro_parameter env x =
   let exp = map_closed_macrocall_expression env x in
   OtherParam (("pattern", fake "pattern"), [ G.E exp ])
 
+(* Fix for semgrep/semgrep#10487
+ * If macrocall is parameter, 99% of the time we only care about the first argument.
+ *)
+and map_macro_parameter (env : env) ((v1, _v2, v3) : CST.macrocall_expression) =
+  match v3 with
+  | Some arg_list -> (
+      match arg_list with
+      | first :: _ -> (
+          match first with
+          | `Exp x ->
+              OtherParam
+                (("pattern", fake "pattern"), [ G.E (map_expression env x) ])
+          | _ -> todo env v1)
+      | [] -> todo env v1)
+  | None -> todo env v1
+
 (* NOTE: It's very annoying that this must return a DefStmt instead of an Assign *)
 and map_let_binding (env : env) (x : CST.anon_choice_id_0627c2a) =
   match x with
@@ -1651,7 +1667,7 @@ and map_parameter (env : env) (x : CST.anon_choice_exp_095959f) =
               | `Typed_exp x -> map_typed_parameter env x
               | `Splat_exp x -> map_slurp_parameter env x
               | _ -> todo env x)
-          (* TODO: Fix for semgrep/semgrep#10487 should go here. *)
+          | `Macr_exp x -> map_macro_parameter env x
           | _ -> todo env x)
       | `Semg_ellips tok -> todo env tok
       | `Deep_exp x -> todo env x)
