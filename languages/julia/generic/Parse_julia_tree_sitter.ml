@@ -447,11 +447,6 @@ and map_anon_choice_for_clause_4e31839 (env : env)
       let v2 = map_expression env v2 in
       [ CompIf (v1, v2) ]
 
-and map_anon_choice_id_00cc266 (env : env) (x : CST.anon_choice_id_00cc266) =
-  match x with
-  | `Id tok -> Left (map_identifier env tok)
-  | `Interp_exp x -> map_interpolation_expression_either env x
-
 and map_anon_choice_id_00cc266_ent ?(attrs = []) ?tparams (env : env)
     (x : CST.anon_choice_id_00cc266) =
   match x with
@@ -2305,11 +2300,6 @@ and map_vector_expression (env : env) ((v1, v2, v3, v4) : CST.vector_expression)
   in
   let v4 = (* "]" *) token env v4 in
   Container (Array, (v1, v2, v4)) |> G.e
-
-and map_where_clause (env : env) ((v1, v2) : CST.where_clause) : G.attribute =
-  let v1 = (* "where" *) str env v1 in
-  let v2 = map_expression env v2 in
-  OtherAttribute (v1, [ G.E v2 ])
 
 (*****************************************************************************)
 (* Entry point *)
