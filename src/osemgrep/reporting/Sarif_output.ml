@@ -239,7 +239,7 @@ let sarif_fixes (cli_match : Out.cli_match) : Sarif.fix list option =
   in
   Some [ fix ]
 
-let thread_flow_location (cli_match : Out.cli_match) message
+let thread_flow_location (_cli_match : Out.cli_match) message
     (location : Out.location) content nesting_level =
   let location =
     Sarif.create_location ~message
@@ -249,7 +249,7 @@ let thread_flow_location (cli_match : Out.cli_match) message
              (region ~message ~snippet:content location.start location.end_)
            ~artifact_location:
              (Sarif.create_artifact_location
-                ~uri:(Fpath.to_string cli_match.path)
+                ~uri:(Fpath.to_string location.path)
                 ())
            ())
       ()
