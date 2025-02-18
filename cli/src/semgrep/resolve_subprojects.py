@@ -20,6 +20,7 @@ from semgrep.rule import Rule
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_types import Language
 from semgrep.subproject import find_closest_subproject
+from semgrep.subproject import get_all_source_files
 from semgrep.subproject import ResolvedSubproject
 from semgrep.subproject import Subproject
 from semgrep.subproject import UnresolvedReason
@@ -73,7 +74,7 @@ def filter_changed_subprojects(
         ignore_baseline_handler=False
     )
     for subproject in subprojects:
-        source_file_set = set(subproject.dependency_source.get_all_source_files())
+        source_file_set = set(get_all_source_files(subproject.dependency_source))
         if len(all_dependency_source_targets.intersection(source_file_set)) > 0:
             # one of the source files for this subproject changed, so we should keep it
             relevant_subprojects.add(subproject)

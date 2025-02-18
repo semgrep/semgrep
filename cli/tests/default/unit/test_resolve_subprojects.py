@@ -10,9 +10,6 @@ from semdep.subproject_matchers import ExactManifestOnlyMatcher
 from semdep.subproject_matchers import SubprojectMatcher
 from semgrep.resolve_dependency_source import resolve_dependency_source
 from semgrep.resolve_subprojects import find_subprojects
-from semgrep.subproject import LockfileOnlyDependencySource
-from semgrep.subproject import ManifestLockfileDependencySource
-from semgrep.subproject import ManifestOnlyDependencySource
 from semgrep.subproject import Subproject
 
 
@@ -48,24 +45,30 @@ from semgrep.subproject import Subproject
             [
                 Subproject(
                     root_dir=Path(),
-                    dependency_source=ManifestLockfileDependencySource(
-                        manifest=out.Manifest(
-                            out.ManifestKind(value=out.RequirementsIn()),
-                            out.Fpath("requirements.in"),
-                        ),
-                        lockfile=out.Lockfile(
-                            out.LockfileKind(out.PipRequirementsTxt()),
-                            out.Fpath("requirements.txt"),
+                    dependency_source=out.DependencySource(
+                        out.ManifestLockfileDependencySource(
+                            (
+                                out.Manifest(
+                                    out.ManifestKind(value=out.RequirementsIn()),
+                                    out.Fpath("requirements.in"),
+                                ),
+                                out.Lockfile(
+                                    out.LockfileKind(out.PipRequirementsTxt()),
+                                    out.Fpath("requirements.txt"),
+                                ),
+                            )
                         ),
                     ),
                     ecosystem=out.Ecosystem(value=out.Pypi()),
                 ),
                 Subproject(
                     root_dir=Path(),
-                    dependency_source=LockfileOnlyDependencySource(
-                        lockfile=out.Lockfile(
-                            out.LockfileKind(out.PipRequirementsTxt()),
-                            out.Fpath("requirements3.txt"),
+                    dependency_source=out.DependencySource(
+                        out.LockfileOnlyDependencySource(
+                            out.Lockfile(
+                                out.LockfileKind(out.PipRequirementsTxt()),
+                                out.Fpath("requirements3.txt"),
+                            )
                         )
                     ),
                     ecosystem=out.Ecosystem(value=out.Pypi()),
@@ -100,14 +103,18 @@ from semgrep.subproject import Subproject
             [
                 Subproject(
                     root_dir=Path(),
-                    dependency_source=ManifestLockfileDependencySource(
-                        manifest=out.Manifest(
-                            out.ManifestKind(value=out.RequirementsIn()),
-                            out.Fpath("requirements.in"),
-                        ),
-                        lockfile=out.Lockfile(
-                            out.LockfileKind(out.PipRequirementsTxt()),
-                            out.Fpath("requirements3.txt"),
+                    dependency_source=out.DependencySource(
+                        out.ManifestLockfileDependencySource(
+                            (
+                                out.Manifest(
+                                    out.ManifestKind(value=out.RequirementsIn()),
+                                    out.Fpath("requirements.in"),
+                                ),
+                                out.Lockfile(
+                                    out.LockfileKind(out.PipRequirementsTxt()),
+                                    out.Fpath("requirements3.txt"),
+                                ),
+                            )
                         ),
                     ),
                     ecosystem=out.Ecosystem(value=out.Pypi()),
@@ -131,30 +138,36 @@ from semgrep.subproject import Subproject
             [
                 Subproject(
                     root_dir=Path(),
-                    dependency_source=ManifestOnlyDependencySource(
-                        manifest=out.Manifest(
-                            out.ManifestKind(out.PomXml()),
-                            out.Fpath("pom.xml"),
+                    dependency_source=out.DependencySource(
+                        out.ManifestOnlyDependencySource(
+                            out.Manifest(
+                                out.ManifestKind(out.PomXml()),
+                                out.Fpath("pom.xml"),
+                            )
                         )
                     ),
                     ecosystem=out.Ecosystem(value=out.Pypi()),
                 ),
                 Subproject(
                     root_dir=Path("child-a"),
-                    dependency_source=ManifestOnlyDependencySource(
-                        manifest=out.Manifest(
-                            out.ManifestKind(out.PomXml()),
-                            out.Fpath("child-a/pom.xml"),
+                    dependency_source=out.DependencySource(
+                        out.ManifestOnlyDependencySource(
+                            out.Manifest(
+                                out.ManifestKind(out.PomXml()),
+                                out.Fpath("child-a/pom.xml"),
+                            )
                         )
                     ),
                     ecosystem=out.Ecosystem(value=out.Pypi()),
                 ),
                 Subproject(
                     root_dir=Path("child-b"),
-                    dependency_source=ManifestOnlyDependencySource(
-                        manifest=out.Manifest(
-                            out.ManifestKind(out.PomXml()),
-                            out.Fpath("child-b/pom.xml"),
+                    dependency_source=out.DependencySource(
+                        out.ManifestOnlyDependencySource(
+                            out.Manifest(
+                                out.ManifestKind(out.PomXml()),
+                                out.Fpath("child-b/pom.xml"),
+                            )
                         )
                     ),
                     ecosystem=out.Ecosystem(value=out.Pypi()),
@@ -187,14 +200,18 @@ def test_ptt_unconditionally_generates_dependency_graphs(
     lockfile_file.close()
 
     mock_dynamic_resolve.return_value = [[], [], []]
-    dep_source = ManifestLockfileDependencySource(
-        manifest=out.Manifest(
-            out.ManifestKind(value=out.RequirementsIn()),
-            out.Fpath(str((tmp_path / "requirements.in"))),
-        ),
-        lockfile=out.Lockfile(
-            out.LockfileKind(value=out.PipRequirementsTxt()),
-            out.Fpath(str(tmp_path / "requirements.txt")),
+    dep_source = out.DependencySource(
+        out.ManifestLockfileDependencySource(
+            (
+                out.Manifest(
+                    out.ManifestKind(value=out.RequirementsIn()),
+                    out.Fpath(str((tmp_path / "requirements.in"))),
+                ),
+                out.Lockfile(
+                    out.LockfileKind(value=out.PipRequirementsTxt()),
+                    out.Fpath(str(tmp_path / "requirements.txt")),
+                ),
+            )
         ),
     )
 
@@ -234,14 +251,18 @@ def test_ptt_unconditional_graph_generation_falls_back_on_lockfile_parsing(
         [],
     )
 
-    dep_source = ManifestLockfileDependencySource(
-        manifest=out.Manifest(
-            out.ManifestKind(value=out.RequirementsIn()),
-            out.Fpath(str((tmp_path / "requirements.in"))),
-        ),
-        lockfile=out.Lockfile(
-            out.LockfileKind(value=out.PipRequirementsTxt()),
-            out.Fpath(str(tmp_path / "requirements.txt")),
+    dep_source = out.DependencySource(
+        out.ManifestLockfileDependencySource(
+            (
+                out.Manifest(
+                    out.ManifestKind(value=out.RequirementsIn()),
+                    out.Fpath(str((tmp_path / "requirements.in"))),
+                ),
+                out.Lockfile(
+                    out.LockfileKind(value=out.PipRequirementsTxt()),
+                    out.Fpath(str(tmp_path / "requirements.txt")),
+                ),
+            )
         ),
     )
     deps, _, _ = resolve_dependency_source(dep_source, True, True)

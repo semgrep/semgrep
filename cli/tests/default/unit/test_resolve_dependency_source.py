@@ -6,7 +6,6 @@ import pytest
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers.util import DependencyParser
 from semgrep.resolve_dependency_source import _handle_lockfile_source
-from semgrep.subproject import ManifestLockfileDependencySource
 
 
 @pytest.mark.quick
@@ -19,14 +18,16 @@ def test_handle_missing_parser_for_lockfile(mock_parsers_dict) -> None:
     # Pretend a parser is missing for the lockfile kind
     mock_parsers_dict.__getitem__.return_value = None
 
-    dep_source = ManifestLockfileDependencySource(
-        manifest=out.Manifest(
-            out.ManifestKind(value=out.PyprojectToml()),
-            out.Fpath("pyproject.toml"),
-        ),
-        lockfile=out.Lockfile(
-            out.LockfileKind(value=out.UvLock()),
-            out.Fpath("uv.lock"),
+    dep_source = out.ManifestLockfileDependencySource(
+        (
+            out.Manifest(
+                out.ManifestKind(value=out.PyprojectToml()),
+                out.Fpath("pyproject.toml"),
+            ),
+            out.Lockfile(
+                out.LockfileKind(value=out.UvLock()),
+                out.Fpath("uv.lock"),
+            ),
         ),
     )
 
@@ -50,14 +51,16 @@ def test_dependency_parser_exception(mock_parsers_dict) -> None:
     # Pretend a parser is missing for the lockfile kind
     mock_parsers_dict.__getitem__.return_value = DependencyParser(bad_parse)
 
-    dep_source = ManifestLockfileDependencySource(
-        manifest=out.Manifest(
-            out.ManifestKind(value=out.PyprojectToml()),
-            out.Fpath("pyproject.toml"),
-        ),
-        lockfile=out.Lockfile(
-            out.LockfileKind(value=out.PoetryLock()),
-            out.Fpath("poetry.lock"),
+    dep_source = out.ManifestLockfileDependencySource(
+        (
+            out.Manifest(
+                out.ManifestKind(value=out.PyprojectToml()),
+                out.Fpath("pyproject.toml"),
+            ),
+            out.Lockfile(
+                out.LockfileKind(value=out.PoetryLock()),
+                out.Fpath("poetry.lock"),
+            ),
         ),
     )
 

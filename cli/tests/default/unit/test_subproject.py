@@ -12,13 +12,11 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 from semgrep.subproject import find_closest_subproject
-from semgrep.subproject import LockfileOnlyDependencySource
-from semgrep.subproject import ManifestLockfileDependencySource
-from semgrep.subproject import ManifestOnlyDependencySource
-from semgrep.subproject import MultiLockfileDependencySource
+from semgrep.subproject import get_display_paths
 from semgrep.subproject import ResolvedDependencies
 from semgrep.subproject import ResolvedSubproject
 from semgrep.subproject import Subproject
+from semgrep.subproject import to_stats_output
 
 
 def create_tmp_file(path: Path):
@@ -41,14 +39,18 @@ class TestFindClosestSubproject:
         expected = ResolvedSubproject(
             root_dir=Path("a/b/c"),
             resolution_errors=[],
-            dependency_source=ManifestLockfileDependencySource(
-                manifest=out.Manifest(
-                    out.ManifestKind(out.RequirementsIn()),
-                    out.Fpath("a/b/c/requirements.in"),
-                ),
-                lockfile=out.Lockfile(
-                    out.LockfileKind(out.PipRequirementsTxt()),
-                    out.Fpath(str(lockfile_path)),
+            dependency_source=out.DependencySource(
+                out.ManifestLockfileDependencySource(
+                    (
+                        out.Manifest(
+                            out.ManifestKind(out.RequirementsIn()),
+                            out.Fpath("a/b/c/requirements.in"),
+                        ),
+                        out.Lockfile(
+                            out.LockfileKind(out.PipRequirementsTxt()),
+                            out.Fpath(str(lockfile_path)),
+                        ),
+                    )
                 ),
             ),
             found_dependencies=ResolvedDependencies.from_found_dependencies([]),
@@ -59,14 +61,18 @@ class TestFindClosestSubproject:
             ResolvedSubproject(
                 root_dir=Path("a/b"),
                 resolution_errors=[],
-                dependency_source=ManifestLockfileDependencySource(
-                    manifest=out.Manifest(
-                        out.ManifestKind(out.RequirementsIn()),
-                        out.Fpath("a/b/requirements.in"),
-                    ),
-                    lockfile=out.Lockfile(
-                        out.LockfileKind(out.PipRequirementsTxt()),
-                        out.Fpath(str(extra_lockfile_path)),
+                dependency_source=out.DependencySource(
+                    out.ManifestLockfileDependencySource(
+                        (
+                            out.Manifest(
+                                out.ManifestKind(out.RequirementsIn()),
+                                out.Fpath("a/b/requirements.in"),
+                            ),
+                            out.Lockfile(
+                                out.LockfileKind(out.PipRequirementsTxt()),
+                                out.Fpath(str(extra_lockfile_path)),
+                            ),
+                        )
                     ),
                 ),
                 found_dependencies=ResolvedDependencies.from_found_dependencies([]),
@@ -94,14 +100,18 @@ class TestFindClosestSubproject:
         expected = ResolvedSubproject(
             root_dir=Path("a/b"),
             resolution_errors=[],
-            dependency_source=ManifestLockfileDependencySource(
-                manifest=out.Manifest(
-                    out.ManifestKind(out.RequirementsIn()),
-                    out.Fpath("a/b/build.gradle"),
-                ),
-                lockfile=out.Lockfile(
-                    out.LockfileKind(out.GradleLockfile()),
-                    out.Fpath(str(lockfile_path)),
+            dependency_source=out.DependencySource(
+                out.ManifestLockfileDependencySource(
+                    (
+                        out.Manifest(
+                            out.ManifestKind(out.RequirementsIn()),
+                            out.Fpath("a/b/build.gradle"),
+                        ),
+                        out.Lockfile(
+                            out.LockfileKind(out.GradleLockfile()),
+                            out.Fpath(str(lockfile_path)),
+                        ),
+                    )
                 ),
             ),
             found_dependencies=ResolvedDependencies.from_found_dependencies([]),
@@ -112,14 +122,18 @@ class TestFindClosestSubproject:
             ResolvedSubproject(
                 root_dir=Path("a/b/c"),
                 resolution_errors=[],
-                dependency_source=ManifestLockfileDependencySource(
-                    manifest=out.Manifest(
-                        out.ManifestKind(out.RequirementsIn()),
-                        out.Fpath("a/b/c/requirements.in"),
-                    ),
-                    lockfile=out.Lockfile(
-                        out.LockfileKind(out.PipRequirementsTxt()),
-                        out.Fpath(str(extra_lockfile_path)),
+                dependency_source=out.DependencySource(
+                    out.ManifestLockfileDependencySource(
+                        (
+                            out.Manifest(
+                                out.ManifestKind(out.RequirementsIn()),
+                                out.Fpath("a/b/c/requirements.in"),
+                            ),
+                            out.Lockfile(
+                                out.LockfileKind(out.PipRequirementsTxt()),
+                                out.Fpath(str(extra_lockfile_path)),
+                            ),
+                        )
                     ),
                 ),
                 found_dependencies=ResolvedDependencies.from_found_dependencies([]),
@@ -154,14 +168,18 @@ class TestSubproject:
         subproject = ResolvedSubproject(
             root_dir=Path("a/b/c"),
             resolution_errors=[],
-            dependency_source=ManifestLockfileDependencySource(
-                manifest=out.Manifest(
-                    out.ManifestKind(out.RequirementsIn()),
-                    out.Fpath("a/b/c/requirements.in"),
-                ),
-                lockfile=out.Lockfile(
-                    out.LockfileKind(out.PipRequirementsTxt()),
-                    out.Fpath(str(lockfile_path)),
+            dependency_source=out.DependencySource(
+                out.ManifestLockfileDependencySource(
+                    (
+                        out.Manifest(
+                            out.ManifestKind(out.RequirementsIn()),
+                            out.Fpath("a/b/c/requirements.in"),
+                        ),
+                        out.Lockfile(
+                            out.LockfileKind(out.PipRequirementsTxt()),
+                            out.Fpath(str(lockfile_path)),
+                        ),
+                    )
                 ),
             ),
             resolution_method=out.ResolutionMethod(out.LockfileParsing()),
@@ -179,7 +197,7 @@ class TestSubproject:
             str(lockfile_path): found_dependencies
         }, "Should return mapping of lockfile path to dependencies"
 
-        assert subproject.dependency_source.get_display_paths() == [
+        assert get_display_paths(subproject.dependency_source) == [
             lockfile_path
         ], "Should return lockfile path"
 
@@ -206,20 +224,26 @@ class TestSubproject:
             ),
         ]
 
-        multi_lockfile_source = MultiLockfileDependencySource(
-            sources=(
-                LockfileOnlyDependencySource(
-                    lockfile=out.Lockfile(
-                        out.LockfileKind(out.PipRequirementsTxt()),
-                        out.Fpath(str(lockfile_path)),
-                    )
-                ),
-                LockfileOnlyDependencySource(
-                    lockfile=out.Lockfile(
-                        out.LockfileKind(out.PipRequirementsTxt()),
-                        out.Fpath(str(extra_lockfile_path)),
-                    )
-                ),
+        multi_lockfile_source = out.DependencySource(
+            out.MultiLockfileDependencySource(
+                [
+                    out.DependencySource(
+                        out.LockfileOnlyDependencySource(
+                            out.Lockfile(
+                                out.LockfileKind(out.PipRequirementsTxt()),
+                                out.Fpath(str(lockfile_path)),
+                            )
+                        )
+                    ),
+                    out.DependencySource(
+                        out.LockfileOnlyDependencySource(
+                            out.Lockfile(
+                                out.LockfileKind(out.PipRequirementsTxt()),
+                                out.Fpath(str(extra_lockfile_path)),
+                            )
+                        )
+                    ),
+                ],
             )
         )
 
@@ -242,7 +266,7 @@ class TestSubproject:
         assert lockfile_deps_map[str(lockfile_path)][0] == found_dependencies[0]
         assert lockfile_deps_map[str(extra_lockfile_path)][0] == found_dependencies[1]
 
-        assert subproject.dependency_source.get_display_paths() == [
+        assert get_display_paths(subproject.dependency_source) == [
             lockfile_path,
             extra_lockfile_path,
         ], "Should return lockfile paths"
@@ -263,14 +287,18 @@ class TestSubproject:
         subproject = ResolvedSubproject(
             root_dir=Path("a/b/c"),
             resolution_errors=[],
-            dependency_source=ManifestLockfileDependencySource(
-                manifest=out.Manifest(
-                    out.ManifestKind(value=out.RequirementsIn()),
-                    out.Fpath("a/b/c/requirements.in"),
-                ),
-                lockfile=out.Lockfile(
-                    out.LockfileKind(out.PipRequirementsTxt()),
-                    out.Fpath(str(lockfile_path)),
+            dependency_source=out.DependencySource(
+                out.ManifestLockfileDependencySource(
+                    (
+                        out.Manifest(
+                            out.ManifestKind(value=out.RequirementsIn()),
+                            out.Fpath("a/b/c/requirements.in"),
+                        ),
+                        out.Lockfile(
+                            out.LockfileKind(out.PipRequirementsTxt()),
+                            out.Fpath(str(lockfile_path)),
+                        ),
+                    )
                 ),
             ),
             resolution_method=out.ResolutionMethod(out.LockfileParsing()),
@@ -287,18 +315,19 @@ class TestSubproject:
         assert len(unknown_lockfile_deps) == 1
         assert len(lockfile_deps_map) == 0
 
-        assert subproject.dependency_source.get_display_paths() == [
+        assert get_display_paths(subproject.dependency_source) == [
             lockfile_path
         ], "Should return lockfile path"
 
     @pytest.mark.quick
     def test_to_stats_output(self):
-        dependency_source = LockfileOnlyDependencySource(
-            lockfile=out.Lockfile(
+        lockfile_src = out.LockfileOnlyDependencySource(
+            out.Lockfile(
                 out.LockfileKind(out.PipRequirementsTxt()),
                 out.Fpath("a/b/c/requirements.txt"),
             ),
         )
+        dependency_source = out.DependencySource(lockfile_src)
 
         subproject = Subproject(
             root_dir=Path("a/b/c"),
@@ -307,12 +336,12 @@ class TestSubproject:
         )
 
         subproject_id = hashlib.sha256(
-            str(dependency_source.lockfile.path.value).encode("utf-8")
+            str(lockfile_src.value.path.value).encode("utf-8")
         ).hexdigest()
 
         assert subproject.to_stats_output() == out.SubprojectStats(
             subproject_id=subproject_id,
-            dependency_sources=dependency_source.to_stats_output(),
+            dependency_sources=to_stats_output(dependency_source),
             resolved_stats=None,
         )
 
@@ -321,11 +350,13 @@ class TestResolvedSubproject:
     @pytest.mark.quick
     def test_to_stats_output(self):
         lockfile_path = Path("a/b/c/requirements.txt")
-        dependency_source = LockfileOnlyDependencySource(
-            lockfile=out.Lockfile(
-                out.LockfileKind(out.PipRequirementsTxt()),
-                out.Fpath(str(lockfile_path)),
-            ),
+        dependency_source = out.DependencySource(
+            out.LockfileOnlyDependencySource(
+                out.Lockfile(
+                    out.LockfileKind(out.PipRequirementsTxt()),
+                    out.Fpath(str(lockfile_path)),
+                ),
+            )
         )
         ecosystem = Ecosystem(Pypi())
 
@@ -342,7 +373,7 @@ class TestResolvedSubproject:
 
         assert subproject.to_stats_output() == out.SubprojectStats(
             subproject_id=subproject_id,
-            dependency_sources=dependency_source.to_stats_output(),
+            dependency_sources=to_stats_output(dependency_source),
             resolved_stats=out.DependencyResolutionStats(
                 resolution_method=out.ResolutionMethod(out.LockfileParsing()),
                 dependency_count=0,
@@ -357,8 +388,8 @@ class TestLockfileOnlyDependencySource:
         lockfile_path = Path("a/b/c/requirements.txt")
         return (
             lockfile_path,
-            LockfileOnlyDependencySource(
-                lockfile=out.Lockfile(
+            out.LockfileOnlyDependencySource(
+                out.Lockfile(
                     out.LockfileKind(out.PipRequirementsTxt()),
                     out.Fpath(str(lockfile_path)),
                 )
@@ -368,22 +399,15 @@ class TestLockfileOnlyDependencySource:
     @pytest.mark.quick
     def test_base_case(self, lockfile_source):
         lockfile_path, source = lockfile_source
-        assert source.get_display_paths() == [
+        assert get_display_paths(out.DependencySource(source)) == [
             lockfile_path
         ], "Should return lockfile path"
-
-    @pytest.mark.quick
-    def test_to_semgrep_output(self, lockfile_source):
-        _, source = lockfile_source
-        assert source.to_semgrep_output() == out.DependencySource(
-            out.LockfileOnlyDependencySource(source.lockfile)
-        )
 
     @pytest.mark.quick
     def test_to_stats_output(self, lockfile_source):
         lockfile_path, source = lockfile_source
 
-        assert source.to_stats_output() == [
+        assert to_stats_output(out.DependencySource(source)) == [
             out.DependencySourceFile(
                 kind=out.DependencySourceFileKind(
                     value=out.Lockfile_(
@@ -401,21 +425,25 @@ class TestMultiLockfileDependencySource:
         lockfile_path = Path("a/b/c/requirements.txt")
         extra_lockfile_path = Path("a/b/requirements/dev.txt")
 
-        source = MultiLockfileDependencySource(
-            sources=(
-                LockfileOnlyDependencySource(
-                    lockfile=out.Lockfile(
-                        out.LockfileKind(out.PipRequirementsTxt()),
-                        out.Fpath(str(lockfile_path)),
+        source = out.MultiLockfileDependencySource(
+            [
+                out.DependencySource(
+                    out.LockfileOnlyDependencySource(
+                        out.Lockfile(
+                            out.LockfileKind(out.PipRequirementsTxt()),
+                            out.Fpath(str(lockfile_path)),
+                        )
                     )
                 ),
-                LockfileOnlyDependencySource(
-                    lockfile=out.Lockfile(
-                        out.LockfileKind(out.PoetryLock()),
-                        out.Fpath(str(extra_lockfile_path)),
+                out.DependencySource(
+                    out.LockfileOnlyDependencySource(
+                        out.Lockfile(
+                            out.LockfileKind(out.PoetryLock()),
+                            out.Fpath(str(extra_lockfile_path)),
+                        )
                     )
                 ),
-            )
+            ]
         )
 
         return (
@@ -428,7 +456,7 @@ class TestMultiLockfileDependencySource:
     def test_base_case(self, multi_lockfile_source):
         lockfile_path, extra_lockfile_path, source = multi_lockfile_source
 
-        assert source.get_display_paths() == [
+        assert get_display_paths(out.DependencySource(source)) == [
             lockfile_path,
             extra_lockfile_path,
         ], "Should return lockfile paths"
@@ -437,7 +465,7 @@ class TestMultiLockfileDependencySource:
     def test_to_stats_output(self, multi_lockfile_source):
         lockfile_path, extra_lockfile_path, source = multi_lockfile_source
 
-        assert source.to_stats_output() == [
+        assert to_stats_output(out.DependencySource(source)) == [
             out.DependencySourceFile(
                 kind=out.DependencySourceFileKind(
                     value=out.Lockfile_(
@@ -461,8 +489,8 @@ class TestManifestOnlyDependencySource:
         manifest_path = Path("a/b/c/pyproject.toml")
         return (
             manifest_path,
-            ManifestOnlyDependencySource(
-                manifest=out.Manifest(
+            out.ManifestOnlyDependencySource(
+                out.Manifest(
                     out.ManifestKind(out.PyprojectToml()),
                     out.Fpath(str(manifest_path)),
                 )
@@ -472,21 +500,14 @@ class TestManifestOnlyDependencySource:
     @pytest.mark.quick
     def test_base_case(self, manifest_source):
         manifest_path, source = manifest_source
-        assert source.get_display_paths() == [
+        assert get_display_paths(out.DependencySource(source)) == [
             manifest_path
         ], "Should return manifest path"
 
     @pytest.mark.quick
-    def test_to_semgrep_output(self, manifest_source):
-        _, source = manifest_source
-        assert source.to_semgrep_output() == out.DependencySource(
-            out.ManifestOnlyDependencySource(source.manifest)
-        )
-
-    @pytest.mark.quick
     def test_to_stats_output(self, manifest_source):
         manifest_path, source = manifest_source
-        assert source.to_stats_output() == [
+        assert to_stats_output(out.DependencySource(source)) == [
             out.DependencySourceFile(
                 kind=out.DependencySourceFileKind(
                     value=out.Manifest_(value=out.ManifestKind(out.PyprojectToml()))
@@ -504,14 +525,16 @@ class TestManifestLockfileDependencySource:
         return (
             manifest_path,
             lockfile_path,
-            ManifestLockfileDependencySource(
-                manifest=out.Manifest(
-                    out.ManifestKind(out.PyprojectToml()),
-                    out.Fpath(str(manifest_path)),
-                ),
-                lockfile=out.Lockfile(
-                    out.LockfileKind(out.PoetryLock()),
-                    out.Fpath(str(lockfile_path)),
+            out.ManifestLockfileDependencySource(
+                (
+                    out.Manifest(
+                        out.ManifestKind(out.PyprojectToml()),
+                        out.Fpath(str(manifest_path)),
+                    ),
+                    out.Lockfile(
+                        out.LockfileKind(out.PoetryLock()),
+                        out.Fpath(str(lockfile_path)),
+                    ),
                 ),
             ),
         )
@@ -519,21 +542,14 @@ class TestManifestLockfileDependencySource:
     @pytest.mark.quick
     def test_base_case(self, manifest_lockfile_source):
         _, lockfile_path, source = manifest_lockfile_source
-        assert source.get_display_paths() == [
+        assert get_display_paths(out.DependencySource(source)) == [
             lockfile_path
         ], "Should return lockfile path"
 
     @pytest.mark.quick
-    def test_to_semgrep_output(self, manifest_lockfile_source):
-        _, _, source = manifest_lockfile_source
-        assert source.to_semgrep_output() == out.DependencySource(
-            out.ManifestLockfileDependencySource((source.manifest, source.lockfile))
-        )
-
-    @pytest.mark.quick
     def test_to_stats_output(self, manifest_lockfile_source):
         manifest_path, lockfile_path, source = manifest_lockfile_source
-        assert source.to_stats_output() == [
+        assert to_stats_output(out.DependencySource(source)) == [
             out.DependencySourceFile(
                 kind=out.DependencySourceFileKind(
                     value=out.Lockfile_(value=out.LockfileKind(out.PoetryLock()))

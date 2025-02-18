@@ -87,6 +87,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Product
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.state import get_state
+from semgrep.subproject import get_all_source_files
 from semgrep.subproject import ResolvedSubproject
 from semgrep.subproject import UnresolvedSubproject
 from semgrep.target_manager import FileTargetingLog
@@ -868,7 +869,7 @@ def run_scan(
         baseline_targets |= set(
             flatten(
                 [
-                    x.dependency_source.get_all_source_files()
+                    get_all_source_files(x.dependency_source)
                     for x in all_subprojects
                     if isinstance(x, ResolvedSubproject)
                 ]

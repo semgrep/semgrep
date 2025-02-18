@@ -26,6 +26,7 @@ from semgrep.rule import Rule
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_types import Language
 from semgrep.state import get_state
+from semgrep.subproject import get_display_paths
 from semgrep.subproject import ResolvedSubproject
 from semgrep.verbose_logging import getLogger
 
@@ -246,7 +247,7 @@ class Plan:
                 lockfile_paths = ", ".join(
                     str(lockfile_path)
                     for proj in self.sca_subprojects.get(ecosystem, [])
-                    for lockfile_path in proj.dependency_source.get_display_paths()
+                    for lockfile_path in get_display_paths(proj.dependency_source)
                 )
             else:
                 lockfile_paths = "N/A"

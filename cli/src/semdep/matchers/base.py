@@ -11,9 +11,6 @@ from typing import Tuple
 from typing import Union
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
-from semgrep.subproject import LockfileOnlyDependencySource
-from semgrep.subproject import ManifestLockfileDependencySource
-from semgrep.subproject import ManifestOnlyDependencySource
 from semgrep.subproject import Subproject
 
 
@@ -152,23 +149,25 @@ class LockfileManifestMatcher(SubprojectMatcher):
 
             lockfile = out.Lockfile(self.lockfile_kind, out.Fpath(str(lockfile_path)))
             dep_source: Union[
-                ManifestLockfileDependencySource, LockfileOnlyDependencySource
+                out.ManifestLockfileDependencySource, out.LockfileOnlyDependencySource
             ]
             if matching_manifest_path:
-                dep_source = ManifestLockfileDependencySource(
-                    manifest=out.Manifest(
-                        kind=self.manifest_kind,
-                        path=out.Fpath(str(matching_manifest_path)),
+                dep_source = out.ManifestLockfileDependencySource(
+                    (
+                        out.Manifest(
+                            kind=self.manifest_kind,
+                            path=out.Fpath(str(matching_manifest_path)),
+                        ),
+                        lockfile,
                     ),
-                    lockfile=lockfile,
                 )
             else:
-                dep_source = LockfileOnlyDependencySource(lockfile)
+                dep_source = out.LockfileOnlyDependencySource(lockfile)
 
             subprojects.append(
                 Subproject(
                     root_dir=root_dir,
-                    dependency_source=dep_source,
+                    dependency_source=out.DependencySource(dep_source),
                     ecosystem=self.ecosystem,
                 )
             )
@@ -181,10 +180,12 @@ class LockfileManifestMatcher(SubprojectMatcher):
                 subprojects.append(
                     Subproject(
                         root_dir=manifest_path.parent,
-                        dependency_source=ManifestOnlyDependencySource(
-                            manifest=out.Manifest(
-                                kind=self.manifest_kind,
-                                path=out.Fpath(str(manifest_path)),
+                        dependency_source=out.DependencySource(
+                            out.ManifestOnlyDependencySource(
+                                out.Manifest(
+                                    kind=self.manifest_kind,
+                                    path=out.Fpath(str(manifest_path)),
+                                )
                             )
                         ),
                         ecosystem=self.ecosystem,
@@ -326,15 +327,15 @@ class ManifestOnlyMatcher(SubprojectMatcher):
         subprojects: List[Subproject] = []
         for manifest_path in manifests:
             root_dir = self._get_subproject_root(manifest_path)
-            manifest_dep_source = ManifestOnlyDependencySource(
-                manifest=out.Manifest(
+            manifest_dep_source = out.ManifestOnlyDependencySource(
+                out.Manifest(
                     kind=self.manifest_kind, path=out.Fpath(str(manifest_path))
                 ),
             )
             subprojects.append(
                 Subproject(
                     root_dir=root_dir,
-                    dependency_source=manifest_dep_source,
+                    dependency_source=out.DependencySource(manifest_dep_source),
                     ecosystem=self.ecosystem,
                 )
             )

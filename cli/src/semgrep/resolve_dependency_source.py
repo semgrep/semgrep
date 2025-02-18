@@ -31,11 +31,7 @@ from semdep.parsers.yarn import parse_yarn
 from semgrep.rpc_call import resolve_dependencies
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
-from semgrep.subproject import DependencySource
-from semgrep.subproject import LockfileOnlyDependencySource
-from semgrep.subproject import ManifestLockfileDependencySource
-from semgrep.subproject import ManifestOnlyDependencySource
-from semgrep.subproject import MultiLockfileDependencySource
+from semgrep.subproject import get_display_paths
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -98,12 +94,46 @@ DependencyResolutionResult = Tuple[
 ]
 
 
+def manifest_path_unless_lockfile_only(
+    ds: Union[
+        out.ManifestOnlyDependencySource,
+        out.ManifestLockfileDependencySource,
+        out.LockfileOnlyDependencySource,
+    ]
+) -> out.Fpath:
+    if isinstance(ds, out.LockfileOnlyDependencySource):
+        return ds.value.path
+    elif isinstance(ds, out.ManifestOnlyDependencySource):
+        return ds.value.path
+    elif isinstance(ds, out.ManifestLockfileDependencySource):
+        return ds.value[0].path
+    else:
+        raise TypeError(f"Unexpected dependency_source variant1: {type(ds)}")
+
+
+def lockfile_path_unless_manifest_only(
+    ds: Union[
+        out.ManifestOnlyDependencySource,
+        out.ManifestLockfileDependencySource,
+        out.LockfileOnlyDependencySource,
+    ]
+) -> out.Fpath:
+    if isinstance(ds, out.LockfileOnlyDependencySource):
+        return ds.value.path
+    elif isinstance(ds, out.ManifestOnlyDependencySource):
+        return ds.value.path
+    elif isinstance(ds, out.ManifestLockfileDependencySource):
+        return ds.value[1].path
+    else:
+        raise TypeError(f"Unexpected dependency_source variant2: {type(ds)}")
+
+
 def _resolve_dependencies_rpc(
-    dependency_source: Union[
-        ManifestOnlyDependencySource,
-        ManifestLockfileDependencySource,
-        LockfileOnlyDependencySource,
-    ],
+    dep_src: Union[
+        out.ManifestOnlyDependencySource,
+        out.ManifestLockfileDependencySource,
+        out.LockfileOnlyDependencySource,
+    ]
 ) -> Tuple[
     Optional[List[FoundDependency]],
     Sequence[out.ScaResolutionError],
@@ -113,7 +143,7 @@ def _resolve_dependencies_rpc(
     Handle the RPC call to resolve dependencies in ocaml
     """
     try:
-        response = resolve_dependencies([dependency_source.to_semgrep_output()])
+        response = resolve_dependencies([out.DependencySource(dep_src)])
     except Exception as e:
         logger.verbose(f"RPC call failed: {e}")
         return None, [], []
@@ -133,18 +163,14 @@ def _resolve_dependencies_rpc(
         wrapped_errors = [
             out.ScaResolutionError(
                 type_=e_type,
-                dependency_source_file=dependency_source.lockfile.path
-                if isinstance(dependency_source, LockfileOnlyDependencySource)
-                else dependency_source.manifest.path,
+                dependency_source_file=manifest_path_unless_lockfile_only(dep_src),
             )
             for e_type in errors
         ]
         return (
             resolved_deps,
             wrapped_errors,
-            [Path(dependency_source.manifest.path.value)]
-            if isinstance(dependency_source, ManifestOnlyDependencySource)
-            else [Path(dependency_source.lockfile.path.value)],
+            [Path(lockfile_path_unless_manifest_only(dep_src).value)],
         )
     else:
         # some error occured in resolution, track it
@@ -152,9 +178,7 @@ def _resolve_dependencies_rpc(
             [
                 out.ScaResolutionError(
                     type_=e_type,
-                    dependency_source_file=dependency_source.lockfile.path
-                    if isinstance(dependency_source, LockfileOnlyDependencySource)
-                    else dependency_source.manifest.path,
+                    dependency_source_file=manifest_path_unless_lockfile_only(dep_src),
                 )
                 for e_type in result.value.value
             ]
@@ -169,9 +193,7 @@ def _resolve_dependencies_rpc(
                             "Trying to use RPC to resolve dependencies from a manifest we don't support"
                         )
                     ),
-                    dependency_source_file=dependency_source.lockfile.path
-                    if isinstance(dependency_source, LockfileOnlyDependencySource)
-                    else dependency_source.manifest.path,
+                    dependency_source_file=manifest_path_unless_lockfile_only(dep_src),
                 )
             ]
         )
@@ -179,7 +201,7 @@ def _resolve_dependencies_rpc(
 
 
 def _handle_manifest_only_source(
-    dep_source: ManifestOnlyDependencySource,
+    dep_source: out.ManifestOnlyDependencySource,
 ) -> DependencyResolutionResult:
     """Handle dependency resolution for manifest-only sources."""
     new_deps, new_errors, new_targets = _resolve_dependencies_rpc(dep_source)
@@ -193,7 +215,7 @@ def _handle_manifest_only_source(
 
 
 def _handle_multi_lockfile_source(
-    dep_source: MultiLockfileDependencySource,
+    dep_source: out.MultiLockfileDependencySource,
     enable_dynamic_resolution: bool,
     ptt_enabled: bool,
 ) -> DependencyResolutionResult:
@@ -204,13 +226,14 @@ def _handle_multi_lockfile_source(
 
     resolution_methods: Set[out.ResolutionMethod] = set()
 
-    for lockfile_source in dep_source.sources:
+    for lockfile_source in dep_source.value:
         # We resolve each lockfile source independently.
         #
-        # NOTE(sal): In the case of dynamic resolution, we should try to resolve all the lockfiles together,
-        #            and then get a single response for all of them. Until then, I explicitly disable
-        #            dynamic resolution and path-to-transitivity (PTT) for multi-lockfile sources. They were
-        #            never enabled in the first place anyway.
+        # NOTE(sal): In the case of dynamic resolution, we should try to resolve
+        # all the lockfiles together, and then get a single response for all of
+        # them. Until then, I explicitly disable dynamic resolution and
+        # path-to-transitivity (PTT) for multi-lockfile sources. They were never
+        # enabled in the first place anyway.
         new_resolved_info, new_errors, new_targets = resolve_dependency_source(
             lockfile_source,
             enable_dynamic_resolution=False,
@@ -238,21 +261,28 @@ def _handle_multi_lockfile_source(
 
 
 def _handle_lockfile_source(
-    dep_source: Union[LockfileOnlyDependencySource, ManifestLockfileDependencySource],
+    dep_source: Union[
+        out.LockfileOnlyDependencySource, out.ManifestLockfileDependencySource
+    ],
     enable_dynamic_resolution: bool,
     ptt_enabled: bool,
 ) -> DependencyResolutionResult:
     """Handle dependency resolution for lockfile-based sources."""
-    lockfile_path = Path(dep_source.lockfile.path.value)
-    parser = PARSERS_BY_LOCKFILE_KIND[dep_source.lockfile.kind]
+    lockfile = (
+        dep_source.value
+        if isinstance(dep_source, out.LockfileOnlyDependencySource)
+        else dep_source.value[1]
+    )
+    lockfile_path = Path(lockfile.path.value)
+    parser = PARSERS_BY_LOCKFILE_KIND[lockfile.kind]
 
     if ptt_enabled:
         manifest_kind = (
-            dep_source.manifest.kind
-            if isinstance(dep_source, ManifestLockfileDependencySource)
+            dep_source.value[0].kind
+            if isinstance(dep_source, out.ManifestLockfileDependencySource)
             else None
         )
-        lockfile_kind = dep_source.lockfile.kind
+        lockfile_kind = lockfile.kind
 
         use_nondynamic_ocaml_parsing = (
             manifest_kind,
@@ -267,7 +297,7 @@ def _handle_lockfile_source(
 
         if use_nondynamic_ocaml_parsing or use_dynamic_resolution:
             logger.verbose(
-                f"Dynamically resolving path(s): {[str(path) for path in dep_source.get_display_paths()]}"
+                f"Dynamically resolving path(s): {[str(path) for path in get_display_paths(out.DependencySource(dep_source))]}"
             )
 
             (
@@ -298,8 +328,8 @@ def _handle_lockfile_source(
 
     # Parse lockfile (used for both standard parsing and as fallback for failed dynamic resolution)
     manifest_path = (
-        Path(dep_source.manifest.path.value)
-        if isinstance(dep_source, ManifestLockfileDependencySource)
+        Path(dep_source.value[0].path.value)
+        if isinstance(dep_source, out.ManifestLockfileDependencySource)
         else None
     )
 
@@ -313,7 +343,7 @@ def _handle_lockfile_source(
 
 
 def resolve_dependency_source(
-    dep_source: DependencySource,
+    dep_source: out.DependencySource,
     enable_dynamic_resolution: bool = True,
     ptt_enabled: bool = False,
 ) -> DependencyResolutionResult:
@@ -323,26 +353,27 @@ def resolve_dependency_source(
     - The list of dependency parser errors encountered
     - The list of paths that should be considered dependency targets
     """
-    if isinstance(dep_source, LockfileOnlyDependencySource) or isinstance(
-        dep_source, ManifestLockfileDependencySource
+    dep_source_ = dep_source.value
+    if isinstance(dep_source_, out.LockfileOnlyDependencySource) or isinstance(
+        dep_source_, out.ManifestLockfileDependencySource
     ):
         return _handle_lockfile_source(
-            dep_source,
+            dep_source_,
             enable_dynamic_resolution,
             ptt_enabled,
         )
-    elif isinstance(dep_source, MultiLockfileDependencySource):
+    elif isinstance(dep_source_, out.MultiLockfileDependencySource):
         return _handle_multi_lockfile_source(
-            dep_source,
+            dep_source_,
             enable_dynamic_resolution,
             ptt_enabled,
         )
     elif (
-        isinstance(dep_source, ManifestOnlyDependencySource)
+        isinstance(dep_source_, out.ManifestOnlyDependencySource)
         and enable_dynamic_resolution
-        and (dep_source.manifest.kind, None) in PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS
+        and (dep_source_.value.kind, None) in PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS
     ):
-        return _handle_manifest_only_source(dep_source)
+        return _handle_manifest_only_source(dep_source_)
     else:
         # dependency source type is not supported, do nothing
         return (None, [], [])

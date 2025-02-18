@@ -8,9 +8,6 @@ from typing import Tuple
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.matchers.base import SubprojectMatcher
-from semgrep.subproject import LockfileOnlyDependencySource
-from semgrep.subproject import ManifestLockfileDependencySource
-from semgrep.subproject import ManifestOnlyDependencySource
 from semgrep.subproject import Subproject
 
 
@@ -142,8 +139,8 @@ class GradleMatcher(SubprojectMatcher):
                 subprojects.append(
                     Subproject(
                         root_dir=project_root,
-                        dependency_source=ManifestLockfileDependencySource(
-                            manifest=manifest, lockfile=lockfile
+                        dependency_source=out.DependencySource(
+                            out.ManifestLockfileDependencySource((manifest, lockfile))
                         ),
                         ecosystem=self.ECOSYSTEM,
                     )
@@ -152,7 +149,9 @@ class GradleMatcher(SubprojectMatcher):
                 subprojects.append(
                     Subproject(
                         root_dir=project_root,
-                        dependency_source=LockfileOnlyDependencySource(lockfile),
+                        dependency_source=out.DependencySource(
+                            out.LockfileOnlyDependencySource(lockfile)
+                        ),
                         ecosystem=self.ECOSYSTEM,
                     )
                 )
@@ -191,7 +190,9 @@ class GradleMatcher(SubprojectMatcher):
             subprojects.append(
                 Subproject(
                     root_dir=project_root,
-                    dependency_source=ManifestOnlyDependencySource(manifest),
+                    dependency_source=out.DependencySource(
+                        out.ManifestOnlyDependencySource(manifest)
+                    ),
                     ecosystem=self.ECOSYSTEM,
                 )
             )
@@ -214,10 +215,12 @@ class GradleMatcher(SubprojectMatcher):
             subprojects.append(
                 Subproject(
                     root_dir=build_path.parent,
-                    dependency_source=ManifestOnlyDependencySource(
-                        manifest=out.Manifest(
-                            kind=out.ManifestKind(out.BuildGradle()),
-                            path=out.Fpath(str(build_path)),
+                    dependency_source=out.DependencySource(
+                        out.ManifestOnlyDependencySource(
+                            out.Manifest(
+                                kind=out.ManifestKind(out.BuildGradle()),
+                                path=out.Fpath(str(build_path)),
+                            )
                         )
                     ),
                     ecosystem=self.ECOSYSTEM,

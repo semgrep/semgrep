@@ -1,8 +1,7 @@
 import hashlib
-from abc import ABC
-from abc import abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
+from dataclasses import field
 from enum import Enum
 from pathlib import Path
 from typing import Dict
@@ -18,122 +17,72 @@ from typing import Union
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 
 
-class DependencySource(ABC):
-    @abstractmethod
-    def get_display_paths(self) -> List[Path]:
-        return []
+def get_display_paths(dep: out.DependencySource) -> List[Path]:
+    ds = dep.value
+    if isinstance(ds, out.ManifestOnlyDependencySource):
+        return [Path(ds.value.path.value)]
+    elif isinstance(ds, out.LockfileOnlyDependencySource):
+        return [Path(ds.value.path.value)]
+    elif isinstance(ds, out.ManifestLockfileDependencySource):
+        # Original implementation shows only the lockfile's display path.
+        return [Path(ds.value[1].path.value)]
+    elif isinstance(ds, out.MultiLockfileDependencySource):
+        # ds.sources is a list of lockfile_dependency_source variants.
+        return [path for src in ds.value for path in get_display_paths(src)]
+    else:
+        raise TypeError(f"Unexpected dependency_source variant: {type(ds)}")
 
-    @abstractmethod
-    def to_stats_output(self) -> List[out.DependencySourceFile]:
-        pass
 
-    @abstractmethod
-    def get_all_source_files(self) -> List[Path]:
-        pass
+def get_all_source_files(dep: out.DependencySource) -> List[Path]:
+    ds = dep.value
+    if isinstance(ds, out.ManifestOnlyDependencySource):
+        return [Path(ds.value.path.value)]
+    elif isinstance(ds, out.LockfileOnlyDependencySource):
+        return [Path(ds.value.path.value)]
+    elif isinstance(ds, out.ManifestLockfileDependencySource):
+        return [Path(ds.value[0].path.value), Path(ds.value[1].path.value)]
+    elif isinstance(ds, out.MultiLockfileDependencySource):
+        return [path for src in ds.value for path in get_all_source_files(src)]
+    else:
+        raise TypeError(f"Unexpected dependency_source variant: {type(ds)}")
 
 
-@dataclass(frozen=True)
-class ManifestOnlyDependencySource(DependencySource):
-    manifest: out.Manifest
-
-    def get_display_paths(self) -> List[Path]:
-        return [Path(self.manifest.path.value)]
-
-    def to_semgrep_output(self) -> out.DependencySource:
-        return out.DependencySource(out.ManifestOnlyDependencySource(self.manifest))
-
-    def to_stats_output(self) -> List[out.DependencySourceFile]:
+def to_stats_output(dep: out.DependencySource) -> List[out.DependencySourceFile]:
+    ds = dep.value
+    if isinstance(ds, out.ManifestOnlyDependencySource):
+        manifest = ds.value
         return [
             out.DependencySourceFile(
-                kind=out.DependencySourceFileKind(
-                    value=out.Manifest_(value=self.manifest.kind)
-                ),
-                path=self.manifest.path,
+                kind=out.DependencySourceFileKind(out.Manifest_(manifest.kind)),
+                path=manifest.path,
             )
         ]
-
-    def get_all_source_files(self) -> List[Path]:
-        return [Path(self.manifest.path.value)]
-
-
-@dataclass(frozen=True)
-class LockfileOnlyDependencySource(DependencySource):
-    lockfile: out.Lockfile
-
-    def get_display_paths(self) -> List[Path]:
-        return [Path(self.lockfile.path.value)]
-
-    def to_semgrep_output(self) -> out.DependencySource:
-        return out.DependencySource(out.LockfileOnlyDependencySource(self.lockfile))
-
-    def to_stats_output(self) -> List[out.DependencySourceFile]:
+    elif isinstance(ds, out.LockfileOnlyDependencySource):
+        lockfile = ds.value
         return [
             out.DependencySourceFile(
-                kind=out.DependencySourceFileKind(
-                    value=out.Lockfile_(value=self.lockfile.kind)
-                ),
-                path=self.lockfile.path,
+                kind=out.DependencySourceFileKind(out.Lockfile_(lockfile.kind)),
+                path=lockfile.path,
             )
         ]
-
-    def get_all_source_files(self) -> List[Path]:
-        return [Path(self.lockfile.path.value)]
-
-
-@dataclass(frozen=True)
-class ManifestLockfileDependencySource(DependencySource):
-    manifest: out.Manifest
-    lockfile: out.Lockfile
-
-    def get_display_paths(self) -> List[Path]:
-        return [Path(self.lockfile.path.value)]
-
-    def to_semgrep_output(self) -> out.DependencySource:
-        return out.DependencySource(
-            out.ManifestLockfileDependencySource((self.manifest, self.lockfile))
-        )
-
-    def to_stats_output(self) -> List[out.DependencySourceFile]:
+    elif isinstance(ds, out.ManifestLockfileDependencySource):
         lockfile_entry = out.DependencySourceFile(
             kind=out.DependencySourceFileKind(
-                value=out.Lockfile_(value=self.lockfile.kind)
+                value=out.Lockfile_(value=ds.value[1].kind)
             ),
-            path=self.lockfile.path,
+            path=ds.value[1].path,
         )
-
         manifest_entry = out.DependencySourceFile(
             kind=out.DependencySourceFileKind(
-                value=out.Manifest_(value=self.manifest.kind)
+                value=out.Manifest_(value=ds.value[0].kind)
             ),
-            path=self.manifest.path,
+            path=ds.value[0].path,
         )
-
         return [lockfile_entry, manifest_entry]
-
-    def get_all_source_files(self) -> List[Path]:
-        return [Path(self.manifest.path.value), Path(self.lockfile.path.value)]
-
-
-@dataclass(frozen=True)
-class MultiLockfileDependencySource(DependencySource):
-    # note: we use a tuple instead of a list here to allow hashing the whole type
-    sources: Tuple[
-        Union[LockfileOnlyDependencySource, ManifestLockfileDependencySource], ...
-    ]
-
-    def get_display_paths(self) -> List[Path]:
-        # aggregate all display paths for each of the child sources
-        return [path for source in self.sources for path in source.get_display_paths()]
-
-    def to_stats_output(self) -> List[out.DependencySourceFile]:
-        return [item for source in self.sources for item in source.to_stats_output()]
-
-    def get_all_source_files(self) -> List[Path]:
-        return [
-            source_file
-            for source in self.sources
-            for source_file in source.get_all_source_files()
-        ]
+    elif isinstance(ds, out.MultiLockfileDependencySource):
+        return [item for src in ds.value for item in to_stats_output(src)]
+    else:
+        raise TypeError(f"Unexpected dependency_source variant: {type(ds)}")
 
 
 @dataclass(frozen=True)
@@ -264,11 +213,15 @@ class ResolvedDependencies:
         return sum(1 for _ in self.iter_found_dependencies())
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, order=True)
 class Subproject:
     """
-    A subproject, defined by some kind of manifest file (e.g. pyproject.toml, package.json, ...).
-    This may be at the root of the repo being scanned or may be some other folder.
+    A subproject, defined by some kind of manifest file (e.g. pyproject.toml,
+    package.json, ...). This may be at the root of the repo being scanned or
+    may be some other folder.
+    Note that the dependency_source field is not used when hashing a Subproject
+    so when adding subproject to a set only the (root_dir x ecosystem)
+    will be used for comparison.
 
     Used as the unit of analysis for supply chain.
     """
@@ -276,21 +229,29 @@ class Subproject:
     # the root of the subproject
     root_dir: Path
 
-    # the dependency source is how we resolved the dependencies. This might be a lockfile/manifest pair (the only current one),
-    # but in the future it might also be dynamic resolution based on a manifest, an SBOM, or something else
-    dependency_source: DependencySource
-
-    # the ecosystem that the subproject belongs to. This is used to match code files with subprojects. It is necessary to have it
-    # here, even before a subproject's dependencies are resolved, in order to decide whether
-    # a certain subproject must be resolved given the changes included in a certain diff scan.
-    # ecosystem can be None if this subproject is for a package manager whose ecosystem is not yet supported (i.e. one that is identified
-    # only for tracking purposes)
+    # the ecosystem that the subproject belongs to. This is used to match code
+    # files with subprojects. It is necessary to have it here, even before a
+    # subproject's dependencies are resolved, in order to decide whether
+    # a certain subproject must be resolved given the changes included in a
+    # certain diff scan.
+    # ecosystem can be None if this subproject is for a package manager whose
+    # ecosystem is not yet supported (i.e. one that is identified only for
+    # tracking purposes)
     ecosystem: Optional[out.Ecosystem]
+
+    # the dependency source is how we resolved the dependencies. This might be a
+    # lockfile/manifest pair (the only current one), but in the future it might
+    # also be dynamic resolution based on a manifest, an SBOM, or something else
+    # Note that this can be a MultiLockfileDependencySource which
+    # contains a List which is not hashable which can lead to runtime
+    # errors when adding a subproject in a Set hence the hash=False below
+    # Fortunately root_dir x ecosystem is enough to discriminate
+    dependency_source: out.DependencySource = field(compare=False, hash=False)
 
     def to_stats_output(self) -> out.SubprojectStats:
         # subproject id is a hash based on the dependency field paths
         normalized_paths = sorted(
-            str(path).strip() for path in self.dependency_source.get_display_paths()
+            str(path).strip() for path in get_display_paths(self.dependency_source)
         )
         subproject_id = hashlib.sha256(
             "".join(normalized_paths).encode("utf-8")
@@ -298,7 +259,7 @@ class Subproject:
 
         return out.SubprojectStats(
             subproject_id=subproject_id,
-            dependency_sources=self.dependency_source.to_stats_output(),
+            dependency_sources=to_stats_output(self.dependency_source),
             resolved_stats=None,
         )
 
