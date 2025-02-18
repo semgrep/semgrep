@@ -11,7 +11,7 @@ local semgrep = import 'libs/semgrep.libsonnet';
 // ----------------------------------------------------------------------------
 
 local pre_commit_steps() = [
-  actions.setup_python_step(),
+  actions.setup_python_step(cache=false),
   semgrep.opam_setup(),
   { 'run' : 'opam install -y ocamlformat.0.26.2',},
   // note that in a CI context pre-commit runs the hooks with the '--all' flag, so

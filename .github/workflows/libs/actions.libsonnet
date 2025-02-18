@@ -30,11 +30,12 @@
     uses: 'actions/setup-python@v4',
     with: {
       'python-version': version,
+    } + (if (cache == false) then {} else {
       // TODO where is this cache created?
       // TODO at least force to specify the key?
       // like 'cache-dependency-path': 'scripts/release/Pipfile.lock' ?
       cache: cache,
-    },
+    }),
   },
   // We pin to a specific version just to prevent things from breaking randomly.
   // This has been a source of breakage in the past.
