@@ -21,7 +21,7 @@ let show_rwm (file : Fpath.t) (rwm : RM.t) : string =
   let line_str =
     let pm = rwm.RM.origin in
     let loc1, _ = pm.range_loc in
-    string_of_int loc1.Tok.pos.line
+    string_of_int loc1.Loc.pos.line
   in
   code_text ^ " @l." ^ line_str
 

@@ -368,8 +368,8 @@ let render_fix (pm : Core_match.t) : Textedit.t option =
   let fix_regex = pm.rule_id.fix_regexp in
   let range =
     let start, end_ = pm.range_loc in
-    let _, _, end_charpos = Tok.end_pos_of_loc end_ in
-    (start.Tok.pos.bytepos, end_charpos)
+    let _, _, end_charpos = Loc.end_pos end_ in
+    (start.Loc.pos.bytepos, end_charpos)
   in
   match (fix, fix_regex) with
   | None, None -> None

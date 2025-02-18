@@ -130,7 +130,7 @@ let mk_error_tok ?rule_id ?(file : Fpath.t option) (tok : Tok.t) (msg : string)
     | Ok loc -> Some loc
     | Error _ ->
         let* file = file in
-        Some (Tok.first_loc_of_file file)
+        Some (Loc.first_loc_of_file file)
   in
   mk_error ?rule_id ~msg ?loc err
 
@@ -184,7 +184,7 @@ let error_of_rule_error (err : Rule_error.t) : t =
       mk_error_tok ?rule_id ~file pos s Out.InvalidYaml
   | UnparsableYamlException msg ->
       mk_error ?rule_id ~msg
-        ~loc:(Tok.first_loc_of_file file)
+        ~loc:(Loc.first_loc_of_file file)
         Out.OtherParseError
 
 (*
@@ -229,24 +229,24 @@ let known_exn_to_error ?(file : Fpath.t option) (e : Exception.t) : t option =
       (* This exception should always be reraised. *)
       let loc =
         let* file = file in
-        Some (Tok.first_loc_of_file file)
+        Some (Loc.first_loc_of_file file)
       in
       let msg = Time_limit.string_of_timeout_info timeout_info in
       Some (mk_error ~msg ?loc Out.Timeout)
   | Memory_limit.ExceededMemoryLimit msg ->
       let loc =
         let* file = file in
-        Some (Tok.first_loc_of_file file)
+        Some (Loc.first_loc_of_file file)
       in
       Some (mk_error ~msg ?loc Out.OutOfMemory)
   | Out_of_memory ->
       let loc =
         let* file = file in
-        Some (Tok.first_loc_of_file file)
+        Some (Loc.first_loc_of_file file)
       in
       Some (mk_error ~msg:"Heap space exceeded" ?loc Out.OutOfMemory)
   | Common.ErrorOnFile (s, file) ->
-      let loc = Some (Tok.first_loc_of_file file) in
+      let loc = Some (Loc.first_loc_of_file file) in
       (* TODO: see the comment below we want OtherErrorWithAttachedFile *)
       Some (mk_error ~msg:s ?loc Out.OtherParseError)
   (* general case, can't extract line information from it, default to line 1 *)
@@ -263,7 +263,7 @@ let exn_to_error ?(file : Fpath.t option) (e : Exception.t) : t =
       let trace = Exception.to_string e in
       let loc =
         let* file = file in
-        Some (Tok.first_loc_of_file file)
+        Some (Loc.first_loc_of_file file)
       in
       let typ =
         match file with

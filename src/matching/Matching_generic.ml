@@ -776,13 +776,13 @@ let adjust_info_remove_enclosing_quotes (s, info) =
        * this happens if the string is the result of constant folding. *)
       (s, info)
   | Ok loc -> (
-      let raw_str = loc.Tok.str in
+      let raw_str = loc.Loc.str in
       let re = Str.regexp_string s in
       try
         let pos = Str.search_forward re raw_str 0 in
         let loc =
           {
-            Tok.str = s;
+            Loc.str = s;
             pos =
               {
                 loc.pos with

@@ -21,12 +21,12 @@ open Fpath_.Operators
 let default_error_regexp = ".*\\(ERROR\\|MATCH\\):"
 
 let location_of_pm { Core_match.range_loc; _ } =
-  let { Tok.pos = { line; file; _ }; _ }, _ = range_loc in
+  let { Loc.pos = { line; file; _ }; _ }, _ = range_loc in
   (file, line)
 
 let location_of_core_error (err : Core_error.t) =
   match err.loc with
-  | Some loc -> (loc.Tok.pos.file, loc.Tok.pos.line)
+  | Some loc -> (loc.Loc.pos.file, loc.Loc.pos.line)
   (* TODO(andre) Is there something easier to debug, failwith? *)
   | None -> (Fpath_.fake_file, -1)
 

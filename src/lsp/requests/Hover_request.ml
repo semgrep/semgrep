@@ -62,7 +62,7 @@ let on_request server ({ position; textDocument; _ } : HoverParams.t) =
         (* 80 columns is too little *)
         Format.set_margin 120;
         let s = OCaml.string_of_v v in
-        let end_line, end_col, _ = Tok.end_pos_of_loc t2 in
+        let end_line, end_col, _ = Loc.end_pos t2 in
         let hover =
           Hover.
             {

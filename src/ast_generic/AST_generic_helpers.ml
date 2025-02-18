@@ -564,10 +564,10 @@ let first_info_of_any any =
 
 (* Also used below by `nearest_any_of_pos` *)
 let smaller t1 t2 =
-  if compare t1.Tok.pos.bytepos t2.Tok.pos.bytepos < 0 then t1 else t2
+  if compare t1.Loc.pos.bytepos t2.Loc.pos.bytepos < 0 then t1 else t2
 
 let larger t1 t2 =
-  if compare t1.Tok.pos.bytepos t2.Tok.pos.bytepos > 0 then t1 else t2
+  if compare t1.Loc.pos.bytepos t2.Loc.pos.bytepos > 0 then t1 else t2
 
 let incorporate_tokens ranges (left, right) =
   match !ranges with
@@ -672,13 +672,13 @@ type any_range = {
 
 class ['self] any_range_visitor =
   let pos_within pos (t1', t2') =
-    let _, _, t2'_charpos = Tok.end_pos_of_loc t2' in
-    pos >= t1'.Tok.pos.bytepos && pos <= t2'_charpos
+    let _, _, t2'_charpos = Loc.end_pos t2' in
+    pos >= t1'.Loc.pos.bytepos && pos <= t2'_charpos
   in
   let range_within (t1, t2) (t1', t2') =
-    let _, _, t2_charpos = Tok.end_pos_of_loc t2 in
-    let _, _, t2'_charpos = Tok.end_pos_of_loc t2' in
-    t1.Tok.pos.bytepos >= t1'.Tok.pos.bytepos && t2_charpos <= t2'_charpos
+    let _, _, t2_charpos = Loc.end_pos t2 in
+    let _, _, t2'_charpos = Loc.end_pos t2' in
+    t1.Loc.pos.bytepos >= t1'.Loc.pos.bytepos && t2_charpos <= t2'_charpos
   in
   let set_any_range info (any, range) =
     let charpos = info.position in

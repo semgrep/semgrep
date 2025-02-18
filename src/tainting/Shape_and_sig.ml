@@ -549,7 +549,7 @@ end = struct
     in
     let matched_line =
       let loc1, _ = pm.range_loc in
-      loc1.Tok.pos.line
+      loc1.Loc.pos.line
     in
     spf "(%s at l.%d by %s)" matched_str matched_line rule_sink.R.sink_id
 

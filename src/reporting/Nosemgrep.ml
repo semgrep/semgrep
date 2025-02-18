@@ -199,7 +199,7 @@ let rule_match_nosem (pm : Core_match.t) : bool * Core_error.t list =
           let id = Common2.strip '"' id in
           let loc =
             lazy
-              Tok.
+              Loc.
                 {
                   str = id;
                   pos =

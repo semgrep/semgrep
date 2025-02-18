@@ -236,7 +236,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
                  (Rule_ID.to_string id) cnt pat);
 
            (* todo: we should maybe use a new error: TooManyMatches of int * string*)
-           let loc = Tok.first_loc_of_file file in
+           let loc = Loc.first_loc_of_file file in
            let error =
              E.mk_error ~rule_id:id
                ~msg:
@@ -543,7 +543,7 @@ let log_critical_exn_and_last_rule () =
 let errors_of_timeout_or_memory_exn (exn : exn) (target : Target.t) : ESet.t =
   let internal_path = Target.internal_path target in
   let origin = Target.origin target in
-  let loc = Tok.first_loc_of_file internal_path in
+  let loc = Loc.first_loc_of_file internal_path in
   match exn with
   | Match_rules.File_timeout rule_ids ->
       Logs.warn (fun m -> m "Timeout on %s" (Origin.to_string origin));

@@ -213,8 +213,8 @@ let find_propagators_matches formula_cache (xconf : Match_env.xconfig)
                       Common.spf
                         "propagator<%d,%d>(%s@l.%d/%d-%d-->%s@l.%d/%d-%d)"
                         loc_pfrom.pos.bytepos loc_pto.pos.bytepos mvar_pfrom
-                        mval_from_start_loc.Tok.pos.line from.Range.start
-                        from.Range.end_ mvar_pto mval_to_start_loc.Tok.pos.line
+                        mval_from_start_loc.Loc.pos.line from.Range.start
+                        from.Range.end_ mvar_pto mval_to_start_loc.Loc.pos.line
                         to_.Range.start to_.Range.end_
                     in
                     Some { id; rwm; from; to_; spec = p }))

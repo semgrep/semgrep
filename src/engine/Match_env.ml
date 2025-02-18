@@ -81,7 +81,7 @@ let error (env : env) msg =
   (* We are not supposed to report errors in the config file for several reasons
    * (one being that it's often a temporary file anyways), so we report them on
    * the target file. *)
-  let loc = Tok.first_loc_of_file env.xtarget.path.internal_path_to_content in
+  let loc = Loc.first_loc_of_file env.xtarget.path.internal_path_to_content in
   (* TODO: warning or error? MatchingError or ... ? *)
   let err = E.mk_error ~rule_id:(fst env.rule.id) ~msg ~loc Out.MatchingError in
   env.errors := Core_error.ErrorSet.add err !(env.errors)

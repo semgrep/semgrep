@@ -123,7 +123,7 @@ let rec show_call_trace show_thing = function
       in
       let matched_line =
         let loc1, _ = pm.range_loc in
-        loc1.Tok.pos.line
+        loc1.Loc.pos.line
       in
       Printf.sprintf "%s at l.%d [%s]" matched_str matched_line (show_thing x)
   | Call (_e, _, trace) ->
@@ -358,7 +358,7 @@ let rec show_source { call_trace; label; precondition } =
   in
   let matched_line =
     let loc1, _ = pm.range_loc in
-    loc1.Tok.pos.line
+    loc1.Loc.pos.line
   in
   let num_calls = length_of_call_trace call_trace in
   let num_calls_str =

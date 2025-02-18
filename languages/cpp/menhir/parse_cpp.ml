@@ -76,7 +76,7 @@ let count_lines_commentized xs =
   |> List.iter (function
        | Tok.OriginTok pinfo
        | Tok.ExpandedTok (_, (pinfo, _)) ->
-           let newline = pinfo.Tok.pos.line in
+           let newline = pinfo.Loc.pos.line in
            if newline <> !line then (
              line := newline;
              incr count)

@@ -53,18 +53,7 @@ open Sexplib.Std
 (* To report errors, regular position information.
  * Note that Loc.t is now an alias for Tok.location.
  *)
-type location = {
-  (* the content of the "token" *)
-  str : string;
-  (* TODO? the content of Pos.t used to be inlined in this location type.
-   * It is cleaner to factorize things in Pos.t, but this introduces
-   * an extra pointer which actually can have real performance implication
-   * in Semgrep on huge monorepos. It might be worth inlining it back
-   * (and also reduce its number of fields).
-   *)
-  pos : Pos.t;
-}
-[@@deriving show { with_path = false }, eq, ord, sexp]
+type location = Loc.t [@@deriving show { with_path = false }, eq, ord, sexp]
 
 (* to represent fake (e.g., fake semicolons in languages such as Javascript),
  * and expanded tokens (e.g., preprocessed constructs by cpp for C/C++)
@@ -240,31 +229,6 @@ let content_of_tok_opt ii =
   | Ab ->
       None
 
-(* Token locations are supposed to denote the beginning of a token.
-   Suppose we are interested in instead having line, column, and bytepos of
-   the end of a token instead.
-   This is something we can do at relatively low cost by going through and
-   inspecting the contents of the token, plus the start information.
-*)
-let end_pos_of_loc loc =
-  let line, col, trailing_nl =
-    String.fold_left
-      (fun (line, col, after_nl) c ->
-        match c with
-        | '\n' when after_nl -> (line + 1, 0, true)
-        | '\n' -> (line, col, true)
-        | _ when after_nl -> (line + 1, 1, false)
-        | _ -> (line, col + 1, false))
-      (loc.pos.line, loc.pos.column, false)
-      loc.str
-  in
-  let col =
-    (* THINK: We count a trailing newline as an extra character in the last line,
-     * is that the standard ? *)
-    if trailing_nl then col + 1 else col
-  in
-  (line, col, loc.pos.bytepos + String.length loc.str)
-
 (*****************************************************************************)
 (* Builders *)
 (*****************************************************************************)
@@ -272,7 +236,7 @@ let end_pos_of_loc loc =
 let tok_of_loc loc = OriginTok loc
 
 let make ~str ~file ~bytepos =
-  let loc =
+  let loc : Loc.t =
     {
       str;
       (* the pos will be filled in post-lexing phase, see complete_location *)
@@ -292,8 +256,7 @@ let tok_of_lexbuf lexbuf =
   let file = if fname = "" then Fpath_.fake_file else Fpath.v fname in
   make ~str:(Lexing.lexeme lexbuf) ~file ~bytepos:(Lexing.lexeme_start lexbuf)
 
-let first_loc_of_file file = { str = ""; pos = Pos.first_pos_of_file file }
-let first_tok_of_file file = fake_tok_loc (first_loc_of_file file) ""
+let first_tok_of_file file = fake_tok_loc (Loc.first_loc_of_file file) ""
 
 let rewrap_str s ii =
   match ii with
@@ -461,7 +424,7 @@ let empty_tok_after tok : t =
   match loc_of_tok tok with
   | Ok loc ->
       let prev_len = String.length loc.str in
-      let loc =
+      let loc : Loc.t =
         {
           str = "";
           pos =
@@ -487,7 +450,7 @@ let split_tok_at_bytepos pos ii =
   let loc1_str = String.sub str 0 pos in
   let loc2_str = String.sub str pos (String.length str - pos) in
   let loc1 = { loc with str = loc1_str } in
-  let loc2 =
+  let loc2 : Loc.t =
     {
       str = loc2_str;
       pos =
@@ -504,23 +467,6 @@ let split_tok_at_bytepos pos ii =
 (* Adjusting location *)
 (*****************************************************************************)
 
-(* TODO? move to Pos.ml and use Pos.t instead *)
-let adjust_loc_wrt_base base_loc loc =
-  (* Note that bytepos and columns are 0-based, whereas lines are 1-based. *)
-  let base_pos = base_loc.pos in
-  let pos = loc.pos in
-  {
-    loc with
-    pos =
-      {
-        bytepos = base_pos.bytepos + pos.bytepos;
-        line = base_pos.line + pos.line - 1;
-        column =
-          (if pos.line =|= 1 then base_pos.column + pos.column else pos.column);
-        file = base_pos.file;
-      };
-  }
-
 let fix_location fix ii =
   match ii with
   | OriginTok pi -> OriginTok (fix pi)
@@ -529,9 +475,7 @@ let fix_location fix ii =
   | Ab -> Ab
 
 let adjust_tok_wrt_base base_loc ii =
-  fix_location (adjust_loc_wrt_base base_loc) ii
-
-let fix_pos fix loc = { loc with pos = fix loc.pos }
+  fix_location (Loc.adjust_loc_wrt_base base_loc) ii
 
 (*****************************************************************************)
 (* Adjust line x col *)

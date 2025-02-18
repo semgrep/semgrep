@@ -9,7 +9,7 @@ let range_of_cli_match (m : OutJ.cli_match) =
     ~end_:(Position.create ~line:(m.end_.line - 1) ~character:(m.end_.col - 1))
 
 let range_of_toks ((l1 : Tok.location), (l2 : Tok.location)) =
-  let line, col, _ = Tok.end_pos_of_loc l2 in
+  let line, col, _ = Loc.end_pos l2 in
   Range.create
     ~start:(Position.create ~line:(l1.pos.line - 1) ~character:l1.pos.column)
     ~end_:(Position.create ~line:(line - 1) ~character:col)

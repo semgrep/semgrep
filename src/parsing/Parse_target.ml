@@ -41,7 +41,7 @@ let errors_from_skipped_tokens xs =
   | [] -> Core_error.ErrorSet.empty
   | x :: _ ->
       let e = exn_of_loc x in
-      let err = E.exn_to_error ~file:x.Tok.pos.file e in
+      let err = E.exn_to_error ~file:x.Loc.pos.file e in
       let locs =
         xs |> List_.map Semgrep_output_utils.location_of_token_location
       in

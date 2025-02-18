@@ -171,7 +171,7 @@ let error str v pos env =
 
 let get_res (file : Fpath.t) = function
   | Result.Error (`Msg str) ->
-      let loc = Tok.first_loc_of_file file in
+      let loc = Loc.first_loc_of_file file in
       let tok = Tok.tok_of_loc loc in
       raise (Parsing_error.Other_error (str, tok))
   | Result.Ok v -> v
@@ -183,7 +183,7 @@ let do_parse env =
       let prefix, tok =
         match env.last_event with
         | None ->
-            let loc = Tok.first_loc_of_file env.file in
+            let loc = Loc.first_loc_of_file env.file in
             ("(incorrect error location) ", Tok.tok_of_loc loc)
         | Some (v, pos) ->
             ( "(approximate error location; error nearby after) ",

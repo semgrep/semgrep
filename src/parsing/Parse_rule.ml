@@ -1075,7 +1075,7 @@ let parse_generic_ast ?(error_recovery = false) ?rewrite_rule_ids
       match ast with
       | [ { G.s = G.ExprStmt (e, _); _ } ] -> (
           let missing_rules_field () =
-            let loc = Tok.first_loc_of_file file in
+            let loc = Loc.first_loc_of_file file in
             yaml_error (Tok.tok_of_loc loc)
               "missing rules entry as top-level key"
           in

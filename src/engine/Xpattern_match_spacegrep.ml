@@ -25,7 +25,7 @@ let lexing_pos_to_loc (file : Fpath.t) (x : Lexing.position) str =
    *)
   let column = x.Lexing.pos_cnum - x.Lexing.pos_bol in
   let pos = Pos.make ~line ~column file bytepos in
-  { Tok.str; pos }
+  { Loc.str; pos }
 
 let spacegrep_matcher (xconfig : Match_env.xconfig) (doc, src) (file : Fpath.t)
     pat =
