@@ -344,7 +344,7 @@ local create_draft_release_job = {
     },
     {
       name: 'Create Draft Release Semgrep',
-      uses: 'softprops/action-gh-release@v1',
+      uses: 'softprops/action-gh-release@v2',
       with: {
         tag_name: 'v%s' % version,
         name: 'Release v%s' % version,
@@ -357,7 +357,7 @@ local create_draft_release_job = {
     },
     {
       name: 'Create Draft Release Semgrep Interfaces',
-      uses: 'softprops/action-gh-release@v1',
+      uses: 'softprops/action-gh-release@v2',
       with: {
         tag_name: 'v%s' % version,
         name: 'Release v%s' % version,

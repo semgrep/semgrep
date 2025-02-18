@@ -237,7 +237,7 @@ jobs:
           ref: release-${{ github.event.inputs.semgrep-version }}
           token: ${{ steps.token.outputs.token }}
       - name: Create Draft Release Semgrep
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           body_path: release_changes.md
           draft: true
@@ -246,7 +246,7 @@ jobs:
           tag_name: v${{ github.event.inputs.semgrep-version }}
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Create Draft Release Semgrep Interfaces
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           body_path: release_changes.md
           draft: true
