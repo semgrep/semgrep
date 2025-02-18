@@ -676,6 +676,7 @@ module Sys = struct
   let unix = Sys.unix
   let win32 = Sys.win32
   let cygwin = Sys.cygwin
+  let int_size = Sys.int_size
   (* less: Immediate64 submodule *)
 end
 

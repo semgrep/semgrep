@@ -157,27 +157,54 @@ and rule_id = {
 [@@deriving show, eq]
 
 (*****************************************************************************)
+(* Deduplication *)
+(*****************************************************************************)
+
+let hash_with_bindings bindings acc0 =
+  bindings
+  |> List.fold_left
+       (fun acc (mvar, mval) ->
+         acc
+         |> Hashtbl_.combine_hash (Hashtbl.hash mvar)
+         |> Hashtbl_.combine_hash (Hashtbl.hash mval))
+       acc0
+
+(* perf: Make sure the 'env' is part of the hash. Otherwise, if we had a pattern
+    generating lots of matches at the same location, but with different 'env's,
+    all those matches would get the same 'hash' causing perf problems. *)
+let hash m =
+  Hashtbl.hash (m.rule_id.id, m.range_loc, m) |> hash_with_bindings m.env
+[@@profiling]
+
+module Tbl = Hashtbl.Make (struct
+  type nonrec t = t
+
+  let equal = equal
+  let hash = hash
+end)
+
+(*****************************************************************************)
 (* API *)
 (*****************************************************************************)
 
 (* Deduplicate matches *)
 let uniq (pms : t list) : t list =
   (* perf: Previously used an initial size of 1024 but profiling with memtrace
-   * revealed that this was oversized and contributed to 14% of all major heap
-   * usage in an interfile run over juice-shop. Setting it to 8 meant it was
-   * undersized in some cases and led to additional allocations as the table
-   * gets resized. Change this only with caution. *)
-  let tbl = Hashtbl.create (List.length pms) in
+      revealed that this was oversized and contributed to 14% of all major heap
+      usage in an interfile run over juice-shop. Setting it to 8 meant it was
+      undersized in some cases and led to additional allocations as the table
+      gets resized. Change this only with some caution.
+      DOUBT(iago): What is the actual observed effect in terms of runtime and
+        peak memory usage?
+  *)
+  let size = List.length pms in
+  let matches_tbl = Tbl.create size in
+  (* dedup matches *)
   pms
   |> List.iter (fun match_ ->
-         let loc = match_.range_loc in
-         let matches_at_loc = Hashtbl_.get_stack tbl loc in
-         match
-           List.find_opt (fun match2 -> equal match_ match2) matches_at_loc
-         with
-         | Some _equal_match_at_loc -> ()
-         | None -> Hashtbl_.push tbl loc match_);
-  Hashtbl.fold (fun _loc stack acc -> List.rev_append !stack acc) tbl []
+         if not (Tbl.mem matches_tbl match_) then Tbl.add matches_tbl match_ ());
+  (* list matches *)
+  Tbl.fold (fun m () acc -> m :: acc) matches_tbl []
 [@@profiling]
 
 let range pm =
