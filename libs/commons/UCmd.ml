@@ -41,6 +41,22 @@ let capture_and_log_stderr func =
     Logs.info (fun m -> m "error output: %s" err);
   res
 
+let env_of_env (env : Cmd.env option) : Bos.OS.Env.t option =
+  let* { vars; inherit_parent_env } = env in
+  let start_env =
+    if inherit_parent_env then
+      (* alt: we could require the Cap.argv capability here *)
+      match Bos.OS.Env.current () with
+      | Ok start_env -> start_env
+      | Error (`Msg err) -> failwith (spf "Bos.OS.Env.current failed: %s" err)
+    else Astring.String.Map.empty
+  in
+  Some
+    (vars
+    |> List.fold_left
+         (fun acc (k, v) -> Astring.String.Map.add k v acc)
+         start_env)
+
 (*****************************************************************************)
 (* Old Common.cmd_to_list *)
 (*****************************************************************************)
@@ -81,6 +97,7 @@ let cmd_to_list ?verbose command =
 
 let string_of_run ~trim ?env cmd =
   log_command cmd;
+  let env = env_of_env env in
   capture_and_log_stderr (fun () ->
       (* nosemgrep: forbid-exec *)
       let out = Cmd.bos_apply (Bos.OS.Cmd.run_out ?env) cmd in
@@ -94,6 +111,7 @@ let string_of_run ~trim ?env cmd =
  * outputs a lot of log spew. We should add a limit on the data read. *)
 let string_of_run_with_stderr ~trim ?env cmd =
   log_command cmd;
+  let env = env_of_env env in
   let res, err =
     Testo.with_capture UStdlib.stderr (fun () ->
         (* nosemgrep: forbid-exec *)
@@ -105,6 +123,7 @@ let string_of_run_with_stderr ~trim ?env cmd =
 
 let lines_of_run ~trim ?env cmd =
   log_command cmd;
+  let env = env_of_env env in
   capture_and_log_stderr (fun () ->
       (* nosemgrep: forbid-exec *)
       let out = Cmd.bos_apply (Bos.OS.Cmd.run_out ?env) cmd in
@@ -114,6 +133,7 @@ let lines_of_run ~trim ?env cmd =
 (* nosemgrep: forbid-exec *)
 let status_of_run ?quiet ?env cmd =
   log_command cmd;
+  let env = env_of_env env in
   capture_and_log_stderr (fun () ->
       (* nosemgrep: forbid-exec *)
       Cmd.bos_apply (Bos.OS.Cmd.run_status ?quiet ?env) cmd)

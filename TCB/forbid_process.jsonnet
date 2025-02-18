@@ -5,7 +5,7 @@ local unix_funcs = [
   'fork',
   'alarm',
   'setitimer',
-  //TODO: alarm, signal, kill, waitpid
+  //TODO: alarm, signal, kill, waitpid, getenv, Bos.OS.Env
 ];
 
 local sys_funcs = [

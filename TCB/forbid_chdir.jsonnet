@@ -7,6 +7,8 @@ local common = import 'common.libsonnet';
       match: { any: [
         'Unix.chdir','UUnix.chdir',
         'Sys.chdir', 'USys.chdir',
+        // TODO: could forbid CapSys.chdir and tell people to use
+        // instead CapFS.with_chdir
       ] },
       languages: ['ocaml'],
       paths: common.exclude,
