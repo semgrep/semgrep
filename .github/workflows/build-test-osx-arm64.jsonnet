@@ -19,7 +19,7 @@ local runs_on = 'macos-latest';
 // cache: 'pipenv' which then trigger failures when we don't checkout any code
 // and there's no code with a Pipfile.lock
 local setup_python_step =  {
-  uses: 'actions/setup-python@v4',
+  uses: 'actions/setup-python@v5',
   with: {
     'python-version': semgrep.python_version,
   }

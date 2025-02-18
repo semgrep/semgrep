@@ -31,7 +31,7 @@ jobs:
         run: git config --global --add safe.directory $(pwd)
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
       - uses: ocaml/setup-ocaml@v3
