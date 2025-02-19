@@ -1,1 +1,0 @@
-Pyproject.toml files are now parsed using a toml parser (tomli).

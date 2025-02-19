@@ -1,2 +1,0 @@
-Fixed pattern match deduplication to avoid an O(n^2) worst-case complexity, and
-optimized the matching of ordered `..., PAT, ...` patterns.

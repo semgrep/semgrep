@@ -1,2 +1,0 @@
-taint-mode: Disable symbolic-propagation when matching taint propagators
-to prevent unintended interactions. See https://semgrep.dev/playground/s/7KE0k.
