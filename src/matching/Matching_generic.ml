@@ -601,6 +601,14 @@ let rec m_list_with_dots ~less_is_ok f is_dots xsa xsb =
   | _ :: _, _ ->
       fail ()
 
+let m_list_with_dots ~less_is_ok f is_dots xsa xsb =
+  match xsa with
+  (* Optimization: [..., PAT, ...] *)
+  | [ start_dots; xa; end_dots ] when is_dots start_dots && is_dots end_dots ->
+      (* We just need to match PAT against every element in 'xsb'! *)
+      xsb |> List.fold_left (fun acc xb -> acc >||> f xa xb) (fail ())
+  | __else__ -> m_list_with_dots ~less_is_ok f is_dots xsa xsb
+
 let m_list_with_dots_and_metavar_ellipsis ~less_is_ok ~f ~is_dots
     ~is_metavar_ellipsis xsa xsb =
   let rec aux xsa xsb =
