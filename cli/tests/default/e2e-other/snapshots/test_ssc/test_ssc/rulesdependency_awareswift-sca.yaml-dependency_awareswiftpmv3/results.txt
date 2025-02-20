@@ -41,7 +41,7 @@
               "manifest_path": "targets/dependency_aware/swiftpm/v3/Package.swift",
               "package": "swift-collections",
               "resolved_url": "https://github.com/apple/swift-collections.git",
-              "transitivity": "unknown",
+              "transitivity": "transitive",
               "version": "1.0.6"
             },
             "lockfile": "targets/dependency_aware/swiftpm/v3/Package.resolved"

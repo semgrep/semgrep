@@ -27,6 +27,7 @@ logger = getLogger(__name__)
         ('url: "https://github.com/user/project2.git"', "project2"),
         ('url: "http://github.com/user/project3.git"', "project3"),
         ('url: "git@192.168.101.127:user/project4.git"', "project4"),
+        ('url: "https://github.com/user/project5"', "project5"),
     ],
 )
 @pytest.mark.no_semgrep_cli
@@ -34,6 +35,21 @@ logger = getLogger(__name__)
 @pytest.mark.quick
 def test_swift_url_block_parser(original: str, output: str):
     result = swiftpm.url_block.parse(original)
+    assert result == output
+
+
+@pytest.mark.parametrize(
+    "original, output",
+    [
+        ('name: "example-package"', "example-package"),
+        ('name:   "project1"', "project1"),
+    ],
+)
+@pytest.mark.no_semgrep_cli
+@pytest.mark.osemfail
+@pytest.mark.quick
+def test_swift_name_block_parser(original: str, output: str):
+    result = swiftpm.name_block.parse(original)
     assert result == output
 
 
@@ -66,12 +82,31 @@ def test_swift_range_block_parser(original: str):
     assert not result[1]
 
 
-@pytest.mark.parametrize("original", ['.exact("1.2.3")', '.exact("1.3-testing")'])
+@pytest.mark.parametrize(
+    "original",
+    [
+        '.exact("1.2.3")',
+        '.exact("1.3-testing")',
+        'exact: "1.2.3"',
+        'exact:   "1.3-testing"',
+        "exact: Version(1, 2, 3)",
+    ],
+)
 @pytest.mark.no_semgrep_cli
 @pytest.mark.osemfail
 @pytest.mark.quick
 def test_swift_exact_block_parser(original: str):
     result = swiftpm.exact_block.parse_partial(original)
+    assert result[0] == original
+    assert not result[1]
+
+
+@pytest.mark.parametrize("original", ['path: "foo/bar"', 'path:  "ahhh"'])
+@pytest.mark.no_semgrep_cli
+@pytest.mark.osemfail
+@pytest.mark.quick
+def test_swift_path_block_parser(original: str):
+    result = swiftpm.path_block.parse_partial(original)
     assert result[0] == original
     assert not result[1]
 
@@ -167,6 +202,14 @@ def test_swift_branch_block_parser(original: str):
             '.package(url: "https://github.com/repo/package.git", .exact("7.8.0"))',
             "package",
         ),
+        (
+            '.package(url: "https://github.com/repo/package", exact: "7.8.0")',
+            "package",
+        ),
+        (
+            '.package(name: "package", path: "foo/bar")',
+            "package",
+        ),
     ],
 )
 @pytest.mark.no_semgrep_cli
@@ -225,7 +268,7 @@ def test_swift_manifest_parser():
         (15, "package_1"),
         (17, "package_2"),
         (19, "package_3"),
-        '.package(url: "https://github.com/repo_4/package_4.git", .upToNextMajor(from: "7.8.0")),',
+        None,
         (23, "package_5"),
     ]
     assert not result[1]

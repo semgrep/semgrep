@@ -16,7 +16,6 @@ from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import filter_on_marked_lines
 from semdep.parsers.util import JSON
 from semdep.parsers.util import json_doc
-from semdep.parsers.util import line
 from semdep.parsers.util import lparen
 from semdep.parsers.util import mark_line
 from semdep.parsers.util import new_lines
@@ -38,13 +37,12 @@ logger = getLogger(__name__)
 # supported parsers for manifest files come from the official apple/swift-package-manager spec
 # https://github.com/apple/swift-package-manager/blob/6ff5cbdfa8b694525b2223a6b832cce17e0b73ef/Sources/PackageDescription/PackageRequirement.swift
 
-git_url = regex(
-    r"((git|ssh|http(s)?)|(git@[\w\.]+)):(//)?[\w\.@\:/\-~]+/(?P<project>.*?).git/?",
+# url: "https://example.com/example-package.git"
+url_block = regex(
+    r'url:\s*"((git|ssh|http(s)?)|(git@[\w\.]+)):(//)?[\w\.@\:/\-~]+/(?P<project>[^"]+?)(\.git)?/?"',
     group="project",
 )
 
-# url: "https://example.com/example-package.git"
-url_block = regex(r'url:\s*"') >> git_url << string('"')
 
 separator_block = regex(r"\s*,\s*")
 
@@ -55,28 +53,33 @@ from_block = regex(r'from:\s*".*?"')
 range_block = regex(r'".*?".*?".*?"')
 
 # .exact("1.2.3")
-exact_block = regex(r'.exact\(".*?"\)')
+exact_block = regex(r'(\.exact\(".*?"\))|(exact:\s*(("[^"]+?")|(Version\([^)]+\))))')
 
 # .revision("e74b07278b926c9ec6f9643455ea00d1ce04a021")
-revision_block = regex(r'.revision\(".*?"\)')
+revision_block = regex(r'\.revision\(".*?"\)')
 
 # .upToNextMajor("1.2.3")
-up_to_next_major_block = regex(r'.upToNextMajor\(\s*from:\s*".*?"\)')
+up_to_next_major_block = regex(r'\.upToNextMajor\(\s*from:\s*".*?"\)')
 
 # .upToNextMinor("1.2.3")
-up_to_next_minor_block = regex(r'.upToNextMinor\(\s*from:\s*".*?"\)')
+up_to_next_minor_block = regex(r'\.upToNextMinor\(\s*from:\s*".*?"\)')
 
 # .branch("develop")
-branch_block = regex(r'.branch\(".*?"\)')
+branch_block = regex(r'\.branch\(".*?"\)')
+
+path_block = regex(r'path:\s*"[^"]+?"')
+
+name_block = regex(r'name:\s*"(?P<project>[^"]+?)"', group="project")
 
 # .package(url: "https://github.com/repo/package.git", .upToNextMajor(from: "7.8.0")), // this is something important
 package_block = (
     whitespace
-    >> regex(r".package")
+    >> regex(r"\.package")
     >> lparen
-    >> mark_line(url_block)
+    >> mark_line(url_block | name_block)
     << whitespace
     << comma
+    << whitespace
     << (
         from_block
         | range_block
@@ -85,6 +88,7 @@ package_block = (
         | revision_block
         | up_to_next_major_block
         | up_to_next_minor_block
+        | path_block
     )
     << whitespace
     << rparen
@@ -92,7 +96,7 @@ package_block = (
     << not_any("\n").optional()
 )
 
-comment = whitespace >> regex(r" *//") >> line
+comment = whitespace >> regex(r" *//") >> consume_line
 
 multiple_package_blocks = (comment | package_block).sep_by(new_lines)
 
@@ -311,10 +315,14 @@ def parse_package_resolved(
         else None,
     )
 
-    if not parsed_lockfile or not parsed_manifest:
+    if not parsed_lockfile:
         return [], errors
 
-    direct_deps = parse_manifest_deps(filter_on_marked_lines(parsed_manifest))
+    direct_deps = (
+        set()
+        if not parsed_manifest
+        else parse_manifest_deps(filter_on_marked_lines(parsed_manifest))
+    )
     lockfile_json = parsed_lockfile.as_dict()
     lockfile_version = lockfile_json.get("version")
     if lockfile_version is None:
