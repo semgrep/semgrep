@@ -53,7 +53,7 @@ local action_lint_job(checkout_steps) = {
       },
     },
     {
-      run: 'go install github.com/rhysd/actionlint/cmd/actionlint@v1.6.25',
+      run: 'go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7',
     },
     {
       run: "actionlint -shellcheck=''",

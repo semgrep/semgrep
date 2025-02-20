@@ -9,7 +9,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.19"
-      - run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.6.25
+      - run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
       - run: actionlint -shellcheck=''
   jsonnet-gha:
     runs-on: ubuntu-latest
