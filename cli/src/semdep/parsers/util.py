@@ -454,6 +454,9 @@ class JSON:
     def as_int(self) -> int:
         return cast(int, self.value)
 
+    def is_null(self) -> bool:
+        return self.value is None
+
 
 # Utilities
 whitespace = regex(r"\s*")

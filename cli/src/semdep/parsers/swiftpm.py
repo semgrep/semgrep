@@ -116,7 +116,7 @@ def parse_swiftpm_v2_v3(
     lockfile: Dict[str, JSON],
     direct_deps: Set[str],
     manifest_path: Optional[Path],
-) -> List[FoundDependency]:
+) -> tuple[List[FoundDependency], List[DependencyParserError]]:
     """
     Parse a SwiftPM Package.resolved file of version 2 or version 3. The only difference between v2
     and v3 is a single 'originHash' field that is used as a performance optimization in SwiftPM and that
@@ -126,10 +126,16 @@ def parse_swiftpm_v2_v3(
     for the source code defining V2 and V3 to see the difference. The PR that introduced V3 can be found at https://github.com/swiftlang/swift-package-manager/pull/6698
     """
     result = []
-
+    errors = []
     deps = lockfile.get("pins")
     if deps is None:
-        return []
+        return [], [
+            DependencyParserError(
+                out.Fpath(str(lockfile_path)),
+                ScaParserName(out.PPackageResolved()),
+                "Package.resolved v2/v3 file missing pins field",
+            )
+        ]
     for dep_json in deps.as_list():
         fields = dep_json.as_dict()
         if fields is None:
@@ -137,17 +143,40 @@ def parse_swiftpm_v2_v3(
 
         package = fields.get("identity")
         if package is None:
+            errors.append(
+                DependencyParserError(
+                    out.Fpath(str(lockfile_path)),
+                    ScaParserName(out.PPackageResolved()),
+                    "Package.resolved v2/v3 pin missing identity field",
+                )
+            )
             continue
         package_name = package.as_str().lower()
         repository_url = fields.get("location")
 
         state = fields.get("state")
         if state is None:
+            errors.append(
+                DependencyParserError(
+                    out.Fpath(str(lockfile_path)),
+                    ScaParserName(out.PPackageResolved()),
+                    "Package.resolved v2/v3 pin missing state field",
+                )
+            )
             continue
 
         state_dict = state.as_dict()
         version = state_dict.get("version")
-        if version is None:
+        # If there's no version field, or the version field is `null`
+        # we skip this dependency
+        if version is None or version.is_null():
+            errors.append(
+                DependencyParserError(
+                    out.Fpath(str(lockfile_path)),
+                    ScaParserName(out.PPackageResolved()),
+                    f"Unable to determine version of dependency - {package_name} - skipping. This may be because the dependency is pinned to an unreleased commit.",
+                )
+            )
             continue
 
         revision = state_dict.get("revision")
@@ -167,7 +196,7 @@ def parse_swiftpm_v2_v3(
             )
         )
 
-    return result
+    return result, errors
 
 
 def parse_swiftpm_v1(
@@ -175,19 +204,41 @@ def parse_swiftpm_v1(
     lockfile: Dict[str, JSON],
     direct_deps: Set[str],
     manifest_path: Optional[Path],
-) -> List[FoundDependency]:
+) -> tuple[List[FoundDependency], List[DependencyParserError]]:
     result = []
+    errors = []
 
     obj = lockfile.get("object")
     if obj is None:
-        return []
+        return [], [
+            DependencyParserError(
+                out.Fpath(str(lockfile_path)),
+                ScaParserName(out.PPackageResolved()),
+                "Package.resolved v1 file missing object field",
+            )
+        ]
     deps = obj.as_dict().get("pins")
     if deps is None:
-        return []
+        return [], [
+            DependencyParserError(
+                out.Fpath(str(lockfile_path)),
+                ScaParserName(out.PPackageResolved()),
+                "Package.resolved v1 file missing pins field",
+                line=obj.line_number,
+            )
+        ]
     for dep_json in deps.as_list():
         fields = dep_json.as_dict()
         package = fields.get("package")
         if package is None:
+            errors.append(
+                DependencyParserError(
+                    out.Fpath(str(lockfile_path)),
+                    ScaParserName(out.PPackageResolved()),
+                    "Package.resolved v1 pin missing package field",
+                    line=dep_json.line_number,
+                )
+            )
             continue
 
         package_name = package.as_str().lower()
@@ -195,11 +246,29 @@ def parse_swiftpm_v1(
 
         state = fields.get("state")
         if state is None:
+            errors.append(
+                DependencyParserError(
+                    out.Fpath(str(lockfile_path)),
+                    ScaParserName(out.PPackageResolved()),
+                    "Package.resolved v1 pin missing state field",
+                    line=dep_json.line_number,
+                )
+            )
             continue
 
         state_dict = state.as_dict()
         version = state_dict.get("version")
-        if version is None:
+        # If there's no version field, or the version field is `null`
+        # we skip this dependency
+        if version is None or version.is_null():
+            errors.append(
+                DependencyParserError(
+                    out.Fpath(str(lockfile_path)),
+                    ScaParserName(out.PPackageResolved()),
+                    f"Unable to determine version of dependency - {package_name} - skipping. This may be because the dependency is pinned to an unreleased commit.",
+                    line=version.line_number if version is not None else None,
+                )
+            )
             continue
 
         revision = state_dict.get("revision")
@@ -219,7 +288,7 @@ def parse_swiftpm_v1(
             )
         )
 
-    return result
+    return (result, errors)
 
 
 def parse_manifest_deps(manifest: List[Tuple]) -> Set[str]:
@@ -263,16 +332,18 @@ def parse_package_resolved(
     if not lockfile_version_int:
         return [], errors
 
-    all_deps = []
     if lockfile_version_int == 1:
-        all_deps = parse_swiftpm_v1(
+        all_deps, new_errors = parse_swiftpm_v1(
             lockfile_path, lockfile_json, direct_deps, manifest_path
         )
+        errors.extend(new_errors)
     elif lockfile_version_int == 2 or lockfile_version_int == 3:
-        all_deps = parse_swiftpm_v2_v3(
+        all_deps, new_errors = parse_swiftpm_v2_v3(
             lockfile_path, lockfile_json, direct_deps, manifest_path
         )
+        errors.extend(new_errors)
     else:
+        all_deps = []
         errors.append(
             DependencyParserError(
                 out.Fpath(str(lockfile_path)),

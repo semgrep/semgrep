@@ -5,9 +5,12 @@ import pytest
 
 from semdep.parsers import swiftpm
 from semdep.parsers.util import json_doc
+from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
+from semgrep.semgrep_interfaces.semgrep_output_v1 import PPackageResolved
+from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import SwiftPM
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
@@ -271,6 +274,7 @@ def test_swift_dependencies_block_parser():
 @pytest.mark.quick
 def test_swift_lockfile_v1_parser():
     lockfile_path = Path("test/fixtures/swiftpm-lock-v1/Package.resolved")
+    # The final package has no version, so we ignore it, since we have no way to do version comparison on it
     lockfile_v1 = json_doc.parse(
         """
     {
@@ -293,6 +297,15 @@ def test_swift_lockfile_v1_parser():
               "revision": "afd4553a4db6f656521cfe9b1f70bece2748c7d8",
               "version": "5.0.2"
             }
+          },
+          {
+          "package": "Stencil",
+          "repositoryURL": "https://github.com/stencilproject/Stencil.git",
+          "state": {
+              "branch": null,
+              "revision": "9c3468e300ba75ede0d7eb4c495897e0ac3591c3",
+              "version": null
+            }
           }
         ]
       },
@@ -301,7 +314,7 @@ def test_swift_lockfile_v1_parser():
     """
     ).as_dict()
 
-    found_deps = swiftpm.parse_swiftpm_v1(
+    found_deps, errors = swiftpm.parse_swiftpm_v1(
         lockfile_path, lockfile_v1, {""}, manifest_path=None
     )
     expected_deps = [
@@ -330,8 +343,21 @@ def test_swift_lockfile_v1_parser():
             manifest_path=None,
         ),
     ]
+    expected_errors = [
+        DependencyParserError(
+            path=Fpath(
+                value="test/fixtures/swiftpm-lock-v1/Package.resolved",
+            ),
+            parser=ScaParserName(
+                value=PPackageResolved(),
+            ),
+            reason="Unable to determine version of dependency - stencil - skipping. This may be because the dependency is pinned to an unreleased commit.",
+            line=29,
+        ),
+    ]
 
     assert found_deps == expected_deps
+    assert errors == expected_errors
 
 
 @pytest.mark.no_semgrep_cli
@@ -339,6 +365,7 @@ def test_swift_lockfile_v1_parser():
 @pytest.mark.quick
 def test_swift_lockfile_v2_parser():
     lockfile_path = Path("test/fixtures/swiftpm-lock-v2/Package.resolved")
+    # The final package has no version, so we ignore it, since we have no way to do version comparison on it
     lockfile_v2 = json_doc.parse(
         """
     {
@@ -359,15 +386,24 @@ def test_swift_lockfile_v2_parser():
           "state" : {
             "revision" : "770249dcb7259c486f2d68c164091b115ccb765f",
             "version" : "2.2.1"
+            }
+          },
+          {
+          "identity": "Stencil",
+          "kind": "remoteSourceControl",
+          "location": "https://github.com/stencilproject/Stencil.git",
+          "state": {
+              "revision": "9c3468e300ba75ede0d7eb4c495897e0ac3591c3",
+              "version": null
+            }
           }
-        }
       ],
-      "version": 1
+      "version": 2
     }
     """
     ).as_dict()
 
-    found_deps = swiftpm.parse_swiftpm_v2_v3(
+    found_deps, errors = swiftpm.parse_swiftpm_v2_v3(
         lockfile_path, lockfile_v2, {""}, manifest_path=None
     )
     expected_deps = [
@@ -397,4 +433,20 @@ def test_swift_lockfile_v2_parser():
         ),
     ]
 
+    expected_errors = [
+        DependencyParserError(
+            path=Fpath(
+                value="test/fixtures/swiftpm-lock-v2/Package.resolved",
+            ),
+            parser=ScaParserName(
+                value=PPackageResolved(),
+            ),
+            reason="Unable to determine version of dependency - stencil - skipping. This may be because the dependency is pinned to an unreleased commit.",
+            line=None,
+            col=None,
+            text=None,
+        ),
+    ]
+
     assert found_deps == expected_deps
+    assert errors == expected_errors
