@@ -183,7 +183,7 @@ local release_setup_job = {
     'check-version',
     'check-semgrep-pro',
   ],
-  'runs-on': 'ubuntu-20.04',
+  'runs-on': 'ubuntu-24.04',
   outputs: {
     // other jobs can refer to this output via 'pr_number' constant above
     'pr-number': '${{ steps.open-pr.outputs.pr-number }}',
@@ -250,7 +250,7 @@ local release_setup_job = {
 };
 
 local wait_for_pr_checks_job = {
-  'runs-on': 'ubuntu-20.04',
+  'runs-on': 'ubuntu-24.04',
   needs: [
     'check-version',
     'check-semgrep-pro',
@@ -276,7 +276,7 @@ local wait_for_pr_checks_job = {
 } + unless_dry_run;
 
 local create_tag_job = {
-  'runs-on': 'ubuntu-20.04',
+  'runs-on': 'ubuntu-24.04',
   needs: [
     'check-version',
     'check-semgrep-pro',
@@ -322,7 +322,7 @@ local create_tag_job = {
 } + unless_dry_run;
 
 local create_draft_release_job = {
-  'runs-on': 'ubuntu-20.04',
+  'runs-on': 'ubuntu-24.04',
   needs: [
     'check-version',
     'release-setup',
@@ -373,7 +373,7 @@ local create_draft_release_job = {
 
 // similar to wait_for_pr_checks_job
 local wait_for_release_checks_job = {
-  'runs-on': 'ubuntu-20.04',
+  'runs-on': 'ubuntu-24.04',
   needs: [
     'release-setup',
     'wait-for-pr-checks',
@@ -427,7 +427,7 @@ local notify_success_job = {
     'bump-semgrep-vscode',
     'bump-semgrep-intellij',
   ],
-  'runs-on': 'ubuntu-20.04',
+  'runs-on': 'ubuntu-24.04',
   env: {
     VERSION: version,
   },

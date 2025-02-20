@@ -12,7 +12,7 @@ local semgrep = import 'libs/semgrep.libsonnet';
 // ----------------------------------------------------------------------------
 
 local mk_job(steps) = {
-  'runs-on': 'ubuntu-20.04',
+  'runs-on': 'ubuntu-24.04',
   container: {
     // We're dogfooding the canary here!
     image: 'semgrep/semgrep:canary',

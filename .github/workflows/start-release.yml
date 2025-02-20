@@ -213,7 +213,7 @@ jobs:
       - release-setup
       - create-tag
       - wait-for-pr-checks
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - env:
           EXPIRATION: 600
@@ -262,7 +262,7 @@ jobs:
       - check-semgrep-pro
       - release-setup
       - wait-for-pr-checks
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - env:
           EXPIRATION: 600
@@ -341,7 +341,7 @@ jobs:
       - bump-semgrep-app
       - bump-semgrep-vscode
       - bump-semgrep-intellij
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - run: echo "${VERSION}"
       - env:
@@ -368,7 +368,7 @@ jobs:
       - check-semgrep-pro
     outputs:
       pr-number: ${{ steps.open-pr.outputs.pr-number }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - env:
           EXPIRATION: 600
@@ -452,7 +452,7 @@ jobs:
       - release-setup
     outputs:
       num-checks: ${{ steps.num-checks.outputs.num-checks }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -485,7 +485,7 @@ jobs:
       - release-setup
       - wait-for-pr-checks
       - create-tag
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
