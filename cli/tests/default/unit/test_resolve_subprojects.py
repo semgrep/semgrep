@@ -269,7 +269,7 @@ def test_ptt_unconditional_graph_generation_falls_back_on_lockfile_parsing(
     assert deps is not None
     assert deps[0] == out.ResolutionMethod(out.LockfileParsing())
     assert len(deps[1]) == 1
-    assert deps[1][0].package == "requests"
+    assert deps[1][0][0].package == "requests"
 
     mock_parse_requirements.mock_assert_called_once_with(
         Path(tmp_path / "requirements.txt"), Path(tmp_path / "requirements.in")

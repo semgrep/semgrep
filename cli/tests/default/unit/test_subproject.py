@@ -53,7 +53,7 @@ class TestFindClosestSubproject:
                     )
                 ),
             ),
-            found_dependencies=ResolvedDependencies.from_found_dependencies([]),
+            found_dependencies=ResolvedDependencies.from_atd_dependencies([]),
             ecosystem=Ecosystem(Pypi()),
             resolution_method=out.ResolutionMethod(out.LockfileParsing()),
         )
@@ -75,7 +75,7 @@ class TestFindClosestSubproject:
                         )
                     ),
                 ),
-                found_dependencies=ResolvedDependencies.from_found_dependencies([]),
+                found_dependencies=ResolvedDependencies.from_atd_dependencies([]),
                 ecosystem=Ecosystem(Pypi()),
                 resolution_method=out.ResolutionMethod(out.LockfileParsing()),
             )
@@ -114,7 +114,7 @@ class TestFindClosestSubproject:
                     )
                 ),
             ),
-            found_dependencies=ResolvedDependencies.from_found_dependencies([]),
+            found_dependencies=ResolvedDependencies.from_atd_dependencies([]),
             ecosystem=Ecosystem(Maven()),
             resolution_method=out.ResolutionMethod(out.LockfileParsing()),
         )
@@ -136,7 +136,7 @@ class TestFindClosestSubproject:
                         )
                     ),
                 ),
-                found_dependencies=ResolvedDependencies.from_found_dependencies([]),
+                found_dependencies=ResolvedDependencies.from_atd_dependencies([]),
                 ecosystem=Ecosystem(Pypi()),
                 resolution_method=out.ResolutionMethod(out.LockfileParsing()),
             )
@@ -154,14 +154,17 @@ class TestSubproject:
         "lockfile_path", [Path("a/b/c/requirements.txt"), Path("requirements.txt")]
     )
     def test_base_case(self, lockfile_path: Path):
-        found_dependencies = [
-            FoundDependency(
-                package="requests",
-                version="2.26.0",
-                ecosystem=Ecosystem(Pypi()),
-                allowed_hashes={},
-                transitivity=Transitivity(Unknown()),
-                lockfile_path=Fpath(str(lockfile_path)),
+        atd_dependencies = [
+            (
+                FoundDependency(
+                    package="requests",
+                    version="2.26.0",
+                    ecosystem=Ecosystem(Pypi()),
+                    allowed_hashes={},
+                    transitivity=Transitivity(Unknown()),
+                    lockfile_path=Fpath(str(lockfile_path)),
+                ),
+                None,
             )
         ]
 
@@ -184,8 +187,8 @@ class TestSubproject:
             ),
             resolution_method=out.ResolutionMethod(out.LockfileParsing()),
             ecosystem=Ecosystem(Pypi()),
-            found_dependencies=ResolvedDependencies.from_found_dependencies(
-                found_dependencies
+            found_dependencies=ResolvedDependencies.from_atd_dependencies(
+                atd_dependencies
             ),
         )
         (
@@ -194,7 +197,7 @@ class TestSubproject:
         ) = subproject.found_dependencies.make_dependencies_by_source_path()
         assert len(unknown_lockfile_deps) == 0
         assert lockfile_dep_map == {
-            str(lockfile_path): found_dependencies
+            str(lockfile_path): [d[0] for d in atd_dependencies]
         }, "Should return mapping of lockfile path to dependencies"
 
         assert get_display_paths(subproject.dependency_source) == [
@@ -205,22 +208,28 @@ class TestSubproject:
     def test_multiple_lockfiles(self):
         lockfile_path = Path("a/b/c/requirements/base.txt")
         extra_lockfile_path = Path("a/b/requirements/dev.txt")
-        found_dependencies = [
-            FoundDependency(
-                package="requests",
-                version="2.26.0",
-                ecosystem=Ecosystem(Pypi()),
-                allowed_hashes={},
-                transitivity=Transitivity(Unknown()),
-                lockfile_path=Fpath(str(lockfile_path)),
+        atd_dependencies = [
+            (
+                FoundDependency(
+                    package="requests",
+                    version="2.26.0",
+                    ecosystem=Ecosystem(Pypi()),
+                    allowed_hashes={},
+                    transitivity=Transitivity(Unknown()),
+                    lockfile_path=Fpath(str(lockfile_path)),
+                ),
+                None,
             ),
-            FoundDependency(
-                package="flask",
-                version="2.0.0",
-                ecosystem=Ecosystem(Pypi()),
-                allowed_hashes={},
-                transitivity=Transitivity(Unknown()),
-                lockfile_path=Fpath(str(extra_lockfile_path)),
+            (
+                FoundDependency(
+                    package="flask",
+                    version="2.0.0",
+                    ecosystem=Ecosystem(Pypi()),
+                    allowed_hashes={},
+                    transitivity=Transitivity(Unknown()),
+                    lockfile_path=Fpath(str(extra_lockfile_path)),
+                ),
+                None,
             ),
         ]
 
@@ -253,8 +262,8 @@ class TestSubproject:
             dependency_source=multi_lockfile_source,
             ecosystem=Ecosystem(Pypi()),
             resolution_method=out.ResolutionMethod(out.LockfileParsing()),
-            found_dependencies=ResolvedDependencies.from_found_dependencies(
-                found_dependencies
+            found_dependencies=ResolvedDependencies.from_atd_dependencies(
+                atd_dependencies
             ),
         )
 
@@ -263,8 +272,8 @@ class TestSubproject:
             unknown_lockfile_deps,
         ) = subproject.found_dependencies.make_dependencies_by_source_path()
         assert len(unknown_lockfile_deps) == 0
-        assert lockfile_deps_map[str(lockfile_path)][0] == found_dependencies[0]
-        assert lockfile_deps_map[str(extra_lockfile_path)][0] == found_dependencies[1]
+        assert lockfile_deps_map[str(lockfile_path)][0] == atd_dependencies[0][0]
+        assert lockfile_deps_map[str(extra_lockfile_path)][0] == atd_dependencies[1][0]
 
         assert get_display_paths(subproject.dependency_source) == [
             lockfile_path,
@@ -274,13 +283,16 @@ class TestSubproject:
     @pytest.mark.quick
     def test_dep_missing_lockfile_path(self):
         lockfile_path = Path("requirements.txt")
-        found_dependencies = [
-            FoundDependency(
-                package="requests",
-                version="2.26.0",
-                ecosystem=Ecosystem(Pypi()),
-                allowed_hashes={},
-                transitivity=Transitivity(Unknown()),
+        atd_dependencies = [
+            (
+                FoundDependency(
+                    package="requests",
+                    version="2.26.0",
+                    ecosystem=Ecosystem(Pypi()),
+                    allowed_hashes={},
+                    transitivity=Transitivity(Unknown()),
+                ),
+                None,
             )
         ]
 
@@ -303,8 +315,8 @@ class TestSubproject:
             ),
             resolution_method=out.ResolutionMethod(out.LockfileParsing()),
             ecosystem=Ecosystem(Pypi()),
-            found_dependencies=ResolvedDependencies.from_found_dependencies(
-                found_dependencies
+            found_dependencies=ResolvedDependencies.from_atd_dependencies(
+                atd_dependencies
             ),
         )
 
@@ -366,7 +378,7 @@ class TestResolvedSubproject:
             dependency_source=dependency_source,
             resolution_method=out.ResolutionMethod(out.LockfileParsing()),
             ecosystem=ecosystem,
-            found_dependencies=ResolvedDependencies.from_found_dependencies([]),
+            found_dependencies=ResolvedDependencies.from_atd_dependencies([]),
         )
 
         subproject_id = hashlib.sha256(str(lockfile_path).encode("utf-8")).hexdigest()

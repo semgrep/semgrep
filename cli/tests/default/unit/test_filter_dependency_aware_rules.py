@@ -81,26 +81,32 @@ def sample_rules():
 @pytest.fixture
 def sample_resolved_deps():
     # Accurate found_dependencies for protobuf and test packages, including empty allowed_hashes
-    found_dependencies = [
-        FoundDependency(
-            package="protobuf",
-            version="3.14.0",
-            ecosystem=Ecosystem(value=Pypi()),
-            allowed_hashes=defaultdict(list),  # Empty allowed_hashes
-            transitivity=Transitivity("Direct"),
-            resolved_url=None,
-            children=None,
-            git_ref=None,
+    atd_dependencies = [
+        (
+            FoundDependency(
+                package="protobuf",
+                version="3.14.0",
+                ecosystem=Ecosystem(value=Pypi()),
+                allowed_hashes=defaultdict(list),  # Empty allowed_hashes
+                transitivity=Transitivity("Direct"),
+                resolved_url=None,
+                children=None,
+                git_ref=None,
+            ),
+            None,
         ),
-        FoundDependency(
-            package="test",
-            version="1.16.0",
-            ecosystem=Ecosystem(value=Pypi()),
-            allowed_hashes=defaultdict(list),  # Empty allowed_hashes
-            transitivity=Transitivity("Direct"),
-            resolved_url=None,
-            children=None,
-            git_ref=None,
+        (
+            FoundDependency(
+                package="test",
+                version="1.16.0",
+                ecosystem=Ecosystem(value=Pypi()),
+                allowed_hashes=defaultdict(list),  # Empty allowed_hashes
+                transitivity=Transitivity("Direct"),
+                resolved_url=None,
+                children=None,
+                git_ref=None,
+            ),
+            None,
         ),
     ]
 
@@ -128,7 +134,7 @@ def sample_resolved_deps():
             ),
             resolution_errors=[],
             resolution_method=resolution_method,
-            found_dependencies=found_dependencies,
+            atd_dependencies=atd_dependencies,
             ecosystem=Ecosystem(value=Pypi()),
         )
     ]

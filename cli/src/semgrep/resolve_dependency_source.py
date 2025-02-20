@@ -30,8 +30,8 @@ from semdep.parsers.util import to_parser
 from semdep.parsers.yarn import parse_yarn
 from semgrep.rpc_call import resolve_dependencies
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
-from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.subproject import get_display_paths
+from semgrep.subproject import ResolvedDependency
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -88,7 +88,7 @@ PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS = [
 ]
 
 DependencyResolutionResult = Tuple[
-    Optional[Tuple[out.ResolutionMethod, List[FoundDependency]]],
+    Optional[Tuple[out.ResolutionMethod, List[ResolvedDependency]]],
     Sequence[Union[DependencyParserError, out.ScaResolutionError]],
     List[Path],
 ]
@@ -135,7 +135,7 @@ def _resolve_dependencies_rpc(
         out.LockfileOnlyDependencySource,
     ]
 ) -> Tuple[
-    Optional[List[FoundDependency]],
+    Optional[List[ResolvedDependency]],
     Sequence[out.ScaResolutionError],
     List[Path],
 ]:
@@ -220,7 +220,7 @@ def _handle_multi_lockfile_source(
     ptt_enabled: bool,
 ) -> DependencyResolutionResult:
     """Handle dependency resolution for sources with multiple lockfiles."""
-    all_resolved_deps: List[FoundDependency] = []
+    all_resolved_deps: List[ResolvedDependency] = []
     all_parse_errors: List[Union[DependencyParserError, out.ScaResolutionError]] = []
     all_dep_targets: List[Path] = []
 
@@ -336,7 +336,10 @@ def _handle_lockfile_source(
     resolved_deps, parse_errors = parser(lockfile_path, manifest_path)
 
     return (
-        (out.ResolutionMethod(out.LockfileParsing()), resolved_deps),
+        (
+            out.ResolutionMethod(out.LockfileParsing()),
+            [(fd, None) for fd in resolved_deps],
+        ),
         parse_errors,
         [lockfile_path],
     )
@@ -349,7 +352,7 @@ def resolve_dependency_source(
 ) -> DependencyResolutionResult:
     """
     Resolve the dependencies in the dependency source. Returns:
-    - The list of FoundDependency objects that were resolved
+    - The list of ResolvedDependency objects that were resolved
     - The list of dependency parser errors encountered
     - The list of paths that should be considered dependency targets
     """

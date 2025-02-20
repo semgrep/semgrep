@@ -85,6 +85,9 @@ def to_stats_output(dep: out.DependencySource) -> List[out.DependencySourceFile]
         raise TypeError(f"Unexpected dependency_source variant: {type(ds)}")
 
 
+ResolvedDependency = Tuple[out.FoundDependency, Optional[out.DownloadedDependency]]
+
+
 @dataclass(frozen=True)
 class ResolvedDependencies:
     # We use this mapping to efficiently find child dependencies from a
@@ -92,31 +95,35 @@ class ResolvedDependencies:
     # package/version pair because a package might come from multiple places
     # in a lockfile
     _dependencies_by_package_version_pair: Dict[
-        out.DependencyChild, List[out.FoundDependency]
+        out.DependencyChild, List[ResolvedDependency]
     ]
 
     @classmethod
     def from_resolved_interfaces(
         cls, resolved: out.ResolutionOk
     ) -> "ResolvedDependencies":
-        return cls.from_found_dependencies(resolved.value[0])
+        return cls.from_atd_dependencies(resolved.value[0])
 
     @classmethod
-    def from_found_dependencies(
-        cls, found_deps: List[out.FoundDependency]
+    def from_atd_dependencies(
+        cls, atd_deps: List[ResolvedDependency]
     ) -> "ResolvedDependencies":
-        mapping: Dict[out.DependencyChild, List[out.FoundDependency]] = {}
-        for dep in found_deps:
+        mapping: Dict[out.DependencyChild, List[ResolvedDependency]] = {}
+        for dep, downloaded_dep in atd_deps:
             k = out.DependencyChild(dep.package, dep.version)
             if k not in mapping:
                 mapping[k] = []
-            mapping[k].append(dep)
+            mapping[k].append((dep, downloaded_dep))
         return cls(mapping)
 
-    def iter_found_dependencies(self) -> Generator[out.FoundDependency, None, None]:
+    def iter_dependencies(self) -> Generator[ResolvedDependency, None, None]:
         for dep_group in self._dependencies_by_package_version_pair.values():
             for dep in dep_group:
                 yield dep
+
+    def iter_found_dependencies(self) -> Generator[out.FoundDependency, None, None]:
+        for found_dep, _ in self.iter_dependencies():
+            yield found_dep
 
     def make_dependencies_by_source_path(
         self,
@@ -144,7 +151,7 @@ class ResolvedDependencies:
         """
 
         def pretty_print_dependency(
-            dep: out.FoundDependency,
+            dep: ResolvedDependency,
             indent: int = 0,
             already_printed: Optional[Set[out.DependencyChild]] = None,
         ) -> Set[out.DependencyChild]:
@@ -154,17 +161,24 @@ class ResolvedDependencies:
             if already_printed is None:
                 already_printed = set()
 
-            print(f"{' '*indent*2}- {dep.package}@{dep.version}")
+            found_dep, _ = dep
+
+            print(f"{' '*indent*2}- {found_dep.package}@{found_dep.version}")
 
             # if we already printed this dependency once, don't print its children again.
             # depends on mutation of already_printed in child calls to avoid re-printing
-            if out.DependencyChild(dep.package, dep.version) in already_printed:
+            if (
+                out.DependencyChild(found_dep.package, found_dep.version)
+                in already_printed
+            ):
                 print(f"{' '*2*(indent + 1)} (already printed)")
                 return already_printed
-            already_printed.add(out.DependencyChild(dep.package, dep.version))
+            already_printed.add(
+                out.DependencyChild(found_dep.package, found_dep.version)
+            )
 
-            if dep.children is not None:
-                for child in dep.children:
+            if found_dep.children is not None:
+                for child in found_dep.children:
                     # always take the first child dependencies - we don't care to disambiguate
                     # between deps that have the same package and version
                     child_dep = self._dependencies_by_package_version_pair[child][0]
@@ -177,8 +191,8 @@ class ResolvedDependencies:
         print("Direct dependencies (plus children if available)")
         directs = [
             dep
-            for dep in self.iter_found_dependencies()
-            if dep.transitivity == out.Transitivity(out.Direct())
+            for dep in self.iter_dependencies()
+            if dep[0].transitivity == out.Transitivity(out.Direct())
         ]
         printed_in_graph: set[out.DependencyChild] = set()
         for direct in directs:
@@ -189,28 +203,28 @@ class ResolvedDependencies:
             dep
             for package_version_pair, dep_group in self._dependencies_by_package_version_pair.items()
             for dep in dep_group
-            if dep.transitivity == out.Transitivity(out.Transitive())
+            if dep[0].transitivity == out.Transitivity(out.Transitive())
             and package_version_pair not in printed_in_graph
         ]
         unknown = [
             dep
             for package_version_pair, dep_group in self._dependencies_by_package_version_pair.items()
             for dep in dep_group
-            if dep.transitivity == out.Transitivity(out.Unknown())
+            if dep[0].transitivity == out.Transitivity(out.Unknown())
             and package_version_pair not in printed_in_graph
         ]
         print("other transitives:")
         for dependency in transitives:
-            print(f"- {dependency.package}@{dependency.version}")
+            print(f"- {dependency[0].package}@{dependency[0].version}")
         print("other unknown transitivity:")
         for dependency in unknown:
-            print(f"- {dependency.package}@{dependency.version}")
+            print(f"- {dependency[0].package}@{dependency[0].version}")
 
     def count(self) -> int:
         """
         Count the number of dependencies
         """
-        return sum(1 for _ in self.iter_found_dependencies())
+        return sum(1 for _ in self.iter_dependencies())
 
 
 @dataclass(frozen=True, order=True)
@@ -323,7 +337,7 @@ class ResolvedSubproject(Subproject):
         resolution_errors: Sequence[
             Union[out.DependencyParserError, out.ScaResolutionError]
         ],
-        found_dependencies: List[out.FoundDependency],
+        atd_dependencies: List[ResolvedDependency],
         ecosystem: out.Ecosystem,
     ) -> "ResolvedSubproject":
         """
@@ -336,8 +350,8 @@ class ResolvedSubproject(Subproject):
             dependency_source=unresolved.dependency_source,
             ecosystem=ecosystem,
             resolution_errors=list(resolution_errors),
-            found_dependencies=ResolvedDependencies.from_found_dependencies(
-                found_dependencies
+            found_dependencies=ResolvedDependencies.from_atd_dependencies(
+                atd_dependencies
             ),
             resolution_method=resolution_method,
         )

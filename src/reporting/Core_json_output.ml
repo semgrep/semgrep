@@ -371,6 +371,7 @@ let sca_dependency_to_found_dependency (dep : SCA_dependency.t) :
           url;
           loc = _;
           tokens = _;
+          downloaded_source_path = _;
         } =
     dep
   in

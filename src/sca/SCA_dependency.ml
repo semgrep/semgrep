@@ -10,6 +10,8 @@ type t = {
   (* All the tokens from section of the generic AST we read the dependency from
      So all the tokens inside the range defined by loc *)
   tokens : Tok.t list Lazy.t;
+  (* the location of the dependency source code, if it exists *)
+  downloaded_source_path : Fpath.t option;
 }
 [@@deriving show, eq]
 
