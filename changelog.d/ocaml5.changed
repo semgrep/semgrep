@@ -1,0 +1,1 @@
+Upgrade from OCaml 4.14.0 to OCaml 5.2.1 for our PyPI and Homebrew distributions. Our Docker images have been built with OCaml 5.2.1 since Semgrep 1.107.0.

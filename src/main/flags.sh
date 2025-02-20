@@ -124,8 +124,9 @@ else
             "-lbase_stubs"
             "-lbigstringaf_stubs"
             "-lca_certs_stubs"
-            "-lcamlstr"
+            "-lcamlstrnat"
             "-lcheckseum_c_stubs"
+            "-lcomprmarsh"
             "-lcstruct_stubs"
             "-lctypes_stubs"
             "-lcurl-helper"
@@ -148,16 +149,17 @@ else
             "-lthreadsnat"
             "-ltime_now_stubs"
             "-ltree_sitter_bindings_stubs"
-            "-lunix"
+            "-lunixnat"
             "-lyaml_c_stubs"
             "-lyaml_ffi_stubs"
             "-lzarith"
             "-lcurl"
+
             "$(pkg-config gmp --variable libdir)/libgmp.a"
             "$(pkg-config tree-sitter --variable libdir)/libtree-sitter.a"
             "$(pkg-config libpcre --variable libdir)/libpcre.a"
             "$(pkg-config libpcre2-8 --variable libdir)/libpcre2-8.a"
-            "-lpthread")
+            "$(brew --prefix zstd)/lib/libzstd.a")
 
         # Libev does not support pkg-config. See, e.g.,
         # <https://www.mail-archive.com/libev@lists.schmorp.de/msg02088.html>,

@@ -36,7 +36,7 @@ jobs:
           python-version: "3.11"
       - uses: ocaml/setup-ocaml@v3
         with:
-          ocaml-compiler: 4.14.0
+          ocaml-compiler: 5.2.1
           opam-pin: false
       - run: opam install -y ocamlformat.0.26.2
       - uses: pre-commit/action@v3.0.0

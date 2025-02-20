@@ -296,7 +296,7 @@ jobs:
         name: Set GHA cache for OPAM in ~/.opam
         uses: actions/cache@v4
         with:
-          key: ${{ runner.os }}-${{ runner.arch }}-v1-opam-4.14.0-${{hashFiles('semgrep.opam')}}
+          key: ${{ runner.os }}-${{ runner.arch }}-v1-opam-5.2.1-${{hashFiles('semgrep.opam')}}
           path: ~/.opam
       - name: Install dependencies
         run: |

@@ -174,7 +174,7 @@ local containers = {
   ocaml_alpine: {
     // used in the build-test-osx-xxx jobs but ideally we should get rid
     // of it and rely on opam.lock for caching issues
-    opam_switch: '4.14.0',
+    opam_switch: '5.2.1',
     job: {
       'runs-on': 'ubuntu-latest',
       container: 'returntocorp/ocaml:alpine-2024-01-18',
@@ -192,7 +192,7 @@ local containers = {
   // more familiar with. It's been cheap to maintain both so far but we could
   // decide to keep just one if it makes things simpler.
   ocaml_ubuntu: {
-    opam_switch: '4.14.0',
+    opam_switch: '5.2.1',
     job: {
       'runs-on': 'ubuntu-latest',
       container: 'returntocorp/ocaml:ubuntu-2024-01-18',
@@ -259,12 +259,12 @@ local slack = {
 
 // default one
 // coupling: with containers above
-local opam_switch = '4.14.0';
+local opam_switch = '5.2.1';
 
 // this must be done after the checkout as opam installs itself
 // locally in the project folder (/home/runner/work/semgrep/semgrep/_opam)
 // coupling: default is above opam_switch
-local opam_setup = function(opam_switch="4.14.0") {
+local opam_setup = function(opam_switch="5.2.1") {
       uses: 'ocaml/setup-ocaml@v3',
       with: {
         'ocaml-compiler': opam_switch,

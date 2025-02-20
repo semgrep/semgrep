@@ -14,8 +14,8 @@ depends: [
   # - scripts/lint-ocaml
   # - .github/workflows/lint.yml and its pre-commit-ocaml job
   "feather" # used by hello_script.ml
-  "ocaml-lsp-server" {= "1.20.1-4.14"} # used by the VSCode extension
-  "earlybird" {= "1.2.1"} # used by the VSCode extension
+  "ocaml-lsp-server" {= "1.20.1"} # used by the VSCode extension
+  "earlybird" {= "1.3.3"} # used by the VSCode extension
   "utop" # used by the various text editors with ocaml support
   # used by libs/python-str-repr/test
   "py"

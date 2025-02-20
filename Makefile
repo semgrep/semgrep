@@ -367,7 +367,8 @@ BREW_DEPS=\
   libev \
   curl \
   coreutils \
-  gettext
+  gettext \
+  zstd
 
 # TODO? why we need those for Windows and not for Linux?
 # The opam "depext" are better handled in Linux?
