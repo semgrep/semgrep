@@ -94,7 +94,7 @@ def upload_symbol_analysis(
 
 
 def transitive_reachability_filter(
-    args: List[out.TransitiveFinding],
+    args: out.TransitiveReachabilityFilterParams,
 ) -> List[out.TransitiveFinding]:
     call = out.FunctionCall(out.CallTransitiveReachabilityFilter(args))
     ret: Optional[out.RetTransitiveReachabilityFilter] = rpc_call(
@@ -103,7 +103,7 @@ def transitive_reachability_filter(
     if ret is None:
         logger.warning("failed to filter transitive findings")
         # return the same findings
-        return args
+        return args.findings
     return ret.value
 
 

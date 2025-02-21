@@ -13,7 +13,15 @@ module Out = Semgrep_output_v1_j
 (* Dispatcher *)
 (*****************************************************************************)
 
-let handle_call (caps : < Cap.exec ; Cap.tmp ; Cap.network >) :
+let handle_call
+    (caps :
+      < Cap.exec
+      ; Cap.tmp
+      ; Cap.network
+      ; Cap.fork
+      ; Cap.readdir
+      ; Cap.memory_limit
+      ; Cap.time_limit >) :
     Out.function_call -> (Out.function_return, string) result = function
   | `CallApplyFixes { dryrun; edits } ->
       let modified_file_count, fixed_lines = RPC_return.autofix dryrun edits in
@@ -70,10 +78,18 @@ let handle_call (caps : < Cap.exec ; Cap.tmp ; Cap.network >) :
           Error
             "Dump rule partitions is a proprietary feature, but semgreep-pro \
              has not been loaded")
-  | `CallTransitiveReachabilityFilter xs -> (
+  | `CallTransitiveReachabilityFilter params -> (
       match !RPC_return.hook_transitive_reachability_filter with
       | Some transitive_reachability_filter ->
-          let xs = transitive_reachability_filter xs in
+          let xs =
+            transitive_reachability_filter
+              (caps
+                :> < Cap.fork
+                   ; Cap.memory_limit
+                   ; Cap.readdir
+                   ; Cap.time_limit >)
+              params
+          in
           Ok (`RetTransitiveReachabilityFilter xs)
       | None ->
           Error
@@ -111,7 +127,15 @@ let write_packet chan str =
   flush chan
 
 (* Blocks until a request comes in, then handles it and sends the result back *)
-let handle_single_request (caps : < Cap.exec ; Cap.tmp ; Cap.network >) =
+let handle_single_request
+    (caps :
+      < Cap.exec
+      ; Cap.tmp
+      ; Cap.network
+      ; Cap.fork
+      ; Cap.readdir
+      ; Cap.memory_limit
+      ; Cap.time_limit >) =
   let res =
     let/ call_str = read_packet stdin in
     let/ call =
@@ -142,7 +166,15 @@ let handle_single_request (caps : < Cap.exec ; Cap.tmp ; Cap.network >) =
 (* Entry point *)
 (*****************************************************************************)
 
-let main (caps : < Cap.exec ; Cap.tmp ; Cap.network >) =
+let main
+    (caps :
+      < Cap.exec
+      ; Cap.tmp
+      ; Cap.network
+      ; Cap.fork
+      ; Cap.readdir
+      ; Cap.memory_limit
+      ; Cap.time_limit >) =
   (* For some requests, such as SARIF formatting, we need to parse rules
    * so we need to init the parsers as well. *)
   Parsing_init.init ();

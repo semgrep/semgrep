@@ -24,7 +24,14 @@ val hook_resolve_dependencies :
   ref
 
 val hook_transitive_reachability_filter :
-  (Out.transitive_finding list -> Out.transitive_finding list) option ref
+  (< fork : Cap.Process.fork
+   ; memory_limit : Cap.Process.memory_limit
+   ; readdir : Cap.FS.readdir
+   ; time_limit : Cap.Process.time_limit > ->
+  Out.transitive_reachability_filter_params ->
+  Out.transitive_finding list)
+  option
+  ref
 
 val hook_dump_rule_partitions :
   (Out.raw_json -> int -> Fpath.t -> bool) option ref

@@ -1,8 +1,11 @@
 import copy
 import dataclasses
+import json
+import os
 from collections import defaultdict
 from functools import lru_cache
 from pathlib import Path
+from tempfile import mkstemp
 from typing import Callable
 from typing import Dict
 from typing import Iterator
@@ -93,6 +96,8 @@ def generate_unreachable_sca_findings(
         for subproject in resolved_deps.get(ecosystem, []):
             deps = list(subproject.found_dependencies.iter_found_dependencies())
 
+            subproject_matches: List[RuleMatch] = []
+
             dependency_matches = list(
                 dependencies_range_match_any(depends_on_entries, list(deps))
             )
@@ -169,17 +174,38 @@ def generate_unreachable_sca_findings(
                     match_based_index=match_based_keys[match.match_based_key],
                 )
                 match_based_keys[match.match_based_key] += 1
-                non_reachable_matches.append(new_rule_match)
+                subproject_matches.append(new_rule_match)
 
-    if x_tr:
-        logger.info(f"SCA TR is on!")
-        transitive_findings = [
-            out.TransitiveFinding(m=rm.match) for rm in non_reachable_matches
-        ]
-        res = rpc_call.transitive_reachability_filter(transitive_findings)
-        logger.info(f"TR result = {res}")
-        # TODO: result is ignored for now but we should reset the
-        # match field of non_reachable_matches and return them
+            if x_tr:
+                logger.info(f"SCA TR is on!")
+                transitive_findings = [
+                    out.TransitiveFinding(m=rm.match) for rm in non_reachable_matches
+                ]
+                fd, rules_tmp_path = mkstemp(
+                    suffix=".rules", prefix="semgrep-", text=True
+                )
+                with os.fdopen(fd, "w") as fp:
+                    fp.write(json.dumps([rule.raw]))
+                tr_filtered_matches = rpc_call.transitive_reachability_filter(
+                    out.TransitiveReachabilityFilterParams(
+                        rules_path=out.Fpath(rules_tmp_path),
+                        findings=transitive_findings,
+                        dependencies=list(
+                            subproject.found_dependencies.iter_dependencies()
+                        ),
+                    )
+                )
+                # TODO: associate these in a more robust way. This currently
+                # depends on the RPC call returning the same matches in the
+                # same order.
+                non_reachable_matches.extend(
+                    [
+                        evolve(rm, match=tm.m)
+                        for rm, tm in zip(subproject_matches, tr_filtered_matches)
+                    ]
+                )
+            else:
+                non_reachable_matches.extend(subproject_matches)
 
     return non_reachable_matches, dep_rule_errors
 

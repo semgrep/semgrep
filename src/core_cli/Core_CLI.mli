@@ -25,7 +25,16 @@ val output_core_results :
 *)
 
 val options :
-  < Cap.exec ; Cap.exit ; Cap.stdout ; Cap.tmp ; Cap.network ; .. > ->
+  < Cap.exec
+  ; Cap.exit
+  ; Cap.stdout
+  ; Cap.tmp
+  ; Cap.fork
+  ; Cap.readdir
+  ; Cap.memory_limit
+  ; Cap.time_limit
+  ; Cap.network
+  ; .. > ->
   (unit -> Arg_.action_spec list) ->
   Arg_.cmdline_options
 
