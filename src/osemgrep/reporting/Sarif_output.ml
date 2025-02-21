@@ -239,8 +239,7 @@ let sarif_fixes (cli_match : Out.cli_match) : Sarif.fix list option =
   in
   Some [ fix ]
 
-let thread_flow_location (_cli_match : Out.cli_match) message
-    (location : Out.location) content nesting_level =
+let thread_flow_location message (location : Out.location) content nesting_level =
   let location =
     Sarif.create_location ~message
       ~physical_location:
@@ -258,7 +257,7 @@ let thread_flow_location (_cli_match : Out.cli_match) message
     ~nesting_level:(Int64.of_int nesting_level)
     ~location ()
 
-let intermediate_var_locations cli_match intermediate_vars =
+let intermediate_var_locations intermediate_vars =
   intermediate_vars
   |> List_.map (fun ({ location; content } : Out.match_intermediate_var) ->
          let propagation_message_text =
@@ -267,8 +266,7 @@ let intermediate_var_locations cli_match intermediate_vars =
              location.start.line
            |> message
          in
-         thread_flow_location cli_match propagation_message_text location
-           content 0)
+         thread_flow_location propagation_message_text location content 0)
 
 let thread_flows (cli_match : Out.cli_match)
     (dataflow_trace : Out.match_dataflow_trace) (location : Out.location)
@@ -282,23 +280,23 @@ let thread_flows (cli_match : Out.cli_match)
         location.start.line
       |> message
     in
-    thread_flow_location cli_match source_message_text location content 0
+    thread_flow_location source_message_text location content 0
   in
   let intermediate_var_locations =
     match intermediate_vars with
     | None -> []
     | Some intermediate_vars ->
-        intermediate_var_locations cli_match intermediate_vars
+        intermediate_var_locations intermediate_vars
   in
   let sink_flow_location =
     let sink_message_text =
       spf "Sink: '%s' @ '%s:%d'"
-        (String.trim cli_match.extra.lines) (* rule_match.get_lines() ?! *)
+        (String.trim cli_match.extra.lines)
         (Fpath.to_string cli_match.path)
         cli_match.start.line
       |> message
     in
-    thread_flow_location cli_match sink_message_text
+    thread_flow_location sink_message_text
       {
         Out.start = cli_match.start;
         end_ = cli_match.end_;
