@@ -26,10 +26,9 @@ def rule_match_to_CliMatch(rule_match: RuleMatch) -> out.CliMatch:
         dataflow_trace=rule_match.dataflow_trace,
         engine_kind=rule_match.match.extra.engine_kind,
         validation_state=rule_match.match.extra.validation_state,
+        sca_info=rule_match.match.extra.sca_match,
     )
 
-    if rule_match.extra.get("sca_info"):
-        extra.sca_info = rule_match.extra.get("sca_info")
     if rule_match.extra.get("fixed_lines"):
         extra.fixed_lines = rule_match.extra.get("fixed_lines")
     if rule_match.fix is not None:

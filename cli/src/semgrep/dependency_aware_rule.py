@@ -1,4 +1,5 @@
 import copy
+import dataclasses
 from collections import defaultdict
 from functools import lru_cache
 from pathlib import Path
@@ -86,7 +87,7 @@ def generate_unreachable_sca_findings(
     depends_on_entries = list(parse_depends_on_yaml(depends_on_keys))
     ecosystems = list(rule.ecosystems)
 
-    non_reachable_matches = []
+    non_reachable_matches: List[RuleMatch] = []
     match_based_keys: Dict[tuple[str, Path, str], int] = defaultdict(int)
     for ecosystem in ecosystems:
         for subproject in resolved_deps.get(ecosystem, []):
@@ -153,11 +154,22 @@ def generate_unreachable_sca_findings(
                     # TODO: remove, sca_info is now part of core_match
                     extra={"sca_info": sca_match},
                 )
-                match = evolve(
-                    match, match_based_index=match_based_keys[match.match_based_key]
+                # TODO: remove sca_info from extra once we migrate to the typed sca_info
+                new_extra = copy.deepcopy(match.extra)
+                new_extra["sca_info"] = sca_match
+                new_rule_match = evolve(
+                    match,
+                    match=dataclasses.replace(
+                        match.match,
+                        extra=dataclasses.replace(
+                            match.match.extra, sca_match=sca_match
+                        ),
+                    ),
+                    extra=new_extra,
+                    match_based_index=match_based_keys[match.match_based_key],
                 )
                 match_based_keys[match.match_based_key] += 1
-                non_reachable_matches.append(match)
+                non_reachable_matches.append(new_rule_match)
 
     if x_tr:
         logger.info(f"SCA TR is on!")
@@ -197,7 +209,7 @@ def generate_reachable_sca_findings(
     ecosystems = list(rule.ecosystems)
 
     # Reachability rule
-    reachable_matches = []
+    reachable_matches: List[RuleMatch] = []
     reachable_deps = set()
     for ecosystem in ecosystems:
         for match in matches:
@@ -247,14 +259,26 @@ def generate_reachable_sca_findings(
                     )
                     # ! deepcopy is necessary here since we might iterate over the
                     # ! same match for multiple dependencies
-                    new_match = copy.deepcopy(match)
-                    new_match.extra["sca_info"] = out.ScaMatch(
+                    sca_match = out.ScaMatch(
                         sca_finding_schema=SCA_FINDING_SCHEMA,
                         reachable=True,
                         reachability_rule=rule.should_run_on_semgrep_core,
                         dependency_match=dep_match,
                     )
-                    reachable_matches.append(new_match)
+                    new_extra = copy.deepcopy(match.extra)
+                    # TODO: remove sca_info from extra once we migrate to the typed sca_info
+                    new_extra["sca_info"] = sca_match
+                    new_rule_match = evolve(
+                        match,
+                        match=dataclasses.replace(
+                            match.match,
+                            extra=dataclasses.replace(
+                                match.match.extra, sca_match=sca_match
+                            ),
+                        ),
+                        extra=new_extra,
+                    )
+                    reachable_matches.append(new_rule_match)
             except SemgrepError as e:
                 dep_rule_errors.append(e)
 
