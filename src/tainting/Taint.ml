@@ -64,7 +64,7 @@ module Log = Log_tainting.Log
 (* Call traces *)
 (*****************************************************************************)
 
-type tainted_token = G.tok [@@deriving show]
+type tainted_token = Loc.t [@@deriving show]
 type tainted_tokens = tainted_token list [@@deriving show]
 type rev_tainted_tokens = tainted_tokens [@@deriving show]
 (* TODO: Given that the analysis is path-insensitive, the trace should capture

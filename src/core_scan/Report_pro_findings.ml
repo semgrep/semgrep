@@ -36,14 +36,19 @@ let is_interprocedural_trace (trace : Taint_trace.t) =
 
 let union3 a b c = FileSet.union a (FileSet.union b c)
 
-let files_of_toks (ts : Taint_trace.pattern_match_tokens) : FileSet.t =
+let files_of_locs (ts : Loc.t list) : FileSet.t =
   ts
   |> List.fold_left
-       (fun acc_files t ->
-         match Tok.loc_of_tok t with
-         | Ok { pos; _ } -> FileSet.add !!(pos.file) acc_files
-         | Error _ -> acc_files)
+       (fun acc_files Loc.{ pos; _ } -> FileSet.add !!(pos.file) acc_files)
        FileSet.empty
+
+let files_of_toks (ts : Taint_trace.pattern_match_tokens) : FileSet.t =
+  ts
+  |> List_.filter_map (fun t ->
+         match Tok.loc_of_tok t with
+         | Ok loc -> Some loc
+         | Error _ -> None)
+  |> files_of_locs
 
 let files_of_trace_item (trace_item : Taint_trace.item) =
   let rec files_of_call_trace (call_trace : Taint_trace.call_trace) =
@@ -59,7 +64,7 @@ let files_of_trace_item (trace_item : Taint_trace.item) =
   union3
     (files_of_call_trace trace_item.source_trace)
     (files_of_call_trace trace_item.sink_trace)
-    (files_of_toks trace_item.tokens)
+    (files_of_locs trace_item.tokens)
 
 let is_interfile_trace (trace : Taint_trace.t) =
   let files_in_trace =

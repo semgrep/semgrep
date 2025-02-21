@@ -9,7 +9,7 @@ module LabelSet : Set.S with type elt = string
 
 (* TODO: Use mutual-rec modules as in 'Shape_and_sig' so we can use 'Taint_set.t`
  *   everywhere it is needed, instead of `taint list`s. *)
-type tainted_token = Tok.t [@@deriving show]
+type tainted_token = Loc.t [@@deriving show]
 
 type tainted_tokens = tainted_token list [@@deriving show]
 (** A list of tokens showing where the taint passed through,

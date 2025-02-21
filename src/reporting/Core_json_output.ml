@@ -264,14 +264,13 @@ let metavars startp_of_match_range (s, mval) =
 let content_of_loc (loc : Out.location) : string =
   OutUtils.content_of_file_at_range (loc.start, loc.end_) loc.path
 
-let token_to_intermediate_var token : Out.match_intermediate_var option =
-  let* location = OutUtils.tokens_to_single_loc [ token ] in
-  Some
-    (Out.{ location; content = content_of_loc location }
-      : Out.match_intermediate_var)
+let token_to_intermediate_var token : Out.match_intermediate_var =
+  let location = OutUtils.location_of_token_location token in
+  (Out.{ location; content = content_of_loc location }
+    : Out.match_intermediate_var)
 
 let tokens_to_intermediate_vars tokens =
-  List_.filter_map token_to_intermediate_var tokens
+  List_.map token_to_intermediate_var tokens
 
 let rec taint_call_trace (trace : Taint_trace.call_trace) :
     Out.match_call_trace option =

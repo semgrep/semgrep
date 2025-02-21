@@ -187,15 +187,18 @@ let add_shape var offset new_taints new_shape
   | Some tainted ->
       let new_taints, new_shape =
         let var_tok = snd var.ident in
-        if Tok.is_fake var_tok then (new_taints, new_shape)
-        else
-          let new_taints =
-            new_taints
-            |> Taints.map (fun t ->
-                   { t with rev_tokens = var_tok :: t.rev_tokens })
-          in
-          let new_shape = Shape.add_tainted_token_to_shape var_tok new_shape in
-          (new_taints, new_shape)
+        match Tok.loc_of_tok var_tok with
+        | Error _ -> (new_taints, new_shape)
+        | Ok var_loc ->
+            let new_taints =
+              new_taints
+              |> Taints.map (fun t ->
+                     { t with rev_tokens = var_loc :: t.rev_tokens })
+            in
+            let new_shape =
+              Shape.add_tainted_token_to_shape var_loc new_shape
+            in
+            (new_taints, new_shape)
       in
       {
         tainted =
