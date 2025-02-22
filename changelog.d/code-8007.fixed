@@ -1,0 +1,12 @@
+PRO: Fix the `range not found` error when using a metavariable pattern match on
+a typed metavariable. For example, the following metavariable pattern rule will
+no longer trigger the error:
+
+```
+patterns:
+  - pattern: ($FOO $VAR).bar()
+  - metavariable-pattern:
+      metavariable: $FOO
+      pattern-either:
+        - pattern: org.foo.Foo
+```
