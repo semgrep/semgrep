@@ -10,7 +10,6 @@ from semgrep.git import BaselineHandler
 from semgrep.resolve_subprojects import filter_changed_subprojects
 from semgrep.rule import Rule
 from semgrep.subproject import get_all_source_files
-from semgrep.subproject import Subproject
 from semgrep.target_manager import TargetManager
 
 EXAMPLE_RULES = [
@@ -31,9 +30,9 @@ EXAMPLE_RULES = [
 
 def make_subproject(
     manifest: Path, lockfile: Path, ecosystem: out.Ecosystem
-) -> Subproject:
-    return Subproject(
-        root_dir=Path(manifest.parent),
+) -> out.Subproject:
+    return out.Subproject(
+        root_dir=out.Fpath(manifest.parent),
         # manifest and lockfile kind don't matter for this test
         dependency_source=out.DependencySource(
             out.ManifestLockfileDependencySource(
@@ -150,7 +149,7 @@ def test_without_baseline(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
 def test_with_baseline__new_code_files(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
-    baseline_subprojects: Dict[str, Subproject],
+    baseline_subprojects: Dict[str, out.Subproject],
     new_filenames: List[Path],
     expected_changed_subprojects: List[str],
 ):
@@ -289,7 +288,7 @@ def test_with_baseline__new_code_files(
 def test_with_baseline__changed_source_files(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
-    baseline_subprojects: Dict[str, Subproject],
+    baseline_subprojects: Dict[str, out.Subproject],
     changed_filenames: List[Path],
     expected_changed_subprojects: List[str],
 ):

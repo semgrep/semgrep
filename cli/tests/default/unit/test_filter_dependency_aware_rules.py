@@ -1,5 +1,4 @@
 from collections import defaultdict
-from pathlib import Path
 
 import pytest
 
@@ -7,13 +6,11 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.rule import Rule
 from semgrep.run_scan import filter_dependency_aware_rules
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ManifestKind
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pipfile
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
-from semgrep.subproject import ResolvedSubproject
-from semgrep.subproject import Subproject
+from semgrep.subproject import from_resolved_dependencies
 
 
 @pytest.fixture
@@ -80,33 +77,38 @@ def sample_rules():
 
 @pytest.fixture
 def sample_resolved_deps():
-    # Accurate found_dependencies for protobuf and test packages, including empty allowed_hashes
-    atd_dependencies = [
-        (
-            FoundDependency(
-                package="protobuf",
-                version="3.14.0",
-                ecosystem=Ecosystem(value=Pypi()),
-                allowed_hashes=defaultdict(list),  # Empty allowed_hashes
-                transitivity=Transitivity("Direct"),
-                resolved_url=None,
-                children=None,
-                git_ref=None,
+    # Accurate found_dependencies for protobuf and test packages, including
+    # empty allowed_hashes
+    resolved_dependencies = [
+        out.ResolvedDependency(
+            (
+                out.FoundDependency(
+                    package="protobuf",
+                    version="3.14.0",
+                    ecosystem=Ecosystem(value=Pypi()),
+                    allowed_hashes=defaultdict(list),  # Empty allowed_hashes
+                    transitivity=Transitivity("Direct"),
+                    resolved_url=None,
+                    children=None,
+                    git_ref=None,
+                ),
+                None,
             ),
-            None,
         ),
-        (
-            FoundDependency(
-                package="test",
-                version="1.16.0",
-                ecosystem=Ecosystem(value=Pypi()),
-                allowed_hashes=defaultdict(list),  # Empty allowed_hashes
-                transitivity=Transitivity("Direct"),
-                resolved_url=None,
-                children=None,
-                git_ref=None,
+        out.ResolvedDependency(
+            (
+                out.FoundDependency(
+                    package="test",
+                    version="1.16.0",
+                    ecosystem=Ecosystem(value=Pypi()),
+                    allowed_hashes=defaultdict(list),  # Empty allowed_hashes
+                    transitivity=Transitivity("Direct"),
+                    resolved_url=None,
+                    children=None,
+                    git_ref=None,
+                ),
+                None,
             ),
-            None,
         ),
     ]
 
@@ -126,15 +128,15 @@ def sample_resolved_deps():
 
     # Create ResolvedSubproject with accurate found_dependencies and resolution_method
     subprojects = [
-        ResolvedSubproject.from_unresolved(
-            unresolved=Subproject(
-                root_dir=Path("."),
+        out.ResolvedSubproject(
+            info=out.Subproject(
+                root_dir=".",
                 dependency_source=dependency_source,
                 ecosystem=Ecosystem(value=Pypi()),
             ),
-            resolution_errors=[],
+            errors=[],
             resolution_method=resolution_method,
-            atd_dependencies=atd_dependencies,
+            resolved_dependencies=from_resolved_dependencies(resolved_dependencies),
             ecosystem=Ecosystem(value=Pypi()),
         )
     ]

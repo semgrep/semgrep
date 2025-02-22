@@ -12,7 +12,6 @@ from typing import Union
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.matchers.base import SubprojectMatcher
-from semgrep.subproject import Subproject
 
 
 @dataclass(frozen=True)
@@ -125,13 +124,13 @@ class PipRequirementsMatcher(SubprojectMatcher):
 
     def make_subprojects(
         self, dep_source_files: FrozenSet[Path]
-    ) -> Tuple[List[Subproject], FrozenSet[Path]]:
+    ) -> Tuple[List[out.Subproject], FrozenSet[Path]]:
         # find all manifests and requirements files that we will use to build subprojects
         manifests, requirements_files = self._filter_manifest_requirements(
             dep_source_files
         )
 
-        subprojects: List[Subproject] = []
+        subprojects: List[out.Subproject] = []
 
         # tracks manifests that were accounted for in the first (requirements-based) phase.
         # These manifests should not be used in the second (manifest-only) phase.
@@ -197,8 +196,8 @@ class PipRequirementsMatcher(SubprojectMatcher):
                 )
 
             subprojects.append(
-                Subproject(
-                    root_dir=root_dir,
+                out.Subproject(
+                    root_dir=out.Fpath(str(root_dir)),
                     dependency_source=dep_source,
                     ecosystem=self.ECOSYSTEM,
                 )

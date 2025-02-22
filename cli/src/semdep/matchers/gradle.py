@@ -8,7 +8,6 @@ from typing import Tuple
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.matchers.base import SubprojectMatcher
-from semgrep.subproject import Subproject
 
 
 @dataclass(frozen=True)
@@ -88,12 +87,12 @@ class GradleMatcher(SubprojectMatcher):
 
     def make_subprojects(
         self, dep_source_files: FrozenSet[Path]
-    ) -> Tuple[List[Subproject], FrozenSet[Path]]:
+    ) -> Tuple[List[out.Subproject], FrozenSet[Path]]:
         settings_files, build_files, lockfiles = self._sort_source_files(
             dep_source_files
         )
 
-        subprojects: List[Subproject] = []
+        subprojects: List[out.Subproject] = []
 
         # as we create each subproject, we will add its root directory here. We will use this later
         # to remove any build.gradle files that are already inside one of the subproject we have created
@@ -137,8 +136,8 @@ class GradleMatcher(SubprojectMatcher):
 
             if manifest is not None:
                 subprojects.append(
-                    Subproject(
-                        root_dir=project_root,
+                    out.Subproject(
+                        root_dir=out.Fpath(str(project_root)),
                         dependency_source=out.DependencySource(
                             out.ManifestLockfileDependencySource((manifest, lockfile))
                         ),
@@ -147,8 +146,8 @@ class GradleMatcher(SubprojectMatcher):
                 )
             else:
                 subprojects.append(
-                    Subproject(
-                        root_dir=project_root,
+                    out.Subproject(
+                        root_dir=out.Fpath(str(project_root)),
                         dependency_source=out.DependencySource(
                             out.LockfileOnlyDependencySource(lockfile)
                         ),
@@ -188,8 +187,8 @@ class GradleMatcher(SubprojectMatcher):
             used_settings_paths.add(settings_path)
 
             subprojects.append(
-                Subproject(
-                    root_dir=project_root,
+                out.Subproject(
+                    root_dir=out.Fpath(str(project_root)),
                     dependency_source=out.DependencySource(
                         out.ManifestOnlyDependencySource(manifest)
                     ),
@@ -213,8 +212,8 @@ class GradleMatcher(SubprojectMatcher):
             # if we make it to here, we have decided that this build.gradle file defines a single-project
             # gradle build, so we should create a subproject from it.
             subprojects.append(
-                Subproject(
-                    root_dir=build_path.parent,
+                out.Subproject(
+                    root_dir=out.Fpath(str(build_path.parent)),
                     dependency_source=out.DependencySource(
                         out.ManifestOnlyDependencySource(
                             out.Manifest(

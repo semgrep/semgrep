@@ -23,7 +23,6 @@ from semgrep.core_runner import Plan
 from semgrep.rule import Rule
 from semgrep.state import DesignTreatment
 from semgrep.state import get_state
-from semgrep.subproject import ResolvedSubproject
 from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
 from semgrep.util import unit_str
@@ -312,7 +311,7 @@ def print_scan_status(
     rules: Sequence[Rule],
     target_manager: TargetManager,
     target_mode_config: TargetModeConfig,
-    sca_subprojects: Dict[out.Ecosystem, List[ResolvedSubproject]],
+    sca_subprojects: Dict[out.Ecosystem, List[out.ResolvedSubproject]],
     dependency_parser_errors: List[out.DependencyParserError],
     *,
     cli_ux: DesignTreatment = DesignTreatment.LEGACY,

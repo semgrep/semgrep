@@ -9,7 +9,6 @@ from semdep.matchers.base import PatternManifestStaticLockfileMatcher
 from semdep.matchers.gradle import GradleMatcher
 from semdep.matchers.pip_requirements import PipRequirementsMatcher
 from semdep.subproject_matchers import filter_dependency_source_files
-from semgrep.subproject import Subproject
 
 
 class TestExactLockfileMatcher:
@@ -71,7 +70,7 @@ class TestExactLockfileMatcher:
         assert used_files == files
         assert len(subprojects) == 1
         subproject = subprojects[0]
-        assert subproject.root_dir == tmp_path
+        assert Path(subproject.root_dir.value) == tmp_path
         dep_src = subproject.dependency_source.value
 
         if create_manifest:
@@ -158,7 +157,7 @@ class TestPatternManifestStaticLockfileMatcher:
                 else dep_src.value[1]
             )
             expected_root, expected_manifest = test_data[Path(lockfile.path.value)]
-            assert subproject.root_dir == expected_root
+            assert Path(subproject.root_dir.value) == expected_root
             if with_manifest:
                 assert isinstance(dep_src, out.ManifestLockfileDependencySource)
                 manifest_path = dep_src.value[0].path
@@ -245,8 +244,8 @@ class TestRequirementsLockfileMatcher:
                     Path("a/b/c/requirements.in"),
                 ],
                 [
-                    Subproject(
-                        root_dir=Path(),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
                             out.ManifestLockfileDependencySource(
                                 (
@@ -263,8 +262,8 @@ class TestRequirementsLockfileMatcher:
                         ),
                         ecosystem=out.Ecosystem(value=out.Pypi()),
                     ),
-                    Subproject(
-                        root_dir=Path("a/b/c"),
+                    out.Subproject(
+                        root_dir=out.Fpath("a/b/c"),
                         dependency_source=out.DependencySource(
                             out.ManifestLockfileDependencySource(
                                 (
@@ -291,8 +290,8 @@ class TestRequirementsLockfileMatcher:
                     Path("a/b/c/requirements.in"),
                 ],
                 [
-                    Subproject(
-                        root_dir=Path(),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
                             out.ManifestLockfileDependencySource(
                                 (
@@ -309,8 +308,8 @@ class TestRequirementsLockfileMatcher:
                         ),
                         ecosystem=out.Ecosystem(value=out.Pypi()),
                     ),
-                    Subproject(
-                        root_dir=Path("a/b/c"),
+                    out.Subproject(
+                        root_dir=out.Fpath("a/b/c"),
                         dependency_source=out.DependencySource(
                             out.ManifestLockfileDependencySource(
                                 (
@@ -336,8 +335,8 @@ class TestRequirementsLockfileMatcher:
                     Path("requirements-prod.txt"),
                 ],
                 [
-                    Subproject(
-                        root_dir=Path(),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
                             out.MultiLockfileDependencySource(
                                 [
@@ -391,8 +390,8 @@ class TestRequirementsLockfileMatcher:
                     Path("prod-requirements.txt"),
                 ],
                 [
-                    Subproject(
-                        root_dir=Path(),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
                             out.MultiLockfileDependencySource(
                                 [
@@ -442,8 +441,8 @@ class TestRequirementsLockfileMatcher:
             (
                 [Path("requirements_lock.txt"), Path("requirements.in")],
                 [
-                    Subproject(
-                        root_dir=Path(),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
                             out.ManifestLockfileDependencySource(
                                 (
@@ -469,8 +468,8 @@ class TestRequirementsLockfileMatcher:
                     Path("requirements/prod.txt"),
                 ],
                 [
-                    Subproject(
-                        root_dir=Path(),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
                             out.MultiLockfileDependencySource(
                                 [
@@ -525,8 +524,8 @@ class TestRequirementsLockfileMatcher:
                     Path("requirements/prod.in"),
                 ],
                 [
-                    Subproject(
-                        root_dir=Path(),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
                             out.MultiLockfileDependencySource(
                                 [
@@ -579,8 +578,8 @@ class TestRequirementsLockfileMatcher:
                     Path("requirements/prod.txt"),
                 ],
                 [
-                    Subproject(
-                        root_dir=Path(),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
                             out.MultiLockfileDependencySource(
                                 [
@@ -615,7 +614,7 @@ class TestRequirementsLockfileMatcher:
     )
     @pytest.mark.quick
     def test_make_subprojects(
-        self, source_files: List[Path], expected_subprojects: List[Subproject]
+        self, source_files: List[Path], expected_subprojects: List[out.Subproject]
     ):
         # with a basic requirements matcher
         matcher = PipRequirementsMatcher(
@@ -675,8 +674,8 @@ class TestGradleMatcher:
                     Path("subdir_b/build.gradle"),
                 ],
                 [
-                    Subproject(
-                        root_dir=Path(),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
                             out.ManifestOnlyDependencySource(
                                 out.Manifest(
@@ -687,8 +686,8 @@ class TestGradleMatcher:
                         ),
                         ecosystem=out.Ecosystem(value=out.Maven()),
                     ),
-                    Subproject(
-                        root_dir=Path("buildSrc"),
+                    out.Subproject(
+                        root_dir=out.Fpath("buildSrc"),
                         dependency_source=out.DependencySource(
                             out.ManifestOnlyDependencySource(
                                 out.Manifest(
@@ -717,8 +716,8 @@ class TestGradleMatcher:
                     Path("subdir_b/build.gradle"),
                 ],
                 [
-                    Subproject(
-                        root_dir=Path(),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
                             out.ManifestLockfileDependencySource(
                                 (
@@ -735,8 +734,8 @@ class TestGradleMatcher:
                         ),
                         ecosystem=out.Ecosystem(value=out.Maven()),
                     ),
-                    Subproject(
-                        root_dir=Path("buildSrc"),
+                    out.Subproject(
+                        root_dir=out.Fpath("buildSrc"),
                         dependency_source=out.DependencySource(
                             out.ManifestOnlyDependencySource(
                                 out.Manifest(
@@ -764,8 +763,8 @@ class TestGradleMatcher:
                     Path("subdir_b/build.gradle"),
                 ],
                 [
-                    Subproject(
-                        root_dir=Path(),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
                             out.ManifestOnlyDependencySource(
                                 out.Manifest(
@@ -776,8 +775,8 @@ class TestGradleMatcher:
                         ),
                         ecosystem=out.Ecosystem(value=out.Maven()),
                     ),
-                    Subproject(
-                        root_dir=Path("buildSrc"),
+                    out.Subproject(
+                        root_dir=out.Fpath("buildSrc"),
                         dependency_source=out.DependencySource(
                             out.ManifestLockfileDependencySource(
                                 (
@@ -811,8 +810,8 @@ class TestGradleMatcher:
                     Path("subdir_b/build.gradle"),
                 ],
                 [
-                    Subproject(
-                        root_dir=Path(),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
                             out.ManifestLockfileDependencySource(
                                 (
@@ -829,8 +828,8 @@ class TestGradleMatcher:
                         ),
                         ecosystem=out.Ecosystem(value=out.Maven()),
                     ),
-                    Subproject(
-                        root_dir=Path("buildSrc"),
+                    out.Subproject(
+                        root_dir=out.Fpath("buildSrc"),
                         dependency_source=out.DependencySource(
                             out.ManifestOnlyDependencySource(
                                 out.Manifest(
@@ -858,8 +857,8 @@ class TestGradleMatcher:
                     Path("subdir_b/build.gradle"),
                 ],
                 [
-                    Subproject(
-                        root_dir=Path(),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
                             out.ManifestLockfileDependencySource(
                                 (
@@ -876,8 +875,8 @@ class TestGradleMatcher:
                         ),
                         ecosystem=out.Ecosystem(value=out.Maven()),
                     ),
-                    Subproject(
-                        root_dir=Path("buildSrc"),
+                    out.Subproject(
+                        root_dir=out.Fpath("buildSrc"),
                         dependency_source=out.DependencySource(
                             out.ManifestOnlyDependencySource(
                                 out.Manifest(
@@ -900,8 +899,8 @@ class TestGradleMatcher:
                     Path("build.gradle"),
                 ],
                 [
-                    Subproject(
-                        root_dir=Path(),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
                             out.ManifestOnlyDependencySource(
                                 out.Manifest(
@@ -921,7 +920,7 @@ class TestGradleMatcher:
     def test_make_subprojects(
         self,
         source_files: List[Path],
-        expected_subprojects: List[Subproject],
+        expected_subprojects: List[out.Subproject],
         unused_files: List[Path],
     ):
         matcher = GradleMatcher()

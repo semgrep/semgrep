@@ -27,7 +27,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_types import Language
 from semgrep.state import get_state
 from semgrep.subproject import get_display_paths
-from semgrep.subproject import ResolvedSubproject
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -109,7 +108,9 @@ class Plan:
         rules: List[Rule],
         *,
         product: Optional[out.Product] = None,
-        sca_subprojects: Optional[Dict[out.Ecosystem, List[ResolvedSubproject]]] = None,
+        sca_subprojects: Optional[
+            Dict[out.Ecosystem, List[out.ResolvedSubproject]]
+        ] = None,
         unused_rules: Optional[List[Rule]] = None,
     ):
         self.target_mappings = TargetMappings(mappings)
@@ -246,8 +247,10 @@ class Plan:
             if self.sca_subprojects is not None:
                 lockfile_paths = ", ".join(
                     str(lockfile_path)
-                    for proj in self.sca_subprojects.get(ecosystem, [])
-                    for lockfile_path in get_display_paths(proj.dependency_source)
+                    for subproj in self.sca_subprojects.get(ecosystem, [])
+                    for lockfile_path in get_display_paths(
+                        subproj.info.dependency_source
+                    )
                 )
             else:
                 lockfile_paths = "N/A"

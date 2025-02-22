@@ -31,7 +31,6 @@ from semdep.parsers.yarn import parse_yarn
 from semgrep.rpc_call import resolve_dependencies
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
 from semgrep.subproject import get_display_paths
-from semgrep.subproject import ResolvedDependency
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -88,7 +87,7 @@ PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS = [
 ]
 
 DependencyResolutionResult = Tuple[
-    Optional[Tuple[out.ResolutionMethod, List[ResolvedDependency]]],
+    Optional[Tuple[out.ResolutionMethod, List[out.ResolvedDependency]]],
     Sequence[Union[DependencyParserError, out.ScaResolutionError]],
     List[Path],
 ]
@@ -135,7 +134,7 @@ def _resolve_dependencies_rpc(
         out.LockfileOnlyDependencySource,
     ]
 ) -> Tuple[
-    Optional[List[ResolvedDependency]],
+    Optional[List[out.ResolvedDependency]],
     Sequence[out.ScaResolutionError],
     List[Path],
 ]:
@@ -220,7 +219,7 @@ def _handle_multi_lockfile_source(
     ptt_enabled: bool,
 ) -> DependencyResolutionResult:
     """Handle dependency resolution for sources with multiple lockfiles."""
-    all_resolved_deps: List[ResolvedDependency] = []
+    all_resolved_deps: List[out.ResolvedDependency] = []
     all_parse_errors: List[Union[DependencyParserError, out.ScaResolutionError]] = []
     all_dep_targets: List[Path] = []
 
@@ -338,7 +337,7 @@ def _handle_lockfile_source(
     return (
         (
             out.ResolutionMethod(out.LockfileParsing()),
-            [(fd, None) for fd in resolved_deps],
+            [out.ResolvedDependency((fd, None)) for fd in resolved_deps],
         ),
         parse_errors,
         [lockfile_path],

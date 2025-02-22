@@ -50,7 +50,6 @@ from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_types import Language
 from semgrep.state import DesignTreatment
 from semgrep.state import get_state
-from semgrep.subproject import ResolvedSubproject
 from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
 from semgrep.verbose_logging import getLogger
@@ -711,7 +710,7 @@ class CoreRunner:
     def plan_core_run(
         rules: List[Rule],
         target_manager: TargetManager,
-        sca_subprojects: Dict[out.Ecosystem, List[ResolvedSubproject]],
+        sca_subprojects: Dict[out.Ecosystem, List[out.ResolvedSubproject]],
         *,
         all_targets: Optional[Set[Path]] = None,
         product: Optional[out.Product] = None,
@@ -785,7 +784,7 @@ class CoreRunner:
         run_secrets: bool,
         disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
-        sca_subprojects: Dict[out.Ecosystem, List[ResolvedSubproject]],
+        sca_subprojects: Dict[out.Ecosystem, List[out.ResolvedSubproject]],
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         state = get_state()
         logger.debug(f"Passing whole rules directly to semgrep_core")
@@ -1099,7 +1098,7 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
         run_secrets: bool,
         disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
-        sca_subprojects: Dict[out.Ecosystem, List[ResolvedSubproject]],
+        sca_subprojects: Dict[out.Ecosystem, List[out.ResolvedSubproject]],
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Sometimes we may run into synchronicity issues with the latest DeepSemgrep binary.
@@ -1161,7 +1160,7 @@ Exception raised: `{e}`
         run_secrets: bool,
         disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
-        sca_subprojects: Dict[out.Ecosystem, List[ResolvedSubproject]],
+        sca_subprojects: Dict[out.Ecosystem, List[out.ResolvedSubproject]],
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Takes in rules and targets and returns object with findings

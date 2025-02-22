@@ -33,11 +33,10 @@ from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
-from semgrep.subproject import ResolvedSubproject
-from semgrep.subproject import UnresolvedSubproject
+from semgrep.subproject import resolved_subproject_to_stats
+from semgrep.subproject import subproject_to_stats
 from semgrep.target_manager import ALL_PRODUCTS
 from semgrep.verbose_logging import getLogger
-
 
 if TYPE_CHECKING:
     from semgrep.engine import EngineType
@@ -360,7 +359,7 @@ class ScanHandler:
         commit_date: str,
         lockfile_dependencies: Dict[str, List[out.FoundDependency]],
         dependency_parser_errors: List[DependencyParserError],
-        all_subprojects: List[Union[UnresolvedSubproject, ResolvedSubproject]],
+        all_subprojects: List[Union[out.UnresolvedSubproject, out.ResolvedSubproject]],
         contributions: out.Contributions,
         engine_requested: "EngineType",
         progress_bar: "Progress",
@@ -477,7 +476,11 @@ class ScanHandler:
         subproject_stats: List[out.SubprojectStats] = []
         if all_subprojects:
             for subproject in all_subprojects:
-                subproject_stats.append(subproject.to_stats_output())
+                if isinstance(subproject, out.UnresolvedSubproject):
+                    stats = subproject_to_stats(subproject.info)
+                else:
+                    stats = resolved_subproject_to_stats(subproject)
+                subproject_stats.append(stats)
 
         complete = out.CiScanComplete(
             exit_code=cli_suggested_exit_code,

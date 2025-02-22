@@ -1,10 +1,12 @@
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict
 from typing import FrozenSet
 from typing import List
 from typing import Set
 from typing import Tuple
+from typing import Union
 
 from rich.progress import MofNCompleteColumn
 from rich.progress import Progress
@@ -20,29 +22,65 @@ from semgrep.rule import Rule
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_types import Language
 from semgrep.subproject import find_closest_subproject
+from semgrep.subproject import from_resolved_dependencies
 from semgrep.subproject import get_all_source_files
-from semgrep.subproject import ResolvedSubproject
-from semgrep.subproject import Subproject
-from semgrep.subproject import UnresolvedReason
-from semgrep.subproject import UnresolvedSubproject
 from semgrep.target_manager import TargetManager
 from semgrep.verbose_logging import getLogger
+
 
 logger = getLogger(__name__)
 
 
+def to_sca_error(
+    err: Union[out.DependencyParserError, out.ScaResolutionError]
+) -> out.ScaError:
+    if isinstance(err, out.DependencyParserError):
+        return out.ScaError(out.SCAParse(err))
+    elif isinstance(err, out.ScaResolutionError):
+        return out.ScaError(out.SCAResol(err))
+    else:
+        raise TypeError(f"Unexpected error variant: {type(err)}")
+
+
+@dataclass(frozen=True)
+class HashableSubproject:
+    """
+    A wrapper around Subproject that implements __hash__ and __eq__ to only
+    consider root_dir and ecosystem, making it safe to use in sets even when
+    the underlying Subproject contains unhashable types like lists.
+    Indeed subproject dependency_source field can contain a
+    MultilockfileDependencySource with an unhashable list inside.
+    """
+
+    subproject: out.Subproject
+
+    def __hash__(self) -> int:
+        # Only hash the root_dir and ecosystem
+        return hash((self.subproject.root_dir, self.subproject.ecosystem))
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, HashableSubproject):
+            return NotImplemented
+        return (self.subproject.root_dir, self.subproject.ecosystem) == (
+            other.subproject.root_dir,
+            other.subproject.ecosystem,
+        )
+
+
 def find_subprojects(
     dependency_source_files: FrozenSet[Path], matchers: List[SubprojectMatcher]
-) -> List[Subproject]:
+) -> List[out.Subproject]:
     """
-    Using the given dependency source files and the given list of matchers, return all the subprojects that could be
-    created. Note that each dependency source file will be used by at most one matcher, and matching will be attempted
-    in the order that the matchers are provided.
+    Using the given dependency source files and the given list of matchers,
+    return all the subprojects that could be created. Note that each dependency
+    source file will be used by at most one matcher, and matching will be
+    attempted in the order that the matchers are provided.
     """
-    unresolved_subprojects: List[Subproject] = []
+    unresolved_subprojects: List[out.Subproject] = []
     used_files: Set[Path] = set()
     for matcher in matchers:
-        # for each matcher, pass only those files that have not yet been used by another matcher.
+        # for each matcher, pass only those files that have not yet been used
+        # by another matcher.
         new_subprojects, new_used_files = matcher.make_subprojects(
             dependency_source_files - used_files
         )
@@ -54,22 +92,25 @@ def find_subprojects(
 def filter_changed_subprojects(
     target_manager: TargetManager,
     dependency_aware_rules: List[Rule],
-    subprojects: List[Subproject],
-) -> Tuple[List[Subproject], List[UnresolvedSubproject]]:
+    subprojects: List[out.Subproject],
+) -> Tuple[List[out.Subproject], List[out.UnresolvedSubproject]]:
     """
-    Partition subprojects into those that are relevant for the targets in `target_manager` and those that are not.
+    Partition subprojects into those that are relevant for the targets in
+    `target_manager` and those that are not.
     This allows skipping resolution of unchanged subprojects in diff scans.
 
     Marks irrelevant subprojects' unresolved reason as "skipped".
 
-    Note that the logic used here to determine changed subprojects must be consistent with the logic used at
-    finding-generation time in `dependency_aware_rule.py` to associate code files with subproject. If we do not
-    resolve a subproject because it is deemed irrelevant in this function, we will not consider that subproject
-    when generating findings.
+    Note that the logic used here to determine changed subprojects must be
+    consistent with the logic used at finding-generation time in
+    `dependency_aware_rule.py` to associate code files with subproject. If we
+    do not resolve a subproject because it is deemed irrelevant in this
+    function, we will not consider that subproject when generating findings.
     """
-    relevant_subprojects: Set[Subproject] = set()
+    relevant_subprojects: Set[HashableSubproject] = set()
 
-    # first, mark any subprojects whose dependency source files were directly modified as relevant
+    # first, mark any subprojects whose dependency source files were directly
+    # modified as relevant
     all_dependency_source_targets = target_manager.get_all_dependency_source_files(
         ignore_baseline_handler=False
     )
@@ -77,13 +118,15 @@ def filter_changed_subprojects(
         source_file_set = set(get_all_source_files(subproject.dependency_source))
         if len(all_dependency_source_targets.intersection(source_file_set)) > 0:
             # one of the source files for this subproject changed, so we should keep it
-            relevant_subprojects.add(subproject)
+            relevant_subprojects.add(HashableSubproject(subproject))
 
     if len(relevant_subprojects) == len(subprojects):
         # all subproject are already relevant, so there is no need to look at code files
         # (this should cover the full scan case and prevent extra work)
         # need to refer to the original list for deterministic ordering
-        return [s for s in subprojects if s in relevant_subprojects], []
+        return [
+            s for s in subprojects if HashableSubproject(s) in relevant_subprojects
+        ], []
 
     # make language -> ecosystem mapping from the rules that we are given
     ecosystems_by_language: Dict[Language, List[Ecosystem]] = {}
@@ -111,14 +154,20 @@ def filter_changed_subprojects(
                     code_file, ecosystem, subprojects
                 )
                 if closest_subproject is not None:
-                    relevant_subprojects.add(closest_subproject)
+                    relevant_subprojects.add(HashableSubproject(closest_subproject))
 
     # we refer to the original list for ordering, ensuring that the output order
     # is deterministic.
-    ordered_relevant = [s for s in subprojects if s in relevant_subprojects]
-    ordered_irrelevant = [s for s in subprojects if s not in relevant_subprojects]
+    ordered_relevant = [
+        s for s in subprojects if HashableSubproject(s) in relevant_subprojects
+    ]
+    ordered_irrelevant = [
+        s for s in subprojects if HashableSubproject(s) not in relevant_subprojects
+    ]
     unresolved_subprojects = [
-        UnresolvedSubproject.from_subproject(s, UnresolvedReason.SKIPPED, [])
+        out.UnresolvedSubproject(
+            info=s, reason=out.UnresolvedReason(out.UnresolvedSkipped()), errors=[]
+        )
         for s in ordered_irrelevant
     ]
     return ordered_relevant, unresolved_subprojects
@@ -131,20 +180,29 @@ def resolve_subprojects(
     ptt_enabled: bool = False,
     resolve_untargeted_subprojects: bool = False,
 ) -> Tuple[
-    List[UnresolvedSubproject], Dict[Ecosystem, List[ResolvedSubproject]], List[Path]
+    List[out.UnresolvedSubproject],
+    Dict[Ecosystem, List[out.ResolvedSubproject]],
+    List[Path],
 ]:
     """
-    Identify subprojects based on lockfiles and manifests and resolve their dependency information.
+    Identify subprojects based on lockfiles and manifests and resolve their
+    dependency information.
 
-    When `allow_dynamic_resolution` is False, dependencies are resolved only by parsing existing files (lockfiles and manifests).
-    If `allow_dynamic_resolution` is True, this function may cause projects that are scanned to be built. This may involve:
+    When `allow_dynamic_resolution` is False, dependencies are resolved only by
+    parsing existing files (lockfiles and manifests).
+    If `allow_dynamic_resolution` is True, this function may cause projects that
+    are scanned to be built. This may involve:
     - Downloading packages from the internet
-    - Executing code that is included in the scanned project or in downloaded packages
+    - Executing code that is included in the scanned project or in downloaded
+      packages
 
-    If `resolve_untargeted_subprojects` is False, only subprojects with dependency source files or relevant code files
-    are resolved and the remaining subprojects are skipped. If `resolve_untargeted_subprojects` is True, this filtering
-    is disabled and resolution is attempted for every found subproject.
-    The list of rules is required in order to choose which subprojects to resolve and which can be skipped based
+    If `resolve_untargeted_subprojects` is False, only subprojects with
+    dependency source files or relevant code files are resolved and the
+    remaining subprojects are skipped.
+    If `resolve_untargeted_subprojects` is True, this filtering is disabled and
+    resolution is attempted for every found subproject.
+    The list of rules is required in order to choose which subprojects to
+    resolve and which can be skipped based
     on the set of target reported by the `target_manager`.
 
     Returns a tuple with the following items:
@@ -152,18 +210,19 @@ def resolve_subprojects(
         2. Resolved subprojects, grouped by ecosystem
         4. Dependency source paths that were used in the resolution process
     """
-    # first, find all the subprojects. We ignore the baseline handler because we want to _identify_, but not
-    # necessarily resolve, even unchanged subprojects.
+    # first, find all subprojects. We ignore the baseline handler because we want
+    # to _identify_, but not necessarily resolve, even unchanged subprojects.
     dependency_source_files = target_manager.get_all_dependency_source_files(
         ignore_baseline_handler=True
     )
     found_subprojects = find_subprojects(dependency_source_files, MATCHERS)
 
-    # A subproject is relevant if one of its dependency source files is a target or
-    # there exist a code target for which find_closest_subproject is that subproject.
+    # A subproject is relevant if one of its dependency source files is a target
+    # or there exist a code target for which find_closest_subproject is that
+    # subproject.
     if resolve_untargeted_subprojects:
         relevant_subprojects = found_subprojects
-        irrelevant_subprojects: List[UnresolvedSubproject] = []
+        irrelevant_subprojects: List[out.UnresolvedSubproject] = []
     else:
         relevant_subprojects, irrelevant_subprojects = filter_changed_subprojects(
             target_manager, dependency_aware_rules, found_subprojects
@@ -172,8 +231,8 @@ def resolve_subprojects(
     # targets that were considered in generating the dependency tree
     dependency_targets: List[Path] = []
 
-    resolved: Dict[Ecosystem, List[ResolvedSubproject]] = {}
-    unresolved: List[UnresolvedSubproject] = irrelevant_subprojects
+    resolved: Dict[Ecosystem, List[out.ResolvedSubproject]] = {}
+    unresolved: List[out.UnresolvedSubproject] = irrelevant_subprojects
 
     # Dispatch each subproject to a resolver for resolution
     with Progress(
@@ -194,8 +253,10 @@ def resolve_subprojects(
                 # no reason to resolve subprojects that we don't support. We only recognize them
                 # for tracking purposes
                 unresolved.append(
-                    UnresolvedSubproject.from_subproject(
-                        subproject, UnresolvedReason.UNSUPPORTED, []
+                    out.UnresolvedSubproject(
+                        info=subproject,
+                        reason=out.UnresolvedReason(out.UnresolvedUnsupported()),
+                        errors=[],
                     )
                 )
                 continue
@@ -209,18 +270,25 @@ def resolve_subprojects(
             if resolved_info is not None:
                 # resolved_info is only None when dependency resolution failed in some way
                 resolution_method, deps = resolved_info
-                resolved_subproject = ResolvedSubproject.from_unresolved(
-                    subproject, resolution_method, errors, deps, subproject.ecosystem
+                resolved_subproject = out.ResolvedSubproject(
+                    info=subproject,
+                    resolution_method=resolution_method,
+                    ecosystem=subproject.ecosystem,
+                    resolved_dependencies=from_resolved_dependencies(deps),
+                    errors=[to_sca_error(e) for e in errors],
                 )
 
                 if resolved_subproject.ecosystem not in resolved:
                     resolved[resolved_subproject.ecosystem] = []
                 resolved[resolved_subproject.ecosystem].append(resolved_subproject)
             else:
-                # we were not able to resolve the subproject, so track it as an unresolved subproject
+                # we were not able to resolve the subproject, so track it as an
+                # unresolved subproject
                 unresolved.append(
-                    UnresolvedSubproject.from_subproject(
-                        subproject, UnresolvedReason.FAILED, errors
+                    out.UnresolvedSubproject(
+                        info=subproject,
+                        reason=out.UnresolvedReason(out.UnresolvedFailed()),
+                        errors=[to_sca_error(e) for e in errors],
                     )
                 )
 

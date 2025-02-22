@@ -29,8 +29,9 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
-from semgrep.subproject import find_closest_subproject
-from semgrep.subproject import ResolvedSubproject
+from semgrep.subproject import find_closest_resolved_subproject
+from semgrep.subproject import iter_dependencies
+from semgrep.subproject import iter_found_dependencies
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -77,7 +78,7 @@ def parse_depends_on_yaml(entries: List[Dict[str, str]]) -> Iterator[out.ScaPatt
 def generate_unreachable_sca_findings(
     rule: Rule,
     already_reachable: Callable[[Path, FoundDependency], bool],
-    resolved_deps: Dict[Ecosystem, List[ResolvedSubproject]],
+    resolved_deps: Dict[Ecosystem, List[out.ResolvedSubproject]],
     x_tr: bool,
 ) -> Tuple[List[RuleMatch], List[SemgrepError]]:
     """
@@ -94,7 +95,7 @@ def generate_unreachable_sca_findings(
     match_based_keys: Dict[tuple[str, Path, str], int] = defaultdict(int)
     for ecosystem in ecosystems:
         for subproject in resolved_deps.get(ecosystem, []):
-            deps = list(subproject.found_dependencies.iter_found_dependencies())
+            deps = list(iter_found_dependencies(subproject.resolved_dependencies))
 
             subproject_matches: List[RuleMatch] = []
 
@@ -191,7 +192,7 @@ def generate_unreachable_sca_findings(
                         rules_path=out.Fpath(rules_tmp_path),
                         findings=transitive_findings,
                         dependencies=list(
-                            subproject.found_dependencies.iter_dependencies()
+                            iter_dependencies(subproject.resolved_dependencies)
                         ),
                     )
                 )
@@ -224,7 +225,7 @@ def transitive_dep_is_also_direct(
 def generate_reachable_sca_findings(
     matches: List[RuleMatch],
     rule: Rule,
-    resolved_deps: Dict[Ecosystem, List[ResolvedSubproject]],
+    resolved_deps: Dict[Ecosystem, List[out.ResolvedSubproject]],
 ) -> Tuple[
     List[RuleMatch], List[SemgrepError], Callable[[Path, FoundDependency], bool]
 ]:
@@ -240,14 +241,14 @@ def generate_reachable_sca_findings(
     for ecosystem in ecosystems:
         for match in matches:
             try:
-                subproject = find_closest_subproject(
+                subproject = find_closest_resolved_subproject(
                     match.path, ecosystem, resolved_deps.get(ecosystem, [])
                 )
 
                 if subproject is None:
                     continue
 
-                deps = list(subproject.found_dependencies.iter_found_dependencies())
+                deps = list(iter_found_dependencies(subproject.resolved_dependencies))
                 frozen_deps = tuple((dep.package, dep.transitivity) for dep in deps)
 
                 dependency_matches = list(

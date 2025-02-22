@@ -88,8 +88,8 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Product
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.state import get_state
 from semgrep.subproject import get_all_source_files
-from semgrep.subproject import ResolvedSubproject
-from semgrep.subproject import UnresolvedSubproject
+from semgrep.subproject import iter_found_dependencies
+from semgrep.subproject import make_dependencies_by_source_path
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import SAST_PRODUCT
 from semgrep.target_manager import SCA_PRODUCT
@@ -192,7 +192,7 @@ def remove_matches_in_baseline(
 
 def filter_dependency_aware_rules(
     dependency_aware_rules: List[Rule],
-    resolved_deps: Dict[Ecosystem, List[ResolvedSubproject]],
+    resolved_deps: Dict[Ecosystem, List[out.ResolvedSubproject]],
 ) -> List[Rule]:
     """Returns the list of filtered rules that have matching dependencies in the project"""
     rules_to_check = [r for r in dependency_aware_rules if r.should_run_on_semgrep_core]
@@ -210,7 +210,7 @@ def filter_dependency_aware_rules(
         # Check for each ecosystem in the rule
         for ecosystem in ecosystems:
             for sca_project in resolved_deps.get(ecosystem, []):
-                deps = list(sca_project.found_dependencies.iter_found_dependencies())
+                deps = list(iter_found_dependencies(sca_project.resolved_dependencies))
                 # Match the dependencies based on version ranges
                 dependency_matches = list(
                     dependencies_range_match_any(depends_on_entries, deps)
@@ -261,7 +261,7 @@ def run_rules(
     Dict[str, List[FoundDependency]],
     List[DependencyParserError],
     List[Plan],
-    List[Union[UnresolvedSubproject, ResolvedSubproject]],
+    List[Union[out.UnresolvedSubproject, out.ResolvedSubproject]],
 ]:
     if not target_mode_config:
         target_mode_config = TargetModeConfig.whole_scan()
@@ -280,9 +280,9 @@ def run_rules(
     dependency_parser_errors: List[DependencyParserError] = []
     sca_dependency_targets: List[Path] = []
 
-    resolved_subprojects: Dict[Ecosystem, List[ResolvedSubproject]] = {}
-    unresolved_subprojects: List[UnresolvedSubproject] = []
-    all_subprojects: List[Union[ResolvedSubproject, UnresolvedSubproject]] = []
+    resolved_subprojects: Dict[Ecosystem, List[out.ResolvedSubproject]] = {}
+    unresolved_subprojects: List[out.UnresolvedSubproject] = []
+    all_subprojects: List[Union[out.ResolvedSubproject, out.UnresolvedSubproject]] = []
 
     if len(dependency_aware_rules) > 0:
         # Parse lockfiles to get dependency information, if there are relevant rules
@@ -306,19 +306,21 @@ def run_rules(
         for subproject in all_subprojects:
             dependency_parser_errors.extend(
                 [
-                    e
-                    for e in subproject.resolution_errors
-                    if isinstance(e, DependencyParserError)
+                    e.value.value
+                    for e in subproject.errors
+                    if isinstance(e.value, out.SCAParse)
                 ]
             )
             output_handler.handle_semgrep_errors(
                 [
                     error.DependencyResolutionSemgrepError(
-                        type_=e.type_,
-                        dependency_source_file=Path(e.dependency_source_file.value),
+                        type_=e.value.value.type_,
+                        dependency_source_file=Path(
+                            e.value.value.dependency_source_file.value
+                        ),
                     )
-                    for e in subproject.resolution_errors
-                    if isinstance(e, out.ScaResolutionError)
+                    for e in subproject.errors
+                    if isinstance(e.value, out.SCAResol)
                 ]
             )
 
@@ -438,7 +440,7 @@ def run_rules(
                 (
                     proj_deps_by_lockfile,
                     unknown_lockfile_deps,
-                ) = proj.found_dependencies.make_dependencies_by_source_path()
+                ) = make_dependencies_by_source_path(proj.resolved_dependencies)
                 deps_by_lockfile.update(proj_deps_by_lockfile)
 
                 # We don't really expect to have any dependencies with an unknown lockfile, but we can't enforce
@@ -446,14 +448,26 @@ def run_rules(
                 # dependencies without lockfile path, we assign them to a fake lockfile at the root of each subproject.
                 for dep in unknown_lockfile_deps:
                     if (
-                        str(proj.root_dir.joinpath(Path("unknown_lockfile")))
+                        str(
+                            Path(proj.info.root_dir.value).joinpath(
+                                Path("unknown_lockfile")
+                            )
+                        )
                         not in deps_by_lockfile
                     ):
                         deps_by_lockfile[
-                            str(proj.root_dir.joinpath(Path("unknown_lockfile")))
+                            str(
+                                Path(proj.info.root_dir.value).joinpath(
+                                    Path("unknown_lockfile")
+                                )
+                            )
                         ] = []
                     deps_by_lockfile[
-                        str(proj.root_dir.joinpath(Path("unknown_lockfile")))
+                        str(
+                            Path(proj.info.root_dir.value).joinpath(
+                                Path("unknown_lockfile")
+                            )
+                        )
                     ].append(dep)
 
         for target in sca_dependency_targets:
@@ -563,7 +577,7 @@ def run_scan(
     List[DependencyParserError],
     int,  # Executed Rule Count
     int,  # Missed Rule Count
-    List[Union[UnresolvedSubproject, ResolvedSubproject]],
+    List[Union[out.UnresolvedSubproject, out.ResolvedSubproject]],
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
 
@@ -869,9 +883,9 @@ def run_scan(
         baseline_targets |= set(
             flatten(
                 [
-                    get_all_source_files(x.dependency_source)
+                    get_all_source_files(x.info.dependency_source)
                     for x in all_subprojects
-                    if isinstance(x, ResolvedSubproject)
+                    if isinstance(x, out.ResolvedSubproject)
                 ]
             )
         )

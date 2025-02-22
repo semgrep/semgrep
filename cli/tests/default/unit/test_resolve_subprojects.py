@@ -10,7 +10,6 @@ from semdep.subproject_matchers import ExactManifestOnlyMatcher
 from semdep.subproject_matchers import SubprojectMatcher
 from semgrep.resolve_dependency_source import resolve_dependency_source
 from semgrep.resolve_subprojects import find_subprojects
-from semgrep.subproject import Subproject
 
 
 @pytest.mark.quick
@@ -43,8 +42,8 @@ from semgrep.subproject import Subproject
                 ),
             ],
             [
-                Subproject(
-                    root_dir=Path(),
+                out.Subproject(
+                    root_dir=out.Fpath("."),
                     dependency_source=out.DependencySource(
                         out.ManifestLockfileDependencySource(
                             (
@@ -61,8 +60,8 @@ from semgrep.subproject import Subproject
                     ),
                     ecosystem=out.Ecosystem(value=out.Pypi()),
                 ),
-                Subproject(
-                    root_dir=Path(),
+                out.Subproject(
+                    root_dir=out.Fpath("."),
                     dependency_source=out.DependencySource(
                         out.LockfileOnlyDependencySource(
                             out.Lockfile(
@@ -101,8 +100,8 @@ from semgrep.subproject import Subproject
                 ),
             ],
             [
-                Subproject(
-                    root_dir=Path(),
+                out.Subproject(
+                    root_dir=out.Fpath("."),
                     dependency_source=out.DependencySource(
                         out.ManifestLockfileDependencySource(
                             (
@@ -136,8 +135,8 @@ from semgrep.subproject import Subproject
                 )
             ],
             [
-                Subproject(
-                    root_dir=Path(),
+                out.Subproject(
+                    root_dir=out.Fpath("."),
                     dependency_source=out.DependencySource(
                         out.ManifestOnlyDependencySource(
                             out.Manifest(
@@ -148,8 +147,8 @@ from semgrep.subproject import Subproject
                     ),
                     ecosystem=out.Ecosystem(value=out.Pypi()),
                 ),
-                Subproject(
-                    root_dir=Path("child-a"),
+                out.Subproject(
+                    root_dir=out.Fpath("child-a"),
                     dependency_source=out.DependencySource(
                         out.ManifestOnlyDependencySource(
                             out.Manifest(
@@ -160,8 +159,8 @@ from semgrep.subproject import Subproject
                     ),
                     ecosystem=out.Ecosystem(value=out.Pypi()),
                 ),
-                Subproject(
-                    root_dir=Path("child-b"),
+                out.Subproject(
+                    root_dir=out.Fpath("child-b"),
                     dependency_source=out.DependencySource(
                         out.ManifestOnlyDependencySource(
                             out.Manifest(
@@ -179,7 +178,7 @@ from semgrep.subproject import Subproject
 def test_find_subprojects(
     file_paths: List[Path],
     matchers: List[SubprojectMatcher],
-    expected_subprojects: List[Subproject],
+    expected_subprojects: List[out.Subproject],
 ) -> None:
     result = find_subprojects(frozenset(file_paths), matchers)
     assert sorted(result, key=lambda s: s.root_dir) == sorted(
@@ -269,7 +268,7 @@ def test_ptt_unconditional_graph_generation_falls_back_on_lockfile_parsing(
     assert deps is not None
     assert deps[0] == out.ResolutionMethod(out.LockfileParsing())
     assert len(deps[1]) == 1
-    assert deps[1][0][0].package == "requests"
+    assert deps[1][0].value[0].package == "requests"
 
     mock_parse_requirements.mock_assert_called_once_with(
         Path(tmp_path / "requirements.txt"), Path(tmp_path / "requirements.in")
