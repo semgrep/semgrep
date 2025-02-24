@@ -55,12 +55,12 @@ local build_core_job = {
       name: 'Compile semgrep',
       run: "opam exec -- make core",
     },
-    actions.make_artifact_step("./bin/semgrep-core"),
-    actions.upload_artifact_step(artifact_name),
     {
       name: 'Test semgrep-core',
       run: 'opam exec -- make core-test',
-    }
+    },
+    actions.make_artifact_step("./bin/semgrep-core"),
+    actions.upload_artifact_step(artifact_name),
   ],
 };
 

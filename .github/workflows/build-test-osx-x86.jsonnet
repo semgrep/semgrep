@@ -74,6 +74,10 @@ local build_core_job = {
       name: 'Compile semgrep (in case of linking errors, adjust src/main/flags.sh)',
       run: 'opam exec -- make core',
     },
+    {
+      name: 'Test semgrep-core',
+      run: 'opam exec -- make core-test',
+    },
     actions.make_artifact_step("./bin/semgrep-core"),
     actions.upload_artifact_step(artifact_name),
   ],

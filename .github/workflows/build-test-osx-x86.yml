@@ -23,6 +23,8 @@ jobs:
           make install-deps-MACOS-for-semgrep-core
       - name: Compile semgrep (in case of linking errors, adjust src/main/flags.sh)
         run: opam exec -- make core
+      - name: Test semgrep-core
+        run: opam exec -- make core-test
       - name: Make artifact for ./bin/semgrep-core
         run: |
           mkdir artifacts

@@ -26,6 +26,8 @@ jobs:
           make install-deps-MACOS-for-semgrep-core
       - name: Compile semgrep
         run: opam exec -- make core
+      - name: Test semgrep-core
+        run: opam exec -- make core-test
       - name: Make artifact for ./bin/semgrep-core
         run: |
           mkdir artifacts
@@ -35,8 +37,6 @@ jobs:
         with:
           name: semgrep-osx-arm64-${{ github.sha }}
           path: artifacts.tgz
-      - name: Test semgrep-core
-        run: opam exec -- make core-test
   build-wheels:
     needs:
       - build-core
