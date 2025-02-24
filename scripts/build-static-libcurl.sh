@@ -10,16 +10,26 @@
 
 set -eu
 
-CURL_VERSION="8.5.0"
+if [[ -e /etc/alpine-release ]]; then
+    CURL_VERSION="8.5.0"
 
-cd /tmp
+    ALPINE_APK_DEPS=(pkgconf openssl-dev openssl-libs-static zlib-static)
+    apk add "${ALPINE_APK_DEPS[@]}"
+    cd /tmp
 
-curl -L "https://curl.se/download/curl-${CURL_VERSION}.tar.gz" | tar xz
+    curl -L "https://curl.se/download/curl-${CURL_VERSION}.tar.gz" | tar xz
 
-cd /tmp/curl-${CURL_VERSION}
+    cd /tmp/curl-${CURL_VERSION}
 
-# Jan 2025: Disabling libpsl (a cookie checking library apparently) because it started
-# to cause linking errors later in semgrep about a "missing -lpsl"
-./configure --disable-shared --with-ssl --disable-ldap --without-brotli --without-nghttp2 --without-libidn2 --without-libpsl
+    # Jan 2025: Disabling libpsl (a cookie checking library apparently) because it started
+    # to cause linking errors later in semgrep about a "missing -lpsl"
+    #
+    # disable zstd since it does not play with linking, we haven't built curl
+    # with it before, but it's used by default if another dependency installs
+    # zstd (such an ocaml or python library)
+    ./configure --disable-shared --with-ssl --disable-ldap --without-zstd --without-brotli --without-nghttp2 --without-libidn2 --without-libpsl
 
-make install
+    make install
+else
+    echo "Not an Alpine system, skipping libcurl build"
+fi

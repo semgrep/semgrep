@@ -257,6 +257,7 @@ install-deps-for-semgrep-core:
 	cd libs/ocaml-tree-sitter-core \
 	&& ./configure \
 	&& ./scripts/install-tree-sitter-lib
+	./scripts/build-static-libcurl.sh
 	make install-opam-deps
 
 # Install OCaml dependencies (globally) from *.opam files.
@@ -398,8 +399,6 @@ install-deps-ALPINE: install-deps-ALPINE-for-semgrep-core
 # the final image, so we don't really need --no-cache)
 install-deps-ALPINE-for-semgrep-core:
 	apk add $(ALPINE_APK_DEPS_CORE)
-# Look at its top comment for why it's necessary
-	./scripts/build-static-libcurl.sh
 
 # -------------------------------------------------
 # Ubuntu
