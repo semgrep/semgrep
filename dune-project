@@ -437,17 +437,19 @@ For more information see https://semgrep.dev
   (authors "Yoann Padioleau <pad@semgrep.com>")
   (license "LGPL-2.1-only")
 
-;note: these are build dependencies. Development-only deps are in 'dev/*.opam'.
-;note: we don't include here as dependencies all the libraries
-; that are "vendored" inside semgrep (e.g., commons, aliengrep, pcre2)
-;coupling: because of the way we need to statically link on macOS, if
-; you add a library here, you'll probably need to update src/main/flags.sh
-; if this library has some C stubs.
+; note: these are build dependencies. Development-only deps are in 'dev/*.opam'.
+
+; note: vendored libs are listed here so we pull in their opam dependencies
+; (e.g., ocaml-tree-sitter-core -> tsort). They are pinned in
+; semgrep.opam.template to the local version, so we don't have to worry about
+; publishing to opam. If you want to add another, add it below and pin it there
+;
+; coupling: because of the way we need to statically link on macOS, if you add a
+; library here, you'll probably need to update src/main/flags.sh if this library
+; has some C stubs.
 ;
 ; coupling: if you add a dependency here and the nix workflow fails, you may
 ; need to manually trigger the "nix-weekly-update-flake" workflow
-;
-;TODO: restore  "bisect_ppx" {>= "2.5.0"} once can use ppxlib 0.22.0
   (depends
     ; core deps
     (ocaml (>= 4.13.0))
@@ -455,6 +457,8 @@ For more information see https://semgrep.dev
     base
     ; parser generators
     (menhir (= 20230608))
+    ; vendored in libs/ocaml-tree-sitter-core
+    tree-sitter
     ; standard libraries
     ; We don't use Base directly. If it's being used indirectly
     ; (is it, though?), we need a version that doesn't register
@@ -464,8 +468,8 @@ For more information see https://semgrep.dev
     fpath
     bos
     fileutils
-    ; unit testing (note that testo is vendored in libs/ so not listed here)
-    ; TODO? still need those alcotest-xx now that we use testo?
+    ; unit testing (note that testo is vendored in libs/)
+    testo
     alcotest
     alcotest-js
     alcotest-lwt
@@ -501,8 +505,7 @@ For more information see https://semgrep.dev
     re
     pcre
     ; we're currently "vendoring" pcre2 in libs/pcre2
-    ; so no need to get opam to install it
-    ;(pcre2 (>= "7.5.3" ))
+    pcre2
     ; misc
     ocamlgraph
     parmap

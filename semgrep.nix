@@ -62,12 +62,17 @@ let
           # https://github.com/tweag/opam-nix/issues/112
           ocamlfind = "1.9.6";
         };
+        resolveArgs = {
+          # speeds up so we don't get a solver timeout
+          criteria = null;
+        };
         repos = [ "${opam-repository}" ];
         # repos = opamRepos to force newest version of opam
         # pkgs = pkgs to force newest version of nixpkgs instead of using opam-nix's
         # overlays = to force the default and patches overlay
-        scope = on.buildOpamProject { inherit pkgs repos overlays; } name src
-          (baseQuery // query);
+        scope =
+          on.buildOpamProject { inherit pkgs repos overlays resolveArgs; } name
+          src (baseQuery // query);
         inputsFromQuery = scopeToPkgs query scope;
         pkgWithInputs =
           addBuildInputs scope.${name} (inputs ++ inputsFromQuery);
@@ -91,17 +96,7 @@ let
   semgrepOpam = lib.buildOpamPkg {
     name = "semgrep";
     src = ./.;
-    # You can force versions of certain packages here
-    query = {
-      # needed or else the newest version breaks. Not sure why this doesn't happen
-      # outside nix
-      mirage-runtime = "4.4.2";
-      # need for OCTS
-      tsort = "*";
-    };
-    # needed for octs and pcre2
-    # TODO move to depexts
-    inputs = (with pkgs; [ tree-sitter pcre2 ]);
+    inputs = (with pkgs; [ tree-sitter ]);
   };
 
   devOptional = lib.buildOpamPkg {

@@ -20,10 +20,12 @@ depends: [
   "dune" {>= "3.7" & >= "2.7.0"}
   "base"
   "menhir" {= "20230608"}
+  "tree-sitter"
   "base" {>= "v0.15.1"}
   "fpath"
   "bos"
   "fileutils"
+  "testo"
   "alcotest"
   "alcotest-js"
   "alcotest-lwt"
@@ -51,6 +53,7 @@ depends: [
   "visitors" {= "20210608"}
   "re"
   "pcre"
+  "pcre2"
   "ocamlgraph"
   "parmap"
   "semver"
@@ -100,3 +103,14 @@ build: [
   ]
 ]
 dev-repo: "git+https://github.com/semgrep/semgrep.git"
+(* pin-depends let's opam know where to pull the source for dependencies from *)
+(* Since we're vendoring all these dependencies instead of pulling them from opam *)
+(* we put them here! *)
+(* coupling: update semgrep-pro.opam.template too! *)
+pin-depends: [
+  ["pcre2.dev" "./libs/pcre2"]
+  ["tree-sitter.dev" "./libs/ocaml-tree-sitter-core"]
+  ["testo.dev" "./libs/testo"]
+  ["testo-util.dev" "./libs/testo"]
+  ["testo-diff.dev" "./libs/testo"]
+]

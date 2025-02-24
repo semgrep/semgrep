@@ -99,7 +99,7 @@ COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 FROM alpine:3.19 as semgrep-core-container
 
 # Install opam and basic build tools
-RUN apk add --no-cache bash build-base git make opam
+RUN apk add --no-cache bash build-base git make opam rsync
 
 # coupling: if you modify the OCaml version there, you probably also need
 # to modify:
