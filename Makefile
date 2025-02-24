@@ -462,11 +462,11 @@ NIX=nix --accept-flake-config
 # only way to get it
 shell:
 	$(eval USER_SHELL := $(shell finger ${USER} | grep 'Shell:*' | cut -f3 -d ":"))
-	$(NIX) develop -c $(USER_SHELL)
+	$(NIX) develop -c $(USER_SHELL) ".?submodules=1#"
 
 # exclude all non-nix environment variables, good for debugging
 shell-pure:
-	$(NIX) develop -i
+	$(NIX) develop -i ".?submodules=1#"
 
 # Build targets
 # For all the .?submodules=1 we need because nix is weird:
