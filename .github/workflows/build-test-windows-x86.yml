@@ -23,7 +23,7 @@ jobs:
         name: Set GHA cache for OPAM in _opam
         uses: actions/cache@v4
         with:
-          key: ${{ runner.os }}-${{ runner.arch }}-v1-opam-5.2.1-${{ hashFiles('semgrep-pro.opam', 'OSS/semgrep.opam') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-v2-opam-5.2.1-${{ hashFiles('semgrep-pro.opam', 'OSS/semgrep.opam') }}
           path: _opam
       - name: Install flexlink patched to use response files and cygpath -file arg
         run: |

@@ -136,7 +136,7 @@ local github_bot = {
 // This bump_cache is one way to cope with the limitations of our cache keys.
 // Moreover, GHA itself does not have a big "delete all cache" button like
 // in depot.dev so this bump_cache can act as one too.
-local bump_cache = 1;
+local bump_cache = 2;
 
 local cache_opam = {
   step(key, path="~/.opam"): {
