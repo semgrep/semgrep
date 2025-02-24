@@ -1,0 +1,3 @@
+lsp will no longer send diagnostics where the message is `MarkupContent` since
+our current implementation does not discriminate on the client capability for
+recieiving such diagnostics (to-be-added in 3.18).
