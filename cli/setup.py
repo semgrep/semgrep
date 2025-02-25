@@ -8,7 +8,6 @@ import setuptools
 
 SOURCE_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(SOURCE_DIR)
-# pad: is this still used? git grep SEMGREP_FORCE_INSTALL does not return anything
 SEMGREP_FORCE_INSTALL = "SEMGREP_FORCE_INSTALL" in os.environ
 IS_WINDOWS = platform.system() == "Windows"
 # See ../scripts/build-wheels.sh, which is called from our GHA workflows.
