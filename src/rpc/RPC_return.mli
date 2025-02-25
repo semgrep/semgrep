@@ -4,7 +4,7 @@ val autofix : bool -> Out.edit list -> int * (int * string list) list
 val format : Out.output_format -> Out.format_context -> Out.cli_output -> string
 
 val sarif_format :
-  < tmp : Cap.FS.tmp > ->
+  < Cap.tmp > ->
   Out.fpath (* path to a temporary files containing the rules *) ->
   Out.format_context ->
   is_pro:bool ->
@@ -24,10 +24,7 @@ val hook_resolve_dependencies :
   ref
 
 val hook_transitive_reachability_filter :
-  (< fork : Cap.Process.fork
-   ; memory_limit : Cap.Process.memory_limit
-   ; readdir : Cap.FS.readdir
-   ; time_limit : Cap.Process.time_limit > ->
+  (< Cap.readdir ; Core_scan.caps > ->
   Out.transitive_reachability_filter_params ->
   Out.transitive_finding list)
   option
