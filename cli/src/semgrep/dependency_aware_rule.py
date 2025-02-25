@@ -180,6 +180,7 @@ def generate_unreachable_sca_findings(
 
             if x_tr:
                 logger.info(f"SCA TR is on!")
+                # TODO: consider only the matches with reachable rules
                 transitive_findings = [
                     out.TransitiveFinding(m=rm.match) for rm in subproject_matches
                 ]
