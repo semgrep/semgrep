@@ -6,6 +6,7 @@
 .PHONY: default
 default: Pipfile.lock
 	$(MAKE) build
+	$(MAKE) check
 	$(MAKE) test
 	$(MAKE) qa
 
@@ -14,9 +15,12 @@ default: Pipfile.lock
 ###############################################################################
 
 # Generate code. Needed at least when the interface changes.
+# TODO: move src/semgrep/semgrep-interface out of src/ and copy the
+# relevant subset of files from it under src/semgrep/semgrep-interface/
+# (the atdpy generated files and lang.json)
 .PHONY: build
 build:
-	$(MAKE) check
+	@echo "nothing to do for now for build; generated code in submodule"
 
 .PHONY: check
 check:
