@@ -17,7 +17,7 @@
       "end": {
         "col": 1,
         "line": 29,
-        "offset": 1
+        "offset": 0
       },
       "extra": {
         "engine_kind": "OSS",
@@ -58,7 +58,7 @@
       "start": {
         "col": 1,
         "line": 29,
-        "offset": 1
+        "offset": 0
       }
     },
     {
@@ -66,7 +66,7 @@
       "end": {
         "col": 1,
         "line": 29,
-        "offset": 1
+        "offset": 0
       },
       "extra": {
         "engine_kind": "OSS",
@@ -107,7 +107,7 @@
       "start": {
         "col": 1,
         "line": 29,
-        "offset": 1
+        "offset": 0
       }
     },
     {

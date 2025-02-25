@@ -137,10 +137,9 @@ def generate_unreachable_sca_findings(
                 core_match = out.CoreMatch(
                     check_id=out.RuleId(rule.id),
                     path=out.Fpath(str(lockfile_path)),
-                    start=out.Position(found_dep.line_number or 1, 1, 1),
+                    start=out.Position(found_dep.line_number or 1, 1),
                     end=out.Position(
                         (found_dep.line_number if found_dep.line_number else 1),
-                        1,
                         1,
                     ),
                     # TODO: we need to define the fields below in
