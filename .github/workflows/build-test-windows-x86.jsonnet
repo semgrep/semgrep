@@ -31,15 +31,17 @@ local build_core_job = {
   defaults: defaults,
   steps: [
     actions.checkout_with_submodules(),
-    {
-      uses: 'ocaml/setup-ocaml@v3',
-      with: {
-        'ocaml-compiler': opam_switch,
-        // bogus filename to prevent the action from attempting to install
-        // anything (we want deps only)
-        'opam-local-packages': 'dont_install_local_packages.opam',
-      },
-    },
+    // Why this cache when ocaml/setup-ocaml is already caching things?
+    // - setup-ocaml caches the cygwin and downloaded opam packages, but not the
+    //   installed opam packages
+    // - without the _opam cache we would spend 8-9 minutes every build
+    //   running `opam install`
+    // Note: we must cache after setup-ocaml, not before, because
+    // setup-ocaml would reset the cached _opam
+    semgrep.cache_opam.step(
+      key=semgrep.opam_switch + "-${{ hashFiles('semgrep-pro.opam', 'OSS/semgrep.opam') }}",
+    ),
+    semgrep.opam_setup(semgrep.opam_switch),
     {
       // TODO: Remove this once the stable version of `mingw64-x86_64-openssl`
       // is updated in Cygwin.
@@ -59,16 +61,6 @@ local build_core_job = {
         $CYGWIN_ROOT/setup-x86_64.exe -P $PACKAGES --quiet-mode -R $CYGWIN_ROOT
       |||
     },
-    // Why this cache when ocaml/setup-ocaml is already caching things?
-    // - setup-ocaml caches the cygwin and downloaded opam packages, but not the
-    //   installed opam packages
-    // - without the _opam cache we would spend 8-9 minutes every build
-    //   running `opam install`
-    // Note: we must cache after setup-ocaml, not before, because
-    // setup-ocaml would reset the cached _opam
-    semgrep.cache_opam.step(
-      key=opam_switch + "-${{ hashFiles('semgrep-pro.opam', 'OSS/semgrep.opam') }}",
-    ),
     {
       // TODO: We can remove this once these flexdll PRs are merged and a new
       // version of flexdll is released:
