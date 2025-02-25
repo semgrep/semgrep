@@ -75,6 +75,7 @@ def parse_depends_on_yaml(entries: List[Dict[str, str]]) -> Iterator[out.ScaPatt
 
 
 # TODO: should be renamed undetermined_or_unreachable_...
+#  or handle_transitive_findings
 def generate_unreachable_sca_findings(
     rule: Rule,
     already_reachable: Callable[[Path, FoundDependency], bool],
@@ -131,6 +132,7 @@ def generate_unreachable_sca_findings(
                     reachable=False,
                     reachability_rule=rule.should_run_on_semgrep_core,
                     dependency_match=dep_match,
+                    # TODO: sca_match_kind? put Undetermined for now?
                 )
                 core_match = out.CoreMatch(
                     check_id=out.RuleId(rule.id),
@@ -180,22 +182,22 @@ def generate_unreachable_sca_findings(
             if x_tr:
                 logger.info(f"SCA TR is on!")
                 transitive_findings = [
-                    out.TransitiveFinding(m=rm.match) for rm in non_reachable_matches
+                    out.TransitiveFinding(m=rm.match) for rm in subproject_matches
                 ]
                 fd, rules_tmp_path = mkstemp(
                     suffix=".rules", prefix="semgrep-", text=True
                 )
                 with os.fdopen(fd, "w") as fp:
                     fp.write(json.dumps([rule.raw]))
-                tr_filtered_matches = rpc_call.transitive_reachability_filter(
-                    out.TransitiveReachabilityFilterParams(
-                        rules_path=out.Fpath(rules_tmp_path),
-                        findings=transitive_findings,
-                        dependencies=list(
-                            iter_dependencies(subproject.resolved_dependencies)
-                        ),
-                    )
+                params = out.TransitiveReachabilityFilterParams(
+                    rules_path=out.Fpath(rules_tmp_path),
+                    findings=transitive_findings,
+                    dependencies=list(
+                        iter_dependencies(subproject.resolved_dependencies)
+                    ),
                 )
+                # to debug: print(params.to_json_string())
+                tr_filtered_matches = rpc_call.transitive_reachability_filter(params)
                 # TODO: associate these in a more robust way. This currently
                 # depends on the RPC call returning the same matches in the
                 # same order.
