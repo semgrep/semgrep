@@ -268,7 +268,7 @@ install-deps-for-semgrep-core:
 # to keep it and add `--no-cache`
 install-opam-deps:
 	opam update -y
-	OPAMSOLVERTIMEOUT=1200 opam install --confirm-level=unsafe-yes -y --deps-only $(REQUIRED_DEPS)
+	OPAMSOLVERTIMEOUT=1200 LWT_DISCOVER_ARGUMENTS="--use-libev true" LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" opam install --confirm-level=unsafe-yes -y --deps-only $(REQUIRED_DEPS)
 
 # This will fail if semgrep.opam isn't up-to-date (in git),
 # and dune isn't installed yet. You can always install dune with
@@ -297,37 +297,8 @@ install-deps: install-deps-for-semgrep-core
 #    container with many things pre-installed.
 # pro:
 #  - it avoids repeating yourself everywhere
-# -------------------------------------------------
-# macOS (brew)
-# -------------------------------------------------
-
-# see also scripts/osx-setup-for-release.sh that adjust those
-# external packages to force static-linking
-install-deps-MACOS-for-semgrep-core:
-	# We do this so we build LWT with libev on the path
-	# Coupling: This should be similar to homebrew setup
-	# austin: Why can't we use make homebrew-setup here? It doesn't seem to work
-	# because of something with how tree-sitter is installed.
-	LIBRARY_PATH="$$(brew --prefix)/lib" $(MAKE) install-deps-for-semgrep-core
-# Install dependencies needed for the Homebrew build.
 #
-# We don't use just 'make install-deps-for-semgrep-core' because Homebrew
-# installs its own version of tree-sitter, globally.
-# The Homebrew package definition ("formula") lives at:
-#   https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb
-# Some of this can be tested on Linux, see instructions in
-#   dockerfiles/linuxbrew.Dockerfile
-.PHONY: homebrew-setup
-homebrew-setup:
-	cd libs/ocaml-tree-sitter-core \
-	&& ./configure --prefix "$$(brew --prefix tree-sitter)"
-# We pass --no-depexts so as to disable the check for pkg-config
-# (which is present due to brew dependencies)
-# because this check was failing on some platform.
-# See details at https://github.com/Homebrew/homebrew-core/pull/82693.
-# This workaround may no longer be necessary.
-# LIBRARY_PATH is set here so we build lwt w/libev
-	LIBRARY_PATH="$$(brew --prefix)/lib" opam install -y --deps-only --no-depexts $(REQUIRED_DEPS)
+# TODO fix issue with windows so we don't need this specific step
 # -------------------------------------------------
 # Nix
 # -------------------------------------------------
@@ -391,7 +362,7 @@ install-deps-WINDOWS-for-semgrep-core:
 setup: semgrep.opam
 	./scripts/make-symlinks
 	./scripts/check-bash-version
-	$(MAKE) install-deps-for-semgrep-core
+	LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" $(MAKE) install-deps-for-semgrep-core
 
 # Install optional development dependencies in addition to build dependencies.
 .PHONY: dev-setup
