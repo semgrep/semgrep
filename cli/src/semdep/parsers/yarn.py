@@ -102,7 +102,7 @@ def dep_version_pair(dep: str, version: str) -> Tuple[str, str]:
 # my-package-without-version-constraint:
 # "filedep@file:../../correct/path/filedep":
 # "bats@https://github.com/bats-core/bats-core#master":
-part1 = regex('"?@?([^@:]*)', flags=0, group=1)
+part1 = regex('"?(@?[^@:]*)', flags=0, group=1)
 part2 = regex('@?([^:,"]*(:?(?!\n)[^:,"]*)*)"?', flags=0, group=1)
 source1 = pair(part1, part2)
 
@@ -128,8 +128,7 @@ dependencies1 = (
     .bind(
         lambda title: key_value1.sep_by(string("\n")).map(
             lambda child_info: [
-                dep_version_pair(dep.strip('"').strip("@"), version)
-                for dep, version in child_info
+                dep_version_pair(dep.strip('"'), version) for dep, version in child_info
             ],
         )
         if title
