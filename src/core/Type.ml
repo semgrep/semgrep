@@ -95,6 +95,7 @@ and 'resolved t =
    * See also of_opt() below.
    *)
   | NoType
+  (* should we merge `NoType` and `Todo`? *)
   | Todo of todo_kind
 
 and builtin_type =
