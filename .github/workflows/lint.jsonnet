@@ -10,7 +10,8 @@ local semgrep = import 'libs/semgrep.libsonnet';
 // The jobs
 // ----------------------------------------------------------------------------
 
-local pre_commit_steps() = [
+local pre_commit_steps(config='.pre-commit-config.yaml') = [
+  gha.git_safedir,
   actions.setup_python_step(cache=false),
   semgrep.opam_setup(),
   { 'run' : 'opam install -y ocamlformat.0.26.2',},
@@ -21,28 +22,22 @@ local pre_commit_steps() = [
   // in CI, for the same PR.
   {
     uses: 'pre-commit/action@v3.0.0',
+    with: {
+      'extra_args': '-c %s' % config,
+    }
   },
 ];
 
 // Running pre-commit in CI. See semgrep/.pre-commit-config.yaml for
 // our pre-commit configuration.
-local pre_commit_job = {
+local pre_commit_job(checkout_steps, config='.pre-commit-config.yaml') = {
   'runs-on': 'ubuntu-latest',
-  steps: [
-    actions.checkout(),
-    gha.git_safedir,
-    // We grab those submodules below because they are the one needed by 'mypy',
-    // which runs as part of pre-commit to check our Python code.
-    // alt: we could also use 'submodules: recursive' instead, but that would be slower
-    {
-      name: 'Fetch semgrep-cli submodules',
-      run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces',
-    },
-  ] + pre_commit_steps(),
+  steps:
+    checkout_steps + pre_commit_steps(config),
 };
 
 // TODO: we should port those GHA checks to semgrep and add them in semgrep-rules
-local action_lint_job(checkout_steps) = {
+local action_lint_job(checkout_steps, dir="./") = {
   'runs-on': 'ubuntu-latest',
   steps: checkout_steps + [
     gha.git_safedir,
@@ -56,7 +51,10 @@ local action_lint_job(checkout_steps) = {
       run: 'go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7',
     },
     {
-      run: "actionlint -shellcheck=''",
+      run: |||
+        cd %s
+        actionlint -shellcheck=''
+      |||  % dir,
     },
   ],
 };
@@ -89,7 +87,7 @@ local jsonnet_gha_job(checkout_steps, dir=".github/workflows") = {
   name: 'lint',
   on: gha.on_classic,
   jobs: {
-    'pre-commit': pre_commit_job,
+    'pre-commit': pre_commit_job([actions.checkout_with_submodules()]),
     'github-actions': action_lint_job([actions.checkout()]),
     'jsonnet-gha': jsonnet_gha_job([actions.checkout()]),
   },
@@ -97,6 +95,6 @@ local jsonnet_gha_job(checkout_steps, dir=".github/workflows") = {
     // reused in semgrep-pro
     'github-actions': action_lint_job,
     'jsonnet-gha': jsonnet_gha_job,
-    'pre-commit-steps': pre_commit_steps,
+    'pre-commit': pre_commit_job,
   },
 }

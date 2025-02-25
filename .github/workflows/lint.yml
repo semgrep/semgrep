@@ -10,7 +10,9 @@ jobs:
         with:
           go-version: "1.19"
       - run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
-      - run: actionlint -shellcheck=''
+      - run: |
+          cd ./
+          actionlint -shellcheck=''
   jsonnet-gha:
     runs-on: ubuntu-latest
     steps:
@@ -27,10 +29,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - name: Configure git safedir properly
         run: git config --global --add safe.directory $(pwd)
-      - name: Fetch semgrep-cli submodules
-        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -40,6 +42,8 @@ jobs:
           opam-pin: false
       - run: opam install -y ocamlformat.0.26.2
       - uses: pre-commit/action@v3.0.0
+        with:
+          extra_args: -c .pre-commit-config.yaml
 name: lint
 on:
   pull_request:
