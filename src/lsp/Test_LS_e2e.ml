@@ -1258,8 +1258,7 @@ let pair ?expected_outcome ?skipped ?tags ?tolerate_chdir name func =
 
 let promise_tests caps =
   [
-    pair "LS specs" (test_ls_specs caps) ~tags:[ Test_tags.flaky ]
-      ~tolerate_chdir:true;
+    pair "LS specs" (test_ls_specs caps) ~tolerate_chdir:true;
     (* Keep this test commented out while it is xfail.
         Because logging in is side-effecting, if the test never completes, we
         will stay log in, which can mangle some of the later tests.

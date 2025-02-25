@@ -195,6 +195,37 @@ let auth_token () =
       let settings = Semgrep_settings.load () in
       settings.api_token
 
+let check_token session =
+  if not (session.user_settings.ci || session.user_settings.pro_intrafile) then (
+    Logs.debug (fun m -> m "CI disabled, not checking API token");
+    Lwt.return_ok ())
+  else (
+    Logs.debug (fun m -> m "Checking API token exists");
+    let settings = Semgrep_settings.load () in
+    match settings.api_token with
+    | Some token ->
+        Logs.debug (fun m -> m "Checking API token validity");
+        let caps = Auth.cap_token_and_network token session.caps in
+        (* "if not valid", basically *)
+        let%lwt token_valid = Semgrep_login.verify_token_async caps in
+        if not token_valid then (
+          Logs.warn (fun m -> m "Invalid Semgrep token detected");
+          Semgrep_settings.save { settings with api_token = None } |> ignore;
+          Lwt.return_error
+            "Semgrep's API token is invalid. Please login to enable the \
+             Semgrep engine")
+        else Lwt.return_ok ()
+    | None ->
+        Logs.info (fun m -> m "No API token detected");
+        (* Check if pro_intrafile requested *)
+        if session.user_settings.pro_intrafile then
+          Lwt.return_error
+            "Semgrep's Pro engine is enabled, but no API token is set. Semgrep \
+             Language Server will default to the OSS engine. Please login to \
+             enable the Pro engine, or disable the setting to stop seeing this \
+             message."
+        else Lwt.return_ok ())
+
 let scan_config_of_token caps = function
   | Some token -> (
       let caps = Auth.cap_token_and_network token caps in
