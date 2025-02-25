@@ -1,0 +1,2 @@
+pro: Inter-file analysis will now process Javascript and Typescript files
+together, so that taint can be tracked across both languages.

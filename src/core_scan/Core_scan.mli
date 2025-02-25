@@ -68,6 +68,7 @@ val applicable_rules_of_config :
    and the per-rule include/exclude patterns; possibly more in the future.
 *)
 val rules_for_target :
+  combine_js_with_ts:bool ->
   analyzer:Analyzer.t ->
   products:Semgrep_output_v1_t.product list ->
   origin:Origin.t ->
@@ -79,7 +80,8 @@ val rules_for_target :
    Compare to select_applicable_rules_for_target which additionally can
    honor per-rule include/exclude patterns based on the target path.
 *)
-val rules_for_analyzer : analyzer:Analyzer.t -> Rule.t list -> Rule.t list
+val rules_for_analyzer :
+  combine_js_with_ts:bool -> analyzer:Analyzer.t -> Rule.t list -> Rule.t list
 
 (* for SCA_scan *)
 val rules_for_origin : Rule.paths option -> Origin.t -> bool

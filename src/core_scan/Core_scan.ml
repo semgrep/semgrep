@@ -719,11 +719,19 @@ let iter_targets_and_get_matches_and_exn_to_errors
 (*****************************************************************************)
 
 (* This is also used by semgrep-proprietary. *)
-let rules_for_analyzer ~analyzer rules =
+let rules_for_analyzer ~combine_js_with_ts ~analyzer rules =
   rules
   |> List.filter (fun (r : Rule.t) ->
          (* Don't run a Python rule on a JavaScript target *)
-         Analyzer.is_compatible ~require:analyzer ~provide:r.target_analyzer)
+         Analyzer.is_compatible ~require:analyzer ~provide:r.target_analyzer
+         ||
+         (* See NOTE "Combined JS/TS analysis" *)
+         match (analyzer, r.target_analyzer) with
+         | Analyzer.L (lang1, _), Analyzer.L (lang2, langs2)
+           when combine_js_with_ts ->
+             Lang.is_js lang1
+             && (Lang.is_js lang2 || List.exists Lang.is_js langs2)
+         | _ -> false)
 
 (* Note that filtering is applied on the basis of the target's origin, not the
  * target's "file". This is because filtering should apply to the user's
@@ -756,8 +764,9 @@ let rules_for_origin paths (origin : Origin.t) =
    or something even better to reduce the time spent on each target in
    case we have a high number of rules and a high fraction of irrelevant
    rules? *)
-let rules_for_target ~analyzer ~products ~origin ~respect_rule_paths rules =
-  let rules = rules_for_analyzer ~analyzer rules in
+let rules_for_target ~combine_js_with_ts ~analyzer ~products ~origin
+    ~respect_rule_paths rules =
+  let rules = rules_for_analyzer ~combine_js_with_ts ~analyzer rules in
   let rules =
     rules
     |> List.filter (fun r ->
@@ -795,7 +804,7 @@ let mk_target_handler (caps : < Cap.time_limit >) (config : Core_scan_config.t)
          _;
        } as target) ->
       let rules =
-        rules_for_target ~analyzer ~products ~origin
+        rules_for_target ~combine_js_with_ts:false ~analyzer ~products ~origin
           ~respect_rule_paths:config.respect_rule_paths valid_rules
       in
       let was_scanned = not (List_.null rules) in
