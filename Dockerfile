@@ -98,12 +98,13 @@ COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 
 FROM alpine:3.19 as semgrep-core-container
 
+
+# Install opam and basic build tools
 # https://github.com/ocaml/opam/issues/5186
 # Why we don't have --no-cache here
-# Install opam and basic build tools
-RUN apk add bash build-base git make rsync
-# Install ocaml/opam
-RUN apk add opam
+# hadolint ignore=DL3019
+RUN apk update && apk add bash build-base git make rsync opam
+
 # coupling: if you modify the OCaml version there, you probably also need
 # to modify:
 # - .github/workflows/libs/semgrep.libsonnet

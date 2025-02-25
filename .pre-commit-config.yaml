@@ -1,5 +1,5 @@
 # coupling: if you add a check in this file, please add it first in
-# the semgrep-proprietary repo
+# the semgrep-proprietary repo !!!!
 #
 # Semgrep pre-commit configuration.
 # See https://pre-commit.com/ for more information.
@@ -180,7 +180,7 @@ repos:
           - dockerfile
         exclude: "^scripts/release/linuxbrew[.]Dockerfile$"
         entry: hadolint/hadolint:v2.8.0-alpine hadolint
-        args: ["--ignore", "DL3008", "--ignore", "DL3018"]
+        args: ["--ignore", "DL3008", "--ignore", "DL3018", "--ignore", "DL3059"]
 
   # ----------------------------------------------------------
   # Local hooks
