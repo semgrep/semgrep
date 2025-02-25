@@ -34,12 +34,14 @@ def test_nonexistent(tmp_path, monkeypatch):
 
     monkeypatch.chdir(tmp_path)
 
-    # shouldnt raise an error
-    TargetManager(scanning_root_strings=["foo/a.py"])
+    # shouldn't raise an error
+    TargetManager(scanning_root_strings=frozenset([Path("foo/a.py")]))
 
     with pytest.raises(InvalidScanningRootError) as e:
         TargetManager(
-            scanning_root_strings=["foo/a.py", "foo/doesntexist.py"],
+            scanning_root_strings=frozenset(
+                [Path("foo/a.py"), Path("foo/doesntexist.py")]
+            ),
         )
     assert e.value.paths == (Path("foo/doesntexist.py"),)
 
@@ -62,7 +64,7 @@ def test_delete_git(tmp_path, monkeypatch):
     foo.unlink()
     subprocess.run(["git", "status"])
 
-    assert_path_sets_equal(ScanningRoot(".", True).target_files(), {bar})
+    assert_path_sets_equal(ScanningRoot(Path("."), True).target_files(), {bar})
 
 
 @pytest.mark.quick
@@ -207,7 +209,7 @@ def test_skip_symlink(tmp_path, monkeypatch):
     PY = Language("python")
 
     assert_path_sets_equal(
-        TargetManager(scanning_root_strings=[str(foo)])
+        TargetManager(scanning_root_strings=frozenset([foo]))
         .get_files_for_language(lang=PY, product=SAST_PRODUCT)
         .kept,
         {foo / "a.py"},
@@ -215,7 +217,7 @@ def test_skip_symlink(tmp_path, monkeypatch):
 
     with pytest.raises(InvalidScanningRootError):
         TargetManager(
-            scanning_root_strings=[str(foo / "link.py")],
+            scanning_root_strings=frozenset([foo / "link.py"]),
         ).get_files_for_language(lang=PY, product=SAST_PRODUCT)
 
 
@@ -230,9 +232,9 @@ def test_ignore_git_dir(tmp_path, monkeypatch):
 
     monkeypatch.chdir(tmp_path)
     language = Language("generic")
-    assert frozenset() == TargetManager(scanning_root_strings=[foo]).get_files_for_rule(
-        language, [], [], "dummy_rule_id", SAST_PRODUCT
-    )
+    assert frozenset() == TargetManager(
+        scanning_root_strings=frozenset([foo])
+    ).get_files_for_rule(language, [], [], "dummy_rule_id", SAST_PRODUCT)
 
 
 @pytest.mark.quick
@@ -255,21 +257,21 @@ def test_explicit_path(tmp_path, monkeypatch):
     python_language = Language("python")
 
     assert foo_a in TargetManager(
-        scanning_root_strings=["foo/a.py"],
+        scanning_root_strings=frozenset([Path("foo/a.py")]),
         allow_unknown_extensions=True,
     ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
     assert foo_a in TargetManager(
-        scanning_root_strings=["foo/a.py"]
+        scanning_root_strings=frozenset([Path("foo/a.py")])
     ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
 
     # Should include explicitly passed python file even if is in excludes
     assert foo_a not in TargetManager(
-        scanning_root_strings=["."],
+        scanning_root_strings=frozenset([Path(".")]),
         includes=[],
         excludes={SAST_PRODUCT: ["foo/a.py"]},
     ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
     assert foo_a in TargetManager(
-        scanning_root_strings=[".", "foo/a.py"],
+        scanning_root_strings=frozenset([Path("."), Path("foo/a.py")]),
         includes=[],
         excludes={SAST_PRODUCT: ["foo/a.py"]},
     ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
@@ -277,7 +279,7 @@ def test_explicit_path(tmp_path, monkeypatch):
     # Should ignore expliclty passed .go file when requesting python
     assert (
         TargetManager(
-            scanning_root_strings=["foo/a.go"],
+            scanning_root_strings=frozenset([Path("foo/a.go")]),
         ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
         == frozenset()
     )
@@ -285,7 +287,7 @@ def test_explicit_path(tmp_path, monkeypatch):
     # Should include explicitly passed file with unknown extension if allow_unknown_extensions=True
     assert_path_sets_equal(
         TargetManager(
-            scanning_root_strings=["foo/noext"],
+            scanning_root_strings=frozenset([Path("foo/noext")]),
             allow_unknown_extensions=True,
         ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT),
         {foo_noext},
@@ -294,7 +296,7 @@ def test_explicit_path(tmp_path, monkeypatch):
     # Should not include explicitly passed file with unknown extension by default
     assert_path_sets_equal(
         TargetManager(
-            scanning_root_strings=["foo/noext"],
+            scanning_root_strings=frozenset([Path("foo/noext")]),
         ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT),
         set(),
     )
@@ -302,7 +304,7 @@ def test_explicit_path(tmp_path, monkeypatch):
     # Should include explicitly passed file with correct extension even if skip_unknown_extensions=True
     assert_path_sets_equal(
         TargetManager(
-            scanning_root_strings=["foo/noext", "foo/a.py"],
+            scanning_root_strings=frozenset([Path("foo/noext"), Path("foo/a.py")]),
         ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT),
         {foo_a},
     )
@@ -310,7 +312,7 @@ def test_explicit_path(tmp_path, monkeypatch):
     # Should respect includes/excludes passed to get_files even if target explicitly passed
     assert_path_sets_equal(
         TargetManager(
-            scanning_root_strings=["foo/a.py", "foo/b.py"],
+            scanning_root_strings=frozenset([Path("foo/a.py"), Path("foo/b.py")]),
         ).get_files_for_rule(
             python_language, ["a.py"], [], "dummy_rule_id", SAST_PRODUCT
         ),
@@ -320,7 +322,7 @@ def test_explicit_path(tmp_path, monkeypatch):
     # Should respect excludes on a per-product basis
     assert_path_sets_equal(
         TargetManager(
-            scanning_root_strings=["foo/a.py", "foo/b.py"],
+            scanning_root_strings=frozenset([Path("foo/a.py"), Path("foo/b.py")]),
             excludes={SAST_PRODUCT: ["*.py"]},
         ).get_files_for_rule(
             python_language, ["a.py"], [], "dummy_rule_id", SECRETS_PRODUCT
@@ -333,7 +335,7 @@ def test_explicit_path(tmp_path, monkeypatch):
 def test_ignores(tmp_path, monkeypatch):
     def ignore(ignore_pats, profile_product=SAST_PRODUCT, rule_product=SAST_PRODUCT):
         return TargetManager(
-            scanning_root_strings=[tmp_path],
+            scanning_root_strings=frozenset([tmp_path]),
             ignore_profiles={
                 profile_product: FileIgnore.from_unprocessed_patterns(
                     tmp_path, ignore_pats, max_log_list_entries=0
@@ -442,7 +444,7 @@ def test_ignores(tmp_path, monkeypatch):
 def test_unsupported_lang_paths(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
 
-    targets: List[str] = []
+    targets: List[Path] = []
 
     # we will "scan" only for python---others will be unsupported
     paths = {
@@ -460,11 +462,11 @@ def test_unsupported_lang_paths(tmp_path, monkeypatch):
         for file_name in paths[dir_name]:
             path = dir / file_name
             path.touch()
-            targets.append(str(path))
+            targets.append(path)
             if os.path.splitext(path)[1] != ".py":
                 expected_unsupported.add(path)
 
-    target_manager = TargetManager(scanning_root_strings=targets)
+    target_manager = TargetManager(scanning_root_strings=frozenset(targets))
 
     target_manager.get_files_for_language(lang=LANG_PY, product=SAST_PRODUCT)
     target_manager.get_files_for_language(lang=LANG_GENERIC, product=SAST_PRODUCT)
@@ -479,7 +481,7 @@ def test_unsupported_lang_paths(tmp_path, monkeypatch):
 def test_unsupported_lang_paths_2(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
 
-    targets: List[str] = []
+    targets: List[Path] = []
 
     # we will "scan" only for generic and regex
     paths = {
@@ -497,10 +499,10 @@ def test_unsupported_lang_paths_2(tmp_path, monkeypatch):
         for file_name in paths[dir_name]:
             path = dir / file_name
             path.touch()
-            targets.append(str(path))
+            targets.append(path)
             expected_unsupported.add(path)
 
-    target_manager = TargetManager(scanning_root_strings=targets)
+    target_manager = TargetManager(scanning_root_strings=frozenset(targets))
 
     target_manager.get_files_for_language(lang=LANG_GENERIC, product=SAST_PRODUCT)
     target_manager.get_files_for_language(lang=LANG_REGEX, product=SAST_PRODUCT)
@@ -526,11 +528,11 @@ def test_ignore_baseline_handler(monkeypatch, tmp_path):
     subprocess.check_call(["git", "config", "user.name", "Baseline TestHandler"])
     subprocess.check_call(["git", "checkout", "-B", "main"])
 
-    targets: List[str] = []
+    targets: List[Path] = []
 
     # Create dir_a/poetry.lock, dir_b/poetry.lock and dir_c/poetry.lock
     cwd = Path(".")
-    targets.append(str(cwd))
+    targets.append(cwd)
     dir_a = Path("dir_a")
     dir_a.mkdir()
     dir_a_poetry = dir_a / "poetry.lock"

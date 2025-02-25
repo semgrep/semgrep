@@ -601,6 +601,7 @@ class TargetManager:
     TargetManager not to be confused with https://jobs.target.com/search-jobs/store%20manager
     """
 
+    # TODO: rename scanning_root_strings -> scanning_root_paths
     scanning_root_strings: FrozenSet[Path]
     includes: Sequence[str] = Factory(list)
     excludes: Mapping[out.Product, Sequence[str]] = Factory(dict)

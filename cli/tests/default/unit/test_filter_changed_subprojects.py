@@ -32,7 +32,7 @@ def make_subproject(
     manifest: Path, lockfile: Path, ecosystem: out.Ecosystem
 ) -> out.Subproject:
     return out.Subproject(
-        root_dir=out.Fpath(manifest.parent),
+        root_dir=out.Fpath(str(manifest.parent)),
         # manifest and lockfile kind don't matter for this test
         dependency_source=out.DependencySource(
             out.ManifestLockfileDependencySource(

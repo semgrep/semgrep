@@ -19,6 +19,7 @@ from pathlib import Path
 from textwrap import dedent
 from typing import List
 from typing import Mapping
+from typing import Optional
 
 import pytest
 from requests.exceptions import ConnectionError
@@ -2696,7 +2697,7 @@ def test_ci_uuid(
 
     generated_uuid = generate_anonymous_user_id(env.get("SEMGREP_APP_TOKEN"))
     # Assume we will generate a new UUID from app_token
-    expected_uuid = generated_uuid
+    expected_uuid: Optional[str] = generated_uuid
 
     # Simulate the case where we have an existing settings file
     if existing_settings:

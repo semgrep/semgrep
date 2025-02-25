@@ -56,7 +56,7 @@ def test_rule_match_attributes(mocker):
             end=out.Position(3, 15, 38),
             extra=out.CoreMatchExtra(
                 metavars=out.Metavars({}),
-                engine_kind=out.EngineKind(out.OSS()),
+                engine_kind=out.EngineOfFinding(out.OSS()),
                 is_ignored=False,
             ),
         ),
@@ -94,7 +94,7 @@ def test_rule_match_sorting(mocker):
             end=out.Position(3, 15, 38),
             extra=out.CoreMatchExtra(
                 metavars=out.Metavars({}),
-                engine_kind=out.EngineKind(out.OSS()),
+                engine_kind=out.EngineOfFinding(out.OSS()),
                 is_ignored=False,
             ),
         ),
@@ -109,7 +109,7 @@ def test_rule_match_sorting(mocker):
             end=out.Position(4, 15, 50),
             extra=out.CoreMatchExtra(
                 metavars=out.Metavars({}),
-                engine_kind=out.EngineKind(out.OSS()),
+                engine_kind=out.EngineOfFinding(out.OSS()),
                 is_ignored=False,
             ),
         ),
@@ -149,7 +149,7 @@ def test_rule_match_sorting_with_git_info(mocker):
             end=out.Position(3, 15, 38),
             extra=out.CoreMatchExtra(
                 metavars=out.Metavars({}),
-                engine_kind=out.EngineKind(out.OSS()),
+                engine_kind=out.EngineOfFinding(out.OSS()),
                 is_ignored=False,
             ),
         ),
@@ -164,7 +164,7 @@ def test_rule_match_sorting_with_git_info(mocker):
             end=out.Position(4, 15, 50),
             extra=out.CoreMatchExtra(
                 metavars=out.Metavars({}),
-                engine_kind=out.EngineKind(out.OSS()),
+                engine_kind=out.EngineOfFinding(out.OSS()),
                 is_ignored=False,
                 historical_info=out.HistoricalInfo(
                     git_blob=out.Sha1(git_blob_sha),
@@ -198,7 +198,7 @@ def test_rule_match_hashing(mocker):
             end=out.Position(3, 15, 38),
             extra=out.CoreMatchExtra(
                 metavars=out.Metavars({}),
-                engine_kind=out.EngineKind(out.OSS()),
+                engine_kind=out.EngineOfFinding(out.OSS()),
                 is_ignored=False,
             ),
         ),
@@ -228,7 +228,7 @@ def test_rule_match_is_nosemgrep_agnostic(mocker):
             end=out.Position(5, 2, 48),
             extra=out.CoreMatchExtra(
                 metavars=out.Metavars({}),
-                engine_kind=out.EngineKind(out.OSS()),
+                engine_kind=out.EngineOfFinding(out.OSS()),
                 is_ignored=False,
             ),
         ),
@@ -253,7 +253,7 @@ def test_rule_match_is_nosemgrep_agnostic(mocker):
             end=out.Position(5, 2, 72),
             extra=out.CoreMatchExtra(
                 metavars=out.Metavars({}),
-                engine_kind=out.EngineKind(out.OSS()),
+                engine_kind=out.EngineOfFinding(out.OSS()),
                 is_ignored=False,
             ),
         ),
@@ -279,7 +279,7 @@ def test_rule_match_is_nosemgrep_agnostic(mocker):
             end=out.Position(6, 2, 75),
             extra=out.CoreMatchExtra(
                 metavars=out.Metavars({}),
-                engine_kind=out.EngineKind(out.OSS()),
+                engine_kind=out.EngineOfFinding(out.OSS()),
                 is_ignored=False,
             ),
         ),
@@ -316,7 +316,7 @@ def test_rule_match_set_indexes(mocker):
             end=out.Position(3, 15, 38),
             extra=out.CoreMatchExtra(
                 metavars=out.Metavars({}),
-                engine_kind=out.EngineKind(out.OSS()),
+                engine_kind=out.EngineOfFinding(out.OSS()),
                 is_ignored=False,
             ),
         ),
@@ -331,7 +331,7 @@ def test_rule_match_set_indexes(mocker):
             end=out.Position(4, 15, 50),
             extra=out.CoreMatchExtra(
                 metavars=out.Metavars({}),
-                engine_kind=out.EngineKind(out.OSS()),
+                engine_kind=out.EngineOfFinding(out.OSS()),
                 is_ignored=False,
             ),
         ),
@@ -346,7 +346,7 @@ def test_rule_match_set_indexes(mocker):
             end=out.Position(5, 15, 62),
             extra=out.CoreMatchExtra(
                 metavars=out.Metavars({}),
-                engine_kind=out.EngineKind(out.OSS()),
+                engine_kind=out.EngineOfFinding(out.OSS()),
                 is_ignored=False,
             ),
         ),
@@ -361,7 +361,7 @@ def test_rule_match_set_indexes(mocker):
             end=out.Position(6, 15, 74),
             extra=out.CoreMatchExtra(
                 metavars=out.Metavars({}),
-                engine_kind=out.EngineKind(out.OSS()),
+                engine_kind=out.EngineOfFinding(out.OSS()),
                 is_ignored=False,
             ),
         ),
@@ -377,7 +377,7 @@ def test_rule_match_set_indexes(mocker):
             end=out.Position(7, 15, 74),
             extra=out.CoreMatchExtra(
                 metavars=out.Metavars({}),
-                engine_kind=out.EngineKind(out.OSS()),
+                engine_kind=out.EngineOfFinding(out.OSS()),
                 is_ignored=False,
             ),
         ),
@@ -433,7 +433,7 @@ def test_rule_match_to_app_finding(snapshot, mocker):
             end=out.Position(0, 0, 0),
             extra=out.CoreMatchExtra(
                 metavars=out.Metavars({}),
-                engine_kind=out.EngineKind(out.OSS()),
+                engine_kind=out.EngineOfFinding(out.OSS()),
                 is_ignored=False,
             ),
         ),
@@ -467,7 +467,7 @@ def test_rule_match_to_app_finding_historical_info(snapshot, mocker):
             end=out.Position(0, 0, 0),
             extra=out.CoreMatchExtra(
                 metavars=out.Metavars({}),
-                engine_kind=out.EngineKind(
+                engine_kind=out.EngineOfFinding(
                     out.PROREQUIRED(
                         value=out.ProFeature(
                             interproc_taint=True,
@@ -527,7 +527,7 @@ def create_sca_rule_match(sca_kind, reachable_in_code, transitivity):
             end=out.Position(0, 0, 0),
             extra=out.CoreMatchExtra(
                 metavars=out.Metavars({}),
-                engine_kind=out.EngineKind(out.OSS()),
+                engine_kind=out.EngineOfFinding(out.OSS()),
                 is_ignored=False,
             ),
         ),
@@ -576,7 +576,7 @@ def create_validator_rule_match(
             end=out.Position(0, 0, 0),
             extra=out.CoreMatchExtra(
                 metavars=out.Metavars({}),
-                engine_kind=out.EngineKind(out.PRO()),
+                engine_kind=out.EngineOfFinding(out.PRO()),
                 is_ignored=False,
                 validation_state=out.ValidationState(match_validation_state),
             ),
@@ -773,9 +773,5 @@ def test_remove_content_call(input_json, output_json):
     ],
 )
 def test_remove_content(input_json, output_json):
-    assert (
-        out.MatchDataflowTrace.to_json(
-            remove_content(out.MatchDataflowTrace.from_json(input_json))
-        )
-        == output_json
-    )
+    data = remove_content(out.MatchDataflowTrace.from_json(input_json))
+    assert data and (out.MatchDataflowTrace.to_json(data) == output_json)

@@ -8,12 +8,16 @@ import shutil
 import subprocess
 from pathlib import Path
 
-import appdirs
+import appdirs  # type: ignore
 import pytest
 from tests.conftest import TESTS_PATH
 from tests.semgrep_runner import SEMGREP_BASE_SCAN_COMMAND
 
 from .public_repos import REPOS
+
+# TODO: we shouldn't ignore the types of the appdirs module.
+# They're supposed to be provided by the types-appdirs package
+# but I can't make it work -- Martin
 
 # Some improbable string that was implanted in test targets [how?] [why?].
 #

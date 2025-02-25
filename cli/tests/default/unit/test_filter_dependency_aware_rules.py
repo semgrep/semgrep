@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import List
 
 import pytest
 
@@ -79,7 +80,7 @@ def sample_rules():
 def sample_resolved_deps():
     # Accurate found_dependencies for protobuf and test packages, including
     # empty allowed_hashes
-    resolved_dependencies = [
+    resolved_dependencies: List[out.ResolvedDependency] = [
         out.ResolvedDependency(
             (
                 out.FoundDependency(
@@ -87,7 +88,7 @@ def sample_resolved_deps():
                     version="3.14.0",
                     ecosystem=Ecosystem(value=Pypi()),
                     allowed_hashes=defaultdict(list),  # Empty allowed_hashes
-                    transitivity=Transitivity("Direct"),
+                    transitivity=Transitivity(out.Direct()),
                     resolved_url=None,
                     children=None,
                     git_ref=None,
@@ -102,7 +103,7 @@ def sample_resolved_deps():
                     version="1.16.0",
                     ecosystem=Ecosystem(value=Pypi()),
                     allowed_hashes=defaultdict(list),  # Empty allowed_hashes
-                    transitivity=Transitivity("Direct"),
+                    transitivity=Transitivity(out.Direct()),
                     resolved_url=None,
                     children=None,
                     git_ref=None,
@@ -130,7 +131,7 @@ def sample_resolved_deps():
     subprojects = [
         out.ResolvedSubproject(
             info=out.Subproject(
-                root_dir=".",
+                root_dir=out.Fpath("."),
                 dependency_source=dependency_source,
                 ecosystem=Ecosystem(value=Pypi()),
             ),

@@ -574,7 +574,13 @@ def test_parsing(caplog, target: str, snapshot, lockfile_path_in_tmp):
     # The purpose of these tests is to ensure that parsers can handle a variety of lockfiles. As such,
     # they may contain invalid dependency graphs which can result in DependencyParserErrors. Since these
     # are out of scope for the parser tests, we ignore them here.
-    error = [e for e in error if "Child dependency version not found" not in e.reason]
+    error = [
+        e
+        for e in error
+        # 'e' is of a union type. One of the types doesn't have a 'reason' field.
+        if "Child dependency version not found"
+        not in getattr(e, "reason")  # noqa: B009
+    ]
 
     # Assert
 

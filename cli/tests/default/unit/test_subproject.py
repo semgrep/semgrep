@@ -1,5 +1,6 @@
 import hashlib
 from pathlib import Path
+from typing import List
 
 import pytest
 
@@ -165,7 +166,7 @@ class TestSubproject:
         "lockfile_path", [Path("a/b/c/requirements.txt"), Path("requirements.txt")]
     )
     def test_base_case(self, lockfile_path: Path):
-        resolved_dependencies = [
+        resolved_dependencies: List[out.ResolvedDependency] = [
             out.ResolvedDependency(
                 (
                     out.FoundDependency(
@@ -222,7 +223,7 @@ class TestSubproject:
     def test_multiple_lockfiles(self):
         lockfile_path = Path("a/b/c/requirements/base.txt")
         extra_lockfile_path = Path("a/b/requirements/dev.txt")
-        resolved_dependencies = [
+        resolved_dependencies: List[out.ResolvedDependency] = [
             out.ResolvedDependency(
                 (
                     out.FoundDependency(
@@ -308,7 +309,7 @@ class TestSubproject:
     @pytest.mark.quick
     def test_dep_missing_lockfile_path(self):
         lockfile_path = Path("requirements.txt")
-        resolved_dependencies = [
+        resolved_dependencies: List[out.ResolvedDependency] = [
             out.ResolvedDependency(
                 (
                     out.FoundDependency(
@@ -370,7 +371,7 @@ class TestSubproject:
         dependency_source = out.DependencySource(lockfile_src)
 
         subproject = out.Subproject(
-            root_dir=Path("a/b/c"),
+            root_dir=out.Fpath("a/b/c"),
             dependency_source=dependency_source,
             ecosystem=Ecosystem(Pypi()),
         )
