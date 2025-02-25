@@ -745,8 +745,8 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
                match !hook_pro_metavariable_name with
                | None ->
                    error env
-                     "semgrep-internal-metavariable-name operator is only \
-                      supported in the Pro engine";
+                     "metavariable-name operator is only supported in the Pro \
+                      engine";
                    false
                | Some f -> f e cond
              in

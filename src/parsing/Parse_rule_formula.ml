@@ -423,21 +423,29 @@ and parse_pair_old env ((key, value) : key * G.expr) :
                 H.dict_take_opt dict "metavariable-type",
                 H.dict_take_opt dict "metavariable-pattern",
                 H.dict_take_opt dict "metavariable-comparison",
+                H.dict_take_opt dict "metavariable-name",
                 H.dict_take_opt dict "semgrep-internal-metavariable-name" )
             with
-            | None, None, None, None, None, None, None ->
+            | None, None, None, None, None, None, None, None ->
                 let+ nested_formula = get_nested_formula_in_list env i expr in
                 Either_.Left3 nested_formula
-            | Some (((_, t) as key), value), None, None, None, None, None, None
-              ->
+            | ( Some (((_, t) as key), value),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None ) ->
                 let+ focus = parse_focus_mvs env key value in
                 Either_.Middle3 (t, focus)
-            | None, Some (key, value), None, None, None, None, None
-            | None, None, Some (key, value), None, None, None, None
-            | None, None, None, Some (key, value), None, None, None
-            | None, None, None, None, Some (key, value), None, None
-            | None, None, None, None, None, Some (key, value), None
-            | None, None, None, None, None, None, Some (key, value) ->
+            | None, Some (key, value), None, None, None, None, None, None
+            | None, None, Some (key, value), None, None, None, None, None
+            | None, None, None, Some (key, value), None, None, None, None
+            | None, None, None, None, Some (key, value), None, None, None
+            | None, None, None, None, None, Some (key, value), None, None
+            | None, None, None, None, None, None, Some (key, value), None
+            | None, None, None, None, None, None, None, Some (key, value) ->
                 let+ extra = parse_extra env key value in
                 Either_.Right3 (snd key, extra |> process_extra)
             | _ ->
@@ -647,6 +655,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) :
         | __else__ -> Ok ()
       in
       Ok (MetavarComparison { metavariable; comparison; strip; base })
+  | "metavariable-name"
   | "semgrep-internal-metavariable-name" -> (
       let/ mv_name_dict = parse_dict env key value in
       let/ mvar = take_key mv_name_dict env parse_string "metavariable" in
@@ -668,6 +677,11 @@ and parse_extra (env : env) (key : key) (value : G.expr) :
           error_at_key env.id key "expected at least one of kind, module(s)"
       | _, Some _, Some _ ->
           error_at_key env.id key "expected only one of module, modules"
+      | Some _, _, _
+        when not (String.equal (fst key) "semgrep-internal-metavariable-name")
+        ->
+          error_at_key env.id key
+            "kind constraint is not supported without semgrep-internal- prefix"
       | _ ->
           let/ kind =
             match Option.map parse_kind kind_str with
