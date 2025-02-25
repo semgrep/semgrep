@@ -283,7 +283,6 @@ local osemgrep_test_steps_after_checkout = [
     name: 'Build semgrep-core',
     run: |||
       eval $(opam env)
-      make install-deps-ALPINE
       make install-deps
       make core
     |||,

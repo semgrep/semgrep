@@ -44,7 +44,6 @@ TREE_SITTER_LANGS="$2"
 #   name. It is assumed that the reason we're on alpine is to get
 #   statically-linked executables.
 
-
 # Check if NIX_ENVIRONMENT is not set
 # If it is set, we are in a nix-shell and we should not statically link
 # This is first because opam won't exist in a nix build environment

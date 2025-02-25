@@ -110,7 +110,6 @@ local test_semgrep_core_job =
         name: 'Install dependencies',
         run: |||
           eval $(opam env)
-          make install-deps-ALPINE-for-semgrep-core
           make install-deps-for-semgrep-core
           make -C interfaces/semgrep_interfaces setup-ALPINE setup
         |||,

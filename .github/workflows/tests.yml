@@ -212,7 +212,6 @@ jobs:
       - name: Build semgrep-core
         run: |
           eval $(opam env)
-          make install-deps-ALPINE
           make install-deps
           make core
       - name: Install osemgrep
@@ -301,7 +300,6 @@ jobs:
       - name: Install dependencies
         run: |
           eval $(opam env)
-          make install-deps-ALPINE-for-semgrep-core
           make install-deps-for-semgrep-core
           make -C interfaces/semgrep_interfaces setup-ALPINE setup
       - name: Build semgrep-core

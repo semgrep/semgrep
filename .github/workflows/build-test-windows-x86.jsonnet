@@ -141,7 +141,6 @@ local build_core_job = {
     {
       name: 'Install OPAM deps',
       run: |||
-        make install-deps-WINDOWS-for-semgrep-core
         # NOTE: ocurl's ./configure fails with an error finding curl/curl.h.
         # Setting PKG_CONFIG_PATH to $(x86_64-w64-mingw32-gcc
         # -print-sysroot)/mingw/include would set UNIX paths for CFLAG and

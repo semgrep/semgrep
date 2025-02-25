@@ -11,7 +11,7 @@ local artifact_name = 'semgrep-core-x86-artifact';
 
 // This container has opam already installed, as well as an opam switch
 // already created, and a big set of packages already installed. Thus,
-// the 'make install-deps-ALPINE-for-semgrep-core' below is very fast and
+// the 'make install-deps-for-semgrep-core' below is very fast and
 // almost a noop.
 // TODO: switch to setup-ocaml@v2 + GHA cache
 local container = semgrep.containers.ocaml_alpine;
@@ -32,7 +32,6 @@ local job =
         name: 'Install dependencies',
         run: |||
           eval $(opam env)
-          make install-deps-ALPINE-for-semgrep-core
           make install-deps-for-semgrep-core
         |||,
       },

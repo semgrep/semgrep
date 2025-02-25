@@ -23,7 +23,6 @@ jobs:
       - name: Install dependencies
         run: |
           eval $(opam env)
-          make install-deps-ALPINE-for-semgrep-core
           make install-deps-for-semgrep-core
       - name: Build semgrep-core
         run: opam exec -- make core

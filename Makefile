@@ -251,7 +251,6 @@ OPTIONAL_DEPS = $(REQUIRED_DEPS) ./dev/optional.opam
 # new packages that are covered yet by our ocaml-layer docker image.
 .PHONY: install-deps-for-semgrep-core
 install-deps-for-semgrep-core:
-	opam update -y
 # Fetch, build and install the tree-sitter runtime library locally.
 	cd libs/ocaml-tree-sitter-core \
 	&& ./configure \
@@ -269,7 +268,7 @@ install-deps-for-semgrep-core:
 # to keep it and add `--no-cache`
 install-opam-deps:
 	opam update -y
-	OPAMSOLVERTIMEOUT=1200 opam install -y --deps-only $(REQUIRED_DEPS)
+	OPAMSOLVERTIMEOUT=1200 opam install --confirm-level=unsafe-yes -y --deps-only $(REQUIRED_DEPS)
 
 # This will fail if semgrep.opam isn't up-to-date (in git),
 # and dune isn't installed yet. You can always install dune with
@@ -298,108 +297,6 @@ install-deps: install-deps-for-semgrep-core
 #    container with many things pre-installed.
 # pro:
 #  - it avoids repeating yourself everywhere
-
-# -------------------------------------------------
-# Packages
-# -------------------------------------------------
-# TODO: opam can in theory handle automatically external dependencies
-# via `opam depext ...`, so we should not need for each Linux distro to know
-# what is the corresponding package name. This info is actually
-# stored in many conf-xxx OPAM packages and since opam 2.2.0 should
-# support also Windows!
-# So we should generalize our use of WINDOWS_OPAM_DEPEXT_DEPS to all platforms.
-
-# Here is why we need those external packages to compile semgrep-core:
-# - pkgconf (name of pkg-config clone in arch): required by opam/dune
-#   so it can find the location of the other libs
-# - pcre: for ocaml-pcre now used in semgrep-core (used by spacegrep)
-# - pcre2: new version of pcre needed by Cooper
-# - gmp: for osemgrep and its use of cohttp (LGPL since gmp 6)
-# - libev: ?? for Austin
-# - curl: for opentelemetry, which we use for tracing for Emma
-# - openssl: ??
-# - zlib: ??
-# - openssl-libs-static: dependency of curl-static
-# - zstd-static needed since alpine 3.21 and OCaml 5.2.1 to produce
-#   static OCaml binaries
-ALPINE_APK_DEPS_CORE=\
-  pkgconf \
-  pcre-dev \
-  pcre2-dev \
-  gmp-dev \
-  libev-dev \
-  curl-dev \
-  openssl-libs-static \
-  zlib-static \
-  zstd-static
-
-# Here is why we need those external packages:
-# - pkg-config?
-# NOTE: libpcre3 is actually libpcre
-UBUNTU_DEPS=\
-  pkg-config \
-  libpcre3-dev \
-  libpcre2-dev \
-  libgmp-dev \
-  libev-dev \
-  libcurl4-gnutls-dev
-
-#TODO: ARCH_DEPS=??
-
-# NOTE: Additional packages here likely require additional linking flags in
-# src/main/flags.sh as part of how we statically link binaries on MacOS.
-#
-# Here is why we need those external packages:
-# - pkg-config?
-# - coreutils?
-# - gettext?
-BREW_DEPS=\
-  pkg-config \
-  pcre \
-  pcre2 \
-  gmp \
-  libev \
-  curl \
-  coreutils \
-  gettext \
-  zstd
-
-# TODO? why we need those for Windows and not for Linux?
-# The opam "depext" are better handled in Linux?
-WINDOWS_OPAM_DEPEXT_DEPS=\
-  conf-pkg-config \
-  conf-gmp \
-  conf-libpcre \
-  conf-libpcre2-8 \
-  conf-libcurl
-
-# -------------------------------------------------
-# Alpine
-# -------------------------------------------------
-
-.PHONY: install-deps-ALPINE
-install-deps-ALPINE: install-deps-ALPINE-for-semgrep-core
-
-# Note that we're not using --no-cache below otherwise opam does not
-# recognize that pkg-config and other packages have been installed
-# (See https://github.com/ocaml/opam/issues/5186)
-#alt: we could use --no-depexts (and --cli=2.1) in 'install-opam-deps'
-# and keep the --no-cache below, as anyway we're managing external
-# dependencies ourselves in the make install-deps-XXX-for-semgrep-core,
-# but then this requires a recent opam (2.1) which is still not available
-# in our setup-ocaml@v2 GHA for windows, so simpler to just use --no-cache
-# (anyway this is used in an intermediate step in our Docker image, not
-# the final image, so we don't really need --no-cache)
-install-deps-ALPINE-for-semgrep-core:
-	apk add $(ALPINE_APK_DEPS_CORE)
-
-# -------------------------------------------------
-# Ubuntu
-# -------------------------------------------------
-install-deps-UBUNTU-for-semgrep-core:
-	sudo apt-get update
-	apt-get install -y $(UBUNTU_DEPS)
-
 # -------------------------------------------------
 # macOS (brew)
 # -------------------------------------------------
@@ -407,7 +304,6 @@ install-deps-UBUNTU-for-semgrep-core:
 # see also scripts/osx-setup-for-release.sh that adjust those
 # external packages to force static-linking
 install-deps-MACOS-for-semgrep-core:
-	brew install $(BREW_DEPS)
 	# We do this so we build LWT with libev on the path
 	# Coupling: This should be similar to homebrew setup
 	# austin: Why can't we use make homebrew-setup here? It doesn't seem to work
@@ -432,12 +328,6 @@ homebrew-setup:
 # This workaround may no longer be necessary.
 # LIBRARY_PATH is set here so we build lwt w/libev
 	LIBRARY_PATH="$$(brew --prefix)/lib" opam install -y --deps-only --no-depexts $(REQUIRED_DEPS)
-
-# -------------------------------------------------
-# Arch Linux
-# -------------------------------------------------
-#TODO: pacman -S ...
-
 # -------------------------------------------------
 # Nix
 # -------------------------------------------------
@@ -484,7 +374,6 @@ nix-check-verbose:
 
 # used in build-test-windows-x86.jsonnet
 install-deps-WINDOWS-for-semgrep-core:
-	opam install --depext-only $(WINDOWS_OPAM_DEPEXT_DEPS)
 	# Installing conf-pkg-config *reinstalls* mingw-w64-shims; the PATH changes
 	# done in the shims need to be available when installing other packages
 	# (conf-libcurl, for instance). So, we install conf-pkg-config before other

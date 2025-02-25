@@ -98,9 +98,12 @@ COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 
 FROM alpine:3.19 as semgrep-core-container
 
+# https://github.com/ocaml/opam/issues/5186
+# Why we don't have --no-cache here
 # Install opam and basic build tools
-RUN apk add --no-cache bash build-base git make opam rsync
-
+RUN apk add bash build-base git make rsync
+# Install ocaml/opam
+RUN apk add opam
 # coupling: if you modify the OCaml version there, you probably also need
 # to modify:
 # - .github/workflows/libs/semgrep.libsonnet
@@ -111,29 +114,24 @@ RUN opam init --disable-sandboxing -v && opam switch create 5.2.1 -v
 
 # Install semgrep-core build dependencies
 WORKDIR /src/semgrep
-# Just copy enough so that the `make install-xxx` below can work
-COPY --from=semgrep-core-files /src/semgrep/Makefile ./Makefile
-COPY --from=semgrep-core-files /src/semgrep/scripts ./scripts
-COPY --from=semgrep-core-files /src/semgrep/semgrep.opam ./semgrep.opam
-COPY --from=semgrep-core-files /src/semgrep/libs/ocaml-tree-sitter-core/tree-sitter.opam ./libs/ocaml-tree-sitter-core/tree-sitter.opam
-COPY --from=semgrep-core-files /src/semgrep/dev ./dev
+#old: COPY . ., but miss cache opportunities, hence step0 above
+COPY --from=semgrep-core-files /src/semgrep .
 
 # note that we do not run 'make install-deps-for-semgrep-core' here because it
 # configures and builds ocaml-tree-sitter-core too; here we are
 # just concerned about installing external packages to maximize docker caching.
-RUN make install-deps-ALPINE-for-semgrep-core &&\
-    make install-opam-deps
+RUN make install-opam-deps
+
+RUN make install-deps
+
+# List the dependencies we've installed and their versions
+RUN opam list
 
 # Compile (and minimal test) semgrep-core
-COPY --from=semgrep-core-files /src/semgrep ./
+RUN opam exec -- make core
 
-# Let's build just semgrep-core
-#alt: use 'opam exec -- ...' instead of eval
-RUN make install-deps-for-semgrep-core &&\
-    eval "$(opam env)" &&\
-    make core &&\
-    # Sanity check
-    /src/semgrep/_build/default/src/main/Main.exe -version
+# Sanity check
+RUN ./bin/semgrep-core -version
 
 ###############################################################################
 # Step2: Combine the Python wrapper (pysemgrep) and semgrep-core binary
