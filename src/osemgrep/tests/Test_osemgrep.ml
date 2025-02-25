@@ -36,21 +36,22 @@ module TL = Test_login_subcommand
 
 (* no need for a token to access public rules in the registry *)
 let test_scan_config_registry_no_token (caps : CLI.caps) =
-  Testo.create (* on some days, it sometimes fails together with 'LS specs' *)
-    ~tags:[ Test_tags.flaky ] __FUNCTION__ (fun () ->
-      Testutil_files.with_tempdir ~chdir:true (fun _tmp_path ->
-          let exit_code =
-            CLI.main caps
-              [|
-                "semgrep";
-                "scan";
-                "--experimental";
-                "--debug";
-                "--config";
-                "r/python.lang.correctness.useless-eqeq.useless-eqeq";
-              |]
-          in
-          Exit_code.Check.ok exit_code))
+  Testo.create __FUNCTION__
+    (* Ensure that we are somewhere with a new settings file so we don't reuse
+       them across tests *)
+    (Testutil_login.with_login_test_env ~chdir:true (fun _tmp_path ->
+         let exit_code =
+           CLI.main caps
+             [|
+               "semgrep";
+               "scan";
+               "--experimental";
+               "--debug";
+               "--config";
+               "r/python.lang.correctness.useless-eqeq.useless-eqeq";
+             |]
+         in
+         Exit_code.Check.ok exit_code))
 
 (* Remaining part of test_login.py (see also Test_login_subcommand.ml) *)
 let test_scan_config_registry_with_invalid_token caps : Testo.t =
