@@ -68,9 +68,6 @@ local build_core_job = {
     // setup-ocaml would reset the cached _opam
     semgrep.cache_opam.step(
       key=opam_switch + "-${{ hashFiles('semgrep-pro.opam', 'OSS/semgrep.opam') }}",
-      // ocaml/setup-ocaml creates the opam switch local to the repository
-      // (vs. ~/.opam in our other workflows)
-      path='_opam',
     ),
     {
       // TODO: We can remove this once these flexdll PRs are merged and a new

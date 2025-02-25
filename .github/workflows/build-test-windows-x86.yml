@@ -20,11 +20,11 @@ jobs:
           $CYGWIN_ROOT/setup-x86_64.exe -P $PACKAGES --quiet-mode -R $CYGWIN_ROOT
       - env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
-        name: Set GHA cache for OPAM in _opam
+        name: Set GHA cache for OPAM in ~/.opam
         uses: actions/cache@v4
         with:
           key: ${{ runner.os }}-${{ runner.arch }}-v2-opam-5.2.1-${{ hashFiles('semgrep-pro.opam', 'OSS/semgrep.opam') }}
-          path: _opam
+          path: ~/.opam
       - name: Install flexlink patched to use response files and cygpath -file arg
         run: |
           git clone -b argument-list-too-long https://github.com/punchagan/flexdll.git
