@@ -1,5 +1,0 @@
-Updated `Package.swift` parser to support:
-- The url value in a .package entry doesn't have to end with .git
-- You can have an exact field that looks like exact: "1.0.0" instead of .exact("1.0.0")
-- The exact version can be an object like Version(1,2,3) instead of a string
-- You can have .package values with no url, like this: .package(name: "package", path: "foo/bar")

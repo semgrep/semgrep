@@ -1,2 +1,0 @@
-Fixed a regression in pro interfile mode where type inference for the `var`
-keyword in Java was not functioning correctly.

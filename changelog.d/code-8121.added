@@ -1,8 +1,0 @@
-Pro: new `metavariable-name` operator which allows for expressing a constraint
-against the fully qualified name or nearest equivalent of a metavariable
-(useful mainly in JavaScript and TypeScript, where there is no first-class
-syntax for this, or where such names or pseudo-names containt symbols which
-cannot appear in identifiers). Requires pro naming passes and works best with
-interfile naming.
-
-Additional documentation forthcoming.
