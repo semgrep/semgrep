@@ -248,7 +248,7 @@ OPTIONAL_DEPS = $(REQUIRED_DEPS) ./dev/optional.opam
 # This target is portable; it only assumes you have 'gcc', 'opam' and
 # other build-essential tools and a working OCaml (e.g., ocamlc) switch setup.
 # Note that we call opam update below because semgrep.opam may mention
-# new packages that are covered yet by our ocaml-layer docker image.
+# new packages that are not covered yet by our ocaml-layer docker image.
 .PHONY: install-deps-for-semgrep-core
 install-deps-for-semgrep-core:
 # Fetch, build and install the tree-sitter runtime library locally.
