@@ -98,7 +98,7 @@ def manifest_path_unless_lockfile_only(
         out.ManifestOnlyDependencySource,
         out.ManifestLockfileDependencySource,
         out.LockfileOnlyDependencySource,
-    ]
+    ],
 ) -> out.Fpath:
     if isinstance(ds, out.LockfileOnlyDependencySource):
         return ds.value.path
@@ -115,7 +115,7 @@ def lockfile_path_unless_manifest_only(
         out.ManifestOnlyDependencySource,
         out.ManifestLockfileDependencySource,
         out.LockfileOnlyDependencySource,
-    ]
+    ],
 ) -> out.Fpath:
     if isinstance(ds, out.LockfileOnlyDependencySource):
         return ds.value.path
@@ -132,7 +132,7 @@ def _resolve_dependencies_rpc(
         out.ManifestOnlyDependencySource,
         out.ManifestLockfileDependencySource,
         out.LockfileOnlyDependencySource,
-    ]
+    ],
 ) -> Tuple[
     Optional[List[out.ResolvedDependency]],
     Sequence[out.ScaResolutionError],
@@ -230,13 +230,12 @@ def _handle_multi_lockfile_source(
         #
         # NOTE(sal): In the case of dynamic resolution, we should try to resolve
         # all the lockfiles together, and then get a single response for all of
-        # them. Until then, I explicitly disable dynamic resolution and
-        # path-to-transitivity (PTT) for multi-lockfile sources. They were never
-        # enabled in the first place anyway.
+        # them. Until then, we'll just resolve each lockfile independently. I am
+        # concerned about performance here, but don't have enough data yet.
         new_resolved_info, new_errors, new_targets = resolve_dependency_source(
             lockfile_source,
-            enable_dynamic_resolution=False,
-            ptt_enabled=False,
+            enable_dynamic_resolution=enable_dynamic_resolution,
+            ptt_enabled=ptt_enabled,
         )
         if new_resolved_info is not None:
             resolution_method, new_deps = new_resolved_info
