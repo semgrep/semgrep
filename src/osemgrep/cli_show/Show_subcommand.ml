@@ -175,5 +175,5 @@ let run_conf (caps : < caps ; .. >) (conf : Show_CLI.conf) : Exit_code.t =
 (* Entry point *)
 (*****************************************************************************)
 let main (caps : < caps ; .. >) (argv : string array) : Exit_code.t =
-  let conf = Show_CLI.parse_argv argv in
+  let conf = Show_CLI.parse_argv caps argv in
   run_conf caps conf

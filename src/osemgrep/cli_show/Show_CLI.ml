@@ -13,7 +13,11 @@ module Cmd = Cmdliner.Cmd
 (* Types and constants *)
 (*****************************************************************************)
 
-type debug_settings = { output_dir : Fpath.t option; root : Fpath.t }
+type debug_settings = {
+  output_dir : Fpath.t;
+  targeting_conf : Find_targets.conf;
+  rules_source : Rules_source.t;
+}
 [@@deriving show]
 
 (*
@@ -74,6 +78,30 @@ and show_kind =
 let o_json : bool Term.t =
   let info = Arg.info [ "json" ] ~doc:{|Output results in JSON format.|} in
   Arg.value (Arg.flag info)
+
+(* UGLY: this is a duplicate of Scan_CLI.o_config. Copied since Scan_CLI depends
+   on us for now. (not clear why --- should be the other way around, if anything.)
+   Or this should be in Common_CLI. *)
+let o_config : string list Term.t =
+  let info =
+    Arg.info [ "c"; "f"; "config" ]
+      ~env:(Cmd.Env.info "SEMGREP_RULES")
+      ~doc:
+        {|YAML configuration file, directory of YAML files ending in
+.yml|.yaml, URL of a configuration file, or Semgrep registry entry name.
+
+Use --config auto to automatically obtain rules tailored to this project;
+your project URL will be used to log in to the Semgrep registry.
+
+To run multiple rule files simultaneously, use --config before every YAML,
+URL, or Semgrep registry entry name.
+For example `semgrep --config p/python --config myrules/myrule.yaml`
+
+See https://semgrep.dev/docs/writing-rules/rule-syntax for information on
+configuration file format.
+|}
+  in
+  Arg.value (Arg.opt_all Arg.string [] info)
 
 (*************************************************************************)
 (* Subcommands *)
@@ -221,21 +249,44 @@ let dump_rule_v2_cmd =
   in
   Cmd.v info term
 
-let debug_cmd =
+let debug_cmd caps =
   let doc = "Open an interactive debugging view" in
-  let dir_arg =
-    Arg.(value & pos 0 (some string) None & info [] ~docv:"OUTPUT_DIR")
+  let output_dir_info =
+    Arg.info [ "output-dir" ] ~docv:"DIR"
+      ~doc:
+        "Directory to save the explorer output to. If not specified, uses a \
+         temporary directory."
   in
-  let root_arg = Arg.(value & pos 1 string "." & info [] ~docv:"ROOT") in
+  let output_dir_arg = Arg.(value & opt (some string) None & output_dir_info) in
+  let roots_arg =
+    Arg.(
+      value & pos_all string [ "." ]
+      & info [] ~docv:"TARGET_ROOTS"
+          ~doc:"Files or directories to analyze. Defaults to current directory.")
+  in
   let info = Cmd.info "debug" ~doc in
   let term =
     Term.(
-      const (fun dir root common json ->
+      const (fun output_dir roots common json config ->
+          let output_dir =
+            Option.map Fpath.v output_dir
+            |> Option.value ~default:(CapTmp.get_temp_dir_name caps#tmp)
+          in
           let debug_settings =
-            { output_dir = Option.map Fpath.v dir; root = Fpath.v root }
+            {
+              output_dir;
+              targeting_conf =
+                {
+                  Find_targets.default_conf with
+                  explicit_targets =
+                    Find_targets.Explicit_targets.of_list
+                      (List_.map Fpath.v roots);
+                };
+              rules_source = Rules_source.Configs config;
+            }
           in
           { common; json; show_kind = Debug debug_settings })
-      $ dir_arg $ root_arg $ CLI_common.o_common $ o_json)
+      $ output_dir_arg $ roots_arg $ CLI_common.o_common $ o_json $ o_config)
   in
   Cmd.v info term
 
@@ -257,7 +308,7 @@ let cmdline_info = Cmd.info "semgrep show" ~doc ~man
 (* Entry point *)
 (*****************************************************************************)
 
-let parse_argv (argv : string array) : conf =
+let parse_argv (caps : < Cap.tmp ; .. >) (argv : string array) : conf =
   let default =
     Term.(
       const (fun args ->
@@ -285,7 +336,7 @@ let parse_argv (argv : string array) : conf =
         dump_ast_cmd;
         dump_config_cmd;
         dump_rule_v2_cmd;
-        debug_cmd;
+        debug_cmd caps;
       ]
   in
   CLI_common.eval_value ~argv group
