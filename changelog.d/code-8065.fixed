@@ -1,0 +1,2 @@
+pro: Fixed bug that could prevent taint tracking from following a virtual call
+in JS/TS.
