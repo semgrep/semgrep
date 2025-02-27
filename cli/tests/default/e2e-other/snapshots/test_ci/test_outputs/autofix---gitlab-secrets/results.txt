@@ -4,7 +4,7 @@
 
 === stdout - plain
 {
-  "$schema": "https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json",
+  "$schema": "https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/secret-detection-report-format.json",
   "scan": {
     "analyzer": {
       "id": "semgrep",
@@ -27,7 +27,7 @@
     },
     "start_time": "<MASKED>",
     "status": "success",
-    "type": "sast",
+    "type": "secret_detection",
     "version": "<MASKED>"
   },
   "version": "15.0.4",

@@ -21,6 +21,8 @@ module J = JSON
 (* Helpers *)
 (*****************************************************************************)
 
+type report_type = Sast | Secret
+
 let to_gitlab_severity = function
   | `Info -> "Info"
   | `Low -> "Low"
@@ -108,7 +110,6 @@ let format_cli_match (cli_match : Out.cli_match) : (string * JSON.yojson) list =
   let r =
     [
       ("id", `String id);
-      ("category", `String "sast");
       (* CVE is a required field from Gitlab schema.
          It also is part of the determination for uniqueness
          of a detected secret
@@ -163,39 +164,56 @@ let format_cli_match (cli_match : Out.cli_match) : (string * JSON.yojson) list =
   in
   r
 
+let sast_format_cli_match (cli_match : Out.cli_match) =
+  let r = format_cli_match cli_match in
+  ("category", `String "sast") :: r
+
 let secrets_format_cli_match (cli_match : Out.cli_match) =
   let r = format_cli_match cli_match in
-  let more =
-    [
-      ("category", `String "secret_detection");
-      ( "raw_source_code_extract",
-        `List [ `String (cli_match.extra.lines ^ "\n") ] );
-      ( "commit",
-        `Assoc
-          [
-            ("date", `String "1970-01-01T00:00:00Z");
-            (* Even the native Gitleaks based Gitlab secret detection
-               only provides a dummy value for now on relevant hash. *)
-            ("sha", `String "0000000");
-          ] );
-    ]
-  in
-  r @ more
+  ("category", `String "secret_detection")
+  :: ( "raw_source_code_extract",
+       `List [ `String (cli_match.extra.lines ^ "\n") ] )
+  :: ( "commit",
+       `Assoc
+         [
+           ("date", `String "1970-01-01T00:00:00Z");
+           (* Even the native Gitleaks based Gitlab secret detection
+              only provides a dummy value for now on relevant hash. *)
+           ("sha", `String "0000000");
+         ] )
+  :: r
 
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
 
-let output f (matches : Out.cli_match list) : JSON.yojson =
-  let header =
-    [
-      ( "$schema",
-        `String
-          "https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json"
-      );
-      ("version", `String "15.0.4");
-    ]
+let output report_type (matches : Out.cli_match list) : JSON.yojson =
+  let cli_match_formatter, header, type_ =
+    match report_type with
+    | Sast ->
+        let header =
+          [
+            ( "$schema",
+              `String
+                "https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/sast-report-format.json"
+            );
+            ("version", `String "15.0.4");
+          ]
+        in
+        (sast_format_cli_match, header, "sast")
+    | Secret ->
+        let header =
+          [
+            ( "$schema",
+              `String
+                "https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/blob/master/dist/secret-detection-report-format.json"
+            );
+            ("version", `String "15.0.4");
+          ]
+        in
+        (secrets_format_cli_match, header, "secret_detection")
   in
+
   let tool =
     `Assoc
       [
@@ -222,7 +240,7 @@ let output f (matches : Out.cli_match list) : JSON.yojson =
         ("scanner", tool);
         ("version", `String Version.version);
         ("status", `String "success");
-        ("type", `String "sast");
+        ("type", `String type_);
       ]
   in
   let vulnerabilities =
@@ -239,14 +257,14 @@ let output f (matches : Out.cli_match list) : JSON.yojson =
         | `Info
         | `Warning
         | `Error ->
-            Some (`Assoc (f cli_match)))
+            Some (`Assoc (cli_match_formatter cli_match)))
       matches
   in
   `Assoc
     (header @ [ ("scan", scan); ("vulnerabilities", `List vulnerabilities) ])
 
 let sast_output (matches : Out.cli_match list) : JSON.yojson =
-  output format_cli_match matches
+  output Sast matches
 
 let secrets_output (matches : Out.cli_match list) : JSON.yojson =
-  output secrets_format_cli_match matches
+  output Secret matches
