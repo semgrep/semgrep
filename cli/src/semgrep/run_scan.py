@@ -83,7 +83,6 @@ from semgrep.semgrep_interfaces.semgrep_metrics import SecretsOrigin
 from semgrep.semgrep_interfaces.semgrep_metrics import Semgrep as SemgrepSecretsOrigin
 from semgrep.semgrep_interfaces.semgrep_metrics import SupplyChainConfig
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Product
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.state import get_state
@@ -243,7 +242,8 @@ def run_rules(
     matching_explanations: bool,
     engine_type: EngineType,
     strict: bool,
-    # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
+    # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags
+    # for secrets, code, and supply chain
     run_secrets: bool = False,
     disable_secrets_validation: bool = False,
     target_mode_config: Optional[TargetModeConfig] = None,
@@ -258,7 +258,7 @@ def run_rules(
     RuleMatchMap,
     List[SemgrepError],
     OutputExtra,
-    Dict[str, List[FoundDependency]],
+    Dict[str, List[out.FoundDependency]],
     List[DependencyParserError],
     List[Plan],
     List[Union[out.UnresolvedSubproject, out.ResolvedSubproject]],
@@ -434,7 +434,7 @@ def run_rules(
 
         # The caller expects a map from lockfile path to `FoundDependency` items
         # rather than our Subproject representation
-        deps_by_lockfile: Dict[str, List[FoundDependency]] = {}
+        deps_by_lockfile: Dict[str, List[out.FoundDependency]] = {}
         for ecosystem in resolved_subprojects:
             for proj in resolved_subprojects[ecosystem]:
                 (
@@ -443,9 +443,11 @@ def run_rules(
                 ) = make_dependencies_by_source_path(proj.resolved_dependencies)
                 deps_by_lockfile.update(proj_deps_by_lockfile)
 
-                # We don't really expect to have any dependencies with an unknown lockfile, but we can't enforce
-                # this with types due to backwards compatibility guarantees on FoundDependency. If we see any
-                # dependencies without lockfile path, we assign them to a fake lockfile at the root of each subproject.
+                # We don't really expect to have any dependencies with an
+                # unknown lockfile, but we can't enforce this with types due to
+                # backwards compatibility guarantees on FoundDependency. If we
+                # see any dependencies without lockfile path, we assign them to
+                # a fake lockfile at the root of each subproject.
                 for dep in unknown_lockfile_deps:
                     if (
                         str(
@@ -507,7 +509,7 @@ def list_targets_and_exit(
 ##############################################################################
 
 
-# cli/bin/semgrep -> main.py -> cli.py -> commands/scan.py -> run_scan()
+# semgrep(entrypoint.py) -> main.py -> cli.py -> commands/scan.py -> run_scan()
 # old: this used to be called semgrep.semgrep_main.main
 @tracing.trace()
 def run_scan(
@@ -524,9 +526,9 @@ def run_scan(
     historical_secrets: bool = False,
     pattern: Optional[str],
     lang: Optional[str],
-    configs: Sequence[
-        str
-    ],  # NOTE: Since the `ci` command reuses this function, we intentionally do not set a default at this level.
+    # NOTE: Since the `ci` command reuses this function, we intentionally do
+    # not set a default at this level.
+    configs: Sequence[str],
     no_rewrite_rule_ids: bool = False,
     jobs: Optional[int] = None,
     include: Optional[Sequence[str]] = None,
@@ -573,7 +575,7 @@ def run_scan(
     ProfileManager,
     OutputExtra,
     Collection[out.MatchSeverity],
-    Dict[str, List[FoundDependency]],
+    Dict[str, List[out.FoundDependency]],
     List[DependencyParserError],
     int,  # Executed Rule Count
     int,  # Missed Rule Count

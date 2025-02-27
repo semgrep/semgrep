@@ -45,18 +45,15 @@ def rstrip(value: Optional[str]) -> Optional[str]:
 @frozen(eq=False)
 class RuleMatch:
     """
-    A section of code that matches a single rule (which is potentially many patterns).
-
-    This is also often referred to as a finding.
-    TODO: Rename this class to Finding?
+    A section of code that matches a single rule (which is potentially many
+    patterns). This is also often referred to as a finding.
     """
 
     match: out.CoreMatch
 
     # fields from the rule
     message: str = field(repr=False)
-    # TODO: reuse semgrep_output_v1.severity instead, or even get rid of
-    # the field and just reuse the one in match
+    # TODO: get rid of the field and just reuse the one in match
     severity: out.MatchSeverity
     metadata: Dict[str, Any] = field(repr=False, factory=dict)
 
@@ -68,8 +65,8 @@ class RuleMatch:
     # but then this would require to remove the @frozen from this class
     # because autofix and dependency_aware and join_rule are actually monkey patching
     # this frozen class.
-    # TODO: redundant with core.extra but we do some monkey patching on
-    # this extra field which prevents to use directly core.extra (immutable)
+    # TODO: redundant with match.extra but we do some monkey patching on
+    # this extra field which prevents to use directly match.extra (immutable)
     extra: Dict[str, Any] = field(repr=False, factory=dict)
 
     # fields derived from the rule

@@ -9,16 +9,13 @@ from semdep.golang_version import compare_golang_specifier
 from semdep.maven_version import compare_maven_specifier
 from semgrep.error import SemgrepError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Gomod
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
 
 
 def is_in_range(ecosystem: Ecosystem, range: str, version: str) -> bool:
-    if ecosystem == Ecosystem(Maven()):
+    if ecosystem == Ecosystem(out.Maven()):
         specifiers = [s.strip(" ") for s in range.split(",")]
         return all(compare_maven_specifier(s, version) for s in specifiers)
-    elif ecosystem == Ecosystem(Gomod()):
+    elif ecosystem == Ecosystem(out.Gomod()):
         if len(version.split("-")) < 3:
             try:
                 ss = SpecifierSet(range)
@@ -52,8 +49,8 @@ def is_in_range(ecosystem: Ecosystem, range: str, version: str) -> bool:
 # compare vulnerable range to version in lockfile
 def dependencies_range_match_any(
     search_for_ranges: List[out.ScaPattern],
-    have_deps: List[FoundDependency],
-) -> Iterator[Tuple[out.ScaPattern, FoundDependency]]:
+    have_deps: List[out.FoundDependency],
+) -> Iterator[Tuple[out.ScaPattern, out.FoundDependency]]:
     for have_dep in have_deps:
         for target_range in search_for_ranges:
             if (
