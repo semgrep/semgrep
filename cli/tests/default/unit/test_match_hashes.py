@@ -138,30 +138,28 @@ def get_lockfile_only_rule_match(
                 metavars=out.Metavars({}),
                 engine_kind=out.EngineOfFinding(out.OSS()),
                 is_ignored=False,
+                sca_match=out.ScaMatch(
+                    reachable=False,
+                    reachability_rule=False,
+                    sca_finding_schema=SCA_FINDING_SCHEMA,
+                    dependency_match=DependencyMatch(
+                        dependency_pattern=out.ScaPattern(
+                            ecosystem=Ecosystem(Pypi()),
+                            package="foo",
+                            semver_range=">=1.0.0",
+                        ),
+                        found_dependency=FoundDependency(
+                            ecosystem=Ecosystem(Pypi()),
+                            package="foo",
+                            version="1.0.0",
+                            allowed_hashes={},
+                            transitivity=Transitivity(Transitive()),
+                        ),
+                        lockfile=filepath,
+                    ),
+                ),
             ),
         ),
-        extra={
-            "sca_info": out.ScaMatch(
-                reachable=False,
-                reachability_rule=False,
-                sca_finding_schema=SCA_FINDING_SCHEMA,
-                dependency_match=DependencyMatch(
-                    dependency_pattern=out.ScaPattern(
-                        ecosystem=Ecosystem(Pypi()),
-                        package="foo",
-                        semver_range=">=1.0.0",
-                    ),
-                    found_dependency=FoundDependency(
-                        ecosystem=Ecosystem(Pypi()),
-                        package="foo",
-                        version="1.0.0",
-                        allowed_hashes={},
-                        transitivity=Transitivity(Transitive()),
-                    ),
-                    lockfile=filepath,
-                ),
-            )
-        },
         metadata={},
     )
 

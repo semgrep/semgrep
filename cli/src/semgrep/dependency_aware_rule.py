@@ -1,4 +1,3 @@
-import copy
 import dataclasses
 import json
 import os
@@ -79,7 +78,7 @@ def generate_unreachable_sca_findings(
 ) -> Tuple[List[RuleMatch], List[SemgrepError]]:
     """
     Returns matches to a only a rule's sca-depends-on patterns; ignoring any
-    reachabiliy patterns it has
+    reachabiliy patterns it has.
     """
     errors: List[SemgrepError] = []
     depends_on_entries = list(parse_depends_on_yaml(rule.project_depends_on))
@@ -108,7 +107,6 @@ def generate_unreachable_sca_findings(
                     continue
 
                 lockfile_path = Path(found_dep.lockfile_path.value)
-
                 # for TR even if we could find a reachable finding in the
                 # 1st party code, we could also investigate the 3rd party code
                 # but let's KISS for now and just consider undetermined findings
@@ -143,30 +141,18 @@ def generate_unreachable_sca_findings(
                     ),
                 )
 
-                match = RuleMatch(
+                rule_match = RuleMatch(
                     message=rule.message,
                     metadata=rule.metadata,
                     severity=rule.severity,
                     fix=None,
                     match=core_match,
-                    # TODO: remove, sca_info is now part of core_match
-                    extra={"sca_info": sca_match},
                 )
-                # TODO: remove sca_info from extra once we migrate to the typed sca_info
-                new_extra = copy.deepcopy(match.extra)
-                new_extra["sca_info"] = sca_match
                 new_rule_match = evolve(
-                    match,
-                    match=dataclasses.replace(
-                        match.match,
-                        extra=dataclasses.replace(
-                            match.match.extra, sca_match=sca_match
-                        ),
-                    ),
-                    extra=new_extra,
-                    match_based_index=match_based_keys[match.match_based_key],
+                    rule_match,
+                    match_based_index=match_based_keys[rule_match.match_based_key],
                 )
-                match_based_keys[match.match_based_key] += 1
+                match_based_keys[rule_match.match_based_key] += 1
                 subproject_matches.append(new_rule_match)
 
             if x_tr:
@@ -230,10 +216,10 @@ def generate_reachable_sca_findings(
     reachable_matches: List[RuleMatch] = []
     reachable_deps = set()
     for ecosystem in ecosystems:
-        for match in matches:
+        for rule_match in matches:
             try:
                 subproject = find_closest_resolved_subproject(
-                    match.path, ecosystem, resolved_deps.get(ecosystem, [])
+                    rule_match.path, ecosystem, resolved_deps.get(ecosystem, [])
                 )
                 if subproject is None:
                     continue
@@ -256,8 +242,6 @@ def generate_reachable_sca_findings(
                         )
                         continue
 
-                    lockfile_path = Path(found_dep.lockfile_path.value)
-
                     # ???
                     if (
                         found_dep.transitivity.value == out.Transitive()
@@ -269,7 +253,7 @@ def generate_reachable_sca_findings(
 
                     reachable_deps.add(
                         (
-                            lockfile_path,
+                            Path(found_dep.lockfile_path.value),
                             found_dep.package,
                             found_dep.version,
                             found_dep.transitivity,
@@ -286,20 +270,14 @@ def generate_reachable_sca_findings(
                         reachability_rule=rule.should_run_on_semgrep_core,
                         dependency_match=dep_match,
                     )
-                    # ! deepcopy is necessary here since we might iterate over
-                    # the same match for multiple dependencies
-                    new_extra = copy.deepcopy(match.extra)
-                    # TODO: remove sca_info from extra once we migrate to the typed sca_info
-                    new_extra["sca_info"] = sca_match
                     new_rule_match = evolve(
-                        match,
+                        rule_match,
                         match=dataclasses.replace(
-                            match.match,
+                            rule_match.match,
                             extra=dataclasses.replace(
-                                match.match.extra, sca_match=sca_match
+                                rule_match.match.extra, sca_match=sca_match
                             ),
                         ),
-                        extra=new_extra,
                     )
                     reachable_matches.append(new_rule_match)
             except SemgrepError as e:

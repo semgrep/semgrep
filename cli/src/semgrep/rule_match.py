@@ -143,7 +143,7 @@ class RuleMatch:
     def product(self) -> out.Product:
         if self.metadata.get("product") == "secrets":
             return out.Product(out.Secrets())
-        elif "sca_info" in self.extra:
+        elif self.match.extra.sca_match:
             return out.Product(out.SCA())
         else:
             return out.Product(out.SAST())
@@ -156,7 +156,7 @@ class RuleMatch:
     def title(self) -> str:
         if isinstance(self.product.value, out.SCA):
             cve_id = self.metadata.get("sca-vuln-database-identifier")
-            sca_info = self.extra.get("sca_info")
+            sca_info = self.match.extra.sca_match
             package_name = (
                 sca_info.dependency_match.found_dependency.package if sca_info else None
             )
@@ -400,19 +400,23 @@ class RuleMatch:
 
     @property
     def is_sca_match_in_direct_dependency(self) -> bool:
-        return "sca_info" in self.extra and self.extra[
-            "sca_info"
-        ].dependency_match.found_dependency.transitivity == Transitivity(Direct())
+        return (self.match.extra.sca_match is not None) and (
+            self.match.extra.sca_match.dependency_match.found_dependency.transitivity
+            == Transitivity(Direct())
+        )
 
     @property
     def is_sca_match_in_transitive_dependency(self) -> bool:
-        return "sca_info" in self.extra and self.extra[
-            "sca_info"
-        ].dependency_match.found_dependency.transitivity == Transitivity(Transitive())
+        return (self.match.extra.sca_match is not None) and (
+            self.match.extra.sca_match.dependency_match.found_dependency.transitivity
+            == Transitivity(Transitive())
+        )
 
     @property
     def is_reachable_in_code_sca_match(self) -> bool:
-        return "sca_info" in self.extra and self.extra["sca_info"].reachable
+        return (
+            self.match.extra.sca_match is not None
+        ) and self.match.extra.sca_match.reachable
 
     @property
     def is_always_reachable_sca_match(self) -> bool:
@@ -456,7 +460,7 @@ class RuleMatch:
             return True
 
         blocking = "block" in self.metadata.get("dev.semgrep.actions", ["block"])
-        if "sca_info" in self.extra:
+        if self.match.extra.sca_match:
             if (
                 self.is_always_reachable_sca_match
                 and self.is_sca_match_in_transitive_dependency
@@ -490,7 +494,7 @@ class RuleMatch:
         "undetermined": rule for dependency doesn't look for reachability
         None: not a supply chain rule
         """
-        if "sca_info" not in self.extra:
+        if not self.match.extra.sca_match:
             return None
 
         if self.metadata.get("sca-kind") == "upgrade-only":
@@ -498,7 +502,9 @@ class RuleMatch:
         elif self.metadata.get("sca-kind") == "legacy":
             return "undetermined"
         else:
-            return "reachable" if self.extra["sca_info"].reachable else "unreachable"
+            return (
+                "reachable" if self.match.extra.sca_match.reachable else "unreachable"
+            )
 
     def to_app_finding_format(
         self,
@@ -564,8 +570,8 @@ class RuleMatch:
 
         if self.extra.get("fixed_lines"):
             ret.fixed_lines = self.extra.get("fixed_lines")
-        if "sca_info" in self.extra:
-            ret.sca_info = self.extra["sca_info"]
+        if self.match.extra.sca_match:
+            ret.sca_info = self.match.extra.sca_match
         return ret
 
     @property

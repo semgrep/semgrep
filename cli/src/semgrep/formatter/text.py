@@ -659,8 +659,10 @@ def print_matches(
 
         # reachable match adjustments
         lockfile: Optional[str] = None
-        if "sca_info" in rule_match.extra and (rule_match.extra["sca_info"].reachable):
-            lockfile = rule_match.extra["sca_info"].dependency_match.lockfile.value
+        if rule_match.match.extra.sca_match and (
+            rule_match.match.extra.sca_match.reachable
+        ):
+            lockfile = rule_match.match.extra.sca_match.dependency_match.lockfile.value
 
         if last_file is None or last_file != current_file:
             if last_file is not None:
@@ -715,7 +717,7 @@ def print_matches(
                 (
                     f"{BASE_INDENT * ' '}Severity: {with_color(Colors.foreground, rule_match.metadata['sca-severity'], bold=True)}\n"
                 )
-                if "sca_info" in rule_match.extra
+                if rule_match.match.extra.sca_match
                 and "sca-severity" in rule_match.metadata
                 else ""
             )
@@ -770,7 +772,7 @@ def print_matches(
             )
             console.print(fix_text)
         elif (
-            "sca_info" in rule_match.extra
+            rule_match.match.extra.sca_match
             and "sca-fix-versions" in rule_match.metadata
             and (
                 last_rule_id is None
@@ -782,9 +784,9 @@ def print_matches(
             # this is a list of objects like [{'minimist': '0.2.4'}, {'minimist': '1.2.6'}]
             fixes = rule_match.metadata["sca-fix-versions"]
             # will be structure { 'package_name': set('1.2.3', '2.3.4') }
-            dep_name = rule_match.extra[
-                "sca_info"
-            ].dependency_match.found_dependency.package
+            dep_name = (
+                rule_match.match.extra.sca_match.dependency_match.found_dependency.package
+            )
             fixed_versions = sorted(
                 {
                     version

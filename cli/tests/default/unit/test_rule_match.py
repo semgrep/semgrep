@@ -435,16 +435,14 @@ def test_rule_match_to_app_finding(snapshot, mocker):
                 metavars=out.Metavars({}),
                 engine_kind=out.EngineOfFinding(out.OSS()),
                 is_ignored=False,
+                sca_match=out.ScaMatch(
+                    sca_finding_schema=SCA_FINDING_SCHEMA,
+                    reachable=True,
+                    reachability_rule=True,
+                    dependency_match=dependency_match,
+                ),
             ),
         ),
-        extra={
-            "sca_info": out.ScaMatch(
-                sca_finding_schema=SCA_FINDING_SCHEMA,
-                reachable=True,
-                reachability_rule=True,
-                dependency_match=dependency_match,
-            )
-        },
     )
     app_finding = match.to_app_finding_format("0", remove_dataflow_content=False)
     app_finding.commit_date = "1970-01-01T00:00:00"
@@ -529,16 +527,14 @@ def create_sca_rule_match(sca_kind, reachable_in_code, transitivity):
                 metavars=out.Metavars({}),
                 engine_kind=out.EngineOfFinding(out.OSS()),
                 is_ignored=False,
+                sca_match=out.ScaMatch(
+                    sca_finding_schema=SCA_FINDING_SCHEMA,
+                    reachable=reachable_in_code,
+                    reachability_rule=sca_kind == "reachable",
+                    dependency_match=dependency_match,
+                ),
             ),
         ),
-        extra={
-            "sca_info": out.ScaMatch(
-                sca_finding_schema=SCA_FINDING_SCHEMA,
-                reachable=reachable_in_code,
-                reachability_rule=sca_kind == "reachable",
-                dependency_match=dependency_match,
-            )
-        },
     )
 
 
