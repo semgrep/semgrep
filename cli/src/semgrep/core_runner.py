@@ -235,12 +235,14 @@ class StreamingSemgrepCore:
         stdout_lines: List[bytes] = []
         num_total_targets: int = self._total
 
-        # Start out reading two bytes at a time (".\n")
+        # Progress indicator bytes that we see from semgrep-core stdout
+        progress_bytes = b".\r\n" if IS_WINDOWS else b".\n"
+        # Start out reading two (or three on Windows) bytes at a time
         get_input: Callable[
             [asyncio.StreamReader], Coroutine[Any, Any, bytes]
-        ] = lambda s: s.readexactly(2)
+        ] = lambda s: s.readexactly(len(progress_bytes))
         reading_json = False
-        # Read ".\n" repeatedly until we reach the JSON output.
+        # Read the progress_bytes repeatedly until we reach the JSON output.
         # TODO: read progress from one channel and JSON data from another.
         # or at least write/read progress as a stream of JSON objects so that
         # we don't have to hack a parser together.
@@ -252,7 +254,7 @@ class StreamingSemgrepCore:
             except asyncio.IncompleteReadError:
                 logger.debug(self._stderr)
                 # happens if the data that follows a sequence of zero
-                # or more ".\n" has fewer than two bytes, such as:
+                # or more progress_bytes has fewer than two bytes, such as:
                 # "", "3", ".\n.\n3", ".\n.\n.\n.", etc.
 
                 # Hack: the exact wording of parts this message may be used in metrics queries
@@ -301,7 +303,7 @@ class StreamingSemgrepCore:
                 self._stdout = b"".join(stdout_lines).decode("utf-8", "replace")
                 break
 
-            if line_bytes == b".\n" and not reading_json:
+            if line_bytes == progress_bytes and not reading_json:
                 # We expect to see 3 dots for each target, when running interfile analysis:
                 # - once when finishing phase 4, name resolution, on that target
                 # - once when finishing phase 5, taint configs, on that target
