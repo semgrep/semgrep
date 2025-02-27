@@ -1,4 +1,13 @@
-# ## Overview
+# ## Quick start
+#
+# Use https://github.com/DeterminateSystems/nix-installer to get Nix easily
+# then run `nix develop` to get a shell with all the dependencies
+# Run:
+#  curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
+#  make shell # for a shell with all tools OR
+#  make nix-semgrep # to build semgrep
+# 
+#  ## Overview
 #
 # This is a Nix file for Semgrep developers.
 #
@@ -12,35 +21,6 @@
 # https://github.com/NixOS/nixpkgs/tree/master/pkgs/tools/security/semgrep
 # so people can install Semgrep on NixOS.
 # However the current file is directed at Semgrep developers, not Semgrep users.
-#
-# ## Quick install of Nix
-#
-# Use https://github.com/DeterminateSystems/nix-installer to get Nix easily
-# then run `nix develop` to get a shell with all the dependencies
-#
-# Quick start:
-# To use your shell when developing:
-# nix develop -c $SHELL
-#
-# To disallow all deps outside of Nix:
-# nix develop -i
-#
-# Then setup caching (optional, but recommended):
-#
-# Easy way:
-#   nix profile install --accept-flake-config nixpkgs#cachix
-#   cachix use semgrep
-#   cachix use nix-community
-#
-# Harder way:
-#   echo "trusted-users = <USERNAME>" | sudo tee -a /etc/nix/nix.conf && sudo pkill nix-daemon
-#   vim ~/.config/nix/nix.conf
-#   # then add the following lines to nix.conf:
-#   substituters = https://cache.nixos.org https://semgrep.cachix.org https://nix-community.cachix.org
-#   trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= semgrep.cachix.org-1:waxSNb3ism0Vkmfa31//YYrOC2eMghZmTwy9bvMAGBI= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
-#
-# To contribute to the cache, go to 1password "Semgrep Cachix Auth Token" and run
-#   cachix authtoken <TOKEN>
 #
 
 # What is Nix?
@@ -268,9 +248,8 @@
           pysemgrepAttrs = mkPysemgrep { inherit pkgs semgrep; };
           pysemgrep = pysemgrepAttrs.pkg;
 
-          devShell = pkgs.callPackage ./devShell.nix {
+          devShells = import ./devShells.nix {
             inherit pkgs;
-            extraInputs = (with pkgs; [ pre-commit yq-go ]);
             # TODO add pysmgrepAttrs when I fix it
             devAttrs = [ semgrepAttrs ];
           };
@@ -348,7 +327,7 @@
           formatter = pkgs.nixpkgs-fmt;
           #   nix develop -c $SHELL
           # runs this shell which has all dependencies needed to make semgrep
-          devShells.default = devShell;
+          devShells = devShells;
         };
     };
 }
