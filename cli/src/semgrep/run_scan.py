@@ -293,8 +293,8 @@ def run_rules(
         ) = resolve_subprojects(
             target_manager,
             dependency_aware_rules,
-            allow_dynamic_resolution=allow_local_builds,
-            ptt_enabled=ptt_enabled,
+            allow_dynamic_resolution=allow_local_builds or x_tr,
+            ptt_enabled=ptt_enabled or x_tr,
             resolve_untargeted_subprojects=resolve_all_deps_in_diff_scan,
         )
 

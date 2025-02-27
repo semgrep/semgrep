@@ -95,7 +95,7 @@ let sort_by_groups als =
 let lookup_field = Yojson.Basic.Util.member
 
 let is_blocking (json : Yojson.Basic.t) =
-  match Yojson.Basic.Util.member "dev.semgrep.actions" json with
+  match lookup_field "dev.semgrep.actions" json with
   | `List stuff ->
       stuff
       |> List.exists (function

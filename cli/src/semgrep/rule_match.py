@@ -480,12 +480,15 @@ class RuleMatch:
     def engine_kind(self) -> Optional[out.EngineOfFinding]:
         return self.match.extra.engine_kind
 
+    # coupling: with text.py GROUP_TITLES
+    # TODO: we should use a proper Enum (reachable | unreachable | undetermined)
     @property
     def exposure_type(self) -> Optional[str]:
         """
         Mimic the exposure categories on semgrep.dev for supply chain.
 
-        "reachable": dependency is used in the codebase or is vulnerable even without usage
+        "reachable": dependency is used in the codebase or is vulnerable even
+         without usage
         "unreachable": dependency is not used in the codebase
         "undetermined": rule for dependency doesn't look for reachability
         None: not a supply chain rule

@@ -56,6 +56,8 @@ AUTOFIX_TEXT_WIDTH = BASE_WIDTH - (
 )  # 4 for line number, 13 for autofix tag
 
 
+# coupling: some of the string below must match rule_match.exposure_type()
+# TODO: use Enum?
 GROUP_TITLES: Dict[Tuple[out.Product, str], str] = {
     (out.Product(out.SCA()), "unreachable"): "Unreachable Supply Chain Finding",
     (out.Product(out.SCA()), "undetermined"): "Undetermined Supply Chain Finding",
@@ -92,6 +94,19 @@ SEVERITY_MAP_STYLED = {
     out.Info.to_json(): ("green", "  ❱"),
     out.Low.to_json(): ("green", "  ❱"),
 }
+
+
+@contextmanager
+def force_quiet_off(console: Console) -> Iterator[None]:
+    """
+    Force the console to be not quiet, even if it was set to be quiet before.
+    """
+    was_quiet = console.quiet
+    console.quiet = False
+    try:
+        yield
+    finally:
+        console.quiet = was_quiet
 
 
 def safe_width(width: int) -> int:
@@ -619,7 +634,7 @@ def print_time_summary(
     console.print()
 
 
-def print_text_output(
+def print_matches(
     rule_matches: Iterable[RuleMatch],
     color_output: bool,
     per_finding_max_lines_limit: Optional[int],
@@ -629,8 +644,10 @@ def print_text_output(
     last_file = None
     last_rule_id = None
     last_message = None
+
     # Sort the findings according to RuleMatch.get_ordering_key()
     sorted_rule_matches = sorted(rule_matches)
+
     for rule_index, rule_match in enumerate(sorted_rule_matches):
         current_file = (
             f"{rule_match.path}@{rule_match.git_commit.value}"
@@ -639,9 +656,12 @@ def print_text_output(
         )
         message = rule_match.message
         fix = rule_match.fix
+
+        # reachable match adjustments
         lockfile: Optional[str] = None
         if "sca_info" in rule_match.extra and (rule_match.extra["sca_info"].reachable):
             lockfile = rule_match.extra["sca_info"].dependency_match.lockfile.value
+
         if last_file is None or last_file != current_file:
             if last_file is not None:
                 console.print()
@@ -655,6 +675,7 @@ def print_text_output(
             )
             last_rule_id = None
             last_message = None
+
         # don't display the rule line if the check is empty
         if (
             rule_match.rule_id
@@ -689,6 +710,7 @@ def print_text_output(
 
             console.print(text)
 
+            # SCA severity addon
             severity = (
                 (
                     f"{BASE_INDENT * ' '}Severity: {with_color(Colors.foreground, rule_match.metadata['sca-severity'], bold=True)}\n"
@@ -704,9 +726,28 @@ def print_text_output(
                 subsequent_indent=BASE_INDENT * " ",
                 preserve_paragraphs=True,
             )
+
+            # SCA transitive reachability addon
+            transitivity = ""
+            if (
+                rule_match.match.extra.sca_match
+                and rule_match.match.extra.sca_match.kind
+            ):
+                kind = rule_match.match.extra.sca_match.kind.value
+                explanation = None
+                # TODO: probably should also do something for the other kind
+                if (
+                    isinstance(kind, out.TransitiveReachable_)
+                    and kind.value.explanation
+                ):
+                    explanation = kind.value.explanation
+                if explanation:
+                    transitivity = f"{BASE_INDENT * ' '}Transitivity: {with_color(Colors.foreground, explanation, bold=True)}\n"
+
+            # Shortlink metadata addon
             shortlink = get_details_shortlink(rule_match)
             shortlink_text = (BASE_INDENT * " " + shortlink + "\n") if shortlink else ""
-            console.print(f"{severity}{message_text}\n{shortlink_text}")
+            console.print(f"{severity}{transitivity}{message_text}\n{shortlink_text}")
 
         if fix is not None:
             autofix_tag = "▶▶┆ Autofix ▶ "  # 13 chars for autofix tag
@@ -779,6 +820,7 @@ def print_text_output(
             and is_same_rule
             and not (dataflow_traces and rule_match.dataflow_trace)
         )
+        # Let's print the findings now
         for line in finding_to_line(
             rule_match,
             color_output,
@@ -802,19 +844,6 @@ def print_text_output(
             ):
                 console.print("  ", end="")
                 console.print(line)
-
-
-@contextmanager
-def force_quiet_off(console: Console) -> Iterator[None]:
-    """
-    Force the console to be not quiet, even if it was set to be quiet before.
-    """
-    was_quiet = console.quiet
-    console.quiet = False
-    try:
-        yield
-    finally:
-        console.quiet = was_quiet
 
 
 class TextFormatter(base.BaseFormatter):
@@ -846,9 +875,10 @@ class TextFormatter(base.BaseFormatter):
             secrets_blocking_rules = set()
 
             for match in rule_matches:
-                if isinstance(match.product.value, out.SAST):
+                product = match.product.value
+                if isinstance(product, out.SAST):
                     subgroup = "blocking" if match.is_blocking else "nonblocking"
-                elif isinstance(match.product.value, out.Secrets):
+                elif isinstance(product, out.Secrets):
                     if match.is_blocking:
                         secrets_blocking_rules.add(match.match.check_id.value)
                     if match.metadata.get("generic_secrets", False):
@@ -866,8 +896,25 @@ class TextFormatter(base.BaseFormatter):
                                 subgroup = "validation error"
                             else:
                                 subgroup = "unvalidated"
-                else:
+                elif isinstance(product, out.SCA):
                     subgroup = match.exposure_type or "undetermined"
+                    if match.match.extra.sca_match and match.match.extra.sca_match.kind:
+                        kind = match.match.extra.sca_match.kind.value
+                        if isinstance(kind, out.DirectReachable) or isinstance(
+                            kind, out.TransitiveReachable_
+                        ):
+                            subgroup = "reachable"
+                        elif isinstance(kind, out.DirectUnreachable) or isinstance(
+                            kind, out.TransitiveUnreachable_
+                        ):
+                            subgroup = "unreachable"
+                        elif isinstance(kind, out.TransitiveUndetermined_):
+                            subgroup = "undetermined"
+                        else:
+                            logger.warning(f"Unknown match kind:{kind}")
+                else:
+                    logger.warning(f"Unknown product:{product}")
+                    subgroup = "undetermined"
 
                 grouped_matches[match.product, subgroup].append(match)
 
@@ -909,7 +956,7 @@ class TextFormatter(base.BaseFormatter):
                 else:
                     console.print(Title(unit_str(len(matches), GROUP_TITLES[group])))
 
-                    print_text_output(
+                    print_matches(
                         matches,
                         extra.get("color_output", False),
                         extra["per_finding_max_lines_limit"],
