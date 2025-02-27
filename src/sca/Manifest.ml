@@ -45,6 +45,7 @@ let mk_manifest (kind : kind) (path : Fpath.t) : t = { path; kind }
 let kind_to_ecosystem_opt : kind -> Semgrep_output_v1_t.ecosystem option =
   function
   | `RequirementsIn
+  | `SetupPy
   | `Pipfile
   | `PyprojectToml ->
       Some `Pypi
