@@ -329,8 +329,10 @@ def run_rules(
             dependency_aware_rules, resolved_subprojects
         )
 
+    # compute a set first to avoid O(n^2) complexity
+    dependency_aware_rule_ids = set(r.id for r in dependency_aware_rules)
     rest_of_the_rules = [
-        r for r in rest_of_the_rules if r not in dependency_aware_rules
+        r for r in rest_of_the_rules if r.id not in dependency_aware_rule_ids
     ] + filtered_dependency_aware_rules
 
     cli_ux = get_state().get_cli_ux_flavor()
