@@ -232,7 +232,7 @@ let pms_of_effect ~match_on (effect : Effect.poly) =
 (*****************************************************************************)
 
 let check_fundef (taint_inst : Taint_rule_inst.t) name ctx ?glob_env fdef =
-  let fdef = AST_to_IL.function_definition taint_inst.lang ~ctx fdef in
+  let fdef = AST_to_IL.function_definition taint_inst.file.lang ~ctx fdef in
   let fcfg = CFG_build.cfg_of_fdef fdef in
   let in_env, env_effects =
     Taint_input_env.mk_fun_input_env taint_inst ?glob_env fdef.fparams
@@ -243,8 +243,9 @@ let check_fundef (taint_inst : Taint_rule_inst.t) name ctx ?glob_env fdef =
   let effects = Effects.union env_effects effects in
   (fcfg, effects, mapping)
 
-let check_rule per_file_formula_cache (rule : R.taint_rule) ~matches_hook
-    (xconf : Match_env.xconfig) (xtarget : Xtarget.t) =
+let check_rule per_file_formula_cache (file : Taint_rule_inst.file)
+    (rule : R.taint_rule) ~matches_hook (xconf : Match_env.xconfig)
+    (xtarget : Xtarget.t) =
   Log.info (fun m ->
       m
         "Match_tainting_mode:\n\
@@ -268,33 +269,14 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) ~matches_hook
            let effect_pms = pms_of_effect ~match_on effect in
            matches := List.rev_append effect_pms !matches)
   in
-  let {
-    path = { internal_path_to_content = file; _ };
-    analyzer;
-    lazy_ast_and_errors;
-    _;
-  } : Xtarget.t =
-    xtarget
-  in
-  let lang =
-    match analyzer with
-    | L (lang, _) -> lang
-    | LSpacegrep
-    | LAliengrep
-    | LRegex ->
-        failwith "taint-mode and generic/regex matching are incompatible"
-  in
   let (ast, skipped_tokens), parse_time =
-    Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
-  in
-  let pro_hooks : Taint_pro_hooks.t option =
-    Hook.get Taint_pro_hooks.hook_taint_pro_hooks
+    Common.with_time (fun () -> lazy_force xtarget.lazy_ast_and_errors)
   in
   (* TODO: 'debug_taint' should just be part of 'res'
      * (i.e., add a "debugging" field to 'Report.match_result'). *)
   let taint_inst, _TODO_debug_taint, expls =
-    Match_taint_spec.taint_config_of_rule ~per_file_formula_cache ~pro_hooks
-      xconf lang file (ast, []) rule
+    Match_taint_spec.taint_config_of_rule ~per_file_formula_cache ~file xconf
+      (ast, []) rule
   in
   let with_hook f =
     match Hook.get hook_mk_hook_function_taint_signature with
@@ -360,7 +342,7 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) ~matches_hook
             |> List_.map (function G.F x -> x)
             |> G.stmt1
           in
-          let stmts = AST_to_IL.stmt taint_inst.lang fields in
+          let stmts = AST_to_IL.stmt taint_inst.file.lang fields in
           let cfg, lambdas = CFG_build.cfg_of_stmts stmts in
           Log.info (fun m ->
               m
@@ -382,7 +364,7 @@ let check_rule per_file_formula_cache (rule : R.taint_rule) ~matches_hook
        * treat the program itself as an anonymous function. *)
       let (), match_time =
         Common.with_time (fun () ->
-            let xs = AST_to_IL.stmt taint_inst.lang (G.stmt1 ast) in
+            let xs = AST_to_IL.stmt taint_inst.file.lang (G.stmt1 ast) in
             let cfg, lambdas = CFG_build.cfg_of_stmts xs in
             Log.info (fun m ->
                 m
@@ -447,31 +429,54 @@ let check_rules ~matches_hook
     Formula_cache.mk_specialized_formula_cache rules
   in
 
-  rules
-  |> List_.map (fun rule ->
-         let%trace_debug sp = "Match_tainting_mode.check_rules.rule" in
-         Tracing.add_data_to_span sp
-           [
-             ("rule_id", `String (fst rule.R.id |> Rule_ID.to_string));
-             ("taint", `Bool true);
-           ];
+  let { path = { internal_path_to_content = file; _ }; analyzer; _ } : Xtarget.t
+      =
+    xtarget
+  in
+  let lang =
+    match analyzer with
+    | L (lang, _) -> lang
+    | LSpacegrep
+    | LAliengrep
+    | LRegex ->
+        failwith "taint-mode and generic/regex matching are incompatible"
+  in
+  let pro_hooks : Taint_pro_hooks.t option =
+    Hook.get Taint_pro_hooks.hook_taint_pro_hooks
+  in
+  let file_inst =
+    Taint_rule_inst.mk_file ~lang ~path:file ~pro_hooks ~handle_effects:None
+  in
 
-         let xconf =
-           Match_env.adjust_xconfig_with_rule_options xconf rule.R.options
-         in
-         (* This boilerplate function will take care of things like
-             timing out if this rule takes too long, and returning a dummy
-             result for the timed-out rule.
-         *)
-         per_rule_boilerplate_fn
-           (rule :> R.rule)
-           (fun () ->
-             Logs_.with_debug_trace ~__FUNCTION__
-               ~pp_input:(fun _ ->
-                 "target: "
-                 ^ !!(xtarget.path.internal_path_to_content)
-                 ^ "\nruleid: "
-                 ^ (rule.id |> fst |> Rule_ID.to_string))
-               (fun () ->
-                 check_rule per_file_formula_cache rule ~matches_hook xconf
-                   xtarget)))
+  let res =
+    rules
+    |> List_.map (fun rule ->
+           let%trace_debug sp = "Match_tainting_mode.check_rules.rule" in
+           Tracing.add_data_to_span sp
+             [
+               ("rule_id", `String (fst rule.R.id |> Rule_ID.to_string));
+               ("taint", `Bool true);
+             ];
+
+           let xconf =
+             Match_env.adjust_xconfig_with_rule_options xconf rule.R.options
+           in
+           (* This boilerplate function will take care of things like
+               timing out if this rule takes too long, and returning a dummy
+               result for the timed-out rule.
+           *)
+           per_rule_boilerplate_fn
+             (rule :> R.rule)
+             (fun () ->
+               Logs_.with_debug_trace ~__FUNCTION__
+                 ~pp_input:(fun _ ->
+                   "target: "
+                   ^ !!(xtarget.path.internal_path_to_content)
+                   ^ "\nruleid: "
+                   ^ (rule.id |> fst |> Rule_ID.to_string))
+                 (fun () ->
+                   check_rule per_file_formula_cache file_inst rule
+                     ~matches_hook xconf xtarget)))
+  in
+  Taint_rule_inst.check_timeouts_and_warn ~interfile:false file_inst;
+  res

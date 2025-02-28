@@ -31,17 +31,8 @@ val hook_mk_taint_spec_match_preds :
 *)
 val taint_config_of_rule :
   per_file_formula_cache:Formula_cache.t ->
-  pro_hooks:Taint_pro_hooks.t option ->
-  ?handle_effects:Taint_rule_inst.effects_handler
-    (** Use 'handle_effects' to e.g. apply hash-consing (see 'Deep_tainting'), or
-        to do some side-effect if needed.
-
-        old: In the past one had to use 'handle_effects' to record taint effects
-          by side-effect (no pun intended), however this is not needed now because
-          'Dataflow_tainting.fixpoint' already returns the set of taint effects. *) ->
+  file:Taint_rule_inst.file ->
   Match_env.xconfig ->
-  Lang.t ->
-  Fpath.t ->
   AST_generic.program * Tok.location list ->
   Rule.taint_rule ->
   Taint_rule_inst.t * spec_matches * Matching_explanation.t list

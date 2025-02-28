@@ -25,7 +25,7 @@ let check_var_def (taint_inst : Taint_rule_inst.t) env id ii expr =
     G.Assign (G.N (G.Id (id, ii)) |> G.e, Tok.fake_tok (snd id) "=", expr)
     |> G.e |> G.exprstmt
   in
-  let xs = AST_to_IL.stmt taint_inst.lang assign in
+  let xs = AST_to_IL.stmt taint_inst.file.lang assign in
   let cfg, lambdas = CFG_build.cfg_of_stmts xs in
   Log.debug (fun m ->
       m
@@ -46,7 +46,9 @@ let check_var_def (taint_inst : Taint_rule_inst.t) env id ii expr =
 
 let add_to_env_aux (taint_inst : Taint_rule_inst.t) env id ii opt_expr =
   let var = AST_to_IL.var_of_id_info id ii in
-  let var_type = Typing.resolved_type_of_id_info taint_inst.lang var.id_info in
+  let var_type =
+    Typing.resolved_type_of_id_info taint_inst.file.lang var.id_info
+  in
   let id_taints =
     taint_inst.preds.is_source (G.Tk (snd id))
     |> List_.map (fun (x : _ Taint_spec_match.t) -> (x.spec_pm, x.spec))

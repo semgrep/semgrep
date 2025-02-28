@@ -81,9 +81,13 @@ let test_dfg_tainting rules_file file =
      for test purposes.
   *)
   let tbl = Formula_cache.mk_specialized_formula_cache [] in
+  let file_inst =
+    Taint_rule_inst.mk_file ~lang ~path:file ~pro_hooks:None
+      ~handle_effects:None
+  in
   let taint_inst, spec_matches, _exps =
     Match_taint_spec.taint_config_of_rule ~per_file_formula_cache:tbl
-      ~pro_hooks:None xconf lang file (ast, []) rule
+      ~file:file_inst xconf (ast, []) rule
   in
   UCommon.pr2 "\nSources";
   UCommon.pr2 "-------";
@@ -108,7 +112,9 @@ let test_dfg_tainting rules_file file =
     end
   in
   (* Check each function definition. *)
-  v#visit_program () ast
+  v#visit_program () ast;
+  Taint_rule_inst.check_timeouts_and_warn ~interfile:false file_inst;
+  ()
 
 let actions () =
   [

@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Common
-open Fpath_.Operators
 open IL
 module Log = Log_tainting.Log
 module G = AST_generic
@@ -137,18 +136,10 @@ let propagate_through_indexes env =
 (* Helpers *)
 (*****************************************************************************)
 
-let log_timeout_warning (taint_inst : Taint_rule_inst.t) opt_name timeout =
+let record_timeout (taint_inst : Taint_rule_inst.t) opt_name timeout =
   match timeout with
   | `Ok -> ()
-  | `Timeout ->
-      (* nosemgrep: no-logs-in-library *)
-      Logs.warn (fun m ->
-          m
-            "Fixpoint timeout while performing taint analysis [rule: %s file: \
-             %s func: %s]"
-            (Rule_ID.to_string taint_inst.rule_id)
-            !!(taint_inst.file)
-            (Option.map IL.str_of_name opt_name ||| "???"))
+  | `Timeout -> Taint_rule_inst.record_timeout taint_inst opt_name
 
 let map_check_expr env check_expr xs =
   let rev_taints_and_shapes, lval_env =
@@ -285,7 +276,7 @@ let taints_of_matches env ~incoming sources =
 let record_effects env new_effects =
   if not (List_.null new_effects) then
     let new_effects =
-      env.taint_inst.handle_effects env.func.fname new_effects
+      env.taint_inst.file.handle_effects env.func.fname new_effects
     in
     env.effects_acc := Effects.add_list new_effects !(env.effects_acc)
 
@@ -399,14 +390,14 @@ let get_control_taints_to_return env =
 let type_of_lval env lval =
   match lval with
   | { base = Var x; rev_offset = [] } ->
-      Typing.resolved_type_of_id_info env.taint_inst.lang x.id_info
+      Typing.resolved_type_of_id_info env.taint_inst.file.lang x.id_info
   | { base = _; rev_offset = { o = Dot fld; _ } :: _ } ->
-      Typing.resolved_type_of_id_info env.taint_inst.lang fld.id_info
+      Typing.resolved_type_of_id_info env.taint_inst.file.lang fld.id_info
   | __else__ -> Type.NoType
 
 let type_of_expr env e =
   match e.eorig with
-  | SameAs eorig -> Typing.type_of_expr env.taint_inst.lang eorig |> fst
+  | SameAs eorig -> Typing.type_of_expr env.taint_inst.file.lang eorig |> fst
   | __else__ -> Type.NoType
 
 (* We only check this at a few key places to avoid calling `type_of_expr` too
@@ -807,7 +798,7 @@ let handle_taint_propagators env thing taints shape =
       (VarMap.empty, lval_env) propagate_froms
   in
   let lval_env =
-    match env.taint_inst.pro_hooks with
+    match env.taint_inst.file.pro_hooks with
     | None -> lval_env
     | Some pro_hooks ->
         let lval_env, effects_acc =
@@ -936,7 +927,8 @@ and propagate_taint_via_java_getters_and_setters_without_definition env e args
    _;
   }
   (* We check for the "get"/"set" prefix below. *)
-    when env.taint_inst.lang =*= Lang.Java && String.length method_str > 3 -> (
+    when env.taint_inst.file.lang =*= Lang.Java && String.length method_str > 3
+    -> (
       let mk_prop_lval () =
         (* e.g. getFooBar/setFooBar -> fooBar *)
         let prop_str =
@@ -944,7 +936,7 @@ and propagate_taint_via_java_getters_and_setters_without_definition env e args
         in
         let prop_name =
           match
-            Hashtbl.find_opt env.taint_inst.java_props_cache (prop_str, sid)
+            Hashtbl.find_opt env.taint_inst.file.java_props_cache (prop_str, sid)
           with
           | Some prop_name -> prop_name
           | None -> (
@@ -956,11 +948,11 @@ and propagate_taint_via_java_getters_and_setters_without_definition env e args
                     id_info = G.empty_id_info ();
                   }
                 in
-                Hashtbl.add env.taint_inst.java_props_cache (prop_str, sid)
+                Hashtbl.add env.taint_inst.file.java_props_cache (prop_str, sid)
                   prop_name;
                 prop_name
               in
-              match (!(obj.id_info.id_type), env.taint_inst.pro_hooks) with
+              match (!(obj.id_info.id_type), env.taint_inst.file.pro_hooks) with
               | Some { t = TyN class_name; _ }, Some pro_hooks -> (
                   match
                     pro_hooks.find_attribute_in_class class_name prop_str
@@ -968,7 +960,7 @@ and propagate_taint_via_java_getters_and_setters_without_definition env e args
                   | None -> mk_default_prop_name ()
                   | Some prop_name ->
                       let prop_name = AST_to_IL.var_of_name prop_name in
-                      Hashtbl.add env.taint_inst.java_props_cache
+                      Hashtbl.add env.taint_inst.file.java_props_cache
                         (prop_str, sid) prop_name;
                       prop_name)
               | __else__ -> mk_default_prop_name ())
@@ -1388,7 +1380,7 @@ and check_tainted_var env (var : IL.name) : Taints.t * S.shape * Lval_env.t =
   (taints, shape, lval_env)
 
 and instantiate_function_signature env fun_exp fun_sig args args_taints =
-  let* pro_hooks = env.taint_inst.pro_hooks in
+  let* pro_hooks = env.taint_inst.file.pro_hooks in
   let* taints, shape, lval_env, new_effects =
     pro_hooks.instantiate_function_signature env.taint_inst.options env.lval_env
       fun_sig ~callee:fun_exp ~args args_taints
@@ -1695,7 +1687,7 @@ let check_tainted_control_at_exit node env =
         record_effects env effects
 
 let check_tainted_at_exit_sinks node env =
-  match env.taint_inst.pro_hooks with
+  match env.taint_inst.file.pro_hooks with
   | None -> ()
   | Some pro_hooks -> (
       match
@@ -1996,9 +1988,9 @@ and fixpoint_aux taint_inst func ?(needed_vars = IL.NameSet.empty)
       ~eq_env:Lval_env.equal ~init:init_mapping ~trans:(transfer env ~fun_cfg)
       ~forward:true ~flow
   in
-  log_timeout_warning taint_inst env.func.fname timeout;
+  record_timeout taint_inst env.func.fname timeout;
   let exit_lval_env = end_mapping.(flow.exit).D.out_env in
-  effects_from_arg_updates_at_exit taint_inst.pro_hooks
+  effects_from_arg_updates_at_exit taint_inst.file.pro_hooks
     ~in_lambda:(Option.is_some in_lambda) ~enter_env:enter_lval_env
     exit_lval_env
   |> record_effects env;

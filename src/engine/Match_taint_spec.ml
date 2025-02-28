@@ -478,13 +478,10 @@ let mk_taint_spec_match_preds rule matches =
 (* Entry point *)
 (*****************************************************************************)
 
-let default_effect_handler _fun_name new_effects = new_effects
-
-let taint_config_of_rule ~per_file_formula_cache ~pro_hooks
-    ?(handle_effects = default_effect_handler) xconf lang file ast_and_errors
-    ({ mode = `Taint spec; _ } as rule : R.taint_rule) =
+let taint_config_of_rule ~per_file_formula_cache ~(file : Taint_rule_inst.file)
+    xconf ast_and_errors ({ mode = `Taint spec; _ } as rule : R.taint_rule) =
   let spec_matches, expls =
-    spec_matches_of_taint_rule ~per_file_formula_cache xconf !!file
+    spec_matches_of_taint_rule ~per_file_formula_cache xconf !!(file.path)
       ast_and_errors rule
   in
   let xconf = Match_env.adjust_xconfig_with_rule_options xconf rule.options in
@@ -492,7 +489,6 @@ let taint_config_of_rule ~per_file_formula_cache ~pro_hooks
   let preds = mk_taint_spec_match_preds rule spec_matches in
   ( Taint_rule_inst.
       {
-        lang;
         file;
         rule_id = fst rule.R.id;
         options;
@@ -500,9 +496,6 @@ let taint_config_of_rule ~per_file_formula_cache ~pro_hooks
           spec.sources |> snd
           |> List.exists (fun (src : R.taint_source) -> src.source_control);
         preds;
-        pro_hooks;
-        handle_effects;
-        java_props_cache = Hashtbl.create 30;
       },
     spec_matches,
     expls )
