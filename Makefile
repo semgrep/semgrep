@@ -256,7 +256,7 @@ install-deps-for-semgrep-core:
 	&& ./configure \
 	&& ./scripts/install-tree-sitter-lib
 	./scripts/build-static-libcurl.sh
-	make install-opam-deps
+	$(MAKE) install-opam-deps
 
 # Install OCaml dependencies (globally) from *.opam files.
 # This now also installs the dev dependencies. This has the benefit
