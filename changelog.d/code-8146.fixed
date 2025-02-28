@@ -1,0 +1,4 @@
+PRO: Restricted heuristic search of the Python module path to paths only under
+the project root to reduce inaccuracies in module resolution. This change
+mitigates the risk of resolving module specifiers to incorrect paths,
+particularly in cases involving common library names (e.g., `django`).
