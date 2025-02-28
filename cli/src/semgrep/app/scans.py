@@ -47,6 +47,7 @@ logger = getLogger(__name__)
 class ScanHandler:
     def __init__(
         self,
+        use_semgrepignore_v2: bool,
         dry_run: bool = False,
         partial_output: Optional[Path] = None,
         dump_scan_id_path: Optional[Path] = None,
@@ -73,6 +74,10 @@ class ScanHandler:
         self.ci_scan_results: Optional[out.CiScanResults] = None
         self.partial_output = partial_output
         self.dump_scan_id_path = dump_scan_id_path
+
+    @property
+    def use_semgrepignore_v2(self) -> bool:
+        return self.use_semgrepignore_v2
 
     @property
     def scan_id(self) -> Optional[int]:

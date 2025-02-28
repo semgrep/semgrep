@@ -30,11 +30,14 @@ LS = ["--x-ls"]
     ],
     ids=idfn,
 )
-def test_exclude_include(run_semgrep_in_tmp: RunSemgrep, snapshot, options):
-    stdout, stderr = run_semgrep_in_tmp(
+def test_exclude_include(run_semgrep_in_test_folder: RunSemgrep, snapshot, options):
+    stdout, stderr = run_semgrep_in_test_folder(
         "rules/eqeq.yaml",  # unused
+        # adding the new common options here to avoid renaming the
+        # snapshot files
         options=options,
         target_name="exclude_include",
+        osemgrep_force_project_root=".",
         assert_exit_code=None,
     )
     snapshot.assert_match(stdout, "files.list")

@@ -542,6 +542,8 @@ def run_scan(
     dryrun: bool = False,
     disable_nosem: bool = False,
     no_git_ignore: bool = False,
+    force_novcs_project: bool = False,
+    force_project_root: Optional[str] = None,
     respect_rule_paths: bool = True,
     respect_semgrepignore: bool = True,
     timeout: int = DEFAULT_TIMEOUT,
@@ -568,6 +570,7 @@ def run_scan(
     ptt_enabled: bool = False,
     resolve_all_deps_in_diff_scan: bool = False,
     symbol_analysis: bool = False,
+    use_semgrepignore_v2: bool = True,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -749,11 +752,14 @@ def run_scan(
 
     try:
         target_manager = TargetManager(
+            use_semgrepignore_v2=use_semgrepignore_v2,
             includes=include,
             excludes=exclude,
             max_target_bytes=max_target_bytes,
             scanning_root_strings=scanning_root_strings,
             respect_git_ignore=respect_git_ignore,
+            force_novcs_project=force_novcs_project,
+            force_project_root=force_project_root,
             respect_rule_paths=respect_rule_paths,
             baseline_handler=baseline_handler,
             allow_unknown_extensions=not skip_unknown_extensions,
@@ -952,11 +958,12 @@ def run_scan(
                             if t.exists() and not t.is_symlink()
                         )
                     baseline_target_manager = TargetManager(
+                        scanning_root_strings=baseline_scanning_root_strings,
+                        use_semgrepignore_v2=use_semgrepignore_v2,
                         includes=include,
                         excludes=exclude,
                         max_target_bytes=max_target_bytes,
                         # only target the paths that had a match, ignoring symlinks and non-existent files
-                        scanning_root_strings=baseline_scanning_root_strings,
                         respect_git_ignore=respect_git_ignore,
                         allow_unknown_extensions=not skip_unknown_extensions,
                         ignore_profiles=file_ignore_to_ignore_profiles(

@@ -114,3 +114,13 @@ def dump_rule_partitions(args: out.DumpRulePartitionsParams) -> bool:
         logger.error("Failed to dump rule partitions")
         return out.RetDumpRulePartitions(False).value
     return ret.value
+
+
+def get_targets(scanning_roots: out.ScanningRoots) -> out.TargetDiscoveryResult:
+    call = out.FunctionCall(out.CallGetTargets(scanning_roots))
+    ret: Optional[out.RetGetTargets] = rpc_call(call, out.RetGetTargets)
+    if ret is None:
+        logger.error("Failed to obtain target files from semgrep-core")
+        return out.TargetDiscoveryResult([], [], [])
+    logger.debug(f"get_targets request: {scanning_roots}\n..... result: {ret.value}")
+    return ret.value

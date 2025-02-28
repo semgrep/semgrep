@@ -51,7 +51,10 @@ def make_subproject(
 
 
 @pytest.mark.kinda_slow
-def test_without_baseline(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+@pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
+def test_without_baseline(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, use_semgrepignore_v2
+):
     """
     Verify that all subprojects are marked as changed for a full scan
 
@@ -78,7 +81,10 @@ def test_without_baseline(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     subprocess.check_call(["git", "commit", "-m", "first"])
 
     # Set up TargetManager
-    target_manager = TargetManager(scanning_root_strings=frozenset([Path(".")]))
+    target_manager = TargetManager(
+        scanning_root_strings=frozenset([Path(".")]),
+        use_semgrepignore_v2=use_semgrepignore_v2,
+    )
 
     subprojects = [make_subproject(foo_a, foo_b, out.Ecosystem(out.Pypi()))]
 
@@ -93,6 +99,7 @@ def test_without_baseline(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
 @pytest.mark.parametrize(
     ["baseline_subprojects", "new_filenames", "expected_changed_subprojects"],
     [
@@ -152,6 +159,7 @@ def test_with_baseline__new_code_files(
     baseline_subprojects: Dict[str, out.Subproject],
     new_filenames: List[Path],
     expected_changed_subprojects: List[str],
+    use_semgrepignore_v2,
 ):
     """
     Verify that the correct subprojects are marked as changed for a diff scan when new code files are added.
@@ -199,6 +207,7 @@ def test_with_baseline__new_code_files(
     baseline_handler = BaselineHandler(base_commit, True)
     target_manager = TargetManager(
         scanning_root_strings=frozenset([Path(".")]),
+        use_semgrepignore_v2=use_semgrepignore_v2,
         baseline_handler=baseline_handler,
     )
 
@@ -216,6 +225,7 @@ def test_with_baseline__new_code_files(
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
 @pytest.mark.parametrize(
     ["baseline_subprojects", "changed_filenames", "expected_changed_subprojects"],
     [
@@ -291,6 +301,7 @@ def test_with_baseline__changed_source_files(
     baseline_subprojects: Dict[str, out.Subproject],
     changed_filenames: List[Path],
     expected_changed_subprojects: List[str],
+    use_semgrepignore_v2,
 ):
     """
     Verify that the correct subprojects are marked as changed for a diff scan when new code files are added.
@@ -338,6 +349,7 @@ def test_with_baseline__changed_source_files(
     baseline_handler = BaselineHandler(base_commit, True)
     target_manager = TargetManager(
         scanning_root_strings=frozenset([Path(".")]),
+        use_semgrepignore_v2=use_semgrepignore_v2,
         baseline_handler=baseline_handler,
     )
 

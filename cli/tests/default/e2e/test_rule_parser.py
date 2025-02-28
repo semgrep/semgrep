@@ -82,15 +82,15 @@ def test_rule_parser__failure__error_messages(
 # https://github.com/returntocorp/semgrep/issues/1095
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
-def test_rule_parser_cli_pattern(run_semgrep_in_tmp: RunSemgrep, snapshot):
+def test_rule_parser_cli_pattern(run_semgrep_on_copied_files: RunSemgrep, snapshot):
     # Check json output
-    stdout, _ = run_semgrep_in_tmp(
+    stdout, _ = run_semgrep_on_copied_files(
         options=["-e", "#include<asdf><<>>><$X>", "-l", "c"], assert_exit_code=2
     )
     snapshot.assert_match(stdout, "error.json")
 
     # Check pretty print output
-    _, stderr = run_semgrep_in_tmp(
+    _, stderr = run_semgrep_on_copied_files(
         options=["-e", "#include<asdf><<>>><$X>", "-l", "c"],
         output_format=OutputFormat.TEXT,
         force_color=True,

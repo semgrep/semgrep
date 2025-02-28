@@ -243,7 +243,15 @@ let o_use_git : bool Term.t =
 *)
 let o_use_semgrepignore_v2 : bool Cmdliner.Term.t =
   H.negatable_flag [ "semgrepignore-v2" ] ~neg_options:[ "no-semgrepignore-v2" ]
-    ~default:false ~doc:"Under development. Not currently recommended."
+    ~default:true
+    ~doc:
+      {|'--semgrepignore-v2' forces the use of the newer Semgrepignore v2
+implementation for discovering and filtering target files. Conversely,
+'--no-semgrepignore-v2' is the deprecated option that forces the use of
+the legacy Semgrepignore v1.
+If you must use '--no-semgrepignore-v2', please let us know so we can
+fix problems and help you migrate smoothly.
+|}
 
 let o_ignore_semgrepignore_files : bool Term.t =
   let info =
@@ -919,10 +927,6 @@ let o_target_roots : string list Term.t =
        (default.target_roots |> List_.map Scanning_root.to_string)
        info)
 
-(* ------------------------------------------------------------------ *)
-(* !!NEW arguments!! not in pysemgrep *)
-(* ------------------------------------------------------------------ *)
-
 let o_project_root : string option Term.t =
   let info =
     Arg.info [ "project-root" ]
@@ -945,9 +949,24 @@ let o_project_root : string option Term.t =
           to a '/home/me/sources' directory or a symbolic link to a
           'sources' directory but not if it is a symbolic link to
           a directory '/var/sources' (assuming '/var' is not a symbolic link).
-          REQUIRES --experimental|}
+          REQUIRES --experimental or --semgrepignore-v2.|}
   in
   Arg.value (Arg.opt Arg.(some string) None info)
+
+let o_novcs : bool Term.t =
+  let info =
+    Arg.info [ "novcs" ]
+      ~doc:
+        {|Assume the project is not managed by a version control system (VCS),
+          even if the project appears to be under version control based
+          on the presence of files such as '.git' or similar.
+          REQUIRES --experimental or --semgrepignore-v2.|}
+  in
+  Arg.value (Arg.flag info)
+
+(* ------------------------------------------------------------------ *)
+(* !!NEW arguments!! not in pysemgrep *)
+(* ------------------------------------------------------------------ *)
 
 let o_remote : string option Term.t =
   let info =
@@ -1321,14 +1340,14 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       json json_outputs junit_xml junit_xml_outputs lang matching_explanations
       max_chars_per_line max_lines_per_finding max_log_list_entries
       max_memory_mb max_target_bytes metrics num_jobs no_secrets_validation
-      nosem optimizations oss output pattern pro project_root pro_intrafile
-      pro_lang pro_path_sensitive remote replacement rewrite_rule_ids sarif
-      sarif_outputs scan_unknown_extensions secrets severity
-      show_supported_languages strict target_roots test test_ignore_todo text
-      text_outputs time_flag timeout _timeout_interfileTODO timeout_threshold
-      trace trace_endpoint use_git _use_semgrepignore_v2 validate version
-      version_check vim vim_outputs x_ignore_semgrepignore_files x_ls x_ls_long
-      x_tr =
+      nosem novcs optimizations oss output pattern pro project_root
+      pro_intrafile pro_lang pro_path_sensitive remote replacement
+      rewrite_rule_ids sarif sarif_outputs scan_unknown_extensions secrets
+      severity show_supported_languages strict target_roots test
+      test_ignore_todo text text_outputs time_flag timeout
+      _timeout_interfileTODO timeout_threshold trace trace_endpoint use_git
+      _use_semgrepignore_v2 validate version version_check vim vim_outputs
+      x_ignore_semgrepignore_files x_ls x_ls_long x_tr =
     (* Print a warning if any of the internal or experimental options.
        We don't want users to start relying on these. *)
     if x_ignore_semgrepignore_files || x_ls || x_ls_long || x_tr then
@@ -1423,7 +1442,9 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       | nonempty -> Some nonempty
     in
     let respect_gitignore = use_git in
-    let force_novcs_project = force_project_root <> None || not use_git in
+    let force_novcs_project =
+      novcs || force_project_root <> None || not use_git
+    in
     let targeting_conf : Find_targets.conf =
       {
         force_project_root;
@@ -1470,9 +1491,10 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     in
     (* more sanity checks *)
     if
-      (List.mem "auto" config
-      || rules_source =*= Rules_source.Configs [ "auto" ])
-      && metrics =*= Metrics_.Off
+      ((List.mem "auto" config
+       || rules_source =*= Rules_source.Configs [ "auto" ])
+      && metrics =*= Metrics_.Off)
+      && not (x_ls || x_ls_long (* --x-ls doesn't need semgrep rules *))
     then
       Error.abort
         "Cannot create auto config when metrics are off. Please allow metrics \
@@ -1545,8 +1567,8 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     $ o_json_outputs $ o_junit_xml $ o_junit_xml_outputs $ o_lang
     $ o_matching_explanations $ o_max_chars_per_line $ o_max_lines_per_finding
     $ o_max_log_list_entries $ o_max_memory_mb $ o_max_target_bytes $ o_metrics
-    $ o_num_jobs $ o_no_secrets_validation $ o_nosem $ o_optimizations $ o_oss
-    $ o_output $ o_pattern $ o_pro $ o_project_root $ o_pro_intrafile
+    $ o_num_jobs $ o_no_secrets_validation $ o_nosem $ o_novcs $ o_optimizations
+    $ o_oss $ o_output $ o_pattern $ o_pro $ o_project_root $ o_pro_intrafile
     $ o_pro_languages $ o_pro_path_sensitive $ o_remote $ o_replacement
     $ o_rewrite_rule_ids $ o_sarif $ o_sarif_outputs $ o_scan_unknown_extensions
     $ o_secrets $ o_severity $ o_show_supported_languages $ o_strict

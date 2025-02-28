@@ -1,4 +1,14 @@
-(* debugging flags *)
+(* !!! DEPRECATED !!!
+
+   1. Do not add new globals refs to this module or anywhere else.
+      Pass parameters to functions.
+   2. Try to reduce the size of this module when you have a chance.
+*)
+
+(* Debugging flags
+
+   Debugging flags are mostly ok.
+*)
 
 (* To not capture exn and instead let them bubble up to get a precise
  * backtrace when there is an error. This is useful for debugging.
@@ -15,7 +25,9 @@ let debug_matching = ref false
 let tree_sitter_only = ref false
 let pfff_only = ref false
 
-(* optimization flags *)
+(* Optimization flags - DEPRECATED
+   TODO: pack these into the big configuration record where they belong
+*)
 
 (* look if identifiers in pattern intersect with file using simple regexps *)
 let filter_irrelevant_patterns = ref false
@@ -26,7 +38,9 @@ let max_tainted_vars = ref Limits_semgrep.taint_MAX_TAINTED_VARS
 (* Maximum size of the taints set for each lval *)
 let max_taint_set_size = ref Limits_semgrep.taint_MAX_TAINT_SET_SIZE
 
-(* Whether or not to skip files believed to be minified. *)
+(* Whether or not to skip files believed to be minified.
+   TODO: this belongs in Find_targets.conf
+*)
 let skip_minified_files = ref true
 
 (* Disabling this lets us measure the effectiveness of our GC tuning. *)

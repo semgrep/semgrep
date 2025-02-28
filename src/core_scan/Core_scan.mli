@@ -54,6 +54,11 @@ val targets_of_config :
   Rule.t list ->
   Target.t list * Core_error.t list * Semgrep_output_v1_t.skipped_target list
 
+(* pysemgrep/semgrep-core RPC *)
+val get_targets_for_pysemgrep :
+  Semgrep_output_v1_t.scanning_roots ->
+  Semgrep_output_v1_t.target_discovery_result
+
 (* Get the rules *)
 val rules_of_config : Core_scan_config.t -> Rule_error.rules_and_invalid
 

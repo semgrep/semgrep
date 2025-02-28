@@ -56,8 +56,9 @@ from semgrep.constants import OutputFormat
 ##############################################################################
 
 TESTS_PATH = Path(__file__).parent
-RULES_PATH = Path(TESTS_PATH / "default" / "e2e" / "rules")
-TARGETS_PATH = Path(TESTS_PATH / "default" / "e2e" / "targets")
+RULES_AND_TARGETS_PATH = Path(TESTS_PATH / "default" / "e2e")
+RULES_PATH = Path(RULES_AND_TARGETS_PATH / "rules")
+TARGETS_PATH = Path(RULES_AND_TARGETS_PATH / "targets")
 
 ##############################################################################
 # Pytest hacks
@@ -588,7 +589,10 @@ def run_semgrep_in_tmp(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> fixtures.RunSemgrep:
     """
-    Note that this can cause failures if Semgrep pollutes either the targets or rules path
+    [DEPRECATED] Same as 'run_semgrep_in_tmp' but with symlinks instead
+    of file copies.
+    Symlinks cause complications with target selection which are best
+    avoided if possible.
     """
     (tmp_path / "targets").symlink_to(TARGETS_PATH.resolve())
     (tmp_path / "rules").symlink_to(RULES_PATH.resolve())
@@ -599,16 +603,34 @@ def run_semgrep_in_tmp(
 
 @pytest.fixture
 def run_semgrep_on_copied_files(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> fixtures.RunSemgrep:
     """
-    Like run_semgrep_in_tmp, but fully copies rule and target data to avoid
-    directory pollution, also avoids issues with symlink navigation
+    Copy the rules/ and targets/ into a temporary workspace and cd into it.
+    Use this function only if the test leaves dirty data behind.
+    The workspace is a temporary folder that is not inside a git repo.
     """
     copytree(TARGETS_PATH.resolve(), tmp_path / "targets")
     copytree(RULES_PATH.resolve(), tmp_path / "rules")
     monkeypatch.chdir(tmp_path)
+
+    return _run_strict_semgrep_on_basic_targets_with_json_output
+
+
+@pytest.fixture
+def run_semgrep_in_test_folder(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> fixtures.RunSemgrep:
+    """
+    Change the current directory to where targets/ and rules/ exist without
+    copying them. This saves time but is only suitable for read-only tests.
+    In doubt, use 'run_semgrep_in_tmp' which is safe but may be a little
+    slower.
+    This stays within the project which is presumably a git repo. Running
+    semgrep in a git repo causes it to do certain git-specific operations.
+    """
+    monkeypatch.chdir(RULES_AND_TARGETS_PATH)
 
     return _run_strict_semgrep_on_basic_targets_with_json_output
 

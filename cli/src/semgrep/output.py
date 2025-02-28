@@ -416,6 +416,7 @@ class OutputHandler:
             self.ignore_log = FileTargetingLog(
                 TargetManager(
                     scanning_root_strings=frozenset([Path(".")]),
+                    use_semgrepignore_v2=True,
                 )
             )
 

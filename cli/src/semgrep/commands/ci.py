@@ -267,6 +267,10 @@ def ci(
     trace_endpoint: str,
     use_git_ignore: bool,
     use_semgrepignore_v2: bool,
+    force_novcs_project: bool,  # unused but needed to receive options from 'scan'
+    force_project_root: Optional[
+        str
+    ],  # unused but needed to receive options from 'scan'
     verbose: bool,
     x_tr: bool,
     path_sensitive: bool,
@@ -358,6 +362,7 @@ def ci(
                 dry_run = True
 
             scan_handler = ScanHandler(
+                use_semgrepignore_v2=use_semgrepignore_v2,
                 dry_run=dry_run,
                 partial_output=partial_output,
                 dump_scan_id_path=dump_scan_id_path,
@@ -676,6 +681,7 @@ def ci(
             if scan_handler
             else False,
             "symbol_analysis": scan_handler.symbol_analysis if scan_handler else False,
+            "use_semgrepignore_v2": use_semgrepignore_v2,
         }
 
         try:

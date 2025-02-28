@@ -145,6 +145,18 @@ _scan_options: List[Callable] = [
         default=True,
     ),
     optgroup.option(
+        # semgrepignore v2 only; scan only (not ci)
+        "--novcs",
+        "force_novcs_project",
+        is_flag=True,
+    ),
+    optgroup.option(
+        # semgrepignore v2 only; scan only (not ci)
+        "--project-root",
+        "force_project_root",
+        type=str,
+    ),
+    optgroup.option(
         "--scan-unknown-extensions/--skip-unknown-extensions",
         is_flag=True,
         default=False,
@@ -548,6 +560,8 @@ def scan(
     exclude: Optional[Tuple[str, ...]],
     exclude_rule: Optional[Tuple[str, ...]],
     force_color: bool,
+    force_novcs_project: bool,
+    force_project_root: Optional[str],
     include: Optional[Tuple[str, ...]],
     jobs: Optional[int],
     lang: Optional[str],
@@ -855,6 +869,8 @@ def scan(
                         dryrun=dryrun,
                         disable_nosem=(not enable_nosem),
                         no_git_ignore=(not use_git_ignore),
+                        force_novcs_project=force_novcs_project,
+                        force_project_root=force_project_root,
                         respect_semgrepignore=(not x_ignore_semgrepignore_files),
                         timeout=timeout,
                         max_memory=max_memory,
@@ -873,6 +889,7 @@ def scan(
                         path_sensitive=path_sensitive,
                         capture_core_stderr=capture_core_stderr,
                         allow_local_builds=allow_local_builds,
+                        use_semgrepignore_v2=use_semgrepignore_v2,
                     )
                 except SemgrepError as e:
                     output_handler.handle_semgrep_errors([e])

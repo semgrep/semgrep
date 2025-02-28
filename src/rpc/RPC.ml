@@ -88,7 +88,8 @@ let handle_call (caps : < caps ; .. >) :
           Error
             "Transitive reachability is a proprietary feature, but semgrep-pro \
              has not been loaded")
-  | `CallGetTargets _scanning_roots -> Error "Not yet implemented"
+  | `CallGetTargets scanning_roots ->
+      Ok (`RetGetTargets (Core_scan.get_targets_for_pysemgrep scanning_roots))
 
 (*****************************************************************************)
 (* Helpers *)

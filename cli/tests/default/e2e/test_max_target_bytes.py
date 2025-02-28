@@ -23,17 +23,29 @@ def generic_test_max_target_bytes(
 
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("max_bytes", ["1MB", "1.3R", "100B", "1B"])
-def test_max_target_bytes_results(run_semgrep_in_tmp: RunSemgrep, snapshot, max_bytes):
+def test_max_target_bytes_results(
+    run_semgrep_on_copied_files: RunSemgrep, snapshot, max_bytes
+):
     generic_test_max_target_bytes(
-        run_semgrep_in_tmp, snapshot, max_bytes, check_results=True, check_output=False
+        run_semgrep_on_copied_files,
+        snapshot,
+        max_bytes,
+        check_results=True,
+        check_output=False,
     )
 
 
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("max_bytes", ["1MB", "1.3R"])
-def test_max_target_bytes_output(run_semgrep_in_tmp: RunSemgrep, snapshot, max_bytes):
+def test_max_target_bytes_output(
+    run_semgrep_in_test_folder: RunSemgrep, snapshot, max_bytes
+):
     generic_test_max_target_bytes(
-        run_semgrep_in_tmp, snapshot, max_bytes, check_results=False, check_output=True
+        run_semgrep_in_test_folder,
+        snapshot,
+        max_bytes,
+        check_results=False,
+        check_output=True,
     )
 
 
@@ -50,6 +62,6 @@ def test_max_target_bytes_output(run_semgrep_in_tmp: RunSemgrep, snapshot, max_b
 @pytest.mark.parametrize("max_bytes", ["100B", "1B"])
 @pytest.mark.pysemfail
 def test_max_target_bytes_output_pysemfail(
-    run_semgrep_in_tmp: RunSemgrep, snapshot, max_bytes
+    run_semgrep_on_copied_files: RunSemgrep, snapshot, max_bytes
 ):
-    test_max_target_bytes_output(run_semgrep_in_tmp, snapshot, max_bytes)
+    test_max_target_bytes_output(run_semgrep_on_copied_files, snapshot, max_bytes)

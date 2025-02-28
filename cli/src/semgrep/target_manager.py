@@ -22,6 +22,7 @@ from typing import Set
 from typing import Tuple
 from typing import Union
 
+import semgrep.rpc_call
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.subproject_matchers import filter_dependency_source_files
 from semgrep.git import BaselineHandler
@@ -185,10 +186,11 @@ class FileTargetingLog:
                 "Scan was limited to files changed since baseline commit."
             )
         elif self.target_manager.respect_git_ignore:
-            # Each target could be a git repo, and we respect the git ignore
-            # of each target, so to be accurate with this print statement we
-            # need to check if any target is a git repo and not just the cwd
-            targets_not_in_git = 0
+            # Each scanning root could be a git repo, and we respect the
+            # gitignore exclusions in each repo, so to be accurate with
+            # this print statement we need to check if any target is in a
+            # git repo.
+            roots_not_in_git = 0
             dir_targets = 0
             for t in self.target_manager.scanning_roots:
                 if t.path.is_dir():
@@ -196,9 +198,9 @@ class FileTargetingLog:
                     try:
                         t.files_from_git_ls()
                     except (subprocess.SubprocessError, FileNotFoundError):
-                        targets_not_in_git += 1
+                        roots_not_in_git += 1
                         continue
-            if targets_not_in_git != dir_targets:
+            if roots_not_in_git != dir_targets:
                 limited_fragments.append(f"Scan was limited to files tracked by git.")
 
         if self.cli_includes:
@@ -419,6 +421,7 @@ class ScanningRoot:
     path: Path = field(converter=Path)
     git_tracked_only: bool = False
     baseline_handler: Optional[BaselineHandler] = None
+    targeting_conf_v2: Optional[out.TargetingConf] = None
 
     @path.validator
     def validate_path(self, _: Any, value: Path) -> None:
@@ -535,30 +538,42 @@ class ScanningRoot:
 
         ignore_baseline_handler: if True, will ignore the baseline handler and scan all files. Used in the context of scanning unchanged lockfiles for their dependencies and doing reachability analysis.
         """
-        if not self.path.is_dir() and self.path.is_file():
-            return (frozenset([self.path]), frozenset())
+        if self.targeting_conf_v2 is not None:
+            # New: Use semgrep-core to discover target files
+            targeting_conf = self.targeting_conf_v2
+            arg = out.ScanningRoots(
+                root_paths=[out.Fpath(str(self.path))], targeting_conf=targeting_conf
+            )
+            res: out.TargetDiscoveryResult = semgrep.rpc_call.get_targets(arg)
+            target_paths = frozenset([Path(fpath.value) for fpath in res.target_paths])
+            # TODO: return errors and skipped targets
+            return (target_paths, frozenset())
+        else:
+            # Legacy: use pysemgrep to discover target files
+            if not self.path.is_dir() and self.path.is_file():
+                return (frozenset([self.path]), frozenset())
 
-        if self.baseline_handler is not None:
-            # Adding this conditional to scan all lockfiles for their dependencies, even in diff-aware scans
-            if ignore_baseline_handler:
-                return self.files_from_filesystem()
+            if self.baseline_handler is not None:
+                # Adding this conditional to scan all lockfiles for their dependencies, even in diff-aware scans
+                if ignore_baseline_handler:
+                    return self.files_from_filesystem()
 
-            try:
-                return (self.files_from_git_diff(), frozenset())
-            except (subprocess.CalledProcessError, FileNotFoundError):
-                logger.verbose(
-                    f"Unable to target only the changed files since baseline commit. Running on all git tracked files instead..."
-                )
+                try:
+                    return (self.files_from_git_diff(), frozenset())
+                except (subprocess.CalledProcessError, FileNotFoundError):
+                    logger.verbose(
+                        f"Unable to target only the changed files since baseline commit. Running on all git tracked files instead..."
+                    )
 
-        if self.git_tracked_only:
-            try:
-                return (self.files_from_git_ls(), frozenset())
-            except (subprocess.CalledProcessError, FileNotFoundError):
-                logger.verbose(
-                    f"Unable to ignore files ignored by git ({self.path} is not a git directory or git is not installed). Running on all files instead..."
-                )
+            if self.git_tracked_only:
+                try:
+                    return (self.files_from_git_ls(), frozenset())
+                except (subprocess.CalledProcessError, FileNotFoundError):
+                    logger.verbose(
+                        f"Unable to ignore files ignored by git ({self.path} is not a git directory or git is not installed). Running on all files instead..."
+                    )
 
-        return self.files_from_filesystem()
+            return self.files_from_filesystem()
 
     # cached (see _target_files())
     def target_files(self, ignore_baseline_handler: bool = False) -> FrozenSet[Path]:
@@ -603,8 +618,13 @@ class TargetManager:
 
     # TODO: rename scanning_root_strings -> scanning_root_paths
     scanning_root_strings: FrozenSet[Path]
+    # use_semgrepignore_v2 is a temporary option while we migrate to
+    # the new implementation of target selection.
+    use_semgrepignore_v2: bool
     includes: Sequence[str] = Factory(list)
     excludes: Mapping[out.Product, Sequence[str]] = Factory(dict)
+    force_novcs_project: bool = False
+    force_project_root: Optional[str] = None
     max_target_bytes: int = -1
     respect_git_ignore: bool = False
     respect_rule_paths: bool = True
@@ -614,15 +634,47 @@ class TargetManager:
     ignore_log: FileTargetingLog = Factory(FileTargetingLog, takes_self=True)
     scanning_roots: Sequence[ScanningRoot] = field(init=False)
     respect_semgrepignore: bool = True
+    targeting_conf: out.TargetingConf = field(init=False)
 
     _filtered_targets: Dict[Language, FilteredFiles] = field(factory=dict)
 
+    # This initializes the class attributes marked with '= field(init=False)':
     def __attrs_post_init__(self) -> None:
+        # for use_semgrepignore_v2 i.e. delegating target discovery to semgrep-core
+        self.targeting_conf = out.TargetingConf(
+            exclude=[],  # TODO
+            max_target_bytes=self.max_target_bytes,
+            respect_gitignore=self.respect_git_ignore,
+            respect_semgrepignore_files=self.respect_semgrepignore,
+            # explicit targets = target files that are passed explicitly
+            # on the command line and are normally not ignored by semgrepignore
+            # or other filters.
+            always_select_explicit_targets=True,
+            # shouldn't be needed since we provide the scanning roots:
+            explicit_targets=[],
+            force_novcs_project=self.force_novcs_project,
+            exclude_minified_files=True,  # ??
+            include_=(list(self.includes) or None),
+            force_project_root=(
+                out.ProjectRoot(out.Filesystem(self.force_project_root))
+                if not self.force_project_root is None
+                else None
+            ),
+            baseline_commit=(
+                self.baseline_handler.base_commit() if self.baseline_handler else None
+            ),
+        )
         self.scanning_roots = [
             ScanningRoot(
                 root,
                 git_tracked_only=self.respect_git_ignore,
                 baseline_handler=self.baseline_handler,
+                # TODO: add support for baseline_commit with use_semgrepignore_v2
+                targeting_conf_v2=(
+                    self.targeting_conf
+                    if self.use_semgrepignore_v2 and self.baseline_handler is None
+                    else None
+                ),
             )
             for root in self.scanning_root_strings
         ]

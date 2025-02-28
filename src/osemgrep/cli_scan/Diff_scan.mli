@@ -1,3 +1,6 @@
+(* TODO: rename this module to indicate that it only works on a git repo *)
+(* TODO: provide a function to obtain the list of target files. *)
+
 type diff_scan_func =
   ?diff_config:Differential_scan_config.t ->
   Fpath.t list ->
