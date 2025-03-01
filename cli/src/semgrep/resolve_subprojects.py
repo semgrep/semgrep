@@ -267,8 +267,8 @@ def resolve_subprojects(
             )
             dependency_targets.extend(targets)
 
-            if resolved_info is not None:
-                # resolved_info is only None when dependency resolution failed in some way
+            if not isinstance(resolved_info, out.UnresolvedReason):
+                # resolved_info is an UnresolvedReason when dependency resolution failed in some way
                 resolution_method, deps = resolved_info
                 resolved_subproject = out.ResolvedSubproject(
                     info=subproject,
@@ -287,7 +287,7 @@ def resolve_subprojects(
                 unresolved.append(
                     out.UnresolvedSubproject(
                         info=subproject,
-                        reason=out.UnresolvedReason(out.UnresolvedFailed()),
+                        reason=resolved_info,
                         errors=[to_sca_error(e) for e in errors],
                     )
                 )

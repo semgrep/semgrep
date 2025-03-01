@@ -33,7 +33,8 @@ def test_handle_missing_parser_for_lockfile(mock_parsers_dict) -> None:
 
     result = _handle_lockfile_source(dep_source, False, False)
 
-    assert result[0] is None
+    assert isinstance(result[0], out.UnresolvedReason)
+    assert result[0].value == out.UnresolvedUnsupported()
     assert result[1] == []
     assert result[2] == []
 

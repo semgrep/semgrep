@@ -87,7 +87,9 @@ PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS = [
 ]
 
 DependencyResolutionResult = Tuple[
-    Optional[Tuple[out.ResolutionMethod, List[out.ResolvedDependency]]],
+    Union[
+        Tuple[out.ResolutionMethod, List[out.ResolvedDependency]], out.UnresolvedReason
+    ],
     Sequence[Union[DependencyParserError, out.ScaResolutionError]],
     List[Path],
 ]
@@ -205,7 +207,7 @@ def _handle_manifest_only_source(
     """Handle dependency resolution for manifest-only sources."""
     new_deps, new_errors, new_targets = _resolve_dependencies_rpc(dep_source)
     if new_deps is None:
-        return None, new_errors, new_targets
+        return out.UnresolvedReason(out.UnresolvedFailed()), new_errors, new_targets
     return (
         (out.ResolutionMethod(out.DynamicResolution()), new_deps),
         new_errors,
@@ -237,7 +239,7 @@ def _handle_multi_lockfile_source(
             enable_dynamic_resolution=enable_dynamic_resolution,
             ptt_enabled=ptt_enabled,
         )
-        if new_resolved_info is not None:
+        if not isinstance(new_resolved_info, out.UnresolvedReason):
             resolution_method, new_deps = new_resolved_info
             resolution_methods.add(resolution_method)
             all_resolved_deps.extend(new_deps)
@@ -322,7 +324,7 @@ def _handle_lockfile_source(
 
     # if there is no parser or ecosystem for the lockfile, we can't resolve it
     if parser is None:
-        return None, [], []
+        return out.UnresolvedReason(out.UnresolvedUnsupported()), [], []
 
     # Parse lockfile (used for both standard parsing and as fallback for failed dynamic resolution)
     manifest_path = (
@@ -371,10 +373,12 @@ def resolve_dependency_source(
         )
     elif (
         isinstance(dep_source_, out.ManifestOnlyDependencySource)
-        and enable_dynamic_resolution
         and (dep_source_.value.kind, None) in PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS
     ):
-        return _handle_manifest_only_source(dep_source_)
+        if enable_dynamic_resolution:
+            return _handle_manifest_only_source(dep_source_)
+        else:
+            return out.UnresolvedReason(out.UnresolvedDisabled()), [], []
     else:
         # dependency source type is not supported, do nothing
-        return (None, [], [])
+        return out.UnresolvedReason(out.UnresolvedUnsupported()), [], []
