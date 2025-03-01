@@ -51,9 +51,9 @@ class RuleMatch:
 
     match: out.CoreMatch
 
-    # fields from the rule
+    # fields from the rule (which are usually not part of CoreMatch)
+    # alt: rule: Rule to attach the rule corresponding to a match
     message: str = field(repr=False)
-    # TODO: get rid of the field and just reuse the one in match
     severity: out.MatchSeverity
     metadata: Dict[str, Any] = field(repr=False, factory=dict)
 
@@ -70,8 +70,8 @@ class RuleMatch:
     extra: Dict[str, Any] = field(repr=False, factory=dict)
 
     # fields derived from the rule
-    # We call rstrip() for consistency with semgrep-core, which ignores whitespace
-    # including newline chars at the end of multiline patterns
+    # We call rstrip() for consistency with semgrep-core, which ignores
+    # whitespaces including newline chars at the end of multiline patterns
     fix: Optional[str] = field(converter=rstrip, default=None)
 
     # ???
@@ -311,11 +311,11 @@ class RuleMatch:
         except (ValueError, FileNotFoundError):
             path = self.path
         match_formula_str = self.match_formula_string
-        if self.extra.get("metavars") is not None:
-            metavars = self.extra["metavars"]
-            for metavar in metavars:
+        if self.match.extra.metavars is not None:
+            metavars = self.match.extra.metavars.value
+            for mvar, mval in metavars.items():
                 match_formula_str = match_formula_str.replace(
-                    metavar, metavars[metavar]["abstract_content"]
+                    mvar, mval.abstract_content
                 )
         if self.from_transient_scan:
             # NOTE: We include the previous scan's rules in the config for consistent fixed status work.
@@ -374,11 +374,11 @@ class RuleMatch:
         has only changed because e.g. the file path changed
         """
         match_formula_str = self.match_formula_string
-        if self.extra.get("metavars") is not None:
-            metavars = self.extra["metavars"]
-            for metavar in metavars:
+        if self.match.extra.metavars is not None:
+            metavars = self.match.extra.metavars.value
+            for mvar, mval in metavars.items():
                 match_formula_str = match_formula_str.replace(
-                    metavar, metavars[metavar]["abstract_content"]
+                    mvar, mval.abstract_content
                 )
         return hashlib.sha256(match_formula_str.encode()).hexdigest()
 

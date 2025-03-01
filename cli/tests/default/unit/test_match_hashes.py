@@ -115,7 +115,6 @@ def get_rule_match(
                 is_ignored=False,
             ),
         ),
-        extra={"metavars": metavars if metavars else {}},
         metadata=metadata if metadata else {},
     )
 
@@ -208,11 +207,20 @@ def test_code_hash_independent_of_index(mocker, eqeq_rule, foo_contents):
 @pytest.mark.quick
 def test_code_hash_changes_with_code(mocker, eqeq_rule, foo_contents):
     mocker.patch.object(Path, "open", mocker.mock_open(read_data=foo_contents))
+    fake_pos = out.Position(0, 0)
     match_1 = get_rule_match(
-        start_line=3, end_line=3, metavars={"$X": {"abstract_content": "5"}}
+        start_line=3,
+        end_line=3,
+        metavars={
+            "$X": out.MetavarValue(start=fake_pos, end=fake_pos, abstract_content="5")
+        },
     )
     match_2 = get_rule_match(
-        start_line=5, end_line=5, metavars={"$X": {"abstract_content": "6"}}
+        start_line=5,
+        end_line=5,
+        metavars={
+            "$X": out.MetavarValue(start=fake_pos, end=fake_pos, abstract_content="6")
+        },
     )
     matches_orig = RuleMatches(eqeq_rule)
     matches_orig.update([match_1, match_2])

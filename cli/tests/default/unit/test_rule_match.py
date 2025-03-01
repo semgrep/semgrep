@@ -482,7 +482,6 @@ def test_rule_match_to_app_finding_historical_info(snapshot, mocker):
                 ),
             ),
         ),
-        extra={},
     )
     app_finding = match.to_app_finding_format("0", remove_dataflow_content=False)
     app_finding.commit_date = "1970-01-01T00:00:00"
