@@ -263,12 +263,14 @@ local opam_switch = '5.2.1';
 
 // this must be done after the checkout as opam installs itself
 // locally in the project folder (/home/runner/work/semgrep/semgrep/_opam)
+// TODO upstream the changes in austin's custom setup-ocaml action,
+// or move the project to the semgrep org
 // coupling: default is above opam_switch
 local opam_setup = function(opam_switch="5.2.1") {
-      uses: 'ocaml/setup-ocaml@v3',
+      uses: 'ajbt200128/setup-ocaml@latest',
       with: {
         'ocaml-compiler': opam_switch,
-	'opam-pin': false,
+	      'opam-pin': false,
       },
     };
 

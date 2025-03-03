@@ -40,7 +40,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - uses: ocaml/setup-ocaml@v3
+      - uses: ajbt200128/setup-ocaml@latest
         with:
           ocaml-compiler: 5.2.1
           opam-pin: false

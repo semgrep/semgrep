@@ -21,7 +21,7 @@ jobs:
         with:
           key: ${{ runner.os }}-${{ runner.arch }}-v2-opam-5.2.1-${{hashFiles('semgrep.opam')}}
           path: ~/.opam
-      - uses: ocaml/setup-ocaml@v3
+      - uses: ajbt200128/setup-ocaml@latest
         with:
           ocaml-compiler: 5.2.1
           opam-pin: false
