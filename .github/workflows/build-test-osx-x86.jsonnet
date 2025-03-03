@@ -5,6 +5,7 @@
 
 local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
+local gha = import 'libs/gha.libsonnet';
 
 local wheel_name = 'osx-x86-wheel';
 
@@ -56,12 +57,6 @@ local artifact_name = 'semgrep-osx-${{ github.sha }}';
 local build_core_job = {
   'runs-on': runs_on,
   steps: actions.checkout_with_submodules() + [
-    // TODO: we should use opam.lock instead of semgrep.opam at some point
-    // so any update to our dependencies would automatically trigger a
-    // cache miss and generate a fresh ~/.opam.
-    semgrep.cache_opam.step(
-         key=semgrep.opam_switch + "-${{hashFiles('semgrep.opam')}}")
-      + semgrep.cache_opam.if_cache_inputs,
     semgrep.opam_setup(),
     {
       name: 'Install dependencies',
@@ -130,10 +125,7 @@ local test_wheels_job = {
 
 {
   name: 'build-test-osx-x86',
-  on: {
-    workflow_dispatch: semgrep.cache_opam.inputs(required=true),
-    workflow_call: semgrep.cache_opam.inputs(required=false),
-  },
+  on: gha.on_dispatch_or_call,
   jobs: {
     'build-core': build_core_job,
     'build-wheels': build_wheels_job,

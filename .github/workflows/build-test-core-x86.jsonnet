@@ -23,8 +23,6 @@ local job =
   container.job
   {
     steps:actions.checkout_with_submodules() + [
-      semgrep.cache_opam.step(
-        key=container.opam_switch + "-${{hashFiles('semgrep.opam')}}"),
       {
         name: 'Install dependencies',
         run: |||

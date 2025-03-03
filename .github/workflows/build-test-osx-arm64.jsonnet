@@ -5,6 +5,7 @@
 local osx_x86 = import 'build-test-osx-x86.jsonnet';
 local actions = import 'libs/actions.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
+local gha = import 'libs/gha.libsonnet';
 
 local wheel_name = 'osx-arm64-wheel';
 
@@ -38,10 +39,6 @@ local build_core_job = {
   'runs-on': runs_on,
   steps: actions.checkout_with_submodules() + [
     setup_python_step,
-    // TODO: like for osx-x86, we should use opam.lock
-    semgrep.cache_opam.step(
-       key=semgrep.opam_switch + "-${{hashFiles('semgrep.opam')}}")
-     + semgrep.cache_opam.if_cache_inputs,
     // exactly the same than in build-test-oxs-x86.jsonnet
     semgrep.opam_setup(),
     {
@@ -114,10 +111,7 @@ local test_wheels_job = {
 
 {
   name: 'build-test-osx-arm64',
-  on: {
-    workflow_dispatch: semgrep.cache_opam.inputs(required=true),
-    workflow_call: semgrep.cache_opam.inputs(required=false),
-  },
+  on: gha.on_dispatch_or_call,
   jobs: {
     'build-core': build_core_job,
     'build-wheels': build_wheels_job,

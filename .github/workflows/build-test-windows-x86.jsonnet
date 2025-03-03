@@ -30,17 +30,7 @@ local build_core_job = {
   'runs-on': runs_on,
   defaults: defaults,
   steps: actions.checkout_with_submodules() + [
-    // Why this cache when ocaml/setup-ocaml is already caching things?
-    // - setup-ocaml caches the cygwin and downloaded opam packages, but not the
-    //   installed opam packages
-    // - without the _opam cache we would spend 8-9 minutes every build
-    //   running `opam install`
-    // Note: we must cache after setup-ocaml, not before, because
-    // setup-ocaml would reset the cached _opam
-    semgrep.cache_opam.step(
-      key=semgrep.opam_switch + "-${{ hashFiles('semgrep-pro.opam', 'OSS/semgrep.opam') }}",
-    ),
-    semgrep.opam_setup(semgrep.opam_switch),
+    semgrep.opam_setup(semgrep.opam_switch, ['semgrep-pro.opam', 'OSS/semgrep.opam']),
     {
       // TODO: Remove this once the stable version of `mingw64-x86_64-openssl`
       // is updated in Cygwin.
@@ -124,7 +114,7 @@ local build_core_job = {
         make PREFIX="$prefix" install
       |||,
     },
-    // this should be mostly a noop thx to cache_opam above
+    // this should be mostly a noop thx to opam_setup above
     // TODO: we should also reuse 'make install-deps-for-semgrep-core'
     {
       name: 'Install OPAM deps',
@@ -260,10 +250,7 @@ local test_wheels_job = {
 
 {
   name: 'build-test-windows-x86',
-  on: {
-    workflow_dispatch: semgrep.cache_opam.inputs(required=true),
-    workflow_call: semgrep.cache_opam.inputs(required=false),
-  },
+  on: gha.on_dispatch_or_call,
   jobs: {
     'build-core': build_core_job,
     'build-wheels': build_wheels_job,

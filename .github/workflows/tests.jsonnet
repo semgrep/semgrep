@@ -99,10 +99,6 @@ local test_semgrep_core_job =
   semgrep.containers.ocaml_alpine.job
   {
     steps: actions.checkout_with_submodules() + [
-      semgrep.cache_opam.step(
-        key=semgrep.containers.ocaml_alpine.opam_switch +
-          "-${{hashFiles('semgrep.opam')}}"
-       ),
       {
         name: 'Install dependencies',
         run: |||

@@ -10,18 +10,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
-      - env:
-          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
-        if: ${{ inputs.use-cache}}
-        name: Set GHA cache for OPAM in ~/.opam
-        uses: actions/cache@v4
-        with:
-          key: ${{ runner.os }}-${{ runner.arch }}-v2-opam-5.2.1-${{hashFiles('semgrep.opam')}}
-          path: ~/.opam
       - uses: ajbt200128/setup-ocaml@latest
         with:
+          cache-prefix: ${{hashFiles('semgrep.opam')}}
           ocaml-compiler: 5.2.1
           opam-pin: false
+          save-opam-post-run: true
       - name: Install dependencies
         run: |
           make install-deps
@@ -94,17 +88,5 @@ jobs:
         shell: bash {0}
 name: build-test-osx-x86
 on:
-  workflow_call:
-    inputs:
-      use-cache:
-        default: true
-        description: Use Opam Cache - uncheck the box to disable use of the opam cache, meaning a long-running but completely from-scratch build.
-        required: false
-        type: boolean
-  workflow_dispatch:
-    inputs:
-      use-cache:
-        default: true
-        description: Use Opam Cache - uncheck the box to disable use of the opam cache, meaning a long-running but completely from-scratch build.
-        required: true
-        type: boolean
+  workflow_call: null
+  workflow_dispatch: null

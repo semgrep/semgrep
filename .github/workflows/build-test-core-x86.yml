@@ -13,13 +13,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
-      - env:
-          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
-        name: Set GHA cache for OPAM in ~/.opam
-        uses: actions/cache@v4
-        with:
-          key: ${{ runner.os }}-${{ runner.arch }}-v2-opam-5.2.1-${{hashFiles('semgrep.opam')}}
-          path: ~/.opam
       - name: Install dependencies
         run: |
           eval $(opam env)
