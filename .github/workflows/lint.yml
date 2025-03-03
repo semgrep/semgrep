@@ -28,6 +28,10 @@ jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
+      - name: Configure git safedir properly
+        run: git config --global --add safe.directory $(pwd)
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
       - uses: actions/checkout@v4
         with:
           submodules: true

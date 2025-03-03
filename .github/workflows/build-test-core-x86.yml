@@ -6,13 +6,13 @@ jobs:
       HOME: /root
     runs-on: ubuntu-latest
     steps:
+      - name: Configure git safedir properly
+        run: git config --global --add safe.directory $(pwd)
       - name: Make checkout speedy
         run: git config --global fetch.parallel 50
       - uses: actions/checkout@v4
         with:
           submodules: true
-      - name: Configure git safedir properly
-        run: git config --global --add safe.directory $(pwd)
       - env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
         name: Set GHA cache for OPAM in ~/.opam

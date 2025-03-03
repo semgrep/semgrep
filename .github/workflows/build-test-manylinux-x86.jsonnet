@@ -36,8 +36,7 @@ local manylinux_container = 'quay.io/pypa/manylinux_2_28_x86_64';
 local build_wheels_job = {
   'runs-on': 'ubuntu-latest',
   container: manylinux_container,
-  steps: [
-    actions.checkout_with_submodules(),
+  steps: actions.checkout_with_submodules() + [
     // TODO: use semgrep.default_python_version instead of hardcoding 3.9 below
     // coupling: if you modify the python version, update the cp39-cp39 further below
     {

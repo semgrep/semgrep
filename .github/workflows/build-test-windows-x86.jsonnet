@@ -29,8 +29,7 @@ local build_core_job = {
   // re-enabling the job is https://linear.app/semgrep/issue/SAF-1728/restore-windows-workflow
   'runs-on': runs_on,
   defaults: defaults,
-  steps: [
-    actions.checkout_with_submodules(),
+  steps: actions.checkout_with_submodules() + [
     // Why this cache when ocaml/setup-ocaml is already caching things?
     // - setup-ocaml caches the cygwin and downloaded opam packages, but not the
     //   installed opam packages
@@ -205,8 +204,7 @@ local build_wheels_job = {
   needs: [
     'build-core',
   ],
-  steps: [
-    actions.checkout_with_submodules(),
+  steps: actions.checkout_with_submodules() + [
     actions.download_artifact_step(artifact_name),
     {
       env: {

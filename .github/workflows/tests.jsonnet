@@ -98,10 +98,7 @@ local snapshot_update_pr_steps(add_paths, repo_name) = [
 local test_semgrep_core_job =
   semgrep.containers.ocaml_alpine.job
   {
-    steps: [
-      gha.speedy_checkout_step,
-      actions.checkout_with_submodules(),
-      gha.git_safedir,
+    steps: actions.checkout_with_submodules() + [
       semgrep.cache_opam.step(
         key=semgrep.containers.ocaml_alpine.opam_switch +
           "-${{hashFiles('semgrep.opam')}}"
@@ -144,11 +141,9 @@ local test_semgrep_core_job =
 local test_osemgrep_job =
   semgrep.containers.ocaml_alpine.job
   {
-    steps: [
-      gha.speedy_checkout_step,
-      actions.checkout_with_submodules(),
-    ] +
-    semgrep.osemgrep_test_steps_after_checkout
+    steps:
+      actions.checkout_with_submodules() +
+      semgrep.osemgrep_test_steps_after_checkout
   };
 
 // ----------------------------------------------------------------------------

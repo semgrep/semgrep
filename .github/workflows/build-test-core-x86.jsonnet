@@ -22,10 +22,7 @@ local container = semgrep.containers.ocaml_alpine;
 local job =
   container.job
   {
-    steps: [
-      gha.speedy_checkout_step,
-      actions.checkout_with_submodules(),
-      gha.git_safedir,
+    steps:actions.checkout_with_submodules() + [
       semgrep.cache_opam.step(
         key=container.opam_switch + "-${{hashFiles('semgrep.opam')}}"),
       {

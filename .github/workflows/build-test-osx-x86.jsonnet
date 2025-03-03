@@ -55,8 +55,7 @@ local artifact_name = 'semgrep-osx-${{ github.sha }}';
 
 local build_core_job = {
   'runs-on': runs_on,
-  steps: [
-    actions.checkout_with_submodules(),
+  steps: actions.checkout_with_submodules() + [
     // TODO: we should use opam.lock instead of semgrep.opam at some point
     // so any update to our dependencies would automatically trigger a
     // cache miss and generate a fresh ~/.opam.
@@ -88,8 +87,8 @@ local build_wheels_job = {
   needs: [
     'build-core',
   ],
-  steps: [
-    actions.checkout_with_submodules(),
+  steps: actions.checkout_with_submodules() + [
+
     actions.download_artifact_step(artifact_name),
     {
       run: |||

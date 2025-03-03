@@ -1,4 +1,5 @@
 // Factorize GHA "actions" (=~ plugins) boilerplate.
+local gha = import './gha.libsonnet';
 {
   // ---------------------------------------------------------
   // Checkout
@@ -12,13 +13,16 @@
   },
   // The right checkout to call in most cases; slower but correct.
   // There is also 'submodules: "recursive" (which is even slower).
-  checkout_with_submodules: function()
-    {
-      uses: 'actions/checkout@v4',
-      with: {
-        submodules: true,
+  checkout_with_submodules: function()  [
+      gha.git_safedir,
+      gha.speedy_checkout_step,
+      {
+        uses: 'actions/checkout@v4',
+        with: {
+          submodules: true,
+        },
       },
-    },
+    ],
 
   // ---------------------------------------------------------
   // Python stuff

@@ -36,9 +36,8 @@ local artifact_name = 'semgrep-osx-arm64-${{ github.sha }}';
 
 local build_core_job = {
   'runs-on': runs_on,
-  steps: [
+  steps: actions.checkout_with_submodules() + [
     setup_python_step,
-    actions.checkout_with_submodules(),
     // TODO: like for osx-x86, we should use opam.lock
     semgrep.cache_opam.step(
        key=semgrep.opam_switch + "-${{hashFiles('semgrep.opam')}}")
@@ -69,10 +68,9 @@ local build_wheels_job = {
   needs: [
     'build-core',
   ],
-  steps: [
+  steps: actions.checkout_with_submodules() + [
     setup_python_step,
     // needed for ./script/build-wheels.sh below
-    actions.checkout_with_submodules(),
     actions.download_artifact_step(artifact_name),
     // the --plat-name is macosx_11_0_arm64 here!
     {

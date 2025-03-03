@@ -3,12 +3,16 @@ jobs:
   build-core:
     runs-on: macos-latest
     steps:
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+      - name: Configure git safedir properly
+        run: git config --global --add safe.directory $(pwd)
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
       - uses: actions/checkout@v4
         with:
           submodules: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
         if: ${{ inputs.use-cache}}
@@ -42,12 +46,16 @@ jobs:
       - build-core
     runs-on: macos-latest
     steps:
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+      - name: Configure git safedir properly
+        run: git config --global --add safe.directory $(pwd)
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
       - uses: actions/checkout@v4
         with:
           submodules: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - uses: actions/download-artifact@v4
         with:
           name: semgrep-osx-arm64-${{ github.sha }}
