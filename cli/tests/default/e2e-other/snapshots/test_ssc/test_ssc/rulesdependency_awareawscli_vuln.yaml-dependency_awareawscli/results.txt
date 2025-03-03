@@ -430,9 +430,9 @@
 
   SUPPLY CHAIN RULES
 
-  Ecosystem   Rules   Files   Lockfiles
- ──────────────────────────────────────────────────────────────────────────
-  Pypi            6       1   targets/dependency_aware/awscli/Pipfile.lock
+  Dependency Sources                             Resolution Method   Ecosystem   Dependencies   Rules
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────
+  targets/dependency_aware/awscli/Pipfile.lock   Lockfile            Pypi        3                  6
 
 
   Analysis   Rules

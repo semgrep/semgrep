@@ -12,6 +12,7 @@ from typing import Mapping
 from typing import Optional
 from typing import Set
 from typing import Tuple
+from typing import Union
 
 from attr import define
 from attr import field
@@ -26,6 +27,7 @@ from semgrep.rule import Rule
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_types import Language
 from semgrep.state import get_state
+from semgrep.subproject import count_resolved_dependencies
 from semgrep.subproject import get_display_paths
 from semgrep.verbose_logging import getLogger
 
@@ -108,9 +110,9 @@ class Plan:
         rules: List[Rule],
         *,
         product: Optional[out.Product] = None,
-        sca_subprojects: Optional[
-            Dict[out.Ecosystem, List[out.ResolvedSubproject]]
-        ] = None,
+        all_subprojects: Optional[
+            List[Union[out.ResolvedSubproject, out.UnresolvedSubproject]]
+        ],
         unused_rules: Optional[List[Rule]] = None,
     ):
         self.target_mappings = TargetMappings(mappings)
@@ -118,7 +120,7 @@ class Plan:
         # target_mappings relies on the index of each rule_id in rule_ids
         self.rules = rules
         self.product = product
-        self.sca_subprojects = sca_subprojects
+        self.all_subprojects = all_subprojects
         self.unused_rules = unused_rules or []
 
     # TODO: make this counts_by_lang_label, returning TaskCounts
@@ -178,11 +180,12 @@ class Plan:
 
         # if a rule scans npm and maven, but we only have npm lockfiles,
         # then we skip mentioning maven in debug info by deleting maven's counts
-        if self.sca_subprojects is not None:
+        if self.all_subprojects is not None:
+            used_ecosystems: Set[Union[Ecosystem, None]] = {
+                s.info.ecosystem for s in self.all_subprojects
+            }
             unused_ecosystems = {
-                ecosystem
-                for ecosystem in result
-                if not self.sca_subprojects.get(ecosystem)
+                ecosystem for ecosystem in result if ecosystem not in used_ecosystems
             }
             for ecosystem in unused_ecosystems:
                 del result[ecosystem]
@@ -230,37 +233,65 @@ class Plan:
 
         return table
 
-    def table_by_ecosystem(self) -> Table:
+    def table_by_subproject(self) -> Table:
         table = Table(box=box.SIMPLE_HEAD, show_edge=False)
+        table.add_column("Dependency Sources", overflow="fold")
+        table.add_column("Resolution Method")
         table.add_column("Ecosystem")
+        table.add_column("Dependencies")
         table.add_column("Rules", justify="right")
-        table.add_column("Files", justify="right")
-        table.add_column("Lockfiles")
 
         counts_by_ecosystem = self.counts_by_ecosystem()
 
-        for ecosystem, plan in sorted(
-            counts_by_ecosystem.items(),
-            key=lambda x: (x[1].files, x[1].rules),
-            reverse=True,
-        ):
-            if self.sca_subprojects is not None:
-                lockfile_paths = ", ".join(
-                    str(lockfile_path)
-                    for subproj in self.sca_subprojects.get(ecosystem, [])
-                    for lockfile_path in get_display_paths(
-                        subproj.info.dependency_source
-                    )
-                )
-            else:
-                lockfile_paths = "N/A"
+        RESOLUTION_METHOD_STRINGS = {
+            out.LockfileParsing(): "Lockfile",
+            out.DynamicResolution(): "Local build",
+        }
 
-            table.add_row(
-                ecosystem.kind,
-                str(plan.rules),
-                str(plan.files),
-                lockfile_paths,
-            )
+        UNRESOLVED_REASON_STRINGS = {
+            out.UnresolvedFailed(): "Failed",
+            out.UnresolvedSkipped(): "Skipped",
+            out.UnresolvedUnsupported(): "Unsupported",
+            out.UnresolvedDisabled(): "Disabled (use --allow-local-builds)",
+        }
+
+        if self.all_subprojects is not None:
+            for subproject in self.all_subprojects:
+                if isinstance(subproject, out.ResolvedSubproject):
+                    table.add_row(
+                        ", ".join(
+                            [
+                                str(p)
+                                for p in get_display_paths(
+                                    subproject.info.dependency_source
+                                )
+                            ]
+                        ),
+                        RESOLUTION_METHOD_STRINGS[subproject.resolution_method.value],
+                        subproject.ecosystem.kind,
+                        str(
+                            count_resolved_dependencies(
+                                subproject.resolved_dependencies
+                            )
+                        ),
+                        str(counts_by_ecosystem[subproject.ecosystem].rules),
+                    )
+
+                else:
+                    table.add_row(
+                        ", ".join(
+                            [
+                                str(p)
+                                for p in get_display_paths(
+                                    subproject.info.dependency_source
+                                )
+                            ]
+                        ),
+                        UNRESOLVED_REASON_STRINGS[subproject.reason.value],
+                        "Unknown",
+                        "-",
+                        "-",
+                    )
 
         return table
 

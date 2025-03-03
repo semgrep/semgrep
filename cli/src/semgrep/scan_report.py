@@ -4,9 +4,9 @@
 # Helpers to run_scan.py to report scan status
 import sys
 from textwrap import wrap
-from typing import Dict
 from typing import List
 from typing import Sequence
+from typing import Union
 
 from attrs import evolve
 from rich.columns import Columns
@@ -243,7 +243,7 @@ def _print_sca_table(sca_plan: Plan, rule_count: int) -> None:
         _print_degenerate_table(sca_plan, rule_count=rule_count)
         return
 
-    _print_tables([sca_plan.table_by_ecosystem()])
+    _print_tables([sca_plan.table_by_subproject()])
     console.print("\n")  # space intentional to force second table to be on its own line
     _print_tables([sca_plan.table_by_sca_analysis()])
 
@@ -311,7 +311,7 @@ def print_scan_status(
     rules: Sequence[Rule],
     target_manager: TargetManager,
     target_mode_config: TargetModeConfig,
-    sca_subprojects: Dict[out.Ecosystem, List[out.ResolvedSubproject]],
+    all_subprojects: List[Union[out.ResolvedSubproject, out.UnresolvedSubproject]],
     dependency_parser_errors: List[out.DependencyParserError],
     *,
     cli_ux: DesignTreatment = DesignTreatment.LEGACY,
@@ -344,25 +344,27 @@ def print_scan_status(
         else evolve(
             target_manager, scanning_root_strings=target_mode_config.get_diff_targets()
         ),
+        all_subprojects,
         product=out.Product(
             out.SAST()
         ),  # code-smell since secrets and sast are within the same plan
-        sca_subprojects=sca_subprojects,
     )
 
+    used_ecosystems = {
+        subproject.info.ecosystem
+        for subproject in all_subprojects
+        if isinstance(subproject, out.ResolvedSubproject)
+    }
     sca_plan = CoreRunner.plan_core_run(
         [
             rule
             for rule in rules
             if isinstance(rule.product.value, out.SCA)
-            and any(
-                len(sca_subprojects.get(ecosystem, [])) > 0
-                for ecosystem in rule.ecosystems
-            )
+            and any(ecosystem in used_ecosystems for ecosystem in rule.ecosystems)
         ],
         target_manager,
+        all_subprojects,
         product=out.Product(out.SCA()),
-        sca_subprojects=sca_subprojects,
     )
 
     plans = [sast_plan, sca_plan]

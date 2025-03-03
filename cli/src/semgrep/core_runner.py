@@ -17,6 +17,7 @@ from typing import Optional
 from typing import Sequence
 from typing import Set
 from typing import Tuple
+from typing import Union
 
 from attr import evolve
 from rich.progress import BarColumn
@@ -712,7 +713,7 @@ class CoreRunner:
     def plan_core_run(
         rules: List[Rule],
         target_manager: TargetManager,
-        sca_subprojects: Dict[out.Ecosystem, List[out.ResolvedSubproject]],
+        all_subprojects: List[Union[out.ResolvedSubproject, out.UnresolvedSubproject]],
         *,
         all_targets: Optional[Set[Path]] = None,
         product: Optional[out.Product] = None,
@@ -769,7 +770,7 @@ class CoreRunner:
             ],
             rules,
             product=product,
-            sca_subprojects=sca_subprojects,
+            all_subprojects=all_subprojects,
             unused_rules=unused_rules,
         )
 
@@ -786,7 +787,7 @@ class CoreRunner:
         run_secrets: bool,
         disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
-        sca_subprojects: Dict[out.Ecosystem, List[out.ResolvedSubproject]],
+        all_subprojects: List[Union[out.ResolvedSubproject, out.UnresolvedSubproject]],
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         state = get_state()
         logger.debug(f"Passing whole rules directly to semgrep_core")
@@ -891,7 +892,7 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                     rules,
                     evolve(target_manager, baseline_handler=None),
                     all_targets=all_targets,
-                    sca_subprojects=sca_subprojects,
+                    all_subprojects=all_subprojects,
                 )
 
             else:
@@ -899,7 +900,7 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                     rules,
                     target_manager,
                     all_targets=all_targets,
-                    sca_subprojects=sca_subprojects,
+                    all_subprojects=all_subprojects,
                 )
 
             plan.record_metrics()
@@ -1100,7 +1101,7 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
         run_secrets: bool,
         disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
-        sca_subprojects: Dict[out.Ecosystem, List[out.ResolvedSubproject]],
+        all_subprojects: List[Union[out.ResolvedSubproject, out.UnresolvedSubproject]],
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Sometimes we may run into synchronicity issues with the latest DeepSemgrep binary.
@@ -1122,7 +1123,7 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                 run_secrets,
                 disable_secrets_validation,
                 target_mode_config,
-                sca_subprojects,
+                all_subprojects,
             )
         except SemgrepError as e:
             # Handle Semgrep errors normally
@@ -1162,7 +1163,7 @@ Exception raised: `{e}`
         run_secrets: bool,
         disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
-        sca_subprojects: Dict[out.Ecosystem, List[out.ResolvedSubproject]],
+        all_subprojects: List[Union[out.ResolvedSubproject, out.UnresolvedSubproject]],
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Takes in rules and targets and returns object with findings
@@ -1184,7 +1185,7 @@ Exception raised: `{e}`
             run_secrets,
             disable_secrets_validation,
             target_mode_config,
-            sca_subprojects,
+            all_subprojects,
         )
 
         logger.debug(

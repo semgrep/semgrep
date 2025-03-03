@@ -60,9 +60,10 @@
 
   SUPPLY CHAIN RULES
 
-  Ecosystem   Rules   Files   Lockfiles
- ─────────────────────────────────────────
-  Pypi            3       1   poetry.lock
+  Dependency Sources   Resolution Method   Ecosystem   Dependencies   Rules
+ ───────────────────────────────────────────────────────────────────────────
+  yarn.lock            Lockfile            Npm         1                  0
+  poetry.lock          Lockfile            Pypi        3                  3
 
 
   Analysis   Rules

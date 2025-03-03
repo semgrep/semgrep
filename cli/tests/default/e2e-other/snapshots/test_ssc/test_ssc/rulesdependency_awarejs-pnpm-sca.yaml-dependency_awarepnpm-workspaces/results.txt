@@ -136,9 +136,9 @@
 
   SUPPLY CHAIN RULES
 
-  Ecosystem   Rules   Files   Lockfiles
- ─────────────────────────────────────────────────────────────────────────────────────
-  Npm             2       1   targets/dependency_aware/pnpm-workspaces/pnpm-lock.yaml
+  Dependency Sources                                        Resolution Method   Ecosystem   Dependencies   Rules
+ ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  targets/dependency_aware/pnpm-workspaces/pnpm-lock.yaml   Lockfile            Npm         10                 2
 
 
   Analysis   Rules

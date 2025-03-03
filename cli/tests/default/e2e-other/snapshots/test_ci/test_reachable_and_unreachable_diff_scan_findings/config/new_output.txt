@@ -44,9 +44,10 @@
 
   SUPPLY CHAIN RULES
 
-  Ecosystem   Rules   Files   Lockfiles
- ─────────────────────────────────────────
-  Pypi            3       1   poetry.lock
+  Dependency Sources   Resolution Method   Ecosystem   Dependencies   Rules
+ ───────────────────────────────────────────────────────────────────────────
+  yarn.lock            Skipped             Unknown     -                  -
+  poetry.lock          Lockfile            Pypi        3                  3
 
 
   Analysis   Rules
@@ -73,9 +74,9 @@ Creating git worktree from '<MASKED>' to scan baseline.
 
   SUPPLY CHAIN RULES
 
-  Ecosystem   Rules   Files   Lockfiles
- ─────────────────────────────────────────
-  Pypi            3       1   poetry.lock
+  Dependency Sources   Resolution Method   Ecosystem   Dependencies   Rules
+ ───────────────────────────────────────────────────────────────────────────
+  poetry.lock          Lockfile            Pypi        3                  3
 
 
   Analysis   Rules

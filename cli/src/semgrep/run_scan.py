@@ -340,7 +340,7 @@ def run_rules(
         filtered_rules,
         target_manager,
         target_mode_config,
-        resolved_subprojects,
+        all_subprojects,
         dependency_parser_errors,
         cli_ux=cli_ux,
         with_code_rules=with_code_rules,
@@ -363,7 +363,7 @@ def run_rules(
         run_secrets,
         disable_secrets_validation,
         target_mode_config,
-        resolved_subprojects,
+        all_subprojects,
     )
 
     if join_rules:
