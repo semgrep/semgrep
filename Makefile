@@ -266,8 +266,21 @@ install-deps-for-semgrep-core:
 #
 # Per the note above install-deps-ALPINE-for-semgrep-core, we may want
 # to keep it and add `--no-cache`
+#
+# Note that we do the upgrade --fixup here to ensure that the dependencies are
+# up to date and have all necessary dependencies installed. One would think that
+# since opam complains about missing system dependencies when running `opam
+# install` it would try and reinstall the system dependencies. By running `opam
+# upgrade --fixup` opam will install these missing system deps.
+#
+# This helps:
+# - If someone accidentally uninstalls a package or cancels the installation and
+#   breaks the build
+# - When we have cache hits in GHA on things like conf-pcre, by default we won't
+#   install the pcre system package, this ensures those are reinstalled
 install-opam-deps:
 	opam update -y
+	OPAMSOLVERTIMEOUT=1200 LWT_DISCOVER_ARGUMENTS="--use-libev true" LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" opam upgrade --confirm-level=unsafe-yes -y --fixup
 	OPAMSOLVERTIMEOUT=1200 LWT_DISCOVER_ARGUMENTS="--use-libev true" LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" opam install --confirm-level=unsafe-yes -y --deps-only $(REQUIRED_DEPS)
 
 # This will fail if semgrep.opam isn't up-to-date (in git),
