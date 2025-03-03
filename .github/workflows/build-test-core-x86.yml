@@ -31,6 +31,9 @@ jobs:
           mkdir artifacts
           cp bin/semgrep-core artifacts/
           tar czf artifacts.tgz artifacts
+          # so that we can untar later and not get a message
+          # about existing artifacts/ directory
+          rm -rf artifacts
       - uses: actions/upload-artifact@v4
         with:
           name: semgrep-core-x86-artifact

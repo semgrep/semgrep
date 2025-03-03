@@ -373,6 +373,11 @@ local setup_nix_step = [
   depot_project_id: 'fhmxj6w9z8',
   opam_switch: opam_switch,
   opam_setup: opam_setup,
+  on_dispatch_or_call_cached: {
+    workflow_dispatch: cache_opam.inputs(required=true),
+  // Called from other workflows (e.g. build-and-test.jsonnet)
+    workflow_call: cache_opam.inputs(required=false),
+  },
   // coupling: cli/setup.py, the matrix in run-cli-tests.libsonnet,
   // build-test-manylinux-x86.jsonnet in pro, tests.jsonnet in OSS
   // TODO? could switch to higher like 3.11

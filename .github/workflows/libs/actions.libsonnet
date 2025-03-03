@@ -78,6 +78,9 @@ local gha = import './gha.libsonnet';
           mkdir artifacts
           cp %s artifacts/
           tar czf artifacts.tgz artifacts
+          # so that we can untar later and not get a message
+          # about existing artifacts/ directory
+          rm -rf artifacts
         ||| % path,
   },
   upload_artifact_step: function(artifact_name, path='artifacts.tgz') {
