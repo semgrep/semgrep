@@ -3354,9 +3354,11 @@ and map_unary_expression (env : env) (x : CST.unary_expression) : G.expr =
       let e =
         match v2 with
         | `Exp x -> map_expression env x
-        | `Choice_async _ ->
-            (* This is not valid swift code, a hack in the grammar: see: https://github.com/alex-pinkus/tree-sitter-swift/issues/468 *)
-            failwith "Invalid Swift"
+        | `Choice_async x -> (
+            match x with
+            | `Async x -> G.RawExpr (R.Token (str env x)) |> G.e
+            | `If x -> G.RawExpr (R.Token (str env x)) |> G.e
+            | `Switch x -> G.RawExpr (R.Token (str env x)) |> G.e)
       in
       map_prefix_unary_operator env v1 e
   | `As_exp (v1, v2, v3) ->
