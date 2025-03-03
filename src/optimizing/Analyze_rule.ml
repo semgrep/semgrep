@@ -4,8 +4,7 @@
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
- * version 2.1 as published by the Free Software Foundation, with the
- * special exception on linking described in file LICENSE.
+ * version 2.1 as published by the Free Software Foundation.
  *
  * This library is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -345,12 +344,18 @@ and xpat_step1 pat =
   | XP.Sem (pat, lang) ->
       let ids, mvars = Analyze_pattern.extract_strings_and_mvars ~lang pat in
       Some (StringsAndMvars (ids, mvars))
-  (* less: could also extract ids and mvars, but maybe no need to
-   * prefilter for spacegrep; it is probably fast enough already
-   *)
   | XP.Regexp re -> Some (Regexp re)
-  (* todo? *)
-  | XP.Spacegrep _ -> None
+  (* turn out some generic spacegrep rules can also be slow and a prefilter
+   * is also useful there
+   *)
+  | XP.Spacegrep pat ->
+      let ids, mvars =
+        Analyze_spacegrep.extract_strings_and_mvars_spacegrep pat
+      in
+      Some (StringsAndMvars (ids, mvars))
+  (* TODO? do we need to prefilter aliengrep rules? they are supposed to be
+   * compiled in effective Pcre_.t (see Pat_compile.t) regexps
+   *)
   | XP.Aliengrep _ -> None
 
 and metavarcond_step1 ~is_id_mvar x =
