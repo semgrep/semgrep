@@ -142,11 +142,10 @@ def generate_unreachable_sca_findings(
                 )
 
                 rule_match = RuleMatch(
-                    message=rule.message,
-                    metadata=rule.metadata,
-                    severity=rule.severity,
-                    fix=None,
                     match=core_match,
+                    message=rule.message,
+                    severity=rule.severity,
+                    metadata=rule.metadata,
                 )
                 new_rule_match = evolve(
                     rule_match,

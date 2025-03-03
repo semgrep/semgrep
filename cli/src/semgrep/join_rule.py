@@ -378,13 +378,6 @@ def json_to_rule_match(join_rule: Dict[str, Any], match: Dict[str, Any]) -> Rule
         is_ignored=False,
     )
     return RuleMatch(
-        message=join_rule.get(
-            "message", match.get("extra", {}).get("message", "[empty]")
-        ),
-        metadata=join_rule.get("metadata", match.get("extra", {}).get("metadata", {})),
-        severity=out.MatchSeverity.from_json(
-            join_rule.get("severity", match.get("severity", "INFO"))
-        ),
         match=out.CoreMatch(
             check_id=out.RuleId(join_rule.get("id", match.get("check_id", "[empty]"))),
             path=out.Fpath(match.get("path", "[empty]")),
@@ -392,9 +385,13 @@ def json_to_rule_match(join_rule: Dict[str, Any], match: Dict[str, Any]) -> Rule
             end=out.Position.from_json(match["end"]),
             extra=extra,
         ),
-        # still needed?
-        extra=match.get("extra", {}),
-        fix=None,
+        message=join_rule.get(
+            "message", match.get("extra", {}).get("message", "[empty]")
+        ),
+        severity=out.MatchSeverity.from_json(
+            join_rule.get("severity", match.get("severity", "INFO"))
+        ),
+        metadata=join_rule.get("metadata", match.get("extra", {}).get("metadata", {})),
     )
 
 

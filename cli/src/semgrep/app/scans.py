@@ -402,7 +402,7 @@ class ScanHandler:
             all_matches, key=lambda match: sort_order[match.severity.value]
         )
         new_ignored, new_matches = partition(
-            all_matches, lambda match: bool(match.is_ignored)
+            all_matches, lambda match: match.match.extra.is_ignored
         )
 
         # Autofix is currently the only toggle in the App that

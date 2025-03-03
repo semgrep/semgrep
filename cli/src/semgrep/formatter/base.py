@@ -24,11 +24,11 @@ def _rule_match_to_CliMatch(rule_match: RuleMatch) -> out.CliMatch:
         lines="".join(rule_match.lines).rstrip(),
         fix=rule_match.fix,
         fixed_lines=rule_match._fixed_lines,
-        is_ignored=rule_match.is_ignored,
+        is_ignored=rule_match.match.extra.is_ignored,
         sca_info=rule_match.match.extra.sca_match,
         validation_state=rule_match.match.extra.validation_state,
         # TODO? historical_info?
-        dataflow_trace=rule_match.dataflow_trace,
+        dataflow_trace=rule_match.match.extra.dataflow_trace,
         engine_kind=rule_match.match.extra.engine_kind,
     )
     return out.CliMatch(

@@ -43,7 +43,7 @@ def filter_ignored(
     for rule, matches in rule_matches_by_rule.items():
         result.kept[rule], result.removed[rule] = partition(
             matches,
-            lambda match: keep_ignored or not match.is_ignored,
+            lambda match: keep_ignored or not match.match.extra.is_ignored,
         )
 
     return result

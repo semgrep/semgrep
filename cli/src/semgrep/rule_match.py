@@ -47,8 +47,9 @@ class RuleMatch:
 
     match: out.CoreMatch
 
-    # fields from the rule (which are usually not part of CoreMatch)
-    # alt: rule: Rule to attach the rule corresponding to a match
+    # Fields below usually coming from the rule. They can also come from the
+    # CoreMatch when overriden (e.g., by secrets validation)
+    # alt: 'rule: Rule' to attach the rule corresponding to a match
     message: str = field(repr=False)
     severity: out.MatchSeverity
     metadata: Dict[str, Any] = field(repr=False, factory=dict)
@@ -61,7 +62,7 @@ class RuleMatch:
     # whitespaces including newline chars at the end of multiline patterns
     fix: Optional[str] = field(converter=rstrip, default=None)
 
-    # ugly: modified by autofix.py in-place
+    # ugly: modified by autofix.py in-place and used later in text.py
     _fixed_lines: Optional[List[str]] = field(default=None)
 
     # Those 3 fields are set when adding a match to a RuleMatches
@@ -75,6 +76,7 @@ class RuleMatch:
     # match. Seems easier to just calculate it w/index
     match_formula_string: str = ""
 
+    # set (evolved) in ci.py when match_based_id part of app_blocked_mids
     blocked_by_app: bool = False
 
     # derived attributes (implemented below via some @xxx.default methods)
@@ -103,6 +105,14 @@ class RuleMatch:
         return Path(self.match.path.value)
 
     @property
+    def start(self) -> out.Position:
+        return self.match.start
+
+    @property
+    def end(self) -> out.Position:
+        return self.match.end
+
+    @property
     def git_blob(self) -> Optional[out.Sha1]:
         if self.match.extra.historical_info:
             return self.match.extra.historical_info.git_blob
@@ -114,18 +124,6 @@ class RuleMatch:
             return self.match.extra.historical_info.git_commit
         return None
 
-    @property
-    def start(self) -> out.Position:
-        return self.match.start
-
-    @property
-    def end(self) -> out.Position:
-        return self.match.end
-
-    @property
-    def is_ignored(self) -> bool:
-        return self.match.extra.is_ignored
-
     # TODO: diff with rule.py product() method?
     @property
     def product(self) -> out.Product:
@@ -136,10 +134,7 @@ class RuleMatch:
         else:
             return out.Product(out.SAST())
 
-    @property
-    def validation_state(self) -> Optional[out.ValidationState]:
-        return self.match.extra.validation_state
-
+    # TODO? could be moved to text.py
     @property
     def title(self) -> str:
         if isinstance(self.product.value, out.SCA):
@@ -412,12 +407,11 @@ class RuleMatch:
             "sca-kind" in self.metadata and self.metadata["sca-kind"] == "upgrade-only"
         )
 
-    @property
-    def is_validation_state_blocking(self) -> bool:
-        if self.validation_state is None:
+    def _is_validation_state_blocking(self) -> bool:
+        if self.match.extra.validation_state is None:
             return False
 
-        validation_state_type = type(self.validation_state.value)
+        validation_state_type = type(self.match.extra.validation_state.value)
         if validation_state_type is out.NoValidator:
             # If there is no validator, we should rely on original dev.semgrep.actions
             return "block" in self.metadata.get("dev.semgrep.actions", ["block"])
@@ -456,14 +450,10 @@ class RuleMatch:
                 return False
             else:
                 return blocking
-        elif self.validation_state is not None:
-            return self.is_validation_state_blocking
+        elif self.match.extra.validation_state is not None:
+            return self._is_validation_state_blocking()
 
         return blocking
-
-    @property
-    def dataflow_trace(self) -> Optional[out.MatchDataflowTrace]:
-        return self.match.extra.dataflow_trace
 
     @property
     def engine_kind(self) -> Optional[out.EngineOfFinding]:
@@ -547,9 +537,9 @@ class RuleMatch:
             is_blocking=self.is_blocking,
             fixed_lines=self._fixed_lines,
             sca_info=self.match.extra.sca_match,
-            dataflow_trace=remove_content(self.dataflow_trace)
+            dataflow_trace=remove_content(self.match.extra.dataflow_trace)
             if remove_dataflow_content
-            else self.dataflow_trace,
+            else self.match.extra.dataflow_trace,
             validation_state=self.match.extra.validation_state,
             historical_info=self.match.extra.historical_info,
             engine_kind=self.engine_kind,

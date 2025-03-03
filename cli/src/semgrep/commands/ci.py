@@ -844,7 +844,7 @@ def ci(
                 ]
 
             for match in matches:
-                if match.is_ignored and not keep_ignored:
+                if match.match.extra.is_ignored and not keep_ignored:
                     continue
 
                 applicable_result_list = (

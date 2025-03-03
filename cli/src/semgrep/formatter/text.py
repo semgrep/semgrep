@@ -820,7 +820,7 @@ def print_matches(
         show_separator = (
             is_same_file
             and is_same_rule
-            and not (dataflow_traces and rule_match.dataflow_trace)
+            and not (dataflow_traces and rule_match.match.extra.dataflow_trace)
         )
         # Let's print the findings now
         for line in finding_to_line(
@@ -838,7 +838,7 @@ def print_matches(
         if dataflow_traces:
             for line in dataflow_trace_to_lines(
                 rule_match.path,
-                rule_match.dataflow_trace,
+                rule_match.match.extra.dataflow_trace,
                 color_output,
                 per_finding_max_lines_limit,
                 per_line_max_chars_limit,
@@ -886,7 +886,7 @@ class TextFormatter(base.BaseFormatter):
                     if match.metadata.get("generic_secrets", False):
                         subgroup = "generic-secrets"
                     else:
-                        state = match.validation_state
+                        state = match.match.extra.validation_state
                         if state is None:
                             subgroup = "unvalidated"
                         else:
