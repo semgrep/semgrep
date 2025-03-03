@@ -260,7 +260,7 @@ def finding_to_line(
     start_col = rule_match.start.col
     end_col = rule_match.end.col
     if path:
-        lines = rule_match.extra.get("fixed_lines") or rule_match.lines
+        lines = rule_match._fixed_lines or rule_match.lines
         yield from format_lines(
             path,
             start_line,

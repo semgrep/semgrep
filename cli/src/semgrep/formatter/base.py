@@ -13,31 +13,24 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 
 
-# used also in osemgrep_sarif.py
-def rule_match_to_CliMatch(rule_match: RuleMatch) -> out.CliMatch:
+def _rule_match_to_CliMatch(rule_match: RuleMatch) -> out.CliMatch:
     extra = out.CliMatchExtra(
         message=rule_match.message,
-        metadata=out.RawJson(rule_match.metadata),
         severity=rule_match.severity,
+        metavars=rule_match.match.extra.metavars,
+        metadata=out.RawJson(rule_match.metadata),
         fingerprint=rule_match.match_based_id,
         # 'lines' already contains '\n' at the end of each line
         lines="".join(rule_match.lines).rstrip(),
-        metavars=rule_match.match.extra.metavars,
+        fix=rule_match.fix,
+        fixed_lines=rule_match._fixed_lines,
+        is_ignored=rule_match.is_ignored,
+        sca_info=rule_match.match.extra.sca_match,
+        validation_state=rule_match.match.extra.validation_state,
+        # TODO? historical_info?
         dataflow_trace=rule_match.dataflow_trace,
         engine_kind=rule_match.match.extra.engine_kind,
-        validation_state=rule_match.match.extra.validation_state,
-        sca_info=rule_match.match.extra.sca_match,
     )
-
-    if rule_match.extra.get("fixed_lines"):
-        extra.fixed_lines = rule_match.extra.get("fixed_lines")
-    if rule_match.fix is not None:
-        extra.fix = rule_match.fix
-    if rule_match.is_ignored is not None:
-        extra.is_ignored = rule_match.is_ignored
-    if rule_match.extra.get("extra_extra"):
-        extra.extra_extra = out.RawJson(rule_match.extra.get("extra_extra"))
-
     return out.CliMatch(
         check_id=out.RuleId(rule_match.rule_id),
         path=out.Fpath(str(rule_match.path)),
@@ -59,7 +52,7 @@ def to_CliOutput(
     # be specified in semgrep_output_v1.atd and be part of CliOutputExtra
     return out.CliOutput(
         version=out.Version(__VERSION__),
-        results=[rule_match_to_CliMatch(rule_match) for rule_match in sorted_findings],
+        results=[_rule_match_to_CliMatch(rule_match) for rule_match in sorted_findings],
         errors=[error.to_CliError() for error in semgrep_structured_errors],
         paths=cli_output_extra.paths,
         time=cli_output_extra.time,

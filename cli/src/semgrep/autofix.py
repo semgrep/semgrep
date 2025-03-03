@@ -71,7 +71,10 @@ def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> Non
     # to mutate.
     for i, lines in fixed_lines:
         match, _ = matches[i]
-        match.extra["fixed_lines"] = lines  # Monkey patch in fixed lines
+        # ugly: modifying (frozen) match in-place
+        # alt: old: modify match.extra dict (which are mutable), but as ugly
+        # TODO? use evolve() and return new RuleMatchMap
+        object.__setattr__(match, "_fixed_lines", lines)
     if not dryrun:
         if modified_files:
             logger.info(f"successfully modified {unit_str(modified_files, 'file')}.")
