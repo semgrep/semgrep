@@ -151,8 +151,12 @@ let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp ; .. >)
     in
     let baseline_result =
       Profiler.record profiler ~name:"baseline_core_time" (fun () ->
+          (* TODO explain this code, break it down into functions and test
+             them.
+             Or delete this code. *)
           Git_wrapper.run_with_worktree caps ~commit (fun () ->
               let prepare_targets paths =
+                (* TODO: what's happening here? *)
                 paths |> SS.of_list |> add_renamed |> remove_added |> SS.to_seq
                 |> Seq.filter_map (fun x ->
                        if

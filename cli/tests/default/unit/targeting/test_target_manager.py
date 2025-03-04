@@ -11,7 +11,7 @@ import pytest
 
 from semgrep.error import InvalidScanningRootError
 from semgrep.git import BaselineHandler
-from semgrep.ignores import FileIgnore
+from semgrep.ignores import Semgrepignore
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.semgrep_types import Language
@@ -93,7 +93,10 @@ def test_delete_git(tmp_path, monkeypatch):
     subprocess.run(["git", "status"])
 
     assert_path_sets_equal(
-        actual=ScanningRoot(Path("."), True).target_files(), expected={bar}
+        actual=ScanningRoot(path=Path("."), git_tracked_only=True).target_files(
+            product=SAST_PRODUCT
+        ),
+        expected={bar},
     )
 
 
@@ -240,7 +243,9 @@ def test_skip_symlink(tmp_path, monkeypatch, use_semgrepignore_v2):
 
     # Should select the regular file and not the symlink.
     assert_path_sets_equal(
-        actual=target_manager.get_all_files(), expected={foo / "a.py"}, msg="all files"
+        actual=target_manager.get_all_files(product=SAST_PRODUCT),
+        expected={foo / "a.py"},
+        msg="all files",
     )
 
     # Select only the Python files.
@@ -307,13 +312,15 @@ def test_explicit_path(tmp_path, monkeypatch, use_semgrepignore_v2):
         use_semgrepignore_v2=use_semgrepignore_v2,
     ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
 
-    # Should include explicitly passed python file even if is in excludes
+    # Should exclude discovered python file even if it is in excludes
     assert foo_a not in TargetManager(
         scanning_root_strings=frozenset([Path(".")]),
         use_semgrepignore_v2=use_semgrepignore_v2,
         includes=[],
         excludes={SAST_PRODUCT: ["foo/a.py"]},
     ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
+
+    # Should include explicitly passed python file even if it is in excludes
     assert foo_a in TargetManager(
         scanning_root_strings=frozenset([Path("."), Path("foo/a.py")]),
         use_semgrepignore_v2=use_semgrepignore_v2,
@@ -321,7 +328,7 @@ def test_explicit_path(tmp_path, monkeypatch, use_semgrepignore_v2):
         excludes={SAST_PRODUCT: ["foo/a.py"]},
     ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
 
-    # Should ignore expliclty passed .go file when requesting python
+    # Should ignore explicitly passed .go file when requesting python
     assert (
         TargetManager(
             scanning_root_strings=frozenset([Path("foo/a.go")]),
@@ -382,15 +389,26 @@ def test_explicit_path(tmp_path, monkeypatch, use_semgrepignore_v2):
     )
 
 
-@pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
+# This test doesn't make sense with Semgrepignore v2 because it doesn't
+# create a real '.semgrepignore' file. It only pretends that some exclude
+# patterns are coming from a '.semgrepignore' file.
+#
+# We have a thorough test suite for Semgrepignore in 'test_target_selection.py'
+# so it's safe to remove this test completely once we retire Semgrepignore v1.
+#
+# @pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
 @pytest.mark.quick
-def test_ignores(tmp_path, monkeypatch, use_semgrepignore_v2):
+def test_ignores(tmp_path, monkeypatch):
     def ignore(ignore_pats, profile_product=SAST_PRODUCT, rule_product=SAST_PRODUCT):
         return TargetManager(
             scanning_root_strings=frozenset([tmp_path]),
-            use_semgrepignore_v2=use_semgrepignore_v2,
-            ignore_profiles={
-                profile_product: FileIgnore.from_unprocessed_patterns(
+            use_semgrepignore_v2=False,
+            # This passes exclude patterns but pretends they come from a
+            # .semgrepignore file. Since there's no such file, the OCaml
+            # implementation doesn't find these exclude patterns and can't
+            # exclude the expected files.
+            semgrepignore_profiles={
+                profile_product: Semgrepignore.from_unprocessed_patterns(
                     tmp_path, ignore_pats, max_log_list_entries=0
                 )
             },
@@ -530,7 +548,7 @@ def test_unsupported_lang_paths(tmp_path, monkeypatch, use_semgrepignore_v2):
     target_manager.get_files_for_language(lang=LANG_REGEX, product=SAST_PRODUCT)
 
     assert_path_sets_equal(
-        actual=target_manager.ignore_log.unsupported_lang_paths,
+        actual=target_manager.ignore_log.unsupported_lang_paths(product=SAST_PRODUCT),
         expected=expected_unsupported,
     )
 
@@ -570,7 +588,7 @@ def test_unsupported_lang_paths_2(tmp_path, monkeypatch, use_semgrepignore_v2):
     target_manager.get_files_for_language(lang=LANG_REGEX, product=SAST_PRODUCT)
 
     assert_path_sets_equal(
-        actual=target_manager.ignore_log.unsupported_lang_paths,
+        actual=target_manager.ignore_log.unsupported_lang_paths(product=SAST_PRODUCT),
         expected=expected_unsupported,
     )
 

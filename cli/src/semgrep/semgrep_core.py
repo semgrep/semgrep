@@ -26,6 +26,8 @@ def compute_executable_path(exec_name: str) -> Optional[str]:
 
     # First, try packaged binaries
     try:
+        # TODO: .path() is deprecated, use .files() instead to avoid
+        # annoying deprecation notice when running tests
         with importlib.resources.path("semgrep.bin", exec_name) as path:
             if path.is_file():
                 return str(path)

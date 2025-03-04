@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import FrozenSet
 from typing import Iterable
 from typing import Iterator
+from typing import Optional
 from typing import Set
 from typing import TextIO
 
@@ -24,7 +25,7 @@ MULTI_CHAR_REGEX = re.compile(
     r"(?!<\\)\[.*(?!<\\)\]"
 )  # Matches anything in unescaped brackets
 COMMENT_START_REGEX = re.compile(r"(?P<ignore_pattern>.*?)(?:\s+|^)#.*")
-IGNORE_FILE_NAME = ".semgrepignore"
+SEMGREPIGNORE_FILE_NAME = ".semgrepignore"
 
 logger = getLogger(__name__)
 
@@ -40,13 +41,17 @@ def path_is_relative_to(p1: Path, p2: Path) -> bool:
 
 
 @frozen
-class FileIgnore:
-    # Pysemgrep supports only one '.semgrepignore' file, and it must be in the
-    # current folder.
+# @define(kw_only=True)  # incompatible with @frozen (?)
+class Semgrepignore:
+    """Hold the data extracted from the .semgrepignore file.
+    base_path is the work directory which is normally the folder containing
+    the user-specified .semgrepignore file if it exists.
+    """
+
     # base path = absolute path to current folder = location of '.semgrepignore'
     base_path: Path
     fnmatch_patterns: FrozenSet[str]
-    max_log_list_entries: int
+    max_log_list_entries: int = -1
 
     @lru_cache(maxsize=100_000)  # size aims to be 100x of fully caching this repo
     def _survives(self, path: Path) -> bool:
@@ -94,19 +99,21 @@ class FileIgnore:
     @classmethod
     def from_unprocessed_patterns(
         cls, base_path: Path, patterns: Iterable[str], max_log_list_entries: int
-    ) -> "FileIgnore":
+    ) -> "Semgrepignore":
         patterns = list(patterns)
         return cls(
-            base_path,
-            frozenset(Processor(base_path).process(patterns)),
-            max_log_list_entries,
+            base_path=base_path,
+            fnmatch_patterns=frozenset(
+                SemgrepignoreProcessor(base_path).process(patterns)
+            ),
+            max_log_list_entries=max_log_list_entries,
         )
 
 
 # This class is an exact duplicate of the Parser class in semgrep-action
 # ^ wtf? [2024: https://github.com/semgrep/semgrep-action was archived; not touching it]
 @define
-class Parser:
+class SemgrepignoreParser:
     r"""
     A parser for semgrepignore syntax.
 
@@ -133,9 +140,13 @@ class Parser:
 
     The end result of this parsing is a set of human-readable patterns corresponding to gitignore syntax.
     To use these patterns with fnmatch, however, a final postprocessing step is needed, achieved by calling
-    Processor.process().
+    SemgrepignoreProcessor.process().
 
-    :param base_path:   The path relative to which :include directives should be evaluated
+    :param file_path: the path to the .semgrepignore file. In Semgrepignore v1
+     (this implementation), this is in the current folder. In Semgrepignore v2
+     (OCaml implementation), it's found at the project root.
+    :param base_path: The path relative to which :include directives should be
+     evaluated. Isn't it always the folder containing .semgrepignore?
     """
 
     # Parser steps are each represented as Generators. This allows us to chain
@@ -173,7 +184,9 @@ class Parser:
             if include_path.is_file():
                 with include_path.open() as include_lines:
                     sub_base = include_path.parent.resolve()
-                    sub_parser = Parser(file_path=include_path, base_path=sub_base)
+                    sub_parser = SemgrepignoreParser(
+                        file_path=include_path, base_path=sub_base
+                    )
                     metrics.add_feature("semgrepignore", "include")
                     return sub_parser.parse(include_lines)
             else:
@@ -201,10 +214,10 @@ class Parser:
         }
 
 
-# This class is an exact duplicate of the Processor class in semgrep-action
+# This class is an exact duplicate of the SemgrepignoreProcessor class in semgrep-action
 # ^ wtf? [2024: https://github.com/semgrep/semgrep-action was archived; not touching it]
 @define
-class Processor:
+class SemgrepignoreProcessor:
     """
     A post-processor for parsed semgrepignore files.
 
@@ -214,7 +227,7 @@ class Processor:
     2. Convert gitignore patterns into fnmatch patterns
     """
 
-    # Per Parser, each Processor step is represented as a Generator.
+    # Per SemgrepignoreParser, each SemgrepignoreProcessor step is represented as a Generator.
 
     base_path: Path
 
@@ -303,3 +316,28 @@ class Processor:
             for pattern in self.to_fnmatch(unescaped)
         }
         return patterns
+
+
+def parse_semgrepignore_file(
+    *,
+    semgrepignore_path: Path,
+    workdir: Optional[Path] = None,
+    max_log_list_entries: int = -1,
+) -> Semgrepignore:
+    """Parse a semgrepignore file. The optional workdir must be specified
+    if the semgrepignore file is read from somewhere else than in workdir
+    which happens when reading the fallback semgrepignore file.
+    """
+    if workdir is None:
+        base_path = semgrepignore_path.parent
+    else:
+        base_path = workdir
+    with semgrepignore_path.open() as f:
+        semgrepignore = Semgrepignore.from_unprocessed_patterns(
+            base_path=base_path,
+            patterns=SemgrepignoreParser(
+                file_path=semgrepignore_path, base_path=base_path
+            ).parse(f),
+            max_log_list_entries=max_log_list_entries,
+        )
+        return semgrepignore

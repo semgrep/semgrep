@@ -17,10 +17,6 @@ val exclude_big_files :
 (** [exclude_big_files max_target_bytes paths] will exclude files larger that
     [max_target_bytes]. No files are excluded if [max_target_bytes = -1]*)
 
-(* Detecting and filtering minified files (for Javascript) *)
-val exclude_minified_files :
-  Fpath.t list -> Fpath.t list * Semgrep_output_v1_t.skipped_target list
-
 (*************************************************************************)
 (* Access permission filtering *)
 (*************************************************************************)

@@ -48,27 +48,3 @@ def test_file_not_relative_to_base_path(run_semgrep: RunSemgrep, snapshot):
     )
     results.raw_stdout = mask_variable_text(results.raw_stdout)
     snapshot.assert_match(results.as_snapshot(), "results.txt")
-
-
-# Test the specification of a semgrepignore file via the environment
-# variable SEMGREP_R2C_INTERNAL_EXPLICIT_SEMGREPIGNORE.
-# This is for semgrep-action. See run_scan.py.
-@pytest.mark.kinda_slow
-@pytest.mark.osemfail
-def test_internal_explicit_semgrepignore(
-    run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot
-):
-    (tmp_path / ".semgrepignore").symlink_to(
-        Path(TARGETS_PATH / "ignores" / ".semgrepignore").resolve()
-    )
-
-    explicit_ignore_file = tmp_path / ".semgrepignore_explicit"
-    explicit_ignore_file.touch()
-
-    env = {"SEMGREP_R2C_INTERNAL_EXPLICIT_SEMGREPIGNORE": str(explicit_ignore_file)}
-    snapshot.assert_match(
-        run_semgrep_in_tmp(
-            "rules/eqeq-basic.yaml", target_name="ignores", env=env
-        ).stdout,
-        "results.json",
-    )

@@ -407,7 +407,7 @@ let sparse_checkout_add ?cwd folders =
   | _ -> Error "Could not add sparse checkout"
 
 (* TODO: use better types? sha1? *)
-let merge_base (commit : string) : string =
+let merge_base ~(commit : string) : string =
   let cmd = (git, [ "merge-base"; commit; "HEAD" ]) in
   match UCmd.string_of_run ~trim:true cmd with
   | Ok (merge_base, (_, `Exited 0)) -> merge_base

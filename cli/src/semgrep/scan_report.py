@@ -23,6 +23,7 @@ from semgrep.core_runner import Plan
 from semgrep.rule import Rule
 from semgrep.state import DesignTreatment
 from semgrep.state import get_state
+from semgrep.target_manager import SAST_PRODUCT
 from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
 from semgrep.util import unit_str
@@ -117,7 +118,7 @@ def _print_scan_plan_header(
             f"Inter-file Differential Scanning {unit_str(diff_file_count, 'file')}"
         )
     else:
-        target_count = len(target_manager.get_all_files())
+        target_count = len(target_manager.get_all_files(product=SAST_PRODUCT))
         summary_line = f"Scanning {unit_str(target_count, 'file')}"
 
     if target_manager.respect_git_ignore:

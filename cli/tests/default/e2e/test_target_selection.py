@@ -57,6 +57,10 @@ class Config(Enum):
 
 
 # The expectations regarding a particular target file path
+#
+# The expectations for osemgrep and for pysemgrep --semgrepignore-v2 are
+# the same.
+#
 @dataclass
 class Expect:
     selected: bool
@@ -87,26 +91,35 @@ def is_git_project(config: Config) -> bool:
 
 # Check whether a target path was selected or ignored by semgrep, depending
 # the expectation we have.
+#
 def check_expectation(
+    *,
     expect: Expect,
     is_running_osemgrep: bool,
+    requested_semgrepignore_v2: bool,
     config: Config,
     selected_targets: Set[str],
 ):
     paths = expect.paths
 
-    if is_running_osemgrep and expect.ignore_osemgrep_result:
+    # We expect semgrepignore v2 behavior if we call osemgrep directly or
+    # via the --use-semgrepignore-v2 option.
+    v2 = is_running_osemgrep or requested_semgrepignore_v2
+    rpc = requested_semgrepignore_v2 and not is_running_osemgrep
+
+    if v2 and expect.ignore_osemgrep_result:
         return
-    if not is_running_osemgrep and expect.ignore_pysemgrep_result:
+    if not v2 and expect.ignore_pysemgrep_result:
         return
 
     expect_selected = expect.selected
-    if is_running_osemgrep and expect.selected_by_osemgrep is not None:
+    if v2 and expect.selected_by_osemgrep is not None:
         expect_selected = expect.selected_by_osemgrep
-    if not is_running_osemgrep and expect.selected_by_pysemgrep is not None:
+    if not v2 and expect.selected_by_pysemgrep is not None:
         expect_selected = expect.selected_by_pysemgrep
 
     label = "[osemgrep]" if is_running_osemgrep else "[pysemgrep]"
+    label = label + " [rpc]" if rpc else " [no rpc]"
     label = label + (f" [{config.value}]")
     for path in paths:
         # Sanity checks (important when checking that a path is not selected)
@@ -461,8 +474,10 @@ NOVCS_INCLUDE_EXPECTATIONS = [
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
 @pytest.mark.parametrize(
     # a list of extra semgrep CLI options and osemgrep-specific options
+    # TODO: remove osemgrep_options since it's unused
     "config,options,osemgrep_options,expectations",
     [
         (Config.GIT, [], [], COMMON_EXPECTATIONS + GIT_PROJECT_EXPECTATIONS),
@@ -558,6 +573,7 @@ def test_project_target_selection(
     config: Config,
     options: List[str],
     osemgrep_options: List[str],
+    use_semgrepignore_v2: bool,
     expectations: List[Expect],
 ) -> None:
     project = PROJECT
@@ -622,6 +638,7 @@ def test_project_target_selection(
         options=["--x-ls", "-e", "hello", "--lang", "python"] + extra_options,
         assume_targets_dir=False,
         target_name=".",
+        use_semgrepignore_v2=use_semgrepignore_v2,
     )
     selected_targets: Set[str] = set(filter(lambda x: x, stdout.split("\n")))
 
@@ -631,4 +648,10 @@ def test_project_target_selection(
 
     # Check the status of each file path we want to check.
     for expect in expectations:
-        check_expectation(expect, is_running_osemgrep, config, selected_targets)
+        check_expectation(
+            expect=expect,
+            is_running_osemgrep=is_running_osemgrep,
+            requested_semgrepignore_v2=use_semgrepignore_v2,
+            config=config,
+            selected_targets=selected_targets,
+        )

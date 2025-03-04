@@ -66,5 +66,6 @@ class RunSemgrep(Protocol):
         # the transition from pysemgrep to osemgrep. Avoid using it if
         # you can.
         osemgrep_force_project_root: Optional[str] = None,
+        use_semgrepignore_v2: bool = False,
     ) -> SemgrepResult:
         ...

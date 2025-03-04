@@ -41,7 +41,7 @@ from semgrep.error import SemgrepError
 from semgrep.git import git_check_output
 from semgrep.git import is_git_repo_empty
 from semgrep.git import is_git_repo_root_approx
-from semgrep.ignores import IGNORE_FILE_NAME
+from semgrep.ignores import SEMGREPIGNORE_FILE_NAME
 from semgrep.meta import generate_meta_from_environment
 from semgrep.meta import GithubMeta
 from semgrep.meta import GitMeta
@@ -54,6 +54,7 @@ from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
 from semgrep.target_manager import ALL_PRODUCTS
+from semgrep.target_manager import SAST_PRODUCT
 from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
 
@@ -104,7 +105,7 @@ def get_exclude_paths(
         # default patterns is done here or why it would depend on
         # .semgrepignore. But, we've had this for a while, so leaving it not to
         # potentially break things.
-        if Path(IGNORE_FILE_NAME).is_file() and not requested_patterns:
+        if Path(SEMGREPIGNORE_FILE_NAME).is_file() and not requested_patterns:
             patterns[product].extend(DEFAULT_EXCLUDE_PATTERNS)
 
     return patterns
@@ -906,7 +907,7 @@ def ci(
                     filtered_rules,
                     output_extra.all_targets,
                     renamed_targets,
-                    ignore_log.unsupported_lang_paths,
+                    ignore_log.unsupported_lang_paths(product=SAST_PRODUCT),
                     cli_suggested_exit_code,
                     output_extra.parsing_data,
                     total_time,

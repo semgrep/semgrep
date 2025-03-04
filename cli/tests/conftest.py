@@ -405,6 +405,7 @@ def _run_semgrep(
     context_manager: Optional[ContextManager] = None,
     is_logged_in_weak=False,
     osemgrep_force_project_root: Optional[str] = None,
+    use_semgrepignore_v2: bool = False,
 ) -> SemgrepResult:
     """Run the semgrep CLI.
 
@@ -493,6 +494,12 @@ def _run_semgrep(
                 options.append("--junit-xml")
             elif output_format == OutputFormat.SARIF:
                 options.append("--sarif")
+
+            if subcommand is None or subcommand == "scan" or subcommand == "ci":
+                if use_semgrepignore_v2:
+                    options.append("--semgrepignore-v2")
+                else:
+                    options.append("--no-semgrepignore-v2")
 
             targets = []
             if target_name is not None:

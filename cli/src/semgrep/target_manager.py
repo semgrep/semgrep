@@ -1,3 +1,4 @@
+import copy
 import os
 import stat
 import subprocess
@@ -47,7 +48,7 @@ from semgrep.constants import TOO_MUCH_DATA
 from semgrep.constants import Colors, UNSUPPORTED_EXT_IGNORE_LANGS
 from semgrep.error import InvalidScanningRootError
 from semgrep.formatter.text import BASE_WIDTH as width
-from semgrep.ignores import FileIgnore
+from semgrep.ignores import Semgrepignore
 from semgrep.semgrep_types import FileExtension
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
@@ -138,8 +139,7 @@ class FileTargetingLog:
     rule_includes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
     rule_excludes: Dict[str, Set[Path]] = Factory(lambda: defaultdict(set))
 
-    @property
-    def unsupported_lang_paths(self) -> FrozenSet[Path]:
+    def unsupported_lang_paths(self, *, product: out.Product) -> FrozenSet[Path]:
         """
         RETURNS: paths of all files that were ignored by ALL non-generic langs
 
@@ -157,7 +157,7 @@ class FileTargetingLog:
         return (
             frozenset(set.intersection(*unsupported_lang_paths))
             if unsupported_lang_paths
-            else self.target_manager.get_all_files()
+            else self.target_manager.get_all_files(product=product)
         )
 
     def list_skipped_paths_with_reason(self) -> List[Tuple[Path, str]]:
@@ -405,6 +405,22 @@ class FileTargetingLog:
             }
 
 
+# This used to patch the targeting_conf just before using it.
+# We could the same mechanism with the list of excludes that depend
+# on the "product". It might clarify the code a bit.
+#
+# Current status: this is unused because baseline_commit isn't supported
+# by the OCaml implementation.
+#
+def copy_and_update_targeting_conf(
+    *, conf: out.TargetingConf, force_novcs_project: bool = False
+) -> out.TargetingConf:
+    # Not sure if a shallow copy (copy.copy) would work or would be preferable
+    conf = copy.deepcopy(conf)
+    conf.force_novcs_project = force_novcs_project
+    return conf
+
+
 @frozen(eq=False)  #
 class ScanningRoot:
     """
@@ -421,7 +437,8 @@ class ScanningRoot:
     path: Path = field(converter=Path)
     git_tracked_only: bool = False
     baseline_handler: Optional[BaselineHandler] = None
-    targeting_conf_v2: Optional[out.TargetingConf] = None
+    # semgrepignore v2 only:
+    targeting_conf_v2: Optional[Mapping[out.Product, out.TargetingConf]] = None
 
     @path.validator
     def validate_path(self, _: Any, value: Path) -> None:
@@ -529,7 +546,7 @@ class ScanningRoot:
 
     @lru_cache(maxsize=None)
     def _target_files(
-        self, ignore_baseline_handler: bool = False
+        self, *, product: out.Product, ignore_baseline_handler: bool = False
     ) -> Tuple[FrozenSet[Path], FrozenSet[Path]]:
         """
         Recursively go through a directory and return list of all files with
@@ -540,7 +557,11 @@ class ScanningRoot:
         """
         if self.targeting_conf_v2 is not None:
             # New: Use semgrep-core to discover target files
-            targeting_conf = self.targeting_conf_v2
+            targeting_conf = self.targeting_conf_v2[product]
+            if ignore_baseline_handler:
+                targeting_conf = copy_and_update_targeting_conf(
+                    conf=targeting_conf, force_novcs_project=True
+                )
             arg = out.ScanningRoots(
                 root_paths=[out.Fpath(str(self.path))], targeting_conf=targeting_conf
             )
@@ -576,19 +597,21 @@ class ScanningRoot:
             return self.files_from_filesystem()
 
     # cached (see _target_files())
-    def target_files(self, ignore_baseline_handler: bool = False) -> FrozenSet[Path]:
+    def target_files(
+        self, *, product: out.Product, ignore_baseline_handler: bool = False
+    ) -> FrozenSet[Path]:
         """Discover target files from the scanning root and cache the result"""
         selected, _insufficient_permissions = self._target_files(
-            ignore_baseline_handler=ignore_baseline_handler
+            product=product, ignore_baseline_handler=ignore_baseline_handler
         )
         return selected
 
     # cached (see _target_files())
     def paths_with_insufficient_permissions(
-        self, ignore_baseline_handler: bool = False
+        self, *, product: out.Product, ignore_baseline_handler: bool = False
     ) -> FrozenSet[Path]:
         _selected, insufficient_permissions = self._target_files(
-            ignore_baseline_handler=ignore_baseline_handler
+            product=product, ignore_baseline_handler=ignore_baseline_handler
         )
         return insufficient_permissions
 
@@ -630,50 +653,57 @@ class TargetManager:
     respect_rule_paths: bool = True
     baseline_handler: Optional[BaselineHandler] = None
     allow_unknown_extensions: bool = False
-    ignore_profiles: Mapping[out.Product, FileIgnore] = Factory(dict)
+    semgrepignore_profiles: Mapping[out.Product, Semgrepignore] = Factory(dict)
     ignore_log: FileTargetingLog = Factory(FileTargetingLog, takes_self=True)
     scanning_roots: Sequence[ScanningRoot] = field(init=False)
     respect_semgrepignore: bool = True
-    targeting_conf: out.TargetingConf = field(init=False)
+    targeting_conf: Mapping[out.Product, out.TargetingConf] = field(init=False)
 
     _filtered_targets: Dict[Language, FilteredFiles] = field(factory=dict)
 
     # This initializes the class attributes marked with '= field(init=False)':
     def __attrs_post_init__(self) -> None:
-        # for use_semgrepignore_v2 i.e. delegating target discovery to semgrep-core
-        self.targeting_conf = out.TargetingConf(
-            exclude=[],  # TODO
-            max_target_bytes=self.max_target_bytes,
-            respect_gitignore=self.respect_git_ignore,
-            respect_semgrepignore_files=self.respect_semgrepignore,
-            # explicit targets = target files that are passed explicitly
-            # on the command line and are normally not ignored by semgrepignore
-            # or other filters.
-            always_select_explicit_targets=True,
-            # shouldn't be needed since we provide the scanning roots:
-            explicit_targets=[],
-            force_novcs_project=self.force_novcs_project,
-            exclude_minified_files=True,  # ??
-            include_=(list(self.includes) or None),
-            force_project_root=(
-                out.ProjectRoot(out.Filesystem(self.force_project_root))
-                if not self.force_project_root is None
-                else None
-            ),
-            baseline_commit=(
-                self.baseline_handler.base_commit() if self.baseline_handler else None
-            ),
+        # TODO: add support for baseline_commit in OCaml (Find_targets.get_targets)
+        self.use_semgrepignore_v2 = (
+            self.use_semgrepignore_v2 and self.baseline_handler is None
         )
+        # for use_semgrepignore_v2 i.e. delegating target discovery to semgrep-core
+        self.targeting_conf = {}
+        for product in ALL_PRODUCTS:
+            self.targeting_conf[product] = out.TargetingConf(
+                exclude=list(self.excludes.get(product, [])),
+                max_target_bytes=self.max_target_bytes,
+                respect_gitignore=self.respect_git_ignore,
+                respect_semgrepignore_files=self.respect_semgrepignore,
+                # explicit targets = target files that are passed explicitly
+                # on the command line and are normally not ignored by semgrepignore
+                # or other filters.
+                always_select_explicit_targets=True,
+                # shouldn't be needed since we provide the scanning roots:
+                explicit_targets=[],
+                force_novcs_project=self.force_novcs_project,
+                exclude_minified_files=False,
+                include_=(list(self.includes) or None),
+                force_project_root=(
+                    out.ProjectRoot(out.Filesystem(self.force_project_root))
+                    if not self.force_project_root is None
+                    else None
+                ),
+                # TODO: add OCaml support listing Git files that changed starting from
+                # a specific commit.
+                baseline_commit=(
+                    self.baseline_handler.base_commit()
+                    if self.baseline_handler
+                    else None
+                ),
+            )
         self.scanning_roots = [
             ScanningRoot(
                 root,
                 git_tracked_only=self.respect_git_ignore,
                 baseline_handler=self.baseline_handler,
-                # TODO: add support for baseline_commit with use_semgrepignore_v2
                 targeting_conf_v2=(
-                    self.targeting_conf
-                    if self.use_semgrepignore_v2 and self.baseline_handler is None
-                    else None
+                    self.targeting_conf if self.use_semgrepignore_v2 else None
                 ),
             )
             for root in self.scanning_root_strings
@@ -837,16 +867,20 @@ class TargetManager:
         return FilteredFiles(frozenset(kept), frozenset(removed))
 
     @lru_cache(maxsize=None)
-    def get_all_files(self, ignore_baseline_handler: bool = False) -> FrozenSet[Path]:
+    def get_all_files(
+        self, *, product: out.Product, ignore_baseline_handler: bool = False
+    ) -> FrozenSet[Path]:
         return frozenset(
             f
             for root in self.scanning_roots
-            for f in root.target_files(ignore_baseline_handler)
+            for f in root.target_files(
+                ignore_baseline_handler=ignore_baseline_handler, product=product
+            )
         )
 
     @lru_cache(maxsize=None)
     def get_paths_with_insufficient_permissions(
-        self, ignore_baseline_handler: bool = False
+        self, *, product: out.Product, ignore_baseline_handler: bool = False
     ) -> FrozenSet[Path]:
         """
         Return paths with insufficient permissions we already know about.
@@ -856,7 +890,9 @@ class TargetManager:
         return frozenset(
             f
             for root in self.scanning_roots
-            for f in root.paths_with_insufficient_permissions(ignore_baseline_handler)
+            for f in root.paths_with_insufficient_permissions(
+                product=product, ignore_baseline_handler=ignore_baseline_handler
+            )
         )
 
     @lru_cache(maxsize=None)
@@ -883,7 +919,9 @@ class TargetManager:
 
         ignore_baseline_handler: if True, will ignore the baseline handler and scan all files. Used in the context of scanning unchanged lockfiles for their dependencies and doing reachability analysis.
         """
-        all_files = self.get_all_files(ignore_baseline_handler)
+        all_files = self.get_all_files(
+            ignore_baseline_handler=ignore_baseline_handler, product=product
+        )
 
         if isinstance(lang, Language):
             files = self.filter_by_language(lang, candidates=all_files)
@@ -902,38 +940,43 @@ class TargetManager:
         # them further based on applicable rules. This number is reported
         # correctly by osemgrep but incorrectly by pysemgrep.
         ####################################################################
+        if not self.use_semgrepignore_v2:
+            files = self.filter_includes(self.includes, candidates=files.kept)
+            self.ignore_log.cli_includes.update(files.removed)
 
-        files = self.filter_includes(self.includes, candidates=files.kept)
-        self.ignore_log.cli_includes.update(files.removed)
+            files = self.filter_excludes(
+                self.excludes.get(product, []), candidates=files.kept
+            )
+            self.ignore_log.cli_excludes.update(files.removed)
 
-        files = self.filter_excludes(
-            self.excludes.get(product, []), candidates=files.kept
-        )
-        self.ignore_log.cli_excludes.update(files.removed)
+            files = self.filter_excludes(PATHS_ALWAYS_SKIPPED, candidates=files.kept)
+            self.ignore_log.always_skipped.update(files.removed)
 
-        files = self.filter_excludes(PATHS_ALWAYS_SKIPPED, candidates=files.kept)
-        self.ignore_log.always_skipped.update(files.removed)
+            paths_with_insufficient_permissions = (
+                self.get_paths_with_insufficient_permissions(
+                    product=product, ignore_baseline_handler=ignore_baseline_handler
+                )
+            )
+            # Depending on how the files were obtained, we need to check
+            # for file permissions here
+            files = self.filter_by_permission(files.kept)
+            self.ignore_log.insufficient_permissions.update(
+                set(files.removed | paths_with_insufficient_permissions)
+            )
 
-        paths_with_insufficient_permissions = (
-            self.get_paths_with_insufficient_permissions(ignore_baseline_handler)
-        )
-        # Depending on how the files were obtained, we need to check
-        # for file permissions here
-        files = self.filter_by_permission(files.kept)
-        self.ignore_log.insufficient_permissions.update(
-            set(files.removed | paths_with_insufficient_permissions)
-        )
+            # Lockfiles are easy to parse, and regularly surpass 1MB for big repos
+            if lang != "dependency_source_files":
+                files = self.filter_by_size(
+                    self.max_target_bytes, candidates=files.kept
+                )
+                self.ignore_log.size_limit.update(files.removed)
 
-        # Lockfiles are easy to parse, and regularly surpass 1MB for big repos
-        if lang != "dependency_source_files":
-            files = self.filter_by_size(self.max_target_bytes, candidates=files.kept)
-            self.ignore_log.size_limit.update(files.removed)
-
-        if product in self.ignore_profiles and self.respect_semgrepignore:
-            file_ignore = self.ignore_profiles[product]
-            files = file_ignore.filter_paths(candidates=files.kept)
-            # TODO: Fix ignore_log to log which profile filtered which files.
-            self.ignore_log.semgrepignored.update(files.removed)
+            # TODO: explain what's going on with these semgrepignore profiles
+            if product in self.semgrepignore_profiles and self.respect_semgrepignore:
+                semgrepignore = self.semgrepignore_profiles[product]
+                files = semgrepignore.filter_paths(candidates=files.kept)
+                # TODO: Fix ignore_log to log which profile filtered which files.
+                self.ignore_log.semgrepignored.update(files.removed)
 
         kept_files = files.kept
 
@@ -942,6 +985,10 @@ class TargetManager:
             for t in self.scanning_roots
             if not t.path.is_dir() and t.path.is_file()
         )
+
+        ####################################################################
+        # language-specific target filtering
+        ####################################################################
         explicit_files_for_lang = self.filter_by_language(
             lang if isinstance(lang, Language) else None, candidates=explicit_files
         )

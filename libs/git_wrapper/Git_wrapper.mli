@@ -43,8 +43,9 @@ val ls_files :
   Fpath.t list ->
   Fpath.t list
 
-(* get merge base between arg and HEAD *)
-val merge_base : string -> string
+(* Get the commit ID of the most recent common ancestor of the current
+   branch's HEAD and some commit. *)
+val merge_base : commit:string -> string
 
 (* Executing a function inside a directory created from git-worktree.
 

@@ -65,7 +65,12 @@ type conf = {
   (* osemgrep-only: exclude scanning large files based on
       max_target_bytes, default true *)
   exclude_minified_files : bool;
-  (* TODO: not used for now *)
+  (* TODO: support baseline_commit
+     This is not implemented. It appears to be sort of implemented in
+     Diff_scan it's buried in the middle of application code.
+     We need a function that lists the relevant files changed in Git
+     since the baseline commit. The reference implementation is
+     the BaselineHandler class in git.py. *)
   baseline_commit : string option;
 }
 

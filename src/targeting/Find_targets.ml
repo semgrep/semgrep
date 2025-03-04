@@ -211,7 +211,6 @@ type conf = {
   force_novcs_project : bool;
   (* osemgrep-only option, exclude scanning minified files, default false *)
   exclude_minified_files : bool;
-  (* TODO? remove it? This is now done in Diff_scan.ml instead? *)
   baseline_commit : string option;
 }
 [@@deriving show]
@@ -363,7 +362,7 @@ let filter_paths
              Log.debug (fun m -> m "ignore silently: %s" !!(fppath.fpath)));
   (Fppath_set.of_list !selected_paths, !skipped)
 
-let filter_size_and_minified max_target_bytes exclude_minified_files paths =
+let filter_size_and_minified ~exclude_minified_files ~max_target_bytes paths =
   let selected_fppaths, skipped_size =
     Result_.partition
       (fun (fppath : Fppath.t) ->
@@ -846,8 +845,9 @@ let get_targets (caps : < Cap.readdir ; .. >) (conf : conf)
       List.fold_left Fppath_set.union Fppath_set.empty path_set_list
     in
     Fppath_set.elements path_set
-    |> filter_size_and_minified conf.max_target_bytes
-         conf.exclude_minified_files
+    |> filter_size_and_minified
+         ~exclude_minified_files:conf.exclude_minified_files
+         ~max_target_bytes:conf.max_target_bytes
   in
   let sorted_skipped_targets =
     let skipped_paths_list =

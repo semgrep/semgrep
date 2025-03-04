@@ -218,7 +218,7 @@ let rules ~too_many_entries (src : Rules_source.t) (rules : Rule.t list) :
         | Configs xs -> spf "%d configs" (List.length xs));
 
       (* TODO should output whether .semgrepignore is found and used
-         (as done in semgrep_main.py get_file_ignore()) *)
+         (as done in semgrep_main.py get_semgrepignore()) *)
       prf "Rules:\n";
       let experimental, normal =
         rules

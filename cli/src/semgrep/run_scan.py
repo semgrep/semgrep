@@ -62,9 +62,9 @@ from semgrep.error import SemgrepError
 from semgrep.exclude_rules import filter_exclude_rule
 from semgrep.git import BaselineHandler
 from semgrep.git import get_project_url
-from semgrep.ignores import FileIgnore
-from semgrep.ignores import IGNORE_FILE_NAME
-from semgrep.ignores import Parser
+from semgrep.ignores import parse_semgrepignore_file
+from semgrep.ignores import Semgrepignore
+from semgrep.ignores import SEMGREPIGNORE_FILE_NAME
 from semgrep.nosemgrep import filter_ignored
 from semgrep.output import DEFAULT_SHOWN_SEVERITIES
 from semgrep.output import OutputHandler
@@ -107,7 +107,9 @@ logger = getLogger(__name__)
 ##############################################################################
 
 
-def get_file_ignore(max_log_list_entries: int) -> FileIgnore:
+def get_semgrepignore(max_log_list_entries: int) -> Semgrepignore:
+    # TEMPLATES_DIR is where we have the default .semgrepignore file
+    # in semgrep installation.
     TEMPLATES_DIR = Path(__file__).parent / "templates"
     try:
         workdir = Path.cwd()
@@ -117,42 +119,40 @@ def get_file_ignore(max_log_list_entries: int) -> FileIgnore:
             f"Current working directory does not exist! Instead checking {workdir} for .semgrepignore files"
         )
 
-    # Meant to be used only by semgrep-action
-    if "SEMGREP_R2C_INTERNAL_EXPLICIT_SEMGREPIGNORE" in environ:
-        semgrepignore_path = Path(
-            environ["SEMGREP_R2C_INTERNAL_EXPLICIT_SEMGREPIGNORE"]
-        ).resolve()
-        logger.verbose("Using explicit semgrepignore file from environment variable")
-    else:
-        semgrepignore_path = Path(workdir / IGNORE_FILE_NAME)
-        if not semgrepignore_path.is_file():
-            logger.verbose(
-                "No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignore-files"
-            )
-            semgrepignore_path = TEMPLATES_DIR / IGNORE_FILE_NAME
-        else:
-            logger.verbose("using path ignore rules from user provided .semgrepignore")
-
-    with semgrepignore_path.open() as f:
-        file_ignore = FileIgnore.from_unprocessed_patterns(
-            base_path=workdir,
-            patterns=Parser(file_path=semgrepignore_path, base_path=workdir).parse(f),
-            max_log_list_entries=max_log_list_entries,
+    semgrepignore_path = Path(workdir / SEMGREPIGNORE_FILE_NAME)
+    if not semgrepignore_path.is_file():
+        logger.verbose(
+            "No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignore-files"
         )
+        # Use the default .semgrepignore file
+        semgrepignore_path = TEMPLATES_DIR / SEMGREPIGNORE_FILE_NAME
+    else:
+        logger.verbose("using path ignore rules from user provided .semgrepignore")
 
-    return file_ignore
+    semgrepignore = parse_semgrepignore_file(
+        semgrepignore_path=semgrepignore_path,
+        workdir=workdir,
+        max_log_list_entries=max_log_list_entries,
+    )
+    return semgrepignore
 
 
-def file_ignore_to_ignore_profiles(
-    file_ignore: FileIgnore,
-) -> Dict[Product, FileIgnore]:
+# TODO: Explain what is this about, use better names
+# TODO: Describe how you intend to implement this in OCaml
+def semgrepignore_to_semgrepignore_profiles(
+    semgrepignore: Semgrepignore,
+) -> Dict[Product, Semgrepignore]:
     # TODO: This pattern encodes the default Targeting Profiles
-    # of .semgrepignore. Don't hardcode this like it is.
+    #  of .semgrepignore. Don't hardcode this like it is.
     return {
-        SAST_PRODUCT: file_ignore,
-        SCA_PRODUCT: file_ignore,
-        SECRETS_PRODUCT: FileIgnore(
-            file_ignore.base_path, frozenset(), max_log_list_entries=0
+        SAST_PRODUCT: semgrepignore,
+        SCA_PRODUCT: semgrepignore,
+        # TODO: this looks like a complicated way to ignore the user-specified
+        #  .semgrepignore or the fallback stored in TEMPLATES_DIR.
+        #  -> need to confirm and simplify.
+        SECRETS_PRODUCT: Semgrepignore(
+            base_path=semgrepignore.base_path,
+            fnmatch_patterns=frozenset(),
         ),
     }
 
@@ -747,6 +747,9 @@ def run_scan(
             )
 
     respect_git_ignore = not no_git_ignore
+    # One of the several properties of the --no-git-ignore option is that
+    # it disables the use of git.
+    force_novcs_project = force_novcs_project or no_git_ignore
     scanning_root_strings = frozenset(Path(t) for t in scanning_roots)
     too_many_entries = output_handler.settings.max_log_list_entries
 
@@ -763,16 +766,14 @@ def run_scan(
             respect_rule_paths=respect_rule_paths,
             baseline_handler=baseline_handler,
             allow_unknown_extensions=not skip_unknown_extensions,
-            ignore_profiles=file_ignore_to_ignore_profiles(
-                get_file_ignore(too_many_entries)
+            semgrepignore_profiles=semgrepignore_to_semgrepignore_profiles(
+                get_semgrepignore(too_many_entries)
             ),
             respect_semgrepignore=respect_semgrepignore,
         )
         # Debugging option --x-ls
         if x_ls or x_ls_long:
-            list_targets_and_exit(
-                target_manager, out.Product(out.SAST()), long_format=x_ls_long
-            )
+            list_targets_and_exit(target_manager, SAST_PRODUCT, long_format=x_ls_long)
     except InvalidScanningRootError as e:
         raise SemgrepError(e)
 
@@ -966,8 +967,8 @@ def run_scan(
                         # only target the paths that had a match, ignoring symlinks and non-existent files
                         respect_git_ignore=respect_git_ignore,
                         allow_unknown_extensions=not skip_unknown_extensions,
-                        ignore_profiles=file_ignore_to_ignore_profiles(
-                            get_file_ignore(too_many_entries),
+                        semgrepignore_profiles=semgrepignore_to_semgrepignore_profiles(
+                            get_semgrepignore(too_many_entries),
                         ),
                         respect_semgrepignore=respect_semgrepignore,
                     )

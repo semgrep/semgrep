@@ -38,11 +38,6 @@ let max_tainted_vars = ref Limits_semgrep.taint_MAX_TAINTED_VARS
 (* Maximum size of the taints set for each lval *)
 let max_taint_set_size = ref Limits_semgrep.taint_MAX_TAINT_SET_SIZE
 
-(* Whether or not to skip files believed to be minified.
-   TODO: this belongs in Find_targets.conf
-*)
-let skip_minified_files = ref true
-
 (* Disabling this lets us measure the effectiveness of our GC tuning. *)
 let gc_tuning = ref true
 
