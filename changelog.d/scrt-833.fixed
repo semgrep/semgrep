@@ -1,2 +1,0 @@
-Fix the incorrect schema and analysis type in the JSON output of the secret
-findings when using the --gitlab-secrets flag.

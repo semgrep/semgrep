@@ -1,2 +1,0 @@
-Removed `.semgrepignore` file lookup using the `SEMGREP_R2C_INTERNAL_EXPLICIT_SEMGREPIGNORE` environment variable. This was used by semgrep-action which
-has been deprecated.
