@@ -1,3 +1,8 @@
+##############################################################################
+# Prelude
+##############################################################################
+# Entry point of the 'pysemgrep scan' command
+#
 # THIS FILE IS DEPRECATED! DO NOT MODIFY FLAGS HERE! INSTEAD MODIFY Scan_CLI.ml
 import os
 import tempfile
@@ -56,6 +61,10 @@ from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
+
+##############################################################################
+# Command-line parsing
+##############################################################################
 
 
 class MetricsStateType(click.ParamType):
@@ -457,6 +466,39 @@ def scan_options(func: Callable) -> Callable:
     for option in reversed(_scan_options):
         func = option(func)
     return func
+
+
+##############################################################################
+# Logging
+##############################################################################
+
+
+def log_findings(
+    filtered_matches_by_rule: RuleMatchMap, engine_type: EngineType
+) -> None:
+    findings_count = sum(len(matches) for matches in filtered_matches_by_rule.values())
+    no_findings = findings_count == 0
+
+    if no_findings:
+        try:
+            msg = get_no_findings_msg()
+            if msg:
+                logger.info(msg)
+        except Exception as e:
+            logger.debug(f"Error getting no findings message: {e}")
+
+    if findings_count > TOO_MANY_FINDINGS_THRESHOLD and engine_type is EngineType.OSS:
+        try:
+            msg = get_too_many_findings_msg()
+            if msg:
+                logger.info(msg)
+        except Exception as e:
+            logger.debug(f"Error getting too many findings message: {e}")
+
+
+##############################################################################
+# Scan entry point
+##############################################################################
 
 
 # Those are the scan-only options (not reused in ci.py)
@@ -918,34 +960,12 @@ def scan(
                     output_extra.all_targets,
                 )
 
-        findings_count = sum(
-            len(matches) for matches in filtered_matches_by_rule.values()
-        )
-        no_findings = findings_count == 0
-
         if enable_version_check:
             from semgrep.app.version import version_check
 
             # Fetch the latest version and potentially display a banner
             version_check()
-
-            if no_findings:
-                try:
-                    msg = get_no_findings_msg()
-                    if msg:
-                        logger.info(msg)
-                except Exception as e:
-                    logger.debug(f"Error getting no findings message: {e}")
-
-            if (
-                findings_count > TOO_MANY_FINDINGS_THRESHOLD
-                and engine_type is EngineType.OSS
-            ):
-                try:
-                    msg = get_too_many_findings_msg()
-                    if msg:
-                        logger.info(msg)
-                except Exception as e:
-                    logger.debug(f"Error getting too many findings message: {e}")
+            # TODO? this should be guarded by enable_version_check too??
+            log_findings(filtered_matches_by_rule, engine_type)
 
         return return_data

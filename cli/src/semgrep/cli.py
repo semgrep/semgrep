@@ -1,3 +1,8 @@
+##############################################################################
+# Prelude
+##############################################################################
+# pysemgrep command dispatch (semgrep scan vs semgrep ci vs ...)
+#
 from typing import Dict
 
 import click
@@ -13,6 +18,11 @@ from semgrep.state import get_state
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
+
+
+##############################################################################
+# Helpers
+##############################################################################
 
 
 def maybe_set_git_safe_directories() -> None:
@@ -38,6 +48,11 @@ def maybe_set_git_safe_directories() -> None:
         logger.info(
             f"Semgrep failed to set the safe.directory Git config option. Git commands might fail: {e}"
         )
+
+
+##############################################################################
+# Entry point
+##############################################################################
 
 
 @click.group(cls=DefaultGroup, default_command="scan", name="semgrep")

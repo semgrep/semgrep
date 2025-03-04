@@ -43,6 +43,7 @@ from semdep.parsers.util import DependencyParserError
 from semgrep import __VERSION__
 from semgrep import tracing
 from semgrep.autofix import apply_fixes
+from semgrep.config_resolver import Config
 from semgrep.config_resolver import ConfigLoader
 from semgrep.config_resolver import get_config
 from semgrep.console import console
@@ -65,6 +66,7 @@ from semgrep.git import get_project_url
 from semgrep.ignores import parse_semgrepignore_file
 from semgrep.ignores import Semgrepignore
 from semgrep.ignores import SEMGREPIGNORE_FILE_NAME
+from semgrep.metrics import Metrics
 from semgrep.nosemgrep import filter_ignored
 from semgrep.output import DEFAULT_SHOWN_SEVERITIES
 from semgrep.output import OutputHandler
@@ -106,6 +108,53 @@ logger = getLogger(__name__)
 ##############################################################################
 # Helper functions
 ##############################################################################
+
+
+# Some of the lockfile parsers are defined recursively
+# This does not play well with python's conservative recursion limit, so we
+# manually increase
+def adjust_python_recursion_limit() -> None:
+    if "SEMGREP_PYTHON_RECURSION_LIMIT_INCREASE" in environ:
+        recursion_limit_increase = int(
+            environ["SEMGREP_PYTHON_RECURSION_LIMIT_INCREASE"]
+        )
+    else:
+        recursion_limit_increase = 500
+    setrecursionlimit(getrecursionlimit() + recursion_limit_increase)
+
+
+# This is used for testing and comparing with osemgrep.
+def list_targets_and_exit(
+    target_manager: TargetManager, product: out.Product, long_format: bool = False
+) -> None:
+    targets = target_manager.get_files_for_language(lang=None, product=product)
+    for path in sorted(targets.kept):
+        if long_format:
+            print(f"selected {path}")
+        else:
+            print(str(path))
+    if long_format:
+        for path, reason in target_manager.ignore_log.list_skipped_paths_with_reason():
+            print(f"ignored {path} [{reason}]")
+    exit(0)
+
+
+def dump_partitions_and_exit(
+    filtered_rules: List[Rule],
+    dump_rule_partitions_dir: Optional[Path],
+    dump_n_rule_partitions: int,
+) -> None:
+    rules = {"rules": [r.raw for r in filtered_rules]}
+    output_dir = str(dump_rule_partitions_dir)
+    args = out.DumpRulePartitionsParams(
+        out.RawJson(rules), dump_n_rule_partitions, out.Fpath(output_dir)
+    )
+    ok = dump_rule_partitions(args)
+    if not ok:
+        logger.error("An error occurred while dumping rule partitions.")
+        sys.exit(2)
+    logger.info(f"Successfully dumped rule partitions to {output_dir}")
+    sys.exit(0)
 
 
 def get_semgrepignore(max_log_list_entries: int) -> Semgrepignore:
@@ -158,6 +207,103 @@ def semgrepignore_to_semgrepignore_profiles(
     }
 
 
+def target_mode_conf(
+    historical_secrets: bool,
+    baseline_handler: Optional[BaselineHandler],
+    engine_type: EngineType,
+    diff_depth: int,
+    target_manager: TargetManager,
+) -> TargetModeConfig:
+    if historical_secrets:
+        return TargetModeConfig.historical_scan()
+    elif baseline_handler is not None:
+        if engine_type.is_interfile:
+            return TargetModeConfig.pro_diff_scan(
+                # `target_manager.get_all_files()` will only return changed files
+                # (diff targets) when baseline_handler is set
+                target_manager.get_all_files(),
+                diff_depth,
+            )
+        else:
+            return TargetModeConfig.diff_scan()
+    else:
+        return TargetModeConfig.whole_scan()
+
+
+##############################################################################
+# Logging
+##############################################################################
+
+
+def log_rules(filtered_rules: List[Rule], too_many_entries: int) -> None:
+    experimental_rules, normal_rules = partition(
+        filtered_rules, lambda rule: (isinstance(rule.severity.value, out.Experiment))
+    )
+
+    if logger.isEnabledFor(logger.VERBOSE_LOG_LEVEL):
+        logger.verbose("Rules:")
+        if too_many_entries > 0 and len(normal_rules) > too_many_entries:
+            logger.verbose(TOO_MUCH_DATA)
+        else:
+            for ruleid in sorted(rule.id for rule in normal_rules):
+                logger.verbose(f"- {ruleid}")
+
+        if len(experimental_rules) > 0:
+            logger.verbose("Experimental Rules:")
+            if too_many_entries > 0 and len(experimental_rules) > too_many_entries:
+                logger.verbose(TOO_MUCH_DATA)
+            else:
+                for ruleid in sorted(rule.id for rule in experimental_rules):
+                    logger.verbose(f"- {ruleid}")
+
+
+##############################################################################
+# Metrics
+##############################################################################
+
+
+# TODO: group the diff scan params and secrets stuff in separate dataclasses
+def add_metrics_part1(
+    metrics: Metrics,
+    project_url: Optional[str],
+    engine_type: EngineType,
+    configs: Sequence[str],
+    configs_obj: Config,
+    baseline_commit: Optional[str],
+    diff_depth: int,
+    run_secrets: bool,
+    allow_untrusted_validators: bool,
+    disable_secrets_validation: bool,
+) -> None:
+    with_code_rules = configs_obj.with_code_rules
+    with_supply_chain = configs_obj.with_supply_chain
+
+    if metrics.is_enabled:
+        metrics.add_project_url(project_url)
+        metrics.add_integration_name(environ.get("SEMGREP_INTEGRATION_NAME"))
+        metrics.add_configs(configs)
+        metrics.add_engine_config(
+            engine_type,
+            CodeConfig() if with_code_rules else None,
+            SecretsConfig(
+                SecretsOrigin(AnySecretsOrigin())
+                if allow_untrusted_validators
+                else SecretsOrigin(SemgrepSecretsOrigin())
+            )
+            if run_secrets and not disable_secrets_validation
+            else None,
+            SupplyChainConfig() if with_supply_chain else None,
+        )
+        metrics.add_is_diff_scan(baseline_commit is not None)
+        if engine_type.is_pro:
+            metrics.add_diff_depth(diff_depth)
+
+
+##############################################################################
+# DiffScan
+##############################################################################
+
+
 def remove_matches_in_baseline(
     head_matches_by_rule: RuleMatchMap,
     baseline_matches_by_rule: RuleMatchMap,
@@ -188,6 +334,15 @@ def remove_matches_in_baseline(
         f"Removed {unit_str(num_removed, 'finding')} that were in baseline scan"
     )
     return kept_matches_by_rule
+
+
+##############################################################################
+# Join rules
+##############################################################################
+
+##############################################################################
+# SCA
+##############################################################################
 
 
 def filter_dependency_aware_rules(
@@ -229,6 +384,11 @@ def filter_dependency_aware_rules(
             filtered_rules.append(rule)
 
     return filtered_rules
+
+
+##############################################################################
+# Run rules
+##############################################################################
 
 
 # This runs semgrep-core (and also handles SCA and join rules)
@@ -493,22 +653,6 @@ def run_rules(
     )
 
 
-# This is used for testing and comparing with osemgrep.
-def list_targets_and_exit(
-    target_manager: TargetManager, product: out.Product, long_format: bool = False
-) -> None:
-    targets = target_manager.get_files_for_language(lang=None, product=product)
-    for path in sorted(targets.kept):
-        if long_format:
-            print(f"selected {path}")
-        else:
-            print(str(path))
-    if long_format:
-        for path, reason in target_manager.ignore_log.list_skipped_paths_with_reason():
-            print(f"ignored {path} [{reason}]")
-    exit(0)
-
-
 ##############################################################################
 # Entry points
 ##############################################################################
@@ -591,30 +735,13 @@ def run_scan(
 ]:
     logger.debug(f"semgrep version {__VERSION__}")
 
-    # Some of the lockfile parsers are defined recursively
-    # This does not play well with python's conservative recursion limit, so we manually increase
-
-    if "SEMGREP_PYTHON_RECURSION_LIMIT_INCREASE" in environ:
-        recursion_limit_increase = int(
-            environ["SEMGREP_PYTHON_RECURSION_LIMIT_INCREASE"]
-        )
-    else:
-        recursion_limit_increase = 500
-
-    setrecursionlimit(getrecursionlimit() + recursion_limit_increase)
-
-    if include is None:
-        include = []
-
-    if exclude is None:
-        exclude = {}
-
-    if exclude_rule is None:
-        exclude_rule = []
-
+    adjust_python_recursion_limit()
     project_url = get_project_url()
     profiler = ProfileManager()
 
+    # ----------------------------
+    # Step1: loading the rules
+    # ----------------------------
     rule_start_time = time.time()
 
     includes_remote_config = ConfigLoader.includes_remote_config(configs)
@@ -623,7 +750,6 @@ def run_scan(
         if includes_remote_config
         else "Loading rules..."
     )
-
     with Progress(
         SpinnerColumn(style="green"),
         TextColumn("[bold]{task.description}[/bold]"),
@@ -645,6 +771,12 @@ def run_scan(
     all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
     profiler.save("config_time", rule_start_time)
 
+    # ----------------------------
+    # Step2: adjust the rules
+    # ----------------------------
+    if exclude_rule is None:
+        exclude_rule = []
+
     # We determine if SAST / SCA is enabled based on the config str
     with_code_rules = configs_obj.with_code_rules
     with_supply_chain = configs_obj.with_supply_chain
@@ -655,25 +787,18 @@ def run_scan(
     # Must happen after configs are resolved because it is determined
     # then whether metrics are sent or not
     metrics = get_state().metrics
-    if metrics.is_enabled:
-        metrics.add_project_url(project_url)
-        metrics.add_integration_name(environ.get("SEMGREP_INTEGRATION_NAME"))
-        metrics.add_configs(configs)
-        metrics.add_engine_config(
-            engine_type,
-            CodeConfig() if with_code_rules else None,
-            SecretsConfig(
-                SecretsOrigin(AnySecretsOrigin())
-                if allow_untrusted_validators
-                else SecretsOrigin(SemgrepSecretsOrigin())
-            )
-            if run_secrets and not disable_secrets_validation
-            else None,
-            SupplyChainConfig() if with_supply_chain else None,
-        )
-        metrics.add_is_diff_scan(baseline_commit is not None)
-        if engine_type.is_pro:
-            metrics.add_diff_depth(diff_depth)
+    add_metrics_part1(
+        metrics,
+        project_url,
+        engine_type,
+        configs,
+        configs_obj,
+        baseline_commit,
+        diff_depth,
+        run_secrets,
+        allow_untrusted_validators,
+        disable_secrets_validation,
+    )
 
     if not severity:
         shown_severities = DEFAULT_SHOWN_SEVERITIES
@@ -686,20 +811,13 @@ def run_scan(
     filtered_rules = filter_exclude_rule(filtered_rules, exclude_rule)
 
     if dump_n_rule_partitions:
-        rules = {"rules": [r.raw for r in filtered_rules]}
-        output_dir = str(dump_rule_partitions_dir)
-        args = out.DumpRulePartitionsParams(
-            out.RawJson(rules), dump_n_rule_partitions, out.Fpath(output_dir)
+        dump_partitions_and_exit(
+            filtered_rules, dump_rule_partitions_dir, dump_n_rule_partitions
         )
-        ok = dump_rule_partitions(args)
-        if not ok:
-            logger.error("An error occurred while dumping rule partitions.")
-            sys.exit(2)
-        logger.info(f"Successfully dumped rule partitions to {output_dir}")
-        sys.exit(0)
 
     output_handler.handle_semgrep_errors(config_errors)
     real_config_errors = select_real_errors(config_errors)
+
     if not pattern:
         config_id_if_single = (
             list(configs_obj.valid.keys())[0] if len(configs_obj.valid) == 1 else ""
@@ -749,12 +867,21 @@ def run_scan(
                 f"Exception in BaselineHandler initialization: {exception_with_trace}"
             )
 
+    # ----------------------------
+    # Step3: Computing the targets
+    # ----------------------------
+
     respect_git_ignore = not no_git_ignore
     # One of the several properties of the --no-git-ignore option is that
     # it disables the use of git.
     force_novcs_project = force_novcs_project or no_git_ignore
     scanning_root_strings = frozenset(Path(t) for t in scanning_roots)
     too_many_entries = output_handler.settings.max_log_list_entries
+
+    if include is None:
+        include = []
+    if exclude is None:
+        exclude = {}
 
     try:
         target_manager = TargetManager(
@@ -780,20 +907,9 @@ def run_scan(
     except InvalidScanningRootError as e:
         raise SemgrepError(e)
 
-    if historical_secrets:
-        target_mode_config = TargetModeConfig.historical_scan()
-    elif baseline_handler is not None:
-        if engine_type.is_interfile:
-            target_mode_config = TargetModeConfig.pro_diff_scan(
-                # `target_manager.get_all_files()` will only return changed files
-                # (diff targets) when baseline_handler is set
-                target_manager.get_all_files(),
-                diff_depth,
-            )
-        else:
-            target_mode_config = TargetModeConfig.diff_scan()
-    else:
-        target_mode_config = TargetModeConfig.whole_scan()
+    target_mode_config = target_mode_conf(
+        historical_secrets, baseline_handler, engine_type, diff_depth, target_manager
+    )
 
     core_start_time = time.time()
     core_runner = CoreRunner(
@@ -812,26 +928,7 @@ def run_scan(
         path_sensitive=path_sensitive,
         symbol_analysis=symbol_analysis,
     )
-
-    experimental_rules, normal_rules = partition(
-        filtered_rules, lambda rule: (isinstance(rule.severity.value, out.Experiment))
-    )
-
-    if logger.isEnabledFor(logger.VERBOSE_LOG_LEVEL):
-        logger.verbose("Rules:")
-        if too_many_entries > 0 and len(normal_rules) > too_many_entries:
-            logger.verbose(TOO_MUCH_DATA)
-        else:
-            for ruleid in sorted(rule.id for rule in normal_rules):
-                logger.verbose(f"- {ruleid}")
-
-        if len(experimental_rules) > 0:
-            logger.verbose("Experimental Rules:")
-            if too_many_entries > 0 and len(experimental_rules) > too_many_entries:
-                logger.verbose(TOO_MUCH_DATA)
-            else:
-                for ruleid in sorted(rule.id for rule in experimental_rules):
-                    logger.verbose(f"- {ruleid}")
+    log_rules(filtered_rules, too_many_entries)
 
     (
         rule_matches_by_rule,
