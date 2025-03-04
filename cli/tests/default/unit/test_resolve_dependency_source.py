@@ -6,6 +6,7 @@ import pytest
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers.util import DependencyParser
 from semgrep.resolve_dependency_source import _handle_lockfile_source
+from semgrep.subproject import DependencyResolutionConfig
 
 
 @pytest.mark.quick
@@ -31,7 +32,9 @@ def test_handle_missing_parser_for_lockfile(mock_parsers_dict) -> None:
         ),
     )
 
-    result = _handle_lockfile_source(dep_source, False, False)
+    result = _handle_lockfile_source(
+        dep_source, DependencyResolutionConfig(False, False, False)
+    )
 
     assert isinstance(result[0], out.UnresolvedReason)
     assert result[0].value == out.UnresolvedUnsupported()
@@ -65,7 +68,9 @@ def test_dependency_parser_exception(mock_parsers_dict) -> None:
         ),
     )
 
-    result = _handle_lockfile_source(dep_source, False, False)
+    result = _handle_lockfile_source(
+        dep_source, DependencyResolutionConfig(False, False, False)
+    )
 
     assert result[0] == (out.ResolutionMethod(out.LockfileParsing()), [])
     assert len(result[1]) == 1

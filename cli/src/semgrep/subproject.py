@@ -1,5 +1,6 @@
 import hashlib
 from collections import defaultdict
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict
 from typing import Generator
@@ -8,6 +9,22 @@ from typing import Optional
 from typing import Tuple
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+
+
+@dataclass(frozen=True)
+class DependencyResolutionConfig:
+    # Allow resolving dependencies by building projects, installing
+    # dependencies, etc. This must be explicitly enabled because it introduces
+    # a security risk since it may cause arbitrary code to be executed.
+    allow_local_builds: bool
+
+    # Use resolvers that have been updated to parse dependency paths from
+    # lockfiles and other dependency sources.
+    ptt_enabled: bool
+
+    # If true, resolve all found subprojects, even if they are not explicitly
+    # targeted.
+    resolve_untargeted_subprojects: bool
 
 
 def from_resolved_dependencies(

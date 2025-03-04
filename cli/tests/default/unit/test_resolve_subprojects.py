@@ -10,6 +10,7 @@ from semdep.subproject_matchers import ExactManifestOnlyMatcher
 from semdep.subproject_matchers import SubprojectMatcher
 from semgrep.resolve_dependency_source import resolve_dependency_source
 from semgrep.resolve_subprojects import find_subprojects
+from semgrep.subproject import DependencyResolutionConfig
 
 
 @pytest.mark.quick
@@ -214,7 +215,9 @@ def test_ptt_unconditionally_generates_dependency_graphs(
         ),
     )
 
-    deps, _, _ = resolve_dependency_source(dep_source, True, True)
+    deps, _, _ = resolve_dependency_source(
+        dep_source, DependencyResolutionConfig(True, True, True)
+    )
     assert not isinstance(deps, out.UnresolvedReason)
     assert deps[0] == out.ResolutionMethod(out.DynamicResolution())
 
@@ -264,7 +267,9 @@ def test_ptt_unconditional_graph_generation_falls_back_on_lockfile_parsing(
             )
         ),
     )
-    deps, _, _ = resolve_dependency_source(dep_source, True, True)
+    deps, _, _ = resolve_dependency_source(
+        dep_source, DependencyResolutionConfig(True, True, True)
+    )
     assert not isinstance(deps, out.UnresolvedReason)
     assert deps[0] == out.ResolutionMethod(out.LockfileParsing())
     assert len(deps[1]) == 1

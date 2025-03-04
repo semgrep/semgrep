@@ -86,6 +86,7 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Product
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.state import get_state
+from semgrep.subproject import DependencyResolutionConfig
 from semgrep.subproject import get_all_source_files
 from semgrep.subproject import iter_found_dependencies
 from semgrep.subproject import make_dependencies_by_source_path
@@ -284,6 +285,12 @@ def run_rules(
     unresolved_subprojects: List[out.UnresolvedSubproject] = []
     all_subprojects: List[Union[out.ResolvedSubproject, out.UnresolvedSubproject]] = []
 
+    dependency_resolution_config = DependencyResolutionConfig(
+        allow_local_builds=allow_local_builds,
+        ptt_enabled=ptt_enabled,
+        resolve_untargeted_subprojects=resolve_all_deps_in_diff_scan,
+    )
+
     if len(dependency_aware_rules) > 0:
         # Parse lockfiles to get dependency information, if there are relevant rules
         (
@@ -291,11 +298,7 @@ def run_rules(
             resolved_subprojects,
             sca_dependency_targets,
         ) = resolve_subprojects(
-            target_manager,
-            dependency_aware_rules,
-            allow_dynamic_resolution=allow_local_builds or x_tr,
-            ptt_enabled=ptt_enabled or x_tr,
-            resolve_untargeted_subprojects=resolve_all_deps_in_diff_scan,
+            target_manager, dependency_aware_rules, dependency_resolution_config
         )
 
         # for each subproject, split the errors into semgrep errors and parser errors.

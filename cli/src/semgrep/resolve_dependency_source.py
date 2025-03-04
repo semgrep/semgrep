@@ -30,6 +30,7 @@ from semdep.parsers.util import to_parser
 from semdep.parsers.yarn import parse_yarn
 from semgrep.rpc_call import resolve_dependencies
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
+from semgrep.subproject import DependencyResolutionConfig
 from semgrep.subproject import get_display_paths
 from semgrep.verbose_logging import getLogger
 
@@ -217,8 +218,7 @@ def _handle_manifest_only_source(
 
 def _handle_multi_lockfile_source(
     dep_source: out.MultiLockfileDependencySource,
-    enable_dynamic_resolution: bool,
-    ptt_enabled: bool,
+    config: DependencyResolutionConfig,
 ) -> DependencyResolutionResult:
     """Handle dependency resolution for sources with multiple lockfiles."""
     all_resolved_deps: List[out.ResolvedDependency] = []
@@ -236,8 +236,7 @@ def _handle_multi_lockfile_source(
         # concerned about performance here, but don't have enough data yet.
         new_resolved_info, new_errors, new_targets = resolve_dependency_source(
             lockfile_source,
-            enable_dynamic_resolution=enable_dynamic_resolution,
-            ptt_enabled=ptt_enabled,
+            config,
         )
         if not isinstance(new_resolved_info, out.UnresolvedReason):
             resolution_method, new_deps = new_resolved_info
@@ -264,8 +263,7 @@ def _handle_lockfile_source(
     dep_source: Union[
         out.LockfileOnlyDependencySource, out.ManifestLockfileDependencySource
     ],
-    enable_dynamic_resolution: bool,
-    ptt_enabled: bool,
+    config: DependencyResolutionConfig,
 ) -> DependencyResolutionResult:
     """Handle dependency resolution for lockfile-based sources."""
     lockfile = (
@@ -276,7 +274,7 @@ def _handle_lockfile_source(
     lockfile_path = Path(lockfile.path.value)
     parser = PARSERS_BY_LOCKFILE_KIND[lockfile.kind]
 
-    if ptt_enabled:
+    if config.ptt_enabled:
         manifest_kind = (
             dep_source.value[0].kind
             if isinstance(dep_source, out.ManifestLockfileDependencySource)
@@ -290,7 +288,7 @@ def _handle_lockfile_source(
         ) in PTT_OCAML_PARSER_SUBPROJECT_KINDS
 
         use_dynamic_resolution = (
-            enable_dynamic_resolution
+            config.allow_local_builds
             and (manifest_kind, lockfile_kind)
             in PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS
         )
@@ -347,8 +345,7 @@ def _handle_lockfile_source(
 
 def resolve_dependency_source(
     dep_source: out.DependencySource,
-    enable_dynamic_resolution: bool = True,
-    ptt_enabled: bool = False,
+    config: DependencyResolutionConfig,
 ) -> DependencyResolutionResult:
     """
     Resolve the dependencies in the dependency source. Returns:
@@ -360,22 +357,17 @@ def resolve_dependency_source(
     if isinstance(dep_source_, out.LockfileOnlyDependencySource) or isinstance(
         dep_source_, out.ManifestLockfileDependencySource
     ):
-        return _handle_lockfile_source(
-            dep_source_,
-            enable_dynamic_resolution,
-            ptt_enabled,
-        )
+        return _handle_lockfile_source(dep_source_, config)
     elif isinstance(dep_source_, out.MultiLockfileDependencySource):
         return _handle_multi_lockfile_source(
             dep_source_,
-            enable_dynamic_resolution,
-            ptt_enabled,
+            config,
         )
     elif (
         isinstance(dep_source_, out.ManifestOnlyDependencySource)
         and (dep_source_.value.kind, None) in PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS
     ):
-        if enable_dynamic_resolution:
+        if config.allow_local_builds:
             return _handle_manifest_only_source(dep_source_)
         else:
             return out.UnresolvedReason(out.UnresolvedDisabled()), [], []

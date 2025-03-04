@@ -21,6 +21,7 @@ from semgrep.resolve_dependency_source import resolve_dependency_source
 from semgrep.rule import Rule
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_types import Language
+from semgrep.subproject import DependencyResolutionConfig
 from semgrep.subproject import find_closest_subproject
 from semgrep.subproject import from_resolved_dependencies
 from semgrep.subproject import get_all_source_files
@@ -176,9 +177,7 @@ def filter_changed_subprojects(
 def resolve_subprojects(
     target_manager: TargetManager,
     dependency_aware_rules: List[Rule],
-    allow_dynamic_resolution: bool = False,
-    ptt_enabled: bool = False,
-    resolve_untargeted_subprojects: bool = False,
+    config: DependencyResolutionConfig,
 ) -> Tuple[
     List[out.UnresolvedSubproject],
     Dict[Ecosystem, List[out.ResolvedSubproject]],
@@ -188,13 +187,19 @@ def resolve_subprojects(
     Identify subprojects based on lockfiles and manifests and resolve their
     dependency information.
 
-    When `allow_dynamic_resolution` is False, dependencies are resolved only by
+    The `config` argument controls the behavior of the
+    dependency resolver:
+
+    When `allow_local_builds` is False, dependencies are resolved only by
     parsing existing files (lockfiles and manifests).
-    If `allow_dynamic_resolution` is True, this function may cause projects that
+    If `allow_local_builds` is True, this function may cause projects that
     are scanned to be built. This may involve:
     - Downloading packages from the internet
     - Executing code that is included in the scanned project or in downloaded
       packages
+
+    If `ptt_enabled` is True, dependency resolvers that support dependency
+    path will be prioritized.
 
     If `resolve_untargeted_subprojects` is False, only subprojects with
     dependency source files or relevant code files are resolved and the
@@ -203,7 +208,7 @@ def resolve_subprojects(
     resolution is attempted for every found subproject.
     The list of rules is required in order to choose which subprojects to
     resolve and which can be skipped based
-    on the set of target reported by the `target_manager`.
+    on the set of targets reported by the `target_manager`.
 
     Returns a tuple with the following items:
         1. Unresolved subprojects
@@ -220,7 +225,7 @@ def resolve_subprojects(
     # A subproject is relevant if one of its dependency source files is a target
     # or there exist a code target for which find_closest_subproject is that
     # subproject.
-    if resolve_untargeted_subprojects:
+    if config.resolve_untargeted_subprojects:
         relevant_subprojects = found_subprojects
         irrelevant_subprojects: List[out.UnresolvedSubproject] = []
     else:
@@ -262,8 +267,7 @@ def resolve_subprojects(
                 continue
             resolved_info, errors, targets = resolve_dependency_source(
                 subproject.dependency_source,
-                allow_dynamic_resolution,
-                ptt_enabled,
+                config,
             )
             dependency_targets.extend(targets)
 
