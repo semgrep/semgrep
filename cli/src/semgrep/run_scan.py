@@ -23,6 +23,7 @@ from sys import setrecursionlimit
 from typing import Any
 from typing import Collection
 from typing import Dict
+from typing import FrozenSet
 from typing import List
 from typing import Mapping
 from typing import Optional
@@ -422,6 +423,187 @@ def remove_matches_in_baseline(
     return kept_matches_by_rule
 
 
+# TODO: group some params in separate dataclasses because ugly to have that many
+# params, insane
+
+
+def baseline_run(
+    baseline_handler: BaselineHandler,
+    baseline_commit: Optional[str],
+    rule_matches_by_rule: RuleMatchMap,
+    all_subprojects: List[Union[out.UnresolvedSubproject, out.ResolvedSubproject]],
+    scanning_root_strings: FrozenSet[Path],
+    target_mode_config: TargetModeConfig,
+    output_extra: OutputExtra,
+    include: Sequence[str],
+    exclude: Mapping[out.Product, Sequence[str]],
+    max_target_bytes: int,
+    respect_git_ignore: bool,
+    skip_unknown_extensions: bool,
+    too_many_entries: int,
+    respect_semgrepignore: bool,
+    core_runner: CoreRunner,
+    output_handler: OutputHandler,
+    dump_command_for_core: bool,
+    time_flag: bool,
+    matching_explanations: bool,
+    engine_type: EngineType,
+    strict: bool,
+    run_secrets: bool,
+    disable_secrets_validation: bool,
+    allow_local_builds: bool,
+    ptt_enabled: bool,
+    use_semgrepignore_v2: bool,
+) -> RuleMatchMap:
+    """
+    Run baseline scan and return the updated rule_matches_by_rule with baseline matches removed.
+    """
+    findings_count = sum(
+        len([match for match in matches if not match.from_transient_scan])
+        for matches in rule_matches_by_rule.values()
+    )
+    logger.info(f"  Current version has {unit_str(findings_count, 'finding')}.")
+    logger.info("")
+
+    # The idea of the baseline scan is that we want to find out which of the
+    # findings from the head commit that we just scanned are really "new", and
+    # not already present on the baseline commit.
+    # We don't want to bother scanning the entire project on the baseline
+    # commit, because if we only found matches in one file of a huge monorepo
+    # on our head commit scan, it would be a waste of time to scan the entire
+    # monorepo on the baseline commit to find out which of those matches were
+    # aleady present
+    # To this end, the files we want to scan on the baseline commit are the
+    # following:
+
+    # All the files that had a match in the head commit
+    paths_with_matches = list(
+        {match.path for matches in rule_matches_by_rule.values() for match in matches}
+    )
+    baseline_targets = set(paths_with_matches)
+
+    # For each dependency subproject, if we resolved it in the head commit,
+    # and there was a match in any file associated with that subproject,
+    # either a code file or a lockfile, we want to include the lockfile and
+    # (if present) the manifest file of that subproject.
+    # Instead of trying to compute this, we just include all the resolved
+    # subprojects, which is guaranteed to include all the files we really need
+    baseline_targets |= set(
+        flatten(
+            [
+                get_all_source_files(x.info.dependency_source)
+                for x in all_subprojects
+                if isinstance(x, out.ResolvedSubproject)
+            ]
+        )
+    )
+
+    # If a file was renamed between the baseline commit and the head commit,
+    # [baseline_handler.status.renamed] maps the new path to the old path
+    # If a renamed file had matches in the head commit, we still want to
+    # scan it in the baseline commit, so we add the original path of all
+    # renamed files this technically includes more targets than necessary:
+    # if `foo.py` is renamed to `bar.py`, and `bar.py` had no matches in the
+    # head commit, we still scan `foo.py` in the baseline commit, but it seems
+    # safer to not change this
+    baseline_targets |= set(baseline_handler.status.renamed.values())
+
+    # We want to *exclude* any files that were added between the baseline commit
+    # and the head commit, because they won't exist on the baseline commit
+    baseline_targets -= set(baseline_handler.status.added)
+
+    if not paths_with_matches:
+        logger.info("Skipping baseline scan, because there are no current findings.")
+    elif not baseline_targets:
+        logger.info(
+            "Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit."
+        )
+    else:
+        logger.info(f"Creating git worktree from '{baseline_commit}' to scan baseline.")
+        baseline_handler.print_git_log()
+        logger.info("")
+        try:
+            with baseline_handler.baseline_context():
+                baseline_scanning_root_strings = scanning_root_strings
+                baseline_target_mode_config = target_mode_config
+                if target_mode_config.is_pro_diff_scan:
+                    # Conducting the inter-file diff scan twice with the exact
+                    # same configuration, both on the current commit and the
+                    # baseline commit, could result in the absence of a newly
+                    # added file and its dependencies from the baseline run.
+                    # Consequently, this may lead to the failure to remove
+                    # pre-existing findings.
+                    # A more effective approach would involve utilizing the same
+                    # set of scanned diff targets from the first run in the
+                    # baseline run. This approach ensures the safe elimination
+                    # of any existing findings in the dependency files, even if
+                    # the original file does not exist in the baseline commit.
+                    scanned = [Path(t.value) for t in output_extra.core.paths.scanned]
+                    scanned.extend(baseline_handler.status.renamed.values())
+                    baseline_target_mode_config = TargetModeConfig.pro_diff_scan(
+                        frozenset(
+                            t for t in scanned if t.exists() and not t.is_symlink()
+                        ),
+                        0,  # scanning the same set of files in the second run
+                    )
+                else:
+                    baseline_scanning_root_strings = frozenset(
+                        Path(t)
+                        for t in baseline_targets
+                        if t.exists() and not t.is_symlink()
+                    )
+                baseline_target_manager = TargetManager(
+                    scanning_root_strings=baseline_scanning_root_strings,
+                    use_semgrepignore_v2=use_semgrepignore_v2,
+                    includes=include,
+                    excludes=exclude,
+                    max_target_bytes=max_target_bytes,
+                    # only target the paths that had a match, ignoring symlinks
+                    # and non-existent files
+                    respect_git_ignore=respect_git_ignore,
+                    allow_unknown_extensions=not skip_unknown_extensions,
+                    semgrepignore_profiles=semgrepignore_to_semgrepignore_profiles(
+                        get_semgrepignore(too_many_entries),
+                    ),
+                    respect_semgrepignore=respect_semgrepignore,
+                )
+
+                (
+                    baseline_rule_matches_by_rule,
+                    baseline_semgrep_errors,
+                    _,
+                    _,
+                    _,
+                    _plans,
+                    _,
+                ) = run_rules(
+                    # only the rules that had a match
+                    [rule for rule, matches in rule_matches_by_rule.items() if matches],
+                    baseline_target_manager,
+                    baseline_target_mode_config,
+                    core_runner,
+                    output_handler,
+                    dump_command_for_core,
+                    time_flag,
+                    matching_explanations,
+                    engine_type,
+                    strict,
+                    run_secrets,
+                    disable_secrets_validation,
+                    allow_local_builds=allow_local_builds,
+                    ptt_enabled=ptt_enabled,
+                )
+                rule_matches_by_rule = remove_matches_in_baseline(
+                    rule_matches_by_rule,
+                    baseline_rule_matches_by_rule,
+                    baseline_handler.status.renamed,
+                )
+                output_handler.handle_semgrep_errors(baseline_semgrep_errors)
+        except Exception as e:
+            raise SemgrepError(e)
+    return rule_matches_by_rule
+
+
 ##############################################################################
 # Join rules
 ##############################################################################
@@ -482,6 +664,7 @@ def filter_dependency_aware_rules(
 def run_rules(
     filtered_rules: List[Rule],
     target_manager: TargetManager,
+    target_mode_config: TargetModeConfig,
     core_runner: CoreRunner,
     output_handler: OutputHandler,
     dump_command_for_core: bool,
@@ -493,7 +676,6 @@ def run_rules(
     # for secrets, code, and supply chain
     run_secrets: bool = False,
     disable_secrets_validation: bool = False,
-    target_mode_config: Optional[TargetModeConfig] = None,
     *,
     with_code_rules: bool = True,
     with_supply_chain: bool = False,
@@ -510,9 +692,6 @@ def run_rules(
     List[Plan],
     List[Union[out.UnresolvedSubproject, out.ResolvedSubproject]],
 ]:
-    if not target_mode_config:
-        target_mode_config = TargetModeConfig.whole_scan()
-
     join_rules, rest_of_the_rules = partition(
         filtered_rules, lambda rule: rule.mode == JOIN_MODE
     )
@@ -935,14 +1114,14 @@ def run_scan(
 
     try:
         target_manager = TargetManager(
+            scanning_root_strings=scanning_root_strings,
             use_semgrepignore_v2=use_semgrepignore_v2,
             includes=include,
             excludes=exclude,
-            max_target_bytes=max_target_bytes,
-            scanning_root_strings=scanning_root_strings,
-            respect_git_ignore=respect_git_ignore,
             force_novcs_project=force_novcs_project,
             force_project_root=force_project_root,
+            max_target_bytes=max_target_bytes,
+            respect_git_ignore=respect_git_ignore,
             respect_rule_paths=respect_rule_paths,
             baseline_handler=baseline_handler,
             allow_unknown_extensions=not skip_unknown_extensions,
@@ -995,6 +1174,7 @@ def run_scan(
     ) = run_rules(
         filtered_rules,
         target_manager,
+        target_mode_config,
         core_runner,
         output_handler,
         dump_command_for_core,
@@ -1004,7 +1184,6 @@ def run_scan(
         strict,
         run_secrets,
         disable_secrets_validation,
-        target_mode_config,
         with_code_rules=configs_obj.with_code_rules,
         with_supply_chain=configs_obj.with_supply_chain,
         allow_local_builds=allow_local_builds,
@@ -1021,154 +1200,36 @@ def run_scan(
     # Step3 bis: optional baseline run
     # ---------------------------------
 
-    paths_with_matches = list(
-        {match.path for matches in rule_matches_by_rule.values() for match in matches}
-    )
-
-    findings_count = sum(
-        len([match for match in matches if not match.from_transient_scan])
-        for matches in rule_matches_by_rule.values()
-    )
-
     # Run baseline if needed
     if baseline_handler:
-        logger.info(f"  Current version has {unit_str(findings_count, 'finding')}.")
-        logger.info("")
-        # The idea of the baseline scan is that we want to find out which of the findings from the head commit
-        # that we just scanned are really "new", and not already present on the baseline commit.
-        # We don't want to bother scanning the entire project on the baseline commit, because if we only
-        # found matches in one file of a huge monorepo on our head commit scan, it would be a waste of time to
-        # scan the entire monorepo on the baseline commit to find out which of those matches were aleady present
-        # To this end, the files we want to scan on the baseline commit are the following:
-
-        # All the files that had a match in the head commit
-        baseline_targets = set(paths_with_matches)
-
-        # For each dependency subproject, if we resolved it in the head commit,
-        # and there was a match in any file associated with that subproject,
-        # either a code file or a lockfile, we want to include the lockfile and
-        # (if present) the manifest file of that subproject
-        # Instead of trying to compute this, we just include all the resolved subprojects,
-        # which is guaranteed to include all the files we really need
-        baseline_targets |= set(
-            flatten(
-                [
-                    get_all_source_files(x.info.dependency_source)
-                    for x in all_subprojects
-                    if isinstance(x, out.ResolvedSubproject)
-                ]
-            )
+        rule_matches_by_rule = baseline_run(
+            baseline_handler=baseline_handler,
+            baseline_commit=baseline_commit,
+            rule_matches_by_rule=rule_matches_by_rule,
+            all_subprojects=all_subprojects,
+            scanning_root_strings=scanning_root_strings,
+            target_mode_config=target_mode_config,
+            output_extra=output_extra,
+            include=include,
+            exclude=exclude,
+            max_target_bytes=max_target_bytes,
+            respect_git_ignore=respect_git_ignore,
+            skip_unknown_extensions=skip_unknown_extensions,
+            too_many_entries=too_many_entries,
+            respect_semgrepignore=respect_semgrepignore,
+            core_runner=core_runner,
+            output_handler=output_handler,
+            dump_command_for_core=dump_command_for_core,
+            time_flag=time_flag,
+            matching_explanations=matching_explanations,
+            engine_type=engine_type,
+            strict=strict,
+            run_secrets=run_secrets,
+            disable_secrets_validation=disable_secrets_validation,
+            allow_local_builds=allow_local_builds,
+            ptt_enabled=ptt_enabled,
+            use_semgrepignore_v2=use_semgrepignore_v2,
         )
-
-        # If a file was renamed between the baseline commit and the head commit,
-        # [baseline_handler.status.renamed] maps the new path to the old path
-        # If a renamed file had matches in the head commit, we still want to
-        # scan it in the baseline commit, so we add the original path of all renamed files
-        # this technically includes more targets than necessary:
-        # if `foo.py` is renamed to `bar.py`, and `bar.py` had no matches in the head commit,
-        # we still scan `foo.py` in the baseline commit, but it seems safer to not change this
-        baseline_targets |= set(baseline_handler.status.renamed.values())
-
-        # We want to *exclude* any files that were added between the baseline commit and the head commit,
-        # because they won't exist on the baseline commit
-        baseline_targets -= set(baseline_handler.status.added)
-
-        if not paths_with_matches:
-            logger.info(
-                "Skipping baseline scan, because there are no current findings."
-            )
-        elif not baseline_targets:
-            logger.info(
-                "Skipping baseline scan, because all current findings are in files that didn't exist in the baseline commit."
-            )
-        else:
-            logger.info(
-                f"Creating git worktree from '{baseline_commit}' to scan baseline."
-            )
-            baseline_handler.print_git_log()
-            logger.info("")
-            try:
-                with baseline_handler.baseline_context():
-                    baseline_scanning_root_strings = scanning_root_strings
-                    baseline_target_mode_config = target_mode_config
-                    if target_mode_config.is_pro_diff_scan:
-                        scanned = [
-                            # Conducting the inter-file diff scan twice with the exact same configuration,
-                            # both on the current commit and the baseline commit, could result in the absence
-                            # of a newly added file and its dependencies from the baseline run. Consequently,
-                            # this may lead to the failure to remove pre-existing findings. A more effective
-                            # approach would involve utilizing the same set of scanned diff targets from the
-                            # first run in the baseline run. This approach ensures the safe elimination of any
-                            # existing findings in the dependency files, even if the original file does not
-                            # exist in the baseline commit.
-                            Path(t.value)
-                            for t in output_extra.core.paths.scanned
-                        ]
-                        scanned.extend(baseline_handler.status.renamed.values())
-                        baseline_target_mode_config = TargetModeConfig.pro_diff_scan(
-                            frozenset(
-                                t for t in scanned if t.exists() and not t.is_symlink()
-                            ),
-                            0,  # scanning the same set of files in the second run
-                        )
-                    else:
-                        baseline_scanning_root_strings = frozenset(
-                            Path(t)
-                            for t in baseline_targets
-                            if t.exists() and not t.is_symlink()
-                        )
-                    baseline_target_manager = TargetManager(
-                        scanning_root_strings=baseline_scanning_root_strings,
-                        use_semgrepignore_v2=use_semgrepignore_v2,
-                        includes=include,
-                        excludes=exclude,
-                        max_target_bytes=max_target_bytes,
-                        # only target the paths that had a match, ignoring symlinks and non-existent files
-                        respect_git_ignore=respect_git_ignore,
-                        allow_unknown_extensions=not skip_unknown_extensions,
-                        semgrepignore_profiles=semgrepignore_to_semgrepignore_profiles(
-                            get_semgrepignore(too_many_entries),
-                        ),
-                        respect_semgrepignore=respect_semgrepignore,
-                    )
-
-                    (
-                        baseline_rule_matches_by_rule,
-                        baseline_semgrep_errors,
-                        _,
-                        _,
-                        _,
-                        _plans,
-                        _,
-                    ) = run_rules(
-                        # only the rules that had a match
-                        [
-                            rule
-                            for rule, matches in rule_matches_by_rule.items()
-                            if matches
-                        ],
-                        baseline_target_manager,
-                        core_runner,
-                        output_handler,
-                        dump_command_for_core,
-                        time_flag,
-                        matching_explanations,
-                        engine_type,
-                        strict,
-                        run_secrets,
-                        disable_secrets_validation,
-                        baseline_target_mode_config,
-                        allow_local_builds=allow_local_builds,
-                        ptt_enabled=ptt_enabled,
-                    )
-                    rule_matches_by_rule = remove_matches_in_baseline(
-                        rule_matches_by_rule,
-                        baseline_rule_matches_by_rule,
-                        baseline_handler.status.renamed,
-                    )
-                    output_handler.handle_semgrep_errors(baseline_semgrep_errors)
-            except Exception as e:
-                raise SemgrepError(e)
 
     # ---------------------------------
     # Step4: Nosemgrep filtering
