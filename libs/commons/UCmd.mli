@@ -2,6 +2,12 @@
  * is for Unsafe use of Cmd (hence the name). see TCB/Cap.mli for more info.
  *)
 
+val run_subprocess :
+  ?env:Cmd.env -> Cmd.t -> (Bos.OS.Cmd.status, [> Rresult.R.msg ]) result
+(** Like status_of_run but does not capture stdout or stderr of the process
+    running. Useful to replicate CLI behavior similar to execv* commands, which
+    don't work on Windows. *)
+
 (*
    The following functions capture the error output of the command being run
    and logs it as the info level, allowing it to be silenced by adjusting

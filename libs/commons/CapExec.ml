@@ -7,6 +7,7 @@
 (* API *)
 (*****************************************************************************)
 
+let run_subprocess _caps ?env cmd = UCmd.run_subprocess ?env cmd
 let string_of_run _caps ~trim ?env cmd = UCmd.string_of_run ~trim ?env cmd
 
 let string_of_run_with_stderr _caps ~trim ?env cmd =

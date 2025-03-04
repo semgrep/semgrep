@@ -95,6 +95,14 @@ let cmd_to_list ?verbose command =
 (* API *)
 (*****************************************************************************)
 
+(* Like status_of_run, but use this when you want to run a command without
+   having it's output captured. *)
+let run_subprocess ?env cmd =
+  log_command cmd;
+  let env = env_of_env env in
+  (* nosemgrep: forbid-exec *)
+  Cmd.bos_apply (Bos.OS.Cmd.run_status ?env) cmd
+
 let string_of_run ~trim ?env cmd =
   log_command cmd;
   let env = env_of_env env in

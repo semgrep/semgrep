@@ -31,6 +31,7 @@ import importlib.resources
 import os
 import platform
 import shutil
+import subprocess
 import sys
 import sysconfig
 import warnings
@@ -183,8 +184,24 @@ def exec_osemgrep():
         # If you call semgrep-core as osemgrep, then we get
         # osemgrep behavior, see src/main/Main.ml
         sys.argv[0] = "osemgrep"
-    # nosem: dangerous-os-exec-tainted-env-args
-    os.execvp(str(path), sys.argv)
+    if IS_WINDOWS:
+        # On Windows, os.execvp spawns a background process instead of
+        # replacing the current one, which breaks CLI interactivity. Therefore,
+        # we use subprocess.run to spawn a process that maintains interactive
+        # behavior. We stick with os.execvp on POSIX systems because it
+        # correctly replaces the current process, which is the desired behavior
+        # and avoids unnecessary extra processes.
+        # nosem: dangerous-subprocess-use-tainted-env-args
+        try:
+            child = subprocess.run(sys.argv, executable=str(path))
+        except KeyboardInterrupt:
+            # We don't want the stack trace on user interrupt
+            print(str("Aborted!"), file=sys.stderr)
+            sys.exit(130)
+        sys.exit(child.returncode)
+    else:
+        # nosem: dangerous-os-exec-tainted-env-args
+        os.execvp(str(path), sys.argv)
 
 
 # Needed for similar reasons as in pysemgrep, but only for the legacy
