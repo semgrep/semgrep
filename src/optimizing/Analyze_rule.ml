@@ -272,20 +272,21 @@ type step1 =
 
 type cnf_step1 = step1 cnf [@@deriving show]
 type is_id_mvar = Metavariable.mvar -> bool
+type step1_env = { interfile : bool; is_id_mvar : is_id_mvar }
 
 (* Here we overapproximate and just look for _ONE_ occurrence of an $MVAR in an
  * "identifier position" (c.f., 'Analyze_pattern.extract_mvars_in_id_position').
  * But, in a `pattern-either` we could have an $MVAR in an identifier position
  * in one pattern, and the same $MVAR in a non-identifier position in another one.
  * In those cases we may still end up skipping files that we should not skip. *)
-let id_mvars_of_formula f =
+let id_mvars_of_formula ~interfile f =
   let id_mvars = ref MvarSet.empty in
   f
   |> Visit_rule.visit_xpatterns (fun xp ~inside:_ ->
          match xp with
          | { pat = XP.Sem (pat, lang); _ } ->
              id_mvars :=
-               Analyze_pattern.extract_mvars_in_id_position ~lang pat
+               Analyze_pattern.extract_mvars_in_id_position ~lang ~interfile pat
                |> MvarSet.union !id_mvars
          | __else__ -> ());
   !id_mvars
@@ -319,30 +320,34 @@ and leaf_step1 f =
       metavarcond_step1 x
 *)
 
-let rec (and_step1 : is_id_mvar:is_id_mvar -> cnf_step0 -> cnf_step1) =
- fun ~is_id_mvar cnf ->
+let rec (and_step1 : step1_env -> cnf_step0 -> cnf_step1) =
+ fun env cnf ->
   match cnf with
-  | And xs -> And (xs |> List_.filter_map (or_step1 ~is_id_mvar))
+  | And xs -> And (xs |> List_.filter_map (or_step1 env))
 
-and or_step1 ~is_id_mvar cnf =
+and or_step1 env cnf =
   match cnf with
   | Or xs ->
       (* old: We had `List_.filter_map` here before, but that gives the wrong
        * semantics. See NOTE "AND vs OR and filter_map". *)
-      let* ys = option_map (leaf_step1 ~is_id_mvar) xs in
+      let* ys = option_map (leaf_step1 env) xs in
       if List_.null ys then None else Some (Or ys)
 
-and leaf_step1 ~is_id_mvar f =
+and leaf_step1 env f =
   match f with
   (* old: we can't filter now; too late, see comment above on step0 *)
   (*  | Not _ -> None *)
-  | LPat pat -> xpat_step1 pat
-  | LCond x -> metavarcond_step1 ~is_id_mvar x
+  | LPat pat -> xpat_step1 env pat
+  | LCond x -> metavarcond_step1 env x
 
-and xpat_step1 pat =
+and xpat_step1 (env : step1_env) pat =
   match pat.XP.pat with
   | XP.Sem (pat, lang) ->
-      let ids, mvars = Analyze_pattern.extract_strings_and_mvars ~lang pat in
+      let ids, mvars =
+        Analyze_pattern.extract_strings_and_mvars ~lang ~interfile:env.interfile
+          pat
+      in
+
       Some (StringsAndMvars (ids, mvars))
   | XP.Regexp re -> Some (Regexp re)
   (* turn out some generic spacegrep rules can also be slow and a prefilter
@@ -358,12 +363,13 @@ and xpat_step1 pat =
    *)
   | XP.Aliengrep _ -> None
 
-and metavarcond_step1 ~is_id_mvar x =
+and metavarcond_step1 (env : step1_env) x =
   match x with
   | R.CondEval _ -> None
   | R.CondNestedFormula _ -> None
   | R.CondRegexp (mvar, re, const_prop) ->
-      if is_id_mvar mvar then Some (MvarRegexp (mvar, re, const_prop)) else None
+      if env.is_id_mvar mvar then Some (MvarRegexp (mvar, re, const_prop))
+      else None
   (* TODO? maybe we should extract the strings from the type constraint *)
   | R.CondType _ -> None
   | R.CondName _ -> None
@@ -590,12 +596,12 @@ let prefilter_formula_of_prefilter (pre : prefilter) :
   let x, _f = pre in
   x
 
-let compute_final_cnf ~(is_id_mvar : is_id_mvar) f =
+let compute_final_cnf (env : step1_env) f =
   let* f = remove_not_final f in
   let cnf = cnf f in
   Log.debug (fun m -> m "cnf0 = %s" (show_cnf_step0 cnf));
   (* let cnf = and_step1 f in *)
-  let cnf : cnf_step1 = and_step1 ~is_id_mvar cnf in
+  let cnf : cnf_step1 = and_step1 env cnf in
   Log.debug (fun m -> m "cnf1 = %s" (show_cnf_step1 cnf));
   (* TODO: regression on vertx-sqli.yaml
      let cnf = and_step1bis_filter_general cnf in
@@ -606,7 +612,7 @@ let compute_final_cnf ~(is_id_mvar : is_id_mvar) f =
   Some cnf
 [@@profiling]
 
-let regexp_prefilter_of_formula ~analyzer f : prefilter option =
+let regexp_prefilter_of_formula ~interfile ~analyzer f : prefilter option =
   let is_id_mvar =
     match (analyzer : Analyzer.t) with
     | LRegex
@@ -614,11 +620,11 @@ let regexp_prefilter_of_formula ~analyzer f : prefilter option =
     | LAliengrep ->
         Fun.const true
     | L _ ->
-        let id_mvars = id_mvars_of_formula f in
+        let id_mvars = id_mvars_of_formula ~interfile f in
         fun mvar -> MvarSet.mem mvar id_mvars
   in
   try
-    let* final = compute_final_cnf ~is_id_mvar f in
+    let* final = compute_final_cnf { interfile; is_id_mvar } f in
     Some
       ( prefilter_formula_of_cnf_step2 final,
         fun big_str ->
@@ -633,28 +639,36 @@ let regexp_prefilter_of_formula ~analyzer f : prefilter option =
   with
   | GeneralPattern -> None
 
-let regexp_prefilter_of_taint_rule ~analyzer (_rule_id, rule_tok) taint_spec =
-  (* We must be able to match some source _and_ some sink. *)
-  let sources =
-    taint_spec.R.sources |> snd
-    |> List_.map (fun (src : R.taint_source) -> src.source_formula)
-  in
-  let sinks =
-    taint_spec.R.sinks |> snd
-    |> List_.map (fun (sink : R.taint_sink) -> sink.sink_formula)
-  in
-  let f =
-    (* Note that this formula would likely not yield any meaningful result
-     * if executed by search-mode, but it works for the purpose of this
-     * analysis! *)
-    R.And
-      ( rule_tok,
-        [ R.f (R.Or (rule_tok, sources)); R.f (R.Or (rule_tok, sinks)) ] )
-    |> R.f
-  in
-  regexp_prefilter_of_formula ~analyzer f
+let regexp_prefilter_of_taint_rule ~interfile ~analyzer (_rule_id, rule_tok)
+    taint_spec =
+  if interfile then
+    (* Taint rules are a lot more complex to prefilter. Even if the target does
+       not match any source or sink, it may be calling a function in another file
+       that returns taint, and passing a taint to another function (in yet another
+       file) that leads to sink. *)
+    None
+  else
+    (* We must be able to match some source _and_ some sink. *)
+    let sources =
+      taint_spec.R.sources |> snd
+      |> List_.map (fun (src : R.taint_source) -> src.source_formula)
+    in
+    let sinks =
+      taint_spec.R.sinks |> snd
+      |> List_.map (fun (sink : R.taint_sink) -> sink.sink_formula)
+    in
+    let f =
+      (* Note that this formula would likely not yield any meaningful result
+       * if executed by search-mode, but it works for the purpose of this
+       * analysis! *)
+      R.And
+        ( rule_tok,
+          [ R.f (R.Or (rule_tok, sources)); R.f (R.Or (rule_tok, sinks)) ] )
+      |> R.f
+    in
+    regexp_prefilter_of_formula ~interfile ~analyzer f
 
-let regexp_prefilter_of_rule ~cache (r : R.rule) =
+let regexp_prefilter_of_rule ~interfile ~cache (r : R.rule) =
   let rule_id, _t = r.R.id in
   (* rule_id is supposed to be unique so it should work as a key for hmemo.
    * bugfix:
@@ -668,9 +682,10 @@ let regexp_prefilter_of_rule ~cache (r : R.rule) =
       match r.mode with
       | `Search f
       | `Extract { formula = f; _ } ->
-          regexp_prefilter_of_formula ~analyzer:r.target_analyzer f
+          regexp_prefilter_of_formula ~interfile ~analyzer:r.target_analyzer f
       | `Taint spec ->
-          regexp_prefilter_of_taint_rule ~analyzer:r.target_analyzer r.R.id spec
+          regexp_prefilter_of_taint_rule ~interfile ~analyzer:r.target_analyzer
+            r.R.id spec
       | `Steps _ -> (* TODO *) None
       | `SCA _ -> None
     with

@@ -369,7 +369,10 @@ let stat_files (caps : < Cap.stdout ; Cap.readdir ; .. >) xs =
          | Ok rs ->
              rs
              |> List.iter (fun r ->
-                    let res = Analyze_rule.regexp_prefilter_of_rule ~cache r in
+                    let res =
+                      Analyze_rule.regexp_prefilter_of_rule ~interfile:false
+                        ~cache r
+                    in
                     match res with
                     | None ->
                         incr bad;

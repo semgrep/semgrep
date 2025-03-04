@@ -550,13 +550,15 @@ let eval_regression_tests () =
 (* Analyze_rule (filter irrelevant rules) tests *)
 (*****************************************************************************)
 
-let test_irrelevant_rule rule_file target_file =
+let test_irrelevant_rule_intrafile rule_file target_file =
   let cache = Some (Hashtbl.create 101) in
   (* TODO: fail more gracefully for invalid rules? *)
   let rules = Parse_rule.parse rule_file |> Result.get_ok in
   rules
   |> List.iter (fun rule ->
-         match Analyze_rule.regexp_prefilter_of_rule ~cache rule with
+         match
+           Analyze_rule.regexp_prefilter_of_rule ~interfile:false ~cache rule
+         with
          | None ->
              Alcotest.fail
                (spf "Rule %s: no regex prefilter formula"
@@ -581,7 +583,7 @@ let test_irrelevant_rule_file target_file =
             (spf "could not find target file for irrelevant rule %s"
                !!target_file)
       in
-      test_irrelevant_rule rules_file target_file)
+      test_irrelevant_rule_intrafile rules_file target_file)
 
 (* These tests test that semgrep with filter_irrelevant_rules correctly
    does not run files when they lack necessary strings.

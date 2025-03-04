@@ -1107,7 +1107,7 @@ and matches_of_formula xconf rule xtarget formula opt_context :
       xpatterns
     |> RP.add_rule rule
   in
-  Log.info (fun m -> m "found %d matches" (List.length res.matches));
+  Log.debug (fun m -> m "found %d matches" (List.length res.matches));
   (* match results per minirule id which is the same than pattern_id in
    * the formula *)
   let pattern_matches_per_id = group_matches_per_pattern_id res.matches in
@@ -1121,9 +1121,9 @@ and matches_of_formula xconf rule xtarget formula opt_context :
       errors = ref E.ErrorSet.empty;
     }
   in
-  Log.info (fun m -> m "evaluating the formula");
+  Log.debug (fun m -> m "evaluating the formula");
   let final_ranges, expl = evaluate_formula env opt_context formula in
-  Log.info (fun m -> m "found %d final ranges" (List.length final_ranges));
+  Log.debug (fun m -> m "found %d final ranges" (List.length final_ranges));
   let res' =
     {
       res with

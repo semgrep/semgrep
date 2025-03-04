@@ -39,10 +39,10 @@ module MvarSet = Common2.StringSet
 type mvars = MvarSet.t
 
 (*****************************************************************************)
-(* Entry points *)
+(* extract_strings_and_mvars *)
 (*****************************************************************************)
 
-let extract_strings_and_mvars ?lang any =
+let extract_strings_and_mvars_for_intrafile ?lang any =
   let strings = ref [] in
   let mvars = ref [] in
   let visitor =
@@ -76,6 +76,8 @@ let extract_strings_and_mvars ?lang any =
             (* Semgrep can match "foo" against "foo/bar", so we just
              * overapproximate taking the sub-strings, see
              * Pattern_vs_code.m_module_name_prefix. *)
+            (* THINK: What if the pattern looks for foo/bar but the code
+             * is `require("foo").bar` ? *)
             String_.split ~sep:{|/\|\\|} str
             |> List.iter (fun s -> Stack_.push s strings);
             super#visit_directive env x
@@ -128,8 +130,52 @@ let extract_strings_and_mvars ?lang any =
   visitor#visit_any () any;
   (Common2.uniq !strings, Common2.uniq !mvars)
 
-let extract_specific_strings ?lang any =
-  extract_strings_and_mvars ?lang any |> fst
+(* Super basic version for interfile that simply looks at function calls
+   and extracts the identifiers of the functions being called. Those we know
+   that must occur "as is" in the target file for the formula to match, because
+   we do *not* perform interfile symbolic propagation. *)
+let extract_strings_and_mvars_for_interfile ?lang any =
+  let strings = ref [] in
+  let mvars = ref [] in
+  let visitor =
+    object (_self : 'self)
+      inherit [_] AST_generic.iter_no_id_info as super
+
+      method! visit_expr env x =
+        match x.e with
+        (* TOOD(pad):
+           Maybe we could also extract here the first part of the module path. *)
+        | Call
+            ( {
+                e =
+                  N
+                    ( Id ((str, _tok), id_info)
+                    | IdQualified
+                        { name_last = (str, _tok), _; name_info = id_info; _ }
+                      );
+                _;
+              },
+              (_, _args, _) )
+          when (not (Pattern.is_special_string_literal str))
+               && (not (Pattern.is_special_identifier ?lang str))
+               && not (IdFlags.is_hidden !(id_info.id_flags)) ->
+            Stack_.push str strings
+        | _ -> super#visit_expr env x
+    end
+  in
+  visitor#visit_any () any;
+  (Common2.uniq !strings, Common2.uniq !mvars)
+
+(*****************************************************************************)
+(* Entry points *)
+(*****************************************************************************)
+
+let extract_strings_and_mvars ?lang ~interfile any =
+  if interfile then extract_strings_and_mvars_for_interfile ?lang any
+  else extract_strings_and_mvars_for_intrafile ?lang any
+
+let extract_specific_strings ?lang ~interfile any =
+  extract_strings_and_mvars ?lang ~interfile any |> fst
 
 (* In general, if we encounter a `metavariable-regex` operator, we cannot
  * simply use the `regex` for pre-filtering, because the metavariable may
@@ -145,7 +191,7 @@ let extract_specific_strings ?lang any =
  * alt: We could do the opposite and find the metavariables in a position
  *      where we expect constant-folding to be a problem, e.g. "$MVAR" or
  *      $FUNC(..., $MVAR, ...). *)
-let extract_mvars_in_id_position ?lang:_ any =
+let extract_mvars_in_id_position ?lang:_ ~interfile any =
   let mvars = ref MvarSet.empty in
   let visitor =
     object (_self : 'self)
@@ -162,17 +208,23 @@ let extract_mvars_in_id_position ?lang:_ any =
         | _ -> super#visit_directive env x
 
       method! visit_type_kind env x =
-        match x with
-        | TyN (Id ((str, _tok), _ii)) when Mvar.is_metavar_name str ->
-            mvars := MvarSet.add str !mvars
-        | _ -> super#visit_type_kind env x
+        (* Interfile: Problem is subtyping. Even if a type 'A' does not occur in
+           the file, there may be a type 'B' that is a subtype of 'A' that does. *)
+        if not interfile then
+          match x with
+          | TyN (Id ((str, _tok), _ii)) when Mvar.is_metavar_name str ->
+              mvars := MvarSet.add str !mvars
+          | _ -> super#visit_type_kind env x
 
       method! visit_expr env x =
         match x.e with
         | Call ({ e = N (Id ((str, _tok), _ii)); _ }, _)
-        | New (_, { t = TyN (Id ((str, _tok), _ii)); _ }, _, _)
         | DotAccess (_, _, FN (Id ((str, _tok), _ii)))
           when Mvar.is_metavar_name str ->
+            mvars := MvarSet.add str !mvars
+        | New (_, { t = TyN (Id ((str, _tok), _ii)); _ }, _, _)
+        (* Interfile: Problem is subtyping, see 'visit_type_kind'. *)
+          when (not interfile) && Mvar.is_metavar_name str ->
             mvars := MvarSet.add str !mvars
         | _ -> super#visit_expr env x
     end

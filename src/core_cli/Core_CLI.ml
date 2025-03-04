@@ -401,7 +401,12 @@ let all_actions (caps : Cap.all_caps) () =
     (* The rest should be used just interactively by PA developers *)
     ( "-prefilter_of_rules",
       " <file> dump the prefilter regexps of rules in JSON ",
-      Arg_.mk_action_1_conv Fpath.v Core_actions.prefilter_of_rules );
+      Arg_.mk_action_1_conv Fpath.v
+        (Core_actions.prefilter_of_rules ~interfile:false) );
+    ( "-prefilter_of_rules_interfile",
+      " <file> dump the prefilter regexps of rules in JSON ",
+      Arg_.mk_action_1_conv Fpath.v
+        (Core_actions.prefilter_of_rules ~interfile:true) );
     (* the dumpers *)
     ( "-dump_extensions",
       " print file extension to language mapping",
