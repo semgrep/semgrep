@@ -98,6 +98,7 @@ from semgrep.target_manager import SCA_PRODUCT
 from semgrep.target_manager import SECRETS_PRODUCT
 from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
+from semgrep.types import FilteredMatches
 from semgrep.util import flatten
 from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
@@ -231,8 +232,49 @@ def target_mode_conf(
 
 
 ##############################################################################
+# Error management
+##############################################################################
+
+
+def sanity_check_resolved_config(
+    real_config_errors: List[SemgrepError], configs_obj: Config
+) -> None:
+    if len(real_config_errors) > 0:
+        raise SemgrepError(
+            f"invalid configuration file found ({len(real_config_errors)} configs were invalid)",
+            code=MISSING_CONFIG_EXIT_CODE,
+        )
+    # NOTE: We should default to config auto if no config was passed in an
+    # earlier step, but if we reach this step without a config, we emit the
+    # error below.
+    if len(configs_obj.valid) == 0:
+        raise SemgrepError(
+            """No config given. Run with `--config auto` or see https://semgrep.dev/docs/running-rules/ for instructions on running with a specific config""",
+            code=MISSING_CONFIG_EXIT_CODE,
+        )
+
+
+##############################################################################
 # Logging
 ##############################################################################
+
+
+def log_running_rules(
+    configs_obj: Config,
+    config_errors: Sequence[SemgrepError],
+    filtered_rules: List[Rule],
+) -> None:
+    config_id_if_single = (
+        list(configs_obj.valid.keys())[0] if len(configs_obj.valid) == 1 else ""
+    )
+    invalid_msg = (
+        f"({unit_str(len(config_errors), 'config error')})"
+        if len(config_errors)
+        else ""
+    )
+    logger.verbose(
+        f"running {len(filtered_rules)} rules from {unit_str(len(configs_obj.valid), 'config')} {config_id_if_single} {invalid_msg}".strip()
+    )
 
 
 def log_rules(filtered_rules: List[Rule], too_many_entries: int) -> None:
@@ -275,6 +317,7 @@ def add_metrics_part1(
     allow_untrusted_validators: bool,
     disable_secrets_validation: bool,
 ) -> None:
+    # We determine if SAST / SCA is enabled based on the config str
     with_code_rules = configs_obj.with_code_rules
     with_supply_chain = configs_obj.with_supply_chain
 
@@ -299,9 +342,52 @@ def add_metrics_part1(
             metrics.add_diff_depth(diff_depth)
 
 
+def add_metrics_part2(
+    metrics: Metrics,
+    filtered_rules: List[Rule],
+    output_extra: OutputExtra,
+    filtered_matches_by_rule: FilteredMatches,
+    semgrep_errors: List[SemgrepError],
+    profiler: ProfileManager,
+    engine_type: EngineType,
+    baseline_handler: Optional[BaselineHandler],
+) -> None:
+    if metrics.is_enabled:
+        metrics.add_rules(filtered_rules, output_extra.core.time)
+        metrics.add_max_memory_bytes(output_extra.core.time)
+        metrics.add_targets(output_extra.all_targets, output_extra.core.time)
+        metrics.add_findings(filtered_matches_by_rule)
+        metrics.add_errors(semgrep_errors)
+        metrics.add_profiling(profiler)
+        metrics.add_parse_rates(output_extra.parsing_data)
+        metrics.add_interfile_languages_used(output_extra.core.interfile_languages_used)
+        if engine_type.is_pro and baseline_handler:
+            metrics.add_num_diff_scanned(
+                {Path(t.value) for t in output_extra.core.paths.scanned}, filtered_rules
+            )
+
+
 ##############################################################################
 # DiffScan
 ##############################################################################
+
+
+def baseline_handler_opt(
+    baseline_commit: Optional[str], baseline_commit_is_mergebase: bool
+) -> Optional[BaselineHandler]:
+    baseline_handler = None
+    if baseline_commit:
+        try:
+            baseline_handler = BaselineHandler(
+                baseline_commit, is_mergebase=baseline_commit_is_mergebase
+            )
+        except Exception:
+            # Display a trace because we have no idea where the exn was raised.
+            exception_with_trace: str = traceback.format_exc()
+            raise SemgrepError(
+                f"Exception in BaselineHandler initialization: {exception_with_trace}"
+            )
+    return baseline_handler
 
 
 def remove_matches_in_baseline(
@@ -743,7 +829,6 @@ def run_scan(
     # Step1: loading the rules
     # ----------------------------
     rule_start_time = time.time()
-
     includes_remote_config = ConfigLoader.includes_remote_config(configs)
     progress_msg = (
         "Loading rules from registry..."
@@ -767,21 +852,8 @@ def run_scan(
             no_rewrite_rule_ids=no_rewrite_rule_ids,
         )
         progress.remove_task(task_id)
-
     all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
     profiler.save("config_time", rule_start_time)
-
-    # ----------------------------
-    # Step2: adjust the rules
-    # ----------------------------
-    if exclude_rule is None:
-        exclude_rule = []
-
-    # We determine if SAST / SCA is enabled based on the config str
-    with_code_rules = configs_obj.with_code_rules
-    with_supply_chain = configs_obj.with_supply_chain
-    # TODO: handle de-duplication for pro-rules
-    missed_rule_count = configs_obj.missed_rule_count
 
     # Metrics send part 1: add environment information
     # Must happen after configs are resolved because it is determined
@@ -800,6 +872,15 @@ def run_scan(
         disable_secrets_validation,
     )
 
+    # ----------------------------
+    # Step1 bis: adjust the rules
+    # ----------------------------
+    if exclude_rule is None:
+        exclude_rule = []
+
+    # TODO: handle de-duplication for pro-rules
+    missed_rule_count = configs_obj.missed_rule_count
+
     if not severity:
         shown_severities = DEFAULT_SHOWN_SEVERITIES
         filtered_rules = all_rules
@@ -815,34 +896,14 @@ def run_scan(
             filtered_rules, dump_rule_partitions_dir, dump_n_rule_partitions
         )
 
+    # TODO? should we move this above closer to config_errors or put
+    # down so that at least dump_partitions_and_exit is run?
     output_handler.handle_semgrep_errors(config_errors)
     real_config_errors = select_real_errors(config_errors)
 
     if not pattern:
-        config_id_if_single = (
-            list(configs_obj.valid.keys())[0] if len(configs_obj.valid) == 1 else ""
-        )
-        invalid_msg = (
-            f"({unit_str(len(config_errors), 'config error')})"
-            if len(config_errors)
-            else ""
-        )
-        logger.verbose(
-            f"running {len(filtered_rules)} rules from {unit_str(len(configs_obj.valid), 'config')} {config_id_if_single} {invalid_msg}".strip()
-        )
-        if len(real_config_errors) > 0:
-            raise SemgrepError(
-                f"invalid configuration file found ({len(real_config_errors)} configs were invalid)",
-                code=MISSING_CONFIG_EXIT_CODE,
-            )
-        # NOTE: We should default to config auto if no config was passed in an earlier step,
-        #       but if we reach this step without a config, we emit the error below.
-        if len(configs_obj.valid) == 0:
-            raise SemgrepError(
-                """No config given. Run with `--config auto` or see https://semgrep.dev/docs/running-rules/ for instructions on running with a specific config
-""",
-                code=MISSING_CONFIG_EXIT_CODE,
-            )
+        log_running_rules(configs_obj, config_errors, filtered_rules)
+        sanity_check_resolved_config(real_config_errors, configs_obj)
 
     # This is after the `not pattern` block, because this error message is less
     # helpful.
@@ -852,24 +913,13 @@ def run_scan(
             code=MISSING_CONFIG_EXIT_CODE,
         )
 
+    # ----------------------------
+    # Step2: Computing the targets
+    # ----------------------------
     # Initialize baseline here to fail early on bad args
-    baseline_handler = None
-    if baseline_commit:
-        try:
-            baseline_handler = BaselineHandler(
-                baseline_commit, is_mergebase=baseline_commit_is_mergebase
-            )
-        except Exception:
-            # Display a trace because we have no idea where the exception
-            # was raised.
-            exception_with_trace: str = traceback.format_exc()
-            raise SemgrepError(
-                f"Exception in BaselineHandler initialization: {exception_with_trace}"
-            )
-
-    # ----------------------------
-    # Step3: Computing the targets
-    # ----------------------------
+    baseline_handler = baseline_handler_opt(
+        baseline_commit, baseline_commit_is_mergebase
+    )
 
     respect_git_ignore = not no_git_ignore
     # One of the several properties of the --no-git-ignore option is that
@@ -911,6 +961,9 @@ def run_scan(
         historical_secrets, baseline_handler, engine_type, diff_depth, target_manager
     )
 
+    # ----------------------------
+    # Step3: running the core engine
+    # ----------------------------
     core_start_time = time.time()
     core_runner = CoreRunner(
         jobs=jobs,
@@ -928,6 +981,7 @@ def run_scan(
         path_sensitive=path_sensitive,
         symbol_analysis=symbol_analysis,
     )
+    # TODO? why displayed here? why not closer to log_running_rules?
     log_rules(filtered_rules, too_many_entries)
 
     (
@@ -951,16 +1005,21 @@ def run_scan(
         run_secrets,
         disable_secrets_validation,
         target_mode_config,
-        with_code_rules=with_code_rules,
-        with_supply_chain=with_supply_chain,
+        with_code_rules=configs_obj.with_code_rules,
+        with_supply_chain=configs_obj.with_supply_chain,
         allow_local_builds=allow_local_builds,
         ptt_enabled=ptt_enabled,
         resolve_all_deps_in_diff_scan=resolve_all_deps_in_diff_scan,
         x_tr=x_tr,
     )
     profiler.save("core_time", core_start_time)
+
     semgrep_errors: List[SemgrepError] = config_errors + scan_errors
     output_handler.handle_semgrep_errors(semgrep_errors)
+
+    # ---------------------------------
+    # Step3 bis: optional baseline run
+    # ---------------------------------
 
     paths_with_matches = list(
         {match.path for matches in rule_matches_by_rule.values() for match in matches}
@@ -1111,6 +1170,9 @@ def run_scan(
             except Exception as e:
                 raise SemgrepError(e)
 
+    # ---------------------------------
+    # Step4: Nosemgrep filtering
+    # ---------------------------------
     # If there are multiple outputs and any request to keep_ignores
     # then all outputs keep the ignores. The only output format that
     # keep ignored matches currently is sarif.
@@ -1124,20 +1186,20 @@ def run_scan(
     profiler.save("total_time", rule_start_time)
 
     # Metrics send part 2: send results
-    if metrics.is_enabled:
-        metrics.add_rules(filtered_rules, output_extra.core.time)
-        metrics.add_max_memory_bytes(output_extra.core.time)
-        metrics.add_targets(output_extra.all_targets, output_extra.core.time)
-        metrics.add_findings(filtered_matches_by_rule)
-        metrics.add_errors(semgrep_errors)
-        metrics.add_profiling(profiler)
-        metrics.add_parse_rates(output_extra.parsing_data)
-        metrics.add_interfile_languages_used(output_extra.core.interfile_languages_used)
-        if engine_type.is_pro and baseline_handler:
-            metrics.add_num_diff_scanned(
-                {Path(t.value) for t in output_extra.core.paths.scanned}, filtered_rules
-            )
+    add_metrics_part2(
+        metrics,
+        filtered_rules,
+        output_extra,
+        filtered_matches_by_rule,
+        semgrep_errors,
+        profiler,
+        engine_type,
+        baseline_handler,
+    )
 
+    # ---------------------------------
+    # Step5: Autofix
+    # ---------------------------------
     if autofix:
         apply_fixes(filtered_matches_by_rule.kept, dryrun)
 
