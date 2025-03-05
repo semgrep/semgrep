@@ -65,9 +65,12 @@ Files skipped:
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-  Partially scanned: 1 files only partially analyzed due to parsing or internal Semgrep errors
-
+✅ Scan completed successfully.
+ • Findings: 0 (0 blocking)
+ • Rules run: 3
+ • Targets scanned: 1
+ • Parsed lines: ~100.0%
+ • Scan was limited to files tracked by git
+ • For a detailed list of skipped files and lines, run semgrep with the --verbose flag
 Ran 3 rules on 1 file: 0 findings.
 Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False

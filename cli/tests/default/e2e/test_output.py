@@ -355,10 +355,8 @@ def test_json_output_with_dataflow_traces(run_semgrep_in_tmp: RunSemgrep, snapsh
     )
 
 
-IGNORE_LOG_REPORT_FIRST_LINE = "Some files were skipped or only partially analyzed."
-IGNORE_LOG_REPORT_LAST_LINE = (
-    "  For a full list of skipped files, run semgrep with the --verbose flag."
-)
+IGNORE_LOG_REPORT_FIRST_LINE = "Files skipped:"
+IGNORE_LOG_REPORT_LAST_LINE = " • For a detailed list of skipped files and lines, run semgrep with the --verbose flag"
 
 
 # TODO: remove this test: too many things being tested at once, too hard
@@ -368,6 +366,7 @@ IGNORE_LOG_REPORT_LAST_LINE = (
 # excluded. They're excluded in both implementations.
 @pytest.mark.kinda_slow
 @pytest.mark.pysemfail
+@pytest.mark.osemfail
 def test_semgrepignore_ignore_log_report(
     run_semgrep_on_copied_files: RunSemgrep, tmp_path, snapshot
 ):

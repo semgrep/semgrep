@@ -52,6 +52,8 @@ from semgrep.target_manager import FileErrorLog
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
 from semgrep.util import is_url
+from semgrep.util import line_count_of_path
+from semgrep.util import pretty_print_percentage
 from semgrep.util import terminal_wrap
 from semgrep.util import unit_str
 from semgrep.util import with_color
@@ -475,11 +477,44 @@ class OutputHandler:
                 ],
             )
             num_findings = len(regular_matches)
+            blocking_findings = []
+            nonblocking_findings = []
+
+            for match in regular_matches:
+                if match.is_blocking:
+                    blocking_findings.append(match)
+                else:
+                    nonblocking_findings.append(match)
+
+            num_blocking_findings = len(blocking_findings)
+            num_nonblocking_findings = len(nonblocking_findings)
+
+            num_findings = num_blocking_findings + num_nonblocking_findings
             num_targets = len(self.all_targets)
             num_rules = executed_rule_count or len(self.filtered_rules)
-
-            ignores_line = str(ignore_log or "No ignore information available")
+            count_line = (
+                f"\n • Findings: {num_findings} ({num_blocking_findings} blocking)"
+            )
+            rule_line = f"\n • Rules run: {num_rules}"
+            target_line = f"\n • Targets scanned: {num_targets}"
+            ignore_log_str = str(ignore_log) or ""
+            ignores_line = ignore_log_str or "\n • No ignore information available"
             suggestion_line = ""
+            more_detail_line = ""
+
+            total_lines = sum([line_count_of_path(t) for t in self.all_targets])
+            total_lines_skipped = 0
+            if self.ignore_log.core_failure_lines_by_file:
+                ignore_log = self.ignore_log
+                file_error_logs = ignore_log.core_failure_lines_by_file.values()
+                total_lines_skipped = sum(
+                    [log.num_lines_skipped() or 0 for log in file_error_logs]
+                )
+
+            parsed_line = f"\n • Parsed lines: {pretty_print_percentage((total_lines - total_lines_skipped), total_lines)}"
+
+            if ignore_log_str or total_lines_skipped:
+                more_detail_line = "\n • For a detailed list of skipped files and lines, run semgrep with the --verbose flag"
             if (
                 num_findings == 0
                 and num_targets > 0
@@ -505,7 +540,22 @@ class OutputHandler:
                 too_many_entries = self.settings.max_log_list_entries
                 logger.verbose(ignore_log.verbose_output(too_many_entries))
 
-            output_text = ignores_line + suggestion_line + stats_line
+            success_line = "✅ " + (
+                "CI scan completed successfully."
+                if self.is_ci_invocation
+                else "Scan completed successfully."
+            )
+            output_text = (
+                success_line
+                + count_line
+                + rule_line
+                + target_line
+                + parsed_line
+                + ignores_line
+                + more_detail_line
+                + stats_line
+                + suggestion_line
+            )
             console.print(Title("Scan Summary"))
             logger.info(output_text)
 

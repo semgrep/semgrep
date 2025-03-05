@@ -57,11 +57,14 @@ Creating git worktree from '<MASKED>' to scan baseline.
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan was limited to files changed since baseline commit.
-
+✅ CI scan completed successfully.
+ • Findings: 0 (0 blocking)
+ • Rules run: 1
+ • Targets scanned: 1
+ • Parsed lines: ~100.0%
+ • Scan was limited to files changed since baseline commit.
+ • For a detailed list of skipped files and lines, run semgrep with the --verbose flag
 CI scan completed successfully.
-  Found 0 findings (0 blocking) from 1 rule.
   View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings?repo=local_scan/checkout_project_name&ref=some/branch-name
     https://semgrep.dev/orgs/org_name/supply-chain/vulnerabilities?repo=local_scan/checkout_project_name&ref=some/branch-name

@@ -452,7 +452,12 @@
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘
-
+✅ Scan completed successfully.
+ • Findings: 8 (6 blocking)
+ • Rules run: 6
+ • Targets scanned: 2
+ • Parsed lines: ~100.0%
+ • No ignore information available
 Ran 6 rules on 2 files: 8 findings.
 
 === end of stderr - plain

@@ -145,11 +145,14 @@
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-
+✅ CI scan completed successfully.
+ • Findings: 84 (84 blocking)
+ • Rules run: 2
+ • Targets scanned: 1
+ • Parsed lines: ~100.0%
+ • Scan was limited to files tracked by git
+ • For a detailed list of skipped files and lines, run semgrep with the --verbose flag
 CI scan completed successfully.
-  Found 84 findings (84 blocking) from 2 rules.
   View results in Semgrep Cloud Platform:
     https://semgrep.dev/orgs/org_name/findings?repo=local_scan/checkout_project_name&ref=some/branch-name
   Has findings for blocking rules so exiting with code 1

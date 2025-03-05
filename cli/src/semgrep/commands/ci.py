@@ -678,9 +678,9 @@ def ci(
             "dump_n_rule_partitions": dump_n_rule_partitions,
             "dump_rule_partitions_dir": dump_rule_partitions_dir,
             "ptt_enabled": scan_handler.ptt_enabled if scan_handler else False,
-            "resolve_all_deps_in_diff_scan": scan_handler.resolve_all_deps_in_diff_scan
-            if scan_handler
-            else False,
+            "resolve_all_deps_in_diff_scan": (
+                scan_handler.resolve_all_deps_in_diff_scan if scan_handler else False
+            ),
             "symbol_analysis": scan_handler.symbol_analysis if scan_handler else False,
             "use_semgrepignore_v2": use_semgrepignore_v2,
         }
@@ -851,9 +851,7 @@ def ci(
                 applicable_result_list = (
                     cai_matches
                     if "r2c-internal-cai" in rule.id
-                    else blocking_matches
-                    if match.is_blocking
-                    else nonblocking_matches
+                    else blocking_matches if match.is_blocking else nonblocking_matches
                 )
                 applicable_result_list.append(match)
                 if "r2c-internal-cai" not in rule.id:
@@ -889,9 +887,6 @@ def ci(
                 )
 
             logger.info("CI scan completed successfully.")
-            logger.info(
-                f"  Found {unit_str(num_blocking_findings + num_nonblocking_findings, 'finding')} ({num_blocking_findings} blocking) from {unit_str(len(filtered_rules), 'rule')}."
-            )
 
         complete_result: out.CiScanCompleteResponse | None = None
         contributions = semgrep.rpc_call.contributions()
@@ -972,9 +967,6 @@ def ci(
                 )
 
             logger.info("CI scan completed successfully.")
-            logger.info(
-                f"  Found {unit_str(num_blocking_findings + num_nonblocking_findings, 'finding')} ({num_blocking_findings} blocking) from {unit_str(len(filtered_rules), 'rule')}."
-            )
 
             if internal_ci_scan_results:
                 # console.print() would go to stderr; here we print() directly to stdout

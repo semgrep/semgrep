@@ -10,5 +10,10 @@
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘
-
+✅ Scan completed successfully.
+ • Findings: 0 (0 blocking)
+ • Rules run: 1
+ • Targets scanned: 0
+ • Parsed lines: an unknown percentage
+ • No ignore information available
 Ran 1 rule on 0 files: 0 findings.

@@ -225,9 +225,8 @@ class FileTargetingLog:
         return sorted(res)
 
     def __str__(self) -> str:
-        limited_fragments = []
-        skip_fragments = []
-        partial_fragments = []
+        limited_fragments: List[str] = []
+        skip_fragments: List[str] = []
 
         if self.target_manager.baseline_handler:
             limited_fragments.append(
@@ -249,50 +248,43 @@ class FileTargetingLog:
                         roots_not_in_git += 1
                         continue
             if roots_not_in_git != dir_targets:
-                limited_fragments.append(f"Scan was limited to files tracked by git.")
+                limited_fragments.append(f"Scan was limited to files tracked by git")
 
         if self.cli_includes:
             skip_fragments.append(
-                f"{len(self.cli_includes)} files not matching --include patterns"
+                f"Not matching --include patterns: {len(self.cli_includes)}"
             )
         if self.cli_excludes:
             skip_fragments.append(
-                f"{len(self.cli_excludes)} files matching --exclude patterns"
+                f"Matching --exclude patterns: {len(self.cli_excludes)}"
             )
         if self.insufficient_permissions:
             # Show a list of broken symlinks or files we can't open for reading.
             # This is a best effort. What we can show depends on the method
             # used to list the files.
             skip_fragments.append(
-                f"{len(self.insufficient_permissions)} files without read access"
+                f"Files without read access: {len(self.insufficient_permissions)}"
             )
         if self.size_limit:
             skip_fragments.append(
-                f"{len(self.size_limit)} files larger than {self.target_manager.max_target_bytes / 1000 / 1000} MB"
+                f"Files larger than  files {self.target_manager.max_target_bytes / 1000 / 1000} MB: {len(self.size_limit)}"
             )
 
         if self.semgrepignored:
             skip_fragments.append(
-                f"{len(self.semgrepignored)} files matching .semgrepignore patterns"
-            )
-        if self.core_failure_lines_by_file:
-            partial_fragments.append(
-                f"{len(self.core_failure_lines_by_file)} files only partially analyzed due to parsing or internal Semgrep errors"
+                f"Files matching .semgrepignore patterns: {len(self.semgrepignored)}"
             )
 
-        if not limited_fragments and not skip_fragments and not partial_fragments:
-            return ""
+        message = ""
+        if not limited_fragments and not skip_fragments:
+            return message
 
-        message = "Some files were skipped or only partially analyzed."
+        if skip_fragments:
+            skip_fragments.insert(0, "\n • Scan skipped: ")
+            message += "\n   ◦ ".join(skip_fragments)
         if limited_fragments:
             for fragment in limited_fragments:
-                message += f"\n  {fragment}"
-        if partial_fragments:
-            message += "\n  Partially scanned: " + ", ".join(partial_fragments)
-        if skip_fragments:
-            message += "\n  Scan skipped: " + ", ".join(skip_fragments)
-            message += "\n  For a full list of skipped files, run semgrep with the --verbose flag."
-        message += "\n"
+                message += f"\n • {fragment}"
         return message
 
     def yield_verbose_lines(

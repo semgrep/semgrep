@@ -71,9 +71,13 @@ Files skipped:
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan skipped: 17 files matching --exclude patterns
-  For a full list of skipped files, run semgrep with the --verbose flag.
-
+✅ Scan completed successfully.
+ • Findings: 0 (0 blocking)
+ • Rules run: 1
+ • Targets scanned: 0
+ • Parsed lines: an unknown percentage
+ • Scan skipped:
+   ◦ Matching --exclude patterns: 17
+ • For a detailed list of skipped files and lines, run semgrep with the --verbose flag
 Ran 1 rule on 0 files: 0 findings.
 Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False

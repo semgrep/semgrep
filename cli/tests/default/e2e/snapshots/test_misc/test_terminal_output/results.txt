@@ -49,9 +49,13 @@ More information: https://semgrep.dev/docs/metrics
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-
+✅ Scan completed successfully.
+ • Findings: 2 (2 blocking)
+ • Rules run: 4
+ • Targets scanned: 14
+ • Parsed lines: ~100.0%
+ • Scan was limited to files tracked by git
+ • For a detailed list of skipped files and lines, run semgrep with the --verbose flag
 Ran 4 rules on 14 files: 2 findings.
 
 === end of stderr - plain
@@ -103,9 +107,13 @@ More information: https://semgrep.dev/docs/metrics
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-
+✅ Scan completed successfully.
+ • Findings: 2 (2 blocking)
+ • Rules run: 4
+ • Targets scanned: 14
+ • Parsed lines: ~100.0%
+ • Scan was limited to files tracked by git
+ • For a detailed list of skipped files and lines, run semgrep with the --verbose flag
 Ran 4 rules on 14 files: 2 findings.
 
 === end of stderr - color

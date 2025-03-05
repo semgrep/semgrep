@@ -62,8 +62,12 @@ Files skipped:
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘
-Some files were skipped or only partially analyzed.
-  Partially scanned: 1 files only partially analyzed due to parsing or internal Semgrep errors
-
+✅ Scan completed successfully.
+ • Findings: 3 (3 blocking)
+ • Rules run: 2
+ • Targets scanned: 1
+ • Parsed lines: ~80.0%
+ • No ignore information available
+ • For a detailed list of skipped files and lines, run semgrep with the --verbose flag
 Ran 2 rules on 1 file: 3 findings.
 Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False

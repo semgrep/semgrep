@@ -172,6 +172,7 @@ def test_basic_rule__absolute(run_semgrep_on_copied_files: RunSemgrep, snapshot)
 
 
 @pytest.mark.slow
+@pytest.mark.osemfail
 def test_terminal_output(run_semgrep_in_test_folder: RunSemgrep, snapshot):
     # Have shared settings file to test second run doesnt show metric output
     settings_file = tempfile.NamedTemporaryFile().name
