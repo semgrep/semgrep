@@ -160,6 +160,9 @@ local slack = {
 // default one
 // coupling: with containers above
 local opam_switch = '5.2.1';
+// This is the version of the cache we use below. If you need to invalidate it
+// for some reason then bump this.
+local opam_cache_version = "v1";
 
 // this must be done after the checkout as opam installs itself
 // locally in the project folder (/home/runner/work/semgrep/semgrep/_opam)
@@ -173,7 +176,7 @@ local opam_setup = function(opam_switch="5.2.1", cache_deps=["semgrep.opam"]) {
 	      'opam-pin': false,
         # Save the cache post run instead of after installing the compiler
         'save-opam-post-run': true,
-        'cache-prefix': '${{hashFiles(\'%s\')}}' % std.join('\', \'', cache_deps),
+        'cache-prefix': '%s-${{hashFiles(\'%s\')}}' % [opam_cache_version, std.join('\', \'', cache_deps)],
       },
     };
 

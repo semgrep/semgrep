@@ -213,7 +213,7 @@ jobs:
           submodules: true
       - uses: semgrep/setup-ocaml@latest
         with:
-          cache-prefix: ${{hashFiles('semgrep.opam')}}
+          cache-prefix: v1-${{hashFiles('semgrep.opam')}}
           ocaml-compiler: 5.2.1
           opam-pin: false
           save-opam-post-run: true
@@ -304,7 +304,7 @@ jobs:
           submodules: true
       - uses: semgrep/setup-ocaml@latest
         with:
-          cache-prefix: ${{hashFiles('semgrep.opam')}}
+          cache-prefix: v1-${{hashFiles('semgrep.opam')}}
           ocaml-compiler: 5.2.1
           opam-pin: false
           save-opam-post-run: true
