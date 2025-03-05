@@ -760,10 +760,6 @@ class TargetManager:
 
     # This initializes the class attributes marked with '= field(init=False)':
     def __attrs_post_init__(self) -> None:
-        # TODO: add support for baseline_commit in OCaml (Find_targets.get_targets)
-        self.use_semgrepignore_v2 = (
-            self.use_semgrepignore_v2 and self.baseline_handler is None
-        )
         # for use_semgrepignore_v2 i.e. delegating target discovery to semgrep-core
         self.targeting_conf = {}
         for product in ALL_PRODUCTS:

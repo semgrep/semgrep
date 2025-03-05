@@ -52,11 +52,11 @@ module Log = Log_git_wrapper.Log
 let git : Cmd.name = Cmd.Name "git"
 
 type status = {
-  added : string list;
-  modified : string list;
-  removed : string list;
-  unmerged : string list;
-  renamed : (string * string) list;
+  added : Fpath.t list;
+  modified : Fpath.t list;
+  removed : Fpath.t list;
+  unmerged : Fpath.t list;
+  renamed : (Fpath.t * Fpath.t) list;
 }
 [@@deriving show]
 
@@ -99,6 +99,25 @@ exception Error of string
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+
+(* Unwrap the result of UCmd.string_of_run or raise an Error exception
+   with a complete error message for any error or nonzero exit. *)
+let unwrap_result_exn ~errmsg_prefix ~cmd
+    (res : (string * Cmd.run_status, [> `Msg of string ]) result) : string =
+  match res with
+  | Ok (data, (_, `Exited 0)) -> data
+  | Ok (_, (_, `Exited n)) ->
+      raise
+        (Error
+           (spf "%s: exit %i; command: %s" errmsg_prefix n (Cmd.to_string cmd)))
+  | Ok (_, (_, `Signaled n)) ->
+      raise
+        (Error
+           (spf "%s: terminated by signal %i; command: %s" errmsg_prefix n
+              (Cmd.to_string cmd)))
+  | Error (`Msg msg) ->
+      raise
+        (Error (spf "%s: %s; command: %s" errmsg_prefix msg (Cmd.to_string cmd)))
 
 (* diff unified format regex:
  * https://www.gnu.org/software/diffutils/manual/html_node/Detailed-Unified.html#Detailed-Unified
@@ -328,9 +347,12 @@ let ls_files ?(cwd = Fpath.v ".") ?(exclude_standard = false) ?(kinds = [])
       @ roots )
   in
   let files =
-    match UCmd.string_of_run ~trim:true cmd with
-    | Ok (data, (_, `Exited 0)) -> parse_nul_separated_list_of_files data
-    | _ -> raise (Error "Could not get files from git ls-files")
+    let data =
+      UCmd.string_of_run ~trim:true cmd
+      |> unwrap_result_exn
+           ~errmsg_prefix:"Could not get files from git ls-files" ~cmd
+    in
+    parse_nul_separated_list_of_files data
   in
   files |> Fpath_.of_strings
 
@@ -409,9 +431,9 @@ let sparse_checkout_add ?cwd folders =
 (* TODO: use better types? sha1? *)
 let merge_base ~(commit : string) : string =
   let cmd = (git, [ "merge-base"; commit; "HEAD" ]) in
-  match UCmd.string_of_run ~trim:true cmd with
-  | Ok (merge_base, (_, `Exited 0)) -> merge_base
-  | _ -> raise (Error "Could not get merge base from git merge-base")
+  UCmd.string_of_run ~trim:true cmd
+  |> unwrap_result_exn
+       ~errmsg_prefix:"Could not get merge base from git merge-base" ~cmd
 
 let run_with_worktree (caps : < Cap.chdir ; Cap.tmp ; .. >) ~commit ?branch f =
   let cwd = getcwd () |> Fpath.to_dir_path in
@@ -479,9 +501,10 @@ let status ?cwd ?commit () =
       @ opt commit )
   in
   let stats =
-    match UCmd.string_of_run ~trim:true cmd with
-    | Ok (str, (_, `Exited 0)) -> str |> String.split_on_char '\000'
-    | _ -> raise (Error "Could not get files from git ls-files")
+    UCmd.string_of_run ~trim:true cmd
+    |> unwrap_result_exn ~errmsg_prefix:"Could not get files from git status"
+         ~cmd
+    |> String.split_on_char '\000'
   in
   let check_dir file =
     try
@@ -511,21 +534,23 @@ let status ?cwd ?commit () =
               (UUnix.realpath file));
         parse tail
     | "A" :: file :: tail ->
-        added := file :: !added;
+        added := Fpath.v file :: !added;
         parse tail
     | "M" :: file :: tail ->
-        modified := file :: !modified;
+        modified := Fpath.v file :: !modified;
         parse tail
     | "D" :: file :: tail ->
-        removed := file :: !removed;
+        removed := Fpath.v file :: !removed;
         parse tail
     | "U" :: file :: tail ->
-        unmerged := file :: !unmerged;
+        unmerged := Fpath.v file :: !unmerged;
         parse tail
     | "T" (* type changed *) :: file :: tail ->
-        if not (check_symlink file) then modified := file :: !modified;
+        if not (check_symlink file) then modified := Fpath.v file :: !modified;
         parse tail
     | typ :: before :: after :: tail when String.starts_with ~prefix:"R" typ ->
+        let before = Fpath.v before in
+        let after = Fpath.v after in
         removed := before :: !removed;
         added := after :: !added;
         renamed := (before, after) :: !renamed;

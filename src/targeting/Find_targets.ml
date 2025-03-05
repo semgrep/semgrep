@@ -456,6 +456,16 @@ let walk_skip_and_collect (caps : < Cap.readdir ; .. >) (ign : Gitignore.filter)
 (* Finding by using git *)
 (*************************************************************************)
 
+let git_files_changed_since_commit ~baseline_commit ~cwd =
+  let merge_base = Git_wrapper.merge_base baseline_commit in
+  let status = Git_wrapper.status ~cwd ~commit:merge_base () in
+  status.added @ status.modified
+
+let git_ls_files ~baseline_commit ~cwd ~exclude_standard ~kinds =
+  match baseline_commit with
+  | None -> Git_wrapper.ls_files ~cwd ~exclude_standard ~kinds []
+  | Some baseline_commit -> git_files_changed_since_commit ~baseline_commit ~cwd
+
 (*
    Get the list of files being tracked by git. Return a list of paths
    relative to the project root in addition to their system path
@@ -466,7 +476,7 @@ let walk_skip_and_collect (caps : < Cap.readdir ; .. >) (ign : Gitignore.filter)
    obtaining the list of tracked files because some files can be tracked
    despite being excluded by gitignore.
 *)
-let git_list_files ~exclude_standard
+let git_list_files ~(baseline_commit : string option) ~exclude_standard
     (file_kinds : Git_wrapper.ls_files_kind list)
     (project_roots : Project.scanning_roots) : Fppath_set.t option =
   Log.debug (fun m ->
@@ -495,9 +505,9 @@ let git_list_files ~exclude_standard
                  (* We can cd into the scanning root to obtain paths
                     relative to it because at this point, the scanning root
                     is known to be a folder. *)
-                 Git_wrapper.ls_files ~exclude_standard ~kinds:file_kinds
+                 git_ls_files ~baseline_commit
                    ~cwd:(sc_root.rpath |> Rpath.to_fpath)
-                   []
+                   ~exclude_standard ~kinds:file_kinds
                  |> List_.map (fun rel_target_fpath ->
                         Fppath.append_relative_fpath sc_root_fppath
                           rel_target_fpath)
@@ -526,9 +536,10 @@ let git_list_files ~exclude_standard
    We could also provide similar functions for other file tracking systems
    (Mercurial/hg, Subversion/svn, ...)
 *)
-let git_list_tracked_files (project_roots : Project.scanning_roots) :
-    Fppath_set.t option =
-  git_list_files ~exclude_standard:false [ Cached ] project_roots
+let git_list_tracked_files ~baseline_commit
+    (project_roots : Project.scanning_roots) : Fppath_set.t option =
+  git_list_files ~baseline_commit ~exclude_standard:false [ Cached ]
+    project_roots
 
 (*
    List all the files that are not being tracked by git except those in
@@ -536,9 +547,10 @@ let git_list_tracked_files (project_roots : Project.scanning_roots) :
 
    This is the complement of git_list_tracked_files (except for '.git/').
 *)
-let git_list_untracked_files ~respect_gitignore
+let git_list_untracked_files ~baseline_commit ~respect_gitignore
     (project_roots : Project.scanning_roots) : Fppath_set.t option =
-  git_list_files ~exclude_standard:respect_gitignore [ Others ] project_roots
+  git_list_files ~baseline_commit ~exclude_standard:respect_gitignore [ Others ]
+    project_roots
 
 (*************************************************************************)
 (* Grouping *)
@@ -776,10 +788,12 @@ let get_targets_for_project (caps : < Cap.readdir ; .. >) (conf : conf)
   Log.debug (fun m -> m "Find_target.get_targets_for_project");
   (* Obtain the list of files from git if possible because it does it
      faster than what we can do by scanning the filesystem: *)
-  let git_tracked = git_list_tracked_files project_roots in
+  let git_tracked =
+    git_list_tracked_files ~baseline_commit:conf.baseline_commit project_roots
+  in
   let git_untracked =
-    git_list_untracked_files ~respect_gitignore:conf.respect_gitignore
-      project_roots
+    git_list_untracked_files ~baseline_commit:conf.baseline_commit
+      ~respect_gitignore:conf.respect_gitignore project_roots
   in
   let selected_targets, skipped_targets =
     match (git_tracked, git_untracked) with

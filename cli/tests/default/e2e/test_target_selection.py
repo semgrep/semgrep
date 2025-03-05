@@ -31,6 +31,11 @@ class Config(Enum):
     # git: a git project scanned with the default semgrep options
     GIT = "git"
 
+    # git: list only the files that changed (modified or added) since
+    # a particular commit (actually since the more recent common ancestor
+    # of HEAD and that commit, known as the merge base).
+    GIT_BASELINE_COMMIT = "git_baseline_commit"
+
     # novcs: the same project from which '.git' was removed, scanned with
     # the default semgrep options
     NOVCS = "novcs"
@@ -246,6 +251,30 @@ GIT_PROJECT_EXPECTATIONS = [
             "src/gitignored.py",
             "src/gitignored-only-in-src-and-below.py",
             "src/gitignored-only-in-src.py",
+        ],
+    ),
+]
+
+# For our baseline commit, we use any commit in the middle of the git history
+# such that some files changed after that commit but not all files.
+GIT_BASELINE_COMMIT = "399245b4660c80530db13148e5aed3e6572ea351"
+GIT_BASELINE_COMMIT_EXPECTATIONS = [
+    Expect(
+        selected=True,
+        paths=[
+            # Added in the first commit after the baseline commit
+            ".gitignore",
+            # Modified in a later commit
+            "README.md",
+        ],
+    ),
+    Expect(
+        selected=False,
+        paths=[
+            # Added in by the baseline commit and not modified after that
+            "hello.py",
+            # Semgrepignored file
+            "semgrepignored/hello.py",
         ],
     ),
 ]
@@ -481,6 +510,13 @@ NOVCS_INCLUDE_EXPECTATIONS = [
     "config,options,osemgrep_options,expectations",
     [
         (Config.GIT, [], [], COMMON_EXPECTATIONS + GIT_PROJECT_EXPECTATIONS),
+        (
+            Config.GIT_BASELINE_COMMIT,
+            # nothing particular about this commit
+            ["--baseline-commit", GIT_BASELINE_COMMIT],
+            [],
+            GIT_BASELINE_COMMIT_EXPECTATIONS,
+        ),
         (Config.NOVCS, [], [], COMMON_EXPECTATIONS + NOVCS_PROJECT_EXPECTATIONS),
         (
             Config.IGNOREGIT,
@@ -554,6 +590,7 @@ NOVCS_INCLUDE_EXPECTATIONS = [
     ],
     ids=[
         Config.GIT.value,
+        Config.GIT_BASELINE_COMMIT.value,
         Config.NOVCS.value,
         Config.IGNOREGIT.value,
         Config.GIT_DEFAULT_SEMGREPIGNORE.value,

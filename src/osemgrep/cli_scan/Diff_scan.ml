@@ -15,6 +15,7 @@
 open Common
 open Fpath_.Operators
 module SS = Set.Make (String)
+module Fpaths = Set.Make (Fpath)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -44,41 +45,41 @@ type diff_scan_func =
 (* Helpers *)
 (*****************************************************************************)
 
+(* TODO: explain what this achieves.
+   It's used by remove_matches_in_baseline below. *)
+let extract_sig renamed (m : Core_match.t) =
+  let rule_id = m.rule_id in
+  let path =
+    m.path.internal_path_to_content |> fun p ->
+    Option.bind renamed
+      (List_.find_some_opt (fun (before, after) ->
+           if Fpath.equal after p then Some before else None))
+    |> Option.value ~default:p
+  in
+  let start_range, end_range = m.range_loc in
+  let path' = m.path.internal_path_to_content in
+  let syntactic_ctx : string list =
+    match
+      UFile.lines_of_file (start_range.pos.line, end_range.pos.line) path'
+    with
+    | Ok xs -> xs
+    | Error err ->
+        Logs.warn (fun m ->
+            m
+              "error on accessing lines of %s; skipping syntactic_ctx (error \
+               was %s)"
+              !!path' err);
+        []
+  in
+  (rule_id, path, syntactic_ctx)
+
 (* This function removes duplicated matches from the results of the
    head commit scan if they are also present in the results of the
    baseline commit scan. Matches are considered identical if the
    tuples containing the rule ID, file path, and matched code snippet
    are equal. *)
 let remove_matches_in_baseline caps (commit : string) (baseline : Core_result.t)
-    (head : Core_result.t)
-    (renamed : (string (* filename *) * string (* filename *)) list) =
-  let extract_sig renamed (m : Core_match.t) =
-    let rule_id = m.rule_id in
-    let path =
-      !!(m.path.internal_path_to_content) |> fun p ->
-      Option.bind renamed
-        (List_.find_some_opt (fun (before, after) ->
-             if after = p then Some before else None))
-      |> Option.value ~default:p
-    in
-    let start_range, end_range = m.range_loc in
-    let path' = m.path.internal_path_to_content in
-    let syntactic_ctx : string list =
-      match
-        UFile.lines_of_file (start_range.pos.line, end_range.pos.line) path'
-      with
-      | Ok xs -> xs
-      | Error err ->
-          Logs.warn (fun m ->
-              m
-                "error on accessing lines of %s; skipping syntactic_ctx (error \
-                 was %s)"
-                !!path' err);
-          []
-    in
-
-    (rule_id, path, syntactic_ctx)
-  in
+    (head : Core_result.t) (renamed : (Fpath.t * Fpath.t) list) =
   let sigs = Hashtbl.create 10 in
   Git_wrapper.run_with_worktree caps ~commit (fun () ->
       List.iter
@@ -131,10 +132,10 @@ let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp ; .. >)
   let/ r = result_or_exn in
   if r.processed_matches <> [] then
     let add_renamed paths =
-      List.fold_left (fun x (y, _) -> SS.add y x) paths status.renamed
+      List.fold_left (fun x (y, _) -> Fpaths.add y x) paths status.renamed
     in
     let remove_added paths =
-      List.fold_left (Fun.flip SS.remove) paths status.added
+      List.fold_left (Fun.flip Fpaths.remove) paths status.added
     in
     let rules_in_match =
       r.processed_matches
@@ -157,28 +158,28 @@ let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp ; .. >)
           Git_wrapper.run_with_worktree caps ~commit (fun () ->
               let prepare_targets paths =
                 (* TODO: what's happening here? *)
-                paths |> SS.of_list |> add_renamed |> remove_added |> SS.to_seq
-                |> Seq.filter_map (fun x ->
+                paths |> Fpaths.of_list |> add_renamed |> remove_added
+                |> Fpaths.to_seq
+                |> Seq.filter_map (fun path ->
                        if
-                         Sys.file_exists x
+                         Sys.file_exists !!path
                          &&
-                         match (Unix.lstat x).st_kind with
+                         match (Unix.lstat !!path).st_kind with
                          | S_LNK -> false
                          | _ -> true
-                       then Some (Fpath.v x)
+                       then Some path
                        else None)
                 |> List.of_seq
               in
               let paths_in_match =
                 r.processed_matches
                 |> List_.map (fun ({ pm; _ } : Core_result.processed_match) ->
-                       !!(pm.path.internal_path_to_content))
+                       pm.path.internal_path_to_content)
                 |> prepare_targets
               in
               let paths_in_scanned =
                 r.scanned
-                |> List_.map (fun p ->
-                       p |> Target.internal_path |> Fpath.to_string)
+                |> List_.map (fun p -> p |> Target.internal_path)
                 |> prepare_targets
               in
               let baseline_targets, baseline_diff_targets =
@@ -228,9 +229,7 @@ let scan_baseline (caps : < Cap.chdir ; Cap.tmp ; .. >) (conf : Scan_CLI.conf)
   let status = Git_wrapper.status ~cwd:(Fpath.v ".") ~commit () in
   let diff_depth = Differential_scan_config.default_depth in
   let targets, diff_targets =
-    let added_or_modified =
-      status.added @ status.modified |> List_.map Fpath.v
-    in
+    let added_or_modified = status.added @ status.modified in
     match conf.engine_type with
     | PRO Engine_type.{ analysis = Interfile; _ } -> (targets, added_or_modified)
     | _ -> (added_or_modified, [])

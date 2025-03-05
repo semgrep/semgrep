@@ -71,11 +71,11 @@ val run_with_worktree :
   'a
 
 type status = {
-  added : string list;
-  modified : string list;
-  removed : string list;
-  unmerged : string list;
-  renamed : (string * string) list;
+  added : Fpath.t list;
+  modified : Fpath.t list;
+  removed : Fpath.t list;
+  unmerged : Fpath.t list;
+  renamed : (Fpath.t * Fpath.t) list;
 }
 [@@deriving show]
 
