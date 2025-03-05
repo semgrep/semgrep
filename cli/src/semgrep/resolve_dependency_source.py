@@ -85,6 +85,10 @@ PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS = [
         None,
         out.LockfileKind(out.PipRequirementsTxt()),
     ),
+    (
+        out.ManifestKind(out.Pipfile()),
+        out.LockfileKind(out.PipfileLock()),
+    ),
 ]
 
 DependencyResolutionResult = Tuple[
