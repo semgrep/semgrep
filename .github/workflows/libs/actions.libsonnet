@@ -13,7 +13,7 @@ local gha = import './gha.libsonnet';
   },
   // The right checkout to call in most cases; slower but correct.
   // There is also 'submodules: "recursive" (which is even slower).
-  checkout_with_submodules: function()  [
+  checkout_with_submodules: function(ref='')  [
       gha.git_safedir,
       gha.speedy_checkout_step,
       {
@@ -21,7 +21,7 @@ local gha = import './gha.libsonnet';
         with: {
           submodules: true,
         },
-      },
+      } + (if ref == '' then {} else { ref: ref}),
     ],
 
   // ---------------------------------------------------------
