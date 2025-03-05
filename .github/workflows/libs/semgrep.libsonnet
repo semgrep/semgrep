@@ -188,7 +188,6 @@ local opam_setup = function(opam_switch=opam_switch_default, cache_deps=["semgre
 local stable_ubuntu_version_for_setup_ocaml = 'ubuntu-22.04';
 
 local osemgrep_test_steps_after_checkout = [
-  gha.git_safedir,
   {
     name: 'Build semgrep-core',
     run: |||

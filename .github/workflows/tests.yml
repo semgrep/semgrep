@@ -217,8 +217,6 @@ jobs:
           ocaml-compiler: 5.2.1
           opam-pin: false
           save-opam-post-run: true
-      - name: Configure git safedir properly
-        run: git config --global --add safe.directory $(pwd)
       - name: Build semgrep-core
         run: |
           eval $(opam env)
