@@ -67,7 +67,7 @@ local containers = {
     // used in the build-test-osx-xxx jobs but ideally we should get rid
     // of it and rely on opam.lock for caching issues
     opam_switch: '5.2.1',
-    job: {
+    job(steps): {
       'runs-on': 'ubuntu-latest',
       container: 'returntocorp/ocaml:alpine-2024-01-18',
       // We need this hack because GHA tampers with the HOME in container
@@ -75,6 +75,14 @@ local containers = {
       env: {
         HOME: '/root',
       },
+      steps:
+        [
+          {
+            name: 'setup alpine',
+            // needed for ocaml deps
+            run: 'apk add --no-cache git git-lfs bash curl'
+          },
+        ] + steps,
      },
   },
   // ocaml-layer builds an image based on Alpine and another one based on
@@ -159,7 +167,7 @@ local opam_switch = '5.2.1';
 // or move the project to the semgrep org
 // coupling: default is above opam_switch
 local opam_setup = function(opam_switch="5.2.1", cache_deps=["semgrep.opam"]) {
-      uses: 'ajbt200128/setup-ocaml@latest',
+      uses: 'semgrep/setup-ocaml@latest',
       with: {
         'ocaml-compiler': opam_switch,
 	      'opam-pin': false,

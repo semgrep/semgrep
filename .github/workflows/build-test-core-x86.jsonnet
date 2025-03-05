@@ -20,9 +20,9 @@ local container = semgrep.containers.ocaml_alpine;
 // The job
 // ----------------------------------------------------------------------------
 local job =
-  container.job
-  {
-    steps:actions.checkout_with_submodules() + [
+  container.job(
+    actions.checkout_with_submodules() + [
+      semgrep.opam_setup(),
       {
         name: 'Install dependencies',
         run: |||
@@ -41,7 +41,7 @@ local job =
         run: 'opam exec -- make core-test',
       }
     ]
-  };
+  );
 
 // ----------------------------------------------------------------------------
 // The Workflow

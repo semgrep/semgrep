@@ -202,6 +202,8 @@ jobs:
       HOME: /root
     runs-on: ubuntu-latest
     steps:
+      - name: setup alpine
+        run: apk add --no-cache git git-lfs bash curl
       - name: Configure git safedir properly
         run: git config --global --add safe.directory $(pwd)
       - name: Make checkout speedy
@@ -209,6 +211,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
+      - uses: semgrep/setup-ocaml@latest
+        with:
+          cache-prefix: ${{hashFiles('semgrep.opam')}}
+          ocaml-compiler: 5.2.1
+          opam-pin: false
+          save-opam-post-run: true
       - name: Configure git safedir properly
         run: git config --global --add safe.directory $(pwd)
       - name: Build semgrep-core
@@ -285,6 +293,8 @@ jobs:
       HOME: /root
     runs-on: ubuntu-latest
     steps:
+      - name: setup alpine
+        run: apk add --no-cache git git-lfs bash curl
       - name: Configure git safedir properly
         run: git config --global --add safe.directory $(pwd)
       - name: Make checkout speedy
@@ -292,6 +302,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
+      - uses: semgrep/setup-ocaml@latest
+        with:
+          cache-prefix: ${{hashFiles('semgrep.opam')}}
+          ocaml-compiler: 5.2.1
+          opam-pin: false
+          save-opam-post-run: true
       - name: Install dependencies
         run: |
           eval $(opam env)

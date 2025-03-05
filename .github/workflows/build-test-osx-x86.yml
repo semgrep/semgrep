@@ -10,7 +10,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
-      - uses: ajbt200128/setup-ocaml@latest
+      - uses: semgrep/setup-ocaml@latest
         with:
           cache-prefix: ${{hashFiles('semgrep.opam')}}
           ocaml-compiler: 5.2.1
