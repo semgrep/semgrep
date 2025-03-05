@@ -291,11 +291,11 @@ class FileTargetingLog:
 
     def yield_verbose_lines(
         self, too_many_entries: int
-    ) -> Iterator[Tuple[Literal[0, 1, 2], str]]:
+    ) -> Iterator[Tuple[Literal[0, 1, 2, 3, 4], str]]:
         """Yields lines of verbose output for the skipped files.
 
         The returned tuple is (level, message).
-        The level is a number; one of 0, 1, or 2, which sets the indentation when outputting the line.
+        The level is a number; one of 0, 1, 2, 3 or 4 which sets the indentation when outputting the line.
         """
         yield 0, "Files skipped:"
 
@@ -408,6 +408,20 @@ class FileTargetingLog:
                 width,
                 "   • ",
                 "     ",
+                False,
+            ),
+            3: lambda line: click.wrap_text(
+                line,
+                width,
+                "     ",
+                "     ",
+                False,
+            ),
+            4: lambda line: click.wrap_text(
+                line,
+                width,
+                "     • ",
+                "       ",
                 False,
             ),
         }
