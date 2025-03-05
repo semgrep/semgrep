@@ -48,6 +48,7 @@ from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import DesignTreatment
 from semgrep.state import get_state
+from semgrep.target_manager import FileErrorLog
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
 from semgrep.util import is_url
@@ -343,26 +344,19 @@ class OutputHandler:
     @staticmethod
     def _make_failed_to_analyze(
         semgrep_core_errors: Sequence[SemgrepCoreError],
-    ) -> Mapping[Path, Tuple[Optional[int], List[out.RuleId]]]:
+    ) -> Mapping[Path, FileErrorLog]:
         def update_failed_to_analyze(
-            memo: Mapping[Path, Tuple[Optional[int], List[out.RuleId]]],
+            memo: Mapping[Path, FileErrorLog],
             err: SemgrepCoreError,
-        ) -> Mapping[Path, Tuple[Optional[int], List[out.RuleId]]]:
+        ) -> Mapping[Path, FileErrorLog]:
+            # no associated path
             if not err.core.location:
                 return memo
             path = Path(err.core.location.path.value)
-            so_far = memo.get(path, (0, []))
-            if err.spans is None or so_far[0] is None:
-                num_lines = None
-            else:
-                num_lines = so_far[0] + sum(
-                    s.end.line - s.start.line + 1 for s in err.spans
-                )
-            rule_ids = so_far[1]
-            if err.core.rule_id is not None:
-                rule_ids.append(err.core.rule_id)
 
-            return {**memo, path: (num_lines, rule_ids)}
+            file_error_log = memo.get(path, FileErrorLog())
+            file_error_log.add_error(err)
+            return {**memo, path: file_error_log}
 
         return reduce(update_failed_to_analyze, semgrep_core_errors, {})
 
@@ -624,9 +618,9 @@ class OutputHandler:
             rules_by_engine=self.extra.core.rules_by_engine if self.extra else None,
             # this flattens the information into just distinguishing "pro" and "not-pro"
             engine_requested=self.engine_type.to_engine_kind(),
-            interfile_languages_used=self.extra.core.interfile_languages_used
-            if self.extra
-            else None,
+            interfile_languages_used=(
+                self.extra.core.interfile_languages_used if self.extra else None
+            ),
             # TODO, should just be self.extra.core.skipped_rules
             skipped_rules=[],
         )

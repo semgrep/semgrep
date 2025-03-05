@@ -133,6 +133,10 @@ class SemgrepCoreError(SemgrepError):
     def type_(self) -> out.ErrorType:
         return self.core.error_type
 
+    @property
+    def rule_id(self) -> Optional[out.RuleId]:
+        return self.core.rule_id
+
     def adjust_CliError(self, base: out.CliError) -> out.CliError:
         base = dataclasses.replace(base, message=str(self))
         if self.core.rule_id:

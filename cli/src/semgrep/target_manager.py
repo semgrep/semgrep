@@ -46,7 +46,7 @@ from boltons.iterutils import partition
 
 from semgrep.constants import TOO_MUCH_DATA
 from semgrep.constants import Colors, UNSUPPORTED_EXT_IGNORE_LANGS
-from semgrep.error import InvalidScanningRootError
+from semgrep.error import InvalidScanningRootError, SemgrepCoreError
 from semgrep.formatter.text import BASE_WIDTH as width
 from semgrep.ignores import Semgrepignore
 from semgrep.semgrep_types import FileExtension
@@ -109,6 +109,50 @@ def write_pipes_to_disk(scanning_roots: Sequence[str], temp_dir: Path) -> Sequen
 
 
 @define
+class FileErrorLog:
+    rule_errors: List[SemgrepCoreError] = list()
+    line_errors: Optional[List[SemgrepCoreError]] = None
+
+    def __init__(
+        self,
+        rule_errors: Optional[List[SemgrepCoreError]] = None,
+        line_errors: Optional[List[SemgrepCoreError]] = None,
+    ):
+        self.rule_errors = rule_errors if rule_errors else []
+        self.line_errors = line_errors
+
+    def add_error(self, err: SemgrepCoreError) -> None:
+        if self.line_errors and err.spans:
+            self.line_errors.append(err)
+        elif err.spans:
+            self.line_errors = [err]
+        if err.core.rule_id is not None:
+            self.rule_errors.append(err)
+        # else ??? is this case possible (path specific error but no line or
+        # rule id associated? @austin refactored this code but the original
+        # did not handle this case
+
+    def num_lines_skipped(self) -> Optional[int]:
+        error_spans = [e.spans for e in self.line_errors] if self.line_errors else None
+        return (
+            sum(
+                [
+                    s.end.line - s.start.line + 1
+                    for spans in error_spans
+                    if spans
+                    for s in spans
+                ]
+            )
+            if error_spans
+            else None
+        )
+
+    def num_rules_skipped(self) -> int:
+        rule_ids = list(set([e.rule_id.value for e in self.rule_errors if e.rule_id]))
+        return len(rule_ids)
+
+
+@define
 class FileTargetingLog:
     """Keeps track of which paths were ignored for what reason.
 
@@ -127,9 +171,7 @@ class FileTargetingLog:
     size_limit: Set[Path] = Factory(set)
 
     # "None" indicates that all lines were skipped
-    core_failure_lines_by_file: Mapping[
-        Path, Tuple[Optional[int], List[out.RuleId]]
-    ] = Factory(dict)
+    core_failure_lines_by_file: Mapping[Path, FileErrorLog] = Factory(dict)
 
     # Indicates which files were NOT scanned by each language
     # e.g. for python, should be a list of all non-python-compatible files
@@ -326,16 +368,19 @@ class FileTargetingLog:
 
         yield 1, "Partially analyzed due to parsing or internal Semgrep errors"
         if self.core_failure_lines_by_file:
-            for path, (lines, rule_ids) in sorted(
-                self.core_failure_lines_by_file.items()
-            ):
-                num_rule_ids = len(rule_ids) if rule_ids else 0
+            for path, file_error_log in sorted(self.core_failure_lines_by_file.items()):
+                num_rule_ids = file_error_log.num_rules_skipped()
+                lines = file_error_log.num_lines_skipped()
                 if num_rule_ids == 0:
                     with_rule = ""
                 elif num_rule_ids == 1:
-                    with_rule = f" with rule {rule_ids[0].value}"
+                    rule = file_error_log.rule_errors[0]
+                    rule_id = rule.rule_id.value if rule.rule_id else "<unknown>"
+                    with_rule = f" with rule {rule_id}"
                 else:
-                    with_rule = f" with {num_rule_ids} rules (e.g. {rule_ids[0].value})"
+                    rule = file_error_log.rule_errors[0]
+                    rule_id = rule.rule_id.value if rule.rule_id else "<unknown>"
+                    with_rule = f" with {num_rule_ids} rules (e.g. {rule_id})"
                 if lines is None:
                     # No lines does not mean all lines, we simply don't know how many.
                     # TODO: Maybe for parsing errors this would mean all lines?
