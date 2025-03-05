@@ -47,7 +47,12 @@ Files skipped:
 
   [1m[24mPartially analyzed due to parsing or internal Semgrep errors[0m
 
-   • [36m[22m[24mtargets/bad/invalid_go.go (2 lines skipped)[0m
+   • [36m[22m[24mtargets/bad/invalid_go.go (~18.2% of lines always skipped)[0m
+
+     [38;5;7m[22m[24mThe following lines were skipped for all analysis:[0m
+
+     • [36m[22m[24mlines 9-9[0m[33m[22m[24m due to exception "PartialParsing" raised during analysis[0m
+     • [36m[22m[24mlines 10-10[0m[33m[22m[24m due to exception "PartialParsing" raised during analysis[0m
 
 
 

@@ -47,7 +47,12 @@ Files skipped:
 
   [1m[24mPartially analyzed due to parsing or internal Semgrep errors[0m
 
-   • [36m[22m[24m<MASKED> with rule rules.broken-rule[0m
+   • [36m[22m[24m<MASKED> (1 rule failed to run)[0m
+
+     [38;5;7m[22m[24mThe following 1 rule failed to run on this file:[0m
+
+     • [36m[22m[24mRule rules.broken-rule[0m[33m[22m[24m due to exception "RuleParseError" raised during
+       analysis[0m
 
 
 

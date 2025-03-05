@@ -53,7 +53,12 @@ Files skipped:
 
   [1m[24mPartially analyzed due to parsing or internal Semgrep errors[0m
 
-   • [36m[22m[24mtargets/equivalence/open_redirect.py with 2 rules (e.g. rules.forcetimeout)[0m
+   • [36m[22m[24mtargets/equivalence/open_redirect.py (2 rules failed to run)[0m
+
+     [38;5;7m[22m[24mThe following 2 rules failed to run on this file:[0m
+
+     • [36m[22m[24mRule rules.forcetimeout[0m[33m[22m[24m due to exception "Timeout" raised during analysis[0m
+     • [36m[22m[24mRule rules.forcetimeout2[0m[33m[22m[24m due to exception "Timeout" raised during analysis[0m
 
 
 

@@ -23,7 +23,9 @@ from semgrep.constants import FIXTEST_SUFFIX
 from semgrep.constants import YML_SUFFIXES
 from semgrep.constants import YML_TEST_SUFFIXES
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Sha1
+from semgrep.verbose_logging import getLogger
 
+logger = getLogger(__name__)
 
 T = TypeVar("T")
 
@@ -352,3 +354,27 @@ def with_feature_status(*, enabled: bool = False) -> str:
     # but we have a custom flag for forcing color off (i.e. `force_color_off`)
     # that we need to respect.
     return with_color(Colors.green, "✔") if enabled else with_color(Colors.red, "✘")
+
+
+@functools.lru_cache(maxsize=None)
+def line_count_of_path(path: Path) -> int:
+    try:
+        with open(path, "rb") as f:
+            return sum(1 for _ in f)
+    except Exception as e:
+        logger.debug(f"Failed to open {path} to count lines: {e}")
+        return 0
+
+
+def pretty_print_percentage(numerator: int, denominator: int) -> str:
+    if denominator == 0:
+        return "an unknown percentage"
+    percentage = numerator / denominator
+    # round to 1 decimal place
+    precision = 1
+    percentage = round(percentage * 100, precision)
+    if percentage < 0.1 and numerator != 0:
+        return "<0.1%"
+    if percentage > 99.9 and numerator != denominator:
+        percentage = 99.9
+    return f"~{percentage}%"

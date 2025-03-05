@@ -54,7 +54,13 @@ from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import Shebang
 from semgrep.types import FilteredFiles
-from semgrep.util import path_has_permissions, sub_check_output
+from semgrep.util import (
+    line_count_of_path,
+    path_has_permissions,
+    pretty_print_percentage,
+    sub_check_output,
+    unit_str,
+)
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
@@ -370,26 +376,66 @@ class FileTargetingLog:
         if self.core_failure_lines_by_file:
             for path, file_error_log in sorted(self.core_failure_lines_by_file.items()):
                 num_rule_ids = file_error_log.num_rules_skipped()
-                lines = file_error_log.num_lines_skipped()
-                if num_rule_ids == 0:
-                    with_rule = ""
-                elif num_rule_ids == 1:
-                    rule = file_error_log.rule_errors[0]
-                    rule_id = rule.rule_id.value if rule.rule_id else "<unknown>"
-                    with_rule = f" with rule {rule_id}"
-                else:
-                    rule = file_error_log.rule_errors[0]
-                    rule_id = rule.rule_id.value if rule.rule_id else "<unknown>"
-                    with_rule = f" with {num_rule_ids} rules (e.g. {rule_id})"
-                if lines is None:
-                    # No lines does not mean all lines, we simply don't know how many.
-                    # TODO: Maybe for parsing errors this would mean all lines?
-                    lines_skipped = ""
-                else:
-                    # TODO: use pluralization library
-                    lines_skipped = f" ({lines} lines skipped)"
+                num_lines_skipped = file_error_log.num_lines_skipped()
+                total_lines = line_count_of_path(path)
+                percent_lines_skipped = (
+                    pretty_print_percentage(num_lines_skipped, total_lines)
+                    if num_lines_skipped
+                    else None
+                )
+                lines_skipped = (
+                    f"{percent_lines_skipped} of lines always skipped"
+                    if percent_lines_skipped
+                    else ""
+                )
+                rules_skipped = (
+                    f"{unit_str(num_rule_ids, 'rule')} failed to run"
+                    if num_rule_ids
+                    else ""
+                )
+                join = ", " if num_rule_ids and percent_lines_skipped else ""
+                details = (
+                    f" ({rules_skipped}{join}{lines_skipped})"
+                    if rules_skipped or lines_skipped
+                    else ""
+                )
+                yield 2, with_color(Colors.cyan, f"{path}{details}")
 
-                yield 2, with_color(Colors.cyan, f"{path}{with_rule}{lines_skipped}")
+                if file_error_log.rule_errors:
+                    yield 3, with_color(
+                        Colors.white,
+                        f"The following {unit_str(num_rule_ids, 'rule')} failed to run on this file:",
+                    )
+                    for err in file_error_log.rule_errors:
+                        yield 4, with_color(
+                            Colors.cyan,
+                            f"Rule {err.core.rule_id.value if err.core.rule_id else '<unknown rule>'}",
+                        ) + with_color(
+                            Colors.yellow,
+                            f' due to exception "{err.type_().kind}" raised during analysis',
+                        )
+
+                if file_error_log.line_errors:
+                    yield 3, with_color(
+                        Colors.white,
+                        f"The following lines were skipped for all analysis:",
+                    )
+                    for err in file_error_log.line_errors:
+                        # not sure if this is actually possible
+                        if not err.spans:
+                            yield 4, with_color(
+                                Colors.cyan, "<unknown lines>"
+                            ) + with_color(Colors.yellow, f"({err.type_().kind})")
+                            continue
+
+                        for span in err.spans:
+                            yield 4, with_color(
+                                Colors.cyan,
+                                f"lines {span.start.line}-{span.end.line}",
+                            ) + with_color(
+                                Colors.yellow,
+                                f' due to exception "{err.type_().kind}" raised during analysis',
+                            )
         else:
             yield 2, "<none>"
 
