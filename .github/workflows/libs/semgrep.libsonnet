@@ -62,11 +62,16 @@ local github_bot = {
 // Containers
 // ----------------------------------------------------------------------------
 
+// default one
+// coupling: with containers above
+local opam_switch = '5.2.1';
+// also default but needed by another nameso we can use it as a function default arg
+local opam_switch_default = opam_switch;
 local containers = {
   ocaml_alpine: {
     // used in the build-test-osx-xxx jobs but ideally we should get rid
     // of it and rely on opam.lock for caching issues
-    opam_switch: '5.2.1',
+    opam_switch: opam_switch,
     job(steps): {
       'runs-on': 'ubuntu-latest',
       container: 'returntocorp/ocaml:alpine-2024-01-18',
@@ -92,7 +97,7 @@ local containers = {
   // more familiar with. It's been cheap to maintain both so far but we could
   // decide to keep just one if it makes things simpler.
   ocaml_ubuntu: {
-    opam_switch: '5.2.1',
+    opam_switch: opam_switch,
     job: {
       'runs-on': 'ubuntu-latest',
       container: 'returntocorp/ocaml:ubuntu-2024-01-18',
@@ -157,9 +162,6 @@ local slack = {
 };
 
 
-// default one
-// coupling: with containers above
-local opam_switch = '5.2.1';
 // This is the version of the cache we use below. If you need to invalidate it
 // for some reason then bump this.
 local opam_cache_version = "v1";
@@ -169,7 +171,7 @@ local opam_cache_version = "v1";
 // TODO upstream the changes in austin's custom setup-ocaml action,
 // or move the project to the semgrep org
 // coupling: default is above opam_switch
-local opam_setup = function(opam_switch="5.2.1", cache_deps=["semgrep.opam"]) {
+local opam_setup = function(opam_switch=opam_switch_default, cache_deps=["semgrep.opam"]) {
       uses: 'semgrep/setup-ocaml@latest',
       with: {
         'ocaml-compiler': opam_switch,
@@ -254,6 +256,22 @@ local setup_nix_step = [
   }
 ];
 
+
+local build_test_steps(opam_switch=opam_switch_default, cache_deps=['semgrep.opam'], name='semgrep-core') = [
+    opam_setup(opam_switch, cache_deps=cache_deps),
+    {
+      name: 'Install dependencies',
+      run: "opam exec -- make install-deps",
+    },
+    {
+      name: 'Build %s' % name,
+      run: "opam exec -- make",
+    },
+    {
+      name: 'Test %s' % name,
+      run: 'opam exec -- make test',
+    },
+];
 // ----------------------------------------------------------------------------
 // Entry point
 // ----------------------------------------------------------------------------
@@ -281,6 +299,7 @@ local setup_nix_step = [
   depot_project_id: 'fhmxj6w9z8',
   opam_switch: opam_switch,
   opam_setup: opam_setup,
+  build_test_steps: build_test_steps,
   // coupling: cli/setup.py, the matrix in run-cli-tests.libsonnet,
   // build-test-manylinux-x86.jsonnet in pro, tests.jsonnet in OSS
   // TODO? could switch to higher like 3.11

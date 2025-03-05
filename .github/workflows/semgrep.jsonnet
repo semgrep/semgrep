@@ -24,7 +24,6 @@ local mk_job(steps) = {
 local semgrep_ci_job = mk_job([{ run: 'semgrep ci' } ]);
 local semgrep_ci_oss_job = mk_job([{ run: 'semgrep ci --oss-only' } ]);
 local semgrep_ci_debug_job = mk_job([{ run: 'semgrep ci --debug' } ]);
-
 // ----------------------------------------------------------------------------
 // The Workflow
 // ----------------------------------------------------------------------------

@@ -37,24 +37,9 @@ local artifact_name = 'semgrep-osx-arm64-${{ github.sha }}';
 
 local build_core_job = {
   'runs-on': runs_on,
-  steps: actions.checkout_with_submodules() + [
-    setup_python_step,
-    // exactly the same than in build-test-oxs-x86.jsonnet
-    semgrep.opam_setup(),
-    {
-      name: 'Install dependencies',
-      run: |||
-        make install-deps
-      |||,
-    },
-    {
-      name: 'Compile semgrep',
-      run: "opam exec -- make core",
-    },
-    {
-      name: 'Test semgrep-core',
-      run: 'opam exec -- make core-test',
-    },
+  steps: actions.checkout_with_submodules() +
+  semgrep.build_test_steps() +
+  [
     actions.make_artifact_step("./bin/semgrep-core"),
     actions.upload_artifact_step(artifact_name),
   ],
