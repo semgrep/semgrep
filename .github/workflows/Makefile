@@ -8,6 +8,7 @@ LIBS = \
   libs/actions.libsonnet \
   libs/gha.libsonnet \
   libs/semgrep.libsonnet \
+  libs/docker.libsonnet
 
 OBJS = \
   semgrep.yml lint.yml \
