@@ -690,6 +690,7 @@ def resolve_dependencies(
     allow_local_builds: bool,
     ptt_enabled: bool,
     resolve_all_deps_in_diff_scan: bool,
+    download_dependency_source_code: bool,
 ) -> Tuple[
     List[Rule],  # filtered_dependency_aware_rules
     List[DependencyParserError],  # dependency_parser_errors
@@ -736,6 +737,7 @@ def resolve_dependencies(
         allow_local_builds=allow_local_builds,
         ptt_enabled=ptt_enabled,
         resolve_untargeted_subprojects=resolve_all_deps_in_diff_scan,
+        download_dependency_source_code=download_dependency_source_code,
     )
 
     # Parse lockfiles to get dependency information
@@ -955,6 +957,7 @@ def run_rules(
         allow_local_builds=allow_local_builds,
         ptt_enabled=ptt_enabled,
         resolve_all_deps_in_diff_scan=resolve_all_deps_in_diff_scan,
+        download_dependency_source_code=x_tr,
     )
 
     # compute a set first to avoid O(n^2) complexity

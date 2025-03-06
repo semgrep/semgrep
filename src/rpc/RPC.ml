@@ -40,13 +40,14 @@ let handle_call (caps : < caps ; .. >) :
   | `CallValidate path ->
       let valid = RPC_return.validate path in
       Ok (`RetValidate valid)
-  | `CallResolveDependencies dependency_sources -> (
+  | `CallResolveDependencies params -> (
       match !RPC_return.hook_resolve_dependencies with
       | Some resolve_dependencies ->
           let resolved =
             resolve_dependencies
               (caps :> < Cap.exec ; Cap.tmp >)
-              dependency_sources
+              ~download_dependency_source_code:
+                params.download_dependency_source_code params.dependency_sources
           in
           Ok (`RetResolveDependencies resolved)
       | None ->

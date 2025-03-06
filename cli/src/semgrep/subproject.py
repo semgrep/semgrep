@@ -23,8 +23,12 @@ class DependencyResolutionConfig:
     ptt_enabled: bool
 
     # If true, resolve all found subprojects, even if they are not explicitly
-    # targeted.
+    # targeted. This is used because one customer requires that all subprojects
+    # are resolved even for diff scans.
     resolve_untargeted_subprojects: bool
+
+    # download source code for each subproject's dependencies.
+    download_dependency_source_code: bool
 
 
 def from_resolved_dependencies(

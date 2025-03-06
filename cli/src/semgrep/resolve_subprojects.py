@@ -211,6 +211,10 @@ def resolve_subprojects(
     resolve and which can be skipped based
     on the set of targets reported by the `target_manager`.
 
+    If `download_source` is True, dependency resolvers will attempt to download
+    source code for each subproject's dependencies. For all currently supported
+    package managers, this requires that `allow_dynamic_resolution` is also True.
+
     Returns a tuple with the following items:
         1. Unresolved subprojects
         2. Resolved subprojects, grouped by ecosystem

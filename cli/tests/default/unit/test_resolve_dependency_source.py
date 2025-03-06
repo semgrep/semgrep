@@ -33,7 +33,7 @@ def test_handle_missing_parser_for_lockfile(mock_parsers_dict) -> None:
     )
 
     result = _handle_lockfile_source(
-        dep_source, DependencyResolutionConfig(False, False, False)
+        dep_source, DependencyResolutionConfig(False, False, False, False)
     )
 
     assert isinstance(result[0], out.UnresolvedReason)
@@ -69,7 +69,7 @@ def test_dependency_parser_exception(mock_parsers_dict) -> None:
     )
 
     result = _handle_lockfile_source(
-        dep_source, DependencyResolutionConfig(False, False, False)
+        dep_source, DependencyResolutionConfig(False, False, False, False)
     )
 
     assert result[0] == (out.ResolutionMethod(out.LockfileParsing()), [])

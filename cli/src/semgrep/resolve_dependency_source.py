@@ -91,6 +91,10 @@ PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS = [
     ),
 ]
 
+TR_OCAML_RESOLVER_SUBPROJECT_KINDS = [
+    (out.ManifestKind(out.PackageJson()), out.LockfileKind(out.NpmPackageLockJson())),
+]
+
 DependencyResolutionResult = Tuple[
     Union[
         Tuple[out.ResolutionMethod, List[out.ResolvedDependency]], out.UnresolvedReason
@@ -140,6 +144,7 @@ def _resolve_dependencies_rpc(
         out.ManifestLockfileDependencySource,
         out.LockfileOnlyDependencySource,
     ],
+    download_dependency_source_code: bool,
 ) -> Tuple[
     Optional[List[out.ResolvedDependency]],
     Sequence[out.ScaResolutionError],
@@ -149,7 +154,9 @@ def _resolve_dependencies_rpc(
     Handle the RPC call to resolve dependencies in ocaml
     """
     try:
-        response = resolve_dependencies([out.DependencySource(dep_src)])
+        response = resolve_dependencies(
+            [out.DependencySource(dep_src)], download_dependency_source_code
+        )
     except Exception as e:
         logger.verbose(f"RPC call failed: {e}")
         return None, [], []
@@ -208,9 +215,12 @@ def _resolve_dependencies_rpc(
 
 def _handle_manifest_only_source(
     dep_source: out.ManifestOnlyDependencySource,
+    config: DependencyResolutionConfig,
 ) -> DependencyResolutionResult:
     """Handle dependency resolution for manifest-only sources."""
-    new_deps, new_errors, new_targets = _resolve_dependencies_rpc(dep_source)
+    new_deps, new_errors, new_targets = _resolve_dependencies_rpc(
+        dep_source, config.download_dependency_source_code
+    )
     if new_deps is None:
         return out.UnresolvedReason(out.UnresolvedFailed()), new_errors, new_targets
     return (
@@ -278,51 +288,64 @@ def _handle_lockfile_source(
     lockfile_path = Path(lockfile.path.value)
     parser = PARSERS_BY_LOCKFILE_KIND[lockfile.kind]
 
-    if config.ptt_enabled:
-        manifest_kind = (
-            dep_source.value[0].kind
-            if isinstance(dep_source, out.ManifestLockfileDependencySource)
-            else None
-        )
-        lockfile_kind = lockfile.kind
+    manifest_kind = (
+        dep_source.value[0].kind
+        if isinstance(dep_source, out.ManifestLockfileDependencySource)
+        else None
+    )
+    lockfile_kind = lockfile.kind
 
-        use_nondynamic_ocaml_parsing = (
+    use_nondynamic_ocaml_parsing = (
+        config.ptt_enabled
+        and (manifest_kind, lockfile_kind) in PTT_OCAML_PARSER_SUBPROJECT_KINDS
+    )
+
+    use_dynamic_resolution = (
+        config.ptt_enabled
+        and config.allow_local_builds
+        and (manifest_kind, lockfile_kind) in PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS
+    )
+
+    use_tr_ocaml_resolver = (
+        config.download_dependency_source_code
+        and config.allow_local_builds
+        and (
             manifest_kind,
             lockfile_kind,
-        ) in PTT_OCAML_PARSER_SUBPROJECT_KINDS
+        )
+        in TR_OCAML_RESOLVER_SUBPROJECT_KINDS
+    )
 
-        use_dynamic_resolution = (
-            config.allow_local_builds
-            and (manifest_kind, lockfile_kind)
-            in PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS
+    resolve_with_ocaml = (
+        use_nondynamic_ocaml_parsing or use_dynamic_resolution or use_tr_ocaml_resolver
+    )
+
+    if resolve_with_ocaml:
+        logger.verbose(
+            f"Dynamically resolving path(s): {[str(path) for path in get_display_paths(out.DependencySource(dep_source))]}"
         )
 
-        if use_nondynamic_ocaml_parsing or use_dynamic_resolution:
-            logger.verbose(
-                f"Dynamically resolving path(s): {[str(path) for path in get_display_paths(out.DependencySource(dep_source))]}"
-            )
+        (
+            new_deps,
+            new_errors,
+            new_targets,
+        ) = _resolve_dependencies_rpc(dep_source, use_tr_ocaml_resolver)
 
-            (
-                new_deps,
+        for error in new_errors:
+            logger.verbose(f"Dynamic resolution RPC error: '{error}'")
+
+        if new_deps is not None:
+            # TODO: Reimplement this once more robust error handling for lockfileless resolution is implemented
+            return (
+                (
+                    out.ResolutionMethod(out.LockfileParsing())
+                    if use_nondynamic_ocaml_parsing
+                    else out.ResolutionMethod(out.DynamicResolution()),
+                    new_deps,
+                ),
                 new_errors,
                 new_targets,
-            ) = _resolve_dependencies_rpc(dep_source)
-
-            for error in new_errors:
-                logger.verbose(f"Dynamic resolution RPC error: '{error}'")
-
-            if new_deps is not None:
-                # TODO: Reimplement this once more robust error handling for lockfileless resolution is implemented
-                return (
-                    (
-                        out.ResolutionMethod(out.LockfileParsing())
-                        if use_nondynamic_ocaml_parsing
-                        else out.ResolutionMethod(out.DynamicResolution()),
-                        new_deps,
-                    ),
-                    new_errors,
-                    new_targets,
-                )
+            )
 
     # if there is no parser or ecosystem for the lockfile, we can't resolve it
     if parser is None:
@@ -369,10 +392,14 @@ def resolve_dependency_source(
         )
     elif (
         isinstance(dep_source_, out.ManifestOnlyDependencySource)
-        and (dep_source_.value.kind, None) in PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS
+        and config.allow_local_builds
+        and (
+            (dep_source_.value.kind, None) in PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS
+            or config.download_dependency_source_code
+        )
     ):
         if config.allow_local_builds:
-            return _handle_manifest_only_source(dep_source_)
+            return _handle_manifest_only_source(dep_source_, config)
         else:
             return out.UnresolvedReason(out.UnresolvedDisabled()), [], []
     else:

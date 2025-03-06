@@ -18,6 +18,7 @@ val validate : Out.fpath -> bool
 (* TODO: switch all those option ref to Hook.t *)
 val hook_resolve_dependencies :
   (< Cap.exec ; Cap.tmp > ->
+  download_dependency_source_code:bool ->
   Out.dependency_source list ->
   (Out.dependency_source * Out.resolution_result) list)
   option

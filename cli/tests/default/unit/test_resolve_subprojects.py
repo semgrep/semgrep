@@ -216,7 +216,7 @@ def test_ptt_unconditionally_generates_dependency_graphs(
     )
 
     deps, _, _ = resolve_dependency_source(
-        dep_source, DependencyResolutionConfig(True, True, True)
+        dep_source, DependencyResolutionConfig(True, True, True, False)
     )
     assert not isinstance(deps, out.UnresolvedReason)
     assert deps[0] == out.ResolutionMethod(out.DynamicResolution())
@@ -268,7 +268,7 @@ def test_ptt_unconditional_graph_generation_falls_back_on_lockfile_parsing(
         ),
     )
     deps, _, _ = resolve_dependency_source(
-        dep_source, DependencyResolutionConfig(True, True, True)
+        dep_source, DependencyResolutionConfig(True, True, True, False)
     )
     assert not isinstance(deps, out.UnresolvedReason)
     assert deps[0] == out.ResolutionMethod(out.LockfileParsing())

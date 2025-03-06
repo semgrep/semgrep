@@ -64,9 +64,16 @@ def validate(fp: out.Fpath) -> bool:
 
 
 def resolve_dependencies(
-    args: List[out.DependencySource],
+    dependency_sources: List[out.DependencySource],
+    download_dependency_source_code: bool,
 ) -> Optional[List[Tuple[out.DependencySource, out.ResolutionResult]]]:
-    call = out.FunctionCall(out.CallResolveDependencies(args))
+    call = out.FunctionCall(
+        out.CallResolveDependencies(
+            out.ResolveDependenciesParams(
+                dependency_sources, download_dependency_source_code
+            )
+        )
+    )
     ret: Optional[out.RetResolveDependencies] = rpc_call(
         call, out.RetResolveDependencies
     )
