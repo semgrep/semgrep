@@ -307,19 +307,18 @@ jobs:
           opam-pin: false
           save-opam-post-run: true
       - name: Install dependencies
-        run: |
-          eval $(opam env)
-          make install-deps-for-semgrep-core
-          make -C interfaces/semgrep_interfaces setup-ALPINE setup
+        run: opam exec -- make install-deps
       - name: Build semgrep-core
-        run: opam exec -- make core
+        run: opam exec -- make
       - name: Test semgrep-core (and time it)
         run: |
+          # Small hack to get deps to work fine, will remove in follow up pr
+          apk add --no-cache python3
+          pip install --no-cache-dir --ignore-installed check-jsonschema
           eval $(opam env)
           START=`date +%s`
-
-          make core-test
-          make core-test-e2e
+          opam exec -- make test
+          opam exec -- make core-test-e2e
 
           END=`date +%s`
           TEST_RUN_TIME=$((END-START))

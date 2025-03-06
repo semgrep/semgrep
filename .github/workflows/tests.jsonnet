@@ -97,40 +97,8 @@ local snapshot_update_pr_steps(add_paths, repo_name) = [
 // alt: we could factorize
 local test_semgrep_core_job =
   semgrep.containers.ocaml_alpine.job (
-    actions.checkout_with_submodules() + [
-    semgrep.opam_setup(),
-    {
-      name: 'Install dependencies',
-      run: |||
-        eval $(opam env)
-        make install-deps-for-semgrep-core
-        make -C interfaces/semgrep_interfaces setup-ALPINE setup
-      |||,
-    },
-    {
-      name: 'Build semgrep-core',
-      run: 'opam exec -- make core',
-    },
-    {
-      name: 'Test semgrep-core (and time it)',
-      run: |||
-        eval $(opam env)
-        START=`date +%s`
-
-        make core-test
-        make core-test-e2e
-
-        END=`date +%s`
-        TEST_RUN_TIME=$((END-START))
-        curl --fail -L -X POST "https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num" -d "$TEST_RUN_TIME"
-      |||,
-    },
-    {
-      name: 'Report Number of Tests Stats',
-      'if': "github.ref == 'refs/heads/develop'",
-      run: './scripts/report_test_metrics.sh',
-    },
-  ],
+    actions.checkout_with_submodules() +
+    semgrep.build_test_steps(time=true)
   );
 
 // alt: could factorize with previous job

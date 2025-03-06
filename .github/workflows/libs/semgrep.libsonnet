@@ -256,7 +256,7 @@ local setup_nix_step = [
 ];
 
 
-local build_test_steps(opam_switch=opam_switch_default, cache_deps=['semgrep.opam'], name='semgrep-core') = [
+local build_test_steps(opam_switch=opam_switch_default, cache_deps=['semgrep.opam'], name='semgrep-core', time=false) = [
     opam_setup(opam_switch, cache_deps=cache_deps),
     {
       name: 'Install dependencies',
@@ -266,11 +266,34 @@ local build_test_steps(opam_switch=opam_switch_default, cache_deps=['semgrep.opa
       name: 'Build %s' % name,
       run: "opam exec -- make",
     },
+] + (if time then [
+    {
+      name: 'Test %s (and time it)' % name,
+      run: |||
+        # Small hack to get deps to work fine, will remove in follow up pr
+        apk add --no-cache python3
+        pip install --no-cache-dir --ignore-installed check-jsonschema
+        eval $(opam env)
+        START=`date +%s`
+        opam exec -- make test
+        opam exec -- make core-test-e2e
+
+        END=`date +%s`
+        TEST_RUN_TIME=$((END-START))
+        curl --fail -L -X POST "https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num" -d "$TEST_RUN_TIME"
+      |||,
+    },
+    {
+      name: 'Report Number of Tests Stats',
+      'if': "github.ref == 'refs/heads/develop'",
+      run: './scripts/report_test_metrics.sh',
+    }
+] else [
     {
       name: 'Test %s' % name,
       run: 'opam exec -- make test',
-    },
-];
+    }
+  ]);
 // ----------------------------------------------------------------------------
 // Entry point
 // ----------------------------------------------------------------------------
