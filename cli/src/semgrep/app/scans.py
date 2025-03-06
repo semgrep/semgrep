@@ -28,7 +28,6 @@ from semgrep.app.project_config import ProjectConfig
 from semgrep.constants import TOO_MUCH_DATA
 from semgrep.constants import USER_FRIENDLY_PRODUCT_NAMES
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
-from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
@@ -353,7 +352,6 @@ class ScanHandler:
     def report_findings(
         self,
         matches_by_rule: RuleMatchMap,
-        errors: List[SemgrepError],
         rules: List[Rule],
         targets: Set[Path],
         renamed_targets: Set[Path],
@@ -494,7 +492,13 @@ class ScanHandler:
                 findings=len(
                     [match for match in new_matches if not match.from_transient_scan]
                 ),
-                errors=[error.to_CliError() for error in errors],
+                # We do not report errors anymore since they are large and have
+                # caused issues in the past with overloading api endpoints
+                #
+                # Also, we now use opentelemetry to report these, so they're not
+                # useful to us as it stands
+                # TODO: Remove this from the interface file?
+                errors=[],
                 total_time=total_time,
                 unsupported_exts=dict(ignored_ext_freqs),
                 lockfile_scan_info=dependency_counts,

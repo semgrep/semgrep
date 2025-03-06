@@ -403,7 +403,6 @@ def ci(
                     scan_handler.report_findings(
                         dict(),
                         [],
-                        [],
                         set(),
                         set(),
                         frozenset(),
@@ -898,7 +897,6 @@ def ci(
             ) as progress_bar:
                 complete_result = scan_handler.report_findings(
                     filtered_matches_by_rule,
-                    semgrep_errors,
                     filtered_rules,
                     output_extra.all_targets,
                     renamed_targets,
