@@ -1392,50 +1392,6 @@ val is_singleton : 'a list -> bool
 (*###########################################################################*)
 
 (*****************************************************************************)
-(* DB *)
-(*****************************************************************************)
-
-(* cf oassocbdb.ml or oassocdbm.ml  (LFS)  *)
-
-(*****************************************************************************)
-(* GUI *)
-(*****************************************************************************)
-
-(* cf ocamlgtk and my gui.ml  (LFS, CComment, otimetracker) *)
-
-(*****************************************************************************)
-(* Graphics *)
-(*****************************************************************************)
-
-(* cf ocamlcairo, ocamlgl and my opengl.ml  (otimetracker) *)
-
-(*****************************************************************************)
-(* Geometry (ICFP raytracer) *)
-(*****************************************************************************)
-
-type vector = float * float * float
-type point = vector
-type color = vector
-
-val dotproduct : vector * vector -> float
-val vector_length : vector -> float
-val minus_point : point * point -> vector
-val distance : point * point -> float
-val normalise : vector -> vector
-val mult_coeff : vector -> float -> vector
-val add_vector : vector -> vector -> vector
-val mult_vector : vector -> vector -> vector
-val sum_vector : vector list -> vector
-
-(*****************************************************************************)
-(* Pics (ICFP raytracer) *)
-(*****************************************************************************)
-type pixel = int * int * int
-
-val write_ppm : int -> int -> pixel list -> filename -> unit
-val test_ppm1 : unit -> unit
-
-(*****************************************************************************)
 (* Parsers (aop-colcombet)                                                 *)
 (*****************************************************************************)
 
