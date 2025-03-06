@@ -1,5 +1,5 @@
 (*
-   Test suite for this folder.
+   Test suite for the Common module
 *)
 
 open Printf
@@ -85,21 +85,25 @@ let test_cat () =
       assert false
 
 let test_readable () =
-  Alcotest.(check string)
-    "same string" "Bar.java"
-    (Filename_.readable ~root:"." "./Bar.java");
-  Alcotest.(check string)
-    "same string" "Bar.java"
-    (Filename_.readable ~root:"." "Bar.java");
-  Alcotest.(check string)
-    "same string" "a/b/Bar.java"
-    (Filename_.readable ~root:"." "a/b/Bar.java");
-  Alcotest.(check string)
-    "same string" "Bar.java"
-    (Filename_.readable ~root:"/a/b/" "/a/b/Bar.java");
-  Alcotest.(check string)
-    "same string" "Bar.java"
-    (Filename_.readable ~root:"/a/b/" "/a/b//Bar.java");
+  let readable ~root p =
+    Filename_.readable ~root:(Fpath.v root) (Fpath.v p)
+  in
+  let fpath = Alcotest.testable Fpath.pp Fpath.equal in
+  Alcotest.(check fpath)
+    "same string" (Fpath.v "Bar.java")
+    (readable ~root:"." "./Bar.java");
+  Alcotest.(check fpath)
+    "same string" (Fpath.v "Bar.java")
+    (readable ~root:"." "Bar.java");
+  Alcotest.(check fpath)
+    "same string" (Fpath.v "a/b/Bar.java")
+    (readable ~root:"." "a/b/Bar.java");
+  Alcotest.(check fpath)
+    "same string" (Fpath.v "Bar.java")
+    (readable ~root:"/a/b/" "/a/b/Bar.java");
+  Alcotest.(check fpath)
+    "same string" (Fpath.v "Bar.java")
+    (readable ~root:"/a/b/" "/a/b//Bar.java");
   ()
 
 let with_file contents f =

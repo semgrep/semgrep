@@ -18,43 +18,29 @@ open Common
 (* Filenames *)
 (*****************************************************************************)
 
-let chop_dirsymbol = function
-  | s when s =~ "\\(.*\\)/$" -> Common.matched1 s
-  | s -> s
-
-(* pre: prj_path must not contain regexp symbol *)
-let filename_without_leading_path prj_path s =
-  let prj_path = chop_dirsymbol prj_path in
-  match prj_path with
-  | ""
-  | "." ->
-      s
-  | _ ->
-      if s = prj_path then "."
-      else if
-        (* Note that we should handle multiple consecutive '/'
-           as in 'path/to//file' *)
-        s =~ "^" ^ prj_path ^ "/+\\(.*\\)$"
-      then Common.matched1 s
-      else
-        failwith
-          (spf "can't find filename_without_project_path: %S %S" prj_path s)
-
 (* Deprecated: use the Ppath.ml module instead! *)
 let readable ~root s =
-  match root with
-  | "/" -> s
-  | "." -> (
-      match s with
-      | s when s =~ "^/" ->
-          failwith (spf "file %s shouldn't start with / when root is ." s)
-      | s when s =~ "^\\./\\(.*\\)" -> Common.matched1 s
-      | _ -> s)
-  (* ugly: to support readable "./foo/bar" "foo/bar/foo.c" *)
-  | _ when (not (s =~ "^\\./")) && root =~ "^\\./\\(.*\\)$" ->
-      (* root can be "" *)
-      filename_without_leading_path root s
-  | _ -> filename_without_leading_path root s
+  if Fpath.is_root root then s
+  else if Fpath.is_current_dir root then
+    if Fpath.is_abs s then
+      let path = Fpath.to_string s in
+      failwith
+          (spf "file %s shouldn't be absolute when root is ." path);
+    else
+      s
+  else
+    match Fpath.(rem_prefix (v "./")) s with
+    | Some p -> p
+    | None when Fpath.equal root s -> Fpath.v "."
+    | None -> (
+        match Fpath.relativize ~root s with
+        | Some p -> p
+        | None ->
+            let root = Fpath.to_string root in
+            let path = Fpath.to_string s in
+            failwith
+              (spf "can't find 'readable' path for project root %S and path %S"
+                 root path))
 
 (*****************************************************************************)
 (* dbe to filename (was in common2.ml) *)
