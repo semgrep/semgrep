@@ -146,3 +146,7 @@ url = https://github.com/semgrep/semgrep-move-on-sui.git
 path = languages/circom/tree-sitter/semgrep-circom
 url = https://github.com/semgrep/semgrep-circom.git
 
+[submodule "OSS/languages/toml/tree-sitter/semgrep-toml"]
+path = languages/toml/tree-sitter/semgrep-toml
+url = https://github.com/semgrep/semgrep-toml.git
+

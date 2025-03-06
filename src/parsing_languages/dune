@@ -53,5 +53,8 @@
    parser_move_on_sui.ast_generic
    parser_move_on_aptos.ast_generic
    parser_circom.ast_generic
+   ; not really used for now but need to add it there
+   ; otherwise we get an OSX linking error about toml_stubs
+   tree-sitter-lang.toml
  )
 )
