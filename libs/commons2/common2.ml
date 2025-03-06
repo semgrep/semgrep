@@ -4393,61 +4393,6 @@ let is_singleton xs = List.length xs =|= 1
 (*###########################################################################*)
 
 (*****************************************************************************)
-(* Parsers (aop-colcombet) *)
-(*****************************************************************************)
-
-let parserCommon lexbuf parserer lexer =
-  try
-    let result = parserer lexer lexbuf in
-    result
-  with
-  | UParsing.Parse_error ->
-      UStdlib.print_string "buf: ";
-      UStdlib.print_bytes lexbuf.Lexing.lex_buffer;
-      UStdlib.print_string "\n";
-      UStdlib.print_string "current: ";
-      UStdlib.print_int lexbuf.Lexing.lex_curr_pos;
-      UStdlib.print_string "\n";
-      raise UParsing.Parse_error
-
-(* marche pas ca neuneu *)
-(*
-let getDoubleParser parserer lexer string =
-  let lexbuf1 = Lexing.from_string string in
-  let chan = open_in_bin string in
-  let lexbuf2 = Lexing.from_channel chan in
-  (parserCommon lexbuf1 parserer lexer  , parserCommon lexbuf2 parserer lexer )
-*)
-
-let getDoubleParser parserer lexer =
-  ( (function
-    | string ->
-        let lexbuf1 = Lexing.from_string string in
-        parserCommon lexbuf1 parserer lexer),
-    function
-    | string ->
-        let chan = UStdlib.open_in_bin string in
-        let lexbuf2 = Lexing.from_channel chan in
-        parserCommon lexbuf2 parserer lexer )
-
-(*****************************************************************************)
-(* parser combinators *)
-(*****************************************************************************)
-
-(* cf parser_combinators.ml
- *
- * Could also use ocaml stream. but not backtrack and forced to do LL,
- * so combinators are better.
- *
- *)
-
-(*****************************************************************************)
-(* Parser related (cocci) *)
-(*****************************************************************************)
-(* now in lib_parsing/parse_info.ml *)
-
-(*x: common.ml *)
-(*****************************************************************************)
 (* Regression testing bis (cocci) *)
 (*****************************************************************************)
 
