@@ -4513,27 +4513,6 @@ let print_score score =
 
 (*x: common.ml *)
 (*****************************************************************************)
-(* Gc optimisation (pfff) *)
-(*****************************************************************************)
-
-(* opti: to avoid stressing the GC with a huge graph, we sometimes
- * change a big AST into a string, which reduces the size of the graph
- * to explore when garbage collecting.
- *)
-type 'a cached = 'a serialized_maybe ref
-and 'a serialized_maybe = Serial of string | Unfold of 'a
-
-let serial x = ref (Serial (Marshal.to_string x []))
-
-let unserial x =
-  match !x with
-  | Unfold c -> c
-  | Serial s ->
-      let res = UMarshal.from_string s 0 in
-      (*        x := Unfold res; *)
-      res
-
-(*****************************************************************************)
 (* Random *)
 (*****************************************************************************)
 
