@@ -1392,40 +1392,6 @@ val is_singleton : 'a list -> bool
 (*###########################################################################*)
 
 (*****************************************************************************)
-(* Scope managment (cocci) *)
-(*****************************************************************************)
-
-(* for example of use, see the code used in coccinelle *)
-type ('a, 'b) scoped_env = ('a, 'b) assoc list
-
-val lookup_env : (* Eq a *) 'a -> ('a, 'b) scoped_env -> 'b
-val member_env_key : 'a -> ('a, 'b) scoped_env -> bool
-val new_scope : ('a, 'b) scoped_env ref -> unit
-val del_scope : ('a, 'b) scoped_env ref -> unit
-val do_in_new_scope : ('a, 'b) scoped_env ref -> (unit -> unit) -> unit
-val add_in_scope : ('a, 'b) scoped_env ref -> 'a * 'b -> unit
-
-(* for example of use, see the code used in coccinelle *)
-type ('a, 'b) scoped_h_env = {
-  scoped_h : ('a, 'b) Hashtbl.t;
-  scoped_list : ('a, 'b) assoc list;
-}
-
-val empty_scoped_h_env : unit -> ('a, 'b) scoped_h_env
-val clone_scoped_h_env : ('a, 'b) scoped_h_env -> ('a, 'b) scoped_h_env
-val lookup_h_env : 'a -> ('a, 'b) scoped_h_env -> 'b
-val member_h_env_key : 'a -> ('a, 'b) scoped_h_env -> bool
-val new_scope_h : ('a, 'b) scoped_h_env ref -> unit
-val del_scope_h : ('a, 'b) scoped_h_env ref -> unit
-val do_in_new_scope_h : ('a, 'b) scoped_h_env ref -> (unit -> unit) -> unit
-val add_in_scope_h : ('a, 'b) scoped_h_env ref -> 'a * 'b -> unit
-
-(*****************************************************************************)
-(* Terminal (LFS) *)
-(*****************************************************************************)
-(* see console.ml *)
-
-(*****************************************************************************)
 (* Gc optimisation (pfff) *)
 (*****************************************************************************)
 
