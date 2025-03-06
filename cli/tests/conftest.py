@@ -18,6 +18,7 @@
 ##############################################################################
 # Helper functions and classes useful for writing tests.
 import contextlib
+import copy
 import json
 import os
 import re
@@ -405,7 +406,7 @@ def _run_semgrep(
     context_manager: Optional[ContextManager] = None,
     is_logged_in_weak=False,
     osemgrep_force_project_root: Optional[str] = None,
-    use_semgrepignore_v2: bool = False,
+    use_semgrepignore_v2: bool = True,
 ) -> SemgrepResult:
     """Run the semgrep CLI.
 
@@ -455,6 +456,7 @@ def _run_semgrep(
 
             if options is None:
                 options = []
+            options = copy.copy(options)
 
             # This is a hack to make osemgrep's new semgrepignore behavior
             # compatible with pysemgrep when the current folder is not
@@ -465,8 +467,8 @@ def _run_semgrep(
             # In tests, we want to ignore the project-wide's semgrepignore.
             # This is what the '--project-root .' option achieves.
             if (
-                (subcommand is None or subcommand == "scan")
-                and USE_OSEMGREP
+                (subcommand is None or subcommand == "scan" or subcommand == "ci")
+                and (USE_OSEMGREP or use_semgrepignore_v2)
                 and osemgrep_force_project_root
             ):
                 options.extend(["--project-root", osemgrep_force_project_root])

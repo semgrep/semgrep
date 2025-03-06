@@ -1,0 +1,87 @@
+running 1 rules from 1 config rules/nosem.yaml_0
+No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignore-files
+Rules:
+- rules.test-nosem
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 2 files tracked by git with 1 Code rule:
+  Nothing to scan.
+
+========================================
+Files skipped:
+========================================
+
+  Always skipped by Semgrep:
+
+   • <none>
+
+  Skipped by .gitignore:
+  (Disable by passing --no-git-ignore)
+
+   • <all files not listed by `git ls-files` were skipped>
+
+  Skipped by .semgrepignore:
+  - https://semgrep.dev/docs/ignoring-files-folders-code/#understand-semgrep-defaults
+
+   • <none>
+
+  Skipped by --include patterns:
+
+   • <none>
+
+  Skipped by --exclude patterns:
+
+   • targets/basic/README.md
+   • targets/basic/bento.png
+   • targets/basic/inside.py
+   • targets/basic/metavariable-comparison-bad-content.py
+   • targets/basic/metavariable-comparison-base.py
+   • targets/basic/metavariable-comparison-strip.py
+   • targets/basic/metavariable-comparison.py
+   • targets/basic/metavariable-regex-multi-regex.py
+   • targets/basic/metavariable-regex-multi-rule.py
+   • targets/basic/metavariable-regex.py
+   • targets/basic/nested-patterns.js
+   • targets/basic/nosem.c
+   • targets/basic/nosem.go
+   • targets/basic/nosem.java
+   • targets/basic/nosem.js
+   • targets/basic/nosem.py
+   • targets/basic/regex-any-language.html
+   • targets/basic/regex-nosemgrep.txt
+   • targets/basic/regex-utf8.txt
+   • targets/basic/regex.py
+   • targets/basic/stupid.js
+   • targets/basic/stupid.py
+
+  Files that couldn't be accessed:
+
+   • <none>
+
+  Skipped by limiting to files smaller than 1000000 bytes:
+  (Adjust with the --max-target-bytes flag)
+
+   • <none>
+
+  Partially analyzed due to parsing or internal Semgrep errors
+
+   • <none>
+
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+✅ Scan completed successfully.
+ • Findings: 0 (0 blocking)
+ • Rules run: 1
+ • Targets scanned: 0
+ • Parsed lines: an unknown percentage
+ • Scan skipped:
+   ◦ Matching --exclude patterns: 22
+ • For a detailed list of skipped files and lines, run semgrep with the --verbose flag
+Ran 1 rule on 0 files: 0 findings.
+Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False

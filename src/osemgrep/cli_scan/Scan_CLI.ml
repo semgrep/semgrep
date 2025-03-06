@@ -249,6 +249,9 @@ let o_use_semgrepignore_v2 : bool Cmdliner.Term.t =
 implementation for discovering and filtering target files. Conversely,
 '--no-semgrepignore-v2' is the deprecated option that forces the use of
 the legacy Semgrepignore v1.
+Please note that for now, '--semgrepignore-v2' has no effect on scans that
+are restricted to the files that changed since a particular baseline
+commit.
 If you must use '--no-semgrepignore-v2', please let us know so we can
 fix problems and help you migrate smoothly.
 |}

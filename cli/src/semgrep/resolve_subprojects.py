@@ -138,7 +138,7 @@ def filter_changed_subprojects(
                 ecosystems_by_language[language] = []
             for ecosystem in rule.ecosystems:
                 # inefficient lookup, but we need to use a list rather than a set to preserve order and
-                # the number of ecsosytems per language is small (<10)
+                # the number of ecosystems per language is small (<10)
                 if ecosystem not in ecosystems_by_language[language]:
                     ecosystems_by_language[language].append(ecosystem)
 
@@ -151,7 +151,7 @@ def filter_changed_subprojects(
             # logic will find a different closest subproject for each one. So we need to mark
             # the closest subproject for each relevant ecosystem as potentially changed
             for ecosystem in ecosystems:
-                # This is nonderministic need to fix
+                # This is nondeterministic need to fix
                 closest_subproject = find_closest_subproject(
                     code_file, ecosystem, subprojects
                 )

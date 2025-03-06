@@ -1,0 +1,76 @@
+=== exit code
+1
+=== end of exit code
+
+=== stdout - plain
+
+
+┌──────────────────────────────────┐
+│ 1 Reachable Supply Chain Finding │
+└──────────────────────────────────┘
+
+    poetry.lock
+   ❯❯❱ supply-chain1
+          found a dependency
+
+            2┆ name = "badlib"
+
+
+=== end of stdout - plain
+
+=== stderr - plain
+
+
+┌────────────────┐
+│ Debugging Info │
+└────────────────┘
+
+  SCAN ENVIRONMENT
+  versions    - semgrep <MASKED> on python <MASKED>
+  environment - running in environment git, triggering event is unknown
+
+  CONNECTION
+  Initializing scan (deployment=org_name, scan_id=12345)
+  Enabled products: Code, Supply Chain
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 3 files tracked by git with 4 Code rules, 3 Supply Chain rules:
+
+
+  CODE RULES
+  Nothing to scan.
+
+  SUPPLY CHAIN RULES
+  Scanning 1 file.
+  Uploading scan results
+  Finalizing scan
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+✅ CI scan completed successfully.
+ • Findings: 1 (0 blocking)
+ • Rules run: 7
+ • Targets scanned: 2
+ • Parsed lines: ~100.0%
+ • Scan skipped:
+   ◦ Matching --exclude patterns: 1
+ • Scan was limited to files tracked by git
+ • For a detailed list of skipped files and lines, run semgrep with the --verbose flag
+CI scan completed successfully.
+  View results in Semgrep Cloud Platform:
+    https://semgrep.dev/orgs/org_name/findings?repo=local_scan/checkout_project_name&ref=some/branch-name
+    https://semgrep.dev/orgs/org_name/supply-chain/vulnerabilities?repo=local_scan/checkout_project_name&ref=some/branch-name
+  semgrep.dev is suggesting a non-zero exit code (Test Reason)
+
+=== end of stderr - plain
+
+=== stdout - color
+<same as above: stdout - plain>
+=== end of stdout - color
+
+=== stderr - color
+<same as above: stderr - plain>
+=== end of stderr - color

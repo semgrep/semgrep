@@ -1,0 +1,28 @@
+{
+  "scanned": [
+    "targets/ignores/find.js",
+    "targets/ignores/ok/find.js"
+  ],
+  "skipped": [
+    {
+      "path": "targets/ignores/.gitignore",
+      "reason": "semgrepignore_patterns_match"
+    },
+    {
+      "path": "targets/ignores/.semgrepignore",
+      "reason": "cli_include_flags_do_not_match"
+    },
+    {
+      "path": "targets/ignores/ignore.min.js",
+      "reason": "cli_exclude_flags_match"
+    },
+    {
+      "path": "targets/ignores/ignore_test.js",
+      "reason": "semgrepignore_patterns_match"
+    },
+    {
+      "path": "targets/ignores/tests/ignore.js",
+      "reason": "semgrepignore_patterns_match"
+    }
+  ]
+}

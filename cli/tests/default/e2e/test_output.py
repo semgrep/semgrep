@@ -362,13 +362,13 @@ IGNORE_LOG_REPORT_LAST_LINE = " • For a detailed list of skipped files and lin
 # TODO: remove this test: too many things being tested at once, too hard
 #       to debug.
 #
-# pysemgrep/osemgrep status: osemgrep reports 2 more files that are being
+# pysemgrep/osemgrep/v2 status: osemgrep reports 2 more files that are being
 # excluded. They're excluded in both implementations.
-@pytest.mark.kinda_slow
-@pytest.mark.pysemfail
-@pytest.mark.osemfail
-def test_semgrepignore_ignore_log_report(
-    run_semgrep_on_copied_files: RunSemgrep, tmp_path, snapshot
+def _test_semgrepignore_ignore_log_report(
+    run_semgrep_on_copied_files: RunSemgrep,
+    tmp_path,
+    snapshot,
+    use_semgrepignore_v2: bool,
 ):
     shutil.copyfile(
         Path(TARGETS_PATH / "ignores" / ".semgrepignore"), tmp_path / ".semgrepignore"
@@ -395,6 +395,7 @@ def test_semgrepignore_ignore_log_report(
         output_format=OutputFormat.TEXT,
         force_color=True,
         target_name="ignores",
+        use_semgrepignore_v2=use_semgrepignore_v2,
     )
 
     report = re.search(
@@ -408,14 +409,34 @@ def test_semgrepignore_ignore_log_report(
     snapshot.assert_match(report.group(), "report.txt")
 
 
-# Tolerate a different snapshot with pysemgrep than osemgrep.
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
-def test_semgrepignore_ignore_log_report_pysemgrep(
+def test_semgrepignore_ignore_log_report(
     run_semgrep_on_copied_files: RunSemgrep, tmp_path, snapshot
 ):
-    test_semgrepignore_ignore_log_report(
-        run_semgrep_on_copied_files, tmp_path, snapshot
+    _test_semgrepignore_ignore_log_report(
+        run_semgrep_on_copied_files,
+        tmp_path,
+        snapshot,
+        use_semgrepignore_v2=True,
+    )
+
+
+# Tolerate a different snapshot with pysemgrep than osemgrep/v2.
+@pytest.mark.kinda_slow
+@pytest.mark.osemfail
+@pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
+def test_semgrepignore_ignore_log_report_pysemgrep(
+    run_semgrep_on_copied_files: RunSemgrep,
+    tmp_path,
+    snapshot,
+    use_semgrepignore_v2: bool,
+):
+    _test_semgrepignore_ignore_log_report(
+        run_semgrep_on_copied_files,
+        tmp_path,
+        snapshot,
+        use_semgrepignore_v2=use_semgrepignore_v2,
     )
 
 
@@ -424,10 +445,11 @@ def test_semgrepignore_ignore_log_report_pysemgrep(
 #
 # pysemgrep/osemgrep status: osemgrep reports 2 more files that are being
 # excluded. They're excluded in both implementations.
-@pytest.mark.kinda_slow
-@pytest.mark.pysemfail
-def test_semgrepignore_ignore_log_json_report(
-    run_semgrep_on_copied_files: RunSemgrep, tmp_path, snapshot
+def _test_semgrepignore_ignore_log_json_report(
+    run_semgrep_on_copied_files: RunSemgrep,
+    tmp_path,
+    snapshot,
+    use_semgrepignore_v2: bool,
 ):
     shutil.copyfile(
         Path(TARGETS_PATH / "ignores" / ".semgrepignore"), tmp_path / ".semgrepignore"
@@ -453,6 +475,7 @@ def test_semgrepignore_ignore_log_json_report(
         ],
         output_format=OutputFormat.JSON,
         target_name="ignores",
+        use_semgrepignore_v2=use_semgrepignore_v2,
     )
     parsed_output = json.loads(stdout)
     assert "paths" in parsed_output
@@ -462,14 +485,32 @@ def test_semgrepignore_ignore_log_json_report(
     )
 
 
-# Tolerate a different snapshot with pysemgrep than osemgrep.
 @pytest.mark.kinda_slow
-@pytest.mark.osemfail
-def test_semgrepignore_ignore_log_json_report_pysemgrep(
+@pytest.mark.pysemfail
+def test_semgrepignore_ignore_log_json_report(
     run_semgrep_on_copied_files: RunSemgrep, tmp_path, snapshot
 ):
-    test_semgrepignore_ignore_log_json_report(
-        run_semgrep_on_copied_files, tmp_path, snapshot
+    _test_semgrepignore_ignore_log_json_report(
+        run_semgrep_on_copied_files, tmp_path, snapshot, use_semgrepignore_v2=True
+    )
+
+
+# Tolerate a different snapshot with pysemgrep than osemgrep.
+# Also tolerate a different snapshot with semgrepignore v1 and v2 via RPC.
+# The parametrization by use_semgrepignore_v2 gives us two snapshots that
+# can be compared easily. The difference is that osemgrep/v2 reports more
+# of the files that are being skipped.
+@pytest.mark.kinda_slow
+@pytest.mark.osemfail
+@pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
+def test_semgrepignore_ignore_log_json_report_pysemgrep(
+    run_semgrep_on_copied_files: RunSemgrep,
+    tmp_path,
+    snapshot,
+    use_semgrepignore_v2: bool,
+):
+    _test_semgrepignore_ignore_log_json_report(
+        run_semgrep_on_copied_files, tmp_path, snapshot, use_semgrepignore_v2
     )
 
 

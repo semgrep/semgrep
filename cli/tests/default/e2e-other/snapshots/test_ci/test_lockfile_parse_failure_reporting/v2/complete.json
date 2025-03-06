@@ -1,0 +1,91 @@
+{
+  "exit_code": 1,
+  "stats": {
+    "findings": 10,
+    "errors": [],
+    "total_time": 0.5,
+    "unsupported_exts": {
+      ".txt": 1
+    },
+    "lockfile_scan_info": {},
+    "parse_rate": {
+      "python": {
+        "targets_parsed": 1,
+        "num_targets": 1,
+        "bytes_parsed": 366,
+        "num_bytes": 366
+      }
+    },
+    "engine_requested": "OSS",
+    "findings_by_product": {
+      "code": 16,
+      "supply-chain": 1
+    },
+    "supply_chain_stats": {
+      "subprojects_stats": [
+        {
+          "subproject_id": "51e4f558fae534656963876761c95b83b6ef5da5103c4adef6768219ed76c2de",
+          "dependency_sources": [
+            {
+              "kind": [
+                "Lockfile",
+                "YarnLock"
+              ],
+              "path": "yarn.lock"
+            }
+          ],
+          "resolved_stats": {
+            "resolution_method": "LockfileParsing",
+            "dependency_count": 1,
+            "ecosystem": "npm"
+          }
+        },
+        {
+          "subproject_id": "a86c67a0a29ed0e95909b9b7c420140f302d17399ee6dcce4e1a51a14d27fd51",
+          "dependency_sources": [
+            {
+              "kind": [
+                "Lockfile",
+                "PipfileLock"
+              ],
+              "path": "Pipfile.lock"
+            }
+          ],
+          "resolved_stats": {
+            "resolution_method": "LockfileParsing",
+            "dependency_count": 0,
+            "ecosystem": "pypi"
+          }
+        },
+        {
+          "subproject_id": "f53a023eedfa3fbf2925ec7dc76eecdc954ea94b7e47065393dbad519613dc89",
+          "dependency_sources": [
+            {
+              "kind": [
+                "Lockfile",
+                "PoetryLock"
+              ],
+              "path": "poetry.lock"
+            }
+          ],
+          "resolved_stats": {
+            "resolution_method": "LockfileParsing",
+            "dependency_count": 3,
+            "ecosystem": "pypi"
+          }
+        }
+      ]
+    }
+  },
+  "dependency_parser_errors": [
+    {
+      "path": "Pipfile.lock",
+      "parser": "jsondoc",
+      "reason": "expected one of ['\"', '-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?', '[', 'false', 'null', 'true', '{']",
+      "line": 2,
+      "col": 1,
+      "text": "invalid"
+    }
+  ],
+  "task_id": "00000000-0000-0000-0000-000000000000"
+}

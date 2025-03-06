@@ -4,6 +4,7 @@ import stat
 import subprocess
 import sys
 from collections import defaultdict
+from dataclasses import dataclass
 from functools import lru_cache
 from functools import partial
 from pathlib import Path
@@ -169,12 +170,12 @@ class FileTargetingLog:
 
     target_manager: "TargetManager"
 
-    semgrepignored: Set[Path] = Factory(set)
     always_skipped: Set[Path] = Factory(set)
     cli_includes: Set[Path] = Factory(set)
     cli_excludes: Set[Path] = Factory(set)
     insufficient_permissions: Set[Path] = Factory(set)
     size_limit: Set[Path] = Factory(set)
+    semgrepignored: Set[Path] = Factory(set)
 
     # "None" indicates that all lines were skipped
     core_failure_lines_by_file: Mapping[Path, FileErrorLog] = Factory(dict)
@@ -222,6 +223,8 @@ class FileTargetingLog:
             res.append((x, "insufficient_permissions"))
         for x in self.size_limit:
             res.append((x, "exceeded_size_limit"))
+        for x in self.semgrepignored:
+            res.append((x, "semgrepignored"))
         return sorted(res)
 
     def __str__(self) -> str:
@@ -518,6 +521,15 @@ def copy_and_update_targeting_conf(
     return conf
 
 
+@dataclass
+class TargetScanResult:
+    selected_files: FrozenSet[Path]
+    # legacy semgrepignore v1 only:
+    files_with_insufficient_permissions: FrozenSet[Path]
+    # semgrepignore v2 only:
+    skipped_targets: List[out.SkippedTarget]
+
+
 @frozen(eq=False)  #
 class ScanningRoot:
     """
@@ -629,7 +641,9 @@ class ScanningRoot:
         deleted = self._parse_git_output_nulsep(deleted_output)
         return frozenset(tracked | untracked_unignored - deleted)
 
-    def files_from_filesystem(self) -> Tuple[FrozenSet[Path], FrozenSet[Path]]:
+    def files_from_filesystem(
+        self,
+    ) -> TargetScanResult:
         all = frozenset(match for match in self.path.glob("**/*"))
         # We need to check for access permission before checking file kind
         insufficient_permissions = frozenset(
@@ -639,16 +653,21 @@ class ScanningRoot:
         regular_files = frozenset(
             match for match in access_ok if match.is_file() and not match.is_symlink()
         )
-        return (regular_files, insufficient_permissions)
+        return TargetScanResult(
+            selected_files=regular_files,
+            files_with_insufficient_permissions=insufficient_permissions,
+            skipped_targets=[],
+        )
 
     @lru_cache(maxsize=None)
-    def _target_files(
+    def target_files_full(
         self, *, product: out.Product, ignore_baseline_handler: bool = False
-    ) -> Tuple[FrozenSet[Path], FrozenSet[Path]]:
+    ) -> TargetScanResult:
         """
         Recursively go through a directory and return list of all files with
         default file extension of language.
-        Return the selected files and the files with insufficient permissions.
+        Return the selected files, the files with insufficient permissions
+        (legacy), and the full list of skipped files (semgrepignore v2 only).
 
         ignore_baseline_handler: if True, will ignore the baseline handler and scan all files. Used in the context of scanning unchanged lockfiles for their dependencies and doing reachability analysis.
         """
@@ -664,12 +683,20 @@ class ScanningRoot:
             )
             res: out.TargetDiscoveryResult = semgrep.rpc_call.get_targets(arg)
             target_paths = frozenset([Path(fpath.value) for fpath in res.target_paths])
-            # TODO: return errors and skipped targets
-            return (target_paths, frozenset())
+            # TODO: check for errors?
+            return TargetScanResult(
+                selected_files=target_paths,
+                files_with_insufficient_permissions=frozenset(),
+                skipped_targets=res.skipped,
+            )
         else:
             # Legacy: use pysemgrep to discover target files
             if not self.path.is_dir() and self.path.is_file():
-                return (frozenset([self.path]), frozenset())
+                return TargetScanResult(
+                    selected_files=frozenset([self.path]),
+                    files_with_insufficient_permissions=frozenset(),
+                    skipped_targets=[],
+                )
 
             if self.baseline_handler is not None:
                 # Adding this conditional to scan all lockfiles for their dependencies, even in diff-aware scans
@@ -677,7 +704,11 @@ class ScanningRoot:
                     return self.files_from_filesystem()
 
                 try:
-                    return (self.files_from_git_diff(), frozenset())
+                    return TargetScanResult(
+                        selected_files=self.files_from_git_diff(),
+                        files_with_insufficient_permissions=frozenset(),
+                        skipped_targets=[],
+                    )
                 except (subprocess.CalledProcessError, FileNotFoundError):
                     logger.verbose(
                         f"Unable to target only the changed files since baseline commit. Running on all git tracked files instead..."
@@ -685,7 +716,11 @@ class ScanningRoot:
 
             if self.git_tracked_only:
                 try:
-                    return (self.files_from_git_ls(), frozenset())
+                    return TargetScanResult(
+                        selected_files=self.files_from_git_ls(),
+                        files_with_insufficient_permissions=frozenset(),
+                        skipped_targets=[],
+                    )
                 except (subprocess.CalledProcessError, FileNotFoundError):
                     logger.verbose(
                         f"Unable to ignore files ignored by git ({self.path} is not a git directory or git is not installed). Running on all files instead..."
@@ -698,19 +733,9 @@ class ScanningRoot:
         self, *, product: out.Product, ignore_baseline_handler: bool = False
     ) -> FrozenSet[Path]:
         """Discover target files from the scanning root and cache the result"""
-        selected, _insufficient_permissions = self._target_files(
+        return self.target_files_full(
             product=product, ignore_baseline_handler=ignore_baseline_handler
-        )
-        return selected
-
-    # cached (see _target_files())
-    def paths_with_insufficient_permissions(
-        self, *, product: out.Product, ignore_baseline_handler: bool = False
-    ) -> FrozenSet[Path]:
-        _selected, insufficient_permissions = self._target_files(
-            product=product, ignore_baseline_handler=ignore_baseline_handler
-        )
-        return insufficient_permissions
+        ).selected_files
 
 
 @define(eq=False, kw_only=True)
@@ -761,9 +786,8 @@ class TargetManager:
     # This initializes the class attributes marked with '= field(init=False)':
     def __attrs_post_init__(self) -> None:
         # for use_semgrepignore_v2 i.e. delegating target discovery to semgrep-core
-        self.targeting_conf = {}
-        for product in ALL_PRODUCTS:
-            self.targeting_conf[product] = out.TargetingConf(
+        self.targeting_conf = {
+            product: out.TargetingConf(
                 exclude=list(self.excludes.get(product, [])),
                 max_target_bytes=self.max_target_bytes,
                 respect_gitignore=self.respect_git_ignore,
@@ -790,6 +814,8 @@ class TargetManager:
                     else None
                 ),
             )
+            for product in ALL_PRODUCTS
+        }
         self.scanning_roots = [
             ScanningRoot(
                 root,
@@ -964,9 +990,9 @@ class TargetManager:
         self, *, product: out.Product, ignore_baseline_handler: bool = False
     ) -> FrozenSet[Path]:
         return frozenset(
-            f
+            selected_file
             for root in self.scanning_roots
-            for f in root.target_files(
+            for selected_file in root.target_files(
                 ignore_baseline_handler=ignore_baseline_handler, product=product
             )
         )
@@ -979,14 +1005,35 @@ class TargetManager:
         Return paths with insufficient permissions we already know about.
         This is not always all of them depending on how these paths were
         obtained.
+        Legacy use_semgrepignore_v2=False
         """
         return frozenset(
             f
             for root in self.scanning_roots
-            for f in root.paths_with_insufficient_permissions(
-                product=product, ignore_baseline_handler=ignore_baseline_handler
-            )
+            for f in (
+                root.target_files_full(
+                    product=product, ignore_baseline_handler=ignore_baseline_handler
+                )
+            ).files_with_insufficient_permissions
         )
+
+    @lru_cache(maxsize=None)
+    def get_skipped_files(
+        self, *, product: out.Product, ignore_baseline_handler: bool = False
+    ) -> List[out.SkippedTarget]:
+        """
+        Return all the skipped files reported by the RPC to semgrep-core.
+        Requires use_semgrepignore_v2=True.
+        """
+        return [
+            f
+            for root in self.scanning_roots
+            for f in (
+                root.target_files_full(
+                    product=product, ignore_baseline_handler=ignore_baseline_handler
+                )
+            ).skipped_targets
+        ]
 
     @lru_cache(maxsize=None)
     def get_files_for_language(
@@ -1033,7 +1080,49 @@ class TargetManager:
         # them further based on applicable rules. This number is reported
         # correctly by osemgrep but incorrectly by pysemgrep.
         ####################################################################
-        if not self.use_semgrepignore_v2:
+        if self.use_semgrepignore_v2:
+            # Populate the ignore_log with the skipped files so they can
+            # be printed out.
+            skipped_files = self.get_skipped_files(
+                product=product, ignore_baseline_handler=ignore_baseline_handler
+            )
+            includes = []
+            excludes = []
+            insufficient_permissions = []
+            size_limit = []
+            semgrepignored = []
+            for skipped_file in skipped_files:
+                path = Path(skipped_file.path.value)
+                reason = skipped_file.reason.value  # Union[...]
+                if isinstance(reason, out.CliIncludeFlagsDoNotMatch):
+                    includes.append(path)
+                elif isinstance(reason, out.CliExcludeFlagsMatch):
+                    excludes.append(path)
+                elif isinstance(reason, out.InsufficientPermissions):
+                    insufficient_permissions.append(path)
+                elif isinstance(reason, out.ExceededSizeLimit):
+                    size_limit.append(path)
+                elif isinstance(reason, out.SemgrepignorePatternsMatch):
+                    if str(path) not in PATHS_ALWAYS_SKIPPED:
+                        # Compatibility with legacy implementation:
+                        # In the OCaml v2 implementation, '.git' is ignored by the
+                        # default '.semgrepignore' file rather than being always ignored.
+                        # It causes '.git' to be reported as semgrepignored rather
+                        # than always skipped.
+                        # This feature is desirable because it allows scanning
+                        # a '.git' folder in non-git projects.
+                        # TODO: we might want to revisit how we report this once the semgrep
+                        #  text output is migrated to OCaml.
+                        semgrepignored.append(path)
+                else:
+                    # TODO: report the many other cases as "other" or whatever
+                    pass
+            self.ignore_log.cli_includes.update(includes)
+            self.ignore_log.cli_excludes.update(excludes)
+            self.ignore_log.insufficient_permissions.update(insufficient_permissions)
+            self.ignore_log.size_limit.update(size_limit)
+            self.ignore_log.semgrepignored.update(semgrepignored)
+        else:  # legacy, not use_semgrepignore_v2
             files = self.filter_includes(self.includes, candidates=files.kept)
             self.ignore_log.cli_includes.update(files.removed)
 

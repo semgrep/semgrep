@@ -10,6 +10,7 @@ LS = ["--x-ls"]
 
 
 @pytest.mark.kinda_slow
+@pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
 @pytest.mark.parametrize(
     "options",
     [
@@ -30,7 +31,9 @@ LS = ["--x-ls"]
     ],
     ids=idfn,
 )
-def test_exclude_include(run_semgrep_in_test_folder: RunSemgrep, snapshot, options):
+def test_exclude_include_file_list(
+    run_semgrep_in_test_folder: RunSemgrep, snapshot, options, use_semgrepignore_v2
+):
     stdout, stderr = run_semgrep_in_test_folder(
         "rules/eqeq.yaml",  # unused
         # adding the new common options here to avoid renaming the
@@ -39,5 +42,6 @@ def test_exclude_include(run_semgrep_in_test_folder: RunSemgrep, snapshot, optio
         target_name="exclude_include",
         osemgrep_force_project_root=".",
         assert_exit_code=None,
+        use_semgrepignore_v2=use_semgrepignore_v2,
     )
     snapshot.assert_match(stdout, "files.list")
