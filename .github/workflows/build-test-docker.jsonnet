@@ -121,11 +121,14 @@ local job = {
       uses: 'actions/checkout@v4',
       'if': '${{ inputs.enable-tests }}',
     },
+    # does this actually do anything? Is there a docker alternative (e.g. HEALTHCHECK?)
     {
       name: 'Test Image',
       'if': '${{ inputs.enable-tests }}',
       run: './scripts/validate-docker-build.sh ${{ steps.build-image.outputs.imageid }} linux/${{ matrix.architecture }}',
     },
+    # usually called semgrep-docker-image-artifcact-*, but I see no reference
+    # to this in the rest of the code. Do we need this?
     {
       uses: 'actions/upload-artifact@v4',
       with: {

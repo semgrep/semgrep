@@ -247,7 +247,7 @@ local inputs = {
 {
   job: job,
   // Called from other workflows (e.g. build-and-test.jsonnet)
-  on_docker_workflow: {
+  on_docker_workflow: function(output_digest_job_name='job') {
     workflow_dispatch: {
       inputs: inputs,
     },
@@ -256,7 +256,7 @@ local inputs = {
       outputs: {
         digest: {
           description: 'Digest of the built Docker image',
-          value: '${{ jobs.job.outputs.digest }}'
+          value: '${{ jobs.%s.outputs.digest }}' % output_digest_job_name,
         }
       }
     }
