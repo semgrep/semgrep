@@ -12,6 +12,11 @@ from tests.semgrep_runner import SEMGREP_BASE_SCAN_COMMAND
 
 pytestmark = pytest.mark.kinda_slow
 
+# This becomes a string that's added to target files in our test repos.
+# Commits append a line similar to 'foo = 23478921' to files of the repo.
+# Searching for this string and counting for the number of occurrences
+# reflects the state of the files that were scanned by semgrep.
+# A typical commit adds a line, increasing the number of semgrep findings.
 SENTINEL_1 = 23478921
 
 
@@ -90,7 +95,13 @@ def _git_merge(ref: str) -> str:
     ).strip()
 
 
-def run_sentinel_scan(check: bool = True, base_commit: Optional[str] = None):
+# Search for the sentinel which was appended to files multiple times over the
+# course of multiple commits.
+def run_sentinel_scan(
+    check: bool = True,
+    base_commit: Optional[str] = None,
+    use_semgrepignore_v2: bool = True,
+):
     env = {"LANG": "en_US.UTF-8"}
     env["SEMGREP_USER_AGENT_APPEND"] = "testing"
     unique_settings_file = tempfile.NamedTemporaryFile().name
@@ -112,6 +123,10 @@ def run_sentinel_scan(check: bool = True, base_commit: Optional[str] = None):
     ]
     if base_commit:
         cmd.extend(["--baseline-commit", base_commit])
+    if use_semgrepignore_v2:
+        cmd.extend(["--semgrepignore-v2"])
+    else:
+        cmd.extend(["--no-semgrepignore-v2"])
 
     try:
         print(f"run: {cmd}")
@@ -756,8 +771,18 @@ def test_commit_doesnt_exist(git_tmp_path, snapshot):
     # shows different paths to the source code depending on the host.
 
 
+# TODO: please explain:
+# - What's expected from this repo?
+#   (describe the test expectations)
+# - How can I create this repo for testing semgrep commands on it?
+#   1. Run the tests.
+#   2. Visit your local equivalent of /tmp/pytest-of-martin/pytest-1194/
+#      where you'll find the repos that were created for each test.
+# - How do the branches foo, bar, and baz relate to one another? Where
+#   are they on the graph below?
+#
 @pytest.fixture
-def complex_merge_repo(git_tmp_path, snapshot):
+def complex_merge_repo(git_tmp_path):
     r"""
     This generates a complex history like this:
 
@@ -829,10 +854,52 @@ def complex_merge_repo(git_tmp_path, snapshot):
         commits["baz"].append(_git_commit(index, add=True))
 
 
+# Test semgrep scans on the files that changed between a baseline commit
+# and another commit on a repo with a messy merge history.
+# These commits are given names which are branch names "foo", "bar", etc.
+# We run the test using all pairs of such commits.
+#
+# How to troubleshoot:
+# - cd into the test repo left in place by pytest (see above)
+# - Compare the branches using e.g. 'git diff foo...baz' where
+#   'foo' is the baseline commit (or branch name) and 'baz' is the current
+#   commit. The three dots in 'foo...baz' are shortcut for getting the
+#   the merge base (latest common ancestor between the commits) and
+#   the show the diffs between the merge base and 'baz' (current).
+# - You can use 'git grep 23478921' to check how many findings are expected
+#   in the current commit.
+#
+# There is a discrepancy in output for the test
+# 'test_crisscrossing_merges[baz-foo]' between Semgrepignore v1 and v2 due
+# to Git failing to determine a merge base in one implementation but not the
+# other. To reproduce the bug:
+#  1. cd into the test repo (after running the test and visiting the temp
+#     folder created by pytest)
+#  2. git checkout baz
+#  3. Compare the two commands:
+#
+#       $ git diff --cached $(git merge-base foo HEAD)
+#       <output>
+#
+#       $ git diff --cached --merge-base foo
+#       fatal: multiple merge bases found
+#
+#     According to 'git diff --help', the two commands above should be
+#     equivalent but they're not. Pysemgrep (Semgrepignore v1) uses the latter
+#     which fails. The error is caught and the fallback behavior is to use
+#     the baseline commit directly instead of the merge base. Osemgrep
+#     (Semgrepignore v2) uses the former which succeeds, resulting in a
+#     different test output.
+#
+@pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
 @pytest.mark.parametrize("current, baseline", permutations(["foo", "bar", "baz"], 2))
-def test_crisscrossing_merges(complex_merge_repo, current, baseline, snapshot):
+def test_crisscrossing_merges(
+    complex_merge_repo, current, baseline, snapshot, use_semgrepignore_v2
+):
     subprocess.run(["git", "checkout", current])
-    output = run_sentinel_scan(base_commit=baseline)
+    output = run_sentinel_scan(
+        base_commit=baseline, use_semgrepignore_v2=use_semgrepignore_v2
+    )
     assert_out_match(snapshot, output, f"stdout.txt")
     assert_err_match(snapshot, output, f"stderr.txt")
 

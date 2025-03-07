@@ -806,8 +806,6 @@ class TargetManager:
                     if not self.force_project_root is None
                     else None
                 ),
-                # TODO: add OCaml support listing Git files that changed starting from
-                # a specific commit.
                 baseline_commit=(
                     self.baseline_handler.base_commit()
                     if self.baseline_handler

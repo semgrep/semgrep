@@ -124,9 +124,9 @@ _scan_options: List[Callable] = [
     # once everyone is happy with Semgrepignore v2 (OCaml file targeting)
     optgroup.option(
         "--semgrepignore-v2/--no-semgrepignore-v2",
-        "use_semgrepignore_v2",
+        "semgrepignore_v2",
         is_flag=True,
-        default=False,
+        default=None,
     ),
     optgroup.option(
         "--exclude",
@@ -644,7 +644,7 @@ def scan(
     trace: bool,
     trace_endpoint: Optional[str],
     use_git_ignore: bool,
-    use_semgrepignore_v2: bool,
+    semgrepignore_v2: Optional[bool],
     validate: bool,
     verbose: bool,
     version: bool,
@@ -698,6 +698,26 @@ def scan(
             run_secrets=run_secrets_flag,
             interfile_diff_scan_enabled=diff_depth >= 0,
         )
+
+        # Temporary: for now, only OSS users use Semgrepignore v2 by default
+        #
+        # For an easy test, list the targets in our test repo:
+        #
+        #   $ git clone git@github.com:semgrep/semgrep-test-project1.git
+        #   $ cd semgrep-test-project1
+        #   $ semgrep scan --x-ls | wc -l
+        #   34
+        #
+        # You'll get a different number depending on whether Semgrepignore v1
+        # or v2 is being used. Try the options --semgrepignore-v2,
+        # --no-semgrepignore-v2.
+        #
+        # coupling: see identical code in ci.py
+        use_semgrepignore_v2: bool
+        if semgrepignore_v2 is None:
+            use_semgrepignore_v2 = True if engine_type is EngineType.OSS else False
+        else:
+            use_semgrepignore_v2 = semgrepignore_v2
 
         # this is useful for our CI job to find where semgrep-core (or semgrep-core-proprietary)
         # is installed and check if the binary is statically linked.

@@ -55,7 +55,6 @@ from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
 from semgrep.target_manager import ALL_PRODUCTS
 from semgrep.target_manager import SAST_PRODUCT
-from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -267,7 +266,7 @@ def ci(
     trace: bool,
     trace_endpoint: str,
     use_git_ignore: bool,
-    use_semgrepignore_v2: bool,
+    semgrepignore_v2: Optional[bool],
     force_novcs_project: bool,  # unused but needed to receive options from 'scan'
     force_project_root: Optional[
         str
@@ -363,7 +362,6 @@ def ci(
                 dry_run = True
 
             scan_handler = ScanHandler(
-                use_semgrepignore_v2=use_semgrepignore_v2,
                 dry_run=dry_run,
                 partial_output=partial_output,
                 dump_scan_id_path=dump_scan_id_path,
@@ -385,6 +383,7 @@ def ci(
                 engine_flag=requested_engine,
                 ci_scan_handler=scan_handler,
             )
+
             # A lot of project metadata depends on git commands that fail in
             # empty repos; we gather whatever metadata we can and move forwards
             project_metadata = generate_meta_from_environment(
@@ -559,6 +558,20 @@ def ci(
             git_meta=metadata,
             supply_chain_only=supply_chain_only,
         )
+
+        # Temporary. See scan.py for details.
+        #
+        # Testing: enable the prints below and run 'semgrep ci'.
+        #
+        # coupling: see identical code in scan.py
+        use_semgrepignore_v2: bool
+        if semgrepignore_v2 is None:
+            use_semgrepignore_v2 = True if engine_type is EngineType.OSS else False
+        else:
+            use_semgrepignore_v2 = semgrepignore_v2
+        # For troubleshooting if needed in an emergency since we don't have tests:
+        # print(f"engine_type: {engine_type}")
+        # print(f"use_semgrepignore_v2: {use_semgrepignore_v2}")
 
         # set default settings for selected engine type
         if dataflow_traces is None:
@@ -850,7 +863,9 @@ def ci(
                 applicable_result_list = (
                     cai_matches
                     if "r2c-internal-cai" in rule.id
-                    else blocking_matches if match.is_blocking else nonblocking_matches
+                    else blocking_matches
+                    if match.is_blocking
+                    else nonblocking_matches
                 )
                 applicable_result_list.append(match)
                 if "r2c-internal-cai" not in rule.id:

@@ -457,7 +457,19 @@ let walk_skip_and_collect (caps : < Cap.readdir ; .. >) (ign : Gitignore.filter)
 (*************************************************************************)
 
 let git_files_changed_since_commit ~baseline_commit ~cwd =
-  let merge_base = Git_wrapper.merge_base_exn baseline_commit in
+  let merge_base =
+    match Git_wrapper.merge_base baseline_commit with
+    | Ok commit -> commit
+    | Error _msg ->
+        (* In rare cases, Git may fail to obtain a merge base. In this case,
+           using the baseline commit directly is a reasonable fallback.*)
+        Log.warn (fun m ->
+            (* message copied from pysemgrep *)
+            m
+              "git could not find a single branch-off point, so we will \
+               compare the baseline commit");
+        baseline_commit
+  in
   let status = Git_wrapper.status_exn ~cwd ~commit:merge_base () in
   status.added @ status.modified
 
