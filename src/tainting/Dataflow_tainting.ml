@@ -63,7 +63,7 @@ module DataflowX = Dataflow_core.Make (struct
   type edge = F.edge
   type flow = (node, edge) CFG.t
 
-  let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
+  let short_string_of_node n = Display_IL.short_string_of_node n
 end)
 
 module SMap = Map.Make (String)
@@ -1811,7 +1811,7 @@ let rec transfer : env -> fun_cfg:F.fun_cfg -> Lval_env.t D.transfn =
            (fun lname -> spf "(in lambda %s)" (IL.str_of_name lname))
            env.in_lambda
         ||| "")
-        (Display_IL.short_string_of_node_kind node.F.n)
+        (Display_IL.short_string_of_node node)
         (Lval_env.to_string in') (Lval_env.to_string out'));
   { D.in_env = in'; out_env = out' }
 
@@ -1845,7 +1845,7 @@ and do_lambdas env (lambdas : IL.lambdas_cfgs) node =
   if num_lambdas > 0 then
     Log.debug (fun m ->
         m "There are %d lambda(s) occurring in: %s" num_lambdas
-          (Display_IL.short_string_of_node_kind node.F.n));
+          (Display_IL.short_string_of_node node));
   let effects_lambdas, out_envs_lambdas =
     lambdas_to_analyze
     |> List_.map (fun (lambda_name, lambda_cfg) ->

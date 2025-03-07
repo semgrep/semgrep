@@ -1,0 +1,2 @@
+pro: Fixed bug in (experimental) "at-exit" sinks feature that would prevent
+the identification of a statement like `return foo()` as one such sink.

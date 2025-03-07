@@ -158,17 +158,25 @@ let rlvals_of_node = function
   | NTodo _ ->
       []
 
+let orig_of_tok tok =
+  if Tok.is_origintok tok then Some (Related (AST_generic.Tk tok)) else None
+
 let orig_of_node = function
   | Enter
   | Exit ->
       None
-  | TrueNode e
-  | FalseNode e
-  | NCond (_, e)
-  | NReturn (_, e)
-  | NThrow (_, e) ->
-      Some e.eorig
+  | NCond (tok, e)
+  | NReturn (tok, e)
+  | NThrow (tok, e) -> (
+      match e.eorig with
+      | SameAs _
+      | Related _ ->
+          Some e.eorig
+      | NoOrig -> orig_of_tok tok)
   | NInstr i -> Some i.iorig
+  | TrueNode e
+  | FalseNode e ->
+      Some e.eorig
   | NGoto _
   | Join
   | NOther _

@@ -38,7 +38,7 @@ module DataflowX = Dataflow_core.Make (struct
   type edge = F.edge
   type flow = (node, edge) CFG.t
 
-  let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
+  let short_string_of_node n = Display_IL.short_string_of_node n
 end)
 
 (*****************************************************************************)
