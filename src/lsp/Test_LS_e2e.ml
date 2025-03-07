@@ -279,9 +279,10 @@ let with_git_tmp_path f =
   let _orig_dir = Sys.getcwd () in
   let root =
     Testutil_files.with_tempdir ~persist:true (fun dir ->
-        Git_wrapper.init ~cwd:dir ();
-        Git_wrapper.config_set ~cwd:dir "user.email" "baselinetest@semgrep.com";
-        Git_wrapper.config_set ~cwd:dir "user.name" "Baseline Test";
+        Git_wrapper.init_exn ~cwd:dir ();
+        Git_wrapper.config_set_exn ~cwd:dir "user.email"
+          "baselinetest@semgrep.com";
+        Git_wrapper.config_set_exn ~cwd:dir "user.name" "Baseline Test";
         dir)
   in
   Sys.chdir (Fpath.to_string root);
@@ -319,8 +320,8 @@ let mock_files root : Fpath.t list =
          (* nosem *)
          "/tmp/origin";
        ]);
-  Git_wrapper.add ~cwd:root [ existing_file; modified_file ];
-  Git_wrapper.commit ~cwd:root "initial commit";
+  Git_wrapper.add_exn ~cwd:root [ existing_file; modified_file ];
+  Git_wrapper.commit_exn ~cwd:root "initial commit";
   open_and_write_default_content ~mode:[ Open_append ] modified_file;
 
   let new_file = root / "new.py" in

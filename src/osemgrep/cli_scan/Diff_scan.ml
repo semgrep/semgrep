@@ -81,7 +81,7 @@ let extract_sig renamed (m : Core_match.t) =
 let remove_matches_in_baseline caps (commit : string) (baseline : Core_result.t)
     (head : Core_result.t) (renamed : (Fpath.t * Fpath.t) list) =
   let sigs = Hashtbl.create 10 in
-  Git_wrapper.run_with_worktree caps ~commit (fun () ->
+  Git_wrapper.run_with_worktree_exn caps ~commit (fun () ->
       List.iter
         (fun ({ pm; _ } : Core_result.processed_match) ->
           pm |> extract_sig None |> fun x -> Hashtbl.add sigs x true)
@@ -155,7 +155,7 @@ let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp ; .. >)
           (* TODO explain this code, break it down into functions and test
              them.
              Or delete this code. *)
-          Git_wrapper.run_with_worktree caps ~commit (fun () ->
+          Git_wrapper.run_with_worktree_exn caps ~commit (fun () ->
               let prepare_targets paths =
                 (* TODO: what's happening here? *)
                 paths |> Fpaths.of_list |> add_renamed |> remove_added
@@ -209,7 +209,7 @@ let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp ; .. >)
                 baseline_targets baseline_rules))
     in
     match baseline_result with
-    | Error _exn -> baseline_result
+    | Error _exn -> (* TODO: don't ignore exceptions *) baseline_result
     | Ok baseline_r ->
         Ok (remove_matches_in_baseline caps commit baseline_r r status.renamed)
   else Ok r
@@ -225,8 +225,8 @@ let scan_baseline (caps : < Cap.chdir ; Cap.tmp ; .. >) (conf : Scan_CLI.conf)
   Logs.info (fun m ->
       m "running differential scan on base commit %s" baseline_commit);
   Metrics_.g.payload.environment.isDiffScan <- true;
-  let commit = Git_wrapper.merge_base baseline_commit in
-  let status = Git_wrapper.status ~cwd:(Fpath.v ".") ~commit () in
+  let commit = Git_wrapper.merge_base_exn baseline_commit in
+  let status = Git_wrapper.status_exn ~cwd:(Fpath.v ".") ~commit () in
   let diff_depth = Differential_scan_config.default_depth in
   let targets, diff_targets =
     let added_or_modified = status.added @ status.modified in

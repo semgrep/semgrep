@@ -409,7 +409,7 @@ let write_workflow_file (caps : < Cap.chdir ; Cap.tmp ; Cap.exec ; .. >)
       ()
   in
   match res with
-  | Ok () -> ()
+  | Ok (Ok ()) -> ()
   | _ -> Logs.err (fun m -> m "Failed to write workflow file")
 
 (* Basic Outline:

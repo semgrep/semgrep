@@ -27,17 +27,17 @@ let create_git_repo ?(honor_gitignore = true)
   (* to not mess with git commands output *)
   flush stdout;
   flush stderr;
-  Git_wrapper.init ();
+  Git_wrapper.init_exn ();
   (* We set user name and email to avoid warnings in some git
      versions. *)
-  Git_wrapper.config_set "user.name" user_name;
-  Git_wrapper.config_set "user.email" user_email;
-  Git_wrapper.add ~force:(not honor_gitignore) [ Fpath.v "." ];
+  Git_wrapper.config_set_exn "user.name" user_name;
+  Git_wrapper.config_set_exn "user.email" user_email;
+  Git_wrapper.add_exn ~force:(not honor_gitignore) [ Fpath.v "." ];
   let msg =
     if honor_gitignore then "Add files"
     else "Add all the files (including gitignored files)"
   in
-  Git_wrapper.commit msg
+  Git_wrapper.commit_exn msg
 
 (*****************************************************************************)
 (* Masks *)

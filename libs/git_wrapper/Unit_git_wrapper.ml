@@ -12,16 +12,18 @@ let test_user_identity () =
   Testutil_git.with_git_repo ~verbose:true
     [ File ("empty", "") ]
     (fun _cwd ->
-      let not_found = Git_wrapper.config_get "xxxxxxxxxxxxxxxxxxxxxxxxxxx" in
+      let not_found =
+        Git_wrapper.config_get_exn "xxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      in
       Alcotest.(check (option string)) "missing entry" None not_found;
-      let user_name = Git_wrapper.config_get "user.name" in
+      let user_name = Git_wrapper.config_get_exn "user.name" in
       Alcotest.(check (option string))
         "default user name" (Some "Tester") user_name;
-      let user_email = Git_wrapper.config_get "user.email" in
+      let user_email = Git_wrapper.config_get_exn "user.email" in
       Alcotest.(check (option string))
         "default user email" (Some "tester@example.com") user_email;
-      Git_wrapper.config_set "user.name" "nobody";
-      let nobody = Git_wrapper.config_get "user.name" in
+      Git_wrapper.config_set_exn "user.name" "nobody";
+      let nobody = Git_wrapper.config_get_exn "user.name" in
       Alcotest.(check (option string)) "new user name" (Some "nobody") nobody)
 
 let tests =

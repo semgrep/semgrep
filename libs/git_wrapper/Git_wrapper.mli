@@ -5,16 +5,23 @@
  * TODO: generalize the use of Cap.exec to all functions!
  *)
 
-(* many of the functions in this module can raise Error if git does not
- * exist or fail to run for some reasons.
- *)
-exception Error of string
+exception Git_error of string
+(** This exception indicates an error while executing a Git command.
+    The argument is an error message.
+    It should be raised only by the 'fatal' function. The functions whose
+    name ends in '_exn' raise this exception to signal an error.
+*)
 
-(* very general helper to run a git command and return its output
- * if everthing went fine or log the error (using Logs) and
- * raise an Error exn otherwise.
- *)
-val command : < Cap.exec > -> Cmd.args -> string
+val fatal : ('a, string) Result.t -> 'a
+(** Unwrap the result or raise a 'Git_error' exception in case of an error. *)
+
+val command : < Cap.exec > -> Cmd.args -> (string, string) result
+(** Very general helper to run a git command and return its output
+    if everthing went fine or log the error (using Logs) and
+    raise an Error exn otherwise.
+*)
+
+val command_exn : < Cap.exec > -> Cmd.args -> string
 
 type ls_files_kind =
   (* --cached, the default:
@@ -41,11 +48,19 @@ val ls_files :
   ?exclude_standard:bool ->
   ?kinds:ls_files_kind list ->
   Fpath.t list ->
+  (Fpath.t list, string) result
+
+val ls_files_exn :
+  ?cwd:Fpath.t ->
+  ?exclude_standard:bool ->
+  ?kinds:ls_files_kind list ->
+  Fpath.t list ->
   Fpath.t list
 
 (* Get the commit ID of the most recent common ancestor of the current
    branch's HEAD and some commit. *)
-val merge_base : commit:string -> string
+val merge_base : commit:string -> (string, string) result
+val merge_base_exn : commit:string -> string
 
 (* Executing a function inside a directory created from git-worktree.
 
@@ -68,6 +83,13 @@ val run_with_worktree :
   commit:string ->
   ?branch:string ->
   (unit -> 'a) ->
+  ('a, string) result
+
+val run_with_worktree_exn :
+  < Cap.chdir ; Cap.tmp ; .. > ->
+  commit:string ->
+  ?branch:string ->
+  (unit -> 'a) ->
   'a
 
 type status = {
@@ -80,7 +102,8 @@ type status = {
 [@@deriving show]
 
 (* git status *)
-val status : ?cwd:Fpath.t -> ?commit:string -> unit -> status
+val status : ?cwd:Fpath.t -> ?commit:string -> unit -> (status, string) result
+val status_exn : ?cwd:Fpath.t -> ?commit:string -> unit -> status
 
 (*
    Find the root of the git worktree for any files contained in the
@@ -116,8 +139,10 @@ val project_root_for_file_or_files_in_dir : Fpath.t -> Fpath.t option
 (* Determine whether a path is tracked by git. *)
 val is_tracked_by_git : Fpath.t -> bool
 
-val checkout : ?cwd:Fpath.t -> ?git_ref:string -> unit -> unit
+val checkout : ?cwd:Fpath.t -> ?git_ref:string -> unit -> (unit, string) result
 (** Checkout the given optional ref *)
+
+val checkout_exn : ?cwd:Fpath.t -> ?git_ref:string -> unit -> unit
 
 val sparse_shallow_filtered_checkout : Uri.t -> Fpath.t -> (unit, string) result
 (** Checkout the given commit in the given directory, but only
@@ -126,16 +151,26 @@ val sparse_shallow_filtered_checkout : Uri.t -> Fpath.t -> (unit, string) result
     This is useful to avoid checking out the whole repo when
     we only need a few files. *)
 
+val sparse_shallow_filtered_checkout_exn : Uri.t -> Fpath.t -> unit
+
 val sparse_checkout_add : ?cwd:Fpath.t -> Fpath.t list -> (unit, string) result
 (** Add the given files to the sparse-checkout config *)
 
+val sparse_checkout_add_exn : ?cwd:Fpath.t -> Fpath.t list -> unit
+
 (* precondition: cwd must be a directory *)
 val dirty_lines_of_file :
-  ?cwd:Fpath.t -> ?git_ref:string -> Fpath.t -> (int * int) array option
+  ?cwd:Fpath.t ->
+  ?git_ref:string ->
+  Fpath.t ->
+  ((int * int) array option, string) result
 (** [dirty_lines_of_file path] will return an optional array of line ranges that indicate what
   * lines have been changed. An optional [git_ref] can be passed that will be used
   * to diff against. The default [git_ref] is ["HEAD"]
   *)
+
+val dirty_lines_of_file_exn :
+  ?cwd:Fpath.t -> ?git_ref:string -> Fpath.t -> (int * int) array option
 
 (* precondition: cwd must be a directory *)
 val dirty_paths : ?cwd:Fpath.t -> unit -> Fpath.t list
@@ -147,7 +182,7 @@ val dirty_paths : ?cwd:Fpath.t -> unit -> Fpath.t list
     for newly created directories!
   *)
 
-val init : ?cwd:Fpath.t -> ?branch:string -> unit -> unit
+val init : ?cwd:Fpath.t -> ?branch:string -> unit -> (unit, string) result
 (** [init ()] creates an empty git repository in the current directory. If
     [cwd] is specified, its value is passed to git's [-C] flag. If
     [branch] is specified, it is used as the name of the default branch.
@@ -159,22 +194,32 @@ val init : ?cwd:Fpath.t -> ?branch:string -> unit -> unit
     on the git version.
 *)
 
+val init_exn : ?cwd:Fpath.t -> ?branch:string -> unit -> unit
+
 (* Set or replace an entry in the user's config tied to the repo. *)
-val config_set : ?cwd:Fpath.t -> string -> string -> unit
+val config_set : ?cwd:Fpath.t -> string -> string -> (unit, string) result
+val config_set_exn : ?cwd:Fpath.t -> string -> string -> unit
 
 (* Get the value of an entry in the user's config. *)
-val config_get : ?cwd:Fpath.t -> string -> string option
+val config_get : ?cwd:Fpath.t -> string -> (string option, string) result
+val config_get_exn : ?cwd:Fpath.t -> string -> string option
 
-val gc : ?cwd:Fpath.t -> unit -> unit
+val gc : ?cwd:Fpath.t -> unit -> (unit, string) result
 (** [gc ()] executes [git gc] in the current directory. If [cwd] is specified,
     its value is passed to git's [-C] flag. *)
 
-val add : ?cwd:Fpath.t -> ?force:bool -> Fpath.t list -> unit
+val gc_exn : ?cwd:Fpath.t -> unit -> unit
+
+val add : ?cwd:Fpath.t -> ?force:bool -> Fpath.t list -> (unit, string) result
 (** [add files] adds the [files] to the git index. *)
 
-val commit : ?cwd:Fpath.t -> string -> unit
+val add_exn : ?cwd:Fpath.t -> ?force:bool -> Fpath.t list -> unit
+
+val commit : ?cwd:Fpath.t -> string -> (unit, string) result
 (** [commit msg] creates a commit with containing the current contents of the
     index with [msg] as the commit message. *)
+
+val commit_exn : ?cwd:Fpath.t -> string -> unit
 
 val project_url : ?cwd:Fpath.t -> unit -> string option
 (** [project_url ()] tries to get the URL of the project from
@@ -236,6 +281,8 @@ val cat_file_blob : ?cwd:Fpath.t -> hash -> (string, string) result
       [hash] does not designate an object.}
     }
  *)
+
+val cat_file_blob_exn : ?cwd:Fpath.t -> hash -> string
 
 val remote_repo_name : string -> string option
 (** [remote_repo_name "https://github.com/semgrep/semgrep.git"] will return [Some "semgrep"] *)

@@ -94,7 +94,12 @@ let string_of_blob = Blob.to_string
 (* Error management *)
 (*****************************************************************************)
 
-exception Error of string
+exception Git_error of string
+
+let fatal (res : ('a, string) Result.t) : 'a =
+  match res with
+  | Ok x -> x
+  | Error err -> raise (Git_error err)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -102,22 +107,19 @@ exception Error of string
 
 (* Unwrap the result of UCmd.string_of_run or raise an Error exception
    with a complete error message for any error or nonzero exit. *)
-let unwrap_result_exn ~errmsg_prefix ~cmd
-    (res : (string * Cmd.run_status, [> `Msg of string ]) result) : string =
+let simplify_cmd_error ~errmsg_prefix ~cmd
+    (res : (string * Cmd.run_status, [> `Msg of string ]) result) :
+    (string, string) result =
   match res with
-  | Ok (data, (_, `Exited 0)) -> data
+  | Ok (data, (_, `Exited 0)) -> Ok data
   | Ok (_, (_, `Exited n)) ->
-      raise
-        (Error
-           (spf "%s: exit %i; command: %s" errmsg_prefix n (Cmd.to_string cmd)))
+      Error (spf "%s: exit %i; command: %s" errmsg_prefix n (Cmd.to_string cmd))
   | Ok (_, (_, `Signaled n)) ->
-      raise
-        (Error
-           (spf "%s: terminated by signal %i; command: %s" errmsg_prefix n
-              (Cmd.to_string cmd)))
+      Error
+        (spf "%s: terminated by signal %i; command: %s" errmsg_prefix n
+           (Cmd.to_string cmd))
   | Error (`Msg msg) ->
-      raise
-        (Error (spf "%s: %s; command: %s" errmsg_prefix msg (Cmd.to_string cmd)))
+      Error (spf "%s: %s; command: %s" errmsg_prefix msg (Cmd.to_string cmd))
 
 (* diff unified format regex:
  * https://www.gnu.org/software/diffutils/manual/html_node/Detailed-Unified.html#Detailed-Unified
@@ -273,10 +275,10 @@ let blobs_by_commit objects commits =
 (*****************************************************************************)
 
 (* Similar to Sys.command, but specific to git *)
-let command (caps : < Cap.exec >) (args : Cmd.args) : string =
+let command (caps : < Cap.exec >) (args : Cmd.args) : (string, string) result =
   let cmd : Cmd.t = (git, args) in
   match CapExec.string_of_run caps#exec ~trim:true cmd with
-  | Ok (str, (_, `Exited 0)) -> str
+  | Ok (str, (_, `Exited 0)) -> Ok str
   | Ok _
   | Error (`Msg _) ->
       (* nosemgrep: no-logs-in-library *)
@@ -294,7 +296,9 @@ Failed to run %s. Possible reasons:
 
 Try running the command yourself to debug the issue.|}
             (Cmd.to_string cmd));
-      raise (Error "Error when we run a git command")
+      Error "Error when we run a git command"
+
+let command_exn caps args = command caps args |> fatal
 
 let commit_blobs_by_date objects =
   Log.info (fun m -> m "getting commits");
@@ -346,15 +350,16 @@ let ls_files ?(cwd = Fpath.v ".") ?(exclude_standard = false) ?(kinds = [])
       @ flag "--exclude-standard" exclude_standard
       @ roots )
   in
-  let files =
-    let data =
-      UCmd.string_of_run ~trim:true cmd
-      |> unwrap_result_exn
-           ~errmsg_prefix:"Could not get files from git ls-files" ~cmd
-    in
-    parse_nul_separated_list_of_files data
+  let/ data =
+    UCmd.string_of_run ~trim:true cmd
+    |> simplify_cmd_error ~errmsg_prefix:"Could not get files from git ls-files"
+         ~cmd
   in
-  files |> Fpath_.of_strings
+  let files = parse_nul_separated_list_of_files data in
+  Ok (files |> Fpath_.of_strings)
+
+let ls_files_exn ?cwd ?exclude_standard ?kinds root_paths =
+  ls_files ?cwd ?exclude_standard ?kinds root_paths |> fatal
 
 (* TODO: somehow avoid error message on stderr in case this is not a git repo *)
 let project_root_for_files_in_dir dir =
@@ -375,8 +380,10 @@ let is_tracked_by_git file = project_root_for_file file |> Option.is_some
 let checkout ?cwd ?git_ref () =
   let cmd = (git, cd cwd @ [ "checkout" ] @ opt git_ref) in
   match UCmd.status_of_run ~quiet:true cmd with
-  | Ok (`Exited 0) -> ()
-  | _ -> raise (Error "Could not checkout git ref")
+  | Ok (`Exited 0) -> Ok ()
+  | _ -> Error "Could not checkout git ref"
+
+let checkout_exn ?cwd ?git_ref () = checkout ?cwd ?git_ref () |> fatal
 
 (* Why these options?
  * --depth=1: only get the most recent commit
@@ -412,6 +419,9 @@ let sparse_shallow_filtered_checkout (url : Uri.t) path =
   | Ok (`Exited 0) -> Ok ()
   | _ -> Error "Could not clone git repo"
 
+let sparse_shallow_filtered_checkout_exn url path =
+  sparse_shallow_filtered_checkout url path |> fatal
+
 (* To be used in combination with [sparse_shallow_filtered_checkout]
    This function will add the files we want to actually pull the blobs for
    and checkout the files we want.
@@ -428,25 +438,29 @@ let sparse_checkout_add ?cwd folders =
   | Ok (`Exited 0) -> Ok ()
   | _ -> Error "Could not add sparse checkout"
 
+let sparse_checkout_add_exn ?cwd folders =
+  sparse_checkout_add ?cwd folders |> fatal
+
 (* TODO: use better types? sha1? *)
-let merge_base ~(commit : string) : string =
+let merge_base ~(commit : string) : (string, string) result =
   let cmd = (git, [ "merge-base"; commit; "HEAD" ]) in
   UCmd.string_of_run ~trim:true cmd
-  |> unwrap_result_exn
+  |> simplify_cmd_error
        ~errmsg_prefix:"Could not get merge base from git merge-base" ~cmd
+
+let merge_base_exn ~commit = merge_base ~commit |> fatal
 
 let run_with_worktree (caps : < Cap.chdir ; Cap.tmp ; .. >) ~commit ?branch f =
   let cwd = getcwd () |> Fpath.to_dir_path in
-  let git_root =
+  let/ git_root =
     match project_root_for_files_in_dir cwd with
-    | None ->
-        raise (Error ("Could not get git root for current directory " ^ !!cwd))
-    | Some path -> Fpath.to_dir_path path
+    | None -> Error ("Could not get git root for current directory " ^ !!cwd)
+    | Some path -> Ok (Fpath.to_dir_path path)
   in
-  let relative_path =
+  let/ relative_path =
     match Fpath.relativize ~root:git_root cwd with
-    | Some p -> p
-    | None -> raise (Error "")
+    | Some p -> Ok p
+    | None -> Error (spf "Cannot make path %s relative to %s" !!cwd !!git_root)
   in
   let rand_dir () =
     let rand = Stdlib.Random.State.make_self_init () in
@@ -463,12 +477,13 @@ let run_with_worktree (caps : < Cap.chdir ; Cap.tmp ; .. >) ~commit ?branch f =
     | Some new_branch ->
         (git, [ "worktree"; "add"; !!temp_dir; commit; "-b"; new_branch ])
   in
+  (* TODO: produce more complete error messages with simplify_cmd_error *)
   match UCmd.status_of_run ~quiet:true cmd with
   | Ok (`Exited 0) ->
       let work () =
         Fpath.append temp_dir relative_path
         |> Fpath.to_string |> CapSys.chdir caps#chdir;
-        f ()
+        Ok (f ())
       in
       let cleanup () =
         cwd |> Fpath.to_string |> CapSys.chdir caps#chdir;
@@ -477,12 +492,18 @@ let run_with_worktree (caps : < Cap.chdir ; Cap.tmp ; .. >) ~commit ?branch f =
         | Ok (`Exited 0) ->
             Log.info (fun m -> m "Finished cleaning up git worktree")
         | Ok _ ->
-            raise (Error ("Could not remove git worktree at " ^ !!temp_dir))
-        | Error (`Msg e) -> raise (Error e)
+            Log.warn (fun m ->
+                m "Could not remove git worktree at %s" !!temp_dir)
+        | Error (`Msg msg) ->
+            Log.warn (fun m ->
+                m "Could not remove git worktree at %s: %s" !!temp_dir msg)
       in
       Common.protect ~finally:cleanup work
-  | Ok _ -> raise (Error ("Could not create git worktree for " ^ commit))
-  | Error (`Msg e) -> raise (Error e)
+  | Ok _ -> Error ("Could not create git worktree for " ^ commit)
+  | Error (`Msg msg) -> Error (spf "Could not create git worktree: %s" msg)
+
+let run_with_worktree_exn caps ~commit ?branch f =
+  run_with_worktree caps ~commit ?branch f |> fatal
 
 let status ?cwd ?commit () =
   let cmd =
@@ -500,12 +521,12 @@ let status ?cwd ?commit () =
         ]
       @ opt commit )
   in
-  let stats =
+  let/ out =
     UCmd.string_of_run ~trim:true cmd
-    |> unwrap_result_exn ~errmsg_prefix:"Could not get files from git status"
+    |> simplify_cmd_error ~errmsg_prefix:"Could not get files from git status"
          ~cmd
-    |> String.split_on_char '\000'
   in
+  let fragments = String.split_on_char '\000' out in
   let check_dir file =
     try
       match (UUnix.stat file).st_kind with
@@ -564,14 +585,17 @@ let status ?cwd ?commit () =
         Log.warn (fun m -> m "unknown data after parsing git status: %s" remain)
     | [] -> ()
   in
-  parse stats;
-  {
-    added = !added;
-    modified = !modified;
-    removed = !removed;
-    unmerged = !unmerged;
-    renamed = !renamed;
-  }
+  parse fragments;
+  Ok
+    {
+      added = !added;
+      modified = !modified;
+      removed = !removed;
+      unmerged = !unmerged;
+      renamed = !renamed;
+    }
+
+let status_exn ?cwd ?commit () = status ?cwd ?commit () |> fatal
 
 let dirty_lines_of_file ?cwd ?(git_ref = "HEAD") file =
   let cwd =
@@ -595,9 +619,12 @@ let dirty_lines_of_file ?cwd ?(git_ref = "HEAD") file =
             Some lines
         | _ -> None
       in
-      Option.bind lines (fun l -> Some (range_of_git_diff l))
-  | Ok _, _ -> None
-  | Error (`Msg e), _ -> raise (Error e)
+      Ok (Option.bind lines (fun l -> Some (range_of_git_diff l)))
+  | Ok _, _ -> Ok None
+  | Error (`Msg msg), _ -> Error msg
+
+let dirty_lines_of_file_exn ?cwd ?git_ref file =
+  dirty_lines_of_file ?cwd ?git_ref file |> fatal
 
 let dirty_paths ?cwd () =
   let cmd =
@@ -616,39 +643,46 @@ let dirty_paths ?cwd () =
 let init ?cwd ?(branch = "main") () =
   let cmd = (git, cd cwd @ [ "init"; "-b"; branch ]) in
   match UCmd.status_of_run cmd with
-  | Ok (`Exited 0) -> ()
-  | _ -> raise (Error "Error running git init")
+  | Ok (`Exited 0) -> Ok ()
+  | _ -> Error "Error running git init"
+
+let init_exn ?cwd ?branch () = init ?cwd ?branch () |> fatal
 
 let config_set ?cwd key value =
   let cmd = (git, cd cwd @ [ "config"; key; value ]) in
   match UCmd.status_of_run cmd with
-  | Ok (`Exited 0) -> ()
-  | _ -> raise (Error "Error setting git config entry")
+  | Ok (`Exited 0) -> Ok ()
+  | _ -> Error "Error setting git config entry"
+
+let config_set_exn ?cwd key value = config_set ?cwd key value |> fatal
 
 let config_get ?cwd key =
   let cmd = (git, cd cwd @ [ "config"; key ]) in
   match UCmd.string_of_run ~trim:true cmd with
-  | Ok (data, (_, `Exited 0)) -> Some data
-  | Ok (_empty, (_, `Exited 1)) -> None
-  | _ -> raise (Error "Error getting git config entry")
+  | Ok (data, (_, `Exited 0)) -> Ok (Some data)
+  | Ok (_empty, (_, `Exited 1)) -> Ok None
+  | _ -> Error "Error getting git config entry"
+
+let config_get_exn ?cwd key = config_get ?cwd key |> fatal
 
 let add ?cwd ?(force = false) files =
   let files = List_.map Fpath.to_string files in
   let cmd = (git, cd cwd @ [ "add" ] @ flag "--force" force @ files) in
   match UCmd.status_of_run cmd with
-  | Ok (`Exited 0) -> ()
-  | _ -> raise (Error "Error running git add")
+  | Ok (`Exited 0) -> Ok ()
+  | _ -> Error "Error running git add"
+
+let add_exn ?cwd ?force files = add ?cwd ?force files |> fatal
 
 let commit ?cwd msg =
   let cmd = (git, cd cwd @ [ "commit"; "-m"; msg ]) in
   match UCmd.status_of_run cmd with
-  | Ok (`Exited 0) -> ()
-  | Ok (`Exited i) ->
-      raise (Error (Common.spf "Error running git commit: bad exit %d" i))
-  | Ok (`Signaled i) ->
-      raise (Error (Common.spf "Error running git commit: bad signal %d" i))
-  | Error (`Msg s) ->
-      raise (Error (Common.spf "Error running git commit: %s" s))
+  | Ok (`Exited 0) -> Ok ()
+  | Ok (`Exited i) -> Error (spf "Error running git commit: bad exit %d" i)
+  | Ok (`Signaled i) -> Error (spf "Error running git commit: bad signal %d" i)
+  | Error (`Msg s) -> Error (spf "Error running git commit: %s" s)
+
+let commit_exn ?cwd msg = commit ?cwd msg |> fatal
 
 (* Remove credentials in URL if present (e.g. in GitLab CI) *)
 let clean_project_url (url : string) : Uri.t =
@@ -764,8 +798,12 @@ let cat_file_blob ?cwd (hash : hash) =
   | Error (`Msg s) ->
       Error s
 
+let cat_file_blob_exn ?cwd hash = cat_file_blob ?cwd hash |> fatal
+
 let gc ?cwd () =
   let cmd = (git, cd cwd @ [ "gc"; "--quiet" ]) in
   match UCmd.status_of_run ~quiet:true cmd with
-  | Ok (`Exited 0) -> ()
-  | _ -> raise (Error "git gc failed")
+  | Ok (`Exited 0) -> Ok ()
+  | _ -> Error "git gc failed"
+
+let gc_exn ?cwd () = gc ?cwd () |> fatal

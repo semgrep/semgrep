@@ -457,13 +457,13 @@ let walk_skip_and_collect (caps : < Cap.readdir ; .. >) (ign : Gitignore.filter)
 (*************************************************************************)
 
 let git_files_changed_since_commit ~baseline_commit ~cwd =
-  let merge_base = Git_wrapper.merge_base baseline_commit in
-  let status = Git_wrapper.status ~cwd ~commit:merge_base () in
+  let merge_base = Git_wrapper.merge_base_exn baseline_commit in
+  let status = Git_wrapper.status_exn ~cwd ~commit:merge_base () in
   status.added @ status.modified
 
 let git_ls_files ~baseline_commit ~cwd ~exclude_standard ~kinds =
   match baseline_commit with
-  | None -> Git_wrapper.ls_files ~cwd ~exclude_standard ~kinds []
+  | None -> Git_wrapper.ls_files_exn ~cwd ~exclude_standard ~kinds []
   | Some baseline_commit -> git_files_changed_since_commit ~baseline_commit ~cwd
 
 (*
@@ -830,7 +830,7 @@ let clone_if_remote_project_root conf =
           failwith
             (spf "Error while sparse cloning %s into %s: %s" (Uri.to_string url)
                (Fpath.to_string cwd) msg));
-      Git_wrapper.checkout ();
+      Git_wrapper.checkout_exn ();
       Log.info (fun m -> m "Sparse cloning done")
   | Some (Filesystem _)
   | None ->
