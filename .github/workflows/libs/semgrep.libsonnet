@@ -74,7 +74,9 @@ local containers = {
     opam_switch: opam_switch,
     job(steps): {
       'runs-on': 'ubuntu-latest',
-      container: 'returntocorp/ocaml:alpine-2024-01-18',
+      // coupling: if you change this you must change the dockerfile alpine
+      // version
+      container: 'alpine:3.21',
       // We need this hack because GHA tampers with the HOME in container
       // and this does not play well with 'opam' installed in /root
       env: {
@@ -209,8 +211,8 @@ local osemgrep_test_steps_after_checkout = [
   {
     name: 'Install Python dependencies',
     run: |||
-      apk add --no-cache python3
-      pip install --no-cache-dir --ignore-installed distlib pipenv==%s
+      apk add --no-cache python3 py3-pip
+      pip install --no-cache-dir --ignore-installed --break-system-packages distlib pipenv==%s
       (cd cli; pipenv install --dev)
     ||| % actions.pipenv_version,
   },
@@ -271,8 +273,8 @@ local build_test_steps(opam_switch=opam_switch_default, cache_deps=['semgrep.opa
       name: 'Test %s (and time it)' % name,
       run: |||
         # Small hack to get deps to work fine, will remove in follow up pr
-        apk add --no-cache python3
-        pip install --no-cache-dir --ignore-installed check-jsonschema
+        apk add --no-cache python3 py3-pip
+        pip install --no-cache-dir --ignore-installed --break-system-packages check-jsonschema
         eval $(opam env)
         START=`date +%s`
         opam exec -- make test

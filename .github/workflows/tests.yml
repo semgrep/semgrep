@@ -197,7 +197,7 @@ jobs:
           - "3.11"
           - "3.12"
   test-osemgrep:
-    container: returntocorp/ocaml:alpine-2024-01-18
+    container: alpine:3.21
     env:
       HOME: /root
     runs-on: ubuntu-latest
@@ -228,8 +228,8 @@ jobs:
           make copy-core-for-cli
       - name: Install Python dependencies
         run: |
-          apk add --no-cache python3
-          pip install --no-cache-dir --ignore-installed distlib pipenv==2024.0.1
+          apk add --no-cache python3 py3-pip
+          pip install --no-cache-dir --ignore-installed --break-system-packages distlib pipenv==2024.0.1
           (cd cli; pipenv install --dev)
       - name: Run pytest for osemgrep known passing tests
         run: |
@@ -286,7 +286,7 @@ jobs:
           - 3
           - 4
   test-semgrep-core:
-    container: returntocorp/ocaml:alpine-2024-01-18
+    container: alpine:3.21
     env:
       HOME: /root
     runs-on: ubuntu-latest
@@ -313,8 +313,8 @@ jobs:
       - name: Test semgrep-core (and time it)
         run: |
           # Small hack to get deps to work fine, will remove in follow up pr
-          apk add --no-cache python3
-          pip install --no-cache-dir --ignore-installed check-jsonschema
+          apk add --no-cache python3 py3-pip
+          pip install --no-cache-dir --ignore-installed --break-system-packages check-jsonschema
           eval $(opam env)
           START=`date +%s`
           opam exec -- make test
