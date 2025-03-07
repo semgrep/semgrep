@@ -1282,7 +1282,7 @@ left_hand_side_expr: left_hand_side_expr_(d1) { $1 }
 conditional_expr(x):
  | post_in_expr(x) { $1 }
  | post_in_expr(x) "?" assignment_expr ":" assignment_expr
-    { Conditional ($1, $3, $5) }
+    { Conditional ($1, $2, $3, $4, $5) }
 
 left_hand_side_expr_(x):
  | new_expr(x)  { $1 }
@@ -1629,7 +1629,7 @@ assignment_expr_no_in:
 conditional_expr_no_in:
  | post_in_expr_no_in { $1 }
  | post_in_expr_no_in "?" assignment_expr_no_in ":" assignment_expr_no_in
-     { Conditional ($1, $3, $5) }
+     { Conditional ($1, $2, $3, $4, $5) }
 
 post_in_expr_no_in:
  | pre_in_expr(d1) { $1 }

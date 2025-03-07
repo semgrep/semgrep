@@ -1678,11 +1678,11 @@ and expression (env : env) (x : CST.expression) : expr =
   | `Bin_exp x -> binary_expression env x
   | `Tern_exp (v1, v2, v3, v4, v5) ->
       let v1 = expression env v1 in
-      let _v2 = token env v2 (* "?" *) in
+      let tquestion = token env v2 (* "?" *) in
       let v3 = expression env v3 in
-      let _v4 = token env v4 (* ":" *) in
+      let tcolon = token env v4 (* ":" *) in
       let v5 = expression env v5 in
-      Conditional (v1, v3, v5)
+      Conditional (v1, tquestion, v3, tcolon, v5)
   | `Update_exp x -> update_expression env x
   | `New_exp (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "new" *) in
