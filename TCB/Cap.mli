@@ -195,7 +195,7 @@ val no_caps : no_caps
 val network_caps_UNSAFE : unit -> < network >
 val tmp_caps_UNSAFE : unit -> < tmp >
 val stdout_caps_UNSAFE : unit -> < stdout >
-val fork_and_limits_caps_UNSAFE : unit -> < fork ; time_limit ; memory_limit >
+val caps_for_js_UNSAFE : unit -> < fork ; time_limit ; memory_limit ; readdir >
 val exec_and_tmp_caps_UNSAFE : unit -> < exec ; tmp >
 val readdir_UNSAFE : unit -> < readdir >
 

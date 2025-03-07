@@ -433,10 +433,10 @@ let walk_skip_and_collect (caps : < Cap.readdir ; .. >) (ign : Gitignore.filter)
                  (* if scan_root was "." we want to display paths as "foo/bar"
                   * and not "./foo/bar"
                   *)
-                 if Fpath.equal dir.fpath (Fpath.v ".") then Fpath.v name
-                 else Fpath.add_seg dir.fpath name
+                 if Fpath.is_current_dir dir.fpath then name
+                 else Fpath.(dir.fpath / !!name)
                in
-               let ppath = Ppath.add_seg dir.ppath name in
+               let ppath = Ppath.add_seg dir.ppath !!name in
                let fppath : Fppath.t = { fpath; ppath } in
                match filter_path ign include_filter fppath with
                | Keep -> (

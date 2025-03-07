@@ -60,12 +60,12 @@ let test_rules ?(unit_testing = false)
              let entries = CapFS.read_dir_entries caps (Fpath.v d) in
              entries
              |> List_.find_some (fun file2 ->
-                    let path2 = Filename.concat d file2 |> Fpath.v in
+                    let path2 = Filename.concat d !!file2 |> Fpath.v in
                     (* Config files have a single .yaml extension (assumption),
                      * but test files may have multiple extensions, e.g.
                      * ".test.yaml" (YAML test files), ".sites-available.conf",
                      * ... *)
-                    match Filename_.dbe_of_filename_many_ext_opt file2 with
+                    match Filename_.dbe_of_filename_many_ext_opt !!file2 with
                     | None -> None
                     | Some (_, b2, ext2) ->
                         if

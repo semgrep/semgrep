@@ -114,7 +114,7 @@ val relativize : root:t -> t -> Fpath.t
 
 (* Imitate File.Operators in libs/commons/ *)
 module Operators : sig
-  (* Same as append *)
+  (* Same as [add_seg] *)
   val ( / ) : t -> string -> t
 end
 

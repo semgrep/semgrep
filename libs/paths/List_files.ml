@@ -31,9 +31,8 @@ module Log = Log_paths.Log
 let rec iter_dir_entries caps func dir names =
   List.iter (iter_dir_entry caps func dir) names
 
-and iter_dir_entry caps func dir name =
-  let path = dir / name in
-  iter caps func path
+and iter_dir_entry caps func (dir : Fpath.t) (name : Fpath.t) =
+  iter caps func Fpath.(dir // name)
 
 (*************************************************************************)
 (* Entry points *)

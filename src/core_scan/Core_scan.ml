@@ -115,7 +115,7 @@ module Out = Semgrep_output_v1_j
 type func = Core_scan_config.t -> Core_result.result_or_exn
 
 (* TODO: stdout (sometimes) *)
-type caps = < Cap.fork ; Cap.time_limit ; Cap.memory_limit >
+type caps = < Cap.fork ; Cap.time_limit ; Cap.memory_limit ; Cap.readdir >
 
 (* Type of the iter_targets_and_get_matches_and_exn_to_errors callback.
 

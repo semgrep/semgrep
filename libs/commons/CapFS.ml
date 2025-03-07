@@ -1,10 +1,10 @@
 open Fpath_.Operators
 
-let readdir _caps = Unix.readdir
+let readdir (_caps : Cap.FS.readdir) handle = Unix.readdir handle |> Fpath.v
 
 (* helpers *)
 
-let with_dir_handle path func =
+let with_dir_handle (path : Fpath.t) func =
   let dir = UUnix.opendir !!path in
   Common.protect ~finally:(fun () -> UUnix.closedir dir) (fun () -> func dir)
 
@@ -12,19 +12,14 @@ let with_dir_handle path func =
 let read_dir_entries (caps : < Cap.readdir ; .. >) path =
   with_dir_handle path (fun dir ->
       let rec loop acc =
-        try
-          (* alt: use Sys.readdir which already filters "." and ".." *)
-          let name = readdir caps#readdir dir in
-          let acc =
-            if
-              name = Filename.current_dir_name (* "." *)
-              || name = Filename.parent_dir_name (* ".." *)
-            then acc
-            else name :: acc
-          in
-          loop acc
-        with
-        | End_of_file -> List.rev acc
+        (* alt: use Sys.readdir which already filters "." and ".." *)
+        match readdir caps#readdir dir with
+        | name
+          when Fpath.is_current_dir name (* "." *)
+               || Fpath.is_parent_dir name (* ".." *) ->
+            loop acc
+        | name -> loop (name :: acc)
+        | exception End_of_file -> List.rev acc
       in
       loop [])
 

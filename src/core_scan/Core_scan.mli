@@ -1,7 +1,7 @@
 (* The type of the semgrep "core" scan. We define it here so that
    semgrep and semgrep-proprietary use the same definition *)
 type func = Core_scan_config.t -> Core_result.result_or_exn
-type caps = < Cap.fork ; Cap.time_limit ; Cap.memory_limit >
+type caps = < Cap.fork ; Cap.time_limit ; Cap.memory_limit ; Cap.readdir >
 
 (* Entry point. This is used in Core_CLI.ml for semgrep-core,
  * in Pro_core_CLI for semgrep-core-proprietary, in tests, and finally

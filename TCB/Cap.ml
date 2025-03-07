@@ -337,11 +337,12 @@ let stdout_caps_UNSAFE () =
   end
 
 (* !!DO NOT USE!! *)
-let fork_and_limits_caps_UNSAFE () =
+let caps_for_js_UNSAFE () =
   object
     method fork = ()
     method time_limit = ()
     method memory_limit = ()
+    method readdir = ()
   end
 
 (* !!DO NOT USE!! *)

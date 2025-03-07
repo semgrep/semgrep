@@ -34,6 +34,7 @@ val check_targets_with_rules :
   ; Cap.fork
   ; Cap.time_limit
   ; Cap.memory_limit
+  ; Cap.readdir
   ; .. > ->
   Scan_CLI.conf ->
   Profiler.t ->

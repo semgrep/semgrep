@@ -137,14 +137,14 @@ module Legacy = struct
   let dir_contents (caps : < Cap.readdir ; .. >) ?(strict = false) dir =
     let rec loop result = function
       | f :: fs -> (
-          match f with
-          | f when not (USys.file_exists f) -> loop result fs
-          | f when USys.is_directory f ->
-              let entries = CapFS.read_dir_entries caps (Fpath.v f) in
-              entries
-              |> List_.map (Filename.concat f)
+          match USys.is_directory f with
+          | true ->
+              CapFS.read_dir_entries caps (Fpath.v f)
+              |> List_.map (fun x -> Filename.concat f !!x)
               |> List.append fs |> loop result
-          | f -> loop (f :: result) fs)
+          | false -> loop (f :: result) fs
+          (* File does not exist *)
+          | exception Sys_error _ -> loop result fs)
       | [] -> result
     in
     (* only check the existence of the root, and only in strict mode *)
