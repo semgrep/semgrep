@@ -476,27 +476,9 @@ val random_subset_of_list : int -> 'a list -> 'a list
 (* Tuples *)
 (*****************************************************************************)
 
-type 'a pair = 'a * 'a
-type 'a triple = 'a * 'a * 'a
-
 val fst3 : 'a * 'b * 'c -> 'a
 val snd3 : 'a * 'b * 'c -> 'b
 val thd3 : 'a * 'b * 'c -> 'c
-val sndthd : 'a * 'b * 'c -> 'b * 'c
-val map_fst : ('a -> 'b) -> 'a * 'c -> 'b * 'c
-val map_snd : ('a -> 'b) -> 'c * 'a -> 'c * 'b
-val pair : ('a -> 'b) -> 'a * 'a -> 'b * 'b
-val triple : ('a -> 'b) -> 'a * 'a * 'a -> 'b * 'b * 'b
-val double : 'a -> 'a * 'a
-val swap : 'a * 'b -> 'b * 'a
-
-(* maybe a sign of bad programming if use those functions :) *)
-val tuple_of_list1 : 'a list -> 'a
-val tuple_of_list2 : 'a list -> 'a * 'a
-val tuple_of_list3 : 'a list -> 'a * 'a * 'a
-val tuple_of_list4 : 'a list -> 'a * 'a * 'a * 'a
-val tuple_of_list5 : 'a list -> 'a * 'a * 'a * 'a * 'a
-val tuple_of_list6 : 'a list -> 'a * 'a * 'a * 'a * 'a * 'a
 
 (*****************************************************************************)
 (* Maybe *)
@@ -943,48 +925,6 @@ val keep_best : ('a * 'a -> 'a option) -> 'a list -> 'a list
 val sorted_keep_best : ('a -> 'a -> 'a option) -> 'a list -> 'a list
 val cartesian_product : 'a list -> 'b list -> ('a * 'b) list
 
-(* old stuff *)
-val surEnsemble : 'a list -> 'a list list -> 'a list list
-val realCombinaison : 'a list -> 'a list list
-val combinaison : 'a list -> ('a * 'a) list
-val insere : 'a -> 'a list list -> 'a list list
-val insereListeContenant : 'a list -> 'a -> 'a list list -> 'a list list
-val fusionneListeContenant : 'a * 'a -> 'a list list -> 'a list list
-
-(*****************************************************************************)
-(* Arrays *)
-(*****************************************************************************)
-
-val array_find_index : (int -> bool) -> 'a array -> int
-val array_find_index_via_elem : ('a -> bool) -> 'a array -> int
-
-(* for better type checking, as sometimes when have an 'int array', can
- * easily mess up the index from the value.
- *)
-type idx = Idx of int
-
-val next_idx : idx -> idx
-val int_of_idx : idx -> int
-val array_find_index_typed : (idx -> bool) -> 'a array -> idx
-
-(*****************************************************************************)
-(* Matrix *)
-(*****************************************************************************)
-
-type 'a matrix = 'a array array
-
-val map_matrix : ('a -> 'b) -> 'a matrix -> 'b matrix
-
-val make_matrix_init :
-  nrow:int -> ncolumn:int -> (int -> int -> 'a) -> 'a matrix
-
-val iter_matrix : (int -> int -> 'a -> unit) -> 'a matrix -> unit
-val nb_rows_matrix : 'a matrix -> int
-val nb_columns_matrix : 'a matrix -> int
-val rows_of_matrix : 'a matrix -> 'a list list
-val columns_of_matrix : 'a matrix -> 'a list list
-val all_elems_matrix_by_row : 'a matrix -> 'a list
-
 (*****************************************************************************)
 (* Set. But have a look too at set*.mli; it's better. Or use Hashtbl. *)
 (*****************************************************************************)
@@ -1239,153 +1179,21 @@ val hash_with_default :
   ; assoc : 'a -> 'b >
 
 (*****************************************************************************)
-(* Stack *)
-(*****************************************************************************)
-
-type 'a stack = 'a list
-
-val empty_stack : 'a stack
-val top : 'a stack -> 'a
-val pop : 'a stack -> 'a stack
-val top_option : 'a stack -> 'a option
-
-(*****************************************************************************)
-(* Stack with undo/redo support *)
-(*****************************************************************************)
-
-type 'a undo_stack = 'a list * 'a list
-
-val empty_undo_stack : 'a undo_stack
-val push_undo : 'a -> 'a undo_stack -> 'a undo_stack
-val top_undo : 'a undo_stack -> 'a
-val pop_undo : 'a undo_stack -> 'a undo_stack
-val redo_undo : 'a undo_stack -> 'a undo_stack
-val undo_pop : 'a undo_stack -> 'a undo_stack
-val top_undo_option : 'a undo_stack -> 'a option
-
-(*****************************************************************************)
-(* Binary tree *)
-(*****************************************************************************)
-(* type 'a bintree = Leaf of 'a | Branch of ('a bintree * 'a bintree) *)
-
-(*****************************************************************************)
 (* N-ary tree *)
 (*****************************************************************************)
 
-(* no empty tree, must have one root at least *)
-type 'a tree2 = Tree of 'a * 'a tree2 list
-
-val tree2_iter : ('a -> unit) -> 'a tree2 -> unit
-
 type ('a, 'b) tree = Node of 'a * ('a, 'b) tree list | Leaf of 'b
-
-val map_tree :
-  fnode:('a -> 'abis) ->
-  fleaf:('b -> 'bbis) ->
-  ('a, 'b) tree ->
-  ('abis, 'bbis) tree
 
 val dirs_and_base_of_file : path -> string list * string
 val tree_of_files : filename list -> (dirname, string * filename) tree
 
 (*****************************************************************************)
-(* N-ary tree with updatable childrens *)
-(*****************************************************************************)
-
-(* no empty tree, must have one root at least *)
-type 'a treeref = NodeRef of 'a * 'a treeref list ref
-
-val treeref_node_iter : ('a * 'a treeref list ref -> unit) -> 'a treeref -> unit
-
-val treeref_node_iter_with_parents :
-  ('a * 'a treeref list ref -> 'a list -> unit) -> 'a treeref -> unit
-
-val find_treeref :
-  ('a * 'a treeref list ref -> bool) -> 'a treeref -> 'a treeref
-
-val treeref_children_ref : 'a treeref -> 'a treeref list ref
-
-val find_treeref_with_parents_some :
-  ('a * 'a treeref list ref -> 'a list -> 'c option) -> 'a treeref -> 'c
-
-val find_multi_treeref_with_parents_some :
-  ('a * 'a treeref list ref -> 'a list -> 'c option) -> 'a treeref -> 'c list
-
-(* Leaf can seem redundant, but sometimes want to directly see if
- * a children is a leaf without looking if the list is empty.
- *)
-type ('a, 'b) treeref2 =
-  | NodeRef2 of 'a * ('a, 'b) treeref2 list ref
-  | LeafRef2 of 'b
-
-val find_treeref2 :
-  ('a * ('a, 'b) treeref2 list ref -> bool) ->
-  ('a, 'b) treeref2 ->
-  ('a, 'b) treeref2
-
-val treeref_node_iter_with_parents2 :
-  ('a * ('a, 'b) treeref2 list ref -> 'a list -> unit) ->
-  ('a, 'b) treeref2 ->
-  unit
-
-val treeref_node_iter2 :
-  ('a * ('a, 'b) treeref2 list ref -> unit) -> ('a, 'b) treeref2 -> unit
-
-(*
-
-
-val treeref_children_ref: ('a, 'b) treeref -> ('a, 'b) treeref list ref
-
-val find_treeref_with_parents_some:
- ('a * ('a, 'b) treeref list ref -> 'a list -> 'c option) ->
- ('a, 'b) treeref -> 'c
-
-val find_multi_treeref_with_parents_some:
- ('a * ('a, 'b) treeref list ref -> 'a list -> 'c option) ->
- ('a, 'b) treeref -> 'c list
-*)
-
-(*****************************************************************************)
-(* Graph. But have a look too at Ograph_*.mli; it's better *)
-(*****************************************************************************)
-
-type 'a graph = 'a set * ('a * 'a) set
-
-val add_node : 'a -> 'a graph -> 'a graph
-val del_node : 'a -> 'a graph -> 'a graph
-val add_arc : 'a * 'a -> 'a graph -> 'a graph
-val del_arc : 'a * 'a -> 'a graph -> 'a graph
-val successors : 'a -> 'a graph -> 'a set
-val predecessors : 'a -> 'a graph -> 'a set
-val nodes : 'a graph -> 'a set
-val fold_upward : ('a -> 'b -> 'a) -> 'b set -> 'a -> 'b graph -> 'a
-val empty_graph : 'a list * 'b list
-
-(*****************************************************************************)
 (* Generic op *)
 (*****************************************************************************)
 
-(* mostly alias to functions in List *)
+(* mostly alias to functions in List_ *)
 
 val map : ('a -> 'b) -> 'a list -> 'b list
-val filter : ('a -> bool) -> 'a list -> 'a list
-val fold : ('a -> 'b -> 'a) -> 'a -> 'b list -> 'a
-val member : 'a -> 'a list -> bool
-val iter : ('a -> unit) -> 'a list -> unit
-val find : ('a -> bool) -> 'a list -> 'a
-val exists : ('a -> bool) -> 'a list -> bool
-val forall : ('a -> bool) -> 'a list -> bool
-val big_union : ('a -> 'b set) -> 'a list -> 'b set
-
-(* same than [] but easier to search for, because [] can also be a pattern *)
-val empty_list : 'a list
-
-(* generic sort using Pervasives.compare *)
-val sort : 'a list -> 'a list
-val length : 'a list -> int
-val head : 'a list -> 'a
-val tail : 'a list -> 'a list
-val is_singleton : 'a list -> bool
 
 (*###########################################################################*)
 (* Misc functions *)
