@@ -9,9 +9,10 @@ module Log = Log_parser_cpp.Log
 (* Wrappers *)
 (*****************************************************************************)
 
-(* TODO: switch to use logger *)
 let warning s v =
-  if !Flag.verbose_parsing then Common2.warning ("PARSING: " ^ s) v else v
+  if !Flag.verbose_parsing then
+    Log.warn (fun m -> m "PARSING: %s; value = %s" s (Dumper.dump v));
+  v
 
 let error s tok = raise (Parsing_error.Other_error (s, tok))
 let fake s = Tok.fake_tok s

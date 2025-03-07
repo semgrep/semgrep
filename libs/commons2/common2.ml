@@ -304,39 +304,6 @@ let spf = Printf.sprintf
 
 (* ---------------------------------------------------------------------- *)
 
-let _chan = ref UStdlib.stderr
-
-let start_log_file () =
-  let filename = spf "/tmp/debugml%d:%d" (UUnix.getuid ()) (UUnix.getpid ()) in
-  pr2 (spf "now using %s for logging" filename);
-  _chan := UStdlib.open_out_bin filename
-
-let dolog s =
-  output_string !_chan (s ^ "\n");
-  flush !_chan
-
-let verbose_level = ref 1
-let log s = if !verbose_level >= 1 then dolog s
-let log2 s = if !verbose_level >= 2 then dolog s
-let log3 s = if !verbose_level >= 3 then dolog s
-let log4 s = if !verbose_level >= 4 then dolog s
-let if_log f = if !verbose_level >= 1 then f ()
-let if_log2 f = if !verbose_level >= 2 then f ()
-let if_log3 f = if !verbose_level >= 3 then f ()
-let if_log4 f = if !verbose_level >= 4 then f ()
-
-(* ---------------------------------------------------------------------- *)
-
-let pause () =
-  pr2 "pause: type return";
-  ignore (UStdlib.read_line ())
-
-(* was used by fix_caml *)
-let _trace_var = ref 0
-let add_var () = incr _trace_var
-let dec_var () = decr _trace_var
-let get_var () = !_trace_var
-
 let (print_n : int -> string -> unit) =
  fun i s -> do_n i (fun () -> UStdlib.print_string s)
 
@@ -347,53 +314,6 @@ let _debug = ref true
 let debugon () = _debug := true
 let debugoff () = _debug := false
 let debug f = if !_debug then f () else ()
-
-(*****************************************************************************)
-(* Profiling *)
-(*****************************************************************************)
-
-(* now near cmd_to_list: let get_mem() = *)
-
-let memory_stat () =
-  let stat = Gc.stat () in
-  let conv_mo x = x * 4 / 1000000 in
-  Printf.sprintf "maximal = %d Mo\n" (conv_mo stat.Gc.top_heap_words)
-  ^ Printf.sprintf "current = %d Mo\n" (conv_mo stat.Gc.heap_words)
-  ^ Printf.sprintf "lives   = %d Mo\n" (conv_mo stat.Gc.live_words)
-(* Printf.printf "fragments = %d Mo\n" (conv_mo stat.Gc.fragments); *)
-
-let timenow () =
-  "sys:"
-  ^ string_of_float (USys.time ())
-  ^ " seconds" ^ ":real:"
-  ^
-  let tm = UUnix.time () |> Unix.gmtime in
-  (tm.tm_min |> string_of_int)
-  ^ " min:"
-  ^ (tm.tm_sec |> string_of_int)
-  ^ ".00 seconds"
-
-let _count1 = ref 0
-let _count2 = ref 0
-let _count3 = ref 0
-let _count4 = ref 0
-let _count5 = ref 0
-let count1 () = incr _count1
-let count2 () = incr _count2
-let count3 () = incr _count3
-let count4 () = incr _count4
-let count5 () = incr _count5
-
-let profile_diagnostic_basic () =
-  Printf.sprintf
-    "count1 = %d\ncount2 = %d\ncount3 = %d\ncount4 = %d\ncount5 = %d\n" !_count1
-    !_count2 !_count3 !_count4 !_count5
-
-let time_func f =
-  (*   let _ = Timing () in *)
-  let x = f () in
-  (*   let _ = Timing () in *)
-  x
 
 (*****************************************************************************)
 (* Test *)
@@ -631,29 +551,6 @@ let take_one xs =
     let i = URandom.int (List.length xs) in
     List.nth xs i, filter_index (fun j _ -> i <> j) xs
 *)
-
-(*****************************************************************************)
-(* Counter *)
-(*****************************************************************************)
-let _counter = ref 0
-
-let counter () =
-  _counter := !_counter + 1;
-  !_counter
-
-let _counter2 = ref 0
-
-let counter2 () =
-  _counter2 := !_counter2 + 1;
-  !_counter2
-
-let _counter3 = ref 0
-
-let counter3 () =
-  _counter3 := !_counter3 + 1;
-  !_counter3
-
-type timestamp = int
 
 (*****************************************************************************)
 (* String_of *)
@@ -938,34 +835,8 @@ let release_file_lock filename =
 (* Error managment *)
 (*****************************************************************************)
 
-exception Here
-exception ReturnExn
-exception WrongFormat of string
-
-(* old: let _TODO () = failwith "TODO",  now via fix_caml with raise Todo *)
-
 let internal_error s = failwith ("internal error: " ^ s)
 let error_cant_have x = internal_error ("cant have this case" ^ Dumper.dump x)
-let myassert cond = if cond then () else failwith "assert error"
-
-(* before warning I was forced to do stuff like this:
- *
- * let (fixed_int_to_posmap: fixed_int -> posmap) = fun fixed ->
- * let v = ((fix_to_i fixed) / (power 2 16)) in
- * let _ = UPrintf.printf "coord xy = %d\n" v in
- * v
- *
- * The need for printf make me force to name stuff :(
- * How avoid ? use 'it' special keyword ?
- * In fact dont have to name it, use +> (fun v -> ...)  so when want
- * erase debug just have to erase one line.
- *)
-let warning s v =
-  pr2 ("Warning: " ^ s ^ "; value = " ^ Dumper.dump v);
-  v
-
-let exn_to_s_with_backtrace exn =
-  Printexc.to_string exn ^ "\n" ^ Printexc.get_backtrace ()
 
 (* want or of merd, but cant cos cant put die ... in b (strict call) *)
 let ( ||| ) a b =
@@ -978,16 +849,6 @@ let ( ||| ) a b =
  * let unwind_protect f cleanup = ...
  * let finalize f cleanup =  ...
  *)
-
-type error = Error of string
-
-(* sometimes to get help from ocaml compiler to tell me places where
- * I should update, we sometimes need to change some type from pair
- * to triple, hence this kind of fake type.
- *)
-type evotype = unit
-
-let evoval = ()
 
 (*****************************************************************************)
 (* Environment *)
@@ -1062,11 +923,7 @@ let string_of_chars cs = cs |> List_.map (String.make 1) |> String.concat ""
 (*****************************************************************************)
 
 (* since 3.08, div by 0 raise Div_by_rezo, and not anymore a hardware trap :)*)
-let ( /! ) x y =
-  if y =|= 0 then (
-    log "common.ml: div by 0";
-    0)
-  else x / y
+let ( /! ) x y = if y =|= 0 then 0 else x / y
 
 (* now in prelude
  * let rec (do_n: int -> (unit -> unit) -> unit) = fun i f ->
@@ -2207,7 +2064,7 @@ let (lines_with_nl : string -> string list) =
         let e = x ^ "\n" in
         e :: lines_aux xs
   in
-  time_func (fun () -> Str.split_delim (Str.regexp "\n") s) |> lines_aux
+  Str.split_delim (Str.regexp "\n") s |> lines_aux
 
 (* in fact better make it return always complete lines, simplify *)
 (*  Str.split, but lines "\n1\n2\n" dont return the \n and forget the first \n => split_delim better than split *)
@@ -2464,10 +2321,7 @@ let is_executable_eff file =
 (* src: from chailloux et al book *)
 let capsule_unix f args =
   try f args with
-  | UUnix.Unix_error (e, fm, argm) ->
-      log
-        (Printf.sprintf "exn Unix_error: %s %s %s\n" (Unix.error_message e) fm
-           argm)
+  | UUnix.Unix_error _ -> ()
 
 (*
 let readdir_to_kind_list (path : string) (kind : Unix.file_kind) : string list =
@@ -4021,14 +3875,6 @@ let cmdline_flags_devel () =
     ( "-debugger",
       Arg.Set Common.debugger,
       " option to set if launched inside ocamldebug" );
-  ]
-
-let cmdline_flags_verbose () =
-  [
-    ("-verbose_level", Arg.Set_int verbose_level, " <int> guess what");
-    ( "-disable_pr2_once",
-      Arg.Set UCommon.disable_pr2_once,
-      " to print more messages" );
   ]
 
 let cmdline_flags_other () =

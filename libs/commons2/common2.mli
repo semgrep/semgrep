@@ -3,15 +3,6 @@
 (*###########################################################################*)
 
 (*****************************************************************************)
-(* Flags *)
-(*****************************************************************************)
-(* see the corresponding section for the use of those flags. See also
- * the "Flags and actions" section at the end of this file.
- *)
-
-val verbose_level : int ref
-
-(*****************************************************************************)
 (* Flags and actions *)
 (*****************************************************************************)
 (* cf poslude *)
@@ -110,58 +101,12 @@ val redirect_stdout_stderr : filename -> (unit -> unit) -> unit
 val redirect_stdin : filename -> (unit -> unit) -> unit
 val redirect_stdin_opt : filename option -> (unit -> unit) -> unit
 val with_pr2_to_string : Cap.FS.tmp -> (unit -> unit) -> string list
-
-(* default = stderr *)
-val _chan : out_channel ref
-
-(* generate & use a /tmp/debugml-xxx file *)
-val start_log_file : unit -> unit
-
-(* see flag: val verbose_level : int ref *)
-val log : string -> unit
-val log2 : string -> unit
-val log3 : string -> unit
-val log4 : string -> unit
-val if_log : (unit -> unit) -> unit
-val if_log2 : (unit -> unit) -> unit
-val if_log3 : (unit -> unit) -> unit
-val if_log4 : (unit -> unit) -> unit
-val pause : unit -> unit
-
-(* was used by fix_caml *)
-val _trace_var : int ref
-val add_var : unit -> unit
-val dec_var : unit -> unit
-val get_var : unit -> int
 val print_n : int -> string -> unit
 val printerr_n : int -> string -> unit
 val _debug : bool ref
 val debugon : unit -> unit
 val debugoff : unit -> unit
 val debug : (unit -> unit) -> unit
-
-(* see also logger.ml *)
-
-(* see flag: val debugger : bool ref *)
-
-(*****************************************************************************)
-(* Profiling (cpu/mem) *)
-(*****************************************************************************)
-
-val memory_stat : unit -> string
-val timenow : unit -> string
-val _count1 : int ref
-val _count2 : int ref
-val _count3 : int ref
-val _count4 : int ref
-val _count5 : int ref
-val count1 : unit -> unit
-val count2 : unit -> unit
-val count3 : unit -> unit
-val count4 : unit -> unit
-val count5 : unit -> unit
-val profile_diagnostic_basic : unit -> string
-val time_func : (unit -> 'a) -> 'a
 
 (*****************************************************************************)
 (* Test. But have a look at ounit.mli *)
@@ -217,18 +162,6 @@ val laws : string -> ('a -> bool) -> 'a gen -> 'a option
 val statistic_number : 'a list -> (int * 'a) list
 val statistic : 'a list -> (int * 'a) list
 val laws2 : string -> ('a -> bool * 'b) -> 'a gen -> 'a option * (int * 'b) list
-
-(*****************************************************************************)
-(* Counter *)
-(*****************************************************************************)
-val _counter : int ref
-val _counter2 : int ref
-val _counter3 : int ref
-val counter : unit -> int
-val counter2 : unit -> int
-val counter3 : unit -> int
-
-type timestamp = int
 
 (*****************************************************************************)
 (* String_of and (pretty) printing *)
@@ -311,22 +244,8 @@ val release_file_lock : filename -> unit
 (*****************************************************************************)
 (* Error managment *)
 (*****************************************************************************)
-exception Here
-exception ReturnExn
-exception WrongFormat of string
 
-val internal_error : string -> 'a
-val myassert : bool -> unit
-val warning : string -> 'a -> 'a
 val error_cant_have : 'a -> 'b
-
-(* alias *)
-val exn_to_s_with_backtrace : exn -> string
-
-type error = Error of string
-type evotype = unit
-
-val evoval : evotype
 
 (*****************************************************************************)
 (* Environment *)
@@ -1204,6 +1123,5 @@ val map : ('a -> 'b) -> 'a list -> 'b list
 (*###########################################################################*)
 
 val cmdline_flags_devel : unit -> Arg_.cmdline_options
-val cmdline_flags_verbose : unit -> Arg_.cmdline_options
 val cmdline_flags_other : unit -> Arg_.cmdline_options
 val cmdline_actions : unit -> Arg_.cmdline_actions
