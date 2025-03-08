@@ -276,111 +276,6 @@ val xor : 'a -> 'a -> bool
 
 val string_of_char : char -> string
 val string_of_chars : char list -> string
-val is_single : char -> bool
-val is_symbol : char -> bool
-val is_space : char -> bool
-val is_upper : char -> bool
-val is_lower : char -> bool
-val is_alpha : char -> bool
-val is_digit : char -> bool
-val cbetween : char -> char -> char -> bool
-
-(*****************************************************************************)
-(* Num *)
-(*****************************************************************************)
-
-val ( /! ) : int -> int -> int
-val do_n : int -> (unit -> unit) -> unit
-val foldn : ('a -> int -> 'a) -> 'a -> int -> 'a
-
-(* alias for flip do_n, ruby style *)
-val times : (unit -> unit) -> int -> unit
-val pi : float
-val pi2 : float
-val pi4 : float
-val deg_to_rad : float -> float
-val clampf : float -> float
-val square : float -> float
-val power : int -> int -> int
-val between : 'a -> 'a -> 'a -> bool
-val between_strict : int -> int -> int -> bool
-val bitrange : int -> int -> bool
-val borne : min:'a -> max:'a -> 'a -> 'a
-val prime1 : int -> int option
-val prime : int -> int option
-val sum : int list -> int
-val product : int list -> int
-val decompose : int -> int list
-val mysquare : int -> int
-val sqr : float -> float
-
-type compare = Equal | Inf | Sup
-
-val ( <=> ) : 'a -> 'a -> compare
-val ( <==> ) : 'a -> 'a -> int
-
-type uint = int
-
-val int_of_stringchar : string -> int
-val int_of_base : string -> int -> int
-val int_of_stringbits : string -> int
-val int_of_octal : string -> int
-val int_of_all : string -> int
-val int64_of_string_opt : string -> int64 option
-
-(* like int_of_string_opt, but also converts C octals like 0400 in
- * the right value. *)
-val int64_of_string_c_octal_opt : string -> int64 option
-val int_of_string_c_octal_opt : string -> int option
-
-(* like float_of_string_opt, but also converts C octals like 0400 in
- * the right value. *)
-val float_of_string_opt : string -> float option
-
-(* useful but sometimes when want grep for all places where do modif,
- * easier to have just code using ':=' and '<-' to do some modifications.
- * In the same way avoid using {contents = xxx} to build some ref.
- *)
-val ( += ) : int ref -> int -> unit
-val ( -= ) : int ref -> int -> unit
-val pourcent : int -> int -> int
-val pourcent_float : int -> int -> float
-val pourcent_float_of_floats : float -> float -> float
-val pourcent_good_bad : int -> int -> int
-val pourcent_good_bad_float : int -> int -> float
-
-type 'a max_with_elem = int ref * 'a ref
-
-val update_max_with_elem :
-  'a max_with_elem -> is_better:(int -> int ref -> bool) -> int * 'a -> unit
-
-(*****************************************************************************)
-(* Numeric/overloading *)
-(*****************************************************************************)
-
-type 'a numdict =
-  | NumDict of
-      (('a -> 'a -> 'a) * ('a -> 'a -> 'a) * ('a -> 'a -> 'a) * ('a -> 'a))
-
-val add : 'a numdict -> 'a -> 'a -> 'a
-val mul : 'a numdict -> 'a -> 'a -> 'a
-val div : 'a numdict -> 'a -> 'a -> 'a
-val neg : 'a numdict -> 'a -> 'a
-val numd_int : int numdict
-val numd_float : float numdict
-val testd : 'a numdict -> 'a -> 'a
-
-module ArithFloatInfix : sig
-  val ( + ) : float -> float -> float
-  val ( - ) : float -> float -> float
-  val ( / ) : float -> float -> float
-  val ( * ) : float -> float -> float
-  val ( +.. ) : int -> int -> int
-  val ( -.. ) : int -> int -> int
-  val ( /.. ) : int -> int -> int
-  val ( *.. ) : int -> int -> int
-  val ( += ) : float ref -> float -> unit
-end
 
 (*****************************************************************************)
 (* Random *)
@@ -822,6 +717,7 @@ val all_assoc : (* Eq a *) 'a -> ('a * 'b) list -> 'b list
 val prepare_want_all_assoc : ('a * 'b) list -> ('a * 'b list) list
 val or_list : bool list -> bool
 val and_list : bool list -> bool
+val foldn : ('a -> int -> 'a) -> 'a -> int -> 'a
 val sum_float : float list -> float
 val sum_int : int list -> int
 val avg_list : int list -> float

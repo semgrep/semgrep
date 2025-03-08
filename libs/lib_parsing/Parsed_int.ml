@@ -49,12 +49,31 @@ let map f (opt, t) =
   | None -> (opt, t)
   | Some i64 -> (Some (f i64), t)
 
+let is_octal_digit = function
+  | '0' .. '7' -> true
+  | _ -> false
+
 (*****************************************************************************)
 (* Creators *)
 (*****************************************************************************)
 
-let parse (s, t) = (Common2.int64_of_string_opt s, t)
-let parse_c_octal (s, t) = (Common2.int64_of_string_c_octal_opt s, t)
+(* Attempt to parse a possible C octal number i.e 0[0-7]+, otherwise
+ * attempt to parse the num as a non octal
+ *)
+let c_octal_opt s =
+  (* get rid of leading 0, validate octal_num is [0-7]+, then turn it
+   * into a regular octal 0o[0-7]+
+   *)
+  let octal_num = String_.safe_sub s 1 (String.length s - 1) in
+  if
+    String.starts_with ~prefix:"0" s
+    && String.exists is_octal_digit octal_num
+    && String.length s > 1
+  then Int64.of_string_opt ("0o" ^ octal_num)
+  else Int64.of_string_opt s
+
+let parse (s, t) = (Int64.of_string_opt s, t)
+let parse_c_octal (s, t) = (c_octal_opt s, t)
 
 let of_float f =
   let iopt =
@@ -67,7 +86,7 @@ let of_int i = Some (Int64.of_int i) |> promote
 let of_int64 i64 = Some i64 |> promote
 
 let of_string_opt s =
-  match Common2.int64_of_string_opt s with
+  match Int64.of_string_opt s with
   | None -> None
   | Some i64 -> Some (Some i64 |> promote)
 

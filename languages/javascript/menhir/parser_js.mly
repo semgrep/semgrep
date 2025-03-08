@@ -1454,7 +1454,7 @@ numeric_literal_as_string: numeric_literal
     { let t = snd $1 in
       let s = Tok.content_of_tok t in
       let s' =
-        match Common2.float_of_string_opt s with
+        match Float.of_string_opt s with
         | None -> s
         | Some n -> string_of_float n
       in

@@ -281,7 +281,7 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
       L (Int (Parsed_int.parse_c_octal (s, t))) |> G.e
   | `Float tok ->
       let s, t = (* float *) str env tok in
-      L (Float (Common2.float_of_string_opt s, t)) |> G.e
+      L (Float (Float.of_string_opt s, t)) |> G.e
   | `Comp (v1, v2) ->
       let s, t = (* float *) str env v1 in
       let v2 = (* "i" *) token env v2 in

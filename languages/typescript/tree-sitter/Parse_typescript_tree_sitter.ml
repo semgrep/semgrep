@@ -127,7 +127,7 @@ let super env tok = IdSpecial (Super, token env tok)
 let number (env : env) (tok : CST.number) =
   let s, t = str env tok (* number *) in
   (* TODO? float_of_string_opt_also_from_hexoctbin *)
-  (Common2.float_of_string_opt s, t)
+  (Float.of_string_opt s, t)
 
 let empty_stmt env tok =
   let t = token env tok in
