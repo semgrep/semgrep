@@ -103,26 +103,10 @@ val redirect_stdin_opt : filename option -> (unit -> unit) -> unit
 val with_pr2_to_string : Cap.FS.tmp -> (unit -> unit) -> string list
 val print_n : int -> string -> unit
 val printerr_n : int -> string -> unit
-val _debug : bool ref
-val debugon : unit -> unit
-val debugoff : unit -> unit
-val debug : (unit -> unit) -> unit
 
 (*****************************************************************************)
 (* Test. But have a look at ounit.mli *)
 (*****************************************************************************)
-
-(*old: val example : bool -> unit, PB with js_of_ocaml? *)
-val example : bool -> unit
-
-(* generate failwith <string> when pb *)
-val example2 : string -> bool -> unit
-
-(* use Dumper to report when pb *)
-val assert_equal : 'a -> 'a -> unit
-val _list_bool : (string * bool) list ref
-val example3 : string -> bool -> unit
-val test_all : unit -> unit
 
 (* regression testing *)
 type score_result = Ok | Pb of string
@@ -138,30 +122,6 @@ val regression_testing_vs : score -> score -> score
 val total_scores : score -> int (* good *) * int (* total *)
 val print_score : score -> unit
 val print_total_score : score -> unit
-
-(* quickcheck spirit *)
-type 'a gen = unit -> 'a
-
-(* quickcheck random generators *)
-val ig : int gen
-val lg : 'a gen -> 'a list gen
-val pg : 'a gen -> 'b gen -> ('a * 'b) gen
-val polyg : int gen
-val ng : string gen
-val oneofl : 'a list -> 'a gen
-val oneof : 'a gen list -> 'a gen
-val always : 'a -> 'a gen
-val frequency : (int * 'a gen) list -> 'a gen
-val frequencyl : (int * 'a) list -> 'a gen
-val laws : string -> ('a -> bool) -> 'a gen -> 'a option
-
-(* example of use:
- * let b = laws "unit" (fun x -> reverse [x] = [x])    ig
- *)
-
-val statistic_number : 'a list -> (int * 'a) list
-val statistic : 'a list -> (int * 'a) list
-val laws2 : string -> ('a -> bool * 'b) -> 'a gen -> 'a option * (int * 'b) list
 
 (*****************************************************************************)
 (* String_of and (pretty) printing *)
@@ -672,7 +632,6 @@ val list_init : 'a list -> 'a list
 val removelast : 'a list -> 'a list
 val inits : 'a list -> 'a list list
 val tails : 'a list -> 'a list list
-val ( ++ ) : 'a list -> 'a list -> 'a list
 val foldl1 : ('a -> 'a -> 'a) -> 'a list -> 'a
 val fold_k : ('a -> 'b -> ('a -> 'a) -> 'a) -> ('a -> 'a) -> 'a -> 'b list -> 'a
 val fold_right1 : ('a -> 'a -> 'a) -> 'a list -> 'a

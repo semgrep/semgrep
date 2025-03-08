@@ -442,28 +442,9 @@ let rec inits_and_rest_of_list = function
       ([ e ], l)
       :: List_.map (fun (l, rest) -> (e :: l, rest)) (inits_and_rest_of_list l)
 
-let _ =
-  Common2.example
-    (inits_and_rest_of_list [ 'a'; 'b'; 'c' ]
-    =*= [
-          ([ 'a' ], [ 'b'; 'c' ]);
-          ([ 'a'; 'b' ], [ 'c' ]);
-          ([ 'a'; 'b'; 'c' ], []);
-        ])
-
 let inits_and_rest_of_list_empty_ok = function
   | [] -> [ ([], []) ]
   | xs -> [ ([], xs) ] @ inits_and_rest_of_list xs
-
-let _ =
-  Common2.example
-    (inits_and_rest_of_list_empty_ok [ 'a'; 'b'; 'c' ]
-    =*= [
-          ([], [ 'a'; 'b'; 'c' ]);
-          ([ 'a' ], [ 'b'; 'c' ]);
-          ([ 'a'; 'b' ], [ 'c' ]);
-          ([ 'a'; 'b'; 'c' ], []);
-        ])
 
 (* todo? optimize, probably not the optimal version ... *)
 let all_elem_and_rest_of_list xs =
@@ -483,10 +464,6 @@ let rec all_splits = function
   | x :: xs ->
       all_splits xs
       |> List.concat_map (function ls, rs -> [ (x :: ls, rs); (ls, x :: rs) ])
-
-(* let _ = Common2.example
-    (all_elem_and_rest_of_list ['a';'b';'c'] =
-     [('a', ['b';'c']); ('b', ['a';'c']); ('c', ['a';'b'])]) *)
 
 (* Since all_elem_and_rest_of_list computes the rest of list lazily,
  * we want to still keep track of how much time we're spending on

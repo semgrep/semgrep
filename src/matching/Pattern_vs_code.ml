@@ -128,8 +128,8 @@ let rec all_suffix_of_list xs =
   | _x :: xs -> all_suffix_of_list xs)
 
 let _ =
-  Common2.example
-    (all_suffix_of_list [ 1; 2; 3 ] =*= [ [ 1; 2; 3 ]; [ 2; 3 ]; [ 3 ]; [] ])
+  assert (
+    all_suffix_of_list [ 1; 2; 3 ] =*= [ [ 1; 2; 3 ]; [ 2; 3 ]; [ 3 ]; [] ])
 
 (* copy paste of module_ml.ml *)
 let module_name_of_filename file =
