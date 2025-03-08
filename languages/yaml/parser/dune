@@ -1,15 +1,14 @@
 (library
- (public_name parser_yaml.ast_generic)
- (name parser_yaml_ast_generic)
+ (public_name parser_yaml.parser)
+ (name parser_yaml_parser)
  (wrapped false)
  (libraries
    yaml
 
    commons
    lib_parsing
-   ast_generic
+   ast_generic ; is_metavar_name
    parser_yaml.ast
-   parser_yaml.parser
  )
  (preprocess (pps ppx_deriving.show))
 )

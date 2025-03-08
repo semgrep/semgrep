@@ -38,17 +38,23 @@ let ( >>= ) = Result.bind
  * See also the JSON schema for a rule in rule_schema_v1.yaml (and
  * also now in rule_schema_v2.atd for the v2 syntax).
  *
- * history: we used to parse a semgrep rule by simply using the basic API of
- * the OCaml 'yaml' library. This API allows converting a yaml file into
- * a simple and compact JSON.t value.
- * However, this JSON.t value did not contain any location information, which
- * made it hard to report errors in a YAML rule. This is why we switched
- * to the low-level API of the 'yaml' library that returns a stream
- * of tokens with location information. We actually used first that low-level
- * API to return the generic AST of a yaml file, to add support for
- * YAML in semgrep (allowing semgrep rules on any YAML files).
- * See the Yaml_to_generic.parse_rule function. We then (ab)used this function
- * to also parse a semgrep rule (which is a yaml file) in this file.
+ * history:
+ *  - we used to parse a semgrep rule by simply using the basic API of
+ *    the OCaml 'yaml' library. This API allows converting a yaml file into
+ *    a simple and compact JSON.t value.
+ *    However, this JSON.t value did not contain any location information, which
+ *    made it hard to report errors in a YAML rule.
+ *  - This is why we switched to the low-level API of the 'yaml' library that
+ *    returns a stream of tokens with location information. We actually used
+ *    first that low-level API to return the generic AST of a yaml file, to add
+ *    support for YAML in semgrep (allowing semgrep rules on any YAML files).
+ *    See the Yaml_to_generic.parse_rule function.
+ *  - We then (ab)used this function to also parse a semgrep rule (which is a
+ *    yaml file) in this file.
+ *
+ * Should we use the new AST_yaml.ml instead of parsing using the
+ * AST_generic? NO! The advantage of using AST_generic is that it works also
+ * for parsing jsonnet rules! or JSON rules!
  *)
 
 (*****************************************************************************)
