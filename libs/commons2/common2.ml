@@ -94,13 +94,6 @@ let (lines : string -> string list) =
 
 let (matched : int -> string -> string) = fun i s -> Str.matched_group i s
 
-let (with_open_stringbuf : ((string -> unit) * Buffer.t -> unit) -> string) =
- fun f ->
-  let buf = Buffer.create 1000 in
-  let pr s = Buffer.add_string buf (s ^ "\n") in
-  f (pr, buf);
-  Buffer.contents buf
-
 let foldl1 p xs =
   match xs with
   | x :: xs -> List.fold_left p x xs
@@ -609,41 +602,6 @@ let ( ||| ) a b =
  * let finalize f cleanup =  ...
  *)
 
-(*****************************************************************************)
-(* Environment *)
-(*****************************************************************************)
-
-let _check_stack = ref true
-
-let check_stack_size limit =
-  if !_check_stack then (
-    pr2 "checking stack size (do ulimit -s 40000 if problem)";
-    let rec aux i = if i =|= limit then 0 else 1 + aux (i + 1) in
-    assert (aux 0 =|= limit);
-    ())
-
-let test_check_stack_size limit =
-  (* bytecode: 100000000 *)
-  (* native:   10000000 *)
-  check_stack_size (int_of_string limit)
-
-(* only relevant in bytecode, in native the stacklimit is the os stacklimit
- * (adjustable by ulimit -s)
- *)
-let _init_gc_stack = ()
-(* commented because cause pbs with js_of_ocaml
-   Gc.set {(Gc.get ()) with Gc.stack_limit = 100 * 1024 * 1024}
-*)
-
-(* if process a big set of files then dont want get overflow in the middle
- * so for this we are ready to spend some extra time at the beginning that
- * could save far more later.
- *
- * On Centos 5.2 with ulimit -s 40000 I can only go up to 2000000 in
- * native mode (and it crash with ulimit -s 10000, which is what we want).
- *)
-let check_stack_nbfiles nbfiles = if nbfiles > 200 then check_stack_size 2000000
-
 (*###########################################################################*)
 (* Basic types *)
 (*###########################################################################*)
@@ -1053,109 +1011,7 @@ let strip c s =
 (* Filenames *)
 (*****************************************************************************)
 
-type filename = string (* TODO could check that exist :) type sux *)
-
-(* with sexp *)
-type dirname = string
-
-(* TODO could check that exist :) type sux *)
-(* with sexp *)
-
-(* file or dir *)
-type path = string
-
-module BasicType = struct
-  type filename = string
-end
-
-let adjust_ext_if_needed filename ext =
-  if String.get ext 0 <> '.' then
-    failwith "I need an extension such as .c not just c";
-
-  if not (filename =~ ".*\\" ^ ext) then filename ^ ext else filename
-
-let replace_ext file oldext newext =
-  let d, b, e = Filename_.dbe_of_filename file in
-  assert (e = oldext);
-  Filename_.filename_of_dbe (d, b, newext)
-
-(* Given a file name, normalize it by removing "." and "..".  This works
- * exclusively by processing the string, not relying on any file system
- * state.
- *
- * This is intended to work on both absolute and relative paths, but I
- * have not tested the latter.
- *
- * Compared to a previous version of normalize_path,
- * this function normalizes "a/." to "a" and does not drop the leading "/"
- * on absolute paths. It also does not crash on "/..".
- *
- * author: Scott McPeak.
- *)
-let normalize_path (file : string) : string =
-  let is_rel = Filename.is_relative file in
-  let xs = split "/" file in
-  let rec aux acc = function
-    | [] -> List.rev acc
-    | x :: xs -> (
-        match x with
-        | "." -> aux acc xs
-        | ".." -> (
-            match acc with
-            | [] ->
-                if is_rel then
-                  (* Keep leading ".." on relative paths. *)
-                  aux (x :: acc) xs
-                else
-                  (* Strip leading ".." on absolute paths.  The ".."
-                   * directory entry on "/" points to "/". *)
-                  aux acc xs
-            | [ ".." ] ->
-                (* If we kept "..", this must be a relative path that
-                 * effectively starts with "..", so keep accumulating
-                 * them.  ("../.." does not become "".) *)
-                assert is_rel;
-                aux (x :: acc) xs
-            | _ -> aux (List_.tl_exn "unexpected empty list" acc) xs)
-        | x -> aux (x :: acc) xs)
-  in
-  let xs' = aux [] xs in
-  (if is_rel then "" else "/") ^ join "/" xs'
-
-let relative_to_absolute s =
-  if s = "." then USys.getcwd ()
-  else if Filename.is_relative s then USys.getcwd () ^ "/" ^ s
-  else s
-
 let is_relative s = Filename.is_relative s
-let is_absolute s = not (is_relative s)
-
-(* pre: prj_path must not contain regexp symbol *)
-let filename_without_leading_path prj_path s =
-  let prj_path = chop_dirsymbol prj_path in
-  if s = prj_path then "."
-  else if s =~ "^" ^ prj_path ^ "/\\(.*\\)$" then matched1 s
-  else
-    failwith (spf "cant find filename_without_project_path: %s  %s" prj_path s)
-
-(* realpath: see end of file *)
-
-let grep_dash_v_str =
-  "| grep -v /.hg/ |grep -v /CVS/ | grep -v /.git/ |grep -v /_darcs/"
-  ^ "| grep -v /.svn/ | grep -v .git_annot | grep -v .marshall"
-
-let arg_symlink () = if !UFile.follow_symlinks then " -L " else ""
-
-let files_of_dir_or_files_no_vcs ext xs =
-  xs
-  |> List_.map (fun x ->
-         if USys.is_directory x then
-           (* nosemgrep: forbid-exec *)
-           UCmd.cmd_to_list
-             ("find " ^ arg_symlink () ^ x ^ " -noleaf -type f -name \"*." ^ ext
-            ^ "\"" ^ grep_dash_v_str)
-         else [ x ])
-  |> List_.flatten
 
 (*****************************************************************************)
 (* i18n *)
@@ -1732,188 +1588,6 @@ let _ = example (lines_with_nl_either "ab\n\nc" =*=
     [Left "ab"; Right (); Right (); Left "c"])
 *)
 
-(*****************************************************************************)
-(* Process/Files *)
-(*****************************************************************************)
-let cat_orig file =
-  let chan = UStdlib.open_in_bin file in
-  let rec cat_orig_aux () =
-    try
-      (* cant do input_line chan::aux() cos ocaml eval from right to left ! *)
-      let l = Common.input_text_line chan in
-      l :: cat_orig_aux ()
-    with
-    | End_of_file -> []
-  in
-  cat_orig_aux ()
-
-(* tail recursive efficient version *)
-let cat file =
-  let chan = UStdlib.open_in_bin file in
-  let rec cat_aux acc () =
-    (* cant do input_line chan::aux() cos ocaml eval from right to left ! *)
-    let b, l =
-      try (true, Common.input_text_line chan) with
-      | End_of_file -> (false, "")
-    in
-    if b then cat_aux (l :: acc) () else acc
-  in
-  cat_aux [] () |> List.rev |> fun x ->
-  close_in chan;
-  x
-
-(* Spec for cat_excerpts:
-   let cat_excerpts file lines =
-   let arr = cat_array file in
-   lines |> List.map (fun i -> arr.(i))
-*)
-
-let cat_excerpts file lines =
-  UFile.Legacy.with_open_infile file (fun chan ->
-      let lines = List.sort compare lines in
-      let rec aux acc lines count =
-        let b, l =
-          try (true, Common.input_text_line chan) with
-          | End_of_file -> (false, "")
-        in
-        if not b then acc
-        else
-          match lines with
-          | [] -> acc
-          | c :: cdr when c =|= count -> aux (l :: acc) cdr (count + 1)
-          | _ -> aux acc lines (count + 1)
-      in
-      aux [] lines 1 |> List.rev)
-
-(* could do a print_string but printf dont like print_string *)
-let echo s =
-  UPrintf.printf "%s" s;
-  flush UStdlib.stdout;
-  s
-
-let usleep s =
-  for _i = 1 to s do
-    ()
-  done
-
-let nblines_with_wc a = nblines_eff a
-
-let unix_diff file1 file2 =
-  let cmd = (Cmd.Name "diff", [ "-u"; file1; file2 ]) in
-  (* nosemgrep: forbid-exec *)
-  match UCmd.lines_of_run ~trim:true cmd with
-  | Ok (xs, _status) -> xs
-  | Error (`Msg s) -> failwith (spf "unix_diff problem: %s" s)
-
-let _batch_mode = ref false
-
-let y_or_no msg =
-  pr2 (msg ^ " [y/n] ?");
-  if !_batch_mode then true
-  else
-    let rec aux () =
-      match UStdlib.read_line () with
-      | "y"
-      | "yes"
-      | "Y" ->
-          true
-      | "n"
-      | "no"
-      | "N" ->
-          false
-      | _ ->
-          pr2 "answer by 'y' or 'n'";
-          aux ()
-    in
-    aux ()
-
-let mkdir ?(mode = 0o770) file = UUnix.mkdir file mode
-
-(* opti? use wc -l ? *)
-let nblines_file file = cat file |> List.length
-
-(* ---------------------------------------------------------------------- *)
-(* _eff variant *)
-(* ---------------------------------------------------------------------- *)
-let _hmemo_unix_lstat_eff = Hashtbl.create 101
-let _hmemo_unix_stat_eff = Hashtbl.create 101
-
-let unix_lstat_eff file =
-  if is_absolute file then
-    memoized _hmemo_unix_lstat_eff file (fun () -> UUnix.lstat file)
-  else
-    (* this is for efficieny reason to be able to memoize the stats *)
-    failwith "must pass absolute path to unix_lstat_eff"
-
-let unix_stat_eff file =
-  if is_absolute file then
-    memoized _hmemo_unix_stat_eff file (fun () -> UUnix.stat file)
-  else
-    (* this is for efficieny reason to be able to memoize the stats *)
-    failwith "must pass absolute path to unix_stat_eff"
-
-let filesize_eff file = (unix_lstat_eff file).st_size
-let filemtime_eff file = (unix_lstat_eff file).st_mtime
-
-let lfile_exists_eff filename =
-  try
-    match (unix_lstat_eff filename).st_kind with
-    | Unix.S_REG
-    | Unix.S_LNK ->
-        true
-    | _ -> false
-  with
-  | UUnix.Unix_error (Unix.ENOENT, _, _) -> false
-
-let is_directory_eff file = (unix_lstat_eff file).st_kind =*= Unix.S_DIR
-let is_file_eff file = (unix_lstat_eff file).st_kind =*= Unix.S_REG
-
-let is_executable_eff file =
-  let stat = unix_lstat_eff file in
-  let perms = stat.st_perm in
-  stat.st_kind =*= Unix.S_REG && perms land 0o011 <> 0
-
-(* ---------------------------------------------------------------------- *)
-
-(* src: from chailloux et al book *)
-let capsule_unix f args =
-  try f args with
-  | UUnix.Unix_error _ -> ()
-
-(*
-let readdir_to_kind_list (path : string) (kind : Unix.file_kind) : string list =
-  USys.readdir path |> Array.to_list
-  |> List.filter (fun s ->
-         try
-           let stat = UUnix.lstat (path ^ "/" ^ s) in
-           stat.st_kind =*= kind
-         with
-         | UUnix.Unix_error _ ->
-             pr2 ("EXN pb stating file: " ^ s);
-             false)
-
-let (readdir_to_dir_list : string -> string list) =
- fun path -> readdir_to_kind_list path Unix.S_DIR
-
-let (readdir_to_file_list : string -> string list) =
- fun path -> readdir_to_kind_list path Unix.S_REG
-
-let (readdir_to_link_list : string -> string list) =
- fun path -> readdir_to_kind_list path Unix.S_LNK
-
-let (readdir_to_dir_size_list : string -> (string * int) list) =
- fun path ->
-  USys.readdir path |> Array.to_list
-  |> List_.filter_map (fun s ->
-         let stat = UUnix.lstat (path ^ "/" ^ s) in
-         if stat.st_kind =*= Unix.S_DIR then Some (s, stat.st_size) else None)
-*)
-
-let unixname () =
-  let uid = UUnix.getuid () in
-  let entry = UUnix.getpwuid uid in
-  entry.pw_name
-
 (* This regex matches the directory part a glob pattern
    used below. This way we are only trying to match
    files contained in the dir specified by the pattern or subdirs,
@@ -1933,67 +1607,12 @@ let glob pattern =
   let files = UFile.Legacy.dir_contents caps dir in
   files |> List.filter (fun s -> Re.execp regex s)
 
-let sanity_check_files_and_adjust ext files =
-  let files =
-    files
-    |> List.filter (fun file ->
-           if not (file =~ ".*\\." ^ ext) then (
-             pr2 ("warning: seems not a ." ^ ext ^ " file");
-             false)
-           else if UFile.is_dir ~follow_symlinks:true (Fpath.v file) then (
-             pr2 (spf "warning: %s is a directory" file);
-             false)
-           else true)
-  in
-  files
-
-(* taken from mlfuse, the predecessor of ocamlfuse *)
-type rwx = [ `R | `W | `X ] list
-
-let file_perm_of : u:rwx -> g:rwx -> o:rwx -> Unix.file_perm =
- fun ~u ~g ~o ->
-  let to_oct l =
-    List.fold_left
-      (fun acc p ->
-        acc
-        lor (function
-              | `R -> 4
-              | `W -> 2
-              | `X -> 1)
-              p)
-      0 l
-  in
-  let perm = (to_oct u lsl 6) lor (to_oct g lsl 3) lor to_oct o in
-  perm
-
-(* pixel *)
-let has_env _var = failwith "Common.has_env, TODO"
-(*
-  try
-    let _ = USys.getenv var in true
-  with Not_found -> false
-*)
-
-let (with_open_outfile_append :
-      filename -> ((string -> unit) * out_channel -> 'a) -> 'a) =
- fun file f ->
-  let chan =
-    UStdlib.open_out_gen [ Open_creat; Open_append; Open_binary ] 0o666 file
-  in
-  let pr s = output_string chan s in
-  Common.unwind_protect
-    (fun () ->
-      let res = f (pr, chan) in
-      close_out chan;
-      res)
-    (fun _e -> close_out chan)
-
-let uncat xs file =
-  UFile.Legacy.with_open_outfile file (fun (pr, _chan) ->
-      xs
-      |> List.iter (fun s ->
-             pr s;
-             pr "\n"))
+let unix_diff file1 file2 =
+  let cmd = (Cmd.Name "diff", [ "-u"; file1; file2 ]) in
+  (* nosemgrep: forbid-exec *)
+  match UCmd.lines_of_run ~trim:true cmd with
+  | Ok (xs, _status) -> xs
+  | Error (`Msg s) -> failwith (spf "unix_diff problem: %s" s)
 
 (*###########################################################################*)
 (* Collection-like types *)
@@ -3404,79 +3023,6 @@ let random_subset_of_list num xs =
   let objs = hash_to_list h |> List_.map fst in
   objs
 
-(*x: common.ml *)
-(*###########################################################################*)
-(* Postlude *)
-(*###########################################################################*)
-
-(*****************************************************************************)
-(* Flags and actions *)
-(*****************************************************************************)
-
-(*s: common.ml cmdline *)
-
-(* I put it inside a func as it can help to give a chance to
- * change the globals before getting the options as some
- * options sometimes may want to show the default value.
- *)
-let cmdline_flags_devel () =
-  [
-    ( "-debugger",
-      Arg.Set Common.debugger,
-      " option to set if launched inside ocamldebug" );
-  ]
-
-let cmdline_flags_other () =
-  [
-    ("-nocheck_stack", Arg.Clear _check_stack, " ");
-    ("-batch_mode", Arg.Set _batch_mode, " no interactivity");
-  ]
-
-(* potentially other common options but not yet integrated:
-
-   "-timeout",        Arg.Set_int timeout,
-   "  <sec> interrupt LFS or buggy external plugins";
-
-   (* can't be factorized because of the $ cvs stuff, we want the date
-   * of the main.ml file, not common.ml
-   *)
-   "-version",   Arg.Unit (fun () ->
-    pr2 "version: _dollar_Date: 2008/06/14 00:54:22 _dollar_";
-    raise (Common.UnixExit 0)
-    ),
-   "   guess what";
-
-   "-shorthelp", Arg.Unit (fun () ->
-    !short_usage_func();
-    raise (Common.UnixExit 0)
-   ),
-   "    see short list of options";
-   "-longhelp", Arg.Unit (fun () ->
-    !long_usage_func();
-    raise (Common.UnixExit 0)
-    ),
-   "-help", Arg.Unit (fun () ->
-    !long_usage_func();
-    raise (Common.UnixExit 0)
-   ),
-   " ";
-   "--help", Arg.Unit (fun () ->
-    !long_usage_func();
-    raise (Common.UnixExit 0)
-   ),
-   " ";
-*)
-
-let cmdline_actions () =
-  [
-    ( "-test_check_stack",
-      "  <limit>",
-      Arg_.mk_action_1_arg test_check_stack_size );
-  ]
-
-(*e: common.ml cmdline *)
-
-(*x: common.ml *)
 (*****************************************************************************)
 (* Postlude *)
 (*****************************************************************************)
@@ -3487,15 +3033,24 @@ module Infix = struct
   let ( ==~ ) = ( ==~ )
 end
 
-let with_pr2_to_string caps f =
-  CapTmp.with_temp_file caps ~suffix:".out" (fun path ->
-      let file = Fpath.to_string path in
-      redirect_stdout_stderr file f;
-      cat file)
-
 (*---------------------------------------------------------------------------*)
 (* Directories part 2 *)
 (*---------------------------------------------------------------------------*)
+
+let inits_of_relative_dir dir =
+  if not (is_relative dir) then
+    failwith (spf "inits_of_relative_dir: %s is not a relative dir" dir);
+  let dir = chop_dirsymbol dir in
+
+  let dirs = split "/" dir in
+  let dirs =
+    match dirs with
+    | [ "." ] -> []
+    | _ -> dirs
+  in
+  inits dirs
+  |> List_.tl_exn "unexpected empty list"
+  |> List_.map (fun xs -> join "/" xs)
 
 (* todo? vs common_prefix_of_files_or_dirs? *)
 let find_common_root files =
@@ -3516,15 +3071,6 @@ let find_common_root files =
   in
   aux [] dirs_part
 
-(*
-let _ = example
-  (find_common_root
-      [(["home";"pad"], "foo.php");
-       (["home";"pad";"bar"], "bar.php");
-      ]
-    =*= ["home";"pad"])
-*)
-
 let dirs_and_base_of_file file =
   let dir, base = Filename_.db_of_filename file in
   let dirs = split "/" dir in
@@ -3535,51 +3081,8 @@ let dirs_and_base_of_file file =
   in
   (dirs, base)
 
-(*
-let _ = example
-  (dirs_and_base_of_file "/home/pad/foo.php" =*= (["home";"pad"], "foo.php"))
-*)
-
-let inits_of_absolute_dir dir =
-  if not (is_absolute dir) then
-    failwith (spf "inits_of_absolute_dir: %s is not an absolute path" dir);
-  if not (UFile.is_dir ~follow_symlinks:true (Fpath.v dir)) then
-    failwith (spf "inits_of_absolute_dir: %s is not a directory" dir);
-  let dir = chop_dirsymbol dir in
-
-  let dirs = split "/" dir in
-  let dirs =
-    match dirs with
-    | [ "." ] -> []
-    | _ -> dirs
-  in
-  inits dirs |> List_.map (fun xs -> "/" ^ join "/" xs)
-
-let inits_of_relative_dir dir =
-  if not (is_relative dir) then
-    failwith (spf "inits_of_relative_dir: %s is not a relative dir" dir);
-  let dir = chop_dirsymbol dir in
-
-  let dirs = split "/" dir in
-  let dirs =
-    match dirs with
-    | [ "." ] -> []
-    | _ -> dirs
-  in
-  inits dirs
-  |> List_.tl_exn "unexpected empty list"
-  |> List_.map (fun xs -> join "/" xs)
-
-(*
-let _ = example
-  (inits_of_absolute_dir "/usr/bin" =*= (["/"; "/usr"; "/usr/bin"]))
-
-let _ = example
-  (inits_of_relative_dir "usr/bin" =*= (["usr"; "usr/bin"]))
-*)
-
 (* main entry *)
-let (tree_of_files : filename list -> (string, string * filename) tree) =
+let (tree_of_files : string list -> (string, string * string) tree) =
  fun files ->
   let files_fullpath = files in
 
@@ -3602,7 +3105,7 @@ let (tree_of_files : filename list -> (string, string * filename) tree) =
   in
 
   (* now ready to build the tree recursively *)
-  let rec aux (xs : ((string list * string) * filename) list) =
+  let rec aux (xs : ((string list * string) * string) list) =
     let files_here, rest =
       xs |> List.partition (fun ((dirs, _base), _) -> List_.null dirs)
     in
@@ -3630,24 +3133,3 @@ let (tree_of_files : filename list -> (string, string * filename) tree) =
     nodes @ leaves
   in
   Node (join "/" root, aux files)
-
-(* finding the common root *)
-let common_prefix_of_files_or_dirs xs =
-  let xs = xs |> List_.map relative_to_absolute in
-  match xs with
-  | [] -> failwith "common_prefix_of_files_or_dirs: empty list"
-  | [ x ] -> x
-  | _y :: _ys ->
-      (* todo: work when dirs ?*)
-      let xs = xs |> List_.map dirs_and_base_of_file in
-      let dirs = find_common_root xs in
-      "/" ^ join "/" dirs
-
-(*
-let _ =
-  example
-    (common_prefix_of_files_or_dirs ["/home/pad/visual";
-                                     "/home/pad/commons";]
-     =*= "/home/pad/pfff"
-    )
-*)

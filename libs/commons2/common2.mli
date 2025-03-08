@@ -1,73 +1,23 @@
-(*###########################################################################*)
-(* Globals *)
-(*###########################################################################*)
-
-(*****************************************************************************)
-(* Flags and actions *)
-(*****************************************************************************)
-(* cf poslude *)
-
-(*****************************************************************************)
-(* Module side effect *)
-(*****************************************************************************)
-(*
- * I define a few unit tests via some let _ = example (... = ...).
- * I also initialize the random seed, cf _init_random .
- * I also set Gc.stack_size, cf _init_gc_stack .
- *)
-
-(*****************************************************************************)
-(* Semi globals *)
-(*****************************************************************************)
-(* cf the _xxx variables in this file *)
-
-(*###########################################################################*)
-(* Basic features *)
-(*###########################################################################*)
-
 (*****************************************************************************)
 (* Pervasive types and operators *)
 (*****************************************************************************)
-
-type filename = string
-type dirname = string
-
-(* file or dir *)
-type path = string
 
 (* Trick in case you dont want to do an 'open Common' while still wanting
  * more pervasive types than the one in Pervasives. Just do the selective
  * open Common.BasicType.
  *)
-module BasicType : sig
-  type filename = string
-end
-
-(* Same spirit. Trick found in Jane Street core lib, but originated somewhere
- * else I think: the ability to open nested modules. *)
 module Infix : sig
   val ( ==~ ) : string -> Str.regexp -> bool
 end
 
-(*
- * Another related trick, found via Jon Harrop to have an extended standard
- * lib is to do something like
- *
- * module List = struct
- *  include List
- *  val map2 : ...
- * end
- *
- * And then can put this "module extension" somewhere to open it.
- *)
+val glob : string -> string list
+(** [glob pattern] takes in a pattern containing a wildcard
+  * i.e. ["dir/**/*.extension"] will match any file in the dir directory
+  * or subdirectories ending in .extension. This function is equivalent
+  * to "ls pattern" in the shell.
+  *)
 
-(* This module defines the Timeout and UnixExit exceptions.
- * You  have to make sure that those exn are not intercepted. So
- * avoid exn handler such as try (...) with _ -> cos Timeout will not bubble up
- * enough. In such case, add a case before such as
- * with Timeout -> raise Timeout | _ -> ...
- * The same is true for UnixExit (see below).
- *)
+val unix_diff : string -> string -> string list
 
 (*****************************************************************************)
 (* Debugging/logging *)
@@ -96,11 +46,10 @@ val pr2_xxxxxxxxxxxxxxxxx : unit -> unit
 
 (* use Dumper.dump *)
 val mk_pr2_wrappers : bool ref -> (string -> unit) * (string -> unit)
-val redirect_stdout_opt : filename option -> (unit -> 'a) -> 'a
-val redirect_stdout_stderr : filename -> (unit -> unit) -> unit
-val redirect_stdin : filename -> (unit -> unit) -> unit
-val redirect_stdin_opt : filename option -> (unit -> unit) -> unit
-val with_pr2_to_string : Cap.FS.tmp -> (unit -> unit) -> string list
+val redirect_stdout_opt : string option -> (unit -> 'a) -> 'a
+val redirect_stdout_stderr : string -> (unit -> unit) -> unit
+val redirect_stdin : string -> (unit -> unit) -> unit
+val redirect_stdin_opt : string option -> (unit -> unit) -> unit
 val print_n : int -> string -> unit
 val printerr_n : int -> string -> unit
 
@@ -116,7 +65,7 @@ type score_list = (string (* usually a filename *) * score_result) list
 val empty_score : unit -> score
 
 val regression_testing :
-  score -> filename (* old score file on disk (usually in /tmp) *) -> unit
+  score -> string (* old score file on disk (usually in /tmp) *) -> unit
 
 val regression_testing_vs : score -> score -> score
 val total_scores : score -> int (* good *) * int (* total *)
@@ -198,25 +147,14 @@ val before_leaving : ('a -> unit) -> 'a -> 'a
 (* how ensure really atomic file creation ? hehe :) *)
 exception FileAlreadyLocked
 
-val acquire_file_lock : filename -> unit
-val release_file_lock : filename -> unit
+val acquire_file_lock : string -> unit
+val release_file_lock : string -> unit
 
 (*****************************************************************************)
 (* Error managment *)
 (*****************************************************************************)
 
 val error_cant_have : 'a -> 'b
-
-(*****************************************************************************)
-(* Environment *)
-(*****************************************************************************)
-
-val _check_stack : bool ref
-val check_stack_size : int -> unit
-val check_stack_nbfiles : int -> unit
-
-(* internally common.ml set Gc. parameters *)
-val _init_gc_stack : unit
 
 (*###########################################################################*)
 (* Basic types *)
@@ -342,34 +280,8 @@ val compile_regexp_union : regexp list -> Str.regexp
 (*****************************************************************************)
 (* Filenames *)
 (*****************************************************************************)
-(* TODO: migrate pure path operations to File.Path which is Fpath +
-   extensions.
-   TODO: migrate other file operations to the File module.
-   TODO: alternatively, use the bos library; this would be a bigger migration.
-*)
 
-(* now at beginning of this file: type filename = string *)
-val adjust_ext_if_needed : filename -> string -> filename
-
-(* ex: replace_ext "toto.c" "c" "var" *)
-val replace_ext : filename -> string -> string -> filename
-
-(* remove the ., .., when it can *)
-val normalize_path : filename -> filename
-val relative_to_absolute : filename -> filename
-val is_relative : filename -> bool
-val is_absolute : filename -> bool
-val filename_without_leading_path : string -> filename -> filename
-
-(* see below
-   val tree2_of_files: filename list -> (dirname, (string * filename)) tree2
-*)
-
-val inits_of_absolute_dir : dirname -> dirname list
-val inits_of_relative_dir : dirname -> dirname list
-
-val files_of_dir_or_files_no_vcs :
-  string (* extension *) -> string (* root *) list -> string (* filename *) list
+val inits_of_relative_dir : string -> string list
 
 (*****************************************************************************)
 (* i18n *)
@@ -474,12 +386,8 @@ val words : string -> string list
 val unwords : string list -> string
 val split_space : string -> string list
 val lines_with_nl : string -> string list
-val nblines : filename -> int
-val nblines_eff : filename -> int
-
-(* better when really large file, but fork is slow so don't call it often *)
-val nblines_with_wc : filename -> int
-val unix_diff : filename -> filename -> string list
+val nblines : string -> int
+val nblines_eff : string -> int
 val words_of_string_with_newlines : string -> string list
 
 (* e.g. on "ab\n\nc" it will return [Left "ab"; Right (); Right (); Left "c"] *)
@@ -488,68 +396,6 @@ val n_space : int -> string
 
 (* reindent a string *)
 val indent_string : int -> string -> string
-
-(*****************************************************************************)
-(* Process/Files *)
-(*****************************************************************************)
-(*
-   TODO: migrate file operations to the File module.
-   TODO: alternatively, use the bos library; this would be a bigger migration.
-*)
-
-val cat_orig : filename -> string list
-val cat_excerpts : filename -> int list -> string list
-val uncat : string list -> filename -> unit
-val echo : string -> string
-val usleep : int -> unit
-val _batch_mode : bool ref
-val y_or_no : string -> bool
-val mkdir : ?mode:Unix.file_perm -> string -> unit
-val nblines_file : filename -> int
-val unix_lstat_eff : filename -> Unix.stats
-val unix_stat_eff : filename -> Unix.stats
-
-(* require to pass absolute paths, and use internally a memoized lstat *)
-val filesize_eff : filename -> int
-val filemtime_eff : filename -> float
-val lfile_exists_eff : filename -> bool
-val is_directory_eff : path -> bool
-val is_file_eff : path -> bool
-val is_executable_eff : filename -> bool
-val capsule_unix : ('a -> unit) -> 'a -> unit
-
-(* deprecated, should use CapFS or libs/paths/List_files.mli
-   val readdir_to_kind_list : string -> Unix.file_kind -> string list
-   val readdir_to_dir_list : string -> dirname list
-   val readdir_to_file_list : string -> filename list
-   val readdir_to_link_list : string -> string list
-   val readdir_to_dir_size_list : string -> (string * int) list
-*)
-
-val unixname : unit -> string
-
-val glob : string -> filename list
-(** [glob pattern] takes in a pattern containing a wildcard
-  * i.e. ["dir/**/*.extension"] will match any file in the dir directory
-  * or subdirectories ending in .extension. This function is equivalent
-  * to "ls pattern" in the shell.
-  *)
-
-val common_prefix_of_files_or_dirs : path list -> dirname
-
-val sanity_check_files_and_adjust :
-  string (* ext *) -> string list -> filename list
-
-type rwx = [ `R | `W | `X ] list
-
-val file_perm_of : u:rwx -> g:rwx -> o:rwx -> Unix.file_perm
-val has_env : string -> bool
-
-(* scheme spirit. do a finalize so no leak. *)
-val with_open_outfile_append :
-  filename -> ((string -> unit) * out_channel -> 'a) -> 'a
-
-val with_open_stringbuf : ((string -> unit) * Buffer.t -> unit) -> string
 
 (*###########################################################################*)
 (* Collection-like types *)
@@ -958,8 +804,8 @@ val hash_with_default :
 
 type ('a, 'b) tree = Node of 'a * ('a, 'b) tree list | Leaf of 'b
 
-val dirs_and_base_of_file : path -> string list * string
-val tree_of_files : filename list -> (dirname, string * filename) tree
+val dirs_and_base_of_file : string -> string list * string
+val tree_of_files : string list -> (string, string * string) tree
 
 (*****************************************************************************)
 (* Generic op *)
@@ -968,15 +814,3 @@ val tree_of_files : filename list -> (dirname, string * filename) tree
 (* mostly alias to functions in List_ *)
 
 val map : ('a -> 'b) -> 'a list -> 'b list
-
-(*###########################################################################*)
-(* Misc functions *)
-(*###########################################################################*)
-
-(*###########################################################################*)
-(* Postlude *)
-(*###########################################################################*)
-
-val cmdline_flags_devel : unit -> Arg_.cmdline_options
-val cmdline_flags_other : unit -> Arg_.cmdline_options
-val cmdline_actions : unit -> Arg_.cmdline_actions
