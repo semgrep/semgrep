@@ -91,4 +91,15 @@ local on_pull_request_config = {
   dependabot_guard: {
     'if': "(github.actor != 'dependabot[bot]')",
   },
+  basic_needs_job(needs): {
+    needs: needs,
+    'runs-on': 'ubuntu-latest',
+    steps: [
+      {
+        name: 'Wait for jobs: %s' % std.join(', ', needs),
+        run: 'echo "jobs %s are done"' % std.join(', ', needs),
+      },
+    ],
+
+  }
 }
