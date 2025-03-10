@@ -52,10 +52,10 @@ let rec value (v : A.value) : G.expr =
   | Mapping (lbra, kvs, rbra) ->
       let kvs' = List_.map value kvs in
       G.Container (G.Dict, (lbra, kvs', rbra)) |> G.e
-  | KV (lbra, (k, v), rbra) ->
+  | KV (k, v) ->
       let k' = value k in
       let v' = value v in
-      G.Container (G.Tuple, (lbra, [ k'; v' ], rbra)) |> G.e
+      G.Container (G.Tuple, fb [ k'; v' ]) |> G.e
   | Alias (name, v) ->
       let e = value v in
       G.Alias (name, e) |> G.e

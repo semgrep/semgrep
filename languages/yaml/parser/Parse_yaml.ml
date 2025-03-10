@@ -347,7 +347,7 @@ let make_mapping (pos1, pos2) ((key, value) : A.value * A.value) env :
   | A.Ellipsis _, A.Ellipsis _ ->
       let tok = mk_tok pos1 "..." env in
       (A.Ellipsis (Tok.fake_tok tok "..."), pos2)
-  | _ -> (A.KV (mk_bracket (pos1, pos2) (key, value) env), pos2)
+  | _ -> (A.KV (key, value), pos2)
 
 let make_doc start_pos (doc, end_pos) env : A.value list =
   match doc with
@@ -437,6 +437,7 @@ let parse_with_env (env : env) : A.value list =
       match first_node with
       | E.Scalar { anchor; tag; value; style; _ }, pos ->
           make_node scalar anchor (tag, pos, value, style) env
+      (* ???? *)
       | E.Mapping_start _, start_pos ->
           let _mappings, end_pos = read_mappings [] in
           ( A.OtherMapping (mk_tok start_pos "" env, mk_tok end_pos "" env),
