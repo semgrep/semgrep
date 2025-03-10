@@ -2,10 +2,10 @@
 rule.yml
 --- end input files ---
 { Rule_fetching.rules =
-  [{ Rule.id = ("eqeq-bad", ());
+  [{ Rule.id = ("eqeq-bad", _);
      mode =
      `Search ({ Rule.f =
-                (Rule.And ((),
+                (Rule.And (_,
                    [{ Rule.f =
                       (Rule.P
                          { Xpattern.pat =
@@ -13,15 +13,15 @@ rule.yml
                               (E
                                  { e =
                                    (Call (
-                                      { e = (Special ((Op Eq), ()));
-                                        e_id = 0; e_range = None;
+                                      { e = (Special ((Op Eq), _)); e_id = 0;
+                                        e_range = None;
                                         is_implicit_return = false;
                                         facts = <opaque> },
-                                      ((),
+                                      (_,
                                        [(Arg
                                            { e =
                                              (N
-                                                (Id (("$X", ()),
+                                                (Id (("$X", _),
                                                    { id_resolved = ref (None);
                                                      id_resolved_alternatives =
                                                      ref ([]);
@@ -36,7 +36,7 @@ rule.yml
                                          (Arg
                                             { e =
                                               (N
-                                                 (Id (("$X", ()),
+                                                 (Id (("$X", _),
                                                     { id_resolved =
                                                       ref (None);
                                                       id_resolved_alternatives =
@@ -50,13 +50,13 @@ rule.yml
                                               is_implicit_return = false;
                                               facts = <opaque> })
                                          ],
-                                       ())
+                                       _)
                                       ));
                                    e_id = 0; e_range = None;
                                    is_implicit_return = false;
                                    facts = <opaque> }),
                               Python));
-                           pstr = ("$X == $X", ()); pid = <MASKED NUM> });
+                           pstr = ("$X == $X", _); pid = <MASKED NUM> });
                       conditions = []; focus = []; fix = None; as_ = None }
                      ]
                    ));
