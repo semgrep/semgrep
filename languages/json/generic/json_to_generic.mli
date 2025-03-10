@@ -4,3 +4,4 @@
  *)
 val program : ?unescape_strings:bool -> AST_json.program -> AST_generic.program
 val any : AST_json.any -> AST_generic.any
+val value_to_generic : AST_json.value -> AST_generic.expr

@@ -16,7 +16,20 @@ open Common
 open AST_json
 module G = AST_generic
 
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* Conversions from JSON ASTs to the generic AST *)
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
 let fb = Tok.unsafe_fake_bracket
+
+(*****************************************************************************)
+(* AST_json.program (= AST_js.expr) -> AST_generic  *)
+(*****************************************************************************)
 
 let parse_json_string json =
   try
@@ -111,3 +124,27 @@ let any x =
       in
       G.E
         (G.Container (G.Tuple, Tok.unsafe_fake_bracket [ key; expr v3 ]) |> G.e)
+
+(*****************************************************************************)
+(* AST_json.value  -> AST_generic.expr  *)
+(*****************************************************************************)
+
+let rec value_to_generic (x : value) : G.expr =
+  match x with
+  | Null tok -> G.L (G.Null tok) |> G.e
+  | Bool (b, tok) -> G.L (G.Bool (b, tok)) |> G.e
+  | Number (fopt, tok) -> G.L (G.Float (fopt, tok)) |> G.e
+  (* TODO? apply also the special string treatment above ? *)
+  | String (s, tok) -> G.L (G.String (fb (s, tok))) |> G.e
+  | Array (l, xs, r) ->
+      G.Container (G.Array, (l, List_.map value_to_generic xs, r)) |> G.e
+  | Object (l, kvs, r) ->
+      let kvs' =
+        List_.map
+          (fun ((k, tok), v) ->
+            let key = G.L (G.String (fb (k, tok))) |> G.e in
+            let value = value_to_generic v in
+            G.Container (G.Tuple, fb [ key; value ]) |> G.e)
+          kvs
+      in
+      G.Container (G.Dict, (l, kvs', r)) |> G.e
