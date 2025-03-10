@@ -58,6 +58,21 @@ IS_WINDOWS = platform.system() == "Windows"
 
 PRO_FLAGS = ["--pro", "--pro-languages", "--pro-intrafile"]
 
+if IS_WINDOWS:
+    # NOTE: we conditionally import colorama to avoid importing it
+    # unnecessarily on other platforms in the entrypoint script, which needs to
+    # be as 'light' as possible.
+    from colorama.winterm import enable_vt_processing
+
+    # On Windows, enable virtual terminal processing to correctly process ANSI
+    # escape sequences for pretty, colored output. We want to enable this as
+    # early as possible to correctly process ANSI escape sequences in all the
+    # subcommands both in osemgrep and pysemgrep. See
+    # https://learn.microsoft.com/en-us/windows/console/setconsolemode for more
+    # information.
+    enable_vt_processing(sys.stdout.fileno())
+    enable_vt_processing(sys.stderr.fileno())
+
 
 class CoreNotFound(Exception):
     def __init__(self, value):
