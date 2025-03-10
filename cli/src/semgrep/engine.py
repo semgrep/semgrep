@@ -13,11 +13,10 @@ from semgrep.error import SemgrepError
 from semgrep.meta import GitMeta
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_interfaces import semgrep_output_v1 as out
-from semgrep.util import sub_check_output
+from semgrep.util import sub_check_output, IS_WINDOWS
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
-
 
 class EngineType(Enum):
     OSS = auto()
@@ -130,7 +129,8 @@ class EngineType(Enum):
 
     @property
     def default_jobs(self) -> int:
-        if self == EngineType.PRO_INTERFILE:
+        # Windows is currently limited to 1 job
+        if self == EngineType.PRO_INTERFILE or IS_WINDOWS:
             return 1
         # Maxing out number of cores used to 16 if more not requested to not overload on large machines
         return min(16, self.get_cpu_count())

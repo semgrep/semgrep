@@ -2,6 +2,7 @@ import functools
 import itertools
 import operator
 import os
+import platform
 import subprocess
 import sys
 from io import TextIOWrapper
@@ -39,6 +40,7 @@ MASK_SHOW_PCT = 0.2
 
 MAX_TEXT_WIDTH = 120
 
+IS_WINDOWS = platform.system() == 'Windows'
 
 def is_url(url: str) -> bool:
     try:

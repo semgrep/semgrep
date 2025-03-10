@@ -7,13 +7,11 @@ from pathlib import Path
 from typing import Optional
 
 from semgrep.verbose_logging import getLogger
+from semgrep.util import IS_WINDOWS
 
 logger = getLogger(__name__)
 
 VERSION_STAMP_FILENAME = "pro-installed-by.txt"
-
-IS_WINDOWS = platform.system() == "Windows"
-
 
 def compute_executable_path(exec_name: str) -> Optional[str]:
     """

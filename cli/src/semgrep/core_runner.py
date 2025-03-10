@@ -53,6 +53,7 @@ from semgrep.state import DesignTreatment
 from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
+from semgrep.util import IS_WINDOWS
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -71,7 +72,6 @@ INPUT_BUFFER_LIMIT: int = 1024 * 1024 * 1024
 # test/e2e/test_performance.py is one test that exercises this risk.
 LARGE_READ_SIZE: int = 1024 * 1024 * 512
 
-IS_WINDOWS = platform.system() == "Windows"
 if not IS_WINDOWS:
     import resource
 
@@ -867,7 +867,13 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
             cmd.extend(["-rules", rule_file.name])
 
             # adding multi-core option
-            cmd.extend(["-j", str(self._jobs)])
+            safe_jobs = self._jobs
+            if IS_WINDOWS and safe_jobs > 1:
+                logger.warning(
+                    f"Requested {safe_jobs} jobs, but only 1 job is currently "
+                    "supported on Windows. Forcing configuration to 1 job.")
+                safe_jobs = 1
+            cmd.extend(["-j", str(safe_jobs)])
 
             if strict:
                 cmd.extend(["-strict"])
