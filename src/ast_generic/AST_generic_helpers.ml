@@ -616,13 +616,14 @@ class ['self] range_visitor =
 
 let extract_ranges_with_anys :
     AST_generic.any list -> (Tok.location * Tok.location) option =
+  (* NOTE: we stage the allocation of the vistor object outside of the function;
+   * as object allocation is expensive.
+   *)
   let v = new range_visitor in
-  let ranges = ref None in
   fun anys ->
+    let ranges = ref None in
     List.iter (v#visit_any ranges) anys;
-    let res = !ranges in
-    ranges := None;
-    res
+    !ranges
 
 let extract_ranges any = extract_ranges_with_anys [ any ]
 
