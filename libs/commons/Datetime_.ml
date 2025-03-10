@@ -13,16 +13,10 @@
  * LICENSE for more details.
  *)
 
-(* Commentary *)
-(* Extra functions for time things *)
-
-(*****************************************************************************)
-(* Prelude *)
-(*****************************************************************************)
-
-(*****************************************************************************)
-(* Code *)
-(*****************************************************************************)
+(* 60 seconds * 60 minutes * 24 hours = 86400 *)
+let day_secs : float = 86400.
+let now : unit -> float = UUnix.time
+let time_n_days_ago ~days ~time = time -. (day_secs *. Float.of_int days)
 
 let of_unix_int_time (timestamp : int64) (sign : [ `Plus | `Minus ])
     (hours : int) (minutes : int) =
