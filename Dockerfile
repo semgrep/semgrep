@@ -354,6 +354,16 @@ COPY scripts/ ./scripts/
 # wheels are identical.
 RUN scripts/build-wheels.sh && scripts/validate-wheel.sh cli/dist/*musllinux*.whl
 
+FROM semgrep-core-container AS semgrep-core-test
+
+# Needed for core-test-e2e
+RUN apk add --no-cache py3-pip
+# hadolint ignore=DL3013
+RUN pip install --break-system-packages --no-cache-dir check-jsonschema
+# Git repo is need for tests
+RUN git init
+RUN opam exec -- make test
+RUN opam exec -- make core-test-e2e
 ###############################################################################
 # Other target: performance testing
 ###############################################################################

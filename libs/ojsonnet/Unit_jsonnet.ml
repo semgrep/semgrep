@@ -63,7 +63,7 @@ let mk_tests (caps : < Cap.time_limit >) (subdir : string)
                          This used to run under 0.5s and suddenly started
                          to take over 1s on my machine without me touching
                          ojsonnet's code. *)
-                      let timeout = 2.0 in
+                      let timeout = 5.0 in
                       let t1 = Unix.gettimeofday () in
                       let json_opt =
                         Common.save_excursion Conf.eval_strategy strategy
