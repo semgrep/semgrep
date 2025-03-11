@@ -26,30 +26,6 @@
 # to interactively explore the docker image before that failing point.
 
 ###############################################################################
-# Step0: collect files needed to build semgrep-core
-###############################################################################
-
-# The semgrep git repository contains the source code to multiple build artifacts
-# (pysemgrep, semgrep-core, etc...). In order to maximize Docker cache
-# hits (and keep the build fast), we only copy over the folders needed to build
-# semgrep-core. This is done in a multi-stage build so that the final COPY
-# happens in a single layer.
-
-FROM busybox:stable as semgrep-core-files
-WORKDIR /src/semgrep
-
-# copy over the entire semgrep repository
-COPY . .
-
-# remove files and folders that aren't necessary for the semgrep-core build
-# coupling: see the (dirs ...) directive in the toplevel dune file for the list
-# of directories containing OCaml code and which should not be added below
-RUN rm -rf cli .github .circleci Dockerfile
-
-# we *do* need the cli's semgrep_interfaces folder, however
-COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
-
-###############################################################################
 # Step1: build semgrep-core
 ###############################################################################
 
@@ -115,8 +91,16 @@ RUN opam init --disable-sandboxing -v && opam switch create 5.2.1 -v
 
 # Install semgrep-core build dependencies
 WORKDIR /src/semgrep
-#old: COPY . ., but miss cache opportunities, hence step0 above
-COPY --from=semgrep-core-files /src/semgrep .
+
+# Copy just what is needed for make install-deps below to work to maximize
+# docker cache hit as building and installing all the opam packages
+# is what takes the most time in the docker build.
+#
+# coupling: if you change this you probably want to change this in semgrep-pro
+COPY Makefile semgrep.opam ./
+COPY dev/required.opam dev/
+COPY scripts/build-static-libcurl.sh scripts/
+COPY libs/ocaml-tree-sitter-core libs/ocaml-tree-sitter-core
 
 # note that we do not run 'make install-deps-for-semgrep-core' here because it
 # configures and builds ocaml-tree-sitter-core too; here we are
@@ -127,6 +111,9 @@ RUN make install-deps
 
 # List the dependencies we've installed and their versions
 RUN opam list
+
+# Copy over the entire semgrep repository
+COPY . .
 
 # Compile (and minimal test) semgrep-core
 RUN opam exec -- make core
