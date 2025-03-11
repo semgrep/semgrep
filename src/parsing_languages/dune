@@ -55,6 +55,8 @@
    parser_circom.ast_generic
    ; not really used for now but need to add it there
    ; otherwise we get an OSX linking error about toml_stubs
+   ; new: also for `requirements`
    tree-sitter-lang.toml
+   tree-sitter-lang.requirements
  )
 )
