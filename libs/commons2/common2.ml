@@ -92,8 +92,6 @@ let (lines : string -> string list) =
   in
   Str.split_delim (Str.regexp "\r\n\\|\n") s |> lines_aux
 
-let (matched : int -> string -> string) = fun i s -> Str.matched_group i s
-
 let foldl1 p xs =
   match xs with
   | x :: xs -> List.fold_left p x xs
@@ -491,15 +489,6 @@ let save_excursion_and_disable reference f =
 let save_excursion_and_enable reference f =
   save_excursion reference true (fun () -> f ())
 
-let memoized ?(use_cache = true) h k f =
-  if not use_cache then f ()
-  else
-    try Hashtbl.find h k with
-    | Not_found ->
-        let v = f () in
-        Hashtbl.add h k v;
-        v
-
 let cache_in_ref myref f =
   match !myref with
   | Some e -> e
@@ -704,23 +693,6 @@ type bool3 = True3 | False3 | TrueFalsePb3 of string
 (* Regexp, can also use PCRE *)
 (*****************************************************************************)
 
-(* put before String section because String section use some =~ *)
-
-(* let gsubst = global_replace *)
-
-let ( ==~ ) s re = Str.string_match re s 0
-let _memo_compiled_regexp = Hashtbl.create 101
-
-let candidate_match_func s re =
-  (* old: Str.string_match (Str.regexp re) s 0 *)
-  let compile_re =
-    memoized _memo_compiled_regexp re (fun () -> Str.regexp re)
-  in
-  Str.string_match compile_re s 0
-
-let match_func s re = candidate_match_func s re
-let ( =~ ) s re = match_func s re
-
 let string_match_substring re s =
   try
     let _i = Str.search_forward re s 0 in
@@ -728,149 +700,24 @@ let string_match_substring re s =
   with
   | Not_found -> false
 
-(*
-let _ =
-  example(string_match_substring (Str.regexp "foo") "a foo b")
-let _ =
-  example(string_match_substring (Str.regexp "\\bfoo\\b") "a foo b")
-let _ =
-  example(string_match_substring (Str.regexp "\\bfoo\\b") "a\n\nfoo b")
-let _ =
-  example(string_match_substring (Str.regexp "\\bfoo_bar\\b") "a\n\nfoo_bar b")
-*)
-(* does not work :(
-   let _ =
-   example(string_match_substring (Str.regexp "\\bfoo_bar2\\b") "a\n\nfoo_bar2 b")
-*)
-
-let (regexp_match : string -> string -> string) =
- fun s re ->
-  assert (s =~ re);
-  Str.matched_group 1 s
-
-(* beurk, side effect code, but hey, it is convenient *)
-(* now in prelude
- * let (matched: int -> string -> string) = fun i s ->
- *    Str.matched_group i s
- *
- * let matched1 = fun s -> matched 1 s
- * let matched2 = fun s -> (matched 1 s, matched 2 s)
- * let matched3 = fun s -> (matched 1 s, matched 2 s, matched 3 s)
- * let matched4 = fun s -> (matched 1 s, matched 2 s, matched 3 s, matched 4 s)
- * let matched5 = fun s -> (matched 1 s, matched 2 s, matched 3 s, matched 4 s, matched 5 s)
- * let matched6 = fun s -> (matched 1 s, matched 2 s, matched 3 s, matched 4 s, matched 5 s, matched 6 s)
- *)
-
-let split sep s = Str.split (Str.regexp sep) s
-
-(*
-let _ = example (split "/" "" =*= [])
-let _ = example (split ":" ":a:b" =*= ["a";"b"])
-*)
-let join sep xs = String.concat sep xs
-(*
-let _ = example (join "/" ["toto"; "titi"; "tata"] =$= "toto/titi/tata")
-*)
-
-(*
-let rec join str = function
-  | [] -> ""
-  | [x] -> x
-  | x::xs -> x ^ str ^ (join str xs)
-*)
-
-let split_list_regexp_noheading = "__noheading__"
-
-let (split_list_regexp : string -> string list -> (string * string list) list) =
- fun re xs ->
-  let rec split_lr_aux (heading, accu) = function
-    | [] -> [ (heading, List.rev accu) ]
-    | x :: xs ->
-        if x =~ re then (heading, List.rev accu) :: split_lr_aux (x, []) xs
-        else split_lr_aux (heading, x :: accu) xs
-  in
-  split_lr_aux ("__noheading__", []) xs |> fun xs ->
-  if List_.hd_exn "unexpected empty list" xs =*= ("__noheading__", []) then
-    List_.tl_exn "unexpected empty list" xs
-  else xs
-
-let regexp_alpha = Str.regexp "^[a-zA-Z_][A-Za-z_0-9]*$"
-
 let all_match re s =
   let regexp = Str.regexp re in
   let res = ref [] in
   let _ =
     Str.global_substitute regexp
       (fun _s ->
-        let substr = Str.matched_string s in
-        assert (substr ==~ regexp);
+        let _ = Str.matched_string s in
         (* @Effect: also use it's side effect *)
-        let paren_matched = matched1 substr in
+        let paren_matched = Str.matched_group 1 s in
         Stack_.push paren_matched res;
         "" (* @Dummy *))
       s
   in
   List.rev !res
 
-(*
-let _ = example (all_match "\\(@[A-Za-z]+\\)" "ca va @Et toi @Comment"
-                  =*= ["@Et";"@Comment"])
-*)
-
-let global_replace_regexp re f_on_substr s =
-  let regexp = Str.regexp re in
-  Str.global_substitute regexp
-    (fun _wholestr ->
-      let substr = Str.matched_string s in
-      f_on_substr substr)
-    s
-
-let regexp_word_str = "\\([a-zA-Z_][A-Za-z_0-9]*\\)"
-let regexp_word = Str.regexp regexp_word_str
-let regular_words s = all_match regexp_word_str s
-
-let contain_regular_word s =
-  let xs = regular_words s in
-  List.length xs >= 1
-
-(* This type allows to combine a serie of "regexps" to form a big
- * one representing its union which should then be optimized by the Str
- * module.
- *)
-type regexp =
-  | Contain of string
-  | Start of string
-  | End of string
-  | Exact of string
-
-let regexp_string_of_regexp x =
-  match x with
-  | Contain s -> ".*" ^ s ^ ".*"
-  | Start s -> "^" ^ s
-  | End s -> ".*" ^ s ^ "$"
-  | Exact s -> s
-
-let str_regexp_of_regexp x = Str.regexp (regexp_string_of_regexp x)
-
-let compile_regexp_union xs =
-  xs
-  |> List_.map (fun x -> regexp_string_of_regexp x)
-  |> join "\\|" |> Str.regexp
-
 (*****************************************************************************)
 (* Strings *)
 (*****************************************************************************)
-
-(* strings take space in memory. Better when can share the space used by
-   similar strings *)
-let _shareds = Hashtbl.create 100
-
-let (shared_string : string -> string) =
- fun s ->
-  try Hashtbl.find _shareds s with
-  | Not_found ->
-      Hashtbl.add _shareds s s;
-      s
 
 let chop = function
   | "" -> ""
@@ -880,123 +727,6 @@ let chop = function
 let chop_dirsymbol = function
   | s when s =~ "\\(.*\\)/$" -> matched1 s
   | s -> s
-
-let ( <!!> ) s (i, j) =
-  String.sub s i (if j < 0 then String.length s - i + j + 1 else j - i)
-(* let _ = example  ( "tototati"<!!>(3,-2) = "otat" ) *)
-
-let ( <!> ) s i = String.get s i
-
-(* pixel *)
-let rec split_on_char c s =
-  try
-    let sp = String.index s c in
-    String.sub s 0 sp
-    :: split_on_char c (String.sub s (sp + 1) (String.length s - sp - 1))
-  with
-  | Not_found -> [ s ]
-
-let quote s = "\"" ^ s ^ "\""
-
-let unquote s =
-  if s =~ "\"\\(.*\\)\"" then matched1 s
-  else failwith ("unquote: the string has no quote: " ^ s)
-
-(* easier to have this to be passed as hof, because ocaml dont have
- * haskell "section" operators
- *)
-let is_blank_string s = s =~ "^\\([ \t]\\)*$"
-
-(* src: lablgtk2/examples/entrycompletion.ml *)
-let is_string_prefix s1 s2 =
-  String.length s1 <= String.length s2
-  && String.sub s2 0 (String.length s1) = s1
-
-let plural i s =
-  if i =|= 1 then Printf.sprintf "%d %s" i s else Printf.sprintf "%d %ss" i s
-
-let showCodeHex xs = List.iter (fun i -> UPrintf.printf "%02x" i) xs
-let take_string n s = String.sub s 0 (n - 1)
-let take_string_safe n s = if n > String.length s then s else take_string n s
-
-(* used by LFS *)
-let size_mo_ko i =
-  let ko = i / 1024 mod 1024 in
-  let mo = i / 1024 / 1024 in
-  if mo > 0 then Printf.sprintf "%dMo%dKo" mo ko else Printf.sprintf "%dKo" ko
-
-let size_ko i =
-  let ko = i / 1024 in
-  Printf.sprintf "%dKo" ko
-
-(* done in summer 2007 for julia
- * Reference: P216 of gusfeld book
- * For two strings S1 and S2, D(i,j) is defined to be the edit distance of S1[1..i] to S2[1..j]
- * So edit distance of S1 (of length n) and S2 (of length m) is D(n,m)
- *
- * Dynamic programming technique
- * base:
- * D(i,0) = i  for all i (cos to go from S1[1..i] to 0 characteres of S2 you have to delete all characters from S1[1..i]
- * D(0,j) = j  for all j (cos j characters must be inserted)
- * recurrence:
- * D(i,j) = min([D(i-1, j)+1, D(i, j - 1 + 1), D(i-1, j-1) + t(i,j)])
- * where t(i,j) is equal to 1 if S1(i) != S2(j) and  0 if equal
- * intuition = there is 4 possible action =  deletion, insertion, substitution, or match
- * so Lemma =
- *
- * D(i,j) must be one of the three
- *  D(i, j-1) + 1
- *  D(i-1, j)+1
- *  D(i-1, j-1) +
- *  t(i,j)
- *
- *
- *)
-let matrix_distance s1 s2 =
-  let n = String.length s1 in
-  let m = String.length s2 in
-  let mat = Array.make_matrix (n + 1) (m + 1) 0 in
-  let t i j =
-    if String.get s1 (i - 1) =$= String.get s2 (j - 1) then 0 else 1
-  in
-  let min3 a b c = min (min a b) c in
-
-  for i = 0 to n do
-    mat.(i).(0) <- i
-  done;
-  for j = 0 to m do
-    mat.(0).(j) <- j
-  done;
-  for i = 1 to n do
-    for j = 1 to m do
-      mat.(i).(j) <-
-        min3
-          (mat.(i).(j - 1) + 1)
-          (mat.(i - 1).(j) + 1)
-          (mat.(i - 1).(j - 1) + t i j)
-    done
-  done;
-  mat
-
-let edit_distance s1 s2 =
-  (matrix_distance s1 s2).(String.length s1).(String.length s2)
-
-let _test_edit = edit_distance "vintner" "writers"
-let _ = assert (edit_distance "winter" "winter" =|= 0)
-let _ = assert (edit_distance "vintner" "writers" =|= 5)
-
-(* src: http://pleac.sourceforge.net/pleac_ocaml/strings.html *)
-(* We can emulate the Perl wrap function with the following function *)
-let wrap ?(width = 80) s =
-  let l = Str.split (Str.regexp " ") s in
-  Format.pp_set_margin UFormat.str_formatter width;
-  Format.pp_open_box UFormat.str_formatter 0;
-  List.iter
-    (fun x ->
-      Format.pp_print_string UFormat.str_formatter x;
-      Format.pp_print_break UFormat.str_formatter 1 0)
-    l;
-  UFormat.flush_str_formatter ()
 
 let strip c s =
   let rec remove_prefix s =
@@ -1073,12 +803,6 @@ let (unwords : string list -> string) = fun s -> String.concat "" s
 
 let (split_space : string -> string list) =
  fun s -> Str.split (Str.regexp "[ \t\n]+") s
-
-let n_space n = repeat " " n |> join ""
-
-let indent_string n s =
-  let xs = lines s in
-  xs |> List_.map (fun s -> n_space n ^ s) |> unlines
 
 (* see nblines_eff for a more efficient implementation *)
 let nblines s = lines s |> List.length
@@ -2598,11 +2322,6 @@ let random_subset_of_list num xs =
 (*****************************************************************************)
 (* stuff put here cos of of forward definition limitation of ocaml *)
 
-(* Infix trick, seen in jane street lib and harrop's code, and maybe in GMP *)
-module Infix = struct
-  let ( ==~ ) = ( ==~ )
-end
-
 (*---------------------------------------------------------------------------*)
 (* Directories part 2 *)
 (*---------------------------------------------------------------------------*)
@@ -2612,7 +2331,7 @@ let inits_of_relative_dir dir =
     failwith (spf "inits_of_relative_dir: %s is not a relative dir" dir);
   let dir = chop_dirsymbol dir in
 
-  let dirs = split "/" dir in
+  let dirs = String.split_on_char '/' dir in
   let dirs =
     match dirs with
     | [ "." ] -> []
@@ -2620,7 +2339,7 @@ let inits_of_relative_dir dir =
   in
   inits dirs
   |> List_.tl_exn "unexpected empty list"
-  |> List_.map (fun xs -> join "/" xs)
+  |> List_.map (fun xs -> String.concat "/" xs)
 
 (* todo? vs common_prefix_of_files_or_dirs? *)
 let find_common_root files =
@@ -2643,7 +2362,7 @@ let find_common_root files =
 
 let dirs_and_base_of_file file =
   let dir, base = Filename_.db_of_filename file in
-  let dirs = split "/" dir in
+  let dirs = String.split_on_char '/' dir in
   let dirs =
     match dirs with
     | [ "." ] -> []
@@ -2702,4 +2421,4 @@ let (tree_of_files : string list -> (string, string * string) tree) =
     in
     nodes @ leaves
   in
-  Node (join "/" root, aux files)
+  Node (String.concat "/" root, aux files)

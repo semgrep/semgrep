@@ -33,7 +33,7 @@ open Parsing_hacks_lib
 (* Helpers *)
 (*****************************************************************************)
 
-let ( ==~ ) = Common2.( ==~ )
+let ( ==~ ) s r = Str.string_match r s 0
 
 (* the pair is the status of '()' and '{}', ex: (-1,0)
  * if too much ')' and good '{}'

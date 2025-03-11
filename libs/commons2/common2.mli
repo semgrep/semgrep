@@ -2,14 +2,6 @@
 (* Pervasive types and operators *)
 (*****************************************************************************)
 
-(* Trick in case you dont want to do an 'open Common' while still wanting
- * more pervasive types than the one in Pervasives. Just do the selective
- * open Common.BasicType.
- *)
-module Infix : sig
-  val ( ==~ ) : string -> Str.regexp -> bool
-end
-
 val glob : string -> string list
 (** [glob pattern] takes in a pattern containing a wildcard
   * i.e. ["dir/**/*.extension"] will match any file in the dir directory
@@ -216,28 +208,7 @@ type bool3 = True3 | False3 | TrueFalsePb3 of string
 (* Strings *)
 (*****************************************************************************)
 
-(* strings take space in memory. Better when can share the space used by
- * similar strings.
- *)
-val _shareds : (string, string) Hashtbl.t
-val shared_string : string -> string
 val chop : string -> string
-val chop_dirsymbol : string -> string
-val ( <!!> ) : string -> int * int -> string
-val ( <!> ) : string -> int -> char
-val take_string : int -> string -> string
-val take_string_safe : int -> string -> string
-val split_on_char : char -> string -> string list
-val quote : string -> string
-val unquote : string -> string
-val is_blank_string : string -> bool
-val is_string_prefix : string -> string -> bool
-val plural : int -> string -> string
-val showCodeHex : int list -> unit
-val size_mo_ko : int -> string
-val size_ko : int -> string
-val edit_distance : string -> string -> int
-val wrap : ?width:int -> string -> string
 
 (* strip c s removes all contiguous prefixes of [c] from [s]
    e.g. strip 'a' "abc"   = "bc"
@@ -250,32 +221,8 @@ val strip : char -> string -> string
 (* Regexp *)
 (*****************************************************************************)
 
-val regexp_alpha : Str.regexp
-val regexp_word : Str.regexp
-val _memo_compiled_regexp : (string, Str.regexp) Hashtbl.t
-val ( ==~ ) : string -> Str.regexp -> bool
-val regexp_match : string -> string -> string
-val matched : int -> string -> string
 val string_match_substring : Str.regexp -> string -> bool
-val split_list_regexp : string -> string list -> (string * string list) list
-val split_list_regexp_noheading : string
 val all_match : string (* regexp *) -> string -> string list
-
-val global_replace_regexp :
-  string (* regexp *) -> (string -> string) -> string -> string
-
-val regular_words : string -> string list
-val contain_regular_word : string -> bool
-
-type regexp =
-  | Contain of string
-  | Start of string
-  | End of string
-  | Exact of string
-
-val regexp_string_of_regexp : regexp -> string
-val str_regexp_of_regexp : regexp -> Str.regexp
-val compile_regexp_union : regexp list -> Str.regexp
 
 (*****************************************************************************)
 (* Filenames *)
@@ -300,10 +247,6 @@ val words_of_string_with_newlines : string -> string list
 
 (* e.g. on "ab\n\nc" it will return [Left "ab"; Right (); Right (); Left "c"] *)
 val lines_with_nl_either : string -> (string, unit) Either.t list
-val n_space : int -> string
-
-(* reindent a string *)
-val indent_string : int -> string -> string
 
 (*###########################################################################*)
 (* Collection-like types *)
