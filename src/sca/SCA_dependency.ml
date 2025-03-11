@@ -5,26 +5,29 @@ type t = {
   ecosystem : SCA_ecosystem.t;
   transitivity : SCA_transitivity.t;
   url : Uri.t option;
-  (* ?? locs in lockfile? *)
+  (* start and end token location of the package entry in the lockfile
+   * (e.g., '{' and '}' around a package entry in a package-lock.json file).
+   *)
   loc : Tok.location * Tok.location;
-  (* All the tokens from section of the generic AST we read the dependency from
-     So all the tokens inside the range defined by loc *)
-  tokens : Tok.t list Lazy.t;
-  (* the location of the dependency source code, if it exists *)
+  (* the location of the dependency source code, if it exists
+   * (used by the transitive reachability analysis)
+   *)
   downloaded_source_path : Fpath.t option;
 }
 [@@deriving show, eq]
 
-(* A dependency in a manifest may have a version range like >=1.0.0, and they
- * are *direct* by definition Contains only an unparsed string for it's
- * package_version_constraint because we never actually use it for anything,
- * so parsing it is pointless.
+(* Note that package entries in a manifest are *direct* by definition, which
+ * is why there is no need for a 'transitive' field below.
  *)
 type manifest_dependency = {
   package_name : string;
+  (* A dependency in a manifest may have a version range like >=1.0.0.
+   * It contains only an unparsed string for because we never actually use it
+   * for anything, so parsing it is pointless.
+   *)
   package_version_constraint_string : string;
   ecosystem : SCA_ecosystem.t;
+  (* start and end token location of the package entry in the manifest *)
   loc : Tok.location * Tok.location;
-  tokens : Tok.t list Lazy.t;
 }
 [@@deriving show, eq]
