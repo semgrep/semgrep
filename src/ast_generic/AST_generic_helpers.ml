@@ -538,12 +538,15 @@ class ['self] extract_info_visitor =
       | _ -> super#visit_expr globals x
   end
 
-let ii_of_any any =
+let ii_of_any =
+  (* NOTE: we stage the allocation of the vistor object outside of the function;
+   * as object allocation is expensive. Simlar to [extract_ranges_with_anys]
+   *)
   let v = new extract_info_visitor in
-  let globals = ref [] in
-  v#visit_any globals any;
-  List.rev !globals
-[@@profiling]
+  fun any ->
+    let globals = ref [] in
+    v#visit_any globals any;
+    List.rev !globals
 
 let info_of_any any =
   match ii_of_any any with
