@@ -12,40 +12,6 @@ val glob : Fpath.t -> Fpath.t list
 val unix_diff : string -> string -> string list
 
 (*****************************************************************************)
-(* Debugging/logging *)
-(*****************************************************************************)
-
-val _tab_level_print : int ref
-val indent_do : (unit -> 'a) -> 'a
-val reset_pr_indent : unit -> unit
-
-(* The following functions first indent _tab_level_print spaces.
- * They also add the _prefix_pr, for instance used in MPI to show which
- * worker is talking.
- * update: for pr2, it can also print into a log file.
- *
- * The use of 2 in pr2 is because 2 is under UNIX the second descriptor
- * which corresponds to stderr.
- *)
-val _prefix_pr : string ref
-val pr_no_nl : string -> unit
-val pr_xxxxxxxxxxxxxxxxx : unit -> unit
-
-(* pr2 print on stderr, but can also in addition print into a file *)
-val _chan_pr2 : out_channel option ref
-val pr2_no_nl : string -> unit
-val pr2_xxxxxxxxxxxxxxxxx : unit -> unit
-
-(* use Dumper.dump *)
-val mk_pr2_wrappers : bool ref -> (string -> unit) * (string -> unit)
-val redirect_stdout_opt : string option -> (unit -> 'a) -> 'a
-val redirect_stdout_stderr : string -> (unit -> unit) -> unit
-val redirect_stdin : string -> (unit -> unit) -> unit
-val redirect_stdin_opt : string option -> (unit -> unit) -> unit
-val print_n : int -> string -> unit
-val printerr_n : int -> string -> unit
-
-(*****************************************************************************)
 (* Test. But have a look at ounit.mli *)
 (*****************************************************************************)
 
@@ -68,69 +34,8 @@ val print_total_score : score -> unit
 (* String_of and (pretty) printing *)
 (*****************************************************************************)
 
-val string_of_string : (string -> string) -> string
 val string_of_list : ('a -> string) -> 'a list -> string
-val string_of_unit : unit -> string
-val string_of_array : ('a -> string) -> 'a array -> string
 val string_of_option : ('a -> string) -> 'a option -> string
-val print_bool : bool -> unit
-val print_option : ('a -> unit) -> 'a option -> unit
-val print_list : ('a -> unit) -> 'a list -> unit
-val print_between : (unit -> unit) -> ('a -> unit) -> 'a list -> unit
-
-(* use Format internally *)
-val pp_do_in_box : (unit -> unit) -> unit
-val pp_f_in_box : (unit -> 'a) -> 'a
-val pp_do_in_zero_box : (unit -> unit) -> unit
-val pp : string -> unit
-
-(* works with _tab_level_print enabling to mix some calls to pp, pr2
- * and indent_do to sometimes use advanced indentation pretty printing
- * (with the pp* functions) and sometimes explicit and simple indendation
- * printing (with pr* and indent_do) *)
-val adjust_pp_with_indent : (unit -> unit) -> unit
-val adjust_pp_with_indent_and_header : string -> (unit -> unit) -> unit
-
-val mk_str_func_of_assoc_conv :
-  ('a * string) list -> (string -> 'a) * ('a -> string)
-
-(*****************************************************************************)
-(* Composition/Control *)
-(*****************************************************************************)
-
-val ( +!> ) : 'a ref -> ('a -> 'a) -> unit
-val ( $ ) : ('a -> 'b) -> ('b -> 'c) -> 'a -> 'c
-val forever : (unit -> unit) -> unit
-
-class ['a] shared_variable_hook : 'a -> object
-  val mutable data : 'a
-  val mutable registered : (unit -> unit) list
-  method get : 'a
-  method modify : ('a -> 'a) -> unit
-  method register : (unit -> unit) -> unit
-  method set : 'a -> unit
-end
-
-val fixpoint : ('a -> 'a) -> 'a -> 'a
-
-val fixpoint_for_object :
-  ((< equal : 'a -> bool ; .. > as 'a) -> 'a) -> 'a -> 'a
-
-val add_hook : ('a -> ('a -> 'b) -> 'b) ref -> ('a -> ('a -> 'b) -> 'b) -> unit
-val add_hook_action : ('a -> unit) -> ('a -> unit) list ref -> unit
-val run_hooks_action : 'a -> ('a -> unit) list ref -> unit
-
-type 'a mylazy = unit -> 'a
-
-(* emacs spirit *)
-val save_excursion_and_disable : bool ref -> (unit -> 'b) -> 'b
-val save_excursion_and_enable : bool ref -> (unit -> 'b) -> 'b
-val cache_in_ref : 'a option ref -> (unit -> 'a) -> 'a
-val oncef : ('a -> unit) -> 'a -> unit
-val once : bool ref -> (unit -> unit) -> unit
-val before_leaving : ('a -> unit) -> 'a -> 'a
-
-(* cf also the timeout function below that are control related too *)
 
 (*****************************************************************************)
 (* Concurrency *)
