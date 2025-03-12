@@ -664,18 +664,12 @@ let setup_path_filters conf (project_roots : Project.scanning_roots) :
     match kind with
     | Git_project
     | Gitignore_project ->
-        {
-          use_gitignore_files = conf.respect_gitignore;
-          use_semgrepignore_files = conf.respect_semgrepignore_files;
-        }
+        { use_semgrepignore_files = conf.respect_semgrepignore_files }
     | Mercurial_project
     | Subversion_project
     | Darcs_project
     | No_VCS_project ->
-        {
-          use_gitignore_files = false;
-          use_semgrepignore_files = conf.respect_semgrepignore_files;
-        }
+        { use_semgrepignore_files = conf.respect_semgrepignore_files }
   in
   (* filter also the --include and --exclude from the CLI args
    * (the paths: exclude: include: in a rule are handled elsewhere, in

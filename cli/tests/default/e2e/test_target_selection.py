@@ -241,10 +241,11 @@ GIT_PROJECT_EXPECTATIONS = [
             "submodules/semgrep-test-project2/hello.py",
         ],
     ),
-    # accepted differences between pysemgrep and osemgrep
+    # check that '.gitignore' isn't consulted (in an early draft of
+    # Semgrepignore v2, '.gitignore' files were consulted in addition to
+    # '.semgrepignore' files)
     Expect(
-        selected=False,
-        selected_by_pysemgrep=True,
+        selected=True,
         paths=[
             # pysemgrep doesn't consult .gitignore files
             # (except for the one included in the .semgrepignore file)

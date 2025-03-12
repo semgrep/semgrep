@@ -28,21 +28,13 @@ let is_ignored_line =
 *)
 let parse_maybe_include_line =
   let rex = Pcre2_.regexp {|^[ \t]*:include[ \t]*([^ \t]*)[ \t]*$|} in
-  let parse ~orig_semgrepignore_path line : Fpath.t option =
+  let parse line : Fpath.t option =
     match Pcre2_.exec ~rex line with
     | Ok (Some res) -> (
         match Pcre2_.get_substring rex res 1 with
         | Ok (Some path) -> (
             match Fpath.of_string path with
-            | Ok path ->
-                (* nosemgrep: no-logs-in-library *)
-                Logs.warn (fun m ->
-                    m
-                      "Deprecated include directive '%s' in semgrepignore file \
-                       '%s'"
-                      line
-                      (Fpath.to_string orig_semgrepignore_path));
-                Some path
+            | Ok path -> Some path
             | Error _ -> None)
         | Ok None
         | Error _ ->
@@ -125,18 +117,13 @@ let get_include_path ~orig_semgrepignore_path relative_include_path =
   Fpath.(base_dir // relative_include_path)
 
 (*
-   semgrep-legacy
-
    Expand lines like ':include foo/bar' into their contents.
-
-   This is an legacy feature from semgrep that is now deprecated.
-
-   It will not expand includes recursively to avoid cycles and other
-   complications.
+   The included file 'foo/bar' must be in pure Gitignore syntax and
+   may not contain ':include' directives.
 *)
 let rec expand_includes ~orig_semgrepignore_path lines =
   let expand_line line =
-    match parse_maybe_include_line ~orig_semgrepignore_path line with
+    match parse_maybe_include_line line with
     | Some relative_include_path ->
         let include_path =
           get_include_path ~orig_semgrepignore_path relative_include_path

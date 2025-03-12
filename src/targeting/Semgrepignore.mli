@@ -15,11 +15,7 @@
    The 'Empty' case is useful for testing.
 *)
 type default_semgrepignore_patterns = Empty | Semgrep_scan_legacy
-
-type exclusion_mechanism = {
-  use_gitignore_files : bool;
-  use_semgrepignore_files : bool;
-}
+type exclusion_mechanism = { use_semgrepignore_files : bool }
 
 (*
    Initialize the data used to filter paths.

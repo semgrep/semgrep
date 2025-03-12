@@ -15,38 +15,22 @@
 
    New behavior:
    - support '!' and character ranges to conform to gitignore syntax
-   - don't support ':include' to conform to gitignore syntax
-   - automatically use any '.gitignore' and use '.semgrepignore' additionally
-     as if the latter was appended to the former.
+   - ':include' is still supported in '.semgrepignore' files but
+     not recursively (included files must obey strict Gitignore syntax).
+
    Support for negated patterns ('!') allows a .semgrepignore to
-   undo exclusions made in a .gitignore.
+   undo exclusions made in an included '.gitignore'.
 
-   Migration plan:
-   - print a deprecation notice if an ':include' directive is found in the
-     root .semgrepignore.
-   - stay silent otherwise: this is problematic only in the case of a
-     .semgrepignore that doesn't include the .gitignore explicitly and
-     contains fewer exclusions that the .gitignore. The new behavior will
-     exclude more files than before.
-
-   Questions:
-   - Do some people really run semgrep on purpose on files that are excluded
-     from source control?
-     (we need to answer this to figure out the consequences of the migration
-     plan)
+   Note that at some point before v2 became the default,
+   any '.gitignore' files would be loaded in Git project just like
+   '.semgrepignore' files. While this allowed '.semgrepignore' files
+   to follow the Gitignore syntax strictly, it was causing Git-tracked
+   files to be Semgrepignored if they were Gitignored, causing a new
+   behavior for users migrating from v1 to v2. Instead, we decided to keep
+   the ':include' extension.
 *)
 type default_semgrepignore_patterns = Empty | Semgrep_scan_legacy
-
-(*
-   TODO: Preprocess a file to expand ':include' directives before parsing it
-   using gitignore rules.
-
-   Honor them with a deprecation warning.
-*)
-type exclusion_mechanism = {
-  use_gitignore_files : bool;
-  use_semgrepignore_files : bool;
-}
+type exclusion_mechanism = { use_semgrepignore_files : bool }
 
 (*
    The default semgrepignore used when no .semgrepignore exists
@@ -88,8 +72,6 @@ testsuite/
 .semgrep_logs/
 |}
 
-let gitignore_files = Gitignore.default_gitignore_filename
-
 let semgrepignore_files : Gitignore.gitignore_filename =
   {
     source_kind = "semgrepignore";
@@ -130,9 +112,8 @@ let create ?(cli_patterns = []) ~default_semgrepignore_patterns
     }
   in
   let kinds_of_ignore_files_to_consult =
-    (* order matters: first gitignore then semgrepignore *)
-    (if exclusion_mechanism.use_gitignore_files then [ gitignore_files ] else [])
-    @
+    (* We used to load '.gitignore' files as well here but this plan was
+       abandoned. *)
     if exclusion_mechanism.use_semgrepignore_files then [ semgrepignore_files ]
     else []
   in

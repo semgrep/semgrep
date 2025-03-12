@@ -227,13 +227,17 @@ let o_use_git : bool Term.t =
   H.negatable_flag [ "use-git-ignore" ] ~neg_options:[ "no-git-ignore" ]
     ~default:default.targeting_conf.respect_gitignore
     ~doc:
-      {|'--no-git-ignore' causes semgrep to not call 'git' and not consult
+      {|'--use-git-ignore' is Semgrep's default behavior.
+        Under the default behavior, Git-tracked files are not excluded
+        by Gitignore rules and only untracked files are excluded by Gitignore
+        rules.
+        '--no-git-ignore' causes semgrep to not call 'git' and not consult
         '.gitignore' files to determine which files semgrep should scan.
-        As a result of '--no-git-ignore', gitignored files and git submodules
-        will be scanned.
+        As a result of '--no-git-ignore', gitignored files and Git submodules
+        will be scanned unless excluded by other means ('.semgrepignore',
+        '--exclude', etc.).
         This flag has no effect if the scanning root is not
-        in a git repository.
-        '--use-git-ignore' is semgrep's default behavior.|}
+        in a Git repository.|}
 
 (*
    This is a temporary option that has an effect only in pysemgrep during
