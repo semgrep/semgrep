@@ -210,7 +210,7 @@ let fix_tokens_c ~macro_defs tokens =
   let tokens = Parsing_hacks_define.fix_tokens_define tokens in
   let tokens = fix_tokens_for_language Flag_cpp.C tokens in
 
-  let tokens2 = ref (tokens |> Common2.acc_map TV.mk_token_extended) in
+  let tokens2 = ref (tokens |> List_.map TV.mk_token_extended) in
 
   (* ifdef *)
   let cleaner = !tokens2 |> filter_comment_stuff in
@@ -241,13 +241,13 @@ let fix_tokens_c ~macro_defs tokens =
   let xxs = Parsing_hacks_typedef.filter_for_typedef multi_grouped in
   Parsing_hacks_typedef.find_typedefs xxs;
 
-  insert_virtual_positions (!tokens2 |> Common2.acc_map (fun x -> x.TV.t))
+  insert_virtual_positions (!tokens2 |> List_.map (fun x -> x.TV.t))
 
 let fix_tokens_cpp ~macro_defs tokens =
   let tokens = Parsing_hacks_define.fix_tokens_define tokens in
 
   (* let tokens = fix_tokens_for_language Flag_cpp.Cplusplus tokens in *)
-  let tokens2 = ref (tokens |> Common2.acc_map TV.mk_token_extended) in
+  let tokens2 = ref (tokens |> List_.map TV.mk_token_extended) in
 
   (* ifdef *)
   let cleaner = !tokens2 |> filter_comment_stuff in
@@ -330,7 +330,7 @@ let fix_tokens_cpp ~macro_defs tokens =
   Parsing_hacks_cpp.reclassify_tokens_before_idents_or_typedefs multi_grouped;
 
   let toks =
-    insert_virtual_positions (!tokens2 |> Common2.acc_map (fun x -> x.TV.t))
+    insert_virtual_positions (!tokens2 |> List_.map (fun x -> x.TV.t))
   in
   fix_tokens_fuzzy toks
 

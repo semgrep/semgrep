@@ -648,7 +648,7 @@ let compare_actual_to_expected (env : env) (matches : Core_match.t list)
            let (rule_result : Out.rule_result) =
              Out.
                {
-                 passed = res |> List_.map fst |> Common2.and_list;
+                 passed = res |> List_.map fst |> List.for_all Fun.id;
                  matches =
                    res
                    |> List_.map (fun (_passed, (target, expected_reported)) ->

@@ -44,25 +44,11 @@ let rec (foldn : ('a -> int -> 'a) -> 'a -> int -> 'a) =
 let sum_float = List.fold_left ( +. ) 0.0
 let sum_int = List.fold_left ( + ) 0
 
-(* could really call it 'for' :) *)
-let fold_left_with_index f acc =
-  let rec fold_lwi_aux acc n = function
-    | [] -> acc
-    | x :: xs -> fold_lwi_aux (f acc x n) (n + 1) xs
-  in
-  fold_lwi_aux acc 0
-
-let hd_opt = function
-  | [] -> None
-  | x :: _ -> Some x
-
 let rec drop n xs =
   match (n, xs) with
   | 0, _ -> xs
   | _, [] -> failwith "drop: not enough"
   | n, _x :: xs -> drop (n - 1) xs
-
-let enum_safe x n = if x > n then [] else List_.enum x n
 
 let rec take n xs =
   match (n, xs) with
@@ -71,7 +57,6 @@ let rec take n xs =
   | n, x :: xs -> x :: take (n - 1) xs
 
 let exclude p xs = List.filter (fun x -> not (p x)) xs
-let last_n n l = List.rev (take n (List.rev l))
 
 (*let last l = List_.hd_exn "unexpected empty list" (last_n 1 l) *)
 let rec list_last = function
@@ -940,20 +925,9 @@ let nonempty_to_list (Nonempty (x, xs)) = x :: xs
 (* List *)
 (*****************************************************************************)
 
-(* pixel *)
-let uncons l =
-  ( List_.hd_exn "unexpected empty list" l,
-    List_.tl_exn "unexpected empty list" l )
-
-(* pixel *)
-let safe_tl l =
-  try List_.tl_exn "unexpected empty list" l with
-  | _ -> []
-
-(* in prelude
-   let push l v =
-   l := v :: !l
-*)
+let rec inits = function
+  | [] -> [ [] ]
+  | e :: l -> [] :: List_.map (fun l -> e :: l) (inits l)
 
 let rec zip xs ys =
   match (xs, ys) with
@@ -962,91 +936,15 @@ let rec zip xs ys =
   | _, [] -> failwith "zip: not same length"
   | x :: xs, y :: ys -> (x, y) :: zip xs ys
 
-let rec zip_safe xs ys =
-  match (xs, ys) with
-  | [], _ -> []
-  | _, [] -> []
-  | x :: xs, y :: ys -> (x, y) :: zip_safe xs ys
-
 let unzip zs =
   List_.fold_right (fun e (xs, ys) -> (fst e :: xs, snd e :: ys)) zs ([], [])
 
-(* Same as Common2.unzip or List.split but with triples. Tail-recursive. *)
 let unzip3 l =
   let rec unzip aa bb cc = function
     | (a, b, c) :: l -> unzip (a :: aa) (b :: bb) (c :: cc) l
     | [] -> (List.rev aa, List.rev bb, List.rev cc)
   in
   unzip [] [] [] l
-
-(* Same as Common2.unzip3 but with four. Tail-recursive. *)
-let unzip4 l =
-  let rec unzip aa bb cc dd = function
-    | (a, b, c, d) :: l -> unzip (a :: aa) (b :: bb) (c :: cc) (d :: dd) l
-    | [] -> (List.rev aa, List.rev bb, List.rev cc, List.rev dd)
-  in
-  unzip [] [] [] [] l
-
-let map_withkeep f xs = xs |> List_.map (fun x -> (f x, x))
-
-(* now in prelude
- * let rec take n xs =
- * match (n,xs) with
- * | (0,_) -> []
- * | (_,[]) -> failwith "take: not enough"
- * | (n,x::xs) -> x::take (n-1) xs
- *)
-
-let rec take_until p = function
-  | [] -> []
-  | x :: xs -> if p x then [] else x :: take_until p xs
-
-let take_while p = take_until (p $ not)
-
-(* now in prelude: let rec drop n xs = ... *)
-let _ = assert (drop 3 [ 1; 2; 3; 4 ] =*= [ 4 ])
-
-let rec drop_while p = function
-  | [] -> []
-  | x :: xs -> if p x then drop_while p xs else x :: xs
-
-let drop_until p xs = drop_while (fun x -> not (p x)) xs
-let _ = assert (drop_until (fun x -> x =|= 3) [ 1; 2; 3; 4; 5 ] =*= [ 3; 4; 5 ])
-let _span p xs = (take_while p xs, drop_while p xs)
-
-let rec (span : ('a -> bool) -> 'a list -> 'a list * 'a list) =
- fun p -> function
-  | [] -> ([], [])
-  | x :: xs ->
-      if p x then
-        let l1, l2 = span p xs in
-        (x :: l1, l2)
-      else ([], x :: xs)
-
-let _ =
-  assert (
-    span (fun x -> x <= 3) [ 1; 2; 3; 4; 1; 2 ] =*= ([ 1; 2; 3 ], [ 4; 1; 2 ]))
-
-let (span_tail_call : ('a -> bool) -> 'a list -> 'a list * 'a list) =
- fun p xs ->
-  let rec aux acc xs =
-    match xs with
-    | [] -> (List.rev acc, [])
-    | x :: xs -> if p x then aux (x :: acc) xs else (List.rev acc, x :: xs)
-  in
-  aux [] xs
-
-let _ =
-  assert (
-    span_tail_call (fun x -> x <= 3) [ 1; 2; 3; 4; 1; 2 ]
-    =*= ([ 1; 2; 3 ], [ 4; 1; 2 ]))
-
-let rec groupBy eq l =
-  match l with
-  | [] -> []
-  | x :: xs ->
-      let xs1, xs2 = List.partition (fun x' -> eq x x') xs in
-      (x :: xs1) :: groupBy eq xs2
 
 (* you should really use group_assoc_bykey_eff *)
 let rec group_by_mapped_key fkey l =
@@ -1062,56 +960,6 @@ let rec group_by_mapped_key fkey l =
           xs
       in
       (k, x :: xs1) :: group_by_mapped_key fkey xs2
-
-let group_and_count xs =
-  xs |> groupBy ( =*= )
-  |> List_.map (fun xs ->
-         match xs with
-         | x :: _rest -> (x, List.length xs)
-         | [] -> raise Common.Impossible)
-
-let (exclude_but_keep_attached : ('a -> bool) -> 'a list -> ('a * 'a list) list)
-    =
- fun f xs ->
-  let rec aux_filter acc = function
-    | [] -> [] (* drop what was accumulated because nothing to attach to *)
-    | x :: xs ->
-        if f x then aux_filter (x :: acc) xs
-        else (x, List.rev acc) :: aux_filter [] xs
-  in
-  aux_filter [] xs
-
-let _ =
-  assert (
-    exclude_but_keep_attached (fun x -> x =|= 3) [ 3; 3; 1; 3; 2; 3; 3; 3 ]
-    =*= [ (1, [ 3; 3 ]); (2, [ 3 ]) ])
-
-let (group_by_post : ('a -> bool) -> 'a list -> ('a list * 'a) list * 'a list) =
- fun f xs ->
-  let rec aux_filter grouped_acc acc = function
-    | [] -> (List.rev grouped_acc, List.rev acc)
-    | x :: xs ->
-        if f x then aux_filter ((List.rev acc, x) :: grouped_acc) [] xs
-        else aux_filter grouped_acc (x :: acc) xs
-  in
-  aux_filter [] [] xs
-
-let _ =
-  assert (
-    group_by_post (fun x -> x =|= 3) [ 1; 1; 3; 2; 3; 4; 5; 3; 6; 6; 6 ]
-    =*= ([ ([ 1; 1 ], 3); ([ 2 ], 3); ([ 4; 5 ], 3) ], [ 6; 6; 6 ]))
-
-let (group_by_pre : ('a -> bool) -> 'a list -> 'a list * ('a * 'a list) list) =
- fun f xs ->
-  let xs' = List.rev xs in
-  let ys, unclassified = group_by_post f xs' in
-  ( List.rev unclassified,
-    ys |> List.rev |> List_.map (fun (xs, x) -> (x, List.rev xs)) )
-
-let _ =
-  assert (
-    group_by_pre (fun x -> x =|= 3) [ 1; 1; 3; 2; 3; 4; 5; 3; 6; 6; 6 ]
-    =*= ([ 1; 1 ], [ (3, [ 2 ]); (3, [ 4; 5 ]); (3, [ 6; 6; 6 ]) ]))
 
 let rec (split_when : ('a -> bool) -> 'a list -> 'a list * 'a * 'a list) =
  fun p -> function
@@ -1151,50 +999,6 @@ let _ =
       [ 1; 2; 42; 4; 5; 6; 42; 7 ]
     =*= [ [ 1; 2 ]; [ 4; 5; 6 ]; [ 7 ] ])
 
-(* generate exception (Failure "tl") if there is no element satisfying p *)
-let rec (skip_until : ('a list -> bool) -> 'a list -> 'a list) =
- fun p xs ->
-  if p xs then xs else skip_until p (List_.tl_exn "unexpected empty list" xs)
-
-let _ =
-  assert (
-    skip_until
-      (function
-        | 1 :: 2 :: _xs -> true
-        | _ -> false)
-      [ 1; 3; 4; 1; 2; 4; 5 ]
-    =*= [ 1; 2; 4; 5 ])
-
-let rec skipfirst e = function
-  | [] -> []
-  | e' :: l when e =*= e' -> skipfirst e l
-  | l -> l
-
-(* now in prelude:
- * let rec enum x n = ...
- *)
-
-let index_list xs =
-  if List_.null xs then [] (* enum 0 (-1) generate an exception *)
-  else zip xs (List_.enum 0 (List.length xs - 1))
-
-(* if you want to use this to show the progress while processing huge list,
- * consider instead Common_extra.progress
- *)
-let index_list_and_total xs =
-  let total = List.length xs in
-  if List_.null xs then [] (* enum 0 (-1) generate an exception *)
-  else
-    zip xs (List_.enum 0 (List.length xs - 1))
-    |> List_.map (fun (a, b) -> (a, b, total))
-
-let avg_list xs =
-  let sum = sum_int xs in
-  float_of_int sum /. float_of_int (List.length xs)
-
-let snoc x xs = xs @ [ x ]
-let cons x xs = x :: xs
-
 let head_middle_tail xs =
   match xs with
   | x :: y :: xs ->
@@ -1205,111 +1009,6 @@ let head_middle_tail xs =
       (head, middle, tail)
   | _ -> failwith "head_middle_tail, too small list"
 
-(* now in prelude
- * let (++) = (@)
- *)
-
-(* let (++) = (@), could do that, but if load many times the common, then pb *)
-(* let (++) l1 l2 = List_.fold_right (fun x acc -> x::acc) l1 l2 *)
-
-let remove x xs =
-  let newxs = List.filter (fun y -> y <> x) xs in
-  assert (List.length newxs =|= List.length xs - 1);
-  newxs
-
-let rec remove_first e xs =
-  match xs with
-  | [] -> raise Not_found
-  | x :: xs -> if x =*= e then xs else x :: remove_first e xs
-
-(* now in prelude
-   let exclude p xs =
-   List.filter (fun x -> not (p x)) xs
-*)
-(* now in prelude
-*)
-
-let fold_k f lastk acc xs =
-  let rec fold_k_aux acc = function
-    | [] -> lastk acc
-    | x :: xs -> f acc x (fun acc -> fold_k_aux acc xs)
-  in
-  fold_k_aux acc xs
-
-let rec list_init = function
-  | [] -> raise Not_found
-  | [ _x ] -> []
-  | x :: y :: xs -> x :: list_init (y :: xs)
-
-(* now in prelude:
- * let rec list_last = function
- * | [] -> raise Not_found
- * | [x] -> x
- * | x::y::xs -> list_last (y::xs)
- *)
-
-(* pixel *)
-(* now in prelude
- *   let last_n n l = List.rev (take n (List.rev l))
- *   let last l = List_.hd_exn "unexpected empty list" (last_n 1 l)
- *)
-
-(* todo: foldl, foldr (a more consistent foldr) *)
-
-(* start pixel *)
-let iter_index f l =
-  let rec iter_ n = function
-    | [] -> ()
-    | e :: l ->
-        f e n;
-        iter_ (n + 1) l
-  in
-  iter_ 0 l
-
-let map_index f l =
-  let rec map_ n = function
-    | [] -> []
-    | e :: l -> f e n :: map_ (n + 1) l
-  in
-  map_ 0 l
-
-(* pixel *)
-let filter_index f l =
-  let rec filt i = function
-    | [] -> []
-    | e :: l -> if f i e then e :: filt (i + 1) l else filt (i + 1) l
-  in
-  filt 0 l
-
-(* pixel *)
-let do_withenv doit f env l =
-  let r_env = ref env in
-  let l' =
-    doit
-      (fun e ->
-        let e', env' = f !r_env e in
-        r_env := env';
-        e')
-      l
-  in
-  (l', !r_env)
-
-(* now in prelude:
- * let fold_left_with_index f acc = ...
- *)
-
-let map_withenv f env e = do_withenv List_.map f env e
-
-let rec collect_accu f accu = function
-  | [] -> accu
-  | e :: l -> collect_accu f (List.rev_append (f e) accu) l
-
-let collect f l = List.rev (collect_accu f [] l)
-
-(** Groups a list into a list of equivalence classes (themselves nonempty
-    lists) according to the given equality predicate. `eq` must be an
-    equivalence relation for correctness.
-*)
 let group eq l =
   List.fold_left
     (fun grouped x ->
@@ -1327,103 +1026,12 @@ let group eq l =
       | grouped, Some new_class -> Nonempty (new_class, []) :: grouped)
     [] l
 
-(* cf also List.partition *)
-
-let fpartition p l =
-  let rec part yes no = function
-    | [] -> (List.rev yes, List.rev no)
-    | x :: l -> (
-        match p x with
-        | None -> part yes (x :: no) l
-        | Some v -> part (v :: yes) no l)
-  in
-  part [] [] l
-
-(* end pixel *)
-
-let rec removelast = function
-  | [] -> failwith "removelast"
-  | [ _ ] -> []
-  | e :: l -> e :: removelast l
-
-let rec inits = function
-  | [] -> [ [] ]
-  | e :: l -> [] :: List_.map (fun l -> e :: l) (inits l)
-
-let rec tails = function
-  | [] -> [ [] ]
-  | _ :: xs as xxs -> xxs :: tails xs
-
-let reverse = List.rev
-let rev = List.rev
-let nth = List.nth
-let fold_left = List.fold_left
-let rev_map = List.rev_map
-
-(* pixel *)
-let rec fold_right1 f = function
-  | [] -> failwith "fold_right1"
-  | [ e ] -> e
-  | e :: l -> f e (fold_right1 f l)
-
 let maximum l = foldl1 max l
 let minimum l = foldl1 min l
-
-(* do a map tail recursive, and result is reversed, it is a tail recursive map => efficient *)
-let map_eff_rev f l =
-  let rec map_eff_aux acc = function
-    | [] -> acc
-    | x :: xs -> map_eff_aux (f x :: acc) xs
-  in
-  map_eff_aux [] l
-
-let acc_map f l =
-  let rec loop acc = function
-    | [] -> List.rev acc
-    | x :: xs -> loop (f x :: acc) xs
-  in
-  loop [] l
-
-let rec (generate : int -> 'a -> 'a list) =
- fun i el -> if i =|= 0 then [] else el :: generate (i - 1) el
 
 let rec uniq = function
   | [] -> []
   | e :: l -> if List.mem e l then uniq l else e :: uniq l
-
-let has_no_duplicate xs = List.length xs =|= List.length (uniq xs)
-let is_set_as_list = has_no_duplicate
-
-let rec get_duplicates xs =
-  match xs with
-  | [] -> []
-  | x :: xs ->
-      if List.mem x xs then
-        x :: get_duplicates xs (* todo? could x from xs to avoid double dups?*)
-      else get_duplicates xs
-
-let rec all_assoc e = function
-  | [] -> []
-  | (e', v) :: l when e =*= e' -> v :: all_assoc e l
-  | _ :: l -> all_assoc e l
-
-let prepare_want_all_assoc l =
-  List_.map (fun n -> (n, uniq (all_assoc n l))) (uniq (List_.map fst l))
-
-let rotate list =
-  List_.tl_exn "unexpected empty list" list
-  @ [ List_.hd_exn "unexpected empty list" list ]
-
-let or_list = List.fold_left ( || ) false
-let and_list = List.fold_left ( && ) true
-
-let rec (return_when : ('a -> 'b option) -> 'a list -> 'b) =
- fun p -> function
-  | [] -> raise Not_found
-  | x :: xs -> (
-      match p x with
-      | None -> return_when p xs
-      | Some b -> b)
 
 let rec splitAt n xs =
   if n =|= 0 then ([], xs)
@@ -1434,240 +1042,12 @@ let rec splitAt n xs =
         let a, b = splitAt (n - 1) xs in
         (x :: a, b)
 
-let pack n xs =
-  let rec pack_aux l i = function
-    | [] -> failwith "not on a boundary"
-    | [ x ] -> if i =|= n then [ l @ [ x ] ] else failwith "not on a boundary"
-    | x :: xs ->
-        if i =|= n then (l @ [ x ]) :: pack_aux [] 1 xs
-        else pack_aux (l @ [ x ]) (i + 1) xs
-  in
-  pack_aux [] 1 xs
-
-let rec pack_safe n xs =
-  match xs with
-  | [] -> []
-  | _ :: _ ->
-      let a, b = splitAt n xs in
-      a :: pack_safe n b
-
-let _ = assert (pack_safe 2 [ 1; 2; 3; 4; 5 ] =*= [ [ 1; 2 ]; [ 3; 4 ]; [ 5 ] ])
-
-let chunks n xs =
-  let size = List.length xs in
-  let chunksize = if size mod n =|= 0 then size / n else 1 + (size / n) in
-  let xxs = pack_safe chunksize xs in
-  if List.length xxs <> n then failwith "chunks: impossible, wrong size";
-  xxs
-
-let _ = assert (chunks 2 [ 1; 2; 3; 4 ] =*= [ [ 1; 2 ]; [ 3; 4 ] ])
-let _ = assert (chunks 2 [ 1; 2; 3; 4; 5 ] =*= [ [ 1; 2; 3 ]; [ 4; 5 ] ])
-
-let min_with f = function
-  | [] -> raise Not_found
-  | e :: l ->
-      let rec min_with_ min_val min_elt = function
-        | [] -> min_elt
-        | e :: l ->
-            let val_ = f e in
-            if val_ < min_val then min_with_ val_ e l
-            else min_with_ min_val min_elt l
-      in
-      min_with_ (f e) e l
-
-let two_mins_with f = function
-  | e1 :: e2 :: l ->
-      let rec min_with_ min_val min_elt min_val2 min_elt2 = function
-        | [] -> (min_elt, min_elt2)
-        | e :: l ->
-            let val_ = f e in
-            if val_ < min_val2 then
-              if val_ < min_val then min_with_ val_ e min_val min_elt l
-              else min_with_ min_val min_elt val_ e l
-            else min_with_ min_val min_elt min_val2 min_elt2 l
-      in
-      let v1 = f e1 in
-      let v2 = f e2 in
-      if v1 < v2 then min_with_ v1 e1 v2 e2 l else min_with_ v2 e2 v1 e1 l
-  | _ -> raise Not_found
-
-let grep_with_previous f = function
-  | [] -> []
-  | e :: l ->
-      let rec grep_with_previous_ previous = function
-        | [] -> []
-        | e :: l ->
-            if f previous e then e :: grep_with_previous_ e l
-            else grep_with_previous_ previous l
-      in
-      e :: grep_with_previous_ e l
-
-let iter_with_previous f = function
-  | [] -> ()
-  | e :: l ->
-      let rec iter_with_previous_ previous = function
-        | [] -> ()
-        | e :: l ->
-            f previous e;
-            iter_with_previous_ e l
-      in
-      iter_with_previous_ e l
-
-let iter_with_previous_opt f = function
-  | [] -> ()
-  | e :: l ->
-      f None e;
-      let rec iter_with_previous_ previous = function
-        | [] -> ()
-        | e :: l ->
-            f (Some previous) e;
-            iter_with_previous_ e l
-      in
-      iter_with_previous_ e l
-
-let iter_with_before_after f xs =
-  let rec aux before_rev after =
-    match after with
-    | [] -> ()
-    | x :: xs ->
-        f before_rev x xs;
-        aux (x :: before_rev) xs
-  in
-  aux [] xs
-
-(* kind of cartesian product of x*x  *)
-let rec (get_pair : 'a list -> ('a * 'a) list) = function
-  | [] -> []
-  | x :: xs -> List_.map (fun y -> (x, y)) xs @ get_pair xs
-
-(* retourne le rang dans une liste d'un element *)
-let rang elem liste =
-  let rec rang_rec elem accu = function
-    | [] -> raise Not_found
-    | a :: l -> if a =*= elem then accu else rang_rec elem (accu + 1) l
-  in
-  rang_rec elem 1 liste
-
-(* retourne vrai si une liste contient des doubles *)
-let rec doublon = function
-  | [] -> false
-  | a :: l -> if List.mem a l then true else doublon l
-
-let rec (insert_in : 'a -> 'a list -> 'a list list) =
- fun x -> function
-  | [] -> [ [ x ] ]
-  | y :: ys -> (x :: y :: ys) :: List_.map (fun xs -> y :: xs) (insert_in x ys)
-(* insert_in 3 [1;2] = [[3; 1; 2]; [1; 3; 2]; [1; 2; 3]] *)
-
-let rec (permutation : 'a list -> 'a list list) = function
-  | [] -> []
-  | [ x ] -> [ [ x ] ]
-  | x :: xs -> List.concat_map (insert_in x) (permutation xs)
-(* permutation [1;2;3] =
- * [[1; 2; 3]; [2; 1; 3]; [2; 3; 1]; [1; 3; 2]; [3; 1; 2]; [3; 2; 1]]
- *)
-
-let rec remove_elem_pos pos xs =
-  match (pos, xs) with
-  | _, [] -> failwith "remove_elem_pos"
-  | 0, _x :: xs -> xs
-  | n, x :: xs -> x :: remove_elem_pos (n - 1) xs
-
-let rec insert_elem_pos (e, pos) xs =
-  match (pos, xs) with
-  | 0, xs -> e :: xs
-  | n, x :: xs -> x :: insert_elem_pos (e, n - 1) xs
-  | _n, [] -> failwith "insert_elem_pos"
-
-let uncons_permut xs =
-  let indexed = index_list xs in
-  indexed |> List_.map (fun (x, pos) -> ((x, pos), remove_elem_pos pos xs))
-
-let _ =
-  assert (
-    uncons_permut [ 'a'; 'b'; 'c' ]
-    =*= [
-          (('a', 0), [ 'b'; 'c' ]);
-          (('b', 1), [ 'a'; 'c' ]);
-          (('c', 2), [ 'a'; 'b' ]);
-        ])
-
-let uncons_permut_lazy xs =
-  let indexed = index_list xs in
-  indexed
-  |> List_.map (fun (x, pos) -> ((x, pos), lazy (remove_elem_pos pos xs)))
-
-(* pixel *)
 let map_flatten f l =
   let rec map_flatten_aux accu = function
     | [] -> accu
     | e :: l -> map_flatten_aux (List.rev (f e) @ accu) l
   in
   List.rev (map_flatten_aux [] l)
-
-(* now in prelude: let rec repeat e n *)
-
-let rec map2 f = function
-  | [] -> []
-  | x :: xs ->
-      let r = f x in
-      r :: map2 f xs
-
-let map3 f l =
-  let rec map3_aux acc = function
-    | [] -> acc
-    | x :: xs -> map3_aux (f x :: acc) xs
-  in
-  map3_aux [] l
-
-(*
-let tails2 xs = map rev (inits (rev xs))
-let res = tails2 [1;2;3;4]
-let res = tails [1;2;3;4]
-let id x = x
-*)
-
-let pack_sorted same xs =
-  let rec pack_s_aux acc xs =
-    match (acc, xs) with
-    | (cur, rest), [] -> cur :: rest
-    | (cur, rest), y :: ys ->
-        if same (List_.hd_exn "unexpected empty list" cur) y then
-          pack_s_aux (y :: cur, rest) ys
-        else pack_s_aux ([ y ], cur :: rest) ys
-  in
-  pack_s_aux
-    ([ List_.hd_exn "unexpected empty list" xs ], [])
-    (List_.tl_exn "unexpected empty list" xs)
-  |> List.rev
-
-let rec keep_best f =
-  let rec partition e = function
-    | [] -> (e, [])
-    | e' :: l -> (
-        match f (e, e') with
-        | None ->
-            let e'', l' = partition e l in
-            (e'', e' :: l')
-        | Some e'' -> partition e'' l)
-  in
-  function
-  | [] -> []
-  | e :: l ->
-      let e', l' = partition e l in
-      e' :: keep_best f l'
-
-let rec sorted_keep_best f = function
-  | [] -> []
-  | [ a ] -> [ a ]
-  | a :: b :: l -> (
-      match f a b with
-      | None -> a :: sorted_keep_best f (b :: l)
-      | Some e -> sorted_keep_best f (e :: l))
-
-let (cartesian_product : 'a list -> 'b list -> ('a * 'b) list) =
- fun xs ys ->
-  xs |> List_.map (fun x -> ys |> List_.map (fun y -> (x, y))) |> List_.flatten
 
 (* TODO: add [@@profiling] *)
 let sort_prof a b = List.sort a b
@@ -1718,7 +1098,6 @@ let (insert_set : 'a -> 'a set -> 'a set) =
     xs
   else x :: xs
 
-let is_set xs = has_no_duplicate xs
 let (single_set : 'a -> 'a set) = fun x -> insert_set x empty_set
 
 let (set : 'a list -> 'a set) =
@@ -2012,22 +1391,6 @@ let add1 old = old + 1
 let cst_zero () = 0
 let hfind_option key h = optionise (fun () -> Hashtbl.find h key)
 
-(* see below: let hkeys h = ... *)
-
-let count_elements_sorted_highfirst xs =
-  let h = Hashtbl.create 101 in
-  xs
-  |> List.iter (fun e -> hupdate_default e (fun old -> old + 1) (fun () -> 0) h);
-  let xs = hash_to_list h in
-  (* not very efficient ... but simpler. use max_with_elem stuff ? *)
-  sort_by_val_highfirst xs
-
-let most_recurring_element xs =
-  let xs' = count_elements_sorted_highfirst xs in
-  match xs' with
-  | (e, _count) :: _ -> e
-  | [] -> failwith "most_recurring_element: empty list"
-
 (*****************************************************************************)
 (* Hash sets *)
 (*****************************************************************************)
@@ -2080,13 +1443,6 @@ let _test_group_assoc () =
 let uniq_eff xs =
   let h = Hashtbl.create 101 in
   xs |> List.iter (fun k -> Hashtbl.replace h k true);
-  hkeys h
-
-let big_union_eff xxs =
-  let h = Hashtbl.create 101 in
-
-  xxs
-  |> List.iter (fun xs -> xs |> List.iter (fun k -> Hashtbl.replace h k true));
   hkeys h
 
 let diff_set_eff xs1 xs2 =
@@ -2310,9 +1666,6 @@ let random_list xs = List.nth xs (URandom.int (List.length xs))
  * }
 
  *)
-let randomize_list xs =
-  let permut = permutation xs in
-  random_list permut
 
 let random_subset_of_list num xs =
   let array = Array.of_list xs in

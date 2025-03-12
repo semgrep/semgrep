@@ -173,7 +173,6 @@ val string_of_chars : char list -> string
 
 (* val _init_random : unit *)
 val random_list : 'a list -> 'a
-val randomize_list : 'a list -> 'a list
 val random_subset_of_list : int -> 'a list -> 'a list
 
 (*****************************************************************************)
@@ -264,138 +263,38 @@ val nonempty_to_list : 'a nonempty -> 'a list
 (* List *)
 (*****************************************************************************)
 
-val hd_opt : 'a list -> 'a option
-
-(* tail recursive efficient map (but that also reverse the element!) *)
-val map_eff_rev : ('a -> 'b) -> 'a list -> 'b list
-
-(* tail recursive efficient map, use accumulator  *)
-val acc_map : ('a -> 'b) -> 'a list -> 'b list
-val zip : 'a list -> 'b list -> ('a * 'b) list
-val zip_safe : 'a list -> 'b list -> ('a * 'b) list
-val unzip : ('a * 'b) list -> 'a list * 'b list
-val unzip3 : ('a * 'b * 'c) list -> 'a list * 'b list * 'c list
-val unzip4 : ('a * 'b * 'c * 'd) list -> 'a list * 'b list * 'c list * 'd list
-val take_until : ('a -> bool) -> 'a list -> 'a list
-val take_while : ('a -> bool) -> 'a list -> 'a list
-val drop_while : ('a -> bool) -> 'a list -> 'a list
-val drop_until : ('a -> bool) -> 'a list -> 'a list
-val span_tail_call : ('a -> bool) -> 'a list -> 'a list * 'a list
-val skip_until : ('a list -> bool) -> 'a list -> 'a list
-val skipfirst : (* Eq a *) 'a -> 'a list -> 'a list
-
-(* cf also List.partition *)
-val fpartition : ('a -> 'b option) -> 'a list -> 'b list * 'a list
-val groupBy : ('a -> 'a -> bool) -> 'a list -> 'a list list
-val exclude_but_keep_attached : ('a -> bool) -> 'a list -> ('a * 'a list) list
-val group_by_post : ('a -> bool) -> 'a list -> ('a list * 'a) list * 'a list
-val group_by_pre : ('a -> bool) -> 'a list -> 'a list * ('a * 'a list) list
-val group_by_mapped_key : ('a -> 'b) -> 'a list -> ('b * 'a list) list
-val group_and_count : 'a list -> ('a * int) list
-
-(* Use hash internally to not be in O(n2). If you want to use it on a
- * simple list, then first do a List.map to generate a key, for instance the
- * first char of the element, and then use this function.
- *)
-val group_assoc_bykey_eff : ('a * 'b) list -> ('a * 'b list) list
-val splitAt : int -> 'a list -> 'a list * 'a list
-val split_when : ('a -> bool) -> 'a list -> 'a list * 'a * 'a list
-val split_gen_when : ('a list -> 'a list option) -> 'a list -> 'a list list
-
-(* return a list of with lots of chunks of size n *)
-val pack : int -> 'a list -> 'a list list
-val pack_safe : int -> 'a list -> 'a list list
-
-(* return a list of size n which chunks from original list *)
-val chunks : int -> 'a list -> 'a list list
-val enum_safe : int -> int -> int list
-val repeat : 'a -> int -> 'a list
-val generate : int -> 'a -> 'a list
-val index_list_and_total : 'a list -> ('a * int * int) list
-val iter_index : ('a -> int -> unit) -> 'a list -> unit
-val map_index : ('a -> int -> 'b) -> 'a list -> 'b list
-val filter_index : (int -> 'a -> bool) -> 'a list -> 'a list
-val fold_left_with_index : ('a -> 'b -> int -> 'a) -> 'a -> 'b list -> 'a
-val nth : 'a list -> int -> 'a
-val rang : (* Eq a *) 'a -> 'a list -> int
-val last_n : int -> 'a list -> 'a list
-val snoc : 'a -> 'a list -> 'a list
-val cons : 'a -> 'a list -> 'a list
-val uncons : 'a list -> 'a * 'a list
-val safe_tl : 'a list -> 'a list
-val head_middle_tail : 'a list -> 'a * 'a list * 'a
-val list_last : 'a list -> 'a
-val list_init : 'a list -> 'a list
-val removelast : 'a list -> 'a list
 val inits : 'a list -> 'a list list
-val tails : 'a list -> 'a list list
-val foldl1 : ('a -> 'a -> 'a) -> 'a list -> 'a
-val fold_k : ('a -> 'b -> ('a -> 'a) -> 'a) -> ('a -> 'a) -> 'a -> 'b list -> 'a
-val fold_right1 : ('a -> 'a -> 'a) -> 'a list -> 'a
-val fold_left : ('a -> 'b -> 'a) -> 'a -> 'b list -> 'a
-val rev_map : ('a -> 'b) -> 'a list -> 'b list
 
-val do_withenv :
-  (('a -> 'b) -> 'c -> 'd) -> ('e -> 'a -> 'b * 'e) -> 'e -> 'c -> 'd * 'e
-
-val map_withenv : ('a -> 'b -> 'c * 'a) -> 'a -> 'b list -> 'c list * 'a
-val map_withkeep : ('a -> 'b) -> 'a list -> ('b * 'a) list
-val collect_accu : ('a -> 'b list) -> 'b list -> 'a list -> 'b list
-val collect : ('a -> 'b list) -> 'a list -> 'b list
-val remove : 'a -> 'a list -> 'a list
-val remove_first : 'a -> 'a list -> 'a list
-val exclude : ('a -> bool) -> 'a list -> 'a list
-val group : ('a -> 'a -> bool) -> 'a list -> 'a nonempty list
-
-(* Not like unix uniq command line tool that only delete contiguous repeated
- * line. Here we delete any repeated line (here list element).
- *)
 val uniq : 'a list -> 'a list
-val uniq_eff : 'a list -> 'a list
-val big_union_eff : 'a list list -> 'a list
-val has_no_duplicate : 'a list -> bool
-val is_set_as_list : 'a list -> bool
-val get_duplicates : 'a list -> 'a list
-val doublon : 'a list -> bool
-val reverse : 'a list -> 'a list (* alias *)
-val rev : 'a list -> 'a list (* alias *)
-val rotate : 'a list -> 'a list
+(** Not like unix uniq command line tool that only delete contiguous repeated
+   line. Here we delete any repeated line (here list element).
+ *)
+
 val map_flatten : ('a -> 'b list) -> 'a list -> 'b list
-val map2 : ('a -> 'b) -> 'a list -> 'b list
-val map3 : ('a -> 'b) -> 'a list -> 'b list
 val maximum : 'a list -> 'a
 val minimum : 'a list -> 'a
-val most_recurring_element : 'a list -> 'a
-val count_elements_sorted_highfirst : 'a list -> ('a * int) list
-val min_with : ('a -> 'b) -> 'a list -> 'a
-val two_mins_with : ('a -> 'b) -> 'a list -> 'a * 'a
-val all_assoc : (* Eq a *) 'a -> ('a * 'b) list -> 'b list
-val prepare_want_all_assoc : ('a * 'b) list -> ('a * 'b list) list
-val or_list : bool list -> bool
-val and_list : bool list -> bool
+val foldl1 : ('a -> 'a -> 'a) -> 'a list -> 'a
 val foldn : ('a -> int -> 'a) -> 'a -> int -> 'a
 val sum_float : float list -> float
 val sum_int : int list -> int
-val avg_list : int list -> float
-val return_when : ('a -> 'b option) -> 'a list -> 'b
-val grep_with_previous : ('a -> 'a -> bool) -> 'a list -> 'a list
-val iter_with_previous : ('a -> 'a -> unit) -> 'a list -> unit
-val iter_with_previous_opt : ('a option -> 'a -> unit) -> 'a list -> unit
 
-val iter_with_before_after :
-  ('a list -> 'a -> 'a list -> unit) -> 'a list -> unit
+val group : ('a -> 'a -> bool) -> 'a list -> 'a nonempty list
+(** Groups a list into a list of equivalence classes (themselves nonempty
+   lists) according to the given equality predicate. `eq` must be an
+   equivalence relation for correctness.
+ *)
 
-val get_pair : 'a list -> ('a * 'a) list
-val permutation : 'a list -> 'a list list
-val remove_elem_pos : int -> 'a list -> 'a list
-val insert_elem_pos : 'a * int -> 'a list -> 'a list
-val uncons_permut : 'a list -> (('a * int) * 'a list) list
-val uncons_permut_lazy : 'a list -> (('a * int) * 'a list Lazy.t) list
-val pack_sorted : ('a -> 'a -> bool) -> 'a list -> 'a list list
-val keep_best : ('a * 'a -> 'a option) -> 'a list -> 'a list
-val sorted_keep_best : ('a -> 'a -> 'a option) -> 'a list -> 'a list
-val cartesian_product : 'a list -> 'b list -> ('a * 'b) list
-
+val repeat : 'a -> int -> 'a list
+val head_middle_tail : 'a list -> 'a * 'a list * 'a
+val list_last : 'a list -> 'a
+val splitAt : int -> 'a list -> 'a list * 'a list
+val split_when : ('a -> bool) -> 'a list -> 'a list * 'a * 'a list
+val split_gen_when : ('a list -> 'a list option) -> 'a list -> 'a list list
+val group_by_mapped_key : ('a -> 'b) -> 'a list -> ('b * 'a list) list
+val zip : 'a list -> 'b list -> ('a * 'b) list
+val unzip : ('a * 'b) list -> 'a list * 'b list
+val unzip3 : ('a * 'b * 'c) list -> 'a list * 'b list * 'c list
+val group_assoc_bykey_eff : ('a * 'b) list -> ('a * 'b list) list
 (*****************************************************************************)
 (* Set. But have a look too at set*.mli; it's better. Or use Hashtbl. *)
 (*****************************************************************************)
@@ -406,7 +305,6 @@ val empty_set : 'a set
 val insert_set : 'a -> 'a set -> 'a set
 val single_set : 'a -> 'a set
 val set : 'a list -> 'a set
-val is_set : 'a list -> bool
 val exists_set : ('a -> bool) -> 'a set -> bool
 val forall_set : ('a -> bool) -> 'a set -> bool
 val filter_set : ('a -> bool) -> 'a set -> 'a set

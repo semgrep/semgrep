@@ -75,7 +75,7 @@ let parse filename =
         tr.Parsing_helpers.passed <- List.rev toks;
 
         let info_of_bads =
-          Common2.map_eff_rev TH.info_of_tok tr.Parsing_helpers.passed
+          List.rev_map TH.info_of_tok tr.Parsing_helpers.passed
         in
 
         Right (info_of_bads, line_error, current)

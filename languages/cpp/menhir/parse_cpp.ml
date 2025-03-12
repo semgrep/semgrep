@@ -377,7 +377,7 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
             Log.err (fun m -> m "PB: bad: but on tokens not from original file");
 
           let info_of_bads =
-            Common2.map_eff_rev TH.info_of_tok tr.Parsing_helpers.passed
+            List.rev_map TH.info_of_tok tr.Parsing_helpers.passed
           in
 
           Some (X (D (Ast.NotParsedCorrectly info_of_bads)))

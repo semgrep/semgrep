@@ -152,7 +152,7 @@ let rebuild_tokens_extented toks_ext =
          tok.new_tokens_before |> List.iter (fun x -> Stack_.push x _tokens);
          Stack_.push tok.t _tokens);
   let tokens = List.rev !_tokens in
-  tokens |> Common2.acc_map mk_token_extended
+  tokens |> List_.map mk_token_extended
 
 (*****************************************************************************)
 (* View builders  *)
