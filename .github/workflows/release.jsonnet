@@ -250,12 +250,15 @@ local upload_wheels_job = {
     download_step('manylinux-aarch64-wheel'),
     download_step('osx-x86-wheel'),
     download_step('osx-arm64-wheel'),
+    download_step('windows-x86-wheel'),
     {
       run: |||
        unzip ./manylinux-x86-wheel/dist.zip
        unzip ./manylinux-aarch64-wheel/dist.zip "*.whl"
        unzip ./osx-x86-wheel/dist.zip "*.whl"
        unzip ./osx-arm64-wheel/dist.zip "*.whl"
+       # Windows build creates a tgz since zip is not available
+       tar --wildcards -xzf ./windows-x86-wheel/dist.tgz "*.whl"
      |||,
     },
     {
@@ -396,6 +399,10 @@ local create_release_interfaces_job = {
       uses: './.github/workflows/build-test-manylinux-aarch64.yml',
       secrets: 'inherit',
     },
+    'build-test-windows-x86': {
+      uses: './.github/workflows/build-test-windows-x86.yml',
+      secrets: 'inherit',
+    },
     'wait-for-build-test': {
       name: 'Wait for Build/Test All Platforms',
       'runs-on': 'ubuntu-22.04',
@@ -406,6 +413,7 @@ local create_release_interfaces_job = {
         'build-test-manylinux-aarch64',
         'build-test-osx-x86',
         'build-test-osx-arm64',
+        'build-test-windows-x86',
       ],
       steps: [
         {

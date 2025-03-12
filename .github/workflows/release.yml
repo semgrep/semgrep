@@ -51,6 +51,9 @@ jobs:
   build-test-osx-x86:
     secrets: inherit
     uses: ./.github/workflows/build-test-osx-x86.yml
+  build-test-windows-x86:
+    secrets: inherit
+    uses: ./.github/workflows/build-test-windows-x86.yml
   create-release:
     if: ${{ ! inputs.dry-run }}
     needs:
@@ -207,11 +210,18 @@ jobs:
         with:
           name: osx-arm64-wheel
           path: osx-arm64-wheel
+      - name: Download windows-x86-wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-x86-wheel
+          path: windows-x86-wheel
       - run: |
           unzip ./manylinux-x86-wheel/dist.zip
           unzip ./manylinux-aarch64-wheel/dist.zip "*.whl"
           unzip ./osx-x86-wheel/dist.zip "*.whl"
           unzip ./osx-arm64-wheel/dist.zip "*.whl"
+          # Windows build creates a tgz since zip is not available
+          tar --wildcards -xzf ./windows-x86-wheel/dist.tgz "*.whl"
       - if: ${{ ! inputs.dry-run }}
         name: Publish to Pypi
         uses: pypa/gh-action-pypi-publish@release/v1
@@ -228,6 +238,7 @@ jobs:
       - build-test-manylinux-aarch64
       - build-test-osx-x86
       - build-test-osx-arm64
+      - build-test-windows-x86
     runs-on: ubuntu-22.04
     steps:
       - name: Continue
