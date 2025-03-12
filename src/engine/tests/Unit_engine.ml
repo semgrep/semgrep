@@ -264,7 +264,7 @@ let make_maturity_tests ?(lang_exn = language_exceptions) lang dir ext maturity
             if Sys.file_exists !!path then
               failwith
                 (spf "%s actually exist! remove it from exceptions" !!path));
-     let features = Common2.minus_set features exns in
+     let features = List.filter (fun x -> not (List.mem x exns)) features in
      features
      |> List_.map (fun base ->
             Testo.create ~tags:(Test_tags.tags_of_lang lang) base (fun () ->

@@ -182,9 +182,6 @@ let reset_pr_indent () = _tab_level_print := 0
  *)
 
 (* ---------------------------------------------------------------------- *)
-let pr2_gen x = pr2 (Dumper.dump x)
-
-(* ---------------------------------------------------------------------- *)
 let xxx_once f s =
   match () with
   | _ when !UCommon.disable_pr2_once ->
@@ -1049,174 +1046,23 @@ let map_flatten f l =
   in
   List.rev (map_flatten_aux [] l)
 
-(* TODO: add [@@profiling] *)
-let sort_prof a b = List.sort a b
-
-type order = HighFirst | LowFirst
-
-let compare_order order a b =
-  match order with
-  | HighFirst -> compare b a
-  | LowFirst -> compare a b
-
-let sort_by_val_highfirst xs =
-  sort_prof (fun (_k1, v1) (_k2, v2) -> compare v2 v1) xs
-
-let sort_by_val_lowfirst xs =
-  sort_prof (fun (_k1, v1) (_k2, v2) -> compare v1 v2) xs
-
-let sort_by_key_highfirst xs =
-  sort_prof (fun (k1, _v1) (k2, _v2) -> compare k2 k1) xs
-
-let sort_by_key_lowfirst xs =
-  sort_prof (fun (k1, _v1) (k2, _v2) -> compare k1 k2) xs
-
-let _ =
-  assert (sort_by_key_lowfirst [ (4, ()); (7, ()) ] =*= [ (4, ()); (7, ()) ])
-
-let _ =
-  assert (sort_by_key_highfirst [ (4, ()); (7, ()) ] =*= [ (7, ()); (4, ()) ])
-
-let sortgen_by_key_highfirst xs =
-  sort_prof (fun (k1, _v1) (k2, _v2) -> compare k2 k1) xs
-
-let sortgen_by_key_lowfirst xs =
-  sort_prof (fun (k1, _v1) (k2, _v2) -> compare k1 k2) xs
-
 (*****************************************************************************)
 (* Set. Have a look too at set*.mli  *)
 (*****************************************************************************)
-type 'a set = 'a list
-(* with sexp *)
 
-let (empty_set : 'a set) = []
+type 'a set = 'a list
 
 let (insert_set : 'a -> 'a set -> 'a set) =
- fun x xs ->
-  if List.mem x xs then
-    (* let _ = print_string "warning insert: already exist" in *)
-    xs
-  else x :: xs
-
-let (single_set : 'a -> 'a set) = fun x -> insert_set x empty_set
-
-let (set : 'a list -> 'a set) =
- fun xs -> xs |> List.fold_left (flip insert_set) empty_set |> List.sort compare
-
-let (exists_set : ('a -> bool) -> 'a set -> bool) = List.exists
-let (forall_set : ('a -> bool) -> 'a set -> bool) = List.for_all
-let (filter_set : ('a -> bool) -> 'a set -> 'a set) = List.filter
-let (fold_set : ('a -> 'b -> 'a) -> 'a -> 'b set -> 'a) = List.fold_left
-let (map_set : ('a -> 'b) -> 'a set -> 'b set) = List_.map
-let (member_set : 'a -> 'a set -> bool) = List.mem
-let find_set = List.find
-let sort_set = List.sort
-let iter_set = List.iter
-let top_set (xs : 'a set) : 'a = List_.hd_exn "unexpected empty list" xs
-
-let (inter_set : 'a set -> 'a set -> 'a set) =
- fun s1 s2 ->
-  s1
-  |> fold_set
-       (fun acc x -> if member_set x s2 then insert_set x acc else acc)
-       empty_set
+ fun x xs -> if List.mem x xs then xs else x :: xs
 
 let (union_set : 'a set -> 'a set -> 'a set) =
  fun s1 s2 ->
   s2
-  |> fold_set
-       (fun acc x -> if member_set x s1 then acc else insert_set x acc)
+  |> List.fold_left
+       (fun acc x -> if List.mem x s1 then acc else insert_set x acc)
        s1
 
-let (minus_set : 'a set -> 'a set -> 'a set) =
- fun s1 s2 -> s1 |> filter_set (fun x -> not (member_set x s2))
-
-let union_all l = List.fold_left union_set [] l
-let big_union_set f xs = xs |> map_set f |> fold_set union_set empty_set
-let (card_set : 'a set -> int) = List.length
-
-let (include_set : 'a set -> 'a set -> bool) =
- fun s1 s2 -> s1 |> forall_set (fun p -> member_set p s2)
-
-let equal_set s1 s2 = include_set s1 s2 && include_set s2 s1
-
-let (include_set_strict : 'a set -> 'a set -> bool) =
- fun s1 s2 -> card_set s1 < card_set s2 && include_set s1 s2
-
-let ( $*$ ) = inter_set
 let ( $+$ ) = union_set
-let ( $-$ ) = minus_set
-let ( $?$ ) a b = member_set a b
-let ( $<$ ) = include_set_strict
-let ( $<=$ ) = include_set
-let ( $=$ ) = equal_set
-
-(* as $+$ but do not check for memberness, allow to have set of func *)
-let ( $@$ ) a b = a @ b
-
-let rec nub = function
-  | [] -> []
-  | x :: xs -> if List.mem x xs then nub xs else x :: nub xs
-
-(*****************************************************************************)
-(* Set as normal list *)
-(*****************************************************************************)
-(*
-let (union: 'a list -> 'a list -> 'a list) = fun l1 l2 ->
-  List.fold_left (fun acc x -> if List.mem x l1 then acc else x::acc) l1 l2
-
-let insert_normal x xs = union xs [x]
-
-(* retourne lis1 - lis2 *)
-let minus l1 l2 = List.filter    (fun x -> not (List.mem x l2)) l1
-
-let inter l1 l2 = List.fold_left (fun acc x -> if List.mem x l2 then x::acc else acc) [] l1
-
-let union_list =  List.fold_left union []
-
-let uniq lis =
-  List.fold_left (function acc -> function el -> union [el] acc) [] lis
-
-(* pixel *)
-let rec non_uniq = function
-  | [] -> []
-  | e::l -> if mem e l then e :: non_uniq l else non_uniq l
-
-let rec inclu lis1 lis2 =
-  List.for_all (function el -> List.mem el lis2) lis1
-
-let equivalent lis1 lis2 =
-  (inclu lis1 lis2) && (inclu lis2 lis1)
-
-*)
-
-(*****************************************************************************)
-(* Set as sorted list *)
-(*****************************************************************************)
-(* liste trie, cos we need to do intersection, and insertion (it is a set
-   cos when introduce has, if we create a new has => must do a recurse_rep
-   and another categ can have to this has => must do an union
-*)
-(*
-let rec insert x = function
-  | [] -> [x]
-  | y::ys ->
-      if x = y then y::ys
-      else (if x < y then x::y::ys else y::(insert x ys))
-
-(* same, suppose sorted list *)
-let rec intersect x y =
-  match(x,y) with
-  | [], y -> []
-  | x,  [] -> []
-  | x::xs, y::ys ->
-      if x = y then x::(intersect xs ys)
-      else
-  (if x < y then intersect xs (y::ys)
-  else intersect (x::xs) ys
- )
-(* intersect [1;3;7] [2;3;4;7;8];;   *)
-*)
 
 (*****************************************************************************)
 (* Sets specialized *)
@@ -1239,220 +1085,23 @@ module StringSet = struct
   let to_list t = StringSetOrig.elements t
 end
 
-(*****************************************************************************)
-(* Assoc *)
-(*****************************************************************************)
-type ('a, 'b) assoc = ('a * 'b) list
-(* with sexp *)
-
-let (assoc_to_function : ('a, 'b) assoc -> 'a -> 'b) =
- fun xs ->
-  xs
-  |> List.fold_left
-       (fun acc (k, v) k' -> if k =*= k' then v else acc k')
-       (fun _k -> failwith "no key in this assoc")
-(* simpler:
-   let (assoc_to_function: ('a, 'b) assoc -> ('a -> 'b)) = fun xs ->
-   fun k -> List.assoc k xs
-*)
-
-let (empty_assoc : ('a, 'b) assoc) = []
-let fold_assoc = List.fold_left
-let insert_assoc x xs = x :: xs
-let map_assoc = List_.map
-let filter_assoc = List.filter
-let assoc = List.assoc
-let keys xs = List_.map fst xs
-let lookup = assoc
-
-(* assert unique key ?*)
-let del_assoc key xs = xs |> List.filter (fun (k, _v) -> k <> key)
-let replace_assoc (key, v) xs = insert_assoc (key, v) (del_assoc key xs)
-
-let apply_assoc key f xs =
-  let old = assoc key xs in
-  replace_assoc (key, f old) xs
-
-let big_union_assoc f xs = xs |> map_assoc f |> fold_assoc union_set empty_set
-
-(* todo: pb normally can suppr fun l -> .... l but if do that, then strange type _a
-   => assoc_map is strange too => equal dont work
-*)
-let (assoc_reverse : ('a * 'b) list -> ('b * 'a) list) =
- fun l -> List_.map (fun (x, y) -> (y, x)) l
-
-let (assoc_map : ('a * 'b) list -> ('a * 'b) list -> ('a * 'a) list) =
- fun l1 l2 ->
-  let l1bis, l2bis = (assoc_reverse l1, assoc_reverse l2) in
-  List_.map (fun (x, y) -> (y, List.assoc x l2bis)) l1bis
-
-let rec (lookup_list : 'a -> ('a, 'b) assoc list -> 'b) =
- fun el -> function
-  | [] -> raise Not_found
-  | xs :: xxs -> (
-      try List.assoc el xs with
-      | Not_found -> lookup_list el xxs)
-
-let (lookup_list2 : 'a -> ('a, 'b) assoc list -> 'b * int) =
- fun el xxs ->
-  let rec lookup_l_aux i = function
-    | [] -> raise Not_found
-    | xs :: xxs -> (
-        try
-          let res = List.assoc el xs in
-          (res, i)
-        with
-        | Not_found -> lookup_l_aux (i + 1) xxs)
-  in
-  lookup_l_aux 0 xxs
-
-let _ =
-  assert (
-    lookup_list2 "c"
-      [ [ ("a", 1); ("b", 2) ]; [ ("a", 1); ("b", 3) ]; [ ("a", 1); ("c", 7) ] ]
-    =*= (7, 2))
-
-let assoc_opt k l = optionise (fun () -> List.assoc k l)
-
-let assoc_with_err_msg k l =
-  try List.assoc k l with
-  | Not_found ->
-      pr2 (spf "pb assoc_with_err_msg: %s" (Dumper.dump k));
-      raise Not_found
-
-(*****************************************************************************)
-(* Assoc int -> xxx with binary tree.  Have a look too at Mapb.mli *)
-(*****************************************************************************)
-
-(* ex: type robot_list = robot_info IntMap.t *)
-module IntMap = Map.Make (struct
-  type t = int
-
-  let compare = compare
-end)
-
-let intmap_to_list m = IntMap.fold (fun id v acc -> (id, v) :: acc) m []
-let intmap_string_of_t _f _a = "<Not Yet>"
-
-module IntIntMap = Map.Make (struct
-  type t = int * int
-
-  let compare = compare
-end)
-
-let intintmap_to_list m = IntIntMap.fold (fun id v acc -> (id, v) :: acc) m []
-let intintmap_string_of_t _f _a = "<Not Yet>"
-
-(*****************************************************************************)
-(* Hash *)
-(*****************************************************************************)
-
-(* il parait que better  when choose a prime *)
-let hcreate () = Hashtbl.create 401
-let hadd (k, v) h = Hashtbl.add h k v
-let hmem k h = Hashtbl.mem h k
-let hfind k h = Hashtbl.find h k
-let hreplace (k, v) h = Hashtbl.replace h k v
-let hiter = Hashtbl.iter
-let hfold = Hashtbl.fold
-let hremove k h = Hashtbl.remove h k
-
-let hash_to_list h =
-  Hashtbl.fold (fun k v acc -> (k, v) :: acc) h [] |> List.sort compare
-
-let hash_to_list_unsorted h = Hashtbl.fold (fun k v acc -> (k, v) :: acc) h []
-
-let hash_of_list xs =
-  let h = Hashtbl.create 101 in
-  (* replace or add? depends the semantic of hashtbl you want *)
-  xs |> List.iter (fun (k, v) -> Hashtbl.replace h k v);
-  h
-
-(*
-let _  =
-  let h = Hashtbl.create 101 in
-  Hashtbl.add h "toto" 1;
-  Hashtbl.add h "toto" 1;
-  assert(hash_to_list h =*= ["toto",1; "toto",1])
-*)
-
-let hfind_default key value_if_not_found h =
-  try Hashtbl.find h key with
-  | Not_found ->
-      Hashtbl.add h key (value_if_not_found ());
-      Hashtbl.find h key
-
-(* not as easy as Perl  $h->{key}++; but still possible *)
-let hupdate_default key ~update:op ~default:value_if_not_found h =
-  let old = hfind_default key value_if_not_found h in
-  Hashtbl.replace h key (op old)
-
-let add1 old = old + 1
-let cst_zero () = 0
-let hfind_option key h = optionise (fun () -> Hashtbl.find h key)
-
-(*****************************************************************************)
-(* Hash sets *)
-(*****************************************************************************)
-
-type 'a hashset = ('a, bool) Hashtbl.t
-(* with sexp *)
-
-let hash_hashset_add k e h =
-  match optionise (fun () -> Hashtbl.find h k) with
-  | Some hset -> Hashtbl.replace hset e true
-  | None ->
-      let hset = Hashtbl.create 11 in
-      Hashtbl.add h k hset;
-      Hashtbl.replace hset e true
-
-let hashset_to_set baseset h =
-  h |> hash_to_list |> List_.map fst |> fun xs -> baseset#fromlist xs
-
-let hashset_to_list h = hash_to_list h |> List_.map fst
-let hashset_of_list xs = xs |> List_.map (fun x -> (x, true)) |> hash_of_list
-
-let hashset_union h1 h2 =
-  h2 |> Hashtbl.iter (fun k _bool -> Hashtbl.replace h1 k true)
-
-let hashset_inter h1 h2 =
-  h1
-  |> Hashtbl.iter (fun k _bool ->
-         if not (Hashtbl.mem h2 k) then Hashtbl.remove h1 k)
-
-let hkeys h =
-  let hkey = Hashtbl.create 101 in
-  h |> Hashtbl.iter (fun k _v -> Hashtbl.replace hkey k true);
-  hashset_to_list hkey
-
-let hunion h1 h2 = h2 |> Hashtbl.iter (fun k v -> Hashtbl.add h1 k v)
-
 let group_assoc_bykey_eff xs =
   let h = Hashtbl.create 101 in
   xs |> List.iter (fun (k, v) -> Hashtbl_.push h k v);
-  let keys = hkeys h in
+  let keys = Hashtbl_.hkeys h in
   keys |> List_.map (fun k -> (k, Hashtbl_.get_stack h k))
-
-let _test_group_assoc () =
-  let xs = List_.enum 0 10000 |> List_.map (fun i -> (i_to_s i, i)) in
-  let xs = ("0", 2) :: xs in
-  (*    let _ys = xs +> Common.groupBy (fun (a,resa) (b,resb) -> a = b)  *)
-  let ys = xs |> group_assoc_bykey_eff in
-  pr2_gen ys
 
 let uniq_eff xs =
   let h = Hashtbl.create 101 in
   xs |> List.iter (fun k -> Hashtbl.replace h k true);
-  hkeys h
+  Hashtbl_.hkeys h
 
 let diff_set_eff xs1 xs2 =
-  let h1 = hashset_of_list xs1 in
-  let h2 = hashset_of_list xs2 in
-
+  let h1 = Hashtbl_.hashset_of_list xs1 in
+  let h2 = Hashtbl_.hashset_of_list xs2 in
   let hcommon = Hashtbl.create 101 in
   let honly_in_h1 = Hashtbl.create 101 in
   let honly_in_h2 = Hashtbl.create 101 in
-
   h1
   |> Hashtbl.iter (fun k _ ->
          if Hashtbl.mem h2 k then Hashtbl.replace hcommon k true
@@ -1461,36 +1110,9 @@ let diff_set_eff xs1 xs2 =
   |> Hashtbl.iter (fun k _ ->
          if Hashtbl.mem h1 k then Hashtbl.replace hcommon k true
          else Hashtbl.add honly_in_h2 k true);
-  ( hashset_to_list hcommon,
-    hashset_to_list honly_in_h1,
-    hashset_to_list honly_in_h2 )
-
-(*****************************************************************************)
-(* Hash with default value *)
-(*****************************************************************************)
-
-(*
-type ('k,'v) hash_with_default = {
-  h: ('k, 'v) Hashtbl.t;
-  default_value: unit -> 'v;
-}
-*)
-type ('a, 'b) hash_with_default =
-  < add : 'a -> 'b -> unit
-  ; to_list : ('a * 'b) list
-  ; to_h : ('a, 'b) Hashtbl.t
-  ; update : 'a -> ('b -> 'b) -> unit
-  ; assoc : 'a -> 'b >
-
-let hash_with_default fv =
-  object
-    val h = Hashtbl.create 101
-    method to_list = hash_to_list h
-    method to_h = h
-    method add k v = Hashtbl.replace h k v
-    method assoc k = Hashtbl.find h k
-    method update k f = hupdate_default k ~update:f ~default:fv h
-  end
+  ( Hashtbl_.hashset_to_list hcommon,
+    Hashtbl_.hashset_to_list honly_in_h1,
+    Hashtbl_.hashset_to_list honly_in_h2 )
 
 (*****************************************************************************)
 (* N-ary tree *)
@@ -1541,8 +1163,9 @@ let regression_testing_vs newscore bestscore =
   let newbestscore = empty_score () in
 
   let allres =
-    hash_to_list newscore |> List_.map fst
-    $+$ (hash_to_list bestscore |> List_.map fst)
+    Hashtbl_.hash_to_list newscore
+    |> List_.map fst
+    $+$ (Hashtbl_.hash_to_list bestscore |> List_.map fst)
   in
   allres
   |> List.iter (fun res ->
@@ -1609,9 +1232,11 @@ let string_of_score_result v =
   | Pb s -> "Pb: " ^ s
 
 let total_scores score =
-  let total = hash_to_list score |> List.length in
+  let total = Hashtbl_.hash_to_list score |> List.length in
   let good =
-    hash_to_list score |> List.filter (fun (_s, v) -> v =*= Ok) |> List.length
+    Hashtbl_.hash_to_list score
+    |> List.filter (fun (_s, v) -> v =*= Ok)
+    |> List.length
   in
   (good, total)
 
@@ -1623,7 +1248,7 @@ let print_total_score score =
   pr2 (Printf.sprintf "good = %d/%d" good total)
 
 let print_score score =
-  score |> hash_to_list
+  score |> Hashtbl_.hash_to_list
   |> List.iter (fun (k, v) ->
          pr2 (Printf.sprintf "%s --> %s" k (string_of_score_result v)));
   print_total_score score;
@@ -1680,7 +1305,7 @@ let random_subset_of_list num xs =
       (* bugfix1: not just x :) *)
       decr cnt)
   done;
-  let objs = hash_to_list h |> List_.map fst in
+  let objs = Hashtbl_.hash_to_list h |> List_.map fst in
   objs
 
 (*****************************************************************************)

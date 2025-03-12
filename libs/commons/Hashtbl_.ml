@@ -93,3 +93,13 @@ let map (f : 'k -> 'v -> 'w) (h : ('k, 'v) Hashtbl.t) : ('k, 'w) Hashtbl.t =
          let w = f k v in
          Hashtbl.add res k w);
   res
+
+let find_default key value_if_not_found h =
+  try Hashtbl.find h key with
+  | Not_found ->
+      Hashtbl.add h key (value_if_not_found ());
+      Hashtbl.find h key
+
+let update_default key ~update:op ~default:value_if_not_found h =
+  let old = find_default key value_if_not_found h in
+  Hashtbl.replace h key (op old)

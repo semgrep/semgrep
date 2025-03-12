@@ -247,7 +247,7 @@ let recurring_problematic_tokens (xs : t list) : string =
              |> List.iter (fun (xs, line_error) ->
                     xs
                     |> List.iter (fun s ->
-                           Common2.hupdate_default s
+                           Hashtbl_.update_default s
                              (fun (old, example) -> (old + 1, example))
                              (fun () -> (0, (file, line_error)))
                              h)));

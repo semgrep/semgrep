@@ -295,46 +295,10 @@ val zip : 'a list -> 'b list -> ('a * 'b) list
 val unzip : ('a * 'b) list -> 'a list * 'b list
 val unzip3 : ('a * 'b * 'c) list -> 'a list * 'b list * 'c list
 val group_assoc_bykey_eff : ('a * 'b) list -> ('a * 'b list) list
+
 (*****************************************************************************)
 (* Set. But have a look too at set*.mli; it's better. Or use Hashtbl. *)
 (*****************************************************************************)
-
-type 'a set = 'a list
-
-val empty_set : 'a set
-val insert_set : 'a -> 'a set -> 'a set
-val single_set : 'a -> 'a set
-val set : 'a list -> 'a set
-val exists_set : ('a -> bool) -> 'a set -> bool
-val forall_set : ('a -> bool) -> 'a set -> bool
-val filter_set : ('a -> bool) -> 'a set -> 'a set
-val fold_set : ('a -> 'b -> 'a) -> 'a -> 'b set -> 'a
-val map_set : ('a -> 'b) -> 'a set -> 'b set
-val member_set : 'a -> 'a set -> bool
-val find_set : ('a -> bool) -> 'a list -> 'a
-val sort_set : ('a -> 'a -> int) -> 'a list -> 'a list
-val iter_set : ('a -> unit) -> 'a list -> unit
-val top_set : 'a set -> 'a
-val inter_set : 'a set -> 'a set -> 'a set
-val union_set : 'a set -> 'a set -> 'a set
-val minus_set : 'a set -> 'a set -> 'a set
-val union_all : 'a set list -> 'a set
-val big_union_set : ('a -> 'b set) -> 'a set -> 'b set
-val card_set : 'a set -> int
-val include_set : 'a set -> 'a set -> bool
-val equal_set : 'a set -> 'a set -> bool
-val include_set_strict : 'a set -> 'a set -> bool
-
-(* could put them in Common.Infix *)
-val ( $*$ ) : 'a set -> 'a set -> 'a set
-val ( $+$ ) : 'a set -> 'a set -> 'a set
-val ( $-$ ) : 'a set -> 'a set -> 'a set
-val ( $?$ ) : 'a -> 'a set -> bool
-val ( $<$ ) : 'a set -> 'a set -> bool
-val ( $<=$ ) : 'a set -> 'a set -> bool
-val ( $=$ ) : 'a set -> 'a set -> bool
-val ( $@$ ) : 'a list -> 'a list -> 'a list
-val nub : 'a list -> 'a list
 
 (* use internally a hash and return
  * - the common part,
@@ -342,16 +306,6 @@ val nub : 'a list -> 'a list
  * - part only in b
  *)
 val diff_set_eff : 'a list -> 'a list -> 'a list * 'a list * 'a list
-
-(*****************************************************************************)
-(* Set as normal list *)
-(*****************************************************************************)
-
-(* cf above *)
-
-(*****************************************************************************)
-(* Set as sorted list *)
-(*****************************************************************************)
 
 (*****************************************************************************)
 (* Sets specialized *)
@@ -391,161 +345,6 @@ module StringSet : sig
   val choose : t -> string
   val split : string -> t -> t * bool * t
 end
-
-(*****************************************************************************)
-(* Assoc. But have a look too at Mapb.mli; it's better. Or use Hashtbl. *)
-(*****************************************************************************)
-
-type ('a, 'b) assoc = ('a * 'b) list
-
-val assoc_to_function : (* Eq a *) ('a, 'b) assoc -> 'a -> 'b
-val empty_assoc : ('a, 'b) assoc
-val fold_assoc : ('a -> 'b -> 'a) -> 'a -> 'b list -> 'a
-val insert_assoc : 'a -> 'a list -> 'a list
-val map_assoc : ('a -> 'b) -> 'a list -> 'b list
-val filter_assoc : ('a -> bool) -> 'a list -> 'a list
-val assoc : 'a -> ('a * 'b) list -> 'b
-val keys : ('a * 'b) list -> 'a list
-val lookup : 'a -> ('a * 'b) list -> 'b
-val del_assoc : 'a -> ('a * 'b) list -> ('a * 'b) list
-val replace_assoc : 'a * 'b -> ('a * 'b) list -> ('a * 'b) list
-val apply_assoc : 'a -> ('b -> 'b) -> ('a * 'b) list -> ('a * 'b) list
-val big_union_assoc : ('a -> 'b set) -> 'a list -> 'b set
-val assoc_reverse : ('a * 'b) list -> ('b * 'a) list
-val assoc_map : ('a * 'b) list -> ('a * 'b) list -> ('a * 'a) list
-val lookup_list : 'a -> ('a, 'b) assoc list -> 'b
-val lookup_list2 : 'a -> ('a, 'b) assoc list -> 'b * int
-val assoc_opt : 'a -> ('a, 'b) assoc -> 'b option
-val assoc_with_err_msg : 'a -> ('a, 'b) assoc -> 'b
-
-type order = HighFirst | LowFirst
-
-val compare_order : order -> 'a -> 'a -> int
-val sort_by_val_lowfirst : ('a, 'b) assoc -> ('a * 'b) list
-val sort_by_val_highfirst : ('a, 'b) assoc -> ('a * 'b) list
-val sort_by_key_lowfirst : ('a, 'b) assoc -> ('a * 'b) list
-val sort_by_key_highfirst : ('a, 'b) assoc -> ('a * 'b) list
-val sortgen_by_key_lowfirst : ('a, 'b) assoc -> ('a * 'b) list
-val sortgen_by_key_highfirst : ('a, 'b) assoc -> ('a * 'b) list
-
-(*****************************************************************************)
-(* Assoc, specialized. *)
-(*****************************************************************************)
-
-module IntMap : sig
-  type key = int
-  type +'a t
-
-  val empty : 'a t
-  val is_empty : 'a t -> bool
-  val add : key -> 'a -> 'a t -> 'a t
-  val find : key -> 'a t -> 'a
-  val remove : key -> 'a t -> 'a t
-  val mem : key -> 'a t -> bool
-  val iter : (key -> 'a -> unit) -> 'a t -> unit
-  val map : ('a -> 'b) -> 'a t -> 'b t
-  val mapi : (key -> 'a -> 'b) -> 'a t -> 'b t
-  val fold : (key -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
-  val compare : ('a -> 'a -> int) -> 'a t -> 'a t -> int
-  val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
-end
-
-val intmap_to_list : 'a IntMap.t -> (IntMap.key * 'a) list
-val intmap_string_of_t : 'a -> 'b -> string
-
-module IntIntMap : sig
-  type key = int * int
-  type +'a t
-
-  val empty : 'a t
-  val is_empty : 'a t -> bool
-  val add : key -> 'a -> 'a t -> 'a t
-  val find : key -> 'a t -> 'a
-  val remove : key -> 'a t -> 'a t
-  val mem : key -> 'a t -> bool
-  val iter : (key -> 'a -> unit) -> 'a t -> unit
-  val map : ('a -> 'b) -> 'a t -> 'b t
-  val mapi : (key -> 'a -> 'b) -> 'a t -> 'b t
-  val fold : (key -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
-  val compare : ('a -> 'a -> int) -> 'a t -> 'a t -> int
-  val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
-end
-
-val intintmap_to_list : 'a IntIntMap.t -> (IntIntMap.key * 'a) list
-val intintmap_string_of_t : 'a -> 'b -> string
-
-(*****************************************************************************)
-(* Hash *)
-(*****************************************************************************)
-
-(* Note that Hashtbl keep old binding to a key so if want a hash
- * of a list, then can use the Hashtbl as is. Use Hashtbl_.get_stack then
- * to get the list of bindings
- *
- * Note that Hashtbl module use different convention :( the object is
- * the first argument, not last as for List or Map.
- *)
-
-(* obsolete: can use directly the Hashtbl module *)
-val hcreate : unit -> ('a, 'b) Hashtbl.t
-val hadd : 'a * 'b -> ('a, 'b) Hashtbl.t -> unit
-val hmem : 'a -> ('a, 'b) Hashtbl.t -> bool
-val hfind : 'a -> ('a, 'b) Hashtbl.t -> 'b
-val hreplace : 'a * 'b -> ('a, 'b) Hashtbl.t -> unit
-val hiter : ('a -> 'b -> unit) -> ('a, 'b) Hashtbl.t -> unit
-val hfold : ('a -> 'b -> 'c -> 'c) -> ('a, 'b) Hashtbl.t -> 'c -> 'c
-val hremove : 'a -> ('a, 'b) Hashtbl.t -> unit
-val hfind_default : 'a -> (unit -> 'b) -> ('a, 'b) Hashtbl.t -> 'b
-val hfind_option : 'a -> ('a, 'b) Hashtbl.t -> 'b option
-
-val hupdate_default :
-  'a -> update:('b -> 'b) -> default:(unit -> 'b) -> ('a, 'b) Hashtbl.t -> unit
-
-val add1 : int -> int
-val cst_zero : unit -> int
-val hash_to_list : ('a, 'b) Hashtbl.t -> ('a * 'b) list
-val hash_to_list_unsorted : ('a, 'b) Hashtbl.t -> ('a * 'b) list
-val hash_of_list : ('a * 'b) list -> ('a, 'b) Hashtbl.t
-val hkeys : ('a, 'b) Hashtbl.t -> 'a list
-
-(* hunion h1 h2  adds all binding in h2 into h1 *)
-val hunion : ('a, 'b) Hashtbl.t -> ('a, 'b) Hashtbl.t -> unit
-
-(*****************************************************************************)
-(* Hash sets *)
-(*****************************************************************************)
-
-type 'a hashset = 'a Hashtbl_.hashset
-
-(* common use of hashset, in a hash of hash *)
-val hash_hashset_add : 'a -> 'b -> ('a, 'b hashset) Hashtbl.t -> unit
-
-(* hashset_union h1 h2  adds all elements in h2 into h1 *)
-val hashset_union : 'a hashset -> 'a hashset -> unit
-
-(* hashset_inter h1 h2  removes all elements in h1 not in h2 *)
-val hashset_inter : 'a hashset -> 'a hashset -> unit
-
-val hashset_to_set :
-  < fromlist : 'a list -> 'c ; .. > -> ('a, 'b) Hashtbl.t -> 'c
-
-(*****************************************************************************)
-(* Hash  with default value *)
-(*****************************************************************************)
-type ('a, 'b) hash_with_default =
-  < add : 'a -> 'b -> unit
-  ; to_list : ('a * 'b) list
-  ; to_h : ('a, 'b) Hashtbl.t
-  ; update : 'a -> ('b -> 'b) -> unit
-  ; assoc : 'a -> 'b >
-
-val hash_with_default :
-  (unit -> 'b) ->
-  < add : 'a -> 'b -> unit
-  ; to_list : ('a * 'b) list
-  ; to_h : ('a, 'b) Hashtbl.t
-  ; update : 'a -> ('b -> 'b) -> unit
-  ; assoc : 'a -> 'b >
 
 (*****************************************************************************)
 (* N-ary tree *)

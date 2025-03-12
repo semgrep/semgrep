@@ -204,7 +204,7 @@ let keyword_table = Hashtbl_.hash_of_list [
   "enum", (fun ii -> T_ENUM ii);
 ]
 
-let _ = assert ((Common2.hkeys keyword_table) |>
+let _ = assert ((Hashtbl_.hkeys keyword_table) |>
                  List.for_all (fun s -> s = String.lowercase_ascii s))
 
 (* ---------------------------------------------------------------------- *)

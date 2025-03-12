@@ -367,7 +367,7 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
   res
 
 let check_and_add_metavar_binding ((mvar : MV.mvar), valu) (tin : tin) =
-  match Common2.assoc_opt mvar tin.mv with
+  match List.assoc_opt mvar tin.mv with
   | Some valu' ->
       (* Should we use generic_vs_generic itself for comparing the code?
        * Hmmm, we can't because it leads to a circular dependencies.

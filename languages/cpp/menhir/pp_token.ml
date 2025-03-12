@@ -104,7 +104,7 @@ let (cpp_engine :
   xs
   |> List_.map (fun tok ->
          match tok with
-         | TIdent (s, _i1) when List.mem_assoc s env -> Common2.assoc s env
+         | TIdent (s, _i1) when List.mem_assoc s env -> List.assoc s env
          | x -> [ x ])
   |> List_.flatten
 

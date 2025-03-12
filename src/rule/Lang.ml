@@ -121,7 +121,7 @@ let assoc =
 
 let lang_map = Hashtbl_.hash_of_list assoc
 let of_string_opt x = Hashtbl.find_opt lang_map (String.lowercase_ascii x)
-let keys = Common2.hkeys lang_map
+let keys = Hashtbl_.hkeys lang_map
 let supported_langs : string = String.concat ", " keys
 
 (* TODO: move file identification to lang.json *)
