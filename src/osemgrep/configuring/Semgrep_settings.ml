@@ -194,7 +194,11 @@ let save setting =
   let yaml = to_yaml setting in
   let str = Yaml.to_string_exn yaml in
   try
-    let dir = Fpath.parent settings in
+    (* On Windows, Sys.file_exists sometimes fails on paths ending with a
+       trailing slash or backslash. See
+       https://sourceforge.net/p/mingw-w64/mailman/message/59154340/. So, we
+       strip any trailing slashes before checking if the dir exists. *)
+    let dir = Fpath.parent settings |> Fpath.rem_empty_seg in
     if not (Sys.file_exists !!dir) then Sys.mkdir !!dir 0o755;
     (* TODO: we don't use UTmp.new_temp_file because this function modifies
      * a global (_temp_files_created) which is then used to autoamtically
