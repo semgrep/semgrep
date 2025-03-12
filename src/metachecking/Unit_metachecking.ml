@@ -1,4 +1,3 @@
-open Common
 open Fpath_.Operators
 module E = Core_error
 module TCM = Test_compare_matches
@@ -33,10 +32,9 @@ let tests_path = Fpath.v "tests"
 let metachecker_checks_tests () =
   Testo.categorize "metachecker"
     (let dir = tests_path / "errors" in
-     let files = Common2.glob (spf "%s/*.yaml" !!dir) in
+     let files = Common2.glob (dir / "*.yaml") in
      files
      |> List_.map (fun file ->
-            let file = Fpath.v file in
             t (Fpath.basename file) (fun () ->
                 let actual =
                   match Parse_rule.parse file with

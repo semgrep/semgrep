@@ -1,4 +1,4 @@
-open Common
+open Fpath_.Operators
 
 let t = Testo.create
 
@@ -7,43 +7,43 @@ let t = Testo.create
 (*****************************************************************************)
 
 (* ran from the root of the semgrep repository *)
-let tests_path = "tests"
+let tests_path = Fpath.v "tests"
 
 let tests caps =
   Testo.categorize "parsing_js"
     [
       t "regression files" (fun () ->
-          let dir = Filename.concat tests_path "js/parsing" in
+          let dir = tests_path / "js" / "parsing" in
           let files =
-            Common2.glob (spf "%s/*.js" dir)
-            @ Common2.glob (spf "%s/jsx/*.js" dir)
+            Common2.glob (dir / "*.js")
+            @ Common2.glob (dir / "jsx" / "*.js")
             @ []
           in
           files
           |> List.iter (fun file ->
                  try
-                   let _ = Parse_js.parse_program (Fpath.v file) in
+                   let _ = Parse_js.parse_program file in
                    ()
                  with
                  | Parsing_error.Syntax_error _
                  | Common.Todo ->
-                     Alcotest.failf "it should correctly parse %s" file));
+                     Alcotest.failf "it should correctly parse %a" Fpath.pp file));
       t "regression files typescript" (fun () ->
-          let dir = Filename.concat tests_path "typescript/parsing" in
+          let dir = tests_path / "typescript" / "parsing" in
           let files =
-            Common2.glob (spf "%s/*.js" dir)
-            @ Common2.glob (spf "%s/*.ts" dir)
+            Common2.glob (dir / "*.js")
+            @ Common2.glob (dir / "*.ts")
             @ []
           in
           files
           |> List.iter (fun file ->
                  try
-                   let _ = Parse_js.parse_program (Fpath.v file) in
+                   let _ = Parse_js.parse_program file in
                    ()
                  with
                  | Parsing_error.Syntax_error _
                  | Common.Todo ->
-                     Alcotest.failf "it should correctly parse %s" file));
+                     Alcotest.failf "it should correctly parse %a" Fpath.pp file));
       t "rejecting bad code" (fun () ->
           try
             Common.save_excursion Flag_parsing.show_parsing_error false

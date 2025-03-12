@@ -2,11 +2,11 @@
 (* Pervasive types and operators *)
 (*****************************************************************************)
 
-val glob : string -> string list
-(** [glob pattern] takes in a pattern containing a wildcard
-  * i.e. ["dir/**/*.extension"] will match any file in the dir directory
-  * or subdirectories ending in .extension. This function is equivalent
-  * to "ls pattern" in the shell.
+val glob : Fpath.t -> Fpath.t list
+(** [glob glob_path] is a list of paths of the files matching a path containing wildcards
+  * i.e. [glob (Fpath.v "dir/**/*.extension")] is the list of files in the [dir] directory
+  * or its subdirectories ending in .extension. This function is analogous
+  * to the "ls pattern" in the shell.
   *)
 
 val unix_diff : string -> string -> string list
@@ -228,7 +228,7 @@ val all_match : string (* regexp *) -> string -> string list
 (* Filenames *)
 (*****************************************************************************)
 
-val inits_of_relative_dir : string -> string list
+val inits_of_relative_dir : Fpath.t -> Fpath.t list
 
 (*****************************************************************************)
 (* Lines/Words/Strings *)

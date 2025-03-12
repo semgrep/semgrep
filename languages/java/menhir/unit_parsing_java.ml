@@ -1,4 +1,4 @@
-open Common
+open Fpath_.Operators
 
 let t = Testo.create
 
@@ -7,16 +7,16 @@ let t = Testo.create
 (*****************************************************************************)
 
 (* ran from the root of the semgrep repository *)
-let tests_path = "tests"
+let tests_path = Fpath.v "tests"
 
 let tests =
   Testo.categorize "parsing_java"
     [
       t "regression files" (fun () ->
-          let dir = Filename.concat tests_path "java/parsing" in
-          let files = Common2.glob (spf "%s/*.java" dir) in
+          let dir = tests_path / "java" / "parsing" in
+          let files = Common2.glob (dir / "*.java") in
           files
           |> List.iter (fun file ->
-                 Testutil.run file (fun () ->
-                     Parse_java.parse (Fpath.v file) |> ignore)));
+                 Testutil.run (!!file) (fun () ->
+                     Parse_java.parse file |> ignore)));
     ]

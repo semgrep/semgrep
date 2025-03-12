@@ -110,18 +110,19 @@ let pack_parsing_tests_for_lang ?(error_tolerance = Strict) lang =
         (List.exists
            (fun ext ->
              let regex = spf {|.*%s$|} (Str.quote ext) in
-             file =~ regex)
+             file =/~ regex)
            exts)
     then
-      failwith (spf "Unrecognized extension for file %s for lang %s" file slang)
+      failwith (spf "Unrecognized extension for file %s for lang %s" (!!file) slang)
   in
   (* Get all files then check extensions *)
-  let pattern = spf "%s/**/*" !!dir in
+  let pattern = dir / "**" / "*" in
   let files = Common2.glob pattern in
   if files =*= [] then
-    failwith (spf "Empty set of parsing tests for %s at %s" slang pattern);
+    failwith (spf "Empty set of parsing tests for %s at %s" slang (!!pattern));
   List.iter check_ext files;
-  let tests = parsing_tests_for_lang error_tolerance files lang in
+  let file_strings = List_.map Fpath.to_string files in
+  let tests = parsing_tests_for_lang error_tolerance file_strings lang in
   (match subcategory with
   | None -> tests
   | Some cat -> Testo.categorize cat tests)
@@ -143,18 +144,17 @@ let lang_parsing_tests langs_with_error_tolerance : Testo.t list =
 let parsing_error_tests () =
   let dir = tests_path / "parsing_errors" in
   let tags_of_file file =
-    match Fpath.to_string file with
+    match file with
     (* For some reason, we can get a `Parsing_error.Syntax_error
        from this test in JS, despite the fact that the `try` makes this
        blatantly impossible.
        I suspect a `jsoo` bug.
     *)
-    | file when file =~ ".*/foo.c" -> [ Test_tags.todo_js ]
+    | file when file =/~ ".*/foo.c" -> [ Test_tags.todo_js ]
     | _ -> []
   in
   Testo.categorize "Parsing error detection"
-    (let tests = Common2.glob (spf "%s/*" !!dir) in
-     tests |> Fpath_.of_strings
+    (Common2.glob (dir / "*")
      |> List_.map (fun file ->
             t ~tags:(tags_of_file file) (Fpath.basename file) (fun () ->
                 try
@@ -166,20 +166,20 @@ let parsing_error_tests () =
                        partial errors "
                 with
                 | Parsing_error.Lexical_error _
-                | Parsing_error.Syntax_error _ ->
+                  | Parsing_error.Syntax_error _ ->
                     ())))
 
 let parsing_rules_tests () =
   let dir = tests_path / "rule_formats" in
   Testo.categorize "Parsing rules"
     (let tests =
-       Common2.glob (spf "%s/*.yaml" !!dir)
-       @ Common2.glob (spf "%s/*.json" !!dir)
+       Common2.glob (dir / "*.yaml")
+       @ Common2.glob (dir / "*.json")
        (* skipped for now to avoid adding jsonnet as a dependency in our
         * CI: Common2.glob (spf "%s/*.jsonnet" dir)
         *)
      in
-     tests |> Fpath_.of_strings
+     tests
      |> List_.map (fun file ->
             t (Fpath.basename file) (fun () ->
                 let res = Parse_rule.parse file in
@@ -193,17 +193,17 @@ let parsing_rules_tests () =
 let parsing_rules_with_atd_tests () =
   let dir = tests_path / "rules_v2" in
   let tests1 =
-    Common2.glob (spf "%s/*.yaml" !!dir) @ Common2.glob (spf "%s/*.json" !!dir)
+    Common2.glob (dir / "*.yaml") @ Common2.glob (dir / "*.json")
   in
   let dir = tests_path / "syntax_v2" in
   let tests2 =
-    Common2.glob (spf "%s/*.yaml" !!dir) @ Common2.glob (spf "%s/*.json" !!dir)
+    Common2.glob (dir  / "*.yaml") @ Common2.glob (dir / "*.json")
   in
   Testo.categorize "Parsing rules with rule_schema_v2.atd"
-    (tests1 @ tests2 |> Fpath_.of_strings
-    |> List_.map (fun file ->
-           t !!file (fun () ->
-               Parse_rules_with_atd.parse_rules_v2 file |> ignore)))
+    ((tests1 @ tests2)
+     |> List_.map (fun file ->
+            t !!file (fun () ->
+                Parse_rules_with_atd.parse_rules_v2 file |> ignore)))
 
 (*****************************************************************************)
 (* Tests *)

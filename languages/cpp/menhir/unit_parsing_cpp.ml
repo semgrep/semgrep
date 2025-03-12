@@ -1,4 +1,3 @@
-open Common
 open Fpath_.Operators
 module Flag = Flag_parsing
 
@@ -19,7 +18,7 @@ let parse file =
 (*****************************************************************************)
 
 (* ran from the root of the semgrep repository *)
-let tests_path = "tests"
+let tests_path = Fpath.v "tests"
 
 let tests =
   Testo.categorize "parsing_cpp"
@@ -37,11 +36,11 @@ let tests =
       (* Parsing *)
       (*-----------------------------------------------------------------------*)
       t "regression files" (fun () ->
-          let dir = Filename.concat tests_path "cpp/parsing" in
+          let dir = tests_path / "cpp" / "parsing" in
           let files =
-            Common2.glob (spf "%s/*.cpp" dir) @ Common2.glob (spf "%s/*.h" dir)
+            Common2.glob (dir / "*.cpp") @ Common2.glob (dir / "*.h")
           in
-          files |> Fpath_.of_strings
+          files
           |> List.iter (fun file ->
                  try
                    let _ast = parse file in
@@ -50,9 +49,9 @@ let tests =
                  | Parsing_error.Syntax_error _ ->
                      Alcotest.failf "it should correctly parse %s" !!file));
       t "rejecting bad code" (fun () ->
-          let dir = Filename.concat tests_path "cpp/parsing_errors" in
-          let files = Common2.glob (spf "%s/*.cpp" dir) in
-          files |> Fpath_.of_strings
+          let dir = tests_path / "cpp" / "parsing_errors" in
+          let files = Common2.glob (dir / "*.cpp") in
+          files
           |> List.iter (fun file ->
                  try
                    let _ast = parse file in
@@ -65,12 +64,12 @@ let tests =
                        (Common.exn_to_s exn) !!file));
       (* parsing C files (and not C++ files) possibly containing C++ keywords *)
       t "C regression files" (fun () ->
-          let dir = Filename.concat tests_path "c/parsing" in
+          let dir = tests_path / "c" / "parsing" in
           let files =
-            Common2.glob (spf "%s/*.c" dir)
+            Common2.glob (dir / "*.c")
             (* @ Common2.glob (spf "%s/*.h" dir) *)
           in
-          files |> Fpath_.of_strings
+          files
           |> List.iter (fun file ->
                  try
                    let _ast = parse file in

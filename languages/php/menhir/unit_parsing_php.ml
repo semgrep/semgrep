@@ -1,4 +1,5 @@
-open Common
+open Fpath_.Operators
+
 module Ast = Cst_php
 module Flag = Flag_parsing
 
@@ -13,7 +14,7 @@ let t = Testo.create
 (*****************************************************************************)
 
 (* ran from the root of the semgrep repository *)
-let tests_path = "tests"
+let tests_path = Fpath.v "tests"
 
 let tests =
   Testo.categorize "parsing_php"
@@ -81,16 +82,16 @@ let tests =
           with
           | Parsing_error.Syntax_error _ -> ());
       t "regression files" (fun () ->
-          let dir = Filename.concat tests_path "php/parsing" in
-          let files = Common2.glob (spf "%s/*.php" dir) in
+          let dir = tests_path / "php" / "parsing" in
+          let files = Common2.glob (dir / "*.php") in
           files
           |> List.iter (fun file ->
                  try
-                   let _ = Parse_php.parse_program (Fpath.v file) in
+                   let _ = Parse_php.parse_program file in
                    ()
                  with
                  | Parsing_error.Syntax_error _ ->
-                     Alcotest.failf "it should correctly parse %s" file));
+                     Alcotest.failf "it should correctly parse %a" Fpath.pp file));
       (*-----------------------------------------------------------------------*)
       (* Types *)
       (*-----------------------------------------------------------------------*)

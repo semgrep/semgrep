@@ -1,4 +1,3 @@
-open Common
 open Fpath_.Operators
 module G = AST_generic
 
@@ -167,30 +166,30 @@ let tests parse_program parse_pattern =
       (* TODO?? why this is here? should be in Unit_parsing. ml *)
       t "java_pattern_files" (fun () ->
           let dir = tests_path / "parsing_patterns" / "java" in
-          let files = Common2.glob (spf "%s/*.sgrep" !!dir) in
+          let files = Common2.glob (dir / "*.sgrep") in
           files
           |> List.iter (fun file ->
                  try
                    let _ =
-                     parse_pattern Lang.Java (UFile.Legacy.read_file file)
+                     parse_pattern Lang.Java (UFile.Legacy.read_file (!!file))
                    in
                    ()
                  with
                  | Parsing_error.Syntax_error _ ->
-                     Alcotest.failf "it should correctly parse %s" file));
+                     Alcotest.failf "it should correctly parse %a" Fpath.pp file));
       t "go_pattern_files" (fun () ->
           let dir = tests_path / "parsing_patterns" / "go" in
-          let files = Common2.glob (spf "%s/*.sgrep" !!dir) in
+          let files = Common2.glob (dir / "*.sgrep") in
           files
           |> List.iter (fun file ->
                  try
                    let _ =
-                     parse_pattern Lang.Go (UFile.Legacy.read_file file)
+                     parse_pattern Lang.Go (UFile.Legacy.read_file (!!file))
                    in
                    ()
                  with
                  | Parsing_error.Syntax_error _ ->
-                     Alcotest.failf "it should correctly parse %s" file));
+                     Alcotest.failf "it should correctly parse %a" Fpath.pp file));
       t "test basic variable definitions go" (fun () ->
           let file = tests_path_typing / "StaticVarDef.go" in
           try

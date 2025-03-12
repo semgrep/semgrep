@@ -723,11 +723,6 @@ let chop = function
   | "" -> ""
   | s -> String.sub s 0 (String.length s - 1)
 
-(* remove trailing / *)
-let chop_dirsymbol = function
-  | s when s =~ "\\(.*\\)/$" -> matched1 s
-  | s -> s
-
 let strip c s =
   let rec remove_prefix s =
     match s with
@@ -736,12 +731,6 @@ let strip c s =
   in
   list_of_string s |> remove_prefix |> List.rev |> remove_prefix |> List.rev
   |> string_of_chars
-
-(*****************************************************************************)
-(* Filenames *)
-(*****************************************************************************)
-
-let is_relative s = Filename.is_relative s
 
 (*****************************************************************************)
 (* Lines/words/strings *)
@@ -891,15 +880,39 @@ let _ = example (lines_with_nl_either "ab\n\nc" =*=
 let dir_regex = Str.regexp "^[^\\*]*"
 
 let glob pattern =
+  let pattern =
+    if Sys.win32 then
+      (* [Re.Glob] can match a _string_ with backslashes correctly, but the
+         _pattern_ tested against will not glob correctly if it contains
+         backslashes as path separators. E.g., a glob pattern
+         ["foo/**/*.json"] can match a Windows path ["foo\\bar\\baz.json"], but the
+         pattern ["foo\\**\\*.json"] is not a usable glob pattern. Since we
+         construct glob patterns from file paths, we need to ensure that those
+         paths are normalized to form proper glob patterns.  *)
+      Fpath.segs pattern |> String.concat "/"
+    else
+      Fpath.to_string pattern
+  in
   Str.search_forward dir_regex pattern 0 |> ignore;
   let dir = Str.matched_string pattern in
-  let regex = pattern |> Re.Glob.glob ~anchored:true |> Re.compile in
+  let regex =
+    pattern
+    |> Re.Glob.glob
+         ~anchored:true
+         (* allows globbing against windows separators *)
+         ~match_backslashes:true
+    |> Re.compile
+  in
   (* TODO: should remove, but that would require modifying many call sites
    * so let's forge one for now
    *)
   let caps = Cap.readdir_UNSAFE () in
   let files = UFile.Legacy.dir_contents caps dir in
-  files |> List.filter (fun s -> Re.execp regex s)
+  files |> List_.filter_map (fun s ->
+               if Re.execp regex s then
+                 Some (Fpath.v s)
+               else
+                 None)
 
 let unix_diff file1 file2 =
   let cmd = (Cmd.Name "diff", [ "-u"; file1; file2 ]) in
@@ -2326,12 +2339,18 @@ let random_subset_of_list num xs =
 (* Directories part 2 *)
 (*---------------------------------------------------------------------------*)
 
-let inits_of_relative_dir dir =
-  if not (is_relative dir) then
-    failwith (spf "inits_of_relative_dir: %s is not a relative dir" dir);
-  let dir = chop_dirsymbol dir in
+let relative_path_of_segs (segs : string list) : Fpath.t =
+  match segs with
+  | [] -> invalid_arg (__FUNCTION__ ^ ": empty list of segments")
+  | x :: xs -> List.fold_left Fpath.add_seg (Fpath.v x) xs
 
-  let dirs = String.split_on_char '/' dir in
+let inits_of_relative_dir dir =
+  if not (Fpath.is_rel dir) then
+    failwith (spf "inits_of_relative_dir: %s is not a relative dir"
+                (Fpath.to_string dir));
+  (* Remove any trailing seperators, e.g., `a/b/c///` -> `a/b/c` *)
+  let dir = Fpath.rem_empty_seg dir in
+  let dirs = Fpath.segs dir in
   let dirs =
     match dirs with
     | [ "." ] -> []
@@ -2339,7 +2358,7 @@ let inits_of_relative_dir dir =
   in
   inits dirs
   |> List_.tl_exn "unexpected empty list"
-  |> List_.map (fun xs -> String.concat "/" xs)
+  |> List_.map relative_path_of_segs
 
 (* todo? vs common_prefix_of_files_or_dirs? *)
 let find_common_root files =
