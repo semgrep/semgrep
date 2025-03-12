@@ -150,6 +150,10 @@ url = https://github.com/semgrep/semgrep-circom.git
 path = languages/toml/tree-sitter/semgrep-toml
 url = https://github.com/semgrep/semgrep-toml.git
 
+[submodule "OSS/languages/gomod/tree-sitter/semgrep-gomod"]
+path = languages/gomod/tree-sitter/semgrep-gomod
+url = https://github.com/semgrep/semgrep-gomod.git
+
 [submodule "OSS/languages/requirements/tree-sitter/semgrep-requirements"]
 path = languages/requirements/tree-sitter/semgrep-requirements
 url = https://github.com/semgrep/semgrep-requirements.git
