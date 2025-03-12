@@ -60,4 +60,5 @@ let kind_to_ecosystem_opt : kind -> Semgrep_output_v1_t.ecosystem option =
   | MixLock -> Some `Hex
   | UvLock -> Some `Pypi
   | ConanLock -> None
-  | PodfileLock -> failwith "TODO"
+  | PodfileLock -> Some `Cocoapods
+  | OpamLocked -> Some `Opam

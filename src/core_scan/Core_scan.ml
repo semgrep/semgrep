@@ -817,7 +817,7 @@ let mk_target_handler (caps : < Cap.time_limit >) (config : Core_scan_config.t)
     (prefilter_cache_opt : Match_env.prefilter_config) : target_handler =
   (* Note that this function runs in another process *)
   function
-  | Lockfile _ -> failwith "SCA requires semgrep Pro"
+  | DependencySource _ -> failwith "SCA requires semgrep Pro"
   | Regular
       ({
          analyzer;

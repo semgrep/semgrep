@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open Fpath_.Operators
 module Out = Semgrep_output_v1_j
 
 (*****************************************************************************)
@@ -31,22 +30,19 @@ type regular = {
   path : path;
   analyzer : Analyzer.t;
   products : Product.t list;
-  (* TODO: (sca) associate each target with a dependency_source here rather
-   * than only a lockfile.
-   * We did not do this at the time that we added dependency_source because
-   * this code was unused at that point.
-   *)
-  lockfile : Lockfile.t option;
+  dependency_source : SCA_dependency_source.t option;
 }
 [@@deriving show]
 
-type t = Regular of regular | Lockfile of Lockfile.t [@@deriving show]
+type t = Regular of regular | DependencySource of SCA_dependency_source.t
+[@@deriving show]
 
 (*****************************************************************************)
 (* Dumpers *)
 (*****************************************************************************)
 
-let pp_debug_lockfile f (t : Lockfile.t) = Format.fprintf f "%s" !!(t.path)
+let pp_debug_dependency_source f (t : SCA_dependency_source.t) =
+  Format.fprintf f "%s" (SCA_dependency_source.show t)
 
 let pp_debug_regular f (t : regular) =
   Format.fprintf f "%s (%s)"
@@ -55,7 +51,9 @@ let pp_debug_regular f (t : regular) =
 
 let pp_debug f = function
   | Regular t -> Format.fprintf f "target file: %a" pp_debug_regular t
-  | Lockfile t -> Format.fprintf f "target lockfile: %a" pp_debug_lockfile t
+  | DependencySource t ->
+      Format.fprintf f "target dependency source: %a" pp_debug_dependency_source
+        t
 
 (* needed because of some deriving yojson in Targeting_stat.ml *)
 let to_yojson (x : t) : Yojson.Safe.t =
@@ -95,8 +93,9 @@ let path_of_origin (origin : Origin.t) : path =
 (* Builders *)
 (*****************************************************************************)
 
-let mk_regular ?lockfile analyzer products (origin : Origin.t) : regular =
-  { path = path_of_origin origin; analyzer; products; lockfile }
+let mk_regular ?dependency_source analyzer products (origin : Origin.t) :
+    regular =
+  { path = path_of_origin origin; analyzer; products; dependency_source }
 
 (* useful in test context *)
 let mk_target (analyzer : Analyzer.t) (file : Fpath.t) : t =
@@ -115,34 +114,46 @@ let mk_lang_target (lang : Lang.t) (file : Fpath.t) : regular =
 (* old: used to be Input_to_core.target -> Target.t *)
 
 let code_target_location_of_input_to_core
-    ({ path; analyzer; products; lockfile_target = lockfile } : Out.code_target)
-    : regular =
-  mk_regular ?lockfile analyzer products (File path)
+    ({ path; analyzer; products; dependency_source } : Out.code_target) :
+    regular =
+  mk_regular ?dependency_source analyzer products (File path)
 
 let target_of_target (input : Out.target) : t =
   match input with
   | `CodeTarget x -> Regular (code_target_location_of_input_to_core x)
-  | `LockfileTarget x -> Lockfile x
+  | `DependencySourceTarget x -> DependencySource x
 
 (*****************************************************************************)
 (* Accessors *)
 (*****************************************************************************)
 
+let rec internal_path_of_dependency_source (source : SCA_dependency_source.t) :
+    Fpath.t =
+  match source with
+  | ManifestOnlyDependencySource { path; _ } -> path
+  | LockfileOnlyDependencySource { path; _ } -> path
+  | ManifestLockfileDependencySource (_, { path; _ }) -> path
+  (* TODO: this seems really dubious, what should we do here? *)
+  | MultiLockfileDependencySource (src :: _) ->
+      internal_path_of_dependency_source src
+  | MultiLockfileDependencySource [] ->
+      failwith "MultiLockfileDependencySource is empty"
+
 let internal_path (target : t) : Fpath.t =
   match target with
   | Regular { path = { internal_path_to_content; _ }; _ } ->
       internal_path_to_content
-  | Lockfile { path; _ } -> path
+  | DependencySource src -> internal_path_of_dependency_source src
 
 let origin (target : t) : Origin.t =
   match target with
   | Regular { path = { origin; _ }; _ } -> origin
-  | Lockfile { path; _ } -> Origin.File path
+  | DependencySource src -> Origin.File (internal_path_of_dependency_source src)
 
 let analyzer (target : t) : Analyzer.t option =
   match target with
   | Regular r -> Some r.analyzer
-  | Lockfile _ -> None
+  | DependencySource _ -> None
 
 let analyzers_of_targets (targets : t list) : Analyzer.t Set_.t =
   List.fold_left

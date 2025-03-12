@@ -41,11 +41,11 @@ type regular = {
   products : Product.t list;
       (** The products which should scan this target. This is used for
           selecting the relevant set of rules. *)
-  lockfile : Lockfile.t option;
-      (** Optional lockfile associated with this target.
+  dependency_source : SCA_dependency_source.t option;
+      (** Optional dependency associated with this target.
 
           The association is namely that this target has its dependencies
-          specified by the given lockfile. Core doesn't need to worry about
+          specified by the given source. Core doesn't need to worry about
           determining these associations; rather, the target selection and
           generation process must resolve these connections as part of
           generating regular targets. *)
@@ -70,18 +70,23 @@ type regular = {
     However, it does not contain the actual contents (parsed or otherwise) of
     the target itself. For that, see {!Xtarget.t} or {!Lockfile_xtarget}.
  *)
-type t = Regular of regular | Lockfile of Lockfile.t [@@deriving show]
+type t = Regular of regular | DependencySource of SCA_dependency_source.t
+[@@deriving show]
 
 (*****************************************************************************)
 (* Builders *)
 (*****************************************************************************)
 
 val mk_regular :
-  ?lockfile:Lockfile.t -> Analyzer.t -> Product.t list -> Origin.t -> regular
+  ?dependency_source:SCA_dependency_source.t ->
+  Analyzer.t ->
+  Product.t list ->
+  Origin.t ->
+  regular
 (** [mk_regular analyzer products origin] is a {!regular} target
       originating from [origin] to be analyzed with [analyzer] for [products].
-      If [lockfile] is specified then it shall be used as the associated
-      lockfile if dependency patterns are to be ran.
+      If [dependency_source] is specified then it shall be used as the associated
+      dependency source if dependency patterns are to be ran.
 
       This function should be generally preferred over creating a record
       directly, since it can peform actions which may be required when creating
