@@ -56,6 +56,8 @@ and show_kind =
   | DumpAST of Fpath.t * Lang.t
   | DumpConfig of Rules_config.config_string
   | DumpRuleV2 of Fpath.t
+  | DumpTargets of
+      Scanning_root.t * Find_targets.conf * Rules_config.config_string option
   (* 'semgrep show ???'
    * accessible also as 'semgrep scan --dump-engine-path
    * LATER: get rid of it? *)
@@ -251,6 +253,36 @@ let dump_rule_v2_cmd =
   in
   Cmd.v info term
 
+let dump_targets_cmd =
+  let doc = "Dump the targets from a scanning root and rules config" in
+  let root_arg =
+    Arg.(required & pos 0 (some string) None & info [] ~docv:"ROOT")
+  in
+  let config_arg =
+    Arg.(value & pos 1 (some string) None & info [] ~docv:"CONFIG")
+  in
+  (* TODO: add lots of o_xxx for Find_targets.conf, reusing some
+   * from Scan_CLI.ml (but mutually recursive so need to split or duplicate)
+   *)
+  let info = Cmd.info "dump-targets" ~doc in
+  let term =
+    Term.(
+      const (fun root config_opt common ->
+          let scanning_root : Scanning_root.t = Scanning_root.of_string root in
+          (* TODO: add cmdline argument for dump-targets to accept --exclude,
+           * --include, etc, like for semgrep scan
+           *)
+          let target_conf : Find_targets.conf = Find_targets.default_conf in
+          let config_str : Rules_config.config_string option = config_opt in
+          {
+            common;
+            json = false;
+            show_kind = DumpTargets (scanning_root, target_conf, config_str);
+          })
+      $ root_arg $ config_arg $ CLI_common.o_common)
+  in
+  Cmd.v info term
+
 let debug_cmd caps =
   let doc = "Open an interactive debugging view" in
   let output_dir_info =
@@ -367,6 +399,7 @@ let parse_argv (caps : < Cap.tmp ; .. >) (argv : string array) : conf =
         dump_ast_cmd;
         dump_config_cmd;
         dump_rule_v2_cmd;
+        dump_targets_cmd;
         debug_cmd caps;
         dump_lockfile_cmd;
       ]

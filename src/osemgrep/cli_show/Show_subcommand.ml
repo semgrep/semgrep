@@ -1,5 +1,7 @@
 open Common
 module J = JSON
+open Fpath_.Operators
+module Out = Semgrep_output_v1_t
 
 (*****************************************************************************)
 (* Prelude *)
@@ -166,6 +168,26 @@ let run_conf (caps : < caps ; .. >) (conf : Show_CLI.conf) : Exit_code.t =
       let rules = Parse_rules_with_atd.parse_rules_v2 file in
       print (Rule_schema_v2_t.show_rules rules);
       Exit_code.ok ~__LOC__
+  (* see also the pysemgrep and osemgrep scan --x-ls option *)
+  | DumpTargets (scanning_root, target_conf, config_str_opt) -> (
+      (* coupling: similar to parts of Core_scan.targets_of_config *)
+      let target_paths, _errors, skipped =
+        Find_targets.get_target_fpaths caps target_conf [ scanning_root ]
+      in
+      match config_str_opt with
+      | None ->
+          target_paths
+          |> List.iter (fun path -> print (spf "target = %s" !!path));
+          skipped
+          |> List.iter (fun (skip : Out.skipped_target) ->
+                 print (spf "skipped = %s" (Out.show_skipped_target skip)));
+          Exit_code.ok ~__LOC__
+      | Some _config_str -> failwith "TODO"
+      (* TODO
+         let targets =
+           Core_targeting.targets_for_files_and_rules target_paths rules
+         in
+      *))
   | DumpEnginePath _pro -> failwith "TODO: dump-engine-path not implemented yet"
   | DumpCommandForCore ->
       failwith "TODO: dump-command-for-core not implemented yet"

@@ -26,6 +26,8 @@ and show_kind =
   | DumpAST of Fpath.t * Lang.t
   | DumpConfig of Rules_config.config_string
   | DumpRuleV2 of Fpath.t
+  | DumpTargets of
+      Scanning_root.t * Find_targets.conf * Rules_config.config_string option
   | DumpEnginePath of bool (* pro = true *)
   | DumpCommandForCore
   (* pro-only commands *)
