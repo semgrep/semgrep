@@ -29,10 +29,6 @@
   "vulnerabilities": [
     {
       "category": "secret_detection",
-      "commit": {
-        "date": "<MASKED>",
-        "sha": "0000000"
-      },
       "cve": "targets/basic/stupid.py:4eb070c4173775f0145392a730b9f22018e5e44638f8d085bd48e7cd18fec7da:rules.eqeq-is-bad",
       "description": "useless comparison operation `a + b == a + b` or `a + b != a + b`",
       "details": {},
@@ -47,14 +43,14 @@
         }
       ],
       "location": {
+        "commit": {
+          "sha": "0000000"
+        },
         "end_line": 3,
         "file": "targets/basic/stupid.py",
         "start_line": 3
       },
       "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`",
-      "raw_source_code_extract": [
-        "    return a + b == a + b\n"
-      ],
       "scanner": {
         "id": "semgrep",
         "name": "Semgrep",

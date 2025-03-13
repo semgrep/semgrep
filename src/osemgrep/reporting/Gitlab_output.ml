@@ -171,17 +171,20 @@ let sast_format_cli_match (cli_match : Out.cli_match) =
 let secrets_format_cli_match (cli_match : Out.cli_match) =
   let r = format_cli_match cli_match in
   ("category", `String "secret_detection")
-  :: ( "raw_source_code_extract",
-       `List [ `String (cli_match.extra.lines ^ "\n") ] )
-  :: ( "commit",
-       `Assoc
-         [
-           ("date", `String "1970-01-01T00:00:00Z");
-           (* Even the native Gitleaks based Gitlab secret detection
-              only provides a dummy value for now on relevant hash. *)
-           ("sha", `String "0000000");
-         ] )
-  :: r
+  :: (r
+     |> List_.map (function
+          | "location", `Assoc locs ->
+              let commit =
+                ( "commit",
+                  `Assoc
+                    [
+                      (* Even the native Gitleaks based Gitlab secret detection
+                         only provides a dummy value for now on relevant hash. *)
+                      ("sha", `String "0000000");
+                    ] )
+              in
+              ("location", `Assoc (commit :: locs))
+          | __else__ -> __else__))
 
 (*****************************************************************************)
 (* Entry points *)

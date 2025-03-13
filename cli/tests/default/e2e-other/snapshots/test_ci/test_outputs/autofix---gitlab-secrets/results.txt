@@ -34,10 +34,6 @@
   "vulnerabilities": [
     {
       "category": "secret_detection",
-      "commit": {
-        "date": "<MASKED>",
-        "sha": "0000000"
-      },
       "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-bad",
       "description": "useless comparison",
       "details": {},
@@ -52,14 +48,14 @@
         }
       ],
       "location": {
+        "commit": {
+          "sha": "0000000"
+        },
         "end_line": 4,
         "file": "foo.py",
         "start_line": 4
       },
       "message": "useless comparison",
-      "raw_source_code_extract": [
-        "    a == a\n"
-      ],
       "scanner": {
         "id": "semgrep",
         "name": "Semgrep",
@@ -71,10 +67,6 @@
     },
     {
       "category": "secret_detection",
-      "commit": {
-        "date": "<MASKED>",
-        "sha": "0000000"
-      },
       "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-bad",
       "description": "useless comparison",
       "details": {},
@@ -89,14 +81,14 @@
         }
       ],
       "location": {
+        "commit": {
+          "sha": "0000000"
+        },
         "end_line": 5,
         "file": "foo.py",
         "start_line": 5
       },
       "message": "useless comparison",
-      "raw_source_code_extract": [
-        "    a == a\n"
-      ],
       "scanner": {
         "id": "semgrep",
         "name": "Semgrep",
@@ -108,10 +100,6 @@
     },
     {
       "category": "secret_detection",
-      "commit": {
-        "date": "<MASKED>",
-        "sha": "0000000"
-      },
       "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-bad",
       "description": "useless comparison",
       "details": {},
@@ -126,14 +114,14 @@
         }
       ],
       "location": {
+        "commit": {
+          "sha": "0000000"
+        },
         "end_line": 7,
         "file": "foo.py",
         "start_line": 7
       },
       "message": "useless comparison",
-      "raw_source_code_extract": [
-        "    a == a\n"
-      ],
       "scanner": {
         "id": "semgrep",
         "name": "Semgrep",
@@ -145,10 +133,6 @@
     },
     {
       "category": "secret_detection",
-      "commit": {
-        "date": "<MASKED>",
-        "sha": "0000000"
-      },
       "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-bad",
       "description": "useless comparison",
       "details": {},
@@ -163,14 +147,14 @@
         }
       ],
       "location": {
+        "commit": {
+          "sha": "0000000"
+        },
         "end_line": 11,
         "file": "foo.py",
         "start_line": 11
       },
       "message": "useless comparison",
-      "raw_source_code_extract": [
-        "    y == y\n"
-      ],
       "scanner": {
         "id": "semgrep",
         "name": "Semgrep",
@@ -182,10 +166,6 @@
     },
     {
       "category": "secret_detection",
-      "commit": {
-        "date": "<MASKED>",
-        "sha": "0000000"
-      },
       "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-five",
       "description": "useless comparison to 5",
       "details": {},
@@ -200,14 +180,14 @@
         }
       ],
       "location": {
+        "commit": {
+          "sha": "0000000"
+        },
         "end_line": 15,
         "file": "foo.py",
         "start_line": 15
       },
       "message": "useless comparison to 5",
-      "raw_source_code_extract": [
-        "    x == 5\n"
-      ],
       "scanner": {
         "id": "semgrep",
         "name": "Semgrep",
@@ -219,10 +199,6 @@
     },
     {
       "category": "secret_detection",
-      "commit": {
-        "date": "<MASKED>",
-        "sha": "0000000"
-      },
       "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:eqeq-four",
       "description": "useless comparison to 4",
       "details": {},
@@ -237,14 +213,14 @@
         }
       ],
       "location": {
+        "commit": {
+          "sha": "0000000"
+        },
         "end_line": 19,
         "file": "foo.py",
         "start_line": 19
       },
       "message": "useless comparison to 4",
-      "raw_source_code_extract": [
-        "    baz == 4\n"
-      ],
       "scanner": {
         "id": "semgrep",
         "name": "Semgrep",
@@ -256,10 +232,6 @@
     },
     {
       "category": "secret_detection",
-      "commit": {
-        "date": "<MASKED>",
-        "sha": "0000000"
-      },
       "cve": "foo.py:b08fd7a517303ab07cfa211f74d03c1a4c2e64b3b0656d84ff32ecb449b785d2:taint-test",
       "description": "unsafe use of danger",
       "details": {},
@@ -274,14 +246,14 @@
         }
       ],
       "location": {
+        "commit": {
+          "sha": "0000000"
+        },
         "end_line": 27,
         "file": "foo.py",
         "start_line": 27
       },
       "message": "unsafe use of danger",
-      "raw_source_code_extract": [
-        "    sink(d2)\n"
-      ],
       "scanner": {
         "id": "semgrep",
         "name": "Semgrep",
@@ -293,10 +265,6 @@
     },
     {
       "category": "secret_detection",
-      "commit": {
-        "date": "<MASKED>",
-        "sha": "0000000"
-      },
       "cve": "poetry.lock:f53a023eedfa3fbf2925ec7dc76eecdc954ea94b7e47065393dbad519613dc89:supply-chain1",
       "description": "found a dependency",
       "details": {
@@ -317,14 +285,14 @@
         }
       ],
       "location": {
+        "commit": {
+          "sha": "0000000"
+        },
         "end_line": 2,
         "file": "poetry.lock",
         "start_line": 2
       },
       "message": "found a dependency",
-      "raw_source_code_extract": [
-        "name = \"badlib\"\n"
-      ],
       "scanner": {
         "id": "semgrep",
         "name": "Semgrep",
