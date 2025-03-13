@@ -15,3 +15,5 @@ val kind_to_ecosystem_opt : kind -> Semgrep_output_v1_j.ecosystem option
     If the manifest kind has a supported ecosystem, return [Some ecosystem].
     Otherwise, return [None], which means we don't have an ecosystem for the
     given manifest kind. *)
+
+val kind_of_filename_exn : Fpath.t -> kind

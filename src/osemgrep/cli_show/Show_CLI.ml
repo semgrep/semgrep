@@ -64,7 +64,9 @@ and show_kind =
    * accessible also as 'semgrep scan --dump-command-for-core' (or just '-d')
    * LATER: get rid of it *)
   | DumpCommandForCore
+  (* pro-only commands *)
   | Debug of debug_settings
+  | DumpLockfile of Fpath.t (* lockfile *) * Fpath.t option (* manifest *)
 [@@deriving show]
 
 (*************************************************************************)
@@ -290,6 +292,35 @@ let debug_cmd caps =
   in
   Cmd.v info term
 
+let dump_lockfile_cmd =
+  let doc =
+    "Dump the extracted dependencies from a lockfile (and manifest) (pro only)"
+  in
+  (* TODO? we could add a --ecosystem for explicitely specifying
+   * the ecosystem instead of inferring it from the name of the lockfile
+   * in Lockfile.kind_of_filename_exn and Manifest.kind_of_filename_exn
+   *)
+  let manifest_arg =
+    Arg.(value & pos 1 (some string) None & info [] ~docv:"MANIFEST")
+  in
+  let file_arg =
+    Arg.(required & pos 0 (some string) None & info [] ~docv:"LOCKFILE")
+  in
+  let info = Cmd.info "dump-lockfile" ~doc in
+  let term =
+    Term.(
+      const (fun file manifest_opt common ->
+          let file = Fpath.v file in
+          let manifest_opt = Option.map Fpath.v manifest_opt in
+          {
+            common;
+            json = false;
+            show_kind = DumpLockfile (file, manifest_opt);
+          })
+      $ file_arg $ manifest_arg $ CLI_common.o_common)
+  in
+  Cmd.v info term
+
 (*************************************************************************)
 (* Main command *)
 (*************************************************************************)
@@ -337,6 +368,7 @@ let parse_argv (caps : < Cap.tmp ; .. >) (argv : string array) : conf =
         dump_config_cmd;
         dump_rule_v2_cmd;
         debug_cmd caps;
+        dump_lockfile_cmd;
       ]
   in
   CLI_common.eval_value ~argv group

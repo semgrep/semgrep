@@ -12,6 +12,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Common
+module Out = Semgrep_output_v1_t
 
 (*****************************************************************************)
 (* Prelude *)
@@ -28,8 +30,8 @@
 (* TODO? add a manifest option in it? to know the origin of the lockfile?
  * old: used to be path : Target.path but no need complex origin for manifest
  *)
-type t = Semgrep_output_v1_t.lockfile [@@deriving show]
-type kind = Semgrep_output_v1_t.lockfile_kind [@@deriving show, eq]
+type t = Out.lockfile [@@deriving show]
+type kind = Out.lockfile_kind [@@deriving show, eq]
 
 (*****************************************************************************)
 (* API *)
@@ -62,3 +64,14 @@ let kind_to_ecosystem_opt : kind -> Semgrep_output_v1_t.ecosystem option =
   | ConanLock -> None
   | PodfileLock -> Some `Cocoapods
   | OpamLocked -> Some `Opam
+
+let kind_of_filename_exn (file : Fpath.t) : kind =
+  match Fpath.basename file with
+  | "uv.lock" -> Out.UvLock
+  | "yarn.lock" -> Out.YarnLock
+  | "package-lock.json" -> Out.NpmPackageLockJson
+  | "Pipfile.lock" -> Out.PipfileLock
+  | "mix.lock" -> Out.MixLock
+  | "requirements.txt" -> Out.PipRequirementsTxt
+  | "Package.resolved" -> Out.SwiftPackageResolved
+  | str -> failwith (spf "unrecognized lockfile: %s" str)

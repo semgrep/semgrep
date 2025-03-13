@@ -159,9 +159,9 @@ let run_conf (caps : < caps ; .. >) (conf : Show_CLI.conf) : Exit_code.t =
   | DumpRuleV2 file ->
       (* TODO: use validation ocaml code to enforce the
        * CHECK: in rule_schema_v2.atd.
-       * For example, check that at least one and only one field is set in formula.
-       * Reclaim some of the jsonschema power. Maybe define combinators to express
-       * that in rule_schema_v2_adapter.ml?
+       * For example, check that at least one and only one field is set in
+       * formula. Reclaim some of the jsonschema power.
+       * Maybe define combinators to express that in rule_schema_v2_adapter.ml?
        *)
       let rules = Parse_rules_with_atd.parse_rules_v2 file in
       print (Rule_schema_v2_t.show_rules rules);
@@ -170,6 +170,7 @@ let run_conf (caps : < caps ; .. >) (conf : Show_CLI.conf) : Exit_code.t =
   | DumpCommandForCore ->
       failwith "TODO: dump-command-for-core not implemented yet"
   | Debug _ -> failwith "TODO: CE-only show debug not implemented yet"
+  | DumpLockfile _ -> failwith "this subcommand requires semgrep-pro"
 
 (*****************************************************************************)
 (* Entry point *)

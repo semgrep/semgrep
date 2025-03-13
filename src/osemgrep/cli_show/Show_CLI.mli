@@ -28,7 +28,9 @@ and show_kind =
   | DumpRuleV2 of Fpath.t
   | DumpEnginePath of bool (* pro = true *)
   | DumpCommandForCore
+  (* pro-only commands *)
   | Debug of debug_settings  (** Open an interactive debugging view. *)
+  | DumpLockfile of Fpath.t (* lockfile *) * Fpath.t option (* manifest *)
 
 and debug_settings = {
   output_dir : Fpath.t;

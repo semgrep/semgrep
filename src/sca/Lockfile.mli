@@ -27,3 +27,5 @@ val kind_to_ecosystem_opt : kind -> Semgrep_output_v1_t.ecosystem option
     ]}
 
     Used in Core_scan.ml to filter which rules to apply given a lockfile. *)
+
+val kind_of_filename_exn : Fpath.t -> kind

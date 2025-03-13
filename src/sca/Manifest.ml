@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Common
 
 (*****************************************************************************)
 (* Prelude *)
@@ -69,3 +70,8 @@ let kind_to_ecosystem_opt : kind -> Semgrep_output_v1_t.ecosystem option =
       None
   | `Podfile -> Some `Cocoapods
   | `OpamFile -> Some `Opam
+
+let kind_of_filename_exn (file : Fpath.t) : kind =
+  match Fpath.basename file with
+  | "mix.exs" -> `MixExs
+  | str -> failwith (spf "unrecognized manifest: %s" str)
