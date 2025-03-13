@@ -194,8 +194,6 @@ local job(
        // TODO: we do not call `git lfs fetch` anymore in the Dockerfile
        // so do we still need this line?
        context: '.',
-       'cache-from': 'type=gha',
-       'cache-to': 'type=gha,mode=max',
        platforms: platforms,
 
        // tags and labels populated from the 'meta' step above
