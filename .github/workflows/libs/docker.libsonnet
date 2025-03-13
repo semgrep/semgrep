@@ -19,14 +19,20 @@ local ref_expr = "${{ inputs.ref != '' && inputs.ref || github.sha }}";
 //       same job. Maybe also use it in the release script.
 
 local platforms = 'linux/amd64,linux/arm64';
-local archs = ['amd64', 'arm64'];
+local archs = ['amd64', 'arm64', 'x86'];
+// Needed to find the binaries when making the artifact
+local arch_to_docker_arch = {
+  'amd64': 'amd64',
+  'arm64': 'arm64',
+  'x86': 'amd64',
+};
 // ----------------------------------------------------------------------------
 // The job
 // ----------------------------------------------------------------------------
 
-local copy_from_docker(artifact_name, target, arch, file='Dockerfile') = [
+local copy_from_docker(artifact_name, target, file='Dockerfile') = [
     {
-        id: 'copy-%s-%s-binaries' % [artifact_name, arch],
+        id: 'copy-%s-binaries' % [artifact_name],
         name: 'Copy %s binaries from the Docker image to GHA runner machine' % artifact_name,
         uses: 'depot/build-push-action@v1.9.0',
         with: {
@@ -38,9 +44,12 @@ local copy_from_docker(artifact_name, target, arch, file='Dockerfile') = [
         outputs: 'type=local,dest=/tmp/binaries',
         },
     },
-    actions.make_artifact_step('/tmp/binaries/linux_%s/%s' % [arch, artifact_name]),
-    actions.upload_artifact_step('%s-linux-%s' % [artifact_name, arch])
-];
+] + std.flattenArrays(
+  std.map(function(arch)
+    [
+      actions.make_artifact_step('/tmp/binaries/linux_%s/*' % arch_to_docker_arch[arch]),
+      actions.upload_artifact_step('%s-linux-%s' % [artifact_name, arch])
+    ], archs));
 
 local job(
     name,
@@ -179,7 +188,7 @@ local job(
     // semgrep/semgrep-proprietary registry.
     {
       id: 'build-%s-docker-image' % name,
-      name: 'Build docker image in Depot %s' % (if push then 'and push to Docker Hub' else ''),
+      name: 'Build docker image in Depot%s' % (if push then ' and push to Docker Hub' else ''),
       uses: 'depot/build-push-action@v1.9.0',
       with: {
        project: '${{ secrets.DEPOT_PROJECT_ID }}',
@@ -228,8 +237,7 @@ local job(
     },
     ] +
     (if artifact_name != null then (
-        copy_from_docker(artifact_name, target, "amd64", file) +
-        copy_from_docker(artifact_name, target, "arm64", file)
+        copy_from_docker(artifact_name, target, file)
     ) else []),
 };
 
