@@ -139,18 +139,7 @@ val inits_of_relative_dir : Fpath.t -> Fpath.t list
 (*****************************************************************************)
 
 val list_of_string : string -> char list
-val lines : string -> string list
-val unlines : string list -> string
-val words : string -> string list
-val unwords : string list -> string
-val split_space : string -> string list
-val lines_with_nl : string -> string list
-val nblines : string -> int
 val nblines_eff : string -> int
-val words_of_string_with_newlines : string -> string list
-
-(* e.g. on "ab\n\nc" it will return [Left "ab"; Right (); Right (); Left "c"] *)
-val lines_with_nl_either : string -> (string, unit) Either.t list
 
 (*###########################################################################*)
 (* Collection-like types *)

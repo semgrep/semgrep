@@ -49,8 +49,6 @@ let rec take n xs =
   | _, [] -> failwith "Common.take: not enough"
   | n, x :: xs -> x :: take (n - 1) xs
 
-let exclude p xs = List.filter (fun x -> not (p x)) xs
-
 (*let last l = List_.hd_exn "unexpected empty list" (last_n 1 l) *)
 let rec list_last = function
   | [] -> raise Not_found
@@ -60,15 +58,6 @@ let rec list_last = function
 let (list_of_string : string -> char list) = function
   | "" -> []
   | s -> List_.enum 0 (String.length s - 1) |> List_.map (String.get s)
-
-let (lines : string -> string list) =
- fun s ->
-  let rec lines_aux = function
-    | [] -> []
-    | [ x ] -> if x = "" then [] else [ x ]
-    | x :: xs -> x :: lines_aux xs
-  in
-  Str.split_delim (Str.regexp "\r\n\\|\n") s |> lines_aux
 
 let foldl1 p xs =
   match xs with
@@ -333,73 +322,6 @@ let strip c s =
 (* Lines/words/strings *)
 (*****************************************************************************)
 
-(* now in prelude:
- * let (list_of_string: string -> char list) = fun s ->
- * (enum 0 ((String.length s) - 1) +> List.map (String.get s))
- *)
-
-let _ = assert (list_of_string "abcd" =*= [ 'a'; 'b'; 'c'; 'd' ])
-
-(*
-let rec (list_of_stream: ('a Stream.t) -> 'a list) =
-parser
-  | [< 'c ; stream >]  -> c :: list_of_stream stream
-  | [<>]               -> []
-
-let (list_of_string: string -> char list) =
-  Stream.of_string $ list_of_stream
-*)
-
-(* now in prelude:
- * let (lines: string -> string list) = fun s -> ...
- *)
-
-let (lines_with_nl : string -> string list) =
- fun s ->
-  let rec lines_aux = function
-    | [] -> []
-    | [ x ] -> if x = "" then [] else [ x ^ "\n" ] (* old: [x] *)
-    | x :: xs ->
-        let e = x ^ "\n" in
-        e :: lines_aux xs
-  in
-  Str.split_delim (Str.regexp "\n") s |> lines_aux
-
-(* in fact better make it return always complete lines, simplify *)
-(*  Str.split, but lines "\n1\n2\n" dont return the \n and forget the first \n => split_delim better than split *)
-(* +> List.map (fun s -> s ^ "\n") but add an \n even at the end => lines_aux *)
-(* old: slow
-   let chars = list_of_string s in
-   chars +> List.fold_left (fun (acc, lines) char ->
-    let newacc = acc ^ (String.make 1 char) in
-    if char = '\n'
-    then ("", newacc::lines)
-    else (newacc, lines)
-    ) ("", [])
-       +> (fun (s, lines) -> List.rev (s::lines))
-*)
-
-(*  CHECK: unlines (lines x) = x *)
-let (unlines : string list -> string) = fun s -> String.concat "\n" s ^ "\n"
-
-let (words : string -> string list) =
- fun s -> Str.split (Str.regexp "[ \t()\";]+") s
-
-let (unwords : string list -> string) = fun s -> String.concat "" s
-
-let (split_space : string -> string list) =
- fun s -> Str.split (Str.regexp "[ \t\n]+") s
-
-(* see nblines_eff for a more efficient implementation *)
-let nblines s = lines s |> List.length
-(*
-let _ = example (nblines "" =|= 0)
-let _ = example (nblines "toto" =|= 1)
-let _ = example (nblines "toto\n" =|= 1)
-let _ = example (nblines "toto\ntata" =|= 2)
-let _ = example (nblines "toto\ntata\n" =|= 2)
-*)
-
 (* old: fork sucks.
  * (* note: on MacOS wc outputs some spaces before the number of lines *)
  *)
@@ -431,42 +353,6 @@ let count_newlines s =
 
 (* Compose the previous two functions to count the lines in a file *)
 let nblines_eff file = fold_file (fun x s -> x + count_newlines s) 0 file
-
-(* old: this could generate some Sys_error "Out of memory" in stressful
- * conditions because of the repeated calls to input_line which on
- * huge files will allocate each time new memory. The GC will reclaim
- * it, but it may be too late and we reach the physical memory limit.
- *)
-(*
-let nblines_eff2 file =
-  let res = ref 0 in
-  let finished = ref false in
-  let ch = open_in_bin file in
-  while not !finished do
-    try
-      let _ = input_line ch in
-      incr res
-    with End_of_file -> finished := true
-  done;
-  close_in ch;
-  !res
-*)
-
-(* could be in h_files-format *)
-let words_of_string_with_newlines s =
-  lines s |> List_.map words |> List_.flatten |> exclude String_.empty
-
-let lines_with_nl_either s =
-  let xs = Str.full_split (Str.regexp "\n") s in
-  xs
-  |> List_.map (function
-       | Str.Delim _s -> Either.Right ()
-       | Str.Text s -> Either.Left s)
-
-(*
-let _ = example (lines_with_nl_either "ab\n\nc" =*=
-    [Left "ab"; Right (); Right (); Left "c"])
-*)
 
 (* This regex matches the directory part a glob pattern
    used below. This way we are only trying to match
