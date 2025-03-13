@@ -29,7 +29,140 @@
 (maintainers "Semgrep authors")
 (authors "Semgrep authors")
 
-;; Opam packages (sorted alphabetically)
+;; Semgrep package
+;; coupling: if you modify this package, type 'make semgrep.opam'
+(package (name semgrep)
+  (synopsis "Like grep but for code: fast and syntax-aware semantic code pattern for many languages")
+  (description "\
+Semgrep is like grep but for searching patterns at the AST level while
+leveraging semantic information (e.g., types, control flow) for powerful
+matching.
+
+For more information see https://semgrep.dev
+"
+  )
+  (maintainers "Yoann Padioleau <pad@semgrep.com>")
+  (authors "Yoann Padioleau <pad@semgrep.com>")
+  (license "LGPL-2.1-only")
+
+; note: these are build dependencies. Development-only deps are in 'dev/*.opam'.
+
+; note: vendored libs are listed here so we pull in their opam dependencies
+; (e.g., ocaml-tree-sitter-core -> tsort). They are pinned in
+; semgrep.opam.template to the local version, so we don't have to worry about
+; publishing to opam. If you want to add another, add it below and pin it there
+;
+; coupling: because of the way we need to statically link on macOS, if you add a
+; library here, you'll probably need to update src/main/flags.sh if this library
+; has some C stubs.
+;
+; coupling: if you add a dependency here and the nix workflow fails, you may
+; need to manually trigger the "nix-weekly-update-flake" workflow
+  (depends
+    ; core deps
+    (ocaml (>= 4.13.0))
+    (dune (>= 2.7.0 ))
+    base
+    ; parser generators
+    (menhir (= 20230608))
+    ; vendored in libs/ocaml-tree-sitter-core
+    tree-sitter
+    ; standard libraries
+    ; We don't use Base directly. If it's being used indirectly
+    ; (is it, though?), we need a version that doesn't register
+    ; rogue exception printers.
+    ; See https://github.com/janestreet/base/issues/146
+    (base (>= v0.15.1))
+    fpath
+    bos
+    fileutils
+    ; unit testing (note that testo is vendored in libs/)
+    testo
+    alcotest
+    alcotest-js
+    alcotest-lwt
+    calendar
+    ; text and terminal formating
+    fmt
+    ocolor
+    ANSITerminal
+    terminal_size
+    ; Unicode - used via python-str-repr
+    uucp
+    uutf
+    ; logging
+    logs
+    ; JSON/YAML/XML
+    atdgen
+    (yojson ( >= 2.0.0 ))
+    yaml
+    xmlm
+    (sarif ( >= 0.3.0 ))
+    ; CLI
+    cmdliner
+    ; PPX
+    ppxlib
+    (ppx_deriving ( >= 6.0.3 ))
+    ppx_deriving_yojson
+    ppx_hash
+    ppx_inline_test
+    (ppx_sexp_conv ( = v0.16.0))
+    ppx_expect
+    (visitors (= 20210608))
+    ; regexps
+    re
+    pcre
+    ; we're currently "vendoring" pcre2 in libs/pcre2
+    pcre2
+    ; misc
+    ocamlgraph
+    parmap
+    semver
+    (timedesc (>= 2.0.0)) ; used via git-wrapper
+    (lsp (= 1.20.1))
+    git
+    ; tracing
+    trace
+    memtrace
+    ppx_trace
+    (opentelemetry (= 0.10))
+    ; needed by opentelemetry-client-ocurl but the latest, 0.9.2
+    ; does not work under windows (see https://github.com/ygrek/ocurl/issues/77)
+    ; hence the pin to 0.9.1
+    (ocurl (= 0.9.1))
+    opentelemetry-client-ocurl
+    ambient-context-lwt
+    conf-libcurl
+    ; web stuff
+    uri
+    (uuidm (>= 0.9.9))
+    (cohttp (= 6.0.0)) ; 6.0.0 for better error handling
+    cohttp-lwt-unix
+    cohttp-lwt-jsoo
+    tls-lwt ; needed for TLS support in the cohttp HTTP client (only TLS 1.3 seems to work)
+    emile
+    (digestif (>= 1.0.0))
+    (tls-mirage (= 0.17.3)) ; force older version of tls-mirage to make windows work
+    ; concurrency
+    lwt
+    lwt_ppx
+    (conf-libev (<> :os win32)) ; for lwt, to get better FD perf
+    ; jsoo
+    (js_of_ocaml (= 5.8.2))
+    (js_of_ocaml-compiler (= 5.8.2))
+    (js_of_ocaml-ppx (= 5.8.2))
+    (js_of_ocaml-lwt (= 5.8.2))
+    integers_stubs_js
+    ;TODO: this is for secrets and should be in ../dune-project but doing so
+    ; slows down a lot our CI because it pulls dependencies that seem
+    ; to cause the removal and recompilation of many packages (e.g., tls) and
+    ; make our GHA opam cache useless. We might need to install here instead
+    ; packages that would avoid this effect.
+    git-unix
+  )
+)
+
+;; Other opam packages (sorted alphabetically)
 
 (package
   (name aliengrep)
@@ -419,138 +552,6 @@ metrics
     (ocaml (>= "4.13.0"))
     (dune (>= "3.2.0" ))
     (commons (>= "1.5.5"))
-  )
-)
-
-;; coupling: if you modify this package, type 'make semgrep.opam'
-(package (name semgrep)
-  (synopsis "Like grep but for code: fast and syntax-aware semantic code pattern for many languages")
-  (description "\
-Semgrep is like grep but for searching patterns at the AST level while
-leveraging semantic information (e.g., types, control flow) for powerful
-matching.
-
-For more information see https://semgrep.dev
-"
-  )
-  (maintainers "Yoann Padioleau <pad@semgrep.com>")
-  (authors "Yoann Padioleau <pad@semgrep.com>")
-  (license "LGPL-2.1-only")
-
-; note: these are build dependencies. Development-only deps are in 'dev/*.opam'.
-
-; note: vendored libs are listed here so we pull in their opam dependencies
-; (e.g., ocaml-tree-sitter-core -> tsort). They are pinned in
-; semgrep.opam.template to the local version, so we don't have to worry about
-; publishing to opam. If you want to add another, add it below and pin it there
-;
-; coupling: because of the way we need to statically link on macOS, if you add a
-; library here, you'll probably need to update src/main/flags.sh if this library
-; has some C stubs.
-;
-; coupling: if you add a dependency here and the nix workflow fails, you may
-; need to manually trigger the "nix-weekly-update-flake" workflow
-  (depends
-    ; core deps
-    (ocaml (>= 4.13.0))
-    (dune (>= 2.7.0 ))
-    base
-    ; parser generators
-    (menhir (= 20230608))
-    ; vendored in libs/ocaml-tree-sitter-core
-    tree-sitter
-    ; standard libraries
-    ; We don't use Base directly. If it's being used indirectly
-    ; (is it, though?), we need a version that doesn't register
-    ; rogue exception printers.
-    ; See https://github.com/janestreet/base/issues/146
-    (base (>= v0.15.1))
-    fpath
-    bos
-    fileutils
-    ; unit testing (note that testo is vendored in libs/)
-    testo
-    alcotest
-    alcotest-js
-    alcotest-lwt
-    calendar
-    ; text and terminal formating
-    fmt
-    ocolor
-    ANSITerminal
-    terminal_size
-    ; Unicode - used via python-str-repr
-    uucp
-    uutf
-    ; logging
-    logs
-    ; JSON/YAML/XML
-    atdgen
-    (yojson ( >= 2.0.0 ))
-    yaml
-    xmlm
-    (sarif ( >= 0.3.0 ))
-    ; CLI
-    cmdliner
-    ; PPX
-    ppxlib
-    (ppx_deriving ( >= 6.0.3 ))
-    ppx_deriving_yojson
-    ppx_hash
-    ppx_inline_test
-    (ppx_sexp_conv ( = v0.16.0))
-    ppx_expect
-    (visitors (= 20210608))
-    ; regexps
-    re
-    pcre
-    ; we're currently "vendoring" pcre2 in libs/pcre2
-    pcre2
-    ; misc
-    ocamlgraph
-    parmap
-    semver
-    (timedesc (>= 2.0.0)) ; used via git-wrapper
-    (lsp (= 1.20.1))
-    git
-    ; tracing
-    trace
-    memtrace
-    ppx_trace
-    (opentelemetry (= 0.10))
-    ; needed by opentelemetry-client-ocurl but the latest, 0.9.2
-    ; does not work under windows (see https://github.com/ygrek/ocurl/issues/77)
-    ; hence the pin to 0.9.1
-    (ocurl (= 0.9.1))
-    opentelemetry-client-ocurl
-    ambient-context-lwt
-    conf-libcurl
-    ; web stuff
-    uri
-    (uuidm (>= 0.9.9))
-    (cohttp (= 6.0.0)) ; 6.0.0 for better error handling
-    cohttp-lwt-unix
-    cohttp-lwt-jsoo
-    tls-lwt ; needed for TLS support in the cohttp HTTP client (only TLS 1.3 seems to work)
-    emile
-    (digestif (>= 1.0.0))
-    (tls-mirage (= 0.17.3)) ; force older version of tls-mirage to make windows work
-    ; concurrency
-    lwt
-    lwt_ppx
-    (conf-libev (<> :os win32)) ; for lwt, to get better FD perf
-    ; jsoo
-    (js_of_ocaml (= 5.8.2))
-    (js_of_ocaml-compiler (= 5.8.2))
-    (js_of_ocaml-ppx (= 5.8.2))
-    (js_of_ocaml-lwt (= 5.8.2))
-    integers_stubs_js
-    ;TODO: this is for secrets and should be in ../dune-project but doing so
-    ; slows down a lot our CI because it pulls dependencies that seem
-    ; to cause the removal and recompilation of many packages (e.g., tls) and
-    ; make our GHA opam cache useless. We might need to install here instead
-    ; packages that would avoid this effect.
-    git-unix
   )
 )
 
