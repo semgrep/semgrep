@@ -715,7 +715,9 @@ def scan(
         # coupling: see identical code in ci.py
         use_semgrepignore_v2: bool
         if semgrepignore_v2 is None:
-            use_semgrepignore_v2 = True if engine_type is EngineType.OSS else False
+            # !!!DISABLED!!! the switch is postponed to semgrep 1.113! (same in ci.py)
+            # use_semgrepignore_v2 = True if engine_type is EngineType.OSS else False
+            use_semgrepignore_v2 = False
         else:
             use_semgrepignore_v2 = semgrepignore_v2
 
