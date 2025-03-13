@@ -182,12 +182,32 @@ let run_conf (caps : < caps ; .. >) (conf : Show_CLI.conf) : Exit_code.t =
           |> List.iter (fun (skip : Out.skipped_target) ->
                  print (spf "skipped = %s" (Out.show_skipped_target skip)));
           Exit_code.ok ~__LOC__
-      | Some _config_str -> failwith "TODO"
-      (* TODO
-         let targets =
-           Core_targeting.targets_for_files_and_rules target_paths rules
-         in
-      *))
+      | Some config_str ->
+          (* copy-paste of parts of DumpConfig above to get the rules
+           * alt: requires a local file and use Parse_rule.parse instead
+           *)
+          let settings = Semgrep_settings.load () in
+          let token_opt = settings.api_token in
+          let config =
+            Rules_config.parse_config_string ~in_docker:false config_str
+          in
+          let rules_and_errors, _errors =
+            Rule_fetching.rules_from_dashdash_config
+              ~rewrite_rule_ids:true (* command-line default *)
+              ~token_opt
+              (caps :> < Cap.network ; Cap.tmp ; Cap.readdir >)
+              config
+          in
+          let rules, _invalid =
+            Rule_fetching.partition_rules_and_invalid rules_and_errors
+          in
+          let targets : Target.t list =
+            Core_targeting.targets_for_files_and_rules target_paths rules
+          in
+          targets
+          |> List.iter (fun (tgt : Target.t) ->
+                 print (spf "Target = %s" (Target.show tgt)));
+          Exit_code.ok ~__LOC__)
   | DumpEnginePath _pro -> failwith "TODO: dump-engine-path not implemented yet"
   | DumpCommandForCore ->
       failwith "TODO: dump-command-for-core not implemented yet"
