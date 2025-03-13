@@ -17,14 +17,7 @@
  * in Match_tainting_mode.Formula_tbl and formula contain patterns.
  *)
 open Ppx_hash_lib.Std.Hash.Builtin
-
-(*****************************************************************************)
-(* Prelude *)
-(*****************************************************************************)
-
-(*****************************************************************************)
-(* Types *)
-(*****************************************************************************)
+module XpatId = Gensym.MkId ()
 
 type compiled_regexp = Pcre2_.t [@@deriving show, eq]
 type regexp_string = string [@@deriving show, eq, hash]
@@ -88,15 +81,9 @@ type t = {
    a good enough proxy.
 *)
 
-(*****************************************************************************)
-(* Helpers *)
-(*****************************************************************************)
-
-let count = ref 0
-
 let mk_xpat pat pstr =
-  incr count;
-  { pat; pstr; pid = !count }
+  let pid = XpatId.to_int (XpatId.mk ()) in
+  { pat; pstr; pid }
 
 let is_regexp xpat =
   match xpat.pat with
