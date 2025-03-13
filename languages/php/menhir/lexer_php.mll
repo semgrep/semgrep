@@ -610,9 +610,9 @@ rule st_in_scripting = parse
     | LABEL
         { let info = tokinfo lexbuf in
           let s = tok lexbuf in
-          match Common2.optionise (fun () ->
+          match
             (* PHP is case insensitive ... it's ok to write IF(...) { ... } *)
-            Hashtbl.find keyword_table (String.lowercase_ascii s))
+            Hashtbl.find_opt keyword_table (String.lowercase_ascii s)
           with
           | Some f -> f info
           (* was called T_STRING in original grammar *)

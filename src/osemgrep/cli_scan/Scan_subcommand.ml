@@ -791,11 +791,11 @@ let run_conf (caps : < caps ; .. >) (conf : Scan_CLI.conf) : Exit_code.t =
       (* TOPORT: if enable_version_check: version_check() *)
       Exit_code.ok ~__LOC__
   | _ when conf.test <> None ->
-      Test_subcommand.run_conf caps (Common2.some conf.test)
+      Test_subcommand.run_conf caps (Option.get conf.test)
   | _ when conf.validate <> None ->
-      Validate_subcommand.run_conf caps (Common2.some conf.validate)
+      Validate_subcommand.run_conf caps (Option.get conf.validate)
   | _ when conf.show <> None ->
-      Show_subcommand.run_conf caps (Common2.some conf.show)
+      Show_subcommand.run_conf caps (Option.get conf.show)
   | _ when conf.ls ->
       Ls_subcommand.run caps ~target_roots:conf.target_roots
         ~targeting_conf:conf.targeting_conf ~format:conf.ls_format

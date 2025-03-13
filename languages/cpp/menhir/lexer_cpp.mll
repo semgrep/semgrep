@@ -474,7 +474,7 @@ rule token = parse
       { let info = tokinfo lexbuf in
         let s = tok lexbuf in
         Profiling.profile_code "C parsing.lex_ident" (fun () ->
-          match Common2.optionise (fun () -> Hashtbl.find keyword_table s) with
+          match Hashtbl.find_opt keyword_table s with
           | Some f -> f info
 
            (* typedef_hack. note: now this is no more useful, cos

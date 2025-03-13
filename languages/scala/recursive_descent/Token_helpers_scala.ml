@@ -158,7 +158,7 @@ let info_of_tok tok =
       ii)
     tok
   |> ignore;
-  Common2.some !res
+  Option.get !res
 
 let abstract_info_tok tok = visitor_info_of_tok (fun _ -> Tok.abstract_tok) tok
 

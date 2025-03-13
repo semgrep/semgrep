@@ -192,7 +192,7 @@ let info_of_tok tok =
       ii)
     tok
   |> ignore;
-  Common2.some !res
+  Option.get !res
 
 (*****************************************************************************)
 (* Accessors *)

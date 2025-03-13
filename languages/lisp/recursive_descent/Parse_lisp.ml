@@ -143,4 +143,4 @@ let parse filename =
 
 let parse_program file =
   let (ast, _toks), _stat = parse file in
-  Common2.some ast
+  Option.get ast

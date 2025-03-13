@@ -165,33 +165,6 @@ let release_file_lock filename =
 let internal_error s = failwith ("internal error: " ^ s)
 let error_cant_have x = internal_error ("cant have this case" ^ Dumper.dump x)
 
-(* want or of merd, but cant cos cant put die ... in b (strict call) *)
-let ( ||| ) a b =
-  try a with
-  | _ -> b
-
-(* emacs/lisp inspiration, (vouillon does that too in unison I think) *)
-
-(* now in Prelude:
- * let unwind_protect f cleanup = ...
- * let finalize f cleanup =  ...
- *)
-
-(*###########################################################################*)
-(* Basic types *)
-(*###########################################################################*)
-
-(*****************************************************************************)
-(* Bool *)
-(*****************************************************************************)
-let ( ==> ) b1 b2 = if b1 then b2 else true (* could use too => *)
-
-(* superseded by another <=> below
-   let (<=>) a b = if a =*= b then 0 else if a < b then -1 else 1
-*)
-
-let xor a b = not (a =*= b)
-
 (*****************************************************************************)
 (* Char *)
 (*****************************************************************************)
@@ -206,74 +179,6 @@ let string_of_chars cs = cs |> List_.map (String.make 1) |> String.concat ""
 let fst3 (x, _, _) = x
 let snd3 (_, y, _) = y
 let thd3 (_, _, z) = z
-
-(*****************************************************************************)
-(* Maybe *)
-(*****************************************************************************)
-
-let just = function
-  | Some x -> x
-  | _ -> failwith "just: pb"
-
-let some = just
-
-let optionise f =
-  try Some (f ()) with
-  | Not_found -> None
-
-(* pixel *)
-let some_or = function
-  | None -> Fun.id
-  | Some e -> fun _ -> e
-
-let option_to_list = function
-  | None -> []
-  | Some x -> [ x ]
-
-(* same
-   let map_find f xs =
-   xs +> List.map f +> List.find (function Some x -> true | None -> false)
-    +> (function Some x -> x | None -> raise Impossible)
-*)
-
-let list_to_single_or_exn xs =
-  match xs with
-  | [] -> raise Not_found
-  | _x :: _y :: _zs -> raise Common.Multi_found
-  | [ x ] -> x
-
-let rec (while_some :
-          gen:(unit -> 'a option) -> f:('a -> 'b) -> unit -> 'b list) =
- fun ~gen ~f () ->
-  match gen () with
-  | None -> []
-  | Some x ->
-      let e = f x in
-      let rest = while_some gen f () in
-      e :: rest
-
-(* perl idiom *)
-let ( ||= ) aref vf =
-  match !aref with
-  | None -> aref := Some (vf ())
-  | Some _ -> ()
-
-let ( >>= ) m1 m2 =
-  match m1 with
-  | None -> None
-  | Some x -> m2 x
-
-(* http://roscidus.com/blog/blog/2013/10/13/ocaml-tips/#handling-option-types*)
-let ( |? ) maybe default =
-  match maybe with
-  | Some v -> v
-  | None -> Lazy.force default
-
-(*****************************************************************************)
-(* TriBool *)
-(*****************************************************************************)
-
-type bool3 = True3 | False3 | TrueFalsePb3 of string
 
 (*****************************************************************************)
 (* Regexp, can also use PCRE *)
@@ -671,8 +576,7 @@ let regression_testing_vs newscore bestscore =
   allres
   |> List.iter (fun res ->
          match
-           ( optionise (fun () -> Hashtbl.find newscore res),
-             optionise (fun () -> Hashtbl.find bestscore res) )
+           (Hashtbl.find_opt newscore res, Hashtbl.find_opt bestscore res)
          with
          | None, None -> raise Common.Impossible
          | Some x, None ->

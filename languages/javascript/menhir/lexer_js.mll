@@ -363,8 +363,8 @@ rule initial = parse
   | ['a'-'z''A'-'Z' '$' '_']['a'-'z''A'-'Z''$''_''0'-'9']* {
       let s = tok lexbuf in
       let info = tokinfo lexbuf in
-      match Common2.optionise (fun () ->
-        Hashtbl.find keyword_table s (* need case insensitive ? *))
+      match
+        Hashtbl.find_opt keyword_table s (* need case insensitive ? *)
       with
       | Some f -> f info
       | None -> T_ID (s, info)
