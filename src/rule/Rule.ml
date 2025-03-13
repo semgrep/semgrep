@@ -126,8 +126,7 @@ and metavar_cond =
    * update: this is also useful to keep separate from CondEval for
    * the "regexpizer" optimizer (see Analyze_rule.ml).
    *)
-  | CondRegexp of
-      Mvar.t * Xpattern.regexp_string * bool (* constant-propagation *)
+  | CondRegexp of Mvar.t * string * bool (* constant-propagation *)
   | CondType of
       Mvar.t
       * Analyzer.t option
@@ -494,10 +493,7 @@ type request = {
 [@@deriving show]
 
 (* Used to match on the returned response of some request *)
-type response = {
-  return_code : Parsed_int.t;
-  regex : Xpattern.regexp_string option;
-}
+type response = { return_code : Parsed_int.t; regex : string option }
 [@@deriving show]
 
 type http_match_clause = {
@@ -556,7 +552,7 @@ type paths = {
 (*****************************************************************************)
 
 type fix_regexp = {
-  regexp : Xpattern.regexp_string;
+  regexp : string;
   (* Not using Parsed_int here, because we would rather fail early at rule
      parsing time if we have to apply a regexp more times than we can
      represent.

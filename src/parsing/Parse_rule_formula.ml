@@ -231,7 +231,7 @@ let parse_xpattern_expr env e =
  *)
 (* extra conditions, usually on metavariable content *)
 type extra =
-  | MetavarRegexp of MV.mvar * Xpattern.regexp_string * bool
+  | MetavarRegexp of MV.mvar * string * bool
   | MetavarType of MV.mvar * Analyzer.t option * string list * G.type_ list
   | MetavarPattern of MV.mvar * Analyzer.t option * Rule.formula
   | MetavarComparison of metavariable_comparison

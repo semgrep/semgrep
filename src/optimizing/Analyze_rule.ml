@@ -266,8 +266,8 @@ let (cnf : Rule.formula -> cnf_step0) =
 (*****************************************************************************)
 type step1 =
   | StringsAndMvars of string list * MV.mvar list
-  | Regexp of Xpattern.regexp_string
-  | MvarRegexp of MV.mvar * Xpattern.regexp_string * bool
+  | Regexp of string
+  | MvarRegexp of MV.mvar * string * bool
 [@@deriving show]
 
 type cnf_step1 = step1 cnf [@@deriving show]
@@ -425,7 +425,7 @@ let and_step1bis_filter_general (And xs) =
 type step2 =
   | Idents of string list
   (* a And *)
-  | Regexp2_search of Xpattern.compiled_regexp
+  | Regexp2_search of Pcre2_.t
 [@@deriving show]
 
 type cnf_step2 = step2 cnf [@@deriving show]
