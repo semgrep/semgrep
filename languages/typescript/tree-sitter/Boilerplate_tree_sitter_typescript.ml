@@ -1058,6 +1058,8 @@ and map_class_body (env : env) ((v1, v2, v3) : CST.class_body) =
       (List_.map
          (fun x ->
            match x with
+           | `Semg_ellips tok ->
+               R.Case ("Semg_ellips", (* "..." *) token env tok)
            | `Deco x -> R.Case ("Deco", map_decorator env x)
            | `Meth_defi_opt_choice_auto_semi (v1, v2) ->
                R.Case

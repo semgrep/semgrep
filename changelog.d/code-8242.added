@@ -1,0 +1,9 @@
+TypeScript parser now allows ellipses in class bodies. For example, you can
+write the pattern like:
+```
+class $C {
+  ...
+  $FUNC() { ... }
+  ...
+}
+```

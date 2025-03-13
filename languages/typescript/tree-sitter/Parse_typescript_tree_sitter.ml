@@ -1031,6 +1031,13 @@ and class_body (env : env) ((v1, v2, v3) : CST.class_body) :
     | [] -> []
     | x :: xs -> (
         match x with
+        | `Semg_ellips tok ->
+            let tok = token env tok in
+            if acc_decorators <> [] then
+              raise
+                (Parsing_error.Ast_builder_error
+                   ("ellipsis cannot follow decorators", tok))
+            else FieldEllipsis tok :: aux [] xs
         | `Deco x ->
             let attr = decorator env x in
             aux (attr :: acc_decorators) xs
