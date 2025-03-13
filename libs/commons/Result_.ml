@@ -11,3 +11,7 @@ let partition f l =
         | Error x -> aux left (x :: right) l)
   in
   aux [] [] l
+
+module Operators = struct
+  let ( >>= ) x f = Result.bind x f
+end
