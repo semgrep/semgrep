@@ -1,1 +1,0 @@
-Verbose output will now print additional info about parsing and internal semgrep errors, such as what % of lines were skipped, and the lines they occured on

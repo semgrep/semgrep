@@ -1,1 +1,0 @@
-FIX: `--gitlab-secrets` output has been updated to conform to GitLab JSON schema

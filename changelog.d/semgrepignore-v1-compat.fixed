@@ -1,6 +1,0 @@
-The behavior of `--semgrepignore-v2` changed to be closer to the legacy
-Semgrepignore v1. `.gitignore` files are no longer loaded automatically
-as part of the Semgrepignore v2 exclusion mechanism.
-Loading a `.gitignore` file must be done
-by placing `:include .gitignore` in the `.semgrepignore` file
-as was the case with Semgrepignore v1.
