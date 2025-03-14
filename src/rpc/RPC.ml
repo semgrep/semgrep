@@ -91,6 +91,15 @@ let handle_call (caps : < caps ; .. >) :
              has not been loaded")
   | `CallGetTargets scanning_roots ->
       Ok (`RetGetTargets (Core_scan.get_targets_for_pysemgrep scanning_roots))
+  | `CallMatchSubprojects params -> (
+      match !RPC_return.hook_match_subprojects with
+      | Some match_subprojects ->
+          let xs = match_subprojects params in
+          Ok (`RetMatchSubprojects xs)
+      | None ->
+          Error
+            "Subproject matching is a proprietary feature, but semgrep-pro has \
+             not been loaded")
 
 (*****************************************************************************)
 (* Helpers *)

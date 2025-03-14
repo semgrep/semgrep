@@ -24,3 +24,16 @@ module Out = Semgrep_output_v1_t
 (*****************************************************************************)
 
 type t = Out.dependency_source [@@deriving show]
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+(** List all the source files included in the dependency source. *)
+let rec source_files = function
+  | Out.LockfileOnlyDependencySource lockfile -> [ lockfile.path ]
+  | Out.ManifestOnlyDependencySource manifest -> [ manifest.path ]
+  | Out.ManifestLockfileDependencySource (manifest, lockfile) ->
+      [ manifest.path; lockfile.path ]
+  | Out.MultiLockfileDependencySource sources ->
+      List.concat_map source_files sources
