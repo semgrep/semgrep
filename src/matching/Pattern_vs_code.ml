@@ -944,15 +944,6 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
       wipe_wildcard_imports
         ((* try matching the expression a and the identifier b *)
          m_expr ~arguments_have_changed:false a b
-        >||> (* try again without symbolic propagated information in id_info
-                *
-                * TODO(yosef): this case could propbably be refactored; this
-                * handles an edge case that involves resolving imported names in
-                * javascript such that import { Foo } = require('a'); var x = new
-                * Foo({ y : 1}) matches the rule `new a.Foo({ y : 1})`
-             *)
-        m_expr ~arguments_have_changed:false a
-          (B.N (B.Id (idb, static_empty_id_info)) |> G.e)
         >||> (* try this time a match with the resolved entity *)
         m_expr a (make_dotted dotted))
   (* equivalence: name resolving on qualified ids (for OCaml) *)
