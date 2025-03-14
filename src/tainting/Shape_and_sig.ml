@@ -741,12 +741,12 @@ end)
 (*************************************)
 
 module Instantiated_signature = struct
-  type effect = Effect.mono
+  type effect_ = Effect.mono
   (** Like 'Effect.t' but instantiated for a specific call site.
       In particular, there is no 'ToSinkInCall' effect, and 'ToLval' effects
       refer to specific 'IL.lval's rather than to 'Taint.lval's. *)
 
-  type t = effect list
+  type t = effect_ list
 
   let show call_effects =
     call_effects |> List_.map Effect.show |> String.concat "; "

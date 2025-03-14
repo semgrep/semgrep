@@ -160,8 +160,8 @@ let trace_of_source source =
     sink_trace = convert_taint_call_trace sink_trace;
   }
 
-let pms_of_effect ~match_on (effect : Effect.poly) =
-  match effect with
+let pms_of_effect ~match_on (effect_ : Effect.poly) =
+  match effect_ with
   | ToLval _
   | ToReturn _
   | ToSinkInCall _ ->
@@ -265,8 +265,8 @@ let check_rule per_file_formula_cache (file : Taint_rule_inst.file)
   in
   let record_matches new_effects =
     new_effects
-    |> Effects.iter (fun effect ->
-           let effect_pms = pms_of_effect ~match_on effect in
+    |> Effects.iter (fun effect_ ->
+           let effect_pms = pms_of_effect ~match_on effect_ in
            matches := List.rev_append effect_pms !matches)
   in
   let (ast, skipped_tokens), parse_time =
