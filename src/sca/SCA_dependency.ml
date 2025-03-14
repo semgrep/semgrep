@@ -1,3 +1,5 @@
+module Out = Semgrep_output_v1_t
+
 type t = {
   package_name : string;
   package_version : SCA_version.t;
@@ -31,3 +33,31 @@ type manifest_dependency = {
   loc : Tok.location * Tok.location;
 }
 [@@deriving show, eq]
+
+let to_found_dependency ?(lockfile_path : Fpath.t option)
+    ?(manifest_path : Fpath.t option) (dep : t) (children : t list option) :
+    Out.found_dependency =
+  Out.
+    {
+      package = dep.package_name;
+      version = dep.package_version_string;
+      ecosystem = dep.ecosystem;
+      allowed_hashes = [];
+      resolved_url = Option.map Uri.to_string dep.url;
+      transitivity = dep.transitivity;
+      lockfile_path =
+        (if Option.is_none lockfile_path then Some (fst dep.loc).pos.file
+         else lockfile_path);
+      manifest_path;
+      line_number = Some (fst dep.loc).pos.line;
+      git_ref = None;
+      children =
+        children
+        |> Option.map
+             (List_.map (fun (dep : t) ->
+                  Out.
+                    {
+                      package = dep.package_name;
+                      version = dep.package_version_string;
+                    }));
+    }
