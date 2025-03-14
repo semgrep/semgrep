@@ -18,7 +18,7 @@ local mk_job(steps) = {
     image: 'semgrep/semgrep:canary',
   },
   env: semgrep.secrets,
-  steps: [ actions.checkout() ] + steps,
+  steps: actions.checkout()+ steps,
 } + gha.dependabot_guard;
 
 local semgrep_ci_job = mk_job([{ run: 'semgrep ci' } ]);

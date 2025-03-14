@@ -88,8 +88,8 @@ local jsonnet_gha_job(checkout_steps, dir=".github/workflows") = {
   on: gha.on_classic,
   jobs: {
     'pre-commit': pre_commit_job(actions.checkout_with_submodules()),
-    'github-actions': action_lint_job([actions.checkout()]),
-    'jsonnet-gha': jsonnet_gha_job([actions.checkout()]),
+    'github-actions': action_lint_job(actions.checkout()),
+    'jsonnet-gha': jsonnet_gha_job(actions.checkout()),
   },
   export::{
     // reused in semgrep-pro

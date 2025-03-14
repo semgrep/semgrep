@@ -161,8 +161,9 @@ local test_cli_job = {
       ],
     },
   },
-  steps: [
-    actions.checkout(),
+  steps:
+    actions.checkout() +
+    [
     fetch_submodules_step,
     actions.setup_python_step('${{ matrix.python }}'),
     actions.pipenv_install_step,
@@ -210,8 +211,9 @@ local test_qa_job = {
       ],
     },
   },
-  steps: [
-    actions.checkout(),
+  steps:
+    actions.checkout() +
+    [
     // Is it indented that we also fetch tests/semgrep-rules?
     {
       name: 'Fetch semgrep-cli submodules',
@@ -261,8 +263,9 @@ local test_qa_job = {
 // Benchmarks
 // ----------------------------------------------------------------------------
 
-local bench_prepare_steps = [
-  actions.checkout(),
+local bench_prepare_steps =
+  actions.checkout() +
+  [
   fetch_submodules_step,
   actions.setup_python_step(semgrep.default_python_version),
   actions.pipenv_install_step,

@@ -8,12 +8,18 @@ local gha = import './gha.libsonnet';
   // TODO: default to submodules=true, and a flexible with={}?
   // What about 'persist-credentials': false? needed? A few of
   // our workflows was using that, but not consistently
-  checkout: function() {
-    uses: 'actions/checkout@v4',
-  },
+  checkout: function() (
+  gha.tune_networking_steps() +
+  [
+    {
+      uses: 'actions/checkout@v4',
+    },
+  ]),
   // The right checkout to call in most cases; slower but correct.
   // There is also 'submodules: "recursive" (which is even slower).
-  checkout_with_submodules: function(ref='')  [
+  checkout_with_submodules: function(ref='')
+    gha.tune_networking_steps() +
+    [
       gha.git_safedir,
       gha.speedy_checkout_step,
       {

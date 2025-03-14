@@ -5,6 +5,16 @@ jobs:
       - build-test-core-x86
     runs-on: ubuntu-22.04
     steps:
+      - if: ${{ runner.os == 'Linux' }}
+        name: Tune Linux Network
+        run: sudo ethtool -K eth0 tx off rx off || ethtool -K ens4 tx off rx off || true
+        shell: bash
+      - if: ${{ runner.os == 'macOS' }}
+        name: Tune macOS Network
+        run: |
+          sudo sysctl -w net.link.generic.system.hwcksum_tx=0
+          sudo sysctl -w net.link.generic.system.hwcksum_rx=0
+        shell: bash
       - uses: actions/checkout@v4
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
@@ -121,6 +131,16 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-22.04
     steps:
+      - if: ${{ runner.os == 'Linux' }}
+        name: Tune Linux Network
+        run: sudo ethtool -K eth0 tx off rx off || ethtool -K ens4 tx off rx off || true
+        shell: bash
+      - if: ${{ runner.os == 'macOS' }}
+        name: Tune macOS Network
+        run: |
+          sudo sysctl -w net.link.generic.system.hwcksum_tx=0
+          sudo sysctl -w net.link.generic.system.hwcksum_rx=0
+        shell: bash
       - uses: actions/checkout@v4
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
@@ -204,6 +224,16 @@ jobs:
     steps:
       - name: setup alpine
         run: apk add --no-cache git git-lfs bash curl
+      - if: ${{ runner.os == 'Linux' }}
+        name: Tune Linux Network
+        run: sudo ethtool -K eth0 tx off rx off || ethtool -K ens4 tx off rx off || true
+        shell: bash
+      - if: ${{ runner.os == 'macOS' }}
+        name: Tune macOS Network
+        run: |
+          sudo sysctl -w net.link.generic.system.hwcksum_tx=0
+          sudo sysctl -w net.link.generic.system.hwcksum_rx=0
+        shell: bash
       - name: Configure git safedir properly
         run: git config --global --add safe.directory $(pwd)
       - name: Make checkout speedy
@@ -242,6 +272,16 @@ jobs:
       - build-test-core-x86
     runs-on: ubuntu-22.04
     steps:
+      - if: ${{ runner.os == 'Linux' }}
+        name: Tune Linux Network
+        run: sudo ethtool -K eth0 tx off rx off || ethtool -K ens4 tx off rx off || true
+        shell: bash
+      - if: ${{ runner.os == 'macOS' }}
+        name: Tune macOS Network
+        run: |
+          sudo sysctl -w net.link.generic.system.hwcksum_tx=0
+          sudo sysctl -w net.link.generic.system.hwcksum_rx=0
+        shell: bash
       - uses: actions/checkout@v4
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces tests/semgrep-rules
@@ -293,6 +333,16 @@ jobs:
     steps:
       - name: setup alpine
         run: apk add --no-cache git git-lfs bash curl
+      - if: ${{ runner.os == 'Linux' }}
+        name: Tune Linux Network
+        run: sudo ethtool -K eth0 tx off rx off || ethtool -K ens4 tx off rx off || true
+        shell: bash
+      - if: ${{ runner.os == 'macOS' }}
+        name: Tune macOS Network
+        run: |
+          sudo sysctl -w net.link.generic.system.hwcksum_tx=0
+          sudo sysctl -w net.link.generic.system.hwcksum_rx=0
+        shell: bash
       - name: Configure git safedir properly
         run: git config --global --add safe.directory $(pwd)
       - name: Make checkout speedy

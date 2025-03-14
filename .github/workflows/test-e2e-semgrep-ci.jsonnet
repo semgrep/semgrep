@@ -79,8 +79,9 @@ local semgrep_ci_job = {
   container: {
     image: 'semgrep/semgrep:' + docker_tag,
   },
-  steps: [
-    actions.checkout(),
+  steps:
+    actions.checkout() +
+     [
     // dogfooding! we run semgrep ci on the semgrep repo itself
     // and it should not find any blocking findings and so
     // should exit with code 0
@@ -102,8 +103,9 @@ local semgrep_ci_fail_open_job = {
   container: {
     image: 'semgrep/semgrep:' + docker_tag,
   },
-  steps: [
-    actions.checkout(),
+  steps:
+    actions.checkout() +
+     [
     // we remove git to test whether its absence cause the whole thing
     // to return an error. Note that 'semgrep ci' relies internally
     // on git to compute the project_metadata information so the absence
@@ -136,8 +138,9 @@ local semgrep_ci_fail_open_blocking_findings_job = {
   container: {
     image: 'semgrep/semgrep:' + docker_tag,
   },
-  steps: [
-    actions.checkout(),
+  steps:
+    actions.checkout() +
+     [
     {
       name: 'Create code under test',
       id: 'create-code',
