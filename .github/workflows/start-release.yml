@@ -202,6 +202,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.commit-sha-to-release }}
+          repository: semgrep/semgrep
           sparse-checkout: |
             src/core/Version.ml
       - run: |
@@ -235,6 +237,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: release-${{ github.event.inputs.semgrep-version }}
+          repository: semgrep/semgrep
           token: ${{ steps.token.outputs.token }}
       - name: Create Draft Release Semgrep
         uses: softprops/action-gh-release@v2
@@ -284,6 +287,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: release-${{ github.event.inputs.semgrep-version }}
+          repository: semgrep/semgrep
           submodules: true
           token: ${{ steps.token.outputs.token }}
       - env:
@@ -326,7 +330,7 @@ jobs:
            --url  ${{ secrets.NOTIFICATIONS_URL }} \
            --header 'content-type: application/json' \
            --data "{
-             \"text\": \"Release Validation has failed for version ${VERSION}. Please see https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more details!\"
+             \"text\": \"Release Validation has failed for version ${VERSION}. Please see https://github.com/semgrep/semgrep/actions/runs/${{github.run_id}} for more details!\"
            }"
   notify-success:
     env:
@@ -350,7 +354,7 @@ jobs:
         run: |
           # POST a webhook to Zapier to allow for public notifications to our users via Twitter
           curl "${{ secrets.ZAPIER_WEBHOOK_URL }}" \
-            -d '{"version":"${VERSION}","changelog_url":"https://github.com/semgrep/semgrep/releases/tag/v${VERSION}"}'
+            -d '{"version":"${VERSION}","changelog_url":"https://github.com/%s/releases/tag/v${VERSION}"}' % oss_repo
       - name: Notify Success on Slack
         run: |
           curl --request POST \
@@ -389,7 +393,8 @@ jobs:
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.repository.default_branch }}
+          ref: ${{ inputs.commit-sha-to-release }}
+          repository: semgrep/semgrep
           submodules: recursive
           token: ${{ steps.token.outputs.token }}
       - run: git checkout -b "${BRANCH}"
@@ -413,14 +418,14 @@ jobs:
         run: |
           # check if the branch already has a pull request open
 
-          if gh pr list --head ${SOURCE} | grep -vq "no pull requests"; then
+          if gh pr -R semgrep/semgrep list --head ${SOURCE} | grep -vq "no pull requests"; then
               echo "pull request from SOURCE ${SOURCE} to TARGET ${TARGET} is already open";
               echo "cancelling release"
               exit 1
           fi
 
           # open new pull request with the body of from the local template.
-          PR_URL=$(gh pr create --title "${TITLE}" --body-file ./.github/PULL_REQUEST_TEMPLATE/release_pr_template.md \
+          PR_URL=$(gh pr -R semgrep/semgrep create --title "${TITLE}" --body-file ./.github/PULL_REQUEST_TEMPLATE/release_pr_template.md \
             --base "${TARGET}" --head "${SOURCE}")
 
           echo $PR_URL
@@ -443,6 +448,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: v${{ github.event.inputs.semgrep-version }}
+          repository: semgrep/semgrep
       - run: ./scripts/validate-docker-release.sh $VERSION
   wait-for-pr-checks:
     if: ${{ ! inputs.dry-run }}
@@ -505,10 +511,14 @@ jobs:
         id: wait-checks
         name: Wait for checks to complete
         run: gh pr -R semgrep/semgrep checks "${{ needs.release-setup.outputs.pr-number }}" --interval 90 --watch
-name: start-release
+name: oss-start-release
 on:
   workflow_dispatch:
     inputs:
+      commit-sha-to-release:
+        description: The full commit SHA in semgrep that you'd like to release. It must match the output of the 'Sync with Pro' PR that was merged in semgrep/semgrep before this step.
+        required: true
+        type: string
       dry-run:
         default: false
         description: |
