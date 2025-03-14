@@ -296,6 +296,41 @@ local build_test_steps(opam_switch=opam_switch_default, cache_deps=['semgrep.opa
       run: 'opam exec -- make test',
     }
   ]);
+
+local wheel_name(arch) = '%s-wheel'% arch;
+
+local build_wheel_steps(arch, platform) = [
+    actions.setup_python_step(cache='pip'),
+    {
+      run: |||
+        tar xvfz artifacts.tgz
+        cp artifacts/semgrep-core cli/src/semgrep/bin
+        ./scripts/build-wheels.sh --plat-name %s
+      ||| % platform,
+    },
+    actions.upload_artifact_step(wheel_name(arch), path='cli/dist.zip'),
+];
+
+local test_wheel_steps(arch) = [
+    // caching is hard and why complicate things
+    actions.setup_python_step(cache=false),
+    actions.download_artifact_step(wheel_name(arch)),
+    {
+      run: 'unzip dist.zip',
+    },
+    {
+      name: 'install package',
+      run: 'pip3 install dist/*.whl',
+    },
+    {
+      run: 'semgrep --version',
+    },
+    {
+      name: 'e2e semgrep-core test',
+      run: "echo '1 == 1' | semgrep -l python -e '$X == $X' -",
+    },
+
+];
 // ----------------------------------------------------------------------------
 // Entry point
 // ----------------------------------------------------------------------------
@@ -324,6 +359,8 @@ local build_test_steps(opam_switch=opam_switch_default, cache_deps=['semgrep.opa
   opam_switch: opam_switch,
   opam_setup: opam_setup,
   build_test_steps: build_test_steps,
+  build_wheel_steps: build_wheel_steps,
+  test_wheel_steps: test_wheel_steps,
   // coupling: cli/setup.py, the matrix in run-cli-tests.libsonnet,
   // build-test-manylinux-x86.jsonnet in pro, tests.jsonnet in OSS
   // TODO? could switch to higher like 3.11
