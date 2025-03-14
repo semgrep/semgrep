@@ -108,7 +108,7 @@ For more information see https://semgrep.dev
     ppx_inline_test
     (ppx_sexp_conv ( = v0.16.0))
     ppx_expect
-    (visitors (= 20210608))
+    (visitors (= 20250212))
     ; regexps
     re
     pcre
