@@ -354,6 +354,10 @@ COPY scripts/ ./scripts/
 # wheels are identical.
 RUN scripts/build-wheels.sh && scripts/validate-wheel.sh cli/dist/*musllinux*.whl
 
+FROM scratch AS semgrep-wheel-binaries
+
+COPY --from=semgrep-wheel /semgrep/cli/dist/*musllinux*.whl /
+
 FROM semgrep-core-container AS semgrep-core-test
 
 # Needed for core-test-e2e
@@ -364,6 +368,17 @@ RUN pip install --break-system-packages --no-cache-dir check-jsonschema
 RUN git init
 RUN opam exec -- make test
 RUN opam exec -- make core-test-e2e
+
+# Let's actually use latest so we know immediately if we're broken on latest
+#hadolint ignore=DL3007
+FROM ubuntu:latest AS semgrep-wheel-test
+COPY --from=semgrep-wheel-binaries / /wheels
+RUN apt-get update && apt-get install --no-install-recommends  -y python3-pip
+RUN pip install --no-cache-dir /wheels/*.whl
+RUN semgrep --version
+#hadolint ignore=SC2016,DL4006
+RUN echo '1==1' | semgrep -l python -e '$X == $X' -
+
 ###############################################################################
 # Other target: performance testing
 ###############################################################################
