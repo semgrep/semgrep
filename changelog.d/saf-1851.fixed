@@ -1,1 +1,0 @@
-Semgrep will no longer fail a diff scan if there is a relative safe directory
