@@ -71,20 +71,23 @@ local snapshot_update_pr_steps(add_paths, repo_name) = [
   {
     name: 'Comment about any snapshot updates',
     'if': "failure() && steps.snapshot-commit.outputs.pushed == 'true'",
+    env: {
+      PULL_REQUEST_NUMBER: '${{ github.event.pull_request.number }}',
+      COMMIT_LONG_SHA: '${{ steps.snapshot-commit.outputs.commit_long_sha }}',
+      COMMIT_SHA: '${{ steps.snapshot-commit.outputs.commit_sha }}',
+      GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
+    },
     run: |||
       echo ":camera_flash: The pytest shapshots changed in your PR." >> /tmp/message.txt
       echo "Please carefully review these changes and make sure they are intended:" >> /tmp/message.txt
       echo >> /tmp/message.txt
-      echo "1. Review the changes at https://github.com/semgrep/%(repo_name)s/commit/${{ steps.snapshot-commit.outputs.commit_long_sha }}" >> /tmp/message.txt
+      echo "1. Review the changes at https://github.com/semgrep/%(repo_name)s/commit/$COMMIT_LONG_SHA" >> /tmp/message.txt
       echo "2. Accept the new snapshots with" >> /tmp/message.txt
       echo >> /tmp/message.txt
-      echo "       git fetch origin && git cherry-pick ${{ steps.snapshot-commit.outputs.commit_sha }} && git push" >> /tmp/message.txt
+      echo "       git fetch origin && git cherry-pick \"$COMMIT_SHA\" && git push" >> /tmp/message.txt
 
-      gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/message.txt
+      gh pr comment "$PULL_REQUEST_NUMBER" --body-file /tmp/message.txt
     ||| % {repo_name: repo_name},
-    env: {
-      GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
-    },
   },
 ];
 

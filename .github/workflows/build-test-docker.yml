@@ -35,9 +35,11 @@ jobs:
         run: docker load --input /tmp/image.tar
       - if: ${{ inputs.enable-tests }}
         uses: actions/checkout@v4
-      - if: ${{ inputs.enable-tests }}
+      - env:
+          IMAGEID: ${{ steps.build-image.outputs.imageid }}
+        if: ${{ inputs.enable-tests }}
         name: Test Image
-        run: ./scripts/validate-docker-build.sh ${{ steps.build-image.outputs.imageid }} linux/${{ matrix.architecture }}
+        run: ./scripts/validate-docker-build.sh "$IMAGEID" linux/${{ matrix.architecture }}
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.artifact-name }}-arch-${{ matrix.architecture }}

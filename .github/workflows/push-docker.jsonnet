@@ -61,15 +61,16 @@ local job = {
       name: 'Merge images',
       env: {
         MERGED_IMAGE_PATH: '/tmp/merged-image',
+        ARTIFACT_NAME: '${{ inputs.artifact-name }}',
       },
       //TODO: link to a blog post explaining those magic incantations?
       run: |||
         mkdir -p ${MERGED_IMAGE_PATH}/blobs/sha256
 
         # Find docker image artifacts
-        image_filenames=(/tmp/artifacts/${{ inputs.artifact-name }}-arch-*/image.tar)
+        image_filenames=(/tmp/artifacts/${ARTIFACT_NAME}-arch-*/image.tar)
         if [[ ${#image_filenames[@]} == 0 ]]; then
-          echo "No artifacts found matching ${{ inputs.artifact-name }}-arch-*"
+          echo "No artifacts found matching ${ARTIFACT_NAME}-arch-*"
           exit 1
         else
           echo "Found images: ${image_filenames[@]}"
@@ -110,27 +111,28 @@ local job = {
       name: 'Push merged image',
       env: {
         MERGED_IMAGE_PATH: '/tmp/merged-image',
+        REPOSITORY_NAME: '${{ inputs.repository-name }}',
       },
       run: |||
         echo "Uploading image blobs..."
         for blob_filename in ${MERGED_IMAGE_PATH}/blobs/sha256/*; do
           blob_digest="sha256:$(basename $blob_filename)"
           echo "-> ${blob_digest}"
-          if ! regctl blob head ${{ inputs.repository-name }} ${blob_digest}; then
-            cat $blob_filename | regctl blob put ${{ inputs.repository-name }} --digest ${blob_digest}
+          if ! regctl blob head "$REPOSITORY_NAME" ${blob_digest}; then
+            cat $blob_filename | regctl blob put "$REPOSITORY_NAME" --digest ${blob_digest}
           fi
         done
 
         echo "Uploading image manifests..."
         for manifest_digest in $(cat ${MERGED_IMAGE_PATH}/index.json | jq -r '.manifests | unique_by(.digest) | .[].digest' | cut -d: -f2); do
           echo "-> ${manifest_digest}"
-          cat ${MERGED_IMAGE_PATH}/blobs/sha256/${manifest_digest} | regctl manifest put ${{ inputs.repository-name }} --by-digest
+          cat ${MERGED_IMAGE_PATH}/blobs/sha256/${manifest_digest} | regctl manifest put "$REPOSITORY_NAME" --by-digest
         done
 
         echo "Pushing image tags..."
         for tag in $(cat ${MERGED_IMAGE_PATH}/index.json | jq -r '.manifests | unique_by(.annotations."org.opencontainers.image.ref.name") | .[].annotations."org.opencontainers.image.ref.name"'); do
-          echo "-> ${{ inputs.repository-name }}:${tag}"
-          index_digest=$(cat ${MERGED_IMAGE_PATH}/index.json | regctl manifest put ${{ inputs.repository-name }}:${tag} -t application/vnd.docker.distribution.manifest.list.v2+json)
+          echo "-> ${REPOSITORY_NAME}:${tag}"
+          index_digest=$(cat ${MERGED_IMAGE_PATH}/index.json | regctl manifest put "${REPOSITORY_NAME}:${tag}" -t application/vnd.docker.distribution.manifest.list.v2+json)
         done
 
         echo "Done!"

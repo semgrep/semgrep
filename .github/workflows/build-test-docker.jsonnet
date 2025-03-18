@@ -125,7 +125,10 @@ local job = {
     {
       name: 'Test Image',
       'if': '${{ inputs.enable-tests }}',
-      run: './scripts/validate-docker-build.sh ${{ steps.build-image.outputs.imageid }} linux/${{ matrix.architecture }}',
+      env: {
+        IMAGEID: '${{ steps.build-image.outputs.imageid }}',
+      },
+      run: './scripts/validate-docker-build.sh "$IMAGEID" linux/${{ matrix.architecture }}',
     },
     # usually called semgrep-docker-image-artifcact-*, but I see no reference
     # to this in the rest of the code. Do we need this?

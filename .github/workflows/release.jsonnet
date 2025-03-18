@@ -291,21 +291,23 @@ local create_release_job = {
       id: 'wait-draft-release',
       env: {
         GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
+        VERSION: version,
       },
       run: |||
-        while ! gh release --repo semgrep/semgrep list -L 5 | grep -q "%s"; do
+        while ! gh release --repo semgrep/semgrep list -L 5 | grep -q "$VERSION"; do
           echo "release not yet ready, sleeping for 5 seconds"
           sleep 5
         done
-      ||| % version,
+      |||,
     },
     {
       name: 'Publish Release',
       id: 'publish_release',
       env: {
         GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
+        VERSION: version,
       },
-      run: 'gh release --repo semgrep/semgrep edit %s --draft=false' % version,
+      run: 'gh release --repo semgrep/semgrep edit "$VERSION" --draft=false',
     },
   ],
 } + unless_dry_run;
@@ -329,16 +331,18 @@ local create_release_interfaces_job = {
       id: 'upload-semgrep-schema-files',
       env: {
         GITHUB_TOKEN: semgrep.github_bot.token_ref,
+        VERSION: version,
       },
-      run: 'gh release --repo semgrep/semgrep-interfaces upload %s cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml' % version,
+      run: 'gh release --repo semgrep/semgrep-interfaces upload "$VERSION" cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml',
     },
     {
       name: 'Publish Release Semgrep Interfaces',
       id: 'publish_release_semgrep_interfaces',
       env: {
         GITHUB_TOKEN: semgrep.github_bot.token_ref,
+        VERSION: version,
       },
-      run: 'gh release --repo semgrep/semgrep-interfaces edit %s --draft=false' % version,
+      run: 'gh release --repo semgrep/semgrep-interfaces edit "$VERSION" --draft=false',
     },
   ],
 } + unless_dry_run;

@@ -196,19 +196,22 @@ jobs:
         name: Remove Credentials
         run: rm ~/.netrc
       - env:
+          COMMIT_LONG_SHA: ${{ steps.snapshot-commit.outputs.commit_long_sha }}
+          COMMIT_SHA: ${{ steps.snapshot-commit.outputs.commit_sha }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
         if: failure() && steps.snapshot-commit.outputs.pushed == 'true'
         name: Comment about any snapshot updates
         run: |
           echo ":camera_flash: The pytest shapshots changed in your PR." >> /tmp/message.txt
           echo "Please carefully review these changes and make sure they are intended:" >> /tmp/message.txt
           echo >> /tmp/message.txt
-          echo "1. Review the changes at https://github.com/semgrep/semgrep/commit/${{ steps.snapshot-commit.outputs.commit_long_sha }}" >> /tmp/message.txt
+          echo "1. Review the changes at https://github.com/semgrep/semgrep/commit/$COMMIT_LONG_SHA" >> /tmp/message.txt
           echo "2. Accept the new snapshots with" >> /tmp/message.txt
           echo >> /tmp/message.txt
-          echo "       git fetch origin && git cherry-pick ${{ steps.snapshot-commit.outputs.commit_sha }} && git push" >> /tmp/message.txt
+          echo "       git fetch origin && git cherry-pick \"$COMMIT_SHA\" && git push" >> /tmp/message.txt
 
-          gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/message.txt
+          gh pr comment "$PULL_REQUEST_NUMBER" --body-file /tmp/message.txt
     strategy:
       matrix:
         python:

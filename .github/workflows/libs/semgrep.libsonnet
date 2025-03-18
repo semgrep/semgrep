@@ -44,11 +44,15 @@ local github_bot = {
   {
     name: 'Get token for semgrep-ci GitHub App',
     id: 'token',
+    env: {
+      SEMGREP_CI_APP_INSTALLATION_ID: '${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}',
+      JWT: '${{ steps.jwt.outputs.jwt }}',
+    },
     run: |||
       TOKEN="$(curl -X POST \
-      -H "Authorization: Bearer ${{ steps.jwt.outputs.jwt }}" \
+      -H "Authorization: Bearer $JWT" \
       -H "Accept: application/vnd.github.v3+json" \
-      "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
+      "https://api.github.com/app/installations/${SEMGREP_CI_APP_INSTALLATION_ID}/access_tokens" | \
       jq -r .token)"
       echo "::add-mask::$TOKEN"
       echo "token=$TOKEN" >> $GITHUB_OUTPUT

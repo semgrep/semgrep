@@ -8,11 +8,14 @@ jobs:
     steps:
       - env:
           DOCKER_TAG: develop
+          INPUT_DOCKER_TAG: ${{ inputs.docker_tag }}
         id: get-inputs
         name: Set variables
-        run: echo "docker_tag=${{ inputs.docker_tag || env.DOCKER_TAG }}" >> $GITHUB_OUTPUT
-      - name: Debug
-        run: echo "${{ steps.get-inputs.outputs.docker_tag }}"
+        run: echo "docker_tag=${{ env.INPUT_DOCKER_TAG || env.DOCKER_TAG }}" >> $GITHUB_OUTPUT
+      - env:
+          DOCKER_TAG: ${{ steps.get-inputs.outputs.docker_tag }}
+        name: Debug
+        run: echo "$DOCKER_TAG"
   notify-failure:
     if: failure()
     needs:
@@ -125,13 +128,16 @@ jobs:
         id: jwt
         name: Get JWT for semgrep-ci GitHub App
         uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
-      - id: token
+      - env:
+          JWT: ${{ steps.jwt.outputs.jwt }}
+          SEMGREP_CI_APP_INSTALLATION_ID: ${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}
+        id: token
         name: Get token for semgrep-ci GitHub App
         run: |
           TOKEN="$(curl -X POST \
-          -H "Authorization: Bearer ${{ steps.jwt.outputs.jwt }}" \
+          -H "Authorization: Bearer $JWT" \
           -H "Accept: application/vnd.github.v3+json" \
-          "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
+          "https://api.github.com/app/installations/${SEMGREP_CI_APP_INSTALLATION_ID}/access_tokens" | \
           jq -r .token)"
           echo "::add-mask::$TOKEN"
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
@@ -140,22 +146,27 @@ jobs:
           ref: ${{ github.event.repository.default_branch }}
           repository: semgrep/e2e
           token: ${{ steps.token.outputs.token }}
-      - name: Prepare the PR
+      - env:
+          DOCKER_TAG: ${{ needs.get-inputs.outputs.docker_tag }}
+          RUN_ID: ${{ github.run_id }}
+        name: Prepare the PR
         run: |
-          git checkout -b e2e-test-pr-${{ github.run_id }}
-          scripts/change-version.sh ${{ needs.get-inputs.outputs.docker_tag }}
+          git checkout -b "e2e-test-pr-$RUN_ID"
+          scripts/change-version.sh "$DOCKER_TAG"
           git config user.name ${{ github.actor }}
           git config user.email ${{ github.actor }}@users.noreply.github.com
 
           git add --all
-          git commit -m "chore: Bump version to ${{ needs.get-inputs.outputs.docker_tag }}"
-          git push --set-upstream origin e2e-test-pr-${{ github.run_id }}
+          git commit -m "chore: Bump version to $DOCKER_TAG"
+          git push --set-upstream origin "e2e-test-pr-$RUN_ID"
       - env:
+          DOCKER_TAG: ${{ needs.get-inputs.outputs.docker_tag }}
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+          RUN_ID: ${{ github.run_id }}
         id: open-pr
         name: Make the PR
         run: |
-          PR_URL=$(gh pr create --title "chore: fake PR for ${{ needs.get-inputs.outputs.docker_tag }}" --body "Fake PR" --base "develop" --head "e2e-test-pr-${{ github.run_id }}")
+          PR_URL=$(gh pr create --title "chore: fake PR for $DOCKER_TAG" --body "Fake PR" --base "develop" --head "e2e-test-pr-${RUN_ID}")
           PR_NUMBER=$(echo $PR_URL | sed 's|.*pull/\(.*\)|\1|')
           echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
   wait-for-checks:
@@ -169,13 +180,16 @@ jobs:
         id: jwt
         name: Get JWT for semgrep-ci GitHub App
         uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
-      - id: token
+      - env:
+          JWT: ${{ steps.jwt.outputs.jwt }}
+          SEMGREP_CI_APP_INSTALLATION_ID: ${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}
+        id: token
         name: Get token for semgrep-ci GitHub App
         run: |
           TOKEN="$(curl -X POST \
-          -H "Authorization: Bearer ${{ steps.jwt.outputs.jwt }}" \
+          -H "Authorization: Bearer $JWT" \
           -H "Accept: application/vnd.github.v3+json" \
-          "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
+          "https://api.github.com/app/installations/${SEMGREP_CI_APP_INSTALLATION_ID}/access_tokens" | \
           jq -r .token)"
           echo "::add-mask::$TOKEN"
           echo "token=$TOKEN" >> $GITHUB_OUTPUT

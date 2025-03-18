@@ -65,18 +65,20 @@ jobs:
         run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
       - env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.get-version.outputs.VERSION }}
         id: wait-draft-release
         name: Wait for Draft Release if not Ready
         run: |
-          while ! gh release --repo semgrep/semgrep list -L 5 | grep -q "${{ steps.get-version.outputs.VERSION }}"; do
+          while ! gh release --repo semgrep/semgrep list -L 5 | grep -q "$VERSION"; do
             echo "release not yet ready, sleeping for 5 seconds"
             sleep 5
           done
       - env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.get-version.outputs.VERSION }}
         id: publish_release
         name: Publish Release
-        run: gh release --repo semgrep/semgrep edit ${{ steps.get-version.outputs.VERSION }} --draft=false
+        run: gh release --repo semgrep/semgrep edit "$VERSION" --draft=false
   create-release-interfaces:
     if: ${{ ! inputs.dry-run }}
     needs:
@@ -90,13 +92,16 @@ jobs:
         id: jwt
         name: Get JWT for semgrep-ci GitHub App
         uses: docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest
-      - id: token
+      - env:
+          JWT: ${{ steps.jwt.outputs.jwt }}
+          SEMGREP_CI_APP_INSTALLATION_ID: ${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}
+        id: token
         name: Get token for semgrep-ci GitHub App
         run: |
           TOKEN="$(curl -X POST \
-          -H "Authorization: Bearer ${{ steps.jwt.outputs.jwt }}" \
+          -H "Authorization: Bearer $JWT" \
           -H "Accept: application/vnd.github.v3+json" \
-          "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
+          "https://api.github.com/app/installations/${SEMGREP_CI_APP_INSTALLATION_ID}/access_tokens" | \
           jq -r .token)"
           echo "::add-mask::$TOKEN"
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
@@ -109,14 +114,16 @@ jobs:
           token: ${{ steps.token.outputs.token }}
       - env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+          VERSION: ${{ steps.get-version.outputs.VERSION }}
         id: upload-semgrep-schema-files
         name: Upload Schema Files
-        run: gh release --repo semgrep/semgrep-interfaces upload ${{ steps.get-version.outputs.VERSION }} cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml
+        run: gh release --repo semgrep/semgrep-interfaces upload "$VERSION" cli/src/semgrep/semgrep_interfaces/rule_schema_v1.yaml
       - env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+          VERSION: ${{ steps.get-version.outputs.VERSION }}
         id: publish_release_semgrep_interfaces
         name: Publish Release Semgrep Interfaces
-        run: gh release --repo semgrep/semgrep-interfaces edit ${{ steps.get-version.outputs.VERSION }} --draft=false
+        run: gh release --repo semgrep/semgrep-interfaces edit "$VERSION" --draft=false
   park-pypi-packages:
     defaults:
       run:

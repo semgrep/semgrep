@@ -55,12 +55,16 @@ local get_inputs_job = {
       //TODO? why do we need that given we set a default value above?
       env: {
         DOCKER_TAG: 'develop',
+        INPUT_DOCKER_TAG: '${{ inputs.docker_tag }}',
       },
-      run: 'echo "docker_tag=${{ inputs.docker_tag || env.DOCKER_TAG }}" >> $GITHUB_OUTPUT',
+      run: 'echo "docker_tag=${{ env.INPUT_DOCKER_TAG || env.DOCKER_TAG }}" >> $GITHUB_OUTPUT',
     },
     {
       name: 'Debug',
-      run: 'echo "${{ steps.get-inputs.outputs.docker_tag }}"',
+      env: {
+        DOCKER_TAG: '${{ steps.get-inputs.outputs.docker_tag }}',
+      },
+      run: 'echo "$DOCKER_TAG"',
     },
   ],
 };
@@ -217,26 +221,32 @@ local semgrep_ci_on_pr_job = {
     },
     {
       name: 'Prepare the PR',
+      env: {
+        DOCKER_TAG: docker_tag,
+        RUN_ID: '${{ github.run_id }}',
+      },
       run: |||
-        git checkout -b e2e-test-pr-${{ github.run_id }}
-        scripts/change-version.sh %s
+        git checkout -b "e2e-test-pr-$RUN_ID"
+        scripts/change-version.sh "$DOCKER_TAG"
         %s
         git add --all
-        git commit -m "chore: Bump version to %s"
-        git push --set-upstream origin e2e-test-pr-${{ github.run_id }}
-      ||| % [ docker_tag, gha.git_config_user, docker_tag],
+        git commit -m "chore: Bump version to $DOCKER_TAG"
+        git push --set-upstream origin "e2e-test-pr-$RUN_ID"
+      ||| %  gha.git_config_user,
     },
     {
       name: 'Make the PR',
       id: 'open-pr',
       env: {
         GITHUB_TOKEN: semgrep.github_bot.token_ref,
+        RUN_ID: '${{ github.run_id }}',
+        DOCKER_TAG: docker_tag,
       },
       run: |||
-          PR_URL=$(gh pr create --title "chore: fake PR for %s" --body "Fake PR" --base "develop" --head "e2e-test-pr-${{ github.run_id }}")
+          PR_URL=$(gh pr create --title "chore: fake PR for $DOCKER_TAG" --body "Fake PR" --base "develop" --head "e2e-test-pr-${RUN_ID}")
           PR_NUMBER=$(echo $PR_URL | sed 's|.*pull/\(.*\)|\1|')
           echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
-      ||| % [docker_tag],
+      |||,
     },
   ],
 };
