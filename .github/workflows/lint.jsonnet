@@ -10,7 +10,7 @@ local semgrep = import 'libs/semgrep.libsonnet';
 // The jobs
 // ----------------------------------------------------------------------------
 
-local pre_commit_steps(config='') = [
+local pre_commit_steps() = [
   gha.git_safedir,
   actions.setup_python_step(cache=false),
   semgrep.opam_setup(),
@@ -20,22 +20,21 @@ local pre_commit_steps(config='') = [
   // the one modifed in the PR (as it is the case when it's ran from git
   // hooks locally). This is why sometimes pre-commit passes locally but fails
   // in CI, for the same PR.
+  //
+  // WARNING!!! it is unreasonably difficult to get pre-commit to run in a
+  // subdir. Don't bother, just add whatever check you need to the top level
+  // pre-commit config. You have been warned!!
   {
     uses: 'pre-commit/action@v3.0.0',
-  } + (if config != '' then
-         {
-           with: {
-      'extra_args': '--all-files -c %s' % config,
-           }
-         } else {}),
+  },
 ];
 
 // Running pre-commit in CI. See semgrep/.pre-commit-config.yaml for
 // our pre-commit configuration.
-local pre_commit_job(checkout_steps, config='') = {
+local pre_commit_job(checkout_steps) = {
   'runs-on': 'ubuntu-latest',
   steps:
-    checkout_steps + pre_commit_steps(config),
+    checkout_steps + pre_commit_steps(),
 };
 
 // TODO: we should port those GHA checks to semgrep and add them in semgrep-rules

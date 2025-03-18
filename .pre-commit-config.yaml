@@ -124,7 +124,7 @@ repos:
         alias: mypy-test
         name: mypy (test files)
         files: ^cli/tests/.+$
-        args: [--config, mypy-tests.ini, --show-error-codes]
+        args: [--config, mypy-tests.ini, --show-error-codes, --python-version, "3.11"]
         additional_dependencies: *mypy-deps
 
   - repo: https://github.com/PyCQA/flake8
