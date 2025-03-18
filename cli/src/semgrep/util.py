@@ -40,7 +40,8 @@ MASK_SHOW_PCT = 0.2
 
 MAX_TEXT_WIDTH = 120
 
-IS_WINDOWS = platform.system() == 'Windows'
+IS_WINDOWS = platform.system() == "Windows"
+
 
 def is_url(url: str) -> bool:
     try:

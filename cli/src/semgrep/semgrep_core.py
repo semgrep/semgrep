@@ -1,17 +1,17 @@
 import importlib.resources
 import os
-import platform
 import shutil
 import sys
 from pathlib import Path
 from typing import Optional
 
-from semgrep.verbose_logging import getLogger
 from semgrep.util import IS_WINDOWS
+from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
 VERSION_STAMP_FILENAME = "pro-installed-by.txt"
+
 
 def compute_executable_path(exec_name: str) -> Optional[str]:
     """

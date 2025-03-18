@@ -10,7 +10,7 @@ local semgrep = import 'libs/semgrep.libsonnet';
 // The jobs
 // ----------------------------------------------------------------------------
 
-local pre_commit_steps(config='.pre-commit-config.yaml') = [
+local pre_commit_steps(config='') = [
   gha.git_safedir,
   actions.setup_python_step(cache=false),
   semgrep.opam_setup(),
@@ -22,25 +22,26 @@ local pre_commit_steps(config='.pre-commit-config.yaml') = [
   // in CI, for the same PR.
   {
     uses: 'pre-commit/action@v3.0.0',
-    with: {
-      'extra_args': '-c %s' % config,
-    }
-  },
+  } + (if config != '' then
+         {
+           with: {
+      'extra_args': '--all-files -c %s' % config,
+           }
+         } else {}),
 ];
 
 // Running pre-commit in CI. See semgrep/.pre-commit-config.yaml for
 // our pre-commit configuration.
-local pre_commit_job(checkout_steps, config='.pre-commit-config.yaml') = {
+local pre_commit_job(checkout_steps, config='') = {
   'runs-on': 'ubuntu-latest',
   steps:
     checkout_steps + pre_commit_steps(config),
 };
 
 // TODO: we should port those GHA checks to semgrep and add them in semgrep-rules
-local action_lint_job(checkout_steps, dir="./") = {
+local action_lint_job(checkout_steps, dir=".github/workflows") = {
   'runs-on': 'ubuntu-latest',
   steps: checkout_steps + [
-    gha.git_safedir,
     {
       uses: 'actions/setup-go@v5',
       with: {
@@ -52,9 +53,9 @@ local action_lint_job(checkout_steps, dir="./") = {
     },
     {
       run: |||
-        cd %s
+        cd %(dir)s
         actionlint -shellcheck=''
-      |||  % dir,
+      ||| % {dir: dir},
     },
   ],
 };
@@ -70,11 +71,11 @@ local jsonnet_gha_job(checkout_steps, dir=".github/workflows") = {
       run: |||
         sudo apt-get update
         sudo apt-get install jsonnet
-        cd %s
+        cd %(dir)s
         make clean
         make
         git diff --exit-code
-      ||| % dir,
+      ||| % {dir: dir},
     },
   ],
 };

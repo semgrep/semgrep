@@ -14,7 +14,7 @@ let tests =
     [
       t "regression files" (fun () ->
           let dir = tests_path / "scala" / "parsing" in
-          let files = Common2.glob (dir  / "*.scala") in
+          let files = Common2.glob (dir / "*.scala") in
           files
           |> List.iter (fun file ->
                  try
@@ -31,7 +31,8 @@ let tests =
           |> List.iter (fun file ->
                  try
                    let _ast = Parse_scala.parse file in
-                   Alcotest.failf "it should have thrown a Parse_error %a" Fpath.pp file
+                   Alcotest.failf "it should have thrown a Parse_error %a"
+                     Fpath.pp file
                  with
                  | Parsing_error.Syntax_error _ -> ()
                  | exn ->

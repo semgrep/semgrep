@@ -171,7 +171,7 @@ let tests parse_program parse_pattern =
           |> List.iter (fun file ->
                  try
                    let _ =
-                     parse_pattern Lang.Java (UFile.Legacy.read_file (!!file))
+                     parse_pattern Lang.Java (UFile.Legacy.read_file !!file)
                    in
                    ()
                  with
@@ -184,7 +184,7 @@ let tests parse_program parse_pattern =
           |> List.iter (fun file ->
                  try
                    let _ =
-                     parse_pattern Lang.Go (UFile.Legacy.read_file (!!file))
+                     parse_pattern Lang.Go (UFile.Legacy.read_file !!file)
                    in
                    ()
                  with

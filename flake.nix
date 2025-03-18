@@ -6,7 +6,7 @@
 #  curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
 #  make shell # for a shell with all tools OR
 #  make nix-semgrep # to build semgrep
-# 
+#
 #  ## Overview
 #
 # This is a Nix file for Semgrep developers.

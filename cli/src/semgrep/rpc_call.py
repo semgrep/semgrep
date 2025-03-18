@@ -132,6 +132,7 @@ def get_targets(scanning_roots: out.ScanningRoots) -> out.TargetDiscoveryResult:
     logger.debug(f"get_targets request: {scanning_roots}\n..... result: {ret.value}")
     return ret.value
 
+
 def match_subprojects(dependency_source_files: List[out.Fpath]) -> List[out.Subproject]:
     call = out.FunctionCall(out.CallMatchSubprojects(dependency_source_files))
     ret: Optional[out.RetMatchSubprojects] = rpc_call(call, out.RetMatchSubprojects)

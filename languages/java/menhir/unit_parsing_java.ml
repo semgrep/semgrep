@@ -17,6 +17,5 @@ let tests =
           let files = Common2.glob (dir / "*.java") in
           files
           |> List.iter (fun file ->
-                 Testutil.run (!!file) (fun () ->
-                     Parse_java.parse file |> ignore)));
+                 Testutil.run !!file (fun () -> Parse_java.parse file |> ignore)));
     ]

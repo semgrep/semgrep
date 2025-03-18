@@ -206,8 +206,8 @@ def exec_osemgrep():
         # behavior. We stick with os.execvp on POSIX systems because it
         # correctly replaces the current process, which is the desired behavior
         # and avoids unnecessary extra processes.
-        # nosem: dangerous-subprocess-use-tainted-env-args
         try:
+            # nosem: dangerous-subprocess-use-tainted-env-args
             child = subprocess.run(sys.argv, executable=str(path))
         except KeyboardInterrupt:
             # We don't want the stack trace on user interrupt

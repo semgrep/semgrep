@@ -17,6 +17,6 @@ let tests =
           let files = Common2.glob (dir / "*.py") in
           files
           |> List.iter (fun file ->
-                 Testutil.run (!!file) (fun () ->
+                 Testutil.run !!file (fun () ->
                      Parse_python.parse_program file |> ignore)));
     ]

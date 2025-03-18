@@ -101,7 +101,8 @@ let tests (caps : < Cap.time_limit >) : Testo.t list =
       mk_tests caps (Fpath.v "pass/") [ Conf.EvalSubst; Conf.EvalEnvir ];
       mk_tests caps (Fpath.v "only_subst/") [ Conf.EvalSubst ];
       mk_tests caps (Fpath.v "only_envir/") [ Conf.EvalEnvir ];
-      mk_tests caps (Fpath.v "tutorial/pass/") [ Conf.EvalSubst; Conf.EvalEnvir ];
+      mk_tests caps (Fpath.v "tutorial/pass/")
+        [ Conf.EvalSubst; Conf.EvalEnvir ];
       mk_tests caps (Fpath.v "tutorial/only_subst/") [ Conf.EvalSubst ];
       mk_tests caps (Fpath.v "tutorial/only_envir/") [ Conf.EvalEnvir ];
       (* TODO

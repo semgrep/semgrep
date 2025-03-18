@@ -1,5 +1,4 @@
 open Fpath_.Operators
-
 module Ast = Cst_php
 module Flag = Flag_parsing
 

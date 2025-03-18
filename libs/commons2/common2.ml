@@ -276,18 +276,16 @@ let glob pattern =
          ["foo/**/*.json"] can match a Windows path ["foo\\bar\\baz.json"], but the
          pattern ["foo\\**\\*.json"] is not a usable glob pattern. Since we
          construct glob patterns from file paths, we need to ensure that those
-         paths are normalized to form proper glob patterns.  *)
+         paths are normalized to form proper glob patterns. *)
       Fpath.segs pattern |> String.concat "/"
-    else
-      Fpath.to_string pattern
+    else Fpath.to_string pattern
   in
   Str.search_forward dir_regex pattern 0 |> ignore;
   let dir = Str.matched_string pattern in
   let regex =
     pattern
     |> Re.Glob.glob
-         ~anchored:true
-         (* allows globbing against windows separators *)
+         ~anchored:true (* allows globbing against windows separators *)
          ~match_backslashes:true
     |> Re.compile
   in
@@ -296,11 +294,9 @@ let glob pattern =
    *)
   let caps = Cap.readdir_UNSAFE () in
   let files = UFile.Legacy.dir_contents caps dir in
-  files |> List_.filter_map (fun s ->
-               if Re.execp regex s then
-                 Some (Fpath.v s)
-               else
-                 None)
+  files
+  |> List_.filter_map (fun s ->
+         if Re.execp regex s then Some (Fpath.v s) else None)
 
 let unix_diff file1 file2 =
   let cmd = (Cmd.Name "diff", [ "-u"; file1; file2 ]) in
@@ -729,8 +725,9 @@ let relative_path_of_segs (segs : string list) : Fpath.t =
 
 let inits_of_relative_dir dir =
   if not (Fpath.is_rel dir) then
-    failwith (spf "inits_of_relative_dir: %s is not a relative dir"
-                (Fpath.to_string dir));
+    failwith
+      (spf "inits_of_relative_dir: %s is not a relative dir"
+         (Fpath.to_string dir));
   (* Remove any trailing seperators, e.g., `a/b/c///` -> `a/b/c` *)
   let dir = Fpath.rem_empty_seg dir in
   let dirs = Fpath.segs dir in

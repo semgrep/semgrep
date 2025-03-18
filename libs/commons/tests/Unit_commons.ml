@@ -85,9 +85,7 @@ let test_cat () =
       assert false
 
 let test_readable () =
-  let readable ~root p =
-    Filename_.readable ~root:(Fpath.v root) (Fpath.v p)
-  in
+  let readable ~root p = Filename_.readable ~root:(Fpath.v root) (Fpath.v p) in
   let fpath = Alcotest.testable Fpath.pp Fpath.equal in
   Alcotest.(check fpath)
     "same string" (Fpath.v "Bar.java")

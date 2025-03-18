@@ -113,13 +113,14 @@ let pack_parsing_tests_for_lang ?(error_tolerance = Strict) lang =
              file =/~ regex)
            exts)
     then
-      failwith (spf "Unrecognized extension for file %s for lang %s" (!!file) slang)
+      failwith
+        (spf "Unrecognized extension for file %s for lang %s" !!file slang)
   in
   (* Get all files then check extensions *)
   let pattern = dir / "**" / "*" in
   let files = Common2.glob pattern in
   if files =*= [] then
-    failwith (spf "Empty set of parsing tests for %s at %s" slang (!!pattern));
+    failwith (spf "Empty set of parsing tests for %s at %s" slang !!pattern);
   List.iter check_ext files;
   let file_strings = List_.map Fpath.to_string files in
   let tests = parsing_tests_for_lang error_tolerance file_strings lang in
@@ -155,26 +156,25 @@ let parsing_error_tests () =
   in
   Testo.categorize "Parsing error detection"
     (Common2.glob (dir / "*")
-     |> List_.map (fun file ->
-            t ~tags:(tags_of_file file) (Fpath.basename file) (fun () ->
-                try
-                  let lang = Lang.lang_of_filename_exn file in
-                  let res = Parse_target.just_parse_with_lang lang file in
-                  if res.skipped_tokens =*= [] then
-                    Alcotest.fail
-                      "it should raise a standard parsing error exn or return \
-                       partial errors "
-                with
-                | Parsing_error.Lexical_error _
-                  | Parsing_error.Syntax_error _ ->
-                    ())))
+    |> List_.map (fun file ->
+           t ~tags:(tags_of_file file) (Fpath.basename file) (fun () ->
+               try
+                 let lang = Lang.lang_of_filename_exn file in
+                 let res = Parse_target.just_parse_with_lang lang file in
+                 if res.skipped_tokens =*= [] then
+                   Alcotest.fail
+                     "it should raise a standard parsing error exn or return \
+                      partial errors "
+               with
+               | Parsing_error.Lexical_error _
+               | Parsing_error.Syntax_error _ ->
+                   ())))
 
 let parsing_rules_tests () =
   let dir = tests_path / "rule_formats" in
   Testo.categorize "Parsing rules"
     (let tests =
-       Common2.glob (dir / "*.yaml")
-       @ Common2.glob (dir / "*.json")
+       Common2.glob (dir / "*.yaml") @ Common2.glob (dir / "*.json")
        (* skipped for now to avoid adding jsonnet as a dependency in our
         * CI: Common2.glob (spf "%s/*.jsonnet" dir)
         *)
@@ -192,18 +192,14 @@ let parsing_rules_tests () =
 
 let parsing_rules_with_atd_tests () =
   let dir = tests_path / "rules_v2" in
-  let tests1 =
-    Common2.glob (dir / "*.yaml") @ Common2.glob (dir / "*.json")
-  in
+  let tests1 = Common2.glob (dir / "*.yaml") @ Common2.glob (dir / "*.json") in
   let dir = tests_path / "syntax_v2" in
-  let tests2 =
-    Common2.glob (dir  / "*.yaml") @ Common2.glob (dir / "*.json")
-  in
+  let tests2 = Common2.glob (dir / "*.yaml") @ Common2.glob (dir / "*.json") in
   Testo.categorize "Parsing rules with rule_schema_v2.atd"
-    ((tests1 @ tests2)
-     |> List_.map (fun file ->
-            t !!file (fun () ->
-                Parse_rules_with_atd.parse_rules_v2 file |> ignore)))
+    (tests1 @ tests2
+    |> List_.map (fun file ->
+           t !!file (fun () ->
+               Parse_rules_with_atd.parse_rules_v2 file |> ignore)))
 
 (*****************************************************************************)
 (* Tests *)

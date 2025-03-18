@@ -24,10 +24,8 @@ let readable ~root s =
   else if Fpath.is_current_dir root then
     if Fpath.is_abs s then
       let path = Fpath.to_string s in
-      failwith
-          (spf "file %s shouldn't be absolute when root is ." path);
-    else
-      s
+      failwith (spf "file %s shouldn't be absolute when root is ." path)
+    else s
   else
     match Fpath.(rem_prefix (v "./")) s with
     | Some p -> p

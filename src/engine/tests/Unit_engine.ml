@@ -111,7 +111,7 @@ let pack_tests_for_lang
   Testo.categorize
     (spf "%s" (Lang.show lang))
     (let dir = test_pattern_path / dir in
-     let files = Common2.glob Fpath.(dir / "*" + ext) in
+     let files = Common2.glob Fpath.((dir / "*") + ext) in
      lang_test_fn ~polyglot_pattern_path files lang)
 
 (*****************************************************************************)
@@ -437,7 +437,7 @@ let lang_regression_tests ~polyglot_pattern_path =
         (let dir = test_pattern_path / "js" in
          let files = Common2.glob (dir / "*.js") in
          let files =
-           List_.exclude (fun s -> (!!s) =~ ".*xml" || (!!s) =~ ".*jsx") files
+           List_.exclude (fun s -> !!s =~ ".*xml" || !!s =~ ".*jsx") files
          in
 
          let lang = Lang.Ts in
@@ -536,10 +536,10 @@ let eval_regression_tests () =
         let files = Common2.glob (dir / "*.json") in
         files
         |> List.iter (fun file ->
-               let env, code = Eval_generic.parse_json (!!file) in
+               let env, code = Eval_generic.parse_json !!file in
                let res = Eval_generic.eval env code in
                Alcotest.(check bool)
-                 (spf "%s should evaluate to true" (!!file))
+                 (spf "%s should evaluate to true" !!file)
                  true
                  (Eval_generic.Bool true =*= res)));
   ]
@@ -850,13 +850,16 @@ let semgrep_rules_repo_tests caps : Testo.t list =
                     (* Apex requires Pro *)
                     || s =/~ ".*/apex/lang/.*"
                        (* but the following are generic rules ... *)
-                       && (not @@ Fpath.Set.mem s @@ Fpath.Set.of_list @@ List_.map Fpath.v @@
-                             [ "tests/semgrep-rules/apex/lang/best-practice/ncino/tests/UseAssertClass.yaml"
-                             ; "tests/semgrep-rules/apex/lang/performance/ncino/operationsInLoops/AvoidNativeDmlInLoops.yaml"
-                             ; "tests/semgrep-rules/apex/lang/performance/ncino/operationsInLoops/AvoidSoqlInLoops.yaml"
-                             ; "tests/semgrep-rules/apex/lang/performance/ncino/operationsInLoops/AvoidSoslInLoops.yaml"
-                             ; "tests/semgrep-rules/apex/lang/performance/ncino/operationsInLoops/AvoidOperationsWithLimitsInLoops.yaml"
-                             ; "tests/semgrep-rules/apex/lang/security/ncino/dml/ApexCSRFStaticConstructor.yaml" ])
+                       && not @@ Fpath.Set.mem s @@ Fpath.Set.of_list
+                          @@ List_.map Fpath.v
+                          @@ [
+                               "tests/semgrep-rules/apex/lang/best-practice/ncino/tests/UseAssertClass.yaml";
+                               "tests/semgrep-rules/apex/lang/performance/ncino/operationsInLoops/AvoidNativeDmlInLoops.yaml";
+                               "tests/semgrep-rules/apex/lang/performance/ncino/operationsInLoops/AvoidSoqlInLoops.yaml";
+                               "tests/semgrep-rules/apex/lang/performance/ncino/operationsInLoops/AvoidSoslInLoops.yaml";
+                               "tests/semgrep-rules/apex/lang/performance/ncino/operationsInLoops/AvoidOperationsWithLimitsInLoops.yaml";
+                               "tests/semgrep-rules/apex/lang/security/ncino/dml/ApexCSRFStaticConstructor.yaml";
+                             ]
                     (* ?? *)
                     || s =/~ ".*/yaml/semgrep/consistency/.*" ->
                  Some "XFAIL"

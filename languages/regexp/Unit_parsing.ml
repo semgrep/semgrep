@@ -24,9 +24,8 @@ let test_valid_files dialect rel_path () =
            ()
          with
          | exn ->
-             Alcotest.failf "it should correctly parse %a (exn = %s)"
-               Fpath.pp file
-               (Common.exn_to_s exn))
+             Alcotest.failf "it should correctly parse %a (exn = %s)" Fpath.pp
+               file (Common.exn_to_s exn))
 
 let test_invalid_files dialect rel_path () =
   let dir = tests_path // rel_path in
@@ -62,9 +61,11 @@ let tests =
           t "tolerate unfinished non-capturing group" (test_syntax {|(?|});
           t "tolerate unfinished raw sequence" (test_syntax {|\Qabc|});
           (* Check regexps kept in files *)
-          t "valid files" (test_valid_files Dialect.PCRE (Fpath.v "regexp/pcre/parsing"));
+          t "valid files"
+            (test_valid_files Dialect.PCRE (Fpath.v "regexp/pcre/parsing"));
           t "invalid files"
-            (test_invalid_files Dialect.PCRE (Fpath.v "regexp/pcre/parsing_errors"));
+            (test_invalid_files Dialect.PCRE
+               (Fpath.v "regexp/pcre/parsing_errors"));
         ];
       Testo.categorize "pcre_extended"
         [
@@ -78,8 +79,10 @@ let tests =
       Testo.categorize "perl_xx"
         [
           t "valid files"
-            (test_valid_files Dialect.Perl_xx (Fpath.v "regexp/perl_xx/parsing"));
+            (test_valid_files Dialect.Perl_xx
+               (Fpath.v "regexp/perl_xx/parsing"));
           t "invalid files"
-            (test_invalid_files Dialect.Perl_xx (Fpath.v "regexp/perl_xx/parsing_errors"));
+            (test_invalid_files Dialect.Perl_xx
+               (Fpath.v "regexp/perl_xx/parsing_errors"));
         ];
     ]

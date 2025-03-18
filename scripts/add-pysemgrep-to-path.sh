@@ -6,6 +6,7 @@ if ! pipenv --venv >/dev/null; then
     pipenv install
 fi
 PYSEMGREP_PATH="$(pipenv --venv)/bin"
+# shellcheck disable=SC3010
 if [[ $PATH != *"$PYSEMGREP_PATH"* ]]; then
     echo "adding pysemgrep's bin to path, you can now call 'semgrep' directly"
     export PATH="$PYSEMGREP_PATH:$PATH"

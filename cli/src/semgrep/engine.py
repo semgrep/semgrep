@@ -13,10 +13,12 @@ from semgrep.error import SemgrepError
 from semgrep.meta import GitMeta
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_interfaces import semgrep_output_v1 as out
-from semgrep.util import sub_check_output, IS_WINDOWS
+from semgrep.util import IS_WINDOWS
+from semgrep.util import sub_check_output
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
+
 
 class EngineType(Enum):
     OSS = auto()

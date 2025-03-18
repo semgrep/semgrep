@@ -31,9 +31,7 @@ let tests caps =
       t "regression files typescript" (fun () ->
           let dir = tests_path / "typescript" / "parsing" in
           let files =
-            Common2.glob (dir / "*.js")
-            @ Common2.glob (dir / "*.ts")
-            @ []
+            Common2.glob (dir / "*.js") @ Common2.glob (dir / "*.ts") @ []
           in
           files
           |> List.iter (fun file ->

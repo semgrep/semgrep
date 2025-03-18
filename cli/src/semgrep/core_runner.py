@@ -2,7 +2,6 @@ import asyncio
 import collections
 import contextlib
 import json
-import platform
 import sys
 import tempfile
 from datetime import datetime
@@ -871,7 +870,8 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
             if IS_WINDOWS and safe_jobs > 1:
                 logger.warning(
                     f"Requested {safe_jobs} jobs, but only 1 job is currently "
-                    "supported on Windows. Forcing configuration to 1 job.")
+                    "supported on Windows. Forcing configuration to 1 job."
+                )
                 safe_jobs = 1
             cmd.extend(["-j", str(safe_jobs)])
 
