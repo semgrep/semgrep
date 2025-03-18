@@ -67,6 +67,8 @@ For more information see https://semgrep.dev
     (menhir (= 20230608))
     ; vendored in libs/ocaml-tree-sitter-core
     tree-sitter
+    ; vendored in libs/semgrep-interfaces
+    semgrep-interfaces
     ; standard libraries
     ; We don't use Base directly. If it's being used indirectly
     ; (is it, though?), we need a version that doesn't register

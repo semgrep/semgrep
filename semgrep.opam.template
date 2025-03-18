@@ -8,4 +8,5 @@ pin-depends: [
   ["testo.dev" "./libs/testo"]
   ["testo-util.dev" "./libs/testo"]
   ["testo-diff.dev" "./libs/testo"]
+  ["semgrep-interfaces.dev" "./cli/src/semgrep/semgrep_interfaces"]
 ]

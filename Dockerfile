@@ -72,7 +72,7 @@
 #    add a package or we wanted to switch to a different OCaml version.
 #    Being able to control everything from a single Dockerfile is simpler.
 
-FROM alpine:3.19 as semgrep-core-container
+FROM alpine:3.21 as semgrep-core-container
 
 
 # Install opam and basic build tools
@@ -101,6 +101,9 @@ COPY Makefile semgrep.opam ./
 COPY dev/required.opam dev/
 COPY scripts/build-static-libcurl.sh scripts/
 COPY libs/ocaml-tree-sitter-core libs/ocaml-tree-sitter-core
+COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
+COPY libs/pcre2 libs/pcre2
+COPY libs/testo libs/testo
 
 # note that we do not run 'make install-deps-for-semgrep-core' here because it
 # configures and builds ocaml-tree-sitter-core too; here we are
@@ -129,11 +132,10 @@ RUN ./bin/semgrep-core -version
 # Start from scratch with a fresh Alpine image. We used to use
 # `python:3.11-alpine` but want to avoid shipping a bunch of unneeded Python
 # packages in our production image. Instead we'll install exactly what we need.
-# Note that we're currently using alpine 3.21 for the pysemgrep part and 3.19
-# for the semgrep-core part (see above); it should be fine because we currently
-# build semgrep-core as a static binary but something to keep in mind!
 
 #coupling: the 'semgrep-oss' name is used in 'make build-docker'
+#coupling: if you change this alpine version it might be good to change the
+# previous stage to the same version, and to change the alpine version in the workflows
 FROM alpine:3.21 AS semgrep-oss
 
 WORKDIR /pysemgrep
@@ -360,10 +362,6 @@ COPY --from=semgrep-wheel /semgrep/cli/dist/*musllinux*.whl /
 
 FROM semgrep-core-container AS semgrep-core-test
 
-# Needed for core-test-e2e
-RUN apk add --no-cache py3-pip
-# hadolint ignore=DL3013
-RUN pip install --break-system-packages --no-cache-dir check-jsonschema
 # Git repo is need for tests
 RUN git init
 RUN opam exec -- make test

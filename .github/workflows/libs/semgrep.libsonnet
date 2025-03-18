@@ -276,10 +276,6 @@ local build_test_steps(opam_switch=opam_switch_default, cache_deps=['semgrep.opa
     {
       name: 'Test %s (and time it)' % name,
       run: |||
-        # Small hack to get deps to work fine, will remove in follow up pr
-        apk add --no-cache python3 py3-pip
-        pip install --no-cache-dir --ignore-installed --break-system-packages check-jsonschema
-        eval $(opam env)
         START=`date +%s`
         opam exec -- make test
         opam exec -- make core-test-e2e

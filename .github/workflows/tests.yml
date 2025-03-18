@@ -365,10 +365,6 @@ jobs:
         run: opam exec -- make
       - name: Test semgrep-core (and time it)
         run: |
-          # Small hack to get deps to work fine, will remove in follow up pr
-          apk add --no-cache python3 py3-pip
-          pip install --no-cache-dir --ignore-installed --break-system-packages check-jsonschema
-          eval $(opam env)
           START=`date +%s`
           opam exec -- make test
           opam exec -- make core-test-e2e
