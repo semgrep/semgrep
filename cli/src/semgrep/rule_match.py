@@ -475,9 +475,10 @@ class RuleMatch:
         if not self.match.extra.sca_match:
             return None
 
-        if self.metadata.get("sca-kind") == "upgrade-only":
+        sca_kind = self.metadata.get("sca-kind")
+        if sca_kind == "upgrade-only" or sca_kind == "malicious":
             return "reachable"
-        elif self.metadata.get("sca-kind") == "legacy":
+        elif sca_kind == "legacy":
             return "undetermined"
         else:
             return (
