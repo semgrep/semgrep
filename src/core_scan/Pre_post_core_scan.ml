@@ -44,7 +44,7 @@ type 'config core_scan_func_with_rules =
 
 type post_process_result = {
   (* Could be an option if we want to use the post processor to filter findings.
-   * *)
+   *)
   match_ : Core_result.processed_match;
   (* Must be a persistent sequence. Mainly used to avoid the time complexity of
    * List concatenation *)

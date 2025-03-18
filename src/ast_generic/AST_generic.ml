@@ -471,7 +471,7 @@ class virtual ['self] iter_parent =
   end
 
 (* Basically a copy paste of iter_parent above, but with different return types
- * *)
+ *)
 class virtual ['self] map_parent =
   object (self : 'self)
     (* Virtual methods *)
