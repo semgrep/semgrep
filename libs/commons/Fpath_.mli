@@ -49,6 +49,13 @@ val ( !! ) : Fpath.t -> string
    equals 'Fpath.v "a"' rather than 'Fpath.v "./a"'. *)
 val append_no_dot : Fpath.t -> Fpath.t -> Fpath.t
 
+(* Returns the list of ancestors of a path
+   For example, [parents (Fpath.v "a/b/foo.js")] returns
+   ["a/b/"; "a/"; "./"]
+   This is only syntactical so
+*)
+val parents : ?depth_limit:int -> Fpath.t -> Fpath.t list
+
 (*
    Operators on files or file paths or anything related to files.
    This is module is meant to be opened:

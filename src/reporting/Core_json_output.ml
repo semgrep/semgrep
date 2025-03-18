@@ -358,60 +358,45 @@ let sca_pattern_to_sca_pattern (pat : SCA_pattern.t) : Out.sca_pattern =
   in
   Out.{ ecosystem; package; semver_range }
 
-let sca_dependency_to_found_dependency (dep : SCA_dependency.t) :
-    Out.found_dependency =
-  let SCA_dependency.
-        {
-          package_name;
-          package_version = _;
-          package_version_string;
-          ecosystem;
-          transitivity;
-          url;
-          loc = _;
-          downloaded_source_path = _;
-        } =
-    dep
-  in
-  Out.
-    {
-      package = package_name;
-      version = package_version_string;
-      ecosystem;
-      (* ?? *)
-      allowed_hashes = [];
-      resolved_url = url |> Option.map Uri.to_string;
-      (* TODO *)
-      transitivity;
-      manifest_path = None;
-      lockfile_path = None;
-      line_number = None;
-      children = None;
-      git_ref = None;
-    }
-
-(* TODO: this is a v0, need to port pysemgrep code *)
-let sca_to_sca (m : SCA_match.t) : Out.sca_match =
+let sca_to_sca (rule_metadata : Yojson.Basic.t option) (m : SCA_match.t) :
+    Out.sca_match =
   let SCA_match.{ dep; pat; kind } = m in
+  let sca_rule_kind =
+    let* rule_metadata = rule_metadata in
+    let* sca_kind =
+      Yojson.Basic.Util.member "sca-kind" rule_metadata |> function
+      | `String s -> Some s
+      | _ -> None
+    in
+    Some sca_kind
+  in
   let reachable =
     match kind with
     | CodeAndLockfileMatch -> true
     | LockfileOnlyMatch -> false
   in
-  (* TODO: need to look at the rule! we might have LockfileOnlyMatch above
-   * with a reachability rune
-   *)
-  let reachability_rule = reachable in
+  let reachability_rule =
+    match sca_rule_kind with
+    | Some "reachable" -> true
+    | _ -> false
+  in
   let dependency_match : Out.dependency_match =
     let dependency_pattern : Out.sca_pattern = sca_pattern_to_sca_pattern pat in
-    let found_dependency : Out.found_dependency =
-      sca_dependency_to_found_dependency dep
-    in
     let lockfile =
       let loc, _ = dep.loc in
       loc.pos.file
     in
+    let found_dependency : Out.found_dependency =
+      SCA_dependency.to_found_dependency ~lockfile_path:lockfile dep None
+    in
     Out.{ dependency_pattern; found_dependency; lockfile }
+  in
+  let kind =
+    match (kind, sca_rule_kind) with
+    | CodeAndLockfileMatch, _ -> Out.DirectReachable
+    | LockfileOnlyMatch, Some "reachable" -> Out.DirectUnreachable
+    | LockfileOnlyMatch, _ ->
+        Out.LockfileOnlyMatch dependency_match.found_dependency.transitivity
   in
   Out.
     {
@@ -420,8 +405,7 @@ let sca_to_sca (m : SCA_match.t) : Out.sca_match =
       sca_finding_schema = 20220913;
       dependency_match;
       reachable;
-      (* TODO: use m.kind at some point *)
-      kind = None;
+      kind = Some kind;
     }
 
 (* "unsafe" because can raise NoTokenLocation which is captured in
@@ -472,7 +456,7 @@ let unsafe_match_to_match
           Option.map (fun edit -> edit.Textedit.replacement_text) autofix_edit;
         is_ignored;
         engine_kind = pm.engine_of_match;
-        sca_match = Option.map sca_to_sca pm.sca_match;
+        sca_match = Option.map (sca_to_sca metadata) pm.sca_match;
         validation_state = Some pm.validation_state;
         historical_info;
         extra_extra = None;

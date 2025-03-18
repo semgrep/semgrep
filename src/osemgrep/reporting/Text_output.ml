@@ -2,6 +2,7 @@ open Common
 open Fpath_.Operators
 module Out = Semgrep_output_v1_t
 module Log = Log_reporting.Log
+module Raw_json = Yojson.Basic.Util
 
 (*****************************************************************************)
 (* Prelude *)
@@ -57,6 +58,7 @@ type report_group =
   | `Blocking
   | (* at some point `Blocking and `Nonblocking groups become `Merged *)
     `Merged ]
+[@@deriving show]
 
 let group_titles : report_group -> string = function
   | `Unreachable -> "Unreachable Supply Chain Finding"
@@ -434,26 +436,18 @@ let text_output ~max_chars_per_line ~max_lines_per_finding
     cli_output.results |> Semgrep_output_utils.sort_cli_matches
     |> Assoc.group_by (fun (m : Out.cli_match) ->
            match Product.of_cli_match m with
-           | `SCA ->
-               (* TO PORT:
-                         subgroup = match.exposure_type or "undetermined"
-
-                          figuring out the product, python uses (rule.py):
-                             RuleProduct.sca
-                             if "r2c-internal-project-depends-on" in self._raw
-                             else RuleProduct.sast
-
-                          and exposure_type (rule_match.py):
-                          if "sca_info" not in self.extra:
-                              return None
-
-                          if self.metadata.get("sca-kind") == "upgrade-only":
-                              return "reachable"
-                          elif self.metadata.get("sca-kind") == "legacy":
-                              return "undetermined"
-                          else:
-                              return "reachable" if self.extra["sca_info"].reachable else "unreachable" *)
-               `Undetermined
+           | `SCA -> (
+               let sca_rule_kind =
+                 m.extra.metadata |> Raw_json.to_assoc
+                 |> Assoc.find_opt "sca-kind"
+                 |> Option.map Raw_json.to_string
+               in
+               match (m.extra.sca_info, sca_rule_kind) with
+               | _, Some "upgrade-only" -> `Reachable
+               | _, Some "legacy" -> `Undetermined
+               | Some { kind = Some DirectReachable; _ }, _ -> `Reachable
+               | Some { kind = Some DirectUnreachable; _ }, _ -> `Unreachable
+               | _ -> `Undetermined)
            | `SAST ->
                if is_blocking m.extra.metadata then `Blocking else `Nonblocking
            | `Secrets ->

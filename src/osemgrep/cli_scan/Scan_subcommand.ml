@@ -696,8 +696,8 @@ let run_scan_conf (caps : < caps ; .. >) (conf : Scan_CLI.conf) : Exit_code.t =
         conf profiler core_errors
   (* but with no fatal rule errors, we can proceed with the scan! *)
   | [] -> (
-      (* step2: getting the targets *)
-      Logs.info (fun m -> m "Computing the targets");
+      (* step2: getting the targets (part1) *)
+      Logs.info (fun m -> m "Computing the target candidates");
       let targets_and_skipped =
         Find_targets.get_target_fpaths caps conf.targeting_conf
           conf.target_roots

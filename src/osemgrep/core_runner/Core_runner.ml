@@ -301,7 +301,6 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
         rules_with_targets;
       }
     in
-
     let scanned =
       res.scanned |> List_.map Target.internal_path |> Set_.of_list
     in
