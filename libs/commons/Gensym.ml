@@ -36,7 +36,6 @@ module MkId () : sig
   val to_int : t -> int
   val unsafe_default : t
   val is_unsafe_default : t -> bool
-  val unsafe_reset_counter : unit -> unit
 
   type partition = A | B
 
@@ -80,8 +79,4 @@ end = struct
   let to_int = Fun.id
   let unsafe_default = -1
   let is_unsafe_default id = id = unsafe_default
-
-  let unsafe_reset_counter () =
-    counter_a := 0;
-    counter_b := -2
 end
