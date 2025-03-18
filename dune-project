@@ -60,7 +60,7 @@ For more information see https://semgrep.dev
 ; need to manually trigger the "nix-weekly-update-flake" workflow
   (depends
     ; core deps
-    (ocaml (>= 4.13.0))
+    (ocaml (>= 5.2.1))
     (dune (>= 2.7.0 ))
     base
     ; parser generators

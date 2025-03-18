@@ -280,8 +280,8 @@ install-deps-for-semgrep-core:
 #   install the pcre system package, this ensures those are reinstalled
 install-opam-deps:
 	opam update -y
-	OPAMSOLVERTIMEOUT=1200 LWT_DISCOVER_ARGUMENTS="--use-libev true" LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" opam upgrade --confirm-level=unsafe-yes -y --fixup
-	OPAMSOLVERTIMEOUT=1200 LWT_DISCOVER_ARGUMENTS="--use-libev true" LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" opam install --confirm-level=unsafe-yes -y --deps-only $(REQUIRED_DEPS)
+	OPAMSOLVERTIMEOUT=1500 LWT_DISCOVER_ARGUMENTS="--use-libev true" LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" opam upgrade --confirm-level=unsafe-yes -y --fixup
+	OPAMSOLVERTIMEOUT=1500 LWT_DISCOVER_ARGUMENTS="--use-libev true" LIBRARY_PATH="$(HOMEBREW_PREFIX)/lib:$(LIBRARY_PATH)" opam install --confirm-level=unsafe-yes -y --deps-only $(REQUIRED_DEPS)
 
 # This will fail if semgrep.opam isn't up-to-date (in git),
 # and dune isn't installed yet. You can always install dune with

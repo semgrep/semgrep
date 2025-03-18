@@ -16,7 +16,7 @@ license: "LGPL-2.1-only"
 homepage: "https://semgrep.dev"
 bug-reports: "https://github.com/semgrep/semgrep/issues"
 depends: [
-  "ocaml" {>= "4.13.0"}
+  "ocaml" {>= "5.2.1"}
   "dune" {>= "3.7" & >= "2.7.0"}
   "base"
   "menhir" {= "20230608"}
