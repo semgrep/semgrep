@@ -256,7 +256,7 @@ let check_rule per_file_formula_cache (file : Taint_rule_inst.file)
   let matches = ref [] in
   let match_on =
     (* TEMPORARY HACK to support both taint_match_on (DEPRECATED) and
-       * taint_focus_on (preferred name by SR). *)
+     * taint_focus_on (preferred name by SR). *)
     match (xconf.config.taint_focus_on, xconf.config.taint_match_on) with
     | `Source, _
     | _, `Source ->
@@ -273,7 +273,7 @@ let check_rule per_file_formula_cache (file : Taint_rule_inst.file)
     Common.with_time (fun () -> lazy_force xtarget.lazy_ast_and_errors)
   in
   (* TODO: 'debug_taint' should just be part of 'res'
-     * (i.e., add a "debugging" field to 'Report.match_result'). *)
+   * (i.e., add a "debugging" field to 'Report.match_result'). *)
   let taint_inst, _TODO_debug_taint, expls =
     Match_taint_spec.taint_config_of_rule ~per_file_formula_cache ~file xconf
       (ast, []) rule

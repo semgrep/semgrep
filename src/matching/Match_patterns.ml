@@ -319,16 +319,16 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
     let m_env = MG.environment_of_program lang config ast in
 
     (* old: let prog = Normalize_AST.normalize (Pr ast) lang in
-       * we were rewriting code, e.g., A != B was rewritten as !(A == B),
-       * which enable some nice semantic matching demo where searching for
-       * $X == $X would also find code written as a != a. The problem
-       * is that if we don't do the same rewriting on the pattern, then
-       * looking for $X != $X would not find anything anymore.
-       * In any case, rewriting the source code is less necessary
-       * now that we have user-defined code equivalences (see Equivalence.ml)
-       * and this will also be less surprising (you can see the set of
-       * equivalences in the equivalence file).
-    *)
+     * we were rewriting code, e.g., A != B was rewritten as !(A == B),
+     * which enable some nice semantic matching demo where searching for
+     * $X == $X would also find code written as a != a. The problem
+     * is that if we don't do the same rewriting on the pattern, then
+     * looking for $X != $X would not find anything anymore.
+     * In any case, rewriting the source code is less necessary
+     * now that we have user-defined code equivalences (see Equivalence.ml)
+     * and this will also be less surprising (you can see the set of
+     * equivalences in the equivalence file).
+     *)
     let prog = Pr ast in
 
     let expr_rules = ref [] in

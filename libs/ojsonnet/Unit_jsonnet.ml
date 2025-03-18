@@ -88,8 +88,9 @@ let mk_tests (caps : < Cap.time_limit >) (subdir : Fpath.t)
                             failwith
                               (spf
                                  "mismatch for %s with strategy %s\n\
-                                 \ expected %s but got %s" !!file str_strategy
-                                 (Y.to_string expected) (Y.to_string json))
+                                 \ expected %s but got %s"
+                                 !!file str_strategy (Y.to_string expected)
+                                 (Y.to_string json))
                     with
                     | Eval_jsonnet_common.Error _ ->
                         failwith

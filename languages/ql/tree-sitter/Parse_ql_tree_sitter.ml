@@ -150,8 +150,8 @@ let map_literal (env : env) (x : CST.literal) : literal =
   | `Str tok ->
       let s, t = str env tok in
       (* Remove leading and trailing backticks. The grammar guarantees that raw
-         * string literals will always have leading and trailing backticks, so this
-         * String.sub call should be safe. Let's check just to be sure. *)
+       * string literals will always have leading and trailing backticks, so this
+       * String.sub call should be safe. Let's check just to be sure. *)
       if
         not
           (String.length s >= 2

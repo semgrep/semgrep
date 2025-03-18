@@ -84,7 +84,7 @@ let mk_fun_input_env taint_inst ?(glob_env = Taint_lval_env.empty)
   let add_to_env = add_to_env taint_inst in
   fparams
   (* For each argument, check if it's a source and, if so, add it to the input
-     * environment. *)
+   * environment. *)
   |> Fold_IL_params.fold add_to_env (glob_env, Effects.empty)
 
 let is_global (id_info : G.id_info) =

@@ -743,12 +743,12 @@ let rec parse_formula env (value : G.expr) : (R.formula, Rule_error.t) result =
   match pattern with
   | Left (s, t) ->
       (* emma: This is for later, but note that start and end_ are currently the
-         * same (each pattern is only associated with one token). This might be
-         * really annoying to change (we need to compute an accurate end_, but
-         * the string given to us by the yaml parser has tabs removed).
-         * Will include a note to this effect when I make my
-         * "add ranges to patterns" PR.
-      *)
+       * same (each pattern is only associated with one token). This might be
+       * really annoying to change (we need to compute an accurate end_, but
+       * the string given to us by the yaml parser has tabs removed).
+       * Will include a note to this effect when I make my
+       * "add ranges to patterns" PR.
+       *)
 
       (* let start, end_ = Visitor_AST.range_of_any (G.E e) in
          let _s_range =

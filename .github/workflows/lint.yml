@@ -74,7 +74,7 @@ jobs:
           ocaml-compiler: 5.2.1
           opam-pin: false
           save-opam-post-run: true
-      - run: opam install -y ocamlformat.0.26.2
+      - run: opam install -y ocamlformat.0.27.0
       - uses: pre-commit/action@v3.0.0
 name: lint
 on:

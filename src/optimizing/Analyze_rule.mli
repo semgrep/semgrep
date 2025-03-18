@@ -47,7 +47,7 @@ val regexp_prefilter_of_rule :
  * looking for a string matching a certain regex, that regex may not match the
  * source file, but there could be a string expression that would match it at
  * runtime, and that can be known to Semgrep statically via constant folding.
- * *)
+ *)
 val regexp_prefilter_of_formula :
   interfile:bool -> analyzer:Analyzer.t -> Rule.formula -> prefilter option
 

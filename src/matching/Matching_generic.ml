@@ -569,7 +569,8 @@ let rec m_list_with_dots ~less_is_ok f is_dots xsa xsb =
   | a :: xsa, xb :: xsb when is_dots a ->
       (* can match nothing *)
       m_list_with_dots f is_dots ~less_is_ok xsa (xb :: xsb)
-      >||> (* can match more *)
+      >||>
+      (* can match more *)
       m_list_with_dots f is_dots ~less_is_ok (a :: xsa) xsb
   (* the general case *)
   | xa :: aas, xb :: bbs ->
@@ -619,7 +620,8 @@ let m_list_with_dots_and_metavar_ellipsis ~less_is_ok ~f ~is_dots
     | a :: xsa, xb :: xsb when is_dots a ->
         (* can match nothing *)
         aux xsa (xb :: xsb)
-        >||> (* can match more *)
+        >||>
+        (* can match more *)
         aux (a :: xsa) xsb
     (* the general case *)
     | xa :: aas, xb :: bbs -> f xa xb >>= fun () -> aux aas bbs
@@ -647,7 +649,7 @@ let rec m_list_in_any_order ~less_is_ok f xsa xsb =
         | (b, xsb) :: xs ->
             f a b
             >>= (fun () ->
-                  m_list_in_any_order ~less_is_ok f xsa (lazy_rest_of_list xsb))
+            m_list_in_any_order ~less_is_ok f xsa (lazy_rest_of_list xsb))
             >||> aux xs
       in
       aux candidates

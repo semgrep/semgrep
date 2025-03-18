@@ -85,18 +85,19 @@ let fix_poly_taint_with_offset offset taints =
            while (true) { x = x.getX(); }
       *)
       (not (List.mem o offset))
-      && (* For perf reasons we don't allow offsets to get too long.
-          * Otherwise in a long chain of function calls where each
-          * function adds some offset, we could end up a very large
-          * amount of polymorphic taint.
-          * This actually happened with rule
-          * semgrep.perf.rules.express-fs-filename from the Pro
-          * benchmarks, and file
-          * WebGoat/src/main/resources/webgoat/static/js/libs/ace.js.
-          *
-          * TODO: This is way less likely to happen if we had better
-          *   type info and we used it to remove taint, e.g. if Boolean
-          *   and integer expressions didn't propagate taint. *)
+      &&
+      (* For perf reasons we don't allow offsets to get too long.
+       * Otherwise in a long chain of function calls where each
+       * function adds some offset, we could end up a very large
+       * amount of polymorphic taint.
+       * This actually happened with rule
+       * semgrep.perf.rules.express-fs-filename from the Pro
+       * benchmarks, and file
+       * WebGoat/src/main/resources/webgoat/static/js/libs/ace.js.
+       *
+       * TODO: This is way less likely to happen if we had better
+       *   type info and we used it to remove taint, e.g. if Boolean
+       *   and integer expressions didn't propagate taint. *)
       List.length offset < Limits_semgrep.taint_MAX_POLY_OFFSET
     then extended_lval
     else (

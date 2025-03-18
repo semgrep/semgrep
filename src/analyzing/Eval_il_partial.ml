@@ -291,7 +291,7 @@ and eval_op env wop args =
   | G.Mult, [ (G.Lit (G.String _) | G.Cst G.Cstr); _N ]
     when Lang.equal env.lang Lang.Python ->
       (* Python: "..." * N, NOTE that we don't check the type of N, partly because
-         * we lack good type inference for Python, but should be fine. *)
+       * we lack good type inference for Python, but should be fine. *)
       G.Cst G.Cstr
   | _op, [ (G.Cst _ as c1) ] -> c1
   | _op, [ G.Cst t1; G.Cst t2 ] -> G.Cst (union_ctype t1 t2)

@@ -552,8 +552,8 @@ let get_context_for_memory_limit target () =
 
 let log_critical_exn_and_last_rule () =
   (* TODO? why we use Match_patters.last_matched_rule here
-     * and below Rule.last_matched_rule?
-  *)
+   * and below Rule.last_matched_rule?
+   *)
   match !Match_patterns.last_matched_rule with
   | None -> ()
   | Some rule ->
@@ -798,10 +798,10 @@ let rules_for_target ~combine_js_with_ts ~analyzer ~products ~origin
     rules
     |> List.filter (fun (r : R.rule) ->
            (* Honor per-rule include/exclude.
-              * Note that this also done in pysemgrep, but we need to do it
-              * again here for osemgrep which use a different file targeting
-              * strategy.
-           *)
+            * Note that this also done in pysemgrep, but we need to do it
+            * again here for osemgrep which use a different file targeting
+            * strategy.
+            *)
            rules_for_origin r.paths origin)
   else rules
 

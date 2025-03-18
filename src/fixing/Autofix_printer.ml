@@ -98,7 +98,7 @@ let mvalue_to_any = function
    * something else, it gets missed.
    *
    * Concretely, in the pattern `foo.$F()`, `$F` is not its own expression.
-   * *)
+   *)
   | MV.Id (id, _) -> I id
   | other -> MV.mvalue_to_any other
 
@@ -122,7 +122,7 @@ let add_metavars (tbl : ast_node_table) metavars =
        * We don't need to recurse any deeper, because individual list items are
        * the smallest components of a metavariable value that will be lifted
        * into the resulting AST.
-       * *)
+       *)
       match mval with
       | MV.Args args ->
           List.iter (fun arg -> ASTTable.replace tbl (Ar arg) Target) args
@@ -153,7 +153,7 @@ let add_metavars (tbl : ast_node_table) metavars =
  * will not be equal to the original node when we look it up during printing,
  * and therefore we won't get a hashtbl hit, and so we won't use the text for
  * the original node.
- * *)
+ *)
 let add_fix_pattern_ast_nodes (tbl : ast_node_table) ast =
   let visitor =
     object

@@ -317,7 +317,8 @@ let in_project_unsafe ~(phys_root : Fpath.t) (phys_path : Fpath.t) =
            "cannot make path %S relative to project root %S.\n\
             cwd: %s\n\
             realpath for .: %s\n\
-            Sys.argv: %s" !!phys_path !!phys_root (Sys.getcwd ())
+            Sys.argv: %s"
+           !!phys_path !!phys_root (Sys.getcwd ())
            (Rfpath.of_string_exn "." |> Rfpath.show)
            (Sys.argv |> Array.to_list |> String.concat " "))
   | Some rel_path -> Ok (of_relative_fpath rel_path)

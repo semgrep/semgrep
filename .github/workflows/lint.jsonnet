@@ -14,7 +14,7 @@ local pre_commit_steps(config='') = [
   gha.git_safedir,
   actions.setup_python_step(cache=false),
   semgrep.opam_setup(),
-  { 'run' : 'opam install -y ocamlformat.0.26.2',},
+  { 'run' : 'opam install -y ocamlformat.0.27.0',},
   // note that in a CI context pre-commit runs the hooks with the '--all' flag, so
   // semgrep for example is passed all the files in the repository, not just
   // the one modifed in the PR (as it is the case when it's ran from git

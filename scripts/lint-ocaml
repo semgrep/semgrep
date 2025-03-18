@@ -26,7 +26,7 @@ fi
 eval $(opam env)
 
 #coupling: must be the same than in dev/required.opam
-required_version=0.26.2
+required_version=0.27.0
 
 if version=$(ocamlformat --version); then
   if [[ "$version" =~ ^"$required_version"$ ]]; then

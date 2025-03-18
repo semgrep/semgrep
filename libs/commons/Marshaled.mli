@@ -2,7 +2,7 @@
  * during a single run of an OCaml program. Clients can marshal into memory,
  * enjoying the memory savings of a more compact representation for values that
  * are not frequently used. Alternatively, clients may marshal values to disk.
- * *)
+ *)
 
 module InMemory : sig
   (* marshaled representation of 'a *)

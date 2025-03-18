@@ -306,8 +306,8 @@ let compare_source
           | None, _
           | _, None ->
               (* 'None' here is the same as 'true', although the `requires` of both taints
-                 * may not be the same, in this specific case we consider them "the same",
-                 * see 'pick_best_taint'. *)
+               * may not be the same, in this specific case we consider them "the same",
+               * see 'pick_best_taint'. *)
               0
           | Some pre1, Some pre2 -> compare_precondition pre1 pre2)
       | other -> other)
@@ -457,7 +457,7 @@ module Taint_set = struct
 
   and pick_best_taint taint1 taint2 =
     (* Here we assume that 'compare taint1 taint2 = 0' so we could keep any
-       * of them, but we want "the best" one, e.g. the one with the shortest trace. *)
+     * of them, but we want "the best" one, e.g. the one with the shortest trace. *)
     match (taint1.orig, taint2.orig) with
     | Var _, Var _ ->
         (* Polymorphic taint should only be intraprocedural so the call-trace is irrelevant. *)

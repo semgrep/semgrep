@@ -53,7 +53,10 @@ let todo (_env : env) _ = failwith "not implemented"
 *)
 
 let empty_stmt env t =
-  let t = token env t (* ";" *) in
+  let t =
+    token env t
+    (* ";" *)
+  in
   G.Block (t, [], t) |> G.s
 
 let todo_deprecation_stmt = G.Block (Tok.unsafe_fake_bracket [])

@@ -105,8 +105,8 @@ let error_spans ~(error_type : Out.error_type) ~(location : Out.location) =
   | _else_ -> None
 
 (* # TODO benchmarking code relies on error code value right now
-   * # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
-*)
+ * # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
+ *)
 let exit_code_of_error_type (error_type : Out.error_type) : Exit_code.t =
   match error_type with
   | ParseError

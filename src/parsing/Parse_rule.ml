@@ -489,17 +489,17 @@ let parse_taint_pattern env key (value : G.expr) =
   in
   Ok
     (`Taint
-      Rule.
-        {
-          sources;
-          propagators =
-            (* optlist_to_list *)
-            (match propagators_opt with
-            | None -> []
-            | Some (_, xs) -> xs);
-          sanitizers = sanitizers_opt;
-          sinks;
-        })
+       Rule.
+         {
+           sources;
+           propagators =
+             (* optlist_to_list *)
+             (match propagators_opt with
+             | None -> []
+             | Some (_, xs) -> xs);
+           sanitizers = sanitizers_opt;
+           sinks;
+         })
 
 (*****************************************************************************)
 (* Parsers for extract mode *)
@@ -621,17 +621,17 @@ let parse_taint_fields env rule_dict =
       in
       Ok
         (`Taint
-          Rule.
-            {
-              sources;
-              propagators =
-                (* optlist_to_list *)
-                (match propagators_opt with
-                | None -> []
-                | Some (_, xs) -> xs);
-              sanitizers = sanitizers_opt;
-              sinks;
-            })
+           Rule.
+             {
+               sources;
+               propagators =
+                 (* optlist_to_list *)
+                 (match propagators_opt with
+                 | None -> []
+                 | Some (_, xs) -> xs);
+               sanitizers = sanitizers_opt;
+               sinks;
+             })
 
 (*****************************************************************************)
 (* Parsers for step mode *)
@@ -901,8 +901,8 @@ let parse_mode env mode_opt dep_fml_opt (rule_dict : dict) :
       in
       Ok
         (`Extract
-          Rule.
-            { formula; dst_lang; extract_rule_ids; extract; reduce; transform })
+           Rule.
+             { formula; dst_lang; extract_rule_ids; extract; reduce; transform })
   (* TODO? should we use "mode: steps" instead? *)
   | Some ("step", _), _, _ ->
       let/ steps = take_key rule_dict env parse_steps "steps" in
@@ -1101,8 +1101,8 @@ let parse_generic_ast ?(error_recovery = false) ?rewrite_rule_ids
               let/ () = check_that_dict_is_empty root_dict in
               Ok rules
           (* it's also ok to not have the toplevel rules:, anyway we never
-             * used another toplevel key
-          *)
+           * used another toplevel key
+           *)
           | G.Container (G.Array, (_tok, rules, _r)) -> Ok rules
           | _ -> missing_rules_field ())
       | [] ->

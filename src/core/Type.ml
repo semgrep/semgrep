@@ -50,7 +50,7 @@ class virtual ['self] map_parent =
     (* Could inherit from the AST_generic visitor but we just need this one
      * thing, and it's just a string list so there's not really a need to
      * recurse down. We should put alternate names in the type parameter anyway.
-     * *)
+     *)
     method visit_alternate_name _env x = x
     method visit_parsed_int _env x = x
   end
@@ -120,9 +120,9 @@ and 'resolved parameter_classic = {
 }
 [@@deriving
   show { with_path = false },
-    eq,
-    sexp,
-    visitors { variety = "map"; ancestors = [ "map_parent" ] }]
+  eq,
+  sexp,
+  visitors { variety = "map"; ancestors = [ "map_parent" ] }]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -236,7 +236,7 @@ let builtin_type_of_type lang t =
  * If provided, `tok` is used in place of a fake tokens in most contexts where a
  * token is needed. This allows the resulting synthetic AST to be used in places
  * that require location information.
- * *)
+ *)
 let rec to_ast_generic_type_ ?tok lang
     (f : 'a -> G.alternate_name list -> G.name) (x : 'a t) : G.type_ option =
   let make_tok str =

@@ -120,20 +120,20 @@ let parse_target lang text =
  * option in this case might be to omit or downrank matches that rely on
  * unordered keyword matching, but that assumes that a better match does in fact
  * exist. Such a change would also have a larger impact on Semgrep as a whole.
- * *)
+ *)
 let transform_fix lang ast =
   match lang with
   | Lang.Python ->
       (* Due to unordered keyword argument matching (see m_list__m_argument),
-         * we can end up generating
-         * autofixes where keyword arguments are moved before positional
-         * arguments. In some languages (OCaml, for example) this doesn't change
-         * the semantics, but in Python this is actually syntactically invalid.
-         * So, to avoid generating invalid autofixes, we move the positional
-         * arguments in front of the keyword arguments.
-         *
-         * See the fix_ellipsis_metavar.py test case for an example of when this
-         * can happen. *)
+       * we can end up generating
+       * autofixes where keyword arguments are moved before positional
+       * arguments. In some languages (OCaml, for example) this doesn't change
+       * the semantics, but in Python this is actually syntactically invalid.
+       * So, to avoid generating invalid autofixes, we move the positional
+       * arguments in front of the keyword arguments.
+       *
+       * See the fix_ellipsis_metavar.py test case for an example of when this
+       * can happen. *)
       let mapper =
         object (_self : 'self)
           inherit [_] AST_generic.map as super
@@ -200,7 +200,7 @@ let validate_fix lang target_contents edit =
  *   in which it is used in the fix.
  * - Printing of the resulting fix AST fails (probably because there is simply a
  *   node that is unhandled).
- * *)
+ *)
 let ast_based_fix ~fix (start, end_) (pm : Core_match.t) : Textedit.t option =
   let fix_pattern = fix in
   let* lang = List.nth_opt pm.rule_id.langs 0 in
@@ -213,7 +213,7 @@ let ast_based_fix ~fix (start, end_) (pm : Core_match.t) : Textedit.t option =
       (* Fixes are not exactly patterns, but they can contain metavariables that
        * should be substituted with the nodes to which they are bound in the match.
        * Because they can contain metavariables, we need to parse them as patterns.
-       * *)
+       *)
       let/ fix_pattern_ast =
         parse_pattern lang fix_pattern
         |> Result.map_error (fun e ->
@@ -234,7 +234,7 @@ let ast_based_fix ~fix (start, end_) (pm : Core_match.t) : Textedit.t option =
        *
        * As we improve autofix, we may also want to perform other operations over
        * the fixed AST.
-       * *)
+       *)
       let/ fixed_pattern_ast =
         Autofix_metavar_replacement.replace_metavars metavars fix_pattern_ast
       in

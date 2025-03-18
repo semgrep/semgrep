@@ -87,7 +87,7 @@ class ['self] matching_visitor =
       (* As opposed to v_stmts, we don't call v_fields recursively for sublists
        * of xs. Indeed, in semgrep, fields are matched in any order so calling
        * the visitor and matcher on the entire list of fields should also work.
-       * *)
+       *)
       self#visit_list self#visit_field env xs
 
     method v_vardef_as_assign_expr env ventity =

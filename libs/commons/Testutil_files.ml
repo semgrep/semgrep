@@ -181,7 +181,8 @@ let flatten ?(root = Fpath.v ".") ?(include_dirs = false) files =
   in
   let acc, _dir = flatten ([], root) files in
   List.rev acc
-  |> (* remove the leading "./" *)
+  |>
+  (* remove the leading "./" *)
   List_.map Fpath.normalize
 
 let print_files files =

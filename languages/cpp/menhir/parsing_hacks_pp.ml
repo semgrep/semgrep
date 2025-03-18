@@ -158,7 +158,8 @@ let rec find_ifdef_mid xs =
                  xxs
                  |> List.for_all (fun xs ->
                         List.length xs <= thresholdIfdefSizeMid)
-                 && (* don't want nested ifdef *)
+                 &&
+                 (* don't want nested ifdef *)
                  xxs
                  |> List.for_all (fun xs ->
                         xs
@@ -174,10 +175,9 @@ let rec find_ifdef_mid xs =
                    | x :: _ -> x
                    | [] -> assert false
                  in
-                 if
-                   cnt1 <> 0 || cnt2 <> 0
-                   (*???? && counts +> List.for_all (fun x -> x = (cnt1, cnt2)) *)
-                   (*
+                 if cnt1 <> 0 || cnt2 <> 0
+                 (*???? && counts +> List.for_all (fun x -> x = (cnt1, cnt2)) *)
+                 (*
                 if counts +> List.exists (fun (cnt1, cnt2) ->
                 cnt1 <> 0 || cnt2 <> 0
                 )
@@ -317,7 +317,7 @@ let rec find_string_macro_paren xs =
  * note that the code below is called after the ifdef phase simplification,
  * so if this previous phase is buggy, then it may pass some code that
  * could be matched by the following rules but will not.
- * *)
+ *)
 let rec find_macro_paren xs =
   match xs with
   | [] -> ()

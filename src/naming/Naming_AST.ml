@@ -543,8 +543,8 @@ let resolve lang prog =
         match x with
         | { attrs; _ }, ClassDef c ->
             (* todo: we should first process all fields in the class before
-               * processing the methods, as some languages may allow forward ref.
-            *)
+             * processing the methods, as some languages may allow forward ref.
+             *)
             let class_params = params_of_parameters env c.cparams in
             with_new_context InClass env (fun () ->
                 let special_class_params =

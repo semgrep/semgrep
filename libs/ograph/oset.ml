@@ -26,11 +26,13 @@ class virtual ['a] oset =
     method is_equal : 'o -> bool =
       fun o2 -> (o2#minus o)#cardinal =|= 0 && (o#minus o2)#cardinal =|= 0
 
-    method is_singleton : bool = (* can be short circuited *)
-                                 o#length =|= 1
+    method is_singleton : bool =
+      (* can be short circuited *)
+      o#length =|= 1
 
-    method cardinal : int = (* just to keep naming conventions *)
-                            o#length
+    method cardinal : int =
+      (* just to keep naming conventions *)
+      o#length
     (* dont work:
        method big_union: 'b. ('a -> 'b oset) -> 'b oset = fun f -> todo()
     *)

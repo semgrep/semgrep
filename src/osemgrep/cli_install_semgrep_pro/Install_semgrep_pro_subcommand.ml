@@ -210,11 +210,11 @@ let run_conf (caps : < caps ; .. >) (conf : Install_semgrep_pro_CLI.conf) :
          *)
         FileUtil.chmod
           (`Symbolic
-            [
-              `User (`Set (`List [ `Read; `Exec ]));
-              `Group (`Set (`List [ `Read; `Exec ]));
-              `Other (`Set (`List [ `Read; `Exec ]));
-            ])
+             [
+               `User (`Set (`List [ `Read; `Exec ]));
+               `Group (`Set (`List [ `Read; `Exec ]));
+               `Other (`Set (`List [ `Read; `Exec ]));
+             ])
           [ !!semgrep_pro_path_tmp ];
 
         (* Get Pro version, it serves as a simple check that the binary works

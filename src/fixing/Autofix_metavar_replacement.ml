@@ -139,7 +139,7 @@ let mk_str_metavars_regexp metavar_tbl =
         m "no metavariables, mk_str_metavars_regexp should not be called");
   lazy
     ((* List of metavars that were bound in this match, quoted so that they
-        * can be used safely in a regex *)
+      * can be used safely in a regex *)
      let quoted_metavars =
        Hashtbl.to_seq_keys metavar_tbl |> Seq.map Str.quote |> List.of_seq
      in
@@ -160,7 +160,7 @@ let mk_str_metavars_regexp metavar_tbl =
  * any identifiers that could be metavariables. However, this wouldn't catch the
  * case of a malformed fix pattern where the user wrote a metavariable in the
  * fix that doesn't exist in the rule's pattern.
- * *)
+ *)
 let find_remaining_metavars metavar_tbl ast =
   let seen_metavars = ref [] in
   let str_metavars_regexp = mk_str_metavars_regexp metavar_tbl in
@@ -203,7 +203,7 @@ let find_remaining_metavars metavar_tbl ast =
  * - A failure in this module to handle some specific case, leading to a
  *   metavar's continued presence in the tree after replacement has been
  *   attempted. In this case, this function should detect that and return None.
- * *)
+ *)
 let replace_metavars (metavars : MV.bindings) (pattern_ast : AST_generic.any) :
     (AST_generic.any, string) result =
   if List_.null metavars then Ok pattern_ast

@@ -196,7 +196,7 @@ let unknown_metavar_in_comparison r f =
            * to be bound. However, due to how the pattern is transformed, this
            * is not always enforced, so the metacheck is too strict
            *)
-            (fun (acc, acc_errors) (mv_set, errors) ->
+          (fun (acc, acc_errors) (mv_set, errors) ->
             (Set.union acc mv_set, errors @ acc_errors))
           (Set.empty, []) mv_sets
   in

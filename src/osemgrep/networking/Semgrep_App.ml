@@ -247,8 +247,11 @@ let report_failure_async caps ~scan_id (exit_code : Exit_code.t) : unit Lwt.t =
     Uri.with_path !Semgrep_envvars.v.semgrep_url (error_route scan_id)
   in
   let failure : Out.ci_scan_failure =
-    { exit_code = int_code; (* TODO *)
-                            stderr = "" }
+    {
+      exit_code = int_code;
+      (* TODO *)
+      stderr = "";
+    }
   in
   let body = Out.string_of_ci_scan_failure failure in
   match%lwt Http_helpers.post ~body ~headers caps#network url with

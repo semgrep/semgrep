@@ -393,8 +393,10 @@ let combine_sparse_toks ?(ignorable_newline = "\n") ?(ignorable_blank = ' ')
             (* It's safe to insert missing bytes only if they're followed
                by a newline that resets the indentation. *)
             if missing_newlines > 0 then
-              for (* Adjust bytepos *)
-                  _ = 1 to missing_bytes do
+              for
+                (* Adjust bytepos *)
+                _ = 1 to missing_bytes
+              do
                 Buffer.add_char buf ignorable_blank;
                 incr current_column
               done;

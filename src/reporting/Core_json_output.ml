@@ -141,7 +141,8 @@ let core_unique_key (c : Out.core_match) : key =
        below then we would report _both_ valid and invalid (but we only
        want to report valid, if a valid one is present and unique per
        above fields). See also `should_report_instead`.
-    *) )
+    *)
+  )
 
 (*
  # Sort results so as to guarantee the same results across different

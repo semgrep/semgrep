@@ -222,10 +222,10 @@ let value_of_lit ~code x : value =
 
 let eval_regexp_matches ?(base_offset = 0) ~file ~regexp:re str =
   (* alt: take the text range of the metavariable in the original file,
-     * and enforce e1 can only be an Id metavariable.
-     * alt: let s = value_to_string v in
-     * to convert anything in a string before using regexps on it
-  *)
+   * and enforce e1 can only be an Id metavariable.
+   * alt: let s = value_to_string v in
+   * to convert anything in a string before using regexps on it
+   *)
   let regexp = Pcre_.regexp ~flags:[ `ANCHORED ] re in
   Xpattern_match_regexp.regexp_matcher ~base_offset
     Xpattern_match_regexp.pcre_regex_functions str file regexp
@@ -245,8 +245,8 @@ let rec eval env code =
                 e =
                   G.N
                     (G.Id
-                      ( (_, _),
-                        { id_svalue = { contents = Some (G.Lit lit) }; _ } ));
+                       ( (_, _),
+                         { id_svalue = { contents = Some (G.Lit lit) }; _ } ));
                 _;
               };
           ],
@@ -534,8 +534,8 @@ let bindings_to_env (config : Rule_options.t) ~file bindings =
            in
            match mval with
            (* this way we can leverage the constant propagation analysis
-              * in metavariable-comparison: too! This simplifies some rules.
-           *)
+            * in metavariable-comparison: too! This simplifies some rules.
+            *)
            | MV.Id (i, Some id_info) ->
                try_bind_to_exp (G.e (G.N (G.Id (i, id_info))))
            | MV.E e -> try_bind_to_exp e

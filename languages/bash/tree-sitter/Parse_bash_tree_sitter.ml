@@ -249,19 +249,28 @@ let heredoc_redirect (env : env) ((v1, v2) : CST.heredoc_redirect) : todo =
     | `LTLTDASH tok -> (* "<<-" *) token env tok
   in
 
-  let heredoc_start = token env v2 (* heredoc_start *) in
+  let heredoc_start =
+    token env v2
+    (* heredoc_start *)
+  in
   TODO (start_, heredoc_start)
 
 let simple_expansion (env : env) (x : CST.simple_expansion) : string_fragment =
   match x with
   | `DOLLAR_choice_orig_simple_var_name (v1, `Choice_STAR (`X__ tok)) ->
-      let dollar_tok = token env v1 (* "$" *) in
+      let dollar_tok =
+        token env v1
+        (* "$" *)
+      in
       let name_s, name_tok = (* "_" *) str env tok in
       let mv_s = "$" ^ name_s in
       let mv_tok = Tok.combine_toks dollar_tok [ name_tok ] in
       Frag_semgrep_metavar (mv_s, mv_tok)
   | `DOLLAR_choice_orig_simple_var_name (v1, v2) -> (
-      let dollar_tok = token env v1 (* "$" *) in
+      let dollar_tok =
+        token env v1
+        (* "$" *)
+      in
       let var_name =
         match v2 with
         | `Orig_simple_var_name tok ->
@@ -308,7 +317,10 @@ and stmt_with_opt_heredoc (env : env)
      * in one of the pipeline in the list occurring on the previous line. *)
     match v2 with
     | Some (v1, v2) ->
-        let _v1 = token env v1 (* "\n" *) in
+        let _v1 =
+          token env v1
+          (* "\n" *)
+        in
         let _v2 = heredoc_body env v2 in
         None
     | None -> None
@@ -317,9 +329,15 @@ and stmt_with_opt_heredoc (env : env)
   add_terminator_to_blist blist term
 
 and array_ (env : env) ((v1, v2, v3) : CST.array_) =
-  let open_ = token env v1 (* "(" *) in
+  let open_ =
+    token env v1
+    (* "(" *)
+  in
   let elements = List_.map (literal env) v2 in
-  let close = token env v3 (* ")" *) in
+  let close =
+    token env v3
+    (* ")" *)
+  in
   let loc = (open_, close) in
   Array (loc, (open_, elements, close))
 
@@ -359,7 +377,10 @@ and binary_expression (env : env) (x : CST.binary_expression) : test_expression
         | `EQTILDE tok -> (* "=~" *) token env tok
       in
 
-      let right = token env v3 (* regex *) in
+      let right =
+        token env v3
+        (* regex *)
+      in
       T_todo (fst (AST_bash_loc.test_expression_loc left), right)
 
 and case_item (env : env) ((v1, v2, v3, v4, v5) : CST.case_item) : case_clause =
@@ -367,26 +388,41 @@ and case_item (env : env) ((v1, v2, v3, v4, v5) : CST.case_item) : case_clause =
   let more_patterns =
     List_.map
       (fun (v1, v2) ->
-        let _bar = token env v1 (* "|" *) in
+        let _bar =
+          token env v1
+          (* "|" *)
+        in
         let pat = literal env v2 in
         pat)
       v2
   in
   let patterns = first_pattern :: more_patterns in
-  let paren = token env v3 (* ")" *) in
+  let paren =
+    token env v3
+    (* ")" *)
+  in
   let case_body = program ~tok:paren env v4 in
   let terminator, end_tok =
     match v5 with
     | `SEMISEMI tok ->
-        let tok = token env tok (* ";;" *) in
+        let tok =
+          token env tok
+          (* ";;" *)
+        in
         (Break tok, tok)
     | `Choice_SEMIAMP x -> (
         match x with
         | `SEMIAMP tok ->
-            let tok = token env tok (* ";&" *) in
+            let tok =
+              token env tok
+              (* ";&" *)
+            in
             (Fallthrough tok, tok)
         | `SEMISEMIAMP tok ->
-            let tok = token env tok (* ";;&" *) in
+            let tok =
+              token env tok
+              (* ";;&" *)
+            in
             (Try_next tok, tok))
   in
   let loc = (fst (AST_bash_loc.expression_loc first_pattern), end_tok) in
@@ -455,26 +491,50 @@ and command_substitution (env : env) (x : CST.command_substitution) :
     blist bracket =
   match x with
   | `DOLLARLPAR_stmts_RPAR (v1, v2, v3) ->
-      let open_ = token env v1 (* "$(" *) in
+      let open_ =
+        token env v1
+        (* "$(" *)
+      in
       let list = statements env v2 in
-      let close = token env v3 (* ")" *) in
+      let close =
+        token env v3
+        (* ")" *)
+      in
       (open_, list, close)
   | `DOLLARLPAR_file_redi_RPAR (v1, v2, v3) ->
-      let open_ = token env v1 (* "$(" *) in
+      let open_ =
+        token env v1
+        (* "$(" *)
+      in
       let _v2 = (* TODO: what's this? *) file_redirect env v2 in
-      let close = token env v3 (* ")" *) in
+      let close =
+        token env v3
+        (* ")" *)
+      in
       let loc = (open_, close) in
       (open_, Empty loc, close)
   | `BQUOT_stmts_BQUOT (v1, v2, v3) ->
-      let open_ = token env v1 (* "`" *) in
+      let open_ =
+        token env v1
+        (* "`" *)
+      in
       let list = statements env v2 in
-      let close = token env v3 (* "`" *) in
+      let close =
+        token env v3
+        (* "`" *)
+      in
       (open_, list, close)
 
 and compound_statement (env : env) ((v1, v2, v3) : CST.compound_statement) :
     blist bracket =
-  let open_ = token env v1 (* "{" *) in
-  let close = token env v3 (* "}" *) in
+  let open_ =
+    token env v1
+    (* "{" *)
+  in
+  let close =
+    token env v3
+    (* "}" *)
+  in
   let loc = (open_, close) in
   let blist =
     match v2 with
@@ -503,8 +563,14 @@ and concatenation (env : env) ((v1, v2, v3) : CST.concatenation) :
   (first_expr :: exprs) @ opt_last_expr
 
 and do_group (env : env) ((v1, v2, v3) : CST.do_group) : blist bracket =
-  let do_ = token env v1 (* "do" *) in
-  let done_ = token env v3 (* "done" *) in
+  let do_ =
+    token env v1
+    (* "do" *)
+  in
+  let done_ =
+    token env v3
+    (* "done" *)
+  in
   let blist =
     match v2 with
     | Some x -> statements2 env x
@@ -513,9 +579,15 @@ and do_group (env : env) ((v1, v2, v3) : CST.do_group) : blist bracket =
   (do_, blist, done_)
 
 and elif_clause (env : env) ((v1, v2, v3, v4) : CST.elif_clause) : elif =
-  let elif = token env v1 (* "elif" *) in
+  let elif =
+    token env v1
+    (* "elif" *)
+  in
   let cond = terminated_statement env v2 |> blist_of_pipeline in
-  let then_ = token env v3 (* "then" *) in
+  let then_ =
+    token env v3
+    (* "then" *)
+  in
   let body =
     match v4 with
     | Some x -> statements2 env x
@@ -525,7 +597,10 @@ and elif_clause (env : env) ((v1, v2, v3, v4) : CST.elif_clause) : elif =
   (loc, elif, cond, then_, body)
 
 and else_clause (env : env) ((v1, v2) : CST.else_clause) : else_ =
-  let else_ = token env v1 (* "else" *) in
+  let else_ =
+    token env v1
+    (* "else" *)
+  in
   let body =
     match v2 with
     | Some x -> statements2 env x
@@ -536,7 +611,10 @@ and else_clause (env : env) ((v1, v2) : CST.else_clause) : else_ =
 
 and expansion (env : env) ((v1, v2, v3, v4) : CST.expansion) :
     complex_expansion bracket =
-  let open_ = token env v1 (* "${" *) in
+  let open_ =
+    token env v1
+    (* "${" *)
+  in
   let _v2_TODO =
     match v2 with
     | Some x -> (
@@ -554,7 +632,10 @@ and expansion (env : env) ((v1, v2, v3, v4) : CST.expansion) :
         | `Var_name_EQ_opt_choice_conc (v1, v2, v3) ->
             (* TODO *)
             let var_name = Simple_variable_name (str env v1) in
-            let _v2 = token env v2 (* "=" *) in
+            let _v2 =
+              token env v2
+              (* "=" *)
+            in
             let _v3 =
               match v3 with
               | Some x -> Some (literal env x)
@@ -572,7 +653,10 @@ and expansion (env : env) ((v1, v2, v3, v4) : CST.expansion) :
             let _v2_TODO () =
               match v2 with
               | Some (v1, v2) ->
-                  let v1 = token env v1 (* / *) in
+                  let v1 =
+                    token env v1
+                    (* / *)
+                  in
                   let v2 =
                     match v2 with
                     | Some tok -> token env tok (* regex *)
@@ -598,7 +682,10 @@ and expansion (env : env) ((v1, v2, v3, v4) : CST.expansion) :
             opt_variable)
     | None -> None
   in
-  let close = token env v4 (* "}" *) in
+  let close =
+    token env v4
+    (* "}" *)
+  in
   let complex_expansion =
     match opt_variable with
     | Some var ->
@@ -643,9 +730,15 @@ and expression (env : env) (x : CST.expression) : test_expression =
   | `Tern_exp (v1, v2, v3, v4, v5) ->
       (* This is a construct valid in arithmetic mode only. *)
       let cond = expression env v1 in
-      let _v2 = token env v2 (* "?" *) in
+      let _v2 =
+        token env v2
+        (* "?" *)
+      in
       let _branch1TODO = expression env v3 in
-      let _v4 = token env v4 (* ":" *) in
+      let _v4 =
+        token env v4
+        (* ":" *)
+      in
       let branch2 = expression env v5 in
       let start, _ = AST_bash_loc.test_expression_loc cond in
       let _, end_ = AST_bash_loc.test_expression_loc branch2 in
@@ -664,9 +757,15 @@ and expression (env : env) (x : CST.expression) : test_expression =
       let loc = (start, op_tok) in
       T_todo loc
   | `Paren_exp (v1, v2, v3) ->
-      let _v1 = token env v1 (* "(" *) in
+      let _v1 =
+        token env v1
+        (* "(" *)
+      in
       let e = expression env v2 in
-      let _v3 = token env v3 (* ")" *) in
+      let _v3 =
+        token env v3
+        (* ")" *)
+      in
       e
 
 and file_redir_target (x : expression) : file_redir_target =
@@ -714,25 +813,46 @@ and file_redirect (env : env) ((v1, v2, v3) : CST.file_redirect) : redirect =
     in
     match v2 with
     | `LT tok ->
-        let tok = token2 env tok (* "<" *) in
+        let tok =
+          token2 env tok
+          (* "<" *)
+        in
         Read (tok, target)
     | `GT tok ->
-        let tok = token2 env tok (* ">" *) in
+        let tok =
+          token2 env tok
+          (* ">" *)
+        in
         Write (src_fd1 tok, (Write_truncate, tok), target)
     | `GTGT tok ->
-        let tok = token2 env tok (* ">>" *) in
+        let tok =
+          token2 env tok
+          (* ">>" *)
+        in
         Write (src_fd1 tok, (Write_append, tok), target)
     | `AMPGT tok ->
-        let tok = token2 env tok (* "&>" *) in
+        let tok =
+          token2 env tok
+          (* "&>" *)
+        in
         Write (src_fd2 tok, (Write_truncate, tok), target)
     | `AMPGTGT tok ->
-        let tok = token2 env tok (* "&>>" *) in
+        let tok =
+          token2 env tok
+          (* "&>>" *)
+        in
         Write (src_fd2 tok, (Write_append, tok), target)
     | `LTAMP tok ->
-        let tok = token2 env tok (* "<&" *) in
+        let tok =
+          token2 env tok
+          (* "<&" *)
+        in
         Read (tok, target)
     | `GTAMP tok -> (
-        let tok = token2 env tok (* ">&" *) in
+        let tok =
+          token2 env tok
+          (* ">&" *)
+        in
         (* ">&" alone is different than ">&1"! *)
         match target with
         | Stdout_and_stderr _ ->
@@ -742,7 +862,10 @@ and file_redirect (env : env) ((v1, v2, v3) : CST.file_redirect) : redirect =
             (* '>&2' etc. *)
             Write (src_fd1 tok, (Write_truncate, tok), target))
     | `GTBAR tok ->
-        let tok = token2 env tok (* ">|" *) in
+        let tok =
+          token2 env tok
+          (* ">|" *)
+        in
         Write (src_fd1 tok, (Write_force_truncate, tok), target)
   in
   let loc = Tok_range.union !loc (AST_bash_loc.expression_loc target_e) in
@@ -751,10 +874,16 @@ and file_redirect (env : env) ((v1, v2, v3) : CST.file_redirect) : redirect =
 and heredoc_body (env : env) (x : CST.heredoc_body) : todo =
   match x with
   | `Simple_here_body tok ->
-      let tok = token env tok (* simple_heredoc_body *) in
+      let tok =
+        token env tok
+        (* simple_heredoc_body *)
+      in
       TODO (tok, tok)
   | `Here_body_begin_rep_choice_expa_here_body_end (v1, v2, v3) ->
-      let start = token env v1 (* heredoc_body_beginning *) in
+      let start =
+        token env v1
+        (* heredoc_body_beginning *)
+      in
       let _body =
         List_.map
           (fun x ->
@@ -766,12 +895,18 @@ and heredoc_body (env : env) (x : CST.heredoc_body) : todo =
                 token env tok (* heredoc_body_middle *) |> ignore)
           v2
       in
-      let end_ = token env v3 (* heredoc_body_end *) in
+      let end_ =
+        token env v3
+        (* heredoc_body_end *)
+      in
       let loc = (start, end_) in
       TODO loc
 
 and herestring_redirect (env : env) ((v1, v2) : CST.herestring_redirect) =
-  let op = token env v1 (* "<<<" *) in
+  let op =
+    token env v1
+    (* "<<<" *)
+  in
   let e = literal env v2 in
   let loc = (op, snd (AST_bash_loc.expression_loc e)) in
   TODO loc
@@ -782,18 +917,27 @@ and last_case_item (env : env) ((v1, v2, v3, v4, v5) : CST.last_case_item) =
   let more_patterns =
     List_.map
       (fun (v1, v2) ->
-        let _bar = token env v1 (* "|" *) in
+        let _bar =
+          token env v1
+          (* "|" *)
+        in
         let pat = literal env v2 in
         pat)
       v2
   in
   let patterns = first_pattern :: more_patterns in
-  let paren = token env v3 (* ")" *) in
+  let paren =
+    token env v3
+    (* ")" *)
+  in
   let case_body = program env ~tok:paren v4 in
   let opt_terminator, end_tok =
     match v5 with
     | Some tok ->
-        let tok = token env tok (* ";;" *) in
+        let tok =
+          token env tok
+          (* ";;" *)
+        in
         (Some (Break tok), tok)
     | None -> (None, snd (AST_bash_loc.blist_loc case_body))
   in
@@ -840,7 +984,10 @@ and primary_expression (env : env) (x : CST.primary_expression) : expression =
           let loc = AST_bash_loc.string_fragment_loc frag in
           String_fragment (loc, frag)
       | `Str_expa (v1, v2) ->
-          let _dollarTODO = token env v1 (* "$" *) in
+          let _dollarTODO =
+            token env v1
+            (* "$" *)
+          in
           let e =
             match v2 with
             | `Str x ->
@@ -864,7 +1011,10 @@ and primary_expression (env : env) (x : CST.primary_expression) : expression =
             | `GTLPAR tok -> (* ">(" *) token env tok
           in
           let body = statements env v2 in
-          let close = token env v3 (* ")" *) in
+          let close =
+            token env v3
+            (* ")" *)
+          in
           let loc = (open_, close) in
           Process_substitution (loc, (open_, body, close)))
 
@@ -1050,7 +1200,10 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
                  let var = simple_variable_name env tok in
                  Stack_.push var decls;
                  last_tok := variable_name_tok var);
-      let loc = (first_tok, !last_tok) (* TODO *) in
+      let loc =
+        (first_tok, !last_tok)
+        (* TODO *)
+      in
       let command =
         Declaration
           {
@@ -1067,7 +1220,10 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       let loc = AST_bash_loc.command_loc command in
       Tmp_command ({ loc; command; redirects = [] }, None)
   | `Nega_cmd (v1, v2) ->
-      let excl = token env v1 (* "!" *) in
+      let excl =
+        token env v1
+        (* "!" *)
+      in
       let loc, command, redirects =
         match v2 with
         | `Cmd x ->
@@ -1095,7 +1251,10 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       let opt_loop_vals =
         match v3 with
         | Some (v1, v2) ->
-            let in_ = token env v1 (* "in" *) in
+            let in_ =
+              token env v1
+              (* "in" *)
+            in
             let values = List_.map (literal env) v2 in
             Some (in_, values)
         | None ->
@@ -1112,8 +1271,14 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       in
       Tmp_command ({ loc; command; redirects = [] }, None)
   | `C_style_for_stmt (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10) ->
-      let for_ = token env v1 (* "for" *) in
-      let _header_open_ = token env v2 (* "((" *) in
+      let for_ =
+        token env v1
+        (* "for" *)
+      in
+      let _header_open_ =
+        token env v2
+        (* "((" *)
+      in
       let _x () =
         match v3 with
         | Some x -> expression env x
@@ -1131,7 +1296,10 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
         | Some x -> expression env x
         | None -> todo env ()
       in
-      let _header_close = token env v8 (* "))" *) in
+      let _header_close =
+        token env v8
+        (* "))" *)
+      in
       let _x () =
         match v9 with
         | Some tok -> token env tok (* ";" *)
@@ -1146,7 +1314,10 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       let command = For_loop_c_style (loc, body) in
       Tmp_command ({ loc; command; redirects = [] }, None)
   | `While_stmt (v1, v2, v3) ->
-      let while_ = token env v1 (* "while" *) in
+      let while_ =
+        token env v1
+        (* "while" *)
+      in
       let cond = terminated_statement env v2 |> blist_of_pipeline in
       let open_body, body, close_body = do_group env v3 in
       let loc = (while_, close_body) in
@@ -1155,9 +1326,15 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       in
       Tmp_command ({ loc; command; redirects = [] }, None)
   | `If_stmt (v1, v2, v3, v4, v5, v6, v7) ->
-      let if_ = token env v1 (* "if" *) in
+      let if_ =
+        token env v1
+        (* "if" *)
+      in
       let cond = terminated_statement env v2 |> blist_of_pipeline in
-      let then_ = token env v3 (* "then" *) in
+      let then_ =
+        token env v3
+        (* "then" *)
+      in
       let body =
         match v4 with
         | Some x -> statements2 env x
@@ -1169,21 +1346,30 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
         | Some x -> Some (else_clause env x)
         | None -> None
       in
-      let fi = token env v7 (* "fi" *) in
+      let fi =
+        token env v7
+        (* "fi" *)
+      in
       let loc = (if_, fi) in
       let command =
         If (loc, if_, cond, then_, body, elif_branches, else_branch, fi)
       in
       Tmp_command ({ loc; command; redirects = [] }, None)
   | `Case_stmt (v1, v2, v3, v4, v5, v6, v7) ->
-      let case = token env v1 (* "case" *) in
+      let case =
+        token env v1
+        (* "case" *)
+      in
       let subject = literal env v2 in
       let _term =
         match v3 with
         | Some x -> Some (terminator env x)
         | None -> None
       in
-      let in_ = token env v4 (* "in" *) in
+      let in_ =
+        token env v4
+        (* "in" *)
+      in
       let _term = terminator env v5 in
       let case_clauses =
         match v6 with
@@ -1193,7 +1379,10 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
             cases @ [ last_case ]
         | None -> []
       in
-      let esac = token env v7 (* "esac" *) in
+      let esac =
+        token env v7
+        (* "esac" *)
+      in
       let loc = (case, esac) in
       let command = Case (loc, case, subject, in_, case_clauses, esac) in
       Tmp_command ({ loc; command; redirects = [] }, None)
@@ -1250,21 +1439,39 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       let start, function_, name =
         match v1 with
         | `Func_exte_word_opt_LPAR_RPAR (v1, v2, v3) ->
-            let function_ = token env v1 (* "function" *) in
+            let function_ =
+              token env v1
+              (* "function" *)
+            in
             let name = extended_word env v2 in
             let _empty_parens =
               match v3 with
               | Some (v1, v2) ->
-                  let _v1 = token env v1 (* "(" *) in
-                  let _v2 = token env v2 (* ")" *) in
+                  let _v1 =
+                    token env v1
+                    (* "(" *)
+                  in
+                  let _v2 =
+                    token env v2
+                    (* ")" *)
+                  in
                   ()
               | None -> ()
             in
             (function_, Some function_, name)
         | `Word_LPAR_RPAR (v1, v2, v3) ->
-            let name = str env v1 (* word *) in
-            let _v2 = token env v2 (* "(" *) in
-            let _v3 = token env v3 (* ")" *) in
+            let name =
+              str env v1
+              (* word *)
+            in
+            let _v2 =
+              token env v2
+              (* "(" *)
+            in
+            let _v3 =
+              token env v3
+              (* ")" *)
+            in
             (snd name, None, Simple_variable_name name)
       in
       let body =
@@ -1292,7 +1499,10 @@ and statements (env : env) ((v1, v2, v3, v4) : CST.statements) : blist =
     (* TODO *)
     match v3 with
     | Some (v1, v2) ->
-        let _v1 = token env v1 (* "\n" *) in
+        let _v1 =
+          token env v1
+          (* "\n" *)
+        in
         let _v2 = heredoc_body env v2 in
         ()
     | None -> ()
@@ -1319,7 +1529,10 @@ and statements2 (env : env) (xs : CST.statements2) : blist =
 
 and string_ (env : env) ((v1, v2, v3, v4) : CST.string_) :
     string_fragment list bracket =
-  let open_ = token env v1 (* "\"" *) in
+  let open_ =
+    token env v1
+    (* "\"" *)
+  in
   let fragments =
     List.concat_map
       (fun (v1, v2) ->
@@ -1357,20 +1570,32 @@ and string_ (env : env) ((v1, v2, v3, v4) : CST.string_) :
     | Some tok -> [ String_content (str env tok (* "$" *)) ]
     | None -> []
   in
-  let close = token env v4 (* "\"" *) in
+  let close =
+    token env v4
+    (* "\"" *)
+  in
   (open_, fragments @ fragment, close)
 
 and subscript (env : env) ((v1, v2, v3, v4, v5, v6) : CST.subscript) :
     string wrap * tok * expression * tok =
-  let var = str env v1 (* variable_name *) in
-  let open_ = token env v2 (* "[" *) in
+  let var =
+    str env v1
+    (* variable_name *)
+  in
+  let open_ =
+    token env v2
+    (* "[" *)
+  in
   let index = literal env v3 in
   let _concat =
     match v4 with
     | Some _tok -> () (* concat *)
     | None -> ()
   in
-  let close = token env v5 (* "]" *) in
+  let close =
+    token env v5
+    (* "]" *)
+  in
   let _concat =
     match v6 with
     | Some _tok -> () (* concat *)
@@ -1379,9 +1604,15 @@ and subscript (env : env) ((v1, v2, v3, v4, v5, v6) : CST.subscript) :
   (var, open_, index, close)
 
 and subshell (env : env) ((v1, v2, v3) : CST.subshell) : blist bracket =
-  let open_ = token env v1 (* "(" *) in
+  let open_ =
+    token env v1
+    (* "(" *)
+  in
   let blist = statements env v2 in
-  let close = token env v3 (* ")" *) in
+  let close =
+    token env v3
+    (* ")" *)
+  in
   (open_, blist, close)
 
 and terminated_statement (env : env) ((v1, v2) : CST.terminated_statement) :
@@ -1393,21 +1624,39 @@ and terminated_statement (env : env) ((v1, v2) : CST.terminated_statement) :
 and test_command (env : env) (v1 : CST.test_command) : command =
   match v1 with
   | `LBRACK_exp_RBRACK (v1, v2, v3) ->
-      let open_ = token env v1 (* "[" *) in
+      let open_ =
+        token env v1
+        (* "[" *)
+      in
       let e = expression env v2 in
-      let close = token env v3 (* "]" *) in
+      let close =
+        token env v3
+        (* "]" *)
+      in
       let loc = (open_, close) in
       Sh_test (loc, (open_, e, close))
   | `LBRACKLBRACK_exp_RBRACKRBRACK (v1, v2, v3) ->
-      let open_ = token env v1 (* "[[" *) in
+      let open_ =
+        token env v1
+        (* "[[" *)
+      in
       let e = expression env v2 in
-      let close = token env v3 (* "]]" *) in
+      let close =
+        token env v3
+        (* "]]" *)
+      in
       let loc = (open_, close) in
       Bash_test (loc, (open_, e, close))
   | `LPARLPAR_exp_RPARRPAR (v1, v2, v3) ->
-      let open_ = token env v1 (* "((" *) in
+      let open_ =
+        token env v1
+        (* "((" *)
+      in
       let _eTODO = expression env v2 in
-      let close = token env v3 (* "))" *) in
+      let close =
+        token env v3
+        (* "))" *)
+      in
       let loc = (open_, close) in
       Arithmetic_expression (loc, (open_, TODO loc, close))
 

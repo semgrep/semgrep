@@ -1065,16 +1065,16 @@ and check_tainted_lval_aux env (lval : IL.lval) :
               | (`Clean | `Tainted _) as xtaint' -> xtaint'
               | `None ->
                   (* HACK(field-sensitivity): If we encounter `obj.x` and `obj` has
-                     * polymorphic taint, and we know nothing specific about `obj.x`, then
-                     * we add the same offset `.x` to the polymorphic taint coming from `obj`.
-                     * (See also 'propagate_taint_via_unresolved_java_getters_and_setters'.)
-                     *
-                     * For example, given `function foo(o) { sink(o.x); }`, and being '0 the
-                     * polymorphic taint of `o`, this allows us to record that what goes into
-                     * the sink is '0.x (and not just '0). So if later we encounter `foo(obj)`
-                     * where `obj.y` is tainted but `obj.x` is not tainted, we will not
-                     * produce a finding.
-                  *)
+                   * polymorphic taint, and we know nothing specific about `obj.x`, then
+                   * we add the same offset `.x` to the polymorphic taint coming from `obj`.
+                   * (See also 'propagate_taint_via_unresolved_java_getters_and_setters'.)
+                   *
+                   * For example, given `function foo(o) { sink(o.x); }`, and being '0 the
+                   * polymorphic taint of `o`, this allows us to record that what goes into
+                   * the sink is '0.x (and not just '0). So if later we encounter `foo(obj)`
+                   * where `obj.y` is tainted but `obj.x` is not tainted, we will not
+                   * produce a finding.
+                   *)
                   fix_poly_taint_with_field lval sub_xtaint
             in
             (xtaint', shape)
@@ -1109,10 +1109,10 @@ and check_tainted_lval_aux env (lval : IL.lval) :
       let sinks =
         lval_is_sink env lval
         (* For sub-lvals we require sinks to be exact matches. Why? Let's say
-           * we have `sink(x.a)` and `x' is tainted but `x.a` is clean...
-           * with the normal subset semantics for sinks we would consider `x'
-           * itself to be a sink, and we would report a finding!
-        *)
+         * we have `sink(x.a)` and `x' is tainted but `x.a` is clean...
+         * with the normal subset semantics for sinks we would consider `x'
+         * itself to be a sink, and we would report a finding!
+         *)
         |> List.filter TM.is_exact
         |> List_.map TM.sink_of_match
       in
@@ -1514,7 +1514,7 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
                 if not (propagate_through_functions env) then Taints.empty
                 else
                   (* Otherwise assume that the function will propagate
-                     * the taint of its arguments. *)
+                   * the taint of its arguments. *)
                   all_args_taints
               in
               match
@@ -1535,8 +1535,8 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
                     effects_of_call_func_arg e e_shape args_taints
                     |> record_effects { env with lval_env };
                     (* If this is a method call, `o.method(...)`, then we fetch the
-                       * taint of the callee object `o`. This is a conservative worst-case
-                       * asumption that any taint in `o` can be tainting the call's effect. *)
+                     * taint of the callee object `o`. This is a conservative worst-case
+                     * asumption that any taint in `o` can be tainting the call's effect. *)
                     let call_taints =
                       match e_obj with
                       | `Fun -> call_taints

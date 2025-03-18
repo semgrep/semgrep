@@ -24,6 +24,6 @@ module MkId () : sig
    * then deserialize it in a different run for use alongside fresh IDs. Using
    * one partition when constructing the serialized data, and another for a
    * normal run ensures that we will avoid collisions.
-   * *)
+   *)
   val set_partition : partition -> unit
 end

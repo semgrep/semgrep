@@ -206,15 +206,15 @@ let (cnf : Rule.formula -> cnf_step0) =
         (* should be filtered by remove_not *)
         failwith "call remove_not before cnf"
     (* old:
-       * (match f with
-       * | R.Leaf x -> And [Or [Not x]]
-       * (* double negation *)
-       * | R.Not f -> cnf f
-       * (* de Morgan's laws *)
-       * | R.Or _xs -> failwith "Not Or"
-       * | R.And _xs -> failwith "Not And"
-       * )
-    *)
+     * (match f with
+     * | R.Leaf x -> And [Or [Not x]]
+     * (* double negation *)
+     * | R.Not f -> cnf f
+     * (* de Morgan's laws *)
+     * | R.Or _xs -> failwith "Not Or"
+     * | R.And _xs -> failwith "Not And"
+     * )
+     *)
     | R.Inside (_, formula)
     | R.Anywhere (_, formula) ->
         aux formula
@@ -255,8 +255,8 @@ let (cnf : Rule.formula -> cnf_step0) =
                      in
                      ands)))
           (* If `ys = []`, we have `Or []` which is the same as `false`. Note that
-             * the CNF is then `And [Or []]` rather than `And []` (the latter being
-             * the same `true`). *)
+           * the CNF is then `And [Or []]` rather than `And []` (the latter being
+           * the same `true`). *)
           (And [ Or [] ]) ys
   in
   aux formula

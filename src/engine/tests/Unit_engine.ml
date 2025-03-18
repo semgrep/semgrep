@@ -393,14 +393,14 @@ let regression_tests_for_lang ~polyglot_pattern_path files lang =
              let pattern = UFile.read_file sgrep_file in
 
              (* old: semgrep-core used to support user-defined
-                * equivalences, but the feature has been now deprecated.
-                *
-                * (* Python == is not the same than !(==) *)
-                * if lang <> Lang.Python then
-                *   Parse_equivalences.parse
-                *     (Filename.concat data_path "basic_equivalences.yml")
-                * else []
-             *)
+              * equivalences, but the feature has been now deprecated.
+              *
+              * (* Python == is not the same than !(==) *)
+              * if lang <> Lang.Python then
+              *   Parse_equivalences.parse
+              *     (Filename.concat data_path "basic_equivalences.yml")
+              * else []
+              *)
              let matches = ref [] in
              match_pattern ~lang
                ~hook:(fun pm -> Stack_.push (TCM.location_of_pm pm) matches)
@@ -804,7 +804,8 @@ let mark_todo_js (test : Testo.t) =
             correctly by the OCaml test suite but not by the JS test suite
             (or something close to this). *)
          s =/~ ".*/ruby/rails/security/brakeman/check-reverse-tabnabbing.yaml"
-         || (* Not sure why this fails *)
+         ||
+         (* Not sure why this fails *)
          s =/~ ".*/ruby/lang/security/divide-by-zero.yaml" ->
       Testo.update test ~tags:(Test_tags.todo_js :: test.tags)
   | _ -> test

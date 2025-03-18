@@ -10,3 +10,8 @@ exp-grouping = preserve
 # 'all' is now deprecated in ocamlformat >= 0.20.0. I don't understand why.
 # See https://github.com/ocaml-ppx/ocamlformat/issues/1882
 break-cases = all
+
+# Docstrings are supposed to be structured and parsable. We don't use them
+# properly, which makes ocamlformat 0.27.0 sad. Disable docstring parsing until
+# we get it together.
+parse-docstrings = false

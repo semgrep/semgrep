@@ -123,7 +123,8 @@ let from_file ?(maturity = Maturity.Default) () =
               m
                 "Bad settings format; %s will be overriden. Contents:\n\
                  %s\n\
-                 Decode error: %s" !!settings data msg);
+                 Decode error: %s"
+                !!settings data msg);
           None
       | Ok settings -> Some settings
     else

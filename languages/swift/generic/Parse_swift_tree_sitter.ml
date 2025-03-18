@@ -98,7 +98,7 @@ let map_bitwise_binary_operator (env : env) (x : CST.bitwise_binary_operator) =
   | `GTGT tok ->
       (* Swift uses an arithmetic right shift:
        * https://docs.swift.org/swift-book/LanguageGuide/AdvancedOperators.html#ID36
-       * *)
+       *)
       (G.ASR, (* ">>" *) str env tok)
 
 let map_function_modifier (env : env) (x : CST.function_modifier) =
@@ -1445,7 +1445,7 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
        * and fail if not. That way, if parsing is fixed later, we won't start
        * failing to parse rules where people accidentally wrote `<... x ..>` or
        * something similar.
-       * *)
+       *)
       if str = "...>" then G.DeepEllipsis (l, e, r) |> G.e
       else raise (Parsing_error.Syntax_error r)
 
@@ -1636,7 +1636,7 @@ and map_if_statement (env : env) ((v1, v2, v3, v4, v5) : CST.if_statement) =
   let v3 =
     (* TODO: looks like we could desugar this to a bunch of And expressions, but
      * need to double-check semantics. For now just raise if we encounter this.
-     * *)
+     *)
     List_.map
       (fun (v1, v2) ->
         let _v1 = (* "," *) token env v1 in
@@ -1975,16 +1975,16 @@ and map_locally_permitted_modifiers (env : env)
     xs
 
 and construct_class_def :
-      'body.
-      env ->
-      ?kind:G.class_kind ->
-      G.tok ->
-      'inheritance_specifiers ->
-      G.entity ->
-      CST.type_constraints option ->
-      'body ->
-      (env -> 'body -> G.field list G.bracket) ->
-      G.stmt =
+    'body.
+    env ->
+    ?kind:G.class_kind ->
+    G.tok ->
+    'inheritance_specifiers ->
+    G.entity ->
+    CST.type_constraints option ->
+    'body ->
+    (env -> 'body -> G.field list G.bracket) ->
+    G.stmt =
  fun env ?(kind = G.Class) class_token inheritance_specifiers ent
      type_constraints body map_body ->
   let extends =
@@ -2088,7 +2088,10 @@ and map_modifierless_class_declaration (env : env) (attrs : G.attribute list)
 and map_modifierless_function_declaration (env : env) (attrs : G.attribute list)
     ((v1, v2) : CST.modifierless_function_declaration) =
   let v2 = map_function_body env v2 in
-  let in_class = false (* TODO? *) in
+  let in_class =
+    false
+    (* TODO? *)
+  in
   let v1 =
     map_modifierless_function_declaration_no_body env ~in_class ~attrs v1
       (G.FBStmt v2)
@@ -3236,8 +3239,8 @@ and map_while_statement (env : env)
     ((v1, v2, v3, v4, v5, v6) : CST.while_statement) =
   let while_tok = (* "while" *) token env v1 in
   (* TODO: As with if: looks like we could desugar this to a bunch of And expressions, but
-     * need to double-check semantics. For now just raise if we encounter this.
-     * *)
+   * need to double-check semantics. For now just raise if we encounter this.
+   *)
   let v3 =
     List_.map
       (fun (v1, v2) ->

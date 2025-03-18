@@ -182,7 +182,7 @@ let best_matches_in_nodes ~sub_matches_of_orig fun_cfg =
    * Yet `!tmp`, which has `if tainted then ok1 else ok2` as 'eorig', and
    * thus has a range that contains them all, is the chosen as the "best"
    * match of the sink spec.
-   * *)
+   *)
   fun_cfg |> IL_helpers.reachable_nodes
   |> Seq.concat_map (fun node ->
          let all_origs : IL.orig Seq.t =

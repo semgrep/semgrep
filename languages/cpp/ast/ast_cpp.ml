@@ -171,7 +171,7 @@ and typeC =
    * Indeed, 'long long' is not the same than just 'long'.
    * The type_ below is either a TPrimitive or TypeName of IdIdent.
    *)
-  | TSized of sized_type wrap list * type_ option (*  *)
+  | TSized of sized_type wrap list * type_ option (* *)
   | TPointer of tok (*'*'*) * type_ * pointer_modifier list
   (* c++ext: *)
   | TReference of tok (*'&'*) * type_

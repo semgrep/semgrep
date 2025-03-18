@@ -123,7 +123,8 @@ let options () =
   (*e: [[Main.options]] concatenated flags *)
   (*s: [[Main.options]] concatenated actions *)
   @ Arg_.options_of_actions action (all_actions ())
-  @ (*e: [[Main.options]] concatenated actions *)
+  @
+  (*e: [[Main.options]] concatenated actions *)
   [
     ( "-version",
       Arg.Unit

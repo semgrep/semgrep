@@ -920,19 +920,19 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
   | ( _a,
       B.N
         (B.Id
-          ( idb,
-            {
-              B.id_resolved =
-                {
-                  contents =
-                    Some
-                      ( ( B.ImportedEntity canonical
-                        | B.ImportedModule canonical
-                        | B.GlobalName (canonical, _) ),
-                        _sid );
-                };
-              _;
-            } )) )
+           ( idb,
+             {
+               B.id_resolved =
+                 {
+                   contents =
+                     Some
+                       ( ( B.ImportedEntity canonical
+                         | B.ImportedModule canonical
+                         | B.GlobalName (canonical, _) ),
+                         _sid );
+                 };
+               _;
+             } )) )
     when arguments_have_changed ->
       let dotted = G.canonical_to_dotted (snd idb) canonical in
       (* We used to force to fully qualify entities in the pattern
@@ -944,7 +944,8 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
       wipe_wildcard_imports
         ((* try matching the expression a and the identifier b *)
          m_expr ~arguments_have_changed:false a b
-        >||> (* try this time a match with the resolved entity *)
+        >||>
+        (* try this time a match with the resolved entity *)
         m_expr a (make_dotted dotted))
   (* equivalence: name resolving on qualified ids (for OCaml) *)
   (* Put this before the next case to prevent overly eager dealiasing *)
@@ -958,12 +959,12 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
    *)
   | ( G.N
         (G.IdQualified
-          {
-            G.name_last = alabel, None;
-            name_middle = Some (G.QDots names);
-            name_top = None;
-            _;
-          }),
+           {
+             G.name_last = alabel, None;
+             name_middle = Some (G.QDots names);
+             name_top = None;
+             _;
+           }),
       _b ) ->
       (* TODO: double check names does not have any type_args *)
       let full = (names |> List_.map fst) @ [ alabel ] in
@@ -1815,7 +1816,8 @@ and m_list__m_argument (xsa : G.argument list) (xsb : G.argument list) =
   | G.Arg { e = G.Ellipsis i; _ } :: xsa, xb :: xsb ->
       (* can match nothing *)
       m_list__m_argument xsa (xb :: xsb)
-      >||> (* can match more *)
+      >||>
+      (* can match more *)
       m_list__m_argument (G.Arg (G.Ellipsis i |> G.e) :: xsa) xsb
   (* unordered kwd argument matching *)
   | (G.ArgKwd (((s, _tok) as ida), ea) as a) :: xsa, xsb
@@ -2016,7 +2018,8 @@ and m_assoc_op tok op aargs_ac bargs_ac =
   | { e = G.Ellipsis i; _ } :: xsa, xb :: xsb ->
       (* can match nothing *)
       m_assoc_op tok op xsa (xb :: xsb)
-      >||> (* can match more *)
+      >||>
+      (* can match more *)
       m_assoc_op tok op ((G.Ellipsis i |> G.e) :: xsa) xsb
   | xa :: xsa, xb :: xsb ->
       let* () = m_expr xa xb in
@@ -2275,7 +2278,7 @@ and m_wildcard (a1, a2) (b1, b2) =
  *
  * Uses the provided `tok` (if any) when constructing synthetic AST to which a
  * metavariable is bound.
- * *)
+ *)
 and m_generic_type_vs_type_t lang tok a b =
   match (a.G.t, b) with
   | G.TyN (Id ((str, idtok), _)), _ when Mvar.is_metavar_name str -> (
@@ -2600,7 +2603,8 @@ and m_list__m_stmt ?(less_is_ok = true) (xsa : G.stmt list) (xsb : G.stmt list)
       (xb :: xsb_tail as xsb) ) ->
       (* can match nothing *)
       m_list__m_stmt xsa_tail xsb
-      >||> (* can match more *)
+      >||>
+      (* can match more *)
       (env_add_matched_stmt xb >>= fun () -> m_list__m_stmt xsa xsb_tail)
   (* dots: metavars: $...BODY *)
   | ( { s = G.ExprStmt ({ e = G.N (G.Id ((s, tok), _idinfo)); _ }, _); _ } :: xsa,
@@ -2614,20 +2618,20 @@ and m_list__m_stmt ?(less_is_ok = true) (xsa : G.stmt list) (xsb : G.stmt list)
         | (inits, rest) :: xs ->
             envf (s, tok) (MV.Ss inits)
             >>= (fun () ->
-                  (* If we don't do this, patterns ending in an ellipsis metavariable, like:
+            (* If we don't do this, patterns ending in an ellipsis metavariable, like:
                      x = 1
                      $...STMTS
                      will not properly extend the range of the match with whatever $...STMTS
                      matches.
                   *)
-                  match List_.last_opt inits with
-                  | None -> m_list__m_stmt ~less_is_ok:false xsa rest
-                  | Some last ->
-                      env_add_matched_stmt last >>= fun () ->
-                      (* when we use { $...BODY }, we don't have an implicit
-                         * ... after, so we use less_is_ok:false here
-                      *)
-                      m_list__m_stmt ~less_is_ok:false xsa rest)
+            match List_.last_opt inits with
+            | None -> m_list__m_stmt ~less_is_ok:false xsa rest
+            | Some last ->
+                env_add_matched_stmt last >>= fun () ->
+                (* when we use { $...BODY }, we don't have an implicit
+                 * ... after, so we use less_is_ok:false here
+                 *)
+                m_list__m_stmt ~less_is_ok:false xsa rest)
             >||> aux xs
       in
       aux candidates
@@ -3473,7 +3477,7 @@ and m_list__m_field ~less_is_ok (xsa : G.field list) (xsb : G.field list) =
         | (b, xsb) :: xs ->
             m_field a b
             >>= (fun () ->
-                  m_list__m_field ~less_is_ok xsa (lazy_rest_of_list xsb))
+            m_list__m_field ~less_is_ok xsa (lazy_rest_of_list xsb))
             >||> aux xs
       in
       aux candidates
@@ -3537,7 +3541,7 @@ and m_or_type a b =
 and _m_list__m_type_ (xsa : G.type_ list) (xsb : G.type_ list) =
   m_list_with_dots m_type_
     (* dots: '...', this is very Python Specific I think *)
-      (function
+    (function
       | { t = G.TyEllipsis _; _ } -> true
       | { t = G.TyExpr { G.e = G.Ellipsis _i; _ }; _ } -> true
       | _ -> false)
@@ -3577,8 +3581,10 @@ and m_class_parent_basic (a1, a2) (b1, b2) =
   return ()
 
 and m_class_parent a b =
-  m_class_parent_basic a b >!> (* less: could be >||> *)
-                           fun () ->
+  m_class_parent_basic a b
+  >!>
+  (* less: could be >||> *)
+  fun () ->
   match (a, b) with
   (* less: this could be generalized, but let's go simple first *)
   | (a1, None), ({ t = B.TyN (B.Id (id, { id_resolved; _ })); _ }, None) ->
@@ -3732,7 +3738,7 @@ and m_directive a b =
  * So, in order to simplify naming and maintain the existing matching behavior,
  * we have to explicitly match certain import directives against certain
  * definition statements.
- * *)
+ *)
 and m_directive_vs_def a b =
   let f filea importsa =
     match (importsa, b) with

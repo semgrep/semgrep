@@ -643,7 +643,7 @@ and expr_aux env ?(void = false) g_expr =
                 tok,
                 G.FN
                   (G.Id
-                    (("concat", _), { G.id_resolved = { contents = None }; _ }))
+                     (("concat", _), { G.id_resolved = { contents = None }; _ }))
               );
           _;
         },
@@ -953,7 +953,7 @@ and expr_lazy_op env op tok arg0 args eorig =
   let arg0' = argument env arg0 in
   let args' : exp argument list =
     (* Consider A && B && C, side-effects in B must only take effect `if A`,
-       * and side-effects in C must only take effect `if A && B`. *)
+     * and side-effects in C must only take effect `if A && B`. *)
     args
     |> List.fold_left_map
          (fun cond argi ->
@@ -1572,7 +1572,7 @@ and mk_class_construction env obj origin_exp ty cons_id_info args :
         (Fetch { lval with rev_offset = [ { o = Dot cons'; oorig = NoOrig } ] })
         (SameAs (G.N cons |> G.e))
       (* THINK: ^^^^^ We need to construct a `SameAs` eorig here because Pro
-         * looks at the eorig, but maybe it shouldn't? *)
+       * looks at the eorig, but maybe it shouldn't? *)
     in
     Some cons_exp
   in
@@ -1811,8 +1811,8 @@ and for_each env tok (pat, tok2, e) st =
             (related_tok tok2)))
   in
   (* same semantic? or need to take Ref? or pass lval
-     * directly in next_call instead of using intermediate next_lval?
-  *)
+   * directly in next_call instead of using intermediate next_lval?
+   *)
   let assign_st =
     pattern_assign_statements env
       (mk_e (Fetch next_lval) (related_tok tok2))

@@ -63,7 +63,8 @@ let check_tag_syntax tag =
           It must be a dot-separated sequence of one or more alphanumeric\n\
           identifiers e.g. \"foo_bar.v2.todo\" . It must match the following \
           regexp:\n\
-         \  %s" tag tag_syntax)
+         \  %s"
+         tag tag_syntax)
 
 let create_tag (tag : string) : string Logs.Tag.def =
   check_tag_syntax tag;

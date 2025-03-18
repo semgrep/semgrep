@@ -164,7 +164,8 @@ let rec map_expr_add_tracing ~level attr_payload pat e =
       in
       {
         (* TODO This should probably be `e` not `e'`? *)
-        e' with
+        e'
+        with
         pexp_desc = Pexp_fun (arg_label, exp_opt, pattern, body_with_tracing);
       }
   | _ -> e

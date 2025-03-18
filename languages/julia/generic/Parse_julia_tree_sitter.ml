@@ -640,8 +640,7 @@ and map_scoped_identifier_closed (env : env) (x : CST.scoped_identifier) =
       >>| List.rev
       (* x2 x3 ... xn *)
       (* then add on the x1 *)
-      >>|
-      fun l -> id :: l
+      >>| fun l -> id :: l
   | Right _ -> None
 
 and map_scoped_identifier_exp (env : env) ((v1, v2, v3) : CST.scoped_identifier)
@@ -683,8 +682,7 @@ and map_anon_choice_id_f1f5a37_closed (env : env)
       >>| List.rev
       (* x2 x3 ... xn *)
       (* then add on the x1 *)
-      >>|
-      fun l -> id :: l
+      >>| fun l -> id :: l
   | Right _ -> None
 
 and map_import_subject (env : env) (x : CST.anon_choice_impo_a542259) =

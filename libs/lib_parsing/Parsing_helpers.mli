@@ -50,7 +50,8 @@ val mk_lexer_for_yacc :
   (* token stream for error recovery *)
   'tok tokens_state
   * ((* the lexer to pass to the ocamlyacc parser *)
-     Lexing.lexbuf -> 'tok)
+     Lexing.lexbuf ->
+    'tok)
   * (* fake lexbuf needed by ocamlyacc API *)
     Lexing.lexbuf
 

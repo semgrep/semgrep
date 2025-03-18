@@ -77,9 +77,10 @@ let eval_builtin_func lang env func args =
               name_middle =
                 Some
                   (QDots
-                    ( [ (("String", _), _) ]
-                    | [ (("java", _), _); (("lang", _), _); (("String", _), _) ]
-                      ));
+                     ( [ (("String", _), _) ]
+                     | [
+                         (("java", _), _); (("lang", _), _); (("String", _), _);
+                       ] ));
               _;
             } ) ->
           Some (eval_format env args)
@@ -89,7 +90,7 @@ let eval_builtin_func lang env func args =
 let result_of_function_call_constant lang f args =
   match (lang, f, args) with
   (* Built-in knowledge, we know these functions return constants when
-     * given constant arguments. *)
+   * given constant arguments. *)
   | ( Lang.Php,
       {
         e =
@@ -435,8 +436,8 @@ and do_lambdas lang lambdas in_env node =
           in
           let out_env =
             (* We look at the svalue info resulting from analyzing the lambda's
-               * body, and we kill the svalue info of any variables that may be altered
-               * by the execution of the lambda. *)
+             * body, and we kill the svalue info of any variables that may be altered
+             * by the execution of the lambda. *)
             VarMap.merge
               (fun _var opt_env opt_lam ->
                 match (opt_env, opt_lam) with

@@ -390,10 +390,10 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
       |> Result_.partition Fun.id |> Lwt.return
   | C.URL url ->
       (* TODO: Re-enable passing in our token to trusted remote urls.
-         * This is currently disabled because we don't want to pass our token
-         * to untrusted endpoints. There should be a relatively painless way
-         * to do this, but this can be addressed in a follow-up PR.
-      *)
+       * This is currently disabled because we don't want to pass our token
+       * to untrusted endpoints. There should be a relatively painless way
+       * to do this, but this can be addressed in a follow-up PR.
+       *)
       let%lwt rules =
         load_rules_from_url_async ~origin:(Untrusted_remote url) caps url
       in
@@ -447,23 +447,23 @@ let langs_of_pattern (pat, analyzer_opt) : Analyzer.t list =
   match analyzer_opt with
   | Some analyzer ->
       (* TODO? capture also parse errors here? and transform the pattern
-         * parse error in invalid_rule_error to return in rules_and_origin? *)
+       * parse error in invalid_rule_error to return in rules_and_origin? *)
       [ analyzer_compatible_with_pat analyzer |> Result.get_ok ]
   (* osemgrep-only: better: can use -e without -l! we try all languages *)
   | None ->
       (* We need uniq_by because Lang.assoc contain multiple times the
-         * same value, for instance we have ("cpp", Cpp); ("c++", Cpp) in
-         * Lang.assoc
-         * TODO? use Analyzer.assoc instead?
-      *)
+       * same value, for instance we have ("cpp", Cpp); ("c++", Cpp) in
+       * Lang.assoc
+       * TODO? use Analyzer.assoc instead?
+       *)
       let all_langs =
         Lang.assoc
         |> List_.map (fun (_k, l) -> l)
         |> List_.deduplicate
         (* TODO: we currently get a segfault with the Dart parser
-           * (for example on a pattern like ': string (* filename *)'), so we
-           * skip Dart for now (which anyway is not really supported).
-        *)
+         * (for example on a pattern like ': string (* filename *)'), so we
+         * skip Dart for now (which anyway is not really supported).
+         *)
         |> List_.exclude (fun x -> x =*= Lang.Dart)
       in
       all_langs
@@ -522,9 +522,9 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict:_ caps
 
         Lwt.return (rules_and_origins, errors)
     (* better: '-e foo -l regex' was not handled in pysemgrep
-       *  (got a weird 'invalid pattern clause' error)
-       * better: '-e foo -l generic' was not handled in semgrep-core
-    *)
+     *  (got a weird 'invalid pattern clause' error)
+     * better: '-e foo -l generic' was not handled in semgrep-core
+     *)
     | Pattern (pat, analyzer_opt, fix) ->
         let valid_langs = langs_of_pattern (pat, analyzer_opt) in
         let rules_and_origins =
