@@ -120,6 +120,15 @@ repos:
           - types-python-dateutil
           - types-requests
           - types-setuptools
+          # for tests only:
+          # (ideally, these additional items would go only in the
+          # 'additional_properties' field of 'mypy-test' below but YAML
+          # doesn't provide a trick that allows us to extend an array
+          # from a reference such as *mypy-deps; and using Jsonnet would be
+          # overkill):
+          - appdirs
+          - pytest
+          - pytest-mock
       - id: mypy
         alias: mypy-test
         name: mypy (test files)
