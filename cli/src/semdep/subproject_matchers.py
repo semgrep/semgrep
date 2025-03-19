@@ -160,6 +160,12 @@ MATCHERS: List[SubprojectMatcher] = [
         ecosystem=out.Ecosystem(out.Pypi()),
         make_manifest_only_subprojects=False,
     ),
+    # Setup.py
+    ExactManifestOnlyMatcher(
+        manifest_kind=out.ManifestKind(out.SetupPy()),
+        manifest_name="setup.py",
+        ecosystem=out.Ecosystem(out.Pypi()),
+    ),
 ]
 
 

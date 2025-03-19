@@ -89,6 +89,10 @@ PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS = [
         out.ManifestKind(out.Pipfile()),
         out.LockfileKind(out.PipfileLock()),
     ),
+    (
+        out.ManifestKind(out.SetupPy()),
+        None,
+    ),
 ]
 
 TR_OCAML_RESOLVER_SUBPROJECT_KINDS = [

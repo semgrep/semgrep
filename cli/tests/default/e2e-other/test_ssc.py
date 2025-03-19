@@ -395,6 +395,10 @@ def test_ssc__requirements_lockfiles(
             "rules/dependency_aware/java-gradle-sca.yaml",
             "dependency_aware/gradle",
         ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/setup-py-dynamic-resolution",
+        ),
     ],
 )
 @pytest.mark.requires_lockfileless_deps
@@ -403,6 +407,32 @@ def test_ssc__lockfileless(
 ):
     """
     Run end-to-end SSC tests with lockfileless resolution enabled.
+    """
+    result = run_semgrep_on_copied_files(
+        rule, target_name=target, options=["--allow-local-builds"]
+    )
+
+    snapshot.assert_match(
+        result.as_snapshot(),
+        "results.txt",
+    )
+
+
+@pytest.mark.parametrize(
+    "rule,target",
+    [
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/setup-py-dynamic-resolution",
+        ),
+    ],
+)
+@pytest.mark.requires_lockfileless_deps
+def test_ssc__setup_py_dynamic_resolution(
+    run_semgrep_on_copied_files: RunSemgrep, snapshot: Any, rule: str, target: str
+):
+    """
+    Run end-to-end SSC tests for setup.py dynamic resolution
     """
     result = run_semgrep_on_copied_files(
         rule, target_name=target, options=["--allow-local-builds"]

@@ -1,0 +1,116 @@
+=== exit code
+0
+=== end of exit code
+
+=== stdout - plain
+{
+  "errors": [],
+  "paths": {
+    "scanned": [
+      "targets/dependency_aware/setup-py-dynamic-resolution/foo.py",
+      "targets/dependency_aware/setup-py-dynamic-resolution/setup.py"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.dependency_aware.python-requirements-sca",
+      "end": {
+        "col": 6,
+        "line": 1,
+        "offset": 5
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "lines": "requires login",
+        "message": "oh no",
+        "metadata": {},
+        "sca_info": {
+          "dependency_match": {
+            "dependency_pattern": {
+              "ecosystem": "pypi",
+              "package": "pandas",
+              "semver_range": "<= 1.4.2"
+            },
+            "found_dependency": {
+              "allowed_hashes": {},
+              "children": [
+                {
+                  "package": "numpy",
+                  "version": "2.2.4"
+                },
+                {
+                  "package": "python-dateutil",
+                  "version": "2.9.0.post0"
+                },
+                {
+                  "package": "pytz",
+                  "version": "2025.1"
+                }
+              ],
+              "ecosystem": "pypi",
+              "line_number": 1,
+              "lockfile_path": "targets/dependency_aware/setup-py-dynamic-resolution/setup.py",
+              "manifest_path": "targets/dependency_aware/setup-py-dynamic-resolution/setup.py",
+              "package": "pandas",
+              "transitivity": "direct",
+              "version": "1.4.2"
+            },
+            "lockfile": "targets/dependency_aware/setup-py-dynamic-resolution/setup.py"
+          },
+          "reachability_rule": true,
+          "reachable": true,
+          "sca_finding_schema": 20220913
+        },
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/dependency_aware/setup-py-dynamic-resolution/foo.py",
+      "start": {
+        "col": 1,
+        "line": 1,
+        "offset": 0
+      }
+    }
+  ],
+  "skipped_rules": [],
+  "version": "0.42"
+}
+=== end of stdout - plain
+
+=== stderr - plain
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 7 files tracked by git with 0 Code rules, 1 Supply Chain rule:
+
+
+  CODE RULES
+  Nothing to scan.
+
+  SUPPLY CHAIN RULES
+  Scanning 2 files.
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+✅ Scan completed successfully.
+ • Findings: 1 (1 blocking)
+ • Rules run: 1
+ • Targets scanned: 2
+ • Parsed lines: ~100.0%
+ • No ignore information available
+Ran 1 rule on 2 files: 1 finding.
+
+=== end of stderr - plain
+
+=== stdout - color
+<same as above: stdout - plain>
+=== end of stdout - color
+
+=== stderr - color
+<same as above: stderr - plain>
+=== end of stderr - color

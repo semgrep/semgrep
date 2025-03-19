@@ -943,7 +943,7 @@ class TestGradleMatcher:
 @pytest.mark.quick
 def test_filter_dependency_source_files():
     valid_paths = {Path("Pipfile.lock"), Path("requirements.txt")}
-    invalid_paths = {Path("unknown.lock"), Path("setup.py")}
+    invalid_paths = {Path("unknown.lock")}
     candidates = valid_paths | invalid_paths
 
     filtered_paths = filter_dependency_source_files(frozenset(candidates))
