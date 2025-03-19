@@ -26,6 +26,35 @@
 # to interactively explore the docker image before that failing point.
 
 ###############################################################################
+# Step0: copy the source files
+###############################################################################
+# We do this in a separate stage to maximize docker cache hits, as the cache is
+# invalidated when copied files change. So doing this allows us only to use the
+# cache if an unrelated file such as a workflow or readme changes.
+#
+# I.e. if we don't touch the core ml files, then we don't need to rebuild the core
+# or rerun the ocaml tests. This saves us a ton of time in CI
+#
+# See:  https://docs.docker.com/build/cache/optimize/#keep-the-context-small
+
+# NOTE!!!: do not add files here unless they are necessary for building the core
+# ONLY! cli and test files should be added at later stages
+#
+# coupling: if you add a file here, you probably want to add it in
+# semgrep.nix and the pro dockerfile
+FROM scratch as build-files
+WORKDIR /src
+COPY dune dune-project ./
+COPY cli/src/semgrep/semgrep_interfaces/ ./cli/src/semgrep/semgrep_interfaces/
+COPY TCB ./TCB
+COPY interfaces ./interfaces
+COPY languages ./languages
+COPY libs ./libs
+COPY src ./src
+COPY tools ./tools
+
+
+###############################################################################
 # Step1: build semgrep-core
 ###############################################################################
 
@@ -115,8 +144,10 @@ RUN make install-deps
 # List the dependencies we've installed and their versions
 RUN opam list
 
-# Copy over the entire semgrep repository
-COPY . .
+# Copy over the core files needed for compilation
+COPY --from=build-files /src .
+# Docker struggles to copy symlinks, so let's just make it
+RUN ln -s _build/install/default/bin bin
 
 # Compile (and minimal test) semgrep-core
 RUN opam exec -- make core
@@ -364,6 +395,17 @@ FROM semgrep-core-container AS semgrep-core-test
 
 # Git repo is need for tests
 RUN git init
+
+
+# Copy over files needed for the core tests
+COPY cli/tests/default/e2e/targets/ls ./cli/tests/default/e2e/targets/ls
+COPY scripts/run-core-test ./scripts/run-core-test
+COPY scripts/make-symlinks ./scripts/make-symlinks
+COPY tests ./tests
+#Docker struggles to copy symlinks, so let's just make it
+RUN ln -s _build/default/src/tests/test.exe test
+
+
 RUN opam exec -- make test
 RUN opam exec -- make core-test-e2e
 

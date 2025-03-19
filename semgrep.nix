@@ -134,6 +134,8 @@ in let
   semgrep = semgrepOpam.overrideAttrs (prev: rec {
     # Special environment variables for osemgrep for linking stuff
 
+    # coupling: if you add files here you probably want to add them to the
+    # Dockerfile and the pro Dockerfile
     src = (lib.strictSrc ./. (with pkgs.lib.fileset; [
       ./Makefile
       ./TCB
