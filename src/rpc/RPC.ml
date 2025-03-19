@@ -69,8 +69,10 @@ let handle_call (caps : < caps ; .. >) :
   | `CallDumpRulePartitions params -> (
       match !RPC_return.hook_dump_rule_partitions with
       | Some dump_rule_partitions ->
-          let Out.{ rules; n_partitions; output_dir } = params in
-          let ok = dump_rule_partitions rules n_partitions output_dir in
+          let Out.{ rules; n_partitions; output_dir; strategy } = params in
+          let ok =
+            dump_rule_partitions rules n_partitions output_dir strategy
+          in
           Ok (`RetDumpRulePartitions ok)
       | None ->
           Error

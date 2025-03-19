@@ -197,6 +197,12 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     hidden=True,
 )
 @click.option(
+    "--x-dump-rule-partitions-strategy",
+    "dump_rule_partitions_strategy",
+    type=str,
+    hidden=True,
+)
+@click.option(
     "--x-partial-config",
     "partial_config",
     type=click.Path(allow_dash=True, path_type=Path),
@@ -277,6 +283,7 @@ def ci(
     allow_local_builds: bool,
     dump_n_rule_partitions: Optional[int],
     dump_rule_partitions_dir: Optional[Path],
+    dump_rule_partitions_strategy: Optional[str],
     partial_config: Optional[Path],
     partial_output: Optional[Path],
 ) -> None:
@@ -326,6 +333,15 @@ def ci(
                 "Both or none of --x-dump-rule-partitions and --x-dump-rule-partitions-dir must be specified."
             )
             sys.exit(FATAL_EXIT_CODE)
+
+        dump_rule_partitions_params: Optional[out.DumpRulePartitionsParams] = None
+        if dump_n_rule_partitions:
+            dump_rule_partitions_params = out.DumpRulePartitionsParams(
+                out.RawJson([]),  # rules will be populated later before actual dumping
+                dump_n_rule_partitions,
+                out.Fpath(str(dump_rule_partitions_dir)),
+                dump_rule_partitions_strategy,
+            )
 
         if partial_config and not partial_output:
             logger.info(
@@ -689,8 +705,7 @@ def ci(
             "capture_core_stderr": capture_core_stderr,
             "allow_local_builds": allow_local_builds,
             "x_tr": x_tr,
-            "dump_n_rule_partitions": dump_n_rule_partitions,
-            "dump_rule_partitions_dir": dump_rule_partitions_dir,
+            "dump_rule_partitions_params": dump_rule_partitions_params,
             "ptt_enabled": scan_handler.ptt_enabled if scan_handler else False,
             "resolve_all_deps_in_diff_scan": (
                 scan_handler.resolve_all_deps_in_diff_scan if scan_handler else False

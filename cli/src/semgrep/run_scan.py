@@ -142,20 +142,14 @@ def list_targets_and_exit(
 
 
 def dump_partitions_and_exit(
-    filtered_rules: List[Rule],
-    dump_rule_partitions_dir: Optional[Path],
-    dump_n_rule_partitions: int,
+    rules: List[Rule], params: out.DumpRulePartitionsParams
 ) -> None:
-    rules = {"rules": [r.raw for r in filtered_rules]}
-    output_dir = str(dump_rule_partitions_dir)
-    args = out.DumpRulePartitionsParams(
-        out.RawJson(rules), dump_n_rule_partitions, out.Fpath(output_dir)
-    )
-    ok = dump_rule_partitions(args)
+    params.rules = out.RawJson({"rules": [r.raw for r in rules]})
+    ok = dump_rule_partitions(params)
     if not ok:
         logger.error("An error occurred while dumping rule partitions.")
         sys.exit(2)
-    logger.info(f"Successfully dumped rule partitions to {output_dir}")
+    logger.info(f"Successfully dumped rule partitions to {params.output_dir.value}")
     sys.exit(0)
 
 
@@ -1099,8 +1093,7 @@ def run_scan(
     path_sensitive: bool = False,
     capture_core_stderr: bool = True,
     allow_local_builds: bool = False,
-    dump_n_rule_partitions: Optional[int] = None,
-    dump_rule_partitions_dir: Optional[Path] = None,
+    dump_rule_partitions_params: Optional[out.DumpRulePartitionsParams] = None,
     ptt_enabled: bool = False,
     resolve_all_deps_in_diff_scan: bool = False,
     symbol_analysis: bool = False,
@@ -1192,10 +1185,8 @@ def run_scan(
         ]
     filtered_rules = filter_exclude_rule(filtered_rules, exclude_rule)
 
-    if dump_n_rule_partitions:
-        dump_partitions_and_exit(
-            filtered_rules, dump_rule_partitions_dir, dump_n_rule_partitions
-        )
+    if dump_rule_partitions_params:
+        dump_partitions_and_exit(filtered_rules, dump_rule_partitions_params)
 
     # TODO? should we move this above closer to config_errors or put
     # down so that at least dump_partitions_and_exit is run?
