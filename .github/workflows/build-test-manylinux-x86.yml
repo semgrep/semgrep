@@ -4,16 +4,6 @@ jobs:
     container: quay.io/pypa/manylinux_2_28_x86_64
     runs-on: ubuntu-latest
     steps:
-      - if: ${{ runner.os == 'Linux' }}
-        name: Tune Linux Network
-        run: sudo ethtool -K eth0 tx off rx off || ethtool -K ens4 tx off rx off || true
-        shell: bash
-      - if: ${{ runner.os == 'macOS' }}
-        name: Tune macOS Network
-        run: |
-          sudo sysctl -w net.link.generic.system.hwcksum_tx=0
-          sudo sysctl -w net.link.generic.system.hwcksum_rx=0
-        shell: bash
       - name: Configure git safedir properly
         run: git config --global --add safe.directory $(pwd)
       - name: Make checkout speedy

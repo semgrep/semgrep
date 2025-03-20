@@ -102,30 +102,4 @@ local on_pull_request_config = {
     ],
 
   },
-  // See: https://github.com/actions/runner-images/issues/1187#issuecomment-686735760
-  // and
-  // https://github.com/smorimoto/tune-github-hosted-runner-network/blob/main/action.yml
-  // TL;DR; GHA has networking issues, and we can fix them by disabling ethernet offloading
-  // TODO: this is a workaround, I pray GHA will fix their networking issues
-  tune_networking_steps: function()
-    [
-      {
-        name: 'Tune Linux Network',
-        'if': '${{ runner.os == \'Linux\' }}',
-        shell: 'bash',
-        // some linux images we run on don't have sudo. Some don't have ethtool, but that means
-        // they won't be susceptible to eth offloading hopefully.
-        run: 'sudo ethtool -K eth0 tx off rx off || ethtool -K ens4 tx off rx off || true',
-      },
-      {
-        name: 'Tune macOS Network',
-        'if': '${{ runner.os == \'macOS\' }}',
-        shell: 'bash',
-        run:|||
-               sudo sysctl -w net.link.generic.system.hwcksum_tx=0
-               sudo sysctl -w net.link.generic.system.hwcksum_rx=0
-        |||,
-      },
-
-    ],
 }
