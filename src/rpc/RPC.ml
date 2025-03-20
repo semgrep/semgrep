@@ -12,7 +12,13 @@ module Out = Semgrep_output_v1_j
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type caps = < Cap.exec ; Cap.tmp ; Cap.network ; Cap.readdir ; Core_scan.caps >
+type caps =
+  < Cap.exec
+  ; Cap.tmp
+  ; Cap.network
+  ; Cap.readdir
+  ; Cap.random
+  ; Core_scan.caps >
 
 (*****************************************************************************)
 (* Dispatcher *)
@@ -69,10 +75,7 @@ let handle_call (caps : < caps ; .. >) :
   | `CallDumpRulePartitions params -> (
       match !RPC_return.hook_dump_rule_partitions with
       | Some dump_rule_partitions ->
-          let Out.{ rules; n_partitions; output_dir; strategy } = params in
-          let ok =
-            dump_rule_partitions rules n_partitions output_dir strategy
-          in
+          let ok = dump_rule_partitions (caps :> < Cap.random >) params in
           Ok (`RetDumpRulePartitions ok)
       | None ->
           Error

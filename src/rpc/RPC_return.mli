@@ -32,6 +32,6 @@ val hook_transitive_reachability_filter :
   ref
 
 val hook_dump_rule_partitions :
-  (Out.raw_json -> int -> Fpath.t -> string option -> bool) option ref
+  (< Cap.random > -> Out.dump_rule_partitions_params -> bool) option ref
 
 val hook_match_subprojects : (Out.fpath list -> Out.subproject list) option ref

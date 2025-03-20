@@ -34,6 +34,7 @@ val options :
   ; Cap.tmp
   ; Cap.exec
   ; Cap.readdir
+  ; Cap.random
   ; Core_scan.caps
   ; Cap.network
   ; .. > ->
