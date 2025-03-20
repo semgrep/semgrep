@@ -1,4 +1,3 @@
-open Printf
 open Fpath_.Operators
 
 (*****************************************************************************)
@@ -56,12 +55,7 @@ let rec delete_files parent (x : file_tree) =
    Files are deleted automatically.
 *)
 let with_file_trees trees func =
-  let workspace =
-    UTmp.get_temp_dir_name ()
-    (* This is meant only to be used in test code. *)
-    (* nosemgrep: forbid-random *)
-    / sprintf "test-list_files-%i" (Random.bits ())
-  in
+  let workspace = UTmp.get_unique_temp_name ~prefix:"test-list_files" () in
   Unix.mkdir !!workspace 0o777;
   Common.protect
     ~finally:(fun () ->

@@ -15,6 +15,7 @@
 open Common
 open Fpath_.Operators
 module Log = Log_commons.Log
+module TempId = Gensym.MkId ()
 
 (*****************************************************************************)
 (* Prelude *)
@@ -133,3 +134,10 @@ let replace_stdin_by_regular_file ?(prefix = "stdin") () : Fpath.t =
   write_temp_file_with_autodelete ~prefix ~suffix:"" ~data
 
 let get_temp_dir_name () = Fpath.v (UFilename.get_temp_dir_name ())
+
+let get_unique_temp_name ?(prefix = "") ?(suffix = "") () =
+  get_temp_dir_name ()
+  (* This is meant only to be used in test code. *)
+  / Printf.sprintf "%s-%i%d%s" prefix
+      TempId.(mk () |> to_int)
+      (UUnix.getpid ()) suffix

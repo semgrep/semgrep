@@ -128,9 +128,7 @@ let random_init = lazy (Random.self_init ())
 let create_named_pipe () =
   Lazy.force random_init;
   let path =
-    Filename.concat
-      (Filename.get_temp_dir_name ())
-      (sprintf "semgrep-test-%x.py" (Random.bits ()))
+    !!(UTmp.get_unique_temp_name ~prefix:"semgrep-test" ~suffix:".py" ())
   in
   Unix.mkfifo path 0o644;
   Fpath.v path

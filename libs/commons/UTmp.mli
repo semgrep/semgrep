@@ -89,3 +89,7 @@ val replace_stdin_by_regular_file : ?prefix:string -> unit -> Fpath.t
 
 (* fpath wrapper to Filename.get_temp_dir_name() *)
 val get_temp_dir_name : unit -> Fpath.t
+
+val get_unique_temp_name : ?prefix:string -> ?suffix:string -> unit -> Fpath.t
+(** [mk_temp_dir ?prefix ?suffix ()] creates a path in the temp directory in the form
+    ["PREFIX-RANDOMBITS-PID"]. It does NOT create the file at the path. *)
