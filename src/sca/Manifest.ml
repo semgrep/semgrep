@@ -33,7 +33,7 @@ open Common
 (* old: used to be path : Target.path but no need complex origin for manifest*)
 type t = Semgrep_output_v1_t.manifest [@@deriving show]
 (** A manifest file to be used during matching. See also
-    {!Lockfile_xtarget.manifest}, which also has the contents. *)
+    {!Dependency_source_xtarget.ml}, which also has the contents. *)
 
 type kind = Semgrep_output_v1_j.manifest_kind [@@deriving show, eq]
 
@@ -71,6 +71,7 @@ let kind_to_ecosystem_opt : kind -> Semgrep_output_v1_t.ecosystem option =
   | `Podfile -> Some `Cocoapods
   | `OpamFile -> Some `Opam
 
+(* coupling: Match_subprojects.ml *)
 let kind_of_filename_exn (file : Fpath.t) : kind =
   match Fpath.basename file with
   | "mix.exs" -> `MixExs

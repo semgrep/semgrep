@@ -2,8 +2,9 @@ type t = Semgrep_output_v1_t.lockfile [@@deriving show]
 type kind = Semgrep_output_v1_t.lockfile_kind [@@deriving show, eq]
 
 val mk_lockfile : kind -> Fpath.t -> t
-(** A lockfile to be used during matching. See also {!Lockfile_xtarget.t}, an
-    augmented version with the contents of the lockfile. *)
+(** A lockfile to be used during matching.
+    See also {!Dependency_source_xtarget.t}, an augmented version with the
+    contents of the lockfile. *)
 
 val kind_to_ecosystem_opt : kind -> Semgrep_output_v1_t.ecosystem option
 (** Maps a lockfile kind to its corresponding package ecosystem.
@@ -26,6 +27,11 @@ val kind_to_ecosystem_opt : kind -> Semgrep_output_v1_t.ecosystem option
         version: < 1.0.3
     ]}
 
-    Used in Core_scan.ml to filter which rules to apply given a lockfile. *)
+    Used in SCA_scan.ml to filter which rules to apply given a lockfile. *)
 
+(* Try to infer the kind of a lockfile based on its file name (e.g.,
+ * package-lock.json -> Npm). Will raise Failure for unknown lockfile filename.
+ * coupling: Match_subprojects.ml
+ * This is used just by `semgrep show dump-lockfile` right now.
+ *)
 val kind_of_filename_exn : Fpath.t -> kind

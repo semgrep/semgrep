@@ -17,7 +17,9 @@ module Out = Semgrep_output_v1_t
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* ?? *)
+(* The source of dependency information (usually a lockfile path but can be
+ * a lockfile and manifest or sometimes just a manifest).
+ *)
 
 (*****************************************************************************)
 (* Types *)
@@ -30,7 +32,8 @@ type t = Out.dependency_source [@@deriving show]
 (*****************************************************************************)
 
 (** List all the source files included in the dependency source. *)
-let rec source_files = function
+let rec source_files (dep_src : t) : Fpath.t list =
+  match dep_src with
   | Out.LockfileOnlyDependencySource lockfile -> [ lockfile.path ]
   | Out.ManifestOnlyDependencySource manifest -> [ manifest.path ]
   | Out.ManifestLockfileDependencySource (manifest, lockfile) ->

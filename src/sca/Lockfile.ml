@@ -20,14 +20,14 @@ module Out = Semgrep_output_v1_t
 (*****************************************************************************)
 (* Lockfile kind and path (e.g., package-lock.json in the NPM ecosystem).
  *
- * This module is just to designate a lockfile. The actual parsed content
- * of a lockfile is defined in SCA_dependency.ml (and Lockfile_xtarget.ml)
+ * This module is just to designate a lockfile. The actual parsed content of a
+ * lockfile is defined in SCA_dependency.ml (and Dependency_source_xtarget.ml)
  *)
 
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-(* TODO? add a manifest option in it? to know the origin of the lockfile?
+(* For the origin of the lockfile see SCA_dependency_source.ml
  * old: used to be path : Target.path but no need complex origin for manifest
  *)
 type t = Out.lockfile [@@deriving show]
@@ -65,6 +65,7 @@ let kind_to_ecosystem_opt : kind -> Semgrep_output_v1_t.ecosystem option =
   | PodfileLock -> Some `Cocoapods
   | OpamLocked -> Some `Opam
 
+(* coupling: Match_subprojects.ml *)
 let kind_of_filename_exn (file : Fpath.t) : kind =
   match Fpath.basename file with
   | "uv.lock" -> Out.UvLock
