@@ -329,6 +329,9 @@ and map_qualified_assignment ?(attrs = []) (env : env)
               | `Id tok ->
                   let id = map_identifier env tok in
                   DefStmt (basic_entity ~attrs id, VarDef G.empty_var) |> G.s
+              (* NOTE(syntax): Primary expressions (that aren't plain variables)
+               * cannot appear inside const/global/local statements.
+               *)
               | _ -> todo env x)
           | `Choice_un_exp x -> (
               match x with
@@ -339,10 +342,13 @@ and map_qualified_assignment ?(attrs = []) (env : env)
                       VarDef { vinit = None; vtype = Some ty; vtok = G.no_sc }
                     )
                   |> G.s
+              (* NOTE(syntax): Unary/binary operations cannot appear inside
+               * const/local/global statements.
+               *)
               | _ -> todo env x)
           | _ -> todo env x)
-      (* TODO: This shouldn't be a todo because it breaks `local $X` patterns
-       * What *Stmt variant should go here?
+      (* TODO: Neither semgrep ellipsis nor deep expression make much sense here,
+         only metavariables. What *Stmt variant should go here?
        *)
       | _ -> todo env x)
 
@@ -358,7 +364,9 @@ and map_type_parameter (env : env) (x : CST.anon_choice_exp_c3aa41b) :
       match exp.e with
       | N (Id (id, _)) -> tparam_of_id id
       | __else__ -> OtherTypeParam (("tparam", fake "tparam"), [ G.E exp ]))
-  (* We don't care about assignments inside braces, altho they appear in macros. *)
+  (* NOTE(lowering): Assignments can appear inside braces,
+   * but they're not valid Julia code (this is only usable in macros).
+   *)
   | `Closed_assign x -> todo env x
 
 and map_top_level (env : env) (x : CST.anon_choice_exp_9468126) =
@@ -387,6 +395,7 @@ and map_argument (env : env) (x : CST.anon_choice_exp_095959f) : argument =
                 | Left id -> id
                 (* TODO: This used to be an OtherArg. Is that a problem? *)
                 | Right exp -> todo env exp)
+            (* NOTE(lowering): Same as closed_assignment. *)
             | _ -> todo env p)
         | _ -> todo env v1
       in
@@ -497,9 +506,11 @@ and map_let_binding (env : env) (x : CST.anon_choice_id_0627c2a) =
         | `Prim_exp p -> (
             match p with
             | `Id tok -> (map_identifier env tok, None)
-            (* TODO: We're ignoring short functions here. *)
+            (* NOTE(lowering): Other primary expressions are not valid in let binding LHS,
+             * except for short functions (tho they're not commonly used).
+             * TODO: Handle short functions here. *)
             | _ -> todo env x)
-        (* NOTE: Here we only care about the case `x::T`. *)
+        (* NOTE(lowering): Here we only care about the case `x::T`. *)
         | `Choice_un_exp x -> (
             match x with
             | `Typed_exp (v1, v2, v3) ->
@@ -1115,10 +1126,10 @@ and map_definition (env : env) (x : CST.definition) : stmt =
               MacroDef
                 { macroparams; macrobody = List_.map (fun x -> G.S x) body } )
           |> G.s
-      (* there's no anonymous macros *)
+      (* NOTE(lowering): There's no anonymous macros *)
       | None -> todo env x)
 
-(* NOTE: MacroDef only allows idents as parameters *)
+(* NOTE(lowering): MacroDef only allows idents as parameters *)
 and map_macroparams_hack (env : env) ((_v1, params, _v3) : parameters) =
   List.map
     (fun p ->
@@ -1407,7 +1418,17 @@ and map_signature (env : env) (x : CST.signature) =
                         attrs = [];
                         tparams = None;
                       }
-                  (* TODO: extract type parameters *)
+                  (* If we have a type parametrized pattern, it means this must be a constructor.
+                   * TODO: Handle type parameters.
+                   *)
+                  | `Para_type_exp (v1, _v2, _v3) ->
+                      let id =
+                        match v1 with
+                        | `Id tok -> map_identifier env tok
+                        | _ -> todo env v1
+                      in
+                      basic_entity id
+                  (* NOTE(lowering): Other primary expressions are not valid here. *)
                   | _ -> todo env x)
               | `Op x ->
                   let id = map_operator env x in
@@ -1505,6 +1526,7 @@ and map_interpolation_expression_either (env : env)
         | `Id tok ->
             let s, tok = map_identifier env tok in
             G.N (H2.name_of_id (s, tok)) |> G.e
+        (* NOTE(lowering): Not possible to interpolate a curly_expression. *)
         | `Curl_exp x -> todo env x
         | `Paren_exp x -> map_parenthesized_expression env x
         | `Tuple_exp x ->
@@ -1540,6 +1562,7 @@ and map_interpolation_parameter (env : env) (x : CST.interpolation_expression) :
         | `Id tok ->
             let s, tok = map_identifier env tok in
             G.N (H2.name_of_id (s, tok)) |> G.e
+        (* NOTE(lowering): Not possible to interpolate a curly_expression. *)
         | `Curl_exp x -> todo env x
         | `Paren_exp x -> map_parenthesized_expression env x
         | `Tuple_exp x ->
@@ -1630,10 +1653,12 @@ and map_optional_parameter (env : env) ((v1, v2, v3) : CST.closed_assignment) =
         match p with
         | `Id tok -> map_id_parameter env tok
         | `Tuple_exp x -> ParamPattern (map_tuple_pat env x)
+        (* NOTE(lowering): Same as closed_assignment. *)
         | _ -> todo env p)
     | `Choice_un_exp x -> (
         match x with
         | `Typed_exp x -> map_typed_parameter env x
+        (* NOTE(lowering): Same as closed_assignment. *)
         | _ -> todo env x)
     | _ -> todo env v1
   in
@@ -1661,6 +1686,7 @@ and map_parameter (env : env) (x : CST.anon_choice_exp_095959f) =
                   OtherParam (("param", fake "param"), [ G.P pat ])
               | `Interp_exp x -> map_interpolation_parameter env x
               | `Closed_macr_exp x -> map_closed_macro_parameter env x
+              (* NOTE(lowering): No other primary expression is a valid parameter. *)
               | _ -> todo env p)
           | `Choice_un_exp operation -> (
               match operation with
@@ -1668,10 +1694,14 @@ and map_parameter (env : env) (x : CST.anon_choice_exp_095959f) =
               | `Splat_exp x -> map_slurp_parameter env x
               | _ -> todo env x)
           | `Macr_exp x -> map_macro_parameter env x
+          (* NOTE(lowering): No other expression is a valid parameter. *)
           | _ -> todo env x)
       | `Semg_ellips tok -> todo env tok
       | `Deep_exp x -> todo env x)
   | `Closed_assign x -> map_optional_parameter env x
+  (* NOTE(lowering): generators are not valid parameters. This is only here
+   * because tree-sitter parses parameters and arguments the same.
+   *)
   | `Exp_comp_clause x -> todo env x
 
 (* Handle parameters in function signatures (not arguments in function calls).
@@ -1898,7 +1928,7 @@ and map_slurp_parameter (env : env) ((v1, v2) : CST.splat_expression) =
         | `Prim_exp p -> (
             match p with
             | `Id tok -> param_of_id (map_identifier env tok)
-            (* doesn't make sense to have tuple_exp here *)
+            (* NOTE: It doesn't make sense to have slurp a tuple_exp. *)
             | _ -> todo env p)
         | `Choice_un_exp x -> (
             match x with
@@ -2230,7 +2260,7 @@ and map_typed_expression (env : env) ((v1, v2, v3) : CST.typed_expression) =
   in
   (v1, tok, v3)
 
-(* Fallback in case we find `::T` outside function signatures. *)
+(* NOTE(lowering): Fallback in case we find `::T` outside function signatures. *)
 and map_unary_typed_expression (env : env)
     ((_v1, v2) : CST.unary_typed_expression) =
   todo env v2
