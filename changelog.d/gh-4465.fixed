@@ -1,1 +1,0 @@
-Use value of $XDG_CACHE_HOME before hardcoded ~/.cache for semgrep_version file
