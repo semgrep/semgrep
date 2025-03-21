@@ -1790,7 +1790,13 @@ and stmt_aux env st =
 
 and for_each env tok (pat, tok2, e) st =
   let cont_label_s, break_label_s, st_env = mk_break_continue_labels env tok in
-  let ss, e' = expr_with_pre_stmts env e in
+  let ss, e' =
+    match e.e with
+    | Call ({ e = Special (ForOf, _); _ }, (_, [ Arg e ], _)) ->
+        (* JS: for (let x of E) *)
+        expr_with_pre_stmts env e
+    | __else__ -> expr_with_pre_stmts env e
+  in
   let st = stmt st_env st in
 
   let next_lval = fresh_lval env tok2 in
