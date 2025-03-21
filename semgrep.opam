@@ -81,10 +81,10 @@ depends: [
   "lwt"
   "lwt_ppx"
   "conf-libev" {os != "win32"}
-  "js_of_ocaml" {= "5.8.2"}
-  "js_of_ocaml-compiler" {= "5.8.2"}
-  "js_of_ocaml-ppx" {= "5.8.2"}
-  "js_of_ocaml-lwt" {= "5.8.2"}
+  "js_of_ocaml" {= "5.9.1"}
+  "js_of_ocaml-compiler" {= "5.9.1"}
+  "js_of_ocaml-ppx" {= "5.9.1"}
+  "js_of_ocaml-lwt" {= "5.9.1"}
   "integers_stubs_js"
   "git-unix"
   "odoc" {with-doc}
