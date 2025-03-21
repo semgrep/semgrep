@@ -253,7 +253,8 @@ local setup_nix_step = [
   // This will automatically install cachix and upload to cachix
   {
       name: "Install Cachix",
-      uses: "cachix/cachix-action@v14",
+      uses: "cachix/cachix-action@v16",
+      'continue-on-error': true,
       with: {
           name: "semgrep",
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}",
