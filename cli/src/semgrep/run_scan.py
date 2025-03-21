@@ -217,7 +217,7 @@ def target_mode_conf(
             return TargetModeConfig.pro_diff_scan(
                 # `target_manager.get_all_files()` will only return changed files
                 # (diff targets) when baseline_handler is set
-                target_manager.get_all_files(),
+                target_manager.get_all_files(product=SAST_PRODUCT),
                 diff_depth,
             )
         else:
