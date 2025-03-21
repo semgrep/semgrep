@@ -191,13 +191,13 @@ def generate_unreachable_sca_findings(
 
 @lru_cache(maxsize=100_000)
 def transitive_dep_is_also_direct(
-    package: str, deps: Tuple[Tuple[str, out.Transitivity], ...]
+    package: str, deps: Tuple[Tuple[str, out.DependencyKind], ...]
 ) -> bool:
     """
     Assumes that [dep] is transitive
     Checks if there is a direct version of the transitive dependency [dep]
     """
-    return (package, out.Transitivity(out.Direct())) in deps
+    return (package, out.DependencyKind(out.Direct())) in deps
 
 
 def generate_reachable_sca_findings(

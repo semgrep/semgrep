@@ -1,5 +1,28 @@
-type t = Semgrep_output_v1_t.lockfile [@@deriving show]
-type kind = Semgrep_output_v1_t.lockfile_kind [@@deriving show, eq]
+type kind = Semgrep_output_v1_t.lockfile_kind =
+  | PipRequirementsTxt
+  | PoetryLock
+  | PipfileLock
+  | UvLock
+  | NpmPackageLockJson
+  | YarnLock
+  | PnpmLock
+  | GemfileLock
+  | GoModLock
+  | CargoLock
+  | MavenDepTree (* Not a real lockfile *)
+  | GradleLockfile
+  | ComposerLock
+  | NugetPackagesLockJson
+  | PubspecLock
+  | SwiftPackageResolved (* not a real lockfile *)
+  | PodfileLock
+  | MixLock
+  | ConanLock
+  | OpamLocked
+[@@deriving show, eq]
+
+type t = Semgrep_output_v1_t.lockfile = { kind : kind; path : Fpath.t }
+[@@deriving show]
 
 val mk_lockfile : kind -> Fpath.t -> t
 (** A lockfile to be used during matching.

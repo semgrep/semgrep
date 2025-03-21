@@ -419,7 +419,7 @@ def test_rule_match_to_app_finding(snapshot, mocker):
                     "ef6aaac3ca6cd92904cdd0d83f629a15f18053ec84e6432106f7a4d04ae4f5fb",
                 ]
             },
-            transitivity=out.Transitivity(out.Direct()),
+            transitivity=out.DependencyKind(out.Direct()),
         ),
         lockfile=out.Fpath("foo/Pipfile.lock"),
     )
@@ -509,7 +509,7 @@ def create_sca_rule_match(sca_kind, reachable_in_code, transitivity):
                     "ef6aaac3ca6cd92904cdd0d83f629a15f18053ec84e6432106f7a4d04ae4f5fb",
                 ]
             },
-            transitivity=out.Transitivity(transitivity),
+            transitivity=out.DependencyKind(transitivity),
         ),
         lockfile=out.Fpath("foo/Pipfile.lock"),
     )

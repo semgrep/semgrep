@@ -17,26 +17,30 @@ module Out = Semgrep_output_v1_t
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* The source of dependency information (usually a lockfile path but can be
- * a lockfile and manifest or sometimes just a manifest).
+(* Package ecosystem.
+ *
+ * alt: we could rename this file Package_manager.ml but Pypi is not really a
+ * a package manager so maybe Ecosystem.ml is better.
  *)
 
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 
-type t = Out.dependency_source [@@deriving show]
-
-(*****************************************************************************)
-(* Helpers *)
-(*****************************************************************************)
-
-(** List all the source files included in the dependency source. *)
-let rec source_files (dep_src : t) : Fpath.t list =
-  match dep_src with
-  | Out.LockfileOnlyDependencySource lockfile -> [ lockfile.path ]
-  | Out.ManifestOnlyDependencySource manifest -> [ manifest.path ]
-  | Out.ManifestLockfileDependencySource (manifest, lockfile) ->
-      [ manifest.path; lockfile.path ]
-  | Out.MultiLockfileDependencySource sources ->
-      List.concat_map source_files sources
+type t = Out.ecosystem =
+  | Npm
+  | Pypi
+  | Gem
+  | Gomod
+  | Cargo
+  | Maven
+  | Composer
+  | Nuget
+  | Pub
+  | SwiftPM
+  | Cocoapods
+  (* Deprecated: Mix is a build system, should use Hex, which is the ecosystem *)
+  | Mix
+  | Hex
+  | Opam
+[@@deriving show, eq]

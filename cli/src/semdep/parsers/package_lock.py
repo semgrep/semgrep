@@ -23,7 +23,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -79,7 +78,7 @@ def parse_packages_field(
                 if integrity
                 else {},
                 resolved_url=resolved_url,
-                transitivity=Transitivity(Transitive()) if nested
+                transitivity=out.DependencyKind(Transitive()) if nested
                 # The manifest stores the pure package names but the deps names are all relative paths (prefix'd with 'node_modules'),
                 # so check to see if `package_name` (without the 'node_modules' prefix) is present in the manifest.
                 # https://docs.npmjs.com/cli/v10/configuring-npm/package-lock-json#packages
@@ -125,7 +124,7 @@ def parse_dependencies_field(
                 if integrity
                 else {},
                 resolved_url=resolved_url,
-                transitivity=Transitivity(Transitive())
+                transitivity=out.DependencyKind(Transitive())
                 if nested
                 else transitivity(manifest_deps, [package]),
                 line_number=dep_json.line_number,

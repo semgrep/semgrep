@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers import swiftpm
 from semdep.parsers.util import json_doc
 from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
@@ -13,7 +14,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import PPackageResolved
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import SwiftPM
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -366,7 +366,7 @@ def test_swift_lockfile_v1_parser():
             version="4.0.2",
             ecosystem=Ecosystem(SwiftPM()),
             allowed_hashes={},
-            transitivity=Transitivity(Transitive()),
+            transitivity=out.DependencyKind(Transitive()),
             line_number=11,
             git_ref="4331dd50bc1db007db664a23f32e6f3df93d4e1a",
             resolved_url="https://github.com/thoughtbot/Curry.git",
@@ -378,7 +378,7 @@ def test_swift_lockfile_v1_parser():
             version="5.0.2",
             ecosystem=Ecosystem(SwiftPM()),
             allowed_hashes={},
-            transitivity=Transitivity(Transitive()),
+            transitivity=out.DependencyKind(Transitive()),
             line_number=20,
             git_ref="afd4553a4db6f656521cfe9b1f70bece2748c7d8",
             resolved_url="https://github.com/jdhealy/PrettyColors.git",
@@ -455,7 +455,7 @@ def test_swift_lockfile_v2_parser():
             version="8.0.10",
             ecosystem=Ecosystem(SwiftPM()),
             allowed_hashes={},
-            transitivity=Transitivity(Transitive()),
+            transitivity=out.DependencyKind(Transitive()),
             line_number=10,
             git_ref="944dfb3b0eb028f477c25ba6a071181de8ab903a",
             resolved_url="https://github.com/orlandos-nl/BSON.git",
@@ -467,7 +467,7 @@ def test_swift_lockfile_v2_parser():
             version="2.2.1",
             ecosystem=Ecosystem(SwiftPM()),
             allowed_hashes={},
-            transitivity=Transitivity(Transitive()),
+            transitivity=out.DependencyKind(Transitive()),
             line_number=19,
             git_ref="770249dcb7259c486f2d68c164091b115ccb765f",
             resolved_url="https://github.com/orlandos-nl/DNSClient.git",

@@ -3,12 +3,9 @@ from typing import Generator
 from typing import List
 from typing import Optional
 
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Cargo
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 
 
 def parse_cargo(
@@ -25,10 +22,10 @@ def parse_cargo(
         return FoundDependency(
             package=dep,
             version=version,
-            ecosystem=Ecosystem(Cargo()),
+            ecosystem=out.Ecosystem(out.Cargo()),
             resolved_url=None,
             allowed_hashes=hash,
-            transitivity=Transitivity(Unknown()),
+            transitivity=out.DependencyKind(out.Unknown()),
             manifest_path=None,
             lockfile_path=Fpath(str(lockfile_path)),
             line_number=raw_lines.index(lines[0]) + 1,

@@ -8,7 +8,6 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 from semgrep.subproject import find_closest_resolved_subproject
 from semgrep.subproject import from_resolved_dependencies
@@ -174,7 +173,7 @@ class TestSubproject:
                         version="2.26.0",
                         ecosystem=Ecosystem(Pypi()),
                         allowed_hashes={},
-                        transitivity=Transitivity(Unknown()),
+                        transitivity=out.DependencyKind(Unknown()),
                         lockfile_path=out.Fpath(str(lockfile_path)),
                     ),
                     None,
@@ -231,7 +230,7 @@ class TestSubproject:
                         version="2.26.0",
                         ecosystem=Ecosystem(Pypi()),
                         allowed_hashes={},
-                        transitivity=Transitivity(Unknown()),
+                        transitivity=out.DependencyKind(Unknown()),
                         lockfile_path=out.Fpath(str(lockfile_path)),
                     ),
                     None,
@@ -244,7 +243,7 @@ class TestSubproject:
                         version="2.0.0",
                         ecosystem=Ecosystem(Pypi()),
                         allowed_hashes={},
-                        transitivity=Transitivity(Unknown()),
+                        transitivity=out.DependencyKind(Unknown()),
                         lockfile_path=out.Fpath(str(extra_lockfile_path)),
                     ),
                     None,
@@ -317,7 +316,7 @@ class TestSubproject:
                         version="2.26.0",
                         ecosystem=Ecosystem(Pypi()),
                         allowed_hashes={},
-                        transitivity=Transitivity(Unknown()),
+                        transitivity=out.DependencyKind(Unknown()),
                     ),
                     None,
                 ),

@@ -27,11 +27,34 @@ module Out = Semgrep_output_v1_t
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
+
+type kind = Out.lockfile_kind =
+  | PipRequirementsTxt
+  | PoetryLock
+  | PipfileLock
+  | UvLock
+  | NpmPackageLockJson
+  | YarnLock
+  | PnpmLock
+  | GemfileLock
+  | GoModLock
+  | CargoLock
+  | MavenDepTree (* Not a real lockfile *)
+  | GradleLockfile
+  | ComposerLock
+  | NugetPackagesLockJson
+  | PubspecLock
+  | SwiftPackageResolved (* not a real lockfile *)
+  | PodfileLock
+  | MixLock
+  | ConanLock
+  | OpamLocked
+[@@deriving show, eq]
+
 (* For the origin of the lockfile see SCA_dependency_source.ml
  * old: used to be path : Target.path but no need complex origin for manifest
  *)
-type t = Out.lockfile [@@deriving show]
-type kind = Out.lockfile_kind [@@deriving show, eq]
+type t = Out.lockfile = { kind : kind; path : Fpath.t } [@@deriving show]
 
 (*****************************************************************************)
 (* API *)
@@ -44,26 +67,26 @@ let mk_lockfile kind (path : Fpath.t) : t = { path; kind }
  *)
 let kind_to_ecosystem_opt : kind -> Semgrep_output_v1_t.ecosystem option =
   function
-  | PipRequirementsTxt -> Some `Pypi
-  | PoetryLock -> Some `Pypi
-  | PipfileLock -> Some `Pypi
-  | NpmPackageLockJson -> Some `Npm
-  | YarnLock -> Some `Npm
-  | PnpmLock -> Some `Npm
-  | GemfileLock -> Some `Gem
-  | GoMod -> Some `Gomod
-  | CargoLock -> Some `Cargo
-  | MavenDepTree -> Some `Maven
-  | GradleLockfile -> Some `Maven
-  | ComposerLock -> Some `Composer
-  | NugetPackagesLockJson -> Some `Nuget
-  | PubspecLock -> Some `Pub
-  | SwiftPackageResolved -> Some `SwiftPM
-  | MixLock -> Some `Hex
-  | UvLock -> Some `Pypi
+  | PipRequirementsTxt -> Some Out.Pypi
+  | PoetryLock -> Some Out.Pypi
+  | PipfileLock -> Some Out.Pypi
+  | NpmPackageLockJson -> Some Out.Npm
+  | YarnLock -> Some Out.Npm
+  | PnpmLock -> Some Out.Npm
+  | GemfileLock -> Some Out.Gem
+  | GoModLock -> Some Out.Gomod
+  | CargoLock -> Some Out.Cargo
+  | MavenDepTree -> Some Out.Maven
+  | GradleLockfile -> Some Out.Maven
+  | ComposerLock -> Some Out.Composer
+  | NugetPackagesLockJson -> Some Out.Nuget
+  | PubspecLock -> Some Out.Pub
+  | SwiftPackageResolved -> Some Out.SwiftPM
+  | MixLock -> Some Out.Hex
+  | UvLock -> Some Out.Pypi
   | ConanLock -> None
-  | PodfileLock -> Some `Cocoapods
-  | OpamLocked -> Some `Opam
+  | PodfileLock -> Some Out.Cocoapods
+  | OpamLocked -> Some Out.Opam
 
 (* coupling: Match_subprojects.ml *)
 let kind_of_filename_exn (file : Fpath.t) : kind =

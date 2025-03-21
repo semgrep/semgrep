@@ -20,7 +20,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Nuget
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 from semgrep.verbose_logging import getLogger
 
@@ -28,13 +27,13 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 
-def map_to_transitivity(type_value: Optional[str]) -> Transitivity:
+def map_to_transitivity(type_value: Optional[str]) -> out.DependencyKind:
     if type_value == "Direct":
-        return Transitivity(Direct())
+        return out.DependencyKind(Direct())
     elif type_value == "Transitive":
-        return Transitivity(Transitive())
+        return out.DependencyKind(Transitive())
     else:
-        return Transitivity(Unknown())
+        return out.DependencyKind(Unknown())
 
 
 def parse_dependencies_field(

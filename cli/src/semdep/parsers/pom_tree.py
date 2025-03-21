@@ -25,7 +25,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Maven
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 
 # Annoying to read. In english "6 colon separated strings or 5 colon separated strings"
 # Examples:
@@ -54,7 +53,7 @@ tree_line = mark_line(
             lambda d: {
                 "line_number": 0,
                 "depth": len(depth) // 3,
-                "transitivity": Transitivity(
+                "transitivity": out.DependencyKind(
                     Transitive() if len(depth) // 3 > 0 else Direct()
                 ),
                 "children": [],

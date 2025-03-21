@@ -30,19 +30,19 @@ type regular = {
   path : path;
   analyzer : Analyzer.t;
   products : Product.t list;
-  dependency_source : SCA_dependency_source.t option;
+  dependency_source : Dependency_source.t option;
 }
 [@@deriving show]
 
-type t = Regular of regular | DependencySource of SCA_dependency_source.t
+type t = Regular of regular | DependencySource of Dependency_source.t
 [@@deriving show]
 
 (*****************************************************************************)
 (* Dumpers *)
 (*****************************************************************************)
 
-let pp_debug_dependency_source f (t : SCA_dependency_source.t) =
-  Format.fprintf f "%s" (SCA_dependency_source.show t)
+let pp_debug_dependency_source f (t : Dependency_source.t) =
+  Format.fprintf f "%s" (Dependency_source.show t)
 
 let pp_debug_regular f (t : regular) =
   Format.fprintf f "%s (%s)"
@@ -127,7 +127,7 @@ let target_of_target (input : Out.target) : t =
 (* Accessors *)
 (*****************************************************************************)
 
-let rec internal_path_of_dependency_source (source : SCA_dependency_source.t) :
+let rec internal_path_of_dependency_source (source : Dependency_source.t) :
     Fpath.t =
   match source with
   | ManifestOnlyDependencySource { path; _ } -> path

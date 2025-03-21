@@ -247,7 +247,7 @@ def test_ptt_unconditional_graph_generation_falls_back_on_lockfile_parsing(
                 version="2.25.1",
                 ecosystem=out.Ecosystem(value=out.Pypi()),
                 allowed_hashes={},
-                transitivity=out.Transitivity(value=out.Direct()),
+                transitivity=out.DependencyKind(value=out.Direct()),
             )
         ],
         [],

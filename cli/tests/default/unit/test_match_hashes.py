@@ -14,7 +14,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 
 
 @pytest.fixture
@@ -152,7 +151,7 @@ def get_lockfile_only_rule_match(
                             package="foo",
                             version="1.0.0",
                             allowed_hashes={},
-                            transitivity=Transitivity(Transitive()),
+                            transitivity=out.DependencyKind(Transitive()),
                         ),
                         lockfile=filepath,
                     ),

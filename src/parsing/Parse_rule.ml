@@ -822,7 +822,7 @@ let parse_validators env key value =
 let parse_ecosystem env key value =
   match value.G.e with
   | G.L (String (_, (_ecosystem, _), _)) ->
-      Ok `Npm
+      Ok Ecosystem.Npm
       (* | _ -> error_at_key env.id key ("Unknown ecosystem: " ^ ecosystem)) *)
   | _ -> error_at_key env.id key "Non-string data for ecosystem?"
 

@@ -41,7 +41,7 @@ type regular = {
   products : Product.t list;
       (** The products which should scan this target. This is used for
           selecting the relevant set of rules. *)
-  dependency_source : SCA_dependency_source.t option;
+  dependency_source : Dependency_source.t option;
       (** Optional dependency associated with this target.
 
           The association is namely that this target has its dependencies
@@ -70,7 +70,7 @@ type regular = {
     However, it does not contain the actual contents (parsed or otherwise) of
     the target itself. For that, see {!Xtarget.t} or {!Lockfile_xtarget}.
  *)
-type t = Regular of regular | DependencySource of SCA_dependency_source.t
+type t = Regular of regular | DependencySource of Dependency_source.t
 [@@deriving show]
 
 (*****************************************************************************)
@@ -78,7 +78,7 @@ type t = Regular of regular | DependencySource of SCA_dependency_source.t
 (*****************************************************************************)
 
 val mk_regular :
-  ?dependency_source:SCA_dependency_source.t ->
+  ?dependency_source:Dependency_source.t ->
   Analyzer.t ->
   Product.t list ->
   Origin.t ->

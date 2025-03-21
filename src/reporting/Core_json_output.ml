@@ -388,7 +388,7 @@ let sca_to_sca (rule_metadata : Yojson.Basic.t option) (m : SCA_match.t) :
       loc.pos.file
     in
     let found_dependency : Out.found_dependency =
-      SCA_dependency.to_found_dependency ~lockfile_path:lockfile dep None
+      Dependency.to_found_dependency ~lockfile_path:lockfile dep None
     in
     Out.{ dependency_pattern; found_dependency; lockfile }
   in

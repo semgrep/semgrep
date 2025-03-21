@@ -52,7 +52,7 @@ PARSERS_BY_LOCKFILE_KIND: Dict[out.LockfileKind, Union[DependencyParser, None]] 
     out.LockfileKind(out.PnpmLock()): DependencyParser(parse_pnpm),
     out.LockfileKind(out.GemfileLock()): DependencyParser(parse_gemfile),
     out.LockfileKind(out.ComposerLock()): DependencyParser(parse_composer_lock),
-    out.LockfileKind(out.GoMod()): DependencyParser(parse_go_mod),
+    out.LockfileKind(out.GoModLock()): DependencyParser(parse_go_mod),
     out.LockfileKind(out.CargoLock()): to_parser(parse_cargo),
     out.LockfileKind(out.MavenDepTree()): DependencyParser(parse_pom_tree),
     out.LockfileKind(out.GradleLockfile()): DependencyParser(parse_gradle),

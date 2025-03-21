@@ -19,7 +19,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pub
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 
 
@@ -49,11 +48,11 @@ def parse_pubspec_lock(
         for key, map in package_map.items():
             stated_transitivity = map.value["dependency"].value
             if stated_transitivity == "transitive":
-                transitivity = Transitivity(Transitive())
+                transitivity = out.DependencyKind(Transitive())
             elif "direct" in stated_transitivity:
-                transitivity = Transitivity(Direct())
+                transitivity = out.DependencyKind(Direct())
             else:
-                transitivity = Transitivity(Unknown())
+                transitivity = out.DependencyKind(Unknown())
 
             output.append(
                 FoundDependency(

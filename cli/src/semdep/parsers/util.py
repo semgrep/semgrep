@@ -45,7 +45,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 from semgrep.verbose_logging import getLogger
 
@@ -168,7 +167,9 @@ def triple(p1: Parser[A], p2: Parser[B], p3: Parser[C]) -> Parser[tuple[A, B, C]
     return p1.bind(lambda a: p2.bind(lambda b: p3.bind(lambda c: success((a, b, c)))))
 
 
-def transitivity(manifest_deps: set[A] | None, dep_sources: list[A]) -> Transitivity:
+def transitivity(
+    manifest_deps: set[A] | None, dep_sources: list[A]
+) -> out.DependencyKind:
     """
     Computes the transitivity of a package, based on the set of dependencies from a manifest file
     [manifest_deps] can be None in the case where we did not find a manifest file
@@ -187,10 +188,10 @@ def transitivity(manifest_deps: set[A] | None, dep_sources: list[A]) -> Transiti
     if manifest_deps:
         for dep_source in dep_sources:
             if dep_source in manifest_deps:
-                return Transitivity(Direct())
-        return Transitivity(Transitive())
+                return out.DependencyKind(Direct())
+        return out.DependencyKind(Transitive())
     else:
-        return Transitivity(Unknown())
+        return out.DependencyKind(Unknown())
 
 
 def become(p1: Parser[A], p2: Parser[A]) -> None:
@@ -394,7 +395,7 @@ class ParsedDependency:
     """
 
     line_number: int
-    transitivity: Transitivity
+    transitivity: out.DependencyKind
     children: list[DependencyChild]
     package: str
     version: str

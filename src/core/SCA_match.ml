@@ -1,6 +1,6 @@
 type t = {
   (* the actual dependency in the lockfile *)
-  dep : SCA_dependency.t;
+  dep : Dependency.t;
   (* the version constraint on a package and its ecosystem *)
   pat : SCA_pattern.t;
   kind : kind;

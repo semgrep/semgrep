@@ -26,7 +26,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Gomod
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 
 A = TypeVar("A")
 B = TypeVar("B")
@@ -100,7 +99,7 @@ def parse_go_mod(
                             version=version,
                             ecosystem=Ecosystem(Gomod()),
                             allowed_hashes={},
-                            transitivity=Transitivity(
+                            transitivity=out.DependencyKind(
                                 Transitive() if comment == " indirect" else Direct()
                             ),
                             line_number=line_number,

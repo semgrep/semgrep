@@ -10,7 +10,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ManifestKind
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pipfile
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.subproject import from_resolved_dependencies
 
 
@@ -88,7 +87,7 @@ def sample_resolved_deps():
                     version="3.14.0",
                     ecosystem=Ecosystem(value=Pypi()),
                     allowed_hashes=defaultdict(list),  # Empty allowed_hashes
-                    transitivity=Transitivity(out.Direct()),
+                    transitivity=out.DependencyKind(out.Direct()),
                     resolved_url=None,
                     children=None,
                     git_ref=None,
@@ -103,7 +102,7 @@ def sample_resolved_deps():
                     version="1.16.0",
                     ecosystem=Ecosystem(value=Pypi()),
                     allowed_hashes=defaultdict(list),  # Empty allowed_hashes
-                    transitivity=Transitivity(out.Direct()),
+                    transitivity=out.DependencyKind(out.Direct()),
                     resolved_url=None,
                     children=None,
                     git_ref=None,
