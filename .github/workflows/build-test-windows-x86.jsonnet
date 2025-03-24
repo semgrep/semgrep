@@ -171,9 +171,6 @@ local build_wheels_job = {
   steps: actions.checkout_with_submodules() + [
     actions.download_artifact_step(artifact_name),
     {
-      env: {
-        "SEMGREP_FORCE_INSTALL": 1
-      },
       run: |||
         tar xvfz artifacts.tgz
         cp artifacts/* cli/src/semgrep/bin
