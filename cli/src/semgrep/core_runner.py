@@ -810,9 +810,7 @@ class CoreRunner:
         rule_file = exit_stack.enter_context(
             (state.env.user_data_folder / "semgrep_rules.json").open("w+")
             if dump_command_for_core
-            else tempfile.NamedTemporaryFile(
-                "w+", suffix=".json", delete=(not IS_WINDOWS)
-            )
+            else tempfile.NamedTemporaryFile("w+", suffix=".json")
         )
         # A historical scan does not create a targeting file since targeting is
         # performed directly by core.
@@ -820,13 +818,13 @@ class CoreRunner:
             target_file = exit_stack.enter_context(
                 (state.env.user_data_folder / "semgrep_targets.txt").open("w+")
                 if dump_command_for_core
-                else tempfile.NamedTemporaryFile("w+", delete=(not IS_WINDOWS))
+                else tempfile.NamedTemporaryFile("w+")
             )
         if target_mode_config.is_pro_diff_scan:
             diff_target_file = exit_stack.enter_context(
                 (state.env.user_data_folder / "semgrep_diff_targets.txt").open("w+")
                 if dump_command_for_core
-                else tempfile.NamedTemporaryFile("w+", delete=(not IS_WINDOWS))
+                else tempfile.NamedTemporaryFile("w+")
             )
 
         with exit_stack:
@@ -1221,10 +1219,7 @@ Exception raised: `{e}`
         )[0].get_rules(True)
 
         parsed_errors = []
-
-        with tempfile.NamedTemporaryFile(
-            "w", suffix=".yaml", delete=(not IS_WINDOWS)
-        ) as rule_file:
+        with tempfile.NamedTemporaryFile("w", suffix=".yaml") as rule_file:
             yaml = YAML()
             yaml.dump(
                 {"rules": [metacheck._raw for metacheck in metachecks]}, rule_file

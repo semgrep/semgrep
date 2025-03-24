@@ -96,7 +96,13 @@ module Legacy = struct
             if Buffer.length extbuf >= max_len then Buffer.sub extbuf 0 max_len
             else loop fd
       in
-      let fd = UUnix.openfile path [ Unix.O_RDONLY ] 0 in
+      (* Temporary files created using Python's [tempfile.NamedTemporaryFiles]
+         on Windows enables the [FILE_SHARE_DELETE] sharing mode. Files that
+         have open handles with the [FILE_SHARE_DELETE] sharing mode can only
+         be re-opened in that mode. To make sure we won't run into problems
+         opening the file, we add the [O_SHARE_DELETE] flag when opening all
+         files. *)
+      let fd = UUnix.openfile path [ Unix.O_RDONLY; Unix.O_SHARE_DELETE ] 0 in
       Common.protect ~finally:(fun () -> Unix.close fd) (fun () -> loop fd)
 
   let write_file ~file s =
@@ -117,9 +123,20 @@ module Legacy = struct
         res)
       (fun _e -> close_out chan)
 
+  (* Temporary files created using Python's [tempfile.NamedTemporaryFiles] on
+     Windows enables the [FILE_SHARE_DELETE] sharing mode. Files that have open
+     handles with the [FILE_SHARE_DELETE] sharing mode can only be re-opened in
+     that mode. To make sure we won't run into problems opening the file, we
+     add the [O_SHARE_DELETE] flag when opening all files. *)
+  let win_safe_open_in_bin file : in_channel =
+    UUnix.openfile file [ O_CREAT; O_RDONLY; O_SHARE_DELETE ] 0o666
+    |> UUnix.in_channel_of_descr
+
   let (with_open_infile : string (* filename *) -> (in_channel -> 'a) -> 'a) =
    fun file f ->
-    let chan = UStdlib.open_in_bin file in
+    let chan =
+      if !jsoo then UStdlib.open_in_bin file else win_safe_open_in_bin file
+    in
     unwind_protect
       (fun () ->
         let res = f chan in
