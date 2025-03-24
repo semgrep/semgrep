@@ -156,34 +156,8 @@ local build_core_job = {
         _build/install/default/bin/semgrep-core.exe -l python -rules tests/windows/rules.yml -json tests/windows/test.py
       |||,
     },
-    {
-      name: 'Package semgrep-core',
-      run: |||
-        mkdir artifacts
-        cp _build/install/default/bin/semgrep-core.exe artifacts/
-
-        # TODO: somehow upgrade to the latest flexdll, which should allow us
-        # to statically link these libraries
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libstdc++-6.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgcc_s_seh-1.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libwinpthread-1.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libpcre-1.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgmp-10.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libcurl-4.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libpcre2-8-0.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libeay32.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libidn2-0.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libnghttp2-14.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libssh2-1.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/ssleay32.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libzstd-1.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/zlib1.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/iconv.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libintl-8.dll artifacts/
-
-        tar czvf artifacts.tgz artifacts
-     |||,
-    },
+    semgrep.copy_executable_dlls("bin/semgrep-core.exe"),
+    actions.make_artifact_step("bin/semgrep-core.exe extra-artifacts/*"),
     actions.upload_artifact_step(artifact_name),
   ],
 };

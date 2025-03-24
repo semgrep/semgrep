@@ -88,31 +88,23 @@ jobs:
       - name: Test semgrep-core
         run: |
           _build/install/default/bin/semgrep-core.exe -l python -rules tests/windows/rules.yml -json tests/windows/test.py
-      - name: Package semgrep-core
+      - name: Copy bin/semgrep-core.exe DLLs to extra_artifacts/
+        run: |
+          mkdir -p extra_artifacts
+          SYS_ROOT_BIN="$(x86_64-w64-mingw32-gcc -print-sysroot)/mingw/bin"
+          dlls=$(PATH=$SYS_ROOT_BIN:$PATH cygcheck "bin/semgrep-core.exe" | grep 'x86_64-w64-mingw32' | sed 's/^[[:space:]]*//' | sort -u)
+          for dll in $dlls; do
+            echo "Copying $dll to extra_artifacts/"
+            cp -p "$dll" "extra_artifacts"
+          done
+      - name: Make artifact for bin/semgrep-core.exe extra-artifacts/*
         run: |
           mkdir artifacts
-          cp _build/install/default/bin/semgrep-core.exe artifacts/
-
-          # TODO: somehow upgrade to the latest flexdll, which should allow us
-          # to statically link these libraries
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libstdc++-6.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgcc_s_seh-1.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libwinpthread-1.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libpcre-1.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgmp-10.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libcurl-4.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libpcre2-8-0.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libeay32.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libidn2-0.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libnghttp2-14.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libssh2-1.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/ssleay32.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libzstd-1.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/zlib1.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/iconv.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libintl-8.dll artifacts/
-
-          tar czvf artifacts.tgz artifacts
+          cp bin/semgrep-core.exe extra-artifacts/* artifacts/
+          tar czf artifacts.tgz artifacts
+          # so that we can untar later and not get a message
+          # about existing artifacts/ directory
+          rm -rf artifacts
       - uses: actions/upload-artifact@v4
         with:
           name: semgrep-core-and-dependent-libs-w64-artifact-${{ github.sha }}

@@ -298,6 +298,25 @@ local build_test_steps(opam_switch=opam_switch_default, cache_deps=['semgrep.opa
     }
   ]);
 
+local copy_executable_dlls(executable, target_dir='extra_artifacts') =
+  {
+    name: 'Copy %s DLLs to %s/' % [executable, target_dir],
+    // cygcheck lists the library (DLL) dependencies of the binary. We only
+    // copy the DLLs from the x86_64-w64-mingw32/sys-root/ directory, where the
+    // DLLs installed from the opam depexts are located. The other DLLs that we
+    // depend on are Windows System DLLs or other DLLs which should already be
+    // available to be able to run Python.
+    run: |||
+      mkdir -p %(dst)s
+      SYS_ROOT_BIN="$(x86_64-w64-mingw32-gcc -print-sysroot)/mingw/bin"
+      dlls=$(PATH=$SYS_ROOT_BIN:$PATH cygcheck "%(exe)s" | grep 'x86_64-w64-mingw32' | sed 's/^[[:space:]]*//' | sort -u)
+      for dll in $dlls; do
+        echo "Copying $dll to %(dst)s/"
+        cp -p "$dll" "%(dst)s"
+      done
+    ||| % {dst: target_dir, exe: executable},
+  };
+
 local wheel_name(arch) = '%s-wheel'% arch;
 
 local build_wheel_steps(arch, platform) = [
@@ -360,6 +379,7 @@ local test_wheel_steps(arch) = [
   opam_switch: opam_switch,
   opam_setup: opam_setup,
   build_test_steps: build_test_steps,
+  copy_executable_dlls: copy_executable_dlls,
   build_wheel_steps: build_wheel_steps,
   test_wheel_steps: test_wheel_steps,
   // coupling: cli/setup.py, the matrix in run-cli-tests.libsonnet,
