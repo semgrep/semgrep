@@ -358,7 +358,7 @@ def add_metrics_part2(
         metrics.add_interfile_languages_used(output_extra.core.interfile_languages_used)
         if engine_type.is_pro and baseline_handler:
             metrics.add_num_diff_scanned(
-                {Path(t.value) for t in output_extra.core.paths.scanned}, filtered_rules
+                [Path(t.value) for t in output_extra.core.paths.scanned], filtered_rules
             )
 
 

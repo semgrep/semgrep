@@ -1,4 +1,3 @@
-import functools
 import hashlib
 import json
 import os
@@ -10,7 +9,6 @@ from enum import auto
 from enum import Enum
 from pathlib import Path
 from typing import Any
-from typing import Callable
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -93,18 +91,6 @@ class MetricsJsonEncoder(json.JSONEncoder):
         return super().default(obj)
 
 
-def suppress_errors(func: Callable[..., None]) -> Callable[..., None]:
-    @functools.wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> Any:
-        try:
-            return func(*args, **kwargs)
-        except Exception as e:
-            logger.debug(f"Error in {func.__name__}: {e}")
-            return None
-
-    return wrapper
-
-
 # to be mocked to a constant function in test_metrics.py
 def mock_float(x: float) -> float:
     return x
@@ -154,6 +140,15 @@ class Metrics:
     def __attrs_post_init__(self) -> None:
         self.payload.environment.ci = os.getenv("CI")
 
+    def log_exception(self, func_name: str, e: Exception) -> None:
+        """Log an exception at the debug level
+
+        The add_* methods should not raise exceptions.
+        We used to have a @suppress_errors wrapper for automatically catching
+        exceptions but it was preventing type checking by mypy
+        so we got rid of it."""
+        logger.debug(f"Error in Metrics.{func_name}: {e}")
+
     def configure(
         self,
         metrics_state: Optional[MetricsState],
@@ -177,7 +172,6 @@ class Metrics:
     # care about the additional information being bundeled for metrics, we'll
     # just take some additional parameters here. Currently this is just for
     # secrets, but the same would apply for (supply chain)-related information.
-    @suppress_errors
     def add_engine_config(
         self,
         engineType: "EngineType",
@@ -188,53 +182,64 @@ class Metrics:
         """
         Assumes configs is list of arguments passed to semgrep using --config
         """
-        self.payload.value.engineRequested = engineType.name
-        analysis_type = {
-            EngineType.OSS: AnalysisType(Intraprocedural()),
-            EngineType.PRO_LANG: AnalysisType(Intraprocedural()),
-            EngineType.PRO_INTRAFILE: AnalysisType(Interprocedural()),
-            EngineType.PRO_INTERFILE: AnalysisType(Interfile()),
-        }.get(engineType, AnalysisType(Intraprocedural()))
-        self.payload.value.engineConfig = EngineConfig(
-            analysis_type=analysis_type,
-            code_config=code,
-            secrets_config=secrets,
-            supply_chain_config=supply_chain,
-            pro_langs=True,
-        )
+        try:
+            self.payload.value.engineRequested = engineType.name
+            analysis_type = {
+                EngineType.OSS: AnalysisType(Intraprocedural()),
+                EngineType.PRO_LANG: AnalysisType(Intraprocedural()),
+                EngineType.PRO_INTRAFILE: AnalysisType(Interprocedural()),
+                EngineType.PRO_INTERFILE: AnalysisType(Interfile()),
+            }.get(engineType, AnalysisType(Intraprocedural()))
+            self.payload.value.engineConfig = EngineConfig(
+                analysis_type=analysis_type,
+                code_config=code,
+                secrets_config=secrets,
+                supply_chain_config=supply_chain,
+                pro_langs=True,
+            )
+        except Exception as e:
+            self.log_exception("add_engine_config", e)
 
-    @suppress_errors
-    def add_interfile_languages_used(self, used_langs: List[str]) -> None:
+    def add_interfile_languages_used(self, used_langs: Optional[List[str]]) -> None:
         """
         Assumes configs is list of arguments passed to semgrep using --config
         """
-        self.payload.value.interfileLanguagesUsed = used_langs
+        try:
+            self.payload.value.interfileLanguagesUsed = used_langs or []
+        except Exception as e:
+            self.log_exception("add_interfile_languages_used", e)
 
-    @suppress_errors
     def add_diff_depth(self, diff_depth: int) -> None:
-        if not self.payload.value.proFeatures:
-            self.payload.value.proFeatures = ProFeatures()
-        self.payload.value.proFeatures.diffDepth = diff_depth
+        try:
+            if not self.payload.value.proFeatures:
+                self.payload.value.proFeatures = ProFeatures()
+            self.payload.value.proFeatures.diffDepth = diff_depth
+        except Exception as e:
+            self.log_exception("add_diff_depth", e)
 
-    @suppress_errors
     def add_num_diff_scanned(self, scanned: List[Path], rules: List[Rule]) -> None:
-        if not self.payload.value.proFeatures:
-            self.payload.value.proFeatures = ProFeatures()
-        langs = {lang for rule in rules for lang in rule.languages}
-        num_scanned = []
-        for lang in langs:
-            filtered = [
-                path
-                for path in scanned
-                if any(str(path).endswith(ext) for ext in lang.definition.exts)
-            ]
-            if filtered:
-                num_scanned.append((lang.definition.name, len(filtered)))
-        self.payload.value.proFeatures.numInterfileDiffScanned = num_scanned
+        try:
+            if not self.payload.value.proFeatures:
+                self.payload.value.proFeatures = ProFeatures()
+            langs = {lang for rule in rules for lang in rule.languages}
+            num_scanned = []
+            for lang in langs:
+                filtered = [
+                    path
+                    for path in scanned
+                    if any(str(path).endswith(ext) for ext in lang.definition.exts)
+                ]
+                if filtered:
+                    num_scanned.append((lang.definition.name, len(filtered)))
+            self.payload.value.proFeatures.numInterfileDiffScanned = num_scanned
+        except Exception as e:
+            self.log_exception("add_num_diff_scanned", e)
 
-    @suppress_errors
     def add_is_diff_scan(self, is_diff_scan: bool) -> None:
-        self.payload.environment.isDiffScan = is_diff_scan
+        try:
+            self.payload.environment.isDiffScan = is_diff_scan
+        except Exception as e:
+            self.log_exception("add_is_diff_scan", e)
 
     @property
     def is_using_registry(self) -> bool:
@@ -242,203 +247,239 @@ class Metrics:
 
     @is_using_registry.setter
     def is_using_registry(self, value: bool) -> None:
-        self._is_using_registry = value
+        try:
+            self._is_using_registry = value
+        except Exception as e:
+            self.log_exception("is_using_registry", e)
 
-    @suppress_errors
     def add_project_url(self, project_url: Optional[str]) -> None:
         """
         Standardizes url then hashes
         """
-        if project_url is None:
-            self.payload.environment.projectHash = None
-            return
-
         try:
-            parsed_url = urlparse(project_url)
-            if parsed_url.scheme == "https":
-                # Remove optional username/password from project_url
-                sanitized_url = f"{parsed_url.hostname}{parsed_url.path}"
-            else:
-                # For now don't do anything special with other git-url formats
+            if project_url is None:
+                self.payload.environment.projectHash = None
+                return
+
+            try:
+                parsed_url = urlparse(project_url)
+                if parsed_url.scheme == "https":
+                    # Remove optional username/password from project_url
+                    sanitized_url = f"{parsed_url.hostname}{parsed_url.path}"
+                else:
+                    # For now don't do anything special with other git-url formats
+                    sanitized_url = project_url
+            except ValueError:
+                logger.debug(f"Failed to parse url {project_url}")
                 sanitized_url = project_url
-        except ValueError:
-            logger.debug(f"Failed to parse url {project_url}")
-            sanitized_url = project_url
 
-        m = hashlib.sha256(sanitized_url.encode())
-        self.payload.environment.projectHash = met.Sha256(m.hexdigest())
+            m = hashlib.sha256(sanitized_url.encode())
+            self.payload.environment.projectHash = met.Sha256(m.hexdigest())
+        except Exception as e:
+            self.log_exception("add_project_url", e)
 
-    @suppress_errors
     def add_configs(self, configs: Sequence[str]) -> None:
         """
         Assumes configs is list of arguments passed to semgrep using --config
         """
-        m = hashlib.sha256()
-        for c in configs:
-            m.update(c.encode())
-        self.payload.environment.configNamesHash = met.Sha256(m.hexdigest())
+        try:
+            m = hashlib.sha256()
+            for c in configs:
+                m.update(c.encode())
+            self.payload.environment.configNamesHash = met.Sha256(m.hexdigest())
+        except Exception as e:
+            self.log_exception("add_configs", e)
 
-    @suppress_errors
     def add_rules(self, rules: Sequence[Rule], profile: Optional[out.Profile]) -> None:
-        rules = sorted(rules, key=lambda r: r.full_hash)
-        m = hashlib.sha256()
-        for rule in rules:
-            m.update(rule.full_hash.encode())
-        self.payload.environment.rulesHash = met.Sha256(m.hexdigest())
+        try:
+            rules = sorted(rules, key=lambda r: r.full_hash)
+            m = hashlib.sha256()
+            for rule in rules:
+                m.update(rule.full_hash.encode())
+            self.payload.environment.rulesHash = met.Sha256(m.hexdigest())
 
-        self.payload.performance.numRules = len(rules)
-        if profile:
-            # aggregate rule stats across files
-            _rule_match_times: Dict[out.RuleId, float] = defaultdict(float)
-            _rule_bytes_scanned: Dict[out.RuleId, int] = defaultdict(int)
-            for i, rule_id in enumerate(profile.rules):
-                for target_times in profile.targets:
-                    if target_times.match_times[i] > 0.0:
-                        _rule_match_times[rule_id] += target_times.match_times[i]
-                        _rule_bytes_scanned[rule_id] += target_times.num_bytes
+            self.payload.performance.numRules = len(rules)
+            if profile:
+                # aggregate rule stats across files
+                _rule_match_times: Dict[out.RuleId, float] = defaultdict(float)
+                _rule_bytes_scanned: Dict[out.RuleId, int] = defaultdict(int)
+                for i, rule_id in enumerate(profile.rules):
+                    for target_times in profile.targets:
+                        if target_times.match_times[i] > 0.0:
+                            _rule_match_times[rule_id] += target_times.match_times[i]
+                            _rule_bytes_scanned[rule_id] += target_times.num_bytes
 
-            self.payload.performance.ruleStats = [
-                RuleStats(
-                    ruleHash=rule.full_hash,
-                    matchTime=mock_float(_rule_match_times[rule.id2]),
-                    bytesScanned=mock_int(_rule_bytes_scanned[rule.id2]),
-                )
-                for rule in rules
-                # We consider only rules with match times and bytes scanned
-                # greater than 0 to avoid making the metrics too bloated.
-                if _rule_match_times[rule.id2] > 0.0
-                and _rule_bytes_scanned[rule.id2] > 0
-            ]
+                self.payload.performance.ruleStats = [
+                    RuleStats(
+                        ruleHash=rule.full_hash,
+                        matchTime=mock_float(_rule_match_times[rule.id2]),
+                        bytesScanned=mock_int(_rule_bytes_scanned[rule.id2]),
+                    )
+                    for rule in rules
+                    # We consider only rules with match times and bytes scanned
+                    # greater than 0 to avoid making the metrics too bloated.
+                    if _rule_match_times[rule.id2] > 0.0
+                    and _rule_bytes_scanned[rule.id2] > 0
+                ]
+        except Exception as e:
+            self.log_exception("add_rules", e)
 
-    @suppress_errors
     def add_max_memory_bytes(self, profiling_data: Optional[out.Profile]) -> None:
-        if profiling_data:
-            self.payload.performance.maxMemoryBytes = profiling_data.max_memory_bytes
-
-    @suppress_errors
-    def add_findings(self, findings: FilteredMatches) -> None:
-        # Rules with 0 findings don't carry a lot of information
-        # compared to rules that actually have findings. Rules with 0
-        # findings also increase the size of the metrics quite
-        # significantly, e.g., when the number of rules grows up to
-        # magnitudes of 10k. So we filter them out in the metrics.
-        self.payload.value.ruleHashesWithFindings = [
-            (r.full_hash, len(f)) for r, f in findings.kept.items() if len(f) > 0
-        ]
-        self.payload.value.numFindings = sum(len(v) for v in findings.kept.values())
-        self.payload.value.numIgnored = sum(len(v) for v in findings.removed.values())
-
-        # Breakdown # of findings per-product.
-        _num_findings_by_product: Dict[out.Product, int] = defaultdict(int)
-        for r, f in findings.kept.items():
-            _num_findings_by_product[r.product] += len(f)
-        self.payload.value.numFindingsByProduct = [
-            (USER_FRIENDLY_PRODUCT_NAMES[p], n_findings)
-            for p, n_findings in _num_findings_by_product.items()
-        ]
-
-    @suppress_errors
-    def add_targets(self, targets: Set[Path], profile: Optional[out.Profile]) -> None:
-        if profile:
-            self.payload.performance.fileStats = [
-                FileStats(
-                    size=target_times.num_bytes,
-                    numTimesScanned=mock_int(
-                        len([x for x in target_times.match_times if x > 0.0])
-                    ),
-                    # TODO: we just have a single parse_time in target_times.parse_times
-                    parseTime=mock_float(
-                        max(time for time in target_times.parse_times)
-                    ),
-                    matchTime=mock_float(
-                        sum(time for time in target_times.match_times)
-                    ),
-                    runTime=mock_float(target_times.run_time),
+        try:
+            if profiling_data:
+                self.payload.performance.maxMemoryBytes = (
+                    profiling_data.max_memory_bytes
                 )
-                for target_times in profile.targets
+        except Exception as e:
+            self.log_exception("add_max_memory_bytes", e)
+
+    def add_findings(self, findings: FilteredMatches) -> None:
+        try:
+            # Rules with 0 findings don't carry a lot of information
+            # compared to rules that actually have findings. Rules with 0
+            # findings also increase the size of the metrics quite
+            # significantly, e.g., when the number of rules grows up to
+            # magnitudes of 10k. So we filter them out in the metrics.
+            self.payload.value.ruleHashesWithFindings = [
+                (r.full_hash, len(f)) for r, f in findings.kept.items() if len(f) > 0
             ]
-            # Sorted by key so that variation in target order can't be
-            # noticed by different ordering of file sizes.
-            self.payload.performance.fileStats = sorted(
-                self.payload.performance.fileStats, key=lambda fs: fs.size
+            self.payload.value.numFindings = sum(len(v) for v in findings.kept.values())
+            self.payload.value.numIgnored = sum(
+                len(v) for v in findings.removed.values()
             )
-        # TODO: fit the data in profile?
-        total_bytes_scanned = sum(t.stat().st_size for t in targets)
-        self.payload.performance.totalBytesScanned = total_bytes_scanned
-        self.payload.performance.numTargets = len(targets)
 
-    @suppress_errors
+            # Breakdown # of findings per-product.
+            _num_findings_by_product: Dict[out.Product, int] = defaultdict(int)
+            for r, f in findings.kept.items():
+                _num_findings_by_product[r.product] += len(f)
+            self.payload.value.numFindingsByProduct = [
+                (USER_FRIENDLY_PRODUCT_NAMES[p], n_findings)
+                for p, n_findings in _num_findings_by_product.items()
+            ]
+        except Exception as e:
+            self.log_exception("add_findings", e)
+
+    def add_targets(self, targets: Set[Path], profile: Optional[out.Profile]) -> None:
+        try:
+            if profile:
+                self.payload.performance.fileStats = [
+                    FileStats(
+                        size=target_times.num_bytes,
+                        numTimesScanned=mock_int(
+                            len([x for x in target_times.match_times if x > 0.0])
+                        ),
+                        # TODO: we just have a single parse_time in target_times.parse_times
+                        parseTime=mock_float(
+                            max(time for time in target_times.parse_times)
+                        ),
+                        matchTime=mock_float(
+                            sum(time for time in target_times.match_times)
+                        ),
+                        runTime=mock_float(target_times.run_time),
+                    )
+                    for target_times in profile.targets
+                ]
+                # Sorted by key so that variation in target order can't be
+                # noticed by different ordering of file sizes.
+                self.payload.performance.fileStats = sorted(
+                    self.payload.performance.fileStats, key=lambda fs: fs.size
+                )
+            # TODO: fit the data in profile?
+            total_bytes_scanned = sum(t.stat().st_size for t in targets)
+            self.payload.performance.totalBytesScanned = total_bytes_scanned
+            self.payload.performance.numTargets = len(targets)
+        except Exception as e:
+            self.log_exception("add_targets", e)
+
     def add_errors(self, errors: List[SemgrepError]) -> None:
-        self.payload.errors.errors = [
-            met.Error(error_type_string(e.type_())) for e in errors
-        ]
+        try:
+            self.payload.errors.errors = [
+                met.Error(error_type_string(e.type_())) for e in errors
+            ]
+        except Exception as e:
+            self.log_exception("add_errors", e)
 
-    @suppress_errors
     def add_profiling(self, profiler: ProfileManager) -> None:
-        self.payload.performance.profilingTimes = [
-            (k, v) for k, v in profiler.dump_stats().items()
-        ]
+        try:
+            self.payload.performance.profilingTimes = [
+                (k, v) for k, v in profiler.dump_stats().items()
+            ]
+        except Exception as e:
+            self.log_exception("add_profiling", e)
 
-    @suppress_errors
     def add_token(self, token: Optional[str]) -> None:
-        self.payload.environment.isAuthenticated = bool(token)
+        try:
+            self.payload.environment.isAuthenticated = bool(token)
+        except Exception as e:
+            self.log_exception("add_token", e)
 
-    @suppress_errors
     def add_integration_name(self, name: Optional[str]) -> None:
-        self.payload.environment.integrationName = name
+        try:
+            self.payload.environment.integrationName = name
+        except Exception as e:
+            self.log_exception("add_integration_name", e)
 
-    @suppress_errors
     def add_exit_code(self, exit_code: int) -> None:
-        self.payload.errors.returnCode = exit_code
+        try:
+            self.payload.errors.returnCode = exit_code
+        except Exception as e:
+            self.log_exception("add_exit_code", e)
 
-    @suppress_errors
     def add_version(self, version: str) -> None:
-        self.payload.environment.version = version
+        try:
+            self.payload.environment.version = version
+        except Exception as e:
+            self.log_exception("add_version", e)
 
-    @suppress_errors
     def add_feature(self, category: LiteralString, name: str) -> None:
-        self.payload.value.features.append(f"{category}/{name}")
-        self.payload.value.features.sort()
+        try:
+            self.payload.value.features.append(f"{category}/{name}")
+            self.payload.value.features.sort()
+        except Exception as e:
+            self.log_exception("add_feature", e)
 
-    @suppress_errors
     def add_registry_url(self, url_string: str) -> None:
-        path = urlparse(url_string).path
-        parts = path.lstrip("/").split("/")
-        if len(parts) != 2:
-            return  # not a simple registry shorthand
+        try:
+            path = urlparse(url_string).path
+            parts = path.lstrip("/").split("/")
+            if len(parts) != 2:
+                return  # not a simple registry shorthand
 
-        prefix, name = parts
+            prefix, name = parts
 
-        if prefix == "r":
-            # we want to avoid reporting specific rules, so we do this mapping:
-            # r/python -> "python"
-            # r/python.flask -> "python."
-            # r/python.correctness.lang => "python.."
-            query_parts = name.split(".")
-            dot_count = len(query_parts) - 1
-            self.add_feature("registry-query", query_parts[0] + dot_count * ".")
-        if prefix == "p":
-            self.add_feature("ruleset", name)
+            if prefix == "r":
+                # we want to avoid reporting specific rules, so we do this mapping:
+                # r/python -> "python"
+                # r/python.flask -> "python."
+                # r/python.correctness.lang => "python.."
+                query_parts = name.split(".")
+                dot_count = len(query_parts) - 1
+                self.add_feature("registry-query", query_parts[0] + dot_count * ".")
+            if prefix == "p":
+                self.add_feature("ruleset", name)
+        except Exception as e:
+            self.log_exception("add_registry_url", e)
 
-    @suppress_errors
     def add_parse_rates(self, parse_rates: ParsingData) -> None:
         """
         Adds parse rates, grouped by language
         """
-        self.payload.parse_rate = [
-            (
-                str(lang),
-                ParseStat(
-                    targets_parsed=data.num_targets - data.targets_with_errors,
-                    num_targets=data.num_targets,
-                    bytes_parsed=data.num_bytes - data.error_bytes,
-                    num_bytes=data.num_bytes,
-                ),
-            )
-            for (lang, data) in parse_rates.get_errors_by_lang().items()
-        ]
+        try:
+            self.payload.parse_rate = [
+                (
+                    str(lang),
+                    ParseStat(
+                        targets_parsed=data.num_targets - data.targets_with_errors,
+                        num_targets=data.num_targets,
+                        bytes_parsed=data.num_bytes - data.error_bytes,
+                        num_bytes=data.num_bytes,
+                    ),
+                )
+                for (lang, data) in parse_rates.get_errors_by_lang().items()
+            ]
+        except Exception as e:
+            self.log_exception("add_parse_rates", e)
 
-    @suppress_errors
     def add_extension(
         self,
         machine_id: Optional[str],
@@ -447,13 +488,16 @@ class Metrics:
         version: Optional[str],
         type: Optional[str],
     ) -> None:
-        self.payload.extension = Extension(
-            machineId=machine_id,
-            isNewAppInstall=new_install,
-            sessionId=session_id,
-            version=version,
-            ty=type,
-        )
+        try:
+            self.payload.extension = Extension(
+                machineId=machine_id,
+                isNewAppInstall=new_install,
+                sessionId=session_id,
+                version=version,
+                ty=type,
+            )
+        except Exception as e:
+            self.log_exception("add_extension", e)
 
     def as_json(self) -> str:
         value = self.payload.to_json()
@@ -487,19 +531,21 @@ class Metrics:
             return self.is_using_registry or using_app
         return self.metrics_state == MetricsState.ON
 
-    @suppress_errors
     def gather_click_params(self) -> None:
-        ctx = click.get_current_context()
-        if ctx is None:
-            return
-        for param in ctx.params:
-            source = ctx.get_parameter_source(param)
-            if source == click.core.ParameterSource.COMMANDLINE:
-                self.add_feature("cli-flag", param)
-            if source == click.core.ParameterSource.ENVIRONMENT:
-                self.add_feature("cli-envvar", param)
-            if source == click.core.ParameterSource.PROMPT:
-                self.add_feature("cli-prompt", param)
+        try:
+            ctx = click.get_current_context()
+            if ctx is None:
+                return
+            for param in ctx.params:
+                source = ctx.get_parameter_source(param)
+                if source == click.core.ParameterSource.COMMANDLINE:
+                    self.add_feature("cli-flag", param)
+                if source == click.core.ParameterSource.ENVIRONMENT:
+                    self.add_feature("cli-envvar", param)
+                if source == click.core.ParameterSource.PROMPT:
+                    self.add_feature("cli-prompt", param)
+        except Exception as e:
+            self.log_exception("gather_click_params", e)
 
     # Posting the metrics is separated out so that our tests can check for it
     # TODO it's a bit unfortunate that our tests are going to post metrics...
@@ -520,30 +566,31 @@ class Metrics:
         logger.debug(f"response from {METRICS_ENDPOINT} {r.json()}")
         r.raise_for_status()
 
-    @suppress_errors
     def send(self) -> None:
         """
         Send metrics to the metrics server.
 
         Will if is_enabled is True
         """
+        try:
+            logger.verbose(
+                f"{'Sending' if self.is_enabled else 'Not sending'} pseudonymous metrics since metrics are configured to {self.metrics_state.name} and registry usage is {self.is_using_registry}"
+            )
 
-        logger.verbose(
-            f"{'Sending' if self.is_enabled else 'Not sending'} pseudonymous metrics since metrics are configured to {self.metrics_state.name} and registry usage is {self.is_using_registry}"
-        )
+            if not self.is_enabled:
+                return
 
-        if not self.is_enabled:
-            return
+            self.gather_click_params()
+            self.payload.sent_at = Datetime(datetime.now().astimezone().isoformat())
 
-        self.gather_click_params()
-        self.payload.sent_at = Datetime(datetime.now().astimezone().isoformat())
+            from semgrep.state import get_state  # avoiding circular import
 
-        from semgrep.state import get_state  # avoiding circular import
+            state = get_state()
+            self.payload.anonymous_user_id = state.settings.get("anonymous_user_id")
 
-        state = get_state()
-        self.payload.anonymous_user_id = state.settings.get("anonymous_user_id")
-
-        self._post_metrics(
-            user_agent=str(state.app_session.user_agent),
-            local_scan_id=str(state.local_scan_id),
-        )
+            self._post_metrics(
+                user_agent=str(state.app_session.user_agent),
+                local_scan_id=str(state.local_scan_id),
+            )
+        except Exception as e:
+            self.log_exception("send", e)
