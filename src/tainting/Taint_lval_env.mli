@@ -92,7 +92,7 @@ val find_lval_xtaint : env -> IL.lval -> Xtaint.t
     'x.a.b' would return `None. The way we determine whether an l-value is tainted
     is a "bit" more complex, see Dataflow_tainting.check_tainted_lval. *)
 
-val propagate_from : Dataflow_var_env.var -> env -> Taint.taints option * env
+val propagate_from : Dataflow_var_env.var -> env -> Taint.taints * env
 val pending_propagation : Dataflow_var_env.var -> env -> env
 
 val clean : env -> IL.lval -> env

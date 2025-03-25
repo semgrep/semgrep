@@ -27,6 +27,7 @@ module T = Taint
 module Lval_env = Taint_lval_env
 module Taints = T.Taint_set
 module TM = Taint_spec_match
+module TP = Taint_spec_preds
 module TRI = Taint_rule_inst
 module S = Shape_and_sig.Shape
 module Shape = Taint_shape
@@ -204,9 +205,10 @@ let any_is_best_source ?(is_lval = false) env any =
 
 let any_is_best_sink env any =
   env.taint_inst.preds.is_sink any
-  |> List.filter (fun (tm : R.taint_sink TM.t) ->
+  |> List.filter (fun (tm : TP.sink TM.t) ->
          (* at-exit sinks are handled in 'check_tainted_at_exit_sinks' *)
-         (not tm.spec.sink_at_exit) && TM.is_best_match env.func.best_matches tm)
+         (not tm.spec.spec.sink_at_exit)
+         && TM.is_best_match env.func.best_matches tm)
 
 let orig_is_source (taint_inst : Taint_rule_inst.t) orig =
   taint_inst.preds.is_source (any_of_orig orig)
@@ -247,9 +249,9 @@ let lval_is_sink env lval =
   (* TODO: This should be = any_is_best_sink env (any_of_lval lval)
    *    but see tests/rules/TODO_taint_messy_sink. *)
   env.taint_inst.preds.is_sink (any_of_lval lval)
-  |> List.filter (fun (tm : R.taint_sink TM.t) ->
+  |> List.filter (fun (tm : TP.sink TM.t) ->
          (* at-exit sinks are handled in 'check_tainted_at_exit_sinks' *)
-         not tm.spec.sink_at_exit)
+         not tm.spec.spec.sink_at_exit)
 [@@profiling]
 
 let taints_of_matches env ~incoming sources =
@@ -479,7 +481,6 @@ let effects_of_tainted_sink (options : Rule_options.t) taints_with_traces
          So we record the `requires` within the taint finding, and evaluate
          the formula later, when we extract the PMs
       *)
-      let { Effect.pm = sink_pm; rule_sink = ts } = sink in
       let taints_and_bindings =
         taints_with_traces
         |> List_.map (fun ({ Effect.taint; _ } as item) ->
@@ -522,27 +523,21 @@ let effects_of_tainted_sink (options : Rule_options.t) taints_with_traces
         taints_and_bindings
         |> List_.filter_map (fun (t, bindings) ->
                let* merged_env =
-                 merge_source_sink_mvars options sink_pm.PM.env bindings
+                 merge_source_sink_mvars options sink.pm.env bindings
                in
                Some
-                 (Effect.ToSink
-                    {
-                      taints_with_precondition = ([ t ], R.get_sink_requires ts);
-                      sink;
-                      merged_env;
-                    }))
+                 (Effect.ToSink { taints_with_trace = [ t ]; sink; merged_env }))
       else
         match
           taints_and_bindings |> List_.map snd |> merge_source_mvars options
-          |> merge_source_sink_mvars options sink_pm.PM.env
+          |> merge_source_sink_mvars options sink.pm.env
         with
         | None -> []
         | Some merged_env ->
             [
               Effect.ToSink
                 {
-                  taints_with_precondition =
-                    (List_.map fst taints_and_bindings, R.get_sink_requires ts);
+                  taints_with_trace = List_.map fst taints_and_bindings;
                   sink;
                   merged_env;
                 };
@@ -647,6 +642,65 @@ let lambdas_to_analyze_in_node env lambdas node =
 (* Miscellaneous *)
 (*****************************************************************************)
 
+let sink_of_match lval_env (tm : TP.sink TM.t) =
+  let requires, ok, lval_env =
+    match tm.spec.requires with
+    | UniReq precond -> (Effect.UniReq precond, `Ok, lval_env)
+    | MultiReq mvars_w_preconds ->
+        let rev_taints_w_preconds, ok, lval_env =
+          mvars_w_preconds
+          |> List.fold_left
+               (fun (extra_req_acc, ok, lval_env) (var, precondition) ->
+                 (* This is the destination/"to" point of the taints associated with the
+                    metavariables in a "multi-requires". *)
+                 let taints, lval_env = Lval_env.propagate_from var lval_env in
+                 match
+                   T.solve_precondition ~ignore_poly_taint:false ~taints
+                     precondition
+                 with
+                 | Some false -> ([], `Failed, lval_env)
+                 | Some true ->
+                     (* trivially true, we can just ignore *)
+                     (extra_req_acc, ok, lval_env)
+                 | None ->
+                     (* cannot solve now, we need to keep it *)
+                     ((taints, precondition) :: extra_req_acc, ok, lval_env))
+               ([], `Ok, lval_env)
+        in
+        (Effect.MultiReq (List.rev rev_taints_w_preconds), ok, lval_env)
+  in
+  let sink =
+    match ok with
+    | `Ok -> Some { Effect.pm = tm.spec_pm; requires; rule_sink = tm.spec.spec }
+    | `Failed -> None
+  in
+  (sink, lval_env)
+
+let sinks_of_matches lval_env sinks =
+  let rev_sinks, lval_env =
+    sinks
+    |> List.fold_left
+         (fun (acc, lval_env) sink ->
+           let opt_sink, lval_env = sink_of_match lval_env sink in
+           let acc =
+             match opt_sink with
+             | None -> acc
+             | Some sink -> sink :: acc
+           in
+           (acc, lval_env))
+         ([], lval_env)
+  in
+  (List.rev rev_sinks, lval_env)
+
+let record_effects_of_tainted_sinks env taints sinks =
+  let sinks, lval_env = sinks_of_matches env.lval_env sinks in
+  (if not (List_.null sinks) then
+     let effects =
+       effects_of_tainted_sinks { env with lval_env } taints sinks
+     in
+     record_effects { env with lval_env } effects);
+  lval_env
+
 let check_orig_if_sink env ?filter_sinks orig taints shape =
   (* NOTE(gather-all-taints):
    * A sink is something opaque to us, e.g. consider sink(["ok", "tainted"]),
@@ -662,9 +716,7 @@ let check_orig_if_sink env ?filter_sinks orig taints shape =
     | None -> sinks
     | Some sink_pred -> sinks |> List.filter sink_pred
   in
-  let sinks = sinks |> List_.map TM.sink_of_match in
-  let effects = effects_of_tainted_sinks env taints sinks in
-  record_effects env effects
+  record_effects_of_tainted_sinks env taints sinks
 
 let fix_poly_taint_with_field lval xtaint =
   match xtaint with
@@ -728,9 +780,7 @@ let handle_taint_propagators env thing taints shape =
     env.taint_inst.preds.is_propagator any
   in
   let propagate_froms, propagate_tos =
-    List.partition
-      (fun p -> p.TM.spec.Taint_spec_preds.kind =*= `From)
-      propagators
+    List.partition (fun p -> p.TM.spec.TP.kind =*= `From) propagators
   in
   let pending, lval_env =
     (* `thing` is the source (the "from") of propagation, we add its taints to
@@ -767,7 +817,7 @@ let handle_taint_propagators env thing taints shape =
         *)
         match
           T.solve_precondition ~ignore_poly_taint:false ~taints
-            (R.get_propagator_precondition prop.TM.spec.Taint_spec_preds.prop)
+            (TP.get_propagator_precondition prop.TM.spec)
         with
         | Some true ->
             (* If we have an output label, change the incoming taints to be
@@ -775,12 +825,12 @@ let handle_taint_propagators env thing taints shape =
                Otherwise, keep them the same.
             *)
             let new_taints =
-              match prop.TM.spec.prop.propagator_label with
+              match prop.TM.spec.prop_label with
               | None -> taints
               | Some label ->
                   Taints.map
-                    (propagate_taint_to_label
-                       prop.spec.prop.propagator_replace_labels label)
+                    (propagate_taint_to_label prop.spec.prop_replace_labels
+                       label)
                     taints
             in
             let lval_env, is_pending =
@@ -793,7 +843,7 @@ let handle_taint_propagators env thing taints shape =
             in
             (pending, lval_env)
         | Some false
-        | None ->
+        | None (* THINK: Let the unsolvable pass ? *) ->
             (pending, lval_env))
       (VarMap.empty, lval_env) propagate_froms
   in
@@ -812,31 +862,11 @@ let handle_taint_propagators env thing taints shape =
      * incoming taints by looking for the propagator ids in the environment. *)
     List.fold_left
       (fun (taints_in_acc, lval_env) prop ->
-        let opt_propagated, lval_env =
-          Lval_env.propagate_from prop.TM.spec.Taint_spec_preds.var lval_env
-        in
-        let taints_from_prop =
-          match opt_propagated with
-          | None ->
-              (* Metavariable *)
-              Taints.singleton
-                T.
-                  {
-                    orig = T.Var (Propagator_var prop.TM.spec.var);
-                    rev_tokens = [];
-                  }
-          | Some taints -> taints
+        let taints_from_prop, lval_env =
+          Lval_env.propagate_from prop.TM.spec.TP.var lval_env
         in
         let lval_env =
-          if Option.is_some opt_propagated then lval_env
-          else
-            (* If we did not find any taint to be propagated, it could
-               be because we have not encountered the 'from' yet, so we
-               add the 'lval' to a "pending" queue. *)
-            lval_env |> Lval_env.pending_propagation prop.TM.spec.var
-        in
-        let lval_env =
-          if prop.spec.Taint_spec_preds.prop.propagator_by_side_effect then
+          if prop.spec.TP.prop_by_side_effect then
             match thing with
             | `Lval lval ->
                 (* If `thing` is an l-value of the form `x.a.b.c`, then taint can be
@@ -901,10 +931,11 @@ let rec check_tainted_lval env (lval : IL.lval) :
   let sinks =
     lval_is_sink env lval
     |> List.filter (TM.is_best_match env.func.best_matches)
-    |> List_.map TM.sink_of_match
   in
-  let effects = effects_of_tainted_sinks { env with lval_env } taints sinks in
-  record_effects { env with lval_env } effects;
+
+  let lval_env =
+    record_effects_of_tainted_sinks { env with lval_env } taints sinks
+  in
   (taints, lval_shape, sub, lval_env)
 
 (* Java: Whenever we find a getter/setter without definition we end up here,
@@ -1105,6 +1136,10 @@ and check_tainted_lval_aux env (lval : IL.lval) :
           (taints_incoming |> Taints.union taints_from_env)
           lval_shape
       in
+      let taints_incoming =
+        check_type_and_drop_taints_if_bool_or_number env taints_incoming
+          type_of_lval lval
+      in
       let new_taints = taints_incoming |> Taints.union taints_propagated in
       let sinks =
         lval_is_sink env lval
@@ -1114,13 +1149,11 @@ and check_tainted_lval_aux env (lval : IL.lval) :
          * itself to be a sink, and we would report a finding!
          *)
         |> List.filter TM.is_exact
-        |> List_.map TM.sink_of_match
       in
       let all_taints = Taints.union taints_from_env new_taints in
-      let effects =
-        effects_of_tainted_sinks { env with lval_env } all_taints sinks
+      let lval_env =
+        record_effects_of_tainted_sinks { env with lval_env } all_taints sinks
       in
-      record_effects { env with lval_env } effects;
       ( new_taints,
         lval_in_env,
         lval_shape,
@@ -1344,7 +1377,9 @@ and check_tainted_expr env exp : Taints.t * S.shape * Lval_env.t =
             let taints = Taints.union taints taints_propagated in
             (taints, shape, lval_env)
       in
-      check_orig_if_sink env exp.eorig taints shape;
+      let lval_env =
+        check_orig_if_sink { env with lval_env } exp.eorig taints shape
+      in
       (taints, shape, lval_env)
 
 (* Check the actual arguments of a function call. This also handles left-to-right
@@ -1494,9 +1529,11 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
          * `taint_assume_safe_functions: true`, if the spec is `sink(...)`, we
          * still report `sink(tainted)`.
          *)
-        check_orig_if_sink { env with lval_env } instr.iorig all_args_taints Bot
-          ~filter_sinks:(fun m ->
-            not (m.spec.sink_exact && m.spec.sink_has_focus));
+        let lval_env =
+          check_orig_if_sink { env with lval_env } instr.iorig all_args_taints
+            Bot ~filter_sinks:(fun m ->
+              not (m.spec.spec.sink_exact && m.spec.spec.sink_has_focus))
+        in
         let call_taints, shape, lval_env =
           match
             check_function_call { env with lval_env } e args args_taints
@@ -1625,7 +1662,9 @@ let check_tainted_instr env instr : Taints.t * S.shape * Lval_env.t =
           rhs_shape
       in
       let taints = Taints.union taints taints_propagated in
-      check_orig_if_sink env instr.iorig taints rhs_shape;
+      let lval_env =
+        check_orig_if_sink { env with lval_env } instr.iorig taints rhs_shape
+      in
       let taints =
         match LV.lval_of_instr_opt instr with
         | None -> taints
@@ -1642,16 +1681,17 @@ let check_tainted_return env tok e : Taints.t * S.shape * Lval_env.t =
   let sinks =
     any_is_best_sink env (G.Tk tok) @ orig_is_best_sink env e.eorig
     |> List.filter (TM.is_best_match env.func.best_matches)
-    |> List_.map TM.sink_of_match
   in
-  let taints, shape, var_env' = check_tainted_expr env e in
+  let taints, shape, lval_env = check_tainted_expr env e in
   let taints =
     (* TODO: Clean shape as well based on type ? *)
-    check_type_and_drop_taints_if_bool_or_number env taints type_of_expr e
+    check_type_and_drop_taints_if_bool_or_number { env with lval_env } taints
+      type_of_expr e
   in
-  let effects = effects_of_tainted_sinks env taints sinks in
-  record_effects env effects;
-  (taints, shape, var_env')
+  let lval_env =
+    record_effects_of_tainted_sinks { env with lval_env } taints sinks
+  in
+  (taints, shape, lval_env)
 
 let effects_from_arg_updates_at_exit (pro_hooks : Taint_pro_hooks.t option)
     ~in_lambda ~enter_env exit_env : Effect.poly list =
@@ -1688,16 +1728,18 @@ let check_tainted_control_at_exit node env =
 
 let check_tainted_at_exit_sinks node env =
   match env.taint_inst.file.pro_hooks with
-  | None -> ()
-  | Some pro_hooks -> (
-      match
+  | None -> env.lval_env
+  | Some pro_hooks ->
+      let opt_taints_and_sinks_at_exit, lval_env =
         pro_hooks.check_tainted_at_exit_sinks env.taint_inst.preds env.lval_env
           node
-      with
+      in
+      (match opt_taints_and_sinks_at_exit with
       | None -> ()
       | Some (taints_at_exit, sink_matches_at_exit) ->
           effects_of_tainted_sinks env taints_at_exit sink_matches_at_exit
-          |> record_effects env)
+          |> record_effects env);
+      lval_env
 
 (*****************************************************************************)
 (* Transfer *)
@@ -1743,7 +1785,11 @@ let rec transfer : env -> fun_cfg:F.fun_cfg -> Lval_env.t D.transfn =
               in
               (* We check if the instruction is a sink, and if so the taints
                * from the `lval` could make a finding. *)
-              check_orig_if_sink env x.iorig taints lval_shape;
+              let lval_env' =
+                check_orig_if_sink
+                  { env with lval_env = lval_env' }
+                  x.iorig taints lval_shape
+              in
               lval_env'
           | None -> lval_env'
         in
@@ -1803,9 +1849,10 @@ let rec transfer : env -> fun_cfg:F.fun_cfg -> Lval_env.t D.transfn =
   env.effects_acc := Effects.union effects_lambdas !(env.effects_acc);
   let env_at_exit = { env with lval_env = out' } in
   check_tainted_control_at_exit node env_at_exit;
-  check_tainted_at_exit_sinks node env_at_exit;
+  let out' = check_tainted_at_exit_sinks node env_at_exit in
   Log.debug (fun m ->
-      m ~tags:transfer_tag "Taint transfer %s%s\n  %s:\n  IN:  %s\n  OUT: %s"
+      m ~tags:transfer_tag
+        "Taint transfer %s%s\n  %s:\n  IN:  %s\n  OUT: %s\n~~~~~"
         (Option.map IL.str_of_name env.func.fname ||| "<FUN>")
         (Option.map
            (fun lname -> spf "(in lambda %s)" (IL.str_of_name lname))
@@ -2031,7 +2078,7 @@ and (fixpoint :
            let sinks =
              orig_is_sink taint_inst orig
              |> List.to_seq
-             |> Seq.filter (fun (m : R.taint_sink TM.t) -> m.spec.sink_exact)
+             |> Seq.filter (fun (m : TP.sink TM.t) -> m.spec.spec.sink_exact)
              |> Seq.map (fun m -> TM.Any m)
            in
            sources |> Seq.append sanitizers |> Seq.append sinks)

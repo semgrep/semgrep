@@ -78,10 +78,19 @@ let lazy_force x = Lazy.force x [@@profiling]
 (*****************************************************************************)
 
 (* If the 'requires' has the shape 'A and ...' then we assume that 'A' is the
- * preferred label for reporting the taint trace. *)
+  preferred label for reporting the taint trace. If we have a multi-requires,
+  we look at the very first item. *)
 let preferred_label_of_sink ({ rule_sink; _ } : Effect.sink) =
+  let of_precondition = function
+    | R.PLabel label
+    | R.PAnd (PLabel label :: _) ->
+        Some label
+    | __else__ -> None
+  in
   match rule_sink.sink_requires with
-  | Some { precondition = PAnd (PLabel label :: _); _ } -> Some label
+  | Some (UniReq { precondition; _ })
+  | Some (MultiReq ((_, { precondition; _ }) :: _)) ->
+      of_precondition precondition
   | Some _
   | None ->
       None
@@ -160,27 +169,33 @@ let trace_of_source source =
     sink_trace = convert_taint_call_trace sink_trace;
   }
 
+let taints_satisfy_sink_requires taints requires =
+  match requires with
+  | Effect.UniReq precond -> T.taints_satisfy_requires taints precond
+  | Effect.MultiReq taints_w_preconds ->
+      taints_w_preconds
+      |> List.for_all (fun (taints, precond) ->
+             T.taints_satisfy_requires (T.Taint_set.elements taints) precond)
+
 let pms_of_effect ~match_on (effect_ : Effect.poly) =
   match effect_ with
   | ToLval _
   | ToReturn _
   | ToSinkInCall _ ->
       []
-  | ToSink
-      {
-        taints_with_precondition = taints, requires;
-        sink = { pm = sink_pm; _ } as sink;
-        merged_env;
-      } -> (
+  | ToSink { taints_with_trace; sink = { pm = sink_pm; _ } as sink; merged_env }
+    -> (
       if
         not
-          (T.taints_satisfy_requires
-             (List_.map (fun t -> t.Effect.taint) taints)
-             requires)
+          (taints_satisfy_sink_requires
+             (List_.map (fun t -> t.Effect.taint) taints_with_trace)
+             sink.Effect.requires)
       then []
       else
         let preferred_label = preferred_label_of_sink sink in
-        let taint_sources = sources_of_taints ?preferred_label taints in
+        let taint_sources =
+          sources_of_taints ?preferred_label taints_with_trace
+        in
         match match_on with
         | `Sink ->
             (* The old behavior used to be that, for sinks with a `requires`, we would

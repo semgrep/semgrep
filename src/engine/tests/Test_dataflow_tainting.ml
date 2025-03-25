@@ -91,16 +91,16 @@ let test_dfg_tainting rules_file file =
   in
   UCommon.pr2 "\nSources";
   UCommon.pr2 "-------";
-  pr2_ranges file (spec_matches.sources |> List_.map fst);
+  pr2_ranges file (spec_matches.raw_sources |> List_.map fst);
   UCommon.pr2 "\nPropagators";
   UCommon.pr2 "-----------";
-  pr2_prop_matches file spec_matches.propagators;
+  pr2_prop_matches file spec_matches.raw_propagators;
   UCommon.pr2 "\nSanitizers";
   UCommon.pr2 "----------";
-  pr2_ranges file (spec_matches.sanitizers |> List_.map fst);
+  pr2_ranges file (spec_matches.raw_sanitizers |> List_.map fst);
   UCommon.pr2 "\nSinks";
   UCommon.pr2 "-----";
-  pr2_ranges file (spec_matches.sinks |> List_.map fst);
+  pr2_ranges file (spec_matches.raw_sinks |> List_.map fst);
   let v =
     object
       inherit [_] AST_generic.iter_no_id_info as super

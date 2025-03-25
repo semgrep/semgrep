@@ -369,11 +369,11 @@ let rec show_source { call_trace; label; precondition } =
     else if label = ts.label then Printf.sprintf " :%s" label
     else Printf.sprintf " :%s->%s" ts.label label
   in
-  let precondition_str = show_taints_with_precondition precondition in
+  let precondition_str = show_taints_with_trace precondition in
   Printf.sprintf "[%s%s :l.%d%s%s]" num_calls_str matched_str matched_line
     label_str precondition_str
 
-and show_taints_with_precondition precondition =
+and show_taints_with_trace precondition =
   match precondition with
   | None -> ""
   | Some (ts, pre) ->

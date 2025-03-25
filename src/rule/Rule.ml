@@ -205,10 +205,26 @@ type precondition =
   | PNot of precondition
 [@@deriving show, ord]
 
+let rec show_precondition (p : precondition) : string =
+  match p with
+  | PLabel s -> s
+  | PBool b -> string_of_bool b
+  | PAnd preds ->
+      "(" ^ String.concat " and " (List_.map show_precondition preds) ^ ")"
+  | POr preds ->
+      "(" ^ String.concat " or " (List_.map show_precondition preds) ^ ")"
+  | PNot pred -> "not " ^ show_precondition pred
+
 type precondition_with_range = {
   precondition : precondition;
   range : (Tok.location * Tok.location) option;
+      (** Range used to extract the actual text of the precondition for rule translation. *)
 }
+[@@deriving show]
+
+type sink_requires =
+  | UniReq of precondition_with_range
+  | MultiReq of (Mvar.t wrap * precondition_with_range) list  (** non-empty *)
 [@@deriving show]
 
 type by_side_effect = Only | Yes | No [@@deriving show]
@@ -293,7 +309,7 @@ and taint_sink = {
       * sink, and nothing is reported. If 'false', then every subexpression in
       * `sink(if tainted then ok1 else ok2)` is considered a sink, and we report
       * a finding due to `tainted`. *)
-  sink_requires : precondition_with_range option;
+  sink_requires : sink_requires option;
       (* A Boolean expression over taint labels. See also 'taint_source'.
        * The sink will only trigger a finding if the data that reaches it
        * has a set of labels attached that satisfies the 'requires'.
@@ -347,16 +363,6 @@ let default_propagator_requires = PBool true
 let get_source_precondition { source_requires; _ } =
   match source_requires with
   | None -> default_source_requires
-  | Some { precondition; _ } -> precondition
-
-let get_propagator_precondition { propagator_requires; _ } =
-  match propagator_requires with
-  | None -> default_propagator_requires
-  | Some { precondition; _ } -> precondition
-
-let get_sink_requires { sink_requires; _ } =
-  match sink_requires with
-  | None -> PLabel default_source_label
   | Some { precondition; _ } -> precondition
 
 (* Check if a formula has "focus" (i.e., `focus-metavariable` in syntax 1.0)

@@ -412,11 +412,66 @@ let parse_taint_sanitizer ~(is_old : bool) env (key : key) (value : G.expr) =
     | Right dict ->
         parse_from_dict dict Parse_rule_formula.parse_formula_from_dict
 
+let parse_taint_sink_mvar_requires env key x =
+  let parse_item env x : (MV.mvar R.wrap * R.precondition_with_range, _) result
+      =
+    match x.G.e with
+    | G.Container
+        ( Dict,
+          ( _l,
+            [
+              {
+                e =
+                  G.Container
+                    ( G.Tuple,
+                      ( _,
+                        [
+                          {
+                            e =
+                              (* When running `semgrep-core` directly this gets parsed as a literal,
+                                 but when running via "pysemgrep" this gets parsed as an id... so we
+                                 accept both forms. *)
+                              ( L (String (_, (mvar, tok), _))
+                              | N (Id ((mvar, tok), _)) );
+                            _;
+                          };
+                          rhs;
+                        ],
+                        _ ) );
+                _;
+              };
+            ],
+            _r ) ) ->
+        if not (Mvar.is_metavar_name mvar) then
+          error_at_expr env.id x (spf "`%s' is not a valid metavariable" mvar)
+        else
+          let/ requires = parse_taint_requires env key rhs in
+          Ok ((mvar, tok), requires)
+    | __else__ ->
+        error_at_expr env.id x
+          "Invalid `requires:' item in sink specification, expected <$MVAR>: \
+           <precondition>"
+  in
+  parse_list env key parse_item x
+
 let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
     (Rule.taint_sink, Rule_error.t) result =
   let sink_id = "sink:" ^ String.concat ":" env.path in
   let parse_from_dict dict f =
-    let/ sink_requires = take_opt dict env parse_taint_requires "requires" in
+    let/ sink_requires =
+      match dict_take_opt dict "requires" with
+      | None -> Ok None
+      | Some (key, value) -> (
+          match parse_string env key value with
+          | Ok _ ->
+              parse_taint_requires env key value
+              |> Result.map (fun precond -> Some (Rule.UniReq precond))
+          | Error _ ->
+              (* If not a string, then we assume it must be a "multi-requires". *)
+              parse_taint_sink_mvar_requires env key value
+              |> Result.map (fun mvars_w_preconds ->
+                     Some (Rule.MultiReq mvars_w_preconds)))
+    in
     let/ sink_at_exit =
       take_opt dict env parse_bool "at-exit"
       |> Result.map (Option.value ~default:false)

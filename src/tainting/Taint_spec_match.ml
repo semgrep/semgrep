@@ -27,7 +27,6 @@ type 'spec t = {
 }
 
 let is_exact x = x.overlap > 0.99
-let sink_of_match x = { Effect.pm = x.spec_pm; rule_sink = x.spec }
 
 let _show x =
   Range.content_at_range x.spec_pm.path.internal_path_to_content x.range
@@ -138,7 +137,12 @@ end
 
 let is_best_match = Best_matches.is_best_match
 
-(* See NOTE "Best matches" for more context. *)
+(* See NOTE "Best matches" for more context.
+
+  THINK: Could we use this for propagation points? I think we would need to use
+    a spec_id different from the prop id, we would need to use the prop var that
+    is specific to the propagator match instead.
+ *)
 let best_matches_in_nodes ~sub_matches_of_orig fun_cfg =
   let find_origs_visitor =
     object (_self : 'self)

@@ -271,7 +271,15 @@ end
 (* Taint results & signatures *)
 (*****************************************************************************)
 and Effect : sig
-  type sink = { pm : Core_match.t; rule_sink : R.taint_sink }
+  type sink_requires =
+    | UniReq of R.precondition
+    | MultiReq of (Taint.taints * R.precondition) list  (** non-empty *)
+
+  type sink = {
+    pm : Core_match.t;
+    requires : sink_requires;
+    rule_sink : R.taint_sink;
+  }
   (** A sink match with its corresponding sink specification (one of the `pattern-sinks`). *)
 
   type taint_to_sink_item = {
@@ -286,7 +294,7 @@ and Effect : sig
   }
 
   type taints_to_sink = {
-    taints_with_precondition : taint_to_sink_item list * Rule.precondition;
+    taints_with_trace : taint_to_sink_item list;
         (** Taints reaching the sink and the precondition for the sink to apply. *)
     sink : sink;
     merged_env : Metavariable.bindings;
@@ -345,7 +353,7 @@ and Effect : sig
         * The parameter `x` could be tainted depending on the calling context,
         * so we infer:
         *
-        *     ToSink { taints_with_precondition = (["taint"], PBool true);
+        *     ToSink { taints_with_trace = ["taint"];
         *              sink = "sink(y)";
         *              ... }
         *)
@@ -403,7 +411,16 @@ and Effect : sig
 end = struct
   module Taints = Taint.Taint_set
 
-  type sink = { pm : Core_match.t; rule_sink : R.taint_sink }
+  type sink_requires =
+    | UniReq of R.precondition
+    | MultiReq of (Taint.taints * R.precondition) list
+
+  type sink = {
+    pm : Core_match.t;
+    requires : sink_requires;
+    rule_sink : R.taint_sink;
+  }
+
   type taint_to_sink_item = { taint : T.taint; sink_trace : unit T.call_trace }
 
   type taints_to_sink = {
@@ -413,7 +430,7 @@ end = struct
        a certain number of findings suitable to how the sink was
        reached.
     *)
-    taints_with_precondition : taint_to_sink_item list * R.precondition;
+    taints_with_trace : taint_to_sink_item list;
     sink : sink;
     merged_env : Metavariable.bindings;
   }
@@ -445,10 +462,27 @@ end = struct
   (* Comparison *)
   (*************************************)
 
-  let compare_sink { pm = pm1; rule_sink = sink1 }
-      { pm = pm2; rule_sink = sink2 } =
+  let compare_sink_requires req1 req2 =
+    match (req1, req2) with
+    | UniReq precond1, UniReq precond2 ->
+        R.compare_precondition precond1 precond2
+    | MultiReq taints_w_preconds1, MultiReq taints_w_preconds2 ->
+        List.compare
+          (fun (taints1, precond1) (taints2, precond2) ->
+            match R.compare_precondition precond1 precond2 with
+            | 0 -> Taints.compare taints1 taints2
+            | other -> other)
+          taints_w_preconds1 taints_w_preconds2
+    | UniReq _, MultiReq _ -> -1
+    | MultiReq _, UniReq _ -> 1
+
+  let compare_sink { pm = pm1; requires = requires1; rule_sink = sink1 }
+      { pm = pm2; requires = requires2; rule_sink = sink2 } =
     match String.compare sink1.Rule.sink_id sink2.Rule.sink_id with
-    | 0 -> T.compare_matches pm1 pm2
+    | 0 -> (
+        match T.compare_matches pm1 pm2 with
+        | 0 -> compare_sink_requires requires1 requires2
+        | other -> other)
     | other -> other
 
   let compare_taint_to_sink_item { taint = taint1; sink_trace = _ }
@@ -456,23 +490,15 @@ end = struct
     T.compare_taint taint1 taint2
 
   let compare_taints_to_sink
-      {
-        taints_with_precondition = ttsis1, pre1;
-        sink = sink1;
-        merged_env = env1;
-      }
-      {
-        taints_with_precondition = ttsis2, pre2;
-        sink = sink2;
-        merged_env = env2;
-      } =
+      { taints_with_trace = taints_w_trace1; sink = sink1; merged_env = env1 }
+      { taints_with_trace = taints_w_trace2; sink = sink2; merged_env = env2 } =
     match compare_sink sink1 sink2 with
     | 0 -> (
-        match List.compare compare_taint_to_sink_item ttsis1 ttsis2 with
-        | 0 -> (
-            match R.compare_precondition pre1 pre2 with
-            | 0 -> T.compare_metavar_env env1 env2
-            | other -> other)
+        match
+          List.compare compare_taint_to_sink_item taints_w_trace1
+            taints_w_trace2
+        with
+        | 0 -> T.compare_metavar_env env1 env2
         | other -> other)
     | other -> other
 
@@ -541,7 +567,16 @@ end = struct
   (* Pretty-printing *)
   (*************************************)
 
-  let show_sink { rule_sink; pm } =
+  let show_sink_requires req =
+    match req with
+    | UniReq precond -> R.show_precondition precond
+    | MultiReq taints_w_preconds ->
+        taints_w_preconds
+        |> List_.map (fun (taints, pre) ->
+               spf "%s|%s" (T.show_taints taints) (R.show_precondition pre))
+        |> String.concat "; "
+
+  let show_sink { rule_sink; requires; pm } =
     let matched_str =
       let tok1, tok2 = pm.range_loc in
       let r = Range.range_of_token_locations tok1 tok2 in
@@ -551,7 +586,8 @@ end = struct
       let loc1, _ = pm.range_loc in
       loc1.Loc.pos.line
     in
-    spf "(%s at l.%d by %s)" matched_str matched_line rule_sink.R.sink_id
+    spf "(%s at l.%d by %s)[%s]" matched_str matched_line rule_sink.R.sink_id
+      (show_sink_requires requires)
 
   let show_taint_to_sink_item { taint; sink_trace } =
     let sink_trace_str =
@@ -561,11 +597,13 @@ end = struct
     in
     Printf.sprintf "%s%s" (T.show_taint taint) sink_trace_str
 
-  let show_taints_and_traces taints =
+  let show_taints_with_trace taints =
     Common2.string_of_list show_taint_to_sink_item taints
 
-  let show_taints_to_sink { taints_with_precondition = taints, _; sink; _ } =
-    Common.spf "%s ~~~> %s" (show_taints_and_traces taints) (show_sink sink)
+  let show_taints_to_sink { taints_with_trace; sink; _ } =
+    Common.spf "%s ~~~> %s"
+      (show_taints_with_trace taints_with_trace)
+      (show_sink sink)
 
   let show_taints_to_return
       { data_taints; data_shape; control_taints; return_tok = _ } =
@@ -607,6 +645,9 @@ and Effects : sig
   val add_list : Effect.poly list -> t -> t
   val union_list : t list -> t
 end = struct
+  (* THINK: We may want to do like for 'Taint.Taint_set and when we have
+    multiple 'ToSink's that are equivalent except for the 'requires', pick
+    the 'ToSink' with the "weaker" requires (if there is one). *)
   include Set.Make (struct
     type t = Effect.poly
 
@@ -633,7 +674,7 @@ end
  *
  * We infer the signature (simplified):
  *
- *     x => {ToSink {taints_with_precondition = [(x#0).a]; sink = ... ; ...}}
+ *     x => {ToSink {taints_with_trace = [(x#0).a]; sink = ... ; ...}}
  *
  * where '(x#0).a' is taint variable that denotes the taint of the offset `.a`
  * of the parameter `x` (where '#0' means it is the first argument) of `foo`.

@@ -161,7 +161,16 @@ and translate_taint_sink
   let requires_obj =
     match sink_requires with
     | None -> []
-    | Some { range; _ } -> [ ("requires", `String (range_to_string range)) ]
+    | Some (UniReq { range; _ }) ->
+        [ ("requires", `String (range_to_string range)) ]
+    | Some (MultiReq mvars_w_preconds) ->
+        [
+          ( "requires",
+            `A
+              (mvars_w_preconds
+              |> List_.map (fun ((mvar, _tok), { range; _ }) ->
+                     `O [ (mvar, `String (range_to_string range)) ])) );
+        ]
   in
   `O (List_.flatten [ sink_f; exact_obj; requires_obj; at_exit_obj ])
 

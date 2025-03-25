@@ -274,6 +274,13 @@ let find_lval_xtaint env lval =
   | None -> `None
   | Some (Cell (xtaints, _shape)) -> xtaints
 
+let pending_propagation prop_var env =
+  {
+    env with
+    pending_propagation_dests =
+      VarSet.add prop_var env.pending_propagation_dests;
+  }
+
 let propagate_from prop_var env =
   let opt_taints = VarMap.find_opt prop_var env.taints_to_propagate in
   let env =
@@ -284,14 +291,23 @@ let propagate_from prop_var env =
       }
     else env
   in
-  (opt_taints, env)
-
-let pending_propagation prop_var env =
-  {
-    env with
-    pending_propagation_dests =
-      VarSet.add prop_var env.pending_propagation_dests;
-  }
+  let env =
+    if Option.is_some opt_taints then env
+    else
+      (* If we did not find any taint to be propagated, it could
+        be because we have not encountered the 'from' yet, so we
+        add the 'lval' to a "pending" queue. *)
+      env |> pending_propagation prop_var
+  in
+  let taints =
+    match opt_taints with
+    | None ->
+        (* Metavariable *)
+        Taints.singleton
+          T.{ orig = T.Var (Propagator_var prop_var); rev_tokens = [] }
+    | Some taints -> taints
+  in
+  (taints, env)
 
 let clean
     ({ tainted; control; taints_to_propagate; pending_propagation_dests } as

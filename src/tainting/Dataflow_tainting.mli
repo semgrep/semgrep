@@ -65,6 +65,13 @@ val fixpoint :
 val drop_taints_if_bool_or_number :
   Rule_options.t -> Taint.Taint_set.t -> 'a Type.t -> Taint.Taint_set.t
 
+val sinks_of_matches :
+  Taint_lval_env.t ->
+  Taint_spec_preds.sink Taint_spec_match.t list ->
+  Shape_and_sig.Effect.sink list * Taint_lval_env.t
+(** Gets and pre-evaluates the actual 'requires' preconditions for the sinks,
+  it already filters out sink matches that trivially fail their 'requires'. *)
+
 val effects_of_tainted_sink :
   Rule_options.t ->
   Shape_and_sig.Effect.taint_to_sink_item list ->
