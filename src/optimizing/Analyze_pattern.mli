@@ -1,5 +1,7 @@
-module MvarSet = Common2.StringSet
+module StringSet : module type of Common2.StringSet
+module MvarSet : module type of Common2.StringSet
 
+type strings = StringSet.t
 type mvars = MvarSet.t
 
 (*
@@ -7,13 +9,10 @@ type mvars = MvarSet.t
    (for prefiltering purpose, see Analyze_rule.ml)
 *)
 val extract_strings_and_mvars :
-  ?lang:Lang.t ->
-  interfile:bool ->
-  Pattern.t ->
-  string list * Metavariable.mvar list
+  ?lang:Lang.t -> interfile:bool -> Pattern.t -> strings * mvars
 
 val extract_specific_strings :
-  ?lang:Lang.t -> interfile:bool -> Pattern.t -> string list
+  ?lang:Lang.t -> interfile:bool -> Pattern.t -> strings
 
 (*
    Extract metavariables that occur in an "id position" so that, if we

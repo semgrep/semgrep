@@ -16,7 +16,8 @@ module R = Rule
 module XP = Xpattern
 module MV = Metavariable
 module SP = Semgrep_prefilter_t
-module MvarSet = Common2.StringSet
+module StringSet = Analyze_pattern.StringSet
+module MvarSet = Analyze_pattern.MvarSet
 module Log = Log_optimizing.Log
 
 [@@@warning "-32"] (* for the unused pp_ coming from deriving show *)
@@ -348,7 +349,7 @@ and xpat_step1 (env : step1_env) pat =
           pat
       in
 
-      Some (StringsAndMvars (ids, mvars))
+      Some (StringsAndMvars (StringSet.to_list ids, MvarSet.to_list mvars))
   | XP.Regexp re -> Some (Regexp re)
   (* turn out some generic spacegrep rules can also be slow and a prefilter
    * is also useful there

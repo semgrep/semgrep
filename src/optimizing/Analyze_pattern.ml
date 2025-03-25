@@ -34,26 +34,43 @@ open AST_generic
  *  - the Semgrep.ml engine to skip entire files!
  *)
 
+module StringSet = Common2.StringSet
 module MvarSet = Common2.StringSet
 
+type strings = StringSet.t
 type mvars = MvarSet.t
+
+(*****************************************************************************)
+(* Environment *)
+(*****************************************************************************)
+
+type env = {
+  lang : Lang.t option;
+  interfile : bool;
+  mutable strings : StringSet.t;
+  mutable mvars : MvarSet.t;
+}
+
+let mk_env ?lang ~interfile () =
+  { lang; interfile; strings = StringSet.empty; mvars = MvarSet.empty }
+
+let push_string env x = env.strings <- StringSet.add x env.strings
+let push_mvar env x = env.mvars <- MvarSet.add x env.mvars
 
 (*****************************************************************************)
 (* extract_strings_and_mvars *)
 (*****************************************************************************)
 
-let extract_strings_and_mvars_for_intrafile ?lang any =
-  let strings = ref [] in
-  let mvars = ref [] in
+let extract_strings_and_mvars_for_intrafile =
   let visitor =
     object (_self : 'self)
       inherit [_] AST_generic.iter_no_id_info as super
 
-      method! visit_ident _env (str, _tok) =
+      method! visit_ident env (str, _tok) =
         match () with
-        | _ when Mvar.is_metavar_name str -> Stack_.push str mvars
-        | _ when not (Pattern.is_special_identifier ?lang str) ->
-            Stack_.push str strings
+        | _ when Mvar.is_metavar_name str -> push_mvar env str
+        | _ when not (Pattern.is_special_identifier ?lang:env.lang str) ->
+            push_string env str
         | _ -> ()
 
       method! visit_name env x =
@@ -81,7 +98,7 @@ let extract_strings_and_mvars_for_intrafile ?lang any =
             (* THINK: What if the pattern looks for foo/bar but the code
              * is `require("foo").bar` ? *)
             String_.split ~sep:{|/\|\\|} str
-            |> List.iter (fun s -> Stack_.push s strings);
+            |> List.iter (fun s -> push_string env s);
             super#visit_directive env x
         | _ -> super#visit_directive env x
 
@@ -102,10 +119,9 @@ let extract_strings_and_mvars_for_intrafile ?lang any =
             ( { e = Special (Require, _); _ },
               (_, [ Arg { e = L (String (_, (str, _tok), _)); _ } ], _) ) ->
             if not (Pattern.is_special_string_literal str) then
-              Stack_.push str strings
+              push_string env str
         | Special (Eval, t) ->
-            if Tok.is_origintok t then
-              Stack_.push (Tok.content_of_tok t) strings
+            if Tok.is_origintok t then push_string env (Tok.content_of_tok t)
         | TypedMetavar (_, _, type_) -> (
             match type_ with
             | { t = TyN (IdQualified _ as name); _ } ->
@@ -129,16 +145,16 @@ let extract_strings_and_mvars_for_intrafile ?lang any =
         | _ -> super#visit_expr env x
     end
   in
-  visitor#visit_any () any;
-  (Common2.uniq !strings, Common2.uniq !mvars)
+  fun ?lang any ->
+    let env = mk_env ?lang ~interfile:false () in
+    visitor#visit_any env any;
+    (env.strings, env.mvars)
 
 (* Super basic version for interfile that simply looks at function calls
    and extracts the identifiers of the functions being called. Those we know
    that must occur "as is" in the target file for the formula to match, because
    we do *not* perform interfile symbolic propagation. *)
-let extract_strings_and_mvars_for_interfile ?lang any =
-  let strings = ref [] in
-  let mvars = ref [] in
+let extract_strings_and_mvars_for_interfile =
   let visitor =
     object (_self : 'self)
       inherit [_] AST_generic.iter_no_id_info as super
@@ -159,14 +175,16 @@ let extract_strings_and_mvars_for_interfile ?lang any =
               },
               (_, _args, _) )
           when (not (Pattern.is_special_string_literal str))
-               && (not (Pattern.is_special_identifier ?lang str))
+               && (not (Pattern.is_special_identifier ?lang:env.lang str))
                && not (IdFlags.is_hidden !(id_info.id_flags)) ->
-            Stack_.push str strings
+            push_string env str
         | _ -> super#visit_expr env x
     end
   in
-  visitor#visit_any () any;
-  (Common2.uniq !strings, Common2.uniq !mvars)
+  fun ?lang any ->
+    let env = mk_env ?lang ~interfile:true () in
+    visitor#visit_any env any;
+    (env.strings, env.mvars)
 
 (*****************************************************************************)
 (* Entry points *)
@@ -180,21 +198,20 @@ let extract_specific_strings ?lang ~interfile any =
   extract_strings_and_mvars ?lang ~interfile any |> fst
 
 (* In general, if we encounter a `metavariable-regex` operator, we cannot
- * simply use the `regex` for pre-filtering, because the metavariable may
- * be matching a string that is the result of constant folding.
- *
- * This visitor extracts the set of metavariables that are used in
- * an "identifier position" that we do not expect to be affected by
- * constant folding. This is often a COMPROMISE. For example, in some
- * languages it might be possible to write `import "foobar"` as
- * `import ("foo" + "bar"), but we do not expect that in regular code
- * and using module names for pre-filtering is very important for perf.
- *
- * alt: We could do the opposite and find the metavariables in a position
- *      where we expect constant-folding to be a problem, e.g. "$MVAR" or
- *      $FUNC(..., $MVAR, ...). *)
-let extract_mvars_in_id_position ?lang:_ ~interfile any =
-  let mvars = ref MvarSet.empty in
+  simply use the `regex` for pre-filtering, because the metavariable may
+  be matching a string that is the result of constant folding.
+
+  This visitor extracts the set of metavariables that are used in
+  an "identifier position" that we do not expect to be affected by
+  constant folding. This is often a COMPROMISE. For example, in some
+  languages it might be possible to write `import "foobar"` as
+  `import ("foo" + "bar"), but we do not expect that in regular code
+  and using module names for pre-filtering is very important for perf.
+
+  alt: We could do the opposite and find the metavariables in a position
+       where we expect constant-folding to be a problem, e.g. "$MVAR" or
+       $FUNC(..., $MVAR, ...). *)
+let extract_mvars_in_id_position =
   let visitor =
     object (_self : 'self)
       inherit [_] AST_generic.iter_no_id_info as super
@@ -205,17 +222,17 @@ let extract_mvars_in_id_position ?lang:_ ~interfile any =
         | { d = ImportAs (_, FileName (str, _), _); _ }
         | { d = ImportAll (_, FileName (str, _), _); _ }
           when Mvar.is_metavar_name str ->
-            mvars := MvarSet.add str !mvars;
+            push_mvar env str;
             super#visit_directive env x
         | _ -> super#visit_directive env x
 
       method! visit_type_kind env x =
         (* Interfile: Problem is subtyping. Even if a type 'A' does not occur in
            the file, there may be a type 'B' that is a subtype of 'A' that does. *)
-        if not interfile then
+        if not env.interfile then
           match x with
           | TyN (Id ((str, _tok), _ii)) when Mvar.is_metavar_name str ->
-              mvars := MvarSet.add str !mvars
+              push_mvar env str
           | _ -> super#visit_type_kind env x
 
       method! visit_expr env x =
@@ -223,13 +240,15 @@ let extract_mvars_in_id_position ?lang:_ ~interfile any =
         | Call ({ e = N (Id ((str, _tok), _ii)); _ }, _)
         | DotAccess (_, _, FN (Id ((str, _tok), _ii)))
           when Mvar.is_metavar_name str ->
-            mvars := MvarSet.add str !mvars
+            push_mvar env str
         | New (_, { t = TyN (Id ((str, _tok), _ii)); _ }, _, _)
         (* Interfile: Problem is subtyping, see 'visit_type_kind'. *)
-          when (not interfile) && Mvar.is_metavar_name str ->
-            mvars := MvarSet.add str !mvars
+          when (not env.interfile) && Mvar.is_metavar_name str ->
+            push_mvar env str
         | _ -> super#visit_expr env x
     end
   in
-  visitor#visit_any () any;
-  !mvars
+  fun ?lang ~interfile any ->
+    let env = mk_env ?lang ~interfile () in
+    visitor#visit_any env any;
+    env.mvars
