@@ -157,32 +157,32 @@ local job(
     },
     {
       uses: 'depot/setup-action@v1',
-    },
+    }] +
+        (if ! push then [] else [
+        // This is needed so we can push images to docker hub successfully.
+        actions.docker_login_step,
 
-    // This is needed so we can push images to docker hub successfully.
-    actions.docker_login_step,
-
-    // The configure-aws-credentials and login-ecr steps are needed so
-    // we can push to Amazon ECR successfully.
-    { id: 'configure-aws-credentials',
-      name: 'Configure AWS credentials',
-      uses: 'aws-actions/configure-aws-credentials@v4',
-      // These fields are different than what's in semgrep_pro.libjsonnet
-      // because they're used for different purposes.
-      // Here is the role used to access ECR, while in semgrep_pro.libjsonnet
-      // is the role to upload pro binary buckets to a specific S3 location.
-      with: {
-        'role-to-assume': 'arn:aws:iam::338683922796:role/semgrep-semgrep-proprietary-deploy-role',
-        'role-duration-seconds': 900,
-        'role-session-name': 'semgrep-proprietary-build-test-docker-gha',
-        'aws-region': 'us-west-2',
-      }
-    },
-    { id: 'login-ecr',
-      name: 'Login to Amazon ECR',
-      uses: 'aws-actions/amazon-ecr-login@v2',
-    },
-
+        // The configure-aws-credentials and login-ecr steps are needed so
+        // we can push to Amazon ECR successfully.
+        { id: 'configure-aws-credentials',
+          name: 'Configure AWS credentials',
+          uses: 'aws-actions/configure-aws-credentials@v4',
+          // These fields are different than what's in semgrep_pro.libjsonnet
+          // because they're used for different purposes.
+          // Here is the role used to access ECR, while in semgrep_pro.libjsonnet
+          // is the role to upload pro binary buckets to a specific S3 location.
+          with: {
+            'role-to-assume': 'arn:aws:iam::338683922796:role/semgrep-semgrep-proprietary-deploy-role',
+            'role-duration-seconds': 900,
+            'role-session-name': 'semgrep-proprietary-build-test-docker-gha',
+            'aws-region': 'us-west-2',
+          }
+        },
+        { id: 'login-ecr',
+          name: 'Login to Amazon ECR',
+          uses: 'aws-actions/amazon-ecr-login@v2',
+        }
+    ]) +
     // The tags should be setup correctly from the prepare-metadata step
     // above, so this step knows that it needs to push to both
     // docker hub and Amazon ECR.
@@ -212,7 +212,7 @@ local job(
     //
     // where you can look up available images at go/ecr and navigate to the
     // semgrep/semgrep-proprietary registry.
-    {
+    [{
       id: 'build-%s-docker-image' % name,
       name: 'Build docker image in Depot%s' % (if push then ' and push to Docker Hub' else ''),
       uses: 'depot/build-push-action@v1.9.0',
