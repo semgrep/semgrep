@@ -156,9 +156,6 @@ local job(
       },
     },
     {
-      uses: 'docker/setup-buildx-action@v3',
-    },
-    {
       uses: 'depot/setup-action@v1',
     },
 
