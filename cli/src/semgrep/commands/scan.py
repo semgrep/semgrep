@@ -6,6 +6,7 @@
 # THIS FILE IS DEPRECATED! DO NOT MODIFY FLAGS HERE! INSTEAD MODIFY Scan_CLI.ml
 import os
 import tempfile
+from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
 from typing import Any
@@ -14,7 +15,6 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Sequence
-from typing import Set
 from typing import Tuple
 
 import click
@@ -55,6 +55,7 @@ from semgrep.semgrep_core import SemgrepCore
 from semgrep.state import get_state
 from semgrep.target_manager import ALL_PRODUCTS
 from semgrep.target_manager import write_pipes_to_disk
+from semgrep.types import TargetAccumulator
 from semgrep.util import abort
 from semgrep.util import is_truthy
 from semgrep.util import with_color
@@ -501,6 +502,18 @@ def log_findings(
 ##############################################################################
 
 
+# kw_only=True is desirable to but requires python >= 3.10
+# @dataclass(kw_only=True)
+@dataclass
+class ScanResult:
+    """The return type of the scan function"""
+
+    filtered_matches_by_rule: RuleMatchMap
+    semgrep_errors: List[SemgrepError]
+    filtered_rules: List[Rule]
+    all_targets: TargetAccumulator
+
+
 # Those are the scan-only options (not reused in ci.py)
 @click.command()
 @click.argument("scanning_roots", nargs=-1, type=click.Path(allow_dash=True))
@@ -654,7 +667,7 @@ def scan(
     x_tr: bool,
     path_sensitive: bool,
     allow_local_builds: bool,
-) -> Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]:
+) -> Optional[ScanResult]:
     if version:
         print(__VERSION__)
         if enable_version_check:
@@ -838,9 +851,7 @@ def scan(
             scanning_roots = write_pipes_to_disk(scanning_roots, Path(pipes_dir))
 
             output_handler = OutputHandler(output_settings)
-            return_data: Optional[
-                Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]
-            ] = None
+            return_data: Optional[ScanResult] = None
 
             if validate:
                 if not (pattern or lang or config):
@@ -889,7 +900,13 @@ def scan(
                     )
                     if config_errors:
                         output_handler.handle_semgrep_errors(config_errors)
-                        output_handler.output({}, all_targets=set(), filtered_rules=[])
+                        output_handler.output(
+                            {},
+                            all_targets_v1_v2=TargetAccumulator(
+                                use_semgrepignore_v2=use_semgrepignore_v2
+                            ),
+                            filtered_rules=[],
+                        )
                         raise SemgrepError("Please fix the above errors and try again.")
             else:
                 try:
@@ -957,12 +974,18 @@ def scan(
                     )
                 except SemgrepError as e:
                     output_handler.handle_semgrep_errors([e])
-                    output_handler.output({}, all_targets=set(), filtered_rules=[])
+                    output_handler.output(
+                        {},
+                        all_targets_v1_v2=TargetAccumulator(
+                            use_semgrepignore_v2=use_semgrepignore_v2
+                        ),
+                        filtered_rules=[],
+                    )
                     raise e
 
                 output_handler.output(
                     filtered_matches_by_rule,
-                    all_targets=output_extra.all_targets,
+                    all_targets_v1_v2=output_extra.all_targets,
                     ignore_log=ignore_log,
                     profiler=profiler,
                     filtered_rules=filtered_rules,
@@ -975,11 +998,11 @@ def scan(
                     missed_rule_count=missed_rule_count,
                 )
 
-                return_data = (
-                    filtered_matches_by_rule,
-                    semgrep_errors,
-                    filtered_rules,
-                    output_extra.all_targets,
+                return_data = ScanResult(
+                    filtered_matches_by_rule=filtered_matches_by_rule,
+                    semgrep_errors=semgrep_errors,
+                    filtered_rules=filtered_rules,
+                    all_targets=output_extra.all_targets,
                 )
 
         if enable_version_check:

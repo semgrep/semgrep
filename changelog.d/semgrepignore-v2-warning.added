@@ -1,0 +1,3 @@
+In the text output of `semgrep scan` and `semgrep ci`, a warning message
+announcing the upcoming Semgrepignore v2 is now displayed. Differences in
+target selection are shown.

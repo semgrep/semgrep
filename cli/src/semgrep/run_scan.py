@@ -350,7 +350,7 @@ def add_metrics_part2(
     if metrics.is_enabled:
         metrics.add_rules(filtered_rules, output_extra.core.time)
         metrics.add_max_memory_bytes(output_extra.core.time)
-        metrics.add_targets(output_extra.all_targets, output_extra.core.time)
+        metrics.add_targets(output_extra.all_targets.targets(), output_extra.core.time)
         metrics.add_findings(filtered_matches_by_rule)
         metrics.add_errors(semgrep_errors)
         metrics.add_profiling(profiler)
@@ -616,7 +616,12 @@ def adjust_matches_for_join_rules(
     for rule in join_rules:
         join_rule_matches, join_rule_errors = join_rule.run_join_rule(
             rule.raw,
-            [scanning_root.path for scanning_root in target_manager.scanning_roots],
+            [
+                scanning_root.path
+                for scanning_root in target_manager.scanning_roots[
+                    target_manager.use_semgrepignore_v2
+                ]
+            ],
             allow_local_builds=allow_local_builds,
             ptt_enabled=ptt_enabled,
         )
@@ -883,7 +888,8 @@ def adjust_matches_for_sca_rules(
                 ].append(dep)
 
     for target in sca_dependency_targets:
-        output_extra.all_targets.add(target)
+        output_extra.all_targets.v1_targets.add(target)
+        output_extra.all_targets.v2_targets.add(target)
 
     return deps_by_lockfile
 

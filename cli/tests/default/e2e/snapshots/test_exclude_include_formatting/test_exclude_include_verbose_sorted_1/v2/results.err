@@ -5,6 +5,7 @@ Rules:
 - rules.eqeq-is-bad
 - rules.javascript-basic-eqeq-bad
 - rules.python37-compatability-os-module
+Unable to ignore files ignored by git (targets/exclude_include is not a git directory or git is not installed). Running on all files instead...
 
 
 ┌─────────────┐

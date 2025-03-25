@@ -276,10 +276,15 @@ def test_ignore_git_dir(tmp_path, monkeypatch, use_semgrepignore_v2):
 
     monkeypatch.chdir(tmp_path)
     language = Language("generic")
-    assert frozenset() == TargetManager(
-        scanning_root_strings=frozenset([foo]),
-        use_semgrepignore_v2=use_semgrepignore_v2,
-    ).get_files_for_rule(language, [], [], "dummy_rule_id", SAST_PRODUCT)
+    assert (
+        frozenset()
+        == TargetManager(
+            scanning_root_strings=frozenset([foo]),
+            use_semgrepignore_v2=use_semgrepignore_v2,
+        )
+        .get_files_for_rule(language, [], [], "dummy_rule_id", SAST_PRODUCT)
+        .targets()
+    )
 
 
 @pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
@@ -302,38 +307,60 @@ def test_explicit_path(tmp_path, monkeypatch, use_semgrepignore_v2):
     foo_a = foo_a.relative_to(tmp_path)
     python_language = Language("python")
 
-    assert foo_a in TargetManager(
-        scanning_root_strings=frozenset([Path("foo/a.py")]),
-        use_semgrepignore_v2=use_semgrepignore_v2,
-        allow_unknown_extensions=True,
-    ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
-    assert foo_a in TargetManager(
-        scanning_root_strings=frozenset([Path("foo/a.py")]),
-        use_semgrepignore_v2=use_semgrepignore_v2,
-    ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
+    assert (
+        foo_a
+        in TargetManager(
+            scanning_root_strings=frozenset([Path("foo/a.py")]),
+            use_semgrepignore_v2=use_semgrepignore_v2,
+            allow_unknown_extensions=True,
+        )
+        .get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
+        .targets()
+    )
+    assert (
+        foo_a
+        in TargetManager(
+            scanning_root_strings=frozenset([Path("foo/a.py")]),
+            use_semgrepignore_v2=use_semgrepignore_v2,
+        )
+        .get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
+        .targets()
+    )
 
     # Should exclude discovered python file even if it is in excludes
-    assert foo_a not in TargetManager(
-        scanning_root_strings=frozenset([Path(".")]),
-        use_semgrepignore_v2=use_semgrepignore_v2,
-        includes=[],
-        excludes={SAST_PRODUCT: ["foo/a.py"]},
-    ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
+    assert (
+        foo_a
+        not in TargetManager(
+            scanning_root_strings=frozenset([Path(".")]),
+            use_semgrepignore_v2=use_semgrepignore_v2,
+            includes=[],
+            excludes={SAST_PRODUCT: ["foo/a.py"]},
+        )
+        .get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
+        .targets()
+    )
 
     # Should include explicitly passed python file even if it is in excludes
-    assert foo_a in TargetManager(
-        scanning_root_strings=frozenset([Path("."), Path("foo/a.py")]),
-        use_semgrepignore_v2=use_semgrepignore_v2,
-        includes=[],
-        excludes={SAST_PRODUCT: ["foo/a.py"]},
-    ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
+    assert (
+        foo_a
+        in TargetManager(
+            scanning_root_strings=frozenset([Path("."), Path("foo/a.py")]),
+            use_semgrepignore_v2=use_semgrepignore_v2,
+            includes=[],
+            excludes={SAST_PRODUCT: ["foo/a.py"]},
+        )
+        .get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
+        .targets()
+    )
 
     # Should ignore explicitly passed .go file when requesting python
     assert (
         TargetManager(
             scanning_root_strings=frozenset([Path("foo/a.go")]),
             use_semgrepignore_v2=use_semgrepignore_v2,
-        ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
+        )
+        .get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
+        .targets()
         == frozenset()
     )
 
@@ -343,7 +370,9 @@ def test_explicit_path(tmp_path, monkeypatch, use_semgrepignore_v2):
             scanning_root_strings=frozenset([Path("foo/noext")]),
             use_semgrepignore_v2=use_semgrepignore_v2,
             allow_unknown_extensions=True,
-        ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT),
+        )
+        .get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
+        .targets(),
         expected={foo_noext},
     )
 
@@ -352,7 +381,9 @@ def test_explicit_path(tmp_path, monkeypatch, use_semgrepignore_v2):
         actual=TargetManager(
             scanning_root_strings=frozenset([Path("foo/noext")]),
             use_semgrepignore_v2=use_semgrepignore_v2,
-        ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT),
+        )
+        .get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
+        .targets(),
         expected=set(),
     )
 
@@ -361,7 +392,9 @@ def test_explicit_path(tmp_path, monkeypatch, use_semgrepignore_v2):
         actual=TargetManager(
             scanning_root_strings=frozenset([Path("foo/noext"), Path("foo/a.py")]),
             use_semgrepignore_v2=use_semgrepignore_v2,
-        ).get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT),
+        )
+        .get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
+        .targets(),
         expected={foo_a},
     )
 
@@ -370,9 +403,11 @@ def test_explicit_path(tmp_path, monkeypatch, use_semgrepignore_v2):
         actual=TargetManager(
             scanning_root_strings=frozenset([Path("foo/a.py"), Path("foo/b.py")]),
             use_semgrepignore_v2=use_semgrepignore_v2,
-        ).get_files_for_rule(
+        )
+        .get_files_for_rule(
             python_language, ["a.py"], [], "dummy_rule_id", SAST_PRODUCT
-        ),
+        )
+        .targets(),
         expected={foo_a},
     )
 
@@ -382,9 +417,11 @@ def test_explicit_path(tmp_path, monkeypatch, use_semgrepignore_v2):
             scanning_root_strings=frozenset([Path("foo/a.py"), Path("foo/b.py")]),
             use_semgrepignore_v2=use_semgrepignore_v2,
             excludes={SAST_PRODUCT: ["*.py"]},
-        ).get_files_for_rule(
+        )
+        .get_files_for_rule(
             python_language, ["a.py"], [], "dummy_rule_id", SECRETS_PRODUCT
-        ),
+        )
+        .targets(),
         expected={foo_a},
     )
 
@@ -400,19 +437,25 @@ def test_explicit_path(tmp_path, monkeypatch, use_semgrepignore_v2):
 @pytest.mark.quick
 def test_ignores(tmp_path, monkeypatch):
     def ignore(ignore_pats, profile_product=SAST_PRODUCT, rule_product=SAST_PRODUCT):
-        return TargetManager(
-            scanning_root_strings=frozenset([tmp_path]),
-            use_semgrepignore_v2=False,
-            # This passes exclude patterns but pretends they come from a
-            # .semgrepignore file. Since there's no such file, the OCaml
-            # implementation doesn't find these exclude patterns and can't
-            # exclude the expected files.
-            semgrepignore_profiles={
-                profile_product: Semgrepignore.from_unprocessed_patterns(
-                    tmp_path, ignore_pats, max_log_list_entries=0
-                )
-            },
-        ).get_files_for_rule(Language("python"), [], [], "dummy_rule_id", rule_product)
+        return (
+            TargetManager(
+                scanning_root_strings=frozenset([tmp_path]),
+                use_semgrepignore_v2=False,
+                # This passes exclude patterns but pretends they come from a
+                # .semgrepignore file. Since there's no such file, the OCaml
+                # implementation doesn't find these exclude patterns and can't
+                # exclude the expected files.
+                semgrepignore_profiles={
+                    profile_product: Semgrepignore.from_unprocessed_patterns(
+                        tmp_path, ignore_pats, max_log_list_entries=0
+                    )
+                },
+            )
+            .get_files_for_rule(
+                Language("python"), [], [], "dummy_rule_id", rule_product
+            )
+            .targets()
+        )
 
     monkeypatch.chdir(tmp_path)
     a = tmp_path / "a.py"

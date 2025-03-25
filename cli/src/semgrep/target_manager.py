@@ -54,7 +54,7 @@ from semgrep.semgrep_types import FileExtension
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import Shebang
-from semgrep.types import FilteredFiles
+from semgrep.types import FilteredFiles, SelectedTargets
 from semgrep.util import (
     line_count_of_path,
     path_has_permissions,
@@ -242,7 +242,9 @@ class FileTargetingLog:
             # git repo.
             roots_not_in_git = 0
             dir_targets = 0
-            for t in self.target_manager.scanning_roots:
+            for t in self.target_manager.scanning_roots[
+                self.target_manager.use_semgrepignore_v2
+            ]:
                 if t.path.is_dir():
                     dir_targets += 1
                     try:
@@ -777,8 +779,11 @@ class TargetManager:
     allow_unknown_extensions: bool = False
     semgrepignore_profiles: Mapping[out.Product, Semgrepignore] = Factory(dict)
     ignore_log: FileTargetingLog = Factory(FileTargetingLog, takes_self=True)
-    scanning_roots: Sequence[ScanningRoot] = field(init=False)
+    # parametrized by use_semgrepignore_v2 since we run both v1 and v2
+    # to compare the results:
+    scanning_roots: dict[bool, Sequence[ScanningRoot]] = field(init=False)
     respect_semgrepignore: bool = True
+    # for semgrepignore v2 only:
     targeting_conf: Mapping[out.Product, out.TargetingConf] = field(init=False)
 
     _filtered_targets: Dict[Language, FilteredFiles] = field(factory=dict)
@@ -814,17 +819,18 @@ class TargetManager:
             )
             for product in ALL_PRODUCTS
         }
-        self.scanning_roots = [
-            ScanningRoot(
-                root,
-                git_tracked_only=self.respect_git_ignore,
-                baseline_handler=self.baseline_handler,
-                targeting_conf_v2=(
-                    self.targeting_conf if self.use_semgrepignore_v2 else None
-                ),
-            )
-            for root in self.scanning_root_strings
-        ]
+        self.scanning_roots = {
+            use_v2: [
+                ScanningRoot(
+                    root,
+                    git_tracked_only=self.respect_git_ignore,
+                    baseline_handler=self.baseline_handler,
+                    targeting_conf_v2=(self.targeting_conf if use_v2 else None),
+                )
+                for root in self.scanning_root_strings
+            ]
+            for use_v2 in (True, False)
+        }
         return None
 
     @staticmethod
@@ -985,13 +991,21 @@ class TargetManager:
 
     @lru_cache(maxsize=None)
     def get_all_files(
-        self, *, product: out.Product, ignore_baseline_handler: bool = False
+        self,
+        *,
+        product: out.Product,
+        use_semgrepignore_v2: Optional[bool] = None,
+        ignore_baseline_handler: bool = False,
     ) -> FrozenSet[Path]:
+        if use_semgrepignore_v2 is None:
+            use_semgrepignore_v2 = self.use_semgrepignore_v2
+        scanning_roots = self.scanning_roots[use_semgrepignore_v2]
         return frozenset(
             selected_file
-            for root in self.scanning_roots
+            for root in scanning_roots
             for selected_file in root.target_files(
-                ignore_baseline_handler=ignore_baseline_handler, product=product
+                ignore_baseline_handler=ignore_baseline_handler,
+                product=product,
             )
         )
 
@@ -1005,9 +1019,10 @@ class TargetManager:
         obtained.
         Legacy use_semgrepignore_v2=False
         """
+        use_semgrepignore_v2 = False
         return frozenset(
             f
-            for root in self.scanning_roots
+            for root in self.scanning_roots[use_semgrepignore_v2]
             for f in (
                 root.target_files_full(
                     product=product, ignore_baseline_handler=ignore_baseline_handler
@@ -1023,9 +1038,10 @@ class TargetManager:
         Return all the skipped files reported by the RPC to semgrep-core.
         Requires use_semgrepignore_v2=True.
         """
+        use_semgrepignore_v2 = True
         return [
             f
-            for root in self.scanning_roots
+            for root in self.scanning_roots[use_semgrepignore_v2]
             for f in (
                 root.target_files_full(
                     product=product, ignore_baseline_handler=ignore_baseline_handler
@@ -1034,11 +1050,12 @@ class TargetManager:
         ]
 
     @lru_cache(maxsize=None)
-    def get_files_for_language(
+    def _get_files_for_language_v1_or_v2(
         self,
         *,
         lang: Union[None, Language, Literal["dependency_source_files"]],
         product: out.Product,
+        use_semgrepignore_v2: bool,
         ignore_baseline_handler: bool = False,
     ) -> FilteredFiles:
         """
@@ -1058,16 +1075,25 @@ class TargetManager:
         ignore_baseline_handler: if True, will ignore the baseline handler and scan all files. Used in the context of scanning unchanged lockfiles for their dependencies and doing reachability analysis.
         """
         all_files = self.get_all_files(
-            ignore_baseline_handler=ignore_baseline_handler, product=product
+            ignore_baseline_handler=ignore_baseline_handler,
+            product=product,
+            use_semgrepignore_v2=use_semgrepignore_v2,
         )
+
+        # We maintain only one ignore log, the one for the requested version
+        # v1 or v2, so we only update it for the chosen version, not the
+        # other version that we run for comparison purposes.
+        update_ignore_log = self.use_semgrepignore_v2 == use_semgrepignore_v2
 
         if isinstance(lang, Language):
             files = self.filter_by_language(lang, candidates=all_files)
-            self.ignore_log.by_language[lang].update(files.removed)
+            if update_ignore_log:
+                self.ignore_log.by_language[lang].update(files.removed)
         elif lang == "dependency_source_files":
             kept = filter_dependency_source_files(candidates=all_files)
             files = FilteredFiles(kept, all_files - kept)
-            self.ignore_log.by_language[lang].update(files.removed)
+            if update_ignore_log:
+                self.ignore_log.by_language[lang].update(files.removed)
         else:
             files = FilteredFiles(frozenset(all_files), frozenset())
 
@@ -1078,7 +1104,8 @@ class TargetManager:
         # them further based on applicable rules. This number is reported
         # correctly by osemgrep but incorrectly by pysemgrep.
         ####################################################################
-        if self.use_semgrepignore_v2:
+
+        if use_semgrepignore_v2:
             # Populate the ignore_log with the skipped files so they can
             # be printed out.
             skipped_files = self.get_skipped_files(
@@ -1115,22 +1142,28 @@ class TargetManager:
                 else:
                     # TODO: report the many other cases as "other" or whatever
                     pass
-            self.ignore_log.cli_includes.update(includes)
-            self.ignore_log.cli_excludes.update(excludes)
-            self.ignore_log.insufficient_permissions.update(insufficient_permissions)
-            self.ignore_log.size_limit.update(size_limit)
-            self.ignore_log.semgrepignored.update(semgrepignored)
+            if update_ignore_log:
+                self.ignore_log.cli_includes.update(includes)
+                self.ignore_log.cli_excludes.update(excludes)
+                self.ignore_log.insufficient_permissions.update(
+                    insufficient_permissions
+                )
+                self.ignore_log.size_limit.update(size_limit)
+                self.ignore_log.semgrepignored.update(semgrepignored)
         else:  # legacy, not use_semgrepignore_v2
             files = self.filter_includes(self.includes, candidates=files.kept)
-            self.ignore_log.cli_includes.update(files.removed)
+            if update_ignore_log:
+                self.ignore_log.cli_includes.update(files.removed)
 
             files = self.filter_excludes(
                 self.excludes.get(product, []), candidates=files.kept
             )
-            self.ignore_log.cli_excludes.update(files.removed)
+            if update_ignore_log:
+                self.ignore_log.cli_excludes.update(files.removed)
 
             files = self.filter_excludes(PATHS_ALWAYS_SKIPPED, candidates=files.kept)
-            self.ignore_log.always_skipped.update(files.removed)
+            if update_ignore_log:
+                self.ignore_log.always_skipped.update(files.removed)
 
             paths_with_insufficient_permissions = (
                 self.get_paths_with_insufficient_permissions(
@@ -1140,29 +1173,32 @@ class TargetManager:
             # Depending on how the files were obtained, we need to check
             # for file permissions here
             files = self.filter_by_permission(files.kept)
-            self.ignore_log.insufficient_permissions.update(
-                set(files.removed | paths_with_insufficient_permissions)
-            )
+            if update_ignore_log:
+                self.ignore_log.insufficient_permissions.update(
+                    set(files.removed | paths_with_insufficient_permissions)
+                )
 
             # Lockfiles are easy to parse, and regularly surpass 1MB for big repos
             if lang != "dependency_source_files":
                 files = self.filter_by_size(
                     self.max_target_bytes, candidates=files.kept
                 )
-                self.ignore_log.size_limit.update(files.removed)
+                if update_ignore_log:
+                    self.ignore_log.size_limit.update(files.removed)
 
             # TODO: explain what's going on with these semgrepignore profiles
             if product in self.semgrepignore_profiles and self.respect_semgrepignore:
                 semgrepignore = self.semgrepignore_profiles[product]
                 files = semgrepignore.filter_paths(candidates=files.kept)
                 # TODO: Fix ignore_log to log which profile filtered which files.
-                self.ignore_log.semgrepignored.update(files.removed)
+                if update_ignore_log:
+                    self.ignore_log.semgrepignored.update(files.removed)
 
         kept_files = files.kept
 
         explicit_files = frozenset(
             t.path
-            for t in self.scanning_roots
+            for t in self.scanning_roots[use_semgrepignore_v2]
             if not t.path.is_dir() and t.path.is_file()
         )
 
@@ -1183,14 +1219,33 @@ class TargetManager:
 
         return FilteredFiles(kept_files, all_files - kept_files)
 
-    def get_files_for_rule(
+    @lru_cache(maxsize=None)
+    def get_files_for_language(
+        self,
+        *,
+        lang: Union[None, Language, Literal["dependency_source_files"]],
+        product: out.Product,
+        ignore_baseline_handler: bool = False,
+    ) -> FilteredFiles:
+        """This requests target files using the legacy v1 implementation
+        and the new v2 implementation so that we can warn the user
+        about the differences."""
+        return self._get_files_for_language_v1_or_v2(
+            lang=lang,
+            product=product,
+            use_semgrepignore_v2=self.use_semgrepignore_v2,
+            ignore_baseline_handler=ignore_baseline_handler,
+        )
+
+    def _get_files_for_rule_v1_or_v2(
         self,
         lang: Language,
         rule_includes: Sequence[str],
         rule_excludes: Sequence[str],
         rule_id: str,
         rule_product: out.Product,
-    ) -> FrozenSet[Path]:
+        use_semgrepignore_v2: bool,
+    ) -> frozenset[Path]:
         """
         Returns list of target files that should be analyzed for a LANG
 
@@ -1202,16 +1257,52 @@ class TargetManager:
         in SCANNING_ROOT will bypass this global INCLUDE/EXCLUDE filter. The local INCLUDE/EXCLUDE
         filter is then applied.
         """
-        paths = self.get_files_for_language(lang=lang, product=rule_product)
+        paths = self._get_files_for_language_v1_or_v2(
+            lang=lang, product=rule_product, use_semgrepignore_v2=use_semgrepignore_v2
+        )
+        # See comment above in the other method that defines 'update_ignore_log'.
+        update_ignore_log = self.use_semgrepignore_v2 == use_semgrepignore_v2
 
         if self.respect_rule_paths:
             paths = self.filter_includes(rule_includes, candidates=paths.kept)
-            self.ignore_log.rule_includes[rule_id].update(paths.removed)
+            if update_ignore_log:
+                self.ignore_log.rule_includes[rule_id].update(paths.removed)
 
             paths = self.filter_excludes(rule_excludes, candidates=paths.kept)
-            self.ignore_log.rule_excludes[rule_id].update(paths.removed)
+            if update_ignore_log:
+                self.ignore_log.rule_excludes[rule_id].update(paths.removed)
 
         return paths.kept
+
+    def get_files_for_rule(
+        self,
+        lang: Language,
+        rule_includes: Sequence[str],
+        rule_excludes: Sequence[str],
+        rule_id: str,
+        rule_product: out.Product,
+    ) -> SelectedTargets:
+        v1_targets = self._get_files_for_rule_v1_or_v2(
+            lang=lang,
+            rule_includes=rule_includes,
+            rule_excludes=rule_excludes,
+            rule_id=rule_id,
+            rule_product=rule_product,
+            use_semgrepignore_v2=False,
+        )
+        v2_targets = self._get_files_for_rule_v1_or_v2(
+            lang=lang,
+            rule_includes=rule_includes,
+            rule_excludes=rule_excludes,
+            rule_id=rule_id,
+            rule_product=rule_product,
+            use_semgrepignore_v2=True,
+        )
+        return SelectedTargets(
+            use_semgrepignore_v2=self.use_semgrepignore_v2,
+            v1_targets=v1_targets,
+            v2_targets=v2_targets,
+        )
 
     def get_all_dependency_source_files(
         self,

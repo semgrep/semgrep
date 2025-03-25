@@ -346,6 +346,7 @@ class ScanHandler:
     @tracing.trace()
     def report_findings(
         self,
+        *,
         matches_by_rule: RuleMatchMap,
         rules: List[Rule],
         targets: Set[Path],

@@ -2,6 +2,7 @@ running 1 rules from 1 config rules/nosem.yaml_0
 No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignore-files
 Rules:
 - rules.test-nosem
+Unable to ignore files ignored by git (targets/basic is not a git directory or git is not installed). Running on all files instead...
 
 
 ┌─────────────┐

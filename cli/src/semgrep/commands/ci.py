@@ -55,6 +55,7 @@ from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
 from semgrep.target_manager import ALL_PRODUCTS
 from semgrep.target_manager import SAST_PRODUCT
+from semgrep.types import TargetAccumulator
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -416,21 +417,21 @@ def ci(
                     # Inform the App that the scan started & ended
                     scan_handler.start_scan(project_metadata, project_config)
                     scan_handler.report_findings(
-                        dict(),
-                        [],
-                        set(),
-                        set(),
-                        frozenset(),
-                        0,  # Inform app that we are exiting with code 0
-                        ParsingData(),
-                        0.0,
-                        "",
-                        dict(),
-                        [],
-                        [],
-                        contributions,
-                        engine_type,
-                        progress_bar,
+                        matches_by_rule=dict(),
+                        rules=[],
+                        targets=set(),
+                        renamed_targets=set(),
+                        ignored_targets=frozenset(),
+                        cli_suggested_exit_code=0,  # Inform app that we are exiting with code 0
+                        parse_rate=ParsingData(),
+                        total_time=0.0,
+                        commit_date="",
+                        lockfile_dependencies=dict(),
+                        dependency_parser_errors=[],
+                        all_subprojects=[],
+                        contributions=contributions,
+                        engine_requested=engine_type,
+                        progress_bar=progress_bar,
                     )
                     sys.exit(0)
 
@@ -760,7 +761,13 @@ def ci(
                 scan_handler.report_failure(exit_code)
 
             output_handler.handle_semgrep_errors([e])
-            output_handler.output({}, all_targets=set(), filtered_rules=[])
+            output_handler.output(
+                {},
+                all_targets_v1_v2=TargetAccumulator(
+                    use_semgrepignore_v2=use_semgrepignore_v2
+                ),
+                filtered_rules=[],
+            )
             logger.info(f"Encountered error when running rules: {e}")
 
             sys.exit(exit_code)
@@ -906,7 +913,7 @@ def ci(
             if not internal_ci_scan_results:
                 output_handler.output(
                     non_cai_matches_by_rule,
-                    all_targets=output_extra.all_targets,
+                    all_targets_v1_v2=output_extra.all_targets,
                     engine_type=engine_type,
                     ignore_log=ignore_log,
                     profiler=profiler,
@@ -928,21 +935,23 @@ def ci(
                 console=console,
             ) as progress_bar:
                 complete_result = scan_handler.report_findings(
-                    filtered_matches_by_rule,
-                    filtered_rules,
-                    output_extra.all_targets,
-                    renamed_targets,
-                    ignore_log.unsupported_lang_paths(product=SAST_PRODUCT),
-                    cli_suggested_exit_code,
-                    output_extra.parsing_data,
-                    total_time,
-                    metadata.commit_datetime,
-                    dependencies,
-                    dependency_parser_errors,
-                    all_subprojects,
-                    contributions,
-                    engine_type,
-                    progress_bar,
+                    matches_by_rule=filtered_matches_by_rule,
+                    rules=filtered_rules,
+                    targets=output_extra.all_targets.targets(),
+                    renamed_targets=renamed_targets,
+                    ignored_targets=ignore_log.unsupported_lang_paths(
+                        product=SAST_PRODUCT
+                    ),
+                    cli_suggested_exit_code=cli_suggested_exit_code,
+                    parse_rate=output_extra.parsing_data,
+                    total_time=total_time,
+                    commit_date=metadata.commit_datetime,
+                    lockfile_dependencies=dependencies,
+                    dependency_parser_errors=dependency_parser_errors,
+                    all_subprojects=all_subprojects,
+                    contributions=contributions,
+                    engine_requested=engine_type,
+                    progress_bar=progress_bar,
                 )
             app_blocked_mids = set()
             if (
@@ -985,7 +994,7 @@ def ci(
             if not internal_ci_scan_results:
                 output_handler.output(
                     non_cai_matches_by_rule,
-                    all_targets=output_extra.all_targets,
+                    all_targets_v1_v2=output_extra.all_targets,
                     engine_type=engine_type,
                     ignore_log=ignore_log,
                     profiler=profiler,

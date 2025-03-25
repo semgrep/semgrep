@@ -41,6 +41,8 @@ Creating git worktree from 'foo' to scan baseline.
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘
+Semgrep's file targeting is getting a revamp! This scan wouldn't see any changes. To learn about what will be different after version 1.115.0, visit https://semgrep.dev/docs/kb/semgrep-code/semgrepignore-ignored for the new specification.
+
 ✅ Scan completed successfully.
  • Findings: 6 (6 blocking)
  • Rules run: 1

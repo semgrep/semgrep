@@ -74,8 +74,8 @@ def cli(ctx: click.Context) -> None:
     maybe_set_git_safe_directories()
 
 
-cli.add_command(ci)
-cli.add_command(login)
-cli.add_command(publish)
-cli.add_command(scan)
-cli.add_command(install_semgrep_pro)
+cli.add_command(cmd=ci)
+cli.add_command(cmd=login)
+cli.add_command(cmd=publish)
+cli.add_command(cmd=scan)
+cli.add_command(cmd=install_semgrep_pro)

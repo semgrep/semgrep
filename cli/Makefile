@@ -188,7 +188,11 @@ osemgrep-qa:
 # Dev targets
 ###############################################################################
 
-.PHONY:
+# Tip: if you just ran 'make test' and you got errors due to test snapshots
+# that need updating, it's faster to rerun only the failed tests with '--lf'
+# combined with '--snapshot-update'.
+#
+.PHONY: regenerate-tests
 regenerate-tests:
 	pipenv run pytest -n auto \
 	  --run-only-snapshots --snapshot-update --allow-snapshot-deletion \

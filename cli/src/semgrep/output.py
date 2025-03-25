@@ -51,6 +51,7 @@ from semgrep.state import get_state
 from semgrep.target_manager import FileErrorLog
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
+from semgrep.types import TargetAccumulator
 from semgrep.util import is_url
 from semgrep.util import line_count_of_path
 from semgrep.util import pretty_print_percentage
@@ -122,7 +123,7 @@ def _build_time_json(
 
 
 # This class is the internal representation of OutputSettings below.
-# Since it is internal it can change as much as necesarry to make
+# Since it is internal it can change as much as necessary to make
 # typechecking more accurate and enforce invariants.
 class NormalizedOutputSettings(NamedTuple):
     # Immutable List of OutputDestination x OutputFormat
@@ -189,6 +190,55 @@ class OutputSettings(NamedTuple):
             dataflow_traces=self.dataflow_traces,
             max_log_list_entries=self.max_log_list_entries,
         )
+
+
+def show_some_paths(paths: set[Path], output_settings: NormalizedOutputSettings) -> str:
+    """Return a multiline nonempty string without a trailing newline"""
+    unformatted_path_list = [str(p) for p in paths] if paths else ["<none>"]
+    prefix = " • "
+    path_list = [f"{prefix}{txt}" for txt in sorted(unformatted_path_list)]
+    # Show at most this many paths:
+    max_paths = 1000 if output_settings.verbose_errors else 10
+    num_paths = len(paths)
+    res = "\n".join(path_list[:max_paths])
+    if num_paths > max_paths:
+        res = res + f"\n{prefix}[+ {num_paths-max_paths} more]"
+    return res
+
+
+def warn_of_v1_v2_discrepancies(
+    *, all_targets: TargetAccumulator, output_settings: NormalizedOutputSettings
+) -> None:
+    v1_targets = all_targets.v1_targets
+    v2_targets = all_targets.v2_targets
+    new_in_v2 = v2_targets - v1_targets
+    missing_in_v2 = v1_targets - v2_targets
+    url = "https://semgrep.dev/docs/kb/semgrep-code/semgrepignore-ignored"
+    if all_targets.use_semgrepignore_v2:
+        # We're already using Semgrepignore v2
+        return
+    # This should be the last release defaulting to Semgrepignore v1
+    # (presumably for all users, not just CE users):
+    v2_version = "1.115.0"
+    if not new_in_v2 and not missing_in_v2:
+        # No changes
+        msg = f"Semgrep's file targeting is getting a revamp! This scan wouldn't see any changes. To learn about what will be different after version {v2_version}, visit {url} for the new specification."
+        msg += "\n"  # blank line
+        logger.warning(msg)
+    else:
+        # Some changes
+        msg = f"""Semgrep's file targeting is getting a revamp! To keep scanning the same files
+after version {v2_version}, you will need to update your .semgrepignore. If you have
+any questions, ask on the Community Slack or file an issue on https://github.com/semgrep/semgrep/issues.
+
+See {url} for the new specification.
+"""
+        msg += f"\nHere's the list of files that will no longer be scanned:\n"
+        msg += show_some_paths(missing_in_v2, output_settings=output_settings)
+        msg += f"\n\nHere's the list of new files that will be scanned:\n"
+        msg += show_some_paths(new_in_v2, output_settings=output_settings)
+        msg += "\n"  # blank line
+        logger.warning(msg)
 
 
 class OutputHandler:
@@ -377,7 +427,7 @@ class OutputHandler:
         self,
         rule_matches_by_rule: RuleMatchMap,
         *,
-        all_targets: Set[Path],
+        all_targets_v1_v2: TargetAccumulator,
         engine_type: EngineType = EngineType.OSS,
         filtered_rules: List[Rule],
         ignore_log: Optional[FileTargetingLog] = None,
@@ -390,6 +440,7 @@ class OutputHandler:
         executed_rule_count: int = 0,
         missed_rule_count: int = 0,
     ) -> None:
+        all_targets = all_targets_v1_v2.targets()
         state = get_state()
         self.has_output = True
         self.rules = self.rules.union(rule_matches_by_rule.keys())
@@ -412,7 +463,7 @@ class OutputHandler:
             self.ignore_log = FileTargetingLog(
                 TargetManager(
                     scanning_root_strings=frozenset([Path(".")]),
-                    use_semgrepignore_v2=True,
+                    use_semgrepignore_v2=all_targets_v1_v2.use_semgrepignore_v2,
                 )
             )
 
@@ -490,7 +541,7 @@ class OutputHandler:
             num_nonblocking_findings = len(nonblocking_findings)
 
             num_findings = num_blocking_findings + num_nonblocking_findings
-            num_targets = len(self.all_targets)
+            num_targets = len(all_targets)
             num_rules = executed_rule_count or len(self.filtered_rules)
             count_line = (
                 f"\n • Findings: {num_findings} ({num_blocking_findings} blocking)"
@@ -502,7 +553,7 @@ class OutputHandler:
             suggestion_line = ""
             more_detail_line = ""
 
-            total_lines = sum([line_count_of_path(t) for t in self.all_targets])
+            total_lines = sum([line_count_of_path(t) for t in all_targets])
             total_lines_skipped = 0
             if self.ignore_log.core_failure_lines_by_file:
                 ignore_log = self.ignore_log
@@ -557,6 +608,9 @@ class OutputHandler:
                 + suggestion_line
             )
             console.print(Title("Scan Summary"))
+            warn_of_v1_v2_discrepancies(
+                all_targets=all_targets_v1_v2, output_settings=self.settings
+            )
             logger.info(output_text)
 
         self._final_raise(final_error)

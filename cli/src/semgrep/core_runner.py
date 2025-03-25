@@ -52,6 +52,7 @@ from semgrep.state import DesignTreatment
 from semgrep.state import get_state
 from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
+from semgrep.types import TargetAccumulator
 from semgrep.util import IS_WINDOWS
 from semgrep.verbose_logging import getLogger
 
@@ -714,7 +715,7 @@ class CoreRunner:
         target_manager: TargetManager,
         all_subprojects: List[Union[out.ResolvedSubproject, out.UnresolvedSubproject]],
         *,
-        all_targets: Optional[Set[Path]] = None,
+        all_targets: Optional[TargetAccumulator] = None,
         product: Optional[out.Product] = None,
     ) -> Plan:
         """
@@ -737,23 +738,27 @@ class CoreRunner:
         unused_rules = []
 
         for rule_num, rule in enumerate(rules):
-            any_target = False
+            some_target = False
             for language in rule.languages:
-                targets = list(
-                    target_manager.get_files_for_rule(
-                        language, rule.includes, rule.excludes, rule.id, rule.product
-                    )
+                selection = target_manager.get_files_for_rule(
+                    language, rule.includes, rule.excludes, rule.id, rule.product
                 )
-                any_target = any_target or len(targets) > 0
+
+                if all_targets is not None:
+                    for target in selection.v1_targets:
+                        all_targets.v1_targets.add(target)
+                    for target in selection.v2_targets:
+                        all_targets.v2_targets.add(target)
+
+                targets = selection.targets()
+                some_target = some_target or len(targets) > 0
 
                 for target in targets:
-                    if all_targets is not None:
-                        all_targets.add(target)
                     rules_nums, products = target_info[target, language]
                     rules_nums.append(rule_num)
                     products.add(rule.product.to_json_string())
 
-            if not any_target:
+            if not some_target:
                 unused_rules.append(rule)
 
         return Plan(
@@ -793,7 +798,8 @@ class CoreRunner:
 
         outputs: RuleMatchMap = collections.defaultdict(OrderedRuleMatchList)
         errors: List[SemgrepError] = []
-        all_targets: Set[Path] = set()
+        use_semgrepignore_v2 = target_manager.use_semgrepignore_v2
+        all_targets = TargetAccumulator(use_semgrepignore_v2=use_semgrepignore_v2)
         file_timeouts: Dict[Path, int] = collections.defaultdict(int)
         max_timeout_files: Set[Path] = set()
         # TODO this is a quick fix, refactor this logic
@@ -990,7 +996,7 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                     )
 
                 if engine is EngineType.PRO_INTERFILE:
-                    scanning_roots = target_manager.scanning_roots
+                    scanning_roots = target_manager.scanning_roots[use_semgrepignore_v2]
                     if len(scanning_roots) == 1:
                         root = str(scanning_roots[0].path)
                     else:
@@ -1193,7 +1199,7 @@ Exception raised: `{e}`
         )
 
         logger.debug(
-            f"semgrep ran in {datetime.now() - start} on {len(output_extra.all_targets)} files"
+            f"semgrep ran in {datetime.now() - start} on {len(output_extra.all_targets.targets())} files"
         )
         by_severity = collections.defaultdict(list)
         for rule, findings in findings_by_rule.items():
