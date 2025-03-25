@@ -28,9 +28,16 @@
 type name = string [@@deriving show, eq]
 
 (* package version (e.g., "1.1.0")
- * see also SCA_version.t which is its parsed form
+ * see also SCA_version.t which is its parsed form.
+ * Those strings usually appear in lockfiles.
  *)
 type version = string [@@deriving show, eq]
+
+(* ex: "^1.1.0" or "~1.1.0" in yarn.lock and package.json
+ * This can also be a single version as in "1.1.0". Those strings
+ * usually appear in manifests.
+ *)
+type version_constraint = string [@@deriving show, eq]
 
 (* See also SCA_dependency.t which specifies the ecosystem, URI,
  * and location in a lockfile.
