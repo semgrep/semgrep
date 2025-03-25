@@ -70,6 +70,7 @@ PARSERS_BY_LOCKFILE_KIND: Dict[out.LockfileKind, Union[DependencyParser, None]] 
 PTT_OCAML_PARSER_SUBPROJECT_KINDS = [
     (out.ManifestKind(out.PackageJson()), out.LockfileKind(out.NpmPackageLockJson())),
     (out.ManifestKind(out.Csproj()), out.LockfileKind(out.NugetPackagesLockJson())),
+    # TODO: (out.ManifestKind(out.PackageJson()), out.LockfileKind(out.YarnLock())),
 ]
 
 PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS = [
