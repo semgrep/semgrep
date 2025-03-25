@@ -52,14 +52,14 @@ local copy_from_docker(artifact_name, target, file='Dockerfile') = [
     ], archs));
 
 local job(
-    name,
-    target,
-    prefix='oss',
-    artifact_name=null,
-    needs=[],
+    name, // Name of docker image if uploaded (i.e. semgrep/NAME)
+    target, // Target docker layer (i.e. build, semgrep-cli, etc.)
+    prefix='oss-', // prefix for image tags
+    suffix='', // suffix for image tags
+    artifact_name=null, // name of artifact to copy from docker image
+    needs=[], // prereq GHA steps
     checkout_steps=actions.checkout_with_submodules,
-    latest=false,
-    push=false,
+    push=false, // push to registry
     file='Dockerfile') =
       (if needs != [] then { needs: needs } else {}) +
 {
@@ -110,9 +110,18 @@ local job(
           semgrep/%(name)s
           338683922796.dkr.ecr.us-west-2.amazonaws.com/semgrep/semgrep-proprietary
         ||| % {name: name},
+        // latest=true the tag will be PREFIX-latest-SUFFIX. Since we always
+        // promote from canary to latest manually, we never want to do this
+        //
+        // suffix=SUFFIX will suffix always suffix a tag set by `tags` with said
+        // suffix
+        //
+        // prefix works the same as suffix but -- prefix!
         flavor: |||
-          latest=%s
-        ||| % latest,
+          latest=false
+          prefix=%(prefix)s
+          suffix=%(suffix)s
+        ||| % {prefix: prefix, suffix: suffix},
         // Previously used type=sha for pro-sha-* but it queries github for the
         // sha associated with the event instead of using the actual sha that we
         // checked out!
@@ -120,11 +129,30 @@ local job(
         // TODO: When we trigger this manually, the pro-<branch> tag is applied
         // based on the branch that the workflow is on, not the sha provided (if
         // any). We should set this tag only if no sha is provided.
+        //
+        // if run on push to a PR, tag image with the PR number (ex. "123")
+        // NOTE: we need to set prefix here again if we want "-pr-" to be
+        // included in the tag
+        // type=ref,event=pr,prefix=%(prefix)-pr-
+        //
+        // if run on push to branch, tag image with the branch name (ex. "main")
+        // type=ref,event=branch
+        //
+        // if not a PR or branch push, tag image with the sha (ex. "abcdef123456")
+        // type=raw,prefix=%s-sha-,value=%s
+        //
+        // if pushed to a GH tag, tag image with full version (ex. "1.2.3")
+        // type=semver,pattern={{version}}
+        //
+        // if pushed to a GH tag, tag image with major.minor (ex. "1.2")
+        // type=semver,pattern={{major}}.{{minor}}
         tags: |||
-          type=ref,event=pr,prefix=%s-pr-
-          type=ref,event=branch,prefix=%s-
-          type=raw,prefix=%s-sha-,value=%s
-        ||| % [prefix, prefix, prefix, ref_expr],
+          type=ref,event=pr,prefix=%(prefix)spr-
+          type=ref,event=branch
+          type=raw,value=sha-%(ref_expr)s
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+        ||| % {prefix:prefix, ref_expr:ref_expr},
       },
     },
     {
