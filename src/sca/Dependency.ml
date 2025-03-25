@@ -87,6 +87,17 @@ type manifest_dependency = {
 [@@deriving show, eq]
 
 (*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
+let dependency_kind (pkg : Package.t) (direct_deps : Package.name list option) :
+    kind =
+  match direct_deps with
+  | None -> Unknown
+  | Some direct_deps ->
+      if List.mem pkg.name direct_deps then Direct else Transitive
+
+(*****************************************************************************)
 (* Converters *)
 (*****************************************************************************)
 
