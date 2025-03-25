@@ -106,9 +106,10 @@ local job(
         // for the registry semgrep/semgrep-proprietary and from there, the URL and
         // the role to assume that is used in this workflow will be present.
         images: |||
-          semgrep/%s
+          returntocorp/%(name)s
+          semgrep/%(name)s
           338683922796.dkr.ecr.us-west-2.amazonaws.com/semgrep/semgrep-proprietary
-        ||| % name,
+        ||| % {name: name},
         flavor: |||
           latest=%s
         ||| % latest,
