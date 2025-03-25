@@ -113,6 +113,7 @@ For more information see https://semgrep.dev
     (visitors (= 20250212))
     ; regexps
     re
+    conf-libpcre
     pcre
     ; we're currently "vendoring" pcre2 in libs/pcre2
     pcre2

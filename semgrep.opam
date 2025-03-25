@@ -53,6 +53,7 @@ depends: [
   "ppx_expect"
   "visitors" {= "20250212"}
   "re"
+  "conf-libpcre"
   "pcre"
   "pcre2"
   "ocamlgraph"
