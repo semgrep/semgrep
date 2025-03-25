@@ -30,7 +30,7 @@ local build_core_job = {
   'runs-on': runs_on,
   defaults: defaults,
   steps: actions.checkout_with_submodules() + [
-    semgrep.opam_setup(semgrep.opam_switch, ['semgrep-pro.opam', 'OSS/semgrep.opam']),
+    semgrep.opam_setup(semgrep.opam_switch),
     {
       // TODO: Remove this once the stable version of `mingw64-x86_64-openssl`
       // is updated in Cygwin.

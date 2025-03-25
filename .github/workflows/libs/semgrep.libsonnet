@@ -177,14 +177,14 @@ local opam_cache_version = "v1";
 // TODO upstream the changes in austin's custom setup-ocaml action,
 // or move the project to the semgrep org
 // coupling: default is above opam_switch
-local opam_setup = function(opam_switch=opam_switch_default, cache_deps=["semgrep.opam"]) {
+local opam_setup = function(opam_switch=opam_switch_default) {
       uses: 'semgrep/setup-ocaml@latest',
       with: {
         'ocaml-compiler': opam_switch,
 	      'opam-pin': false,
         # Save the cache post run instead of after installing the compiler
         'save-opam-post-run': true,
-        'cache-prefix': '%s-${{hashFiles(\'%s\')}}' % [opam_cache_version, std.join('\', \'', cache_deps)],
+        'cache-prefix': opam_cache_version,
       },
     };
 
@@ -263,8 +263,8 @@ local setup_nix_step = [
 ];
 
 
-local build_test_steps(opam_switch=opam_switch_default, cache_deps=['semgrep.opam'], name='semgrep-core', time=false) = [
-    opam_setup(opam_switch, cache_deps=cache_deps),
+local build_test_steps(opam_switch=opam_switch_default, name='semgrep-core', time=false) = [
+    opam_setup(opam_switch),
     {
       name: 'Install dependencies',
       run: "opam exec -- make install-deps",
