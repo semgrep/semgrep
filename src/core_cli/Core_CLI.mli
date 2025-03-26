@@ -37,6 +37,8 @@ val options :
   ; Cap.random
   ; Core_scan.caps
   ; Cap.network
+  ; Cap.chdir
+  ; Cap.tmp
   ; .. > ->
   (unit -> Arg_.action_spec list) ->
   Arg_.cmdline_options

@@ -98,6 +98,7 @@ PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS = [
 
 TR_OCAML_RESOLVER_SUBPROJECT_KINDS = [
     (out.ManifestKind(out.PackageJson()), out.LockfileKind(out.NpmPackageLockJson())),
+    (out.ManifestKind(out.PyprojectToml()), out.LockfileKind(out.UvLock())),
 ]
 
 DependencyResolutionResult = Tuple[

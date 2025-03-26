@@ -17,7 +17,7 @@ val validate : Out.fpath -> bool
 
 (* TODO: switch all those option ref to Hook.t *)
 val hook_resolve_dependencies :
-  (< Cap.exec ; Cap.tmp > ->
+  (< Cap.exec ; Cap.tmp ; Cap.chdir > ->
   download_dependency_source_code:bool ->
   Out.dependency_source list ->
   (Out.dependency_source * Out.resolution_result) list)
@@ -25,7 +25,7 @@ val hook_resolve_dependencies :
   ref
 
 val hook_transitive_reachability_filter :
-  (< Cap.readdir ; Core_scan.caps > ->
+  (< Cap.readdir ; Core_scan.caps ; Cap.network ; Cap.exec ; Cap.tmp > ->
   Out.transitive_reachability_filter_params ->
   Out.transitive_finding list)
   option

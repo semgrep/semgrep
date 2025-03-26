@@ -649,6 +649,7 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
                    ; Cap.network
                    ; Cap.readdir
                    ; Cap.random
+                   ; Cap.chdir
                    ; Core_scan.caps >);
             Core_exit_code.(exit_semgrep caps#exit Success)),
         " don't use this unless you already know" );

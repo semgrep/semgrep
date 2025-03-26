@@ -18,6 +18,7 @@ type caps =
   ; Cap.network
   ; Cap.readdir
   ; Cap.random
+  ; Cap.chdir
   ; Core_scan.caps >
 
 (*****************************************************************************)
@@ -51,7 +52,7 @@ let handle_call (caps : < caps ; .. >) :
       | Some resolve_dependencies ->
           let resolved =
             resolve_dependencies
-              (caps :> < Cap.exec ; Cap.tmp >)
+              (caps :> < Cap.exec ; Cap.tmp ; Cap.chdir >)
               ~download_dependency_source_code:
                 params.download_dependency_source_code params.dependency_sources
           in
@@ -86,7 +87,12 @@ let handle_call (caps : < caps ; .. >) :
       | Some transitive_reachability_filter ->
           let xs =
             transitive_reachability_filter
-              (caps :> < Core_scan.caps ; Cap.readdir >)
+              (caps
+                :> < Core_scan.caps
+                   ; Cap.readdir
+                   ; Cap.network
+                   ; Cap.exec
+                   ; Cap.tmp >)
               params
           in
           Ok (`RetTransitiveReachabilityFilter xs)

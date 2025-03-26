@@ -5,6 +5,7 @@ val main :
   ; Cap.network
   ; Cap.readdir
   ; Cap.random
+  ; Cap.chdir
   ; Core_scan.caps
   ; .. > ->
   unit
