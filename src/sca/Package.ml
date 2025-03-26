@@ -33,7 +33,7 @@ type name = string [@@deriving show, eq]
  *)
 type version = string [@@deriving show, eq]
 
-(* ex: "^1.1.0" or "~1.1.0" in yarn.lock and package.json
+(* ex: "^1.1.0","~1.1.0", "*" in yarn.lock and package.json
  * This can also be a single version as in "1.1.0". Those strings
  * usually appear in manifests.
  *)
