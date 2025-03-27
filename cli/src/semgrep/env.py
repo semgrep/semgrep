@@ -106,10 +106,10 @@ class Env:
         if value:
             return Path(value)
         cache_home = os.getenv("XDG_CACHE_HOME")
-        if cache_home is None or not Path(cache_home).is_dir():
-            parent_dir = Path.home() / ".cache"
-        else:
+        if cache_home and Path(cache_home).is_dir():
             parent_dir = Path(cache_home)
+        else:
+            parent_dir = Path.home() / ".cache"
         return parent_dir / "semgrep_version"
 
     @git_command_timeout.default
