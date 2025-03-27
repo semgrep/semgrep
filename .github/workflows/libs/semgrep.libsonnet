@@ -24,40 +24,41 @@ local gha = import 'gha.libsonnet';
 
 local github_bot = {
   get_token_steps: [
-   {
-    name: 'Get JWT for semgrep-ci GitHub App',
-    id: 'jwt',
-    uses: 'docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest',
-    env: {
-      // This is the shortest expiration setting. It ensures that if an
-      // attacker got a hold of these credentials after the job runs,
-      // they're expired.
-      // TODO: how an attacker can access this credential?
-      EXPIRATION: 600,  // in seconds
-      ISSUER: '${{ secrets.SEMGREP_CI_APP_ID }}',
-      PRIVATE_KEY: '${{ secrets.SEMGREP_CI_APP_KEY }}',
+    {
+      name: 'Get JWT for semgrep-ci GitHub App',
+      id: 'jwt',
+      uses: 'docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest',
+      env: {
+        // This is the shortest expiration setting. It ensures that if an
+        // attacker got a hold of these credentials after the job runs,
+        // they're expired.
+        // TODO: how an attacker can access this credential?
+        EXPIRATION: 600,  // in seconds
+        ISSUER: '${{ secrets.SEMGREP_CI_APP_ID }}',
+        PRIVATE_KEY: '${{ secrets.SEMGREP_CI_APP_KEY }}',
+      },
     },
-  },
-  // We are using the standard github-recommended method for short-live
-  // authentification.
-  // See https://docs.github.com/en/developers/apps/building-github-apps/authenticating-with-github-apps#authenticating-as-a-github-app
-  {
-    name: 'Get token for semgrep-ci GitHub App',
-    id: 'token',
-    env: {
-      SEMGREP_CI_APP_INSTALLATION_ID: '${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}',
-      JWT: '${{ steps.jwt.outputs.jwt }}',
+    // We are using the standard github-recommended method for short-live
+    // authentification.
+    // See https://docs.github.com/en/developers/apps/building-github-apps/authenticating-with-github-apps#authenticating-as-a-github-app
+    {
+      name: 'Get token for semgrep-ci GitHub App',
+      id: 'token',
+      env: {
+        SEMGREP_CI_APP_INSTALLATION_ID: '${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}',
+        JWT: '${{ steps.jwt.outputs.jwt }}',
+      },
+      run: |||
+        TOKEN="$(curl -X POST \
+        -H "Authorization: Bearer $JWT" \
+        -H "Accept: application/vnd.github.v3+json" \
+        "https://api.github.com/app/installations/${SEMGREP_CI_APP_INSTALLATION_ID}/access_tokens" | \
+        jq -r .token)"
+        echo "::add-mask::$TOKEN"
+        echo "token=$TOKEN" >> $GITHUB_OUTPUT
+      |||,
     },
-    run: |||
-      TOKEN="$(curl -X POST \
-      -H "Authorization: Bearer $JWT" \
-      -H "Accept: application/vnd.github.v3+json" \
-      "https://api.github.com/app/installations/${SEMGREP_CI_APP_INSTALLATION_ID}/access_tokens" | \
-      jq -r .token)"
-      echo "::add-mask::$TOKEN"
-      echo "token=$TOKEN" >> $GITHUB_OUTPUT
-    |||,
-  }],
+  ],
   // Token computed in get_token_steps to be used in the caller
   token_ref: '${{ steps.token.outputs.token }}',
 };
@@ -91,10 +92,10 @@ local containers = {
           {
             name: 'setup alpine',
             // needed for ocaml deps
-            run: 'apk add --no-cache git git-lfs bash curl'
+            run: 'apk add --no-cache git git-lfs bash curl',
           },
         ] + steps,
-     },
+    },
   },
   // ocaml-layer builds an image based on Alpine and another one based on
   // Ubuntu.
@@ -110,8 +111,8 @@ local containers = {
       env: {
         HOME: '/root',
       },
-      },
-   },
+    },
+  },
 };
 
 
@@ -121,8 +122,10 @@ local escapeStringJson = function(str)
   std.lstripChars(
     std.rstripChars(
       std.escapeStringJson(str),
-      '"'),
-    '"');
+      '"'
+    ),
+    '"'
+  );
 
 // ----------------------------------------------------------------------------
 // Slack helpers
@@ -148,29 +151,29 @@ local slack = {
 
   // Double escape quotes because they are nested in two layers of double quotes. Which still allows string interpolation at the bash level.
   curl_notify(message): |||
-      curl --request POST \
-       --url  ${{ secrets.NOTIFICATIONS_URL }} \
-       --header 'content-type: application/json' \
-       --data "{
-         \"text\": \"%s\"
-       }"
+    curl --request POST \
+     --url  ${{ secrets.NOTIFICATIONS_URL }} \
+     --header 'content-type: application/json' \
+     --data "{
+       \"text\": \"%s\"
+     }"
   ||| % escapeStringJson(escapeStringJson(message)),
 
   notify_failure_job(message): {
-   'runs-on': 'ubuntu-20.04',
-   'if': 'failure()',
+    'runs-on': 'ubuntu-20.04',
+    'if': 'failure()',
     steps: [
       {
         run: slack.curl_notify(message),
       },
-     ],
-    },
+    ],
+  },
 };
 
 
 // This is the version of the cache we use below. If you need to invalidate it
 // for some reason then bump this.
-local opam_cache_version = "v1";
+local opam_cache_version = 'v1';
 
 // this must be done after the checkout as opam installs itself
 // locally in the project folder (/home/runner/work/semgrep/semgrep/_opam)
@@ -178,15 +181,15 @@ local opam_cache_version = "v1";
 // or move the project to the semgrep org
 // coupling: default is above opam_switch
 local opam_setup = function(opam_switch=opam_switch_default) {
-      uses: 'semgrep/setup-ocaml@latest',
-      with: {
-        'ocaml-compiler': opam_switch,
-	      'opam-pin': false,
-        # Save the cache post run instead of after installing the compiler
-        'save-opam-post-run': true,
-        'cache-prefix': opam_cache_version,
-      },
-    };
+  uses: 'semgrep/setup-ocaml@latest',
+  with: {
+    'ocaml-compiler': opam_switch,
+    'opam-pin': false,
+    // Save the cache post run instead of after installing the compiler
+    'save-opam-post-run': true,
+    'cache-prefix': opam_cache_version,
+  },
+};
 
 // We can't use ubuntu-latest (currently 24.04) just yet until
 // https://github.com/ocaml/setup-ocaml/issues/872
@@ -209,8 +212,8 @@ local osemgrep_test_steps_after_checkout = [
       make copy-core-for-cli
     |||,
   },
-   // For '--ignore-installed distlib' below see
-   // https://stackoverflow.com/questions/63515454/why-does-pip3-install-pipenv-give-error-error-cannot-uninstall-distlib
+  // For '--ignore-installed distlib' below see
+  // https://stackoverflow.com/questions/63515454/why-does-pip3-install-pipenv-give-error-error-cannot-uninstall-distlib
   //
   {
     name: 'Install Python dependencies',
@@ -232,71 +235,71 @@ local osemgrep_test_steps_after_checkout = [
 
 local setup_nix_step = [
   {
-    name: "Set up Nix",
-    uses: "DeterminateSystems/nix-installer-action@v16",
+    name: 'Set up Nix',
+    uses: 'DeterminateSystems/nix-installer-action@v16',
     with: {
       // pin for more stability
-      "source-tag": "v0.34.0",
-        // pysemgrep and osemgrep have networking tests that rely on the
-        // actual internet (i.e. semgrep.dev). When sandbox=false nix builds
-        // everything fine, but all networking tests fail. So we set sandbox
-        // to false here so networking tests succeed
-        //
-        // TODO: disable networking tests for nix? that would be the nix way
-        // of doing things
+      'source-tag': 'v0.34.0',
+      // pysemgrep and osemgrep have networking tests that rely on the
+      // actual internet (i.e. semgrep.dev). When sandbox=false nix builds
+      // everything fine, but all networking tests fail. So we set sandbox
+      // to false here so networking tests succeed
+      //
+      // TODO: disable networking tests for nix? that would be the nix way
+      // of doing things
 
-        // extra substituters and public keys use https://app.cachix.org/cache/semgrep
-        // to cache the build dependencies!
-        "extra-conf": "sandbox = false",
+      // extra substituters and public keys use https://app.cachix.org/cache/semgrep
+      // to cache the build dependencies!
+      'extra-conf': 'sandbox = false',
     },
   },
   // This will automatically install cachix and upload to cachix
   {
-      name: "Install Cachix",
-      uses: "cachix/cachix-action@v16",
-      'continue-on-error': true,
-      with: {
-          name: "semgrep",
-          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}",
-      },
-  }
+    name: 'Install Cachix',
+    uses: 'cachix/cachix-action@v16',
+    'continue-on-error': true,
+    with: {
+      name: 'semgrep',
+      authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}',
+    },
+  },
 ];
 
 
 local build_test_steps(opam_switch=opam_switch_default, name='semgrep-core', time=false) = [
-    opam_setup(opam_switch),
-    {
-      name: 'Install dependencies',
-      run: "opam exec -- make install-deps",
-    },
-    {
-      name: 'Build %s' % name,
-      run: "opam exec -- make",
-    },
+  opam_setup(opam_switch),
+  {
+    name: 'Install dependencies',
+    run: 'opam exec -- make install-deps',
+  },
+  {
+    name: 'Build %s' % name,
+    run: 'opam exec -- make',
+  },
 ] + (if time then [
-    {
-      name: 'Test %s (and time it)' % name,
-      run: |||
-        START=`date +%s`
-        opam exec -- make test
-        opam exec -- make core-test-e2e
+       {
+         name: 'Test %s (and time it)' % name,
+         run: |||
+           START=`date +%s`
+           opam exec -- make test
+           opam exec -- make core-test-e2e
 
-        END=`date +%s`
-        TEST_RUN_TIME=$((END-START))
-        curl --fail -L -X POST "https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num" -d "$TEST_RUN_TIME"
-      |||,
-    },
-    {
-      name: 'Report Number of Tests Stats',
-      'if': "github.ref == 'refs/heads/develop'",
-      run: './scripts/report_test_metrics.sh',
-    }
-] else [
-    {
-      name: 'Test %s' % name,
-      run: 'opam exec -- make test',
-    }
-  ]);
+           END=`date +%s`
+           TEST_RUN_TIME=$((END-START))
+           curl --fail -L -X POST "https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num" -d "$TEST_RUN_TIME"
+         |||,
+       },
+       {
+         name: 'Report Number of Tests Stats',
+         'if': "github.ref == 'refs/heads/develop'",
+         run: './scripts/report_test_metrics.sh',
+       },
+     ] else [
+       {
+         name: 'Test %s' % name,
+         run: 'opam exec -- make test',
+       },
+     ]);
 
 local copy_executable_dlls(executable, target_dir='extra_artifacts') =
   {
@@ -314,41 +317,41 @@ local copy_executable_dlls(executable, target_dir='extra_artifacts') =
         echo "Copying $dll to %(dst)s/"
         cp -p "$dll" "%(dst)s"
       done
-    ||| % {dst: target_dir, exe: executable},
+    ||| % { dst: target_dir, exe: executable },
   };
 
-local wheel_name(arch) = '%s-wheel'% arch;
+local wheel_name(arch) = '%s-wheel' % arch;
 
 local build_wheel_steps(arch, platform) = [
-    actions.setup_python_step(cache='pip'),
-    {
-      run: |||
-        tar xvfz artifacts.tgz
-        cp artifacts/semgrep-core cli/src/semgrep/bin
-        ./scripts/build-wheels.sh --plat-name %s
-      ||| % platform,
-    },
-    actions.upload_artifact_step(wheel_name(arch), path='cli/dist.zip'),
+  actions.setup_python_step(cache='pip'),
+  {
+    run: |||
+      tar xvfz artifacts.tgz
+      cp artifacts/semgrep-core cli/src/semgrep/bin
+      ./scripts/build-wheels.sh --plat-name %s
+    ||| % platform,
+  },
+  actions.upload_artifact_step(wheel_name(arch), path='cli/dist.zip'),
 ];
 
 local test_wheel_steps(arch) = [
-    // caching is hard and why complicate things
-    actions.setup_python_step(cache=false),
-    actions.download_artifact_step(wheel_name(arch)),
-    {
-      run: 'unzip dist.zip',
-    },
-    {
-      name: 'install package',
-      run: 'pip3 install dist/*.whl',
-    },
-    {
-      run: 'semgrep --version',
-    },
-    {
-      name: 'e2e semgrep-core test',
-      run: "echo '1 == 1' | semgrep -l python -e '$X == $X' -",
-    },
+  // caching is hard and why complicate things
+  actions.setup_python_step(cache=false),
+  actions.download_artifact_step(wheel_name(arch)),
+  {
+    run: 'unzip dist.zip',
+  },
+  {
+    name: 'install package',
+    run: 'pip3 install dist/*.whl',
+  },
+  {
+    run: 'semgrep --version',
+  },
+  {
+    name: 'e2e semgrep-core test',
+    run: "echo '1 == 1' | semgrep -l python -e '$X == $X' -",
+  },
 
 ];
 // ----------------------------------------------------------------------------
@@ -364,16 +367,16 @@ local test_wheel_steps(arch) = [
   },
 
   aws_credentials_step(role, session_name): {
-      name: 'Configure AWS credentials for %s' % role,
-      uses: 'aws-actions/configure-aws-credentials@v4',
-      with: {
-        // This seems to be a semgrep specific magic number
-        'role-to-assume': 'arn:aws:iam::338683922796:role/%s' % role,
-        'role-duration-seconds': 900,
-        'role-session-name': session_name,
-        'aws-region': 'us-west-2',
-      },
+    name: 'Configure AWS credentials for %s' % role,
+    uses: 'aws-actions/configure-aws-credentials@v4',
+    with: {
+      // This seems to be a semgrep specific magic number
+      'role-to-assume': 'arn:aws:iam::338683922796:role/%s' % role,
+      'role-duration-seconds': 900,
+      'role-session-name': session_name,
+      'aws-region': 'us-west-2',
     },
+  },
   // See https://depot.dev/orgs/9ks3jwp44z/projects/fhmxj6w9z8/settings
   depot_project_id: 'fhmxj6w9z8',
   opam_switch: opam_switch,

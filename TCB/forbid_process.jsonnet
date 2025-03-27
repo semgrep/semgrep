@@ -17,22 +17,23 @@ local sys_funcs = [
   rules: [
     {
       id: 'forbid-process',
-      match: { any:
-        // Unix
-        [('Unix.' + p) for p in unix_funcs] +
-        [('UUnix.' + p) for p in unix_funcs] +
-        // Sys
-        [('Sys.' + p) for p in sys_funcs] +
-        [('USys.' + p) for p in sys_funcs] +
-	// Parmap
-	['Parmap.$F'] +
-        //TODO Other libs?
-	[]
+      match: {
+        any:
+          // Unix
+          [('Unix.' + p) for p in unix_funcs] +
+          [('UUnix.' + p) for p in unix_funcs] +
+          // Sys
+          [('Sys.' + p) for p in sys_funcs] +
+          [('USys.' + p) for p in sys_funcs] +
+          // Parmap
+          ['Parmap.$F'] +
+          //TODO Other libs?
+          [],
       },
       languages: ['ocaml'],
       paths: {
         exclude: common.exclude_paths +
-	['Parmap_.ml']
+                 ['Parmap_.ml'],
       },
       severity: 'ERROR',
       message: |||

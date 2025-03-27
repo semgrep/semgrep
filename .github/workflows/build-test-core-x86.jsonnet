@@ -24,7 +24,7 @@ local job =
     actions.checkout_with_submodules() +
     semgrep.build_test_steps() +
     [
-      actions.make_artifact_step("bin/semgrep-core"),
+      actions.make_artifact_step('bin/semgrep-core'),
       actions.upload_artifact_step(artifact_name),
     ]
   );

@@ -20,9 +20,9 @@
 // https://isdown.app/integrations/quay-io
 // We use it because the manylinux project is using it.
 
-local actions = import "libs/actions.libsonnet";
-local core_x86 = import "build-test-core-x86.jsonnet";
-local gha = import "libs/gha.libsonnet";
+local core_x86 = import 'build-test-core-x86.jsonnet';
+local actions = import 'libs/actions.libsonnet';
+local gha = import 'libs/gha.libsonnet';
 
 local wheel_name = 'manylinux-x86-wheel';
 // The '2_28' is the minimum version of GLIBC supported by the image, we need
@@ -163,9 +163,9 @@ local test_wheels_wsl_job = {
       |||,
     },
     {
-      name: "install package",
+      name: 'install package',
       shell: 'wsl-bash {0}',
-      run: "python3 -m pip install dist/*.whl"
+      run: 'python3 -m pip install dist/*.whl',
     },
     {
       name: 'test package',

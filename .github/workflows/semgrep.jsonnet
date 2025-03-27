@@ -18,12 +18,12 @@ local mk_job(steps) = {
     image: 'semgrep/semgrep:canary',
   },
   env: semgrep.secrets,
-  steps: actions.checkout()+ steps,
+  steps: actions.checkout() + steps,
 } + gha.dependabot_guard;
 
-local semgrep_ci_job = mk_job([{ run: 'semgrep ci' } ]);
-local semgrep_ci_oss_job = mk_job([{ run: 'semgrep ci --oss-only' } ]);
-local semgrep_ci_debug_job = mk_job([{ run: 'semgrep ci --debug' } ]);
+local semgrep_ci_job = mk_job([{ run: 'semgrep ci' }]);
+local semgrep_ci_oss_job = mk_job([{ run: 'semgrep ci --oss-only' }]);
+local semgrep_ci_debug_job = mk_job([{ run: 'semgrep ci --debug' }]);
 // ----------------------------------------------------------------------------
 // The Workflow
 // ----------------------------------------------------------------------------

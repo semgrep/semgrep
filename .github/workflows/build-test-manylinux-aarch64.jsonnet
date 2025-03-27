@@ -1,7 +1,7 @@
 // Build aarch64 Python wheels (ab)using our multi-arch docker build.
 
-local gha = import "libs/gha.libsonnet";
-local semgrep = import "libs/semgrep.libsonnet";
+local gha = import 'libs/gha.libsonnet';
+local semgrep = import 'libs/semgrep.libsonnet';
 
 local wheel_name = 'manylinux-aarch64-wheel';
 

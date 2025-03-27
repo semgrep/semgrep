@@ -34,12 +34,12 @@ local inputs(default) = {
       description: 'The repository/name of the docker image to push, e.g., semgrep/semgrep',
       required: true,
 
-    } + if default then {default: 'returntocorp/semgrep'} else {},
+    } + if default then { default: 'returntocorp/semgrep' } else {},
     file: {
       type: 'string',
       description: 'Dockerfile to build',
       required: true,
-    } + if default then {default: 'Dockerfile' } else {},
+    } + if default then { default: 'Dockerfile' } else {},
     target: {
       type: 'string',
       description: 'Dockerfile target to build',
@@ -121,7 +121,7 @@ local job = {
       uses: 'actions/checkout@v4',
       'if': '${{ inputs.enable-tests }}',
     },
-    # does this actually do anything? Is there a docker alternative (e.g. HEALTHCHECK?)
+    // does this actually do anything? Is there a docker alternative (e.g. HEALTHCHECK?)
     {
       name: 'Test Image',
       'if': '${{ inputs.enable-tests }}',
@@ -130,8 +130,8 @@ local job = {
       },
       run: './scripts/validate-docker-build.sh "$IMAGEID" linux/${{ matrix.architecture }}',
     },
-    # usually called semgrep-docker-image-artifcact-*, but I see no reference
-    # to this in the rest of the code. Do we need this?
+    // usually called semgrep-docker-image-artifcact-*, but I see no reference
+    // to this in the rest of the code. Do we need this?
     {
       uses: 'actions/upload-artifact@v4',
       with: {

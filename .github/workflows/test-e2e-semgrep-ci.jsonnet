@@ -6,8 +6,8 @@
 // we aren't failing the CI check when we can't upload findings because of
 // networking errors (or for other reasons such as a 'git' execution failure).
 
-local gha = import 'libs/gha.libsonnet';
 local actions = import 'libs/actions.libsonnet';
+local gha = import 'libs/gha.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
 // ----------------------------------------------------------------------------
@@ -16,11 +16,11 @@ local semgrep = import 'libs/semgrep.libsonnet';
 
 // This is computed by the get_inputs_job (example of value: "develop")
 // and can be referenced from other jobs.
-local docker_tag = "${{ needs.get-inputs.outputs.docker_tag }}";
+local docker_tag = '${{ needs.get-inputs.outputs.docker_tag }}';
 
 // This is computed by semgrep_ci_on_pr_job (example of value: "9543")
 // and can be referenced from other jobs
-local pr_number = "${{ needs.semgrep-ci-on-pr.outputs.pr-number }}";
+local pr_number = '${{ needs.semgrep-ci-on-pr.outputs.pr-number }}';
 
 // ----------------------------------------------------------------------------
 // Input
@@ -85,14 +85,14 @@ local semgrep_ci_job = {
   },
   steps:
     actions.checkout() +
-     [
-    // dogfooding! we run semgrep ci on the semgrep repo itself
-    // and it should not find any blocking findings and so
-    // should exit with code 0
-    {
-      run: 'semgrep ci',
-    },
-  ],
+    [
+      // dogfooding! we run semgrep ci on the semgrep repo itself
+      // and it should not find any blocking findings and so
+      // should exit with code 0
+      {
+        run: 'semgrep ci',
+      },
+    ],
 };
 
 local semgrep_ci_fail_open_job = {
@@ -109,27 +109,27 @@ local semgrep_ci_fail_open_job = {
   },
   steps:
     actions.checkout() +
-     [
-    // we remove git to test whether its absence cause the whole thing
-    // to return an error. Note that 'semgrep ci' relies internally
-    // on git to compute the project_metadata information so the absence
-    // of git should generate some errors internally.
-    // However, in fail-open mode (--suppress-errors) we
-    // should not fail the CI check if something internally failed.
-    {
-      name: 'Remove Git Exe',
-      run: |||
-        which git
-        rm /usr/bin/git
-      |||,
-    },
-    {
-      // should still exit with code 0 (ugly, but the backend
-      // is sometimes unaivalable for a few minutes and we don't
-      // want all our customers to suddenly fail their CI check)
-      run: 'semgrep ci --suppress-errors',
-    },
-  ],
+    [
+      // we remove git to test whether its absence cause the whole thing
+      // to return an error. Note that 'semgrep ci' relies internally
+      // on git to compute the project_metadata information so the absence
+      // of git should generate some errors internally.
+      // However, in fail-open mode (--suppress-errors) we
+      // should not fail the CI check if something internally failed.
+      {
+        name: 'Remove Git Exe',
+        run: |||
+          which git
+          rm /usr/bin/git
+        |||,
+      },
+      {
+        // should still exit with code 0 (ugly, but the backend
+        // is sometimes unaivalable for a few minutes and we don't
+        // want all our customers to suddenly fail their CI check)
+        run: 'semgrep ci --suppress-errors',
+      },
+    ],
 };
 
 local semgrep_ci_fail_open_blocking_findings_job = {
@@ -144,46 +144,46 @@ local semgrep_ci_fail_open_blocking_findings_job = {
   },
   steps:
     actions.checkout() +
-     [
-    {
-      name: 'Create code under test',
-      id: 'create-code',
-      // we should report a (blocking) finding here
-      // (see use-click-secho.yml in semgrep-rules)
-      run: |||
-        cat > ./test.py <<- EOF
-        import click
-        click.echo(click.style("foo"))
-        EOF
-      |||,
-    },
-    {
-      name: 'Run CI',
-      id: 'run-ci',
-      // Here we fail-open (with --suppress-errors), but that does not mean
-      // we should go through if semgrep finds blocking findings!
-      // We "fail-open" only on unexpected internal errors (e.g., networking
-      // issues). This is not the case here, so semgrep should return
-      // an exit code > 0.
-      //
-      // If we get exit code 0, meaning semgrep didn't find
-      // any blocking finding, then we take the 'then' branch
-      // (remember that in bash exit code '0' means everything is fine
-      // so exit 2 below is taken only 'if 0')
-      // and we return an error (exit 2).
-      // Otherwise, semgrep found an error (exit code > 0), meaning
-      // we take the else branch, and exit 0 as this test is passing.
-      //
-      // Other tests ensure that error code >=2 are handled appropriately.
-      run: |||
-        if semgrep ci --suppress-errors; then
-           exit 2
-        else
-           exit 0
-        fi
-      |||,
-    },
-  ],
+    [
+      {
+        name: 'Create code under test',
+        id: 'create-code',
+        // we should report a (blocking) finding here
+        // (see use-click-secho.yml in semgrep-rules)
+        run: |||
+          cat > ./test.py <<- EOF
+          import click
+          click.echo(click.style("foo"))
+          EOF
+        |||,
+      },
+      {
+        name: 'Run CI',
+        id: 'run-ci',
+        // Here we fail-open (with --suppress-errors), but that does not mean
+        // we should go through if semgrep finds blocking findings!
+        // We "fail-open" only on unexpected internal errors (e.g., networking
+        // issues). This is not the case here, so semgrep should return
+        // an exit code > 0.
+        //
+        // If we get exit code 0, meaning semgrep didn't find
+        // any blocking finding, then we take the 'then' branch
+        // (remember that in bash exit code '0' means everything is fine
+        // so exit 2 below is taken only 'if 0')
+        // and we return an error (exit 2).
+        // Otherwise, semgrep found an error (exit code > 0), meaning
+        // we take the else branch, and exit 0 as this test is passing.
+        //
+        // Other tests ensure that error code >=2 are handled appropriately.
+        run: |||
+          if semgrep ci --suppress-errors; then
+             exit 2
+          else
+             exit 0
+          fi
+        |||,
+      },
+    ],
 };
 
 // ----------------------------------------------------------------------------
@@ -208,7 +208,7 @@ local semgrep_ci_on_pr_job = {
   'runs-on': 'ubuntu-22.04',
   needs: 'get-inputs',
   outputs: {
-    'pr-number': "${{ steps.open-pr.outputs.pr-number }}",
+    'pr-number': '${{ steps.open-pr.outputs.pr-number }}',
   },
   steps: semgrep.github_bot.get_token_steps + [
     {
@@ -232,7 +232,7 @@ local semgrep_ci_on_pr_job = {
         git add --all
         git commit -m "chore: Bump version to $DOCKER_TAG"
         git push --set-upstream origin "e2e-test-pr-$RUN_ID"
-      ||| %  gha.git_config_user,
+      ||| % gha.git_config_user,
     },
     {
       name: 'Make the PR',
@@ -243,9 +243,9 @@ local semgrep_ci_on_pr_job = {
         DOCKER_TAG: docker_tag,
       },
       run: |||
-          PR_URL=$(gh pr create --title "chore: fake PR for $DOCKER_TAG" --body "Fake PR" --base "develop" --head "e2e-test-pr-${RUN_ID}")
-          PR_NUMBER=$(echo $PR_URL | sed 's|.*pull/\(.*\)|\1|')
-          echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
+        PR_URL=$(gh pr create --title "chore: fake PR for $DOCKER_TAG" --body "Fake PR" --base "develop" --head "e2e-test-pr-${RUN_ID}")
+        PR_NUMBER=$(echo $PR_URL | sed 's|.*pull/\(.*\)|\1|')
+        echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
       |||,
     },
   ],
@@ -310,15 +310,15 @@ local wait_for_checks_job = {
     'semgrep-ci-on-pr': semgrep_ci_on_pr_job,
     'wait-for-checks': wait_for_checks_job,
     'notify-failure':
-       semgrep.slack.notify_failure_job
-        ("The End to end semgrep ci workflow failed with docker tag %s. The PR in `semgrep/e2e` that had the failure was %s. See https://github.com/semgrep/semgrep/actions/workflows/test-e2e-semgrep-ci.yml for more info" % [docker_tag, pr_number])
-       + { needs: [
-          'semgrep-ci',
-          'semgrep-ci-on-pr',
-          'semgrep-ci-fail-open',
-          'semgrep-ci-fail-open-blocking-findings',
-          'wait-for-checks',
-          'get-inputs',
-          ] },
+      semgrep.slack.notify_failure_job
+      ('The End to end semgrep ci workflow failed with docker tag %s. The PR in `semgrep/e2e` that had the failure was %s. See https://github.com/semgrep/semgrep/actions/workflows/test-e2e-semgrep-ci.yml for more info' % [docker_tag, pr_number])
+      + { needs: [
+        'semgrep-ci',
+        'semgrep-ci-on-pr',
+        'semgrep-ci-fail-open',
+        'semgrep-ci-fail-open-blocking-findings',
+        'wait-for-checks',
+        'get-inputs',
+      ] },
   },
 }

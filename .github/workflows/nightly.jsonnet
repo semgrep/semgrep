@@ -42,7 +42,7 @@ local brew_build_job = {
       // See https://github.com/Homebrew/brew/issues/1742 for context on the
       // brew link step.
       run: 'brew install semgrep --HEAD --debug || brew link --overwrite semgrep',
-      env: env + {
+      env: env {
         NONINTERACTIVE: 1,
       },
     },
@@ -78,7 +78,7 @@ local brew_build_job = {
       },
     },
     'notify-failure': semgrep.slack.notify_failure_job(
-      "The nightly cron failed on ${{ github.sha }}. See https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more information."
-      ) + { needs: ['brew-build', 'release-dry-run'] },
+      'The nightly cron failed on ${{ github.sha }}. See https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more information.'
+    ) + { needs: ['brew-build', 'release-dry-run'] },
   },
 }

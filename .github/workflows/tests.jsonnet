@@ -6,8 +6,8 @@
 //   (also for amd64 and arm64)
 // - we don't have any perf regressions in our benchmarks
 
-local gha = import 'libs/gha.libsonnet';
 local actions = import 'libs/actions.libsonnet';
+local gha = import 'libs/gha.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
 // some jobs rely on artifacts produced by these workflow
@@ -87,7 +87,7 @@ local snapshot_update_pr_steps(add_paths, repo_name) = [
       echo "       git fetch origin && git cherry-pick \"$COMMIT_SHA\" && git push" >> /tmp/message.txt
 
       gh pr comment "$PULL_REQUEST_NUMBER" --body-file /tmp/message.txt
-    ||| % {repo_name: repo_name},
+    ||| % { repo_name: repo_name },
   },
 ];
 
@@ -99,7 +99,7 @@ local snapshot_update_pr_steps(add_paths, repo_name) = [
 // but without the artifact creation and with more tests.
 // alt: we could factorize
 local test_semgrep_core_job =
-  semgrep.containers.ocaml_alpine.job (
+  semgrep.containers.ocaml_alpine.job(
     actions.checkout_with_submodules() +
     semgrep.build_test_steps(time=true)
   );
@@ -109,7 +109,7 @@ local test_osemgrep_job =
   semgrep.containers.ocaml_alpine.job(
     actions.checkout_with_submodules() +
     [
-      semgrep.opam_setup()
+      semgrep.opam_setup(),
     ] +
     semgrep.osemgrep_test_steps_after_checkout
   );
@@ -160,36 +160,36 @@ local test_cli_job = {
         '3.9',
         '3.10',
         '3.11',
-        '3.12'
+        '3.12',
       ],
     },
   },
   steps:
     actions.checkout() +
     [
-    fetch_submodules_step,
-    actions.setup_python_step('${{ matrix.python }}'),
-    actions.pipenv_install_step,
-    install_python_deps,
-    download_x86_artifacts,
-    install_x86_artifacts,
-    {
-      name: 'Run pytest',
-      'working-directory': 'cli',
-      // The --snapshot-update below works with the snapshot_update_pr_steps.
-      //
-      run: |||
-        # tests should simulate CI environment iff they need one
-        unset CI
-        unset "${!GITHUB_@}"
+      fetch_submodules_step,
+      actions.setup_python_step('${{ matrix.python }}'),
+      actions.pipenv_install_step,
+      install_python_deps,
+      download_x86_artifacts,
+      install_x86_artifacts,
+      {
+        name: 'Run pytest',
+        'working-directory': 'cli',
+        // The --snapshot-update below works with the snapshot_update_pr_steps.
+        //
+        run: |||
+          # tests should simulate CI environment iff they need one
+          unset CI
+          unset "${!GITHUB_@}"
 
-        PYTEST_EXTRA_ARGS="--snapshot-update --allow-snapshot-deletion" make ci-test
-      |||,
-    },
-  ] + snapshot_update_pr_steps(
-    add_paths="cli/tests/default/e2e/snapshots",
-    repo_name="semgrep"
-  ),
+          PYTEST_EXTRA_ARGS="--snapshot-update --allow-snapshot-deletion" make ci-test
+        |||,
+      },
+    ] + snapshot_update_pr_steps(
+      add_paths='cli/tests/default/e2e/snapshots',
+      repo_name='semgrep'
+    ),
 };
 
 // These tests aren't run by default by pytest.
@@ -217,49 +217,49 @@ local test_qa_job = {
   steps:
     actions.checkout() +
     [
-    // Is it indented that we also fetch tests/semgrep-rules?
-    {
-      name: 'Fetch semgrep-cli submodules',
-      run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces tests/semgrep-rules',
-    },
-    actions.setup_python_step(semgrep.python_version),
-    actions.pipenv_install_step,
-    download_x86_artifacts,
-    install_x86_artifacts,
-    // TODO: mostly like install_python_deps with PATH adjustment
-    {
-      name: 'Install semgrep',
-      'working-directory': 'cli',
-      run: |||
-        export PATH=/github/home/.local/bin:$PATH
-        pipenv install --dev
-      |||,
-    },
-    {
-      uses: 'actions/cache@v4',
-      with: {
-        path: '~/.cache/qa-public-repos',
-        key: "qa-public-repos-${{ hashFiles('semgrep/tests/qa/*public_repos*') }}-${{ matrix.split }}",
+      // Is it indented that we also fetch tests/semgrep-rules?
+      {
+        name: 'Fetch semgrep-cli submodules',
+        run: 'git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces tests/semgrep-rules',
       },
-    },
-    {
-      run: |||
-        mkdir -p ~/.cache/qa-public-repos
-        touch ~/.cache/qa-public-repos/ok
-      |||,
-    },
-    {
-      name: 'Test semgrep',
-      'working-directory': 'cli',
-      run: |||
-        export PATH=/github/home/.local/bin:$PATH
-        pipenv run pytest -n auto -vv --tb=short --splits 4 --group ${{ matrix.split }} tests/qa
-      |||,
-      env: {
-        QA_TESTS_CACHE_PATH: '~/.cache/qa-public-repos',
+      actions.setup_python_step(semgrep.python_version),
+      actions.pipenv_install_step,
+      download_x86_artifacts,
+      install_x86_artifacts,
+      // TODO: mostly like install_python_deps with PATH adjustment
+      {
+        name: 'Install semgrep',
+        'working-directory': 'cli',
+        run: |||
+          export PATH=/github/home/.local/bin:$PATH
+          pipenv install --dev
+        |||,
       },
-    },
-  ],
+      {
+        uses: 'actions/cache@v4',
+        with: {
+          path: '~/.cache/qa-public-repos',
+          key: "qa-public-repos-${{ hashFiles('semgrep/tests/qa/*public_repos*') }}-${{ matrix.split }}",
+        },
+      },
+      {
+        run: |||
+          mkdir -p ~/.cache/qa-public-repos
+          touch ~/.cache/qa-public-repos/ok
+        |||,
+      },
+      {
+        name: 'Test semgrep',
+        'working-directory': 'cli',
+        run: |||
+          export PATH=/github/home/.local/bin:$PATH
+          pipenv run pytest -n auto -vv --tb=short --splits 4 --group ${{ matrix.split }} tests/qa
+        |||,
+        env: {
+          QA_TESTS_CACHE_PATH: '~/.cache/qa-public-repos',
+        },
+      },
+    ],
 };
 
 // ----------------------------------------------------------------------------
@@ -269,13 +269,13 @@ local test_qa_job = {
 local bench_prepare_steps =
   actions.checkout() +
   [
-  fetch_submodules_step,
-  actions.setup_python_step(semgrep.default_python_version),
-  actions.pipenv_install_step,
-  download_x86_artifacts,
-  install_x86_artifacts,
-  install_python_deps,
-];
+    fetch_submodules_step,
+    actions.setup_python_step(semgrep.default_python_version),
+    actions.pipenv_install_step,
+    download_x86_artifacts,
+    install_x86_artifacts,
+    install_python_deps,
+  ];
 
 // Run abbreviated version of benchmarks to check that they work
 local benchmarks_lite_job = {
@@ -359,13 +359,13 @@ local build_test_docker_job = {
   secrets: 'inherit',
   with: {
     'docker-flavor': |||
-       latest=false
-     |||,
+      latest=false
+    |||,
     'docker-tags': |||
-       type=ref,event=pr
-       type=ref,event=branch
-       type=sha,event=branch
-     |||,
+      type=ref,event=pr
+      type=ref,event=branch
+      type=sha,event=branch
+    |||,
     'artifact-name': docker_artifact_name,
     'repository-name': docker_repository_name,
     file: 'Dockerfile',
@@ -392,9 +392,9 @@ local build_test_docker_other_target_job(suffix, target) = {
       suffix=%s
     ||| % suffix,
     'docker-tags': |||
-       type=sha,event=branch
-       type=ref,event=pr
-      |||,
+      type=sha,event=branch
+      type=ref,event=pr
+    |||,
     'artifact-name': docker_artifact_name + suffix,
     'repository-name': docker_repository_name,
     file: 'Dockerfile',
@@ -461,17 +461,17 @@ local ignore_md = {
     // Docker stuff
     'build-test-docker': build_test_docker_job,
     'push-docker-returntocorp':
-       push_docker_job(docker_artifact_name, docker_repository_name) +
-       { needs: [ 'build-test-docker' ] },
+      push_docker_job(docker_artifact_name, docker_repository_name) +
+      { needs: ['build-test-docker'] },
     'build-test-docker-nonroot':
-      build_test_docker_other_target_job("-nonroot", "nonroot"),
+      build_test_docker_other_target_job('-nonroot', 'nonroot'),
     // No need to push those variant docker images. This is useful in
     // release.jsonnet, but not so much here.
     // old:
     //  'push-docker-semgrep': push_docker_job(..., 'semgrep/semgrep') + { ... }
     //  'push-docker-nonroot-returntocorp': ...
     'build-test-docker-performance-tests':
-      build_test_docker_other_target_job("-performance-tests", "performance-tests"),
+      build_test_docker_other_target_job('-performance-tests', 'performance-tests'),
     //'push-docker-performance-tests': ...
     // trigger argo workflows
     'trigger-semgrep-comparison-argo': trigger_semgrep_comparison_argo,
@@ -509,6 +509,6 @@ local ignore_md = {
   },
   export:: {
     // Used in semgrep-proprietary.
-    snapshot_update_pr_steps: snapshot_update_pr_steps
-  }
+    snapshot_update_pr_steps: snapshot_update_pr_steps,
+  },
 }

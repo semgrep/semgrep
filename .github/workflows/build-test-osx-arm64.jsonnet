@@ -4,8 +4,8 @@
 
 local osx_x86 = import 'build-test-osx-x86.jsonnet';
 local actions = import 'libs/actions.libsonnet';
-local semgrep = import 'libs/semgrep.libsonnet';
 local gha = import 'libs/gha.libsonnet';
+local semgrep = import 'libs/semgrep.libsonnet';
 
 local wheel_name = 'osx-arm64-wheel';
 
@@ -19,11 +19,11 @@ local runs_on = 'macos-latest';
 // Note that we can't reuse actions.setup_python because it comes with the
 // cache: 'pipenv' which then trigger failures when we don't checkout any code
 // and there's no code with a Pipfile.lock
-local setup_python_step =  {
+local setup_python_step = {
   uses: 'actions/setup-python@v5',
   with: {
     'python-version': semgrep.python_version,
-  }
+  },
 };
 
 
@@ -38,11 +38,11 @@ local artifact_name = 'semgrep-osx-arm64-${{ github.sha }}';
 local build_core_job = {
   'runs-on': runs_on,
   steps: actions.checkout_with_submodules() +
-  semgrep.build_test_steps() +
-  [
-    actions.make_artifact_step("./bin/semgrep-core"),
-    actions.upload_artifact_step(artifact_name),
-  ],
+         semgrep.build_test_steps() +
+         [
+           actions.make_artifact_step('./bin/semgrep-core'),
+           actions.upload_artifact_step(artifact_name),
+         ],
 };
 
 local build_wheels_job = {

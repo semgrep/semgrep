@@ -59,7 +59,7 @@ local on_pull_request_config = {
   },
 
   // For making matrix jobs, i.e. one job running on multiple OSes.
-  os_matrix(oss=['ubuntu-latest', 'macos-latest', 'windows-latest'],steps): {
+  os_matrix(oss=['ubuntu-latest', 'macos-latest', 'windows-latest'], steps): {
     strategy: {
       matrix: {
         os: oss,
@@ -84,7 +84,7 @@ local on_pull_request_config = {
   |||,
   git_safedir: {
     name: 'Configure git safedir properly',
-    run: "git config --global --add safe.directory $(pwd)",
+    run: 'git config --global --add safe.directory $(pwd)',
   },
 
   // stay away dependabot, bad dog.

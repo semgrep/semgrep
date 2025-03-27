@@ -153,6 +153,11 @@ repos:
         types: [file]  # override `types: [json]`
         files: \.(json|yml|yaml|md)$
 
+  # Reformat jsonnet
+  - repo: https://github.com/google/go-jsonnet
+    rev: v0.20.0
+    hooks:
+      - id: jsonnet-format
   # ----------------------------------------------------------
   # Extra hooks using additional_dependencies
   # ----------------------------------------------------------

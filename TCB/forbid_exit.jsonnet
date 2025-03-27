@@ -9,7 +9,7 @@ local common = import 'common.libsonnet';
         'Stdlib.exit',
         'UStdlib.exit',
         'Unix._exit',
-        'UUnix._exit'
+        'UUnix._exit',
       ] },
       languages: ['ocaml'],
       paths: common.exclude,

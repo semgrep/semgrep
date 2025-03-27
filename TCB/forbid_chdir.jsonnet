@@ -5,8 +5,10 @@ local common = import 'common.libsonnet';
     {
       id: 'forbid-chdir',
       match: { any: [
-        'Unix.chdir','UUnix.chdir',
-        'Sys.chdir', 'USys.chdir',
+        'Unix.chdir',
+        'UUnix.chdir',
+        'Sys.chdir',
+        'USys.chdir',
         // TODO: could forbid CapSys.chdir and tell people to use
         // instead CapFS.with_chdir
       ] },

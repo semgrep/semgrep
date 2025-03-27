@@ -9,11 +9,12 @@ local gha = import './gha.libsonnet';
   // What about 'persist-credentials': false? needed? A few of
   // our workflows was using that, but not consistently
   checkout: function() (
-  [
-    {
-      uses: 'actions/checkout@v4',
-    },
-  ]),
+    [
+      {
+        uses: 'actions/checkout@v4',
+      },
+    ]
+  ),
   // The right checkout to call in most cases; slower but correct.
   // There is also 'submodules: "recursive" (which is even slower).
   checkout_with_submodules: function(ref='')
@@ -25,7 +26,7 @@ local gha = import './gha.libsonnet';
         with: {
           submodules: true,
         },
-      } + (if ref == '' then {} else { ref: ref}),
+      } + (if ref == '' then {} else { ref: ref }),
     ],
 
   // ---------------------------------------------------------
@@ -39,11 +40,11 @@ local gha = import './gha.libsonnet';
     with: {
       'python-version': version,
     } + (if (cache == false) then {} else {
-      // TODO where is this cache created?
-      // TODO at least force to specify the key?
-      // like 'cache-dependency-path': 'scripts/release/Pipfile.lock' ?
-      cache: cache,
-    }),
+           // TODO where is this cache created?
+           // TODO at least force to specify the key?
+           // like 'cache-dependency-path': 'scripts/release/Pipfile.lock' ?
+           cache: cache,
+         }),
   },
   // We pin to a specific version just to prevent things from breaking randomly.
   // This has been a source of breakage in the past.
@@ -64,11 +65,11 @@ local gha = import './gha.libsonnet';
   // alt: run: docker-login -u USER -p PASS
   // alt: run a .github/docker-login
   docker_login_step: {
-      uses: 'docker/login-action@v3',
-      with: {
-        username: '${{ secrets.DOCKER_USERNAME }}',
-        password: '${{ secrets.DOCKER_PASSWORD }}',
-     }
+    uses: 'docker/login-action@v3',
+    with: {
+      username: '${{ secrets.DOCKER_USERNAME }}',
+      password: '${{ secrets.DOCKER_PASSWORD }}',
+    },
   },
 
   // ---------------------------------------------------------
@@ -77,34 +78,34 @@ local gha = import './gha.libsonnet';
 
   // works with upload_artifact_step() below by relying on an artifacts.tgz
   make_artifact_step(path): {
-      name: 'Make artifact for %s' % path,
-      run: |||
-          mkdir artifacts
-          cp %s artifacts/
-          tar czf artifacts.tgz artifacts
-          # so that we can untar later and not get a message
-          # about existing artifacts/ directory
-          rm -rf artifacts
-        ||| % path,
+    name: 'Make artifact for %s' % path,
+    run: |||
+      mkdir artifacts
+      cp %s artifacts/
+      tar czf artifacts.tgz artifacts
+      # so that we can untar later and not get a message
+      # about existing artifacts/ directory
+      rm -rf artifacts
+    ||| % path,
   },
   upload_artifact_step: function(artifact_name, path='artifacts.tgz') {
-       uses: 'actions/upload-artifact@v4',
-       with: {
-          path: path,
-          name: artifact_name,
-        },
+    uses: 'actions/upload-artifact@v4',
+    with: {
+      path: path,
+      name: artifact_name,
+    },
   },
   download_artifact_step(artifact_name): {
-      uses: 'actions/download-artifact@v4',
-      with: {
-        name: artifact_name,
-      },
+    uses: 'actions/download-artifact@v4',
+    with: {
+      name: artifact_name,
+    },
   },
   // See semgrep.libjsonnet cache_opam for inspiration here
   //
   guard_cache_hit: {
     step(path, key='${{ github.sha}}', bump_cache=1): {
-      name: 'Set GHA cache for ' + key +' in ' + path,
+      name: 'Set GHA cache for ' + key + ' in ' + path,
       uses: 'actions/cache@v4',
       env: {
         SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2,
@@ -123,10 +124,10 @@ local gha = import './gha.libsonnet';
           type: 'boolean',
           default: true,
         },
-      }
+      },
     },
     if_cache_inputs: {
-      'if': '${{ inputs.use-cache}}'
+      'if': '${{ inputs.use-cache}}',
     },
   },
 
@@ -159,8 +160,8 @@ local gha = import './gha.libsonnet';
       id: id,
       uses: 'christian-draeger/increment-semantic-version@1.1.0',
       with: {
-	'current-version': '${{ steps.latest-version.outputs.version }}',
-	'version-fragment': fragment,
+        'current-version': '${{ steps.latest-version.outputs.version }}',
+        'version-fragment': fragment,
       },
     },
   ],

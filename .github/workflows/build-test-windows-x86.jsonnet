@@ -48,7 +48,7 @@ local build_core_job = {
         PACKAGES='mingw64-x86_64-openssl=1.0.2u+za-1,mingw64-i686-openssl=1.0.2u+za-1'
         CYGWIN_ROOT=$(cygpath -w /)
         $CYGWIN_ROOT/setup-x86_64.exe -P $PACKAGES --quiet-mode -R $CYGWIN_ROOT
-      |||
+      |||,
     },
     {
       // TODO: We can remove this once these flexdll PRs are merged and a new
@@ -67,13 +67,14 @@ local build_core_job = {
       // in a file to cygpath.
       name: 'Install flexlink patched to use response files and cygpath -file arg',
       run: |||
-          git clone -b argument-list-too-long https://github.com/punchagan/flexdll.git
-          cd flexdll/
-          opam exec -- make all MSVC_DETECT=0 CHAINS="mingw64"
-          cp flexlink.exe ../_opam/bin/
-      |||
+        git clone -b argument-list-too-long https://github.com/punchagan/flexdll.git
+        cd flexdll/
+        opam exec -- make all MSVC_DETECT=0 CHAINS="mingw64"
+        cp flexlink.exe ../_opam/bin/
+      |||,
     },
-    { name: 'Debug stuff',
+    {
+      name: 'Debug stuff',
       run: |||
         ls
         # to see the bin symlink for example
@@ -91,7 +92,7 @@ local build_core_job = {
         opam repo
         # we should be on 4.14.0~mingw
         opam switch
-     |||,
+      |||,
     },
     {
       name: 'Build tree-sitter',
@@ -156,8 +157,8 @@ local build_core_job = {
         _build/install/default/bin/semgrep-core.exe -l python -rules tests/windows/rules.yml -json tests/windows/test.py
       |||,
     },
-    semgrep.copy_executable_dlls("bin/semgrep-core.exe"),
-    actions.make_artifact_step("bin/semgrep-core.exe extra-artifacts/*"),
+    semgrep.copy_executable_dlls('bin/semgrep-core.exe'),
+    actions.make_artifact_step('bin/semgrep-core.exe extra-artifacts/*'),
     actions.upload_artifact_step(artifact_name),
   ],
 };
@@ -184,7 +185,7 @@ local build_wheels_job = {
         name: wheel_name,
       },
     },
-  ]
+  ],
 };
 
 local test_wheels_job = {
@@ -210,7 +211,7 @@ local test_wheels_job = {
     },
     {
       name: 'e2e semgrep-core test',
-      run: 'echo \'1 == 1\' | semgrep -l python -e \'$X == $X\' -'
+      run: "echo '1 == 1' | semgrep -l python -e '$X == $X' -",
     },
   ],
 };

@@ -4,8 +4,8 @@
 // coupling: if you modify this file, modify also build-test-osx-arm64.jsonnet
 
 local actions = import 'libs/actions.libsonnet';
-local semgrep = import 'libs/semgrep.libsonnet';
 local gha = import 'libs/gha.libsonnet';
+local semgrep = import 'libs/semgrep.libsonnet';
 
 local wheel_name = 'osx-x86-wheel';
 
@@ -57,11 +57,11 @@ local artifact_name = 'semgrep-osx-${{ github.sha }}';
 local build_core_job = {
   'runs-on': runs_on,
   steps: actions.checkout_with_submodules() +
-  semgrep.build_test_steps() +
-  [
-    actions.make_artifact_step("./bin/semgrep-core"),
-    actions.upload_artifact_step(artifact_name),
-  ],
+         semgrep.build_test_steps() +
+         [
+           actions.make_artifact_step('./bin/semgrep-core'),
+           actions.upload_artifact_step(artifact_name),
+         ],
 };
 
 local build_wheels_job = {

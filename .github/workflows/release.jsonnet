@@ -24,15 +24,15 @@
 // Note that we still check in CI that the Semgrep "formula" can still be built,
 // but we do it in nightly.jsonnet, not during the release.
 
-local semgrep = import 'libs/semgrep.libsonnet';
 local actions = import 'libs/actions.libsonnet';
 local gha = import 'libs/gha.libsonnet';
+local semgrep = import 'libs/semgrep.libsonnet';
 
 // ----------------------------------------------------------------------------
 // Constants
 // ----------------------------------------------------------------------------
 
-local version = "${{ steps.get-version.outputs.VERSION }}";
+local version = '${{ steps.get-version.outputs.VERSION }}';
 
 // this actually produces the tag (e.g., "v1.55.1", and not "1.55.1")
 local get_version_step = {
@@ -62,7 +62,7 @@ local release_inputs = {
 };
 
 local unless_dry_run = {
-  'if': "${{ ! inputs.dry-run }}"
+  'if': '${{ ! inputs.dry-run }}',
 };
 
 // This is ugly, but you can't just use "${{ inputs.dry-run }}" because GHA
@@ -84,7 +84,7 @@ local unless_dry_run = {
 // gets more complicated.
 // alt: use strings everywhere (but boolean offers a nice checkbox when used
 // in workflow_dispatch).
-local dry_run = "${{ inputs.dry-run || false }}";
+local dry_run = '${{ inputs.dry-run || false }}';
 
 // ----------------------------------------------------------------------------
 // Docker jobs (build and then push)
@@ -253,13 +253,13 @@ local upload_wheels_job = {
     download_step('windows-x86-wheel'),
     {
       run: |||
-       unzip ./manylinux-x86-wheel/dist.zip
-       unzip ./manylinux-aarch64-wheel/dist.zip "*.whl"
-       unzip ./osx-x86-wheel/dist.zip "*.whl"
-       unzip ./osx-arm64-wheel/dist.zip "*.whl"
-       # Windows build creates a tgz since zip is not available
-       tar --wildcards -xzf ./windows-x86-wheel/dist.tgz "*.whl"
-     |||,
+        unzip ./manylinux-x86-wheel/dist.zip
+        unzip ./manylinux-aarch64-wheel/dist.zip "*.whl"
+        unzip ./osx-x86-wheel/dist.zip "*.whl"
+        unzip ./osx-arm64-wheel/dist.zip "*.whl"
+        # Windows build creates a tgz since zip is not available
+        tar --wildcards -xzf ./windows-x86-wheel/dist.tgz "*.whl"
+      |||,
     },
     {
       name: 'Publish to Pypi',

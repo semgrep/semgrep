@@ -22,7 +22,7 @@ local common = import 'common.libsonnet';
       languages: ['ocaml'],
       paths: {
         exclude: [
-         ],
+        ],
       },
       severity: 'ERROR',
       message: |||

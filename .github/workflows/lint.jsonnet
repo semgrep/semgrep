@@ -14,7 +14,7 @@ local pre_commit_steps() = [
   gha.git_safedir,
   actions.setup_python_step(cache=false),
   semgrep.opam_setup(),
-  { 'run' : 'opam install -y ocamlformat.0.27.0',},
+  { run: 'opam install -y ocamlformat.0.27.0' },
   // note that in a CI context pre-commit runs the hooks with the '--all' flag, so
   // semgrep for example is passed all the files in the repository, not just
   // the one modifed in the PR (as it is the case when it's ran from git
@@ -38,7 +38,7 @@ local pre_commit_job(checkout_steps) = {
 };
 
 // TODO: we should port those GHA checks to semgrep and add them in semgrep-rules
-local action_lint_job(checkout_steps, dir=".github/workflows") = {
+local action_lint_job(checkout_steps, dir='.github/workflows') = {
   'runs-on': 'ubuntu-latest',
   steps: checkout_steps + [
     {
@@ -54,29 +54,29 @@ local action_lint_job(checkout_steps, dir=".github/workflows") = {
       run: |||
         cd %(dir)s
         actionlint -shellcheck=''
-      ||| % {dir: dir},
+      ||| % { dir: dir },
     },
   ],
 };
 
-local jsonnet_gha_job(checkout_steps, dir=".github/workflows") = {
+local jsonnet_gha_job(checkout_steps, dir='.github/workflows') = {
   'runs-on': 'ubuntu-latest',
   steps: checkout_steps
-    + [
-    {
-      name: 'Check GitHub workflow files are up to date',
-      // yq (the good one) is actually pre-installed in GHA ubuntu image, see
-      // https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2204-Readme.md
-      run: |||
-        sudo apt-get update
-        sudo apt-get install jsonnet
-        cd %(dir)s
-        make clean
-        make
-        git diff --exit-code
-      ||| % {dir: dir},
-    },
-  ],
+         + [
+           {
+             name: 'Check GitHub workflow files are up to date',
+             // yq (the good one) is actually pre-installed in GHA ubuntu image, see
+             // https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2204-Readme.md
+             run: |||
+               sudo apt-get update
+               sudo apt-get install jsonnet
+               cd %(dir)s
+               make clean
+               make
+               git diff --exit-code
+             ||| % { dir: dir },
+           },
+         ],
 };
 
 // ----------------------------------------------------------------------------
@@ -91,7 +91,7 @@ local jsonnet_gha_job(checkout_steps, dir=".github/workflows") = {
     'github-actions': action_lint_job(actions.checkout()),
     'jsonnet-gha': jsonnet_gha_job(actions.checkout()),
   },
-  export::{
+  export:: {
     // reused in semgrep-pro
     'github-actions': action_lint_job,
     'jsonnet-gha': jsonnet_gha_job,

@@ -129,8 +129,8 @@ local semgrep_rules = [
     languages: ['ocaml'],
     severity: 'ERROR',
     paths: {
-      exclude: ['Testutil.ml']
-    }
+      exclude: ['Testutil.ml'],
+    },
   },
   {
     id: 'no-filename-readable',
@@ -142,18 +142,18 @@ local semgrep_rules = [
       module instead.
     |||,
     paths: {
-      exclude: ['Unit_*']
-    }
+      exclude: ['Unit_*'],
+    },
   },
   {
     id: 'no-logs-in-library',
     match: {
       all: [
-       'Logs.$F ...',
-       { not: 'Logs.src ...' },
-       // TODO? tolerate Logs.info?
-       // TODO? tolerate when inside if <... !$REF ...> then ... ?
-       ],
+        'Logs.$F ...',
+        { not: 'Logs.src ...' },
+        // TODO? tolerate Logs.info?
+        // TODO? tolerate when inside if <... !$REF ...> then ... ?
+      ],
     },
     message: |||
       Do not use Logs outside src/osemgrep/. Use a specialized Log
@@ -164,30 +164,30 @@ local semgrep_rules = [
     severity: 'ERROR',
     paths: {
       exclude: [
-       // The semgrep codebase has a few "applications" where the use
-       // of Logs.xxx is fine:
-       //  - osemgrep (in src/osemgrep/),
-       //    with also code in metachecking/ for osemgrep validate
-       //  - semgrep-core (in src/core_cli/ and core_scan/), and many actions
-       //    with code under src/experiments
-       //  - test (tests/*)
-       'osemgrep/',
-       'lsp/',
-       'metachecking/',
-       'core_cli/',
-       'core_scan/',
-       '*_main.ml',
-       'Main.ml',
-       'Test_*',
-       'Unit_*',
-       '*_mock_*',
-       'tools/*',
-       'scripts/*',
-       'libs/commons/Logs_.ml',
-       'libs/profiling/Profiling.ml',
-       'src/core/Log_semgrep.ml',
-       "libs/process_limits/Memory_limit.ml",
-      ]
+        // The semgrep codebase has a few "applications" where the use
+        // of Logs.xxx is fine:
+        //  - osemgrep (in src/osemgrep/),
+        //    with also code in metachecking/ for osemgrep validate
+        //  - semgrep-core (in src/core_cli/ and core_scan/), and many actions
+        //    with code under src/experiments
+        //  - test (tests/*)
+        'osemgrep/',
+        'lsp/',
+        'metachecking/',
+        'core_cli/',
+        'core_scan/',
+        '*_main.ml',
+        'Main.ml',
+        'Test_*',
+        'Unit_*',
+        '*_mock_*',
+        'tools/*',
+        'scripts/*',
+        'libs/commons/Logs_.ml',
+        'libs/profiling/Profiling.ml',
+        'src/core/Log_semgrep.ml',
+        'libs/process_limits/Memory_limit.ml',
+      ],
     },
   },
   // similar to no-print-in-semgrep in semgrep.yml
@@ -195,10 +195,10 @@ local semgrep_rules = [
     id: 'no-pr2',
     match: {
       any: [
-       'UCommon.pr2 ...',
-       'UCommon.pr2_gen ...',
-       #'pr2_gen ...', needed?
-       ],
+        'UCommon.pr2 ...',
+        'UCommon.pr2_gen ...',
+        //'pr2_gen ...', needed?
+      ],
     },
     message: |||
       Do not use UCommon.pr2 or any variant of it. Use Logs instead.
@@ -208,11 +208,11 @@ local semgrep_rules = [
     severity: 'ERROR',
     paths: {
       exclude: [
-       'Test_*',
-       'Unit_*',
-       'tools/',
-       'scripts/',
-       ]
+        'Test_*',
+        'Unit_*',
+        'tools/',
+        'scripts/',
+      ],
     },
   },
 ];
@@ -220,7 +220,7 @@ local semgrep_rules = [
 // ----------------------------------------------------------------------------
 // TCB rules
 // ----------------------------------------------------------------------------
-local tcb = import "TCB/forbid_everything.jsonnet";
+local tcb = import 'TCB/forbid_everything.jsonnet';
 
 // ----------------------------------------------------------------------------
 // Skip and last-minute override
