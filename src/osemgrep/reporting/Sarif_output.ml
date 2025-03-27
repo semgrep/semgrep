@@ -143,7 +143,7 @@ let rule ~(hide_nudge : bool) (ctx : Out.format_context) (rule : Rule.t) :
     | Some (JSON.String source) -> Some source
     | Some _
     | None ->
-        match JSON.member "source-rule-uri" metadata with
+        match JSON.member "source-rule-url" metadata with
         | Some (JSON.String source) -> Some source
         | Some _
         | None ->
