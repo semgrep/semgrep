@@ -1,7 +1,9 @@
 (* The type of the semgrep "core" scan. We define it here so that
    semgrep and semgrep-proprietary use the same definition *)
 type func = Core_scan_config.t -> Core_result.result_or_exn
-type caps = < Cap.fork ; Cap.time_limit ; Cap.memory_limit ; Cap.readdir >
+
+type caps =
+  < Cap.fork ; Cap.time_limit ; Cap.memory_limit ; Cap.readdir ; Cap.tmp >
 
 (* Entry point. This is used in Core_CLI.ml for semgrep-core,
  * in Pro_core_CLI for semgrep-core-proprietary, in tests, and finally
@@ -62,9 +64,13 @@ val get_targets_for_pysemgrep :
 (* Get the rules *)
 val rules_of_config : Core_scan_config.t -> Rule_error.rules_and_invalid
 
-(* Get the rules, using targeting info in config to filter irrelevant rules.
+(* Default taint propagators *)
+val hook_builtin_propagators : (Lang.t * string list) list Hook.t
+
+(* Get the rules, using targeting info in config to filter irrelevant
+   rules. Also add hardcode propagators to taint rules.
    TODO: See comments in the .ml about the implementation *)
-val applicable_rules_of_config :
+val applicable_rules_of_config_and_hardcode_propagators :
   Core_scan_config.t -> Rule_error.rules_and_invalid
 
 (* This is also used by semgrep-proprietary. It filters the rules that
@@ -112,7 +118,7 @@ val print_cli_additional_targets : Core_scan_config.t -> int -> unit
 type target_handler = Target.t -> Core_result.matches_single_file * bool
 
 val mk_target_handler_hook :
-  (< Cap.time_limit > ->
+  (< Cap.time_limit ; Cap.tmp > ->
   Core_scan_config.t ->
   Rule.t list ->
   Match_env.prefilter_config ->
@@ -137,7 +143,19 @@ val parse_equivalences : Fpath.t option -> Equivalence.equivalences
 
 (* small wrapper around Parse_target.parse_and_resolve_name *)
 val parse_and_resolve_name :
-  Lang.t -> Fpath.t -> AST_generic.program * Tok.location list
+  < Cap.tmp > ->
+  root:Fpath.t option ->
+  Lang.t ->
+  Fpath.t ->
+  AST_generic.program * Tok.location list
+
+val hook_parse_and_resolve_name :
+  (< Cap.tmp > ->
+  root:Fpath.t option ->
+  Lang.t ->
+  Fpath.t ->
+  AST_generic.program * Tok.location list)
+  Hook.t
 
 val log_scan_inputs :
   Core_scan_config.t ->

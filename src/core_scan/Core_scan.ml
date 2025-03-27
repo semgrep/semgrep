@@ -115,7 +115,8 @@ module Out = Semgrep_output_v1_j
 type func = Core_scan_config.t -> Core_result.result_or_exn
 
 (* TODO: stdout (sometimes) *)
-type caps = < Cap.fork ; Cap.time_limit ; Cap.memory_limit ; Cap.readdir >
+type caps =
+  < Cap.fork ; Cap.time_limit ; Cap.memory_limit ; Cap.readdir ; Cap.tmp >
 
 (* Type of the iter_targets_and_get_matches_and_exn_to_errors callback.
 
@@ -401,8 +402,8 @@ let targets_of_config (config : Core_scan_config.t) (rules : Rule.t list) :
 (* Parsing *)
 (*****************************************************************************)
 
-let parse_and_resolve_name (lang : Lang.t) (fpath : Fpath.t) :
-    AST_generic.program * Tok.location list =
+let parse_and_resolve_name _caps ~root:_not_used_in_OSS (lang : Lang.t)
+    (fpath : Fpath.t) : AST_generic.program * Tok.location list =
   let { Parsing_result2.ast; skipped_tokens; _ } =
     Logs_.with_debug_trace ~__FUNCTION__ (fun () ->
         Logs.debug (fun m ->
@@ -411,6 +412,8 @@ let parse_and_resolve_name (lang : Lang.t) (fpath : Fpath.t) :
         Parse_target.parse_and_resolve_name lang fpath)
   in
   (ast, skipped_tokens)
+
+let hook_parse_and_resolve_name = Hook.create parse_and_resolve_name
 
 (* Lang heuristic to determine if a rule is relevant or can be filtered out *)
 let is_rule_used_by_targets (analyzer_set : Analyzer.t Set_.t) (rule : Rule.t) =
@@ -464,15 +467,109 @@ let rules_of_config (config : Core_scan_config.t) : Rule_error.rules_and_invalid
   (rules, invalid_rules)
 [@@trace]
 
+let hook_builtin_propagators = Hook.create []
+
+(* Hardcode some common collections as propagators
+   as a TEMPORARY measure to help customers get results.
+   Do not add more propagators (other than other functions
+   for these collections). At that point, we should be
+   figuring out a better solution for customization. *)
+(* TODO remove this, either by adding these propagators to
+   the engine for a specialized analysis or by moving them
+   to a customizable defaults file *)
+let hardcode_propagators lang propagator_strs (rules : Rule.rule list) =
+  (* Propagators are uniquely identified by their location
+     so we have to generate a location *)
+  (* TODO Should this be one counter for all languages? *)
+  let i = ref 1 in
+  (* TODO Doesn't this always just return 1? *)
+  let pos () =
+    i := 1;
+    !i
+  in
+  let propagator_token str =
+    let location =
+      {
+        Loc.str;
+        pos =
+          {
+            bytepos = pos ();
+            line = pos ();
+            column = pos ();
+            file = Fpath_.fake_file;
+          };
+      }
+    in
+    Tok.tok_of_loc location
+  in
+  (* Generate and add the propagator *)
+  let hardcoded_propagators =
+    let propagator_of_any str =
+      let any =
+        Parse_pattern.parse_pattern lang str |> Result.get_ok
+        (* This is OK since all of the patterns here are fixed strings we know
+           should parse. *)
+      in
+
+      let pstr = (str, AST_generic.fake str) in
+      {
+        Rule.propagator_id = "builtin-propagator<" ^ str ^ ">";
+        propagator_formula =
+          P (Xpattern.mk_xpat (Sem (any, lang)) pstr) |> Rule.f;
+        propagator_by_side_effect = true;
+        (* TODO: Confirm this is correct, or at least equivalent to
+           what was here. *)
+        propagator_requires =
+          Some { precondition = Rule.default_propagator_requires; range = None };
+        propagator_replace_labels = None;
+        propagator_label = None;
+        from = ("$FROM", propagator_token "$FROM");
+        to_ = ("$TO", propagator_token "$TO");
+      }
+    in
+    (* This needs to be lazy, or else we require the Java + TS/JS parser *)
+    (* even if we aren't scanning those languages. This doesn't matter, except *)
+    (* for semgrep js! *)
+    lazy (List_.map propagator_of_any propagator_strs)
+  in
+  let add_propagator_to_rule rule =
+    let rule =
+      match (rule.Rule.target_selector, rule.mode) with
+      | Some (rule_lang :: _), `Taint mode when rule_lang =*= lang ->
+          let { Rule.propagators; sources; sanitizers; sinks } = mode in
+          let mode =
+            `Taint
+              {
+                Rule.propagators =
+                  propagators @ Lazy.force hardcoded_propagators;
+                sources;
+                sanitizers;
+                sinks;
+              }
+          in
+          { rule with mode }
+      | __else__ -> rule
+    in
+    rule
+  in
+  List_.map add_propagator_to_rule rules
+
 (* This is wasteful since it involves target discovery but the targets
    are discarded!
    Is this filtering necessary anyway?
 *)
-let applicable_rules_of_config (config : Core_scan_config.t) :
-    Rule_error.rules_and_invalid =
+let applicable_rules_of_config_and_hardcode_propagators
+    (config : Core_scan_config.t) : Rule_error.rules_and_invalid =
   let rules, invalid_rules = rules_of_config config in
   let targets, _errors, _skipped = targets_of_config config rules in
-  let rules = filter_rules_by_targets_analyzers rules targets in
+  let rules =
+    filter_rules_by_targets_analyzers rules targets |> fun rules ->
+    List.fold_left
+      (fun rules (lang, propagators) ->
+        rules |> hardcode_propagators lang propagators)
+      rules
+      (Hook.get hook_builtin_propagators)
+  in
   (rules, invalid_rules)
 
 (* TODO? this is currently deprecated, but pad still has hope the
@@ -812,8 +909,8 @@ let rules_for_target ~combine_js_with_ts ~analyzer ~products ~origin
 (* build the callback for iter_targets_and_get_matches_and_exn_to_errors
  * coupling: with SCA_scan.mk_target_handler
  *)
-let mk_target_handler (caps : < Cap.time_limit >) (config : Core_scan_config.t)
-    (valid_rules : Rule.t list)
+let mk_target_handler (caps : < Cap.time_limit ; Cap.tmp >)
+    (config : Core_scan_config.t) (valid_rules : Rule.t list)
     (prefilter_cache_opt : Match_env.prefilter_config) : target_handler =
   (* Note that this function runs in another process *)
   function
@@ -833,7 +930,13 @@ let mk_target_handler (caps : < Cap.time_limit >) (config : Core_scan_config.t)
 
       (* TODO: can we skip all of this if there are no applicable
           rules? In particular, can we skip print_cli_progress? *)
-      let xtarget = Xtarget.resolve parse_and_resolve_name target in
+      let xtarget =
+        Xtarget.resolve
+          ((Hook.get hook_parse_and_resolve_name)
+             (caps :> < Cap.tmp >)
+             ~root:config.project_root)
+          target
+      in
       let xconf =
         {
           Match_env.config = Rule_options.default;
@@ -900,7 +1003,7 @@ let scan_exn (caps : < caps ; .. >) (config : Core_scan_config.t)
          (caps :> < Cap.fork ; Cap.memory_limit >)
          config
          ((Hook.get mk_target_handler_hook)
-            (caps :> < Cap.time_limit >)
+            (caps :> < Cap.time_limit ; Cap.tmp >)
             config valid_rules prefilter_cache_opt)
   in
 
@@ -949,7 +1052,8 @@ let scan (caps : < caps ; .. >) (config : Core_scan_config.t) :
     Core_result.result_or_exn =
   try
     let timed_rules =
-      Common.with_time (fun () -> applicable_rules_of_config config)
+      Common.with_time (fun () ->
+          applicable_rules_of_config_and_hardcode_propagators config)
     in
     (* The pre and post processors hook here is currently used
        for the secrets post processor in Pro, and for the autofix

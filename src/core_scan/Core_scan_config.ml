@@ -78,6 +78,18 @@ type t = {
   (* telemetry *)
   tracing : Tracing.config option;
   symbol_analysis : bool;
+  (* Optional project root used for pro intrafile.
+
+     `project_root` is utilized in `Core_scan.parse_and_resolve_name`,
+     where it is replaced by the interfile naming function in the Pro
+     hook. Currently, `Core_scan` is shared between OSS and Pro
+     intrafile modes, preventing us from passing `Pro_scan_config.t`
+     to it, as this would also impact `Core_scan` in OSS mode.
+
+     TODO: Once we separate Pro intrafile mode from OSS `Core_scan`
+     and merge it with Pro interfile mode into a unified `Pro_scan`,
+     we can remove this field. *)
+  project_root : Fpath.t option;
 }
 [@@deriving show]
 
@@ -118,4 +130,5 @@ let default =
     (* debugging and telemetry flags *)
     tracing = None;
     symbol_analysis = false;
+    project_root = None;
   }

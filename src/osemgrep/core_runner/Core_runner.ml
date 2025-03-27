@@ -198,6 +198,7 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
         max_match_per_file = Core_scan_config.default.max_match_per_file;
         tracing = None;
         symbol_analysis;
+        project_root = None;
       }
 
 (* output adapter to Core_scan.scan.
