@@ -62,7 +62,7 @@ Creating git worktree from 'foo' to scan baseline.
 │ Scan Summary │
 └──────────────┘
 Semgrep's file targeting is getting a revamp! To keep scanning the same files
-after version 1.115.0, you will need to update your .semgrepignore. If you have
+after version 1.116.0, you will need to update your .semgrepignore. If you have
 any questions, ask on the Community Slack or file an issue on https://github.com/semgrep/semgrep/issues.
 
 See https://semgrep.dev/docs/kb/semgrep-code/semgrepignore-ignored for the new specification.

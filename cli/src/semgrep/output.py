@@ -219,7 +219,7 @@ def warn_of_v1_v2_discrepancies(
         return
     # This should be the last release defaulting to Semgrepignore v1
     # (presumably for all users, not just CE users):
-    v2_version = "1.115.0"
+    v2_version = "1.116.0"
     if not new_in_v2 and not missing_in_v2:
         # No changes
         msg = f"Semgrep's file targeting is getting a revamp! This scan wouldn't see any changes. To learn about what will be different after version {v2_version}, visit {url} for the new specification."
