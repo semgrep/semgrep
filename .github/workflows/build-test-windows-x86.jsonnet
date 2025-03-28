@@ -158,7 +158,7 @@ local build_core_job = {
         opam exec -- _build/install/default/bin/semgrep-core.exe -l python -rules tests/windows/rules.yml -json tests/windows/test.py
       |||,
     },
-    semgrep.copy_executable_dlls('bin/semgrep-core.exe'),
+    semgrep.copy_executable_dlls('bin/semgrep-core.exe', 'extra-artifacts'),
     actions.make_artifact_step('bin/semgrep-core.exe extra-artifacts/*'),
     actions.upload_artifact_step(artifact_name),
   ],

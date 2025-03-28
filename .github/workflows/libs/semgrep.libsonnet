@@ -301,7 +301,7 @@ local build_test_steps(opam_switch=opam_switch_default, name='semgrep-core', tim
        },
      ]);
 
-local copy_executable_dlls(executable, target_dir='extra_artifacts') =
+local copy_executable_dlls(executable, target_dir) =
   {
     name: 'Copy %s DLLs to %s/' % [executable, target_dir],
     // cygcheck lists the library (DLL) dependencies of the binary. We only

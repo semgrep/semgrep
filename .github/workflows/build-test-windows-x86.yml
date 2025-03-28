@@ -89,14 +89,14 @@ jobs:
         run: |
           # see pro workflow & semgrep-proprietary/pull/3522
           opam exec -- _build/install/default/bin/semgrep-core.exe -l python -rules tests/windows/rules.yml -json tests/windows/test.py
-      - name: Copy bin/semgrep-core.exe DLLs to extra_artifacts/
+      - name: Copy bin/semgrep-core.exe DLLs to extra-artifacts/
         run: |
-          mkdir -p extra_artifacts
+          mkdir -p extra-artifacts
           SYS_ROOT_BIN="$(x86_64-w64-mingw32-gcc -print-sysroot)/mingw/bin"
           dlls=$(PATH=$SYS_ROOT_BIN:$PATH cygcheck "bin/semgrep-core.exe" | grep 'x86_64-w64-mingw32' | sed 's/^[[:space:]]*//' | sort -u)
           for dll in $dlls; do
-            echo "Copying $dll to extra_artifacts/"
-            cp -p "$dll" "extra_artifacts"
+            echo "Copying $dll to extra-artifacts/"
+            cp -p "$dll" "extra-artifacts"
           done
       - name: Make artifact for bin/semgrep-core.exe extra-artifacts/*
         run: |
