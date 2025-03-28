@@ -222,6 +222,15 @@ def exec_osemgrep():
 # Needed for similar reasons as in pysemgrep, but only for the legacy
 # flag to work
 def main():
+    # Nudge Windows users away, until we are happy with our beta testing
+    semgrep_force_install = "SEMGREP_FORCE_INSTALL" in os.environ
+    if IS_WINDOWS and not semgrep_force_install:
+        sys.exit(
+            "Semgrep does not support Windows yet, please try again with WSL "
+            "or visit the following for more information: "
+            "https://github.com/semgrep/semgrep/issues/1330"
+        )
+
     # escape hatch for users to pysemgrep in case of problems (they
     # can also call directly 'pysemgrep').
     if "--legacy" in sys.argv:
