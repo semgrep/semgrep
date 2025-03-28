@@ -349,14 +349,9 @@ let with_top_level_span ?(level = Info) ?parent_span_id ?parent_trace_id
             parent_span_id_var parent_trace_id_var);
       with_span ~level ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data name f
   | Some span_id, Some trace_id ->
-      let scope : Otel.Scope.t =
-        {
-          span_id = Otel.Span_id.of_hex span_id;
-          trace_id = Otel.Trace_id.of_hex trace_id;
-          events = [];
-          attrs = [];
-        }
-      in
+      let span_id = Otel.Span_id.of_hex span_id in
+      let trace_id = Otel.Trace_id.of_hex trace_id in
+      let scope = Otel.Scope.make ~span_id ~trace_id () in
       Otel.Scope.with_ambient_scope scope (fun () ->
           with_span ~level ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data name f)
 
