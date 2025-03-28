@@ -87,7 +87,8 @@ jobs:
           opam exec -- dune build _build/install/default/bin/semgrep-core.exe
       - name: Test semgrep-core
         run: |
-          _build/install/default/bin/semgrep-core.exe -l python -rules tests/windows/rules.yml -json tests/windows/test.py
+          # see pro workflow & semgrep-proprietary/pull/3522
+          opam exec -- _build/install/default/bin/semgrep-core.exe -l python -rules tests/windows/rules.yml -json tests/windows/test.py
       - name: Copy bin/semgrep-core.exe DLLs to extra_artifacts/
         run: |
           mkdir -p extra_artifacts
