@@ -403,7 +403,6 @@ def _test_semgrepignore_ignore_log_report(
         stderr,
         flags=re.MULTILINE | re.DOTALL,
     )
-    print(report)
     assert (
         report is not None
     ), "can't find ignore log report based on expected start and end lines"
