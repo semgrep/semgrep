@@ -52,4 +52,3 @@ Files skipped:
    ◦ Not matching --include patterns: 1
    ◦ Matching --exclude patterns: 1
    ◦ Files matching .semgrepignore patterns: 3
- • For a detailed list of skipped files and lines, run semgrep with the --verbose flag

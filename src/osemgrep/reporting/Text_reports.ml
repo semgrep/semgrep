@@ -425,7 +425,7 @@ let skipped ~too_many_entries ~respect_git_ignore ~max_target_bytes
 (*****************************************************************************)
 let scan_summary ~respect_gitignore ~max_target_bytes ~num_valid_rules
     (maturity : Maturity.t) (cli_output : Out.cli_output)
-    (groups : Skipped_groups.t) : string =
+    (groups : Skipped_groups.t) (logging_level : Logs.level option) : string =
   Buffer_.with_buffer_to_string (fun buf ->
       let prf fmt = Printf.bprintf buf fmt in
       prf "%s" (Console.heading "Scan Summary");
@@ -484,11 +484,20 @@ let scan_summary ~respect_gitignore ~max_target_bytes ~num_valid_rules
           parts |> Option.iter (fun txt -> prf "  Partially scanned: %s\n" txt);
           match xs with
           | [] -> ()
-          | xs ->
+          | xs -> (
               prf "  Scan skipped: %s.\n" (String.concat ", " xs);
-              prf
-                "  For a full list of skipped files, run semgrep with the \
-                 --verbose flag.\n"));
+              match logging_level with
+              | None
+              | Some Logs.App
+              | Some Logs.Error
+              | Some Logs.Warning ->
+                  (* --verbose and --debug set level to Logs.Info and
+                     Logs.Debug, respectively. *)
+                  prf
+                    "  For a full list of skipped files, run semgrep with the \
+                     --verbose flag.\n"
+              | _ -> ())));
+
       prf "\n";
       prf "Ran %s on %s: %s."
         (String_.unit_str num_valid_rules "rule")

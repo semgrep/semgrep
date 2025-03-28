@@ -606,7 +606,8 @@ let check_targets_with_rules
                    ~respect_gitignore:conf.targeting_conf.respect_gitignore
                    ~max_target_bytes:conf.targeting_conf.max_target_bytes
                    ~num_valid_rules:(List.length valid_rules)
-                   conf.common.maturity cli_output skipped_groups));
+                   conf.common.maturity cli_output skipped_groups
+                   conf.common.logging_level));
 
           (* step 6: apply autofixes *)
           (* this must happen posterior to reporting matches, or will report the

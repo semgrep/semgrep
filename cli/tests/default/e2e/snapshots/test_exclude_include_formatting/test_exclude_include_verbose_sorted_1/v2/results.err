@@ -69,6 +69,5 @@ Files skipped:
  • Parsed lines: an unknown percentage
  • Scan skipped:
    ◦ Matching --exclude patterns: 5
- • For a detailed list of skipped files and lines, run semgrep with the --verbose flag
 Ran 4 rules on 0 files: 0 findings.
 Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False

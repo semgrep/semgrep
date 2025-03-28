@@ -65,6 +65,5 @@ Files skipped:
  • Targets scanned: 1
  • Parsed lines: ~0.0%
  • No ignore information available
- • For a detailed list of skipped files and lines, run semgrep with the --verbose flag
 Ran 2 rules on 1 file: 0 findings.
 Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False

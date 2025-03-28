@@ -52,4 +52,3 @@ Semgrep's file targeting is getting a revamp! This scan wouldn't see any changes
    ◦ Not matching --include patterns: 1
    ◦ Matching --exclude patterns: 1
    ◦ Files matching .semgrepignore patterns: 1
- • For a detailed list of skipped files and lines, run semgrep with the --verbose flag

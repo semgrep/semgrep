@@ -564,7 +564,9 @@ class OutputHandler:
 
             parsed_line = f"\n • Parsed lines: {pretty_print_percentage((total_lines - total_lines_skipped), total_lines)}"
 
-            if ignore_log_str or total_lines_skipped:
+            if not self.settings.verbose_errors and (
+                ignore_log_str or total_lines_skipped
+            ):
                 more_detail_line = "\n • For a detailed list of skipped files and lines, run semgrep with the --verbose flag"
             if (
                 num_findings == 0
