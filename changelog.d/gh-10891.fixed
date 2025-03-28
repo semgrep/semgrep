@@ -5,7 +5,7 @@
 - `source-rule-url`: optional string, a URL for the source of inspiration for the rule.
 
   The SARIF format supports only one URL under the field `helpUri`.
-  
+
   Previously, Semgrep populated the SARIF `helpUri` field only with `metdata.source`.
-  
+
   This fix is to use `metadata.source` if available, otherwise falling back to `metadata.source-rule-url`.

@@ -55,7 +55,6 @@ from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
 from semgrep.target_manager import ALL_PRODUCTS
 from semgrep.target_manager import SAST_PRODUCT
-from semgrep.util import unit_str
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -850,7 +849,9 @@ def ci(
                 applicable_result_list = (
                     cai_matches
                     if "r2c-internal-cai" in rule.id
-                    else blocking_matches if match.is_blocking else nonblocking_matches
+                    else blocking_matches
+                    if match.is_blocking
+                    else nonblocking_matches
                 )
                 applicable_result_list.append(match)
                 if "r2c-internal-cai" not in rule.id:
