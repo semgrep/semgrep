@@ -121,7 +121,6 @@ local job = {
       uses: 'actions/checkout@v4',
       'if': '${{ inputs.enable-tests }}',
     },
-    // does this actually do anything? Is there a docker alternative (e.g. HEALTHCHECK?)
     {
       name: 'Test Image',
       'if': '${{ inputs.enable-tests }}',

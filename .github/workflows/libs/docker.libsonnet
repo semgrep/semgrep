@@ -26,10 +26,7 @@ local arch_to_docker_arch = {
   arm64: 'arm64',
   x86: 'amd64',
 };
-// ----------------------------------------------------------------------------
-// The job
-// ----------------------------------------------------------------------------
-
+// utils
 local copy_from_docker(artifact_name, target, file='Dockerfile') = [
   {
     id: 'copy-%s-binaries' % [artifact_name],
@@ -52,6 +49,32 @@ local copy_from_docker(artifact_name, target, file='Dockerfile') = [
     ], archs)
 );
 
+local validate(
+  job,
+  script,
+  needs,
+  checkout_steps=actions.checkout(),
+      ) =
+  {
+    'runs-on': 'ubuntu-latest',
+    needs: needs,
+    steps: checkout_steps +
+           [
+             {
+               name: 'Test %s image' % job,
+               env: {
+                 IMAGEID: 'semgrep/semgrep@${{ needs.%s.outputs.digest }}' % job,
+               },
+               // only test amd64 for now. I suspect this is fine for now
+               run: '%s "$IMAGEID" linux/amd64' % script,
+             },
+           ],
+  };
+
+// ----------------------------------------------------------------------------
+// The job
+// ----------------------------------------------------------------------------
+
 local job(
   name,  // Name of docker image if uploaded (i.e. semgrep/NAME)
   target,  // Target docker layer (i.e. build, semgrep-cli, etc.)
@@ -59,6 +82,7 @@ local job(
   suffix='',  // suffix for image tags
   artifact_name=null,  // name of artifact to copy from docker image
   needs=[],  // prereq GHA steps
+  script='OSS/scripts/validate-docker-build.sh',  // script to verify docker image ok
   checkout_steps=actions.checkout_with_submodules,
   push=false,  // push to registry
   file='Dockerfile'
@@ -303,4 +327,5 @@ local inputs = {
       },
     },
   },
+  validate: validate,
 }
