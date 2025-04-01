@@ -1,4 +1,4 @@
-{ opam-nix, opam-repository, hasSubmodules, ocamlVersion ? "5.2.1" }:
+{ opam-nix, opam-repository, hasSubmodules, ocamlVersion ? "5.3.0" }:
 { pkgs, system, }:
 let
 

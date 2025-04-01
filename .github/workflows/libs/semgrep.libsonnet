@@ -69,7 +69,7 @@ local github_bot = {
 
 // default one
 // coupling: with containers above
-local opam_switch = '5.2.1';
+local opam_switch = '5.3.0';
 // also default but needed by another nameso we can use it as a function default arg
 local opam_switch_default = opam_switch;
 local containers = {
