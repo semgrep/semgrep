@@ -217,7 +217,7 @@ jobs:
       - uses: semgrep/setup-ocaml@latest
         with:
           cache-prefix: v1
-          ocaml-compiler: 5.2.1
+          ocaml-compiler: 5.3.0
           opam-pin: false
           save-opam-post-run: true
       - name: Build semgrep-core
@@ -306,7 +306,7 @@ jobs:
       - uses: semgrep/setup-ocaml@latest
         with:
           cache-prefix: v1
-          ocaml-compiler: 5.2.1
+          ocaml-compiler: 5.3.0
           opam-pin: false
           save-opam-post-run: true
       - name: Install dependencies

@@ -17,7 +17,7 @@ local defaults = {
 };
 // TODO: We can remove this and switch to semgrep.opam_switch once we move to
 // OCaml 5 everywhere.
-local opam_switch = '5.2.1';
+local opam_switch = '5.3.0';
 
 // ----------------------------------------------------------------------------
 // The job
