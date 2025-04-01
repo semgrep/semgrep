@@ -18,7 +18,7 @@ let gitignore_conf : Match.conf =
   }
 
 let test ?conf pattern path matches () =
-  let pat = Parse.parse_string pattern in
+  let pat = Parse.parse_string ~deprecated_absolute_dotslash:true pattern in
   let compiled_pat =
     Match.compile ?conf ~source:(Match.string_loc ~source_kind:None pattern) pat
   in
@@ -122,4 +122,13 @@ let tests =
         (test ~conf:gitignore_conf "*a" ".a" true);
       t "match dot file with question mark (Gitignore)"
         (test ~conf:gitignore_conf "?a" ".a" true);
+      t
+        ~expected_outcome:
+          (Should_fail
+             "incorrect behavior supported for the time being for backward \
+              compatibility with Semgrepignore v1")
+        "don't normalize path pattern into absolute path"
+        (test "./a" "/a" false);
+      t "don't normalize path pattern into relative path" (test "./a" "a" false);
+      t "don't normalize '.' pattern into empty path" (test "." "." true);
     ]

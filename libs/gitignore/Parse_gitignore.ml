@@ -83,7 +83,7 @@ let gitignore_glob_conf : M.conf =
    '/foo/**/*.c'.
 *)
 let parse_pattern ~source ~anchor str : M.compiled_pattern =
-  let pat = Glob.Parse.parse_string str in
+  let pat = Glob.Parse.parse_string ~deprecated_absolute_dotslash:true str in
   let absolute_pattern =
     if is_anchored_pattern pat then Glob.Pattern.append anchor pat
     else Glob.Pattern.append anchor (Any_subpath :: pat)

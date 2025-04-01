@@ -83,7 +83,7 @@ class Expect:
 PROJECT = GitProject(
     name="semgrep-test-project1",
     url="https://github.com/semgrep/semgrep-test-project1.git",
-    commit="1b5195816e4137ddbf3fb08e5872af8fb0020efd",
+    commit="1d844c7e4d80108acb1fc265adf1a94562d4522a",
 )
 
 
@@ -191,6 +191,8 @@ COMMON_EXPECTATIONS = [
             "src/🚀.py",
             # sanity check for dotfiles/
             "dotfiles/not-excluded",
+            # Control for backward compatibility with Semgrepignore v1
+            "normalized-patterns/not-excluded-for-v1-compatibility",
         ],
     ),
     Expect(
@@ -213,6 +215,8 @@ COMMON_EXPECTATIONS = [
             "dotfiles/.excluded.py",
             "dotfiles/_excluded.rb",
             "dotfiles/.excluded.rb",
+            # Backward compatibility with Semgrepignore v1 (deprecated)
+            "normalized-patterns/excluded-for-v1-compatibility",
         ],
     ),
     # accepted differences between pysemgrep and osemgrep
