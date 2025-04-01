@@ -27,7 +27,7 @@ from semgrep.constants import OutputFormat
         "metavariable_type",
         "source_url",
         "source_rule_url",
-    ]
+    ],
 )
 @pytest.mark.parametrize("dataflow_traces", [True, False], ids=["trace", "notrace"])
 def test_sarif_output(
