@@ -1,0 +1,10 @@
+# This test rule is for checking that the SARIF output contains
+# the URL provided by metadata.source-rule-url
+rules:
+  - id: source-rule-url
+    pattern: print(...)
+    message: "found"
+    languages: [python]
+    severity: ERROR
+    metadata:
+      source-rule-url: https://example.com/print

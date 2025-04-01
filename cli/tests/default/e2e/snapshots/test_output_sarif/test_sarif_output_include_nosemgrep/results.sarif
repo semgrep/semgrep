@@ -85,9 +85,10 @@
                 "text": "AWS Account ID detected"
               },
               "help": {
-                "markdown": "AWS Account ID detected",
+                "markdown": "AWS Account ID detected\n\n<b>References:</b>\n - [Semgrep Rule](https://github.com/grab/secret-scanner/blob/master/scanner/signatures/pattern.go)\n",
                 "text": "AWS Account ID detected"
               },
+              "helpUri": "https://github.com/grab/secret-scanner/blob/master/scanner/signatures/pattern.go",
               "id": "rules.regex.detected-aws-account-id",
               "name": "rules.regex.detected-aws-account-id",
               "properties": {
