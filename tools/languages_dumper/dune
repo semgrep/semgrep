@@ -11,7 +11,6 @@
     parser_javascript.menhir
     parser_json.menhir
     parser_cpp.menhir
-    parser_c.menhir
     parser_ocaml.menhir
     parser_java.menhir
     parser_go.menhir
