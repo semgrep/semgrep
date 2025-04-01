@@ -118,8 +118,6 @@ let options () =
   @ Flag_parsing_cpp.cmdline_flags_debugging ()
   @ Flag_parsing_php.cmdline_flags_pp ()
   @ Flag_parsing_cpp.cmdline_flags_macrofile ()
-  @ Common2.cmdline_flags_devel ()
-  @ Common2.cmdline_flags_other ()
   (*e: [[Main.options]] concatenated flags *)
   (*s: [[Main.options]] concatenated actions *)
   @ Arg_.options_of_actions action (all_actions ())
