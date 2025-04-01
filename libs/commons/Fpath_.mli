@@ -52,7 +52,10 @@ val append_no_dot : Fpath.t -> Fpath.t -> Fpath.t
 (* Returns the list of ancestors of a path
    For example, [parents (Fpath.v "a/b/foo.js")] returns
    ["a/b/"; "a/"; "./"]
-   This is only syntactical so
+   This is only syntactical so the code below is still fragile because if the
+   path is ../../foo.js the parents are infinite (hence depth_limit below).
+   This is why you should prefer to use realpath or enforce that the given path
+   is absolute or does not contain any '..'
 *)
 val parents : ?depth_limit:int -> Fpath.t -> Fpath.t list
 
