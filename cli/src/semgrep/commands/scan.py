@@ -40,6 +40,7 @@ from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_MAX_LOG_LIST_ENTRIES
 from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
 from semgrep.constants import DEFAULT_TIMEOUT
+from semgrep.constants import DEFAULT_USE_SEMGREPIGNORE_V2
 from semgrep.constants import OutputFormat
 from semgrep.core_runner import CoreRunner
 from semgrep.engine import EngineType
@@ -735,9 +736,7 @@ def scan(
         # coupling: see identical code in ci.py
         use_semgrepignore_v2: bool
         if semgrepignore_v2 is None:
-            # !!!DISABLED!!! the switch is postponed to semgrep 1.113! (same in ci.py)
-            # use_semgrepignore_v2 = True if engine_type is EngineType.OSS else False
-            use_semgrepignore_v2 = False
+            use_semgrepignore_v2 = DEFAULT_USE_SEMGREPIGNORE_V2
         else:
             use_semgrepignore_v2 = semgrepignore_v2
 

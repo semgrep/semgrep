@@ -1,0 +1,7 @@
+Target file selection now uses
+[Semgrepignore v2](https://semgrep.dev/docs/semgrepignore-v2-reference) by default. This brings the behavior of the Semgrepignore file
+exclusions closer to Git and `.gitignore` files. There can now
+be multiple `.semgrepignore` files in the project. The `.semgrepignore` file
+in the current folder is no longer consulted unless it in the project.
+Negated patterns are now supported such as `!scanme.py` as with Gitignore.
+Some bugs were fixed.

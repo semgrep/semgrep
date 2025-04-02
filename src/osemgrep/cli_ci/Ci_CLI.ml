@@ -142,6 +142,9 @@ let o_config : string list Term.t =
 (* ------------------------------------------------------------------ *)
 (* Internals *)
 (* ------------------------------------------------------------------ *)
+(*
+   TODO: document these options! (as command-line help or as comments)
+*)
 
 (* osemgrep-only *)
 let o_fake_backend : string option Term.t =

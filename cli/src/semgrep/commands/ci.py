@@ -32,6 +32,7 @@ from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.console import console
 from semgrep.console import Title
+from semgrep.constants import DEFAULT_USE_SEMGREPIGNORE_V2
 from semgrep.constants import OutputFormat
 from semgrep.engine import EngineType
 from semgrep.error import FATAL_EXIT_CODE
@@ -584,9 +585,7 @@ def ci(
         # coupling: see identical code in scan.py
         use_semgrepignore_v2: bool
         if semgrepignore_v2 is None:
-            # !!!DISABLED!!! the switch is postponed to semgrep 1.113! (same in scan.py)
-            # use_semgrepignore_v2 = True if engine_type is EngineType.OSS else False
-            use_semgrepignore_v2 = False
+            use_semgrepignore_v2 = DEFAULT_USE_SEMGREPIGNORE_V2
         else:
             use_semgrepignore_v2 = semgrepignore_v2
         # For troubleshooting if needed in an emergency since we don't have tests:

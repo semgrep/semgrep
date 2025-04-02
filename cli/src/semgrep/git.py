@@ -124,6 +124,11 @@ def is_git_repo_root_approx() -> bool:
     This function is meant to help provide better warning messages
     (e.g. for `semgrep ci`).
     """
+    # TODO: remove the trailing slash to make this work in a secondary
+    #  git worktree where '.git' is a regular file.
+    #  Test plan: create a worktree then run 'semgrep ci'
+    #  from the root of the new worktree.
+    #  It should not print the warning "is meant to be run from the root".
     return os.path.exists(".git/")
 
 

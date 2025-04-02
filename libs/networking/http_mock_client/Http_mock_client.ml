@@ -350,9 +350,15 @@ let client_from_file (req_resp_file : Fpath.t) =
         with
         | Some ((expected_req, request_body), (response, response_body), used)
           ->
+            (*
+               Check body first to avoid opaque errors on the 'content-length'
+               header being shown first.
+               TODO: print a snapshot so what we can update expected test
+               output easily.
+            *)
+            Lwt.async (fun () -> check_body body request_body);
             check_method expected_req.meth req.meth;
             check_headers req.headers expected_req.headers;
-            Lwt.async (fun () -> check_body body request_body);
             used := true;
             Lwt.return { response; body = response_body }
         | None -> Alcotest.fail "Given request does not match any resources"
