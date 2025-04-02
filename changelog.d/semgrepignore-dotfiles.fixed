@@ -1,1 +1,0 @@
-In Semgrepignore v2, allow wildcards `*` and `?` to match file names with a leading period. This matches the behavior of Gitignore and Semgrepignore v1.

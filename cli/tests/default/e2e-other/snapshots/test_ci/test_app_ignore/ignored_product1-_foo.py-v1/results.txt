@@ -94,7 +94,7 @@
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘
-Semgrep's file targeting is getting a revamp! This scan wouldn't see any changes. To learn about what will be different after version <MASKED>, visit https://semgrep.dev/docs/kb/semgrep-code/semgrepignore-ignored for the new specification.
+Semgrep's file targeting is getting a revamp! This scan wouldn't see any changes. To learn about what will be different after version 1.116.0, visit https://semgrep.dev/docs/kb/semgrep-code/semgrepignore-ignored for the new specification.
 
 ✅ CI scan completed successfully.
  • Findings: 8 (6 blocking)
