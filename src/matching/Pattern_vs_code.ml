@@ -542,7 +542,7 @@ let rec m_name_inner a b =
    *)
   | G.IdQualified { name_last = ida, None; _ }, B.Id (idb, _infob)
     when fst ida = fst idb -> (
-      match !Hooks.get_def idb with
+      match !Core_hooks.get_def idb with
       | None -> try_with_equivalences a b
       | Some file ->
           let m = module_name_of_filename file in
@@ -738,7 +738,7 @@ and m_type_option_with_hook idb taopt tbopt =
   match (taopt, tbopt) with
   | Some ta, Some tb -> m_type_ ta tb
   | Some ta, None -> (
-      match !Hooks.get_type idb with
+      match !Core_hooks.get_type idb with
       | Some tb -> m_type_ ta tb
       | None -> fail ())
   (* less-is-ok:, like m_option_none_can_match_some *)
