@@ -199,6 +199,7 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
         tracing = None;
         symbol_analysis;
         project_root = None;
+        use_eio = false;
       }
 
 (* output adapter to Core_scan.scan.

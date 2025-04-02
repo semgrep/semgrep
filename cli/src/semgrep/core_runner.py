@@ -792,6 +792,7 @@ class CoreRunner:
         disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
         all_subprojects: List[Union[out.ResolvedSubproject, out.UnresolvedSubproject]],
+        x_eio: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         state = get_state()
         logger.debug(f"Passing whole rules directly to semgrep_core")
@@ -870,6 +871,11 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
             cmd.extend(["-rules", rule_file.name])
 
             # adding multi-core option
+            # rely on the domains/thread-based impl instead of Parmap
+            if x_eio:
+                cmd.extend(["-use_eio"])
+
+            # determine job number
             safe_jobs = self._jobs
             if IS_WINDOWS and safe_jobs > 1:
                 logger.warning(
@@ -1112,6 +1118,7 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
         disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
         all_subprojects: List[Union[out.ResolvedSubproject, out.UnresolvedSubproject]],
+        x_eio: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Sometimes we may run into synchronicity issues with the latest DeepSemgrep binary.
@@ -1134,6 +1141,7 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                 disable_secrets_validation,
                 target_mode_config,
                 all_subprojects,
+                x_eio=x_eio,
             )
         except SemgrepError as e:
             # Handle Semgrep errors normally
@@ -1174,6 +1182,7 @@ Exception raised: `{e}`
         disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
         all_subprojects: List[Union[out.ResolvedSubproject, out.UnresolvedSubproject]],
+        x_eio: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Takes in rules and targets and returns object with findings
@@ -1196,6 +1205,7 @@ Exception raised: `{e}`
             disable_secrets_validation,
             target_mode_config,
             all_subprojects,
+            x_eio,
         )
 
         logger.debug(

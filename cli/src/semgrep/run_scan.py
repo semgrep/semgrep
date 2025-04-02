@@ -923,6 +923,7 @@ def run_rules(
     ptt_enabled: bool = False,
     resolve_all_deps_in_diff_scan: bool = False,
     x_tr: bool = False,
+    x_eio: bool = False,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -1002,6 +1003,7 @@ def run_rules(
         disable_secrets_validation,
         target_mode_config,
         all_subprojects,
+        x_eio,
     )
     # ---------------------------------------
     # Step5: Adjusting rule_matches_by_rule
@@ -1096,6 +1098,7 @@ def run_scan(
     x_ls: bool = False,
     x_ls_long: bool = False,
     x_tr: bool = False,
+    x_eio: bool = False,
     path_sensitive: bool = False,
     capture_core_stderr: bool = True,
     allow_local_builds: bool = False,
@@ -1309,6 +1312,7 @@ def run_scan(
         ptt_enabled=ptt_enabled,
         resolve_all_deps_in_diff_scan=resolve_all_deps_in_diff_scan,
         x_tr=x_tr,
+        x_eio=x_eio,
     )
     profiler.save("core_time", core_start_time)
 

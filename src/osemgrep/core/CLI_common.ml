@@ -19,6 +19,7 @@ type conf = {
   profile : bool;
   (* osemgrep-only: mix of --experimental, --legacy, --develop *)
   maturity : Maturity.t;
+  x_eio : bool;
 }
 [@@deriving show]
 
@@ -55,6 +56,13 @@ let o_debug : bool Term.t =
   let info =
     Arg.info [ "debug" ]
       ~doc:{|All of --verbose, but with additional debugging information.|}
+  in
+  Arg.value (Arg.flag info)
+
+let o_eio : bool Term.t =
+  let info =
+    Arg.info [ "x-eio" ]
+      ~doc:"[INTERNAL] Rely on an EIO based implementation for the -j flag"
   in
   Arg.value (Arg.flag info)
 
@@ -105,10 +113,10 @@ let o_profile : bool Term.t =
 (*************************************************************************)
 
 let o_common : conf Term.t =
-  let combine logging profile maturity =
-    { logging_level = logging; profile; maturity }
+  let combine logging profile maturity x_eio =
+    { logging_level = logging; profile; maturity; x_eio }
   in
-  Term.(const combine $ o_logging $ o_profile $ Maturity.o_maturity)
+  Term.(const combine $ o_logging $ o_profile $ Maturity.o_maturity $ o_eio)
 
 (*************************************************************************)
 (* Misc *)

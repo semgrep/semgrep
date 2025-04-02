@@ -423,6 +423,12 @@ _scan_options: List[Callable] = [
         is_flag=True,
         default=False,
     ),
+    optgroup.option(
+        "--x-eio",
+        "x_eio",
+        is_flag=True,
+        default=False,
+    ),
 ]
 
 
@@ -665,6 +671,7 @@ def scan(
     x_ls: bool,
     x_ls_long: bool,
     x_tr: bool,
+    x_eio: bool,
     path_sensitive: bool,
     allow_local_builds: bool,
 ) -> Optional[ScanResult]:
@@ -967,6 +974,7 @@ def scan(
                         x_ls=x_ls,
                         x_ls_long=x_ls_long,
                         x_tr=x_tr,
+                        x_eio=x_eio,
                         path_sensitive=path_sensitive,
                         capture_core_stderr=capture_core_stderr,
                         allow_local_builds=allow_local_builds,

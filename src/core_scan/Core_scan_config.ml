@@ -90,6 +90,8 @@ type t = {
      and merge it with Pro interfile mode into a unified `Pro_scan`,
      we can remove this field. *)
   project_root : Fpath.t option;
+  (* Rely on a EIO impl of `-j` v.s Parmap *)
+  use_eio : bool;
 }
 [@@deriving show]
 
@@ -131,4 +133,5 @@ let default =
     tracing = None;
     symbol_analysis = false;
     project_root = None;
+    use_eio = false;
   }

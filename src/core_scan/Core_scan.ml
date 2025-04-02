@@ -701,6 +701,9 @@ let iter_targets_and_get_matches_and_exn_to_errors
     Core_profiling.file_profiling Core_result.match_result list * Target.t list
     =
   (* The target is None when the file was not scanned *)
+  if config.use_eio then
+    Logs.err (fun m ->
+        m "Parallelism via EIO is yet to be implemented! resorting to Parmap :(");
   let (xs
         : ( Core_profiling.file_profiling Core_result.match_result
             * Target.t option,

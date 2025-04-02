@@ -279,6 +279,7 @@ def ci(
         str
     ],  # unused but needed to receive options from 'scan'
     verbose: bool,
+    x_eio: bool,
     x_tr: bool,
     path_sensitive: bool,
     allow_local_builds: bool,
@@ -705,6 +706,7 @@ def ci(
             "diff_depth": diff_depth,
             "capture_core_stderr": capture_core_stderr,
             "allow_local_builds": allow_local_builds,
+            "x_eio": x_eio,
             "x_tr": x_tr,
             "dump_rule_partitions_params": dump_rule_partitions_params,
             "ptt_enabled": scan_handler.ptt_enabled if scan_handler else False,

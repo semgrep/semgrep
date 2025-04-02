@@ -93,6 +93,7 @@ let default : conf =
         profile = false;
         logging_level = Some Logs.Warning;
         maturity = Maturity.Default;
+        x_eio = false;
       };
     trace = false;
     trace_endpoint = None;
@@ -1355,7 +1356,10 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       x_ignore_semgrepignore_files x_ls x_ls_long x_tr =
     (* Print a warning if any of the internal or experimental options.
        We don't want users to start relying on these. *)
-    if x_ignore_semgrepignore_files || x_ls || x_ls_long || x_tr then
+    if
+      x_ignore_semgrepignore_files || x_ls || x_ls_long || x_tr
+      || common.CLI_common.x_eio
+    then
       Logs.warn (fun m ->
           m
             "!!! You're using one or more options starting with '--x-'. These \

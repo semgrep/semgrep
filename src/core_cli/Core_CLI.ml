@@ -106,6 +106,7 @@ let max_match_per_file = ref Core_scan_config.default.max_match_per_file
 
 (* -j *)
 let ncores = ref Core_scan_config.default.ncores
+let use_eio = ref false
 
 (* ------------------------------------------------------------------------- *)
 (* optional optimizations *)
@@ -368,6 +369,7 @@ let mk_config () : Core_scan_config.t =
     (* only settable via the Pro binary *)
     symbol_analysis = !symbol_analysis;
     project_root = None;
+    use_eio = !use_eio;
   }
 
 (*****************************************************************************)
@@ -654,6 +656,11 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
                    ; Core_scan.caps >);
             Core_exit_code.(exit_semgrep caps#exit Success)),
         " don't use this unless you already know" );
+    ]
+  @ [
+      ( "-use_eio",
+        Arg.Set use_eio,
+        "  Rely on a multicore implementation of `-j` instead of Parmap" );
     ]
 
 (*****************************************************************************)
