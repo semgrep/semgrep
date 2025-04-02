@@ -430,6 +430,12 @@ _scan_options: List[Callable] = [
         is_flag=True,
         default=False,
     ),
+    optgroup.option(
+        "--x-pro-naming",
+        "x_pro_naming",
+        is_flag=True,
+        default=False,
+    ),
 ]
 
 
@@ -673,6 +679,7 @@ def scan(
     x_ls_long: bool,
     x_tr: bool,
     x_eio: bool,
+    x_pro_naming: bool,
     path_sensitive: bool,
     allow_local_builds: bool,
 ) -> Optional[ScanResult]:
@@ -974,6 +981,7 @@ def scan(
                         x_ls_long=x_ls_long,
                         x_tr=x_tr,
                         x_eio=x_eio,
+                        x_pro_naming=x_pro_naming,
                         path_sensitive=path_sensitive,
                         capture_core_stderr=capture_core_stderr,
                         allow_local_builds=allow_local_builds,

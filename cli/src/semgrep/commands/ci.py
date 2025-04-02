@@ -282,6 +282,7 @@ def ci(
     verbose: bool,
     x_eio: bool,
     x_tr: bool,
+    x_pro_naming: bool,
     path_sensitive: bool,
     allow_local_builds: bool,
     dump_n_rule_partitions: Optional[int],
@@ -707,6 +708,7 @@ def ci(
             "allow_local_builds": allow_local_builds,
             "x_eio": x_eio,
             "x_tr": x_tr,
+            "x_pro_naming": x_pro_naming,
             "dump_rule_partitions_params": dump_rule_partitions_params,
             "ptt_enabled": scan_handler.ptt_enabled if scan_handler else False,
             "resolve_all_deps_in_diff_scan": (

@@ -1099,6 +1099,7 @@ def run_scan(
     x_ls_long: bool = False,
     x_tr: bool = False,
     x_eio: bool = False,
+    x_pro_naming: bool = False,
     path_sensitive: bool = False,
     capture_core_stderr: bool = True,
     allow_local_builds: bool = False,
@@ -1281,6 +1282,7 @@ def run_scan(
         respect_rule_paths=respect_rule_paths,
         path_sensitive=path_sensitive,
         symbol_analysis=symbol_analysis,
+        use_pro_naming_for_intrafile=x_pro_naming,
     )
     # TODO? why displayed here? why not closer to log_running_rules?
     log_rules(filtered_rules, too_many_entries)
