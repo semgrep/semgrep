@@ -126,7 +126,7 @@ WORKDIR /src/semgrep
 # is what takes the most time in the docker build.
 #
 # coupling: if you change this you probably want to change this in semgrep-pro
-COPY Makefile semgrep.opam ./
+COPY Makefile cygwin-env.mk semgrep.opam ./
 COPY dev/required.opam dev/
 COPY scripts/build-static-libcurl.sh scripts/
 COPY libs/ocaml-tree-sitter-core libs/ocaml-tree-sitter-core

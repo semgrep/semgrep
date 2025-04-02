@@ -62,9 +62,7 @@ else
   BUILD_DEFAULT = ../_build/default/OSS
 endif
 
-ifeq ($(shell uname -o),Cygwin)
-  EXE = .exe
-endif
+include cygwin-env.mk
 
 ###############################################################################
 # Build (and clean) targets

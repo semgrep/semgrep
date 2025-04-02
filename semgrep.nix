@@ -138,6 +138,7 @@ in let
     # Dockerfile and the pro Dockerfile
     src = (lib.strictSrc ./. (with pkgs.lib.fileset; [
       ./Makefile
+      ./cygwin-env.mk
       ./TCB
       ./bin
       # might be missing due to submodule issue (dumb)
