@@ -162,6 +162,9 @@ For more information see https://semgrep.dev
     ; make our GHA opam cache useless. We might need to install here instead
     ; packages that would avoid this effect.
     git-unix
+    ; Eio
+    eio
+    eio_main ; Picks a suitable backend (i.e eio_{posix, linux, windows})
   )
 )
 

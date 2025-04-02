@@ -88,6 +88,8 @@ depends: [
   "js_of_ocaml-lwt" {= "5.9.1"}
   "integers_stubs_js"
   "git-unix"
+  "eio"
+  "eio_main"
   "odoc" {with-doc}
 ]
 build: [
