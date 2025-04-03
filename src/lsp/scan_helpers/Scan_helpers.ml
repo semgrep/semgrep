@@ -124,7 +124,7 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
                           secrets_config = None;
                           code_config = Some ();
                           (* TODO *)
-                          supply_chain_config = None;
+                          sca_config = None;
                           path_sensitive = false;
                         });
                 }

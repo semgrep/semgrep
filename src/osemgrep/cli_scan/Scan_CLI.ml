@@ -1216,24 +1216,23 @@ let engine_type_conf ~oss ~pro_lang ~pro_intrafile ~pro ~secrets
   (* Now select the engine type *)
   if oss then Engine_type.OSS
   else
-    let analysis =
-      Engine_type.(
-        match () with
-        | _ when pro -> Interfile
-        | _ when pro_intrafile -> Interprocedural
-        | _ -> Intraprocedural)
+    let analysis : Engine_type.analysis_flavor =
+      match () with
+      | _ when pro -> Interfile
+      | _ when pro_intrafile -> Interprocedural
+      | _ -> Intraprocedural
     in
     let extra_languages = pro || pro_lang || pro_intrafile in
-    let secrets_config =
+    let secrets_config : Engine_type.secrets_config option =
       if secrets && not no_secrets_validation then
-        Some Engine_type.{ allow_all_origins = allow_untrusted_validators }
+        Some { allow_all_origins = allow_untrusted_validators }
       else None
     in
     let code_config =
       if pro || pro_lang || pro_intrafile then Some () else None
     in
     (* Currently we don't run SCA in osemgrep *)
-    let supply_chain_config = None in
+    let sca_config = None in
     match (extra_languages, analysis, secrets_config) with
     | false, Intraprocedural, None -> OSS
     | _ ->
@@ -1243,7 +1242,7 @@ let engine_type_conf ~oss ~pro_lang ~pro_intrafile ~pro ~secrets
             analysis;
             code_config;
             secrets_config;
-            supply_chain_config;
+            sca_config;
             path_sensitive = pro_path_sensitive;
           }
 (*****************************************************************************)
