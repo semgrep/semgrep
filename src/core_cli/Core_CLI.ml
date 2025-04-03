@@ -130,32 +130,6 @@ let symbol_analysis = ref Core_scan_config.default.symbol_analysis
 let action = ref ""
 
 (*****************************************************************************)
-(* Helpers *)
-(*****************************************************************************)
-
-(* Note that set_gc() may not interact well with Memory_limit and its use of
- * Gc.alarm. Indeed, the Gc.alarm triggers only at major cycle
- * and the tuning below raise significantly the major cycle trigger.
- * This is why we call set_gc() only when max_memory_mb is unset.
- *)
-let _set_gc_TODO () =
-  Logs.debug (fun m -> m "Gc tuning");
-  (*
-  if !Flag.debug_gc
-  then Gc.set { (Gc.get()) with Gc.verbose = 0x01F };
-*)
-  (* only relevant in bytecode, in native the stacklimit is the os stacklimit,
-   * which usually requires a ulimit -s 40000
-   *)
-  Gc.set { (Gc.get ()) with Gc.stack_limit = 1000 * 1024 * 1024 };
-
-  (* see www.elehack.net/michael/blog/2010/06/ocaml-memory-tuning *)
-  Gc.set { (Gc.get ()) with Gc.minor_heap_size = 4_000_000 };
-  Gc.set { (Gc.get ()) with Gc.major_heap_increment = 8_000_000 };
-  Gc.set { (Gc.get ()) with Gc.space_overhead = 300 };
-  ()
-
-(*****************************************************************************)
 (* Dumpers (see also Core_actions.ml) *)
 (*****************************************************************************)
 
@@ -224,11 +198,6 @@ let dump_ast ?(naming = false) (caps : < Cap.stdout ; Cap.exit >)
         log_parsing_errors file res;
         Core_exit_code.(exit_semgrep caps#exit False)))
 [@@action]
-
-(*****************************************************************************)
-(* Experiments *)
-(*****************************************************************************)
-(* See Experiments.ml now *)
 
 (*****************************************************************************)
 (* Output *)
@@ -706,12 +675,6 @@ let register_exception_printers () =
 (*****************************************************************************)
 (* Run a scan *)
 (*****************************************************************************)
-(* TODO: We used to tune the garbage collector but from profiling
-   we found that the effect was small. Meanwhile, the memory
-   consumption causes some machines to freeze. We may want to
-   tune these parameters in the future/do more testing, but
-   for now just turn it off *)
-(* if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc (); *)
 
 let run caps (config : Core_scan_config.t) : unit =
   let res = Core_scan.scan caps config in
