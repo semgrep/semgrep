@@ -138,12 +138,25 @@ let rule ~(hide_nudge : bool) (ctx : Out.format_context) (rule : Rule.t) :
     | Some _ -> raise Impossible
     | None -> spf "Semgrep Finding: %s" rule_id_str
   in
+  (*
+  In a Semgrep rule's metadata section, two fields may provide URLs:
+  - source: populated dynamically by the Semgrep registry serving the rule, it's a URL that
+    offers information about the rule.
+  - source-rule-url: optional string, a URL for the source of inspiration for the rule.
+
+  The SARIF format supports only one URL under the field 'helpUri'. Semgrep populates it with
+  metadata.source if available, metadata.source-rule-url otherwise as a fallback.
+  *)
   let source =
     match JSON.member "source" metadata with
     | Some (JSON.String source) -> Some source
     | Some _
-    | None ->
-        None
+    | None -> (
+        match JSON.member "source-rule-url" metadata with
+        | Some (JSON.String source) -> Some source
+        | Some _
+        | None ->
+            None)
   in
   let rule_help_text =
     match JSON.member "help" metadata with
