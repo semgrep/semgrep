@@ -3,10 +3,6 @@
 // This workflow performs additional tasks on a PR when someone
 // (or start-release.jsonnet) pushes to a vXXX branch. Those tasks are to:
 //
-//  - build and push a new :canary docker image. We used to push to :latest,
-//    but it is safer to first push to :canary and a few days later to promote
-//    the :canary image to :latest (see promote-canary-to-latest.jsonnet)
-//
 //  - create release artifacts on Github. We now just release the source
 //    of Semgrep in https://github.com/semgrep/semgrep/releases
 //    We used to release Linux and MacOS binaries, but we prefer now
@@ -23,7 +19,9 @@
 // failing very often because of frequent changes to Homebrew process.
 // Note that we still check in CI that the Semgrep "formula" can still be built,
 // but we do it in nightly.jsonnet, not during the release.
-
+//
+// NOTE: we do not push the docker image from here. See pro-release.jsonnet
+local semgrep = import 'libs/semgrep.libsonnet';
 local actions = import 'libs/actions.libsonnet';
 local gha = import 'libs/gha.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
@@ -87,7 +85,7 @@ local unless_dry_run = {
 local dry_run = '${{ inputs.dry-run || false }}';
 
 // ----------------------------------------------------------------------------
-// Docker jobs (build and then push)
+// Docker jobs (build ONLY)
 // ----------------------------------------------------------------------------
 
 local build_test_docker_job = {
@@ -155,19 +153,6 @@ local build_test_docker_nonroot_job = {
     file: 'Dockerfile',
     target: 'nonroot',
     'enable-tests': false,
-  },
-};
-
-local push_docker_job(artifact_name, repository_name) = {
-  needs: [
-    'wait-for-build-test',
-  ],
-  uses: './.github/workflows/push-docker.yml',
-  secrets: 'inherit',
-  with: {
-    'artifact-name': artifact_name,
-    'repository-name': repository_name,
-    'dry-run': dry_run,
   },
 };
 
@@ -426,10 +411,6 @@ local create_release_interfaces_job = {
         },
       ],
     },
-    'push-docker-returntocorp': push_docker_job('image-release', 'returntocorp/semgrep'),
-    'push-docker-returntocorp-nonroot': push_docker_job('image-release-nonroot', 'returntocorp/semgrep'),
-    'push-docker-semgrep': push_docker_job('image-release', 'semgrep/semgrep'),
-    'push-docker-semgrep-nonroot': push_docker_job('image-release-nonroot', 'semgrep/semgrep'),
     'upload-wheels': upload_wheels_job,
     'create-release': create_release_job,
     'create-release-interfaces': create_release_interfaces_job,

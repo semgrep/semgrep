@@ -155,42 +155,6 @@ jobs:
           repository_url: https://test.pypi.org/legacy/
           skip_existing: true
           user: __token__
-  push-docker-returntocorp:
-    needs:
-      - wait-for-build-test
-    secrets: inherit
-    uses: ./.github/workflows/push-docker.yml
-    with:
-      artifact-name: image-release
-      dry-run: ${{ inputs.dry-run || false }}
-      repository-name: returntocorp/semgrep
-  push-docker-returntocorp-nonroot:
-    needs:
-      - wait-for-build-test
-    secrets: inherit
-    uses: ./.github/workflows/push-docker.yml
-    with:
-      artifact-name: image-release-nonroot
-      dry-run: ${{ inputs.dry-run || false }}
-      repository-name: returntocorp/semgrep
-  push-docker-semgrep:
-    needs:
-      - wait-for-build-test
-    secrets: inherit
-    uses: ./.github/workflows/push-docker.yml
-    with:
-      artifact-name: image-release
-      dry-run: ${{ inputs.dry-run || false }}
-      repository-name: semgrep/semgrep
-  push-docker-semgrep-nonroot:
-    needs:
-      - wait-for-build-test
-    secrets: inherit
-    uses: ./.github/workflows/push-docker.yml
-    with:
-      artifact-name: image-release-nonroot
-      dry-run: ${{ inputs.dry-run || false }}
-      repository-name: semgrep/semgrep
   upload-wheels:
     name: Upload Wheels to PyPI
     needs:
