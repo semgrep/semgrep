@@ -1,0 +1,74 @@
+{
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "toolExecutionNotifications": []
+        }
+      ],
+      "results": [
+        {
+          "fingerprints": {
+            "matchBasedId/v1": "c103a760f6ce7176c2d5127a8c5afa47e83d41bef95586322d99febf0f148c2808bc6b168b31948e8fd10576f7f4edd69fb6d341c25ed9c259cde4e9164d7b96_0"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "targets/taint/taint_trace.cpp",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "endColumn": 14,
+                  "endLine": 17,
+                  "snippet": {
+                    "text": "    SINK(res2);                               // (5) sink res2"
+                  },
+                  "startColumn": 10,
+                  "startLine": 17
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "found an error"
+          },
+          "properties": {},
+          "ruleId": "rules.taint-trace"
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "Semgrep OSS",
+          "rules": [
+            {
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "fullDescription": {
+                "text": "found an error"
+              },
+              "help": {
+                "markdown": "found an error",
+                "text": "found an error"
+              },
+              "id": "rules.taint-trace",
+              "name": "rules.taint-trace",
+              "properties": {
+                "precision": "very-high",
+                "tags": []
+              },
+              "shortDescription": {
+                "text": "Semgrep Finding: rules.taint-trace"
+              }
+            }
+          ],
+          "semanticVersion": "placeholder"
+        }
+      }
+    }
+  ],
+  "version": "2.1.0"
+}
