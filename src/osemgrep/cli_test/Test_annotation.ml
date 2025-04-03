@@ -58,8 +58,8 @@ type kind =
 
 (* Here we follow the conventions used in the annotations themselves with
  * proruleid: and deepruleid: (see tests/intrafile/README).
- * alt: CoreScan | ProScan | DeepScan
- * less: factorize with the other engine types
+ * alt: reuse Engine_type.analysis_flavor but the names in analysis_flavor
+ * are a bit further away from the Pro|Deep which are used in the annotations.
  *)
 type engine = OSS | Pro | Deep [@@deriving show]
 

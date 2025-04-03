@@ -119,19 +119,18 @@ let hook_pro_init : (unit -> unit) Hook.t =
   Hook.create (fun () ->
       failwith "semgrep test --pro not available (need --install-semgrep-pro)")
 
-let hook_pro_scan : (Core_scan.caps -> Core_scan.func) Hook.t =
-  Hook.create (fun _caps _config ->
-      failwith "semgrep test --pro not available (need --install-semgrep-pro)")
-
-(* note that we run DeepScan with
+(* For `Interfile note that we run with Deep_scan_config.interfile_config with
  *  - force_interfile=true (no need for the interfile: true metadata in the rule)
  *  - experimental_languages=true (analyze with DeepScan also Ruby and a few
  *    other languages)
  *)
-let hook_deep_scan :
-    (scan_caps -> Core_scan_config.t -> Fpath.t -> Core_result.result_or_exn)
+let hook_pro_scan :
+    (scan_caps ->
+    Core_scan_config.t ->
+    [ `Intrafile | `Interfile of Fpath.t ] ->
+    Core_result.result_or_exn)
     Hook.t =
-  Hook.create (fun _caps _config _root ->
+  Hook.create (fun _caps _config _kind ->
       failwith "semgrep test --pro not available (need --install-semgrep-pro)")
 
 (*****************************************************************************)
@@ -457,14 +456,15 @@ let run_rules_against_targets_for_engine caps (env : env) (rules : Rule.t list)
   let res_or_exn : Core_result.result_or_exn =
     match env.engine with
     | A.OSS -> Core_scan.scan caps config
-    | A.Pro -> (Hook.get hook_pro_scan) (caps :> Core_scan.caps) config
+    | A.Pro ->
+        (Hook.get hook_pro_scan) (caps :> Core_scan.caps) config `Intrafile
     | A.Deep ->
         (* LATER: support also interfile tests where many targets are in
          * a subdir (using the same name than the rule file)
          *)
         let root, _base = Fpath.split_base env.rule_file in
         (* Deep_scan.caps but can't reference it from OSS/ *)
-        (Hook.get hook_deep_scan) (caps :> scan_caps) config root
+        (Hook.get hook_pro_scan) (caps :> scan_caps) config (`Interfile root)
   in
   match res_or_exn with
   | Error exn -> Exception.reraise exn
