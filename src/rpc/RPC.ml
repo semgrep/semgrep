@@ -52,7 +52,7 @@ let handle_call (caps : < caps ; .. >) :
       | Some resolve_dependencies ->
           let resolved =
             resolve_dependencies
-              (caps :> < Cap.exec ; Cap.tmp ; Cap.chdir >)
+              (caps :> < Cap.exec ; Cap.tmp ; Cap.chdir ; Cap.readdir >)
               ~download_dependency_source_code:
                 params.download_dependency_source_code params.dependency_sources
           in
