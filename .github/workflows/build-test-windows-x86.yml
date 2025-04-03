@@ -157,9 +157,10 @@ jobs:
         name: test package
         run: semgrep --version
       - env:
+          PYTHONIOENCODING: utf-8
           SEMGREP_FORCE_INSTALL: 1
         name: e2e semgrep-core test
-        run: echo '1 == 1' | semgrep -l python -e '$X == $X' -
+        run: echo '1 == 1' | semgrep -l python -e '$X == $X' --strict -
 name: build-test-windows-x86
 on:
   workflow_call: null

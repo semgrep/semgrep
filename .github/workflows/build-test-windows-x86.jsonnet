@@ -220,8 +220,9 @@ local test_wheels_job = {
       name: 'e2e semgrep-core test',
       env: {
         SEMGREP_FORCE_INSTALL: 1,
+        PYTHONIOENCODING: 'utf-8',
       },
-      run: "echo '1 == 1' | semgrep -l python -e '$X == $X' -",
+      run: "echo '1 == 1' | semgrep -l python -e '$X == $X' --strict -",
     },
   ],
 };
