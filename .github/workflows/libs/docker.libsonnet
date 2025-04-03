@@ -71,6 +71,58 @@ local validate(
            ],
   };
 
+local retag_step(image, tag, ref, confirmed=true, debug=false, dry_run=false) = {
+  name: 'Retag %(image)s:%(ref)s to %(image)s:%(tag)s' % { image: image, ref: ref, tag: tag },
+  env:
+    {
+      docker_image: image,
+      image_ref: ref,
+      docker_tag: tag,
+      confirmed: confirmed,
+      debug: debug,
+      dry_run: dry_run,
+    },
+  run: |||
+    if [[ "${debug}" == "true" ]]; then
+      echo "Enabling debug logging..."
+      set -x
+    fi
+    if [[ "${dry_run}" == "true" ]]; then
+      docker_tag="${docker_tag}-dry-run"
+    fi
+
+    source_image="${docker_image}:${image_ref}"
+    target_image="${docker_image}:${docker_tag}"
+
+    old_digest=$(docker buildx imagetools inspect --format '{{printf "%s" .Manifest.Digest}}' ${target_image} || echo "(not found)")
+    new_digest=$(docker buildx imagetools inspect --format '{{printf "%s" .Manifest.Digest}}' ${source_image} || echo "(not found)")
+
+    echo ""
+
+    if [[ "${new_digest}" == "" ]]; then
+      echo "Error: ${source_image} did not resolve to a manifest list"
+      echo "If this is urgent, you can manually login to our Docker Hub account and then run these commands to point to an arch-specific image:"
+      echo "docker pull ${source_image}"
+      echo "docker tag ${source_image} ${target_image}"
+      echo "docker push ${target_image}"
+      exit 1
+    fi
+
+    echo "Resolved ${source_image} to digest: ${new_digest}"
+    echo ""
+
+    echo "Will update ${target_image} from ${old_digest} to ${new_digest}"
+    echo ""
+    if [[ "${confirmed}" == "true" ]]; then
+      docker buildx imagetools create -t ${target_image} ${source_image}
+    else
+      echo "(dry run)"
+      docker buildx imagetools create --dry-run -t ${target_image} ${source_image}
+      echo "(dry run)"
+    fi
+  |||,
+};
+
 // ----------------------------------------------------------------------------
 // The job
 // ----------------------------------------------------------------------------
@@ -328,4 +380,5 @@ local inputs = {
     },
   },
   validate: validate,
+  retag_step: retag_step,
 }
