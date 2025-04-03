@@ -17,7 +17,13 @@ val run_conf : < caps ; .. > -> Test_CLI.conf -> Exit_code.t
 
 (* pro hooks *)
 val hook_pro_init : (unit -> unit) Hook.t
-val hook_pro_scan : (Core_scan.caps -> Core_scan.func) Hook.t
+
+(* TODO: merge hook_deep_scan with hook_pro_scan *)
+val hook_pro_scan :
+  (< Core_scan.caps ; Cap.tmp > ->
+  Core_scan_config.t ->
+  Core_result.result_or_exn)
+  Hook.t
 
 val hook_deep_scan :
   (< Core_scan.caps ; Cap.tmp > ->
