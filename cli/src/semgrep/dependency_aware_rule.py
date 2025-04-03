@@ -155,11 +155,14 @@ def generate_unreachable_sca_findings(
                 subproject_matches.append(new_rule_match)
 
             if x_tr:
-                logger.info(f"SCA TR is on!")
                 # TODO: consider only the matches with reachable rules
                 transitive_findings = [
                     out.TransitiveFinding(m=rm.match) for rm in subproject_matches
                 ]
+                if transitive_findings:
+                    logger.info(
+                        f"SCA TR is on! Running for rule {rule.id}, subproject {subproject.info.dependency_source}, {len(transitive_findings)} transitive findings"
+                    )
                 fd, rules_tmp_path = mkstemp(
                     suffix=".rules", prefix="semgrep-", text=True
                 )
