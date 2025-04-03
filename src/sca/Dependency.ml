@@ -60,9 +60,16 @@ type t = {
   url : Uri.t option;
   (* the location of the dependency source code, if it exists
    * (used by the transitive reachability analysis)
+   *
+   * Note that this is a list of paths because it is not always possible to
+   * determine a single directory containing a package's source code. Python's
+   * 'setuptoops' package provides on example: it unpacks into two directories
+   * in the `site-packages` directory, both of which contain source code that we
+   * need to scan.
+   *
    * TODO? could switch to Rpath.t here? or invent a new Pkgpath.t?
    *)
-  downloaded_source_path : Fpath.t option;
+  downloaded_source_paths : Fpath.t list option;
   (* start and end token location of the package entry in the lockfile
    * (e.g., '{' and '}' around a package entry in a package-lock.json file).
    *)
