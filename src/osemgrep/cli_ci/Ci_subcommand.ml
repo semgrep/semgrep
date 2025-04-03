@@ -265,8 +265,9 @@ let mk_fake_backend base (dir : Fpath.t) :
 (* Error management *)
 (*****************************************************************************)
 
-let exit_code_of_blocking_findings ~audit_mode ~on ~app_block_override
-    blocking_findings : Exit_code.t =
+let exit_code_of_blocking_findings ~audit_on_conf ~event_name
+    ~app_block_override blocking_findings : Exit_code.t =
+  let audit_mode = List.mem event_name audit_on_conf in
   match (blocking_findings, app_block_override, audit_mode) with
   | _, Some reason, false ->
       Logs.app (fun m ->
@@ -277,7 +278,7 @@ let exit_code_of_blocking_findings ~audit_mode ~on ~app_block_override
           m
             "  Audit mode is on for %s, so exiting with code 0 even if matches \
              found"
-            on);
+            event_name);
       Exit_code.ok ~__LOC__
   | _ :: _, _, false ->
       Logs.app (fun m ->
@@ -1099,7 +1100,6 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
           upload_findings caps' app deployment_name scan_id prj_meta
             blocking_findings filtered_rules cli_output
         in
-
         (* Upload scan-adjacent information, such as symbol analysis
            (needed for SSC features)
            This will not return anything interesting, but will report its
@@ -1119,10 +1119,8 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
             | Ok msg ->
                 Logs.debug (fun m ->
                     m "Uploading symbol analysis succeeded with %s" msg)));
-        let audit_mode = false in
-        (* TODO: audit_mode = metadata.event_name in audit_on *)
-        exit_code_of_blocking_findings ~audit_mode ~on:prj_meta.on
-          ~app_block_override blocking_findings
+        exit_code_of_blocking_findings ~audit_on_conf:ci_conf.audit_on
+          ~event_name:prj_meta.on ~app_block_override blocking_findings
   with
   | Error.Semgrep_error (_, ex) as e ->
       let r = ex ||| Exit_code.fatal ~__LOC__ in
