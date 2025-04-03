@@ -58,6 +58,8 @@ type t = {
     THINK: A more general solution could be to use a "taint variable" as we do for
       the arguments of the function under analysis.
     *)
+  var_was_touched : (IL.name -> unit) option;
+      (** Track whether a variable has been "touched", see NOTE "auto-cleaning taint". *)
 }
 
 type env = t
@@ -68,34 +70,14 @@ let empty =
     control = Taints.empty;
     taints_to_propagate = VarMap.empty;
     pending_propagation_dests = VarSet.empty;
+    var_was_touched = None;
   }
 
 let empty_inout = { Dataflow_core.in_env = empty; out_env = empty }
 
 (*****************************************************************************)
-(* API *)
+(* Lval normalization *)
 (*****************************************************************************)
-
-let union le1 le2 =
-  let tainted =
-    NameMap.union
-      (fun _ x y -> Some (Shape.unify_cell x y))
-      le1.tainted le2.tainted
-  in
-  {
-    tainted;
-    control = Taints.union le1.control le2.control;
-    taints_to_propagate =
-      Var_env.varmap_union Taints.union le1.taints_to_propagate
-        le2.taints_to_propagate;
-    pending_propagation_dests =
-      (* THINK: Pending propagation is just meant to deal with right-to-left
-       * propagation between call arguments, so for now we just kill them all
-       * at JOINs. *)
-      VarSet.empty;
-  }
-
-let union_list ?(default = empty) les = List.fold_left union default les
 
 (* Reduces an l-value into the form x.a_1. ... . a_N, the resulting l-value may
  * not represent the exact same object as the original l-value, but an
@@ -134,6 +116,46 @@ let normalize_lval lval =
   in
   let offset = T.offset_of_rev_IL_offset ~rev_offset in
   Some (base, offset)
+
+(*****************************************************************************)
+(* Tracking changed lvals *)
+(*****************************************************************************)
+
+let track_if_var_was_touched___do_not_nest env ~callback f =
+  if Option.is_some env.var_was_touched then
+    (* nosemgrep: no-logs-in-library *)
+    Logs.err (fun m -> m "BUG: %s: Nested call!?" __FUNCTION__);
+  let res, env = f { env with var_was_touched = Some callback } in
+  (res, { env with var_was_touched = None })
+
+let mark_var_as_touched env var' =
+  env.var_was_touched |> Option.iter (fun callback -> callback var')
+
+(*****************************************************************************)
+(* API *)
+(*****************************************************************************)
+
+let union le1 le2 =
+  let tainted =
+    NameMap.union
+      (fun _ x y -> Some (Shape.unify_cell x y))
+      le1.tainted le2.tainted
+  in
+  {
+    tainted;
+    control = Taints.union le1.control le2.control;
+    taints_to_propagate =
+      Var_env.varmap_union Taints.union le1.taints_to_propagate
+        le2.taints_to_propagate;
+    pending_propagation_dests =
+      (* THINK: Pending propagation is just meant to deal with right-to-left
+       * propagation between call arguments, so for now we just kill them all
+       * at JOINs. *)
+      VarSet.empty;
+    var_was_touched = None;
+  }
+
+let union_list ?(default = empty) les = List.fold_left union default les
 
 (* TODO: This is an experiment, try to raise taint_MAX_TAINTED_LVALS and run
  * some benchmarks, if we can e.g. double the limit without affecting perf then
@@ -180,8 +202,13 @@ let check_tainted_lvals_limit tainted new_var =
   else Some tainted
 
 let add_shape var offset new_taints new_shape
-    ({ tainted; control; taints_to_propagate; pending_propagation_dests } as
-     lval_env) =
+    ({
+       tainted;
+       control;
+       taints_to_propagate;
+       pending_propagation_dests;
+       var_was_touched;
+     } as lval_env) =
   match check_tainted_lvals_limit tainted var with
   | None -> lval_env
   | Some tainted ->
@@ -200,6 +227,9 @@ let add_shape var offset new_taints new_shape
             in
             (new_taints, new_shape)
       in
+      (match (Taints.is_empty new_taints, new_shape) with
+      | true, Bot -> ()
+      | __else__ -> mark_var_as_touched lval_env var);
       {
         tainted =
           NameMap.update var
@@ -210,6 +240,7 @@ let add_shape var offset new_taints new_shape
         control;
         taints_to_propagate;
         pending_propagation_dests;
+        var_was_touched;
       }
 
 let add_lval_shape lval new_taints new_shape lval_env =
@@ -310,14 +341,20 @@ let propagate_from prop_var env =
   (taints, env)
 
 let clean
-    ({ tainted; control; taints_to_propagate; pending_propagation_dests } as
-     lval_env) lval =
+    ({
+       tainted;
+       control;
+       taints_to_propagate;
+       pending_propagation_dests;
+       var_was_touched;
+     } as lval_env) lval =
   match normalize_lval lval with
   | None ->
       (* Cannot track taint for this l-value; e.g. because the base is not a simple
          variable. We just return the same environment untouched. *)
       lval_env
   | Some (var, offsets) ->
+      mark_var_as_touched lval_env var;
       {
         tainted =
           NameMap.update var
@@ -329,6 +366,7 @@ let clean
         taints_to_propagate;
         pending_propagation_dests;
         (* THINK: Should we clean propagations before they are executed? *)
+        var_was_touched;
       }
 
 let filter_tainted pred ({ tainted; _ } as lval_env) =
@@ -342,11 +380,23 @@ let add_control_taints lval_env taints =
 let get_control_taints { control; _ } = control
 
 let subst ~subst_taints ~subst_cell
-    { tainted; control; taints_to_propagate; pending_propagation_dests } =
+    {
+      tainted;
+      control;
+      taints_to_propagate;
+      pending_propagation_dests;
+      var_was_touched;
+    } =
   let tainted = tainted |> NameMap.filter_map_endo subst_cell in
   let control = control |> subst_taints in
   let taints_to_propagate = taints_to_propagate |> VarMap.map subst_taints in
-  { tainted; control; taints_to_propagate; pending_propagation_dests }
+  {
+    tainted;
+    control;
+    taints_to_propagate;
+    pending_propagation_dests;
+    var_was_touched;
+  }
 
 let equal
     {
@@ -354,12 +404,14 @@ let equal
       control = control1;
       taints_to_propagate = _;
       pending_propagation_dests = _;
+      var_was_touched = _;
     }
     {
       tainted = tainted2;
       control = control2;
       taints_to_propagate = _;
       pending_propagation_dests = _;
+      var_was_touched = _;
     } =
   NameMap.equal equal_cell tainted1 tainted2
   (* NOTE: We ignore 'taints_to_propagate' and 'pending_propagation_dests',
@@ -386,7 +438,13 @@ let equal_by_lval { tainted = tainted1; _ } { tainted = tainted2; _ } lval =
       equal_tainted
 
 let to_string
-    { tainted; control; taints_to_propagate; pending_propagation_dests } =
+    {
+      tainted;
+      control;
+      taints_to_propagate;
+      pending_propagation_dests;
+      var_was_touched = _;
+    } =
   (* FIXME: lval_to_str *)
   (if NameMap.is_empty tainted then ""
    else

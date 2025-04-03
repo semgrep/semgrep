@@ -132,7 +132,13 @@ val equal : env -> env -> bool
 
 val equal_by_lval : env -> env -> IL.lval -> bool
 (** Check whether two environments assign the exact same taint to an l-value
- * and each one of its extensions. *)
+  and each one of its extensions. *)
 
 val to_string : env -> string
 val seq_of_tainted : env -> (IL.name * cell) Seq.t
+
+val track_if_var_was_touched___do_not_nest :
+  env -> callback:(IL.name -> unit) -> (env -> 'a * env) -> 'a * env
+(** Run a computation while tracking whether a variable has been "touched"
+      (taints go into it, or it is cleaned, even if nothing really changed).
+      See NOTE "auto-cleaning taint" *)
