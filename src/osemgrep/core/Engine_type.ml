@@ -22,8 +22,8 @@
  * semgrep_output_v1.engine_type with just `OSS | `Pro, and even
  * Semgrep_metrics_t.engine_config. However, the goal of this module is to
  * encode the CLI flags, to configure the engine, whereas Engine_kind.t is more
- * useful to tag findings and Semgrep_metrics_t.engine_config as metrics for the
- * users.
+ * useful to tag findings and Semgrep_metrics_t.engine_config as the name
+ * suggests are metrics for us.
  *)
 
 (****************************************************************************)
@@ -45,11 +45,12 @@ and pro_config = {
   sca_config : sca_config option;
 }
 
-(* Intraprocedural seems redundant with the OSS case above, but in theory
- * we can run a regular Intraprocedural Core_scan but on pro languages
- * which requires a pro_config.
- *)
 and analysis_flavor =
+  (* a.k.a. OSS scan, CE scan, Core scan.
+   * This case may seem redundant with the OSS case above, but in theory
+   * we can run a regular Intraprocedural Core_scan but on pro languages
+   * which requires a pro_config.
+   *)
   | Intraprocedural
   (* a.k.a. Pro intrafile, intrafile interprocedural *)
   | Interprocedural
