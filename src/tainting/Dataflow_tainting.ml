@@ -1772,57 +1772,7 @@ let rec transfer : env -> fun_cfg:F.fun_cfg -> Lval_env.t D.transfn =
   let env = { enter_env with lval_env = in' } in
   let out' : Lval_env.t =
     match node.F.n with
-    | NInstr x ->
-        let taints, shape, lval_env' = check_tainted_instr env x in
-        let opt_lval = LV.lval_of_instr_opt x in
-        let lval_env' =
-          match opt_lval with
-          | Some lval ->
-              (* We call `check_tainted_lval` here because the assigned `lval`
-               * itself could be annotated as a source of taint. *)
-              let taints, lval_shape, _sub, lval_env' =
-                check_tainted_lval { env with lval_env = lval_env' } lval
-              in
-              (* We check if the instruction is a sink, and if so the taints
-               * from the `lval` could make a finding. *)
-              let lval_env' =
-                check_orig_if_sink
-                  { env with lval_env = lval_env' }
-                  x.iorig taints lval_shape
-              in
-              lval_env'
-          | None -> lval_env'
-        in
-        let lval_env' =
-          match opt_lval with
-          | Some lval ->
-              if Shape.taints_and_shape_are_relevant taints shape then
-                (* Instruction returns tainted data, add taints to lval.
-                 * See [Taint_lval_env] for details. *)
-                lval_env' |> Lval_env.add_lval_shape lval taints shape
-              else
-                (* The RHS returns no taint, but taint could propagate by
-                 * side-effect too. So, we check whether the taint assigned
-                 * to 'lval' has changed to determine whether we need to
-                 * clean 'lval' or not. *)
-                let lval_taints_changed =
-                  not (Lval_env.equal_by_lval in' lval_env' lval)
-                in
-                if lval_taints_changed then
-                  (* The taint of 'lval' has changed, so there was a source or
-                   * sanitizer acting by side-effect on this instruction. Thus we do NOT
-                   * do anything more here. *)
-                  lval_env'
-                else
-                  (* No side-effects on 'lval', and the instruction returns safe data,
-                   * so we assume that the assigment acts as a sanitizer and therefore
-                   * remove taints from lval. See [Taint_lval_env] for details. *)
-                  Lval_env.clean lval_env' lval
-          | None ->
-              (* Instruction returns 'void' or its return value is ignored. *)
-              lval_env'
-        in
-        lval_env'
+    | NInstr x -> transfer_instr env x
     | NCond (_tok, e)
     | NThrow (_tok, e) ->
         let _taints, _shape, lval_env' = check_tainted_expr env e in
@@ -1861,6 +1811,72 @@ let rec transfer : env -> fun_cfg:F.fun_cfg -> Lval_env.t D.transfn =
         (Display_IL.short_string_of_node node)
         (Lval_env.to_string in') (Lval_env.to_string out'));
   { D.in_env = in'; out_env = out' }
+
+and transfer_instr env x =
+  let opt_lval = LV.lval_of_instr_opt x in
+  let var_was_touched = ref false in
+  let var_was_touched_callback =
+    match Option.bind opt_lval Lval_env.normalize_lval with
+    | None -> Fun.const ()
+    | Some (var, _offset) ->
+        fun var' -> if IL.equal_name var' var then var_was_touched := true
+  in
+  let (taints, shape), lval_env =
+    Lval_env.track_if_var_was_touched___do_not_nest env.lval_env
+      ~callback:var_was_touched_callback (fun lval_env ->
+        let taints, shape, lval_env =
+          check_tainted_instr { env with lval_env } x
+        in
+        let lval_env =
+          match opt_lval with
+          | Some lval ->
+              (* We call `check_tainted_lval` here because the assigned `lval`
+                  itself could be annotated as a source of taint. *)
+              let taints, lval_shape, _sub, lval_env =
+                check_tainted_lval { env with lval_env } lval
+              in
+              (* We check if the instruction is a sink, and if so the taints
+                  from the `lval` could make a finding. *)
+              let lval_env' =
+                check_orig_if_sink { env with lval_env } x.iorig taints
+                  lval_shape
+              in
+              lval_env'
+          | None -> lval_env
+        in
+        ((taints, shape), lval_env))
+  in
+  let lval_env =
+    match opt_lval with
+    | Some lval ->
+        if Shape.taints_and_shape_are_relevant taints shape then
+          (* Instruction returns tainted data, add taints to lval.
+               See [Taint_lval_env] for details. *)
+          lval_env |> Lval_env.add_lval_shape lval taints shape
+        else if
+          (* NOTE "auto-cleaning taint"
+
+              If we have `x = E` and `E` has no taint, we want to clean
+              `x`. However, taint could be propagating by side-effect even
+              if `E` is "clean". So, we need to check whether the taints of
+              `x` have been "touched" during taint inference (even if they
+              did not really change). If they did, we cannot clean it. *)
+          !var_was_touched
+        then
+          (* The taint of 'lval' was touched, so there was a source,
+                  sanitizer, or propagator, acting by side-effect on this
+                  instruction. Thus we do NOT do anything more here. *)
+          lval_env
+        else
+          (* No side-effects on 'lval', and the instruction returns safe data,
+                  so we assume that the assigment acts as a sanitizer and therefore
+                  remove taints from lval. See [Taint_lval_env] for details. *)
+          Lval_env.clean lval_env lval
+    | None ->
+        (* Instruction returns 'void' or its return value is ignored. *)
+        lval_env
+  in
+  lval_env
 
 (* In OSS, lambdas are mostly treated like statement blocks, that is, we
  * check the body of the lambda at the place where it is called, but we
