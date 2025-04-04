@@ -257,8 +257,8 @@ let make_fixed_lines fixes_env fix path (start : Out.position)
   in
   Fixed_lines.make_fixed_lines fixes_env edit
 
-let cli_match_of_core_match ~fixed_lines fixed_env (hrules : Rule.hrules)
-    (m : Out.core_match) : Out.cli_match =
+let cli_match_of_core_match (fixed_env_opt : Fixed_lines.env option)
+    (rule : Rule.t) (m : Out.core_match) : Out.cli_match =
   match m with
   | {
    check_id = rule_id;
@@ -281,10 +281,6 @@ let cli_match_of_core_match ~fixed_lines fixed_env (hrules : Rule.hrules)
        sca_match;
      };
   } ->
-      let rule =
-        try Hashtbl.find hrules rule_id with
-        | Not_found -> raise Impossible
-      in
       let rule_message = rule.message in
       let message =
         match message with
@@ -306,11 +302,12 @@ let cli_match_of_core_match ~fixed_lines fixed_env (hrules : Rule.hrules)
        *)
       let severity = severity ||| rule.severity in
       let fixed_lines =
-        match (fix, fixed_lines) with
+        match (fix, fixed_env_opt) with
         | None, _
-        | _, false ->
+        | _, None ->
             None
-        | Some fix, true -> make_fixed_lines fixed_env fix path start end_
+        | Some fix, Some fixed_env ->
+            make_fixed_lines fixed_env fix path start end_
       in
       (* Can't use content_of_file_at_range because we want to include the
        * entirety of every line involved in the match, not just the text that
@@ -572,13 +569,20 @@ let cli_output_of_runner_result ~fixed_lines (core : Out.core_output)
         ignore skipped_rules;
         []
       in
-      let fixed_env = Fixed_lines.mk_env () in
+      let fixed_env_opt =
+        if fixed_lines then Some (Fixed_lines.mk_env ()) else None
+      in
       {
         version = Some version;
         (* Skipping the python intermediate RuleMatchMap for now *)
         results =
           matches
-          |> List_.map (cli_match_of_core_match ~fixed_lines fixed_env hrules)
+          |> List_.map (fun (cm : Out.core_match) ->
+                 let rule =
+                   try Hashtbl.find hrules cm.check_id with
+                   | Not_found -> raise Impossible
+                 in
+                 cli_match_of_core_match fixed_env_opt rule cm)
           |> Semgrep_output_utils.sort_cli_matches;
         errors = errors |> List_.map cli_error_of_core_error;
         paths;

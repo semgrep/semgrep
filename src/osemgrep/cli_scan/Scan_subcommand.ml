@@ -219,11 +219,10 @@ let output_and_exit_from_fatal_core_errors_exn ~exit_code
 (*****************************************************************************)
 
 (* Note that this hook is run in parallel in Parmap at the end of processing
- * a file. Using Format.std_formatter in parallel requires some synchronization
- * to avoid having the output of multiple child processes interwinded, hence
- * the use of Unix.lockf below.
+ * a file. Using stdout (used internally by 'xxx_printer') in parallel requires
+ * some synchronization to avoid having the output of multiple child processes
+ * interwinded, hence the use of Unix.lockf below.
  *)
-
 let mk_file_match_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
     (printer : Scan_CLI.conf -> Out.cli_match list -> unit) (_file : Fpath.t)
     (match_results : Core_result.matches_single_file) : unit =
@@ -240,11 +239,23 @@ let mk_file_match_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
       |> fst |> Core_json_output.dedup_and_sort
     in
     let hrules = Rule.hrules_of_rules rules in
-    let fixed_env = Fixed_lines.mk_env () in
+    let fixed_env_opt =
+      if conf.output_conf.fixed_lines then Some (Fixed_lines.mk_env ())
+      else None
+    in
     core_matches
-    |> List_.map
-         (Cli_json_output.cli_match_of_core_match
-            ~fixed_lines:conf.output_conf.fixed_lines fixed_env hrules)
+    |> List_.map (fun (cm : Out.core_match) ->
+           let rule =
+             try Hashtbl.find hrules cm.check_id with
+             | Not_found ->
+                 (* should never happen; the core_matches are derived from
+                  * the passed rules
+                  *)
+                 failwith
+                   (spf "could not find the rule with rule_ID %s"
+                      (Rule_ID.show cm.check_id))
+           in
+           Cli_json_output.cli_match_of_core_match fixed_env_opt rule cm)
     |> List_.exclude (fun (m : Out.cli_match) -> m.extra.is_ignored ||| false)
   in
   if cli_matches <> [] then (
@@ -264,9 +275,8 @@ let incremental_text_printer (caps : < Cap.stdout >) (conf : Scan_CLI.conf)
        ~max_chars_per_line:conf.output_conf.max_chars_per_line
        ~max_lines_per_finding:conf.output_conf.max_lines_per_finding cli_matches)
 
-let incremental_json_printer (caps : < Cap.stdout >) (conf : Scan_CLI.conf)
+let incremental_json_printer (caps : < Cap.stdout >) (_conf : Scan_CLI.conf)
     (cli_matches : Out.cli_match list) : unit =
-  ignore conf;
   cli_matches
   |> List.iter (fun cli_match ->
          CapConsole.print caps#stdout

@@ -24,11 +24,7 @@ val exit_code_of_error_type : Out.error_type -> Exit_code.t
  * cli_match. This depends on whether an overlapping fix was already included in
  * an earlier cli_match in the same list of matches. *)
 val cli_match_of_core_match :
-  fixed_lines:bool ->
-  Fixed_lines.env ->
-  Rule.hrules ->
-  Out.core_match ->
-  Out.cli_match
+  Fixed_lines.env option -> Rule.t -> Out.core_match -> Out.cli_match
 
 val index_match_based_ids : Out.cli_match list -> Out.cli_match list
 (** [index_match_based_ids matches] will append an index to the match based id
