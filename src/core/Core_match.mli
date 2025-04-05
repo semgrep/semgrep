@@ -46,9 +46,6 @@ and rule_id = {
 (* remove duplicate *)
 val uniq : t list -> t list
 
-(* set the engine_kind to `PRO in the match *)
-val to_proprietary : t -> t
-
 (* Remove matches that are strictly inside another match *)
 val no_submatches : t list -> t list
 val range : t -> Range.t

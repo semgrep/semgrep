@@ -239,5 +239,3 @@ let no_submatches pms =
                  Hashtbl.replace tbl k (pm :: ys')));
   tbl |> Hashtbl.to_seq_values |> Seq.flat_map List.to_seq |> List.of_seq
 [@@profiling]
-
-let to_proprietary pm = { pm with engine_of_match = `PRO }

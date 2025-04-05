@@ -2,17 +2,18 @@
    semgrep and semgrep-proprietary use the same definition *)
 type func = Core_scan_config.t -> Core_result.result_or_exn
 
+(* See the comment for scan() below explaining the need for those capabilities *)
 type caps =
   < Cap.fork ; Cap.time_limit ; Cap.memory_limit ; Cap.readdir ; Cap.tmp >
 
-(* Entry point. This is used in Core_CLI.ml for semgrep-core,
- * in Pro_core_CLI for semgrep-core-proprietary, in tests, and finally
- * in osemgrep.
+(* Entry point. This is used in Core_CLI.ml for semgrep-core, in tests,
+ * and finally in osemgrep.
  *
  * [scan caps config] runs a core scan with a fixed list of targets
  * and rules and capture any exception.
  * This internally calls Match_rules.check() on every files, in
- * parallel, with some memory limits, and aggregate the results.
+ * parallel, with some time and memory limits, and aggregate the results
+ * (hence the need for Cap.fork, Cap.time_limit, Cap.memory_limit above).
  *
  * It can print things on stdout depending on Core_scan_config.output_format:
  *  - incremental dots when used from pysemgrep in Json true mode
@@ -23,12 +24,14 @@ type caps =
  * The rest of the output is done in the caller of scan() such as
  * Core_CLI.main_exn() for semgrep-core with Core_CLI.output_core_results().
  *
- * alt: we should require Cap.stdout below, but this is false when using the
+ * alt: we should require Cap.stdout above, but this is false when using the
  * NoOutput output_format so for now we internally use Cap.stdout_caps_UNSAFE()
  * or UConsole. In theory, scan() can be completely pure.
  *
  * We require Cap.fork for Parmap.
  * We require Cap.time_limit for timeout in Check_rules().
+ * We require Cap.readdir for ??
+ * We require Cap.tmp for ??
  *
  * The scan function has the type [func] defined above.
  *
@@ -97,11 +100,6 @@ val rules_for_analyzer :
 (* for SCA_scan *)
 val rules_for_origin : Rule.paths option -> Origin.t -> bool
 
-val set_matches_to_proprietary_origin_if_needed :
-  Xtarget.t ->
-  Core_result.matches_single_file ->
-  Core_result.matches_single_file
-
 (* This function prints a dot, which is consumed by pysemgrep to update
    the progress bar if the output_format is Json true.
    See also `core_runner.py`
@@ -116,14 +114,6 @@ val print_cli_progress : Core_scan_config.t -> unit
 val print_cli_additional_targets : Core_scan_config.t -> int -> unit
 
 type target_handler = Target.t -> Core_result.matches_single_file * bool
-
-val mk_target_handler_hook :
-  (< Cap.time_limit ; Cap.tmp > ->
-  Core_scan_config.t ->
-  Rule.t list ->
-  Match_env.prefilter_config ->
-  target_handler)
-  Hook.t
 
 val iter_targets_and_get_matches_and_exn_to_errors :
   < Cap.fork ; Cap.memory_limit > ->
