@@ -157,10 +157,10 @@ let deployment_cmd =
 let dump_pattern_cmd =
   let doc = "Dump the abstract syntax tree of the pattern string" in
   let lang_arg =
-    Arg.(required & pos 0 (some string) None & info [] ~docv:"LANG")
+    Arg.(required (pos 0 (some string) None (info [] ~docv:"LANG")))
   in
   let pattern_arg =
-    Arg.(required & pos 1 (some string) None & info [] ~docv:"PATTERN")
+    Arg.(required (pos 1 (some string) None (info [] ~docv:"PATTERN")))
   in
   let info = Cmd.info "dump-pattern" ~doc in
   let term =
@@ -178,10 +178,10 @@ let dump_pattern_cmd =
 let dump_cst_cmd =
   let doc = "Dump the concrete syntax tree of the file (tree sitter only)" in
   let lang_arg =
-    Arg.(value & pos ~rev:true 1 (some string) None & info [] ~docv:"LANG")
+    Arg.(value (pos ~rev:true 1 (some string) None (info [] ~docv:"LANG")))
   in
   let file_arg =
-    Arg.(required & pos ~rev:true 0 (some string) None & info [] ~docv:"FILE")
+    Arg.(required (pos ~rev:true 0 (some string) None (info [] ~docv:"FILE")))
   in
   let info = Cmd.info "dump-cst" ~doc in
   let term =
@@ -201,10 +201,10 @@ let dump_cst_cmd =
 let dump_ast_cmd =
   let doc = "Dump the abstract syntax tree of the file" in
   let lang_arg =
-    Arg.(value & pos ~rev:true 1 (some string) None & info [] ~docv:"LANG")
+    Arg.(value (pos ~rev:true 1 (some string) None (info [] ~docv:"LANG")))
   in
   let file_arg =
-    Arg.(required & pos ~rev:true 0 (some string) None & info [] ~docv:"FILE")
+    Arg.(required (pos ~rev:true 0 (some string) None (info [] ~docv:"FILE")))
   in
   let info = Cmd.info "dump-ast" ~doc in
   let term =
@@ -226,7 +226,7 @@ let dump_config_cmd =
     "Dump the internal representation of the result of --config=<STRING>"
   in
   let config_arg =
-    Arg.(required & pos 0 (some string) None & info [] ~docv:"CONFIG")
+    Arg.(required (pos 0 (some string) None (info [] ~docv:"CONFIG")))
   in
   let info = Cmd.info "dump-config" ~doc in
   let term =
@@ -242,7 +242,7 @@ let dump_rule_v2_cmd =
     "Dump the internal representation of a rule using the new (v2) syntax"
   in
   let file_arg =
-    Arg.(required & pos 0 (some string) None & info [] ~docv:"FILE")
+    Arg.(required (pos 0 (some string) None (info [] ~docv:"FILE")))
   in
   let info = Cmd.info "dump-rule-v2" ~doc in
   let term =
@@ -256,10 +256,10 @@ let dump_rule_v2_cmd =
 let dump_targets_cmd =
   let doc = "Dump the targets from a scanning root and rules config" in
   let root_arg =
-    Arg.(required & pos 0 (some string) None & info [] ~docv:"ROOT")
+    Arg.(required (pos 0 (some string) None (info [] ~docv:"ROOT")))
   in
   let config_arg =
-    Arg.(value & pos 1 (some string) None & info [] ~docv:"CONFIG")
+    Arg.(value (pos 1 (some string) None (info [] ~docv:"CONFIG")))
   in
   (* TODO: add lots of o_xxx for Find_targets.conf, reusing some
    * from Scan_CLI.ml (but mutually recursive so need to split or duplicate)
@@ -291,12 +291,15 @@ let debug_cmd caps =
         "Directory to save the explorer output to. If not specified, uses a \
          temporary directory."
   in
-  let output_dir_arg = Arg.(value & opt (some string) None & output_dir_info) in
+  let output_dir_arg = Arg.(value (opt (some string) None output_dir_info)) in
   let roots_arg =
     Arg.(
-      value & pos_all string [ "." ]
-      & info [] ~docv:"TARGET_ROOTS"
-          ~doc:"Files or directories to analyze. Defaults to current directory.")
+      value
+        (pos_all string [ "." ]
+           (info [] ~docv:"TARGET_ROOTS"
+              ~doc:
+                "Files or directories to analyze. Defaults to current \
+                 directory.")))
   in
   let info = Cmd.info "debug" ~doc in
   let term =
@@ -333,10 +336,10 @@ let dump_lockfile_cmd =
    * in Lockfile.kind_of_filename_exn and Manifest.kind_of_filename_exn
    *)
   let manifest_arg =
-    Arg.(value & pos 1 (some string) None & info [] ~docv:"MANIFEST")
+    Arg.(value (pos 1 (some string) None (info [] ~docv:"MANIFEST")))
   in
   let file_arg =
-    Arg.(required & pos 0 (some string) None & info [] ~docv:"LOCKFILE")
+    Arg.(required (pos 0 (some string) None (info [] ~docv:"LOCKFILE")))
   in
   let info = Cmd.info "dump-lockfile" ~doc in
   let term =
@@ -385,7 +388,7 @@ let parse_argv (caps : < Cap.tmp ; .. >) (argv : string array) : conf =
               Error.abort
                 (Common.spf "show command not supported: %s"
                    (String.concat " " unknown_args)))
-      $ Arg.(value & pos_all string [] (info [])))
+      $ Arg.(value (pos_all string [] (info []))))
   in
   let group =
     Cmd.group cmdline_info ~default
