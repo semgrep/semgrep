@@ -128,7 +128,7 @@ For more information see https://semgrep.dev
     trace
     memtrace
     ppx_trace
-    (opentelemetry (= 0.11.1))
+    (opentelemetry (= 0.11.2))  ; 0.11.2 has a fix needed for Windows
     ; needed by opentelemetry-client-ocurl but the latest, 0.9.2
     ; does not work under windows (see https://github.com/ygrek/ocurl/issues/77)
     ; hence the pin to 0.9.1
