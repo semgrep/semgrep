@@ -343,7 +343,6 @@ let caps_for_js_UNSAFE () =
     method time_limit = ()
     method memory_limit = ()
     method readdir = ()
-    method tmp = ()
   end
 
 (* !!DO NOT USE!! *)
