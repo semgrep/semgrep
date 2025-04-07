@@ -65,13 +65,8 @@ val get_targets_for_pysemgrep :
 (* Get the rules *)
 val rules_of_config : Core_scan_config.t -> Rule_error.rules_and_invalid
 
-(* Default taint propagators *)
-val hook_builtin_propagators : (Lang.t * string list) list Hook.t
-
-(* Get the rules, using targeting info in config to filter irrelevant
-   rules. Also add hardcode propagators to taint rules.
-   TODO: See comments in the .ml about the implementation *)
-val applicable_rules_of_config_and_hardcode_propagators :
+(* Get the rules, using targeting info in config to filter irrelevant rules *)
+val applicable_rules_of_config :
   Core_scan_config.t -> Rule_error.rules_and_invalid
 
 (* This is also used by semgrep-proprietary. It filters the rules that
