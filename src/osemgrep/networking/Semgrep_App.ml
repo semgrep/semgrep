@@ -44,7 +44,12 @@ module Out = Semgrep_output_v1_j
 (* LATER: declare this in semgrep_output_v1.atd instead? *)
 type scan_id = int
 type app_block_override = string (* reason *) option
-type pro_engine_arch = Osx_arm64 | Osx_x86_64 | Manylinux_x86_64
+
+type pro_engine_arch =
+  | Osx_arm64
+  | Osx_x86_64
+  | Manylinux_x86_64
+  | Win32_x86_64
 
 (*****************************************************************************)
 (* Routes *)
@@ -79,6 +84,7 @@ let pro_binary_route (platform_kind : pro_engine_arch) =
     | Osx_arm64 -> "osx-arm64"
     | Osx_x86_64 -> "osx-x86"
     | Manylinux_x86_64 -> "manylinux"
+    | Win32_x86_64 -> "win32-x86"
   in
   "api/agent/deployments/deepbinary/" ^ arch_str
 

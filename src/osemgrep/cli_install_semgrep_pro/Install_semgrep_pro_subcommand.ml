@@ -134,6 +134,11 @@ let run_conf (caps : < caps ; .. >) (conf : Install_semgrep_pro_CLI.conf) :
   (* stricter: this command was actually not tracked in pysemgrep *)
   Metrics_.configure Metrics_.On;
 
+  let pro_executable_name =
+    Printf.sprintf "semgrep-core-proprietary%s"
+      (if Platform.is_windows then ".exe" else "")
+  in
+
   (* We want to install to basically wherever the current executable is,
      but to the name `semgrep-core-proprietary`, which is where the ultimate
      Python wrapper entry point knows to look for the pro binary.
@@ -144,8 +149,8 @@ let run_conf (caps : < caps ; .. >) (conf : Install_semgrep_pro_CLI.conf) :
   *)
   let pro_executable_path =
     if Fpath.is_rel (Fpath.v Sys.executable_name) then
-      Fpath.v (Sys.getcwd ()) / "semgrep-core-proprietary"
-    else Fpath.parent (Fpath.v Sys.executable_name) / "semgrep-core-proprietary"
+      Fpath.v (Sys.getcwd ()) / pro_executable_name
+    else Fpath.parent (Fpath.v Sys.executable_name) / pro_executable_name
   in
 
   (* TODO This is a temporary solution to help offline users *)
@@ -176,6 +181,7 @@ let run_conf (caps : < caps ; .. >) (conf : Install_semgrep_pro_CLI.conf) :
             Semgrep_App.Osx_arm64
         | Darwin, _ -> Semgrep_App.Osx_x86_64
         | Linux, _ -> Manylinux_x86_64
+        | Windows, X86_64 -> Semgrep_App.Win32_x86_64
         | _ ->
             Logs.app (fun m ->
                 m
@@ -207,11 +213,14 @@ let run_conf (caps : < caps ; .. >) (conf : Install_semgrep_pro_CLI.conf) :
          * execute it should not be a problem.
          * Also, some OSes require read permissions to run the executable, so
          * add the permission.
+         * On Windows, the executable needs to have write permission
+         * to be able to remove an existing executable when installing
+         * the next version.
          *)
         FileUtil.chmod
           (`Symbolic
              [
-               `User (`Set (`List [ `Read; `Exec ]));
+               `User (`Set (`List [ `Read; `Write; `Exec ]));
                `Group (`Set (`List [ `Read; `Exec ]));
                `Other (`Set (`List [ `Read; `Exec ]));
              ])

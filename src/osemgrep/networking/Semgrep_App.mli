@@ -54,7 +54,11 @@ val upload_rule_to_registry :
   (string, string) result
 
 (* The architecture of the Pro Engine binary to install. *)
-type pro_engine_arch = Osx_arm64 | Osx_x86_64 | Manylinux_x86_64
+type pro_engine_arch =
+  | Osx_arm64
+  | Osx_x86_64
+  | Manylinux_x86_64
+  | Win32_x86_64
 
 (* used by 'semgrep install-semgrep-pro'
  * content of binary is in the body of response (get_info)
