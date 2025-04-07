@@ -437,109 +437,15 @@ let rules_of_config (config : Core_scan_config.t) : Rule_error.rules_and_invalid
   (rules, invalid_rules)
 [@@trace]
 
-let hook_builtin_propagators = Hook.create []
-
-(* Hardcode some common collections as propagators
-   as a TEMPORARY measure to help customers get results.
-   Do not add more propagators (other than other functions
-   for these collections). At that point, we should be
-   figuring out a better solution for customization. *)
-(* TODO remove this, either by adding these propagators to
-   the engine for a specialized analysis or by moving them
-   to a customizable defaults file *)
-let hardcode_propagators lang propagator_strs (rules : Rule.rule list) =
-  (* Propagators are uniquely identified by their location
-     so we have to generate a location *)
-  (* TODO Should this be one counter for all languages? *)
-  let i = ref 1 in
-  (* TODO Doesn't this always just return 1? *)
-  let pos () =
-    i := 1;
-    !i
-  in
-  let propagator_token str =
-    let location =
-      {
-        Loc.str;
-        pos =
-          {
-            bytepos = pos ();
-            line = pos ();
-            column = pos ();
-            file = Fpath_.fake_file;
-          };
-      }
-    in
-    Tok.tok_of_loc location
-  in
-  (* Generate and add the propagator *)
-  let hardcoded_propagators =
-    let propagator_of_any str =
-      let any =
-        Parse_pattern.parse_pattern lang str |> Result.get_ok
-        (* This is OK since all of the patterns here are fixed strings we know
-           should parse. *)
-      in
-
-      let pstr = (str, AST_generic.fake str) in
-      {
-        Rule.propagator_id = "builtin-propagator<" ^ str ^ ">";
-        propagator_formula =
-          P (Xpattern.mk_xpat (Sem (any, lang)) pstr) |> Rule.f;
-        propagator_by_side_effect = true;
-        (* TODO: Confirm this is correct, or at least equivalent to
-           what was here. *)
-        propagator_requires =
-          Some { precondition = Rule.default_propagator_requires; range = None };
-        propagator_replace_labels = None;
-        propagator_label = None;
-        from = ("$FROM", propagator_token "$FROM");
-        to_ = ("$TO", propagator_token "$TO");
-      }
-    in
-    (* This needs to be lazy, or else we require the Java + TS/JS parser *)
-    (* even if we aren't scanning those languages. This doesn't matter, except *)
-    (* for semgrep js! *)
-    lazy (List_.map propagator_of_any propagator_strs)
-  in
-  let add_propagator_to_rule rule =
-    let rule =
-      match (rule.Rule.target_selector, rule.mode) with
-      | Some (rule_lang :: _), `Taint mode when rule_lang =*= lang ->
-          let { Rule.propagators; sources; sanitizers; sinks } = mode in
-          let mode =
-            `Taint
-              {
-                Rule.propagators =
-                  propagators @ Lazy.force hardcoded_propagators;
-                sources;
-                sanitizers;
-                sinks;
-              }
-          in
-          { rule with mode }
-      | __else__ -> rule
-    in
-    rule
-  in
-  List_.map add_propagator_to_rule rules
-
 (* This is wasteful since it involves target discovery but the targets
    are discarded!
    Is this filtering necessary anyway?
 *)
-let applicable_rules_of_config_and_hardcode_propagators
-    (config : Core_scan_config.t) : Rule_error.rules_and_invalid =
+let applicable_rules_of_config (config : Core_scan_config.t) :
+    Rule_error.rules_and_invalid =
   let rules, invalid_rules = rules_of_config config in
   let targets, _errors, _skipped = targets_of_config config rules in
-  let rules =
-    filter_rules_by_targets_analyzers rules targets |> fun rules ->
-    List.fold_left
-      (fun rules (lang, propagators) ->
-        rules |> hardcode_propagators lang propagators)
-      rules
-      (Hook.get hook_builtin_propagators)
-  in
+  let rules = filter_rules_by_targets_analyzers rules targets in
   (rules, invalid_rules)
 
 (* TODO? this is currently deprecated, but pad still has hope the
@@ -1011,8 +917,7 @@ let scan (caps : < caps ; .. >) (config : Core_scan_config.t) :
     Core_result.result_or_exn =
   try
     let timed_rules =
-      Common.with_time (fun () ->
-          applicable_rules_of_config_and_hardcode_propagators config)
+      Common.with_time (fun () -> applicable_rules_of_config config)
     in
     (* The pre and post processors hook here is currently used
        for the secrets post processor in Pro, and for the autofix
