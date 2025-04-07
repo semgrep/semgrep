@@ -456,8 +456,7 @@ let run_rules_against_targets_for_engine caps (env : env) (rules : Rule.t list)
   let res_or_exn : Core_result.result_or_exn =
     match env.engine with
     | A.OSS -> Core_scan.scan caps config
-    | A.Pro ->
-        (Hook.get hook_pro_scan) (caps :> Core_scan.caps) config `Intrafile
+    | A.Pro -> (Hook.get hook_pro_scan) (caps :> scan_caps) config `Intrafile
     | A.Deep ->
         (* LATER: support also interfile tests where many targets are in
          * a subdir (using the same name than the rule file)

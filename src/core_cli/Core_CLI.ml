@@ -337,7 +337,6 @@ let mk_config () : Core_scan_config.t =
       | false, None -> None);
     (* only settable via the Pro binary *)
     symbol_analysis = !symbol_analysis;
-    project_root = None;
     use_eio = !use_eio;
   }
 
