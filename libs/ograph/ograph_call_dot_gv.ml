@@ -85,6 +85,9 @@ let display_graph_cmd (caps : < Cap.exec ; .. >) filename =
   match Platform.kernel caps with
   | Platform.Darwin -> launch_png_cmd caps filename
   | Platform.Linux -> launch_gv_cmd caps filename
+  | Platform.Windows ->
+      (* TODO: Add support for lanching dot on windows: https://opam.ocaml.org/packages/conf-graphviz/ *)
+      ()
   | Platform.OtherKernel _ -> ()
 
 let print_ograph_extended caps g filename display_graph =
