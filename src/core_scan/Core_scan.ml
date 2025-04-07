@@ -115,8 +115,7 @@ module Out = Semgrep_output_v1_j
 type func = Core_scan_config.t -> Core_result.result_or_exn
 
 (* TODO: stdout (sometimes) *)
-type caps =
-  < Cap.fork ; Cap.time_limit ; Cap.memory_limit ; Cap.readdir ; Cap.tmp >
+type caps = < Cap.fork ; Cap.time_limit ; Cap.memory_limit ; Cap.readdir >
 
 (* Type of the iter_targets_and_get_matches_and_exn_to_errors callback.
 
@@ -375,8 +374,8 @@ let targets_of_config (config : Core_scan_config.t) (rules : Rule.t list) :
 (* Parsing *)
 (*****************************************************************************)
 
-let parse_and_resolve_name _caps ~root:_not_used_in_OSS (lang : Lang.t)
-    (fpath : Fpath.t) : AST_generic.program * Tok.location list =
+let parse_and_resolve_name (lang : Lang.t) (fpath : Fpath.t) :
+    AST_generic.program * Tok.location list =
   let { Parsing_result2.ast; skipped_tokens; _ } =
     Logs_.with_debug_trace ~__FUNCTION__ (fun () ->
         Logs.debug (fun m ->
@@ -385,8 +384,6 @@ let parse_and_resolve_name _caps ~root:_not_used_in_OSS (lang : Lang.t)
         Parse_target.parse_and_resolve_name lang fpath)
   in
   (ast, skipped_tokens)
-
-let hook_parse_and_resolve_name = Hook.create parse_and_resolve_name
 
 (* Lang heuristic to determine if a rule is relevant or can be filtered out *)
 let is_rule_used_by_targets (analyzer_set : Analyzer.t Set_.t) (rule : Rule.t) =
@@ -885,8 +882,8 @@ let rules_for_target ~combine_js_with_ts ~analyzer ~products ~origin
 (* build the callback for iter_targets_and_get_matches_and_exn_to_errors
  * coupling: with Pro_scan.mk_target_handler()
  *)
-let mk_target_handler (caps : < Cap.time_limit ; Cap.tmp >)
-    (config : Core_scan_config.t) (valid_rules : Rule.t list)
+let mk_target_handler (caps : < Cap.time_limit >) (config : Core_scan_config.t)
+    (valid_rules : Rule.t list)
     (prefilter_cache_opt : Match_env.prefilter_config) : target_handler =
   (* Note that this function runs in another process *)
   function
@@ -906,13 +903,7 @@ let mk_target_handler (caps : < Cap.time_limit ; Cap.tmp >)
 
       (* TODO: can we skip all of this if there are no applicable
           rules? In particular, can we skip print_cli_progress? *)
-      let xtarget =
-        Xtarget.resolve
-          ((Hook.get hook_parse_and_resolve_name)
-             (caps :> < Cap.tmp >)
-             ~root:config.project_root)
-          target
-      in
+      let xtarget = Xtarget.resolve parse_and_resolve_name target in
       let xconf =
         {
           Match_env.config = Rule_options.default;
@@ -976,7 +967,7 @@ let scan_exn (caps : < caps ; .. >) (config : Core_scan_config.t)
          (caps :> < Cap.fork ; Cap.memory_limit >)
          config
          (mk_target_handler
-            (caps :> < Cap.time_limit ; Cap.tmp >)
+            (caps :> < Cap.time_limit >)
             config valid_rules prefilter_cache_opt)
   in
 
