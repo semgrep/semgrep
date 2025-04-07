@@ -37,16 +37,6 @@ let pr2 s =
   UStdlib.prerr_string "\n";
   flush UStdlib.stderr
 
-let _already_printed = Hashtbl.create 101
-let disable_pr2_once = ref false
-
-let xxx_once f s =
-  if !disable_pr2_once then pr2 s
-  else if not (Hashtbl.mem _already_printed s) then (
-    Hashtbl.add _already_printed s true;
-    f ("(ONCE) " ^ s))
-
-let pr2_once s = xxx_once pr2 s
 let pr2_gen x = pr2 (Dumper.dump x)
 
 let pr2_time name f =
