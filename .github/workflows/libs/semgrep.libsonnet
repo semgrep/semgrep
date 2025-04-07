@@ -320,7 +320,7 @@ local copy_executable_dlls(executable, target_dir) =
     ||| % { dst: target_dir, exe: executable },
   };
 
-local wheel_name(arch) = '%s-wheel' % arch;
+local wheel_name(arch) = 'wheel-%s' % arch;
 
 local build_wheel_steps(arch, platform) = [
   actions.setup_python_step(cache='pip'),
