@@ -160,61 +160,6 @@ local build_test_docker_nonroot_job = {
 // Pypy jobs
 // ----------------------------------------------------------------------------
 
-// Note that we now have a 50GB quota on pypi thx to a request we made in
-// Dec 2023: https://github.com/pypi/support/issues/3464
-// Indeed around that time we reached our quota because each release was
-// taking 170MB and we had released many versions.
-// alt: remove old versions, but Bence didn't like it.
-
-local park_pypi_packages_job = {
-  'runs-on': 'ubuntu-latest',
-  defaults: {
-    run: {
-      'working-directory': 'cli/',
-    },
-  },
-  steps: [
-    {
-      uses: 'actions/checkout@v4',
-    },
-    actions.setup_python_step('3.10'),
-    {
-      run: 'sudo python3 -m ' + actions.pipenv_install_step.run,
-    },
-    {
-      run: 'pipenv install --dev',
-    },
-    // There are no semgrep-core here, just the Python code.
-    // The wheels are separately added to the pypi package
-    // in the upload-wheels job below.
-    {
-      name: 'Build parked packages',
-      run: 'pipenv run python setup.py park',
-    },
-    {
-      name: 'Publish to Pypi',
-      uses: 'pypa/gh-action-pypi-publish@release/v1',
-      with: {
-        user: '__token__',
-        password: '${{ secrets.PYPI_UPLOAD_TOKEN }}',
-        skip_existing: true,
-        packages_dir: 'cli/dist/',
-      },
-    },
-    {
-      name: 'Publish to test Pypi',
-      uses: 'pypa/gh-action-pypi-publish@release/v1',
-      with: {
-        repository_url: 'https://test.pypi.org/legacy/',
-        user: '__token__',
-        password: '${{ secrets.TEST_PYPI_UPLOAD_TOKEN }}',
-        skip_existing: true,
-        packages_dir: 'cli/dist/',
-      },
-    },
-  ],
-} + unless_dry_run;
-
 local download_step(name) = {
   name: 'Download %s' % name,
   uses: 'actions/download-artifact@v4',
@@ -354,7 +299,6 @@ local create_release_interfaces_job = {
   // and create_release_job.
   permissions: gha.write_permissions,
   jobs: {
-    'park-pypi-packages': park_pypi_packages_job,
     'build-test-docker': build_test_docker_job,
     'build-test-docker-nonroot': build_test_docker_nonroot_job,
     // TODO? Not sure why we run those jobs here again; tests.jsonnet already

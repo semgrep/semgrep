@@ -124,37 +124,6 @@ jobs:
         id: publish_release_semgrep_interfaces
         name: Publish Release Semgrep Interfaces
         run: gh release --repo semgrep/semgrep-interfaces edit "$VERSION" --draft=false
-  park-pypi-packages:
-    defaults:
-      run:
-        working-directory: cli/
-    if: ${{ ! inputs.dry-run }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          cache: pipenv
-          python-version: "3.10"
-      - run: sudo python3 -m pip install pipenv==2024.0.1
-      - run: pipenv install --dev
-      - name: Build parked packages
-        run: pipenv run python setup.py park
-      - name: Publish to Pypi
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages_dir: cli/dist/
-          password: ${{ secrets.PYPI_UPLOAD_TOKEN }}
-          skip_existing: true
-          user: __token__
-      - name: Publish to test Pypi
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages_dir: cli/dist/
-          password: ${{ secrets.TEST_PYPI_UPLOAD_TOKEN }}
-          repository_url: https://test.pypi.org/legacy/
-          skip_existing: true
-          user: __token__
   upload-wheels:
     name: Upload Wheels to PyPI
     needs:
