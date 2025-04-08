@@ -1,0 +1,2 @@
+Pro: Failure to parse a `package.json` file when analysing JavaScript or
+TypeScript is no longer a fatal error.
