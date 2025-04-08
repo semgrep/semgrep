@@ -59,10 +59,6 @@ val default_conf : conf
 val hook_mk_pro_core_run_for_osemgrep : (pro_conf -> func) option Hook.t
 val hook_pro_git_remote_scan_setup : (func -> func) option Hook.t
 
-(* sca-scan hook *)
-val hook_adjust_targets :
-  (Fpath.t list -> Target.t list -> Target.t list) Hook.t
-
 (* builder *)
 val mk_result : Rule.rule list -> Core_result.t -> result
 

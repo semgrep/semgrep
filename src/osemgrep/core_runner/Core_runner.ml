@@ -131,9 +131,6 @@ let hook_mk_pro_core_run_for_osemgrep : (pro_conf -> func) option Hook.t =
 let hook_pro_git_remote_scan_setup : (func -> func) option Hook.t =
   Hook.create None
 
-(* TODO: find a way to make it a Core_scan hook instead of osemgrep one *)
-let hook_adjust_targets = Hook.create (fun _paths targets -> targets)
-
 (*************************************************************************)
 (* Metrics and reporting *)
 (*************************************************************************)
@@ -268,11 +265,8 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
     report_status_and_add_metrics_languages
       ~respect_gitignore:targeting_conf.respect_gitignore lang_jobs valid_rules
       target_paths;
-    let code_targets, applicable_rules =
+    let targets, applicable_rules =
       Core_targeting.targets_and_rules_of_lang_jobs lang_jobs
-    in
-    let final_targets =
-      (Hook.get hook_adjust_targets) target_paths code_targets
     in
     Logs.debug (fun m ->
         m "core runner: %i applicable rules of %i valid rules, %i invalid rules"
@@ -282,7 +276,7 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
     let config =
       {
         config with
-        target_source = Targets final_targets;
+        target_source = Targets targets;
         rule_source = Rules applicable_rules;
       }
     in
