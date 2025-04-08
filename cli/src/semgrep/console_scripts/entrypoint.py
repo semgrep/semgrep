@@ -222,6 +222,15 @@ def exec_osemgrep():
 # Needed for similar reasons as in pysemgrep, but only for the legacy
 # flag to work
 def main():
+    # This is a workaround for stdio and stdout encoding issues on Windows.
+    # Instead of relying on the users setting PYTHONIOENCODING=utf8 when
+    # running on Windows and redirecting the stdout and stderr to files, we do
+    # it in the console scripts.
+    # https://docs.python.org/3/library/sys.html#sys.stdout
+    if IS_WINDOWS and not sys.stdout.isatty():
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+
     # Nudge Windows users away, until we are happy with our beta testing
     semgrep_force_install = "SEMGREP_FORCE_INSTALL" in os.environ
     if IS_WINDOWS and not semgrep_force_install:

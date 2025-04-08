@@ -220,8 +220,6 @@ local test_wheels_job = {
       name: 'e2e semgrep-core test',
       env: {
         SEMGREP_FORCE_INSTALL: 1,
-        // See https://github.com/semgrep/semgrep/pull/2535
-        PYTHONIOENCODING: 'utf-8',
       },
       // --strict to make sure that any errors cause the CI job to fail
       run: "echo '1 == 1' | semgrep -l python -e '$X == $X' --strict -",
