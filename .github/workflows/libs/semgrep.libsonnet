@@ -320,27 +320,51 @@ local copy_executable_dlls(executable, target_dir) =
     ||| % { dst: target_dir, exe: executable },
   };
 
-local wheel_name(arch) = 'wheel-%s' % arch;
+local is_windows_arch(arch) = std.findSubstr('windows', arch) != [];
+local bin_ext(arch) = if is_windows_arch(arch) then '.exe' else '';
+local wheel_name(arch, pro=false) = 'wheel-%s%s' % [arch, if pro then '-pro' else ''];
 
-local build_wheel_steps(arch, platform) = [
-  actions.setup_python_step(cache='pip'),
-  {
-    run: |||
-      tar xvfz artifacts.tgz
-      cp artifacts/semgrep-core cli/src/semgrep/bin
-      ./scripts/build-wheels.sh --plat-name %s
-    ||| % platform,
-  },
-  actions.upload_artifact_step(wheel_name(arch), path='cli/dist.zip'),
-];
+//TODO always want to include semgrep pro ...
+local build_wheel_steps(arch, platform, copy_semgrep_pro=false) =
+  [
+    actions.setup_python_step(cache='pip'),
+    {
+      name: 'Untar artifacts',
+      run: |||
+        tar xvfz artifacts.tgz
+      |||,
+    },
+  ] +
+  (if !copy_semgrep_pro then [{
+     name: 'Remove pro binary',
+     run: '(rm artifacts/semgrep-core-proprietary%s && rm artifacts/pro-installed-by.txt) || true' % bin_ext(arch),
+   }] else []) +
+  [
+    {
+      name: 'Copy artifacts to wheel',
+      run: 'cp artifacts/* cli/src/semgrep/bin',
+    },
+    {
+      name: 'Build wheel',
+      run: './scripts/build-wheels.sh --plat-name %s' % platform,
+    },
+    actions.upload_artifact_step(wheel_name(arch, pro=copy_semgrep_pro), path='cli/dist.zip'),
+  ];
 
-local test_wheel_steps(arch) = [
+local unpack_wheel_step(arch) = {
+  name: 'Unpack %s wheel' % arch,
+  run: (
+    if is_windows_arch(arch) then
+      'tar --wildcards -xzf ./dist.tgz "*.whl"'
+    else
+      'unzip ./dist.zip "*.whl"'
+  ),
+};
+local test_wheel_steps(arch, copy_semgrep_pro=false) = [
   // caching is hard and why complicate things
   actions.setup_python_step(cache=false),
-  actions.download_artifact_step(wheel_name(arch)),
-  {
-    run: 'unzip dist.zip',
-  },
+  actions.download_artifact_step(wheel_name(arch, pro=copy_semgrep_pro)),
+  unpack_wheel_step(arch),
   {
     name: 'install package',
     run: 'pip3 install dist/*.whl',
@@ -385,6 +409,7 @@ local test_wheel_steps(arch) = [
   copy_executable_dlls: copy_executable_dlls,
   build_wheel_steps: build_wheel_steps,
   test_wheel_steps: test_wheel_steps,
+  wheel_name: wheel_name,
   // coupling: cli/setup.py, the matrix in run-cli-tests.libsonnet,
   // build-test-manylinux-x86.jsonnet in pro, tests.jsonnet in OSS
   // TODO? could switch to higher like 3.11
