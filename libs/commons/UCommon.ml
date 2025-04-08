@@ -64,13 +64,7 @@ let pp_do_in_zero_box f =
 let before_exit = ref []
 
 let main_boilerplate f =
-  (* Memtrace is broken for ocaml versions between 5.0.0 and 5.3.0 e.g If the
-   * MEMTRACE envar is set for semgrep built with ocaml 5.2.0, an exception
-   * will be raised.
-   * TODO: once we upgrade to ocaml 5.3.0, remove this check.
-   *)
-  if UStdlib.Sys.ocaml_release.major < 5 || UStdlib.Sys.ocaml_release.minor >= 3
-  then Memtrace.trace_if_requested ();
+  Memtrace.trace_if_requested ();
   if not !Sys.interactive then
     exn_to_real_unixexit (fun () ->
         let default_handler signal =

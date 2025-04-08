@@ -135,8 +135,6 @@ let () =
           (* Added as part of the upgrade to OCaml 5. Under our typical workloads, this
            * appears to yield similar performance to the default value of space_overhead
            * under OCaml 4. *)
-          (* TODO Remove this gate once we have all builds migrated to OCaml 5 *)
-          if USys.ocaml_release.major = 5 then
-            Gc.set { (Gc.get ()) with space_overhead = 40 };
+          Gc.set { (Gc.get ()) with space_overhead = 40 };
           Core_CLI.main caps argv
         end)
