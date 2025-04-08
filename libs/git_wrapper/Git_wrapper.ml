@@ -146,7 +146,7 @@ let simplify_cmd_error ~errmsg_prefix ~cmd
  *)
 let git_diff_lines_re = Pcre2_.regexp {|@@ -\d*,?\d* \+(?P<lines>\d*,?\d*) @@|}
 let remote_repo_name_re = Pcre2_.regexp {|^http.*\/(.*)\.git$|}
-let getcwd () = USys.getcwd () |> Fpath.v
+let getcwd () = Sys.getcwd () |> Fpath.v
 
 (*
    Create an optional -C option to change directory.
@@ -467,7 +467,7 @@ let run_with_worktree (caps : < Cap.chdir ; Cap.tmp ; .. >) ~commit ?branch f =
     let uuid = Uuidm.v4_gen rand () in
     let dir_name = "semgrep_git_worktree_" ^ Uuidm.to_string uuid in
     let dir = CapTmp.get_temp_dir_name caps#tmp / dir_name in
-    UUnix.mkdir !!dir 0o777;
+    Unix.mkdir !!dir 0o777;
     dir
   in
   let temp_dir = rand_dir () in
@@ -529,7 +529,7 @@ let status ?cwd ?commit () =
   let fragments = String.split_on_char '\000' out in
   let check_dir file =
     try
-      match (UUnix.stat file).st_kind with
+      match (Unix.stat file).st_kind with
       | Unix.S_DIR -> true
       | _ -> false
     with
@@ -537,7 +537,7 @@ let status ?cwd ?commit () =
   in
   let check_symlink file =
     try
-      match (UUnix.lstat file).st_kind with
+      match (Unix.lstat file).st_kind with
       | Unix.S_LNK -> true
       | _ -> false
     with
@@ -552,7 +552,7 @@ let status ?cwd ?commit () =
     | _ :: file :: tail when check_dir file && check_symlink file ->
         Log.info (fun m ->
             m "Skipping %s since it is a symlink to a directory: %s" file
-              (UUnix.realpath file));
+              (Unix.realpath file));
         parse tail
     | "A" :: file :: tail ->
         added := Fpath.v file :: !added;

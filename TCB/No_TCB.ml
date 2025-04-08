@@ -8,3 +8,4 @@ module UFormat = Format
 module UMarshal = Marshal
 module UParsing = Parsing
 module UFilename = Filename
+module URandom = Random
