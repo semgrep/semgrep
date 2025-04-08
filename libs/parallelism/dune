@@ -5,6 +5,7 @@
    TCB
    parmap
    commons
+   eio
  )
  (preprocess
    (pps
