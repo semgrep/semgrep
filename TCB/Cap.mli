@@ -21,55 +21,18 @@ module Console : sig
 end
 
 module Process : sig
-  (* basic stuff *)
   type argv
-  type env
-
-  (* advanced stuff *)
-  type signal
   type exit
-  type pid
-  type kill
   type chdir
-
-  (* limits *)
+  type signal
   type time_limit
   type memory_limit
-
-  (* See also the separate Exec.t *)
   type fork
-  type thread
-  type domain
 end
 
-(* read/write on root|cwd|tmp|~|~.xxx| (and files/dirs mentioned in argv) *)
 module FS : sig
   type readdir
-
-  (* a.k.a open_in and open_out in OCaml world *)
-  type open_r
-  type open_w
-
-  (* TODO: finer-grained readdir and open_r, open_w *)
-  type root_r
-  type root_w
-
-  (* this gives also access to /proc, /sys, etc. *)
-  type root_all_r
-  type root_all_w
-  type cwd_r
-  type cwd_w
-  type home_r
-  type home_w
-  type dotfiles_r
-  type dotfiles_w
-
-  (* not worth differentiate between tmp_r/tmp_w, anyway /tmp has 't' bit *)
   type tmp
-
-  (* files or directories mentioned in argv *)
-  type files_argv_r
-  type files_argv_w
 end
 
 module Exec : sig
@@ -80,16 +43,7 @@ module Exec : sig
   type t
 end
 
-(* See also commons/Chan.ml *)
-module File : sig
-  type in_channel = Stdlib.in_channel
-  type out_channel = Stdlib.out_channel
-end
-
 module Network : sig
-  (* TODO? make specific host subcapability? like semgrep_url_capa ?
-   * imitate Rust cap-std project with a pool of allowed IPs?
-   *)
   type t
 end
 
@@ -98,9 +52,6 @@ end
  *)
 module Misc : sig
   type random
-
-  (* profiling functions are an "ambient" authority though *)
-  type time
 end
 
 (**************************************************************************)
@@ -109,27 +60,8 @@ end
 
 (* fs *)
 type readdir = < readdir : FS.readdir >
-type root = < root_r : FS.root_r ; root_w : FS.root_w >
-type root_all = < root_all_r : FS.root_all_r ; root_all_w : FS.root_all_w >
-type cwd = < cwd_r : FS.cwd_r ; cwd_w : FS.cwd_w >
-type home = < home_r : FS.home_r ; home_w : FS.home_w >
-type dotfiles = < dotfiles_r : FS.dotfiles_r ; dotfiles_w : FS.dotfiles_w >
 type tmp = < tmp : FS.tmp >
-
-type files_argv =
-  < files_argv_r : FS.files_argv_r ; files_argv_w : FS.files_argv_w >
-
-type fs =
-  < readdir
-  ; open_r : FS.open_r
-  ; open_w : FS.open_w
-  ; root
-  ; root_all
-  ; cwd
-  ; home
-  ; dotfiles
-  ; tmp
-  ; files_argv >
+type fs = < readdir ; tmp >
 
 (* console *)
 type stdin = < stdin : Console.stdin >
@@ -139,20 +71,15 @@ type console = < stdin ; stdout ; stderr >
 
 (* process *)
 type argv = < argv : Process.argv >
-type env = < env : Process.env >
 type signal = < signal : Process.signal >
 type time_limit = < time_limit : Process.time_limit >
 type memory_limit = < memory_limit : Process.memory_limit >
 type exit = < exit : Process.exit >
-type pid = < pid : Process.pid >
-type kill = < kill : Process.kill >
 type chdir = < chdir : Process.chdir >
 type fork = < fork : Process.fork >
-type domain = < domain : Process.domain >
-type thread = < thread : Process.thread >
-type process_multi = < pid ; kill ; fork ; domain ; thread >
+type process_multi = < fork >
 type process_single = < signal ; time_limit ; memory_limit ; exit ; chdir >
-type process = < argv ; env ; console ; process_single ; process_multi >
+type process = < argv ; console ; process_single ; process_multi >
 
 (* exec *)
 type exec = < exec : Exec.t >
@@ -161,9 +88,8 @@ type exec = < exec : Exec.t >
 type network = < network : Network.t >
 
 (* misc *)
-type time = < time : Misc.time >
 type random = < random : Misc.random >
-type misc = < time ; random >
+type misc = < random >
 
 (* alt: called "Stdenv.Base.env" in EIO *)
 type all_caps =
