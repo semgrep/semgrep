@@ -3,8 +3,6 @@
 (library
   (public_name semgrep.osemgrep_cli_show)
   (name osemgrep_cli_show)
-;  (flags (:standard -open TCB -open Commons_TCB))
-  (flags (:standard -open No_TCB))
   (wrapped false)
   (libraries
     cmdliner

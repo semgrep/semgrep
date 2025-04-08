@@ -119,7 +119,7 @@ let run_conf (caps : < caps ; .. >) (conf : Show_CLI.conf) : Exit_code.t =
       in
       let v = Meta_AST.vof_any (AST_generic.Pr ast) in
       (* 80 columns is too little *)
-      UFormat.set_margin 120;
+      Format.set_margin 120;
       let s = dump_v_to_format ~json:conf.json v in
       print s;
       match (errors @ tolerated_errors, skipped_tokens @ inserted_tokens) with
