@@ -153,6 +153,8 @@ else
             "-lyaml_ffi_stubs"
             "-lzarith"
             "-lcurl"
+            # Needed for EIO
+            "-lcamlruntime_eventsnat"
 
             "$(pkg-config gmp --variable libdir)/libgmp.a"
             "$(pkg-config tree-sitter --variable libdir)/libtree-sitter.a"
