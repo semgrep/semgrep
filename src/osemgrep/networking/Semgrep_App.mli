@@ -33,6 +33,18 @@ val report_failure :
   Exit_code.t ->
   unit
 
+val query_tr_cache :
+  < Cap.network ; Auth.cap_token ; .. > ->
+  Semgrep_output_v1_t.tr_query_cache_request ->
+  (Semgrep_output_v1_t.tr_query_cache_response, string) result
+(** Query the transitive reachability cache for matches *)
+
+val add_to_tr_cache :
+  < Cap.network ; Auth.cap_token ; .. > ->
+  Semgrep_output_v1_t.tr_add_cache_request ->
+  (unit, string) result
+(** Add entries to the transitive reachability cache *)
+
 (*****************************************************************************)
 (* Other (semgrep lsp, semgrep install-semgrep-pro comms) *)
 (*****************************************************************************)
