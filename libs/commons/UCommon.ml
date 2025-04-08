@@ -23,12 +23,6 @@ let pr s =
   UStdlib.print_string "\n";
   flush UStdlib.stdout
 
-let pr_time name f =
-  let t1 = UUnix.gettimeofday () in
-  Common.protect f ~finally:(fun () ->
-      let t2 = UUnix.gettimeofday () in
-      pr (spf "%s: %.6f s" name (t2 -. t1)))
-
 (*****************************************************************************)
 (* Stderr *)
 (*****************************************************************************)
@@ -38,12 +32,6 @@ let pr2 s =
   flush UStdlib.stderr
 
 let pr2_gen x = pr2 (Dumper.dump x)
-
-let pr2_time name f =
-  let t1 = UUnix.gettimeofday () in
-  protect f ~finally:(fun () ->
-      let t2 = UUnix.gettimeofday () in
-      pr2 (spf "%s: %.6f s" name (t2 -. t1)))
 
 (*****************************************************************************)
 (* Misc *)
