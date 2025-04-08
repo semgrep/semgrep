@@ -75,39 +75,12 @@ end
 
 module FS = struct
   type readdir = cap
-  type open_r = cap
-  type open_w = cap
-
-  (* TODO: read vs write, specific dir (in_chan or out_chan of opened dir *)
-  type root_r = cap
-  type root_w = cap
-  type root_all_r = cap
-  type root_all_w = cap
-  type cwd_r = cap
-  type cwd_w = cap
-  type home_r = cap
-  type home_w = cap
-  type dotfiles_r = cap
-  type dotfiles_w = cap
   type tmp = cap
-
-  (* files or directories mentioned in argv *)
-  type files_argv_r = cap
-  type files_argv_w = cap
 end
 
 (**************************************************************************)
 (* Files *)
 (**************************************************************************)
-
-module File = struct
-  (* TODO: embed also the filename in it? useful for
-   * error reporting.
-   * TODO? inout_channel?
-   *)
-  type in_channel = Stdlib.in_channel
-  type out_channel = Stdlib.out_channel
-end
 
 (**************************************************************************)
 (* Exec *)
@@ -126,22 +99,15 @@ module Process = struct
   (* basic stuff *)
   type argv = cap
 
-  (* less: could split in env_r, env_w *)
-  type env = cap
-
-  (* advanced stuff
-   * TODO: split signal? use subtypes to make alarm a subtype of signal?
-   *)
-  type signal = cap
+  (* advanced stuff *)
   type exit = cap
-  type pid = cap
-  type kill = cap
   type chdir = cap
+
+  (* TODO: split signal? use subtypes to make alarm a subtype of signal?*)
+  type signal = cap
 
   (* multi processes *)
   type fork = cap
-  type thread = cap
-  type domain = cap
 
   (* old: was alarm, but better rename to be consistent with memory_limit
    * See libs/process_limits/
@@ -166,9 +132,6 @@ end
 (**************************************************************************)
 
 module Misc = struct
-  (* supposedely important for side-channel attack *)
-  type time = cap
-
   (* useful to be sure the program is deterministic and is not calling
    * any random generator functions.
    *)
@@ -198,27 +161,8 @@ end
 
 (* fs *)
 type readdir = < readdir : FS.readdir >
-type root = < root_r : FS.root_r ; root_w : FS.root_w >
-type root_all = < root_all_r : FS.root_all_r ; root_all_w : FS.root_all_w >
-type cwd = < cwd_r : FS.cwd_r ; cwd_w : FS.cwd_w >
-type home = < home_r : FS.home_r ; home_w : FS.home_w >
-type dotfiles = < dotfiles_r : FS.dotfiles_r ; dotfiles_w : FS.dotfiles_w >
 type tmp = < tmp : FS.tmp >
-
-type files_argv =
-  < files_argv_r : FS.files_argv_r ; files_argv_w : FS.files_argv_w >
-
-type fs =
-  < readdir
-  ; open_r : FS.open_r
-  ; open_w : FS.open_w
-  ; root
-  ; root_all
-  ; cwd
-  ; home
-  ; dotfiles
-  ; tmp
-  ; files_argv >
+type fs = < readdir ; tmp >
 
 (* console *)
 type stdin = < stdin : Console.stdin >
@@ -228,20 +172,15 @@ type console = < stdin ; stdout ; stderr >
 
 (* process *)
 type argv = < argv : Process.argv >
-type env = < env : Process.env >
 type signal = < signal : Process.signal >
 type time_limit = < time_limit : Process.time_limit >
 type memory_limit = < memory_limit : Process.memory_limit >
 type exit = < exit : Process.exit >
-type pid = < pid : Process.pid >
-type kill = < kill : Process.kill >
 type chdir = < chdir : Process.chdir >
 type fork = < fork : Process.fork >
-type domain = < domain : Process.domain >
-type thread = < thread : Process.thread >
-type process_multi = < pid ; kill ; fork ; domain ; thread >
+type process_multi = < fork >
 type process_single = < signal ; time_limit ; memory_limit ; exit ; chdir >
-type process = < argv ; env ; console ; process_single ; process_multi >
+type process = < argv ; console ; process_single ; process_multi >
 
 (* exec *)
 type exec = < exec : Exec.t >
@@ -250,9 +189,8 @@ type exec = < exec : Exec.t >
 type network = < network : Network.t >
 
 (* misc *)
-type time = < time : Misc.time >
 type random = < random : Misc.random >
-type misc = < time ; random >
+type misc = < random >
 
 (* alt: called "Stdenv.Base.env" in EIO *)
 type all_caps =
@@ -270,20 +208,6 @@ let powerbox : all_caps =
   object
     (* fs *)
     method readdir = ()
-    method open_r = ()
-    method open_w = ()
-    method root_r = ()
-    method root_w = ()
-    method root_all_r = ()
-    method root_all_w = ()
-    method cwd_r = ()
-    method cwd_w = ()
-    method home_r = ()
-    method home_w = ()
-    method dotfiles_r = ()
-    method dotfiles_w = ()
-    method files_argv_r = ()
-    method files_argv_w = ()
     method tmp = ()
 
     (* console *)
@@ -293,20 +217,14 @@ let powerbox : all_caps =
 
     (* process *)
     method argv = ()
-    method env = ()
-    method pid = ()
-    method kill = ()
     method chdir = ()
     method signal = ()
     method time_limit = ()
     method memory_limit = ()
     method fork = ()
     method exit = ()
-    method domain = ()
-    method thread = ()
 
     (* misc *)
-    method time = ()
     method random = ()
 
     (* dangerous stuff *)
