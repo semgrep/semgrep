@@ -286,13 +286,7 @@ let already_called_main = ref false
  * in Main.ml (via a nosemgrep or paths: exclude:)
  *)
 let main (f : all_caps -> 'a) : 'a =
-  (* Memtrace is broken for ocaml versions between 5.0.0 and 5.3.0 e.g If the
-   * MEMTRACE envar is set for semgrep built with ocaml 5.2.0, an exception
-   * will be raised.
-   * TODO: once we upgrade to ocaml 5.3.0, remove this check.
-   *)
-  if Sys.ocaml_release.major < 5 || Sys.ocaml_release.minor >= 3 then
-    Memtrace.trace_if_requested ();
+  Memtrace.trace_if_requested ();
   (* can't cheat :) can't nest them *)
   if !already_called_main then failwith "Cap.main() already called"
   else (
