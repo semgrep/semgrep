@@ -446,8 +446,22 @@ let text_output ~max_chars_per_line ~max_lines_per_finding
                | _, Some "upgrade-only" -> `Reachable
                | _, Some "legacy" -> `Undetermined
                | Some { kind = Some DirectReachable; _ }, _ -> `Reachable
-               | Some { kind = Some DirectUnreachable; _ }, _ -> `Unreachable
-               | _ -> `Undetermined)
+               | Some { kind = Some (TransitiveUndetermined _); _ }, _ ->
+                   (* TODO: we should tag them as `Undetermined at some point *)
+                   `Unreachable
+               (* TODO: handle TransitiveReachable at some point *)
+               | ( Some
+                     {
+                       kind =
+                         Some
+                           ( LockfileOnlyMatch _ | TransitiveReachable _
+                           | TransitiveUnreachable _ );
+                       _;
+                     },
+                   _ ) ->
+                   `Undetermined
+               | Some { kind = None; _ }, _ -> `Undetermined
+               | None, _ -> `Undetermined)
            | `SAST ->
                if is_blocking m.extra.metadata then `Blocking else `Nonblocking
            | `Secrets ->

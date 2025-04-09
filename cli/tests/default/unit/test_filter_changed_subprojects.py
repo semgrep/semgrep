@@ -35,7 +35,7 @@ def make_subproject(
         root_dir=out.Fpath(str(manifest.parent)),
         # manifest and lockfile kind don't matter for this test
         dependency_source=out.DependencySource(
-            out.ManifestLockfileDependencySource(
+            out.ManifestLockfile(
                 (
                     out.Manifest(
                         out.ManifestKind(out.PyprojectToml()), out.Fpath(str(manifest))

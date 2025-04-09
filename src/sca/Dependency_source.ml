@@ -26,9 +26,9 @@ module Out = Semgrep_output_v1_t
 (*****************************************************************************)
 
 type t = Out.dependency_source =
-  | ManifestOnlyDependencySource of Manifest.t
-  | LockfileOnlyDependencySource of Lockfile.t
-  | ManifestLockfileDependencySource of (Manifest.t * Lockfile.t)
+  | ManifestOnly of Manifest.t
+  | LockfileOnly of Lockfile.t
+  | ManifestLockfile of (Manifest.t * Lockfile.t)
   (* The dependency_source should be LockfileOnly or ManifestLockfile,
    * but not ManifestOnlyDependencySource.
    * Right now this variant is only used by pysemgrep; it is
@@ -40,7 +40,7 @@ type t = Out.dependency_source =
    * TODO? add a <python repr="tuple"> so the list is converted instead in a
    * Tuple[DependencySource, ...] which is hashable.
    *)
-  | MultiLockfileDependencySource of t list
+  | MultiLockfile of t list
 [@@deriving show]
 
 (*****************************************************************************)
@@ -50,9 +50,8 @@ type t = Out.dependency_source =
 (** List all the source files included in the dependency source. *)
 let rec source_files (dep_src : t) : Fpath.t list =
   match dep_src with
-  | Out.LockfileOnlyDependencySource lockfile -> [ lockfile.path ]
-  | Out.ManifestOnlyDependencySource manifest -> [ manifest.path ]
-  | Out.ManifestLockfileDependencySource (manifest, lockfile) ->
+  | Out.LockfileOnly lockfile -> [ lockfile.path ]
+  | Out.ManifestOnly manifest -> [ manifest.path ]
+  | Out.ManifestLockfile (manifest, lockfile) ->
       [ manifest.path; lockfile.path ]
-  | Out.MultiLockfileDependencySource sources ->
-      List.concat_map source_files sources
+  | Out.MultiLockfile sources -> List.concat_map source_files sources
