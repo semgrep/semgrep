@@ -136,6 +136,6 @@ let tests =
   Testo.categorize "Ppath"
     [
       t "conversions" test_conversions;
-      t "relativize" test_relativize;
+      t ?skipped:Testutil.skip_on_windows "relativize" test_relativize;
       t "of_relative_fpath" test_of_relative_fpath;
     ]

@@ -281,7 +281,13 @@ let glob pattern =
     else Fpath.to_string pattern
   in
   Str.search_forward dir_regex pattern 0 |> ignore;
-  let dir = Str.matched_string pattern in
+  (* Remove trailing slashes to prevent existence checks on Windows
+     failing some times. See
+     https://sourceforge.net/p/mingw-w64/mailman/message/59154340/ *)
+  let dir =
+    Str.matched_string pattern |> Fpath.v |> Fpath.rem_empty_seg |> Fpath.segs
+    |> String.concat "/"
+  in
   let regex =
     pattern
     |> Re.Glob.glob

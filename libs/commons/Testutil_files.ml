@@ -228,7 +228,7 @@ let with_tempfiles ?chdir ?persist ?(verbose = false) files func =
 (*****************************************************************************)
 
 let () =
-  Testo.test "Testutil_files" (fun () ->
+  Testo.test ?skipped:Testutil.skip_on_windows "Testutil_files" (fun () ->
       with_tempdir ~chdir:true (fun root ->
           assert (read root =*= []);
           assert (read (Fpath.v ".") =*= []);

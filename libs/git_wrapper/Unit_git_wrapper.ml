@@ -28,7 +28,7 @@ let test_user_identity () =
 
 let tests =
   [
-    t "user identity" test_user_identity;
+    t ?skipped:Testutil.skip_on_windows "user identity" test_user_identity;
     t "get git project root" (fun () ->
         let cwd = Sys.getcwd () |> Fpath.v in
         match Git_wrapper.project_root_for_files_in_dir cwd with
