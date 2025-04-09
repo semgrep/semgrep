@@ -57,11 +57,6 @@ let default_subcommand = "scan"
 (* alt: define our own Pro_CLI.ml in semgrep-pro
  * old: was Interactive_subcommand.main
  *)
-let hook_semgrep_interactive :
-    (< Cap.readdir > -> string array -> Exit_code.t) Hook.t =
-  Hook.create (fun _caps _argv ->
-      failwith "semgrep interactive not available (requires semgrep pro)")
-
 let hook_semgrep_publish :
     (< Cap.stdout ; Cap.network > -> string array -> Exit_code.t) Hook.t =
   Hook.create (fun _caps _argv ->
@@ -138,8 +133,6 @@ let known_subcommands =
     "show";
     "test";
     "validate";
-    (* pro-only and osemgrep-only *)
-    "interactive";
   ]
 
 let dispatch_subcommand (caps : caps) (argv : string array) =
@@ -214,10 +207,6 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
         | "logout" ->
             Logout_subcommand.main (caps :> < Cap.stdout >) subcmd_argv
         | "install-ci" -> Install_ci_subcommand.main caps subcmd_argv
-        | "interactive" ->
-            (Hook.get hook_semgrep_interactive)
-              (caps :> < Cap.readdir >)
-              subcmd_argv
         | "show" -> (Hook.get hook_semgrep_show) caps subcmd_argv
         | "test" -> Test_subcommand.main caps subcmd_argv
         | "validate" -> Validate_subcommand.main caps subcmd_argv

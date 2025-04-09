@@ -27,10 +27,6 @@ type caps =
 *)
 val main : caps -> string array -> Exit_code.t
 
-(* osemgrep-pro hooks *)
-val hook_semgrep_interactive :
-  (< Cap.readdir > -> string array -> Exit_code.t) Hook.t
-
 val hook_semgrep_publish :
   (< Cap.stdout ; Cap.network > -> string array -> Exit_code.t) Hook.t
 
