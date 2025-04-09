@@ -27,6 +27,33 @@ val to_strings : Fpath.t list -> string list
 val to_yojson : Fpath.t -> Yojson.Safe.t
 val of_yojson : Yojson.Safe.t -> (Fpath.t, string) result
 
+val to_posix_string : Fpath.t -> string
+(** [to_posix_string p] is [Fpath.segs p |> String.concat "/"].
+
+    This produces a POSIX formatted string representing [p]. E.g.,
+
+    {[
+    # to_posix_string (Fpath.v "foo/bar/baz");;
+    - : string = "foo/bar/baz"
+    # to_posix_string (Fpath.v "foo\\bar\\baz");;
+    - : string = "foo/bar/baz"
+    # to_posix_string (Fpath.v "C:\\foo\\bar\\baz");;
+    - : string = "/foo/bar/baz"
+    ]}
+
+    Note that the treatment of Windows drives means that this function is not
+    generally invertible. In particular,
+
+    {[
+    # let p = Fpath.v "C:\\foo\\bar\\baz" in
+      Fpath.v (to_posix_string p) <> p;;
+    - : bool = true
+    ]}
+
+    The intended use case of this function is to display paths in a canonical
+    form, primarily in tests and such. It should not be used when accessing
+    files from the system or for showing paths on the system to users. *)
+
 (* alias but with derived available *)
 type t = Fpath.t [@@deriving show, eq, ord, sexp]
 
