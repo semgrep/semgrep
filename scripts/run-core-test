@@ -20,7 +20,15 @@ NC='\033[0m' # No Color
 # './test status' and './test approve'. See './test --help' for options.
 # This uses the in-house project testo.
 #
-./test
+if [[ $(uname -o) = "Cygwin" ]];
+then
+  # TODO: Remove when https://github.com/semgrep/testo/issues/124 is fixed
+  # Don't run tests in parallel on Windows, to prevent deadlocks
+  ./test -j 0
+else
+  ./test
+fi
+
 
 # run inline tests
 # TODO: make them part of the testo test program above.

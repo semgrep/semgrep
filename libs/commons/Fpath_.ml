@@ -59,10 +59,11 @@ let parents ?(depth_limit = 10) path =
   aux 0 [] path
 
 let () =
-  Testo.test "Fpath_.parents relative" (fun () ->
+  let skipped = Testutil.skip_on_windows in
+  Testo.test ?skipped "Fpath_.parents relative" (fun () ->
       assert (
         parents (Fpath.v "a/b/foo.hs") |> to_strings =*= [ "a/b/"; "a/"; "./" ]));
-  Testo.test "Fpath_.parents absolute" (fun () ->
+  Testo.test ?skipped "Fpath_.parents absolute" (fun () ->
       assert (
         parents (Fpath.v "/a/b/foo.hs")
         |> to_strings =*= [ "/a/b/"; "/a/"; "/" ]));

@@ -1259,7 +1259,8 @@ let pair ?expected_outcome ?skipped ?tags ?tolerate_chdir name func =
 
 let promise_tests caps =
   [
-    pair "LS specs" (test_ls_specs caps) ~tolerate_chdir:true;
+    pair "LS specs" (test_ls_specs caps) ?skipped:Testutil.skip_on_windows
+      ~tolerate_chdir:true;
     (* Keep this test commented out while it is xfail.
         Because logging in is side-effecting, if the test never completes, we
         will stay log in, which can mangle some of the later tests.
@@ -1273,11 +1274,16 @@ will stay log in, which can mangle some of the later tests.|}
         (Should_fail "TODO: currently failing in js tests in CI");
     pair "LS /semgrep/search includes/excludes"
       (test_search_includes_excludes caps)
+      ?skipped:Testutil.skip_on_windows ~tolerate_chdir:true;
+    pair "LS exts" (test_ls_ext caps) ?skipped:Testutil.skip_on_windows
       ~tolerate_chdir:true;
-    pair "LS exts" (test_ls_ext caps) ~tolerate_chdir:true;
-    pair "LS with no folders" (test_ls_no_folders caps);
-    pair "LS multi-workspaces" (test_ls_multi caps) ~tolerate_chdir:true;
-    pair "Test LS cache deletion" (test_ls_delete_cache caps);
+    pair "LS with no folders" (test_ls_no_folders caps)
+      ?skipped:Testutil.skip_on_windows;
+    pair "LS multi-workspaces" (test_ls_multi caps)
+      ?skipped:Testutil.skip_on_windows ~tolerate_chdir:true;
+    pair "Test LS cache deletion"
+      (test_ls_delete_cache caps)
+      ?skipped:Testutil.skip_on_windows;
   ]
   |> List_.split
 

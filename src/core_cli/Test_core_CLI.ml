@@ -13,7 +13,7 @@ open Common
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let t = Testo.create
+let t = Testo.create ?skipped:Testutil.skip_on_windows
 
 (* Mostly a copy-paste of Test_pro_core_CLI.ml *)
 type exn_res = ExnExit of int

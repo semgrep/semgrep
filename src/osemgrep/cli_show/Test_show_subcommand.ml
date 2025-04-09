@@ -16,7 +16,7 @@ open Common
 open Fpath_.Operators
 module F = Testutil_files
 
-let t = Testo.create
+let t = Testo.create ?skipped:Testutil.skip_on_windows
 
 (*****************************************************************************)
 (* Prelude *)
