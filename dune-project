@@ -260,10 +260,6 @@ a few other projects developed at r2c.
   (description "XXX")
 )
 
-(package (name concurrency)
-  (synopsis "XXX")
-  (description "XXX")
-)
 (package (name gitignore)
   (synopsis "XXX")
   (description "XXX")
