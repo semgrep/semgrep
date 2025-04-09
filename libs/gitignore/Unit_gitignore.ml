@@ -60,6 +60,7 @@ let test_filter (files : F.t list) () =
 let t =
   Testo.create ~checked_output:(Testo.stdout ())
     ~normalize:[ Testutil.mask_temp_paths () ]
+    ?skipped:Testutil.skip_on_windows
 
 let tests =
   let open F in

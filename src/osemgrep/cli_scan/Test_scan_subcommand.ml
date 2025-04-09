@@ -183,8 +183,8 @@ let tests (caps : < Scan_subcommand.caps >) =
                   | _ ->
                       failwith
                         "SEMGREP_APP_TOKEN should override the settings file")));
-      t "basic output" ~checked_output:(Testo.stdxxx ()) ~normalize
-        (test_basic_output caps);
+      t "basic output" ?skipped:Testutil.skip_on_windows
+        ~checked_output:(Testo.stdxxx ()) ~normalize (test_basic_output caps);
       t "basic verbose output"
         ~skipped:"captured output depends on which tests run before it"
         ~checked_output:(Testo.stdxxx ()) ~normalize
