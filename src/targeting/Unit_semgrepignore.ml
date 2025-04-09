@@ -10,7 +10,8 @@ module F = Testutil_files
 (* Helpers *)
 (*****************************************************************************)
 
-let t = Testo.create
+let t =
+  Testo.create ?skipped:(if Sys.win32 then Some "Failing on Windows" else None)
 
 (*
    In these tests, the file hierarchy must contain the
