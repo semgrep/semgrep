@@ -139,7 +139,7 @@ class GradleMatcher(SubprojectMatcher):
                     out.Subproject(
                         root_dir=out.Fpath(str(project_root)),
                         dependency_source=out.DependencySource(
-                            out.ManifestLockfileDependencySource((manifest, lockfile))
+                            out.ManifestLockfile((manifest, lockfile))
                         ),
                         ecosystem=self.ECOSYSTEM,
                     )
@@ -149,7 +149,7 @@ class GradleMatcher(SubprojectMatcher):
                     out.Subproject(
                         root_dir=out.Fpath(str(project_root)),
                         dependency_source=out.DependencySource(
-                            out.LockfileOnlyDependencySource(lockfile)
+                            out.LockfileOnly(lockfile)
                         ),
                         ecosystem=self.ECOSYSTEM,
                     )
@@ -189,9 +189,7 @@ class GradleMatcher(SubprojectMatcher):
             subprojects.append(
                 out.Subproject(
                     root_dir=out.Fpath(str(project_root)),
-                    dependency_source=out.DependencySource(
-                        out.ManifestOnlyDependencySource(manifest)
-                    ),
+                    dependency_source=out.DependencySource(out.ManifestOnly(manifest)),
                     ecosystem=self.ECOSYSTEM,
                 )
             )
@@ -215,7 +213,7 @@ class GradleMatcher(SubprojectMatcher):
                 out.Subproject(
                     root_dir=out.Fpath(str(build_path.parent)),
                     dependency_source=out.DependencySource(
-                        out.ManifestOnlyDependencySource(
+                        out.ManifestOnly(
                             out.Manifest(
                                 kind=out.ManifestKind(out.BuildGradle()),
                                 path=out.Fpath(str(build_path)),

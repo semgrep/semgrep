@@ -130,14 +130,12 @@ let target_of_target (input : Out.target) : t =
 let rec internal_path_of_dependency_source (source : Dependency_source.t) :
     Fpath.t =
   match source with
-  | ManifestOnlyDependencySource { path; _ } -> path
-  | LockfileOnlyDependencySource { path; _ } -> path
-  | ManifestLockfileDependencySource (_, { path; _ }) -> path
+  | ManifestOnly { path; _ } -> path
+  | LockfileOnly { path; _ } -> path
+  | ManifestLockfile (_, { path; _ }) -> path
   (* TODO: this seems really dubious, what should we do here? *)
-  | MultiLockfileDependencySource (src :: _) ->
-      internal_path_of_dependency_source src
-  | MultiLockfileDependencySource [] ->
-      failwith "MultiLockfileDependencySource is empty"
+  | MultiLockfile (src :: _) -> internal_path_of_dependency_source src
+  | MultiLockfile [] -> failwith "MultiLockfile is empty"
 
 let internal_path (target : t) : Fpath.t =
   match target with

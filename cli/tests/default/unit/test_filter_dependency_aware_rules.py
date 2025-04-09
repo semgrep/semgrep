@@ -114,7 +114,7 @@ def sample_resolved_deps():
 
     # Create dependency source
     dependency_source = out.DependencySource(
-        out.ManifestLockfileDependencySource(
+        out.ManifestLockfile(
             (
                 out.Manifest(ManifestKind(Pipfile()), out.Fpath("Pipfile")),
                 out.Lockfile(
