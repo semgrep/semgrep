@@ -9,7 +9,7 @@ type exec = Exec | Nonexec
 (* TODO: simplify and use Testo.create ~expected_outcome:Should_fail *)
 type success = OK | XFAIL
 
-let t = Testo.create
+let t = Testo.create ?skipped:Testutil.skip_on_windows
 
 (*
    For these tests, the file doesn't need to exist.

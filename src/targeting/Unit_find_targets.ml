@@ -89,8 +89,8 @@ let test_find_targets ?expected_outcome ?includes ?(excludes = [])
                printf "ignored %s [%s]\n" !!(x.path)
                  (Out.show_skip_reason x.reason)))
   in
-  Testo.create name test_func ~category:[ category ] ?expected_outcome
-    ~checked_output:(Testo.stdout ())
+  Testo.create ?skipped:Testutil.skip_on_windows name test_func
+    ~category:[ category ] ?expected_outcome ~checked_output:(Testo.stdout ())
     ~normalize:
       [
         Testutil.mask_temp_paths ();

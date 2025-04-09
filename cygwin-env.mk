@@ -2,6 +2,18 @@
 ifeq ($(shell uname -o),Cygwin)
   EXE := .exe
 
+  # TODO: Remove when https://github.com/semgrep/testo/issues/124 is fixed
+  # Run tests in serial on Windows to prevent deadlocks
+  TEST_WORKERS := -j 0
+
+  # Skip running some commands (e.g., tests) on Windows
+  ifndef SKIP_ON_WINDOWS
+    # Set to true only if it has not been overriden from the make invocation
+    # environment. This allows overriding the skip by calling make
+    # SKIP_ON_WINDOWS=false <some-target>
+    SKIP_ON_WINDOWS := true
+  endif
+
   # The make variables[1] $(CC) and $(AR) are commonly used to identify the C
   # compiler and the archive-maintaining program (ar), respectively. The names
   # of these tools may be prefixed by the target triplet in case of
@@ -31,4 +43,19 @@ ifeq ($(shell uname -o),Cygwin)
 	  # is `x86_64-w64-mingw32-gcc` the inferred ar is `x86_64-w64-mingw32-ar`
 	export AR = $(shell printf "%s" "$(CC)" | sed -E 's/(-?)[^-]*$$/\1ar/')
   endif
+endif
+
+# This macro can be used to skip steps in a Makefile recipe.
+# E.g., in the recipe
+#
+#	    foo: bar
+#	        $(call skip_on_windows, ./non-portable-test.sh)
+#	        ./portable-test.sh
+#
+# The `./non-portable-test.sh` will be skipped whenever
+# SKIP_ON_WINDOWS is true.
+ifeq ($(SKIP_ON_WINDOWS),true)
+  skip_on_windows = @echo "Skipping $(1) on Windows"
+else
+  skip_on_windows = $(1)
 endif
