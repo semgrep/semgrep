@@ -150,11 +150,9 @@ class LockfileManifestMatcher(SubprojectMatcher):
                 )
 
             lockfile = out.Lockfile(self.lockfile_kind, out.Fpath(str(lockfile_path)))
-            dep_source: Union[
-                out.ManifestLockfileDependencySource, out.LockfileOnlyDependencySource
-            ]
+            dep_source: Union[out.ManifestLockfile, out.LockfileOnly]
             if matching_manifest_path:
-                dep_source = out.ManifestLockfileDependencySource(
+                dep_source = out.ManifestLockfile(
                     (
                         out.Manifest(
                             kind=self.manifest_kind,
@@ -164,7 +162,7 @@ class LockfileManifestMatcher(SubprojectMatcher):
                     ),
                 )
             else:
-                dep_source = out.LockfileOnlyDependencySource(lockfile)
+                dep_source = out.LockfileOnly(lockfile)
 
             subprojects.append(
                 out.Subproject(
@@ -183,7 +181,7 @@ class LockfileManifestMatcher(SubprojectMatcher):
                     out.Subproject(
                         root_dir=out.Fpath(str(manifest_path.parent)),
                         dependency_source=out.DependencySource(
-                            out.ManifestOnlyDependencySource(
+                            out.ManifestOnly(
                                 out.Manifest(
                                     kind=self.manifest_kind,
                                     path=out.Fpath(str(manifest_path)),
@@ -329,7 +327,7 @@ class ManifestOnlyMatcher(SubprojectMatcher):
         subprojects: List[out.Subproject] = []
         for manifest_path in manifests:
             root_dir = self._get_subproject_root(manifest_path)
-            manifest_dep_source = out.ManifestOnlyDependencySource(
+            manifest_dep_source = out.ManifestOnly(
                 out.Manifest(
                     kind=self.manifest_kind, path=out.Fpath(str(manifest_path))
                 ),

@@ -74,7 +74,7 @@ class TestExactLockfileMatcher:
         dep_src = subproject.dependency_source.value
 
         if create_manifest:
-            assert isinstance(dep_src, out.ManifestLockfileDependencySource)
+            assert isinstance(dep_src, out.ManifestLockfile)
             subproject_manifest_path = dep_src.value[0].path
             assert (
                 subproject_manifest_path is not None
@@ -82,7 +82,7 @@ class TestExactLockfileMatcher:
             )
             assert dep_src.value[1].path.value == str(lockfile_path)
         else:
-            assert isinstance(dep_src, out.LockfileOnlyDependencySource)
+            assert isinstance(dep_src, out.LockfileOnly)
             assert dep_src.value.path.value == str(lockfile_path)
 
 
@@ -147,26 +147,26 @@ class TestPatternManifestStaticLockfileMatcher:
             assert isinstance(
                 dep_src,
                 (
-                    out.ManifestLockfileDependencySource,
-                    out.LockfileOnlyDependencySource,
+                    out.ManifestLockfile,
+                    out.LockfileOnly,
                 ),
             )
             lockfile = (
                 dep_src.value
-                if isinstance(dep_src, out.LockfileOnlyDependencySource)
+                if isinstance(dep_src, out.LockfileOnly)
                 else dep_src.value[1]
             )
             expected_root, expected_manifest = test_data[Path(lockfile.path.value)]
             assert Path(subproject.root_dir.value) == expected_root
             if with_manifest:
-                assert isinstance(dep_src, out.ManifestLockfileDependencySource)
+                assert isinstance(dep_src, out.ManifestLockfile)
                 manifest_path = dep_src.value[0].path
                 assert (
                     manifest_path is not None
                     and Path(manifest_path.value) == expected_manifest
                 )
             else:
-                assert isinstance(dep_src, out.LockfileOnlyDependencySource)
+                assert isinstance(dep_src, out.LockfileOnly)
 
     @pytest.mark.quick
     def test_make_manifest_only_subprojects(self):
@@ -184,9 +184,7 @@ class TestPatternManifestStaticLockfileMatcher:
         assert used_files == files
         assert len(subprojects) == 1
         subproject = subprojects[0]
-        assert isinstance(
-            subproject.dependency_source.value, out.ManifestOnlyDependencySource
-        )
+        assert isinstance(subproject.dependency_source.value, out.ManifestOnly)
 
 
 class TestRequirementsLockfileMatcher:
@@ -247,7 +245,7 @@ class TestRequirementsLockfileMatcher:
                     out.Subproject(
                         root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
-                            out.ManifestLockfileDependencySource(
+                            out.ManifestLockfile(
                                 (
                                     out.Manifest(
                                         out.ManifestKind(out.RequirementsIn()),
@@ -265,7 +263,7 @@ class TestRequirementsLockfileMatcher:
                     out.Subproject(
                         root_dir=out.Fpath("a/b/c"),
                         dependency_source=out.DependencySource(
-                            out.ManifestLockfileDependencySource(
+                            out.ManifestLockfile(
                                 (
                                     out.Manifest(
                                         out.ManifestKind(out.RequirementsIn()),
@@ -293,7 +291,7 @@ class TestRequirementsLockfileMatcher:
                     out.Subproject(
                         root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
-                            out.ManifestLockfileDependencySource(
+                            out.ManifestLockfile(
                                 (
                                     out.Manifest(
                                         out.ManifestKind(out.RequirementsIn()),
@@ -311,7 +309,7 @@ class TestRequirementsLockfileMatcher:
                     out.Subproject(
                         root_dir=out.Fpath("a/b/c"),
                         dependency_source=out.DependencySource(
-                            out.ManifestLockfileDependencySource(
+                            out.ManifestLockfile(
                                 (
                                     out.Manifest(
                                         out.ManifestKind(out.RequirementsIn()),
@@ -338,10 +336,10 @@ class TestRequirementsLockfileMatcher:
                     out.Subproject(
                         root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
-                            out.MultiLockfileDependencySource(
+                            out.MultiLockfile(
                                 [
                                     out.DependencySource(
-                                        out.ManifestLockfileDependencySource(
+                                        out.ManifestLockfile(
                                             (
                                                 out.Manifest(
                                                     out.ManifestKind(
@@ -359,7 +357,7 @@ class TestRequirementsLockfileMatcher:
                                         ),
                                     ),
                                     out.DependencySource(
-                                        out.ManifestLockfileDependencySource(
+                                        out.ManifestLockfile(
                                             (
                                                 out.Manifest(
                                                     out.ManifestKind(
@@ -393,10 +391,10 @@ class TestRequirementsLockfileMatcher:
                     out.Subproject(
                         root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
-                            out.MultiLockfileDependencySource(
+                            out.MultiLockfile(
                                 [
                                     out.DependencySource(
-                                        out.ManifestLockfileDependencySource(
+                                        out.ManifestLockfile(
                                             (
                                                 out.Manifest(
                                                     out.ManifestKind(
@@ -414,7 +412,7 @@ class TestRequirementsLockfileMatcher:
                                         ),
                                     ),
                                     out.DependencySource(
-                                        out.ManifestLockfileDependencySource(
+                                        out.ManifestLockfile(
                                             (
                                                 out.Manifest(
                                                     out.ManifestKind(
@@ -444,7 +442,7 @@ class TestRequirementsLockfileMatcher:
                     out.Subproject(
                         root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
-                            out.ManifestLockfileDependencySource(
+                            out.ManifestLockfile(
                                 (
                                     out.Manifest(
                                         out.ManifestKind(out.RequirementsIn()),
@@ -471,10 +469,10 @@ class TestRequirementsLockfileMatcher:
                     out.Subproject(
                         root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
-                            out.MultiLockfileDependencySource(
+                            out.MultiLockfile(
                                 [
                                     out.DependencySource(
-                                        out.ManifestLockfileDependencySource(
+                                        out.ManifestLockfile(
                                             (
                                                 out.Manifest(
                                                     out.ManifestKind(
@@ -492,7 +490,7 @@ class TestRequirementsLockfileMatcher:
                                         ),
                                     ),
                                     out.DependencySource(
-                                        out.ManifestLockfileDependencySource(
+                                        out.ManifestLockfile(
                                             (
                                                 out.Manifest(
                                                     out.ManifestKind(
@@ -527,10 +525,10 @@ class TestRequirementsLockfileMatcher:
                     out.Subproject(
                         root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
-                            out.MultiLockfileDependencySource(
+                            out.MultiLockfile(
                                 [
                                     out.DependencySource(
-                                        out.ManifestLockfileDependencySource(
+                                        out.ManifestLockfile(
                                             (
                                                 out.Manifest(
                                                     out.ManifestKind(
@@ -548,7 +546,7 @@ class TestRequirementsLockfileMatcher:
                                         ),
                                     ),
                                     out.DependencySource(
-                                        out.ManifestLockfileDependencySource(
+                                        out.ManifestLockfile(
                                             (
                                                 out.Manifest(
                                                     out.ManifestKind(
@@ -581,10 +579,10 @@ class TestRequirementsLockfileMatcher:
                     out.Subproject(
                         root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
-                            out.MultiLockfileDependencySource(
+                            out.MultiLockfile(
                                 [
                                     out.DependencySource(
-                                        out.LockfileOnlyDependencySource(
+                                        out.LockfileOnly(
                                             out.Lockfile(
                                                 out.LockfileKind(
                                                     out.PipRequirementsTxt()
@@ -594,7 +592,7 @@ class TestRequirementsLockfileMatcher:
                                         )
                                     ),
                                     out.DependencySource(
-                                        out.LockfileOnlyDependencySource(
+                                        out.LockfileOnly(
                                             out.Lockfile(
                                                 out.LockfileKind(
                                                     out.PipRequirementsTxt()
@@ -677,7 +675,7 @@ class TestGradleMatcher:
                     out.Subproject(
                         root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
-                            out.ManifestOnlyDependencySource(
+                            out.ManifestOnly(
                                 out.Manifest(
                                     out.ManifestKind(out.BuildGradle()),
                                     out.Fpath("build.gradle"),
@@ -689,7 +687,7 @@ class TestGradleMatcher:
                     out.Subproject(
                         root_dir=out.Fpath("buildSrc"),
                         dependency_source=out.DependencySource(
-                            out.ManifestOnlyDependencySource(
+                            out.ManifestOnly(
                                 out.Manifest(
                                     out.ManifestKind(out.BuildGradle()),
                                     out.Fpath("buildSrc/build.gradle"),
@@ -719,7 +717,7 @@ class TestGradleMatcher:
                     out.Subproject(
                         root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
-                            out.ManifestLockfileDependencySource(
+                            out.ManifestLockfile(
                                 (
                                     out.Manifest(
                                         kind=out.ManifestKind(value=out.BuildGradle()),
@@ -737,7 +735,7 @@ class TestGradleMatcher:
                     out.Subproject(
                         root_dir=out.Fpath("buildSrc"),
                         dependency_source=out.DependencySource(
-                            out.ManifestOnlyDependencySource(
+                            out.ManifestOnly(
                                 out.Manifest(
                                     kind=out.ManifestKind(value=out.BuildGradle()),
                                     path=out.Fpath("buildSrc/build.gradle"),
@@ -766,7 +764,7 @@ class TestGradleMatcher:
                     out.Subproject(
                         root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
-                            out.ManifestOnlyDependencySource(
+                            out.ManifestOnly(
                                 out.Manifest(
                                     kind=out.ManifestKind(value=out.BuildGradle()),
                                     path=out.Fpath("build.gradle"),
@@ -778,7 +776,7 @@ class TestGradleMatcher:
                     out.Subproject(
                         root_dir=out.Fpath("buildSrc"),
                         dependency_source=out.DependencySource(
-                            out.ManifestLockfileDependencySource(
+                            out.ManifestLockfile(
                                 (
                                     out.Manifest(
                                         kind=out.ManifestKind(value=out.BuildGradle()),
@@ -813,7 +811,7 @@ class TestGradleMatcher:
                     out.Subproject(
                         root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
-                            out.ManifestLockfileDependencySource(
+                            out.ManifestLockfile(
                                 (
                                     out.Manifest(
                                         kind=out.ManifestKind(value=out.BuildGradle()),
@@ -831,7 +829,7 @@ class TestGradleMatcher:
                     out.Subproject(
                         root_dir=out.Fpath("buildSrc"),
                         dependency_source=out.DependencySource(
-                            out.ManifestOnlyDependencySource(
+                            out.ManifestOnly(
                                 out.Manifest(
                                     kind=out.ManifestKind(value=out.SettingsGradle()),
                                     path=out.Fpath("buildSrc/settings.gradle"),
@@ -860,7 +858,7 @@ class TestGradleMatcher:
                     out.Subproject(
                         root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
-                            out.ManifestLockfileDependencySource(
+                            out.ManifestLockfile(
                                 (
                                     out.Manifest(
                                         kind=out.ManifestKind(value=out.BuildGradle()),
@@ -878,7 +876,7 @@ class TestGradleMatcher:
                     out.Subproject(
                         root_dir=out.Fpath("buildSrc"),
                         dependency_source=out.DependencySource(
-                            out.ManifestOnlyDependencySource(
+                            out.ManifestOnly(
                                 out.Manifest(
                                     kind=out.ManifestKind(value=out.SettingsGradle()),
                                     path=out.Fpath("buildSrc/settings.gradle.kts"),
@@ -902,7 +900,7 @@ class TestGradleMatcher:
                     out.Subproject(
                         root_dir=out.Fpath("."),
                         dependency_source=out.DependencySource(
-                            out.ManifestOnlyDependencySource(
+                            out.ManifestOnly(
                                 out.Manifest(
                                     kind=out.ManifestKind(value=out.BuildGradle()),
                                     path=out.Fpath("build.gradle"),
