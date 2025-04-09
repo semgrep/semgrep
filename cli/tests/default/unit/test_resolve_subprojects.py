@@ -46,7 +46,7 @@ from semgrep.subproject import DependencyResolutionConfig
                 out.Subproject(
                     root_dir=out.Fpath("."),
                     dependency_source=out.DependencySource(
-                        out.ManifestLockfileDependencySource(
+                        out.ManifestLockfile(
                             (
                                 out.Manifest(
                                     out.ManifestKind(value=out.RequirementsIn()),
@@ -64,7 +64,7 @@ from semgrep.subproject import DependencyResolutionConfig
                 out.Subproject(
                     root_dir=out.Fpath("."),
                     dependency_source=out.DependencySource(
-                        out.LockfileOnlyDependencySource(
+                        out.LockfileOnly(
                             out.Lockfile(
                                 out.LockfileKind(out.PipRequirementsTxt()),
                                 out.Fpath("requirements3.txt"),
@@ -104,7 +104,7 @@ from semgrep.subproject import DependencyResolutionConfig
                 out.Subproject(
                     root_dir=out.Fpath("."),
                     dependency_source=out.DependencySource(
-                        out.ManifestLockfileDependencySource(
+                        out.ManifestLockfile(
                             (
                                 out.Manifest(
                                     out.ManifestKind(value=out.RequirementsIn()),
@@ -139,7 +139,7 @@ from semgrep.subproject import DependencyResolutionConfig
                 out.Subproject(
                     root_dir=out.Fpath("."),
                     dependency_source=out.DependencySource(
-                        out.ManifestOnlyDependencySource(
+                        out.ManifestOnly(
                             out.Manifest(
                                 out.ManifestKind(out.PomXml()),
                                 out.Fpath("pom.xml"),
@@ -151,7 +151,7 @@ from semgrep.subproject import DependencyResolutionConfig
                 out.Subproject(
                     root_dir=out.Fpath("child-a"),
                     dependency_source=out.DependencySource(
-                        out.ManifestOnlyDependencySource(
+                        out.ManifestOnly(
                             out.Manifest(
                                 out.ManifestKind(out.PomXml()),
                                 out.Fpath("child-a/pom.xml"),
@@ -163,7 +163,7 @@ from semgrep.subproject import DependencyResolutionConfig
                 out.Subproject(
                     root_dir=out.Fpath("child-b"),
                     dependency_source=out.DependencySource(
-                        out.ManifestOnlyDependencySource(
+                        out.ManifestOnly(
                             out.Manifest(
                                 out.ManifestKind(out.PomXml()),
                                 out.Fpath("child-b/pom.xml"),
@@ -201,7 +201,7 @@ def test_ptt_unconditionally_generates_dependency_graphs(
 
     mock_dynamic_resolve.return_value = [[], [], []]
     dep_source = out.DependencySource(
-        out.ManifestLockfileDependencySource(
+        out.ManifestLockfile(
             (
                 out.Manifest(
                     out.ManifestKind(value=out.RequirementsIn()),
@@ -254,7 +254,7 @@ def test_ptt_unconditional_graph_generation_falls_back_on_lockfile_parsing(
     )
 
     dep_source = out.DependencySource(
-        out.ManifestLockfileDependencySource(
+        out.ManifestLockfile(
             (
                 out.Manifest(
                     out.ManifestKind(value=out.RequirementsIn()),

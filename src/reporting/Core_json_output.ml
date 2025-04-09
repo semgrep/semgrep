@@ -395,7 +395,8 @@ let sca_to_sca (rule_metadata : Yojson.Basic.t option) (m : SCA_match.t) :
   let kind =
     match (kind, sca_rule_kind) with
     | CodeAndLockfileMatch, _ -> Out.DirectReachable
-    | LockfileOnlyMatch, Some "reachable" -> Out.DirectUnreachable
+    | LockfileOnlyMatch, Some "reachable" ->
+        Out.TransitiveUndetermined { explanation = None }
     | LockfileOnlyMatch, _ ->
         Out.LockfileOnlyMatch dependency_match.found_dependency.transitivity
   in

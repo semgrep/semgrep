@@ -39,7 +39,7 @@ class TestFindClosestSubproject:
             info=out.Subproject(
                 root_dir=out.Fpath("a/b/c"),
                 dependency_source=out.DependencySource(
-                    out.ManifestLockfileDependencySource(
+                    out.ManifestLockfile(
                         (
                             out.Manifest(
                                 out.ManifestKind(out.RequirementsIn()),
@@ -64,7 +64,7 @@ class TestFindClosestSubproject:
                 info=out.Subproject(
                     root_dir=out.Fpath("a/b"),
                     dependency_source=out.DependencySource(
-                        out.ManifestLockfileDependencySource(
+                        out.ManifestLockfile(
                             (
                                 out.Manifest(
                                     out.ManifestKind(out.RequirementsIn()),
@@ -106,7 +106,7 @@ class TestFindClosestSubproject:
             info=out.Subproject(
                 root_dir=out.Fpath("a/b"),
                 dependency_source=out.DependencySource(
-                    out.ManifestLockfileDependencySource(
+                    out.ManifestLockfile(
                         (
                             out.Manifest(
                                 out.ManifestKind(out.RequirementsIn()),
@@ -131,7 +131,7 @@ class TestFindClosestSubproject:
                 info=out.Subproject(
                     root_dir=out.Fpath("a/b/c"),
                     dependency_source=out.DependencySource(
-                        out.ManifestLockfileDependencySource(
+                        out.ManifestLockfile(
                             (
                                 out.Manifest(
                                     out.ManifestKind(out.RequirementsIn()),
@@ -185,7 +185,7 @@ class TestSubproject:
             info=out.Subproject(
                 root_dir=out.Fpath("a/b/c"),
                 dependency_source=out.DependencySource(
-                    out.ManifestLockfileDependencySource(
+                    out.ManifestLockfile(
                         (
                             out.Manifest(
                                 out.ManifestKind(out.RequirementsIn()),
@@ -252,10 +252,10 @@ class TestSubproject:
         ]
 
         multi_lockfile_source = out.DependencySource(
-            out.MultiLockfileDependencySource(
+            out.MultiLockfile(
                 [
                     out.DependencySource(
-                        out.LockfileOnlyDependencySource(
+                        out.LockfileOnly(
                             out.Lockfile(
                                 out.LockfileKind(out.PipRequirementsTxt()),
                                 out.Fpath(str(lockfile_path)),
@@ -263,7 +263,7 @@ class TestSubproject:
                         )
                     ),
                     out.DependencySource(
-                        out.LockfileOnlyDependencySource(
+                        out.LockfileOnly(
                             out.Lockfile(
                                 out.LockfileKind(out.PipRequirementsTxt()),
                                 out.Fpath(str(extra_lockfile_path)),
@@ -327,7 +327,7 @@ class TestSubproject:
             info=out.Subproject(
                 root_dir=out.Fpath("a/b/c"),
                 dependency_source=out.DependencySource(
-                    out.ManifestLockfileDependencySource(
+                    out.ManifestLockfile(
                         (
                             out.Manifest(
                                 out.ManifestKind(value=out.RequirementsIn()),
@@ -361,7 +361,7 @@ class TestSubproject:
 
     @pytest.mark.quick
     def test_to_stats_output(self):
-        lockfile_src = out.LockfileOnlyDependencySource(
+        lockfile_src = out.LockfileOnly(
             out.Lockfile(
                 out.LockfileKind(out.PipRequirementsTxt()),
                 out.Fpath("a/b/c/requirements.txt"),
@@ -391,7 +391,7 @@ class TestResolvedSubproject:
     def test_to_stats_output(self):
         lockfile_path = Path("a/b/c/requirements.txt")
         dependency_source = out.DependencySource(
-            out.LockfileOnlyDependencySource(
+            out.LockfileOnly(
                 out.Lockfile(
                     out.LockfileKind(out.PipRequirementsTxt()),
                     out.Fpath(str(lockfile_path)),
@@ -431,7 +431,7 @@ class TestLockfileOnlyDependencySource:
         lockfile_path = Path("a/b/c/requirements.txt")
         return (
             lockfile_path,
-            out.LockfileOnlyDependencySource(
+            out.LockfileOnly(
                 out.Lockfile(
                     out.LockfileKind(out.PipRequirementsTxt()),
                     out.Fpath(str(lockfile_path)),
@@ -468,10 +468,10 @@ class TestMultiLockfileDependencySource:
         lockfile_path = Path("a/b/c/requirements.txt")
         extra_lockfile_path = Path("a/b/requirements/dev.txt")
 
-        source = out.MultiLockfileDependencySource(
+        source = out.MultiLockfile(
             [
                 out.DependencySource(
-                    out.LockfileOnlyDependencySource(
+                    out.LockfileOnly(
                         out.Lockfile(
                             out.LockfileKind(out.PipRequirementsTxt()),
                             out.Fpath(str(lockfile_path)),
@@ -479,7 +479,7 @@ class TestMultiLockfileDependencySource:
                     )
                 ),
                 out.DependencySource(
-                    out.LockfileOnlyDependencySource(
+                    out.LockfileOnly(
                         out.Lockfile(
                             out.LockfileKind(out.PoetryLock()),
                             out.Fpath(str(extra_lockfile_path)),
@@ -532,7 +532,7 @@ class TestManifestOnlyDependencySource:
         manifest_path = Path("a/b/c/pyproject.toml")
         return (
             manifest_path,
-            out.ManifestOnlyDependencySource(
+            out.ManifestOnly(
                 out.Manifest(
                     out.ManifestKind(out.PyprojectToml()),
                     out.Fpath(str(manifest_path)),
@@ -568,7 +568,7 @@ class TestManifestLockfileDependencySource:
         return (
             manifest_path,
             lockfile_path,
-            out.ManifestLockfileDependencySource(
+            out.ManifestLockfile(
                 (
                     out.Manifest(
                         out.ManifestKind(out.PyprojectToml()),
