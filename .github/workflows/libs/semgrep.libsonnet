@@ -322,6 +322,7 @@ local copy_executable_dlls(executable, target_dir) =
 
 local is_windows_arch(arch) = std.findSubstr('windows', arch) != [];
 local bin_ext(arch) = if is_windows_arch(arch) then '.exe' else '';
+local archive_ext(arch) = if is_windows_arch(arch) then '.tgz' else '.zip';
 local wheel_name(arch, pro=false) = 'wheel-%s%s' % [arch, if pro then '-pro' else ''];
 
 //TODO always want to include semgrep pro ...
@@ -345,26 +346,33 @@ local build_wheel_steps(arch, platform, copy_semgrep_pro=false) =
       run: 'cp artifacts/* cli/src/semgrep/bin',
     },
     {
+      name: 'Clean up old artifacts',
+      run: 'rm -rf artifacts artifacts.tgz',
+    },
+    {
       name: 'Build wheel',
       run: './scripts/build-wheels.sh --plat-name %s' % platform,
     },
-    actions.upload_artifact_step(wheel_name(arch, pro=copy_semgrep_pro), path='cli/dist.zip'),
+    actions.make_artifact_step('cli/dist%s' % archive_ext(arch)),
+    actions.upload_artifact_step(wheel_name(arch, pro=copy_semgrep_pro)),
   ];
 
-local unpack_wheel_step(arch) = {
-  name: 'Unpack %s wheel' % arch,
-  run: (
-    if is_windows_arch(arch) then
-      'tar --wildcards -xzf ./dist.tgz "*.whl"'
-    else
-      'unzip ./dist.zip "*.whl"'
-  ),
-};
+local unpack_wheel_steps = [
+
+  {
+    name: 'Unpack artifact',
+    run: 'tar xzvf artifacts.tgz',
+  },
+  {
+    name: 'Unpack wheel',
+    run: 'tar --wildcards -xzf ./artifacts/dist.tgz "*.whl" || unzip ./artifacts/dist.zip "*.whl"',
+  },
+];
 local test_wheel_steps(arch, copy_semgrep_pro=false) = [
   // caching is hard and why complicate things
   actions.setup_python_step(cache=false),
   actions.download_artifact_step(wheel_name(arch, pro=copy_semgrep_pro)),
-  unpack_wheel_step(arch),
+] + unpack_wheel_steps + [
   {
     name: 'install package',
     run: 'pip3 install dist/*.whl',
@@ -374,7 +382,7 @@ local test_wheel_steps(arch, copy_semgrep_pro=false) = [
   },
   {
     name: 'e2e semgrep-core test',
-    run: "echo '1 == 1' | semgrep -l python -e '$X == $X' -",
+    run: "echo '1 == 1' | semgrep -l python -e '$X == $X' --strict -",
   },
 
 ];
@@ -409,6 +417,7 @@ local test_wheel_steps(arch, copy_semgrep_pro=false) = [
   copy_executable_dlls: copy_executable_dlls,
   build_wheel_steps: build_wheel_steps,
   test_wheel_steps: test_wheel_steps,
+  unpack_wheel_steps: unpack_wheel_steps,
   wheel_name: wheel_name,
   // coupling: cli/setup.py, the matrix in run-cli-tests.libsonnet,
   // build-test-manylinux-x86.jsonnet in pro, tests.jsonnet in OSS
