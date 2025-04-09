@@ -15,7 +15,7 @@
 
 open Ci_subcommand
 open JSON
-module OutJ = Semgrep_output_v1_j
+module Out = Semgrep_output_v1_j
 
 let t = Testo.create
 
@@ -32,40 +32,41 @@ let json_of_validation_state_actions ~valid ~invalid ~error =
 
 (* Helper to create JSON for findings with direct actions and validation state actions using named arguments *)
 let cli_match_of_finding_with_actions
-    ?(validation_state : OutJ.validation_state option)
+    ?(validation_state : Out.validation_state option)
     ?(direct_action = "monitor") ?(valid = "monitor") ?(invalid = "monitor")
-    ?(error = "monitor") () =
+    ?(error = "monitor") () : Out.cli_match =
   let metadata_str =
     Printf.sprintf
       {|{"dev.semgrep.actions": ["%s"], "dev.semgrep.validation_state.actions": {"valid": "%s", "invalid": "%s", "error":"%s"}}|}
       direct_action valid invalid error
   in
 
-  let metadata = OutJ.raw_json_of_string metadata_str in
-
+  let metadata = Out.raw_json_of_string metadata_str in
+  let extra : Out.cli_match_extra =
+    {
+      metavars = None;
+      message = "";
+      fix = None;
+      fixed_lines = None;
+      metadata;
+      severity = `Error;
+      fingerprint = "";
+      lines = "";
+      is_ignored = None;
+      sca_info = None;
+      dataflow_trace = None;
+      engine_kind = None;
+      validation_state;
+      historical_info = None;
+      extra_extra = None;
+    }
+  in
   {
-    OutJ.check_id = Rule_ID.of_string_exn "rule_id";
+    check_id = Rule_ID.of_string_exn "rule_id";
     path = Fpath.v "file_path_example";
     start = { line = 1; col = 1; offset = 1 };
     end_ = { line = 1; col = 1; offset = 1 };
-    extra =
-      {
-        metavars = None;
-        message = "";
-        fix = None;
-        fixed_lines = None;
-        metadata;
-        severity = `Error;
-        fingerprint = "";
-        lines = "";
-        is_ignored = None;
-        sca_info = None;
-        dataflow_trace = None;
-        engine_kind = None;
-        validation_state;
-        historical_info = None;
-        extra_extra = None;
-      };
+    extra;
   }
 
 (* Helper to create JSON for actions, parsed into a JSON object *)

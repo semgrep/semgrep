@@ -92,14 +92,14 @@ def make_dependencies_by_source_path(
 
 def get_display_paths(dep: out.DependencySource) -> List[Path]:
     ds = dep.value
-    if isinstance(ds, out.ManifestOnlyDependencySource):
+    if isinstance(ds, out.ManifestOnly):
         return [Path(ds.value.path.value)]
-    elif isinstance(ds, out.LockfileOnlyDependencySource):
+    elif isinstance(ds, out.LockfileOnly):
         return [Path(ds.value.path.value)]
-    elif isinstance(ds, out.ManifestLockfileDependencySource):
+    elif isinstance(ds, out.ManifestLockfile):
         # Original implementation shows only the lockfile's display path.
         return [Path(ds.value[1].path.value)]
-    elif isinstance(ds, out.MultiLockfileDependencySource):
+    elif isinstance(ds, out.MultiLockfile):
         # ds.sources is a list of lockfile_dependency_source variants.
         return [path for src in ds.value for path in get_display_paths(src)]
     else:
@@ -108,13 +108,13 @@ def get_display_paths(dep: out.DependencySource) -> List[Path]:
 
 def get_all_source_files(dep: out.DependencySource) -> List[Path]:
     ds = dep.value
-    if isinstance(ds, out.ManifestOnlyDependencySource):
+    if isinstance(ds, out.ManifestOnly):
         return [Path(ds.value.path.value)]
-    elif isinstance(ds, out.LockfileOnlyDependencySource):
+    elif isinstance(ds, out.LockfileOnly):
         return [Path(ds.value.path.value)]
-    elif isinstance(ds, out.ManifestLockfileDependencySource):
+    elif isinstance(ds, out.ManifestLockfile):
         return [Path(ds.value[0].path.value), Path(ds.value[1].path.value)]
-    elif isinstance(ds, out.MultiLockfileDependencySource):
+    elif isinstance(ds, out.MultiLockfile):
         return [path for src in ds.value for path in get_all_source_files(src)]
     else:
         raise TypeError(f"Unexpected dependency_source variant: {type(ds)}")
@@ -122,7 +122,7 @@ def get_all_source_files(dep: out.DependencySource) -> List[Path]:
 
 def to_stats_output(dep: out.DependencySource) -> List[out.DependencySourceFile]:
     ds = dep.value
-    if isinstance(ds, out.ManifestOnlyDependencySource):
+    if isinstance(ds, out.ManifestOnly):
         manifest = ds.value
         return [
             out.DependencySourceFile(
@@ -130,7 +130,7 @@ def to_stats_output(dep: out.DependencySource) -> List[out.DependencySourceFile]
                 path=manifest.path,
             )
         ]
-    elif isinstance(ds, out.LockfileOnlyDependencySource):
+    elif isinstance(ds, out.LockfileOnly):
         lockfile = ds.value
         return [
             out.DependencySourceFile(
@@ -138,7 +138,7 @@ def to_stats_output(dep: out.DependencySource) -> List[out.DependencySourceFile]
                 path=lockfile.path,
             )
         ]
-    elif isinstance(ds, out.ManifestLockfileDependencySource):
+    elif isinstance(ds, out.ManifestLockfile):
         lockfile_entry = out.DependencySourceFile(
             kind=out.DependencySourceFileKind(
                 value=out.Lockfile_(value=ds.value[1].kind)
@@ -152,7 +152,7 @@ def to_stats_output(dep: out.DependencySource) -> List[out.DependencySourceFile]
             path=ds.value[0].path,
         )
         return [lockfile_entry, manifest_entry]
-    elif isinstance(ds, out.MultiLockfileDependencySource):
+    elif isinstance(ds, out.MultiLockfile):
         return [item for src in ds.value for item in to_stats_output(src)]
     else:
         raise TypeError(f"Unexpected dependency_source variant: {type(ds)}")

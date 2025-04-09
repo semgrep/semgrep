@@ -906,12 +906,15 @@ class TextFormatter(base.BaseFormatter):
                             kind, out.TransitiveReachable_
                         ):
                             subgroup = "reachable"
-                        elif isinstance(kind, out.DirectUnreachable) or isinstance(
-                            kind, out.TransitiveUnreachable_
-                        ):
+                        # TODO: at some point stop considering
+                        # TransitiveUndetermined_ as unreachable and use
+                        # "undetermined" (uncomment code below)
+                        elif isinstance(
+                            kind, out.TransitiveUndetermined_
+                        ) or isinstance(kind, out.TransitiveUnreachable_):
                             subgroup = "unreachable"
-                        elif isinstance(kind, out.TransitiveUndetermined_):
-                            subgroup = "undetermined"
+                        # elif isinstance(kind, out.TransitiveUndetermined_):
+                        #    subgroup = "undetermined"
                         else:
                             logger.warning(f"Unknown match kind:{kind}")
                 else:

@@ -19,7 +19,7 @@ def test_handle_missing_parser_for_lockfile(mock_parsers_dict) -> None:
     # Pretend a parser is missing for the lockfile kind
     mock_parsers_dict.__getitem__.return_value = None
 
-    dep_source = out.ManifestLockfileDependencySource(
+    dep_source = out.ManifestLockfile(
         (
             out.Manifest(
                 out.ManifestKind(value=out.PyprojectToml()),
@@ -55,7 +55,7 @@ def test_dependency_parser_exception(mock_parsers_dict) -> None:
     # Pretend a parser is missing for the lockfile kind
     mock_parsers_dict.__getitem__.return_value = DependencyParser(bad_parse)
 
-    dep_source = out.ManifestLockfileDependencySource(
+    dep_source = out.ManifestLockfile(
         (
             out.Manifest(
                 out.ManifestKind(value=out.PyprojectToml()),

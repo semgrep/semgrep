@@ -112,16 +112,16 @@ DependencyResolutionResult = Tuple[
 
 def manifest_path_unless_lockfile_only(
     ds: Union[
-        out.ManifestOnlyDependencySource,
-        out.ManifestLockfileDependencySource,
-        out.LockfileOnlyDependencySource,
+        out.ManifestOnly,
+        out.ManifestLockfile,
+        out.LockfileOnly,
     ],
 ) -> out.Fpath:
-    if isinstance(ds, out.LockfileOnlyDependencySource):
+    if isinstance(ds, out.LockfileOnly):
         return ds.value.path
-    elif isinstance(ds, out.ManifestOnlyDependencySource):
+    elif isinstance(ds, out.ManifestOnly):
         return ds.value.path
-    elif isinstance(ds, out.ManifestLockfileDependencySource):
+    elif isinstance(ds, out.ManifestLockfile):
         return ds.value[0].path
     else:
         raise TypeError(f"Unexpected dependency_source variant1: {type(ds)}")
@@ -129,16 +129,16 @@ def manifest_path_unless_lockfile_only(
 
 def lockfile_path_unless_manifest_only(
     ds: Union[
-        out.ManifestOnlyDependencySource,
-        out.ManifestLockfileDependencySource,
-        out.LockfileOnlyDependencySource,
+        out.ManifestOnly,
+        out.ManifestLockfile,
+        out.LockfileOnly,
     ],
 ) -> out.Fpath:
-    if isinstance(ds, out.LockfileOnlyDependencySource):
+    if isinstance(ds, out.LockfileOnly):
         return ds.value.path
-    elif isinstance(ds, out.ManifestOnlyDependencySource):
+    elif isinstance(ds, out.ManifestOnly):
         return ds.value.path
-    elif isinstance(ds, out.ManifestLockfileDependencySource):
+    elif isinstance(ds, out.ManifestLockfile):
         return ds.value[1].path
     else:
         raise TypeError(f"Unexpected dependency_source variant2: {type(ds)}")
@@ -146,9 +146,9 @@ def lockfile_path_unless_manifest_only(
 
 def _resolve_dependencies_rpc(
     dep_src: Union[
-        out.ManifestOnlyDependencySource,
-        out.ManifestLockfileDependencySource,
-        out.LockfileOnlyDependencySource,
+        out.ManifestOnly,
+        out.ManifestLockfile,
+        out.LockfileOnly,
     ],
     download_dependency_source_code: bool,
 ) -> Tuple[
@@ -220,7 +220,7 @@ def _resolve_dependencies_rpc(
 
 
 def _handle_manifest_only_source(
-    dep_source: out.ManifestOnlyDependencySource,
+    dep_source: out.ManifestOnly,
     config: DependencyResolutionConfig,
 ) -> DependencyResolutionResult:
     """Handle dependency resolution for manifest-only sources."""
@@ -237,7 +237,7 @@ def _handle_manifest_only_source(
 
 
 def _handle_multi_lockfile_source(
-    dep_source: out.MultiLockfileDependencySource,
+    dep_source: out.MultiLockfile,
     config: DependencyResolutionConfig,
 ) -> DependencyResolutionResult:
     """Handle dependency resolution for sources with multiple lockfiles."""
@@ -280,15 +280,13 @@ def _handle_multi_lockfile_source(
 
 
 def _handle_lockfile_source(
-    dep_source: Union[
-        out.LockfileOnlyDependencySource, out.ManifestLockfileDependencySource
-    ],
+    dep_source: Union[out.LockfileOnly, out.ManifestLockfile],
     config: DependencyResolutionConfig,
 ) -> DependencyResolutionResult:
     """Handle dependency resolution for lockfile-based sources."""
     lockfile = (
         dep_source.value
-        if isinstance(dep_source, out.LockfileOnlyDependencySource)
+        if isinstance(dep_source, out.LockfileOnly)
         else dep_source.value[1]
     )
     lockfile_path = Path(lockfile.path.value)
@@ -296,7 +294,7 @@ def _handle_lockfile_source(
 
     manifest_kind = (
         dep_source.value[0].kind
-        if isinstance(dep_source, out.ManifestLockfileDependencySource)
+        if isinstance(dep_source, out.ManifestLockfile)
         else None
     )
     lockfile_kind = lockfile.kind
@@ -360,7 +358,7 @@ def _handle_lockfile_source(
     # Parse lockfile (used for both standard parsing and as fallback for failed dynamic resolution)
     manifest_path = (
         Path(dep_source.value[0].path.value)
-        if isinstance(dep_source, out.ManifestLockfileDependencySource)
+        if isinstance(dep_source, out.ManifestLockfile)
         else None
     )
 
@@ -387,17 +385,17 @@ def resolve_dependency_source(
     - The list of paths that should be considered dependency targets
     """
     dep_source_ = dep_source.value
-    if isinstance(dep_source_, out.LockfileOnlyDependencySource) or isinstance(
-        dep_source_, out.ManifestLockfileDependencySource
+    if isinstance(dep_source_, out.LockfileOnly) or isinstance(
+        dep_source_, out.ManifestLockfile
     ):
         return _handle_lockfile_source(dep_source_, config)
-    elif isinstance(dep_source_, out.MultiLockfileDependencySource):
+    elif isinstance(dep_source_, out.MultiLockfile):
         return _handle_multi_lockfile_source(
             dep_source_,
             config,
         )
     elif (
-        isinstance(dep_source_, out.ManifestOnlyDependencySource)
+        isinstance(dep_source_, out.ManifestOnly)
         and config.allow_local_builds
         and (
             (dep_source_.value.kind, None) in PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS
