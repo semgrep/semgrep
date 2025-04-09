@@ -1,5 +1,0 @@
-taint-mode: Fixed bug in taint "auto-cleaning" where we automatically clean the
-LHS of an assigmnet if the RHS is clean, provided that the LHS is not subject to
-any "side-effects". In some cases, this could cause the taint analysis to timeout.
-Some combinations of rules and repos will see a major perf improvement, in other
-cases it may not be noticeable.
