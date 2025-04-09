@@ -153,8 +153,8 @@ class PipRequirementsMatcher(SubprojectMatcher):
         ) in requirements_files_by_root_dir.items():
             lockfile_sources: List[
                 Union[
-                    out.LockfileOnlyDependencySource,
-                    out.ManifestLockfileDependencySource,
+                    out.LockfileOnly,
+                    out.ManifestLockfile,
                 ]
             ] = []
             for req_path in sorted(
@@ -177,11 +177,9 @@ class PipRequirementsMatcher(SubprojectMatcher):
                 )
 
                 if manifest is not None:
-                    lockfile_sources.append(
-                        out.ManifestLockfileDependencySource((manifest, lockfile))
-                    )
+                    lockfile_sources.append(out.ManifestLockfile((manifest, lockfile)))
                 else:
-                    lockfile_sources.append(out.LockfileOnlyDependencySource(lockfile))
+                    lockfile_sources.append(out.LockfileOnly(lockfile))
 
             # use the correct dependency source type depending on the number
             # of lockfiles
@@ -190,7 +188,7 @@ class PipRequirementsMatcher(SubprojectMatcher):
                 dep_source = out.DependencySource(lockfile_sources[0])
             else:
                 dep_source = out.DependencySource(
-                    out.MultiLockfileDependencySource(
+                    out.MultiLockfile(
                         [out.DependencySource(x) for x in lockfile_sources]
                     )
                 )
@@ -206,7 +204,7 @@ class PipRequirementsMatcher(SubprojectMatcher):
         # TODO: (bk) handle lone manifests.
         # there could be lone manifests remaining (manifests - paired_manifests)
         # and this code currently does not handle them. For lockfileless and for
-        # ecosystem reporting, we will need to create ManifestOnlyDependencySources
+        # ecosystem reporting, we will need to create ManifestOnlys
         # from these.
 
         return subprojects, frozenset(manifests | requirements_files)

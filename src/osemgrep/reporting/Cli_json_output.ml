@@ -434,7 +434,7 @@ let adjust_fields_cli_outpout_logged_out (x : Out.cli_output) : Out.cli_output =
   let interfile_languages_used = None in
   let results =
     results
-    |> List_.map (fun res ->
+    |> List_.map (fun (res : Out.cli_match) : Out.cli_match ->
            let { check_id; extra; path; start; end_ } : Out.cli_match = res in
            let {
              metavars = _;
@@ -467,27 +467,26 @@ let adjust_fields_cli_outpout_logged_out (x : Out.cli_output) : Out.cli_output =
              | _else_ -> metadata
            in
 
-           let extra =
-             Out.
-               {
-                 metavars = None;
-                 message;
-                 fix;
-                 fixed_lines;
-                 metadata;
-                 severity;
-                 fingerprint = Gated_data.msg;
-                 lines = Gated_data.msg;
-                 is_ignored = None;
-                 sca_info;
-                 dataflow_trace = None;
-                 engine_kind;
-                 validation_state;
-                 historical_info;
-                 extra_extra;
-               }
+           let extra : Out.cli_match_extra =
+             {
+               metavars = None;
+               message;
+               fix;
+               fixed_lines;
+               metadata;
+               severity;
+               fingerprint = Gated_data.msg;
+               lines = Gated_data.msg;
+               is_ignored = None;
+               sca_info;
+               dataflow_trace = None;
+               engine_kind;
+               validation_state;
+               historical_info;
+               extra_extra;
+             }
            in
-           Out.{ check_id; extra; path; start; end_ })
+           { check_id; extra; path; start; end_ })
   in
   {
     version;
