@@ -118,8 +118,4 @@ pin-depends: [
   ["testo-util.dev" "./libs/testo"]
   ["testo-diff.dev" "./libs/testo"]
   ["semgrep-interfaces.dev" "./cli/src/semgrep/semgrep_interfaces"]
-
-  # Pin patched notty with Windows support.
-  # TODO: Remove after https://github.com/pqwy/notty/pull/52 is released.
-  ["notty.0.2.4~dev" "git+https://github.com/ocaml-dune/notty.git#83aad282853bc35564114db72b65a087acf82ccf"]
 ]
