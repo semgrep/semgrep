@@ -13,11 +13,3 @@ val map_targets__run_in_forked_process_do_not_modify_globals :
   (Target.t -> 'a) ->
   (* job function *) Target.t list ->
   ('a, Target.t * Core_error.t) result list
-
-(* same but specialized for Target.regular *)
-val map_regular_targets__run_in_forked_process_do_not_modify_globals :
-  < Cap.fork > ->
-  int (* ncores *) ->
-  (Target.regular -> 'a) ->
-  (* job function *) Target.regular list ->
-  ('a, Core_error.t) result list

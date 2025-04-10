@@ -37,16 +37,6 @@ let sort_targets_by_decreasing_size (targets : Target.t list) : Target.t list =
         * instead of ascending, order *)
        (Fun.flip Int.compare)
 
-let sort_code_targets_by_decreasing_size (targets : Target.regular list) :
-    Target.regular list =
-  targets
-  |> List_.sort_by_key
-       (fun (target : Target.regular) ->
-         UFile.filesize target.path.internal_path_to_content)
-       (* Flip the comparison so we get descending,
-        * instead of ascending, order *)
-       (Fun.flip Int.compare)
-
 let core_error_of_path_exc (internal_path : Fpath.t) (e : Exception.t) :
     Core_error.t =
   let exn = Exception.get_exn e in
@@ -170,33 +160,6 @@ let map_targets__run_in_forked_process_do_not_modify_globals caps (ncores : int)
     (* TODO: port this functionality to Logs:
        let init _ = Logging.add_PID_tag () in
     *)
-    Logs.debug (fun m ->
-        m "running parmap with %d cores on %d targets" ncores
-          (List.length targets));
-    (* We must pause tracing here as forking with tracing on causes segfaults.
-       See comments on this function in Tracing.ml *)
-    Tracing.with_tracing_paused (fun () ->
-        Parmap_.parmap caps ~init ~finalize ~ncores ~chunksize:1
-          ~exception_handler f targets))
-
-(* remove duplication? But we now use this function below at a few places like
- * in Deep_scan_phases and it would be uglier to wrap with [Target.Regular]
- * and then unwrap in [f].
- *)
-let map_regular_targets__run_in_forked_process_do_not_modify_globals caps
-    (ncores : int) (f : Target.regular -> 'a) (targets : Target.regular list) :
-    ('a, Core_error.t) result list =
-  let targets = sort_code_targets_by_decreasing_size targets in
-  (* Default to core_error here. Maybe we should instead pass this as a param? *)
-  let exception_handler
-      ({ path = { internal_path_to_content; _ }; _ } : Target.regular)
-      (e : Exception.t) : Core_error.t =
-    core_error_of_path_exc internal_path_to_content e
-  in
-  if ncores <= 1 then
-    targets |> List_.map (fun x -> Parmap_.wrap_result f ~exception_handler x)
-  else (
-    Parmap_.disable_core_pinning ();
     Logs.debug (fun m ->
         m "running parmap with %d cores on %d targets" ncores
           (List.length targets));
