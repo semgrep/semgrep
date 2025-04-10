@@ -99,15 +99,16 @@ let test_conversions () =
       test_in_project_fail "/a/b" "a")
 
 let test_relativize () =
+  let fpath = Alcotest.testable Fpath.pp Fpath.equal in
   let relativize root_str path_str =
     let root = Ppath.of_string_for_tests root_str in
     let path = Ppath.of_string_for_tests path_str in
-    Ppath.relativize ~root path |> Fpath.to_string
+    Ppath.relativize ~root path
   in
   let check root_str path_str expected_str =
     printf "relativize root:%S %S -> %S\n%!" root_str path_str expected_str;
     let res = relativize root_str path_str in
-    Alcotest.(check string) __LOC__ expected_str res
+    Alcotest.(check fpath) __LOC__ (Fpath.v expected_str) res
   in
   check "/" "/a" "a";
   check "/" "/a/b" "a/b";
@@ -136,6 +137,6 @@ let tests =
   Testo.categorize "Ppath"
     [
       t "conversions" test_conversions;
-      t ?skipped:Testutil.skip_on_windows "relativize" test_relativize;
+      t "relativize" test_relativize;
       t "of_relative_fpath" test_of_relative_fpath;
     ]
