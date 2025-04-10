@@ -1017,14 +1017,14 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                         raise SemgrepError(
                             "Inter-file analysis can only take a single target (for multiple files pass a directory)"
                         )
-                    cmd += ["-deep_inter_file"]
+                    cmd += ["-pro_inter_file"]
                     cmd += [
                         "-timeout_for_interfile_analysis",
                         str(self._interfile_timeout),
                     ]
                     cmd += [root]
                 elif engine is EngineType.PRO_INTRAFILE:
-                    cmd += ["-deep_intra_file"]
+                    cmd += ["-pro_intra_file"]
 
             if state.terminal.is_debug:
                 cmd += ["-debug"]
