@@ -570,6 +570,51 @@ let errors_of_timeout_or_memory_exn (exn : exn) (target : Target.t) : ESet.t =
 (* Iteration helpers *)
 (*****************************************************************************)
 
+(** [core_error_to_match_result target core_error] transforms a target and its
+  core error to a match result; this is used by our mappers (Parmap, and soon:
+  Domain.map)
+
+  TODO: remove/cleanup this function once we remove parmap
+  *)
+let core_error_to_match_result (target : Target.t) (core_error : Core_error.t) =
+  let internal_path = Target.internal_path target in
+  let noprof = Core_profiling.empty_partial_profiling internal_path in
+  let errors = ESet.singleton core_error in
+  let match_result = Core_result.mk_match_result [] errors noprof in
+  (Core_result.add_run_time 0.0 match_result, Some target)
+
+(** [exception_to_core_error target exn] turns a target and the exception it
+ triggered to a [Core_error.t]; this will be used by [Domain.map] to transform
+ [Error exn] to a match_result
+
+ TODO: the mistmatch of error types between parmap and domain map makes this
+ whole ordeal so awkward; we will need to revist how we do error handling once
+ we completly remove parmap.
+*)
+let _exception_to_core_error (target : Target.t) (exception_ : Exception.t) =
+  let internal_path = Target.internal_path target in
+  Core_error.exn_to_error ~file:internal_path exception_
+
+(** This functions handles & isolates the parmap logic (computation + err handeling)
+  into a single function (hopefully) so that it's easier to have
+  [if eio then Domains.map else parmap_map].
+
+  NOTE: some of the error handling logic might be overkill/extraneous; however
+  keeping it as is for now.
+
+  TODO: remove this function once we remove parmap
+ *)
+let parmap_map caps ncores f xs =
+  xs
+  |> Parmap_targets.map_targets__run_in_forked_process_do_not_modify_globals
+       (caps :> < Cap.fork >)
+       ncores f
+  |> List_.map (fun x ->
+         match x with
+         | Ok res -> res
+         | Error (target, core_error) ->
+             core_error_to_match_result target core_error)
+
 (* Returns a list of match results and a separate list of scanned targets *)
 let iter_targets_and_get_matches_and_exn_to_errors
     (caps : < Cap.fork ; Cap.memory_limit ; .. >) (config : Core_scan_config.t)
@@ -577,127 +622,97 @@ let iter_targets_and_get_matches_and_exn_to_errors
     Core_profiling.file_profiling Core_result.match_result list * Target.t list
     =
   (* The target is None when the file was not scanned *)
-  if config.use_eio then
-    Logs.err (fun m ->
-        m "Parallelism via EIO is yet to be implemented! resorting to Parmap :(");
-  let (xs
-        : ( Core_profiling.file_profiling Core_result.match_result
-            * Target.t option,
-            Target.t * Core_error.t )
-          result
-          list) =
-    targets
-    |> Parmap_targets.map_targets__run_in_forked_process_do_not_modify_globals
-         (caps :> < Cap.fork >)
-         config.ncores
-         (fun (target : Target.t) ->
-           let internal_path = Target.internal_path target in
-           let noprof = Core_profiling.empty_partial_profiling internal_path in
-           Logs.debug (fun m ->
-               m "Core_scan analyzing %a" Target.pp_debug target);
+  let process_target (target : Target.t) =
+    let internal_path = Target.internal_path target in
+    let noprof = Core_profiling.empty_partial_profiling internal_path in
+    Logs.debug (fun m -> m "Core_scan analyzing %a" Target.pp_debug target);
 
-           (* Coupling: if you update handle_target_maybe_with_trace here
-            * it's very likely you'd need to update the same in Deep_scan.ml
-            *
-            * Sadly we need to disable tracing when we are using more than 1
-            * cores.
-            *
-            * The reason is that parmap forks new processes, and we occasionally
-            * run into a deadlock where the scan just freezes when we use
-            * tracing and multiprocesses together.
-            *
-            * Hopefully, Ocaml5 with multithread support will resolve this issue.
-            * For now, just turn off tracing when we use more than 1 core.
-            *)
-           let handle_target = handle_target_with_trace handle_target in
+    (* Coupling: if you update handle_target_maybe_with_trace here
+     * it's very likely you'd need to update the same in Deep_scan.ml
+     *
+     * Sadly we need to disable tracing when we are using more than 1
+     * cores.
+     *
+     * The reason is that parmap forks new processes, and we occasionally
+     * run into a deadlock where the scan just freezes when we use
+     * tracing and multiprocesses together.
+     *
+     * Hopefully, Ocaml5 with multithread support will resolve this issue.
+     * For now, just turn off tracing when we use more than 1 core.
+     *)
+    let handle_target = handle_target_with_trace handle_target in
 
-           let (res, was_scanned), run_time =
-             Common.with_time (fun () ->
-                 try
-                   Memory_limit.run_with_memory_limit
-                     (caps :> < Cap.memory_limit >)
-                     ~get_context:(get_context_for_memory_limit target)
-                     ~mem_limit_mb:config.max_memory_mb
-                     (fun () ->
-                       (* we used to call Time_limit.set_timeout() here, but
-                        * this is now done in Match_rules.check() because we
-                        * now timeout per rule, not per file since pysemgrep
-                        * passed all the rules to semgrep-core.
-                        *)
-                       let res, was_scanned = handle_target target in
-                       (* old: This was to test -max_memory, to give a chance
-                        * to Gc.create_alarm to run even if the program does
-                        * not even need to run the Gc. However, this has a
-                        * slow perf penality on small programs, which is why
-                        * it's better to keep guarded when you're
-                        * not testing -max_memory.
-                        * if config.test then Gc.full_major ();
-                        *)
-                       (res, was_scanned))
-                 with
-                 (* note that exn_to_error called further below already handles
-                  * Timeout and would generate a TimeoutError code for it,
-                  * but we intercept Timeout here to give a better diagnostic.
-                  *)
-                 | (Match_rules.File_timeout _ | Out_of_memory | Stack_overflow)
-                   as exn ->
-                     log_critical_exn_and_last_rule ();
-                     let errors = errors_of_timeout_or_memory_exn exn target in
-                     (* we got an exn on the target so definitely we tried to
-                      * process the target
-                      *)
-                     let scanned = true in
-                     (Core_result.mk_match_result [] errors noprof, scanned)
-                 | Time_limit.Timeout _ ->
-                     (* converted in Main_timeout in timeout_function() *)
-                     (* FIXME:
+    let (res, was_scanned), run_time =
+      Common.with_time (fun () ->
+          try
+            Memory_limit.run_with_memory_limit
+              (caps :> < Cap.memory_limit >)
+              ~get_context:(get_context_for_memory_limit target)
+              ~mem_limit_mb:config.max_memory_mb
+              (fun () ->
+                (* we used to call Time_limit.set_timeout() here, but
+                 * this is now done in Match_rules.check() because we
+                 * now timeout per rule, not per file since pysemgrep
+                 * passed all the rules to semgrep-core.
+                 *)
+                let res, was_scanned = handle_target target in
+                (* old: This was to test -max_memory, to give a chance
+                 * to Gc.create_alarm to run even if the program does
+                 * not even need to run the Gc. However, this has a
+                 * slow perf penality on small programs, which is why
+                 * it's better to keep guarded when you're
+                 * not testing -max_memory.
+                 * if config.test then Gc.full_major ();
+                 *)
+                (res, was_scanned))
+          with
+          (* note that exn_to_error called further below already handles
+           * Timeout and would generate a TimeoutError code for it,
+           * but we intercept Timeout here to give a better diagnostic.
+           *)
+          | (Match_rules.File_timeout _ | Out_of_memory | Stack_overflow) as exn
+            ->
+              log_critical_exn_and_last_rule ();
+              let errors = errors_of_timeout_or_memory_exn exn target in
+              (* we got an exn on the target so definitely we tried to
+               * process the target
+               *)
+              let scanned = true in
+              (Core_result.mk_match_result [] errors noprof, scanned)
+          | Time_limit.Timeout _ ->
+              (* converted in Main_timeout in timeout_function() *)
+              (* FIXME:
                           Actually, I managed to get this assert to trigger by
                           running semgrep -c p/default-v2 on elasticsearch with
                           -timeout 0.01 !
                      *)
-                     failwith
-                       "Time limit exceeded (this shouldn't happen, FIXME)"
-                 (* convert all other exns (e.g., a parse error in a target file)
-                  * in an empty match result with errors, so that one error in
-                  * one target file does not abort the whole scan and the
-                  * semgrep-core program.
-                  *)
-                 | exn when not !Flag_semgrep.fail_fast ->
-                     (* TODO? repeat Parmap_targets.core_error_of_path_exc() *)
-                     Logs.err (fun m ->
-                         m "exception on %s (%s)" !!internal_path
-                           (Printexc.to_string exn));
-                     let e = Exception.catch exn in
-                     let errors =
-                       ESet.singleton (E.exn_to_error ~file:internal_path e)
-                     in
-                     (Core_result.mk_match_result [] errors noprof, true))
-           in
-           let scanned_target = if was_scanned then Some target else None in
-           (Core_result.add_run_time run_time res, scanned_target))
+              failwith "Time limit exceeded (this shouldn't happen, FIXME)"
+          (* convert all other exns (e.g., a parse error in a target file)
+           * in an empty match result with errors, so that one error in
+           * one target file does not abort the whole scan and the
+           * semgrep-core program.
+           *)
+          | exn when not !Flag_semgrep.fail_fast ->
+              (* TODO? repeat Parmap_targets.core_error_of_path_exc() *)
+              Logs.err (fun m ->
+                  m "exception on %s (%s)" !!internal_path
+                    (Printexc.to_string exn));
+              let e = Exception.catch exn in
+              let errors =
+                ESet.singleton (E.exn_to_error ~file:internal_path e)
+              in
+              (Core_result.mk_match_result [] errors noprof, true))
+    in
+    let scanned_target = if was_scanned then Some target else None in
+    (Core_result.add_run_time run_time res, scanned_target)
   in
   let xs =
-    xs
-    |> List_.map
-         (fun
-           (x :
-             ( Core_profiling.file_profiling Core_result.match_result
-               * Target.t option,
-               Target.t * Core_error.t )
-             result)
-         ->
-           match x with
-           | Ok res -> res
-           | Error (target, e) ->
-               let internal_path = Target.internal_path target in
-               let noprof =
-                 Core_profiling.empty_partial_profiling internal_path
-               in
-               let errors = ESet.singleton e in
-               let match_result =
-                 Core_result.mk_match_result [] errors noprof
-               in
-               (Core_result.add_run_time 0.0 match_result, Some target))
+    if config.use_eio then
+      Logs.err (fun m ->
+          m
+            "Parallelism via EIO is yet to be implemented! resorting to Parmap \
+             :(");
+    parmap_map (caps :> < Cap.fork >) config.ncores process_target targets
   in
   let matches, opt_paths = List_.split xs in
   let scanned =
