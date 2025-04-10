@@ -180,10 +180,12 @@ let todo_kind_to_ast_generic_todo_kind (x : todo_kind) : G.todo_kind =
  * coupling: Inverse of ast_generic_type_of_builtin_type *)
 let builtin_type_of_string _langTODO str =
   match str with
-  | "Integer"
   | "int"
-  | "long"
   | "Int"
+  | "Integer"
+  | "short"
+  | "Short"
+  | "long"
   | "Long" ->
       Some Int
   | "float"

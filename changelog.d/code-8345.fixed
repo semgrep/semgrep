@@ -1,0 +1,8 @@
+tainting: Apply `taint_assume_safe_numbers` and `taint_assume_safe_booleans`
+earlier when considering to track taint through class fields and function
+parameters. If the field/parameter has a number/Boolean type and the
+corresponding option is set, it will just not be tracked. In some cases this
+can help with performance.
+
+Also added `short`/`Short` to the list of integer types recognized by
+`taint_assume_safe_numbers`.
