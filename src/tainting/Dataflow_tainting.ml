@@ -411,13 +411,11 @@ let type_of_expr env e =
  *  fill it in, so that every expression has its known type available without
  *  extra cost.
  *)
-let drop_taints_if_bool_or_number (options : Rule_options.t) taints ty =
+let must_drop_taints_if_bool_or_number (options : Rule_options.t) ty =
   match ty with
-  | Type.(Builtin Bool) when options.taint_assume_safe_booleans -> Taints.empty
-  | Type.(Builtin (Int | Float | Number)) when options.taint_assume_safe_numbers
-    ->
-      Taints.empty
-  | __else__ -> taints
+  | Type.(Builtin Bool) -> options.taint_assume_safe_booleans
+  | Type.(Builtin (Int | Float | Number)) -> options.taint_assume_safe_numbers
+  | __else__ -> false
 
 (* Calls to 'type_of_expr' seem not to be cheap and even though we tried to limit the
  * number of these calls being made, doing them unconditionally caused a slowdown of
@@ -433,9 +431,12 @@ let check_type_and_drop_taints_if_bool_or_number env taints type_of_x x =
     && not (Taints.is_empty taints)
   then
     match type_of_x env x with
-    | Type.Function (_, return_ty) ->
-        drop_taints_if_bool_or_number env.taint_inst.options taints return_ty
-    | ty -> drop_taints_if_bool_or_number env.taint_inst.options taints ty
+    | Type.Function (_, ty)
+      when must_drop_taints_if_bool_or_number env.taint_inst.options ty ->
+        Taints.empty
+    | ty when must_drop_taints_if_bool_or_number env.taint_inst.options ty ->
+        Taints.empty
+    | __else__ -> taints
   else taints
 
 (*****************************************************************************)

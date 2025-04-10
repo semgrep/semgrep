@@ -61,9 +61,14 @@ val fixpoint :
   * @param name is the name of the function being analyzed, if it has a name.
   * *)
 
-(* TODO: Move to module 'Taint' maybe. *)
-val drop_taints_if_bool_or_number :
-  Rule_options.t -> Taint.Taint_set.t -> 'a Type.t -> Taint.Taint_set.t
+val must_drop_taints_if_bool_or_number : Rule_options.t -> 'a Type.t -> bool
+(** 'must_drop_taints_if_bool_or_number options typ' is 'true' iff given the
+  `taint_assume_safe_*` options we need to sanitize expressions of type 'typ'.
+
+  For example, if `taint_assume_safe_numbers` is set and 'typ' is an integer
+  type, then 'must_drop_taints_if_bool_or_number' will evaluate to 'true'.
+
+  THINK: Move to module 'Taint' or somewhere else? *)
 
 val sinks_of_matches :
   Taint_lval_env.t ->
