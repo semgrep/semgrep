@@ -111,7 +111,7 @@ let split_jobs_by_language (conf : Find_targets.conf) (rules : Rule.t list)
 let targets_of_lang_job (x : Lang_job.t) : Target.t list =
   x.targets
   |> List_.map (fun (path : Fpath.t) : Target.t ->
-         Target.mk_target x.analyzer path)
+         Target.mk_target_fpath x.analyzer path)
 
 let targets_and_rules_of_lang_jobs (lang_jobs : Lang_job.t list) :
     Target.t list * Rule.t list =

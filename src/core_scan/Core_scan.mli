@@ -90,8 +90,8 @@ val rules_for_target :
 val rules_for_analyzer :
   combine_js_with_ts:bool -> analyzer:Analyzer.t -> Rule.t list -> Rule.t list
 
-(* for SCA_scan *)
-val rules_for_origin : Rule.paths option -> Origin.t -> bool
+(* exposed for SCA_scan *)
+val origin_satisfy_paths_filter : Origin.t -> Rule.paths -> bool
 
 (* This function prints a dot, which is consumed by pysemgrep to update
    the progress bar if the output_format is Json true.
@@ -113,7 +113,7 @@ val iter_targets_and_get_matches_and_exn_to_errors :
   Core_scan_config.t ->
   target_handler ->
   Target.t list ->
-  Core_profiling.file_profiling Core_result.match_result list * Target.t list
+  Core_result.matches_single_file_with_time list * Target.t list
 
 val filter_files_with_too_many_matches_and_transform_as_timeout :
   int ->
