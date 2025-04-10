@@ -1,4 +1,6 @@
 import java.lang.Integer;
+import java.lang.Short;
+import java.lang.Long;
 
 class Test {
     public void test1(int x) {
@@ -48,5 +50,21 @@ class Test {
     public void test10(String x) {
         //OK: test
         sink(x.compareTo("safe"));
+    }
+    public void test11(short x) {
+        //OK: test
+        sink(x);
+    }
+    public void test12(Short x) {
+        //OK: test
+        sink(x);
+    }
+    public void test13(Integer x) {
+        //OK: test
+        sink(x);
+    }
+    public void test14(Long x) {
+        //OK: test
+        sink(x);
     }
 }
