@@ -263,6 +263,7 @@ let langs_with_error_tolerance =
     *)
     (Lang.C, Missing_tokens);
     (Lang.Cpp, Missing_tokens);
+    (Lang.Cpp, Todo);
   ]
 
 let tests () = make_tests langs_with_error_tolerance
