@@ -208,7 +208,7 @@ let run_core_search xconf (rule : Rule.search_rule) (file : Fpath.t) =
   if Filter_target.filter_target_for_analyzer analyzer file then
     let xtarget =
       Xtarget.resolve parse_and_resolve_name
-        (Target.mk_regular analyzer Product.all (File file))
+        (Target.mk_target_fpath analyzer file)
     in
     try
       let is_relevant_rule =

@@ -64,15 +64,18 @@ type 'a match_result = {
 }
 [@@deriving show]
 
-(* shortcut *)
+(* shortcuts *)
 type matches_single_file = Core_profiling.partial_profiling match_result
+[@@deriving show]
+
+type matches_single_file_with_time = Core_profiling.file_profiling match_result
 [@@deriving show]
 
 (* take the match results for each file, all the rules, all the targets,
  * and build the final result
  *)
 val mk_result :
-  Core_profiling.file_profiling match_result list ->
+  matches_single_file_with_time list ->
   (Rule.rule * Engine_kind.t) list ->
   Rule_error.invalid_rule list ->
   Target.t list ->
@@ -94,11 +97,7 @@ val mk_match_result :
 
 (* match results profiling adjustment helpers *)
 val map_profiling : ('a -> 'b) -> 'a match_result -> 'b match_result
-
-val add_run_time :
-  float ->
-  Core_profiling.partial_profiling match_result ->
-  Core_profiling.file_profiling match_result
+val add_run_time : float -> matches_single_file -> matches_single_file_with_time
 
 val add_rule :
   Rule.rule ->

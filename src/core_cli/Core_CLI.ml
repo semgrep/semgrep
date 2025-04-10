@@ -778,7 +778,7 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
             | Some file, None, [] -> Target_file file
             | None, Some lang, [ file ]
               when UFile.is_reg ~follow_symlinks:true file ->
-                Targets [ Target.mk_target (Analyzer.of_lang lang) file ]
+                Targets [ Target.mk_lang_target lang file ]
             | _ ->
                 (* alt: use the file targeting in Find_targets_lang but better
                  * to "dumb-down" semgrep-core to its minimum.

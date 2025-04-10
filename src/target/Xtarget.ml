@@ -38,7 +38,7 @@ let parse_file parser (analyzer : Analyzer.t) path =
   in
   parser lang path
 
-let resolve_with_ast ast (target : Target.regular) : t =
+let resolve_with_ast ast (target : Target.t) : t =
   {
     path = target.path;
     analyzer = target.analyzer;
@@ -46,7 +46,7 @@ let resolve_with_ast ast (target : Target.regular) : t =
     lazy_ast_and_errors = ast;
   }
 
-let resolve parser (target : Target.regular) : t =
+let resolve parser (target : Target.t) : t =
   let ast =
     lazy
       (parse_file parser target.analyzer target.path.internal_path_to_content)

@@ -14,7 +14,7 @@ type t = {
 
 val resolve :
   (Language.t -> Fpath.t -> AST_generic.program * Tok.location list) ->
-  Target.regular ->
+  Target.t ->
   t
 (** [resolve parser target] is the extended version of [target], comprising
     also the contents and parsed version thereof. *)
@@ -23,4 +23,4 @@ val resolve :
  * easy construction of Xtargets in contexts where the client has already parsed
  * the file in question. *)
 val resolve_with_ast :
-  (AST_generic.program * Tok.location list) Lazy.t -> Target.regular -> t
+  (AST_generic.program * Tok.location list) Lazy.t -> Target.t -> t
