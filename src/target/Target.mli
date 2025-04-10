@@ -32,10 +32,23 @@ type path = {
   } *)
 
 (*****************************************************************************)
-(* Regular target *)
+(* Main type *)
 (*****************************************************************************)
 
-type regular = {
+(*  A semgrep target comprising source code (or, for regex/generic, arbitrary
+    text data) to be executed. This contains all of the details needed to be
+    able to determine how to scan a target, e.g.,
+
+    {ul
+      {- What products should we select rules from?}
+      {- Where can we get the contents of the target?}
+      {- What language should we analyze the target as?}
+    }
+
+    However, it does not contain the actual contents (parsed or otherwise) of
+    the target itself. For that, see {!Xtarget.t}.
+*)
+type t = {
   path : path;
   analyzer : Analyzer.t;  (** The analyzer to use when scanning this target. *)
   products : Product.t list;
@@ -48,42 +61,22 @@ type regular = {
           specified by the given source. Core doesn't need to worry about
           determining these associations; rather, the target selection and
           generation process must resolve these connections as part of
-          generating regular targets. *)
+          generating targets. *)
 }
-(** A regular semgrep target, comprising source code (or, for
-   regex/generic, arbitrary text data) to be executed. See also {!Xtarget.t},
-   an augmented version which also has the contents. *)
-
-(*****************************************************************************)
-(* Main type *)
-(*****************************************************************************)
-
-(** A Semgrep target. This contains all of the details needed to be able to
-    determine how to scan a target, e.g.,
-
-    {ul
-      {- What products should we select rules from?}
-      {- Where can we get the contents of the target?}
-      {- What language should we analyze the target as?}
-    }
-
-    However, it does not contain the actual contents (parsed or otherwise) of
-    the target itself. For that, see {!Xtarget.t} or {!Lockfile_xtarget}.
- *)
-type t = Regular of regular | DependencySource of Dependency_source.t
 [@@deriving show]
 
 (*****************************************************************************)
 (* Builders *)
 (*****************************************************************************)
 
-val mk_regular :
+(* TODO? make default ?product=Product.all? *)
+val mk_target_origin :
   ?dependency_source:Dependency_source.t ->
   Analyzer.t ->
   Product.t list ->
   Origin.t ->
-  regular
-(** [mk_regular analyzer products origin] is a {!regular} target
+  t
+(** [mk_target analyzer products origin] is a target
       originating from [origin] to be analyzed with [analyzer] for [products].
       If [dependency_source] is specified then it shall be used as the associated
       dependency source if dependency patterns are to be ran.
@@ -93,9 +86,11 @@ val mk_regular :
       a target from certain types of origins, such as generating a tempfile.
  *)
 
+(* TODO? make default ?product=Product.all? *)
+val mk_target_fpath : Analyzer.t -> Fpath.t -> t
+
 (* useful in tests *)
-val mk_target : Analyzer.t -> Fpath.t -> t
-val mk_lang_target : Lang.t -> Fpath.t -> regular
+val mk_lang_target : Lang.t -> Fpath.t -> t
 
 (*****************************************************************************)
 (* Semgrep_output_v1.target -> Target.t *)
@@ -112,8 +107,6 @@ val internal_path : t -> Fpath.t
 
 val origin : t -> Origin.t
 (** [origin target] is the user-reportable origin of [target]. *)
-
-val analyzer : t -> Analyzer.t option
 
 (*
    The set of all lang analyzers associated with targets.

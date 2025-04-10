@@ -34,6 +34,7 @@ module Log = Log_semgrep.Log
  * Core_match.t
  * -> Core_result.processed_match (in this file)
  * -> Core_result.matches_single_file (this file)
+ * -> Core_result.matches_single_file_with_time (this file)
  * -> Core_result.t (this file)
  * -> Core_result.result_or_exn (this file)
  * -> Semgrep_output_v1.core_output
@@ -64,8 +65,11 @@ type 'a match_result = {
 }
 [@@deriving show]
 
-(* shortcut *)
+(* shortcuts *)
 type matches_single_file = Core_profiling.partial_profiling match_result
+[@@deriving show]
+
+type matches_single_file_with_time = Core_profiling.file_profiling match_result
 [@@deriving show]
 
 (* What is a processsed match?
@@ -169,9 +173,8 @@ let mk_match_result matches errors profiling =
 let map_profiling (f : 'a -> 'b) (x : 'a match_result) : 'b match_result =
   { x with profiling = Option.map f x.profiling }
 
-let add_run_time (run_time : float)
-    (match_result : Core_profiling.partial_profiling match_result) :
-    Core_profiling.file_profiling match_result =
+let add_run_time (run_time : float) (match_result : matches_single_file) :
+    matches_single_file_with_time =
   match_result
   |> map_profiling (fun { Core_profiling.p_file; p_rule_times } ->
          { Core_profiling.file = p_file; rule_times = p_rule_times; run_time })
@@ -264,7 +267,7 @@ let collate_rule_results (file : Fpath.t)
 (*****************************************************************************)
 
 (* Aggregate a list of target results into one final result *)
-let mk_result (results : Core_profiling.file_profiling match_result list)
+let mk_result (results : matches_single_file_with_time list)
     (rules_with_engine : (Rule.t * Engine_kind.t) list)
     (skipped_rules : Rule_error.invalid_rule list) (scanned : Target.t list)
     (interfile_languages_used : Analyzer.t list) ~rules_parse_time : t =
@@ -289,8 +292,7 @@ let mk_result (results : Core_profiling.file_profiling match_result list)
   let (prof : Core_profiling.t) =
     let file_times =
       results
-      |> List_.filter_map
-           (fun (result : Core_profiling.file_profiling match_result) ->
+      |> List_.filter_map (fun (result : matches_single_file_with_time) ->
              result.profiling)
     in
     {
