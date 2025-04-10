@@ -213,6 +213,24 @@ let run_conf (caps : < caps ; .. >) (conf : Show_CLI.conf) : Exit_code.t =
       failwith "TODO: dump-command-for-core not implemented yet"
   | Debug _ -> failwith "TODO: CE-only show debug not implemented yet"
   | DumpLockfile _ -> failwith "this subcommand requires semgrep-pro"
+  | ProjectRoot { scan_root } ->
+      let project_root =
+        match
+          Project.find_any_project_root ~fallback_root:None ~force_novcs:false
+            ~force_root:None scan_root
+        with
+        | Ok ({ kind = _; root }, _scan_root_info) ->
+            root.fpath |> Fpath.to_string
+        | Error msg -> failwith ("Cannot determine project root: " ^ msg)
+      in
+      (* Print the project root path followed by a newline.
+
+         There's more useful info available than just the project root path.
+         We could show that as part of another subcommand (dump-targets?)
+         or with a flag.
+      *)
+      print project_root;
+      Exit_code.ok ~__LOC__
 
 (*****************************************************************************)
 (* Entry point *)
