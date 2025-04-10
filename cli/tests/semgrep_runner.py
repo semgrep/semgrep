@@ -48,6 +48,8 @@ _SEMGREP_PATH = str(
     ).absolute()
 )
 
+# Deprecated. Use 'mk_semgrep_base_command("scan", args)'
+#
 # Exported constant, convenient to use in a list context.
 # This is not safe to use if you are going to append any subcommands after!
 # For instance, SEMGREP_BASE_SCAN_COMMAND + ["logout"] will fail with osemgrep,
@@ -56,6 +58,8 @@ SEMGREP_BASE_SCAN_COMMAND: List[str] = (
     [_SEMGREP_PATH] + _OSEMGREP_EXTRA_ARGS if USE_OSEMGREP else [_SEMGREP_PATH]
 )
 
+# Deprecated. Use 'mk_semgrep_base_command("scan", args)'
+#
 SEMGREP_BASE_SCAN_COMMAND_STR: str = " ".join(SEMGREP_BASE_SCAN_COMMAND)
 
 ##############################################################################
@@ -64,7 +68,11 @@ SEMGREP_BASE_SCAN_COMMAND_STR: str = " ".join(SEMGREP_BASE_SCAN_COMMAND)
 
 
 def mk_semgrep_base_command(subcommand: str, args: List[str]):
-    args = _OSEMGREP_EXTRA_ARGS + args if USE_OSEMGREP else args
+    # Insert osemgrep-specific arguments for the subcommands that support
+    # '--experimental':
+    if USE_OSEMGREP:
+        if subcommand in ["ci", "install-semgrep-pro", "lsp", "scan"]:
+            args = _OSEMGREP_EXTRA_ARGS + args
     return [_SEMGREP_PATH] + [subcommand] + args
 
 

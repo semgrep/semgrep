@@ -34,7 +34,12 @@ type conf = {
 }
 
 (* coupling: if you add a command you probably need to modify [combine]
- * below and also the doc in [man] further below
+   below and also the doc in [man] further below
+
+   Please name the subcommands such that the command line sounds like
+   pseudo-English. For example, no need for "dump-" since there's already
+   the verb "show":
+   prefer 'semgrep show apples' over 'semgrep show dump-apples'.
  *)
 and show_kind =
   | Version
@@ -69,6 +74,7 @@ and show_kind =
   (* pro-only commands *)
   | Debug of debug_settings
   | DumpLockfile of Fpath.t (* lockfile *) * Fpath.t option (* manifest *)
+  | ProjectRoot of { scan_root : Fpath.t }
 [@@deriving show]
 
 (*************************************************************************)
@@ -356,6 +362,26 @@ let dump_lockfile_cmd =
   in
   Cmd.v info term
 
+let project_root_cmd =
+  let doc =
+    {|Print the project root folder associated with a scan root.
+A scan root is an argument passed to a 'semgrep scan' command that specifies
+a file tree to be scanned. The project root is inferred by Semgrep.
+Knowing the project root is useful to determine whether a '.semgrepignore'
+file will be consulted.
+|}
+  in
+  let scan_root_arg = Arg.(value (pos 0 string "." (info [] ~docv:"PATH"))) in
+  let info = Cmd.info "project-root" ~doc in
+  let term =
+    Term.(
+      const (fun scan_root common ->
+          let scan_root = Fpath.v scan_root in
+          { common; json = false; show_kind = ProjectRoot { scan_root } })
+      $ scan_root_arg $ CLI_common.o_common)
+  in
+  Cmd.v info term
+
 (*************************************************************************)
 (* Main command *)
 (*************************************************************************)
@@ -405,6 +431,7 @@ let parse_argv (caps : < Cap.tmp ; .. >) (argv : string array) : conf =
         dump_targets_cmd;
         debug_cmd caps;
         dump_lockfile_cmd;
+        project_root_cmd;
       ]
   in
   CLI_common.eval_value ~argv group
