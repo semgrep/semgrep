@@ -1,0 +1,13 @@
+rules:
+  - id: test
+    message: Test
+    languages: [java]
+    options:
+      interfile: true
+      taint_assume_safe_numbers: true
+    mode: taint
+    pattern-sources:
+    - pattern: source(...)
+    pattern-sinks:
+    - pattern: sink(...)
+    severity: ERROR
