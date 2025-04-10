@@ -63,12 +63,7 @@ let just_parse_with_lang lang file : Parsing_result2.t =
   (* Menhir and Tree-sitter *)
   | Lang.C
   | Lang.Cpp ->
-      run file
-        [
-          TreeSitter Parse_cpp_tree_sitter.parse;
-          Pfff (throw_tokens Parse_cpp.parse);
-        ]
-        Cpp_to_generic.program
+      run file [ TreeSitter Parse_cpp_tree_sitter.parse ] Cpp_to_generic.program
   | Lang.Go ->
       run file
         [
