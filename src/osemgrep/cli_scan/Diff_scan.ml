@@ -245,15 +245,16 @@ let scan_baseline (caps : < Cap.chdir ; Cap.tmp ; .. >) (conf : Scan_CLI.conf)
   | Ok r, PRO Engine_type.{ analysis = Interfile; _ } ->
       let count_by_lang = Hashtbl.create 10 in
       r.scanned
-      |> List.iter (function
-           | Target.Regular { analyzer = L (lang, _); _ } ->
-               let count =
-                 match Hashtbl.find_opt count_by_lang lang with
-                 | Some c -> c
-                 | None -> 0
-               in
-               Hashtbl.replace count_by_lang lang (count + 1)
-           | _ -> ());
+      |> List.iter (fun (target : Target.t) ->
+             match target with
+             | { analyzer = L (lang, _); _ } ->
+                 let count =
+                   match Hashtbl.find_opt count_by_lang lang with
+                   | Some c -> c
+                   | None -> 0
+                 in
+                 Hashtbl.replace count_by_lang lang (count + 1)
+             | _else_ -> ());
       Metrics_.g.payload.value.proFeatures <-
         Some
           {

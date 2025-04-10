@@ -619,8 +619,7 @@ let parmap_map caps ncores f xs =
 let iter_targets_and_get_matches_and_exn_to_errors
     (caps : < Cap.fork ; Cap.memory_limit ; .. >) (config : Core_scan_config.t)
     (handle_target : target_handler) (targets : Target.t list) :
-    Core_profiling.file_profiling Core_result.match_result list * Target.t list
-    =
+    Core_result.matches_single_file_with_time list * Target.t list =
   (* The target is None when the file was not scanned *)
   let process_target (target : Target.t) =
     let internal_path = Target.internal_path target in
@@ -761,16 +760,13 @@ let rules_for_analyzer ~combine_js_with_ts ~analyzer rules =
  *
  * [0]: <https://semgrep.dev/docs/writing-rules/rule-syntax/#paths>
  *)
-let rules_for_origin paths (origin : Origin.t) =
-  match paths with
-  | Some paths -> (
-      match origin with
-      | File path -> Filter_target.filter_paths paths path
-      | GitBlob { paths = target_paths; _ } ->
-          target_paths
-          |> List.exists (fun (_, path_at_commit) ->
-                 Filter_target.filter_paths paths path_at_commit))
-  | None -> true
+let origin_satisfy_paths_filter (origin : Origin.t) (paths : Rule.paths) =
+  match origin with
+  | File path -> Filter_target.filter_paths paths path
+  | GitBlob { paths = target_paths; _ } ->
+      target_paths
+      |> List.exists (fun (_, path_at_commit) ->
+             Filter_target.filter_paths paths path_at_commit)
 
 (* This is also used by semgrep-proprietary. *)
 (* TODO: reduce memory allocation by using only one call to List.filter?
@@ -793,7 +789,9 @@ let rules_for_target ~combine_js_with_ts ~analyzer ~products ~origin
             * again here for osemgrep which use a different file targeting
             * strategy.
             *)
-           rules_for_origin r.paths origin)
+           match r.paths with
+           | None -> true
+           | Some paths -> origin_satisfy_paths_filter origin paths)
   else rules
 
 (*****************************************************************************)
@@ -806,55 +804,52 @@ let rules_for_target ~combine_js_with_ts ~analyzer ~products ~origin
 let mk_target_handler (caps : < Cap.time_limit >) (config : Core_scan_config.t)
     (valid_rules : Rule.t list)
     (prefilter_cache_opt : Match_env.prefilter_config) : target_handler =
-  (* Note that this function runs in another process *)
-  function
-  | DependencySource _ -> failwith "SCA requires semgrep Pro"
-  | Regular
-      ({
-         analyzer;
-         products;
-         path = { origin; internal_path_to_content = file };
-         _;
-       } as target) ->
-      let rules =
-        rules_for_target ~combine_js_with_ts:false ~analyzer ~products ~origin
-          ~respect_rule_paths:config.respect_rule_paths valid_rules
-      in
-      let was_scanned = not (List_.null rules) in
-
-      (* TODO: can we skip all of this if there are no applicable
-          rules? In particular, can we skip print_cli_progress? *)
-      let xtarget = Xtarget.resolve parse_and_resolve_name target in
-      let xconf =
+ (* Note that this function runs in another process *)
+ fun (target : Target.t) ->
+  let Target.
         {
-          Match_env.config = Rule_options.default;
-          equivs = parse_equivalences config.equivalences_file;
-          nested_formula = false;
-          matching_explanations = config.matching_explanations;
-          filter_irrelevant_rules = prefilter_cache_opt;
-        }
-      in
-      let timeout =
-        let caps = (caps :> < Cap.time_limit >) in
-        Some
-          Match_rules.
-            {
-              timeout = config.timeout;
-              threshold = config.timeout_threshold;
-              caps;
-            }
-      in
-      let matches : Core_result.matches_single_file =
-        (* !!Calling Match_rules!! Calling the matching engine!! *)
-        Match_rules.check ~matches_hook:Fun.id ~timeout xconf rules xtarget
-      in
-      (* So we can display matches incrementally in osemgrep!
+          analyzer;
+          products;
+          path = { origin; internal_path_to_content = file };
+          _;
+        } =
+    target
+  in
+  let rules =
+    rules_for_target ~combine_js_with_ts:false ~analyzer ~products ~origin
+      ~respect_rule_paths:config.respect_rule_paths valid_rules
+  in
+  let was_scanned = not (List_.null rules) in
+
+  (* TODO: can we skip all of this if there are no applicable
+          rules? In particular, can we skip print_cli_progress? *)
+  let xtarget = Xtarget.resolve parse_and_resolve_name target in
+  let xconf =
+    {
+      Match_env.config = Rule_options.default;
+      equivs = parse_equivalences config.equivalences_file;
+      nested_formula = false;
+      matching_explanations = config.matching_explanations;
+      filter_irrelevant_rules = prefilter_cache_opt;
+    }
+  in
+  let timeout =
+    let caps = (caps :> < Cap.time_limit >) in
+    Some
+      Match_rules.
+        { timeout = config.timeout; threshold = config.timeout_threshold; caps }
+  in
+  let matches : Core_result.matches_single_file =
+    (* !!Calling Match_rules!! Calling the matching engine!! *)
+    Match_rules.check ~matches_hook:Fun.id ~timeout xconf rules xtarget
+  in
+  (* So we can display matches incrementally in osemgrep!
           * Note that this is run in a child process of Parmap, so
           * the hook should not rely on shared memory.
       *)
-      config.file_match_hook |> Option.iter (fun hook -> hook file matches);
-      print_cli_progress config;
-      (matches, was_scanned)
+  config.file_match_hook |> Option.iter (fun hook -> hook file matches);
+  print_cli_progress config;
+  (matches, was_scanned)
 
 (* coupling: with Pro_scan.core_scan_exn() *)
 let scan_exn (caps : < caps ; .. >) (config : Core_scan_config.t)
@@ -882,7 +877,7 @@ let scan_exn (caps : < caps ; .. >) (config : Core_scan_config.t)
       Match_env.PrefilterWithCache (Hashtbl.create (List.length valid_rules))
     else NoPrefiltering
   in
-  let file_results, scanned_targets =
+  let file_results, (scanned_targets : Target.t list) =
     targets
     |> iter_targets_and_get_matches_and_exn_to_errors
          (caps :> < Cap.fork ; Cap.memory_limit >)
