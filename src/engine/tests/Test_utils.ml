@@ -11,14 +11,14 @@ let related_file_of_target ?polyglot_pattern_path ~ext file =
     Error msg
   in
   let candidate1 = Filename_.filename_of_dbe (dirname, basename, ext) in
-  if Sys.file_exists candidate1 then Ok (Fpath.v candidate1)
+  if Sys_.file_exists candidate1 then Ok (Fpath.v candidate1)
   else
     match polyglot_pattern_path with
     | Some polyglot_pattern_path ->
         let candidate2 =
           Filename_.filename_of_dbe (!!polyglot_pattern_path, basename, ext)
         in
-        if Sys.file_exists candidate2 then Ok (Fpath.v candidate2) else fail ()
+        if Sys_.file_exists candidate2 then Ok (Fpath.v candidate2) else fail ()
     | _ -> fail ()
 
 (* Allows the semgrep-core test runner that we use to test matches to also test

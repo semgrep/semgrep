@@ -112,7 +112,7 @@ let from_file ?(maturity = Maturity.Default) () =
   Logs.info (fun m -> m "Loading settings from %s" !!settings);
   try
     if
-      Sys.file_exists !!settings
+      Sys_.Fpath.exists settings
       && Unix.(stat !!settings).st_kind =*= Unix.S_REG
     then
       let data = UFile.read_file settings in
@@ -195,12 +195,8 @@ let save setting =
   let yaml = to_yaml setting in
   let str = Yaml.to_string_exn yaml in
   try
-    (* On Windows, Sys.file_exists sometimes fails on paths ending with a
-       trailing slash or backslash. See
-       https://sourceforge.net/p/mingw-w64/mailman/message/59154340/. So, we
-       strip any trailing slashes before checking if the dir exists. *)
-    let dir = Fpath.parent settings |> Fpath.rem_empty_seg in
-    if not (Sys.file_exists !!dir) then Sys.mkdir !!dir 0o755;
+    let dir = Fpath.parent settings in
+    if not (Sys_.Fpath.exists dir) then Sys.mkdir !!dir 0o755;
     (* TODO: we don't use UTmp.new_temp_file because this function modifies
      * a global (_temp_files_created) which is then used to autoamtically
      * remove temp files when the process terminates, but in this case the tmp
@@ -208,7 +204,7 @@ let save setting =
      *)
     (* nosemgrep: forbid-tmp *)
     let tmp = Filename.temp_file ~temp_dir:!!dir "settings" "yml" in
-    if Sys.file_exists tmp then Sys.remove tmp;
+    if Sys_.file_exists tmp then Sys.remove tmp;
     UFile.write_file (Fpath.v tmp) str;
     (* Create a temporary file and rename to have a consistent settings file,
        even if the power fails (or a Ctrl-C happens) during the write_file. *)

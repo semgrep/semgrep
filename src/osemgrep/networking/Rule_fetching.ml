@@ -316,7 +316,7 @@ let parse_rule ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
 let load_rules_from_file ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
     (rules_and_origin, Rule_error.t) result =
   Logs.info (fun m -> m "loading local config from %s" !!file);
-  if Sys.file_exists !!file then
+  if Sys_.Fpath.exists file then
     match parse_rule ~rewrite_rule_ids ~origin caps file with
     | Ok (rules, invalid_rules) ->
         Logs.info (fun m -> m "Done loading local config from %s" !!file);

@@ -109,7 +109,7 @@ let get_config_filenames original_config =
    let get_all_files path =
      let str = Fpath.to_string path in
      Sys.readdir str |> Array.to_list
-     |> List.filter (fun f -> Sys.file_exists f && not (Sys.is_directory f))
+     |> List.filter (fun f -> not (Sys_.is_directory f))
      |> List_.map (Fpath.add_seg path)
 
 
@@ -120,8 +120,8 @@ let get_config_filenames original_config =
      match target with
      | Dir (path, None) ->
          let str = Fpath.to_string path in
-         if Sys.file_exists str then
-           if Sys.is_directory str then
+         if Sys_.file_exists str then
+           if Sys_.is_directory str then
              get_all_files path
              |> List.filter is_config_suffix
              |> List.filter does_not_start_with_dot
@@ -131,7 +131,7 @@ let get_config_filenames original_config =
          else []
      | Dir (_, Some str)
      | File (_, str) ->
-         if Sys.file_exists str then [ Fpath.v str ] else []
+         if Sys_.file_exists str then [ Fpath.v str ] else []
 *)
 
 let get_config_test_filenames ~original_config ~configs ~original_target =
@@ -185,7 +185,7 @@ let get_config_test_filenames ~original_config ~configs ~original_target =
          let targets = get_all_files path in
          let is_file p =
            let s = Fpath.to_string p in
-           Sys.file_exists s && not (Sys.is_directory s)
+           not (Sys_.is_directory s)
          in
          let target_matches_config config target =
            let correct_suffix =

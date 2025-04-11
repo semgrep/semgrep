@@ -79,11 +79,11 @@ let project_root () =
   match Git_wrapper.project_root_for_files_in_dir Fpath_.current_dir with
   | Some path ->
       let oss_path = path / "OSS" in
-      if Sys.file_exists !!oss_path then oss_path else path
+      if Sys_.Fpath.exists oss_path then oss_path else path
   | None ->
       (* Deal with the case where we're not a in git repo:
            if it looks like we're at the project root, we're happy. *)
-      if Sys.file_exists "CONTRIBUTING.md" then Fpath.v (Sys.getcwd ())
+      if Sys_.file_exists "CONTRIBUTING.md" then Fpath.v (Sys.getcwd ())
       else
         failwith
           "You must run the test program from within the semgrep repo and not \
@@ -1185,7 +1185,7 @@ let test_ls_delete_cache caps () =
       in
       let assert_cache_exists () =
         let cache_dir = !Env.v.user_dot_semgrep_dir / "cache" in
-        if not (Sys.file_exists !!cache_dir) then
+        if not (Sys_.Fpath.exists cache_dir) then
           Alcotest.fail "cache wasn't created!"
       in
       (* init. fileserver *)

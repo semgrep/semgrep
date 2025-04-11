@@ -29,6 +29,8 @@
    behavior for users migrating from v1 to v2. Instead, we decided to keep
    the ':include' extension.
 *)
+open Fpath_.Operators
+
 type default_semgrepignore_patterns = Empty | Semgrep_scan_legacy
 type exclusion_mechanism = { use_semgrepignore_files : bool }
 
@@ -126,8 +128,8 @@ let create ?(cli_patterns = []) ~default_semgrepignore_patterns
   *)
   let root_semgrepignore_exists =
     let root_dir = Ppath.to_fpath ~root:project_root Ppath.root in
-    let semgrepignore_path = Fpath.add_seg root_dir ".semgrepignore" in
-    Sys.file_exists (Fpath.to_string semgrepignore_path)
+    let semgrepignore_path = root_dir / ".semgrepignore" in
+    Sys_.Fpath.exists semgrepignore_path
   in
 
   (*

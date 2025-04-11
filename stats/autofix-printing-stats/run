@@ -73,7 +73,7 @@ let clone_project_files url =
   let project_name = project_name_of_url url in
   system "mkdir" [ "-p"; "tmp" ];
   with_chdir "tmp" (fun () ->
-      if Sys.file_exists project_name then (
+      if Sys_.file_exists project_name then (
         print_endline (spf "Using local git repo for '%s'." project_name);
         let origin_url =
           run ~trim:true "git"

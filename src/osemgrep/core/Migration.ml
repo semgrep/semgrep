@@ -14,9 +14,9 @@
  *)
 let abort_if_use_of_legacy_dot_semgrep_yml () =
   if
-    Sys.file_exists ".semgrep.yml"
-    || Sys.file_exists ".semgrep"
-       && not (Sys.file_exists ".semgrep/settings.yml")
+    Sys_.file_exists ".semgrep.yml"
+    || Sys_.file_exists ".semgrep"
+       && not (Sys_.file_exists ".semgrep/settings.yml")
   then (
     flush stdout;
     Logs.err (fun m ->

@@ -219,7 +219,7 @@ let rules_and_targets (caps : < Cap.readdir ; .. >)
 let fixtest_of_target_opt (target : Fpath.t) : Fpath.t option =
   let stem, ext = Fpath_.split_ext ~multi:true target in
   let fixtest = stem |> Fpath.add_ext (".fixed" ^ ext) in
-  if Sys.file_exists !!fixtest then Some fixtest else None
+  if Sys_.Fpath.exists fixtest then Some fixtest else None
 
 (* TODO use capability and cleanup Test_parsing.ml and remove
  * Common2.unix_diff

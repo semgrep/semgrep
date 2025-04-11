@@ -474,7 +474,7 @@ and desugar_import env v : C.expr =
         match env.import_callback env.base str with
         | None ->
             let final_path = Filename.concat env.base str in
-            if not (Sys.file_exists final_path) then
+            if not (Sys_.file_exists final_path) then
               error tk (spf "file does not exist: %s" final_path);
             let ast = Parse_jsonnet.parse_program (Fpath.v final_path) in
             let env = { env with base = Filename.dirname final_path } in
@@ -491,7 +491,7 @@ and desugar_import env v : C.expr =
   | ImportStr (tk, str_) ->
       let str, _tk = string_of_string_ str_ in
       let final_path = Filename.concat env.base str in
-      if not (Sys.file_exists final_path) then
+      if not (Sys_.file_exists final_path) then
         error tk (spf "file does not exist: %s" final_path);
       let s = UFile.Legacy.read_file final_path in
       C.L (mk_str_literal (s, tk))
