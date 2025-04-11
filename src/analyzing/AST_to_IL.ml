@@ -827,7 +827,10 @@ and expr_aux env ?(void = false) g_expr =
       let xs = bracket_keep (List_.map (expr env)) xs in
       let kind = composite_kind ~g_expr kind in
       mk_e (Composite (kind, xs)) eorig
-  | G.Comprehension _ -> todo (G.E g_expr)
+  | G.Comprehension (kind, (b1, (e, xs), b2)) ->
+      let loop = comp_to_nested_loop env e xs in
+      let kind = composite_kind ~g_expr kind in
+      mk_e (Composite (kind, (b1, [ loop ], b2))) eorig
   | G.Lambda fdef ->
       let lval = fresh_lval env (snd fdef.fkind) in
       let fdef =
@@ -1024,6 +1027,43 @@ and argument env arg =
   | __else__ ->
       let any = G.Ar arg in
       Unnamed (fixme_exp ToDo any (Related any))
+
+and comp_to_nested_loop env e xs =
+  (* (e FOR pat IN iter IF cond) ->
+
+      FOR pat IN iter {
+          IF cond {
+              tmp = e;
+          }
+      }
+      tmp
+
+      The more faithful translation would involve "adding" elements to a
+      collection rather than reassigning a scalar value as we do here. However,
+      for the purposes of the dataflow analyses we are doing, this ought to
+      suffice.
+  *)
+  let ss, e' = expr_with_pre_stmts env e in
+  let fresh = fresh_lval env (G.fake "comp") in
+  let assign = mk_s (Instr (mk_i (Assign (fresh, e')) (related_exp e))) in
+  let rec fold_comps env = function
+    | [] -> [ assign ]
+    | comp :: stmts -> (
+        match comp with
+        | G.CompFor (t_for, pat, t_in, iter) ->
+            let cont_label, break_label, st_env =
+              mk_break_continue_labels env t_for
+            in
+            let body_stmts = fold_comps st_env stmts in
+            for_each_aux env t_for pat t_in iter body_stmts cont_label
+              break_label
+        | G.CompIf (t_if, e) ->
+            let ss, e' = expr_with_pre_stmts env e in
+            let st = fold_comps env stmts in
+            ss @ [ mk_s (If (t_if, e', st, [])) ])
+  in
+  fold_comps env xs @ ss |> add_stmts env;
+  mk_e (Fetch fresh) (related_exp e)
 
 and record env ((_tok, origfields, _) as record_def) =
   let e_gen = G.Record record_def |> G.e in
@@ -1790,6 +1830,10 @@ and stmt_aux env st =
 
 and for_each env tok (pat, tok2, e) st =
   let cont_label_s, break_label_s, st_env = mk_break_continue_labels env tok in
+  let stmts = stmt st_env st in
+  for_each_aux env tok pat tok2 e stmts cont_label_s break_label_s
+
+and for_each_aux env tok pat tok2 e stmts cont_label_s break_label_s =
   let ss, e' =
     match e.e with
     | Call ({ e = Special (ForOf, _); _ }, (_, [ Arg e ], _)) ->
@@ -1797,8 +1841,6 @@ and for_each env tok (pat, tok2, e) st =
         expr_with_pre_stmts env e
     | __else__ -> expr_with_pre_stmts env e
   in
-  let st = stmt st_env st in
-
   let next_lval = fresh_lval env tok2 in
   let hasnext_lval = fresh_lval env tok2 in
   let hasnext_call =
@@ -1832,7 +1874,7 @@ and for_each env tok (pat, tok2, e) st =
         (Loop
            ( tok,
              cond,
-             [ next_call ] @ assign_st @ st @ cont_label_s
+             [ next_call ] @ assign_st @ stmts @ cont_label_s
              @ [ (* ss @ ?*) hasnext_call ] ));
     ]
   @ break_label_s
