@@ -165,3 +165,23 @@ let ocaml_signal_to_signal = function
   | s when s = USys.sigxcpu -> SIGXCPU
   | s when s = USys.sigxfsz -> SIGXFSZ
   | other -> UNKNOWN other
+
+let norm_and_then f s =
+  match Fpath.of_string s with
+  | Ok s -> f s
+  | Error _ -> false (* Reproduces behaviour of [caml_sys_file_exists]. *)
+
+module Fpath = struct
+  let fpath_check f p =
+    match f (Fpath.rem_empty_seg p) with
+    | Ok b -> b
+    | Error _ -> false
+
+  let exists = fpath_check Bos.OS.Path.exists
+  let is_directory = fpath_check Bos.OS.Dir.exists
+  let is_regular_file = fpath_check Bos.OS.File.exists
+end
+
+let file_exists = norm_and_then Fpath.exists
+let is_directory = norm_and_then Fpath.is_directory
+let is_regular_file = norm_and_then Fpath.is_regular_file

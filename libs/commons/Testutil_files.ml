@@ -84,15 +84,13 @@ let mkdir ?(root = USys.getcwd () |> Fpath.v) path =
       (spf "Testutil_files.mkdir: root must be an absolute path: %s" !!root);
   let rec mkdir path =
     let abs_path = root // path in
-    let str = Fpath.to_string abs_path in
-    if not (USys.file_exists str) then (
+    if not (Sys_.Fpath.exists abs_path) then (
       let parent = Fpath.parent path in
       mkdir parent;
-      UUnix.mkdir str 0o777)
+      UUnix.mkdir !!abs_path 0o777)
   in
-  let root_s = Fpath.to_string root in
-  if not (USys.file_exists root_s) then
-    failwith ("Testutil_files.mkdir: root folder doesn't exist: " ^ root_s);
+  if not (Sys_.Fpath.exists root) then
+    failwith ("Testutil_files.mkdir: root folder doesn't exist: " ^ !!root);
   mkdir path
 
 let get_dir_entries path =
@@ -124,7 +122,7 @@ let remove path =
         UUnix.rmdir !!path
     | _other -> USys.remove !!path
   in
-  if USys.file_exists !!path then remove path
+  if Sys_.Fpath.exists path then remove path
 
 let with_chdir dir f =
   let dir_s = Fpath.to_string dir in
@@ -183,7 +181,7 @@ and write_one root file =
   match file with
   | Dir (name, entries) ->
       let dir = root / name in
-      if not (USys.file_exists !!dir) then UUnix.mkdir !!dir 0o777;
+      if not (Sys_.Fpath.exists dir) then UUnix.mkdir !!dir 0o777;
       write dir entries
   | File (name, contents) ->
       let path = root / name in

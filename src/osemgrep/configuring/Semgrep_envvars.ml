@@ -122,7 +122,7 @@ let of_current_sys_env () : t =
       if Sys.win32 then "USERPROFILE" else "XDG_CONFIG_HOME"
     in
     match env_opt home_env_var with
-    | Some x when Sys.is_directory x -> Fpath.v x
+    | Some x when Sys_.is_directory x -> Fpath.v x
     | Some _
     | None ->
         Fpath.v (env_or (fun x -> x) "HOME" "/")

@@ -426,7 +426,7 @@ let load_local_skipped_fingerprints session =
     ^ ".txt"
   in
   let save_file = save_dir / save_file_name in
-  if not (Sys.file_exists !!save_file) then session
+  if not (Sys_.Fpath.exists save_file) then session
   else
     let skipped_local_fingerprints =
       UFile.read_file save_file |> String.split_on_char '\n'

@@ -107,7 +107,7 @@ let write_temp_file_with_autodelete ~prefix ~suffix ~data : Fpath.t =
       ~mode:[ Open_creat; Open_excl; Open_wronly; Open_binary ]
       prefix suffix
   in
-  let remove () = if USys.file_exists tmp_path then USys.remove tmp_path in
+  let remove () = if Sys_.file_exists tmp_path then USys.remove tmp_path in
   (* Try to remove temporary file when program exits. *)
   UStdlib.at_exit remove;
   Common.protect

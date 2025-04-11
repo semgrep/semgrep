@@ -76,7 +76,7 @@ let has_an_extension =
 
 let is_executable =
   let f path =
-    Sys.file_exists !!path
+    Sys_.file_exists !!path
     &&
     let st = Unix.stat !!path in
     match st.st_kind with

@@ -162,7 +162,7 @@ let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp ; .. >)
                 |> Fpaths.to_seq
                 |> Seq.filter_map (fun path ->
                        if
-                         Sys.file_exists !!path
+                         Sys_.file_exists !!path
                          &&
                          match (Unix.lstat !!path).st_kind with
                          | S_LNK -> false

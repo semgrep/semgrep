@@ -624,7 +624,7 @@ let write_value valu filename =
 let regression_testing newscore best_score_file =
   pr2 ("regression file: " ^ best_score_file);
   let (bestscore : score) =
-    if not (USys.file_exists best_score_file) then
+    if not (Sys_.file_exists best_score_file) then
       write_value (empty_score ()) best_score_file;
     get_value best_score_file
   in

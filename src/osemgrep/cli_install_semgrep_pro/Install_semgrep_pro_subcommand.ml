@@ -69,7 +69,7 @@ let download_semgrep_pro_async (caps : < Cap.network ; .. >) platform_kind dest
            * when the downloaded binary was corrupted, and overwriting it did
            * not fix it, but it was necessary to `rm -f` it.
            *)
-          if Sys.file_exists dest then FileUtil.rm [ dest ];
+          if Sys_.file_exists dest then FileUtil.rm [ dest ];
 
           (* TODO: does this matter if we don't have a progress bar? *)
           let _file_size =
