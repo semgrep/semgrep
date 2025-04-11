@@ -29,3 +29,16 @@ def test_exit_code_with_strict(run_semgrep_in_tmp: RunSemgrep):
         strict=True,
         assert_exit_code=2,
     )
+
+
+# it should not fail the whole scan for exn in a post processor (e.g., nosemgrep)
+@pytest.mark.kinda_slow
+def test_error_management_post_processor(run_semgrep_in_tmp: RunSemgrep):
+    stdout, stderr = run_semgrep_in_tmp(
+        config=f"rules/stuff_stmt.yaml",
+        target_name=f"error_management/r2c_nosemgrep_was_fatal.py",
+        options=["--verbose"],
+        output_format=OutputFormat.TEXT,
+        strict=False,
+        assert_exit_code=0,
+    )

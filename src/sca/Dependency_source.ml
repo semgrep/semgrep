@@ -30,7 +30,7 @@ type t = Out.dependency_source =
   | LockfileOnly of Lockfile.t
   | ManifestLockfile of (Manifest.t * Lockfile.t)
   (* The dependency_source should be LockfileOnly or ManifestLockfile,
-   * but not ManifestOnlyDependencySource.
+   * but not ManifestOnly.
    * Right now this variant is only used by pysemgrep; it is
    * deconstructed in multiple LockfileXxx when calling the dynamic resolver.
    * Note that this variant introduces a series of problems in the Python code
