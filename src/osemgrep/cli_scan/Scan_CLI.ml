@@ -1225,7 +1225,12 @@ let engine_type_conf ~oss ~pro_lang ~pro_intrafile ~pro ~secrets
     let extra_languages = pro || pro_lang || pro_intrafile in
     let secrets_config : Engine_type.secrets_config option =
       if secrets && not no_secrets_validation then
-        Some { allow_all_origins = allow_untrusted_validators }
+        Some
+          {
+            allow_all_origins = allow_untrusted_validators;
+            (* TODO: -historical-secrets should imply -only_validated ? *)
+            only_validated = false;
+          }
       else None
     in
     let code_config =

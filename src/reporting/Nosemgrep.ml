@@ -14,7 +14,7 @@
  *)
 open Common
 open Fpath_.Operators
-module OutJ = Semgrep_output_v1_j
+module Out = Semgrep_output_v1_j
 
 (*****************************************************************************)
 (* Prelude *)
@@ -181,7 +181,14 @@ let rule_match_nosem (pm : Core_match.t) : bool * Core_error.t list =
                  col ))
       in
       (* check if the id specified by the user is the [rule_match]'s [rule_id]. *)
-      let nosem_matches id =
+      let nosem_matches (id : string) : bool =
+        (* This is used to make sure an unexpected error in the Nosemgrep code
+         * does not crash the whole scan. See r2c_nosemgrep_was_fatal.py pytest
+         * file for more info and Core_scan.post_process_matches()
+         *)
+        if id = "nosemgrep_r_2_c_was_fatal" then
+          failwith "nosemgrep_r_2_c_was_fatal";
+
         match Rule_ID.of_string_opt id with
         | Some id -> Rule_ID.ends_with pm.rule_id.id ~suffix:id
         (* If `id` isn't a valid identifier don't supress any rule. *)
@@ -264,7 +271,7 @@ let rule_match_nosem (pm : Core_match.t) : bool * Core_error.t list =
 (* Entry points *)
 (*****************************************************************************)
 
-let produce_single_ignored (match_ : Core_result.processed_match) :
+let produce_ignored (match_ : Core_result.processed_match) :
     Core_result.processed_match * Core_error.t list =
   try
     let is_ignored, errors = rule_match_nosem match_.pm in
@@ -285,16 +292,7 @@ let produce_single_ignored (match_ : Core_result.processed_match) :
       let e = Exception.create exn trace in
       Exception.reraise e
 
-(* TODO Inline at callsites? *)
-let produce_ignored (matches : Core_result.processed_match list) :
-    Core_result.processed_match list * Core_error.t list =
-  (* filters [rule_match]s by the [nosemgrep] tag. *)
-  let matches, wide_errors =
-    matches |> List_.map produce_single_ignored |> List_.split
-  in
-  (matches, List_.flatten wide_errors)
-
-let filter_ignored ~keep_ignored (matches : OutJ.core_match list) =
+let filter_ignored ~keep_ignored (matches : Out.core_match list) =
   matches
-  |> List.filter (fun (m : OutJ.core_match) ->
+  |> List.filter (fun (m : Out.core_match) ->
          keep_ignored || not m.extra.is_ignored)

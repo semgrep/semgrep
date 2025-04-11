@@ -914,6 +914,68 @@ let scan_exn (caps : < caps ; .. >) (config : Core_scan_config.t)
   { res with processed_matches; errors; skipped_targets }
 
 (*****************************************************************************)
+(* Post processors *)
+(*****************************************************************************)
+
+(* Helper to run a "postprocessor" callback function on the set of matches in
+ * a Core_result.t.
+ * history: we were using a complex Pre_post_core_scan.ml module before with
+ * functors, first-class modules, globals, and hooks but better
+ * to use simple explicit function calls.
+ *)
+let post_process_matches
+    (f :
+      Core_result.processed_match ->
+      Core_result.processed_match * Core_error.t list) (res : Core_result.t) :
+    Core_result.t =
+  let errors = ref [] in
+  let processed_matches =
+    res.processed_matches
+    |> List_.map (fun pm ->
+           let pm, errs =
+             (* We don't want a bug in [f] (e.g., a nosemgrep parsing error)
+              * to crash the whole scan hence the error management below.
+              *)
+             try f pm with
+             (* The timeout should not happen because post_process_matches is
+              * run outside a time_limit but we do it for consistency.
+              *)
+             | (Time_limit.Timeout _ | Common.UnixExit _) as e ->
+                 Exception.catch_and_reraise e
+             | exn ->
+                 let e = Exception.catch exn in
+                 Logs.warn (fun m ->
+                     m "exn in post_process_matches: %s" (Exception.to_string e));
+                 let file =
+                   match pm.pm.path.origin with
+                   | File file -> Some file
+                   | GitBlob _ -> None
+                 in
+                 let error = Core_error.exn_to_error ?file e in
+                 (pm, [ error ])
+           in
+           Stack_.push errs errors;
+           pm)
+  in
+  {
+    res with
+    processed_matches;
+    errors = res.errors @ (List_.flatten !errors |> List.rev);
+  }
+
+(* callback to post_process_matches *)
+let post_autofix pm =
+  let errors = [] in
+  let pm = Autofix.produce_autofix pm in
+  (pm, errors)
+
+(* callback to post_process_matches *)
+let post_nosemgrep ~strict pm =
+  let pm, errors = Nosemgrep.produce_ignored pm in
+  let errors = if strict then errors else [] in
+  (pm, errors)
+
+(*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
@@ -929,14 +991,11 @@ let scan (caps : < caps ; .. >) (config : Core_scan_config.t) :
     let timed_rules =
       Common.with_time (fun () -> applicable_rules_of_config config)
     in
-    (* The pre and post processors hook here is currently used
-       for the secrets post processor in Pro, and for the autofix
-       and nosemgrep post processors in OSS; it is easy to
-       hook any pre or post processing step that needs to look at rules and
-       results. *)
+    let res : Core_result.t = scan_exn caps config timed_rules in
     Ok
-      (Pre_post_core_scan.call_with_pre_and_post_processor Fun.id
-         (scan_exn caps) config timed_rules)
+      (res
+      |> post_process_matches post_autofix
+      |> post_process_matches (post_nosemgrep ~strict:config.strict))
   with
   | exn when not !Flag_semgrep.fail_fast ->
       let e = Exception.catch exn in
