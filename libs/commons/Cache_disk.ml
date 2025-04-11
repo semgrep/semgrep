@@ -95,10 +95,11 @@ let (cache_monad :
     | Ok _ -> ()
     | Error (`Msg err) -> failwith err);
     bind (compute_value input) (fun value ->
+        let cache_file = !!cache_file in
         let extra = methods.cache_extra_for_input input in
         let (v : ('value, 'extra) cached_value_on_disk) = { extra; value } in
-        Log.info (fun m -> m "saving %s content in %s" input_str !!cache_file);
-        (try write_value v !!cache_file with
+        Log.info (fun m -> m "saving %s content in %s" input_str cache_file);
+        (try write_value v cache_file with
         | Sys_error err ->
             (* We must Signal_ignore SIGXFSZ to get this exn; See the comment
              * on "SIGXFSZ (file size limit exceeded)" in Semgrep CLI.ml
@@ -106,23 +107,24 @@ let (cache_monad :
             Log.warn (fun m ->
                 m "could not write cache file for %s (err = %s)" input_str err);
             (* Make sure we don't leave corrupt cache files behind us *)
-            if USys.file_exists !!cache_file then USys.remove !!cache_file);
+            if Sys_.file_exists cache_file then USys.remove cache_file);
         return value)
   in
   (* TODO? in theory we could use the filemtime of cache_file and
    * if the input is a file, we could check whether the cache is
    * up-to-date without even reading it
    *)
-  if USys.file_exists !!cache_file then
-    let (v : ('value, 'extra) cached_value_on_disk) = get_value !!cache_file in
+  if Sys_.Fpath.exists cache_file then
+    let cache_file = !!cache_file in
+    let (v : ('value, 'extra) cached_value_on_disk) = get_value cache_file in
     let { extra; value } = v in
     if methods.check_extra extra then (
       Log.info (fun m ->
-          m "using the cache file %s for %s" !!cache_file input_str);
+          m "using the cache file %s for %s" cache_file input_str);
       return value)
     else (
       Log.warn (fun m ->
-          m "invalid cache %s for %s (or too old)" !!cache_file input_str);
+          m "invalid cache %s for %s (or too old)" cache_file input_str);
 
       compute_and_save_in_cache ())
   else compute_and_save_in_cache ()
@@ -144,14 +146,14 @@ let cache_lwt compute_value methods input =
  *)
 let cache_computation ?(use_cache = true) file ext_cache f =
   if not use_cache then f ()
-  else if not (USys.file_exists file) then (
+  else if not (Sys_.file_exists file) then (
     Log.warn (fun m -> m "cache_computation: can't find %s" file);
     Log.warn (fun m -> m "defaulting to calling the function");
     f ())
   else
     let file_cache = file ^ ext_cache in
     if
-      USys.file_exists file_cache
+      Sys_.file_exists file_cache
       && UFile.filemtime (Fpath.v file_cache) >= UFile.filemtime (Fpath.v file)
     then (
       Log.info (fun m -> m "using cache: %s" file_cache);
@@ -163,7 +165,7 @@ let cache_computation ?(use_cache = true) file ext_cache f =
 
 let cache_computation_robust file ext_cache
     (need_no_changed_files, need_no_changed_variables) ext_depend f =
-  if not (USys.file_exists file) then failwith ("can't find: " ^ file);
+  if not (Sys_.file_exists file) then failwith ("can't find: " ^ file);
 
   let file_cache = file ^ ext_cache in
   let dependencies_cache = file ^ ext_depend in
@@ -176,7 +178,7 @@ let cache_computation_robust file ext_cache
   in
 
   if
-    USys.file_exists dependencies_cache
+    Sys_.file_exists dependencies_cache
     && get_value dependencies_cache =*= dependencies
   then get_value file_cache
   else (

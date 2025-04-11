@@ -81,7 +81,7 @@ let get_new_branch () : string =
   Printf.sprintf "semgrep/install-ci-%s" version
 
 let mkdir_if_needed path : unit =
-  if not (Sys.file_exists path) then Unix.mkdir path 0o777
+  if not (Sys_.file_exists path) then Unix.mkdir path 0o777
 
 (*****************************************************************************)
 (* gh (github CLI) setup *)

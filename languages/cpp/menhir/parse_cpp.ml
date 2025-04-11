@@ -190,7 +190,7 @@ let (_defs : (string, Pp_token.define_body) Hashtbl.t) = Hashtbl.create 101
  * can call add_defs to add local macro definitions.
  *)
 let add_defs file =
-  if not (Sys.file_exists !!file) then
+  if not (Sys_.Fpath.exists file) then
     failwith (spf "Could not find %s, have you set PFFF_HOME correctly?" !!file);
   Log.info (fun m -> m "Using %s macro file" !!file);
   let xs = extract_macros file in

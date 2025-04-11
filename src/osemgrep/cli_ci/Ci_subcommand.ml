@@ -227,7 +227,7 @@ let mk_fake_backend base (dir : Fpath.t) :
         let yaml_file = dir / "rules.yaml" in
         let json_file = dir / "rules.json" in
         let rule_file_opt =
-          match (Sys.file_exists !!yaml_file, Sys.file_exists !!json_file) with
+          match (Sys_.Fpath.exists yaml_file, Sys_.Fpath.exists json_file) with
           | true, false -> Some yaml_file
           | false, true -> Some json_file
           | false, false -> None
@@ -242,7 +242,7 @@ let mk_fake_backend base (dir : Fpath.t) :
                   m "overriding rules in %s using %s" !!file !!rule_file);
               let rules =
                 (* alt: look at the Fpath.ext of rule_file *)
-                if Sys.file_exists !!yaml_file then
+                if Sys_.Fpath.exists yaml_file then
                   UFile.read_file rule_file |> Yaml.of_string_exn
                   |> JSON.ezjsonm_to_yojson
                 else UFile.read_file rule_file |> Yojson.Basic.from_string

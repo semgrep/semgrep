@@ -261,7 +261,7 @@ let make_maturity_tests ?(lang_exn = language_exceptions) lang dir ext maturity
      exns
      |> List.iter (fun base ->
             let path = dir / (base ^ ext) in
-            if Sys.file_exists !!path then
+            if Sys_.Fpath.exists path then
               failwith
                 (spf "%s actually exist! remove it from exceptions" !!path));
      let features = List.filter (fun x -> not (List.mem x exns)) features in
@@ -272,7 +272,7 @@ let make_maturity_tests ?(lang_exn = language_exceptions) lang dir ext maturity
                 (* if it's a does-not-apply (NA) case, consider adding it
                  * to language_exceptions above
                  *)
-                if not (Sys.file_exists !!path) then
+                if not (Sys_.Fpath.exists path) then
                   failwith
                     (spf "missing test file %s for maturity %s" !!path
                        (show_maturity_level maturity)))))
@@ -575,7 +575,7 @@ let test_irrelevant_rule_file target_file =
       let rules_file =
         let d, b, _e = Filename_.dbe_of_filename !!target_file in
         let candidate1 = Filename_.filename_of_dbe (d, b, "yaml") in
-        if Sys.file_exists candidate1 then Fpath.v candidate1
+        if Sys_.file_exists candidate1 then Fpath.v candidate1
         else
           failwith
             (spf "could not find target file for irrelevant rule %s"
@@ -687,7 +687,7 @@ let tainting_tests_for_lang files lang =
              let rules_file =
                let d, b, _e = Filename_.dbe_of_filename !!file in
                let candidate1 = Filename_.filename_of_dbe (d, b, "yaml") in
-               if Sys.file_exists candidate1 then Fpath.v candidate1
+               if Sys_.file_exists candidate1 then Fpath.v candidate1
                else
                  failwith
                    (spf "could not find tainting rules file for %s" !!file)

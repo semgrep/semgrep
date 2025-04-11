@@ -12,7 +12,7 @@ let dir_error_tutorial = Fpath.v "tests/jsonnet/tutorial/errors"
 let related_file_of_target ~ext ~file =
   let dirname, basename, _e = Filename_.dbe_of_filename !!file in
   let path = Filename_.filename_of_dbe (dirname, basename, ext) in
-  if Sys.file_exists path then Ok (Fpath.v path)
+  if Sys_.file_exists path then Ok (Fpath.v path)
   else
     let msg =
       spf "could not find %s file for test '%s' in %s" ext basename dirname
