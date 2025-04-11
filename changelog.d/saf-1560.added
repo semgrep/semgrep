@@ -1,0 +1,1 @@
+python: Semgrep will now perform dataflow analysis within and through comprehensions.
