@@ -31,8 +31,8 @@
 (****************************************************************************)
 
 type t =
-  | OSS
   (* a.k.a CE for Community Edition *)
+  | OSS
   | PRO of pro_config
 
 and pro_config = {
@@ -49,7 +49,7 @@ and analysis_flavor =
   (* a.k.a. OSS scan, CE scan, Core scan.
    * This case may seem redundant with the OSS case above, but in theory
    * we can run a regular Intraprocedural Core_scan but on pro languages
-   * which requires a pro_config.
+   * or with secrets enabled which requires a pro_config.
    *)
   | Intraprocedural
   (* a.k.a. Pro intrafile, intrafile interprocedural *)
@@ -64,6 +64,10 @@ and secrets_config = {
   (* Typically secrets will only run validators from semgrep.dev. The
      allow_all_origins flag bypasses this security check. *)
   allow_all_origins : bool;
+  (* This is used by Historical scans to keep only the `Confirmed_valid
+   * matches in the postprocess secrets phase.
+   *)
+  only_validated : bool;
 }
 
 and sca_config = unit [@@deriving show]

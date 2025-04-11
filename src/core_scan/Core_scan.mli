@@ -122,6 +122,20 @@ val filter_files_with_too_many_matches_and_transform_as_timeout :
   * Core_error.t list
   * Semgrep_output_v1_j.skipped_target list
 
+val post_process_matches :
+  (Core_result.processed_match ->
+  Core_result.processed_match * Core_error.t list) ->
+  Core_result.t ->
+  Core_result.t
+
+val post_autofix :
+  Core_result.processed_match -> Core_result.processed_match * Core_error.t list
+
+val post_nosemgrep :
+  strict:bool ->
+  Core_result.processed_match ->
+  Core_result.processed_match * Core_error.t list
+
 val parse_equivalences : Fpath.t option -> Equivalence.equivalences
 
 (* small wrapper around Parse_target.parse_and_resolve_name *)
