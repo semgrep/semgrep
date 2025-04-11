@@ -372,7 +372,7 @@ let project_root_for_file file =
   project_root_for_files_in_dir (Fpath.parent file)
 
 let project_root_for_file_or_files_in_dir path =
-  if Sys.is_directory !!path then project_root_for_files_in_dir path
+  if Sys_.Fpath.is_directory path then project_root_for_files_in_dir path
   else project_root_for_file path
 
 let is_tracked_by_git file = project_root_for_file file |> Option.is_some

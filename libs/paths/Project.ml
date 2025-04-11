@@ -104,7 +104,7 @@ let get_project_root_for_nonproject_file (path : Rfpath.t) : Rfpath.t =
 *)
 let is_git_project_root dir =
   let git_folder_or_file = dir / ".git" in
-  if Sys.file_exists !!git_folder_or_file then
+  if Sys_.Fpath.exists git_folder_or_file then
     (* TODO: check that the contents of the '.git' look legit? *)
     Some (Git_project, dir)
   else None
@@ -114,10 +114,8 @@ let is_git_project_root dir =
    such as '.hg'. This is imperfect and could be improved if needed.
 *)
 let is_project_with_special_dir kind special_dir_name dir =
-  let special_dir = !!(dir / special_dir_name) in
-  if Sys.file_exists special_dir && Sys.is_directory special_dir then
-    Some (kind, dir)
-  else None
+  let special_dir = dir / special_dir_name in
+  if Sys_.Fpath.is_directory special_dir then Some (kind, dir) else None
 
 let is_mercurial_project_root =
   is_project_with_special_dir Mercurial_project ".hg"

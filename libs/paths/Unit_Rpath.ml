@@ -33,8 +33,8 @@ let test_path_conversion () =
       assert (
         UFile.read_file ~max_len (Rpath.to_fpath path)
         = Str.first_chars data max_len);
-      assert (path |> Rpath.to_string |> Sys.file_exists);
-      assert (path |> Rpath.to_string |> Sys.is_directory |> not))
+      assert (path |> Rpath.to_string |> Sys_.file_exists);
+      assert (path |> Rpath.to_string |> Sys_.is_directory |> not))
 
 let tests =
   Testo.categorize "Rpath" [ t "path_conversion" test_path_conversion ]

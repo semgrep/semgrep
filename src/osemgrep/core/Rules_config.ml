@@ -67,13 +67,13 @@ let parse_config_string ~in_docker (config_str : config_string) : t =
   (* TODO? could not find a Uri.is_url helper function *)
   | s when s =~ "^http[s]?://" -> URL (Uri.of_string s)
   (* TOPORT? handle inline rules "rules:..." see python: utils.is_rules() *)
-  | dir when Sys.file_exists dir && Sys.is_directory dir -> Dir (Fpath.v dir)
+  | dir when Sys_.is_directory dir -> Dir (Fpath.v dir)
   (* TODO: this does not work when we are run from jsonnet rules which
    * can include other files in which case we should adjust the pwd.
    * For example `make check` currently prints
    * [00.28][WARNING]: bad config string: forbid_exit.jsonnet
    *)
-  | file when Sys.file_exists file -> File (Fpath.v file)
+  | file when Sys_.is_regular_file file -> File (Fpath.v file)
   (* TOPORT? raise SemgrepError(f"config location `{loc}` is not a file or folder!") *)
   | str ->
       (* TODO: Logs.warn (fun m -> m "bad config string: %s" str);

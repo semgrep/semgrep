@@ -260,7 +260,7 @@ let filter_existing_targets (targets : Target.t list) :
   targets
   |> Either_.partition (fun (target : Target.t) ->
          let internal_path = Target.internal_path target in
-         if Sys.file_exists !!internal_path then Left target
+         if Sys_.Fpath.exists internal_path then Left target
          else
            match Target.origin target with
            | File path ->

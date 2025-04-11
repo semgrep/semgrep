@@ -215,6 +215,24 @@ local semgrep_rules = [
       ],
     },
   },
+  // similar to no-print-in-semgrep in semgrep.yml
+  {
+    id: 'no-sys-file-exists',
+    match: {
+      any: [
+        'Sys.file_exists ...',
+        'Sys.is_directory ...',
+        'Sys.is_regular_file ...',
+      ],
+    },
+    message: |||
+      Please do not use file stat functions in Sys; Use equivalent ones in Sys_ or Fpath_.
+      See https://linear.app/semgrep/issue/SAF-1899/write-windows-safe-version-of-sysfile-exists
+      for details.
+    |||,
+    languages: ['ocaml'],
+    severity: 'ERROR',
+  },
 ];
 
 // ----------------------------------------------------------------------------
