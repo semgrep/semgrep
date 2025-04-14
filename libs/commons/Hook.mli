@@ -7,6 +7,10 @@
  * scopes the mutation of the hook to the execution of a particular function,
  * then returns the hook to its previous value.
  *
+ * Since `with_hook_set` "localises" mutation to a sequence of function calls,
+ * state for a hook resides in Domain-local storage.  As a result, a parallel
+ * program will not race on setting a hook's value.
+ *
  * This makes it easier to reason about the hooks and makes it less likely that
  * hook state will escape outside where it is intended. We've had issues where,
  * for example, hooks were not reset between tests, leading to bizarre and

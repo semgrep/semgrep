@@ -1,0 +1,9 @@
+(library
+  (public_name parallelism.tests)
+  (name parallelism_tests)
+  (wrapped false)
+  (libraries
+    alcotest
+    testo
+    commons
+    parallelism))

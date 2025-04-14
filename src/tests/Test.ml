@@ -171,6 +171,9 @@ let tests (caps : Cap.all_caps) =
       Test_core_CLI.tests (caps :> Cap.all_caps);
       (* Inline tests *)
       Testo.get_registered_tests ();
+      (* Parallelism tests must come last, as previous tests require forking
+       * and an exception is raised if a fork follows a domain spawn *)
+      Parallelism_tests.tests;
     ]
 
 (*****************************************************************************)
