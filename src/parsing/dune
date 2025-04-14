@@ -30,6 +30,7 @@
    semgrep.typing
    pfff_lang_GENERIC_analyze ; =~ semgrep_analyzing ; Constant_propagation in Parse_target.ml
    semgrep_targeting ; for Input_to_core.atd
+   parallelism
 
  )
  (preprocess (pps ppx_profiling ppx_deriving.show))

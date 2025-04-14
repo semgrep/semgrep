@@ -89,8 +89,14 @@ type config = {
 (* The endpoint that otel traces will be sent to. This should only ever be set
    in configure_tracing, which is called once, at the beginning. The ref isn't
    nice, but we need it to start and stop tracing without having to pass around
-   an env. See [with_tracing_paused]*)
-let active_endpoint = ref None
+   an env. See [with_tracing_paused]
+
+   TODO(SAF-1938): This is a Domain-local value in order to more closely match
+   with ParMap (which re-creates its own endpoint after forking in order to
+   pull random seeds - see [restart_tracing]).  Once we are using multicore by
+   default, we should revisit this.
+   *)
+let active_endpoint = Domain.DLS.new_key (const None)
 
 (* Coupling: these need to be kept in sync with tracing.py *)
 let trace_level_var = "SEMGREP_TRACE_LEVEL"
@@ -429,7 +435,7 @@ let setup_otel trace_endpoint =
   (* hack: let's just keep track of the endpoint for if we restart tracing
      instead of having to pass it down everywhere. We will assume that we will
      only ever report to one endpoint for the lifetime of the program *)
-  active_endpoint := Some trace_endpoint;
+  Domain.DLS.set active_endpoint (Some trace_endpoint);
   (* Set the Otel Collector *)
   Otel.Collector.set_backend otel_backend;
   if Trace.enabled () then
@@ -469,7 +475,7 @@ let restart_tracing () =
   let new_random_state = Random.State.make_self_init () in
   Otel.Rand_bytes.rand_bytes_8 := mk_rand_bytes_8 new_random_state;
   Otel.Rand_bytes.rand_bytes_16 := mk_rand_bytes_16 new_random_state;
-  !active_endpoint
+  Domain.DLS.get active_endpoint
   |> Option.iter (fun endpoint ->
          Log.info (fun m -> m "Restarting tracing");
          setup_otel endpoint)
