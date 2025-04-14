@@ -181,7 +181,8 @@ let extract_macros file =
 (* less: pass it as a parameter to parse_program instead ?
  * old: was a ref, but a hashtbl.t is actually already a kind of ref
  *)
-let (_defs : (string, Pp_token.define_body) Hashtbl.t) = Hashtbl.create 101
+let (_defs : (string, Pp_token.define_body) Hashtbl.t Domain.DLS.key) =
+  Domain.DLS.new_key (const (Hashtbl.create 101))
 
 (* We used to have also a init_defs_builtins() so that we could use a
  * standard.h containing macros that were always useful, and a macros.h
@@ -194,10 +195,10 @@ let add_defs file =
     failwith (spf "Could not find %s, have you set PFFF_HOME correctly?" !!file);
   Log.info (fun m -> m "Using %s macro file" !!file);
   let xs = extract_macros file in
-  xs |> List.iter (fun (k, v) -> Hashtbl.add _defs k v)
+  xs |> List.iter (fun (k, v) -> Hashtbl.add (Domain.DLS.get _defs) k v)
 
 let init_defs file =
-  Hashtbl.clear _defs;
+  _defs |> Domain.DLS.get |> Hashtbl.clear;
   add_defs file
 
 (*****************************************************************************)
@@ -270,7 +271,8 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
   let toks_orig = tokens (Parsing_helpers.file !!file) in
 
   let toks =
-    try Parsing_hacks.fix_tokens ~macro_defs:_defs lang toks_orig with
+    let macro_defs = Domain.DLS.get _defs in
+    try Parsing_hacks.fix_tokens ~macro_defs lang toks_orig with
     | Token_views_cpp.UnclosedSymbol s ->
         Log.warn (fun m -> m "unclosed symbol %s" s);
         if !Flag_cpp.debug_cplusplus then
@@ -455,7 +457,8 @@ let any_of_string lang s =
       let toks_orig = tokens (Parsing_helpers.Str s) in
 
       let toks =
-        try Parsing_hacks.fix_tokens ~macro_defs:_defs lang toks_orig with
+        let macro_defs = Domain.DLS.get _defs in
+        try Parsing_hacks.fix_tokens ~macro_defs lang toks_orig with
         | Token_views_cpp.UnclosedSymbol s ->
             Log.warn (fun m -> m "unclosed symbol %s" s);
             if !Flag_cpp.debug_cplusplus then

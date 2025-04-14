@@ -152,6 +152,7 @@ let save_excursion reference newv f =
   finalize f (fun _ -> reference := old)
 
 let memoized ?(use_cache = true) h k f =
+  (* TODO(SAF-1940): experiment with weak refs *)
   if not use_cache then f ()
   else
     try Hashtbl.find h k with
