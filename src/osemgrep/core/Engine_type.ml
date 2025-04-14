@@ -61,13 +61,18 @@ and analysis_flavor =
 and code_config = unit
 
 and secrets_config = {
-  (* Typically secrets will only run validators from semgrep.dev. The
-     allow_all_origins flag bypasses this security check. *)
   allow_all_origins : bool;
-  (* This is used by Historical scans to keep only the `Confirmed_valid
-   * matches in the postprocess secrets phase.
+      (** Controls if we restrict the origins for secret rules. Normally this is
+   * restricted for security purposes so that only (pro) rules from the
+   * registry can have postprocessors, but sometimes we want to allow
+   * postprocessors to run regardless of origin (e.g., for testing purposes).
+   * Typically secrets will only run validators from semgrep.dev. The
+   * allow_all_origins flag bypasses this security check.
    *)
   only_validated : bool;
+      (** This is used by Historical scans to keep only the `Confirmed_valid
+   * matches in the postprocess secrets phase.
+   *)
 }
 
 and sca_config = unit [@@deriving show]
