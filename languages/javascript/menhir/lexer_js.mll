@@ -531,7 +531,7 @@ rule initial = parse
       | T_PLING _ | T_COLON _
       | T_LBRACKET _
       | T_AND _ | T_OR _ | T_PLUS _
-    ) when !Flag_parsing_js.jsx ->
+    ) ->
       push_mode (ST_IN_XHP_TAG tag);
       T_XHP_OPEN_TAG(tag, tokinfo lexbuf)
     (* sgrep-ext: *)
@@ -560,7 +560,7 @@ rule initial = parse
       | T_PLING _ | T_COLON _
       | T_LBRACKET _
       | T_AND _ | T_OR _ | T_PLUS _
-    ) when !Flag_parsing_js.jsx
+    )
       ->
       let tag = "" in
       (* we go directly in ST_IN_XHP_TEXT *)

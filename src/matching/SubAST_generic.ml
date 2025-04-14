@@ -23,7 +23,7 @@ module H = AST_generic_helpers
  *
  *)
 
-let go_really_deeper_stmt = ref true
+let go_really_deeper_stmt = true
 
 (*****************************************************************************)
 (* Sub-expressions and sub-statements *)
@@ -328,7 +328,7 @@ let substmts_of_stmt st =
   | DisjStmt _ -> raise Common.Impossible
   (* this may slow down things quite a bit *)
   | DefStmt (_ent, def) -> (
-      if not !go_really_deeper_stmt then []
+      if not go_really_deeper_stmt then []
       else
         match def with
         | VarDef _
@@ -402,7 +402,7 @@ let flatten_substmts_of_stmts xs =
      * a zillion times on big files (see tests/PERF/) if we do the
      * matching naively in m_stmts_deep.
      *)
-    (if !go_really_deeper_stmt then
+    (if go_really_deeper_stmt then
        let es = subexprs_of_stmt x in
        (* getting deeply nested lambdas stmts *)
        let lambdas = es |> List.concat_map lambdas_in_expr_memo in

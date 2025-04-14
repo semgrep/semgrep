@@ -39,11 +39,8 @@ module Flag_php = Flag_parsing_php
 exception Lexical of string
 
 let error s =
-  if !Flag_php.strict_lexer
-  then raise (Lexical s)
-  else
-    if !Flag.verbose_lexing
-    then UCommon.pr2 ("LEXER: " ^ s)
+  if !Flag.verbose_lexing
+  then UCommon.pr2 ("LEXER: " ^ s)
 
 (* pad: hack around ocamllex to emulate the yyless() of flex. The semantic
  * is not exactly the same than yyless(), so I use yyback() instead.
@@ -62,16 +59,10 @@ let tokinfo = Tok.tok_of_lexbuf
 let tokinfo_file_str_pos (file : Fpath.t) (str : string) (bytepos : int) : Tok.t
   = Tok.make ~str ~bytepos ~file
 
-(* all string passed to T_IDENT or T_VARIABLE should go through case_str *)
-let case_str s =
-  if !Flag_php.case_sensitive
-  then s
-  else String.lowercase_ascii s
-
 let lang_ext_or_t_ident ii fii =
   if !Flag_php.facebook_lang_extensions
   then fii ii
-  else T_IDENT(case_str (Tok.content_of_tok ii), ii)
+  else T_IDENT((Tok.content_of_tok ii), ii)
 
 let t_variable_or_metavar s info =
   (* sgrep-ext: we used to generate a T_IDENT here, so a metavariable
@@ -82,8 +73,8 @@ let t_variable_or_metavar s info =
    * conflicts in the grammar.
    *)
   if AST_generic.is_metavar_name ("$" ^ s) && !Flag.sgrep_mode
-  then T_METAVAR (case_str ("$" ^ s), info)
-  else T_VARIABLE(case_str s, info)
+  then T_METAVAR ("$" ^ s, info)
+  else T_VARIABLE(s, info)
 
 (* ---------------------------------------------------------------------- *)
 (* Keywords *)
@@ -550,7 +541,7 @@ rule st_in_scripting = parse
         let whiteinfo = tokinfo_file_str_pos file white pos_after_sym in
         let lblinfo = tokinfo_file_str_pos file label pos_after_white in
 
-        push_token (T_IDENT (case_str label, lblinfo));
+        push_token (T_IDENT (label, lblinfo));
        (* todo: could be newline ... *)
         push_token (TSpaces whiteinfo);
 
@@ -594,8 +585,8 @@ rule st_in_scripting = parse
      * at least the uppercase form to be used as identifier, hence those
      * two rules below.
      *)
-    | "SELF"   { T_IDENT (case_str (tok lexbuf), tokinfo lexbuf) }
-    | "PARENT" { T_IDENT (case_str (tok lexbuf), tokinfo lexbuf) }
+    | "SELF"   { T_IDENT ((tok lexbuf), tokinfo lexbuf) }
+    | "PARENT" { T_IDENT ((tok lexbuf), tokinfo lexbuf) }
 
     (* ugly: some code is using ASYNC as a constant, so one way to fix
      * the conflict is to return the T_ASYNC only when it's used
@@ -617,7 +608,7 @@ rule st_in_scripting = parse
           | Some f -> f info
           (* was called T_STRING in original grammar *)
           | None ->
-              T_IDENT (case_str s, info)
+              T_IDENT (s, info)
         }
 
     (* Could put a special rule for "$this", but there are multiple places here
@@ -637,7 +628,7 @@ rule st_in_scripting = parse
         let pos_after_sym = parse_info.Loc.pos.bytepos + 2 in
         let lblinfo = tokinfo_file_str_pos file s pos_after_sym in
 
-        push_token (T_VARIABLE(case_str s, lblinfo));
+        push_token (T_VARIABLE(s, lblinfo));
         TDOLLAR dollarinfo
                   }
   (* sgrep-ext: *)
@@ -846,7 +837,7 @@ and st_looking_for_property = parse
     }
   | LABEL {
       pop_mode();
-      T_IDENT(case_str (tok lexbuf), tokinfo lexbuf)
+      T_IDENT((tok lexbuf), tokinfo lexbuf)
     }
 (*
   | ANY_CHAR {
@@ -875,8 +866,8 @@ and st_var_offset = parse
     T_NUM_STRING (tok lexbuf, tokinfo lexbuf)
   }
 
-  | "$" (LABEL as s) { T_VARIABLE(case_str s, tokinfo lexbuf) }
-  | LABEL            { T_IDENT(case_str (tok lexbuf), tokinfo lexbuf)  }
+  | "$" (LABEL as s) { T_VARIABLE(s, tokinfo lexbuf) }
+  | LABEL            { T_IDENT((tok lexbuf), tokinfo lexbuf)  }
 
   | "]" {
       pop_mode();
@@ -912,7 +903,7 @@ and st_double_quotes = parse
           let bra_info = tokinfo_file_str_pos file "[" pos_after_label in
           push_token (TOBRA bra_info);
           push_mode ST_VAR_OFFSET;
-          T_VARIABLE(case_str s, varinfo)
+          T_VARIABLE(s, varinfo)
       }
     (* bugfix: can have strings like "$$foo$" *)
     | "$" { T_ENCAPSED_AND_WHITESPACE(tok lexbuf, tokinfo lexbuf) }
@@ -949,7 +940,7 @@ and st_backquote = parse
       T_ENCAPSED_AND_WHITESPACE(tok lexbuf, tokinfo lexbuf)
     }
     (* TODO? should we use t_variable_or_metavar? *)
-    | "$" (LABEL as s)     { T_VARIABLE (case_str s, (tokinfo lexbuf)) }
+    | "$" (LABEL as s)     { T_VARIABLE (s, (tokinfo lexbuf)) }
     | "$" (LABEL as s) "[" {
           let info = tokinfo lexbuf in
 
@@ -961,7 +952,7 @@ and st_backquote = parse
           let bra_info = tokinfo_file_str_pos file "[" pos_after_label in
           push_token (TOBRA bra_info);
           push_mode ST_VAR_OFFSET;
-          T_VARIABLE(case_str s, varinfo)
+          T_VARIABLE(s, varinfo)
       }
     (* bugfix: can have strings like "$$foo$" *)
     | "$" { T_ENCAPSED_AND_WHITESPACE(tok lexbuf, tokinfo lexbuf) }
@@ -1040,7 +1031,7 @@ and st_start_heredoc stopdoc = parse
           let bra_info = tokinfo_file_str_pos file "[" pos_after_label in
           push_token (TOBRA bra_info);
           push_mode ST_VAR_OFFSET;
-          T_VARIABLE(case_str s, varinfo)
+          T_VARIABLE(s, varinfo)
       }
     (* bugfix: can have strings like "$$foo$", or {{$foo}} *)
     | "$" { T_ENCAPSED_AND_WHITESPACE(tok lexbuf, tokinfo lexbuf) }

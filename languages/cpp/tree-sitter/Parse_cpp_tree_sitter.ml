@@ -33,10 +33,6 @@ module Log = Log_parser_cpp.Log
  *
  *)
 
-(* to avoid cascading error effects when code is partially parsed by
- * tree-sitter *)
-let recover_when_partial_error = ref true
-
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -61,10 +57,8 @@ let error_unless_partial_error _env t s =
    * parsed and contained some ERROR CST nodes around t instead of
    * using a hardcoded boolean below.
    *)
-  if not !recover_when_partial_error then error t s
-  else
-    Log.warn (fun m ->
-        m "error_unless_partial_error: %s, at %s" s (Tok.stringpos_of_tok t))
+  Log.warn (fun m ->
+      m "error_unless_partial_error: %s, at %s" s (Tok.stringpos_of_tok t))
 
 let map_fold_operator (env : env) (x : CST.fold_operator) =
   match x with

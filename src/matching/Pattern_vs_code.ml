@@ -131,12 +131,6 @@ let _ =
   assert (
     all_suffix_of_list [ 1; 2; 3 ] =*= [ [ 1; 2; 3 ]; [ 2; 3 ]; [ 3 ]; [] ])
 
-(* copy paste of module_ml.ml *)
-let module_name_of_filename file =
-  let _d, b, _e = Filename_.dbe_of_filename file in
-  let module_name = String.capitalize_ascii b in
-  module_name
-
 (* Should `$X(...)` match a call to an IdSpecial function? *)
 let should_match_call = function
   (* JS `require("fs")` *)
@@ -541,16 +535,8 @@ let rec m_name_inner a b =
    * target code is using an unqualified Id possibly because of some open!
    *)
   | G.IdQualified { name_last = ida, None; _ }, B.Id (idb, _infob)
-    when fst ida = fst idb -> (
-      match !Core_hooks.get_def idb with
-      | None -> try_with_equivalences a b
-      | Some file ->
-          let m = module_name_of_filename file in
-          let t = snd idb in
-          let _n = H.name_of_ids [ (m, t); idb ] in
-          (* retry with qualified target *)
-          (* m_name a n *)
-          return ())
+    when fst ida = fst idb ->
+      try_with_equivalences a b
   (* boilerplate *)
   | ( _a1,
       G.IdQualified
@@ -734,13 +720,10 @@ and m_qdots_global_name a b =
 
 (* semantic! try to handle typed metavariables by querying LSP
  * to get inferred type info (only for OCaml for now) *)
-and m_type_option_with_hook idb taopt tbopt =
+and m_type_option taopt tbopt =
   match (taopt, tbopt) with
   | Some ta, Some tb -> m_type_ ta tb
-  | Some ta, None -> (
-      match !Core_hooks.get_type idb with
-      | Some tb -> m_type_ ta tb
-      | None -> fail ())
+  | Some _ta, None -> fail ()
   (* less-is-ok:, like m_option_none_can_match_some *)
   | None, _ -> return ()
 
@@ -755,7 +738,7 @@ and m_ident_and_id_info (a1, a2) (b1, b2) =
   match (a1, b1) with
   | (str, tok), b when Mvar.is_metavar_name str ->
       (* a bit OCaml specific, cos only ml_to_generic tags id_type in pattern *)
-      m_type_option_with_hook b1 !(a2.G.id_type) !(b2.B.id_type) >>= fun () ->
+      m_type_option !(a2.G.id_type) !(b2.B.id_type) >>= fun () ->
       m_id_info a2 b2 >>= fun () -> envf (str, tok) (MV.Id (b, Some b2))
   (* same code than for m_ident *)
   (* in some languages such as Javascript certain entities like
@@ -1628,7 +1611,7 @@ and m_compatible_type lang typed_mvar t e =
       (* TODO Remove this case in favor of the newer type inference below. *)
       | _ta, B.N (B.Id (idb, ({ B.id_type = tb; _ } as id_infob))) ->
           (* NOTE: Name values must be represented with MV.Id! *)
-          m_type_option_with_hook idb (Some t) !tb >>= fun () ->
+          m_type_option (Some t) !tb >>= fun () ->
           envf typed_mvar (MV.Id (idb, Some id_infob))
       | _else_ -> fail ())
       >||>
@@ -1656,9 +1639,8 @@ and m_compatible_type lang typed_mvar t e =
         with_bound_metavar
       else
         match idopt with
-        | Some idb ->
-            m_type_option_with_hook idb (Some t) None >>= fun () ->
-            with_bound_metavar
+        | Some _idb ->
+            m_type_option (Some t) None >>= fun () -> with_bound_metavar
         | None -> fail ())
 
 (*---------------------------------------------------------------------------*)
@@ -3356,7 +3338,7 @@ and m_parameter_classic a b =
     ) ->
       m_ident_and_id_info (a1, a5) (b1, b5) >>= fun () ->
       (m_option_none_can_match_some m_expr) a2 b2 >>= fun () ->
-      (m_type_option_with_hook b1) a3 b3 >>= fun () ->
+      m_type_option a3 b3 >>= fun () ->
       m_list_in_any_order ~less_is_ok:true m_attribute a4 b4
   (* boilerplate *)
   | ( { G.pname = a1; pdefault = a2; ptype = a3; pattrs = a4; pinfo = a5 },

@@ -1,14 +1,7 @@
 open Common.Operators
 
-let strict_lexer = ref false
-let short_open_tag = ref true
-
-(* PHP is case insensitive, which is I think a bad idea, so
- * by default let's have a case sensitive lexer.
- *)
-let case_sensitive = ref true
-
-(* e.g. yield *)
+(* e.g. yield
+ * TODO: may yield false TSAN positives on multicore *)
 let facebook_lang_extensions = ref true
 
 (* coupling: copy paste of Php_vs_php *)

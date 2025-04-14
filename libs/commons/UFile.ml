@@ -34,8 +34,6 @@ module Log = Log_commons.Log
 (* Globals and constants *)
 (*****************************************************************************)
 
-let follow_symlinks = ref false
-
 let vcs_re =
   "(^((\\.hg)|(CVS)|(\\.git)|(_darcs)|(\\.svn))$)|(.*\\.git_annot$)|(.*\\.marshall$)"
   |> Re.Posix.re |> Re.compile
