@@ -17,7 +17,6 @@ val parse_fuzzy :
   Fpath.t -> Ast_fuzzy.trees * (Lib_ast_fuzzy.token_kind * Tok.t) list
 
 (* usually correspond to what is inside your macros.h *)
-val _defs : (string, Pp_token.define_body) Hashtbl.t
 val init_defs : Fpath.t -> unit
 val add_defs : Fpath.t -> unit
 
