@@ -25,7 +25,7 @@ module Options = Rule_options_t
 module MG = Matching_generic
 module Log = Log_matching.Log
 
-let profile_mini_rules = ref false
+let profile_mini_rules = false
 
 (*****************************************************************************)
 (* Prelude *)
@@ -58,7 +58,7 @@ let set_last_matched_rule (rule : Mini_rule.t) f =
    * reset to None and that's what we want!
    *)
   let res =
-    if !profile_mini_rules then
+    if profile_mini_rules then
       Profiling.profile_code ("rule:" ^ Rule_ID.to_string rule.id) f
     else f ()
   in

@@ -78,7 +78,7 @@ module Log = Log_parser_scala.Log
  *)
 
 (* See also Flag_parsing.debug_parser and Flag_parsing.debug_lexer *)
-let debug_newline = ref false
+let debug_newline = false
 
 (*****************************************************************************)
 (* Types  *)
@@ -405,7 +405,7 @@ let inSepRegion tok f in_ =
 (* newline: pad: I've added the ~newlines param to differentiante adding
  * a NEWLINE or NEWLINES *)
 let insertNL ?(newlines = false) in_ =
-  if !debug_newline then (
+  if debug_newline then (
     Log.debug (fun m -> m "%s: %s" "insertNL" (T.show in_.token));
     Log.debug (fun m ->
         m "inserting back a newline:%s" (Dumper.dump in_.last_nl)));
@@ -431,14 +431,14 @@ let afterLineEnd in_ =
         | DEDENT _ ->
             loop xs
         | _ ->
-            if !debug_newline then
+            if debug_newline then
               Log.debug (fun m ->
                   m "%s: false because %s" "afterLineEnd" (T.show x));
             false)
     | [] -> false
   in
   loop in_.passed |> fun b ->
-  if !debug_newline then
+  if debug_newline then
     Log.debug (fun m ->
         m "%s: %s, result = %b" "afterLineEnd" (T.show in_.token) b);
   b

@@ -253,8 +253,6 @@ let safe_run ~debug f : Exit_code.t =
         Exit_code.fatal ~__LOC__
 
 let before_exit ~profile caps : unit =
-  (* alt: could be done in Main.ml instead, just before the call to exit() *)
-  !Core_hooks.exit |> List.iter (fun f -> f ());
   (* mostly a copy of Profiling.main_boilerplate finalize code *)
   if profile then Profiling.log_diagnostics_and_gc_stats ();
   (* alt: could use Logs.debug, but --profile would require then --debug *)

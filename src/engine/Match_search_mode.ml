@@ -30,7 +30,6 @@ open Match_env
 (* Debugging flags.
  * Note that semgrep-core -matching_explanations can also be useful to debug.
  *)
-let debug_timeout = ref false
 let debug_matches = ref false
 
 (*****************************************************************************)
@@ -274,7 +273,7 @@ let matches_of_patterns ~has_as_metavariable ?mvar_context ?range_filter rule
                      mini_rule_of_pattern analyzer rule (pat, b, c, d))
             in
 
-            if !debug_timeout || !debug_matches then
+            if !debug_matches then
               (* debugging path *)
               debug_semgrep config mini_rules internal_path_to_content lang ast
             else

@@ -12,9 +12,6 @@
 (* Paths *)
 (*****************************************************************************)
 
-(* ugly: internal flag for files_of_dir_or_files_no_vcs_nofilter *)
-val follow_symlinks : bool ref
-
 (* list recursively files in a directory and tries to skip files in
  * version control system (vcs) (e.g., .git, _darcs, etc.).
  *
