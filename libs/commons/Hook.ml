@@ -22,18 +22,25 @@
  * This is common practice in Emacs modes for example.
  *)
 
+open Common
+
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type 'a t = 'a ref
+type 'a t = 'a Domain.DLS.key
 
 (*****************************************************************************)
 (* API *)
 (*****************************************************************************)
 
-let create = ref
-let with_hook_set = Common.save_excursion
-let get = ( ! )
+let create v = Domain.DLS.new_key ~split_from_parent:Fun.id (Fun.const v)
+
+let with_hook_set hook v f =
+  let old = Domain.DLS.get hook in
+  Domain.DLS.set hook v;
+  finalize f (fun _ -> Domain.DLS.set hook old)
+
+let get = Domain.DLS.get
 
 (* small helper so we can combine calls to [with_] with [@@]
  * alt: 'let f () = Hook.with_hook_set ... f in let f () = ...'
