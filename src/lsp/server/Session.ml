@@ -127,6 +127,9 @@ let decode_rules caps data =
           (* There shouldn't be any errors, because we got these rules from CI. *)
           failwith "impossible: received invalid rules from Deployment")
 
+let decode_rules_detached caps data =
+  Lwt_platform.detach (fun () -> decode_rules caps data) ()
+
 let get_targets (session : t) (root : Fpath.t) =
   let targets_conf =
     User_settings.find_targets_conf_of_t session.user_settings
@@ -250,9 +253,12 @@ let fetch_ci_rules_and_origins caps =
   let token = auth_token () in
   let%lwt scan_config_opt = scan_config_of_token caps token in
 
-  let rules_opt =
-    Option.bind scan_config_opt (fun scan_config ->
-        Some (decode_rules caps scan_config.rule_config))
+  let%lwt rules_opt =
+    match scan_config_opt with
+    | None -> Lwt.return None
+    | Some scan_config ->
+        let%lwt res = decode_rules_detached caps scan_config.rule_config in
+        Lwt.return (Some res)
   in
   Lwt.return rules_opt
 
