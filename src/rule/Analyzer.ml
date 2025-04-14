@@ -123,8 +123,7 @@ let assoc : (string * t) list =
        *);
     ]
 
-let map = Hashtbl_.hash_of_list assoc
-let keys = Hashtbl_.hkeys map
+let keys = Hashtbl_.hkeys (Hashtbl_.hash_of_list assoc)
 let supported_analyzers : string = String.concat ", " keys
 
 let unsupported_analyzer_message (analyzer_s : string) =

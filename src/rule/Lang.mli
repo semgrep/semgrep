@@ -145,10 +145,10 @@ val of_opt_exn : t option -> t
 
 (* accept any variants *)
 val is_js : t -> bool
+val lang_map : (string, t) Hashtbl.t
 
 (* accept any variants *)
 val is_proprietary : t -> bool
-val lang_map : (string, t) Hashtbl.t
 
 (* Association from a valid name for a language to its unique internal ID. *)
 val assoc : (string * t) list

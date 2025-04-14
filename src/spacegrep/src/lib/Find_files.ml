@@ -11,6 +11,7 @@ type visit_tracker = {
   mark_visited : string -> unit;
 }
 
+(* XXX: Common.memoized ? *)
 let memoize f =
   let tbl = Hashtbl.create 100 in
   fun x ->
