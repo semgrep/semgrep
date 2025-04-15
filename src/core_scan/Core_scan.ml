@@ -798,6 +798,29 @@ let rules_for_target ~combine_js_with_ts ~analyzer ~products ~origin
 (* a "core" scan *)
 (*****************************************************************************)
 
+let match_rules (caps : < Cap.time_limit ; .. >) ~matches_hook
+    (config : Core_scan_config.t)
+    (prefilter_cache_opt : Match_env.prefilter_config) (rules : Rule.t list)
+    (xtarget : Xtarget.t) : Core_result.matches_single_file =
+  let xconf : Match_env.xconfig =
+    {
+      config = Rule_options.default;
+      equivs = parse_equivalences config.equivalences_file;
+      nested_formula = false;
+      matching_explanations = config.matching_explanations;
+      filter_irrelevant_rules = prefilter_cache_opt;
+    }
+  in
+  let caps = (caps :> < Cap.time_limit >) in
+  let timeout : Match_rules.timeout_config option =
+    let caps = (caps :> < Cap.time_limit >) in
+    Some
+      { timeout = config.timeout; threshold = config.timeout_threshold; caps }
+  in
+  (* !!Calling Match_rules!! Calling the matching engine!! *)
+  Match_rules.check ~matches_hook ~timeout xconf rules xtarget
+[@@trace]
+
 (* build the callback for iter_targets_and_get_matches_and_exn_to_errors
  * coupling: with Pro_scan.mk_target_handler()
  *)
@@ -824,24 +847,9 @@ let mk_target_handler (caps : < Cap.time_limit >) (config : Core_scan_config.t)
   (* TODO: can we skip all of this if there are no applicable
           rules? In particular, can we skip print_cli_progress? *)
   let xtarget = Xtarget.resolve parse_and_resolve_name target in
-  let xconf =
-    {
-      Match_env.config = Rule_options.default;
-      equivs = parse_equivalences config.equivalences_file;
-      nested_formula = false;
-      matching_explanations = config.matching_explanations;
-      filter_irrelevant_rules = prefilter_cache_opt;
-    }
-  in
-  let timeout =
-    let caps = (caps :> < Cap.time_limit >) in
-    Some
-      Match_rules.
-        { timeout = config.timeout; threshold = config.timeout_threshold; caps }
-  in
   let matches : Core_result.matches_single_file =
-    (* !!Calling Match_rules!! Calling the matching engine!! *)
-    Match_rules.check ~matches_hook:Fun.id ~timeout xconf rules xtarget
+    match_rules caps ~matches_hook:Fun.id config prefilter_cache_opt rules
+      xtarget
   in
   (* So we can display matches incrementally in osemgrep!
           * Note that this is run in a child process of Parmap, so
