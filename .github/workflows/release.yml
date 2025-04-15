@@ -124,51 +124,6 @@ jobs:
         id: publish_release_semgrep_interfaces
         name: Publish Release Semgrep Interfaces
         run: gh release --repo semgrep/semgrep-interfaces edit "$VERSION" --draft=false
-  upload-wheels:
-    name: Upload Wheels to PyPI
-    needs:
-      - wait-for-build-test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download manylinux-x86-wheel
-        uses: actions/download-artifact@v4
-        with:
-          name: manylinux-x86-wheel
-          path: manylinux-x86-wheel
-      - name: Download manylinux-aarch64-wheel
-        uses: actions/download-artifact@v4
-        with:
-          name: manylinux-aarch64-wheel
-          path: manylinux-aarch64-wheel
-      - name: Download osx-x86-wheel
-        uses: actions/download-artifact@v4
-        with:
-          name: osx-x86-wheel
-          path: osx-x86-wheel
-      - name: Download osx-arm64-wheel
-        uses: actions/download-artifact@v4
-        with:
-          name: osx-arm64-wheel
-          path: osx-arm64-wheel
-      - name: Download windows-x86-wheel
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-x86-wheel
-          path: windows-x86-wheel
-      - run: |
-          unzip ./manylinux-x86-wheel/dist.zip
-          unzip ./manylinux-aarch64-wheel/dist.zip "*.whl"
-          unzip ./osx-x86-wheel/dist.zip "*.whl"
-          unzip ./osx-arm64-wheel/dist.zip "*.whl"
-          # Windows build creates a tgz since zip is not available
-          tar --wildcards -xzf ./windows-x86-wheel/dist.tgz "*.whl"
-      - if: ${{ ! inputs.dry-run }}
-        name: Publish to Pypi
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_UPLOAD_TOKEN }}
-          skip_existing: true
-          user: __token__
   wait-for-build-test:
     name: Wait for Build/Test All Platforms
     needs:

@@ -1,5 +1,58 @@
 // Factorize GHA "actions" (=~ plugins) boilerplate.
 local gha = import './gha.libsonnet';
+
+local download_artifact_step(artifact_name, run_id=null) = {
+  uses: 'actions/download-artifact@v4',
+  with: {
+  } + (if artifact_name == '' then {} else {
+
+         name: artifact_name,
+       }) + (if run_id != null then {
+               'run-id': run_id,
+               'github-token': '${{ secrets.GITHUB_TOKEN }}',
+             } else {}),
+};
+
+// Gets the run id of a workflow from a specific ref. This is useful for if you
+// want to wait for checks on a specific commit to complete, but it's not part
+// of a PR
+local
+  get_workflow_run_id_step(
+    sha,
+    workflow_file,
+    repo='${{ github.repository }}'
+  ) = {
+    name: 'Get latest workflow id',
+    id: 'get_workflow_run_id',
+
+    env: {
+      GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
+      SHA: sha,
+      WORKFLOW_FILE: workflow_file,
+      REPO: repo,
+    },
+    // get the most recent workflow run id from a specific commit sha
+    // This is not as hacky as it seems I promise
+    run: |||
+      workflow_run_id=$(gh api /repos/${REPO}/actions/workflows/${WORKFLOW_FILE}/runs \
+        --method GET -f head_sha=${SHA} \
+        -q '.workflow_runs[0].id')
+      echo "workflow_run_id=$workflow_run_id" >> $GITHUB_OUTPUT
+    |||,
+  };
+// output from the above step
+local workflow_run_id_output = '${{ steps.get_workflow_run_id.outputs.workflow_run_id }}';
+
+// Wait for a workflow to complete successfully
+// Use get_workflow_run_id_step above to get the run id if needed
+local wait_for_workflow_run(run_id, interval=3, repo='${{ github.repository }}') = {
+  name: 'Wait for %s' % run_id,
+  env: {
+    GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
+  },
+  run: 'gh run watch "%s" --exit-status -i %s -R "%s"' % [run_id, interval, repo],
+};
+
 {
   // ---------------------------------------------------------
   // Checkout
@@ -95,12 +148,10 @@ local gha = import './gha.libsonnet';
       name: artifact_name,
     },
   },
-  download_artifact_step(artifact_name): {
-    uses: 'actions/download-artifact@v4',
-    with: {
-      name: artifact_name,
-    },
-  },
+  download_artifact_step: download_artifact_step,
+  get_workflow_run_id_step: get_workflow_run_id_step,
+  workflow_run_id_output: workflow_run_id_output,
+  wait_for_workflow_run: wait_for_workflow_run,
   // See semgrep.libjsonnet cache_opam for inspiration here
   //
   guard_cache_hit: {
