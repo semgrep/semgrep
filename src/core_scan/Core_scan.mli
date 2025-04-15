@@ -136,11 +136,19 @@ val post_nosemgrep :
   Core_result.processed_match ->
   Core_result.processed_match * Core_error.t list
 
-val parse_equivalences : Fpath.t option -> Equivalence.equivalences
-
 (* small wrapper around Parse_target.parse_and_resolve_name *)
 val parse_and_resolve_name :
   Lang.t -> Fpath.t -> AST_generic.program * Tok.location list
+
+(* small wrapper around Match_rules.check *)
+val match_rules :
+  < Cap.time_limit ; .. > ->
+  matches_hook:(Core_match.t list -> Core_match.t list) ->
+  Core_scan_config.t ->
+  Match_env.prefilter_config ->
+  Rule.t list ->
+  Xtarget.t ->
+  Core_result.matches_single_file
 
 val log_scan_inputs :
   Core_scan_config.t ->
