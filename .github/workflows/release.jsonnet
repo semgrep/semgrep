@@ -157,53 +157,6 @@ local build_test_docker_nonroot_job = {
 };
 
 // ----------------------------------------------------------------------------
-// Pypy jobs
-// ----------------------------------------------------------------------------
-
-local download_step(name) = {
-  name: 'Download %s' % name,
-  uses: 'actions/download-artifact@v4',
-  with: {
-    name: name,
-    path: name,
-  },
-};
-
-local upload_wheels_job = {
-  name: 'Upload Wheels to PyPI',
-  'runs-on': 'ubuntu-latest',
-  needs: [
-    'wait-for-build-test',
-  ],
-  steps: [
-    download_step('manylinux-x86-wheel'),
-    download_step('manylinux-aarch64-wheel'),
-    download_step('osx-x86-wheel'),
-    download_step('osx-arm64-wheel'),
-    download_step('windows-x86-wheel'),
-    {
-      run: |||
-        unzip ./manylinux-x86-wheel/dist.zip
-        unzip ./manylinux-aarch64-wheel/dist.zip "*.whl"
-        unzip ./osx-x86-wheel/dist.zip "*.whl"
-        unzip ./osx-arm64-wheel/dist.zip "*.whl"
-        # Windows build creates a tgz since zip is not available
-        tar --wildcards -xzf ./windows-x86-wheel/dist.tgz "*.whl"
-      |||,
-    },
-    {
-      name: 'Publish to Pypi',
-      uses: 'pypa/gh-action-pypi-publish@release/v1',
-      with: {
-        user: '__token__',
-        password: '${{ secrets.PYPI_UPLOAD_TOKEN }}',
-        skip_existing: true,
-      },
-    } + unless_dry_run,
-  ],
-};
-
-// ----------------------------------------------------------------------------
 // Github jobs
 // ----------------------------------------------------------------------------
 
@@ -355,7 +308,6 @@ local create_release_interfaces_job = {
         },
       ],
     },
-    'upload-wheels': upload_wheels_job,
     'create-release': create_release_job,
     'create-release-interfaces': create_release_interfaces_job,
   },
