@@ -40,7 +40,6 @@ from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_MAX_LOG_LIST_ENTRIES
 from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
 from semgrep.constants import DEFAULT_TIMEOUT
-from semgrep.constants import DEFAULT_USE_SEMGREPIGNORE_V2
 from semgrep.constants import OutputFormat
 from semgrep.core_runner import CoreRunner
 from semgrep.engine import EngineType
@@ -691,6 +690,18 @@ def scan(
             version_check()
         return None
 
+    # 2025-04-14: Feel free to remove these messages after a while.
+    # This was a temporary flag for the Semgrepignore v1->v2 transition.
+    if semgrepignore_v2 is not None:
+        if semgrepignore_v2:
+            logger.warning(
+                with_color(
+                    Colors.yellow, "The --semgrepignore-v2 flag is no longer needed!"
+                )
+            )
+        else:
+            abort("The --no-semgrepignore-v2 flag is no longer supported.")
+
     # I wish there was an easy way to leverage the engine_params from the
     # new GET /api/cli/scans endpoint here but that info is not available
     # until we fetch the rules which happens further along when processing
@@ -726,26 +737,6 @@ def scan(
             run_secrets=run_secrets_flag,
             interfile_diff_scan_enabled=diff_depth >= 0,
         )
-
-        # Temporary: for now, only OSS users use Semgrepignore v2 by default
-        #
-        # For an easy test, list the targets in our test repo:
-        #
-        #   $ git clone git@github.com:semgrep/semgrep-test-project1.git
-        #   $ cd semgrep-test-project1
-        #   $ semgrep scan --x-ls | wc -l
-        #   34
-        #
-        # You'll get a different number depending on whether Semgrepignore v1
-        # or v2 is being used. Try the options --semgrepignore-v2,
-        # --no-semgrepignore-v2.
-        #
-        # coupling: see identical code in ci.py
-        use_semgrepignore_v2: bool
-        if semgrepignore_v2 is None:
-            use_semgrepignore_v2 = DEFAULT_USE_SEMGREPIGNORE_V2
-        else:
-            use_semgrepignore_v2 = semgrepignore_v2
 
         # this is useful for our CI job to find where semgrep-core (or semgrep-core-proprietary)
         # is installed and check if the binary is statically linked.
@@ -915,9 +906,7 @@ def scan(
                         output_handler.handle_semgrep_errors(config_errors)
                         output_handler.output(
                             {},
-                            all_targets_v1_v2=TargetAccumulator(
-                                use_semgrepignore_v2=use_semgrepignore_v2
-                            ),
+                            all_targets_acc=TargetAccumulator(),
                             filtered_rules=[],
                         )
                         raise SemgrepError("Please fix the above errors and try again.")
@@ -985,22 +974,19 @@ def scan(
                         path_sensitive=path_sensitive,
                         capture_core_stderr=capture_core_stderr,
                         allow_local_builds=allow_local_builds,
-                        use_semgrepignore_v2=use_semgrepignore_v2,
                     )
                 except SemgrepError as e:
                     output_handler.handle_semgrep_errors([e])
                     output_handler.output(
                         {},
-                        all_targets_v1_v2=TargetAccumulator(
-                            use_semgrepignore_v2=use_semgrepignore_v2
-                        ),
+                        all_targets_acc=TargetAccumulator(),
                         filtered_rules=[],
                     )
                     raise e
 
                 output_handler.output(
                     filtered_matches_by_rule,
-                    all_targets_v1_v2=output_extra.all_targets,
+                    all_targets_acc=output_extra.all_targets,
                     ignore_log=ignore_log,
                     profiler=profiler,
                     filtered_rules=filtered_rules,
