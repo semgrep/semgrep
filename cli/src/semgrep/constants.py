@@ -18,9 +18,6 @@ DEFAULT_TIMEOUT = (
 DEFAULT_PRO_TIMEOUT_CI = 10800  # seconds
 DEFAULT_MAX_MEMORY_PRO_CI = 5000  # MiB
 
-# Whether to use Semgrepignore v1 or v2 by default (v1 is going away eventually)
-DEFAULT_USE_SEMGREPIGNORE_V2 = True
-
 # The default depth has been configured as -1 in order to prevent unexpected
 # behavior for current users of pro intra-file diff scanning. To enable pro
 # inter-file diff scanning, users are required to manually specify the

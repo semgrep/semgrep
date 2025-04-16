@@ -29,7 +29,6 @@ CANDIDATES = frozenset(Path(name) for name in CANDIDATE_NAMES)
 
 
 @pytest.mark.quick
-@pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
 @pytest.mark.parametrize(
     "patterns, expected_kept",
     [
@@ -190,10 +189,9 @@ CANDIDATES = frozenset(Path(name) for name in CANDIDATE_NAMES)
         ),
     ],
 )
-def test_filter_exclude(patterns, expected_kept, use_semgrepignore_v2):
+def test_filter_exclude(patterns, expected_kept):
     actual = TargetManager(
         scanning_root_strings=frozenset([Path(".")]),
-        use_semgrepignore_v2=use_semgrepignore_v2,
     ).filter_excludes(patterns, candidates=CANDIDATES)
     expected_kept = frozenset(Path(name) for name in expected_kept)
     assert actual.kept == expected_kept
@@ -212,16 +210,13 @@ EQUIVALENT_PATTERNS = [
 
 
 @pytest.mark.quick
-@pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
 @pytest.mark.parametrize("pattern_variant", EQUIVALENT_PATTERNS)
-def test_filter_exclude__equivalent_variants(pattern_variant, use_semgrepignore_v2):
+def test_filter_exclude__equivalent_variants(pattern_variant):
     """Test some different variations of the pattern yield the same result."""
     expected_result = TargetManager(
         scanning_root_strings=frozenset([Path(".")]),
-        use_semgrepignore_v2=use_semgrepignore_v2,
     ).filter_excludes([EQUIVALENT_PATTERNS[0]], candidates=CANDIDATES)
     actual_result = TargetManager(
         scanning_root_strings=frozenset([Path(".")]),
-        use_semgrepignore_v2=use_semgrepignore_v2,
     ).filter_excludes([pattern_variant], candidates=CANDIDATES)
     assert actual_result == expected_result

@@ -46,7 +46,6 @@ import pytest
 from ruamel.yaml import YAML
 from tests import fixtures
 from tests.semgrep_runner import SemgrepRunner
-from tests.semgrep_runner import USE_OSEMGREP
 
 from semgrep import __VERSION__
 from semgrep.cli import cli
@@ -406,7 +405,6 @@ def _run_semgrep(
     context_manager: Optional[ContextManager] = None,
     is_logged_in_weak=False,
     osemgrep_force_project_root: Optional[str] = None,
-    use_semgrepignore_v2: bool = True,
 ) -> SemgrepResult:
     """Run the semgrep CLI.
 
@@ -467,10 +465,8 @@ def _run_semgrep(
             # In tests, we want to ignore the project-wide's semgrepignore.
             # This is what the '--project-root .' option achieves.
             if (
-                (subcommand is None or subcommand == "scan" or subcommand == "ci")
-                and (USE_OSEMGREP or use_semgrepignore_v2)
-                and osemgrep_force_project_root
-            ):
+                subcommand is None or subcommand == "scan" or subcommand == "ci"
+            ) and osemgrep_force_project_root:
                 options.extend(["--project-root", osemgrep_force_project_root])
 
             if strict:
@@ -496,12 +492,6 @@ def _run_semgrep(
                 options.append("--junit-xml")
             elif output_format == OutputFormat.SARIF:
                 options.append("--sarif")
-
-            if subcommand is None or subcommand == "scan" or subcommand == "ci":
-                if use_semgrepignore_v2:
-                    options.append("--semgrepignore-v2")
-                else:
-                    options.append("--no-semgrepignore-v2")
 
             targets = []
             if target_name is not None:
@@ -598,8 +588,8 @@ def run_semgrep_in_tmp(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> fixtures.RunSemgrep:
     """
-    [DEPRECATED] Same as 'run_semgrep_in_tmp' but with symlinks instead
-    of file copies.
+    [DEPRECATED] Same as 'run_semgrep_on_copied_files' but with symlinks
+    instead of file copies.
     Symlinks cause complications with target selection which are best
     avoided if possible.
     """

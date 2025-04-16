@@ -746,13 +746,10 @@ class CoreRunner:
                     language, rule.includes, rule.excludes, rule.id, rule.product
                 )
 
+                targets = selection.targets
                 if all_targets is not None:
-                    for target in selection.v1_targets:
-                        all_targets.v1_targets.add(target)
-                    for target in selection.v2_targets:
-                        all_targets.v2_targets.add(target)
+                    all_targets.targets.update(targets)
 
-                targets = selection.targets()
                 some_target = some_target or len(targets) > 0
 
                 for target in targets:
@@ -801,8 +798,7 @@ class CoreRunner:
 
         outputs: RuleMatchMap = collections.defaultdict(OrderedRuleMatchList)
         errors: List[SemgrepError] = []
-        use_semgrepignore_v2 = target_manager.use_semgrepignore_v2
-        all_targets = TargetAccumulator(use_semgrepignore_v2=use_semgrepignore_v2)
+        all_targets = TargetAccumulator()
         file_timeouts: Dict[Path, int] = collections.defaultdict(int)
         max_timeout_files: Set[Path] = set()
         # TODO this is a quick fix, refactor this logic
@@ -1010,7 +1006,7 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                     )
 
                 if engine is EngineType.PRO_INTERFILE:
-                    scanning_roots = target_manager.scanning_roots[use_semgrepignore_v2]
+                    scanning_roots = target_manager.scanning_roots
                     if len(scanning_roots) == 1:
                         root = str(scanning_roots[0].path)
                     else:
@@ -1217,7 +1213,7 @@ Exception raised: `{e}`
         )
 
         logger.debug(
-            f"semgrep ran in {datetime.now() - start} on {len(output_extra.all_targets.targets())} files"
+            f"semgrep ran in {datetime.now() - start} on {len(output_extra.all_targets.targets)} files"
         )
         by_severity = collections.defaultdict(list)
         for rule, findings in findings_by_rule.items():

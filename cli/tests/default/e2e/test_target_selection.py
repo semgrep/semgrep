@@ -101,10 +101,11 @@ def check_expectation(
     *,
     expect: Expect,
     is_running_osemgrep: bool,
-    requested_semgrepignore_v2: bool,
     config: Config,
     selected_targets: Set[str],
 ):
+    # TODO: remove requested_semgrepignore_v2 since it's now always true
+    requested_semgrepignore_v2 = True
     paths = expect.paths
 
     # We expect semgrepignore v2 behavior if we call osemgrep directly or
@@ -515,7 +516,6 @@ NOVCS_INCLUDE_EXPECTATIONS = [
 
 
 @pytest.mark.kinda_slow
-@pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
 @pytest.mark.parametrize(
     # a list of extra semgrep CLI options and osemgrep-specific options
     # TODO: remove osemgrep_options since it's unused
@@ -622,7 +622,6 @@ def test_project_target_selection(
     config: Config,
     options: List[str],
     osemgrep_options: List[str],
-    use_semgrepignore_v2: bool,
     expectations: List[Expect],
 ) -> None:
     project = PROJECT
@@ -687,7 +686,6 @@ def test_project_target_selection(
         options=["--x-ls", "-e", "hello", "--lang", "python"] + extra_options,
         assume_targets_dir=False,
         target_name=".",
-        use_semgrepignore_v2=use_semgrepignore_v2,
     )
     selected_targets: Set[str] = set(filter(lambda x: x, stdout.split("\n")))
 
@@ -700,7 +698,6 @@ def test_project_target_selection(
         check_expectation(
             expect=expect,
             is_running_osemgrep=is_running_osemgrep,
-            requested_semgrepignore_v2=use_semgrepignore_v2,
             config=config,
             selected_targets=selected_targets,
         )
