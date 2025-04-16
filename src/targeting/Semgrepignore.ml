@@ -48,30 +48,35 @@ let default_semgrepignore_for_semgrep_scan =
   {|
 # Git administrative folder or file
 .git
+.svn
+.hg
+_darcs
+CVS
 
 # Common large paths
-node_modules/
 build/
-dist/
 vendor/
-.env/
-.venv/
-.tox/
+dist/
 *.min.js
+.env/
+.tox/
+
+# package managers
+node_modules/
 .npm/
 .yarn/
+.venv/
+_opam/
+_build/
+_cargo/
+# note that PHP composer uses vendor/ and C++ conan uses build/
+# .venv is used both by Go and Python
 
 # Common test paths
 test/
 tests/
 testsuite/
 *_test.go
-
-# Semgrep rules folder
-.semgrep
-
-# Semgrep-action log folder
-.semgrep_logs/
 |}
 
 let semgrepignore_files : Gitignore.gitignore_filename =
