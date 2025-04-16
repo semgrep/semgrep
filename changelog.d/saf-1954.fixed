@@ -1,2 +1,0 @@
-IDE: The Semgrep VS Code Extension will no longer hang on `Getting code actions from Semgrep...`
-on saving a file, when updating rules.

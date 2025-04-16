@@ -1,24 +1,25 @@
-## [1.118.0](https://github.com/semgrep/semgrep/releases/tag/v1.118.0) - 2025-04-09
+## [1.119.0](https://github.com/semgrep/semgrep/releases/tag/v1.119.0) - 2025-04-16
+
+
+### Added
+
+
+- python: Semgrep will now perform dataflow analysis within and through comprehensions. (saf-1560)
+- A new subcommand `semgrep show project-root` is now provided to display
+  the project root path associated with a scan root. This is useful for
+  troubleshooting Semgrepignore (v2) issues. (saf-1936)
 
 
 ### Fixed
 
 
-- Pro: Failure to parse a `package.json` file when analysing JavaScript or
-  TypeScript is no longer a fatal error. (code-8227)
-- taint-mode: Fixed bug in taint "auto-cleaning" where we automatically clean the
-  LHS of an assigmnet if the RHS is clean, provided that the LHS is not subject to
-  any "side-effects". In some cases, this could cause the taint analysis to timeout.
-  Some combinations of rules and repos will see a major perf improvement, in other
-  cases it may not be noticeable. (code-8288)
-- In a Semgrep rule's `metadata` section, two fields may provide URLs:
+- tainting: Apply `taint_assume_safe_numbers` and `taint_assume_safe_booleans`
+  earlier when considering to track taint through class fields and function
+  parameters. If the field/parameter has a number/Boolean type and the
+  corresponding option is set, it will just not be tracked. In some cases this
+  can help with performance.
 
-  - `source`: populated dynamically by the Semgrep registry serving the rule, it's a URL that
-    offers information about the rule.
-  - `source-rule-url`: optional string, a URL for the source of inspiration for the rule.
-
-  The SARIF format supports only one URL under the field `helpUri`.
-  Previously, Semgrep populated the SARIF `helpUri` field only with `metadata.source`.
-  This fix is to use `metadata.source` if available, otherwise falling back to `metadata.source-rule-url`.
-
-  Contributed by @candrews. (gh-10891)
+  Also added `short`/`Short` to the list of integer types recognized by
+  `taint_assume_safe_numbers`. (code-8345)
+- IDE: The Semgrep VS Code Extension will no longer hang on `Getting code actions from Semgrep...`
+  on saving a file, when updating rules. (saf-1954)

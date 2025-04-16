@@ -1,3 +1,0 @@
-A new subcommand `semgrep show project-root` is now provided to display
-the project root path associated with a scan root. This is useful for
-troubleshooting Semgrepignore (v2) issues.
