@@ -1,11 +1,9 @@
 running 4 rules from 1 config rules/eqeq.yaml_0
-No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignore-files
 Rules:
 - rules.assert-eqeq-is-ok
 - rules.eqeq-is-bad
 - rules.javascript-basic-eqeq-bad
 - rules.python37-compatability-os-module
-Unable to ignore files ignored by git (targets/exclude_include is not a git directory or git is not installed). Running on all files instead...
 
 
 ┌─────────────┐

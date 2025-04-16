@@ -11,13 +11,11 @@ import pytest
 
 from semgrep.error import InvalidScanningRootError
 from semgrep.git import BaselineHandler
-from semgrep.ignores import Semgrepignore
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.semgrep_types import Language
 from semgrep.target_manager import SAST_PRODUCT
 from semgrep.target_manager import SCA_PRODUCT
-from semgrep.target_manager import ScanningRoot
 from semgrep.target_manager import SECRETS_PRODUCT
 from semgrep.target_manager import TargetManager
 
@@ -44,9 +42,8 @@ def assert_path_sets_equal(
     ), f"{prefix}actual (left) and expected (right) sets of target paths differ"
 
 
-@pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
 @pytest.mark.quick
-def test_nonexistent(tmp_path, monkeypatch, use_semgrepignore_v2):
+def test_nonexistent(tmp_path, monkeypatch):
     """
     Test that initializing TargetManager with targets that do not exist
     raises InvalidScanningRootError
@@ -61,7 +58,6 @@ def test_nonexistent(tmp_path, monkeypatch, use_semgrepignore_v2):
     # shouldn't raise an error
     TargetManager(
         scanning_root_strings=frozenset([Path("foo/a.py")]),
-        use_semgrepignore_v2=use_semgrepignore_v2,
     )
 
     with pytest.raises(InvalidScanningRootError) as e:
@@ -69,7 +65,6 @@ def test_nonexistent(tmp_path, monkeypatch, use_semgrepignore_v2):
             scanning_root_strings=frozenset(
                 [Path("foo/a.py"), Path("foo/doesntexist.py")]
             ),
-            use_semgrepignore_v2=use_semgrepignore_v2,
         )
     assert e.value.paths == (Path("foo/doesntexist.py"),)
 
@@ -92,10 +87,12 @@ def test_delete_git(tmp_path, monkeypatch):
     foo.unlink()
     subprocess.run(["git", "status"])
 
+    target_manager = TargetManager(
+        scanning_root_strings=frozenset([Path(".")]), respect_git_ignore=True
+    )
+    scan_root = target_manager.scanning_roots[0]
     assert_path_sets_equal(
-        actual=ScanningRoot(path=Path("."), git_tracked_only=True).target_files(
-            product=SAST_PRODUCT
-        ),
+        actual=scan_root.target_files(product=SAST_PRODUCT),
         expected={bar},
     )
 
@@ -165,7 +162,6 @@ LANG_REGEX = Language("regex")
 
 
 @pytest.mark.quick
-@pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
 @pytest.mark.parametrize(
     "workdir, scanning_roots, expected",
     [
@@ -194,7 +190,6 @@ def test_get_files_for_language(
     scanning_roots,
     expected,
     referencing,
-    use_semgrepignore_v2,
 ):
     monkeypatch.chdir(repo_paths.root / workdir.strip("/"))
 
@@ -207,13 +202,11 @@ def test_get_files_for_language(
         with pytest.raises(InvalidScanningRootError):
             target_manager = repo_paths.TargetManager(
                 scanning_root_strings=scanning_roots,
-                use_semgrepignore_v2=use_semgrepignore_v2,
             )
         return
     else:
         target_manager = repo_paths.TargetManager(
             scanning_root_strings=scanning_roots,
-            use_semgrepignore_v2=use_semgrepignore_v2,
         )
 
     actual = target_manager.get_files_for_language(
@@ -223,9 +216,8 @@ def test_get_files_for_language(
     assert_path_sets_equal(actual=actual, expected=getattr(repo_paths, expected))
 
 
-@pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
 @pytest.mark.quick
-def test_skip_symlink(tmp_path, monkeypatch, use_semgrepignore_v2):
+def test_skip_symlink(tmp_path, monkeypatch):
     foo = tmp_path / "foo"
     foo.mkdir()
     (foo / "a.py").touch()
@@ -238,7 +230,6 @@ def test_skip_symlink(tmp_path, monkeypatch, use_semgrepignore_v2):
     # Scan the foo/ folder.
     target_manager = TargetManager(
         scanning_root_strings=frozenset([foo]),
-        use_semgrepignore_v2=use_semgrepignore_v2,
     )
 
     # Should select the regular file and not the symlink.
@@ -260,13 +251,11 @@ def test_skip_symlink(tmp_path, monkeypatch, use_semgrepignore_v2):
     with pytest.raises(InvalidScanningRootError):
         TargetManager(
             scanning_root_strings=frozenset([foo / "link.py"]),
-            use_semgrepignore_v2=use_semgrepignore_v2,
         ).get_files_for_language(lang=PY, product=SAST_PRODUCT)
 
 
-@pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
 @pytest.mark.quick
-def test_ignore_git_dir(tmp_path, monkeypatch, use_semgrepignore_v2):
+def test_ignore_git_dir(tmp_path, monkeypatch):
     """
     Ignores all files in .git directory when scanning generic
     """
@@ -280,16 +269,14 @@ def test_ignore_git_dir(tmp_path, monkeypatch, use_semgrepignore_v2):
         frozenset()
         == TargetManager(
             scanning_root_strings=frozenset([foo]),
-            use_semgrepignore_v2=use_semgrepignore_v2,
         )
         .get_files_for_rule(language, [], [], "dummy_rule_id", SAST_PRODUCT)
-        .targets()
+        .targets
     )
 
 
-@pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
 @pytest.mark.quick
-def test_explicit_path(tmp_path, monkeypatch, use_semgrepignore_v2):
+def test_explicit_path(tmp_path, monkeypatch):
     foo = tmp_path / "foo"
     foo.mkdir()
     (foo / "a.go").touch()
@@ -311,20 +298,18 @@ def test_explicit_path(tmp_path, monkeypatch, use_semgrepignore_v2):
         foo_a
         in TargetManager(
             scanning_root_strings=frozenset([Path("foo/a.py")]),
-            use_semgrepignore_v2=use_semgrepignore_v2,
             allow_unknown_extensions=True,
         )
         .get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
-        .targets()
+        .targets
     )
     assert (
         foo_a
         in TargetManager(
             scanning_root_strings=frozenset([Path("foo/a.py")]),
-            use_semgrepignore_v2=use_semgrepignore_v2,
         )
         .get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
-        .targets()
+        .targets
     )
 
     # Should exclude discovered python file even if it is in excludes
@@ -332,12 +317,11 @@ def test_explicit_path(tmp_path, monkeypatch, use_semgrepignore_v2):
         foo_a
         not in TargetManager(
             scanning_root_strings=frozenset([Path(".")]),
-            use_semgrepignore_v2=use_semgrepignore_v2,
             includes=[],
             excludes={SAST_PRODUCT: ["foo/a.py"]},
         )
         .get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
-        .targets()
+        .targets
     )
 
     # Should include explicitly passed python file even if it is in excludes
@@ -345,22 +329,20 @@ def test_explicit_path(tmp_path, monkeypatch, use_semgrepignore_v2):
         foo_a
         in TargetManager(
             scanning_root_strings=frozenset([Path("."), Path("foo/a.py")]),
-            use_semgrepignore_v2=use_semgrepignore_v2,
             includes=[],
             excludes={SAST_PRODUCT: ["foo/a.py"]},
         )
         .get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
-        .targets()
+        .targets
     )
 
     # Should ignore explicitly passed .go file when requesting python
     assert (
         TargetManager(
             scanning_root_strings=frozenset([Path("foo/a.go")]),
-            use_semgrepignore_v2=use_semgrepignore_v2,
         )
         .get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
-        .targets()
+        .targets
         == frozenset()
     )
 
@@ -368,11 +350,10 @@ def test_explicit_path(tmp_path, monkeypatch, use_semgrepignore_v2):
     assert_path_sets_equal(
         actual=TargetManager(
             scanning_root_strings=frozenset([Path("foo/noext")]),
-            use_semgrepignore_v2=use_semgrepignore_v2,
             allow_unknown_extensions=True,
         )
         .get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
-        .targets(),
+        .targets,
         expected={foo_noext},
     )
 
@@ -380,10 +361,9 @@ def test_explicit_path(tmp_path, monkeypatch, use_semgrepignore_v2):
     assert_path_sets_equal(
         actual=TargetManager(
             scanning_root_strings=frozenset([Path("foo/noext")]),
-            use_semgrepignore_v2=use_semgrepignore_v2,
         )
         .get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
-        .targets(),
+        .targets,
         expected=set(),
     )
 
@@ -391,10 +371,9 @@ def test_explicit_path(tmp_path, monkeypatch, use_semgrepignore_v2):
     assert_path_sets_equal(
         actual=TargetManager(
             scanning_root_strings=frozenset([Path("foo/noext"), Path("foo/a.py")]),
-            use_semgrepignore_v2=use_semgrepignore_v2,
         )
         .get_files_for_rule(python_language, [], [], "dummy_rule_id", SAST_PRODUCT)
-        .targets(),
+        .targets,
         expected={foo_a},
     )
 
@@ -402,12 +381,11 @@ def test_explicit_path(tmp_path, monkeypatch, use_semgrepignore_v2):
     assert_path_sets_equal(
         actual=TargetManager(
             scanning_root_strings=frozenset([Path("foo/a.py"), Path("foo/b.py")]),
-            use_semgrepignore_v2=use_semgrepignore_v2,
         )
         .get_files_for_rule(
             python_language, ["a.py"], [], "dummy_rule_id", SAST_PRODUCT
         )
-        .targets(),
+        .targets,
         expected={foo_a},
     )
 
@@ -415,148 +393,18 @@ def test_explicit_path(tmp_path, monkeypatch, use_semgrepignore_v2):
     assert_path_sets_equal(
         actual=TargetManager(
             scanning_root_strings=frozenset([Path("foo/a.py"), Path("foo/b.py")]),
-            use_semgrepignore_v2=use_semgrepignore_v2,
             excludes={SAST_PRODUCT: ["*.py"]},
         )
         .get_files_for_rule(
             python_language, ["a.py"], [], "dummy_rule_id", SECRETS_PRODUCT
         )
-        .targets(),
+        .targets,
         expected={foo_a},
     )
 
 
-# This test doesn't make sense with Semgrepignore v2 because it doesn't
-# create a real '.semgrepignore' file. It only pretends that some exclude
-# patterns are coming from a '.semgrepignore' file.
-#
-# We have a thorough test suite for Semgrepignore in 'test_target_selection.py'
-# so it's safe to remove this test completely once we retire Semgrepignore v1.
-#
-# @pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
 @pytest.mark.quick
-def test_ignores(tmp_path, monkeypatch):
-    def ignore(ignore_pats, profile_product=SAST_PRODUCT, rule_product=SAST_PRODUCT):
-        return (
-            TargetManager(
-                scanning_root_strings=frozenset([tmp_path]),
-                use_semgrepignore_v2=False,
-                # This passes exclude patterns but pretends they come from a
-                # .semgrepignore file. Since there's no such file, the OCaml
-                # implementation doesn't find these exclude patterns and can't
-                # exclude the expected files.
-                semgrepignore_profiles={
-                    profile_product: Semgrepignore.from_unprocessed_patterns(
-                        tmp_path, ignore_pats, max_log_list_entries=0
-                    )
-                },
-            )
-            .get_files_for_rule(
-                Language("python"), [], [], "dummy_rule_id", rule_product
-            )
-            .targets()
-        )
-
-    monkeypatch.chdir(tmp_path)
-    a = tmp_path / "a.py"
-    a.touch()
-
-    dir = tmp_path / "dir"
-    dir.mkdir()
-
-    dir_a = dir / "a.py"
-    dir_a.touch()
-
-    dir_b = dir / "b.py"
-    dir_b.touch()
-
-    dir_c = dir / "c.py"
-    dir_c.touch()
-
-    dir2 = dir / "dir2"
-    dir2.mkdir()
-
-    dir3 = dir2 / "dir3"
-    dir3.mkdir()
-    dir3_a = dir3 / "a.py"
-    dir3_a.touch()
-
-    # Create /dir4/dir/a.py
-    dir4 = tmp_path / "dir4"
-    dir4.mkdir()
-    dir4_dir = dir4 / "dir"
-    dir4_dir.mkdir()
-    dir4_dir_a = dir4_dir / "a.py"
-    dir4_dir_a.touch()
-
-    # Create /dir5/dir4/dir/a.py
-    dir5 = tmp_path / "dir5"
-    dir5.mkdir()
-    dir5_dir4 = dir5 / "dir4"
-    dir5_dir4.mkdir()
-    dir5_dir4_dir = dir5_dir4 / "dir"
-    dir5_dir4_dir.mkdir()
-    dir5_dir4_dir_a = dir5_dir4_dir / "a.py"
-    dir5_dir4_dir_a.touch()
-
-    # Ignore nothing
-    files = ignore([])
-    assert a in files
-
-    # Ignore file name
-    files = ignore(["a.py"])
-    assert a not in files
-    assert dir3_a not in files
-
-    # Ignore directory
-    files = ignore(["dir/"])
-    assert dir_a not in files
-    assert dir_b not in files
-    assert dir_c not in files
-    assert dir3_a not in files
-    assert dir4_dir_a not in files
-
-    # Ignore root file
-    files = ignore(["/a.py"])
-    assert dir3_a in files
-
-    # Ignore anchored directory (not subdirectories)
-    files = ignore(["/dir"])
-    assert dir_a not in files
-    assert dir4_dir_a in files
-
-    # Ignore another kind of anchored directory (not subdirectories)
-    files = ignore(["dir4/dir"])
-    assert dir4_dir_a not in files
-    assert dir5_dir4_dir_a in files
-
-    # Ignore root file that does not exist
-    files = ignore(["/b.py"])
-    assert dir_b in files
-
-    # Ignore not nested
-    files = ignore(["dir2/dir3/a.py"])
-    assert dir3_a in files
-
-    # Ignore nested dir syntax
-    files = ignore(["dir3/"])
-    assert dir3_a not in files
-
-    # Ignore nested double star
-    files = ignore(["**/dir2/dir3/"])
-    assert dir3_a not in files
-
-    # Confim secrets doesn't ignore SAST-ignored files
-    files = ignore(["dir/"], rule_product=SECRETS_PRODUCT)
-    assert dir_a in files
-    assert dir_b in files
-    assert dir_c in files
-    assert dir3_a in files
-
-
-@pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
-@pytest.mark.quick
-def test_unsupported_lang_paths(tmp_path, monkeypatch, use_semgrepignore_v2):
+def test_unsupported_lang_paths(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
 
     targets: List[Path] = []
@@ -583,7 +431,6 @@ def test_unsupported_lang_paths(tmp_path, monkeypatch, use_semgrepignore_v2):
 
     target_manager = TargetManager(
         scanning_root_strings=frozenset(targets),
-        use_semgrepignore_v2=use_semgrepignore_v2,
     )
 
     target_manager.get_files_for_language(lang=LANG_PY, product=SAST_PRODUCT)
@@ -596,9 +443,8 @@ def test_unsupported_lang_paths(tmp_path, monkeypatch, use_semgrepignore_v2):
     )
 
 
-@pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
 @pytest.mark.quick
-def test_unsupported_lang_paths_2(tmp_path, monkeypatch, use_semgrepignore_v2):
+def test_unsupported_lang_paths_2(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
 
     targets: List[Path] = []
@@ -624,7 +470,6 @@ def test_unsupported_lang_paths_2(tmp_path, monkeypatch, use_semgrepignore_v2):
 
     target_manager = TargetManager(
         scanning_root_strings=frozenset(targets),
-        use_semgrepignore_v2=use_semgrepignore_v2,
     )
 
     target_manager.get_files_for_language(lang=LANG_GENERIC, product=SAST_PRODUCT)
@@ -636,9 +481,8 @@ def test_unsupported_lang_paths_2(tmp_path, monkeypatch, use_semgrepignore_v2):
     )
 
 
-@pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
 @pytest.mark.kinda_slow
-def test_ignore_baseline_handler(monkeypatch, tmp_path, use_semgrepignore_v2):
+def test_ignore_baseline_handler(monkeypatch, tmp_path):
     """
     Test verifies unchanged lockfiles are returned if ignore_baseline_handler=True,
     and only changed lockfiles are returned if ignore_baseline_handler=False
@@ -689,7 +533,6 @@ def test_ignore_baseline_handler(monkeypatch, tmp_path, use_semgrepignore_v2):
     baseline_handler = BaselineHandler(base_commit, True)
     target_manager = TargetManager(
         scanning_root_strings=frozenset(targets),
-        use_semgrepignore_v2=use_semgrepignore_v2,
         baseline_handler=baseline_handler,
     )
 

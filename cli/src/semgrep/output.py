@@ -192,55 +192,6 @@ class OutputSettings(NamedTuple):
         )
 
 
-def show_some_paths(paths: set[Path], output_settings: NormalizedOutputSettings) -> str:
-    """Return a multiline nonempty string without a trailing newline"""
-    unformatted_path_list = [str(p) for p in paths] if paths else ["<none>"]
-    prefix = " • "
-    path_list = [f"{prefix}{txt}" for txt in sorted(unformatted_path_list)]
-    # Show at most this many paths:
-    max_paths = 1000 if output_settings.verbose_errors else 10
-    num_paths = len(paths)
-    res = "\n".join(path_list[:max_paths])
-    if num_paths > max_paths:
-        res = res + f"\n{prefix}[+ {num_paths-max_paths} more]"
-    return res
-
-
-def warn_of_v1_v2_discrepancies(
-    *, all_targets: TargetAccumulator, output_settings: NormalizedOutputSettings
-) -> None:
-    v1_targets = all_targets.v1_targets
-    v2_targets = all_targets.v2_targets
-    new_in_v2 = v2_targets - v1_targets
-    missing_in_v2 = v1_targets - v2_targets
-    url = "https://semgrep.dev/docs/kb/semgrep-code/semgrepignore-ignored"
-    if all_targets.use_semgrepignore_v2:
-        # We're already using Semgrepignore v2
-        return
-    # This should be the last release defaulting to Semgrepignore v1
-    # (presumably for all users, not just CE users):
-    v2_version = "1.116.0"
-    if not new_in_v2 and not missing_in_v2:
-        # No changes
-        msg = f"Semgrep's file targeting is getting a revamp! This scan wouldn't see any changes. To learn about what will be different after version {v2_version}, visit {url} for the new specification."
-        msg += "\n"  # blank line
-        logger.warning(msg)
-    else:
-        # Some changes
-        msg = f"""Semgrep's file targeting is getting a revamp! To keep scanning the same files
-after version {v2_version}, you will need to update your .semgrepignore. If you have
-any questions, ask on the Community Slack or file an issue on https://github.com/semgrep/semgrep/issues.
-
-See {url} for the new specification.
-"""
-        msg += f"\nHere's the list of files that will no longer be scanned:\n"
-        msg += show_some_paths(missing_in_v2, output_settings=output_settings)
-        msg += f"\n\nHere's the list of new files that will be scanned:\n"
-        msg += show_some_paths(new_in_v2, output_settings=output_settings)
-        msg += "\n"  # blank line
-        logger.warning(msg)
-
-
 class OutputHandler:
     """
     Handle all output in a central location. Rather than calling `print_stderr` directly,
@@ -427,7 +378,7 @@ class OutputHandler:
         self,
         rule_matches_by_rule: RuleMatchMap,
         *,
-        all_targets_v1_v2: TargetAccumulator,
+        all_targets_acc: TargetAccumulator,
         engine_type: EngineType = EngineType.OSS,
         filtered_rules: List[Rule],
         ignore_log: Optional[FileTargetingLog] = None,
@@ -440,7 +391,7 @@ class OutputHandler:
         executed_rule_count: int = 0,
         missed_rule_count: int = 0,
     ) -> None:
-        all_targets = all_targets_v1_v2.targets()
+        all_targets = all_targets_acc.targets
         state = get_state()
         self.has_output = True
         self.rules = self.rules.union(rule_matches_by_rule.keys())
@@ -461,10 +412,7 @@ class OutputHandler:
             # ignore log was not created, so the run failed before it even started
             # create a fake log to track the errors
             self.ignore_log = FileTargetingLog(
-                TargetManager(
-                    scanning_root_strings=frozenset([Path(".")]),
-                    use_semgrepignore_v2=all_targets_v1_v2.use_semgrepignore_v2,
-                )
+                TargetManager(scanning_root_strings=frozenset([Path(".")]))
             )
 
         if extra:
@@ -610,9 +558,6 @@ class OutputHandler:
                 + suggestion_line
             )
             console.print(Title("Scan Summary"))
-            warn_of_v1_v2_discrepancies(
-                all_targets=all_targets_v1_v2, output_settings=self.settings
-            )
             logger.info(output_text)
 
         self._final_raise(final_error)
