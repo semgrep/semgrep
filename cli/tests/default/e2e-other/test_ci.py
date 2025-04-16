@@ -1058,7 +1058,6 @@ def test_full_run(
 
 
 @pytest.mark.osemfail
-@pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
 def test_lockfile_parse_failure_reporting(
     git_tmp_path_with_commit,
     run_semgrep: RunSemgrep,
@@ -1066,7 +1065,6 @@ def test_lockfile_parse_failure_reporting(
     start_scan_mock_maker,
     upload_results_mock_maker,
     complete_scan_mock_maker,
-    use_semgrepignore_v2,
 ):
     repo_base, base_commit, _ = git_tmp_path_with_commit
     subprocess.run(
@@ -1131,7 +1129,6 @@ def test_lockfile_parse_failure_reporting(
         assert_exit_code=None,
         env={"SEMGREP_APP_TOKEN": "fake-key-from-tests"},
         use_click_runner=True,  # TODO: probably because rely on some mocking
-        use_semgrepignore_v2=use_semgrepignore_v2,
     )
     snapshot.assert_match(
         result.as_snapshot(
@@ -1585,7 +1582,6 @@ def test_outputs(
 # NOTE: in the future, the App should ideally *not* send such commented lines,
 # but for now we have to do some filtering.
 @pytest.mark.kinda_slow
-@pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
 @pytest.mark.parametrize("ignored_file", ["foo.py", "", "# foo.py"])
 @pytest.mark.parametrize("ignored_product", [SAST_PRODUCT, SECRETS_PRODUCT])
 @pytest.mark.osemfail
@@ -1598,7 +1594,6 @@ def test_app_ignore(
     start_scan_mock_maker,
     complete_scan_mock_maker,
     upload_results_mock_maker,
-    use_semgrepignore_v2,
 ):
     start_scan_mock = start_scan_mock_maker(
         "https://semgrep.dev",
@@ -1618,7 +1613,6 @@ def test_app_ignore(
         output_format=None,
         env={"SEMGREP_APP_TOKEN": "fake_key"},
         use_click_runner=True,  # TODO: probably because rely on some mocking
-        use_semgrepignore_v2=use_semgrepignore_v2,
     )
     snapshot.assert_match(
         result.as_snapshot(),

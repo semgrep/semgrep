@@ -32,7 +32,6 @@ from semgrep.commands.scan import scan_options
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.console import console
 from semgrep.console import Title
-from semgrep.constants import DEFAULT_USE_SEMGREPIGNORE_V2
 from semgrep.constants import OutputFormat
 from semgrep.engine import EngineType
 from semgrep.error import FATAL_EXIT_CODE
@@ -42,7 +41,6 @@ from semgrep.error import SemgrepError
 from semgrep.git import git_check_output
 from semgrep.git import is_git_repo_empty
 from semgrep.git import is_git_repo_root_approx
-from semgrep.ignores import SEMGREPIGNORE_FILE_NAME
 from semgrep.meta import generate_meta_from_environment
 from semgrep.meta import GithubMeta
 from semgrep.meta import GitMeta
@@ -60,12 +58,6 @@ from semgrep.types import TargetAccumulator
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
-
-# These patterns are excluded via --exclude regardless of other ignore configuration
-ALWAYS_EXCLUDE_PATTERNS = [".semgrep/", ".semgrep_logs/"]
-
-# These patterns are excluded via --exclude unless the user provides their own .semgrepignore
-DEFAULT_EXCLUDE_PATTERNS = ["test/", "tests/", "*_test.go"]
 
 # Conversion of product codes to product names
 PRODUCT_NAMES_MAP = {
@@ -99,15 +91,6 @@ def get_exclude_paths(
         )
         for product in ALL_PRODUCTS
     }
-
-    for product in ALL_PRODUCTS:
-        patterns[product].extend(ALWAYS_EXCLUDE_PATTERNS)
-        # This logic isn't clear to me, since I don't see why adding these
-        # default patterns is done here or why it would depend on
-        # .semgrepignore. But, we've had this for a while, so leaving it not to
-        # potentially break things.
-        if Path(SEMGREPIGNORE_FILE_NAME).is_file() and not requested_patterns:
-            patterns[product].extend(DEFAULT_EXCLUDE_PATTERNS)
 
     return patterns
 
@@ -274,7 +257,7 @@ def ci(
     trace: bool,
     trace_endpoint: str,
     use_git_ignore: bool,
-    semgrepignore_v2: Optional[bool],
+    semgrepignore_v2: Optional[bool],  # ignored legacy option
     force_novcs_project: bool,  # unused but needed to receive options from 'scan'
     force_project_root: Optional[
         str
@@ -579,20 +562,6 @@ def ci(
             supply_chain_only=supply_chain_only,
         )
 
-        # Temporary. See scan.py for details.
-        #
-        # Testing: enable the prints below and run 'semgrep ci'.
-        #
-        # coupling: see identical code in scan.py
-        use_semgrepignore_v2: bool
-        if semgrepignore_v2 is None:
-            use_semgrepignore_v2 = DEFAULT_USE_SEMGREPIGNORE_V2
-        else:
-            use_semgrepignore_v2 = semgrepignore_v2
-        # For troubleshooting if needed in an emergency since we don't have tests:
-        # print(f"engine_type: {engine_type}")
-        # print(f"use_semgrepignore_v2: {use_semgrepignore_v2}")
-
         # set default settings for selected engine type
         if dataflow_traces is None:
             dataflow_traces = engine_type.has_dataflow_traces
@@ -715,7 +684,6 @@ def ci(
                 scan_handler.resolve_all_deps_in_diff_scan if scan_handler else False
             ),
             "symbol_analysis": scan_handler.symbol_analysis if scan_handler else False,
-            "use_semgrepignore_v2": use_semgrepignore_v2,
         }
 
         try:
@@ -766,9 +734,7 @@ def ci(
             output_handler.handle_semgrep_errors([e])
             output_handler.output(
                 {},
-                all_targets_v1_v2=TargetAccumulator(
-                    use_semgrepignore_v2=use_semgrepignore_v2
-                ),
+                all_targets_acc=TargetAccumulator(),
                 filtered_rules=[],
             )
             logger.info(f"Encountered error when running rules: {e}")
@@ -916,7 +882,7 @@ def ci(
             if not internal_ci_scan_results:
                 output_handler.output(
                     non_cai_matches_by_rule,
-                    all_targets_v1_v2=output_extra.all_targets,
+                    all_targets_acc=output_extra.all_targets,
                     engine_type=engine_type,
                     ignore_log=ignore_log,
                     profiler=profiler,
@@ -940,7 +906,7 @@ def ci(
                 complete_result = scan_handler.report_findings(
                     matches_by_rule=filtered_matches_by_rule,
                     rules=filtered_rules,
-                    targets=output_extra.all_targets.targets(),
+                    targets=output_extra.all_targets.targets,
                     renamed_targets=renamed_targets,
                     ignored_targets=ignore_log.unsupported_lang_paths(
                         product=SAST_PRODUCT
@@ -997,7 +963,7 @@ def ci(
             if not internal_ci_scan_results:
                 output_handler.output(
                     non_cai_matches_by_rule,
-                    all_targets_v1_v2=output_extra.all_targets,
+                    all_targets_acc=output_extra.all_targets,
                     engine_type=engine_type,
                     ignore_log=ignore_log,
                     profiler=profiler,

@@ -1,5 +1,4 @@
 running 1 rules from 1 config rules/bad-java-rule.yaml_0
-No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignore-files
 Rules:
 - rules.broken-rule
 

@@ -11,10 +11,9 @@ from semgrep.constants import OutputFormat
 # Exclude all the files with '--exclude' patterns resulting in 0 files being
 # scanned.
 @pytest.mark.kinda_slow
-@pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
 @pytest.mark.osemfail
 def test_exclude_include_verbose_sorted_1(
-    run_semgrep_on_copied_files: RunSemgrep, snapshot, use_semgrepignore_v2
+    run_semgrep_on_copied_files: RunSemgrep, snapshot
 ):
     snapshot.assert_match(
         run_semgrep_on_copied_files(
@@ -23,7 +22,6 @@ def test_exclude_include_verbose_sorted_1(
             output_format=OutputFormat.TEXT,
             target_name="exclude_include",
             assert_exit_code=None,
-            use_semgrepignore_v2=use_semgrepignore_v2,
         ).stderr,
         "results.err",
     )
@@ -34,10 +32,9 @@ def test_exclude_include_verbose_sorted_1(
 # Exclude all the files with '--exclude' patterns resulting in 0 files being
 # scanned.
 @pytest.mark.kinda_slow
-@pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
 @pytest.mark.osemfail
 def test_exclude_include_verbose_sorted_2(
-    run_semgrep_on_copied_files: RunSemgrep, snapshot, use_semgrepignore_v2
+    run_semgrep_on_copied_files: RunSemgrep, snapshot
 ):
     snapshot.assert_match(
         run_semgrep_on_copied_files(
@@ -46,7 +43,6 @@ def test_exclude_include_verbose_sorted_2(
             output_format=OutputFormat.TEXT,
             target_name="basic",
             assert_exit_code=None,
-            use_semgrepignore_v2=use_semgrepignore_v2,
         ).stderr,
         "results.err",
     )
