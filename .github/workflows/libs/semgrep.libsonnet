@@ -160,7 +160,7 @@ local slack = {
   ||| % escapeStringJson(escapeStringJson(message)),
 
   notify_failure_job(message): {
-    'runs-on': 'ubuntu-20.04',
+    'runs-on': 'ubuntu-22.04',
     'if': 'failure()',
     steps: [
       {

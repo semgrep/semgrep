@@ -25,7 +25,7 @@ jobs:
       - semgrep-ci-fail-open-blocking-findings
       - wait-for-checks
       - get-inputs
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - run: |
           curl --request POST \

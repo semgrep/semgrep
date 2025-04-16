@@ -20,7 +20,7 @@ jobs:
     needs:
       - brew-build
       - release-dry-run
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - run: |
           curl --request POST \
