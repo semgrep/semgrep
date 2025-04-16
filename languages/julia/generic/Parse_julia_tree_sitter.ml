@@ -1131,7 +1131,7 @@ and map_definition (env : env) (x : CST.definition) : stmt =
 
 (* NOTE(lowering): MacroDef only allows idents as parameters *)
 and map_macroparams_hack (env : env) ((_v1, params, _v3) : parameters) =
-  List.map
+  List_.map
     (fun p ->
       match p with
       | Param { pname = Some id; _ } -> id
@@ -1944,13 +1944,13 @@ and map_slurp_parameter (env : env) ((v1, v2) : CST.splat_expression) =
 
 and map_source_file (env : env) (opt : CST.source_file) =
   match opt with
-  | Some x -> List.map H2.expr_to_stmt (map_block env x)
+  | Some x -> List_.map H2.expr_to_stmt (map_block env x)
   | None -> []
 
 and map_source_file_stmt (env : env) (opt : CST.source_file) =
   match opt with
   | None -> Block (fb []) |> G.s
-  | Some x -> Block (List.map H2.expr_to_stmt (map_block env x) |> fb) |> G.s
+  | Some x -> Block (List_.map H2.expr_to_stmt (map_block env x) |> fb) |> G.s
 
 and map_statement (env : env) (x : CST.statement) : stmt list =
   match x with
