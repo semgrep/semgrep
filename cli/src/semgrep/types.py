@@ -42,21 +42,13 @@ class FilteredMatches:
 @dataclass
 class SelectedTargets:
     """
-    Immutable container for selected targets that were obtained with
-    Semgrepignore v1 and v2.
+    Immutable container for selected targets that were obtained.
+
+    It used to be needed to store targets obtained with Semgrepignore v1
+    and v2. Eliminate this class if it gets in the way.
     """
 
-    use_semgrepignore_v2: bool
-    v1_targets: frozenset[Path] = dataclasses.field(default_factory=frozenset)
-    v2_targets: frozenset[Path] = dataclasses.field(default_factory=frozenset)
-
-    def targets(self) -> frozenset[Path]:
-        """Return either Semgrepignore v1 targets or v2 targets
-        depending on the configuration"""
-        if self.use_semgrepignore_v2:
-            return self.v2_targets
-        else:
-            return self.v1_targets
+    targets: frozenset[Path] = dataclasses.field(default_factory=frozenset)
 
 
 @dataclass
@@ -66,15 +58,4 @@ class TargetAccumulator:
     If no rule applies, to some target, it won't show up here.
     """
 
-    use_semgrepignore_v2: bool
-    v1_targets: Set[Path] = dataclasses.field(default_factory=set)
-    v2_targets: Set[Path] = dataclasses.field(default_factory=set)
-
-    def targets(self) -> Set[Path]:
-        """Return either Semgrepignore v1 targets or v2 targets
-        depending on the configuration
-        """
-        if self.use_semgrepignore_v2:
-            return self.v2_targets
-        else:
-            return self.v1_targets
+    targets: Set[Path] = dataclasses.field(default_factory=set)

@@ -1,5 +1,4 @@
 running 2 rules from 2 configs
-No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignore-files
 Rules:
 - rules.two_rules.eqeq-is-bad
 - rules.two_rules.func

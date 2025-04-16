@@ -245,19 +245,21 @@ let o_use_git : bool Term.t =
    the process of migration from Python's file targeting to the OCaml
    implementation in semgrep-core. It's only here so that we get
    it documented in '--help'!
+
+   '--no-semgrepignore-v2' is no longer available since semgrep 1.119 or 1.120
+   (projected).
 *)
 let o_use_semgrepignore_v2 : bool Cmdliner.Term.t =
-  H.negatable_flag [ "semgrepignore-v2" ] ~neg_options:[ "no-semgrepignore-v2" ]
-    ~default:true
-    ~doc:
-      {|'--semgrepignore-v2' forces the use of the newer Semgrepignore v2
-implementation for discovering and filtering target files. Conversely,
-'--no-semgrepignore-v2' is the deprecated option that forces the use of
-the legacy Semgrepignore v1.
-'--semgrepignore-v2' is the default for Semgrep Community Edition,
-and for now '--no-semgrepignore-v2' is still the default when using the
-'--pro*' options.
+  let info =
+    Arg.info [ "semgrepignore-v2" ]
+      ~doc:
+        {|[DEPRECATED] '--semgrepignore-v2' used to force the use of the newer
+Semgrepignore v2 implementation for discovering and filtering target files.
+It is now the default and only behavior. The transitional option
+'--no-semgrepignore-v2' is no longer available.
 |}
+  in
+  Arg.value (Arg.flag info)
 
 let o_ignore_semgrepignore_files : bool Term.t =
   let info =

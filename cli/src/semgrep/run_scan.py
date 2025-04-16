@@ -64,9 +64,6 @@ from semgrep.error import SemgrepError
 from semgrep.exclude_rules import filter_exclude_rule
 from semgrep.git import BaselineHandler
 from semgrep.git import get_project_url
-from semgrep.ignores import parse_semgrepignore_file
-from semgrep.ignores import Semgrepignore
-from semgrep.ignores import SEMGREPIGNORE_FILE_NAME
 from semgrep.metrics import Metrics
 from semgrep.nosemgrep import filter_ignored
 from semgrep.output import DEFAULT_SHOWN_SEVERITIES
@@ -95,8 +92,6 @@ from semgrep.subproject import iter_found_dependencies
 from semgrep.subproject import make_dependencies_by_source_path
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import SAST_PRODUCT
-from semgrep.target_manager import SCA_PRODUCT
-from semgrep.target_manager import SECRETS_PRODUCT
 from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
 from semgrep.types import FilteredMatches
@@ -151,56 +146,6 @@ def dump_partitions_and_exit(
         sys.exit(2)
     logger.info(f"Successfully dumped rule partitions to {params.output_dir.value}")
     sys.exit(0)
-
-
-def get_semgrepignore(max_log_list_entries: int) -> Semgrepignore:
-    # TEMPLATES_DIR is where we have the default .semgrepignore file
-    # in semgrep installation.
-    TEMPLATES_DIR = Path(__file__).parent / "templates"
-    try:
-        workdir = Path.cwd()
-    except FileNotFoundError:
-        workdir = Path.home()
-        logger.warn(
-            f"Current working directory does not exist! Instead checking {workdir} for .semgrepignore files"
-        )
-
-    semgrepignore_path = Path(workdir / SEMGREPIGNORE_FILE_NAME)
-    if not semgrepignore_path.is_file():
-        logger.verbose(
-            "No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignore-files"
-        )
-        # Use the default .semgrepignore file
-        semgrepignore_path = TEMPLATES_DIR / SEMGREPIGNORE_FILE_NAME
-    else:
-        logger.verbose("using path ignore rules from user provided .semgrepignore")
-
-    semgrepignore = parse_semgrepignore_file(
-        semgrepignore_path=semgrepignore_path,
-        workdir=workdir,
-        max_log_list_entries=max_log_list_entries,
-    )
-    return semgrepignore
-
-
-# TODO: Explain what is this about, use better names
-# TODO: Describe how you intend to implement this in OCaml
-def semgrepignore_to_semgrepignore_profiles(
-    semgrepignore: Semgrepignore,
-) -> Dict[Product, Semgrepignore]:
-    # TODO: This pattern encodes the default Targeting Profiles
-    #  of .semgrepignore. Don't hardcode this like it is.
-    return {
-        SAST_PRODUCT: semgrepignore,
-        SCA_PRODUCT: semgrepignore,
-        # TODO: this looks like a complicated way to ignore the user-specified
-        #  .semgrepignore or the fallback stored in TEMPLATES_DIR.
-        #  -> need to confirm and simplify.
-        SECRETS_PRODUCT: Semgrepignore(
-            base_path=semgrepignore.base_path,
-            fnmatch_patterns=frozenset(),
-        ),
-    }
 
 
 def target_mode_conf(
@@ -350,7 +295,7 @@ def add_metrics_part2(
     if metrics.is_enabled:
         metrics.add_rules(filtered_rules, output_extra.core.time)
         metrics.add_max_memory_bytes(output_extra.core.time)
-        metrics.add_targets(output_extra.all_targets.targets(), output_extra.core.time)
+        metrics.add_targets(output_extra.all_targets.targets, output_extra.core.time)
         metrics.add_findings(filtered_matches_by_rule)
         metrics.add_errors(semgrep_errors)
         metrics.add_profiling(profiler)
@@ -447,7 +392,6 @@ def baseline_run(
     disable_secrets_validation: bool,
     allow_local_builds: bool,
     ptt_enabled: bool,
-    use_semgrepignore_v2: bool,
 ) -> RuleMatchMap:
     """
     Run baseline scan and return the updated rule_matches_by_rule with baseline matches removed.
@@ -548,7 +492,6 @@ def baseline_run(
                     )
                 baseline_target_manager = TargetManager(
                     scanning_root_strings=baseline_scanning_root_strings,
-                    use_semgrepignore_v2=use_semgrepignore_v2,
                     includes=include,
                     excludes=exclude,
                     max_target_bytes=max_target_bytes,
@@ -556,9 +499,6 @@ def baseline_run(
                     # and non-existent files
                     respect_git_ignore=respect_git_ignore,
                     allow_unknown_extensions=not skip_unknown_extensions,
-                    semgrepignore_profiles=semgrepignore_to_semgrepignore_profiles(
-                        get_semgrepignore(too_many_entries),
-                    ),
                     respect_semgrepignore=respect_semgrepignore,
                 )
 
@@ -616,12 +556,7 @@ def adjust_matches_for_join_rules(
     for rule in join_rules:
         join_rule_matches, join_rule_errors = join_rule.run_join_rule(
             rule.raw,
-            [
-                scanning_root.path
-                for scanning_root in target_manager.scanning_roots[
-                    target_manager.use_semgrepignore_v2
-                ]
-            ],
+            [scanning_root.path for scanning_root in target_manager.scanning_roots],
             allow_local_builds=allow_local_builds,
             ptt_enabled=ptt_enabled,
         )
@@ -888,8 +823,7 @@ def adjust_matches_for_sca_rules(
                 ].append(dep)
 
     for target in sca_dependency_targets:
-        output_extra.all_targets.v1_targets.add(target)
-        output_extra.all_targets.v2_targets.add(target)
+        output_extra.all_targets.targets.add(target)
 
     return deps_by_lockfile
 
@@ -1107,7 +1041,6 @@ def run_scan(
     ptt_enabled: bool = False,
     resolve_all_deps_in_diff_scan: bool = False,
     symbol_analysis: bool = False,
-    use_semgrepignore_v2: bool = True,
 ) -> Tuple[
     RuleMatchMap,
     List[SemgrepError],
@@ -1238,7 +1171,6 @@ def run_scan(
     try:
         target_manager = TargetManager(
             scanning_root_strings=scanning_root_strings,
-            use_semgrepignore_v2=use_semgrepignore_v2,
             includes=include,
             excludes=exclude,
             force_novcs_project=force_novcs_project,
@@ -1248,9 +1180,6 @@ def run_scan(
             respect_rule_paths=respect_rule_paths,
             baseline_handler=baseline_handler,
             allow_unknown_extensions=not skip_unknown_extensions,
-            semgrepignore_profiles=semgrepignore_to_semgrepignore_profiles(
-                get_semgrepignore(too_many_entries)
-            ),
             respect_semgrepignore=respect_semgrepignore,
         )
         # Debugging option --x-ls
@@ -1353,7 +1282,6 @@ def run_scan(
             disable_secrets_validation=disable_secrets_validation,
             allow_local_builds=allow_local_builds,
             ptt_enabled=ptt_enabled,
-            use_semgrepignore_v2=use_semgrepignore_v2,
         )
 
     # ---------------------------------

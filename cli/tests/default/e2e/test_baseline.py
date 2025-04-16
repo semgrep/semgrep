@@ -100,7 +100,6 @@ def _git_merge(ref: str) -> str:
 def run_sentinel_scan(
     check: bool = True,
     base_commit: Optional[str] = None,
-    use_semgrepignore_v2: bool = True,
 ):
     env = {"LANG": "en_US.UTF-8"}
     env["SEMGREP_USER_AGENT_APPEND"] = "testing"
@@ -123,10 +122,6 @@ def run_sentinel_scan(
     ]
     if base_commit:
         cmd.extend(["--baseline-commit", base_commit])
-    if use_semgrepignore_v2:
-        cmd.extend(["--semgrepignore-v2"])
-    else:
-        cmd.extend(["--no-semgrepignore-v2"])
 
     try:
         print(f"run: {cmd}")
@@ -891,15 +886,10 @@ def complex_merge_repo(git_tmp_path):
 #     (Semgrepignore v2) uses the former which succeeds, resulting in a
 #     different test output.
 #
-@pytest.mark.parametrize("use_semgrepignore_v2", [True, False], ids=["v2", "v1"])
 @pytest.mark.parametrize("current, baseline", permutations(["foo", "bar", "baz"], 2))
-def test_crisscrossing_merges(
-    complex_merge_repo, current, baseline, snapshot, use_semgrepignore_v2
-):
+def test_crisscrossing_merges(complex_merge_repo, current, baseline, snapshot):
     subprocess.run(["git", "checkout", current])
-    output = run_sentinel_scan(
-        base_commit=baseline, use_semgrepignore_v2=use_semgrepignore_v2
-    )
+    output = run_sentinel_scan(base_commit=baseline)
     assert_out_match(snapshot, output, f"stdout.txt")
     assert_err_match(snapshot, output, f"stderr.txt")
 
