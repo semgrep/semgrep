@@ -32,9 +32,6 @@ type caps = < Cap.fork ; Cap.time_limit ; Cap.memory_limit ; Cap.readdir >
  * We require Cap.readdir for ??
  *
  * The scan function has the type [func] defined above.
- *
- * Note that this function will run the pre/post scan hook defined
- * in Pre_post_core_scan.hook_processor.
  *)
 val scan : < caps ; .. > -> Core_scan_config.t -> Core_result.result_or_exn
 
@@ -76,10 +73,8 @@ val applicable_rules_of_config :
 *)
 val rules_for_target :
   combine_js_with_ts:bool ->
-  analyzer:Analyzer.t ->
-  products:Semgrep_output_v1_t.product list ->
-  origin:Origin.t ->
   respect_rule_paths:bool ->
+  Target.t ->
   Rule.t list ->
   Rule.t list
 

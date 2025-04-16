@@ -773,13 +773,15 @@ let origin_satisfy_paths_filter (origin : Origin.t) (paths : Rule.paths) =
    or something even better to reduce the time spent on each target in
    case we have a high number of rules and a high fraction of irrelevant
    rules? *)
-let rules_for_target ~combine_js_with_ts ~analyzer ~products ~origin
-    ~respect_rule_paths rules =
-  let rules = rules_for_analyzer ~combine_js_with_ts ~analyzer rules in
+let rules_for_target ~combine_js_with_ts ~respect_rule_paths (target : Target.t)
+    (rules : Rule.t list) : Rule.t list =
+  let rules =
+    rules_for_analyzer ~combine_js_with_ts ~analyzer:target.analyzer rules
+  in
   let rules =
     rules
     |> List.filter (fun r ->
-           products |> List.exists (Out.equal_product r.Rule.product))
+           target.products |> List.exists (Out.equal_product r.Rule.product))
   in
   if respect_rule_paths then
     rules
@@ -791,7 +793,7 @@ let rules_for_target ~combine_js_with_ts ~analyzer ~products ~origin
             *)
            match r.paths with
            | None -> true
-           | Some paths -> origin_satisfy_paths_filter origin paths)
+           | Some paths -> origin_satisfy_paths_filter target.path.origin paths)
   else rules
 
 (*****************************************************************************)
@@ -829,18 +831,9 @@ let mk_target_handler (caps : < Cap.time_limit >) (config : Core_scan_config.t)
     (prefilter_cache_opt : Match_env.prefilter_config) : target_handler =
  (* Note that this function runs in another process *)
  fun (target : Target.t) ->
-  let Target.
-        {
-          analyzer;
-          products;
-          path = { origin; internal_path_to_content = file };
-          _;
-        } =
-    target
-  in
   let rules =
-    rules_for_target ~combine_js_with_ts:false ~analyzer ~products ~origin
-      ~respect_rule_paths:config.respect_rule_paths valid_rules
+    rules_for_target ~combine_js_with_ts:false
+      ~respect_rule_paths:config.respect_rule_paths target valid_rules
   in
   let was_scanned = not (List_.null rules) in
 
@@ -855,7 +848,8 @@ let mk_target_handler (caps : < Cap.time_limit >) (config : Core_scan_config.t)
           * Note that this is run in a child process of Parmap, so
           * the hook should not rely on shared memory.
       *)
-  config.file_match_hook |> Option.iter (fun hook -> hook file matches);
+  config.file_match_hook
+  |> Option.iter (fun hook -> hook (Target.internal_path target) matches);
   print_cli_progress config;
   (matches, was_scanned)
 
