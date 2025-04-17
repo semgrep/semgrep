@@ -36,48 +36,16 @@ type exclusion_mechanism = { use_semgrepignore_files : bool }
 
 (*
    The default semgrepignore used when no .semgrepignore exists
-   at the project root (osemgrep) or in the current folder (legacy pysemgrep).
-
-   It was copied from templates/.semgrepignore in the Python source.
-
-   Coupling:
-   If you modify this file, also modify:
-   OSS/cli/src/semgrep/templates/.semgrepignore
+   at the project root.
 *)
 let default_semgrepignore_for_semgrep_scan =
-  {|
-# Git administrative folder or file
-.git
-.svn
-.hg
-_darcs
-CVS
-
-# Common large paths
-build/
-vendor/
-dist/
-*.min.js
-.env/
-.tox/
-
-# package managers
-node_modules/
-.npm/
-.yarn/
-.venv/
-_opam/
-_build/
-_cargo/
-# note that PHP composer uses vendor/ and C++ conan uses build/
-# .venv is used both by Go and Python
-
-# Common test paths
-test/
-tests/
-testsuite/
-*_test.go
-|}
+  (*
+     WARNING: The file "default.semgrepignore" is loaded by semgrep-docs
+     to produce Semgrep's online documentation.
+     Don't rename it or move without updating the GitHub URL consulted
+     by semgrep-docs!
+  *)
+  [%blob "default.semgrepignore"]
 
 let semgrepignore_files : Gitignore.gitignore_filename =
   {
