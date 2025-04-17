@@ -109,7 +109,7 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
               pro_scan_func
                 {
                   roots;
-                  diff_config = Differential_scan_config.WholeScan;
+                  diff_config = Diff_scan_config.WholeScan;
                   engine_type =
                     Engine_type.(
                       PRO

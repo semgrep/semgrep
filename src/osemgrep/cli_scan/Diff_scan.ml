@@ -36,7 +36,7 @@ module Fpaths = Set.Make (Fpath)
 (* Types *)
 (*****************************************************************************)
 type diff_scan_func =
-  ?diff_config:Differential_scan_config.t ->
+  ?diff_config:Diff_scan_config.t ->
   Fpath.t list ->
   Rule.rules ->
   Core_result.result_or_exn
@@ -125,7 +125,7 @@ let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp ; .. >)
     (result_or_exn : Core_result.result_or_exn) (rules : Rule.rules)
     (commit : string) (status : Git_wrapper.status)
     (core :
-      ?diff_config:Differential_scan_config.t ->
+      ?diff_config:Diff_scan_config.t ->
       Fpath.t list ->
       Rule.rules ->
       Core_result.result_or_exn) : Core_result.result_or_exn =
@@ -204,8 +204,7 @@ let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp ; .. >)
                 | _ -> (paths_in_match, [])
               in
               core
-                ~diff_config:
-                  (Differential_scan_config.BaseLine baseline_diff_targets)
+                ~diff_config:(Diff_scan_config.BaseLine baseline_diff_targets)
                 baseline_targets baseline_rules))
     in
     match baseline_result with
@@ -227,7 +226,7 @@ let scan_baseline (caps : < Cap.chdir ; Cap.tmp ; .. >) (conf : Scan_CLI.conf)
   Metrics_.g.payload.environment.isDiffScan <- true;
   let commit = Git_wrapper.merge_base_exn baseline_commit in
   let status = Git_wrapper.status_exn ~cwd:(Fpath.v ".") ~commit () in
-  let diff_depth = Differential_scan_config.default_depth in
+  let diff_depth = Diff_scan_config.default_depth in
   let targets, diff_targets =
     let added_or_modified = status.added @ status.modified in
     match conf.engine_type with
@@ -237,8 +236,7 @@ let scan_baseline (caps : < Cap.chdir ; Cap.tmp ; .. >) (conf : Scan_CLI.conf)
   let (head_scan_result : Core_result.result_or_exn) =
     Profiler.record profiler ~name:"head_core_time" (fun () ->
         diff_scan_func
-          ~diff_config:
-            (Differential_scan_config.Depth (diff_targets, diff_depth))
+          ~diff_config:(Diff_scan_config.Depth (diff_targets, diff_depth))
           targets rules)
   in
   (match (head_scan_result, conf.engine_type) with
