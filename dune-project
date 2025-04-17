@@ -104,6 +104,7 @@ For more information see https://semgrep.dev
     cmdliner
     ; PPX
     ppxlib
+    ppx_blob
     (ppx_deriving ( >= 6.0.3 ))
     ppx_deriving_yojson
     ppx_hash
