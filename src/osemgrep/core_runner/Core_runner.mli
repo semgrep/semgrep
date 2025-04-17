@@ -48,7 +48,7 @@ type func = {
 }
 
 type pro_conf = {
-  diff_config : Differential_scan_config.t;
+  diff_config : Diff_scan_config.t;
   roots : Scanning_root.t list;
   engine_type : Engine_type.t;
 }
