@@ -17,8 +17,10 @@
    semgrep.target
    semgrep.core
  )
+ (preprocessor_deps (file default.semgrepignore))
  (preprocess
    (pps
+     ppx_blob
      ppx_profiling
      tracing.ppx
      ppx_deriving.show
