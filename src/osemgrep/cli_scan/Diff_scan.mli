@@ -2,7 +2,7 @@
 (* TODO: provide a function to obtain the list of target files. *)
 
 type diff_scan_func =
-  ?diff_config:Differential_scan_config.t ->
+  ?diff_config:Diff_scan_config.t ->
   Fpath.t list ->
   Rule.rules ->
   Core_result.result_or_exn
