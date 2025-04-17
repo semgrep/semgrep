@@ -1,5 +1,3 @@
-# coupling: if you modify this file, please also update OSS/src/targeting/Semgrepignore.ml
-
 # Git administrative folder or file
 .git
 .svn

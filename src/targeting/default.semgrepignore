@@ -1,0 +1,31 @@
+# Administrative folder or file used by popular version control systems
+.git
+.svn
+.hg
+_darcs
+CVS
+
+# Paths to files and folders that are typically large and ignorable
+build/
+vendor/
+dist/
+*.min.js
+.env/
+.tox/
+
+# Package managers
+node_modules/
+.npm/
+.yarn/
+.venv/
+_opam/
+_build/
+_cargo/
+# Note that PHP composer uses vendor/ and C++ conan uses build/
+# .venv is used both by Go and Python.
+
+# Common test paths
+test/
+tests/
+testsuite/
+*_test.go
