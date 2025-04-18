@@ -370,7 +370,7 @@ local build_test_docker_job = {
     'repository-name': docker_repository_name,
     file: 'Dockerfile',
     // see the Dockerfile, this is the name root variant
-    target: 'semgrep-cli',
+    target: 'semgrep-oss',
     'enable-tests': true,
   },
 };
@@ -463,8 +463,6 @@ local ignore_md = {
     'push-docker-returntocorp':
       push_docker_job(docker_artifact_name, docker_repository_name) +
       { needs: ['build-test-docker'] },
-    'build-test-docker-nonroot':
-      build_test_docker_other_target_job('-nonroot', 'nonroot'),
     // No need to push those variant docker images. This is useful in
     // release.jsonnet, but not so much here.
     // old:
