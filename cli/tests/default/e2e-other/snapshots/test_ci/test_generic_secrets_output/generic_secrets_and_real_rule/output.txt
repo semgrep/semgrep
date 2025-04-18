@@ -138,6 +138,7 @@
   Scanning 1 file.
 
   SECRETS RULES
+  AI augmented rules are active for secrets detection.
   Scanning 1 file.
   Uploading scan results
   Finalizing scan

@@ -11,6 +11,7 @@ from typing import Any
 from typing import Callable
 from typing import FrozenSet
 from typing import List
+from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import TypeVar
@@ -381,3 +382,11 @@ def pretty_print_percentage(numerator: int, denominator: int) -> str:
     if percentage > 99.9 and numerator != denominator:
         percentage = 99.9
     return f"~{percentage}%"
+
+
+def is_secrets_ai_ruleset(metadata: Mapping[str, Any]) -> bool:
+    """
+    Check if a rule or match is from the semgrep-secrets-ai ruleset.
+    """
+    ruleset = metadata.get("semgrep.ruleset")
+    return isinstance(ruleset, str) and ruleset == "semgrep-secrets-ai"
