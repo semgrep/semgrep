@@ -130,6 +130,9 @@ _scan_options: List[Callable] = [
         default=None,
     ),
     optgroup.option(
+        "--x-semgrepignore-filename",
+    ),
+    optgroup.option(
         "--exclude",
         multiple=True,
         default=[],
@@ -679,6 +682,7 @@ def scan(
     x_tr: bool,
     x_eio: bool,
     x_pro_naming: bool,
+    x_semgrepignore_filename: Optional[str],
     path_sensitive: bool,
     allow_local_builds: bool,
 ) -> Optional[ScanResult]:
@@ -955,6 +959,7 @@ def scan(
                         force_novcs_project=force_novcs_project,
                         force_project_root=force_project_root,
                         respect_semgrepignore=(not x_ignore_semgrepignore_files),
+                        semgrepignore_filename=x_semgrepignore_filename,
                         timeout=timeout,
                         max_memory=max_memory,
                         timeout_threshold=timeout_threshold,

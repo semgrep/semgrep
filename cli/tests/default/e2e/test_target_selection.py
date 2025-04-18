@@ -60,6 +60,9 @@ class Config(Enum):
     GIT_INCLUDE = "git_include"
     NOVCS_INCLUDE = "novcs_include"
 
+    # test --x-semgrepignore-filename
+    ALT_SEMGREPIGNORE = "alt_semgrepignore"
+
 
 # The expectations regarding a particular target file path
 #
@@ -83,7 +86,7 @@ class Expect:
 PROJECT = GitProject(
     name="semgrep-test-project1",
     url="https://github.com/semgrep/semgrep-test-project1.git",
-    commit="1d844c7e4d80108acb1fc265adf1a94562d4522a",
+    commit="b1d5bc05d9cce652746c62bf221483d61a8adc73",
 )
 
 
@@ -133,15 +136,13 @@ def check_expectation(
             raise Exception(f"path {path} doesn't exist in the file system!")
         # Tests
         if expect_selected:
-            print(
-                f"{label} check that target path was selected: {path}", file=sys.stderr
-            )
-            assert path in selected_targets
+            msg = f"{label} check that target path was selected: {path}"
+            print(msg, file=sys.stderr)
+            assert path in selected_targets, msg
         else:
-            print(
-                f"{label} check that target path was ignored: {path}", file=sys.stderr
-            )
-            assert path not in selected_targets
+            msg = f"{label} check that target path was ignored: {path}"
+            print(msg, file=sys.stderr)
+            assert path not in selected_targets, msg
 
 
 # What we expect from semgrep when running with the most common invocation i.e.
@@ -514,6 +515,24 @@ NOVCS_INCLUDE_EXPECTATIONS = [
     ),
 ]
 
+# Test --x-semgrepignore-filename
+ALT_SEMGREPIGNORE_EXPECTATIONS = [
+    Expect(
+        selected=True,
+        paths=[
+            "alt-semgrepignore",
+        ],
+    ),
+    Expect(
+        selected=False,
+        # --x-semgrepignore-filename isn't supported by Semgrepignore v1
+        selected_by_pysemgrep=True,
+        paths=[
+            "hello.py",
+        ],
+    ),
+]
+
 
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
@@ -599,6 +618,15 @@ NOVCS_INCLUDE_EXPECTATIONS = [
             [],
             NOVCS_INCLUDE_EXPECTATIONS,
         ),
+        (
+            Config.ALT_SEMGREPIGNORE,
+            [
+                "--x-semgrepignore-filename",
+                "alt-semgrepignore",
+            ],
+            [],
+            ALT_SEMGREPIGNORE_EXPECTATIONS,
+        ),
     ],
     ids=[
         Config.GIT.value,
@@ -613,6 +641,7 @@ NOVCS_INCLUDE_EXPECTATIONS = [
         Config.NOVCS_EXCLUDE.value,
         Config.GIT_INCLUDE.value,
         Config.NOVCS_INCLUDE.value,
+        Config.ALT_SEMGREPIGNORE.value,
     ],
 )
 def test_project_target_selection(

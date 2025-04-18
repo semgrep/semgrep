@@ -239,10 +239,10 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
       max_memory_mb max_target_bytes metrics num_jobs no_secrets_validation
       nosem optimizations oss output pro pro_intrafile pro_lang
       pro_path_sensitive rewrite_rule_ids sarif sarif_outputs
-      scan_unknown_extensions secrets text text_outputs timeout
-      _timeout_interfileTODO timeout_threshold trace trace_endpoint use_git
-      _use_semgrepignore_v2 version_check vim vim_outputs x_trTODO x_pro_naming
-      =
+      scan_unknown_extensions secrets semgrepignore_filename text text_outputs
+      timeout _timeout_interfileTODO timeout_threshold trace trace_endpoint
+      use_git _use_semgrepignore_v2 version_check vim vim_outputs x_trTODO
+      x_pro_naming =
     (* this is just handled by psemgrep for now *)
     ignore (x_trTODO, x_pro_naming);
     let output_format : Output_format.t =
@@ -313,6 +313,7 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
         explicit_targets = Find_targets.Explicit_targets.empty;
         respect_gitignore = use_git;
         respect_semgrepignore_files = not ignore_semgrepignore_files;
+        semgrepignore_filename;
         exclude_minified_files;
       }
     in
@@ -386,10 +387,11 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
     $ SC.o_output $ SC.o_pro $ SC.o_pro_intrafile $ SC.o_pro_languages
     $ SC.o_pro_path_sensitive $ SC.o_rewrite_rule_ids $ SC.o_sarif
     $ SC.o_sarif_outputs $ SC.o_scan_unknown_extensions $ SC.o_secrets
-    $ SC.o_text $ SC.o_text_outputs $ SC.o_timeout $ SC.o_timeout_interfile
-    $ SC.o_timeout_threshold $ SC.o_trace $ SC.o_trace_endpoint $ SC.o_use_git
-    $ SC.o_use_semgrepignore_v2 $ SC.o_version_check $ SC.o_vim
-    $ SC.o_vim_outputs $ SC.o_tr $ SC.o_pro_naming)
+    $ SC.o_semgrepignore_filename $ SC.o_text $ SC.o_text_outputs $ SC.o_timeout
+    $ SC.o_timeout_interfile $ SC.o_timeout_threshold $ SC.o_trace
+    $ SC.o_trace_endpoint $ SC.o_use_git $ SC.o_use_semgrepignore_v2
+    $ SC.o_version_check $ SC.o_vim $ SC.o_vim_outputs $ SC.o_tr
+    $ SC.o_pro_naming)
 
 (*************************************************************************)
 (* Turn argv into conf *)

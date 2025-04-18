@@ -21,50 +21,53 @@ module Explicit_targets : sig
 end
 
 type conf = {
-  (* global exclude list, passed via semgrep --exclude *)
-  exclude : glob list;
-  (* global include list, passed via semgrep --include
-   * Those are flags copied from grep (and ripgrep).
-   *)
+  exclude : glob list;  (** global exclude list, passed via semgrep --exclude *)
   include_ : glob list option;
+      (** global include list, passed via semgrep --include
+          Those are flags copied from grep (and ripgrep).
+      *)
   max_target_bytes : int;
-  (* Whether to respect what is specified in the '.gitignore' files
-     found in the project and extended by optional '.semgrepignore' files.
-     Note that Git supports other sources of gitignore patterns, making
-     this option confusing. *)
   respect_gitignore : bool;
-  (* Whether to respect or ignore the '.semgrepignore' files found
-     in the project. *)
+      (** Whether to respect what is specified in the '.gitignore' files
+          found in the project and extended by optional '.semgrepignore' files.
+          Note that Git supports other sources of gitignore patterns, making
+          this option confusing. *)
   respect_semgrepignore_files : bool;
-  (* Language-specific filtering: CLI option '--scan-unknown-extensions'
-     allows explicit targets (files on the command line) to bypass
-     normal language detection.
-     This forces all target files passed explicitly on the
-     command line to be analyzed any analyzer specified in rules (--config) or
-     command-line patterns (-e/-f):
-
-       semgrep scan --scan-unknown-extensions dockerfiles/*
-
-     Target files discovered by scanning folders are not affected by
-     this option.
-  *)
+      (** Whether to respect or ignore the '.semgrepignore' files found
+          in the project. *)
+  semgrepignore_filename : string option;
+      (** An alternate name for '.semgrepignore'. This is intended for
+          testing semgrep and prevent test targets from being excluded by the
+          containing project's global '.semgrepignore'. *)
   always_select_explicit_targets : bool;
-  (* Paths to target files specified directly on the command-line.
-     For the purpose of --scan-unknown-extensions, this
-     could also be stored as a bool alongside each target file.
-     It's a hash table for fast access.
-  *)
+      (** Language-specific filtering: CLI option '--scan-unknown-extensions'
+          allows explicit targets (files on the command line) to bypass
+          normal language detection.
+          This forces all target files passed explicitly on the
+          command line to be analyzed any analyzer specified in rules
+          (--config) or command-line patterns (-e/-f):
+
+            semgrep scan --scan-unknown-extensions dockerfiles/*
+
+          Target files discovered by scanning folders are not affected by
+          this option.
+      *)
   explicit_targets : Explicit_targets.t;
-  (* osemgrep-only: see Git_project.ml and the force_root parameter *)
+      (** Paths to target files specified directly on the command-line.
+          For the purpose of --scan-unknown-extensions, this
+          could also be stored as a bool alongside each target file.
+          It's a hash table for fast access.
+      *)
   force_project_root : project_root option;
-  (* force the project to not use git or other VCS to list files.
-     The special folders '.git', '.hg', etc. may still be used to guess the
-     project root. To impose the project root as well, set
-     'force_project_root = true'. *)
+      (** osemgrep-only: see Git_project.ml and the force_root parameter *)
   force_novcs_project : bool;
-  (* osemgrep-only: exclude scanning large files based on
-      max_target_bytes, default true *)
+      (** force the project to not use git or other VCS to list files.
+          The special folders '.git', '.hg', etc. may still be used to guess
+          the project root. To impose the project root as well, set
+          'force_project_root = true'. *)
   exclude_minified_files : bool;
+      (** osemgrep-only: exclude scanning large files based on
+          max_target_bytes, default true *)
   baseline_commit : string option;
 }
 
