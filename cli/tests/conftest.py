@@ -262,7 +262,7 @@ ALWAYS_MASK: Maskers = (
     # In the future, we may have to hide the temporary folder since it
     # can vary from one OS to another.
     # This regexp masks the tail of a path containing 'tmp' or '/tmp'.
-    re.compile(f"((?:{tempfile.gettempdir()})(?:/[A-Za-z0-9_.-]*)*)"),
+    re.compile(f"((?:{re.escape(tempfile.gettempdir())})(?:[\\/][A-Za-z0-9_.-]*)*)"),
     # osemgrep only. Needed to match the pysemgrep output b/c pysemgrep
     # uses a temporary path to store rules by osemgrep doesn't.
     re.compile(r'"path": *"(rules/[^"]*)"'),
