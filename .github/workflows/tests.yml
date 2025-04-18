@@ -47,24 +47,7 @@ jobs:
       enable-tests: true
       file: Dockerfile
       repository-name: semgrep/semgrep
-      target: semgrep-cli
-  build-test-docker-nonroot:
-    needs:
-      - build-test-docker
-    secrets: inherit
-    uses: ./.github/workflows/build-test-docker.yml
-    with:
-      artifact-name: semgrep-docker-image-artifact-nonroot
-      docker-flavor: |
-        latest=false
-        suffix=-nonroot
-      docker-tags: |
-        type=sha,event=branch
-        type=ref,event=pr
-      enable-tests: false
-      file: Dockerfile
-      repository-name: semgrep/semgrep
-      target: nonroot
+      target: semgrep-oss
   build-test-docker-performance-tests:
     needs:
       - build-test-docker
