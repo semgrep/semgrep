@@ -39,15 +39,10 @@ val scan : < caps ; .. > -> Core_scan_config.t -> Core_result.result_or_exn
 (* Utilities functions used in tests or semgrep-pro *)
 (*****************************************************************************)
 
-(*
-   Compute the set of targets, either by reading what was passed
+(* Compute the set of targets, either by reading what was passed
    in -target, or passed explicitly in Core_scan_config.Targets.
-
    The rules are required to associate analyzers (language specified
-   in the rule) with target paths. This is for compatibility with
-   the legacy pysemgrep/semgrep-core interface where a target path
-   is associated with an analyzer or language as reflected by the
-   Target.t type.
+   in the rule) with target paths as reflected by the Target.t type.
 *)
 val targets_of_config :
   Core_scan_config.t ->
@@ -83,7 +78,7 @@ val rules_for_target :
    honor per-rule include/exclude patterns based on the target path.
 *)
 val rules_for_analyzer :
-  combine_js_with_ts:bool -> analyzer:Analyzer.t -> Rule.t list -> Rule.t list
+  combine_js_with_ts:bool -> Analyzer.t -> Rule.t list -> Rule.t list
 
 (* exposed for SCA_scan *)
 val origin_satisfy_paths_filter : Origin.t -> Rule.paths -> bool
@@ -117,19 +112,12 @@ val filter_files_with_too_many_matches_and_transform_as_timeout :
   * Core_error.t list
   * Semgrep_output_v1_j.skipped_target list
 
-val post_process_matches :
-  (Core_result.processed_match ->
-  Core_result.processed_match * Core_error.t list) ->
-  Core_result.t ->
-  Core_result.t
-
-val post_autofix :
+type post_processor =
   Core_result.processed_match -> Core_result.processed_match * Core_error.t list
 
-val post_nosemgrep :
-  strict:bool ->
-  Core_result.processed_match ->
-  Core_result.processed_match * Core_error.t list
+val post_process_matches : post_processor -> Core_result.t -> Core_result.t
+val post_autofix : post_processor
+val post_nosemgrep : strict:bool -> post_processor
 
 (* small wrapper around Parse_target.parse_and_resolve_name *)
 val parse_and_resolve_name :
