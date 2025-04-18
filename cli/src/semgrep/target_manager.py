@@ -734,6 +734,7 @@ class TargetManager:
     ignore_log: FileTargetingLog = Factory(FileTargetingLog, takes_self=True)
     scanning_roots: Sequence[ScanningRoot] = field(init=False)
     respect_semgrepignore: bool = True
+    semgrepignore_filename: Optional[str] = None
     targeting_conf: Mapping[out.Product, out.TargetingConf] = field(init=False)
 
     _filtered_targets: Dict[Language, FilteredFiles] = field(factory=dict)
@@ -746,6 +747,7 @@ class TargetManager:
                 max_target_bytes=self.max_target_bytes,
                 respect_gitignore=self.respect_git_ignore,
                 respect_semgrepignore_files=self.respect_semgrepignore,
+                semgrepignore_filename=self.semgrepignore_filename,
                 # explicit targets = target files that are passed explicitly
                 # on the command line and are normally not ignored by semgrepignore
                 # or other filters.

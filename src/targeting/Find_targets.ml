@@ -203,6 +203,7 @@ type conf = {
   max_target_bytes : int;
   respect_gitignore : bool;
   respect_semgrepignore_files : bool;
+  semgrepignore_filename : string option;
   always_select_explicit_targets : bool;
   explicit_targets : Explicit_targets.t;
   (* osemgrep-only: option
@@ -231,6 +232,7 @@ let default_conf : conf =
     max_target_bytes = 1000000;
     respect_gitignore = true;
     respect_semgrepignore_files = true;
+    semgrepignore_filename = None;
     always_select_explicit_targets = false;
     explicit_targets = Explicit_targets.empty;
     exclude_minified_files = false;
@@ -688,6 +690,7 @@ let setup_path_filters conf (project_roots : Project.scanning_roots) :
    *)
   let semgrepignore_filter =
     Semgrepignore.create ~cli_patterns:conf.exclude
+      ?semgrepignore_filename:conf.semgrepignore_filename
       ~default_semgrepignore_patterns:Semgrep_scan_legacy ~exclusion_mechanism
       ~project_root:(Rfpath.to_fpath project_root)
       ()

@@ -120,6 +120,7 @@ val o_rewrite_rule_ids : bool Cmdliner.Term.t
 val o_sarif : bool Cmdliner.Term.t
 val o_sarif_outputs : string list Cmdliner.Term.t
 val o_scan_unknown_extensions : bool Cmdliner.Term.t
+val o_semgrepignore_filename : string option Cmdliner.Term.t
 val o_test : bool Cmdliner.Term.t
 val o_text : bool Cmdliner.Term.t
 val o_text_outputs : string list Cmdliner.Term.t
