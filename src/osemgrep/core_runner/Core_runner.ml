@@ -49,7 +49,6 @@ type conf = {
 [@@deriving show]
 
 type pro_conf = {
-  diff_config : Diff_scan_config.t;
   (* TODO: change to root: Fpath.t, like in Deep_scan_config.interfile_config *)
   roots : Scanning_root.t list;
   engine_type : Engine_type.t;
