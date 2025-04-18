@@ -37,7 +37,6 @@ class EngineType(Enum):
         logged_in: bool = False,
         engine_flag: Optional["EngineType"] = None,
         run_secrets: bool = False,
-        interfile_diff_scan_enabled: bool = False,
         # ci-only args
         ci_scan_handler: Optional[ScanHandler] = None,
         git_meta: Optional[GitMeta] = None,
@@ -77,11 +76,7 @@ class EngineType(Enum):
         # TODO we can delete this once interfile diff scans are GA
 
         diff_scan = git_meta and not git_meta.is_full_scan
-        if (
-            diff_scan
-            and not interfile_diff_scan_enabled
-            and requested_engine is cls.PRO_INTERFILE
-        ):
+        if diff_scan and requested_engine is cls.PRO_INTERFILE:
             requested_engine = cls.PRO_INTRAFILE
 
         # Override 2: Turn off PRO_INTERFILE when only supply chain is requested

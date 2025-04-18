@@ -34,7 +34,6 @@ from semgrep.app.version import TOO_MANY_FINDINGS_THRESHOLD
 from semgrep.commands.install import determine_semgrep_pro_path
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.constants import Colors
-from semgrep.constants import DEFAULT_DIFF_DEPTH
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_MAX_LOG_LIST_ENTRIES
@@ -392,11 +391,6 @@ _scan_options: List[Callable] = [
         type=EngineType,
         flag_value=EngineType.OSS,
     ),
-    optgroup.option(
-        "--diff-depth",
-        type=int,
-        default=DEFAULT_DIFF_DEPTH,
-    ),
     optgroup.option("--dump-command-for-core", "-d", is_flag=True, hidden=True),
     optgroup.option(
         "--no-secrets-validation",
@@ -616,7 +610,6 @@ def scan(
     baseline_commit: Optional[str],
     config: Optional[Tuple[str, ...]],
     debug: bool,
-    diff_depth: int,
     dump_engine_path: bool,
     requested_engine: Optional[EngineType],
     run_secrets_flag: bool,
@@ -739,7 +732,6 @@ def scan(
             logged_in=auth.is_logged_in_weak(),
             engine_flag=requested_engine,
             run_secrets=run_secrets_flag,
-            interfile_diff_scan_enabled=diff_depth >= 0,
         )
 
         # this is useful for our CI job to find where semgrep-core (or semgrep-core-proprietary)
@@ -931,7 +923,6 @@ def scan(
                         missed_rule_count,
                         _all_subprojects,
                     ) = semgrep.run_scan.run_scan(
-                        diff_depth=diff_depth,
                         dump_command_for_core=dump_command_for_core,
                         time_flag=time_flag,
                         matching_explanations=matching_explanations,

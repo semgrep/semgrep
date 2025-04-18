@@ -46,7 +46,6 @@ from semgrep.semgrep_interfaces.semgrep_metrics import Intraprocedural
 from semgrep.semgrep_interfaces.semgrep_metrics import ParseStat
 from semgrep.semgrep_interfaces.semgrep_metrics import Payload
 from semgrep.semgrep_interfaces.semgrep_metrics import Performance
-from semgrep.semgrep_interfaces.semgrep_metrics import ProFeatures
 from semgrep.semgrep_interfaces.semgrep_metrics import RuleStats
 from semgrep.semgrep_interfaces.semgrep_metrics import SecretsConfig
 from semgrep.semgrep_interfaces.semgrep_metrics import SupplyChainConfig
@@ -208,32 +207,6 @@ class Metrics:
             self.payload.value.interfileLanguagesUsed = used_langs or []
         except Exception as e:
             self.log_exception("add_interfile_languages_used", e)
-
-    def add_diff_depth(self, diff_depth: int) -> None:
-        try:
-            if not self.payload.value.proFeatures:
-                self.payload.value.proFeatures = ProFeatures()
-            self.payload.value.proFeatures.diffDepth = diff_depth
-        except Exception as e:
-            self.log_exception("add_diff_depth", e)
-
-    def add_num_diff_scanned(self, scanned: List[Path], rules: List[Rule]) -> None:
-        try:
-            if not self.payload.value.proFeatures:
-                self.payload.value.proFeatures = ProFeatures()
-            langs = {lang for rule in rules for lang in rule.languages}
-            num_scanned = []
-            for lang in langs:
-                filtered = [
-                    path
-                    for path in scanned
-                    if any(str(path).endswith(ext) for ext in lang.definition.exts)
-                ]
-                if filtered:
-                    num_scanned.append((lang.definition.name, len(filtered)))
-            self.payload.value.proFeatures.numInterfileDiffScanned = num_scanned
-        except Exception as e:
-            self.log_exception("add_num_diff_scanned", e)
 
     def add_is_diff_scan(self, is_diff_scan: bool) -> None:
         try:

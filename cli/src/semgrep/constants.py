@@ -18,14 +18,6 @@ DEFAULT_TIMEOUT = (
 DEFAULT_PRO_TIMEOUT_CI = 10800  # seconds
 DEFAULT_MAX_MEMORY_PRO_CI = 5000  # MiB
 
-# The default depth has been configured as -1 in order to prevent unexpected
-# behavior for current users of pro intra-file diff scanning. To enable pro
-# inter-file diff scanning, users are required to manually specify the
-# `-diff-depth` parameter with a value equal to or greater than 0.
-# TODO update the default depth to a non-negative value, such as 2, once this
-# new feature has reached a stable state.
-DEFAULT_DIFF_DEPTH = -1
-
 SETTINGS_FILENAME = "settings.yml"
 
 YML_EXTENSIONS = {".yml", ".yaml"}
