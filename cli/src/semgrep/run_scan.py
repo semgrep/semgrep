@@ -381,6 +381,7 @@ def baseline_run(
     skip_unknown_extensions: bool,
     too_many_entries: int,
     respect_semgrepignore: bool,
+    semgrepignore_filename: Optional[str],
     core_runner: CoreRunner,
     output_handler: OutputHandler,
     dump_command_for_core: bool,
@@ -500,6 +501,7 @@ def baseline_run(
                     respect_git_ignore=respect_git_ignore,
                     allow_unknown_extensions=not skip_unknown_extensions,
                     respect_semgrepignore=respect_semgrepignore,
+                    semgrepignore_filename=semgrepignore_filename,
                 )
 
                 (
@@ -1016,6 +1018,7 @@ def run_scan(
     force_project_root: Optional[str] = None,
     respect_rule_paths: bool = True,
     respect_semgrepignore: bool = True,
+    semgrepignore_filename: Optional[str] = None,
     timeout: int = DEFAULT_TIMEOUT,
     max_memory: int = 0,
     interfile_timeout: int = 0,
@@ -1181,6 +1184,7 @@ def run_scan(
             baseline_handler=baseline_handler,
             allow_unknown_extensions=not skip_unknown_extensions,
             respect_semgrepignore=respect_semgrepignore,
+            semgrepignore_filename=semgrepignore_filename,
         )
         # Debugging option --x-ls
         if x_ls or x_ls_long:
@@ -1271,6 +1275,7 @@ def run_scan(
             skip_unknown_extensions=skip_unknown_extensions,
             too_many_entries=too_many_entries,
             respect_semgrepignore=respect_semgrepignore,
+            semgrepignore_filename=semgrepignore_filename,
             core_runner=core_runner,
             output_handler=output_handler,
             dump_command_for_core=dump_command_for_core,
