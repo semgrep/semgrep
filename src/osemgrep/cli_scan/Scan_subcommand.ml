@@ -312,8 +312,7 @@ let choose_output_format_and_match_hook (caps : < Cap.stdout >)
 
 (* Select and execute the scan func based on the configured engine settings *)
 let mk_core_run_for_osemgrep (caps : < Core_scan.caps ; .. >)
-    (conf : Scan_CLI.conf) (diff_config : Diff_scan_config.t) : Core_runner.func
-    =
+    (conf : Scan_CLI.conf) : Core_runner.func =
   let core_run_for_osemgrep : Core_runner.func =
     match conf.engine_type with
     | OSS -> Core_runner.mk_core_run_for_osemgrep (Core_scan.scan caps)
@@ -328,11 +327,7 @@ let mk_core_run_for_osemgrep (caps : < Core_scan.caps ; .. >)
                acquire a different binary."
         | Some pro_scan_func ->
             pro_scan_func
-              {
-                roots = conf.target_roots;
-                diff_config;
-                engine_type = conf.engine_type;
-              })
+              { roots = conf.target_roots; engine_type = conf.engine_type })
   in
   let core_run_for_osemgrep : Core_runner.func =
     match conf.targeting_conf.force_project_root with
@@ -521,7 +516,7 @@ let check_targets_with_rules
         | None ->
             Profiler.record profiler ~name:"core_time" (fun () ->
                 let { run } : Core_runner.func =
-                  mk_core_run_for_osemgrep caps conf Diff_scan_config.WholeScan
+                  mk_core_run_for_osemgrep caps conf
                 in
                 run ?file_match_hook conf.core_runner_conf conf.targeting_conf
                   (rules, invalid_rules) targets)
@@ -529,16 +524,16 @@ let check_targets_with_rules
             (* scan_baseline calls internally Profiler.record "head_core_time"*)
             (* diff scan mode *)
             let diff_scan_func : Diff_scan.diff_scan_func =
-             fun ?(diff_config = Diff_scan_config.WholeScan) targets rules ->
+             fun targets rules ->
               let { run } : Core_runner.func =
-                mk_core_run_for_osemgrep caps conf diff_config
+                mk_core_run_for_osemgrep caps conf
               in
               run ?file_match_hook conf.core_runner_conf conf.targeting_conf
                 (rules, invalid_rules) targets
             in
             Diff_scan.scan_baseline
               (caps :> < Cap.chdir ; Cap.tmp >)
-              conf profiler baseline_commit targets rules diff_scan_func
+              profiler baseline_commit rules diff_scan_func
       in
       match result_or_exn with
       | Error exn ->
