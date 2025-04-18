@@ -17,6 +17,9 @@
 type default_semgrepignore_patterns = Empty | Semgrep_scan_legacy
 type exclusion_mechanism = { use_semgrepignore_files : bool }
 
+(* ".semgrepignore" *)
+val default_semgrepignore_filename : string
+
 (*
    Initialize the data used to filter paths.
    The project_root path must exist. It is used to
@@ -26,9 +29,13 @@ type exclusion_mechanism = { use_semgrepignore_files : bool }
 
    Use Git_project.find_project_root to determine the root of the
    git project.
+
+   semgrepignore_filename: defaults to default_semgrepignore_filename
+     = ".semgrepignore"
 *)
 val create :
   ?cli_patterns:string list ->
+  ?semgrepignore_filename:string ->
   default_semgrepignore_patterns:default_semgrepignore_patterns ->
   exclusion_mechanism:exclusion_mechanism ->
   project_root:Fpath.t ->

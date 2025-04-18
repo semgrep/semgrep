@@ -266,6 +266,7 @@ def ci(
     x_eio: bool,
     x_tr: bool,
     x_pro_naming: bool,
+    x_semgrepignore_filename: Optional[str],
     path_sensitive: bool,
     allow_local_builds: bool,
     dump_n_rule_partitions: Optional[int],
@@ -684,6 +685,7 @@ def ci(
                 scan_handler.resolve_all_deps_in_diff_scan if scan_handler else False
             ),
             "symbol_analysis": scan_handler.symbol_analysis if scan_handler else False,
+            "semgrepignore_filename": x_semgrepignore_filename,
         }
 
         try:

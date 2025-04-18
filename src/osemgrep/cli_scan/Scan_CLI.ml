@@ -275,6 +275,17 @@ CHANGE OR DISAPPEAR WITHOUT NOTICE.
   in
   Arg.value (Arg.flag info)
 
+let o_semgrepignore_filename : string option Term.t =
+  let info =
+    Arg.info ~docv:"FILENAME"
+      [ "x-semgrepignore-filename" ]
+      ~doc:
+        {|[INTERNAL] Files named $(docv) shall be consulted instead of
+the files named '.semgrepignore'. This option can be useful for testing
+semgrep on intentionally broken code that should normally be ignored.|}
+  in
+  Arg.value (Arg.opt Arg.(some string) None info)
+
 let o_scan_unknown_extensions : bool Term.t =
   let default = default.targeting_conf.always_select_explicit_targets in
   H.negatable_flag
@@ -1359,8 +1370,8 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       nosem novcs optimizations oss output pattern pro project_root
       pro_intrafile pro_lang pro_path_sensitive remote replacement
       rewrite_rule_ids sarif sarif_outputs scan_unknown_extensions secrets
-      severity show_supported_languages strict target_roots test
-      test_ignore_todo text text_outputs time_flag timeout
+      semgrepignore_filename severity show_supported_languages strict
+      target_roots test test_ignore_todo text text_outputs time_flag timeout
       _timeout_interfileTODO timeout_threshold trace trace_endpoint use_git
       _use_semgrepignore_v2 validate version version_check vim vim_outputs
       x_ignore_semgrepignore_files x_ls x_ls_long x_tr x_pro_naming =
@@ -1477,6 +1488,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
         explicit_targets;
         respect_gitignore;
         respect_semgrepignore_files = not x_ignore_semgrepignore_files;
+        semgrepignore_filename;
         exclude_minified_files;
       }
     in
@@ -1590,13 +1602,13 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     $ o_oss $ o_output $ o_pattern $ o_pro $ o_project_root $ o_pro_intrafile
     $ o_pro_languages $ o_pro_path_sensitive $ o_remote $ o_replacement
     $ o_rewrite_rule_ids $ o_sarif $ o_sarif_outputs $ o_scan_unknown_extensions
-    $ o_secrets $ o_severity $ o_show_supported_languages $ o_strict
-    $ o_target_roots $ o_test $ Test_CLI.o_test_ignore_todo $ o_text
-    $ o_text_outputs $ o_time $ o_timeout $ o_timeout_interfile
-    $ o_timeout_threshold $ o_trace $ o_trace_endpoint $ o_use_git
-    $ o_use_semgrepignore_v2 $ o_validate $ o_version $ o_version_check $ o_vim
-    $ o_vim_outputs $ o_ignore_semgrepignore_files $ o_ls $ o_ls_long $ o_tr
-    $ o_pro_naming)
+    $ o_secrets $ o_semgrepignore_filename $ o_severity
+    $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
+    $ Test_CLI.o_test_ignore_todo $ o_text $ o_text_outputs $ o_time $ o_timeout
+    $ o_timeout_interfile $ o_timeout_threshold $ o_trace $ o_trace_endpoint
+    $ o_use_git $ o_use_semgrepignore_v2 $ o_validate $ o_version
+    $ o_version_check $ o_vim $ o_vim_outputs $ o_ignore_semgrepignore_files
+    $ o_ls $ o_ls_long $ o_tr $ o_pro_naming)
 
 let doc = "run semgrep rules on files"
 
