@@ -14,6 +14,7 @@
 # Click-specific features (e.g., mocking)  that the regular
 # call-semgrep-in-a-subprocess does not provide yet.
 import os
+import platform
 import shlex
 import sys
 from dataclasses import dataclass
@@ -31,6 +32,8 @@ from click.testing import CliRunner
 ##############################################################################
 # Constants
 ##############################################################################
+
+IS_WINDOWS = platform.system() == "Windows"
 
 # Environment variable that trigger the use of osemgrep
 USE_OSEMGREP = "PYTEST_USE_OSEMGREP" in os.environ
@@ -120,6 +123,17 @@ def fork_semgrep(
     # ugly: adding --project-root for --help would trigger the wrong help message
     if "-h" in args or "--help" in args:
         argv = [_SEMGREP_PATH] + args
+
+    if IS_WINDOWS:
+        # On POSIX systems, the entrypoint script is executed with python via
+        # the shebang `#!/usr/bin/env python` but shebangs don't work on Windows
+        # via Popen, so we need to explicitly spicify what program to run the
+        # entrypoint script with.
+        #
+        # `sys.executable` gives an absolute path to the running python
+        # interpreter. See
+        # https://docs.python.org/3.14/library/subprocess.html#subprocess.Popen
+        argv = [sys.executable] + argv
 
     # env preparation
     env_dict = {}
