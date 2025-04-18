@@ -18,7 +18,6 @@ from typing import Set
 from typing import Tuple
 from typing import Union
 
-from attr import evolve
 from rich.progress import BarColumn
 from rich.progress import Progress
 from rich.progress import TaskID
@@ -825,12 +824,6 @@ class CoreRunner:
                 if dump_command_for_core
                 else tempfile.NamedTemporaryFile("w+")
             )
-        if target_mode_config.is_pro_diff_scan:
-            diff_target_file = exit_stack.enter_context(
-                (state.env.user_data_folder / "semgrep_diff_targets.txt").open("w+")
-                if dump_command_for_core
-                else tempfile.NamedTemporaryFile("w+")
-            )
 
         with exit_stack:
             if self._binary_path is None:
@@ -886,36 +879,12 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
             if strict:
                 cmd.extend(["-strict"])
 
-            # adding targets option
-            if target_mode_config.is_pro_diff_scan:
-                diff_targets = target_mode_config.get_diff_targets()
-                diff_target_file_contents = "\n".join(
-                    [str(path) for path in diff_targets]
-                )
-                diff_target_file.write(diff_target_file_contents)
-                diff_target_file.flush()
-                cmd.extend(["-diff_targets", diff_target_file.name])
-                cmd.extend(["-diff_depth", str(target_mode_config.get_diff_depth())])
-
-                # For the pro diff scan, it's necessary to consider all input files as
-                # "targets" and the files that have changed between the head and baseline
-                # commits as "diff targets". To compile a comprehensive list of all input files
-                # for `plan`, the `baseline_handler` is disabled within the `target_manager`
-                # when executing `plan_core_run`.
-                plan = self.plan_core_run(
-                    rules,
-                    evolve(target_manager, baseline_handler=None),
-                    all_targets=all_targets,
-                    all_subprojects=all_subprojects,
-                )
-
-            else:
-                plan = self.plan_core_run(
-                    rules,
-                    target_manager,
-                    all_targets=all_targets,
-                    all_subprojects=all_subprojects,
-                )
+            plan = self.plan_core_run(
+                rules,
+                target_manager,
+                all_targets=all_targets,
+                all_subprojects=all_subprojects,
+            )
 
             plan.record_metrics()
             if target_mode_config.is_historical_scan:

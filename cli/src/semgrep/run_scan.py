@@ -48,7 +48,6 @@ from semgrep.config_resolver import Config
 from semgrep.config_resolver import ConfigLoader
 from semgrep.config_resolver import get_config
 from semgrep.console import console
-from semgrep.constants import DEFAULT_DIFF_DEPTH
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
 from semgrep.constants import TOO_MUCH_DATA
@@ -152,21 +151,12 @@ def target_mode_conf(
     historical_secrets: bool,
     baseline_handler: Optional[BaselineHandler],
     engine_type: EngineType,
-    diff_depth: int,
     target_manager: TargetManager,
 ) -> TargetModeConfig:
     if historical_secrets:
         return TargetModeConfig.historical_scan()
     elif baseline_handler is not None:
-        if engine_type.is_interfile:
-            return TargetModeConfig.pro_diff_scan(
-                # `target_manager.get_all_files()` will only return changed files
-                # (diff targets) when baseline_handler is set
-                target_manager.get_all_files(product=SAST_PRODUCT),
-                diff_depth,
-            )
-        else:
-            return TargetModeConfig.diff_scan()
+        return TargetModeConfig.diff_scan()
     else:
         return TargetModeConfig.whole_scan()
 
@@ -252,7 +242,6 @@ def add_metrics_part1(
     configs: Sequence[str],
     configs_obj: Config,
     baseline_commit: Optional[str],
-    diff_depth: int,
     run_secrets: bool,
     allow_untrusted_validators: bool,
     disable_secrets_validation: bool,
@@ -278,8 +267,6 @@ def add_metrics_part1(
             SupplyChainConfig() if with_supply_chain else None,
         )
         metrics.add_is_diff_scan(baseline_commit is not None)
-        if engine_type.is_pro:
-            metrics.add_diff_depth(diff_depth)
 
 
 def add_metrics_part2(
@@ -290,7 +277,6 @@ def add_metrics_part2(
     semgrep_errors: List[SemgrepError],
     profiler: ProfileManager,
     engine_type: EngineType,
-    baseline_handler: Optional[BaselineHandler],
 ) -> None:
     if metrics.is_enabled:
         metrics.add_rules(filtered_rules, output_extra.core.time)
@@ -301,10 +287,6 @@ def add_metrics_part2(
         metrics.add_profiling(profiler)
         metrics.add_parse_rates(output_extra.parsing_data)
         metrics.add_interfile_languages_used(output_extra.core.interfile_languages_used)
-        if engine_type.is_pro and baseline_handler:
-            metrics.add_num_diff_scanned(
-                [Path(t.value) for t in output_extra.core.paths.scanned], filtered_rules
-            )
 
 
 ##############################################################################
@@ -465,32 +447,11 @@ def baseline_run(
             with baseline_handler.baseline_context():
                 baseline_scanning_root_strings = scanning_root_strings
                 baseline_target_mode_config = target_mode_config
-                if target_mode_config.is_pro_diff_scan:
-                    # Conducting the inter-file diff scan twice with the exact
-                    # same configuration, both on the current commit and the
-                    # baseline commit, could result in the absence of a newly
-                    # added file and its dependencies from the baseline run.
-                    # Consequently, this may lead to the failure to remove
-                    # pre-existing findings.
-                    # A more effective approach would involve utilizing the same
-                    # set of scanned diff targets from the first run in the
-                    # baseline run. This approach ensures the safe elimination
-                    # of any existing findings in the dependency files, even if
-                    # the original file does not exist in the baseline commit.
-                    scanned = [Path(t.value) for t in output_extra.core.paths.scanned]
-                    scanned.extend(baseline_handler.status.renamed.values())
-                    baseline_target_mode_config = TargetModeConfig.pro_diff_scan(
-                        frozenset(
-                            t for t in scanned if t.exists() and not t.is_symlink()
-                        ),
-                        0,  # scanning the same set of files in the second run
-                    )
-                else:
-                    baseline_scanning_root_strings = frozenset(
-                        Path(t)
-                        for t in baseline_targets
-                        if t.exists() and not t.is_symlink()
-                    )
+                baseline_scanning_root_strings = frozenset(
+                    Path(t)
+                    for t in baseline_targets
+                    if t.exists() and not t.is_symlink()
+                )
                 baseline_target_manager = TargetManager(
                     scanning_root_strings=baseline_scanning_root_strings,
                     includes=include,
@@ -988,7 +949,6 @@ def run_rules(
 @tracing.trace()
 def run_scan(
     *,
-    diff_depth: int = DEFAULT_DIFF_DEPTH,
     dump_command_for_core: bool = False,
     time_flag: bool = False,
     matching_explanations: bool = False,
@@ -1106,7 +1066,6 @@ def run_scan(
         configs,
         configs_obj,
         baseline_commit,
-        diff_depth,
         run_secrets,
         allow_untrusted_validators,
         disable_secrets_validation,
@@ -1193,7 +1152,7 @@ def run_scan(
         raise SemgrepError(e)
 
     target_mode_config = target_mode_conf(
-        historical_secrets, baseline_handler, engine_type, diff_depth, target_manager
+        historical_secrets, baseline_handler, engine_type, target_manager
     )
 
     # ----------------------------
@@ -1313,7 +1272,6 @@ def run_scan(
         semgrep_errors,
         profiler,
         engine_type,
-        baseline_handler,
     )
 
     # ---------------------------------

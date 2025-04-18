@@ -211,7 +211,6 @@ def ci(
     code: bool,
     config: Optional[Tuple[str, ...]],
     debug: bool,
-    diff_depth: int,
     dump_command_for_core: bool,
     dry_run: bool,
     enable_nosem: bool,
@@ -529,11 +528,6 @@ def ci(
             logger.info(f"Could not start scan {e}")
             sys.exit(FATAL_EXIT_CODE)
 
-        # Enable beta features
-        if scan_handler and scan_handler.generic_slow_rollout:
-            # slow rollout for pro diff scan
-            diff_depth = 2
-
         # Handled error outside engine type for more actionable advice.
         if run_secrets_flag and requested_engine is EngineType.OSS:
             logger.info(
@@ -557,7 +551,6 @@ def ci(
             logged_in=auth.is_logged_in_weak(),
             engine_flag=requested_engine,
             run_secrets=run_secrets,
-            interfile_diff_scan_enabled=diff_depth >= 0,
             ci_scan_handler=scan_handler,
             git_meta=metadata,
             supply_chain_only=supply_chain_only,
@@ -673,7 +666,6 @@ def ci(
             "optimizations": optimizations,
             "baseline_commit": metadata.merge_base_ref,
             "baseline_commit_is_mergebase": True,
-            "diff_depth": diff_depth,
             "capture_core_stderr": capture_core_stderr,
             "allow_local_builds": allow_local_builds,
             "x_eio": x_eio,

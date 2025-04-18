@@ -47,11 +47,7 @@ type func = {
     Core_result.result_or_exn;
 }
 
-type pro_conf = {
-  diff_config : Diff_scan_config.t;
-  roots : Scanning_root.t list;
-  engine_type : Engine_type.t;
-}
+type pro_conf = { roots : Scanning_root.t list; engine_type : Engine_type.t }
 
 val default_conf : conf
 

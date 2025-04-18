@@ -8,7 +8,6 @@ from typing import List
 from typing import Sequence
 from typing import Union
 
-from attrs import evolve
 from rich.columns import Columns
 from rich.padding import Padding
 from rich.table import Table
@@ -112,14 +111,8 @@ def _print_scan_plan_header(
     legacy_cli_ux = cli_ux == DesignTreatment.LEGACY
     simple_ux = cli_ux == DesignTreatment.SIMPLE
 
-    if target_mode_config.is_pro_diff_scan:
-        diff_file_count = len(target_mode_config.get_diff_targets())
-        summary_line = (
-            f"Inter-file Differential Scanning {unit_str(diff_file_count, 'file')}"
-        )
-    else:
-        target_count = len(target_manager.get_all_files(product=SAST_PRODUCT))
-        summary_line = f"Scanning {unit_str(target_count, 'file')}"
+    target_count = len(target_manager.get_all_files(product=SAST_PRODUCT))
+    summary_line = f"Scanning {unit_str(target_count, 'file')}"
 
     if target_manager.respect_git_ignore:
         summary_line += (
@@ -340,11 +333,7 @@ def print_scan_status(
                 and (not rule.from_transient_scan)
             )
         ],
-        target_manager
-        if not target_mode_config.is_pro_diff_scan
-        else evolve(
-            target_manager, scanning_root_strings=target_mode_config.get_diff_targets()
-        ),
+        target_manager,
         all_subprojects,
         product=out.Product(
             out.SAST()

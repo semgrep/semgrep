@@ -229,7 +229,7 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
   let combine allow_local_builds allow_untrusted_validators autofix
-      baseline_commit common config dataflow_traces _diff_depthTODO dryrun
+      baseline_commit common config dataflow_traces dryrun
       _dump_command_for_core emacs emacs_outputs exclude_ exclude_minified_files
       exclude_rule_ids files_with_matches force_color gitlab_sast
       gitlab_sast_outputs gitlab_secrets gitlab_secrets_outputs
@@ -372,9 +372,9 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
      * combine above! *)
     const combine $ SC.o_allow_local_builds $ SC.o_allow_untrusted_validators
     $ SC.o_autofix $ SC.o_baseline_commit $ CLI_common.o_common $ o_config
-    $ SC.o_dataflow_traces $ SC.o_diff_depth $ SC.o_dryrun
-    $ SC.o_dump_command_for_core $ SC.o_emacs $ SC.o_emacs_outputs
-    $ SC.o_exclude $ SC.o_exclude_minified_files $ SC.o_exclude_rule_ids
+    $ SC.o_dataflow_traces $ SC.o_dryrun $ SC.o_dump_command_for_core
+    $ SC.o_emacs $ SC.o_emacs_outputs $ SC.o_exclude
+    $ SC.o_exclude_minified_files $ SC.o_exclude_rule_ids
     $ SC.o_files_with_matches $ SC.o_force_color $ SC.o_gitlab_sast
     $ SC.o_gitlab_sast_outputs $ SC.o_gitlab_secrets
     $ SC.o_gitlab_secrets_outputs $ SC.o_historical_secrets
