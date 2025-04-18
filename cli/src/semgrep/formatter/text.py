@@ -31,6 +31,7 @@ from semgrep.semgrep_types import Language
 from semgrep.state import get_state
 from semgrep.util import format_bytes
 from semgrep.util import get_lines_from_file
+from semgrep.util import is_secrets_ai_ruleset
 from semgrep.util import MASK_CHAR
 from semgrep.util import MASK_SHOW_PCT
 from semgrep.util import truncate
@@ -883,7 +884,7 @@ class TextFormatter(base.BaseFormatter):
                 elif isinstance(product, out.Secrets):
                     if match.is_blocking:
                         secrets_blocking_rules.add(match.match.check_id.value)
-                    if match.metadata.get("generic_secrets", False):
+                    if is_secrets_ai_ruleset(match.metadata):
                         subgroup = "generic-secrets"
                     else:
                         state = match.match.extra.validation_state

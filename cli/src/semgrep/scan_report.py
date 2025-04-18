@@ -25,6 +25,7 @@ from semgrep.state import get_state
 from semgrep.target_manager import SAST_PRODUCT
 from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
+from semgrep.util import is_secrets_ai_ruleset
 from semgrep.util import unit_str
 from semgrep.util import with_color
 from semgrep.util import with_feature_status
@@ -32,6 +33,9 @@ from semgrep.util import with_feature_status
 ##############################################################################
 # Helpers
 ##############################################################################
+
+# Helper function to identify secret rules
+is_secret_rule = lambda r: isinstance(r.product.value, out.Secrets)
 
 
 # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
@@ -128,7 +132,6 @@ def _print_scan_plan_header(
     # historically take into account the effects of not scanning
     # files, which rule_count_by_product includes.
     sast_rule_count = len(sast_plan.rules)
-    is_secret_rule = lambda r: isinstance(r.product.value, out.Secrets)
     secrets_rule_count = len(list(filter(is_secret_rule, sast_plan.rules)))
 
     # TODO code_rule_count currently double counts pro_rules.
@@ -415,8 +418,18 @@ def print_scan_status(
     # TODO: after launch this should no longer be conditional.
     if has_secret_rules:
         console.print(Title("Secrets Rules", order=2))
-        # NOTE: this is modification of the plan's product is needed for
-        # acuratly reporting the number of files in degenerate table
+
+        # Check if any secret rule has the generic secrets AI ruleset
+        has_generic_secrets = any(
+            is_secrets_ai_ruleset(rule.metadata)
+            for rule in filter(is_secret_rule, sast_plan.rules)
+        )
+
+        if has_generic_secrets:
+            console.print("AI augmented rules are active for secrets detection.")
+
+        # NOTE: this modification of the plan's product is needed for
+        # accurately reporting the number of files in degenerate table
         sast_plan.product = out.Product(out.Secrets())
         _print_sast_table(
             sast_plan=sast_plan,

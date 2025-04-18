@@ -80,7 +80,7 @@ GENERIC_SECRETS_AND_REAL_RULE = dedent(
       pattern: $X
       metadata:
         product: secrets
-        generic_secrets: true
+        'semgrep.ruleset': 'semgrep-secrets-ai'
     - id: real-rule-example
       message: "this rule should actually display findings in CLI"
       languages: [python]
