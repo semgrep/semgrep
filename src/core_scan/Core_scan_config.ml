@@ -83,16 +83,9 @@ type t = {
 }
 [@@deriving show]
 
-(*
-   Default values for all the semgrep-core command-line arguments and options.
-
+(* Default values for all the semgrep-core command-line arguments and options.
    Its values can be inherited using the 'with' syntax:
-
-    let my_config = {
-      Runner_config.default with
-      debug = true;
-      ncores = 3;
-    }
+      let my_config = { Core_scan_config.default with ncores = 3 }
 *)
 let default =
   {
@@ -108,9 +101,7 @@ let default =
     respect_rule_paths = true;
     file_match_hook = None;
     (* Limits *)
-    (* maximum time to spend running a rule on a single file *)
     timeout = 0.;
-    (* maximum number of rules that can timeout on a file *)
     timeout_threshold = 0;
     max_memory_mb = 0;
     max_match_per_file = 10_000;
