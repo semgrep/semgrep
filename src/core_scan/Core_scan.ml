@@ -732,7 +732,7 @@ let iter_targets_and_get_matches_and_exn_to_errors
 (*****************************************************************************)
 
 (* This is also used by semgrep-proprietary. *)
-let rules_for_analyzer ~combine_js_with_ts ~analyzer rules =
+let rules_for_analyzer ~combine_js_with_ts analyzer rules =
   rules
   |> List.filter (fun (r : Rule.t) ->
          (* Don't run a Python rule on a JavaScript target *)
@@ -776,9 +776,7 @@ let origin_satisfy_paths_filter (origin : Origin.t) (paths : Rule.paths) =
    rules? *)
 let rules_for_target ~combine_js_with_ts ~respect_rule_paths (target : Target.t)
     (rules : Rule.t list) : Rule.t list =
-  let rules =
-    rules_for_analyzer ~combine_js_with_ts ~analyzer:target.analyzer rules
-  in
+  let rules = rules_for_analyzer ~combine_js_with_ts target.analyzer rules in
   let rules =
     rules
     |> List.filter (fun r ->
@@ -920,16 +918,16 @@ let scan_exn (caps : < caps ; .. >) (config : Core_scan_config.t)
 (* Post processors *)
 (*****************************************************************************)
 
+type post_processor =
+  Core_result.processed_match -> Core_result.processed_match * Core_error.t list
+
 (* Helper to run a "postprocessor" callback function on the set of matches in
  * a Core_result.t.
  * history: we were using a complex Pre_post_core_scan.ml module before with
  * functors, first-class modules, globals, and hooks but better
  * to use simple explicit function calls.
  *)
-let post_process_matches
-    (f :
-      Core_result.processed_match ->
-      Core_result.processed_match * Core_error.t list) (res : Core_result.t) :
+let post_process_matches (f : post_processor) (res : Core_result.t) :
     Core_result.t =
   let errors = ref [] in
   let processed_matches =
