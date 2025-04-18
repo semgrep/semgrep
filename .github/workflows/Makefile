@@ -19,7 +19,6 @@ OBJS = \
   tests.yml \
   test-e2e-semgrep-ci.yml nightly.yml \
   build-test-docker.yml push-docker.yml \
-  release.yml \
   trigger-semgrep-comparison-argo.yml \
   sync-with-PRO.yml
 
