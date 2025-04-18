@@ -18,7 +18,7 @@ local ref_expr = "${{ inputs.ref != '' && inputs.ref || github.sha }}";
 // TODO: Generalize and also make build-test-linux-arm64.jsonnet share the
 //       same job. Maybe also use it in the release script.
 
-local platforms = 'linux/amd64,linux/arm64';
+local default_platforms = 'linux/amd64,linux/arm64';
 local archs = ['amd64', 'arm64', 'x86'];
 // Needed to find the binaries when making the artifact
 local arch_to_docker_arch = {
@@ -27,27 +27,24 @@ local arch_to_docker_arch = {
   x86: 'amd64',
 };
 // utils
-local copy_from_docker(artifact_name, target, file='Dockerfile') = [
-  {
-    id: 'copy-%s-binaries' % [artifact_name],
-    name: 'Copy %s binaries from the Docker image to GHA runner machine' % artifact_name,
-    uses: 'depot/build-push-action@v1.9.0',
-    with: {
-      project: '${{ secrets.DEPOT_PROJECT_ID }}',
-      context: '.',
-      platforms: platforms,
-      file: file,
-      target: '%s-binaries' % target,
-      outputs: 'type=local,dest=/tmp/binaries',
-    },
+
+// Useful for copying files out of a docker container
+//
+// NOTE: This always copies EVERY FILE from the container, so usually you want
+// to copy needed files into a scratch image then output from that
+local copy_from_docker_step(target, output_dir, file='Dockerfile', platforms=default_platforms) = {
+
+  name: 'Copy all files from %s to GHA runner machine' % target,
+  uses: 'depot/build-push-action@v1.9.0',
+  with: {
+    project: '${{ secrets.DEPOT_PROJECT_ID }}',
+    context: '.',
+    platforms: platforms,
+    file: file,
+    target: target,
+    outputs: 'type=local,dest=/tmp/%s' % output_dir,
   },
-] + std.flattenArrays(
-  std.map(function(arch)
-    [
-      actions.make_artifact_step('/tmp/binaries/linux_%s/*' % arch_to_docker_arch[arch]),
-      actions.upload_artifact_step('%s-linux-%s' % [artifact_name, arch]),
-    ], archs)
-);
+};
 
 local validate(
   job,
@@ -137,7 +134,9 @@ local job(
   script='OSS/scripts/validate-docker-build.sh',  // script to verify docker image ok
   checkout_steps=actions.checkout_with_submodules,
   push=false,  // push to registry
-  file='Dockerfile'
+  file='Dockerfile',
+  build_args='',  // if you use ARG FOO=... in a dockerfile, set it here as 'FOO1=FOO,FOO2=FOO,...'
+  platforms=default_platforms
       ) =
   (if needs != [] then { needs: needs } else {}) +
   {
@@ -341,11 +340,22 @@ local job(
 
                  // Also maybe push to Docker hub and ec2
                  push: push,
-               },
+               } + (if build_args != '' then {
+                      'build-args': build_args,
+                    } else {}),
              },
            ] +
            (if artifact_name != null then (
-              copy_from_docker(artifact_name, target, file)
+              [
+                copy_from_docker_step(target='%s-binaries' % target, output_dir='binaries', platforms=platforms),
+              ] + std.flattenArrays(
+                std.map(function(arch)
+                  [
+                    actions.make_artifact_step('/tmp/binaries/linux_%s/*' % arch_to_docker_arch[arch]),
+                    actions.upload_artifact_step('%s-linux-%s' % [artifact_name, arch]),
+                  ], archs)
+              )
+
             ) else []),
   };
 
@@ -379,6 +389,7 @@ local inputs = {
       },
     },
   },
+  copy_from_docker_step: copy_from_docker_step,
   validate: validate,
   retag_step: retag_step,
 }
