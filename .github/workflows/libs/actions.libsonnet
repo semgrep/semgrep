@@ -53,6 +53,24 @@ local wait_for_workflow_run(run_id, interval=3, repo='${{ github.repository }}')
   run: 'gh run watch "%s" --exit-status -i %s -R "%s"' % [run_id, interval, repo],
 };
 
+local get_commit_with_message(sha, message, repo='${{ github.repository }}') = {
+  name: 'Get commit from with message %s' % message,
+  id: 'get_commit_with_message',
+  env: {
+    GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
+    REPO: repo,
+    SHA: sha,
+    MESSAGE: message,
+  },
+  run: |||
+    commit_with_message_sha=$(gh api "/repos/${REPO}/commits" -f "sha=${SHA}" --method GET \
+    --jq ".[] | select(.commit.message | contains(\"${MESSAGE}\")) | .sha")
+    echo $commit_with_message_sha
+    echo "sha=$commit_with_message_sha" >> $GITHUB_OUTPUT
+  |||,
+};
+local commit_with_message_output = '${{ steps.get_commit_with_message.outputs.sha }}';
+
 {
   // ---------------------------------------------------------
   // Checkout
@@ -152,6 +170,8 @@ local wait_for_workflow_run(run_id, interval=3, repo='${{ github.repository }}')
   get_workflow_run_id_step: get_workflow_run_id_step,
   workflow_run_id_output: workflow_run_id_output,
   wait_for_workflow_run: wait_for_workflow_run,
+  get_commit_with_message_step: get_commit_with_message,
+  commit_with_message_output: commit_with_message_output,
   // See semgrep.libjsonnet cache_opam for inspiration here
   //
   guard_cache_hit: {
