@@ -241,10 +241,10 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
       pro_path_sensitive rewrite_rule_ids sarif sarif_outputs
       scan_unknown_extensions secrets semgrepignore_filename text text_outputs
       timeout _timeout_interfileTODO timeout_threshold trace trace_endpoint
-      use_git _use_semgrepignore_v2 version_check vim vim_outputs x_trTODO
+      use_git _use_semgrepignore_v2 version_check vim vim_outputs x_tr
       x_pro_naming =
     (* this is just handled by psemgrep for now *)
-    ignore (x_trTODO, x_pro_naming);
+    ignore x_pro_naming;
     let output_format : Output_format.t =
       Scan_CLI.output_format_conf ~text ~files_with_matches ~json ~emacs ~vim
         ~sarif ~gitlab_sast ~gitlab_secrets ~junit_xml
@@ -277,6 +277,7 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
     let engine_type : Engine_type.t =
       Scan_CLI.engine_type_conf ~oss ~pro_lang ~pro_intrafile ~pro ~secrets
         ~no_secrets_validation ~allow_untrusted_validators ~pro_path_sensitive
+        ~allow_local_builds ~x_tr
     in
     let rules_source = Rules_source.Configs config in
     let core_runner_conf =
@@ -361,7 +362,6 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
         show = None;
         validate = None;
         test = None;
-        allow_local_builds;
         ls = false;
         ls_format = Ls_subcommand.default_format;
       }
@@ -378,7 +378,7 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
     $ SC.o_files_with_matches $ SC.o_force_color $ SC.o_gitlab_sast
     $ SC.o_gitlab_sast_outputs $ SC.o_gitlab_secrets
     $ SC.o_gitlab_secrets_outputs $ SC.o_historical_secrets
-    $ SC.o_ignore_semgrepignore_files $ SC.o_include $ SC.o_incremental_output
+    $ SC.o_x_ignore_semgrepignore_files $ SC.o_include $ SC.o_incremental_output
     $ SC.o_json $ SC.o_json_outputs $ SC.o_junit_xml $ SC.o_junit_xml_outputs
     $ SC.o_matching_explanations $ SC.o_max_chars_per_line
     $ SC.o_max_lines_per_finding $ SC.o_max_log_list_entries
@@ -390,8 +390,8 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
     $ SC.o_semgrepignore_filename $ SC.o_text $ SC.o_text_outputs $ SC.o_timeout
     $ SC.o_timeout_interfile $ SC.o_timeout_threshold $ SC.o_trace
     $ SC.o_trace_endpoint $ SC.o_use_git $ SC.o_use_semgrepignore_v2
-    $ SC.o_version_check $ SC.o_vim $ SC.o_vim_outputs $ SC.o_tr
-    $ SC.o_pro_naming)
+    $ SC.o_version_check $ SC.o_vim $ SC.o_vim_outputs $ SC.o_x_tr
+    $ SC.o_x_pro_naming)
 
 (*************************************************************************)
 (* Turn argv into conf *)
