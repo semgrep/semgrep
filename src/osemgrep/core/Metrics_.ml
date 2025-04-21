@@ -313,10 +313,9 @@ let add_engine_type (engine_type : Engine_type.t) =
         {
           analysis;
           extra_languages;
-          secrets_config;
-          code_config;
+          path_sensitive = _;
           sca_config;
-          _;
+          secrets_config;
         } ->
         {
           analysis_type =
@@ -324,10 +323,7 @@ let add_engine_type (engine_type : Engine_type.t) =
             | Intraprocedural -> `Intraprocedural
             | Interprocedural -> `Interprocedural
             | Interfile -> `Interfile);
-          code_config =
-            Option.map
-              (fun () : Semgrep_metrics_t.code_config -> { _rfu = None })
-              code_config;
+          code_config = Some { _rfu = None };
           secrets_config =
             Option.map
               (fun (conf : Engine_type.secrets_config) :
@@ -339,7 +335,7 @@ let add_engine_type (engine_type : Engine_type.t) =
               secrets_config;
           supply_chain_config =
             Option.map
-              (fun () : Semgrep_metrics_t.supply_chain_config ->
+              (fun _TODO : Semgrep_metrics_t.supply_chain_config ->
                 { _rfu = None })
               sca_config;
           pro_langs = extra_languages;
