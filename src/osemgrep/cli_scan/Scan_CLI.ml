@@ -62,7 +62,6 @@ type conf = {
   show : Show_CLI.conf option;
   validate : Validate_CLI.conf option;
   test : Test_CLI.conf option;
-  allow_local_builds : bool;
   ls : bool;
   ls_format : Ls_subcommand.format;
 }
@@ -110,7 +109,6 @@ let default : conf =
     show = None;
     validate = None;
     test = None;
-    allow_local_builds = false;
     ls = false;
     ls_format = Ls_subcommand.default_format;
   }
@@ -261,7 +259,7 @@ It is now the default and only behavior. The transitional option
   in
   Arg.value (Arg.flag info)
 
-let o_ignore_semgrepignore_files : bool Term.t =
+let o_x_ignore_semgrepignore_files : bool Term.t =
   let info =
     Arg.info
       [ "x-ignore-semgrepignore-files" ]
@@ -640,10 +638,17 @@ let o_allow_local_builds : bool Term.t =
   let info =
     Arg.info [ "allow-local-builds" ]
       ~doc:
-        {|Experimental: allow building projects contained in the repository. This allows Semgrep to identify dependencies
-          and dependency relationships when lockfiles are not present or are insufficient. However, building code may inherently
-          require the execution of code contained in the scanned project or in its dependencies, which is a security risk.|}
+        {|Experimental: allow building projects contained in the repository.
+          This allows Semgrep to identify dependencies and dependency
+          relationships when lockfiles are not present or are insufficient.
+          However, building code may inherently require the execution of code
+          contained in the scanned project or in its dependencies, which is a
+          security risk.|}
   in
+  Arg.value (Arg.flag info)
+
+let o_x_tr : bool Term.t =
+  let info = Arg.info [ "x-tr" ] ~doc:"<internal, do not use>" in
   Arg.value (Arg.flag info)
 
 (* ------------------------------------------------------------------ *)
@@ -991,7 +996,7 @@ let o_remote : string option Term.t =
    Let's use the following convention: the prefix '--x-' means "forbidden"
    or "experimental".
 *)
-let o_ls : bool Term.t =
+let o_x_ls : bool Term.t =
   let info =
     Arg.info [ "x-ls" ]
       ~doc:
@@ -1004,7 +1009,7 @@ CHANGE OR DISAPPEAR WITHOUT NOTICE.
   in
   Arg.value (Arg.flag info)
 
-let o_ls_long : bool Term.t =
+let o_x_ls_long : bool Term.t =
   let info =
     Arg.info [ "x-ls-long" ]
       ~doc:
@@ -1017,12 +1022,7 @@ CHANGE OR DISAPPEAR WITHOUT NOTICE.
   in
   Arg.value (Arg.flag info)
 
-(* LATER: move in SCA section with allow-local-build *)
-let o_tr : bool Term.t =
-  let info = Arg.info [ "x-tr" ] ~doc:"<internal, do not use>" in
-  Arg.value (Arg.flag info)
-
-let o_pro_naming : bool Term.t =
+let o_x_pro_naming : bool Term.t =
   let info = Arg.info [ "x-pro-naming" ] ~doc:"<internal, do not use>" in
   Arg.value (Arg.flag info)
 
@@ -1203,17 +1203,20 @@ let outputs_conf ~text_outputs ~json_outputs ~emacs_outputs ~vim_outputs
 
 (* reused in Ci_CLI.ml *)
 let engine_type_conf ~oss ~pro_lang ~pro_intrafile ~pro ~secrets
-    ~no_secrets_validation ~allow_untrusted_validators ~pro_path_sensitive :
-    Engine_type.t =
+    ~no_secrets_validation ~allow_untrusted_validators ~pro_path_sensitive
+    ~allow_local_builds ~x_tr : Engine_type.t =
   (* This first bit just rules out mutually exclusive options. *)
   if oss && secrets then
-    Error.abort "Cannot run secrets scan with OSS engine (--oss specified).";
+    Error.abort "Cannot run Secrets scan with OSS engine (--oss specified).";
+  if oss && (x_tr || allow_local_builds) then
+    Error.abort "Cannot run SCA scan with OSS engine (--oss specified).";
   if
     [ oss; pro_lang; pro_intrafile; pro ]
     |> List.filter Fun.id |> List.length > 1
   then
     Error.abort
       "Mutually exclusive options --oss/--pro-languages/--pro-intrafile/--pro";
+
   (* Now select the engine type *)
   if oss then Engine_type.OSS
   else
@@ -1234,19 +1237,17 @@ let engine_type_conf ~oss ~pro_lang ~pro_intrafile ~pro ~secrets
           }
       else None
     in
-    let code_config =
-      if pro || pro_lang || pro_intrafile then Some () else None
+    let sca_config : Engine_type.sca_config option =
+      if x_tr || allow_local_builds then Some { tr = x_tr; allow_local_builds }
+      else None
     in
-    (* Currently we don't run SCA in osemgrep *)
-    let sca_config = None in
-    match (extra_languages, analysis, secrets_config) with
-    | false, Intraprocedural, None -> OSS
+    match (extra_languages, analysis, secrets_config, sca_config) with
+    | false, Intraprocedural, None, None -> OSS
     | _ ->
         PRO
           {
             extra_languages;
             analysis;
-            code_config;
             secrets_config;
             sca_config;
             path_sensitive = pro_path_sensitive;
@@ -1419,6 +1420,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     let engine_type : Engine_type.t =
       engine_type_conf ~oss ~pro_lang ~pro_intrafile ~pro ~secrets
         ~no_secrets_validation ~allow_untrusted_validators ~pro_path_sensitive
+        ~allow_local_builds ~x_tr
     in
     let rules_source : Rules_source.t =
       match (config, pattern) with
@@ -1566,7 +1568,6 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       test;
       trace;
       trace_endpoint;
-      allow_local_builds;
       ls;
       ls_format;
     }
@@ -1595,8 +1596,8 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     $ Test_CLI.o_test_ignore_todo $ o_text $ o_text_outputs $ o_time $ o_timeout
     $ o_timeout_interfile $ o_timeout_threshold $ o_trace $ o_trace_endpoint
     $ o_use_git $ o_use_semgrepignore_v2 $ o_validate $ o_version
-    $ o_version_check $ o_vim $ o_vim_outputs $ o_ignore_semgrepignore_files
-    $ o_ls $ o_ls_long $ o_tr $ o_pro_naming)
+    $ o_version_check $ o_vim $ o_vim_outputs $ o_x_ignore_semgrepignore_files
+    $ o_x_ls $ o_x_ls_long $ o_x_tr $ o_x_pro_naming)
 
 let doc = "run semgrep rules on files"
 

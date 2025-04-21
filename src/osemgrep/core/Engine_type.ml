@@ -36,11 +36,11 @@ type t =
   | PRO of pro_config
 
 and pro_config = {
+  (* alt: analysis_flavor and co could be part of 'code_config' really *)
   analysis : analysis_flavor;
   path_sensitive : bool;
   extra_languages : bool;
-  (* For Code/Secrets/SCA, None means Disabled *)
-  code_config : code_config option;
+  (* For Secrets/SCA, None means Disabled *)
   secrets_config : secrets_config option;
   sca_config : sca_config option;
 }
@@ -57,9 +57,6 @@ and analysis_flavor =
   (* a.k.a. Deep scan, crossfile interprocedural *)
   | Interfile
 
-(* alt: analysis_flavor could be part of the code_config really *)
-and code_config = unit
-
 and secrets_config = {
   allow_all_origins : bool;
       (** Controls if we restrict the origins for secret rules. Normally this is
@@ -75,4 +72,10 @@ and secrets_config = {
    *)
 }
 
-and sca_config = unit [@@deriving show]
+and sca_config = {
+  (* for lockfiless project (and also transitive reachability) *)
+  allow_local_builds : bool;
+  (* transitive reachability *)
+  tr : bool;
+}
+[@@deriving show]

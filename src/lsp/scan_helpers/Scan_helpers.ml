@@ -116,12 +116,10 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
                           extra_languages;
                           (* TODO Interfile? *)
                           analysis = Interprocedural;
+                          path_sensitive = false;
                           (* TODO *)
                           secrets_config = None;
-                          code_config = Some ();
-                          (* TODO *)
                           sca_config = None;
-                          path_sensitive = false;
                         });
                 }
           | _ ->
