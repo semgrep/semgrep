@@ -426,7 +426,8 @@ RUN echo '1==1' | semgrep -l python -e '$X == $X' -
 # Build target that exposes the performance benchmark tests in perf/ for
 # use in running performance benchmarks from a test build container, e.g., on PRs
 #coupling: the 'performance-tests' name is used in tests.jsonnet
-FROM semgrep-cli AS performance-tests
+#fine if build from semgrep-oss as these perf tests do not use pro engine
+FROM semgrep-oss AS performance-tests
 COPY perf /semgrep/perf
 RUN apk add --no-cache make
 WORKDIR /semgrep/perf
