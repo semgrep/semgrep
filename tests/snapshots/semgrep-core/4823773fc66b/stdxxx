@@ -3,14 +3,14 @@ Snapshot for matching diagnosis unexpected match (multiple)
 test.py
 test.yaml
 --- end input files ---
-[<MASKED TIMESTAMP>][[31mERROR[0m]: test failed for rule id no-foo-bar-unless-good on target test.py (unexpected findings lines 5, 9.)
+[<MASKED TIMESTAMP>][[31mERROR[0m]: test failed for rule id no-foo-bar-unless-good on target ./test.py (unexpected findings lines 5, 9.)
 0/1: 1 unit tests did not pass:
 --------------------------------------------------------------------------------
 TODO: print(check_output_lines)
 No tests for fixes found.
 --------------------------------------------------------------------------------
 Matching diagnosis:
-test.py: Unexpected match at line 5:
+./test.py: Unexpected match at line 5:
     foo(good)
 This match originated at this pattern at line 7 in ./test.yaml:
             - pattern: foo(...)
@@ -19,7 +19,7 @@ Maybe the match was supposed to be filtered out by one of these patterns?
               - not: foo(goood)
   line 6:
             - all:
-test.py: Unexpected match at line 9:
+./test.py: Unexpected match at line 9:
     bar(good)
 This match originated at this pattern at line 10 in ./test.yaml:
             - pattern: bar(...)
