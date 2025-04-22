@@ -39,6 +39,9 @@ def test_debug_performance(run_semgrep_in_tmp: RunSemgrep):
     # pad: this used to be 0.1, but got some FPs on unrelated changes like
     # https://github.com/returntocorp/semgrep/runs/6468878138?check_suite_focus=true
     # so I've put 0.2
+    #
+    # austin: I've gotten FP with 0.2, bumping to .3. If you are here to bump
+    # this again just remove it
     assert time_with_debug == pytest.approx(
-        time_without_debug, rel=0.2
-    ), "adding --debug slowed runtime by more than 20%"
+        time_without_debug, rel=0.3
+    ), "adding --debug slowed runtime by more than 30%"

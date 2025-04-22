@@ -1,1 +1,0 @@
-Fixed bug in pro package-lock.json parsing where dependencies with no specified version would cause an exception
