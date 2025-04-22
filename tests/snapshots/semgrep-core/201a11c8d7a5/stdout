@@ -1,15 +1,103 @@
---- begin input files ---
-foo.py
---- end input files ---
-Pr(
-  [DefStmt(
-     ({
-       name=EN(
-              Id(("foo", ()),
-                {id_info_id=<MASKED>; 
-                 id_resolved_alternative=Ref([]); id_resolved=Ref(None); 
-                 id_type=Ref(None); id_svalue=Ref(None); }));
-       attrs=[]; tparams=None; },
-      FuncDef(
-        {fkind=(Function, ()); fparams=[]; frettype=None; 
-         fbody=FBStmt(Block([Return((), Some(L(Int((Some(42), ())))), ())])); })))])
+---begininputfiles---foo.py---endinputfiles---Pr(
+[
+DefStmt(
+(
+{
+name=
+EN(
+Id(
+(
+"
+foo"
+,
+(
+)
+)
+,
+{
+id_info_id=
+<MASKEDNUM>;
+id_flags=
+Ref(
+0)
+;
+id_resolved_alternative=
+Ref(
+[
+]
+)
+;
+id_resolved=
+Ref(
+None)
+;
+id_type=
+Ref(
+None)
+;
+id_svalue=
+Ref(
+None)
+;
+}
+)
+)
+;
+attrs=
+[
+]
+;
+tparams=
+None;
+}
+,
+FuncDef(
+{
+fkind=
+(
+Function,
+(
+)
+)
+;
+fparams=
+[
+]
+;
+frettype=
+None;
+fbody=
+FBStmt(
+Block(
+[
+Return(
+(
+)
+,
+Some(
+L(
+Int(
+(
+Some(
+42)
+,
+(
+)
+)
+)
+)
+)
+,
+(
+)
+)
+]
+)
+)
+;
+}
+)
+)
+)
+]
+)

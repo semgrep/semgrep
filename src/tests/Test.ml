@@ -124,6 +124,7 @@ let tests (caps : Cap.all_caps) =
       Parser_regexp.Unit_parsing.tests;
       Unit_ReDoS.tests;
       Unit_guess_lang.tests;
+      Unit_cgroup_limits.tests;
       Unit_memory_limit.tests (caps :> < Cap.memory_limit >);
       Unit_tok.tests;
       Unit_Ppath.tests;

@@ -1,4 +1,3 @@
-import multiprocessing
 import subprocess
 from enum import auto
 from enum import Enum
@@ -13,7 +12,6 @@ from semgrep.error import SemgrepError
 from semgrep.meta import GitMeta
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_interfaces import semgrep_output_v1 as out
-from semgrep.util import IS_WINDOWS
 from semgrep.util import sub_check_output
 from semgrep.verbose_logging import getLogger
 
@@ -116,21 +114,6 @@ class EngineType(Enum):
             stderr=subprocess.STDOUT,
         )
         return output.rstrip()
-
-    @staticmethod
-    def get_cpu_count() -> int:
-        try:
-            return multiprocessing.cpu_count()
-        except NotImplementedError:  # on Windows
-            return 1
-
-    @property
-    def default_jobs(self) -> int:
-        # Windows is currently limited to 1 job
-        if self == EngineType.PRO_INTERFILE or IS_WINDOWS:
-            return 1
-        # Maxing out number of cores used to 16 if more not requested to not overload on large machines
-        return min(16, self.get_cpu_count())
 
     @property
     def default_max_memory(self) -> int:

@@ -50,6 +50,8 @@ and show_kind =
   (* a.k.a whoami *)
   | Identity
   | Deployment
+  | ProjectRoot of { scan_root : Fpath.t }
+  | Resources
   (* 'semgrep show dump-pattern'
    * accessible also as 'semgrep scan --dump-ast -e <pattern>'
    * alt: we could accept XLang.t to dump extended patterns *)
@@ -74,7 +76,6 @@ and show_kind =
   (* pro-only commands *)
   | Debug of debug_settings
   | DumpLockfile of Fpath.t (* lockfile *) * Fpath.t option (* manifest *)
-  | ProjectRoot of { scan_root : Fpath.t }
 [@@deriving show]
 
 (*************************************************************************)
@@ -382,6 +383,20 @@ file will be consulted.
   in
   Cmd.v info term
 
+let resources_cmd =
+  let doc =
+    {|Print available system resources detected by semgrep.
+Requires --experimental.
+|}
+  in
+  let info = Cmd.info "resources" ~doc in
+  let term =
+    Term.(
+      const (fun json common -> { common; json; show_kind = Resources })
+      $ o_json $ CLI_common.o_common)
+  in
+  Cmd.v info term
+
 (*************************************************************************)
 (* Main command *)
 (*************************************************************************)
@@ -432,6 +447,7 @@ let parse_argv (caps : < Cap.tmp ; .. >) (argv : string array) : conf =
         debug_cmd caps;
         dump_lockfile_cmd;
         project_root_cmd;
+        resources_cmd;
       ]
   in
   CLI_common.eval_value ~argv group

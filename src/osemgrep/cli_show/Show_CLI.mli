@@ -20,6 +20,8 @@ and show_kind =
   | SupportedLanguages
   | Identity
   | Deployment
+  | ProjectRoot of { scan_root : Fpath.t }
+  | Resources
   (* dumpers *)
   | DumpPattern of string * Lang.t
   | DumpCST of Fpath.t * Lang.t
@@ -33,7 +35,6 @@ and show_kind =
   (* pro-only commands *)
   | Debug of debug_settings  (** Open an interactive debugging view. *)
   | DumpLockfile of Fpath.t (* lockfile *) * Fpath.t option (* manifest *)
-  | ProjectRoot of { scan_root : Fpath.t }
 
 and debug_settings = {
   output_dir : Fpath.t;

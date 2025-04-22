@@ -525,7 +525,7 @@ class CoreRunner:
         use_pro_naming_for_intrafile: bool = False,
     ):
         self._binary_path = engine_type.get_binary_path()
-        self._jobs = jobs or engine_type.default_jobs
+        self._jobs = jobs
         self._engine_type = engine_type
         self._timeout = timeout
         self._max_memory = max_memory
@@ -866,15 +866,8 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
             if x_eio:
                 cmd.extend(["-use_eio"])
 
-            # determine job number
-            safe_jobs = self._jobs
-            if IS_WINDOWS and safe_jobs > 1:
-                logger.warning(
-                    f"Requested {safe_jobs} jobs, but only 1 job is currently "
-                    "supported on Windows. Forcing configuration to 1 job."
-                )
-                safe_jobs = 1
-            cmd.extend(["-j", str(safe_jobs)])
+            if self._jobs is not None:
+                cmd.extend(["-j", str(self._jobs)])
 
             if strict:
                 cmd.extend(["-strict"])
