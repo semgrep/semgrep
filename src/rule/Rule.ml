@@ -779,6 +779,20 @@ let partition_rules (rules : rules) :
   in
   part_rules [] [] [] [] rules
 
+let split_taint_rules (rules : rules) : taint_rule list * rules =
+  let rec part_rules taint other = function
+    | [] -> (List.rev taint, List.rev other)
+    | r :: l -> (
+        match r.mode with
+        | `Taint _ as t -> part_rules ({ r with mode = t } :: taint) other l
+        | `Search _
+        | `Extract _
+        | `Steps _
+        | `SCA _ ->
+            part_rules taint (r :: other) l)
+  in
+  part_rules [] [] rules
+
 (* for informational messages *)
 let show_id rule = rule.id |> fst |> Rule_ID.to_string
 

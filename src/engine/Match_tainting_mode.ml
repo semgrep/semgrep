@@ -177,7 +177,16 @@ let taints_satisfy_sink_requires taints requires =
       |> List.for_all (fun (taints, precond) ->
              T.taints_satisfy_requires (T.Taint_set.elements taints) precond)
 
-let pms_of_effect ~match_on (effect_ : Effect.poly) =
+let matches_of_effect (options : Rule_options.t) (effect_ : Effect.poly) =
+  let match_on =
+    (* TEMPORARY HACK to support both taint_match_on (DEPRECATED) and
+     * taint_focus_on (preferred name by SR). *)
+    match (options.taint_focus_on, options.taint_match_on) with
+    | `Source, _
+    | _, `Source ->
+        `Source
+    | `Sink, `Sink -> `Sink
+  in
   match effect_ with
   | ToLval _
   | ToReturn _
@@ -242,6 +251,23 @@ let pms_of_effect ~match_on (effect_ : Effect.poly) =
                      taint_trace = Some (lazy [ trace ]);
                    }))
 
+let matches_of_effects options effects =
+  Effects.fold
+    (fun effect_ acc_matches ->
+      let effect_pms = matches_of_effect options effect_ in
+      List.rev_append effect_pms acc_matches)
+    effects []
+  (* TODO: The order in which we return these matches is important for deduplication.
+      In general, if for the same rule we have two sources reaching the same sink, we
+      will generate two matches (one per source) and arbitrarily pick the first one
+      during deduplication. This is a bit fragile unfortunately. *)
+  |> List.rev
+[@@profiling]
+
+let dedup_matches matches =
+  matches |> PM.uniq |> PM.no_submatches (* see "Taint-tracking via ranges" *)
+[@@profiling]
+
 (*****************************************************************************)
 (* Main entry points *)
 (*****************************************************************************)
@@ -269,20 +295,9 @@ let check_rule per_file_formula_cache (file : Taint_rule_inst.file)
          ===================="
         (Rule_ID.to_string (fst rule.R.id)));
   let matches = ref [] in
-  let match_on =
-    (* TEMPORARY HACK to support both taint_match_on (DEPRECATED) and
-     * taint_focus_on (preferred name by SR). *)
-    match (xconf.config.taint_focus_on, xconf.config.taint_match_on) with
-    | `Source, _
-    | _, `Source ->
-        `Source
-    | `Sink, `Sink -> `Sink
-  in
   let record_matches new_effects =
-    new_effects
-    |> Effects.iter (fun effect_ ->
-           let effect_pms = pms_of_effect ~match_on effect_ in
-           matches := List.rev_append effect_pms !matches)
+    matches :=
+      List.rev_append (matches_of_effects xconf.config new_effects) !matches
   in
   let (ast, skipped_tokens), parse_time =
     Common.with_time (fun () -> lazy_force xtarget.lazy_ast_and_errors)
@@ -396,8 +411,7 @@ let check_rule per_file_formula_cache (file : Taint_rule_inst.file)
       let matches =
         !matches
         (* same post-processing as for search-mode in Match_rules.ml *)
-        |> PM.uniq
-        |> PM.no_submatches (* see "Taint-tracking via ranges" *)
+        |> dedup_matches
         |> matches_hook
       in
       let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
