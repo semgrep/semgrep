@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2024 Semgrep Inc.
+ * Copyright (C) 2024-2025 Semgrep Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -51,12 +51,12 @@ module A = Test_annotation
 (*****************************************************************************)
 (* Types and constants *)
 (*****************************************************************************)
-(* = Cap.tmp is for Deep_scan.caps
+(* = Cap.tmp is for Pro_scan.caps
  * (no need for Cap.network; the tested rules should be local)
  *)
 type caps = < Cap.stdout ; Core_scan.caps ; Cap.tmp ; Cap.readdir >
 
-(* Core_scan.caps | Deep_scan.caps *)
+(* Core_scan.caps | Pro_scan.caps *)
 type scan_caps = < Core_scan.caps ; Cap.tmp >
 
 (* Rules and targets to test together.
@@ -121,7 +121,7 @@ let hook_pro_init : (unit -> unit) Hook.t =
 
 (* For `Interfile note that we run with Deep_scan_config.interfile_config with
  *  - force_interfile=true (no need for the interfile: true metadata in the rule)
- *  - experimental_languages=true (analyze with DeepScan also Ruby and a few
+ *  - experimental_languages=true (analyze with ProDeep also Ruby and a few
  *    other languages)
  *)
 let hook_pro_scan :
@@ -403,12 +403,10 @@ let report_tests_result (caps : < Cap.stdout >) ~matching_diagnosis ~json
  *       also handle nosemgrep, and errors, and cache, and many other things,
  *       but require complex arguments (a Core_scan_config)
  *       update: Core_scan_config.t is now simpler and smaller
- *  - 5: core_scan/Pre_post_core_scan.call_with_pre_and_post_processor()
- *       to handle autofix and secrets validations
- *  - 6: osemgrep/core_runner/Core_runner.mk_scan_func_for_osemgrep()
+ *  - 5: osemgrep/core_runner/Core_runner.mk_scan_func_for_osemgrep()
  *       to fit osemgrep,
  *       but it requires even more complex arguments than Core_scan.scan()
- *  - 7: osemgrep/cli_scan/Scan_subcommand.run_scan_conf()
+ *  - 6: osemgrep/cli_scan/Scan_subcommand.run_scan_conf()
  *       but requires a dependency to cli_scan/, and is a bit heavyweight
  *       for our need which is just to run a few rules on a target test file.
  *
@@ -417,7 +415,7 @@ let report_tests_result (caps : < Cap.stdout >) ~matching_diagnosis ~json
  * Match_rules.check() and use a few helpers from Test_engine.ml,
  * but this was then difficult to extend to support --pro. By using
  * Core_scan.scan(), it's relatively easy to add hooks to switch to
- * Deep_scan.scan() for pro rules and interfile tests.
+ * Pro_scan.scan() for pro rules and interfile tests.
  * Using Core_scan.scan() would also make it easier to support extract rules.
  *
  * See also server/src/.../Studio_service.ml comment
@@ -428,6 +426,16 @@ let core_scan_config (conf : Test_CLI.conf) (rules : Rule.t list)
     (targets : Target.t list) : Core_scan_config.t =
   {
     Core_scan_config.default with
+    (* We set 'ncores' to 1 to avoid using Parmap and forking when running
+     * tests. Most tests contain just one target file and are pretty small
+     * so setting ncores > 1 actually slows things down because of the
+     * cost of fork.
+     * TODO: maybe switching to domains could allow us to use ncores > 1
+     * even though like I said above it will not be that useful. We
+     * should probably instead set ncores to 1 but run tests
+     * in parallel (in run_tests() further below).
+     *)
+    ncores = 1;
     rule_source = Rules rules;
     target_source = Targets targets;
     output_format = NoOutput;
@@ -462,7 +470,7 @@ let run_rules_against_targets_for_engine caps (env : env) (rules : Rule.t list)
          * a subdir (using the same name than the rule file)
          *)
         let root, _base = Fpath.split_base env.rule_file in
-        (* Deep_scan.caps but can't reference it from OSS/ *)
+        (* Pro_scan.caps but can't reference it from OSS/ *)
         (Hook.get hook_pro_scan) (caps :> scan_caps) config (`Interfile root)
   in
   match res_or_exn with
@@ -477,12 +485,12 @@ let run_rules_against_targets_for_engine caps (env : env) (rules : Rule.t list)
  *  - ruleid => proruleid => deepruleid,
  *    so if you have a ruleid:, no need to annotate too with proruleid:
  *    or deepruleid:, it is implicit. However if some ruleid: are actually
- *    not found by ProScan or DeepScan you'll need to add further annotations
+ *    not found by ProIntra or ProDeep you'll need to add further annotations
  *    such as prook: or deeptodoruleid:
  *  - prook => deepok, because if the intrafile engine is able to detect
  *    some FPs compared to CoreScan, then the interfile engine should too.
- *    If it's not the case it's probably a bug in DeepScan (probably a
- *    naming bug as DeepScan use Naming_SAST.ml instead of Naming_AST.ml)
+ *    If it's not the case it's probably a bug in ProDeep (probably a
+ *    naming bug as ProDeep use Naming_SAST.ml instead of Naming_AST.ml)
  *    in which case it's good to annotate it with a deeptodook
  *)
 let filter_annots_for_engine (running_engine : A.engine)
@@ -532,8 +540,8 @@ let compare_actual_to_expected (env : env) (matches : Core_match.t list)
   let xtra =
     match env.engine with
     | OSS -> ""
-    | Pro -> " (with pro engine)"
-    | Deep -> " (with deep engine)"
+    | Pro -> " (with ProIntra engine)"
+    | Deep -> " (with ProDeep engine)"
   in
   (* actual matches *)
   let matches_by_ruleid_and_file :
@@ -547,16 +555,7 @@ let compare_actual_to_expected (env : env) (matches : Core_match.t list)
            ( rule_id,
              pms
              |> Assoc.group_by (fun (pm : Core_match.t) ->
-                    (* We need Fpath.normalize because for unclear reasons DeepScan
-                     * returns matches with paths that may differ from
-                     * the one below in the annotations so simpler to normalize
-                     * both so path like ./foo/bar.c and foo/bar.c are considered
-                     * the same
-                     * TODO: we don't need that for CoreScan and ProScan so we
-                     * should probably fix DeepScan instead to not mess up
-                     * with the Targets paths.
-                     *)
-                    Fpath.normalize pm.path.internal_path_to_content) ))
+                    pm.path.internal_path_to_content) ))
   in
   (* expected matches *)
   let expected_by_ruleid_and_file :
@@ -564,7 +563,6 @@ let compare_actual_to_expected (env : env) (matches : Core_match.t list)
     let h = Hashtbl.create 101 in
     annots
     |> List.iter (fun (file, annotations) ->
-           let file = Fpath.normalize file in
            let expected_by_rule_id : (Rule_ID.t, A.linenb list) Assoc.t =
              A.group_by_rule_id annotations
            in
@@ -727,7 +725,7 @@ let run_engine (caps : < scan_caps ; .. >) (env : env) (rules : Rule.t list)
     (* optional fixtest *)
     match env.engine with
     | OSS -> compare_for_autofix env rules matches
-    (* TODO? we do not run the autofix for ProScan and DeepScan because
+    (* TODO? we do not run the autofix for pro because
      * the matches might differ which could require some .pro.fixed
      * (or .deep.fixed) to separate them from the OSS one.
      * TODO? should we fix semgrep-rules-pro/paid/python/ which have weird
@@ -759,8 +757,8 @@ let run_test (caps : < scan_caps ; .. >) (conf : Test_CLI.conf)
   in
   (* When conf.pro, we should run the engine 3 times:
    *  - with Core_scan and check just the ruleid:
-   *  - with Pro_scan and check also the proruleid:
-   *  - with Deep_scan and check also the deepruleid:.
+   *  - with Pro_scan ProIntra and check also the proruleid:
+   *  - with Pro_scan ProDeep and check also the deepruleid:.
    * The json will give information about those 3 different runs by using
    * different rule IDs suffix (e.g., "myrule--PRO")
    *)
@@ -803,7 +801,10 @@ let run_test (caps : < scan_caps ; .. >) (conf : Test_CLI.conf)
 let run_tests (caps : < scan_caps ; .. >) (conf : Test_CLI.conf) (tests : tests)
     (errors : error list ref) :
     (Fpath.t (* rule file *) * test_result list * fixtest_result list) list =
-  (* LATER: in theory we could use Parmap here *)
+  (* LATER: in theory we could use Parmap here or better Domains which
+   * would avoid the cost of fork (which is significant when running
+   * lots of very small tests like what we have in semgrep-rules/).
+   *)
   tests
   |> List_.map (fun (rule_file, target_files) ->
          Logs.info (fun m -> m "processing rule file %s" !!rule_file);
