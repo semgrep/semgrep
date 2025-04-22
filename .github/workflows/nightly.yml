@@ -29,11 +29,6 @@ jobs:
            --data "{
              \"text\": \"The nightly cron failed on ${{ github.sha }}. See https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more information.\"
            }"
-  release-dry-run:
-    secrets: inherit
-    uses: ./.github/workflows/release.yml
-    with:
-      dry-run: true
 name: nightly
 on:
   schedule:

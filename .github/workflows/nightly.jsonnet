@@ -70,13 +70,6 @@ local brew_build_job = {
   },
   jobs: {
     'brew-build': brew_build_job,
-    'release-dry-run': {
-      uses: './.github/workflows/release.yml',
-      secrets: 'inherit',
-      with: {
-        'dry-run': true,
-      },
-    },
     'notify-failure': semgrep.slack.notify_failure_job(
       'The nightly cron failed on ${{ github.sha }}. See https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more information.'
     ) + { needs: ['brew-build', 'release-dry-run'] },
