@@ -1,1 +1,0 @@
-Add an experimental option `--x-semgrepignore-filename` to change the name of `.semgrepignore` files to something else. This can be used to scan a subproject in a separate semgrep invocation as the rest of the containing project.
