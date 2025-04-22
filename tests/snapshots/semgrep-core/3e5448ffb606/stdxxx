@@ -1,9 +1,9 @@
 Snapshot for matching diagnosis unexpected match
-[<MASKED TIMESTAMP>][[31mERROR[0m]: test failed for rule id no-foo-unless-good on target test.py (unexpected findings lines 5.)
 --- begin input files ---
 test.py
 test.yaml
 --- end input files ---
+[<MASKED TIMESTAMP>][[31mERROR[0m]: test failed for rule id no-foo-unless-good on target test.py (unexpected findings lines 5.)
 0/1: 1 unit tests did not pass:
 --------------------------------------------------------------------------------
 TODO: print(check_output_lines)

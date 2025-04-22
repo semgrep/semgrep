@@ -82,14 +82,7 @@ type func = {
 
 let default_conf : conf =
   {
-    (* Maxing out number of cores used to 16 if more not requested to
-     * not overload on large machines.
-     * Also, hardcode num_jobs to 1 for non-unix (i.e. Windows) because
-     * we don't believe that Parmap works in those environments
-     * TODO: figure out a solution for Windows multi-processing (OCaml 5 in
-     * the worst case)
-     *)
-    num_jobs = min 16 (if Sys.unix then Parmap_.get_cpu_count () else 1);
+    num_jobs = Resources.resources.num_jobs;
     timeout = 5.0;
     (* ^ seconds, keep up-to-date with User_settings.ml and constants.py *)
     timeout_threshold = 3;

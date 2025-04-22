@@ -187,8 +187,3 @@ let parmap _caps ?init ?finalize ~ncores ~chunksize ~exception_handler f xs =
  * TCB/forbid_process.jsonnet so we need that
  *)
 let disable_core_pinning = Parmap.disable_core_pinning
-
-let get_cpu_count () : int =
-  (* Parmap subtracts 1 from the number of detected cores.
-     This comes with no guarantees. *)
-  max 1 (Parmap.get_default_ncores () + 1)

@@ -105,7 +105,7 @@ let default =
     timeout_threshold = 0;
     max_memory_mb = 0;
     max_match_per_file = 10_000;
-    ncores = 1;
+    ncores = Resources.resources.num_jobs;
     (* a.k.a -fast, on by default *)
     filter_irrelevant_rules = true;
     (* debugging and telemetry flags *)

@@ -9,8 +9,16 @@
  (libraries
    atdgen-runtime
    commons
+   ppx_deriving_yojson
+   process_limits
  )
- (preprocess (pps ppx_deriving.show ppx_profiling))
+ (preprocess
+   (pps
+     ppx_deriving.show
+     ppx_deriving_yojson
+     ppx_profiling
+   )
+ )
 )
 
 (rule

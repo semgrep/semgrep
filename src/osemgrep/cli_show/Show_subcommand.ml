@@ -59,6 +59,11 @@ let json_of_v (v : OCaml.v) =
 let dump_v_to_format ~json (v : OCaml.v) =
   if json then J.string_of_json (json_of_v v) else OCaml.string_of_v v
 
+let require_experimental_flag (conf : Show_CLI.conf) func : Exit_code.t =
+  match conf.common.maturity with
+  | Experimental -> func ()
+  | _ -> failwith "This command requires '--experimental'."
+
 (*****************************************************************************)
 (* Main logic *)
 (*****************************************************************************)
@@ -82,6 +87,31 @@ let run_conf (caps : < caps ; .. >) (conf : Show_CLI.conf) : Exit_code.t =
   (* TODO? error management? improve error message for parse errors?
    * or let CLI.safe_run do the right thing?
    *)
+  | ProjectRoot { scan_root } ->
+      let project_root =
+        match
+          Project.find_any_project_root ~fallback_root:None ~force_novcs:false
+            ~force_root:None scan_root
+        with
+        | Ok ({ kind = _; root }, _scan_root_info) ->
+            root.fpath |> Fpath.to_string
+        | Error msg -> failwith ("Cannot determine project root: " ^ msg)
+      in
+      (* Print the project root path followed by a newline.
+
+         There's more useful info available than just the project root path.
+         We could show that as part of another subcommand (dump-targets?)
+         or with a flag.
+      *)
+      print project_root;
+      Exit_code.ok ~__LOC__
+  | Resources ->
+      require_experimental_flag conf (fun () ->
+          let output =
+            if conf.json then Resources.to_json () else Resources.show ()
+          in
+          print output;
+          Exit_code.ok ~__LOC__)
   | DumpPattern (str, lang) -> (
       (* mostly a copy paste of Core_CLI.dump_pattern *)
       (* TODO: maybe enable the "semgrep.parsing" src here *)
@@ -213,24 +243,6 @@ let run_conf (caps : < caps ; .. >) (conf : Show_CLI.conf) : Exit_code.t =
       failwith "TODO: dump-command-for-core not implemented yet"
   | Debug _ -> failwith "TODO: CE-only show debug not implemented yet"
   | DumpLockfile _ -> failwith "this subcommand requires semgrep-pro"
-  | ProjectRoot { scan_root } ->
-      let project_root =
-        match
-          Project.find_any_project_root ~fallback_root:None ~force_novcs:false
-            ~force_root:None scan_root
-        with
-        | Ok ({ kind = _; root }, _scan_root_info) ->
-            root.fpath |> Fpath.to_string
-        | Error msg -> failwith ("Cannot determine project root: " ^ msg)
-      in
-      (* Print the project root path followed by a newline.
-
-         There's more useful info available than just the project root path.
-         We could show that as part of another subcommand (dump-targets?)
-         or with a flag.
-      *)
-      print project_root;
-      Exit_code.ok ~__LOC__
 
 (*****************************************************************************)
 (* Entry point *)

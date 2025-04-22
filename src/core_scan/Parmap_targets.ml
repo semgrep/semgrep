@@ -105,6 +105,19 @@ let finalize () =
 let map_targets__run_in_forked_process_do_not_modify_globals caps (ncores : int)
     (f : Target.t -> 'a) (targets : Target.t list) :
     ('a, Target.t * Core_error.t) result list =
+  (* Parmap uses fork() which is not supported on non-Unix platforms
+     (Windows) *)
+  let ncores =
+    if ncores > 1 && not Sys.unix then (
+      Logs.warn (fun m ->
+          m
+            "Requested %i jobs, but only 1 job is currently supported on \
+             Windows. Forcing configuration to 1 job."
+            ncores);
+      1)
+    else ncores
+  in
+
   (*
      Sorting the targets by decreasing size is based on the assumption
      that larger targets will take more time to process. Starting with

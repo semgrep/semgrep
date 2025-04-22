@@ -325,8 +325,9 @@ let o_num_jobs : int Term.t =
     Arg.info [ "j"; "jobs" ]
       ~doc:
         {|Number of subprocesses to use to run checks in
-parallel. Defaults to the number of cores detected on the system
-(1 if using --pro).
+parallel. The default is based on a best effort to determine the number of
+logical CPUs that are available to the user and that semgrep can take
+advantage of (1 if using --pro, 1 on Windows).
 |}
   in
   Arg.value (Arg.opt Arg.int default.core_runner_conf.num_jobs info)

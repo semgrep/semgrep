@@ -1,5 +1,5 @@
- SUCCESS  Your deployment info is {"id":42,"name":"fake_deployment","organization_id":0,"display_name":"","scm_name":"","slug":"","source_type":"","default_user_role":"","has_autofix":false,"has_deepsemgrep":false,"has_triage_via_comment":false,"has_dependency_query":false}
 --- begin input files ---
 settings.yml
 --- end input files ---
+ SUCCESS  Your deployment info is {"id":42,"name":"fake_deployment","organization_id":0,"display_name":"","scm_name":"","slug":"","source_type":"","default_user_role":"","has_autofix":false,"has_deepsemgrep":false,"has_triage_via_comment":false,"has_dependency_query":false}
 ASSERT exit code

@@ -217,7 +217,8 @@ let with_tempfiles ?chdir ?persist ?(verbose = false) files func =
       if verbose then (
         UPrintf.printf "--- begin input files ---\n";
         print_files files;
-        UPrintf.printf "--- end input files ---\n");
+        UPrintf.printf "--- end input files ---\n";
+        flush stdout);
       write root files;
       func root)
 
