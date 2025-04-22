@@ -72,6 +72,6 @@ local brew_build_job = {
     'brew-build': brew_build_job,
     'notify-failure': semgrep.slack.notify_failure_job(
       'The nightly cron failed on ${{ github.sha }}. See https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more information.'
-    ) + { needs: ['brew-build', 'release-dry-run'] },
+    ) + { needs: ['brew-build'] },
   },
 }

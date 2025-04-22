@@ -19,7 +19,6 @@ jobs:
     if: failure()
     needs:
       - brew-build
-      - release-dry-run
     runs-on: ubuntu-22.04
     steps:
       - run: |
