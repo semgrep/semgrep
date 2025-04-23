@@ -10,10 +10,7 @@ let t = Testo.create
 (*****************************************************************************)
 (* Simple tests defined inline *)
 (*****************************************************************************)
-(* TODO:
- *  - we could add unit tests for the range returned by match_sts_sts
- *  - we could add unit tests for the code dealing with equivalences
- *)
+(* TODO: we could add unit tests for the range returned by match_sts_sts *)
 
 let tests ~any_gen_of_string =
   [

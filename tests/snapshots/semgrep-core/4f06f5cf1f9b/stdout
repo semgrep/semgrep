@@ -237,8 +237,6 @@ Python,
 ;
 options=
 None;
-equivalences=
-None;
 fix=
 None;
 fix_regexp=
