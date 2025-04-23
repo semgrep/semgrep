@@ -116,11 +116,6 @@ let dump_exts_of_lang (caps : < Cap.stdout >) () =
        (String.concat "\n" lang_to_exts))
 [@@action]
 
-let dump_equivalences (caps : < Cap.stdout >) file =
-  let xs = Parse_equivalences.parse file in
-  CapConsole.print caps#stdout (Dumper.dump xs)
-[@@action]
-
 let dump_rule (file : Fpath.t) : unit =
   let rules = Parse_rule.parse file in
   (* TODO: handle parse errors gracefully instead of silently ignoring *)

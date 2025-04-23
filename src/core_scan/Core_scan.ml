@@ -449,15 +449,6 @@ let applicable_rules_of_config (config : Core_scan_config.t) :
   let rules = filter_rules_by_targets_analyzers rules targets in
   (rules, invalid_rules)
 
-(* TODO? this is currently deprecated, but pad still has hope the
- * feature can be resurrected.
- *)
-let parse_equivalences equivalences_file =
-  match equivalences_file with
-  | None -> []
-  | Some file -> Parse_equivalences.parse file
-[@@profiling]
-
 (*****************************************************************************)
 (* logging/telemetry *)
 (*****************************************************************************)
@@ -806,7 +797,6 @@ let match_rules (caps : < Cap.time_limit ; .. >) ~matches_hook
   let xconf : Match_env.xconfig =
     {
       config = Rule_options.default;
-      equivs = parse_equivalences config.equivalences_file;
       nested_formula = false;
       matching_explanations = config.matching_explanations;
       filter_irrelevant_rules = prefilter_cache_opt;
