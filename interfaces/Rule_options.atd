@@ -176,10 +176,6 @@ type t = {
    * inline, static, etc, are not affected by this option
    *)
   ~decorators_order_matters <ocaml default="false"> : bool;
-
-  (* TODO: equivalences:
-   *   - require_to_import (but need pass config to Js_to_generic)
-   *)
 }
 
 type cpp_parsing_opt = [

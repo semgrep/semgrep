@@ -140,34 +140,6 @@ let parse_fix_regex (env : env) (key : key) fields =
   let/ count = take_opt fix_regex_dict env parse_int_strict "count" in
   Ok Rule.{ regexp; count; replacement }
 
-let parse_equivalences env key value =
-  let parse_equivalence env equiv =
-    match equiv.G.e with
-    | G.Container
-        ( Dict,
-          ( _,
-            [
-              {
-                e =
-                  Container
-                    ( Tuple,
-                      ( _,
-                        [
-                          { e = L (String (_, ("equivalence", t), _)); _ };
-                          value;
-                        ],
-                        _ ) );
-                _;
-              };
-            ],
-            _ ) ) ->
-        parse_string env ("equivalence", t) value
-    | _ ->
-        error_at_expr env.id equiv
-          "Expected `equivalence: $X` for each equivalences list item"
-  in
-  parse_list env key parse_equivalence value
-
 let parse_paths env key value =
   let/ paths_dict = parse_dict env key value in
   (* TODO: should imitate parse_string_wrap_list *)
@@ -1103,7 +1075,6 @@ let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) :
   let/ fix_opt = take_opt rd env parse_string "fix" in
   let/ fix_regex_opt = take_opt rd env parse_fix_regex "fix-regex" in
   let/ paths_opt = take_opt rd env parse_paths "paths" in
-  let/ equivs_opt = take_opt rd env parse_equivalences "equivalences" in
   let/ validators_opt = take_opt rd env parse_validators "validators" in
   H.warn_if_remaining_unparsed_fields rule_id rd;
   Ok
@@ -1122,7 +1093,6 @@ let parse_one_rule ~rewrite_rule_ids (i : int) (rule : G.expr) :
       fix = fix_opt |> Option.map String.trim;
       fix_regexp = fix_regex_opt;
       paths = paths_opt;
-      equivalences = equivs_opt;
       options = options_opt;
       validators = validators_opt;
       dependency_formula = dep_formula_opt;

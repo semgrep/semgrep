@@ -182,7 +182,6 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
          * alt: we could use a 'Core_scan_config.default with ...' but better
          * to list all the fields.
          *)
-        equivalences_file = None;
         respect_rule_paths = true;
         max_match_per_file = Core_scan_config.default.max_match_per_file;
         tracing = None;

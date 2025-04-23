@@ -41,11 +41,6 @@ let max_taint_set_size = ref Limits_semgrep.taint_MAX_TAINT_SET_SIZE
 (* Disabling this lets us measure the effectiveness of our GC tuning. *)
 let gc_tuning = ref true
 
-(* special mode to set before using generic_vs_generic to match
- * code equivalences.
- *)
-let equivalence_mode = ref false
-
 (* Note that an important flag used during parsing is actually in pfff in
  * Flag_parsing.sgrep_mode
  *)

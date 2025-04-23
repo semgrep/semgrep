@@ -89,9 +89,6 @@ let matching_explanations = ref Core_scan_config.default.matching_explanations
 (* report matching times per file *)
 let report_time = ref Core_scan_config.default.report_time
 
-(* unused for now by pysemgrep *)
-let equivalences_file = ref None
-
 (* ------------------------------------------------------------------------- *)
 (* limits *)
 (* ------------------------------------------------------------------------- *)
@@ -299,7 +296,6 @@ let mk_config () : Core_scan_config.t =
     report_time = !report_time;
     matching_explanations = !matching_explanations;
     respect_rule_paths = !respect_rule_paths;
-    equivalences_file = !equivalences_file;
     file_match_hook = None;
     (* limits and perf *)
     timeout = !timeout;
@@ -420,10 +416,6 @@ let all_actions (caps : Cap.all_caps) () =
     ( "-dump_rule",
       " <file>",
       Arg_.mk_action_1_conv Fpath.v Core_actions.dump_rule );
-    ( "-dump_equivalences",
-      " <file> (deprecated)",
-      Arg_.mk_action_1_conv Fpath.v
-        (Core_actions.dump_equivalences (caps :> < Cap.stdout >)) );
     ( "-dump_tree_sitter_cst",
       " <file> dump the CST obtained from a tree-sitter parser",
       Arg_.mk_action_1_conv Fpath.v (fun file ->
@@ -490,9 +482,6 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
     ( "-l",
       Arg.String (fun s -> lang := Some (Lang.of_string s)),
       spf " <str> shortcut for -lang" );
-    ( "-equivalences",
-      Arg.String (fun s -> equivalences_file := Some (Fpath.v s)),
-      " <file> obtain list of code equivalences from YAML file" );
     ("-j", Arg.Set_int ncores, " <int> number of cores to use (default = 1)");
     ( "-no_gc_tuning",
       Arg.Clear Flag.gc_tuning,
