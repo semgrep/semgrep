@@ -365,10 +365,7 @@ let match_pattern ~lang ~hook ~file ~pattern ~fix =
         failwith
           (spf "fail to parse %s (exn = %s)" !!file (Common.exn_to_s exn))
   in
-  let equiv = [] in
-  Match_patterns.check ~hook
-    (Rule_options.default, equiv)
-    [ rule ]
+  Match_patterns.check ~hook Rule_options.default [ rule ]
     (file, File file, lang, ast)
 
 (*

@@ -49,7 +49,6 @@ type t = {
   (* Main flags, input *)
   rule_source : rule_source;
   target_source : target_source;
-  equivalences_file : Fpath.t option;
   (* output and result tweaking *)
   output_format : output_format;
   report_time : bool;
@@ -92,7 +91,6 @@ let default =
     (* Main flags *)
     rule_source = Rules [];
     target_source = Targets [];
-    equivalences_file = None;
     (* alt: NoOutput but then would need a -text in Core_CLI.ml *)
     output_format = Text;
     report_time = false;
