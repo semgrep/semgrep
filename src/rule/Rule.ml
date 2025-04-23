@@ -670,10 +670,6 @@ type 'mode rule_info = {
   (* OPTIONAL fields *)
   (* --------------------------------- *)
   options : Rule_options.t option;
-  (* deprecated? or should we resurrect the feature?
-   * TODO: if we resurrect the feature, we should parse the string
-   *)
-  equivalences : string list option;
   (* Optional replacement pattern, a.k.a autofix.
    *
    * Note that the pattern string is passed through String.trim() during rule
@@ -903,7 +899,6 @@ let rule_of_formula ?fix (analyzer : Analyzer.t) (formula : formula) : rule =
     target_selector;
     target_analyzer;
     options = None;
-    equivalences = None;
     fix_regexp = None;
     paths = None;
     metadata = None;

@@ -16,7 +16,6 @@
 open Fpath_.Operators
 open AST_generic
 module MR = Mini_rule
-module Eq = Equivalence
 module PM = Core_match
 module PvC = Pattern_vs_code
 module MV = Metavariable
@@ -295,7 +294,7 @@ let get_facts_of_stmt stmt =
  * See also docs for {!check} in Match_pattern.mli.
  *)
 let check ~hook ?(has_as_metavariable = false) ?mvar_context
-    ?(range_filter = fun _ -> true) (config, equivs) rules
+    ?(range_filter = fun _ -> true) config rules
     (internal_path_to_content, origin, lang, ast) =
   Log.info (fun m ->
       m "checking %s with %d mini rules" !!internal_path_to_content
@@ -324,10 +323,6 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
      * $X == $X would also find code written as a != a. The problem
      * is that if we don't do the same rewriting on the pattern, then
      * looking for $X != $X would not find anything anymore.
-     * In any case, rewriting the source code is less necessary
-     * now that we have user-defined code equivalences (see Equivalence.ml)
-     * and this will also be less surprising (you can see the set of
-     * equivalences in the equivalence file).
      *)
     let prog = Pr ast in
 
@@ -347,7 +342,6 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
     |> List.iter (fun rule ->
            (* less: normalize the pattern? *)
            let any = rule.MR.pattern in
-           let any = Apply_equivalences.apply equivs lang any in
            (* Annotate exp, stmt, stmts patterns with the rule strings *)
            let push_with_annotation _any pattern rules =
              Stack_.push (pattern, rule) rules
