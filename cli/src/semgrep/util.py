@@ -3,6 +3,7 @@ import itertools
 import operator
 import os
 import platform
+import re
 import subprocess
 import sys
 from io import TextIOWrapper
@@ -390,3 +391,25 @@ def is_secrets_ai_ruleset(metadata: Mapping[str, Any]) -> bool:
     """
     ruleset = metadata.get("semgrep.ruleset")
     return isinstance(ruleset, str) and ruleset == "semgrep-secrets-ai"
+
+
+def json_win_paths_to_posix(json: dict[str, Any]) -> dict[str, Any]:
+    """Convert all Windows relative paths in a JSON object to POSIX paths.
+
+    The function is used in test assertions to convert paths in the output to
+    use the POSIX `/` separator instead of the Windows `\\` separator to
+    compare the outputs. We use a simple regex to identify strings that look
+    like relative paths on Windows.
+
+    """
+
+    path_re = re.compile(r"^(([A-Za-z0-9_.-]+)[\\]*)+$")
+
+    if isinstance(json, dict):
+        return {k: json_win_paths_to_posix(v) for k, v in json.items()}
+    elif isinstance(json, list):
+        return [json_win_paths_to_posix(v) for v in json]
+    elif isinstance(json, str) and path_re.match(json):
+        return json.replace("\\", "/")
+    else:
+        return json
