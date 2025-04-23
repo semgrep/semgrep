@@ -190,7 +190,9 @@ let subexprs_of_expr with_symbolic_propagation e =
   | AnonClass _
   | LetPattern _ ->
       []
-  | DisjExpr _ -> raise Common.Impossible
+  | DisjExpr _ ->
+      Log.err (fun m -> m "%s: impossible AST: %s" __FUNCTION__ (show_expr e));
+      []
 [@@profiling]
 
 (* Need this wrapper because [@@profiling] has the side-effect of removing labels. *)
@@ -277,7 +279,7 @@ let subexprs_of_expr_implicit (with_symbolic_propagation : bool) (e : expr) :
   | DotAccessEllipsis _
   | DisjExpr _ ->
       Log.err (fun m -> m "%s: impossible AST: %s" __FUNCTION__ (show_expr e));
-      raise Common.Impossible
+      []
 [@@profiling]
 
 (* Need this wrapper because [@@profiling] has the side-effect of removing labels. *)
@@ -325,7 +327,9 @@ let substmts_of_stmt st =
       match opt2 with
       | None -> []
       | Some (_, st) -> [ st ])
-  | DisjStmt _ -> raise Common.Impossible
+  | DisjStmt _ ->
+      Log.err (fun m -> m "%s: impossible AST: %s" __FUNCTION__ (show_stmt st));
+      []
   (* this may slow down things quite a bit *)
   | DefStmt (_ent, def) -> (
       if not go_really_deeper_stmt then []
