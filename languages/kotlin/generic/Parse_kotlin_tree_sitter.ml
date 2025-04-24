@@ -94,7 +94,7 @@ let equality_operator (env : env) (x : CST.equality_operator) =
   | `EQEQEQ tok -> (PhysEq, token env tok)
 (* "===" *)
 
-let anon_choice_val_2833752 (env : env) (x : CST.anon_choice_val_2833752) =
+let binding_pattern_kind (env : env) (x : CST.binding_pattern_kind) =
   match x with
   | `Val tok -> (Const, token env tok) (* "val" *)
   | `Var tok -> (Mutable, token env tok)
@@ -165,9 +165,9 @@ let class_modifier (env : env) (x : CST.class_modifier) =
   | `Sealed tok -> G.attr SealedClass (token env tok) (* "sealed" *)
   | `Anno tok -> G.attr AnnotationClass (token env tok) (* "annotation" *)
   | `Data tok -> G.attr RecordClass (token env tok) (* "data" *)
-  | `Inner tok -> G.unhandled_keywordattr (str env tok)
-
-(* "inner" *)
+  | `Inner tok -> G.unhandled_keywordattr (str env tok) (* "inner" *)
+  | `Value tok -> G.unhandled_keywordattr (str env tok)
+(* "value" *)
 
 let boolean_literal (env : env) (x : CST.boolean_literal) =
   match x with
@@ -358,12 +358,18 @@ let type_projection_modifiers (env : env) (xs : CST.type_projection_modifiers) =
 
 let simple_identifier (env : env) (x : CST.simple_identifier) : ident =
   match x with
-  | `Choice_lexi_id (`Lexi_id x) -> lexical_identifier env x
-  | `Choice_lexi_id
-      (`Expect x | `Inner x | `Data x | `Actual x | `Get x | `Set x) ->
-      str env x
+  | `Choice_lexi_id x -> (
+      match x with
+      | `Lexi_id x -> lexical_identifier env x
+      | `Expect tok
+      | `Data tok
+      | `Inner tok
+      | `Value tok
+      | `Actual tok
+      | `Set tok
+      | `Get tok ->
+          str env tok)
   | `Pat_831065d x -> str env x
-
 (* pattern \$[a-zA-Z_][a-zA-Z_0-9]* *)
 
 let return_at (env : env) ((v1, v2) : CST.return_at) =
@@ -397,6 +403,29 @@ let import_alias (env : env) ((v1, v2) : CST.import_alias) =
   let v2 = simple_identifier env v2 in
   (v1, v2)
 
+let rec import_identifier (env : env) (x : CST.import_identifier) =
+  match x with
+  | `Simple_id x -> [ simple_identifier env x ]
+  | `Import_id_DOT_simple_id (v1, v2, v3) ->
+      let v1 = import_identifier env v1 in
+      let _v2 = (* "." *) token env v2 in
+      let v3 = simple_identifier env v3 in
+      v1 @ [ v3 ]
+
+let this_expression (env : env) (x : CST.this_expression) =
+  match x with
+  | `This tok ->
+      (* "this" *)
+      let tok = token env tok in
+      G.N (IdSpecial ((This, tok), G.empty_id_info ())) |> G.e
+  | `This_at (v1, v2) ->
+      let v1 = (* "this@" *) token env v1 in
+      let v2 = lexical_identifier env v2 in
+      OtherExpr
+        ( ("this@", v1),
+          [ G.Name (IdSpecial ((This, v1), G.empty_id_info ())); G.I v2 ] )
+      |> G.e
+
 let literal_constant (env : env) (x : CST.literal_constant) =
   match x with
   | `Bool_lit x -> boolean_literal env x
@@ -421,7 +450,7 @@ let literal_constant (env : env) (x : CST.literal_constant) =
       let toks = [ snd v2 ] @ [ v3 ] in
       Char (fst v2, Tok.combine_toks v1 toks)
   | `Real_lit tok -> real_literal env tok (* real_literal *)
-  | `Null tok -> Null (token env tok) (* "null" *)
+  | `Null_lit tok -> Null (token env tok) (* "null" *)
   | `Long_lit (v1, v2) ->
       let v1 = anon_choice_int_lit_9015f32 env v1 in
       let _v2 =
@@ -429,16 +458,11 @@ let literal_constant (env : env) (x : CST.literal_constant) =
         (* "L" *)
       in
       Int v1
-  | `Unsi_lit (v1, v2, v3) ->
+  | `Unsi_lit (v1, v2) ->
       let v1 = anon_choice_int_lit_9015f32 env v1 in
       let v2 =
         str env v2
         (* pattern [uU] *)
-      in
-      let _v3 =
-        match v3 with
-        | Some tok -> Some (str env tok) (* "L" *)
-        | None -> None
       in
       (* let _str = Tok.content_of_tok v1 ^ fst v2 in
       *)
@@ -464,17 +488,21 @@ let import_header (env : env) ((v1, v2, v3, v4) : CST.import_header) : directive
     token env v1
     (* "import" *)
   in
-  let v2 = identifier env v2 in
+  let v2 = import_identifier env v2 in
   let v3 =
     match v3 with
     | Some x -> (
         match x with
-        | `DOTSTAR x ->
-            let t =
-              token env x
-              (* ".*" *)
+        | `DOT_wild_import (x1, x2) ->
+            let t1 =
+              token env x1
+              (* "." *)
             in
-            ImportAll (v1, DottedName v2, t)
+            let t2 =
+              token env x2
+              (* "*" *)
+            in
+            ImportAll (v1, DottedName v2, Tok.combine_toks t1 [ t2 ])
         | `Import_alias x ->
             let _t, id = import_alias env x in
             ImportAs (v1, DottedName v2, Some (id, empty_id_info ())))
@@ -546,6 +574,16 @@ and anon_choice_param_b77c1d8 (env : env) (x : CST.anon_choice_param_b77c1d8) =
   | `Type x ->
       let v1 = type_ env x in
       Param (G.param_of_type v1)
+
+and anon_choice_user_type_83255f6 (env : env)
+    (x : CST.anon_choice_user_type_83255f6) =
+  match x with
+  | `User_type x -> TyN (user_type env x) |> G.t
+  | `Paren_user_type (v1, v2, v3) ->
+      let _v1 = (* "(" *) token env v1 in
+      let v2 = anon_choice_user_type_83255f6 env v2 in
+      let _v3 = (* ")" *) token env v3 in
+      v2
 
 and assignment (env : env) (x : CST.assignment) : expr =
   match x with
@@ -744,7 +782,7 @@ and class_declaration (env : env) (x : CST.class_declaration) :
       let ckind =
         match v2 with
         | `Class tok -> (Class, token env tok) (* "class" *)
-        | `Inte tok -> (Interface, token env tok)
+        | `Opt_fun_inte (_v1 (* "fun" *), v2) -> (Interface, token env v2)
         (* "interface" *)
       in
       let v3 = simple_identifier env v3 in
@@ -947,13 +985,13 @@ and class_member_declarations (env : env) (xs : CST.class_member_declarations) :
 
 and class_parameter (env : env) (x : CST.class_parameter) : G.parameter =
   match x with
-  | `Opt_modifs_opt_choice_val_simple_id_COLON_type_opt_EQ_exp
+  | `Opt_modifs_opt_bind_pat_kind_simple_id_COLON_type_opt_EQ_exp
       (v1, v2, v3, v4, v5, v6) ->
       let v1 = modifiers_opt env v1 in
       (* 'val' or 'var' *)
       let v2 =
         match v2 with
-        | Some x -> [ KeywordAttr (anon_choice_val_2833752 env x) ]
+        | Some x -> [ KeywordAttr (binding_pattern_kind env x) ]
         | None -> []
       in
       let v3 = simple_identifier env v3 in
@@ -1168,7 +1206,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
       (entity, def_kind)
   | `Prop_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
       let v1 = modifiers_opt env v1 in
-      let v2 = KeywordAttr (anon_choice_val_2833752 env v2) in
+      let v2 = KeywordAttr (binding_pattern_kind env v2) in
       let v3 = Option.map (type_parameters env) v3 in
       (* TODO: distribute the name to all variable decls? *)
       let _v4TODO = anon_opt_rece_type_opt_DOT_cc9388e env v4 in
@@ -1439,7 +1477,7 @@ and function_type (env : env) ((v1, v2, v3, v4) : CST.function_type) =
   let _v1TODO =
     match v1 with
     | Some (v1, v2) ->
-        let v1 = simple_user_type env v1 in
+        let v1 = receiver_type env v1 in
         let _v2 =
           token env v2
           (* "." *)
@@ -1919,6 +1957,26 @@ and navigation_suffix (env : env) (x : CST.navigation_suffix) =
         | Either.Left _tdot -> DotAccessEllipsis (e, tellipsis) |> G.e
         | Either.Right otherop -> OtherExpr (otherop, [ Tk tellipsis ]) |> G.e)
 
+and not_nullable_type (env : env) ((v1, v2, v3, v4, v5) : CST.not_nullable_type)
+    =
+  let v1 =
+    match v1 with
+    | Some x -> type_modifiers env x
+    | None -> []
+  in
+  let v2 = anon_choice_user_type_83255f6 env v2 in
+  let v3 = (* "&" *) token env v3 in
+  let v4 =
+    match v4 with
+    | Some x -> type_modifiers env x
+    | None -> []
+  in
+  let v5 =
+    anon_choice_user_type_83255f6 env v5
+    (* always Any? *)
+  in
+  TyAnd ({ v2 with t_attrs = v1 }, v3, { v5 with t_attrs = v4 }) |> G.t
+
 and nullable_type (env : env) ((v1, v2) : CST.nullable_type) =
   let v1 =
     match v1 with
@@ -2078,7 +2136,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
           cbody = v3;
         }
       |> G.e
-  | `Coll_lit (v1, v2, v3, v4) ->
+  | `Coll_lit (v1, v2, v3, _v4 (* , *), v5) ->
       let v1 =
         token env v1
         (* "[" *)
@@ -2095,18 +2153,13 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
             v2)
           v3
       in
-      let v4 =
-        token env v4
+      let v5 =
+        token env v5
         (* "]" *)
       in
-      Container (List, (v1, v2 :: v3, v4)) |> G.e
-  | `This_exp tok ->
-      let tok = token env tok in
-      G.N (IdSpecial ((This, tok), G.empty_id_info ())) |> G.e
-      (* "this" *)
-  | `Super_exp v1 ->
-      let tok = token env v1 in
-      G.N (IdSpecial ((Super, tok), G.empty_id_info ())) |> G.e
+      Container (List, (v1, v2 :: v3, v5)) |> G.e
+  | `This_exp x -> this_expression env x (* "this" *)
+  | `Super_exp v1 -> super_expression env v1
   | `Call_exp (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = call_suffix env v2 in
@@ -2350,6 +2403,46 @@ and statements (env : env) ((v1, v2, v3) : CST.statements) =
   in
   v1 :: v2
 
+and super_at (env : env) (x : CST.super_at) =
+  match x with
+  | `Supe_lexi_id (v1, v2) ->
+      let v1 = (* "super@" *) token env v1 in
+      let v2 = lexical_identifier env v2 in
+      OtherExpr
+        ( ("super@", v1),
+          [ G.Name (IdSpecial ((Super, v1), G.empty_id_info ())); G.I v2 ] )
+      |> G.e
+  | `Super_LT_type_GT_imm_tok_at_lexi_id (v1, v2, v3, v4, v5, v6) ->
+      let v1 = (* "super" *) token env v1 in
+      let _v2 = (* "<" *) token env v2 in
+      let v3 = type_ env v3 in
+      let _v4 = (* ">" *) token env v4 in
+      let _v5 = (* "@" *) token env v5 in
+      let v6 = lexical_identifier env v6 in
+      OtherExpr
+        ( ("super<T>@", v1),
+          [
+            G.Name (IdSpecial ((Super, v1), G.empty_id_info ())); G.T v3; G.I v6;
+          ] )
+      |> G.e
+
+and super_expression (env : env) (x : CST.super_expression) =
+  match x with
+  | `Super tok ->
+      (* "super" *)
+      let tok = token env tok in
+      G.N (IdSpecial ((Super, tok), G.empty_id_info ())) |> G.e
+  | `Super_LT_type_GT (v1, v2, v3, v4) ->
+      let v1 = (* "super" *) token env v1 in
+      let _v2 = (* "<" *) token env v2 in
+      let v3 = type_ env v3 in
+      let _v4 = (* ">" *) token env v4 in
+      OtherExpr
+        ( ("super<T>", v1),
+          [ G.Name (IdSpecial ((Super, v1), G.empty_id_info ())); G.T v3 ] )
+      |> G.e
+  | `Super_at x -> super_at env x
+
 and string_literal (env : env) (v1, v2, v3) : expr =
   let l = token env v1 in
   let r = token env v3 in
@@ -2396,6 +2489,7 @@ and type_ (env : env) ((v1, v2) : CST.type_) : type_ =
     | `Null_type x -> nullable_type env x
     | `Type_ref x -> type_reference env x
     | `Func_type x -> function_type env x
+    | `Not_null_type x -> not_nullable_type env x
   in
   { v2 with t_attrs = v1 }
 
