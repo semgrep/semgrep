@@ -201,7 +201,23 @@ local commit_with_message_output = '${{ steps.get_commit_with_message.outputs.sh
       'if': '${{ inputs.use-cache}}',
     },
   },
-
+  check_patch_release_step(version, id='check-patch-release'):
+    {
+      name: 'Check if patch release',
+      id: id,
+      env: {
+        VERSION: version,
+      },
+      run: |||
+        if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.0$ ]]; then
+          echo "${VERSION} is a patch release."
+          echo "patch_release=true" >> $GITHUB_OUTPUT
+        else
+          echo "${VERSION} is a minor or major release."
+          echo "patch_release=false" >> $GITHUB_OUTPUT
+        fi
+      |||,
+    },
   // ??
   inc_version_steps: function(id='inc-version', fragment) [
     {
