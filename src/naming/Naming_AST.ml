@@ -507,521 +507,507 @@ let assign_implicitly_declares lang =
   lang =*= Lang.Python || lang =*= Lang.Ruby || lang =*= Lang.Php
   || Lang.is_js lang
 
+(* coupling: we do similar things in Constant_propagation.ml so if you
+ * add a feature here, you might want to add a similar thing over there too.
+ *)
+let resolution_visitor =
+  object (self : 'self)
+    inherit [_] AST_generic.iter_no_id_info as super
+
+    (* ---------- *)
+    (* !the defs! *)
+    (* ---------- *)
+    method! visit_function_definition env x =
+      (* todo: add the function as a Global. In fact we should do a first
+       * pass for some languages to add all of them first, because
+       * Go for example allow the use of forward function reference
+       * (no need to declarare prototype and forward decls as in C).
+       *)
+      let new_params = params_of_parameters env x.fparams in
+      with_new_context InFunction env (fun () ->
+          with_new_function_scope new_params env.names (fun () ->
+              (* todo: actually we should first go inside x.fparams.ptype
+               * without the new_params (this would also prevent cycle if
+               * a parameter name is the same than type name used in ptype
+               * (see tests/naming/python/shadow_name_type.py) *)
+              super#visit_function_definition env x))
+
+    method! visit_definition env x =
+      match x with
+      | { attrs; _ }, ClassDef c ->
+          (* todo: we should first process all fields in the class before
+           * processing the methods, as some languages may allow forward ref.
+           *)
+          let class_params = params_of_parameters env c.cparams in
+          with_new_context InClass env (fun () ->
+              let special_class_params =
+                if Lang.is_js env.lang then
+                  let _, fields, _ = c.cbody in
+                  js_get_angular_constructor_args env attrs
+                    (List_.map (fun (F x) -> x) fields)
+                else []
+              in
+              (* TODO? Maybe we need a `with_new_class_scope`. For now, abusing `with_new_function_scope`. *)
+              with_new_function_scope (special_class_params @ class_params)
+                env.names (fun () -> super#visit_definition env x))
+      (* `const x = require('y');` (or var, or let)
+       *
+       * JS: This is a CommonJS import, popularized before ES6 standardized
+       * imports/exports. *)
+      | ( { name = EN (Id (id, id_info)); _ },
+          VarDef
+            {
+              vinit =
+                Some
+                  {
+                    e =
+                      Call
+                        ( { e = Special (Require, _); _ },
+                          (_, [ Arg { e = L (String (_, file, _)); _ } ], _) );
+                    _;
+                  };
+              _;
+            } )
+        when env.lang =*= Lang.Js || env.lang =*= Lang.Ts ->
+          let sid = SId.mk () in
+          let canonical = dotted_to_canonical [ file ] in
+          let resolved = untyped_ent (ImportedModule canonical, sid) in
+          set_resolved env id_info resolved;
+          add_ident_current_scope id resolved env.names
+      (* `const {x, y} = require('z');` (or var, or let)
+       *
+       * JS: This is a CommonJS import, popularized before ES6 standardized
+       * imports/exports. *)
+      | ( { name = EN (Id ((id_str, _), _)); _ },
+          VarDef
+            {
+              vinit =
+                Some
+                  {
+                    e =
+                      Assign
+                        ( { e = Record (_, fields, _); _ },
+                          _,
+                          {
+                            e =
+                              Call
+                                ( { e = Special (Require, _); _ },
+                                  ( _,
+                                    [ Arg { e = L (String (_, file, _)); _ } ],
+                                    _ ) );
+                            _;
+                          } );
+                    _;
+                  };
+              _;
+            } )
+        when id_str = special_multivardef_pattern
+             && (env.lang =*= Lang.Js || env.lang =*= Lang.Ts) ->
+          List.iter
+            (function
+              | F
+                  {
+                    s =
+                      DefStmt
+                        ( {
+                            name = EN (Id (imported_id, _imported_id_info));
+                            attrs = [];
+                            tparams = None;
+                          },
+                          FieldDefColon
+                            {
+                              vinit =
+                                Some { e = N (Id (local_id, local_id_info)); _ };
+                              _;
+                            } );
+                    _;
+                  } ->
+                  let sid = SId.mk () in
+                  let canonical = dotted_to_canonical [ file; imported_id ] in
+                  let resolved = untyped_ent (ImportedEntity canonical, sid) in
+                  set_resolved env local_id_info resolved;
+                  add_ident_current_scope local_id resolved env.names
+                  (* TODO handle nested destructuring? *)
+              | _ -> ())
+            fields
+      (* In Rust, the left-hand side (lhs) of the let variable definition is
+       * parsed as a pattern.
+       * TODO handle more cases than just the simple identifier pattern. *)
+      | ( { name = EPattern (PatId (id, id_info)); _ },
+          VarDef { vinit; vtype; vtok = _ } )
+      | { name = EN (Id (id, id_info)); _ }, VarDef { vinit; vtype; vtok = _ }
+      (* note that some languages such as Python do not have VarDef
+       * construct
+       * todo? should add those somewhere instead of in_lvalue detection? *)
+        when is_resolvable_name_ctx env env.lang ->
+          (* Need to visit expressions first so that the id_type of
+           * an id gets populated, e.g.
+           * if we do var a = 3, then var b = a, we want to propagate the
+           * type of a.
+           * alt: do the lookup type in resolved_type
+           *)
+          super#visit_definition env x;
+          declare_var env env.lang id id_info ~explicit:true vinit vtype
+      | { name = EN (Id (id, id_info)); _ }, FuncDef _
+        when is_resolvable_name_ctx env env.lang ->
+          (match env.lang with
+          (* We restrict function-name resolution to JS/TS.
+           *
+           * Note that this causes problems with Python rule/test:
+           *
+           *     semgrep-rules/python/flask/correctness/same-handler-name.yaml
+           *
+           * This rule tries to match two different functions using the same
+           * meta-variable. This works when the function names are not resolved,
+           * but breaks when each function gets a unique sid.
+           *
+           * Function-name resolution is useful for interprocedural analysis,
+           * feature that was requested by JS/TS users, see:
+           *
+           *     https://github.com/semgrep/semgrep/issues/2787.
+           *)
+          | Lang.Js
+          | Lang.Ts ->
+              let sid = SId.mk () in
+              let resolved =
+                untyped_ent (resolved_name_kind env env.lang, sid)
+              in
+              (* Previously we tried using add_ident_current_scope, but this
+               * shadowed imported function names which are added to the
+               * "imported" scope (globals/block scope is looked up first)
+               * even when the import statement comes after...
+               * This broke the following test:
+               *
+               *     semgrep-rules/python/django/security/audit/raw-query.py
+               *
+               * For now we add function names also to the "imported" scope...
+               * but do we need a special scope for imported functions?
+               *)
+              add_ident_imported_scope id resolved env.names;
+              set_resolved env id_info resolved
+          | ___else___ -> ());
+          super#visit_definition env x
+      | { name = EN (Id (id, id_info)); _ }, UseOuterDecl tok ->
+          let s = Tok.content_of_tok tok in
+          let flookup =
+            match s with
+            | "global" -> lookup_global_scope
+            | "nonlocal" -> lookup_nonlocal_scope
+            | _ ->
+                error tok (spf "unrecognized UseOuterDecl directive: %s" s);
+                lookup_global_scope
+          in
+          (match flookup id env.names with
+          | Some resolved ->
+              set_resolved env id_info resolved;
+              add_ident_current_scope id resolved env.names
+          | None ->
+              error tok
+                (spf "could not find '%s' for directive %s" (H.str_of_ident id)
+                   s));
+          super#visit_definition env x
+      (* module L = List, in OCaml *)
+      | ( { name = EN (Id (id, id_info)); _ },
+          ModuleDef { mbody = ModuleAlias xs } ) ->
+          (* similar to the ImportAs case *)
+          let sid = SId.mk () in
+          let canonical = dotted_to_canonical xs in
+          let resolved = untyped_ent (ImportedModule canonical, sid) in
+          set_resolved env id_info resolved;
+          (* difference with ImportAs, we add in local scope in OCaml *)
+          add_ident_current_scope id resolved env.names;
+          super#visit_definition env x
+      | ( { name = EN (Id (id, id_info)); _ },
+          MacroDef { macroparams = []; macrobody = [ E ({ e = L _; _ } as e) ] }
+        ) ->
+          declare_var env env.lang id id_info ~explicit:true (Some e) None;
+          super#visit_definition env x
+      (* general case, just recurse *)
+      | _ -> super#visit_definition env x
+
+    (* sgrep: the import aliases *)
+    method! visit_directive env x =
+      (match x.d with
+      | ImportFrom (_, DottedName xs, imported_names) ->
+          List.iter
+            (function
+              | Aliased (id, (alias, alias_id_info)) ->
+                  (* for python *)
+                  let sid = SId.mk () in
+                  let canonical = dotted_to_canonical (xs @ [ id ]) in
+                  let resolved = untyped_ent (ImportedEntity canonical, sid) in
+                  set_resolved env alias_id_info resolved;
+                  add_ident_imported_scope alias resolved env.names
+              | Direct (id, id_info) ->
+                  (* for python *)
+                  let sid = SId.mk () in
+                  let canonical = dotted_to_canonical (xs @ [ id ]) in
+                  let resolved = untyped_ent (ImportedEntity canonical, sid) in
+                  set_resolved env id_info resolved;
+                  add_ident_imported_scope id resolved env.names)
+            imported_names
+      | ImportFrom (_, FileName (s, tok), imported_names) ->
+          List.iter
+            (function
+              | Direct (id, id_info)
+                when Lang.is_js env.lang && fst id <> Ast_js.default_entity ->
+                  (* for JS we consider import { x } from 'a/b/foo' as foo.x.
+                   * Note that we guard this code with is_js lang, because Python
+                   * uses also Filename in 'from ...conf import x'.
+                   *)
+                  let sid = SId.mk () in
+                  let _, b, _ = Filename_.dbe_of_filename_noext_ok s in
+                  let base = (b, tok) in
+                  let canonical = dotted_to_canonical [ base; id ] in
+                  let resolved = untyped_ent (ImportedEntity canonical, sid) in
+                  set_resolved env id_info resolved;
+                  add_ident_imported_scope id resolved env.names
+              | Aliased (id, (alias, alias_id_info))
+                when Lang.is_js env.lang && fst id <> Ast_js.default_entity ->
+                  (* for JS *)
+                  let sid = SId.mk () in
+                  let _, b, _ = Filename_.dbe_of_filename_noext_ok s in
+                  let base = (b, tok) in
+                  let canonical = dotted_to_canonical [ base; id ] in
+                  let resolved = untyped_ent (ImportedEntity canonical, sid) in
+                  set_resolved env alias_id_info resolved;
+                  add_ident_imported_scope alias resolved env.names
+              | _ -> ())
+            imported_names
+      | ImportAs (_, DottedName xs, Some (alias, id_info)) ->
+          (* for python *)
+          let sid = SId.mk () in
+          let canonical = dotted_to_canonical xs in
+          let resolved = untyped_ent (ImportedModule canonical, sid) in
+          set_resolved env id_info resolved;
+          add_ident_imported_scope alias resolved env.names
+      | ImportAs (_, FileName (s, tok), Some (alias, id_info)) ->
+          (* for Go *)
+          let sid = SId.mk () in
+          let pkgname = go_package_alias s in
+          let base = (pkgname, tok) in
+          let canonical = dotted_to_canonical [ base ] in
+          let resolved = untyped_ent (ImportedModule canonical, sid) in
+          set_resolved env id_info resolved;
+          add_ident_imported_scope alias resolved env.names
+      | _ -> ());
+      super#visit_directive env x
+
+    method! visit_catch env x =
+      let _t, exn, _st = x in
+      (match exn with
+      (* TODO: we should create a new block scope *)
+      | CatchParam { pname = Some id; pinfo = id_info; _ }
+        when is_resolvable_name_ctx env env.lang ->
+          declare_var env env.lang id id_info ~explicit:true None None
+      | _ -> ());
+      super#visit_catch env x
+
+    method! visit_pattern env x =
+      match x with
+      | PatId (id, id_info) when is_resolvable_name_ctx env env.lang ->
+          (* todo: in Python it does not necessarily introduce
+           * a newvar if the ID was already declared before.
+           * Also inside a PatAs(PatId x,b), the 'x' is actually
+           * the name of a class, not a newly introduced local.
+           *)
+          declare_var env env.lang id id_info ~explicit:true None None;
+          super#visit_pattern env x
+      | PatTyped (PatId (id, id_info), ty)
+        when is_resolvable_name_ctx env env.lang ->
+          declare_var env env.lang id id_info ~explicit:true None (Some ty)
+      (* do not recurse here, we don't want the PatId case above
+       * to overwrite the job done here
+       *)
+      | OtherPat _
+      (* This interacts badly with implicit JS/TS declarations. It causes
+         * `foo` in `function f({ foo }) { ... }` to be resolved as a global
+         * variable, which in turn affects semgrep-rule _react-props-in-state_.
+         * This when-clause achieves the previous behavior of leaving `foo`
+         * unresolved. *)
+      (* TODO: We should fix the AST of JS/TS so those `f({foo})` patterns do
+         * not show as regular variables. *)
+        when not (Lang.is_js env.lang) ->
+          Common.save_excursion env.in_lvalue true (fun () ->
+              super#visit_pattern env x)
+      | _ -> super#visit_pattern env x
+
+    (* ---------- *)
+    (* !the uses! *)
+    (* ---------- *)
+    (* kname will resolve names for Constructor/PatConstructor/NamedAttr/TyN
+       * and maybe more. For expressions, we do something special for N (Id)
+       * in kexpr do deal with languages where the first occurence of an
+       * Id could be a declaration.
+       *)
+    method! visit_name env x =
+      match x with
+      | Id (id, id_info) -> (
+          if
+            (* Avoid overwriting 'id_resolved'.
+             * THINK: Maybe log something if we were going to overwrite ? *)
+            Option.is_none !(id_info.id_resolved)
+          then
+            match lookup_scope_opt id env with
+            | Some resolved ->
+                (* name resolution *)
+                set_resolved env id_info resolved
+            | _ -> ())
+      | IdQualified
+          {
+            name_last = id, None;
+            name_middle;
+            name_info = id_info;
+            name_top = None;
+          } ->
+          (match name_middle with
+          | Some (QDots ((m, None) :: rest_of_middle)) -> (
+              match lookup_scope_opt m env with
+              (* Resolve modules for OCaml *)
+              | Some { entname = ImportedModule xs, _sidm; _ }
+              (* Resolve classes for use in typed metavars (Java) *)
+              (* Note that we only need to resolve the first name
+                   because that is the only one that could be
+                   imported *)
+              | Some { entname = ImportedEntity xs, _sidm; _ } ->
+                  (* The entity is fully qualified, no need for sid *)
+                  let sid = SId.unsafe_default in
+                  let rest_of_middle = List_.map fst rest_of_middle in
+                  let canonical =
+                    xs @ dotted_to_canonical (rest_of_middle @ [ id ])
+                  in
+                  let resolved = untyped_ent (ImportedEntity canonical, sid) in
+                  set_resolved env id_info resolved
+              | _ -> ())
+          | _ -> ());
+          super#visit_name env x
+      | IdQualified _ -> ()
+      | IdSpecial _ -> ()
+
+    method! visit_expr env x =
+      (* ugly: hack. If we use a classic recursive-with-env visitor,
+         * we would not need this *)
+      (* TODO now that we do use a classic recursive-with-env visitor,
+         * refactor so this isn't needed. *)
+      let recurse = ref true in
+      (match x.e with
+      (* Go: This is `x := E`, a single-variable short variable declaration.
+       * When this declaration is legal, and that is when the same variable
+       * has not yet been declared in the same scope, it *always* introduces
+       * a new variable. (Quoting Go' spec, "redeclaration can only appear
+       * in a multi-variable short declaration".)
+       * See: https://golang.org/ref/spec#Short_variable_declarations *)
+      | AssignOp ({ e = N (Id (id, id_info)); _ }, (Eq, tok), e2)
+        when env.lang =*= Lang.Go
+             && Tok.content_of_tok tok = ":="
+             && is_resolvable_name_ctx env env.lang ->
+          (* Need to visit the RHS first so that type is populated *)
+          (* If we do var a = 3, then var b = a, we want to propagate the type of a *)
+          super#visit_expr env x;
+          declare_var env env.lang id id_info ~explicit:true (Some e2) None;
+          recurse := false
+      | Assign ({ e = N (Id (id, id_info)); _ }, _, e2)
+        when Option.is_none (lookup_scope_opt id env)
+             && assign_implicitly_declares env.lang
+             && is_resolvable_name_ctx env env.lang ->
+          (* Need to visit the RHS first so that type is populated *)
+          self#visit_expr env e2;
+          declare_var env env.lang id id_info ~explicit:false (Some e2) None;
+          recurse := false
+      (* todo: see lrvalue.ml
+       * alternative? extra id_info tag?
+       *)
+      | Assign (e1, _, e2)
+      | AssignOp (e1, _, e2) ->
+          Common.save_excursion env.in_lvalue true (fun () ->
+              self#visit_expr env e1);
+          self#visit_expr env e2;
+          recurse := false
+      | ArrayAccess (e1, (_, e2, _)) ->
+          self#visit_expr env e1;
+          Common.save_excursion env.in_lvalue false (fun () ->
+              self#visit_expr env e2);
+          recurse := false
+      (* specialized kname case when in expr context *)
+      | N (Id (id, id_info)) ->
+          (match lookup_scope_opt id env with
+          | Some resolved ->
+              (* name resolution *)
+              set_resolved env id_info resolved
+          | None ->
+              if
+                !(env.in_lvalue)
+                && assign_implicitly_declares env.lang
+                && is_resolvable_name_ctx env env.lang
+              then
+                (* first use of a variable can be a VarDef in some languages *)
+                declare_var env env.lang id id_info ~explicit:false None None
+              else
+                (* hopefully the lang-specific resolved may have resolved that *)
+                (* TODO: this can happen because of in_lvalue bug detection, or
+                   * for certain entities like functions or classes which are
+                   * currently tagged
+                   *)
+                let s, tok = id in
+                error tok (spf "could not find '%s' in environment" s));
+          recurse := false
+      | DotAccess
+          (* new: we added `Cls` to indicate references to the type of the class,
+               not just the instance of the class itself
+               this may introduce incorrectness in name resolution, to be fixed later
+               for now, let us consider it the same as the instance itself *)
+          ( { e = N (IdSpecial (((This | Self | Cls), _), _)); _ },
+            _,
+            FN (Id (id, id_info)) ) -> (
+          match lookup_scope_opt ~class_attr:true id env with
+          (* TODO: this is a v0 for doing naming and typing of fields.
+           * we should really use a different lookup_scope_class, that
+           * would handle shadowing of fields from locals, etc. but it's
+           * a start.
+           *)
+          | Some ({ entname = EnclosedVar, _sid; _ } as resolved) ->
+              set_resolved env id_info resolved;
+              recurse := false
+          | _ ->
+              let s, tok = id in
+              error tok (spf "could not find '%s' field in environment" s))
+      | Comprehension (_op, (_l, (e, xs), _r)) ->
+          (* Actually in Python2, no new scope was created, so iterator vars
+           * could leak in the outer scope. This was fixed in Python3. *)
+          with_new_block_scope env.names (fun () ->
+              (* first visit xs, then e *)
+              xs |> List.iter (fun x -> self#visit_for_or_if_comp env x);
+              self#visit_expr env e);
+          recurse := false
+      | _ -> ());
+      if !recurse then super#visit_expr env x
+
+    method! visit_type_ env x =
+      if !(env.in_type) then super#visit_type_ env x
+      else
+        Common.save_excursion env.in_type true (fun () ->
+            super#visit_type_ env x)
+
+    (* TODO: support other types of statements that create block scopes. *)
+    method! visit_stmt env x =
+      match x.s with
+      | If (tok, Cond e, s1, s2_opt) when has_block_scope env.lang ->
+          self#visit_tok env tok;
+          self#visit_expr env e;
+          with_new_block_scope env.names (fun () -> self#visit_stmt env s1);
+          Option.iter
+            (fun s2 ->
+              with_new_block_scope env.names (fun () -> self#visit_stmt env s2))
+            s2_opt
+      | _else_ -> super#visit_stmt env x
+  end
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
 let resolve lang prog =
   let env = default_env lang in
-
-  (* coupling: we do similar things in Constant_propagation.ml so if you
-   * add a feature here, you might want to add a similar thing over there too.
-   *)
-  let visitor =
-    object (self : 'self)
-      inherit [_] AST_generic.iter_no_id_info as super
-
-      (* ---------- *)
-      (* !the defs! *)
-      (* ---------- *)
-      method! visit_function_definition venv x =
-        (* todo: add the function as a Global. In fact we should do a first
-         * pass for some languages to add all of them first, because
-         * Go for example allow the use of forward function reference
-         * (no need to declarare prototype and forward decls as in C).
-         *)
-        let new_params = params_of_parameters env x.fparams in
-        with_new_context InFunction env (fun () ->
-            with_new_function_scope new_params env.names (fun () ->
-                (* todo: actually we should first go inside x.fparams.ptype
-                 * without the new_params (this would also prevent cycle if
-                 * a parameter name is the same than type name used in ptype
-                 * (see tests/naming/python/shadow_name_type.py) *)
-                super#visit_function_definition venv x))
-
-      method! visit_definition venv x =
-        match x with
-        | { attrs; _ }, ClassDef c ->
-            (* todo: we should first process all fields in the class before
-             * processing the methods, as some languages may allow forward ref.
-             *)
-            let class_params = params_of_parameters env c.cparams in
-            with_new_context InClass env (fun () ->
-                let special_class_params =
-                  if Lang.is_js lang then
-                    let _, fields, _ = c.cbody in
-                    js_get_angular_constructor_args env attrs
-                      (List_.map (fun (F x) -> x) fields)
-                  else []
-                in
-                (* TODO? Maybe we need a `with_new_class_scope`. For now, abusing `with_new_function_scope`. *)
-                with_new_function_scope (special_class_params @ class_params)
-                  env.names (fun () -> super#visit_definition venv x))
-        (* `const x = require('y');` (or var, or let)
-         *
-         * JS: This is a CommonJS import, popularized before ES6 standardized
-         * imports/exports. *)
-        | ( { name = EN (Id (id, id_info)); _ },
-            VarDef
-              {
-                vinit =
-                  Some
-                    {
-                      e =
-                        Call
-                          ( { e = Special (Require, _); _ },
-                            (_, [ Arg { e = L (String (_, file, _)); _ } ], _)
-                          );
-                      _;
-                    };
-                _;
-              } )
-          when lang =*= Lang.Js || lang =*= Lang.Ts ->
-            let sid = SId.mk () in
-            let canonical = dotted_to_canonical [ file ] in
-            let resolved = untyped_ent (ImportedModule canonical, sid) in
-            set_resolved env id_info resolved;
-            add_ident_current_scope id resolved env.names
-        (* `const {x, y} = require('z');` (or var, or let)
-         *
-         * JS: This is a CommonJS import, popularized before ES6 standardized
-         * imports/exports. *)
-        | ( { name = EN (Id ((id_str, _), _)); _ },
-            VarDef
-              {
-                vinit =
-                  Some
-                    {
-                      e =
-                        Assign
-                          ( { e = Record (_, fields, _); _ },
-                            _,
-                            {
-                              e =
-                                Call
-                                  ( { e = Special (Require, _); _ },
-                                    ( _,
-                                      [ Arg { e = L (String (_, file, _)); _ } ],
-                                      _ ) );
-                              _;
-                            } );
-                      _;
-                    };
-                _;
-              } )
-          when id_str = special_multivardef_pattern
-               && (lang =*= Lang.Js || lang =*= Lang.Ts) ->
-            List.iter
-              (function
-                | F
-                    {
-                      s =
-                        DefStmt
-                          ( {
-                              name = EN (Id (imported_id, _imported_id_info));
-                              attrs = [];
-                              tparams = None;
-                            },
-                            FieldDefColon
-                              {
-                                vinit =
-                                  Some
-                                    { e = N (Id (local_id, local_id_info)); _ };
-                                _;
-                              } );
-                      _;
-                    } ->
-                    let sid = SId.mk () in
-                    let canonical = dotted_to_canonical [ file; imported_id ] in
-                    let resolved =
-                      untyped_ent (ImportedEntity canonical, sid)
-                    in
-                    set_resolved env local_id_info resolved;
-                    add_ident_current_scope local_id resolved env.names
-                    (* TODO handle nested destructuring? *)
-                | _ -> ())
-              fields
-        (* In Rust, the left-hand side (lhs) of the let variable definition is
-         * parsed as a pattern.
-         * TODO handle more cases than just the simple identifier pattern. *)
-        | ( { name = EPattern (PatId (id, id_info)); _ },
-            VarDef { vinit; vtype; vtok = _ } )
-        | { name = EN (Id (id, id_info)); _ }, VarDef { vinit; vtype; vtok = _ }
-        (* note that some languages such as Python do not have VarDef
-         * construct
-         * todo? should add those somewhere instead of in_lvalue detection? *)
-          when is_resolvable_name_ctx env lang ->
-            (* Need to visit expressions first so that the id_type of
-             * an id gets populated, e.g.
-             * if we do var a = 3, then var b = a, we want to propagate the
-             * type of a.
-             * alt: do the lookup type in resolved_type
-             *)
-            super#visit_definition venv x;
-            declare_var env lang id id_info ~explicit:true vinit vtype
-        | { name = EN (Id (id, id_info)); _ }, FuncDef _
-          when is_resolvable_name_ctx env lang ->
-            (match lang with
-            (* We restrict function-name resolution to JS/TS.
-             *
-             * Note that this causes problems with Python rule/test:
-             *
-             *     semgrep-rules/python/flask/correctness/same-handler-name.yaml
-             *
-             * This rule tries to match two different functions using the same
-             * meta-variable. This works when the function names are not resolved,
-             * but breaks when each function gets a unique sid.
-             *
-             * Function-name resolution is useful for interprocedural analysis,
-             * feature that was requested by JS/TS users, see:
-             *
-             *     https://github.com/semgrep/semgrep/issues/2787.
-             *)
-            | Lang.Js
-            | Lang.Ts ->
-                let sid = SId.mk () in
-                let resolved = untyped_ent (resolved_name_kind env lang, sid) in
-                (* Previously we tried using add_ident_current_scope, but this
-                 * shadowed imported function names which are added to the
-                 * "imported" scope (globals/block scope is looked up first)
-                 * even when the import statement comes after...
-                 * This broke the following test:
-                 *
-                 *     semgrep-rules/python/django/security/audit/raw-query.py
-                 *
-                 * For now we add function names also to the "imported" scope...
-                 * but do we need a special scope for imported functions?
-                 *)
-                add_ident_imported_scope id resolved env.names;
-                set_resolved env id_info resolved
-            | ___else___ -> ());
-            super#visit_definition venv x
-        | { name = EN (Id (id, id_info)); _ }, UseOuterDecl tok ->
-            let s = Tok.content_of_tok tok in
-            let flookup =
-              match s with
-              | "global" -> lookup_global_scope
-              | "nonlocal" -> lookup_nonlocal_scope
-              | _ ->
-                  error tok (spf "unrecognized UseOuterDecl directive: %s" s);
-                  lookup_global_scope
-            in
-            (match flookup id env.names with
-            | Some resolved ->
-                set_resolved env id_info resolved;
-                add_ident_current_scope id resolved env.names
-            | None ->
-                error tok
-                  (spf "could not find '%s' for directive %s"
-                     (H.str_of_ident id) s));
-            super#visit_definition venv x
-        (* module L = List, in OCaml *)
-        | ( { name = EN (Id (id, id_info)); _ },
-            ModuleDef { mbody = ModuleAlias xs } ) ->
-            (* similar to the ImportAs case *)
-            let sid = SId.mk () in
-            let canonical = dotted_to_canonical xs in
-            let resolved = untyped_ent (ImportedModule canonical, sid) in
-            set_resolved env id_info resolved;
-            (* difference with ImportAs, we add in local scope in OCaml *)
-            add_ident_current_scope id resolved env.names;
-            super#visit_definition venv x
-        | ( { name = EN (Id (id, id_info)); _ },
-            MacroDef
-              { macroparams = []; macrobody = [ E ({ e = L _; _ } as e) ] } ) ->
-            declare_var env lang id id_info ~explicit:true (Some e) None;
-            super#visit_definition venv x
-        (* general case, just recurse *)
-        | _ -> super#visit_definition venv x
-
-      (* sgrep: the import aliases *)
-      method! visit_directive venv x =
-        (match x.d with
-        | ImportFrom (_, DottedName xs, imported_names) ->
-            List.iter
-              (function
-                | Aliased (id, (alias, alias_id_info)) ->
-                    (* for python *)
-                    let sid = SId.mk () in
-                    let canonical = dotted_to_canonical (xs @ [ id ]) in
-                    let resolved =
-                      untyped_ent (ImportedEntity canonical, sid)
-                    in
-                    set_resolved env alias_id_info resolved;
-                    add_ident_imported_scope alias resolved env.names
-                | Direct (id, id_info) ->
-                    (* for python *)
-                    let sid = SId.mk () in
-                    let canonical = dotted_to_canonical (xs @ [ id ]) in
-                    let resolved =
-                      untyped_ent (ImportedEntity canonical, sid)
-                    in
-                    set_resolved env id_info resolved;
-                    add_ident_imported_scope id resolved env.names)
-              imported_names
-        | ImportFrom (_, FileName (s, tok), imported_names) ->
-            List.iter
-              (function
-                | Direct (id, id_info)
-                  when Lang.is_js lang && fst id <> Ast_js.default_entity ->
-                    (* for JS we consider import { x } from 'a/b/foo' as foo.x.
-                     * Note that we guard this code with is_js lang, because Python
-                     * uses also Filename in 'from ...conf import x'.
-                     *)
-                    let sid = SId.mk () in
-                    let _, b, _ = Filename_.dbe_of_filename_noext_ok s in
-                    let base = (b, tok) in
-                    let canonical = dotted_to_canonical [ base; id ] in
-                    let resolved =
-                      untyped_ent (ImportedEntity canonical, sid)
-                    in
-                    set_resolved env id_info resolved;
-                    add_ident_imported_scope id resolved env.names
-                | Aliased (id, (alias, alias_id_info))
-                  when Lang.is_js lang && fst id <> Ast_js.default_entity ->
-                    (* for JS *)
-                    let sid = SId.mk () in
-                    let _, b, _ = Filename_.dbe_of_filename_noext_ok s in
-                    let base = (b, tok) in
-                    let canonical = dotted_to_canonical [ base; id ] in
-                    let resolved =
-                      untyped_ent (ImportedEntity canonical, sid)
-                    in
-                    set_resolved env alias_id_info resolved;
-                    add_ident_imported_scope alias resolved env.names
-                | _ -> ())
-              imported_names
-        | ImportAs (_, DottedName xs, Some (alias, id_info)) ->
-            (* for python *)
-            let sid = SId.mk () in
-            let canonical = dotted_to_canonical xs in
-            let resolved = untyped_ent (ImportedModule canonical, sid) in
-            set_resolved env id_info resolved;
-            add_ident_imported_scope alias resolved env.names
-        | ImportAs (_, FileName (s, tok), Some (alias, id_info)) ->
-            (* for Go *)
-            let sid = SId.mk () in
-            let pkgname = go_package_alias s in
-            let base = (pkgname, tok) in
-            let canonical = dotted_to_canonical [ base ] in
-            let resolved = untyped_ent (ImportedModule canonical, sid) in
-            set_resolved env id_info resolved;
-            add_ident_imported_scope alias resolved env.names
-        | _ -> ());
-        super#visit_directive venv x
-
-      method! visit_catch venv x =
-        let _t, exn, _st = x in
-        (match exn with
-        (* TODO: we should create a new block scope *)
-        | CatchParam { pname = Some id; pinfo = id_info; _ }
-          when is_resolvable_name_ctx env lang ->
-            declare_var env lang id id_info ~explicit:true None None
-        | _ -> ());
-        super#visit_catch venv x
-
-      method! visit_pattern venv x =
-        match x with
-        | PatId (id, id_info) when is_resolvable_name_ctx env lang ->
-            (* todo: in Python it does not necessarily introduce
-             * a newvar if the ID was already declared before.
-             * Also inside a PatAs(PatId x,b), the 'x' is actually
-             * the name of a class, not a newly introduced local.
-             *)
-            declare_var env lang id id_info ~explicit:true None None;
-            super#visit_pattern venv x
-        | PatTyped (PatId (id, id_info), ty)
-          when is_resolvable_name_ctx env lang ->
-            declare_var env lang id id_info ~explicit:true None (Some ty)
-        (* do not recurse here, we don't want the PatId case above
-         * to overwrite the job done here
-         *)
-        | OtherPat _
-        (* This interacts badly with implicit JS/TS declarations. It causes
-         * `foo` in `function f({ foo }) { ... }` to be resolved as a global
-         * variable, which in turn affects semgrep-rule _react-props-in-state_.
-         * This when-clause achieves the previous behavior of leaving `foo`
-         * unresolved. *)
-        (* TODO: We should fix the AST of JS/TS so those `f({foo})` patterns do
-         * not show as regular variables. *)
-          when not (Lang.is_js lang) ->
-            Common.save_excursion env.in_lvalue true (fun () ->
-                super#visit_pattern venv x)
-        | _ -> super#visit_pattern venv x
-
-      (* ---------- *)
-      (* !the uses! *)
-      (* ---------- *)
-      (* kname will resolve names for Constructor/PatConstructor/NamedAttr/TyN
-       * and maybe more. For expressions, we do something special for N (Id)
-       * in kexpr do deal with languages where the first occurence of an
-       * Id could be a declaration.
-       *)
-      method! visit_name venv x =
-        match x with
-        | Id (id, id_info) -> (
-            if
-              (* Avoid overwriting 'id_resolved'.
-               * THINK: Maybe log something if we were going to overwrite ? *)
-              Option.is_none !(id_info.id_resolved)
-            then
-              match lookup_scope_opt id env with
-              | Some resolved ->
-                  (* name resolution *)
-                  set_resolved env id_info resolved
-              | _ -> ())
-        | IdQualified
-            {
-              name_last = id, None;
-              name_middle;
-              name_info = id_info;
-              name_top = None;
-            } ->
-            (match name_middle with
-            | Some (QDots ((m, None) :: rest_of_middle)) -> (
-                match lookup_scope_opt m env with
-                (* Resolve modules for OCaml *)
-                | Some { entname = ImportedModule xs, _sidm; _ }
-                (* Resolve classes for use in typed metavars (Java) *)
-                (* Note that we only need to resolve the first name
-                   because that is the only one that could be
-                   imported *)
-                | Some { entname = ImportedEntity xs, _sidm; _ } ->
-                    (* The entity is fully qualified, no need for sid *)
-                    let sid = SId.unsafe_default in
-                    let rest_of_middle = List_.map fst rest_of_middle in
-                    let canonical =
-                      xs @ dotted_to_canonical (rest_of_middle @ [ id ])
-                    in
-                    let resolved =
-                      untyped_ent (ImportedEntity canonical, sid)
-                    in
-                    set_resolved env id_info resolved
-                | _ -> ())
-            | _ -> ());
-            super#visit_name venv x
-        | IdQualified _ -> ()
-        | IdSpecial _ -> ()
-
-      method! visit_expr venv x =
-        (* ugly: hack. If we use a classic recursive-with-env visitor,
-         * we would not need this *)
-        (* TODO now that we do use a classic recursive-with-env visitor,
-         * refactor so this isn't needed. *)
-        let recurse = ref true in
-        (match x.e with
-        (* Go: This is `x := E`, a single-variable short variable declaration.
-         * When this declaration is legal, and that is when the same variable
-         * has not yet been declared in the same scope, it *always* introduces
-         * a new variable. (Quoting Go' spec, "redeclaration can only appear
-         * in a multi-variable short declaration".)
-         * See: https://golang.org/ref/spec#Short_variable_declarations *)
-        | AssignOp ({ e = N (Id (id, id_info)); _ }, (Eq, tok), e2)
-          when lang =*= Lang.Go
-               && Tok.content_of_tok tok = ":="
-               && is_resolvable_name_ctx env lang ->
-            (* Need to visit the RHS first so that type is populated *)
-            (* If we do var a = 3, then var b = a, we want to propagate the type of a *)
-            super#visit_expr venv x;
-            declare_var env lang id id_info ~explicit:true (Some e2) None;
-            recurse := false
-        | Assign ({ e = N (Id (id, id_info)); _ }, _, e2)
-          when Option.is_none (lookup_scope_opt id env)
-               && assign_implicitly_declares lang
-               && is_resolvable_name_ctx env lang ->
-            (* Need to visit the RHS first so that type is populated *)
-            self#visit_expr venv e2;
-            declare_var env lang id id_info ~explicit:false (Some e2) None;
-            recurse := false
-        (* todo: see lrvalue.ml
-         * alternative? extra id_info tag?
-         *)
-        | Assign (e1, _, e2)
-        | AssignOp (e1, _, e2) ->
-            Common.save_excursion env.in_lvalue true (fun () ->
-                self#visit_expr venv e1);
-            self#visit_expr venv e2;
-            recurse := false
-        | ArrayAccess (e1, (_, e2, _)) ->
-            self#visit_expr venv e1;
-            Common.save_excursion env.in_lvalue false (fun () ->
-                self#visit_expr venv e2);
-            recurse := false
-        (* specialized kname case when in expr context *)
-        | N (Id (id, id_info)) ->
-            (match lookup_scope_opt id env with
-            | Some resolved ->
-                (* name resolution *)
-                set_resolved env id_info resolved
-            | None ->
-                if
-                  !(env.in_lvalue)
-                  && assign_implicitly_declares lang
-                  && is_resolvable_name_ctx env lang
-                then
-                  (* first use of a variable can be a VarDef in some languages *)
-                  declare_var env lang id id_info ~explicit:false None None
-                else
-                  (* hopefully the lang-specific resolved may have resolved that *)
-                  (* TODO: this can happen because of in_lvalue bug detection, or
-                   * for certain entities like functions or classes which are
-                   * currently tagged
-                   *)
-                  let s, tok = id in
-                  error tok (spf "could not find '%s' in environment" s));
-            recurse := false
-        | DotAccess
-            (* new: we added `Cls` to indicate references to the type of the class,
-               not just the instance of the class itself
-               this may introduce incorrectness in name resolution, to be fixed later
-               for now, let us consider it the same as the instance itself *)
-            ( { e = N (IdSpecial (((This | Self | Cls), _), _)); _ },
-              _,
-              FN (Id (id, id_info)) ) -> (
-            match lookup_scope_opt ~class_attr:true id env with
-            (* TODO: this is a v0 for doing naming and typing of fields.
-             * we should really use a different lookup_scope_class, that
-             * would handle shadowing of fields from locals, etc. but it's
-             * a start.
-             *)
-            | Some ({ entname = EnclosedVar, _sid; _ } as resolved) ->
-                set_resolved env id_info resolved;
-                recurse := false
-            | _ ->
-                let s, tok = id in
-                error tok (spf "could not find '%s' field in environment" s))
-        | Comprehension (_op, (_l, (e, xs), _r)) ->
-            (* Actually in Python2, no new scope was created, so iterator vars
-             * could leak in the outer scope. This was fixed in Python3. *)
-            with_new_block_scope env.names (fun () ->
-                (* first visit xs, then e *)
-                xs |> List.iter (fun x -> self#visit_for_or_if_comp venv x);
-                self#visit_expr venv e);
-            recurse := false
-        | _ -> ());
-        if !recurse then super#visit_expr venv x
-
-      method! visit_type_ venv x =
-        if !(env.in_type) then super#visit_type_ venv x
-        else
-          Common.save_excursion env.in_type true (fun () ->
-              super#visit_type_ venv x)
-
-      (* TODO: support other types of statements that create block scopes. *)
-      method! visit_stmt venv x =
-        match x.s with
-        | If (tok, Cond e, s1, s2_opt) when has_block_scope lang ->
-            self#visit_tok venv tok;
-            self#visit_expr venv e;
-            with_new_block_scope env.names (fun () -> self#visit_stmt venv s1);
-            Option.iter
-              (fun s2 ->
-                with_new_block_scope env.names (fun () ->
-                    self#visit_stmt venv s2))
-              s2_opt
-        | _else_ -> super#visit_stmt venv x
-    end
-  in
-  visitor#visit_program () prog;
+  resolution_visitor#visit_program env prog;
   ()
 [@@profiling]
