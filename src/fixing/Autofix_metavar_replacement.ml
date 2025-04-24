@@ -150,6 +150,36 @@ let mk_str_metavars_regexp metavar_tbl =
       * other tools. *)
      spf ".*\\(%s\\).*" regex_body)
 
+(* Stores context and mutable results for use with the visitor below. *)
+type find_remaining_metavars_env = {
+  metavar_tbl : (string, MV.mvalue) Hashtbl.t;
+  seen_metavars : string list ref;
+  str_metavars_regexp : string Lazy.t;
+}
+
+let find_remaining_metavars_visitor =
+  object
+    inherit [_] AST_generic.iter_no_id_info as super
+
+    method! visit_ident env id =
+      let idstr, _ = id in
+      if Hashtbl.mem env.metavar_tbl idstr then
+        Stack_.push idstr env.seen_metavars;
+      super#visit_ident env id
+
+    method! visit_String env lit =
+      let _, (str, _tok), _ = lit in
+      (* Textual autofix allows metavars to appear anywhere within string
+       * literals. This is useful when the pattern is something like
+       * `foo("$X")` and you'd like the fix to modify the string literal, e.g.
+       * `foo("bar $X")`. So, we have to look for a lingering metavariable
+       * anywhere within a string, and abort if we find one that hasn't been
+       * replaced. *)
+      if str =~ Lazy.force env.str_metavars_regexp then
+        Stack_.push (Common.matched1 str) env.seen_metavars;
+      super#visit_String env lit
+  end
+
 (* Check for remaining metavars in the fixed pattern AST. If there are any, that
  * indicates a failure to properly replace them in the previous step, and the
  * autofix attempt should be aborted.
@@ -162,32 +192,15 @@ let mk_str_metavars_regexp metavar_tbl =
  * fix that doesn't exist in the rule's pattern.
  *)
 let find_remaining_metavars metavar_tbl ast =
-  let seen_metavars = ref [] in
-  let str_metavars_regexp = mk_str_metavars_regexp metavar_tbl in
-  let visitor =
-    object
-      inherit [_] AST_generic.iter_no_id_info as super
-
-      method! visit_ident env id =
-        let idstr, _ = id in
-        if Hashtbl.mem metavar_tbl idstr then Stack_.push idstr seen_metavars;
-        super#visit_ident env id
-
-      method! visit_String env lit =
-        let _, (str, _tok), _ = lit in
-        (* Textual autofix allows metavars to appear anywhere within string
-         * literals. This is useful when the pattern is something like
-         * `foo("$X")` and you'd like the fix to modify the string literal, e.g.
-         * `foo("bar $X")`. So, we have to look for a lingering metavariable
-         * anywhere within a string, and abort if we find one that hasn't been
-         * replaced. *)
-        if str =~ Lazy.force str_metavars_regexp then
-          Stack_.push (Common.matched1 str) seen_metavars;
-        super#visit_String env lit
-    end
+  let env =
+    {
+      metavar_tbl;
+      seen_metavars = ref [];
+      str_metavars_regexp = mk_str_metavars_regexp metavar_tbl;
+    }
   in
-  visitor#visit_any () ast;
-  !seen_metavars
+  find_remaining_metavars_visitor#visit_any env ast;
+  !(env.seen_metavars)
 
 (******************************************************************************)
 (* Entry Point *)
