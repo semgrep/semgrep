@@ -530,6 +530,11 @@ let effects_of_tainted_sink (options : Rule_options.t) taints_with_traces
                  (Effect.ToSink { taints_with_trace = [ t ]; sink; merged_env }))
       else
         match
+          (* TODO(iago): I'm not sure we should be computing the `merged_env` here
+              because at this point we still don't know if all the taint sources in
+              'taints_and_bindings' are actually feasible (due to the 'requires').
+              Perhaps we should only generate this 'merged_env' at the very end, in
+              'matches_of_effect'. See SAF-1812  *)
           taints_and_bindings |> List_.map snd |> merge_source_mvars options
           |> merge_source_sink_mvars options sink.pm.env
         with
