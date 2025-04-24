@@ -154,22 +154,22 @@ let add_metavars (tbl : ast_node_table) metavars =
  * and therefore we won't get a hashtbl hit, and so we won't use the text for
  * the original node.
  *)
-let add_fix_pattern_ast_nodes (tbl : ast_node_table) ast =
+let add_fix_pattern_ast_nodes =
   let visitor =
     object
       inherit [_] AST_generic.iter_no_id_info as super
 
-      method! visit_argument env arg =
+      method! visit_argument tbl arg =
         ASTTable.replace tbl (Ar arg) FixPattern;
-        super#visit_argument env arg
+        super#visit_argument tbl arg
 
-      method! visit_expr env e =
+      method! visit_expr tbl e =
         ASTTable.replace tbl (E e) FixPattern;
-        super#visit_expr env e
+        super#visit_expr tbl e
       (* TODO visit every node that is part of AST_generic.any *)
     end
   in
-  visitor#visit_any () ast
+  fun (tbl : ast_node_table) ast -> visitor#visit_any tbl ast
 
 let make_external_printer ~metavars ~target_contents ~fix_pattern_ast
     ~fix_pattern : AST_generic.any -> (Immutable_buffer.t, string) result =
