@@ -91,37 +91,37 @@ let is_global (id_info : G.id_info) =
   let* kind, _sid = !(id_info.id_resolved) in
   Some (H.name_is_global kind)
 
+let visitor =
+  object (_self : 'self)
+    inherit [_] G.iter_no_id_info as super
+
+    method! visit_definition ((add_to_env, env) as venv) (entity, def_kind) =
+      match (entity, def_kind) with
+      | { name = EN (Id (id, id_info)); _ }, VarDef { vinit; _ }
+        when IdFlags.is_final !(id_info.id_flags)
+             && is_global id_info =*= Some true ->
+          env := add_to_env !env id id_info vinit
+      | __else__ -> super#visit_definition venv (entity, def_kind)
+
+    method! visit_Assign ((add_to_env, env) as venv) lhs tok expr =
+      match lhs with
+      | {
+       e =
+         ( N (Id (id, id_info))
+         | DotAccess
+             ( { e = N (IdSpecial (((This | Self), _), _)); _ },
+               _,
+               FN (Id (id, id_info)) ) );
+       _;
+      }
+        when IdFlags.is_final !(id_info.id_flags)
+             && is_global id_info =*= Some true ->
+          env := add_to_env !env id id_info (Some expr)
+      | __else__ -> super#visit_Assign venv lhs tok expr
+  end
+
 let mk_file_env taint_inst ast =
   let add_to_env = add_to_env taint_inst in
   let env = ref (Taint_lval_env.empty, Effects.empty) in
-  let visitor =
-    object (_self : 'self)
-      inherit [_] G.iter_no_id_info as super
-
-      method! visit_definition env (entity, def_kind) =
-        match (entity, def_kind) with
-        | { name = EN (Id (id, id_info)); _ }, VarDef { vinit; _ }
-          when IdFlags.is_final !(id_info.id_flags)
-               && is_global id_info =*= Some true ->
-            env := add_to_env !env id id_info vinit
-        | __else__ -> super#visit_definition env (entity, def_kind)
-
-      method! visit_Assign env lhs tok expr =
-        match lhs with
-        | {
-         e =
-           ( N (Id (id, id_info))
-           | DotAccess
-               ( { e = N (IdSpecial (((This | Self), _), _)); _ },
-                 _,
-                 FN (Id (id, id_info)) ) );
-         _;
-        }
-          when IdFlags.is_final !(id_info.id_flags)
-               && is_global id_info =*= Some true ->
-            env := add_to_env !env id id_info (Some expr)
-        | __else__ -> super#visit_Assign env lhs tok expr
-    end
-  in
-  visitor#visit_program env ast;
+  visitor#visit_program (add_to_env, env) ast;
   !env
