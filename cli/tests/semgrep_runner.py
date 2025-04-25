@@ -13,6 +13,7 @@
 # TODO: The option is still kept because a few of our tests still rely on
 # Click-specific features (e.g., mocking)  that the regular
 # call-semgrep-in-a-subprocess does not provide yet.
+import io
 import os
 import platform
 import shlex
@@ -144,8 +145,21 @@ def fork_semgrep(
     # let's fork and use a pipe to communicate with the external semgrep
     print(f"[fork] semgrep command: {' '.join(argv)}", file=sys.stderr)
     proc = Popen(argv, stdout=PIPE, stderr=PIPE, env=full_env)
-    stdout, stderr = proc.communicate()
-    return Result(proc.returncode, stdout.decode("utf-8"), stderr.decode("utf-8"))
+
+    # When run on Windows, we expect the semgrep executable to output standard
+    # Windows line endings (CLRF), but if we left these line endings then the
+    # results we capture wouldn't match the outputs produced on Linux and MacOS.
+    # Running the output buffers thru `io.TextIOWrapper` with `newline=None`
+    # ensures we always normalize line endings to LF.
+    #
+    # See https://docs.python.org/3/library/io.html#io.TextIOWrapper
+    assert proc.stdout is not None  # Guaranteed by PIPE arg, but not known to mypy
+    assert proc.stderr is not None  # Guaranteed by PIPE arg, but not known to mypy
+    stdout = io.TextIOWrapper(proc.stdout, encoding="utf-8", newline=None).read()
+    stderr = io.TextIOWrapper(proc.stderr, encoding="utf-8", newline=None).read()
+    proc.wait()
+
+    return Result(proc.returncode, stdout, stderr)
 
 
 ##############################################################################
