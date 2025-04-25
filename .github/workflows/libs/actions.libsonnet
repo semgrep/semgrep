@@ -219,9 +219,12 @@ local commit_with_message_output = '${{ steps.get_commit_with_message.outputs.sh
       |||,
     },
   // ??
-  inc_version_steps: function(id='inc-version', fragment) [
+  inc_version_steps: function(id='inc-version', fragment, ref='develop', target_feature_version='') [
     {
       uses: 'actions/checkout@v4',
+      with: {
+        ref: ref,
+      },
     },
     // Note that checkout@v4 does not get the tags by default. It does
     // if you do "full" checkout, which is too heavyweight. We don't
@@ -236,9 +239,25 @@ local commit_with_message_output = '${{ steps.get_commit_with_message.outputs.sh
     },
     {
       name: 'Get latest version',
-      id: 'latest-version',
+      id: 'latest-version-%s' % id,
+      env: {
+        TARGET_FEATURE_VERSION: target_feature_version,
+        FRAGMENT: fragment,
+      },
       run: |||
-        LATEST_TAG=$(git tag --list "v*.*.*" | sort -V | tail -n 1 | cut -c 2- )
+        # Get the latest tag by default
+        version_pattern="v*.*.*"
+        # Check if we are doing a bug patch and if target feature is set, then
+        # get whatever the next bug patch is
+        if [[ "$TARGET_FEATURE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && [ "$FRAGMENT" = "bug" ]; then
+          echo "${TARGET_FEATURE_VERSION} is a valid patch release."
+          major_minor=$(echo "$TARGET_FEATURE_VERSION" | cut -d '.' -f 1-2)
+          # if $TARGET_FEATURE_VERSION is 1.0.0, this will be v1.0.*
+          version_pattern="v${major_minor}.*"
+        fi
+        echo "version_pattern=${version_pattern}"
+        LATEST_TAG=$(git tag --list "${version_pattern}" | sort -V | tail -n 1 | cut -c 2- )
+        echo "LATEST_TAG=${LATEST_TAG}"
         echo "version=${LATEST_TAG}" >> $GITHUB_OUTPUT
       |||,
     },
@@ -247,7 +266,7 @@ local commit_with_message_output = '${{ steps.get_commit_with_message.outputs.sh
       id: id,
       uses: 'christian-draeger/increment-semantic-version@1.1.0',
       with: {
-        'current-version': '${{ steps.latest-version.outputs.version }}',
+        'current-version': '${{ steps.latest-version-%s.outputs.version }}' % id,
         'version-fragment': fragment,
       },
     },
