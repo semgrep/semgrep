@@ -58,4 +58,5 @@ on:
   push:
     branches:
       - develop
+      - release-*
   workflow_dispatch: null
