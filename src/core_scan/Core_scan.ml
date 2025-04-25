@@ -596,11 +596,11 @@ let _exception_to_core_error (target : Target.t) (exception_ : Exception.t) =
 
   TODO: remove this function once we remove parmap
  *)
-let parmap_map caps ncores f xs =
+let parmap_map caps ~num_jobs f xs =
   xs
   |> Parmap_targets.map_targets__run_in_forked_process_do_not_modify_globals
        (caps :> < Cap.fork >)
-       ncores f
+       ~num_jobs f
   |> List_.map (fun x ->
          match x with
          | Ok res -> res
@@ -698,12 +698,13 @@ let iter_targets_and_get_matches_and_exn_to_errors
     (Core_result.add_run_time run_time res, scanned_target)
   in
   let xs =
+    let num_jobs = Core_scan_config.finalize_num_jobs config.num_jobs in
     if config.use_eio then
       Logs.err (fun m ->
           m
             "Parallelism via EIO is yet to be implemented! resorting to Parmap \
              :(");
-    parmap_map (caps :> < Cap.fork >) config.ncores process_target targets
+    parmap_map (caps :> < Cap.fork >) num_jobs process_target targets
   in
   let matches, opt_paths = List_.split xs in
   let scanned =

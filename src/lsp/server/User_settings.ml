@@ -29,7 +29,7 @@ type t = {
   exclude : string list; [@default []]
   include_ : string list; [@key "include"] [@default []]
   (* TODO: leave 'jobs' unset unless specified by the user? *)
-  jobs : int; [@default Resources.resources.num_jobs]
+  jobs : int; [@default Resources.resources.cpu.recommended_parmap_jobs]
   max_memory : int; [@key "maxMemory"] [@default 0]
   max_target_bytes : int; [@key "maxTargetBytes"] [@default 1000000]
   timeout : int; [@default 30]
@@ -63,7 +63,11 @@ let find_targets_conf_of_t settings : Find_targets.conf =
 let core_runner_conf_of_t settings : Core_runner.conf =
   Core_runner.
     {
-      num_jobs = settings.jobs;
+      (* Default rather than Force: allows interfile runs to use
+         only one job to avoid hitting memory limits.
+         If the user really wants more than one job for interfile, a new
+         setting would have to be created just for that. *)
+      num_jobs = Default settings.jobs;
       optimizations = true;
       max_memory_mb = settings.max_memory;
       timeout = float_of_int settings.timeout;

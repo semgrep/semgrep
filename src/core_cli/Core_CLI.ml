@@ -102,7 +102,7 @@ let max_memory_mb = ref Core_scan_config.default.max_memory_mb (* in MiB *)
 let max_match_per_file = ref Core_scan_config.default.max_match_per_file
 
 (* -j *)
-let ncores = ref Core_scan_config.default.ncores
+let num_jobs = ref Core_scan_config.default.num_jobs
 let use_eio = ref false
 
 (* ------------------------------------------------------------------------- *)
@@ -302,7 +302,7 @@ let mk_config () : Core_scan_config.t =
     timeout_threshold = !timeout_threshold;
     max_memory_mb = !max_memory_mb;
     max_match_per_file = !max_match_per_file;
-    ncores = !ncores;
+    num_jobs = !num_jobs;
     filter_irrelevant_rules = !filter_irrelevant_rules;
     (* open telemetry *)
     tracing =
@@ -482,7 +482,9 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
     ( "-l",
       Arg.String (fun s -> lang := Some (Lang.of_string s)),
       spf " <str> shortcut for -lang" );
-    ("-j", Arg.Set_int ncores, " <int> number of cores to use (default = 1)");
+    ( "-j",
+      Arg.Int (fun n -> num_jobs := Core_scan_config.Force n),
+      " <int> number of cores to use (default: automatic)" );
     ( "-no_gc_tuning",
       Arg.Clear Flag.gc_tuning,
       " use OCaml's default garbage collector settings" );
@@ -755,12 +757,12 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
           let roots = Fpath_.of_strings roots in
           let config = mk_config () in
           Core_profiling.profiling := config.report_time;
-          let ncores =
+          let num_jobs : Core_scan_config.num_jobs =
             if !profile then (
               Logs.info (fun m -> m "Profile mode On");
               Logs.info (fun m -> m "disabling -j when in profiling mode");
-              1)
-            else config.ncores
+              Default 1)
+            else config.num_jobs
           in
           let target_source : Core_scan_config.target_source =
             match (!target_file, !lang, roots) with
@@ -778,7 +780,7 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
                    and a single target file; if you need more complex file \
                    targeting use semgrep"
           in
-          let config = { config with target_source; ncores } in
+          let config = { config with target_source; num_jobs } in
 
           (* Set up tracing and run it for the duration of scanning. Note that
              this will only trace `Core_command.run_conf` and the functions it
@@ -794,7 +796,8 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
                    coming from the OSS invocation *)
                 Trace_data.get_resource_attrs ?env:tracing.env ~engine:"oss"
                   ~analysis_flags:(Trace_data.no_analysis_features ())
-                  ~jobs:config.ncores ()
+                  ~jobs:(Core_scan_config.finalize_num_jobs config.num_jobs)
+                  ()
               in
               Tracing.configure_tracing ~attrs:resource_attrs "semgrep-core"
                 tracing.endpoint;

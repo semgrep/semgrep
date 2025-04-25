@@ -775,7 +775,7 @@ let run_conf (caps : < caps ; .. >) (conf : Scan_CLI.conf) : Exit_code.t =
       Logs.warn (fun m -> m "Profile mode On (running one job, ignoring -j)");
       {
         conf with
-        core_runner_conf = { conf.core_runner_conf with num_jobs = 1 };
+        core_runner_conf = { conf.core_runner_conf with num_jobs = Force 1 };
       })
     else conf
   in
