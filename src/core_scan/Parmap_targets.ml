@@ -102,20 +102,20 @@ let finalize () =
   ()
 
 (* Run jobs in parallel, using number of cores specified with -j *)
-let map_targets__run_in_forked_process_do_not_modify_globals caps (ncores : int)
-    (f : Target.t -> 'a) (targets : Target.t list) :
+let map_targets__run_in_forked_process_do_not_modify_globals caps
+    ~(num_jobs : int) (f : Target.t -> 'a) (targets : Target.t list) :
     ('a, Target.t * Core_error.t) result list =
   (* Parmap uses fork() which is not supported on non-Unix platforms
      (Windows) *)
-  let ncores =
-    if ncores > 1 && not Sys.unix then (
+  let num_jobs =
+    if num_jobs > 1 && not Sys.unix then (
       Logs.warn (fun m ->
           m
             "Requested %i jobs, but only 1 job is currently supported on \
              Windows. Forcing configuration to 1 job."
-            ncores);
+            num_jobs);
       1)
-    else ncores
+    else num_jobs
   in
 
   (*
@@ -126,7 +126,7 @@ let map_targets__run_in_forked_process_do_not_modify_globals caps (ncores : int)
      This is a kind of greedy algorithm, which is in general not optimal
      but hopefully good enough in practice.
 
-     This is needed only when ncores > 1, but to reduce discrepancy between
+     This is needed only when num_jobs > 1, but to reduce discrepancy between
      the two modes, we always sort the target queue in the same way.
   *)
   let targets = sort_targets_by_decreasing_size targets in
@@ -140,19 +140,19 @@ let map_targets__run_in_forked_process_do_not_modify_globals caps (ncores : int)
   in
 
   (* old:
-   *    if ncores <= 1 then List_.map (fun x -> Ok (f x)) targets else ( ... )
+   *    if num_jobs <= 1 then List_.map (fun x -> Ok (f x)) targets else ( ... )
    * But this was wrong because 'f' can throw exns and so we would
-   * get a different semantic when ncores > 1 where we capture exns hence
+   * get a different semantic when num_jobs > 1 where we capture exns hence
    * the use of wrap_result below.
    *)
-  if ncores <= 1 then
+  if num_jobs <= 1 then
     targets |> List_.map (fun x -> Parmap_.wrap_result f ~exception_handler x)
   else (
     (*
-       Parmap creates ncores children processes which listen for
+       Parmap creates num_jobs children processes which listen for
        chunks of input. When a chunk size is specified, parmap feeds
-       the ncores processes in small chunks of the specified size
-       instead of just dividing the input list into exactly ncores chunks.
+       the num_jobs processes in small chunks of the specified size
+       instead of just dividing the input list into exactly num_jobs chunks.
 
        Since our jobs are relatively big compared to the serialization
        and communication overhead, setting the chunk size to 1 works
@@ -174,10 +174,10 @@ let map_targets__run_in_forked_process_do_not_modify_globals caps (ncores : int)
        let init _ = Logging.add_PID_tag () in
     *)
     Logs.debug (fun m ->
-        m "running parmap with %d cores on %d targets" ncores
+        m "running parmap with %d cores on %d targets" num_jobs
           (List.length targets));
     (* We must pause tracing here as forking with tracing on causes segfaults.
        See comments on this function in Tracing.ml *)
     Tracing.with_tracing_paused (fun () ->
-        Parmap_.parmap caps ~init ~finalize ~ncores ~chunksize:1
+        Parmap_.parmap caps ~init ~finalize ~num_jobs ~chunksize:1
           ~exception_handler f targets))

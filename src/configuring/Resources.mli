@@ -3,9 +3,8 @@
 *)
 
 type t = {
-  num_jobs : int;
-      (** Number of parallel jobs recommended to run semgrep.
-        This is the default value for '-j'. *)
+  cpu : Num_jobs.t;
+      (** Recommendations derived from CPU info and cgroup quotas *)
 }
 
 val resources : t
