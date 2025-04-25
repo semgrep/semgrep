@@ -7,11 +7,12 @@
 # .github/workflows/start-release.jsonnet which sets SEMGREP_RELEASE_NEXT_VERSION.
 
 case "$(uname -s)" in
-  Linux)
-    os_type=linux
-    ;;
-  *)
-    os_type=Darwin
+Linux)
+  os_type=linux
+  ;;
+*)
+  os_type=Darwin
+  ;;
 esac
 
 sed_in_place() {
@@ -106,16 +107,16 @@ bump() {
 release="${SEMGREP_RELEASE_NEXT_VERSION}"
 
 case "$release" in
-  *.*.*)
-    ;;
-  '')
-    error "empty release ID"
-    ;;
-  *)
-    error "suspicious release ID"
+*.*.*) ;;
+'')
+  error "empty release ID"
+  ;;
+*)
+  error "suspicious release ID"
+  ;;
 esac
 
-rel_branch=release-$release
+rel_branch="${SEMGREP_RELEASE_BRANCH}"
 cur_branch=$(git branch --show-current)
 
 if [[ "$cur_branch" = "$rel_branch" ]]; then
