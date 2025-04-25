@@ -435,7 +435,7 @@ let core_scan_config (conf : Test_CLI.conf) (rules : Rule.t list)
      * should probably instead set ncores to 1 but run tests
      * in parallel (in run_tests() further below).
      *)
-    ncores = 1;
+    num_jobs = Default 1;
     rule_source = Rules rules;
     target_source = Targets targets;
     output_format = NoOutput;

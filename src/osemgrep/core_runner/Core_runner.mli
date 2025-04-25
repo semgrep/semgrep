@@ -7,7 +7,7 @@
 (* input *)
 type conf = {
   (* opti and limits *)
-  num_jobs : int;
+  num_jobs : Core_scan_config.num_jobs;
   optimizations : bool;
   max_memory_mb : int;
   timeout : float;

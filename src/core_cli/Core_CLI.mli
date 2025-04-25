@@ -2,8 +2,9 @@
 val main : Cap.all_caps -> string array -> unit
 
 (* internals used also in semgrep-core-proprietary *)
+
 val lang : Lang.t option ref
-val ncores : int ref
+val num_jobs : Core_scan_config.num_jobs ref
 val debug : bool ref
 val profile : bool ref
 val log_to_file : Fpath.t option ref
