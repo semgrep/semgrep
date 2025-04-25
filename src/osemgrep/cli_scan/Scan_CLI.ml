@@ -320,7 +320,18 @@ given baseline hash doesn't exist.
 (* Performance and memory options *)
 (* ------------------------------------------------------------------ *)
 
-let o_num_jobs : int Term.t =
+let num_jobs_arg =
+  let parse str =
+    match int_of_string_opt str with
+    | Some n -> Ok (Core_scan_config.Force n)
+    | None -> Error (`Msg ("invalid number of jobs: " ^ str))
+  in
+  let print ppf num =
+    Format.fprintf ppf "%i" (Core_scan_config.finalize_num_jobs num)
+  in
+  Arg.conv ~docv:"NUM" (parse, print)
+
+let o_num_jobs : Core_scan_config.num_jobs Term.t =
   let info =
     Arg.info [ "j"; "jobs" ]
       ~doc:
@@ -330,7 +341,7 @@ logical CPUs that are available to the user and that semgrep can take
 advantage of (1 if using --pro, 1 on Windows).
 |}
   in
-  Arg.value (Arg.opt Arg.int default.core_runner_conf.num_jobs info)
+  Arg.value (Arg.opt num_jobs_arg default.core_runner_conf.num_jobs info)
 
 let o_max_memory_mb : int Term.t =
   let default = default.core_runner_conf.max_memory_mb in

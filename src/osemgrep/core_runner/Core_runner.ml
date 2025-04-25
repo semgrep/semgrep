@@ -23,7 +23,7 @@ module Out = Semgrep_output_v1_t
  *)
 type conf = {
   (* opti and limits *)
-  num_jobs : int;
+  num_jobs : Core_scan_config.num_jobs;
   optimizations : bool;
   max_memory_mb : int;
   timeout : float;
@@ -82,7 +82,7 @@ type func = {
 
 let default_conf : conf =
   {
-    num_jobs = Resources.resources.num_jobs;
+    num_jobs = Default Resources.resources.cpu.recommended_parmap_jobs;
     timeout = 5.0;
     (* ^ seconds, keep up-to-date with User_settings.ml and constants.py *)
     timeout_threshold = 3;
@@ -165,7 +165,7 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
       let output_format = Core_scan_config.NoOutput in
       let filter_irrelevant_rules = optimizations in
       {
-        ncores = num_jobs;
+        num_jobs;
         output_format;
         timeout;
         timeout_threshold;

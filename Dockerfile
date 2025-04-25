@@ -42,7 +42,7 @@
 #
 # coupling: if you add a file here, you probably want to add it in
 # semgrep.nix and the pro dockerfile
-FROM scratch as build-files
+FROM scratch AS build-files
 WORKDIR /src
 COPY dune dune-project ./
 COPY cli/src/semgrep/semgrep_interfaces/ ./cli/src/semgrep/semgrep_interfaces/
@@ -101,7 +101,7 @@ COPY tools ./tools
 #    add a package or we wanted to switch to a different OCaml version.
 #    Being able to control everything from a single Dockerfile is simpler.
 
-FROM alpine:3.21 as semgrep-core-container
+FROM alpine:3.21 AS semgrep-core-container
 
 
 # Install opam and basic build tools
