@@ -19,6 +19,7 @@ local on_pull_request_config = {
     push: {
       branches: [
         'develop',
+        'release-*',
       ],
     },
   },
