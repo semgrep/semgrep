@@ -1230,7 +1230,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
           match stmt.s with
           | ExprStmt (expr, _) -> expr
           | __else__ -> StmtExpr stmt |> G.e)
-      | `Choice_choice_comp_stmt x -> (
+      | `Choice_comp_stmt x -> (
           let stmt = map_statement env x in
           match stmt with
           | [ { s = ExprStmt (expr, _); _ } ] -> expr
@@ -1954,197 +1954,190 @@ and map_source_file_stmt (env : env) (opt : CST.source_file) =
 
 and map_statement (env : env) (x : CST.statement) : stmt list =
   match x with
-  | `Semg_ellips tok ->
-      [ ExprStmt (Ellipsis (token env tok) |> G.e, G.sc) |> G.s ]
-  | `Choice_comp_stmt x -> (
-      match x with
-      | `Comp_stmt (v1, v2, v3, v4) ->
-          let v1 = (* "begin" *) token env v1 in
-          let _v2 = map_terminator_opt env v2 in
-          let v3 = map_source_file env v3 in
-          let v4 = (* "end" *) token env v4 in
-          [ Block (v1, v3, v4) |> G.s ]
-      | `Quote_stmt (v1, v2, v3, v4) ->
-          (* This is a Expr object, created using a quote block.
-             Not the same as a `begin` block.
-          *)
-          let _v1 = (* "quote" *) str env v1 in
-          let _v2 = map_terminator_opt env v2 in
-          let v3 = map_source_file_stmt env v3 in
-          let _v4 = (* "end" *) token env v4 in
-          [ OtherStmt (OS_Todo, [ G.S v3 ]) |> G.s ]
-      | `Let_stmt (v1, v2, v3, v4, v5) ->
-          let v1 = (* "let" *) token env v1 in
-          let defs =
-            match v2 with
-            | Some (v1, v2) ->
-                let v1 = map_let_binding env v1 in
-                let v2 =
-                  List_.map
-                    (fun (v1, v2) ->
-                      let _v1 = (* "," *) token env v1 in
-                      let v2 = map_let_binding env v2 in
-                      v2)
-                    v2
-                in
-                v1 :: v2
-            | None -> []
-          in
-          let _v3 = map_terminator env v3 in
-          let v4 = map_source_file env v4 in
-          let v5 = (* "end" *) token env v5 in
-          [ Block (v1, defs @ v4, v5) |> G.s ]
-      | `If_stmt (v1, v2, v3, v4, v5, v6, v7) ->
-          let v1 = (* "if" *) token env v1 in
-          let v2 = map_expression env v2 in
-          let _v3 = map_terminator_opt env v3 in
-          let v4 = map_source_file_stmt env v4 in
-          let elses =
-            let v5 = List_.map (map_elseif_clause env) v5 in
-            let v6 =
-              match v6 with
-              | Some x -> Some (map_else_clause env x)
-              | None -> None
-            in
-            let _v7 = (* "end" *) token env v7 in
-            List_.fold_right (fun k acc -> Some (k acc)) v5 v6
-          in
-          [ If (v1, Cond v2, v4, elses) |> G.s ]
-      | `Try_stmt (v1, v2, v3, v4, v5) -> (
-          let v1 = (* "try" *) token env v1 in
-          let _v2 = map_terminator_opt env v2 in
-          let v3 = map_source_file_stmt env v3 in
-          let _v5 = (* "end" *) token env v5 in
-          match v4 with
-          | `Catch_clause_opt_else_clause_opt_fina_clause
-              (clause, elsee, finally) ->
-              let v4 = [ map_catch_clause env clause ] in
-              let v5 = Option.map (map_try_else_clause env) elsee in
-              let v6 = Option.map (map_finally_clause env) finally in
-              [ Try (v1, v3, v4, v5, v6) |> G.s ]
-          | `Fina_clause_opt_catch_clause (finally, catch) ->
-              let v4 =
-                match catch with
-                | Some x -> [ map_catch_clause env x ]
-                | None -> []
-              in
-              let v5 = Some (map_finally_clause env finally) in
-              [ Try (v1, v3, v4, None, v5) |> G.s ])
-      | `For_stmt (v1, v2, v3, v4, v5, v6) ->
-          let v1 = (* "for" *) token env v1 in
-          let header =
-            let v2 = map_for_binding env v2 in
-            let v3 =
+  | `Comp_stmt (v1, v2, v3, v4) ->
+      let v1 = (* "begin" *) token env v1 in
+      let _v2 = map_terminator_opt env v2 in
+      let v3 = map_source_file env v3 in
+      let v4 = (* "end" *) token env v4 in
+      [ Block (v1, v3, v4) |> G.s ]
+  | `Quote_stmt (v1, v2, v3, v4) ->
+      (* This is a Expr object, created using a quote block.
+         Not the same as a `begin` block.
+      *)
+      let _v1 = (* "quote" *) str env v1 in
+      let _v2 = map_terminator_opt env v2 in
+      let v3 = map_source_file_stmt env v3 in
+      let _v4 = (* "end" *) token env v4 in
+      [ OtherStmt (OS_Todo, [ G.S v3 ]) |> G.s ]
+  | `Let_stmt (v1, v2, v3, v4, v5) ->
+      let v1 = (* "let" *) token env v1 in
+      let defs =
+        match v2 with
+        | Some (v1, v2) ->
+            let v1 = map_let_binding env v1 in
+            let v2 =
               List_.map
                 (fun (v1, v2) ->
                   let _v1 = (* "," *) token env v1 in
-                  let v2 = map_for_binding env v2 in
+                  let v2 = map_let_binding env v2 in
                   v2)
-                v3
+                v2
             in
-            match v3 with
-            | [] -> ForEach v2
-            | _ -> MultiForEach (List_.map (fun x -> FE x) (v2 :: v3))
+            v1 :: v2
+        | None -> []
+      in
+      let _v3 = map_terminator env v3 in
+      let v4 = map_source_file env v4 in
+      let v5 = (* "end" *) token env v5 in
+      [ Block (v1, defs @ v4, v5) |> G.s ]
+  | `If_stmt (v1, v2, v3, v4, v5, v6, v7) ->
+      let v1 = (* "if" *) token env v1 in
+      let v2 = map_expression env v2 in
+      let _v3 = map_terminator_opt env v3 in
+      let v4 = map_source_file_stmt env v4 in
+      let elses =
+        let v5 = List_.map (map_elseif_clause env) v5 in
+        let v6 =
+          match v6 with
+          | Some x -> Some (map_else_clause env x)
+          | None -> None
+        in
+        let _v7 = (* "end" *) token env v7 in
+        List_.fold_right (fun k acc -> Some (k acc)) v5 v6
+      in
+      [ If (v1, Cond v2, v4, elses) |> G.s ]
+  | `Try_stmt (v1, v2, v3, v4, v5) -> (
+      let v1 = (* "try" *) token env v1 in
+      let _v2 = map_terminator_opt env v2 in
+      let v3 = map_source_file_stmt env v3 in
+      let _v5 = (* "end" *) token env v5 in
+      match v4 with
+      | `Catch_clause_opt_else_clause_opt_fina_clause (clause, elsee, finally)
+        ->
+          let v4 = [ map_catch_clause env clause ] in
+          let v5 = Option.map (map_try_else_clause env) elsee in
+          let v6 = Option.map (map_finally_clause env) finally in
+          [ Try (v1, v3, v4, v5, v6) |> G.s ]
+      | `Fina_clause_opt_catch_clause (finally, catch) ->
+          let v4 =
+            match catch with
+            | Some x -> [ map_catch_clause env x ]
+            | None -> []
           in
-          let _v4 = map_terminator_opt env v4 in
-          let v5 = map_source_file env v5 in
-          let _v6 = (* "end" *) token env v6 in
-          [ For (v1, header, Block (fb v5) |> G.s) |> G.s ]
-      | `While_stmt (v1, v2, v3, v4, v5) ->
-          let v1 = (* "while" *) token env v1 in
-          let v2 = map_expression env v2 in
-          let _v3 = map_terminator_opt env v3 in
-          let v4 = map_source_file_stmt env v4 in
-          let _v5 = (* "end" *) token env v5 in
-          [ While (v1, Cond v2, v4) |> G.s ]
-      | `Brk_stmt tok ->
-          let tbreak = (* "break" *) token env tok in
-          [ Break (tbreak, LNone, sc tbreak) |> G.s ]
-      | `Cont_stmt tok ->
-          let tcont = (* "continue" *) token env tok in
-          [ Continue (tcont, LNone, sc tcont) |> G.s ]
-      | `Ret_stmt (v1, v2) ->
-          let v1 = (* "return" *) token env v1 in
-          let v2 =
-            match v2 with
-            | Some x -> Some (map_top_level env x)
-            | None -> None
-          in
-          [ Return (v1, v2, sc v1) |> G.s ]
-      | `Export_stmt (v1, v2, v3) ->
-          let v1 = (* "export" *) str env v1 in
-          let v3 =
-            List_.filter_map
-              (fun v2 ->
-                let* v2 = map_exportable env v2 in
-                Some (G.Anys (List_.map (fun x -> G.I x) v2)))
-              (v2 :: List_.map snd v3)
-          in
-          [ DirectiveStmt (OtherDirective (v1, v3) |> G.d) |> G.s ]
-      | `Import_stmt (v1, v2) ->
-          let ((_, tk) as v1), is_using =
-            match v1 with
-            | `Import tok -> (* "import" *) (str env tok, false)
-            | `Using tok -> (* "using" *) (str env tok, true)
-          in
-          let attr = OtherAttribute (v1, []) in
-          let dirs =
-            match v2 with
-            | `Import_list x ->
-                map_import_list env x
-                (* Filter map here, as unrelated imports need not interfere with each other. *)
-                |> List_.filter_map Fun.id
-                |> List_.map (fun (dotted, idopt) ->
-                       if is_using then
-                         let dk =
-                           ImportAll (tk, DottedName dotted, tk) |> G.d
-                         in
-                         match idopt with
-                         | None -> dk
-                         | Some id ->
-                             (* It doesn't really make sense to me how you would use an `as`
-                                 in conjunction with something which is like a wildcard import.
-                                 In fact, the Julia documentation says you're not supposed to do
-                                 that:
-                                 https://docs.julialang.org/en/v1/manual/modules/#Renaming-with-as
-                                 but it might have some benefit to match, so let's Other out.
-                             *)
-                             OtherDirective
-                               ( ("using_as", G.fake "using_as"),
-                                 [ G.Dir dk; G.I id ] )
-                             |> G.d
-                       else
-                         let aliasopt =
-                           match idopt with
-                           | None -> None
-                           | Some id -> Some (id, G.empty_id_info ())
-                         in
-                         ImportAs (tk, DottedName dotted, aliasopt) |> G.d)
-            | `Sele_import x -> (
-                match map_selected_import ~import_tok:tk env x with
-                | None -> []
-                | Some dk ->
-                    let dir = dk |> G.d in
-                    [ dir ])
-          in
+          let v5 = Some (map_finally_clause env finally) in
+          [ Try (v1, v3, v4, None, v5) |> G.s ])
+  | `For_stmt (v1, v2, v3, v4, v5, v6) ->
+      let v1 = (* "for" *) token env v1 in
+      let header =
+        let v2 = map_for_binding env v2 in
+        let v3 =
           List_.map
-            (fun dir -> DirectiveStmt { dir with d_attrs = [ attr ] } |> G.s)
-            dirs
-      | `Const_stmt (v1, v2) ->
-          (* TODO: const_statement is also used for struct fields, but the grammar currently doesn't reflect that. *)
-          let v1 = (* "const" *) str env v1 in
-          [
-            map_qualified_assignment
-              ~attrs:[ OtherAttribute (v1, []) ]
-              env (`Assign v2);
-          ]
-      | `Local_stmt (v1, v2) ->
-          let v1 = (* "local" *) str env v1 in
-          [ map_qualified_assignment ~attrs:[ OtherAttribute (v1, []) ] env v2 ]
-      | `Global_stmt (v1, v2) ->
-          let v1 = (* "global" *) str env v1 in
-          [ map_qualified_assignment ~attrs:[ OtherAttribute (v1, []) ] env v2 ]
-      )
+            (fun (v1, v2) ->
+              let _v1 = (* "," *) token env v1 in
+              let v2 = map_for_binding env v2 in
+              v2)
+            v3
+        in
+        match v3 with
+        | [] -> ForEach v2
+        | _ -> MultiForEach (List_.map (fun x -> FE x) (v2 :: v3))
+      in
+      let _v4 = map_terminator_opt env v4 in
+      let v5 = map_source_file env v5 in
+      let _v6 = (* "end" *) token env v6 in
+      [ For (v1, header, Block (fb v5) |> G.s) |> G.s ]
+  | `While_stmt (v1, v2, v3, v4, v5) ->
+      let v1 = (* "while" *) token env v1 in
+      let v2 = map_expression env v2 in
+      let _v3 = map_terminator_opt env v3 in
+      let v4 = map_source_file_stmt env v4 in
+      let _v5 = (* "end" *) token env v5 in
+      [ While (v1, Cond v2, v4) |> G.s ]
+  | `Brk_stmt tok ->
+      let tbreak = (* "break" *) token env tok in
+      [ Break (tbreak, LNone, sc tbreak) |> G.s ]
+  | `Cont_stmt tok ->
+      let tcont = (* "continue" *) token env tok in
+      [ Continue (tcont, LNone, sc tcont) |> G.s ]
+  | `Ret_stmt (v1, v2) ->
+      let v1 = (* "return" *) token env v1 in
+      let v2 =
+        match v2 with
+        | Some x -> Some (map_top_level env x)
+        | None -> None
+      in
+      [ Return (v1, v2, sc v1) |> G.s ]
+  | `Export_stmt (v1, v2, v3) ->
+      let v1 = (* "export" *) str env v1 in
+      let v3 =
+        List_.filter_map
+          (fun v2 ->
+            let* v2 = map_exportable env v2 in
+            Some (G.Anys (List_.map (fun x -> G.I x) v2)))
+          (v2 :: List_.map snd v3)
+      in
+      [ DirectiveStmt (OtherDirective (v1, v3) |> G.d) |> G.s ]
+  | `Import_stmt (v1, v2) ->
+      let ((_, tk) as v1), is_using =
+        match v1 with
+        | `Import tok -> (* "import" *) (str env tok, false)
+        | `Using tok -> (* "using" *) (str env tok, true)
+      in
+      let attr = OtherAttribute (v1, []) in
+      let dirs =
+        match v2 with
+        | `Import_list x ->
+            map_import_list env x
+            (* Filter map here, as unrelated imports need not interfere with each other. *)
+            |> List_.filter_map Fun.id
+            |> List_.map (fun (dotted, idopt) ->
+                   if is_using then
+                     let dk = ImportAll (tk, DottedName dotted, tk) |> G.d in
+                     match idopt with
+                     | None -> dk
+                     | Some id ->
+                         (* It doesn't really make sense to me how you would use an `as`
+                             in conjunction with something which is like a wildcard import.
+                             In fact, the Julia documentation says you're not supposed to do
+                             that:
+                             https://docs.julialang.org/en/v1/manual/modules/#Renaming-with-as
+                             but it might have some benefit to match, so let's Other out.
+                         *)
+                         OtherDirective
+                           ( ("using_as", G.fake "using_as"),
+                             [ G.Dir dk; G.I id ] )
+                         |> G.d
+                   else
+                     let aliasopt =
+                       match idopt with
+                       | None -> None
+                       | Some id -> Some (id, G.empty_id_info ())
+                     in
+                     ImportAs (tk, DottedName dotted, aliasopt) |> G.d)
+        | `Sele_import x -> (
+            match map_selected_import ~import_tok:tk env x with
+            | None -> []
+            | Some dk ->
+                let dir = dk |> G.d in
+                [ dir ])
+      in
+      List_.map
+        (fun dir -> DirectiveStmt { dir with d_attrs = [ attr ] } |> G.s)
+        dirs
+  | `Const_stmt (v1, v2) ->
+      (* TODO: const_statement is also used for struct fields, but the grammar currently doesn't reflect that. *)
+      let v1 = (* "const" *) str env v1 in
+      [
+        map_qualified_assignment
+          ~attrs:[ OtherAttribute (v1, []) ]
+          env (`Assign v2);
+      ]
+  | `Local_stmt (v1, v2) ->
+      let v1 = (* "local" *) str env v1 in
+      [ map_qualified_assignment ~attrs:[ OtherAttribute (v1, []) ] env v2 ]
+  | `Global_stmt (v1, v2) ->
+      let v1 = (* "global" *) str env v1 in
+      [ map_qualified_assignment ~attrs:[ OtherAttribute (v1, []) ] env v2 ]
 
 and map_string_literal (env : env) (x : CST.string_) : expr =
   match x with
