@@ -1418,6 +1418,11 @@ and map_signature (env : env) (x : CST.signature) =
                         attrs = [];
                         tparams = None;
                       }
+                  | `Interp_exp x -> (
+                      match map_interpolation_expression_either env x with
+                      | Left id -> basic_entity id
+                      | Right exp ->
+                          { name = EDynamic exp; attrs = []; tparams = None })
                   (* If we have a type parametrized pattern, it means this must be a constructor.
                    * TODO: Handle type parameters.
                    *)
@@ -1696,7 +1701,7 @@ and map_parameter (env : env) (x : CST.anon_choice_exp_095959f) =
           | `Macr_exp x -> map_macro_parameter env x
           (* NOTE(lowering): No other expression is a valid parameter. *)
           | _ -> todo env x)
-      | `Semg_ellips tok -> todo env tok
+      | `Semg_ellips tok -> ParamEllipsis (token env tok)
       | `Deep_exp x -> todo env x)
   | `Closed_assign x -> map_optional_parameter env x
   (* NOTE(lowering): generators are not valid parameters. This is only here
