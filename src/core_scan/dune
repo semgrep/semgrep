@@ -7,6 +7,7 @@
     parallelism
 
     commons
+    eio
     tracing
 
     semgrep.core

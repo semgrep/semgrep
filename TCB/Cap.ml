@@ -204,7 +204,7 @@ type no_caps = < >
 
 let no_caps : no_caps = object end
 
-let powerbox : all_caps =
+class powerbox =
   object
     (* fs *)
     method readdir = ()
@@ -288,6 +288,7 @@ let already_called_main = ref false
 let main (f : all_caps -> 'a) : 'a =
   Memtrace.trace_if_requested ();
   (* can't cheat :) can't nest them *)
+  let powerbox = new powerbox in
   if !already_called_main then failwith "Cap.main() already called"
   else (
     already_called_main := true;
