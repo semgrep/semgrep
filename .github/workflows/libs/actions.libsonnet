@@ -79,11 +79,11 @@ local commit_with_message_output = '${{ steps.get_commit_with_message.outputs.sh
   // TODO: default to submodules=true, and a flexible with={}?
   // What about 'persist-credentials': false? needed? A few of
   // our workflows was using that, but not consistently
-  checkout: function() (
+  checkout: function(ref='') (
     [
       {
         uses: 'actions/checkout@v4',
-      },
+      } + (if ref == '' then {} else { with: { ref: ref } }),
     ]
   ),
   // The right checkout to call in most cases; slower but correct.
