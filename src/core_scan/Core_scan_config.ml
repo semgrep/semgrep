@@ -108,6 +108,7 @@ type t = {
   symbol_analysis : bool;
   (* Rely on a EIO impl of `-j` v.s Parmap *)
   use_eio : bool;
+  exec_pool : Eio.Executor_pool.t option; [@opaque]
 }
 [@@deriving show]
 
@@ -139,4 +140,5 @@ let default =
     tracing = None;
     symbol_analysis = false;
     use_eio = false;
+    exec_pool = None;
   }
