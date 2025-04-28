@@ -349,7 +349,7 @@ and map_qualified_assignment ?(attrs = []) (env : env)
           | _ -> todo env x)
       (* TODO: Neither semgrep ellipsis nor deep expression make much sense here,
          only metavariables. What *Stmt variant should go here?
-       *)
+      *)
       | _ -> todo env x)
 
 and map_type_parameter (env : env) (x : CST.anon_choice_exp_c3aa41b) :
@@ -906,13 +906,24 @@ and map_binary_expression (env : env) (x : CST.binary_expression) : expr =
       let v3 = map_expression env v3 in
       OtherExpr (v2, [ E v1; E v3 ]) |> G.e
 
+(* NOTE: The important bit of this function is turning Assign into VarDef *)
+and map_top_level_stmt (env : env) (x : CST.anon_choice_exp_9468126) =
+  match x with
+  | `Exp x -> H2.expr_to_stmt (map_expression env x)
+  | `Assign x -> (
+      let l, t, r = map_assignment env x in
+      match AST_generic_helpers.assign_to_vardef_opt (l, t, r) with
+      | None -> ExprStmt (Assign (l, t, r) |> G.e, G.sc) |> G.s
+      | Some stmt -> stmt)
+  | `Open_tuple x -> ExprStmt (map_open_tuple_exp env x, G.sc) |> G.s
+
 and map_block (env : env) ((v1, v2, v3) : CST.block) =
-  let v1 = map_top_level env v1 in
+  let v1 = map_top_level_stmt env v1 in
   let v2 =
     List_.map
       (fun (v1, v2) ->
         let _v1 = map_terminator env v1 in
-        let v2 = map_top_level env v2 in
+        let v2 = map_top_level_stmt env v2 in
         v2)
       v2
   in
@@ -1949,13 +1960,13 @@ and map_slurp_parameter (env : env) ((v1, v2) : CST.splat_expression) =
 
 and map_source_file (env : env) (opt : CST.source_file) =
   match opt with
-  | Some x -> List_.map H2.expr_to_stmt (map_block env x)
+  | Some x -> map_block env x
   | None -> []
 
 and map_source_file_stmt (env : env) (opt : CST.source_file) =
   match opt with
   | None -> Block (fb []) |> G.s
-  | Some x -> Block (List_.map H2.expr_to_stmt (map_block env x) |> fb) |> G.s
+  | Some x -> Block (map_block env x |> fb) |> G.s
 
 and map_statement (env : env) (x : CST.statement) : stmt list =
   match x with
