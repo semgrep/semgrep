@@ -1,4 +1,7 @@
-(* tmp is for Deep_scan.caps *)
+(* We need:
+ *  - Core_scan.caps obviously as 'semgrep test' internally calls Core_scan
+ *  - Cap.tmp is for Pro_scan.caps (for 'semgrep test --pro')
+ *)
 type caps = < Core_scan.caps ; Cap.stdout ; Cap.tmp >
 
 (*
