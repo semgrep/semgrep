@@ -334,6 +334,7 @@ let mk_config () : Core_scan_config.t =
     (* only settable via the Pro binary *)
     symbol_analysis = !symbol_analysis;
     use_eio = !use_eio;
+    exec_pool = None;
   }
 
 (*****************************************************************************)
@@ -672,6 +673,21 @@ let run caps (config : Core_scan_config.t) : unit =
     (caps :> < Cap.stdout ; Cap.stderr ; Cap.exit >)
     res config
 
+(* We want to only run the Eio async runtime (i.e Eio_main.run) iff --x-eio is
+ * set. coupling: Pro_CLI.ml
+ *)
+let decide_if_eio caps (config : Core_scan_config.t) =
+  if config.use_eio then
+    Eio_main.run (fun base ->
+        Eio.Switch.run (fun sw ->
+            let pool =
+              Eio.Executor_pool.create ~sw
+                (Eio.Stdenv.domain_mgr base)
+                ~domain_count:
+                  (Core_scan_config.finalize_num_jobs config.num_jobs)
+            in
+            run caps { config with exec_pool = Some pool }))
+  else run caps config
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
@@ -789,7 +805,7 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
              able to instrument the pre- and post-scan code in the same way.
           *)
           match config.tracing with
-          | None -> run caps config
+          | None -> decide_if_eio caps config
           | Some tracing ->
               let resource_attrs =
                 (* Let's make sure all traces/logs/metrics etc. are tagged as
@@ -806,7 +822,7 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
                   let tracing =
                     { tracing with top_level_span = Some span_id }
                   in
-                  run caps { config with tracing = Some tracing })))
+                  decide_if_eio caps { config with tracing = Some tracing })))
 
 let with_exception_trace f =
   Printexc.record_backtrace true;
