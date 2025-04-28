@@ -373,8 +373,13 @@ let sca_to_sca (rule_metadata : Yojson.Basic.t option) (m : SCA_match.t) :
   in
   let reachable =
     match kind with
-    | CodeAndLockfileMatch -> true
-    | LockfileOnlyMatch -> false
+    | DirectReachable
+    | TransitiveReachable _ ->
+        true
+    | LockfileOnlyMatch _
+    | TransitiveUnreachable _
+    | TransitiveUndetermined _ ->
+        false
   in
   let reachability_rule =
     match sca_rule_kind with
@@ -394,11 +399,11 @@ let sca_to_sca (rule_metadata : Yojson.Basic.t option) (m : SCA_match.t) :
   in
   let kind =
     match (kind, sca_rule_kind) with
-    | CodeAndLockfileMatch, _ -> Out.DirectReachable
-    | LockfileOnlyMatch, Some "reachable" ->
+    | LockfileOnlyMatch _, Some "reachable" ->
         Out.TransitiveUndetermined { explanation = None }
-    | LockfileOnlyMatch, _ ->
+    | LockfileOnlyMatch _, _ ->
         Out.LockfileOnlyMatch dependency_match.found_dependency.transitivity
+    | _else_ -> kind
   in
   Out.
     {

@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
+open Common
 
 (*****************************************************************************)
 (* Prelude *)
@@ -44,3 +45,5 @@ type version_constraint = string [@@deriving show, eq]
  * This is mostly the same type that dependency_child in semgrep_output_v1.atd
  *)
 type t = { name : name; version : version } [@@deriving show, eq]
+
+let to_string (pkg : t) : string = spf "%s@%s" pkg.name pkg.version
