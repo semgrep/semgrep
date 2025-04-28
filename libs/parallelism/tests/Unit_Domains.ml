@@ -22,4 +22,4 @@ let test_hook_inherit_val () =
   Alcotest.(check int) __LOC__ n 42
 
 let tests =
-  Testo.categorize "Domains" [ t "hook_domain_spawn" test_hook_inherit_val ]
+  Testo.categorize "Domains" [ t "test_hook_inherit_val" test_hook_inherit_val ]
