@@ -1,3 +1,11 @@
+open Common
+module Out = Semgrep_output_v1_t
+
+type kind = Out.sca_match_kind
+
+let pp_kind fmt _kd = Format.fprintf fmt "SCA_match.kind: TODO"
+let equal_kind kd1 kd2 = kd1 =*= kd2
+
 type t = {
   (* the actual dependency in the lockfile *)
   dep : Dependency.t;
@@ -5,15 +13,4 @@ type t = {
   pat : SCA_pattern.t;
   kind : kind;
 }
-
-(* TODO: reuse the new Out.sca_match_kind *)
-and kind =
-  (* Rule had both code patterns and dependency patterns, got matches on *both*,
-   * the Pattern Match is in code, annotated with this dependency match *)
-  | CodeAndLockfileMatch
-  (* Rule had dependency patterns, they matched, the Pattern Match is in a
-   * lockfile. So the range_loc of the Dependency.t in this dependency_match
-   * should be *the same* as the range_loc in the PatternMatch.t
-   *)
-  | LockfileOnlyMatch
 [@@deriving show, eq]
