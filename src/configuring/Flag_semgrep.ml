@@ -38,9 +38,6 @@ let max_tainted_vars = ref Limits_semgrep.taint_MAX_TAINTED_VARS
 (* Maximum size of the taints set for each lval *)
 let max_taint_set_size = ref Limits_semgrep.taint_MAX_TAINT_SET_SIZE
 
-(* Disabling this lets us measure the effectiveness of our GC tuning. *)
-let gc_tuning = ref true
-
 (* Note that an important flag used during parsing is actually in pfff in
  * Flag_parsing.sgrep_mode
  *)
