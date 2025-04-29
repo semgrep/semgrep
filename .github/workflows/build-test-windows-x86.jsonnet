@@ -139,6 +139,7 @@ local build_core_job = {
       run: |||
         export TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include
         export TREESITTER_LIBDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/lib
+        export TREESITTER_BINDIR="$treesitter_prefix/bin"
         # We have to strip rpath from the tree-sitter projects because there's no
         # equivalent in Windows
         # TODO: investigate removing rpath from the tree-sitter projects
@@ -154,6 +155,8 @@ local build_core_job = {
       //TODO: semgrep-core displays also parse errors in the JSON output
       // weird. CRLF windows issue?
       run: |||
+        treesitter_bindir="$(pwd)/OSS/libs/ocaml-tree-sitter-core/tree-sitter/bin"
+        export PATH="$treesitter_bindir:$PATH"
         # see pro workflow & semgrep-proprietary/pull/3522
         opam exec -- _build/install/default/bin/semgrep-core.exe -l python -rules tests/windows/rules.yml -json tests/windows/test.py
       |||,
