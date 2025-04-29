@@ -50,6 +50,8 @@ from tests.semgrep_runner import SemgrepRunner
 from semgrep import __VERSION__
 from semgrep.cli import cli
 from semgrep.constants import OutputFormat
+from semgrep.util import IS_WINDOWS
+from semgrep.util import json_win_paths_to_posix
 
 ##############################################################################
 # Constants
@@ -569,17 +571,29 @@ def unique_home_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     yield tmp_path
 
 
+def _mk_osemgrep_project_root():
+    """Return the directory containing targets/ and rules/ dirs.
+
+    We run different tests in slightly different setups - either 1)
+    copying `targets/` and `rules/` directories to a temporary folder
+    OR 2) symlinking these directories to a temporary folder OR 3)
+    directly run inside the tests directory. We want to set the
+    project root to the original directory, when 'targets' is a
+    symlink in a temporary folder.
+
+    See `tests/fixtures.py` for more information on why we set the
+    `--project-root`.
+
+    """
+    return str(Path("targets").resolve().parent)
+
+
 # Provide a run_semgrep function with alternate defaults
 _run_strict_semgrep_on_basic_targets_with_json_output: fixtures.RunSemgrep = partial(
     _run_semgrep,
     strict=True,
     target_name="basic",
     output_format=OutputFormat.JSON,
-    # In the setup we use, 'targets' is a symlink in a temporary folder.
-    # It's incompatible with the project root being '.' because
-    # the real path of the project root must be a prefix of the real path
-    # of the scanning root.
-    osemgrep_force_project_root="targets/..",
 )
 
 
@@ -597,7 +611,10 @@ def run_semgrep_in_tmp(
     (tmp_path / "rules").symlink_to(RULES_PATH.resolve())
     monkeypatch.chdir(tmp_path)
 
-    return _run_strict_semgrep_on_basic_targets_with_json_output
+    return partial(
+        _run_strict_semgrep_on_basic_targets_with_json_output,
+        osemgrep_force_project_root=_mk_osemgrep_project_root(),
+    )
 
 
 @pytest.fixture
@@ -613,7 +630,10 @@ def run_semgrep_on_copied_files(
     copytree(RULES_PATH.resolve(), tmp_path / "rules")
     monkeypatch.chdir(tmp_path)
 
-    return _run_strict_semgrep_on_basic_targets_with_json_output
+    return partial(
+        _run_strict_semgrep_on_basic_targets_with_json_output,
+        osemgrep_force_project_root=_mk_osemgrep_project_root(),
+    )
 
 
 @pytest.fixture
@@ -631,7 +651,10 @@ def run_semgrep_in_test_folder(
     """
     monkeypatch.chdir(RULES_AND_TARGETS_PATH)
 
-    return _run_strict_semgrep_on_basic_targets_with_json_output
+    return partial(
+        _run_strict_semgrep_on_basic_targets_with_json_output,
+        osemgrep_force_project_root=_mk_osemgrep_project_root(),
+    )
 
 
 @pytest.fixture
@@ -673,3 +696,50 @@ def lockfile_path_in_tmp_for_perf(monkeypatch: pytest.MonkeyPatch, tmp_path: Pat
     )
     (tmp_path / "rules").symlink_to(RULES_PATH.resolve())
     monkeypatch.chdir(tmp_path)
+
+
+class PosixSnapshot:
+    """Wrapper that normalizes paths before assert_match-ing snapshots."""
+
+    def __init__(self, snapshot):
+        self.snapshot = snapshot
+
+    def assert_match(self, output: str, filename: str, **kwargs):
+        """Assert output matches the stored snapshot, after normalizing paths.
+
+        If the output is valid JSON, convert any Windows-style paths to POSIX
+        paths. If not JSON, convert any Windows-style paths like 'targets/...'
+        present on lines starting with those paths.
+
+        """
+        try:
+            parsed = json.loads(output)
+        except json.JSONDecodeError:
+            dir_names = ("targets\\", "dir_one\\", "dir_two\\")
+            lines = [
+                (
+                    line.replace("\\", "/")
+                    if line.strip().startswith(dir_names)
+                    else line
+                )
+                for line in output.splitlines(keepends=True)
+            ]
+            result = "".join(lines)
+        else:
+            posix_parsed = json_win_paths_to_posix(parsed)
+            result = json.dumps(posix_parsed, indent=2)
+
+        # pytest-snapshot explicitly changes the line endings based on the OS,
+        # when using a string argument to `snapshot.assert_match`. So, we
+        # convert the string to bytes before passing it to
+        # `snapshot.assert_match`.
+        self.snapshot.assert_match(result.encode("utf-8"), filename, **kwargs)
+
+
+@pytest.fixture
+def posix_snapshot(snapshot):
+    """Fixture wrapping pytest-snapshot to be usable on Windows and POSIX."""
+    return PosixSnapshot(snapshot) if IS_WINDOWS else snapshot
+
+
+skip_on_windows = pytest.mark.skipif(IS_WINDOWS, reason="Failing on Windows")

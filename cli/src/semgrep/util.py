@@ -393,7 +393,7 @@ def is_secrets_ai_ruleset(metadata: Mapping[str, Any]) -> bool:
     return isinstance(ruleset, str) and ruleset == "semgrep-secrets-ai"
 
 
-def json_win_paths_to_posix(json: dict[str, Any]) -> dict[str, Any]:
+def json_win_paths_to_posix(json: Any) -> Any:
     """Convert all Windows relative paths in a JSON object to POSIX paths.
 
     The function is used in test assertions to convert paths in the output to
@@ -406,7 +406,10 @@ def json_win_paths_to_posix(json: dict[str, Any]) -> dict[str, Any]:
     path_re = re.compile(r"^(([A-Za-z0-9_.-]+)[\\]*)+$")
 
     if isinstance(json, dict):
-        return {k: json_win_paths_to_posix(v) for k, v in json.items()}
+        return {
+            json_win_paths_to_posix(k): json_win_paths_to_posix(v)
+            for k, v in json.items()
+        }
     elif isinstance(json, list):
         return [json_win_paths_to_posix(v) for v in json]
     elif isinstance(json, str) and path_re.match(json):
