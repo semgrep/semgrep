@@ -583,9 +583,23 @@ let core_error_to_match_result (target : Target.t) (core_error : Core_error.t) =
  whole ordeal so awkward; we will need to revist how we do error handling once
  we completly remove parmap.
 *)
-let _exception_to_core_error (target : Target.t) (exception_ : Exception.t) =
+let exception_to_core_error (target : Target.t) (exception_ : Exception.t) =
   let internal_path = Target.internal_path target in
   Core_error.exn_to_error ~file:internal_path exception_
+
+(** [exception_handler] is used to postprocess the result of a core_scan
+  [Domain.map]; this pattern of kafkaesque exception handling is mostly borrowed
+  from [Parmap_targets].
+
+ TODO: Once we rip out parmap; we won't need to support two different types of
+ [('a,exn/Exception.t) Result.t] results.
+*)
+let exception_handler (target : Target.t) (res : ('a, exn) Result.t) =
+  match res with
+  | Ok match_ -> match_
+  | Error exn ->
+      exception_to_core_error target (Exception.catch exn)
+      |> core_error_to_match_result target
 
 (** This functions handles & isolates the parmap logic (computation + err handeling)
   into a single function (hopefully) so that it's easier to have
@@ -597,6 +611,7 @@ let _exception_to_core_error (target : Target.t) (exception_ : Exception.t) =
   TODO: remove this function once we remove parmap
  *)
 let parmap_map caps ~num_jobs f xs =
+  let num_jobs = Core_scan_config.finalize_num_jobs num_jobs in
   xs
   |> Parmap_targets.map_targets__run_in_forked_process_do_not_modify_globals
        (caps :> < Cap.fork >)
@@ -698,13 +713,14 @@ let iter_targets_and_get_matches_and_exn_to_errors
     (Core_result.add_run_time run_time res, scanned_target)
   in
   let xs =
-    let num_jobs = Core_scan_config.finalize_num_jobs config.num_jobs in
     if config.use_eio then
-      Logs.err (fun m ->
-          m
-            "Parallelism via EIO is yet to be implemented! resorting to Parmap \
-             :(");
-    parmap_map (caps :> < Cap.fork >) num_jobs process_target targets
+      let pool = Option.get config.exec_pool in
+      Domains.map ~pool process_target targets
+      |> List_.map2 exception_handler targets
+    else
+      parmap_map
+        (caps :> < Cap.fork >)
+        ~num_jobs:config.num_jobs process_target targets
   in
   let matches, opt_paths = List_.split xs in
   let scanned =
