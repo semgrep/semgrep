@@ -486,9 +486,6 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
     ( "-j",
       Arg.Int (fun n -> num_jobs := Core_scan_config.Force n),
       " <int> number of cores to use (default: automatic)" );
-    ( "-no_gc_tuning",
-      Arg.Clear Flag.gc_tuning,
-      " use OCaml's default garbage collector settings" );
     ( "-json",
       Arg.Unit (fun () -> output_format := Json true),
       " output JSON format" );
