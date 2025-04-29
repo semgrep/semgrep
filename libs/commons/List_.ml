@@ -238,6 +238,10 @@ let fold_right func xs acc =
 (* Other list functions *)
 (*****************************************************************************)
 
+let hd_opt = function
+  | [] -> None
+  | x :: _ -> Some x
+
 let hd_exn errmsg xs =
   match xs with
   | [] -> failwith errmsg

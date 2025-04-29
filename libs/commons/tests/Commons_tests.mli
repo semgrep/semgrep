@@ -1,7 +1,6 @@
 (*
-   All unit tests for the commons library.
-
-   This is the only module exposed by the commons.tests library.
+   All unit tests for the commons library that do not require
+   any capabilities.
 *)
 
 val tests : Testo.t list

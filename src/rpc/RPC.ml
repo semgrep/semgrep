@@ -10,10 +10,22 @@ module Out = Semgrep_output_v1_j
  *)
 
 (*****************************************************************************)
+(* Types *)
+(*****************************************************************************)
+type caps =
+  < Cap.exec
+  ; Cap.tmp
+  ; Cap.network
+  ; Cap.readdir
+  ; Cap.random
+  ; Cap.chdir
+  ; Core_scan.caps >
+
+(*****************************************************************************)
 (* Dispatcher *)
 (*****************************************************************************)
 
-let handle_call (caps : < Cap.exec ; Cap.tmp ; Cap.network >) :
+let handle_call (caps : < caps ; .. >) :
     Out.function_call -> (Out.function_return, string) result = function
   | `CallApplyFixes { dryrun; edits } ->
       let modified_file_count, fixed_lines = RPC_return.autofix dryrun edits in
@@ -35,13 +47,14 @@ let handle_call (caps : < Cap.exec ; Cap.tmp ; Cap.network >) :
   | `CallValidate path ->
       let valid = RPC_return.validate path in
       Ok (`RetValidate valid)
-  | `CallResolveDependencies dependency_sources -> (
+  | `CallResolveDependencies params -> (
       match !RPC_return.hook_resolve_dependencies with
       | Some resolve_dependencies ->
           let resolved =
             resolve_dependencies
-              (caps :> < Cap.exec ; Cap.tmp >)
-              dependency_sources
+              (caps :> < Cap.exec ; Cap.tmp ; Cap.chdir ; Cap.readdir >)
+              ~download_dependency_source_code:
+                params.download_dependency_source_code params.dependency_sources
           in
           Ok (`RetResolveDependencies resolved)
       | None ->
@@ -63,23 +76,41 @@ let handle_call (caps : < Cap.exec ; Cap.tmp ; Cap.network >) :
   | `CallDumpRulePartitions params -> (
       match !RPC_return.hook_dump_rule_partitions with
       | Some dump_rule_partitions ->
-          let Out.{ rules; n_partitions; output_dir } = params in
-          let ok = dump_rule_partitions rules n_partitions output_dir in
+          let ok = dump_rule_partitions (caps :> < Cap.random >) params in
           Ok (`RetDumpRulePartitions ok)
       | None ->
           Error
             "Dump rule partitions is a proprietary feature, but semgreep-pro \
              has not been loaded")
-  | `CallTransitiveReachabilityFilter xs -> (
+  | `CallTransitiveReachabilityFilter params -> (
       match !RPC_return.hook_transitive_reachability_filter with
       | Some transitive_reachability_filter ->
-          let xs = transitive_reachability_filter xs in
+          let xs =
+            transitive_reachability_filter
+              (caps
+                :> < Core_scan.caps
+                   ; Cap.readdir
+                   ; Cap.network
+                   ; Cap.exec
+                   ; Cap.tmp >)
+              params
+          in
           Ok (`RetTransitiveReachabilityFilter xs)
       | None ->
           Error
             "Transitive reachability is a proprietary feature, but semgrep-pro \
              has not been loaded")
-  | `CallGetTargets _scanning_roots -> Error "Not yet implemented"
+  | `CallGetTargets scanning_roots ->
+      Ok (`RetGetTargets (Core_scan.get_targets_for_pysemgrep scanning_roots))
+  | `CallMatchSubprojects params -> (
+      match !RPC_return.hook_match_subprojects with
+      | Some match_subprojects ->
+          let xs = match_subprojects params in
+          Ok (`RetMatchSubprojects xs)
+      | None ->
+          Error
+            "Subproject matching is a proprietary feature, but semgrep-pro has \
+             not been loaded")
 
 (*****************************************************************************)
 (* Helpers *)
@@ -111,7 +142,7 @@ let write_packet chan str =
   flush chan
 
 (* Blocks until a request comes in, then handles it and sends the result back *)
-let handle_single_request (caps : < Cap.exec ; Cap.tmp ; Cap.network >) =
+let handle_single_request (caps : < caps ; .. >) =
   let res =
     let/ call_str = read_packet stdin in
     let/ call =
@@ -142,7 +173,7 @@ let handle_single_request (caps : < Cap.exec ; Cap.tmp ; Cap.network >) =
 (* Entry point *)
 (*****************************************************************************)
 
-let main (caps : < Cap.exec ; Cap.tmp ; Cap.network >) =
+let main (caps : < caps ; .. >) =
   (* For some requests, such as SARIF formatting, we need to parse rules
    * so we need to init the parsers as well. *)
   Parsing_init.init ();

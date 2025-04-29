@@ -27,6 +27,33 @@ val to_strings : Fpath.t list -> string list
 val to_yojson : Fpath.t -> Yojson.Safe.t
 val of_yojson : Yojson.Safe.t -> (Fpath.t, string) result
 
+val to_posix_string : Fpath.t -> string
+(** [to_posix_string p] is [Fpath.segs p |> String.concat "/"].
+
+    This produces a POSIX formatted string representing [p]. E.g.,
+
+    {[
+    # to_posix_string (Fpath.v "foo/bar/baz");;
+    - : string = "foo/bar/baz"
+    # to_posix_string (Fpath.v "foo\\bar\\baz");;
+    - : string = "foo/bar/baz"
+    # to_posix_string (Fpath.v "C:\\foo\\bar\\baz");;
+    - : string = "/foo/bar/baz"
+    ]}
+
+    Note that the treatment of Windows drives means that this function is not
+    generally invertible. In particular,
+
+    {[
+    # let p = Fpath.v "C:\\foo\\bar\\baz" in
+      Fpath.v (to_posix_string p) <> p;;
+    - : bool = true
+    ]}
+
+    The intended use case of this function is to display paths in a canonical
+    form, primarily in tests and such. It should not be used when accessing
+    files from the system or for showing paths on the system to users. *)
+
 (* alias but with derived available *)
 type t = Fpath.t [@@deriving show, eq, ord, sexp]
 
@@ -48,6 +75,16 @@ val ( !! ) : Fpath.t -> string
    For example, 'append_no_dot (Fpath.v ".") (Fpath.v "a")'
    equals 'Fpath.v "a"' rather than 'Fpath.v "./a"'. *)
 val append_no_dot : Fpath.t -> Fpath.t -> Fpath.t
+
+(* Returns the list of ancestors of a path
+   For example, [parents (Fpath.v "a/b/foo.js")] returns
+   ["a/b/"; "a/"; "./"]
+   This is only syntactical so the code below is still fragile because if the
+   path is ../../foo.js the parents are infinite (hence depth_limit below).
+   This is why you should prefer to use realpath or enforce that the given path
+   is absolute or does not contain any '..'
+*)
+val parents : ?depth_limit:int -> Fpath.t -> Fpath.t list
 
 (*
    Operators on files or file paths or anything related to files.

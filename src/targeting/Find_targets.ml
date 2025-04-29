@@ -203,6 +203,7 @@ type conf = {
   max_target_bytes : int;
   respect_gitignore : bool;
   respect_semgrepignore_files : bool;
+  semgrepignore_filename : string option;
   always_select_explicit_targets : bool;
   explicit_targets : Explicit_targets.t;
   (* osemgrep-only: option
@@ -211,7 +212,6 @@ type conf = {
   force_novcs_project : bool;
   (* osemgrep-only option, exclude scanning minified files, default false *)
   exclude_minified_files : bool;
-  (* TODO? remove it? This is now done in Diff_scan.ml instead? *)
   baseline_commit : string option;
 }
 [@@deriving show]
@@ -232,6 +232,7 @@ let default_conf : conf =
     max_target_bytes = 1000000;
     respect_gitignore = true;
     respect_semgrepignore_files = true;
+    semgrepignore_filename = None;
     always_select_explicit_targets = false;
     explicit_targets = Explicit_targets.empty;
     exclude_minified_files = false;
@@ -363,7 +364,7 @@ let filter_paths
              Log.debug (fun m -> m "ignore silently: %s" !!(fppath.fpath)));
   (Fppath_set.of_list !selected_paths, !skipped)
 
-let filter_size_and_minified max_target_bytes exclude_minified_files paths =
+let filter_size_and_minified ~exclude_minified_files ~max_target_bytes paths =
   let selected_fppaths, skipped_size =
     Result_.partition
       (fun (fppath : Fppath.t) ->
@@ -434,10 +435,10 @@ let walk_skip_and_collect (caps : < Cap.readdir ; .. >) (ign : Gitignore.filter)
                  (* if scan_root was "." we want to display paths as "foo/bar"
                   * and not "./foo/bar"
                   *)
-                 if Fpath.equal dir.fpath (Fpath.v ".") then Fpath.v name
-                 else Fpath.add_seg dir.fpath name
+                 if Fpath.is_current_dir dir.fpath then name
+                 else Fpath.(dir.fpath / !!name)
                in
-               let ppath = Ppath.add_seg dir.ppath name in
+               let ppath = Ppath.add_seg dir.ppath !!name in
                let fppath : Fppath.t = { fpath; ppath } in
                match filter_path ign include_filter fppath with
                | Keep -> (
@@ -457,6 +458,28 @@ let walk_skip_and_collect (caps : < Cap.readdir ; .. >) (ign : Gitignore.filter)
 (* Finding by using git *)
 (*************************************************************************)
 
+let git_files_changed_since_commit ~baseline_commit ~cwd =
+  let merge_base =
+    match Git_wrapper.merge_base baseline_commit with
+    | Ok commit -> commit
+    | Error _msg ->
+        (* In rare cases, Git may fail to obtain a merge base. In this case,
+           using the baseline commit directly is a reasonable fallback.*)
+        Log.warn (fun m ->
+            (* message copied from pysemgrep *)
+            m
+              "git could not find a single branch-off point, so we will \
+               compare the baseline commit");
+        baseline_commit
+  in
+  let status = Git_wrapper.status_exn ~cwd ~commit:merge_base () in
+  status.added @ status.modified
+
+let git_ls_files ~baseline_commit ~cwd ~exclude_standard ~kinds =
+  match baseline_commit with
+  | None -> Git_wrapper.ls_files_exn ~cwd ~exclude_standard ~kinds []
+  | Some baseline_commit -> git_files_changed_since_commit ~baseline_commit ~cwd
+
 (*
    Get the list of files being tracked by git. Return a list of paths
    relative to the project root in addition to their system path
@@ -467,7 +490,7 @@ let walk_skip_and_collect (caps : < Cap.readdir ; .. >) (ign : Gitignore.filter)
    obtaining the list of tracked files because some files can be tracked
    despite being excluded by gitignore.
 *)
-let git_list_files ~exclude_standard
+let git_list_files ~(baseline_commit : string option) ~exclude_standard
     (file_kinds : Git_wrapper.ls_files_kind list)
     (project_roots : Project.scanning_roots) : Fppath_set.t option =
   Log.debug (fun m ->
@@ -496,9 +519,9 @@ let git_list_files ~exclude_standard
                  (* We can cd into the scanning root to obtain paths
                     relative to it because at this point, the scanning root
                     is known to be a folder. *)
-                 Git_wrapper.ls_files ~exclude_standard ~kinds:file_kinds
+                 git_ls_files ~baseline_commit
                    ~cwd:(sc_root.rpath |> Rpath.to_fpath)
-                   []
+                   ~exclude_standard ~kinds:file_kinds
                  |> List_.map (fun rel_target_fpath ->
                         Fppath.append_relative_fpath sc_root_fppath
                           rel_target_fpath)
@@ -527,9 +550,10 @@ let git_list_files ~exclude_standard
    We could also provide similar functions for other file tracking systems
    (Mercurial/hg, Subversion/svn, ...)
 *)
-let git_list_tracked_files (project_roots : Project.scanning_roots) :
-    Fppath_set.t option =
-  git_list_files ~exclude_standard:false [ Cached ] project_roots
+let git_list_tracked_files ~baseline_commit
+    (project_roots : Project.scanning_roots) : Fppath_set.t option =
+  git_list_files ~baseline_commit ~exclude_standard:false [ Cached ]
+    project_roots
 
 (*
    List all the files that are not being tracked by git except those in
@@ -537,9 +561,10 @@ let git_list_tracked_files (project_roots : Project.scanning_roots) :
 
    This is the complement of git_list_tracked_files (except for '.git/').
 *)
-let git_list_untracked_files ~respect_gitignore
+let git_list_untracked_files ~baseline_commit ~respect_gitignore
     (project_roots : Project.scanning_roots) : Fppath_set.t option =
-  git_list_files ~exclude_standard:respect_gitignore [ Others ] project_roots
+  git_list_files ~baseline_commit ~exclude_standard:respect_gitignore [ Others ]
+    project_roots
 
 (*************************************************************************)
 (* Grouping *)
@@ -641,18 +666,12 @@ let setup_path_filters conf (project_roots : Project.scanning_roots) :
     match kind with
     | Git_project
     | Gitignore_project ->
-        {
-          use_gitignore_files = conf.respect_gitignore;
-          use_semgrepignore_files = conf.respect_semgrepignore_files;
-        }
+        { use_semgrepignore_files = conf.respect_semgrepignore_files }
     | Mercurial_project
     | Subversion_project
     | Darcs_project
     | No_VCS_project ->
-        {
-          use_gitignore_files = false;
-          use_semgrepignore_files = conf.respect_semgrepignore_files;
-        }
+        { use_semgrepignore_files = conf.respect_semgrepignore_files }
   in
   (* filter also the --include and --exclude from the CLI args
    * (the paths: exclude: include: in a rule are handled elsewhere, in
@@ -671,6 +690,7 @@ let setup_path_filters conf (project_roots : Project.scanning_roots) :
    *)
   let semgrepignore_filter =
     Semgrepignore.create ~cli_patterns:conf.exclude
+      ?semgrepignore_filename:conf.semgrepignore_filename
       ~default_semgrepignore_patterns:Semgrep_scan_legacy ~exclusion_mechanism
       ~project_root:(Rfpath.to_fpath project_root)
       ()
@@ -777,10 +797,12 @@ let get_targets_for_project (caps : < Cap.readdir ; .. >) (conf : conf)
   Log.debug (fun m -> m "Find_target.get_targets_for_project");
   (* Obtain the list of files from git if possible because it does it
      faster than what we can do by scanning the filesystem: *)
-  let git_tracked = git_list_tracked_files project_roots in
+  let git_tracked =
+    git_list_tracked_files ~baseline_commit:conf.baseline_commit project_roots
+  in
   let git_untracked =
-    git_list_untracked_files ~respect_gitignore:conf.respect_gitignore
-      project_roots
+    git_list_untracked_files ~baseline_commit:conf.baseline_commit
+      ~respect_gitignore:conf.respect_gitignore project_roots
   in
   let selected_targets, skipped_targets =
     match (git_tracked, git_untracked) with
@@ -817,7 +839,7 @@ let clone_if_remote_project_root conf =
           failwith
             (spf "Error while sparse cloning %s into %s: %s" (Uri.to_string url)
                (Fpath.to_string cwd) msg));
-      Git_wrapper.checkout ();
+      Git_wrapper.checkout_exn ();
       Log.info (fun m -> m "Sparse cloning done")
   | Some (Filesystem _)
   | None ->
@@ -846,8 +868,9 @@ let get_targets (caps : < Cap.readdir ; .. >) (conf : conf)
       List.fold_left Fppath_set.union Fppath_set.empty path_set_list
     in
     Fppath_set.elements path_set
-    |> filter_size_and_minified conf.max_target_bytes
-         conf.exclude_minified_files
+    |> filter_size_and_minified
+         ~exclude_minified_files:conf.exclude_minified_files
+         ~max_target_bytes:conf.max_target_bytes
   in
   let sorted_skipped_targets =
     let skipped_paths_list =

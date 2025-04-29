@@ -43,8 +43,8 @@ let capabilities =
   ServerCapabilities.create
     ~textDocumentSync:
       (`TextDocumentSyncOptions
-        (TextDocumentSyncOptions.create ~openClose:true
-           ~change:TextDocumentSyncKind.Incremental ~save:(`Bool true) ()))
+         (TextDocumentSyncOptions.create ~openClose:true
+            ~change:TextDocumentSyncKind.Incremental ~save:(`Bool true) ()))
     ~workspace:
       (ServerCapabilities.create_workspace
          ~workspaceFolders:

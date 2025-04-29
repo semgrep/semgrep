@@ -1,5 +1,5 @@
 (* tmp is for Deep_scan.caps *)
-type caps = < Cap.stdout ; Core_scan.caps ; Cap.tmp ; Cap.readdir >
+type caps = < Core_scan.caps ; Cap.stdout ; Cap.tmp >
 
 (*
    Parse a semgrep-test command, execute it and exit.
@@ -17,11 +17,10 @@ val run_conf : < caps ; .. > -> Test_CLI.conf -> Exit_code.t
 
 (* pro hooks *)
 val hook_pro_init : (unit -> unit) Hook.t
-val hook_pro_scan : (Core_scan.caps -> Core_scan.func) Hook.t
 
-val hook_deep_scan :
-  (< Cap.tmp ; Cap.fork ; Cap.time_limit ; Cap.memory_limit > ->
+val hook_pro_scan :
+  (< Core_scan.caps ; Cap.tmp > ->
   Core_scan_config.t ->
-  Fpath.t (* root *) ->
+  [ `Intrafile | `Interfile of Fpath.t (* root *) ] ->
   Core_result.result_or_exn)
   Hook.t

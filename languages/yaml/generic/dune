@@ -8,6 +8,8 @@
    commons
    lib_parsing
    ast_generic
+   parser_yaml.ast
+   parser_yaml.parser
  )
  (preprocess (pps ppx_deriving.show))
 )

@@ -48,9 +48,13 @@ from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import DesignTreatment
 from semgrep.state import get_state
+from semgrep.target_manager import FileErrorLog
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
+from semgrep.types import TargetAccumulator
 from semgrep.util import is_url
+from semgrep.util import line_count_of_path
+from semgrep.util import pretty_print_percentage
 from semgrep.util import terminal_wrap
 from semgrep.util import unit_str
 from semgrep.util import with_color
@@ -119,7 +123,7 @@ def _build_time_json(
 
 
 # This class is the internal representation of OutputSettings below.
-# Since it is internal it can change as much as necesarry to make
+# Since it is internal it can change as much as necessary to make
 # typechecking more accurate and enforce invariants.
 class NormalizedOutputSettings(NamedTuple):
     # Immutable List of OutputDestination x OutputFormat
@@ -343,26 +347,19 @@ class OutputHandler:
     @staticmethod
     def _make_failed_to_analyze(
         semgrep_core_errors: Sequence[SemgrepCoreError],
-    ) -> Mapping[Path, Tuple[Optional[int], List[out.RuleId]]]:
+    ) -> Mapping[Path, FileErrorLog]:
         def update_failed_to_analyze(
-            memo: Mapping[Path, Tuple[Optional[int], List[out.RuleId]]],
+            memo: Mapping[Path, FileErrorLog],
             err: SemgrepCoreError,
-        ) -> Mapping[Path, Tuple[Optional[int], List[out.RuleId]]]:
+        ) -> Mapping[Path, FileErrorLog]:
+            # no associated path
             if not err.core.location:
                 return memo
             path = Path(err.core.location.path.value)
-            so_far = memo.get(path, (0, []))
-            if err.spans is None or so_far[0] is None:
-                num_lines = None
-            else:
-                num_lines = so_far[0] + sum(
-                    s.end.line - s.start.line + 1 for s in err.spans
-                )
-            rule_ids = so_far[1]
-            if err.core.rule_id is not None:
-                rule_ids.append(err.core.rule_id)
 
-            return {**memo, path: (num_lines, rule_ids)}
+            file_error_log = memo.get(path, FileErrorLog())
+            file_error_log.add_error(err)
+            return {**memo, path: file_error_log}
 
         return reduce(update_failed_to_analyze, semgrep_core_errors, {})
 
@@ -381,7 +378,7 @@ class OutputHandler:
         self,
         rule_matches_by_rule: RuleMatchMap,
         *,
-        all_targets: Set[Path],
+        all_targets_acc: TargetAccumulator,
         engine_type: EngineType = EngineType.OSS,
         filtered_rules: List[Rule],
         ignore_log: Optional[FileTargetingLog] = None,
@@ -394,6 +391,7 @@ class OutputHandler:
         executed_rule_count: int = 0,
         missed_rule_count: int = 0,
     ) -> None:
+        all_targets = all_targets_acc.targets
         state = get_state()
         self.has_output = True
         self.rules = self.rules.union(rule_matches_by_rule.keys())
@@ -414,9 +412,7 @@ class OutputHandler:
             # ignore log was not created, so the run failed before it even started
             # create a fake log to track the errors
             self.ignore_log = FileTargetingLog(
-                TargetManager(
-                    scanning_root_strings=frozenset([Path(".")]),
-                )
+                TargetManager(scanning_root_strings=frozenset([Path(".")]))
             )
 
         if extra:
@@ -429,7 +425,9 @@ class OutputHandler:
         self.is_ci_invocation = is_ci_invocation
 
         final_error = None
-        any_findings_not_ignored = any(not rm.is_ignored for rm in self.rule_matches)
+        any_findings_not_ignored = any(
+            not rm.match.extra.is_ignored for rm in self.rule_matches
+        )
 
         if self.final_error:
             final_error = self.final_error
@@ -478,11 +476,46 @@ class OutputHandler:
                 ],
             )
             num_findings = len(regular_matches)
-            num_targets = len(self.all_targets)
-            num_rules = executed_rule_count or len(self.filtered_rules)
+            blocking_findings = []
+            nonblocking_findings = []
 
-            ignores_line = str(ignore_log or "No ignore information available")
+            for match in regular_matches:
+                if match.is_blocking:
+                    blocking_findings.append(match)
+                else:
+                    nonblocking_findings.append(match)
+
+            num_blocking_findings = len(blocking_findings)
+            num_nonblocking_findings = len(nonblocking_findings)
+
+            num_findings = num_blocking_findings + num_nonblocking_findings
+            num_targets = len(all_targets)
+            num_rules = executed_rule_count or len(self.filtered_rules)
+            count_line = (
+                f"\n • Findings: {num_findings} ({num_blocking_findings} blocking)"
+            )
+            rule_line = f"\n • Rules run: {num_rules}"
+            target_line = f"\n • Targets scanned: {num_targets}"
+            ignore_log_str = str(ignore_log) or ""
+            ignores_line = ignore_log_str or "\n • No ignore information available"
             suggestion_line = ""
+            more_detail_line = ""
+
+            total_lines = sum([line_count_of_path(t) for t in all_targets])
+            total_lines_skipped = 0
+            if self.ignore_log.core_failure_lines_by_file:
+                ignore_log = self.ignore_log
+                file_error_logs = ignore_log.core_failure_lines_by_file.values()
+                total_lines_skipped = sum(
+                    [log.num_lines_skipped() or 0 for log in file_error_logs]
+                )
+
+            parsed_line = f"\n • Parsed lines: {pretty_print_percentage((total_lines - total_lines_skipped), total_lines)}"
+
+            if not self.settings.verbose_errors and (
+                ignore_log_str or total_lines_skipped
+            ):
+                more_detail_line = "\n • For a detailed list of skipped files and lines, run semgrep with the --verbose flag"
             if (
                 num_findings == 0
                 and num_targets > 0
@@ -508,7 +541,22 @@ class OutputHandler:
                 too_many_entries = self.settings.max_log_list_entries
                 logger.verbose(ignore_log.verbose_output(too_many_entries))
 
-            output_text = ignores_line + suggestion_line + stats_line
+            success_line = "✅ " + (
+                "CI scan completed successfully."
+                if self.is_ci_invocation
+                else "Scan completed successfully."
+            )
+            output_text = (
+                success_line
+                + count_line
+                + rule_line
+                + target_line
+                + parsed_line
+                + ignores_line
+                + more_detail_line
+                + stats_line
+                + suggestion_line
+            )
             console.print(Title("Scan Summary"))
             logger.info(output_text)
 
@@ -621,9 +669,9 @@ class OutputHandler:
             rules_by_engine=self.extra.core.rules_by_engine if self.extra else None,
             # this flattens the information into just distinguishing "pro" and "not-pro"
             engine_requested=self.engine_type.to_engine_kind(),
-            interfile_languages_used=self.extra.core.interfile_languages_used
-            if self.extra
-            else None,
+            interfile_languages_used=(
+                self.extra.core.interfile_languages_used if self.extra else None
+            ),
             # TODO, should just be self.extra.core.skipped_rules
             skipped_rules=[],
         )

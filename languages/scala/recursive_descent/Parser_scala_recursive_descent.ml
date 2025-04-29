@@ -78,7 +78,7 @@ module Log = Log_parser_scala.Log
  *)
 
 (* See also Flag_parsing.debug_parser and Flag_parsing.debug_lexer *)
-let debug_newline = ref false
+let debug_newline = false
 
 (*****************************************************************************)
 (* Types  *)
@@ -327,7 +327,8 @@ let getIndentStatus ?(is_opportunistic = false) in_ =
     > prev_indent_width (* we are indented w.r.t. the old indentation region *)
     && (is_opportunistic || prev_is_indent_token)
        (* and the previous token can start an indent *)
-    && (* and this token starts a new line *)
+    &&
+    (* and this token starts a new line *)
     startsNewLine in_
   in
   let is_dedented =
@@ -404,7 +405,7 @@ let inSepRegion tok f in_ =
 (* newline: pad: I've added the ~newlines param to differentiante adding
  * a NEWLINE or NEWLINES *)
 let insertNL ?(newlines = false) in_ =
-  if !debug_newline then (
+  if debug_newline then (
     Log.debug (fun m -> m "%s: %s" "insertNL" (T.show in_.token));
     Log.debug (fun m ->
         m "inserting back a newline:%s" (Dumper.dump in_.last_nl)));
@@ -430,14 +431,14 @@ let afterLineEnd in_ =
         | DEDENT _ ->
             loop xs
         | _ ->
-            if !debug_newline then
+            if debug_newline then
               Log.debug (fun m ->
                   m "%s: false because %s" "afterLineEnd" (T.show x));
             false)
     | [] -> false
   in
   loop in_.passed |> fun b ->
-  if !debug_newline then
+  if debug_newline then
     Log.debug (fun m ->
         m "%s: %s, result = %b" "afterLineEnd" (T.show in_.token) b);
   b
@@ -511,7 +512,8 @@ let nextToken in_ =
         | DEDENT _ :: _ ->
             true
         | _ -> false)
-     && (* STILL?: not applyBracePatch *)
+     &&
+     (* STILL?: not applyBracePatch *)
      true
    then
      match () with
@@ -2815,8 +2817,9 @@ and statement (location : location) (in_ : env) : expr = expr ~location in_
 
 and block in_ : block =
   in_
-  |> with_logging "block" (fun () -> (* ast: makeBlock(xs) *)
-                                     !blockStatSeq_ in_)
+  |> with_logging "block" (fun () ->
+         (* ast: makeBlock(xs) *)
+         !blockStatSeq_ in_)
 
 (** {{{
   *  BlockExpr ::= <<< (CaseClauses | Block) >>>
@@ -4362,7 +4365,10 @@ let afterTemplate in_ body =
   match in_.token with
   | Kwith _ (* crazy? && self eq noSelfType *) ->
       (* CHECK: "use traint parameters instead" when scala3 *)
-      let _earlyDefs = body (* CHECK: map ensureEarlyDef AST: filter *) in
+      let _earlyDefs =
+        body
+        (* CHECK: map ensureEarlyDef AST: filter *)
+      in
       nextToken in_;
       let parents = templateParents in_ in
       let body1opt = templateBodyOpt ~parenMeansSyntaxError:false in_ in

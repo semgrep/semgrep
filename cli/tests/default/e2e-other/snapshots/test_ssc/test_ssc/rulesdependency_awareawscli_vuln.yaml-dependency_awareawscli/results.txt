@@ -17,7 +17,7 @@
       "end": {
         "col": 1,
         "line": 29,
-        "offset": 1
+        "offset": 0
       },
       "extra": {
         "engine_kind": "OSS",
@@ -58,7 +58,7 @@
       "start": {
         "col": 1,
         "line": 29,
-        "offset": 1
+        "offset": 0
       }
     },
     {
@@ -66,7 +66,7 @@
       "end": {
         "col": 1,
         "line": 29,
-        "offset": 1
+        "offset": 0
       },
       "extra": {
         "engine_kind": "OSS",
@@ -107,7 +107,7 @@
       "start": {
         "col": 1,
         "line": 29,
-        "offset": 1
+        "offset": 0
       }
     },
     {
@@ -430,9 +430,9 @@
 
   SUPPLY CHAIN RULES
 
-  Ecosystem   Rules   Files   Lockfiles
- ──────────────────────────────────────────────────────────────────────────
-  Pypi            6       1   targets/dependency_aware/awscli/Pipfile.lock
+  Dependency Sources                             Resolution Method   Ecosystem   Dependencies   Rules
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────
+  targets/dependency_aware/awscli/Pipfile.lock   Lockfile            Pypi        3                  6
 
 
   Analysis   Rules
@@ -444,7 +444,12 @@
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘
-
+✅ Scan completed successfully.
+ • Findings: 8 (6 blocking)
+ • Rules run: 6
+ • Targets scanned: 2
+ • Parsed lines: ~100.0%
+ • No ignore information available
 Ran 6 rules on 2 files: 8 findings.
 
 === end of stderr - plain

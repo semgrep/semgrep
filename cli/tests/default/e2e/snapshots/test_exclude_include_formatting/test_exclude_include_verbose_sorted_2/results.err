@@ -1,5 +1,4 @@
 running 1 rules from 1 config rules/nosem.yaml_0
-No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignore-files
 Rules:
 - rules.test-nosem
 
@@ -7,7 +6,7 @@ Rules:
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 24 files tracked by git with 1 Code rule:
+  Scanning 2 files tracked by git with 1 Code rule:
   Nothing to scan.
 
 ========================================
@@ -34,6 +33,8 @@ Files skipped:
 
   Skipped by --exclude patterns:
 
+   • targets/basic/README.md
+   • targets/basic/bento.png
    • targets/basic/inside.py
    • targets/basic/metavariable-comparison-bad-content.py
    • targets/basic/metavariable-comparison-base.py
@@ -48,6 +49,9 @@ Files skipped:
    • targets/basic/nosem.java
    • targets/basic/nosem.js
    • targets/basic/nosem.py
+   • targets/basic/regex-any-language.html
+   • targets/basic/regex-nosemgrep.txt
+   • targets/basic/regex-utf8.txt
    • targets/basic/regex.py
    • targets/basic/stupid.js
    • targets/basic/stupid.py
@@ -70,10 +74,12 @@ Files skipped:
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-  Scan skipped: 17 files matching --exclude patterns
-  For a full list of skipped files, run semgrep with the --verbose flag.
-
+✅ Scan completed successfully.
+ • Findings: 0 (0 blocking)
+ • Rules run: 1
+ • Targets scanned: 0
+ • Parsed lines: an unknown percentage
+ • Scan skipped:
+   ◦ Matching --exclude patterns: 22
 Ran 1 rule on 0 files: 0 findings.
 Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False

@@ -84,6 +84,6 @@ let info_of_tok tok =
       ii)
     tok
   |> ignore;
-  Common2.some !res
+  Option.get !res
 
 let str_of_tok x = Tok.content_of_tok (info_of_tok x)

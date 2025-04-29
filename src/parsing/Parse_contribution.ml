@@ -24,5 +24,7 @@ let get_contributions (caps : < Cap.exec >) :
   (* We use ~since:"last 30 days" because of our usage policy.
    * See https://semgrep.dev/docs/usage-limits
    *)
-  let last_30_days = Common2.today () |> Common2.month_before in
-  Git_wrapper.logs caps ~since:last_30_days |> List_.map contrib_to_contrib
+  let thirty_days_ago =
+    Datetime_.time_n_days_ago ~days:30 ~time:(Datetime_.now ())
+  in
+  Git_wrapper.logs caps ~since:thirty_days_ago |> List_.map contrib_to_contrib

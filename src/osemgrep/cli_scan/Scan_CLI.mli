@@ -39,7 +39,6 @@ type conf = {
   show : Show_CLI.conf option;
   validate : Validate_CLI.conf option;
   test : Test_CLI.conf option;
-  allow_local_builds : bool;
   (* --x-* options are experimental forever! (= subject to change or removal
      without notice) *)
   (* --x-ls: *)
@@ -79,7 +78,6 @@ val o_allow_untrusted_validators : bool Cmdliner.Term.t
 val o_autofix : bool Cmdliner.Term.t
 val o_baseline_commit : string option Cmdliner.Term.t
 val o_dataflow_traces : bool Cmdliner.Term.t
-val o_diff_depth : int Cmdliner.Term.t
 val o_dryrun : bool Cmdliner.Term.t
 val o_dump_command_for_core : bool Cmdliner.Term.t
 val o_emacs : bool Cmdliner.Term.t
@@ -93,7 +91,6 @@ val o_gitlab_sast_outputs : string list Cmdliner.Term.t
 val o_gitlab_secrets : bool Cmdliner.Term.t
 val o_gitlab_secrets_outputs : string list Cmdliner.Term.t
 val o_historical_secrets : bool Cmdliner.Term.t
-val o_ignore_semgrepignore_files : bool Cmdliner.Term.t
 val o_incremental_output : bool Cmdliner.Term.t
 val o_json : bool Cmdliner.Term.t
 val o_json_outputs : string list Cmdliner.Term.t
@@ -120,6 +117,7 @@ val o_rewrite_rule_ids : bool Cmdliner.Term.t
 val o_sarif : bool Cmdliner.Term.t
 val o_sarif_outputs : string list Cmdliner.Term.t
 val o_scan_unknown_extensions : bool Cmdliner.Term.t
+val o_semgrepignore_filename : string option Cmdliner.Term.t
 val o_test : bool Cmdliner.Term.t
 val o_text : bool Cmdliner.Term.t
 val o_text_outputs : string list Cmdliner.Term.t
@@ -127,7 +125,6 @@ val o_time : bool Cmdliner.Term.t
 val o_timeout : float Cmdliner.Term.t
 val o_timeout_interfile : int Cmdliner.Term.t
 val o_timeout_threshold : int Cmdliner.Term.t
-val o_tr : bool Cmdliner.Term.t
 val o_trace : bool Cmdliner.Term.t
 val o_trace_endpoint : string option Cmdliner.Term.t
 val o_use_git : bool Cmdliner.Term.t
@@ -135,6 +132,9 @@ val o_use_semgrepignore_v2 : bool Cmdliner.Term.t
 val o_version_check : bool Cmdliner.Term.t
 val o_vim : bool Cmdliner.Term.t
 val o_vim_outputs : string list Cmdliner.Term.t
+val o_x_ignore_semgrepignore_files : bool Cmdliner.Term.t
+val o_x_tr : bool Cmdliner.Term.t
+val o_x_pro_naming : bool Cmdliner.Term.t
 
 val engine_type_conf :
   oss:bool ->
@@ -145,6 +145,8 @@ val engine_type_conf :
   no_secrets_validation:bool ->
   allow_untrusted_validators:bool ->
   pro_path_sensitive:bool ->
+  allow_local_builds:bool ->
+  x_tr:bool ->
   Engine_type.t
 
 val output_format_conf :

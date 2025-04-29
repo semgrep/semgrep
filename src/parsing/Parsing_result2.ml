@@ -28,7 +28,7 @@ let ok ast stat tolerated_errors =
 let loc_of_tree_sitter_error (err : Err.t) =
   let start = err.start_pos in
   {
-    Tok.str = err.substring;
+    Loc.str = err.substring;
     pos =
       Pos.make (Fpath.v err.file.name) ~line:(start.row + 1) (* fake *)
         ~column:start.column 0;

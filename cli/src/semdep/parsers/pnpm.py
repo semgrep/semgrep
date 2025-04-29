@@ -23,7 +23,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
-from semgrep.semgrep_interfaces.semgrep_output_v1 import PnpmLock_
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 
 
@@ -96,7 +95,7 @@ def validate_lockfile_dependencies_completeness(
     return [
         DependencyParserError(
             path=out.Fpath(str(lockfile_path)),
-            parser=ScaParserName(PnpmLock_()),
+            parser=ScaParserName(out.PPnpmLock()),
             reason=error_str,
         )
     ]
@@ -474,7 +473,7 @@ def parse_pnpm(
             lambda text: parse_yaml_preserve_spans(
                 text, str(lockfile_path), allow_null=True
             ),
-            ScaParserName(PnpmLock_()),
+            ScaParserName(out.PPnpmLock()),
         ),
         None,
     )
@@ -553,7 +552,7 @@ def parse_pnpm(
                     errors.append(
                         DependencyParserError(
                             path=out.Fpath(str(lockfile_path)),
-                            parser=ScaParserName(PnpmLock_()),
+                            parser=ScaParserName(out.PPnpmLock()),
                             reason=f"Could not parse package key {key.value}",
                             line=line,
                         )

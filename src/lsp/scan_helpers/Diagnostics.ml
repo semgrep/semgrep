@@ -37,8 +37,10 @@ let diagnostic_of_match is_intellij (m : OutJ.cli_match) =
   let diagnostic =
     Diagnostic.create
       ~range:(Conv.range_of_cli_match m)
-      ~code ~severity ~source:"Semgrep"
-      ~message:(`MarkupContent { kind = Markdown; value = message })
+        (* NOTE: we can't use `MarkupContent until LSP 3.18 is supported on the
+           client side, and it appears Lsp doesn't use the capability for us, so
+           we need that logic manually once we can use it. *)
+      ~code ~severity ~source:"Semgrep" ~message:(`String message)
   in
   match codeDescription with
   | None -> diagnostic ()

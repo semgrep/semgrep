@@ -1,5 +1,4 @@
 running 4 rules from 1 config rules/eqeq.yaml_0
-No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignore-files
 Rules:
 - rules.assert-eqeq-is-ok
 - rules.eqeq-is-bad
@@ -10,7 +9,7 @@ Rules:
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 5 files tracked by git with 4 Code rules:
+  Scanning 0 files tracked by git with 4 Code rules:
   Nothing to scan.
 
 ========================================
@@ -41,6 +40,7 @@ Files skipped:
    • targets/exclude_include/excluded/included.js
    • targets/exclude_include/included/excluded.js
    • targets/exclude_include/included/included.js
+   • targets/exclude_include/included/included.vue
 
   Files that couldn't be accessed:
 
@@ -60,10 +60,12 @@ Files skipped:
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘
-Some files were skipped or only partially analyzed.
-  Scan was limited to files tracked by git.
-  Scan skipped: 4 files matching --exclude patterns
-  For a full list of skipped files, run semgrep with the --verbose flag.
-
+✅ Scan completed successfully.
+ • Findings: 0 (0 blocking)
+ • Rules run: 4
+ • Targets scanned: 0
+ • Parsed lines: an unknown percentage
+ • Scan skipped:
+   ◦ Matching --exclude patterns: 5
 Ran 4 rules on 0 files: 0 findings.
 Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False

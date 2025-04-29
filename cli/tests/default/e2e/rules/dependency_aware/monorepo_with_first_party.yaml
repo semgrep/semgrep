@@ -27,3 +27,20 @@ rules:
     message: this is always bad
     languages: [js]
     severity: WARNING
+  - id: js-malicious
+    pattern: bad()
+    r2c-internal-project-depends-on:
+      namespace: npm
+      package: bad-lib
+      version: < 0.0.8
+    message: ''
+    languages: [js]
+    severity: WARNING
+    metadata:
+      ghsa: MAL-FOO-BAR
+      sca-kind: malicious
+      category: security
+      confidence: HIGH
+      sca-schema: 20230302
+      sca-severity: HIGH
+      sca-vuln-database-identifier: MAL-FOO-BAR

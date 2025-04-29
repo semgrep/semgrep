@@ -12,7 +12,7 @@ let dir_error_tutorial = Fpath.v "tests/jsonnet/tutorial/errors"
 let related_file_of_target ~ext ~file =
   let dirname, basename, _e = Filename_.dbe_of_filename !!file in
   let path = Filename_.filename_of_dbe (dirname, basename, ext) in
-  if Sys.file_exists path then Ok (Fpath.v path)
+  if Sys_.file_exists path then Ok (Fpath.v path)
   else
     let msg =
       spf "could not find %s file for test '%s' in %s" ext basename dirname
@@ -20,8 +20,7 @@ let related_file_of_target ~ext ~file =
     Error msg
 
 let test_maker_err dir : Testo.t list =
-  Common2.glob (spf "%s/*%s" !!dir "jsonnet")
-  |> Fpath_.of_strings
+  Common2.glob (dir / "*jsonnet")
   |> List_.map (fun file ->
          t ~category:[ !!dir ] (Fpath.basename file) (fun () ->
              let ast = Parse_jsonnet.parse_program file in
@@ -34,13 +33,12 @@ let test_maker_err dir : Testo.t list =
              | Eval_jsonnet_common.Error _ ->
                  Alcotest.(check bool) "this raised an error" true true))
 
-let mk_tests (caps : < Cap.time_limit >) (subdir : string)
+let mk_tests (caps : < Cap.time_limit >) (subdir : Fpath.t)
     (strategys : Conf.eval_strategy list) : Testo.t list =
-  Common2.glob (spf "tests/jsonnet/%s/*.jsonnet" subdir)
-  |> Fpath_.of_strings
+  Common2.glob Fpath.(v "tests" / "jsonnet" // subdir / "*.jsonnet")
   |> List_.map (fun file ->
          t
-           ~category:[ spf "tests/jsonnet/%s" subdir ]
+           ~category:[ !!(Fpath.v "tests/jsonnet" // subdir) ]
            (Fpath.basename file)
            (fun () ->
              let comparison_file_path =
@@ -63,7 +61,7 @@ let mk_tests (caps : < Cap.time_limit >) (subdir : string)
                          This used to run under 0.5s and suddenly started
                          to take over 1s on my machine without me touching
                          ojsonnet's code. *)
-                      let timeout = 2.0 in
+                      let timeout = 5.0 in
                       let t1 = Unix.gettimeofday () in
                       let json_opt =
                         Common.save_excursion Conf.eval_strategy strategy
@@ -90,8 +88,9 @@ let mk_tests (caps : < Cap.time_limit >) (subdir : string)
                             failwith
                               (spf
                                  "mismatch for %s with strategy %s\n\
-                                 \ expected %s but got %s" !!file str_strategy
-                                 (Y.to_string expected) (Y.to_string json))
+                                 \ expected %s but got %s"
+                                 !!file str_strategy (Y.to_string expected)
+                                 (Y.to_string json))
                     with
                     | Eval_jsonnet_common.Error _ ->
                         failwith
@@ -100,12 +99,13 @@ let mk_tests (caps : < Cap.time_limit >) (subdir : string)
 let tests (caps : < Cap.time_limit >) : Testo.t list =
   Testo.categorize_suites "ojsonnet"
     [
-      mk_tests caps "pass/" [ Conf.EvalSubst; Conf.EvalEnvir ];
-      mk_tests caps "only_subst/" [ Conf.EvalSubst ];
-      mk_tests caps "only_envir/" [ Conf.EvalEnvir ];
-      mk_tests caps "tutorial/pass/" [ Conf.EvalSubst; Conf.EvalEnvir ];
-      mk_tests caps "tutorial/only_subst/" [ Conf.EvalSubst ];
-      mk_tests caps "tutorial/only_envir/" [ Conf.EvalEnvir ];
+      mk_tests caps (Fpath.v "pass/") [ Conf.EvalSubst; Conf.EvalEnvir ];
+      mk_tests caps (Fpath.v "only_subst/") [ Conf.EvalSubst ];
+      mk_tests caps (Fpath.v "only_envir/") [ Conf.EvalEnvir ];
+      mk_tests caps (Fpath.v "tutorial/pass/")
+        [ Conf.EvalSubst; Conf.EvalEnvir ];
+      mk_tests caps (Fpath.v "tutorial/only_subst/") [ Conf.EvalSubst ];
+      mk_tests caps (Fpath.v "tutorial/only_envir/") [ Conf.EvalEnvir ];
       (* TODO
            test_maker_pass_fail dir_fail false;
            test_maker_pass_fail dir_fail_tutorial false;

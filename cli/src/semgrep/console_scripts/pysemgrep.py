@@ -45,8 +45,20 @@ import sys
 # https://docs.python.org/3/library/multiprocessing.html#the-spawn-and-forkserver-start-methods
 # It doesn't explain in enough detail to give a real answer, hence the guess above.
 def main():
+    from semgrep.util import IS_WINDOWS
+
+    # This is a workaround for stdio and stdout encoding issues on Windows.
+    # Instead of relying on the users setting PYTHONIOENCODING=utf8 when
+    # running on Windows and redirecting the stdout and stderr to files, we do
+    # it in the console scripts.
+    # https://docs.python.org/3/library/sys.html#sys.stdout
+    is_tty = sys.stdout.isatty()
+    if IS_WINDOWS and not is_tty:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+
     # Only enable new CLI UX when pysemgrep is invoked directly and with interactive terminal
-    os.environ["SEMGREP_NEW_CLI_UX"] = f"{int(sys.stdout.isatty())}"
+    os.environ["SEMGREP_NEW_CLI_UX"] = f"{int(is_tty)}"
     import semgrep.main
 
     sys.exit(semgrep.main.main())

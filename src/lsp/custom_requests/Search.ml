@@ -139,13 +139,13 @@ module Request_params = struct
     match params with
     | Some
         (`Assoc
-          [
-            ("patterns", `List patterns);
-            ("language", lang);
-            ("fix", fix_pattern);
-            ("includes", `List includes);
-            ("excludes", `List excludes);
-          ]) ->
+           [
+             ("patterns", `List patterns);
+             ("language", lang);
+             ("fix", fix_pattern);
+             ("includes", `List includes);
+             ("excludes", `List excludes);
+           ]) ->
         let patterns =
           List_.filter_map
             (function

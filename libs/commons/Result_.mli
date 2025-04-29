@@ -4,3 +4,8 @@
 *)
 val partition :
   ('a -> ('ok, 'error) result) -> 'a list -> 'ok list * 'error list
+
+module Operators : sig
+  val ( >>= ) :
+    ('a, 'error) result -> ('a -> ('b, 'error) result) -> ('b, 'error) result
+end

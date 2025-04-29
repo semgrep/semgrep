@@ -34,7 +34,7 @@
 (* Types *)
 (*****************************************************************************)
 (* The locations of variables which taint propagates through *)
-type tainted_tokens = Tok.t list [@@deriving show, eq]
+type tainted_tokens = Loc.t list [@@deriving show, eq]
 
 (* The tokens associated with a single pattern match involved in a taint trace *)
 type pattern_match_tokens = Tok.t list [@@deriving show, eq]

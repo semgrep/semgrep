@@ -61,39 +61,6 @@ def test_key_value_parser(original, expected) -> None:
 
 
 @pytest.mark.quick
-def test_manifest_deps_parser() -> None:
-    original = textwrap.dedent(
-        """        [tool.poetry.dependencies]
-        python = "^3.9"
-        toml = "^0.10.2"
-        requests = "^2.26.0"
-    """
-    )
-    expected = (["python", "toml", "requests"], "\n")
-    assert poetry.manifest_deps.parse_partial(original) == expected
-
-
-@pytest.mark.quick
-def test_manifest_sections_extra_parser() -> None:
-    original = textwrap.dedent(
-        r"""        [tool.black]
-        line-length = 120
-        include = '\.pyi?$'
-        exclude = '''
-        (
-        /(\.eggs|\.git|\.hg|\.mypy_cache|\.nox|\.tox|\.venv|_build|buck-out|build|dist)/
-        | .*/pippy/.*
-        | .*_pb2.py
-        | .*_pb2_grpc.py
-        )
-        '''
-    """
-    )
-    expected = (None, "")
-    assert poetry.manifest_sections_extra.parse_partial(original) == expected
-
-
-@pytest.mark.quick
 def test_poetry_dep_extra_parser() -> None:
     original = textwrap.dedent(
         """        [package.extras]
@@ -121,7 +88,7 @@ def test_poetry_source_extra_parser() -> None:
 @pytest.mark.quick
 def test_manifest_parser() -> None:
     original = textwrap.dedent(
-        r"""        [tool.poetry.dependencies]
+        """        [tool.poetry.dependencies]
         python = "^3.9"
         toml = "^0.10.2"
         requests = "^2.26.0"
@@ -142,6 +109,7 @@ def test_manifest_parser() -> None:
         | .*_pb2.py
         | .*_pb2_grpc.py
         )
+        '''
 
         [package.extras]
         dev = ["coverage", "django", "flake8", "isort", "pillow", "sqlalchemy", "mongoengine", "wheel (>=0.32.0)", "tox", "zest.releaser"]
@@ -149,7 +117,7 @@ def test_manifest_parser() -> None:
     """
     )
 
-    assert poetry.manifest.parse_partial(original)[0] == {"toml", "python", "requests"}
+    assert poetry.parse_pyproject_toml(original) == {"toml", "python", "requests"}
 
 
 @pytest.mark.quick

@@ -207,7 +207,10 @@ and if_stmt env (tok, e, s, sopt) =
   (* if cond *)
   let colon_body = F.sprintf "%s:\n%s\n" in
   (* (if cond) body *)
-  let bracket_body = F.sprintf "%s %s" (* (if cond) body *) in
+  let bracket_body =
+    F.sprintf "%s %s"
+    (* (if cond) body *)
+  in
   let format_cond, elseif_str, format_block =
     match env.lang with
     | Lang.Circom

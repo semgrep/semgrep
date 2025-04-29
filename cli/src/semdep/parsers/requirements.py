@@ -8,6 +8,7 @@ from typing import Optional
 from typing import Set
 from typing import Tuple
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.external.parsy import string
 from semdep.external.parsy import string_from
 from semdep.external.parsy import success
@@ -24,7 +25,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Requirements
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 
 
@@ -110,13 +110,13 @@ def parse_requirements(
         DependencyFileToParse(
             lockfile_path,
             requirements,
-            ScaParserName(Requirements()),
+            ScaParserName(out.PRequirements()),
             preprocessors.CommentRemover(),
         ),
         DependencyFileToParse(
             manifest_path,
             requirements,
-            ScaParserName(Requirements()),
+            ScaParserName(out.PRequirements()),
             preprocessors.CommentRemover(),
         )
         if manifest_path

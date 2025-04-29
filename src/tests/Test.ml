@@ -112,6 +112,7 @@ let tests (caps : Cap.all_caps) =
   List_.flatten
     [
       Commons_tests.tests;
+      Unit_CapExec.tests (caps :> < Cap.exec >);
       Unit_list_files.tests (caps :> < Cap.readdir >);
       Glob.Unit_glob.tests;
       Unit_find_targets.tests (caps :> < Cap.readdir >);
@@ -123,6 +124,7 @@ let tests (caps : Cap.all_caps) =
       Parser_regexp.Unit_parsing.tests;
       Unit_ReDoS.tests;
       Unit_guess_lang.tests;
+      Unit_cgroup_limits.tests;
       Unit_memory_limit.tests (caps :> < Cap.memory_limit >);
       Unit_tok.tests;
       Unit_Ppath.tests;
@@ -147,7 +149,7 @@ let tests (caps : Cap.all_caps) =
       (* osemgrep unit tests *)
       Unit_LS.tests (caps :> Session.caps);
       Unit_Login.tests caps;
-      Unit_Fetching.tests (caps :> < Cap.network ; Cap.tmp >);
+      Unit_Fetching.tests (caps :> < Cap.network ; Cap.tmp ; Cap.readdir >);
       Unit_reporting.tests (caps :> < >);
       Unit_ci.tests;
       Test_is_blocking_helpers.tests;
@@ -170,6 +172,9 @@ let tests (caps : Cap.all_caps) =
       Test_core_CLI.tests (caps :> Cap.all_caps);
       (* Inline tests *)
       Testo.get_registered_tests ();
+      (* Parallelism tests must come last, as previous tests require forking
+       * and an exception is raised if a fork follows a domain spawn *)
+      Parallelism_tests.tests;
     ]
 
 (*****************************************************************************)

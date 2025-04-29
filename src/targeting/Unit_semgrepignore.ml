@@ -10,7 +10,8 @@ module F = Testutil_files
 (* Helpers *)
 (*****************************************************************************)
 
-let t = Testo.create
+let t =
+  Testo.create ?skipped:(if Sys.win32 then Some "Failing on Windows" else None)
 
 (*
    In these tests, the file hierarchy must contain the
@@ -32,8 +33,7 @@ let test_filter ?excludes:cli_patterns (files : F.t list) selection () =
       printf "--- Filtered files ---\n";
       let filter =
         Semgrepignore.create ?cli_patterns ~default_semgrepignore_patterns:Empty
-          ~exclusion_mechanism:
-            { use_gitignore_files = true; use_semgrepignore_files = true }
+          ~exclusion_mechanism:{ use_semgrepignore_files = true }
           ~project_root:root ()
       in
       let error = ref false in
@@ -73,6 +73,9 @@ let test_filter ?excludes:cli_patterns (files : F.t list) selection () =
 let tests =
   Testo.categorize "Semgrepignore"
     [
+      (* In the initial version of Semgrepignore v2, we were automatically
+         loading any '.gitignore' file. We no longer do. See explanation
+         in 'Semgrepignore.ml'. *)
       t "gitignore + semgrepignore"
         (test_filter
            [
@@ -81,7 +84,12 @@ let tests =
              file "hello.c";
              file "hello.ml";
            ]
-           [ ("/hello.ml", true); ("/hello.c", true); ("/generated.c", false) ]);
+           [
+             ("/hello.ml", true);
+             ("/hello.c", true);
+             ( "/generated.c",
+               true (* even though it's excluded by the .gitignore *) );
+           ]);
       t "semgrepignore alone"
         (test_filter
            [ File (".semgrepignore", "hello.*"); file "hello.c"; file "bye.c" ]
@@ -111,6 +119,8 @@ let tests =
              ("/subdir/a", false);
              ("/subdir/b", true);
            ]);
+      (* This test remains from when we planned to load '.gitignore'
+         files in Semgrepignore v2*)
       t "deep semgrepignore + gitignore"
         (test_filter
            [
@@ -121,9 +131,9 @@ let tests =
              file "b";
            ]
            [
-             ("/a", false);
+             ("/a", true (* .gitignore has no effect *));
              ("/b", true);
-             ("/dir/a", false);
+             ("/dir/a", true);
              ("/dir/b", false);
              ("/dir/c", true);
            ]);

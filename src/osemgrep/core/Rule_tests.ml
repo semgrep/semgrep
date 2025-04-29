@@ -93,10 +93,9 @@ let relatively_eq parent_target target parent_config config =
 let get_config_filenames original_config =
   if UFile.is_reg ~follow_symlinks:true original_config then [ original_config ]
   else
-    let configs = Common2.glob (Common.spf "%s/**" !!original_config) in
+    let configs = Common2.glob (original_config / "**") in
     configs
-    |> List_.filter_map (fun file ->
-           let fpath = Fpath.v file in
+    |> List_.filter_map (fun fpath ->
            if
              is_config_suffix fpath
              && (not (String.starts_with ~prefix:"." (Fpath.basename fpath)))
@@ -110,7 +109,7 @@ let get_config_filenames original_config =
    let get_all_files path =
      let str = Fpath.to_string path in
      Sys.readdir str |> Array.to_list
-     |> List.filter (fun f -> Sys.file_exists f && not (Sys.is_directory f))
+     |> List.filter (fun f -> not (Sys_.is_directory f))
      |> List_.map (Fpath.add_seg path)
 
 
@@ -121,8 +120,8 @@ let get_config_filenames original_config =
      match target with
      | Dir (path, None) ->
          let str = Fpath.to_string path in
-         if Sys.file_exists str then
-           if Sys.is_directory str then
+         if Sys_.file_exists str then
+           if Sys_.is_directory str then
              get_all_files path
              |> List.filter is_config_suffix
              |> List.filter does_not_start_with_dot
@@ -132,7 +131,7 @@ let get_config_filenames original_config =
          else []
      | Dir (_, Some str)
      | File (_, str) ->
-         if Sys.file_exists str then [ Fpath.v str ] else []
+         if Sys_.file_exists str then [ Fpath.v str ] else []
 *)
 
 let get_config_test_filenames ~original_config ~configs ~original_target =
@@ -142,10 +141,9 @@ let get_config_test_filenames ~original_config ~configs ~original_target =
   then [ (original_config, [ original_target ]) ]
   else
     let targets =
-      (if UFile.is_reg ~follow_symlinks:true original_target then
-         Common2.glob (Common.spf "%s/**" !!(Fpath.parent original_target))
-       else Common2.glob (Common.spf "%s/**" !!original_target))
-      |> List_.map Fpath.v
+      if UFile.is_reg ~follow_symlinks:true original_target then
+        Common2.glob (Fpath.parent original_target / "**")
+      else Common2.glob (original_target / "**")
     in
 
     let target_matches_config target config =
@@ -187,7 +185,7 @@ let get_config_test_filenames ~original_config ~configs ~original_target =
          let targets = get_all_files path in
          let is_file p =
            let s = Fpath.to_string p in
-           Sys.file_exists s && not (Sys.is_directory s)
+           not (Sys_.is_directory s)
          in
          let target_matches_config config target =
            let correct_suffix =

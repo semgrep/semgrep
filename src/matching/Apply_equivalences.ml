@@ -98,7 +98,10 @@ let apply equivs lang any =
               (* todo: should generate a Disj for each possibilities? *)
               | env :: _xs ->
                   (* Found a match *)
-                  let alt = subst_e env.mv r (* recurse on r? *) in
+                  let alt =
+                    subst_e env.mv r
+                    (* recurse on r? *)
+                  in
                   (* TODO: use AST_generic.equal_any*)
                   if
                     H.abstract_for_comparison_any (E x)

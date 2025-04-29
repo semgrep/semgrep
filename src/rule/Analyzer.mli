@@ -96,9 +96,6 @@ val flatten : t -> t list
 (* map from valid extended language names to unique analyzer ID *)
 val assoc : (string * t) list
 
-(* efficient map from valid extended language names to unique analyzer ID *)
-val map : (string, t) Hashtbl.t
-
 (* list of valid names for extended languages, sorted alphabetically *)
 val keys : string list
 

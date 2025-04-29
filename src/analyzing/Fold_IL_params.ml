@@ -34,15 +34,18 @@ let fold :
         (* JS: {arg} : type *)
         | PatternParam
             (G.OtherPat
-              ( ("ExprToPattern", _),
-                [
-                  G.E
-                    { e = G.Cast (_, _, { e = G.Record (_, fields, _); _ }); _ };
-                ] ))
+               ( ("ExprToPattern", _),
+                 [
+                   G.E
+                     {
+                       e = G.Cast (_, _, { e = G.Record (_, fields, _); _ });
+                       _;
+                     };
+                 ] ))
         (* JS: {arg} *)
         | PatternParam
             (G.OtherPat
-              (("ExprToPattern", _), [ G.E { e = G.Record (_, fields, _); _ } ]))
+               (("ExprToPattern", _), [ G.E { e = G.Record (_, fields, _); _ } ]))
           ->
             List.fold_left
               (fun acc field ->

@@ -137,7 +137,7 @@ let on_request server
     in
     Session.previous_scan_of_file server.session file
     |> Option.value ~default:[]
-    |> Common2.filter (fun (m : Semgrep_output_v1_t.cli_match) ->
+    |> List.filter (fun (m : Semgrep_output_v1_t.cli_match) ->
            List.mem (Conv.range_of_cli_match m) ranges)
   in
   let actions = code_actions_of_cli_matches matches [ file ] in

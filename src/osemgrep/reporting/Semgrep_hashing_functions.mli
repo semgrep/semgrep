@@ -15,3 +15,6 @@ val match_based_id_partial :
 (* for unit testing *)
 val match_formula_interpolated_str :
   Rule.t -> Semgrep_output_v1_t.metavars option -> string
+
+val rule_checksum_str : Rule.t -> string
+(** Compute a checksum for a rule based on its content. *)

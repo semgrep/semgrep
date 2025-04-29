@@ -240,8 +240,12 @@ let (mk_visitor : visitor_in -> visitor_out) =
       | Arr v1 ->
           let v1 = v_bracket (v_list v_expr) v1 in
           ()
-      | Conditional (v1, v2, v3) ->
-          let v1 = v_expr v1 and v2 = v_expr v2 and v3 = v_expr v3 in
+      | Conditional (v1, t1, v2, t2, v3) ->
+          let v1 = v_expr v1
+          and t1 = v_tok t1
+          and v2 = v_expr v2
+          and t2 = v_tok t2
+          and v3 = v_expr v3 in
           ()
       | ParenExpr (v1, v2, v3) ->
           v_tok v1;

@@ -1,0 +1,651 @@
+{
+  "findings": [
+    {
+      "check_id": "taint-test",
+      "path": "foo.py",
+      "line": 27,
+      "column": 5,
+      "end_line": 27,
+      "end_column": 13,
+      "message": "unsafe use of danger",
+      "severity": 1,
+      "index": 0,
+      "commit_date": "sanitized",
+      "syntactic_id": "05a6d6793a6242a49ff83113ef4a83b3",
+      "metadata": {
+        "dev.semgrep.actions": [
+          "block"
+        ],
+        "source": "https://semgrep.dev/r/taint-test",
+        "semgrep.dev": {
+          "rule": {
+            "rule_id": "abcf",
+            "shortlink": "https://sg.run/abcd",
+            "url": "https://semgrep.dev/r/python.eqeq-five",
+            "version_id": "version1"
+          },
+          "src": "new-rule"
+        }
+      },
+      "is_blocking": true,
+      "match_based_id": "e160d5d9982bc004e18272a890af8fc2539063a06782d2f509b2c2d9b7e58c5b095443b568847f7c9ab25f68f9b5c7a1dea764e514d0480bab7b12dca08f4a57_0",
+      "hashes": {
+        "start_line_hash": "997478a830d63dacdfabd947db77f9fbf3b33117d76553207b8b9c68eaa7e034",
+        "end_line_hash": "997478a830d63dacdfabd947db77f9fbf3b33117d76553207b8b9c68eaa7e034",
+        "code_hash": "78b06baeeb68e89ba54409fefe75e31b64d48b5708d2b1ed98d0b1dd59fe7472",
+        "pattern_hash": "6a4decd3a47d7d15d0ecc9bd4aa4b0cd6d101ec1b02f89f071df427a3d564eac"
+      },
+      "dataflow_trace": {
+        "taint_source": [
+          "CliLoc",
+          [
+            {
+              "path": "foo.py",
+              "start": {
+                "line": 26,
+                "col": 10,
+                "offset": 346
+              },
+              "end": {
+                "line": 26,
+                "col": 16,
+                "offset": 352
+              }
+            },
+            "<code omitted>"
+          ]
+        ],
+        "intermediate_vars": [
+          {
+            "location": {
+              "path": "foo.py",
+              "start": {
+                "line": 26,
+                "col": 5,
+                "offset": 341
+              },
+              "end": {
+                "line": 26,
+                "col": 7,
+                "offset": 343
+              }
+            },
+            "content": "<code omitted>"
+          }
+        ],
+        "taint_sink": [
+          "CliLoc",
+          [
+            {
+              "path": "foo.py",
+              "start": {
+                "line": 27,
+                "col": 5,
+                "offset": 357
+              },
+              "end": {
+                "line": 27,
+                "col": 13,
+                "offset": 365
+              }
+            },
+            "<code omitted>"
+          ]
+        ]
+      },
+      "validation_state": "NO_VALIDATOR",
+      "engine_kind": "OSS"
+    },
+    {
+      "check_id": "supply-chain1",
+      "path": "poetry.lock",
+      "line": 2,
+      "column": 1,
+      "end_line": 2,
+      "end_column": 1,
+      "message": "found a dependency",
+      "severity": 2,
+      "index": 0,
+      "commit_date": "sanitized",
+      "syntactic_id": "33cc4a1a63bda19779c4f4bd6491df4a",
+      "metadata": {
+        "dev.semgrep.actions": [],
+        "source": "https://semgrep.dev/-/advisories/supply-chain1",
+        "sca-kind": "upgrade-only"
+      },
+      "is_blocking": false,
+      "match_based_id": "2c4ff12fcdf80ef1c00dd0f566ae102d792c7ba68e560d70f111aae3b3216c0b1b943e74d2ce29c0361f1fbc37bd4e9aafd32c3435a36c61b8bd3963efe0d7a1_0",
+      "hashes": {
+        "start_line_hash": "13ed086097ee3dd997602b5df99fff011f3880f4fd53daca82db975bf8dd71dd",
+        "end_line_hash": "13ed086097ee3dd997602b5df99fff011f3880f4fd53daca82db975bf8dd71dd",
+        "code_hash": "bc2c211c9165ac9a493ea9f2d363ba4f2b6e64a92bb88b104d6d2b15fbc72973",
+        "pattern_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "sca_info": {
+        "reachability_rule": false,
+        "sca_finding_schema": 20220913,
+        "dependency_match": {
+          "dependency_pattern": {
+            "ecosystem": "pypi",
+            "package": "badlib",
+            "semver_range": "== 99.99.99"
+          },
+          "found_dependency": {
+            "package": "badlib",
+            "version": "99.99.99",
+            "ecosystem": "pypi",
+            "allowed_hashes": {},
+            "transitivity": "unknown",
+            "lockfile_path": "poetry.lock",
+            "line_number": 2,
+            "children": []
+          },
+          "lockfile": "poetry.lock"
+        },
+        "reachable": false
+      },
+      "engine_kind": "OSS"
+    },
+    {
+      "check_id": "abceversion1",
+      "path": "foo.py",
+      "line": 19,
+      "column": 5,
+      "end_line": 19,
+      "end_column": 13,
+      "message": "useless comparison to 4 (old version)",
+      "severity": 2,
+      "index": 1,
+      "commit_date": "sanitized",
+      "syntactic_id": "87cd1247dfc84bbd502c872035c71a63",
+      "metadata": {
+        "dev.semgrep.actions": [],
+        "source": "https://semgrep.dev/r/abceversion1",
+        "semgrep.dev": {
+          "rule": {
+            "rule_id": "abce",
+            "rule_name": "eqeq-four",
+            "shortlink": "https://sg.run/abcd",
+            "url": "https://semgrep.dev/r/python.eqeq-five",
+            "version_id": "version1"
+          },
+          "src": "previous-scan"
+        }
+      },
+      "is_blocking": false,
+      "match_based_id": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_1",
+      "hashes": {
+        "start_line_hash": "767b54a8959ab1bae471d88d9351ab3dc8c417471a5ed2dc874b67e012102baa",
+        "end_line_hash": "767b54a8959ab1bae471d88d9351ab3dc8c417471a5ed2dc874b67e012102baa",
+        "code_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488",
+        "pattern_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488"
+      },
+      "validation_state": "NO_VALIDATOR",
+      "engine_kind": "OSS"
+    },
+    {
+      "check_id": "eqeq-four",
+      "path": "foo.py",
+      "line": 19,
+      "column": 5,
+      "end_line": 19,
+      "end_column": 13,
+      "message": "useless comparison to 4",
+      "severity": 2,
+      "index": 1,
+      "commit_date": "sanitized",
+      "syntactic_id": "87cd1247dfc84bbd502c872035c71a63",
+      "metadata": {
+        "dev.semgrep.actions": [
+          "block"
+        ],
+        "source": "https://semgrep.dev/r/eqeq-four",
+        "semgrep.dev": {
+          "rule": {
+            "rule_id": "abce",
+            "shortlink": "https://sg.run/abcd",
+            "url": "https://semgrep.dev/r/python.eqeq-five",
+            "version_id": "version2"
+          },
+          "src": "new-version"
+        }
+      },
+      "is_blocking": true,
+      "match_based_id": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_1",
+      "hashes": {
+        "start_line_hash": "767b54a8959ab1bae471d88d9351ab3dc8c417471a5ed2dc874b67e012102baa",
+        "end_line_hash": "767b54a8959ab1bae471d88d9351ab3dc8c417471a5ed2dc874b67e012102baa",
+        "code_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488",
+        "pattern_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488"
+      },
+      "validation_state": "NO_VALIDATOR",
+      "engine_kind": "OSS"
+    },
+    {
+      "check_id": "eqeq-five",
+      "path": "foo.py",
+      "line": 15,
+      "column": 5,
+      "end_line": 15,
+      "end_column": 11,
+      "message": "useless comparison to 5",
+      "severity": 2,
+      "index": 0,
+      "commit_date": "sanitized",
+      "syntactic_id": "8646a2dfc020913606969dcfe84e53c0",
+      "metadata": {
+        "dev.semgrep.actions": [],
+        "source": "https://semgrep.dev/r/eqeq-five",
+        "semgrep.dev": {
+          "rule": {
+            "rule_id": "abcd",
+            "shortlink": "https://sg.run/abcd",
+            "url": "https://semgrep.dev/r/python.eqeq-five",
+            "version_id": "version1"
+          },
+          "src": "unchanged"
+        }
+      },
+      "is_blocking": false,
+      "match_based_id": "186b96f64aca90b7f5a9c75f2e44538885d0e727ed3161ef7b6d46c40b3d078acfc8859b290e118cb8ca42f5b41e61afe73b0f416f47a2f16abce67b1be307d3_0",
+      "hashes": {
+        "start_line_hash": "27937fb6c73e88412e7e39647557d4c03fda0ea04b91cecb3852355f387d03c8",
+        "end_line_hash": "27937fb6c73e88412e7e39647557d4c03fda0ea04b91cecb3852355f387d03c8",
+        "code_hash": "2005925cbb09029b2f5c8700dcae5c9a8b9a4324a15643853626afd0bf65c052",
+        "pattern_hash": "2005925cbb09029b2f5c8700dcae5c9a8b9a4324a15643853626afd0bf65c052"
+      },
+      "validation_state": "NO_VALIDATOR",
+      "engine_kind": "OSS"
+    },
+    {
+      "check_id": "eqeq-bad",
+      "path": "foo.py",
+      "line": 24,
+      "column": 5,
+      "end_line": 24,
+      "end_column": 11,
+      "message": "useless comparison",
+      "severity": 2,
+      "index": 0,
+      "commit_date": "sanitized",
+      "syntactic_id": "f3b21c38bc22a1f1f870d49fc3a40244",
+      "metadata": {
+        "source": "https://semgrep.dev/r/eqeq-bad"
+      },
+      "is_blocking": true,
+      "match_based_id": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_4",
+      "hashes": {
+        "start_line_hash": "510108a9aab34209e18dc5b9bba20dee69d9981b536ac1c927db223d8b0cb5bf",
+        "end_line_hash": "510108a9aab34209e18dc5b9bba20dee69d9981b536ac1c927db223d8b0cb5bf",
+        "code_hash": "bbe58d6d77d6bcf2aba1a2ea780990cc922fab514445048b3bf5b50a7a7c0250",
+        "pattern_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345"
+      },
+      "validation_state": "NO_VALIDATOR",
+      "engine_kind": "OSS"
+    },
+    {
+      "check_id": "eqeq-bad",
+      "path": "foo.py",
+      "line": 23,
+      "column": 5,
+      "end_line": 23,
+      "end_column": 11,
+      "message": "useless comparison",
+      "severity": 2,
+      "index": 0,
+      "commit_date": "sanitized",
+      "syntactic_id": "a557d3b401636ba873e590c81b693a8f",
+      "metadata": {
+        "source": "https://semgrep.dev/r/eqeq-bad"
+      },
+      "is_blocking": true,
+      "match_based_id": "e536489e68267e16e71dd76a61e27815fd86a7e2417d96f8e0c43af48540a41d41e6acad52f7ccda83b5c6168dd5559cd49169617e3aac1b7ea091d8a20ebf12_0",
+      "hashes": {
+        "start_line_hash": "60f5f1fb9303e4f18ddcada8deb88cb2ac20c7d95cfcd424b65934545481a1a9",
+        "end_line_hash": "60f5f1fb9303e4f18ddcada8deb88cb2ac20c7d95cfcd424b65934545481a1a9",
+        "code_hash": "97c1aa56d43d22e7ec10a8ca99ceab7e02749262a4be0c51683dd353b3b1a868",
+        "pattern_hash": "06b2540894e5b13085b613a69a474505628594986504f246b7a521b99ce10bf2"
+      },
+      "validation_state": "NO_VALIDATOR",
+      "engine_kind": "OSS"
+    },
+    {
+      "check_id": "eqeq-bad",
+      "path": "foo.py",
+      "line": 11,
+      "column": 5,
+      "end_line": 11,
+      "end_column": 11,
+      "message": "useless comparison",
+      "severity": 2,
+      "index": 0,
+      "commit_date": "sanitized",
+      "syntactic_id": "d44049421636e370e7906a6bed5fce54",
+      "metadata": {
+        "source": "https://semgrep.dev/r/eqeq-bad"
+      },
+      "is_blocking": true,
+      "match_based_id": "5efd0945774f190445f7cf2b0b85568a845cc46dddc11e029205b882436dccf78e12a752408c13dfe97b572f8bc795099ca0bddb89b3040afcaf6a6d8c17b570_0",
+      "hashes": {
+        "start_line_hash": "1ca20045d4e8968c3774538d54b138132fa83b7b18e0137435f3108f40ae163e",
+        "end_line_hash": "1ca20045d4e8968c3774538d54b138132fa83b7b18e0137435f3108f40ae163e",
+        "code_hash": "8ad0935f9eb4c01f858bd5ed1e9c28aa60f8d49625bc26ecfe2b1ee90c26a241",
+        "pattern_hash": "8ad0935f9eb4c01f858bd5ed1e9c28aa60f8d49625bc26ecfe2b1ee90c26a241"
+      },
+      "validation_state": "NO_VALIDATOR",
+      "engine_kind": "OSS"
+    },
+    {
+      "check_id": "eqeq-bad",
+      "path": "foo.py",
+      "line": 7,
+      "column": 5,
+      "end_line": 7,
+      "end_column": 11,
+      "message": "useless comparison",
+      "severity": 2,
+      "index": 3,
+      "commit_date": "sanitized",
+      "syntactic_id": "f6c666e6921a44028a2015d0de15cc14",
+      "metadata": {
+        "source": "https://semgrep.dev/r/eqeq-bad"
+      },
+      "is_blocking": true,
+      "match_based_id": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_3",
+      "hashes": {
+        "start_line_hash": "bf62385c9376655f85afc789e40f1e16e7cc0f90d87288a13ccb62802be1f601",
+        "end_line_hash": "bf62385c9376655f85afc789e40f1e16e7cc0f90d87288a13ccb62802be1f601",
+        "code_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345",
+        "pattern_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345"
+      },
+      "validation_state": "NO_VALIDATOR",
+      "engine_kind": "OSS"
+    },
+    {
+      "check_id": "eqeq-bad",
+      "path": "foo.py",
+      "line": 5,
+      "column": 5,
+      "end_line": 5,
+      "end_column": 11,
+      "message": "useless comparison",
+      "severity": 2,
+      "index": 1,
+      "commit_date": "sanitized",
+      "syntactic_id": "8abb389b2f01d0e52d663251e1d24ba7",
+      "metadata": {
+        "source": "https://semgrep.dev/r/eqeq-bad"
+      },
+      "is_blocking": true,
+      "match_based_id": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_1",
+      "hashes": {
+        "start_line_hash": "bf62385c9376655f85afc789e40f1e16e7cc0f90d87288a13ccb62802be1f601",
+        "end_line_hash": "bf62385c9376655f85afc789e40f1e16e7cc0f90d87288a13ccb62802be1f601",
+        "code_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345",
+        "pattern_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345"
+      },
+      "validation_state": "NO_VALIDATOR",
+      "engine_kind": "OSS"
+    },
+    {
+      "check_id": "eqeq-bad",
+      "path": "foo.py",
+      "line": 4,
+      "column": 5,
+      "end_line": 4,
+      "end_column": 11,
+      "message": "useless comparison",
+      "severity": 2,
+      "index": 0,
+      "commit_date": "sanitized",
+      "syntactic_id": "8c695a6a4ab5ffff33d0103309a310c1",
+      "metadata": {
+        "source": "https://semgrep.dev/r/eqeq-bad"
+      },
+      "is_blocking": true,
+      "match_based_id": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_0",
+      "hashes": {
+        "start_line_hash": "bf62385c9376655f85afc789e40f1e16e7cc0f90d87288a13ccb62802be1f601",
+        "end_line_hash": "bf62385c9376655f85afc789e40f1e16e7cc0f90d87288a13ccb62802be1f601",
+        "code_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345",
+        "pattern_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345"
+      },
+      "validation_state": "NO_VALIDATOR",
+      "engine_kind": "OSS"
+    }
+  ],
+  "ignores": [
+    {
+      "check_id": "abceversion1",
+      "path": "foo.py",
+      "line": 18,
+      "column": 5,
+      "end_line": 18,
+      "end_column": 13,
+      "message": "useless comparison to 4 (old version)",
+      "severity": 2,
+      "index": 0,
+      "commit_date": "sanitized",
+      "syntactic_id": "0c6353c9e29a6595b15fe4f554cd4134",
+      "metadata": {
+        "dev.semgrep.actions": [],
+        "source": "https://semgrep.dev/r/abceversion1",
+        "semgrep.dev": {
+          "rule": {
+            "rule_id": "abce",
+            "rule_name": "eqeq-four",
+            "shortlink": "https://sg.run/abcd",
+            "url": "https://semgrep.dev/r/python.eqeq-five",
+            "version_id": "version1"
+          },
+          "src": "previous-scan"
+        }
+      },
+      "is_blocking": false,
+      "match_based_id": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_0",
+      "hashes": {
+        "start_line_hash": "705071b3cc1398dc0eeaa7e759a7c4d39d33162c54ea7111cdc796790378e4c0",
+        "end_line_hash": "705071b3cc1398dc0eeaa7e759a7c4d39d33162c54ea7111cdc796790378e4c0",
+        "code_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488",
+        "pattern_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488"
+      },
+      "validation_state": "NO_VALIDATOR",
+      "engine_kind": "OSS"
+    },
+    {
+      "check_id": "eqeq-four",
+      "path": "foo.py",
+      "line": 18,
+      "column": 5,
+      "end_line": 18,
+      "end_column": 13,
+      "message": "useless comparison to 4",
+      "severity": 2,
+      "index": 0,
+      "commit_date": "sanitized",
+      "syntactic_id": "0c6353c9e29a6595b15fe4f554cd4134",
+      "metadata": {
+        "dev.semgrep.actions": [
+          "block"
+        ],
+        "source": "https://semgrep.dev/r/eqeq-four",
+        "semgrep.dev": {
+          "rule": {
+            "rule_id": "abce",
+            "shortlink": "https://sg.run/abcd",
+            "url": "https://semgrep.dev/r/python.eqeq-five",
+            "version_id": "version2"
+          },
+          "src": "new-version"
+        }
+      },
+      "is_blocking": true,
+      "match_based_id": "e7f900087df67093981e7d10847997734cfe6e3f1bcca3e05b81ff799e15d217834c0ae1d8114b52bef34242153efcbd3708167ca823100cdca2a843046972b8_0",
+      "hashes": {
+        "start_line_hash": "705071b3cc1398dc0eeaa7e759a7c4d39d33162c54ea7111cdc796790378e4c0",
+        "end_line_hash": "705071b3cc1398dc0eeaa7e759a7c4d39d33162c54ea7111cdc796790378e4c0",
+        "code_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488",
+        "pattern_hash": "027befcac4cbd8f5faffbcbee0e4cca5cd373af76c7e3d64574daa4b0f70a488"
+      },
+      "validation_state": "NO_VALIDATOR",
+      "engine_kind": "OSS"
+    },
+    {
+      "check_id": "eqeq-five",
+      "path": "foo.py",
+      "line": 16,
+      "column": 5,
+      "end_line": 16,
+      "end_column": 11,
+      "message": "useless comparison to 5",
+      "severity": 2,
+      "index": 0,
+      "commit_date": "sanitized",
+      "syntactic_id": "6ed37cfa23475cee444f54947efb9da4",
+      "metadata": {
+        "dev.semgrep.actions": [],
+        "source": "https://semgrep.dev/r/eqeq-five",
+        "semgrep.dev": {
+          "rule": {
+            "rule_id": "abcd",
+            "shortlink": "https://sg.run/abcd",
+            "url": "https://semgrep.dev/r/python.eqeq-five",
+            "version_id": "version1"
+          },
+          "src": "unchanged"
+        }
+      },
+      "is_blocking": false,
+      "match_based_id": "d2d0825f113f2fee5f7cbd5fb160772b3f3ab5043120b912101f2f20d4a0cce42df32b8e89f889f945daa1b216f9755eb958b9cb73c4c4ddf2ef5ecd0b4d1ad3_0",
+      "hashes": {
+        "start_line_hash": "889792ca5269732e125f6abb0d0245a7dcb83862e34d797a5ee890a4a7a5eae7",
+        "end_line_hash": "889792ca5269732e125f6abb0d0245a7dcb83862e34d797a5ee890a4a7a5eae7",
+        "code_hash": "d2c95171288a258009c5187392c5e2122e2640e0431af8b1cad77d5b403ed850",
+        "pattern_hash": "d2c95171288a258009c5187392c5e2122e2640e0431af8b1cad77d5b403ed850"
+      },
+      "validation_state": "NO_VALIDATOR",
+      "engine_kind": "OSS"
+    },
+    {
+      "check_id": "eqeq-bad",
+      "path": "foo.py",
+      "line": 13,
+      "column": 5,
+      "end_line": 13,
+      "end_column": 11,
+      "message": "useless comparison",
+      "severity": 2,
+      "index": 0,
+      "commit_date": "sanitized",
+      "syntactic_id": "0db994486d207a88b9e7bc0475d8a14a",
+      "metadata": {
+        "source": "https://semgrep.dev/r/eqeq-bad"
+      },
+      "is_blocking": true,
+      "match_based_id": "f33d61e2c4592fb3a295213cb9d829c7d314041cef354f9b4199bf18526d72df596c0ef4c8e56289511e1ea8e2183752f403fd922f382d090846c456744367d2_0",
+      "hashes": {
+        "start_line_hash": "0f1b9301a089bbcbbb0dd563a4a01270919f60a5bfd3d738788a8bbb1f7e0a59",
+        "end_line_hash": "0f1b9301a089bbcbbb0dd563a4a01270919f60a5bfd3d738788a8bbb1f7e0a59",
+        "code_hash": "0dbe5dc16d13b428b405ee54035df43ce62eccd8aebeb050e90047f09a24a613",
+        "pattern_hash": "0dbe5dc16d13b428b405ee54035df43ce62eccd8aebeb050e90047f09a24a613"
+      },
+      "validation_state": "NO_VALIDATOR",
+      "engine_kind": "OSS"
+    },
+    {
+      "check_id": "eqeq-bad",
+      "path": "foo.py",
+      "line": 9,
+      "column": 5,
+      "end_line": 9,
+      "end_column": 11,
+      "message": "useless comparison",
+      "severity": 2,
+      "index": 0,
+      "commit_date": "sanitized",
+      "syntactic_id": "bf0f44ff9d49cd5ca3771b3ee6d2fcfc",
+      "metadata": {
+        "source": "https://semgrep.dev/r/eqeq-bad"
+      },
+      "is_blocking": true,
+      "match_based_id": "83fb2cbc6be00fffc142621a1b10702bdd228f97c42ca16ba5f902ec393231e1424bed8472cec7c9213190cb1f576e5a495b3aba5cef09ac2791715d3bf9e983_0",
+      "hashes": {
+        "start_line_hash": "c772c5c0ca842b8e194eca4ed7bf1333c1e67bab038e9ac76c788d0e819c51ba",
+        "end_line_hash": "c772c5c0ca842b8e194eca4ed7bf1333c1e67bab038e9ac76c788d0e819c51ba",
+        "code_hash": "949d78287cab758a6d6f6cf8baf2cafb80399ce489cc94b58765da6c51c1c92f",
+        "pattern_hash": "949d78287cab758a6d6f6cf8baf2cafb80399ce489cc94b58765da6c51c1c92f"
+      },
+      "validation_state": "NO_VALIDATOR",
+      "engine_kind": "OSS"
+    },
+    {
+      "check_id": "eqeq-bad",
+      "path": "foo.py",
+      "line": 6,
+      "column": 5,
+      "end_line": 6,
+      "end_column": 11,
+      "message": "useless comparison",
+      "severity": 2,
+      "index": 2,
+      "commit_date": "sanitized",
+      "syntactic_id": "c2d65932166aec2a4a96ff0e8deebd97",
+      "metadata": {
+        "source": "https://semgrep.dev/r/eqeq-bad"
+      },
+      "is_blocking": true,
+      "match_based_id": "0357b19d63972f62544383b820b32bdcbeda622708aa4a5b798b8cac7290deacdbb32468495f0b29732cfcaa0ff9fe9ec3ca672f4fcc67f987cd889ac08b1c6a_2",
+      "hashes": {
+        "start_line_hash": "e89b663d624741879a65668fed6c6dce5c9823fa17962ff69ae19b369b09e77c",
+        "end_line_hash": "e89b663d624741879a65668fed6c6dce5c9823fa17962ff69ae19b369b09e77c",
+        "code_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345",
+        "pattern_hash": "e3eeff2fec82bf5b2a4b1837922798992b793f1d13ef91c3f81e39117fc24345"
+      },
+      "validation_state": "NO_VALIDATOR",
+      "engine_kind": "OSS"
+    }
+  ],
+  "token": null,
+  "searched_paths": [
+    "Pipfile.lock",
+    "foo.py",
+    "poetry.lock",
+    "yarn.lock"
+  ],
+  "renamed_paths": [],
+  "rule_ids": [
+    "eqeq-bad",
+    "eqeq-four",
+    "taint-test",
+    "supply-chain3",
+    "eqeq-five",
+    "supply-chain1",
+    "supply-chain2"
+  ],
+  "contributions": [
+    {
+      "commit_hash": "sanitized",
+      "commit_timestamp": "sanitized",
+      "contributor": {
+        "commit_author_name": "Environment Test",
+        "commit_author_email": "test_environment@test.r2c.dev"
+      }
+    },
+    {
+      "commit_hash": "sanitized",
+      "commit_timestamp": "sanitized",
+      "contributor": {
+        "commit_author_name": "Environment Test",
+        "commit_author_email": "test_environment@test.r2c.dev"
+      }
+    },
+    {
+      "commit_hash": "sanitized",
+      "commit_timestamp": "sanitized",
+      "contributor": {
+        "commit_author_name": "Environment Test",
+        "commit_author_email": "test_environment@test.r2c.dev"
+      }
+    }
+  ]
+}

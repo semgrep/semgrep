@@ -23,6 +23,7 @@ pytest-mock = "*"
 pytest-rerunfailures = "*"
 # for pytest --splits and --group
 pytest-split = "*"
+types-appdirs = "*"
 types-colorama = "~=0.4.0"
 types-freezegun = "*"
 types-jinja2 = "*"

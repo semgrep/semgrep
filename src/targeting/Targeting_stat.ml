@@ -67,12 +67,7 @@ let stat_file (file : Fpath.t) =
   let line_count = List.length (UFile.cat file) in
   let type_ = File_type.file_type_of_file file in
   let textual = File_type.is_textual_file file in
-  let minified =
-    if textual then
-      Common.save_excursion Flag_semgrep.skip_minified_files true (fun () ->
-          Result.is_error (Skip_target.is_minified file))
-    else false
-  in
+  let minified = textual && Result.is_error (Skip_target.is_minified file) in
   (* TODO: iago's is_large_machine_optimized PR (semgrep/semgrep#9992) *)
   {
     kind = stats.st_kind;

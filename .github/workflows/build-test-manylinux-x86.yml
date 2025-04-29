@@ -4,7 +4,11 @@ jobs:
     container: quay.io/pypa/manylinux_2_28_x86_64
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Configure git safedir properly
+        run: git config --global --add safe.directory $(pwd)
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
+      - uses: actions/checkout@v4
         with:
           submodules: true
       - run: |

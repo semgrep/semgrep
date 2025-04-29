@@ -1,5 +1,5 @@
 open Common
-module OutJ = Semgrep_output_v1_j
+module Out = Semgrep_output_v1_j
 
 (*****************************************************************************)
 (* Prelude *)
@@ -313,10 +313,9 @@ let add_engine_type (engine_type : Engine_type.t) =
         {
           analysis;
           extra_languages;
+          path_sensitive = _;
+          sca_config;
           secrets_config;
-          code_config;
-          supply_chain_config;
-          _;
         } ->
         {
           analysis_type =
@@ -324,10 +323,7 @@ let add_engine_type (engine_type : Engine_type.t) =
             | Intraprocedural -> `Intraprocedural
             | Interprocedural -> `Interprocedural
             | Interfile -> `Interfile);
-          code_config =
-            Option.map
-              (fun () : Semgrep_metrics_t.code_config -> { _rfu = None })
-              code_config;
+          code_config = Some { _rfu = None };
           secrets_config =
             Option.map
               (fun (conf : Engine_type.secrets_config) :
@@ -339,15 +335,15 @@ let add_engine_type (engine_type : Engine_type.t) =
               secrets_config;
           supply_chain_config =
             Option.map
-              (fun () : Semgrep_metrics_t.supply_chain_config ->
+              (fun _TODO : Semgrep_metrics_t.supply_chain_config ->
                 { _rfu = None })
-              supply_chain_config;
+              sca_config;
           pro_langs = extra_languages;
         }
   in
   (* TODO: remove this field? *)
   g.payload.value.engineRequested <-
-    OutJ.show_engine_kind
+    Out.show_engine_kind
       (match engine_type with
       | OSS -> `OSS
       | PRO _ -> `PRO);
@@ -475,13 +471,12 @@ let add_targets_stats (targets : Fpath.t Set_.t)
 (* TODO? type_ is enough? or want also to log the path? but too
  * privacy sensitive maybe?
  *)
-let string_of_error (err : OutJ.cli_error) : string =
+let string_of_error (err : Out.cli_error) : string =
   Error.string_of_error_type err.type_
 
 let add_errors errors =
   g.payload.errors.errors <-
-    Some
-      (errors |> List_.map (fun (err : OutJ.cli_error) -> string_of_error err))
+    Some (errors |> List_.map (fun (err : Out.cli_error) -> string_of_error err))
 
 let add_profiling profiler =
   g.payload.performance.profilingTimes <- Some (Profiler.dump profiler)

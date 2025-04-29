@@ -4,6 +4,7 @@
 // coupling: if you modify this file, modify also build-test-osx-arm64.jsonnet
 
 local actions = import 'libs/actions.libsonnet';
+local gha = import 'libs/gha.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
 local wheel_name = 'osx-x86-wheel';
@@ -55,28 +56,12 @@ local artifact_name = 'semgrep-osx-${{ github.sha }}';
 
 local build_core_job = {
   'runs-on': runs_on,
-  steps: [
-    actions.checkout_with_submodules(),
-    // TODO: we should use opam.lock instead of semgrep.opam at some point
-    // so any update to our dependencies would automatically trigger a
-    // cache miss and generate a fresh ~/.opam.
-    semgrep.cache_opam.step(
-         key=semgrep.opam_switch + "-${{hashFiles('semgrep.opam')}}")
-      + semgrep.cache_opam.if_cache_inputs,
-    semgrep.opam_setup(),
-    {
-      name: 'Install dependencies',
-      run: |||
-        make install-deps-MACOS-for-semgrep-core
-      |||,
-    },
-    {
-      name: 'Compile semgrep (in case of linking errors, adjust src/main/flags.sh)',
-      run: 'opam exec -- make core',
-    },
-    actions.make_artifact_step("./bin/semgrep-core"),
-    actions.upload_artifact_step(artifact_name),
-  ],
+  steps: actions.checkout_with_submodules() +
+         semgrep.build_test_steps() +
+         [
+           actions.make_artifact_step('./bin/semgrep-core'),
+           actions.upload_artifact_step(artifact_name),
+         ],
 };
 
 local build_wheels_job = {
@@ -84,8 +69,8 @@ local build_wheels_job = {
   needs: [
     'build-core',
   ],
-  steps: [
-    actions.checkout_with_submodules(),
+  steps: actions.checkout_with_submodules() + [
+
     actions.download_artifact_step(artifact_name),
     {
       run: |||
@@ -127,10 +112,7 @@ local test_wheels_job = {
 
 {
   name: 'build-test-osx-x86',
-  on: {
-    workflow_dispatch: semgrep.cache_opam.inputs(required=true),
-    workflow_call: semgrep.cache_opam.inputs(required=false),
-  },
+  on: gha.on_dispatch_or_call,
   jobs: {
     'build-core': build_core_job,
     'build-wheels': build_wheels_job,

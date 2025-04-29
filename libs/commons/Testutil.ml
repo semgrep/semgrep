@@ -24,3 +24,5 @@ let mask_temp_paths ?depth ?replace () =
       ()
   in
   fun text -> text |> mask_original_path |> mask_physical_path
+
+let skip_on_windows = if Sys.win32 then Some "Failing on Windows" else None

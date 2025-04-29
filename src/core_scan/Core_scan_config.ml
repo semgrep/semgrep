@@ -78,19 +78,14 @@ type t = {
   (* telemetry *)
   tracing : Tracing.config option;
   symbol_analysis : bool;
+  (* Rely on a EIO impl of `-j` v.s Parmap *)
+  use_eio : bool;
 }
 [@@deriving show]
 
-(*
-   Default values for all the semgrep-core command-line arguments and options.
-
+(* Default values for all the semgrep-core command-line arguments and options.
    Its values can be inherited using the 'with' syntax:
-
-    let my_config = {
-      Runner_config.default with
-      debug = true;
-      ncores = 3;
-    }
+      let my_config = { Core_scan_config.default with ncores = 3 }
 *)
 let default =
   {
@@ -106,16 +101,15 @@ let default =
     respect_rule_paths = true;
     file_match_hook = None;
     (* Limits *)
-    (* maximum time to spend running a rule on a single file *)
     timeout = 0.;
-    (* maximum number of rules that can timeout on a file *)
     timeout_threshold = 0;
     max_memory_mb = 0;
     max_match_per_file = 10_000;
-    ncores = 1;
+    ncores = Resources.resources.num_jobs;
     (* a.k.a -fast, on by default *)
     filter_irrelevant_rules = true;
     (* debugging and telemetry flags *)
     tracing = None;
     symbol_analysis = false;
+    use_eio = false;
   }

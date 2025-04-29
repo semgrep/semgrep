@@ -24,166 +24,78 @@ local gha = import 'gha.libsonnet';
 
 local github_bot = {
   get_token_steps: [
-   {
-    name: 'Get JWT for semgrep-ci GitHub App',
-    id: 'jwt',
-    uses: 'docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest',
-    env: {
-      // This is the shortest expiration setting. It ensures that if an
-      // attacker got a hold of these credentials after the job runs,
-      // they're expired.
-      // TODO: how an attacker can access this credential?
-      EXPIRATION: 600,  // in seconds
-      ISSUER: '${{ secrets.SEMGREP_CI_APP_ID }}',
-      PRIVATE_KEY: '${{ secrets.SEMGREP_CI_APP_KEY }}',
+    {
+      name: 'Get JWT for semgrep-ci GitHub App',
+      id: 'jwt',
+      uses: 'docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest',
+      env: {
+        // This is the shortest expiration setting. It ensures that if an
+        // attacker got a hold of these credentials after the job runs,
+        // they're expired.
+        // TODO: how an attacker can access this credential?
+        EXPIRATION: 600,  // in seconds
+        ISSUER: '${{ secrets.SEMGREP_CI_APP_ID }}',
+        PRIVATE_KEY: '${{ secrets.SEMGREP_CI_APP_KEY }}',
+      },
     },
-  },
-  // We are using the standard github-recommended method for short-live
-  // authentification.
-  // See https://docs.github.com/en/developers/apps/building-github-apps/authenticating-with-github-apps#authenticating-as-a-github-app
-  {
-    name: 'Get token for semgrep-ci GitHub App',
-    id: 'token',
-    run: |||
-      TOKEN="$(curl -X POST \
-      -H "Authorization: Bearer ${{ steps.jwt.outputs.jwt }}" \
-      -H "Accept: application/vnd.github.v3+json" \
-      "https://api.github.com/app/installations/${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}/access_tokens" | \
-      jq -r .token)"
-      echo "::add-mask::$TOKEN"
-      echo "token=$TOKEN" >> $GITHUB_OUTPUT
-    |||,
-  }],
+    // We are using the standard github-recommended method for short-live
+    // authentification.
+    // See https://docs.github.com/en/developers/apps/building-github-apps/authenticating-with-github-apps#authenticating-as-a-github-app
+    {
+      name: 'Get token for semgrep-ci GitHub App',
+      id: 'token',
+      env: {
+        SEMGREP_CI_APP_INSTALLATION_ID: '${{ secrets.SEMGREP_CI_APP_INSTALLATION_ID }}',
+        JWT: '${{ steps.jwt.outputs.jwt }}',
+      },
+      run: |||
+        TOKEN="$(curl -X POST \
+        -H "Authorization: Bearer $JWT" \
+        -H "Accept: application/vnd.github.v3+json" \
+        "https://api.github.com/app/installations/${SEMGREP_CI_APP_INSTALLATION_ID}/access_tokens" | \
+        jq -r .token)"
+        echo "::add-mask::$TOKEN"
+        echo "token=$TOKEN" >> $GITHUB_OUTPUT
+      |||,
+    },
+  ],
   // Token computed in get_token_steps to be used in the caller
   token_ref: '${{ steps.token.outputs.token }}',
-};
-
-// ----------------------------------------------------------------------------
-// OPAM caching
-// ----------------------------------------------------------------------------
-
-// The step below uses the actions/cache@v3 GHA extension to cache
-// the ~/.opam directory which speedups a lot the "Install opam dependencies"
-// steps in our workflows, especially the one where we can't use ocaml-layer.
-// See also actions.libsonnet for other GHA caching helpers.
-// Note that actions/setup-ocaml@v2 is using a similar technique.
-//
-// For example, on GHA-hosted macos runners, without caching the osx workflow
-// would run very for 35min instead of 10min with caching.
-// The M1 build runs on fast self-hosted runners where caching does not seem
-// to be necessary.
-// In Linux, we use a special container (returntocorp/ocaml:alpine-xxx) to
-// bring in the required dependencies, which makes 'opam switch create'
-// and 'opam install deps' unnecessary and almost a noop.
-// Still, we are gradually getting rid of ocaml-layer and replace it with
-// this more general caching mechanism (or switch to setup-ocaml@v2).
-//
-// alt:
-//  - use a self-hosted runner where we can save the content of ~/.opam between
-//    runs and do whatever we want. The problem is that the build is then
-//    not "hermetic", and we ran in many issues such as the disk of the
-//    self-hosted runner being full, or some stuff being left from other CI
-//    runs (such as a semgrep install) entering in conflicts with some of our
-//    build steps. This also requires some devops work to create and maintain
-//    those pools of self-hosted runners.
-//  - use a GHA-hosted runner which is nice because we don't have to do
-//    anything, and the build are guaranteed to be hermetic. The only problem
-//    originally was that it was slower, and for unknown reasons ocamlc was
-//    not working well on those macos-12 GHA runners, but caching the ~/.opam
-//    with actions/cache@v3 seems to solve the speed issue (and maybe ocamlc
-//    works now well under macos-12).
-//  - use a technique similar to what we do for Linux with our special
-//    ocaml-layer container, but can this be done for macos?
-//  - use setup-ocaml@v2 which internally uses a GHA cache too, but this
-//    cache just the downloaded package; it still install/compiles the packages
-//    each time.
-//
-// See also https://www.notion.so/semgrep/Caching-the-Opam-Environment-5d7e594203884d289acdac53713fb39f
-// for more information.
-
-// Note that this action does cache read and cache write.
-// See https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows
-// for more information on GHA caching.
-//
-// See also https://github.com/organizations/semgrep/settings/actions/caches
-// (requires admin access to github org) to see the GHA cache settings
-// and https://github.com/semgrep/semgrep/actions/caches?query=sort%3Asize-desc
-// to see the actual cache files created and used.
-//
-// Note that from the doc:
-// "Workflow runs cannot restore caches created for child branches or sibling
-//  branches. For example, a cache created for the child feature-b branch would
-//  not be accessible to a workflow run triggered on the parent main branch.
-//  Similarly, a cache created for the feature-a branch with the base main
-//  would not be accessible to its sibling feature-c branch with the base main."
-// This explains why you can see multiple cache entries with the exact same
-// cache key name; it's because they are from different branches.
-
-// Note that this caching works and speedup things because of the way OPAM works
-// and osx-setup-for-release.sh is written. Indeed, this script checks
-// if the opam switch is already created, and if a package is already
-// installed (in ~/.opam), then opam install on this package will do nothing.
-
-// Sometimes the cache key is not precise enough and some external changes
-// do not trigger cache invalidation but should. For example, we use
-// hashFiles('semgrep.opam') in many workflows for the cache key, but
-// semgrep.opam is not a lock file and some updates in the opam repo might
-// trigger the recompilation/installation of packages which would slow
-// down the workflow, even in the presence of the GHA cache, because this
-// cache is not up to date with the opam repo. Same for changes such as
-// an upgrade from opam 2.1 to 2.2 which is not captured in the cache key
-// but which should invalidate the cache.
-// This bump_cache is one way to cope with the limitations of our cache keys.
-// Moreover, GHA itself does not have a big "delete all cache" button like
-// in depot.dev so this bump_cache can act as one too.
-local bump_cache = 1;
-
-local cache_opam = {
-  step(key, path="~/.opam"): {
-    name: 'Set GHA cache for OPAM in ' + path,
-    uses: 'actions/cache@v3',
-    env: {
-      SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2,
-    },
-    with: {
-      path: path,
-      key: '${{ runner.os }}-${{ runner.arch }}-v%d-opam-%s' % [bump_cache, key],
-    },
-   },
-   // to be used with workflow_dispatch and workflow_call in the workflow
-  inputs(required): {
-    inputs: {
-    'use-cache': {
-      description: 'Use Opam Cache - uncheck the box to disable use of the opam cache, meaning a long-running but completely from-scratch build.',
-      required: required,
-      type: 'boolean',
-      default: true,
-    },
-  }
-  },
-  if_cache_inputs: {
-    'if': '${{ inputs.use-cache}}'
-  },
 };
 
 // ----------------------------------------------------------------------------
 // Containers
 // ----------------------------------------------------------------------------
 
+// default one
+// coupling: with containers above
+local opam_switch = '5.3.0';
+// also default but needed by another nameso we can use it as a function default arg
+local opam_switch_default = opam_switch;
 local containers = {
   ocaml_alpine: {
     // used in the build-test-osx-xxx jobs but ideally we should get rid
     // of it and rely on opam.lock for caching issues
-    opam_switch: '4.14.0',
-    job: {
+    opam_switch: opam_switch,
+    job(steps): {
       'runs-on': 'ubuntu-latest',
-      container: 'returntocorp/ocaml:alpine-2024-01-18',
+      // coupling: if you change this you must change the dockerfile alpine
+      // version
+      container: 'alpine:3.21',
       // We need this hack because GHA tampers with the HOME in container
       // and this does not play well with 'opam' installed in /root
       env: {
         HOME: '/root',
       },
-     },
+      steps:
+        [
+          {
+            name: 'setup alpine',
+            // needed for ocaml deps
+            run: 'apk add --no-cache git git-lfs bash curl',
+          },
+        ] + steps,
+    },
   },
   // ocaml-layer builds an image based on Alpine and another one based on
   // Ubuntu.
@@ -192,15 +104,15 @@ local containers = {
   // more familiar with. It's been cheap to maintain both so far but we could
   // decide to keep just one if it makes things simpler.
   ocaml_ubuntu: {
-    opam_switch: '4.14.0',
+    opam_switch: opam_switch,
     job: {
       'runs-on': 'ubuntu-latest',
       container: 'returntocorp/ocaml:ubuntu-2024-01-18',
       env: {
         HOME: '/root',
       },
-      },
-   },
+    },
+  },
 };
 
 
@@ -210,8 +122,10 @@ local escapeStringJson = function(str)
   std.lstripChars(
     std.rstripChars(
       std.escapeStringJson(str),
-      '"'),
-    '"');
+      '"'
+    ),
+    '"'
+  );
 
 // ----------------------------------------------------------------------------
 // Slack helpers
@@ -237,40 +151,45 @@ local slack = {
 
   // Double escape quotes because they are nested in two layers of double quotes. Which still allows string interpolation at the bash level.
   curl_notify(message): |||
-      curl --request POST \
-       --url  ${{ secrets.NOTIFICATIONS_URL }} \
-       --header 'content-type: application/json' \
-       --data "{
-         \"text\": \"%s\"
-       }"
+    curl --request POST \
+     --url  ${{ secrets.NOTIFICATIONS_URL }} \
+     --header 'content-type: application/json' \
+     --data "{
+       \"text\": \"%s\"
+     }"
   ||| % escapeStringJson(escapeStringJson(message)),
 
   notify_failure_job(message): {
-   'runs-on': 'ubuntu-20.04',
-   'if': 'failure()',
+    'runs-on': 'ubuntu-22.04',
+    'if': 'failure()',
     steps: [
       {
         run: slack.curl_notify(message),
       },
-     ],
-    },
+    ],
+  },
 };
 
 
-// default one
-// coupling: with containers above
-local opam_switch = '4.14.0';
+// This is the version of the cache we use below. If you need to invalidate it
+// for some reason then bump this.
+local opam_cache_version = 'v1';
 
 // this must be done after the checkout as opam installs itself
 // locally in the project folder (/home/runner/work/semgrep/semgrep/_opam)
+// TODO upstream the changes in austin's custom setup-ocaml action,
+// or move the project to the semgrep org
 // coupling: default is above opam_switch
-local opam_setup = function(opam_switch="4.14.0") {
-      uses: 'ocaml/setup-ocaml@v3',
-      with: {
-        'ocaml-compiler': opam_switch,
-	'opam-pin': false,
-      },
-    };
+local opam_setup = function(opam_switch=opam_switch_default) {
+  uses: 'semgrep/setup-ocaml@latest',
+  with: {
+    'ocaml-compiler': opam_switch,
+    'opam-pin': false,
+    // Save the cache post run instead of after installing the compiler
+    'save-opam-post-run': true,
+    'cache-prefix': opam_cache_version,
+  },
+};
 
 // We can't use ubuntu-latest (currently 24.04) just yet until
 // https://github.com/ocaml/setup-ocaml/issues/872
@@ -278,12 +197,10 @@ local opam_setup = function(opam_switch="4.14.0") {
 local stable_ubuntu_version_for_setup_ocaml = 'ubuntu-22.04';
 
 local osemgrep_test_steps_after_checkout = [
-  gha.git_safedir,
   {
     name: 'Build semgrep-core',
     run: |||
       eval $(opam env)
-      make install-deps-ALPINE
       make install-deps
       make core
     |||,
@@ -295,14 +212,14 @@ local osemgrep_test_steps_after_checkout = [
       make copy-core-for-cli
     |||,
   },
-   // For '--ignore-installed distlib' below see
-   // https://stackoverflow.com/questions/63515454/why-does-pip3-install-pipenv-give-error-error-cannot-uninstall-distlib
+  // For '--ignore-installed distlib' below see
+  // https://stackoverflow.com/questions/63515454/why-does-pip3-install-pipenv-give-error-error-cannot-uninstall-distlib
   //
   {
     name: 'Install Python dependencies',
     run: |||
-      apk add --no-cache python3
-      pip install --no-cache-dir --ignore-installed distlib pipenv==%s
+      apk add --no-cache python3 py3-pip
+      pip install --no-cache-dir --ignore-installed --break-system-packages distlib pipenv==%s
       (cd cli; pipenv install --dev)
     ||| % actions.pipenv_version,
   },
@@ -318,35 +235,157 @@ local osemgrep_test_steps_after_checkout = [
 
 local setup_nix_step = [
   {
-    name: "Set up Nix",
-    uses: "DeterminateSystems/nix-installer-action@v16",
+    name: 'Set up Nix',
+    uses: 'DeterminateSystems/nix-installer-action@v16',
     with: {
       // pin for more stability
-      "source-tag": "v0.34.0",
-        // pysemgrep and osemgrep have networking tests that rely on the
-        // actual internet (i.e. semgrep.dev). When sandbox=false nix builds
-        // everything fine, but all networking tests fail. So we set sandbox
-        // to false here so networking tests succeed
-        //
-        // TODO: disable networking tests for nix? that would be the nix way
-        // of doing things
+      'source-tag': 'v0.34.0',
+      // pysemgrep and osemgrep have networking tests that rely on the
+      // actual internet (i.e. semgrep.dev). When sandbox=false nix builds
+      // everything fine, but all networking tests fail. So we set sandbox
+      // to false here so networking tests succeed
+      //
+      // TODO: disable networking tests for nix? that would be the nix way
+      // of doing things
 
-        // extra substituters and public keys use https://app.cachix.org/cache/semgrep
-        // to cache the build dependencies!
-        "extra-conf": "sandbox = false",
+      // extra substituters and public keys use https://app.cachix.org/cache/semgrep
+      // to cache the build dependencies!
+      'extra-conf': 'sandbox = false',
     },
   },
   // This will automatically install cachix and upload to cachix
   {
-      name: "Install Cachix",
-      uses: "cachix/cachix-action@v14",
-      with: {
-          name: "semgrep",
-          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}",
-      },
-  }
+    name: 'Install Cachix',
+    uses: 'cachix/cachix-action@v16',
+    'continue-on-error': true,
+    with: {
+      name: 'semgrep',
+      authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}',
+    },
+  },
 ];
 
+
+local build_test_steps(opam_switch=opam_switch_default, name='semgrep-core', time=false) = [
+  opam_setup(opam_switch),
+  {
+    name: 'Install dependencies',
+    run: 'opam exec -- make install-deps',
+  },
+  {
+    name: 'Build %s' % name,
+    run: 'opam exec -- make',
+  },
+] + (if time then [
+       {
+         name: 'Test %s (and time it)' % name,
+         run: |||
+           START=`date +%s`
+           opam exec -- make test
+           opam exec -- make core-test-e2e
+
+           END=`date +%s`
+           TEST_RUN_TIME=$((END-START))
+           curl --fail -L -X POST "https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num" -d "$TEST_RUN_TIME"
+         |||,
+       },
+       {
+         name: 'Report Number of Tests Stats',
+         'if': "github.ref == 'refs/heads/develop'",
+         run: './scripts/report_test_metrics.sh',
+       },
+     ] else [
+       {
+         name: 'Test %s' % name,
+         run: 'opam exec -- make test',
+       },
+     ]);
+
+local copy_executable_dlls(executable, target_dir) =
+  {
+    name: 'Copy %s DLLs to %s/' % [executable, target_dir],
+    // cygcheck lists the library (DLL) dependencies of the binary. We only
+    // copy the DLLs from the x86_64-w64-mingw32/sys-root/ directory, where the
+    // DLLs installed from the opam depexts are located. The other DLLs that we
+    // depend on are Windows System DLLs or other DLLs which should already be
+    // available to be able to run Python.
+    run: |||
+      mkdir -p %(dst)s
+      SYS_ROOT_BIN="$(x86_64-w64-mingw32-gcc -print-sysroot)/mingw/bin"
+      dlls=$(PATH=$SYS_ROOT_BIN:$PATH cygcheck "%(exe)s" | grep 'x86_64-w64-mingw32' | sed 's/^[[:space:]]*//' | sort -u)
+      for dll in $dlls; do
+        echo "Copying $dll to %(dst)s/"
+        cp -p "$dll" "%(dst)s"
+      done
+    ||| % { dst: target_dir, exe: executable },
+  };
+
+local is_windows_arch(arch) = std.findSubstr('windows', arch) != [];
+local bin_ext(arch) = if is_windows_arch(arch) then '.exe' else '';
+local archive_ext(arch) = if is_windows_arch(arch) then '.tgz' else '.zip';
+local wheel_name(arch, pro=false) = 'wheel-%s%s' % [arch, if pro then '-pro' else ''];
+
+//TODO always want to include semgrep pro ...
+local build_wheel_steps(arch, platform, copy_semgrep_pro=false) =
+  [
+    actions.setup_python_step(cache='pip'),
+    {
+      name: 'Untar artifacts',
+      run: |||
+        tar xvfz artifacts.tgz
+      |||,
+    },
+  ] +
+  (if !copy_semgrep_pro then [{
+     name: 'Remove pro binary',
+     run: '(rm artifacts/semgrep-core-proprietary%s && rm artifacts/pro-installed-by.txt) || true' % bin_ext(arch),
+   }] else []) +
+  [
+    {
+      name: 'Copy artifacts to wheel',
+      run: 'cp artifacts/* cli/src/semgrep/bin',
+    },
+    {
+      name: 'Clean up old artifacts',
+      run: 'rm -rf artifacts artifacts.tgz',
+    },
+    {
+      name: 'Build wheel',
+      run: './scripts/build-wheels.sh --plat-name %s' % platform,
+    },
+    actions.make_artifact_step('cli/dist%s' % archive_ext(arch)),
+    actions.upload_artifact_step(wheel_name(arch, pro=copy_semgrep_pro)),
+  ];
+
+local unpack_wheel_steps = [
+
+  {
+    name: 'Unpack artifact',
+    run: 'tar xzvf artifacts.tgz',
+  },
+  {
+    name: 'Unpack wheel',
+    run: 'tar --wildcards -xzf ./artifacts/dist.tgz "*.whl" || unzip ./artifacts/dist.zip "*.whl"',
+  },
+];
+local test_wheel_steps(arch, copy_semgrep_pro=false) = [
+  // caching is hard and why complicate things
+  actions.setup_python_step(cache=false),
+  actions.download_artifact_step(wheel_name(arch, pro=copy_semgrep_pro)),
+] + unpack_wheel_steps + [
+  {
+    name: 'install package',
+    run: 'pip3 install dist/*.whl',
+  },
+  {
+    run: 'semgrep --version',
+  },
+  {
+    name: 'e2e semgrep-core test',
+    run: "echo '1 == 1' | semgrep -l python -e '$X == $X' --strict -",
+  },
+
+];
 // ----------------------------------------------------------------------------
 // Entry point
 // ----------------------------------------------------------------------------
@@ -360,20 +399,26 @@ local setup_nix_step = [
   },
 
   aws_credentials_step(role, session_name): {
-      name: 'Configure AWS credentials for %s' % role,
-      uses: 'aws-actions/configure-aws-credentials@v4',
-      with: {
-        // This seems to be a semgrep specific magic number
-        'role-to-assume': 'arn:aws:iam::338683922796:role/%s' % role,
-        'role-duration-seconds': 900,
-        'role-session-name': session_name,
-        'aws-region': 'us-west-2',
-      },
+    name: 'Configure AWS credentials for %s' % role,
+    uses: 'aws-actions/configure-aws-credentials@v4',
+    with: {
+      // This seems to be a semgrep specific magic number
+      'role-to-assume': 'arn:aws:iam::338683922796:role/%s' % role,
+      'role-duration-seconds': 900,
+      'role-session-name': session_name,
+      'aws-region': 'us-west-2',
     },
+  },
   // See https://depot.dev/orgs/9ks3jwp44z/projects/fhmxj6w9z8/settings
   depot_project_id: 'fhmxj6w9z8',
   opam_switch: opam_switch,
   opam_setup: opam_setup,
+  build_test_steps: build_test_steps,
+  copy_executable_dlls: copy_executable_dlls,
+  build_wheel_steps: build_wheel_steps,
+  test_wheel_steps: test_wheel_steps,
+  unpack_wheel_steps: unpack_wheel_steps,
+  wheel_name: wheel_name,
   // coupling: cli/setup.py, the matrix in run-cli-tests.libsonnet,
   // build-test-manylinux-x86.jsonnet in pro, tests.jsonnet in OSS
   // TODO? could switch to higher like 3.11
@@ -382,7 +427,6 @@ local setup_nix_step = [
   containers: containers,
 
   github_bot: github_bot,
-  cache_opam: cache_opam,
   slack: slack,
 
   stable_ubuntu_version_for_setup_ocaml: stable_ubuntu_version_for_setup_ocaml,

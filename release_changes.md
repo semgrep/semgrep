@@ -1,27 +1,19 @@
-## [1.108.0](https://github.com/semgrep/semgrep/releases/tag/v1.108.0) - 2025-02-12
+## [1.120.0](https://github.com/semgrep/semgrep/releases/tag/v1.120.0) - 2025-04-22
 
 
 ### Added
 
 
-- pro: Semgrep can now dynamically resolve dependencies for Python projects using pip, allowing it to determine transitive dependencies automatically. (sc-2069)
-
-
-### Changed
-
-
-- Bump base Alpine docker image from 3.19 to 3.21. (alpine-version)
-- The semgrep-appsec-platform specific metadata fields "semgrep.dev:" and
-  "semgrep.policy:" are now filtered from the JSON output unless you
-  are logged in with the Semgrep appsec platform.
-  See https://semgrep.dev/docs/semgrep-appsec-platform/json-and-sarif#json for more information. (metadata-filter)
-- The Semgrep Docker image now uses Python 3.12 (bumped from 3.11). (python-version)
+- Added a few new entries in the .semgrepignore default file
+  (e.g., _cargo, _opam, .svn) (semgrepignore)
+- Add an experimental option `--x-semgrepignore-filename` to change the name of `.semgrepignore` files to something else. This can be used to scan a subproject in a separate semgrep invocation as the rest of the containing project. (semgrepignore-filename)
 
 
 ### Fixed
 
 
-- This PR changes the way we handle failures in `git worktree remove` more gracefully.
-  Instead of erroring, we continue to scan so that the user can still get results, but
-  log the error. It also adds a guard so that this failure is less likely to happen
-  and will include more debugging information when it does. (sms-521)
+- Fixed bug in pro package-lock.json parsing where dependencies with no specified version would cause an exception (SC-2150)
+- Fixed the default `-j` setting so as to take into account the cgroup
+  CPU quota on Linux. This will affect Docker and other containerized
+  environments that share resources on the same host. Use the new command
+  `semgrep show resources --experimental` to show the default setting. (saf-1950)

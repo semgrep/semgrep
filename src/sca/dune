@@ -7,11 +7,9 @@
 ;
 ; The actual SCA code is split in many dirs and files
 ;  - semgrep_interfaces/semgrep_output_v1.atd (lockfile/manifest/ecosystem/...)
-;  - rule/{SCA_version.ml,SCA_pattern.ml}
-;  - target/Lockfile_xtarget.ml
-;  - core/SCA_match.ml
-;  - engine/Match_SCA_mode.ml
-;  - core_scan/Core_scan.ml and its SCA related functions
+;  - OSS/rule/{SCA_version.ml,SCA_pattern.ml}
+;  - src/sca/core/{Dependency_source_xtarget.ml, Subproject.ml, ...}
+;  - src/sca/scan/{SCA_targeting.ml, SCA_scan.ml, ...}
 
 (library
  (public_name semgrep.sca)

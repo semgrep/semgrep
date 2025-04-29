@@ -128,14 +128,8 @@ let rec all_suffix_of_list xs =
   | _x :: xs -> all_suffix_of_list xs)
 
 let _ =
-  Common2.example
-    (all_suffix_of_list [ 1; 2; 3 ] =*= [ [ 1; 2; 3 ]; [ 2; 3 ]; [ 3 ]; [] ])
-
-(* copy paste of module_ml.ml *)
-let module_name_of_filename file =
-  let _d, b, _e = Filename_.dbe_of_filename file in
-  let module_name = String.capitalize_ascii b in
-  module_name
+  assert (
+    all_suffix_of_list [ 1; 2; 3 ] =*= [ [ 1; 2; 3 ]; [ 2; 3 ]; [ 3 ]; [] ])
 
 (* Should `$X(...)` match a call to an IdSpecial function? *)
 let should_match_call = function
@@ -541,16 +535,8 @@ let rec m_name_inner a b =
    * target code is using an unqualified Id possibly because of some open!
    *)
   | G.IdQualified { name_last = ida, None; _ }, B.Id (idb, _infob)
-    when fst ida = fst idb -> (
-      match !Hooks.get_def idb with
-      | None -> try_with_equivalences a b
-      | Some file ->
-          let m = module_name_of_filename file in
-          let t = snd idb in
-          let _n = H.name_of_ids [ (m, t); idb ] in
-          (* retry with qualified target *)
-          (* m_name a n *)
-          return ())
+    when fst ida = fst idb ->
+      try_with_equivalences a b
   (* boilerplate *)
   | ( _a1,
       G.IdQualified
@@ -734,13 +720,10 @@ and m_qdots_global_name a b =
 
 (* semantic! try to handle typed metavariables by querying LSP
  * to get inferred type info (only for OCaml for now) *)
-and m_type_option_with_hook idb taopt tbopt =
+and m_type_option taopt tbopt =
   match (taopt, tbopt) with
   | Some ta, Some tb -> m_type_ ta tb
-  | Some ta, None -> (
-      match !Hooks.get_type idb with
-      | Some tb -> m_type_ ta tb
-      | None -> fail ())
+  | Some _ta, None -> fail ()
   (* less-is-ok:, like m_option_none_can_match_some *)
   | None, _ -> return ()
 
@@ -755,7 +738,7 @@ and m_ident_and_id_info (a1, a2) (b1, b2) =
   match (a1, b1) with
   | (str, tok), b when Mvar.is_metavar_name str ->
       (* a bit OCaml specific, cos only ml_to_generic tags id_type in pattern *)
-      m_type_option_with_hook b1 !(a2.G.id_type) !(b2.B.id_type) >>= fun () ->
+      m_type_option !(a2.G.id_type) !(b2.B.id_type) >>= fun () ->
       m_id_info a2 b2 >>= fun () -> envf (str, tok) (MV.Id (b, Some b2))
   (* same code than for m_ident *)
   (* in some languages such as Javascript certain entities like
@@ -920,19 +903,19 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
   | ( _a,
       B.N
         (B.Id
-          ( idb,
-            {
-              B.id_resolved =
-                {
-                  contents =
-                    Some
-                      ( ( B.ImportedEntity canonical
-                        | B.ImportedModule canonical
-                        | B.GlobalName (canonical, _) ),
-                        _sid );
-                };
-              _;
-            } )) )
+           ( idb,
+             {
+               B.id_resolved =
+                 {
+                   contents =
+                     Some
+                       ( ( B.ImportedEntity canonical
+                         | B.ImportedModule canonical
+                         | B.GlobalName (canonical, _) ),
+                         _sid );
+                 };
+               _;
+             } )) )
     when arguments_have_changed ->
       let dotted = G.canonical_to_dotted (snd idb) canonical in
       (* We used to force to fully qualify entities in the pattern
@@ -944,16 +927,8 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
       wipe_wildcard_imports
         ((* try matching the expression a and the identifier b *)
          m_expr ~arguments_have_changed:false a b
-        >||> (* try again without symbolic propagated information in id_info
-                *
-                * TODO(yosef): this case could propbably be refactored; this
-                * handles an edge case that involves resolving imported names in
-                * javascript such that import { Foo } = require('a'); var x = new
-                * Foo({ y : 1}) matches the rule `new a.Foo({ y : 1})`
-             *)
-        m_expr ~arguments_have_changed:false a
-          (B.N (B.Id (idb, static_empty_id_info)) |> G.e)
-        >||> (* try this time a match with the resolved entity *)
+        >||>
+        (* try this time a match with the resolved entity *)
         m_expr a (make_dotted dotted))
   (* equivalence: name resolving on qualified ids (for OCaml) *)
   (* Put this before the next case to prevent overly eager dealiasing *)
@@ -967,12 +942,12 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
    *)
   | ( G.N
         (G.IdQualified
-          {
-            G.name_last = alabel, None;
-            name_middle = Some (G.QDots names);
-            name_top = None;
-            _;
-          }),
+           {
+             G.name_last = alabel, None;
+             name_middle = Some (G.QDots names);
+             name_top = None;
+             _;
+           }),
       _b ) ->
       (* TODO: double check names does not have any type_args *)
       let full = (names |> List_.map fst) @ [ alabel ] in
@@ -1636,7 +1611,7 @@ and m_compatible_type lang typed_mvar t e =
       (* TODO Remove this case in favor of the newer type inference below. *)
       | _ta, B.N (B.Id (idb, ({ B.id_type = tb; _ } as id_infob))) ->
           (* NOTE: Name values must be represented with MV.Id! *)
-          m_type_option_with_hook idb (Some t) !tb >>= fun () ->
+          m_type_option (Some t) !tb >>= fun () ->
           envf typed_mvar (MV.Id (idb, Some id_infob))
       | _else_ -> fail ())
       >||>
@@ -1664,9 +1639,8 @@ and m_compatible_type lang typed_mvar t e =
         with_bound_metavar
       else
         match idopt with
-        | Some idb ->
-            m_type_option_with_hook idb (Some t) None >>= fun () ->
-            with_bound_metavar
+        | Some _idb ->
+            m_type_option (Some t) None >>= fun () -> with_bound_metavar
         | None -> fail ())
 
 (*---------------------------------------------------------------------------*)
@@ -1824,7 +1798,8 @@ and m_list__m_argument (xsa : G.argument list) (xsb : G.argument list) =
   | G.Arg { e = G.Ellipsis i; _ } :: xsa, xb :: xsb ->
       (* can match nothing *)
       m_list__m_argument xsa (xb :: xsb)
-      >||> (* can match more *)
+      >||>
+      (* can match more *)
       m_list__m_argument (G.Arg (G.Ellipsis i |> G.e) :: xsa) xsb
   (* unordered kwd argument matching *)
   | (G.ArgKwd (((s, _tok) as ida), ea) as a) :: xsa, xsb
@@ -2025,7 +2000,8 @@ and m_assoc_op tok op aargs_ac bargs_ac =
   | { e = G.Ellipsis i; _ } :: xsa, xb :: xsb ->
       (* can match nothing *)
       m_assoc_op tok op xsa (xb :: xsb)
-      >||> (* can match more *)
+      >||>
+      (* can match more *)
       m_assoc_op tok op ((G.Ellipsis i |> G.e) :: xsa) xsb
   | xa :: xsa, xb :: xsb ->
       let* () = m_expr xa xb in
@@ -2191,6 +2167,12 @@ and m_type_ a b =
       in
       (m_bracket (partial_m_list_with_dots ~less_is_ok:false)) a1 b1
   | G.TyAny a1, B.TyAny b1 -> m_tok a1 b1
+  (* less-is-ok:
+     its ok to match a type to its parameterized version, so long as the
+     names match
+     this lets us match, for instance, `new Reader(...)` to `new Reader<T>(...)`
+  *)
+  | G.TyN a1, B.TyApply ({ t = TyN b1; _ }, _b2) -> m_name a1 b1
   | G.TyApply (a1, a2), B.TyApply (b1, b2) ->
       m_type_ a1 b1 >>= fun () -> m_type_arguments a2 b2
   | G.TyVar a1, B.TyVar b1 -> m_ident a1 b1
@@ -2278,7 +2260,7 @@ and m_wildcard (a1, a2) (b1, b2) =
  *
  * Uses the provided `tok` (if any) when constructing synthetic AST to which a
  * metavariable is bound.
- * *)
+ *)
 and m_generic_type_vs_type_t lang tok a b =
   match (a.G.t, b) with
   | G.TyN (Id ((str, idtok), _)), _ when Mvar.is_metavar_name str -> (
@@ -2603,7 +2585,8 @@ and m_list__m_stmt ?(less_is_ok = true) (xsa : G.stmt list) (xsb : G.stmt list)
       (xb :: xsb_tail as xsb) ) ->
       (* can match nothing *)
       m_list__m_stmt xsa_tail xsb
-      >||> (* can match more *)
+      >||>
+      (* can match more *)
       (env_add_matched_stmt xb >>= fun () -> m_list__m_stmt xsa xsb_tail)
   (* dots: metavars: $...BODY *)
   | ( { s = G.ExprStmt ({ e = G.N (G.Id ((s, tok), _idinfo)); _ }, _); _ } :: xsa,
@@ -2617,20 +2600,20 @@ and m_list__m_stmt ?(less_is_ok = true) (xsa : G.stmt list) (xsb : G.stmt list)
         | (inits, rest) :: xs ->
             envf (s, tok) (MV.Ss inits)
             >>= (fun () ->
-                  (* If we don't do this, patterns ending in an ellipsis metavariable, like:
+            (* If we don't do this, patterns ending in an ellipsis metavariable, like:
                      x = 1
                      $...STMTS
                      will not properly extend the range of the match with whatever $...STMTS
                      matches.
                   *)
-                  match List_.last_opt inits with
-                  | None -> m_list__m_stmt ~less_is_ok:false xsa rest
-                  | Some last ->
-                      env_add_matched_stmt last >>= fun () ->
-                      (* when we use { $...BODY }, we don't have an implicit
-                         * ... after, so we use less_is_ok:false here
-                      *)
-                      m_list__m_stmt ~less_is_ok:false xsa rest)
+            match List_.last_opt inits with
+            | None -> m_list__m_stmt ~less_is_ok:false xsa rest
+            | Some last ->
+                env_add_matched_stmt last >>= fun () ->
+                (* when we use { $...BODY }, we don't have an implicit
+                 * ... after, so we use less_is_ok:false here
+                 *)
+                m_list__m_stmt ~less_is_ok:false xsa rest)
             >||> aux xs
       in
       aux candidates
@@ -3355,7 +3338,7 @@ and m_parameter_classic a b =
     ) ->
       m_ident_and_id_info (a1, a5) (b1, b5) >>= fun () ->
       (m_option_none_can_match_some m_expr) a2 b2 >>= fun () ->
-      (m_type_option_with_hook b1) a3 b3 >>= fun () ->
+      m_type_option a3 b3 >>= fun () ->
       m_list_in_any_order ~less_is_ok:true m_attribute a4 b4
   (* boilerplate *)
   | ( { G.pname = a1; pdefault = a2; ptype = a3; pattrs = a4; pinfo = a5 },
@@ -3476,7 +3459,7 @@ and m_list__m_field ~less_is_ok (xsa : G.field list) (xsb : G.field list) =
         | (b, xsb) :: xs ->
             m_field a b
             >>= (fun () ->
-                  m_list__m_field ~less_is_ok xsa (lazy_rest_of_list xsb))
+            m_list__m_field ~less_is_ok xsa (lazy_rest_of_list xsb))
             >||> aux xs
       in
       aux candidates
@@ -3540,7 +3523,7 @@ and m_or_type a b =
 and _m_list__m_type_ (xsa : G.type_ list) (xsb : G.type_ list) =
   m_list_with_dots m_type_
     (* dots: '...', this is very Python Specific I think *)
-      (function
+    (function
       | { t = G.TyEllipsis _; _ } -> true
       | { t = G.TyExpr { G.e = G.Ellipsis _i; _ }; _ } -> true
       | _ -> false)
@@ -3580,8 +3563,10 @@ and m_class_parent_basic (a1, a2) (b1, b2) =
   return ()
 
 and m_class_parent a b =
-  m_class_parent_basic a b >!> (* less: could be >||> *)
-                           fun () ->
+  m_class_parent_basic a b
+  >!>
+  (* less: could be >||> *)
+  fun () ->
   match (a, b) with
   (* less: this could be generalized, but let's go simple first *)
   | (a1, None), ({ t = B.TyN (B.Id (id, { id_resolved; _ })); _ }, None) ->
@@ -3735,7 +3720,7 @@ and m_directive a b =
  * So, in order to simplify naming and maintain the existing matching behavior,
  * we have to explicitly match certain import directives against certain
  * definition statements.
- * *)
+ *)
 and m_directive_vs_def a b =
   let f filea importsa =
     match (importsa, b) with

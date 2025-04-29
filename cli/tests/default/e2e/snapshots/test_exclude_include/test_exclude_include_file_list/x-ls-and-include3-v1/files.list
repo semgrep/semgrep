@@ -1,0 +1,5 @@
+targets/exclude_include/excluded/excluded.js
+targets/exclude_include/excluded/included.js
+targets/exclude_include/included/excluded.js
+targets/exclude_include/included/included.js
+targets/exclude_include/included/included.vue

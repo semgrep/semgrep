@@ -23,7 +23,7 @@ let load t dir_path =
         List.fold_left
           (fun acc (file : gitignore_filename) ->
             let file_path = Fpath.add_seg path file.filename in
-            if Sys.file_exists (Fpath.to_string file_path) then
+            if Sys_.file_exists (Fpath.to_string file_path) then
               acc
               @ Parse_gitignore.from_file ~format:file.format ~anchor
                   ~source_kind:file.source_kind file_path

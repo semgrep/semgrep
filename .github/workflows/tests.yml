@@ -5,10 +5,10 @@ jobs:
       - build-test-core-x86
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           cache: pipenv
           python-version: "3.9"
@@ -47,24 +47,7 @@ jobs:
       enable-tests: true
       file: Dockerfile
       repository-name: semgrep/semgrep
-      target: semgrep-cli
-  build-test-docker-nonroot:
-    needs:
-      - build-test-docker
-    secrets: inherit
-    uses: ./.github/workflows/build-test-docker.yml
-    with:
-      artifact-name: semgrep-docker-image-artifact-nonroot
-      docker-flavor: |
-        latest=false
-        suffix=-nonroot
-      docker-tags: |
-        type=sha,event=branch
-        type=ref,event=pr
-      enable-tests: false
-      file: Dockerfile
-      repository-name: semgrep/semgrep
-      target: nonroot
+      target: semgrep-oss
   build-test-docker-performance-tests:
     needs:
       - build-test-docker
@@ -121,10 +104,10 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           cache: pipenv
           python-version: ${{ matrix.python }}
@@ -176,19 +159,22 @@ jobs:
         name: Remove Credentials
         run: rm ~/.netrc
       - env:
+          COMMIT_LONG_SHA: ${{ steps.snapshot-commit.outputs.commit_long_sha }}
+          COMMIT_SHA: ${{ steps.snapshot-commit.outputs.commit_sha }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
         if: failure() && steps.snapshot-commit.outputs.pushed == 'true'
         name: Comment about any snapshot updates
         run: |
           echo ":camera_flash: The pytest shapshots changed in your PR." >> /tmp/message.txt
           echo "Please carefully review these changes and make sure they are intended:" >> /tmp/message.txt
           echo >> /tmp/message.txt
-          echo "1. Review the changes at https://github.com/semgrep/semgrep/commit/${{ steps.snapshot-commit.outputs.commit_long_sha }}" >> /tmp/message.txt
+          echo "1. Review the changes at https://github.com/semgrep/semgrep/commit/$COMMIT_LONG_SHA" >> /tmp/message.txt
           echo "2. Accept the new snapshots with" >> /tmp/message.txt
           echo >> /tmp/message.txt
-          echo "       git fetch origin && git cherry-pick ${{ steps.snapshot-commit.outputs.commit_sha }} && git push" >> /tmp/message.txt
+          echo "       git fetch origin && git cherry-pick \"$COMMIT_SHA\" && git push" >> /tmp/message.txt
 
-          gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/message.txt
+          gh pr comment "$PULL_REQUEST_NUMBER" --body-file /tmp/message.txt
     strategy:
       matrix:
         python:
@@ -197,22 +183,29 @@ jobs:
           - "3.11"
           - "3.12"
   test-osemgrep:
-    container: returntocorp/ocaml:alpine-2024-01-18
+    container: alpine:3.21
     env:
       HOME: /root
     runs-on: ubuntu-latest
     steps:
-      - name: Make checkout speedy
-        run: git config --global fetch.parallel 50
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
+      - name: setup alpine
+        run: apk add --no-cache git git-lfs bash curl
       - name: Configure git safedir properly
         run: git config --global --add safe.directory $(pwd)
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: semgrep/setup-ocaml@latest
+        with:
+          cache-prefix: v1
+          ocaml-compiler: 5.3.0
+          opam-pin: false
+          save-opam-post-run: true
       - name: Build semgrep-core
         run: |
           eval $(opam env)
-          make install-deps-ALPINE
           make install-deps
           make core
       - name: Install osemgrep
@@ -221,8 +214,8 @@ jobs:
           make copy-core-for-cli
       - name: Install Python dependencies
         run: |
-          apk add --no-cache python3
-          pip install --no-cache-dir --ignore-installed distlib pipenv==2024.0.1
+          apk add --no-cache python3 py3-pip
+          pip install --no-cache-dir --ignore-installed --break-system-packages distlib pipenv==2024.0.1
           (cd cli; pipenv install --dev)
       - name: Run pytest for osemgrep known passing tests
         run: |
@@ -235,10 +228,10 @@ jobs:
       - build-test-core-x86
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Fetch semgrep-cli submodules
         run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces tests/semgrep-rules
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           cache: pipenv
           python-version: "3.12"
@@ -256,7 +249,7 @@ jobs:
           export PATH=/github/home/.local/bin:$PATH
           pipenv install --dev
         working-directory: cli
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           key: qa-public-repos-${{ hashFiles('semgrep/tests/qa/*public_repos*') }}-${{ matrix.split }}
           path: ~/.cache/qa-public-repos
@@ -279,40 +272,35 @@ jobs:
           - 3
           - 4
   test-semgrep-core:
-    container: returntocorp/ocaml:alpine-2024-01-18
+    container: alpine:3.21
     env:
       HOME: /root
     runs-on: ubuntu-latest
     steps:
-      - name: Make checkout speedy
-        run: git config --global fetch.parallel 50
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
+      - name: setup alpine
+        run: apk add --no-cache git git-lfs bash curl
       - name: Configure git safedir properly
         run: git config --global --add safe.directory $(pwd)
-      - env:
-          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
-        name: Set GHA cache for OPAM in ~/.opam
-        uses: actions/cache@v3
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
+      - uses: actions/checkout@v4
         with:
-          key: ${{ runner.os }}-${{ runner.arch }}-v1-opam-4.14.0-${{hashFiles('semgrep.opam')}}
-          path: ~/.opam
+          submodules: true
+      - uses: semgrep/setup-ocaml@latest
+        with:
+          cache-prefix: v1
+          ocaml-compiler: 5.3.0
+          opam-pin: false
+          save-opam-post-run: true
       - name: Install dependencies
-        run: |
-          eval $(opam env)
-          make install-deps-ALPINE-for-semgrep-core
-          make install-deps-for-semgrep-core
-          make -C interfaces/semgrep_interfaces setup-ALPINE setup
+        run: opam exec -- make install-deps
       - name: Build semgrep-core
-        run: opam exec -- make core
+        run: opam exec -- make
       - name: Test semgrep-core (and time it)
         run: |
-          eval $(opam env)
           START=`date +%s`
-
-          make core-test
-          make core-test-e2e
+          opam exec -- make test
+          opam exec -- make core-test-e2e
 
           END=`date +%s`
           TEST_RUN_TIME=$((END-START))

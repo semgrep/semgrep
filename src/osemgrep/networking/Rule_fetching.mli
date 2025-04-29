@@ -1,3 +1,13 @@
+(* Fetching rules from the local filesystem or from the network (registry) *)
+
+(* capabilities required to fetch rules from a Rules_source.t
+ *  - network: for registry rules
+ *  - tmp: for saving the downloaded rules somewhere so we can
+ *    loading them from disk (alt: parse rules from a buffer instead of a file)
+ *  - readdir: for config_string denotating local directories
+ *)
+type caps = < Cap.network ; Cap.tmp ; Cap.readdir >
+
 type rules_and_origin = {
   rules : Rule.rule list;
   invalid_rules : Rule_error.invalid_rule list;
@@ -62,7 +72,7 @@ val rules_from_rules_source :
   token_opt:Auth.token option ->
   rewrite_rule_ids:bool ->
   strict:bool ->
-  < Cap.network ; Cap.tmp > ->
+  < caps ; .. > ->
   Rules_source.t ->
   rules_and_origin list * Rule_error.t list
 
@@ -71,7 +81,7 @@ val rules_from_rules_source_async :
   token_opt:Auth.token option ->
   rewrite_rule_ids:bool ->
   strict:bool ->
-  < Cap.network ; Cap.tmp > ->
+  < caps ; .. > ->
   Rules_source.t ->
   (rules_and_origin list * Rule_error.t list) Lwt.t
 
@@ -80,7 +90,7 @@ val rules_from_rules_source_async :
 val rules_from_dashdash_config_async :
   rewrite_rule_ids:bool ->
   token_opt:Auth.token option ->
-  < Cap.network ; Cap.tmp ; .. > ->
+  < caps ; .. > ->
   Rules_config.t ->
   (rules_and_origin list * Rule_error.t list) Lwt.t
 
@@ -91,11 +101,16 @@ val rules_from_dashdash_config_async :
 val rules_from_dashdash_config :
   rewrite_rule_ids:bool ->
   token_opt:Auth.token option ->
-  < Cap.network ; Cap.tmp ; .. > ->
+  < caps ; .. > ->
   Rules_config.t ->
   rules_and_origin list * Rule_error.t list
 
-(* low-level API *)
+(* low-level API
+ * we still need Cap.network and Cap.tmp because we could load a jsonnet file
+ * that internally imports rules from the registry.
+ * If you just want to load very a simple Yaml or JSON file,
+ * use Parse_rule.parse directly.
+ *)
 val load_rules_from_file :
   rewrite_rule_ids:bool ->
   origin:origin ->

@@ -1,0 +1,54 @@
+Files skipped:
+========================================
+
+  [1m[24mAlways skipped by Semgrep:[0m
+
+   • <none>
+
+  [1m[24mSkipped by .gitignore:[0m
+  [1m[24m(Disable by passing --no-git-ignore)[0m
+
+   • <all files not listed by `git ls-files` were skipped>
+
+  [1m[24mSkipped by .semgrepignore:[0m
+  [1m[24m- https://semgrep.dev/docs/ignoring-files-folders-code/#understand-semgrep-defaults[0m
+
+   • [36m[22m[24mtargets/ignores/tests/ignore.js[0m
+
+  [1m[24mSkipped by --include patterns:[0m
+
+   • [36m[22m[24mtargets/ignores/ignore_test.js[0m
+
+  [1m[24mSkipped by --exclude patterns:[0m
+
+   • [36m[22m[24mtargets/ignores/ignore.min.js[0m
+
+  [1m[24mFiles that couldn't be accessed:[0m
+
+   • <none>
+
+  [1m[24mSkipped by limiting to files smaller than 100 bytes:[0m
+  [1m[24m(Adjust with the --max-target-bytes flag)[0m
+
+   • <none>
+
+  [1m[24mPartially analyzed due to parsing or internal Semgrep errors[0m
+
+   • <none>
+
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+Semgrep's file targeting is getting a revamp! This scan wouldn't see any changes. To learn about what will be different after version 1.116.0, visit https://semgrep.dev/docs/kb/semgrep-code/semgrepignore-ignored for the new specification.
+
+✅ Scan completed successfully.
+ • Findings: 2 (2 blocking)
+ • Rules run: 1
+ • Targets scanned: 2
+ • Parsed lines: ~100.0%
+ • Scan skipped:
+   ◦ Not matching --include patterns: 1
+   ◦ Matching --exclude patterns: 1
+   ◦ Files matching .semgrepignore patterns: 1

@@ -17,7 +17,7 @@ local defaults = {
 };
 // TODO: We can remove this and switch to semgrep.opam_switch once we move to
 // OCaml 5 everywhere.
-local opam_switch = '5.2.1';
+local opam_switch = '5.3.0';
 
 // ----------------------------------------------------------------------------
 // The job
@@ -29,17 +29,8 @@ local build_core_job = {
   // re-enabling the job is https://linear.app/semgrep/issue/SAF-1728/restore-windows-workflow
   'runs-on': runs_on,
   defaults: defaults,
-  steps: [
-    actions.checkout_with_submodules(),
-    {
-      uses: 'ocaml/setup-ocaml@v3',
-      with: {
-        'ocaml-compiler': opam_switch,
-        // bogus filename to prevent the action from attempting to install
-        // anything (we want deps only)
-        'opam-local-packages': 'dont_install_local_packages.opam',
-      },
-    },
+  steps: actions.checkout_with_submodules() + [
+    semgrep.opam_setup(semgrep.opam_switch),
     {
       // TODO: Remove this once the stable version of `mingw64-x86_64-openssl`
       // is updated in Cygwin.
@@ -57,21 +48,8 @@ local build_core_job = {
         PACKAGES='mingw64-x86_64-openssl=1.0.2u+za-1,mingw64-i686-openssl=1.0.2u+za-1'
         CYGWIN_ROOT=$(cygpath -w /)
         $CYGWIN_ROOT/setup-x86_64.exe -P $PACKAGES --quiet-mode -R $CYGWIN_ROOT
-      |||
+      |||,
     },
-    // Why this cache when ocaml/setup-ocaml is already caching things?
-    // - setup-ocaml caches the cygwin and downloaded opam packages, but not the
-    //   installed opam packages
-    // - without the _opam cache we would spend 8-9 minutes every build
-    //   running `opam install`
-    // Note: we must cache after setup-ocaml, not before, because
-    // setup-ocaml would reset the cached _opam
-    semgrep.cache_opam.step(
-      key=opam_switch + "-${{ hashFiles('semgrep-pro.opam', 'OSS/semgrep.opam') }}",
-      // ocaml/setup-ocaml creates the opam switch local to the repository
-      // (vs. ~/.opam in our other workflows)
-      path='_opam',
-    ),
     {
       // TODO: We can remove this once these flexdll PRs are merged and a new
       // version of flexdll is released:
@@ -89,13 +67,14 @@ local build_core_job = {
       // in a file to cygpath.
       name: 'Install flexlink patched to use response files and cygpath -file arg',
       run: |||
-          git clone -b argument-list-too-long https://github.com/punchagan/flexdll.git
-          cd flexdll/
-          opam exec -- make all MSVC_DETECT=0 CHAINS="mingw64"
-          cp flexlink.exe ../_opam/bin/
-      |||
+        git clone -b argument-list-too-long https://github.com/punchagan/flexdll.git
+        cd flexdll/
+        opam exec -- make all MSVC_DETECT=0 CHAINS="mingw64"
+        cp flexlink.exe ../_opam/bin/
+      |||,
     },
-    { name: 'Debug stuff',
+    {
+      name: 'Debug stuff',
       run: |||
         ls
         # to see the bin symlink for example
@@ -113,7 +92,7 @@ local build_core_job = {
         opam repo
         # we should be on 4.14.0~mingw
         opam switch
-     |||,
+      |||,
     },
     {
       name: 'Build tree-sitter',
@@ -136,7 +115,7 @@ local build_core_job = {
         make PREFIX="$prefix" install
       |||,
     },
-    // this should be mostly a noop thx to cache_opam above
+    // this should be mostly a noop thx to opam_setup above
     // TODO: we should also reuse 'make install-deps-for-semgrep-core'
     {
       name: 'Install OPAM deps',
@@ -175,37 +154,12 @@ local build_core_job = {
       //TODO: semgrep-core displays also parse errors in the JSON output
       // weird. CRLF windows issue?
       run: |||
-        _build/install/default/bin/semgrep-core.exe -l python -rules tests/windows/rules.yml -json tests/windows/test.py
+        # see pro workflow & semgrep-proprietary/pull/3522
+        opam exec -- _build/install/default/bin/semgrep-core.exe -l python -rules tests/windows/rules.yml -json tests/windows/test.py
       |||,
     },
-    {
-      name: 'Package semgrep-core',
-      run: |||
-        mkdir artifacts
-        cp _build/install/default/bin/semgrep-core.exe artifacts/
-
-        # TODO: somehow upgrade to the latest flexdll, which should allow us
-        # to statically link these libraries
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libstdc++-6.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgcc_s_seh-1.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libwinpthread-1.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libpcre-1.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgmp-10.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libcurl-4.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libpcre2-8-0.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libeay32.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libidn2-0.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libnghttp2-14.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libssh2-1.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/ssleay32.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libzstd-1.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/zlib1.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/iconv.dll artifacts/
-        cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libintl-8.dll artifacts/
-
-        tar czvf artifacts.tgz artifacts
-     |||,
-    },
+    semgrep.copy_executable_dlls('bin/semgrep-core.exe', 'extra-artifacts'),
+    actions.make_artifact_step('bin/semgrep-core.exe extra-artifacts/*'),
     actions.upload_artifact_step(artifact_name),
   ],
 };
@@ -216,12 +170,11 @@ local build_wheels_job = {
   needs: [
     'build-core',
   ],
-  steps: [
-    actions.checkout_with_submodules(),
+  steps: actions.checkout_with_submodules() + [
     actions.download_artifact_step(artifact_name),
     {
       env: {
-        "SEMGREP_FORCE_INSTALL": 1
+        SEMGREP_FORCE_INSTALL: 1,
       },
       run: |||
         tar xvfz artifacts.tgz
@@ -236,7 +189,7 @@ local build_wheels_job = {
         name: wheel_name,
       },
     },
-  ]
+  ],
 };
 
 local test_wheels_job = {
@@ -258,11 +211,18 @@ local test_wheels_job = {
     },
     {
       name: 'test package',
+      env: {
+        SEMGREP_FORCE_INSTALL: 1,
+      },
       run: 'semgrep --version',
     },
     {
       name: 'e2e semgrep-core test',
-      run: 'echo \'1 == 1\' | semgrep -l python -e \'$X == $X\' -'
+      env: {
+        SEMGREP_FORCE_INSTALL: 1,
+      },
+      // --strict to make sure that any errors cause the CI job to fail
+      run: "echo '1 == 1' | semgrep -l python -e '$X == $X' --strict -",
     },
   ],
 };
@@ -273,10 +233,7 @@ local test_wheels_job = {
 
 {
   name: 'build-test-windows-x86',
-  on: {
-    workflow_dispatch: semgrep.cache_opam.inputs(required=true),
-    workflow_call: semgrep.cache_opam.inputs(required=false),
-  },
+  on: gha.on_dispatch_or_call,
   jobs: {
     'build-core': build_core_job,
     'build-wheels': build_wheels_job,

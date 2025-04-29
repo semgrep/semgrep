@@ -3,14 +3,17 @@ from pathlib import Path
 
 import pytest
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers import swiftpm
 from semdep.parsers.util import json_doc
+from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyParserError
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
+from semgrep.semgrep_interfaces.semgrep_output_v1 import PPackageResolved
+from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import SwiftPM
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -24,6 +27,7 @@ logger = getLogger(__name__)
         ('url: "https://github.com/user/project2.git"', "project2"),
         ('url: "http://github.com/user/project3.git"', "project3"),
         ('url: "git@192.168.101.127:user/project4.git"', "project4"),
+        ('url: "https://github.com/user/project5"', "project5"),
     ],
 )
 @pytest.mark.no_semgrep_cli
@@ -31,6 +35,21 @@ logger = getLogger(__name__)
 @pytest.mark.quick
 def test_swift_url_block_parser(original: str, output: str):
     result = swiftpm.url_block.parse(original)
+    assert result == output
+
+
+@pytest.mark.parametrize(
+    "original, output",
+    [
+        ('name: "example-package"', "example-package"),
+        ('name:   "project1"', "project1"),
+    ],
+)
+@pytest.mark.no_semgrep_cli
+@pytest.mark.osemfail
+@pytest.mark.quick
+def test_swift_name_block_parser(original: str, output: str):
+    result = swiftpm.name_block.parse(original)
     assert result == output
 
 
@@ -63,12 +82,31 @@ def test_swift_range_block_parser(original: str):
     assert not result[1]
 
 
-@pytest.mark.parametrize("original", ['.exact("1.2.3")', '.exact("1.3-testing")'])
+@pytest.mark.parametrize(
+    "original",
+    [
+        '.exact("1.2.3")',
+        '.exact("1.3-testing")',
+        'exact: "1.2.3"',
+        'exact:   "1.3-testing"',
+        "exact: Version(1, 2, 3)",
+    ],
+)
 @pytest.mark.no_semgrep_cli
 @pytest.mark.osemfail
 @pytest.mark.quick
 def test_swift_exact_block_parser(original: str):
     result = swiftpm.exact_block.parse_partial(original)
+    assert result[0] == original
+    assert not result[1]
+
+
+@pytest.mark.parametrize("original", ['path: "foo/bar"', 'path:  "ahhh"'])
+@pytest.mark.no_semgrep_cli
+@pytest.mark.osemfail
+@pytest.mark.quick
+def test_swift_path_block_parser(original: str):
+    result = swiftpm.path_block.parse_partial(original)
     assert result[0] == original
     assert not result[1]
 
@@ -164,6 +202,14 @@ def test_swift_branch_block_parser(original: str):
             '.package(url: "https://github.com/repo/package.git", .exact("7.8.0"))',
             "package",
         ),
+        (
+            '.package(url: "https://github.com/repo/package", exact: "7.8.0")',
+            "package",
+        ),
+        (
+            '.package(name: "package", path: "foo/bar")',
+            "package",
+        ),
     ],
 )
 @pytest.mark.no_semgrep_cli
@@ -222,7 +268,7 @@ def test_swift_manifest_parser():
         (15, "package_1"),
         (17, "package_2"),
         (19, "package_3"),
-        '.package(url: "https://github.com/repo_4/package_4.git", .upToNextMajor(from: "7.8.0")),',
+        None,
         (23, "package_5"),
     ]
     assert not result[1]
@@ -271,6 +317,7 @@ def test_swift_dependencies_block_parser():
 @pytest.mark.quick
 def test_swift_lockfile_v1_parser():
     lockfile_path = Path("test/fixtures/swiftpm-lock-v1/Package.resolved")
+    # The final package has no version, so we ignore it, since we have no way to do version comparison on it
     lockfile_v1 = json_doc.parse(
         """
     {
@@ -293,6 +340,15 @@ def test_swift_lockfile_v1_parser():
               "revision": "afd4553a4db6f656521cfe9b1f70bece2748c7d8",
               "version": "5.0.2"
             }
+          },
+          {
+          "package": "Stencil",
+          "repositoryURL": "https://github.com/stencilproject/Stencil.git",
+          "state": {
+              "branch": null,
+              "revision": "9c3468e300ba75ede0d7eb4c495897e0ac3591c3",
+              "version": null
+            }
           }
         ]
       },
@@ -301,7 +357,7 @@ def test_swift_lockfile_v1_parser():
     """
     ).as_dict()
 
-    found_deps = swiftpm.parse_swiftpm_v1(
+    found_deps, errors = swiftpm.parse_swiftpm_v1(
         lockfile_path, lockfile_v1, {""}, manifest_path=None
     )
     expected_deps = [
@@ -310,7 +366,7 @@ def test_swift_lockfile_v1_parser():
             version="4.0.2",
             ecosystem=Ecosystem(SwiftPM()),
             allowed_hashes={},
-            transitivity=Transitivity(Transitive()),
+            transitivity=out.DependencyKind(Transitive()),
             line_number=11,
             git_ref="4331dd50bc1db007db664a23f32e6f3df93d4e1a",
             resolved_url="https://github.com/thoughtbot/Curry.git",
@@ -322,7 +378,7 @@ def test_swift_lockfile_v1_parser():
             version="5.0.2",
             ecosystem=Ecosystem(SwiftPM()),
             allowed_hashes={},
-            transitivity=Transitivity(Transitive()),
+            transitivity=out.DependencyKind(Transitive()),
             line_number=20,
             git_ref="afd4553a4db6f656521cfe9b1f70bece2748c7d8",
             resolved_url="https://github.com/jdhealy/PrettyColors.git",
@@ -330,8 +386,21 @@ def test_swift_lockfile_v1_parser():
             manifest_path=None,
         ),
     ]
+    expected_errors = [
+        DependencyParserError(
+            path=Fpath(
+                value="test/fixtures/swiftpm-lock-v1/Package.resolved",
+            ),
+            parser=ScaParserName(
+                value=PPackageResolved(),
+            ),
+            reason="Unable to determine version of dependency - stencil - skipping. This may be because the dependency is pinned to an unreleased commit.",
+            line=29,
+        ),
+    ]
 
     assert found_deps == expected_deps
+    assert errors == expected_errors
 
 
 @pytest.mark.no_semgrep_cli
@@ -339,6 +408,7 @@ def test_swift_lockfile_v1_parser():
 @pytest.mark.quick
 def test_swift_lockfile_v2_parser():
     lockfile_path = Path("test/fixtures/swiftpm-lock-v2/Package.resolved")
+    # The final package has no version, so we ignore it, since we have no way to do version comparison on it
     lockfile_v2 = json_doc.parse(
         """
     {
@@ -359,15 +429,24 @@ def test_swift_lockfile_v2_parser():
           "state" : {
             "revision" : "770249dcb7259c486f2d68c164091b115ccb765f",
             "version" : "2.2.1"
+            }
+          },
+          {
+          "identity": "Stencil",
+          "kind": "remoteSourceControl",
+          "location": "https://github.com/stencilproject/Stencil.git",
+          "state": {
+              "revision": "9c3468e300ba75ede0d7eb4c495897e0ac3591c3",
+              "version": null
+            }
           }
-        }
       ],
-      "version": 1
+      "version": 2
     }
     """
     ).as_dict()
 
-    found_deps = swiftpm.parse_swiftpm_v2_v3(
+    found_deps, errors = swiftpm.parse_swiftpm_v2_v3(
         lockfile_path, lockfile_v2, {""}, manifest_path=None
     )
     expected_deps = [
@@ -376,7 +455,7 @@ def test_swift_lockfile_v2_parser():
             version="8.0.10",
             ecosystem=Ecosystem(SwiftPM()),
             allowed_hashes={},
-            transitivity=Transitivity(Transitive()),
+            transitivity=out.DependencyKind(Transitive()),
             line_number=10,
             git_ref="944dfb3b0eb028f477c25ba6a071181de8ab903a",
             resolved_url="https://github.com/orlandos-nl/BSON.git",
@@ -388,7 +467,7 @@ def test_swift_lockfile_v2_parser():
             version="2.2.1",
             ecosystem=Ecosystem(SwiftPM()),
             allowed_hashes={},
-            transitivity=Transitivity(Transitive()),
+            transitivity=out.DependencyKind(Transitive()),
             line_number=19,
             git_ref="770249dcb7259c486f2d68c164091b115ccb765f",
             resolved_url="https://github.com/orlandos-nl/DNSClient.git",
@@ -397,4 +476,20 @@ def test_swift_lockfile_v2_parser():
         ),
     ]
 
+    expected_errors = [
+        DependencyParserError(
+            path=Fpath(
+                value="test/fixtures/swiftpm-lock-v2/Package.resolved",
+            ),
+            parser=ScaParserName(
+                value=PPackageResolved(),
+            ),
+            reason="Unable to determine version of dependency - stencil - skipping. This may be because the dependency is pinned to an unreleased commit.",
+            line=None,
+            col=None,
+            text=None,
+        ),
+    ]
+
     assert found_deps == expected_deps
+    assert errors == expected_errors

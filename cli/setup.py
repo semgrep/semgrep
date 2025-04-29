@@ -8,7 +8,6 @@ import setuptools
 
 SOURCE_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(SOURCE_DIR)
-# pad: is this still used? git grep SEMGREP_FORCE_INSTALL does not return anything
 SEMGREP_FORCE_INSTALL = "SEMGREP_FORCE_INSTALL" in os.environ
 IS_WINDOWS = platform.system() == "Windows"
 # See ../scripts/build-wheels.sh, which is called from our GHA workflows.
@@ -138,7 +137,7 @@ install_requires = [
 
 setuptools.setup(
     name="semgrep",
-    version="1.108.0",
+    version="1.120.0",
     author="Semgrep Inc.",
     author_email="support@semgrep.com",
     description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",

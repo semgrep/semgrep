@@ -105,8 +105,8 @@ let error_spans ~(error_type : Out.error_type) ~(location : Out.location) =
   | _else_ -> None
 
 (* # TODO benchmarking code relies on error code value right now
-   * # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
-*)
+ * # See https://semgrep.dev/docs/cli-usage/ for meaning of codes
+ *)
 let exit_code_of_error_type (error_type : Out.error_type) : Exit_code.t =
   match error_type with
   | ParseError
@@ -257,8 +257,8 @@ let make_fixed_lines fixes_env fix path (start : Out.position)
   in
   Fixed_lines.make_fixed_lines fixes_env edit
 
-let cli_match_of_core_match ~fixed_lines fixed_env (hrules : Rule.hrules)
-    (m : Out.core_match) : Out.cli_match =
+let cli_match_of_core_match (fixed_env_opt : Fixed_lines.env option)
+    (rule : Rule.t) (m : Out.core_match) : Out.cli_match =
   match m with
   | {
    check_id = rule_id;
@@ -281,10 +281,6 @@ let cli_match_of_core_match ~fixed_lines fixed_env (hrules : Rule.hrules)
        sca_match;
      };
   } ->
-      let rule =
-        try Hashtbl.find hrules rule_id with
-        | Not_found -> raise Impossible
-      in
       let rule_message = rule.message in
       let message =
         match message with
@@ -306,11 +302,12 @@ let cli_match_of_core_match ~fixed_lines fixed_env (hrules : Rule.hrules)
        *)
       let severity = severity ||| rule.severity in
       let fixed_lines =
-        match (fix, fixed_lines) with
+        match (fix, fixed_env_opt) with
         | None, _
-        | _, false ->
+        | _, None ->
             None
-        | Some fix, true -> make_fixed_lines fixed_env fix path start end_
+        | Some fix, Some fixed_env ->
+            make_fixed_lines fixed_env fix path start end_
       in
       (* Can't use content_of_file_at_range because we want to include the
        * entirety of every line involved in the match, not just the text that
@@ -437,7 +434,7 @@ let adjust_fields_cli_outpout_logged_out (x : Out.cli_output) : Out.cli_output =
   let interfile_languages_used = None in
   let results =
     results
-    |> List_.map (fun res ->
+    |> List_.map (fun (res : Out.cli_match) : Out.cli_match ->
            let { check_id; extra; path; start; end_ } : Out.cli_match = res in
            let {
              metavars = _;
@@ -470,27 +467,26 @@ let adjust_fields_cli_outpout_logged_out (x : Out.cli_output) : Out.cli_output =
              | _else_ -> metadata
            in
 
-           let extra =
-             Out.
-               {
-                 metavars = None;
-                 message;
-                 fix;
-                 fixed_lines;
-                 metadata;
-                 severity;
-                 fingerprint = Gated_data.msg;
-                 lines = Gated_data.msg;
-                 is_ignored = None;
-                 sca_info;
-                 dataflow_trace = None;
-                 engine_kind;
-                 validation_state;
-                 historical_info;
-                 extra_extra;
-               }
+           let extra : Out.cli_match_extra =
+             {
+               metavars = None;
+               message;
+               fix;
+               fixed_lines;
+               metadata;
+               severity;
+               fingerprint = Gated_data.msg;
+               lines = Gated_data.msg;
+               is_ignored = None;
+               sca_info;
+               dataflow_trace = None;
+               engine_kind;
+               validation_state;
+               historical_info;
+               extra_extra;
+             }
            in
-           Out.{ check_id; extra; path; start; end_ })
+           { check_id; extra; path; start; end_ })
   in
   {
     version;
@@ -572,13 +568,20 @@ let cli_output_of_runner_result ~fixed_lines (core : Out.core_output)
         ignore skipped_rules;
         []
       in
-      let fixed_env = Fixed_lines.mk_env () in
+      let fixed_env_opt =
+        if fixed_lines then Some (Fixed_lines.mk_env ()) else None
+      in
       {
         version = Some version;
         (* Skipping the python intermediate RuleMatchMap for now *)
         results =
           matches
-          |> List_.map (cli_match_of_core_match ~fixed_lines fixed_env hrules)
+          |> List_.map (fun (cm : Out.core_match) ->
+                 let rule =
+                   try Hashtbl.find hrules cm.check_id with
+                   | Not_found -> raise Impossible
+                 in
+                 cli_match_of_core_match fixed_env_opt rule cm)
           |> Semgrep_output_utils.sort_cli_matches;
         errors = errors |> List_.map cli_error_of_core_error;
         paths;

@@ -67,6 +67,10 @@ let timeout_function (rule : Rule.t) (file : Fpath.t)
       None
 
 let is_relevant_rule_for_xtarget r xconf xtarget =
+  let interfile =
+    (* TODO: Should be a field in 'xconf'. *)
+    Option.is_some (Hook.get Pattern_vs_code.hook_find_possible_parents)
+  in
   let { path = { internal_path_to_content; _ }; lazy_content; _ } : Xtarget.t =
     xtarget
   in
@@ -75,7 +79,9 @@ let is_relevant_rule_for_xtarget r xconf xtarget =
     match xconf.filter_irrelevant_rules with
     | NoPrefiltering -> true
     | PrefilterWithCache cache -> (
-        match Analyze_rule.regexp_prefilter_of_rule ~cache:(Some cache) r with
+        match
+          Analyze_rule.regexp_prefilter_of_rule ~interfile ~cache:(Some cache) r
+        with
         | None -> true
         | Some (prefilter_formula, func) ->
             let content = Lazy.force lazy_content in
@@ -156,7 +162,7 @@ let per_rule_boilerplate_fn (timeout : timeout_config option) =
           ->
             raise (File_timeout !rule_timeouts)
         | _else_ -> ());
-        let loc = Tok.first_loc_of_file file in
+        let loc = Loc.first_loc_of_file file in
         let error = E.mk_error ~rule_id ~loc OutJ.Timeout in
         RP.mk_match_result []
           (Core_error.ErrorSet.singleton error)

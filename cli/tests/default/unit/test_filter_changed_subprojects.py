@@ -9,8 +9,7 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.git import BaselineHandler
 from semgrep.resolve_subprojects import filter_changed_subprojects
 from semgrep.rule import Rule
-from semgrep.subproject import ManifestLockfileDependencySource
-from semgrep.subproject import Subproject
+from semgrep.subproject import get_all_source_files
 from semgrep.target_manager import TargetManager
 
 EXAMPLE_RULES = [
@@ -31,15 +30,21 @@ EXAMPLE_RULES = [
 
 def make_subproject(
     manifest: Path, lockfile: Path, ecosystem: out.Ecosystem
-) -> Subproject:
-    return Subproject(
-        root_dir=Path(manifest.parent),
+) -> out.Subproject:
+    return out.Subproject(
+        root_dir=out.Fpath(str(manifest.parent)),
         # manifest and lockfile kind don't matter for this test
-        dependency_source=ManifestLockfileDependencySource(
-            out.Manifest(
-                out.ManifestKind(out.PyprojectToml()), out.Fpath(str(manifest))
-            ),
-            out.Lockfile(out.LockfileKind(out.PoetryLock()), out.Fpath(str(lockfile))),
+        dependency_source=out.DependencySource(
+            out.ManifestLockfile(
+                (
+                    out.Manifest(
+                        out.ManifestKind(out.PyprojectToml()), out.Fpath(str(manifest))
+                    ),
+                    out.Lockfile(
+                        out.LockfileKind(out.PoetryLock()), out.Fpath(str(lockfile))
+                    ),
+                ),
+            )
         ),
         ecosystem=ecosystem,
     )
@@ -73,7 +78,9 @@ def test_without_baseline(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     subprocess.check_call(["git", "commit", "-m", "first"])
 
     # Set up TargetManager
-    target_manager = TargetManager(scanning_root_strings=frozenset([Path(".")]))
+    target_manager = TargetManager(
+        scanning_root_strings=frozenset([Path(".")]),
+    )
 
     subprojects = [make_subproject(foo_a, foo_b, out.Ecosystem(out.Pypi()))]
 
@@ -144,7 +151,7 @@ def test_without_baseline(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
 def test_with_baseline__new_code_files(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
-    baseline_subprojects: Dict[str, Subproject],
+    baseline_subprojects: Dict[str, out.Subproject],
     new_filenames: List[Path],
     expected_changed_subprojects: List[str],
 ):
@@ -169,7 +176,7 @@ def test_with_baseline__new_code_files(
 
     # create dependency source files for all baseline subprojects
     for _key, subproject in baseline_subprojects.items():
-        for source_file in subproject.dependency_source.get_all_source_files():
+        for source_file in get_all_source_files(subproject.dependency_source):
             source_file.parent.mkdir(parents=True, exist_ok=True)
             source_file.touch()
 
@@ -283,7 +290,7 @@ def test_with_baseline__new_code_files(
 def test_with_baseline__changed_source_files(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
-    baseline_subprojects: Dict[str, Subproject],
+    baseline_subprojects: Dict[str, out.Subproject],
     changed_filenames: List[Path],
     expected_changed_subprojects: List[str],
 ):
@@ -308,7 +315,7 @@ def test_with_baseline__changed_source_files(
 
     # create dependency source files for all baseline subprojects
     for _key, subproject in baseline_subprojects.items():
-        for source_file in subproject.dependency_source.get_all_source_files():
+        for source_file in get_all_source_files(subproject.dependency_source):
             source_file.parent.mkdir(parents=True, exist_ok=True)
             source_file.touch()
 

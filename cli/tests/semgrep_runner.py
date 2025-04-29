@@ -14,6 +14,7 @@
 # Click-specific features (e.g., mocking)  that the regular
 # call-semgrep-in-a-subprocess does not provide yet.
 import os
+import platform
 import shlex
 import sys
 from dataclasses import dataclass
@@ -32,6 +33,8 @@ from click.testing import CliRunner
 # Constants
 ##############################################################################
 
+IS_WINDOWS = platform.system() == "Windows"
+
 # Environment variable that trigger the use of osemgrep
 USE_OSEMGREP = "PYTEST_USE_OSEMGREP" in os.environ
 
@@ -48,6 +51,8 @@ _SEMGREP_PATH = str(
     ).absolute()
 )
 
+# Deprecated. Use 'mk_semgrep_base_command("scan", args)'
+#
 # Exported constant, convenient to use in a list context.
 # This is not safe to use if you are going to append any subcommands after!
 # For instance, SEMGREP_BASE_SCAN_COMMAND + ["logout"] will fail with osemgrep,
@@ -56,6 +61,8 @@ SEMGREP_BASE_SCAN_COMMAND: List[str] = (
     [_SEMGREP_PATH] + _OSEMGREP_EXTRA_ARGS if USE_OSEMGREP else [_SEMGREP_PATH]
 )
 
+# Deprecated. Use 'mk_semgrep_base_command("scan", args)'
+#
 SEMGREP_BASE_SCAN_COMMAND_STR: str = " ".join(SEMGREP_BASE_SCAN_COMMAND)
 
 ##############################################################################
@@ -64,7 +71,11 @@ SEMGREP_BASE_SCAN_COMMAND_STR: str = " ".join(SEMGREP_BASE_SCAN_COMMAND)
 
 
 def mk_semgrep_base_command(subcommand: str, args: List[str]):
-    args = _OSEMGREP_EXTRA_ARGS + args if USE_OSEMGREP else args
+    # Insert osemgrep-specific arguments for the subcommands that support
+    # '--experimental':
+    if USE_OSEMGREP:
+        if subcommand in ["ci", "install-semgrep-pro", "lsp", "scan"]:
+            args = _OSEMGREP_EXTRA_ARGS + args
     return [_SEMGREP_PATH] + [subcommand] + args
 
 
@@ -112,6 +123,17 @@ def fork_semgrep(
     # ugly: adding --project-root for --help would trigger the wrong help message
     if "-h" in args or "--help" in args:
         argv = [_SEMGREP_PATH] + args
+
+    if IS_WINDOWS:
+        # On POSIX systems, the entrypoint script is executed with python via
+        # the shebang `#!/usr/bin/env python` but shebangs don't work on Windows
+        # via Popen, so we need to explicitly spicify what program to run the
+        # entrypoint script with.
+        #
+        # `sys.executable` gives an absolute path to the running python
+        # interpreter. See
+        # https://docs.python.org/3.14/library/subprocess.html#subprocess.Popen
+        argv = [sys.executable] + argv
 
     # env preparation
     env_dict = {}

@@ -1,4 +1,3 @@
-open Common
 open Fpath_.Operators
 
 let t = Testo.create
@@ -8,23 +7,22 @@ let t = Testo.create
 (*****************************************************************************)
 
 (* ran from the root of the semgrep repository *)
-let tests_path = "tests"
+let tests_path = Fpath.v "tests"
 
 let tests parse_program =
   Testo.categorize "naming generic"
     [
       t "regression files" (fun () ->
-          let dir = Filename.concat tests_path "naming/python" in
-          let files1 = Common2.glob (spf "%s/*.py" dir) in
-          let dir = Filename.concat tests_path "naming/go" in
-          let files2 = Common2.glob (spf "%s/*.go" dir) in
-          let dir = Filename.concat tests_path "naming/js" in
-          let files3 = Common2.glob (spf "%s/*.js" dir) in
-          let dir = Filename.concat tests_path "naming/java" in
-          let files4 = Common2.glob (spf "%s/*.java" dir) in
+          let dir = Fpath.(tests_path / "naming" / "python") in
+          let files1 = Common2.glob (dir / "*.py") in
+          let dir = Fpath.(tests_path / "naming" / "go") in
+          let files2 = Common2.glob (dir / "*.go") in
+          let dir = Fpath.(tests_path / "naming" / "js") in
+          let files3 = Common2.glob (dir / "*.js") in
+          let dir = Fpath.(tests_path / "naming" / "java") in
+          let files4 = Common2.glob (dir / "*.java") in
 
           files1 @ files2 @ files3 @ files4
-          |> Fpath_.of_strings
           |> List.iter (fun file ->
                  try
                    (* at least we can assert we don't thrown an exn or go

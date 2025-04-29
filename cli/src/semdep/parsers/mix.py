@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.external.parsy import any_char
 from semdep.external.parsy import Parser
 from semdep.external.parsy import regex
@@ -28,7 +29,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Hex
-from semgrep.semgrep_interfaces.semgrep_output_v1 import MixLock_
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 
 # :hex,
@@ -240,11 +240,11 @@ def parse_mix(
 ) -> tuple[list[FoundDependency], list[DependencyParserError]]:
     parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
         DependencyFileToParse(
-            lockfile_path, lockfile_parser, ScaParserName(MixLock_())
+            lockfile_path, lockfile_parser, ScaParserName(out.PMixLock())
         ),
         (
             DependencyFileToParse(
-                manifest_path, manifest_parser, ScaParserName(MixLock_())
+                manifest_path, manifest_parser, ScaParserName(out.PMixLock())
             )
             if manifest_path
             else None

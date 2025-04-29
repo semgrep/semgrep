@@ -362,7 +362,7 @@ rule token = parse
       let info = tokinfo lexbuf in
       let s = tok lexbuf in
 
-      match Common2.optionise (fun () -> Hashtbl.find keyword_table s) with
+      match Hashtbl.find_opt keyword_table s with
       | Some f -> f info
       | None -> IDENTIFIER (s, info)
     }

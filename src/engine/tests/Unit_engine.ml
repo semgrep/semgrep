@@ -111,8 +111,7 @@ let pack_tests_for_lang
   Testo.categorize
     (spf "%s" (Lang.show lang))
     (let dir = test_pattern_path / dir in
-     let files = Common2.glob (spf "%s/*%s" !!dir ext) |> Fpath_.of_strings in
-
+     let files = Common2.glob Fpath.((dir / "*") + ext) in
      lang_test_fn ~polyglot_pattern_path files lang)
 
 (*****************************************************************************)
@@ -262,10 +261,10 @@ let make_maturity_tests ?(lang_exn = language_exceptions) lang dir ext maturity
      exns
      |> List.iter (fun base ->
             let path = dir / (base ^ ext) in
-            if Sys.file_exists !!path then
+            if Sys_.Fpath.exists path then
               failwith
                 (spf "%s actually exist! remove it from exceptions" !!path));
-     let features = Common2.minus_set features exns in
+     let features = List.filter (fun x -> not (List.mem x exns)) features in
      features
      |> List_.map (fun base ->
             Testo.create ~tags:(Test_tags.tags_of_lang lang) base (fun () ->
@@ -273,7 +272,7 @@ let make_maturity_tests ?(lang_exn = language_exceptions) lang dir ext maturity
                 (* if it's a does-not-apply (NA) case, consider adding it
                  * to language_exceptions above
                  *)
-                if not (Sys.file_exists !!path) then
+                if not (Sys_.Fpath.exists path) then
                   failwith
                     (spf "missing test file %s for maturity %s" !!path
                        (show_maturity_level maturity)))))
@@ -394,14 +393,14 @@ let regression_tests_for_lang ~polyglot_pattern_path files lang =
              let pattern = UFile.read_file sgrep_file in
 
              (* old: semgrep-core used to support user-defined
-                * equivalences, but the feature has been now deprecated.
-                *
-                * (* Python == is not the same than !(==) *)
-                * if lang <> Lang.Python then
-                *   Parse_equivalences.parse
-                *     (Filename.concat data_path "basic_equivalences.yml")
-                * else []
-             *)
+              * equivalences, but the feature has been now deprecated.
+              *
+              * (* Python == is not the same than !(==) *)
+              * if lang <> Lang.Python then
+              *   Parse_equivalences.parse
+              *     (Filename.concat data_path "basic_equivalences.yml")
+              * else []
+              *)
              let matches = ref [] in
              match_pattern ~lang
                ~hook:(fun pm -> Stack_.push (TCM.location_of_pm pm) matches)
@@ -436,17 +435,16 @@ let lang_regression_tests ~polyglot_pattern_path =
     [
       Testo.categorize "Typescript on Javascript (no JSX)"
         (let dir = test_pattern_path / "js" in
-         let files = Common2.glob (spf "%s/*.js" !!dir) in
+         let files = Common2.glob (dir / "*.js") in
          let files =
-           List_.exclude (fun s -> s =~ ".*xml" || s =~ ".*jsx") files
-           |> Fpath_.of_strings
+           List_.exclude (fun s -> !!s =~ ".*xml" || !!s =~ ".*jsx") files
          in
 
          let lang = Lang.Ts in
          regression_tests_for_lang ~polyglot_pattern_path files lang);
       Testo.categorize "C++ on C tests"
         (let dir = test_pattern_path / "c" in
-         let files = Common2.glob (spf "%s/*.c" !!dir) |> Fpath_.of_strings in
+         let files = Common2.glob (dir / "*.c") in
 
          let lang = Lang.Cpp in
          regression_tests_for_lang ~polyglot_pattern_path files lang);
@@ -535,13 +533,13 @@ let eval_regression_tests () =
   [
     t "Eval_generic" (fun () ->
         let dir = tests_path / "eval" in
-        let files = Common2.glob (spf "%s/*.json" !!dir) in
+        let files = Common2.glob (dir / "*.json") in
         files
         |> List.iter (fun file ->
-               let env, code = Eval_generic.parse_json file in
+               let env, code = Eval_generic.parse_json !!file in
                let res = Eval_generic.eval env code in
                Alcotest.(check bool)
-                 (spf "%s should evaluate to true" file)
+                 (spf "%s should evaluate to true" !!file)
                  true
                  (Eval_generic.Bool true =*= res)));
   ]
@@ -550,13 +548,15 @@ let eval_regression_tests () =
 (* Analyze_rule (filter irrelevant rules) tests *)
 (*****************************************************************************)
 
-let test_irrelevant_rule rule_file target_file =
+let test_irrelevant_rule_intrafile rule_file target_file =
   let cache = Some (Hashtbl.create 101) in
   (* TODO: fail more gracefully for invalid rules? *)
   let rules = Parse_rule.parse rule_file |> Result.get_ok in
   rules
   |> List.iter (fun rule ->
-         match Analyze_rule.regexp_prefilter_of_rule ~cache rule with
+         match
+           Analyze_rule.regexp_prefilter_of_rule ~interfile:false ~cache rule
+         with
          | None ->
              Alcotest.fail
                (spf "Rule %s: no regex prefilter formula"
@@ -575,13 +575,13 @@ let test_irrelevant_rule_file target_file =
       let rules_file =
         let d, b, _e = Filename_.dbe_of_filename !!target_file in
         let candidate1 = Filename_.filename_of_dbe (d, b, "yaml") in
-        if Sys.file_exists candidate1 then Fpath.v candidate1
+        if Sys_.file_exists candidate1 then Fpath.v candidate1
         else
           failwith
             (spf "could not find target file for irrelevant rule %s"
                !!target_file)
       in
-      test_irrelevant_rule rules_file target_file)
+      test_irrelevant_rule_intrafile rules_file target_file)
 
 (* These tests test that semgrep with filter_irrelevant_rules correctly
    does not run files when they lack necessary strings.
@@ -590,13 +590,12 @@ let test_irrelevant_rule_file target_file =
    any files, place the rule/target pair in the rules folder but annotate
    in a comment that the test targets filter_irrelevant_rules to help
    future debuggers. *)
-let filter_irrelevant_rules_tests () =
+let filter_irrelevant_rules_tests (caps : < Cap.readdir ; .. >) =
   Testo.categorize "filter irrelevant rules"
     (let dir = tests_path / "irrelevant_rules" in
      let target_files =
-       Common2.glob (spf "%s/*" !!dir)
-       |> Fpath_.of_strings
-       |> File_type.files_of_dirs_or_files (function
+       Common2.glob (dir / "*")
+       |> File_type.files_of_dirs_or_files caps (function
             | File_type.Config File_type.Yaml -> false
             | _ -> true (* TODO include .test.yaml*))
      in
@@ -688,7 +687,7 @@ let tainting_tests_for_lang files lang =
              let rules_file =
                let d, b, _e = Filename_.dbe_of_filename !!file in
                let candidate1 = Filename_.filename_of_dbe (d, b, "yaml") in
-               if Sys.file_exists candidate1 then Fpath.v candidate1
+               if Sys_.file_exists candidate1 then Fpath.v candidate1
                else
                  failwith
                    (spf "could not find tainting rules file for %s" !!file)
@@ -704,53 +703,49 @@ let lang_tainting_tests () =
     [
       Testo.categorize "tainting Go"
         (let dir = taint_tests_path / "go" in
-         let files = Common2.glob (spf "%s/*.go" !!dir) |> Fpath_.of_strings in
+         let files = Common2.glob (dir / "*.go") in
 
          let lang = Lang.Go in
          tainting_tests_for_lang files lang);
       Testo.categorize "tainting PHP"
         (let dir = taint_tests_path / "php" in
-         let files = Common2.glob (spf "%s/*.php" !!dir) |> Fpath_.of_strings in
+         let files = Common2.glob (dir / "*.php") in
 
          let lang = Lang.Php in
          tainting_tests_for_lang files lang);
       Testo.categorize "tainting Python"
         (let dir = taint_tests_path / "python" in
-         let files = Common2.glob (spf "%s/*.py" !!dir) |> Fpath_.of_strings in
+         let files = Common2.glob (dir / "*.py") in
 
          let lang = Lang.Python in
          tainting_tests_for_lang files lang);
       Testo.categorize "tainting Java"
         (let dir = taint_tests_path / "java" in
-         let files =
-           Common2.glob (spf "%s/*.java" !!dir) |> Fpath_.of_strings
-         in
+         let files = Common2.glob (dir / "*.java") in
 
          let lang = Lang.Java in
          tainting_tests_for_lang files lang);
       Testo.categorize "tainting Javascript"
         (let dir = taint_tests_path / "js" in
-         let files = Common2.glob (spf "%s/*.js" !!dir) |> Fpath_.of_strings in
+         let files = Common2.glob (dir / "*.js") in
 
          let lang = Lang.Js in
          tainting_tests_for_lang files lang);
       Testo.categorize "tainting Ruby"
         (let dir = taint_tests_path / "ruby" in
-         let files = Common2.glob (spf "%s/*.rb" !!dir) |> Fpath_.of_strings in
+         let files = Common2.glob (dir / "*.rb") in
 
          let lang = Lang.Ruby in
          tainting_tests_for_lang files lang);
       Testo.categorize "tainting Typescript"
         (let dir = taint_tests_path / "ts" in
-         let files = Common2.glob (spf "%s/*.ts" !!dir) |> Fpath_.of_strings in
+         let files = Common2.glob (dir / "*.ts") in
 
          let lang = Lang.Ts in
          tainting_tests_for_lang files lang);
       Testo.categorize "tainting Scala"
         (let dir = taint_tests_path / "scala" in
-         let files =
-           Common2.glob (spf "%s/*.scala" !!dir) |> Fpath_.of_strings
-         in
+         let files = Common2.glob (dir / "*.scala") in
 
          let lang = Lang.Scala in
          tainting_tests_for_lang files lang);
@@ -803,14 +798,15 @@ let full_rule_taint_maturity_tests caps =
    Special exclusions for Semgrep JS
 *)
 let mark_todo_js (test : Testo.t) =
-  match test.name with
+  match Fpath.v test.name with
   | s
     when (* The target file has an unsupported .erb extension, making it excluded
             correctly by the OCaml test suite but not by the JS test suite
             (or something close to this). *)
-         s =~ ".*/ruby/rails/security/brakeman/check-reverse-tabnabbing.yaml"
-         || (* Not sure why this fails *)
-         s =~ ".*/ruby/lang/security/divide-by-zero.yaml" ->
+         s =/~ ".*/ruby/rails/security/brakeman/check-reverse-tabnabbing.yaml"
+         ||
+         (* Not sure why this fails *)
+         s =/~ ".*/ruby/lang/security/divide-by-zero.yaml" ->
       Testo.update test ~tags:(Test_tags.todo_js :: test.tags)
   | _ -> test
 
@@ -833,7 +829,7 @@ let semgrep_rules_repo_tests caps : Testo.t list =
     |> List_.filter_map (fun (test : Testo.t) ->
            let test = mark_todo_js test in
            let group_opt =
-             match test.name with
+             match Fpath.v test.name with
              (* note that there is no need to filter rules without targets; This
               * is now handled in Test_engine.make_tests which will generate
               * an XFAIL Testo test for those.
@@ -848,34 +844,32 @@ let semgrep_rules_repo_tests caps : Testo.t list =
                        the file to decide which language to use instead of what
                        is in the rule
                     *)
-                    s =~ ".*/unicode/security/bidi.yml"
-                    || s =~ ".*/dockerfile/security/dockerd-socket-mount.yaml"
+                    s =/~ ".*/unicode/security/bidi.yml"
+                    || s =/~ ".*/dockerfile/security/dockerd-socket-mount.yaml"
                     (* Elixir requires Pro *)
-                    || s =~ ".*/elixir/lang/.*"
+                    || s =/~ ".*/elixir/lang/.*"
                     (* Apex requires Pro *)
-                    || s =~ ".*/apex/lang/.*"
+                    || s =/~ ".*/apex/lang/.*"
                        (* but the following are generic rules ... *)
-                       && s
-                          <> "tests/semgrep-rules/apex/lang/best-practice/ncino/tests/UseAssertClass.yaml"
-                       && s
-                          <> "tests/semgrep-rules/apex/lang/performance/ncino/operationsInLoops/AvoidNativeDmlInLoops.yaml"
-                       && s
-                          <> "tests/semgrep-rules/apex/lang/performance/ncino/operationsInLoops/AvoidSoqlInLoops.yaml"
-                       && s
-                          <> "tests/semgrep-rules/apex/lang/performance/ncino/operationsInLoops/AvoidSoslInLoops.yaml"
-                       && s
-                          <> "tests/semgrep-rules/apex/lang/performance/ncino/operationsInLoops/AvoidOperationsWithLimitsInLoops.yaml"
-                       && s
-                          <> "tests/semgrep-rules/apex/lang/security/ncino/dml/ApexCSRFStaticConstructor.yaml"
+                       && not @@ Fpath.Set.mem s @@ Fpath.Set.of_list
+                          @@ List_.map Fpath.v
+                          @@ [
+                               "tests/semgrep-rules/apex/lang/best-practice/ncino/tests/UseAssertClass.yaml";
+                               "tests/semgrep-rules/apex/lang/performance/ncino/operationsInLoops/AvoidNativeDmlInLoops.yaml";
+                               "tests/semgrep-rules/apex/lang/performance/ncino/operationsInLoops/AvoidSoqlInLoops.yaml";
+                               "tests/semgrep-rules/apex/lang/performance/ncino/operationsInLoops/AvoidSoslInLoops.yaml";
+                               "tests/semgrep-rules/apex/lang/performance/ncino/operationsInLoops/AvoidOperationsWithLimitsInLoops.yaml";
+                               "tests/semgrep-rules/apex/lang/security/ncino/dml/ApexCSRFStaticConstructor.yaml";
+                             ]
                     (* ?? *)
-                    || s =~ ".*/yaml/semgrep/consistency/.*" ->
+                    || s =/~ ".*/yaml/semgrep/consistency/.*" ->
                  Some "XFAIL"
              (* not rule files *)
-             | s when s =~ ".*.test.yml" -> None
+             | s when s =/~ ".*.test.yml" -> None
              (* not languages tests *)
-             | s when s =~ ".*/semgrep-rules/stats/" -> None
+             | s when s =/~ ".*/semgrep-rules/stats/" -> None
              (* ok let's keep all the other one with the appropriate group name *)
-             | s when s =~ ".*/semgrep-rules/\\([a-zA-Z]+\\)/.*" ->
+             | s when s =/~ ".*/semgrep-rules/\\([a-zA-Z]+\\)/.*" ->
                  (* This is confusing because it looks like a programming
                     language from Lang.t but there's no guarantee that
                     it's a valid one.
@@ -919,7 +913,7 @@ let tests (caps : < Cap.readdir ; .. >) =
       lang_regression_tests ~polyglot_pattern_path;
       lang_autofix_tests ~polyglot_pattern_path;
       eval_regression_tests ();
-      filter_irrelevant_rules_tests ();
+      filter_irrelevant_rules_tests caps;
       lang_tainting_tests ();
       maturity_tests ();
       full_rule_taint_maturity_tests caps;

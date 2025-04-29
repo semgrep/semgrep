@@ -16,7 +16,7 @@ open Common
 open Fpath_.Operators
 module F = Testutil_files
 
-let t = Testo.create
+let t = Testo.create ?skipped:Testutil.skip_on_windows
 
 (*****************************************************************************)
 (* Prelude *)
@@ -27,8 +27,30 @@ let t = Testo.create
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-(* alt: define Show_subcommand.caps *)
-type caps = < Cap.stdout ; Cap.network ; Cap.tmp >
+type caps = Show_subcommand.caps
+
+(* Mask this field that is populated using a global counter *)
+let mask_id_info_id =
+  Testo.mask_pcre_pattern {|id_info_id\s*=\s*[0-9]+|} ~replace:(fun _ ->
+      "id_info_id = <MASKED NUM>")
+
+(* Due to smart formatting by the Format module and IDs
+   of variable lengths, the output can vary from one test run
+   to another even after masking the variable IDs.
+   Here, we remove all whitespace and reinsert some line breaks.
+   The unmasked original can always be consulted (see testo output).
+*)
+let normalize_whitespace =
+  let remove_whitespace =
+    Testo.mask_pcre_pattern "[ \t\n]+" ~replace:(fun _ -> "")
+  in
+  let insert_some_line_breaks =
+    (* insert newlines after this or that punctuation symbol
+       so as to make the output more diffable *)
+    Testo.mask_pcre_pattern {re|[(){}\[\],;:="']|re}
+      ~replace:(fun punctuation -> punctuation ^ "\n")
+  in
+  fun str -> str |> remove_whitespace |> insert_some_line_breaks
 
 (* for dump-config test *)
 let eqeq_basic_content =
@@ -107,7 +129,7 @@ let fake_deployment = {|{"deployment":{"id":42,"name":"fake_deployment"}}|}
 (*****************************************************************************)
 (* Tests *)
 (*****************************************************************************)
-let test_error_no_arguments (caps : caps) : Testo.t =
+let test_error_no_arguments (caps : < caps ; .. >) : Testo.t =
   t __FUNCTION__ (fun () ->
       try
         let _exit = Show_subcommand.main caps [| "semgrep-show" |] in
@@ -132,27 +154,22 @@ let test_version (caps : caps) : Testo.t =
 *)
 
 (* similar to test_misc.py test_cli_test_show_supported_languages *)
-let test_supported_languages (caps : caps) : Testo.t =
+let test_supported_languages (caps : < caps ; .. >) : Testo.t =
   t ~checked_output:(Testo.stdout ()) __FUNCTION__ (fun () ->
       let exit_code =
         Show_subcommand.main caps [| "semgrep-show"; "supported-languages" |]
       in
       Exit_code.Check.ok exit_code)
 
-(* fragile: due to smart formatting by the Format module and IDs of variable
-   lengths, the output can vary from one test run to another even after
-   masking the variable IDs.
-   TODO: replace all sequences of blanks and newlines by a single newline?
-*)
-let test_dump_config (caps : caps) : Testo.t =
-  t ~checked_output:(Testo.stdout ()) ~tags:[ Test_tags.flaky ]
+let test_dump_config (caps : < caps ; .. >) : Testo.t =
+  t ~checked_output:(Testo.stdout ())
     ~normalize:
       [
         (* because of the use of Xpattern.count global for pattern id *)
-        Testo.mask_pcre_pattern "pid = [0-9]+" ~replace:(fun _ ->
+        Testo.mask_pcre_pattern {|pid\s*=\s*[0-9]+|} ~replace:(fun _ ->
             "pid = <MASKED NUM>");
-        Testo.mask_pcre_pattern "id_info_id = [0-9]+" ~replace:(fun _ ->
-            "id_info_id = <MASKED NUM>");
+        mask_id_info_id;
+        normalize_whitespace;
       ]
     __FUNCTION__
     (fun () ->
@@ -165,7 +182,7 @@ let test_dump_config (caps : caps) : Testo.t =
       in
       Exit_code.Check.ok exit_code)
 
-let test_dump_rule_v2 (caps : caps) : Testo.t =
+let test_dump_rule_v2 (caps : < caps ; .. >) : Testo.t =
   t ~checked_output:(Testo.stdout ()) __FUNCTION__ (fun () ->
       let files = [ F.File ("rule.yml", eqeq_basic_content_v2) ] in
       let exit_code =
@@ -177,20 +194,14 @@ let test_dump_rule_v2 (caps : caps) : Testo.t =
       Exit_code.Check.ok exit_code)
 
 (* less: could also test the dump-ast -json *)
-let test_dump_ast (caps : caps) : Testo.t =
+let test_dump_ast (caps : < caps ; .. >) : Testo.t =
   t ~checked_output:(Testo.stdout ())
     ~normalize:
       [
-        (* because of the use of GenSym.MkId.
-         * TODO? note that it may not be enough to make the test
-         * stable across multiple runs because if the id counter vary a lot,
-         * and takes lots of integers, this could cause a reindentation
-         * of the AST
-         *)
-        Testo.mask_line ~after:"id_info_id=" ~before:";" ();
-      ]
-    __FUNCTION__
-    (fun () ->
+        (* because of the use of Gensym.MkId *)
+        mask_id_info_id;
+        normalize_whitespace;
+      ] __FUNCTION__ (fun () ->
       let files = [ F.File ("foo.py", foo_py_content) ] in
       let exit_code =
         Testutil_files.with_tempfiles ~chdir:true ~verbose:true files
@@ -200,7 +211,7 @@ let test_dump_ast (caps : caps) : Testo.t =
       in
       Exit_code.Check.ok exit_code)
 
-let test_dump_ast_when_error (caps : caps) : Testo.t =
+let test_dump_ast_when_error (caps : < caps ; .. >) : Testo.t =
   t ~checked_output:(Testo.stdxxx ()) ~normalize:[ Testutil_logs.mask_time ]
     __FUNCTION__ (fun () ->
       let files = [ F.File ("error.js", "function (") ] in
@@ -212,22 +223,21 @@ let test_dump_ast_when_error (caps : caps) : Testo.t =
       in
       Exit_code.Check.invalid_code exit_code)
 
-let test_dump_pattern (caps : caps) : Testo.t =
+let test_dump_pattern (caps : < caps ; .. >) : Testo.t =
   t ~checked_output:(Testo.stdout ())
     ~normalize:
       [
-        (* because of the use of GenSym.MkId *)
-        Testo.mask_line ~after:"id_info_id=" ~before:";" ();
-      ]
-    __FUNCTION__
-    (fun () ->
+        (* because of the use of Gensym.MkId *)
+        mask_id_info_id;
+        normalize_whitespace;
+      ] __FUNCTION__ (fun () ->
       let exit_code =
         Show_subcommand.main caps
           [| "semgrep-show"; "dump-pattern"; "python"; "foo(..., $X == $X)" |]
       in
       Exit_code.Check.ok exit_code)
 
-let test_identity (caps : caps) : Testo.t =
+let test_identity (caps : < caps ; .. >) : Testo.t =
   (* TODO: we use stdxxx here because we're using Logs.app for some of the output
    * instead of CapConsole in Whoami.ml, but we should really use CapConsole
    * and just capture stdout here.
@@ -241,7 +251,7 @@ let test_identity (caps : caps) : Testo.t =
       in
       Exit_code.Check.ok exit_code)
 
-let test_deployment (caps : caps) : Testo.t =
+let test_deployment (caps : < caps ; .. >) : Testo.t =
   t ~checked_output:(Testo.stdxxx ()) __FUNCTION__ (fun () ->
       let exit_code =
         with_fake_login fake_settings (fun () ->
@@ -254,7 +264,7 @@ let test_deployment (caps : caps) : Testo.t =
 (* Entry point *)
 (*****************************************************************************)
 
-let tests (caps : caps) =
+let tests (caps : < caps ; .. >) =
   Testo.categorize "Osemgrep Show (e2e)"
     [
       test_error_no_arguments caps;

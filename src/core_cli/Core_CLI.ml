@@ -106,6 +106,7 @@ let max_match_per_file = ref Core_scan_config.default.max_match_per_file
 
 (* -j *)
 let ncores = ref Core_scan_config.default.ncores
+let use_eio = ref false
 
 (* ------------------------------------------------------------------------- *)
 (* optional optimizations *)
@@ -127,32 +128,6 @@ let symbol_analysis = ref Core_scan_config.default.symbol_analysis
 
 (* action mode *)
 let action = ref ""
-
-(*****************************************************************************)
-(* Helpers *)
-(*****************************************************************************)
-
-(* Note that set_gc() may not interact well with Memory_limit and its use of
- * Gc.alarm. Indeed, the Gc.alarm triggers only at major cycle
- * and the tuning below raise significantly the major cycle trigger.
- * This is why we call set_gc() only when max_memory_mb is unset.
- *)
-let _set_gc_TODO () =
-  Logs.debug (fun m -> m "Gc tuning");
-  (*
-  if !Flag.debug_gc
-  then Gc.set { (Gc.get()) with Gc.verbose = 0x01F };
-*)
-  (* only relevant in bytecode, in native the stacklimit is the os stacklimit,
-   * which usually requires a ulimit -s 40000
-   *)
-  Gc.set { (Gc.get ()) with Gc.stack_limit = 1000 * 1024 * 1024 };
-
-  (* see www.elehack.net/michael/blog/2010/06/ocaml-memory-tuning *)
-  Gc.set { (Gc.get ()) with Gc.minor_heap_size = 4_000_000 };
-  Gc.set { (Gc.get ()) with Gc.major_heap_increment = 8_000_000 };
-  Gc.set { (Gc.get ()) with Gc.space_overhead = 300 };
-  ()
 
 (*****************************************************************************)
 (* Dumpers (see also Core_actions.ml) *)
@@ -223,11 +198,6 @@ let dump_ast ?(naming = false) (caps : < Cap.stdout ; Cap.exit >)
         log_parsing_errors file res;
         Core_exit_code.(exit_semgrep caps#exit False)))
 [@@action]
-
-(*****************************************************************************)
-(* Experiments *)
-(*****************************************************************************)
-(* See Experiments.ml now *)
 
 (*****************************************************************************)
 (* Output *)
@@ -367,6 +337,7 @@ let mk_config () : Core_scan_config.t =
       | false, None -> None);
     (* only settable via the Pro binary *)
     symbol_analysis = !symbol_analysis;
+    use_eio = !use_eio;
   }
 
 (*****************************************************************************)
@@ -380,8 +351,7 @@ let all_actions (caps : Cap.all_caps) () =
       " <metachecks file> <files or dirs>",
       Arg_.mk_action_n_conv Fpath.v
         (Check_rule.check_files
-           (caps
-             :> < Cap.stdout ; Cap.fork ; Cap.time_limit ; Cap.memory_limit >)
+           (caps :> < Cap.stdout ; Core_scan.caps ; Cap.readdir >)
            !output_format) );
     (* this is run by scripts (stats/.../run-lang) used by some of our workflows
      * (e.g., cron-parsing-stats.jsonnet)
@@ -402,7 +372,12 @@ let all_actions (caps : Cap.all_caps) () =
     (* The rest should be used just interactively by PA developers *)
     ( "-prefilter_of_rules",
       " <file> dump the prefilter regexps of rules in JSON ",
-      Arg_.mk_action_1_conv Fpath.v Core_actions.prefilter_of_rules );
+      Arg_.mk_action_1_conv Fpath.v
+        (Core_actions.prefilter_of_rules ~interfile:false) );
+    ( "-prefilter_of_rules_interfile",
+      " <file> dump the prefilter regexps of rules in JSON ",
+      Arg_.mk_action_1_conv Fpath.v
+        (Core_actions.prefilter_of_rules ~interfile:true) );
     (* the dumpers *)
     ( "-dump_extensions",
       " print file extension to language mapping",
@@ -480,7 +455,7 @@ let all_actions (caps : Cap.all_caps) () =
     ( "-stat_rules",
       " <files or dirs>",
       Arg_.mk_action_n_conv Fpath.v
-        (Check_rule.stat_files (caps :> < Cap.stdout >)) );
+        (Check_rule.stat_files (caps :> < Cap.stdout ; Cap.readdir >)) );
     ( "-parse_rules",
       " <dir>",
       Arg_.mk_action_1_conv Fpath.v
@@ -628,12 +603,32 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
             CapConsole.print caps#stdout version;
             Core_exit_code.(exit_semgrep caps#exit Success)),
         "  guess what" );
+      ( "-ocaml_version",
+        Arg.Unit
+          (fun () ->
+            let version = spf "OCaml version: %s" Sys.ocaml_version in
+            CapConsole.print caps#stdout version;
+            Core_exit_code.(exit_semgrep caps#exit Success)),
+        "  The version of OCaml that was used to build this binary" );
       ( "-rpc",
         Arg.Unit
           (fun () ->
-            RPC.main (caps :> < Cap.exec ; Cap.tmp ; Cap.network >);
+            RPC.main
+              (caps
+                :> < Cap.exec
+                   ; Cap.tmp
+                   ; Cap.network
+                   ; Cap.readdir
+                   ; Cap.random
+                   ; Cap.chdir
+                   ; Core_scan.caps >);
             Core_exit_code.(exit_semgrep caps#exit Success)),
         " don't use this unless you already know" );
+    ]
+  @ [
+      ( "-use_eio",
+        Arg.Set use_eio,
+        "  Rely on a multicore implementation of `-j` instead of Parmap" );
     ]
 
 (*****************************************************************************)
@@ -679,12 +674,6 @@ let register_exception_printers () =
 (*****************************************************************************)
 (* Run a scan *)
 (*****************************************************************************)
-(* TODO: We used to tune the garbage collector but from profiling
-   we found that the effect was small. Meanwhile, the memory
-   consumption causes some machines to freeze. We may want to
-   tune these parameters in the future/do more testing, but
-   for now just turn it off *)
-(* if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc (); *)
 
 let run caps (config : Core_scan_config.t) : unit =
   let res = Core_scan.scan caps config in
@@ -789,7 +778,7 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
             | Some file, None, [] -> Target_file file
             | None, Some lang, [ file ]
               when UFile.is_reg ~follow_symlinks:true file ->
-                Targets [ Target.mk_target (Analyzer.of_lang lang) file ]
+                Targets [ Target.mk_lang_target lang file ]
             | _ ->
                 (* alt: use the file targeting in Find_targets_lang but better
                  * to "dumb-down" semgrep-core to its minimum.
@@ -837,6 +826,4 @@ let with_exception_trace f =
 
 let main (caps : Cap.all_caps) (argv : string array) : unit =
   UCommon.main_boilerplate (fun () ->
-      Common.finalize
-        (fun () -> with_exception_trace (fun () -> main_exn caps argv))
-        (fun () -> !Hooks.exit |> List.iter (fun f -> f ())))
+      with_exception_trace (fun () -> main_exn caps argv))

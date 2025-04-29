@@ -1,26 +1,20 @@
-{ opam-nix, opam-repository, hasSubmodules, ocamlVersion ? "4.14.0" }:
+{ opam-nix, opam-repository, hasSubmodules, ocamlVersion ? "5.3.0" }:
 { pkgs, system, }:
 let
 
   lib = let on = opam-nix.lib.${system};
   in rec {
+    # We need to add the pkg-config path to the PATH for these packages so that
+    # dune can find it
+    # TODO fix on opam side to use pkg-conf on macos
+    addPkgConfig = pkg: inputs:
+      pkg.overrideAttrs (prev: {
+        nativeBuildInputs = prev.nativeBuildInputs ++ [ pkgs.pkg-config ];
+      });
     patchesOverlay = final: prev: {
-      # See https://github.com/tweag/opam-nix/issues/109
-      conf-libpcre = prev.conf-libpcre.overrideAttrs (prev: {
-        # We need to add the pkg-config path to the PATH so that dune can find
-        # it TODO fix
-        # https://github.com/ocaml/opam-repository/blob/master/packages/conf-libpcre/conf-libpcre.2/opam
-        # to use pkg-conf on macos
-        nativeBuildInputs = prev.nativeBuildInputs ++ [ pkgs.pkg-config ];
-      });
-
-      conf-libffi = prev.conf-libffi.overrideAttrs (prev: {
-        # We need to add the pkg-config path to the PATH so that dune can find
-        # it TODO fix
-        # https://github.com/ocaml/opam-repository/blob/master/packages/conf-libffi/conf-libffi.2/opam
-        # to use pkg-conf on macos
-        nativeBuildInputs = prev.nativeBuildInputs ++ [ pkgs.pkg-config ];
-      });
+      conf-libpcre = addPkgConfig prev.conf-libpcre [ pkgs.pkg-config ];
+      conf-libffi = addPkgConfig prev.conf-libffi [ pkgs.pkg-config ];
+      conf-libpcre2-8 = addPkgConfig prev.conf-libpcre2-8 [ pkgs.pkg-config ];
     };
 
     # helper to add buildinputs to an existing pkg
@@ -42,6 +36,20 @@ let
         fileset = (intersection (fromSource (pkgs.lib.sources.cleanSource src))
           (unions paths));
       });
+    mapDev = pkg: field:
+      builtins.map (dep:
+        if ((builtins.isAttrs dep) && (builtins.hasAttr "pname" dep)
+          && pkgs.lib.strings.hasSuffix "-dev" dep.name) then
+          (mapDev dep field)
+        else
+          dep) pkg.${field};
+    filterDevDeps = pkg:
+      let
+      in pkg.overrideAttrs (prev: {
+        buildInputs = mapDev prev "buildInputs";
+
+        nativeBuildInputs = mapDev prev "nativeBuildInputs";
+      });
 
     # TODO https://github.com/tweag/opam-nix/blob/main/DOCUMENTATION.md#materialization
     # Will speed it up
@@ -54,14 +62,21 @@ let
           # https://github.com/tweag/opam-nix/issues/112
           ocamlfind = "1.9.6";
         };
+        resolveArgs = {
+          # speeds up so we don't get a solver timeout
+          criteria = null;
+        };
         repos = [ "${opam-repository}" ];
         # repos = opamRepos to force newest version of opam
         # pkgs = pkgs to force newest version of nixpkgs instead of using opam-nix's
         # overlays = to force the default and patches overlay
-        scope = on.buildOpamProject { inherit pkgs repos overlays; } name src
-          (baseQuery // query);
+        scope =
+          on.buildOpamProject { inherit pkgs repos overlays resolveArgs; } name
+          src (baseQuery // query);
         inputsFromQuery = scopeToPkgs query scope;
-      in addBuildInputs scope.${name} (inputs ++ inputsFromQuery);
+        pkgWithInputs =
+          addBuildInputs scope.${name} (inputs ++ inputsFromQuery);
+      in filterDevDeps pkgWithInputs;
 
     # make sure we have submodules
     # See https://github.com/NixOS/nix/pull/7862
@@ -81,22 +96,13 @@ let
   semgrepOpam = lib.buildOpamPkg {
     name = "semgrep";
     src = ./.;
-    # You can force versions of certain packages here
-    query = {
-      # needed or else the newest version breaks. Not sure why this doesn't happen
-      # outside nix
-      mirage-runtime = "4.4.2";
-      # need for OCTS
-      tsort = "*";
-    };
-    # needed for octs and pcre2
-    # TODO move to depexts
-    inputs = (with pkgs; [ tree-sitter pcre2 ]);
+    inputs = (with pkgs; [ tree-sitter ]);
   };
 
   devOptional = lib.buildOpamPkg {
     name = "optional";
     src = ./dev;
+    # You can force versions of certain packages here
     query = { utop = "2.15.0"; };
   };
 
@@ -128,8 +134,11 @@ in let
   semgrep = semgrepOpam.overrideAttrs (prev: rec {
     # Special environment variables for osemgrep for linking stuff
 
+    # coupling: if you add files here you probably want to add them to the
+    # Dockerfile and the pro Dockerfile
     src = (lib.strictSrc ./. (with pkgs.lib.fileset; [
       ./Makefile
+      ./cygwin-env.mk
       ./TCB
       ./bin
       # might be missing due to submodule issue (dumb)

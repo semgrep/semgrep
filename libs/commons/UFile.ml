@@ -34,8 +34,6 @@ module Log = Log_commons.Log
 (* Globals and constants *)
 (*****************************************************************************)
 
-let follow_symlinks = ref false
-
 let vcs_re =
   "(^((\\.hg)|(CVS)|(\\.git)|(_darcs)|(\\.svn))$)|(.*\\.git_annot$)|(.*\\.marshall$)"
   |> Re.Posix.re |> Re.compile
@@ -96,7 +94,13 @@ module Legacy = struct
             if Buffer.length extbuf >= max_len then Buffer.sub extbuf 0 max_len
             else loop fd
       in
-      let fd = UUnix.openfile path [ Unix.O_RDONLY ] 0 in
+      (* Temporary files created using Python's [tempfile.NamedTemporaryFiles]
+         on Windows enables the [FILE_SHARE_DELETE] sharing mode. Files that
+         have open handles with the [FILE_SHARE_DELETE] sharing mode can only
+         be re-opened in that mode. To make sure we won't run into problems
+         opening the file, we add the [O_SHARE_DELETE] flag when opening all
+         files. *)
+      let fd = UUnix.openfile path [ Unix.O_RDONLY; Unix.O_SHARE_DELETE ] 0 in
       Common.protect ~finally:(fun () -> Unix.close fd) (fun () -> loop fd)
 
   let write_file ~file s =
@@ -117,9 +121,20 @@ module Legacy = struct
         res)
       (fun _e -> close_out chan)
 
+  (* Temporary files created using Python's [tempfile.NamedTemporaryFiles] on
+     Windows enables the [FILE_SHARE_DELETE] sharing mode. Files that have open
+     handles with the [FILE_SHARE_DELETE] sharing mode can only be re-opened in
+     that mode. To make sure we won't run into problems opening the file, we
+     add the [O_SHARE_DELETE] flag when opening all files. *)
+  let win_safe_open_in_bin file : in_channel =
+    UUnix.openfile file [ O_CREAT; O_RDONLY; O_SHARE_DELETE ] 0o666
+    |> UUnix.in_channel_of_descr
+
   let (with_open_infile : string (* filename *) -> (in_channel -> 'a) -> 'a) =
    fun file f ->
-    let chan = UStdlib.open_in_bin file in
+    let chan =
+      if !jsoo then UStdlib.open_in_bin file else win_safe_open_in_bin file
+    in
     unwind_protect
       (fun () ->
         let res = f chan in
@@ -134,32 +149,32 @@ module Legacy = struct
   (** [dir_contents] returns the paths of all regular files that are
  * contained in [dir]. Each file is a path starting with [dir].
   *)
-  let dir_contents ?(strict = false) dir =
+  let dir_contents (caps : < Cap.readdir ; .. >) ?(strict = false) dir =
     let rec loop result = function
       | f :: fs -> (
-          match f with
-          | f when not (USys.file_exists f) -> loop result fs
-          | f when USys.is_directory f ->
-              let caps = Cap.readdir_UNSAFE () in
-              let entries = CapFS.read_dir_entries caps (Fpath.v f) in
-              entries
-              |> List_.map (Filename.concat f)
-              |> List.append fs |> loop result
-          | f -> loop (f :: result) fs)
+          if not (Sys_.file_exists f) then loop result fs
+          else
+            match Sys_.is_directory f with
+            | true ->
+                CapFS.read_dir_entries caps (Fpath.v f)
+                |> List_.map (fun x -> Filename.concat f !!x)
+                |> List.append fs |> loop result
+            | false -> loop (f :: result) fs)
       | [] -> result
     in
     (* only check the existence of the root, and only in strict mode *)
     if strict then
-      if not (USys.file_exists dir) then
+      if not (Sys_.file_exists dir) then
         invalid_arg
           (spf "files_of_dirs_or_files_no_vcs_nofilter: %s does not exist" dir);
     loop [] [ dir ]
 
-  let files_of_dirs_or_files_no_vcs_nofilter ?strict xs =
+  let files_of_dirs_or_files_no_vcs_nofilter (caps : < Cap.readdir ; .. >)
+      ?strict xs =
     xs
     |> List_.map (fun x ->
-           if USys.is_directory x then
-             let files = dir_contents ?strict x in
+           if Sys_.is_directory x then
+             let files = dir_contents caps ?strict x in
              List.filter (fun x -> not (Re.execp vcs_re x)) files
            else [ x ])
     |> List_.flatten
@@ -197,9 +212,9 @@ let file_kind_of_yojson (yojson : Yojson.Safe.t) =
            "Could not convert to Unix.file_kind expected `String, received %s"
            Yojson.Safe.(to_string json))
 
-let files_of_dirs_or_files_no_vcs_nofilter ?strict xs =
+let files_of_dirs_or_files_no_vcs_nofilter caps ?strict xs =
   xs |> Fpath_.to_strings
-  |> Legacy.files_of_dirs_or_files_no_vcs_nofilter ?strict
+  |> Legacy.files_of_dirs_or_files_no_vcs_nofilter caps ?strict
   |> Fpath_.of_strings
 
 let cat path = Legacy.cat !!path

@@ -16,4 +16,5 @@ Initialized empty Git repository in<MASKED>
 Target files:
   .gitignore
   .semgrepignore
+  a
   c

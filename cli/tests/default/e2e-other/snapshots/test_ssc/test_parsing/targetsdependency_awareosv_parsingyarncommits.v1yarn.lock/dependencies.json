@@ -66,7 +66,7 @@
     "children": []
   },
   {
-    "package": "bower_components/angular-animate",
+    "package": "@bower_components/angular-animate",
     "version": "1.4.14",
     "ecosystem": "npm",
     "allowed_hashes": {},
@@ -77,7 +77,7 @@
     "children": []
   },
   {
-    "package": "bower_components/alertify",
+    "package": "@bower_components/alertify",
     "version": "0.0.0",
     "ecosystem": "npm",
     "allowed_hashes": {},

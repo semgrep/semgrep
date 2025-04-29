@@ -31,6 +31,7 @@ import importlib.resources
 import os
 import platform
 import shutil
+import subprocess
 import sys
 import sysconfig
 import warnings
@@ -56,6 +57,21 @@ os.environ["PATH"] = PATH + os.pathsep + sysconfig.get_path("scripts")
 IS_WINDOWS = platform.system() == "Windows"
 
 PRO_FLAGS = ["--pro", "--pro-languages", "--pro-intrafile"]
+
+if IS_WINDOWS:
+    # NOTE: we conditionally import colorama to avoid importing it
+    # unnecessarily on other platforms in the entrypoint script, which needs to
+    # be as 'light' as possible.
+    from colorama.winterm import enable_vt_processing
+
+    # On Windows, enable virtual terminal processing to correctly process ANSI
+    # escape sequences for pretty, colored output. We want to enable this as
+    # early as possible to correctly process ANSI escape sequences in all the
+    # subcommands both in osemgrep and pysemgrep. See
+    # https://learn.microsoft.com/en-us/windows/console/setconsolemode for more
+    # information.
+    enable_vt_processing(sys.stdout.fileno())
+    enable_vt_processing(sys.stderr.fileno())
 
 
 class CoreNotFound(Exception):
@@ -183,13 +199,47 @@ def exec_osemgrep():
         # If you call semgrep-core as osemgrep, then we get
         # osemgrep behavior, see src/main/Main.ml
         sys.argv[0] = "osemgrep"
-    # nosem: dangerous-os-exec-tainted-env-args
-    os.execvp(str(path), sys.argv)
+    if IS_WINDOWS:
+        # On Windows, os.execvp spawns a background process instead of
+        # replacing the current one, which breaks CLI interactivity. Therefore,
+        # we use subprocess.run to spawn a process that maintains interactive
+        # behavior. We stick with os.execvp on POSIX systems because it
+        # correctly replaces the current process, which is the desired behavior
+        # and avoids unnecessary extra processes.
+        try:
+            # nosem: dangerous-subprocess-use-tainted-env-args
+            child = subprocess.run(sys.argv, executable=str(path))
+        except KeyboardInterrupt:
+            # We don't want the stack trace on user interrupt
+            print(str("Aborted!"), file=sys.stderr)
+            sys.exit(130)
+        sys.exit(child.returncode)
+    else:
+        # nosem: dangerous-os-exec-tainted-env-args
+        os.execvp(str(path), sys.argv)
 
 
 # Needed for similar reasons as in pysemgrep, but only for the legacy
 # flag to work
 def main():
+    # This is a workaround for stdio and stdout encoding issues on Windows.
+    # Instead of relying on the users setting PYTHONIOENCODING=utf8 when
+    # running on Windows and redirecting the stdout and stderr to files, we do
+    # it in the console scripts.
+    # https://docs.python.org/3/library/sys.html#sys.stdout
+    if IS_WINDOWS and not sys.stdout.isatty():
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+
+    # Nudge Windows users away, until we are happy with our beta testing
+    semgrep_force_install = "SEMGREP_FORCE_INSTALL" in os.environ
+    if IS_WINDOWS and not semgrep_force_install:
+        sys.exit(
+            "Semgrep does not support Windows yet, please try again with WSL "
+            "or visit the following for more information: "
+            "https://github.com/semgrep/semgrep/issues/1330"
+        )
+
     # escape hatch for users to pysemgrep in case of problems (they
     # can also call directly 'pysemgrep').
     if "--legacy" in sys.argv:

@@ -13,7 +13,7 @@
  * LICENSE for more details.
  *)
 
-let t = Testo.create
+let t = Testo.create ?skipped:Testutil.skip_on_windows
 
 module F = Testutil_files
 

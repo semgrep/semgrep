@@ -551,6 +551,8 @@ class GithubMeta(GitMeta):
             if (
                 output  # output is empty when unable to find branch-off point
                 and "Not a valid " not in output  # the error when a ref is missing
+                and "not absolute"
+                not in output  # the error when there's weird safe dirs in the folder
             ):
                 raise Exception(f"Unexpected git merge-base error message: ({output})")
 

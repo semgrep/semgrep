@@ -6,6 +6,316 @@
 
 <!-- insertion point -->
 
+## [1.120.0](https://github.com/semgrep/semgrep/releases/tag/v1.120.0) - 2025-04-22
+
+
+### Added
+
+
+- Added a few new entries in the .semgrepignore default file
+  (e.g., _cargo, _opam, .svn) (semgrepignore)
+- Add an experimental option `--x-semgrepignore-filename` to change the name of `.semgrepignore` files to something else. This can be used to scan a subproject in a separate semgrep invocation as the rest of the containing project. (semgrepignore-filename)
+
+
+### Fixed
+
+
+- Fixed bug in pro package-lock.json parsing where dependencies with no specified version would cause an exception (SC-2150)
+- Fixed the default `-j` setting so as to take into account the cgroup
+  CPU quota on Linux. This will affect Docker and other containerized
+  environments that share resources on the same host. Use the new command
+  `semgrep show resources --experimental` to show the default setting. (saf-1950)
+
+
+## [1.119.0](https://github.com/semgrep/semgrep/releases/tag/v1.119.0) - 2025-04-16
+
+
+### Added
+
+
+- python: Semgrep will now perform dataflow analysis within and through comprehensions. (saf-1560)
+- A new subcommand `semgrep show project-root` is now provided to display
+  the project root path associated with a scan root. This is useful for
+  troubleshooting Semgrepignore (v2) issues. (saf-1936)
+
+
+### Fixed
+
+
+- tainting: Apply `taint_assume_safe_numbers` and `taint_assume_safe_booleans`
+  earlier when considering to track taint through class fields and function
+  parameters. If the field/parameter has a number/Boolean type and the
+  corresponding option is set, it will just not be tracked. In some cases this
+  can help with performance.
+
+  Also added `short`/`Short` to the list of integer types recognized by
+  `taint_assume_safe_numbers`. (code-8345)
+- IDE: The Semgrep VS Code Extension will no longer hang on `Getting code actions from Semgrep...`
+  on saving a file, when updating rules. (saf-1954)
+
+
+## [1.118.0](https://github.com/semgrep/semgrep/releases/tag/v1.118.0) - 2025-04-09
+
+
+### Fixed
+
+
+- Pro: Failure to parse a `package.json` file when analysing JavaScript or
+  TypeScript is no longer a fatal error. (code-8227)
+- taint-mode: Fixed bug in taint "auto-cleaning" where we automatically clean the
+  LHS of an assigmnet if the RHS is clean, provided that the LHS is not subject to
+  any "side-effects". In some cases, this could cause the taint analysis to timeout.
+  Some combinations of rules and repos will see a major perf improvement, in other
+  cases it may not be noticeable. (code-8288)
+- In a Semgrep rule's `metadata` section, two fields may provide URLs:
+
+  - `source`: populated dynamically by the Semgrep registry serving the rule, it's a URL that
+    offers information about the rule.
+  - `source-rule-url`: optional string, a URL for the source of inspiration for the rule.
+
+  The SARIF format supports only one URL under the field `helpUri`.
+  Previously, Semgrep populated the SARIF `helpUri` field only with `metadata.source`.
+  This fix is to use `metadata.source` if available, otherwise falling back to `metadata.source-rule-url`.
+
+  Contributed by @candrews. (gh-10891)
+
+
+## [1.117.0](https://github.com/semgrep/semgrep/releases/tag/v1.117.0) - 2025-04-02
+
+
+### Added
+
+
+- Add temporary backward compatibility in Semgrepignore v2 for patterns
+  that start with `./`. For example, the pattern `./*.py` should be written as
+  `/*.py` to have the desired effect of excluding the `.py` files
+  located in the same directory as the `.semgrepignore` file containing
+  the pattern.
+  To minimize surprises for users switching to Semgrepignore v2,
+  we'll be interpreting automatically `./*.py` as `/*.py` for the time
+  being so as to match the legacy Semgrepignore v1 behavior. Users should not
+  rely on this since it doesn't comply with the Gitignore/Semgrepignore
+  standard and will be removed in the future. (tolerate-semgrepignore-v1-dotslash)
+- Target file selection now uses
+  [Semgrepignore v2](https://semgrep.dev/docs/semgrepignore-v2-reference) by default. This brings the behavior of the Semgrepignore file
+  exclusions closer to Git and `.gitignore` files. There can now
+  be multiple `.semgrepignore` files in the project. The `.semgrepignore` file
+  in the current folder is no longer consulted unless it in the project.
+  Negated patterns are now supported such as `!scanme.py` as with Gitignore.
+  Some bugs were fixed. (use-semgrepignore-v2)
+
+
+### Changed
+
+
+- Upgrade Semgrep from OCaml 5.2.1 to 5.3.0 (#3)
+
+
+### Fixed
+
+
+- In Semgrepignore v2, allow wildcards `*` and `?` to match file names with a leading period. This matches the behavior of Gitignore and Semgrepignore v1. (semgrepignore-dotfiles)
+
+
+## [1.116.0](https://github.com/semgrep/semgrep/releases/tag/v1.116.0) - 2025-03-28
+
+
+### Fixed
+
+
+- Use value of $XDG_CACHE_HOME before hardcoded ~/.cache for semgrep_version file (gh-4465)
+
+
+## [1.115.0](https://github.com/semgrep/semgrep/releases/tag/v1.115.0) - 2025-03-26
+
+
+### Added
+
+
+- pro: Extended the `requires:` key for taint sinks to specify multiple conditions
+  associated with different metavariables.
+
+  For example:
+
+      pattern-sinks:
+      - patterns:
+        - pattern: $OBJ.foo($SINK, $ARG1)
+        - focus-metavariable: $SINK
+        requires:
+        - $SINK: TAINT
+        - $OBJ: OBJ
+        - $ARG1: ARG1
+
+  With a regular `requires:` the condition can only apply to whatever the sink is
+  matching, in this case, `$SINK`. With a "multi-requires" we are able to restrict
+  `$SINK`, `$OBJ` and `$ARG1` independently, each one having its own condition.
+
+  Note that `requires:` is part of the *experimental* taint labels feature. (code-7912)
+- In the text output of `semgrep scan` and `semgrep ci`, a warning message
+  announcing the upcoming Semgrepignore v2 is now displayed. Differences in
+  target selection are shown. (semgrepignore-v2-warning)
+
+
+## [1.114.0](https://github.com/semgrep/semgrep/releases/tag/v1.114.0) - 2025-03-19
+
+
+### Fixed
+
+
+- Pro Engine now more accurately tracks the scope of Python local variables. For
+  example, the following code defines two `z` variables that should be tracked
+  separately.
+
+  ```
+  z = 1
+
+  def foo():
+      z = 2
+      a = z
+  ```
+
+  The Pro engine now correctly recognizes that the `z` assigned to `a` is the one
+  defined in the local scope, not the global scope. (code-8114)
+
+
+## [1.113.0](https://github.com/semgrep/semgrep/releases/tag/v1.113.0) - 2025-03-17
+
+
+### Fixed
+
+
+- Semgrep will no longer fail a diff scan if there is a relative safe directory (saf-1851)
+
+
+## [1.112.0](https://github.com/semgrep/semgrep/releases/tag/v1.112.0) - 2025-03-13
+
+
+### Added
+
+
+- TypeScript parser now allows ellipses in class bodies. For example, you can
+  write the pattern like:
+  ```
+  class $C {
+    ...
+    $FUNC() { ... }
+    ...
+  }
+  ``` (code-8242)
+- Semgrep will now present more detailed info when a scan is complete, such as what percent of lines were scanned. It is also formatted in a new manner (saf-details)
+- Verbose output will now print additional info about parsing and internal semgrep errors, such as what % of lines were skipped, and the lines they occured on (saf-verbose)
+
+
+### Fixed
+
+
+- pro: Fixed bug in (experimental) "at-exit" sinks feature that would prevent
+  the identification of a statement like `return foo()` as one such sink. (code-8199)
+- FIX: `--gitlab-secrets` output has been updated to conform to GitLab JSON schema (scrt-849)
+- The behavior of `--semgrepignore-v2` changed to be closer to the legacy
+  Semgrepignore v1. `.gitignore` files are no longer loaded automatically
+  as part of the Semgrepignore v2 exclusion mechanism.
+  Loading a `.gitignore` file must be done
+  by placing `:include .gitignore` in the `.semgrepignore` file
+  as was the case with Semgrepignore v1. (semgrepignore-v1-compat)
+
+
+## [1.111.0](https://github.com/semgrep/semgrep/releases/tag/v1.111.0) - 2025-03-04
+
+
+### Changed
+
+
+- Removed `.semgrepignore` file lookup using the `SEMGREP_R2C_INTERNAL_EXPLICIT_SEMGREPIGNORE` environment variable. This was used by semgrep-action which
+  has been deprecated. (semgrep-action)
+
+
+### Fixed
+
+
+- pro: Fixed bug that could prevent taint tracking from following a virtual call
+  in JS/TS. (code-8065)
+- PRO: Restricted heuristic search of the Python module path to paths only under
+  the project root to reduce inaccuracies in module resolution. This change
+  mitigates the risk of resolving module specifiers to incorrect paths,
+  particularly in cases involving common library names (e.g., `django`). (code-8146)
+- Fix the incorrect schema and analysis type in the JSON output of the secret
+  findings when using the --gitlab-secrets flag. (scrt-833)
+
+
+## [1.110.0](https://github.com/semgrep/semgrep/releases/tag/v1.110.0) - 2025-02-26
+
+
+### Added
+
+
+- pro: Inter-file analysis will now process Javascript and Typescript files
+  together, so that taint can be tracked across both languages. (code-8076)
+- Pro: new `metavariable-name` operator which allows for expressing a constraint
+  against the fully qualified name or nearest equivalent of a metavariable
+  (useful mainly in JavaScript and TypeScript, where there is no first-class
+  syntax for this, or where such names or pseudo-names containt symbols which
+  cannot appear in identifiers). Requires pro naming passes and works best with
+  interfile naming.
+
+  Additional documentation forthcoming. (code-8121)
+
+
+### Changed
+
+
+- Upgrade from OCaml 4.14.0 to OCaml 5.2.1 for our PyPI and Homebrew distributions. Our Docker images have been built with OCaml 5.2.1 since Semgrep 1.107.0. (ocaml5)
+
+
+### Fixed
+
+
+- Fixed a regression in pro interfile mode where type inference for the `var`
+  keyword in Java was not functioning correctly. (code-7991)
+- PRO: Fix the `range not found` error when using a metavariable pattern match on
+  a typed metavariable. For example, the following metavariable pattern rule will
+  no longer trigger the error:
+
+  ```
+  patterns:
+    - pattern: ($FOO $VAR).bar()
+    - metavariable-pattern:
+        metavariable: $FOO
+        pattern-either:
+          - pattern: org.foo.Foo
+  ``` (code-8007)
+- lsp will no longer send diagnostics where the message is `MarkupContent` since
+  our current implementation does not discriminate on the client capability for
+  recieiving such diagnostics (to-be-added in 3.18). (code-8120)
+- Yarn.lock parser now correctly denotes NPM organization scope. (sc-2107)
+- Packages in `Package.resolved` without a version are now ignored. (sc-2116)
+- Updated `Package.swift` parser to support:
+  - The url value in a .package entry doesn't have to end with .git
+  - You can have an exact field that looks like exact: "1.0.0" instead of .exact("1.0.0")
+  - The exact version can be an object like Version(1,2,3) instead of a string
+  - You can have .package values with no url, like this: .package(name: "package", path: "foo/bar") (sc-2117)
+
+
+## [1.109.0](https://github.com/semgrep/semgrep/releases/tag/v1.109.0) - 2025-02-19
+
+
+### Changed
+
+
+- Pyproject.toml files are now parsed using a toml parser (tomli). (sc-2054)
+
+
+### Fixed
+
+
+- pro: taint-mode: Fixed limitation in custom taint propagators.
+  See https://semgrep.dev/playground/s/ReJQO (code-7967)
+- taint-mode: Disable symbolic-propagation when matching taint propagators
+  to prevent unintended interactions. See https://semgrep.dev/playground/s/7KE0k. (code-8054)
+- Fixed pattern match deduplication to avoid an O(n^2) worst-case complexity, and
+  optimized the matching of ordered `..., PAT, ...` patterns. (saf-682)
+
+
 ## [1.108.0](https://github.com/semgrep/semgrep/releases/tag/v1.108.0) - 2025-02-12
 
 

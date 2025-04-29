@@ -234,8 +234,7 @@ let stats_of_prog prog : stats =
         | ( {
               name =
                 EN
-                  (Id
-                    (id, { id_resolved = { contents = Some (_kind, sid) }; _ }));
+                  (Id (id, { id_resolved = { contents = Some (_kind, sid) }; _ }));
               _;
             },
             VarDef { vinit = Some _e; _ } ) ->
@@ -285,11 +284,11 @@ let stats_of_prog prog : stats =
                       e =
                         N
                           (Id
-                            ( id,
-                              {
-                                id_resolved = { contents = Some (_kind, sid) };
-                                _;
-                              } ));
+                             ( id,
+                               {
+                                 id_resolved = { contents = Some (_kind, sid) };
+                                 _;
+                               } ));
                       _;
                     };
                 ],
@@ -444,8 +443,7 @@ let propagate_basic lang prog =
         | ( {
               name =
                 EN
-                  (Id
-                    (id, { id_resolved = { contents = Some (_kind, sid) }; _ }));
+                  (Id (id, { id_resolved = { contents = Some (_kind, sid) }; _ }));
               attrs;
               _;
             },
@@ -462,12 +460,12 @@ let propagate_basic lang prog =
               name =
                 EN
                   (Id
-                    ( id,
-                      {
-                        id_resolved = { contents = Some (_kind, sid) };
-                        id_flags;
-                        _;
-                      } ));
+                     ( id,
+                       {
+                         id_resolved = { contents = Some (_kind, sid) };
+                         id_flags;
+                         _;
+                       } ));
               attrs;
               _;
             },
@@ -551,23 +549,23 @@ let propagate_basic lang prog =
                 e =
                   ( N
                       (Id
-                        ( id,
-                          {
-                            id_resolved = { contents = Some (kind, sid) };
-                            id_flags;
-                            _;
-                          } ))
+                         ( id,
+                           {
+                             id_resolved = { contents = Some (kind, sid) };
+                             id_flags;
+                             _;
+                           } ))
                   | DotAccess
                       ( { e = N (IdSpecial (((This | Self), _), _)); _ },
                         _,
                         FN
                           (Id
-                            ( id,
-                              {
-                                id_resolved = { contents = Some (kind, sid) };
-                                id_flags;
-                                _;
-                              } )) ) );
+                             ( id,
+                               {
+                                 id_resolved = { contents = Some (kind, sid) };
+                                 id_flags;
+                                 _;
+                               } )) ) );
                 _;
               },
               _,

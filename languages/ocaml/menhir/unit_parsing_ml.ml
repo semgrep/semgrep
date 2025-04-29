@@ -1,4 +1,4 @@
-open Common
+open Fpath_.Operators
 
 let t = Testo.create
 
@@ -7,22 +7,22 @@ let t = Testo.create
 (*****************************************************************************)
 
 (* ran from the root of the semgrep repository *)
-let tests_path = "tests"
+let tests_path = Fpath.v "tests"
 
 let tests (caps : < Cap.tmp >) =
   Testo.categorize "parsing_ml"
     [
       t "regression files" (fun () ->
-          let dir = Filename.concat tests_path "ml/parsing" in
-          let files = Common2.glob (spf "%s/*.ml" dir) in
+          let dir = tests_path / "ml" / "parsing" in
+          let files = Common2.glob (dir / "*.ml") in
           files
           |> List.iter (fun file ->
                  try
-                   let _ = Parse_ml.parse_program (Fpath.v file) in
+                   let _ = Parse_ml.parse_program file in
                    ()
                  with
                  | Parsing_error.Syntax_error _ ->
-                     Alcotest.failf "it should correctly parse %s" file));
+                     Alcotest.failf "it should correctly parse %a" Fpath.pp file));
       (* Check that the visitor implementation correctly visit all AST
        * subelements, even when they are deep inside the AST tree (e.g.
        * sub-sub expressions inside parenthesis).

@@ -30,7 +30,6 @@ jobs:
       - run: git submodule update --init
       - run: |
           eval $(opam env)
-          make install-deps-UBUNTU-for-semgrep-core
           make install-deps-for-semgrep-core
           make install-deps
           make core

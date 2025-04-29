@@ -35,7 +35,9 @@ let repr ?unicode_version s =
         (* NOTE: we replace bad utf-8 sequences with [Uutf.u_rep]. This is
          * similar to in python calling {[bytes.decode(.., errors='replace')]}.
          * We could implement other strategies... *)
-        match c with `Uchar c -> c | `Malformed _string -> Uutf.u_rep
+        match c with
+        | `Uchar c -> c
+        | `Malformed _string -> Uutf.u_rep
       in
       if Uchar.is_char c && Uchar.to_int c < 128 then
         (* US ASCII is special *)
@@ -72,7 +74,9 @@ let repr ?unicode_version s =
     let folder () _index uchar =
       let c =
         (* See the comment earlier. *)
-        match uchar with `Uchar c -> c | `Malformed _string -> Uutf.u_rep
+        match uchar with
+        | `Uchar c -> c
+        | `Malformed _string -> Uutf.u_rep
       in
       (* If the codepoint is considered printable by Python we use it unescaped
        * except for a few cases in the US ASCII range. *)

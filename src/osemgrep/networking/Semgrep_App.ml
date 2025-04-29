@@ -44,7 +44,12 @@ module Out = Semgrep_output_v1_j
 (* LATER: declare this in semgrep_output_v1.atd instead? *)
 type scan_id = int
 type app_block_override = string (* reason *) option
-type pro_engine_arch = Osx_arm64 | Osx_x86_64 | Manylinux_x86_64
+
+type pro_engine_arch =
+  | Osx_arm64
+  | Osx_x86_64
+  | Manylinux_x86_64
+  | Win32_x86_64
 
 (*****************************************************************************)
 (* Routes *)
@@ -79,10 +84,15 @@ let pro_binary_route (platform_kind : pro_engine_arch) =
     | Osx_arm64 -> "osx-arm64"
     | Osx_x86_64 -> "osx-x86"
     | Manylinux_x86_64 -> "manylinux"
+    | Win32_x86_64 -> "win32-x86"
   in
   "api/agent/deployments/deepbinary/" ^ arch_str
 
 let symbol_analysis_route scan_id = spf "/api/agent/scans/%d/symbols" scan_id
+
+(* Transitive reachability caching routes *)
+let tr_cache_route = "/api/cli/tr_cache"
+let tr_cache_lookup_route = "/api/cli/tr_cache/lookup"
 
 (*****************************************************************************)
 (* Extractors *)
@@ -247,8 +257,11 @@ let report_failure_async caps ~scan_id (exit_code : Exit_code.t) : unit Lwt.t =
     Uri.with_path !Semgrep_envvars.v.semgrep_url (error_route scan_id)
   in
   let failure : Out.ci_scan_failure =
-    { exit_code = int_code; (* TODO *)
-                            stderr = "" }
+    {
+      exit_code = int_code;
+      (* TODO *)
+      stderr = "";
+    }
   in
   let body = Out.string_of_ci_scan_failure failure in
   match%lwt Http_helpers.post ~body ~headers caps#network url with
@@ -381,6 +394,61 @@ let fetch_scan_config_string_async ~dry_run ~sca ~full_scan ~repository caps :
 (*****************************************************************************)
 (* Other endpoints *)
 (*****************************************************************************)
+
+(* Query the TR cache for matches *)
+let query_tr_cache_async caps (request : Out.tr_query_cache_request) :
+    (Out.tr_query_cache_response, string) result Lwt.t =
+  let headers =
+    [
+      ("Content-Type", "application/json");
+      ("User-Agent", spf "Semgrep/%s" Version.version);
+      Auth.auth_header_of_token caps#token;
+    ]
+  in
+  let url =
+    Uri.with_path !Semgrep_envvars.v.semgrep_url tr_cache_lookup_route
+  in
+  let body = Out.string_of_tr_query_cache_request request in
+
+  match%lwt Http_helpers.post ~body ~headers caps#network url with
+  | Ok { body = Ok body; _ } -> (
+      try
+        let response = Out.tr_query_cache_response_of_string body in
+        Lwt.return_ok response
+      with
+      | exn ->
+          Lwt.return_error
+            (spf "Failed to parse cache response: %s" (Printexc.to_string exn)))
+  | Ok { body = Error msg; code; _ } ->
+      Lwt.return_error
+        (spf "Failed to query TR cache, API server returned %u: %s" code msg)
+  | Error e -> Lwt.return_error (spf "Failed to query TR cache: %s" e)
+
+(* Add entries to the TR cache *)
+let add_to_tr_cache_async caps (request : Out.tr_add_cache_request) :
+    (unit, string) result Lwt.t =
+  let headers =
+    [
+      ("Content-Type", "application/json");
+      ("User-Agent", spf "Semgrep/%s" Version.version);
+      Auth.auth_header_of_token caps#token;
+    ]
+  in
+  let url = Uri.with_path !Semgrep_envvars.v.semgrep_url tr_cache_route in
+  let body = Out.string_of_tr_add_cache_request request in
+
+  match%lwt Http_helpers.post ~body ~headers caps#network url with
+  | Ok { body = Ok _; _ } -> Lwt.return_ok ()
+  | Ok { body = Error msg; code; _ } ->
+      Lwt.return_error
+        (spf "Failed to add to TR cache, API server returned %u: %s" code msg)
+  | Error e -> Lwt.return_error (spf "Failed to add to TR cache: %s" e)
+
+let query_tr_cache caps request =
+  Lwt_platform.run (query_tr_cache_async caps request)
+
+let add_to_tr_cache caps request =
+  Lwt_platform.run (add_to_tr_cache_async caps request)
 
 let fetch_pro_binary caps platform_kind =
   let uri =

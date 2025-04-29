@@ -93,8 +93,8 @@ val is_textual_file : Fpath.t -> bool
 val is_json_filename : Fpath.t -> bool
 val is_syncweb_obj_file : Fpath.t -> bool
 
-(* deprecated? *)
-val files_of_dirs_or_files : (file_type -> bool) -> Fpath.t list -> Fpath.t list
+val files_of_dirs_or_files :
+  < Cap.readdir ; .. > -> (file_type -> bool) -> Fpath.t list -> Fpath.t list
 
 (* specialisations *)
 val webpl_type_of_file : Fpath.t -> webpl_type option

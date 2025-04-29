@@ -31,7 +31,6 @@ type 'spec t = {
 val is_exact : 'spec t -> bool
 (** An exact match, i.e. overlap 0.99. Typically useful for l-values. *)
 
-val sink_of_match : Rule.taint_sink t -> Shape_and_sig.Effect.sink
 val _show : 'spec t -> string
 
 (** Any kind of spec-match (existential type). *)

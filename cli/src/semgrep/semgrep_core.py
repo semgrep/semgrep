@@ -1,18 +1,16 @@
 import importlib.resources
 import os
-import platform
 import shutil
 import sys
 from pathlib import Path
 from typing import Optional
 
+from semgrep.util import IS_WINDOWS
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
 VERSION_STAMP_FILENAME = "pro-installed-by.txt"
-
-IS_WINDOWS = platform.system() == "Windows"
 
 
 def compute_executable_path(exec_name: str) -> Optional[str]:
@@ -26,6 +24,8 @@ def compute_executable_path(exec_name: str) -> Optional[str]:
 
     # First, try packaged binaries
     try:
+        # TODO: .path() is deprecated, use .files() instead to avoid
+        # annoying deprecation notice when running tests
         with importlib.resources.path("semgrep.bin", exec_name) as path:
             if path.is_file():
                 return str(path)

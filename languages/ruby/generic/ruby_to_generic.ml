@@ -325,12 +325,12 @@ and scope_resolution x : G.name =
          G.e =
            G.N
              (G.IdQualified
-               {
-                 name_last;
-                 name_middle = Some (G.QDots middle);
-                 name_top = None;
-                 _;
-               });
+                {
+                  name_last;
+                  name_middle = Some (G.QDots middle);
+                  name_top = None;
+                  _;
+                });
          _;
         } ->
             G.QDots (middle @ [ name_last ])
@@ -561,8 +561,8 @@ and expr_as_stmt = function
       let e = expr e in
       match e.G.e with
       (* targets only: a single name on its own line is probably an hidden fun call,
-         * unless it's a metavariable
-      *)
+       * unless it's a metavariable
+       *)
       | G.N (G.Id ((s, _), _)) ->
           if AST_generic.is_metavar_name s || !Flag_parsing.sgrep_mode then
             G.exprstmt e

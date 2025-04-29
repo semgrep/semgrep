@@ -16,9 +16,20 @@ from semgrep.constants import OutputFormat
         ("rules/cwe_tag.yaml", "basic/stupid.py"),
         # Rules with metavariable-type need parser initialization to parse correctly.
         ("rules/metavariable_type.yaml", "basic/stupid.py"),
+        # Check that the SARIF output contains the URL from
+        # metadata.source or metadata.source-rule-url:
+        ("rules/source_url.yaml", "basic/stupid.py"),
+        ("rules/source_rule_url.yaml", "basic/stupid.py"),
+    ],
+    ids=[
+        "eqeq",
+        "cwe_tag",
+        "metavariable_type",
+        "source_url",
+        "source_rule_url",
     ],
 )
-@pytest.mark.parametrize("dataflow_traces", [True, False])
+@pytest.mark.parametrize("dataflow_traces", [True, False], ids=["trace", "notrace"])
 def test_sarif_output(
     run_semgrep_in_tmp: RunSemgrep, snapshot, rule_and_target, dataflow_traces
 ):

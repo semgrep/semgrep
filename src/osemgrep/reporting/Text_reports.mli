@@ -51,4 +51,5 @@ val scan_summary :
   Maturity.t ->
   Semgrep_output_v1_t.cli_output ->
   Skipped_groups.t ->
+  Logs.level option ->
   string

@@ -84,15 +84,13 @@ let mkdir ?(root = USys.getcwd () |> Fpath.v) path =
       (spf "Testutil_files.mkdir: root must be an absolute path: %s" !!root);
   let rec mkdir path =
     let abs_path = root // path in
-    let str = Fpath.to_string abs_path in
-    if not (USys.file_exists str) then (
+    if not (Sys_.Fpath.exists abs_path) then (
       let parent = Fpath.parent path in
       mkdir parent;
-      UUnix.mkdir str 0o777)
+      UUnix.mkdir !!abs_path 0o777)
   in
-  let root_s = Fpath.to_string root in
-  if not (USys.file_exists root_s) then
-    failwith ("Testutil_files.mkdir: root folder doesn't exist: " ^ root_s);
+  if not (Sys_.Fpath.exists root) then
+    failwith ("Testutil_files.mkdir: root folder doesn't exist: " ^ !!root);
   mkdir path
 
 let get_dir_entries path =
@@ -124,7 +122,7 @@ let remove path =
         UUnix.rmdir !!path
     | _other -> USys.remove !!path
   in
-  if USys.file_exists !!path then remove path
+  if Sys_.Fpath.exists path then remove path
 
 let with_chdir dir f =
   let dir_s = Fpath.to_string dir in
@@ -135,21 +133,10 @@ let with_chdir dir f =
       UUnix.chdir dir_s;
       f ())
 
-let init_rng = lazy (URandom.self_init ())
-
 let create_tempdir () =
-  let rec loop n =
-    if n > 10 then
-      failwith "Can't create a temporary test folder with a random name";
-    let name = spf "test-%x" (URandom.bits ()) in
-    let path = UTmp.get_temp_dir_name () / name in
-    if USys.file_exists !!path then loop (n + 1)
-    else (
-      UUnix.mkdir !!path 0o777;
-      path)
-  in
-  Lazy.force init_rng;
-  loop 1
+  let path = UTmp.get_unique_temp_name ~prefix:"test" () in
+  UUnix.mkdir !!path 0o777;
+  path
 
 let with_tempdir ?(persist = false) ?(chdir = false) func =
   let dir = create_tempdir () in
@@ -181,7 +168,8 @@ let flatten ?(root = Fpath.v ".") ?(include_dirs = false) files =
   in
   let acc, _dir = flatten ([], root) files in
   List.rev acc
-  |> (* remove the leading "./" *)
+  |>
+  (* remove the leading "./" *)
   List_.map Fpath.normalize
 
 let print_files files =
@@ -193,7 +181,7 @@ and write_one root file =
   match file with
   | Dir (name, entries) ->
       let dir = root / name in
-      if not (USys.file_exists !!dir) then UUnix.mkdir !!dir 0o777;
+      if not (Sys_.Fpath.exists dir) then UUnix.mkdir !!dir 0o777;
       write dir entries
   | File (name, contents) ->
       let path = root / name in
@@ -229,7 +217,8 @@ let with_tempfiles ?chdir ?persist ?(verbose = false) files func =
       if verbose then (
         UPrintf.printf "--- begin input files ---\n";
         print_files files;
-        UPrintf.printf "--- end input files ---\n");
+        UPrintf.printf "--- end input files ---\n";
+        flush stdout);
       write root files;
       func root)
 
@@ -238,7 +227,7 @@ let with_tempfiles ?chdir ?persist ?(verbose = false) files func =
 (*****************************************************************************)
 
 let () =
-  Testo.test "Testutil_files" (fun () ->
+  Testo.test ?skipped:Testutil.skip_on_windows "Testutil_files" (fun () ->
       with_tempdir ~chdir:true (fun root ->
           assert (read root =*= []);
           assert (read (Fpath.v ".") =*= []);

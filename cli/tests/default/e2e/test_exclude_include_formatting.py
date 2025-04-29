@@ -12,9 +12,11 @@ from semgrep.constants import OutputFormat
 # scanned.
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
-def test_exclude_include_verbose_sorted_1(run_semgrep_in_tmp: RunSemgrep, snapshot):
+def test_exclude_include_verbose_sorted_1(
+    run_semgrep_on_copied_files: RunSemgrep, snapshot
+):
     snapshot.assert_match(
-        run_semgrep_in_tmp(
+        run_semgrep_on_copied_files(
             "rules/eqeq.yaml",
             options=["--exclude", "excluded.*", "--exclude", "included.*", "--verbose"],
             output_format=OutputFormat.TEXT,
@@ -31,9 +33,11 @@ def test_exclude_include_verbose_sorted_1(run_semgrep_in_tmp: RunSemgrep, snapsh
 # scanned.
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
-def test_exclude_include_verbose_sorted_2(run_semgrep_in_tmp: RunSemgrep, snapshot):
+def test_exclude_include_verbose_sorted_2(
+    run_semgrep_on_copied_files: RunSemgrep, snapshot
+):
     snapshot.assert_match(
-        run_semgrep_in_tmp(
+        run_semgrep_on_copied_files(
             "rules/nosem.yaml",
             options=["--exclude", "*.*", "--verbose"],
             output_format=OutputFormat.TEXT,

@@ -2,7 +2,6 @@ import asyncio
 import collections
 import contextlib
 import json
-import platform
 import sys
 import tempfile
 from datetime import datetime
@@ -17,8 +16,8 @@ from typing import Optional
 from typing import Sequence
 from typing import Set
 from typing import Tuple
+from typing import Union
 
-from attr import evolve
 from rich.progress import BarColumn
 from rich.progress import Progress
 from rich.progress import TaskID
@@ -50,9 +49,10 @@ from semgrep.rule_match import RuleMatchMap
 from semgrep.semgrep_types import Language
 from semgrep.state import DesignTreatment
 from semgrep.state import get_state
-from semgrep.subproject import ResolvedSubproject
 from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
+from semgrep.types import TargetAccumulator
+from semgrep.util import IS_WINDOWS
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -71,7 +71,6 @@ INPUT_BUFFER_LIMIT: int = 1024 * 1024 * 1024
 # test/e2e/test_performance.py is one test that exercises this risk.
 LARGE_READ_SIZE: int = 1024 * 1024 * 512
 
-IS_WINDOWS = platform.system() == "Windows"
 if not IS_WINDOWS:
     import resource
 
@@ -236,12 +235,14 @@ class StreamingSemgrepCore:
         stdout_lines: List[bytes] = []
         num_total_targets: int = self._total
 
-        # Start out reading two bytes at a time (".\n")
+        # Progress indicator bytes that we see from semgrep-core stdout
+        progress_bytes = b".\r\n" if IS_WINDOWS else b".\n"
+        # Start out reading two (or three on Windows) bytes at a time
         get_input: Callable[
             [asyncio.StreamReader], Coroutine[Any, Any, bytes]
-        ] = lambda s: s.readexactly(2)
+        ] = lambda s: s.readexactly(len(progress_bytes))
         reading_json = False
-        # Read ".\n" repeatedly until we reach the JSON output.
+        # Read the progress_bytes repeatedly until we reach the JSON output.
         # TODO: read progress from one channel and JSON data from another.
         # or at least write/read progress as a stream of JSON objects so that
         # we don't have to hack a parser together.
@@ -253,7 +254,7 @@ class StreamingSemgrepCore:
             except asyncio.IncompleteReadError:
                 logger.debug(self._stderr)
                 # happens if the data that follows a sequence of zero
-                # or more ".\n" has fewer than two bytes, such as:
+                # or more progress_bytes has fewer than two bytes, such as:
                 # "", "3", ".\n.\n3", ".\n.\n.\n.", etc.
 
                 # Hack: the exact wording of parts this message may be used in metrics queries
@@ -302,7 +303,7 @@ class StreamingSemgrepCore:
                 self._stdout = b"".join(stdout_lines).decode("utf-8", "replace")
                 break
 
-            if line_bytes == b".\n" and not reading_json:
+            if line_bytes == progress_bytes and not reading_json:
                 # We expect to see 3 dots for each target, when running interfile analysis:
                 # - once when finishing phase 4, name resolution, on that target
                 # - once when finishing phase 5, taint configs, on that target
@@ -521,9 +522,10 @@ class CoreRunner:
         respect_rule_paths: bool = True,
         path_sensitive: bool = False,
         symbol_analysis: bool = False,
+        use_pro_naming_for_intrafile: bool = False,
     ):
         self._binary_path = engine_type.get_binary_path()
-        self._jobs = jobs or engine_type.default_jobs
+        self._jobs = jobs
         self._engine_type = engine_type
         self._timeout = timeout
         self._max_memory = max_memory
@@ -537,6 +539,7 @@ class CoreRunner:
         self._respect_rule_paths = respect_rule_paths
         self._capture_stderr = capture_stderr
         self._symbol_analysis = symbol_analysis
+        self._use_pro_naming_for_intrafile = use_pro_naming_for_intrafile
 
     def _extract_core_output(
         self,
@@ -711,9 +714,9 @@ class CoreRunner:
     def plan_core_run(
         rules: List[Rule],
         target_manager: TargetManager,
-        sca_subprojects: Dict[out.Ecosystem, List[ResolvedSubproject]],
+        all_subprojects: List[Union[out.ResolvedSubproject, out.UnresolvedSubproject]],
         *,
-        all_targets: Optional[Set[Path]] = None,
+        all_targets: Optional[TargetAccumulator] = None,
         product: Optional[out.Product] = None,
     ) -> Plan:
         """
@@ -736,23 +739,24 @@ class CoreRunner:
         unused_rules = []
 
         for rule_num, rule in enumerate(rules):
-            any_target = False
+            some_target = False
             for language in rule.languages:
-                targets = list(
-                    target_manager.get_files_for_rule(
-                        language, rule.includes, rule.excludes, rule.id, rule.product
-                    )
+                selection = target_manager.get_files_for_rule(
+                    language, rule.includes, rule.excludes, rule.id, rule.product
                 )
-                any_target = any_target or len(targets) > 0
+
+                targets = selection.targets
+                if all_targets is not None:
+                    all_targets.targets.update(targets)
+
+                some_target = some_target or len(targets) > 0
 
                 for target in targets:
-                    if all_targets is not None:
-                        all_targets.add(target)
                     rules_nums, products = target_info[target, language]
                     rules_nums.append(rule_num)
                     products.add(rule.product.to_json_string())
 
-            if not any_target:
+            if not some_target:
                 unused_rules.append(rule)
 
         return Plan(
@@ -768,7 +772,7 @@ class CoreRunner:
             ],
             rules,
             product=product,
-            sca_subprojects=sca_subprojects,
+            all_subprojects=all_subprojects,
             unused_rules=unused_rules,
         )
 
@@ -785,14 +789,15 @@ class CoreRunner:
         run_secrets: bool,
         disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
-        sca_subprojects: Dict[out.Ecosystem, List[ResolvedSubproject]],
+        all_subprojects: List[Union[out.ResolvedSubproject, out.UnresolvedSubproject]],
+        x_eio: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         state = get_state()
         logger.debug(f"Passing whole rules directly to semgrep_core")
 
         outputs: RuleMatchMap = collections.defaultdict(OrderedRuleMatchList)
         errors: List[SemgrepError] = []
-        all_targets: Set[Path] = set()
+        all_targets = TargetAccumulator()
         file_timeouts: Dict[Path, int] = collections.defaultdict(int)
         max_timeout_files: Set[Path] = set()
         # TODO this is a quick fix, refactor this logic
@@ -809,9 +814,7 @@ class CoreRunner:
         rule_file = exit_stack.enter_context(
             (state.env.user_data_folder / "semgrep_rules.json").open("w+")
             if dump_command_for_core
-            else tempfile.NamedTemporaryFile(
-                "w+", suffix=".json", delete=(not IS_WINDOWS)
-            )
+            else tempfile.NamedTemporaryFile("w+", suffix=".json")
         )
         # A historical scan does not create a targeting file since targeting is
         # performed directly by core.
@@ -819,13 +822,7 @@ class CoreRunner:
             target_file = exit_stack.enter_context(
                 (state.env.user_data_folder / "semgrep_targets.txt").open("w+")
                 if dump_command_for_core
-                else tempfile.NamedTemporaryFile("w+", delete=(not IS_WINDOWS))
-            )
-        if target_mode_config.is_pro_diff_scan:
-            diff_target_file = exit_stack.enter_context(
-                (state.env.user_data_folder / "semgrep_diff_targets.txt").open("w+")
-                if dump_command_for_core
-                else tempfile.NamedTemporaryFile("w+", delete=(not IS_WINDOWS))
+                else tempfile.NamedTemporaryFile("w+")
             )
 
         with exit_stack:
@@ -865,41 +862,22 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
             cmd.extend(["-rules", rule_file.name])
 
             # adding multi-core option
-            cmd.extend(["-j", str(self._jobs)])
+            # rely on the domains/thread-based impl instead of Parmap
+            if x_eio:
+                cmd.extend(["-use_eio"])
+
+            if self._jobs is not None:
+                cmd.extend(["-j", str(self._jobs)])
 
             if strict:
                 cmd.extend(["-strict"])
 
-            # adding targets option
-            if target_mode_config.is_pro_diff_scan:
-                diff_targets = target_mode_config.get_diff_targets()
-                diff_target_file_contents = "\n".join(
-                    [str(path) for path in diff_targets]
-                )
-                diff_target_file.write(diff_target_file_contents)
-                diff_target_file.flush()
-                cmd.extend(["-diff_targets", diff_target_file.name])
-                cmd.extend(["-diff_depth", str(target_mode_config.get_diff_depth())])
-
-                # For the pro diff scan, it's necessary to consider all input files as
-                # "targets" and the files that have changed between the head and baseline
-                # commits as "diff targets". To compile a comprehensive list of all input files
-                # for `plan`, the `baseline_handler` is disabled within the `target_manager`
-                # when executing `plan_core_run`.
-                plan = self.plan_core_run(
-                    rules,
-                    evolve(target_manager, baseline_handler=None),
-                    all_targets=all_targets,
-                    sca_subprojects=sca_subprojects,
-                )
-
-            else:
-                plan = self.plan_core_run(
-                    rules,
-                    target_manager,
-                    all_targets=all_targets,
-                    sca_subprojects=sca_subprojects,
-                )
+            plan = self.plan_core_run(
+                rules,
+                target_manager,
+                all_targets=all_targets,
+                all_subprojects=all_subprojects,
+            )
 
             plan.record_metrics()
             if target_mode_config.is_historical_scan:
@@ -963,6 +941,12 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
             if self._path_sensitive:
                 cmd.append("-path_sensitive")
 
+            if (
+                self._use_pro_naming_for_intrafile
+                and engine is EngineType.PRO_INTRAFILE
+            ):
+                cmd.append("-use_pro_naming_for_intrafile")
+
             # This flag is only in the pro binary, so make sure we're pro
             # More than that, `symbol_analysis` is only collectible on interfile
             # scans. So let's only add it if that's the case.
@@ -991,14 +975,14 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                         raise SemgrepError(
                             "Inter-file analysis can only take a single target (for multiple files pass a directory)"
                         )
-                    cmd += ["-deep_inter_file"]
+                    cmd += ["-pro_inter_file"]
                     cmd += [
                         "-timeout_for_interfile_analysis",
                         str(self._interfile_timeout),
                     ]
                     cmd += [root]
                 elif engine is EngineType.PRO_INTRAFILE:
-                    cmd += ["-deep_intra_file"]
+                    cmd += ["-pro_intra_file"]
 
             if state.terminal.is_debug:
                 cmd += ["-debug"]
@@ -1099,7 +1083,8 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
         run_secrets: bool,
         disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
-        sca_subprojects: Dict[out.Ecosystem, List[ResolvedSubproject]],
+        all_subprojects: List[Union[out.ResolvedSubproject, out.UnresolvedSubproject]],
+        x_eio: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Sometimes we may run into synchronicity issues with the latest DeepSemgrep binary.
@@ -1121,7 +1106,8 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                 run_secrets,
                 disable_secrets_validation,
                 target_mode_config,
-                sca_subprojects,
+                all_subprojects,
+                x_eio=x_eio,
             )
         except SemgrepError as e:
             # Handle Semgrep errors normally
@@ -1161,7 +1147,8 @@ Exception raised: `{e}`
         run_secrets: bool,
         disable_secrets_validation: bool,
         target_mode_config: TargetModeConfig,
-        sca_subprojects: Dict[out.Ecosystem, List[ResolvedSubproject]],
+        all_subprojects: List[Union[out.ResolvedSubproject, out.UnresolvedSubproject]],
+        x_eio: bool,
     ) -> Tuple[RuleMatchMap, List[SemgrepError], OutputExtra,]:
         """
         Takes in rules and targets and returns object with findings
@@ -1183,11 +1170,12 @@ Exception raised: `{e}`
             run_secrets,
             disable_secrets_validation,
             target_mode_config,
-            sca_subprojects,
+            all_subprojects,
+            x_eio,
         )
 
         logger.debug(
-            f"semgrep ran in {datetime.now() - start} on {len(output_extra.all_targets)} files"
+            f"semgrep ran in {datetime.now() - start} on {len(output_extra.all_targets.targets)} files"
         )
         by_severity = collections.defaultdict(list)
         for rule, findings in findings_by_rule.items():
@@ -1213,10 +1201,7 @@ Exception raised: `{e}`
         )[0].get_rules(True)
 
         parsed_errors = []
-
-        with tempfile.NamedTemporaryFile(
-            "w", suffix=".yaml", delete=(not IS_WINDOWS)
-        ) as rule_file:
+        with tempfile.NamedTemporaryFile("w", suffix=".yaml") as rule_file:
             yaml = YAML()
             yaml.dump(
                 {"rules": [metacheck._raw for metacheck in metachecks]}, rule_file

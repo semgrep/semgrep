@@ -108,18 +108,12 @@ def core_matches_to_rule_matches(
             metadata = copy.deepcopy(metadata)
             metadata.update(match.extra.metadata.value)
 
-        if match.extra.fix is not None:
-            fix = match.extra.fix
-        else:
-            fix = None
-
         return RuleMatch(
             match=match,
-            extra=match.extra.to_json(),
             message=message,
             metadata=metadata,
             severity=match.extra.severity if match.extra.severity else rule.severity,
-            fix=fix,
+            fix=match.extra.fix,
         )
 
     # TODO: Dict[out.RuleId, RuleMatches]

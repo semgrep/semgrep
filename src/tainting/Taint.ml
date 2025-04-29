@@ -64,7 +64,7 @@ module Log = Log_tainting.Log
 (* Call traces *)
 (*****************************************************************************)
 
-type tainted_token = G.tok [@@deriving show]
+type tainted_token = Loc.t [@@deriving show]
 type tainted_tokens = tainted_token list [@@deriving show]
 type rev_tainted_tokens = tainted_tokens [@@deriving show]
 (* TODO: Given that the analysis is path-insensitive, the trace should capture
@@ -123,7 +123,7 @@ let rec show_call_trace show_thing = function
       in
       let matched_line =
         let loc1, _ = pm.range_loc in
-        loc1.Tok.pos.line
+        loc1.Loc.pos.line
       in
       Printf.sprintf "%s at l.%d [%s]" matched_str matched_line (show_thing x)
   | Call (_e, _, trace) ->
@@ -234,7 +234,11 @@ let lval_of_arg arg = { base = BArg arg; offset = [] }
 (* Taint *)
 (*****************************************************************************)
 
-type var = Taint_var of lval | Taint_in_shape_var of lval | Control_var
+type var =
+  | Taint_var of lval
+  | Propagator_var of Dataflow_var_env.var
+  | Taint_in_shape_var of lval
+  | Control_var
 
 type source = {
   call_trace : R.taint_source call_trace;
@@ -262,14 +266,17 @@ let compare_precondition (_ts1, f1) (_ts2, f2) =
 let compare_var v1 v2 =
   match (v1, v2) with
   | Taint_var lv1, Taint_var lv2 -> compare_lval lv1 lv2
+  | Propagator_var pv1, Propagator_var pv2 -> String.compare pv1 pv2
   | Taint_in_shape_var lv1, Taint_in_shape_var lv2 -> compare_lval lv1 lv2
   | Control_var, Control_var -> 0
   (* smaller than *)
-  | Taint_var _, (Taint_in_shape_var _ | Control_var) -> -1
+  | Taint_var _, (Propagator_var _ | Taint_in_shape_var _ | Control_var) -> -1
+  | Propagator_var _, (Taint_in_shape_var _ | Control_var) -> -1
   | Taint_in_shape_var _, Control_var -> -1
   (* greater than *)
-  | Taint_in_shape_var _, Taint_var _ -> 1
-  | Control_var, (Taint_in_shape_var _ | Taint_var _) -> 1
+  | Propagator_var _, Taint_var _ -> 1
+  | Taint_in_shape_var _, (Propagator_var _ | Taint_var _) -> 1
+  | Control_var, (Propagator_var _ | Taint_in_shape_var _ | Taint_var _) -> 1
 
 (* See NOTE "on compare functions" *)
 let compare_source
@@ -299,8 +306,8 @@ let compare_source
           | None, _
           | _, None ->
               (* 'None' here is the same as 'true', although the `requires` of both taints
-                 * may not be the same, in this specific case we consider them "the same",
-                 * see 'pick_best_taint'. *)
+               * may not be the same, in this specific case we consider them "the same",
+               * see 'pick_best_taint'. *)
               0
           | Some pre1, Some pre2 -> compare_precondition pre1 pre2)
       | other -> other)
@@ -334,6 +341,7 @@ let rec show_precondition = function
 let show_var var =
   match var with
   | Taint_var lval -> "'" ^ show_lval lval
+  | Propagator_var pvar -> "?" ^ pvar
   | Taint_in_shape_var lval -> "'<" ^ show_lval lval ^ ">"
   | Control_var -> "'<control>"
 
@@ -350,7 +358,7 @@ let rec show_source { call_trace; label; precondition } =
   in
   let matched_line =
     let loc1, _ = pm.range_loc in
-    loc1.Tok.pos.line
+    loc1.Loc.pos.line
   in
   let num_calls = length_of_call_trace call_trace in
   let num_calls_str =
@@ -361,11 +369,11 @@ let rec show_source { call_trace; label; precondition } =
     else if label = ts.label then Printf.sprintf " :%s" label
     else Printf.sprintf " :%s->%s" ts.label label
   in
-  let precondition_str = show_taints_with_precondition precondition in
+  let precondition_str = show_taints_with_trace precondition in
   Printf.sprintf "[%s%s :l.%d%s%s]" num_calls_str matched_str matched_line
     label_str precondition_str
 
-and show_taints_with_precondition precondition =
+and show_taints_with_trace precondition =
   match precondition with
   | None -> ""
   | Some (ts, pre) ->
@@ -449,7 +457,7 @@ module Taint_set = struct
 
   and pick_best_taint taint1 taint2 =
     (* Here we assume that 'compare taint1 taint2 = 0' so we could keep any
-       * of them, but we want "the best" one, e.g. the one with the shortest trace. *)
+     * of them, but we want "the best" one, e.g. the one with the shortest trace. *)
     match (taint1.orig, taint2.orig) with
     | Var _, Var _ ->
         (* Polymorphic taint should only be intraprocedural so the call-trace is irrelevant. *)

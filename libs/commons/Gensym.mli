@@ -14,11 +14,6 @@ module MkId () : sig
   val unsafe_default : t
   val is_unsafe_default : t -> bool
 
-  (* This will reset the internal counter used by the identifiers, making `mk`
-     generate already-generated identifiers.
-  *)
-  val unsafe_reset_counter : unit -> unit
-
   type partition = A | B
 
   (* Defaults to partition A. IDs generated from different partitions are
@@ -29,6 +24,6 @@ module MkId () : sig
    * then deserialize it in a different run for use alongside fresh IDs. Using
    * one partition when constructing the serialized data, and another for a
    * normal run ensures that we will avoid collisions.
-   * *)
+   *)
   val set_partition : partition -> unit
 end

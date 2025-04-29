@@ -3,8 +3,6 @@
 (library
   (public_name semgrep.osemgrep_cli_show)
   (name osemgrep_cli_show)
-;  (flags (:standard -open TCB -open Commons_TCB))
-  (flags (:standard -open No_TCB))
   (wrapped false)
   (libraries
     cmdliner
@@ -16,6 +14,8 @@
 
     semgrep.parsing
     semgrep.parsing.tests ; Test_parsing.dump_tree_sitter_cst
+    semgrep.targeting
+
     osemgrep_core
     osemgrep_configuring
     osemgrep_networking

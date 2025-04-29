@@ -1,7 +1,7 @@
 // Build aarch64 Python wheels (ab)using our multi-arch docker build.
 
-local gha = import "libs/gha.libsonnet";
-local semgrep = import "libs/semgrep.libsonnet";
+local gha = import 'libs/gha.libsonnet';
+local semgrep = import 'libs/semgrep.libsonnet';
 
 local wheel_name = 'manylinux-aarch64-wheel';
 
@@ -20,7 +20,7 @@ local build_wheels_job = {
       uses: 'docker/setup-qemu-action@v3',
     },
     {
-      uses: 'docker/setup-buildx-action@v2',
+      uses: 'docker/setup-buildx-action@v3',
     },
     {
       uses: 'depot/setup-action@v1',
@@ -39,13 +39,16 @@ local build_wheels_job = {
     },
     {
       name: 'Extract wheel from docker image',
+      env: {
+        IMAGEID: '${{ steps.build-semgrep-wheel.outputs.imageid }}',
+      },
       run: |||
         # load the docker image containing the semgrep python wheel
         docker load --input /tmp/image.tar
 
         # create a new docker container using the image we just loaded
         # note: `docker create` simply prepares the container filesystem -- nothing is executed!
-        CONTAINER_ID=$(docker create ${{ steps.build-semgrep-wheel.outputs.imageid }})
+        CONTAINER_ID=$(docker create "$IMAGEID")
 
         # use `docker export` to extract the python wheel zipfile out of the container
         docker export $CONTAINER_ID | tar xv semgrep/cli/dist.zip
@@ -55,7 +58,7 @@ local build_wheels_job = {
 
         # note: this was originally accomplished by running `cat` from within the container and redirecting stdout to a file:
         #
-        # docker run --platform linux/arm64 --rm ${{ steps.build-semgrep-wheel.outputs.imageid }} cat cli/dist.zip > /tmp/dist.zip
+        # docker run --platform linux/arm64 --rm "$IMAGEID" cat cli/dist.zip > /tmp/dist.zip
         #
         # we ended up hitting an edge case where the final ~100kb doesn't always get written to disk, which results in a corrupted zip file.
         # our theory is that the pipe between the container and the host is being closed prematurely.

@@ -3,51 +3,52 @@ jobs:
   build-core:
     runs-on: macos-latest
     steps:
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.12"
-      - uses: actions/checkout@v3
+      - name: Configure git safedir properly
+        run: git config --global --add safe.directory $(pwd)
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
+      - uses: actions/checkout@v4
         with:
           submodules: true
-      - env:
-          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
-        if: ${{ inputs.use-cache}}
-        name: Set GHA cache for OPAM in ~/.opam
-        uses: actions/cache@v3
+      - uses: semgrep/setup-ocaml@latest
         with:
-          key: ${{ runner.os }}-${{ runner.arch }}-v1-opam-4.14.0-${{hashFiles('semgrep.opam')}}
-          path: ~/.opam
-      - uses: ocaml/setup-ocaml@v3
-        with:
-          ocaml-compiler: 4.14.0
+          cache-prefix: v1
+          ocaml-compiler: 5.3.0
           opam-pin: false
+          save-opam-post-run: true
       - name: Install dependencies
-        run: |
-          make install-deps-MACOS-for-semgrep-core
-      - name: Compile semgrep
-        run: opam exec -- make core
+        run: opam exec -- make install-deps
+      - name: Build semgrep-core
+        run: opam exec -- make
+      - name: Test semgrep-core
+        run: opam exec -- make test
       - name: Make artifact for ./bin/semgrep-core
         run: |
           mkdir artifacts
           cp ./bin/semgrep-core artifacts/
           tar czf artifacts.tgz artifacts
+          # so that we can untar later and not get a message
+          # about existing artifacts/ directory
+          rm -rf artifacts
       - uses: actions/upload-artifact@v4
         with:
           name: semgrep-osx-arm64-${{ github.sha }}
           path: artifacts.tgz
-      - name: Test semgrep-core
-        run: opam exec -- make core-test
   build-wheels:
     needs:
       - build-core
     runs-on: macos-latest
     steps:
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.12"
-      - uses: actions/checkout@v3
+      - name: Configure git safedir properly
+        run: git config --global --add safe.directory $(pwd)
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
+      - uses: actions/checkout@v4
         with:
           submodules: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - uses: actions/download-artifact@v4
         with:
           name: semgrep-osx-arm64-${{ github.sha }}
@@ -64,7 +65,7 @@ jobs:
       - build-wheels
     runs-on: macos-latest
     steps:
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - uses: actions/download-artifact@v4
@@ -92,17 +93,5 @@ jobs:
         shell: bash {0}
 name: build-test-osx-arm64
 on:
-  workflow_call:
-    inputs:
-      use-cache:
-        default: true
-        description: Use Opam Cache - uncheck the box to disable use of the opam cache, meaning a long-running but completely from-scratch build.
-        required: false
-        type: boolean
-  workflow_dispatch:
-    inputs:
-      use-cache:
-        default: true
-        description: Use Opam Cache - uncheck the box to disable use of the opam cache, meaning a long-running but completely from-scratch build.
-        required: true
-        type: boolean
+  workflow_call: null
+  workflow_dispatch: null

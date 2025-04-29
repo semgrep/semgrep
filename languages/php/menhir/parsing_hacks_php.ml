@@ -55,10 +55,10 @@ and ctx =
    into a (1-char) lhs and rhs. Used to convert `>>` into two `>`
 *)
 let split_two_char pi =
-  let lhs = { pi with Tok.str = String.sub pi.Tok.str 0 1 } in
+  let lhs = { pi with Loc.str = String.sub pi.Loc.str 0 1 } in
   let rhs =
     {
-      Tok.str = String.sub pi.Tok.str 1 1;
+      Loc.str = String.sub pi.Loc.str 1 1;
       pos =
         { pi.pos with bytepos = pi.pos.bytepos + 1; column = pi.pos.column + 1 };
     }

@@ -24,8 +24,22 @@ val output_core_results :
     (depending on the value in config.output_format)
 *)
 
+(* This requires many capabilities partly because of semgrep-core -rpc
+ * which now does lots of things (including calling Core_scan for
+ * transitive reachability).
+ *)
 val options :
-  < Cap.exec ; Cap.exit ; Cap.stdout ; Cap.tmp ; Cap.network ; .. > ->
+  < Cap.stdout
+  ; Cap.exit
+  ; Cap.tmp
+  ; Cap.exec
+  ; Cap.readdir
+  ; Cap.random
+  ; Core_scan.caps
+  ; Cap.network
+  ; Cap.chdir
+  ; Cap.tmp
+  ; .. > ->
   (unit -> Arg_.action_spec list) ->
   Arg_.cmdline_options
 

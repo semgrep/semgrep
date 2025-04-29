@@ -30,7 +30,6 @@ open Match_env
 (* Debugging flags.
  * Note that semgrep-core -matching_explanations can also be useful to debug.
  *)
-let debug_timeout = ref false
 let debug_matches = ref false
 
 (*****************************************************************************)
@@ -274,7 +273,7 @@ let matches_of_patterns ~has_as_metavariable ?mvar_context ?range_filter rule
                      mini_rule_of_pattern analyzer rule (pat, b, c, d))
             in
 
-            if !debug_timeout || !debug_matches then
+            if !debug_matches then
               (* debugging path *)
               debug_semgrep config mini_rules internal_path_to_content lang ast
             else
@@ -745,8 +744,8 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
                match !hook_pro_metavariable_name with
                | None ->
                    error env
-                     "semgrep-internal-metavariable-name operator is only \
-                      supported in the Pro engine";
+                     "metavariable-name operator is only supported in the Pro \
+                      engine";
                    false
                | Some f -> f e cond
              in
@@ -1107,7 +1106,7 @@ and matches_of_formula xconf rule xtarget formula opt_context :
       xpatterns
     |> RP.add_rule rule
   in
-  Log.info (fun m -> m "found %d matches" (List.length res.matches));
+  Log.debug (fun m -> m "found %d matches" (List.length res.matches));
   (* match results per minirule id which is the same than pattern_id in
    * the formula *)
   let pattern_matches_per_id = group_matches_per_pattern_id res.matches in
@@ -1121,9 +1120,9 @@ and matches_of_formula xconf rule xtarget formula opt_context :
       errors = ref E.ErrorSet.empty;
     }
   in
-  Log.info (fun m -> m "evaluating the formula");
+  Log.debug (fun m -> m "evaluating the formula");
   let final_ranges, expl = evaluate_formula env opt_context formula in
-  Log.info (fun m -> m "found %d final ranges" (List.length final_ranges));
+  Log.debug (fun m -> m "found %d final ranges" (List.length final_ranges));
   let res' =
     {
       res with

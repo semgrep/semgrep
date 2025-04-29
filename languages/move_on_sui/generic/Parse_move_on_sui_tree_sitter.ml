@@ -840,9 +840,9 @@ let map_use_fun (env : env) ((v1, v2, v3, v4, v5, v6) : CST.use_fun) :
 let map_type_to_param (env : env) (ty : G.type_) : G.parameter =
   match ty.t with
   (* If this type is a singular identifier that is a metavariable,
-     * then the user probably meant to write a metavariable parameter.
-     * So let's translate it to one.
-  *)
+   * then the user probably meant to write a metavariable parameter.
+   * So let's translate it to one.
+   *)
   | G.TyN (Id (((s, _) as id), _))
     when AST_generic.is_metavar_name s && in_pattern env ->
       let param =

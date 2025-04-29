@@ -49,7 +49,6 @@ type conf = {
 [@@deriving show]
 
 type pro_conf = {
-  diff_config : Differential_scan_config.t;
   (* TODO: change to root: Fpath.t, like in Deep_scan_config.interfile_config *)
   roots : Scanning_root.t list;
   engine_type : Engine_type.t;
@@ -83,14 +82,7 @@ type func = {
 
 let default_conf : conf =
   {
-    (* Maxing out number of cores used to 16 if more not requested to
-     * not overload on large machines.
-     * Also, hardcode num_jobs to 1 for non-unix (i.e. Windows) because
-     * we don't believe that Parmap works in those environments
-     * TODO: figure out a solution for Windows multi-processing (OCaml 5 in
-     * the worst case)
-     *)
-    num_jobs = min 16 (if Sys.unix then Parmap_.get_cpu_count () else 1);
+    num_jobs = Resources.resources.num_jobs;
     timeout = 5.0;
     (* ^ seconds, keep up-to-date with User_settings.ml and constants.py *)
     timeout_threshold = 3;
@@ -130,9 +122,6 @@ let hook_mk_pro_core_run_for_osemgrep : (pro_conf -> func) option Hook.t =
  *)
 let hook_pro_git_remote_scan_setup : (func -> func) option Hook.t =
   Hook.create None
-
-(* TODO: find a way to make it a Core_scan hook instead of osemgrep one *)
-let hook_adjust_targets = Hook.create (fun _paths targets -> targets)
 
 (*************************************************************************)
 (* Metrics and reporting *)
@@ -198,6 +187,7 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
         max_match_per_file = Core_scan_config.default.max_match_per_file;
         tracing = None;
         symbol_analysis;
+        use_eio = false;
       }
 
 (* output adapter to Core_scan.scan.
@@ -267,11 +257,8 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
     report_status_and_add_metrics_languages
       ~respect_gitignore:targeting_conf.respect_gitignore lang_jobs valid_rules
       target_paths;
-    let code_targets, applicable_rules =
+    let targets, applicable_rules =
       Core_targeting.targets_and_rules_of_lang_jobs lang_jobs
-    in
-    let final_targets =
-      (Hook.get hook_adjust_targets) target_paths code_targets
     in
     Logs.debug (fun m ->
         m "core runner: %i applicable rules of %i valid rules, %i invalid rules"
@@ -281,7 +268,7 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
     let config =
       {
         config with
-        target_source = Targets final_targets;
+        target_source = Targets targets;
         rule_source = Rules applicable_rules;
       }
     in
@@ -301,7 +288,6 @@ let mk_core_run_for_osemgrep (core_scan_func : Core_scan.func) : func =
         rules_with_targets;
       }
     in
-
     let scanned =
       res.scanned |> List_.map Target.internal_path |> Set_.of_list
     in

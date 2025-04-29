@@ -367,7 +367,7 @@ let rec equal_ast_bound_code (config : Rule_options.t) (a : MV.mvalue)
   res
 
 let check_and_add_metavar_binding ((mvar : MV.mvar), valu) (tin : tin) =
-  match Common2.assoc_opt mvar tin.mv with
+  match List.assoc_opt mvar tin.mv with
   | Some valu' ->
       (* Should we use generic_vs_generic itself for comparing the code?
        * Hmmm, we can't because it leads to a circular dependencies.
@@ -442,28 +442,9 @@ let rec inits_and_rest_of_list = function
       ([ e ], l)
       :: List_.map (fun (l, rest) -> (e :: l, rest)) (inits_and_rest_of_list l)
 
-let _ =
-  Common2.example
-    (inits_and_rest_of_list [ 'a'; 'b'; 'c' ]
-    =*= [
-          ([ 'a' ], [ 'b'; 'c' ]);
-          ([ 'a'; 'b' ], [ 'c' ]);
-          ([ 'a'; 'b'; 'c' ], []);
-        ])
-
 let inits_and_rest_of_list_empty_ok = function
   | [] -> [ ([], []) ]
   | xs -> [ ([], xs) ] @ inits_and_rest_of_list xs
-
-let _ =
-  Common2.example
-    (inits_and_rest_of_list_empty_ok [ 'a'; 'b'; 'c' ]
-    =*= [
-          ([], [ 'a'; 'b'; 'c' ]);
-          ([ 'a' ], [ 'b'; 'c' ]);
-          ([ 'a'; 'b' ], [ 'c' ]);
-          ([ 'a'; 'b'; 'c' ], []);
-        ])
 
 (* todo? optimize, probably not the optimal version ... *)
 let all_elem_and_rest_of_list xs =
@@ -483,10 +464,6 @@ let rec all_splits = function
   | x :: xs ->
       all_splits xs
       |> List.concat_map (function ls, rs -> [ (x :: ls, rs); (ls, x :: rs) ])
-
-(* let _ = Common2.example
-    (all_elem_and_rest_of_list ['a';'b';'c'] =
-     [('a', ['b';'c']); ('b', ['a';'c']); ('c', ['a';'b'])]) *)
 
 (* Since all_elem_and_rest_of_list computes the rest of list lazily,
  * we want to still keep track of how much time we're spending on
@@ -592,7 +569,8 @@ let rec m_list_with_dots ~less_is_ok f is_dots xsa xsb =
   | a :: xsa, xb :: xsb when is_dots a ->
       (* can match nothing *)
       m_list_with_dots f is_dots ~less_is_ok xsa (xb :: xsb)
-      >||> (* can match more *)
+      >||>
+      (* can match more *)
       m_list_with_dots f is_dots ~less_is_ok (a :: xsa) xsb
   (* the general case *)
   | xa :: aas, xb :: bbs ->
@@ -600,6 +578,14 @@ let rec m_list_with_dots ~less_is_ok f is_dots xsa xsb =
   | [], _
   | _ :: _, _ ->
       fail ()
+
+let m_list_with_dots ~less_is_ok f is_dots xsa xsb =
+  match xsa with
+  (* Optimization: [..., PAT, ...] *)
+  | [ start_dots; xa; end_dots ] when is_dots start_dots && is_dots end_dots ->
+      (* We just need to match PAT against every element in 'xsb'! *)
+      xsb |> List.fold_left (fun acc xb -> acc >||> f xa xb) (fail ())
+  | __else__ -> m_list_with_dots ~less_is_ok f is_dots xsa xsb
 
 let m_list_with_dots_and_metavar_ellipsis ~less_is_ok ~f ~is_dots
     ~is_metavar_ellipsis xsa xsb =
@@ -634,7 +620,8 @@ let m_list_with_dots_and_metavar_ellipsis ~less_is_ok ~f ~is_dots
     | a :: xsa, xb :: xsb when is_dots a ->
         (* can match nothing *)
         aux xsa (xb :: xsb)
-        >||> (* can match more *)
+        >||>
+        (* can match more *)
         aux (a :: xsa) xsb
     (* the general case *)
     | xa :: aas, xb :: bbs -> f xa xb >>= fun () -> aux aas bbs
@@ -662,7 +649,7 @@ let rec m_list_in_any_order ~less_is_ok f xsa xsb =
         | (b, xsb) :: xs ->
             f a b
             >>= (fun () ->
-                  m_list_in_any_order ~less_is_ok f xsa (lazy_rest_of_list xsb))
+            m_list_in_any_order ~less_is_ok f xsa (lazy_rest_of_list xsb))
             >||> aux xs
       in
       aux candidates
@@ -776,13 +763,13 @@ let adjust_info_remove_enclosing_quotes (s, info) =
        * this happens if the string is the result of constant folding. *)
       (s, info)
   | Ok loc -> (
-      let raw_str = loc.Tok.str in
+      let raw_str = loc.Loc.str in
       let re = Str.regexp_string s in
       try
         let pos = Str.search_forward re raw_str 0 in
         let loc =
           {
-            Tok.str = s;
+            Loc.str = s;
             pos =
               {
                 loc.pos with

@@ -57,7 +57,7 @@ let make_fixed_lines_of_string env file_contents (edit : Textedit.t) =
     let start = edit.start in
     let end_ = start + String.length edit.replacement_text in
     (* Then, get the lines in the updated string that were affected by the edit.
-     * *)
+     *)
     let lines = String_.lines_of_range (start, end_) updated_contents in
     (* Record that we did this edit, so that subsequent overlapping edits can be
      * omitted. *)

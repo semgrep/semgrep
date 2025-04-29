@@ -18,7 +18,19 @@ module TH = Token_helpers_js
 module Flag = Flag_parsing
 module Log = Log_lib_parsing.Log
 
+(*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* JSON parser by simple (ab)using Parse_js because JSON is a subset of JS *)
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
 let error_msg_tok tok = Parsing_helpers.error_message_info (TH.info_of_tok tok)
+
+(*****************************************************************************)
+(* Entry points *)
+(*****************************************************************************)
 
 let parse_program (filename : Fpath.t) =
   let toks = tokens (Parsing_helpers.file !!filename) in
@@ -47,7 +59,11 @@ let any_of_string str =
        * so let's call directly Parser_js.json_pattern
        *)
       match Parser_js.json_pattern lexer lexbuf_fake with
-      | Ast_js.Expr e -> Ast_json.E e
+      | Ast_js.Expr e -> AST_json.E e
       | Ast_js.Partial (Ast_js.PartialSingleField (v1, v2, v3)) ->
-          Ast_json.PartialSingleField (v1, v2, v3)
+          AST_json.PartialSingleField (v1, v2, v3)
       | _ -> failwith "not a json expression")
+
+let parse (file : Fpath.t) : AST_json.value =
+  let e = parse_program file in
+  AST_json.js_expr_to_json_value e

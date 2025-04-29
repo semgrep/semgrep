@@ -203,7 +203,7 @@ let regression_information ~ext (xs : Fpath.t list) (newscore : Common2.score) :
       (* TODO Config_pfff.regression_data_dir *)
       (* nosemgrep: not-portable-tmp *)
       let score_path = "/tmp/parsing_stats" in
-      if Sys.file_exists score_path then
+      if Sys_.file_exists score_path then
         dirname_opt
         |> Option.iter (fun dirname ->
                prf "------------------------------";
@@ -247,7 +247,7 @@ let recurring_problematic_tokens (xs : t list) : string =
              |> List.iter (fun (xs, line_error) ->
                     xs
                     |> List.iter (fun s ->
-                           Common2.hupdate_default s
+                           Hashtbl_.update_default s
                              (fun (old, example) -> (old + 1, example))
                              (fun () -> (0, (file, line_error)))
                              h)));

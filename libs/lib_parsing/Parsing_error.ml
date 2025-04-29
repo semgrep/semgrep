@@ -14,6 +14,7 @@
  * license.txt for more details.
  *)
 open Common
+module Log = Log_lib_parsing.Log
 
 (*****************************************************************************)
 (* Prelude *)
@@ -59,8 +60,9 @@ exception Other_error of string * Tok.t
 let lexical_error msg lexbuf =
   let info = Tok.tok_of_lexbuf lexbuf in
   if !Flag_parsing.exn_when_lexical_error then raise (Lexical_error (msg, info))
-  else if !Flag_parsing.verbose_lexing then UCommon.pr2_once ("LEXER: " ^ msg)
-  else ()
+  else if !Flag_parsing.verbose_lexing then
+    (* nosemgrep: no-logs-in-library *)
+    Logs.err (fun m -> m "LEXER: %s" msg)
 
 (****************************************************************************)
 (* Exception printers for Printexc.to_string *)

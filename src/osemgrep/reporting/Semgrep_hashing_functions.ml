@@ -224,3 +224,36 @@ let match_based_id_partial (rule : Rule.t) (rule_id : Rule_ID.t) metavars path :
   let hash = Digestif.BLAKE2B.digest_string string |> Digestif.BLAKE2B.to_hex in
   Logs.debug (fun m -> m "match_key = %s, match_id = %s" string hash);
   hash
+
+(* Creates a checksum for a rule. Used in Transitive_reachability.ml to
+ * create a part of the cache key.
+ *
+ * Implementation focuses on:
+ * 1. Generating a deterministic hash of rule content without using Marshal
+ * 2. Capturing key elements like pattern strings, formula types, and analyzer info
+ * 3. Ensuring rule changes affecting matching behavior will change the checksum
+ *
+ * Note: This approach is more targeted than SHA256-hashing the rule ID alone,
+ * as it detects actual changes to rule content. However, it's not exhaustive -
+ * some complex nested structures may not be fully represented. We may need
+ * to refine this further if transitive reachability caching behavior proves inconsistent.
+ *)
+let rule_checksum_str (rule : Rule.t) : string =
+  let buffer = Buffer.create 256 in
+
+  (* Add rule ID *)
+  Buffer.add_string buffer (Rule_ID.to_string (fst rule.id));
+  Buffer.add_char buffer ':';
+
+  (* Use existing function to get deterministic formula representation *)
+  let formulas = Rule.formulas_of_mode rule.mode in
+  let formula_string = string_of_formulas formulas in
+  Buffer.add_string buffer formula_string;
+
+  (* Add the analyzer information *)
+  Buffer.add_char buffer ':';
+  Buffer.add_string buffer (Analyzer.to_string rule.target_analyzer);
+
+  (* Generate the hash *)
+  Digestif.SHA256.digest_string (Buffer.contents buffer)
+  |> Digestif.SHA256.to_hex

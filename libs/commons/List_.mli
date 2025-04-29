@@ -42,22 +42,15 @@ val map : ('a -> 'b) -> 'a list -> 'b list
 val iter_with_view_into_neighbor_elements :
   (prev:'a option -> cur:'a -> next:'a option -> unit) -> 'a list -> unit
 
-(* List_.hd_exn msg []' will raise
-   the exception 'Failure msg' which is only a slight improvement over
-   'List_.hd_exn "unexpected empty list"'.
+val hd_opt : 'a list -> 'a option
+(** [hd_opt xs] evaluates to  [Some x] where [x] is the first element of the
+ * list; evaluates to [None] if the list was empty.
+ *)
 
-   In general, you should prefer a match-with and not have to call a
-   function to extract the first element of a list.
-
-   Usage: List_.hd_exn "found an empty list of things" xs
-
-   If receiving an empty list is a bug, prefer the following:
-
-     match xs with
-     | [] -> assert false
-     | xs -> ...
-*)
 val hd_exn : string -> 'a list -> 'a
+(** [List_.hd_exn msg []] will raise the exception [Failure msg] which is only a
+ * slight improvement over '[List_.hd_exn "unexpected empty list"].
+ *)
 
 (* The same recommendations as for 'List_.hd_exn "unexpected
    empty list"' apply. *)

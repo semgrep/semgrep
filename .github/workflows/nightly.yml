@@ -19,8 +19,7 @@ jobs:
     if: failure()
     needs:
       - brew-build
-      - release-dry-run
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - run: |
           curl --request POST \
@@ -29,11 +28,6 @@ jobs:
            --data "{
              \"text\": \"The nightly cron failed on ${{ github.sha }}. See https://github.com/${{github.repository}}/actions/runs/${{github.run_id}} for more information.\"
            }"
-  release-dry-run:
-    secrets: inherit
-    uses: ./.github/workflows/release.yml
-    with:
-      dry-run: true
 name: nightly
 on:
   schedule:

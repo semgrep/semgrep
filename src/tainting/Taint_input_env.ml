@@ -25,7 +25,7 @@ let check_var_def (taint_inst : Taint_rule_inst.t) env id ii expr =
     G.Assign (G.N (G.Id (id, ii)) |> G.e, Tok.fake_tok (snd id) "=", expr)
     |> G.e |> G.exprstmt
   in
-  let xs = AST_to_IL.stmt taint_inst.lang assign in
+  let xs = AST_to_IL.stmt taint_inst.file.lang assign in
   let cfg, lambdas = CFG_build.cfg_of_stmts xs in
   Log.debug (fun m ->
       m
@@ -46,7 +46,9 @@ let check_var_def (taint_inst : Taint_rule_inst.t) env id ii expr =
 
 let add_to_env_aux (taint_inst : Taint_rule_inst.t) env id ii opt_expr =
   let var = AST_to_IL.var_of_id_info id ii in
-  let var_type = Typing.resolved_type_of_id_info taint_inst.lang var.id_info in
+  let var_type =
+    Typing.resolved_type_of_id_info taint_inst.file.lang var.id_info
+  in
   let id_taints =
     taint_inst.preds.is_source (G.Tk (snd id))
     |> List_.map (fun (x : _ Taint_spec_match.t) -> (x.spec_pm, x.spec))
@@ -64,12 +66,12 @@ let add_to_env_aux (taint_inst : Taint_rule_inst.t) env id ii opt_expr =
     | None -> (T.Taint_set.empty, Effects.empty)
   in
   let taints = id_taints |> T.Taint_set.union expr_taints in
-  let taints =
-    Dataflow_tainting.drop_taints_if_bool_or_number taint_inst.options taints
-      var_type
-  in
   let env =
-    env |> Taint_lval_env.add_lval (IL_helpers.lval_of_var var) taints
+    if
+      Dataflow_tainting.must_drop_taints_if_bool_or_number taint_inst.options
+        var_type
+    then env
+    else env |> Taint_lval_env.add_lval (IL_helpers.lval_of_var var) taints
   in
   (env, expr_effects)
 
@@ -82,7 +84,7 @@ let mk_fun_input_env taint_inst ?(glob_env = Taint_lval_env.empty)
   let add_to_env = add_to_env taint_inst in
   fparams
   (* For each argument, check if it's a source and, if so, add it to the input
-     * environment. *)
+   * environment. *)
   |> Fold_IL_params.fold add_to_env (glob_env, Effects.empty)
 
 let is_global (id_info : G.id_info) =

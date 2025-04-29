@@ -331,7 +331,8 @@ and type_def_kind =
 and constructor_decl = ident * constructor_decl_kind
 
 (* TODO: GADT : ..., Alias, InlineRecord def, etc. *)
-and constructor_decl_kind = (* of ... *)
+and constructor_decl_kind =
+  (* of ... *)
   type_ list
 
 and field_decl = ident * type_ * mutable_opt

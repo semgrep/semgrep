@@ -1,5 +1,7 @@
 open Common
 module J = JSON
+open Fpath_.Operators
+module Out = Semgrep_output_v1_t
 
 (*****************************************************************************)
 (* Prelude *)
@@ -20,7 +22,7 @@ module J = JSON
 (* Types *)
 (*****************************************************************************)
 (* we need the network for the 'semgrep show identity/deployment' *)
-type caps = < Cap.stdout ; Cap.network ; Cap.tmp >
+type caps = < Cap.stdout ; Cap.network ; Cap.tmp ; Cap.readdir >
 
 (*****************************************************************************)
 (* Helpers *)
@@ -57,6 +59,11 @@ let json_of_v (v : OCaml.v) =
 let dump_v_to_format ~json (v : OCaml.v) =
   if json then J.string_of_json (json_of_v v) else OCaml.string_of_v v
 
+let require_experimental_flag (conf : Show_CLI.conf) func : Exit_code.t =
+  match conf.common.maturity with
+  | Experimental -> func ()
+  | _ -> failwith "This command requires '--experimental'."
+
 (*****************************************************************************)
 (* Main logic *)
 (*****************************************************************************)
@@ -80,6 +87,31 @@ let run_conf (caps : < caps ; .. >) (conf : Show_CLI.conf) : Exit_code.t =
   (* TODO? error management? improve error message for parse errors?
    * or let CLI.safe_run do the right thing?
    *)
+  | ProjectRoot { scan_root } ->
+      let project_root =
+        match
+          Project.find_any_project_root ~fallback_root:None ~force_novcs:false
+            ~force_root:None scan_root
+        with
+        | Ok ({ kind = _; root }, _scan_root_info) ->
+            root.fpath |> Fpath.to_string
+        | Error msg -> failwith ("Cannot determine project root: " ^ msg)
+      in
+      (* Print the project root path followed by a newline.
+
+         There's more useful info available than just the project root path.
+         We could show that as part of another subcommand (dump-targets?)
+         or with a flag.
+      *)
+      print project_root;
+      Exit_code.ok ~__LOC__
+  | Resources ->
+      require_experimental_flag conf (fun () ->
+          let output =
+            if conf.json then Resources.to_json () else Resources.show ()
+          in
+          print output;
+          Exit_code.ok ~__LOC__)
   | DumpPattern (str, lang) -> (
       (* mostly a copy paste of Core_CLI.dump_pattern *)
       (* TODO: maybe enable the "semgrep.parsing" src here *)
@@ -117,7 +149,7 @@ let run_conf (caps : < caps ; .. >) (conf : Show_CLI.conf) : Exit_code.t =
       in
       let v = Meta_AST.vof_any (AST_generic.Pr ast) in
       (* 80 columns is too little *)
-      UFormat.set_margin 120;
+      Format.set_margin 120;
       let s = dump_v_to_format ~json:conf.json v in
       print s;
       match (errors @ tolerated_errors, skipped_tokens @ inserted_tokens) with
@@ -143,7 +175,7 @@ let run_conf (caps : < caps ; .. >) (conf : Show_CLI.conf) : Exit_code.t =
         Rule_fetching.rules_from_dashdash_config
           ~rewrite_rule_ids:true (* command-line default *)
           ~token_opt
-          (caps :> < Cap.network ; Cap.tmp >)
+          (caps :> < Cap.network ; Cap.tmp ; Cap.readdir >)
           config
       in
 
@@ -159,21 +191,62 @@ let run_conf (caps : < caps ; .. >) (conf : Show_CLI.conf) : Exit_code.t =
   | DumpRuleV2 file ->
       (* TODO: use validation ocaml code to enforce the
        * CHECK: in rule_schema_v2.atd.
-       * For example, check that at least one and only one field is set in formula.
-       * Reclaim some of the jsonschema power. Maybe define combinators to express
-       * that in rule_schema_v2_adapter.ml?
+       * For example, check that at least one and only one field is set in
+       * formula. Reclaim some of the jsonschema power.
+       * Maybe define combinators to express that in rule_schema_v2_adapter.ml?
        *)
       let rules = Parse_rules_with_atd.parse_rules_v2 file in
       print (Rule_schema_v2_t.show_rules rules);
       Exit_code.ok ~__LOC__
+  (* see also the pysemgrep and osemgrep scan --x-ls option *)
+  | DumpTargets (scanning_root, target_conf, config_str_opt) -> (
+      (* coupling: similar to parts of Core_scan.targets_of_config *)
+      let target_paths, _errors, skipped =
+        Find_targets.get_target_fpaths caps target_conf [ scanning_root ]
+      in
+      match config_str_opt with
+      | None ->
+          target_paths
+          |> List.iter (fun path -> print (spf "target = %s" !!path));
+          skipped
+          |> List.iter (fun (skip : Out.skipped_target) ->
+                 print (spf "skipped = %s" (Out.show_skipped_target skip)));
+          Exit_code.ok ~__LOC__
+      | Some config_str ->
+          (* copy-paste of parts of DumpConfig above to get the rules
+           * alt: requires a local file and use Parse_rule.parse instead
+           *)
+          let settings = Semgrep_settings.load () in
+          let token_opt = settings.api_token in
+          let config =
+            Rules_config.parse_config_string ~in_docker:false config_str
+          in
+          let rules_and_errors, _errors =
+            Rule_fetching.rules_from_dashdash_config
+              ~rewrite_rule_ids:true (* command-line default *)
+              ~token_opt
+              (caps :> < Cap.network ; Cap.tmp ; Cap.readdir >)
+              config
+          in
+          let rules, _invalid =
+            Rule_fetching.partition_rules_and_invalid rules_and_errors
+          in
+          let targets : Target.t list =
+            Core_targeting.targets_for_files_and_rules target_paths rules
+          in
+          targets
+          |> List.iter (fun (tgt : Target.t) ->
+                 print (spf "Target = %s" (Target.show tgt)));
+          Exit_code.ok ~__LOC__)
   | DumpEnginePath _pro -> failwith "TODO: dump-engine-path not implemented yet"
   | DumpCommandForCore ->
       failwith "TODO: dump-command-for-core not implemented yet"
   | Debug _ -> failwith "TODO: CE-only show debug not implemented yet"
+  | DumpLockfile _ -> failwith "this subcommand requires semgrep-pro"
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 let main (caps : < caps ; .. >) (argv : string array) : Exit_code.t =
-  let conf = Show_CLI.parse_argv argv in
+  let conf = Show_CLI.parse_argv caps argv in
   run_conf caps conf

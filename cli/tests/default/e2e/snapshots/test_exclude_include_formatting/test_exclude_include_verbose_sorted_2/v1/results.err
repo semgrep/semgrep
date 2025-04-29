@@ -1,0 +1,84 @@
+running 1 rules from 1 config rules/nosem.yaml_0
+No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignore-files
+Rules:
+- rules.test-nosem
+Unable to ignore files ignored by git (targets/basic is not a git directory or git is not installed). Running on all files instead...
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 24 files tracked by git with 1 Code rule:
+  Nothing to scan.
+
+========================================
+Files skipped:
+========================================
+
+  Always skipped by Semgrep:
+
+   • <none>
+
+  Skipped by .gitignore:
+  (Disable by passing --no-git-ignore)
+
+   • <all files not listed by `git ls-files` were skipped>
+
+  Skipped by .semgrepignore:
+  - https://semgrep.dev/docs/ignoring-files-folders-code/#understand-semgrep-defaults
+
+   • <none>
+
+  Skipped by --include patterns:
+
+   • <none>
+
+  Skipped by --exclude patterns:
+
+   • targets/basic/inside.py
+   • targets/basic/metavariable-comparison-bad-content.py
+   • targets/basic/metavariable-comparison-base.py
+   • targets/basic/metavariable-comparison-strip.py
+   • targets/basic/metavariable-comparison.py
+   • targets/basic/metavariable-regex-multi-regex.py
+   • targets/basic/metavariable-regex-multi-rule.py
+   • targets/basic/metavariable-regex.py
+   • targets/basic/nested-patterns.js
+   • targets/basic/nosem.c
+   • targets/basic/nosem.go
+   • targets/basic/nosem.java
+   • targets/basic/nosem.js
+   • targets/basic/nosem.py
+   • targets/basic/regex.py
+   • targets/basic/stupid.js
+   • targets/basic/stupid.py
+
+  Files that couldn't be accessed:
+
+   • <none>
+
+  Skipped by limiting to files smaller than 1000000 bytes:
+  (Adjust with the --max-target-bytes flag)
+
+   • <none>
+
+  Partially analyzed due to parsing or internal Semgrep errors
+
+   • <none>
+
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+Semgrep's file targeting is getting a revamp! This scan wouldn't see any changes. To learn about what will be different after version 1.116.0, visit https://semgrep.dev/docs/kb/semgrep-code/semgrepignore-ignored for the new specification.
+
+✅ Scan completed successfully.
+ • Findings: 0 (0 blocking)
+ • Rules run: 1
+ • Targets scanned: 0
+ • Parsed lines: an unknown percentage
+ • Scan skipped:
+   ◦ Matching --exclude patterns: 17
+Ran 1 rule on 0 files: 0 findings.
+Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False

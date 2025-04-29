@@ -131,14 +131,16 @@ let dump_rule (file : Fpath.t) : unit =
 (* Other non-dumpers actions *)
 (*****************************************************************************)
 
-let prefilter_of_rules file =
+let prefilter_of_rules ~interfile file =
   let cache = Some (Hashtbl.create 101) in
   match Parse_rule.parse file with
   | Ok rules ->
       let xs =
         rules
         |> List_.map (fun r ->
-               let pre_opt = Analyze_rule.regexp_prefilter_of_rule ~cache r in
+               let pre_opt =
+                 Analyze_rule.regexp_prefilter_of_rule ~interfile ~cache r
+               in
                let pre_atd_opt =
                  Option.map Analyze_rule.prefilter_formula_of_prefilter pre_opt
                in

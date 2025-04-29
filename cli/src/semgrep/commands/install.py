@@ -30,6 +30,7 @@ from semgrep.util import sub_check_output
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
+IS_WINDOWS = platform.system() == "Windows"
 
 
 def determine_semgrep_pro_path() -> Path:
@@ -41,7 +42,11 @@ def determine_semgrep_pro_path() -> Path:
         logger.info("There is something wrong with your semgrep installation")
         sys.exit(FATAL_EXIT_CODE)
 
-    semgrep_pro_path = Path(core_path).parent / "semgrep-core-proprietary"
+    semgrep_pro = "semgrep-core-proprietary"
+    if IS_WINDOWS:
+        semgrep_pro = f"{semgrep_pro}.exe"
+    semgrep_pro_path = Path(core_path).parent / semgrep_pro
+
     return semgrep_pro_path
 
 
@@ -140,6 +145,8 @@ def run_install_semgrep_pro() -> None:
             platform_kind = "linux-arm64"
         else:
             platform_kind = "manylinux"
+    elif sys.platform == "win32":
+        platform_kind = "windows"
     else:
         platform_kind = "manylinux"
         logger.info(

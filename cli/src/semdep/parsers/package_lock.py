@@ -9,6 +9,7 @@ from typing import Optional
 from typing import Set
 from typing import Tuple
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers.util import DependencyFileToParse
 from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import extract_npm_lockfile_hash
@@ -19,11 +20,9 @@ from semdep.parsers.util import transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Jsondoc
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -79,7 +78,7 @@ def parse_packages_field(
                 if integrity
                 else {},
                 resolved_url=resolved_url,
-                transitivity=Transitivity(Transitive()) if nested
+                transitivity=out.DependencyKind(Transitive()) if nested
                 # The manifest stores the pure package names but the deps names are all relative paths (prefix'd with 'node_modules'),
                 # so check to see if `package_name` (without the 'node_modules' prefix) is present in the manifest.
                 # https://docs.npmjs.com/cli/v10/configuring-npm/package-lock-json#packages
@@ -125,7 +124,7 @@ def parse_dependencies_field(
                 if integrity
                 else {},
                 resolved_url=resolved_url,
-                transitivity=Transitivity(Transitive())
+                transitivity=out.DependencyKind(Transitive())
                 if nested
                 else transitivity(manifest_deps, [package]),
                 line_number=dep_json.line_number,
@@ -151,8 +150,8 @@ def parse_package_lock(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
     parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
-        DependencyFileToParse(lockfile_path, json_doc, ScaParserName(Jsondoc())),
-        DependencyFileToParse(manifest_path, json_doc, ScaParserName(Jsondoc()))
+        DependencyFileToParse(lockfile_path, json_doc, ScaParserName(out.PJsondoc())),
+        DependencyFileToParse(manifest_path, json_doc, ScaParserName(out.PJsondoc()))
         if manifest_path
         else None,
     )

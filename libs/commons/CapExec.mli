@@ -1,3 +1,12 @@
+val run_subprocess :
+  Cap.Exec.t ->
+  ?env:Cmd.env ->
+  Cmd.t ->
+  (Bos.OS.Cmd.status, [> Rresult.R.msg ]) result
+(** Like status_of_run but does not capture stdout or stderr of the process
+    running. Useful to replicate CLI behavior similar to execv* commands, which
+    don't work on Windows. *)
+
 (*
    The following functions capture the error output of the command being run
    and logs it as the info level, allowing it to be silenced by adjusting
@@ -6,12 +15,14 @@
 val string_of_run :
   Cap.Exec.t ->
   trim:bool ->
+  ?env:Cmd.env ->
   Cmd.t ->
   (string * Cmd.run_status, [> Rresult.R.msg ]) result
 
 val string_of_run_with_stderr :
   Cap.Exec.t ->
   trim:bool ->
+  ?env:Cmd.env ->
   Cmd.t ->
   (string * Cmd.run_status, [> Rresult.R.msg ]) result * string
 (** Like string_of_run but instead of logging the stderr output, it captures it and returns it (in both success and failure cases). *
@@ -20,12 +31,14 @@ val string_of_run_with_stderr :
 val lines_of_run :
   Cap.Exec.t ->
   trim:bool ->
+  ?env:Cmd.env ->
   Cmd.t ->
   (string list * Cmd.run_status, [> Rresult.R.msg ]) result
 
 val status_of_run :
   Cap.Exec.t ->
   ?quiet:bool ->
+  ?env:Cmd.env ->
   Cmd.t ->
   (Bos.OS.Cmd.status, [> Rresult.R.msg ]) result
 

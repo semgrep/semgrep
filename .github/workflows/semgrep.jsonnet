@@ -12,19 +12,18 @@ local semgrep = import 'libs/semgrep.libsonnet';
 // ----------------------------------------------------------------------------
 
 local mk_job(steps) = {
-  'runs-on': 'ubuntu-20.04',
+  'runs-on': 'ubuntu-24.04',
   container: {
     // We're dogfooding the canary here!
     image: 'semgrep/semgrep:canary',
   },
   env: semgrep.secrets,
-  steps: [ actions.checkout() ] + steps,
+  steps: actions.checkout() + steps,
 } + gha.dependabot_guard;
 
-local semgrep_ci_job = mk_job([{ run: 'semgrep ci' } ]);
-local semgrep_ci_oss_job = mk_job([{ run: 'semgrep ci --oss-only' } ]);
-local semgrep_ci_debug_job = mk_job([{ run: 'semgrep ci --debug' } ]);
-
+local semgrep_ci_job = mk_job([{ run: 'semgrep ci' }]);
+local semgrep_ci_oss_job = mk_job([{ run: 'semgrep ci --oss-only' }]);
+local semgrep_ci_debug_job = mk_job([{ run: 'semgrep ci --debug' }]);
 // ----------------------------------------------------------------------------
 // The Workflow
 // ----------------------------------------------------------------------------

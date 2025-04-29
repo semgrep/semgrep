@@ -168,12 +168,12 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
         | New _
         | Call _ ->
             (* If we are inside a try-catch, we consider the possibility of this call
-               * raising an exception, then we add a jump to catch-blocks. This could
-               * lead to some false positives when running taint rules (since it's a
-               * may-analysis), but they are probably rare. For constant propagation
-               * this should reduce false positives (since it's a must-analysis).
-               * Ideally we should have a preceeding analysis that infers which calls
-               * may (or may not) raise exceptions. *)
+             * raising an exception, then we add a jump to catch-blocks. This could
+             * lead to some false positives when running taint rules (since it's a
+             * may-analysis), but they are probably rare. For constant propagation
+             * this should reduce false positives (since it's a must-analysis).
+             * Ideally we should have a preceeding analysis that infers which calls
+             * may (or may not) raise exceptions. *)
             state.g |> add_arc_opt_to_opt (Some newi, state.throw_destination);
             true
         | AssignAnon ({ base = Var name; rev_offset = [] }, Lambda fdef) ->

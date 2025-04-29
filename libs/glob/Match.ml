@@ -41,6 +41,10 @@ type loc = {
   line_contents : string;
 }
 
+type conf = { glob_period : bool }
+
+let default_conf = { glob_period = false }
+
 let show_loc x =
   Printf.sprintf "%s, line %i: %s" x.source_name x.line_number x.line_contents
 
@@ -65,7 +69,7 @@ let add = Buffer.add_string
 let addc = Buffer.add_char
 let quote_char buf c = add buf (Pcre2_.quote (String.make 1 c))
 
-let translate_frag buf pos (frag : Pattern.segment_fragment) =
+let translate_frag conf buf pos (frag : Pattern.segment_fragment) =
   match frag with
   | Char c -> quote_char buf c
   | Char_class { complement; ranges } ->
@@ -80,15 +84,17 @@ let translate_frag buf pos (frag : Pattern.segment_fragment) =
                  quote_char buf b);
       addc buf ']'
   | Question ->
-      if pos = 0 then (* leading dot must match literally *)
+      if pos = 0 && not conf.glob_period then
+        (* leading period must match literally *)
         add buf "[^/.]"
       else add buf "[^/]"
   | Star ->
-      if pos = 0 then (* leading dot must match literally *)
+      if pos = 0 && not conf.glob_period then
+        (* leading period must match literally *)
         add buf "(?![.])";
       add buf "[^/]*"
 
-let translate_seg buf (seg : segment_fragment list) =
+let translate_seg conf buf (seg : segment_fragment list) =
   match seg with
   | [] -> ()
   | _nonempty_segment ->
@@ -96,7 +102,7 @@ let translate_seg buf (seg : segment_fragment list) =
          because pattern 'a/*' should not match path 'a/' which has an
          empty trailing segment. *)
       add buf "(?=[^/])";
-      List.iteri (translate_frag buf) seg
+      List.iteri (translate_frag conf buf) seg
 
 (* beginning of string *)
 let bos = {|\A|}
@@ -104,26 +110,26 @@ let bos = {|\A|}
 (* end of string *)
 let eos = {|\z|}
 
-let rec translate buf pat =
+let rec translate conf buf pat =
   match pat with
   | [ Segment seg ] ->
-      translate_seg buf seg;
+      translate_seg conf buf seg;
       add buf eos
   | [ Any_subpath ] -> ()
   | Segment seg :: pat ->
-      translate_seg buf seg;
+      translate_seg conf buf seg;
       add buf "/+";
-      translate buf pat
+      translate conf buf pat
   | Any_subpath :: pat ->
       add buf "/*(?:[^/]+/+)*";
-      translate buf pat
+      translate conf buf pat
   | [] -> add buf eos
 
 (* Create a pattern that's left-anchored and right-anchored *)
-let translate_root pat =
+let translate_root conf pat =
   let buf = Buffer.create 128 in
   add buf bos;
-  translate buf pat;
+  translate conf buf pat;
   Buffer.contents buf
 
 (*****************************************************************************)
@@ -131,8 +137,8 @@ let translate_root pat =
 (*****************************************************************************)
 
 (* Compile a pattern into an ocaml-re regexp for fast matching *)
-let compile ~source pat =
-  let pcre = translate_root pat in
+let compile ?(conf = default_conf) ~source pat =
+  let pcre = translate_root conf pat in
   let re = Pcre2_.regexp pcre in
   { source; re }
 [@@profiling "Glob.Match.compile"]

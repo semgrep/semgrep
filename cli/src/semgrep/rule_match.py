@@ -23,11 +23,7 @@ from semgrep.constants import NOSEM_INLINE_COMMENT_RE
 from semgrep.constants import RuleScanSource
 from semgrep.external.pymmh3 import hash128  # type: ignore[attr-defined]
 from semgrep.rule import Rule
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Position
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Sha1
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.util import get_lines_from_file
 from semgrep.util import get_lines_from_git_blob
 from semgrep.verbose_logging import getLogger
@@ -45,54 +41,45 @@ def rstrip(value: Optional[str]) -> Optional[str]:
 @frozen(eq=False)
 class RuleMatch:
     """
-    A section of code that matches a single rule (which is potentially many patterns).
-
-    This is also often referred to as a finding.
-    TODO: Rename this class to Finding?
+    A section of code that matches a single rule (which is potentially many
+    patterns). This is also often referred to as a finding.
     """
 
     match: out.CoreMatch
 
-    # fields from the rule
+    # Fields below usually coming from the rule. They can also come from the
+    # CoreMatch when overriden (e.g., by secrets validation)
+    # alt: 'rule: Rule' to attach the rule corresponding to a match
     message: str = field(repr=False)
-    # TODO: reuse semgrep_output_v1.severity instead, or even get rid of
-    # the field and just reuse the one in match
     severity: out.MatchSeverity
     metadata: Dict[str, Any] = field(repr=False, factory=dict)
 
     # Do not use this extra field! This prevents from having typed JSON output
-    # TODO: instead of extra, we should use the more explicit fields:
-    #  fixed_lines: Optional[Any] = field(default=None)
-    #  dependency_match_only: Optional[bool] = field(default=None)
-    #  dependency_matches: Optional[Any] = field(default=None)
-    # but then this would require to remove the @frozen from this class
-    # because autofix and dependency_aware and join_rule are actually monkey patching
-    # this frozen class.
-    # TODO: redundant with core.extra but we do some monkey patching on
-    # this extra field which prevents to use directly core.extra (immutable)
     extra: Dict[str, Any] = field(repr=False, factory=dict)
 
     # fields derived from the rule
-    # We call rstrip() for consistency with semgrep-core, which ignores whitespace
-    # including newline chars at the end of multiline patterns
+    # We call rstrip() for consistency with semgrep-core, which ignores
+    # whitespaces including newline chars at the end of multiline patterns
     fix: Optional[str] = field(converter=rstrip, default=None)
 
-    # ???
-    index: int = 0
+    # ugly: modified by autofix.py in-place and used later in text.py
+    _fixed_lines: Optional[List[str]] = field(default=None)
 
+    # Those 3 fields are set when adding a match to a RuleMatches
+    index: int = 0
     # Used only for indexing match based IDs since index uses syntactic IDs to
     # index meaning that there can be index collisions if we use it for mid
     match_based_index: int = 0
-
     # This is the accompanying formula from the rule that created the match
     # Used for pattern_based_id
-    #
     # This could be derived, if we wanted to keep the rule as a field of the
     # match. Seems easier to just calculate it w/index
     match_formula_string: str = ""
+
+    # set (evolved) in ci.py when match_based_id part of app_blocked_mids
     blocked_by_app: bool = False
 
-    # derived attributes
+    # derived attributes (implemented below via some @xxx.default methods)
     lines: List[str] = field(init=False, repr=False)
     previous_line: str = field(init=False, repr=False)
     syntactic_context: str = field(init=False, repr=False)
@@ -118,18 +105,6 @@ class RuleMatch:
         return Path(self.match.path.value)
 
     @property
-    def git_blob(self) -> Optional[Sha1]:
-        if self.match.extra.historical_info:
-            return self.match.extra.historical_info.git_blob
-        return None
-
-    @property
-    def git_commit(self) -> Optional[Sha1]:
-        if self.match.extra.historical_info:
-            return self.match.extra.historical_info.git_commit
-        return None
-
-    @property
     def start(self) -> out.Position:
         return self.match.start
 
@@ -138,28 +113,33 @@ class RuleMatch:
         return self.match.end
 
     @property
-    def is_ignored(self) -> bool:
-        return self.match.extra.is_ignored
+    def git_blob(self) -> Optional[out.Sha1]:
+        if self.match.extra.historical_info:
+            return self.match.extra.historical_info.git_blob
+        return None
+
+    @property
+    def git_commit(self) -> Optional[out.Sha1]:
+        if self.match.extra.historical_info:
+            return self.match.extra.historical_info.git_commit
+        return None
 
     # TODO: diff with rule.py product() method?
     @property
     def product(self) -> out.Product:
         if self.metadata.get("product") == "secrets":
             return out.Product(out.Secrets())
-        elif "sca_info" in self.extra:
+        elif self.match.extra.sca_match:
             return out.Product(out.SCA())
         else:
             return out.Product(out.SAST())
 
-    @property
-    def validation_state(self) -> Optional[out.ValidationState]:
-        return self.match.extra.validation_state
-
+    # TODO? could be moved to text.py
     @property
     def title(self) -> str:
         if isinstance(self.product.value, out.SCA):
             cve_id = self.metadata.get("sca-vuln-database-identifier")
-            sca_info = self.extra.get("sca_info")
+            sca_info = self.match.extra.sca_match
             package_name = (
                 sca_info.dependency_match.found_dependency.package if sca_info else None
             )
@@ -314,11 +294,11 @@ class RuleMatch:
         except (ValueError, FileNotFoundError):
             path = self.path
         match_formula_str = self.match_formula_string
-        if self.extra.get("metavars") is not None:
-            metavars = self.extra["metavars"]
-            for metavar in metavars:
+        if self.match.extra.metavars is not None:
+            metavars = self.match.extra.metavars.value
+            for mvar, mval in metavars.items():
                 match_formula_str = match_formula_str.replace(
-                    metavar, metavars[metavar]["abstract_content"]
+                    mvar, mval.abstract_content
                 )
         if self.from_transient_scan:
             # NOTE: We include the previous scan's rules in the config for consistent fixed status work.
@@ -377,11 +357,11 @@ class RuleMatch:
         has only changed because e.g. the file path changed
         """
         match_formula_str = self.match_formula_string
-        if self.extra.get("metavars") is not None:
-            metavars = self.extra["metavars"]
-            for metavar in metavars:
+        if self.match.extra.metavars is not None:
+            metavars = self.match.extra.metavars.value
+            for mvar, mval in metavars.items():
                 match_formula_str = match_formula_str.replace(
-                    metavar, metavars[metavar]["abstract_content"]
+                    mvar, mval.abstract_content
                 )
         return hashlib.sha256(match_formula_str.encode()).hexdigest()
 
@@ -403,19 +383,23 @@ class RuleMatch:
 
     @property
     def is_sca_match_in_direct_dependency(self) -> bool:
-        return "sca_info" in self.extra and self.extra[
-            "sca_info"
-        ].dependency_match.found_dependency.transitivity == Transitivity(Direct())
+        return (self.match.extra.sca_match is not None) and (
+            self.match.extra.sca_match.dependency_match.found_dependency.transitivity.value
+            == out.Direct()
+        )
 
     @property
     def is_sca_match_in_transitive_dependency(self) -> bool:
-        return "sca_info" in self.extra and self.extra[
-            "sca_info"
-        ].dependency_match.found_dependency.transitivity == Transitivity(Transitive())
+        return (self.match.extra.sca_match is not None) and (
+            self.match.extra.sca_match.dependency_match.found_dependency.transitivity.value
+            == out.Transitive()
+        )
 
     @property
     def is_reachable_in_code_sca_match(self) -> bool:
-        return "sca_info" in self.extra and self.extra["sca_info"].reachable
+        return (
+            self.match.extra.sca_match is not None
+        ) and self.match.extra.sca_match.reachable
 
     @property
     def is_always_reachable_sca_match(self) -> bool:
@@ -423,12 +407,11 @@ class RuleMatch:
             "sca-kind" in self.metadata and self.metadata["sca-kind"] == "upgrade-only"
         )
 
-    @property
-    def is_validation_state_blocking(self) -> bool:
-        if self.validation_state is None:
+    def _is_validation_state_blocking(self) -> bool:
+        if self.match.extra.validation_state is None:
             return False
 
-        validation_state_type = type(self.validation_state.value)
+        validation_state_type = type(self.match.extra.validation_state.value)
         if validation_state_type is out.NoValidator:
             # If there is no validator, we should rely on original dev.semgrep.actions
             return "block" in self.metadata.get("dev.semgrep.actions", ["block"])
@@ -459,7 +442,7 @@ class RuleMatch:
             return True
 
         blocking = "block" in self.metadata.get("dev.semgrep.actions", ["block"])
-        if "sca_info" in self.extra:
+        if self.match.extra.sca_match:
             if (
                 self.is_always_reachable_sca_match
                 and self.is_sca_match_in_transitive_dependency
@@ -467,38 +450,40 @@ class RuleMatch:
                 return False
             else:
                 return blocking
-        elif self.validation_state is not None:
-            return self.is_validation_state_blocking
+        elif self.match.extra.validation_state is not None:
+            return self._is_validation_state_blocking()
 
         return blocking
-
-    @property
-    def dataflow_trace(self) -> Optional[out.MatchDataflowTrace]:
-        return self.match.extra.dataflow_trace
 
     @property
     def engine_kind(self) -> Optional[out.EngineOfFinding]:
         return self.match.extra.engine_kind
 
+    # coupling: with text.py GROUP_TITLES
+    # TODO: we should use a proper Enum (reachable | unreachable | undetermined)
     @property
     def exposure_type(self) -> Optional[str]:
         """
         Mimic the exposure categories on semgrep.dev for supply chain.
 
-        "reachable": dependency is used in the codebase or is vulnerable even without usage
+        "reachable": dependency is used in the codebase or is vulnerable even
+         without usage
         "unreachable": dependency is not used in the codebase
         "undetermined": rule for dependency doesn't look for reachability
         None: not a supply chain rule
         """
-        if "sca_info" not in self.extra:
+        if not self.match.extra.sca_match:
             return None
 
-        if self.metadata.get("sca-kind") == "upgrade-only":
+        sca_kind = self.metadata.get("sca-kind")
+        if sca_kind == "upgrade-only" or sca_kind == "malicious":
             return "reachable"
-        elif self.metadata.get("sca-kind") == "legacy":
+        elif sca_kind == "legacy":
             return "undetermined"
         else:
-            return "reachable" if self.extra["sca_info"].reachable else "unreachable"
+            return (
+                "reachable" if self.match.extra.sca_match.reachable else "unreachable"
+            )
 
     def to_app_finding_format(
         self,
@@ -551,21 +536,15 @@ class RuleMatch:
             hashes=hashes,
             metadata=out.RawJson(self.metadata),
             is_blocking=self.is_blocking,
-            dataflow_trace=remove_content(self.dataflow_trace)
+            fixed_lines=self._fixed_lines,
+            sca_info=self.match.extra.sca_match,
+            dataflow_trace=remove_content(self.match.extra.dataflow_trace)
             if remove_dataflow_content
-            else self.dataflow_trace,
-            engine_kind=self.engine_kind,
-            # TODO: Currently bypassing extra because it stores a
-            # string instead of a ValidationState. Fix the monkey
-            # patchable version if you want monkey patching to work.
+            else self.match.extra.dataflow_trace,
             validation_state=self.match.extra.validation_state,
             historical_info=self.match.extra.historical_info,
+            engine_kind=self.engine_kind,
         )
-
-        if self.extra.get("fixed_lines"):
-            ret.fixed_lines = self.extra.get("fixed_lines")
-        if "sca_info" in self.extra:
-            ret.sca_info = self.extra["sca_info"]
         return ret
 
     @property

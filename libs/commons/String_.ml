@@ -97,3 +97,7 @@ let truncate_with_message max_len fmt s =
     let trunc_s = Str.first_chars s max_len in
     fmt trunc_s truncated_length
   else s
+
+let take_last ~max_len s =
+  let len = String.length s in
+  if len > max_len then "..." ^ safe_sub s (len - max_len) max_len else s

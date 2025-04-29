@@ -64,9 +64,16 @@ def validate(fp: out.Fpath) -> bool:
 
 
 def resolve_dependencies(
-    args: List[out.DependencySource],
+    dependency_sources: List[out.DependencySource],
+    download_dependency_source_code: bool,
 ) -> Optional[List[Tuple[out.DependencySource, out.ResolutionResult]]]:
-    call = out.FunctionCall(out.CallResolveDependencies(args))
+    call = out.FunctionCall(
+        out.CallResolveDependencies(
+            out.ResolveDependenciesParams(
+                dependency_sources, download_dependency_source_code
+            )
+        )
+    )
     ret: Optional[out.RetResolveDependencies] = rpc_call(
         call, out.RetResolveDependencies
     )
@@ -94,7 +101,7 @@ def upload_symbol_analysis(
 
 
 def transitive_reachability_filter(
-    args: List[out.TransitiveFinding],
+    args: out.TransitiveReachabilityFilterParams,
 ) -> List[out.TransitiveFinding]:
     call = out.FunctionCall(out.CallTransitiveReachabilityFilter(args))
     ret: Optional[out.RetTransitiveReachabilityFilter] = rpc_call(
@@ -103,7 +110,7 @@ def transitive_reachability_filter(
     if ret is None:
         logger.warning("failed to filter transitive findings")
         # return the same findings
-        return args
+        return args.findings
     return ret.value
 
 
@@ -113,4 +120,23 @@ def dump_rule_partitions(args: out.DumpRulePartitionsParams) -> bool:
     if ret is None:
         logger.error("Failed to dump rule partitions")
         return out.RetDumpRulePartitions(False).value
+    return ret.value
+
+
+def get_targets(scanning_roots: out.ScanningRoots) -> out.TargetDiscoveryResult:
+    call = out.FunctionCall(out.CallGetTargets(scanning_roots))
+    ret: Optional[out.RetGetTargets] = rpc_call(call, out.RetGetTargets)
+    if ret is None:
+        logger.error("Failed to obtain target files from semgrep-core")
+        return out.TargetDiscoveryResult([], [], [])
+    logger.debug(f"get_targets request: {scanning_roots}\n..... result: {ret.value}")
+    return ret.value
+
+
+def match_subprojects(dependency_source_files: List[out.Fpath]) -> List[out.Subproject]:
+    call = out.FunctionCall(out.CallMatchSubprojects(dependency_source_files))
+    ret: Optional[out.RetMatchSubprojects] = rpc_call(call, out.RetMatchSubprojects)
+    if ret is None:
+        logger.error("Failed to match subprojects")
+        return []
     return ret.value

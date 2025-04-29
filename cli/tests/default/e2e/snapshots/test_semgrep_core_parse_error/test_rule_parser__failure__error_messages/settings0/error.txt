@@ -1,5 +1,4 @@
 running 1 rules from 1 config rules/bad-java-rule.yaml_0
-No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignore-files
 Rules:
 - rules.broken-rule
 
@@ -47,15 +46,23 @@ Files skipped:
 
   [1m[24mPartially analyzed due to parsing or internal Semgrep errors[0m
 
-   • [36m[22m[24m<MASKED> with rule rules.broken-rule[0m
+   • [36m[22m[24m<MASKED> (1 rule failed to run)[0m
+
+     [38;5;7m[22m[24mThe following 1 rule failed to run on this file:[0m
+
+     • [36m[22m[24mRule rules.broken-rule[0m[33m[22m[24m due to exception "RuleParseError" raised during
+       analysis[0m
 
 
 
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘
-Some files were skipped or only partially analyzed.
-  Partially scanned: 1 files only partially analyzed due to parsing or internal Semgrep errors
-
+✅ Scan completed successfully.
+ • Findings: 0 (0 blocking)
+ • Rules run: 1
+ • Targets scanned: 1
+ • Parsed lines: ~100.0%
+ • No ignore information available
 Ran 1 rule on 1 file: 0 findings.
 Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False

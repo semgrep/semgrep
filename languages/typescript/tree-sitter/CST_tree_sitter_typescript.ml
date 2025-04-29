@@ -553,7 +553,8 @@ and class_ = (
 and class_body = (
     Token.t (* "{" *)
   * [
-        `Deco of decorator
+        `Semg_ellips of Token.t (* "..." *)
+      | `Deco of decorator
       | `Meth_defi_opt_choice_auto_semi of (
             method_definition
           * semicolon option

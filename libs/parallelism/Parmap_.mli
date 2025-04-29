@@ -81,6 +81,3 @@ val wrap_result :
   ('b, 'err) result
 
 val disable_core_pinning : unit -> unit
-
-(* return the number of cpus *)
-val get_cpu_count : unit -> int

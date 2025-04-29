@@ -126,8 +126,7 @@ and metavar_cond =
    * update: this is also useful to keep separate from CondEval for
    * the "regexpizer" optimizer (see Analyze_rule.ml).
    *)
-  | CondRegexp of
-      Mvar.t * Xpattern.regexp_string * bool (* constant-propagation *)
+  | CondRegexp of Mvar.t * string * bool (* constant-propagation *)
   | CondType of
       Mvar.t
       * Analyzer.t option
@@ -206,10 +205,26 @@ type precondition =
   | PNot of precondition
 [@@deriving show, ord]
 
+let rec show_precondition (p : precondition) : string =
+  match p with
+  | PLabel s -> s
+  | PBool b -> string_of_bool b
+  | PAnd preds ->
+      "(" ^ String.concat " and " (List_.map show_precondition preds) ^ ")"
+  | POr preds ->
+      "(" ^ String.concat " or " (List_.map show_precondition preds) ^ ")"
+  | PNot pred -> "not " ^ show_precondition pred
+
 type precondition_with_range = {
   precondition : precondition;
   range : (Tok.location * Tok.location) option;
+      (** Range used to extract the actual text of the precondition for rule translation. *)
 }
+[@@deriving show]
+
+type sink_requires =
+  | UniReq of precondition_with_range
+  | MultiReq of (Mvar.t wrap * precondition_with_range) list  (** non-empty *)
 [@@deriving show]
 
 type by_side_effect = Only | Yes | No [@@deriving show]
@@ -294,7 +309,7 @@ and taint_sink = {
       * sink, and nothing is reported. If 'false', then every subexpression in
       * `sink(if tainted then ok1 else ok2)` is considered a sink, and we report
       * a finding due to `tainted`. *)
-  sink_requires : precondition_with_range option;
+  sink_requires : sink_requires option;
       (* A Boolean expression over taint labels. See also 'taint_source'.
        * The sink will only trigger a finding if the data that reaches it
        * has a set of labels attached that satisfies the 'requires'.
@@ -348,16 +363,6 @@ let default_propagator_requires = PBool true
 let get_source_precondition { source_requires; _ } =
   match source_requires with
   | None -> default_source_requires
-  | Some { precondition; _ } -> precondition
-
-let get_propagator_precondition { propagator_requires; _ } =
-  match propagator_requires with
-  | None -> default_propagator_requires
-  | Some { precondition; _ } -> precondition
-
-let get_sink_requires { sink_requires; _ } =
-  match sink_requires with
-  | None -> PLabel default_source_label
   | Some { precondition; _ } -> precondition
 
 (* Check if a formula has "focus" (i.e., `focus-metavariable` in syntax 1.0)
@@ -494,10 +499,7 @@ type request = {
 [@@deriving show]
 
 (* Used to match on the returned response of some request *)
-type response = {
-  return_code : Parsed_int.t;
-  regex : Xpattern.regexp_string option;
-}
+type response = { return_code : Parsed_int.t; regex : string option }
 [@@deriving show]
 
 type http_match_clause = {
@@ -556,7 +558,7 @@ type paths = {
 (*****************************************************************************)
 
 type fix_regexp = {
-  regexp : Xpattern.regexp_string;
+  regexp : string;
   (* Not using Parsed_int here, because we would rather fail early at rule
      parsing time if we have to apply a regexp more times than we can
      represent.
@@ -777,6 +779,20 @@ let partition_rules (rules : rules) :
   in
   part_rules [] [] [] [] rules
 
+let split_taint_rules (rules : rules) : taint_rule list * rules =
+  let rec part_rules taint other = function
+    | [] -> (List.rev taint, List.rev other)
+    | r :: l -> (
+        match r.mode with
+        | `Taint _ as t -> part_rules ({ r with mode = t } :: taint) other l
+        | `Search _
+        | `Extract _
+        | `Steps _
+        | `SCA _ ->
+            part_rules taint (r :: other) l)
+  in
+  part_rules [] [] rules
+
 (* for informational messages *)
 let show_id rule = rule.id |> fst |> Rule_ID.to_string
 
@@ -787,6 +803,7 @@ let show_id rule = rule.id |> fst |> Rule_ID.to_string
 (* This is used to let the user know which rule the engine was using when
  * a Timeout or OutOfMemory exn occured.
  * TODO: relation with Match_patterns.last_matched_rule?
+ * TODO(SAF-1854, SAF-1939): This will race on multicore.
  *)
 let last_matched_rule : Rule_ID.t option ref = ref None
 

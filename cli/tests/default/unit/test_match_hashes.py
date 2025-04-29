@@ -14,7 +14,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 
 
 @pytest.fixture
@@ -111,11 +110,10 @@ def get_rule_match(
             end=out.Position(end_line, 5, end_line * 5 + 5),
             extra=out.CoreMatchExtra(
                 metavars=out.Metavars(metavars if metavars else {}),
-                engine_kind=out.EngineKind(out.OSS()),
+                engine_kind=out.EngineOfFinding(out.OSS()),
                 is_ignored=False,
             ),
         ),
-        extra={"metavars": metavars if metavars else {}},
         metadata=metadata if metadata else {},
     )
 
@@ -136,32 +134,30 @@ def get_lockfile_only_rule_match(
             end=out.Position(end_line, 0, 0),
             extra=out.CoreMatchExtra(
                 metavars=out.Metavars({}),
-                engine_kind=out.EngineKind(out.OSS()),
+                engine_kind=out.EngineOfFinding(out.OSS()),
                 is_ignored=False,
+                sca_match=out.ScaMatch(
+                    reachable=False,
+                    reachability_rule=False,
+                    sca_finding_schema=SCA_FINDING_SCHEMA,
+                    dependency_match=DependencyMatch(
+                        dependency_pattern=out.ScaPattern(
+                            ecosystem=Ecosystem(Pypi()),
+                            package="foo",
+                            semver_range=">=1.0.0",
+                        ),
+                        found_dependency=FoundDependency(
+                            ecosystem=Ecosystem(Pypi()),
+                            package="foo",
+                            version="1.0.0",
+                            allowed_hashes={},
+                            transitivity=out.DependencyKind(Transitive()),
+                        ),
+                        lockfile=filepath,
+                    ),
+                ),
             ),
         ),
-        extra={
-            "sca_info": out.ScaMatch(
-                reachable=False,
-                reachability_rule=False,
-                sca_finding_schema=SCA_FINDING_SCHEMA,
-                dependency_match=DependencyMatch(
-                    dependency_pattern=out.ScaPattern(
-                        ecosystem=Ecosystem(Pypi()),
-                        package="foo",
-                        semver_range=">=1.0.0",
-                    ),
-                    found_dependency=FoundDependency(
-                        ecosystem=Ecosystem(Pypi()),
-                        package="foo",
-                        version="1.0.0",
-                        allowed_hashes={},
-                        transitivity=Transitivity(Transitive()),
-                    ),
-                    lockfile=filepath,
-                ),
-            )
-        },
         metadata={},
     )
 
@@ -193,9 +189,9 @@ def test_code_hash_independent_of_index(mocker, eqeq_rule, foo_contents):
     mocker.patch.object(Path, "open", mocker.mock_open(read_data=foo_contents))
     match_1 = get_rule_match(start_line=3, end_line=3)
     match_2 = get_rule_match(start_line=4, end_line=4)
-    matches = RuleMatches(eqeq_rule)
-    matches.update([match_1, match_2])
-    matches = list(sorted(matches))
+    matches_orig = RuleMatches(eqeq_rule)
+    matches_orig.update([match_1, match_2])
+    matches: list[RuleMatch] = list(sorted(matches_orig))
     # Adding a RuleMatch to a RuleMatches does not update the index of the
     # original RuleMatch object, instead it creates a copy of each RuleMatch
     # that gets added to the set, and updates those indexes
@@ -210,15 +206,24 @@ def test_code_hash_independent_of_index(mocker, eqeq_rule, foo_contents):
 @pytest.mark.quick
 def test_code_hash_changes_with_code(mocker, eqeq_rule, foo_contents):
     mocker.patch.object(Path, "open", mocker.mock_open(read_data=foo_contents))
+    fake_pos = out.Position(0, 0)
     match_1 = get_rule_match(
-        start_line=3, end_line=3, metavars={"$X": {"abstract_content": "5"}}
+        start_line=3,
+        end_line=3,
+        metavars={
+            "$X": out.MetavarValue(start=fake_pos, end=fake_pos, abstract_content="5")
+        },
     )
     match_2 = get_rule_match(
-        start_line=5, end_line=5, metavars={"$X": {"abstract_content": "6"}}
+        start_line=5,
+        end_line=5,
+        metavars={
+            "$X": out.MetavarValue(start=fake_pos, end=fake_pos, abstract_content="6")
+        },
     )
-    matches = RuleMatches(eqeq_rule)
-    matches.update([match_1, match_2])
-    matches = list(sorted(matches))
+    matches_orig = RuleMatches(eqeq_rule)
+    matches_orig.update([match_1, match_2])
+    matches = list(sorted(matches_orig))
     # Adding a RuleMatch to a RuleMatches does not update the index of the
     # original RuleMatch object, instead it creates a copy of each RuleMatch
     # that gets added to the set, and updates those indexes
@@ -233,9 +238,9 @@ def test_line_hashes_hash_correct_line(mocker, double_eqeq_rule, foo_contents):
     mocker.patch.object(Path, "open", mocker.mock_open(read_data=foo_contents))
     match_1 = get_rule_match(start_line=4, end_line=5)  # 5 == 5\n6 == 6\n
     match_2 = get_rule_match(start_line=5, end_line=6)  # 6 == 6\n5 == 5\n
-    matches = RuleMatches(double_eqeq_rule)
-    matches.update([match_1, match_2])
-    matches = list(sorted(matches))
+    matches_orig = RuleMatches(double_eqeq_rule)
+    matches_orig.update([match_1, match_2])
+    matches = list(sorted(matches_orig))
     assert matches[0].start_line_hash != matches[0].end_line_hash
     assert matches[1].start_line_hash != matches[1].end_line_hash
     assert matches[0].start_line_hash == matches[1].end_line_hash
@@ -307,7 +312,7 @@ def test_lockfile_only(mocker, lockfile_only_rule):
     mocker.patch.object(Path, "open", mocker.mock_open(read_data=lockfile_contents))
     match1 = get_lockfile_only_rule_match(start_line=1, end_line=1)
     match2 = get_lockfile_only_rule_match(start_line=2, end_line=2)
-    matches = RuleMatches(lockfile_only_rule)
-    matches.update([match1, match2])
-    matches = list(sorted(matches))
+    matches_orig = RuleMatches(lockfile_only_rule)
+    matches_orig.update([match1, match2])
+    matches = list(sorted(matches_orig))
     assert matches[0].match_based_id != matches[1].match_based_id

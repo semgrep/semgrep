@@ -38,17 +38,23 @@ let ( >>= ) = Result.bind
  * See also the JSON schema for a rule in rule_schema_v1.yaml (and
  * also now in rule_schema_v2.atd for the v2 syntax).
  *
- * history: we used to parse a semgrep rule by simply using the basic API of
- * the OCaml 'yaml' library. This API allows converting a yaml file into
- * a simple and compact JSON.t value.
- * However, this JSON.t value did not contain any location information, which
- * made it hard to report errors in a YAML rule. This is why we switched
- * to the low-level API of the 'yaml' library that returns a stream
- * of tokens with location information. We actually used first that low-level
- * API to return the generic AST of a yaml file, to add support for
- * YAML in semgrep (allowing semgrep rules on any YAML files).
- * See the Yaml_to_generic.parse_rule function. We then (ab)used this function
- * to also parse a semgrep rule (which is a yaml file) in this file.
+ * history:
+ *  - we used to parse a semgrep rule by simply using the basic API of
+ *    the OCaml 'yaml' library. This API allows converting a yaml file into
+ *    a simple and compact JSON.t value.
+ *    However, this JSON.t value did not contain any location information, which
+ *    made it hard to report errors in a YAML rule.
+ *  - This is why we switched to the low-level API of the 'yaml' library that
+ *    returns a stream of tokens with location information. We actually used
+ *    first that low-level API to return the generic AST of a yaml file, to add
+ *    support for YAML in semgrep (allowing semgrep rules on any YAML files).
+ *    See the Yaml_to_generic.parse_rule function.
+ *  - We then (ab)used this function to also parse a semgrep rule (which is a
+ *    yaml file) in this file.
+ *
+ * Should we use the new AST_yaml.ml instead of parsing using the
+ * AST_generic? NO! The advantage of using AST_generic is that it works also
+ * for parsing jsonnet rules! or JSON rules!
  *)
 
 (*****************************************************************************)
@@ -406,11 +412,66 @@ let parse_taint_sanitizer ~(is_old : bool) env (key : key) (value : G.expr) =
     | Right dict ->
         parse_from_dict dict Parse_rule_formula.parse_formula_from_dict
 
+let parse_taint_sink_mvar_requires env key x =
+  let parse_item env x : (MV.mvar R.wrap * R.precondition_with_range, _) result
+      =
+    match x.G.e with
+    | G.Container
+        ( Dict,
+          ( _l,
+            [
+              {
+                e =
+                  G.Container
+                    ( G.Tuple,
+                      ( _,
+                        [
+                          {
+                            e =
+                              (* When running `semgrep-core` directly this gets parsed as a literal,
+                                 but when running via "pysemgrep" this gets parsed as an id... so we
+                                 accept both forms. *)
+                              ( L (String (_, (mvar, tok), _))
+                              | N (Id ((mvar, tok), _)) );
+                            _;
+                          };
+                          rhs;
+                        ],
+                        _ ) );
+                _;
+              };
+            ],
+            _r ) ) ->
+        if not (Mvar.is_metavar_name mvar) then
+          error_at_expr env.id x (spf "`%s' is not a valid metavariable" mvar)
+        else
+          let/ requires = parse_taint_requires env key rhs in
+          Ok ((mvar, tok), requires)
+    | __else__ ->
+        error_at_expr env.id x
+          "Invalid `requires:' item in sink specification, expected <$MVAR>: \
+           <precondition>"
+  in
+  parse_list env key parse_item x
+
 let parse_taint_sink ~(is_old : bool) env (key : key) (value : G.expr) :
     (Rule.taint_sink, Rule_error.t) result =
   let sink_id = "sink:" ^ String.concat ":" env.path in
   let parse_from_dict dict f =
-    let/ sink_requires = take_opt dict env parse_taint_requires "requires" in
+    let/ sink_requires =
+      match dict_take_opt dict "requires" with
+      | None -> Ok None
+      | Some (key, value) -> (
+          match parse_string env key value with
+          | Ok _ ->
+              parse_taint_requires env key value
+              |> Result.map (fun precond -> Some (Rule.UniReq precond))
+          | Error _ ->
+              (* If not a string, then we assume it must be a "multi-requires". *)
+              parse_taint_sink_mvar_requires env key value
+              |> Result.map (fun mvars_w_preconds ->
+                     Some (Rule.MultiReq mvars_w_preconds)))
+    in
     let/ sink_at_exit =
       take_opt dict env parse_bool "at-exit"
       |> Result.map (Option.value ~default:false)
@@ -483,17 +544,17 @@ let parse_taint_pattern env key (value : G.expr) =
   in
   Ok
     (`Taint
-      Rule.
-        {
-          sources;
-          propagators =
-            (* optlist_to_list *)
-            (match propagators_opt with
-            | None -> []
-            | Some (_, xs) -> xs);
-          sanitizers = sanitizers_opt;
-          sinks;
-        })
+       Rule.
+         {
+           sources;
+           propagators =
+             (* optlist_to_list *)
+             (match propagators_opt with
+             | None -> []
+             | Some (_, xs) -> xs);
+           sanitizers = sanitizers_opt;
+           sinks;
+         })
 
 (*****************************************************************************)
 (* Parsers for extract mode *)
@@ -615,17 +676,17 @@ let parse_taint_fields env rule_dict =
       in
       Ok
         (`Taint
-          Rule.
-            {
-              sources;
-              propagators =
-                (* optlist_to_list *)
-                (match propagators_opt with
-                | None -> []
-                | Some (_, xs) -> xs);
-              sanitizers = sanitizers_opt;
-              sinks;
-            })
+           Rule.
+             {
+               sources;
+               propagators =
+                 (* optlist_to_list *)
+                 (match propagators_opt with
+                 | None -> []
+                 | Some (_, xs) -> xs);
+               sanitizers = sanitizers_opt;
+               sinks;
+             })
 
 (*****************************************************************************)
 (* Parsers for step mode *)
@@ -816,7 +877,7 @@ let parse_validators env key value =
 let parse_ecosystem env key value =
   match value.G.e with
   | G.L (String (_, (_ecosystem, _), _)) ->
-      Ok `Npm
+      Ok Ecosystem.Npm
       (* | _ -> error_at_key env.id key ("Unknown ecosystem: " ^ ecosystem)) *)
   | _ -> error_at_key env.id key "Non-string data for ecosystem?"
 
@@ -895,8 +956,8 @@ let parse_mode env mode_opt dep_fml_opt (rule_dict : dict) :
       in
       Ok
         (`Extract
-          Rule.
-            { formula; dst_lang; extract_rule_ids; extract; reduce; transform })
+           Rule.
+             { formula; dst_lang; extract_rule_ids; extract; reduce; transform })
   (* TODO? should we use "mode: steps" instead? *)
   | Some ("step", _), _, _ ->
       let/ steps = take_key rule_dict env parse_steps "steps" in
@@ -1075,7 +1136,7 @@ let parse_generic_ast ?(error_recovery = false) ?rewrite_rule_ids
       match ast with
       | [ { G.s = G.ExprStmt (e, _); _ } ] -> (
           let missing_rules_field () =
-            let loc = Tok.first_loc_of_file file in
+            let loc = Loc.first_loc_of_file file in
             yaml_error (Tok.tok_of_loc loc)
               "missing rules entry as top-level key"
           in
@@ -1095,8 +1156,8 @@ let parse_generic_ast ?(error_recovery = false) ?rewrite_rule_ids
               let/ () = check_that_dict_is_empty root_dict in
               Ok rules
           (* it's also ok to not have the toplevel rules:, anyway we never
-             * used another toplevel key
-          *)
+           * used another toplevel key
+           *)
           | G.Container (G.Array, (_tok, rules, _r)) -> Ok rules
           | _ -> missing_rules_field ())
       | [] ->

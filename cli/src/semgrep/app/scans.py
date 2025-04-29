@@ -28,16 +28,14 @@ from semgrep.app.project_config import ProjectConfig
 from semgrep.constants import TOO_MUCH_DATA
 from semgrep.constants import USER_FRIENDLY_PRODUCT_NAMES
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
-from semgrep.error import SemgrepError
 from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
-from semgrep.subproject import ResolvedSubproject
-from semgrep.subproject import UnresolvedSubproject
+from semgrep.subproject import resolved_subproject_to_stats
+from semgrep.subproject import subproject_to_stats
 from semgrep.target_manager import ALL_PRODUCTS
 from semgrep.verbose_logging import getLogger
-
 
 if TYPE_CHECKING:
     from semgrep.engine import EngineType
@@ -348,8 +346,8 @@ class ScanHandler:
     @tracing.trace()
     def report_findings(
         self,
+        *,
         matches_by_rule: RuleMatchMap,
-        errors: List[SemgrepError],
         rules: List[Rule],
         targets: Set[Path],
         renamed_targets: Set[Path],
@@ -360,7 +358,7 @@ class ScanHandler:
         commit_date: str,
         lockfile_dependencies: Dict[str, List[out.FoundDependency]],
         dependency_parser_errors: List[DependencyParserError],
-        all_subprojects: List[Union[UnresolvedSubproject, ResolvedSubproject]],
+        all_subprojects: List[Union[out.UnresolvedSubproject, out.ResolvedSubproject]],
         contributions: out.Contributions,
         engine_requested: "EngineType",
         progress_bar: "Progress",
@@ -398,7 +396,7 @@ class ScanHandler:
             all_matches, key=lambda match: sort_order[match.severity.value]
         )
         new_ignored, new_matches = partition(
-            all_matches, lambda match: bool(match.is_ignored)
+            all_matches, lambda match: match.match.extra.is_ignored
         )
 
         # Autofix is currently the only toggle in the App that
@@ -477,7 +475,11 @@ class ScanHandler:
         subproject_stats: List[out.SubprojectStats] = []
         if all_subprojects:
             for subproject in all_subprojects:
-                subproject_stats.append(subproject.to_stats_output())
+                if isinstance(subproject, out.UnresolvedSubproject):
+                    stats = subproject_to_stats(subproject.info)
+                else:
+                    stats = resolved_subproject_to_stats(subproject)
+                subproject_stats.append(stats)
 
         complete = out.CiScanComplete(
             exit_code=cli_suggested_exit_code,
@@ -486,7 +488,13 @@ class ScanHandler:
                 findings=len(
                     [match for match in new_matches if not match.from_transient_scan]
                 ),
-                errors=[error.to_CliError() for error in errors],
+                # We do not report errors anymore since they are large and have
+                # caused issues in the past with overloading api endpoints
+                #
+                # Also, we now use opentelemetry to report these, so they're not
+                # useful to us as it stands
+                # TODO: Remove this from the interface file?
+                errors=[],
                 total_time=total_time,
                 unsupported_exts=dict(ignored_ext_freqs),
                 lockfile_scan_info=dependency_counts,

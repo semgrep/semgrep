@@ -84,8 +84,3 @@ val with_client_ref : (module Cohttp_lwt.S.Client) -> ('a -> 'b) -> 'a -> 'b
 (** [with_client client f x] is a helper function that temporarily sets the client
     reference to the provided client module, runs the provided function, and
     then resets the client reference to its original value. *)
-
-(* See Http_mock_client.ml. If this global is set, set_client_ref()
- * above will be a noop (and so leave the mock_http_client in place).
- *)
-val in_mock_context : bool ref

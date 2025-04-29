@@ -1,6 +1,12 @@
+##############################################################################
+# Prelude
+##############################################################################
+# Entry point of the 'pysemgrep scan' command
+#
 # THIS FILE IS DEPRECATED! DO NOT MODIFY FLAGS HERE! INSTEAD MODIFY Scan_CLI.ml
 import os
 import tempfile
+from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
 from typing import Any
@@ -9,7 +15,6 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Sequence
-from typing import Set
 from typing import Tuple
 
 import click
@@ -29,7 +34,6 @@ from semgrep.app.version import TOO_MANY_FINDINGS_THRESHOLD
 from semgrep.commands.install import determine_semgrep_pro_path
 from semgrep.commands.wrapper import handle_command_errors
 from semgrep.constants import Colors
-from semgrep.constants import DEFAULT_DIFF_DEPTH
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_MAX_LOG_LIST_ENTRIES
@@ -50,12 +54,17 @@ from semgrep.semgrep_core import SemgrepCore
 from semgrep.state import get_state
 from semgrep.target_manager import ALL_PRODUCTS
 from semgrep.target_manager import write_pipes_to_disk
+from semgrep.types import TargetAccumulator
 from semgrep.util import abort
 from semgrep.util import is_truthy
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
+
+##############################################################################
+# Command-line parsing
+##############################################################################
 
 
 class MetricsStateType(click.ParamType):
@@ -115,9 +124,12 @@ _scan_options: List[Callable] = [
     # once everyone is happy with Semgrepignore v2 (OCaml file targeting)
     optgroup.option(
         "--semgrepignore-v2/--no-semgrepignore-v2",
-        "use_semgrepignore_v2",
+        "semgrepignore_v2",
         is_flag=True,
-        default=False,
+        default=None,
+    ),
+    optgroup.option(
+        "--x-semgrepignore-filename",
     ),
     optgroup.option(
         "--exclude",
@@ -143,6 +155,18 @@ _scan_options: List[Callable] = [
         "--use-git-ignore/--no-git-ignore",
         is_flag=True,
         default=True,
+    ),
+    optgroup.option(
+        # semgrepignore v2 only; scan only (not ci)
+        "--novcs",
+        "force_novcs_project",
+        is_flag=True,
+    ),
+    optgroup.option(
+        # semgrepignore v2 only; scan only (not ci)
+        "--project-root",
+        "force_project_root",
+        type=str,
     ),
     optgroup.option(
         "--scan-unknown-extensions/--skip-unknown-extensions",
@@ -367,11 +391,6 @@ _scan_options: List[Callable] = [
         type=EngineType,
         flag_value=EngineType.OSS,
     ),
-    optgroup.option(
-        "--diff-depth",
-        type=int,
-        default=DEFAULT_DIFF_DEPTH,
-    ),
     optgroup.option("--dump-command-for-core", "-d", is_flag=True, hidden=True),
     optgroup.option(
         "--no-secrets-validation",
@@ -398,6 +417,18 @@ _scan_options: List[Callable] = [
     optgroup.option(
         "--x-tr",
         "x_tr",
+        is_flag=True,
+        default=False,
+    ),
+    optgroup.option(
+        "--x-eio",
+        "x_eio",
+        is_flag=True,
+        default=False,
+    ),
+    optgroup.option(
+        "--x-pro-naming",
+        "x_pro_naming",
         is_flag=True,
         default=False,
     ),
@@ -445,6 +476,51 @@ def scan_options(func: Callable) -> Callable:
     for option in reversed(_scan_options):
         func = option(func)
     return func
+
+
+##############################################################################
+# Logging
+##############################################################################
+
+
+def log_findings(
+    filtered_matches_by_rule: RuleMatchMap, engine_type: EngineType
+) -> None:
+    findings_count = sum(len(matches) for matches in filtered_matches_by_rule.values())
+    no_findings = findings_count == 0
+
+    if no_findings:
+        try:
+            msg = get_no_findings_msg()
+            if msg:
+                logger.info(msg)
+        except Exception as e:
+            logger.debug(f"Error getting no findings message: {e}")
+
+    if findings_count > TOO_MANY_FINDINGS_THRESHOLD and engine_type is EngineType.OSS:
+        try:
+            msg = get_too_many_findings_msg()
+            if msg:
+                logger.info(msg)
+        except Exception as e:
+            logger.debug(f"Error getting too many findings message: {e}")
+
+
+##############################################################################
+# Scan entry point
+##############################################################################
+
+
+# kw_only=True is desirable to but requires python >= 3.10
+# @dataclass(kw_only=True)
+@dataclass
+class ScanResult:
+    """The return type of the scan function"""
+
+    filtered_matches_by_rule: RuleMatchMap
+    semgrep_errors: List[SemgrepError]
+    filtered_rules: List[Rule]
+    all_targets: TargetAccumulator
 
 
 # Those are the scan-only options (not reused in ci.py)
@@ -534,7 +610,6 @@ def scan(
     baseline_commit: Optional[str],
     config: Optional[Tuple[str, ...]],
     debug: bool,
-    diff_depth: int,
     dump_engine_path: bool,
     requested_engine: Optional[EngineType],
     run_secrets_flag: bool,
@@ -548,6 +623,8 @@ def scan(
     exclude: Optional[Tuple[str, ...]],
     exclude_rule: Optional[Tuple[str, ...]],
     force_color: bool,
+    force_novcs_project: bool,
+    force_project_root: Optional[str],
     include: Optional[Tuple[str, ...]],
     jobs: Optional[int],
     lang: Optional[str],
@@ -588,7 +665,7 @@ def scan(
     trace: bool,
     trace_endpoint: Optional[str],
     use_git_ignore: bool,
-    use_semgrepignore_v2: bool,
+    semgrepignore_v2: Optional[bool],
     validate: bool,
     verbose: bool,
     version: bool,
@@ -596,9 +673,12 @@ def scan(
     x_ls: bool,
     x_ls_long: bool,
     x_tr: bool,
+    x_eio: bool,
+    x_pro_naming: bool,
+    x_semgrepignore_filename: Optional[str],
     path_sensitive: bool,
     allow_local_builds: bool,
-) -> Optional[Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]]:
+) -> Optional[ScanResult]:
     if version:
         print(__VERSION__)
         if enable_version_check:
@@ -606,6 +686,18 @@ def scan(
 
             version_check()
         return None
+
+    # 2025-04-14: Feel free to remove these messages after a while.
+    # This was a temporary flag for the Semgrepignore v1->v2 transition.
+    if semgrepignore_v2 is not None:
+        if semgrepignore_v2:
+            logger.warning(
+                with_color(
+                    Colors.yellow, "The --semgrepignore-v2 flag is no longer needed!"
+                )
+            )
+        else:
+            abort("The --no-semgrepignore-v2 flag is no longer supported.")
 
     # I wish there was an easy way to leverage the engine_params from the
     # new GET /api/cli/scans endpoint here but that info is not available
@@ -640,7 +732,6 @@ def scan(
             logged_in=auth.is_logged_in_weak(),
             engine_flag=requested_engine,
             run_secrets=run_secrets_flag,
-            interfile_diff_scan_enabled=diff_depth >= 0,
         )
 
         # this is useful for our CI job to find where semgrep-core (or semgrep-core-proprietary)
@@ -760,9 +851,7 @@ def scan(
             scanning_roots = write_pipes_to_disk(scanning_roots, Path(pipes_dir))
 
             output_handler = OutputHandler(output_settings)
-            return_data: Optional[
-                Tuple[RuleMatchMap, List[SemgrepError], List[Rule], Set[Path]]
-            ] = None
+            return_data: Optional[ScanResult] = None
 
             if validate:
                 if not (pattern or lang or config):
@@ -811,7 +900,11 @@ def scan(
                     )
                     if config_errors:
                         output_handler.handle_semgrep_errors(config_errors)
-                        output_handler.output({}, all_targets=set(), filtered_rules=[])
+                        output_handler.output(
+                            {},
+                            all_targets_acc=TargetAccumulator(),
+                            filtered_rules=[],
+                        )
                         raise SemgrepError("Please fix the above errors and try again.")
             else:
                 try:
@@ -830,7 +923,6 @@ def scan(
                         missed_rule_count,
                         _all_subprojects,
                     ) = semgrep.run_scan.run_scan(
-                        diff_depth=diff_depth,
                         dump_command_for_core=dump_command_for_core,
                         time_flag=time_flag,
                         matching_explanations=matching_explanations,
@@ -855,7 +947,10 @@ def scan(
                         dryrun=dryrun,
                         disable_nosem=(not enable_nosem),
                         no_git_ignore=(not use_git_ignore),
+                        force_novcs_project=force_novcs_project,
+                        force_project_root=force_project_root,
                         respect_semgrepignore=(not x_ignore_semgrepignore_files),
+                        semgrepignore_filename=x_semgrepignore_filename,
                         timeout=timeout,
                         max_memory=max_memory,
                         timeout_threshold=timeout_threshold,
@@ -870,18 +965,24 @@ def scan(
                         x_ls=x_ls,
                         x_ls_long=x_ls_long,
                         x_tr=x_tr,
+                        x_eio=x_eio,
+                        x_pro_naming=x_pro_naming,
                         path_sensitive=path_sensitive,
                         capture_core_stderr=capture_core_stderr,
                         allow_local_builds=allow_local_builds,
                     )
                 except SemgrepError as e:
                     output_handler.handle_semgrep_errors([e])
-                    output_handler.output({}, all_targets=set(), filtered_rules=[])
+                    output_handler.output(
+                        {},
+                        all_targets_acc=TargetAccumulator(),
+                        filtered_rules=[],
+                    )
                     raise e
 
                 output_handler.output(
                     filtered_matches_by_rule,
-                    all_targets=output_extra.all_targets,
+                    all_targets_acc=output_extra.all_targets,
                     ignore_log=ignore_log,
                     profiler=profiler,
                     filtered_rules=filtered_rules,
@@ -894,41 +995,19 @@ def scan(
                     missed_rule_count=missed_rule_count,
                 )
 
-                return_data = (
-                    filtered_matches_by_rule,
-                    semgrep_errors,
-                    filtered_rules,
-                    output_extra.all_targets,
+                return_data = ScanResult(
+                    filtered_matches_by_rule=filtered_matches_by_rule,
+                    semgrep_errors=semgrep_errors,
+                    filtered_rules=filtered_rules,
+                    all_targets=output_extra.all_targets,
                 )
-
-        findings_count = sum(
-            len(matches) for matches in filtered_matches_by_rule.values()
-        )
-        no_findings = findings_count == 0
 
         if enable_version_check:
             from semgrep.app.version import version_check
 
             # Fetch the latest version and potentially display a banner
             version_check()
-
-            if no_findings:
-                try:
-                    msg = get_no_findings_msg()
-                    if msg:
-                        logger.info(msg)
-                except Exception as e:
-                    logger.debug(f"Error getting no findings message: {e}")
-
-            if (
-                findings_count > TOO_MANY_FINDINGS_THRESHOLD
-                and engine_type is EngineType.OSS
-            ):
-                try:
-                    msg = get_too_many_findings_msg()
-                    if msg:
-                        logger.info(msg)
-                except Exception as e:
-                    logger.debug(f"Error getting too many findings message: {e}")
+            # TODO? this should be guarded by enable_version_check too??
+            log_findings(filtered_matches_by_rule, engine_type)
 
         return return_data

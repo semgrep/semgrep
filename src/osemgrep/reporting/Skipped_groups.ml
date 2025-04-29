@@ -87,22 +87,10 @@ let group (skipped : Out.skipped_target list) : t =
   in
   {
     ignored = List.assoc_opt `Semgrepignore groups ||| [];
-    include_ =
-      (try List.assoc `Include groups with
-      | Not_found -> []);
-    exclude =
-      (try List.assoc `Exclude groups with
-      | Not_found -> []);
-    size =
-      (try List.assoc `Size groups with
-      | Not_found -> []);
-    always =
-      (try List.assoc `Always groups with
-      | Not_found -> []);
-    other =
-      (try List.assoc `Other groups with
-      | Not_found -> []);
-    errors =
-      (try List.assoc `Error groups with
-      | Not_found -> []);
+    include_ = List.assoc_opt `Include groups ||| [];
+    exclude = List.assoc_opt `Exclude groups ||| [];
+    size = List.assoc_opt `Size groups ||| [];
+    always = List.assoc_opt `Always groups ||| [];
+    other = List.assoc_opt `Other groups ||| [];
+    errors = List.assoc_opt `Error groups ||| [];
   }

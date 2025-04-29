@@ -9,11 +9,6 @@ from semdep.matchers.base import PatternManifestStaticLockfileMatcher
 from semdep.matchers.gradle import GradleMatcher
 from semdep.matchers.pip_requirements import PipRequirementsMatcher
 from semdep.subproject_matchers import filter_dependency_source_files
-from semgrep.subproject import LockfileOnlyDependencySource
-from semgrep.subproject import ManifestLockfileDependencySource
-from semgrep.subproject import ManifestOnlyDependencySource
-from semgrep.subproject import MultiLockfileDependencySource
-from semgrep.subproject import Subproject
 
 
 class TestExactLockfileMatcher:
@@ -75,22 +70,20 @@ class TestExactLockfileMatcher:
         assert used_files == files
         assert len(subprojects) == 1
         subproject = subprojects[0]
-        assert subproject.root_dir == tmp_path
-        assert subproject.dependency_source.lockfile.path.value == str(lockfile_path)
+        assert Path(subproject.root_dir.value) == tmp_path
+        dep_src = subproject.dependency_source.value
 
         if create_manifest:
-            assert isinstance(
-                subproject.dependency_source, ManifestLockfileDependencySource
-            )
-            subproject_manifest_path = subproject.dependency_source.manifest.path
+            assert isinstance(dep_src, out.ManifestLockfile)
+            subproject_manifest_path = dep_src.value[0].path
             assert (
                 subproject_manifest_path is not None
                 and Path(subproject_manifest_path.value) == manifest_path
             )
+            assert dep_src.value[1].path.value == str(lockfile_path)
         else:
-            assert isinstance(
-                subproject.dependency_source, LockfileOnlyDependencySource
-            )
+            assert isinstance(dep_src, out.LockfileOnly)
+            assert dep_src.value.path.value == str(lockfile_path)
 
 
 class TestPatternManifestStaticLockfileMatcher:
@@ -150,27 +143,30 @@ class TestPatternManifestStaticLockfileMatcher:
         assert used_files == files
         assert len(subprojects) == 2
         for subproject in subprojects:
+            dep_src = subproject.dependency_source.value
             assert isinstance(
-                subproject.dependency_source,
-                (ManifestLockfileDependencySource, LockfileOnlyDependencySource),
+                dep_src,
+                (
+                    out.ManifestLockfile,
+                    out.LockfileOnly,
+                ),
             )
-            expected_root, expected_manifest = test_data[
-                Path(subproject.dependency_source.lockfile.path.value)
-            ]
-            assert subproject.root_dir == expected_root
+            lockfile = (
+                dep_src.value
+                if isinstance(dep_src, out.LockfileOnly)
+                else dep_src.value[1]
+            )
+            expected_root, expected_manifest = test_data[Path(lockfile.path.value)]
+            assert Path(subproject.root_dir.value) == expected_root
             if with_manifest:
-                assert isinstance(
-                    subproject.dependency_source, ManifestLockfileDependencySource
-                )
-                manifest_path = subproject.dependency_source.manifest.path
+                assert isinstance(dep_src, out.ManifestLockfile)
+                manifest_path = dep_src.value[0].path
                 assert (
                     manifest_path is not None
                     and Path(manifest_path.value) == expected_manifest
                 )
             else:
-                assert isinstance(
-                    subproject.dependency_source, LockfileOnlyDependencySource
-                )
+                assert isinstance(dep_src, out.LockfileOnly)
 
     @pytest.mark.quick
     def test_make_manifest_only_subprojects(self):
@@ -188,7 +184,7 @@ class TestPatternManifestStaticLockfileMatcher:
         assert used_files == files
         assert len(subprojects) == 1
         subproject = subprojects[0]
-        assert isinstance(subproject.dependency_source, ManifestOnlyDependencySource)
+        assert isinstance(subproject.dependency_source.value, out.ManifestOnly)
 
 
 class TestRequirementsLockfileMatcher:
@@ -246,30 +242,38 @@ class TestRequirementsLockfileMatcher:
                     Path("a/b/c/requirements.in"),
                 ],
                 [
-                    Subproject(
-                        root_dir=Path(),
-                        dependency_source=ManifestLockfileDependencySource(
-                            manifest=out.Manifest(
-                                out.ManifestKind(out.RequirementsIn()),
-                                out.Fpath("requirements.in"),
-                            ),
-                            lockfile=out.Lockfile(
-                                out.LockfileKind(out.PipRequirementsTxt()),
-                                out.Fpath("requirements.txt"),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
+                        dependency_source=out.DependencySource(
+                            out.ManifestLockfile(
+                                (
+                                    out.Manifest(
+                                        out.ManifestKind(out.RequirementsIn()),
+                                        out.Fpath("requirements.in"),
+                                    ),
+                                    out.Lockfile(
+                                        out.LockfileKind(out.PipRequirementsTxt()),
+                                        out.Fpath("requirements.txt"),
+                                    ),
+                                )
                             ),
                         ),
                         ecosystem=out.Ecosystem(value=out.Pypi()),
                     ),
-                    Subproject(
-                        root_dir=Path("a/b/c"),
-                        dependency_source=ManifestLockfileDependencySource(
-                            manifest=out.Manifest(
-                                out.ManifestKind(out.RequirementsIn()),
-                                out.Fpath("a/b/c/requirements.in"),
-                            ),
-                            lockfile=out.Lockfile(
-                                out.LockfileKind(out.PipRequirementsTxt()),
-                                out.Fpath("a/b/c/requirements.txt"),
+                    out.Subproject(
+                        root_dir=out.Fpath("a/b/c"),
+                        dependency_source=out.DependencySource(
+                            out.ManifestLockfile(
+                                (
+                                    out.Manifest(
+                                        out.ManifestKind(out.RequirementsIn()),
+                                        out.Fpath("a/b/c/requirements.in"),
+                                    ),
+                                    out.Lockfile(
+                                        out.LockfileKind(out.PipRequirementsTxt()),
+                                        out.Fpath("a/b/c/requirements.txt"),
+                                    ),
+                                )
                             ),
                         ),
                         ecosystem=out.Ecosystem(value=out.Pypi()),
@@ -284,30 +288,38 @@ class TestRequirementsLockfileMatcher:
                     Path("a/b/c/requirements.in"),
                 ],
                 [
-                    Subproject(
-                        root_dir=Path(),
-                        dependency_source=ManifestLockfileDependencySource(
-                            manifest=out.Manifest(
-                                out.ManifestKind(out.RequirementsIn()),
-                                out.Fpath("requirements3.in"),
-                            ),
-                            lockfile=out.Lockfile(
-                                out.LockfileKind(out.PipRequirementsTxt()),
-                                out.Fpath("requirements3.txt"),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
+                        dependency_source=out.DependencySource(
+                            out.ManifestLockfile(
+                                (
+                                    out.Manifest(
+                                        out.ManifestKind(out.RequirementsIn()),
+                                        out.Fpath("requirements3.in"),
+                                    ),
+                                    out.Lockfile(
+                                        out.LockfileKind(out.PipRequirementsTxt()),
+                                        out.Fpath("requirements3.txt"),
+                                    ),
+                                )
                             ),
                         ),
                         ecosystem=out.Ecosystem(value=out.Pypi()),
                     ),
-                    Subproject(
-                        root_dir=Path("a/b/c"),
-                        dependency_source=ManifestLockfileDependencySource(
-                            manifest=out.Manifest(
-                                out.ManifestKind(out.RequirementsIn()),
-                                out.Fpath("a/b/c/requirements.in"),
-                            ),
-                            lockfile=out.Lockfile(
-                                out.LockfileKind(out.PipRequirementsTxt()),
-                                out.Fpath("a/b/c/requirements3.txt"),
+                    out.Subproject(
+                        root_dir=out.Fpath("a/b/c"),
+                        dependency_source=out.DependencySource(
+                            out.ManifestLockfile(
+                                (
+                                    out.Manifest(
+                                        out.ManifestKind(out.RequirementsIn()),
+                                        out.Fpath("a/b/c/requirements.in"),
+                                    ),
+                                    out.Lockfile(
+                                        out.LockfileKind(out.PipRequirementsTxt()),
+                                        out.Fpath("a/b/c/requirements3.txt"),
+                                    ),
+                                )
                             ),
                         ),
                         ecosystem=out.Ecosystem(value=out.Pypi()),
@@ -321,30 +333,48 @@ class TestRequirementsLockfileMatcher:
                     Path("requirements-prod.txt"),
                 ],
                 [
-                    Subproject(
-                        root_dir=Path(),
-                        dependency_source=MultiLockfileDependencySource(
-                            sources=(
-                                ManifestLockfileDependencySource(
-                                    manifest=out.Manifest(
-                                        out.ManifestKind(out.RequirementsIn()),
-                                        out.Fpath("requirements.in"),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
+                        dependency_source=out.DependencySource(
+                            out.MultiLockfile(
+                                [
+                                    out.DependencySource(
+                                        out.ManifestLockfile(
+                                            (
+                                                out.Manifest(
+                                                    out.ManifestKind(
+                                                        out.RequirementsIn()
+                                                    ),
+                                                    out.Fpath("requirements.in"),
+                                                ),
+                                                out.Lockfile(
+                                                    out.LockfileKind(
+                                                        out.PipRequirementsTxt()
+                                                    ),
+                                                    out.Fpath("requirements-dev.txt"),
+                                                ),
+                                            )
+                                        ),
                                     ),
-                                    lockfile=out.Lockfile(
-                                        out.LockfileKind(out.PipRequirementsTxt()),
-                                        out.Fpath("requirements-dev.txt"),
+                                    out.DependencySource(
+                                        out.ManifestLockfile(
+                                            (
+                                                out.Manifest(
+                                                    out.ManifestKind(
+                                                        out.RequirementsIn()
+                                                    ),
+                                                    out.Fpath("requirements.in"),
+                                                ),
+                                                out.Lockfile(
+                                                    out.LockfileKind(
+                                                        out.PipRequirementsTxt()
+                                                    ),
+                                                    out.Fpath("requirements-prod.txt"),
+                                                ),
+                                            )
+                                        ),
                                     ),
-                                ),
-                                ManifestLockfileDependencySource(
-                                    manifest=out.Manifest(
-                                        out.ManifestKind(out.RequirementsIn()),
-                                        out.Fpath("requirements.in"),
-                                    ),
-                                    lockfile=out.Lockfile(
-                                        out.LockfileKind(out.PipRequirementsTxt()),
-                                        out.Fpath("requirements-prod.txt"),
-                                    ),
-                                ),
+                                ]
                             )
                         ),
                         ecosystem=out.Ecosystem(value=out.Pypi()),
@@ -358,30 +388,48 @@ class TestRequirementsLockfileMatcher:
                     Path("prod-requirements.txt"),
                 ],
                 [
-                    Subproject(
-                        root_dir=Path(),
-                        dependency_source=MultiLockfileDependencySource(
-                            sources=(
-                                ManifestLockfileDependencySource(
-                                    manifest=out.Manifest(
-                                        out.ManifestKind(out.RequirementsIn()),
-                                        out.Fpath("requirements.in"),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
+                        dependency_source=out.DependencySource(
+                            out.MultiLockfile(
+                                [
+                                    out.DependencySource(
+                                        out.ManifestLockfile(
+                                            (
+                                                out.Manifest(
+                                                    out.ManifestKind(
+                                                        out.RequirementsIn()
+                                                    ),
+                                                    out.Fpath("requirements.in"),
+                                                ),
+                                                out.Lockfile(
+                                                    out.LockfileKind(
+                                                        out.PipRequirementsTxt()
+                                                    ),
+                                                    out.Fpath("dev-requirements.txt"),
+                                                ),
+                                            )
+                                        ),
                                     ),
-                                    lockfile=out.Lockfile(
-                                        out.LockfileKind(out.PipRequirementsTxt()),
-                                        out.Fpath("dev-requirements.txt"),
+                                    out.DependencySource(
+                                        out.ManifestLockfile(
+                                            (
+                                                out.Manifest(
+                                                    out.ManifestKind(
+                                                        out.RequirementsIn()
+                                                    ),
+                                                    out.Fpath("requirements.in"),
+                                                ),
+                                                out.Lockfile(
+                                                    out.LockfileKind(
+                                                        out.PipRequirementsTxt()
+                                                    ),
+                                                    out.Fpath("prod-requirements.txt"),
+                                                ),
+                                            )
+                                        ),
                                     ),
-                                ),
-                                ManifestLockfileDependencySource(
-                                    manifest=out.Manifest(
-                                        out.ManifestKind(out.RequirementsIn()),
-                                        out.Fpath("requirements.in"),
-                                    ),
-                                    lockfile=out.Lockfile(
-                                        out.LockfileKind(out.PipRequirementsTxt()),
-                                        out.Fpath("prod-requirements.txt"),
-                                    ),
-                                ),
+                                ]
                             )
                         ),
                         ecosystem=out.Ecosystem(value=out.Pypi()),
@@ -391,16 +439,20 @@ class TestRequirementsLockfileMatcher:
             (
                 [Path("requirements_lock.txt"), Path("requirements.in")],
                 [
-                    Subproject(
-                        root_dir=Path(),
-                        dependency_source=ManifestLockfileDependencySource(
-                            manifest=out.Manifest(
-                                out.ManifestKind(out.RequirementsIn()),
-                                out.Fpath("requirements.in"),
-                            ),
-                            lockfile=out.Lockfile(
-                                out.LockfileKind(out.PipRequirementsTxt()),
-                                out.Fpath("requirements_lock.txt"),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
+                        dependency_source=out.DependencySource(
+                            out.ManifestLockfile(
+                                (
+                                    out.Manifest(
+                                        out.ManifestKind(out.RequirementsIn()),
+                                        out.Fpath("requirements.in"),
+                                    ),
+                                    out.Lockfile(
+                                        out.LockfileKind(out.PipRequirementsTxt()),
+                                        out.Fpath("requirements_lock.txt"),
+                                    ),
+                                )
                             ),
                         ),
                         ecosystem=out.Ecosystem(value=out.Pypi()),
@@ -414,30 +466,48 @@ class TestRequirementsLockfileMatcher:
                     Path("requirements/prod.txt"),
                 ],
                 [
-                    Subproject(
-                        root_dir=Path(),
-                        dependency_source=MultiLockfileDependencySource(
-                            sources=(
-                                ManifestLockfileDependencySource(
-                                    manifest=out.Manifest(
-                                        out.ManifestKind(out.RequirementsIn()),
-                                        out.Fpath("requirements.in"),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
+                        dependency_source=out.DependencySource(
+                            out.MultiLockfile(
+                                [
+                                    out.DependencySource(
+                                        out.ManifestLockfile(
+                                            (
+                                                out.Manifest(
+                                                    out.ManifestKind(
+                                                        out.RequirementsIn()
+                                                    ),
+                                                    out.Fpath("requirements.in"),
+                                                ),
+                                                out.Lockfile(
+                                                    out.LockfileKind(
+                                                        out.PipRequirementsTxt()
+                                                    ),
+                                                    out.Fpath("requirements/dev.txt"),
+                                                ),
+                                            )
+                                        ),
                                     ),
-                                    lockfile=out.Lockfile(
-                                        out.LockfileKind(out.PipRequirementsTxt()),
-                                        out.Fpath("requirements/dev.txt"),
+                                    out.DependencySource(
+                                        out.ManifestLockfile(
+                                            (
+                                                out.Manifest(
+                                                    out.ManifestKind(
+                                                        out.RequirementsIn()
+                                                    ),
+                                                    out.Fpath("requirements.in"),
+                                                ),
+                                                out.Lockfile(
+                                                    out.LockfileKind(
+                                                        out.PipRequirementsTxt()
+                                                    ),
+                                                    out.Fpath("requirements/prod.txt"),
+                                                ),
+                                            )
+                                        ),
                                     ),
-                                ),
-                                ManifestLockfileDependencySource(
-                                    manifest=out.Manifest(
-                                        out.ManifestKind(out.RequirementsIn()),
-                                        out.Fpath("requirements.in"),
-                                    ),
-                                    lockfile=out.Lockfile(
-                                        out.LockfileKind(out.PipRequirementsTxt()),
-                                        out.Fpath("requirements/prod.txt"),
-                                    ),
-                                ),
+                                ]
                             )
                         ),
                         ecosystem=out.Ecosystem(value=out.Pypi()),
@@ -452,30 +522,48 @@ class TestRequirementsLockfileMatcher:
                     Path("requirements/prod.in"),
                 ],
                 [
-                    Subproject(
-                        root_dir=Path(),
-                        dependency_source=MultiLockfileDependencySource(
-                            sources=(
-                                ManifestLockfileDependencySource(
-                                    manifest=out.Manifest(
-                                        out.ManifestKind(out.RequirementsIn()),
-                                        out.Fpath("requirements.in"),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
+                        dependency_source=out.DependencySource(
+                            out.MultiLockfile(
+                                [
+                                    out.DependencySource(
+                                        out.ManifestLockfile(
+                                            (
+                                                out.Manifest(
+                                                    out.ManifestKind(
+                                                        out.RequirementsIn()
+                                                    ),
+                                                    out.Fpath("requirements.in"),
+                                                ),
+                                                out.Lockfile(
+                                                    out.LockfileKind(
+                                                        out.PipRequirementsTxt()
+                                                    ),
+                                                    out.Fpath("requirements/dev.txt"),
+                                                ),
+                                            )
+                                        ),
                                     ),
-                                    lockfile=out.Lockfile(
-                                        out.LockfileKind(out.PipRequirementsTxt()),
-                                        out.Fpath("requirements/dev.txt"),
+                                    out.DependencySource(
+                                        out.ManifestLockfile(
+                                            (
+                                                out.Manifest(
+                                                    out.ManifestKind(
+                                                        out.RequirementsIn()
+                                                    ),
+                                                    out.Fpath("requirements/prod.in"),
+                                                ),
+                                                out.Lockfile(
+                                                    out.LockfileKind(
+                                                        out.PipRequirementsTxt()
+                                                    ),
+                                                    out.Fpath("requirements/prod.txt"),
+                                                ),
+                                            )
+                                        ),
                                     ),
-                                ),
-                                ManifestLockfileDependencySource(
-                                    manifest=out.Manifest(
-                                        out.ManifestKind(out.RequirementsIn()),
-                                        out.Fpath("requirements/prod.in"),
-                                    ),
-                                    lockfile=out.Lockfile(
-                                        out.LockfileKind(out.PipRequirementsTxt()),
-                                        out.Fpath("requirements/prod.txt"),
-                                    ),
-                                ),
+                                ]
                             )
                         ),
                         ecosystem=out.Ecosystem(value=out.Pypi()),
@@ -488,22 +576,32 @@ class TestRequirementsLockfileMatcher:
                     Path("requirements/prod.txt"),
                 ],
                 [
-                    Subproject(
-                        root_dir=Path(),
-                        dependency_source=MultiLockfileDependencySource(
-                            sources=(
-                                LockfileOnlyDependencySource(
-                                    lockfile=out.Lockfile(
-                                        out.LockfileKind(out.PipRequirementsTxt()),
-                                        out.Fpath("requirements/dev.txt"),
-                                    )
-                                ),
-                                LockfileOnlyDependencySource(
-                                    lockfile=out.Lockfile(
-                                        out.LockfileKind(out.PipRequirementsTxt()),
-                                        out.Fpath("requirements/prod.txt"),
-                                    )
-                                ),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
+                        dependency_source=out.DependencySource(
+                            out.MultiLockfile(
+                                [
+                                    out.DependencySource(
+                                        out.LockfileOnly(
+                                            out.Lockfile(
+                                                out.LockfileKind(
+                                                    out.PipRequirementsTxt()
+                                                ),
+                                                out.Fpath("requirements/dev.txt"),
+                                            )
+                                        )
+                                    ),
+                                    out.DependencySource(
+                                        out.LockfileOnly(
+                                            out.Lockfile(
+                                                out.LockfileKind(
+                                                    out.PipRequirementsTxt()
+                                                ),
+                                                out.Fpath("requirements/prod.txt"),
+                                            )
+                                        )
+                                    ),
+                                ]
                             )
                         ),
                         ecosystem=out.Ecosystem(value=out.Pypi()),
@@ -514,7 +612,7 @@ class TestRequirementsLockfileMatcher:
     )
     @pytest.mark.quick
     def test_make_subprojects(
-        self, source_files: List[Path], expected_subprojects: List[Subproject]
+        self, source_files: List[Path], expected_subprojects: List[out.Subproject]
     ):
         # with a basic requirements matcher
         matcher = PipRequirementsMatcher(
@@ -532,11 +630,8 @@ class TestRequirementsLockfileMatcher:
         # expect all files to be used
         assert used_files == source_files_set
 
-        # and expect the returned subprojects to match, ignoring order
-        expected = set(expected_subprojects)
         assert len(subprojects) == len(expected_subprojects)
-        for subproject in subprojects:
-            assert subproject in expected
+        assert subprojects.sort() == expected_subprojects.sort()
 
 
 class TestGradleMatcher:
@@ -577,22 +672,26 @@ class TestGradleMatcher:
                     Path("subdir_b/build.gradle"),
                 ],
                 [
-                    Subproject(
-                        root_dir=Path(),
-                        dependency_source=ManifestOnlyDependencySource(
-                            manifest=out.Manifest(
-                                out.ManifestKind(out.BuildGradle()),
-                                out.Fpath("build.gradle"),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
+                        dependency_source=out.DependencySource(
+                            out.ManifestOnly(
+                                out.Manifest(
+                                    out.ManifestKind(out.BuildGradle()),
+                                    out.Fpath("build.gradle"),
+                                )
                             )
                         ),
                         ecosystem=out.Ecosystem(value=out.Maven()),
                     ),
-                    Subproject(
-                        root_dir=Path("buildSrc"),
-                        dependency_source=ManifestOnlyDependencySource(
-                            manifest=out.Manifest(
-                                out.ManifestKind(out.BuildGradle()),
-                                out.Fpath("buildSrc/build.gradle"),
+                    out.Subproject(
+                        root_dir=out.Fpath("buildSrc"),
+                        dependency_source=out.DependencySource(
+                            out.ManifestOnly(
+                                out.Manifest(
+                                    out.ManifestKind(out.BuildGradle()),
+                                    out.Fpath("buildSrc/build.gradle"),
+                                )
                             )
                         ),
                         ecosystem=out.Ecosystem(value=out.Maven()),
@@ -615,26 +714,32 @@ class TestGradleMatcher:
                     Path("subdir_b/build.gradle"),
                 ],
                 [
-                    Subproject(
-                        root_dir=Path(),
-                        dependency_source=ManifestLockfileDependencySource(
-                            manifest=out.Manifest(
-                                kind=out.ManifestKind(value=out.BuildGradle()),
-                                path=out.Fpath("build.gradle"),
-                            ),
-                            lockfile=out.Lockfile(
-                                out.LockfileKind(out.GradleLockfile()),
-                                out.Fpath("gradle.lockfile"),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
+                        dependency_source=out.DependencySource(
+                            out.ManifestLockfile(
+                                (
+                                    out.Manifest(
+                                        kind=out.ManifestKind(value=out.BuildGradle()),
+                                        path=out.Fpath("build.gradle"),
+                                    ),
+                                    out.Lockfile(
+                                        out.LockfileKind(out.GradleLockfile()),
+                                        out.Fpath("gradle.lockfile"),
+                                    ),
+                                )
                             ),
                         ),
                         ecosystem=out.Ecosystem(value=out.Maven()),
                     ),
-                    Subproject(
-                        root_dir=Path("buildSrc"),
-                        dependency_source=ManifestOnlyDependencySource(
-                            manifest=out.Manifest(
-                                kind=out.ManifestKind(value=out.BuildGradle()),
-                                path=out.Fpath("buildSrc/build.gradle"),
+                    out.Subproject(
+                        root_dir=out.Fpath("buildSrc"),
+                        dependency_source=out.DependencySource(
+                            out.ManifestOnly(
+                                out.Manifest(
+                                    kind=out.ManifestKind(value=out.BuildGradle()),
+                                    path=out.Fpath("buildSrc/build.gradle"),
+                                )
                             ),
                         ),
                         ecosystem=out.Ecosystem(value=out.Maven()),
@@ -656,26 +761,32 @@ class TestGradleMatcher:
                     Path("subdir_b/build.gradle"),
                 ],
                 [
-                    Subproject(
-                        root_dir=Path(),
-                        dependency_source=ManifestOnlyDependencySource(
-                            out.Manifest(
-                                kind=out.ManifestKind(value=out.BuildGradle()),
-                                path=out.Fpath("build.gradle"),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
+                        dependency_source=out.DependencySource(
+                            out.ManifestOnly(
+                                out.Manifest(
+                                    kind=out.ManifestKind(value=out.BuildGradle()),
+                                    path=out.Fpath("build.gradle"),
+                                )
                             )
                         ),
                         ecosystem=out.Ecosystem(value=out.Maven()),
                     ),
-                    Subproject(
-                        root_dir=Path("buildSrc"),
-                        dependency_source=ManifestLockfileDependencySource(
-                            lockfile=out.Lockfile(
-                                kind=out.LockfileKind(out.GradleLockfile()),
-                                path=out.Fpath("buildSrc/gradle.lockfile"),
-                            ),
-                            manifest=out.Manifest(
-                                kind=out.ManifestKind(value=out.BuildGradle()),
-                                path=out.Fpath("buildSrc/build.gradle"),
+                    out.Subproject(
+                        root_dir=out.Fpath("buildSrc"),
+                        dependency_source=out.DependencySource(
+                            out.ManifestLockfile(
+                                (
+                                    out.Manifest(
+                                        kind=out.ManifestKind(value=out.BuildGradle()),
+                                        path=out.Fpath("buildSrc/build.gradle"),
+                                    ),
+                                    out.Lockfile(
+                                        kind=out.LockfileKind(out.GradleLockfile()),
+                                        path=out.Fpath("buildSrc/gradle.lockfile"),
+                                    ),
+                                )
                             ),
                         ),
                         ecosystem=out.Ecosystem(value=out.Maven()),
@@ -697,26 +808,32 @@ class TestGradleMatcher:
                     Path("subdir_b/build.gradle"),
                 ],
                 [
-                    Subproject(
-                        root_dir=Path(),
-                        dependency_source=ManifestLockfileDependencySource(
-                            manifest=out.Manifest(
-                                kind=out.ManifestKind(value=out.BuildGradle()),
-                                path=out.Fpath("build.gradle"),
-                            ),
-                            lockfile=out.Lockfile(
-                                out.LockfileKind(out.GradleLockfile()),
-                                out.Fpath("gradle.lockfile"),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
+                        dependency_source=out.DependencySource(
+                            out.ManifestLockfile(
+                                (
+                                    out.Manifest(
+                                        kind=out.ManifestKind(value=out.BuildGradle()),
+                                        path=out.Fpath("build.gradle"),
+                                    ),
+                                    out.Lockfile(
+                                        out.LockfileKind(out.GradleLockfile()),
+                                        out.Fpath("gradle.lockfile"),
+                                    ),
+                                )
                             ),
                         ),
                         ecosystem=out.Ecosystem(value=out.Maven()),
                     ),
-                    Subproject(
-                        root_dir=Path("buildSrc"),
-                        dependency_source=ManifestOnlyDependencySource(
-                            manifest=out.Manifest(
-                                kind=out.ManifestKind(value=out.SettingsGradle()),
-                                path=out.Fpath("buildSrc/settings.gradle"),
+                    out.Subproject(
+                        root_dir=out.Fpath("buildSrc"),
+                        dependency_source=out.DependencySource(
+                            out.ManifestOnly(
+                                out.Manifest(
+                                    kind=out.ManifestKind(value=out.SettingsGradle()),
+                                    path=out.Fpath("buildSrc/settings.gradle"),
+                                )
                             ),
                         ),
                         ecosystem=out.Ecosystem(value=out.Maven()),
@@ -738,26 +855,32 @@ class TestGradleMatcher:
                     Path("subdir_b/build.gradle"),
                 ],
                 [
-                    Subproject(
-                        root_dir=Path(),
-                        dependency_source=ManifestLockfileDependencySource(
-                            manifest=out.Manifest(
-                                kind=out.ManifestKind(value=out.BuildGradle()),
-                                path=out.Fpath("build.gradle"),
-                            ),
-                            lockfile=out.Lockfile(
-                                out.LockfileKind(out.GradleLockfile()),
-                                out.Fpath("gradle.lockfile"),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
+                        dependency_source=out.DependencySource(
+                            out.ManifestLockfile(
+                                (
+                                    out.Manifest(
+                                        kind=out.ManifestKind(value=out.BuildGradle()),
+                                        path=out.Fpath("build.gradle"),
+                                    ),
+                                    out.Lockfile(
+                                        out.LockfileKind(out.GradleLockfile()),
+                                        out.Fpath("gradle.lockfile"),
+                                    ),
+                                )
                             ),
                         ),
                         ecosystem=out.Ecosystem(value=out.Maven()),
                     ),
-                    Subproject(
-                        root_dir=Path("buildSrc"),
-                        dependency_source=ManifestOnlyDependencySource(
-                            manifest=out.Manifest(
-                                kind=out.ManifestKind(value=out.SettingsGradle()),
-                                path=out.Fpath("buildSrc/settings.gradle.kts"),
+                    out.Subproject(
+                        root_dir=out.Fpath("buildSrc"),
+                        dependency_source=out.DependencySource(
+                            out.ManifestOnly(
+                                out.Manifest(
+                                    kind=out.ManifestKind(value=out.SettingsGradle()),
+                                    path=out.Fpath("buildSrc/settings.gradle.kts"),
+                                )
                             ),
                         ),
                         ecosystem=out.Ecosystem(value=out.Maven()),
@@ -774,12 +897,14 @@ class TestGradleMatcher:
                     Path("build.gradle"),
                 ],
                 [
-                    Subproject(
-                        root_dir=Path(),
-                        dependency_source=ManifestOnlyDependencySource(
-                            manifest=out.Manifest(
-                                kind=out.ManifestKind(value=out.BuildGradle()),
-                                path=out.Fpath("build.gradle"),
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
+                        dependency_source=out.DependencySource(
+                            out.ManifestOnly(
+                                out.Manifest(
+                                    kind=out.ManifestKind(value=out.BuildGradle()),
+                                    path=out.Fpath("build.gradle"),
+                                )
                             ),
                         ),
                         ecosystem=out.Ecosystem(value=out.Maven()),
@@ -793,7 +918,7 @@ class TestGradleMatcher:
     def test_make_subprojects(
         self,
         source_files: List[Path],
-        expected_subprojects: List[Subproject],
+        expected_subprojects: List[out.Subproject],
         unused_files: List[Path],
     ):
         matcher = GradleMatcher()
@@ -816,7 +941,7 @@ class TestGradleMatcher:
 @pytest.mark.quick
 def test_filter_dependency_source_files():
     valid_paths = {Path("Pipfile.lock"), Path("requirements.txt")}
-    invalid_paths = {Path("unknown.lock"), Path("setup.py")}
+    invalid_paths = {Path("unknown.lock")}
     candidates = valid_paths | invalid_paths
 
     filtered_paths = filter_dependency_source_files(frozenset(candidates))

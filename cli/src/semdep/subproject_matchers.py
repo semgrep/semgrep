@@ -59,8 +59,8 @@ MATCHERS: List[SubprojectMatcher] = [
     ExactLockfileManifestMatcher(
         lockfile_name="go.mod",
         manifest_name="go.mod",
-        lockfile_kind=out.LockfileKind(out.GoMod()),
-        manifest_kind=out.ManifestKind(out.GoMod_()),
+        lockfile_kind=out.LockfileKind(out.GoModLock()),
+        manifest_kind=out.ManifestKind(out.GoModManifest()),
         ecosystem=out.Ecosystem(out.Gomod()),
         make_manifest_only_subprojects=False,
     ),
@@ -159,6 +159,12 @@ MATCHERS: List[SubprojectMatcher] = [
         manifest_kind=out.ManifestKind(out.PyprojectToml()),
         ecosystem=out.Ecosystem(out.Pypi()),
         make_manifest_only_subprojects=False,
+    ),
+    # Setup.py
+    ExactManifestOnlyMatcher(
+        manifest_kind=out.ManifestKind(out.SetupPy()),
+        manifest_name="setup.py",
+        ecosystem=out.Ecosystem(out.Pypi()),
     ),
 ]
 

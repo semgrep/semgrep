@@ -60,7 +60,7 @@ let match_to_charpos_range (pm : Core_match.t) : string =
 (* alt: use Format module *)
 let rec print_indent indent { op; children; matches; pos; extra = _ } =
   let s =
-    spf "%s op = %s (at %d), matches = %s" (Common2.n_space indent)
+    spf "%s op = %s (at %d), matches = %s" (String.make indent ' ')
       (Out.show_matching_operation op)
       (Tok.bytepos_of_tok pos)
       (matches |> List_.map match_to_charpos_range |> String.concat " ")

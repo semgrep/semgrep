@@ -1,5 +1,5 @@
 # coupling: if you add a check in this file, please add it first in
-# the semgrep-proprietary repo
+# the semgrep-proprietary repo !!!!
 #
 # Semgrep pre-commit configuration.
 # See https://pre-commit.com/ for more information.
@@ -120,11 +120,20 @@ repos:
           - types-python-dateutil
           - types-requests
           - types-setuptools
+          # for tests only:
+          # (ideally, these additional items would go only in the
+          # 'additional_properties' field of 'mypy-test' below but YAML
+          # doesn't provide a trick that allows us to extend an array
+          # from a reference such as *mypy-deps; and using Jsonnet would be
+          # overkill):
+          - appdirs
+          - pytest
+          - pytest-mock
       - id: mypy
         alias: mypy-test
         name: mypy (test files)
         files: ^cli/tests/.+$
-        args: [--config, mypy-tests.ini, --show-error-codes]
+        args: [--config, mypy-tests.ini, --show-error-codes, --python-version, "3.11"]
         additional_dependencies: *mypy-deps
 
   - repo: https://github.com/PyCQA/flake8
@@ -144,6 +153,11 @@ repos:
         types: [file]  # override `types: [json]`
         files: \.(json|yml|yaml|md)$
 
+  # Reformat jsonnet
+  - repo: https://github.com/google/go-jsonnet
+    rev: v0.20.0
+    hooks:
+      - id: jsonnet-format
   # ----------------------------------------------------------
   # Extra hooks using additional_dependencies
   # ----------------------------------------------------------
@@ -180,7 +194,7 @@ repos:
           - dockerfile
         exclude: "^scripts/release/linuxbrew[.]Dockerfile$"
         entry: hadolint/hadolint:v2.8.0-alpine hadolint
-        args: ["--ignore", "DL3008", "--ignore", "DL3018"]
+        args: ["--ignore", "DL3008", "--ignore", "DL3018", "--ignore", "DL3059"]
 
   # ----------------------------------------------------------
   # Local hooks

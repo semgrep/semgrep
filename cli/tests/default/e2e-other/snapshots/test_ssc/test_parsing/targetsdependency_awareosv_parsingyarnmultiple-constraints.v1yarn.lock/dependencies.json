@@ -15,7 +15,7 @@
     "children": []
   },
   {
-    "package": "babel/code-frame",
+    "package": "@babel/code-frame",
     "version": "7.12.13",
     "ecosystem": "npm",
     "allowed_hashes": {

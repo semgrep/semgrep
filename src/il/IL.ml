@@ -140,7 +140,25 @@ end = struct
     ^ "}"
 end
 
-module NameMap = Map.Make (NameOrdered)
+module NameMap = struct
+  include Map.Make (NameOrdered)
+
+  (* Guarantees physical equality if nothing changes. *)
+  let filter_map_endo f m =
+    let changed = ref false in
+    let m' =
+      m
+      |> filter_map (fun _k x ->
+             let res = f x in
+             (match f x with
+             | Some y when Eq.phys_equal x y -> ()
+             | None
+             | Some _ (* x != y *) ->
+                 changed := true);
+             res)
+    in
+    if !changed then m' else m
+end
 
 (*****************************************************************************)
 (* Fixme constructs *)
@@ -208,8 +226,8 @@ class virtual ['self] iter_parent =
     method visit_ident _env _ident = ()
     method visit_name _env _name = ()
 
-    method visit_bracket
-        : 'a. ('env -> 'a -> unit) -> 'env -> 'a bracket -> unit =
+    method visit_bracket :
+        'a. ('env -> 'a -> unit) -> 'env -> 'a bracket -> unit =
       fun f env (left, x, right) ->
         self#visit_tok env left;
         f env x;
@@ -229,8 +247,8 @@ class virtual ['self] iter_parent =
       | FixmeParam ->
           ()
 
-    method visit_argument
-        : 'a. ('env -> 'a -> unit) -> 'env -> 'a argument -> unit =
+    method visit_argument :
+        'a. ('env -> 'a -> unit) -> 'env -> 'a argument -> unit =
       fun f env arg ->
         match arg with
         | Unnamed x -> f env x
@@ -481,7 +499,7 @@ and node_kind =
   | NTodo of stmt
 [@@deriving
   show { with_path = false },
-    visitors { variety = "iter"; ancestors = [ "iter_parent" ] }]
+  visitors { variety = "iter"; ancestors = [ "iter_parent" ] }]
 
 (* For now there is just one kind of edge.
  * (we may use more? the "ShadowNode" idea of Julia Lawall?)

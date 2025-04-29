@@ -3,18 +3,18 @@ jobs:
   github-actions:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Configure git safedir properly
-        run: git config --global --add safe.directory $(pwd)
-      - uses: actions/setup-go@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: "1.19"
-      - run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.6.25
-      - run: actionlint -shellcheck=''
+      - run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
+      - run: |
+          cd .github/workflows
+          actionlint -shellcheck=''
   jsonnet-gha:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Check GitHub workflow files are up to date
         run: |
           sudo apt-get update
@@ -26,20 +26,25 @@ jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
       - name: Configure git safedir properly
         run: git config --global --add safe.directory $(pwd)
-      - name: Fetch semgrep-cli submodules
-        run: git submodule update --init --recursive --recommend-shallow cli/src/semgrep/semgrep_interfaces
-      - uses: actions/setup-python@v4
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
+      - uses: actions/checkout@v4
         with:
-          cache: pipenv
+          submodules: true
+      - name: Configure git safedir properly
+        run: git config --global --add safe.directory $(pwd)
+      - uses: actions/setup-python@v5
+        with:
           python-version: "3.11"
-      - uses: ocaml/setup-ocaml@v3
+      - uses: semgrep/setup-ocaml@latest
         with:
-          ocaml-compiler: 4.14.0
+          cache-prefix: v1
+          ocaml-compiler: 5.3.0
           opam-pin: false
-      - run: opam install -y ocamlformat.0.26.2
+          save-opam-post-run: true
+      - run: opam install -y ocamlformat.0.27.0
       - uses: pre-commit/action@v3.0.0
 name: lint
 on:

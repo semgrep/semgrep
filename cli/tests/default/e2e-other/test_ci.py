@@ -19,6 +19,7 @@ from pathlib import Path
 from textwrap import dedent
 from typing import List
 from typing import Mapping
+from typing import Optional
 
 import pytest
 from requests.exceptions import ConnectionError
@@ -34,7 +35,6 @@ from tests.fixtures import RunSemgrep
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.app.scans import ScanHandler
 from semgrep.constants import OutputFormat
-from semgrep.engine import EngineType
 from semgrep.error_handler import ErrorHandler
 from semgrep.meta import GithubMeta
 from semgrep.meta import GitlabMeta
@@ -80,7 +80,7 @@ GENERIC_SECRETS_AND_REAL_RULE = dedent(
       pattern: $X
       metadata:
         product: secrets
-        generic_secrets: true
+        'semgrep.ruleset': 'semgrep-secrets-ai'
     - id: real-rule-example
       message: "this rule should actually display findings in CLI"
       languages: [python]
@@ -153,6 +153,8 @@ DEFAULT_GITHUB_VARS = {
 ##############################################################################
 
 
+# Can we have this as a repo we can clone with 'git clone' so we can
+# inspect it and try semgrep commands on it?
 @pytest.fixture
 def git_path_empty_repo(monkeypatch, tmp_path):
     """
@@ -182,6 +184,7 @@ def git_path_empty_repo(monkeypatch, tmp_path):
     yield repo_base
 
 
+# Same remark as above. It would be nice to be able to clone this repo.
 @pytest.fixture
 def git_tmp_path_with_commit(monkeypatch, tmp_path, mocker):
     """
@@ -2618,44 +2621,6 @@ def test_enabled_products(
         assert "No products are enabled for this organization" not in result.stderr
 
 
-@pytest.mark.parametrize("oss_only", [True])
-@pytest.mark.osemfail
-def test_pro_diff_slow_rollout(
-    run_semgrep: RunSemgrep,
-    mocker,
-    oss_only,
-    start_scan_mock_maker,
-    complete_scan_mock_maker,
-    upload_results_mock_maker,
-):
-    """
-    Verify that generic_slow_rollout enables pro diff scan
-    """
-    mocker.patch.object(ScanHandler, "generic_slow_rollout", True)
-    mocker.patch.object(EngineType, "check_if_installed", return_value=True)
-    mock_send = mocker.patch.object(Metrics, "add_diff_depth")
-
-    start_scan_mock = start_scan_mock_maker("https://semgrep.dev")
-    complete_scan_mock = complete_scan_mock_maker("https://semgrep.dev")
-    upload_results_mock = upload_results_mock_maker("https://semgrep.dev")
-
-    engine_flag_opt = ["--oss-only"] if oss_only else []
-
-    result = run_semgrep(
-        options=["ci", "--no-suppress-errors", *engine_flag_opt],
-        target_name=None,
-        strict=False,
-        force_metrics_off=False,
-        assert_exit_code=None,
-        env={"SEMGREP_APP_TOKEN": "fake_key"},
-        use_click_runner=True,
-    )
-    if oss_only:
-        mock_send.assert_not_called()
-    else:
-        mock_send.assert_called_once_with(2)
-
-
 @pytest.mark.parametrize(
     "env",
     [
@@ -2696,7 +2661,7 @@ def test_ci_uuid(
 
     generated_uuid = generate_anonymous_user_id(env.get("SEMGREP_APP_TOKEN"))
     # Assume we will generate a new UUID from app_token
-    expected_uuid = generated_uuid
+    expected_uuid: Optional[str] = generated_uuid
 
     # Simulate the case where we have an existing settings file
     if existing_settings:

@@ -57,14 +57,8 @@ let default_subcommand = "scan"
 (* alt: define our own Pro_CLI.ml in semgrep-pro
  * old: was Interactive_subcommand.main
  *)
-let hook_semgrep_interactive :
-    (< Cap.readdir > -> string array -> Exit_code.t) Hook.t =
-  Hook.create (fun _caps _argv ->
-      failwith "semgrep interactive not available (requires semgrep pro)")
-
 let hook_semgrep_publish :
-    (< Cap.stdout ; Cap.network ; Cap.tmp > -> string array -> Exit_code.t)
-    Hook.t =
+    (< Cap.stdout ; Cap.network > -> string array -> Exit_code.t) Hook.t =
   Hook.create (fun _caps _argv ->
       failwith "semgrep publsh not available (requires semgrep pro)")
 
@@ -139,8 +133,6 @@ let known_subcommands =
     "show";
     "test";
     "validate";
-    (* pro-only and osemgrep-only *)
-    "interactive";
   ]
 
 let dispatch_subcommand (caps : caps) (argv : string array) =
@@ -202,7 +194,7 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
          *)
         | "publish" when experimental ->
             (Hook.get hook_semgrep_publish)
-              (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >)
+              (caps :> < Cap.stdout ; Cap.network >)
               subcmd_argv
         | "login" when experimental -> Login_subcommand.main caps subcmd_argv
         (* partial support, still use Pysemgrep.Fallback in it *)
@@ -215,10 +207,6 @@ let dispatch_subcommand (caps : caps) (argv : string array) =
         | "logout" ->
             Logout_subcommand.main (caps :> < Cap.stdout >) subcmd_argv
         | "install-ci" -> Install_ci_subcommand.main caps subcmd_argv
-        | "interactive" ->
-            (Hook.get hook_semgrep_interactive)
-              (caps :> < Cap.readdir >)
-              subcmd_argv
         | "show" -> (Hook.get hook_semgrep_show) caps subcmd_argv
         | "test" -> Test_subcommand.main caps subcmd_argv
         | "validate" -> Validate_subcommand.main caps subcmd_argv
@@ -265,8 +253,6 @@ let safe_run ~debug f : Exit_code.t =
         Exit_code.fatal ~__LOC__
 
 let before_exit ~profile caps : unit =
-  (* alt: could be done in Main.ml instead, just before the call to exit() *)
-  !Hooks.exit |> List.iter (fun f -> f ());
   (* mostly a copy of Profiling.main_boilerplate finalize code *)
   if profile then Profiling.log_diagnostics_and_gc_stats ();
   (* alt: could use Logs.debug, but --profile would require then --debug *)

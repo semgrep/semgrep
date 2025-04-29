@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open Fpath_.Operators
 module Out = Semgrep_output_v1_j
 
 (*****************************************************************************)
@@ -27,35 +26,22 @@ module Out = Semgrep_output_v1_j
 type path = { origin : Origin.t; internal_path_to_content : Fpath.t }
 [@@deriving show, eq]
 
-type regular = {
+type t = {
   path : path;
   analyzer : Analyzer.t;
   products : Product.t list;
-  (* TODO: (sca) associate each target with a dependency_source here rather
-   * than only a lockfile.
-   * We did not do this at the time that we added dependency_source because
-   * this code was unused at that point.
-   *)
-  lockfile : Lockfile.t option;
+  dependency_source : Dependency_source.t option;
 }
 [@@deriving show]
-
-type t = Regular of regular | Lockfile of Lockfile.t [@@deriving show]
 
 (*****************************************************************************)
 (* Dumpers *)
 (*****************************************************************************)
 
-let pp_debug_lockfile f (t : Lockfile.t) = Format.fprintf f "%s" !!(t.path)
-
-let pp_debug_regular f (t : regular) =
-  Format.fprintf f "%s (%s)"
+let pp_debug f (t : t) =
+  Format.fprintf f "target file: %s (%s)"
     (t.path.internal_path_to_content |> Fpath.to_string)
     (t.analyzer |> Analyzer.to_string)
-
-let pp_debug f = function
-  | Regular t -> Format.fprintf f "target file: %a" pp_debug_regular t
-  | Lockfile t -> Format.fprintf f "target lockfile: %a" pp_debug_lockfile t
 
 (* needed because of some deriving yojson in Targeting_stat.ml *)
 let to_yojson (x : t) : Yojson.Safe.t =
@@ -95,61 +81,53 @@ let path_of_origin (origin : Origin.t) : path =
 (* Builders *)
 (*****************************************************************************)
 
-let mk_regular ?lockfile analyzer products (origin : Origin.t) : regular =
-  { path = path_of_origin origin; analyzer; products; lockfile }
+let mk_target_origin ?dependency_source analyzer products (origin : Origin.t) :
+    t =
+  { path = path_of_origin origin; analyzer; products; dependency_source }
 
 (* useful in test context *)
-let mk_target (analyzer : Analyzer.t) (file : Fpath.t) : t =
+let mk_target_fpath (analyzer : Analyzer.t) (file : Fpath.t) : t =
   let all = Product.all in
   (* TODO: should do the check in the other mk_xxx ? *)
   assert (UFile.is_reg ~follow_symlinks:true file);
-  Regular (mk_regular analyzer all (Origin.File file))
+  mk_target_origin analyzer all (Origin.File file)
 
 (* useful in test context or DeepScan context *)
-let mk_lang_target (lang : Lang.t) (file : Fpath.t) : regular =
-  mk_regular (Analyzer.of_lang lang) Product.all (File file)
+let mk_lang_target (lang : Lang.t) (file : Fpath.t) : t =
+  mk_target_fpath (Analyzer.of_lang lang) file
 
 (*****************************************************************************)
 (* Semgrep_output_v1.target -> Target.t *)
 (*****************************************************************************)
 (* old: used to be Input_to_core.target -> Target.t *)
 
-let code_target_location_of_input_to_core
-    ({ path; analyzer; products; lockfile_target = lockfile } : Out.code_target)
-    : regular =
-  mk_regular ?lockfile analyzer products (File path)
+let target_location_of_input_to_core
+    ({ path; analyzer; products; dependency_source } : Out.code_target) : t =
+  mk_target_origin ?dependency_source analyzer products (File path)
 
 let target_of_target (input : Out.target) : t =
   match input with
-  | `CodeTarget x -> Regular (code_target_location_of_input_to_core x)
-  | `LockfileTarget x -> Lockfile x
+  | `CodeTarget x -> target_location_of_input_to_core x
+  | `DependencySourceTarget _x ->
+      failwith
+        "Impossible: pysemgrep should not generate DependencySourceTarget"
 
 (*****************************************************************************)
 (* Accessors *)
 (*****************************************************************************)
 
 let internal_path (target : t) : Fpath.t =
-  match target with
-  | Regular { path = { internal_path_to_content; _ }; _ } ->
-      internal_path_to_content
-  | Lockfile { path; _ } -> path
+  let { path = { internal_path_to_content; _ }; _ } = target in
+  internal_path_to_content
 
 let origin (target : t) : Origin.t =
-  match target with
-  | Regular { path = { origin; _ }; _ } -> origin
-  | Lockfile { path; _ } -> Origin.File path
-
-let analyzer (target : t) : Analyzer.t option =
-  match target with
-  | Regular r -> Some r.analyzer
-  | Lockfile _ -> None
+  let { path = { origin; _ }; _ } = target in
+  origin
 
 let analyzers_of_targets (targets : t list) : Analyzer.t Set_.t =
   List.fold_left
     (fun set target ->
-      match analyzer target with
-      | None -> set
-      | Some a ->
-          let analyzers = Analyzer.flatten a in
-          List_.fold_right Set_.add analyzers set)
+      let a = target.analyzer in
+      let analyzers = Analyzer.flatten a in
+      List_.fold_right Set_.add analyzers set)
     Set_.empty targets

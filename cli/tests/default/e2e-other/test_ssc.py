@@ -395,6 +395,10 @@ def test_ssc__requirements_lockfiles(
             "rules/dependency_aware/java-gradle-sca.yaml",
             "dependency_aware/gradle",
         ),
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/setup-py-dynamic-resolution",
+        ),
     ],
 )
 @pytest.mark.requires_lockfileless_deps
@@ -403,6 +407,32 @@ def test_ssc__lockfileless(
 ):
     """
     Run end-to-end SSC tests with lockfileless resolution enabled.
+    """
+    result = run_semgrep_on_copied_files(
+        rule, target_name=target, options=["--allow-local-builds"]
+    )
+
+    snapshot.assert_match(
+        result.as_snapshot(),
+        "results.txt",
+    )
+
+
+@pytest.mark.parametrize(
+    "rule,target",
+    [
+        (
+            "rules/dependency_aware/python-requirements-sca.yaml",
+            "dependency_aware/setup-py-dynamic-resolution",
+        ),
+    ],
+)
+@pytest.mark.requires_lockfileless_deps
+def test_ssc__setup_py_dynamic_resolution(
+    run_semgrep_on_copied_files: RunSemgrep, snapshot: Any, rule: str, target: str
+):
+    """
+    Run end-to-end SSC tests for setup.py dynamic resolution
     """
     result = run_semgrep_on_copied_files(
         rule, target_name=target, options=["--allow-local-builds"]
@@ -574,7 +604,13 @@ def test_parsing(caplog, target: str, snapshot, lockfile_path_in_tmp):
     # The purpose of these tests is to ensure that parsers can handle a variety of lockfiles. As such,
     # they may contain invalid dependency graphs which can result in DependencyParserErrors. Since these
     # are out of scope for the parser tests, we ignore them here.
-    error = [e for e in error if "Child dependency version not found" not in e.reason]
+    error = [
+        e
+        for e in error
+        # 'e' is of a union type. One of the types doesn't have a 'reason' field.
+        if "Child dependency version not found"
+        not in getattr(e, "reason")  # noqa: B009
+    ]
 
     # Assert
 

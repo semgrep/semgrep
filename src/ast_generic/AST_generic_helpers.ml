@@ -538,12 +538,15 @@ class ['self] extract_info_visitor =
       | _ -> super#visit_expr globals x
   end
 
-let ii_of_any any =
+let ii_of_any =
+  (* NOTE: we stage the allocation of the vistor object outside of the function;
+   * as object allocation is expensive. Simlar to [extract_ranges_with_anys]
+   *)
   let v = new extract_info_visitor in
-  let globals = ref [] in
-  v#visit_any globals any;
-  List.rev !globals
-[@@profiling]
+  fun any ->
+    let globals = ref [] in
+    v#visit_any globals any;
+    List.rev !globals
 
 let info_of_any any =
   match ii_of_any any with
@@ -564,10 +567,10 @@ let first_info_of_any any =
 
 (* Also used below by `nearest_any_of_pos` *)
 let smaller t1 t2 =
-  if compare t1.Tok.pos.bytepos t2.Tok.pos.bytepos < 0 then t1 else t2
+  if compare t1.Loc.pos.bytepos t2.Loc.pos.bytepos < 0 then t1 else t2
 
 let larger t1 t2 =
-  if compare t1.Tok.pos.bytepos t2.Tok.pos.bytepos > 0 then t1 else t2
+  if compare t1.Loc.pos.bytepos t2.Loc.pos.bytepos > 0 then t1 else t2
 
 let incorporate_tokens ranges (left, right) =
   match !ranges with
@@ -616,13 +619,14 @@ class ['self] range_visitor =
 
 let extract_ranges_with_anys :
     AST_generic.any list -> (Tok.location * Tok.location) option =
+  (* NOTE: we stage the allocation of the vistor object outside of the function;
+   * as object allocation is expensive.
+   *)
   let v = new range_visitor in
-  let ranges = ref None in
   fun anys ->
+    let ranges = ref None in
     List.iter (v#visit_any ranges) anys;
-    let res = !ranges in
-    ranges := None;
-    res
+    !ranges
 
 let extract_ranges any = extract_ranges_with_anys [ any ]
 
@@ -672,13 +676,13 @@ type any_range = {
 
 class ['self] any_range_visitor =
   let pos_within pos (t1', t2') =
-    let _, _, t2'_charpos = Tok.end_pos_of_loc t2' in
-    pos >= t1'.Tok.pos.bytepos && pos <= t2'_charpos
+    let _, _, t2'_charpos = Loc.end_pos t2' in
+    pos >= t1'.Loc.pos.bytepos && pos <= t2'_charpos
   in
   let range_within (t1, t2) (t1', t2') =
-    let _, _, t2_charpos = Tok.end_pos_of_loc t2 in
-    let _, _, t2'_charpos = Tok.end_pos_of_loc t2' in
-    t1.Tok.pos.bytepos >= t1'.Tok.pos.bytepos && t2_charpos <= t2'_charpos
+    let _, _, t2_charpos = Loc.end_pos t2 in
+    let _, _, t2'_charpos = Loc.end_pos t2' in
+    t1.Loc.pos.bytepos >= t1'.Loc.pos.bytepos && t2_charpos <= t2'_charpos
   in
   let set_any_range info (any, range) =
     let charpos = info.position in

@@ -11,6 +11,7 @@ type conf = {
   profile : bool;
   (* mix of --experimental, --legacy, --develop *)
   maturity : Maturity.t;
+  x_eio : bool;
 }
 [@@deriving show]
 

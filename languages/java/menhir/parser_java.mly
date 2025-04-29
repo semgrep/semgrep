@@ -976,7 +976,7 @@ for_statement: FOR "(" for_control ")" statement { For ($1, $3, $5) }
 
 for_control:
  | for_init_opt ";" expression? ";" optl(for_update)
-     { ForClassic ($1, Common2.option_to_list $3, $5) }
+     { ForClassic ($1, Option.to_list $3, $5) }
  (* javeext: ? *)
  | for_var_control
      { let (a, b) = $1 in Foreach (a, b) }

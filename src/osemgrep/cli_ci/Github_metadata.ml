@@ -186,7 +186,7 @@ let _shallow_fetch_commit (caps : < Cap.exec >) commit_hash =
    Does a git fetch of given branch with depth = 1. *)
 let get_latest_commit_hash_in_branch (caps : < Cap.exec >) branch_name =
   shallow_fetch_branch caps branch_name;
-  Git_wrapper.command caps [ "rev-parse"; branch_name ]
+  Git_wrapper.command_exn caps [ "rev-parse"; branch_name ]
   |> Digestif.SHA1.of_hex_opt |> Option.get
 
 (* Ref name of the branch pull request if from. *)

@@ -79,11 +79,11 @@ let project_root () =
   match Git_wrapper.project_root_for_files_in_dir Fpath_.current_dir with
   | Some path ->
       let oss_path = path / "OSS" in
-      if Sys.file_exists !!oss_path then oss_path else path
+      if Sys_.Fpath.exists oss_path then oss_path else path
   | None ->
       (* Deal with the case where we're not a in git repo:
            if it looks like we're at the project root, we're happy. *)
-      if Sys.file_exists "CONTRIBUTING.md" then Fpath.v (Sys.getcwd ())
+      if Sys_.file_exists "CONTRIBUTING.md" then Fpath.v (Sys.getcwd ())
       else
         failwith
           "You must run the test program from within the semgrep repo and not \
@@ -279,9 +279,10 @@ let with_git_tmp_path f =
   let _orig_dir = Sys.getcwd () in
   let root =
     Testutil_files.with_tempdir ~persist:true (fun dir ->
-        Git_wrapper.init ~cwd:dir ();
-        Git_wrapper.config_set ~cwd:dir "user.email" "baselinetest@semgrep.com";
-        Git_wrapper.config_set ~cwd:dir "user.name" "Baseline Test";
+        Git_wrapper.init_exn ~cwd:dir ();
+        Git_wrapper.config_set_exn ~cwd:dir "user.email"
+          "baselinetest@semgrep.com";
+        Git_wrapper.config_set_exn ~cwd:dir "user.name" "Baseline Test";
         dir)
   in
   Sys.chdir (Fpath.to_string root);
@@ -319,8 +320,8 @@ let mock_files root : Fpath.t list =
          (* nosem *)
          "/tmp/origin";
        ]);
-  Git_wrapper.add ~cwd:root [ existing_file; modified_file ];
-  Git_wrapper.commit ~cwd:root "initial commit";
+  Git_wrapper.add_exn ~cwd:root [ existing_file; modified_file ];
+  Git_wrapper.commit_exn ~cwd:root "initial commit";
   open_and_write_default_content ~mode:[ Open_append ] modified_file;
 
   let new_file = root / "new.py" in
@@ -1184,7 +1185,7 @@ let test_ls_delete_cache caps () =
       in
       let assert_cache_exists () =
         let cache_dir = !Env.v.user_dot_semgrep_dir / "cache" in
-        if not (Sys.file_exists !!cache_dir) then
+        if not (Sys_.Fpath.exists cache_dir) then
           Alcotest.fail "cache wasn't created!"
       in
       (* init. fileserver *)
@@ -1258,7 +1259,7 @@ let pair ?expected_outcome ?skipped ?tags ?tolerate_chdir name func =
 
 let promise_tests caps =
   [
-    pair "LS specs" (test_ls_specs caps) ~tags:[ Test_tags.flaky ]
+    pair "LS specs" (test_ls_specs caps) ?skipped:Testutil.skip_on_windows
       ~tolerate_chdir:true;
     (* Keep this test commented out while it is xfail.
         Because logging in is side-effecting, if the test never completes, we
@@ -1273,11 +1274,16 @@ will stay log in, which can mangle some of the later tests.|}
         (Should_fail "TODO: currently failing in js tests in CI");
     pair "LS /semgrep/search includes/excludes"
       (test_search_includes_excludes caps)
+      ?skipped:Testutil.skip_on_windows ~tolerate_chdir:true;
+    pair "LS exts" (test_ls_ext caps) ?skipped:Testutil.skip_on_windows
       ~tolerate_chdir:true;
-    pair "LS exts" (test_ls_ext caps) ~tolerate_chdir:true;
-    pair "LS with no folders" (test_ls_no_folders caps);
-    pair "LS multi-workspaces" (test_ls_multi caps) ~tolerate_chdir:true;
-    pair "Test LS cache deletion" (test_ls_delete_cache caps);
+    pair "LS with no folders" (test_ls_no_folders caps)
+      ?skipped:Testutil.skip_on_windows;
+    pair "LS multi-workspaces" (test_ls_multi caps)
+      ?skipped:Testutil.skip_on_windows ~tolerate_chdir:true;
+    pair "Test LS cache deletion"
+      (test_ls_delete_cache caps)
+      ?skipped:Testutil.skip_on_windows;
   ]
   |> List_.split
 

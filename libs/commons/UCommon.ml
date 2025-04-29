@@ -23,12 +23,6 @@ let pr s =
   UStdlib.print_string "\n";
   flush UStdlib.stdout
 
-let pr_time name f =
-  let t1 = UUnix.gettimeofday () in
-  Common.protect f ~finally:(fun () ->
-      let t2 = UUnix.gettimeofday () in
-      pr (spf "%s: %.6f s" name (t2 -. t1)))
-
 (*****************************************************************************)
 (* Stderr *)
 (*****************************************************************************)
@@ -37,23 +31,7 @@ let pr2 s =
   UStdlib.prerr_string "\n";
   flush UStdlib.stderr
 
-let _already_printed = Hashtbl.create 101
-let disable_pr2_once = ref false
-
-let xxx_once f s =
-  if !disable_pr2_once then pr2 s
-  else if not (Hashtbl.mem _already_printed s) then (
-    Hashtbl.add _already_printed s true;
-    f ("(ONCE) " ^ s))
-
-let pr2_once s = xxx_once pr2 s
 let pr2_gen x = pr2 (Dumper.dump x)
-
-let pr2_time name f =
-  let t1 = UUnix.gettimeofday () in
-  protect f ~finally:(fun () ->
-      let t2 = UUnix.gettimeofday () in
-      pr2 (spf "%s: %.6f s" name (t2 -. t1)))
 
 (*****************************************************************************)
 (* Misc *)
@@ -74,13 +52,7 @@ let pp_do_in_zero_box f =
 let before_exit = ref []
 
 let main_boilerplate f =
-  (* Memtrace is broken for ocaml versions between 5.0.0 and 5.3.0 e.g If the
-   * MEMTRACE envar is set for semgrep built with ocaml 5.2.0, an exception
-   * will be raised.
-   * TODO: once we upgrade to ocaml 5.3.0, remove this check.
-   *)
-  if UStdlib.Sys.ocaml_release.major < 5 || UStdlib.Sys.ocaml_release.minor >= 3
-  then Memtrace.trace_if_requested ();
+  Memtrace.trace_if_requested ();
   if not !Sys.interactive then
     exn_to_real_unixexit (fun () ->
         let default_handler signal =

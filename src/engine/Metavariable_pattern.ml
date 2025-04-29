@@ -33,9 +33,9 @@ let adjust_content_for_language (analyzer : Analyzer.t) (content : string) :
   | Analyzer.L (Lang.Php, _)
     when not (content =~ {|[ \t\n]*<\?\(php\|=\)?[ \t\n]+|}) ->
       (* THINK:
-         * - Shouldn't the parser just handle the absence of `<?php` ?
-         * - Isn't the `?>` closing needed ?
-      *)
+       * - Shouldn't the parser just handle the absence of `<?php` ?
+       * - Isn't the `?>` closing needed ?
+       *)
       "<?php " ^ content
   | __else__ -> content
 

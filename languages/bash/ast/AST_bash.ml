@@ -209,7 +209,8 @@ and command =
       * (* done *) tok
   | For_loop_c_style of
       (* TODO: represent the loop header: for (( ... )); *)
-      loc * blist
+      loc
+      * blist
   | Select (* same syntax as For_loop *) of
       loc
       * (* select *) tok

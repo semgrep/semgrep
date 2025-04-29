@@ -8,19 +8,33 @@ module DataflowX = Dataflow_core.Make (struct
   type edge = IL.edge
   type flow = (node, edge) CFG.t
 
-  let short_string_of_node n = Display_IL.short_string_of_node_kind n.IL.n
+  let short_string_of_node n = Display_IL.short_string_of_node n
 end)
 
+let show_range (file : Fpath.t) (r : Range.t) : string =
+  let code_text = Range.content_at_range file r in
+  let byte_str = string_of_int r.start in
+  code_text ^ " @b." ^ byte_str
+
+let show_rwm (file : Fpath.t) (rwm : RM.t) : string =
+  let code_text = Range.content_at_range file rwm.RM.r in
+  let line_str =
+    let pm = rwm.RM.origin in
+    let loc1, _ = pm.range_loc in
+    string_of_int loc1.Loc.pos.line
+  in
+  code_text ^ " @l." ^ line_str
+
 let pr2_ranges (file : Fpath.t) (rwms : RM.t list) : unit =
-  rwms
-  |> List.iter (fun rwm ->
-         let code_text = Range.content_at_range file rwm.RM.r in
-         let line_str =
-           let pm = rwm.RM.origin in
-           let loc1, _ = pm.range_loc in
-           string_of_int loc1.Tok.pos.line
-         in
-         UCommon.pr2 (code_text ^ " @l." ^ line_str))
+  rwms |> List.iter (fun rwm -> UCommon.pr2 (show_rwm file rwm))
+
+let pr2_prop_matches (file : Fpath.t) prop_matches : unit =
+  prop_matches
+  |> List.iter (fun (prop_match : Match_taint_spec.propagator_match) ->
+         let prop_str = show_rwm file prop_match.rwm in
+         let from_str = show_range file prop_match.from in
+         let to_str = show_range file prop_match.to_ in
+         UCommon.pr2 (spf "%s : %s -> %s" prop_str from_str to_str))
 
 let test_tainting taint_inst def =
   UCommon.pr2 "\nDataflow";
@@ -67,19 +81,26 @@ let test_dfg_tainting rules_file file =
      for test purposes.
   *)
   let tbl = Formula_cache.mk_specialized_formula_cache [] in
+  let file_inst =
+    Taint_rule_inst.mk_file ~lang ~path:file ~pro_hooks:None
+      ~handle_effects:None
+  in
   let taint_inst, spec_matches, _exps =
     Match_taint_spec.taint_config_of_rule ~per_file_formula_cache:tbl
-      ~pro_hooks:None xconf lang file (ast, []) rule
+      ~file:file_inst xconf (ast, []) rule
   in
   UCommon.pr2 "\nSources";
   UCommon.pr2 "-------";
-  pr2_ranges file (spec_matches.sources |> List_.map fst);
+  pr2_ranges file (spec_matches.raw_sources |> List_.map fst);
+  UCommon.pr2 "\nPropagators";
+  UCommon.pr2 "-----------";
+  pr2_prop_matches file spec_matches.raw_propagators;
   UCommon.pr2 "\nSanitizers";
   UCommon.pr2 "----------";
-  pr2_ranges file (spec_matches.sanitizers |> List_.map fst);
+  pr2_ranges file (spec_matches.raw_sanitizers |> List_.map fst);
   UCommon.pr2 "\nSinks";
   UCommon.pr2 "-----";
-  pr2_ranges file (spec_matches.sinks |> List_.map fst);
+  pr2_ranges file (spec_matches.raw_sinks |> List_.map fst);
   let v =
     object
       inherit [_] AST_generic.iter_no_id_info as super
@@ -91,7 +112,9 @@ let test_dfg_tainting rules_file file =
     end
   in
   (* Check each function definition. *)
-  v#visit_program () ast
+  v#visit_program () ast;
+  Taint_rule_inst.check_timeouts_and_warn ~interfile:false file_inst;
+  ()
 
 let actions () =
   [

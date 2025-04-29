@@ -20,7 +20,7 @@ let vof_filename v = OCaml.vof_string v
 
 let vof_token_location
     {
-      Tok.str = v_str;
+      Loc.str = v_str;
       pos =
         {
           bytepos = v_charpos;

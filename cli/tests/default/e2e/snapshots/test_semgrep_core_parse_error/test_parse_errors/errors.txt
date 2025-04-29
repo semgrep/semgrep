@@ -1,5 +1,4 @@
 running 2 rules from 2 configs
-No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignore-files
 Rules:
 - rules.two_rules.eqeq-is-bad
 - rules.two_rules.func
@@ -50,15 +49,23 @@ Files skipped:
 
   [1m[24mPartially analyzed due to parsing or internal Semgrep errors[0m
 
-   • [36m[22m[24mtargets/bad/invalid_javascript.js (2 lines skipped)[0m
+   • [36m[22m[24mtargets/bad/invalid_javascript.js (~20.0% of lines always skipped)[0m
+
+     [38;5;7m[22m[24mThe following lines were skipped for all analysis:[0m
+
+     • [36m[22m[24mlines 5-5[0m[33m[22m[24m due to exception "PartialParsing" raised during analysis[0m
+     • [36m[22m[24mlines 10-10[0m[33m[22m[24m due to exception "PartialParsing" raised during analysis[0m
 
 
 
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘
-Some files were skipped or only partially analyzed.
-  Partially scanned: 1 files only partially analyzed due to parsing or internal Semgrep errors
-
+✅ Scan completed successfully.
+ • Findings: 3 (3 blocking)
+ • Rules run: 2
+ • Targets scanned: 1
+ • Parsed lines: ~80.0%
+ • No ignore information available
 Ran 2 rules on 1 file: 3 findings.
 Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False

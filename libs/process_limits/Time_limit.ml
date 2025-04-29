@@ -53,6 +53,76 @@ let current_timer = ref None
 
 (* could be in Control section *)
 
+let clear_timer_unix caps =
+  current_timer := None;
+  CapUnix.setitimer caps#time_limit Unix.ITIMER_REAL
+    { Unix.it_value = 0.; it_interval = 0. }
+  |> ignore
+
+let set_timer_unix max_duration caps info =
+  current_timer := Some info;
+  CapUnix.setitimer caps#time_limit Unix.ITIMER_REAL
+    { Unix.it_value = max_duration; it_interval = 0. }
+  |> ignore
+
+let clear_timer_win32 () = current_timer := None
+let set_timer_win32 info = current_timer := Some info
+
+(* [timed_computation_and_clear_timer info caps max_duration f] is the
+   pair [(timed_f, clear_timer)], where
+
+   - [timed_f ()] runs the computation [f], limited by a timelimit that
+     is at least of [max_duration]
+   - [clear_time ()] will clear the timeout
+
+   The timeout mechanism is selected based on the platform. As of OCaml
+   5.3, support for signals is missing on Windows. Use Gc.Memprof
+   callbacks to check how much time has elapsed. *)
+let timed_computation_and_clear_timer info caps max_duration f :
+    (unit -> 'a option) * (unit -> unit) =
+  let raise_timeout () = raise (Timeout info) in
+  if Sys.win32 then
+    let timed_computation () =
+      let start = Unix.gettimeofday () in
+      let alarm () =
+        let now = Unix.gettimeofday () in
+        if Float.compare (now -. start) max_duration > 0 then raise_timeout ();
+        Some () (* Should we stop tracking the block? *)
+      in
+      let tracker =
+        Gc.Memprof.
+          {
+            alloc_minor = (fun _alloc -> alarm ());
+            alloc_major = (fun _alloc -> alarm ());
+            promote = (fun _minor -> alarm ());
+            dealloc_minor = (fun _minor -> alarm () |> ignore);
+            dealloc_major = (fun _major -> alarm () |> ignore);
+          }
+      in
+      let sampler = Gc.Memprof.start ~sampling_rate:1e-4 tracker in
+      set_timer_win32 info;
+      let x =
+        protect f ~finally:(fun () ->
+            Gc.Memprof.(
+              stop ();
+              discard sampler))
+      in
+      clear_timer_win32 ();
+      Some x
+    in
+    (timed_computation, clear_timer_win32)
+  else
+    (* We're on a posix compatible system *)
+    let clear_timer () = clear_timer_unix caps in
+    let timed_computation () =
+      Sys.set_signal Sys.sigalrm (Sys.Signal_handle (fun _ -> raise_timeout ()));
+      set_timer_unix max_duration caps info;
+      let x = f () in
+      clear_timer ();
+      Some x
+    in
+    (timed_computation, clear_timer)
+
 (*
    This is tricky stuff.
 
@@ -73,26 +143,10 @@ let set_timeout (caps : < Cap.time_limit >) ~name max_duration f =
             for %S of %g seconds is still running."
            name max_duration running_name running_val));
   let info (* private *) = { Exception.name; max_duration } in
-  let raise_timeout () = raise (Timeout info) in
-  let clear_timer () =
-    current_timer := None;
-    CapUnix.setitimer caps#time_limit Unix.ITIMER_REAL
-      { Unix.it_value = 0.; it_interval = 0. }
-    |> ignore
+  let timed_f, clear_timer =
+    timed_computation_and_clear_timer info caps max_duration f
   in
-  let set_timer () =
-    current_timer := Some info;
-    CapUnix.setitimer caps#time_limit Unix.ITIMER_REAL
-      { Unix.it_value = max_duration; it_interval = 0. }
-    |> ignore
-  in
-  try
-    Sys.set_signal Sys.sigalrm (Sys.Signal_handle (fun _ -> raise_timeout ()));
-    set_timer ();
-    let x = f () in
-    clear_timer ();
-    Some x
-  with
+  try timed_f () with
   | Timeout { Exception.name; max_duration } ->
       clear_timer ();
       Log.warn (fun m -> m "%S timeout at %g s (we abort)" name max_duration);

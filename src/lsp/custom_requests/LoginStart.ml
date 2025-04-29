@@ -11,7 +11,7 @@ let on_request (session : Session.t) (req_id : Jsonrpc.Id.t) _params :
     Lsp_.Reply.now
       (Lsp_.respond_json req_id
          (`Assoc
-           [
-             ("url", `String (Uri.to_string uri));
-             ("sessionId", `String (Uuidm.to_string session_id));
-           ])) )
+            [
+              ("url", `String (Uri.to_string uri));
+              ("sessionId", `String (Uuidm.to_string session_id));
+            ])) )

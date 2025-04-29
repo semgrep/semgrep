@@ -76,7 +76,7 @@
       "end": {
         "col": 1,
         "line": 120,
-        "offset": 1
+        "offset": 0
       },
       "extra": {
         "engine_kind": "OSS",
@@ -113,7 +113,7 @@
       "start": {
         "col": 1,
         "line": 120,
-        "offset": 1
+        "offset": 0
       }
     }
   ],
@@ -136,9 +136,9 @@
 
   SUPPLY CHAIN RULES
 
-  Ecosystem   Rules   Files   Lockfiles
- ─────────────────────────────────────────────────────────────────────────────────────
-  Npm             2       1   targets/dependency_aware/pnpm-workspaces/pnpm-lock.yaml
+  Dependency Sources                                        Resolution Method   Ecosystem   Dependencies   Rules
+ ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  targets/dependency_aware/pnpm-workspaces/pnpm-lock.yaml   Lockfile            Npm         10                 2
 
 
   Analysis   Rules
@@ -150,7 +150,12 @@
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘
-
+✅ Scan completed successfully.
+ • Findings: 2 (1 blocking)
+ • Rules run: 2
+ • Targets scanned: 2
+ • Parsed lines: ~100.0%
+ • No ignore information available
 Ran 2 rules on 2 files: 2 findings.
 
 === end of stderr - plain

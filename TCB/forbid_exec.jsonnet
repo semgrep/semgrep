@@ -36,13 +36,13 @@ local unix_funcs = [
           // Feather
           ['Feather.run'] +
           // UCmd
-	  ['UCmd.$F'] +
+          ['UCmd.$F'] +
           [],
       },
       languages: ['ocaml'],
       paths: {
-	// TODO: fix Git_wrapper.ml
-	exclude: common.exclude_paths + ["CapExec.ml", "Git_wrapper.ml"]
+        // TODO: fix Git_wrapper.ml
+        exclude: common.exclude_paths + ['CapExec.ml', 'Git_wrapper.ml'],
       },
       severity: 'ERROR',
       message: |||

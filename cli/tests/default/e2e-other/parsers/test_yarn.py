@@ -66,7 +66,7 @@ def test_key_value1(original, expected) -> None:
         (
             '''"@ampproject/remapping@^2.0.0"''',
             (
-                ("ampproject/remapping", "^2.0.0"),
+                ("@ampproject/remapping", "^2.0.0"),
                 "",
             ),  # TODO: Do NOT filter out the NPM org tag (@)
         ),
@@ -105,14 +105,14 @@ def test_yarn_dep1() -> None:
         (
             1,
             (
-                [("ampproject/remapping", "^2.0.0")],
+                [("@ampproject/remapping", "^2.0.0")],
                 {
                     "version": "2.1.1",
                     "resolved": "https://registry.npmjs.org/@ampproject/remapping/-/remapping-2.1.1.tgz",
                     "checksum": "sha512-Aolwjd7HSC2PyY0fDj/wA/EimQT4HfEnFYNp5s9CQlrdhyvWTtvZ5YzrUPu6R6/1jKiUlxu8bUhkdSnKHNAHMA==",
                     "children": [
-                        ("jridgewell/gen-mapping", "^0.1.0"),
-                        ("jridgewell/trace-mapping", "^0.3.9"),
+                        ("@jridgewell/gen-mapping", "^0.1.0"),
+                        ("@jridgewell/trace-mapping", "^0.3.9"),
                     ],
                 },
             ),
@@ -154,7 +154,7 @@ def test_yarn1() -> None:
             (
                 4,
                 (
-                    [("ampproject/remapping", "^2.0.0")],
+                    [("@ampproject/remapping", "^2.0.0")],
                     {
                         "version": "2.1.1",
                         "resolved": "https://registry.npmjs.org/@ampproject/remapping/-/remapping-2.1.1.tgz",
@@ -166,12 +166,12 @@ def test_yarn1() -> None:
             (
                 9,
                 (
-                    [("jridgewell/gen-mapping", "npm:^0.1.0")],
+                    [("@jridgewell/gen-mapping", "npm:^0.1.0")],
                     {
                         "version": "0.1.0",
                         "resolved": "https://registry.npmjs.org/@jridgewell/gen-mapping/-/gen-mapping-0.1.0.tgz",
                         "checksum": "sha512-Aolwjd7HSC2PyY0fDj/wA/EimQT4HfEnFYNp5s9CQlrdhyvWTtvZ5YzrUPu6R6/1jKiUlxu8bUhkdSnKHNAHMA==",
-                        "children": [("jridgewell/trace-mapping", "^0.3.0")],
+                        "children": [("@jridgewell/trace-mapping", "^0.3.0")],
                     },
                 ),
             ),
@@ -184,8 +184,8 @@ def test_yarn1() -> None:
                         "resolved": "https://registry.npmjs.org/@ampproject/remapping/-/remapping-2.1.1.tgz",
                         "checksum": "sha512-Aolwjd7HSC2PyY0fDj/wA/EimQT4HfEnFYNp5s9CQlrdhyvWTtvZ5YzrUPu6R6/1jKiUlxu8bUhkdSnKHNAHMA==",
                         "children": [
-                            ("jridgewell/gen-mapping", "^0.1.0"),
-                            ("jridgewell/trace-mapping", "^0.3.9"),
+                            ("@jridgewell/gen-mapping", "^0.1.0"),
+                            ("@jridgewell/trace-mapping", "^0.3.9"),
                         ],
                     },
                 ),

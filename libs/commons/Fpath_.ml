@@ -30,6 +30,7 @@ open Eq.Operators
 let of_strings strings = List_.map Fpath.v strings
 let to_strings paths = List_.map Fpath.to_string paths
 let ( !! ) = Fpath.to_string
+let to_posix_string p = Fpath.segs p |> String.concat "/"
 
 let of_relative_segments segs =
   match segs with
@@ -39,6 +40,35 @@ let of_relative_segments segs =
   | seg :: segs -> List.fold_left Fpath.add_seg (Fpath.v seg) segs
 
 let append_no_dot a b = if Fpath.is_current_dir a then b else Fpath.append a b
+
+(* bugfix: do not rely just on Fpath.is_root to stop the recursion because
+ * the path might be relative in which case we would never reach is_root.
+ *
+ * The code below is still fragile because if the path is ../../foo.js
+ * the parents are infinite (hence depth_limit below) so really you should
+ * use a realpath or enforce that path is absolute or does not contain any '..'
+ *)
+let parents ?(depth_limit = 10) path =
+  let rec aux depth acc path =
+    if depth =|= depth_limit || Fpath.is_root path || Fpath.is_current_dir path
+    then List.rev acc
+    else
+      let parent = Fpath.parent path in
+      if Fpath.equal parent path then List.rev acc
+      else aux (depth + 1) (parent :: acc) parent
+  in
+  aux 0 [] path
+
+let () =
+  let skipped = Testutil.skip_on_windows in
+  Testo.test ?skipped "Fpath_.parents relative" (fun () ->
+      assert (
+        parents (Fpath.v "a/b/foo.hs") |> to_strings =*= [ "a/b/"; "a/"; "./" ]));
+  Testo.test ?skipped "Fpath_.parents absolute" (fun () ->
+      assert (
+        parents (Fpath.v "/a/b/foo.hs")
+        |> to_strings =*= [ "/a/b/"; "/a/"; "/" ]));
+  ()
 
 module Operators = struct
   let ( / ) = Fpath.( / )

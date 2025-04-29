@@ -6,25 +6,24 @@ jobs:
         shell: bash
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Configure git safedir properly
+        run: git config --global --add safe.directory $(pwd)
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
+      - uses: actions/checkout@v4
         with:
           submodules: true
-      - uses: ocaml/setup-ocaml@v3
+      - uses: semgrep/setup-ocaml@latest
         with:
-          ocaml-compiler: 5.2.1
-          opam-local-packages: dont_install_local_packages.opam
+          cache-prefix: v1
+          ocaml-compiler: 5.3.0
+          opam-pin: false
+          save-opam-post-run: true
       - name: Install older openssl in Cygwin
         run: |
           PACKAGES='mingw64-x86_64-openssl=1.0.2u+za-1,mingw64-i686-openssl=1.0.2u+za-1'
           CYGWIN_ROOT=$(cygpath -w /)
           $CYGWIN_ROOT/setup-x86_64.exe -P $PACKAGES --quiet-mode -R $CYGWIN_ROOT
-      - env:
-          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
-        name: Set GHA cache for OPAM in _opam
-        uses: actions/cache@v3
-        with:
-          key: ${{ runner.os }}-${{ runner.arch }}-v1-opam-5.2.1-${{ hashFiles('semgrep-pro.opam', 'OSS/semgrep.opam') }}
-          path: _opam
       - name: Install flexlink patched to use response files and cygpath -file arg
         run: |
           git clone -b argument-list-too-long https://github.com/punchagan/flexdll.git
@@ -88,32 +87,25 @@ jobs:
           opam exec -- dune build _build/install/default/bin/semgrep-core.exe
       - name: Test semgrep-core
         run: |
-          _build/install/default/bin/semgrep-core.exe -l python -rules tests/windows/rules.yml -json tests/windows/test.py
-      - name: Package semgrep-core
+          # see pro workflow & semgrep-proprietary/pull/3522
+          opam exec -- _build/install/default/bin/semgrep-core.exe -l python -rules tests/windows/rules.yml -json tests/windows/test.py
+      - name: Copy bin/semgrep-core.exe DLLs to extra-artifacts/
+        run: |
+          mkdir -p extra-artifacts
+          SYS_ROOT_BIN="$(x86_64-w64-mingw32-gcc -print-sysroot)/mingw/bin"
+          dlls=$(PATH=$SYS_ROOT_BIN:$PATH cygcheck "bin/semgrep-core.exe" | grep 'x86_64-w64-mingw32' | sed 's/^[[:space:]]*//' | sort -u)
+          for dll in $dlls; do
+            echo "Copying $dll to extra-artifacts/"
+            cp -p "$dll" "extra-artifacts"
+          done
+      - name: Make artifact for bin/semgrep-core.exe extra-artifacts/*
         run: |
           mkdir artifacts
-          cp _build/install/default/bin/semgrep-core.exe artifacts/
-
-          # TODO: somehow upgrade to the latest flexdll, which should allow us
-          # to statically link these libraries
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libstdc++-6.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgcc_s_seh-1.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libwinpthread-1.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libpcre-1.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libgmp-10.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libcurl-4.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libpcre2-8-0.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libeay32.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libidn2-0.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libnghttp2-14.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libssh2-1.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/ssleay32.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libzstd-1.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/zlib1.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/iconv.dll artifacts/
-          cp d:/cygwin/usr/x86_64-w64-mingw32/sys-root/mingw/bin/libintl-8.dll artifacts/
-
-          tar czvf artifacts.tgz artifacts
+          cp bin/semgrep-core.exe extra-artifacts/* artifacts/
+          tar czf artifacts.tgz artifacts
+          # so that we can untar later and not get a message
+          # about existing artifacts/ directory
+          rm -rf artifacts
       - uses: actions/upload-artifact@v4
         with:
           name: semgrep-core-and-dependent-libs-w64-artifact-${{ github.sha }}
@@ -126,7 +118,11 @@ jobs:
       - build-core
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Configure git safedir properly
+        run: git config --global --add safe.directory $(pwd)
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
+      - uses: actions/checkout@v4
         with:
           submodules: true
       - uses: actions/download-artifact@v4
@@ -156,23 +152,15 @@ jobs:
       - run: tar xzvf dist.tgz
       - name: install package
         run: pip3 install dist/*.whl
-      - name: test package
+      - env:
+          SEMGREP_FORCE_INSTALL: 1
+        name: test package
         run: semgrep --version
-      - name: e2e semgrep-core test
-        run: echo '1 == 1' | semgrep -l python -e '$X == $X' -
+      - env:
+          SEMGREP_FORCE_INSTALL: 1
+        name: e2e semgrep-core test
+        run: echo '1 == 1' | semgrep -l python -e '$X == $X' --strict -
 name: build-test-windows-x86
 on:
-  workflow_call:
-    inputs:
-      use-cache:
-        default: true
-        description: Use Opam Cache - uncheck the box to disable use of the opam cache, meaning a long-running but completely from-scratch build.
-        required: false
-        type: boolean
-  workflow_dispatch:
-    inputs:
-      use-cache:
-        default: true
-        description: Use Opam Cache - uncheck the box to disable use of the opam cache, meaning a long-running but completely from-scratch build.
-        required: true
-        type: boolean
+  workflow_call: null
+  workflow_dispatch: null

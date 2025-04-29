@@ -46,9 +46,9 @@ open Parser_cpp
  *)
 
 (*****************************************************************************)
-(* Some debugging functions  *)
+(* Logging *)
 (*****************************************************************************)
-let pr2, _pr2_once = Common2.mk_pr2_wrappers Flag.verbose_parsing
+let pr2 = Printf.eprintf
 
 (*****************************************************************************)
 (* Types *)
@@ -152,7 +152,7 @@ let rebuild_tokens_extented toks_ext =
          tok.new_tokens_before |> List.iter (fun x -> Stack_.push x _tokens);
          Stack_.push tok.t _tokens);
   let tokens = List.rev !_tokens in
-  tokens |> Common2.acc_map mk_token_extended
+  tokens |> List_.map mk_token_extended
 
 (*****************************************************************************)
 (* View builders  *)
@@ -260,9 +260,7 @@ let rec mk_ifdef xs =
           let body, extra, xs = mk_ifdef_parameters [ x ] [] xs in
 
           (* if not passing, then consider a #if 0 as an ordinary #ifdef *)
-          if !Flag_cpp.if0_passing then
-            Ifdefbool (b, body, extra) :: mk_ifdef xs
-          else Ifdef (body, extra) :: mk_ifdef xs
+          Ifdefbool (b, body, extra) :: mk_ifdef xs
       | TIfdefMisc (b, _)
       | TIfdefVersion (b, _) ->
           let body, extra, xs = mk_ifdef_parameters [ x ] [] xs in
@@ -293,14 +291,9 @@ and mk_ifdef_parameters extras acc_before_sep xs =
       | TIfdefBool (b, _) ->
           let body, extrasnest, xs = mk_ifdef_parameters [ x ] [] xs in
 
-          if !Flag_cpp.if0_passing then
-            mk_ifdef_parameters extras
-              (Ifdefbool (b, body, extrasnest) :: acc_before_sep)
-              xs
-          else
-            mk_ifdef_parameters extras
-              (Ifdef (body, extrasnest) :: acc_before_sep)
-              xs
+          mk_ifdef_parameters extras
+            (Ifdefbool (b, body, extrasnest) :: acc_before_sep)
+            xs
       | TIfdefMisc (b, _)
       | TIfdefVersion (b, _) ->
           let body, extrasnest, xs = mk_ifdef_parameters [ x ] [] xs in

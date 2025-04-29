@@ -152,6 +152,7 @@ let save_excursion reference newv f =
   finalize f (fun _ -> reference := old)
 
 let memoized ?(use_cache = true) h k f =
+  (* TODO(SAF-1940): experiment with weak refs *)
   if not use_cache then f ()
   else
     try Hashtbl.find h k with
@@ -305,6 +306,18 @@ let candidate_match_func s re =
 
 let match_func s re = candidate_match_func s re
 let ( =~ ) s re = match_func s re
+
+let ( =/~ ) (p : Fpath.t) re =
+  let s =
+    if Sys.win32 then
+      (* Replace windows path separaters with '/' for consistent regex matching.
+         E.g., a path `Fpath.v "a\b\c"` is converted to the string '"a/b/c"' so
+         it can be matched against a regex pattern like `.*/b/.*`, just as would
+         a unix path. *)
+      Fpath.segs p |> String.concat "/"
+    else Fpath.to_string p
+  in
+  match_func s re
 
 (*****************************************************************************)
 (* Strings *)

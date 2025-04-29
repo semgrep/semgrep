@@ -12,23 +12,25 @@ let test_user_identity () =
   Testutil_git.with_git_repo ~verbose:true
     [ File ("empty", "") ]
     (fun _cwd ->
-      let not_found = Git_wrapper.config_get "xxxxxxxxxxxxxxxxxxxxxxxxxxx" in
+      let not_found =
+        Git_wrapper.config_get_exn "xxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      in
       Alcotest.(check (option string)) "missing entry" None not_found;
-      let user_name = Git_wrapper.config_get "user.name" in
+      let user_name = Git_wrapper.config_get_exn "user.name" in
       Alcotest.(check (option string))
         "default user name" (Some "Tester") user_name;
-      let user_email = Git_wrapper.config_get "user.email" in
+      let user_email = Git_wrapper.config_get_exn "user.email" in
       Alcotest.(check (option string))
         "default user email" (Some "tester@example.com") user_email;
-      Git_wrapper.config_set "user.name" "nobody";
-      let nobody = Git_wrapper.config_get "user.name" in
+      Git_wrapper.config_set_exn "user.name" "nobody";
+      let nobody = Git_wrapper.config_get_exn "user.name" in
       Alcotest.(check (option string)) "new user name" (Some "nobody") nobody)
 
 let tests =
   [
-    t "user identity" test_user_identity;
+    t ?skipped:Testutil.skip_on_windows "user identity" test_user_identity;
     t "get git project root" (fun () ->
-        let cwd = USys.getcwd () |> Fpath.v in
+        let cwd = Sys.getcwd () |> Fpath.v in
         match Git_wrapper.project_root_for_files_in_dir cwd with
         | Some root -> printf "found git project root: %s\n" !!root
         | None ->

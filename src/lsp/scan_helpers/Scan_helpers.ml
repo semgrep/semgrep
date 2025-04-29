@@ -38,9 +38,6 @@ let parse_and_resolve_name (lang : Lang.t) (fpath : Fpath.t) :
 (* Semgrep helpers *)
 (*****************************************************************************)
 
-(** [wrap_with_detach f] runs f in a separate, preemptive thread, in order to
-    not block the Lwt event loop *)
-let wrap_with_detach f = Lwt_platform.detach f ()
 (* Relevant here means any matches we actually care about showing the user.
     This means like some matches, such as those that appear in committed
     files/lines, will be filtered out*)
@@ -112,7 +109,6 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
               pro_scan_func
                 {
                   roots;
-                  diff_config = Differential_scan_config.WholeScan;
                   engine_type =
                     Engine_type.(
                       PRO
@@ -120,12 +116,10 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
                           extra_languages;
                           (* TODO Interfile? *)
                           analysis = Interprocedural;
+                          path_sensitive = false;
                           (* TODO *)
                           secrets_config = None;
-                          code_config = Some ();
-                          (* TODO *)
-                          supply_chain_config = None;
-                          path_sensitive = false;
+                          sca_config = None;
                         });
                 }
           | _ ->
@@ -185,7 +179,9 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
       (matches, scanned)
 
 let run_semgrep_detached ?targets ?rules ?git_ref (session : Session.t) =
-  wrap_with_detach (fun () -> run_semgrep ?targets ?rules ?git_ref session)
+  Lwt_platform.detach
+    (fun () -> run_semgrep ?targets ?rules ?git_ref session)
+    ()
 
 (* This function runs a search by hooking into Match_search_mode, which bypasses
    some of the CLI.
@@ -208,7 +204,7 @@ let run_core_search xconf (rule : Rule.search_rule) (file : Fpath.t) =
   if Filter_target.filter_target_for_analyzer analyzer file then
     let xtarget =
       Xtarget.resolve parse_and_resolve_name
-        (Target.mk_regular analyzer Product.all (File file))
+        (Target.mk_target_fpath analyzer file)
     in
     try
       let is_relevant_rule =

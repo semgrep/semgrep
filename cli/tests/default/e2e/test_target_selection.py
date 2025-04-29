@@ -31,6 +31,11 @@ class Config(Enum):
     # git: a git project scanned with the default semgrep options
     GIT = "git"
 
+    # git: list only the files that changed (modified or added) since
+    # a particular commit (actually since the more recent common ancestor
+    # of HEAD and that commit, known as the merge base).
+    GIT_BASELINE_COMMIT = "git_baseline_commit"
+
     # novcs: the same project from which '.git' was removed, scanned with
     # the default semgrep options
     NOVCS = "novcs"
@@ -55,8 +60,15 @@ class Config(Enum):
     GIT_INCLUDE = "git_include"
     NOVCS_INCLUDE = "novcs_include"
 
+    # test --x-semgrepignore-filename
+    ALT_SEMGREPIGNORE = "alt_semgrepignore"
+
 
 # The expectations regarding a particular target file path
+#
+# The expectations for osemgrep and for pysemgrep --semgrepignore-v2 are
+# the same.
+#
 @dataclass
 class Expect:
     selected: bool
@@ -74,7 +86,7 @@ class Expect:
 PROJECT = GitProject(
     name="semgrep-test-project1",
     url="https://github.com/semgrep/semgrep-test-project1.git",
-    commit="e0c5109b96ec52a5d972fc0bb96d60f1c343cfd9",
+    commit="b1d5bc05d9cce652746c62bf221483d61a8adc73",
 )
 
 
@@ -87,26 +99,36 @@ def is_git_project(config: Config) -> bool:
 
 # Check whether a target path was selected or ignored by semgrep, depending
 # the expectation we have.
+#
 def check_expectation(
+    *,
     expect: Expect,
     is_running_osemgrep: bool,
     config: Config,
     selected_targets: Set[str],
 ):
+    # TODO: remove requested_semgrepignore_v2 since it's now always true
+    requested_semgrepignore_v2 = True
     paths = expect.paths
 
-    if is_running_osemgrep and expect.ignore_osemgrep_result:
+    # We expect semgrepignore v2 behavior if we call osemgrep directly or
+    # via the --use-semgrepignore-v2 option.
+    v2 = is_running_osemgrep or requested_semgrepignore_v2
+    rpc = requested_semgrepignore_v2 and not is_running_osemgrep
+
+    if v2 and expect.ignore_osemgrep_result:
         return
-    if not is_running_osemgrep and expect.ignore_pysemgrep_result:
+    if not v2 and expect.ignore_pysemgrep_result:
         return
 
     expect_selected = expect.selected
-    if is_running_osemgrep and expect.selected_by_osemgrep is not None:
+    if v2 and expect.selected_by_osemgrep is not None:
         expect_selected = expect.selected_by_osemgrep
-    if not is_running_osemgrep and expect.selected_by_pysemgrep is not None:
+    if not v2 and expect.selected_by_pysemgrep is not None:
         expect_selected = expect.selected_by_pysemgrep
 
     label = "[osemgrep]" if is_running_osemgrep else "[pysemgrep]"
+    label = label + " [rpc]" if rpc else " [no rpc]"
     label = label + (f" [{config.value}]")
     for path in paths:
         # Sanity checks (important when checking that a path is not selected)
@@ -114,15 +136,13 @@ def check_expectation(
             raise Exception(f"path {path} doesn't exist in the file system!")
         # Tests
         if expect_selected:
-            print(
-                f"{label} check that target path was selected: {path}", file=sys.stderr
-            )
-            assert path in selected_targets
+            msg = f"{label} check that target path was selected: {path}"
+            print(msg, file=sys.stderr)
+            assert path in selected_targets, msg
         else:
-            print(
-                f"{label} check that target path was ignored: {path}", file=sys.stderr
-            )
-            assert path not in selected_targets
+            msg = f"{label} check that target path was ignored: {path}"
+            print(msg, file=sys.stderr)
+            assert path not in selected_targets, msg
 
 
 # What we expect from semgrep when running with the most common invocation i.e.
@@ -171,6 +191,10 @@ COMMON_EXPECTATIONS = [
             "src/quote'/hello.py",
             "src/space !/hello.py",
             "src/🚀.py",
+            # sanity check for dotfiles/
+            "dotfiles/not-excluded",
+            # Control for backward compatibility with Semgrepignore v1
+            "normalized-patterns/not-excluded-for-v1-compatibility",
         ],
     ),
     Expect(
@@ -188,6 +212,13 @@ COMMON_EXPECTATIONS = [
             "src/symlink.py",
             "src/semgrepignored-via-include.py",
             "linux/link-to-file-in-dir-without-read-perm",
+            # in Gitignore, wildcards can match leading periods
+            "dotfiles/excluded.py",
+            "dotfiles/.excluded.py",
+            "dotfiles/_excluded.rb",
+            "dotfiles/.excluded.rb",
+            # Backward compatibility with Semgrepignore v1 (deprecated)
+            "normalized-patterns/excluded-for-v1-compatibility",
         ],
     ),
     # accepted differences between pysemgrep and osemgrep
@@ -223,16 +254,41 @@ GIT_PROJECT_EXPECTATIONS = [
             "submodules/semgrep-test-project2/hello.py",
         ],
     ),
-    # accepted differences between pysemgrep and osemgrep
+    # check that '.gitignore' isn't consulted (in an early draft of
+    # Semgrepignore v2, '.gitignore' files were consulted in addition to
+    # '.semgrepignore' files)
     Expect(
-        selected=False,
-        selected_by_pysemgrep=True,
+        selected=True,
         paths=[
             # pysemgrep doesn't consult .gitignore files
             # (except for the one included in the .semgrepignore file)
             "src/gitignored.py",
             "src/gitignored-only-in-src-and-below.py",
             "src/gitignored-only-in-src.py",
+        ],
+    ),
+]
+
+# For our baseline commit, we use any commit in the middle of the git history
+# such that some files changed after that commit but not all files.
+GIT_BASELINE_COMMIT = "399245b4660c80530db13148e5aed3e6572ea351"
+GIT_BASELINE_COMMIT_EXPECTATIONS = [
+    Expect(
+        selected=True,
+        paths=[
+            # Added in the first commit after the baseline commit
+            ".gitignore",
+            # Modified in a later commit
+            "README.md",
+        ],
+    ),
+    Expect(
+        selected=False,
+        paths=[
+            # Added in by the baseline commit and not modified after that
+            "hello.py",
+            # Semgrepignored file
+            "semgrepignored/hello.py",
         ],
     ),
 ]
@@ -459,13 +515,39 @@ NOVCS_INCLUDE_EXPECTATIONS = [
     ),
 ]
 
+# Test --x-semgrepignore-filename
+ALT_SEMGREPIGNORE_EXPECTATIONS = [
+    Expect(
+        selected=True,
+        paths=[
+            "alt-semgrepignore",
+        ],
+    ),
+    Expect(
+        selected=False,
+        # --x-semgrepignore-filename isn't supported by Semgrepignore v1
+        selected_by_pysemgrep=True,
+        paths=[
+            "hello.py",
+        ],
+    ),
+]
+
 
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize(
     # a list of extra semgrep CLI options and osemgrep-specific options
+    # TODO: remove osemgrep_options since it's unused
     "config,options,osemgrep_options,expectations",
     [
         (Config.GIT, [], [], COMMON_EXPECTATIONS + GIT_PROJECT_EXPECTATIONS),
+        (
+            Config.GIT_BASELINE_COMMIT,
+            # nothing particular about this commit
+            ["--baseline-commit", GIT_BASELINE_COMMIT],
+            [],
+            GIT_BASELINE_COMMIT_EXPECTATIONS,
+        ),
         (Config.NOVCS, [], [], COMMON_EXPECTATIONS + NOVCS_PROJECT_EXPECTATIONS),
         (
             Config.IGNOREGIT,
@@ -536,9 +618,19 @@ NOVCS_INCLUDE_EXPECTATIONS = [
             [],
             NOVCS_INCLUDE_EXPECTATIONS,
         ),
+        (
+            Config.ALT_SEMGREPIGNORE,
+            [
+                "--x-semgrepignore-filename",
+                "alt-semgrepignore",
+            ],
+            [],
+            ALT_SEMGREPIGNORE_EXPECTATIONS,
+        ),
     ],
     ids=[
         Config.GIT.value,
+        Config.GIT_BASELINE_COMMIT.value,
         Config.NOVCS.value,
         Config.IGNOREGIT.value,
         Config.GIT_DEFAULT_SEMGREPIGNORE.value,
@@ -549,6 +641,7 @@ NOVCS_INCLUDE_EXPECTATIONS = [
         Config.NOVCS_EXCLUDE.value,
         Config.GIT_INCLUDE.value,
         Config.NOVCS_INCLUDE.value,
+        Config.ALT_SEMGREPIGNORE.value,
     ],
 )
 def test_project_target_selection(
@@ -631,4 +724,9 @@ def test_project_target_selection(
 
     # Check the status of each file path we want to check.
     for expect in expectations:
-        check_expectation(expect, is_running_osemgrep, config, selected_targets)
+        check_expectation(
+            expect=expect,
+            is_running_osemgrep=is_running_osemgrep,
+            config=config,
+            selected_targets=selected_targets,
+        )

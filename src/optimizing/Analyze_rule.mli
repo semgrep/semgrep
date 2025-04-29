@@ -34,7 +34,7 @@ type prefilter_cache = (Rule_ID.t, prefilter option) Hashtbl.t
  * Note that this function use Common.memoized on the rule id
  *)
 val regexp_prefilter_of_rule :
-  cache:prefilter_cache option -> Rule.t -> prefilter option
+  interfile:bool -> cache:prefilter_cache option -> Rule.t -> prefilter option
 
 (* WARNING: internal, do not use directly, not memoized
  *
@@ -47,9 +47,9 @@ val regexp_prefilter_of_rule :
  * looking for a string matching a certain regex, that regex may not match the
  * source file, but there could be a string expression that would match it at
  * runtime, and that can be known to Semgrep statically via constant folding.
- * *)
+ *)
 val regexp_prefilter_of_formula :
-  analyzer:Analyzer.t -> Rule.formula -> prefilter option
+  interfile:bool -> analyzer:Analyzer.t -> Rule.formula -> prefilter option
 
 (* For external tools like Semgrep query console to be able to
  * also prune certain rules/files.

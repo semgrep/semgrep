@@ -10,10 +10,17 @@ open Printf
 
 let t = Testo.create
 
-let test pattern path matches () =
-  let pat = Parse.parse_string pattern in
+(* Settings used by Git to interpret Gitignore patterns *)
+let gitignore_conf : Match.conf =
+  {
+    (* Match.default_conf with *)
+    glob_period = true;
+  }
+
+let test ?conf pattern path matches () =
+  let pat = Parse.parse_string ~deprecated_absolute_dotslash:true pattern in
   let compiled_pat =
-    Match.compile ~source:(Match.string_loc ~source_kind:None pattern) pat
+    Match.compile ?conf ~source:(Match.string_loc ~source_kind:None pattern) pat
   in
   let res = Match.run compiled_pat path in
   printf
@@ -32,11 +39,6 @@ let test pattern path matches () =
 (* Test data *)
 (*****************************************************************************)
 
-(*
-   These tests conform with the gitignore specification, falling back to
-   the official gitignore implementation in case some important behavior
-   is unspecified (e.g. '**' matches dot files but '*' doesn't).
-*)
 let tests =
   Testo.categorize "Glob"
     [
@@ -106,12 +108,27 @@ let tests =
       t "empty trailing segment" (test "a/*" "a/" false);
       t "empty leading segment" (test "*/a" "/a" false);
       t "not a dot file" (test "*a" "b.a" true);
-      t "don't match dot file with wildcard" (test "*" ".a" false);
-      t "don't match dot file with wildcard 2" (test "*a" ".a" false);
-      t "don't match dot file with wildcard 3" (test "*" ".a" false);
+      t "don't match dot file with star" (test "*" ".a" false);
+      t "don't match dot file with star 2" (test "*a" ".a" false);
       t "match dot file with literal dot" (test ".?b" ".ab" true);
       t "don't match dot file with wildcard sequence" (test "*?a" ".a" false);
       t "don't match dot file with wildcard sequence 2" (test "?*a" ".a" false);
       t "match dot file with '**'" (test "**" ".a" true);
       t "match dot file with '**' 2" (test "a/**/c" "a/.b/c" true);
+      (* With options specific to Gitignore *)
+      t "match dot file with star (Gitignore)"
+        (test ~conf:gitignore_conf "*" ".a" true);
+      t "match dot file with star 2 (Gitignore)"
+        (test ~conf:gitignore_conf "*a" ".a" true);
+      t "match dot file with question mark (Gitignore)"
+        (test ~conf:gitignore_conf "?a" ".a" true);
+      t
+        ~expected_outcome:
+          (Should_fail
+             "incorrect behavior supported for the time being for backward \
+              compatibility with Semgrepignore v1")
+        "don't normalize path pattern into absolute path"
+        (test "./a" "/a" false);
+      t "don't normalize path pattern into relative path" (test "./a" "a" false);
+      t "don't normalize '.' pattern into empty path" (test "." "." true);
     ]

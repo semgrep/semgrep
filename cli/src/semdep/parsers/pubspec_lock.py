@@ -6,6 +6,7 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers.util import DependencyFileToParse
 from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import safe_parse_lockfile_and_manifest
@@ -16,10 +17,8 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pub
-from semgrep.semgrep_interfaces.semgrep_output_v1 import PubspecLock_
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Unknown
 
 
@@ -32,7 +31,7 @@ def parse_pubspec_lock(
             lambda text: parse_yaml_preserve_spans(
                 text, str(lockfile_path), allow_null=True
             ),
-            ScaParserName(PubspecLock_()),
+            ScaParserName(out.PPubspecLock()),
         ),
         None,
     )
@@ -49,11 +48,11 @@ def parse_pubspec_lock(
         for key, map in package_map.items():
             stated_transitivity = map.value["dependency"].value
             if stated_transitivity == "transitive":
-                transitivity = Transitivity(Transitive())
+                transitivity = out.DependencyKind(Transitive())
             elif "direct" in stated_transitivity:
-                transitivity = Transitivity(Direct())
+                transitivity = out.DependencyKind(Direct())
             else:
-                transitivity = Transitivity(Unknown())
+                transitivity = out.DependencyKind(Unknown())
 
             output.append(
                 FoundDependency(

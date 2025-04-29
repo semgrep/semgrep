@@ -127,6 +127,9 @@ let decode_rules caps data =
           (* There shouldn't be any errors, because we got these rules from CI. *)
           failwith "impossible: received invalid rules from Deployment")
 
+let decode_rules_detached caps data =
+  Lwt_platform.detach (fun () -> decode_rules caps data) ()
+
 let get_targets (session : t) (root : Fpath.t) =
   let targets_conf =
     User_settings.find_targets_conf_of_t session.user_settings
@@ -195,6 +198,37 @@ let auth_token () =
       let settings = Semgrep_settings.load () in
       settings.api_token
 
+let check_token session =
+  if not (session.user_settings.ci || session.user_settings.pro_intrafile) then (
+    Logs.debug (fun m -> m "CI disabled, not checking API token");
+    Lwt.return_ok ())
+  else (
+    Logs.debug (fun m -> m "Checking API token exists");
+    let settings = Semgrep_settings.load () in
+    match settings.api_token with
+    | Some token ->
+        Logs.debug (fun m -> m "Checking API token validity");
+        let caps = Auth.cap_token_and_network token session.caps in
+        (* "if not valid", basically *)
+        let%lwt token_valid = Semgrep_login.verify_token_async caps in
+        if not token_valid then (
+          Logs.warn (fun m -> m "Invalid Semgrep token detected");
+          Semgrep_settings.save { settings with api_token = None } |> ignore;
+          Lwt.return_error
+            "Semgrep's API token is invalid. Please login to enable the \
+             Semgrep engine")
+        else Lwt.return_ok ()
+    | None ->
+        Logs.info (fun m -> m "No API token detected");
+        (* Check if pro_intrafile requested *)
+        if session.user_settings.pro_intrafile then
+          Lwt.return_error
+            "Semgrep's Pro engine is enabled, but no API token is set. Semgrep \
+             Language Server will default to the OSS engine. Please login to \
+             enable the Pro engine, or disable the setting to stop seeing this \
+             message."
+        else Lwt.return_ok ())
+
 let scan_config_of_token caps = function
   | Some token -> (
       let caps = Auth.cap_token_and_network token caps in
@@ -219,9 +253,12 @@ let fetch_ci_rules_and_origins caps =
   let token = auth_token () in
   let%lwt scan_config_opt = scan_config_of_token caps token in
 
-  let rules_opt =
-    Option.bind scan_config_opt (fun scan_config ->
-        Some (decode_rules caps scan_config.rule_config))
+  let%lwt rules_opt =
+    match scan_config_opt with
+    | None -> Lwt.return None
+    | Some scan_config ->
+        let%lwt res = decode_rules_detached caps scan_config.rule_config in
+        Lwt.return (Some res)
   in
   Lwt.return rules_opt
 
@@ -277,12 +314,14 @@ let fetch_rules session =
   in
   let home = !Semgrep_envvars.v.user_home_dir in
   let rules_source =
-    session.user_settings.configuration |> List_.map Fpath.v
-    |> List_.map Fpath.normalize
-    |> List_.map (fun f ->
-           let p = Fpath.rem_prefix (Fpath.v "~/") f in
-           Option.bind p (fun f -> Some (home // f)) |> Option.value ~default:f)
-    |> List_.map Fpath.to_string
+    session.user_settings.configuration
+    |> List_.map (fun config_path ->
+           if Uri_.is_url config_path then config_path
+           else
+             let f = Fpath.v config_path |> Fpath.normalize in
+             let p = Fpath.rem_prefix (Fpath.v "~/") f in
+             Option.value ~default:f (Option.map (fun f -> home // f) p)
+             |> Fpath.to_string)
   in
   let rules_source =
     if rules_source = [] && ci_rules = None then (
@@ -393,7 +432,7 @@ let load_local_skipped_fingerprints session =
     ^ ".txt"
   in
   let save_file = save_dir / save_file_name in
-  if not (Sys.file_exists !!save_file) then session
+  if not (Sys_.Fpath.exists save_file) then session
   else
     let skipped_local_fingerprints =
       UFile.read_file save_file |> String.split_on_char '\n'

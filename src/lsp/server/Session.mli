@@ -58,6 +58,11 @@ val send_metrics :
   unit
 (** [send_metrics t] sends metrics to the server *)
 
+val check_token : t -> (unit, string) result Lwt.t
+(** [check_token t] checks if the user has a valid token. This function will
+    return an error message if the token is invalid, or if it is not set and the
+    pro engine was requested *)
+
 val save_local_skipped_fingerprints : t -> unit
 (** [save_local_skipped_fingerprints t] saves the skipped fingerprints in the session to disk *)
 

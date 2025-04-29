@@ -9,6 +9,7 @@ from typing import Optional
 from typing import Set
 from typing import Tuple
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers.util import DependencyFileToParse
 from semdep.parsers.util import DependencyParserError
 from semdep.parsers.util import JSON
@@ -16,7 +17,6 @@ from semdep.parsers.util import json_doc
 from semdep.parsers.util import safe_parse_lockfile_and_manifest
 from semdep.parsers.util import transitivity
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Composer
-from semgrep.semgrep_interfaces.semgrep_output_v1 import ComposerLock_
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
@@ -48,8 +48,12 @@ def parse_composer_lock(
     lockfile_path: Path, manifest_path: Optional[Path]
 ) -> Tuple[List[FoundDependency], List[DependencyParserError]]:
     parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
-        DependencyFileToParse(lockfile_path, json_doc, ScaParserName(ComposerLock_())),
-        DependencyFileToParse(manifest_path, json_doc, ScaParserName(ComposerLock_()))
+        DependencyFileToParse(
+            lockfile_path, json_doc, ScaParserName(out.PComposerLock())
+        ),
+        DependencyFileToParse(
+            manifest_path, json_doc, ScaParserName(out.PComposerLock())
+        )
         if manifest_path
         else None,
     )

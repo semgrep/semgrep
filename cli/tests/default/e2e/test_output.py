@@ -355,21 +355,19 @@ def test_json_output_with_dataflow_traces(run_semgrep_in_tmp: RunSemgrep, snapsh
     )
 
 
-IGNORE_LOG_REPORT_FIRST_LINE = "Some files were skipped or only partially analyzed."
-IGNORE_LOG_REPORT_LAST_LINE = (
-    "  For a full list of skipped files, run semgrep with the --verbose flag."
-)
+IGNORE_LOG_REPORT_FIRST_LINE = "Files skipped:"
+IGNORE_LOG_REPORT_LAST_LINE = "   ◦ Files matching .semgrepignore patterns: \\d+"
 
 
 # TODO: remove this test: too many things being tested at once, too hard
 #       to debug.
 #
-# pysemgrep/osemgrep status: osemgrep reports 2 more files that are being
+# pysemgrep/osemgrep/v2 status: osemgrep reports 2 more files that are being
 # excluded. They're excluded in both implementations.
-@pytest.mark.kinda_slow
-@pytest.mark.pysemfail
-def test_semgrepignore_ignore_log_report(
-    run_semgrep_on_copied_files: RunSemgrep, tmp_path, snapshot
+def _test_semgrepignore_ignore_log_report(
+    run_semgrep_on_copied_files: RunSemgrep,
+    tmp_path,
+    snapshot,
 ):
     shutil.copyfile(
         Path(TARGETS_PATH / "ignores" / ".semgrepignore"), tmp_path / ".semgrepignore"
@@ -399,7 +397,7 @@ def test_semgrepignore_ignore_log_report(
     )
 
     report = re.search(
-        f"^{IGNORE_LOG_REPORT_FIRST_LINE}$.*?^{IGNORE_LOG_REPORT_LAST_LINE}$",
+        f"^{IGNORE_LOG_REPORT_FIRST_LINE}$.*?^{IGNORE_LOG_REPORT_LAST_LINE}$\n",
         stderr,
         flags=re.MULTILINE | re.DOTALL,
     )
@@ -409,14 +407,30 @@ def test_semgrepignore_ignore_log_report(
     snapshot.assert_match(report.group(), "report.txt")
 
 
-# Tolerate a different snapshot with pysemgrep than osemgrep.
+@pytest.mark.kinda_slow
+@pytest.mark.osemfail
+def test_semgrepignore_ignore_log_report(
+    run_semgrep_on_copied_files: RunSemgrep, tmp_path, snapshot
+):
+    _test_semgrepignore_ignore_log_report(
+        run_semgrep_on_copied_files,
+        tmp_path,
+        snapshot,
+    )
+
+
+# Tolerate a different snapshot with pysemgrep than osemgrep/v2.
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
 def test_semgrepignore_ignore_log_report_pysemgrep(
-    run_semgrep_on_copied_files: RunSemgrep, tmp_path, snapshot
+    run_semgrep_on_copied_files: RunSemgrep,
+    tmp_path,
+    snapshot,
 ):
-    test_semgrepignore_ignore_log_report(
-        run_semgrep_on_copied_files, tmp_path, snapshot
+    _test_semgrepignore_ignore_log_report(
+        run_semgrep_on_copied_files,
+        tmp_path,
+        snapshot,
     )
 
 
@@ -425,10 +439,10 @@ def test_semgrepignore_ignore_log_report_pysemgrep(
 #
 # pysemgrep/osemgrep status: osemgrep reports 2 more files that are being
 # excluded. They're excluded in both implementations.
-@pytest.mark.kinda_slow
-@pytest.mark.pysemfail
-def test_semgrepignore_ignore_log_json_report(
-    run_semgrep_on_copied_files: RunSemgrep, tmp_path, snapshot
+def _test_semgrepignore_ignore_log_json_report(
+    run_semgrep_on_copied_files: RunSemgrep,
+    tmp_path,
+    snapshot,
 ):
     shutil.copyfile(
         Path(TARGETS_PATH / "ignores" / ".semgrepignore"), tmp_path / ".semgrepignore"
@@ -463,13 +477,24 @@ def test_semgrepignore_ignore_log_json_report(
     )
 
 
-# Tolerate a different snapshot with pysemgrep than osemgrep.
+@pytest.mark.kinda_slow
+@pytest.mark.pysemfail
+def test_semgrepignore_ignore_log_json_report(
+    run_semgrep_on_copied_files: RunSemgrep, tmp_path, snapshot
+):
+    _test_semgrepignore_ignore_log_json_report(
+        run_semgrep_on_copied_files, tmp_path, snapshot
+    )
+
+
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
 def test_semgrepignore_ignore_log_json_report_pysemgrep(
-    run_semgrep_on_copied_files: RunSemgrep, tmp_path, snapshot
+    run_semgrep_on_copied_files: RunSemgrep,
+    tmp_path,
+    snapshot,
 ):
-    test_semgrepignore_ignore_log_json_report(
+    _test_semgrepignore_ignore_log_json_report(
         run_semgrep_on_copied_files, tmp_path, snapshot
     )
 

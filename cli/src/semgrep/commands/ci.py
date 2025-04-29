@@ -41,7 +41,6 @@ from semgrep.error import SemgrepError
 from semgrep.git import git_check_output
 from semgrep.git import is_git_repo_empty
 from semgrep.git import is_git_repo_root_approx
-from semgrep.ignores import IGNORE_FILE_NAME
 from semgrep.meta import generate_meta_from_environment
 from semgrep.meta import GithubMeta
 from semgrep.meta import GitMeta
@@ -54,16 +53,11 @@ from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
 from semgrep.target_manager import ALL_PRODUCTS
-from semgrep.util import unit_str
+from semgrep.target_manager import SAST_PRODUCT
+from semgrep.types import TargetAccumulator
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
-
-# These patterns are excluded via --exclude regardless of other ignore configuration
-ALWAYS_EXCLUDE_PATTERNS = [".semgrep/", ".semgrep_logs/"]
-
-# These patterns are excluded via --exclude unless the user provides their own .semgrepignore
-DEFAULT_EXCLUDE_PATTERNS = ["test/", "tests/", "*_test.go"]
 
 # Conversion of product codes to product names
 PRODUCT_NAMES_MAP = {
@@ -97,15 +91,6 @@ def get_exclude_paths(
         )
         for product in ALL_PRODUCTS
     }
-
-    for product in ALL_PRODUCTS:
-        patterns[product].extend(ALWAYS_EXCLUDE_PATTERNS)
-        # This logic isn't clear to me, since I don't see why adding these
-        # default patterns is done here or why it would depend on
-        # .semgrepignore. But, we've had this for a while, so leaving it not to
-        # potentially break things.
-        if Path(IGNORE_FILE_NAME).is_file() and not requested_patterns:
-            patterns[product].extend(DEFAULT_EXCLUDE_PATTERNS)
 
     return patterns
 
@@ -197,6 +182,12 @@ def fix_head_if_github_action(metadata: GitMeta) -> None:
     hidden=True,
 )
 @click.option(
+    "--x-dump-rule-partitions-strategy",
+    "dump_rule_partitions_strategy",
+    type=str,
+    hidden=True,
+)
+@click.option(
     "--x-partial-config",
     "partial_config",
     type=click.Path(allow_dash=True, path_type=Path),
@@ -220,7 +211,6 @@ def ci(
     code: bool,
     config: Optional[Tuple[str, ...]],
     debug: bool,
-    diff_depth: int,
     dump_command_for_core: bool,
     dry_run: bool,
     enable_nosem: bool,
@@ -266,13 +256,21 @@ def ci(
     trace: bool,
     trace_endpoint: str,
     use_git_ignore: bool,
-    use_semgrepignore_v2: bool,
+    semgrepignore_v2: Optional[bool],  # ignored legacy option
+    force_novcs_project: bool,  # unused but needed to receive options from 'scan'
+    force_project_root: Optional[
+        str
+    ],  # unused but needed to receive options from 'scan'
     verbose: bool,
+    x_eio: bool,
     x_tr: bool,
+    x_pro_naming: bool,
+    x_semgrepignore_filename: Optional[str],
     path_sensitive: bool,
     allow_local_builds: bool,
     dump_n_rule_partitions: Optional[int],
     dump_rule_partitions_dir: Optional[Path],
+    dump_rule_partitions_strategy: Optional[str],
     partial_config: Optional[Path],
     partial_output: Optional[Path],
 ) -> None:
@@ -322,6 +320,15 @@ def ci(
                 "Both or none of --x-dump-rule-partitions and --x-dump-rule-partitions-dir must be specified."
             )
             sys.exit(FATAL_EXIT_CODE)
+
+        dump_rule_partitions_params: Optional[out.DumpRulePartitionsParams] = None
+        if dump_n_rule_partitions:
+            dump_rule_partitions_params = out.DumpRulePartitionsParams(
+                out.RawJson([]),  # rules will be populated later before actual dumping
+                dump_n_rule_partitions,
+                out.Fpath(str(dump_rule_partitions_dir)),
+                dump_rule_partitions_strategy,
+            )
 
         if partial_config and not partial_output:
             logger.info(
@@ -379,6 +386,7 @@ def ci(
                 engine_flag=requested_engine,
                 ci_scan_handler=scan_handler,
             )
+
             # A lot of project metadata depends on git commands that fail in
             # empty repos; we gather whatever metadata we can and move forwards
             project_metadata = generate_meta_from_environment(
@@ -395,22 +403,21 @@ def ci(
                     # Inform the App that the scan started & ended
                     scan_handler.start_scan(project_metadata, project_config)
                     scan_handler.report_findings(
-                        dict(),
-                        [],
-                        [],
-                        set(),
-                        set(),
-                        frozenset(),
-                        0,  # Inform app that we are exiting with code 0
-                        ParsingData(),
-                        0.0,
-                        "",
-                        dict(),
-                        [],
-                        [],
-                        contributions,
-                        engine_type,
-                        progress_bar,
+                        matches_by_rule=dict(),
+                        rules=[],
+                        targets=set(),
+                        renamed_targets=set(),
+                        ignored_targets=frozenset(),
+                        cli_suggested_exit_code=0,  # Inform app that we are exiting with code 0
+                        parse_rate=ParsingData(),
+                        total_time=0.0,
+                        commit_date="",
+                        lockfile_dependencies=dict(),
+                        dependency_parser_errors=[],
+                        all_subprojects=[],
+                        contributions=contributions,
+                        engine_requested=engine_type,
+                        progress_bar=progress_bar,
                     )
                     sys.exit(0)
 
@@ -521,11 +528,6 @@ def ci(
             logger.info(f"Could not start scan {e}")
             sys.exit(FATAL_EXIT_CODE)
 
-        # Enable beta features
-        if scan_handler and scan_handler.generic_slow_rollout:
-            # slow rollout for pro diff scan
-            diff_depth = 2
-
         # Handled error outside engine type for more actionable advice.
         if run_secrets_flag and requested_engine is EngineType.OSS:
             logger.info(
@@ -549,7 +551,6 @@ def ci(
             logged_in=auth.is_logged_in_weak(),
             engine_flag=requested_engine,
             run_secrets=run_secrets,
-            interfile_diff_scan_enabled=diff_depth >= 0,
             ci_scan_handler=scan_handler,
             git_meta=metadata,
             supply_chain_only=supply_chain_only,
@@ -665,17 +666,18 @@ def ci(
             "optimizations": optimizations,
             "baseline_commit": metadata.merge_base_ref,
             "baseline_commit_is_mergebase": True,
-            "diff_depth": diff_depth,
             "capture_core_stderr": capture_core_stderr,
             "allow_local_builds": allow_local_builds,
+            "x_eio": x_eio,
             "x_tr": x_tr,
-            "dump_n_rule_partitions": dump_n_rule_partitions,
-            "dump_rule_partitions_dir": dump_rule_partitions_dir,
+            "x_pro_naming": x_pro_naming,
+            "dump_rule_partitions_params": dump_rule_partitions_params,
             "ptt_enabled": scan_handler.ptt_enabled if scan_handler else False,
-            "resolve_all_deps_in_diff_scan": scan_handler.resolve_all_deps_in_diff_scan
-            if scan_handler
-            else False,
+            "resolve_all_deps_in_diff_scan": (
+                scan_handler.resolve_all_deps_in_diff_scan if scan_handler else False
+            ),
             "symbol_analysis": scan_handler.symbol_analysis if scan_handler else False,
+            "semgrepignore_filename": x_semgrepignore_filename,
         }
 
         try:
@@ -724,7 +726,11 @@ def ci(
                 scan_handler.report_failure(exit_code)
 
             output_handler.handle_semgrep_errors([e])
-            output_handler.output({}, all_targets=set(), filtered_rules=[])
+            output_handler.output(
+                {},
+                all_targets_acc=TargetAccumulator(),
+                filtered_rules=[],
+            )
             logger.info(f"Encountered error when running rules: {e}")
 
             sys.exit(exit_code)
@@ -838,7 +844,7 @@ def ci(
                 ]
 
             for match in matches:
-                if match.is_ignored and not keep_ignored:
+                if match.match.extra.is_ignored and not keep_ignored:
                     continue
 
                 applicable_result_list = (
@@ -870,7 +876,7 @@ def ci(
             if not internal_ci_scan_results:
                 output_handler.output(
                     non_cai_matches_by_rule,
-                    all_targets=output_extra.all_targets,
+                    all_targets_acc=output_extra.all_targets,
                     engine_type=engine_type,
                     ignore_log=ignore_log,
                     profiler=profiler,
@@ -882,9 +888,6 @@ def ci(
                 )
 
             logger.info("CI scan completed successfully.")
-            logger.info(
-                f"  Found {unit_str(num_blocking_findings + num_nonblocking_findings, 'finding')} ({num_blocking_findings} blocking) from {unit_str(len(filtered_rules), 'rule')}."
-            )
 
         complete_result: out.CiScanCompleteResponse | None = None
         contributions = semgrep.rpc_call.contributions()
@@ -895,22 +898,23 @@ def ci(
                 console=console,
             ) as progress_bar:
                 complete_result = scan_handler.report_findings(
-                    filtered_matches_by_rule,
-                    semgrep_errors,
-                    filtered_rules,
-                    output_extra.all_targets,
-                    renamed_targets,
-                    ignore_log.unsupported_lang_paths,
-                    cli_suggested_exit_code,
-                    output_extra.parsing_data,
-                    total_time,
-                    metadata.commit_datetime,
-                    dependencies,
-                    dependency_parser_errors,
-                    all_subprojects,
-                    contributions,
-                    engine_type,
-                    progress_bar,
+                    matches_by_rule=filtered_matches_by_rule,
+                    rules=filtered_rules,
+                    targets=output_extra.all_targets.targets,
+                    renamed_targets=renamed_targets,
+                    ignored_targets=ignore_log.unsupported_lang_paths(
+                        product=SAST_PRODUCT
+                    ),
+                    cli_suggested_exit_code=cli_suggested_exit_code,
+                    parse_rate=output_extra.parsing_data,
+                    total_time=total_time,
+                    commit_date=metadata.commit_datetime,
+                    lockfile_dependencies=dependencies,
+                    dependency_parser_errors=dependency_parser_errors,
+                    all_subprojects=all_subprojects,
+                    contributions=contributions,
+                    engine_requested=engine_type,
+                    progress_bar=progress_bar,
                 )
             app_blocked_mids = set()
             if (
@@ -953,7 +957,7 @@ def ci(
             if not internal_ci_scan_results:
                 output_handler.output(
                     non_cai_matches_by_rule,
-                    all_targets=output_extra.all_targets,
+                    all_targets_acc=output_extra.all_targets,
                     engine_type=engine_type,
                     ignore_log=ignore_log,
                     profiler=profiler,
@@ -965,9 +969,6 @@ def ci(
                 )
 
             logger.info("CI scan completed successfully.")
-            logger.info(
-                f"  Found {unit_str(num_blocking_findings + num_nonblocking_findings, 'finding')} ({num_blocking_findings} blocking) from {unit_str(len(filtered_rules), 'rule')}."
-            )
 
             if internal_ci_scan_results:
                 # console.print() would go to stderr; here we print() directly to stdout

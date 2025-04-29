@@ -42,7 +42,7 @@ let lang_to_python_parsing_mode = function
 (*****************************************************************************)
 
 let just_parse_with_lang lang file : Parsing_result2.t =
-  if lang =*= Lang.C && Sys.file_exists !!(!Flag_parsing_cpp.macros_h) then
+  if lang =*= Lang.C && Sys_.Fpath.exists !Flag_parsing_cpp.macros_h then
     Parse_cpp.init_defs !Flag_parsing_cpp.macros_h;
 
   match lang with
@@ -63,12 +63,7 @@ let just_parse_with_lang lang file : Parsing_result2.t =
   (* Menhir and Tree-sitter *)
   | Lang.C
   | Lang.Cpp ->
-      run file
-        [
-          TreeSitter Parse_cpp_tree_sitter.parse;
-          Pfff (throw_tokens Parse_cpp.parse);
-        ]
-        Cpp_to_generic.program
+      run file [ TreeSitter Parse_cpp_tree_sitter.parse ] Cpp_to_generic.program
   | Lang.Go ->
       run file
         [

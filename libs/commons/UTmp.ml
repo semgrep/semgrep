@@ -15,6 +15,7 @@
 open Common
 open Fpath_.Operators
 module Log = Log_commons.Log
+module TempId = Gensym.MkId ()
 
 (*****************************************************************************)
 (* Prelude *)
@@ -27,8 +28,11 @@ module Log = Log_commons.Log
 (* Globals *)
 (*****************************************************************************)
 
-(* TODO: eliminate this global and enforce the use of 'with_temp_file' *)
+(* TODO: eliminate these globals and enforce the use of 'with_temp_file' *)
+(* SAFETY: All accesses to [temp_files_created] must occur while holding
+ * [created_lock]. *)
 let temp_files_created : (Fpath.t, unit) Hashtbl.t = Hashtbl.create 101
+let created_lock = Mutex.create ()
 
 (* old: was in Common2.cmdline_flags_devel()
     ( "-keep_tmp_files",
@@ -39,12 +43,13 @@ let temp_files_created : (Fpath.t, unit) Hashtbl.t = Hashtbl.create 101
 let save_temp_files = ref false
 
 let erase_temp_files () =
-  if not !save_temp_files then (
-    temp_files_created
-    |> Hashtbl.iter (fun path () ->
-           Log.info (fun m -> m "deleting: %s" !!path);
-           USys.remove !!path);
-    Hashtbl.clear temp_files_created)
+  if not !save_temp_files then
+    Mutex.protect created_lock (fun () ->
+        temp_files_created
+        |> Hashtbl.iter (fun path () ->
+               Log.info (fun m -> m "deleting: %s" !!path);
+               USys.remove !!path);
+        Hashtbl.clear temp_files_created)
 
 (* hooks for with_temp_file() *)
 let temp_file_cleanup_hooks = ref []
@@ -76,14 +81,15 @@ let new_temp_file ?(prefix = default_temp_file_prefix) ?(suffix = "") ?temp_dir
       (spf "%s%d-" prefix pid) suffix
     |> Fpath.v
   in
-  Hashtbl.add temp_files_created temp_file ();
+  Mutex.protect created_lock (Hashtbl.add temp_files_created temp_file);
   temp_file
 
 let erase_this_temp_file f =
-  if not !save_temp_files then (
-    Hashtbl.remove temp_files_created f;
-    Log.info (fun m -> m "deleting: %s" !!f);
-    USys.remove !!f)
+  if not !save_temp_files then
+    Mutex.protect created_lock (fun () ->
+        Hashtbl.remove temp_files_created f;
+        Log.info (fun m -> m "deleting: %s" !!f);
+        USys.remove !!f)
 
 let with_temp_file ?(contents = "") ?(persist = false) ?prefix ?suffix ?temp_dir
     (f : Fpath.t -> 'a) : 'a =
@@ -106,7 +112,7 @@ let write_temp_file_with_autodelete ~prefix ~suffix ~data : Fpath.t =
       ~mode:[ Open_creat; Open_excl; Open_wronly; Open_binary ]
       prefix suffix
   in
-  let remove () = if USys.file_exists tmp_path then USys.remove tmp_path in
+  let remove () = if Sys_.file_exists tmp_path then USys.remove tmp_path in
   (* Try to remove temporary file when program exits. *)
   UStdlib.at_exit remove;
   Common.protect
@@ -133,3 +139,10 @@ let replace_stdin_by_regular_file ?(prefix = "stdin") () : Fpath.t =
   write_temp_file_with_autodelete ~prefix ~suffix:"" ~data
 
 let get_temp_dir_name () = Fpath.v (UFilename.get_temp_dir_name ())
+
+let get_unique_temp_name ?(prefix = "") ?(suffix = "") () =
+  get_temp_dir_name ()
+  (* This is meant only to be used in test code. *)
+  / Printf.sprintf "%s-%i%d%s" prefix
+      TempId.(mk () |> to_int)
+      (UUnix.getpid ()) suffix

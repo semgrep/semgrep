@@ -17,7 +17,6 @@ from semgrep.meta import GitMeta
         "logged_in",
         "is_interfile_flag_on",
         "is_git_full_scan",
-        "interfile_diff_scan_enabled",
         "expected_default",
     ),
     [
@@ -33,31 +32,21 @@ from semgrep.meta import GitMeta
         # - is_interfile_flag_on is None -> is_git_full_scan is None
         #
         # semgrep scan
-        (False, None, None, False, ET.OSS),
-        (False, None, None, True, ET.OSS),
-        (True, None, None, False, ET.OSS),
-        (True, None, None, True, ET.OSS),
+        (False, None, None, ET.OSS),
+        (True, None, None, ET.OSS),
         # semgrep ci, not logged in
-        (False, None, False, False, ET.OSS),
-        (False, None, False, True, ET.OSS),
-        (False, None, True, False, ET.OSS),
-        (False, None, True, True, ET.OSS),
+        (False, None, False, ET.OSS),
+        (False, None, True, ET.OSS),
         # semgrep ci with toggle on, full scan
-        (True, True, None, False, ET.PRO_INTERFILE),
-        (True, True, None, True, ET.PRO_INTERFILE),
-        (True, True, True, False, ET.PRO_INTERFILE),
-        (True, True, True, True, ET.PRO_INTERFILE),
+        (True, True, None, ET.PRO_INTERFILE),
+        (True, True, True, ET.PRO_INTERFILE),
         # semgrep ci with toggle off, full scan
-        (True, False, None, False, ET.PRO_INTRAFILE),
-        (True, False, None, True, ET.PRO_INTRAFILE),
-        (True, False, True, False, ET.PRO_INTRAFILE),
-        (True, False, True, True, ET.PRO_INTRAFILE),
+        (True, False, None, ET.PRO_INTRAFILE),
+        (True, False, True, ET.PRO_INTRAFILE),
         # semgrep ci with toggle on, diff scan
-        (True, True, False, False, ET.PRO_INTRAFILE),
-        (True, True, False, True, ET.PRO_INTERFILE),
+        (True, True, False, ET.PRO_INTERFILE),
         # semgrep ci with toggle off, diff scan
-        (True, False, False, False, ET.PRO_INTRAFILE),
-        (True, False, False, True, ET.PRO_INTRAFILE),
+        (True, False, False, ET.PRO_INTRAFILE),
     ],
 )
 def test_decide_engine_type(
@@ -65,7 +54,6 @@ def test_decide_engine_type(
     logged_in,
     is_interfile_flag_on,
     is_git_full_scan,
-    interfile_diff_scan_enabled,
     is_supply_chain_only,
     is_secrets_scan,
     engine_flag,
@@ -86,7 +74,6 @@ def test_decide_engine_type(
         logged_in,
         engine_flag,
         is_secrets_scan,
-        interfile_diff_scan_enabled,
         ci_scan_handler,
         git_meta,
         is_supply_chain_only,
@@ -94,10 +81,7 @@ def test_decide_engine_type(
     if is_secrets_scan and engine_flag is ET.OSS:
         pytest.raises(SemgrepError, ET.decide_engine_type, *args)
     else:
-        diff_scan_override = not (
-            (is_git_full_scan is None or is_git_full_scan)
-            or interfile_diff_scan_enabled
-        )
+        diff_scan_override = not ((is_git_full_scan is None or is_git_full_scan))
         assert ET.decide_engine_type(*args) == expected_engine_type(
             is_supply_chain_only,
             is_secrets_scan,

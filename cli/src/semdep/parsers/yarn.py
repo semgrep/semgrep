@@ -16,6 +16,7 @@ from typing import TypedDict
 from typing import TypeVar
 from typing import Union
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.external.parsy import regex
 from semdep.external.parsy import string
 from semdep.external.parsy import success
@@ -35,11 +36,8 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyChild
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Jsondoc
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScaParserName
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Yarn1
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Yarn2
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -104,7 +102,7 @@ def dep_version_pair(dep: str, version: str) -> Tuple[str, str]:
 # my-package-without-version-constraint:
 # "filedep@file:../../correct/path/filedep":
 # "bats@https://github.com/bats-core/bats-core#master":
-part1 = regex('"?@?([^@:]*)', flags=0, group=1)
+part1 = regex('"?(@?[^@:]*)', flags=0, group=1)
 part2 = regex('@?([^:,"]*(:?(?!\n)[^:,"]*)*)"?', flags=0, group=1)
 source1 = pair(part1, part2)
 
@@ -130,8 +128,7 @@ dependencies1 = (
     .bind(
         lambda title: key_value1.sep_by(string("\n")).map(
             lambda child_info: [
-                dep_version_pair(dep.strip('"').strip("@"), version)
-                for dep, version in child_info
+                dep_version_pair(dep.strip('"'), version) for dep, version in child_info
             ],
         )
         if title
@@ -317,11 +314,13 @@ def parse_yarn(
     yarn_version = 1 if lockfile_text.startswith(YARN1_PREFIX) else 2
     parser = yarn1 if yarn_version == 1 else yarn2
     parser_name = (
-        ScaParserName(Yarn1()) if yarn_version == 1 else ScaParserName(Yarn2())
+        ScaParserName(out.PYarn1())
+        if yarn_version == 1
+        else ScaParserName(out.PYarn2())
     )
     parsed_lockfile, parsed_manifest, errors = safe_parse_lockfile_and_manifest(
         DependencyFileToParse(lockfile_path, parser, parser_name),
-        DependencyFileToParse(manifest_path, json_doc, ScaParserName(Jsondoc()))
+        DependencyFileToParse(manifest_path, json_doc, ScaParserName(out.PJsondoc()))
         if manifest_path
         else None,
     )

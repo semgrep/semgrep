@@ -39,17 +39,19 @@ type client_result = (server_response, string) result
 
 (* Create a client reference so we can swap it out with a testing version *)
 
-let client_ref : (module Cohttp_lwt.S.Client) option ref = ref None
-let in_mock_context = ref false
-let set_client_ref v = if not !in_mock_context then client_ref := Some v
+(* SAFETY: in_mock_context is only set by the CLI, and since client_ref is scoped
+ * to a given domain's call stack, its value can be domain-local. *)
+
+let client_ref : (module Cohttp_lwt.S.Client) option Domain.DLS.key =
+  Domain.DLS.new_key (fun () -> None)
+
+let set_client_ref v = Domain.DLS.set client_ref (Some v)
 
 let with_client_ref v f x =
-  let old = !client_ref in
+  let old = Domain.DLS.get client_ref in
   set_client_ref v;
   let result = f x in
-  (match old with
-  | Some old -> set_client_ref old
-  | None -> client_ref := None);
+  Domain.DLS.set client_ref old;
   result
 
 (*****************************************************************************)
@@ -125,8 +127,8 @@ let default_resp_handler (response, body) =
 (* to a consumer of this library, who may or may not know about this requirement *)
 let call_client ?(body = Cohttp_lwt.Body.empty) ?(headers = [])
     ?(chunked = false) ?(resp_handler = default_resp_handler) meth url =
-  let module Client =
-    (val match !client_ref with
+  let module Client : Cohttp_lwt.S.Client =
+    (val match Domain.DLS.get client_ref with
          | Some client -> client
          | None -> failwith "HTTP client not initialized")
   in

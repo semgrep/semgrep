@@ -91,9 +91,9 @@
 
   SUPPLY CHAIN RULES
 
-  Ecosystem   Rules   Files   Lockfiles
- ──────────────────────────────────────────────────────────────────────────
-  Npm             2       1   targets/dependency_aware/pnpm/pnpm-lock.yaml
+  Dependency Sources                             Resolution Method   Ecosystem   Dependencies   Rules
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────
+  targets/dependency_aware/pnpm/pnpm-lock.yaml   Lockfile            Npm         9                  2
 
 
   Analysis   Rules
@@ -105,7 +105,12 @@
 ┌──────────────┐
 │ Scan Summary │
 └──────────────┘
-
+✅ Scan completed successfully.
+ • Findings: 1 (1 blocking)
+ • Rules run: 2
+ • Targets scanned: 2
+ • Parsed lines: ~100.0%
+ • No ignore information available
 Ran 2 rules on 2 files: 1 finding.
 
 === end of stderr - plain

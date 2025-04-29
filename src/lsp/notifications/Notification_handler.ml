@@ -62,34 +62,10 @@ let on_notification (server : RPC_server.t) notification =
         *)
         let check_token =
           Reply.later (fun send ->
-              Logs.debug (fun m -> m "Checking API token exists");
-              let settings = Semgrep_settings.load () in
-              match settings.api_token with
-              | Some token ->
-                  Logs.debug (fun m -> m "Checking API token validity");
-                  let caps =
-                    Auth.cap_token_and_network token server.session.caps
-                  in
-                  (* "if not valid", basically *)
-                  if%lwt Semgrep_login.verify_token_async caps |> Lwt.map not
-                  then (
-                    Logs.warn (fun m -> m "Invalid Semgrep token detected");
-                    Semgrep_settings.save { settings with api_token = None }
-                    |> ignore;
-                    send
-                      (Lsp_.notify_show_message ~kind:MessageType.Error
-                         "Invalid Semgrep token detected, please log in again."))
-              | None ->
-                  Logs.info (fun m -> m "No API token detected");
-                  (* Check if pro_intrafile requested *)
-                  if session.user_settings.pro_intrafile then
-                    send
-                      (Lsp_.notify_show_message Lsp.Types.MessageType.Error
-                         "Semgrep's Pro engine is enabled, but no API token is \
-                          set. Semgrep Language Server will default to the OSS \
-                          engine. Please login to enable the Pro engine, or \
-                          disable the setting to stop seeing this message.")
-                  else Lwt.return_unit)
+              match%lwt Session.check_token server.session with
+              | Ok () -> Lwt.return_unit
+              | Error e ->
+                  send (Lsp_.notify_show_message ~kind:MessageType.Error e))
         in
         let reply =
           Reply.both check_token (Scan_helpers.refresh_rules session)

@@ -1029,9 +1029,9 @@ and map_cases env tk st : G.case_and_body list =
              *)
             | X
                 (S
-                  (( Case (t, _, _, [])
-                   | CaseRange (t, _, _, _, _, [])
-                   | Default (t, _, []) ) as case1)) -> (
+                   (( Case (t, _, _, [])
+                    | CaseRange (t, _, _, _, _, [])
+                    | Default (t, _, []) ) as case1)) -> (
                 let res = repack_case_with_following_cases env t case1 xs in
                 match res with
                 | Some (case_repack, rest) -> aux (X (S case_repack) :: rest)
@@ -1095,9 +1095,9 @@ and repack_case_with_following_cases env tk (st_case_empty_body : stmt) xs =
       match x with
       | X
           (S
-            (( Case (t, _, _, [])
-             | CaseRange (t, _, _, _, _, [])
-             | Default (t, _, []) ) as case1)) -> (
+             (( Case (t, _, _, [])
+              | CaseRange (t, _, _, _, _, [])
+              | Default (t, _, []) ) as case1)) -> (
           (* recursive call, still got an empty case, need to go deeper *)
           let res = repack_case_with_following_cases env t case1 xs in
           match res with
@@ -1106,9 +1106,9 @@ and repack_case_with_following_cases env tk (st_case_empty_body : stmt) xs =
               Some (repack_empty_case case_repack, rest))
       | X
           (S
-            (( Case (_, _, _, _)
-             | CaseRange (_, _, _, _, _, _)
-             | Default (_, _, _) ) as case1)) ->
+             (( Case (_, _, _, _)
+              | CaseRange (_, _, _, _, _, _)
+              | Default (_, _, _) ) as case1)) ->
           Some (repack_empty_case case1, xs)
       | _ ->
           (* could not find a case, maybe caller knows better *)
@@ -2148,7 +2148,7 @@ and map_a_cppExpr env v = map_expr env v
 
 (* TODO: ifdef_skipper like in ast_c_build.ml *)
 and map_sequencable :
-      'a. env -> ('a -> G.stmt list) -> 'a sequencable -> G.stmt list =
+    'a. env -> ('a -> G.stmt list) -> 'a sequencable -> G.stmt list =
  fun env _of_a -> function
   | X v1 ->
       let v1 = _of_a v1 in
@@ -2177,11 +2177,11 @@ and map_sequencable :
  * with the field local helper
  *)
 and map_sequencable_for_field :
-      'a.
-      env ->
-      ('a -> (G.field, G.attribute) Either.t list) ->
-      'a sequencable ->
-      (G.field, G.attribute) Either.t list =
+    'a.
+    env ->
+    ('a -> (G.field, G.attribute) Either.t list) ->
+    'a sequencable ->
+    (G.field, G.attribute) Either.t list =
   let field x = Left (G.F x) in
   fun env _of_a -> function
     | X v1 ->
@@ -2208,11 +2208,9 @@ and map_sequencable_for_field :
         [ G.DefStmt (ent, def) |> G.s |> field ]
 
 and map_sequencable_for_or_type :
-      'a.
-      env ->
-      ('a -> G.or_type_element) ->
-      'a sequencable ->
-      G.or_type_element list =
+    'a.
+    env -> ('a -> G.or_type_element) -> 'a sequencable -> G.or_type_element list
+    =
  fun _env _of_a -> function
   | X v1 ->
       let v1 = _of_a v1 in

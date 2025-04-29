@@ -100,7 +100,7 @@ let rec type_of_expr lang e : G.name Type.t * G.ident option =
                 (* If the operands to |, &, or ^ are boolean, in Java these are
                  * boolean operators. If we can resolve one operand to a boolean, we
                  * know that in a well-formed program, the other is also a boolean.
-                 * *)
+                 *)
                 Type.Builtin Type.Bool
             | _else_ -> Type.NoType
           in
@@ -151,9 +151,9 @@ let rec type_of_expr lang e : G.name Type.t * G.ident option =
 
 and type_of_lit lang = function
   (* NB: We could infer Type.Number for JS int/float literals, but we can
-     * handle that relationship in matching and we can be more precise for
-     * now. One actual rule uses `float` for a typed metavariable in JS so
-     * let's avoid breaking that for now at least. *)
+   * handle that relationship in matching and we can be more precise for
+   * now. One actual rule uses `float` for a typed metavariable in JS so
+   * let's avoid breaking that for now at least. *)
   | G.Int _ -> Type.Builtin Type.Int
   | G.Float _ -> Type.Builtin Type.Float
   | G.Bool _ -> Type.Builtin Type.Bool
@@ -411,8 +411,8 @@ let typing_visitor =
                     _,
                     FN
                       (Id
-                        ( (id_str, _),
-                          ({ id_type = { contents = None }; _ } as id_info) ))
+                         ( (id_str, _),
+                           ({ id_type = { contents = None }; _ } as id_info) ))
                   );
               _;
             },

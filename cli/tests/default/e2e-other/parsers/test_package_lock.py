@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 
+import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers.package_lock import parse_package_name
 from semdep.parsers.package_lock import parse_packages_field
 from semdep.parsers.util import JSON
@@ -10,7 +11,6 @@ from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Npm
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
 
 
 @pytest.mark.quick
@@ -152,7 +152,7 @@ def test_package_lock_v2_parser_produces_correct_deps():
                     "3f5b2dd1a92c0ab9fdb06661a7c18c63006742c6ef016b19017e38a1734dbcb1c6a8039ca15c668d98a886cb7043b4aa2a76d1e3b6a474d8beba57960fcfa0e8"
                 ]
             },
-            transitivity=Transitivity(value=Transitive()),
+            transitivity=out.DependencyKind(value=Transitive()),
             resolved_url="https://registry.npmjs.org/@popperjs/core/-/core-2.11.8.tgz",
             line_number=11,
             children=None,
@@ -169,7 +169,7 @@ def test_package_lock_v2_parser_produces_correct_deps():
                     "f072c2756832a0c82e48ef68f9a1fe8ae67e6a1b7e9b35b4bb71c833356eed2aeba6fec4041c539eb165482b24c1d635f843854129bbb8c2613501e474f7268e"
                 ]
             },
-            transitivity=Transitivity(value=Transitive()),
+            transitivity=out.DependencyKind(value=Transitive()),
             resolved_url="https://registry.npmjs.org/bootstrap/-/bootstrap-5.3.3.tgz",
             line_number=21,
             children=None,

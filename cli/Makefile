@@ -6,6 +6,7 @@
 .PHONY: default
 default: Pipfile.lock
 	$(MAKE) build
+	$(MAKE) check
 	$(MAKE) test
 	$(MAKE) qa
 
@@ -14,9 +15,12 @@ default: Pipfile.lock
 ###############################################################################
 
 # Generate code. Needed at least when the interface changes.
+# TODO: move src/semgrep/semgrep-interface out of src/ and copy the
+# relevant subset of files from it under src/semgrep/semgrep-interface/
+# (the atdpy generated files and lang.json)
 .PHONY: build
 build:
-	$(MAKE) check
+	@echo "nothing to do for now for build; generated code in submodule"
 
 .PHONY: check
 check:
@@ -184,7 +188,11 @@ osemgrep-qa:
 # Dev targets
 ###############################################################################
 
-.PHONY:
+# Tip: if you just ran 'make test' and you got errors due to test snapshots
+# that need updating, it's faster to rerun only the failed tests with '--lf'
+# combined with '--snapshot-update'.
+#
+.PHONY: regenerate-tests
 regenerate-tests:
 	pipenv run pytest -n auto \
 	  --run-only-snapshots --snapshot-update --allow-snapshot-deletion \

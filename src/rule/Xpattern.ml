@@ -17,18 +17,7 @@
  * in Match_tainting_mode.Formula_tbl and formula contain patterns.
  *)
 open Ppx_hash_lib.Std.Hash.Builtin
-
-(*****************************************************************************)
-(* Prelude *)
-(*****************************************************************************)
-
-(*****************************************************************************)
-(* Types *)
-(*****************************************************************************)
-
-type compiled_regexp = Pcre2_.t [@@deriving show, eq]
-type regexp_string = string [@@deriving show, eq, hash]
-(* see the NOTE "Regexp" below for the need to have this type *)
+module XpatId = Gensym.MkId ()
 
 (* used in the engine for rule->mini_rule and match_result gymnastic *)
 type pattern_id = int [@@deriving show, eq]
@@ -39,7 +28,7 @@ type xpattern_kind =
   | Sem of Pattern.t * Lang.t (* language used for parsing the pattern *)
   | Spacegrep of Spacegrep.Pattern_AST.t
   | Aliengrep of Aliengrep.Pat_compile.t
-  | Regexp of regexp_string
+  | Regexp of string
       (** NOTE "Regexp":
       * We used to keep the compiled regexp of type `Regexp_engine.t', but
       * that is not a pure OCaml data structure and it cannot be serialized.
@@ -88,15 +77,9 @@ type t = {
    a good enough proxy.
 *)
 
-(*****************************************************************************)
-(* Helpers *)
-(*****************************************************************************)
-
-let count = ref 0
-
 let mk_xpat pat pstr =
-  incr count;
-  { pat; pstr; pid = !count }
+  let pid = XpatId.to_int (XpatId.mk ()) in
+  { pat; pstr; pid }
 
 let is_regexp xpat =
   match xpat.pat with

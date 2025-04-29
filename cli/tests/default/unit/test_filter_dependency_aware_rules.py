@@ -1,5 +1,5 @@
 from collections import defaultdict
-from pathlib import Path
+from typing import List
 
 import pytest
 
@@ -7,15 +7,10 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.rule import Rule
 from semgrep.run_scan import filter_dependency_aware_rules
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ManifestKind
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Pipfile_
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Pipfile
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
-from semgrep.subproject import ManifestLockfileDependencySource
-from semgrep.subproject import ResolutionMethod
-from semgrep.subproject import ResolvedSubproject
-from semgrep.subproject import Subproject
+from semgrep.subproject import from_resolved_dependencies
 
 
 @pytest.fixture
@@ -82,51 +77,66 @@ def sample_rules():
 
 @pytest.fixture
 def sample_resolved_deps():
-    # Accurate found_dependencies for protobuf and test packages, including empty allowed_hashes
-    found_dependencies = [
-        FoundDependency(
-            package="protobuf",
-            version="3.14.0",
-            ecosystem=Ecosystem(value=Pypi()),
-            allowed_hashes=defaultdict(list),  # Empty allowed_hashes
-            transitivity=Transitivity("Direct"),
-            resolved_url=None,
-            children=None,
-            git_ref=None,
+    # Accurate found_dependencies for protobuf and test packages, including
+    # empty allowed_hashes
+    resolved_dependencies: List[out.ResolvedDependency] = [
+        out.ResolvedDependency(
+            (
+                out.FoundDependency(
+                    package="protobuf",
+                    version="3.14.0",
+                    ecosystem=Ecosystem(value=Pypi()),
+                    allowed_hashes=defaultdict(list),  # Empty allowed_hashes
+                    transitivity=out.DependencyKind(out.Direct()),
+                    resolved_url=None,
+                    children=None,
+                    git_ref=None,
+                ),
+                None,
+            ),
         ),
-        FoundDependency(
-            package="test",
-            version="1.16.0",
-            ecosystem=Ecosystem(value=Pypi()),
-            allowed_hashes=defaultdict(list),  # Empty allowed_hashes
-            transitivity=Transitivity("Direct"),
-            resolved_url=None,
-            children=None,
-            git_ref=None,
+        out.ResolvedDependency(
+            (
+                out.FoundDependency(
+                    package="test",
+                    version="1.16.0",
+                    ecosystem=Ecosystem(value=Pypi()),
+                    allowed_hashes=defaultdict(list),  # Empty allowed_hashes
+                    transitivity=out.DependencyKind(out.Direct()),
+                    resolved_url=None,
+                    children=None,
+                    git_ref=None,
+                ),
+                None,
+            ),
         ),
     ]
 
     # Create dependency source
-    dependency_source = ManifestLockfileDependencySource(
-        manifest=out.Manifest(ManifestKind(value=Pipfile_()), out.Fpath("Pipfile")),
-        lockfile=out.Lockfile(
-            out.LockfileKind(value=out.PipfileLock()), out.Fpath("Pipfile.lock")
+    dependency_source = out.DependencySource(
+        out.ManifestLockfile(
+            (
+                out.Manifest(ManifestKind(Pipfile()), out.Fpath("Pipfile")),
+                out.Lockfile(
+                    out.LockfileKind(out.PipfileLock()), out.Fpath("Pipfile.lock")
+                ),
+            )
         ),
     )
 
-    resolution_method = ResolutionMethod.LOCKFILE_PARSING
+    resolution_method = out.ResolutionMethod(out.LockfileParsing())
 
     # Create ResolvedSubproject with accurate found_dependencies and resolution_method
     subprojects = [
-        ResolvedSubproject.from_unresolved(
-            unresolved=Subproject(
-                root_dir=Path("."),
+        out.ResolvedSubproject(
+            info=out.Subproject(
+                root_dir=out.Fpath("."),
                 dependency_source=dependency_source,
                 ecosystem=Ecosystem(value=Pypi()),
             ),
-            resolution_errors=[],
+            errors=[],
             resolution_method=resolution_method,
-            found_dependencies=found_dependencies,
+            resolved_dependencies=from_resolved_dependencies(resolved_dependencies),
             ecosystem=Ecosystem(value=Pypi()),
         )
     ]

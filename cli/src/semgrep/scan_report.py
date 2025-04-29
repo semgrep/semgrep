@@ -4,11 +4,10 @@
 # Helpers to run_scan.py to report scan status
 import sys
 from textwrap import wrap
-from typing import Dict
 from typing import List
 from typing import Sequence
+from typing import Union
 
-from attrs import evolve
 from rich.columns import Columns
 from rich.padding import Padding
 from rich.table import Table
@@ -23,9 +22,10 @@ from semgrep.core_runner import Plan
 from semgrep.rule import Rule
 from semgrep.state import DesignTreatment
 from semgrep.state import get_state
-from semgrep.subproject import ResolvedSubproject
+from semgrep.target_manager import SAST_PRODUCT
 from semgrep.target_manager import TargetManager
 from semgrep.target_mode import TargetModeConfig
+from semgrep.util import is_secrets_ai_ruleset
 from semgrep.util import unit_str
 from semgrep.util import with_color
 from semgrep.util import with_feature_status
@@ -33,6 +33,9 @@ from semgrep.util import with_feature_status
 ##############################################################################
 # Helpers
 ##############################################################################
+
+# Helper function to identify secret rules
+is_secret_rule = lambda r: isinstance(r.product.value, out.Secrets)
 
 
 # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
@@ -112,14 +115,8 @@ def _print_scan_plan_header(
     legacy_cli_ux = cli_ux == DesignTreatment.LEGACY
     simple_ux = cli_ux == DesignTreatment.SIMPLE
 
-    if target_mode_config.is_pro_diff_scan:
-        diff_file_count = len(target_mode_config.get_diff_targets())
-        summary_line = (
-            f"Inter-file Differential Scanning {unit_str(diff_file_count, 'file')}"
-        )
-    else:
-        target_count = len(target_manager.get_all_files())
-        summary_line = f"Scanning {unit_str(target_count, 'file')}"
+    target_count = len(target_manager.get_all_files(product=SAST_PRODUCT))
+    summary_line = f"Scanning {unit_str(target_count, 'file')}"
 
     if target_manager.respect_git_ignore:
         summary_line += (
@@ -135,7 +132,6 @@ def _print_scan_plan_header(
     # historically take into account the effects of not scanning
     # files, which rule_count_by_product includes.
     sast_rule_count = len(sast_plan.rules)
-    is_secret_rule = lambda r: isinstance(r.product.value, out.Secrets)
     secrets_rule_count = len(list(filter(is_secret_rule, sast_plan.rules)))
 
     # TODO code_rule_count currently double counts pro_rules.
@@ -244,7 +240,7 @@ def _print_sca_table(sca_plan: Plan, rule_count: int) -> None:
         _print_degenerate_table(sca_plan, rule_count=rule_count)
         return
 
-    _print_tables([sca_plan.table_by_ecosystem()])
+    _print_tables([sca_plan.table_by_subproject()])
     console.print("\n")  # space intentional to force second table to be on its own line
     _print_tables([sca_plan.table_by_sca_analysis()])
 
@@ -312,7 +308,7 @@ def print_scan_status(
     rules: Sequence[Rule],
     target_manager: TargetManager,
     target_mode_config: TargetModeConfig,
-    sca_subprojects: Dict[out.Ecosystem, List[ResolvedSubproject]],
+    all_subprojects: List[Union[out.ResolvedSubproject, out.UnresolvedSubproject]],
     dependency_parser_errors: List[out.DependencyParserError],
     *,
     cli_ux: DesignTreatment = DesignTreatment.LEGACY,
@@ -340,30 +336,28 @@ def print_scan_status(
                 and (not rule.from_transient_scan)
             )
         ],
-        target_manager
-        if not target_mode_config.is_pro_diff_scan
-        else evolve(
-            target_manager, scanning_root_strings=target_mode_config.get_diff_targets()
-        ),
+        target_manager,
+        all_subprojects,
         product=out.Product(
             out.SAST()
         ),  # code-smell since secrets and sast are within the same plan
-        sca_subprojects=sca_subprojects,
     )
 
+    used_ecosystems = {
+        subproject.info.ecosystem
+        for subproject in all_subprojects
+        if isinstance(subproject, out.ResolvedSubproject)
+    }
     sca_plan = CoreRunner.plan_core_run(
         [
             rule
             for rule in rules
             if isinstance(rule.product.value, out.SCA)
-            and any(
-                len(sca_subprojects.get(ecosystem, [])) > 0
-                for ecosystem in rule.ecosystems
-            )
+            and any(ecosystem in used_ecosystems for ecosystem in rule.ecosystems)
         ],
         target_manager,
+        all_subprojects,
         product=out.Product(out.SCA()),
-        sca_subprojects=sca_subprojects,
     )
 
     plans = [sast_plan, sca_plan]
@@ -424,8 +418,18 @@ def print_scan_status(
     # TODO: after launch this should no longer be conditional.
     if has_secret_rules:
         console.print(Title("Secrets Rules", order=2))
-        # NOTE: this is modification of the plan's product is needed for
-        # acuratly reporting the number of files in degenerate table
+
+        # Check if any secret rule has the generic secrets AI ruleset
+        has_generic_secrets = any(
+            is_secrets_ai_ruleset(rule.metadata)
+            for rule in filter(is_secret_rule, sast_plan.rules)
+        )
+
+        if has_generic_secrets:
+            console.print("AI augmented rules are active for secrets detection.")
+
+        # NOTE: this modification of the plan's product is needed for
+        # accurately reporting the number of files in degenerate table
         sast_plan.product = out.Product(out.Secrets())
         _print_sast_table(
             sast_plan=sast_plan,

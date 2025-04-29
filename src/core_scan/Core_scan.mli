@@ -1,16 +1,18 @@
 (* The type of the semgrep "core" scan. We define it here so that
    semgrep and semgrep-proprietary use the same definition *)
 type func = Core_scan_config.t -> Core_result.result_or_exn
-type caps = < Cap.fork ; Cap.time_limit ; Cap.memory_limit >
 
-(* Entry point. This is used in Core_CLI.ml for semgrep-core,
- * in Pro_core_CLI for semgrep-core-proprietary, in tests, and finally
- * in osemgrep.
+(* See the comment for scan() below explaining the need for those capabilities *)
+type caps = < Cap.fork ; Cap.time_limit ; Cap.memory_limit ; Cap.readdir >
+
+(* Entry point. This is used in Core_CLI.ml for semgrep-core, in tests,
+ * and finally in osemgrep.
  *
  * [scan caps config] runs a core scan with a fixed list of targets
  * and rules and capture any exception.
  * This internally calls Match_rules.check() on every files, in
- * parallel, with some memory limits, and aggregate the results.
+ * parallel, with some time and memory limits, and aggregate the results
+ * (hence the need for Cap.fork, Cap.time_limit, Cap.memory_limit above).
  *
  * It can print things on stdout depending on Core_scan_config.output_format:
  *  - incremental dots when used from pysemgrep in Json true mode
@@ -21,17 +23,15 @@ type caps = < Cap.fork ; Cap.time_limit ; Cap.memory_limit >
  * The rest of the output is done in the caller of scan() such as
  * Core_CLI.main_exn() for semgrep-core with Core_CLI.output_core_results().
  *
- * alt: we should require Cap.stdout below, but this is false when using the
+ * alt: we should require Cap.stdout above, but this is false when using the
  * NoOutput output_format so for now we internally use Cap.stdout_caps_UNSAFE()
  * or UConsole. In theory, scan() can be completely pure.
  *
  * We require Cap.fork for Parmap.
  * We require Cap.time_limit for timeout in Check_rules().
+ * We require Cap.readdir for ??
  *
  * The scan function has the type [func] defined above.
- *
- * Note that this function will run the pre/post scan hook defined
- * in Pre_post_core_scan.hook_processor.
  *)
 val scan : < caps ; .. > -> Core_scan_config.t -> Core_result.result_or_exn
 
@@ -39,26 +39,25 @@ val scan : < caps ; .. > -> Core_scan_config.t -> Core_result.result_or_exn
 (* Utilities functions used in tests or semgrep-pro *)
 (*****************************************************************************)
 
-(*
-   Compute the set of targets, either by reading what was passed
+(* Compute the set of targets, either by reading what was passed
    in -target, or passed explicitly in Core_scan_config.Targets.
-
    The rules are required to associate analyzers (language specified
-   in the rule) with target paths. This is for compatibility with
-   the legacy pysemgrep/semgrep-core interface where a target path
-   is associated with an analyzer or language as reflected by the
-   Target.t type.
+   in the rule) with target paths as reflected by the Target.t type.
 *)
 val targets_of_config :
   Core_scan_config.t ->
   Rule.t list ->
   Target.t list * Core_error.t list * Semgrep_output_v1_t.skipped_target list
 
+(* pysemgrep/semgrep-core RPC *)
+val get_targets_for_pysemgrep :
+  Semgrep_output_v1_t.scanning_roots ->
+  Semgrep_output_v1_t.target_discovery_result
+
 (* Get the rules *)
 val rules_of_config : Core_scan_config.t -> Rule_error.rules_and_invalid
 
-(* Get the rules, using targeting info in config to filter irrelevant rules.
-   TODO: See comments in the .ml about the implementation *)
+(* Get the rules, using targeting info in config to filter irrelevant rules *)
 val applicable_rules_of_config :
   Core_scan_config.t -> Rule_error.rules_and_invalid
 
@@ -68,10 +67,9 @@ val applicable_rules_of_config :
    and the per-rule include/exclude patterns; possibly more in the future.
 *)
 val rules_for_target :
-  analyzer:Analyzer.t ->
-  products:Semgrep_output_v1_t.product list ->
-  origin:Origin.t ->
+  combine_js_with_ts:bool ->
   respect_rule_paths:bool ->
+  Target.t ->
   Rule.t list ->
   Rule.t list
 
@@ -79,15 +77,11 @@ val rules_for_target :
    Compare to select_applicable_rules_for_target which additionally can
    honor per-rule include/exclude patterns based on the target path.
 *)
-val rules_for_analyzer : analyzer:Analyzer.t -> Rule.t list -> Rule.t list
+val rules_for_analyzer :
+  combine_js_with_ts:bool -> Analyzer.t -> Rule.t list -> Rule.t list
 
-(* for SCA_scan *)
-val rules_for_origin : Rule.paths option -> Origin.t -> bool
-
-val set_matches_to_proprietary_origin_if_needed :
-  Xtarget.t ->
-  Core_result.matches_single_file ->
-  Core_result.matches_single_file
+(* exposed for SCA_scan *)
+val origin_satisfy_paths_filter : Origin.t -> Rule.paths -> bool
 
 (* This function prints a dot, which is consumed by pysemgrep to update
    the progress bar if the output_format is Json true.
@@ -104,20 +98,12 @@ val print_cli_additional_targets : Core_scan_config.t -> int -> unit
 
 type target_handler = Target.t -> Core_result.matches_single_file * bool
 
-val mk_target_handler_hook :
-  (< Cap.time_limit > ->
-  Core_scan_config.t ->
-  Rule.t list ->
-  Match_env.prefilter_config ->
-  target_handler)
-  Hook.t
-
 val iter_targets_and_get_matches_and_exn_to_errors :
   < Cap.fork ; Cap.memory_limit > ->
   Core_scan_config.t ->
   target_handler ->
   Target.t list ->
-  Core_profiling.file_profiling Core_result.match_result list * Target.t list
+  Core_result.matches_single_file_with_time list * Target.t list
 
 val filter_files_with_too_many_matches_and_transform_as_timeout :
   int ->
@@ -126,11 +112,26 @@ val filter_files_with_too_many_matches_and_transform_as_timeout :
   * Core_error.t list
   * Semgrep_output_v1_j.skipped_target list
 
-val parse_equivalences : Fpath.t option -> Equivalence.equivalences
+type post_processor =
+  Core_result.processed_match -> Core_result.processed_match * Core_error.t list
+
+val post_process_matches : post_processor -> Core_result.t -> Core_result.t
+val post_autofix : post_processor
+val post_nosemgrep : strict:bool -> post_processor
 
 (* small wrapper around Parse_target.parse_and_resolve_name *)
 val parse_and_resolve_name :
   Lang.t -> Fpath.t -> AST_generic.program * Tok.location list
+
+(* small wrapper around Match_rules.check *)
+val match_rules :
+  < Cap.time_limit ; .. > ->
+  matches_hook:(Core_match.t list -> Core_match.t list) ->
+  Core_scan_config.t ->
+  Match_env.prefilter_config ->
+  Rule.t list ->
+  Xtarget.t ->
+  Core_result.matches_single_file
 
 val log_scan_inputs :
   Core_scan_config.t ->

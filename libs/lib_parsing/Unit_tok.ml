@@ -20,7 +20,7 @@ let test_end_pos_of_loc () =
     let loc : Tok.location =
       { str; pos = { bytepos; line; column; file = Fpath.v "test.txt" } }
     in
-    let line, col, charpos = Tok.end_pos_of_loc loc in
+    let line, col, charpos = Loc.end_pos loc in
     assert (line = expected_line);
     assert (col = expected_col);
     assert (charpos = expected_charpos)

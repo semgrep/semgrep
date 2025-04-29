@@ -15,11 +15,10 @@
    The 'Empty' case is useful for testing.
 *)
 type default_semgrepignore_patterns = Empty | Semgrep_scan_legacy
+type exclusion_mechanism = { use_semgrepignore_files : bool }
 
-type exclusion_mechanism = {
-  use_gitignore_files : bool;
-  use_semgrepignore_files : bool;
-}
+(* ".semgrepignore" *)
+val default_semgrepignore_filename : string
 
 (*
    Initialize the data used to filter paths.
@@ -30,9 +29,13 @@ type exclusion_mechanism = {
 
    Use Git_project.find_project_root to determine the root of the
    git project.
+
+   semgrepignore_filename: defaults to default_semgrepignore_filename
+     = ".semgrepignore"
 *)
 val create :
   ?cli_patterns:string list ->
+  ?semgrepignore_filename:string ->
   default_semgrepignore_patterns:default_semgrepignore_patterns ->
   exclusion_mechanism:exclusion_mechanism ->
   project_root:Fpath.t ->

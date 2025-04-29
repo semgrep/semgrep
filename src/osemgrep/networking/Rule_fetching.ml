@@ -32,6 +32,14 @@ module XP = Xpattern
 (* Types *)
 (*****************************************************************************)
 
+(* capabilities required to fetch rules from a Rules_source.t
+ * network: for registry rules
+ * tmp: for saving the downloaded rules somewhere so we can
+ * loading them from disk (alt: parse rules from a buffer instead of a file)
+ * readdir: for config_string denotating local directories
+ *)
+type caps = < Cap.network ; Cap.tmp ; Cap.readdir >
+
 (* python: was called ConfigFile, and called a 'config' in text output.
  * TODO? maybe we don't need this intermediate type anymore; just return
  * a pair, which would remove the need for partition_rules_and_invalid.
@@ -308,7 +316,7 @@ let parse_rule ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
 let load_rules_from_file ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
     (rules_and_origin, Rule_error.t) result =
   Logs.info (fun m -> m "loading local config from %s" !!file);
-  if Sys.file_exists !!file then
+  if Sys_.Fpath.exists file then
     match parse_rule ~rewrite_rule_ids ~origin caps file with
     | Ok (rules, invalid_rules) ->
         Logs.info (fun m -> m "Done loading local config from %s" !!file);
@@ -347,7 +355,8 @@ let load_rules_from_url ~origin ?token_opt ?(ext = "yaml") caps url :
 [@@profiling]
 
 (* TODO: merge caps and token_opt and caps_opt? *)
-let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt caps kind :
+let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
+    (caps : < caps ; .. >) kind :
     (* alt: (rules_and_origin list, Rule.Error.t list) result
        here and below:
        we could do this, but it lacks flexibility compared with this output type
@@ -373,8 +382,7 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt caps kind :
        * we used to fetch rules from ~/.semgrep/ implicitely when --config
        * was not given, but this feature was removed, so now we can KISS.
        *)
-      let caps_dir = Cap.readdir_UNSAFE () in
-      List_files.list caps_dir dir
+      List_files.list caps dir
       |> List.filter Rule_file.is_valid_rule_filename
       |> List_.map (fun file ->
              load_rules_from_file ~rewrite_rule_ids ~origin:(Local_file file)
@@ -382,10 +390,10 @@ let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt caps kind :
       |> Result_.partition Fun.id |> Lwt.return
   | C.URL url ->
       (* TODO: Re-enable passing in our token to trusted remote urls.
-         * This is currently disabled because we don't want to pass our token
-         * to untrusted endpoints. There should be a relatively painless way
-         * to do this, but this can be addressed in a follow-up PR.
-      *)
+       * This is currently disabled because we don't want to pass our token
+       * to untrusted endpoints. There should be a relatively painless way
+       * to do this, but this can be addressed in a follow-up PR.
+       *)
       let%lwt rules =
         load_rules_from_url_async ~origin:(Untrusted_remote url) caps url
       in
@@ -439,23 +447,23 @@ let langs_of_pattern (pat, analyzer_opt) : Analyzer.t list =
   match analyzer_opt with
   | Some analyzer ->
       (* TODO? capture also parse errors here? and transform the pattern
-         * parse error in invalid_rule_error to return in rules_and_origin? *)
+       * parse error in invalid_rule_error to return in rules_and_origin? *)
       [ analyzer_compatible_with_pat analyzer |> Result.get_ok ]
   (* osemgrep-only: better: can use -e without -l! we try all languages *)
   | None ->
       (* We need uniq_by because Lang.assoc contain multiple times the
-         * same value, for instance we have ("cpp", Cpp); ("c++", Cpp) in
-         * Lang.assoc
-         * TODO? use Analyzer.assoc instead?
-      *)
+       * same value, for instance we have ("cpp", Cpp); ("c++", Cpp) in
+       * Lang.assoc
+       * TODO? use Analyzer.assoc instead?
+       *)
       let all_langs =
         Lang.assoc
         |> List_.map (fun (_k, l) -> l)
         |> List_.deduplicate
         (* TODO: we currently get a segfault with the Dart parser
-           * (for example on a pattern like ': string (* filename *)'), so we
-           * skip Dart for now (which anyway is not really supported).
-        *)
+         * (for example on a pattern like ': string (* filename *)'), so we
+         * skip Dart for now (which anyway is not really supported).
+         *)
         |> List_.exclude (fun x -> x =*= Lang.Dart)
       in
       all_langs
@@ -514,9 +522,9 @@ let rules_from_rules_source_async ~token_opt ~rewrite_rule_ids ~strict:_ caps
 
         Lwt.return (rules_and_origins, errors)
     (* better: '-e foo -l regex' was not handled in pysemgrep
-       *  (got a weird 'invalid pattern clause' error)
-       * better: '-e foo -l generic' was not handled in semgrep-core
-    *)
+     *  (got a weird 'invalid pattern clause' error)
+     * better: '-e foo -l generic' was not handled in semgrep-core
+     *)
     | Pattern (pat, analyzer_opt, fix) ->
         let valid_langs = langs_of_pattern (pat, analyzer_opt) in
         let rules_and_origins =

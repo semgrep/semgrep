@@ -133,6 +133,10 @@ class SemgrepCoreError(SemgrepError):
     def type_(self) -> out.ErrorType:
         return self.core.error_type
 
+    @property
+    def rule_id(self) -> Optional[out.RuleId]:
+        return self.core.rule_id
+
     def adjust_CliError(self, base: out.CliError) -> out.CliError:
         base = dataclasses.replace(base, message=str(self))
         if self.core.rule_id:
@@ -460,7 +464,10 @@ class UnknownLanguageError(ErrorWithSpan):
         return out.ErrorType(out.UnknownLanguageError())
 
 
-class DependencyResolutionError(SemgrepError):
+# TODO: generalize in a SemgrepCliError and just pass the level, code and type_
+# and move __str__ special code below in an _error_message like
+# for SemgrepCoreError
+class DependencyResolutionSemgrepError(SemgrepError):
     """
     An error that occurred during dependency resolution.
     """
@@ -468,7 +475,7 @@ class DependencyResolutionError(SemgrepError):
     def __init__(
         self,
         *args: object,
-        type_: out.ResolutionError,
+        type_: out.ResolutionErrorKind,
         dependency_source_file: Path,
         code: int = OK_EXIT_CODE,
         level: out.ErrorSeverity = warning_level,
@@ -478,7 +485,7 @@ class DependencyResolutionError(SemgrepError):
         super().__init__(*args, code=code, level=level)
 
     def __str__(self) -> str:
-        def print_resolution_error(err: out.ResolutionError) -> str:
+        def print_resolution_error(err: out.ResolutionErrorKind) -> str:
             if isinstance(err.value, out.UnsupportedManifest):
                 return "Unsupported Manifest"
             elif isinstance(err.value, out.MissingRequirement):

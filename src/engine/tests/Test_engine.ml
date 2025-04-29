@@ -85,7 +85,7 @@ let xtarget_of_file (analyzer : Analyzer.t) (target : Fpath.t) : Xtarget.t =
     in
     (ast, skipped_tokens)
   in
-  Xtarget.resolve parser (Target.mk_regular analyzer Product.all (File target))
+  Xtarget.resolve parser (Target.mk_target_fpath analyzer target)
 
 (*****************************************************************************)
 (* target helpers *)
@@ -97,12 +97,12 @@ let find_target_of_yaml_file_opt (caps : < Cap.readdir ; .. >) (file : Fpath.t)
   let entries = CapFS.read_dir_entries caps (Fpath.v d) in
   entries
   |> List_.find_some_opt (fun file2 ->
-         let path2 = Filename.concat d file2 in
+         let path2 = Filename.concat d !!file2 in
          (* Config files have a single .yaml extension (assumption),
           * but test files may have multiple extensions, e.g.
           * ".test.yaml" (YAML test files), ".sites-available.conf",
           * ... *)
-         match Filename_.dbe_of_filename_many_ext_opt file2 with
+         match Filename_.dbe_of_filename_many_ext_opt !!file2 with
          | None -> None
          | Some (_, b2, ext2) ->
              if
@@ -290,8 +290,9 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
       let reason = spf "Missing target file for rule file %s" !!rule_file in
       Testo.create name test ~expected_outcome:(Should_fail reason)
 
-let find_rule_files roots =
-  roots |> UFile.files_of_dirs_or_files_no_vcs_nofilter
+let find_rule_files (caps : < Cap.readdir ; .. >) roots =
+  roots
+  |> UFile.files_of_dirs_or_files_no_vcs_nofilter caps
   |> List.filter Rule_file.is_valid_rule_filename
 
 (*****************************************************************************)
@@ -304,7 +305,7 @@ let find_rule_files roots =
  *)
 let collect_tests ?(get_analyzer = single_analyzer_from_rules) caps
     (xs : Fpath.t list) =
-  xs |> find_rule_files
+  xs |> find_rule_files caps
   |> List_.filter_map (fun rule_file ->
          let* _rules, target, analyzer =
            read_rules_file ~get_analyzer caps rule_file
@@ -313,6 +314,6 @@ let collect_tests ?(get_analyzer = single_analyzer_from_rules) caps
 
 let make_tests ?fail_callback ?get_analyzer ?prepend_lang caps
     (xs : Fpath.t list) : Testo.t list =
-  xs |> find_rule_files
+  xs |> find_rule_files caps
   |> List_.map
        (make_test_rule_file ?fail_callback ?get_analyzer ?prepend_lang caps)

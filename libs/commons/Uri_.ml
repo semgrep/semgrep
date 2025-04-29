@@ -31,3 +31,12 @@ let of_string_opt (str : string) : Uri.t option =
 
 let of_fpath (file : Fpath.t) : Uri.t =
   Uri.make ~scheme:"file" ~host:"" ~path:(Fpath.to_string file) ()
+
+let is_url (str : string) : bool =
+  match Uri.scheme (Uri.of_string str) with
+  | Some "http"
+  | Some "https" ->
+      true
+  | Some _
+  | None ->
+      false

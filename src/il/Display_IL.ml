@@ -120,13 +120,15 @@ let short_string_of_node_kind nkind =
       | FixmeInstr _ -> "<fix-me instr>")
   | NTodo _ -> "<to-do stmt>"
 
-let at_exit_mark node str = if node.at_exit then str ^ " @exit" else str
+let short_string_of_node node =
+  let str = short_string_of_node_kind node.n in
+  if node.at_exit then str ^ " @exit" else str
 
 let pp_cfg (caps : < Cap.exec ; Cap.tmp >) f ?title (flow : cfg) : unit =
   flow.graph
   |> Ograph_call_dot_gv.pp_ograph_mutable_generic caps ?title
        ~s_of_node:(fun (_nodei, node) ->
-         (short_string_of_node_kind node.n |> at_exit_mark node, None, None))
+         (short_string_of_node node, None, None))
        f
 
 (* using internally graphviz dot and ghostview on X11 *)
@@ -140,4 +142,4 @@ let display_cfg (caps : < Cap.exec ; Cap.tmp >) ?title (flow : cfg) : unit =
             (fun s -> Fpath.(CapTmp.get_temp_dir_name caps#tmp / (s ^ ".dot")))
             title)
        ~s_of_node:(fun (_nodei, node) ->
-         (short_string_of_node_kind node.n |> at_exit_mark node, None, None))
+         (short_string_of_node node, None, None))

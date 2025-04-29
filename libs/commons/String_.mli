@@ -50,3 +50,7 @@ val truncate_with_message : int -> (string -> int -> string) -> string -> string
 (** [truncate max_len fmt str] truncates the string [str] to at most [max_len]
     bytes. If the string is truncated, [fmt] is called with the original string
     and the number of characters that were removed. *)
+
+val take_last : max_len:int -> string -> string
+(** [take_last ~max_len str] returns the last [max_len] characters of [str].
+    If [str] is shorter than [max_len], the entire string is returned. *)

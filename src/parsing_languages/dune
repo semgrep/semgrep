@@ -26,7 +26,7 @@
    parser_json.menhir parser_json.ast_generic
    ; no tree_sitter
    parser_scala.recursive_descent parser_scala.ast_generic
-   parser_yaml.ast_generic
+   parser_yaml.ast_generic parser_yaml.ast parser_yaml.parser
    ; no menhir
    parser_bash.tree_sitter parser_bash.ast_generic
    parser_dockerfile.tree_sitter parser_dockerfile.ast_generic
@@ -53,5 +53,11 @@
    parser_move_on_sui.ast_generic
    parser_move_on_aptos.ast_generic
    parser_circom.ast_generic
+   ; not really used for now but need to add it there
+   ; otherwise we get an OSX linking error about toml_stubs
+   ; new: also for `requirements` and `gomod`
+   tree-sitter-lang.toml
+   tree-sitter-lang.gomod
+   tree-sitter-lang.requirements
  )
 )

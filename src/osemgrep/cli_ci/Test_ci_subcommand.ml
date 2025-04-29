@@ -15,7 +15,7 @@
 open Common
 module Out = Semgrep_output_v1_j
 
-let t = Testo.create
+let t = Testo.create ?skipped:Testutil.skip_on_windows
 
 (*****************************************************************************)
 (* Prelude *)

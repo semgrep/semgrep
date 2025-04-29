@@ -26,3 +26,13 @@ val run : string -> (unit -> 'a) -> 'a
 *)
 val mask_temp_paths :
   ?depth:int option -> ?replace:(string -> string) -> unit -> string -> string
+
+val skip_on_windows : string option
+(** This value is used to mark tests which are skipped because they fail on
+    Windows.
+
+    By using this value for any tests skipped due to Windows incompatibility, we
+    ensure that the tests skipped for this reason are tracked by the compiler.
+    Finding the references to this value (or just removing the value) will reveal
+    all tests skipped for this reason.
+*)

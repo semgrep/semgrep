@@ -50,7 +50,7 @@ class virtual ['self] map_parent =
     (* Could inherit from the AST_generic visitor but we just need this one
      * thing, and it's just a string list so there's not really a need to
      * recurse down. We should put alternate names in the type parameter anyway.
-     * *)
+     *)
     method visit_alternate_name _env x = x
     method visit_parsed_int _env x = x
   end
@@ -95,6 +95,7 @@ and 'resolved t =
    * See also of_opt() below.
    *)
   | NoType
+  (* should we merge `NoType` and `Todo`? *)
   | Todo of todo_kind
 
 and builtin_type =
@@ -119,9 +120,9 @@ and 'resolved parameter_classic = {
 }
 [@@deriving
   show { with_path = false },
-    eq,
-    sexp,
-    visitors { variety = "map"; ancestors = [ "map_parent" ] }]
+  eq,
+  sexp,
+  visitors { variety = "map"; ancestors = [ "map_parent" ] }]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -179,10 +180,12 @@ let todo_kind_to_ast_generic_todo_kind (x : todo_kind) : G.todo_kind =
  * coupling: Inverse of ast_generic_type_of_builtin_type *)
 let builtin_type_of_string _langTODO str =
   match str with
-  | "Integer"
   | "int"
-  | "long"
   | "Int"
+  | "Integer"
+  | "short"
+  | "Short"
+  | "long"
   | "Long" ->
       Some Int
   | "float"
@@ -235,7 +238,7 @@ let builtin_type_of_type lang t =
  * If provided, `tok` is used in place of a fake tokens in most contexts where a
  * token is needed. This allows the resulting synthetic AST to be used in places
  * that require location information.
- * *)
+ *)
 let rec to_ast_generic_type_ ?tok lang
     (f : 'a -> G.alternate_name list -> G.name) (x : 'a t) : G.type_ option =
   let make_tok str =

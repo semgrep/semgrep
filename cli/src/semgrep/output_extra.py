@@ -1,10 +1,8 @@
-from pathlib import Path
-from typing import Set
-
 from attrs import frozen
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semgrep.parsing_data import ParsingData
+from semgrep.types import TargetAccumulator
 
 
 # This class exists to wrap some of the output returned by `semgrep-core`, on its way up
@@ -14,5 +12,5 @@ from semgrep.parsing_data import ParsingData
 @frozen
 class OutputExtra:
     core: out.CoreOutput
-    all_targets: Set[Path]
+    all_targets: TargetAccumulator
     parsing_data: ParsingData

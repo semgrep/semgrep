@@ -39,7 +39,7 @@ let filter_clean_lines git_ref matches =
   let in_git_matches =
     in_git
     |> List.concat_map (fun (f, matches) ->
-           match Git_wrapper.dirty_lines_of_file ~git_ref f with
+           match Git_wrapper.dirty_lines_of_file_exn ~git_ref f with
            | None -> matches
            | Some dirty_lines ->
                List.filter (fun m -> match_in_dirty_lines m dirty_lines) matches)

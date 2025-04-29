@@ -1,6 +1,6 @@
 [
   {
-    "package": "babel/code-frame",
+    "package": "@babel/code-frame",
     "version": "7.12.11",
     "ecosystem": "npm",
     "allowed_hashes": {
@@ -15,7 +15,7 @@
     "children": []
   },
   {
-    "package": "babel/compat-data",
+    "package": "@babel/compat-data",
     "version": "7.14.0",
     "ecosystem": "npm",
     "allowed_hashes": {

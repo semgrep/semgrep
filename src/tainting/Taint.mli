@@ -9,7 +9,7 @@ module LabelSet : Set.S with type elt = string
 
 (* TODO: Use mutual-rec modules as in 'Shape_and_sig' so we can use 'Taint_set.t`
  *   everywhere it is needed, instead of `taint list`s. *)
-type tainted_token = Tok.t [@@deriving show]
+type tainted_token = Loc.t [@@deriving show]
 
 type tainted_tokens = tainted_token list [@@deriving show]
 (** A list of tokens showing where the taint passed through,
@@ -115,6 +115,9 @@ type var =
        * the l-value `obj.a`, and 2) looking up the taint attached to `obj.a` in
        * the environment.
        *)
+  | Propagator_var of Dataflow_var_env.var
+      (** Metavariable standing for the destination where the yet-unknown taint
+          is to be propagated. *)
   | Taint_in_shape_var of lval
       (** A taint shape-variable stands for the taints reachable through the
         * shape of the 'lval', see 'Taint_sig.gather_all_taints_in_shape'. *)

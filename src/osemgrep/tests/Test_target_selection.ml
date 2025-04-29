@@ -82,10 +82,10 @@ let repos_with_tests : repo_with_tests list =
       tests = [ test_list_from_project_root; test_cli_list_from_project_root ];
     };
     {
-      repo_name = "gitignore-deignore";
+      repo_name = "semgrepignore-deignore";
       repo_files =
         [
-          gitignore [ "bin/*"; "!bin/ignore-me-not" ];
+          semgrepignore [ "bin/*"; "!bin/ignore-me-not" ];
           dir "bin" [ file "ignore-me"; file "ignore-me-not" ];
         ];
       tests = [ test_list_from_project_root; test_cli_list_from_project_root ];
@@ -120,10 +120,12 @@ let tests caps : Testo.t list =
   |> List_.map (fun { repo_name; repo_files; tests } ->
          tests
          |> List_.map (fun (test_name, test_func) ->
-                Testo.create
+                Testo.create ?skipped:Testutil.skip_on_windows
                   ~category:[ "target selection on real git repos"; repo_name ]
                   ~checked_output:(Testo.stdout ()) ~normalize test_name
                   (fun () ->
+                    (* Create a temporary git repo and force-add all the
+                       files even if they're gitignored *)
                     Testutil_git.with_git_repo ~verbose:true
                       ~honor_gitignore:false repo_files (fun _cwd ->
                         test_func caps))))

@@ -41,7 +41,7 @@ let errors_from_skipped_tokens xs =
   | [] -> Core_error.ErrorSet.empty
   | x :: _ ->
       let e = exn_of_loc x in
-      let err = E.exn_to_error ~file:x.Tok.pos.file e in
+      let err = E.exn_to_error ~file:x.Loc.pos.file e in
       let locs =
         xs |> List_.map Semgrep_output_utils.location_of_token_location
       in
@@ -95,11 +95,6 @@ let run_analyses_after_name_resolution lang ast =
   Constant_propagation.propagate_dataflow lang ast
 
 let just_resolve_name lang ast =
-  (* to be deterministic, reset the gensym; anyway right now semgrep is
-   * used only for local per-file analysis, so no need to have a unique ID
-   * among a set of files in a project like codegraph.
-   *)
-  AST_generic.SId.unsafe_reset_counter ();
   Naming_AST.resolve lang ast;
   run_analyses_after_name_resolution lang ast
 

@@ -214,7 +214,7 @@ and expr =
   (* copy-paste of AST_generic.xml (but with different 'expr') *)
   | Xml of xml
   (* could unify with Apply, but need Lazy special then *)
-  | Conditional of expr * expr * expr
+  | Conditional of expr * tok (* '?' *) * expr * tok (* ':' *) * expr
   (* typescript: *)
   (* I'm not sure E : T is valid TS code actually; tree-sitter-ts allows it
    * but I can't find doc about it. Looks like the 'as' or <T> syntax

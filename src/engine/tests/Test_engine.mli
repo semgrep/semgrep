@@ -4,7 +4,8 @@
 val make_tests :
   ?fail_callback:
     ((* default to Alcotest.fail msg *)
-     int (* num errors *) ->
+     int
+     (* num errors *) ->
     string (* msg *) ->
     unit) ->
   (* default to Test_engine.single_analyzer_from_rules *)

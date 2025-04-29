@@ -34,12 +34,12 @@ local inputs(default) = {
       description: 'The repository/name of the docker image to push, e.g., semgrep/semgrep',
       required: true,
 
-    } + if default then {default: 'returntocorp/semgrep'} else {},
+    } + if default then { default: 'returntocorp/semgrep' } else {},
     file: {
       type: 'string',
       description: 'Dockerfile to build',
       required: true,
-    } + if default then {default: 'Dockerfile' } else {},
+    } + if default then { default: 'Dockerfile' } else {},
     target: {
       type: 'string',
       description: 'Dockerfile target to build',
@@ -75,7 +75,7 @@ local job = {
       uses: 'docker/setup-qemu-action@v3',
     },
     {
-      uses: 'docker/setup-buildx-action@v2',
+      uses: 'docker/setup-buildx-action@v3',
     },
     {
       id: 'meta',
@@ -118,14 +118,19 @@ local job = {
       run: 'docker load --input /tmp/image.tar',
     },
     {
-      uses: 'actions/checkout@v3',
+      uses: 'actions/checkout@v4',
       'if': '${{ inputs.enable-tests }}',
     },
     {
       name: 'Test Image',
       'if': '${{ inputs.enable-tests }}',
-      run: './scripts/validate-docker-build.sh ${{ steps.build-image.outputs.imageid }} linux/${{ matrix.architecture }}',
+      env: {
+        IMAGEID: '${{ steps.build-image.outputs.imageid }}',
+      },
+      run: './scripts/validate-docker-build.sh "$IMAGEID" linux/${{ matrix.architecture }}',
     },
+    // usually called semgrep-docker-image-artifcact-*, but I see no reference
+    // to this in the rest of the code. Do we need this?
     {
       uses: 'actions/upload-artifact@v4',
       with: {

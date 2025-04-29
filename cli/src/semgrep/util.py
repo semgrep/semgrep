@@ -2,6 +2,7 @@ import functools
 import itertools
 import operator
 import os
+import platform
 import subprocess
 import sys
 from io import TextIOWrapper
@@ -10,6 +11,7 @@ from typing import Any
 from typing import Callable
 from typing import FrozenSet
 from typing import List
+from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import TypeVar
@@ -23,7 +25,9 @@ from semgrep.constants import FIXTEST_SUFFIX
 from semgrep.constants import YML_SUFFIXES
 from semgrep.constants import YML_TEST_SUFFIXES
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Sha1
+from semgrep.verbose_logging import getLogger
 
+logger = getLogger(__name__)
 
 T = TypeVar("T")
 
@@ -36,6 +40,8 @@ MASK_CHAR = "*"
 MASK_SHOW_PCT = 0.2
 
 MAX_TEXT_WIDTH = 120
+
+IS_WINDOWS = platform.system() == "Windows"
 
 
 def is_url(url: str) -> bool:
@@ -352,3 +358,35 @@ def with_feature_status(*, enabled: bool = False) -> str:
     # but we have a custom flag for forcing color off (i.e. `force_color_off`)
     # that we need to respect.
     return with_color(Colors.green, "✔") if enabled else with_color(Colors.red, "✘")
+
+
+@functools.lru_cache(maxsize=None)
+def line_count_of_path(path: Path) -> int:
+    try:
+        with open(path, "rb") as f:
+            return sum(1 for _ in f)
+    except Exception as e:
+        logger.debug(f"Failed to open {path} to count lines: {e}")
+        return 0
+
+
+def pretty_print_percentage(numerator: int, denominator: int) -> str:
+    if denominator == 0:
+        return "an unknown percentage"
+    percentage = numerator / denominator
+    # round to 1 decimal place
+    precision = 1
+    percentage = round(percentage * 100, precision)
+    if percentage < 0.1 and numerator != 0:
+        return "<0.1%"
+    if percentage > 99.9 and numerator != denominator:
+        percentage = 99.9
+    return f"~{percentage}%"
+
+
+def is_secrets_ai_ruleset(metadata: Mapping[str, Any]) -> bool:
+    """
+    Check if a rule or match is from the semgrep-secrets-ai ruleset.
+    """
+    ruleset = metadata.get("semgrep.ruleset")
+    return isinstance(ruleset, str) and ruleset == "semgrep-secrets-ai"

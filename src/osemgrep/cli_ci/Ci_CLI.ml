@@ -142,6 +142,9 @@ let o_config : string list Term.t =
 (* ------------------------------------------------------------------ *)
 (* Internals *)
 (* ------------------------------------------------------------------ *)
+(*
+   TODO: document these options! (as command-line help or as comments)
+*)
 
 (* osemgrep-only *)
 let o_fake_backend : string option Term.t =
@@ -164,6 +167,12 @@ let o_x_dump_n_rule_partitions : int Term.t =
 let o_x_dump_rule_partitions_dir : string Term.t =
   let info =
     Arg.info [ "x-dump-rule-partitions-dir" ] ~doc:{|Internal flag.|}
+  in
+  Arg.value (Arg.opt Arg.string "" info)
+
+let o_x_dump_rule_partitions_strategy : string Term.t =
+  let info =
+    Arg.info [ "x-dump-rule-partitions-strategy" ] ~doc:{|Internal flag.|}
   in
   Arg.value (Arg.opt Arg.string "" info)
 
@@ -220,7 +229,7 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
   (* !The parameters must be in alphabetic orders to match the order
    * of the corresponding '$ o_xx $' further below! *)
   let combine allow_local_builds allow_untrusted_validators autofix
-      baseline_commit common config dataflow_traces _diff_depthTODO dryrun
+      baseline_commit common config dataflow_traces dryrun
       _dump_command_for_core emacs emacs_outputs exclude_ exclude_minified_files
       exclude_rule_ids files_with_matches force_color gitlab_sast
       gitlab_sast_outputs gitlab_secrets gitlab_secrets_outputs
@@ -230,11 +239,12 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
       max_memory_mb max_target_bytes metrics num_jobs no_secrets_validation
       nosem optimizations oss output pro pro_intrafile pro_lang
       pro_path_sensitive rewrite_rule_ids sarif sarif_outputs
-      scan_unknown_extensions secrets text text_outputs timeout
-      _timeout_interfileTODO timeout_threshold trace trace_endpoint use_git
-      _use_semgrepignore_v2 version_check vim vim_outputs x_trTODO =
+      scan_unknown_extensions secrets semgrepignore_filename text text_outputs
+      timeout _timeout_interfileTODO timeout_threshold trace trace_endpoint
+      use_git _use_semgrepignore_v2 version_check vim vim_outputs x_tr
+      x_pro_naming =
     (* this is just handled by psemgrep for now *)
-    ignore x_trTODO;
+    ignore x_pro_naming;
     let output_format : Output_format.t =
       Scan_CLI.output_format_conf ~text ~files_with_matches ~json ~emacs ~vim
         ~sarif ~gitlab_sast ~gitlab_secrets ~junit_xml
@@ -267,6 +277,7 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
     let engine_type : Engine_type.t =
       Scan_CLI.engine_type_conf ~oss ~pro_lang ~pro_intrafile ~pro ~secrets
         ~no_secrets_validation ~allow_untrusted_validators ~pro_path_sensitive
+        ~allow_local_builds ~x_tr
     in
     let rules_source = Rules_source.Configs config in
     let core_runner_conf =
@@ -303,6 +314,7 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
         explicit_targets = Find_targets.Explicit_targets.empty;
         respect_gitignore = use_git;
         respect_semgrepignore_files = not ignore_semgrepignore_files;
+        semgrepignore_filename;
         exclude_minified_files;
       }
     in
@@ -350,7 +362,6 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
         show = None;
         validate = None;
         test = None;
-        allow_local_builds;
         ls = false;
         ls_format = Ls_subcommand.default_format;
       }
@@ -361,13 +372,13 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
      * combine above! *)
     const combine $ SC.o_allow_local_builds $ SC.o_allow_untrusted_validators
     $ SC.o_autofix $ SC.o_baseline_commit $ CLI_common.o_common $ o_config
-    $ SC.o_dataflow_traces $ SC.o_diff_depth $ SC.o_dryrun
-    $ SC.o_dump_command_for_core $ SC.o_emacs $ SC.o_emacs_outputs
-    $ SC.o_exclude $ SC.o_exclude_minified_files $ SC.o_exclude_rule_ids
+    $ SC.o_dataflow_traces $ SC.o_dryrun $ SC.o_dump_command_for_core
+    $ SC.o_emacs $ SC.o_emacs_outputs $ SC.o_exclude
+    $ SC.o_exclude_minified_files $ SC.o_exclude_rule_ids
     $ SC.o_files_with_matches $ SC.o_force_color $ SC.o_gitlab_sast
     $ SC.o_gitlab_sast_outputs $ SC.o_gitlab_secrets
     $ SC.o_gitlab_secrets_outputs $ SC.o_historical_secrets
-    $ SC.o_ignore_semgrepignore_files $ SC.o_include $ SC.o_incremental_output
+    $ SC.o_x_ignore_semgrepignore_files $ SC.o_include $ SC.o_incremental_output
     $ SC.o_json $ SC.o_json_outputs $ SC.o_junit_xml $ SC.o_junit_xml_outputs
     $ SC.o_matching_explanations $ SC.o_max_chars_per_line
     $ SC.o_max_lines_per_finding $ SC.o_max_log_list_entries
@@ -376,10 +387,11 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
     $ SC.o_output $ SC.o_pro $ SC.o_pro_intrafile $ SC.o_pro_languages
     $ SC.o_pro_path_sensitive $ SC.o_rewrite_rule_ids $ SC.o_sarif
     $ SC.o_sarif_outputs $ SC.o_scan_unknown_extensions $ SC.o_secrets
-    $ SC.o_text $ SC.o_text_outputs $ SC.o_timeout $ SC.o_timeout_interfile
-    $ SC.o_timeout_threshold $ SC.o_trace $ SC.o_trace_endpoint $ SC.o_use_git
-    $ SC.o_use_semgrepignore_v2 $ SC.o_version_check $ SC.o_vim
-    $ SC.o_vim_outputs $ SC.o_tr)
+    $ SC.o_semgrepignore_filename $ SC.o_text $ SC.o_text_outputs $ SC.o_timeout
+    $ SC.o_timeout_interfile $ SC.o_timeout_threshold $ SC.o_trace
+    $ SC.o_trace_endpoint $ SC.o_use_git $ SC.o_use_semgrepignore_v2
+    $ SC.o_version_check $ SC.o_vim $ SC.o_vim_outputs $ SC.o_x_tr
+    $ SC.o_x_pro_naming)
 
 (*************************************************************************)
 (* Turn argv into conf *)
@@ -389,10 +401,10 @@ let cmdline_term : conf Term.t =
   let combine scan_conf audit_on code dry_run fake_backend log_backend secrets
       subdir supply_chain suppress_errors _internal_ci_scan_results
       _x_dump_n_rule_partitions _x_dump_rule_partitions_dir
-      x_merge_partial_results_dir x_merge_partial_results_output
-      _x_partial_config _x_partial_output x_upload_partial_results
-      x_upload_partial_results_scan_id x_validate_partial_results_actual
-      x_validate_partial_results_expected =
+      _x_dump_rule_partitions_strategy x_merge_partial_results_dir
+      x_merge_partial_results_output _x_partial_config _x_partial_output
+      x_upload_partial_results x_upload_partial_results_scan_id
+      x_validate_partial_results_actual x_validate_partial_results_expected =
     let products =
       (if secrets then [ `Secrets ] else [])
       @ (if code then [ `SAST ] else [])
@@ -434,9 +446,10 @@ let cmdline_term : conf Term.t =
     $ o_fake_backend $ o_log_backend $ SC.o_secrets $ o_subdir $ o_supply_chain
     $ o_suppress_errors $ o_internal_ci_scan_results
     $ o_x_dump_n_rule_partitions $ o_x_dump_rule_partitions_dir
-    $ o_x_merge_partial_results_dir $ o_x_merge_partial_results_output
-    $ o_x_partial_config $ o_x_partial_output $ o_x_upload_partial_results
-    $ o_x_upload_partial_results_scan_id $ o_x_validate_partial_results_actual
+    $ o_x_dump_rule_partitions_strategy $ o_x_merge_partial_results_dir
+    $ o_x_merge_partial_results_output $ o_x_partial_config $ o_x_partial_output
+    $ o_x_upload_partial_results $ o_x_upload_partial_results_scan_id
+    $ o_x_validate_partial_results_actual
     $ o_x_validate_partial_results_expected)
 
 let doc = "the recommended way to run semgrep in CI"

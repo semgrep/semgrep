@@ -25,7 +25,7 @@ module Options = Rule_options_t
 module MG = Matching_generic
 module Log = Log_matching.Log
 
-let profile_mini_rules = ref false
+let profile_mini_rules = false
 
 (*****************************************************************************)
 (* Prelude *)
@@ -58,7 +58,7 @@ let set_last_matched_rule (rule : Mini_rule.t) f =
    * reset to None and that's what we want!
    *)
   let res =
-    if !profile_mini_rules then
+    if profile_mini_rules then
       Profiling.profile_code ("rule:" ^ Rule_ID.to_string rule.id) f
     else f ()
   in
@@ -301,10 +301,13 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
       m "checking %s with %d mini rules" !!internal_path_to_content
         (List.length rules));
   let rules =
+    let interfile =
+      Option.is_some (Hook.get Pattern_vs_code.hook_find_possible_parents)
+    in
     (* simple opti using regexps *)
     if !Flag.filter_irrelevant_patterns then
-      Mini_rules_filter.filter_mini_rules_relevant_to_file_using_regexp rules
-        lang !!internal_path_to_content
+      Mini_rules_filter.filter_mini_rules_relevant_to_file_using_regexp
+        ~interfile rules lang !!internal_path_to_content
     else rules
   in
   if rules = [] then []
@@ -316,16 +319,16 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
     let m_env = MG.environment_of_program lang config ast in
 
     (* old: let prog = Normalize_AST.normalize (Pr ast) lang in
-       * we were rewriting code, e.g., A != B was rewritten as !(A == B),
-       * which enable some nice semantic matching demo where searching for
-       * $X == $X would also find code written as a != a. The problem
-       * is that if we don't do the same rewriting on the pattern, then
-       * looking for $X != $X would not find anything anymore.
-       * In any case, rewriting the source code is less necessary
-       * now that we have user-defined code equivalences (see Equivalence.ml)
-       * and this will also be less surprising (you can see the set of
-       * equivalences in the equivalence file).
-    *)
+     * we were rewriting code, e.g., A != B was rewritten as !(A == B),
+     * which enable some nice semantic matching demo where searching for
+     * $X == $X would also find code written as a != a. The problem
+     * is that if we don't do the same rewriting on the pattern, then
+     * looking for $X != $X would not find anything anymore.
+     * In any case, rewriting the source code is less necessary
+     * now that we have user-defined code equivalences (see Equivalence.ml)
+     * and this will also be less surprising (you can see the set of
+     * equivalences in the equivalence file).
+     *)
     let prog = Pr ast in
 
     let expr_rules = ref [] in

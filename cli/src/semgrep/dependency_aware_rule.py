@@ -1,7 +1,10 @@
-import copy
+import dataclasses
+import json
+import os
 from collections import defaultdict
 from functools import lru_cache
 from pathlib import Path
+from tempfile import mkstemp
 from typing import Callable
 from typing import Dict
 from typing import Iterator
@@ -18,15 +21,11 @@ from semdep.package_restrictions import dependencies_range_match_any
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
-from semgrep.semgrep_interfaces.semgrep_output_v1 import DependencyMatch
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
-from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitive
-from semgrep.semgrep_interfaces.semgrep_output_v1 import Transitivity
-from semgrep.subproject import find_closest_subproject
-from semgrep.subproject import ResolvedSubproject
+from semgrep.subproject import find_closest_resolved_subproject
+from semgrep.subproject import iter_dependencies
+from semgrep.subproject import iter_found_dependencies
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -70,29 +69,30 @@ def parse_depends_on_yaml(entries: List[Dict[str, str]]) -> Iterator[out.ScaPatt
 
 
 # TODO: should be renamed undetermined_or_unreachable_...
+#  or handle_transitive_findings
 def generate_unreachable_sca_findings(
     rule: Rule,
-    already_reachable: Callable[[Path, FoundDependency], bool],
-    resolved_deps: Dict[Ecosystem, List[ResolvedSubproject]],
+    already_reachable: Callable[[Path, out.FoundDependency], bool],
+    resolved_deps: Dict[Ecosystem, List[out.ResolvedSubproject]],
     x_tr: bool,
 ) -> Tuple[List[RuleMatch], List[SemgrepError]]:
     """
     Returns matches to a only a rule's sca-depends-on patterns; ignoring any
-    reachabiliy patterns it has
+    reachabiliy patterns it has.
     """
-    depends_on_keys = rule.project_depends_on
-    dep_rule_errors: List[SemgrepError] = []
-
-    depends_on_entries = list(parse_depends_on_yaml(depends_on_keys))
+    errors: List[SemgrepError] = []
+    depends_on_entries = list(parse_depends_on_yaml(rule.project_depends_on))
     ecosystems = list(rule.ecosystems)
 
-    non_reachable_matches = []
+    non_reachable_matches: List[RuleMatch] = []
     match_based_keys: Dict[tuple[str, Path, str], int] = defaultdict(int)
     for ecosystem in ecosystems:
         for subproject in resolved_deps.get(ecosystem, []):
-            deps = list(subproject.found_dependencies.iter_found_dependencies())
-
-            dependency_matches = list(
+            deps: List[out.FoundDependency] = list(
+                iter_found_dependencies(subproject.resolved_dependencies)
+            )
+            subproject_matches: List[RuleMatch] = []
+            dependency_matches: List[Tuple[out.ScaPattern, out.FoundDependency]] = list(
                 dependencies_range_match_any(depends_on_entries, list(deps))
             )
             for dep_pat, found_dep in dependency_matches:
@@ -107,35 +107,32 @@ def generate_unreachable_sca_findings(
                     continue
 
                 lockfile_path = Path(found_dep.lockfile_path.value)
-
                 # for TR even if we could find a reachable finding in the
                 # 1st party code, we could also investigate the 3rd party code
                 # but let's KISS for now and just consider undetermined findings
                 if already_reachable(lockfile_path, found_dep):
                     continue
 
-                dep_match = DependencyMatch(
+                dep_match = out.DependencyMatch(
                     dependency_pattern=dep_pat,
                     found_dependency=found_dep,
-                    lockfile=out.Fpath(str(lockfile_path)),
+                    lockfile=found_dep.lockfile_path,
                 )
                 sca_match = out.ScaMatch(
                     sca_finding_schema=SCA_FINDING_SCHEMA,
                     reachable=False,
                     reachability_rule=rule.should_run_on_semgrep_core,
                     dependency_match=dep_match,
+                    # TODO: sca_match_kind? put Undetermined for now?
                 )
                 core_match = out.CoreMatch(
                     check_id=out.RuleId(rule.id),
-                    path=out.Fpath(str(lockfile_path)),
-                    start=out.Position(found_dep.line_number or 1, 1, 1),
+                    path=found_dep.lockfile_path,
+                    start=out.Position(found_dep.line_number or 1, 1),
                     end=out.Position(
                         (found_dep.line_number if found_dep.line_number else 1),
                         1,
-                        1,
                     ),
-                    # TODO: we need to define the fields below in
-                    # Output_from_core.atd so we can reuse out.MatchExtra
                     extra=out.CoreMatchExtra(
                         metavars=out.Metavars({}),
                         engine_kind=out.EngineOfFinding(out.OSS()),
@@ -144,77 +141,99 @@ def generate_unreachable_sca_findings(
                     ),
                 )
 
-                match = RuleMatch(
-                    message=rule.message,
-                    metadata=rule.metadata,
-                    severity=rule.severity,
-                    fix=None,
+                rule_match = RuleMatch(
                     match=core_match,
-                    # TODO: remove, sca_info is now part of core_match
-                    extra={"sca_info": sca_match},
+                    message=rule.message,
+                    severity=rule.severity,
+                    metadata=rule.metadata,
                 )
-                match = evolve(
-                    match, match_based_index=match_based_keys[match.match_based_key]
+                new_rule_match = evolve(
+                    rule_match,
+                    match_based_index=match_based_keys[rule_match.match_based_key],
                 )
-                match_based_keys[match.match_based_key] += 1
-                non_reachable_matches.append(match)
+                match_based_keys[rule_match.match_based_key] += 1
+                subproject_matches.append(new_rule_match)
 
-    if x_tr:
-        logger.info(f"SCA TR is on!")
-        transitive_findings = [
-            out.TransitiveFinding(m=rm.match) for rm in non_reachable_matches
-        ]
-        res = rpc_call.transitive_reachability_filter(transitive_findings)
-        logger.info(f"TR result = {res}")
-        # TODO: result is ignored for now but we should reset the
-        # match field of non_reachable_matches and return them
+            if x_tr:
+                # TODO: consider only the matches with reachable rules
+                transitive_findings = [
+                    out.TransitiveFinding(m=rm.match) for rm in subproject_matches
+                ]
+                if transitive_findings:
+                    logger.info(
+                        f"SCA TR is on! Running for rule {rule.id}, subproject {subproject.info.dependency_source}, {len(transitive_findings)} transitive findings"
+                    )
+                fd, rules_tmp_path = mkstemp(
+                    suffix=".rules", prefix="semgrep-", text=True
+                )
+                with os.fdopen(fd, "w") as fp:
+                    fp.write(json.dumps([rule.raw]))
+                params = out.TransitiveReachabilityFilterParams(
+                    rules_path=out.Fpath(rules_tmp_path),
+                    findings=transitive_findings,
+                    dependencies=list(
+                        iter_dependencies(subproject.resolved_dependencies)
+                    ),
+                )
+                # to debug: print(params.to_json_string())
+                tr_filtered_matches = rpc_call.transitive_reachability_filter(params)
+                # TODO: associate these in a more robust way. This currently
+                # depends on the RPC call returning the same matches in the
+                # same order.
+                non_reachable_matches.extend(
+                    [
+                        evolve(rm, match=tm.m)
+                        for rm, tm in zip(subproject_matches, tr_filtered_matches)
+                    ]
+                )
+            else:
+                non_reachable_matches.extend(subproject_matches)
 
-    return non_reachable_matches, dep_rule_errors
+    return non_reachable_matches, errors
 
 
 @lru_cache(maxsize=100_000)
 def transitive_dep_is_also_direct(
-    package: str, deps: Tuple[Tuple[str, Transitivity], ...]
+    package: str, deps: Tuple[Tuple[str, out.DependencyKind], ...]
 ) -> bool:
     """
     Assumes that [dep] is transitive
     Checks if there is a direct version of the transitive dependency [dep]
     """
-    return (package, Transitivity(Direct())) in deps
+    return (package, out.DependencyKind(out.Direct())) in deps
 
 
 def generate_reachable_sca_findings(
     matches: List[RuleMatch],
     rule: Rule,
-    resolved_deps: Dict[Ecosystem, List[ResolvedSubproject]],
+    resolved_deps: Dict[Ecosystem, List[out.ResolvedSubproject]],
 ) -> Tuple[
-    List[RuleMatch], List[SemgrepError], Callable[[Path, FoundDependency], bool]
+    List[RuleMatch], List[SemgrepError], Callable[[Path, out.FoundDependency], bool]
 ]:
-    depends_on_keys = rule.project_depends_on
-    dep_rule_errors: List[SemgrepError] = []
-
-    depends_on_entries = list(parse_depends_on_yaml(depends_on_keys))
+    errors: List[SemgrepError] = []
+    depends_on_entries = list(parse_depends_on_yaml(rule.project_depends_on))
     ecosystems = list(rule.ecosystems)
 
     # Reachability rule
-    reachable_matches = []
+    reachable_matches: List[RuleMatch] = []
     reachable_deps = set()
     for ecosystem in ecosystems:
-        for match in matches:
+        for rule_match in matches:
             try:
-                subproject = find_closest_subproject(
-                    match.path, ecosystem, resolved_deps.get(ecosystem, [])
+                subproject = find_closest_resolved_subproject(
+                    rule_match.path, ecosystem, resolved_deps.get(ecosystem, [])
                 )
-
                 if subproject is None:
                     continue
 
-                deps = list(subproject.found_dependencies.iter_found_dependencies())
+                deps: List[out.FoundDependency] = list(
+                    iter_found_dependencies(subproject.resolved_dependencies)
+                )
                 frozen_deps = tuple((dep.package, dep.transitivity) for dep in deps)
 
-                dependency_matches = list(
-                    dependencies_range_match_any(depends_on_entries, deps)
-                )
+                dependency_matches: List[
+                    Tuple[out.ScaPattern, out.FoundDependency]
+                ] = list(dependencies_range_match_any(depends_on_entries, deps))
                 for dep_pat, found_dep in dependency_matches:
                     if found_dep.lockfile_path is None:
                         # In rare cases, it's possible for a dependency to not have a lockfile
@@ -225,41 +244,49 @@ def generate_reachable_sca_findings(
                         )
                         continue
 
-                    lockfile_path = Path(found_dep.lockfile_path.value)
-
-                    if found_dep.transitivity == Transitivity(
-                        Transitive()
-                    ) and transitive_dep_is_also_direct(found_dep.package, frozen_deps):
+                    # ???
+                    if (
+                        found_dep.transitivity.value == out.Transitive()
+                        and transitive_dep_is_also_direct(
+                            found_dep.package, frozen_deps
+                        )
+                    ):
                         continue
 
                     reachable_deps.add(
                         (
-                            lockfile_path,
+                            Path(found_dep.lockfile_path.value),
                             found_dep.package,
                             found_dep.version,
                             found_dep.transitivity,
                         )
                     )
-                    dep_match = DependencyMatch(
+                    dep_match = out.DependencyMatch(
                         dependency_pattern=dep_pat,
                         found_dependency=found_dep,
-                        lockfile=out.Fpath(str(lockfile_path)),
+                        lockfile=found_dep.lockfile_path,
                     )
-                    # ! deepcopy is necessary here since we might iterate over the
-                    # ! same match for multiple dependencies
-                    new_match = copy.deepcopy(match)
-                    new_match.extra["sca_info"] = out.ScaMatch(
+                    sca_match = out.ScaMatch(
                         sca_finding_schema=SCA_FINDING_SCHEMA,
                         reachable=True,
                         reachability_rule=rule.should_run_on_semgrep_core,
                         dependency_match=dep_match,
                     )
-                    reachable_matches.append(new_match)
+                    new_rule_match = evolve(
+                        rule_match,
+                        match=dataclasses.replace(
+                            rule_match.match,
+                            extra=dataclasses.replace(
+                                rule_match.match.extra, sca_match=sca_match
+                            ),
+                        ),
+                    )
+                    reachable_matches.append(new_rule_match)
             except SemgrepError as e:
-                dep_rule_errors.append(e)
+                errors.append(e)
 
     return (
         reachable_matches,
-        dep_rule_errors,
+        errors,
         (lambda p, d: (p, d.package, d.version, d.transitivity) in reachable_deps),
     )

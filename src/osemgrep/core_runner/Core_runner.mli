@@ -47,21 +47,13 @@ type func = {
     Core_result.result_or_exn;
 }
 
-type pro_conf = {
-  diff_config : Differential_scan_config.t;
-  roots : Scanning_root.t list;
-  engine_type : Engine_type.t;
-}
+type pro_conf = { roots : Scanning_root.t list; engine_type : Engine_type.t }
 
 val default_conf : conf
 
 (* osemgrep-pro hooks *)
 val hook_mk_pro_core_run_for_osemgrep : (pro_conf -> func) option Hook.t
 val hook_pro_git_remote_scan_setup : (func -> func) option Hook.t
-
-(* sca-scan hook *)
-val hook_adjust_targets :
-  (Fpath.t list -> Target.t list -> Target.t list) Hook.t
 
 (* builder *)
 val mk_result : Rule.rule list -> Core_result.t -> result

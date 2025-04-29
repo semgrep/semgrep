@@ -143,7 +143,25 @@ val spf : ('a, unit, string) format -> 'a
  *      let after_f, endpart = Common.matched2 s in
  *      ...
  *)
+
 val ( =~ ) : string -> string -> bool
+(** NOTE: Do {b not} use this for matching paths, as it is not portable
+    accrosses operating systems. Use {! (=/~)} instead. *)
+
+val ( =/~ ) : Fpath.t -> string -> bool
+(** [path =/~ pattern] is [true] if the regex [pattern] matches [path] after
+    [path] has been normalized to always use a single ["/"] to separate
+    segments. E.g.,
+
+    {[
+    let p = ".*/bar/.*" in
+    assert ((Fpath.v "foo\\bar\\baz" =/~ p)
+            = (Fpath.v "foo/bar/baz" =/~ p)
+            = (Fpath.v "foo//bar/baz =/~ p"))
+    ]}
+
+    This provides a portable way to test paths against regexs. *)
+
 val matched1 : string -> string
 val matched2 : string -> string * string
 val matched3 : string -> string * string * string

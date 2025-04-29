@@ -12,11 +12,6 @@ from typing import Union
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.matchers.base import SubprojectMatcher
-from semgrep.subproject import DependencySource
-from semgrep.subproject import LockfileOnlyDependencySource
-from semgrep.subproject import ManifestLockfileDependencySource
-from semgrep.subproject import MultiLockfileDependencySource
-from semgrep.subproject import Subproject
 
 
 @dataclass(frozen=True)
@@ -129,13 +124,13 @@ class PipRequirementsMatcher(SubprojectMatcher):
 
     def make_subprojects(
         self, dep_source_files: FrozenSet[Path]
-    ) -> Tuple[List[Subproject], FrozenSet[Path]]:
+    ) -> Tuple[List[out.Subproject], FrozenSet[Path]]:
         # find all manifests and requirements files that we will use to build subprojects
         manifests, requirements_files = self._filter_manifest_requirements(
             dep_source_files
         )
 
-        subprojects: List[Subproject] = []
+        subprojects: List[out.Subproject] = []
 
         # tracks manifests that were accounted for in the first (requirements-based) phase.
         # These manifests should not be used in the second (manifest-only) phase.
@@ -157,7 +152,10 @@ class PipRequirementsMatcher(SubprojectMatcher):
             local_requirements_paths,
         ) in requirements_files_by_root_dir.items():
             lockfile_sources: List[
-                Union[LockfileOnlyDependencySource, ManifestLockfileDependencySource]
+                Union[
+                    out.LockfileOnly,
+                    out.ManifestLockfile,
+                ]
             ] = []
             for req_path in sorted(
                 local_requirements_paths
@@ -179,26 +177,34 @@ class PipRequirementsMatcher(SubprojectMatcher):
                 )
 
                 if manifest is not None:
-                    lockfile_sources.append(
-                        ManifestLockfileDependencySource(manifest, lockfile)
-                    )
+                    lockfile_sources.append(out.ManifestLockfile((manifest, lockfile)))
                 else:
-                    lockfile_sources.append(LockfileOnlyDependencySource(lockfile))
+                    lockfile_sources.append(out.LockfileOnly(lockfile))
 
             # use the correct dependency source type depending on the number
             # of lockfiles
-            dep_source: DependencySource
+            dep_source: out.DependencySource
             if len(lockfile_sources) == 1:
-                dep_source = lockfile_sources[0]
+                dep_source = out.DependencySource(lockfile_sources[0])
             else:
-                dep_source = MultiLockfileDependencySource(tuple(lockfile_sources))
+                dep_source = out.DependencySource(
+                    out.MultiLockfile(
+                        [out.DependencySource(x) for x in lockfile_sources]
+                    )
+                )
 
-            subprojects.append(Subproject(root_dir, dep_source, self.ECOSYSTEM))
+            subprojects.append(
+                out.Subproject(
+                    root_dir=out.Fpath(str(root_dir)),
+                    dependency_source=dep_source,
+                    ecosystem=self.ECOSYSTEM,
+                )
+            )
 
         # TODO: (bk) handle lone manifests.
         # there could be lone manifests remaining (manifests - paired_manifests)
         # and this code currently does not handle them. For lockfileless and for
-        # ecosystem reporting, we will need to create ManifestOnlyDependencySources
+        # ecosystem reporting, we will need to create ManifestOnlys
         # from these.
 
         return subprojects, frozenset(manifests | requirements_files)

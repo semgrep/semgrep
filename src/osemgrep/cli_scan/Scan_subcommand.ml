@@ -41,7 +41,7 @@ type caps =
      * differential scans as we use Git_wrapper.run_with_worktree.
      *)
     Cap.chdir
-  ; (* for Test_subcommand dispatch and Core_scan scanning root targeting *)
+  ; (* for scan file targeting (and for Test_subcommand dispatch) *)
     Cap.readdir
   ; (* for Parmap in Core_scan *)
     Cap.fork
@@ -219,11 +219,10 @@ let output_and_exit_from_fatal_core_errors_exn ~exit_code
 (*****************************************************************************)
 
 (* Note that this hook is run in parallel in Parmap at the end of processing
- * a file. Using Format.std_formatter in parallel requires some synchronization
- * to avoid having the output of multiple child processes interwinded, hence
- * the use of Unix.lockf below.
+ * a file. Using stdout (used internally by 'xxx_printer') in parallel requires
+ * some synchronization to avoid having the output of multiple child processes
+ * interwinded, hence the use of Unix.lockf below.
  *)
-
 let mk_file_match_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
     (printer : Scan_CLI.conf -> Out.cli_match list -> unit) (_file : Fpath.t)
     (match_results : Core_result.matches_single_file) : unit =
@@ -240,11 +239,23 @@ let mk_file_match_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
       |> fst |> Core_json_output.dedup_and_sort
     in
     let hrules = Rule.hrules_of_rules rules in
-    let fixed_env = Fixed_lines.mk_env () in
+    let fixed_env_opt =
+      if conf.output_conf.fixed_lines then Some (Fixed_lines.mk_env ())
+      else None
+    in
     core_matches
-    |> List_.map
-         (Cli_json_output.cli_match_of_core_match
-            ~fixed_lines:conf.output_conf.fixed_lines fixed_env hrules)
+    |> List_.map (fun (cm : Out.core_match) ->
+           let rule =
+             try Hashtbl.find hrules cm.check_id with
+             | Not_found ->
+                 (* should never happen; the core_matches are derived from
+                  * the passed rules
+                  *)
+                 failwith
+                   (spf "could not find the rule with rule_ID %s"
+                      (Rule_ID.show cm.check_id))
+           in
+           Cli_json_output.cli_match_of_core_match fixed_env_opt rule cm)
     |> List_.exclude (fun (m : Out.cli_match) -> m.extra.is_ignored ||| false)
   in
   if cli_matches <> [] then (
@@ -264,9 +275,8 @@ let incremental_text_printer (caps : < Cap.stdout >) (conf : Scan_CLI.conf)
        ~max_chars_per_line:conf.output_conf.max_chars_per_line
        ~max_lines_per_finding:conf.output_conf.max_lines_per_finding cli_matches)
 
-let incremental_json_printer (caps : < Cap.stdout >) (conf : Scan_CLI.conf)
+let incremental_json_printer (caps : < Cap.stdout >) (_conf : Scan_CLI.conf)
     (cli_matches : Out.cli_match list) : unit =
-  ignore conf;
   cli_matches
   |> List.iter (fun cli_match ->
          CapConsole.print caps#stdout
@@ -302,8 +312,7 @@ let choose_output_format_and_match_hook (caps : < Cap.stdout >)
 
 (* Select and execute the scan func based on the configured engine settings *)
 let mk_core_run_for_osemgrep (caps : < Core_scan.caps ; .. >)
-    (conf : Scan_CLI.conf) (diff_config : Differential_scan_config.t) :
-    Core_runner.func =
+    (conf : Scan_CLI.conf) : Core_runner.func =
   let core_run_for_osemgrep : Core_runner.func =
     match conf.engine_type with
     | OSS -> Core_runner.mk_core_run_for_osemgrep (Core_scan.scan caps)
@@ -318,11 +327,7 @@ let mk_core_run_for_osemgrep (caps : < Core_scan.caps ; .. >)
                acquire a different binary."
         | Some pro_scan_func ->
             pro_scan_func
-              {
-                roots = conf.target_roots;
-                diff_config;
-                engine_type = conf.engine_type;
-              })
+              { roots = conf.target_roots; engine_type = conf.engine_type })
   in
   let core_run_for_osemgrep : Core_runner.func =
     match conf.targeting_conf.force_project_root with
@@ -351,7 +356,7 @@ let rules_from_rules_source ~token_opt ~rewrite_rule_ids ~strict caps
   let rules_and_origins =
     Rule_fetching.rules_from_rules_source_async ~token_opt ~rewrite_rule_ids
       ~strict
-      (caps :> < Cap.network ; Cap.tmp >)
+      (caps :> < Cap.network ; Cap.tmp ; Cap.readdir >)
       rules_source
   in
   Lwt_platform.run (Lwt.pick (rules_and_origins :: spinner_ls))
@@ -512,7 +517,6 @@ let check_targets_with_rules
             Profiler.record profiler ~name:"core_time" (fun () ->
                 let { run } : Core_runner.func =
                   mk_core_run_for_osemgrep caps conf
-                    Differential_scan_config.WholeScan
                 in
                 run ?file_match_hook conf.core_runner_conf conf.targeting_conf
                   (rules, invalid_rules) targets)
@@ -520,17 +524,16 @@ let check_targets_with_rules
             (* scan_baseline calls internally Profiler.record "head_core_time"*)
             (* diff scan mode *)
             let diff_scan_func : Diff_scan.diff_scan_func =
-             fun ?(diff_config = Differential_scan_config.WholeScan) targets
-                 rules ->
+             fun targets rules ->
               let { run } : Core_runner.func =
-                mk_core_run_for_osemgrep caps conf diff_config
+                mk_core_run_for_osemgrep caps conf
               in
               run ?file_match_hook conf.core_runner_conf conf.targeting_conf
                 (rules, invalid_rules) targets
             in
             Diff_scan.scan_baseline
               (caps :> < Cap.chdir ; Cap.tmp >)
-              conf profiler baseline_commit targets rules diff_scan_func
+              profiler baseline_commit rules diff_scan_func
       in
       match result_or_exn with
       | Error exn ->
@@ -606,7 +609,8 @@ let check_targets_with_rules
                    ~respect_gitignore:conf.targeting_conf.respect_gitignore
                    ~max_target_bytes:conf.targeting_conf.max_target_bytes
                    ~num_valid_rules:(List.length valid_rules)
-                   conf.common.maturity cli_output skipped_groups));
+                   conf.common.maturity cli_output skipped_groups
+                   conf.common.logging_level));
 
           (* step 6: apply autofixes *)
           (* this must happen posterior to reporting matches, or will report the
@@ -681,7 +685,7 @@ let run_scan_conf (caps : < caps ; .. >) (conf : Scan_CLI.conf) : Exit_code.t =
     Logs.app (fun m -> m "%s" (Text_reports.rules_source conf.rules_source));
   let rules_and_origins, fatal_errors =
     rules_from_rules_source
-      (caps :> < Cap.network ; Cap.tmp >)
+      (caps :> < Cap.network ; Cap.tmp ; Cap.readdir >)
       ~token_opt:settings.api_token ~rewrite_rule_ids:conf.rewrite_rule_ids
       ~strict:conf.core_runner_conf.strict conf.rules_source
   in
@@ -696,8 +700,8 @@ let run_scan_conf (caps : < caps ; .. >) (conf : Scan_CLI.conf) : Exit_code.t =
         conf profiler core_errors
   (* but with no fatal rule errors, we can proceed with the scan! *)
   | [] -> (
-      (* step2: getting the targets *)
-      Logs.info (fun m -> m "Computing the targets");
+      (* step2: getting the targets (part1) *)
+      Logs.info (fun m -> m "Computing the target candidates");
       let targets_and_skipped =
         Find_targets.get_target_fpaths caps conf.targeting_conf
           conf.target_roots
@@ -791,21 +795,11 @@ let run_conf (caps : < caps ; .. >) (conf : Scan_CLI.conf) : Exit_code.t =
       (* TOPORT: if enable_version_check: version_check() *)
       Exit_code.ok ~__LOC__
   | _ when conf.test <> None ->
-      Test_subcommand.run_conf caps (Common2.some conf.test)
+      Test_subcommand.run_conf caps (Option.get conf.test)
   | _ when conf.validate <> None ->
-      Validate_subcommand.run_conf
-        (caps
-          :> < Cap.stdout
-             ; Cap.network
-             ; Cap.tmp
-             ; Cap.fork
-             ; Cap.time_limit
-             ; Cap.memory_limit >)
-        (Common2.some conf.validate)
+      Validate_subcommand.run_conf caps (Option.get conf.validate)
   | _ when conf.show <> None ->
-      Show_subcommand.run_conf
-        (caps :> < Cap.stdout ; Cap.network ; Cap.tmp >)
-        (Common2.some conf.show)
+      Show_subcommand.run_conf caps (Option.get conf.show)
   | _ when conf.ls ->
       Ls_subcommand.run caps ~target_roots:conf.target_roots
         ~targeting_conf:conf.targeting_conf ~format:conf.ls_format

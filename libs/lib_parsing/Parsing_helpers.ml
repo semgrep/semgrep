@@ -213,7 +213,8 @@ let (error_messagebis : string (* filename *) -> string * int -> int -> string)
   in
   spf
     "File \"%s\", line %d, column %d,  charpos = %d\n\
-    \    around = '%s', whole content = %s" filename line pos charpos tok s
+    \    around = '%s', whole content = %s"
+    filename line pos charpos tok s
 
 let error_message filename (lexeme, lexstart) =
   try error_messagebis filename (lexeme, lexstart) 0 with

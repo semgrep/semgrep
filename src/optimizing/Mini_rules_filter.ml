@@ -30,12 +30,15 @@ module Log = Log_optimizing.Log
 (* Entry point *)
 (*****************************************************************************)
 
-let filter_mini_rules_relevant_to_file_using_regexp rules lang file =
+let filter_mini_rules_relevant_to_file_using_regexp ~interfile rules lang file =
   let str = UFile.Legacy.read_file file in
   rules
   |> List.filter (fun rule ->
          let pat = rule.R.pattern in
-         let xs = Analyze_pattern.extract_specific_strings ~lang pat in
+         let xs =
+           Analyze_pattern.extract_specific_strings ~lang ~interfile pat
+         in
+
          (* pr2_gen xs; *)
          let match_ =
            (* we could avoid running multiple regexps on the same file
@@ -51,7 +54,7 @@ let filter_mini_rules_relevant_to_file_using_regexp rules lang file =
             * extract a complex regexp instead handling itself disjunction.
             *)
            xs
-           |> List.for_all (fun x ->
+           |> Analyze_pattern.StringSet.for_all (fun x ->
                   let re = Pcre2_.matching_exact_string x in
                   Pcre2_.unanchored_match re str)
          in

@@ -36,7 +36,6 @@ module MkId () : sig
   val to_int : t -> int
   val unsafe_default : t
   val is_unsafe_default : t -> bool
-  val unsafe_reset_counter : unit -> unit
 
   type partition = A | B
 
@@ -50,7 +49,7 @@ end = struct
 
   let partition = ref A
   let set_partition p = partition := p
-  let counter_a = ref 0
+  let counter_a = Atomic.make 0
 
   (* Why not just type t [@@deriving ord]?
    *
@@ -66,22 +65,14 @@ end = struct
    * represented more compactly both in string-based serialization formats and
    * in OCaml's binary marshalling format. So, start with -2 (-1 is the unsafe
    * default) and move downward. *)
-  let counter_b = ref (-2)
+  let counter_b = Atomic.make (-2)
 
   let mk () =
     match !partition with
-    | A ->
-        incr counter_a;
-        !counter_a
-    | B ->
-        decr counter_b;
-        !counter_b
+    | A -> Atomic.fetch_and_add counter_a 1
+    | B -> Atomic.fetch_and_add counter_b (-1)
 
   let to_int = Fun.id
   let unsafe_default = -1
   let is_unsafe_default id = id = unsafe_default
-
-  let unsafe_reset_counter () =
-    counter_a := 0;
-    counter_b := -2
 end

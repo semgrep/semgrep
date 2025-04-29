@@ -1,0 +1,74 @@
+running 4 rules from 1 config rules/eqeq.yaml_0
+No .semgrepignore found. Using default .semgrepignore rules. See the docs for the list of default ignores: https://semgrep.dev/docs/cli-usage/#ignore-files
+Rules:
+- rules.assert-eqeq-is-ok
+- rules.eqeq-is-bad
+- rules.javascript-basic-eqeq-bad
+- rules.python37-compatability-os-module
+Unable to ignore files ignored by git (targets/exclude_include is not a git directory or git is not installed). Running on all files instead...
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 5 files tracked by git with 4 Code rules:
+  Nothing to scan.
+
+========================================
+Files skipped:
+========================================
+
+  Always skipped by Semgrep:
+
+   • <none>
+
+  Skipped by .gitignore:
+  (Disable by passing --no-git-ignore)
+
+   • <all files not listed by `git ls-files` were skipped>
+
+  Skipped by .semgrepignore:
+  - https://semgrep.dev/docs/ignoring-files-folders-code/#understand-semgrep-defaults
+
+   • <none>
+
+  Skipped by --include patterns:
+
+   • <none>
+
+  Skipped by --exclude patterns:
+
+   • targets/exclude_include/excluded/excluded.js
+   • targets/exclude_include/excluded/included.js
+   • targets/exclude_include/included/excluded.js
+   • targets/exclude_include/included/included.js
+
+  Files that couldn't be accessed:
+
+   • <none>
+
+  Skipped by limiting to files smaller than 1000000 bytes:
+  (Adjust with the --max-target-bytes flag)
+
+   • <none>
+
+  Partially analyzed due to parsing or internal Semgrep errors
+
+   • <none>
+
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+Semgrep's file targeting is getting a revamp! This scan wouldn't see any changes. To learn about what will be different after version 1.116.0, visit https://semgrep.dev/docs/kb/semgrep-code/semgrepignore-ignored for the new specification.
+
+✅ Scan completed successfully.
+ • Findings: 0 (0 blocking)
+ • Rules run: 4
+ • Targets scanned: 0
+ • Parsed lines: an unknown percentage
+ • Scan skipped:
+   ◦ Matching --exclude patterns: 4
+Ran 4 rules on 0 files: 0 findings.
+Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False
