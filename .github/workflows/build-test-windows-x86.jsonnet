@@ -166,7 +166,7 @@ local build_core_job = {
       name: 'Copy tree-sitter.dll to extra-artifacts/',
       run: |||
         mkdir -p extra-artifacts/
-        treesitter_bindir="$(pwd)/OSS/libs/ocaml-tree-sitter-core/tree-sitter/bin"
+        treesitter_bindir="$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/bin"
         cp -p "$treesitter_bindir/libtree-sitter.dll" extra-artifacts/
       |||,
     },
