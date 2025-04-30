@@ -1,0 +1,1 @@
+Fixed CI output so it shows per-product links depending on what product is enabled in a scan.
