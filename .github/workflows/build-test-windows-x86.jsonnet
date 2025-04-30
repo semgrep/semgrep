@@ -162,14 +162,6 @@ local build_core_job = {
         opam exec -- _build/install/default/bin/semgrep-core.exe -l python -rules tests/windows/rules.yml -json tests/windows/test.py
       |||,
     },
-    {
-      name: 'Copy tree-sitter.dll to extra-artifacts/',
-      run: |||
-        mkdir -p extra-artifacts/
-        treesitter_bindir="$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/bin"
-        cp -p "$treesitter_bindir/libtree-sitter.dll" extra-artifacts/
-      |||,
-    },
     semgrep.copy_executable_dlls('bin/semgrep-core.exe', 'extra-artifacts'),
     actions.make_artifact_step('bin/semgrep-core.exe extra-artifacts/*'),
     actions.upload_artifact_step(artifact_name),
