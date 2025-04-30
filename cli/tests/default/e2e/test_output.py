@@ -10,6 +10,7 @@ from xml.etree import cElementTree
 import pytest
 from tests.conftest import mask_variable_text
 from tests.conftest import RULES_PATH
+from tests.conftest import skip_on_windows
 from tests.conftest import TARGETS_PATH
 from tests.fixtures import RunSemgrep
 
@@ -47,7 +48,8 @@ def _etree_to_dict(t):
 
 
 @pytest.mark.kinda_slow
-def test_output_highlighting(run_semgrep_in_tmp: RunSemgrep, snapshot):
+@skip_on_windows  # better backslash replace logic
+def test_output_highlighting(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     results, _errors = run_semgrep_in_tmp(
         "rules/basic.yaml",
         target_name="basic.py",
@@ -55,14 +57,14 @@ def test_output_highlighting(run_semgrep_in_tmp: RunSemgrep, snapshot):
         strict=False,
         force_color=True,
     )
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         results,
         "results.txt",
     )
 
 
 @pytest.mark.kinda_slow
-def test_output_highlighting__no_color(run_semgrep_in_tmp: RunSemgrep, snapshot):
+def test_output_highlighting__no_color(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     results, _errors = run_semgrep_in_tmp(
         "rules/basic.yaml",
         target_name="basic.py",
@@ -70,15 +72,16 @@ def test_output_highlighting__no_color(run_semgrep_in_tmp: RunSemgrep, snapshot)
         strict=False,
         env={"NO_COLOR": "1"},
     )
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         results,
         "results.txt",
     )
 
 
 @pytest.mark.kinda_slow
+@skip_on_windows  # better backslash replace logic
 def test_output_highlighting__force_color_and_no_color(
-    run_semgrep_in_tmp: RunSemgrep, snapshot
+    run_semgrep_in_tmp: RunSemgrep, posix_snapshot
 ):
     """
     NO_COLOR would normally disable color: https://no-color.org/
@@ -94,21 +97,21 @@ def test_output_highlighting__force_color_and_no_color(
         force_color=True,
         env={"NO_COLOR": "1"},
     )
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         results,
         "results.txt",
     )
 
 
 @pytest.mark.kinda_slow
-def test_yaml_capturing(run_semgrep_in_tmp: RunSemgrep, snapshot):
+def test_yaml_capturing(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     results, _errors = run_semgrep_in_tmp(
         "rules/yaml_capture.yaml",
         target_name="yaml/yaml_capture.yaml",
         output_format=OutputFormat.TEXT,
         strict=False,
     )
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         results,
         "results.txt",
     )
@@ -119,7 +122,7 @@ def test_yaml_capturing(run_semgrep_in_tmp: RunSemgrep, snapshot):
 # mess this up.
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
-def test_yaml_metavariables(run_semgrep_in_tmp: RunSemgrep, snapshot):
+def test_yaml_metavariables(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/yaml_key.yaml",
         target_name="yaml/target.yaml",
@@ -142,11 +145,11 @@ def test_yaml_metavariables(run_semgrep_in_tmp: RunSemgrep, snapshot):
         # given offset information.
         assert len(content) == value["end"]["offset"] - value["start"]["offset"]
 
-    snapshot.assert_match(stdout, "report.json")
+    posix_snapshot.assert_match(stdout, "report.json")
 
 
 @pytest.mark.kinda_slow
-def test_quiet_mode_has_empty_stderr(run_semgrep_in_tmp: RunSemgrep, snapshot):
+def test_quiet_mode_has_empty_stderr(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     """
     Test that quiet mode doesn't print anything to stderr.
 
@@ -169,19 +172,21 @@ def test_quiet_mode_has_empty_stderr(run_semgrep_in_tmp: RunSemgrep, snapshot):
     "format",
     ["--json", "--emacs", "--vim", "--sarif", "--gitlab-sast", "--gitlab-secrets"],
 )
-def test_output_format(run_semgrep_in_tmp: RunSemgrep, snapshot, format):
+@skip_on_windows  # better backslash replace logic
+def test_output_format(run_semgrep_in_tmp: RunSemgrep, posix_snapshot, format):
     stdout, _ = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
         target_name="basic/stupid.py",
         options=[format],
         output_format=OutputFormat.TEXT,  # Not the real output format; just disables JSON parsing
     )
-    snapshot.assert_match(stdout, "results.out")
+    posix_snapshot.assert_match(stdout, "results.out")
 
 
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
-def test_additional_outputs(run_semgrep_in_tmp: RunSemgrep, snapshot):
+@skip_on_windows  # better backslash replace logic
+def test_additional_outputs(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
         target_name="basic/stupid.py",
@@ -197,23 +202,29 @@ def test_additional_outputs(run_semgrep_in_tmp: RunSemgrep, snapshot):
         output_format=OutputFormat.TEXT,
     )
 
-    snapshot.assert_match(stdout, "text.expected")
+    posix_snapshot.assert_match(stdout, "text.expected")
     with open("one.json") as one_json:
-        snapshot.assert_match(mask_variable_text(one_json.read()), "one.json.expected")
+        posix_snapshot.assert_match(
+            mask_variable_text(one_json.read()), "one.json.expected"
+        )
     with open("two.json") as two_json:
-        snapshot.assert_match(mask_variable_text(two_json.read()), "two.json.expected")
+        posix_snapshot.assert_match(
+            mask_variable_text(two_json.read()), "two.json.expected"
+        )
     with open("emacs.txt") as emacs_txt:
-        snapshot.assert_match(
+        posix_snapshot.assert_match(
             mask_variable_text(emacs_txt.read()), "emacs.txt.expected"
         )
     with open("vim.txt") as vim_txt:
-        snapshot.assert_match(mask_variable_text(vim_txt.read()), "vim.txt.expected")
+        posix_snapshot.assert_match(
+            mask_variable_text(vim_txt.read()), "vim.txt.expected"
+        )
     with open("gitlab_sast.json") as gitlab_sast_json:
-        snapshot.assert_match(
+        posix_snapshot.assert_match(
             mask_variable_text(gitlab_sast_json.read()), "gitlab_sast.json.expected"
         )
     with open("gitlab_secrets.json") as gitlab_secrets_json:
-        snapshot.assert_match(
+        posix_snapshot.assert_match(
             mask_variable_text(gitlab_secrets_json.read()),
             "gitlab_secrets.json.expected",
         )
@@ -225,8 +236,9 @@ def test_additional_outputs(run_semgrep_in_tmp: RunSemgrep, snapshot):
     ["--json", "--emacs", "--vim", "--sarif", "--gitlab-sast", "--gitlab-secrets"],
 )
 @pytest.mark.osemfail
+@skip_on_windows  # better backslash replace logic
 def test_additional_outputs_with_format_flag(
-    run_semgrep_in_tmp: RunSemgrep, snapshot, format
+    run_semgrep_in_tmp: RunSemgrep, posix_snapshot, format
 ):
     stdout, _ = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
@@ -238,9 +250,9 @@ def test_additional_outputs_with_format_flag(
         output_format=OutputFormat.TEXT,
     )
 
-    snapshot.assert_match(stdout, "result.expected")
+    posix_snapshot.assert_match(stdout, "result.expected")
     with open("result.json") as result_json:
-        snapshot.assert_match(
+        posix_snapshot.assert_match(
             mask_variable_text(result_json.read()), "result.json.expected"
         )
 
@@ -251,8 +263,9 @@ def test_additional_outputs_with_format_flag(
     ["--json", "--emacs", "--vim", "--sarif", "--gitlab-sast", "--gitlab-secrets"],
 )
 @pytest.mark.osemfail
+@skip_on_windows  # better backslash replace logic
 def test_additional_outputs_with_format_output_flag(
-    run_semgrep_in_tmp: RunSemgrep, snapshot, format
+    run_semgrep_in_tmp: RunSemgrep, posix_snapshot, format
 ):
     stdout, _ = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
@@ -262,57 +275,58 @@ def test_additional_outputs_with_format_output_flag(
     )
 
     with open("sarif.json") as sarif_json:
-        snapshot.assert_match(
+        posix_snapshot.assert_match(
             mask_variable_text(sarif_json.read()), "sarif.json.expected"
         )
     with open("result.out") as result_out:
-        snapshot.assert_match(
+        posix_snapshot.assert_match(
             mask_variable_text(result_out.read()), "result.out.expected"
         )
 
 
 @pytest.mark.kinda_slow
-def test_long_rule_id(run_semgrep_in_tmp: RunSemgrep, snapshot):
+def test_long_rule_id(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/long_rule_id.yaml",
         target_name="basic.py",
         output_format=OutputFormat.TEXT,
     )
-    snapshot.assert_match(stdout, "results.out")
+    posix_snapshot.assert_match(stdout, "results.out")
 
 
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail  # TODO: fix text wrapping of findings
-def test_long_rule_id_long_text(run_semgrep_in_tmp: RunSemgrep, snapshot):
+def test_long_rule_id_long_text(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/long_rule_id.yaml",
         target_name="long_text.py",
         output_format=OutputFormat.TEXT,
     )
-    snapshot.assert_match(stdout, "results.out")
+    posix_snapshot.assert_match(stdout, "results.out")
 
 
 # it should not report findings from rules using the "INVENTORY" severity
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
-def test_omit_inventory(run_semgrep_in_tmp: RunSemgrep, snapshot):
+def test_omit_inventory(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/severity_inventory.yaml", target_name="basic.py"
     )
-    snapshot.assert_match(stdout, "results.out")
+    posix_snapshot.assert_match(stdout, "results.out")
 
 
 # it should not report findings from rules using the "EXPERIMENT" severity
 @pytest.mark.kinda_slow
-def test_omit_experiment(run_semgrep_in_tmp: RunSemgrep, snapshot):
+def test_omit_experiment(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/severity_experiment.yaml",
         target_name="basic.py",
     )
-    snapshot.assert_match(stdout, "results.out")
+    posix_snapshot.assert_match(stdout, "results.out")
 
 
 @pytest.mark.kinda_slow
+@skip_on_windows  # better backslash replacement logic
 def test_junit_xml_output(run_semgrep_in_tmp: RunSemgrep, snapshot):
     output, _ = run_semgrep_in_tmp(
         "rules/eqeq.yaml", output_format=OutputFormat.JUNIT_XML
@@ -327,9 +341,10 @@ def test_junit_xml_output(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
+@skip_on_windows  # better backslash replace logic
 def test_junit_xml_output_flag(
     run_semgrep_in_tmp: RunSemgrep,
-    snapshot,
+    posix_snapshot,
 ):
     stdout, _ = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
@@ -339,12 +354,14 @@ def test_junit_xml_output_flag(
     )
 
     with open("result.xml") as xml:
-        snapshot.assert_match(mask_variable_text(xml.read()), "expected.xml")
+        posix_snapshot.assert_match(mask_variable_text(xml.read()), "expected.xml")
 
 
 @pytest.mark.kinda_slow
-def test_json_output_with_dataflow_traces(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    snapshot.assert_match(
+def test_json_output_with_dataflow_traces(
+    run_semgrep_in_tmp: RunSemgrep, posix_snapshot
+):
+    posix_snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/taint_trace.yaml",
             target_name="taint/taint_trace.cpp",
@@ -367,7 +384,7 @@ IGNORE_LOG_REPORT_LAST_LINE = "   ◦ Files matching .semgrepignore patterns: \\
 def _test_semgrepignore_ignore_log_report(
     run_semgrep_on_copied_files: RunSemgrep,
     tmp_path,
-    snapshot,
+    posix_snapshot,
 ):
     shutil.copyfile(
         Path(TARGETS_PATH / "ignores" / ".semgrepignore"), tmp_path / ".semgrepignore"
@@ -404,33 +421,35 @@ def _test_semgrepignore_ignore_log_report(
     assert (
         report is not None
     ), "can't find ignore log report based on expected start and end lines"
-    snapshot.assert_match(report.group(), "report.txt")
+    posix_snapshot.assert_match(report.group(), "report.txt")
 
 
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
+@skip_on_windows  # better backslash replace logic
 def test_semgrepignore_ignore_log_report(
-    run_semgrep_on_copied_files: RunSemgrep, tmp_path, snapshot
+    run_semgrep_on_copied_files: RunSemgrep, tmp_path, posix_snapshot
 ):
     _test_semgrepignore_ignore_log_report(
         run_semgrep_on_copied_files,
         tmp_path,
-        snapshot,
+        posix_snapshot,
     )
 
 
 # Tolerate a different snapshot with pysemgrep than osemgrep/v2.
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
+@skip_on_windows  # better backslash replace logic
 def test_semgrepignore_ignore_log_report_pysemgrep(
     run_semgrep_on_copied_files: RunSemgrep,
     tmp_path,
-    snapshot,
+    posix_snapshot,
 ):
     _test_semgrepignore_ignore_log_report(
         run_semgrep_on_copied_files,
         tmp_path,
-        snapshot,
+        posix_snapshot,
     )
 
 
@@ -442,7 +461,7 @@ def test_semgrepignore_ignore_log_report_pysemgrep(
 def _test_semgrepignore_ignore_log_json_report(
     run_semgrep_on_copied_files: RunSemgrep,
     tmp_path,
-    snapshot,
+    posix_snapshot,
 ):
     shutil.copyfile(
         Path(TARGETS_PATH / "ignores" / ".semgrepignore"), tmp_path / ".semgrepignore"
@@ -472,7 +491,7 @@ def _test_semgrepignore_ignore_log_json_report(
     parsed_output = json.loads(stdout)
     assert "paths" in parsed_output
 
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         json.dumps(parsed_output["paths"], indent=2, sort_keys=True), "report.json"
     )
 
@@ -480,10 +499,10 @@ def _test_semgrepignore_ignore_log_json_report(
 @pytest.mark.kinda_slow
 @pytest.mark.pysemfail
 def test_semgrepignore_ignore_log_json_report(
-    run_semgrep_on_copied_files: RunSemgrep, tmp_path, snapshot
+    run_semgrep_on_copied_files: RunSemgrep, tmp_path, posix_snapshot
 ):
     _test_semgrepignore_ignore_log_json_report(
-        run_semgrep_on_copied_files, tmp_path, snapshot
+        run_semgrep_on_copied_files, tmp_path, posix_snapshot
     )
 
 
@@ -492,10 +511,10 @@ def test_semgrepignore_ignore_log_json_report(
 def test_semgrepignore_ignore_log_json_report_pysemgrep(
     run_semgrep_on_copied_files: RunSemgrep,
     tmp_path,
-    snapshot,
+    posix_snapshot,
 ):
     _test_semgrepignore_ignore_log_json_report(
-        run_semgrep_on_copied_files, tmp_path, snapshot
+        run_semgrep_on_copied_files, tmp_path, posix_snapshot
     )
 
 
@@ -506,7 +525,7 @@ def test_semgrepignore_ignore_log_json_report_pysemgrep(
 )
 @pytest.mark.osemfail
 def test_git_repo_output(
-    run_semgrep: RunSemgrep, git_repo, tmp_path, monkeypatch, snapshot
+    run_semgrep: RunSemgrep, git_repo, tmp_path, monkeypatch, posix_snapshot
 ):
     """
     Initialize a git repo at a temp directory
@@ -528,7 +547,7 @@ def test_git_repo_output(
     (tmp_path / "rules").symlink_to(RULES_PATH.resolve())
 
     monkeypatch.chdir(tmp_path)
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         run_semgrep(
             "rules/eqeq-basic.yaml",
             output_format=OutputFormat.TEXT,
@@ -545,14 +564,15 @@ def test_git_repo_output(
 # semgrep-core hence the mistmatch.
 @pytest.mark.slow
 @pytest.mark.osemfail
-def test_output_matching_explanations(run_semgrep_in_tmp: RunSemgrep, snapshot):
+@skip_on_windows  # better masking logic
+def test_output_matching_explanations(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/eqeq-basic.yaml",
         target_name="basic/stupid.js",
         options=["--matching-explanations"],
         output_format=OutputFormat.JSON,  # Not the real output format; just disables JSON parsing
     )
-    snapshot.assert_match(stdout, "report.json")
+    posix_snapshot.assert_match(stdout, "report.json")
 
 
 @pytest.mark.kinda_slow
@@ -561,24 +581,27 @@ def test_output_matching_explanations(run_semgrep_in_tmp: RunSemgrep, snapshot):
     ["multilangproj", "language-filtering", "exclude_include"],
 )
 @pytest.mark.osemfail
-def test_file_count_multifile(run_semgrep_in_tmp: RunSemgrep, snapshot, target_dir):
+def test_file_count_multifile(
+    run_semgrep_in_tmp: RunSemgrep, posix_snapshot, target_dir
+):
     _, stderr = run_semgrep_in_tmp(
         "rules/filecount.yaml",
         output_format=OutputFormat.TEXT,
         target_name=target_dir,
         options=[],
     )
-    snapshot.assert_match(stderr, "result.out")
+    posix_snapshot.assert_match(stderr, "result.out")
 
 
 @pytest.mark.slow
 @pytest.mark.osemfail
-def test_output_truncated_messages(run_semgrep_in_tmp: RunSemgrep, snapshot):
+@skip_on_windows  # better backslash replace logic
+def test_output_truncated_messages(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/eqeq-basic-c.yaml",
         target_name="bad/invalid_c_long.c",
         output_format=OutputFormat.JSON,
         assert_exit_code=3,
     )
-    snapshot.assert_match(stdout, "report.json")
+    posix_snapshot.assert_match(stdout, "report.json")
     # NOTE if we display these in text mode then we should also test that

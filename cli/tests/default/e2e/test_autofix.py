@@ -10,7 +10,7 @@ from semgrep.constants import OutputFormat
 def run_test_autofix(
     run_semgrep_on_copied_files: RunSemgrep,
     tmp_path,
-    snapshot,
+    posix_snapshot,
     rule,
     target,
     dryrun,
@@ -30,14 +30,14 @@ def run_test_autofix(
         results_file = "results.json"
     else:
         results_file = "results.txt"
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         semgrep_result.stdout,
         results_file,
     )
 
     if output_format == OutputFormat.TEXT:
         # TODO: is this essential?
-        snapshot.assert_match(
+        posix_snapshot.assert_match(
             semgrep_result.stderr,
             "stderr.txt",
         )
@@ -45,7 +45,7 @@ def run_test_autofix(
     # Now make sure the files are actually updated
     with open(tmp_path / "targets" / target) as fd:
         result = fd.read()
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         result,
         (f"{target}-dryrun" if dryrun else f"{target}-fixed"),
     )
@@ -78,6 +78,7 @@ RULE_TARGET_PAIRS_JSON_OSEMPASS = [
     ("utf-8.yaml", "utf-8.py"),
 ]
 
+
 # rule/target pairs for which osemgrep fails to produce the same JSON output
 # as pysemgrep.
 RULE_TARGET_PAIRS_JSON_OSEMFAIL = [
@@ -98,7 +99,7 @@ RULE_TARGET_PAIRS = RULE_TARGET_PAIRS_JSON_OSEMPASS + RULE_TARGET_PAIRS_JSON_OSE
 def test_autofix_json_output(
     run_semgrep_on_copied_files: RunSemgrep,
     tmp_path,
-    snapshot,
+    posix_snapshot,
     rule,
     target,
     dryrun,
@@ -107,7 +108,7 @@ def test_autofix_json_output(
     run_test_autofix(
         run_semgrep_on_copied_files,
         tmp_path,
-        snapshot,
+        posix_snapshot,
         rule,
         target,
         dryrun,
@@ -124,7 +125,7 @@ def test_autofix_json_output(
 def test_autofix_json_output_osemfail(
     run_semgrep_on_copied_files: RunSemgrep,
     tmp_path,
-    snapshot,
+    posix_snapshot,
     rule,
     target,
     dryrun,
@@ -133,7 +134,7 @@ def test_autofix_json_output_osemfail(
     run_test_autofix(
         run_semgrep_on_copied_files,
         tmp_path,
-        snapshot,
+        posix_snapshot,
         rule,
         target,
         dryrun,
@@ -150,7 +151,7 @@ def test_autofix_json_output_osemfail(
 def test_autofix_text_output(
     run_semgrep_on_copied_files: RunSemgrep,
     tmp_path,
-    snapshot,
+    posix_snapshot,
     rule,
     target,
     dryrun,
@@ -159,7 +160,7 @@ def test_autofix_text_output(
     run_test_autofix(
         run_semgrep_on_copied_files,
         tmp_path,
-        snapshot,
+        posix_snapshot,
         rule,
         target,
         dryrun,

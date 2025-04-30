@@ -742,4 +742,6 @@ def posix_snapshot(snapshot):
     return PosixSnapshot(snapshot) if IS_WINDOWS else snapshot
 
 
+# Used to mark tests that are failing in Windows due to non-portable test
+# logic.
 skip_on_windows = pytest.mark.skipif(IS_WINDOWS, reason="Failing on Windows")

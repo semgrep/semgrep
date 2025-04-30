@@ -1,6 +1,7 @@
 import json
 
 import pytest
+from tests.conftest import skip_on_windows
 from tests.fixtures import RunSemgrep
 
 from semgrep.constants import OutputFormat
@@ -30,8 +31,9 @@ from semgrep.constants import OutputFormat
     ],
 )
 @pytest.mark.parametrize("dataflow_traces", [True, False], ids=["trace", "notrace"])
+@skip_on_windows  # matchBasedId change
 def test_sarif_output(
-    run_semgrep_in_tmp: RunSemgrep, snapshot, rule_and_target, dataflow_traces
+    run_semgrep_in_tmp: RunSemgrep, posix_snapshot, rule_and_target, dataflow_traces
 ):
     rule, target = rule_and_target
     if dataflow_traces:
@@ -47,7 +49,7 @@ def test_sarif_output(
         assert_exit_code=0,
         is_logged_in_weak=True,
     )
-    snapshot.assert_match(res.stdout, "results.sarif")
+    posix_snapshot.assert_match(res.stdout, "results.sarif")
 
 
 @pytest.mark.kinda_slow
@@ -61,8 +63,9 @@ def test_sarif_output(
 )
 @pytest.mark.parametrize("dataflow_traces", [True, False])
 @pytest.mark.osemfail
+@skip_on_windows  # matchBasedId change, better backslash replace logic
 def test_sarif_output_osemfail(
-    run_semgrep_in_tmp: RunSemgrep, snapshot, rule_and_target, dataflow_traces
+    run_semgrep_in_tmp: RunSemgrep, posix_snapshot, rule_and_target, dataflow_traces
 ):
     rule, target = rule_and_target
     if dataflow_traces:
@@ -78,14 +81,15 @@ def test_sarif_output_osemfail(
         assert_exit_code=0,
         is_logged_in_weak=True,
     )
-    snapshot.assert_match(res.stdout, "results.sarif")
+    posix_snapshot.assert_match(res.stdout, "results.sarif")
 
 
 # If there are nosemgrep comments to ignore findings, SARIF output should
 # include them labeled as suppressed.
 @pytest.mark.kinda_slow
-def test_sarif_output_include_nosemgrep(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    snapshot.assert_match(
+@skip_on_windows  # matchBasedId change
+def test_sarif_output_include_nosemgrep(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
+    posix_snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/regex/regex-nosemgrep.yaml",
             target_name="basic/regex-nosemgrep.txt",
@@ -98,8 +102,9 @@ def test_sarif_output_include_nosemgrep(run_semgrep_in_tmp: RunSemgrep, snapshot
 
 # Test that rule board information makes its way into SARIF output
 @pytest.mark.kinda_slow
-def test_sarif_output_rule_board(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    snapshot.assert_match(
+@skip_on_windows  # matchBasedId change
+def test_sarif_output_rule_board(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
+    posix_snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/rule-board-eqeq.yaml",
             target_name="basic/stupid.py",
@@ -111,7 +116,8 @@ def test_sarif_output_rule_board(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_sarif_output_with_source(run_semgrep_in_tmp: RunSemgrep, snapshot):
+@skip_on_windows  # matchBasedId change
+def test_sarif_output_with_source(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     stdout = run_semgrep_in_tmp(
         "rules/eqeq-source.yml",
         env={"MOCK_USING_REGISTRY": "1"},
@@ -119,7 +125,7 @@ def test_sarif_output_with_source(run_semgrep_in_tmp: RunSemgrep, snapshot):
         is_logged_in_weak=True,
     ).stdout
 
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/eqeq-source.yml",
             output_format=OutputFormat.SARIF,
@@ -140,14 +146,15 @@ def test_sarif_output_with_source(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_sarif_output_with_source_edit(run_semgrep_in_tmp: RunSemgrep, snapshot):
+@skip_on_windows  # matchBasedId change
+def test_sarif_output_with_source_edit(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     stdout = run_semgrep_in_tmp(
         "rules/eqeq-meta.yaml",
         output_format=OutputFormat.SARIF,
         is_logged_in_weak=True,
     ).stdout
 
-    snapshot.assert_match(stdout, "results.sarif")
+    posix_snapshot.assert_match(stdout, "results.sarif")
 
     # Assert that each sarif rule object has a helpURI
     for rule in json.loads(stdout)["runs"][0]["tool"]["driver"]["rules"]:
@@ -156,10 +163,11 @@ def test_sarif_output_with_source_edit(run_semgrep_in_tmp: RunSemgrep, snapshot)
 
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
+@skip_on_windows  # matchBasedId change
 def test_sarif_output_with_nosemgrep_and_error(
-    run_semgrep_in_tmp: RunSemgrep, snapshot
+    run_semgrep_in_tmp: RunSemgrep, posix_snapshot
 ):
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/eqeq.yaml",
             target_name="nosemgrep/eqeq-nosemgrep.py",
@@ -172,8 +180,9 @@ def test_sarif_output_with_nosemgrep_and_error(
 
 
 @pytest.mark.kinda_slow
-def test_sarif_output_with_autofix(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    snapshot.assert_match(
+@skip_on_windows  # matchBasedId change
+def test_sarif_output_with_autofix(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
+    posix_snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/autofix/autofix.yaml",
             target_name="autofix/autofix.py",
@@ -186,8 +195,11 @@ def test_sarif_output_with_autofix(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_sarif_output_with_dataflow_traces(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    snapshot.assert_match(
+@skip_on_windows  # matchBasedId change, better backslash replace logic
+def test_sarif_output_with_dataflow_traces(
+    run_semgrep_in_tmp: RunSemgrep, posix_snapshot
+):
+    posix_snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/taint.yaml",
             target_name="taint/taint.py",
@@ -201,8 +213,9 @@ def test_sarif_output_with_dataflow_traces(run_semgrep_in_tmp: RunSemgrep, snaps
 
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
-def test_sarif_output_when_errors(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    snapshot.assert_match(
+@skip_on_windows  # better backslash replace logic
+def test_sarif_output_when_errors(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
+    posix_snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/eqeq.yaml",
             target_name="basic/inexistent.py",

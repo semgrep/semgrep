@@ -1,4 +1,5 @@
 import pytest
+from tests.conftest import skip_on_windows
 from tests.fixtures import RunSemgrep
 
 from semgrep.constants import OutputFormat
@@ -13,8 +14,9 @@ from semgrep.constants import OutputFormat
     ],
 )
 @pytest.mark.osemfail
+@skip_on_windows  # better backslash replacement logic
 def test_file_parser__failure__error_messages(
-    run_semgrep_in_tmp: RunSemgrep, snapshot, settings
+    run_semgrep_in_tmp: RunSemgrep, posix_snapshot, settings
 ):
     stdout, stderr = run_semgrep_in_tmp(
         config=f"rules/{settings['rule']}",
@@ -24,8 +26,8 @@ def test_file_parser__failure__error_messages(
         force_color=True,
         assert_exit_code=3,
     )
-    snapshot.assert_match(stdout, "out.json")
-    snapshot.assert_match(stderr, "error.txt")
+    posix_snapshot.assert_match(stdout, "out.json")
+    posix_snapshot.assert_match(stderr, "error.txt")
 
 
 @pytest.mark.kinda_slow
@@ -36,8 +38,9 @@ def test_file_parser__failure__error_messages(
     ],
 )
 @pytest.mark.osemfail
+@skip_on_windows  # better masking logic
 def test_rule_parser__failure__error_messages(
-    run_semgrep_in_tmp: RunSemgrep, snapshot, settings
+    run_semgrep_in_tmp: RunSemgrep, posix_snapshot, settings
 ):
     stdout, stderr = run_semgrep_in_tmp(
         config=f"rules/{settings['rule']}",
@@ -47,8 +50,8 @@ def test_rule_parser__failure__error_messages(
         force_color=True,
         assert_exit_code=2,
     )
-    snapshot.assert_match(stdout, "out.json")
-    snapshot.assert_match(stderr, "error.txt")
+    posix_snapshot.assert_match(stdout, "out.json")
+    posix_snapshot.assert_match(stderr, "error.txt")
 
 
 # check that we report a parse error only once per file, even if we
@@ -56,7 +59,8 @@ def test_rule_parser__failure__error_messages(
 # TODO: merge with the parametrize above?
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
-def test_parse_errors(run_semgrep_in_tmp: RunSemgrep, snapshot):
+@skip_on_windows  # better backslash replacement logic
+def test_parse_errors(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     _results, errors = run_semgrep_in_tmp(
         "rules/two_rules/",
         options=["--verbose"],
@@ -65,7 +69,7 @@ def test_parse_errors(run_semgrep_in_tmp: RunSemgrep, snapshot):
         force_color=True,
         strict=False,
     )
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         errors,
         "errors.txt",
     )

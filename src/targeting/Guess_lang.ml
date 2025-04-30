@@ -80,6 +80,10 @@ let is_executable =
     &&
     let st = Unix.stat !!path in
     match st.st_kind with
+    | S_REG when Platform.is_windows ->
+        (* File perms cannot tell us whether a file is an executable script
+           on Windows so we only check that a regular file exists. *)
+        true
     | S_REG ->
         (* at least some user has exec permission *)
         st.st_perm land 0o111 <> 0

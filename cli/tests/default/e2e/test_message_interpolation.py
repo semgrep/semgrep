@@ -44,17 +44,19 @@ from semgrep.constants import OutputFormat
         ),
     ],
 )
-def test_message_interpolation(run_semgrep_in_tmp: RunSemgrep, snapshot, rule, target):
-    snapshot.assert_match(
+def test_message_interpolation(
+    run_semgrep_in_tmp: RunSemgrep, posix_snapshot, rule, target
+):
+    posix_snapshot.assert_match(
         run_semgrep_in_tmp(rule, target_name=target).stdout, "results.json"
     )
 
 
 @pytest.mark.slow
-def test_no_double_interpolation(run_semgrep_in_tmp: RunSemgrep, snapshot):
+def test_no_double_interpolation(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     stdout, _ = run_semgrep_in_tmp(
         "rules/message_interpolation/interpolated_message.yaml",
         target_name="message_interpolation/target_with_metavariable.py",
         output_format=OutputFormat.JSON,  # Not the real output format; just disables JSON parsing
     )
-    snapshot.assert_match(stdout, "report.json")
+    posix_snapshot.assert_match(stdout, "report.json")

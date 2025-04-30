@@ -13,6 +13,7 @@ from typing import Optional
 from typing import Set
 
 import pytest
+from tests.conftest import skip_on_windows
 from tests.fixtures import RunSemgrep
 
 
@@ -109,7 +110,9 @@ def check_expectation(
 ):
     # TODO: remove requested_semgrepignore_v2 since it's now always true
     requested_semgrepignore_v2 = True
-    paths = expect.paths
+
+    # Convert path to use OS's correct path separator
+    paths = [str(Path(path)) for path in expect.paths]
 
     # We expect semgrepignore v2 behavior if we call osemgrep directly or
     # via the --use-semgrepignore-v2 option.
@@ -548,7 +551,13 @@ ALT_SEMGREPIGNORE_EXPECTATIONS = [
             [],
             GIT_BASELINE_COMMIT_EXPECTATIONS,
         ),
-        (Config.NOVCS, [], [], COMMON_EXPECTATIONS + NOVCS_PROJECT_EXPECTATIONS),
+        pytest.param(
+            Config.NOVCS,
+            [],
+            [],
+            COMMON_EXPECTATIONS + NOVCS_PROJECT_EXPECTATIONS,
+            marks=skip_on_windows,  # Removing .git fails with perm error
+        ),
         (
             Config.IGNOREGIT,
             ["--no-git-ignore"],
@@ -561,20 +570,22 @@ ALT_SEMGREPIGNORE_EXPECTATIONS = [
             [],
             GIT_DEFAULT_SEMGREPIGNORE_EXPECTATIONS,
         ),
-        (
+        pytest.param(
             Config.NOVCS_DEFAULT_SEMGREPIGNORE,
             [],
             [],
             NOVCS_DEFAULT_SEMGREPIGNORE_EXPECTATIONS,
+            marks=skip_on_windows,  # Removing .git fails with perm error
         ),
         (Config.GIT_EMPTY_SEMGREPIGNORE, [], [], GIT_EMPTY_SEMGREPIGNORE_EXPECTATIONS),
-        (
+        pytest.param(
             Config.NOVCS_EMPTY_SEMGREPIGNORE,
             [],
             [],
             NOVCS_EMPTY_SEMGREPIGNORE_EXPECTATIONS,
+            marks=skip_on_windows,  # Removing .git fails with perm error
         ),
-        (
+        pytest.param(
             Config.GIT_EXCLUDE,
             [
                 "--exclude",
@@ -584,8 +595,14 @@ ALT_SEMGREPIGNORE_EXPECTATIONS = [
             ],
             [],
             GIT_EXCLUDE_EXPECTATIONS,
+            # When running the subprocess, the
+            # `semgrepignored-at-root2/**` argument is escaped by the
+            # subprocess to be wrapped in single quotes. This causes
+            # the exclude pattern to fail. Running the equivalent
+            # command run in the test on the CLI works correctly.
+            marks=skip_on_windows,
         ),
-        (
+        pytest.param(
             Config.NOVCS_EXCLUDE,
             [
                 "--exclude",
@@ -595,6 +612,12 @@ ALT_SEMGREPIGNORE_EXPECTATIONS = [
             ],
             [],
             NOVCS_EXCLUDE_EXPECTATIONS,
+            # When running the subprocess, the
+            # `semgrepignored-at-root2/**` argument is escaped by the
+            # subprocess to be wrapped in single quotes. This causes
+            # the exclude pattern to fail. Running the equivalent
+            # command run in the test on the CLI works correctly.
+            marks=skip_on_windows,
         ),
         (
             Config.GIT_INCLUDE,
