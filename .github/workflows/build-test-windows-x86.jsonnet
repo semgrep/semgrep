@@ -139,7 +139,7 @@ local build_core_job = {
       run: |||
         export TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include
         export TREESITTER_LIBDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/lib
-        export TREESITTER_BINDIR="$treesitter_prefix/bin"
+        export TREESITTER_BINDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/bin
 
         # We have to strip rpath from the tree-sitter projects because there's no
         # equivalent in Windows
