@@ -313,7 +313,7 @@ local copy_executable_dlls(executable, target_dir) =
       mkdir -p %(dst)s
       SYS_ROOT_BIN="$(x86_64-w64-mingw32-gcc -print-sysroot)/mingw/bin"
       TREESITTER_BINDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/bin
-      dlls=$(PATH=$TREESITTER_BINDIR:$SYS_ROOT_BIN:$PATH cygcheck "%(exe)s" | grep 'x86_64-w64-mingw32' | sed 's/^[[:space:]]*//' | sort -u)
+      dlls=$(PATH=$TREESITTER_BINDIR:$SYS_ROOT_BIN:$PATH cygcheck "%(exe)s" | grep '\(x86_64-w64-mingw32\|ocaml-tree-sitter-core\)' | sed 's/^[[:space:]]*//' | sort -u)
       for dll in $dlls; do
         echo "Copying $dll to %(dst)s/"
         cp -p "$dll" "%(dst)s"
