@@ -994,13 +994,17 @@ def ci(
                     )
 
                 ref_if_available = f"&ref={metadata.branch}" if metadata.branch else ""
-
-                logger.info(
-                    f"    {state.env.semgrep_url}/orgs/{scan_handler.deployment_name}/findings?repo={metadata.repo_display_name}{ref_if_available}"
-                )
-                if "r2c-internal-project-depends-on" in scan_handler.rules:
+                if "sast" in scan_handler.enabled_products:
+                    logger.info(
+                        f"    {state.env.semgrep_url}/orgs/{scan_handler.deployment_name}/findings?repo={metadata.repo_display_name}{ref_if_available}"
+                    )
+                if "sca" in scan_handler.enabled_products:
                     logger.info(
                         f"    {state.env.semgrep_url}/orgs/{scan_handler.deployment_name}/supply-chain/vulnerabilities?repo={metadata.repo_display_name}{ref_if_available}"
+                    )
+                if "secrets" in scan_handler.enabled_products:
+                    logger.info(
+                        f"    {state.env.semgrep_url}/orgs/{scan_handler.deployment_name}/secrets?repo={metadata.repo_display_name}{ref_if_available}"
                     )
 
         # Although the cli came up with a suggested exit code, we could still
