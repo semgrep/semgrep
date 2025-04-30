@@ -860,9 +860,9 @@ let o_exclude_minified_files : bool Term.t =
     ~neg_options:[ "no-exclude-minified-files" ]
     ~default:default.targeting_conf.exclude_minified_files
     ~doc:
-      {|Skip minified files. These are files that are > 7% whitespace, or who
-        have a large number of bytes per line. By default minified files are
-   scanned |}
+      {|Skip minified files. These are files that are < 7% whitespace, or which
+        have an average of > 1000 bytes per line. By default minified files are
+   scanned. |}
 
 (* ------------------------------------------------------------------ *)
 (* Alternate modes *)
