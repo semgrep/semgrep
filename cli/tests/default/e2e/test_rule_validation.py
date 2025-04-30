@@ -1,4 +1,5 @@
 import pytest
+from tests.conftest import skip_on_windows
 from tests.fixtures import RunSemgrep
 
 from semgrep.constants import OutputFormat
@@ -21,7 +22,10 @@ from semgrep.constants import OutputFormat
     ],
 )
 @pytest.mark.osemfail
-def test_validation_of_invalid_rules(run_semgrep_in_tmp: RunSemgrep, snapshot, rule):
+@skip_on_windows  # better backslash replacement logic
+def test_validation_of_invalid_rules(
+    run_semgrep_in_tmp: RunSemgrep, posix_snapshot, rule
+):
     _, err = run_semgrep_in_tmp(
         rule,
         options=["--validate"],
@@ -29,7 +33,7 @@ def test_validation_of_invalid_rules(run_semgrep_in_tmp: RunSemgrep, snapshot, r
         assert_exit_code={2, 4},
     )
 
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         err,
         "results.txt",
     )
@@ -43,7 +47,7 @@ def test_validation_of_invalid_rules(run_semgrep_in_tmp: RunSemgrep, snapshot, r
     ],
 )
 @pytest.mark.osemfail
-def test_extra_top_level_valid(run_semgrep_in_tmp: RunSemgrep, snapshot, rule):
+def test_extra_top_level_valid(run_semgrep_in_tmp: RunSemgrep, posix_snapshot, rule):
     """
     An extra field in the rule does not cause it to fail validation
     """
@@ -54,7 +58,7 @@ def test_extra_top_level_valid(run_semgrep_in_tmp: RunSemgrep, snapshot, rule):
         assert_exit_code={0},
     )
 
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         err,
         "results.txt",
     )

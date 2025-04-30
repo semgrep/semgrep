@@ -3,8 +3,8 @@ from tests.fixtures import RunSemgrep
 
 
 @pytest.mark.kinda_slow
-def test_metavariable_comparison_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    snapshot.assert_match(
+def test_metavariable_comparison_rule(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
+    posix_snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/metavariable-comparison/metavariable-comparison.yaml"
         ).stdout,
@@ -13,8 +13,10 @@ def test_metavariable_comparison_rule(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 
 @pytest.mark.kinda_slow
-def test_metavariable_comparison_rule_base(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    snapshot.assert_match(
+def test_metavariable_comparison_rule_base(
+    run_semgrep_in_tmp: RunSemgrep, posix_snapshot
+):
+    posix_snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/metavariable-comparison/metavariable-comparison-base.yaml"
         ).stdout,
@@ -23,8 +25,10 @@ def test_metavariable_comparison_rule_base(run_semgrep_in_tmp: RunSemgrep, snaps
 
 
 @pytest.mark.kinda_slow
-def test_metavariable_comparison_rule_strip(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    snapshot.assert_match(
+def test_metavariable_comparison_rule_strip(
+    run_semgrep_in_tmp: RunSemgrep, posix_snapshot
+):
+    posix_snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/metavariable-comparison/metavariable-comparison-strip.yaml"
         ).stdout,
@@ -34,9 +38,9 @@ def test_metavariable_comparison_rule_strip(run_semgrep_in_tmp: RunSemgrep, snap
 
 @pytest.mark.kinda_slow
 def test_metavariable_comparison_rule_bad_content(
-    run_semgrep_in_tmp: RunSemgrep, snapshot
+    run_semgrep_in_tmp: RunSemgrep, posix_snapshot
 ):
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/metavariable-comparison/metavariable-comparison-bad-content.yaml"
         ).stdout,
@@ -45,8 +49,10 @@ def test_metavariable_comparison_rule_bad_content(
 
 
 @pytest.mark.kinda_slow
-def test_metavariable_propagation_comparison(run_semgrep_in_tmp: RunSemgrep, snapshot):
-    snapshot.assert_match(
+def test_metavariable_propagation_comparison(
+    run_semgrep_in_tmp: RunSemgrep, posix_snapshot
+):
+    posix_snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/metavariable_propagation/metavariable-comparison-propagation.yaml",
             target_name="metavariable_propagation/metavariable-comparison-propagation.py",

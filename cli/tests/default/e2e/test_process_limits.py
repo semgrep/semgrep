@@ -1,5 +1,6 @@
 import pytest
 from tests.conftest import mask_times
+from tests.conftest import skip_on_windows
 from tests.fixtures import RunSemgrep
 
 from semgrep.constants import OutputFormat
@@ -10,22 +11,24 @@ from semgrep.constants import OutputFormat
 # a ulimit issue
 @pytest.mark.osemfail
 @pytest.mark.kinda_slow
-def test_max_memory(run_semgrep_in_tmp: RunSemgrep, snapshot):
+@skip_on_windows  # better backslash replacement logic
+def test_max_memory(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     stdout, stderr = run_semgrep_in_tmp(
         "rules/long.yaml",
         options=["--verbose", "--max-memory", "1"],
         target_name="equivalence",
         strict=False,
     )
-    snapshot.assert_match(mask_times(stdout), "results.json")
-    snapshot.assert_match(stderr, "error.txt")
+    posix_snapshot.assert_match(mask_times(stdout), "results.json")
+    posix_snapshot.assert_match(stderr, "error.txt")
 
 
 @pytest.mark.slow
-def test_timeout(run_semgrep_in_tmp: RunSemgrep, snapshot):
+@skip_on_windows  # better backslash replacement logic
+def test_timeout(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     # Check that semgrep-core timeouts are properly handled
 
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/long.yaml",
             options=["--timeout", "1"],
@@ -38,19 +41,20 @@ def test_timeout(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 @pytest.mark.osemfail
 @pytest.mark.slow
-def test_timeout_threshold(run_semgrep_in_tmp: RunSemgrep, snapshot):
+@skip_on_windows  # better backslash replacement logic
+def test_timeout_threshold(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     results = run_semgrep_in_tmp(
         "rules/multiple-long.yaml",
         options=["--verbose", "--timeout", "1", "--timeout-threshold", "1"],
         target_name="equivalence",
         strict=False,
     ).stdout
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         mask_times(results),
         "results.json",
     )
 
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/multiple-long.yaml",
             output_format=OutputFormat.TEXT,
@@ -62,7 +66,7 @@ def test_timeout_threshold(run_semgrep_in_tmp: RunSemgrep, snapshot):
         "error.txt",
     )
 
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/multiple-long.yaml",
             output_format=OutputFormat.TEXT,
@@ -77,7 +81,8 @@ def test_timeout_threshold(run_semgrep_in_tmp: RunSemgrep, snapshot):
 
 @pytest.mark.osemfail
 @pytest.mark.slow
-def test_spacegrep_timeout(run_semgrep_in_tmp: RunSemgrep, snapshot):
+@skip_on_windows  # better backslash replacement logic
+def test_spacegrep_timeout(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     # Check that spacegrep timeouts are handled gracefully.
     #
     # The pattern is designed to defeat any optimization that would
@@ -94,5 +99,5 @@ def test_spacegrep_timeout(run_semgrep_in_tmp: RunSemgrep, snapshot):
         strict=False,  # don't fail due to timeout
     )
 
-    snapshot.assert_match(stdout, "results.json")
-    snapshot.assert_match(stderr, "error.txt")
+    posix_snapshot.assert_match(stdout, "results.json")
+    posix_snapshot.assert_match(stderr, "error.txt")

@@ -52,14 +52,24 @@ _SEMGREP_PATH = str(
     ).absolute()
 )
 
+# On POSIX systems, the entrypoint script is executed with python via
+# the shebang `#!/usr/bin/env python` but shebangs don't work on Windows
+# via Popen, so we need to explicitly specify what program to run the
+# entrypoint script with.
+#
+# `sys.executable` gives an absolute path to the running python
+# interpreter. See
+# https://docs.python.org/3.14/library/subprocess.html#subprocess.Popen
+PYTHON_EXECUTABLE: List[str] = [sys.executable] if IS_WINDOWS else []
+
 # Deprecated. Use 'mk_semgrep_base_command("scan", args)'
 #
 # Exported constant, convenient to use in a list context.
 # This is not safe to use if you are going to append any subcommands after!
 # For instance, SEMGREP_BASE_SCAN_COMMAND + ["logout"] will fail with osemgrep,
 # because the subcommand must come first.
-SEMGREP_BASE_SCAN_COMMAND: List[str] = (
-    [_SEMGREP_PATH] + _OSEMGREP_EXTRA_ARGS if USE_OSEMGREP else [_SEMGREP_PATH]
+SEMGREP_BASE_SCAN_COMMAND: List[str] = (PYTHON_EXECUTABLE + [_SEMGREP_PATH]) + (
+    _OSEMGREP_EXTRA_ARGS if USE_OSEMGREP else []
 )
 
 # Deprecated. Use 'mk_semgrep_base_command("scan", args)'
@@ -77,7 +87,7 @@ def mk_semgrep_base_command(subcommand: str, args: List[str]):
     if USE_OSEMGREP:
         if subcommand in ["ci", "install-semgrep-pro", "lsp", "scan"]:
             args = _OSEMGREP_EXTRA_ARGS + args
-    return [_SEMGREP_PATH] + [subcommand] + args
+    return PYTHON_EXECUTABLE + [_SEMGREP_PATH] + [subcommand] + args
 
 
 # TODO: this should be removed as we don't want to run tests with Click
@@ -123,18 +133,7 @@ def fork_semgrep(
 
     # ugly: adding --project-root for --help would trigger the wrong help message
     if "-h" in args or "--help" in args:
-        argv = [_SEMGREP_PATH] + args
-
-    if IS_WINDOWS:
-        # On POSIX systems, the entrypoint script is executed with python via
-        # the shebang `#!/usr/bin/env python` but shebangs don't work on Windows
-        # via Popen, so we need to explicitly spicify what program to run the
-        # entrypoint script with.
-        #
-        # `sys.executable` gives an absolute path to the running python
-        # interpreter. See
-        # https://docs.python.org/3.14/library/subprocess.html#subprocess.Popen
-        argv = [sys.executable] + argv
+        argv = PYTHON_EXECUTABLE + [_SEMGREP_PATH] + args
 
     # env preparation
     env_dict = {}

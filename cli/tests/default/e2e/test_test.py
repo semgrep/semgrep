@@ -22,15 +22,17 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from tests.conftest import skip_on_windows
 from tests.fixtures import RunSemgrep
 from tests.semgrep_runner import SEMGREP_BASE_SCAN_COMMAND
 
 from semgrep.constants import OutputFormat
+from semgrep.util import IS_WINDOWS
 
 
 # It should report the passed checks in the JSON output
 @pytest.mark.kinda_slow
-def test_cli_test_basic(run_semgrep_in_tmp: RunSemgrep, snapshot):
+def test_cli_test_basic(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/basic.yaml",
         options=["--test"],
@@ -38,7 +40,7 @@ def test_cli_test_basic(run_semgrep_in_tmp: RunSemgrep, snapshot):
         output_format=OutputFormat.JSON,
     )
 
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         results,
         "results.json",
     )
@@ -49,7 +51,7 @@ def test_cli_test_basic(run_semgrep_in_tmp: RunSemgrep, snapshot):
 # a directory (ability heavily used in semgrep-rules/scripts/run-test.sh)
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
-def test_cli_test_directory(run_semgrep_in_tmp: RunSemgrep, snapshot):
+def test_cli_test_directory(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/test_test/directory/",
         options=["--test"],
@@ -57,7 +59,7 @@ def test_cli_test_directory(run_semgrep_in_tmp: RunSemgrep, snapshot):
         output_format=OutputFormat.JSON,
     )
 
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         results,
         "results.json",
     )
@@ -68,7 +70,8 @@ def test_cli_test_directory(run_semgrep_in_tmp: RunSemgrep, snapshot):
 # TODO: adding "--timeout", "1", does not seem to speedup things
 @pytest.mark.slow
 @pytest.mark.osemfail
-def test_timeout(run_semgrep_in_tmp: RunSemgrep, snapshot):
+@skip_on_windows  # better backslash replacement logic
+def test_timeout(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/test_test/rule_that_timeout.yaml",
         options=["--test"],
@@ -76,7 +79,7 @@ def test_timeout(run_semgrep_in_tmp: RunSemgrep, snapshot):
         output_format=OutputFormat.JSON,
         assert_exit_code=1,
     )
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         results,
         "results.json",
     )
@@ -89,14 +92,14 @@ def test_timeout(run_semgrep_in_tmp: RunSemgrep, snapshot):
 # directories so in theory we could).
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
-def test_cli_test_yaml_language(run_semgrep_in_tmp: RunSemgrep, snapshot):
+def test_cli_test_yaml_language(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/test_test/yaml_language/",
         options=["--test"],
         target_name="test_test/yaml_language/",
         output_format=OutputFormat.JSON,
     )
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         results,
         "results.json",
     )
@@ -106,14 +109,14 @@ def test_cli_test_yaml_language(run_semgrep_in_tmp: RunSemgrep, snapshot):
 # (e.g., this.that.rule.yaml)
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
-def test_cli_test_suffixes(run_semgrep_in_tmp: RunSemgrep, snapshot):
+def test_cli_test_suffixes(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/test_test/suffixes/",
         options=["--test"],
         target_name="test_test/suffixes/",
         output_format=OutputFormat.JSON,
     )
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         results,
         "results.json",
     )
@@ -122,7 +125,7 @@ def test_cli_test_suffixes(run_semgrep_in_tmp: RunSemgrep, snapshot):
 # It should support multiple annotations per line in a test file as
 # in '#ruleid: rule1, rule2'
 @pytest.mark.kinda_slow
-def test_cli_test_multiple_annotations(run_semgrep_in_tmp: RunSemgrep, snapshot):
+def test_cli_test_multiple_annotations(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/test_test/overlapping_rules.yaml",
         options=["--test"],
@@ -130,7 +133,7 @@ def test_cli_test_multiple_annotations(run_semgrep_in_tmp: RunSemgrep, snapshot)
         output_format=OutputFormat.TEXT,
         force_color=True,
     )
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         results,
         "results.txt",
     )
@@ -139,7 +142,10 @@ def test_cli_test_multiple_annotations(run_semgrep_in_tmp: RunSemgrep, snapshot)
 # TODO: Not sure what we're testing here
 # was added in https://github.com/semgrep/semgrep/pull/8427 By Austin
 @pytest.mark.slow
-def test_cli_test_from_entrypoint(snapshot):
+# works correctly on Windows when run separately, but timesout when run with -n
+# auto alongside other tests.
+@skip_on_windows
+def test_cli_test_from_entrypoint(posix_snapshot):
     env = {}
     env["PATH"] = os.environ.get("PATH", "")
 
@@ -149,6 +155,12 @@ def test_cli_test_from_entrypoint(snapshot):
         "rules/basic.yaml",
         "targets/test_test/basic.py",
     ]
+    if IS_WINDOWS:
+        # todo: remove when Windows is a supported platform
+        env["SEMGREP_FORCE_INSTALL"] = "1"
+        # Required env vars to be able to run semgrep
+        env["SYSTEMROOT"] = os.environ.get("SYSTEMROOT", "")
+        env["USERPROFILE"] = os.environ.get("USERPROFILE", "")
     result = subprocess.run(
         cmd,
         cwd=Path(__file__).parent,
@@ -158,20 +170,20 @@ def test_cli_test_from_entrypoint(snapshot):
         env=env,
         timeout=15,
     )
-    snapshot.assert_match(result.stdout, "output.txt")
+    posix_snapshot.assert_match(result.stdout, "output.txt")
 
 
 # It should ignore the 'paths:' 'include:' directive in the rule so it
 # can be applied on a test file with a filename not satisfying the 'include:'.
 @pytest.mark.kinda_slow
-def test_cli_test_ignore_rule_paths(run_semgrep_in_tmp: RunSemgrep, snapshot):
+def test_cli_test_ignore_rule_paths(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/test_test/rule_with_paths_include_bar_xml.yaml",
         options=["--test"],
         target_name="test_test/foo.xml",
         output_format=OutputFormat.JSON,
     )
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         results,
         "results.json",
     )
@@ -182,7 +194,7 @@ def test_cli_test_ignore_rule_paths(run_semgrep_in_tmp: RunSemgrep, snapshot):
 # TODO: actually we're masking the <matches> in results.json, because
 # of the use of realpath for the filenames, so this test is incomplete.
 @pytest.mark.kinda_slow
-def test_cli_todook_filtering(run_semgrep_in_tmp: RunSemgrep, snapshot):
+def test_cli_todook_filtering(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     results, _ = run_semgrep_in_tmp(
         "rules/basic.yaml",
         options=["--test"],
@@ -190,7 +202,7 @@ def test_cli_todook_filtering(run_semgrep_in_tmp: RunSemgrep, snapshot):
         output_format=OutputFormat.JSON,
     )
 
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         results,
         "results.json",
     )

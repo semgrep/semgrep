@@ -4,7 +4,7 @@ from tests.fixtures import RunSemgrep
 
 def generic_test_max_target_bytes(
     run_semgrep_in_tmp: RunSemgrep,
-    snapshot,
+    posix_snapshot,
     max_bytes,
     check_results=True,
     check_output=True,
@@ -16,20 +16,20 @@ def generic_test_max_target_bytes(
         assert_exit_code=None,
     )
     if check_results:
-        snapshot.assert_match(stdout, "results.json")
+        posix_snapshot.assert_match(stdout, "results.json")
     if check_output:
-        snapshot.assert_match(stderr, "error.txt")
+        posix_snapshot.assert_match(stderr, "error.txt")
 
 
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("max_bytes", ["1MB", "1.3R", "100B", "1B"])
 @pytest.mark.osemfail
 def test_max_target_bytes_results(
-    run_semgrep_on_copied_files: RunSemgrep, snapshot, max_bytes
+    run_semgrep_on_copied_files: RunSemgrep, posix_snapshot, max_bytes
 ):
     generic_test_max_target_bytes(
         run_semgrep_on_copied_files,
-        snapshot,
+        posix_snapshot,
         max_bytes,
         check_results=True,
         check_output=False,
@@ -40,11 +40,11 @@ def test_max_target_bytes_results(
 @pytest.mark.parametrize("max_bytes", ["1MB", "1.3R"])
 @pytest.mark.osemfail
 def test_max_target_bytes_output(
-    run_semgrep_in_test_folder: RunSemgrep, snapshot, max_bytes
+    run_semgrep_in_test_folder: RunSemgrep, posix_snapshot, max_bytes
 ):
     generic_test_max_target_bytes(
         run_semgrep_in_test_folder,
-        snapshot,
+        posix_snapshot,
         max_bytes,
         check_results=False,
         check_output=True,
@@ -64,6 +64,6 @@ def test_max_target_bytes_output(
 @pytest.mark.parametrize("max_bytes", ["100B", "1B"])
 @pytest.mark.pysemfail
 def test_max_target_bytes_output_pysemfail(
-    run_semgrep_on_copied_files: RunSemgrep, snapshot, max_bytes
+    run_semgrep_on_copied_files: RunSemgrep, posix_snapshot, max_bytes
 ):
-    test_max_target_bytes_output(run_semgrep_on_copied_files, snapshot, max_bytes)
+    test_max_target_bytes_output(run_semgrep_on_copied_files, posix_snapshot, max_bytes)

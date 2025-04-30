@@ -351,7 +351,11 @@ class BaselineHandler:
                 f"Error running `git worktree list`:\n----stdout----\n{list_stdout}\n----stderr:----\n{list_stderr}\n`git worktree list` is invoked via a subprocess, this should not be possible"
             )
         else:
-            if worktree_dir in list_stdout.strip():
+            # git worktree displays the paths to worktrees in POSIX format
+            # but the path to the worktree may be a Windows path, which causes
+            # this conditional to fail on windows. Ensuring the worktree_dir is
+            # always converted to POSIX enables crossplatfrom correctness here.
+            if Path(worktree_dir).as_posix() in list_stdout.strip():
                 logger.debug("Removing the worktree")
                 # nosemgrep: use-git-check-output-helper - we should continue when this fails
                 res = subprocess.run(["git", "worktree", "remove", worktree_dir])

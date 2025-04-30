@@ -1,6 +1,7 @@
 # These tests used to be in test_exclude_include but they're mostly about
 # formatting results when files are skipped.
 import pytest
+from tests.conftest import skip_on_windows
 from tests.fixtures import RunSemgrep
 
 from semgrep.constants import OutputFormat
@@ -12,10 +13,11 @@ from semgrep.constants import OutputFormat
 # scanned.
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
+@skip_on_windows  # better backslash replacement
 def test_exclude_include_verbose_sorted_1(
-    run_semgrep_on_copied_files: RunSemgrep, snapshot
+    run_semgrep_on_copied_files: RunSemgrep, posix_snapshot
 ):
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         run_semgrep_on_copied_files(
             "rules/eqeq.yaml",
             options=["--exclude", "excluded.*", "--exclude", "included.*", "--verbose"],
@@ -33,13 +35,15 @@ def test_exclude_include_verbose_sorted_1(
 # scanned.
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
+@skip_on_windows  # better backslash replacement
 def test_exclude_include_verbose_sorted_2(
-    run_semgrep_on_copied_files: RunSemgrep, snapshot
+    run_semgrep_on_copied_files: RunSemgrep, posix_snapshot
 ):
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         run_semgrep_on_copied_files(
             "rules/nosem.yaml",
-            options=["--exclude", "*.*", "--verbose"],
+            # OCaml runtime expands '*.*' arguments
+            options=["--exclude=*.*", "--verbose"],
             output_format=OutputFormat.TEXT,
             target_name="basic",
             assert_exit_code=None,
