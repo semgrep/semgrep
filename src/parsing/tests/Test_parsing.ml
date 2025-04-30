@@ -395,11 +395,12 @@ let parsing_common
                match
                  Memory_limit.run_with_memory_limit
                    (caps :> < Cap.memory_limit >)
-                   ~mem_limit_mb
+                   ~mem_limit_mb ~using_eio:false
                    (fun () ->
                      Time_limit.set_timeout
                        (caps :> < Cap.time_limit >)
-                       ~name:"Test_parsing.parsing_common" timeout_seconds
+                       ~name:"Test_parsing.parsing_common" ~using_eio:false
+                       timeout_seconds
                        (fun () -> Parse_target.parse_and_resolve_name lang file))
                with
                | Some res ->

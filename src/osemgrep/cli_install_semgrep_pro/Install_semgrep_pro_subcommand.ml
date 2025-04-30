@@ -236,7 +236,7 @@ let run_conf (caps : < caps ; .. >) (conf : Install_semgrep_pro_CLI.conf) :
           let opt =
             Time_limit.set_timeout
               (caps :> < Cap.time_limit >)
-              ~name:"check pro version" 10.0
+              ~name:"check pro version" 10.0 ~using_eio:false
               (fun () ->
                 (* TODO?  Bos.OS.Cmd.run_out ~err:Bos.OS.Cmd.err_run_out *)
                 let result = CapExec.string_of_run caps#exec ~trim:true cmd in

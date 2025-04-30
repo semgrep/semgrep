@@ -63,13 +63,14 @@ let grow_heap goal_bytes =
    TODO: capture the output and check that the warning is there.
 *)
 let test_stack_warning caps =
-  Memory_limit.run_with_memory_limit caps ~stack_warning_kb:100 ~mem_limit_mb:0
-    (fun () -> grow_stack 3_000_000)
+  Memory_limit.run_with_memory_limit caps ~using_eio:false ~stack_warning_kb:100
+    ~mem_limit_mb:0 (fun () -> grow_stack 3_000_000)
 
 let test_memory_limit_with_heap caps =
   Gc.full_major ();
   try
-    Memory_limit.run_with_memory_limit caps ~mem_limit_mb:10 (fun () ->
+    Memory_limit.run_with_memory_limit caps ~using_eio:false ~mem_limit_mb:10
+      (fun () ->
         (* Ensure the heap grows to over the limit. *)
         grow_heap 11_000_000);
     assert false
@@ -78,8 +79,8 @@ let test_memory_limit_with_heap caps =
 
 let test_memory_limit_with_stack caps =
   try
-    Memory_limit.run_with_memory_limit caps ~mem_limit_mb:1 (fun () ->
-        grow_stack 1_500_000);
+    Memory_limit.run_with_memory_limit caps ~using_eio:false ~mem_limit_mb:1
+      (fun () -> grow_stack 1_500_000);
     assert false
   with
   | Memory_limit.ExceededMemoryLimit _ -> (* success *) ()

@@ -654,7 +654,7 @@ let iter_targets_and_get_matches_and_exn_to_errors
             Memory_limit.run_with_memory_limit
               (caps :> < Cap.memory_limit >)
               ~get_context:(get_context_for_memory_limit target)
-              ~mem_limit_mb:config.max_memory_mb
+              ~mem_limit_mb:config.max_memory_mb ~using_eio:config.use_eio
               (fun () ->
                 (* we used to call Time_limit.set_timeout() here, but
                  * this is now done in Match_rules.check() because we
@@ -821,9 +821,11 @@ let match_rules (caps : < Cap.time_limit ; .. >) ~matches_hook
   in
   let caps = (caps :> < Cap.time_limit >) in
   let timeout : Match_rules.timeout_config option =
-    let caps = (caps :> < Cap.time_limit >) in
-    Some
-      { timeout = config.timeout; threshold = config.timeout_threshold; caps }
+    if config.use_eio then None
+    else
+      let caps = (caps :> < Cap.time_limit >) in
+      Some
+        { timeout = config.timeout; threshold = config.timeout_threshold; caps }
   in
   (* !!Calling Match_rules!! Calling the matching engine!! *)
   Match_rules.check ~matches_hook ~timeout xconf rules xtarget
