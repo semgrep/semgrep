@@ -72,6 +72,7 @@ val run_with_memory_limit :
   ?stack_warning_kb:int ->
   ?heap_warning_mb:int ->
   mem_limit_mb:int ->
+  using_eio:bool ->
   (unit -> 'a) ->
   'a
 

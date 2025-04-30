@@ -133,7 +133,7 @@ let timed_computation_and_clear_timer info caps max_duration f :
 
   question: can we have a signal and so exn when in a exn handler ?
 *)
-let set_timeout (caps : < Cap.time_limit >) ~name max_duration f =
+let set_timeout (caps : < Cap.time_limit >) ~name ~using_eio max_duration f =
   (match !current_timer with
   | None -> ()
   | Some { Exception.name = running_name; max_duration = running_val } ->
@@ -142,28 +142,34 @@ let set_timeout (caps : < Cap.time_limit >) ~name max_duration f =
            "Common.set_timeout: cannot set a timeout %S of %g seconds. A timer \
             for %S of %g seconds is still running."
            name max_duration running_name running_val));
-  let info (* private *) = { Exception.name; max_duration } in
-  let timed_f, clear_timer =
-    timed_computation_and_clear_timer info caps max_duration f
-  in
-  try timed_f () with
-  | Timeout { Exception.name; max_duration } ->
-      clear_timer ();
-      Log.warn (fun m -> m "%S timeout at %g s (we abort)" name max_duration);
-      None
-  | exn ->
-      let e = Exception.catch exn in
-      (* It's important to disable the alarm before relaunching the exn,
+  if using_eio then begin
+    Log.err (fun m ->
+        m "Time limits are disabled with --x-eio, running without time limits");
+    Some (f ())
+  end
+  else
+    let info (* private *) = { Exception.name; max_duration } in
+    let timed_f, clear_timer =
+      timed_computation_and_clear_timer info caps max_duration f
+    in
+    try timed_f () with
+    | Timeout { Exception.name; max_duration } ->
+        clear_timer ();
+        Log.warn (fun m -> m "%S timeout at %g s (we abort)" name max_duration);
+        None
+    | exn ->
+        let e = Exception.catch exn in
+        (* It's important to disable the alarm before relaunching the exn,
          otherwise the alarm is still running.
 
          robust?: and if alarm launched after the log (...) ?
          Maybe signals are disabled when process an exception handler ?
       *)
-      clear_timer ();
-      Log.err (fun m -> m "exn while in set_timeout");
-      Exception.reraise e
+        clear_timer ();
+        Log.err (fun m -> m "exn while in set_timeout");
+        Exception.reraise e
 
-let set_timeout_opt ~name time_limit f =
+let set_timeout_opt ~name ~using_eio time_limit f =
   match time_limit with
   | None -> Some (f ())
-  | Some (x, caps) -> set_timeout caps ~name x f
+  | Some (x, caps) -> set_timeout caps ~name ~using_eio x f

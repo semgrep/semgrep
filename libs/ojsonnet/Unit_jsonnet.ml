@@ -67,8 +67,8 @@ let mk_tests (caps : < Cap.time_limit >) (subdir : Fpath.t)
                         Common.save_excursion Conf.eval_strategy strategy
                           (fun () ->
                             Time_limit.set_timeout caps
-                              ~name:("ojsonnet-" ^ str_strategy) timeout
-                              (fun () ->
+                              ~name:("ojsonnet-" ^ str_strategy)
+                              ~using_eio:false timeout (fun () ->
                                 let value_ = Eval_jsonnet.eval_program core in
                                 JSON.to_yojson
                                   (Eval_jsonnet.manifest_value value_)))

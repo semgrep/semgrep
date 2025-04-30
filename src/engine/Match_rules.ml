@@ -54,7 +54,8 @@ let timeout_function (rule : Rule.t) (file : Fpath.t)
         if timeout <= 0. then None else Some (timeout, caps)
   in
   match
-    Time_limit.set_timeout_opt ~name:"Match_rules.timeout_function" timeout f
+    Time_limit.set_timeout_opt ~name:"Match_rules.timeout_function"
+      ~using_eio:false timeout f
   with
   | Some res -> Some res
   | None ->
