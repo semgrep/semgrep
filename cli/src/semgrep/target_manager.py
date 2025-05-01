@@ -253,7 +253,7 @@ class FileTargetingLog:
                         roots_not_in_git += 1
                         continue
             if roots_not_in_git != dir_targets:
-                limited_fragments.append(f"Scan was limited to files tracked by git")
+                limited_fragments.append("Scan was limited to files tracked by git")
 
         if self.cli_includes:
             skip_fragments.append(
@@ -350,7 +350,7 @@ class FileTargetingLog:
 
         yield (
             1,
-            f"Files that couldn't be accessed:",
+            "Files that couldn't be accessed:",
         )
         if self.insufficient_permissions:
             for path in sorted(self.insufficient_permissions):
@@ -399,39 +399,55 @@ class FileTargetingLog:
                 yield 2, with_color(Colors.cyan, f"{path}{details}")
 
                 if file_error_log.rule_errors:
-                    yield 3, with_color(
-                        Colors.white,
-                        f"The following {unit_str(num_rule_ids, 'rule')} failed to run on this file:",
+                    yield (
+                        3,
+                        with_color(
+                            Colors.white,
+                            f"The following {unit_str(num_rule_ids, 'rule')} failed to run on this file:",
+                        ),
                     )
                     for err in file_error_log.rule_errors:
-                        yield 4, with_color(
-                            Colors.cyan,
-                            f"Rule {err.core.rule_id.value if err.core.rule_id else '<unknown rule>'}",
-                        ) + with_color(
-                            Colors.yellow,
-                            f' due to exception "{err.type_().kind}" raised during analysis',
+                        yield (
+                            4,
+                            with_color(
+                                Colors.cyan,
+                                f"Rule {err.core.rule_id.value if err.core.rule_id else '<unknown rule>'}",
+                            )
+                            + with_color(
+                                Colors.yellow,
+                                f' due to exception "{err.type_().kind}" raised during analysis',
+                            ),
                         )
 
                 if file_error_log.line_errors:
-                    yield 3, with_color(
-                        Colors.white,
-                        f"The following lines were skipped for all analysis:",
+                    yield (
+                        3,
+                        with_color(
+                            Colors.white,
+                            "The following lines were skipped for all analysis:",
+                        ),
                     )
                     for err in file_error_log.line_errors:
                         # not sure if this is actually possible
                         if not err.spans:
-                            yield 4, with_color(
-                                Colors.cyan, "<unknown lines>"
-                            ) + with_color(Colors.yellow, f"({err.type_().kind})")
+                            yield (
+                                4,
+                                with_color(Colors.cyan, "<unknown lines>")
+                                + with_color(Colors.yellow, f"({err.type_().kind})"),
+                            )
                             continue
 
                         for span in err.spans:
-                            yield 4, with_color(
-                                Colors.cyan,
-                                f"lines {span.start.line}-{span.end.line}",
-                            ) + with_color(
-                                Colors.yellow,
-                                f' due to exception "{err.type_().kind}" raised during analysis',
+                            yield (
+                                4,
+                                with_color(
+                                    Colors.cyan,
+                                    f"lines {span.start.line}-{span.end.line}",
+                                )
+                                + with_color(
+                                    Colors.yellow,
+                                    f' due to exception "{err.type_().kind}" raised during analysis',
+                                ),
                             )
         else:
             yield 2, "<none>"
@@ -781,7 +797,7 @@ class TargetManager:
                 include_=(list(self.includes) or None),
                 force_project_root=(
                     out.ProjectRoot(out.Filesystem(self.force_project_root))
-                    if not self.force_project_root is None
+                    if self.force_project_root is not None
                     else None
                 ),
                 baseline_commit=(
@@ -1064,7 +1080,9 @@ class TargetManager:
                 excludes.append(path)
             elif isinstance(reason, out.InsufficientPermissions):
                 insufficient_permissions.append(path)
-            elif isinstance(reason, out.ExceededSizeLimit):
+            elif isinstance(reason, out.ExceededSizeLimit) or isinstance(
+                reason, out.TooBig
+            ):
                 size_limit.append(path)
             elif isinstance(reason, out.SemgrepignorePatternsMatch):
                 if str(path) not in PATHS_ALWAYS_SKIPPED:
