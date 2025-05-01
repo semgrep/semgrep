@@ -54,6 +54,7 @@ from semgrep.semgrep_core import SemgrepCore
 from semgrep.state import get_state
 from semgrep.target_manager import ALL_PRODUCTS
 from semgrep.target_manager import write_pipes_to_disk
+from semgrep.types import FilteredMatches
 from semgrep.types import TargetAccumulator
 from semgrep.util import abort
 from semgrep.util import is_truthy
@@ -832,7 +833,7 @@ def scan(
                 engine_type=engine_type,
             )
 
-        filtered_matches_by_rule: RuleMatchMap = {}
+        filtered_matches_by_rule: FilteredMatches = FilteredMatches(kept={}, removed={})
 
         # The 'optional_stdin_target' context manager must remain before
         # 'managed_output'. Output depends on file contents so we cannot have
@@ -981,7 +982,7 @@ def scan(
                     raise e
 
                 output_handler.output(
-                    filtered_matches_by_rule,
+                    filtered_matches_by_rule.kept,
                     all_targets_acc=output_extra.all_targets,
                     ignore_log=ignore_log,
                     profiler=profiler,
@@ -996,7 +997,7 @@ def scan(
                 )
 
                 return_data = ScanResult(
-                    filtered_matches_by_rule=filtered_matches_by_rule,
+                    filtered_matches_by_rule=filtered_matches_by_rule.kept,
                     semgrep_errors=semgrep_errors,
                     filtered_rules=filtered_rules,
                     all_targets=output_extra.all_targets,
@@ -1008,6 +1009,6 @@ def scan(
             # Fetch the latest version and potentially display a banner
             version_check()
             # TODO? this should be guarded by enable_version_check too??
-            log_findings(filtered_matches_by_rule, engine_type)
+            log_findings(filtered_matches_by_rule.kept, engine_type)
 
         return return_data

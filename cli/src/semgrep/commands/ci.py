@@ -54,6 +54,7 @@ from semgrep.rule_match import RuleMatchMap
 from semgrep.state import get_state
 from semgrep.target_manager import ALL_PRODUCTS
 from semgrep.target_manager import SAST_PRODUCT
+from semgrep.types import FilteredMatches
 from semgrep.types import TargetAccumulator
 from semgrep.verbose_logging import getLogger
 
@@ -403,7 +404,7 @@ def ci(
                     # Inform the App that the scan started & ended
                     scan_handler.start_scan(project_metadata, project_config)
                     scan_handler.report_findings(
-                        matches_by_rule=dict(),
+                        matches_by_rule=FilteredMatches(kept={}, removed={}),
                         rules=[],
                         targets=set(),
                         renamed_targets=set(),
@@ -651,9 +652,12 @@ def ci(
             "max_target_bytes": max_target_bytes,
             "autofix": scan_handler.autofix if scan_handler else False,
             "dryrun": True,
-            # Always true, as we want to always report all findings, even
-            # ignored ones, to the backend
-            "disable_nosem": True,
+            # Determine whether or not we will sort ignored matches into the
+            # `kept` category of FilteredMatches.
+            # If there are multiple outputs and any request to keep_ignores
+            # then all outputs keep the ignores. The only output format that
+            # keep ignored matches currently is sarif.
+            "disable_nosem": not enable_nosem or output_handler.keep_ignores(),
             "no_git_ignore": (not use_git_ignore),
             "timeout": timeout,
             "max_memory": max_memory,
@@ -782,8 +786,8 @@ def ci(
                     historical_secrets=True,
                 )
 
-                for key, value in historical_filtered_matches_by_rule.items():
-                    filtered_matches_by_rule[key].extend(value)
+                for key, value in historical_filtered_matches_by_rule.kept.items():
+                    filtered_matches_by_rule.kept[key].extend(value)
 
                 semgrep_errors.extend(historical_semgrep_errors)
                 filtered_rules.extend(historical_filtered_rules)
@@ -823,16 +827,10 @@ def ci(
         # Done before the next loop to avoid interfering with ignore logic
         removed_prev_scan_matches = {
             rule: [match for match in matches]
-            for rule, matches in filtered_matches_by_rule.items()
+            for rule, matches in filtered_matches_by_rule.kept.items()
             if (not rule.from_transient_scan)
         }
 
-        # Since we keep nosemgrep disabled for the actual scan, we have to
-        # apply that flag here.
-        # If there are multiple outputs and any request to keep_ignores
-        # then all outputs keep the ignores. The only output format that
-        # keep ignored matches currently is sarif.
-        keep_ignored = not enable_nosem or output_handler.keep_ignores()
         for rule, matches in removed_prev_scan_matches.items():
             # Filter out any matches that are triaged as ignored on the app
             if scan_handler:
@@ -844,9 +842,6 @@ def ci(
                 ]
 
             for match in matches:
-                if match.match.extra.is_ignored and not keep_ignored:
-                    continue
-
                 applicable_result_list = (
                     cai_matches
                     if "r2c-internal-cai" in rule.id

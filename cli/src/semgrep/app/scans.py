@@ -17,7 +17,6 @@ from typing import Union
 
 import click
 import requests
-from boltons.iterutils import partition
 from opentelemetry import trace as otel_trace
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
@@ -30,17 +29,41 @@ from semgrep.constants import USER_FRIENDLY_PRODUCT_NAMES
 from semgrep.error import INVALID_API_KEY_EXIT_CODE
 from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
-from semgrep.rule_match import RuleMatchMap
+from semgrep.rule_match import RuleMatch
 from semgrep.state import get_state
 from semgrep.subproject import resolved_subproject_to_stats
 from semgrep.subproject import subproject_to_stats
 from semgrep.target_manager import ALL_PRODUCTS
+from semgrep.types import FilteredMatches
 from semgrep.verbose_logging import getLogger
 
 if TYPE_CHECKING:
     from semgrep.engine import EngineType
     from rich.progress import Progress
 logger = getLogger(__name__)
+
+
+def prepare_matches_for_app(matches: list[RuleMatch]) -> list[RuleMatch]:
+    # we want date stamps assigned by the app to be assigned such that the
+    # current sort by relevant_since results in findings within a given scan
+    # appear in an intuitive order.  this requires reversed ordering here.
+    matches.reverse()
+
+    sort_order = {  # used only to order rules by severity
+        out.Experiment(): 0,
+        out.Inventory(): 1,
+        out.Info(): 2,
+        out.Low(): 2,
+        out.Warning(): 3,
+        out.Medium(): 3,
+        out.Error(): 4,
+        out.High(): 4,
+        out.Critical(): 5,
+    }
+
+    # NB: sorted guarantees stable sort, so within a given severity level
+    # issues remain sorted as before
+    return sorted(matches, key=lambda match: sort_order[match.severity.value])
 
 
 class ScanHandler:
@@ -347,7 +370,7 @@ class ScanHandler:
     def report_findings(
         self,
         *,
-        matches_by_rule: RuleMatchMap,
+        matches_by_rule: FilteredMatches,
         rules: List[Rule],
         targets: Set[Path],
         renamed_targets: Set[Path],
@@ -370,33 +393,19 @@ class ScanHandler:
         """
         state = get_state()
         rule_ids = [out.RuleId(r.id) for r in rules]
-        all_matches = [
-            match
-            for matches_of_rule in matches_by_rule.values()
-            for match in matches_of_rule
-        ]
-        # we want date stamps assigned by the app to be assigned such that the
-        # current sort by relevant_since results in findings within a given scan
-        # appear in an intuitive order.  this requires reversed ordering here.
-        all_matches.reverse()
-        sort_order = {  # used only to order rules by severity
-            out.Experiment(): 0,
-            out.Inventory(): 1,
-            out.Info(): 2,
-            out.Low(): 2,
-            out.Warning(): 3,
-            out.Medium(): 3,
-            out.Error(): 4,
-            out.High(): 4,
-            out.Critical(): 5,
-        }
-        # NB: sorted guarantees stable sort, so within a given severity level
-        # issues remain sorted as before
-        all_matches = sorted(
-            all_matches, key=lambda match: sort_order[match.severity.value]
+        all_matches = prepare_matches_for_app(
+            [
+                match
+                for matches_of_rule in matches_by_rule.kept.values()
+                for match in matches_of_rule
+            ]
         )
-        new_ignored, new_matches = partition(
-            all_matches, lambda match: match.match.extra.is_ignored
+        all_ignored_matches = prepare_matches_for_app(
+            [
+                match
+                for matches_of_rule in matches_by_rule.removed.values()
+                for match in matches_of_rule
+            ]
         )
 
         # Autofix is currently the only toggle in the App that
@@ -410,14 +419,14 @@ class ScanHandler:
                 commit_date,
                 remove_dataflow_content=not self.autofix,
             )
-            for match in new_matches
+            for match in all_matches
         ]
         ignores = [
             match.to_app_finding_format(
                 commit_date,
                 remove_dataflow_content=not self.autofix,
             )
-            for match in new_ignored
+            for match in all_ignored_matches
         ]
         token = (
             # GitHub (cloud)
@@ -446,7 +455,8 @@ class ScanHandler:
         findings_and_ignores = self.ci_scan_results.to_json()
 
         if any(
-            isinstance(match.severity.value, out.Experiment) for match in new_ignored
+            isinstance(match.severity.value, out.Experiment)
+            for match in all_ignored_matches
         ):
             logger.info("Some experimental rules were run during execution.")
 
@@ -465,7 +475,7 @@ class ScanHandler:
         #  of ignored findings in this count.
 
         findings_by_product: Dict[str, int] = Counter()
-        for r, f in matches_by_rule.items():
+        for r, f in matches_by_rule.kept.items():
             # NOTE: For parity with metrics.py, we are using the human-readable product name,
             #  (i.e. code) and falling back to the internal json string (i.e. sast) if we
             #  somehow drift out of sync with the product enum.
@@ -486,7 +496,7 @@ class ScanHandler:
             dependency_parser_errors=dependency_parser_errors,
             stats=out.CiScanCompleteStats(
                 findings=len(
-                    [match for match in new_matches if not match.from_transient_scan]
+                    [match for match in all_matches if not match.from_transient_scan]
                 ),
                 # We do not report errors anymore since they are large and have
                 # caused issues in the past with overloading api endpoints
