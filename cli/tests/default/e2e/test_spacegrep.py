@@ -15,8 +15,8 @@ from tests.fixtures import RunSemgrep
         ("rules/spacegrep/terraform.yaml", "spacegrep/terraform.tf"),
     ],
 )
-def test_spacegrep(run_semgrep_in_tmp: RunSemgrep, snapshot, rule, target):
-    snapshot.assert_match(
+def test_spacegrep(run_semgrep_in_tmp: RunSemgrep, posix_snapshot, rule, target):
+    posix_snapshot.assert_match(
         run_semgrep_in_tmp(rule, target_name=target).stdout,
         "results.json",
     )
@@ -29,8 +29,8 @@ def test_spacegrep(run_semgrep_in_tmp: RunSemgrep, snapshot, rule, target):
         ("rules/spacegrep/nosem-html.yaml", "spacegrep/nosem.html"),
     ],
 )
-def test_spacegrep_nosem(run_semgrep_in_tmp: RunSemgrep, snapshot, rule, target):
-    snapshot.assert_match(
+def test_spacegrep_nosem(run_semgrep_in_tmp: RunSemgrep, posix_snapshot, rule, target):
+    posix_snapshot.assert_match(
         run_semgrep_in_tmp(
             rule, target_name=target, options=["--no-rewrite-rule-ids"]
         ).stdout,

@@ -2,13 +2,14 @@ import re
 import subprocess
 
 import pytest
-from tests.semgrep_runner import SEMGREP_BASE_SCAN_COMMAND
+from tests.semgrep_runner import mk_semgrep_base_command
 
 
 @pytest.mark.kinda_slow
 def test_version():
+    cmd = mk_semgrep_base_command("--version", ["--disable-version-check"])
     result = subprocess.check_output(
-        SEMGREP_BASE_SCAN_COMMAND + ["--version", "--disable-version-check"],
+        cmd,
         encoding="utf-8",
     )
 

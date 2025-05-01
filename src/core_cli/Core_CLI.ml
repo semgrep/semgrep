@@ -89,9 +89,6 @@ let matching_explanations = ref Core_scan_config.default.matching_explanations
 (* report matching times per file *)
 let report_time = ref Core_scan_config.default.report_time
 
-(* unused for now by pysemgrep *)
-let equivalences_file = ref None
-
 (* ------------------------------------------------------------------------- *)
 (* limits *)
 (* ------------------------------------------------------------------------- *)
@@ -105,7 +102,7 @@ let max_memory_mb = ref Core_scan_config.default.max_memory_mb (* in MiB *)
 let max_match_per_file = ref Core_scan_config.default.max_match_per_file
 
 (* -j *)
-let ncores = ref Core_scan_config.default.ncores
+let num_jobs = ref Core_scan_config.default.num_jobs
 let use_eio = ref false
 
 (* ------------------------------------------------------------------------- *)
@@ -299,14 +296,13 @@ let mk_config () : Core_scan_config.t =
     report_time = !report_time;
     matching_explanations = !matching_explanations;
     respect_rule_paths = !respect_rule_paths;
-    equivalences_file = !equivalences_file;
     file_match_hook = None;
     (* limits and perf *)
     timeout = !timeout;
     timeout_threshold = !timeout_threshold;
     max_memory_mb = !max_memory_mb;
     max_match_per_file = !max_match_per_file;
-    ncores = !ncores;
+    num_jobs = !num_jobs;
     filter_irrelevant_rules = !filter_irrelevant_rules;
     (* open telemetry *)
     tracing =
@@ -338,6 +334,7 @@ let mk_config () : Core_scan_config.t =
     (* only settable via the Pro binary *)
     symbol_analysis = !symbol_analysis;
     use_eio = !use_eio;
+    exec_pool = None;
   }
 
 (*****************************************************************************)
@@ -420,10 +417,6 @@ let all_actions (caps : Cap.all_caps) () =
     ( "-dump_rule",
       " <file>",
       Arg_.mk_action_1_conv Fpath.v Core_actions.dump_rule );
-    ( "-dump_equivalences",
-      " <file> (deprecated)",
-      Arg_.mk_action_1_conv Fpath.v
-        (Core_actions.dump_equivalences (caps :> < Cap.stdout >)) );
     ( "-dump_tree_sitter_cst",
       " <file> dump the CST obtained from a tree-sitter parser",
       Arg_.mk_action_1_conv Fpath.v (fun file ->
@@ -490,13 +483,9 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
     ( "-l",
       Arg.String (fun s -> lang := Some (Lang.of_string s)),
       spf " <str> shortcut for -lang" );
-    ( "-equivalences",
-      Arg.String (fun s -> equivalences_file := Some (Fpath.v s)),
-      " <file> obtain list of code equivalences from YAML file" );
-    ("-j", Arg.Set_int ncores, " <int> number of cores to use (default = 1)");
-    ( "-no_gc_tuning",
-      Arg.Clear Flag.gc_tuning,
-      " use OCaml's default garbage collector settings" );
+    ( "-j",
+      Arg.Int (fun n -> num_jobs := Core_scan_config.Force n),
+      " <int> number of cores to use (default: automatic)" );
     ( "-json",
       Arg.Unit (fun () -> output_format := Json true),
       " output JSON format" );
@@ -681,6 +670,21 @@ let run caps (config : Core_scan_config.t) : unit =
     (caps :> < Cap.stdout ; Cap.stderr ; Cap.exit >)
     res config
 
+(* We want to only run the Eio async runtime (i.e Eio_main.run) iff --x-eio is
+ * set. coupling: Pro_CLI.ml
+ *)
+let decide_if_eio caps (config : Core_scan_config.t) =
+  if config.use_eio then
+    Eio_main.run (fun base ->
+        Eio.Switch.run (fun sw ->
+            let pool =
+              Eio.Executor_pool.create ~sw
+                (Eio.Stdenv.domain_mgr base)
+                ~domain_count:
+                  (Core_scan_config.finalize_num_jobs config.num_jobs)
+            in
+            run caps { config with exec_pool = Some pool }))
+  else run caps config
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
@@ -766,12 +770,12 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
           let roots = Fpath_.of_strings roots in
           let config = mk_config () in
           Core_profiling.profiling := config.report_time;
-          let ncores =
+          let num_jobs : Core_scan_config.num_jobs =
             if !profile then (
               Logs.info (fun m -> m "Profile mode On");
               Logs.info (fun m -> m "disabling -j when in profiling mode");
-              1)
-            else config.ncores
+              Default 1)
+            else config.num_jobs
           in
           let target_source : Core_scan_config.target_source =
             match (!target_file, !lang, roots) with
@@ -789,7 +793,7 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
                    and a single target file; if you need more complex file \
                    targeting use semgrep"
           in
-          let config = { config with target_source; ncores } in
+          let config = { config with target_source; num_jobs } in
 
           (* Set up tracing and run it for the duration of scanning. Note that
              this will only trace `Core_command.run_conf` and the functions it
@@ -798,14 +802,15 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
              able to instrument the pre- and post-scan code in the same way.
           *)
           match config.tracing with
-          | None -> run caps config
+          | None -> decide_if_eio caps config
           | Some tracing ->
               let resource_attrs =
                 (* Let's make sure all traces/logs/metrics etc. are tagged as
                    coming from the OSS invocation *)
                 Trace_data.get_resource_attrs ?env:tracing.env ~engine:"oss"
                   ~analysis_flags:(Trace_data.no_analysis_features ())
-                  ~jobs:config.ncores ()
+                  ~jobs:(Core_scan_config.finalize_num_jobs config.num_jobs)
+                  ()
               in
               Tracing.configure_tracing ~attrs:resource_attrs "semgrep-core"
                 tracing.endpoint;
@@ -814,7 +819,7 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
                   let tracing =
                     { tracing with top_level_span = Some span_id }
                   in
-                  run caps { config with tracing = Some tracing })))
+                  decide_if_eio caps { config with tracing = Some tracing })))
 
 let with_exception_trace f =
   Printexc.record_backtrace true;

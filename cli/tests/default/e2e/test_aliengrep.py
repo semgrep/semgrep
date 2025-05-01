@@ -23,8 +23,8 @@ from tests.fixtures import RunSemgrep
         ),
     ],
 )
-def test_aliengrep(run_semgrep_in_tmp: RunSemgrep, snapshot, rule, target):
-    snapshot.assert_match(
+def test_aliengrep(run_semgrep_in_tmp: RunSemgrep, posix_snapshot, rule, target):
+    posix_snapshot.assert_match(
         run_semgrep_in_tmp(rule, target_name=target).stdout,
         "results.json",
     )
@@ -37,8 +37,8 @@ def test_aliengrep(run_semgrep_in_tmp: RunSemgrep, snapshot, rule, target):
         ("rules/aliengrep/nosem-html.yaml", "aliengrep/nosem.html"),
     ],
 )
-def test_aliengrep_nosem(run_semgrep_in_tmp: RunSemgrep, snapshot, rule, target):
-    snapshot.assert_match(
+def test_aliengrep_nosem(run_semgrep_in_tmp: RunSemgrep, posix_snapshot, rule, target):
+    posix_snapshot.assert_match(
         run_semgrep_in_tmp(
             rule, target_name=target, options=["--no-rewrite-rule-ids"]
         ).stdout,

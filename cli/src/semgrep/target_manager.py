@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from functools import partial
 from pathlib import Path
+from re import search
 from typing import Any
 from typing import Callable
 from typing import cast
@@ -28,6 +29,8 @@ import semgrep.rpc_call
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.subproject_matchers import filter_dependency_source_files
 from semgrep.git import BaselineHandler
+from semgrep.util import IS_WINDOWS
+
 
 # usually this would be a try...except ImportError
 # but mypy understands only this
@@ -697,6 +700,25 @@ class ScanningRoot:
         ).selected_files
 
 
+def _is_shebang_pattern_for_executable(line: str, executable_name: str) -> bool:
+    """
+    Tests whether the `line` is a shebang line for an `executable_name`
+
+    Shebang lines are recognized when they start with `#!` and end either with
+    the name of the given executable, or with the executable name followed by an
+    argument. If `executable_name` is `python`, then the following lines will
+    match:
+
+    ```
+    #! /bin/python
+    #!/usr/bin/env python
+    #! /usr/bin/python -Xutf8
+    ```
+    """
+    pattern = f"^#!(.*){executable_name}( .*)?$"
+    return bool(search(pattern, line))
+
+
 @define(eq=False, kw_only=True)
 class TargetManager:
     """
@@ -808,7 +830,7 @@ class TargetManager:
             hline = self.get_shebang_line(path)
             if hline is None:
                 return False
-            return any(hline.endswith(s) for s in shebangs)
+            return any(_is_shebang_pattern_for_executable(hline, s) for s in shebangs)
         except UnicodeDecodeError:
             logger.debug(
                 f"Encountered likely binary file {path} while reading shebang; skipping this file"
@@ -817,7 +839,12 @@ class TargetManager:
 
     @lru_cache(maxsize=100_000)  # size aims to be 100x of fully caching this repo
     def get_shebang_line(self, path: Path) -> Optional[str]:
-        if not path_has_permissions(path, stat.S_IRUSR | stat.S_IXUSR):
+        if IS_WINDOWS:
+            # File perms cannot tell us whether a file is an executable script
+            # on Windows so we only check that the file can be read.
+            if not path_has_permissions(path, stat.S_IRUSR):
+                return None
+        elif not path_has_permissions(path, stat.S_IRUSR | stat.S_IXUSR):
             return None
 
         with path.open() as f:

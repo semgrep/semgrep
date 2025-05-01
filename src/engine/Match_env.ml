@@ -36,13 +36,9 @@ type prefilter_config =
   | PrefilterWithCache of Analyze_rule.prefilter_cache
   | NoPrefiltering
 
-(* eXtended config.
- * less: we might want to get rid of equivalences at some point as
- * they are not exposed to the user anymore.
- *)
+(* eXtended config.*)
 type xconfig = {
   config : Rule_options.t; (* corresponds to rule `options` key *)
-  equivs : Equivalence.equivalences;
   nested_formula : bool;
   (* ^^^ i.e. we are evaluating a nested formula within `metavariable-pattern`. *)
   (* Fields coming from Runner_config.t used by the engine.
@@ -105,7 +101,6 @@ let adjust_xconfig_with_rule_options xconf options =
 let default_xconfig =
   {
     config = Rule_options.default;
-    equivs = [];
     nested_formula = false;
     matching_explanations = false;
     (* TODO: set to true by default?

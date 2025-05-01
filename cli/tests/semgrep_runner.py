@@ -13,6 +13,7 @@
 # TODO: The option is still kept because a few of our tests still rely on
 # Click-specific features (e.g., mocking)  that the regular
 # call-semgrep-in-a-subprocess does not provide yet.
+import io
 import os
 import platform
 import shlex
@@ -51,14 +52,24 @@ _SEMGREP_PATH = str(
     ).absolute()
 )
 
+# On POSIX systems, the entrypoint script is executed with python via
+# the shebang `#!/usr/bin/env python` but shebangs don't work on Windows
+# via Popen, so we need to explicitly specify what program to run the
+# entrypoint script with.
+#
+# `sys.executable` gives an absolute path to the running python
+# interpreter. See
+# https://docs.python.org/3.14/library/subprocess.html#subprocess.Popen
+PYTHON_EXECUTABLE: List[str] = [sys.executable] if IS_WINDOWS else []
+
 # Deprecated. Use 'mk_semgrep_base_command("scan", args)'
 #
 # Exported constant, convenient to use in a list context.
 # This is not safe to use if you are going to append any subcommands after!
 # For instance, SEMGREP_BASE_SCAN_COMMAND + ["logout"] will fail with osemgrep,
 # because the subcommand must come first.
-SEMGREP_BASE_SCAN_COMMAND: List[str] = (
-    [_SEMGREP_PATH] + _OSEMGREP_EXTRA_ARGS if USE_OSEMGREP else [_SEMGREP_PATH]
+SEMGREP_BASE_SCAN_COMMAND: List[str] = (PYTHON_EXECUTABLE + [_SEMGREP_PATH]) + (
+    _OSEMGREP_EXTRA_ARGS if USE_OSEMGREP else []
 )
 
 # Deprecated. Use 'mk_semgrep_base_command("scan", args)'
@@ -76,7 +87,7 @@ def mk_semgrep_base_command(subcommand: str, args: List[str]):
     if USE_OSEMGREP:
         if subcommand in ["ci", "install-semgrep-pro", "lsp", "scan"]:
             args = _OSEMGREP_EXTRA_ARGS + args
-    return [_SEMGREP_PATH] + [subcommand] + args
+    return PYTHON_EXECUTABLE + [_SEMGREP_PATH] + [subcommand] + args
 
 
 # TODO: this should be removed as we don't want to run tests with Click
@@ -122,18 +133,7 @@ def fork_semgrep(
 
     # ugly: adding --project-root for --help would trigger the wrong help message
     if "-h" in args or "--help" in args:
-        argv = [_SEMGREP_PATH] + args
-
-    if IS_WINDOWS:
-        # On POSIX systems, the entrypoint script is executed with python via
-        # the shebang `#!/usr/bin/env python` but shebangs don't work on Windows
-        # via Popen, so we need to explicitly spicify what program to run the
-        # entrypoint script with.
-        #
-        # `sys.executable` gives an absolute path to the running python
-        # interpreter. See
-        # https://docs.python.org/3.14/library/subprocess.html#subprocess.Popen
-        argv = [sys.executable] + argv
+        argv = PYTHON_EXECUTABLE + [_SEMGREP_PATH] + args
 
     # env preparation
     env_dict = {}
@@ -144,8 +144,21 @@ def fork_semgrep(
     # let's fork and use a pipe to communicate with the external semgrep
     print(f"[fork] semgrep command: {' '.join(argv)}", file=sys.stderr)
     proc = Popen(argv, stdout=PIPE, stderr=PIPE, env=full_env)
-    stdout, stderr = proc.communicate()
-    return Result(proc.returncode, stdout.decode("utf-8"), stderr.decode("utf-8"))
+
+    # When run on Windows, we expect the semgrep executable to output standard
+    # Windows line endings (CLRF), but if we left these line endings then the
+    # results we capture wouldn't match the outputs produced on Linux and MacOS.
+    # Running the output buffers thru `io.TextIOWrapper` with `newline=None`
+    # ensures we always normalize line endings to LF.
+    #
+    # See https://docs.python.org/3/library/io.html#io.TextIOWrapper
+    assert proc.stdout is not None  # Guaranteed by PIPE arg, but not known to mypy
+    assert proc.stderr is not None  # Guaranteed by PIPE arg, but not known to mypy
+    stdout = io.TextIOWrapper(proc.stdout, encoding="utf-8", newline=None).read()
+    stderr = io.TextIOWrapper(proc.stderr, encoding="utf-8", newline=None).read()
+    proc.wait()
+
+    return Result(proc.returncode, stdout, stderr)
 
 
 ##############################################################################

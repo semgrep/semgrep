@@ -21,8 +21,6 @@ from constants import STD
 SEMGREP_VARIANTS = [
     # default settings
     SemgrepVariant(STD, ""),
-    # removing optimisations
-    SemgrepVariant("no-gc-tuning", "-no_gc_tuning"),
     SemgrepVariant("no-filter-irrelevant-rules", "-no_filter_irrelevant_rules"),
 ]
 

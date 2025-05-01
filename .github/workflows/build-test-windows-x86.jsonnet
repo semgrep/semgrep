@@ -139,6 +139,8 @@ local build_core_job = {
       run: |||
         export TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include
         export TREESITTER_LIBDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/lib
+        export TREESITTER_BINDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/bin
+
         # We have to strip rpath from the tree-sitter projects because there's no
         # equivalent in Windows
         # TODO: investigate removing rpath from the tree-sitter projects
@@ -153,12 +155,17 @@ local build_core_job = {
       name: 'Test semgrep-core',
       //TODO: semgrep-core displays also parse errors in the JSON output
       // weird. CRLF windows issue?
+      //NOTE: we need to include the tree-sitter DLL into our path to execute
+      // semgrep, since windows checks for DLLs in it's path
+      // see: https://groups.google.com/g/comp.lang.tcl/c/J48G1yhvFrc?pli=1
       run: |||
+        treesitter_bindir="$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/bin"
+        export PATH="$treesitter_bindir:$PATH"
         # see pro workflow & semgrep-proprietary/pull/3522
         opam exec -- _build/install/default/bin/semgrep-core.exe -l python -rules tests/windows/rules.yml -json tests/windows/test.py
       |||,
     },
-    semgrep.copy_executable_dlls('bin/semgrep-core.exe', 'extra-artifacts'),
+    semgrep.copy_executable_dlls('$(pwd)/libs/', 'bin/semgrep-core.exe', 'extra-artifacts'),
     actions.make_artifact_step('bin/semgrep-core.exe extra-artifacts/*'),
     actions.upload_artifact_step(artifact_name),
   ],

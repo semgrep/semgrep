@@ -103,7 +103,7 @@ val o_max_log_list_entries : int Cmdliner.Term.t
 val o_max_memory_mb : int Cmdliner.Term.t
 val o_max_target_bytes : int Cmdliner.Term.t
 val o_metrics : Metrics_.config Cmdliner.Term.t
-val o_num_jobs : int Cmdliner.Term.t
+val o_num_jobs : Core_scan_config.num_jobs Cmdliner.Term.t
 val o_no_secrets_validation : bool Cmdliner.Term.t
 val o_nosem : bool Cmdliner.Term.t
 val o_optimizations : bool Cmdliner.Term.t

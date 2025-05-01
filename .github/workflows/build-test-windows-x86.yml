@@ -77,6 +77,8 @@ jobs:
         run: |
           export TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include
           export TREESITTER_LIBDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/lib
+          export TREESITTER_BINDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/bin
+
           # We have to strip rpath from the tree-sitter projects because there's no
           # equivalent in Windows
           # TODO: investigate removing rpath from the tree-sitter projects
@@ -87,13 +89,18 @@ jobs:
           opam exec -- dune build _build/install/default/bin/semgrep-core.exe
       - name: Test semgrep-core
         run: |
+          treesitter_bindir="$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/bin"
+          export PATH="$treesitter_bindir:$PATH"
           # see pro workflow & semgrep-proprietary/pull/3522
           opam exec -- _build/install/default/bin/semgrep-core.exe -l python -rules tests/windows/rules.yml -json tests/windows/test.py
       - name: Copy bin/semgrep-core.exe DLLs to extra-artifacts/
         run: |
           mkdir -p extra-artifacts
           SYS_ROOT_BIN="$(x86_64-w64-mingw32-gcc -print-sysroot)/mingw/bin"
-          dlls=$(PATH=$SYS_ROOT_BIN:$PATH cygcheck "bin/semgrep-core.exe" | grep 'x86_64-w64-mingw32' | sed 's/^[[:space:]]*//' | sort -u)
+          # path to tree-sitter.dll
+          TREESITTER_BIN=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/bin
+          DLL_PATHS=$SYS_ROOT_BIN:$TREESITTER_BIN
+          dlls=$(PATH=$DLL_PATHS:$PATH cygcheck "bin/semgrep-core.exe" | grep '\(x86_64-w64-mingw32\|ocaml-tree-sitter-core\)' | sed 's/^[[:space:]]*//' | sort -u)
           for dll in $dlls; do
             echo "Copying $dll to extra-artifacts/"
             cp -p "$dll" "extra-artifacts"

@@ -13,6 +13,7 @@ let tests =
       Unit_List_.tests;
       Unit_File.tests;
       Unit_Random_.tests;
+      Unit_Result_.tests;
       (* alt: Unit_CapExec.tests;
        * but this require caps so better to include directly from Test.ml
        *)

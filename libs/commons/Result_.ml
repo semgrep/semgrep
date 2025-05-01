@@ -12,6 +12,19 @@ let partition f l =
   in
   aux [] [] l
 
+let collect l =
+  let rec f acc l =
+    match l with
+    | [] -> acc
+    | r :: rs -> (
+        match r with
+        | Ok x ->
+            let acc = Result.map (fun xs' -> x :: xs') acc in
+            f acc rs
+        | Error e -> Result.error e)
+  in
+  f (Ok []) l |> Result.map List.rev
+
 module Operators = struct
   let ( >>= ) x f = Result.bind x f
 end

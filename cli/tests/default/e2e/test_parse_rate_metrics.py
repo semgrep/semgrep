@@ -22,7 +22,7 @@ from semgrep.cli import cli
     reason="snapshotting mock call kwargs doesn't work on py3.7",
 )
 @pytest.mark.osemfail
-def test_parse_metrics(tmp_path, snapshot, mocker, monkeypatch):
+def test_parse_metrics(tmp_path, posix_snapshot, mocker, monkeypatch):
     mock_post = mocker.patch("requests.post")
 
     # NOTE: for the syntax errors in the files below, changes in parsers may
@@ -52,6 +52,6 @@ def test_parse_metrics(tmp_path, snapshot, mocker, monkeypatch):
 
     payload = json.loads(mock_post.call_args.kwargs["data"])
 
-    snapshot.assert_match(
+    posix_snapshot.assert_match(
         json.dumps(payload["parse_rate"], indent=2, sort_keys=True), "parse-rates.json"
     )

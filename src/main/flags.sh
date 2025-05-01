@@ -155,6 +155,9 @@ else
             "-lcurl"
             # Needed for EIO
             "-lcamlruntime_eventsnat"
+            "-leio_posix_stubs"
+            "-leio_unix_stubs"
+            "-liomux_stubs"
 
             "$(pkg-config gmp --variable libdir)/libgmp.a"
             "$(pkg-config tree-sitter --variable libdir)/libtree-sitter.a"

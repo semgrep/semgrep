@@ -476,9 +476,6 @@
         "code_hash": "d2c95171288a258009c5187392c5e2122e2640e0431af8b1cad77d5b403ed850",
         "pattern_hash": "d2c95171288a258009c5187392c5e2122e2640e0431af8b1cad77d5b403ed850"
       },
-      "fixed_lines": [
-        "    (y == 2)  # nosemgrep"
-      ],
       "validation_state": "NO_VALIDATOR",
       "engine_kind": "OSS"
     },

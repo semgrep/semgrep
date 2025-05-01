@@ -42,6 +42,35 @@ let pp_rule_source (fmt : Format.formatter) (x : rule_source) : unit =
 type target_source = Target_file of Fpath.t | Targets of Target.t list
 [@@deriving show]
 
+(**
+   Settings for '-j'
+
+   Most scan operations will use the specified number of jobs but
+   some will override the default (e.g. interfile).
+   We need to keep track of whether the setting can be overridden.
+
+   If we wanted to centralize the default settings, the Default case
+   could be extended to contain defaults for different situations e.g.
+     Default of {
+       regular_scan: int;
+       interfile_scan: int;
+       ...
+     }
+*)
+type num_jobs =
+  | Default of int
+      (** Default can be overridden by another Default or
+                       by Force *)
+  | Force of int  (** Force cannot be overridden *)
+[@@deriving show]
+
+(** Convert [num_jobs] into the number of jobs to execute.
+    There's no more overriding after this. *)
+let finalize_num_jobs = function
+  | Default n
+  | Force n ->
+      n
+
 (* This is mostly the flags of the semgrep-core program.
  * LATER: should delete or merge with osemgrep Core_runner.conf
  *)
@@ -49,7 +78,6 @@ type t = {
   (* Main flags, input *)
   rule_source : rule_source;
   target_source : target_source;
-  equivalences_file : Fpath.t option;
   (* output and result tweaking *)
   output_format : output_format;
   report_time : bool;
@@ -72,7 +100,7 @@ type t = {
   timeout_threshold : int;
   max_memory_mb : int;
   max_match_per_file : int;
-  ncores : int;
+  num_jobs : num_jobs;
   (* a.k.a -fast (on by default) *)
   filter_irrelevant_rules : bool;
   (* telemetry *)
@@ -80,6 +108,7 @@ type t = {
   symbol_analysis : bool;
   (* Rely on a EIO impl of `-j` v.s Parmap *)
   use_eio : bool;
+  exec_pool : Eio.Executor_pool.t option; [@opaque]
 }
 [@@deriving show]
 
@@ -92,7 +121,6 @@ let default =
     (* Main flags *)
     rule_source = Rules [];
     target_source = Targets [];
-    equivalences_file = None;
     (* alt: NoOutput but then would need a -text in Core_CLI.ml *)
     output_format = Text;
     report_time = false;
@@ -105,11 +133,12 @@ let default =
     timeout_threshold = 0;
     max_memory_mb = 0;
     max_match_per_file = 10_000;
-    ncores = Resources.resources.num_jobs;
+    num_jobs = Default Resources.resources.cpu.recommended_parmap_jobs;
     (* a.k.a -fast, on by default *)
     filter_irrelevant_rules = true;
     (* debugging and telemetry flags *)
     tracing = None;
     symbol_analysis = false;
     use_eio = false;
+    exec_pool = None;
   }

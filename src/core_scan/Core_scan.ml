@@ -449,15 +449,6 @@ let applicable_rules_of_config (config : Core_scan_config.t) :
   let rules = filter_rules_by_targets_analyzers rules targets in
   (rules, invalid_rules)
 
-(* TODO? this is currently deprecated, but pad still has hope the
- * feature can be resurrected.
- *)
-let parse_equivalences equivalences_file =
-  match equivalences_file with
-  | None -> []
-  | Some file -> Parse_equivalences.parse file
-[@@profiling]
-
 (*****************************************************************************)
 (* logging/telemetry *)
 (*****************************************************************************)
@@ -592,9 +583,23 @@ let core_error_to_match_result (target : Target.t) (core_error : Core_error.t) =
  whole ordeal so awkward; we will need to revist how we do error handling once
  we completly remove parmap.
 *)
-let _exception_to_core_error (target : Target.t) (exception_ : Exception.t) =
+let exception_to_core_error (target : Target.t) (exception_ : Exception.t) =
   let internal_path = Target.internal_path target in
   Core_error.exn_to_error ~file:internal_path exception_
+
+(** [exception_handler] is used to postprocess the result of a core_scan
+  [Domain.map]; this pattern of kafkaesque exception handling is mostly borrowed
+  from [Parmap_targets].
+
+ TODO: Once we rip out parmap; we won't need to support two different types of
+ [('a,exn/Exception.t) Result.t] results.
+*)
+let exception_handler (target : Target.t) (res : ('a, exn) Result.t) =
+  match res with
+  | Ok match_ -> match_
+  | Error exn ->
+      exception_to_core_error target (Exception.catch exn)
+      |> core_error_to_match_result target
 
 (** This functions handles & isolates the parmap logic (computation + err handeling)
   into a single function (hopefully) so that it's easier to have
@@ -605,11 +610,12 @@ let _exception_to_core_error (target : Target.t) (exception_ : Exception.t) =
 
   TODO: remove this function once we remove parmap
  *)
-let parmap_map caps ncores f xs =
+let parmap_map caps ~num_jobs f xs =
+  let num_jobs = Core_scan_config.finalize_num_jobs num_jobs in
   xs
   |> Parmap_targets.map_targets__run_in_forked_process_do_not_modify_globals
        (caps :> < Cap.fork >)
-       ncores f
+       ~num_jobs f
   |> List_.map (fun x ->
          match x with
          | Ok res -> res
@@ -648,7 +654,7 @@ let iter_targets_and_get_matches_and_exn_to_errors
             Memory_limit.run_with_memory_limit
               (caps :> < Cap.memory_limit >)
               ~get_context:(get_context_for_memory_limit target)
-              ~mem_limit_mb:config.max_memory_mb
+              ~mem_limit_mb:config.max_memory_mb ~using_eio:config.use_eio
               (fun () ->
                 (* we used to call Time_limit.set_timeout() here, but
                  * this is now done in Match_rules.check() because we
@@ -708,11 +714,13 @@ let iter_targets_and_get_matches_and_exn_to_errors
   in
   let xs =
     if config.use_eio then
-      Logs.err (fun m ->
-          m
-            "Parallelism via EIO is yet to be implemented! resorting to Parmap \
-             :(");
-    parmap_map (caps :> < Cap.fork >) config.ncores process_target targets
+      let pool = Option.get config.exec_pool in
+      Domains.map ~pool process_target targets
+      |> List_.map2 exception_handler targets
+    else
+      parmap_map
+        (caps :> < Cap.fork >)
+        ~num_jobs:config.num_jobs process_target targets
   in
   let matches, opt_paths = List_.split xs in
   let scanned =
@@ -806,7 +814,6 @@ let match_rules (caps : < Cap.time_limit ; .. >) ~matches_hook
   let xconf : Match_env.xconfig =
     {
       config = Rule_options.default;
-      equivs = parse_equivalences config.equivalences_file;
       nested_formula = false;
       matching_explanations = config.matching_explanations;
       filter_irrelevant_rules = prefilter_cache_opt;
@@ -814,9 +821,11 @@ let match_rules (caps : < Cap.time_limit ; .. >) ~matches_hook
   in
   let caps = (caps :> < Cap.time_limit >) in
   let timeout : Match_rules.timeout_config option =
-    let caps = (caps :> < Cap.time_limit >) in
-    Some
-      { timeout = config.timeout; threshold = config.timeout_threshold; caps }
+    if config.use_eio then None
+    else
+      let caps = (caps :> < Cap.time_limit >) in
+      Some
+        { timeout = config.timeout; threshold = config.timeout_threshold; caps }
   in
   (* !!Calling Match_rules!! Calling the matching engine!! *)
   Match_rules.check ~matches_hook ~timeout xconf rules xtarget

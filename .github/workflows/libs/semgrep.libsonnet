@@ -301,7 +301,7 @@ local build_test_steps(opam_switch=opam_switch_default, name='semgrep-core', tim
        },
      ]);
 
-local copy_executable_dlls(executable, target_dir) =
+local copy_executable_dlls(path_to_libs, executable, target_dir) =
   {
     name: 'Copy %s DLLs to %s/' % [executable, target_dir],
     // cygcheck lists the library (DLL) dependencies of the binary. We only
@@ -309,15 +309,24 @@ local copy_executable_dlls(executable, target_dir) =
     // DLLs installed from the opam depexts are located. The other DLLs that we
     // depend on are Windows System DLLs or other DLLs which should already be
     // available to be able to run Python.
+    //
+    // NOTE: although not a depext, we recently begun seeing tree-sitter.dll be
+    // not included/not found after a bumping the ocaml-tree-sitter-core lib.
+    // Since they aren't managed by opam, we have to include them when
+    // we copy these depext DLLs.
+    // see: pull/3790
     run: |||
       mkdir -p %(dst)s
       SYS_ROOT_BIN="$(x86_64-w64-mingw32-gcc -print-sysroot)/mingw/bin"
-      dlls=$(PATH=$SYS_ROOT_BIN:$PATH cygcheck "%(exe)s" | grep 'x86_64-w64-mingw32' | sed 's/^[[:space:]]*//' | sort -u)
+      # path to tree-sitter.dll
+      TREESITTER_BIN=%(lib_path)s
+      DLL_PATHS=$SYS_ROOT_BIN:$TREESITTER_BIN
+      dlls=$(PATH=$DLL_PATHS:$PATH cygcheck "%(exe)s" | grep '\(x86_64-w64-mingw32\|ocaml-tree-sitter-core\)' | sed 's/^[[:space:]]*//' | sort -u)
       for dll in $dlls; do
         echo "Copying $dll to %(dst)s/"
         cp -p "$dll" "%(dst)s"
       done
-    ||| % { dst: target_dir, exe: executable },
+    ||| % { dst: target_dir, lib_path: path_to_libs + 'ocaml-tree-sitter-core/tree-sitter/bin', exe: executable },
   };
 
 local is_windows_arch(arch) = std.findSubstr('windows', arch) != [];

@@ -2,6 +2,7 @@ import json
 
 import pytest
 from tests.conftest import RULES_PATH
+from tests.conftest import skip_on_windows
 from tests.fixtures import RunSemgrep
 
 from semgrep.constants import OutputFormat
@@ -56,8 +57,9 @@ def test_rule_parser__empty(run_semgrep_in_tmp: RunSemgrep, snapshot):
 @pytest.mark.kinda_slow
 @pytest.mark.parametrize("filename", syntax_fails)
 @pytest.mark.osemfail
+@skip_on_windows  # better backslash replacement logic
 def test_rule_parser__failure__error_messages(
-    run_semgrep_in_tmp: RunSemgrep, snapshot, filename
+    run_semgrep_in_tmp: RunSemgrep, posix_snapshot, filename
 ):
     stdout, _ = run_semgrep_in_tmp(
         f"rules/syntax/{filename}.yaml", assert_exit_code={2, 7, 8}
@@ -67,7 +69,7 @@ def test_rule_parser__failure__error_messages(
     # Something went wrong, so there had better be an error, and we asked for JSON so there had better be some output...
     assert json_output["errors"] != []
 
-    snapshot.assert_match(stdout, "error.json")
+    posix_snapshot.assert_match(stdout, "error.json")
     _, stderr = run_semgrep_in_tmp(
         f"rules/syntax/{filename}.yaml",
         options=["--force-color"],
@@ -76,18 +78,20 @@ def test_rule_parser__failure__error_messages(
         assert_exit_code={2, 7, 8},
     )
 
-    snapshot.assert_match(stderr, "error-in-color.txt")
+    posix_snapshot.assert_match(stderr, "error-in-color.txt")
 
 
 # https://github.com/returntocorp/semgrep/issues/1095
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
-def test_rule_parser_cli_pattern(run_semgrep_on_copied_files: RunSemgrep, snapshot):
+def test_rule_parser_cli_pattern(
+    run_semgrep_on_copied_files: RunSemgrep, posix_snapshot
+):
     # Check json output
     stdout, _ = run_semgrep_on_copied_files(
         options=["-e", "#include<asdf><<>>><$X>", "-l", "c"], assert_exit_code=2
     )
-    snapshot.assert_match(stdout, "error.json")
+    posix_snapshot.assert_match(stdout, "error.json")
 
     # Check pretty print output
     _, stderr = run_semgrep_on_copied_files(
@@ -96,7 +100,7 @@ def test_rule_parser_cli_pattern(run_semgrep_on_copied_files: RunSemgrep, snapsh
         force_color=True,
         assert_exit_code=2,
     )
-    snapshot.assert_match(stderr, "error.txt")
+    posix_snapshot.assert_match(stderr, "error.txt")
 
 
 # This test should ideally pass with osemgrep, but a key name error is a
@@ -108,7 +112,10 @@ def test_rule_parser_cli_pattern(run_semgrep_on_copied_files: RunSemgrep, snapsh
 # precursor step, before we go on to try and run the rules.
 @pytest.mark.kinda_slow
 @pytest.mark.osemfail
-def test_rule_parser_error_key_name_text(run_semgrep_in_tmp: RunSemgrep, snapshot):
+@skip_on_windows  # better backslash replacement logic
+def test_rule_parser_error_key_name_text(
+    run_semgrep_in_tmp: RunSemgrep, posix_snapshot
+):
     # Check pretty print output
     _, stderr = run_semgrep_in_tmp(
         f"rules/syntax/invalid-key-name.yml",
@@ -116,7 +123,7 @@ def test_rule_parser_error_key_name_text(run_semgrep_in_tmp: RunSemgrep, snapsho
         force_color=True,
         assert_exit_code=7,
     )
-    snapshot.assert_match(stderr, "error.txt")
+    posix_snapshot.assert_match(stderr, "error.txt")
 
 
 @pytest.mark.kinda_slow

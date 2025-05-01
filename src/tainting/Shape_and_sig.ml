@@ -586,7 +586,8 @@ end = struct
       let loc1, _ = pm.range_loc in
       loc1.Loc.pos.line
     in
-    spf "(%s at l.%d by %s)[%s]" matched_str matched_line rule_sink.R.sink_id
+    spf "(%s at l.%d by %s)[requires:%s]" matched_str matched_line
+      rule_sink.R.sink_id
       (show_sink_requires requires)
 
   let show_taint_to_sink_item { taint; sink_trace } =

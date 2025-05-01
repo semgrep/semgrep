@@ -259,7 +259,7 @@ let matches_of_patterns ~has_as_metavariable ?mvar_context ?range_filter rule
   } : Xtarget.t =
     xtarget
   in
-  let config = (xconf.config, xconf.equivs) in
+  let config = xconf.config in
   match analyzer with
   | Analyzer.L (lang, _) ->
       let (ast, skipped_tokens), parse_time =

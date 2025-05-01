@@ -1005,7 +1005,7 @@ def run_scan(
     resolve_all_deps_in_diff_scan: bool = False,
     symbol_analysis: bool = False,
 ) -> Tuple[
-    RuleMatchMap,
+    FilteredMatches,
     List[SemgrepError],
     Set[Path],
     FileTargetingLog,
@@ -1288,7 +1288,7 @@ def run_scan(
     )
 
     return (
-        filtered_matches_by_rule.kept,
+        filtered_matches_by_rule,
         semgrep_errors,
         renamed_targets,
         target_manager.ignore_log,
@@ -1351,7 +1351,7 @@ def run_scan_and_return_json(
 
     output_handler.rules = frozenset(filtered_rules)
     output_handler.rule_matches = [
-        m for ms in filtered_matches_by_rule.values() for m in ms
+        m for ms in filtered_matches_by_rule.kept.values() for m in ms
     ]
     output_handler.profiler = profiler
     output_handler.severities = shown_severities

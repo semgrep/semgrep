@@ -18,7 +18,7 @@
     },
     "engine_requested": "OSS",
     "findings_by_product": {
-      "code": 16,
+      "code": 10,
       "supply-chain": 1
     },
     "supply_chain_stats": {

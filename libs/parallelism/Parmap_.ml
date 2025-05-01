@@ -94,7 +94,7 @@ let wrap_result f ~exception_handler x =
 (* API *)
 (*****************************************************************************)
 
-let parmap _caps ?init ?finalize ~ncores ~chunksize ~exception_handler f xs =
+let parmap _caps ?init ?finalize ~num_jobs ~chunksize ~exception_handler f xs =
   (* Why do this? The nanny state doesn't trust you to to use parmap AND catch
      all your exceptions. And if you don't catch all your exceptions and one
      happens, then parmap will try to unmarshal your exception into the data
@@ -172,7 +172,8 @@ let parmap _caps ?init ?finalize ~ncores ~chunksize ~exception_handler f xs =
   in
   try
     Common.protect ~finally (fun () ->
-        Parmap.parmap ?init ?finalize ~ncores ~chunksize f' (Parmap.L xs))
+        Parmap.parmap ?init ?finalize ~ncores:num_jobs ~chunksize f'
+          (Parmap.L xs))
   with
   | End_of_file as exn ->
       let e = Exception.catch exn in
