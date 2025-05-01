@@ -25,7 +25,7 @@ from semgrep.subproject import DependencyResolutionConfig
 from semgrep.subproject import find_closest_subproject
 from semgrep.subproject import from_resolved_dependencies
 from semgrep.subproject import get_all_source_files
-from semgrep.target_manager import SAST_PRODUCT
+from semgrep.target_manager import SCA_PRODUCT
 from semgrep.target_manager import TargetManager
 from semgrep.verbose_logging import getLogger
 
@@ -34,7 +34,7 @@ logger = getLogger(__name__)
 
 
 def to_sca_error(
-    err: Union[out.DependencyParserError, out.ScaResolutionError]
+    err: Union[out.DependencyParserError, out.ScaResolutionError],
 ) -> out.ScaError:
     if isinstance(err, out.DependencyParserError):
         return out.ScaError(out.SCAParse(err))
@@ -145,7 +145,7 @@ def filter_changed_subprojects(
     # note that this logic re-implements the logic in `dependency_aware_rule.py`
     for language, ecosystems in ecosystems_by_language.items():
         for code_file in target_manager.get_files_for_language(
-            lang=language, product=SAST_PRODUCT
+            lang=language, product=SCA_PRODUCT
         ).kept:
             # there may be multiple ecosystems for a single language, and the finding-generation
             # logic will find a different closest subproject for each one. So we need to mark

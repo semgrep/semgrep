@@ -867,10 +867,23 @@ let get_targets (caps : < Cap.readdir ; .. >) (conf : conf)
     let path_set =
       List.fold_left Fppath_set.union Fppath_set.empty path_set_list
     in
-    Fppath_set.elements path_set
-    |> filter_size_and_minified
-         ~exclude_minified_files:conf.exclude_minified_files
-         ~max_target_bytes:conf.max_target_bytes
+    let all_paths = Fppath_set.elements path_set in
+
+    (* Partition paths based on the exemption function *)
+    let exempt_paths, paths_to_check =
+      List.partition
+        (fun (path : Fppath.t) ->
+          Target_kind.is_dependency_source_file path.fpath)
+        all_paths
+    in
+
+    (* Filter only the non-exempt paths *)
+    let selected_paths_to_check, skipped_size_minified =
+      filter_size_and_minified
+        ~exclude_minified_files:conf.exclude_minified_files
+        ~max_target_bytes:conf.max_target_bytes paths_to_check
+    in
+    (selected_paths_to_check @ exempt_paths, skipped_size_minified)
   in
   let sorted_skipped_targets =
     let skipped_paths_list =
