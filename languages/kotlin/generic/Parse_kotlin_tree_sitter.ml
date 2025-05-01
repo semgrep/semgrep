@@ -2493,7 +2493,7 @@ and type_ (env : env) ((v1, v2) : CST.type_) : type_ =
   in
   { v2 with t_attrs = v1 }
 
-and type_arguments (env : env) ((v1, v2, v3, _, v5) : CST.type_arguments) =
+and type_arguments (env : env) ((v1, v2, v3, v4) : CST.type_arguments) =
   let v1 =
     token env v1
     (* "<" *)
@@ -2510,11 +2510,11 @@ and type_arguments (env : env) ((v1, v2, v3, _, v5) : CST.type_arguments) =
         v2)
       v3
   in
-  let v5 =
-    token env v5
+  let v4 =
+    token env v4
     (* ">" *)
   in
-  (v1, v2 :: v3, v5)
+  (v1, v2 :: v3, v4)
 
 and type_constraint (env : env) ((v1, v2, v3, v4) : CST.type_constraint) :
     ident * type_ =
@@ -2599,7 +2599,7 @@ and type_parameter_modifier (env : env) (x : CST.type_parameter_modifier) =
 and type_parameter_modifiers (env : env) (xs : CST.type_parameter_modifiers) =
   List_.map (type_parameter_modifier env) xs
 
-and type_parameters (env : env) ((v1, v2, v3, _, v5) : CST.type_parameters) :
+and type_parameters (env : env) ((v1, v2, v3, v4) : CST.type_parameters) :
     G.type_parameters =
   let lt =
     token env v1
@@ -2618,7 +2618,7 @@ and type_parameters (env : env) ((v1, v2, v3, _, v5) : CST.type_parameters) :
       v3
   in
   let gt =
-    token env v5
+    token env v4
     (* ">" *)
   in
   (lt, v2 :: v3, gt)
