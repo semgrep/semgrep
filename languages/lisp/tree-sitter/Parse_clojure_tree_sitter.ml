@@ -35,9 +35,6 @@ module H = Parse_tree_sitter_helpers
 (*****************************************************************************)
 type env = unit H.env
 
-let _token = H.token
-let _str = H.str
-let _todo (_env : env) _ = failwith "not implemented lol"
 let token (env : env) (tok : Tree_sitter_run.Token.t) = R.Token (H.str env tok)
 
 let name (env : env) (tok : Tree_sitter_run.Token.t) =
