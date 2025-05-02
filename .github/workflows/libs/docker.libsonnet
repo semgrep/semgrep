@@ -390,6 +390,7 @@ local inputs = {
     },
   },
   copy_from_docker_step: copy_from_docker_step,
+  ref_expr: ref_expr,
   validate: validate,
   retag_step: retag_step,
 }
