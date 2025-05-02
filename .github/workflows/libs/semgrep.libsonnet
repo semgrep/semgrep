@@ -398,6 +398,16 @@ local retag_sms_docker_image_step(version, tag, dry_run=false) = {
   |||,
 };
 
+local trigger_build_sms_docker_image_step(tag) = {
+  name: 'Trigger build SMS docker image from %s' % tag,
+  env: {
+    GITHUB_TOKEN: github_bot.token_ref,
+    SEMGREP_TAG: tag,
+  },
+  // TODO Factor out gh workflow run XYZ with above
+  run: 'gh workflow run build-sms-image.yml --repo semgrep/semgrep-app --raw-field version="$SEMGREP_TAG"',
+};
+
 local test_wheel_steps(arch, copy_semgrep_pro=false) = [
   // caching is hard and why complicate things
   actions.setup_python_step(cache=false),
@@ -449,6 +459,7 @@ local test_wheel_steps(arch, copy_semgrep_pro=false) = [
   test_wheel_steps: test_wheel_steps,
   unpack_wheel_steps: unpack_wheel_steps,
   retag_sms_docker_image_step: retag_sms_docker_image_step,
+  trigger_build_sms_docker_image_step: trigger_build_sms_docker_image_step,
   wheel_name: wheel_name,
   // coupling: cli/setup.py, the matrix in run-cli-tests.libsonnet,
   // build-test-manylinux-x86.jsonnet in pro, tests.jsonnet in OSS
