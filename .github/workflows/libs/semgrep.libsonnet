@@ -377,6 +377,27 @@ local unpack_wheel_steps = [
     run: 'tar --wildcards -xzf ./artifacts/dist.tgz "*.whl" || unzip ./artifacts/dist.zip "*.whl"',
   },
 ];
+
+// Only retags the SMS image, we have to do this via ecr
+local retag_sms_docker_image_step(version, tag, dry_run=false) = {
+  name: 'Retag SMS docker image from %s to %s' % [version, tag],
+  env: {
+    GITHUB_TOKEN: github_bot.token_ref,
+    SEMGREP_VERSION: version,
+    SEMGREP_TAG: tag,
+    DRY_RUN: dry_run,
+  },
+  // TODO Factor out gh workflow run XYZ
+  run: |||
+    # append dry-run to the tag if needed
+    if [ "$DRY_RUN" == "true" ]; then
+      SEMGREP_TAG="${SEMGREP_TAG}-dry-run"
+    fi
+    echo "Tagging SMS docker image semgrep-app/zcs-agent from $SEMGREP_VERSION to $SEMGREP_TAG"
+    gh workflow run tag-sms-image.yml --repo semgrep/semgrep-app --raw-field version="$SEMGREP_VERSION" --raw-field tag="$SEMGREP_TAG"
+  |||,
+};
+
 local test_wheel_steps(arch, copy_semgrep_pro=false) = [
   // caching is hard and why complicate things
   actions.setup_python_step(cache=false),
@@ -427,6 +448,7 @@ local test_wheel_steps(arch, copy_semgrep_pro=false) = [
   build_wheel_steps: build_wheel_steps,
   test_wheel_steps: test_wheel_steps,
   unpack_wheel_steps: unpack_wheel_steps,
+  retag_sms_docker_image_step: retag_sms_docker_image_step,
   wheel_name: wheel_name,
   // coupling: cli/setup.py, the matrix in run-cli-tests.libsonnet,
   // build-test-manylinux-x86.jsonnet in pro, tests.jsonnet in OSS
