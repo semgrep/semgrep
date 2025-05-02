@@ -28,3 +28,10 @@ let collect l =
 module Operators = struct
   let ( >>= ) x f = Result.bind x f
 end
+
+let transpose_result_option (x : ('a, 'err) result option) :
+    ('a option, 'err) result =
+  match x with
+  | None -> Ok None
+  | Some (Ok a) -> Ok (Some a)
+  | Some (Error e) -> Error e

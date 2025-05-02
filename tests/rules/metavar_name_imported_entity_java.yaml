@@ -1,0 +1,17 @@
+rules:
+- id: metavar-name-imported-entity-java
+  message: test
+  languages:
+  - java
+  severity: WARNING
+  pattern-either:
+    - patterns:
+      - pattern: $X.x()
+      - semgrep-internal-metavariable-name:
+          metavariable: $X
+          fqn: a.b.Foo
+    - patterns:
+      - pattern: $X = new $Y();
+      - semgrep-internal-metavariable-name:
+          metavariable: $Y
+          fqn: a.b.Foo

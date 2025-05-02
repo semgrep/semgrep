@@ -1,0 +1,21 @@
+rules:
+- id: metavar-name-imported-entity-js
+  message: test
+  severity: ERROR
+  languages:
+  - js
+  pattern-either:
+    - patterns:
+      - pattern: $X(...)
+      - semgrep-internal-metavariable-name:
+          metavariable: $X
+          fqn: foo3.bar3
+    - patterns:
+      - pattern: $X.bar(...)
+      - semgrep-internal-metavariable-name:
+          metavariable: $X
+          fqns:
+            - foo1
+            - foo2.default
+
+
