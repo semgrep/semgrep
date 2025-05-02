@@ -13,3 +13,8 @@ module Operators : sig
   val ( >>= ) :
     ('a, 'error) result -> ('a -> ('b, 'error) result) -> ('b, 'error) result
 end
+
+val transpose_result_option :
+  ('a, 'err) result option -> ('a option, 'err) result
+(** [transpose_result_option x] transposes an optional result into a
+    result of an option. *)

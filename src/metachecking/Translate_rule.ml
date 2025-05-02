@@ -68,7 +68,7 @@ let rec translate_metavar_cond cond : [> `O of (string * Yaml.value) list ] =
         match lang with
         | None -> []
         | Some x -> [ ("language", `String (Analyzer.to_string x)) ])
-  | CondName { mvar; kind; modules } ->
+  | CondName { mvar; kind; modules; fqns } ->
       `O
         ([ ("metavariable", `String mvar) ]
         @ (match kind with
@@ -76,11 +76,15 @@ let rec translate_metavar_cond cond : [> `O of (string * Yaml.value) list ] =
           | Some ExpressApp -> [ ("kind", `String "express-app") ]
           | Some ExpressController -> [ ("kind", `String "express-controller") ]
           | None -> [])
+        @ (match modules with
+          | Some [ name ] -> [ ("module", `String name) ]
+          | Some names ->
+              [ ("modules", `A (List_.map (fun n -> `String n) names)) ]
+          | None -> [])
         @
-        match modules with
-        | Some [ name ] -> [ ("module", `String name) ]
-        | Some names ->
-            [ ("modules", `A (List_.map (fun n -> `String n) names)) ]
+        match fqns with
+        | Some [ name ] -> [ ("fqn", `String name) ]
+        | Some names -> [ ("fqns", `A (List_.map (fun n -> `String n) names)) ]
         | None -> [])
   | CondRegexp (mv, re_str, _) ->
       `O [ ("metavariable", `String mv); ("regex", `String re_str) ]

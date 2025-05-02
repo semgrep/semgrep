@@ -154,6 +154,7 @@ and metavar_cond_name = {
         be `com.foo.bar`, but less important since those patterns may be able
         to be written directly.
   *)
+  fqns : string list option;
 }
 
 and metavar_analysis_kind =

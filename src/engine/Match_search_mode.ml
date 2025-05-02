@@ -673,7 +673,7 @@ let hook_pro_entropy_analysis :
   Hook.create None
 
 let hook_pro_metavariable_name :
-    (G.expr -> Rule.metavar_cond_name -> bool) option ref =
+    (Lang.t -> G.expr -> Rule.metavar_cond_name -> bool) option ref =
   ref None
 
 let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
@@ -739,23 +739,17 @@ let rec filter_ranges (env : env) (xs : (RM.t * MV.bindings list) list)
                  error env
                    (spf "couldn't find metavar %s in the match results." mvar);
                  None)
-         | R.CondName ({ mvar; _ } as cond) -> (
-             let find_name env e cond =
-               match !hook_pro_metavariable_name with
+         | R.CondName ({ mvar; _ } as cond) ->
+             let* mval =
+               match List.assoc_opt mvar bindings with
+               | Some mv -> Some mv
                | None ->
                    error env
-                     "metavariable-name operator is only supported in the Pro \
-                      engine";
-                   false
-               | Some f -> f e cond
+                     (spf "couldn't find metavar %s in the match results." mvar);
+                   None
              in
-             let* mval = List.assoc_opt mvar bindings in
-             match Metavariable.mvalue_to_expr mval with
-             | Some e -> find_name env e cond |> map_bool r
-             | None ->
-                 error env
-                   (spf "couldn't find metavar %s in the match results." mvar);
-                 None)
+             let* e = MV.mvalue_to_expr mval in
+             Metavariable_name.find_name env e cond |> map_bool r
          (* todo: would be nice to have CondRegexp also work on
           * eval'ed bindings.
           * We could also use re.match(), to be close to python, but really
