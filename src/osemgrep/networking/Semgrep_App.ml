@@ -88,7 +88,8 @@ let pro_binary_route (platform_kind : pro_engine_arch) =
   in
   "api/agent/deployments/deepbinary/" ^ arch_str
 
-let symbol_analysis_route scan_id = spf "/api/agent/scans/%d/symbols" scan_id
+let symbol_analysis_route scan_id =
+  spf "/api/agent/scans/%d/symbols_upload_url" scan_id
 
 (* Transitive reachability caching routes *)
 let tr_cache_route = "/api/cli/tr_cache"
@@ -528,27 +529,51 @@ let upload_symbol_analysis_async caps ~token ~scan_id symbol_analysis :
       ]
     in
     let body = Out.string_of_symbol_analysis symbol_analysis in
-    match%lwt Http_helpers.post ~body ~headers caps#network url with
-    | Ok { body = Ok body; _ } -> Lwt.return_ok body
+    match%lwt Http_helpers.get ~headers caps#network url with
+    | Ok { body = Ok body_json; _ } -> (
+        (* Parse the JSON to extract the upload_url *)
+        match Out.symbol_analysis_upload_response_of_string body_json with
+        | { upload_url; _ } -> (
+            let upload_headers =
+              [
+                ("Content-Type", "application/json");
+                ("User-Agent", spf "Semgrep/%s" Version.version);
+              ]
+            in
+            (* Upload the symbol analysis to the S3 upload_url *)
+            match%lwt
+              Http_helpers.put ~body ~headers:upload_headers caps#network
+                upload_url
+            with
+            (* Handle the good case *)
+            | Ok { body = Ok _; _ } -> Lwt.return_ok "Symbol analysis uploaded"
+            | Ok { body = Error msg; code; _ } ->
+                (* Handle the case where the server returns an error code*)
+                let msg =
+                  spf
+                    "Failed to upload symbol analysis to S3, S3 returned %u, \
+                     this error: %s"
+                    code msg
+                in
+                Lwt.return_error msg
+            | Error e ->
+                (* Handle the case where the server rejects the connection *)
+                let msg = spf "Failed to upload symbol analysis to S3: %s" e in
+                Lwt.return_error msg
+            (* Handle the server accepting the connection but throwing an error *)
+            ))
     | Ok { body = Error msg; code; _ } ->
         let msg =
           spf
-            "Failed to upload symbol analysis, API server returned %u, this \
-             error: %s"
+            "Failed to get symbol analysis upload url, API server returned %u, \
+             this error: %s"
             code msg
         in
         Lwt.return_error msg
+        (* Handle the case where the server rejects the connection *)
     | Error e ->
-        let msg = spf "Failed to upload symbol analysis: %s" e in
+        let msg = spf "Failed to get symbol analysis upload url: %s" e in
         Lwt.return_error msg
-    (* `try ... with exn ->` is horrendous. But hear me out.
-       We are adding this symbol analysis information to arbitrary Semgrep scans, but they are not
-       very related to the actual scan, it's just scan-adjacent information that we want to
-       collect.
-       If there is any error related to symbol analysis, we do _not_ want it to affect the actual
-       scan. Any exception that this raises _cannot_ stop the show.
-       So let's catch it and log unconditionally, but don't crash the program.
-    *)
   with
   | exn ->
       let msg =

@@ -74,6 +74,27 @@ val post :
     successful, or an [Error (code, msg)], including the HTTP status [code]
     and a message. *)
 
+val put :
+  body:string ->
+  ?headers:(string * string) list ->
+  ?chunked:bool ->
+  Cap.Network.t ->
+  Uri.t ->
+  client_result Lwt.t
+(** [put_async ~body ~headers ~chunked caps uri] asynchronously sends a
+    PUT request to [uri] with
+    - [headers] (default: content-type: application/json)
+    - [chunked] (default: false) this maps to whether we enable
+      "Transfer-Encoding: chunked" in our outgoing request, which can be useful
+       for streaming a large body of text, but not all servers support it.
+       We err on the side of caution and disable it by default.
+       Reference: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Transfer-Encoding#directives
+    - [body] payload to send (e.g. JSON body as string)
+
+    The returned value is a promise of either [Ok body] if the request was
+    successful, or an [Error (code, msg)], including the HTTP status [code]
+    and a message. *)
+
 val set_client_ref : (module Cohttp_lwt.S.Client) -> unit
 (** [set_client_ref] sets a reference to the Cohttp client module used by the
     functions in this module. By default, it is set to

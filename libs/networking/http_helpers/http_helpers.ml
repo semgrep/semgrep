@@ -244,3 +244,15 @@ let post ~body ?(headers = [ ("content-type", "application/json") ])
   Lwt_result.bind response (fun (response, body) ->
       Lwt.return_ok (server_response_of_response (response, body) `POST))
 [@@profiling]
+
+let put ~body ?(headers = [ ("content-type", "application/json") ])
+    ?(chunked = false) _caps url =
+  Log.info (fun m -> m "PUT on %s" (Uri.to_string url));
+  let response =
+    call_client
+      ~body:(Cohttp_lwt.Body.of_string body)
+      ~headers ~chunked `PUT url
+  in
+  Lwt_result.bind response (fun (response, body) ->
+      Lwt.return_ok (server_response_of_response (response, body) `PUT))
+[@@profiling]
