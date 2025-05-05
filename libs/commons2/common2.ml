@@ -37,18 +37,6 @@ let rec (foldn : ('a -> int -> 'a) -> 'a -> int -> 'a) =
 let sum_float = List.fold_left ( +. ) 0.0
 let sum_int = List.fold_left ( + ) 0
 
-let rec drop n xs =
-  match (n, xs) with
-  | 0, _ -> xs
-  | _, [] -> failwith "drop: not enough"
-  | n, _x :: xs -> drop (n - 1) xs
-
-let rec take n xs =
-  match (n, xs) with
-  | 0, _ -> []
-  | _, [] -> failwith "Common.take: not enough"
-  | n, x :: xs -> x :: take (n - 1) xs
-
 (*let last l = List_.hd_exn "unexpected empty list" (last_n 1 l) *)
 let rec list_last = function
   | [] -> raise Not_found
@@ -103,60 +91,6 @@ let string_of_list f xs = "[" ^ (xs |> List_.map f |> String.concat ";") ^ "]"
 let string_of_option f = function
   | None -> "None "
   | Some x -> "Some " ^ f x
-
-(*****************************************************************************)
-(* Concurrency *)
-(*****************************************************************************)
-
-(* from http://en.wikipedia.org/wiki/File_locking
- *
- * "When using file locks, care must be taken to ensure that operations
- * are atomic. When creating the lock, the process must verify that it
- * does not exist and then create it, but without allowing another
- * process the opportunity to create it in the meantime. Various
- * schemes are used to implement this, such as taking advantage of
- * system calls designed for this purpose (but such system calls are
- * not usually available to shell scripts) or by creating the lock file
- * under a temporary name and then attempting to move it into place."
- *
- * => can't use 'if(not (file_exist xxx)) then create_file xxx' because
- * file_exist/create_file are not in atomic section (classic problem).
- *
- * from man open:
- *
- * "O_EXCL When used with O_CREAT, if the file already exists it
- * is an error and the open() will fail. In this context, a
- * symbolic link exists, regardless of where it points to.
- * O_EXCL is broken on NFS file systems; programs which
- * rely on it for performing locking tasks will contain a
- * race condition. The solution for performing atomic file
- * locking using a lockfile is to create a unique file on
- * the same file system (e.g., incorporating host- name and
- * pid), use link(2) to make a link to the lockfile. If
- * link(2) returns 0, the lock is successful. Otherwise,
- * use stat(2) on the unique file to check if its link
- * count has increased to 2, in which case the lock is also
- * successful."
-
- *)
-
-exception FileAlreadyLocked
-
-(* Racy if lock file on NFS!!! But still racy with recent Linux ? *)
-let acquire_file_lock filename =
-  pr2 ("Locking file: " ^ filename);
-  try
-    let _fd = UUnix.openfile filename [ Unix.O_CREAT; Unix.O_EXCL ] 0o777 in
-    ()
-  with
-  | UUnix.Unix_error (e, fm, argm) ->
-      pr2 (spf "exn Unix_error: %s %s %s\n" (Unix.error_message e) fm argm);
-      raise FileAlreadyLocked
-
-let release_file_lock filename =
-  pr2 ("Releasing file: " ^ filename);
-  USys.remove filename;
-  ()
 
 (*****************************************************************************)
 (* Error managment *)
@@ -493,11 +427,6 @@ let group_assoc_bykey_eff xs =
   let keys = Hashtbl_.hkeys h in
   keys |> List_.map (fun k -> (k, Hashtbl_.get_stack h k))
 
-let uniq_eff xs =
-  let h = Hashtbl.create 101 in
-  xs |> List.iter (fun k -> Hashtbl.replace h k true);
-  Hashtbl_.hkeys h
-
 let diff_set_eff xs1 xs2 =
   let h1 = Hashtbl_.hashset_of_list xs1 in
   let h2 = Hashtbl_.hashset_of_list xs2 in
@@ -515,24 +444,6 @@ let diff_set_eff xs1 xs2 =
   ( Hashtbl_.hashset_to_list hcommon,
     Hashtbl_.hashset_to_list honly_in_h1,
     Hashtbl_.hashset_to_list honly_in_h2 )
-
-(*****************************************************************************)
-(* N-ary tree *)
-(*****************************************************************************)
-
-type ('a, 'b) tree = Node of 'a * ('a, 'b) tree list | Leaf of 'b
-(* with tarzan *)
-
-(*****************************************************************************)
-(* Generic op *)
-(*****************************************************************************)
-(* overloading *)
-
-let map = List_.map
-
-(*###########################################################################*)
-(* Misc functions *)
-(*###########################################################################*)
 
 (*****************************************************************************)
 (* Regression testing bis (cocci) *)
@@ -655,65 +566,6 @@ let print_score score =
   print_total_score score;
   ()
 
-(*x: common.ml *)
-(*****************************************************************************)
-(* Random *)
-(*****************************************************************************)
-
-(* let _init_random = Random.self_init () *)
-
-(*
-let random_insert i l =
-    let p = Random.int (length l +1)
-    in let rec insert i p l =
-      if (p = 0) then i::l else (hd l)::insert i (p-1) (tl l)
-    in insert i p l
-
-let rec randomize_list = function
-  []  -> []
-  | a::l -> random_insert a (randomize_list l)
-*)
-let random_list xs = List.nth xs (URandom.int (List.length xs))
-
-(* todo_opti: use fisher/yates algorithm.
- * ref: http://en.wikipedia.org/wiki/Knuth_shuffle
- *
- * public static void shuffle (int[] array)
- * {
- *  Random rng = new Random ();
- *  int n = array.length;
- *  while (--n > 0)
- *  {
- *    int k = rng.nextInt(n + 1);  // 0 <= k <= n (!)
- *    int temp = array[n];
- *    array[n] = array[k];
- *    array[k] = temp;
- *   }
- * }
-
- *)
-
-let random_subset_of_list num xs =
-  let array = Array.of_list xs in
-  let len = Array.length array in
-
-  let h = Hashtbl.create 101 in
-  let cnt = ref num in
-  while !cnt > 0 do
-    let x = URandom.int len in
-    if not (Hashtbl.mem h array.(x)) (* bugfix2: not just x :) *) then (
-      Hashtbl.add h array.(x) true;
-      (* bugfix1: not just x :) *)
-      decr cnt)
-  done;
-  let objs = Hashtbl_.hash_to_list h |> List_.map fst in
-  objs
-
-(*****************************************************************************)
-(* Postlude *)
-(*****************************************************************************)
-(* stuff put here cos of of forward definition limitation of ocaml *)
-
 (*---------------------------------------------------------------------------*)
 (* Directories part 2 *)
 (*---------------------------------------------------------------------------*)
@@ -740,25 +592,6 @@ let inits_of_relative_dir dir =
   |> List_.tl_exn "unexpected empty list"
   |> List_.map relative_path_of_segs
 
-(* todo? vs common_prefix_of_files_or_dirs? *)
-let find_common_root files =
-  let dirs_part = files |> List_.map fst in
-
-  let rec aux current_candidate xs =
-    try
-      let topsubdirs =
-        xs |> List_.map (List_.hd_exn "unexpected empty list") |> uniq_eff
-      in
-      match topsubdirs with
-      | [ x ] ->
-          aux (x :: current_candidate)
-            (xs |> List_.map (List_.tl_exn "unexpected empty list"))
-      | _ -> List.rev current_candidate
-    with
-    | _ -> List.rev current_candidate
-  in
-  aux [] dirs_part
-
 let dirs_and_base_of_file file =
   let dir, base = Filename_.db_of_filename file in
   let dirs = String.split_on_char '/' dir in
@@ -768,56 +601,3 @@ let dirs_and_base_of_file file =
     | _ -> dirs
   in
   (dirs, base)
-
-(* main entry *)
-let (tree_of_files : string list -> (string, string * string) tree) =
- fun files ->
-  let files_fullpath = files in
-
-  (* extract dirs and file from file, e.g. ["home";"pad"], "__flib.php", path *)
-  let files = files |> List_.map dirs_and_base_of_file in
-
-  (* find root, eg ["home";"pad"] *)
-  let root = find_common_root files in
-
-  let files = zip files files_fullpath in
-
-  (* remove the root part *)
-  let files =
-    files
-    |> List_.map (fun ((dirs, base), path) ->
-           let n = List.length root in
-           let root', rest = (take n dirs, drop n dirs) in
-           assert (root' =*= root);
-           ((rest, base), path))
-  in
-
-  (* now ready to build the tree recursively *)
-  let rec aux (xs : ((string list * string) * string) list) =
-    let files_here, rest =
-      xs |> List.partition (fun ((dirs, _base), _) -> List_.null dirs)
-    in
-    let groups =
-      rest
-      |> group_by_mapped_key (fun ((dirs, _base), _) ->
-             (* would be a file if null dirs *)
-             assert (not (List_.null dirs));
-             List_.hd_exn "unexpected empty list" dirs)
-    in
-
-    let nodes =
-      groups
-      |> List_.map (fun (k, xs) ->
-             let xs' =
-               xs
-               |> List_.map (fun ((dirs, base), path) ->
-                      ((List_.tl_exn "unexpected empty list" dirs, base), path))
-             in
-             Node (k, aux xs'))
-    in
-    let leaves =
-      files_here |> List_.map (fun ((_dir, base), path) -> Leaf (base, path))
-    in
-    nodes @ leaves
-  in
-  Node (String.concat "/" root, aux files)

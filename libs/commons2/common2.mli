@@ -38,16 +38,6 @@ val string_of_list : ('a -> string) -> 'a list -> string
 val string_of_option : ('a -> string) -> 'a option -> string
 
 (*****************************************************************************)
-(* Concurrency *)
-(*****************************************************************************)
-
-(* how ensure really atomic file creation ? hehe :) *)
-exception FileAlreadyLocked
-
-val acquire_file_lock : string -> unit
-val release_file_lock : string -> unit
-
-(*****************************************************************************)
 (* Error managment *)
 (*****************************************************************************)
 
@@ -59,14 +49,6 @@ val error_cant_have : 'a -> 'b
 
 val string_of_char : char -> string
 val string_of_chars : char list -> string
-
-(*****************************************************************************)
-(* Random *)
-(*****************************************************************************)
-
-(* val _init_random : unit *)
-val random_list : 'a list -> 'a
-val random_subset_of_list : int -> 'a list -> 'a list
 
 (*****************************************************************************)
 (* Tuples *)
@@ -212,15 +194,4 @@ end
 (* N-ary tree *)
 (*****************************************************************************)
 
-type ('a, 'b) tree = Node of 'a * ('a, 'b) tree list | Leaf of 'b
-
 val dirs_and_base_of_file : string -> string list * string
-val tree_of_files : string list -> (string, string * string) tree
-
-(*****************************************************************************)
-(* Generic op *)
-(*****************************************************************************)
-
-(* mostly alias to functions in List_ *)
-
-val map : ('a -> 'b) -> 'a list -> 'b list
