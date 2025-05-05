@@ -955,7 +955,7 @@ class TextFormatter(base.BaseFormatter):
                         Your deployment has generic secrets enabled. {len(matches)} potential line locations
                         will be uploaded to the Semgrep platform and then analyzed by Semgrep Assistant.
                         Any findings that appear actionable will be available in the Semgrep Platform.
-                        You can view the secrets analyzed by Assistant at {url}/orgs/-/secrets?status=open&type=AI-detected+secret+%28beta%29
+                        You can view the secrets analyzed by Assistant at {url}/orgs/-/secrets?status=open&type=Generic+Secret+%28AI%29
                         """
                         )
                     )
