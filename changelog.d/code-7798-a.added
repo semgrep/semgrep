@@ -1,0 +1,4 @@
+pro: Improved handling of `include`, `exclude` and `files` properties in
+`tsconfig.json`. Projects which use more than one tsconfig in a given directory
+which apply to different sets of files under that directory should see
+improvements in name/module resolution.
