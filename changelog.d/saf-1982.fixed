@@ -1,2 +1,0 @@
-CLI: Fixed a bug where `--disable-nosem` was not properly causing nosemgrep'd findings
-to be uploaded to the App.

@@ -1,2 +1,0 @@
-Exempt large manifests & lockfiles from being ignored by semgrep's file size filtering.
-This fixes a regression introduced in 1.117.0 (sca-1705).
