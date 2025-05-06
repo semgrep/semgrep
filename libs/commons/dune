@@ -33,6 +33,8 @@
    alcotest-lwt
    ; tracing
    memtrace
+   ; concurrency
+   eio_main
  )
  (inline_tests)
  ; can't use profiling.ppx because of circular dependencies :(

@@ -674,7 +674,7 @@ let run caps (config : Core_scan_config.t) : unit =
  * set. coupling: Pro_CLI.ml
  *)
 let decide_if_eio caps (config : Core_scan_config.t) =
-  if config.use_eio then
+  if (not !Common.jsoo) && config.use_eio then
     Eio_main.run (fun base ->
         Eio.Switch.run (fun sw ->
             let pool =

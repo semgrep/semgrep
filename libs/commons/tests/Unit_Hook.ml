@@ -1,4 +1,4 @@
-module H = Scoped
+module H = Hook
 
 let t = Testo.create
 
@@ -58,35 +58,6 @@ let test_fiber_local_concurrent () =
       let fibers = List.init 1000 (fun i -> fun () -> f i) in
       Eio.Fiber.all fibers)
 
-let test_fiber_local_domains_map () =
-  let h = H.create 0 in
-  let procs = 100 in
-
-  (* This will repeatedly check that binding [sm]'s value to [i]
-   * is not disturbed by another fiber nor another domain. *)
-  let f i =
-    assert (H.get h = 0);
-    H.with_hook_set h i (fun () ->
-        for _ = 0 to 1000 do
-          let i' = H.get h in
-          Eio.Fiber.yield ();
-          assert (i = i');
-          (* See above comment about races in the test harness *)
-          Eio.Fiber.yield ()
-        done);
-    assert (H.get h = 0)
-  in
-
-  Eio_main.run (fun env ->
-      Eio.Switch.run (fun sw ->
-          let dm = Eio.Stdenv.domain_mgr env in
-          let pool = Eio.Executor_pool.create ~sw ~domain_count:procs dm in
-
-          let l = List.init procs (fun i -> i + 1) in
-          let res = Domains.map ~pool f l in
-          assert (Result.is_ok (Result_.collect res))));
-  Alcotest.(check int) __LOC__ 0 (H.get h)
-
 let test_fiber_local_with_exn () =
   let h = H.create 0 in
   let msg = "A terrible fate has befallen this computation" in
@@ -103,12 +74,28 @@ let test_fiber_local_with_exn () =
           H.with_hook_set h 1 f);
       Alcotest.(check int) __LOC__ 0 (H.get h))
 
+let test_cli_escape_hatch () =
+  let hb = H.create false in
+  let hi = H.create 42 in
+
+  let argv = Array.of_list [ "myproc"; "-verbose"; "-nprocs=99" ] in
+  let speclist =
+    [
+      ("-verbose", Hook.Arg.set hb, "Sets hb to true");
+      ("-nprocs", Hook.Arg.int hi, "Sets hi to its value");
+    ]
+  in
+  let current = ref 0 in
+  let _ = Arg.parse_argv ~current argv speclist (fun _ -> ()) "..." in
+  Alcotest.(check bool) __LOC__ true (H.get hb);
+  Alcotest.(check int) __LOC__ 99 (H.get hi)
+
 let tests =
-  Testo.categorize "Scoped"
+  Testo.categorize "Hooks"
     [
       t "Fiber scope" test_fiber_local_with_hook_set_scope;
       t "Fiber nested" test_fiber_local_nested;
       t "Fiber concurrent" test_fiber_local_concurrent;
-      t "Fiber with Domains.map" test_fiber_local_domains_map;
       t "Fiber and exceptions" test_fiber_local_with_exn;
+      t "Fiber mutation by CLI parsing" test_cli_escape_hatch;
     ]

@@ -9,6 +9,7 @@
  (libraries
    commons
    ast_generic
+   parallelism
    semgrep.core ; Lang
    semgrep.il
  )
