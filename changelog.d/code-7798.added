@@ -1,0 +1,5 @@
+pro: Improved handling of `tsconfig.json` in instances where multiple
+typescript "projects" (i.e., separately rooted source directories with their
+own configurations *not* joined by a single `tsconfig.json` with project
+references) are being scanned as one project under semgrep. This should result
+in better name/module resolution in TypeScript.
