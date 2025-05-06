@@ -141,6 +141,24 @@ class Traces:
         env_name = _ENV_ALIASES.get(
             _DEFAULT_ENDPOINT if trace_endpoint is None else trace_endpoint
         )
+        # See https://github.com/docker/cli/issues/4958 for why we don't use just OTEL_RESOURCE_ATTRIBUTES
+        docker_otel_resource_attributes = os.environ.get(
+            "DOCKER_OTEL_RESOURCE_ATTRIBUTES", ""
+        )
+        otel_resource_attributes = os.environ.get(OTEL_RESOURCE_ATTRIBUTES, "")
+        # If both are set let's merge them
+        if otel_resource_attributes and docker_otel_resource_attributes:
+            os.environ[OTEL_RESOURCE_ATTRIBUTES] = (
+                otel_resource_attributes + "," + docker_otel_resource_attributes
+            )
+        # If only one is set let's use it, if not don't touch it
+        elif docker_otel_resource_attributes:
+            # If we have a docker otel resource attributes, we want to set it
+            # as the default, since it will be more useful than the default
+            # otel resource attributes
+            os.environ[OTEL_RESOURCE_ATTRIBUTES] = docker_otel_resource_attributes
+        elif otel_resource_attributes:
+            os.environ[OTEL_RESOURCE_ATTRIBUTES] = otel_resource_attributes
         # Note that resource here is immutable, so if we want to blanket attach
         # attributes to Otel info after tracing is setup, we can't do it here.
         # Instead we have to do it in the corresponding kind of processor

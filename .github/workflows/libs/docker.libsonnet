@@ -323,6 +323,13 @@ local job(
 
                  target: target,
 
+                 // Set the build args for the docker image
+                 // VCS_* just specify what commit/branch this was built on
+                 // These have no effect if ARG isn't used in the Dockerfile
+                 'build-args': |||
+                   VCS_REF_HEAD_NAME=${{ github.head_ref || github.ref_name }}
+                   VCS_REF_HEAD_REVISION=%(ref_expr)s
+                 ||| % { ref_expr: ref_expr },
                  // This flag controls if for whatever reason depot fails to
                  // build the docker image on their fast native arm64 runners, whether
                  // depot will fallback to docker-buildx which uses emulation (which is
