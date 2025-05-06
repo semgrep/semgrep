@@ -1,5 +1,5 @@
 (* metavariable name (e.g., "$FOO") *)
-type mvar = Mvar.t [@@deriving show, eq, hash]
+type mvar = Mvar.t [@@deriving show, eq, hash, sexp]
 
 (* metavariable content *)
 type mvalue =
@@ -39,7 +39,7 @@ type mvalue =
    as its concrete code "witness". You can get position information from it
    (if it is not Tok.Ab(stractPos)).
 *)
-type bindings = (mvar * mvalue) list [@@deriving show, eq]
+type bindings = (mvar * mvalue) list [@@deriving show, eq, sexp]
 
 (* Mvalue equality reduces to equality on ASTs, which ignores the tokens
    and instead compares the structure. It may optionally include the ident

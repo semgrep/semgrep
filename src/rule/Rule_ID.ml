@@ -23,12 +23,13 @@
 
    TODO: distinguish the bare rule name 'foo' from the path 'path.to.foo'
  *)
+open Sexplib.Std
 
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 
-type t = string [@@deriving show, eq]
+type t = string [@@deriving show, eq, sexp]
 
 exception Malformed_rule_ID of string
 

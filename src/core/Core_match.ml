@@ -29,6 +29,8 @@
  * alt: rename to Finding.ml
  *)
 
+open Sexplib.Std
+
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -52,7 +54,8 @@ type t = {
    * TODO? do we want to consider the same match but with different engine
    * as separate matches? or better make them equal for dedup purpose?
    *)
-  engine_of_match : Engine_kind.engine_of_finding; [@equal fun _a _b -> true]
+  engine_of_match : (Engine_kind.engine_of_finding[@sexp.opaque]);
+      [@equal fun _a _b -> true]
   (* metavars for the pattern match *)
   env : Metavariable.bindings;
       [@equal
@@ -66,7 +69,7 @@ type t = {
               s1 = s2 && Metavariable.location_aware_equal_mvalue m1 m2)
             a b]
   (* location info *)
-  path : Target.path;
+  path : (Target.path[@sexp.opaque]);
   (* less: redundant with location? *)
   (* note that the two Tok.location can be equal *)
   range_loc : Tok.location * Tok.location;
@@ -84,8 +87,8 @@ type t = {
      `has_as_metavariable` is true of the originating rule.
      Otherwise, we leave it at `None`.
   *)
-  ast_node : AST_generic.any option;
-  (* less: do we need to be lazy? *)
+  ast_node : (AST_generic.any[@sexp.opaque]) option;
+      (* less: do we need to be lazy? *)
   tokens : Tok.t list Lazy.t; [@equal fun _a _b -> true]
   (* Lazy since construction involves forcing lazy token lists. *)
   (* We used to have `[@equal fun _a _b -> true]` here, but this causes issues with
@@ -93,16 +96,16 @@ type t = {
      in deduplication.
      We now rely on equality of taint traces, which in turn relies on equality of `Parse_info.t`.
   *)
-  taint_trace : Taint_trace.t Lazy.t option; (* secrets stuff *)
+  taint_trace : (Taint_trace.t[@sexp.opaque]) Lazy.t option; (* secrets stuff *)
   (* SCA extra info about a match (e.g., the satisfied version constraint) *)
-  sca_match : SCA_match.t option;
+  sca_match : (SCA_match.t[@sexp.opaque]) option;
   (* Secrets. Indicates whether a postprocessor ran and validated this result. *)
-  validation_state : Rule.validation_state;
+  validation_state : (Rule.validation_state[@sexp.opaque]);
   (* Indicates if the rule default severity should be modified to a different
      severity. Currently this is just used by secrets validators in order to
      modify severity based on information from the validation step. (E.g.,
      validity, scope information) *)
-  severity_override : Rule.severity option;
+  severity_override : (Rule.severity[@sexp.opaque]) option;
   (* Indicates if the rule default metadata should be modified. Currently this
      is just used by secrets validators in order to
      modify metadata based on information from the validation step. (E.g.,
@@ -110,13 +113,13 @@ type t = {
      NOTE: The whole metadata blob is _not_ changed; rather, fields present in
      the override is applied on top of the default and only changes the fields
      present in the override. *)
-  metadata_override : JSON.t option;
+  metadata_override : (JSON.t[@sexp.opaque]) option;
   (* A field to be populated based on intra-formula `fix` keys.
      This is _prior_ to AST-based autofix and interpolation, which occurs in
      Autofix.ml.
   *)
   fix_text : string option;
-  facts : AST_generic.facts;
+  facts : (AST_generic.facts[@sexp.opaque]);
 }
 
 (* This is currently a record, but really only the rule id should matter.
@@ -146,15 +149,15 @@ and rule_id = {
    * mini_rule? *)
   message : string;
   (* so we can calculate core_unique_key later *)
-  metadata : JSON.t option;
+  metadata : (JSON.t[@sexp.opaque]) option;
   fix : string option;
-  fix_regexp : Rule.fix_regexp option;
+  fix_regexp : (Rule.fix_regexp[@sexp.opaque]) option;
   (* ?? why we need that? *)
-  langs : Lang.t list;
+  langs : (Lang.t[@sexp.opaque]) list;
   (* used for debugging (could be removed at some point) *)
   pattern_string : string;
 }
-[@@deriving show, eq]
+[@@deriving show, eq, sexp]
 
 (*****************************************************************************)
 (* Deduplication *)

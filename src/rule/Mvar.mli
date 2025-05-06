@@ -1,5 +1,5 @@
 (* a metavariable name (e.g. "$FOO") *)
-type t = string [@@deriving show, eq, hash]
+type t = string [@@deriving show, eq, hash, sexp]
 
 (* return whether a string could be a metavariable name (e.g., "$FOO", but not
  * "FOO"). This mostly check for the regexp $[A-Z_][A-Z_0-9]* but

@@ -21,11 +21,13 @@ module Log = Log_semgrep.Log
 (* Prelude *)
 (*****************************************************************************)
 
+open Sexplib.Std
+
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 
-type mvar = Mvar.t [@@deriving show, eq, hash]
+type mvar = Mvar.t [@@deriving show, eq, hash, sexp]
 
 (* 'mvalue' below used to be just an alias to AST_generic.any, but it is more
  * precise to have a type just for the metavariable values; we do not
@@ -84,7 +86,7 @@ type mvalue =
      bind arbitrary matches to metavariables.
   *)
   | Any of AST_generic.any
-[@@deriving show, eq]
+[@@deriving show, eq, sexp]
 
 (* we sometimes need to convert to an any to be able to use
  * Lib_AST.ii_of_any, or Lib_AST.abstract_position_info_any
@@ -235,4 +237,5 @@ let str_of_mval x = show_mvalue x
    TODO: ensure that ["$A", Foo; "$B", Bar] and ["$B", Bar; "$A", Foo]
    are equivalent for the equal functions.
 *)
-type bindings = (mvar * mvalue) list (* = Common.assoc *) [@@deriving show, eq]
+type bindings = (mvar * mvalue) list
+(* = Common.assoc *) [@@deriving show, eq, sexp]

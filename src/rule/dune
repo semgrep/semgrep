@@ -43,6 +43,7 @@
      ppx_deriving.ord
      ppx_deriving_yojson
      ppx_hash
+     ppx_sexp_conv
    )
  )
 )

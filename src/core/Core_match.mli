@@ -41,7 +41,7 @@ and rule_id = {
   langs : Lang.t list;
   pattern_string : string;
 }
-[@@deriving show, eq]
+[@@deriving show, eq, sexp]
 
 (* remove duplicate *)
 val uniq : t list -> t list

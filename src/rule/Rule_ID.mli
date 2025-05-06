@@ -2,7 +2,7 @@
    A rule ID is essentially a string. This creates a dedicated type to
    clarify interfaces and error messages.
 *)
-type t [@@deriving show, eq]
+type t [@@deriving show, eq, sexp]
 
 exception Malformed_rule_ID of string
 
