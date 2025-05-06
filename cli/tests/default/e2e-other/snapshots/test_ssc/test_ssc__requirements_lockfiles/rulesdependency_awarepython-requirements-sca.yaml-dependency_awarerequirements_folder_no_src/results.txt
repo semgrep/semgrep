@@ -76,7 +76,15 @@
   Nothing to scan.
 
   SUPPLY CHAIN RULES
-  Nothing to scan.
+  No files to scan. Scanning dependency source(s) only.
+
+  Dependency Sources                                               Resolution Method   Ecosystem   Dependencies   Rules
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  targets/dependency_aware/requirements_folder_no_src/requiremen   Lockfile            Pypi        39                 1
+  ts/prod.txt,
+  targets/dependency_aware/requirements_folder_no_src/requiremen
+  ts/stage.txt
+
 
 
 ┌──────────────┐

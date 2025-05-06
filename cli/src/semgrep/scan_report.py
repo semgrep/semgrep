@@ -232,12 +232,46 @@ def _print_sca_parse_errors(errors: List[out.DependencyParserError]) -> None:
             console.print(f"Failed to parse {location} - {error.reason}")
 
 
+def _print_sca_degenerate_table(plan: Plan, *, rule_count: int) -> None:
+    """
+    Prints a concise status message for SCA scans instead of a full table,
+    typically when there are few rules or target files. May also print a
+    subproject summary table if applicable.
+    """
+    has_subprojects = plan.all_subprojects is not None
+
+    # Determine if the scan configuration is effectively empty (no rules or no targets)
+    is_scan_empty = not rule_count or not plan.target_mappings
+
+    if is_scan_empty:
+        message = (
+            "No files to scan. Scanning dependency source(s) only."
+            if has_subprojects
+            else "Nothing to scan."
+        )
+    else:
+        file_count = len(
+            [task for task in plan.target_mappings if plan.product in task.products]
+        )
+
+        message = f"Scanning {unit_str(file_count, 'file')}"
+        if has_subprojects:
+            subproject_count = len(plan.all_subprojects) if plan.all_subprojects else 0
+            message += f" and {unit_str(subproject_count, 'dependency source')}"
+        message += "."
+
+    console.print(message)
+
+    if has_subprojects:
+        _print_tables([plan.table_by_subproject()])
+
+
 def _print_sca_table(sca_plan: Plan, rule_count: int) -> None:
     """
     Pretty print the sca plan to stdout with the legacy CLI UX.
     """
     if rule_count <= 1 or not sca_plan.target_mappings:
-        _print_degenerate_table(sca_plan, rule_count=rule_count)
+        _print_sca_degenerate_table(sca_plan, rule_count=rule_count)
         return
 
     _print_tables([sca_plan.table_by_subproject()])

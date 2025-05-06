@@ -74,7 +74,13 @@
   Nothing to scan.
 
   SUPPLY CHAIN RULES
-  Nothing to scan.
+  No files to scan. Scanning dependency source(s) only.
+
+  Dependency Sources                                               Resolution Method   Ecosystem   Dependencies   Rules
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  targets/dependency_aware/deeply_nested_package_lock/package-lo   Lockfile            Npm         11                 1
+  ck.json
+
 
 
 ┌──────────────┐

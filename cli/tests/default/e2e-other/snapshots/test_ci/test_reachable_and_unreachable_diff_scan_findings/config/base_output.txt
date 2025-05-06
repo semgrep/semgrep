@@ -62,8 +62,8 @@
 
   Dependency Sources   Resolution Method   Ecosystem   Dependencies   Rules
  ───────────────────────────────────────────────────────────────────────────
-  yarn.lock            Lockfile            Npm         1                  0
   poetry.lock          Lockfile            Pypi        3                  3
+  yarn.lock            Lockfile            Npm         1                  0
 
 
   Analysis   Rules

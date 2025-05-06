@@ -78,7 +78,13 @@
   Nothing to scan.
 
   SUPPLY CHAIN RULES
-  Nothing to scan.
+  No files to scan. Scanning dependency source(s) only.
+
+  Dependency Sources                                               Resolution Method   Ecosystem   Dependencies   Rules
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  targets/dependency_aware/package-lock_resolved_false/package-l   Lockfile            Npm         3                  1
+  ock.json
+
 
 
 ┌──────────────┐

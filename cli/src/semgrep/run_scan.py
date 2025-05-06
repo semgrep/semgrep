@@ -696,10 +696,22 @@ def adjust_matches_for_sca_rules(
     output_extra: OutputExtra,
     x_tr: bool = False,
 ) -> Dict[str, List[out.FoundDependency]]:
+    """
+    Generates SCA findings based on the dependency-aware rules and the resolved subprojects.
+
+    The function modifies `rule_matches_by_rule` in place by adding these generated SCA
+    findings. It also logs the number of adjustments made and handles any errors
+    encountered during generation via the `output_handler`.
+    """
     from semgrep.dependency_aware_rule import (
         generate_unreachable_sca_findings,
         generate_reachable_sca_findings,
     )
+
+    # Count the number of reachable and unreachable SCA findings adjustments made.
+    # Adjustments are just new SCA findings added to the rule_matches_by_rule map.
+    unreachable_sca_adjustments = 0
+    reachable_sca_adjustments = 0
 
     for rule in dependency_aware_rules:
         if rule.should_run_on_semgrep_core:
@@ -723,6 +735,8 @@ def adjust_matches_for_sca_rules(
 
             rule_matches_by_rule[rule] = dep_rule_matches
             output_handler.handle_semgrep_errors(dep_rule_errors)
+            reachable_sca_adjustments += len(dep_rule_matches)
+
             (
                 dep_rule_matches,
                 dep_rule_errors,
@@ -732,8 +746,10 @@ def adjust_matches_for_sca_rules(
                 resolved_subprojects,
                 x_tr=x_tr,
             )
+
             rule_matches_by_rule[rule].extend(dep_rule_matches)
             output_handler.handle_semgrep_errors(dep_rule_errors)
+            unreachable_sca_adjustments += len(dep_rule_matches)
         else:
             (
                 dep_rule_matches,
@@ -741,8 +757,18 @@ def adjust_matches_for_sca_rules(
             ) = generate_unreachable_sca_findings(
                 rule, lambda p, d: False, resolved_subprojects, x_tr=False
             )
+
             rule_matches_by_rule[rule] = dep_rule_matches
             output_handler.handle_semgrep_errors(dep_rule_errors)
+            unreachable_sca_adjustments += len(dep_rule_matches)
+
+    logger.verbose(
+        f"SCA findings adjustment: Added {reachable_sca_adjustments} reachable and {unreachable_sca_adjustments} unreachable SCA findings\n"
+    )
+
+    # TODO(sal): anything below this line should be in a separate function.
+    # It seems like we process something totally different here, and doesn't
+    # make sense with adjusting matches.
 
     # The caller expects a map from lockfile path to `FoundDependency` items
     # rather than our Subproject representation
@@ -926,6 +952,7 @@ def run_rules(
             x_tr=x_tr,
         )
     else:
+        logger.verbose("SCA findings adjustment: No SCA rules to adjust")
         deps_by_lockfile = {}
 
     return (

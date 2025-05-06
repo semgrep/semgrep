@@ -29,7 +29,12 @@
   Nothing to scan.
 
   SUPPLY CHAIN RULES
-  Nothing to scan.
+  No files to scan. Scanning dependency source(s) only.
+
+  Dependency Sources                                         Resolution Method   Ecosystem   Dependencies   Rules
+ ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  targets/dependency_aware/npm-malformed/package-lock.json   Lockfile            Npm         0                  1
+
   Failed to parse [bold]targets/dependency_aware/npm-malformed/package-lock.json[/bold] at [bold]1:2[/bold] - expected
   one of ['"', '}']
   1 | {

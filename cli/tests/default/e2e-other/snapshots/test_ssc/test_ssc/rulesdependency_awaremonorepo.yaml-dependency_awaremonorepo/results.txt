@@ -128,7 +128,14 @@
   Nothing to scan.
 
   SUPPLY CHAIN RULES
-  Scanning 3 files.
+  Scanning 3 files and 3 dependency sources.
+
+  Dependency Sources                                    Resolution Method   Ecosystem   Dependencies   Rules
+ ────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  targets/dependency_aware/monorepo/webapp1/yarn.lock   Lockfile            Npm         2                  1
+  targets/dependency_aware/monorepo/yarn.lock           Lockfile            Npm         2                  1
+  targets/dependency_aware/monorepo/webapp2/yarn.lock   Lockfile            Npm         1                  1
+
 
 
 ┌──────────────┐

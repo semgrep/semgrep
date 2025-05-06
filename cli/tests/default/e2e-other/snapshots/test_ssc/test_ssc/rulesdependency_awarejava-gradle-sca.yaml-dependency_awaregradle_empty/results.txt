@@ -74,7 +74,12 @@
   Nothing to scan.
 
   SUPPLY CHAIN RULES
-  Nothing to scan.
+  No files to scan. Scanning dependency source(s) only.
+
+  Dependency Sources                                       Resolution Method   Ecosystem   Dependencies   Rules
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  targets/dependency_aware/gradle_empty=/gradle.lockfile   Lockfile            Maven       3                  1
+
 
 
 ┌──────────────┐

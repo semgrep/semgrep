@@ -81,7 +81,12 @@
   Nothing to scan.
 
   SUPPLY CHAIN RULES
-  Scanning 2 files.
+  Scanning 2 files and 1 dependency source.
+
+  Dependency Sources                                   Resolution Method   Ecosystem   Dependencies   Rules
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+  targets/dependency_aware/generic/package-lock.json   Lockfile            Npm         3                  1
+
 
 
 ┌──────────────┐

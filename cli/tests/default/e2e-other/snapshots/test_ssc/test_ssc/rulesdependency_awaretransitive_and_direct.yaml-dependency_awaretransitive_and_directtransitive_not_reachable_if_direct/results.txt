@@ -81,7 +81,13 @@
   Nothing to scan.
 
   SUPPLY CHAIN RULES
-  Scanning 1 file.
+  Scanning 1 file and 1 dependency source.
+
+  Dependency Sources                                               Resolution Method   Ecosystem   Dependencies   Rules
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  targets/dependency_aware/transitive_and_direct/transitive_not_   Lockfile            Npm         4                  1
+  reachable_if_direct/package-lock.json
+
 
 
 ┌──────────────┐

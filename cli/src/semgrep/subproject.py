@@ -7,6 +7,7 @@ from typing import Generator
 from typing import List
 from typing import Optional
 from typing import Tuple
+from typing import Union
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 
@@ -45,7 +46,7 @@ def from_resolved_dependencies(
 
 
 def iter_dependencies(
-    d: Dict[out.DependencyChild, List[out.ResolvedDependency]]
+    d: Dict[out.DependencyChild, List[out.ResolvedDependency]],
 ) -> Generator[out.ResolvedDependency, None, None]:
     for dep_group in d.values():
         for dep in dep_group:
@@ -53,7 +54,7 @@ def iter_dependencies(
 
 
 def iter_found_dependencies(
-    d: Dict[out.DependencyChild, List[out.ResolvedDependency]]
+    d: Dict[out.DependencyChild, List[out.ResolvedDependency]],
 ) -> Generator[out.FoundDependency, None, None]:
     for x in iter_dependencies(d):
         (found_dep, _) = x.value
@@ -61,7 +62,7 @@ def iter_found_dependencies(
 
 
 def count_resolved_dependencies(
-    d: Dict[out.DependencyChild, List[out.ResolvedDependency]]
+    d: Dict[out.DependencyChild, List[out.ResolvedDependency]],
 ) -> int:
     """
     Count the number of dependencies
@@ -70,7 +71,7 @@ def count_resolved_dependencies(
 
 
 def make_dependencies_by_source_path(
-    d: Dict[out.DependencyChild, List[out.ResolvedDependency]]
+    d: Dict[out.DependencyChild, List[out.ResolvedDependency]],
 ) -> Tuple[Dict[str, List[out.FoundDependency]], List[out.FoundDependency]]:
     """
     Returns a mapping of lockfile paths to dependencies found in that lockfile.
@@ -244,3 +245,30 @@ def find_closest_resolved_subproject(
                 return candidate
 
     return None
+
+
+def subproject_sort_key(
+    subproject: Union[out.ResolvedSubproject, out.UnresolvedSubproject],
+) -> Tuple[Tuple[int, int], str]:
+    """
+    Used to sort subprojects in the table.
+    """
+
+    # We want descending order for dependency counts.
+    # ResolvedSubprojects should come before UnresolvedSubprojects.
+    # So, (0, -count) for resolved, (1, 0) for unresolved.
+    if isinstance(subproject, out.ResolvedSubproject):
+        dep_count = count_resolved_dependencies(subproject.resolved_dependencies)
+        # primary_dep_key: 0 to sort these before unresolved
+        # secondary_dep_key: -dep_count for descending numeric sort
+        dependency_sort_tuple = (0, -dep_count)
+    else:
+        # primary_dep_key: 1 to sort these after resolved
+        # secondary_dep_key: 0 (doesn't matter as much)
+        dependency_sort_tuple = (1, 0)
+
+    # Ascending order for display paths.
+    paths = get_display_paths(subproject.info.dependency_source)
+    path_key_str = ", ".join(sorted(str(p).lower() for p in paths))
+
+    return (dependency_sort_tuple, path_key_str)

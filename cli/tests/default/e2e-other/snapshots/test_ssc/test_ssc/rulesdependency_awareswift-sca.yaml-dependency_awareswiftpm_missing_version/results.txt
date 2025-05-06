@@ -29,7 +29,13 @@
   Nothing to scan.
 
   SUPPLY CHAIN RULES
-  Scanning 1 file.
+  Scanning 1 file and 1 dependency source.
+
+  Dependency Sources                                               Resolution Method   Ecosystem   Dependencies   Rules
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  targets/dependency_aware/swiftpm_missing_version/Package.resol   Lockfile            SwiftPM     0                  1
+  ved
+
   Failed to parse [bold]targets/dependency_aware/swiftpm_missing_version/Package.resolved[/bold] - Unable to determine
   version of swift lockfile
 

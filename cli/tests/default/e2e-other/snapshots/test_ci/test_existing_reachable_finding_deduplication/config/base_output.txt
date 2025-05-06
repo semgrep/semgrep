@@ -46,8 +46,8 @@
 
   Dependency Sources   Resolution Method   Ecosystem   Dependencies   Rules
  ───────────────────────────────────────────────────────────────────────────
-  yarn.lock            Skipped             Unknown     -                  -
   poetry.lock          Lockfile            Pypi        3                  3
+  yarn.lock            Skipped             Unknown     -                  -
 
 
   Analysis   Rules

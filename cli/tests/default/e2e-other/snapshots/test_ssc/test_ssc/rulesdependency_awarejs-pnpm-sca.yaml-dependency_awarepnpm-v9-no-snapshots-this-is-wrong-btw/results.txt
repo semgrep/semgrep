@@ -75,7 +75,13 @@
   Nothing to scan.
 
   SUPPLY CHAIN RULES
-  Nothing to scan.
+  No files to scan. Scanning dependency source(s) only.
+
+  Dependency Sources                                               Resolution Method   Ecosystem   Dependencies   Rules
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  targets/dependency_aware/pnpm-v9-no-snapshots-this-is-wrong-bt   Lockfile            Npm         1599               2
+  w/pnpm-lock.yaml
+
 
 
 ┌──────────────┐

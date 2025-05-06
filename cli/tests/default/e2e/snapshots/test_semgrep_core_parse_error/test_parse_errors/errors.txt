@@ -9,6 +9,7 @@ Rules:
 └─────────────┘
   Scanning 1 file tracked by git with 2 Code rules:
   Scanning 1 file with 2 js rules.
+SCA findings adjustment: No SCA rules to adjust
 [31m[41m[22m[24m[[0m[38;5;231m[41m[1m[24mWARN[0m[31m[41m[22m[24m][0m Syntax error at line targets/bad/invalid_javascript.js:5:
  `key:` was unexpected
 

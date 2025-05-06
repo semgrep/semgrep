@@ -8,6 +8,7 @@ Rules:
 └─────────────┘
   Scanning 1 file tracked by git with 1 Code rule:
   Scanning 1 file.
+SCA findings adjustment: No SCA rules to adjust
 
 ========================================
 Files skipped:

@@ -87,7 +87,14 @@
   Scanning 1 file with 4 python rules.
 
   SUPPLY CHAIN RULES
-  Scanning 1 file.
+  Scanning 1 file and 3 dependency sources.
+
+  Dependency Sources   Resolution Method   Ecosystem   Dependencies   Rules
+ ───────────────────────────────────────────────────────────────────────────
+  poetry.lock          Lockfile            Pypi        3                  1
+  yarn.lock            Lockfile            Npm         1                  2
+  Pipfile.lock         Lockfile            Pypi        0                  1
+
   Failed to parse [bold]Pipfile.lock[/bold] at [bold]2:1[/bold] - expected one of ['"',
   '-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?', '[', 'false', 'null', 'true', '{']
   2 | invalid

@@ -29,6 +29,7 @@ from semgrep.semgrep_types import Language
 from semgrep.state import get_state
 from semgrep.subproject import count_resolved_dependencies
 from semgrep.subproject import get_display_paths
+from semgrep.subproject import subproject_sort_key
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -256,7 +257,9 @@ class Plan:
         }
 
         if self.all_subprojects is not None:
-            for subproject in self.all_subprojects:
+            sorted_subprojects = sorted(self.all_subprojects, key=subproject_sort_key)
+
+            for subproject in sorted_subprojects:
                 if isinstance(subproject, out.ResolvedSubproject):
                     table.add_row(
                         ", ".join(

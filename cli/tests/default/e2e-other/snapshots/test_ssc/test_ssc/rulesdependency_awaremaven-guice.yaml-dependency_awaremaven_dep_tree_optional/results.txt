@@ -75,7 +75,13 @@
   Nothing to scan.
 
   SUPPLY CHAIN RULES
-  Nothing to scan.
+  No files to scan. Scanning dependency source(s) only.
+
+  Dependency Sources                                               Resolution Method   Ecosystem   Dependencies   Rules
+ ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  targets/dependency_aware/maven_dep_tree_optional/maven_dep_tre   Lockfile            Maven       1                  1
+  e.txt
+
 
 
 ┌──────────────┐

@@ -11,6 +11,7 @@ Rules:
 └─────────────┘
   Scanning 0 files tracked by git with 4 Code rules:
   Nothing to scan.
+SCA findings adjustment: No SCA rules to adjust
 
 ========================================
 Files skipped:

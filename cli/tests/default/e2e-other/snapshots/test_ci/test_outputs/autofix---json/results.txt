@@ -492,7 +492,13 @@
   Scanning 1 file with 4 python rules.
 
   SUPPLY CHAIN RULES
-  Scanning 1 file.
+  Scanning 1 file and 2 dependency sources.
+
+  Dependency Sources   Resolution Method   Ecosystem   Dependencies   Rules
+ ───────────────────────────────────────────────────────────────────────────
+  poetry.lock          Lockfile            Pypi        3                  1
+  yarn.lock            Lockfile            Npm         1                  2
+
   Uploading scan results
   Finalizing scan
 
