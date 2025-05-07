@@ -304,7 +304,7 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
       Option.is_some (Hook.get Pattern_vs_code.hook_find_possible_parents)
     in
     (* simple opti using regexps *)
-    if !Flag.filter_irrelevant_patterns then
+    if Hook.get Flag.filter_irrelevant_patterns then
       Mini_rules_filter.filter_mini_rules_relevant_to_file_using_regexp
         ~interfile rules lang !!internal_path_to_content
     else rules

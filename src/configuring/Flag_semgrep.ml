@@ -13,24 +13,24 @@
 (* To not capture exn and instead let them bubble up to get a precise
  * backtrace when there is an error. This is useful for debugging.
  *)
-let fail_fast = ref false
+let fail_fast = Hook.create false
 
 (* note that this will stop at the first fail(), but if you restrict
  * enough your pattern, this can help you debug your problem.*)
-let debug_matching = ref false
+let debug_matching = Hook.create false
 
 (* we usually try first with the pfff parser and then with the tree-sitter
  * parser if pfff fails. Here you can force to only use tree-sitter.
  *)
-let tree_sitter_only = ref false
-let pfff_only = ref false
+let tree_sitter_only = Hook.create false
+let pfff_only = Hook.create false
 
 (* Optimization flags - DEPRECATED
    TODO: pack these into the big configuration record where they belong
 *)
 
 (* look if identifiers in pattern intersect with file using simple regexps *)
-let filter_irrelevant_patterns = ref false
+let filter_irrelevant_patterns = Hook.create false
 
 (* Maximum number of tainted lvals to save. *)
 let max_tainted_vars = ref Limits_semgrep.taint_MAX_TAINTED_VARS
