@@ -1,0 +1,8 @@
+pro: Fixed inter-file naming bug affecting Go's struct-methods that could result
+in false negatives.
+
+Previously, adding a `pattern-inside` like
+
+    func ($THING $TYPE) $FUNC(...) $R { ... }
+
+to a taint rule could cause some findings to incorrectly stop being reported.
