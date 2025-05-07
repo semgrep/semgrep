@@ -162,24 +162,25 @@ end
 *)
 module Explicit_targets = struct
   type t = {
-    tbl : (Fpath.t, unit) Hashtbl.t;
+    tbl : (Fpath.t, unit) ROHashtbl.t;
         [@printer fun fmt _tbl -> fprintf fmt "<hashtbl>"]
     (* Elements in their original order *)
     list : Fpath.t list;
   }
   [@@deriving show]
 
-  let empty = { tbl = Hashtbl.create 0; list = [] }
+  let empty = { tbl = ROHashtbl.create (); list = [] }
 
   let of_list paths =
     let tbl = Hashtbl.create (2 * List.length paths) in
     List.iter (fun path -> Hashtbl.replace tbl path ()) paths;
+    let tbl = ROHashtbl.of_hashtbl tbl in
     { tbl; list = paths }
 
   let to_list x = x.list
 
   (* Fast O(1) operation *)
-  let mem x path = Hashtbl.mem x.tbl path
+  let mem x path = ROHashtbl.mem x.tbl path
 end
 
 (* TODO: should have stronger type? use Glob.Pattern.t? *)
