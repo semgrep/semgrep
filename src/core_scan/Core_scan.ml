@@ -698,7 +698,7 @@ let iter_targets_and_get_matches_and_exn_to_errors
            * one target file does not abort the whole scan and the
            * semgrep-core program.
            *)
-          | exn when not !Flag_semgrep.fail_fast ->
+          | exn when not (Hook.get Flag_semgrep.fail_fast) ->
               (* TODO? repeat Parmap_targets.core_error_of_path_exc() *)
               Logs.err (fun m ->
                   m "exception on %s (%s)" !!internal_path
@@ -1007,7 +1007,7 @@ let scan (caps : < caps ; .. >) (config : Core_scan_config.t) :
       |> post_process_matches post_autofix
       |> post_process_matches (post_nosemgrep ~strict:config.strict))
   with
-  | exn when not !Flag_semgrep.fail_fast ->
+  | exn when not (Hook.get Flag_semgrep.fail_fast) ->
       let e = Exception.catch exn in
       Logs.err (fun m ->
           m "Uncaught exn in Core_scan.scan: %s" (Exception.to_string e));

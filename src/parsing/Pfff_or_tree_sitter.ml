@@ -244,12 +244,12 @@ let (run :
  fun file xs fconvert ->
   let xs =
     match () with
-    | () when !Flag.tree_sitter_only ->
+    | () when Hook.get Flag.tree_sitter_only ->
         xs
         |> List_.exclude (function
              | Pfff _ -> true
              | TreeSitter _ -> false)
-    | () when !Flag.pfff_only ->
+    | () when Hook.get Flag.pfff_only ->
         xs
         |> List_.exclude (function
              | TreeSitter _ -> true

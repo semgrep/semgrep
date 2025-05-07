@@ -187,7 +187,8 @@ let (return : tin -> tout) = fun tin -> [ tin ]
 
 let (fail : tin -> tout) =
  fun _tin ->
-  if !Flag.debug_matching then failwith "Pattern_vs_code.fail: Match failure";
+  if Hook.get Flag.debug_matching then
+    failwith "Pattern_vs_code.fail: Match failure";
   []
 
 let or_list m a bs =

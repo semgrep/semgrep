@@ -500,13 +500,13 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
       " report detailed matching times as part of the JSON response. Implies \
        '-json'." );
     ( "-fail_fast",
-      Arg.Set Flag.fail_fast,
+      Hook.Arg.set Flag.fail_fast,
       " stop at first exception (and get a backtrace)" );
     ( "-filter_irrelevant_patterns",
-      Arg.Set Flag.filter_irrelevant_patterns,
+      Hook.Arg.set Flag.filter_irrelevant_patterns,
       " filter patterns not containing any strings in target file" );
     ( "-no_filter_irrelevant_patterns",
-      Arg.Clear Flag.filter_irrelevant_patterns,
+      Hook.Arg.clear Flag.filter_irrelevant_patterns,
       " do not filter patterns" );
     ( "-filter_irrelevant_rules",
       Arg.Set filter_irrelevant_rules,
@@ -521,9 +521,9 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
       Arg.Clear respect_rule_paths,
       " do not honor the paths: directive of the rule" );
     ( "-tree_sitter_only",
-      Arg.Set Flag.tree_sitter_only,
+      Hook.Arg.set Flag.tree_sitter_only,
       " only use tree-sitter-based parsers" );
-    ("-pfff_only", Arg.Set Flag.pfff_only, " only use pfff-based parsers");
+    ("-pfff_only", Hook.Arg.set Flag.pfff_only, " only use pfff-based parsers");
     ( "-timeout",
       Arg.Set_float timeout,
       " <float> maxinum time to spend running a rule on a single file (in \
@@ -552,7 +552,7 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
     ("-debug", Arg.Set debug, " output debugging information");
     ("-strict", Arg.Set strict, " fail on warnings");
     ( "-debug_matching",
-      Arg.Set Flag.debug_matching,
+      Hook.Arg.set Flag.debug_matching,
       " raise an exception at the first match failure" );
     ( "-matching_explanations",
       Arg.Set matching_explanations,
