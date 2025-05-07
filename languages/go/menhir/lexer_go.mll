@@ -334,7 +334,7 @@ rule token = parse
   (* sgrep-ext: *)
   | '$' identifier
     { let s = tok lexbuf in
-      if not !Flag_parsing.sgrep_mode
+      if not (Hook.get Flag_parsing.sgrep_mode)
       then error ("identifier with dollar: "  ^ s) lexbuf;
       LNAME (s, tokinfo lexbuf)
     }

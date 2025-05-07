@@ -564,8 +564,8 @@ and expr_as_stmt = function
        * unless it's a metavariable
        *)
       | G.N (G.Id ((s, _), _)) ->
-          if AST_generic.is_metavar_name s || !Flag_parsing.sgrep_mode then
-            G.exprstmt e
+          if AST_generic.is_metavar_name s || Hook.get Flag_parsing.sgrep_mode
+          then G.exprstmt e
           else
             let call = G.Call (e, fb []) |> G.e in
             G.exprstmt call
@@ -937,7 +937,7 @@ and list_stmt1 xs =
 and list_stmts xs = list expr_as_stmt xs
 
 let program xs =
-  Common.save_excursion Flag_parsing.sgrep_mode false (fun () -> list_stmts xs)
+  Hook.with_hook_set Flag_parsing.sgrep_mode false (fun () -> list_stmts xs)
 
 let any x =
   (* We need this sgrep_mode flag because we want some branching behavior
@@ -946,7 +946,7 @@ let any x =
      In particular, this comes into play when translating a single name on its
      own line, which may be a call in a target.
   *)
-  Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
+  Hook.with_hook_set Flag_parsing.sgrep_mode true (fun () ->
       match x with
       (* coupling: match pattern
          This is what a standalone pattern looks like in Ruby.

@@ -106,7 +106,7 @@ let tokenize_and_adjust_pos lexbuf table (filename : Fpath.t) tokenizer
       | Parsing_error.Lexical_error (s, info) ->
           raise (Parsing_error.Lexical_error (s, adjust_info info))
     in
-    if !Flag_parsing.debug_lexer then
+    if Hook.get Flag_parsing.debug_lexer then
       Log.debug (fun m -> m "tok = %s" (Dumper.dump tok));
     let tok = tok |> visitor_tok adjust_info in
     if is_eof tok then List.rev (tok :: acc) else tokens_aux (tok :: acc)

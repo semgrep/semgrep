@@ -8,9 +8,9 @@ module Flag = Flag_parsing
 let t = Testo.create
 
 let parse file =
-  Common.save_excursion Flag.error_recovery false (fun () ->
-      Common.save_excursion Flag.show_parsing_error false (fun () ->
-          Common.save_excursion Flag.verbose_parsing false (fun () ->
+  Hook.with_hook_set Flag.error_recovery false (fun () ->
+      Hook.with_hook_set Flag.show_parsing_error false (fun () ->
+          Hook.with_hook_set Flag.verbose_parsing false (fun () ->
               Parse_cpp.parse file)))
 
 (*****************************************************************************)

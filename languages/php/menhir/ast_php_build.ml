@@ -83,7 +83,7 @@ let rec program top_l =
 
 and any x =
   let env = empty_env () in
-  Common.save_excursion Flag_parsing.sgrep_mode true (fun () -> any_aux env x)
+  Hook.with_hook_set Flag_parsing.sgrep_mode true (fun () -> any_aux env x)
 
 and partial env = function
   | PartialIf (t, e) ->
@@ -212,7 +212,7 @@ and qualified_ident env xs =
 and dname = function
   | DName (s, tok) ->
       if s.[0] =$= '$' then
-        if !Flag_parsing.sgrep_mode then (s, wrap tok)
+        if Hook.get Flag_parsing.sgrep_mode then (s, wrap tok)
         else failwith "dname: the string has a dollar, weird"
       else
         (* We abuse Id to represent both variables and functions/classes

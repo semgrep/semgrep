@@ -108,7 +108,7 @@ let options () =
       spf " <str> choose language (default = %s)" !lang );
     (*x: [[Main.options]] main cases *)
     ( "-sgrep_mode",
-      Arg.Set Flag_parsing.sgrep_mode,
+      Hook.Arg.set Flag_parsing.sgrep_mode,
       " enable sgrep mode parsing (to debug)" )
     (*e: [[Main.options]] main cases *);
   ]

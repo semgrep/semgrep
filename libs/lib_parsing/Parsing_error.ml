@@ -60,7 +60,7 @@ exception Other_error of string * Tok.t
 let lexical_error msg lexbuf =
   let info = Tok.tok_of_lexbuf lexbuf in
   if !Flag_parsing.exn_when_lexical_error then raise (Lexical_error (msg, info))
-  else if !Flag_parsing.verbose_lexing then
+  else if Hook.get Flag_parsing.verbose_lexing then
     (* nosemgrep: no-logs-in-library *)
     Logs.err (fun m -> m "LEXER: %s" msg)
 

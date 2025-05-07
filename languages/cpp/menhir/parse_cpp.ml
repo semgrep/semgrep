@@ -146,7 +146,7 @@ and multi_grouped_list_comma xs =
  * note: this is similar to what cpplint/fblint of andrei does?
  *)
 let parse_fuzzy file =
-  Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
+  Hook.with_hook_set Flag_parsing.sgrep_mode true (fun () ->
       let toks_orig = tokens (Parsing_helpers.file !!file) in
       let toks =
         toks_orig
@@ -170,7 +170,7 @@ let parse_fuzzy file =
  * can also be used to try to extract the macros defined in the file
  * that we try to parse *)
 let extract_macros file =
-  Common.save_excursion Flag.verbose_lexing false (fun () ->
+  Hook.with_hook_set Flag.verbose_lexing false (fun () ->
       let toks =
         tokens (* todo: ~profile:false *) (Parsing_helpers.file !!file)
       in
@@ -233,7 +233,7 @@ let rec lexer_function tr lexbuf =
       tr.current <- v;
       tr.passed <- v :: tr.passed;
 
-      if !Flag.debug_lexer then
+      if Hook.get Flag.debug_lexer then
         Log.debug (fun m -> m "tok = %s" (Dumper.dump v));
 
       if TH.is_comment v then lexer_function (*~pass*) tr lexbuf else v
@@ -315,12 +315,12 @@ let parse_with_lang ?(lang = Flag_parsing_cpp.Cplusplus) file :
       with
       | exn ->
           let e = Exception.catch exn in
-          if not !Flag.error_recovery then
+          if not @@ Hook.get Flag.error_recovery then
             raise
               (Parsing_error.Syntax_error
                  (TH.info_of_tok tr.Parsing_helpers.current));
 
-          (if !Flag.show_parsing_error then
+          (if Hook.get Flag.show_parsing_error then
              match exn with
              (* ocamlyacc *)
              | Parsing.Parse_error
@@ -453,7 +453,7 @@ let parse_program file =
 
 (* for sgrep/spatch *)
 let any_of_string lang s =
-  Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
+  Hook.with_hook_set Flag_parsing.sgrep_mode true (fun () ->
       let toks_orig = tokens (Parsing_helpers.Str s) in
 
       let toks =

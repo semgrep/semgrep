@@ -16,11 +16,9 @@
  * license.txt for more details.
  *
  *)
-
 open Parser_cpp
 open Ast_cpp (* to factorise tokens with OpAssign, ... *)
 
-module Flag = Flag_parsing
 module Flag_cpp = Flag_parsing_cpp
 module Ast = Ast_cpp
 
@@ -499,13 +497,13 @@ rule token = parse
   | (letter | '$') (letter | digit | '$')*
       {
         let s = tok lexbuf in
-        if not !Flag_parsing.sgrep_mode
+        if not (Hook.get Flag_parsing.sgrep_mode)
         then error ("identifier with dollar: "  ^ s) lexbuf;
         TIdent (s, tokinfo lexbuf)
       }
   (* sgrep-ext: *)
   | '$' "..." ['A'-'Z''_']['A'-'Z''_''0'-'9']*
-     { Flag.sgrep_guard (TIdent (tok lexbuf, tokinfo lexbuf)) }
+     { Flag_parsing.sgrep_guard (TIdent (tok lexbuf, tokinfo lexbuf)) }
 
 
   (* ----------------------------------------------------------------------- *)
