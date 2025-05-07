@@ -90,10 +90,6 @@ let display_graph_cmd (caps : < Cap.exec ; .. >) filename =
       ()
   | Platform.OtherKernel _ -> ()
 
-let print_ograph_extended caps g filename display_graph =
-  generate_ograph_xxx g filename;
-  if display_graph then display_graph_cmd caps filename
-
 let print_ograph_mutable caps g filename display_graph =
   generate_ograph_xxx g filename;
   if display_graph then display_graph_cmd caps filename

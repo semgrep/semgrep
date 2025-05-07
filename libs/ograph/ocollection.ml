@@ -7,7 +7,6 @@ type ('a, 'b) view = Empty | Cons of 'a * 'b
 
 class virtual ['a] ocollection =
   object (o : 'o)
-    inherit Objet.objet
     method virtual empty : 'o
     method virtual add : 'a -> 'o
     method virtual iter : ('a -> unit) -> unit
