@@ -198,7 +198,7 @@ let fix_tokens_fuzzy toks =
     (match trees with
     (* MyConstructor(...) { ... } *)
     | Tok (_s, info) :: F.Parens (l, _xs, _r) :: F.Braces (_, _, _) :: _
-      when !Flag_parsing.sgrep_mode && is_identifier horigin info ->
+      when Hook.get Flag_parsing.sgrep_mode && is_identifier horigin info ->
         Hashtbl.add retag_lparen_constructor l true
     | _ -> ());
 
@@ -251,7 +251,7 @@ let fix_tokens_fuzzy toks =
          | x -> x)
   with
   | Lib_ast_fuzzy.Unclosed (msg, info) ->
-      if !Flag.error_recovery then toks
+      if Hook.get Flag.error_recovery then toks
       else raise (Parsing_error.Lexical_error (msg, info))
 
 (*****************************************************************************)

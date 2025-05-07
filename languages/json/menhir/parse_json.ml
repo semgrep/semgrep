@@ -42,12 +42,12 @@ let parse_program (filename : Fpath.t) =
   try Parser_js.json lexer lexbuf_fake with
   | Parsing.Parse_error ->
       let cur = tr.Parsing_helpers.current in
-      if !Flag.show_parsing_error then
+      if Hook.get Flag.show_parsing_error then
         Log.err (fun m -> m "parse error \n = %s" (error_msg_tok cur));
       raise (Parsing_error.Syntax_error (TH.info_of_tok cur))
 
 let any_of_string str =
-  Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
+  Hook.with_hook_set Flag_parsing.sgrep_mode true (fun () ->
       let toks = tokens (Parsing_helpers.Str str) in
       let _tr, lexer, lexbuf_fake =
         Parsing_helpers.mk_lexer_for_yacc toks TH.is_comment

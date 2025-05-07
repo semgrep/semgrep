@@ -73,10 +73,10 @@ let parse filename =
   with
   | Parsing.Parse_error ->
       let cur = tr.Parsing_helpers.current in
-      if not !Flag.error_recovery then
+      if not @@ Hook.get Flag.error_recovery then
         raise (Parsing_error.Syntax_error (TH.info_of_tok cur));
 
-      if !Flag.show_parsing_error then (
+      if Hook.get Flag.show_parsing_error then (
         Log.err (fun m -> m "parse error \n = %s" (error_msg_tok cur));
         let filelines = UFile.cat_array filename in
         let checkpoint2 = UFile.cat filename |> List.length in
@@ -105,7 +105,7 @@ let program_of_string (caps : < Cap.tmp >) (s : string) : Ast_go.program =
 
 (* for sgrep/spatch *)
 let any_of_string s =
-  Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
+  Hook.with_hook_set Flag_parsing.sgrep_mode true (fun () ->
       let toks_orig = tokens (Parsing_helpers.Str s) in
       let toks = List_.exclude TH.is_comment_or_space toks_orig in
       (* insert implicit SEMICOLON and replace some LBRACE with LBODY *)

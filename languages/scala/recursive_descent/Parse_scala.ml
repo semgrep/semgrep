@@ -75,8 +75,8 @@ let parse (filename : Fpath.t) =
     { Parsing_result.ast = xs; tokens = toks; stat }
   with
   | Parsing_error.Syntax_error cur
-    when !Flag.error_recovery && not !Flag.debug_parser ->
-      if !Flag.show_parsing_error then (
+    when Hook.get Flag.error_recovery && not (Hook.get Flag.debug_parser) ->
+      if Hook.get Flag.show_parsing_error then (
         Log.err (fun m ->
             m "parse error \n = %s" (Parsing_helpers.error_message_info cur));
         let filelines = UFile.cat_array filename in
@@ -99,7 +99,7 @@ let parse_program file =
 (*****************************************************************************)
 (* for semgrep *)
 let any_of_string s =
-  Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
+  Hook.with_hook_set Flag_parsing.sgrep_mode true (fun () ->
       let toks = tokens (Parsing_helpers.Str s) in
       (* -------------------------------------------------- *)
       (* Call parser *)

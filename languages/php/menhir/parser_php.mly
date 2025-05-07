@@ -90,7 +90,7 @@ and validate_parameter_list_empty = function
   | [] -> ()
   | Either_.Right3 _ :: params -> validate_parameter_list_empty params
   | _ ->
-      if !Flag.sgrep_mode
+      if Hook.get Flag.sgrep_mode
       then ()
       else raise Parsing.Parse_error
 

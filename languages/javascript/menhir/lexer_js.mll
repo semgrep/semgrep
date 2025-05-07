@@ -535,7 +535,7 @@ rule initial = parse
       push_mode (ST_IN_XHP_TAG tag);
       T_XHP_OPEN_TAG(tag, tokinfo lexbuf)
     (* sgrep-ext: *)
-    | None when !Flag.sgrep_mode ->
+    | None when Hook.get Flag.sgrep_mode ->
       push_mode (ST_IN_XHP_TAG tag);
       T_XHP_OPEN_TAG(tag, tokinfo lexbuf)
     | _ ->
@@ -568,7 +568,7 @@ rule initial = parse
       T_XHP_SHORT_FRAGMENT(tokinfo lexbuf)
 
     (* sgrep-ext: *)
-    | None when !Flag.sgrep_mode ->
+    | None when Hook.get Flag.sgrep_mode ->
       let tag = "" in
       (* we go directly in ST_IN_XHP_TEXT *)
       push_mode (ST_IN_XHP_TEXT tag);

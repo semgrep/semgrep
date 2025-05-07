@@ -10,7 +10,7 @@ module Log = Log_parser_cpp.Log
 (*****************************************************************************)
 
 let warning s v =
-  if !Flag.verbose_parsing then
+  if Hook.get Flag.verbose_parsing then
     Log.warn (fun m -> m "PARSING: %s; value = %s" s (Dumper.dump v));
   v
 

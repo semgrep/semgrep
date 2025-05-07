@@ -141,7 +141,7 @@ let (run_parser : 'ast parser -> Fpath.t -> 'ast internal_result) =
  fun parser file ->
   match parser with
   | Pfff f ->
-      Common.save_excursion Flag_parsing.show_parsing_error false (fun () ->
+      Hook.with_hook_set Flag_parsing.show_parsing_error false (fun () ->
           Log.info (fun m -> m "trying to parse with Pfff parser %s" !!file);
           try
             let ast, stat = f file in

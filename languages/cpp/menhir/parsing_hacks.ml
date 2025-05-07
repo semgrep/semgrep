@@ -176,7 +176,7 @@ let fix_tokens_fuzzy toks =
          | x -> x)
   with
   | Lib_ast_fuzzy.Unclosed (msg, info) ->
-      if !Flag.error_recovery then toks
+      if Hook.get Flag.error_recovery then toks
       else raise (Parsing_error.Lexical_error (msg, info))
 
 (*****************************************************************************)
@@ -291,7 +291,7 @@ let fix_tokens_cpp ~macro_defs tokens =
   let line_paren_grouped = TV.mk_line_parenthised paren_grouped in
   Parsing_hacks_pp.find_define_init_brace_paren paren_grouped;
   Parsing_hacks_pp.find_string_macro_paren paren_grouped;
-  if not !Flag_parsing.sgrep_mode then (
+  if not (Hook.get Flag_parsing.sgrep_mode) then (
     Parsing_hacks_pp.find_macro_lineparen line_paren_grouped;
     Parsing_hacks_pp.find_macro_paren paren_grouped);
 

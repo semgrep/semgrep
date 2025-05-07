@@ -161,7 +161,7 @@ type indent_status =
 let n_dash n = Common2.repeat "--" n |> String.concat ""
 
 let with_logging funcname f in_ =
-  if !Flag.debug_parser then (
+  if Hook.get Flag.debug_parser then (
     let save = in_.depth in
     in_.depth <- in_.depth + 1;
     let depth = n_dash in_.depth in
@@ -179,11 +179,11 @@ let with_logging funcname f in_ =
 let error x in_ =
   let tok = in_.token in
   let info = TH.info_of_tok tok in
-  if !Flag.debug_parser then
+  if Hook.get Flag.debug_parser then
     Log.err (fun m -> m "tok =%s, x = %s" (T.show tok) x);
   raise (Parsing_error.Syntax_error info)
 
-let warning s = if !Flag.debug_parser then Log.warn (fun m -> m "%s" s)
+let warning s = if Hook.get Flag.debug_parser then Log.warn (fun m -> m "%s" s)
 
 (*****************************************************************************)
 (* Helpers  *)
@@ -460,7 +460,7 @@ let fetchToken in_ =
     match in_.rest with
     | [] -> error "IMPOSSIBLE? fetchToken: no more tokens" in_
     | x :: xs -> (
-        if !Flag.debug_lexer then
+        if Hook.get Flag.debug_lexer then
           Log.debug (fun m -> m "fetchToken: %s" (T.show x));
 
         in_.rest <- xs;

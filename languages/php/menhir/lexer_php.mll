@@ -39,7 +39,7 @@ module Flag_php = Flag_parsing_php
 exception Lexical of string
 
 let error s =
-  if !Flag.verbose_lexing
+  if Hook.get Flag.verbose_lexing
   then UCommon.pr2 ("LEXER: " ^ s)
 
 (* pad: hack around ocamllex to emulate the yyless() of flex. The semantic
@@ -72,7 +72,7 @@ let t_variable_or_metavar s info =
    * token for metavariables. That way we also avoid certain
    * conflicts in the grammar.
    *)
-  if AST_generic.is_metavar_name ("$" ^ s) && !Flag.sgrep_mode
+  if AST_generic.is_metavar_name ("$" ^ s) && Hook.get Flag.sgrep_mode
   then T_METAVAR ("$" ^ s, info)
   else T_VARIABLE(s, info)
 

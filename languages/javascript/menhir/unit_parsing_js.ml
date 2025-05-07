@@ -44,8 +44,7 @@ let tests caps =
                      Alcotest.failf "it should correctly parse %a" Fpath.pp file));
       t "rejecting bad code" (fun () ->
           try
-            Common.save_excursion Flag_parsing.show_parsing_error false
-              (fun () ->
+            Hook.with_hook_set Flag_parsing.show_parsing_error false (fun () ->
                 let _ = Parse_js.program_of_string caps "echo 1+" in
                 Alcotest.fail "it should have thrown a Parse_error exception")
           with

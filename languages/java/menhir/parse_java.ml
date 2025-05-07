@@ -84,10 +84,10 @@ let parse filename =
   match elems with
   | Either.Left xs -> { Parsing_result.ast = xs; tokens = toks; stat }
   | Either.Right (_info_of_bads, line_error, cur) ->
-      if not !Flag.error_recovery then
+      if not @@ Hook.get Flag.error_recovery then
         raise (Parsing_error.Syntax_error (TH.info_of_tok cur));
 
-      if !Flag.show_parsing_error then (
+      if Hook.get Flag.show_parsing_error then (
         Log.err (fun m -> m "parse error \n = %s" (error_msg_tok cur));
         let checkpoint2 = UFile.cat filename |> List.length in
         Log.err (fun m ->
@@ -112,7 +112,7 @@ let parse_string (caps : < Cap.tmp >) (w : string) :
 
 (* for sgrep/spatch *)
 let any_of_string s =
-  Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
+  Hook.with_hook_set Flag_parsing.sgrep_mode true (fun () ->
       let toks = tokens (Parsing_helpers.Str s) in
       let toks = Parsing_hacks_java.fix_tokens toks in
       let _tr, lexer, lexbuf_fake =
