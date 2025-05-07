@@ -25,13 +25,6 @@ val pp_ograph_mutable_generic :
   ('node, 'edge) ograph_mutable ->
   unit
 
-val print_ograph_extended :
-  < Cap.exec > ->
-  ('node * string, 'edge) ograph_extended ->
-  string (* output file *) ->
-  bool (* launch gv / show png `? *) ->
-  unit
-
 val print_ograph_mutable :
   < Cap.exec > ->
   ('node * string, 'edge) ograph_mutable ->

@@ -37,16 +37,3 @@ class virtual ['a] oset =
        method big_union: 'b. ('a -> 'b oset) -> 'b oset = fun f -> todo()
     *)
   end
-
-let ( $??$ ) e xs = xs#mem e
-let ( $++$ ) xs ys = xs#union ys
-let ( $**$ ) xs ys = xs#inter ys
-let ( $--$ ) xs ys = xs#minus ys
-let ( $<<=$ ) xs ys = xs#is_subset_of ys
-let ( $==$ ) xs ys = xs#is_equal ys
-
-(* todo: pas beau le seed.  I dont put the type otherwise have to
- * put explicit :>
- *)
-let (mapo : ('a -> 'b) -> 'b oset -> 'a oset -> 'b oset) =
- fun f seed xs -> xs#fold (fun acc x -> acc#add (f x)) seed

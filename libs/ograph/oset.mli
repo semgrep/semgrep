@@ -16,12 +16,4 @@ class virtual ['a] oset : object ('o)
      *)
 end
 
-val ( $??$ ) : 'a -> < mem : 'a -> bool ; .. > -> bool
-val ( $++$ ) : < union : 'a -> 'o ; .. > -> 'a -> 'o
-val ( $**$ ) : < inter : 'a -> 'o ; .. > -> 'a -> 'o
-val ( $--$ ) : < minus : 'a -> 'o ; .. > -> 'a -> 'o
-val ( $<<=$ ) : < is_subset_of : 'a -> bool ; .. > -> 'a -> bool
-val ( $==$ ) : < is_equal : 'a -> bool ; .. > -> 'a -> bool
-val mapo : ('a -> 'o) -> 'o oset -> 'a oset -> 'o oset
-
 (*e: oset.mli *)
