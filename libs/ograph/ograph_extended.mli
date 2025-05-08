@@ -23,7 +23,5 @@ class ['node, 'edge] ograph_mutable : object ('o)
   method nodes : (nodei, 'node) Oassoc.oassoc
   method successors : nodei -> (nodei * 'edge) Oset.oset
   method predecessors : nodei -> (nodei * 'edge) Oset.oset
-  method allsuccessors : (nodei, (nodei * 'edge) Oset.oset) Oassoc.oassoc
   method nb_nodes : int
-  method nb_edges : int
 end

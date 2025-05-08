@@ -31,7 +31,7 @@ class ['a, 'b] ograph_mutable =
   let build_assoc () = new oassocb [] in
   let build_set () = new osetb Set_.empty in
 
-  object (o)
+  object
     val mutable free_index = 0
     val mutable succ = build_assoc ()
     val mutable pred = build_assoc ()
@@ -77,13 +77,5 @@ class ['a, 'b] ograph_mutable =
     method successors e = succ#find e
     method predecessors e = pred#find e
     method nodes = nods
-    method allsuccessors = succ
     method nb_nodes = nods#length
-
-    method nb_edges =
-      nods#fold
-        (fun acc (i, _e) ->
-          let children = o#successors i in
-          acc + children#cardinal)
-        0
   end
