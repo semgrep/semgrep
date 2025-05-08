@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-open Common
 
 (*****************************************************************************)
 (* Type *)
@@ -78,7 +77,7 @@ let rec group_by_mapped_key fkey l =
         List.partition
           (fun x' ->
             let k2 = fkey x' in
-            k =*= k2)
+            k = k2)
           xs
       in
       (k, x :: xs1) :: group_by_mapped_key fkey xs2

@@ -112,6 +112,7 @@ let tests (caps : Cap.all_caps) =
   List_.flatten
     [
       Commons_tests.tests;
+      Collections_tests.tests;
       Unit_CapExec.tests (caps :> < Cap.exec >);
       Unit_list_files.tests (caps :> < Cap.readdir >);
       Glob.Unit_glob.tests;

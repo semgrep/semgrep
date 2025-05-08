@@ -7,5 +7,6 @@
  (wrapped false)
  (libraries
    commons
+   collections
  )
 )

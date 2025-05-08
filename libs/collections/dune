@@ -1,0 +1,23 @@
+; Any generally-useful data structures designed to store arbitrary elements, as
+; well as helper functions that operate on standard library data structures,
+; belong here.
+
+(library
+ (public_name collections)
+ (wrapped false)
+ (libraries)
+ (inline_tests)
+ ; can't use profiling.ppx because of circular dependencies :(
+ (preprocess
+   (pps
+     ppx_deriving.show
+     ppx_deriving.eq
+     ppx_deriving.ord
+     ppx_deriving_yojson
+     ppx_hash
+     ppx_sexp_conv
+     ppx_inline_test
+     lwt_ppx
+   )
+ )
+)

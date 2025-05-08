@@ -5,6 +5,7 @@
  (libraries
    logs
    commons
+   collections
    parser_jsonnet.tree_sitter
  )
  (preprocess (pps ppx_profiling ppx_deriving.show))

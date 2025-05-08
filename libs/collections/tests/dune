@@ -1,0 +1,10 @@
+(library
+ (public_name collections.tests)
+ (name collections_tests)
+ (wrapped false)
+ (libraries
+   alcotest
+   testo
+   collections
+ )
+)

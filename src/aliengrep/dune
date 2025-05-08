@@ -3,6 +3,7 @@
  (public_name aliengrep)
  (libraries
    commons
+   collections
 
    alcotest
    logs

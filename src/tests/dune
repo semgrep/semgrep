@@ -16,6 +16,7 @@
     cohttp-lwt-unix
 
     commons.tests
+    collections.tests
     parallelism.tests
     semgrep.analyzing.tests ; Unit_dataflow
     semgrep.core

@@ -581,3 +581,8 @@ Uses indentation and standard braces to determine a crude parse tree
   (synopsis "XXX")
   (description "XXX")
 )
+
+(package (name collections)
+  (synopsis "XXX")
+  (description "XXX")
+)

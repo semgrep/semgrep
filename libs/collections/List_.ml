@@ -17,8 +17,6 @@
 (* Faster and stack-safe List.map *)
 (*****************************************************************************)
 
-open Eq.Operators
-
 (*
    Custom list type used to store intermediate lists, while minimizing
    the number of allocated blocks.
@@ -279,7 +277,7 @@ let enum x n =
   if not (x <= n) then
     failwith (Printf.sprintf "bad values in enum, expect %d <= %d" x n);
   let rec enum_aux acc x n =
-    if x =|= n then n :: acc else enum_aux (x :: acc) (x + 1) n
+    if x = n then n :: acc else enum_aux (x :: acc) (x + 1) n
   in
   List.rev (enum_aux [] x n)
 
@@ -342,7 +340,8 @@ let filter_map_endo f xs =
             changed := true;
             acc
         | Some y ->
-            if Eq.phys_not_equal x y then changed := true;
+            (* nosemgrep: physical-inequality *)
+            if x != y then changed := true;
             y :: acc)
       [] xs
     |> List.rev
@@ -425,7 +424,7 @@ let enum x n =
   if not (x <= n) then
     failwith (Printf.sprintf "bad values in enum, expect %d <= %d" x n);
   let rec enum_aux acc x n =
-    if x =|= n then n :: acc else enum_aux (x :: acc) (x + 1) n
+    if x = n then n :: acc else enum_aux (x :: acc) (x + 1) n
   in
   List.rev (enum_aux [] x n)
 

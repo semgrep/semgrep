@@ -4,6 +4,7 @@
  (flags (:standard -open No_TCB))
  (libraries
    TCB
+   collections
    ; stdlib
    str
    unix
