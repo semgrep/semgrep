@@ -18,7 +18,7 @@
 
 type nodei = Ograph_extended.nodei
 
-module NodeiSet = Set.Make (Int)
+module NodeiSet = Sets.Int_set
 
 (* A graph with its entry point and (for convenience) the pre-computed set of
  * reachable nodes. Since the node type is abstract, we do need the id of the

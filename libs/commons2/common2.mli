@@ -152,45 +152,6 @@ val group_assoc_bykey_eff : ('a * 'b) list -> ('a * 'b list) list
 val diff_set_eff : 'a list -> 'a list -> 'a list * 'a list * 'a list
 
 (*****************************************************************************)
-(* Sets specialized *)
-(*****************************************************************************)
-
-module StringSet : sig
-  type elt = string
-  type t
-
-  val empty : t
-  val add : string -> t -> t
-  val remove : string -> t -> t
-  val singleton : string -> t
-  val of_list : string list -> t
-  val to_list : t -> string list
-  val is_empty : t -> bool
-  val mem : string -> t -> bool
-  val union : t -> t -> t
-  val inter : t -> t -> t
-  val diff : t -> t -> t
-  val subset : t -> t -> bool
-  val equal : t -> t -> bool
-  val compare : t -> t -> int
-  val iter : (string -> unit) -> t -> unit
-  val fold : (string -> 'a -> 'a) -> t -> 'a -> 'a
-  val for_all : (string -> bool) -> t -> bool
-  val exists : (string -> bool) -> t -> bool
-  val filter : (string -> bool) -> t -> t
-  val partition : (string -> bool) -> t -> t * t
-  val cardinal : t -> int
-  val elements : t -> string list
-  (*
-        val min_string : t -> string
-        val max_string : t -> string
-      *)
-
-  val choose : t -> string
-  val split : string -> t -> t * bool * t
-end
-
-(*****************************************************************************)
 (* N-ary tree *)
 (*****************************************************************************)
 

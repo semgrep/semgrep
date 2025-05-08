@@ -45,7 +45,7 @@ let log_error ?tok msg = Log.err (fun m -> m "%s" (locate ?tok msg))
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-module IdentSet = Set.Make (String)
+module IdentSet = Sets.String_set
 
 type ctx = { entity_names : IdentSet.t }
 

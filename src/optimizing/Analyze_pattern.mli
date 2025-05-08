@@ -1,7 +1,7 @@
-module StringSet : module type of Common2.StringSet
-module MvarSet : module type of Common2.StringSet
+module String_set : module type of Sets.String_set
+module MvarSet : module type of Sets.String_set
 
-type strings = StringSet.t
+type strings = String_set.t
 type mvars = MvarSet.t
 
 (*

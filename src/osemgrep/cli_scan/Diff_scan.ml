@@ -14,7 +14,7 @@
  *)
 open Common
 open Fpath_.Operators
-module SS = Set.Make (String)
+open Sets
 module Fpaths = Set.Make (Fpath)
 
 (*****************************************************************************)
@@ -132,14 +132,16 @@ let scan_baseline_and_remove_duplicates (caps : < Cap.chdir ; Cap.tmp ; .. >)
       r.processed_matches
       |> List_.map (fun ({ pm; _ } : Core_result.processed_match) ->
              pm.rule_id.id |> Rule_ID.to_string)
-      |> SS.of_list
+      |> String_set.of_list
     in
     (* only use the rules that have been identified within the existing
        matches. *)
     let baseline_rules =
       rules
       |> List.filter (fun x ->
-             SS.mem (x.Rule.id |> fst |> Rule_ID.to_string) rules_in_match)
+             String_set.mem
+               (x.Rule.id |> fst |> Rule_ID.to_string)
+               rules_in_match)
     in
     let baseline_result =
       Profiler.record profiler ~name:"baseline_core_time" (fun () ->

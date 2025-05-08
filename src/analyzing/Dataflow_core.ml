@@ -56,7 +56,7 @@ end
 
 type nodei = int
 
-module NodeiSet = Set.Make (Int)
+module NodeiSet = Sets.Int_set
 
 (* The final dataflow result; a map from each program point to a map containing
  * information for each variables.

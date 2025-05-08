@@ -16,7 +16,7 @@ open Common
 module G = AST_generic
 module PM = Core_match
 module R = Rule
-module LabelSet = Set.Make (String)
+module LabelSet = Sets.String_set
 module Log = Log_tainting.Log
 
 (* TODO: Consider renaming the `show_xyz` functions to `pretty_xyz` and

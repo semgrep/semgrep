@@ -617,7 +617,7 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.profile =
    set to List.length res.scanned
 
    old code:
-    module StrSet = Common2.StringSet
+    module StrSet = Common2.String_set
     let core_output_of_matches_and_errors render_fix nfiles res =
       ...
      let files_with_errors =

@@ -404,23 +404,6 @@ let ( $+$ ) = union_set
 (* Sets specialized *)
 (*****************************************************************************)
 
-(* people often do that *)
-module StringSetOrig = Set.Make (struct
-  type t = string
-
-  let compare = String.compare
-end)
-
-module StringSet = struct
-  include StringSetOrig
-
-  let of_list xs =
-    xs
-    |> List.fold_left (fun acc e -> StringSetOrig.add e acc) StringSetOrig.empty
-
-  let to_list t = StringSetOrig.elements t
-end
-
 let group_assoc_bykey_eff xs =
   let h = Hashtbl.create 101 in
   xs |> List.iter (fun (k, v) -> Hashtbl_.push h k v);

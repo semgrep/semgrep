@@ -34,10 +34,10 @@ open AST_generic
  *  - the Semgrep.ml engine to skip entire files!
  *)
 
-module StringSet = Common2.StringSet
-module MvarSet = Common2.StringSet
+module String_set = Sets.String_set
+module MvarSet = Sets.String_set
 
-type strings = StringSet.t
+type strings = String_set.t
 type mvars = MvarSet.t
 
 (*****************************************************************************)
@@ -47,14 +47,14 @@ type mvars = MvarSet.t
 type env = {
   lang : Lang.t option;
   interfile : bool;
-  mutable strings : StringSet.t;
+  mutable strings : String_set.t;
   mutable mvars : MvarSet.t;
 }
 
 let mk_env ?lang ~interfile () =
-  { lang; interfile; strings = StringSet.empty; mvars = MvarSet.empty }
+  { lang; interfile; strings = String_set.empty; mvars = MvarSet.empty }
 
-let push_string env x = env.strings <- StringSet.add x env.strings
+let push_string env x = env.strings <- String_set.add x env.strings
 let push_mvar env x = env.mvars <- MvarSet.add x env.mvars
 
 (*****************************************************************************)
