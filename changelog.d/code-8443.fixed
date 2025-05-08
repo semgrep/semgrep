@@ -1,0 +1,1 @@
+PRO: Fixed the issue with type matching when a type has a type parameter, e.g., matching the pattern `std::vector<$T>` with the code `std::vector<int> v` in C++.

@@ -2167,12 +2167,34 @@ and m_type_ a b =
       in
       (m_bracket (partial_m_list_with_dots ~less_is_ok:false)) a1 b1
   | G.TyAny a1, B.TyAny b1 -> m_tok a1 b1
-  (* less-is-ok:
-     its ok to match a type to its parameterized version, so long as the
-     names match
-     this lets us match, for instance, `new Reader(...)` to `new Reader<T>(...)`
-  *)
-  | G.TyN a1, B.TyApply ({ t = TyN b1; _ }, _b2) -> m_name a1 b1
+  | G.TyN a1, B.TyApply ({ t = TyN b1; _ }, _b2) -> (
+      match a1 with
+      | IdQualified ({ name_last = ida, Some targs; _ } as a_info) ->
+          (* If TyN has embedded type parameters, convert it to the
+             equivalent TyApply.
+
+             `TyN(IdQualified {name_last = _, Some type_args; _})`
+             `TyApply(TyN(IdQualified {name_last = _, None; _}), type_args)`
+
+             These two type expressions are essentially the same, but
+             the TyN version is primarily produced from syntactic
+             typing in OSS mode, while the TyApply version is produced
+             from semantic typing in Pro interfile mode. *)
+          m_type_
+            (TyApply
+               ( TyN (IdQualified { a_info with name_last = (ida, None) }) |> G.t,
+                 targs )
+            |> G.t)
+            b
+      | Id _
+      | IdQualified _
+      | IdSpecial _ ->
+          (* less-is-ok:
+
+          its ok to match a type to its parameterized version, so long
+          as the names match this lets us match,
+          for instance, `new Reader(...)` to `new Reader<T>(...)` *)
+          m_name a1 b1)
   | G.TyApply (a1, a2), B.TyApply (b1, b2) ->
       m_type_ a1 b1 >>= fun () -> m_type_arguments a2 b2
   | G.TyVar a1, B.TyVar b1 -> m_ident a1 b1
