@@ -67,8 +67,6 @@ module DataflowX = Dataflow_core.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node n
 end)
 
-module SMap = Map.Make (String)
-
 let sigs_tag = Log_tainting.sigs_tag
 let transfer_tag = Log_tainting.transfer_tag
 

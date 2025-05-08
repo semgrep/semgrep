@@ -87,7 +87,7 @@ let create_search_param ?(no_skip_search = false) ?(case_sensitive = true)
 let default_search_param = create_search_param ()
 
 (* Map from metavariables to their captured value, which is a Word. *)
-module Env = Map.Make (String)
+module Env = Maps.String_map
 
 type env = (Loc.t * string) Env.t
 type match_result = Complete of env * Loc.t | Fail

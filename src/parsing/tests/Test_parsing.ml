@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Maps
 open Fpath_.Operators
 module PS = Parsing_stat
 module G = AST_generic
@@ -34,9 +35,6 @@ module Resp = Semgrep_output_v1_t
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
-module SMap = Map.Make (String)
-module IMap = Map.Make (Int)
 
 (* Global store, because I don't want to pass it through a bunch of func calls.
  *)
@@ -79,15 +77,15 @@ let report_counts () =
   let counts =
     List.fold_left
       (fun map x ->
-        SMap.update x
+        String_map.update x
           (function
             | None -> Some 1
             | Some x -> Some (x + 1))
           map)
-      SMap.empty !store
-    |> SMap.to_seq
+      String_map.empty !store
+    |> String_map.to_seq
     |> Seq.map (fun (x, y) -> (y, x))
-    |> IMap.of_seq |> IMap.to_rev_seq |> List.of_seq
+    |> Int_map.of_seq |> Int_map.to_rev_seq |> List.of_seq
   in
   (* Report all the statistics. *)
   UCommon.pr2 "\nTODO statistics:";

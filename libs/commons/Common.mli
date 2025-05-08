@@ -198,15 +198,6 @@ val matched7 :
 (* now in Set_.mli and Map_.mli *)
 
 (*****************************************************************************)
-(* Polymorphic String Map *)
-(*****************************************************************************)
-
-(* type of maps from string to `a *)
-module SMap : Map.S with type key = String.t
-
-type 'a smap = 'a SMap.t
-
-(*****************************************************************************)
 (* Option *)
 (*****************************************************************************)
 (* See also List_.mli with many option related functions (e.g., map_filter) *)
