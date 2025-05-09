@@ -74,7 +74,7 @@ type value = Value.t [@@deriving show, eq, ord]
 type commit = Commit.t [@@deriving show, eq, ord]
 type blob = Blob.t [@@deriving show, eq, ord]
 type author = User.t [@@deriving show, eq, ord]
-type object_table = (hash, value) Hashtbl.t
+type object_table = (hash, value) ROHashtbl.t
 
 type blob_with_extra = { blob : blob; path : Fpath.t; size : int }
 [@@deriving show]
@@ -216,7 +216,7 @@ let remote_repo_name url =
   | _ -> None
 
 let tree_of_commit (objects : object_table) commit =
-  commit |> Commit.tree |> Hashtbl.find_opt objects |> fun obj ->
+  commit |> Commit.tree |> ROHashtbl.find_opt objects |> fun obj ->
   match obj with
   | Some (Git.Value.Tree tree) -> tree
   | _ ->
@@ -232,7 +232,7 @@ and blobs_of_entry ?(path_prefix = "") (objects : object_table) :
     Tree.entry -> blob_with_extra list = function
   | { perm = `Exec | `Everybody | `Normal; name = path_segment; node = hash } ->
       let blob =
-        hash |> Hashtbl.find_opt objects |> fun obj ->
+        hash |> ROHashtbl.find_opt objects |> fun obj ->
         match obj with
         | Some (Git.Value.Blob blob) -> blob
         | _ ->
@@ -246,7 +246,7 @@ and blobs_of_entry ?(path_prefix = "") (objects : object_table) :
       [ { blob; path; size } ]
   | { perm = `Dir; name = path_segment; node = hash } ->
       let tree =
-        hash |> Hashtbl.find_opt objects |> fun obj ->
+        hash |> ROHashtbl.find_opt objects |> fun obj ->
         match obj with
         | Some (Git.Value.Tree tree) -> tree
         | _ ->
@@ -302,7 +302,7 @@ let command_exn caps args = command caps args |> fatal
 let commit_blobs_by_date objects =
   Log.info (fun m -> m "getting commits");
   let commits =
-    objects |> Hashtbl.to_seq |> List.of_seq
+    objects |> ROHashtbl.to_seq |> List.of_seq
     |> List_.filter_map (fun (_, value) ->
            match value with
            | Git.Value.Commit commit -> Some commit

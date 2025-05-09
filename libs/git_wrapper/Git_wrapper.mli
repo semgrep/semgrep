@@ -249,7 +249,7 @@ type value = hash Git.Value.t [@@deriving show, eq, ord]
 type commit = hash Git.Commit.t [@@deriving show, eq, ord]
 type author = Git.User.t [@@deriving show, eq, ord]
 type blob = Git.Blob.t [@@deriving show, eq, ord]
-type object_table = (hash, value) Hashtbl.t
+type object_table = (hash, value) ROHashtbl.t
 
 type blob_with_extra = { blob : blob; path : Fpath.t; size : int }
 [@@deriving show]
