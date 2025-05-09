@@ -72,8 +72,8 @@ class ['a, 'b] ograph_mutable =
       succ <- succ#replkey (a, Set_.remove (b, v) (succ#find a));
       pred <- pred#replkey (b, Set_.remove (a, v) (pred#find b))
 
-    method successors e = (succ#find e)#tosetb
-    method predecessors e = (pred#find e)#tosetb
+    method successors e = succ#find e
+    method predecessors e = pred#find e
     method nodes = nods
     method nb_nodes = nods#length
   end
