@@ -21,7 +21,7 @@ class ['node, 'edge] ograph_mutable : object ('o)
   method add_arc : (nodei * nodei) * 'edge -> unit
   method del_arc : (nodei * nodei) * 'edge -> unit
   method nodes : (nodei, 'node) Oassoc.oassoc
-  method successors : nodei -> (nodei * 'edge) Oset.oset
-  method predecessors : nodei -> (nodei * 'edge) Oset.oset
+  method successors : nodei -> (nodei * 'edge) Set_.t
+  method predecessors : nodei -> (nodei * 'edge) Set_.t
   method nb_nodes : int
 end

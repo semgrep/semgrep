@@ -123,9 +123,9 @@ module Make (F : Flow) = struct
       (fun s ni v ->
         s
         ^ spf "%2d <- %7s: %15s %s\n" ni
-            ((f.graph#predecessors ni)#fold
-               (fun s (ni, _) -> csv_append s (string_of_int ni))
-               "")
+            (Set_.fold
+               (fun (ni, _) s -> csv_append s (string_of_int ni))
+               (f.graph#predecessors ni) "")
             (F.short_string_of_node (f.graph#nodes#find ni))
             (inout_to_str env_to_str v))
       "" mapping
@@ -161,14 +161,14 @@ module Make (F : Flow) = struct
     loop 0 workset
 
   let forward_succs (f : F.flow) n =
-    (f.graph#successors n)#fold
-      (fun s (ni, _) -> NodeiSet.add ni s)
-      NodeiSet.empty
+    Set_.fold
+      (fun (ni, _) s -> NodeiSet.add ni s)
+      (f.graph#successors n) NodeiSet.empty
 
   let backward_succs (f : F.flow) n =
-    (f.graph#predecessors n)#fold
-      (fun s (ni, _) -> NodeiSet.add ni s)
-      NodeiSet.empty
+    Set_.fold
+      (fun (ni, _) s -> NodeiSet.add ni s)
+      (f.graph#predecessors n) NodeiSet.empty
 
   let (fixpoint :
         timeout:float ->

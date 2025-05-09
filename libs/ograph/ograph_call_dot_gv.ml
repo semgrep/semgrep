@@ -38,7 +38,7 @@ let generate_ograph_generic g label fnode (buf : Format.formatter) =
 
   nodes#iter (fun (k, _node) ->
       let succ = g#successors k in
-      succ#iter (fun (j, _edge) -> Format.fprintf buf "%d -> %d;\n" k j));
+      Set_.iter (fun (j, _edge) -> Format.fprintf buf "%d -> %d;\n" k j) succ);
   Format.fprintf buf "}\n"
 
 let generate_ograph_xxx g filename =
@@ -53,7 +53,7 @@ let generate_ograph_xxx g filename =
 
       nodes#iter (fun (k, _node) ->
           let succ = g#successors k in
-          succ#iter (fun (j, _edge) -> xpr (spf "%d -> %d;\n" k j)));
+          Set_.iter (fun (j, _edge) -> xpr (spf "%d -> %d;\n" k j)) succ);
       xpr "}\n");
   ()
 
