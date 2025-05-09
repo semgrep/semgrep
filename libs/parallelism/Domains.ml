@@ -27,3 +27,9 @@ let map ~pool f l =
       (* NOTE: [submit] blocks the fiber until the task returns a result.*)
       Eio.Executor_pool.submit pool ~weight:0.5 (fun () -> f elem))
     l
+
+let wrap_timeout ~clock t f =
+ fun x -> Eio.Time.with_timeout clock t (fun () -> Ok (f x))
+
+let wrap_timeout_exn ~clock t f =
+ fun x -> Eio.Time.with_timeout_exn clock t (fun () -> f x)

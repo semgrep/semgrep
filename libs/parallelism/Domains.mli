@@ -24,3 +24,21 @@ val map :
     [f elem] evaluates to [res] or [Err exn] if [f elem] raised the
     exception [exn]
 *)
+
+val wrap_timeout_exn : clock:_ Eio.Time.clock -> float -> ('a -> 'b) -> 'a -> 'b
+(** Wraps the supplied function to be invoked on some fiber within some
+  * duration (in seconds).
+  *
+  * Raises if we exceed the timeout, so we must only use this in an
+  * exception-safe context (such as passing it directly to [Domains.map]).
+  *)
+
+val wrap_timeout :
+  clock:_ Eio.Time.clock ->
+  float ->
+  ('a -> 'b) ->
+  'a ->
+  ('b, [> `Timeout ]) result
+(** Wraps the supplied function to be invoked on some fiber within some
+  * duration (in seconds).
+  *)

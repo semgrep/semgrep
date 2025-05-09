@@ -6,6 +6,7 @@
    parmap
    commons
    eio
+   eio.mock
  )
  (preprocess
    (pps

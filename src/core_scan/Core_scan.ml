@@ -564,7 +564,7 @@ let errors_of_timeout_or_memory_exn (exn : exn) (target : Target.t) : ESet.t =
 
 (** [core_error_to_match_result target core_error] transforms a target and its
   core error to a match result; this is used by our mappers (Parmap, and soon:
-  Domain.map)
+  Domains.map)
 
   TODO: remove/cleanup this function once we remove parmap
   *)
@@ -576,10 +576,10 @@ let core_error_to_match_result (target : Target.t) (core_error : Core_error.t) =
   (Core_result.add_run_time 0.0 match_result, Some target)
 
 (** [exception_to_core_error target exn] turns a target and the exception it
- triggered to a [Core_error.t]; this will be used by [Domain.map] to transform
+ triggered to a [Core_error.t]; this will be used by [Domains.map] to transform
  [Error exn] to a match_result
 
- TODO: the mistmatch of error types between parmap and domain map makes this
+ TODO: the mistmatch of error types between parmap and domains.map makes this
  whole ordeal so awkward; we will need to revist how we do error handling once
  we completly remove parmap.
 *)
@@ -588,7 +588,7 @@ let exception_to_core_error (target : Target.t) (exception_ : Exception.t) =
   Core_error.exn_to_error ~file:internal_path exception_
 
 (** [exception_handler] is used to postprocess the result of a core_scan
-  [Domain.map]; this pattern of kafkaesque exception handling is mostly borrowed
+  [Domains.map]; this pattern of kafkaesque exception handling is mostly borrowed
   from [Parmap_targets].
 
  TODO: Once we rip out parmap; we won't need to support two different types of
