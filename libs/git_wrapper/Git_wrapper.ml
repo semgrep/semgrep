@@ -13,7 +13,6 @@
  * LICENSE for more details.
  *)
 open Common
-open Sexplib.Std
 open Fpath_.Operators
 module Log = Log_git_wrapper.Log
 
