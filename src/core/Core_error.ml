@@ -63,12 +63,9 @@ let () =
              (show core_error))
     | _ -> None)
 
-(* ugly alias because 'type t = t' is not allowed in ErrorSet below *)
-type core_error = t
-
 (* TODO: use Set_.t instead *)
 module ErrorSet = Set.Make (struct
-  type t = core_error
+  type nonrec t = t
 
   let compare = compare
 end)
