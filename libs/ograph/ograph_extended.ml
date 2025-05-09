@@ -1,5 +1,4 @@
 open Oassocb
-open Osetb
 
 (*****************************************************************************)
 (* Prelude *)
@@ -29,7 +28,6 @@ type nodei = int
 
 class ['a, 'b] ograph_mutable =
   let build_assoc () = new oassocb [] in
-  let build_set () = new osetb Set_.empty in
 
   object
     val mutable free_index = 0
@@ -40,15 +38,15 @@ class ['a, 'b] ograph_mutable =
     method add_node (e : 'a) =
       let i = free_index in
       nods <- nods#add (i, e);
-      pred <- pred#add (i, build_set ());
-      succ <- succ#add (i, build_set ());
+      pred <- pred#add (i, Set_.empty);
+      succ <- succ#add (i, Set_.empty);
       free_index <- i + 1;
       i
 
     method add_nodei i (e : 'a) =
       nods <- nods#add (i, e);
-      pred <- pred#add (i, build_set ());
-      succ <- succ#add (i, build_set ());
+      pred <- pred#add (i, Set_.empty);
+      succ <- succ#add (i, Set_.empty);
       free_index <- max free_index i + 1
 
     method del_node i =
@@ -67,12 +65,12 @@ class ['a, 'b] ograph_mutable =
       nods <- nods#replkey (i, e)
 
     method add_arc ((a, b), (v : 'b)) =
-      succ <- succ#replkey (a, (succ#find a)#add (b, v));
-      pred <- pred#replkey (b, (pred#find b)#add (a, v))
+      succ <- succ#replkey (a, Set_.add (b, v) (succ#find a));
+      pred <- pred#replkey (b, Set_.add (a, v) (pred#find b))
 
     method del_arc ((a, b), v) =
-      succ <- succ#replkey (a, (succ#find a)#del (b, v));
-      pred <- pred#replkey (b, (pred#find b)#del (a, v))
+      succ <- succ#replkey (a, Set_.remove (b, v) (succ#find a));
+      pred <- pred#replkey (b, Set_.remove (a, v) (pred#find b))
 
     method successors e = (succ#find e)#tosetb
     method predecessors e = (pred#find e)#tosetb
