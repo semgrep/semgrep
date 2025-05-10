@@ -9,7 +9,7 @@ type tin = {
   config : Rule_options.t;
   deref_sym_vals : int;
       (** Counts the number of times that we "follow" symbollically propagated
-    * values. This is bound to prevent potential infinite loops. *)
+          values. This is bound to prevent potential infinite loops. *)
   wildcard_imports : AST_generic.dotted_ident list;
       (** Stores the "wildcard imports" that import everything from a given
           module, but only the ones that occur at the top level of the program
@@ -87,6 +87,16 @@ val if_config :
   tout
 
 val with_lang : (Lang.t -> tin -> 'a) -> tin -> 'a
+
+(* Check if the rule option `strict_mvar_name_binding` is true and if
+   `pat` contains metavar qualifiers; then use the `then_`
+   match. Otherwise, use the `else_` match. *)
+val if_strict_metavar_binding :
+  pat:AST_generic.expr ->
+  then_:(tin -> tout) ->
+  else_:(tin -> tout) ->
+  tin ->
+  tout
 
 val check_and_add_metavar_binding :
   Metavariable.mvar * Metavariable.mvalue -> tin -> tin option
