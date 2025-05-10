@@ -192,6 +192,10 @@ def parse_package_lock(
                 set(manifest_json["dependencies"].as_dict().keys())
                 if "dependencies" in manifest_json
                 else set()
+            ) | (
+                set(manifest_json["devDependencies"].as_dict().keys())
+                if "devDependencies" in manifest_json
+                else set()
             )
 
         return (
