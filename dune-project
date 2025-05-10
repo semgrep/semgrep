@@ -62,7 +62,6 @@ For more information see https://semgrep.dev
     ; core deps
     (ocaml (>= 5.3.0))
     (dune (>= 2.7.0 ))
-    base
     ; parser generators
     (menhir (= 20230608))
     ; vendored in libs/ocaml-tree-sitter-core
@@ -74,7 +73,9 @@ For more information see https://semgrep.dev
     ; (is it, though?), we need a version that doesn't register
     ; rogue exception printers.
     ; See https://github.com/janestreet/base/issues/146
-    (base (>= v0.15.1))
+    ; We also need a version that can be built properly on macOS:
+    ; https://github.com/janestreet/base/issues/178
+    (base (>= v0.17.2))
     fpath
     bos
     fileutils
@@ -109,7 +110,7 @@ For more information see https://semgrep.dev
     ppx_deriving_yojson
     ppx_hash
     ppx_inline_test
-    (ppx_sexp_conv ( = v0.16.0))
+    (ppx_sexp_conv ( = v0.17.0))
     ppx_expect
     (visitors (= 20250212))
     ; regexps

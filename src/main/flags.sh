@@ -121,6 +121,7 @@ else
             "-lalcotest_stubs"
             "-lbase_internalhash_types_stubs"
             "-lbase_stubs"
+            "-locaml_intrinsics_kernel_stubs"
             "-lbigstringaf_stubs"
             "-lca_certs_stubs"
             "-lcamlstrnat"
