@@ -1,0 +1,1 @@
+Fixed bug where direct dev depenencies were not marked as direct when parsing package-lock.json projects.
