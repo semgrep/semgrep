@@ -182,6 +182,28 @@ let if_config f ~then_ ~else_ tin =
 
 let with_lang f tin = f tin.lang tin
 
+(* Find metavariable names (`$...`) in the qualifier position of `N`
+   or `DotAccess`, e.g., `$X` in `$X.foo`. *)
+let find_metavar_qualifier e =
+  let find_metavars_in_name name =
+    match name with
+    | G.IdQualified { name_middle = Some (QDots qs); _ } ->
+        qs
+        |> List_.filter_map (fun ((id, _), _) ->
+               if Mvar.is_metavar_name id then Some id else None)
+    | G.IdQualified _
+    | G.Id _
+    | G.IdSpecial _ ->
+        []
+  in
+  match e.G.e with
+  | N name -> find_metavars_in_name name
+  | DotAccess _ -> (
+      match H.name_of_dot_access e with
+      | Some name -> find_metavars_in_name name
+      | None -> [])
+  | _ -> []
+
 (* The classical monad combinators *)
 let (return : tin -> tout) = fun tin -> [ tin ]
 
@@ -198,6 +220,15 @@ let or_list m a bs =
     | b :: bs -> m a b >||> aux bs
   in
   aux bs
+
+let if_strict_metavar_binding ~pat ~then_ ~else_ tin =
+  let invoke_then =
+    if tin.config.strict_mvar_name_binding then
+      let mvars = find_metavar_qualifier pat in
+      mvars <> []
+    else false
+  in
+  if invoke_then then then_ tin else else_ tin
 
 (* Since OCaml 4.08 you can define your own let operators!
  * alt: use ppx_let, but you need to write it as let%bind (uglier)

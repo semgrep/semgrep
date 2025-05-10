@@ -62,6 +62,9 @@ type t = {
   ~commutative_compop <ocaml default="false"> : bool;
   ~symmetric_eq <ocaml default="false"> : bool;
 
+  (* prevent metavar binding for non-syntactic (e.g. resolved names) identifiers *)
+  ~strict_mvar_name_binding <ocaml default="false"> : bool;
+
   (* assign-patterns (e.g. `$X = $E`) will match var-defs (e.g. `var x = 1;`) *)
   ~vardef_assign <ocaml default="true"> : bool;
   (* assign-patterns (e.g. `$X = function() { ... }`) will match fld-defs
