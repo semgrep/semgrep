@@ -448,8 +448,10 @@ let rec m_name_inner a b =
         (* coupling: resolved names with wildcards *)
         wipe_wildcard_imports (m_name a reify)
         >||> try_alternate_names tok resolved
-        (* Try the resolved entity *)
-        >||> m_name a (H.name_of_ids dotted)
+        (* Try the resolved entity if `strict_mvar_name_binding` rule
+           option is not set. *)
+        >||> if_strict_metavar_binding ~pat:(N a |> G.e) ~then_:(fail ())
+               ~else_:(m_name a (H.name_of_ids dotted))
         >||>
         (* Try the resolved entity and parents *)
         match a with
@@ -904,18 +906,18 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
       B.N
         (B.Id
            ( idb,
-             {
-               B.id_resolved =
-                 {
-                   contents =
-                     Some
-                       ( ( B.ImportedEntity canonical
-                         | B.ImportedModule canonical
-                         | B.GlobalName (canonical, _) ),
-                         _sid );
-                 };
-               _;
-             } )) )
+             ({
+                B.id_resolved =
+                  {
+                    contents =
+                      Some
+                        ( ( B.ImportedEntity canonical
+                          | B.ImportedModule canonical
+                          | B.GlobalName (canonical, _) ),
+                          _sid );
+                  };
+                _;
+              } as id_info) )) )
     when arguments_have_changed ->
       let dotted = G.canonical_to_dotted (snd idb) canonical in
       (* We used to force to fully qualify entities in the pattern
@@ -928,8 +930,19 @@ and m_expr ?(is_root = false) ?(arguments_have_changed = true) a b =
         ((* try matching the expression a and the identifier b *)
          m_expr ~arguments_have_changed:false a b
         >||>
-        (* try this time a match with the resolved entity *)
-        m_expr a (make_dotted dotted))
+        (* If the `strict_mvar_name_binding` rule option is set and
+           the pattern has a metavar qualifier, then try a match
+           without the resolved entity, since in such cases, we don't
+           want to treat an implicit semantic resolved entity like an
+           explicit syntactic target code. Otherwise, we can match
+           with the converted resolved entity. *)
+        if_strict_metavar_binding ~pat:a
+          ~then_:
+            (m_expr a
+               (B.N
+                  (B.Id (idb, { id_info with id_resolved = { contents = None } }))
+               |> G.e))
+          ~else_:(m_expr a (make_dotted dotted)))
   (* equivalence: name resolving on qualified ids (for OCaml) *)
   (* Put this before the next case to prevent overly eager dealiasing *)
   | G.N (G.IdQualified _ as na), B.N ((B.IdQualified _ | B.Id _) as nb) ->
