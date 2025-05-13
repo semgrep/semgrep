@@ -148,6 +148,25 @@ let (rule_id_of_mini_rule : Mini_rule.t -> Core_match.rule_id) =
     langs = mr.langs;
   }
 
+let log_invalid_metavar_bindings (pms : PM.t list) =
+  pms
+  |> List.iter (fun pm ->
+         pm.PM.env
+         |> List.iter (fun (mvar, mval) ->
+                let is_fake_tok =
+                  (* NOTE: `MV.ii_of_mval` triggers a new allocation
+                     of `extract_info_visitor`, which could be
+                     expensive. *)
+                  mval |> MV.ii_of_mval |> List.exists Tok.is_origintok |> not
+                in
+                if is_fake_tok then
+                  Log.debug (fun m ->
+                      m
+                        "The metavar %s is bound to an entity that does not \
+                         have a corresponding body in the target code. This \
+                         could result in undefined behavior."
+                        mvar)))
+
 let match_rules_and_recurse
     ({ m_env; path; hook; matches; has_as_metavariable } : env) rules matcher k
     any x =
@@ -713,14 +732,18 @@ let check ~hook ?(has_as_metavariable = false) ?mvar_context
      *)
     visitor#visit_any visitor_env prog;
 
-    !matches |> List.rev
-    (* TODO: optimize uniq_by? Too slow? Use a hash?
-     * Note that this may not be enough for Semgrep.ml. Indeed, we can have
-     * different mini-rules matching the same code with the same metavar,
-     * but in Semgrep.ml they get agglomerated under the same rule id, in
-     * which case we want to dedup them.
-     * old: this uniq_by was introducing regressions in semgrep!
-     * See tests/rules/regression_uniq_or_ellipsis.go but it's fixed now.
-     *)
-    |> PM.uniq
+    let uniq_matches =
+      !matches |> List.rev
+      (* TODO: optimize uniq_by? Too slow? Use a hash?
+       * Note that this may not be enough for Semgrep.ml. Indeed, we can have
+       * different mini-rules matching the same code with the same metavar,
+       * but in Semgrep.ml they get agglomerated under the same rule id, in
+       * which case we want to dedup them.
+       * old: this uniq_by was introducing regressions in semgrep!
+       * See tests/rules/regression_uniq_or_ellipsis.go but it's fixed now.
+       *)
+      |> PM.uniq
+    in
+    log_invalid_metavar_bindings uniq_matches;
+    uniq_matches
 [@@profiling]
