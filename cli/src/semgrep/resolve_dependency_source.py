@@ -73,6 +73,8 @@ PTT_OCAML_PARSER_SUBPROJECT_KINDS = [
     # TODO: (out.ManifestKind(out.PackageJson()), out.LockfileKind(out.YarnLock())),
 ]
 
+# Subproject kinds that we use ocaml parsers for only when dependency paths are
+# enabled.
 PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS = [
     (out.ManifestKind(out.PomXml()), None),
     (out.ManifestKind(out.BuildGradle()), None),
@@ -96,9 +98,16 @@ PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS = [
     ),
 ]
 
+# Subproject kinds that we use ocaml parsers for only when transitive reachability is
+# enabled.
 TR_OCAML_RESOLVER_SUBPROJECT_KINDS = [
     (out.ManifestKind(out.PackageJson()), out.LockfileKind(out.NpmPackageLockJson())),
     (out.ManifestKind(out.PyprojectToml()), out.LockfileKind(out.UvLock())),
+]
+
+# Subproject kinds that we use ocaml parsers for always.
+ALWAYS_OCAML_PARSER_SUBPROJECT_KINDS = [
+    (out.ManifestKind(out.PyprojectToml()), out.LockfileKind(out.UvLock()))
 ]
 
 DependencyResolutionResult = Tuple[
@@ -302,7 +311,7 @@ def _handle_lockfile_source(
     use_nondynamic_ocaml_parsing = (
         config.ptt_enabled
         and (manifest_kind, lockfile_kind) in PTT_OCAML_PARSER_SUBPROJECT_KINDS
-    )
+    ) or (manifest_kind, lockfile_kind) in ALWAYS_OCAML_PARSER_SUBPROJECT_KINDS
 
     use_dynamic_resolution = (
         config.ptt_enabled

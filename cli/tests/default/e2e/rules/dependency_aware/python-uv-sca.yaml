@@ -1,0 +1,10 @@
+rules:
+  - id: python-requirements-sca
+    pattern: bad()
+    r2c-internal-project-depends-on:
+      namespace: pypi
+      package: flask
+      version: <= 4.0.0
+    message: oh no
+    languages: [python]
+    severity: WARNING
