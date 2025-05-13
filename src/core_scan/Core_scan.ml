@@ -714,7 +714,7 @@ let iter_targets_and_get_matches_and_exn_to_errors
   in
   let xs =
     if config.use_eio then
-      let pool = Option.get config.exec_pool in
+      let pool = (Option.get config.par_conf).exec_pool in
       Domains.map ~pool process_target targets
       |> List_.map2 exception_handler targets
     else
@@ -821,11 +821,19 @@ let match_rules (caps : < Cap.time_limit ; .. >) ~matches_hook
   in
   let caps = (caps :> < Cap.time_limit >) in
   let timeout : Match_rules.timeout_config option =
-    if config.use_eio then None
-    else
-      let caps = (caps :> < Cap.time_limit >) in
-      Some
-        { timeout = config.timeout; threshold = config.timeout_threshold; caps }
+    let caps = (caps :> < Cap.time_limit >) in
+    let clock : float Eio.Time.clock_ty Eio.Std.r option =
+      Option.map
+        (fun (pf : Parallelism_config.t) -> pf.env#clock)
+        config.par_conf
+    in
+    Some
+      {
+        timeout = config.timeout;
+        threshold = config.timeout_threshold;
+        caps;
+        clock;
+      }
   in
   (* !!Calling Match_rules!! Calling the matching engine!! *)
   Match_rules.check ~matches_hook ~timeout xconf rules xtarget

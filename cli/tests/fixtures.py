@@ -44,6 +44,7 @@ class RunSemgrep(Protocol):
         strict: bool = True,
         quiet: bool = False,
         env: dict[str, str] | None = None,
+        use_eio: bool = False,
         assert_exit_code: None | int | set[int] = 0,
         force_color: bool | None = None,
         assume_targets_dir: bool = True,

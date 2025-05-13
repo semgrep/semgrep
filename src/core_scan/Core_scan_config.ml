@@ -106,9 +106,11 @@ type t = {
   (* telemetry *)
   tracing : Tracing.config option;
   symbol_analysis : bool;
-  (* Rely on a EIO impl of `-j` v.s Parmap *)
+  (* Rely on a EIO impl of `-j` v.s Parmap
+   * logic redundancy: par_conf is set only if use_eio was
+   * previously set to true. *)
   use_eio : bool;
-  exec_pool : Eio.Executor_pool.t option; [@opaque]
+  par_conf : Parallelism_config.t option;
 }
 [@@deriving show]
 
@@ -140,5 +142,5 @@ let default =
     tracing = None;
     symbol_analysis = false;
     use_eio = false;
-    exec_pool = None;
+    par_conf = None;
   }

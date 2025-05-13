@@ -393,6 +393,7 @@ def _run_semgrep(
     strict: bool = False,
     quiet: bool = False,
     env: Optional[Dict[str, str]] = None,
+    use_eio: bool = False,
     assert_exit_code: Union[None, int, Set[int]] = 0,
     force_color: Optional[bool] = None,
     # See e2e/test_dependency_aware_rule.py for why this is here
@@ -476,6 +477,9 @@ def _run_semgrep(
 
             if quiet:
                 options.append("--quiet")
+
+            if use_eio:
+                options.append("--x-eio")
 
             if config is not None:
                 if isinstance(config, list):

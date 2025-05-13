@@ -33,3 +33,28 @@ let wrap_timeout ~clock t f =
 
 let wrap_timeout_exn ~clock t f =
  fun x -> Eio.Time.with_timeout_exn clock t (fun () -> f x)
+
+(* TODO: make the frequency configurable on the CLI, perhaps. Keep this a power of two! *)
+let yield_frequency = 8192
+
+(* Our goal for `maybe_yield` is to not be much more unresponsive than what the
+ * OS scheduler would do, which means we shouldn't feel obligated to actually yield
+ * more than once every centisecond or so.  If `maybe_yield` gets called in quick
+ * succession (such as in [Matching_generic] combinators), then we'll be burning a lot
+ * of CPU time having the Eio scheduler rerun needlessly, so we should only actually
+ * occasionally yield when `maybe_yield` is called.
+ *
+ * The default choice of `[yield_frequency]` was chosen somewhat arbitrarily.  My
+ * intuition is that too high (e.g. too infrequent yields) is better than too low
+ * (e.g. too much spinning inside Eio); so long as we are still adhering to responding to
+ * timeouts (which are on the granularity of seconds) then we are doing our job.
+ *)
+let yield_attempts = Atomic.make 0
+
+let maybe_yield () =
+  if not !Common.jsoo then
+    if Atomic.fetch_and_add yield_attempts 1 land (yield_frequency - 1) = 0 then
+      (* If we fail to get the context during yielding, we're not running in Eio. *)
+      try Eio.Fiber.yield () with
+      (* TODO: This is similar to Hook.attempt_in_eio. *)
+      | Stdlib.Effect.Unhandled _ -> ()

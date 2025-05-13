@@ -10,5 +10,6 @@
    unix
    commons
    tracing
+   parallelism
  )
 )

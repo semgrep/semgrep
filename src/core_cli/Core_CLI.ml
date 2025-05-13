@@ -334,7 +334,7 @@ let mk_config () : Core_scan_config.t =
     (* only settable via the Pro binary *)
     symbol_analysis = !symbol_analysis;
     use_eio = !use_eio;
-    exec_pool = None;
+    par_conf = None;
   }
 
 (*****************************************************************************)
@@ -683,7 +683,8 @@ let decide_if_eio caps (config : Core_scan_config.t) =
                 ~domain_count:
                   (Core_scan_config.finalize_num_jobs config.num_jobs)
             in
-            run caps { config with exec_pool = Some pool }))
+            let par_conf = Some (Parallelism_config.create base pool) in
+            run caps { config with par_conf }))
   else run caps config
 (*****************************************************************************)
 (* Main entry point *)
