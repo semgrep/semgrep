@@ -31,5 +31,6 @@ let code_of_reason = function
 let exit_semgrep (caps : Cap.Process.exit) reason =
   let code = code_of_reason reason in
   let msg = string_of_reason reason in
+  ignore caps;
   Logs.info (fun m -> m "exit %i: %s" code msg);
-  CapStdlib.exit caps code
+  raise (UnixExit (code, msg))

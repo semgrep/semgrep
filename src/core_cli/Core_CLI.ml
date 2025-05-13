@@ -822,14 +822,5 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
                   in
                   decide_if_eio caps { config with tracing = Some tracing })))
 
-let with_exception_trace f =
-  Printexc.record_backtrace true;
-  try f () with
-  | exn ->
-      let e = Exception.catch exn in
-      Printf.eprintf "Exception: %s\n%!" (Exception.to_string e);
-      raise (UnixExit 1)
-
 let main (caps : Cap.all_caps) (argv : string array) : unit =
-  UCommon.main_boilerplate (fun () ->
-      with_exception_trace (fun () -> main_exn caps argv))
+  UCommon.main_boilerplate (fun () -> main_exn caps argv)

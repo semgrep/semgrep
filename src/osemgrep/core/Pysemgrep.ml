@@ -23,10 +23,11 @@ let win_spawn_pysemgrep (caps : < Cap.exec >) args =
   match CapExec.run_subprocess ?env caps#exec cmd with
   | Ok (`Exited n)
   | Ok (`Signaled n) ->
-      raise (UnixExit n)
+      let msg = spf "pysemgrep signaled with code %d" n in
+      raise (UnixExit (n, msg))
   | Error (`Msg msg) ->
       Logs.err (fun m -> m "executing pysemgrep failed: %s" msg);
-      raise (UnixExit 127)
+      raise (UnixExit (127, msg))
 
 (* dispatch back to pysemgrep! *)
 let pysemgrep (caps : < Cap.exec >) argv =
