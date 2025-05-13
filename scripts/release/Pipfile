@@ -1,6 +1,9 @@
 [dev-packages]
 sh = "*"
-click = "*"
+# Pin us to a 8.1.x minor release, as 8.2.0 introduced breaking API
+# changes.
+# TODO: SAF-2015
+click = "=8.1.8"
 requests = "*"
 towncrier = "~=21.9.0"
 
