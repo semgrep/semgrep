@@ -135,9 +135,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: semgrep-core-and-dependent-libs-w64-artifact-${{ github.sha }}
-      - env:
-          SEMGREP_FORCE_INSTALL: 1
-        run: |
+      - run: |
           tar xvfz artifacts.tgz
           cp artifacts/* cli/src/semgrep/bin
           ./scripts/build-wheels.sh --plat-name win_amd64
@@ -159,13 +157,9 @@ jobs:
       - run: tar xzvf dist.tgz
       - name: install package
         run: pip3 install dist/*.whl
-      - env:
-          SEMGREP_FORCE_INSTALL: 1
-        name: test package
+      - name: test package
         run: semgrep --version
-      - env:
-          SEMGREP_FORCE_INSTALL: 1
-        name: e2e semgrep-core test
+      - name: e2e semgrep-core test
         run: echo '1 == 1' | semgrep -l python -e '$X == $X' --strict -
 name: build-test-windows-x86
 on:
