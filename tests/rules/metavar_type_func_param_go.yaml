@@ -1,0 +1,11 @@
+rules:
+- id: metavar-type-func-param
+  message: test
+  severity: ERROR
+  languages:
+  - go
+  patterns:
+    - pattern: '$X.Foo()'
+    - metavariable-type:
+        metavariable: $X
+        type: '*http.Request'
