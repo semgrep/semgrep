@@ -93,7 +93,7 @@ let parse_json (file : string) : env * code =
        ("metavars", J.Object xs);
       ] ->
           let lang =
-            try Hashtbl.find Lang.lang_map lang with
+            try ROHashtbl.find Lang.lang_map lang with
             | Not_found -> failwith (spf "unsupported language %s" lang)
           in
           (* less: could also use Parse_pattern *)
