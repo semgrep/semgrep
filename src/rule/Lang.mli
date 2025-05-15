@@ -145,7 +145,7 @@ val of_opt_exn : t option -> t
 
 (* accept any variants *)
 val is_js : t -> bool
-val lang_map : (string, t) Hashtbl.t
+val lang_map : (string, t) ROHashtbl.t
 
 (* accept any variants *)
 val is_proprietary : t -> bool
