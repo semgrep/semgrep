@@ -119,9 +119,9 @@ let assoc =
       List_.map (fun key -> (key, info.id)) info.keys)
     Language.list
 
-let lang_map = Hashtbl_.hash_of_list assoc
-let of_string_opt x = Hashtbl.find_opt lang_map (String.lowercase_ascii x)
-let keys = Hashtbl_.hkeys lang_map
+let lang_map = ROHashtbl.of_seq (List.to_seq assoc)
+let of_string_opt x = ROHashtbl.find_opt lang_map (String.lowercase_ascii x)
+let keys = lang_map |> ROHashtbl.to_seq_keys |> List.of_seq
 let supported_langs : string = String.concat ", " keys
 
 (* TODO: move file identification to lang.json *)
