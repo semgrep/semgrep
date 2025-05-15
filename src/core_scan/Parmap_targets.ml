@@ -97,7 +97,7 @@ let finalize () =
   (* NOTE: this only stops tracing in the child *)
   (* TODO See note in init *)
   (*
-  Tracing.stop_tracing ~exit_active_spans:false ()
+  Tracing.stop_tracing ()
   *)
   ()
 

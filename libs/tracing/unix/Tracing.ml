@@ -383,47 +383,16 @@ let log_trace_message () =
 (*****************************************************************************)
 
 (* Safe to call whenever *)
-let stop_tracing ~exit_active_spans () =
+let stop_tracing () =
   (* hack: get the backend so we can easily stop tracing at any time. See
      [with_paused_tracing] for why we want the option to do this
-
-     See the following for why we do it this way:
-     https://github.com/imandra-ai/ocaml-opentelemetry/issues/70
   *)
   Otel.Collector.get_backend ()
   |> Option.iter (fun backend ->
          Log.info (fun m -> m "Stopping tracing");
          let module Backend = (val backend : Otel.Collector.BACKEND) in
          Trace_core.shutdown ();
-         (* A bit hacky also... here we use the internal trace backend to get
-            all active spans, and then exit them, and then send them *)
-         (if exit_active_spans then
-            let active_spans =
-              let active_span_tbl =
-                (Opentelemetry_trace.Internal.Active_spans.get ()).tbl
-              in
-              Opentelemetry_trace.Internal.Active_span_tbl.to_seq
-                active_span_tbl
-              |> List.of_seq
-              |> List.sort
-                   (* Sort by start time so we can exit them in order *)
-                   (fun
-                     ((_, span_begin) :
-                       _ * Opentelemetry_trace.Internal.span_begin)
-                     (_, span_begin')
-                   ->
-                     Int64_.compare span_begin.start_time span_begin'.start_time)
-              |> List_.map (fun (span, span_begin) ->
-                     Opentelemetry_trace.Internal.exit_span' span span_begin)
-            in
-            Otel.Trace.emit active_spans);
-         Backend.tick ();
-         Otel.Collector.set_backend (module Otel.Collector.Noop_backend);
-
-         (* Cleanup doesn't seem to always send so let's tick one more time to
-            flush, see:
-            https://github.com/imandra-ai/ocaml-opentelemetry/issues/69
-         *)
+         Otel.Collector.remove_backend ();
          Backend.cleanup ())
 
 (* setup_otel sets the Otel tracing backend and Trace_core tracing backend *)
@@ -488,7 +457,7 @@ let restart_tracing () =
 *)
 let with_tracing_paused f =
   (* Don't exit current spans here since we only want to pause *)
-  stop_tracing ~exit_active_spans:false ();
+  stop_tracing ();
   Common.protect ~finally:restart_tracing f
 
 let with_tracing fname data f =
@@ -521,20 +490,7 @@ let with_tracing fname data f =
     f sp
   in
   (* coupling: [restart_tracing] *)
-  (* Ensure the otel backend always flushes traces before exiting! Normally
-     tracing stops + everything is flushed when `with_tracing` exits, but this
-     ensures it also happens when an unhandled exception occurs, or in the event
-     that Stdlib.exit is called before the user can call `stop_tracing`.
-     stop_tracing is safe to call multiple times and is a noop if tracing is not
-     setup
-  *)
-  Stdlib.at_exit (stop_tracing ~exit_active_spans:true);
-  Common.protect ~finally:(stop_tracing ~exit_active_spans:true) f'
+  Common.protect ~finally:stop_tracing f'
 
-(* Alt: using cohttp_lwt (we probably want to do this when we switch to Eio w/ *)
-(* their compatibility layer)
-
-   Lwt_platform.run (let res = Opentelemetry_client_cohttp_lwt.with_setup ~config () @@ fun () ->
-   run_with_span "All time" f in
-     Lwt.bind (Lwt_platform.sleep 0.01) (fun () -> Lwt.return res))
-*)
+(* TODO: switch to otel eio once we are on multicore/it is supported by the otel
+   lib *)
