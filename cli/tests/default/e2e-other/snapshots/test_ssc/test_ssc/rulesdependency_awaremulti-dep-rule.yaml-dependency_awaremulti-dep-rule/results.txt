@@ -1,0 +1,111 @@
+=== exit code
+0
+=== end of exit code
+
+=== stdout - plain
+{
+  "errors": [],
+  "paths": {
+    "scanned": [
+      "targets/dependency_aware/multi-dep-rule/bad.js",
+      "targets/dependency_aware/multi-dep-rule/package-lock.json"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.dependency_aware.multi-dep-rule",
+      "end": {
+        "col": 1,
+        "line": 24,
+        "offset": 0
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "lines": "requires login",
+        "message": "oh no",
+        "metadata": {},
+        "sca_info": {
+          "dependency_match": {
+            "dependency_pattern": {
+              "ecosystem": "npm",
+              "package": "C",
+              "semver_range": "==2.0.0"
+            },
+            "found_dependency": {
+              "allowed_hashes": {
+                "sha512": [
+                  "bf690311ee7b95e713ba568322e3533f2dd1cb880b189e99d4edef13592b81764daec43e2c54c61d5c558dc5cfb35ecb85b65519e74026ff17675b6f8f916f4a"
+                ]
+              },
+              "ecosystem": "npm",
+              "line_number": 24,
+              "lockfile_path": "targets/dependency_aware/multi-dep-rule/package-lock.json",
+              "manifest_path": "targets/dependency_aware/multi-dep-rule/package.json",
+              "package": "C",
+              "resolved_url": "https://registry.npmjs.org/C/-/C-1.0.0.tgz",
+              "transitivity": "transitive",
+              "version": "2.0.0"
+            },
+            "lockfile": "targets/dependency_aware/multi-dep-rule/package-lock.json"
+          },
+          "reachability_rule": true,
+          "reachable": false,
+          "sca_finding_schema": 20220913
+        },
+        "severity": "WARNING"
+      },
+      "path": "targets/dependency_aware/multi-dep-rule/package-lock.json",
+      "start": {
+        "col": 1,
+        "line": 24,
+        "offset": 0
+      }
+    }
+  ],
+  "skipped_rules": [],
+  "version": "0.42"
+}
+=== end of stdout - plain
+
+=== stderr - plain
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 3 files tracked by git with 0 Code rules, 1 Supply Chain rule:
+
+
+  CODE RULES
+  Nothing to scan.
+
+  SUPPLY CHAIN RULES
+  Scanning 1 file and 1 dependency source.
+
+  Dependency Sources                                          Resolution Method   Ecosystem   Dependencies   Rules
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  targets/dependency_aware/multi-dep-rule/package-lock.json   Lockfile            Npm         4                  1
+
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+✅ Scan completed successfully.
+ • Findings: 1 (0 blocking)
+ • Rules run: 1
+ • Targets scanned: 2
+ • Parsed lines: ~100.0%
+ • No ignore information available
+Ran 1 rule on 2 files: 1 finding.
+
+=== end of stderr - plain
+
+=== stdout - color
+<same as above: stdout - plain>
+=== end of stdout - color
+
+=== stderr - color
+<same as above: stderr - plain>
+=== end of stderr - color
