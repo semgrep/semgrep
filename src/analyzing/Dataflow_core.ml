@@ -14,6 +14,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Maps
 module Log = Log_analyzing.Log
 
 (*****************************************************************************)
@@ -126,7 +127,7 @@ module Make (F : Flow) = struct
             (Set_.fold
                (fun (ni, _) s -> csv_append s (string_of_int ni))
                (f.graph#predecessors ni) "")
-            (F.short_string_of_node (f.graph#nodes#find ni))
+            (F.short_string_of_node (Int_map.find ni f.graph#nodes))
             (inout_to_str env_to_str v))
       "" mapping
 
@@ -194,8 +195,8 @@ module Make (F : Flow) = struct
     let nb_nodes = f.graph#nb_nodes in
     let max_nodei = ref (-1) in
 
-    f.graph#nodes#tolist
-    |> List.iter (fun (ni, _nod) ->
+    f.graph#nodes
+    |> Int_map.iter (fun ni _nod ->
            (* actually there are some del_node done in cfg_build, for
             * switch, so sometimes ni is >= len
             *
