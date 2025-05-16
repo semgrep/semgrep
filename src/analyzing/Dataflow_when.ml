@@ -1,4 +1,5 @@
 open AST_generic
+open Maps
 module Log = Log_analyzing.Log
 
 (*****************************************************************************)
@@ -144,7 +145,7 @@ let inherit_facts (node : IL.node) facts =
  * continue propagating the facts via the context.
  *)
 let rec annotate_facts_of_node (cfg : IL.cfg) nodei (ctx : ctx) visited =
-  let node = cfg.graph#nodes#find nodei in
+  let node = Int_map.find nodei cfg.graph#nodes in
   if Set_.mem nodei !visited then (* skip if already processed *) ()
   else (
     visited := Set_.add nodei !visited;
