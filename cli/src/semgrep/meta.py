@@ -17,6 +17,7 @@ from glom import T
 from glom.core import TType
 
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
+from semgrep.error import SemgrepError
 from semgrep.external.git_url_parser import Parser
 from semgrep.git import git_check_output
 from semgrep.git import is_git_repo_empty
@@ -125,6 +126,15 @@ class GitMeta:
 
         # Using the 'or' for the typechecker
         return os.getenv("SEMGREP_REPO_DISPLAY_NAME") or display_name
+
+    @property
+    def project_id(self) -> Optional[str]:
+        project_id = os.getenv("SEMGREP_PROJECT_ID")
+        if project_id and os.getenv("SEMGREP_REPO_DISPLAY_NAME"):
+            raise SemgrepError(
+                "The environment variables SEMGREP_PROJECT_ID and SEMGREP_REPO_DISPLAY_NAME cannot both be set at the same time."
+            )
+        return project_id
 
     @property
     def repo_url(self) -> Optional[str]:
@@ -252,6 +262,7 @@ class GitMeta:
             pull_request_title=self.pr_title,
             scan_environment=self.environment,
             is_full_scan=self.is_full_scan,
+            project_id=self.project_id,
         )
 
 
