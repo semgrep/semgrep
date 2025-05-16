@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open AST_generic
+open Maps
 
 (*****************************************************************************)
 (* Prelude *)
@@ -34,7 +35,7 @@ open AST_generic
 (*****************************************************************************)
 
 let rec mark_first_instr_ancestor (cfg : IL.cfg) i =
-  let node = cfg.graph#nodes#find i in
+  let node = Int_map.find i cfg.graph#nodes in
   match node.n with
   (* If control reaches a catch node, it's an exception. It can't be a return,
    * so stop visiting here.
