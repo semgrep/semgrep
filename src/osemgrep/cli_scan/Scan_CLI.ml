@@ -1,4 +1,5 @@
 open Common
+open Maps
 module Arg = Cmdliner.Arg
 module Term = Cmdliner.Term
 module Cmd = Cmdliner.Cmd
@@ -1205,13 +1206,13 @@ let outputs_conf ~text_outputs ~json_outputs ~emacs_outputs ~vim_outputs
          outputs_for_specific_format
          |> List.fold_left
               (fun outputs output_destination ->
-                let key = Some output_destination in
-                if Map_.mem key outputs then
+                let key = output_destination in
+                if String_map.mem key outputs then
                   (* TODO: Should probably error here. *)
                   outputs
-                else Map_.add key output_format outputs)
+                else String_map.add key output_format outputs)
               outputs)
-       Map_.empty
+       String_map.empty
 
 (* reused in Ci_CLI.ml *)
 let engine_type_conf ~oss ~pro_lang ~pro_intrafile ~pro ~secrets
