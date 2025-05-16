@@ -25,6 +25,7 @@ type env = {
   _SEMGREP_PR_ID : string option;
   _SEMGREP_PR_TITLE : string option;
   _SEMGREP_BRANCH : string option;
+  _SEMGREP_PROJECT_ID : string option;
 }
 
 (*****************************************************************************)
@@ -91,9 +92,18 @@ let env : env Term.t =
     let env = XCmd.Env.info "SEMGREP_BRANCH" in
     Arg.(value & opt (some string) None & info [ "semgrep-branch" ] ~env ~doc)
   in
+  let semgrep_project_id =
+    let doc =
+      "The project ID that this scan sends findings to. Must not be set at the \
+       same time as SEMGREP_REPO_DISPLAY_NAME."
+    in
+    let env = XCmd.Env.info "SEMGREP_PROJECT_ID" in
+    Arg.(
+      value & opt (some string) None & info [ "semgrep-project-id" ] ~env ~doc)
+  in
   let run _SEMGREP_REPO_NAME _SEMGREP_REPO_DISPLAY_NAME _SEMGREP_REPO_URL
       _SEMGREP_COMMIT _SEMGREP_JOB_URL _SEMGREP_PR_ID _SEMGREP_PR_TITLE
-      _SEMGREP_BRANCH =
+      _SEMGREP_BRANCH _SEMGREP_PROJECT_ID =
     {
       _SEMGREP_REPO_NAME;
       _SEMGREP_REPO_DISPLAY_NAME;
@@ -103,12 +113,13 @@ let env : env Term.t =
       _SEMGREP_PR_ID;
       _SEMGREP_PR_TITLE;
       _SEMGREP_BRANCH;
+      _SEMGREP_PROJECT_ID;
     }
   in
   Term.(
     const run $ semgrep_repo_name $ semgrep_repo_display_name $ semgrep_repo_url
     $ semgrep_commit $ semgrep_job_url $ semgrep_pr_id $ semgrep_pr_title
-    $ semgrep_branch)
+    $ semgrep_branch $ semgrep_project_id)
 
 (*****************************************************************************)
 (* Entry point *)
@@ -170,6 +181,7 @@ class meta (caps : < Cap.exec >) ~scan_environment
         is_sca_scan = None;
         is_code_scan = None;
         is_secrets_scan = None;
+        project_id = self#project_id;
       }
 
     (* to be overriden in children *)
@@ -238,4 +250,15 @@ class meta (caps : < Cap.exec >) ~scan_environment
 
     (* TODO? get rid of? use directly baseline_ref in is_full_scan? *)
     method merge_base_ref = baseline_ref
+
+    method project_id =
+      match (env._SEMGREP_REPO_DISPLAY_NAME, env._SEMGREP_PROJECT_ID) with
+      | Some _repo_display_name, Some _project_id ->
+          Logs.app (fun m ->
+              m
+                "The environment variables SEMGREP_PROJECT_ID and \
+                 SEMGREP_REPO_DISPLAY_NAME cannot both be set at the same \
+                 time.");
+          Error.exit_code_exn (Exit_code.fatal ~__LOC__)
+      | _, project_id -> project_id
   end
