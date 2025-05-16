@@ -229,11 +229,23 @@ def generate_reachable_sca_findings(
                 deps: List[out.FoundDependency] = list(
                     iter_found_dependencies(subproject.resolved_dependencies)
                 )
-                frozen_deps = tuple((dep.package, dep.transitivity) for dep in deps)
 
                 dependency_matches: List[
                     Tuple[out.ScaPattern, out.FoundDependency]
                 ] = list(dependencies_range_match_any(depends_on_entries, deps))
+
+                pattern_deps = set(
+                    dep_pattern.package for dep_pattern in depends_on_entries
+                )
+
+                # This list will be non-empty if any of the dependencies the rule searches for are present as direct dependencies
+                rule_could_match_direct_deps = [
+                    found_dep.package
+                    for found_dep in deps
+                    if found_dep.package in pattern_deps
+                    and found_dep.transitivity.value == out.Direct()
+                ]
+
                 for dep_pat, found_dep in dependency_matches:
                     if found_dep.lockfile_path is None:
                         # In rare cases, it's possible for a dependency to not have a lockfile
@@ -244,12 +256,39 @@ def generate_reachable_sca_findings(
                         )
                         continue
 
-                    # ???
+                    # Consider this (simplified) situation:
+                    # LOCKFILE:
+                    #   foo:
+                    #     transitivity: direct
+                    #     version: 1.0.0
+                    #   foo-special:
+                    #     transitivity: transitive
+                    #     version: 2.0.0
+                    # RULE:
+                    #   r2c-internal-project-depends-on:
+                    #     depends-on-either:
+                    #       - package: foo
+                    #         version: 2.0.0
+                    #       - package: foo-special
+                    #         version: 2.0.0
+                    #   pattern:
+                    #     - bad()
+                    # CODE:
+                    #   import foo
+                    #   bad()
+                    #
+                    # We end up with a dependency match on `foo-special` and a code match on the call to `bad()`
+                    # But we should not produce a reachable finding! The code is using `foo` and _not_ `foo-special`
+                    # We don't have a mechanism to detect exactly which dependency is being used in the code right now,
+                    # but given that `foo` is present in the direct dependencies and `foo-special` is not, we can conclude
+                    # that it is much more likley that any code matching our pattern is using `foo` and not `foo-special`.
+                    # APPROXIMATE SOLUTION:
+                    # In the case where our dependency match is on a transitive, but one of the dependencies the rule searches for is
+                    # present as a direct dependency, we skip this dependency match.
+                    # This does not handle the case `foo` and `foo-special` are both direct dependencies
                     if (
                         found_dep.transitivity.value == out.Transitive()
-                        and transitive_dep_is_also_direct(
-                            found_dep.package, frozen_deps
-                        )
+                        and rule_could_match_direct_deps
                     ):
                         continue
 
