@@ -14,6 +14,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Maps
 open IL
 module Log = Log_analyzing.Log
 module F = IL (* to be even more similar to controlflow_build.ml *)
@@ -390,7 +391,7 @@ and cfg_stmt_list state previ xs =
 
 and mark_at_exit_nodes cfg =
   let rec loop nodei =
-    let node = cfg.CFG.graph#nodes#find nodei in
+    let node = Int_map.find nodei cfg.CFG.graph#nodes in
     match node.n with
     (* Visit ancestor for exit, noop, goto, and join nodes. *)
     | Exit

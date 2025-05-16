@@ -1,4 +1,5 @@
 open Common
+open Maps
 
 (*****************************************************************************)
 (* Prelude *)
@@ -16,29 +17,32 @@ let generate_ograph_generic g label fnode (buf : Format.formatter) =
   | None -> ()
   | Some x -> Format.fprintf buf "label = \"%s\";\n" x);
   let nodes = g#nodes in
-  nodes#iter (fun (k, node) ->
-      let str, border_color, inner_color = fnode (k, node) in
-      let color =
-        match inner_color with
-        | None -> (
-            match border_color with
-            | None -> ""
-            | Some x -> spf ", style=\"setlinewidth(3)\", color = %s" x)
-        | Some x -> (
-            match border_color with
-            | None -> spf ", style=\"setlinewidth(3),filled\", fillcolor = %s" x
-            | Some x' ->
-                spf
-                  ", style=\"setlinewidth(3),filled\", fillcolor = %s, color = \
-                   %s"
-                  x x')
-      in
-      (* so can see if nodes without arcs were created *)
-      Format.fprintf buf "%d [label=\"%s   [%d]\"%s];\n" k str k color);
+  nodes
+  |> Int_map.iter (fun k node ->
+         let str, border_color, inner_color = fnode (k, node) in
+         let color =
+           match inner_color with
+           | None -> (
+               match border_color with
+               | None -> ""
+               | Some x -> spf ", style=\"setlinewidth(3)\", color = %s" x)
+           | Some x -> (
+               match border_color with
+               | None ->
+                   spf ", style=\"setlinewidth(3),filled\", fillcolor = %s" x
+               | Some x' ->
+                   spf
+                     ", style=\"setlinewidth(3),filled\", fillcolor = %s, \
+                      color = %s"
+                     x x')
+         in
+         (* so can see if nodes without arcs were created *)
+         Format.fprintf buf "%d [label=\"%s   [%d]\"%s];\n" k str k color);
 
-  nodes#iter (fun (k, _node) ->
-      let succ = g#successors k in
-      Set_.iter (fun (j, _edge) -> Format.fprintf buf "%d -> %d;\n" k j) succ);
+  nodes
+  |> Int_map.iter (fun k _node ->
+         let succ = g#successors k in
+         Set_.iter (fun (j, _edge) -> Format.fprintf buf "%d -> %d;\n" k j) succ);
   Format.fprintf buf "}\n"
 
 let generate_ograph_xxx g filename =
@@ -47,13 +51,15 @@ let generate_ograph_xxx g filename =
       xpr "size = \"10,10\";\n";
 
       let nodes = g#nodes in
-      nodes#iter (fun (k, (_node, s)) ->
-          (* so can see if nodes without arcs were created *)
-          xpr (spf "%d [label=\"%s   [%d]\"];\n" k s k));
+      nodes
+      |> Int_map.iter (fun k (_node, s) ->
+             (* so can see if nodes without arcs were created *)
+             xpr (spf "%d [label=\"%s   [%d]\"];\n" k s k));
 
-      nodes#iter (fun (k, _node) ->
-          let succ = g#successors k in
-          Set_.iter (fun (j, _edge) -> xpr (spf "%d -> %d;\n" k j)) succ);
+      nodes
+      |> Int_map.iter (fun k _node ->
+             let succ = g#successors k in
+             Set_.iter (fun (j, _edge) -> xpr (spf "%d -> %d;\n" k j)) succ);
       xpr "}\n");
   ()
 
