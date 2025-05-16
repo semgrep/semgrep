@@ -20,7 +20,7 @@ class ['node, 'edge] ograph_mutable : object ('o)
   method del_node : nodei -> unit
   method add_arc : (nodei * nodei) * 'edge -> unit
   method del_arc : (nodei * nodei) * 'edge -> unit
-  method nodes : (nodei, 'node) Oassoc.oassoc
+  method nodes : 'node Maps.Int_map.t
   method successors : nodei -> (nodei * 'edge) Set_.t
   method predecessors : nodei -> (nodei * 'edge) Set_.t
   method nb_nodes : int
