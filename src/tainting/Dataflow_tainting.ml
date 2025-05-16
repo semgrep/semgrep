@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Maps
 open IL
 module Log = Log_tainting.Log
 module G = AST_generic
@@ -1750,7 +1751,7 @@ let check_tainted_at_exit_sinks node env =
 (*****************************************************************************)
 
 let input_env ~enter_env ~(flow : F.cfg) mapping ni =
-  let node = flow.graph#nodes#assoc ni in
+  let node = Int_map.find ni flow.graph#nodes in
   match node.F.n with
   | Enter -> enter_env
   | _else -> (
@@ -1772,7 +1773,7 @@ let rec transfer : env -> fun_cfg:F.fun_cfg -> Lval_env.t D.transfn =
   let in' : Lval_env.t =
     input_env ~enter_env:enter_env.lval_env ~flow mapping ni
   in
-  let node = flow.graph#nodes#assoc ni in
+  let node = Int_map.find ni flow.graph#nodes in
   let env = { enter_env with lval_env = in' } in
   let out' : Lval_env.t =
     match node.F.n with
