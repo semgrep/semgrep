@@ -1,3 +1,3 @@
 
 // ERROR:
-2;
+const x = 2;
