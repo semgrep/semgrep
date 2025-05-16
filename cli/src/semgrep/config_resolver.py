@@ -261,7 +261,15 @@ class ConfigLoader:
         self, require_repo_name: bool
     ) -> out.ProjectMetadata:
         repo_name = os.environ.get("SEMGREP_REPO_NAME")
-        repo_display_name = os.environ.get("SEMGREP_REPO_DISPLAY_NAME", repo_name)
+        repo_display_name = os.environ.get("SEMGREP_REPO_DISPLAY_NAME")
+        project_id = os.environ.get("SEMGREP_PROJECT_ID")
+        if repo_display_name:
+            if project_id:
+                raise SemgrepError(
+                    "The environment variables SEMGREP_PROJECT_ID and SEMGREP_REPO_DISPLAY_NAME cannot both be set at the same time."
+                )
+        else:
+            repo_display_name = repo_name
 
         if repo_name is None:
             if require_repo_name:
@@ -290,6 +298,7 @@ class ConfigLoader:
             pull_request_id=None,
             pull_request_title=None,
             is_full_scan=True,  # always true for standalone scan
+            project_id=project_id,
         )
 
     def _fetch_semgrep_cloud_platform_scan_config(self) -> ConfigFile:
