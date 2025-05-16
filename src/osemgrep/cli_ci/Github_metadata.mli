@@ -35,4 +35,5 @@ object
   method repo_display_name : string
   method repo_url : Uri.t option
   method merge_base_ref : Digestif.SHA1.t option
+  method project_id : string option
 end
