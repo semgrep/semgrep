@@ -1,5 +1,3 @@
-open Oassocb
-
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -17,6 +15,8 @@ open Oassocb
  *  free_index are used,  or do some defrag-like-move/renaming).
  *)
 
+open Maps
+
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
@@ -27,26 +27,24 @@ type nodei = int
 (*****************************************************************************)
 
 class ['a, 'b] ograph_mutable =
-  let build_assoc () = new oassocb [] in
-
   object
     val mutable free_index = 0
-    val mutable succ = build_assoc ()
-    val mutable pred = build_assoc ()
-    val mutable nods = build_assoc ()
+    val mutable succ = Int_map.empty
+    val mutable pred = Int_map.empty
+    val mutable nods = Int_map.empty
 
     method add_node (e : 'a) =
       let i = free_index in
-      nods <- nods#add (i, e);
-      pred <- pred#add (i, Set_.empty);
-      succ <- succ#add (i, Set_.empty);
+      nods <- Int_map.add i e nods;
+      pred <- Int_map.add i Set_.empty pred;
+      succ <- Int_map.add i Set_.empty succ;
       free_index <- i + 1;
       i
 
     method add_nodei i (e : 'a) =
-      nods <- nods#add (i, e);
-      pred <- pred#add (i, Set_.empty);
-      succ <- succ#add (i, Set_.empty);
+      nods <- Int_map.add i e nods;
+      pred <- Int_map.add i Set_.empty pred;
+      succ <- Int_map.add i Set_.empty succ;
       free_index <- max free_index i + 1
 
     method del_node i =
@@ -56,24 +54,24 @@ class ['a, 'b] ograph_mutable =
       (* todo: assert that have no pred and succ, otherwise
        * will have some dangling pointers
        *)
-      nods <- nods#delkey i;
-      pred <- pred#delkey i;
-      succ <- succ#delkey i
+      nods <- Int_map.remove i nods;
+      pred <- Int_map.remove i pred;
+      succ <- Int_map.remove i succ
 
     method replace_node (i, (e : 'a)) =
-      assert (nods#haskey i);
-      nods <- nods#replkey (i, e)
+      assert (Int_map.mem i nods);
+      nods <- Int_map.add i e nods
 
     method add_arc ((a, b), (v : 'b)) =
-      succ <- succ#replkey (a, Set_.add (b, v) (succ#find a));
-      pred <- pred#replkey (b, Set_.add (a, v) (pred#find b))
+      succ <- Int_map.add a (Set_.add (b, v) (Int_map.find a succ)) succ;
+      pred <- Int_map.add b (Set_.add (a, v) (Int_map.find b pred)) pred
 
     method del_arc ((a, b), v) =
-      succ <- succ#replkey (a, Set_.remove (b, v) (succ#find a));
-      pred <- pred#replkey (b, Set_.remove (a, v) (pred#find b))
+      succ <- Int_map.add a (Set_.remove (b, v) (Int_map.find a succ)) succ;
+      pred <- Int_map.add b (Set_.remove (a, v) (Int_map.find b pred)) pred
 
-    method successors e = succ#find e
-    method predecessors e = pred#find e
+    method successors e = Int_map.find e succ
+    method predecessors e = Int_map.find e pred
     method nodes = nods
-    method nb_nodes = nods#length
+    method nb_nodes = Int_map.cardinal nods
   end

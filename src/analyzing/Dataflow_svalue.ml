@@ -13,6 +13,7 @@
  * LICENSE for more details.
  *)
 open Common
+open Maps
 open IL
 module Log = Log_analyzing.Log
 module G = AST_generic
@@ -280,7 +281,7 @@ let union_env =
       Some (Eval.union c1 c2))
 
 let input_env ~enter_env ~(flow : F.cfg) mapping ni =
-  let node = flow.graph#nodes#assoc ni in
+  let node = Int_map.find ni flow.graph#nodes in
   match node.F.n with
   | Enter -> enter_env
   | _else -> (
@@ -332,7 +333,7 @@ let rec transfer :
        mapping ni ->
   let flow = fun_cfg.cfg in
 
-  let node = flow.graph#nodes#assoc ni in
+  let node = Int_map.find ni flow.graph#nodes in
 
   let inp' = input_env ~enter_env ~flow mapping ni in
 
@@ -486,11 +487,11 @@ and (fixpoint : Lang.t -> IL.fun_cfg -> mapping) =
   fixpoint_with_env lang enter_env fun_cfg
 
 and update_svalue (flow : F.cfg) mapping =
-  flow.graph#nodes#keys
-  |> List.iter (fun ni ->
+  flow.graph#nodes
+  |> Int_map.iter (fun ni _ ->
          let ni_info = mapping.(ni) in
 
-         let node = flow.graph#nodes#assoc ni in
+         let node = Int_map.find ni flow.graph#nodes in
 
          (* Update RHS svalue according to the input env. *)
          LV.rlvals_of_node node.n
