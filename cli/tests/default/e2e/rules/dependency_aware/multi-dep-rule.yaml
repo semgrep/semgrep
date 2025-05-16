@@ -1,0 +1,14 @@
+rules:
+  - id: multi-dep-rule
+    pattern: bad()
+    r2c-internal-project-depends-on:
+      depends-on-either:
+        - namespace: npm
+          package: A
+          version: ==2.0.0
+        - namespace: npm
+          package: C
+          version: ==2.0.0
+    message: oh no
+    languages: [js]
+    severity: WARNING
