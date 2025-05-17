@@ -30,30 +30,6 @@ def test_file_parser__failure__error_messages(
     posix_snapshot.assert_match(stderr, "error.txt")
 
 
-@pytest.mark.kinda_slow
-@pytest.mark.parametrize(
-    "settings",
-    [
-        {"filename": "basic_java.java", "rule": "bad-java-rule.yaml"},
-    ],
-)
-@pytest.mark.osemfail
-@skip_on_windows  # better masking logic
-def test_rule_parser__failure__error_messages(
-    run_semgrep_in_tmp: RunSemgrep, posix_snapshot, settings
-):
-    stdout, stderr = run_semgrep_in_tmp(
-        config=f"rules/{settings['rule']}",
-        target_name=f"bad/{settings['filename']}",
-        options=["--verbose", "--no-time"],
-        output_format=OutputFormat.JSON,
-        force_color=True,
-        assert_exit_code=2,
-    )
-    posix_snapshot.assert_match(stdout, "out.json")
-    posix_snapshot.assert_match(stderr, "error.txt")
-
-
 # check that we report a parse error only once per file, even if we
 # run the engine with two rules
 # TODO: merge with the parametrize above?

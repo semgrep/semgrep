@@ -56,7 +56,8 @@ class ['self] metavar_checker =
     method! visit_ident (error, lang) id =
       let str, _tok = id in
       if
-        str.[0] = '$'
+        String.length str > 0
+        && str.[0] = '$'
         && (not (Mvar.is_metavar_name str))
         && not (Mvar.is_metavar_ellipsis str)
       then
