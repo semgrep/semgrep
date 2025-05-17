@@ -4619,206 +4619,216 @@ let map_class_definition (env : env) (x : CST.class_definition) : stmt =
 let map_top_level_definition (env : env) (x : CST.top_level_definition) :
     stmt list =
   match x with
-  | `Class_defi x -> [ map_class_definition env x ]
-  | `Enum_decl x -> [ map_enum_declaration env x ]
-  | `Exte_decl x -> [ map_extension_declaration env x ]
-  | `Mixin_decl (v1, v2, v3, v4, v5, v6, v7, v8) ->
-      (* A mixin is basically a nominative extension of a class.
-         https://dart.dev/language/mixins
-      *)
-      let attrs =
-        match v1 with
-        | Some x -> map_metadata env x
-        | None -> []
-      in
-      let attrs =
-        match v2 with
-        | Some tok ->
-            OtherAttribute (("Base", (* "base" *) token env tok), []) :: attrs
-        | None -> attrs
-      in
-      let v3 = (* "mixin" *) str env v3 in
-      let v4 = (* pattern [a-zA-Z_$][\w$]* *) str env v4 in
-      let v5 =
-        match v5 with
-        | Some x ->
-            let _, xs, _ = map_type_parameters env x in
-            [ G.Anys (xs |> List_.map (fun tp -> G.Tp tp)) ]
-        | None -> []
-      in
-      let v6 =
-        match v6 with
-        | Some (v1, v2) ->
-            [
-              G.Anys
-                (let _v1 = (* "on" *) token env v1 in
-                 let v2 = map_type_not_void_list env v2 in
-                 List_.map (fun ty -> G.T ty) v2);
-            ]
-        | None -> []
-      in
-      let v7 =
-        match v7 with
-        | Some x ->
-            [ G.Anys (List_.map (fun ty -> G.T ty) (map_interfaces env x)) ]
-        | None -> []
-      in
-      let _, v8, _ = map_class_body env v8 in
-      let attrs = Anys (attrs |> List_.map (fun x -> G.At x)) in
+  | `Choice_class_defi x -> (
+      match x with
+      | `Class_defi x -> [ map_class_definition env x ]
+      | `Enum_decl x -> [ map_enum_declaration env x ]
+      | `Exte_decl x -> [ map_extension_declaration env x ]
+      | `Mixin_decl (v1, v2, v3, v4, v5, v6, v7, v8) ->
+          (* A mixin is basically a nominative extension of a class.
+          https://dart.dev/language/mixins
+        *)
+          let attrs =
+            match v1 with
+            | Some x -> map_metadata env x
+            | None -> []
+          in
+          let attrs =
+            match v2 with
+            | Some tok ->
+                OtherAttribute (("Base", (* "base" *) token env tok), [])
+                :: attrs
+            | None -> attrs
+          in
+          let v3 = (* "mixin" *) str env v3 in
+          let v4 = (* pattern [a-zA-Z_$][\w$]* *) str env v4 in
+          let v5 =
+            match v5 with
+            | Some x ->
+                let _, xs, _ = map_type_parameters env x in
+                [ G.Anys (xs |> List_.map (fun tp -> G.Tp tp)) ]
+            | None -> []
+          in
+          let v6 =
+            match v6 with
+            | Some (v1, v2) ->
+                [
+                  G.Anys
+                    (let _v1 = (* "on" *) token env v1 in
+                     let v2 = map_type_not_void_list env v2 in
+                     List_.map (fun ty -> G.T ty) v2);
+                ]
+            | None -> []
+          in
+          let v7 =
+            match v7 with
+            | Some x ->
+                [ G.Anys (List_.map (fun ty -> G.T ty) (map_interfaces env x)) ]
+            | None -> []
+          in
+          let _, v8, _ = map_class_body env v8 in
+          let attrs = Anys (attrs |> List_.map (fun x -> G.At x)) in
+          [
+            OtherStmt
+              ( OS_Todo,
+                [ attrs; TodoK v3; G.I v4 ] @ v5 @ v6 @ v7 @ [ G.Flds v8 ] )
+            |> G.s;
+          ]
+      | `Type_alias x -> [ map_type_alias env x ]
+      | `Opt_meta_opt_exte_buil_func_sign_semi (v1, v2, v3, v4) ->
+          let attrs =
+            match v1 with
+            | Some x -> map_metadata env x
+            | None -> []
+          in
+          let attrs =
+            match v2 with
+            | Some tok ->
+                attrs
+                @ [ G.unhandled_keywordattr ((* "external" *) str env tok) ]
+            | None -> attrs
+          in
+          let v3 =
+            map_function_signature ~attrs env v3
+              ((Function, fake "function"), FBStmt (Block (fb []) |> G.s))
+          in
+          let _sc = map_semicolon env v4 in
+          [ v3 ]
+      | `Opt_meta_opt_exte_buil_getter_sign_semi (v1, v2, v3, v4) ->
+          let attrs =
+            match v1 with
+            | Some x -> map_metadata env x
+            | None -> []
+          in
+          let attrs =
+            match v2 with
+            | Some tok ->
+                attrs @ [ unhandled_keywordattr ((* "external" *) str env tok) ]
+            | None -> attrs
+          in
+          let v3 =
+            map_getter_signature ~attrs env v3 (FBStmt (Block (fb []) |> G.s))
+          in
+          let _sc = map_semicolon env v4 in
+          [ v3 ]
+      | `Opt_meta_opt_exte_buil_setter_sign_semi (v1, v2, v3, v4) ->
+          let attrs =
+            match v1 with
+            | Some x -> map_metadata env x
+            | None -> []
+          in
+          let attrs =
+            match v2 with
+            | Some tok ->
+                attrs @ [ unhandled_keywordattr ((* "external" *) str env tok) ]
+            | None -> attrs
+          in
+          let v3 =
+            map_setter_signature ~attrs env v3 (FBStmt (Block (fb []) |> G.s))
+          in
+          let _sc = map_semicolon env v4 in
+          [ v3 ]
+      | `Opt_meta_func_sign_func_body (v1, v2, v3) ->
+          let attrs =
+            match v1 with
+            | Some x -> map_metadata env x
+            | None -> []
+          in
+          let fattrs, fbody = map_function_body env v3 in
+          let v1 =
+            map_function_signature ~attrs:(attrs @ fattrs) env v2
+              ((Function, fake "function"), fbody)
+          in
+          [ v1 ]
+      | `Opt_meta_getter_sign_func_body (v1, v2, v3) ->
+          let attrs =
+            match v1 with
+            | Some x -> map_metadata env x
+            | None -> []
+          in
+          let fattrs, fbody = map_function_body env v3 in
+          let v1 = map_getter_signature ~attrs:(attrs @ fattrs) env v2 fbody in
+          [ v1 ]
+      | `Opt_meta_setter_sign_func_body (v1, v2, v3) ->
+          let attrs =
+            match v1 with
+            | Some x -> map_metadata env x
+            | None -> []
+          in
+          let fattrs, fbody = map_function_body env v3 in
+          let v1 = map_setter_signature ~attrs:(attrs @ fattrs) env v2 fbody in
+          [ v1 ]
+      | `Opt_meta_choice_final_buil_opt_type_static_final_decl_list_semi
+          (v1, v2, v3, v4, v5) ->
+          let attrs =
+            match v1 with
+            | Some x -> map_metadata env x
+            | None -> []
+          in
+          let attrs = attrs @ [ map_final_or_const env v2 ] in
+          let vtype =
+            match v3 with
+            | Some x -> Some (map_type_ env x)
+            | None -> None
+          in
+          let v3 = map_static_final_declaration_list env v4 in
+          (* TODO: inject it at least in the last decl in v3? *)
+          let _sc = map_semicolon env v5 in
+          v3
+          |> List_.map (fun (id, expr) ->
+                 G.DefStmt
+                   ( basic_entity ~attrs id,
+                     VarDef { vinit = Some expr; vtype; vtok = G.no_sc } )
+                 |> G.s)
+      | `Opt_meta_late_buil_final_buil_opt_type_init_id_list_semi
+          (v1, v2, v3, v4, v5, v6) ->
+          let attrs =
+            match v1 with
+            | Some x -> map_metadata env x
+            | None -> []
+          in
+          let attrs =
+            let v1 = G.unhandled_keywordattr ((* "late" *) str env v2) in
+            let v2 = KeywordAttr (Final, (* final_builtin *) token env v3) in
+            attrs @ [ v1; v2 ]
+          in
+          let vtype =
+            match v4 with
+            | Some x -> Some (map_type_ env x)
+            | None -> None
+          in
+          let inits = map_initialized_identifier_list env v5 in
+          let sc = map_semicolon env v6 in
+          inits
+          |> List_.map (fun (id, vinit) ->
+                 (basic_entity ~attrs id, { vinit; vtype; vtok = G.no_sc }))
+          |> H2.add_semicolon_to_last_var_def_and_convert_to_stmts sc
+      | `Opt_meta_opt_late_buil_choice_type_init_id_list_semi
+          (v1, v2, v3, v4, v5) ->
+          let attrs =
+            match v1 with
+            | Some x -> map_metadata env x
+            | None -> []
+          in
+          let attrs =
+            match v2 with
+            | Some tok ->
+                attrs @ [ G.unhandled_keywordattr ((* "late" *) str env tok) ]
+            | None -> attrs
+          in
+          let vtype = map_anon_choice_type_be0da33 env v3 in
+          let inits = map_initialized_identifier_list env v4 in
+          let sc = map_semicolon env v5 in
+          inits
+          |> List_.map (fun (id, vinit) ->
+                 ( basic_entity ~attrs id,
+                   { vinit; vtype = Some vtype; vtok = G.no_sc } ))
+          |> H2.add_semicolon_to_last_var_def_and_convert_to_stmts sc)
+  | `Semg_ellips tok ->
       [
-        OtherStmt
-          (OS_Todo, [ attrs; TodoK v3; G.I v4 ] @ v5 @ v6 @ v7 @ [ G.Flds v8 ])
+        G.ExprStmt (G.Ellipsis ((* "..." *) token env tok) |> G.e, G.fake "")
         |> G.s;
       ]
-  | `Type_alias x -> [ map_type_alias env x ]
-  | `Opt_meta_opt_exte_buil_func_sign_semi (v1, v2, v3, v4) ->
-      let attrs =
-        match v1 with
-        | Some x -> map_metadata env x
-        | None -> []
-      in
-      let attrs =
-        match v2 with
-        | Some tok ->
-            attrs @ [ G.unhandled_keywordattr ((* "external" *) str env tok) ]
-        | None -> attrs
-      in
-      let v3 =
-        map_function_signature ~attrs env v3
-          ((Function, fake "function"), FBStmt (Block (fb []) |> G.s))
-      in
-      let _sc = map_semicolon env v4 in
-      [ v3 ]
-  | `Opt_meta_opt_exte_buil_getter_sign_semi (v1, v2, v3, v4) ->
-      let attrs =
-        match v1 with
-        | Some x -> map_metadata env x
-        | None -> []
-      in
-      let attrs =
-        match v2 with
-        | Some tok ->
-            attrs @ [ unhandled_keywordattr ((* "external" *) str env tok) ]
-        | None -> attrs
-      in
-      let v3 =
-        map_getter_signature ~attrs env v3 (FBStmt (Block (fb []) |> G.s))
-      in
-      let _sc = map_semicolon env v4 in
-      [ v3 ]
-  | `Opt_meta_opt_exte_buil_setter_sign_semi (v1, v2, v3, v4) ->
-      let attrs =
-        match v1 with
-        | Some x -> map_metadata env x
-        | None -> []
-      in
-      let attrs =
-        match v2 with
-        | Some tok ->
-            attrs @ [ unhandled_keywordattr ((* "external" *) str env tok) ]
-        | None -> attrs
-      in
-      let v3 =
-        map_setter_signature ~attrs env v3 (FBStmt (Block (fb []) |> G.s))
-      in
-      let _sc = map_semicolon env v4 in
-      [ v3 ]
-  | `Opt_meta_func_sign_func_body (v1, v2, v3) ->
-      let attrs =
-        match v1 with
-        | Some x -> map_metadata env x
-        | None -> []
-      in
-      let fattrs, fbody = map_function_body env v3 in
-      let v1 =
-        map_function_signature ~attrs:(attrs @ fattrs) env v2
-          ((Function, fake "function"), fbody)
-      in
-      [ v1 ]
-  | `Opt_meta_getter_sign_func_body (v1, v2, v3) ->
-      let attrs =
-        match v1 with
-        | Some x -> map_metadata env x
-        | None -> []
-      in
-      let fattrs, fbody = map_function_body env v3 in
-      let v1 = map_getter_signature ~attrs:(attrs @ fattrs) env v2 fbody in
-      [ v1 ]
-  | `Opt_meta_setter_sign_func_body (v1, v2, v3) ->
-      let attrs =
-        match v1 with
-        | Some x -> map_metadata env x
-        | None -> []
-      in
-      let fattrs, fbody = map_function_body env v3 in
-      let v1 = map_setter_signature ~attrs:(attrs @ fattrs) env v2 fbody in
-      [ v1 ]
-  | `Opt_meta_choice_final_buil_opt_type_static_final_decl_list_semi
-      (v1, v2, v3, v4, v5) ->
-      let attrs =
-        match v1 with
-        | Some x -> map_metadata env x
-        | None -> []
-      in
-      let attrs = attrs @ [ map_final_or_const env v2 ] in
-      let vtype =
-        match v3 with
-        | Some x -> Some (map_type_ env x)
-        | None -> None
-      in
-      let v3 = map_static_final_declaration_list env v4 in
-      (* TODO: inject it at least in the last decl in v3? *)
-      let _sc = map_semicolon env v5 in
-      v3
-      |> List_.map (fun (id, expr) ->
-             G.DefStmt
-               ( basic_entity ~attrs id,
-                 VarDef { vinit = Some expr; vtype; vtok = G.no_sc } )
-             |> G.s)
-  | `Opt_meta_late_buil_final_buil_opt_type_init_id_list_semi
-      (v1, v2, v3, v4, v5, v6) ->
-      let attrs =
-        match v1 with
-        | Some x -> map_metadata env x
-        | None -> []
-      in
-      let attrs =
-        let v1 = G.unhandled_keywordattr ((* "late" *) str env v2) in
-        let v2 = KeywordAttr (Final, (* final_builtin *) token env v3) in
-        attrs @ [ v1; v2 ]
-      in
-      let vtype =
-        match v4 with
-        | Some x -> Some (map_type_ env x)
-        | None -> None
-      in
-      let inits = map_initialized_identifier_list env v5 in
-      let sc = map_semicolon env v6 in
-      inits
-      |> List_.map (fun (id, vinit) ->
-             (basic_entity ~attrs id, { vinit; vtype; vtok = G.no_sc }))
-      |> H2.add_semicolon_to_last_var_def_and_convert_to_stmts sc
-  | `Opt_meta_opt_late_buil_choice_type_init_id_list_semi (v1, v2, v3, v4, v5)
-    ->
-      let attrs =
-        match v1 with
-        | Some x -> map_metadata env x
-        | None -> []
-      in
-      let attrs =
-        match v2 with
-        | Some tok ->
-            attrs @ [ G.unhandled_keywordattr ((* "late" *) str env tok) ]
-        | None -> attrs
-      in
-      let vtype = map_anon_choice_type_be0da33 env v3 in
-      let inits = map_initialized_identifier_list env v4 in
-      let sc = map_semicolon env v5 in
-      inits
-      |> List_.map (fun (id, vinit) ->
-             ( basic_entity ~attrs id,
-               { vinit; vtype = Some vtype; vtok = G.no_sc } ))
-      |> H2.add_semicolon_to_last_var_def_and_convert_to_stmts sc
 
 let map_semgrep_pattern (env : env) (x : CST.semgrep_pattern) =
   match x with
