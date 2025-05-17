@@ -97,20 +97,6 @@ jobs:
             PATH=$PATH:"$(pip3 show semgrep | grep '^Location' | sed -e 's/Location: //')/semgrep/bin"
             opam exec -- ./stats/autofix-printing-stats/run --upload
 
-  # run pysemgrep->osemgrep porting stats and publish to the semgrep dashboard
-  pysemgrep-loc-stats:
-    docker:
-      # only archlinux seems to have wc 9.3 which is required by report_pysemgrep_loc
-      - image: ocaml/opam:archlinux
-    steps:
-      - checkout
-      - run:
-          name: stats
-          command: |
-            eval $(opam env)
-            opam install -y ocamlfind ppx_deriving fmt logs cmdliner feather
-            ./scripts/report_pysemgrep_loc.ml cli/src/ --upload
-
 ###############################################################################
 # The workflows
 ###############################################################################
