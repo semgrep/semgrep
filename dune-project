@@ -124,7 +124,7 @@ For more information see https://semgrep.dev
     parmap
     semver
     (timedesc (>= 2.0.0)) ; used via git-wrapper
-    (lsp (= 1.20.1))
+    (lsp (= 1.22.0))
     git
     ; tracing
     trace
