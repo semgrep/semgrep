@@ -2343,7 +2343,17 @@ let string_ (lquote, xs, rquote) : string wrap bracket =
  * instead of abusing special?
  *)
 let interpolated (lquote, xs, rquote) =
-  match xs with
+  let xs_with_fused_literals =
+    List_.fold_right
+      (fun x acc ->
+        match (x, acc) with
+        | Either_.Left3 (s, t), Either_.Left3 (s', t') :: acc ->
+            Either_.Left3 (s ^ s', Tok.combine_toks t [ t' ]) :: acc
+        | _ -> x :: acc)
+      xs []
+  in
+  match xs_with_fused_literals with
+  | [] -> L (String (lquote, ("", rquote), rquote)) |> e
   | [ Either_.Left3 (str, tstr) ] ->
       L (String (lquote, (str, tstr), rquote)) |> e
   | __else__ ->
@@ -2351,7 +2361,7 @@ let interpolated (lquote, xs, rquote) =
       Call
         ( special,
           ( lquote,
-            xs
+            xs_with_fused_literals
             |> List_.map (function
                  | Either_.Left3 x ->
                      Arg (L (String (Tok.unsafe_fake_bracket x)) |> e)
