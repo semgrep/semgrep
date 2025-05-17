@@ -223,26 +223,30 @@ and name v =
   )
 *)
 and literal = function
-  | Int v1 -> G.Int v1
+  | Int v1 -> G.L (G.Int v1)
   | Float v1 ->
       let v1 = wrap id v1 in
-      G.Float v1
-  | String v1 ->
-      let v1 = wrap string v1 in
-      G.String (fb v1)
+      G.L (G.Float v1)
+  | String (l, x, r) ->
+      let e = (l, List_.map string_component x, r) |> G.interpolated in
+      e.G.e
   | TextBlock v1 ->
       (* TODO: remove enclosing triple quotes? or do that in ast_java.ml? *)
       let v1 = wrap string v1 in
-      G.String (fb v1)
+      G.L (G.String (fb v1))
   | Char v1 ->
       let v1 = wrap string v1 in
-      G.Char v1
+      G.L (G.Char v1)
   | Null v1 ->
       let v1 = tok v1 in
-      G.Null v1
+      G.L (G.Null v1)
   | Bool v1 ->
       let v1 = wrap bool v1 in
-      G.Bool v1
+      G.L (G.Bool v1)
+
+and string_component = function
+  | StrLit id -> Either_.Left3 id
+  | StrInterp (l, x, r) -> Either_.Right3 (l, Some (expr x), r)
 
 and expr e =
   (match e with
@@ -262,7 +266,7 @@ and expr e =
       error ii "NameOrClassType should only appear in (ignored) annotations"
   | Literal v1 ->
       let v1 = literal v1 in
-      G.L v1
+      v1
   | ClassLiteral (v1, v2) ->
       let v1 = typ v1 in
       G.OtherExpr (("ClassLiteral", v2), [ G.T v1 ])
@@ -350,10 +354,16 @@ and expr e =
       in
       G.Cast (t, l, v2)
   | InstanceOf (v1, v2) ->
-      let v1 = expr v1 and v2 = ref_type v2 in
+      let v1 = expr v1
+      and v2 =
+        match v2 with
+        | Left e -> G.ArgType (ref_type e)
+        | Right p ->
+            G.OtherArg (("ArgPat", G.fake "ArgPat"), [ G.P (pattern p) ])
+      in
       G.Call
         ( G.Special (G.Instanceof, unsafe_fake "instanceof") |> G.e,
-          fb [ G.Arg v1; G.ArgType v2 ] )
+          fb [ G.Arg v1; v2 ] )
   | Conditional (v1, v2, v3) ->
       let v1 = expr v1 and v2 = expr v2 and v3 = expr v3 in
       G.Conditional (v1, v2, v3)
@@ -389,8 +399,21 @@ and expr e =
         |> List_.map (fun x -> G.CasesAndBody x)
       in
       let x = G.stmt_to_expr (G.Switch (v0, Some (Cond v1), v2) |> G.s) in
-      x.G.e)
+      x.G.e
+  | Template (_v1, _v2, (l, v3, r)) ->
+      (* TODO: allow matching on the first expression *)
+      let parts = List_.map string_component v3 in
+      let e = G.interpolated (l, parts, r) in
+      e.G.e)
   |> G.e
+
+and pattern = function
+  | PatUnderscore t -> G.PatWildcard t |> G.p
+  | PatId id -> G.PatId (ident id, G.empty_id_info ()) |> G.p
+  | PatTyped (pat, ty) -> G.PatTyped (pattern pat, typ ty) |> G.p
+  | PatConstructor (qual, pats) ->
+      let dotted = qualified_ident qual in
+      G.PatConstructor (H.name_of_ids dotted, List_.map pattern pats) |> G.p
 
 and class_parent v : G.class_parent =
   let v = ref_type v in
@@ -513,9 +536,26 @@ and tok_and_stmt (t, v) =
 and stmts v = list stmt_aux v |> List_.flatten
 
 and case = function
-  | Case (t, v1) ->
-      let v1 = expr v1 in
-      G.Case (t, H.expr_to_pattern v1)
+  | Case (t, base_pat, guardopt) ->
+      let pat =
+        match guardopt with
+        | None -> pattern base_pat
+        | Some e -> G.PatWhen (pattern base_pat, expr e) |> G.p
+      in
+      G.Case (t, pat)
+  | CaseExprs (t, es, guardopt) ->
+      let pat =
+        match es with
+        | [ x ] -> H.expr_to_pattern (expr x)
+        | _ ->
+            H.expr_to_pattern (G.Container (List, fb (List_.map expr es)) |> G.e)
+      in
+      let pat =
+        match guardopt with
+        | None -> pat
+        | Some e -> G.PatWhen (pat, expr e) |> G.p
+      in
+      G.Case (t, pat)
   | Default t -> G.Default t
 
 and cases v = list case v
