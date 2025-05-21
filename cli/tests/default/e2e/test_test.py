@@ -156,8 +156,6 @@ def test_cli_test_from_entrypoint(posix_snapshot):
         "targets/test_test/basic.py",
     ]
     if IS_WINDOWS:
-        # todo: remove when Windows is a supported platform
-        env["SEMGREP_FORCE_INSTALL"] = "1"
         # Required env vars to be able to run semgrep
         env["SYSTEMROOT"] = os.environ.get("SYSTEMROOT", "")
         env["USERPROFILE"] = os.environ.get("USERPROFILE", "")

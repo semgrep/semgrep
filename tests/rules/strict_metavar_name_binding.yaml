@@ -1,0 +1,11 @@
+rules:
+- id: strict-mvar-name-binding
+  message: test
+  severity: ERROR
+  languages:
+  - js
+  options:
+    strict_mvar_name_binding: true
+  patterns:
+    - pattern: $X.bar(...)
+

@@ -133,43 +133,50 @@ let timed_computation_and_clear_timer info caps max_duration f :
 
   question: can we have a signal and so exn when in a exn handler ?
 *)
-let set_timeout (caps : < Cap.time_limit >) ~name ~using_eio max_duration f =
-  (match !current_timer with
-  | None -> ()
-  | Some { Exception.name = running_name; max_duration = running_val } ->
-      invalid_arg
-        (spf
-           "Common.set_timeout: cannot set a timeout %S of %g seconds. A timer \
-            for %S of %g seconds is still running."
-           name max_duration running_name running_val));
-  if using_eio then begin
-    Log.err (fun m ->
-        m "Time limits are disabled with --x-eio, running without time limits");
-    Some (f ())
-  end
-  else
-    let info (* private *) = { Exception.name; max_duration } in
-    let timed_f, clear_timer =
-      timed_computation_and_clear_timer info caps max_duration f
-    in
-    try timed_f () with
-    | Timeout { Exception.name; max_duration } ->
-        clear_timer ();
-        Log.warn (fun m -> m "%S timeout at %g s (we abort)" name max_duration);
-        None
-    | exn ->
-        let e = Exception.catch exn in
-        (* It's important to disable the alarm before relaunching the exn,
-         otherwise the alarm is still running.
+let set_timeout (caps : < Cap.time_limit >) ~name ~eio_clock max_duration f =
+  match eio_clock with
+  | Some clock -> (
+      let timed_f = Domains.wrap_timeout ~clock max_duration f in
+      match timed_f () with
+      | Error _ ->
+          Log.warn (fun m ->
+              m "%S timeout at %g s (we abort)" name max_duration);
+          None
+      | Ok res -> Some res)
+  | None -> (
+      (* Use the old SIGALRM-based timeout mechanism. *)
+      (match !current_timer with
+      | None -> ()
+      | Some { Exception.name = running_name; max_duration = running_val } ->
+          invalid_arg
+            (spf
+               "Time_limit.set_timeout: cannot set a timeout %S of %g seconds. \
+                A timer for %S of %g seconds is still running."
+               name max_duration running_name running_val));
 
-         robust?: and if alarm launched after the log (...) ?
-         Maybe signals are disabled when process an exception handler ?
-      *)
-        clear_timer ();
-        Log.err (fun m -> m "exn while in set_timeout");
-        Exception.reraise e
+      let info (* private *) = { Exception.name; max_duration } in
+      let timed_f, clear_timer =
+        timed_computation_and_clear_timer info caps max_duration f
+      in
+      try timed_f () with
+      | Timeout { Exception.name; max_duration } ->
+          clear_timer ();
+          Log.warn (fun m ->
+              m "%S timeout at %g s (we abort)" name max_duration);
+          None
+      | exn ->
+          let e = Exception.catch exn in
+          (* It's important to disable the alarm before relaunching the exn,
+             otherwise the alarm is still running.
 
-let set_timeout_opt ~name ~using_eio time_limit f =
+             robust?: and if alarm launched after the log (...) ?
+             Maybe signals are disabled when process an exception handler ?
+          *)
+          clear_timer ();
+          Log.err (fun m -> m "exn while in set_timeout");
+          Exception.reraise e)
+
+let set_timeout_opt ~name ~eio_clock time_limit f =
   match time_limit with
   | None -> Some (f ())
-  | Some (x, caps) -> set_timeout caps ~name ~using_eio x f
+  | Some (x, caps) -> set_timeout caps ~name ~eio_clock x f

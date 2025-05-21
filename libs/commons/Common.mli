@@ -88,7 +88,7 @@ exception ErrorOnFile of string (* error message *) * Fpath.t
  * subtil: same problem than with Timeout. Do not intercept such exception
  * with some blind try (...) with _ -> ...
  *)
-exception UnixExit of int
+exception UnixExit of (int * string)
 
 (* Convert any exception to a string *)
 val exn_to_s : exn -> string

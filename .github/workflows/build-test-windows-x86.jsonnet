@@ -180,9 +180,6 @@ local build_wheels_job = {
   steps: actions.checkout_with_submodules() + [
     actions.download_artifact_step(artifact_name),
     {
-      env: {
-        SEMGREP_FORCE_INSTALL: 1,
-      },
       run: |||
         tar xvfz artifacts.tgz
         cp artifacts/* cli/src/semgrep/bin
@@ -218,16 +215,10 @@ local test_wheels_job = {
     },
     {
       name: 'test package',
-      env: {
-        SEMGREP_FORCE_INSTALL: 1,
-      },
       run: 'semgrep --version',
     },
     {
       name: 'e2e semgrep-core test',
-      env: {
-        SEMGREP_FORCE_INSTALL: 1,
-      },
       // --strict to make sure that any errors cause the CI job to fail
       run: "echo '1 == 1' | semgrep -l python -e '$X == $X' --strict -",
     },

@@ -68,7 +68,7 @@ let mk_tests (caps : < Cap.time_limit >) (subdir : Fpath.t)
                           (fun () ->
                             Time_limit.set_timeout caps
                               ~name:("ojsonnet-" ^ str_strategy)
-                              ~using_eio:false timeout (fun () ->
+                              ~eio_clock:None timeout (fun () ->
                                 let value_ = Eval_jsonnet.eval_program core in
                                 JSON.to_yojson
                                   (Eval_jsonnet.manifest_value value_)))

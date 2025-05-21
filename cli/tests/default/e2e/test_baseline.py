@@ -114,8 +114,6 @@ def run_sentinel_scan(
     env["SEMGREP_SETTINGS_FILE"] = unique_settings_file
     env["PATH"] = os.environ.get("PATH", "")
     if IS_WINDOWS:
-        # TODO: Remove when Windows usage is no longer gated
-        env["SEMGREP_FORCE_INSTALL"] = "1"
         env["SYSTEMROOT"] = os.environ.get("SYSTEMROOT", "")
         env["USERPROFILE"] = os.environ.get("USERPROFILE", "")
 

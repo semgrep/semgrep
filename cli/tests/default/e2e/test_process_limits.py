@@ -39,6 +39,24 @@ def test_timeout(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
     )
 
 
+@pytest.mark.slow
+@skip_on_windows  # better backslash replacement logic
+def test_timeout_eio(run_semgrep_in_tmp: RunSemgrep, posix_snapshot):
+    # Check that semgrep-core timeouts are properly handled
+    # with the Eio timeout mechanism
+
+    posix_snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/long.yaml",
+            options=["--timeout", "1"],
+            target_name="equivalence",
+            strict=False,
+            use_eio=True,
+        ).stdout,
+        "results.json",
+    )
+
+
 @pytest.mark.osemfail
 @pytest.mark.slow
 @skip_on_windows  # better backslash replacement logic

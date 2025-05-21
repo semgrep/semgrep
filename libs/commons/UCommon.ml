@@ -40,9 +40,23 @@ let pr2_gen x = pr2 (Dumper.dump x)
 (* now in prelude: exception UnixExit of int *)
 let exn_to_real_unixexit f =
   try f () with
-  | UnixExit x ->
+  (* If it is a normal exit just info log it *)
+  | UnixExit (0, msg) ->
+      (* nosemgrep: no-logs-in-library *)
+      Logs.info (fun m -> m "UnixExit(0): %s" msg);
+      (* nosemgrep: forbid-exit *)
+      UStdlib.exit 0
+  | UnixExit (x, msg) ->
+      (* nosemgrep: no-logs-in-library *)
+      Logs.err (fun m -> m "UnixExit(%d): %s" x msg);
       (* nosemgrep: forbid-exit *)
       UStdlib.exit x
+  | exn ->
+      let e = Exception.catch exn in
+      (* nosemgrep: no-logs-in-library *)
+      Logs.err (fun m -> m "UnixExit(1): %s" (Exception.to_string e));
+      (* nosemgrep: forbid-exit *)
+      UStdlib.exit 1
 
 let pp_do_in_zero_box f =
   UFormat.open_box 0;
@@ -61,9 +75,8 @@ let main_boilerplate f =
               let linux_signal = Sys_.ocaml_signal_to_signal signal in
               let handled_name = Sys_.signal_to_string linux_signal in
               (* Feel free to match on signal here :D *)
-              pr2
-                (handled_name
-               ^ " signal intercepted, will do some cleaning before exiting");
+              let msg = spf "%s signal intercepted" handled_name in
+              pr2 (msg ^ ", will do some cleaning before exiting");
               USys.set_signal signal Sys.Signal_default;
               (* But if do some try ... with e -> and if do not reraise the exn,
                * the bubble never goes at top and so I cant really C-c.
@@ -74,7 +87,9 @@ let main_boilerplate f =
                * by having in the exn handler a case: UnixExit x -> raise ... | e ->
                *)
               (* Convert to a "standard" unix exit code from a unix signal *)
-              raise (UnixExit Sys_.(signal_to_linux_exit_code linux_signal)))
+              raise
+                (UnixExit
+                   (Sys_.(signal_to_linux_exit_code linux_signal), handled_name)))
         in
 
         (* ref: https://faculty.cs.niu.edu/~hutchins/csci480/signals.htm *)

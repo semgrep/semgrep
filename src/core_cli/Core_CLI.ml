@@ -334,7 +334,7 @@ let mk_config () : Core_scan_config.t =
     (* only settable via the Pro binary *)
     symbol_analysis = !symbol_analysis;
     use_eio = !use_eio;
-    exec_pool = None;
+    par_conf = None;
   }
 
 (*****************************************************************************)
@@ -683,7 +683,8 @@ let decide_if_eio caps (config : Core_scan_config.t) =
                 ~domain_count:
                   (Core_scan_config.finalize_num_jobs config.num_jobs)
             in
-            run caps { config with exec_pool = Some pool }))
+            let par_conf = Some (Parallelism_config.create base pool) in
+            run caps { config with par_conf }))
   else run caps config
 (*****************************************************************************)
 (* Main entry point *)
@@ -821,14 +822,5 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
                   in
                   decide_if_eio caps { config with tracing = Some tracing })))
 
-let with_exception_trace f =
-  Printexc.record_backtrace true;
-  try f () with
-  | exn ->
-      let e = Exception.catch exn in
-      Printf.eprintf "Exception: %s\n%!" (Exception.to_string e);
-      raise (UnixExit 1)
-
 let main (caps : Cap.all_caps) (argv : string array) : unit =
-  UCommon.main_boilerplate (fun () ->
-      with_exception_trace (fun () -> main_exn caps argv))
+  UCommon.main_boilerplate (fun () -> main_exn caps argv)

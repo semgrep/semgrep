@@ -244,7 +244,7 @@ let otel_reporter : Logs.reporter =
         in
         Format.kasprintf
           (fun msg ->
-            let tags = tags ||| no_telemetry_tag_set in
+            let tags = tags ||| Logs_.(create_tag_set []) in
             let attrs =
               let tags =
                 (* This looks weird but is the easiest way to print log tags *)

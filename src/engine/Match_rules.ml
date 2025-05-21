@@ -39,6 +39,9 @@ type timeout_config = {
   timeout : float;
   threshold : int;
   caps : < Cap.time_limit >;
+  (* if [clock] is a Some, we are using Eio's internal timeout mechanism. If
+   * it's a None, we fall back to the signal-based one. *)
+  clock : float Eio.Time.clock_ty Eio.Std.r option;
 }
 
 (*****************************************************************************)
@@ -47,15 +50,15 @@ type timeout_config = {
 
 let timeout_function (rule : Rule.t) (file : Fpath.t)
     (timeout : timeout_config option) f =
-  let timeout =
+  let timeout, clock =
     match timeout with
-    | None -> None
-    | Some { timeout; caps; threshold = _ } ->
-        if timeout <= 0. then None else Some (timeout, caps)
+    | None -> (None, None)
+    | Some { clock; timeout; caps; threshold = _ } ->
+        if timeout <= 0. then (None, clock) else (Some (timeout, caps), clock)
   in
   match
     Time_limit.set_timeout_opt ~name:"Match_rules.timeout_function"
-      ~using_eio:false timeout f
+      ~eio_clock:clock timeout f
   with
   | Some res -> Some res
   | None ->

@@ -31,7 +31,9 @@ let run_main (caps : Cap.all_caps) (cmd : string) : (unit, exn_res) result =
         print_string (spf "executing: semgrep-core %s\n" cmd);
         Ok (Core_CLI.main_exn caps (Array.of_list ("semgrep-core" :: args)))
       with
-      | Common.UnixExit n -> Error (ExnExit n))
+      | Common.UnixExit (n, msg) ->
+          Logs.err (fun m -> m "exn UnixExit(%d): %s" n msg);
+          Error (ExnExit n))
     ()
 
 let assert_Ok res =

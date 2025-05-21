@@ -8,7 +8,6 @@ import setuptools
 
 SOURCE_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(SOURCE_DIR)
-SEMGREP_FORCE_INSTALL = "SEMGREP_FORCE_INSTALL" in os.environ
 IS_WINDOWS = platform.system() == "Windows"
 # See ../scripts/build-wheels.sh, which is called from our GHA workflows.
 # This script assumes the presence of a semgrep-core binary copied under
@@ -58,13 +57,6 @@ if WHEEL_CMD in sys.argv:
 else:
     cmdclass = {}
 
-if IS_WINDOWS and not SEMGREP_FORCE_INSTALL:
-    raise Exception(
-        "Semgrep does not support Windows yet, please try again with WSL "
-        "or visit the following for more information: "
-        "https://github.com/semgrep/semgrep/issues/1330"
-    )
-
 try:
     with open(os.path.join(REPO_ROOT, "README.md")) as f:
         long_description = f.read()
@@ -113,7 +105,7 @@ install_requires = [
     "attrs>=21.3",
     "boltons~=21.0",
     "click-option-group~=0.5",
-    "click~=8.1",
+    "click~=8.1.8",
     "colorama~=0.4.0",
     "defusedxml~=0.7.1",
     "exceptiongroup~=1.2.0",
@@ -137,7 +129,7 @@ install_requires = [
 
 setuptools.setup(
     name="semgrep",
-    version="1.121.0",
+    version="1.122.0",
     author="Semgrep Inc.",
     author_email="support@semgrep.com",
     description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",

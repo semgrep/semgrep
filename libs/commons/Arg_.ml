@@ -78,10 +78,10 @@ let parse_options options usage_msg argv =
   with
   | Arg.Bad msg ->
       Printf.eprintf "%s" msg;
-      raise (UnixExit 2)
+      raise (UnixExit (2, msg))
   | Arg.Help msg ->
       UPrintf.printf "%s" msg;
-      raise (UnixExit 0)
+      raise (UnixExit (0, msg))
 
 let usage usage_msg options = Arg.usage (Arg.align options) usage_msg
 
@@ -122,13 +122,12 @@ let arg_parse2 l msg short_usage_fun =
     !args
   with
   | Arg.Bad msg ->
-      (* eprintf "%s" msg; exit 2; *)
       let xs = lines msg in
       (* take only head, it's where the error msg is *)
       (* nosemgrep: no-logs-in-library *)
       Logs.err (fun m -> m "%s" (List_.hd_exn "unexpected empty list" xs));
       short_usage_fun ();
-      raise (UnixExit 2)
+      raise (UnixExit (2, msg))
   | Arg.Help _msg ->
       (* printf "%s" msg; exit 0; *)
       raise Impossible (* -help is specified in speclist *)

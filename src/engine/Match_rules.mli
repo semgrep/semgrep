@@ -5,6 +5,7 @@ type timeout_config = {
   timeout : float;
   threshold : int;
   caps : < Cap.time_limit >;
+  clock : float Eio.Time.clock_ty Eio.Std.r option;
 }
 
 (* Matches many rules against one target. This function is called from
