@@ -16,6 +16,7 @@ open Common
 open Core_jsonnet
 module A = AST_jsonnet
 module V = Value_jsonnet
+module Local_id_map = Value_jsonnet.Local_id_map
 
 let src = Logs.Src.create "ojsonnet.eval"
 
@@ -175,7 +176,9 @@ let eval_call_ (env : V.env) (e0 : expr) (largs, args, _rargs) =
                B (id, teq, ei''))
       in
       let start = env.locals in
-      let locals = Map_.fold (fun k v acc -> Map_.add k v acc) locals start in
+      let locals =
+        Local_id_map.fold (fun k v acc -> Local_id_map.add k v acc) locals start
+      in
       env.eval_expr
         { env with depth = env.depth + 1; locals }
         (Local (lparams, binds, rparams, eb))
