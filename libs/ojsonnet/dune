@@ -8,5 +8,5 @@
    collections
    parser_jsonnet.tree_sitter
  )
- (preprocess (pps ppx_profiling ppx_deriving.show))
+ (preprocess (pps ppx_profiling ppx_deriving.show ppx_deriving.ord))
 )

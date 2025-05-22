@@ -339,7 +339,7 @@ and eval_expr env expr =
       in
       V.Array (l, elts, r)
   (* in subst model we don't rely on closure so locals here is empty *)
-  | Lambda f -> V.Lambda (f, Map_.empty)
+  | Lambda f -> V.Lambda (f, V.Local_id_map.empty)
   | O v -> eval_obj_inside env v
   | Id (name, tk) -> error tk ("trying to evaluate just a variable: " ^ name)
   | IdSpecial (_, tk) -> error tk "evaluating just a keyword"
