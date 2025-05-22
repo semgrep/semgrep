@@ -16,6 +16,7 @@ open Common
 module C = Rules_config
 module Env = Semgrep_envvars
 module Out = Semgrep_output_v1_t
+module Rule_ID_map = Map.Make (Rule_ID)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -112,10 +113,10 @@ let rules_and_counted_matches (res : Core_runner.result) : (Rule.t * int) list =
     | None -> Some 1
   in
   let fold acc (core_match : Out.core_match) =
-    Map_.update core_match.check_id update acc
+    Rule_ID_map.update core_match.check_id update acc
   in
-  let xmap = List.fold_left fold Map_.empty res.core.results in
-  Map_.fold
+  let xmap = List.fold_left fold Rule_ID_map.empty res.core.results in
+  Rule_ID_map.fold
     (fun rule_id n acc ->
       let res =
         try Hashtbl.find res.hrules rule_id with
