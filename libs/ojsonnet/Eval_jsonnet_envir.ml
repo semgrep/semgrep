@@ -20,6 +20,7 @@ module J = JSON
 module V = Value_jsonnet
 open Eval_jsonnet_common
 module H = Eval_jsonnet_common
+module Local_id_map = Value_jsonnet.Local_id_map
 
 (*****************************************************************************)
 (* Prelude *)
@@ -40,7 +41,7 @@ module H = Eval_jsonnet_common
 (* Start of big mutually recursive functions *)
 let rec lookup (env : V.env) tk (id : V.local_id) =
   let entry =
-    try Map_.find id env.locals with
+    try Local_id_map.find id env.locals with
     | Not_found ->
         error tk
           (spf "could not find '%s' in the environment" (V.show_local_id id))
@@ -85,7 +86,7 @@ and eval_expr (env : V.env) (e : expr) : V.t =
         binds
         |> List.fold_left
              (fun acc (B (id, _teq, e_i)) ->
-               Map_.add (V.LId (fst id)) (to_lazy_value env e_i) acc)
+               Local_id_map.add (V.LId (fst id)) (to_lazy_value env e_i) acc)
              env.locals
       in
       eval_expr { env with locals } e
@@ -178,7 +179,8 @@ and eval_array_access env v1 v2 =
                  * env.locals!!
                  *)
                 if !Conf_ojsonnet.implement_self then
-                  env_closure.locals |> Map_.add V.LSelf V.{ lv = Val obj }
+                  env_closure.locals
+                  |> Local_id_map.add V.LSelf V.{ lv = Val obj }
                 else env_closure.locals
               in
               let finalv = eval_expr { env with locals } e in
@@ -220,7 +222,8 @@ and eval_plus_object _env _tk objl objr : V.object_ A.bracket =
            match fld_value.lv with
            | Closure (env, e) ->
                let locals =
-                 env.locals |> Map_.add V.LSuper V.{ lv = Val (Object objl) }
+                 env.locals
+                 |> Local_id_map.add V.LSuper V.{ lv = Val (Object objl) }
                in
                {
                  fld with
@@ -276,7 +279,7 @@ and eval_std_filter_element (env : V.env) (tk : tok) (f : function_definition)
   match f with
   | { f_params = _l, [ P (id, _eq, _default) ], _r; f_body; _ } ->
       (* similar to eval_expr for Local *)
-      let locals = Map_.add (V.LId (fst id)) ei env.locals in
+      let locals = Local_id_map.add (V.LId (fst id)) ei env.locals in
       (* similar to eval_call *)
       (*TODO: Is the environment correct? *)
       (eval_expr { env with depth = env.depth + 1; locals } f_body, env)
@@ -323,7 +326,8 @@ and manifest_value (v : V.t) : JSON.t =
                          (* similar to what we do in eval_expr on fld access *)
                          let locals =
                            if !Conf_ojsonnet.implement_self then
-                             env.locals |> Map_.add V.LSelf V.{ lv = Val obj }
+                             env.locals
+                             |> Local_id_map.add V.LSelf V.{ lv = Val obj }
                            else env.locals
                          in
                          let finalv = eval_expr { env with locals } e in
