@@ -6,6 +6,7 @@
      unix
      pcre
      commons
+     parallelism
   )
   (preprocess
    (pps
