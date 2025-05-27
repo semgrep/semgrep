@@ -9,8 +9,10 @@ set -e
 
 cd cli || return
 
+baseline_version=1.122.0
+
 # Run timing benchmark
-pipenv install semgrep==1.61.1
+pipenv install semgrep==$baseline_version
 pipenv run semgrep --version
 export PATH=/github/home/.local/bin:$PATH
 
