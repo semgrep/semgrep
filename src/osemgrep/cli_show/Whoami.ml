@@ -35,6 +35,6 @@ let print (caps : < Cap.network ; Cap.stdout >) (kind : identity_kind) :
       Logs.err (fun m ->
           m
             "%s You are not logged in! Run `semgrep login` before using \
-             `semgrep whoami`"
+             `semgrep show identity`"
             (Console.warning_tag ()));
       Exit_code.fatal ~__LOC__
