@@ -1,1 +1,0 @@
-Fixed bug where supply chain reachability rules which match multiple dependencies could produce reachable findings on transitive dependencies even when the actually used direct dependency was not vulnerable.

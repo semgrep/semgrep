@@ -9,7 +9,7 @@ set -e
 
 cd cli || return
 
-baseline_version=1.122.0
+baseline_version=1.123.0
 
 # Run timing benchmark
 pipenv install semgrep==$baseline_version
