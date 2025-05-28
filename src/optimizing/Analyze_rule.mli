@@ -31,7 +31,10 @@ type prefilter_cache = (Rule_ID.t, prefilter option) Hashtbl.t
  * In that case, None is really the same than returning a function
  * that always return true (which means we should analyze the target file).
  *
- * Note that this function use Common.memoized on the rule id
+ * Note that this function uses [Common.memoized] on the rule id, so the
+ * backing [cache] must not escape a given fiber.
+ *
+ * TODO: SAF-2019
  *)
 val regexp_prefilter_of_rule :
   interfile:bool -> cache:prefilter_cache option -> Rule.t -> prefilter option

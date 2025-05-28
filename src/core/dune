@@ -16,6 +16,7 @@
    ; in libs/
    commons
    tracing
+   parallelism
 
    semgrep_core_rule
    semgrep_core_target

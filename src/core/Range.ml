@@ -136,21 +136,17 @@ let range_of_tokens xs =
   with
   | Tok.NoTokenLocation _ -> None
 
-(* NB: At present, we parallelise work by dividing up the targets to scan and
- * handing them off to worker children.  Because of that division of labour
- * only one child (or Domain, in the multicore world) would ever scan one file.
- * If we partition work differently in the future, this may change, and we may
- * wish to consider making this memoized table cross-domain. *)
-let hmemo : (Fpath.t, string) Hashtbl.t Domain.DLS.key =
-  Domain.DLS.new_key (const (Hashtbl.create 101))
+let rf_mtx = Mutex.create ()
+let rf_ht = Hashtbl.create 101
+
+(* SAFETY: All accesses to [rf_ht] must occur while holding [rf_mtx]. *)
+let read_file_memoed = SharedMemo.make_with_state rf_mtx rf_ht UFile.read_file
 
 let () =
   (* nosemgrep: forbid-tmp *)
   UTmp.register_temp_file_cleanup_hook (fun file ->
-      Hashtbl.remove (Domain.DLS.get hmemo) file)
+      Mutex.protect rf_mtx (fun () -> Hashtbl.remove rf_ht file))
 
 let content_at_range file r =
-  let str =
-    Common.memoized (Domain.DLS.get hmemo) file (fun () -> UFile.read_file file)
-  in
+  let str = read_file_memoed file in
   String.sub str r.start (r.end_ - r.start + 1)

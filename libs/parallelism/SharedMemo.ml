@@ -24,7 +24,7 @@
 (* API *)
 (*****************************************************************************)
 
-let call_and_remember mtx ht k f =
+let make_with_state mtx ht f k =
   (* Assumption: [k] will more often than not be a cache hit.  As a result,
    * in the unlikely event of a cache miss, we pay the cost of unlocking and
    * relocking to insert the new kv pair. *)
@@ -39,7 +39,7 @@ let call_and_remember mtx ht k f =
        * overridden by the straggler.  Since f has to be deterministic, this
        * is fine (and while unfortunate, still preferable to holding the lock
        * through the computation. *)
-      let v = f () in
+      let v = f k in
       Mutex.protect mtx (fun () ->
           match Hashtbl.find_opt ht k with
           (* Someone beat us to the insert! So it goes; discard our copy. *)
@@ -47,9 +47,6 @@ let call_and_remember mtx ht k f =
           | None ->
               Hashtbl.add ht k v;
               v)
-
-let make_with_state mtx ht f =
- fun k -> call_and_remember mtx ht k (fun () -> f k)
 
 let make f =
   let mtx = Mutex.create () in

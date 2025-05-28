@@ -373,18 +373,14 @@ let lambdas_in_expr e =
   do_visit_with_ref visitor (E e)
 [@@profiling]
 
-(* opti: using memoization speed things up a bit too
+(* opti: using memoization speeds things up a bit
  * (but again, this is still slow when called many many times).
  * todo? note that this is not the optimal memoization we can do because
  * using Hashtbl where the key is a full expression can be slow (hashing
  * huge expressions still takes some time). It would be better to
  * return a unique identifier to each expression to remove the hashing cost.
  *)
-let hmemo = Hashtbl.create 101
-
-let lambdas_in_expr_memo a =
-  Common.memoized hmemo a (fun () -> lambdas_in_expr a)
-[@@profiling]
+let lambdas_in_expr_memo = SharedMemo.make lambdas_in_expr
 
 (*****************************************************************************)
 (* Really substmts_of_stmts *)

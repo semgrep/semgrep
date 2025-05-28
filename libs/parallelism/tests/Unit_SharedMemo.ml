@@ -1,6 +1,6 @@
 let t = Testo.create
 
-let call_and_remember_concurrent_access () =
+let test_make_with_state () =
   let mtx = Mutex.create () in
   let ht = Hashtbl.create 257 in
 
@@ -43,7 +43,7 @@ let call_and_remember_concurrent_access () =
   Domain.join writer;
   Alcotest.(check int) __LOC__ (1 + Atomic.get cache_misses) (Hashtbl.length ht)
 
-let test_make_parallel () =
+let test_make_x_domains () =
   (* Tests a "realistic" use of a SharedMemo, across fibers schedule
    * by an executor pool. *)
   let f = SharedMemo.make (fun i -> i + 1) in
@@ -63,6 +63,6 @@ let test_make_parallel () =
 let tests =
   Testo.categorize "SharedMemo"
     [
-      t "call_and_remember" call_and_remember_concurrent_access;
-      t "test_make_parallel" test_make_parallel;
+      t "test_make_with_state" test_make_with_state;
+      t "test_make_x_domains" test_make_x_domains;
     ]
