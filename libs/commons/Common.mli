@@ -104,6 +104,7 @@ val debugger : bool ref
 (* Emacs-inspired finalize-like function. *)
 val unwind_protect : (unit -> 'a) -> (Exception.t -> unit) -> 'a
 val save_excursion : 'a ref -> 'a -> (unit -> 'b) -> 'b
+val save_excursion_atomic : 'a Atomic.t -> 'a -> (unit -> 'b) -> 'b
 
 (* Java-inspired combinator (DEPRECATED, use protect()) *)
 val finalize : (unit -> 'a) -> (unit -> unit) -> 'a

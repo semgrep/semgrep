@@ -30,107 +30,91 @@
 (* API *)
 (*****************************************************************************)
 
-(* A scoping that is unaware of any intra-process concurrency primitives;
- * this must not be used unless you are sure the key will not escape its
- * concurrency context (domain, or fibre, or...)
+(* A scoping that is unaware of any concurrency primitives; this must only be
+ * used if you are sure the key will not escape a fiber-local context.
  *
  * This is used in the implementation of the fiber-aware hook (this module)
- * for handling scoped accesses outside the Eio event loop.
+ * for handling:
+ *      1. Scoped access outside the Eio event loop (e.g. for jsoo or before
+ *      Eio_main is called;
+ *      2. _Unscoped_, unconditional assignment for things like CLI argument
+ *      parsing, that occur before any scoped access.
  *)
 module Proc = struct
+  (* Process-"local" state that will encapsulate the 'a in scoped settings. *)
   type 'a key = 'a ref
 
-  let create init = ref init
+  (* Tracks whether this fiber is allowed to be unconditionally set outside the
+   * context of a scoped operation.  This is possible up until the first invocation
+   * of [with_hook_set].
+   *)
+  let create = ref
   let get = ( ! )
   let with_hook_set = Common.save_excursion
 
-  (* Only ever to be used by _unscoped_set *)
-  let unscoped_set h v = h := v
+  (* This should only be used by [Proc.with_hook_set], or [Arg.unscoped_set]. *)
+  let unsafe_set = ( := )
 end
 
 type 'a t = {
-  (* The Fiber-local key that will encapsulate the 'a in scoped settings. *)
+  (* The Fiber-local state that will encapsulate the 'a in scoped settings.
+   * We additionally track, per-fiber, how many nested [with_hook_set] calls
+   * we are executing within. *)
   key : 'a Eio.Fiber.key;
-  (* The synchronous scoped values for when we are outside an Eio context.
-   * If we are not executing inside Eio, a Fib should behave just like
-   * a process-local scope.
-   *
-   * XXX: if the 'a is a mutable type, very bad things will happen.  This is
-   * unfortunate because something that is fiber-local should conceptually be
-   * able to be mutable!  If we in fact need mutable defaults (Gd willing we
-   * will not, but one could imagine wanting per-fiber [Hashtbl.t]s or some
-   * such thing) this could be a hashtable keyed on a Fiber Id (however, such
-   * an Id does not appear to be exposed, so unclear how to make that happen.)
+  (* Tracks whether this fiber is allowed to be unconditionally set outside the
+   * context of a scoped operation.  This is possible up until the first invocation
+   * of [with_hook_set] that _any_ fiber does.
    *)
-  sync_scope : 'a Proc.key;
+  can_unscoped_set : bool Atomic.t;
+  (* The value to hand back from a [get] call when we have not yet set a hook value
+   * within an Eio scope.
+   *)
+  proc_scope : 'a Proc.key;
 }
 
-let create init =
+let create default =
   let key = Eio.Fiber.create_key () in
-  let sync_scope = Proc.create init in
-  { key; sync_scope }
+  let proc_scope = Proc.create default in
+  { key; proc_scope; can_unscoped_set = Atomic.make true }
 
-let attempt_in_eio feio fsync =
+let attempt_in_eio ~in_eio ~no_eio =
   (* XXX: It would be vastly preferable if Eio exposed a "are we executing in
    * an EIO loop" check to us, instead of boldly marching ahead and seeing if
    * we step on a rake in the process.
    *
    * Filed https://github.com/ocaml-multicore/eio/issues/800 to ask the Eio
-   * maintainers to expose this directly for us.
-   *)
-  if !Common.jsoo then fsync ()
+   * maintainers to expose this directly for us. *)
+  if !Common.jsoo then no_eio ()
   else
-    try feio () with
-    (* Propagate all other exns; do not swallow a cancelation notification, for example *)
-    | Stdlib.Effect.Unhandled Eio__core__Cancel.Get_context -> fsync ()
+    try in_eio () with
+    | Stdlib.Effect.Unhandled Eio__core__Cancel.Get_context -> no_eio ()
 
-(* Note: The following functions catch an unhandled Get_context effect
- * in the case where we are calling these synchronously (e.g. outside
- * an Eio context).
- *
- * Filed https://github.com/ocaml-multicore/eio/issues/800 to ask the Eio
- * maintainers to expose this directly for us.
- *)
-
-let get { key; sync_scope } =
+let get { key; proc_scope; _ } =
   attempt_in_eio
-    (fun () ->
+    ~in_eio:(fun () ->
       match Eio.Fiber.get key with
-      | None -> Proc.get sync_scope
+      | None -> Proc.get proc_scope
       | Some v -> v)
-    (fun () -> Proc.get sync_scope)
+    ~no_eio:(fun () -> Proc.get proc_scope)
 
-let with_hook_set { key; sync_scope } v f =
+let with_hook_set { key; can_unscoped_set; proc_scope } v f =
+  (* For those keeping score at home: setting [can_unscoped_set] here
+   * will act as a barrier for subseqent access to [proc_scope.get]. *)
+  Atomic.set can_unscoped_set false;
   attempt_in_eio
-    (fun () -> Eio.Fiber.with_binding key v f)
-    (fun () -> Proc.with_hook_set sync_scope v f)
+    ~in_eio:(fun () -> Eio.Fiber.with_binding key v f)
+    ~no_eio:(fun () -> Proc.with_hook_set proc_scope v f)
 
 let with_ h v f () = with_hook_set h v f
 
-let has_eio_context () =
-  attempt_in_eio
-    (fun () ->
-      (* XXX: This is an abuse of Fiber, which is really intended to verify
-       * whether the running fiber has been canceled.  Here, we use it to ascertain
-       * whether the "running fiber" actually exists (e.g. whether we are in the
-       * synchronous world or the effects world). *)
-      Eio.Fiber.check ();
-      true)
-    (fun () -> false)
-
 module Arg = struct
-  (* Unconditionally stomps over a Hook's value, so long as we are
-   * in the synchronous and not the Eio world.  This is both a sanity
-   * check that we're not doing something _wildly_ off-base (CLI parsing
-   * after all will definitely be before we enter the Eio event loop)
-   * but also because there's just no way to represent such behaviour with
-   * a Fiber-local value anyway!
+  (* Unconditionally stomps over a Hook's value, so long as no fiber has performed
+   * a scoped operation with this hook.
    *)
-  let unscoped_set { sync_scope; _ } v =
-    if has_eio_context () then
-      failwith
-        "Can't set a hook's value via [unscoped_set] within an Eio context!"
-    else Proc.unscoped_set sync_scope v
+  let unscoped_set { proc_scope; can_unscoped_set; _ } v =
+    if not (Atomic.get can_unscoped_set) then
+      failwith "Must not call [unscoped_set] after [with_hook_set]"
+    else Proc.unsafe_set proc_scope v
 
   let bool h = Arg.Bool (unscoped_set h)
   let set h = Arg.Unit (fun () -> unscoped_set h true)

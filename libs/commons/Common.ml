@@ -151,6 +151,11 @@ let save_excursion reference newv f =
   reference := newv;
   finalize f (fun _ -> reference := old)
 
+let save_excursion_atomic atom newv f =
+  let old = Atomic.get atom in
+  Atomic.set atom newv;
+  finalize f (fun _ -> Atomic.set atom old)
+
 let memoized ?(use_cache = true) h k f =
   (* TODO(SAF-1940): experiment with weak refs *)
   if not use_cache then f ()

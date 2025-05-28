@@ -1,5 +1,6 @@
 (* Tests for our Domain module, and for various operations that
  * rely on domain-local state. *)
+module H = Hook
 
 let t = Testo.create
 let exnt = Alcotest.testable Fmt.exn ( = )
@@ -10,24 +11,31 @@ let timeout : Alcotest.([ `Timeout ] testable) =
 (* Ensures that when new Domains are spawned, the assigned value
  * is read from the parent. *)
 let test_hook_inherit_val () =
-  let h = Hook.create 0 in
+  let h = H.create 99 in
 
-  (* Confirm that `with_hook_set` scopes the value of h. *)
-  Hook.with_hook_set h 1 (fun () -> Alcotest.(check int) __LOC__ (Hook.get h) 1);
-  Alcotest.(check int) __LOC__ (Hook.get h) 0;
+  (* Confirm that [with_hook_set] scopes the value of h. *)
+  let n = H.with_hook_set h 1 (fun () -> H.get h) in
+  Alcotest.(check int) __LOC__ 99 (H.get h);
+  Alcotest.(check int) __LOC__ 1 n;
 
-  (* Confirm that when a domain is spawned, we inherit the value
-   * that has been set by the hook versus re-running the initialization
-   * function. *)
+  (* Spawn a domain and then set *)
   let n =
-    Hook.with_hook_set h 42 (fun () ->
-        Domain.join (Domain.spawn (fun () -> Hook.get h)))
+    (fun () -> H.with_hook_set h 1 (fun () -> H.get h))
+    |> Domain.spawn |> Domain.join
   in
-  Alcotest.(check int) __LOC__ n 42
+  Alcotest.(check int) __LOC__ 99 (H.get h);
+  Alcotest.(check int) __LOC__ 1 n;
+
+  (* Set and then spawn a domain *)
+  let n =
+    H.with_hook_set h 1 (fun () ->
+        (fun () -> H.get h) |> Domain.spawn |> Domain.join)
+  in
+  Alcotest.(check int) __LOC__ 99 (H.get h);
+  Alcotest.(check int) __LOC__ 1 n
 
 (* Ensures that Domains.map plays well with hooked per-fiber values. *)
 let test_fiber_local_domains_map () =
-  let module H = Hook in
   let h = H.create 0 in
   let procs = 4 in
 
@@ -38,9 +46,7 @@ let test_fiber_local_domains_map () =
     H.with_hook_set h i (fun () ->
         for _ = 0 to 1000 do
           let i' = H.get h in
-          Eio.Fiber.yield ();
           assert (i = i');
-          (* See above comment about races in the test harness *)
           Eio.Fiber.yield ()
         done);
     assert (H.get h = 0)

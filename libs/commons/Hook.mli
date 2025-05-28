@@ -95,6 +95,9 @@ val with_ : 'a t -> 'a -> (unit -> 'b) -> unit -> 'b
  *
  * In this way, we know that the only way a [Hook] can be mutated outside a
  * scoped context (that is, with [with_hook_set]) is during CLI argument parsing.
+ * Phrased differently: when a Hook has [with_hook_set] called on it for the first
+ * time, it must be after CLI parsing as completed - otherwise, it would be nonobvious
+ * whether the "right" value should be the scoped one or the unscoped one!
  *)
 module Arg : sig
   val bool : bool t -> Arg.spec
