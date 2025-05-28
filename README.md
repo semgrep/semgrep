@@ -189,7 +189,7 @@ Browse the full Semgrep [documentation on the website](https://semgrep.dev/docs)
 
 Using remote configuration from the [Registry](https://semgrep.dev/r) (like `--config=p/ci`) reports pseudonymous rule metrics to semgrep.dev.
 
-Using configs from local files (like `--config=xyz.yml`) does **not** enable metrics.
+When using configs from local files (like `--config=xyz.yml`), metrics are sent only when the user is logged in.
 
 To disable Registry rule metrics, use `--metrics=off`.
 

@@ -94,9 +94,9 @@ let notify_user_about_metrics_once (settings : Semgrep_settings.t) : unit =
           pysemgrep_hack1);
     Logs.app (fun m ->
         m
-          "To disable Registry rule metrics, use \"--metrics=off\".@.Using \
-           configs only from local files (like --config=xyz.yml) does not \
-           enable metrics.@.@.More information: \
+          "To disable Registry rule metrics, use \"--metrics=off\".@.When \
+           using configs only from local files (like --config=xyz.yml) metrics \
+           are sent only when the user is logged in.@.@.More information: \
            https://semgrep.dev/docs/metrics");
     Logs.app (fun m -> m "%s" pysemgrep_hack2);
     Semgrep_settings.save

@@ -1,0 +1,1 @@
+Fixed documentation to reflect that, for --metrics="auto", pseudoanonymous metrics are sent when the user is logged in.

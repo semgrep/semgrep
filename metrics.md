@@ -32,7 +32,7 @@ Metrics may also be configured to be sent on every run, or never sent.
 
 To configure metrics, pass the `--metrics` option to Semgrep:
 
-- `--metrics auto`: (default) metrics are sent whenever rules are pulled from the [Semgrep Registry](https://semgrep.dev/r)
+- `--metrics auto`: (default) metrics are sent whenever rules are pulled from the [Semgrep Registry](https://semgrep.dev/r) or the user is logged in.
 - `--metrics on`: metrics are sent on every Semgrep run
 - `--metrics off`: metrics are never sent
 

@@ -130,10 +130,10 @@ let o_metrics : Metrics_.config Term.t =
       ~doc:
         {|Configures how usage metrics are sent to the Semgrep server. If
 'auto', metrics are sent whenever the --config value pulls from the
-Semgrep server. If 'on', metrics are always sent. If 'off', metrics
-are disabled altogether and not sent. If absent, the
-SEMGREP_SEND_METRICS environment variable value will be used. If no
-environment variable, defaults to 'auto'.
+Semgrep server or if the user is logged in. If 'on', metrics are
+always sent. If 'off', metrics are disabled altogether and not sent. If
+absent, the SEMGREP_SEND_METRICS environment variable value will be used.
+If no environment variable, defaults to 'auto'.
 |}
   in
   Arg.value (Arg.opt Metrics_.converter default.metrics info)

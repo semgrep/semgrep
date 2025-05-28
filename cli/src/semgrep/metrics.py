@@ -482,7 +482,7 @@ class Metrics:
         Returns whether metrics should be sent.
 
         If metrics_state is:
-          - auto, sends if using_registry
+          - auto, sends if using_registry or if logged in
           - on, sends
           - off, doesn't send
         """
