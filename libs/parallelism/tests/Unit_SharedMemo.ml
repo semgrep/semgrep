@@ -60,9 +60,26 @@ let test_make_x_domains () =
     Eio.Executor_pool.submit_exn pool ~weight:1.0 check
   done
 
+let test_key_fn () =
+  (* This [f]'s memoizer cache is not int -> int, but string -> int.
+   * This test just ensures the key transformation plumbing works.*)
+  let key_fn_calls = ref 0 in
+  let key_fn =
+   fun i ->
+    key_fn_calls := !key_fn_calls + 1;
+    Int.to_string i
+  in
+  let f = SharedMemo.make_with_key_fn key_fn (fun i -> i + 1) in
+  for _ = 0 to 100 do
+    let i = Random.int 1000 in
+    Alcotest.(check int) __LOC__ (f i) (i + 1)
+  done;
+  assert (!key_fn_calls > 0)
+
 let tests =
   Testo.categorize "SharedMemo"
     [
       t "test_make_with_state" test_make_with_state;
       t "test_make_x_domains" test_make_x_domains;
+      t "test_key_fn" test_key_fn;
     ]
