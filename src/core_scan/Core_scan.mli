@@ -128,7 +128,7 @@ val match_rules :
   < Cap.time_limit ; .. > ->
   matches_hook:(Core_match.t list -> Core_match.t list) ->
   Core_scan_config.t ->
-  Match_env.prefilter_config ->
+  Match_env.prefilter_policy ->
   Rule.t list ->
   Xtarget.t ->
   Core_result.matches_single_file

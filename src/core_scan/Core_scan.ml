@@ -809,7 +809,7 @@ let rules_for_target ~combine_js_with_ts ~respect_rule_paths (target : Target.t)
 
 let match_rules (caps : < Cap.time_limit ; .. >) ~matches_hook
     (config : Core_scan_config.t)
-    (prefilter_cache_opt : Match_env.prefilter_config) (rules : Rule.t list)
+    (prefilter_cache_opt : Match_env.prefilter_policy) (rules : Rule.t list)
     (xtarget : Xtarget.t) : Core_result.matches_single_file =
   let xconf : Match_env.xconfig =
     {
@@ -843,8 +843,8 @@ let match_rules (caps : < Cap.time_limit ; .. >) ~matches_hook
  * coupling: with Pro_scan.mk_target_handler()
  *)
 let mk_target_handler (caps : < Cap.time_limit >) (config : Core_scan_config.t)
-    (valid_rules : Rule.t list)
-    (prefilter_cache_opt : Match_env.prefilter_config) : target_handler =
+    (valid_rules : Rule.t list) (prefilter_policy : Match_env.prefilter_policy)
+    : target_handler =
  (* Note that this function runs in another process *)
  fun (target : Target.t) ->
   let rules =
@@ -857,8 +857,7 @@ let mk_target_handler (caps : < Cap.time_limit >) (config : Core_scan_config.t)
           rules? In particular, can we skip print_cli_progress? *)
   let xtarget = Xtarget.resolve parse_and_resolve_name target in
   let matches : Core_result.matches_single_file =
-    match_rules caps ~matches_hook:Fun.id config prefilter_cache_opt rules
-      xtarget
+    match_rules caps ~matches_hook:Fun.id config prefilter_policy rules xtarget
   in
   (* So we can display matches incrementally in osemgrep!
           * Note that this is run in a child process of Parmap, so
@@ -890,10 +889,9 @@ let scan_exn (caps : < caps ; .. >) (config : Core_scan_config.t)
   (* !!Let's go!! *)
   log_scan_inputs config ~targets ~errors:target_discovery_errors ~skipped
     ~valid_rules ~invalid_rules;
-  let prefilter_cache_opt =
-    if config.filter_irrelevant_rules then
-      Match_env.PrefilterWithCache (Hashtbl.create (List.length valid_rules))
-    else NoPrefiltering
+  let prefilter_policy =
+    if config.filter_irrelevant_rules then Match_env.make_prefilter ()
+    else Match_env.NoPrefiltering
   in
   let file_results, (scanned_targets : Target.t list) =
     targets
@@ -902,7 +900,7 @@ let scan_exn (caps : < caps ; .. >) (config : Core_scan_config.t)
          config
          (mk_target_handler
             (caps :> < Cap.time_limit >)
-            config valid_rules prefilter_cache_opt)
+            config valid_rules prefilter_policy)
   in
 
   (* the OSS engine was invoked so no interfile langs *)

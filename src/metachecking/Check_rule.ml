@@ -360,7 +360,7 @@ let stat_files (caps : < Cap.stdout ; Cap.readdir ; .. >) xs =
   in
   let good = ref 0 in
   let bad = ref 0 in
-  let cache = Some (Hashtbl.create 101) in
+  let prefilter = Analyze_rule.make_regex_prefilter ~interfile:false in
   fullxs
   |> List.iter (fun file ->
          Logs.info (fun m -> m "stat_files: processing rule file %s" !!file);
@@ -368,11 +368,7 @@ let stat_files (caps : < Cap.stdout ; Cap.readdir ; .. >) xs =
          | Ok rs ->
              rs
              |> List.iter (fun r ->
-                    let res =
-                      Analyze_rule.regexp_prefilter_of_rule ~interfile:false
-                        ~cache r
-                    in
-                    match res with
+                    match prefilter r with
                     | None ->
                         incr bad;
                         Logs.warn (fun m ->

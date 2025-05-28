@@ -589,9 +589,6 @@ let run_cnf_step2 cnf big_str =
  *)
 type prefilter = Semgrep_prefilter_t.formula * (string -> bool)
 
-(* see mli *)
-type prefilter_cache = (Rule_ID.t, prefilter option) Hashtbl.t
-
 let prefilter_formula_of_prefilter (pre : prefilter) :
     Semgrep_prefilter_t.formula =
   let x, _f = pre in
@@ -669,38 +666,41 @@ let regexp_prefilter_of_taint_rule ~interfile ~analyzer (_rule_id, rule_tok)
     in
     regexp_prefilter_of_formula ~interfile ~analyzer f
 
-let regexp_prefilter_of_rule ~interfile ~cache (r : R.rule) =
-  let rule_id, _t = r.R.id in
+let regex_prefilter_fun ~interfile (r : R.rule) =
+  try
+    match r.mode with
+    | `Search f
+    | `Extract { formula = f; _ } ->
+        regexp_prefilter_of_formula ~interfile ~analyzer:r.target_analyzer f
+    | `Taint spec ->
+        regexp_prefilter_of_taint_rule ~interfile ~analyzer:r.target_analyzer
+          r.R.id spec
+    | `Steps _ -> (* TODO *) None
+    | `SCA _ -> None
+  with
+  (* TODO: see tests/rules/tainted-filename.yaml,
+             tests/rules/kotlin_slow_import.yaml *)
+  | CNF_exploded ->
+      let rule_id, _ = r.R.id in
+      Log.warn (fun m ->
+          m "CNF size exploded on rule id %s" (Rule_ID.to_string rule_id));
+      None
+  | Stack_overflow ->
+      let rule_id, _ = r.R.id in
+      Log.err (fun m ->
+          m "Stack overflow on rule id %s" (Rule_ID.to_string rule_id));
+      None
+
+let make_regex_prefilter ~interfile =
   (* rule_id is supposed to be unique so it should work as a key for hmemo.
    * bugfix:
    *    old: let key = PI.file_of_info t ^ "." ^ rule_id
    * but some rules do not have a file (e.g., fake rules coming from -e/-f)
    * which was triggering a FakeInfoStr exn
    *)
-  let key = rule_id in
-  let regex_prefilter_fun () =
-    try
-      match r.mode with
-      | `Search f
-      | `Extract { formula = f; _ } ->
-          regexp_prefilter_of_formula ~interfile ~analyzer:r.target_analyzer f
-      | `Taint spec ->
-          regexp_prefilter_of_taint_rule ~interfile ~analyzer:r.target_analyzer
-            r.R.id spec
-      | `Steps _ -> (* TODO *) None
-      | `SCA _ -> None
-    with
-    (* TODO: see tests/rules/tainted-filename.yaml,
-                 tests/rules/kotlin_slow_import.yaml *)
-    | CNF_exploded ->
-        Log.warn (fun m ->
-            m "CNF size exploded on rule id %s" (Rule_ID.to_string rule_id));
-        None
-    | Stack_overflow ->
-        Log.err (fun m ->
-            m "Stack overflow on rule id %s" (Rule_ID.to_string rule_id));
-        None
+  let key_fn =
+   fun (r : R.rule) ->
+    let rule_id, _ = r.R.id in
+    rule_id
   in
-  match cache with
-  | None -> regex_prefilter_fun ()
-  | Some cache -> Common.memoized cache key regex_prefilter_fun
+  SharedMemo.make_with_key_fn key_fn (regex_prefilter_fun ~interfile)

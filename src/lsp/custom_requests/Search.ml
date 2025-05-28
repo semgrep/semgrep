@@ -545,7 +545,7 @@ let start_search (session : Session.t) (id : Jsonrpc.Id.t)
           let xconf =
             {
               Match_env.default_xconfig with
-              filter_irrelevant_rules = PrefilterWithCache (Hashtbl.create 10);
+              filter_irrelevant_rules = Match_env.make_prefilter ();
             }
           in
           (* !!calling the engine!! *)

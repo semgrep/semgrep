@@ -7,17 +7,9 @@
  *)
 type prefilter = Semgrep_prefilter_t.formula * (string -> bool)
 
-(* Computing the `regex_prefilter_of_rule` can be pretty heavy in
-   Previously, we created hmemo at the toplevel of this file. This caused
-      problems with tests that ended up reusing that table which were very
-      confusing to debug. To prevent that from happening again, the table is
-      now passed to this function. For convenience you can also choose not to
-       memoize. *)
-type prefilter_cache = (Rule_ID.t, prefilter option) Hashtbl.t
-
-(* This function analyzes a rule and returns optionaly a prefilter.
+(* Produces a function that analyzes a rule and returns optionally a prefilter.
  *
- * The return prefilter relies on a formula of
+ * The returned prefilter relies on a formula of
  * regexps that we try to extract from the rule. For example, with:
  *   pattern-either: foo()
  *   pattern-either: bar()
@@ -31,13 +23,10 @@ type prefilter_cache = (Rule_ID.t, prefilter option) Hashtbl.t
  * In that case, None is really the same than returning a function
  * that always return true (which means we should analyze the target file).
  *
- * Note that this function uses [Common.memoized] on the rule id, so the
- * backing [cache] must not escape a given fiber.
- *
- * TODO: SAF-2019
+ * The returned function is internally memoized via a SharedMemo, and it
+ * is safe to share this function across domains.
  *)
-val regexp_prefilter_of_rule :
-  interfile:bool -> cache:prefilter_cache option -> Rule.t -> prefilter option
+val make_regex_prefilter : interfile:bool -> Rule.t -> prefilter option
 
 (* WARNING: internal, do not use directly, not memoized
  *

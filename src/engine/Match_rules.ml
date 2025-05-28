@@ -82,10 +82,8 @@ let is_relevant_rule_for_xtarget r xconf xtarget =
   let is_relevant =
     match xconf.filter_irrelevant_rules with
     | NoPrefiltering -> true
-    | PrefilterWithCache cache -> (
-        match
-          Analyze_rule.regexp_prefilter_of_rule ~interfile ~cache:(Some cache) r
-        with
+    | CachedPrefilter f -> (
+        match f ~interfile r with
         | None -> true
         | Some (prefilter_formula, func) ->
             let content = Lazy.force lazy_content in

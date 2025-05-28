@@ -31,10 +31,20 @@ module PM = Core_match
 type pattern_id = Xpattern.pattern_id
 type id_to_match_results = (pattern_id, Core_match.t list ref) Hashtbl.t
 
-(* alt: prefilter_cache option *)
-type prefilter_config =
-  | PrefilterWithCache of Analyze_rule.prefilter_cache
+type prefilter_policy =
+  (* The policy for when we wish to prefilter (conditional on whether we are
+   * doing interfile analysis or not) *)
+  | CachedPrefilter of
+      (interfile:bool -> Rule.t -> Analyze_rule.prefilter option)
+  (* The policy for when we do not wish to prefilter at all. *)
   | NoPrefiltering
+
+let make_prefilter () =
+  let with_interfile = Analyze_rule.make_regex_prefilter ~interfile:true in
+  let without_interfile = Analyze_rule.make_regex_prefilter ~interfile:false in
+  CachedPrefilter
+    (fun ~interfile r ->
+      if interfile then with_interfile r else without_interfile r)
 
 (* eXtended config.*)
 type xconfig = {
@@ -47,7 +57,7 @@ type xconfig = {
    * (there's lots of fields in Runner_config.t).
    *)
   matching_explanations : bool;
-  filter_irrelevant_rules : prefilter_config;
+  filter_irrelevant_rules : prefilter_policy;
 }
 
 type env = {
