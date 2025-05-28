@@ -209,7 +209,7 @@ and expr =
   | ArrAccess of expr * expr bracket
   (* ident is a Some when recursive lambda or assigned in module.exports *)
   | Fun of function_definition * a_ident option
-  | Apply of expr * a_arguments
+  | Apply of expr * type_ list bracket * a_arguments
   | New of tok * expr * a_arguments
   (* copy-paste of AST_generic.xml (but with different 'expr') *)
   | Xml of xml
@@ -222,6 +222,8 @@ and expr =
    *)
   | Cast of expr * tok (* ':' *) * type_
   | TypeAssert of expr * tok (* 'as' or '<' *) * type_ (* X as T or <T> X *)
+  | Satisfies of expr * tok (* 'satisfies' *) * type_
+  | Instantiation of expr * type_ list bracket
   (* this is used mostly for unsupported typescript features *)
   | ExprTodo of a_todo_category * expr list
   | ParenExpr of tok * expr * tok
@@ -399,6 +401,7 @@ and keyword_attribute =
   (* only inside classes *)
   | Get
   | Set
+  | Accessor
 
 (*****************************************************************************)
 (* Definitions *)

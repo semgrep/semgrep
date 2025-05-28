@@ -241,7 +241,7 @@ and expr (x : expr) =
       G.Cast (v3, v2, v1) |> G.e
   | ExprTodo (v1, v2) ->
       let v2 = list expr v2 in
-      G.OtherExpr (v1, v2 |> List_.map (fun e -> G.E e)) |> G.e
+      G.OtherExpr (v1, List_.map (fun e -> G.E e) v2) |> G.e
   | ParenExpr (l, e, r) ->
       let e = expr e in
       H.set_e_range l r e;
@@ -309,26 +309,48 @@ and expr (x : expr) =
       let attrs_any = List_.map (fun attr -> G.At attr) more_attrs in
       H.set_e_range_with_anys (G.Dk (G.FuncDef def) :: attrs_any) e;
       e
-  | Apply (IdSpecial v1, v2) ->
+  | Instantiation (v1, v2) ->
+      let v1 = expr v1 and l, v2, _r = bracket (list type_) v2 in
+      G.OtherExpr
+        (("Instantiation", l), G.E v1 :: List_.map (fun ty -> G.T ty) v2)
+      |> G.e
+  | Satisfies (v1, v2, v3) ->
+      let v1 = expr v1 and v3 = type_ v3 in
+      G.OtherExpr (("Satisfies", v2), [ G.E v1; G.T v3 ]) |> G.e
+  | Apply (IdSpecial v1, v2, v3) ->
       let x = special v1 in
-      let v2 = bracket (list expr) v2 in
+      let _v2_TODO = bracket (list type_) v2 in
+      let v3 = bracket (list expr) v3 in
       (match x with
-      | SR_Special v -> G.Call (G.Special v |> G.e, bracket (List_.map G.arg) v2)
+      | SR_Special v -> G.Call (G.Special v |> G.e, bracket (List_.map G.arg) v3)
       | SR_Literal l ->
           Log.warn (fun m -> m "Weird: literal in call position");
           (* apparently there's code like (null)("fs"), no idea what that is *)
-          G.Call (G.L l |> G.e, bracket (List_.map G.arg) v2)
-      | SR_NeedArgs f -> f (Tok.unbracket v2)
+          G.Call (G.L l |> G.e, bracket (List_.map G.arg) v3)
+      | SR_NeedArgs f -> f (Tok.unbracket v3)
       | SR_Other categ ->
           (* ex: NewTarget *)
           G.Call
             ( G.OtherExpr (categ, []) |> G.e,
-              bracket (List_.map (fun e -> G.Arg e)) v2 )
-      | SR_Expr e -> G.Call (e |> G.e, bracket (List_.map G.arg) v2))
+              bracket (List_.map (fun e -> G.Arg e)) v3 )
+      | SR_Expr e -> G.Call (e |> G.e, bracket (List_.map G.arg) v3))
       |> G.e
-  | Apply (v1, v2) ->
-      let v1 = expr v1 and v2 = bracket (list expr) v2 in
-      G.Call (v1, bracket (List_.map (fun e -> G.Arg e)) v2) |> G.e
+  | Apply (v1, v2, v3) ->
+      let v1 = expr v1
+      and l, v2, r = bracket (list type_) v2
+      and v3 = bracket (list expr) v3 in
+      (* We want to add the tyargs, but they only fit in the AST in certain cases.
+         Certainly, if we have a name, we can add it using this AST_generic helper.
+       *)
+      let lhs =
+        match v1.e with
+        | G.N name ->
+            let tyargs = List_.map (fun ty -> G.TA ty) v2 in
+            G.N (AST_generic_helpers.add_type_args_to_name name (l, tyargs, r))
+            |> G.e
+        | _ -> v1
+      in
+      G.Call (lhs, bracket (List_.map (fun e -> G.Arg e)) v3) |> G.e
   | New (tok, e, args) ->
       let tok = info tok in
       let e = expr e in
@@ -619,6 +641,10 @@ and keyword_attribute (x, tok) =
     (* methods *)
     | Get -> G.Getter
     | Set -> G.Setter
+    (* An accessor is technically both a getter and a setter, let's do just Getter for simplicity.
+     * https://www.typescriptlang.org/docs/handbook/release-notes/typescript-4-9.html#auto-accessors-in-classes
+     *)
+    | Accessor -> G.Getter
     | Generator -> G.Generator
     | Async -> G.Async
     (* fields *)

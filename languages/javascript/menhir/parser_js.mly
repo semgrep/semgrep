@@ -147,7 +147,7 @@ let mk_block_return e =
   unsafe_fb [Return (Tok.unsafe_fake_tok "return", Some e, Tok.unsafe_sc)]
 
 let special spec tok xs =
-  Apply (IdSpecial (spec, tok), fb tok xs)
+  Apply (IdSpecial (spec, tok), fb tok [], fb tok xs)
 
 let bop op a b c = special (ArithOp op) b [a;c]
 let uop op tok x = special op tok [x]
@@ -1350,13 +1350,13 @@ pre_in_expr(x):
 
 
 call_expr(x):
- | member_expr(x) arguments          { Apply ($1, $2) }
- | call_expr(x) arguments            { Apply ($1, $2) }
+ | member_expr(x) arguments          { let (l, x, r) = $2 in Apply ($1, fb l [], (l, x, r)) }
+ | call_expr(x) arguments            { let (l, x, r) = $2 in Apply ($1, fb l [], (l, x, r)) }
  | call_expr(x) "[" expr "]"         { ArrAccess ($1, ($2, $3,$4))}
  | call_expr(x) access method_name      { ObjAccess ($1, $2, PN $3) }
  (* es6: *)
  | call_expr(x) template_literal     { mk_Encaps (Some $1) $2 }
- | T_SUPER arguments                 { Apply (mk_Super($1), $2) }
+ | T_SUPER arguments                 { let (l, x, r) = $2 in Apply (mk_Super($1), fb l [], (l, x, r)) }
  (* sgrep-ext: note that we used to require just a "...", without the "."
   * before, which was more lightweight, but introduced ambiguity with
   * ASI for patterns like:

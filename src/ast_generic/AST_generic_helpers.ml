@@ -75,34 +75,39 @@ let add_id_opt_type_args_to_name name (id, topt) =
 
 (* used for Parse_hack_tree_sitter.ml
  * less: could move there? *)
-let add_type_args_to_name name type_args =
-  match name with
-  | Id (ident, id_info) ->
-      (* Only IdQualified supports typeargs *)
-      IdQualified
-        {
-          name_last = (ident, Some type_args);
-          name_middle = None;
-          name_top = None;
-          name_info = id_info;
-        }
-  | IdQualified qualified_info -> (
-      match qualified_info.name_last with
-      | _id, Some _x ->
-          IdQualified qualified_info
-          (* TODO: Enable raise Impossible *)
-          (* raise Impossible *)
-          (* Never should have to overwrite type args, but also doesn't make sense to merge *)
-      | id, None ->
-          IdQualified { qualified_info with name_last = (id, Some type_args) })
-  | IdSpecial ((s, tok), id_info) ->
-      IdQualified
-        {
-          name_last = ((G.show_special_ident s, tok), Some type_args);
-          name_middle = None;
-          name_top = None;
-          name_info = id_info;
-        }
+let add_type_args_to_name name (l, type_args, r) =
+  match type_args with
+  | [] -> name
+  | _ -> (
+      match name with
+      | Id (ident, id_info) ->
+          (* Only IdQualified supports typeargs *)
+          IdQualified
+            {
+              name_last = (ident, Some (l, type_args, r));
+              name_middle = None;
+              name_top = None;
+              name_info = id_info;
+            }
+      | IdQualified qualified_info -> (
+          match qualified_info.name_last with
+          | _id, Some _x ->
+              IdQualified qualified_info
+              (* TODO: Enable raise Impossible *)
+              (* raise Impossible *)
+              (* Never should have to overwrite type args, but also doesn't make sense to merge *)
+          | id, None ->
+              IdQualified
+                { qualified_info with name_last = (id, Some (l, type_args, r)) }
+          )
+      | IdSpecial ((s, tok), id_info) ->
+          IdQualified
+            {
+              name_last = ((G.show_special_ident s, tok), Some (l, type_args, r));
+              name_middle = None;
+              name_top = None;
+              name_info = id_info;
+            })
 
 let add_type_args_opt_to_name name topt =
   match topt with

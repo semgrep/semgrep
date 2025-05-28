@@ -486,6 +486,15 @@ let rec m_name_inner a b =
   | G.Id ((str, tok), _info), (G.IdQualified _ | G.IdSpecial _)
     when Mvar.is_metavar_name str ->
       envf (str, tok) (MV.N b)
+  (* It's OK to match an `Id` to an `IdQualified` which has only one component.
+   * This is kind of less-is-ok, because this is what will permit us to match a single Id
+   * to an IdQualified with type arguments, e.g. `foo` to `foo<int>`.
+   *)
+  | ( G.Id _,
+      G.IdQualified
+        { name_last = id, _; name_middle = None; name_top = None; name_info } )
+    ->
+      m_name_inner a (B.Id (id, name_info))
   (* equivalence: aliasing (name resolving) part 2 (mostly for OCaml) *)
   | ( G.IdQualified _a1,
       B.IdQualified

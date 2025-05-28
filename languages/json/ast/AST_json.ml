@@ -122,7 +122,7 @@ let rec js_expr_to_json_value (e : JS.expr) : value =
   | JS.ObjAccess (_, (_, tok), _) -> error tok
   | JS.ArrAccess (_, (tok, _, _)) -> error tok
   | JS.Fun ({ f_kind = _, tok; _ }, _) -> error tok
-  | JS.Apply (_, (tok, _, _)) -> error tok
+  | JS.Apply (_, _, (tok, _, _)) -> error tok
   | JS.New (tok, _, _) -> error tok
   | JS.Xml xml -> (
       match xml.xml_kind with
@@ -132,6 +132,8 @@ let rec js_expr_to_json_value (e : JS.expr) : value =
   | JS.Conditional (_, tok, _, _, _) -> error tok
   | JS.Cast (_, tok, _) -> Null tok
   | JS.TypeAssert (_, tok, _) -> error tok
+  | JS.Satisfies (_, tok, _) -> error tok
+  | JS.Instantiation (_, (tok, _, _)) -> error tok
   | JS.ParenExpr (tok, _, _) -> error tok
   | JS.Ellipsis tok -> error tok
   | JS.DeepEllipsis (tok, _, _) -> error tok

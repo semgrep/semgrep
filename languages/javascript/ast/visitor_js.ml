@@ -209,6 +209,12 @@ let (mk_visitor : visitor_in -> visitor_out) =
       | Obj v1 ->
           let v1 = v_obj_ v1 in
           ()
+      | Instantiation (v1, v2) ->
+          let v1 = v_expr v1 and v2 = v_bracket (v_list v_type_) v2 in
+          ()
+      | Satisfies (v1, v2, v3) ->
+          let v1 = v_expr v1 and v2 = v_tok v2 and v3 = v_type_ v3 in
+          ()
       | Ellipsis v1 ->
           let v1 = v_tok v1 in
           ()
@@ -230,8 +236,10 @@ let (mk_visitor : visitor_in -> visitor_out) =
       | Fun (v1, v2) ->
           let v1 = v_function_definition v1 and v2 = v_option v_name v2 in
           ()
-      | Apply (v1, v2) ->
-          let v1 = v_expr v1 and v2 = v_bracket (v_list v_expr) v2 in
+      | Apply (v1, v2, v3) ->
+          let v1 = v_expr v1
+          and v2 = v_bracket (v_list v_type_) v2
+          and v3 = v_bracket (v_list v_expr) v3 in
           ()
       | New (t, v1, v2) ->
           let t = v_tok t in
