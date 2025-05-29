@@ -1,5 +1,7 @@
 from pathlib import Path
+from typing import FrozenSet
 from typing import List
+from typing import Tuple
 
 import pytest
 
@@ -9,6 +11,7 @@ from semdep.matchers.base import PatternManifestStaticLockfileMatcher
 from semdep.matchers.gradle import GradleMatcher
 from semdep.matchers.pip_requirements import PipRequirementsMatcher
 from semdep.subproject_matchers import filter_dependency_source_files
+from semdep.subproject_matchers import MATCHERS
 
 
 class TestExactLockfileMatcher:
@@ -936,6 +939,112 @@ class TestGradleMatcher:
         assert len(subprojects) == len(expected_subprojects)
         for subproject in subprojects:
             assert subproject in expected
+
+
+class TestDefaultMatchers:
+    @pytest.mark.parametrize(
+        ["source_files", "expected_subprojects"],
+        [
+            (
+                [
+                    Path("bun.lock"),
+                    Path("package.json"),
+                ],
+                [
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
+                        dependency_source=out.DependencySource(
+                            out.ManifestLockfile(
+                                (
+                                    out.Manifest(
+                                        out.ManifestKind(out.PackageJson()),
+                                        out.Fpath("package.json"),
+                                    ),
+                                    out.Lockfile(
+                                        out.LockfileKind(out.BunLock()),
+                                        out.Fpath("bun.lock"),
+                                    ),
+                                )
+                            )
+                        ),
+                        ecosystem=out.Ecosystem(value=out.Npm()),
+                    )
+                ],
+            ),
+            (
+                [
+                    Path("bun.lockb"),
+                    Path("package.json"),
+                ],
+                [
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
+                        dependency_source=out.DependencySource(
+                            out.ManifestLockfile(
+                                (
+                                    out.Manifest(
+                                        out.ManifestKind(out.PackageJson()),
+                                        out.Fpath("package.json"),
+                                    ),
+                                    out.Lockfile(
+                                        out.LockfileKind(out.BunLock()),
+                                        out.Fpath("bun.lock"),
+                                    ),
+                                )
+                            )
+                        ),
+                        ecosystem=out.Ecosystem(value=out.Npm()),
+                    )
+                ],
+            ),
+            (
+                [
+                    Path("foo/bun.lockb"),
+                    Path("foo/package.json"),
+                ],
+                [
+                    out.Subproject(
+                        root_dir=out.Fpath("."),
+                        dependency_source=out.DependencySource(
+                            out.ManifestLockfile(
+                                (
+                                    out.Manifest(
+                                        out.ManifestKind(out.PackageJson()),
+                                        out.Fpath("foo/package.json"),
+                                    ),
+                                    out.Lockfile(
+                                        out.LockfileKind(out.BunLock()),
+                                        out.Fpath("foo/bun.lock"),
+                                    ),
+                                )
+                            )
+                        ),
+                        ecosystem=out.Ecosystem(value=out.Npm()),
+                    )
+                ],
+            ),
+        ],
+    )
+    @pytest.mark.quick
+    def test_make_subprojects(
+        self, source_files: List[Path], expected_subprojects: List[out.Subproject]
+    ):
+        source_files_set = frozenset(source_files)
+
+        first_match: Tuple[List[out.Subproject], FrozenSet[Path]] = ([], frozenset())
+        for matcher in MATCHERS:
+            result = matcher.make_subprojects(source_files_set)
+            if result != ([], frozenset()):
+                first_match = result
+                break
+
+        subprojects, used_files = first_match
+
+        # expect all files to be used
+        assert used_files == source_files_set
+
+        assert len(subprojects) == len(expected_subprojects)
+        assert subprojects.sort() == expected_subprojects.sort()
 
 
 @pytest.mark.quick

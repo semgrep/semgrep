@@ -21,6 +21,23 @@ MATCHERS: List[SubprojectMatcher] = [
         manifest_file_extension="in",
         default_manifest_file_base="requirements",
     ),
+    # Bun
+    ExactLockfileManifestMatcher(
+        lockfile_name="bun.lock",
+        manifest_name="package.json",
+        lockfile_kind=out.LockfileKind(out.BunLock()),
+        manifest_kind=out.ManifestKind(out.PackageJson()),
+        ecosystem=out.Ecosystem(out.Npm()),
+        make_manifest_only_subprojects=False,
+    ),
+    ExactLockfileManifestMatcher(
+        lockfile_name="bun.lockb",
+        manifest_name="package.json",
+        lockfile_kind=out.LockfileKind(out.BunBinaryLock()),
+        manifest_kind=out.ManifestKind(out.PackageJson()),
+        ecosystem=out.Ecosystem(out.Npm()),
+        make_manifest_only_subprojects=False,
+    ),
     # Npm
     ExactLockfileManifestMatcher(
         lockfile_name="package-lock.json",

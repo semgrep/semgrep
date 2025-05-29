@@ -6,6 +6,8 @@ type kind = Semgrep_output_v1_t.lockfile_kind =
   | NpmPackageLockJson
   | YarnLock
   | PnpmLock
+  | BunLock
+  | BunBinaryLock
   | GemfileLock
   | GoModLock
   | CargoLock
