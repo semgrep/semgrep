@@ -693,11 +693,6 @@ def ci(
                         "No products are enabled for this organization. Please enable a product in the Settings > Deployment tab of Semgrep Cloud Platform or reach out to support@semgrep.com for assistance."
                     )
 
-                if dump_n_rule_partitions and scan_handler.enabled_products != ["sast"]:
-                    raise SemgrepError(
-                        "--x-dump-rule-partitions is only compatible with SAST."
-                    )
-
             # TODO? we're not passing time_flag below (or matching_explanations),
             # is it intended?
             (
