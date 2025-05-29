@@ -59,8 +59,7 @@ let
         # Force ocaml version
         baseQuery = {
           ocaml-base-compiler = ocamlVersion;
-          # https://github.com/tweag/opam-nix/issues/112
-          ocamlfind = "1.9.6";
+          ocamlfind = "1.9.8";
         };
         resolveArgs = {
           # speeds up so we don't get a solver timeout

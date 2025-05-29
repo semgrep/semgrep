@@ -36,6 +36,8 @@ type kind = Out.lockfile_kind =
   | NpmPackageLockJson
   | YarnLock
   | PnpmLock
+  | BunLock
+  | BunBinaryLock
   | GemfileLock
   | GoModLock
   | CargoLock
@@ -73,6 +75,8 @@ let kind_to_ecosystem_opt : kind -> Semgrep_output_v1_t.ecosystem option =
   | NpmPackageLockJson -> Some Out.Npm
   | YarnLock -> Some Out.Npm
   | PnpmLock -> Some Out.Npm
+  | BunLock -> Some Out.Npm
+  | BunBinaryLock -> Some Out.Npm
   | GemfileLock -> Some Out.Gem
   | GoModLock -> Some Out.Gomod
   | CargoLock -> Some Out.Cargo
