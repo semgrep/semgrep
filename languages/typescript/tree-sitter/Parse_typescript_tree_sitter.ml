@@ -26,11 +26,15 @@ open Ast_js
 *)
 
 (*****************************************************************************)
-(* Helpers *)
+(* Types *)
 (*****************************************************************************)
 
 type context = Program | Pattern
 type env = context H.env
+
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
 
 let token = H.token
 let str = H.str
@@ -98,6 +102,29 @@ let map_sep_list (env : env) (head : 'a) (tail : (_ * 'a) list)
     List_.map (fun ((_sep : Tree_sitter_run.Token.t), elt) -> f env elt) tail
   in
   head :: tail
+
+(* Since some patterns parse both with and without the `__SEMGREP_EXPRESSION`
+ * prefix, we sometimes parse something without but would like to parse it
+ * with the prefix anyways.
+ * This function will just detect whether the program is of a form which
+ * falls under that. This includes `{ ... }` and `foo: e`.
+ *)
+let is_semgrep_pattern_we_would_rather_parse_as_expression cst =
+  match cst with
+  | `Opt_hash_bang_line_rep_stmt
+      ( _,
+        [
+          (* A single statement which is a label looks like `foo: e`, which
+             is probably better suited to being a partial pattern.
+           *)
+          ( `Labe_stmt _
+          (* A block statement with only one thing in it, or empty, is probably actually
+             a record.
+           *)
+          | `Stmt_blk (_, ([] | [ _ ]), _, _) );
+        ] ) ->
+      true
+  | _ -> false
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -861,25 +888,29 @@ and jsx_attribute_value (env : env) (x : CST.jsx_attribute_value) =
 
 and jsx_child (env : env) (x : CST.jsx_child) : xml_body =
   match x with
-  | `Jsx_text tok ->
-      let s =
-        str env tok
-        (* pattern [^{}<>]+ *)
-      in
-      XmlText s
-  | `Html_char_ref tok ->
-      (* I don't think we should treat this differently than a regular textual case. *)
-      let s =
-        (* pattern &(#([xX][0-9a-fA-F]{1,6}|[0-9]{1,5})|[A-Za-z]{1,30}); *)
-        str env tok
-      in
-      XmlText s
-  | `Choice_jsx_elem x ->
-      let xml = jsx_element_ env x in
-      XmlXml xml
-  | `Jsx_exp x ->
-      let x = jsx_expression env x in
-      XmlExpr x
+  | `Choice_jsx_text x -> (
+      match x with
+      | `Jsx_text tok ->
+          let s =
+            str env tok
+            (* pattern [^{}<>]+ *)
+          in
+          XmlText s
+      | `Html_char_ref tok ->
+          (* I don't think we should treat this differently than a regular textual case. *)
+          let s =
+            (* pattern &(#([xX][0-9a-fA-F]{1,6}|[0-9]{1,5})|[A-Za-z]{1,30}); *)
+            str env tok
+          in
+          XmlText s
+      | `Choice_jsx_elem x ->
+          let xml = jsx_element_ env x in
+          XmlXml xml
+      | `Jsx_exp x ->
+          let x = jsx_expression env x in
+          XmlExpr x)
+  | `Semg_ellips tok -> XmlText ((* "..." *) str env tok)
+  | `Semg_meta tok -> XmlText ((* pattern \$[A-Z_][A-Z_0-9]* *) str env tok)
 
 and jsx_element_ (env : env) (x : CST.jsx_element_) : xml =
   match x with
@@ -918,15 +949,9 @@ and pattern (env : env) (x : CST.pattern) : (a_ident, a_pattern) Either.t =
       let _lhs_TODO = lhs_expression env v2 in
       Right (IdSpecial (Spread, tok))
 
-(*
-   This is a pattern for destructuring an object property.
-   It could use its own type rather than abusing the 'property' type.
-   See notes in ast_js.ml in pfff.
-*)
-and object_property_pattern (env : env) (x : CST.anon_choice_pair_pat_3ff9cbe) :
-    property =
+and pair_pattern (env : env) (x : CST.pair_pattern) =
   match x with
-  | `Pair_pat (v1, v2, v3) ->
+  | `Prop_name_COLON_choice_pat (v1, v2, v3) ->
       let v1 = property_name env v1 in
       let _v2 =
         token env v2
@@ -936,6 +961,17 @@ and object_property_pattern (env : env) (x : CST.anon_choice_pair_pat_3ff9cbe) :
       let ty = None in
       FieldColon
         { fld_name = v1; fld_attrs = []; fld_type = ty; fld_body = Some body }
+  | `Semg_ellips tok -> FieldEllipsis (* "..." *) (token env tok)
+
+(*
+   This is a pattern for destructuring an object property.
+   It could use its own type rather than abusing the 'property' type.
+   See notes in ast_js.ml in pfff.
+*)
+and object_property_pattern (env : env) (x : CST.anon_choice_pair_pat_3ff9cbe) :
+    property =
+  match x with
+  | `Pair_pat x -> pair_pattern env x
   | `Rest_pat x ->
       let t, p = rest_pattern env x in
       let pat =
@@ -1530,9 +1566,9 @@ and map_anon_choice_import_c99ceb4 (env : env)
   | `Type_query_member_exp x -> map_type_query_member_expression env x
   | `Type_query_subs_exp x -> map_type_query_subscript_expression env x
 
-and object_property (env : env) (x : CST.anon_choice_pair_20c9acd) : property =
+and pair (env : env) (x : CST.pair) =
   match x with
-  | `Pair (v1, v2, v3) ->
+  | `Prop_name_COLON_exp (v1, v2, v3) ->
       let v1 = property_name env v1 in
       let _v2 =
         token env v2
@@ -1541,6 +1577,11 @@ and object_property (env : env) (x : CST.anon_choice_pair_20c9acd) : property =
       let v3 = expression env v3 in
       FieldColon
         { fld_name = v1; fld_attrs = []; fld_type = None; fld_body = Some v3 }
+  | `Semg_ellips tok -> FieldEllipsis (* "..." *) (token env tok)
+
+and object_property (env : env) (x : CST.anon_choice_pair_20c9acd) : property =
+  match x with
+  | `Pair x -> pair env x
   | `Spread_elem x ->
       let t, e = spread_element env x in
       FieldSpread (t, e)
@@ -4285,6 +4326,31 @@ and map_anon_choice_type_id_a85f573 (env : env)
 
 let toplevel env x = statement env x
 
+let semgrep_pattern (env : env) (x : CST.semgrep_pattern) : any =
+  match x with
+  | `Exp x -> Expr (expression env x)
+  | `Pair x -> (
+      match x with
+      | `Prop_name_COLON_exp (v1, v2, v3) -> (
+          let v1 = property_name env v1 in
+          let v2 =
+            token env v2
+            (* ":" *)
+          in
+          let v3 = expression env v3 in
+          match v1 with
+          | PN id -> Partial (PartialSingleField (id, v2, v3))
+          (* This probably shouldn't happen. We expect any pattern like
+           `foo: <expr>`
+           to have just a simple ident on the left.
+         *)
+          | PN_Computed _e ->
+              Partial
+                (PartialSingleField
+                   (("PN_Computed", Tok.unsafe_fake_tok "PN_Computed"), v2, v3))
+          )
+      | `Semg_ellips tok -> Expr (Ellipsis (token env tok)))
+
 let program (env : env) (x : CST.program) : any =
   match x with
   | `Opt_hash_bang_line_rep_stmt (v1, v2) ->
@@ -4297,8 +4363,8 @@ let program (env : env) (x : CST.program) : any =
       Program v2
   | `Semg_exp (v1, v2) ->
       let _v1 = token env v1 in
-      let v2 = expression env v2 in
-      Expr v2
+      let v2 = semgrep_pattern env v2 in
+      v2
   | `Switch_case v1 -> Partial (PartialSwitchCase (switch_case env v1))
 
 (*****************************************************************************)
@@ -4344,16 +4410,87 @@ let parse ?dialect file =
       | Program p -> p
       | _ -> failwith "not a program")
 
+(* What's the deal with this?
+ *
+ * In the pattern-parsing world, we can either parse something which is a whole program,
+ * or the rule-writer may want to pass us something which is just an expression, or some
+ * other AST node which does not qualify as an entire standalone program.
+ *
+ * In which case, we use a special entry point, `__SEMGREP_EXPRESSION`, to signal to the
+ * tree-sitter parser which case we would like to exercise.
+ *
+ * Usually it is straightforward to just run one and then keep the other for backup.
+ * Unfortunately, there are cases of patterns which parse both with `__SEMGREP_EXPRESSION`
+ * and without. This means that we have to pick one arbitrarily.
+ *
+ * We have decided that our canonical order will be to first try it without the prefix,
+ * using the prefix as a fallback, and and then using a function
+ * `is_semgrep_pattern_we_would_rather_parse_as_expression` for certain program forms
+ * which we would prefer to add the prefix for.
+ *
+ * For instance, we would prefer to parse `{...}` and `foo: e` as expressions, but
+ * we would prefer to parse `function foo(...) {...}` as a function definition, not
+ * a lambda.
+
+ * This is not a perfect solution, but it's fine for now.
+ *)
+let parse_expression_or_source_file str =
+  let res = Tree_sitter_tsx.Parse.string str in
+  match res with
+  (* If there are errors, we must try to parse it the other way. *)
+  | { errors = _ :: _; _ } ->
+      let expr_str = "__SEMGREP_EXPRESSION " ^ str in
+      Tree_sitter_tsx.Parse.string expr_str
+  (* If we succeeded, we may want to still switch over to the expression case. *)
+  | { program = Some cst; _ }
+    when is_semgrep_pattern_we_would_rather_parse_as_expression cst -> (
+      let expr_str = "__SEMGREP_EXPRESSION " ^ str in
+      let res2 = Tree_sitter_tsx.Parse.string expr_str in
+      match res2 with
+      (* If this one works, we're all good. *)
+      | { errors = []; _ } -> res2
+      (* But if there were errors, just use the `res` we know succeeded. *)
+      | _ -> res)
+  | _ -> res
+
 let parse_pattern str =
   H.wrap_parser
-    (* TODO Should we use Tree_sitter_tsx so that we permit TSX constructs in
-     * patterns? Or try both, since TSX is not strictly a superset? *)
-    (fun () -> (Tree_sitter_typescript.Parse.string str :> cst_result))
+    (fun () -> (parse_expression_or_source_file str :> cst_result))
     (fun cst _extras ->
       let file = Fpath.v "<pattern>" in
       let env =
         { H.file; conv = H.line_col_to_pos_pattern str; extra = Pattern }
       in
+      (* A pattern which produces this particular construct likely looks like
+       * function foo(...)
+       * which we prefer to parse as a partial function def, not a function signature.
+       *)
       match program env cst with
+      | Program
+          [
+            DefStmt
+              ( ent,
+                VarDef
+                  {
+                    v_kind = Const, v2;
+                    v_init = None;
+                    v_type = Some (TyFun (params, retty));
+                  } );
+          ] ->
+          Partial
+            (PartialDef
+               ( ent,
+                 FuncDef
+                   {
+                     f_kind = (G.Function, v2);
+                     f_params = fb params;
+                     f_body = Block (fb []);
+                     f_rettype = retty;
+                     f_attrs = [];
+                   } ))
+      (* Similarly, this is likely a partial `if`. It looks like `if(e)`.
+       *)
+      | Expr (Apply (Id ("if", tok), (_, [], _), (_, [ e ], _))) ->
+          Partial (PartialIf (tok, e))
       | Program ss -> Stmts ss
       | other -> other)

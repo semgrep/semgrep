@@ -1085,8 +1085,8 @@ type_parameter: T_ID { $1 }
 (*----------------------------*)
 
 type_arguments:
- | T_LESS_THAN listc(type_argument) T_GREATER_THAN {  }
- | mismatched_type_arguments { }
+ | T_LESS_THAN listc(type_argument) T_GREATER_THAN { $2 }
+ | mismatched_type_arguments { [] }
 
 type_argument: type_ { $1 }
 

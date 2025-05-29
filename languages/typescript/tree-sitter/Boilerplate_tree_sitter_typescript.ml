@@ -768,16 +768,21 @@ and map_anon_choice_import_c99ceb4 (env : env)
   | `Type_query_subs_exp x ->
       R.Case ("Type_query_subs_exp", map_type_query_subscript_expression env x)
 
-and map_anon_choice_pair_20c9acd (env : env) (x : CST.anon_choice_pair_20c9acd)
-    =
+and map_pair (env : env) (x : CST.pair) =
   match x with
-  | `Pair (v1, v2, v3) ->
+  | `Prop_name_COLON_exp (v1, v2, v3) ->
       R.Case
-        ( "Pair",
+        ( "Prop_name_COLON_exp",
           let v1 = map_property_name env v1 in
           let v2 = (* ":" *) token env v2 in
           let v3 = map_expression env v3 in
           R.Tuple [ v1; v2; v3 ] )
+  | `Semg_ellips tok -> R.Case ("Semg_ellips", (* "..." *) token env tok)
+
+and map_anon_choice_pair_20c9acd (env : env) (x : CST.anon_choice_pair_20c9acd)
+    =
+  match x with
+  | `Pair x -> R.Case ("Pair", map_pair env x)
   | `Spread_elem x -> R.Case ("Spread_elem", map_spread_element env x)
   | `Meth_defi x -> R.Case ("Meth_defi", map_method_definition env x)
   | `Choice_id x -> R.Case ("Choice_id", map_anon_choice_type_id_dd17e7d env x)
@@ -785,13 +790,7 @@ and map_anon_choice_pair_20c9acd (env : env) (x : CST.anon_choice_pair_20c9acd)
 and map_anon_choice_pair_pat_3ff9cbe (env : env)
     (x : CST.anon_choice_pair_pat_3ff9cbe) =
   match x with
-  | `Pair_pat (v1, v2, v3) ->
-      R.Case
-        ( "Pair_pat",
-          let v1 = map_property_name env v1 in
-          let v2 = (* ":" *) token env v2 in
-          let v3 = map_anon_choice_pat_3297d92 env v3 in
-          R.Tuple [ v1; v2; v3 ] )
+  | `Pair_pat x -> R.Case ("Pair_pat", map_pair_pattern env x)
   | `Rest_pat x -> R.Case ("Rest_pat", map_rest_pattern env x)
   | `Obj_assign_pat (v1, v2, v3) ->
       R.Case
@@ -2242,14 +2241,22 @@ and map_jsx_attribute_value (env : env) (x : CST.jsx_attribute_value) =
 
 and map_jsx_child (env : env) (x : CST.jsx_child) =
   match x with
-  | `Jsx_text tok -> R.Case ("Jsx_text", (* jsx_text *) token env tok)
-  | `Html_char_ref tok ->
+  | `Choice_jsx_text x ->
       R.Case
-        ( "Html_char_ref",
-          (* pattern &(#([xX][0-9a-fA-F]{1,6}|[0-9]{1,5})|[A-Za-z]{1,30}); *)
-          token env tok )
-  | `Choice_jsx_elem x -> R.Case ("Choice_jsx_elem", map_jsx_element_ env x)
-  | `Jsx_exp x -> R.Case ("Jsx_exp", map_jsx_expression env x)
+        ( "Choice_jsx_text",
+          match x with
+          | `Jsx_text tok -> R.Case ("Jsx_text", (* jsx_text *) token env tok)
+          | `Html_char_ref tok ->
+              R.Case
+                ( "Html_char_ref",
+                  (* pattern &(#([xX][0-9a-fA-F]{1,6}|[0-9]{1,5})|[A-Za-z]{1,30}); *)
+                  token env tok )
+          | `Choice_jsx_elem x ->
+              R.Case ("Choice_jsx_elem", map_jsx_element_ env x)
+          | `Jsx_exp x -> R.Case ("Jsx_exp", map_jsx_expression env x) )
+  | `Semg_ellips tok -> R.Case ("Semg_ellips", (* "..." *) token env tok)
+  | `Semg_meta tok ->
+      R.Case ("Semg_meta", (* pattern \$[A-Z_][A-Z_0-9]* *) token env tok)
 
 and map_jsx_element_ (env : env) (x : CST.jsx_element_) =
   match x with
@@ -2574,6 +2581,17 @@ and map_opting_type_annotation (env : env)
   let v1 = (* "?:" *) token env v1 in
   let v2 = map_type_ env v2 in
   R.Tuple [ v1; v2 ]
+
+and map_pair_pattern (env : env) (x : CST.pair_pattern) =
+  match x with
+  | `Prop_name_COLON_choice_pat (v1, v2, v3) ->
+      R.Case
+        ( "Prop_name_COLON_choice_pat",
+          let v1 = map_property_name env v1 in
+          let v2 = (* ":" *) token env v2 in
+          let v3 = map_anon_choice_pat_3297d92 env v3 in
+          R.Tuple [ v1; v2; v3 ] )
+  | `Semg_ellips tok -> R.Case ("Semg_ellips", (* "..." *) token env tok)
 
 and map_parameter_name (env : env) ((v1, v2, v3, v4, v5) : CST.parameter_name) =
   let v1 = R.List (List_.map (map_decorator env) v1) in
@@ -3567,6 +3585,11 @@ and map_variable_declarator (env : env) (x : CST.variable_declarator) =
           let v3 = map_type_annotation env v3 in
           R.Tuple [ v1; v2; v3 ] )
 
+let map_semgrep_pattern (env : env) (x : CST.semgrep_pattern) =
+  match x with
+  | `Exp x -> R.Case ("Exp", map_expression env x)
+  | `Pair x -> R.Case ("Pair", map_pair env x)
+
 let map_program (env : env) (x : CST.program) =
   match x with
   | `Opt_hash_bang_line_rep_stmt (v1, v2) ->
@@ -3584,7 +3607,7 @@ let map_program (env : env) (x : CST.program) =
       R.Case
         ( "Semg_exp",
           let v1 = (* "__SEMGREP_EXPRESSION" *) token env v1 in
-          let v2 = map_expression env v2 in
+          let v2 = map_semgrep_pattern env v2 in
           R.Tuple [ v1; v2 ] )
 
 let map_comment (env : env) (tok : CST.comment) = (* comment *) token env tok
