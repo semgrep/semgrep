@@ -18,6 +18,7 @@ let with_highlight temp func =
   setup ~highlight_setting:temp ();
   Common.finalize func (fun () -> setup ~highlight_setting:orig ())
 
-let print str = UPrintf.printf "%s\n%!" str
-let print_no_nl str = UPrintf.printf "%s%!" str
-let eprint str = UPrintf.eprintf "%s\n%!" str
+let mtx = Mutex.create ()
+let print str = Mutex.protect mtx (fun () -> UPrintf.printf "%s\n%!" str)
+let print_no_nl str = Mutex.protect mtx (fun () -> UPrintf.printf "%s%!" str)
+let eprint str = Mutex.protect mtx (fun () -> UPrintf.eprintf "%s\n%!" str)
