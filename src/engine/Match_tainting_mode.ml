@@ -230,7 +230,21 @@ let matches_of_effect (options : Rule_options.t) (effect_ : Effect.poly) =
                 * for the injection bug... but most users seem to be confused about this. They
                 * already expect Semgrep (and DeepSemgrep) to report the match on `sink(x)`.
             *)
-            let taint_trace = Some (lazy traces) in
+            let taint_trace =
+              match traces with
+              | [] ->
+                  (* When a taint-labeled rule has sinks with requires like `not A` it may be
+                    possible (and it has been reported) to obtain a taint finding with an empty
+                    list of taint traces. Presumably because 'sources_of_taints' removes all the
+                    taints that do not correspond with actual taint sources.
+
+                    See CODE-8531. *)
+                  Log.err (fun m ->
+                      m "Rule %s produced a taint finding with no taint trace"
+                        (Rule_ID.to_string sink_pm.rule_id.id));
+                  None
+              | _ :: _ -> Some (lazy traces)
+            in
             [ { sink_pm with env = merged_env; taint_trace } ]
         | `Source ->
             taint_sources

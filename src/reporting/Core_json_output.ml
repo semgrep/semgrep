@@ -287,7 +287,7 @@ let rec taint_call_trace (trace : Taint_trace.call_trace) :
         (Out.CliCall ((loc, content_of_loc loc), intermediate_vars, call_trace))
 
 let taint_trace_to_dataflow_trace (traces : Taint_trace.item list) :
-    Out.match_dataflow_trace =
+    Out.match_dataflow_trace option =
   (* Here, we ignore all but the first taint trace, for source or sink.
      This is because we added support for multiple sources/sinks in a single
      trace, but only internally to semgrep-core. Externally, our CLI dataflow
@@ -299,18 +299,16 @@ let taint_trace_to_dataflow_trace (traces : Taint_trace.item list) :
      findings. It's possible that this could change the dataflow trace of
      an existing finding though.
   *)
-  let source_call_trace, tokens, sink_call_trace =
-    match traces with
-    | [] -> raise Common.Impossible
-    | { Taint_trace.source_trace; tokens; sink_trace } :: _ ->
-        (source_trace, tokens, sink_trace)
-  in
-  Out.
-    {
-      taint_source = taint_call_trace source_call_trace;
-      intermediate_vars = Some (tokens_to_intermediate_vars tokens);
-      taint_sink = taint_call_trace sink_call_trace;
-    }
+  match traces with
+  | [] -> None
+  | { Taint_trace.source_trace; tokens; sink_trace } :: _ ->
+      Some
+        Out.
+          {
+            taint_source = taint_call_trace source_trace;
+            intermediate_vars = Some (tokens_to_intermediate_vars tokens);
+            taint_sink = taint_call_trace sink_trace;
+          }
 
 let path_and_historical (path : Target.path) ~(min_loc : Tok.location)
     ~(max_loc : Tok.location) : Fpath.t * Out.historical_info option =
@@ -424,8 +422,8 @@ let unsafe_match_to_match
   let min_loc, max_loc = pm.range_loc in
   let startp, endp = OutUtils.position_range min_loc max_loc in
   let dataflow_trace =
-    pm.taint_trace
-    |> Option.map (function (lazy trace) -> taint_trace_to_dataflow_trace trace)
+    Option.bind pm.taint_trace (function (lazy trace) ->
+        taint_trace_to_dataflow_trace trace)
   in
 
   let metavars = pm.env |> List_.map (metavars startp) in
