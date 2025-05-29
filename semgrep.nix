@@ -57,9 +57,12 @@ let
       , overlays ? [ patchesOverlay on.defaultOverlay ], inputs ? [ ] }:
       let
         # Force ocaml version
+        #
+        # you can also force specific ocaml package versions like
+        #
+        # ocamlfind = "1.9.8";
         baseQuery = {
           ocaml-base-compiler = ocamlVersion;
-          ocamlfind = "1.9.8";
         };
         resolveArgs = {
           # speeds up so we don't get a solver timeout
