@@ -654,7 +654,7 @@ let iter_targets_and_get_matches_and_exn_to_errors
             Memory_limit.run_with_memory_limit
               (caps :> < Cap.memory_limit >)
               ~get_context:(get_context_for_memory_limit target)
-              ~mem_limit_mb:config.max_memory_mb ~using_eio:config.use_eio
+              ~mem_limit_mb:config.max_memory_mb
               (fun () ->
                 (* we used to call Time_limit.set_timeout() here, but
                  * this is now done in Match_rules.check() because we
