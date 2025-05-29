@@ -29,17 +29,6 @@ error() {
   exit 1
 }
 
-update_benchmark_baseline() {
-  runners=("./scripts/run-benchmarks.sh" "../scripts/run-pro-benchmarks.sh")
-  for target in ${runners[@]}; do
-    echo "Updating $target"
-    targets+=" $target"
-    sed_in_place "s/^baseline_version=.*/baseline_version=$release/" "$target"
-    git add $target
-  done
-
-}
-
 update_init_py() {
   target=cli/src/semgrep/__init__.py
   targets+=" $target"
@@ -113,7 +102,6 @@ bump() {
   update_version_ml
   update_dune_project
   update_opam_file
-  update_benchmark_baseline
 }
 
 release="${SEMGREP_RELEASE_NEXT_VERSION}"
