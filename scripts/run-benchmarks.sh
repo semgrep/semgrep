@@ -9,10 +9,21 @@ set -e
 
 cd cli || return
 
-baseline_version=1.123.0
+# NOTE: `pip index versions` is an experimental command, and it emits a notice as such to stderr.
+# On stdout it emits two lines of the form:
+#
+# "semgrep (x.yyy.z)
+# Available versions: x.yyy.z, x.yyy.z, x.yyy.z, ..."
+all_versions=$(pipenv run pip index versions semgrep 2>/dev/null \
+    | grep Available \
+    | sed -e 's/Available versions: //')
+IFS=', ' all_versions=("$all_versions")
+
+# This will be the most recent version.
+baseline_version=${all_versions[0]}
 
 # Run timing benchmark
-pipenv install semgrep==$baseline_version
+pipenv install semgrep=="$baseline_version"
 pipenv run semgrep --version
 export PATH=/github/home/.local/bin:$PATH
 
@@ -25,10 +36,10 @@ pipenv run python3 ../perf/run-benchmarks --config $config_path --std-only --sav
 jq . baseline_timing2.json
 pipenv uninstall -y semgrep
 
-# Install latest
+# Install local
 pipenv install -e .
 
-# Run latest timing benchmark
+# Run local timing benchmark
 pipenv run semgrep --version
 pipenv run semgrep-core -version
 pipenv run python3 ../perf/run-benchmarks --config $config_path --std-only --save-to timing1.json
