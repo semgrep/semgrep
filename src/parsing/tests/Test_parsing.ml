@@ -393,7 +393,7 @@ let parsing_common
                match
                  Memory_limit.run_with_memory_limit
                    (caps :> < Cap.memory_limit >)
-                   ~mem_limit_mb ~using_eio:false
+                   ~mem_limit_mb
                    (fun () ->
                      Time_limit.set_timeout
                        (caps :> < Cap.time_limit >)

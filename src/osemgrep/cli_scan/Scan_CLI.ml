@@ -1357,7 +1357,7 @@ let test_CLI_conf ~test ~target_roots ~config ~json ~optimizations
  * also Ci_CLI.scan_subset_cmdline_term
  *)
 let cmdline_term caps ~allow_empty_config : conf Term.t =
-  (* !The parameters must be in alphabetic orders to match the order
+  (* !The parameters must be in alphabetical order to match the order
      of the corresponding '$ o_xx $' further below!
   *)
   let combine allow_local_builds allow_untrusted_validators autofix
@@ -1381,7 +1381,9 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
        We don't want users to start relying on these. *)
     if
       x_ignore_semgrepignore_files || x_ls || x_ls_long || x_tr
-      || common.CLI_common.x_eio || x_pro_naming
+      ||
+      (* common.CLI_common.x_eio || *)
+      x_pro_naming
     then
       Logs.warn (fun m ->
           m
@@ -1587,7 +1589,7 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
   in
   (* Term defines 'const' but also the '$' operator *)
   Term.(
-    (* !the o_xxx must be in alphabetic orders to match the parameters of
+    (* !the o_xxx must be in alphabetical order to match the parameters of
      * combine above! *)
     const combine $ o_allow_local_builds $ o_allow_untrusted_validators
     $ o_autofix $ o_baseline_commit $ CLI_common.o_common $ o_config

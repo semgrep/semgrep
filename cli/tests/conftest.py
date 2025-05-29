@@ -393,7 +393,8 @@ def _run_semgrep(
     strict: bool = False,
     quiet: bool = False,
     env: Optional[Dict[str, str]] = None,
-    use_eio: bool = False,
+    use_eio: bool = True,
+    j: int = 1,
     assert_exit_code: Union[None, int, Set[int]] = 0,
     force_color: Optional[bool] = None,
     # See e2e/test_dependency_aware_rule.py for why this is here
@@ -480,6 +481,12 @@ def _run_semgrep(
 
             if use_eio:
                 options.append("--x-eio")
+                # Currently `semgrep test` does not consume `-j`.  We should contemplate
+                # running those tests in parallel with Domains.map, but until then, just
+                # elide the argument.
+                if subcommand is None or subcommand == "scan" or subcommand == "ci":
+                    assert j >= 1
+                    options.extend(["-j", str(j)])
 
             if config is not None:
                 if isinstance(config, list):
