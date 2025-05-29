@@ -108,8 +108,8 @@ let parse_pattern options lang str =
         |> run_pattern
              (* coupling: semgrep/js/languages/typescript/Parser.ml *)
              [
-               PfffPat Parse_js.any_of_string;
                TreeSitterPat Parse_typescript_tree_sitter.parse_pattern;
+               PfffPat Parse_js.any_of_string;
              ]
       in
       Js_to_generic.any js_ast

@@ -96,6 +96,8 @@ type predefined_type = [
 
 type regex_pattern = Token.t
 
+type semgrep_metavariable = Token.t (* pattern \$[A-Z_][A-Z_0-9]* *)
+
 type regex_flags = Token.t (* pattern [a-z]+ *)
 
 type anon_choice_let_ca16eb3 = [
@@ -464,17 +466,28 @@ and anon_choice_jsx_attr_name_b052322 = [
     )
 ]
 
+and pair = [
+    `Prop_name_COLON_exp of (property_name * Token.t (* ":" *) * expression)
+  | `Semg_ellips of Token.t (* "..." *)
+]
+
 and anon_choice_pair_20c9acd = [
-    `Pair of (property_name * Token.t (* ":" *) * expression)
+    `Pair of pair
   | `Spread_elem of spread_element
   | `Meth_defi of method_definition
   | `Choice_id of anon_choice_type_id_dd17e7d
 ]
 
-and anon_choice_pair_pat_3ff9cbe = [
-    `Pair_pat of (
+and pair_pattern = [
+    `Prop_name_COLON_choice_pat of (
         property_name * Token.t (* ":" *) * anon_choice_pat_3297d92
     )
+  | `Semg_ellips of Token.t (* "..." *)
+]
+
+
+and anon_choice_pair_pat_3ff9cbe = [
+    `Pair_pat of pair_pattern
   | `Rest_pat of rest_pattern
   | `Obj_assign_pat of (
         [
@@ -1134,10 +1147,14 @@ and jsx_attribute_value = [
 ]
 
 and jsx_child = [
-    `Jsx_text of jsx_text (*tok*)
-  | `Html_char_ref of html_character_reference (*tok*)
-  | `Choice_jsx_elem of jsx_element_
-  | `Jsx_exp of jsx_expression
+    `Choice_jsx_text of [
+        `Jsx_text of jsx_text (*tok*)
+      | `Html_char_ref of html_character_reference (*tok*)
+      | `Choice_jsx_elem of jsx_element_
+      | `Jsx_exp of jsx_expression
+    ]
+  | `Semg_ellips of Token.t (* "..." *)
+  | `Semg_meta of semgrep_metavariable (*tok*)
 ]
 
 and jsx_element_ = [
@@ -1744,13 +1761,15 @@ and variable_declarator = [
     )
 ]
 
+type semgrep_pattern = [ `Exp of expression | `Pair of pair ]
+
 type program = [
     `Opt_hash_bang_line_rep_stmt of (
         hash_bang_line (*tok*) option
       * statement list (* zero or more *)
     )
   | `Switch_case of switch_case
-  | `Semg_exp of (Token.t (* "__SEMGREP_EXPRESSION" *) * expression)
+  | `Semg_exp of (Token.t (* "__SEMGREP_EXPRESSION" *) * semgrep_pattern)
 ]
 
 type semgrep_ellipsis (* inlined *) = Token.t (* "..." *)
@@ -2068,12 +2087,6 @@ type optional_tuple_parameter (* inlined *) = (
 )
 
 type optional_type (* inlined *) = (type_ * Token.t (* "?" *))
-
-type pair (* inlined *) = (property_name * Token.t (* ":" *) * expression)
-
-type pair_pattern (* inlined *) = (
-    property_name * Token.t (* ":" *) * anon_choice_pat_3297d92
-)
 
 type parenthesized_type (* inlined *) = (
     Token.t (* "(" *) * type_ * Token.t (* ")" *)
