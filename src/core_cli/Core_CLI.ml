@@ -677,6 +677,7 @@ let decide_if_eio caps (config : Core_scan_config.t) =
   if (not !Common.jsoo) && config.use_eio then
     Eio_main.run (fun base ->
         Eio.Switch.run (fun sw ->
+            Logs_threaded.enable ();
             let pool =
               Eio.Executor_pool.create ~sw
                 (Eio.Stdenv.domain_mgr base)
