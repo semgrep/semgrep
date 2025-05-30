@@ -9,11 +9,11 @@ public class metavar_typed_int {
     System.out.println(1 + 1);
     // MATCH:
     System.out.println(1 - 1);
-    // TODO:
+    // MATCH:
     System.out.println(1 * 1);
     // TODO:
     System.out.println(1 / 1);
-    // TODO:
+    // MATCH:
     System.out.println(1 % 1);
     // OK:
     System.out.println("1");

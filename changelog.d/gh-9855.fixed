@@ -1,0 +1,1 @@
+Fixed scenario where a multiplication expression of ints was not considered an int. This will help with `metavariable-type`. Concretely, "2 * groups" was not considered an int, where groups is an int. Additionally adds type inference for mod, floor division, and pow.

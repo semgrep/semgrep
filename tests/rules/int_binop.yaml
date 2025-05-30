@@ -1,0 +1,12 @@
+rules:
+  - id: int-binop
+    patterns:
+      - pattern: test($N)
+      - metavariable-type:
+          metavariable: $N
+          types:
+            - int
+    message: Expects that some binop of two ints are an int, i.e. multiplication, mod, pow, etc.
+    languages:
+      - go
+    severity: ERROR

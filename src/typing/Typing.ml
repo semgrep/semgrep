@@ -79,7 +79,8 @@ let rec type_of_expr lang e : G.name Type.t * G.ident option =
               when lang =*= Lang.Python || lang =*= Lang.Php (* TODO more *) ->
                 Type.Builtin Type.Number
             | ( Type.Builtin Type.Int,
-                (G.Plus | G.Minus (* TODO more *)),
+                ( G.Plus | G.Minus | G.Mult | G.Mod | G.Pow
+                | G.FloorDiv (* TODO more *) ),
                 Type.Builtin Type.Int ) ->
                 Type.Builtin Type.Int
             | ( _,
