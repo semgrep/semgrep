@@ -31,8 +31,9 @@ from semgrep.parsing_data import ParsingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.state import get_state
-from semgrep.subproject import resolved_subproject_to_stats
-from semgrep.subproject import subproject_to_stats
+from semgrep.subproject import (
+    subproject_to_stats,
+)
 from semgrep.target_manager import ALL_PRODUCTS
 from semgrep.types import FilteredMatches
 from semgrep.verbose_logging import getLogger
@@ -482,14 +483,9 @@ class ScanHandler:
             name = USER_FRIENDLY_PRODUCT_NAMES.get(r.product, r.product.to_json())
             findings_by_product[f"{name}"] += len(f)
 
-        subproject_stats: List[out.SubprojectStats] = []
-        if all_subprojects:
-            for subproject in all_subprojects:
-                if isinstance(subproject, out.UnresolvedSubproject):
-                    stats = subproject_to_stats(subproject.info)
-                else:
-                    stats = resolved_subproject_to_stats(subproject)
-                subproject_stats.append(stats)
+        subproject_stats = [
+            subproject_to_stats(subproject) for subproject in all_subprojects
+        ]
 
         complete = out.CiScanComplete(
             exit_code=cli_suggested_exit_code,

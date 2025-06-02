@@ -32,6 +32,7 @@
               "path": "yarn.lock"
             }
           ],
+          "unresolved_reason": "skipped",
           "errors": []
         },
         {
