@@ -1,0 +1,107 @@
+=== exit code
+0
+=== end of exit code
+
+=== stdout - plain
+{
+  "errors": [],
+  "paths": {
+    "scanned": [
+      "targets/dependency_aware/gradle-kts/gradle.lockfile",
+      "targets/dependency_aware/gradle-kts/sca-gradle.java"
+    ]
+  },
+  "results": [
+    {
+      "check_id": "rules.dependency_aware.java-gradle-sca",
+      "end": {
+        "col": 21,
+        "line": 3,
+        "offset": 54
+      },
+      "extra": {
+        "engine_kind": "OSS",
+        "fingerprint": "0x42",
+        "lines": "requires login",
+        "message": "oh no",
+        "metadata": {},
+        "sca_info": {
+          "dependency_match": {
+            "dependency_pattern": {
+              "ecosystem": "maven",
+              "package": "org.webjars.npm:swagger-ui-dist",
+              "semver_range": "<= 3.35.2"
+            },
+            "found_dependency": {
+              "allowed_hashes": {},
+              "ecosystem": "maven",
+              "line_number": 317,
+              "lockfile_path": "targets/dependency_aware/gradle-kts/gradle.lockfile",
+              "manifest_path": "targets/dependency_aware/gradle-kts/build.gradle.kts",
+              "package": "org.webjars.npm:swagger-ui-dist",
+              "transitivity": "unknown",
+              "version": "3.35.2"
+            },
+            "lockfile": "targets/dependency_aware/gradle-kts/gradle.lockfile"
+          },
+          "reachability_rule": true,
+          "reachable": true,
+          "sca_finding_schema": 20220913
+        },
+        "severity": "WARNING",
+        "validation_state": "NO_VALIDATOR"
+      },
+      "path": "targets/dependency_aware/gradle-kts/sca-gradle.java",
+      "start": {
+        "col": 16,
+        "line": 3,
+        "offset": 49
+      }
+    }
+  ],
+  "skipped_rules": [],
+  "version": "0.42"
+}
+=== end of stdout - plain
+
+=== stderr - plain
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 3 files tracked by git with 0 Code rules, 1 Supply Chain rule:
+
+
+  CODE RULES
+  Nothing to scan.
+
+  SUPPLY CHAIN RULES
+  Scanning 1 file and 1 dependency source.
+
+  Dependency Sources                                    Resolution Method   Ecosystem   Dependencies   Rules
+ ────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  targets/dependency_aware/gradle-kts/gradle.lockfile   Lockfile            Maven       317                1
+
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+✅ Scan completed successfully.
+ • Findings: 1 (1 blocking)
+ • Rules run: 1
+ • Targets scanned: 2
+ • Parsed lines: ~100.0%
+ • No ignore information available
+Ran 1 rule on 2 files: 1 finding.
+
+=== end of stderr - plain
+
+=== stdout - color
+<same as above: stdout - plain>
+=== end of stdout - color
+
+=== stderr - color
+<same as above: stderr - plain>
+=== end of stderr - color

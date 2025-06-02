@@ -87,8 +87,9 @@ def parse_gradle(
         DependencyFileToParse(
             manifest_path, manifest, ScaParserName(out.PGradleLockfile())
         )
-        if manifest_path
-        else None,
+        # the matcher might match a build.gradle.kts file, which we don't currently
+        # support for manifest parsing. In that case just use the lockfile.
+        if manifest_path and manifest_path.name == "build.gradle" else None,
     )
     if not parsed_lockfile:
         return [], errors
