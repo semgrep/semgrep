@@ -258,7 +258,7 @@ def resolve_subprojects(
             "Resolving dependencies", total=len(relevant_subprojects), subproject_dir=""
         )
         for item_i, subproject in enumerate(relevant_subprojects):
-            progress.update(task_id, subproject_dir=subproject.root_dir)
+            progress.update(task_id, subproject_dir=subproject.root_dir.value)
             if subproject.ecosystem is None:
                 # no reason to resolve subprojects that we don't support. We only recognize them
                 # for tracking purposes
