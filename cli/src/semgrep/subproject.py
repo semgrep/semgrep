@@ -159,33 +159,52 @@ def to_stats_output(dep: out.DependencySource) -> List[out.DependencySourceFile]
         raise TypeError(f"Unexpected dependency_source variant: {type(ds)}")
 
 
-def subproject_to_stats(sub: out.Subproject) -> out.SubprojectStats:
-    # subproject id is a hash based on the dependency field paths
+def _generate_subproject_id(sub: out.Subproject) -> str:
+    """Generate a consistent ID hash for a subproject based on dependency source paths."""
     normalized_paths = sorted(
         str(path).strip() for path in get_display_paths(sub.dependency_source)
     )
-    subproject_id = hashlib.sha256(
-        "".join(normalized_paths).encode("utf-8")
-    ).hexdigest()
+    return hashlib.sha256("".join(normalized_paths).encode("utf-8")).hexdigest()
 
+
+def _unresolved_subproject_to_stats(
+    sub: out.UnresolvedSubproject,
+) -> out.SubprojectStats:
+    """Convert an unresolved subproject to subproject stats."""
     return out.SubprojectStats(
-        subproject_id=subproject_id,
-        dependency_sources=to_stats_output(sub.dependency_source),
+        subproject_id=_generate_subproject_id(sub.info),
+        dependency_sources=to_stats_output(sub.info.dependency_source),
         resolved_stats=None,
+        unresolved_reason=sub.reason,
+        errors=sub.errors,
     )
 
 
-def resolved_subproject_to_stats(sub: out.ResolvedSubproject) -> out.SubprojectStats:
-    base_stats = subproject_to_stats(sub.info)
+def _resolved_subproject_to_stats(sub: out.ResolvedSubproject) -> out.SubprojectStats:
+    """Convert a resolved subproject to subproject stats."""
     return out.SubprojectStats(
-        subproject_id=base_stats.subproject_id,
-        dependency_sources=base_stats.dependency_sources,
+        subproject_id=_generate_subproject_id(sub.info),
+        dependency_sources=to_stats_output(sub.info.dependency_source),
         resolved_stats=out.DependencyResolutionStats(
             ecosystem=sub.ecosystem,
             resolution_method=sub.resolution_method,
             dependency_count=count_resolved_dependencies(sub.resolved_dependencies),
         ),
+        unresolved_reason=None,
+        errors=sub.errors,
     )
+
+
+def subproject_to_stats(
+    sub: Union[out.ResolvedSubproject, out.UnresolvedSubproject],
+) -> out.SubprojectStats:
+    """Convert a subproject to subproject stats."""
+    if isinstance(sub, out.UnresolvedSubproject):
+        return _unresolved_subproject_to_stats(sub)
+    elif isinstance(sub, out.ResolvedSubproject):
+        return _resolved_subproject_to_stats(sub)
+    else:
+        raise ValueError(f"Unexpected subproject type: {type(sub)}")
 
 
 def find_closest_subproject(

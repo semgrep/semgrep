@@ -13,7 +13,6 @@ from semgrep.subproject import find_closest_resolved_subproject
 from semgrep.subproject import from_resolved_dependencies
 from semgrep.subproject import get_display_paths
 from semgrep.subproject import make_dependencies_by_source_path
-from semgrep.subproject import resolved_subproject_to_stats
 from semgrep.subproject import subproject_to_stats
 from semgrep.subproject import to_stats_output
 
@@ -359,32 +358,6 @@ class TestSubproject:
             lockfile_path
         ], "Should return lockfile path"
 
-    @pytest.mark.quick
-    def test_to_stats_output(self):
-        lockfile_src = out.LockfileOnly(
-            out.Lockfile(
-                out.LockfileKind(out.PipRequirementsTxt()),
-                out.Fpath("a/b/c/requirements.txt"),
-            ),
-        )
-        dependency_source = out.DependencySource(lockfile_src)
-
-        subproject = out.Subproject(
-            root_dir=out.Fpath("a/b/c"),
-            dependency_source=dependency_source,
-            ecosystem=Ecosystem(Pypi()),
-        )
-
-        subproject_id = hashlib.sha256(
-            str(lockfile_src.value.path.value).encode("utf-8")
-        ).hexdigest()
-
-        assert subproject_to_stats(subproject) == out.SubprojectStats(
-            subproject_id=subproject_id,
-            dependency_sources=to_stats_output(dependency_source),
-            resolved_stats=None,
-        )
-
 
 class TestResolvedSubproject:
     @pytest.mark.quick
@@ -414,7 +387,7 @@ class TestResolvedSubproject:
 
         subproject_id = hashlib.sha256(str(lockfile_path).encode("utf-8")).hexdigest()
 
-        assert resolved_subproject_to_stats(subproject) == out.SubprojectStats(
+        assert subproject_to_stats(subproject) == out.SubprojectStats(
             subproject_id=subproject_id,
             dependency_sources=to_stats_output(dependency_source),
             resolved_stats=out.DependencyResolutionStats(
