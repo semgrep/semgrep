@@ -1,0 +1,1 @@
+Stop attempting to parse `build.gradle.kts` files as `build.gradle`.

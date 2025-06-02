@@ -92,6 +92,10 @@ pytestmark = pytest.mark.kinda_slow
             "dependency_aware/gradle_empty=",
         ),
         (
+            "rules/dependency_aware/java-gradle-sca.yaml",
+            "dependency_aware/gradle-kts",
+        ),
+        (
             "rules/dependency_aware/python-pipfile-sca.yaml",
             "dependency_aware/pipfile",
         ),
