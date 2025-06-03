@@ -6,6 +6,7 @@ import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers.package_lock import parse_package_name
 from semdep.parsers.package_lock import parse_packages_field
 from semdep.parsers.util import JSON
+from semgrep.semgrep_interfaces.semgrep_output_v1 import Direct
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import FoundDependency
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Fpath
@@ -172,6 +173,191 @@ def test_package_lock_v2_parser_produces_correct_deps():
             transitivity=out.DependencyKind(value=Transitive()),
             resolved_url="https://registry.npmjs.org/bootstrap/-/bootstrap-5.3.3.tgz",
             line_number=21,
+            children=None,
+            git_ref=None,
+            lockfile_path=Fpath(str(lockfile_path)),
+            manifest_path=None,
+        ),
+    ]
+
+
+@pytest.mark.quick
+def test_package_lock_parser_treats_dev_dependencies_as_dependencies():
+    lockfile_path = Path("test/fixtures/package-lock-v3/package-lock.json")
+    v3_deps = {
+        "": JSON(
+            line_number=6,
+            value={
+                "devDependencies": JSON(
+                    line_number=7,
+                    value={"bootstrap": JSON(line_number=8, value="^5.3.3")},
+                )
+            },
+        ),
+        "node_modules/@popperjs/core": JSON(
+            line_number=11,
+            value={
+                "version": JSON(line_number=12, value="2.11.8"),
+                "resolved": JSON(
+                    line_number=13,
+                    value="https://registry.npmjs.org/@popperjs/core/-/core-2.11.8.tgz",
+                ),
+                "integrity": JSON(
+                    line_number=14,
+                    value="sha512-P1st0aksCrn9sGZhp8GMYwBnQsbvAWsZAX44oXNNvLHGqAOcoVxmjZiohstwQ7SqKnbR47akdNi+uleWD8+g6A==",
+                ),
+                "peer": JSON(line_number=15, value=True),
+                "funding": JSON(
+                    line_number=16,
+                    value={
+                        "type": JSON(line_number=17, value="opencollective"),
+                        "url": JSON(
+                            line_number=18, value="https://opencollective.com/popperjs"
+                        ),
+                    },
+                ),
+                "dev": JSON(line_number=19, value=True),
+            },
+        ),
+        "libs/legacy-bootstrap": JSON(
+            line_number=21,
+            value={
+                "version": JSON(line_number=22, value="3.0.1"),
+                "resolved": JSON(
+                    line_number=23,
+                    value="https://registry.npmjs.org/bootstrap/-/bootstrap-5.3.3.tgz",
+                ),
+                "integrity": JSON(
+                    line_number=24,
+                    value="sha512-8HLCdWgyoMguSO9o+aH+iuZ+aht+mzW0u3HIMzVu7Srrpv7EBBxTnrFlSCskwdY1+EOFQSm7uMJhNQHkdPcmjg==",
+                ),
+                "funding": JSON(
+                    line_number=25,
+                    value=[
+                        JSON(
+                            line_number=26,
+                            value={
+                                "type": JSON(line_number=27, value="github"),
+                                "url": JSON(
+                                    line_number=28,
+                                    value="https://github.com/sponsors/twbs",
+                                ),
+                            },
+                        ),
+                        JSON(
+                            line_number=30,
+                            value={
+                                "type": JSON(line_number=31, value="opencollective"),
+                                "url": JSON(
+                                    line_number=32,
+                                    value="https://opencollective.com/bootstrap",
+                                ),
+                            },
+                        ),
+                    ],
+                ),
+                "peerDependencies": JSON(
+                    line_number=35,
+                    value={"@popperjs/core": JSON(line_number=36, value="^2.11.8")},
+                ),
+                "dev": JSON(line_number=37, value=True),
+            },
+        ),
+        "node_modules/bootstrap": JSON(
+            line_number=39,
+            value={
+                "version": JSON(line_number=40, value="5.3.3"),
+                "resolved": JSON(
+                    line_number=41,
+                    value="https://registry.npmjs.org/bootstrap/-/bootstrap-5.3.3.tgz",
+                ),
+                "integrity": JSON(
+                    line_number=42,
+                    value="sha512-8HLCdWgyoMguSO9o+aH+iuZ+aht+mzW0u3HIMzVu7Srrpv7EBBxTnrFlSCskwdY1+EOFQSm7uMJhNQHkdPcmjg==",
+                ),
+                "funding": JSON(
+                    line_number=43,
+                    value=[
+                        JSON(
+                            line_number=44,
+                            value={
+                                "type": JSON(line_number=45, value="github"),
+                                "url": JSON(
+                                    line_number=46,
+                                    value="https://github.com/sponsors/twbs",
+                                ),
+                            },
+                        ),
+                        JSON(
+                            line_number=48,
+                            value={
+                                "type": JSON(line_number=49, value="opencollective"),
+                                "url": JSON(
+                                    line_number=50,
+                                    value="https://opencollective.com/bootstrap",
+                                ),
+                            },
+                        ),
+                    ],
+                ),
+                "dev": JSON(line_number=53, value=True),
+                "peerDependencies": JSON(
+                    line_number=55,
+                    value={"@popperjs/core": JSON(line_number=56, value="^2.11.8")},
+                ),
+                "license": JSON(line_number=58, value="MIT"),
+            },
+        ),
+    }
+
+    parsed_deps = parse_packages_field(lockfile_path, v3_deps, manifest_path=None)
+    assert parsed_deps == [
+        FoundDependency(
+            package="@popperjs/core",
+            version="2.11.8",
+            ecosystem=Ecosystem(value=Npm()),
+            allowed_hashes={
+                "sha512": [
+                    "3f5b2dd1a92c0ab9fdb06661a7c18c63006742c6ef016b19017e38a1734dbcb1c6a8039ca15c668d98a886cb7043b4aa2a76d1e3b6a474d8beba57960fcfa0e8"
+                ]
+            },
+            transitivity=out.DependencyKind(value=Transitive()),
+            resolved_url="https://registry.npmjs.org/@popperjs/core/-/core-2.11.8.tgz",
+            line_number=11,
+            children=None,
+            git_ref=None,
+            lockfile_path=Fpath(str(lockfile_path)),
+            manifest_path=None,
+        ),
+        FoundDependency(
+            package="legacy-bootstrap",
+            version="3.0.1",
+            ecosystem=Ecosystem(value=Npm()),
+            allowed_hashes={
+                "sha512": [
+                    "f072c2756832a0c82e48ef68f9a1fe8ae67e6a1b7e9b35b4bb71c833356eed2aeba6fec4041c539eb165482b24c1d635f843854129bbb8c2613501e474f7268e"
+                ]
+            },
+            transitivity=out.DependencyKind(value=Transitive()),
+            resolved_url="https://registry.npmjs.org/bootstrap/-/bootstrap-5.3.3.tgz",
+            line_number=21,
+            children=None,
+            git_ref=None,
+            lockfile_path=Fpath(str(lockfile_path)),
+            manifest_path=None,
+        ),
+        FoundDependency(
+            package="bootstrap",
+            version="5.3.3",
+            ecosystem=Ecosystem(value=Npm()),
+            allowed_hashes={
+                "sha512": [
+                    "f072c2756832a0c82e48ef68f9a1fe8ae67e6a1b7e9b35b4bb71c833356eed2aeba6fec4041c539eb165482b24c1d635f843854129bbb8c2613501e474f7268e",
+                ],
+            },
+            transitivity=out.DependencyKind(value=Direct()),
+            resolved_url="https://registry.npmjs.org/bootstrap/-/bootstrap-5.3.3.tgz",
+            line_number=39,
             children=None,
             git_ref=None,
             lockfile_path=Fpath(str(lockfile_path)),
