@@ -141,13 +141,12 @@ For more information see https://semgrep.dev
     ; web stuff
     uri
     (uuidm (>= 0.9.9))
-    (cohttp (= 6.0.0)) ; 6.0.0 for better error handling
+    (cohttp (>= 6.1.0))
     cohttp-lwt-unix
     cohttp-lwt-jsoo
     tls-lwt ; needed for TLS support in the cohttp HTTP client (only TLS 1.3 seems to work)
     emile
     (digestif (>= 1.0.0))
-    (tls-mirage (= 0.17.3)) ; force older version of tls-mirage to make windows work
     ; concurrency
     lwt
     lwt_ppx

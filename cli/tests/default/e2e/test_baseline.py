@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 import pytest
+from tests.conftest import remove_cert_warnings
 from tests.conftest import skip_on_windows
 from tests.semgrep_runner import SEMGREP_BASE_SCAN_COMMAND
 
@@ -164,6 +165,9 @@ def assert_err_match(snapshot, output, snapshot_name, replace_base_commit=None):
         if replace_base_commit
         else output.stderr
     )
+    # Needed here because some Windows tests depend on it (see function
+    # documentation) and general masking is not applied here.
+    err = remove_cert_warnings(err)
     return snapshot.assert_match(textwrap.dedent(err), snapshot_name)
 
 

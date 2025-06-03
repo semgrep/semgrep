@@ -12,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-module Http_helpers_ = Http_helpers
 module Env = Semgrep_envvars
 
 (*****************************************************************************)
@@ -323,7 +322,8 @@ let main (caps : caps) (argv : string array) : Exit_code.t =
   (* hacks for having a smaller engine.js file *)
   Parsing_init.init ();
   Data_init.init ();
-  Http_helpers_.set_client_ref (module Cohttp_lwt_unix.Client);
+  Proxy.configure_proxy (Proxy.settings_from_env ());
+  Http_helpers.set_client_ref (module Cohttp_lwt_unix.Client);
 
   metrics_init (caps :> < Cap.random >);
 

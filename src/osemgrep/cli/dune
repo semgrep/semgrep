@@ -24,6 +24,8 @@
 
     ; reusing code from Core_cli
     semgrep_core_cli
+
+    networking.proxy
   )
  (preprocess
    (pps

@@ -1,0 +1,7 @@
+(library
+ (public_name networking.proxy)
+ (name networking_proxy)
+ (wrapped false)
+ (libraries uri cohttp cohttp-lwt-unix profiling lwt_platform)
+ (preprocess
+  (pps ppx_deriving.show ppx_deriving.eq)))
