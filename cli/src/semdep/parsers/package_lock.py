@@ -49,10 +49,17 @@ def parse_packages_field(
     deps: Dict[str, JSON],
     manifest_path: Optional[Path],
 ) -> List[FoundDependency]:
-    try:
-        manifest_deps = set(deps[""].as_dict()["dependencies"].as_dict().keys())
-    except KeyError:
-        manifest_deps = None
+    # Grab both the dependencies and devDependencies from the root package (if they're specified).
+    # TODO: Once we add first-class support for devDependencies, do not treat devDependencies as regular dependencies.
+    deps_dict = deps[""].as_dict()
+    dependencies = (
+        deps_dict["dependencies"].as_dict() if "dependencies" in deps_dict else {}
+    )
+    dev_dependencies = (
+        deps_dict["devDependencies"].as_dict() if "devDependencies" in deps_dict else {}
+    )
+    manifest_deps = set(dependencies.keys()) | set(dev_dependencies.keys())
+
     output = []
     for package, dep_json in deps.items():
         fields = dep_json.as_dict()
