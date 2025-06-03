@@ -88,7 +88,7 @@ def parse_packages_lock(
     # Start parsing dependencies
     deps = lockfile_json.get("dependencies")
     if deps is None:
-        logger.warn("Found packages.lock.json with no 'dependencies'")
+        logger.warning("Found packages.lock.json with no 'dependencies'")
         return [], errors
 
     return (

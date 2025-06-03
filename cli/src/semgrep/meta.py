@@ -150,7 +150,7 @@ class GitMeta:
                 timeout=env.git_command_timeout,
             )
             if git_parse.returncode != 0:
-                logger.warn(
+                logger.warning(
                     f"Unable to infer repo_url. Set SEMGREP_REPO_URL environment variable or run in a valid git project with remote origin defined"
                 )
             repo_url = git_parse.stdout.strip()

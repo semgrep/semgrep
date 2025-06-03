@@ -249,7 +249,7 @@ class BaselineHandler:
 
         except subprocess.CalledProcessError as exc:
             if exc.stderr.strip() == "fatal: multiple merge bases found":
-                logger.warn(
+                logger.warning(
                     "git could not find a single branch-off point, so we will compare the baseline commit directly"
                 )
                 # -- is a sentinel to avoid ambiguity between branch and file names
