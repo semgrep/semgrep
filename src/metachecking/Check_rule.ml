@@ -352,6 +352,7 @@ let check_files (caps : < Cap.stdout ; Core_scan.caps ; Cap.readdir ; .. >)
 
 (* for semgrep-core -stat_rules *)
 let stat_files (caps : < Cap.stdout ; Cap.readdir ; .. >) xs =
+  let generate_prefilter = Analyze_rule.prefilter_of_rule ~interfile:false in
   let fullxs =
     xs
     |> File_type.files_of_dirs_or_files caps (function
@@ -360,7 +361,6 @@ let stat_files (caps : < Cap.stdout ; Cap.readdir ; .. >) xs =
   in
   let good = ref 0 in
   let bad = ref 0 in
-  let prefilter = Analyze_rule.make_regex_prefilter ~interfile:false in
   fullxs
   |> List.iter (fun file ->
          Logs.info (fun m -> m "stat_files: processing rule file %s" !!file);
@@ -368,15 +368,19 @@ let stat_files (caps : < Cap.stdout ; Cap.readdir ; .. >) xs =
          | Ok rs ->
              rs
              |> List.iter (fun r ->
-                    match prefilter r with
+                    match generate_prefilter r with
                     | None ->
                         incr bad;
                         Logs.warn (fun m ->
                             m "no regexp prefilter for rule %s:%s" !!file
                               (Rule_ID.to_string (fst r.id)))
-                    | Some (f, _f) ->
+                    | Some prefilter ->
                         incr good;
-                        let s = Semgrep_prefilter_j.string_of_formula f in
+                        let s =
+                          Semgrep_prefilter_j.string_of_formula
+                            (Analyze_rule.prefilter_formula_of_prefilter
+                               prefilter)
+                        in
                         Logs.debug (fun m -> m "regexp: %s" s))
          | Error e ->
              Logs.warn (fun m ->

@@ -546,20 +546,23 @@ let eval_regression_tests () =
 (*****************************************************************************)
 
 let test_irrelevant_rule_intrafile rule_file target_file =
-  let prefilter = Analyze_rule.make_regex_prefilter ~interfile:false in
+  let generate_prefilter = Analyze_rule.prefilter_of_rule ~interfile:false in
   (* TODO: fail more gracefully for invalid rules? *)
   let rules = Parse_rule.parse rule_file |> Result.get_ok in
   rules
   |> List.iter (fun rule ->
-         match prefilter rule with
+         match generate_prefilter rule with
          | None ->
              Alcotest.fail
                (spf "Rule %s: no regex prefilter formula"
                   (Rule_ID.to_string (fst rule.id)))
-         | Some (f, func) ->
+         | Some prefilter ->
              let content = UFile.read_file target_file in
-             let s = Semgrep_prefilter_j.string_of_formula f in
-             if func content then
+             let s =
+               Semgrep_prefilter_j.string_of_formula
+                 (Analyze_rule.prefilter_formula_of_prefilter prefilter)
+             in
+             if Analyze_rule.check_prefilter prefilter content then
                Alcotest.fail
                  (spf "Rule %s considered relevant by regex prefilter: %s"
                     (Rule_ID.to_string (fst rule.id))

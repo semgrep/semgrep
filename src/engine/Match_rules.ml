@@ -85,12 +85,12 @@ let is_relevant_rule_for_xtarget r xconf xtarget =
     | CachedPrefilter f -> (
         match f ~interfile r with
         | None -> true
-        | Some (prefilter_formula, func) ->
+        | Some prefilter ->
             let content = Lazy.force lazy_content in
-            let s = Semgrep_prefilter_j.string_of_formula prefilter_formula in
             Log.info (fun m ->
-                m "looking for %s in %s" s !!internal_path_to_content);
-            func content)
+                m "looking for %a in %s" Analyze_rule.pp_prefilter prefilter
+                  !!internal_path_to_content);
+            Analyze_rule.check_prefilter prefilter content)
   in
   if not is_relevant then
     Log.info (fun m ->

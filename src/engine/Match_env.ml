@@ -40,8 +40,8 @@ type prefilter_policy =
   | NoPrefiltering
 
 let make_prefilter () =
-  let with_interfile = Analyze_rule.make_regex_prefilter ~interfile:true in
-  let without_interfile = Analyze_rule.make_regex_prefilter ~interfile:false in
+  let with_interfile = Analyze_rule.prefilter_of_rule ~interfile:true in
+  let without_interfile = Analyze_rule.prefilter_of_rule ~interfile:false in
   CachedPrefilter
     (fun ~interfile r ->
       if interfile then with_interfile r else without_interfile r)
