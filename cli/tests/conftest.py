@@ -248,6 +248,27 @@ def mask_floats(text_output: str) -> str:
     return re.sub(FLOATS, "x.xxx", text_output)
 
 
+# E.g.:
+# [00.14][WARNING](x509.decoding): negative serial number ...
+# [00.16][WARNING](ca-certs): Ignored 3 trust anchors
+CA_CERT_LOG_PATTERN = re.compile(
+    r"\[\d\d\.\d\d\]\[WARNING\]\((?:x509.decoding|ca-certs)\):.*\r?\n?"
+)
+
+
+# Specifically skip recording logs for ca-certs and x509.decoding because they
+# cause issues on Windows. This is because Windows generally, and the github
+# actions runners specifically, include trust anchors with negative serial
+# numbers. E.g., <https://crt.sh/?q=28903A635B5280FAE6774C0B6DA7D6BAA64AF2E8>.
+# See also <https://bugzilla.mozilla.org/show_bug.cgi?id=1797559>,
+# <https://github.com/pyca/cryptography/issues/10247#issuecomment-2626151988>.
+#
+# These logs cannot be skipped because they occur in the default trust anchor,
+# _before_ our logging configuration code is run.
+def remove_cert_warnings(text_output: str) -> str:
+    return CA_CERT_LOG_PATTERN.sub("", text_output)
+
+
 # ProTip: make sure your regexps can't match JSON quotes so as to keep any
 # JSON parseable after a substitution!
 ALWAYS_MASK: Maskers = (
@@ -268,6 +289,7 @@ ALWAYS_MASK: Maskers = (
     # osemgrep only. Needed to match the pysemgrep output b/c pysemgrep
     # uses a temporary path to store rules by osemgrep doesn't.
     re.compile(r'"path": *"(rules/[^"]*)"'),
+    remove_cert_warnings,
 )
 
 

@@ -10,5 +10,6 @@
   (preprocess
     (pps
       lwt_ppx
+      ppx_deriving.show
      )
    ))
