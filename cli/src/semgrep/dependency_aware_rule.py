@@ -75,10 +75,14 @@ def generate_unreachable_sca_findings(
     already_reachable: Callable[[Path, out.FoundDependency], bool],
     resolved_deps: Dict[Ecosystem, List[out.ResolvedSubproject]],
     x_tr: bool,
+    write_to_tr_cache: bool = True,
 ) -> Tuple[List[RuleMatch], List[SemgrepError]]:
     """
-    Returns matches to a only a rule's sca-depends-on patterns; ignoring any
-    reachabiliy patterns it has.
+    Returns matches to a only a rule's sca-depends-on patterns;
+    ignoring any reachabiliy patterns it has.
+
+    :param write_to_tr_cache: Whether to write to the transitive
+        reachability cache (/tr_cache endpoint in the app).
     """
     errors: List[SemgrepError] = []
     depends_on_entries = list(parse_depends_on_yaml(rule.project_depends_on))
@@ -174,6 +178,7 @@ def generate_unreachable_sca_findings(
                     dependencies=list(
                         iter_dependencies(subproject.resolved_dependencies)
                     ),
+                    write_to_cache=write_to_tr_cache,
                 )
                 # to debug: print(params.to_json_string())
                 tr_filtered_matches = rpc_call.transitive_reachability_filter(params)
