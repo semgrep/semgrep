@@ -17,7 +17,7 @@ cd cli || return
 all_versions=$(pipenv run pip index versions semgrep 2>/dev/null \
     | grep Available \
     | sed -e 's/Available versions: //')
-IFS=', ' all_versions=("$all_versions")
+IFS=', ' read -ra all_versions <<< "$all_versions"
 
 # This will be the most recent version.
 baseline_version=${all_versions[0]}
