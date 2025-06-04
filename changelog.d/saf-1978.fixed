@@ -1,2 +1,0 @@
-pro: python: Fixed a regression that could (in rare cases) cause naming to take a
-disproportionate amount of time significantly slowing down scans.

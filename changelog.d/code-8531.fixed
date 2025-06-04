@@ -1,4 +1,0 @@
-Taint rules using the **experimental** feature _labels_, and specifying sinks
-with a `requires:` of the form `not A`, could produce findings with an empty
-list of traces, potentially causing a crash. We now recognize the issue and
-prevent the crash from happening.

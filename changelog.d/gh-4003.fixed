@@ -1,1 +1,0 @@
-Fixed bug where dev depenencies (and their dependencies, and so on) were incorrectly marked as "transitivity: unknown" when parsing package-lock.json projects, specifically v3 lockfiles.
