@@ -1,0 +1,8 @@
+rules:
+  - id: python-fstring
+    languages:
+      - python
+    severity: ERROR
+    message: Match found
+    patterns:
+      - pattern: test("...")
