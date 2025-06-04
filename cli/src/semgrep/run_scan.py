@@ -375,6 +375,7 @@ def baseline_run(
     disable_secrets_validation: bool,
     allow_local_builds: bool,
     ptt_enabled: bool,
+    dry_run: bool,
 ) -> RuleMatchMap:
     """
     Run baseline scan and return the updated rule_matches_by_rule with baseline matches removed.
@@ -489,6 +490,7 @@ def baseline_run(
                     disable_secrets_validation,
                     allow_local_builds=allow_local_builds,
                     ptt_enabled=ptt_enabled,
+                    dry_run=dry_run,
                 )
                 rule_matches_by_rule = remove_matches_in_baseline(
                     rule_matches_by_rule,
@@ -694,6 +696,7 @@ def adjust_matches_for_sca_rules(
     sca_dependency_targets: List[Path],
     output_handler: OutputHandler,
     output_extra: OutputExtra,
+    dry_run: bool = False,
     x_tr: bool = False,
 ) -> Dict[str, List[out.FoundDependency]]:
     """
@@ -745,6 +748,7 @@ def adjust_matches_for_sca_rules(
                 already_reachable,
                 resolved_subprojects,
                 x_tr=x_tr,
+                write_to_tr_cache=not dry_run,
             )
 
             rule_matches_by_rule[rule].extend(dep_rule_matches)
@@ -755,7 +759,11 @@ def adjust_matches_for_sca_rules(
                 dep_rule_matches,
                 dep_rule_errors,
             ) = generate_unreachable_sca_findings(
-                rule, lambda p, d: False, resolved_subprojects, x_tr=False
+                rule,
+                lambda p, d: False,
+                resolved_subprojects,
+                x_tr=False,
+                write_to_tr_cache=not dry_run,
             )
 
             rule_matches_by_rule[rule] = dep_rule_matches
@@ -845,6 +853,7 @@ def run_rules(
     allow_local_builds: bool = False,
     ptt_enabled: bool = False,
     resolve_all_deps_in_diff_scan: bool = False,
+    dry_run: bool = False,
     x_tr: bool = False,
     x_eio: bool = False,
 ) -> Tuple[
@@ -949,6 +958,7 @@ def run_rules(
             sca_dependency_targets=sca_dependency_targets,
             output_handler=output_handler,
             output_extra=output_extra,
+            dry_run=dry_run,
             x_tr=x_tr,
         )
     else:
@@ -1232,6 +1242,7 @@ def run_scan(
         allow_local_builds=allow_local_builds,
         ptt_enabled=ptt_enabled,
         resolve_all_deps_in_diff_scan=resolve_all_deps_in_diff_scan,
+        dry_run=dryrun,
         x_tr=x_tr,
         x_eio=x_eio,
     )
@@ -1273,6 +1284,7 @@ def run_scan(
             disable_secrets_validation=disable_secrets_validation,
             allow_local_builds=allow_local_builds,
             ptt_enabled=ptt_enabled,
+            dry_run=dryrun,
         )
 
     # ---------------------------------
