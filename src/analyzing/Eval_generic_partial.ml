@@ -81,6 +81,8 @@ let fold_args1 f args =
   | [] -> None
   | a1 :: args -> List.fold_left f a1 args
 
+(** [find_type_args args] returns the [Some type] where type is the type of the
+first literal or constant in the list. If none exists, it returns [None]. *)
 let find_type_args args =
   args
   |> List.find_map (function
@@ -234,6 +236,8 @@ and eval_special env (special, _) args =
   | Op Mult, args when find_type_args args = Some Cint ->
       fold_args1 (binop_int_cst int_mult) args
   (* strings *)
+  | ConcatString (FString "f"), args when is_lang env Lang.Python ->
+      eval_python_fstring env args
   | (Op (Plus | Concat) | ConcatString _), args
     when find_type_args args = Some Cstr ->
       fold_args1 (concat_string_cst env) args
@@ -273,3 +277,23 @@ and eval_call env name args =
       then Some (Cst Cstr)
       else None
   | _lang, _name, _args -> None
+
+(** [eval_python_fstring env args] expects [args] to be evaluated already. If
+all arguments are literals or constants, it returns a constant string,
+otherwise it returns [None]. *)
+and eval_python_fstring env args =
+  let helper s =
+    let tok = Tok.unsafe_fake_tok "" in
+    let wrap_bracket = (tok, (s, tok), tok) in
+    Some (Lit (String wrap_bracket))
+  in
+  match args with
+  | [] -> helper ""
+  | _ ->
+      args
+      |> List_.map (function
+           | Some (Lit (String _) | Cst Cstr) as x -> x
+           | Some (Lit (Int (Some n, _))) -> helper (Int64.to_string n)
+           | Some (Lit (Float (Some f, _))) -> helper (string_of_float f)
+           | _ -> None)
+      |> fold_args1 (concat_string_cst env)

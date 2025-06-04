@@ -1,0 +1,1 @@
+Fixed inconsistency where the empty Python fstring `f""` was not matched by the pattern "...".

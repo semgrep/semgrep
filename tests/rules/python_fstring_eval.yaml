@@ -1,0 +1,9 @@
+rules:
+  - id: python-fstring
+    languages:
+      - python
+    severity: ERROR
+    message: Match found
+    pattern-either:
+      - pattern: test("h3110 world!")
+      - pattern: test('3.14')
