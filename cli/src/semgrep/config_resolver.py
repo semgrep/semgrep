@@ -1,3 +1,4 @@
+import concurrent.futures
 import json
 import os
 import re
@@ -439,8 +440,12 @@ def parse_config_files(
     """
     config = {}
     errors: List[SemgrepError] = []
-    for config_id, contents, config_path in loaded_config_infos:
-        try:
+    future_to_config_id_and_path: Dict[
+        concurrent.futures.Future[Tuple[Dict[str, YamlTree], List[SemgrepError]]],
+        Tuple[str, str],
+    ] = {}
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        for config_id, contents, config_path in loaded_config_infos:
             if not config_id:  # registry rules don't have config ids
                 # Note: we must disambiguate registry sourced remote rules from
                 # non-registry sourced ones for security purposes. Namely, we
@@ -463,22 +468,33 @@ def parse_config_files(
                 filename = f"{config_path[:20]}..."
             else:
                 filename = config_path
-            config_data, config_errors = parse_config_string(
-                config_id, contents, filename, force_jsonschema=force_jsonschema
+            validation_future = executor.submit(
+                parse_config_string,
+                config_id,
+                contents,
+                filename,
+                force_jsonschema=force_jsonschema,
             )
-            config.update(config_data)
-            errors.extend(config_errors)
-        except InvalidRuleSchemaError as e:
-            if (
-                config_id == REGISTRY_CONFIG_ID
-                or config_id == NON_REGISTRY_REMOTE_CONFIG_ID
-            ):
-                notice = f"\nRules downloaded from {config_path} failed to parse.\nThis is likely because rules have been added that use functionality introduced in later versions of semgrep.\nPlease upgrade to latest version of semgrep (see https://semgrep.dev/docs/upgrading/) and try again.\n"
-                notice_color = with_color(Colors.red, notice, bold=True)
-                logger.error(notice_color)
-                raise e
-            else:
-                raise e
+            future_to_config_id_and_path[validation_future] = config_id, config_path
+        for future in concurrent.futures.as_completed(
+            future_to_config_id_and_path, timeout=5 * 60
+        ):
+            config_id, config_path = future_to_config_id_and_path[future]
+            try:
+                config_data, config_errors = future.result()
+                config.update(config_data)
+                errors.extend(config_errors)
+            except InvalidRuleSchemaError as e:
+                if (
+                    config_id == REGISTRY_CONFIG_ID
+                    or config_id == NON_REGISTRY_REMOTE_CONFIG_ID
+                ):
+                    notice = f"\nRules downloaded from {config_path} failed to parse.\nThis is likely because rules have been added that use functionality introduced in later versions of semgrep.\nPlease upgrade to latest version of semgrep (see https://semgrep.dev/docs/upgrading/) and try again.\n"
+                    notice_color = with_color(Colors.red, notice, bold=True)
+                    logger.error(notice_color)
+                    raise e
+                else:
+                    raise e
     return config, errors
 
 

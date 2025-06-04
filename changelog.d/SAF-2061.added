@@ -1,0 +1,1 @@
+Parallelizes rule validation to improve performance when scanning with many rule files.
