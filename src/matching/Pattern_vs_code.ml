@@ -3005,7 +3005,11 @@ and m_finally a b =
 and m_case_and_body a b =
   match (a, b) with
   | CasesAndBody (a1, a2), CasesAndBody (b1, b2) ->
-      (m_list m_case) a1 b1 >>= fun () -> m_stmt a2 b2
+      (m_list_with_dots ~less_is_ok:true m_case (function
+        | B.Case (_, B.PatEllipsis _) -> true
+        | _ -> false))
+        a1 b1
+      >>= fun () -> m_stmt a2 b2
   | CaseEllipsis _, CasesAndBody _ -> return ()
   | CasesAndBody _, _
   | CaseEllipsis _, _ ->

@@ -1,0 +1,1 @@
+Fixed scenario where case statements with ellipsis did not match patterns correctly.
