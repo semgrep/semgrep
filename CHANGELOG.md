@@ -97,12 +97,20 @@
 ### Fixed
 
 
-- Fix bug introduced in Semgrep 1.120.0 causing interfile analyses to run out of memory due to too many parallel jobs. The default setting had been accidentally set to the number of available CPUs which is often too much in interfile mode. It's now back to `-j1` and it can be overridden by the user. (interfile-num-jobs)
 - Fixed CI output so it shows per-product links depending on what product is enabled in a scan. (pr-3776)
 - CLI: Fixed a bug where `--disable-nosem` was not properly causing nosemgrep'd findings
   to be uploaded to the App. (saf-1982)
 - Exempt large manifests & lockfiles from being ignored by semgrep's file size filtering.
   This fixes a regression introduced in 1.117.0 (sca-1705). (sc-1705)
+
+
+## [1.120.1](https://github.com/semgrep/semgrep/releases/tag/v1.120.1) - 2025-04-25
+
+
+### Fixed
+
+
+- Fix bug introduced in Semgrep 1.120.0 causing interfile analyses to run out of memory due to too many parallel jobs. The default setting had been accidentally set to the number of available CPUs which is often too much in interfile mode. It's now back to `-j1` and it can be overridden by the user. (interfile-num-jobs)
 
 
 ## [1.120.0](https://github.com/semgrep/semgrep/releases/tag/v1.120.0) - 2025-04-22
