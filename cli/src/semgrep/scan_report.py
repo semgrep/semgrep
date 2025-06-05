@@ -201,35 +201,67 @@ def _print_sast_table(
     )
 
 
-def _print_sca_parse_errors(errors: List[out.DependencyParserError]) -> None:
+def _print_sca_parse_error(error: out.DependencyParserError) -> None:
+    # These are zero indexed but most editors are one indexed
+    line_prefix = f"{error.line} | "
+    path = error.path.value
+    if error.line and error.col and error.text:
+        location = f"[bold]{path}[/bold] at [bold]{error.line}:{error.col}[/bold]"
+
+        console.print(
+            f"Failed to parse {location} - {error.reason}\n"
+            f"{line_prefix}{error.text}\n"
+            f"{' ' * (error.col - 1 + len(line_prefix))}^"
+        )
+    elif error.line and error.text:
+        location = f"[bold]{path}[/bold] at [bold]{error.line}[/bold]"
+
+        console.print(
+            f"Failed to parse {location} - {error.reason}\n"
+            f"{line_prefix}{error.text}\n"
+        )
+    elif error.line:
+        location = f"[bold]{path}[/bold] at [bold]{error.line}[/bold]"
+        console.print(f"Failed to parse {location} - {error.reason}")
+    else:
+        location = f"[bold]{path}[/bold]"
+        console.print(f"Failed to parse {location} - {error.reason}")
+
+
+def _print_sca_resolution_error(error: out.ScaResolutionError) -> None:
+    def print_resolution_error(err: out.ResolutionErrorKind) -> str:
+        if isinstance(err.value, out.UnsupportedManifest):
+            return "Unsupported Manifest"
+        elif isinstance(err.value, out.MissingRequirement):
+            return f"Missing Requirement ({err.value.value})"
+        elif isinstance(err.value, out.ResolutionCmdFailed_):
+            # the Ocaml code returns error messages with \n instead of newlines,
+            # which makes the error output look messy. We switch back to using real
+            # newlines, and then prepend each line of the output with > to show
+            # that it is a replication of third-party output.
+            with_newlines = err.value.value.message.replace("\\n", "\n")
+            processed_message = "\n".join(
+                [f"  > {line}" for line in with_newlines.split("\n")]
+            )
+            return f"Resolution Command Failed.\nCommand: {err.value.value.command}\nOutput from third-party command:\n{processed_message})"
+        else:
+            return f"Parsing dependency output failed ({err.value.value})"
+
+    console.print(
+        f"Failed to resolve dependencies for {error.dependency_source_file.value}. {print_resolution_error(error.type_)}"
+    )
+
+
+def _print_sca_resolution_errors(errors: List[out.ScaError]) -> None:
     """
-    Print the given SCA parse errors.
+    Print the given SCA resolution errors.
     """
     for error in errors:
-        # These are zero indexed but most editors are one indexed
-        line_prefix = f"{error.line} | "
-        path = error.path.value
-        if error.line and error.col and error.text:
-            location = f"[bold]{path}[/bold] at [bold]{error.line}:{error.col}[/bold]"
-
-            console.print(
-                f"Failed to parse {location} - {error.reason}\n"
-                f"{line_prefix}{error.text}\n"
-                f"{' ' * (error.col - 1 + len(line_prefix))}^"
-            )
-        elif error.line and error.text:
-            location = f"[bold]{path}[/bold] at [bold]{error.line}[/bold]"
-
-            console.print(
-                f"Failed to parse {location} - {error.reason}\n"
-                f"{line_prefix}{error.text}\n"
-            )
-        elif error.line:
-            location = f"[bold]{path}[/bold] at [bold]{error.line}[/bold]"
-            console.print(f"Failed to parse {location} - {error.reason}")
+        e = error.value.value
+        if isinstance(e, out.DependencyParserError):
+            _print_sca_parse_error(e)
         else:
-            location = f"[bold]{path}[/bold]"
-            console.print(f"Failed to parse {location} - {error.reason}")
+            _print_sca_resolution_error(e)
 
 
 def _print_sca_degenerate_table(plan: Plan, *, rule_count: int) -> None:
@@ -343,7 +375,7 @@ def print_scan_status(
     target_manager: TargetManager,
     target_mode_config: TargetModeConfig,
     all_subprojects: List[Union[out.ResolvedSubproject, out.UnresolvedSubproject]],
-    dependency_parser_errors: List[out.DependencyParserError],
+    dependency_resolution_errors: List[out.ScaError],
     *,
     cli_ux: DesignTreatment = DesignTreatment.LEGACY,
     # TODO: Use an array of semgrep_output_v1.Product instead of booleans flags for secrets, code, and supply chain
@@ -477,7 +509,7 @@ def print_scan_status(
         # Show the basic table for supply chain
         console.print(Title("Supply Chain Rules", order=2))
         _print_sca_table(sca_plan=sca_plan, rule_count=alt_sca_rule_count)
-        _print_sca_parse_errors(dependency_parser_errors)
+        _print_sca_resolution_errors(dependency_resolution_errors)
     else:
         # Show the table with a supply chain nudge or supply chain
         console.print(Title("Supply Chain Rules", order=2))
@@ -488,7 +520,7 @@ def print_scan_status(
             # without supply-chain to upgrade their usage to the `ci` command
             with_supply_chain=with_supply_chain,
         )
-        _print_sca_parse_errors(dependency_parser_errors)
+        _print_sca_resolution_errors(dependency_resolution_errors)
 
     if detailed_ux:
         console.print(Title("Progress", order=2))
