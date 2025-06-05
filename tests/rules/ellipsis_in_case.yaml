@@ -1,0 +1,10 @@
+rules:
+  - id: ellipsis-in-case
+    languages:
+      - go
+    severity: ERROR
+    message: Semgrep found a match
+    pattern: |-
+      switch $_ {
+        case 0, ...: ...
+      }

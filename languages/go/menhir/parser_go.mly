@@ -549,7 +549,7 @@ select_stmt:  LSELECT LBODY caseblock_list "}"
     { Select ($1, List.rev $3) }
 
 case:
-|   LCASE listc(expr_or_type) ":"           { CaseExprs ($1, $2) }
+|   LCASE listc(expr_or_type) ":"           { CaseExprs ($1, List.rev $2) }
 |   LCASE listc(expr_or_type) "=" expr ":"  { CaseAssign ($1, $2, $3, $4) }
 |   LCASE listc(expr_or_type) ":=" expr ":" { CaseAssign ($1, $2, $3, $4) }
 |   LDEFAULT ":"                            { CaseDefault $1 }
