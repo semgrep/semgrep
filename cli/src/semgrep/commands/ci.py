@@ -278,7 +278,9 @@ def ci(
     state = get_state()
 
     state.traces.configure(trace, trace_endpoint)
-    with tracing.TRACER.start_as_current_span("semgrep.commands.ci"):
+    with tracing.TRACER.start_as_current_span(
+        "semgrep.commands.ci", kind=tracing.TOP_LEVEL_SPAN_KIND
+    ):
         state.terminal.configure(
             verbose=verbose,
             debug=debug,
