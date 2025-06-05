@@ -104,7 +104,7 @@ type t = {
   (* a.k.a -fast (on by default) *)
   filter_irrelevant_rules : bool;
   (* telemetry *)
-  tracing : Tracing.config option;
+  telemetry : Telemetry.config option;
   symbol_analysis : bool;
   (* Rely on a EIO impl of `-j` v.s Parmap
    * logic redundancy: par_conf is set only if use_eio was
@@ -139,7 +139,7 @@ let default =
     (* a.k.a -fast, on by default *)
     filter_irrelevant_rules = true;
     (* debugging and telemetry flags *)
-    tracing = None;
+    telemetry = None;
     symbol_analysis = false;
     use_eio = false;
     par_conf = None;

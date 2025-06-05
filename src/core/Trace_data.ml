@@ -130,7 +130,7 @@ let get_env_vars =
         None
   in
   let map_env_var_to_otel_data name type_ env_vars default :
-      string * Tracing.user_data =
+      string * Telemetry.user_data =
     let user_data_val_of_string x =
       let v_opt =
         match type_ with
@@ -171,7 +171,7 @@ let default_resource_env_attrs =
     (* coupling: semgrep/meta.py, if you change this we may want to change
        something about job url there, or vice versa *)
     (* Instance of the semgrep `service` *)
-    ( Tracing.Attributes.instance_id,
+    ( Telemetry.Attributes.instance_id,
       `String,
       [ "SEMGREP_JOB_URL"; "CI_JOB_URL" ],
       `None );
@@ -217,10 +217,10 @@ let data_of_languages (languages : Analyzer.t list) =
 let get_resource_attrs ?(env = "prod") ~engine ~analysis_flags ~jobs () =
   [
     (* Version of Semgrep *)
-    (Tracing.Attributes.version, `String Version.version);
+    (Telemetry.Attributes.version, `String Version.version);
     (* Whether we're running in a production, staging, or develop environment
        (Usually maps to SMS prod,staging,dev2) *)
-    (Tracing.Attributes.deployment_environment_name, `String env);
+    (Telemetry.Attributes.deployment_environment_name, `String env);
     (Attributes.engine, `String engine);
     (Attributes.jobs, `Int jobs);
     (Attributes.folder, `String (current_working_folder ()));

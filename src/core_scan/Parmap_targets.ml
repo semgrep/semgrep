@@ -178,6 +178,6 @@ let map_targets__run_in_forked_process_do_not_modify_globals caps
           (List.length targets));
     (* We must pause tracing here as forking with tracing on causes segfaults.
        See comments on this function in Tracing.ml *)
-    Tracing.with_otel_paused (fun () ->
+    Telemetry.with_otel_paused (fun () ->
         Parmap_.parmap caps ~init ~finalize ~num_jobs ~chunksize:1
           ~exception_handler f targets))

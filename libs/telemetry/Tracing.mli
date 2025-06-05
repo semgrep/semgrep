@@ -1,3 +1,4 @@
+open Telemetry
 (** Tracing library for Semgrep
  *
  * Provide a simple interface to send contextualized performance metrics
@@ -14,35 +15,6 @@
  * To trace other functions called within it, run those using `with_span`.
  * You can attach data to the traces by running `add_data_to_span`.
  *)
-
-(*****************************************************************************)
-(* Types *)
-(*****************************************************************************)
-
-type scope = Opentelemetry.Scope.t [@@deriving show]
-
-type config = {
-  endpoint : Uri.t;
-  (* Telemetry software like datadog and opentelemetry will organize traces by
-     the environment they come from (e.g. development, staging, production). env
-     here sets that metadata *)
-  env : string option;
-  (* To add data to our opentelemetry top scope, so easier to filter *)
-  top_level_scope : scope option;
-}
-[@@deriving show]
-
-type user_data = Opentelemetry.value
-
-(*****************************************************************************)
-(* Constants *)
-(*****************************************************************************)
-module Attributes : sig
-  val version : string
-  val instance_id : string
-  val deployment_environment_name : string
-end
-
 (*****************************************************************************)
 (* Levels *)
 (*****************************************************************************)
@@ -55,42 +27,8 @@ type level =
 val show_level : level -> string
 
 (*****************************************************************************)
-(* Logging *)
-(*****************************************************************************)
-
-val no_telemetry_tag : string Logs.Tag.def
-(** [no_telemetry_tag] is a logging tag that when applied to a log, said log
-    will not be emitted by the tracing/telemetry backend.
-
-    Example:
-    {[
-      let tags = Logs.Tag.(
-          add no_telemetry_tag (name no_telemetry_tag) tags)
-      in
-      Logs.info (fun m ->
-          m ~tags
-            "This log will not be sent to the telemetry backend");
-    ]}
-*)
-
-val no_telemetry_tag_set : Logs.Tag.set
-(** [no_telemetry_tag_set] is a logging tag set containing {!no_telemetry_tag}.
-    See {!no_telemetry_tag} for more information, and an example *)
-
-val otel_reporter : Logs.reporter
-(** [otel_reporter] is a reporter that can be used with {!Logs.set_reporter} to
-    send logs to the Otel backend.To disable logging for just this reporter, tag
-    the log with {!no_telemetry_tag}
-
-    NOTE: This reporter WILL cause deadlocks if it is used in a GC alarm. To add
-    Logs to a GC alarm and not trigger this, tag them with
-    {!no_telemetry_tag} *)
-
-(*****************************************************************************)
 (* Functions to instrument the code *)
 (*****************************************************************************)
-val get_current_scope : unit -> scope option
-(** Expose the Trace function to get the current scope *)
 
 (* for adding data *)
 val add_data_to_span : scope -> (string * user_data) list -> unit
@@ -127,53 +65,7 @@ val with_span :
 (** Expose the function to instrument code to send traces.
     prefer using the ppx *)
 
-(*****************************************************************************)
-(* Entry points for setting up tracing *)
-(*****************************************************************************)
-
-val configure_otel : ?attrs:(string * user_data) list -> string -> Uri.t -> unit
-(** [configure_otel service_name tracing_endpoint] Before instrumenting
-    anything, configure OTel. This should only be run once in a program, because
-    it creates a backend with threads, HTTP connections, etc. when called.
-    [service_name] is the name of the service. [~attrs] can be used to set
-    additional global attributes (such as ["service.version"]), which are tags
-    that will be applied to all outgoing traces/metrics/logs etc.
-
-    NOTE: this will set the active trace endpoint to
-    whatever is passed. This endpoint will be used when restarting tracing via
-    [restart_otel] *)
-
-val stop_otel : unit -> unit
-(** [stop_otel ()] explicitly shuts down the Otel
-    collector. If tracing has been setup this MUST be called before forking
-    (such as in {!Parmap}), or you WILL experience random segfaults. This is
-    safe to call multiple times in a row. See [restart_otel] to continue
-    tracing after calling this.
-
-    Example:
-    {[
-      stop_otel ();
-      (if Unix.fork () = 0 then
-      print_endline "child"
-      else
-      print_endline "parent");
-      restart_otel ();
-    ]}
- *)
-
-val restart_otel : unit -> unit
-(** [restart_otel ()] will re-setup the Otel backend after [stop_otel] is
-    called to continue tracing. This is a no-op if [configure_otel] has not
-    been called. Will fail if called multiple times. See {!stop_otel} for an
-    example*)
-
 val with_tracing : string -> (string * user_data) list -> (scope -> 'a) -> 'a
 (** [with_tracing span_name attributes f] Start tracing with a top level span
     named [span_name] that has attributes [attributes] and run [f]. Stops
     instrumenting once that function is finished. *)
-
-val with_otel_paused : (unit -> 'a) -> 'a
-(** [with_otel_paused f] will run [f] with tracing paused. This is usually
-    called before forking, as Otel can segfault if it is not paused before
-    forking. Essentially this calls [stop_otel] and then
-    [restart_otel]. *)

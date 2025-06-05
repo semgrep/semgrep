@@ -24,9 +24,7 @@
 (* Types *)
 (*****************************************************************************)
 module Otel = Opentelemetry
-
-type scope = Otel.Scope.t
-type user_data = Otel.value
+open Telemetry
 
 let empty_span =
   Otel.Scope.make
@@ -34,27 +32,6 @@ let empty_span =
     ~span_id:Otel.Span_id.(create ())
     ()
 
-let show_scope (sp : scope) =
-  ignore sp;
-  "span"
-
-let pp_scope fmt (sp : scope) = Format.fprintf fmt "%s" (show_scope sp)
-
-type config = {
-  endpoint : Uri.t;
-  env : string option;
-  top_level_scope : scope option;
-}
-[@@deriving show]
-
-(*****************************************************************************)
-(* Constants *)
-(*****************************************************************************)
-module Attributes = struct
-  let version = "version"
-  let instance_id = "instance_id"
-  let deployment_environment_name = "deployment.environment.name"
-end
 (*****************************************************************************)
 (* Levels *)
 (*****************************************************************************)
@@ -79,27 +56,11 @@ let with_span ?(level = Info) ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data
   ignore data;
   f empty_span
 
-let get_current_scope () = None
 let record_exn _sp _exn _bt = ()
 let record_exn_curr_span _exn _bt = ()
 let add_data_to_span (_i : scope) (_data : (string * user_data) list) = ()
 let add_data (_data : (string * user_data) list) (_i : config option) = ()
 let add_global_attribute _key _value = ()
-let no_telemetry_tag = Logs_.create_tag "no_telemetry"
-let no_telemetry_tag_set = Logs_.create_tag_set [ no_telemetry_tag ]
-let otel_reporter : Logs.reporter = Logs.nop_reporter
-(*****************************************************************************)
-(* Entry points for setting up tracing *)
-(*****************************************************************************)
-
-let stop_otel () = ()
-let restart_otel () = ()
-
-let configure_otel ?(attrs = []) (_service_name : string) (_endpoint : Uri.t) =
-  ignore attrs;
-  ()
 
 let with_tracing (_fname : string) (_data : (string * user_data) list) f =
   f empty_span
-
-let with_otel_paused f = f ()

@@ -472,7 +472,7 @@ let log_scan_inputs (config : Core_scan_config.t) ~targets ~errors ~skipped
   let num_targets = List.length targets in
   let num_errors = List.length errors in
   let num_skipped = List.length skipped in
-  config.tracing
+  config.telemetry
   |> Tracing.add_data
        [
          ("num_rules", `Int num_rules);
@@ -495,7 +495,7 @@ let log_scan_results (config : Core_scan_config.t) (res : Core_result.t)
    *)
   let num_matches = List.length res.processed_matches in
   let num_errors = List.length res.errors in
-  config.tracing
+  config.telemetry
   |> Tracing.add_data
        [ ("num_matches", `Int num_matches); ("num_errors", `Int num_errors) ];
   Logs.debug (fun m ->
