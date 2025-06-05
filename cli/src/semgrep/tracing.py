@@ -38,13 +38,14 @@ from opentelemetry.sdk.trace import Span
 from opentelemetry.sdk.trace import SpanProcessor
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.trace import SpanKind
 from typing_extensions import ParamSpec
 
 from semgrep import __VERSION__
 from semgrep.semgrep_interfaces.semgrep_output_v1 import ScanInfo
 
 TRACER = otrace.get_tracer(__name__)
-
+TOP_LEVEL_SPAN_KIND = SpanKind.CLIENT
 # Coupling: these constants need to be kept in sync with Tracing.ml
 
 _SEMGREP_TRACE_PARENT_TRACE_ID = "SEMGREP_TRACE_PARENT_TRACE_ID"

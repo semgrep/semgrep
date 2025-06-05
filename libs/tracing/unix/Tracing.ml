@@ -331,7 +331,8 @@ let with_top_level_span ?(level = Info) ?parent_span_id ?parent_trace_id
   let trace_id = Option.map Otel.Trace_id.of_hex parent_trace_id in
   let parent = Option.map Otel.Span_id.of_hex parent_span_id in
   let attrs = with_code_info_to_attrs ?__FUNCTION__ ~__FILE__ ~__LINE__ data in
-  with_ ~attrs ?trace_id ?parent name f
+  let kind = Otel.Span_kind.Span_kind_server in
+  with_ ~attrs ~kind ?trace_id ?parent name f
 
 let log_trace_message () =
   match Otel.Scope.get_ambient_scope () with
