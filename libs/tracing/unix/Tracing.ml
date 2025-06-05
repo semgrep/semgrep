@@ -201,7 +201,7 @@ let log_level_to_severity (level : Logs.level) : Otel.Logs.severity =
 (*****************************************************************************)
 (* Wrapping functions Trace gives us to instrument the code *)
 (*****************************************************************************)
-
+let get_current_span () = Otel.Scope.get_ambient_scope ()
 let add_data_to_span sp attrs = Otel.Scope.add_attrs sp (fun () -> attrs)
 
 let opt_add_data_to_span data sp =
@@ -214,6 +214,18 @@ let add_data data (tracing_opt : config option) =
          tracing.top_level_span |> opt_add_data_to_span data)
 
 let add_global_attribute = Otel.Globals.add_global_attribute
+
+(* Inline to maintain proper exception recording *)
+let[@inline] record_exn sc = Otel.Scope.record_exception sc
+
+let[@inline] record_exn_curr_span exn raw_backtrace =
+  (* Only record if there's an active span *)
+  let _ =
+    Option.map
+      (fun sp -> Otel.Scope.record_exception sp exn raw_backtrace)
+      (get_current_span ())
+  in
+  ()
 
 (*****************************************************************************)
 (* Logging *)

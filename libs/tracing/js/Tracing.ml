@@ -83,6 +83,9 @@ let with_span ?(level = Info) ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data
   ignore data;
   f empty_span
 
+let get_current_span () = None
+let record_exn _sp _exn _bt = ()
+let record_exn_curr_span _exn _bt = ()
 let add_data_to_span (_i : span) (_data : (string * user_data) list) = ()
 let add_data (_data : (string * user_data) list) (_i : config option) = ()
 let add_global_attribute _key _value = ()

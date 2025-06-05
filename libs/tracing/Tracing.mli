@@ -89,6 +89,8 @@ val otel_reporter : Logs.reporter
 (*****************************************************************************)
 (* Functions to instrument the code *)
 (*****************************************************************************)
+val get_current_span : unit -> span option
+(** Expose the Trace function to get the current span *)
 
 (* for adding data *)
 val add_data_to_span : span -> (string * user_data) list -> unit
@@ -99,6 +101,17 @@ val add_data : (string * user_data) list -> config option -> unit
 
 val add_global_attribute : string -> user_data -> unit
 (** Expose the Trace function to add global attributes to the top level span *)
+
+val record_exn : span -> exn -> Printexc.raw_backtrace -> unit
+(** [record_exn curr_span exn (Printexc.get_raw_backtrace ())] will record any
+    error onto the specified span so we can track it. This is useful if you want
+    to catch an exception, but still record it in the trace *)
+
+val record_exn_curr_span : exn -> Printexc.raw_backtrace -> unit
+(** [record_exn_curr_span exn (Printexc.get_raw_backtrace ())] will record any
+    exception raised in the current span. This is a convenience function that
+    uses {!get_current_span} to get the current span. Note it will not record
+    the exception anywhere if no span is active (i.e. tracing is not active) *)
 
 (* with span funcs *)
 

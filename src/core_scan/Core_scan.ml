@@ -1014,6 +1014,8 @@ let scan (caps : < caps ; .. >) (config : Core_scan_config.t) :
       |> post_process_matches (post_nosemgrep ~strict:config.strict))
   with
   | exn when not (Hook.get Flag_semgrep.fail_fast) ->
+      let raw_bt = Printexc.get_raw_backtrace () in
+      Tracing.record_exn_curr_span exn raw_bt;
       let e = Exception.catch exn in
       Logs.err (fun m ->
           m "Uncaught exn in Core_scan.scan: %s" (Exception.to_string e));
