@@ -188,8 +188,8 @@ let f kind = mk_formula kind
  * want to migrate to Critical/High/Medium/Low/Info as explained in
  * https://linear.app/semgrep/issue/FIND-1240/unified-severity-levels-across-productslocations
  *)
-type severity = Out.match_severity [@@deriving show, eq]
-type validation_state = Out.validation_state [@@deriving show, eq]
+type severity = Out.match_severity [@@deriving eq, ord, show]
+type validation_state = Out.validation_state [@@deriving eq, ord, show]
 
 (*****************************************************************************)
 (* Taint-specific types *)
@@ -568,7 +568,7 @@ type fix_regexp = {
   count : int option;
   replacement : string;
 }
-[@@deriving show, eq, hash]
+[@@deriving eq, hash, ord, show]
 
 (*****************************************************************************)
 (* Shared mode definitions *)

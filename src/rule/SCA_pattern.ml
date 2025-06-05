@@ -2,11 +2,11 @@ open Common
 module Out = Semgrep_output_v1_t
 
 type sca_operator = Eq | Gte | Lte | Gt | Lt
-[@@deriving show { with_path = false }, eq]
+[@@deriving eq, ord, show { with_path = false }]
 
 (* Something like (>= 2.0.0) or (== 5.1.7) *)
 type version_constraint = { op : sca_operator; version : SCA_version.t }
-[@@deriving show, eq]
+[@@deriving eq, ord, show]
 
 (* A pattern to match against versions in a lockfile.
    This is not like a regular code pattern! It's description of a range of
@@ -19,6 +19,7 @@ type t = {
   package_name : string;
   version_constraints : version_constraints;
 }
+[@@deriving eq, ord, show]
 
 (* An intersection of constraints, like (>= 1.0.0, < 3.0.0), meaning
  * "greater than or equal 1.0.0 and less than 3.0.0".

@@ -1,0 +1,3 @@
+Fix: the Semgrep findings returned by the Semgrep language server (LSP)
+are now sorted correctly based on their location within files.
+This benefits all the Semgrep IDE extensions (VSCode, IntelliJ).

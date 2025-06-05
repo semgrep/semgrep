@@ -10,7 +10,7 @@ type t =
   | Float of float
   | Bool of bool
   | Null
-[@@deriving show, eq]
+[@@deriving show, eq, ord]
 
 (* polymorphic variant style, used in Yojson.Basic.t *)
 type yojson =
@@ -21,6 +21,15 @@ type yojson =
   | `String of string
   | `Assoc of (string * yojson) list
   | `List of yojson list ]
+[@@deriving eq, ord]
+
+(* A submodule providing the expected signature for ATD (raw JSON) *)
+module Yojson : sig
+  type t = yojson [@@deriving eq, ord, show]
+
+  val write_t : Buffer.t -> t -> unit
+  val read_t : Yojson.Basic.lexer_state -> Lexing.lexbuf -> t
+end
 
 (* used in Ezjsonm.mli and Yaml.mli *)
 type ezjsonm =

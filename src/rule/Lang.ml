@@ -85,7 +85,7 @@ type t = Language.t =
   | Vue
   | Xml
   | Yaml
-[@@deriving show { with_path = false }, eq, hash, yojson]
+[@@deriving eq, hash, ord, show { with_path = false }, yojson]
 
 let has_tag tag_name =
   let tbl = Hashtbl.create 50 in

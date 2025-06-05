@@ -1,6 +1,6 @@
 module Out = Semgrep_output_v1_t
 
-type t = Semgrep_output_v1_t.product [@@deriving show]
+type t = Semgrep_output_v1_t.product [@@deriving ord, show]
 
 let all : t list = [ `SAST; `SCA; `Secrets ]
 

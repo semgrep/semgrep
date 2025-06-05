@@ -511,6 +511,7 @@ let rec search_single_target (session : Session.t) =
               Scan_helpers.run_core_search xconf rule file)
             rules
           |> List_.flatten
+          |> List.sort Core_result.compare_processed_match
         in
         match matches with
         | [] -> search_single_target session

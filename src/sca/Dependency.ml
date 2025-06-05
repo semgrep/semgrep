@@ -49,7 +49,7 @@ type kind = Out.dependency_kind =
    * we leave it Unknown.
    *)
   | Unknown
-[@@deriving show, eq]
+[@@deriving eq, ord, show]
 
 type t = {
   package : Package.t;
@@ -75,7 +75,7 @@ type t = {
    *)
   loc : Tok.location * Tok.location;
 }
-[@@deriving show, eq]
+[@@deriving eq, ord, show]
 
 (* Note that package entries in a manifest are *direct* by definition, which
  * is why there is no need for a 'transitive' field below.

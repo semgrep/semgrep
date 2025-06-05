@@ -113,3 +113,7 @@ val collate_rule_results :
   Core_profiling.rule_profiling match_result list ->
   (* a.k.a matches_single_file *)
   Core_profiling.partial_profiling match_result
+
+val compare_processed_match : processed_match -> processed_match -> int
+(** Compare two matches so as to sort them by location
+    (file, line, position) *)

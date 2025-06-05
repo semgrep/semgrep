@@ -33,7 +33,7 @@ type t =
   | Float of float
   | Bool of bool
   | Null
-[@@deriving show, eq]
+[@@deriving eq, ord, show]
 
 (* polymorphic variant style, used in Yojson.Basic.t *)
 type yojson =
@@ -44,6 +44,14 @@ type yojson =
   | `String of string
   | `Assoc of (string * yojson) list
   | `List of yojson list ]
+[@@deriving eq, ord, show]
+
+module Yojson = struct
+  type t = yojson [@@deriving eq, ord, show]
+
+  let write_t = Yojson.Basic.write_t
+  let read_t = Yojson.Basic.read_t
+end
 
 (* used in Ezjsonm.mli and Yaml.mli *)
 type ezjsonm =
@@ -121,7 +129,7 @@ let string_of_json ?compact ?recursive ?allow_nan json =
 (* Misc *)
 (*****************************************************************************)
 
-let prettify (str : str) : str = Yojson.Basic.prettify str
+let prettify (str : str) : str = Y.prettify str
 
 let member m j =
   match j with

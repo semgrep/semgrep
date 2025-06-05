@@ -57,7 +57,7 @@ type t =
   (* generic mode uses either spacegrep or aliengrep *)
   | LSpacegrep
   | LAliengrep
-[@@deriving show, eq, hash, yojson]
+[@@deriving eq, hash, ord, show, yojson]
 
 exception InternalInvalidLanguage of string (* rule id *) * string (* msg *)
 

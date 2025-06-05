@@ -323,3 +323,10 @@ let mk_result (results : matches_single_file_with_time list)
     interfile_languages_used;
     symbol_analysis = None;
   }
+
+let compare_processed_match (a : processed_match) (b : processed_match) =
+  let c = Core_match.compare a.pm b.pm in
+  if c <> 0 then c
+  else
+    (* fallback for deterministic results *)
+    Stdlib.compare a b

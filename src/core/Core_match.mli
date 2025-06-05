@@ -1,12 +1,12 @@
 (* See Core_match.ml for more info *)
 type t = {
+  (* location info: these fields must be placed first for sorting purposes *)
+  path : Target.path;
+  range_loc : Tok.location * Tok.location;
   (* rule (or mini rule) responsible for the pattern match found *)
   rule_id : rule_id;
   engine_of_match : Engine_kind.engine_of_finding;
   env : Metavariable.bindings;
-  (* location info *)
-  path : Target.path;
-  range_loc : Tok.location * Tok.location;
   ast_node : AST_generic.any option;
   tokens : Tok.t list Lazy.t;
   (* trace *)
@@ -42,6 +42,9 @@ and rule_id = {
   pattern_string : string;
 }
 [@@deriving show, eq, sexp]
+
+val compare : t -> t -> int
+(** For sorting matches in the usual order (file, line, offset) *)
 
 (* remove duplicate *)
 val uniq : t list -> t list

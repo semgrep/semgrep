@@ -21,10 +21,10 @@ type kind = Semgrep_output_v1_t.lockfile_kind =
   | MixLock
   | ConanLock
   | OpamLocked
-[@@deriving show, eq]
+[@@deriving eq, ord, show]
 
 type t = Semgrep_output_v1_t.lockfile = { kind : kind; path : Fpath.t }
-[@@deriving show]
+[@@deriving ord, show]
 
 val mk_lockfile : kind -> Fpath.t -> t
 (** A lockfile to be used during matching.

@@ -56,10 +56,10 @@ type kind = Semgrep_output_v1_j.manifest_kind =
   | Csproj
   (* .opam - https://opam.ocaml.org/doc/Manual.html#Package-definitions *)
   | OpamFile
-[@@deriving show, eq]
+[@@deriving eq, ord, show]
 
 type t = Semgrep_output_v1_t.manifest = { kind : kind; path : Fpath.t }
-[@@deriving show]
+[@@deriving ord, show]
 (** A manifest file to be used during matching. See also
     {!Dependency_source_xtarget.manifest}, which also has the contents. *)
 
