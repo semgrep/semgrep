@@ -4,9 +4,9 @@
  (wrapped false)
   (libraries
     uri
-    trace
     yojson
     logs
+    opentelemetry
   )
  (virtual_modules tracing)
  (default_implementation tracing.unix)

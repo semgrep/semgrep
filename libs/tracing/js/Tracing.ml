@@ -23,9 +23,24 @@
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
+module Otel = Opentelemetry
 
-type span = int64 [@@deriving show]
-type user_data = Trace_core.user_data
+type span = Otel.Scope.t
+type user_data = Otel.value
+
+let empty_span =
+  Otel.Scope.make
+    ~trace_id:Otel.Trace_id.(create ())
+    ~span_id:Otel.Span_id.(create ())
+    ()
+
+(* Implement the show and pp functions manually since we know
+   Trace_core.span is int64*)
+let show_span (sp : span) =
+  ignore sp;
+  "span"
+
+let pp_span fmt (sp : span) = Format.fprintf fmt "%s" (show_span sp)
 
 type config = {
   endpoint : Uri.t;
@@ -58,33 +73,18 @@ let show_level = function
   | Debug -> "Debug"
   | Trace -> "Trace"
 
-let level_to_trace_level level =
-  match level with
-  | Info -> Trace_core.Level.Info
-  | Debug -> Trace_core.Level.Debug1
-  | Trace -> Trace_core.Level.Trace
-
 (*****************************************************************************)
 (* Code *)
 (*****************************************************************************)
-let enter_span ?(level = Info) =
-  let level = level_to_trace_level level in
-  Trace_core.enter_span ~level
 
-let exit_span = Trace_core.exit_span
+let with_span ?(level = Info) ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data
+    (_name : string) (f : span -> 'a) =
+  ignore level;
+  ignore data;
+  f empty_span
 
-let with_span ?(level = Info) =
-  let level = level_to_trace_level level in
-  Trace_core.with_span ~level
-
-let add_data_to_span (_i : span) (_data : (string * Trace_core.user_data) list)
-    =
-  ()
-
-let add_data (_data : (string * Trace_core.user_data) list) (_i : config option)
-    =
-  ()
-
+let add_data_to_span (_i : span) (_data : (string * user_data) list) = ()
+let add_data (_data : (string * user_data) list) (_i : config option) = ()
 let add_global_attribute _key _value = ()
 
 let trace_data_only ?(level = Info) ~__FUNCTION__ ~__FILE__ ~__LINE__ _name
@@ -107,8 +107,7 @@ let configure_tracing ?(attrs = []) (_service_name : string) (_endpoint : Uri.t)
   ignore attrs;
   ()
 
-let with_tracing (_fname : string)
-    (_data : (string * Trace_core.user_data) list) f =
-  f 0L
+let with_tracing (_fname : string) (_data : (string * user_data) list) f =
+  f empty_span
 
 let with_tracing_paused f = f ()

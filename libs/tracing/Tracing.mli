@@ -19,7 +19,7 @@
 (* Types *)
 (*****************************************************************************)
 
-type span = Trace_core.span [@@deriving show]
+type span = Opentelemetry.Scope.t [@@deriving show]
 
 type config = {
   endpoint : Uri.t;
@@ -32,7 +32,7 @@ type config = {
 }
 [@@deriving show]
 
-type user_data = Trace_core.user_data
+type user_data = Opentelemetry.value
 
 (*****************************************************************************)
 (* Constants *)
@@ -91,31 +91,14 @@ val otel_reporter : Logs.reporter
 (*****************************************************************************)
 
 (* for adding data *)
-val add_data_to_span : span -> (string * Trace_core.user_data) list -> unit
+val add_data_to_span : span -> (string * user_data) list -> unit
 (** Expose the Trace function to add data to a span *)
 
-val add_data : (string * Trace_core.user_data) list -> config option -> unit
+val add_data : (string * user_data) list -> config option -> unit
 (** Convenience version of add_data_to_span for Semgrep *)
 
-val add_global_attribute : string -> Trace_core.user_data -> unit
+val add_global_attribute : string -> user_data -> unit
 (** Expose the Trace function to add global attributes to the top level span *)
-
-(* manual span entering and exiting *)
-val enter_span :
-  ?level:level ->
-  ?__FUNCTION__:string ->
-  __FILE__:string ->
-  __LINE__:int ->
-  ?data:(unit -> (string * user_data) list) ->
-  string ->
-  span
-(** [enter_span ~__FILE__ ~__LINE__ "some_name"] will manually enter a span and
-    return it. Must call exit_span after. Prefer [with_span] instead as it has
-    better error handling *)
-
-val exit_span : span -> unit
-(** [exit_span span] will exit a span. Must be called after `enter_span`. Prefer
-    [with_span] instead as it has better error handling *)
 
 (* with span funcs *)
 
@@ -124,7 +107,7 @@ val with_span :
   ?__FUNCTION__:string ->
   __FILE__:string ->
   __LINE__:int ->
-  ?data:(unit -> (string * Trace_core.user_data) list) ->
+  ?data:(string * user_data) list ->
   string ->
   (span -> 'a) ->
   'a
@@ -181,8 +164,7 @@ val restart_tracing : unit -> unit
     been called. Will fail if called multiple times. See {!stop_tracing} for an
     example*)
 
-val with_tracing :
-  string -> (string * Trace_core.user_data) list -> (span -> 'a) -> 'a
+val with_tracing : string -> (string * user_data) list -> (span -> 'a) -> 'a
 (** [with_tracing span_name attributes f] Start tracing with a top level span
     named [span_name] that has attributes [attributes] and run [f]. Stops
     instrumenting once that function is finished. *)

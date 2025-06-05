@@ -62,7 +62,6 @@ depends: [
   "timedesc" {>= "2.0.0"}
   "lsp" {= "1.22.0"}
   "git"
-  "trace"
   "memtrace"
   "ppx_trace"
   "opentelemetry" {= "0.11.2"}

@@ -3,9 +3,9 @@
  (public_name tracing.js)
  (name tracing_js)
  (libraries
-   trace
    commons
    logs
+   opentelemetry
  )
  (implements tracing)
   (preprocess (pps
