@@ -51,12 +51,12 @@ type kind = Out.lockfile_kind =
   | MixLock
   | ConanLock
   | OpamLocked
-[@@deriving show, eq]
+[@@deriving ord, eq, show]
 
 (* For the origin of the lockfile see SCA_dependency_source.ml
  * old: used to be path : Target.path but no need complex origin for manifest
  *)
-type t = Out.lockfile = { kind : kind; path : Fpath.t } [@@deriving show]
+type t = Out.lockfile = { kind : kind; path : Fpath.t } [@@deriving ord, show]
 
 (*****************************************************************************)
 (* API *)

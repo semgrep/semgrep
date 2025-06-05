@@ -24,7 +24,7 @@ module Out = Semgrep_output_v1_j
 (*****************************************************************************)
 
 type path = { origin : Origin.t; internal_path_to_content : Fpath.t }
-[@@deriving show, eq]
+[@@deriving eq, ord, show]
 
 type t = {
   path : path;
@@ -32,7 +32,7 @@ type t = {
   products : Product.t list;
   dependency_source : Dependency_source.t option;
 }
-[@@deriving show]
+[@@deriving ord, show]
 
 (*****************************************************************************)
 (* Dumpers *)

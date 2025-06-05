@@ -43,4 +43,4 @@ type t = Out.ecosystem =
   | Mix
   | Hex
   | Opam
-[@@deriving show, eq]
+[@@deriving eq, ord, show]

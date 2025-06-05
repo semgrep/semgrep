@@ -46,6 +46,17 @@ open Sexplib.Std
  *)
 
 type t = {
+  (* Important: this field must come first for ppx_deriving.ord
+     to generate the desired 'compare' function.
+
+     location info.  *)
+  path : (Target.path[@sexp.opaque]);
+  (* Important: this field must come second for ppx_deriving.ord
+     to generate the desired 'compare' function.
+
+     less: redundant with location?
+     note that the two Tok.location can be equal *)
+  range_loc : Tok.location * Tok.location;
   (* rule (or mini rule) responsible for the pattern match found *)
   rule_id : rule_id; [@equal fun a b -> a.id = b.id]
   (* Indicates whether this match was produced during a run
@@ -68,11 +79,6 @@ type t = {
               *)
               s1 = s2 && Metavariable.location_aware_equal_mvalue m1 m2)
             a b]
-  (* location info *)
-  path : (Target.path[@sexp.opaque]);
-  (* less: redundant with location? *)
-  (* note that the two Tok.location can be equal *)
-  range_loc : Tok.location * Tok.location;
   (* Why is this here?
      When we allow pattern matches to be embedded into metavariables, we want
      to be able to assign a faithful mvalue to the new metavariable.
@@ -88,13 +94,15 @@ type t = {
      Otherwise, we leave it at `None`.
   *)
   ast_node : (AST_generic.any[@sexp.opaque]) option;
-      (* less: do we need to be lazy? *)
+  (* less: do we need to be lazy? *)
   tokens : Tok.t list Lazy.t; [@equal fun _a _b -> true]
-  (* Lazy since construction involves forcing lazy token lists. *)
-  (* We used to have `[@equal fun _a _b -> true]` here, but this causes issues with
-     multiple findings to the same sink (but different sources) being removed
-     in deduplication.
-     We now rely on equality of taint traces, which in turn relies on equality of `Parse_info.t`.
+  (* Lazy since construction involves forcing lazy token lists
+
+     We used to have `[@equal fun _a _b -> true]` here, but this causes issues
+     with multiple findings to the same sink (but different sources) being
+     removed in deduplication.
+     We now rely on equality of taint traces, which in turn relies on equality
+     of `Parse_info.t`.
   *)
   taint_trace : (Taint_trace.t[@sexp.opaque]) Lazy.t option; (* secrets stuff *)
   (* SCA extra info about a match (e.g., the satisfied version constraint) *)
@@ -157,7 +165,7 @@ and rule_id = {
   (* used for debugging (could be removed at some point) *)
   pattern_string : string;
 }
-[@@deriving show, eq, sexp]
+[@@deriving show, eq, ord, sexp]
 
 (*****************************************************************************)
 (* Deduplication *)

@@ -41,7 +41,7 @@ type t = Out.dependency_source =
    * Tuple[DependencySource, ...] which is hashable.
    *)
   | MultiLockfile of t list
-[@@deriving show]
+[@@deriving ord, show]
 
 (*****************************************************************************)
 (* Helpers *)

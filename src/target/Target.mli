@@ -101,6 +101,12 @@ val target_of_target : Semgrep_output_v1_t.target -> t
 (* Accessors *)
 (*****************************************************************************)
 
+val compare_path : path -> path -> int
+(** for sorting *)
+
+val compare : t -> t -> int
+(** for sorting *)
+
 val internal_path : t -> Fpath.t
 (** [internal_path target] is the path to a file containing the
     contents of [target]. *)

@@ -26,13 +26,15 @@ open Common
 (* package name (e.g., "lodash")
  * alt: could use a newtype with 'PackageName of string'
  *)
-type name = string [@@deriving show, eq]
+type name = string [@@deriving eq, ord, show]
 
 (* package version (e.g., "1.1.0")
- * see also SCA_version.t which is its parsed form.
- * Those strings usually appear in lockfiles.
+   see also SCA_version.t which is its parsed form.
+   Those strings usually appear in lockfiles.
+   TODO: define a version-aware 'compare' function if it becomes important.
+   For now, 'compare' is derived naively by ppx_deriving.ord.
  *)
-type version = string [@@deriving show, eq]
+type version = string [@@deriving eq, ord, show]
 
 (* ex: "^1.1.0","~1.1.0", "*" in yarn.lock and package.json
  * This can also be a single version as in "1.1.0". Those strings
@@ -44,6 +46,6 @@ type version_constraint = string [@@deriving show, eq]
  * and location in a lockfile.
  * This is mostly the same type that dependency_child in semgrep_output_v1.atd
  *)
-type t = { name : name; version : version } [@@deriving show, eq]
+type t = { name : name; version : version } [@@deriving eq, ord, show]
 
 let to_string (pkg : t) : string = spf "%s@%s" pkg.name pkg.version

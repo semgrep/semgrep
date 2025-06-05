@@ -27,7 +27,7 @@ open Sexplib.Std
 (* Types *)
 (*****************************************************************************)
 
-type mvar = Mvar.t [@@deriving show, eq, hash, sexp]
+type mvar = Mvar.t [@@deriving eq, hash, ord, sexp, show]
 
 (* 'mvalue' below used to be just an alias to AST_generic.any, but it is more
  * precise to have a type just for the metavariable values; we do not
@@ -86,7 +86,7 @@ type mvalue =
      bind arbitrary matches to metavariables.
   *)
   | Any of AST_generic.any
-[@@deriving show, eq, sexp]
+[@@deriving eq, ord, sexp, show]
 
 (* we sometimes need to convert to an any to be able to use
  * Lib_AST.ii_of_any, or Lib_AST.abstract_position_info_any
@@ -238,4 +238,4 @@ let str_of_mval x = show_mvalue x
    are equivalent for the equal functions.
 *)
 type bindings = (mvar * mvalue) list
-(* = Common.assoc *) [@@deriving show, eq, sexp]
+(* = Common.assoc *) [@@deriving eq, ord, sexp, show]

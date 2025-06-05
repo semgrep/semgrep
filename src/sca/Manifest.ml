@@ -89,10 +89,10 @@ type kind = Out.manifest_kind =
   | Csproj
   (* .opam - https://opam.ocaml.org/doc/Manual.html#Package-definitions *)
   | OpamFile
-[@@deriving show, eq]
+[@@deriving eq, ord, show]
 
 (* old: used to be path : Target.path but no need complex origin for manifest*)
-type t = Out.manifest = { kind : kind; path : Fpath.t } [@@deriving show]
+type t = Out.manifest = { kind : kind; path : Fpath.t } [@@deriving ord, show]
 (** A manifest file to be used during matching. See also
     {!Dependency_source_xtarget.ml}, which also has the contents. *)
 

@@ -7,7 +7,7 @@ open Sexplib.Std
 (* less: could want to remember the position in the pattern of the metavar
  * for error reporting on pattern itself? so use a 'string AST_generic.wrap'?
  *)
-type t = string [@@deriving show, eq, hash, sexp]
+type t = string [@@deriving eq, hash, ord, sexp, show]
 
 (* ex: $X, $FAIL, $VAR2, $_
  * Note that some languages such as PHP or Javascript allows '$' in identifier

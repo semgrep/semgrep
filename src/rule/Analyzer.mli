@@ -54,7 +54,7 @@ type t =
   (* semgrep-like pattern matching *)
   | LSpacegrep
   | LAliengrep
-[@@deriving show, eq, hash, yojson]
+[@@deriving eq, hash, ord, show, yojson]
 
 exception InternalInvalidLanguage of string (* rule id *) * string (* msg *)
 

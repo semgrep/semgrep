@@ -4,14 +4,14 @@
  * so simpler to have a separate type with a proper name.
  *)
 type core = { major : int; minor : int; incrementals : int list }
-[@@deriving show, eq]
+[@@deriving eq, ord, show]
 
 (* Used in Rule.ml for sca_dependency_pattern and in SCA_dependency.ml *)
 type t =
   | V of core
   (* Versions are sometimes listed as arbitrary strings, like a github URL *)
   | Other of string
-[@@deriving show { with_path = false }, eq]
+[@@deriving eq, ord, show { with_path = false }]
 
 (* pretty printer *)
 let to_string (v : t) : string =

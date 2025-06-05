@@ -34,10 +34,10 @@
 (* Types *)
 (*****************************************************************************)
 (* The locations of variables which taint propagates through *)
-type tainted_tokens = Loc.t list [@@deriving show, eq]
+type tainted_tokens = Loc.t list [@@deriving eq, ord, show]
 
 (* The tokens associated with a single pattern match involved in a taint trace *)
-type pattern_match_tokens = Tok.t list [@@deriving show, eq]
+type pattern_match_tokens = Tok.t list [@@deriving eq, ord, show]
 
 (* Simplified version of Taint.source_to_sink meant for finding reporting *)
 type call_trace =
@@ -49,7 +49,7 @@ type call_trace =
       intermediate_vars : tainted_tokens;
       call_trace : call_trace;
     }
-[@@deriving show, eq]
+[@@deriving eq, ord, show]
 
 (* The trace of a single source of taint, to the sink.
    There may be many of these, taking different paths. For a single
@@ -70,6 +70,6 @@ type item = {
       (** This is the path that the taint takes, from the function context,
         to get to the sink. *)
 }
-[@@deriving show, eq]
+[@@deriving eq, ord, show]
 
-type t = item list [@@deriving show, eq]
+type t = item list [@@deriving eq, ord, show]
