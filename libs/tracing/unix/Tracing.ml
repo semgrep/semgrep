@@ -213,12 +213,6 @@ let add_data data (tracing_opt : config option) =
   |> Option.iter (fun tracing ->
          tracing.top_level_span |> opt_add_data_to_span data)
 
-let add_yojson_to_span sp yojson =
-  yojson
-  |> List_.map (fun (key, yojson) ->
-         (key, `String (Yojson.Safe.to_string yojson)))
-  |> add_data_to_span sp
-
 let add_global_attribute = Otel.Globals.add_global_attribute
 
 (*****************************************************************************)
@@ -338,11 +332,6 @@ let with_top_level_span ?(level = Info) ?parent_span_id ?parent_trace_id
   let parent = Option.map Otel.Span_id.of_hex parent_span_id in
   let attrs = with_code_info_to_attrs ?__FUNCTION__ ~__FILE__ ~__LINE__ data in
   with_ ~attrs ?trace_id ?parent name f
-
-let trace_data_only ?(level = Info) ~__FUNCTION__ ~__FILE__ ~__LINE__ name
-    (f : unit -> (string * Yojson.Safe.t) list) =
-  with_span ~level ~__FUNCTION__ ~__FILE__ ~__LINE__ name (fun sp ->
-      f () |> add_yojson_to_span sp)
 
 let log_trace_message () =
   match Otel.Scope.get_ambient_scope () with

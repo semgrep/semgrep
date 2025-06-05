@@ -114,15 +114,6 @@ val with_span :
 (** Expose the function to instrument code to send traces.
     prefer using the ppx *)
 
-val trace_data_only :
-  ?level:level ->
-  __FUNCTION__:string ->
-  __FILE__:string ->
-  __LINE__:int ->
-  string ->
-  (unit -> (string * Yojson.Safe.t) list) ->
-  unit
-
 (*****************************************************************************)
 (* Entry points for setting up tracing *)
 (*****************************************************************************)
