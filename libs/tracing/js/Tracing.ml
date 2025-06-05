@@ -25,7 +25,7 @@
 (*****************************************************************************)
 module Otel = Opentelemetry
 
-type span = Otel.Scope.t
+type scope = Otel.Scope.t
 type user_data = Otel.value
 
 let empty_span =
@@ -34,20 +34,16 @@ let empty_span =
     ~span_id:Otel.Span_id.(create ())
     ()
 
-(* Implement the show and pp functions manually since we know
-   Trace_core.span is int64*)
-let show_span (sp : span) =
+let show_scope (sp : scope) =
   ignore sp;
   "span"
 
-let pp_span fmt (sp : span) = Format.fprintf fmt "%s" (show_span sp)
+let pp_scope fmt (sp : scope) = Format.fprintf fmt "%s" (show_scope sp)
 
 type config = {
   endpoint : Uri.t;
-  (* set the deployment environment name for organization reasons in APMs *)
   env : string option;
-  (* To add data to our opentelemetry top span, so easier to filter *)
-  top_level_span : span option;
+  top_level_scope : scope option;
 }
 [@@deriving show]
 
@@ -78,15 +74,15 @@ let show_level = function
 (*****************************************************************************)
 
 let with_span ?(level = Info) ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data
-    (_name : string) (f : span -> 'a) =
+    (_name : string) (f : scope -> 'a) =
   ignore level;
   ignore data;
   f empty_span
 
-let get_current_span () = None
+let get_current_scope () = None
 let record_exn _sp _exn _bt = ()
 let record_exn_curr_span _exn _bt = ()
-let add_data_to_span (_i : span) (_data : (string * user_data) list) = ()
+let add_data_to_span (_i : scope) (_data : (string * user_data) list) = ()
 let add_data (_data : (string * user_data) list) (_i : config option) = ()
 let add_global_attribute _key _value = ()
 let no_telemetry_tag = Logs_.create_tag "no_telemetry"

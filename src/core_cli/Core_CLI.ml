@@ -316,12 +316,12 @@ let mk_config () : Core_scan_config.t =
             | "semgrep-local" -> (default_local_endpoint, Some "local")
             | _ -> (Uri.of_string url, None)
           in
-          Some { endpoint; top_level_span = None; env }
+          Some { endpoint; top_level_scope = None; env }
       | true, None ->
           Some
             {
               endpoint = default_trace_endpoint;
-              top_level_span = None;
+              top_level_scope = None;
               env = None;
             }
       | false, Some _ ->
@@ -815,10 +815,8 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
               Tracing.configure_tracing ~attrs:resource_attrs "semgrep-core"
                 tracing.endpoint;
               Tracing.with_tracing "Core_command.semgrep_core_dispatch" []
-                (fun span_id ->
-                  let tracing =
-                    { tracing with top_level_span = Some span_id }
-                  in
+                (fun scope ->
+                  let tracing = { tracing with top_level_scope = Some scope } in
                   decide_if_eio caps { config with tracing = Some tracing })))
 
 let main (caps : Cap.all_caps) (argv : string array) : unit =

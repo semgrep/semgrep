@@ -19,7 +19,7 @@
 (* Types *)
 (*****************************************************************************)
 
-type span = Opentelemetry.Scope.t [@@deriving show]
+type scope = Opentelemetry.Scope.t [@@deriving show]
 
 type config = {
   endpoint : Uri.t;
@@ -27,8 +27,8 @@ type config = {
      the environment they come from (e.g. development, staging, production). env
      here sets that metadata *)
   env : string option;
-  (* To add data to our opentelemetry top span, so easier to filter *)
-  top_level_span : span option;
+  (* To add data to our opentelemetry top scope, so easier to filter *)
+  top_level_scope : scope option;
 }
 [@@deriving show]
 
@@ -89,11 +89,11 @@ val otel_reporter : Logs.reporter
 (*****************************************************************************)
 (* Functions to instrument the code *)
 (*****************************************************************************)
-val get_current_span : unit -> span option
-(** Expose the Trace function to get the current span *)
+val get_current_scope : unit -> scope option
+(** Expose the Trace function to get the current scope *)
 
 (* for adding data *)
-val add_data_to_span : span -> (string * user_data) list -> unit
+val add_data_to_span : scope -> (string * user_data) list -> unit
 (** Expose the Trace function to add data to a span *)
 
 val add_data : (string * user_data) list -> config option -> unit
@@ -102,7 +102,7 @@ val add_data : (string * user_data) list -> config option -> unit
 val add_global_attribute : string -> user_data -> unit
 (** Expose the Trace function to add global attributes to the top level span *)
 
-val record_exn : span -> exn -> Printexc.raw_backtrace -> unit
+val record_exn : scope -> exn -> Printexc.raw_backtrace -> unit
 (** [record_exn curr_span exn (Printexc.get_raw_backtrace ())] will record any
     error onto the specified span so we can track it. This is useful if you want
     to catch an exception, but still record it in the trace *)
@@ -122,7 +122,7 @@ val with_span :
   __LINE__:int ->
   ?data:(string * user_data) list ->
   string ->
-  (span -> 'a) ->
+  (scope -> 'a) ->
   'a
 (** Expose the function to instrument code to send traces.
     prefer using the ppx *)
@@ -168,7 +168,7 @@ val restart_tracing : unit -> unit
     been called. Will fail if called multiple times. See {!stop_tracing} for an
     example*)
 
-val with_tracing : string -> (string * user_data) list -> (span -> 'a) -> 'a
+val with_tracing : string -> (string * user_data) list -> (scope -> 'a) -> 'a
 (** [with_tracing span_name attributes f] Start tracing with a top level span
     named [span_name] that has attributes [attributes] and run [f]. Stops
     instrumenting once that function is finished. *)
