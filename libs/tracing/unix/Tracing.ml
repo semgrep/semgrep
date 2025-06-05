@@ -66,24 +66,24 @@ open Common
 (* Types *)
 (*****************************************************************************)
 
-type span = Otel.Scope.t
+type scope = Otel.Scope.t
 
-let empty_span =
+let empty_scope =
   Otel.Scope.make
     ~trace_id:Otel.Trace_id.(create ())
     ~span_id:Otel.Span_id.(create ())
     ()
 
-let show_span (sp : span) = sp.trace_id |> Otel.Trace_id.to_hex
-let pp_span fmt (sp : span) = Format.fprintf fmt "%s" (show_span sp)
+let show_scope (sp : scope) = sp.trace_id |> Otel.Trace_id.to_hex
+let pp_scope fmt (sp : scope) = Format.fprintf fmt "%s" (show_scope sp)
 
 type user_data = Otel.value
 
 type config = {
   endpoint : Uri.t;
   env : string option;
-  (* To add data to our opentelemetry top span, so easier to filter *)
-  top_level_span : span option;
+  (* To add data to our opentelemetry top level span, so easier to filter *)
+  top_level_scope : scope option;
 }
 [@@deriving show]
 
@@ -122,7 +122,7 @@ end
 
 let ( let@ ) = ( @@ )
 
-(* Needed so we can reset span id's randomness on tracing restart *)
+(* Needed so we can reset scope id's randomness on tracing restart *)
 (* See restart_tracing for more detail *)
 let mk_rand_bytes_8 rand_ () : bytes =
   let@ () = Otel.Lock.with_lock in
@@ -201,17 +201,17 @@ let log_level_to_severity (level : Logs.level) : Otel.Logs.severity =
 (*****************************************************************************)
 (* Wrapping functions Trace gives us to instrument the code *)
 (*****************************************************************************)
-let get_current_span () = Otel.Scope.get_ambient_scope ()
-let add_data_to_span sp attrs = Otel.Scope.add_attrs sp (fun () -> attrs)
+let get_current_scope () = Otel.Scope.get_ambient_scope ()
+let add_data_to_span sc attrs = Otel.Scope.add_attrs sc (fun () -> attrs)
 
-let opt_add_data_to_span data sp =
-  sp |> Option.iter (fun sp -> add_data_to_span sp data)
+let opt_add_data_to_span data sc =
+  sc |> Option.iter (fun sc -> add_data_to_span sc data)
 
 (* This function is helpful for Semgrep, which stores an optional span *)
 let add_data data (tracing_opt : config option) =
   tracing_opt
   |> Option.iter (fun tracing ->
-         tracing.top_level_span |> opt_add_data_to_span data)
+         tracing.top_level_scope |> opt_add_data_to_span data)
 
 let add_global_attribute = Otel.Globals.add_global_attribute
 
@@ -222,8 +222,8 @@ let[@inline] record_exn_curr_span exn raw_backtrace =
   (* Only record if there's an active span *)
   let _ =
     Option.map
-      (fun sp -> Otel.Scope.record_exception sp exn raw_backtrace)
-      (get_current_span ())
+      (fun sc -> Otel.Scope.record_exception sc exn raw_backtrace)
+      (get_current_scope ())
   in
   ()
 
@@ -332,7 +332,7 @@ let with_span ?(level = Info) ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data name f =
       with_code_info_to_attrs ?__FUNCTION__ ~__FILE__ ~__LINE__ data
     in
     with_ ~attrs name f
-  else f empty_span
+  else f empty_scope
 
 (* Run the entrypoint function with a span. If a parent span is given
    (e.g. via Semgrep Managed Scanning), use that as the parent span
