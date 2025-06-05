@@ -91,13 +91,13 @@ type config = {
 (* Constants *)
 (*****************************************************************************)
 (* The endpoint that otel traces will be sent to. This should only ever be set
-   in configure_tracing, which is called once, at the beginning. The ref isn't
+   in configure_otel, which is called once, at the beginning. The ref isn't
    nice, but we need it to start and stop tracing without having to pass around
-   an env. See [with_tracing_paused]
+   an env. See [with_otel_paused]
 
    TODO(SAF-1938): This is a Domain-local value in order to more closely match
    with ParMap (which re-creates its own endpoint after forking in order to
-   pull random seeds - see [restart_tracing]).  Once we are using multicore by
+   pull random seeds - see [restart_otel]).  Once we are using multicore by
    default, we should revisit this.
    *)
 let active_endpoint = Domain.DLS.new_key (const None)
@@ -123,7 +123,7 @@ end
 let ( let@ ) = ( @@ )
 
 (* Needed so we can reset scope id's randomness on tracing restart *)
-(* See restart_tracing for more detail *)
+(* See restart_otel for more detail *)
 let mk_rand_bytes_8 rand_ () : bytes =
   let@ () = Otel.Lock.with_lock in
   let b = Bytes.create 8 in
@@ -214,12 +214,10 @@ let add_data data (tracing_opt : config option) =
          tracing.top_level_scope |> opt_add_data_to_span data)
 
 let add_global_attribute = Otel.Globals.add_global_attribute
+let record_exn = Otel.Scope.record_exception
 
-(* Inline to maintain proper exception recording *)
-let[@inline] record_exn sc = Otel.Scope.record_exception sc
-
-let[@inline] record_exn_curr_span exn raw_backtrace =
-  (* Only record if there's an active span *)
+let record_exn_curr_span exn raw_backtrace =
+  (* Only record if there's an active scope *)
   let _ =
     Option.map
       (fun sc -> Otel.Scope.record_exception sc exn raw_backtrace)
@@ -363,7 +361,7 @@ let log_trace_message () =
 (*****************************************************************************)
 
 (* Safe to call whenever *)
-let stop_tracing () =
+let stop_otel () =
   (* hack: get the backend so we can easily stop tracing at any time. See
      [with_paused_tracing] for why we want the option to do this
   *)
@@ -388,7 +386,7 @@ let setup_otel trace_endpoint =
   Otel.Collector.set_backend otel_backend
 
 (* Set according to README of https://github.com/imandra-ai/ocaml-opentelemetry/ *)
-let configure_tracing ?(attrs : (string * user_data) list = []) service_name
+let configure_otel ?(attrs : (string * user_data) list = []) service_name
     trace_endpoint =
   Otel.Globals.service_name := service_name;
   Otel.Globals.default_span_kind := Otel.Span.Span_kind_internal;
@@ -401,7 +399,7 @@ let configure_tracing ?(attrs : (string * user_data) list = []) service_name
   Ambient_context.set_storage_provider (Ambient_context_lwt.storage ());
   setup_otel trace_endpoint
 
-let restart_tracing () =
+let restart_otel () =
   (* We must re-initialize the randomness on restart since this usually happens
      after a parmap fork. If we don't do this then all parmap forks will have
      the same randomness and use duplicate span ids! This behavior is fine in
@@ -420,10 +418,10 @@ let restart_tracing () =
 
    See https://github.com/imandra-ai/ocaml-opentelemetry/issues/68
 *)
-let with_tracing_paused f =
+let with_otel_paused f =
   (* Don't exit current spans here since we only want to pause *)
-  stop_tracing ();
-  Common.protect ~finally:restart_tracing f
+  stop_otel ();
+  Common.protect ~finally:restart_otel f
 
 let with_tracing fname data f =
   (* This sets up the OTel collector and runs the given function.
@@ -454,8 +452,8 @@ let with_tracing fname data f =
     log_trace_message ();
     f sp
   in
-  (* coupling: [restart_tracing] *)
-  Common.protect ~finally:stop_tracing f'
+  (* coupling: [restart_otel] *)
+  Common.protect ~finally:stop_otel f'
 
 (* TODO: switch to otel eio once we are on multicore/it is supported by the otel
    lib *)

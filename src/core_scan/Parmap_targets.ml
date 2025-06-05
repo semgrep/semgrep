@@ -88,7 +88,7 @@ let init _job =
   (* Restart tracing as it is paused before forking below in both
      map_targets___* funcs *)
   (* NOTE: this only restarts tracing in the child *)
-  Tracing.restart_tracing ()
+  Tracing.restart_otel ()
   *)
   ()
 
@@ -97,7 +97,7 @@ let finalize () =
   (* NOTE: this only stops tracing in the child *)
   (* TODO See note in init *)
   (*
-  Tracing.stop_tracing ()
+  Tracing.stop_otel ()
   *)
   ()
 
@@ -178,6 +178,6 @@ let map_targets__run_in_forked_process_do_not_modify_globals caps
           (List.length targets));
     (* We must pause tracing here as forking with tracing on causes segfaults.
        See comments on this function in Tracing.ml *)
-    Tracing.with_tracing_paused (fun () ->
+    Tracing.with_otel_paused (fun () ->
         Parmap_.parmap caps ~init ~finalize ~num_jobs ~chunksize:1
           ~exception_handler f targets))

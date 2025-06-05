@@ -92,15 +92,14 @@ let otel_reporter : Logs.reporter = Logs.nop_reporter
 (* Entry points for setting up tracing *)
 (*****************************************************************************)
 
-let stop_tracing () = ()
-let restart_tracing () = ()
+let stop_otel () = ()
+let restart_otel () = ()
 
-let configure_tracing ?(attrs = []) (_service_name : string) (_endpoint : Uri.t)
-    =
+let configure_otel ?(attrs = []) (_service_name : string) (_endpoint : Uri.t) =
   ignore attrs;
   ()
 
 let with_tracing (_fname : string) (_data : (string * user_data) list) f =
   f empty_span
 
-let with_tracing_paused f = f ()
+let with_otel_paused f = f ()
