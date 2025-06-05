@@ -812,7 +812,7 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
                   ~jobs:(Core_scan_config.finalize_num_jobs config.num_jobs)
                   ()
               in
-              Tracing.configure_tracing ~attrs:resource_attrs "semgrep-core"
+              Tracing.configure_otel ~attrs:resource_attrs "semgrep-core"
                 tracing.endpoint;
               Tracing.with_tracing "Core_command.semgrep_core_dispatch" []
                 (fun scope ->

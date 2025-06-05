@@ -5,7 +5,7 @@
  * our Datadog endpoint, but the collector can be customized using the
  * SEMGREP_OTEL_ENDPOINT environment variable.
  *
- * To trace a program, start by calling `configure_tracing`. Then, wrap
+ * To trace a program, start by calling `configure_otel`. Then, wrap
  * the entry point of the program (e.g. `Core_command.semgrep_core_dispatch`)
  * with `with_tracing`. Traces will now be sent for the duration of that
  * function.
@@ -131,41 +131,40 @@ val with_span :
 (* Entry points for setting up tracing *)
 (*****************************************************************************)
 
-val configure_tracing :
-  ?attrs:(string * user_data) list -> string -> Uri.t -> unit
-(** [configure_tracing service_name tracing_endpoint] Before instrumenting
-    anything, configure some settings. This should only be run once in a
-    program, because it creates a backend with threads, HTTP connections, etc.
-    when called. [service_name] is the name of the service. [~attrs] can be used
-    to set additional global attributes (such as ["service.version"]), which are
-    tags that will be applied to all outgoing traces/metrics/logs etc.
+val configure_otel : ?attrs:(string * user_data) list -> string -> Uri.t -> unit
+(** [configure_otel service_name tracing_endpoint] Before instrumenting
+    anything, configure OTel. This should only be run once in a program, because
+    it creates a backend with threads, HTTP connections, etc. when called.
+    [service_name] is the name of the service. [~attrs] can be used to set
+    additional global attributes (such as ["service.version"]), which are tags
+    that will be applied to all outgoing traces/metrics/logs etc.
 
     NOTE: this will set the active trace endpoint to
     whatever is passed. This endpoint will be used when restarting tracing via
-    [restart_tracing] *)
+    [restart_otel] *)
 
-val stop_tracing : unit -> unit
-(** [stop_tracing ()] explicitly shuts down the Otel
+val stop_otel : unit -> unit
+(** [stop_otel ()] explicitly shuts down the Otel
     collector. If tracing has been setup this MUST be called before forking
     (such as in {!Parmap}), or you WILL experience random segfaults. This is
-    safe to call multiple times in a row. See [restart_tracing] to continue
+    safe to call multiple times in a row. See [restart_otel] to continue
     tracing after calling this.
 
     Example:
     {[
-      stop_tracing ();
+      stop_otel ();
       (if Unix.fork () = 0 then
       print_endline "child"
       else
       print_endline "parent");
-      restart_tracing ();
+      restart_otel ();
     ]}
  *)
 
-val restart_tracing : unit -> unit
-(** [restart_tracing ()] will re-setup the Otel backend after [stop_tracing] is
-    called to continue tracing. This is a no-op if [configure_tracing] has not
-    been called. Will fail if called multiple times. See {!stop_tracing} for an
+val restart_otel : unit -> unit
+(** [restart_otel ()] will re-setup the Otel backend after [stop_otel] is
+    called to continue tracing. This is a no-op if [configure_otel] has not
+    been called. Will fail if called multiple times. See {!stop_otel} for an
     example*)
 
 val with_tracing : string -> (string * user_data) list -> (scope -> 'a) -> 'a
@@ -173,8 +172,8 @@ val with_tracing : string -> (string * user_data) list -> (scope -> 'a) -> 'a
     named [span_name] that has attributes [attributes] and run [f]. Stops
     instrumenting once that function is finished. *)
 
-val with_tracing_paused : (unit -> 'a) -> 'a
-(** [with_tracing_paused f] will run [f] with tracing paused. This is usually
+val with_otel_paused : (unit -> 'a) -> 'a
+(** [with_otel_paused f] will run [f] with tracing paused. This is usually
     called before forking, as Otel can segfault if it is not paused before
-    forking. Essentially this calls [stop_tracing] and then
-    [restart_tracing]. *)
+    forking. Essentially this calls [stop_otel] and then
+    [restart_otel]. *)
