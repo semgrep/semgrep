@@ -37,7 +37,6 @@ from rich.progress import Progress
 from rich.progress import SpinnerColumn
 from rich.progress import TextColumn
 
-import semgrep.error as error
 import semgrep.scan_report as scan_report
 import semgrep.semgrep_interfaces.semgrep_output_v1 as out
 from semdep.parsers.util import DependencyParserError
@@ -592,7 +591,7 @@ def resolve_dependencies(
     download_dependency_source_code: bool,
 ) -> Tuple[
     List[Rule],  # filtered_dependency_aware_rules
-    List[DependencyParserError],  # dependency_parser_errors
+    List[out.ScaError],  # dependency_parser_errors
     List[Path],  # sca_dependency_targets
     List[Union[out.ResolvedSubproject, out.UnresolvedSubproject]],  # all_subprojects
     Dict[Ecosystem, List[out.ResolvedSubproject]],  # resolved_subprojects
@@ -617,7 +616,7 @@ def resolve_dependencies(
     """
     # Initialize data structures
     filtered_dependency_aware_rules: List[Rule] = []
-    dependency_parser_errors: List[DependencyParserError] = []
+    dependency_resolution_errors: List[out.ScaError] = []
     sca_dependency_targets: List[Path] = []
     all_subprojects: List[Union[out.ResolvedSubproject, out.UnresolvedSubproject]] = []
     resolved_subprojects: Dict[Ecosystem, List[out.ResolvedSubproject]] = {}
@@ -625,7 +624,7 @@ def resolve_dependencies(
     if not dependency_aware_rules:
         return (
             filtered_dependency_aware_rules,
-            dependency_parser_errors,
+            dependency_resolution_errors,
             sca_dependency_targets,
             all_subprojects,
             resolved_subprojects,
@@ -655,25 +654,7 @@ def resolve_dependencies(
 
     # Handle errors from subprojects
     for subproject in all_subprojects:
-        dependency_parser_errors.extend(
-            [
-                e.value.value
-                for e in subproject.errors
-                if isinstance(e.value, out.SCAParse)
-            ]
-        )
-        output_handler.handle_semgrep_errors(
-            [
-                error.DependencyResolutionSemgrepError(
-                    type_=e.value.value.type_,
-                    dependency_source_file=Path(
-                        e.value.value.dependency_source_file.value
-                    ),
-                )
-                for e in subproject.errors
-                if isinstance(e.value, out.SCAResol)
-            ]
-        )
+        dependency_resolution_errors.extend(subproject.errors)
 
     # Filter rules that match the dependencies
     filtered_dependency_aware_rules = filter_dependency_aware_rules(
@@ -682,7 +663,7 @@ def resolve_dependencies(
 
     return (
         filtered_dependency_aware_rules,
-        dependency_parser_errors,
+        dependency_resolution_errors,
         sca_dependency_targets,
         all_subprojects,
         resolved_subprojects,
@@ -879,7 +860,7 @@ def run_rules(
 
     (
         filtered_dependency_aware_rules,
-        dependency_parser_errors,
+        dependency_resolution_errors,
         sca_dependency_targets,
         all_subprojects,
         resolved_subprojects,
@@ -892,6 +873,11 @@ def run_rules(
         resolve_all_deps_in_diff_scan=resolve_all_deps_in_diff_scan,
         download_dependency_source_code=x_tr,
     )
+    dependency_parser_errors = [
+        e.value.value
+        for e in dependency_resolution_errors
+        if isinstance(e.value.value, out.DependencyParserError)
+    ]
 
     # compute a set first to avoid O(n^2) complexity
     dependency_aware_rule_ids = set(r.id for r in dependency_aware_rules)
@@ -909,7 +895,7 @@ def run_rules(
         target_manager,
         target_mode_config,
         all_subprojects,
-        dependency_parser_errors,
+        dependency_resolution_errors,
         cli_ux=cli_ux,
         with_code_rules=with_code_rules,
         with_supply_chain=with_supply_chain,

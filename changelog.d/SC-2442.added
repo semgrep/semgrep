@@ -1,0 +1,1 @@
+Dependency resolution errors that result from local builds are now reported in the scan log by default.
