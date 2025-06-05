@@ -215,27 +215,32 @@ let data_of_languages (languages : Analyzer.t list) =
    tools. See module commentary for more info
 *)
 let get_resource_attrs ?(env = "prod") ~engine ~analysis_flags ~jobs () =
-  [
-    (* Version of Semgrep *)
-    (Telemetry.Attributes.version, `String Version.version);
-    (* Whether we're running in a production, staging, or develop environment
-       (Usually maps to SMS prod,staging,dev2) *)
-    (Telemetry.Attributes.deployment_environment_name, `String env);
-    (Attributes.engine, `String engine);
-    (Attributes.jobs, `Int jobs);
-    (Attributes.folder, `String (current_working_folder ()));
-    (Attributes.pro_secrets_validators, `Bool analysis_flags.secrets_validators);
-    (Attributes.pro_historical_scanning, `Bool analysis_flags.historical_scan);
-    (Attributes.pro_deep_intrafile, `Bool analysis_flags.deep_intra_file);
-    (Attributes.pro_deep_interfile, `Bool analysis_flags.deep_inter_file);
-    (* TODO it would be nice if we also got how the process was executed, and
-       with what config/flags *)
-  ]
-  @ get_env_vars default_resource_env_attrs
-  @
-  if analysis_flags.secrets_validators then
+  let attrs =
     [
-      ( Attributes.pro_secrets_allowed_origins,
-        `String (allowed_origins analysis_flags.allow_all_origins) );
+      (* Version of Semgrep *)
+      (Telemetry.Attributes.version, `String Version.version);
+      (* Whether we're running in a production, staging, or develop environment
+       (Usually maps to SMS prod,staging,dev2) *)
+      (Telemetry.Attributes.deployment_environment_name, `String env);
+      (Attributes.engine, `String engine);
+      (Attributes.jobs, `Int jobs);
+      (Attributes.folder, `String (current_working_folder ()));
+      ( Attributes.pro_secrets_validators,
+        `Bool analysis_flags.secrets_validators );
+      (Attributes.pro_historical_scanning, `Bool analysis_flags.historical_scan);
+      (Attributes.pro_deep_intrafile, `Bool analysis_flags.deep_intra_file);
+      (Attributes.pro_deep_interfile, `Bool analysis_flags.deep_inter_file);
+      (* TODO it would be nice if we also got how the process was executed, and
+       with what config/flags *)
     ]
-  else []
+    @ get_env_vars default_resource_env_attrs
+    @
+    if analysis_flags.secrets_validators then
+      [
+        ( Attributes.pro_secrets_allowed_origins,
+          `String (allowed_origins analysis_flags.allow_all_origins) );
+      ]
+    else []
+  in
+  (* Filter out if the val is `None *)
+  List.filter (fun (_, v) -> not (v = `None)) attrs
