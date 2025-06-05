@@ -48,7 +48,7 @@ let setup ?log_to_file ?(log_to_otel = false) ?require_one_of_these_tags
   (* currently only additional reporter is otel. Only set to true when --trace
      is passed *)
   let additional_reporters =
-    if log_to_otel then Some [ Tracing.otel_reporter ] else None
+    if log_to_otel then Some [ Logging.otel_reporter ] else None
   in
   (* If we're going to log to otel, let's by default log info since that's
      incredibly useful for debugging. When we see logs from otel, we may not

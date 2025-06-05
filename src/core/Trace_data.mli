@@ -36,7 +36,7 @@ end
 val no_analysis_features : unit -> analysis_flags
 (** For analysis run with the oss engine, we know all the flags will be false *)
 
-val data_of_languages : Analyzer.t list -> (string * Tracing.user_data) list
+val data_of_languages : Analyzer.t list -> (string * Telemetry.user_data) list
 (** Convenience function to turn a list of interfile languages into otel data *)
 
 val get_resource_attrs :
@@ -45,7 +45,7 @@ val get_resource_attrs :
   analysis_flags:analysis_flags ->
   jobs:int ->
   unit ->
-  (string * Tracing.user_data) list
+  (string * Telemetry.user_data) list
 (** [get_resource_data ~engine:"oss" ~env:"prod" ~analysis_flags () ] creates
     tags for the resource we report traces to. This is essentially info about
     the "service" itself, that is immutable once the service/program starts.

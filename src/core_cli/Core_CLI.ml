@@ -305,7 +305,7 @@ let mk_config () : Core_scan_config.t =
     num_jobs = !num_jobs;
     filter_irrelevant_rules = !filter_irrelevant_rules;
     (* open telemetry *)
-    tracing =
+    telemetry =
       (match (!trace, !trace_endpoint) with
       | true, Some url ->
           let endpoint, env =
@@ -801,7 +801,7 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
              TODO when osemgrep is the default entry point, we will also be
              able to instrument the pre- and post-scan code in the same way.
           *)
-          match config.tracing with
+          match config.telemetry with
           | None -> decide_if_eio caps config
           | Some tracing ->
               let resource_attrs =
@@ -812,12 +812,15 @@ let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
                   ~jobs:(Core_scan_config.finalize_num_jobs config.num_jobs)
                   ()
               in
-              Tracing.configure_otel ~attrs:resource_attrs "semgrep-core"
+              Telemetry.configure_otel ~attrs:resource_attrs "semgrep-core"
                 tracing.endpoint;
               Tracing.with_tracing "Core_command.semgrep_core_dispatch" []
                 (fun scope ->
-                  let tracing = { tracing with top_level_scope = Some scope } in
-                  decide_if_eio caps { config with tracing = Some tracing })))
+                  let telemetry =
+                    { tracing with top_level_scope = Some scope }
+                  in
+                  decide_if_eio caps { config with telemetry = Some telemetry })
+          ))
 
 let main (caps : Cap.all_caps) (argv : string array) : unit =
   UCommon.main_boilerplate (fun () -> main_exn caps argv)

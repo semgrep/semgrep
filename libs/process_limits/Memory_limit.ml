@@ -103,13 +103,13 @@ let run_with_memory_limit _caps ?get_context
     let mem_bytes = heap_bytes + stack_bytes in
     if mem_limit > 0 && mem_bytes > mem_limit then (
       Logs.err (fun m ->
-          m ~tags:Tracing.no_telemetry_tag_set
+          m ~tags:Logging.no_telemetry_tag_set
             "%sexceeded heap+stack memory limit: %d bytes (stack=%d, heap=%d)"
             (context ()) mem_bytes stack_bytes heap_bytes);
       raise (ExceededMemoryLimit "Exceeded memory limit"))
     else if !heap_warning > 0 && heap_bytes > !heap_warning then (
       Logs.warn (fun m ->
-          m ~tags:Tracing.no_telemetry_tag_set
+          m ~tags:Logging.no_telemetry_tag_set
             "%slarge heap size: %d MiB (memory limit is %d MiB). If a crash \
              follows, you could suspect OOM."
             (context ()) (heap_bytes / mb) mem_limit_mb);
@@ -120,7 +120,7 @@ let run_with_memory_limit _caps ?get_context
       && not !stack_already_warned
     then (
       Logs.warn (fun m ->
-          m ~tags:Tracing.no_telemetry_tag_set
+          m ~tags:Logging.no_telemetry_tag_set
             "%slarge stack size: %d bytes. If a crash follows, you should \
              suspect a stack overflow. Make sure the maximum stack size is set \
              to 'unlimited' or to a value greater than %d bytes so as to \

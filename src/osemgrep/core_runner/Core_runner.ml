@@ -184,7 +184,7 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
          *)
         respect_rule_paths = true;
         max_match_per_file = Core_scan_config.default.max_match_per_file;
-        tracing = None;
+        telemetry = None;
         symbol_analysis;
         use_eio = false;
         par_conf = None;
