@@ -130,7 +130,7 @@ let get_env_vars =
         None
   in
   let map_env_var_to_otel_data name type_ env_vars default :
-      string * Trace_core.user_data =
+      string * Tracing.user_data =
     let user_data_val_of_string x =
       let v_opt =
         match type_ with

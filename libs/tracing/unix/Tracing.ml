@@ -66,14 +66,18 @@ open Common
 (* Types *)
 (*****************************************************************************)
 
-type span = Trace_core.span
+type span = Otel.Scope.t
 
-(* Implement the show and pp functions manually since we know
-   Trace_core.span is int64*)
-let show_span = Int64.to_string
-let pp_span fmt = Format.fprintf fmt "%Ldl"
+let empty_span =
+  Otel.Scope.make
+    ~trace_id:Otel.Trace_id.(create ())
+    ~span_id:Otel.Span_id.(create ())
+    ()
 
-type user_data = Trace_core.user_data
+let show_span (sp : span) = sp.trace_id |> Otel.Trace_id.to_hex
+let pp_span fmt (sp : span) = Format.fprintf fmt "%s" (show_span sp)
+
+type user_data = Otel.value
 
 type config = {
   endpoint : Uri.t;
@@ -158,18 +162,31 @@ type level =
   | Debug  (** Traces to help profile a specific run *)
   | Trace  (** All traces *)
 
+let trace_level : level option Domain.DLS.key = Domain.DLS.new_key (const None)
+
+let get_level () =
+  match Domain.DLS.get trace_level with
+  | Some level -> level
+  | None -> Info
+
+let set_level level = Domain.DLS.set trace_level (Some level)
+
+let filter_level (x : level) =
+  match (x, get_level ()) with
+  | Info, Info
+  | Debug, Debug
+  | Info, Debug
+  | _, Trace ->
+      true
+  | _, Info
+  | Trace, Debug ->
+      false
+
 (* TODO: replace by [@@deriving show] above, but then weird compilation errors*)
 let show_level = function
   | Info -> "Info"
   | Debug -> "Debug"
   | Trace -> "Trace"
-
-(* TODO? why define our own type repeating an existing one? *)
-let level_to_trace_level level =
-  match level with
-  | Info -> Trace_core.Level.Info
-  | Debug -> Trace_core.Level.Debug1
-  | Trace -> Trace_core.Level.Trace
 
 (* Convert log level to Otel severity *)
 let log_level_to_severity (level : Logs.level) : Otel.Logs.severity =
@@ -185,19 +202,16 @@ let log_level_to_severity (level : Logs.level) : Otel.Logs.severity =
 (* Wrapping functions Trace gives us to instrument the code *)
 (*****************************************************************************)
 
-let add_data_to_span = Trace_core.add_data_to_span
+let add_data_to_span sp attrs = Otel.Scope.add_attrs sp (fun () -> attrs)
 
 let opt_add_data_to_span data sp =
-  sp |> Option.iter (fun sp -> Trace_core.add_data_to_span sp data)
+  sp |> Option.iter (fun sp -> add_data_to_span sp data)
 
 (* This function is helpful for Semgrep, which stores an optional span *)
 let add_data data (tracing_opt : config option) =
   tracing_opt
   |> Option.iter (fun tracing ->
          tracing.top_level_span |> opt_add_data_to_span data)
-
-(* We get nice ui in Jaeger if we do this *)
-let mark_span_error sp = add_data_to_span sp [ ("error", `Bool true) ]
 
 let add_yojson_to_span sp yojson =
   yojson
@@ -289,77 +303,41 @@ let otel_reporter : Logs.reporter =
 (*****************************************************************************)
 (* Span/Event entrypoints *)
 (*****************************************************************************)
-(* Essentially
-   https://github.com/imandra-ai/ocaml-opentelemetry/blob/fdee7fe2dd1f91a8d1f78d6ce20d2bc86d555444/src/core/opentelemetry.ml#L980-L993
-   We should switch to this once it's released! *)
-let trace_exn sp exn =
-  let e = Exception.catch exn in
-  let exn_type = Printexc.exn_slot_name exn in
-  let exn_msg = Printexc.to_string exn in
-  let exn_stacktrace =
-    e |> Exception.get_trace |> Printexc.raw_backtrace_to_string
-  in
 
-  (* Datadog friendly attrs for the span
-     See:
-     https://docs.datadoghq.com/tracing/error_tracking/#use-span-tags-to-track-error-spans
-  *)
+let with_ ?attrs ?kind ?trace_id ?parent name f =
+  Otel.Trace.with_ ?attrs ?kind ?trace_id ?parent name f
 
-  (* Note these are not what the otel spec expects, but the ocaml otel libary
-     will do this in a future version:
-     https://github.com/imandra-ai/ocaml-opentelemetry/pull/63
-  *)
-  let attrs =
+let with_code_info_to_attrs ?__FUNCTION__ ~__FILE__ ~__LINE__ data =
+  let code_attrs =
     [
-      ("error.message", `String exn_msg);
-      ("error.stack", `String exn_stacktrace);
-      ("error.type", `String exn_type);
-      (* Forces datadog to actually track an error *)
-      ("track_error", `Bool true);
+      ( Opentelemetry.Conventions.Attributes.Code.function_,
+        `String (Option.value ~default:"" __FUNCTION__) );
+      (Opentelemetry.Conventions.Attributes.Code.filepath, `String __FILE__);
+      (Opentelemetry.Conventions.Attributes.Code.line, `Int __LINE__);
     ]
   in
-  add_data_to_span sp attrs
-
-let enter_span ?(level = Info) =
-  let level = level_to_trace_level level in
-  Trace_core.enter_span ~level
-
-let exit_span = Trace_core.exit_span
+  match data with
+  | Some data -> data @ code_attrs
+  | None -> code_attrs
 
 let with_span ?(level = Info) ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data name f =
-  let level = level_to_trace_level level in
-  Trace_core.with_span ~level ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data name
-    (fun sp ->
-      (* TODO: When the next version of the otel library is released (curr:
-         0.10) this error catching and marking is done for us*)
-      try f sp with
-      | exn ->
-          let e = Exception.catch exn in
-          trace_exn sp exn;
-          mark_span_error sp;
-          Trace_core.exit_span sp;
-          Exception.reraise e)
+  if filter_level level then
+    let attrs =
+      with_code_info_to_attrs ?__FUNCTION__ ~__FILE__ ~__LINE__ data
+    in
+    with_ ~attrs name f
+  else f empty_span
 
 (* Run the entrypoint function with a span. If a parent span is given
    (e.g. via Semgrep Managed Scanning), use that as the parent span
    so that we can connect the semgrep-core trace to other traces. *)
 let with_top_level_span ?(level = Info) ?parent_span_id ?parent_trace_id
     ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data name f =
-  match (parent_span_id, parent_trace_id) with
-  | None, None ->
-      with_span ~level ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data name f
-  | None, Some _
-  | Some _, None ->
-      Log.err (fun m ->
-          m "Both %s and %s should be set when creating a subspan"
-            parent_span_id_var parent_trace_id_var);
-      with_span ~level ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data name f
-  | Some span_id, Some trace_id ->
-      let span_id = Otel.Span_id.of_hex span_id in
-      let trace_id = Otel.Trace_id.of_hex trace_id in
-      let scope = Otel.Scope.make ~span_id ~trace_id () in
-      Otel.Scope.with_ambient_scope scope (fun () ->
-          with_span ~level ?__FUNCTION__ ~__FILE__ ~__LINE__ ?data name f)
+  ignore level;
+  let trace_id = Option.map Otel.Trace_id.of_hex parent_trace_id in
+  let parent = Option.map Otel.Span_id.of_hex parent_span_id in
+  let attrs = with_code_info_to_attrs ?__FUNCTION__ ~__FILE__ ~__LINE__ data in
+  with_ ~attrs ?trace_id ?parent name f
 
 let trace_data_only ?(level = Info) ~__FUNCTION__ ~__FILE__ ~__LINE__ name
     (f : unit -> (string * Yojson.Safe.t) list) =
@@ -391,7 +369,6 @@ let stop_tracing () =
   |> Option.iter (fun backend ->
          Log.info (fun m -> m "Stopping tracing");
          let module Backend = (val backend : Otel.Collector.BACKEND) in
-         Trace_core.shutdown ();
          Otel.Collector.remove_backend ();
          Backend.cleanup ())
 
@@ -406,21 +383,7 @@ let setup_otel trace_endpoint =
      only ever report to one endpoint for the lifetime of the program *)
   Domain.DLS.set active_endpoint (Some trace_endpoint);
   (* Set the Otel Collector *)
-  Otel.Collector.set_backend otel_backend;
-  if Trace.enabled () then
-    (* This would only happen if this function is called multiple times which is
-       fine, or if someone /else/ has some Trace_core backend setup, but not
-       sure when else we'd use it *)
-    (* nosemgrep: no-logs-in-library *)
-    Logs.warn (fun m ->
-        m
-          "Tracing core is already setup, and so cannot setup the \
-           Opentelemetry trace core backend. Tracing may not work as expected.")
-  else
-    (* This forwards the spans from Trace to the Opentelemetry collector *)
-    (* coupling: if we change the backend here, make sure to update with_span and
-       restart_tracing to not use Opentelemetry_trace/Trace_core! *)
-    Opentelemetry_trace.setup ()
+  Otel.Collector.set_backend otel_backend
 
 (* Set according to README of https://github.com/imandra-ai/ocaml-opentelemetry/ *)
 let configure_tracing ?(attrs : (string * user_data) list = []) service_name
@@ -478,10 +441,10 @@ let with_tracing fname data f =
         | _ -> Info)
     | None -> Info
   in
+  set_level level;
   let parent_span_id = Sys.getenv_opt parent_span_id_var in
   let parent_trace_id = Sys.getenv_opt parent_trace_id_var in
-  let data () = data in
-  Trace_core.set_current_level (level_to_trace_level level);
+  (* TODO some sort of filter for trace level *)
   let f' () =
     with_top_level_span ?parent_span_id ?parent_trace_id ~__FILE__ ~__LINE__
       ~data fname

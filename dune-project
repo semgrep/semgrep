@@ -127,7 +127,6 @@ For more information see https://semgrep.dev
     (lsp (= 1.22.0))
     git
     ; tracing
-    trace
     memtrace
     ppx_trace
     (opentelemetry (= 0.11.2))  ; 0.11.2 has a fix needed for Windows

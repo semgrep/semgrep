@@ -455,7 +455,7 @@ let applicable_rules_of_config (config : Core_scan_config.t) :
 let handle_target_with_trace (handle_target : Target.t -> 'a) (t : Target.t) :
     'a =
   let target_name = Target.internal_path t in
-  let data () =
+  let data =
     [
       ("filename", `String !!target_name);
       ("num_bytes", `Int (UFile.filesize target_name));

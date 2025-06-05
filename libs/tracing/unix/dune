@@ -4,9 +4,7 @@
  (libraries
    unix
    commons
-   trace
    opentelemetry
-   opentelemetry.trace
    opentelemetry-client-ocurl
    ambient-context-lwt
  )
