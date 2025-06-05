@@ -9,7 +9,7 @@
  (libraries
    unix
    commons
-   tracing
+   telemetry
    parallelism
  )
 )

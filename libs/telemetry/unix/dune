@@ -1,6 +1,6 @@
 (library
- (public_name tracing.unix)
- (name tracing_unix)
+ (public_name telemetry.unix)
+ (name telemetry_unix)
  (libraries
    unix
    commons
@@ -8,7 +8,7 @@
    opentelemetry-client-ocurl
    ambient-context-lwt
  )
- (implements tracing)
+ (implements telemetry)
   (preprocess (pps
       ppx_deriving.show
       ppx_deriving_yojson

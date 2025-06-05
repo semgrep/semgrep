@@ -1,13 +1,13 @@
 
 (library
- (public_name tracing.js)
- (name tracing_js)
+ (public_name telemetry.js)
+ (name telemetry_js)
  (libraries
    commons
    logs
    opentelemetry
  )
- (implements tracing)
+ (implements telemetry)
   (preprocess (pps
       ppx_deriving.show
    ))

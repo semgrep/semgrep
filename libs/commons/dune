@@ -34,7 +34,6 @@
    ; async stuff
    lwt
    alcotest-lwt
-   ; tracing
    memtrace
    ; concurrency
    eio_main

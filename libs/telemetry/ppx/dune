@@ -1,10 +1,10 @@
 (library
- (public_name tracing.ppx)
- (name ppx_tracing)
+ (public_name telemetry.ppx)
+ (name ppx_telemetry)
  (kind ppx_deriver)
  (libraries
    commons
    ppxlib
-   tracing
+   telemetry
  )
 )

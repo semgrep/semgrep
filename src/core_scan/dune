@@ -8,7 +8,7 @@
 
     commons
     eio
-    tracing
+    telemetry
 
     semgrep.core
     semgrep.parsing
@@ -19,6 +19,6 @@
  (preprocess (pps
       ppx_deriving.show
       ppx_profiling
-      ppx_tracing
+      ppx_telemetry
    ))
 )
