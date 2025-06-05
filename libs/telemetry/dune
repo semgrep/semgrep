@@ -1,6 +1,6 @@
 
 (library
- (public_name tracing)
+ (public_name telemetry)
  (wrapped false)
   (libraries
     uri
@@ -9,7 +9,7 @@
     opentelemetry
   )
  (virtual_modules tracing)
- (default_implementation tracing.unix)
+ (default_implementation telemetry.unix)
   (preprocess (pps
       ppx_deriving.show
    ))

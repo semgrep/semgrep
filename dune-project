@@ -529,9 +529,9 @@ functions.
 )
 
 (package
-  (name tracing)
+  (name telemetry)
   (version "1.5.5")
-  (synopsis "Small library to help trace code")
+  (synopsis "Small library to help observe code")
   (description "\
 This is a small library of utilities used by Semgrep to
 trace functions for the purpose of reporting them in

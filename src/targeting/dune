@@ -22,7 +22,7 @@
    (pps
      ppx_blob
      ppx_profiling
-     tracing.ppx
+     telemetry.ppx
      ppx_deriving.show
      ppx_deriving_yojson
      ppx_deriving.eq

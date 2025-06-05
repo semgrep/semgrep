@@ -17,7 +17,7 @@
     (pps
       ppx_profiling
       ppx_deriving.show
-      tracing.ppx
+      telemetry.ppx
     )
  )
 )
