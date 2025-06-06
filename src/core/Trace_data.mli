@@ -19,7 +19,6 @@ type analysis_flags = {
 (* constants *)
 module Attributes : sig
   val semgrep_managed_scan : string
-  val engine : string
   val repo_name : string
   val jobs : string
   val job : string

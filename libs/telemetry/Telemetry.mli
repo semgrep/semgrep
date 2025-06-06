@@ -15,7 +15,7 @@ type config = {
 }
 [@@deriving show]
 
-type user_data = Opentelemetry.value
+type user_data = Opentelemetry.value [@@deriving show]
 
 (*****************************************************************************)
 (* Constants *)
@@ -24,6 +24,11 @@ module Attributes : sig
   val version : string
   val instance_id : string
   val deployment_environment_name : string
+  val vcs_ref_head_revision : string
+  val vcs_ref_head_name : string
+  val scan_engine : string
+  val scan_source : string
+  val experiment_name : string
 end
 
 (*****************************************************************************)
@@ -31,6 +36,17 @@ end
 (*****************************************************************************)
 val get_current_scope : unit -> scope option
 (** Expose the Trace function to get the current scope *)
+
+val get_global_attr_opt : string -> (string * user_data) option
+(** [get_global_attr_opt some_attr] will return some key value pair if the key
+    is set in the global attributes *)
+
+val find_global_attrs : string list -> (string * user_data) list
+(** [find_global_attrs some_attribute_keys] will return a list of global
+    resource attributes that are set given the keys passed. If a key is not set
+    it will not be included in the list. This is useful for checking what global
+    attrs may be set, and applying them to OTel events, such as metrics *)
+
 (*****************************************************************************)
 (* Entry points for setting up tracing *)
 (*****************************************************************************)

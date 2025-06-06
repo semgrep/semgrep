@@ -76,7 +76,6 @@
 module Attributes = struct
   (* Scan related attrs *)
   let semgrep_managed_scan = "scan.semgrep_managed_scan"
-  let engine = "scan.engine"
   let repo_name = "scan.repo_name"
   let jobs = "scan.jobs"
   let job = "scan.parmap_job"
@@ -222,7 +221,7 @@ let get_resource_attrs ?(env = "prod") ~engine ~analysis_flags ~jobs () =
       (* Whether we're running in a production, staging, or develop environment
        (Usually maps to SMS prod,staging,dev2) *)
       (Telemetry.Attributes.deployment_environment_name, `String env);
-      (Attributes.engine, `String engine);
+      (Telemetry.Attributes.scan_engine, `String engine);
       (Attributes.jobs, `Int jobs);
       (Attributes.folder, `String (current_working_folder ()));
       ( Attributes.pro_secrets_validators,

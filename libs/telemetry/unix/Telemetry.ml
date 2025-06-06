@@ -16,6 +16,7 @@
 module Otel = Opentelemetry
 module Log = Log_commons.Log
 open Common
+open Otel_util
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -28,10 +29,23 @@ open Common
 
 type scope = Otel.Scope.t
 
+(* coupling: added to every metric in Ometrics.ml, so cannot contain spaces or
+   special chars etc *)
 let show_scope (sp : scope) = sp.trace_id |> Otel.Trace_id.to_hex
 let pp_scope fmt (sp : scope) = Format.fprintf fmt "%s" (show_scope sp)
 
 type user_data = Otel.value
+
+let show_user_data (ud : user_data) =
+  match ud with
+  | `String s -> Format.sprintf "`String %s" s
+  | `Int i -> Format.sprintf "`Int %d" i
+  | `Float f -> Format.sprintf "`Float %f" f
+  | `Bool b -> Format.sprintf "`Bool %b" b
+  | `None -> "`None"
+
+let pp_user_data fmt (ud : user_data) =
+  Format.fprintf fmt "%s" (show_user_data ud)
 
 type config = {
   endpoint : Uri.t;
@@ -63,6 +77,14 @@ module Attributes = struct
   let version = Attributes.Service.version
   let instance_id = Attributes.Service.instance_id
   let deployment_environment_name = "deployment.environment.name"
+  let vcs_ref_head_revision = "vcs.ref.head.revision"
+  let vcs_ref_head_name = "vcs.ref.head.name"
+
+  (* These are semgrep specific and technically shouldn't be in this library but
+     these will be applied to all metrics *)
+  let scan_engine = "scan.engine"
+  let scan_source = "scan.source"
+  let experiment_name = "experiment.name"
 end
 
 (*****************************************************************************)
@@ -104,6 +126,14 @@ let mk_rand_bytes_16 rand_ () : bytes =
   b
 
 let get_current_scope () = Otel.Scope.get_ambient_scope ()
+
+let get_global_attr_opt key =
+  List.find_map
+    (fun (kv : Otel.Proto.Common.key_value) ->
+      if String.equal kv.key key then Some (_key_value_conv kv) else None)
+    !Otel.Globals.global_attributes
+
+let find_global_attrs attr_keys = List_.filter_map get_global_attr_opt attr_keys
 
 (*****************************************************************************)
 (* Entry points for setting up telemetry *)

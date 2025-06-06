@@ -8,7 +8,7 @@
     logs
     opentelemetry
   )
- (virtual_modules telemetry tracing logging)
+ (virtual_modules telemetry tracing logging ometrics)
  (default_implementation telemetry.unix)
   (preprocess (pps
       ppx_deriving.show

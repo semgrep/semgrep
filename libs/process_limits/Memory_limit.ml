@@ -91,7 +91,7 @@ let run_with_memory_limit _caps ?get_context
   (* NOTE: DO NOT TRACE LIMIT MEMORY!!!
      NOTE: DO NOT LOG ANYTHING HERE WITHOUT APPLYING THE NO TELEMETRY TAG
      SET!!!
-
+     NOTE: DO NOT DO ANY SORT OF OPENTELEMETRY METRICS HERE!!
      Doing ANY sort of telemetry within a gc alarm can cause deadlocks!!! the no
      telemetry tag set will disable telemetry for logs and so they will be
      reported to the user, just not to any sort of telemetry backend.
