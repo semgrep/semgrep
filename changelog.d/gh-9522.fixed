@@ -1,1 +1,0 @@
-Fixed bug where Javascript autofix breaks syntax for if statements by consuming parentheses.

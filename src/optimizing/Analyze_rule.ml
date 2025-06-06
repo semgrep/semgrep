@@ -175,79 +175,21 @@ let simplify_patterns env cnf =
  * MvarRegexp into a Regexp2
  *)
 
-module Textual_predicate : sig
-  type t =
-    | String of string  (** A string literal *)
-    | Regex of Pcre2_.t  (** A compiled regex. *)
-  [@@deriving show, eq, ord, hash]
-end = struct
-  (* Needed to derive hash *)
-  let hash_fold_string = Base.hash_fold_string
+type textual_predicate =
+  | Strings of string list
+      (** A list of string literals. All must be matched. *)
+  | Regex of Pcre2_.t  (** A compiled regex. *)
+[@@deriving show]
 
-  type t = String of string | Regex of Pcre2_.t
-  [@@deriving show, eq, ord, hash]
-end
-
-let textual_requirements_of_simplified :
-    metavariable_and_strings_predicate requirement_tree ->
-    Textual_predicate.t requirement_tree option =
-  let no_regex_special_chars (s : string) =
-    (* Compare with <https://www.pcre.org/original/doc/html/pcrepattern.html>:
-
-      There are two different sets of metacharacters: those that are recognized
-      anywhere in the pattern except within square brackets, and those that are
-      recognized within square brackets. Outside square brackets, the
-      metacharacters are as follows:
-
-        \      general escape character with several uses
-        ^      assert start of string (or line, in multiline mode)
-        $      assert end of string (or line, in multiline mode)
-        .      match any character except newline (by default)
-        [      start character class definition
-        |      start of alternative branch
-        (      start subpattern
-        )      end subpattern
-        ?      extends the meaning of (; also 0 or 1 quantifier; also
-                 quantifier minimizer
-        *      0 or more quantifier
-        +      1 or more quantifier; also "possessive quantifier"
-        {      start min/max quantifier *)
-    Base.String.for_all
-    (* TODO: This could be slightly improved, to allow for escaped uses of
-         these. This would mean we could identify more regex which would be
-         legal to transform to string predicates, which should be more
-         efficient to check. Additionally, extending this to be able to
-         identify regex we could transform to a reasonable set of strings
-         (e.g., /a|b|c/ -> "a", "b", "c") would be nice. *)
-      ~f:(function
-        | '\\'
-        | '^'
-        | '$'
-        | '.'
-        | '['
-        | '|'
-        | '('
-        | ')'
-        | '?'
-        | '*'
-        | '+'
-        | '{' ->
-            false
-        | _ -> true)
-      s
-  in
+let textual_requirements_of_simplified =
   (* NOTE: Lacks exception handling for malformed regexes. This should be OK
      because we parsed the rule already, but this is rather fragile. We should
      consider making our regex serialisable (the blocker as of May 2025 for
      having Xpattern.Regexp store the regex value directly). *)
-  let open Textual_predicate in
   map_requirement_tree_opt (function
     | StringsAndMvars ([], _) -> None
-    | StringsAndMvars (xs, _) ->
-        Some (And (List_.map (fun x -> Pred (String x)) xs))
-    | Regex re ->
-        if no_regex_special_chars re then Some (Pred (String re))
-        else Some (Pred (Regex (Pcre2_.pcre_compile re)))
+    | StringsAndMvars (xs, _) -> Some (Pred (Strings xs))
+    | Regex re_str -> Some (Pred (Regex (Pcre2_.pcre_compile re_str)))
     | MvarRegexp (_mvar, re_str, _const_prop) ->
         (* The original regexp is meant to apply on a substring.
              We rewrite them to remove end-of-string anchors if possible. *)
@@ -260,13 +202,10 @@ let textual_requirements_of_simplified :
 (* Run the regexps *)
 (*****************************************************************************)
 
-module Execution_cache = Hashtbl.Make (Textual_predicate)
-
-let rec eval_textual_predicates ?cache
-    (requirement : Textual_predicate.t requirement_tree) big_str =
+let rec eval_textual_predicates
+    (requirement : textual_predicate requirement_tree) big_str =
   match requirement with
-  | And xs ->
-      List.for_all (fun x -> eval_textual_predicates ?cache x big_str) xs
+  | And xs -> List.for_all (fun x -> eval_textual_predicates x big_str) xs
   | Or xs ->
       (* An empty list is true here since we need to be conservative if we
          failed to generate any constraints, even though generally an empty or
@@ -275,30 +214,21 @@ let rec eval_textual_predicates ?cache
          check. If we have no condition to check, we still need to run the
          rule, so the prefiler must select for further matching (i.e., true). *)
       if List_.null xs then true
-      else List.exists (fun x -> eval_textual_predicates ?cache x big_str) xs
+      else List.exists (fun x -> eval_textual_predicates x big_str) xs
   | Pred x -> (
-      let eval () =
-        match x with
-        | String id ->
-            Log.debug (fun m -> m "check for the presence of %S" id);
-            (* TODO: matching_exact_word does not work, why??
+      match x with
+      | Strings xs ->
+          xs
+          |> List.for_all (fun id ->
+                 Log.debug (fun m -> m "check for the presence of %S" id);
+                 (* TODO: matching_exact_word does not work, why??
                      because string literals and metavariables are put under
-                     String? *)
-            let re = Pcre2_.matching_exact_string id in
-            (* Note that in case of a PCRE error, we want to assume
+                     Strings? *)
+                 let re = Pcre2_.matching_exact_string id in
+                 (* Note that in case of a PCRE error, we want to assume
                      that the rule is relevant, hence error -> true! *)
-            Pcre2_.unanchored_match ~on_error:true re big_str
-        | Regex re -> Pcre2_.unanchored_match ~on_error:true re big_str
-      in
-      match cache with
-      | Some cache -> (
-          match Execution_cache.find_opt cache x with
-          | Some x -> x
-          | None ->
-              let result = eval () in
-              Execution_cache.add cache x result;
-              result)
-      | None -> eval ())
+                 Pcre2_.unanchored_match ~on_error:true re big_str)
+      | Regex re -> Pcre2_.unanchored_match ~on_error:true re big_str)
 [@@profiling]
 
 (*****************************************************************************)
@@ -308,7 +238,7 @@ let rec eval_textual_predicates ?cache
 (* see mli for more information
  * TODO: use a record.
  *)
-type prefilter = Textual_predicate.t requirement_tree [@@deriving show]
+type prefilter = textual_predicate requirement_tree [@@deriving show]
 
 exception EmptyOr
 exception EmptyAnd
@@ -332,7 +262,7 @@ let rec prefilter_formula_of_prefilter (formula : prefilter) :
     end
   | Pred x -> (
       match x with
-      | String x -> `Pred (`Idents [ x ])
+      | Strings xs -> `Pred (`Idents xs)
       | Regex re ->
           let re_str = Pcre2_.show re in
           `Pred (`Regexp re_str))
@@ -344,14 +274,6 @@ let create_prefilter (env : env) f =
   let* f = textual_requirements_of_simplified f in
   Some f
 [@@profiling]
-
-let check_prefilters prefilters content =
-  (* TODO(cooper): For `Strings` predicates, gather them all and run them
-     up-front for the cache *)
-  let cache = Execution_cache.create 256 in
-  List_.map
-    (fun prefilter -> eval_textual_predicates ~cache prefilter content)
-    prefilters
 
 let check_prefilter prefilter content =
   eval_textual_predicates prefilter content

@@ -1,8 +1,0 @@
-rules:
-  - id: js-bracket
-    patterns:
-      - pattern: foo()
-    message: Parentheses around not matched!
-    languages:
-      - javascript
-    severity: ERROR
