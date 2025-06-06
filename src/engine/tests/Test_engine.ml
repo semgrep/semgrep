@@ -224,7 +224,7 @@ let make_test_rule_file ?(fail_callback = fun _i m -> Alcotest.fail m)
   let test () =
     Logs.info (fun m -> m "processing rules  %s" !!rule_file);
     match read_rules_file ~get_analyzer ~fail_callback caps rule_file with
-    | None -> ()
+    | None -> failwith (spf "found invalid rules in %s" !!rule_file)
     | Some (rules, target, analyzer) -> (
         (* expected *)
         (* not tororuleid! not ok:! not todook:
