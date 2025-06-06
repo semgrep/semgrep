@@ -1,0 +1,1 @@
+Added support for npm aliasing in package-lock.json, fixing a bug where packages would rarely be misidentified.

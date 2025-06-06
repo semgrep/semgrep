@@ -64,7 +64,18 @@ def parse_packages_field(
     for package, dep_json in deps.items():
         fields = dep_json.as_dict()
         version = fields.get("version")
+        # when packages are aliased, the name field is set to the true name
+        # of the package as used in the npm registry. Otherwise, this field
+        # is not set. So if it's present, use the name field as the name of the
+        # package. The best reference I've been able to find for this is a
+        # comment in the source code: https://github.com/npm/cli/blob/e758dd7bec58efed2cc865a6d360b0432ccc9f57/workspaces/arborist/lib/shrinkwrap.js#L86
+        # and the implementation of the name-setting at https://github.com/npm/cli/blob/e758dd7bec58efed2cc865a6d360b0432ccc9f57/workspaces/arborist/lib/shrinkwrap.js#L238-L245
         package_name = parse_package_name(package)
+        package_name_field_json = fields.get("name")
+        if package_name_field_json is not None and isinstance(
+            package_name_field_json.value, str
+        ):
+            package_name = package_name_field_json.as_str()
         if not version:
             logger.info(f"no version for dependency: {package}")
             continue
