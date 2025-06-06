@@ -26,8 +26,5 @@ val check :
   Core_result.matches_single_file
 
 (* for osemgrep interactive *)
-val group_relevant_rules :
-  Rule.t list ->
-  Match_env.xconfig ->
-  Xtarget.t ->
-  [ `Relevant of Rule.t list ] * [ `Irrelevant of Rule.t list ]
+val is_relevant_rule_for_xtarget :
+  Rule.t -> Match_env.xconfig -> Xtarget.t -> bool

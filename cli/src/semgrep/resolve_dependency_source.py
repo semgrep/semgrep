@@ -65,7 +65,6 @@ PARSERS_BY_LOCKFILE_KIND: Dict[out.LockfileKind, Union[DependencyParser, None]] 
     ),
     out.LockfileKind(out.MixLock()): DependencyParser(parse_mix),
     out.LockfileKind(out.ConanLock()): None,  # No parser support yet
-    out.LockfileKind(out.BunLock()): None,  # No parser support yet
 }
 
 PTT_OCAML_PARSER_SUBPROJECT_KINDS = [
@@ -300,7 +299,7 @@ def _handle_lockfile_source(
         else dep_source.value[1]
     )
     lockfile_path = Path(lockfile.path.value)
-    parser = PARSERS_BY_LOCKFILE_KIND.get(lockfile.kind, None)
+    parser = PARSERS_BY_LOCKFILE_KIND[lockfile.kind]
 
     manifest_kind = (
         dep_source.value[0].kind

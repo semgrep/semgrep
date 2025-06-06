@@ -4,7 +4,7 @@
  * related work: my pfff/commons/distribution.ml
  *)
 let apply_in_child_process_promise (caps : < Cap.fork >) ?(flags = []) f x =
-  let input, output = Unix.pipe () in
+  let input, output = UUnix.pipe () in
   match CapUnix.fork caps#fork () with
   (* error, could not create process, well compute now then *)
   | -1 ->
@@ -12,24 +12,24 @@ let apply_in_child_process_promise (caps : < Cap.fork >) ?(flags = []) f x =
       fun () -> v
   (* child *)
   | 0 ->
-      Unix.close input;
-      let output = Unix.out_channel_of_descr output in
-      Marshal.to_channel output
+      UUnix.close input;
+      let output = UUnix.out_channel_of_descr output in
+      UMarshal.to_channel output
         (try `Res (f x) with
         | e -> `Exn e)
         flags;
       close_out output;
       (* nosemgrep: forbid-exit *)
-      Stdlib.exit 0
+      UStdlib.exit 0
   (* parent *)
   | pid -> (
-      Unix.close output;
-      let input = Unix.in_channel_of_descr input in
+      UUnix.close output;
+      let input = UUnix.in_channel_of_descr input in
       fun () ->
-        let v = Marshal.from_channel input in
+        let v = UMarshal.from_channel input in
         (* Without 'WNOHANG', in macOS the 'waitpid' call may fail with 'EINTR',
          * not 100% sure why. *)
-        ignore Unix.(waitpid [ WNOHANG ] pid);
+        ignore UUnix.(waitpid [ WNOHANG ] pid);
         close_in input;
         match v with
         | `Res x -> x

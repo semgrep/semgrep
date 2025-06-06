@@ -56,7 +56,6 @@ local unix_funcs = [
                  [
                    'common2.ml',
                    'UCommon.ml',
-                   'Arg_.ml',
                    'Console_Spinner.ml',
                    'Dump.ml',
                    'Print_match.ml',

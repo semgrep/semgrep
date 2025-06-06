@@ -30,17 +30,13 @@ module Log = (val Logs.src_log src : Logs.LOG)
    troubleshooting. *)
 type t = {
   pattern : string;
-  regexp : Pcre2.regexp;
-      [@opaque] [@equal fun _ _ -> true] [@compare fun _ _ -> 0]
+  regexp : Pcre2.regexp; [@opaque] [@equal fun _ _ -> true]
 }
-[@@deriving show, eq, ord]
+[@@deriving show, eq]
 
 (* Not sure why we are getting warnings but *)
 let _ = pp
 let _ = equal
-let hash (x : t) = Base.String.hash x.pattern
-let hash_fold_t s (x : t) = Base.String.hash_fold_t s x.pattern
-let sexp_of_t (x : t) = Sexplib.Std.sexp_of_string x.pattern
 
 (*
    Provide missing error->string conversion
