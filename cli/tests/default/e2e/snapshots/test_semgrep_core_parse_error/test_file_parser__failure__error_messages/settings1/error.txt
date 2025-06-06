@@ -66,4 +66,4 @@ Files skipped:
  • Parsed lines: ~0.0%
  • No ignore information available
 Ran 2 rules on 1 file: 0 findings.
-Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False
+Not sending pseudonymous metrics since metrics are configured to OFF, registry usage is False, and login status is False

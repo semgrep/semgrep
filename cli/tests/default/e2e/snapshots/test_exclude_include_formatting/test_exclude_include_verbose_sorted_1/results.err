@@ -69,4 +69,4 @@ Files skipped:
  • Scan skipped:
    ◦ Matching --exclude patterns: 5
 Ran 4 rules on 0 files: 0 findings.
-Not sending pseudonymous metrics since metrics are configured to OFF and registry usage is False
+Not sending pseudonymous metrics since metrics are configured to OFF, registry usage is False, and login status is False
