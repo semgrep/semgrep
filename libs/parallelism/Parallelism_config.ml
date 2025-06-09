@@ -33,15 +33,15 @@
 
 (* In this [env], we only expose the Eio capabilities we explicitly need.
  * https://github.com/ocaml-multicore/eio?tab=readme-ov-file#passing-env *)
-type env = < clock : float Eio.Time.clock_ty Eio.Std.r >
+type env =
+  < clock : float Eio.Time.clock_ty Eio.Std.r
+  ; domain_mgr : Eio.Domain_manager.ty Eio.Std.r >
 
-type t = { env : env; [@opaque] exec_pool : Eio.Executor_pool.t [@opaque] }
+(* TODO: perhaps t should just be the env?  *)
+type t = {
+  (* [env] is the Eio environment with our required capabilities. *)
+  env : env; [@opaque]
+}
 [@@deriving show]
 
-let create (env : Eio_unix.Stdenv.base) exec_pool =
-  let env =
-    object
-      method clock = Eio.Stdenv.clock env
-    end
-  in
-  { env; exec_pool }
+let create (env : Eio_unix.Stdenv.base) = { env :> env }
