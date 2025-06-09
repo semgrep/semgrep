@@ -674,18 +674,11 @@ let run caps (config : Core_scan_config.t) : unit =
  * set. coupling: Pro_CLI.ml
  *)
 let decide_if_eio caps (config : Core_scan_config.t) =
-  if (not !Common.jsoo) && config.use_eio then
-    Eio_main.run (fun base ->
-        Eio.Switch.run (fun sw ->
-            Logs_threaded.enable ();
-            let pool =
-              Eio.Executor_pool.create ~sw
-                (Eio.Stdenv.domain_mgr base)
-                ~domain_count:
-                  (Core_scan_config.finalize_num_jobs config.num_jobs)
-            in
-            let par_conf = Some (Parallelism_config.create base pool) in
-            run caps { config with par_conf }))
+  if (not !Common.jsoo) && config.use_eio then (
+    Eio_main.run @@ fun env ->
+    Logs_threaded.enable ();
+    let par_conf = Some (Parallelism_config.create env) in
+    run caps { config with par_conf })
   else run caps config
 (*****************************************************************************)
 (* Main entry point *)
