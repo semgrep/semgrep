@@ -28,7 +28,7 @@
    patterns and doesn't take into account compilation options.
 *)
 type t = private { pattern : string; regexp : Pcre2.regexp }
-[@@deriving show, eq]
+[@@deriving show, eq, hash, ord, sexp_of]
 
 (*
   val show : Pcre2.error -> string

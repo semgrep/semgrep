@@ -207,12 +207,10 @@ let run_core_search xconf (rule : Rule.search_rule) (file : Fpath.t) =
         (Target.mk_target_fpath analyzer file)
     in
     try
-      let is_relevant_rule =
-        Match_rules.is_relevant_rule_for_xtarget
-          (rule :> Rule.rule)
-          xconf xtarget
+      let `Relevant rules, _ =
+        Match_rules.group_relevant_rules ([ rule ] :> Rule.t list) xconf xtarget
       in
-      if is_relevant_rule then
+      if not (List_.null rules) then
         (* !!calling the engine!! *)
         let ({ Core_result.matches; _ } : _ Core_result.match_result) =
           Match_search_mode.check_rule rule ~matches_hook:Fun.id xconf xtarget

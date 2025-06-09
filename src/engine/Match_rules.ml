@@ -70,54 +70,90 @@ let timeout_function (rule : Rule.t) (file : Fpath.t)
             !!file);
       None
 
-let is_relevant_rule_for_xtarget r xconf xtarget =
+let group_relevant_rules rules (xconf : Match_env.xconfig) (xtarget : Xtarget.t)
+    =
   let interfile =
     (* TODO: Should be a field in 'xconf'. *)
     Option.is_some (Hook.get Pattern_vs_code.hook_find_possible_parents)
   in
-  let { path = { internal_path_to_content; _ }; lazy_content; _ } : Xtarget.t =
-    xtarget
+  let non_sca_rules, sca_rules =
+    rules
+    |> List.partition_map (fun (r : Rule.t) ->
+           match r.mode with
+           | (`Extract _ | `Search _ | `Steps _ | `Taint _) as mode ->
+               Left { r with mode }
+           | `SCA _ as mode ->
+               Log.warn (fun m ->
+                   m "Note: SCA rule %a not avaliable via core" Rule_ID.pp
+                     (fst r.id));
+               Right { r with mode })
   in
-  let xconf = Match_env.adjust_xconfig_with_rule_options xconf r.R.options in
-  let is_relevant =
+  let relevant, irrelevant =
+    (* NOTE: Previously we updated xconf here based on the rule. I don't think
+       `filter_irrelevant_rules` should be a rule-level option, so there
+       shouldn't need to be any reason to update xconf here (since this is the
+       only field we use here). Perhaps ideally rule-dependent options could
+       have a different type (something like
+       mk_rule_conf : Match_env.xconfig -> Rule.t -> rule_conf), options which
+       ought to just be at the scan level can't have a dependency on rules. *)
     match xconf.filter_irrelevant_rules with
-    | NoPrefiltering -> true
-    | CachedPrefilter f -> (
-        match f ~interfile r with
-        | None -> true
-        | Some prefilter ->
-            let content = Lazy.force lazy_content in
-            Log.info (fun m ->
-                m "looking for %a in %s" Analyze_rule.pp_prefilter prefilter
-                  !!internal_path_to_content);
-            Analyze_rule.check_prefilter prefilter content)
+    (* NOTE: SCA rules are dropped. For details see discussion below in the
+       filtered case. *)
+    | NoPrefiltering -> (non_sca_rules, [])
+    | CachedPrefilter f ->
+        (* Rules we couldn't generate a prefilter for are always relevant *)
+        let rules_with_prefilters, rules_with_no_prefilters =
+          List.partition_map
+            (fun r ->
+              match f ~interfile (r :> Rule.t) with
+              | Some prefilter -> Left (r, prefilter)
+              | None -> Right r)
+            non_sca_rules
+        in
+        let relevant_filtered, irrelevant_filtered =
+          let rules, prefilters = List_.split rules_with_prefilters in
+          Log.info (fun m ->
+              m "Performing rule prefiltering for %s"
+                (Origin.to_string xtarget.path.origin));
+          Analyze_rule.check_prefilters prefilters
+            (Lazy.force xtarget.lazy_content)
+          |> List_.combine rules
+          |> List.partition_map
+               (fun ((rule, relevant) : _ Rule.rule_info * bool) ->
+                 if relevant then Left rule
+                 else (
+                   Log.info (fun m ->
+                       m "skipping rule %s for %s"
+                         (Rule_ID.to_string (fst rule.id))
+                         (Origin.to_string xtarget.path.origin));
+                   Right rule))
+        in
+        (relevant_filtered @ rules_with_no_prefilters, irrelevant_filtered)
   in
-  if not is_relevant then
-    Log.info (fun m ->
-        m "skipping rule %s for %s"
-          (Rule_ID.to_string (fst r.R.id))
-          !!internal_path_to_content);
-  is_relevant
+  (* NOTE: SCA rules here are put into the irrelevant bucket. This is because
+     we don't execute SCA rules in this codepath: SCA matching isn't available
+     here in CE. If/when it is possible to execute them here, this will need to
+     be updated. *)
+  (`Relevant relevant, `Irrelevant (irrelevant @ sca_rules))
 
 (* This function separates out rules into groups of taint rules by languages,
    all of the nontaint rules, and the rules which we skip due to prefiltering.
 *)
 let group_rules xconf rules xtarget =
-  let relevant_taint_rules, relevant_nontaint_rules, skipped_rules =
-    rules
-    |> Either_.partition_either3 (fun r ->
-           let relevant_rule = is_relevant_rule_for_xtarget r xconf xtarget in
-           match r.R.mode with
-           | _ when not relevant_rule -> Right3 r
-           | `Taint _ as mode -> Left3 { r with mode }
-           | (`Extract _ | `Search _) as mode -> Middle3 { r with mode }
-           | `SCA _ ->
-               (* alt: failwith "SCA rule not available in core." *)
-               Right3 r
-           | `Steps _ ->
-               Log.warn (fun m ->
-                   m "Step rule not handled: %s" (Rule.show_rule r));
-               raise Multistep_rules_not_available)
+  let `Relevant relevant, `Irrelevant skipped_rules =
+    group_relevant_rules rules xconf xtarget
+  in
+  let relevant_taint_rules, relevant_nontaint_rules =
+    List.partition_map
+      (fun r ->
+        match r.R.mode with
+        | `Taint _ as mode -> Left { r with mode }
+        | (`Extract _ | `Search _) as mode -> Right { r with mode }
+        | `Steps _ ->
+            Log.warn (fun m ->
+                m "Step rule not handled: %s" (Rule.show_rule (r :> Rule.t)));
+            raise Multistep_rules_not_available)
+      relevant
   in
   (* Taint rules are only relevant to each other if they are meant to be
      analyzing the same language.
