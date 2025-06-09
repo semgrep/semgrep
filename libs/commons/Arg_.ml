@@ -80,7 +80,7 @@ let parse_options options usage_msg argv =
       Printf.eprintf "%s" msg;
       raise (UnixExit (2, msg))
   | Arg.Help msg ->
-      UPrintf.printf "%s" msg;
+      Printf.printf "%s" msg;
       raise (UnixExit (0, msg))
 
 let usage usage_msg options = Arg.usage (Arg.align options) usage_msg
@@ -117,7 +117,7 @@ let arg_parse2 l msg short_usage_fun =
   let f file = args := file :: !args in
   let l = Arg.align l in
   try
-    Arg.parse_argv USys.argv l f msg;
+    Arg.parse_argv Sys.argv l f msg;
     args := List.rev !args;
     !args
   with

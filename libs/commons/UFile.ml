@@ -45,7 +45,7 @@ let vcs_re =
 module Legacy = struct
   let cat file =
     let acc = ref [] in
-    let chan = UStdlib.open_in_bin file in
+    let chan = Stdlib.open_in_bin file in
     try
       while true do
         acc := Common.input_text_line chan :: !acc
@@ -76,7 +76,7 @@ module Legacy = struct
 *)
   let read_file ?(max_len = max_int) path =
     if !jsoo then (
-      let ic = UStdlib.open_in_bin path in
+      let ic = Stdlib.open_in_bin path in
       let s = really_input_string ic (in_channel_length ic) in
       close_in ic;
       s)
@@ -100,11 +100,11 @@ module Legacy = struct
          be re-opened in that mode. To make sure we won't run into problems
          opening the file, we add the [O_SHARE_DELETE] flag when opening all
          files. *)
-      let fd = UUnix.openfile path [ Unix.O_RDONLY; Unix.O_SHARE_DELETE ] 0 in
+      let fd = Unix.openfile path [ Unix.O_RDONLY; Unix.O_SHARE_DELETE ] 0 in
       Common.protect ~finally:(fun () -> Unix.close fd) (fun () -> loop fd)
 
   let write_file ~file s =
-    let chan = UStdlib.open_out_bin file in
+    let chan = Stdlib.open_out_bin file in
     output_string chan s;
     close_out chan
 
@@ -112,7 +112,7 @@ module Legacy = struct
   let (with_open_outfile :
         string (* filename *) -> ((string -> unit) * out_channel -> 'a) -> 'a) =
    fun file f ->
-    let chan = UStdlib.open_out_bin file in
+    let chan = Stdlib.open_out_bin file in
     let xpr s = output_string chan s in
     unwind_protect
       (fun () ->
@@ -127,13 +127,13 @@ module Legacy = struct
      that mode. To make sure we won't run into problems opening the file, we
      add the [O_SHARE_DELETE] flag when opening all files. *)
   let win_safe_open_in_bin file : in_channel =
-    UUnix.openfile file [ O_CREAT; O_RDONLY; O_SHARE_DELETE ] 0o666
-    |> UUnix.in_channel_of_descr
+    Unix.openfile file [ O_CREAT; O_RDONLY; O_SHARE_DELETE ] 0o666
+    |> Unix.in_channel_of_descr
 
   let (with_open_infile : string (* filename *) -> (in_channel -> 'a) -> 'a) =
    fun file f ->
     let chan =
-      if !jsoo then UStdlib.open_in_bin file else win_safe_open_in_bin file
+      if !jsoo then Stdlib.open_in_bin file else win_safe_open_in_bin file
     in
     unwind_protect
       (fun () ->
@@ -225,86 +225,86 @@ let with_open_in path func = Legacy.with_open_infile !!path func
 
 let filesize file =
   if not !Common.jsoo (* this does not work well with jsoo *) then
-    (UUnix.stat !!file).st_size
+    (Unix.stat !!file).st_size
     (* src: https://rosettacode.org/wiki/File_size#OCaml *)
   else
-    let ic = UStdlib.open_in_bin !!file in
+    let ic = Stdlib.open_in_bin !!file in
     let i = in_channel_length ic in
     close_in ic;
     i
 
 let filemtime file =
   if !Common.jsoo then failwith "JSOO:filemtime"
-  else (UUnix.stat !!file).st_mtime
+  else (Unix.stat !!file).st_mtime
 
 let is_dir ~follow_symlinks path =
-  let stat = if follow_symlinks then UUnix.stat else UUnix.lstat in
+  let stat = if follow_symlinks then Unix.stat else Unix.lstat in
   match (stat !!path).st_kind with
   | S_DIR -> true
   | _ -> false
-  | exception UUnix.Unix_error _ -> false
+  | exception Unix.Unix_error _ -> false
 
 let is_reg ~follow_symlinks path =
-  let stat = if follow_symlinks then UUnix.stat else UUnix.lstat in
+  let stat = if follow_symlinks then Unix.stat else Unix.lstat in
   match (stat !!path).st_kind with
   | S_REG -> true
   | _ -> false
-  | exception UUnix.Unix_error _ -> false
+  | exception Unix.Unix_error _ -> false
 
 let is_dir_or_reg ~follow_symlinks path =
-  let stat = if follow_symlinks then UUnix.stat else UUnix.lstat in
+  let stat = if follow_symlinks then Unix.stat else Unix.lstat in
   match (stat !!path).st_kind with
   | S_DIR
   | S_REG ->
       true
   | _ -> false
-  | exception UUnix.Unix_error _ -> false
+  | exception Unix.Unix_error _ -> false
 
 let is_lnk path =
-  match (UUnix.lstat !!path).st_kind with
+  match (Unix.lstat !!path).st_kind with
   | S_LNK -> true
   | _ -> false
-  | exception UUnix.Unix_error _ -> false
+  | exception Unix.Unix_error _ -> false
 
 let is_lnk_or_reg path =
-  match (UUnix.lstat !!path).st_kind with
+  match (Unix.lstat !!path).st_kind with
   | S_LNK
   | S_REG ->
       true
   | _ -> false
-  | exception UUnix.Unix_error _ -> false
+  | exception Unix.Unix_error _ -> false
 
 (* This function isn't very useful but we offer it for completeness. *)
 let is_dir_or_lnk path =
-  match (UUnix.lstat !!path).st_kind with
+  match (Unix.lstat !!path).st_kind with
   | S_LNK
   | S_DIR ->
       true
   | _ -> false
-  | exception UUnix.Unix_error _ -> false
+  | exception Unix.Unix_error _ -> false
 
 let is_dir_or_lnk_or_reg path =
-  match (UUnix.lstat !!path).st_kind with
+  match (Unix.lstat !!path).st_kind with
   | S_DIR
   | S_LNK
   | S_REG ->
       true
   | _ -> false
-  | exception UUnix.Unix_error _ -> false
+  | exception Unix.Unix_error _ -> false
 
 let is_executable file =
-  let stat = UUnix.stat !!file in
+  let stat = Unix.stat !!file in
   let perms = stat.st_perm in
   stat.st_kind =*= Unix.S_REG && perms land 0o011 <> 0
 
 let rec make_directories dir =
-  try UUnix.mkdir !!dir 0o755 with
+  try Unix.mkdir !!dir 0o755 with
   (* The directory already exists *)
-  | UUnix.Unix_error ((EEXIST | EISDIR), _, _)
+  | Unix.Unix_error ((EEXIST | EISDIR), _, _)
     when is_dir ~follow_symlinks:false dir ->
       ()
   (* parent doesn't exist *)
-  | UUnix.Unix_error (ENOENT, _, _) ->
+  | Unix.Unix_error (ENOENT, _, _) ->
       let parent = Fpath.parent dir in
       make_directories parent;
       make_directories dir

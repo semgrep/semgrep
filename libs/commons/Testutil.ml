@@ -4,8 +4,8 @@
 *)
 
 let run what f =
-  UPrintf.printf "running %s...\n%!" what;
-  Common.protect ~finally:(fun () -> UPrintf.printf "done with %s.\n%!" what) f
+  Printf.printf "running %s...\n%!" what;
+  Common.protect ~finally:(fun () -> Printf.printf "done with %s.\n%!" what) f
 
 (*
    Semgrep applies 'Unix.realpath' to some paths resulting in
@@ -20,7 +20,7 @@ let mask_temp_paths ?depth ?replace () =
   let mask_original_path = Testo.mask_temp_paths ?depth ?replace () in
   let mask_physical_path =
     Testo.mask_temp_paths ?depth ?replace
-      ~temp_dir:(UFilename.get_temp_dir_name () |> UUnix.realpath |> Fpath.v)
+      ~temp_dir:(Filename.get_temp_dir_name () |> Unix.realpath |> Fpath.v)
       ()
   in
   fun text -> text |> mask_original_path |> mask_physical_path

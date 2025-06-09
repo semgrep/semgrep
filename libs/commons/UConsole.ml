@@ -1,7 +1,7 @@
 open Console
 
 let isatty () =
-  !ANSITerminal.isatty UUnix.stdout && !ANSITerminal.isatty UUnix.stderr
+  !ANSITerminal.isatty Unix.stdout && !ANSITerminal.isatty Unix.stderr
 
 let setup ?highlight_setting:(hs = (Auto : highlight_setting)) () =
   let hl : highlight =
@@ -19,6 +19,6 @@ let with_highlight temp func =
   Common.finalize func (fun () -> setup ~highlight_setting:orig ())
 
 let mtx = Mutex.create ()
-let print str = Mutex.protect mtx (fun () -> UPrintf.printf "%s\n%!" str)
-let print_no_nl str = Mutex.protect mtx (fun () -> UPrintf.printf "%s%!" str)
-let eprint str = Mutex.protect mtx (fun () -> UPrintf.eprintf "%s\n%!" str)
+let print str = Mutex.protect mtx (fun () -> Printf.printf "%s\n%!" str)
+let print_no_nl str = Mutex.protect mtx (fun () -> Printf.printf "%s%!" str)
+let eprint str = Mutex.protect mtx (fun () -> Printf.eprintf "%s\n%!" str)

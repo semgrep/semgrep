@@ -25,7 +25,7 @@ open Common
 (*****************************************************************************)
 
 (* unix time in seconds *)
-let now () : float = UUnix.gettimeofday ()
+let now () : float = Unix.gettimeofday ()
 
 (* This global is used by the reporter to print the difference between
    the time the log call was done and the time the program was started.
@@ -126,7 +126,7 @@ let has_nonempty_intersection tag_str_list tag_set =
 
 (* Consult environment variables from left-to-right in order of precedence. *)
 let read_str_from_env_vars (vars : string list) : string option =
-  List.find_map (fun var -> USys.getenv_opt var) vars
+  List.find_map (fun var -> Sys.getenv_opt var) vars
 
 let read_comma_sep_strs_from_env_vars (vars : string list) : string list option
     =
@@ -135,20 +135,20 @@ let read_comma_sep_strs_from_env_vars (vars : string list) : string list option
 (* Note that writing to a freshly-opened file path can still write to
    a terminal. Such an example is '/dev/stderr'. *)
 let isatty chan =
-  let fd = UUnix.descr_of_out_channel chan in
+  let fd = Unix.descr_of_out_channel chan in
   !ANSITerminal.isatty fd
 
 let create_formatter opt_file =
   let chan, fmt =
     match opt_file with
-    | None -> (UStdlib.stderr, UFormat.err_formatter)
+    | None -> (Stdlib.stderr, Format.err_formatter)
     | Some out_file ->
         let oc =
           (* This truncates the log file, which is usually what we want for
              Semgrep. *)
-          UStdlib.open_out (Fpath.to_string out_file)
+          Stdlib.open_out (Fpath.to_string out_file)
         in
-        (oc, UFormat.formatter_of_out_channel oc)
+        (oc, Format.formatter_of_out_channel oc)
   in
   (isatty chan, fmt)
 
@@ -261,7 +261,7 @@ let read_level_from_env (vars : string list) : Logs.level option option =
 let setup_basic ?(level = Some Logs.Warning) () =
   Logs.set_level ~all:true level;
   Logs.set_reporter
-    (mk_reporter ~dst:UFormat.err_formatter ~require_one_of_these_tags:[]
+    (mk_reporter ~dst:Format.err_formatter ~require_one_of_these_tags:[]
        ~read_tags_from_env_vars:[] ~highlight:false ());
   ()
 
