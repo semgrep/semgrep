@@ -185,7 +185,7 @@ let flag name (is_set : bool) : string list =
 let range_of_git_diff lines =
   let range_of_substrings substrings =
     let line = Pcre2.get_substring substrings 1 in
-    let lines = Str.split (Str.regexp ",") line in
+    let lines = String.split_on_char ',' line in
     let first_line =
       match lines with
       | [] -> assert false
