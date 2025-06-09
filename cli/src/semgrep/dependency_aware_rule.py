@@ -168,7 +168,7 @@ def generate_unreachable_sca_findings(
                         f"SCA TR is on! Running for rule {rule.id}, subproject {subproject.info.dependency_source}, {len(transitive_findings)} transitive findings"
                     )
                 fd, rules_tmp_path = mkstemp(
-                    suffix=".rules", prefix="semgrep-", text=True
+                    suffix=".yaml", prefix="semgrep-", text=True
                 )
                 with os.fdopen(fd, "w") as fp:
                     fp.write(json.dumps([rule.raw]))
