@@ -24,6 +24,7 @@ val prefilter_of_rule : interfile:bool -> Rule.t -> prefilter option
     return true (which means we should analyze the target file).  *)
 
 val check_prefilter : prefilter -> string -> bool
+val check_prefilters : prefilter list -> string -> bool list
 
 (* For external tools like Semgrep query console to be able to
  * also prune certain rules/files.
