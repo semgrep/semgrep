@@ -714,8 +714,9 @@ let iter_targets_and_get_matches_and_exn_to_errors
   in
   let xs =
     if config.use_eio then
-      let pool = (Option.get config.par_conf).exec_pool in
-      Domains.map ~pool process_target targets
+      let conf = Option.get config.par_conf in
+      let domain_count = Core_scan_config.finalize_num_jobs config.num_jobs in
+      Domains.map ~conf ~domain_count process_target targets
       |> List_.map2 exception_handler targets
     else
       parmap_map
