@@ -12,8 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * LICENSE for more details.
  *)
-open Common
-open Fpath_.Operators
 
 (*****************************************************************************)
 (* Prelude *)
@@ -78,63 +76,11 @@ let rec ( $<>$ ) r1 r2 =
 (* Converters *)
 (*****************************************************************************)
 
-(* ex: "line1-line2" *)
-(* This is useful for generating from git diffs,
-   because git diffs only include the lines *)
-let range_of_line_spec str (file : Fpath.t) =
-  if str =~ "\\([0-9]+\\)-\\([0-9]+\\)" then (
-    let a, b = Common.matched2 str in
-    let line1 = s_to_i a in
-    let line2 = s_to_i b in
-    (* quite inefficient, but should be ok *)
-    let converters = Pos.full_converters_large file in
-    let start = ref (-1) in
-    let end_ = ref (-1) in
-    for i = 0 to UFile.filesize file do
-      let l, _ = converters.bytepos_to_linecol_fun i in
-      if l =|= line1 then start := i;
-      if l =|= line2 then end_ := i
-    done;
-    if !start <> -1 && !end_ <> -1 then { start = !start; end_ = !end_ }
-    else failwith (spf "could not find range %s in %s" str !!file))
-  else failwith (spf "wrong format for linecol range spec: %s" str)
-
-(* ex: "line1:col1-line2:col2" *)
-let range_of_linecol_spec str (file : Fpath.t) =
-  if str =~ "\\([0-9]+\\):\\([0-9]+\\)-\\([0-9]+\\):\\([0-9]+\\)" then (
-    let a, b, c, d = Common.matched4 str in
-    let line1, col1 = (s_to_i a, s_to_i b) in
-    let line2, col2 = (s_to_i c, s_to_i d) in
-    (* quite inefficient, but should be ok *)
-    let converters = Pos.full_converters_large file in
-    let start = ref (-1) in
-    let end_ = ref (-1) in
-    for i = 0 to UFile.filesize file do
-      let l, c = converters.bytepos_to_linecol_fun i in
-      if (l, c) =*= (line1, col1) then start := i;
-      if (l, c) =*= (line2, col2) then end_ := i
-    done;
-    if !start <> -1 && !end_ <> -1 then { start = !start; end_ = !end_ }
-    else failwith (spf "could not find range %s in %s" str !!file))
-  else failwith (spf "wrong format for linecol range spec: %s" str)
-
 let range_of_token_locations (start_loc : Tok.location) (end_loc : Tok.location)
     =
   let start = start_loc.pos.bytepos in
   let end_ = end_loc.pos.bytepos + String.length end_loc.str - 1 in
   { start; end_ }
-
-let range_of_tokens xs =
-  try
-    let xs = List.filter Tok.is_origintok xs in
-    let mini, maxi = Tok_range.min_max_toks_by_pos xs in
-    let start = Tok.bytepos_of_tok mini in
-    let end_ =
-      Tok.bytepos_of_tok maxi + (String.length (Tok.content_of_tok maxi) - 1)
-    in
-    Some { start; end_ }
-  with
-  | Tok.NoTokenLocation _ -> None
 
 let rf_mtx = Mutex.create ()
 let rf_ht = Hashtbl.create 101
