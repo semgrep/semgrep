@@ -61,12 +61,12 @@ type ('input, 'value, 'extra) cache_methods = {
 
 (* input_value <=> Marshal.from_channel  *)
 let get_value filename =
-  UFile.Legacy.with_open_infile filename UStdlib.input_value
+  UFile.Legacy.with_open_infile filename Stdlib.input_value
 
 (* output_value <=> Marshal.to_channel chan valu [Marshal.Closures] *)
 let write_value valu filename =
   UFile.Legacy.with_open_outfile filename (fun (_pr, chan) ->
-      UStdlib.output_value chan valu)
+      Stdlib.output_value chan valu)
 
 (*****************************************************************************)
 (* Entry points *)
@@ -107,7 +107,7 @@ let (cache_monad :
             Log.warn (fun m ->
                 m "could not write cache file for %s (err = %s)" input_str err);
             (* Make sure we don't leave corrupt cache files behind us *)
-            if Sys_.file_exists cache_file then USys.remove cache_file);
+            if Sys_.file_exists cache_file then Sys.remove cache_file);
         return value)
   in
   (* TODO? in theory we could use the filemtime of cache_file and

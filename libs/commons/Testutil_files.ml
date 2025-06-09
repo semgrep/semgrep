@@ -64,21 +64,21 @@ and sort_one x =
 (* TODO move all those functions in UFile.ml *)
 
 let is_dir path =
-  match (UUnix.lstat !!path).st_kind with
+  match (Unix.lstat !!path).st_kind with
   | S_DIR -> true
   | _ -> false
 
 let is_file path =
-  match (UUnix.lstat !!path).st_kind with
+  match (Unix.lstat !!path).st_kind with
   | S_REG -> true
   | _ -> false
 
 let is_symlink path =
-  match (UUnix.lstat !!path).st_kind with
+  match (Unix.lstat !!path).st_kind with
   | S_LNK -> true
   | _ -> false
 
-let mkdir ?(root = USys.getcwd () |> Fpath.v) path =
+let mkdir ?(root = Sys.getcwd () |> Fpath.v) path =
   if Fpath.is_rel root then
     invalid_arg
       (spf "Testutil_files.mkdir: root must be an absolute path: %s" !!root);
@@ -87,14 +87,14 @@ let mkdir ?(root = USys.getcwd () |> Fpath.v) path =
     if not (Sys_.Fpath.exists abs_path) then (
       let parent = Fpath.parent path in
       mkdir parent;
-      UUnix.mkdir !!abs_path 0o777)
+      Unix.mkdir !!abs_path 0o777)
   in
   if not (Sys_.Fpath.exists root) then
     failwith ("Testutil_files.mkdir: root folder doesn't exist: " ^ !!root);
   mkdir path
 
 let get_dir_entries path =
-  let dir = UUnix.opendir !!path in
+  let dir = Unix.opendir !!path in
   Common.protect
     ~finally:(fun () -> Unix.closedir dir)
     (fun () ->
@@ -115,27 +115,27 @@ let get_dir_entries path =
 
 let remove path =
   let rec remove path =
-    match (UUnix.lstat !!path).st_kind with
+    match (Unix.lstat !!path).st_kind with
     | S_DIR ->
         let names = get_dir_entries path in
         List.iter (fun name -> remove (path / name)) names;
-        UUnix.rmdir !!path
-    | _other -> USys.remove !!path
+        Unix.rmdir !!path
+    | _other -> Sys.remove !!path
   in
   if Sys_.Fpath.exists path then remove path
 
 let with_chdir dir f =
   let dir_s = Fpath.to_string dir in
-  let orig = UUnix.getcwd () in
+  let orig = Unix.getcwd () in
   Common.protect
-    ~finally:(fun () -> UUnix.chdir orig)
+    ~finally:(fun () -> Unix.chdir orig)
     (fun () ->
-      UUnix.chdir dir_s;
+      Unix.chdir dir_s;
       f ())
 
 let create_tempdir () =
   let path = UTmp.get_unique_temp_name ~prefix:"test" () in
-  UUnix.mkdir !!path 0o777;
+  Unix.mkdir !!path 0o777;
   path
 
 let with_tempdir ?(persist = false) ?(chdir = false) func =
@@ -173,7 +173,7 @@ let flatten ?(root = Fpath.v ".") ?(include_dirs = false) files =
   List_.map Fpath.normalize
 
 let print_files files =
-  flatten files |> List.iter (fun path -> UPrintf.printf "%s\n" !!path)
+  flatten files |> List.iter (fun path -> Printf.printf "%s\n" !!path)
 
 let rec write root files = List.iter (write_one root) files
 
@@ -181,28 +181,28 @@ and write_one root file =
   match file with
   | Dir (name, entries) ->
       let dir = root / name in
-      if not (Sys_.Fpath.exists dir) then UUnix.mkdir !!dir 0o777;
+      if not (Sys_.Fpath.exists dir) then Unix.mkdir !!dir 0o777;
       write dir entries
   | File (name, contents) ->
       let path = root / name in
       UFile.write_file ~file:path contents
   | Symlink (name, dest) ->
       let path = !!(root / name) in
-      UUnix.symlink dest path
+      Unix.symlink dest path
 
 let read root =
   let rec read path =
     let name = Fpath.basename path in
-    match (UUnix.lstat !!path).st_kind with
+    match (Unix.lstat !!path).st_kind with
     | S_DIR ->
         let names = get_dir_entries path in
         Dir (name, List_.map (fun name -> read (path / name)) names)
     | S_REG -> File (name, UFile.read_file path)
-    | S_LNK -> Symlink (name, UUnix.readlink !!path)
+    | S_LNK -> Symlink (name, Unix.readlink !!path)
     | _other ->
         failwith ("Testutil_files.read: unsupported file type: " ^ !!path)
   in
-  match (UUnix.stat !!root).st_kind with
+  match (Unix.stat !!root).st_kind with
   | S_DIR ->
       let names = get_dir_entries root in
       List_.map (fun name -> read (root / name)) names
@@ -215,9 +215,9 @@ let with_tempfiles ?chdir ?persist ?(verbose = false) files func =
          'with_tempdir'. *)
       let files = sort files in
       if verbose then (
-        UPrintf.printf "--- begin input files ---\n";
+        Printf.printf "--- begin input files ---\n";
         print_files files;
-        UPrintf.printf "--- end input files ---\n";
+        Printf.printf "--- end input files ---\n";
         flush stdout);
       write root files;
       func root)
@@ -244,5 +244,5 @@ let () =
           assert (sort tree2 =*= sort tree);
 
           let paths = flatten tree |> Fpath_.to_strings in
-          List.iter UStdlib.print_endline paths;
+          List.iter Stdlib.print_endline paths;
           assert (paths =*= [ "a"; "b"; "c"; "d/e" ])))

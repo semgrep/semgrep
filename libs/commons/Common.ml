@@ -110,9 +110,9 @@ let before_return f v =
 
 (* Report the time a function takes. *)
 let with_time f =
-  let t1 = UUnix.gettimeofday () in
+  let t1 = Unix.gettimeofday () in
   let res = f () in
-  let t2 = UUnix.gettimeofday () in
+  let t2 = Unix.gettimeofday () in
   (res, t2 -. t1)
 
 (*****************************************************************************)

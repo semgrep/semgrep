@@ -74,10 +74,10 @@ let repeat e n =
  * in a no-op.
  *)
 let pr2 s =
-  UStdlib.prerr_string " ";
-  UStdlib.prerr_string s;
-  UStdlib.prerr_string "\n";
-  flush UStdlib.stderr;
+  Stdlib.prerr_string " ";
+  Stdlib.prerr_string s;
+  Stdlib.prerr_string "\n";
+  flush Stdlib.stderr;
   ()
 
 let spf = Printf.sprintf
@@ -169,7 +169,7 @@ let strip c s =
 (* Fold over a file in chunks *)
 let fold_file f x file_name =
   let buffer = Bytes.create 1024 in
-  let file = UStdlib.open_in file_name in
+  let file = Stdlib.open_in file_name in
   let rec go a =
     let length = input file buffer 0 (Bytes.length buffer) in
     let a' = f a (Bytes.sub buffer 0 length) in
@@ -470,41 +470,41 @@ let regression_testing_vs newscore bestscore =
          with
          | None, None -> raise Common.Impossible
          | Some x, None ->
-             UPrintf.printf "new test file appeared: %s\n" res;
+             Printf.printf "new test file appeared: %s\n" res;
              Hashtbl.add newbestscore res x
-         | None, Some _x -> UPrintf.printf "old test file disappeared: %s\n" res
+         | None, Some _x -> Printf.printf "old test file disappeared: %s\n" res
          | Some newone, Some bestone -> (
              match (newone, bestone) with
              | Ok, Ok -> Hashtbl.add newbestscore res Ok
              | Pb x, Ok ->
-                 UPrintf.printf
+                 Printf.printf
                    "PBBBBBBBB: a test file does not work anymore!!! : %s\n" res;
-                 UPrintf.printf "Error : %s\n" x;
+                 Printf.printf "Error : %s\n" x;
                  Hashtbl.add newbestscore res Ok
              | Ok, Pb _x ->
-                 UPrintf.printf "Great: a test file now works: %s\n" res;
+                 Printf.printf "Great: a test file now works: %s\n" res;
                  Hashtbl.add newbestscore res Ok
              | Pb x, Pb y ->
                  Hashtbl.add newbestscore res (Pb x);
                  if not (x = y) then (
-                   UPrintf.printf
-                     "Semipb: still error but not same error : %s\n" res;
-                   UPrintf.printf "%s\n" (chop ("Old error: " ^ y));
-                   UPrintf.printf "New error: %s\n" x)));
-  flush UStdlib.stdout;
-  flush UStdlib.stderr;
+                   Printf.printf "Semipb: still error but not same error : %s\n"
+                     res;
+                   Printf.printf "%s\n" (chop ("Old error: " ^ y));
+                   Printf.printf "New error: %s\n" x)));
+  flush Stdlib.stdout;
+  flush Stdlib.stderr;
   newbestscore
 
 let get_value filename =
-  let chan = UStdlib.open_in_bin filename in
-  let x = UStdlib.input_value chan in
+  let chan = Stdlib.open_in_bin filename in
+  let x = Stdlib.input_value chan in
   (* <=> Marshal.from_channel  *)
   close_in chan;
   x
 
 let write_value valu filename =
-  let chan = UStdlib.open_out_bin filename in
-  UStdlib.output_value chan valu;
+  let chan = Stdlib.open_out_bin filename in
+  Stdlib.output_value chan valu;
   (* <=> Marshal.to_channel *)
   (* Marshal.to_channel chan valu [Marshal.Closures]; *)
   close_out chan

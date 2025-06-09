@@ -24,17 +24,16 @@ open Fpath_.Operators
 (* API *)
 (*****************************************************************************)
 
-(* was in common2.ml before *)
 let get_value (filename : Fpath.t) : 'a =
-  let chan = UStdlib.open_in_bin !!filename in
-  let x = UStdlib.input_value chan in
+  let chan = Stdlib.open_in_bin !!filename in
+  let x = Stdlib.input_value chan in
   (* <=> Marshal.from_channel  *)
   close_in chan;
   x
 
 let write_value (valu : 'a) (filename : Fpath.t) : unit =
-  let chan = UStdlib.open_out_bin !!filename in
-  UStdlib.output_value chan valu;
+  let chan = Stdlib.open_out_bin !!filename in
+  Stdlib.output_value chan valu;
   (* <=> Marshal.to_channel *)
   (* Marshal.to_channel chan valu [Marshal.Closures]; *)
   close_out chan
