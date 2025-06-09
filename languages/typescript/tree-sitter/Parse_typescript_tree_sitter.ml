@@ -736,12 +736,14 @@ and anon_choice_type_id_b8f8ced (env : env)
   | `Id x -> [ identifier env x ]
   | `Deco_member_exp x -> decorator_member_expression env x
 
-let rec parenthesized_expression (env : env)
+(** [parenthesized_expression ~keep_parens env parenthesized_exp] returns the
+    expression converted to an AST. If [keep_parens] is
+    true, the parentheses are kept in the AST, otherwise they are removed.
+    We want to remove parenthesis when dealing with statements like if statements
+    so when we run autofix on a matched condition, the range doesn't include the
+    parentheses, which would break the syntax. *)
+let rec parenthesized_expression ?(keep_parens = true) (env : env)
     ((v1, v2, v3) : CST.parenthesized_expression) =
-  let v1 =
-    token env v1
-    (* "(" *)
-  in
   let v2 =
     match v2 with
     | `Exp_opt_type_anno (v1, v2) -> (
@@ -756,11 +758,10 @@ let rec parenthesized_expression (env : env)
         | None -> v1)
     | `Seq_exp x -> sequence_expression env x
   in
-  let v3 =
-    token env v3
-    (* ")" *)
-  in
-  ParenExpr (v1, v2, v3)
+  if keep_parens then
+    let v1, v3 = (token env v1, token env v3) in
+    ParenExpr (v1, v2, v3)
+  else v2
 
 and jsx_opening_element (env : env) ((v1, v2, v3) : CST.jsx_opening_element) =
   let v1 =
@@ -2910,7 +2911,7 @@ and statement (env : env) (x : CST.statement) : stmt list =
         token env v1
         (* "if" *)
       in
-      let v2 = parenthesized_expression env v2 in
+      let v2 = parenthesized_expression ~keep_parens:false env v2 in
       let v3 = statement1 env v3 in
       let v4 =
         match v4 with
@@ -2929,7 +2930,7 @@ and statement (env : env) (x : CST.statement) : stmt list =
         token env v1
         (* "switch" *)
       in
-      let v2 = parenthesized_expression env v2 in
+      let v2 = parenthesized_expression ~keep_parens:false env v2 in
       let v3 = switch_body env v3 in
       [ Switch (v1, v2, v3) ]
   | `For_stmt (v1, v2, v3, v4, v5, v6, v7) ->
@@ -3007,7 +3008,7 @@ and statement (env : env) (x : CST.statement) : stmt list =
         token env v1
         (* "while" *)
       in
-      let v2 = parenthesized_expression env v2 in
+      let v2 = parenthesized_expression ~keep_parens:false env v2 in
       let v3 = statement1 env v3 in
       [ While (v1, v2, v3) ]
   | `Do_stmt (v1, v2, v3, v4, v5) ->
@@ -3020,7 +3021,7 @@ and statement (env : env) (x : CST.statement) : stmt list =
         token env v3
         (* "while" *)
       in
-      let v4 = parenthesized_expression env v4 in
+      let v4 = parenthesized_expression ~keep_parens:false env v4 in
       let _v5 = Option.map (semicolon env) v5 in
       [ Do (v1, v2, v4) ]
   | `Try_stmt (v1, v2, v3, v4) ->
@@ -3045,7 +3046,7 @@ and statement (env : env) (x : CST.statement) : stmt list =
         token env v1
         (* "with" *)
       in
-      let v2 = parenthesized_expression env v2 in
+      let v2 = parenthesized_expression ~keep_parens:false env v2 in
       let v3 = statement1 env v3 in
       [ With (v1, v2, v3) ]
   | `Brk_stmt (v1, v2, v3) ->
