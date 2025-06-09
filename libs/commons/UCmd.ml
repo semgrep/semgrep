@@ -35,7 +35,7 @@ let log_shell_command cmd =
    equivalent (?)
 *)
 let capture_and_log_stderr func =
-  let res, err = Testo.with_capture UStdlib.stderr func in
+  let res, err = Testo.with_capture Stdlib.stderr func in
   if err <> "" then
     (* nosemgrep: no-logs-in-library *)
     Logs.info (fun m -> m "error output: %s" err);
@@ -66,7 +66,7 @@ exception CmdError of Unix.process_status * string
 let process_output_to_list ?(verbose = false) command =
   (* alt: use Cmd.with_open_process_in *)
   (* nosemgrep: forbid-exec *)
-  let chan = UUnix.open_process_in command in
+  let chan = Unix.open_process_in command in
   let res = ref ([] : string list) in
   let rec process_otl_aux () =
     let e = input_line chan in
@@ -121,7 +121,7 @@ let string_of_run_with_stderr ~trim ?env cmd =
   log_command cmd;
   let env = env_of_env env in
   let res, err =
-    Testo.with_capture UStdlib.stderr (fun () ->
+    Testo.with_capture Stdlib.stderr (fun () ->
         (* nosemgrep: forbid-exec *)
         let out = Cmd.bos_apply (Bos.OS.Cmd.run_out ?env) cmd in
         (* nosemgrep: forbid-exec *)
@@ -151,5 +151,5 @@ let with_open_process_in (cmd : string) f =
   log_shell_command cmd;
   capture_and_log_stderr (fun () ->
       (* nosemgrep: forbid-exec *)
-      let chan = UUnix.open_process_in cmd in
+      let chan = Unix.open_process_in cmd in
       Common.protect ~finally:(fun () -> close_in chan) (fun () -> f chan))

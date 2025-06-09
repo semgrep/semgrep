@@ -19,17 +19,17 @@ open Common
 (*****************************************************************************)
 
 let pr s =
-  UStdlib.print_string s;
-  UStdlib.print_string "\n";
-  flush UStdlib.stdout
+  Stdlib.print_string s;
+  Stdlib.print_string "\n";
+  flush Stdlib.stdout
 
 (*****************************************************************************)
 (* Stderr *)
 (*****************************************************************************)
 let pr2 s =
-  UStdlib.prerr_string s;
-  UStdlib.prerr_string "\n";
-  flush UStdlib.stderr
+  Stdlib.prerr_string s;
+  Stdlib.prerr_string "\n";
+  flush Stdlib.stderr
 
 let pr2_gen x = pr2 (Dumper.dump x)
 
@@ -45,23 +45,23 @@ let exn_to_real_unixexit f =
       (* nosemgrep: no-logs-in-library *)
       Logs.info (fun m -> m "UnixExit(0): %s" msg);
       (* nosemgrep: forbid-exit *)
-      UStdlib.exit 0
+      Stdlib.exit 0
   | UnixExit (x, msg) ->
       (* nosemgrep: no-logs-in-library *)
       Logs.err (fun m -> m "UnixExit(%d): %s" x msg);
       (* nosemgrep: forbid-exit *)
-      UStdlib.exit x
+      Stdlib.exit x
   | exn ->
       let e = Exception.catch exn in
       (* nosemgrep: no-logs-in-library *)
       Logs.err (fun m -> m "UnixExit(1): %s" (Exception.to_string e));
       (* nosemgrep: forbid-exit *)
-      UStdlib.exit 1
+      Stdlib.exit 1
 
 let pp_do_in_zero_box f =
-  UFormat.open_box 0;
+  Format.open_box 0;
   f ();
-  UFormat.close_box ()
+  Format.close_box ()
 
 let before_exit = ref []
 
@@ -77,7 +77,7 @@ let main_boilerplate f =
               (* Feel free to match on signal here :D *)
               let msg = spf "%s signal intercepted" handled_name in
               pr2 (msg ^ ", will do some cleaning before exiting");
-              USys.set_signal signal Sys.Signal_default;
+              Sys.set_signal signal Sys.Signal_default;
               (* But if do some try ... with e -> and if do not reraise the exn,
                * the bubble never goes at top and so I cant really C-c.
                *
@@ -98,12 +98,12 @@ let main_boilerplate f =
         let unix_signals = [ Sys.sighup; Sys.sigpipe; Sys.sigterm ] in
         let signals =
           (* Sigint works on windows, rest don't. Not sure why :/*)
-          if USys.os_type <> "Win32" then
+          if Sys.os_type <> "Win32" then
             List.append default_signals unix_signals
           else default_signals
         in
         List.iter
-          (fun (s : int) -> USys.set_signal s (default_handler s))
+          (fun (s : int) -> Sys.set_signal s (default_handler s))
           signals;
 
         (* The finalize() below makes it tedious to go back from exns when we use
@@ -113,7 +113,7 @@ let main_boilerplate f =
          * we have to be quicker here and set it for the finalize() below.
          *)
         if
-          USys.argv |> Array.to_list
+          Sys.argv |> Array.to_list
           |> List.exists (fun x -> x = "-debugger" || x = "--debugger")
         then debugger := true;
 
@@ -122,11 +122,11 @@ let main_boilerplate f =
             pp_do_in_zero_box (fun () ->
                 try f () with
                 (* <---- here it is *)
-                | UUnix.Unix_error (e, fm, argm) ->
+                | Unix.Unix_error (e, fm, argm) ->
                     pr2
                       (spf "exn Unix_error: %s %s %s\n" (Unix.error_message e)
                          fm argm);
-                    raise (UUnix.Unix_error (e, fm, argm))))
+                    raise (Unix.Unix_error (e, fm, argm))))
           (fun () ->
             !before_exit |> List.iter (fun f -> f ());
             (* nosemgrep: forbid-tmp *)
