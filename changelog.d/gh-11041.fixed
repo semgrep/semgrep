@@ -1,0 +1,1 @@
+Nosemgrep ignore comments no longer require exactly one space before, allowing for more commenting styles.
