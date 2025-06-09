@@ -69,7 +69,7 @@ let nosem_inline_re = Pcre2_.regexp nosem_inline_re_str ~flags:[ `CASELESS ]
 *)
 let nosem_previous_line_re =
   Pcre2_.regexp
-    ({|^[^a-zA-Z0-9]* nosem(?:grep)?|} ^ rule_id_re_str)
+    ({|^[^a-zA-Z0-9]* *nosem(?:grep)?|} ^ rule_id_re_str)
     ~flags:[ `CASELESS ]
 
 (*****************************************************************************)
