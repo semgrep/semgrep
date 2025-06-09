@@ -17,11 +17,14 @@
  * <https://www.gnu.org/licenses/>.
  *)
 
-let map ~pool f l =
+let map ~(conf : Parallelism_config.t) ~domain_count f l =
   (* The main thread concurrently maps over the list of tasks via spawning
    * fibers (i.e weak threads) that submit and wait for the Domain pool to
    * return the result of submitting the task.
    *)
+  Eio.Switch.run @@ fun sw ->
+  let domain_mgr = Eio.Stdenv.domain_mgr conf.env in
+  let pool = Eio.Executor_pool.create ~sw ~domain_count domain_mgr in
   Eio.Fiber.List.map
     (fun elem ->
       (* NOTE: [submit] blocks the fiber until the task returns a result.*)

@@ -18,14 +18,20 @@
  *)
 
 val map :
-  pool:Eio.Executor_pool.t -> ('a -> 'b) -> 'a list -> ('b, exn) result list
-(** [map ~pool f xs] applies [f] to every element of [xs] in parallel via the
-    Domains in [~pool], with the application evaluating to [Ok res] if
-    [f elem] evaluates to [res] or [Err exn] if [f elem] raised the
-    exception [exn]
+  conf:Parallelism_config.t ->
+  domain_count:int ->
+  ('a -> 'b) ->
+  'a list ->
+  ('b, exn) result list
+(** [map ~pool f xs] applies [f] to every element of [xs] in parallel via
+    [domain_count] domains spawned via [conf].
+
+    Each element in [xs] corresponds to [Ok res] if [f elem] evaluates to [res]
+    or [Err exn] if [f elem] raised the exception [exn].
 *)
 
-val wrap_timeout_exn : clock:_ Eio.Time.clock -> float -> ('a -> 'b) -> 'a -> 'b
+val wrap_timeout_exn :
+  clock:float Eio.Time.clock_ty Eio.Std.r -> float -> ('a -> 'b) -> 'a -> 'b
 (** Wraps the supplied function to be invoked on some fiber within some
   * duration (in seconds).
   *

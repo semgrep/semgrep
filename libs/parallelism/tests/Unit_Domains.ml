@@ -52,14 +52,13 @@ let test_fiber_local_domains_map () =
     assert (H.get h = 0)
   in
 
-  Eio_main.run (fun env ->
-      Eio.Switch.run (fun sw ->
-          let dm = Eio.Stdenv.domain_mgr env in
-          let pool = Eio.Executor_pool.create ~sw ~domain_count:procs dm in
+  Eio_main.run @@ fun env ->
+  let conf = Parallelism_config.create env in
 
-          let l = List.init procs (fun i -> i + 1) in
-          let res = Domains.map ~pool f l in
-          assert (Result.is_ok (Result_.collect res))));
+  let l = List.init procs (fun i -> i + 1) in
+  let res = Domains.map ~conf ~domain_count:2 f l in
+
+  assert (Result.is_ok (Result_.collect res));
   Alcotest.(check int) __LOC__ 0 (H.get h)
 
 (* Ensures that we can set a deadline on a fiber with the exceptions-oriented API. *)
@@ -119,11 +118,8 @@ let test_wrap_timeout () =
 
 let test_domain_map_timeouts () =
   Eio_main.run @@ fun env ->
-  Eio.Switch.run @@ fun sw ->
+  let conf = Parallelism_config.create env in
   let clock = Eio.Stdenv.clock env in
-  let pool =
-    Eio.Executor_pool.create ~sw (Eio.Stdenv.domain_mgr env) ~domain_count:2
-  in
 
   let sleep s =
     Eio.Time.sleep clock s;
@@ -132,14 +128,22 @@ let test_domain_map_timeouts () =
 
   (* The happy case: no Ensure we handle no timeouts. *)
   let xs = [ 0.1; 0.2; 0.1; 0.2 ] in
-  let res = Domains.map pool (Domains.wrap_timeout_exn ~clock 0.5 sleep) xs in
+  let res =
+    Domains.map ~conf ~domain_count:2
+      (Domains.wrap_timeout_exn ~clock 0.5 sleep)
+      xs
+  in
   Alcotest.(check (list (result (float 0.001) exnt)))
     __LOC__ res
     [ Ok 0.1; Ok 0.2; Ok 0.1; Ok 0.2 ];
 
   (* An unhappy case: Some timeouts. *)
   let xs = [ 0.1; 0.7; 0.2; 0.7 ] in
-  let res = Domains.map pool (Domains.wrap_timeout_exn ~clock 0.5 sleep) xs in
+  let res =
+    Domains.map ~conf ~domain_count:2
+      (Domains.wrap_timeout_exn ~clock 0.5 sleep)
+      xs
+  in
   Alcotest.(check (list (result (float 0.001) exnt)))
     __LOC__ res
     [ Ok 0.1; Error Eio.Time.Timeout; Ok 0.2; Error Eio.Time.Timeout ]
@@ -151,16 +155,15 @@ let test_burn () =
   (* Unlike the operation that sleeps, as above, this is "pure computation" and
    * does not call back into the Eio runtime automatically, unless we manually
    * do so, such as by calling [Eio.Fiber.yield ()] or writing to a Flow. *)
-  (* let out = Eio_mock.Flow.make "Logger" in *)
-  let out = Eio.Stdenv.stdout env in
   let burn () =
     while true do
-      for _ = 0 to 10000000 do
+      let i = ref 0 in
+      for _ = 0 to 1000 do
         (* NB: this is _not_ the same thing as Eio.Time.Sleep, as sleeping is
          * performing an Effect; busywaiting in this way is _not_. *)
-        ()
+        i := !i + 1
       done;
-      Eio.Flow.copy_string "Thinking...\n" out
+      Domains.maybe_yield ()
     done
   in
 
