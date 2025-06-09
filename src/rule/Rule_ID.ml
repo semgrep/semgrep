@@ -62,10 +62,11 @@ let of_string_list x = x
 let compare = String.compare
 
 let last_elt_opt x =
-  let xs = x |> Str.split (Str.regexp_string ".") |> List.rev in
-  match xs with
-  | [] -> None
-  | x :: _ -> Some x
+  (* ocaml.best-practice.use-obj-magic
+   * -> ['ocaml';'best-practice';'use-obj-magic']
+   *)
+  let rule_name_seperated = String.split_on_char '.' x in
+  List_.last_opt rule_name_seperated
 
 let ends_with r ~suffix:inc_or_exc_rule =
   r = inc_or_exc_rule || String.ends_with ~suffix:("." ^ inc_or_exc_rule) r
