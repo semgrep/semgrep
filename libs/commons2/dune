@@ -1,7 +1,6 @@
 (library
  (public_name commons2)
  (wrapped false)
- (flags (:standard -open No_TCB))
  (libraries
     TCB
     commons
