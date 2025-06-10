@@ -675,7 +675,9 @@ def ci(
             "capture_core_stderr": capture_core_stderr,
             "allow_local_builds": allow_local_builds,
             "x_eio": x_eio,
-            "x_tr": x_tr,
+            "x_tr": scan_handler.transitive_reachability_enabled
+            if scan_handler
+            else x_tr,
             "x_pro_naming": x_pro_naming,
             "dump_rule_partitions_params": dump_rule_partitions_params,
             "ptt_enabled": scan_handler.ptt_enabled if scan_handler else False,
