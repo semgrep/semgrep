@@ -202,6 +202,15 @@ class ScanHandler:
         return False
 
     @property
+    def transitive_reachability_enabled(self) -> bool:
+        """
+        Separate property for easy of mocking in test
+        """
+        if self.scan_response:
+            return self.scan_response.engine_params.transitive_reachability_enabled
+        return False
+
+    @property
     def skipped_syntactic_ids(self) -> List[str]:
         """
         Separate property for easy of mocking in test
