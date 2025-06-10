@@ -207,6 +207,22 @@ def subproject_to_stats(
         raise ValueError(f"Unexpected subproject type: {type(sub)}")
 
 
+def subproject_to_cli_output_info(
+    sub: Union[out.ResolvedSubproject, out.UnresolvedSubproject],
+) -> out.CliOutputSubprojectInfo:
+    """Convert a subproject to cli output subproject info."""
+    stats = subproject_to_stats(sub)
+    return out.CliOutputSubprojectInfo(
+        dependency_sources=[
+            out.Fpath(str(path))
+            for path in get_display_paths(sub.info.dependency_source)
+        ],
+        resolved=isinstance(sub, out.ResolvedSubproject),
+        resolved_stats=stats.resolved_stats,
+        unresolved_reason=stats.unresolved_reason,
+    )
+
+
 def find_closest_subproject(
     path: Path, ecosystem: out.Ecosystem, candidates: List[out.Subproject]
 ) -> Optional[out.Subproject]:

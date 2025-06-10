@@ -996,6 +996,7 @@ def scan(
                     engine_type=engine_type,
                     executed_rule_count=executed_rule_count,
                     missed_rule_count=missed_rule_count,
+                    all_subprojects=_all_subprojects,
                 )
 
                 return_data = ScanResult(
