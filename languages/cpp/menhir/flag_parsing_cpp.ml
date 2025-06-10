@@ -28,7 +28,6 @@ let cmdline_flags_macrofile () =
 (* verbose *)
 (*****************************************************************************)
 
-let verbose_pp_ast = ref false
 let filter_msg = ref false
 let filter_classic_passed = ref false
 let filter_define_error = ref true
@@ -43,7 +42,6 @@ let filter_define_error = ref true
 let debug_typedef = ref true
 let debug_pp = ref true
 let debug_cplusplus = ref true
-let debug_pp_ast = ref false
 
 let cmdline_flags_debugging () =
   [
