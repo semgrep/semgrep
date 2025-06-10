@@ -98,6 +98,7 @@ let mock_run_results (files : string list) : Core_runner.result =
          interfile requested languages *)
       interfile_languages_used = Some [];
       symbol_analysis = None;
+      subprojects = None;
     }
   in
   Core_runner_result.{ core; hrules; scanned }

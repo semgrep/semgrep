@@ -18,6 +18,7 @@ from typing import Sequence
 from typing import Set
 from typing import Tuple
 from typing import Type
+from typing import Union
 
 import requests
 from boltons.iterutils import partition
@@ -48,6 +49,7 @@ from semgrep.rule_match import RuleMatch
 from semgrep.rule_match import RuleMatchMap
 from semgrep.state import DesignTreatment
 from semgrep.state import get_state
+from semgrep.subproject import subproject_to_cli_output_info
 from semgrep.target_manager import FileErrorLog
 from semgrep.target_manager import FileTargetingLog
 from semgrep.target_manager import TargetManager
@@ -227,6 +229,9 @@ class OutputHandler:
         self.severities: Collection[out.MatchSeverity] = DEFAULT_SHOWN_SEVERITIES
         self.explanations: Optional[List[out.MatchingExplanation]] = None
         self.engine_type: EngineType = EngineType.OSS
+        self.all_subprojects: Optional[
+            List[Union[out.UnresolvedSubproject, out.ResolvedSubproject]]
+        ] = None
 
         self.final_error: Optional[Exception] = None
 
@@ -390,6 +395,9 @@ class OutputHandler:
         is_ci_invocation: bool = False,
         executed_rule_count: int = 0,
         missed_rule_count: int = 0,
+        all_subprojects: Optional[
+            List[Union[out.UnresolvedSubproject, out.ResolvedSubproject]]
+        ] = None,
     ) -> None:
         all_targets = all_targets_acc.targets
         state = get_state()
@@ -421,6 +429,8 @@ class OutputHandler:
             self.explanations = explanations
         if severities:
             self.severities = severities
+        if all_subprojects:
+            self.all_subprojects = all_subprojects
 
         self.is_ci_invocation = is_ci_invocation
 
@@ -659,6 +669,14 @@ class OutputHandler:
         # to output things. This is why I have those ugly 'if self.extra' below
         # that possibly return None.
 
+        # Convert subprojects to public stats format for CLI output
+        subproject_stats: Optional[List[out.CliOutputSubprojectInfo]] = None
+        if self.all_subprojects:
+            subproject_stats = [
+                subproject_to_cli_output_info(subproject)
+                for subproject in self.all_subprojects
+            ]
+
         cli_output_extra = out.CliOutputExtra(
             # TODO: almost like self.extra.core.paths, but not there yet
             paths=cli_paths,
@@ -674,6 +692,8 @@ class OutputHandler:
             ),
             # TODO, should just be self.extra.core.skipped_rules
             skipped_rules=[],
+            # SCA subproject resolution results
+            subprojects=subproject_stats,
         )
 
         state = get_state()

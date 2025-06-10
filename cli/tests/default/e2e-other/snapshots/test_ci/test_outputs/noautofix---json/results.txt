@@ -460,6 +460,30 @@
     }
   ],
   "skipped_rules": [],
+  "subprojects": [
+    {
+      "dependency_sources": [
+        "yarn.lock"
+      ],
+      "resolved": true,
+      "resolved_stats": {
+        "dependency_count": 1,
+        "ecosystem": "npm",
+        "resolution_method": "LockfileParsing"
+      }
+    },
+    {
+      "dependency_sources": [
+        "poetry.lock"
+      ],
+      "resolved": true,
+      "resolved_stats": {
+        "dependency_count": 3,
+        "ecosystem": "pypi",
+        "resolution_method": "LockfileParsing"
+      }
+    }
+  ],
   "version": "0.42"
 }
 === end of stdout - plain

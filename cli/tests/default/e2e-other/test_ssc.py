@@ -287,6 +287,34 @@ def test_ssc(run_semgrep_on_copied_files: RunSemgrep, snapshot, rule, target):
     "rule,target",
     [
         (
+            "rules/dependency_aware/awscli_vuln.yaml",
+            "dependency_aware/awscli",
+        ),
+        (
+            "rules/dependency_aware/java-gradle-sca.yaml",
+            "dependency_aware/gradle-no-lockfile",
+        ),
+    ],
+)
+def test_ssc_logged_in(run_semgrep_on_copied_files: RunSemgrep, snapshot, rule, target):
+    """
+    Same as test_ssc above, but with an app token set to enable output of fields
+    that are only available to logged in users.
+    """
+    result = run_semgrep_on_copied_files(
+        rule, target_name=target, env={"SEMGREP_APP_TOKEN": "fake_key"}
+    )
+
+    snapshot.assert_match(
+        result.as_snapshot(),
+        "results.txt",
+    )
+
+
+@pytest.mark.parametrize(
+    "rule,target",
+    [
+        (
             "rules/dependency_aware/python-requirements-sca.yaml",
             "dependency_aware/requirement",
         ),
