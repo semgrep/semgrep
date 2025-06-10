@@ -28,7 +28,7 @@ let map ~(conf : Parallelism_config.t) ~domain_count f l =
   Eio.Fiber.List.map ~max_fibers:domain_count
     (fun elem ->
       (* NOTE: [submit] blocks the fiber until the task returns a result.*)
-      Eio.Executor_pool.submit pool ~weight:0.5 (fun () -> f elem))
+      Eio.Executor_pool.submit pool ~weight:1.0 (fun () -> f elem))
     l
 
 let wrap_timeout ~clock t f =
