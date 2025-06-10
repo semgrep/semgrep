@@ -877,6 +877,7 @@ def ci(
                     severities=shown_severities,
                     is_ci_invocation=True,
                     print_summary=False,
+                    all_subprojects=all_subprojects,
                 )
 
             logger.info("CI scan completed successfully.")
@@ -958,6 +959,7 @@ def ci(
                     severities=shown_severities,
                     is_ci_invocation=True,
                     print_summary=False,
+                    all_subprojects=all_subprojects,
                 )
 
             logger.info("CI scan completed successfully.")

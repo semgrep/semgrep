@@ -671,6 +671,7 @@ let core_output_of_matches_and_errors (res : Core_result.t) : Out.core_output =
     engine_requested = Some `OSS;
     version = Version.version;
     symbol_analysis = res.symbol_analysis;
+    subprojects = None;
   }
 [@@profiling]
 
