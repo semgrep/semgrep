@@ -8,10 +8,6 @@ val readable : root:Fpath.t -> Fpath.t -> Fpath.t
 val filesuffix : string -> string
 val fileprefix : string -> string
 
-(* db for dir, base *)
-val db_of_filename : string -> string * string
-val filename_of_db : string * string -> string
-
 (* dbe for dir, base, ext *)
 val dbe_of_filename : string -> string * string * string
 val dbe_of_filename_nodot : string -> string * string * string

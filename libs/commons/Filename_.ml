@@ -60,22 +60,6 @@ let (fileprefix : string -> string) =
   try regexp_match s "\\(.+\\)\\.\\([a-zA-Z0-9_]+\\)?$" with
   | _ -> s
 
-(*
-let _ = example (filesuffix "toto.c" =$= "c")
-let _ = example (fileprefix "toto.c" =$= "toto")
-*)
-
-(*
-assert (s = fileprefix s ^ filesuffix s)
-
-let withoutExtension s = global_replace (regexp "\\..*$") "" s
-let () = example "without"
-    (withoutExtension "toto.s.toto" = "toto")
-*)
-
-let db_of_filename file = (Filename.dirname file, Filename.basename file)
-let filename_of_db (basedir, file) = Filename.concat basedir file
-
 let dbe_of_filename file =
   (* raise Invalid_argument if no ext, so safe to use later the unsafe
    * fileprefix and filesuffix functions (well filesuffix is safe by default)
