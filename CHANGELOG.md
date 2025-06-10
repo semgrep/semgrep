@@ -6,6 +6,15 @@
 
 <!-- insertion point -->
 
+## [1.124.1](https://github.com/semgrep/semgrep/releases/tag/v1.124.1) - 2025-06-10
+
+
+### Fixed
+
+
+- Fixed an issue present since v1.117.0 that led `.semgrepignore` excludes to be applied to Secrets product scans. Now, Semgrep will once again scan files that have been excluded from Code and SSC scans for possible leaked secrets. (SAF-2067)
+
+
 ## [1.124.0](https://github.com/semgrep/semgrep/releases/tag/v1.124.0) - 2025-06-04
 
 
