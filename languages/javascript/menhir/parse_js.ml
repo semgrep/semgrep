@@ -189,7 +189,7 @@ let tokens input_source =
       | Lexer_js.ST_IN_BACKQUOTE -> Lexer_js.backquote lexbuf
     in
     if not (TH.is_comment tok) then
-      Lexer_js._last_non_whitespace_like_token := Some tok;
+      Domain.DLS.set Lexer_js._last_non_whitespace_like_token (Some tok);
     tok
   in
   Parsing_helpers.tokenize_all_and_adjust_pos input_source token

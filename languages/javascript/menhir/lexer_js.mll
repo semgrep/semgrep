@@ -174,31 +174,36 @@ type state_mode =
 
 let default_state = ST_IN_CODE
 
+(* Because we're using DLS here, a JS parser must never invoke an effect,
+ * lest our fiber get migrated to another domain! *)
+
 let _mode_stack =
-  ref [default_state]
+  Domain.DLS.new_key (const [default_state])
 
 (* The logic to modify _last_non_whitespace_like_token is in the
  * caller of the lexer, that is in Parse_js.tokens.
  * Used for ambiguity between / as a divisor and start of regexp.
  *)
 let _last_non_whitespace_like_token =
-  ref (None: Parser_js.token option)
+  Domain.DLS.new_key (const (None: Parser_js.token option))
 
 let reset () =
-  _mode_stack := [default_state];
-   _last_non_whitespace_like_token := None;
+  Domain.DLS.set _mode_stack [default_state];
+  Domain.DLS.set _last_non_whitespace_like_token None;
   ()
 
 let rec current_mode () =
-  match !_mode_stack with
+  match Domain.DLS.get _mode_stack with
   | top :: _ -> top
   | [] ->
       Log.warn (fun m -> m "mode_stack is empty, defaulting to INITIAL");
       reset();
       current_mode ()
 
-let push_mode mode = Stack_.push mode _mode_stack
-let pop_mode () = ignore(Stack_.pop _mode_stack)
+let push_mode mode = Domain.DLS.set _mode_stack (mode :: (Domain.DLS.get _mode_stack))
+let pop_mode () =
+    let ms = Domain.DLS.get _mode_stack in
+    Domain.DLS.set _mode_stack (List_.tl_exn "unexpected empty list" ms)
 let set_mode mode = begin pop_mode(); push_mode mode; end
 
 (* Here is an example of state transition. Given a js file like:
@@ -460,7 +465,7 @@ rule initial = parse
       let s = tok lexbuf in
       let info = tokinfo lexbuf in
 
-      match !_last_non_whitespace_like_token with
+      match Domain.DLS.get _last_non_whitespace_like_token with
       | Some (
             T_INT _ | T_FLOAT _ | T_STRING _ | T_REGEX _
           | T_FALSE _ | T_TRUE _ | T_NULL _
@@ -519,7 +524,7 @@ rule initial = parse
    * in which the quote does not need to be ended.
    *)
   | "<" (XHPTAG as tag) {
-    match !_last_non_whitespace_like_token with
+    match Domain.DLS.get _last_non_whitespace_like_token with
     | Some (
         T_LPAREN _
       | T_SEMICOLON _ (* TODO: somes ambiguities with generics then! *)
@@ -548,7 +553,7 @@ rule initial = parse
     * mostly copy paste from above
     *)
    | "<>" {
-    match !_last_non_whitespace_like_token with
+    match Domain.DLS.get _last_non_whitespace_like_token with
     | Some (
         T_LPAREN _
       | T_SEMICOLON _ (* TODO: somes ambiguities with generics then! *)
