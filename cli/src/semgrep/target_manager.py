@@ -777,6 +777,19 @@ class TargetManager:
 
     _filtered_targets: Dict[Language, FilteredFiles] = field(factory=dict)
 
+    def _respect_semgrepignore_by_product(self, product: out.Product) -> bool:
+        # The default `.semgrepignore` as well as typical `.semgrepignore` files
+        # created by users are geared towards SAST and SCA scans. Secrets scans
+        # have different needs and characteristics and it typically makes sense
+        # to scan a lot more files, so we do not respect the `.semgrepignore`
+        # (whether it is the default one or a user-supplied one) for Secrets
+        # scans. Users can configure secrets-specific ignores in Semgrep AppSec
+        # Platform.
+        if isinstance(product.value, out.Secrets):
+            return False
+        else:
+            return self.respect_semgrepignore
+
     # This initializes the class attributes marked with '= field(init=False)':
     def __attrs_post_init__(self) -> None:
         self.targeting_conf = {
@@ -784,7 +797,9 @@ class TargetManager:
                 exclude=list(self.excludes.get(product, [])),
                 max_target_bytes=self.max_target_bytes,
                 respect_gitignore=self.respect_git_ignore,
-                respect_semgrepignore_files=self.respect_semgrepignore,
+                respect_semgrepignore_files=self._respect_semgrepignore_by_product(
+                    product
+                ),
                 semgrepignore_filename=self.semgrepignore_filename,
                 # explicit targets = target files that are passed explicitly
                 # on the command line and are normally not ignored by semgrepignore
