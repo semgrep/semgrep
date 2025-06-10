@@ -25,7 +25,7 @@ let map ~(conf : Parallelism_config.t) ~domain_count f l =
   Eio.Switch.run @@ fun sw ->
   let domain_mgr = Eio.Stdenv.domain_mgr conf.env in
   let pool = Eio.Executor_pool.create ~sw ~domain_count domain_mgr in
-  Eio.Fiber.List.map
+  Eio.Fiber.List.map ~max_fibers:domain_count
     (fun elem ->
       (* NOTE: [submit] blocks the fiber until the task returns a result.*)
       Eio.Executor_pool.submit pool ~weight:0.5 (fun () -> f elem))
