@@ -65,8 +65,6 @@ let filename_of_dbe (dir, base, ext) =
   if ext = "" then Filename.concat dir base
   else Filename.concat dir (base ^ "." ^ ext)
 
-let dbe_of_filename_noext_ok = dbe_of_filename
-
 let dbe_of_filename_many_ext_opt file =
   let prefix, suffix =
     filename_prefix_suffix ~at_most_one_ext:false (Filename.basename file)
