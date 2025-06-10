@@ -756,7 +756,7 @@ let resolution_visitor =
                    * uses also Filename in 'from ...conf import x'.
                    *)
                   let sid = SId.mk () in
-                  let _, b, _ = Filename_.dbe_of_filename_noext_ok s in
+                  let _, b, _ = Filename_.dbe_of_filename s in
                   let base = (b, tok) in
                   let canonical = dotted_to_canonical [ base; id ] in
                   let resolved = untyped_ent (ImportedEntity canonical, sid) in
@@ -766,7 +766,7 @@ let resolution_visitor =
                 when Lang.is_js env.lang && fst id <> Ast_js.default_entity ->
                   (* for JS *)
                   let sid = SId.mk () in
-                  let _, b, _ = Filename_.dbe_of_filename_noext_ok s in
+                  let _, b, _ = Filename_.dbe_of_filename s in
                   let base = (b, tok) in
                   let canonical = dotted_to_canonical [ base; id ] in
                   let resolved = untyped_ent (ImportedEntity canonical, sid) in
