@@ -576,7 +576,7 @@ let inits_of_relative_dir dir =
   |> List_.map relative_path_of_segs
 
 let dirs_and_base_of_file file =
-  let dir, base = Filename_.db_of_filename file in
+  let dir, base = (Filename.dirname file, Filename.basename file) in
   let dirs = String.split_on_char '/' dir in
   let dirs =
     match dirs with
