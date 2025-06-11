@@ -1,1 +1,0 @@
-Adds reporting of SSC subproject dependency resolution to the output when using `--json`.

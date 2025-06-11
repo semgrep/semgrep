@@ -1,27 +1,25 @@
-## [1.124.0](https://github.com/semgrep/semgrep/releases/tag/v1.124.0) - 2025-06-04
+## [1.125.0](https://github.com/semgrep/semgrep/releases/tag/v1.125.0) - 2025-06-11
 
 
 ### Added
 
 
-- Parallelizes rule validation to improve performance when scanning with many rule files. (SAF-2061)
-- Semgrep should now respect `ALL_PROXY`, `HTTP_PROXY`, `HTTPS_PROXY`,
-  `NO_PROXY`, `PROXY_USERNAME` and `PROXY_PASSWORD` for all networking (including
-  that done via the OCaml components). Moreover, the environment variable
-  `OCAML_EXTRA_CA_CERTS` should now allow additional CA certs to be used for
-  network operations done by OCaml components. (code-8157)
+- Dependency resolution errors that result from local builds are now reported in the scan log by default. (SC-2442)
+- Adds reporting of SSC subproject dependency resolution to the output when using `--json`. (SC-2458)
+- Semgrep's JSON output now will always include some basic profiling data (WIP). (code-8529)
+- C# Dependency Parsing can now handle dependencies with "Project" & "CentralTransitive" transitivities. (sc-2376)
 
 
 ### Fixed
 
 
-- Stop attempting to parse `build.gradle.kts` files as `build.gradle`. (SC-2209)
-- Taint rules using the **experimental** feature _labels_, and specifying sinks
-  with a `requires:` of the form `not A`, could produce findings with an empty
-  list of traces, potentially causing a crash. We now recognize the issue and
-  prevent the crash from happening. (code-8531)
-- Fixed inconsistency where the empty Python fstring `f""` was not matched by the pattern "...". (gh-10047)
-- Fixed bug where dev depenencies (and their dependencies, and so on) were incorrectly marked as "transitivity: unknown" when parsing package-lock.json projects, specifically v3 lockfiles. (gh-4003)
-- Fixed scenario where a multiplication expression of ints was not considered an int. This will help with `metavariable-type`. Concretely, "2 * groups" was not considered an int, where groups is an int. Additionally adds type inference for mod, floor division, and pow. (gh-9855)
-- pro: python: Fixed a regression that could (in rare cases) cause naming to take a
-  disproportionate amount of time significantly slowing down scans. (saf-1978)
+- Fixed an issue present since v1.117.0 that led `.semgrepignore` excludes to be applied to Secrets product scans. Now, Semgrep will once again scan files that have been excluded from Code and SSC scans for possible leaked secrets. (SAF-2067)
+- Added support for npm aliasing in package-lock.json, fixing a bug where packages would rarely be misidentified. (SC-2387)
+- Fixed scenario where case statements with ellipsis did not match patterns correctly. (gh-10086)
+- Nosemgrep ignore comments no longer require exactly one space before, allowing for more commenting styles. (gh-11041)
+- Fixed bug where Javascript autofix breaks syntax for if statements by consuming parentheses. (gh-9522)
+- Fix: the Semgrep findings returned by the Semgrep language server (LSP)
+  are now sorted correctly based on their location within files.
+  This benefits all the Semgrep IDE extensions (VSCode, IntelliJ). (ide-findings-order)
+- fixed an issue where `semgrep ci` logs in GitLab would return an incorrect URL
+  with the wrong `&ref=...` argument. (saf-959)

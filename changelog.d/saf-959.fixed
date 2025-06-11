@@ -1,2 +1,0 @@
-fixed an issue where `semgrep ci` logs in GitLab would return an incorrect URL
-with the wrong `&ref=...` argument.
