@@ -763,11 +763,11 @@ let force_select_scanning_roots (project_roots : Project.scanning_roots)
     let regular_files_to_add =
       regular_files_to_add
       |> List_.map (fun x -> x.Fppath.fpath)
-      |> Set_.of_list
+      |> Fpath_.Fpath_set.of_list
     in
     skipped_targets
     |> List.filter (fun (skipped : Out.skipped_target) ->
-           not (Set_.mem skipped.path regular_files_to_add))
+           not (Fpath_.Fpath_set.mem skipped.path regular_files_to_add))
   in
   let selected_targets =
     Fppath_set.union selected_targets (Fppath_set.of_list regular_files_to_add)
