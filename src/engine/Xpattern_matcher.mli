@@ -4,7 +4,7 @@ type ('target_content, 'xpattern) t = {
   (* init returns an option to let the matcher the option to skip
    * certain files (e.g., big binary or minified files for spacegrep)
    *)
-  init : Fpath.t -> 'target_content option;
+  init : Fpath.t -> 'target_content option * float option;
   matcher :
     'target_content ->
     Fpath.t ->

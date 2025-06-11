@@ -31,6 +31,7 @@ type t = {
   *)
   valid_rules : Rule.rule list;
   rules_with_targets : Rule.rule list;
+  quick_profiling : Core_quick_profiling.t option;
   profiling : Core_profiling.t option;
   explanations : Matching_explanation.t list option;
   rules_by_engine : (Rule_ID.t * Engine_kind.t) list;
@@ -59,6 +60,7 @@ val mk_processed_match : Core_match.t -> processed_match
 type 'a match_result = {
   matches : Core_match.t list;
   errors : Core_error.ErrorSet.t;
+  quick_profiling : Core_quick_profiling.t option;
   profiling : 'a option;
   explanations : Matching_explanation.t list;
 }
@@ -94,6 +96,9 @@ val empty_match_result : Core_profiling.times match_result
 
 val mk_match_result :
   Core_match.t list -> Core_error.ErrorSet.t -> 'a -> 'a match_result
+
+val quick_add_parse_time_opt :
+  Fpath.t -> float option -> 'a match_result -> 'a match_result
 
 (* match results profiling adjustment helpers *)
 val map_profiling : ('a -> 'b) -> 'a match_result -> 'b match_result

@@ -982,7 +982,7 @@ class TextFormatter(base.BaseFormatter):
                     console.print(f"  {rule_id}")
                 console.reset_title(order=1)
 
-            if cli_output_extra.time:
+            if cli_output_extra.time and cli_output_extra.time.targets:
                 print_time_summary(cli_output_extra.time, semgrep_structured_errors)
 
             rules_by_engine = (

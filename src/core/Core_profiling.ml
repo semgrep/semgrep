@@ -49,6 +49,7 @@
  *)
 let profiling = ref false
 let profiling_opt prof = if !profiling then Some prof else None
+let if_profiling ~default f = if !profiling then f () else default
 
 (*****************************************************************************)
 (* Types *)

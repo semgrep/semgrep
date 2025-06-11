@@ -1,0 +1,1 @@
+Semgrep's JSON output now will always include some basic profiling data (WIP).

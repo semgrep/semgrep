@@ -153,7 +153,10 @@ let regexp_matcher ?(base_offset = 0) regex_functions big_str (file : Fpath.t)
 let matches_of_regexs regexps lazy_content (file : Fpath.t) origin =
   matches_of_matcher regexps
     {
-      init = (fun _ -> Some (Lazy.force lazy_content));
+      init =
+        (fun _ ->
+          let content, time = Common.force_lazy_with_time lazy_content in
+          (Some content, time));
       matcher = regexp_matcher pcre2_regex_functions;
     }
     file origin

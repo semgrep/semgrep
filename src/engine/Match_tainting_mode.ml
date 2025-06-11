@@ -68,12 +68,6 @@ let get_source_requires src =
   src_spec.R.source_requires
 
 (*****************************************************************************)
-(* Testing whether some matches a taint spec *)
-(*****************************************************************************)
-
-let lazy_force x = Lazy.force x [@@profiling]
-
-(*****************************************************************************)
 (* Pattern match from finding *)
 (*****************************************************************************)
 
@@ -313,8 +307,12 @@ let check_rule per_file_formula_cache (file : Taint_rule_inst.file)
     matches :=
       List.rev_append (matches_of_effects xconf.config new_effects) !matches
   in
+  let { path = { internal_path_to_content; _ }; lazy_ast_and_errors; _ } :
+      Xtarget.t =
+    xtarget
+  in
   let (ast, skipped_tokens), parse_time =
-    Common.with_time (fun () -> lazy_force xtarget.lazy_ast_and_errors)
+    Common.force_lazy_with_time lazy_ast_and_errors
   in
   (* TODO: 'debug_taint' should just be part of 'res'
    * (i.e., add a "debugging" field to 'Report.match_result'). *)
@@ -433,9 +431,11 @@ let check_rule per_file_formula_cache (file : Taint_rule_inst.file)
         RP.mk_match_result matches errors
           {
             Core_profiling.rule_id = fst rule.R.id;
-            rule_parse_time = parse_time;
+            rule_parse_time = parse_time ||| 0.0;
             rule_match_time = match_time;
           }
+        |> Core_result.quick_add_parse_time_opt internal_path_to_content
+             parse_time
       in
       let explanations =
         if xconf.matching_explanations then

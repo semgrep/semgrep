@@ -34,7 +34,7 @@ type ('target_content, 'xpattern) t = {
   (* init returns an option to let the matcher the option to skip
    * certain files (e.g., big binary or minified files for spacegrep)
    *)
-  init : Fpath.t -> 'target_content option;
+  init : Fpath.t -> 'target_content option * float option;
   matcher :
     'target_content -> Fpath.t -> 'xpattern -> (match_range * MV.bindings) list;
 }
@@ -63,9 +63,7 @@ let (matches_of_matcher :
  fun xpatterns matcher internal_path origin ->
   if xpatterns =*= [] then Core_result.empty_match_result
   else
-    let target_content_opt, parse_time =
-      Common.with_time (fun () -> matcher.init internal_path)
-    in
+    let target_content_opt, parse_time = matcher.init internal_path in
     match target_content_opt with
     | None ->
         Core_result.empty_match_result (* less: could include parse_time *)
@@ -103,7 +101,7 @@ let (matches_of_matcher :
                             })))
         in
         RP.mk_match_result res Core_error.ErrorSet.empty
-          { Core_profiling.parse_time; match_time }
+          { Core_profiling.parse_time = parse_time ||| 0.0; match_time }
 
 let mtx = Mutex.create ()
 let ht = Hashtbl.create 101

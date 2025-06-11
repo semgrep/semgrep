@@ -60,6 +60,7 @@ let fmt_errors fmt errors =
 type 'a match_result = {
   matches : Core_match.t list;
   errors : E.ErrorSet.t; [@printer fmt_errors]
+  quick_profiling : Core_quick_profiling.t option;
   profiling : 'a option;
   explanations : Matching_explanation.t list;
 }
@@ -115,6 +116,7 @@ type t = {
   skipped_rules : Rule_error.invalid_rule list;
   valid_rules : Rule.rule list;
   rules_with_targets : Rule.rule list;
+  quick_profiling : Core_quick_profiling.t option;
   profiling : Core_profiling.t option;
   explanations : Matching_explanation.t list option;
   rules_by_engine : (Rule_ID.t * Engine_kind.t) list;
@@ -136,6 +138,7 @@ let empty_match_result : Core_profiling.times match_result =
   {
     matches = [];
     errors = E.ErrorSet.empty;
+    quick_profiling = None;
     profiling = None;
     explanations = [];
   }
@@ -150,6 +153,7 @@ let mk_result_with_just_errors (errors : Core_error.t list) : t =
     skipped_targets = [];
     scanned = [];
     skipped_rules = [];
+    quick_profiling = None;
     profiling = None;
     explanations = None;
     rules_by_engine = [];
@@ -162,6 +166,7 @@ let mk_match_result matches errors profiling =
   {
     matches;
     errors;
+    quick_profiling = None;
     profiling = Core_profiling.profiling_opt profiling;
     explanations = [];
   }
@@ -169,6 +174,19 @@ let mk_match_result matches errors profiling =
 (*****************************************************************************)
 (* Augment reported information with profiling info *)
 (*****************************************************************************)
+
+let quick_add_parse_time_opt file opt_parse_time (x : _ match_result) :
+    _ match_result =
+  match opt_parse_time with
+  | None -> x
+  | Some parse_time ->
+      {
+        x with
+        quick_profiling =
+          x.quick_profiling
+          |> Core_quick_profiling.map_opt
+               (Core_quick_profiling.add_parse_time file parse_time);
+      }
 
 let map_profiling (f : 'a -> 'b) (x : 'a match_result) : 'b match_result =
   { x with profiling = Option.map f x.profiling }
@@ -201,23 +219,28 @@ let collate_results (init : 'c) (combine : 'b option -> 'c -> 'c)
     (final : 'c -> 'a option) (results : 'b match_result list) : 'a match_result
     =
   let unzip_results l =
-    let rec unzip all_matches all_errors all_profiling all_explanations
-        (l : _ match_result list) =
+    let rec unzip all_matches all_errors all_quick_profiling all_profiling
+        all_explanations (l : _ match_result list) =
       match l with
-      | { matches; errors; profiling; explanations } :: l ->
+      | { matches; errors; quick_profiling; profiling; explanations } :: l ->
           unzip (matches :: all_matches) (errors :: all_errors)
+            (Core_quick_profiling.combine_opt all_quick_profiling
+               quick_profiling)
             (combine profiling all_profiling)
             (explanations :: all_explanations)
             l
       | [] ->
           ( List.rev all_matches,
             List.rev all_errors,
+            all_quick_profiling,
             all_profiling,
             List.rev all_explanations )
     in
-    unzip [] [] init [] l
+    unzip [] [] None init [] l
   in
-  let matches, errors, profiling, explanations = unzip_results results in
+  let matches, errors, quick_profiling, profiling, explanations =
+    unzip_results results
+  in
   {
     matches = List_.flatten matches;
     (* We deduplicate errors here to avoid repeat PartialParsing errors
@@ -228,6 +251,7 @@ let collate_results (init : 'c) (combine : 'b option -> 'c -> 'c)
        See also the note in semgrep_output_v1.atd.
     *)
     errors = List.fold_left E.ErrorSet.union E.ErrorSet.empty errors;
+    quick_profiling;
     profiling = final profiling;
     explanations = List_.flatten explanations;
   }
@@ -291,12 +315,15 @@ let mk_result (results : matches_single_file_with_time list)
 
   let (prof : Core_profiling.t) =
     let file_times =
-      results
-      |> List_.filter_map (fun (result : matches_single_file_with_time) ->
-             result.profiling)
+      Core_profiling.if_profiling ~default:[] (fun () ->
+          results
+          |> List_.filter_map (fun (result : matches_single_file_with_time) ->
+                 result.profiling))
     in
     {
-      rules = List_.map fst rules_with_engine;
+      rules =
+        Core_profiling.if_profiling ~default:[] (fun () ->
+            List_.map fst rules_with_engine);
       rules_parse_time;
       file_times;
       (* Notably, using the `top_heap_words` does not measure cumulative
@@ -307,10 +334,22 @@ let mk_result (results : matches_single_file_with_time list)
       max_memory_bytes = (Gc.quick_stat ()).top_heap_words * Sys.word_size;
     }
   in
-  let profiling = Core_profiling.profiling_opt prof in
+  let quick_profiling =
+    results
+    |> List.fold_left
+         (fun qprof (res : matches_single_file_with_time) ->
+           Core_quick_profiling.combine_opt qprof res.quick_profiling)
+         None
+  in
+  let profiling =
+    (* We always have a 'profiling' record here, but it only carries a cheap
+       subset of the data unless `-json_time` is passed.  *)
+    Some prof
+  in
   {
     processed_matches = unprocessed_matches;
     errors;
+    quick_profiling;
     profiling;
     scanned;
     skipped_targets = [];

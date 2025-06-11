@@ -143,8 +143,6 @@ let error_with_rule_id rule_id (error : Core_error.t) =
   | PartialParsing _ -> error
   | _ -> { error with rule_id = Some rule_id }
 
-let lazy_force x = Lazy.force x [@@profiling]
-
 (* `fold_with_expls` is a left fold across a list of things, while
    accumulating an explanation for each item. it preserves the
    explanations in the same order, though.
@@ -263,7 +261,7 @@ let matches_of_patterns ~has_as_metavariable ?mvar_context ?range_filter rule
   match analyzer with
   | Analyzer.L (lang, _) ->
       let (ast, skipped_tokens), parse_time =
-        Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
+        Common.force_lazy_with_time lazy_ast_and_errors
       in
       let matches, match_time =
         Common.with_time (fun () ->
@@ -286,7 +284,9 @@ let matches_of_patterns ~has_as_metavariable ?mvar_context ?range_filter rule
       in
       let errors = Parse_target.errors_from_skipped_tokens skipped_tokens in
       RP.mk_match_result matches errors
-        { Core_profiling.parse_time; match_time }
+        { Core_profiling.parse_time = parse_time ||| 0.0; match_time }
+      |> Core_result.quick_add_parse_time_opt internal_path_to_content
+           parse_time
   | _ -> Core_result.empty_match_result
 
 (*****************************************************************************)

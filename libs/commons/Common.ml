@@ -115,6 +115,13 @@ let with_time f =
   let t2 = Unix.gettimeofday () in
   (res, t2 -. t1)
 
+let force_lazy_with_time lazy_x =
+  let had_to_force = not (Lazy.is_val lazy_x) in
+  let x, time = with_time (fun () -> Lazy.force lazy_x) in
+  let time = if had_to_force then Some time else None in
+  (x, time)
+[@@profiling]
+
 (*****************************************************************************)
 (* Exn *)
 (*****************************************************************************)
@@ -264,6 +271,14 @@ let ( ||| ) a b =
   match a with
   | Some x -> x
   | None -> b
+
+let combine_opt f opt_a opt_b =
+  match (opt_a, opt_b) with
+  | None, None -> None
+  | Some x, None
+  | None, Some x ->
+      Some x
+  | Some a, Some b -> Some (f a b)
 
 (*****************************************************************************)
 (* Result *)

@@ -187,6 +187,13 @@ def _clean_output_if_json(output_json: str, clean_fingerprint: bool) -> str:
     masked_keys = [
         "tool.driver.semanticVersion",
         "results.*.checks.*.matches",
+        "time.max_memory_bytes",
+        "time.profiling_times",
+        "time.rules_parse_time",
+        "time.*.total_time",
+        "time.*.very_slow_files",
+        "time.*.*.mean",
+        "time.*.*.std_dev",
     ]
     for path in masked_keys:
         mark_masked(output, path)

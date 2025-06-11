@@ -547,7 +547,23 @@ let rec explanation_to_explanation (exp : Matching_explanation.t) :
     extra = Option.map extra_to_extra extra;
   }
 
-let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.profile =
+let stats_to_stats (stats : Summary_stats.t) : Out.summary_stats =
+  let std_dev =
+    if stats.count < 2 then 0.0 else stats.m2 /. float_of_int stats.count
+  in
+  { mean = stats.mean; std_dev }
+
+let quick_profiling_to_parsing_time (quick_profiling : Core_quick_profiling.t) :
+    Out.parsing_time =
+  let parsing_stats = quick_profiling.parsing_stats in
+  {
+    total_time = parsing_stats.sum;
+    per_file_time = stats_to_stats parsing_stats;
+    very_slow_files = parsing_stats.very_slow;
+  }
+
+let profiling_to_profiling (opt_quick_profiling : Core_quick_profiling.t option)
+    (profiling_data : Core_profiling.t) : Out.profile =
   let rule_ids : Rule_ID.t list =
     profiling_data.rules |> List_.map (fun (rule : Rule.t) -> fst rule.id)
   in
@@ -607,6 +623,8 @@ let profiling_to_profiling (profiling_data : Core_profiling.t) : Out.profile =
       |> Common2.sum_int;
     (* those are filled later in pysemgrep from the Profiler class *)
     profiling_times = [];
+    parsing_time =
+      opt_quick_profiling |> Option.map quick_profiling_to_parsing_time;
   }
 
 (* TODO: We used to return some stats, should we generalize
@@ -661,7 +679,8 @@ let core_output_of_matches_and_errors (res : Core_result.t) : Out.core_output =
                  details = Rule_error.string_of_invalid_rule_kind kind;
                  position = OutUtils.position_of_token_location loc;
                });
-    time = res.profiling |> Option.map profiling_to_profiling;
+    time =
+      res.profiling |> Option.map (profiling_to_profiling res.quick_profiling);
     explanations =
       res.explanations |> Option.map (List_.map explanation_to_explanation);
     rules_by_engine = Some res.rules_by_engine;

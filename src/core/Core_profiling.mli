@@ -1,3 +1,10 @@
+(** Detailed profiling data used for `-json_time` (`--time` from the CLI)
+
+  This should probably be deprecated at some point, it is probably better to
+  rely on OpenTelemetry to gather this kind of data.
+
+ *)
+
 (* Should be set exactly once after the CLI arguments are read *)
 val profiling : bool ref
 
@@ -42,3 +49,7 @@ val empty_rule_profiling : Rule.t -> rule_profiling
  * discard the profiling information.
  *)
 val profiling_opt : 'a -> 'a option
+
+val if_profiling : default:'a -> (unit -> 'a) -> 'a
+(** [if_profiling ~default f] returns [f()] if profiling is enabled,
+    and [default] otherwise. *)

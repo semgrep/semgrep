@@ -224,6 +224,7 @@ val matched7 :
  *)
 val ( let* ) : 'a option -> ('a -> 'b option) -> 'b option
 val ( ||| ) : 'a option -> 'a -> 'a
+val combine_opt : ('a -> 'a -> 'a) -> 'a option -> 'a option -> 'a option
 
 (*****************************************************************************)
 (* Result *)
@@ -265,6 +266,10 @@ val memoized : ?use_cache:bool -> ('a, 'b) Hashtbl.t -> 'a -> (unit -> 'b) -> 'b
    LATER: could be moved to CapCommon.ml
 *)
 val with_time : (unit -> 'a) -> 'a * float
+
+val force_lazy_with_time : 'a lazy_t -> 'a * float option
+(** Force a lazy value, and if it had to be forced, then return the time it took
+  in seconds. *)
 
 (*****************************************************************************)
 (* Operators *)

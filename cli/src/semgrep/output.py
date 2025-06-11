@@ -111,16 +111,10 @@ def _build_time_json(
     # Can things differ between the targets/rules in pysemgrep and the
     # one actually used in semgrep-core and returned in profile?
 
-    return out.Profile(
+    return dataclasses.replace(
+        profile,
         # this is an addon to profiling_data.profile
         profiling_times=profiler.dump_stats() if profiler else {},
-        # TODO: maybe just start from profiling_data.profile and just adjust its
-        # profiling_times field
-        rules=profile.rules,
-        targets=profile.targets,
-        total_bytes=profile.total_bytes,
-        rules_parse_time=profile.rules_parse_time,
-        max_memory_bytes=profile.max_memory_bytes,
     )
 
 
@@ -614,7 +608,7 @@ class OutputHandler:
 
         explanations: Optional[List[out.MatchingExplanation]] = self.explanations
 
-        if self.settings.output_time and self.extra and self.extra.core.time:
+        if self.extra and self.extra.core.time:
             cli_timing = _build_time_json(
                 self.filtered_rules,
                 self.all_targets,
