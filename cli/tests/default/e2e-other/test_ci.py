@@ -656,6 +656,7 @@ def mock_autofix(request, mocker):
             "CI_PROJECT_PATH": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
             "CI_PIPELINE_SOURCE": "merge_request_event",  # or push
             "CI_MERGE_REQUEST_TARGET_BRANCH_NAME": MAIN_BRANCH_NAME,
+            "CI_MERGE_REQUEST_SOURCE_BRANCH_NAME": BRANCH_NAME,
             # Sent in metadata but no actual functionality change
             "CI_MERGE_REQUEST_PROJECT_URL": "https://some.project.url.test.placeholder",
             "CI_JOB_TOKEN": "some-token-test-placeholder",
@@ -673,6 +674,7 @@ def mock_autofix(request, mocker):
             "SEMGREP_REPO_NAME": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
             "CI_PIPELINE_SOURCE": "merge_request_event",  # or push
             "CI_MERGE_REQUEST_TARGET_BRANCH_NAME": MAIN_BRANCH_NAME,
+            "CI_MERGE_REQUEST_SOURCE_BRANCH_NAME": BRANCH_NAME,
             # Sent in metadata but no actual functionality change
             "CI_MERGE_REQUEST_PROJECT_URL": "https://some.project.url.test.placeholder",
             "CI_JOB_TOKEN": "some-token-test-placeholder",
@@ -689,6 +691,7 @@ def mock_autofix(request, mocker):
             "GITLAB_CI": "true",
             "CI_PROJECT_PATH": f"{REPO_DIR_NAME}/{REPO_DIR_NAME}",
             "CI_PIPELINE_SOURCE": "push",
+            "CI_COMMIT_BRANCH": BRANCH_NAME,
             # Sent in metadata but no actual functionality change
             "CI_JOB_TOKEN": "some-token-test-placeholder",
             "CI_COMMIT_REF_NAME": BRANCH_NAME,

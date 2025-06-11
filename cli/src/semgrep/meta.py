@@ -774,6 +774,25 @@ class GitlabMeta(GitMeta):
         return None
 
     @property
+    def branch(self) -> Optional[str]:
+        # Default to SEMGREP_BRANCH if available
+        branch = os.getenv("SEMGREP_BRANCH")
+        if branch:
+            return branch
+
+        # see https://docs.gitlab.com/ci/variables/predefined_variables/
+        # TLDR: on a branch workflow (not a PR/MR), the var CI_COMMIT_BRANCH
+        # is defined but not CI_MERGE_REQUEST_..._NAME; if it's a MR workflow,
+        # then CI_MERGE_REQUEST_..._NAME is defined.
+        commit_branch = os.getenv("CI_COMMIT_BRANCH")
+        merge_request_branch = os.getenv("CI_MERGE_REQUEST_SOURCE_BRANCH_NAME")
+        if commit_branch:
+            # semgrep is running in a branch workflow (not a merge request)
+            return commit_branch
+        # we are (probably) in a merge request
+        return merge_request_branch
+
+    @property
     def start_sha(self) -> Optional[str]:
         return os.getenv("CI_MERGE_REQUEST_DIFF_BASE_SHA")
 
