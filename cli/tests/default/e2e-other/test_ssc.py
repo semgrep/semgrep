@@ -296,6 +296,7 @@ def test_ssc(run_semgrep_on_copied_files: RunSemgrep, snapshot, rule, target):
         ),
     ],
 )
+@pytest.mark.osemfail
 def test_ssc_logged_in(run_semgrep_on_copied_files: RunSemgrep, snapshot, rule, target):
     """
     Same as test_ssc above, but with an app token set to enable output of fields
