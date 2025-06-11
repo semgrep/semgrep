@@ -35,12 +35,20 @@ let t = Testo.create
 (* Helpers *)
 (*****************************************************************************)
 
+type env_entry = { variable : string; value : string } [@@deriving ord]
+
+module EnvEntrySet = Set.Make (struct
+  type t = env_entry
+
+  let compare = compare_env_entry
+end)
+
 let parse_env_entry ~ignore_empty s =
   match String.index_opt s '=' with
   | Some i ->
       let k = String_.safe_sub s 0 i in
       let v = String_.safe_sub s (i + 1) (String.length s - i - 1) in
-      if ignore_empty && v = "" then None else Some (k, v)
+      if ignore_empty && v = "" then None else Some { variable = k; value = v }
   | None -> None
 
 (* Get the set of environment variables and their values, optionally
@@ -48,11 +56,11 @@ let parse_env_entry ~ignore_empty s =
 let get_environment ~ignore_empty () =
   Unix.environment () |> Array.to_list
   |> List_.filter_map (parse_env_entry ~ignore_empty)
-  |> Set_.of_list
+  |> EnvEntrySet.of_list
 
-let string_of_set (set : (string * string) Set_.t) =
-  set |> Set_.elements
-  |> List_.map (fun (k, v) -> spf "%s=%s" k v)
+let string_of_set (set : EnvEntrySet.t) =
+  set |> EnvEntrySet.elements
+  |> List_.map (fun { variable; value } -> spf "%s=%s" variable value)
   |> String.concat ", "
 
 (*
@@ -66,9 +74,9 @@ let with_env_check ?(ignore_empty = false) (test : Testo.t) =
     let orig_env = get_environment ~ignore_empty () in
     Common.protect test.func ~finally:(fun () ->
         let final_env = get_environment ~ignore_empty () in
-        let removed = Set_.diff orig_env final_env in
-        let added = Set_.diff final_env orig_env in
-        if not (Set_.is_empty removed && Set_.is_empty added) then
+        let removed = EnvEntrySet.diff orig_env final_env in
+        let added = EnvEntrySet.diff final_env orig_env in
+        if not (EnvEntrySet.is_empty removed && EnvEntrySet.is_empty added) then
           let msg =
             spf
               {|One or more environment variables changed during the test.%s
