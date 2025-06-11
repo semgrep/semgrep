@@ -124,3 +124,9 @@ val split_ext : ?multi:bool -> Fpath.t -> Fpath.t * string
 (* DO NOT USE THIS *)
 val fake_file : Fpath.t
 val is_fake_file : Fpath.t -> bool
+
+(*****************************************************************************)
+(* Data Structures *)
+(*****************************************************************************)
+
+module Fpath_set : Set.S with type elt = Fpath.t

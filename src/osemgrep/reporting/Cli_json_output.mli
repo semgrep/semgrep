@@ -13,7 +13,7 @@ val cli_output_of_runner_result :
   (* those 3 parameters are essentially Core_runner.result *)
   Out.core_output ->
   Rule.hrules ->
-  Fpath.t Set_.t ->
+  Fpath_.Fpath_set.t ->
   Out.cli_output
 
 (* internals used in Scan_subcommand.ml *)

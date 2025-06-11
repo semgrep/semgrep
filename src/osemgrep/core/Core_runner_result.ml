@@ -11,7 +11,7 @@ type t = {
    *)
   core : Semgrep_output_v1_t.core_output;
   hrules : Rule.hrules;
-  scanned : Fpath.t Set_.t;
+  scanned : Fpath_.Fpath_set.t;
 }
 
 (* Add errors that were obtained previously but didn't block the run *)

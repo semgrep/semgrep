@@ -51,7 +51,9 @@ let mock_run_results (files : string list) : Core_runner.result =
   let rule = Rule.rule_of_xpattern analyzer xpat in
   let rule = { rule with id = (Rule_ID.of_string_exn "print", fk) } in
   let hrules = Rule.hrules_of_rules [ rule ] in
-  let scanned = List_.map (fun f -> Fpath.v f) files |> Set_.of_list in
+  let scanned =
+    List_.map (fun f -> Fpath.v f) files |> Fpath_.Fpath_set.of_list
+  in
   let match_of_file file =
     let (extra : Out.core_match_extra) =
       {

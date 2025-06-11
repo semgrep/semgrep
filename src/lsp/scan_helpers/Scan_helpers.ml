@@ -149,7 +149,7 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
         | Ok res -> Core_runner.mk_result rules res
       in
       (* Collect results. *)
-      let scanned = res.scanned |> Set_.elements in
+      let scanned = res.scanned |> Fpath_.Fpath_set.elements in
       Logs.info (fun m ->
           m "Found %d matches before processing" (List.length res.core.results));
       let skipped_fingerprints = Session.skipped_fingerprints session in

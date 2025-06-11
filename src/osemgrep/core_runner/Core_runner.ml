@@ -196,7 +196,9 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
  *)
 let mk_result (all_rules : Rule.rule list) (res : Core_result.t) : result =
   (* similar to Core_command.output_core_results code *)
-  let scanned = res.scanned |> List_.map Target.internal_path |> Set_.of_list in
+  let scanned =
+    res.scanned |> List_.map Target.internal_path |> Fpath_.Fpath_set.of_list
+  in
   let match_results = Core_json_output.core_output_of_matches_and_errors res in
   (* TOPORT? or move in semgrep-core so get info ASAP
      if match_results.skipped_targets:

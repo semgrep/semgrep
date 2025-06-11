@@ -509,7 +509,7 @@ let adjust_fields_cli_outpout_logged_out (x : Out.cli_output) : Out.cli_output =
 
 (* The core/hrules/scanned params are essentially Core_runner.result *)
 let cli_output_of_runner_result ~fixed_lines (core : Out.core_output)
-    (hrules : Rule.hrules) (scanned : Fpath.t Set_.t) : Out.cli_output =
+    (hrules : Rule.hrules) (scanned : Fpath_.Fpath_set.t) : Out.cli_output =
   match core with
   | {
    version;
@@ -541,11 +541,9 @@ let cli_output_of_runner_result ~fixed_lines (core : Out.core_output)
         |> List.sort (fun (a : Out.core_match) (b : Out.core_match) ->
                compare a.check_id b.check_id)
       in
-      (* TODO: not sure how it's sorted, but Set_.elements return
-       * elements in OCaml compare order (=~ lexicographic for strings)
-       * python: scanned=[str(path) for path in sorted(self.all_targets)]
-       *)
-      let scanned = scanned |> Set_.elements in
+      (* Sorted via Fpath.compare.
+       * python: scanned=[str(path) for path in sorted(self.all_targets)] *)
+      let scanned = scanned |> Fpath_.Fpath_set.elements in
       (* Skipping the python intermediate FileTargetingLog for now.
        * We used to have a cli_skipped_target and core_skipped_target type,
        * but now they are merged so this function is the identity.
