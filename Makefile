@@ -345,18 +345,6 @@ nix-check:
 nix-check-verbose:
 	$(NIX) flake check -L ".?submodules=1#"
 
-# -------------------------------------------------
-# Windows (native, via mingw and cygwin)
-# -------------------------------------------------
-
-# used in build-test-windows-x86.jsonnet
-install-deps-WINDOWS-for-semgrep-core:
-	# Installing conf-pkg-config *reinstalls* mingw-w64-shims; the PATH changes
-	# done in the shims need to be available when installing other packages
-	# (conf-libcurl, for instance). So, we install conf-pkg-config before other
-	# packages are installed.
-	opam install conf-pkg-config
-
 ###############################################################################
 # Developer targets
 ###############################################################################
