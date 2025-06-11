@@ -17,3 +17,4 @@
 
 module String_set = Set.Make (String)
 module Int_set = Set.Make (Int)
+module Char_set = Set.Make (Char)

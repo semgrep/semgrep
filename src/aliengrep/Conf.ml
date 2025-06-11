@@ -3,6 +3,7 @@
 *)
 
 open Printf
+open Sets
 
 type t = {
   caseless : bool;
@@ -95,13 +96,14 @@ let config_error msg =
   failwith (sprintf "Error in aliengrep configuration: %s" msg)
 
 let check conf =
-  let word_chars = Set_.of_list conf.word_chars in
+  let word_chars = Char_set.of_list conf.word_chars in
   let open_chars_list, close_chars_list = List_.split conf.brackets in
-  let open_chars = Set_.of_list open_chars_list in
-  let close_chars = Set_.of_list close_chars_list in
-  let brace_chars = Set_.union open_chars close_chars in
-  if Set_.is_empty word_chars then config_error "empty set of word characters";
-  let conflicts = Set_.inter word_chars brace_chars |> Set_.elements in
+  let open_chars = Char_set.of_list open_chars_list in
+  let close_chars = Char_set.of_list close_chars_list in
+  let brace_chars = Char_set.union open_chars close_chars in
+  if Char_set.is_empty word_chars then
+    config_error "empty set of word characters";
+  let conflicts = Char_set.inter word_chars brace_chars |> Char_set.elements in
   (match conflicts with
   | [] -> ()
   | chars ->
@@ -110,7 +112,7 @@ let check conf =
       in
       config_error
         ("some word characters are also defined as brace characters: " ^ chars));
-  if Set_.cardinal open_chars <> List.length open_chars_list then
+  if Char_set.cardinal open_chars <> List.length open_chars_list then
     config_error "some opening braces are repeated";
-  if Set_.cardinal close_chars <> List.length close_chars_list then
+  if Char_set.cardinal close_chars <> List.length close_chars_list then
     config_error "some closing braces are repeated"

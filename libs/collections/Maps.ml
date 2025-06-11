@@ -17,3 +17,4 @@
 
 module String_map = Map.Make (String)
 module Int_map = Map.Make (Int)
+module Char_map = Map.Make (Char)
