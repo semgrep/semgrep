@@ -472,6 +472,10 @@ let log_scan_inputs (config : Core_scan_config.t) ~targets ~errors ~skipped
   let num_targets = List.length targets in
   let num_errors = List.length errors in
   let num_skipped = List.length skipped in
+  (* Log the scan inputs *)
+  Core_metrics.meter_scan_inputs ~valid_rules ~invalid_rules ~targets ~errors
+    ~skipped;
+  (* Add information to the telemetry *)
   config.telemetry
   |> Tracing.add_data
        [

@@ -135,11 +135,11 @@ val match_rules :
 
 val log_scan_inputs :
   Core_scan_config.t ->
-  targets:_ list ->
-  errors:_ list ->
-  skipped:_ list ->
-  valid_rules:_ list ->
-  invalid_rules:_ list ->
+  targets:Target.t list ->
+  errors:Core_error.t list ->
+  skipped:Semgrep_output_v1_t.skipped_target list ->
+  valid_rules:Rule.t list ->
+  invalid_rules:Rule_error.invalid_rule list ->
   unit
 
 val log_scan_results :

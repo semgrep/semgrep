@@ -314,7 +314,7 @@ let make_sum_kind (type a) ?is_monotonic
     (module Instrument_kind with type value = a) =
   (* TODO: We cannot use delta aggregation as we load balance our metric endpoints,
      leading to the metrics to be split in half, as the endpoint is what keeps the running total *)
-  let delta_aggregation = true in
+  let delta_aggregation = false in
   let aggregation_temporality =
     if delta_aggregation then Otel.Metrics.Aggregation_temporality_delta
     else Otel.Metrics.Aggregation_temporality_cumulative
