@@ -586,9 +586,9 @@ def print_time_summary(
         )
 
     console.print(f"Slowest {items_to_show} rules to match")
-    slowest_rule_times = sorted(rule_match_timings.items(), reverse=True)[
-        :items_to_show
-    ]
+    slowest_rule_times = sorted(
+        rule_match_timings.items(), reverse=True, key=lambda x: x[1]
+    )[:items_to_show]
     for rule_id, match_time in slowest_rule_times:
         rule_id = truncate(rule_id, col_lim) + ":"
         console.print(
