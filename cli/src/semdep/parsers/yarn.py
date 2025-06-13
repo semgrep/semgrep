@@ -373,14 +373,6 @@ def parse_yarn(
                     )
                 )
             except KeyError:
-                errors.append(
-                    DependencyParserError(
-                        path=Fpath(str(lockfile_path)),
-                        parser=parser_name,
-                        reason=f"Child dependency version not found for child package {child[0]} of parent package {sources[0][0]}",
-                        line=line_number,
-                    )
-                )
                 continue
 
         output.append(
