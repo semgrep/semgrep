@@ -41,20 +41,20 @@ module Scan_input_meter = (val Ometrics.make_meter Ometrics.default_meter_meta)
 
 module Scan_inputs_num_rules =
   (val Scan_input_meter.make_int_counter
-         (Ometrics.make_instrument_meta ~name:"semgrep_scan_inputs_num_rules"
+         (Ometrics.make_instrument_meta ~name:"semgrep.scan.inputs.num_rules"
             ~description:"How many rules Semgrep is scanning with"
             ~unit_:"rules" ()))
 
 module Scan_inputs_num_targets =
   (val Scan_input_meter.make_int_counter
-         (Ometrics.make_instrument_meta ~name:"semgrep_scan_inputs_num_targets"
+         (Ometrics.make_instrument_meta ~name:"semgrep.scan.inputs.num_targets"
             ~description:"How many targets Semgrep is scanning" ~unit_:"targets"
             ()))
 
 module Scan_inputs_num_target_errors =
   (val Scan_input_meter.make_int_counter
          (Ometrics.make_instrument_meta
-            ~name:"semgrep_scan_inputs_num_target_errors"
+            ~name:"semgrep.scan.inputs.num_target_errors"
             ~description:
               "How many target errors Semgrep had while discovering targets"
             ~unit_:"errors" ()))

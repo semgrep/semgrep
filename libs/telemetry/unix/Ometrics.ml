@@ -43,8 +43,9 @@ open Otel_util
    instrument
 
    Instrument names are important, see
-   https://prometheus.io/docs/practices/naming/ for a guide, but TL;DR; Name
-   them semgrep_<thing_measuring>_<units>
+   https://prometheus.io/docs/practices/naming/ for a guide, but TL;DR; They
+   will be named semgrep_<thing_measuring>_<units>. Note that our infra will
+   automatically add the units to the metric name, so no need to do that.
 
    A meter is just an organizational tool for instruments. You use them to apply
    labels/attributes to any data point recorded by an instrument in that meter.
