@@ -21,7 +21,7 @@ depends: [
   "menhir" {= "20230608"}
   "tree-sitter"
   "semgrep-interfaces"
-  "base" {>= "v0.17.2"}
+  "base" {>= "v0.17.3"}
   "fpath"
   "bos"
   "fileutils"

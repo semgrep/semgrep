@@ -69,13 +69,13 @@ For more information see https://semgrep.dev
     ; vendored in libs/semgrep-interfaces
     semgrep-interfaces
     ; standard libraries
-    ; We don't use Base directly. If it's being used indirectly
-    ; (is it, though?), we need a version that doesn't register
-    ; rogue exception printers.
-    ; See https://github.com/janestreet/base/issues/146
-    ; We also need a version that can be built properly on macOS:
+    ;
+    ; We currently don't use base directly, but there are 2 issues in past
+    ; versions that require us to have a min version, since we DO use it
+    ; indirectly:
+    ; https://github.com/janestreet/base/issues/146
     ; https://github.com/janestreet/base/issues/178
-    (base (>= v0.17.2))
+    (base (>= v0.17.3))
     fpath
     bos
     fileutils
