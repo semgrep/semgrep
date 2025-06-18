@@ -9,7 +9,8 @@
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type caps = Session.caps
+type caps =
+  < Core_scan.caps ; Cap.random ; Cap.network ; Cap.tmp ; Cap.readdir >
 
 (*****************************************************************************)
 (* Main logic *)
@@ -20,7 +21,7 @@ type caps = Session.caps
 let run_conf (caps : < caps ; .. >) (conf : Lsp_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
   Logs.debug (fun m -> m "Starting semgrep-lsp");
-  Lwt_platform.run (LS.start caps);
+  Language_server.start (caps :> Language_server.caps);
   Exit_code.ok ~__LOC__
 
 (*****************************************************************************)
