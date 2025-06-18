@@ -234,9 +234,18 @@ def _handle_manifest_only_source(
     config: DependencyResolutionConfig,
 ) -> DependencyResolutionResult:
     """Handle dependency resolution for manifest-only sources."""
+    logger.verbose(
+        f"Dynamically resolving manifest only path(s): {[str(path) for path in get_display_paths(out.DependencySource(dep_source))]}"
+    )
+
     new_deps, new_errors, new_targets = _resolve_dependencies_rpc(
         dep_source, config.download_dependency_source_code
     )
+
+    logger.verbose(
+        f"Dynamic resolution result: {new_deps}, {new_errors}, {new_targets}"
+    )
+
     if new_deps is None:
         return out.UnresolvedReason(out.UnresolvedFailed()), new_errors, new_targets
     return (
