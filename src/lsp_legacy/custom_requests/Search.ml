@@ -181,11 +181,7 @@ end
 (* Types *)
 (*****************************************************************************)
 
-type env = {
-  params : Request_params.t;
-  initial_files : Fpath.t list;
-  roots : Scanning_root.t list;
-}
+type env = { params : Request_params.t; initial_files : Fpath.t list }
 
 (*****************************************************************************)
 (* Helpers *)
@@ -288,11 +284,7 @@ let mk_env (session : Session.t) (params : Request_params.t) =
            filter_by_includes_excludes ~project_root file params.includes
              params.excludes)
   in
-  {
-    roots = scanning_roots;
-    initial_files = filtered_by_includes_excludes;
-    params;
-  }
+  { initial_files = filtered_by_includes_excludes; params }
 
 (* Get the languages that are in play in this workspace, by consulting all the
    current targets' languages.

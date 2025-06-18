@@ -1,0 +1,20 @@
+(library
+ (public_name semgrep.legacy_language_server)
+ (name osemgrep_language_server)
+ (libraries
+   semgrep.legacy_language_server.requests
+   semgrep.legacy_language_server.notifications
+   networking.http_mock_client
+   fileutils
+   testo
+   testo-lwt
+ )
+ (implements language_server)
+ (preprocess
+  (pps
+    lwt_ppx
+    profiling.ppx
+    ppx_deriving.show
+  )
+ )
+)

@@ -1,5 +1,5 @@
 (library
- (public_name semgrep.language_server.server)
+ (public_name semgrep.legacy_language_server.server)
  (name osemgrep_language_server_server)
  (wrapped false)
  (libraries

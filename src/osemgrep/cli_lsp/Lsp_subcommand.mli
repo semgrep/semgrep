@@ -1,4 +1,5 @@
-type caps = Session.caps
+type caps =
+  < Core_scan.caps ; Cap.random ; Cap.network ; Cap.tmp ; Cap.readdir >
 
 (*
    Parse a semgrep-lsp command, execute it and exit.

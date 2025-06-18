@@ -1,12 +1,12 @@
 (library
- (public_name semgrep.language_server.custom_requests)
+ (public_name semgrep.legacy_language_server.custom_requests)
  (name osemgrep_language_server_custom_requests)
  (wrapped false)
  (libraries
-   semgrep.language_server.util
-   osemgrep_language_server_server
+   semgrep.legacy_language_server.util
+   semgrep.legacy_language_server.server
    semgrep.osemgrep_cli_scan
-   semgrep.language_server.scan_helpers
+   semgrep.legacy_language_server.scan_helpers
    glob
    semgrep_core
  )
