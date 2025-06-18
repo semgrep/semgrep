@@ -8,11 +8,6 @@ exception Parmap_marshalling_failure
 (** Parmap failed to unmarshal data from a child. This usually only happens when
     an exception is raised in the [exception_handler] passed to [parmap] *)
 
-val debugging : bool -> unit
-(** [debugging true] will enable debugging in [Parmap]. This will print which
-    tasks are sent to what workers, how long they took, and some other info.
-    Useful for debugging issues unique to Parmap *)
-
 val default_exception_handler : 'a -> Exception.t -> string
 (** the default exception handler for [parmap], it will just convert the
     exception to a string *)
