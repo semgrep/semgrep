@@ -233,6 +233,26 @@ local semgrep_rules = [
     languages: ['ocaml'],
     severity: 'ERROR',
   },
+  {
+    id: 'no-hook-in-exn-guard',
+    message: |||
+      Please do not use a Hook inside an exception-catching guard.  Calling
+      Hook.get performs an Effect, which can mangle the current stack trace.
+      Ensure you call [Exception.catch] before reading a hooked value.
+    |||,
+    patterns: [
+      { pattern: 'try ... with | $EXN when $WHEN -> ...' },
+      {
+        'metavariable-pattern': {
+          metavariable: '$WHEN',
+          pattern: 'Hook.get',
+        },
+      },
+      { 'focus-metavariable': '$WHEN' },
+    ],
+    languages: ['ocaml'],
+    severity: 'ERROR',
+  },
 ];
 
 // ----------------------------------------------------------------------------

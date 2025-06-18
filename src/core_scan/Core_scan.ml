@@ -702,12 +702,14 @@ let iter_targets_and_get_matches_and_exn_to_errors
            * one target file does not abort the whole scan and the
            * semgrep-core program.
            *)
-          | exn when not (Hook.get Flag_semgrep.fail_fast) ->
-              (* TODO? repeat Parmap_targets.core_error_of_path_exc() *)
-              Logs.err (fun m ->
-                  m "exception on %s (%s)" !!internal_path
-                    (Printexc.to_string exn));
+          | exn ->
               let e = Exception.catch exn in
+              if Hook.get Flag_semgrep.fail_fast then Exception.reraise e
+              else
+                (* TODO? repeat Parmap_targets.core_error_of_path_exc() *)
+                Logs.err (fun m ->
+                    m "exception on %s (%s)" !!internal_path
+                      (Printexc.to_string exn));
               let errors =
                 ESet.singleton (E.exn_to_error ~file:internal_path e)
               in
@@ -1018,10 +1020,11 @@ let scan (caps : < caps ; .. >) (config : Core_scan_config.t) :
       |> post_process_matches post_autofix
       |> post_process_matches (post_nosemgrep ~strict:config.strict))
   with
-  | exn when not (Hook.get Flag_semgrep.fail_fast) ->
+  | exn ->
       let raw_bt = Printexc.get_raw_backtrace () in
-      Tracing.record_exn_curr_span exn raw_bt;
       let e = Exception.catch exn in
+      if Hook.get Flag_semgrep.fail_fast then Exception.reraise e
+      else Tracing.record_exn_curr_span exn raw_bt;
       Logs.err (fun m ->
           m "Uncaught exn in Core_scan.scan: %s" (Exception.to_string e));
       Error e
