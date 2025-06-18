@@ -18,6 +18,8 @@
 (*****************************************************************************)
 (* Small wrapper around Parmap with better error management and capabilities *)
 
+module Log = Logger.Log
+
 (*****************************************************************************)
 (* Error management *)
 (*****************************************************************************)
@@ -63,9 +65,6 @@ let () =
           in
           Some (Printf.sprintf "Parmap_unhandled_children([%s])" tuples)
       | _ -> None)
-
-(* alt: use Logs src in Parmap code? *)
-let debugging = Parmap.debugging
 
 let default_exception_handler (_x : 'a) (e : Exception.t) =
   Exception.to_string e
@@ -138,10 +137,7 @@ let parmap _caps ?init ?finalize ~num_jobs ~chunksize ~exception_handler f xs =
                      comment for Parmap_marshalling_failure for more info on
                      this. the other option is that sometime before this parmap
                      call, a child process was spawned and never reaped.*)
-                  (* nosemgrep here as this is almost always a fatal error so
-                     let's always print it *)
-                  (* nosemgrep: no-logs-in-library *)
-                  Logs.warn (fun m ->
+                  Log.warn (fun m ->
                       m
                         "Child process %d exited normally but was not reaped \
                          before a parmap call finished"
@@ -155,8 +151,7 @@ let parmap _caps ?init ?finalize ~num_jobs ~chunksize ~exception_handler f xs =
             | Some (status_str, code) ->
                 (* nosemgrep here as this is almost always a fatal error so
                    let's always print it *)
-                (* nosemgrep: no-logs-in-library *)
-                Logs.err (fun m ->
+                Log.err (fun m ->
                     m "Parmap child %d was not reaped and exited with: %s: %d"
                       pid status_str code);
                 wait_aux ((status_str, code) :: status_and_codes)
@@ -179,8 +174,7 @@ let parmap _caps ?init ?finalize ~num_jobs ~chunksize ~exception_handler f xs =
       let e = Exception.catch exn in
       (* nosemgrep here as this is almost always a fatal error so
          let's always print it *)
-      (* nosemgrep: no-logs-in-library *)
-      Logs.err (fun m ->
+      Log.err (fun m ->
           m "Parmap marshalling failure: %s" Exception.(to_string e));
       raise Parmap_marshalling_failure
 

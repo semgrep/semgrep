@@ -17,6 +17,8 @@
  * <https://www.gnu.org/licenses/>.
  *)
 
+module Log = Logger.Log
+
 let map ~(conf : Parallelism_config.t) ~domain_count f l =
   (* The main thread concurrently maps over the list of tasks via spawning
    * fibers (i.e weak threads) that submit and wait for the Domain pool to
@@ -25,11 +27,16 @@ let map ~(conf : Parallelism_config.t) ~domain_count f l =
   Eio.Switch.run @@ fun sw ->
   let domain_mgr = Eio.Stdenv.domain_mgr conf.env in
   let pool = Eio.Executor_pool.create ~sw ~domain_count domain_mgr in
+
+  Log.debug (fun m ->
+      m "Mapping %d elements across %d domains" (List.length l) domain_count);
+
   Eio.Fiber.List.map ~max_fibers:domain_count
     (fun elem ->
       (* NOTE: [submit] blocks the fiber until the task returns a result.*)
       Eio.Executor_pool.submit pool ~weight:1.0 (fun () -> f elem))
     l
+[@@tracing]
 
 let wrap_timeout ~clock t f =
  fun x -> Eio.Time.with_timeout clock t (fun () -> Ok (f x))
