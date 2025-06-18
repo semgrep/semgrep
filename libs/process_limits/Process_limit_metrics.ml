@@ -45,11 +45,12 @@ let record_time_limit ~name ~duration ~exceeded =
 
   (* Don't care about more than ms *)
   let duration_ms = duration |> ms_of_s |> int_of_float in
+  let table_key = (name, exceeded) in
   let triggers =
-    SharedCounterTable.add_and_fetch time_limit_trigger_table name 1
+    SharedCounterTable.add_and_fetch time_limit_trigger_table table_key 1
   in
   let total_durations =
-    SharedCounterTable.add_and_fetch time_limit_time_spent_table name
+    SharedCounterTable.add_and_fetch time_limit_time_spent_table table_key
       duration_ms
   in
   let attrs = [ ("time_limit_name", `String name) ] in
