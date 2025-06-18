@@ -792,22 +792,6 @@ let full_rule_taint_maturity_tests caps =
   let path = tests_path / "taint_maturity" in
   Testo.categorize "taint maturity" (Test_engine.make_tests caps [ path ])
 
-(*
-   Special exclusions for Semgrep JS
-*)
-let mark_todo_js (test : Testo.t) =
-  match Fpath.v test.name with
-  | s
-    when (* The target file has an unsupported .erb extension, making it excluded
-            correctly by the OCaml test suite but not by the JS test suite
-            (or something close to this). *)
-         s =/~ ".*/ruby/rails/security/brakeman/check-reverse-tabnabbing.yaml"
-         ||
-         (* Not sure why this fails *)
-         s =/~ ".*/ruby/lang/security/divide-by-zero.yaml" ->
-      Testo.update test ~tags:(Test_tags.todo_js :: test.tags)
-  | _ -> test
-
 (* quite similar to full_rule_regression_tests but prefer to pack_tests
  * with "semgrep-rules repo Java", so one can just run the Java tests
  * with ./test Java
@@ -825,7 +809,6 @@ let semgrep_rules_repo_tests caps : Testo.t list =
   let groups =
     tests
     |> List_.filter_map (fun (test : Testo.t) ->
-           let test = mark_todo_js test in
            let group_opt =
              match Fpath.v test.name with
              (* note that there is no need to filter rules without targets; This

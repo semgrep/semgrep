@@ -36,10 +36,6 @@ type handler = {
       or may not reply to the client*)
 }
 
-val io_ref : (module LSIO) ref
-(** [io_ref] is what the server will use for IO. This is a ref mostly js version
-    of the LS to change how IO happens*)
-
 val send : Jsonrpc.Packet.t -> unit Lwt.t
 (** [send p] sends the JSONRPC packet [p] to the client *)
 
@@ -52,7 +48,7 @@ val set_async_exception_hook : unit -> unit
 
 val start : handler:handler -> t -> unit Lwt.t
 (** [start ~handler server] will begin an IO loop processing client messages
-    using [io_ref], and the returned promise will not resolve until the client
+    using [Io], and the returned promise will not resolve until the client
     asks the server to exit, or a unrecoverable error happens *)
 
 (* Exposed so if we want to use the handler directly, and forgo

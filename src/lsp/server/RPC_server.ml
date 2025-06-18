@@ -53,24 +53,6 @@ module type LSIO = sig
   val flush : unit -> unit Lwt.t
 end
 
-let unset_io : (module LSIO) =
-  (module struct
-    let read () =
-      failwith
-        "IO not set. This is a bug in the language server. Please report it \
-         with the command you ran to get this error"
-
-    let write _ =
-      failwith
-        "IO not set. This is a bug in the language server. Please report it \
-         with the command you ran to get this error"
-
-    let flush () =
-      failwith
-        "IO not set. This is a bug in the language server. Please report it \
-         with the command you ran to get this error"
-  end)
-
 type t = { session : Session.t; state : State.t }
 
 type handler = {
@@ -81,23 +63,64 @@ type handler = {
 (* Helpers *)
 (*****************************************************************************)
 
-let io_ref : (module LSIO) ref = ref unset_io
+module Io : LSIO = struct
+  module RPC_IO =
+    Lsp.Io.Make
+      (struct
+        include Lwt
+
+        module O = struct
+          let ( let* ) x f = Lwt.bind x f
+          let ( let+ ) x f = Lwt.map f x
+        end
+
+        let raise exn = Lwt.fail exn
+      end)
+      (struct
+        type input = Lwt_io.input_channel
+        type output = Lwt_io.output_channel
+
+        let read_line = Lwt_io.read_line_opt
+
+        let write output strings =
+          Lwt_io.atomic
+            (fun output ->
+              Lwt_list.iter_s (fun str -> Lwt_io.write output str) strings)
+            output
+
+        (* LWT doesn't implement this in a nice way *)
+        let read_exactly inc n =
+          let rec read_exactly acc n =
+            if n = 0 then
+              let result = String.concat "" (List.rev acc) in
+              Lwt.return (Some result)
+            else
+              let%lwt line = Lwt_io.read ~count:n inc in
+              read_exactly (line :: acc) (n - String.length line)
+          in
+          read_exactly [] n
+      end)
+
+  let read () = RPC_IO.read Lwt_io.stdin
+
+  let write packet =
+    Lwt_io.atomic (fun oc -> RPC_IO.write oc packet) Lwt_io.stdout
+
+  let flush () = Lwt_io.flush Lwt_io.stdout
+end
 
 (* Why the atomic writes below? The LSP library we use does something weird, *)
 (* it writes the jsonrpc header then body with seperate calls to write, which *)
 (* means there's a race condition there. The below atomic calls ensures that *)
 (* the ENTIRE packet is written at the same time *)
 let send packet =
-  let module Io = (val !io_ref : LSIO) in
   Logs.debug (fun m ->
       m "Sending response %s"
         (Packet.yojson_of_t packet |> Yojson.Safe.pretty_to_string));
   let%lwt () = Io.write packet in
   Io.flush ()
 
-let read () =
-  let module Io = (val !io_ref : LSIO) in
-  Io.read ()
+let read () = Io.read ()
 
 (* The handler is expected to take a properly parsed packet, so we handle any
    sort of parsing issues here, say if the message is a valid JSONRPC message

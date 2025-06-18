@@ -75,33 +75,27 @@ module Legacy = struct
    unclear.
 *)
   let read_file ?(max_len = max_int) path =
-    if !jsoo then (
-      let ic = Stdlib.open_in_bin path in
-      let s = really_input_string ic (in_channel_length ic) in
-      close_in ic;
-      s)
-    else
-      let buf_len = 4096 in
-      let extbuf = Buffer.create 4096 in
-      let buf = Bytes.create buf_len in
-      let rec loop fd =
-        match Unix.read fd buf 0 buf_len with
-        | 0 -> Buffer.contents extbuf
-        | num_bytes ->
-            assert (num_bytes > 0);
-            assert (num_bytes <= buf_len);
-            Buffer.add_subbytes extbuf buf 0 num_bytes;
-            if Buffer.length extbuf >= max_len then Buffer.sub extbuf 0 max_len
-            else loop fd
-      in
-      (* Temporary files created using Python's [tempfile.NamedTemporaryFiles]
+    let buf_len = 4096 in
+    let extbuf = Buffer.create 4096 in
+    let buf = Bytes.create buf_len in
+    let rec loop fd =
+      match Unix.read fd buf 0 buf_len with
+      | 0 -> Buffer.contents extbuf
+      | num_bytes ->
+          assert (num_bytes > 0);
+          assert (num_bytes <= buf_len);
+          Buffer.add_subbytes extbuf buf 0 num_bytes;
+          if Buffer.length extbuf >= max_len then Buffer.sub extbuf 0 max_len
+          else loop fd
+    in
+    (* Temporary files created using Python's [tempfile.NamedTemporaryFiles]
          on Windows enables the [FILE_SHARE_DELETE] sharing mode. Files that
          have open handles with the [FILE_SHARE_DELETE] sharing mode can only
          be re-opened in that mode. To make sure we won't run into problems
          opening the file, we add the [O_SHARE_DELETE] flag when opening all
          files. *)
-      let fd = Unix.openfile path [ Unix.O_RDONLY; Unix.O_SHARE_DELETE ] 0 in
-      Common.protect ~finally:(fun () -> Unix.close fd) (fun () -> loop fd)
+    let fd = Unix.openfile path [ Unix.O_RDONLY; Unix.O_SHARE_DELETE ] 0 in
+    Common.protect ~finally:(fun () -> Unix.close fd) (fun () -> loop fd)
 
   let write_file ~file s =
     let chan = Stdlib.open_out_bin file in
@@ -132,9 +126,7 @@ module Legacy = struct
 
   let (with_open_infile : string (* filename *) -> (in_channel -> 'a) -> 'a) =
    fun file f ->
-    let chan =
-      if !jsoo then Stdlib.open_in_bin file else win_safe_open_in_bin file
-    in
+    let chan = win_safe_open_in_bin file in
     unwind_protect
       (fun () ->
         let res = f chan in
@@ -222,20 +214,10 @@ let cat_array file = "" :: cat file |> Array.of_list
 let write_file ~file data = Legacy.write_file ~file:!!file data
 let read_file ?max_len path = Legacy.read_file ?max_len !!path
 let with_open_in path func = Legacy.with_open_infile !!path func
+let filesize file = (Unix.stat !!file).st_size
+(* src: https://rosettacode.org/wiki/File_size#OCaml *)
 
-let filesize file =
-  if not !Common.jsoo (* this does not work well with jsoo *) then
-    (Unix.stat !!file).st_size
-    (* src: https://rosettacode.org/wiki/File_size#OCaml *)
-  else
-    let ic = Stdlib.open_in_bin !!file in
-    let i = in_channel_length ic in
-    close_in ic;
-    i
-
-let filemtime file =
-  if !Common.jsoo then failwith "JSOO:filemtime"
-  else (Unix.stat !!file).st_mtime
+let filemtime file = (Unix.stat !!file).st_mtime
 
 let is_dir ~follow_symlinks path =
   let stat = if follow_symlinks then Unix.stat else Unix.lstat in

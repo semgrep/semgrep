@@ -146,12 +146,6 @@ let parsing_error_tests () =
   let dir = tests_path / "parsing_errors" in
   let tags_of_file file =
     match file with
-    (* For some reason, we can get a `Parsing_error.Syntax_error
-       from this test in JS, despite the fact that the `try` makes this
-       blatantly impossible.
-       I suspect a `jsoo` bug.
-    *)
-    | file when file =/~ ".*/foo.c" -> [ Test_tags.todo_js ]
     | _ -> []
   in
   Testo.categorize "Parsing error detection"

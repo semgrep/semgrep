@@ -6,9 +6,6 @@
 
 open Common
 
-(* Should this be "js.todo"? Feel free to change it. *)
-let todo_js = Testo.Tag.declare "todo.js"
-
 (* A test that sometimes fails for unknown reasons *)
 let flaky = Testo.Tag.declare "flaky"
 
@@ -31,17 +28,7 @@ let () =
 
 let tags_of_lang (lang : Lang.t) =
   let lang_tags = [ get_lang_tag lang ] in
-  (* Tag tests that will be skipped by the JS implementation: *)
-  let todo_js_tags =
-    match lang with
-    | Cpp (* TODO: investigate C++ test issues *)
-    | Go (* TODO: re-enable this when we fix the jsoo int overflow bug *)
-    | Ql (* TODO: Doesn't work in js for some reason *)
-    | C (* TODO: investigate c_array_inits pattern parse error*) ->
-        [ todo_js ]
-    | _ -> []
-  in
-  List_.flatten [ lang_tags; todo_js_tags ]
+  List_.flatten [ lang_tags ]
 
 let tags_of_langs (langs : Lang.t list) =
   match langs with

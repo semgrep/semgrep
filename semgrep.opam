@@ -73,17 +73,12 @@ depends: [
   "uuidm" {>= "0.9.9"}
   "cohttp" {>= "6.1.0"}
   "cohttp-lwt-unix"
-  "cohttp-lwt-jsoo"
   "tls-lwt"
   "emile"
   "digestif" {>= "1.0.0"}
   "lwt"
   "lwt_ppx"
   "conf-libev" {os != "win32"}
-  "js_of_ocaml" {= "5.9.1"}
-  "js_of_ocaml-compiler" {= "5.9.1"}
-  "js_of_ocaml-ppx" {= "5.9.1"}
-  "js_of_ocaml-lwt" {= "5.9.1"}
   "integers_stubs_js"
   "git-unix"
   "eio"
