@@ -233,6 +233,8 @@ let default_metric_attributes () =
       Telemetry.Attributes.deployment_environment_name;
       (* pro or oss engine *)
       Telemetry.Attributes.scan_engine;
+      (* Which thread/parmap job *)
+      Telemetry.Attributes.thread_id;
       (* if it was from SMS *)
       Telemetry.Attributes.scan_source;
       (* If it's an sms experiment *)

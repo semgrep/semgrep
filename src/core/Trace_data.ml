@@ -78,7 +78,6 @@ module Attributes = struct
   let semgrep_managed_scan = "scan.semgrep_managed_scan"
   let repo_name = "scan.repo_name"
   let jobs = "scan.jobs"
-  let job = "scan.parmap_job"
   let folder = "scan.folder"
   let pro_secrets_validators = "scan.pro_secrets_validators"
   let pro_historical_scanning = "scan.pro_historical_scanning"

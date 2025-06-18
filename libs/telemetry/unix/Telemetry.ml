@@ -79,6 +79,7 @@ module Attributes = struct
   let deployment_environment_name = "deployment.environment.name"
   let vcs_ref_head_revision = "vcs.ref.head.revision"
   let vcs_ref_head_name = "vcs.ref.head.name"
+  let thread_id = "thread.id"
 
   (* These are semgrep specific and technically shouldn't be in this library but
      these will be applied to all metrics *)
