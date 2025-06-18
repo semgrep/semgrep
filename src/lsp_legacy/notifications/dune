@@ -1,10 +1,10 @@
 (library
- (public_name semgrep.language_server.notifications)
+ (public_name semgrep.legacy_language_server.notifications)
  (name osemgrep_language_server_notifications)
  (wrapped false)
  (libraries
-   semgrep.language_server.scan_helpers
-   osemgrep_language_server_server
+   semgrep.legacy_language_server.scan_helpers
+   semgrep.legacy_language_server.server
  )
   (preprocess
    (pps

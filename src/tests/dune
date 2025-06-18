@@ -31,7 +31,8 @@
     parser_python.menhir parser_python.ast_generic
     semgrep.data
 
-    osemgrep_language_server
+    semgrep.legacy_language_server
+
     osemgrep_cli_login
     semgrep.osemgrep_tests
   )
