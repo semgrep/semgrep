@@ -74,7 +74,7 @@ let default_temp_file_prefix = Sys.argv.(0) |> Filename.basename
 
 let new_temp_file ?(prefix = default_temp_file_prefix) ?(suffix = "") ?temp_dir
     () =
-  let pid = if !Common.jsoo then 42 else Unix.getpid () in
+  let pid = Unix.getpid () in
   let temp_file =
     Filename.temp_file
       ?temp_dir:(Option.map Fpath.to_string temp_dir)
@@ -123,15 +123,12 @@ let write_temp_file_with_autodelete ~prefix ~suffix ~data : Fpath.t =
 
 let replace_named_pipe_by_regular_file_if_needed ?(prefix = "named-pipe")
     (path : Fpath.t) : Fpath.t option =
-  if !Common.jsoo then None
-    (* don't bother supporting exotic things like fds if running in JS *)
-  else
-    match (Unix.stat !!path).st_kind with
-    | Unix.S_FIFO ->
-        let data = UFile.read_file path in
-        let suffix = "-" ^ Fpath.basename path in
-        Some (write_temp_file_with_autodelete ~prefix ~suffix ~data)
-    | _ -> None
+  match (Unix.stat !!path).st_kind with
+  | Unix.S_FIFO ->
+      let data = UFile.read_file path in
+      let suffix = "-" ^ Fpath.basename path in
+      Some (write_temp_file_with_autodelete ~prefix ~suffix ~data)
+  | _ -> None
 
 let replace_stdin_by_regular_file ?(prefix = "stdin") () : Fpath.t =
   let data = In_channel.input_all Stdlib.stdin in

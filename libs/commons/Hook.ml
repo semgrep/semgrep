@@ -35,8 +35,7 @@
  *
  * This is used in the implementation of the fiber-aware hook (this module)
  * for handling:
- *      1. Scoped access outside the Eio event loop (e.g. for jsoo or before
- *      Eio_main is called;
+ *      1. Scoped access outside the Eio event loop (e.g. before Eio_main is called;
  *      2. _Unscoped_, unconditional assignment for things like CLI argument
  *      parsing, that occur before any scoped access.
  *)
@@ -84,10 +83,8 @@ let attempt_in_eio ~in_eio ~no_eio =
    *
    * Filed https://github.com/ocaml-multicore/eio/issues/800 to ask the Eio
    * maintainers to expose this directly for us. *)
-  if !Common.jsoo then no_eio ()
-  else
-    try in_eio () with
-    | Stdlib.Effect.Unhandled Eio__core__Cancel.Get_context -> no_eio ()
+  try in_eio () with
+  | Stdlib.Effect.Unhandled Eio__core__Cancel.Get_context -> no_eio ()
 
 let get { key; proc_scope; _ } =
   attempt_in_eio

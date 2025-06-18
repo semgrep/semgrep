@@ -2,8 +2,6 @@
    Tags used to filter tests.
 *)
 
-val todo_js : Testo.Tag.t
-
 (* A test that sometimes fails for unknown reasons *)
 val flaky : Testo.Tag.t
 

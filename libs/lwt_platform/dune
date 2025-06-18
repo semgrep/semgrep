@@ -1,3 +1,22 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Current Lwt_platform ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; history: Lwt_platform used to be important when we distributed Semgrep via
+;; the `js_of_ocaml` (jsoo) compiler, and the regular Semgrep binary.
+;; In the jsoo world, many Unix-specific things are not possible, and so we had
+;; to provide a lot of alternate implementations of functionality that the
+;; Semgrep binary needed.
+;; In particular, when running the Lwt-based language server, we needed to play
+;; nice with JS's single-threaded event loop. `Lwt_main.run` and friends are not
+;; available in the jsoo world, so we used virtual modules to swap out Unix-and
+;; -JS-specific implementations of Lwt primitives.
+;; Now that we have killed the jsoo distribution, we no longer need two
+;; implementations, but Lwt isn't long for this world anyways (hopefully), so let's
+;; still just keep around the single virtual module.
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Old Lwt_platform ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; What is this? And why are we doing it?
 ;; Lwt uses unix threads to run its stuff on, which means it doesn't work in Js_of_ocaml
 ;; This library uses Dune's virtual modules. The way this works is that code can use
@@ -17,6 +36,7 @@
 ;; Also, top level refs cannot be polymorphic, so we'd have to use a module ref or something similar
 ;;
 ;; This makes it so the DevEx is relatively painless, and we can just use the same code.
+
 (library
  (public_name lwt_platform)
  (wrapped false)
