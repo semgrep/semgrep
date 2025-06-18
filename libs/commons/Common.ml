@@ -21,17 +21,8 @@ module Log = Log_commons.Log
 (* if set, certain functions like unwind_protect will not
  * do a try and finalize and instead just call the function, which
  * helps in ocamldebug and also in getting better backtraces.
- * This is also useful to set in a js_of_ocaml (jsoo) context to
- * again get better backtraces.
  *)
 let debugger = ref false
-
-(* You should set this to true when you run code compiled by js_of_ocaml
- * so some functions can change their implementation and rely
- * less on non-portable API like Unix which does not work well under
- * node or in the browser.
- *)
-let jsoo = ref false
 
 (*****************************************************************************)
 (* Circular dependencies *)

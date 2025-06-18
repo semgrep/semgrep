@@ -4,9 +4,7 @@
 
 let spinner = [| "⠋"; "⠙"; "⠹"; "⠸"; "⠼"; "⠴"; "⠦"; "⠧"; "⠇"; "⠏" |]
 
-(* only show the console spinner if this is a non-JSOO Unix TTY *)
-let should_show_spinner () =
-  !ANSITerminal.isatty Unix.stdout && (not !Common.jsoo) && Sys.unix
+let should_show_spinner () = !ANSITerminal.isatty Unix.stdout && Sys.unix
 
 let show_spinner delay_ms : unit =
   if not (should_show_spinner ()) then (

@@ -55,9 +55,8 @@ let yield_frequency = 8192
 let yield_attempts = Atomic.make 0
 
 let maybe_yield () =
-  if not !Common.jsoo then
-    if Atomic.fetch_and_add yield_attempts 1 land (yield_frequency - 1) = 0 then
-      (* If we fail to get the context during yielding, we're not running in Eio. *)
-      try Eio.Fiber.yield () with
-      (* TODO: This is similar to Hook.attempt_in_eio. *)
-      | Stdlib.Effect.Unhandled _ -> ()
+  if Atomic.fetch_and_add yield_attempts 1 land (yield_frequency - 1) = 0 then
+    (* If we fail to get the context during yielding, we're not running in Eio. *)
+    try Eio.Fiber.yield () with
+    (* TODO: This is similar to Hook.attempt_in_eio. *)
+    | Stdlib.Effect.Unhandled _ -> ()

@@ -96,8 +96,6 @@ val exn_to_s : exn -> string
 (* if set then certain functions like unwind_protect will not
  * do a try and finalize and instead just call the function, which
  * helps in ocamldebug and also in getting better backtraces.
- * This is also useful to set in a js_of_ocaml (jsoo) context to
- * again get better backtraces.
  *)
 val debugger : bool ref
 
@@ -286,10 +284,3 @@ module Operators : sig
   val ( == ) : Eq.hidden_by_your_nanny
   val ( != ) : Eq.hidden_by_your_nanny
 end
-
-(*****************************************************************************)
-(* Misc *)
-(*****************************************************************************)
-
-(* you should set this flag when you run code compiled by js_of_ocaml *)
-val jsoo : bool ref

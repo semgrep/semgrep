@@ -131,8 +131,6 @@ else
             "-lctypes_stubs"
             "-lcurl-helper"
             "-lintegers_stubs"
-            "-ljs_of_ocaml_stubs"
-            "-ljsoo_runtime_stubs"
             "-llwt_unix_stubs"
             "-lmirage_crypto_ec_stubs"
             "-lmirage_crypto_rng_unix_stubs"
