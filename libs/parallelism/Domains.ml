@@ -17,7 +17,7 @@
  * <https://www.gnu.org/licenses/>.
  *)
 
-module Log = Logger.Log
+module Log = Log_parallelism.Log
 
 let map ~(conf : Parallelism_config.t) ~domain_count f l =
   (* The main thread concurrently maps over the list of tasks via spawning
