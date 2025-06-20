@@ -33,7 +33,6 @@ val unparseable_yaml : __LOC__:string -> t
 val missing_config : __LOC__:string -> t
 val invalid_language : __LOC__:string -> t
 val invalid_api_key : __LOC__:string -> t
-val scan_fail : __LOC__:string -> t
 
 (* to remove at some point *)
 val not_implemented_in_osemgrep : __LOC__:string -> t
@@ -51,7 +50,6 @@ module Equal : sig
   val missing_config : t -> bool
   val invalid_language : t -> bool
   val invalid_api_key : t -> bool
-  val scan_fail : t -> bool
   val not_implemented_in_osemgrep : t -> bool
 end
 
@@ -78,6 +76,5 @@ module Check : sig
   val missing_config : t -> unit
   val invalid_language : t -> unit
   val invalid_api_key : t -> unit
-  val scan_fail : t -> unit
   val not_implemented_in_osemgrep : t -> unit
 end

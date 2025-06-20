@@ -36,7 +36,7 @@ INVALID_LANGUAGE_EXIT_CODE = 8
 # LEXICAL_ERROR_EXIT_CODE = 11
 # TOO_MANY_MATCHES_EXIT_CODE = 12
 INVALID_API_KEY_EXIT_CODE = 13
-SCAN_FAIL_EXIT_CODE = 14
+# SCAN_FAIL_EXIT_CODE = 14
 
 default_level = out.ErrorSeverity(out.Error_())
 warning_level = out.ErrorSeverity(out.Warning_())

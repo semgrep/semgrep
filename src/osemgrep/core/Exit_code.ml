@@ -42,7 +42,8 @@ module Value = struct
   (* let lexical_error = 11 "lexical error" *)
   (* let too_many_matches = 12 "too many matches" *)
   let invalid_api_key = create 13 "invalid API key"
-  let scan_fail = create 14 "scan failure"
+
+  (* let scan_fail = create 14 "scan failure" *)
   let not_implemented_in_osemgrep = create 99 "not implemented in osemgrep"
 end
 
@@ -69,7 +70,6 @@ let unparseable_yaml ~__LOC__:loc = with_log loc Value.unparseable_yaml
 let missing_config ~__LOC__:loc = with_log loc Value.missing_config
 let invalid_language ~__LOC__:loc = with_log loc Value.invalid_language
 let invalid_api_key ~__LOC__:loc = with_log loc Value.invalid_api_key
-let scan_fail ~__LOC__:loc = with_log loc Value.scan_fail
 
 (* Temporary until either osemgrep dies or replaces semgrep. *)
 let not_implemented_in_osemgrep ~__LOC__:loc =
@@ -87,7 +87,6 @@ module Equal = struct
   let missing_config = equal Value.missing_config
   let invalid_language = equal Value.invalid_language
   let invalid_api_key = equal Value.invalid_api_key
-  let scan_fail = equal Value.scan_fail
   let not_implemented_in_osemgrep = equal Value.not_implemented_in_osemgrep
 end
 
@@ -107,6 +106,5 @@ module Check = struct
   let missing_config = check Value.missing_config
   let invalid_language = check Value.invalid_language
   let invalid_api_key = check Value.invalid_api_key
-  let scan_fail = check Value.scan_fail
   let not_implemented_in_osemgrep = check Value.not_implemented_in_osemgrep
 end
