@@ -13,11 +13,6 @@
 // downstream jobs to fire.
 // See https://docs.github.com/en/enterprise-cloud@latest/actions/using-workflows/triggering-a-workflow#triggering-a-workflow-from-a-workflow
 // for more information"
-//
-// TODO: where is stored/configured/built this semgrep-ci github App?
-// TODO: where is configured this docker://public.ecr.aws/... image below?
-// TODO: How is it built?
-// TODO: if a token is rotated, do we need to update this docker link?
 
 local actions = import 'actions.libsonnet';
 local gha = import 'gha.libsonnet';
@@ -29,10 +24,6 @@ local github_bot = {
       id: 'jwt',
       uses: 'docker://public.ecr.aws/y9k7q4m1/devops/cicd:latest',
       env: {
-        // This is the shortest expiration setting. It ensures that if an
-        // attacker got a hold of these credentials after the job runs,
-        // they're expired.
-        // TODO: how an attacker can access this credential?
         EXPIRATION: 600,  // in seconds
         ISSUER: '${{ secrets.SEMGREP_CI_APP_ID }}',
         PRIVATE_KEY: '${{ secrets.SEMGREP_CI_APP_KEY }}',
@@ -68,7 +59,6 @@ local github_bot = {
 // ----------------------------------------------------------------------------
 
 // default one
-// coupling: with containers above
 local opam_switch = '5.3.0';
 // also default but needed by another nameso we can use it as a function default arg
 local opam_switch_default = opam_switch;
@@ -398,14 +388,14 @@ local retag_sms_docker_image_step(version, tag, dry_run=false) = {
   |||,
 };
 
-local trigger_build_sms_docker_image_step(tag) = {
+local trigger_build_sms_docker_image_step(tag, use_nightly_repo='false') = {
   name: 'Trigger build SMS docker image from %s' % tag,
   env: {
     GITHUB_TOKEN: github_bot.token_ref,
     SEMGREP_TAG: tag,
   },
   // TODO Factor out gh workflow run XYZ with above
-  run: 'gh workflow run build-sms-image.yml --repo semgrep/semgrep-app --raw-field version="$SEMGREP_TAG"',
+  run: 'gh workflow run build-sms-image.yml --repo semgrep/semgrep-app --raw-field use_nightly_repo=%s --raw-field version="$SEMGREP_TAG"' % use_nightly_repo,
 };
 
 local test_wheel_steps(arch, copy_semgrep_pro=false) = [
