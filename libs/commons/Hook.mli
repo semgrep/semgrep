@@ -17,6 +17,16 @@
  * hook state will escape outside where it is intended. We've had issues where,
  * for example, hooks were not reset between tests, leading to bizarre and
  * difficult-to-debug behavior. This should prevent that.
+ *
+ * NOTE: If a fiber
+ *
+ * 1. creates a hook with state [s1]
+ * 2. [with_hook_set]s to state [s2]
+ * 3. passes it to a fresh fiber
+ *
+ * the fresh fiber will lose access to [s2], and instead will observe [s1] when
+ * it [get]s the Hook's state.
+ *
  *)
 
 type 'a t

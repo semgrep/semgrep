@@ -28,9 +28,6 @@ let test_hook_local_nested () =
   Alcotest.(check int) __LOC__ 0 (H.get h)
 
 let test_hook_local_concurrent () =
-  (* This test depends on us running inside EIO, so we explicitly
-   * set up the runtime here. *)
-  Eio_main.run @@ fun _ ->
   let h = H.create 0 in
 
   (* This will repeatedly check that binding [sm]'s value to [i]
@@ -97,23 +94,12 @@ let test_cli_unscoped_set () =
       let current = ref 0 in
       Arg.parse_argv ~current argv speclist (fun _ -> ()) "...")
 
-let proc_and_eio (name, f) =
-  [
-    t (name ^ " (non-eio)") f;
-    t (name ^ " (eio)") (fun () -> Eio_main.run @@ fun _ -> f ());
-  ]
-
 let tests =
-  let eio_and_non_tests =
+  Testo.categorize "Hooks"
     [
-      ("Fiber scope", test_hook_local_with_hook_set_scope);
-      ("Fiber nested", test_hook_local_nested);
-      ("Fiber and exceptions", test_hook_local_with_exn);
-      ("Fiber mutation by CLI parsing", test_cli_unscoped_set);
+      t "Fiber scope" test_hook_local_with_hook_set_scope;
+      t "Fiber nested" test_hook_local_nested;
+      t "Fiber and exceptions" test_hook_local_with_exn;
+      t "Fiber mutation by CLI parsing" test_cli_unscoped_set;
+      t "Fiber concurrent (eio)" test_hook_local_concurrent;
     ]
-    |> List.concat_map proc_and_eio
-  in
-
-  let eio_only = [ t "Fiber concurrent (eio)" test_hook_local_concurrent ] in
-
-  Testo.categorize "Hooks" @@ eio_and_non_tests @ eio_only

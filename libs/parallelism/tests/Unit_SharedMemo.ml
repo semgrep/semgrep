@@ -43,14 +43,13 @@ let test_make_with_state () =
   Domain.join writer;
   Alcotest.(check int) __LOC__ (1 + Atomic.get cache_misses) (Hashtbl.length ht)
 
-let test_make_x_domains () =
+let test_make_x_domains base () =
   (* Tests a "realistic" use of a SharedMemo, across fibers schedule
    * by an executor pool. *)
   let f = SharedMemo.make (fun i -> i + 1) in
 
-  Eio_main.run @@ fun env ->
   Eio.Switch.run @@ fun sw ->
-  let dm = Eio.Stdenv.domain_mgr env in
+  let dm = Eio.Stdenv.domain_mgr base in
   let pool = Eio.Executor_pool.create ~sw ~domain_count:4 dm in
   let check () =
     let i = Random.int 1000 in
@@ -76,10 +75,10 @@ let test_key_fn () =
   done;
   assert (!key_fn_calls > 0)
 
-let tests =
+let tests base =
   Testo.categorize "SharedMemo"
     [
       t "test_make_with_state" test_make_with_state;
-      t "test_make_x_domains" test_make_x_domains;
+      t "test_make_x_domains" (test_make_x_domains base);
       t "test_key_fn" test_key_fn;
     ]

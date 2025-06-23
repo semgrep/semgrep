@@ -116,7 +116,7 @@ let cleanup_before_each_test (reset : unit -> unit) (tests : Testo.t list) :
    explicitly by calling a function. These functions are roughly those
    that call 'Common2.glob'.
 *)
-let tests (caps : Cap.all_caps) =
+let tests (caps : Cap.all_caps) base =
   List_.flatten
     [
       Commons_tests.tests;
@@ -178,12 +178,12 @@ let tests (caps : Cap.all_caps) =
       Spacegrep_tests.Test.tests ();
       Aliengrep.Unit_tests.tests;
       Unit_core_json_output.tests;
-      Test_core_CLI.tests (caps :> Cap.all_caps);
+      Test_core_CLI.tests (caps :> Cap.all_caps) base;
       (* Inline tests *)
       Testo.get_registered_tests ();
       (* Parallelism tests must come last, as previous tests require forking
        * and an exception is raised if a fork follows a domain spawn *)
-      Parallelism_tests.tests;
+      Parallelism_tests.tests base;
     ]
 
 (*****************************************************************************)
@@ -197,10 +197,12 @@ let tests (caps : Cap.all_caps) =
    See https://github.com/mirage/alcotest/issues/358 for a request
    to allow what we want without this workaround.
 *)
-let tests_with_delayed_error caps =
+let tests_with_delayed_error caps base =
   try
     Printf.printf "Gathering tests from %s...\n%!" (Sys.getcwd ());
-    let tests = tests caps |> List_.map (with_env_check ~ignore_empty:true) in
+    let tests =
+      tests caps base |> List_.map (with_env_check ~ignore_empty:true)
+    in
     Printf.printf "Done gathering tests.\n%!";
     tests
   with
@@ -211,7 +213,7 @@ let tests_with_delayed_error caps =
             Exception.reraise exn);
       ]
 
-let main (caps : Cap.all_caps) : unit =
+let main (caps : Cap.all_caps) base : unit =
   (* find the root of the semgrep repo as many of our tests rely on
      'let test_path = "tests/"' to find their test files *)
   let project_root = Test_LS_e2e.project_root () in
@@ -236,6 +238,6 @@ let main (caps : Cap.all_caps) : unit =
       reset ();
       (* let's go *)
       Testo.interpret_argv ~project_name:"semgrep-core" (fun _env ->
-          tests_with_delayed_error caps |> cleanup_before_each_test reset))
+          tests_with_delayed_error caps base |> cleanup_before_each_test reset))
 
-let () = Cap.main (fun all_caps -> main all_caps)
+let () = Cap.main main
