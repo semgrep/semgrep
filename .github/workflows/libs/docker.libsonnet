@@ -51,6 +51,7 @@ local validate(
   script,
   needs,
   checkout_steps=actions.checkout(),
+  image='semgrep',
       ) =
   {
     'runs-on': 'ubuntu-latest',
@@ -60,7 +61,7 @@ local validate(
              {
                name: 'Test %s image' % job,
                env: {
-                 IMAGEID: 'semgrep/semgrep@${{ needs.%s.outputs.digest }}' % job,
+                 IMAGEID: 'semgrep/%s@${{ needs.%s.outputs.digest }}' % [image, job],
                },
                // only test amd64 for now. I suspect this is fine for now
                run: '%s "$IMAGEID" linux/amd64' % script,
@@ -68,13 +69,14 @@ local validate(
            ],
   };
 
-local retag_step(image, tag, ref, confirmed=true, debug=false, dry_run=false) = {
-  name: 'Retag %(image)s:%(ref)s to %(image)s:%(tag)s' % { image: image, ref: ref, tag: tag },
+local retag_step(source_image, target_image, tag, ref, confirmed=true, debug=false, dry_run=false) = {
+  name: 'Retag %(source_image)s:%(ref)s to %(target_image)s:%(tag)s' % { source_image: source_image, target_image: target_image, ref: ref, tag: tag },
   env:
     {
-      docker_image: image,
-      image_ref: ref,
-      docker_tag: tag,
+      source_image: source_image,
+      source_ref: ref,
+      target_image: target_image,
+      target_tag: tag,
       confirmed: confirmed,
       debug: debug,
       dry_run: dry_run,
@@ -88,8 +90,8 @@ local retag_step(image, tag, ref, confirmed=true, debug=false, dry_run=false) = 
       docker_tag="${docker_tag}-dry-run"
     fi
 
-    source_image="${docker_image}:${image_ref}"
-    target_image="${docker_image}:${docker_tag}"
+    source_image="${source_image}:${source_ref}"
+    target_image="${target_image}:${target_tag}"
 
     old_digest=$(docker buildx imagetools inspect --format '{{printf "%s" .Manifest.Digest}}' ${target_image} || echo "(not found)")
     new_digest=$(docker buildx imagetools inspect --format '{{printf "%s" .Manifest.Digest}}' ${source_image} || echo "(not found)")
@@ -127,7 +129,7 @@ local retag_step(image, tag, ref, confirmed=true, debug=false, dry_run=false) = 
 local job(
   name,  // Name of docker image if uploaded (i.e. semgrep/NAME)
   target,  // Target docker layer (i.e. build, semgrep-cli, etc.)
-  prefix='oss-',  // prefix for image tags
+  prefix='',  // prefix for image tags
   suffix='',  // suffix for image tags
   artifact_name=null,  // name of artifact to copy from docker image
   needs=[],  // prereq GHA steps
