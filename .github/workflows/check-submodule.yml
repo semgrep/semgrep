@@ -4,6 +4,8 @@ on: [pull_request]
 
 jobs:
   check-submodule:
+    # The check-submodule check is broken for PRs the originate in forks.
+    if: github.repository == 'semgrep/semgrep'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout this repo
