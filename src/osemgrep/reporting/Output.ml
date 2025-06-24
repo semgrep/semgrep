@@ -38,6 +38,7 @@ type conf = {
   strict : bool;
   (* a.k.a. dryrun in Scan_CLI.conf *)
   fixed_lines : bool;
+  fips_mode : bool;
   (* true when using --verbose or --debug in Scan_CLI.ml *)
   skipped_files : bool;
   (* alt: in CLI_common.conf *)
@@ -54,6 +55,7 @@ let default : conf =
     show_dataflow_traces = false;
     strict = false;
     fixed_lines = false;
+    fips_mode = false;
     skipped_files = false;
     max_log_list_entries = 100;
   }
@@ -204,11 +206,11 @@ let dispatch_output_format (caps : < Cap.stdout >) (conf : conf)
  * TODO? remove this intermediate? rename postprocess? or just
  * cli_output_of_core_runner ?
  *)
-let preprocess_result ~fixed_lines (res : Core_runner_result.t) : Out.cli_output
-    =
+let preprocess_result ~fips_mode ~fixed_lines (res : Core_runner_result.t) :
+    Out.cli_output =
   let cli_output : Out.cli_output =
-    Cli_json_output.cli_output_of_runner_result ~fixed_lines res.core res.hrules
-      res.scanned
+    Cli_json_output.cli_output_of_runner_result ~fips_mode ~fixed_lines res.core
+      res.hrules res.scanned
   in
   {
     cli_output with
@@ -229,7 +231,8 @@ let output_result (caps : < Cap.stdout >) (conf : conf)
    *)
   let (cli_output : Out.cli_output) =
     Profiler.record profiler ~name:"ignores_times" (fun () ->
-        preprocess_result ~fixed_lines:conf.fixed_lines res)
+        preprocess_result ~fips_mode:conf.fips_mode
+          ~fixed_lines:conf.fixed_lines res)
   in
   (* TODO: adjust conf.time *)
   let cli_output =

@@ -460,8 +460,11 @@ let scan_response_and_rules (caps : < Cap.network ; Auth.cap_token ; .. >) app
         | None -> failwith "TODO: handle dry-run"
       in
       (* TODO: pysemgrep: should replace the Requesting scan of before *)
+      let fips_msg =
+        if scan_response.config.fips_mode then "fips=true" else ""
+      in
       Logs.app (fun m ->
-          m "  Initializing scan (deployment=%s, scan_id=%d)"
+          m "  Initializing scan (%s deployment=%s, scan_id=%d)" fips_msg
             scan_response.info.deployment_name scan_id);
 
       let rules_and_origins =
@@ -959,6 +962,7 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
         (* TODO: use ? *)
         triage_ignored_syntactic_ids = _;
         triage_ignored_match_based_ids = _;
+        fips_mode;
       };
     (* TODO: lots of things to use there *)
     engine_params =
@@ -980,13 +984,14 @@ let run_conf (caps : < caps ; .. >) (ci_conf : Ci_CLI.conf) : Exit_code.t =
     scan_response
   in
 
-  (* coupling(symbol-analysis): we should update our config with the
-     scan-relevant flags we receive from our scan config
+  (* coupling: we update our config with the scan-relevant flags (symbol-analysis,
+     fips mode) that we receive from our scan config
   *)
   let conf =
     {
       conf with
-      core_runner_conf = { conf.core_runner_conf with symbol_analysis };
+      core_runner_conf =
+        { conf.core_runner_conf with symbol_analysis; fips_mode };
     }
   in
 

@@ -78,4 +78,5 @@ let core_runner_conf_of_t settings : Core_runner.conf =
       matching_explanations = false;
       time_flag = false;
       symbol_analysis = false;
+      fips_mode = false;
     }

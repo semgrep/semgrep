@@ -171,6 +171,15 @@ class ScanHandler:
         return False
 
     @property
+    def fips_mode(self) -> bool:
+        """
+        Is this scan running in a FIPS environment?
+        """
+        if self.scan_response:
+            return self.scan_response.config.fips_mode
+        return False
+
+    @property
     def ptt_enabled(self) -> bool:
         """
         Separate property for easy of mocking in test

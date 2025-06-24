@@ -19,10 +19,11 @@ type conf = {
   time_flag : bool;
   matching_explanations : bool;
   dataflow_traces : bool;
-  (* extra scan-adjacent information
-     only set by the scan config from the app
+  (* extra scan-adjacent information: symbol_analysis and fips_mode
+     are only set by the scan config received from the app
   *)
   symbol_analysis : bool;
+  fips_mode : bool;
 }
 [@@deriving show]
 

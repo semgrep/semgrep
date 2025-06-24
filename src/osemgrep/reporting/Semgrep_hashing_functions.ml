@@ -209,8 +209,8 @@ let match_formula_interpolated_str (rule : Rule.t) metavars : string =
  *
  * coupling: rule_match.py get_match_based_id ()
  *)
-let match_based_id_partial (rule : Rule.t) (rule_id : Rule_ID.t) metavars path :
-    string =
+let match_based_id_partial (module Hash : Digestif.S) (rule : Rule.t)
+    (rule_id : Rule_ID.t) metavars path : string =
   let str_interp = match_formula_interpolated_str rule metavars in
   (* We have been hashing w/ this PosixPath thing in Python so we must recreate
    * it here. We also have been hashing a tuple formatted as below.
@@ -221,7 +221,7 @@ let match_based_id_partial (rule : Rule.t) (rule_id : Rule_ID.t) metavars path :
       (Python_str_repr.repr path)
       (Python_str_repr.repr (Rule_ID.to_string rule_id))
   in
-  let hash = Digestif.BLAKE2B.digest_string string |> Digestif.BLAKE2B.to_hex in
+  let hash = Hash.digest_string string |> Hash.to_hex in
   Logs.debug (fun m -> m "match_key = %s, match_id = %s" string hash);
   hash
 

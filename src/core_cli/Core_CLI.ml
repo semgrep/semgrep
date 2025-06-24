@@ -331,6 +331,8 @@ let mk_config () : Core_scan_config.t =
                  without -trace.");
           None
       | false, None -> None);
+    (* Only settable through a response from the App *)
+    fips_mode = false;
     (* only settable via the Pro binary *)
     symbol_analysis = !symbol_analysis;
     use_eio = !use_eio;

@@ -106,6 +106,7 @@ type t = {
   (* telemetry *)
   telemetry : Telemetry.config option;
   symbol_analysis : bool;
+  fips_mode : bool;
   (* Rely on a EIO impl of `-j` v.s Parmap
    * logic redundancy: par_conf is set only if use_eio was
    * previously set to true. *)
@@ -141,6 +142,7 @@ let default =
     (* debugging and telemetry flags *)
     telemetry = None;
     symbol_analysis = false;
+    fips_mode = false;
     use_eio = false;
     par_conf = None;
   }

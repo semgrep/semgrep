@@ -257,7 +257,7 @@ let make_fixed_lines fixes_env fix path (start : Out.position)
   in
   Fixed_lines.make_fixed_lines fixes_env edit
 
-let cli_match_of_core_match (fixed_env_opt : Fixed_lines.env option)
+let cli_match_of_core_match ~fips_mode (fixed_env_opt : Fixed_lines.env option)
     (rule : Rule.t) (m : Out.core_match) : Out.cli_match =
   match m with
   | {
@@ -296,7 +296,11 @@ let cli_match_of_core_match (fixed_env_opt : Fixed_lines.env option)
         | None -> `Assoc []
         | Some json -> json
       in
-
+      let module Fingerprint_hash =
+        (val if fips_mode then (module Digestif.SHA256)
+             else (module Digestif.BLAKE2B)
+            : Digestif.S)
+      in
       (* LATER: this should be a variant in semgrep_output_v1.atd
        * and merged with Constants.rule_severity
        *)
@@ -343,8 +347,9 @@ let cli_match_of_core_match (fixed_env_opt : Fixed_lines.env option)
             fix;
             is_ignored = Some is_ignored;
             fingerprint =
-              Semgrep_hashing_functions.match_based_id_partial rule rule_id
-                metavars !!path;
+              Semgrep_hashing_functions.match_based_id_partial
+                (module Fingerprint_hash)
+                rule rule_id metavars !!path;
             sca_info = sca_match;
             fixed_lines;
             dataflow_trace;
@@ -508,7 +513,7 @@ let adjust_fields_cli_outpout_logged_out (x : Out.cli_output) : Out.cli_output =
 (*****************************************************************************)
 
 (* The core/hrules/scanned params are essentially Core_runner.result *)
-let cli_output_of_runner_result ~fixed_lines (core : Out.core_output)
+let cli_output_of_runner_result ~fips_mode ~fixed_lines (core : Out.core_output)
     (hrules : Rule.hrules) (scanned : Fpath_.Fpath_set.t) : Out.cli_output =
   match core with
   | {
@@ -582,7 +587,7 @@ let cli_output_of_runner_result ~fixed_lines (core : Out.core_output)
                    try Hashtbl.find hrules cm.check_id with
                    | Not_found -> raise Impossible
                  in
-                 cli_match_of_core_match fixed_env_opt rule cm)
+                 cli_match_of_core_match ~fips_mode fixed_env_opt rule cm)
           |> Semgrep_output_utils.sort_cli_matches;
         errors = errors |> List_.map cli_error_of_core_error;
         paths;

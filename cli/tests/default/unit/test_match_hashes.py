@@ -99,6 +99,7 @@ def get_rule_match(
     rule_id="rule_id",
     metavars=None,
     metadata=None,
+    fips_mode=False,
 ) -> RuleMatch:
     return RuleMatch(
         message="message",
@@ -115,6 +116,7 @@ def get_rule_match(
             ),
         ),
         metadata=metadata if metadata else {},
+        fips_mode=fips_mode,
     )
 
 
@@ -316,3 +318,17 @@ def test_lockfile_only(mocker, lockfile_only_rule):
     matches_orig.update([match1, match2])
     matches = list(sorted(matches_orig))
     assert matches[0].match_based_id != matches[1].match_based_id
+
+
+@pytest.mark.quick
+def test_fips_mode_hashes_differently(mocker, foo_contents):
+    mocker.patch.object(Path, "open", mocker.mock_open(read_data=foo_contents))
+    non_fips = get_rule_match(filepath="foo.py")
+    fips = get_rule_match(filepath="foo.py", fips_mode=True)
+
+    # Only the match-based ID shoudl differ between these rules.
+    assert non_fips.syntactic_id == fips.syntactic_id
+    assert non_fips.code_hash == fips.code_hash
+    assert non_fips.pattern_hash == fips.pattern_hash
+
+    assert non_fips.match_based_id != fips.match_based_id

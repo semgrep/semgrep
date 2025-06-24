@@ -483,9 +483,12 @@ def ci(
                     console=console,
                 ) as progress_bar:
                     start_scan_desc = "Initializing scan"
+
                     start_scan_task = progress_bar.add_task(start_scan_desc)
                     scan_handler.start_scan(project_meta, project_config)
                     extra_fields = []
+                    if scan_handler.fips_mode:
+                        extra_fields.append("fips=true")
                     if scan_handler.deployment_name:
                         extra_fields.append(
                             f"deployment={scan_handler.deployment_name}"
@@ -685,6 +688,7 @@ def ci(
                 scan_handler.resolve_all_deps_in_diff_scan if scan_handler else False
             ),
             "symbol_analysis": scan_handler.symbol_analysis if scan_handler else False,
+            "fips_mode": scan_handler.fips_mode if scan_handler else False,
             "semgrepignore_filename": x_semgrepignore_filename,
         }
 
