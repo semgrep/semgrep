@@ -1,26 +1,13 @@
 {
   "config_missing_fixtests": [],
   "config_missing_tests": [],
-  "config_with_errors": [],
-  "fixtest_results": {},
-  "results": {
-    "rules/test_test/rule_that_timeout.yaml": {
-      "checks": {
-        "open-redirect": {
-          "errors": [
-            {
-              "code": 2,
-              "level": "warn",
-              "message": "Timeout when running forcetimeout on targets/test_test/long.py:\n ",
-              "path": "targets/test_test/long.py",
-              "rule_id": "forcetimeout",
-              "type": "Timeout"
-            }
-          ],
-          "matches": "<masked in tests>",
-          "passed": false
-        }
-      }
+  "config_with_errors": [
+    {
+      "error": "Traceback (most recent call last):\n  File \"/home/runner/work/semgrep/semgrep/cli/src/semgrep/test.py\", line 300, in invoke_semgrep_multi\n    output = semgrep.run_scan.run_scan_and_return_json(\n  File \"/home/runner/work/semgrep/semgrep/cli/src/semgrep/run_scan.py\", line 1369, in run_scan_and_return_json\n    ) = run_scan(\n  File \"/home/runner/work/semgrep/semgrep/cli/src/semgrep/tracing.py\", line 282, in inner\n    return f(*args, **kwargs)\n  File \"/home/runner/work/semgrep/semgrep/cli/src/semgrep/run_scan.py\", line 1215, in run_scan\n    ) = run_rules(\n  File \"/home/runner/work/semgrep/semgrep/cli/src/semgrep/tracing.py\", line 282, in inner\n    return f(*args, **kwargs)\n  File \"/home/runner/work/semgrep/semgrep/cli/src/semgrep/run_scan.py\", line 912, in run_rules\n    ) = core_runner.invoke_semgrep_core(\n  File \"/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py\", line 1166, in invoke_semgrep_core\n    ) = self._run_rules_direct_to_semgrep_core(\n  File \"/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py\", line 1118, in _run_rules_direct_to_semgrep_core\n    raise e\n  File \"/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py\", line 1102, in _run_rules_direct_to_semgrep_core\n    return self._run_rules_direct_to_semgrep_core_helper(\n  File \"/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py\", line 1017, in _run_rules_direct_to_semgrep_core_helper\n    returncode = runner.execute()\n  File \"/home/runner/work/semgrep/semgrep/cli/src/semgrep/tracing.py\", line 282, in inner\n    return f(*args, **kwargs)\n  File \"/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py\", line 496, in execute\n    rc = asyncio.run(self._stream_exec_subprocess())\n  File \"/opt/hostedtoolcache/Python/3.10.18/x64/lib/python3.10/asyncio/runners.py\", line 44, in run\n    return loop.run_until_complete(main)\n  File \"/opt/hostedtoolcache/Python/3.10.18/x64/lib/python3.10/asyncio/base_events.py\", line 649, in run_until_complete\n    return future.result()\n  File \"/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py\", line 460, in _stream_exec_subprocess\n    raise e\n  File \"/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py\", line 439, in _stream_exec_subprocess\n    await self._handle_process_outputs(process.stdout, process.stderr)\n  File \"/home/runner/work/semgrep/semgrep/cli/src/semgrep/core_runner.py\", line 402, in _handle_process_outputs\n    raise SemgrepError(f\"Error while running rules: {r}\")\nsemgrep.error.SemgrepError: Error while running rules: \n                    You are seeing this because the engine was killed.\n\n                    The most common reason this happens is because it used too much memory.\n                    If your repo is large (~10k files or more), you have three options:\n                    1. Increase the amount of memory available to semgrep\n                    2. Reduce the number of jobs semgrep runs with via `-j <jobs>`. We\n                        recommend using 1 job if you are running out of memory.\n                    3. Scan the repo in parts (contact us for help)\n\n                    Otherwise, it is likely that semgrep is hitting the limit on only some\n                    files. In this case, you can try to set the limit on the amount of memory\n                    semgrep can use on each file with `--max-memory <memory>`. We recommend\n                    lowering this to a limit 70% of the available memory. For CI runs with\n                    interfile analysis, the default max-memory is 5000MB. Without, the default\n                    is unlimited.\n\n                    The last thing you can try if none of these work is to raise the stack\n                    limit with `ulimit -s <limit>`.\n\n                    If you have tried all these steps and still are seeing this error, please\n                    contact us.\n\n                       Error: semgrep-core exited with unexpected output\n\n                       [00.09][\u001b[34mINFO\u001b[0m]: Executed as: /usr/bin/semgrep-core -json -rules <MASKED> -strict -targets <MASKED> -timeout 5 -timeout_threshold 0 -max_memory 0 -disable_rule_paths -fast\n[00.09][\u001b[34mINFO\u001b[0m]: Version: <MASKED>\n[00.09][\u001b[34mINFO\u001b[0m]: Proxy was configured with { Proxy.http_proxy = None;\n                                           https_proxy = None;\n                                           all_proxy = None; no_proxy = None;\n                                           credentials = None }\n[00.10][\u001b[34mINFO\u001b[0m]: Parsing rules in <MASKED>\n[00.11][\u001b[34mINFO\u001b[0m]: scan: processing 1 files (skipping 0), with 1 rules (skipping 0 )\n\n                    \n",
+      "filename": "rules/test_test/rule_that_timeout.yaml",
+      "output": {}
     }
-  }
+  ],
+  "fixtest_results": {},
+  "results": {}
 }
