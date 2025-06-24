@@ -14,6 +14,7 @@ type conf = {
   strict : bool;
   (* a.k.a. dryrun in Scan_CLI.conf *)
   fixed_lines : bool;
+  fips_mode : bool;
   (* true when using --verbose or --debug in Scan_CLI.ml *)
   skipped_files : bool;
   (* Used when displaying rule ids or skipped files. If above the limit,
@@ -52,7 +53,7 @@ val output_result :
  * This handles nosemgrep, interpolating messages, and more.
  *)
 val preprocess_result :
-  fixed_lines:bool -> Core_runner_result.t -> Out.cli_output
+  fips_mode:bool -> fixed_lines:bool -> Core_runner_result.t -> Out.cli_output
 
 (* Called by pysemgrep via RPC for Vim/Emacs/Junit_xml/Gitlab_xxx formats *)
 val format :

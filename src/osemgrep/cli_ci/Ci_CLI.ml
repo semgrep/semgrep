@@ -265,6 +265,7 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
         show_dataflow_traces = dataflow_traces;
         (* TODO: default value in semgrep ci? *)
         strict = false;
+        fips_mode = false;
         fixed_lines = dryrun;
         skipped_files =
           (match common.CLI_common.logging_level with
@@ -293,8 +294,9 @@ let scan_subset_cmdline_term : Scan_CLI.conf Term.t =
         strict = false;
         time_flag = false;
         matching_explanations;
-        (* coupling(symbol-analysis): this will be set later by the scan config *)
+        (* coupling: symbol_analysis and fips_mode will be set later by the scan config *)
         symbol_analysis = false;
+        fips_mode = false;
       }
     in
     let include_ =

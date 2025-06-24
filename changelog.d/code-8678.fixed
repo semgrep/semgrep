@@ -1,2 +1,0 @@
-pro: typescript: Prevent stack overflows and out-of-memory issues when reading
-TS configs.

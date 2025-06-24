@@ -1027,6 +1027,7 @@ def run_scan(
     ptt_enabled: bool = False,
     resolve_all_deps_in_diff_scan: bool = False,
     symbol_analysis: bool = False,
+    fips_mode: bool = False,
 ) -> Tuple[
     FilteredMatches,
     List[SemgrepError],
@@ -1197,6 +1198,7 @@ def run_scan(
         respect_rule_paths=respect_rule_paths,
         path_sensitive=path_sensitive,
         symbol_analysis=symbol_analysis,
+        fips_mode=fips_mode,
         use_pro_naming_for_intrafile=x_pro_naming,
     )
     # TODO? why displayed here? why not closer to log_running_rules?
@@ -1233,7 +1235,6 @@ def run_scan(
         x_eio=x_eio,
     )
     profiler.save("core_time", core_start_time)
-
     semgrep_errors: List[SemgrepError] = config_errors + scan_errors
     output_handler.handle_semgrep_errors(semgrep_errors)
 
