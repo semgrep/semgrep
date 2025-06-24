@@ -522,7 +522,6 @@ class CoreRunner:
         respect_rule_paths: bool = True,
         path_sensitive: bool = False,
         symbol_analysis: bool = False,
-        fips_mode: bool = False,
         use_pro_naming_for_intrafile: bool = False,
     ):
         self._binary_path = engine_type.get_binary_path()
@@ -540,7 +539,6 @@ class CoreRunner:
         self._respect_rule_paths = respect_rule_paths
         self._capture_stderr = capture_stderr
         self._symbol_analysis = symbol_analysis
-        self._fips_mode = fips_mode
         self._use_pro_naming_for_intrafile = use_pro_naming_for_intrafile
 
     def _extract_core_output(
@@ -1035,9 +1033,7 @@ Could not find the semgrep-core executable. Your Semgrep install is likely corru
                         )
 
             # end with tempfile.NamedTemporaryFile(...) ...
-            outputs = core_matches_to_rule_matches(
-                rules, core_output, fips_mode=self._fips_mode
-            )
+            outputs = core_matches_to_rule_matches(rules, core_output)
             parsed_errors = [core_error_to_semgrep_error(e) for e in core_output.errors]
             for err in core_output.errors:
                 if isinstance(err.error_type.value, out.Timeout):

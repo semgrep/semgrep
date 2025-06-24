@@ -43,9 +43,8 @@ type conf = {
    * even if it was not requested by the CLI
    *)
   dataflow_traces : bool;
-  (* symbol_analysis and fips_mode are set by the scan config from the app *)
+  (* set by the scan config from the app *)
   symbol_analysis : bool;
-  fips_mode : bool;
 }
 [@@deriving show]
 
@@ -95,7 +94,6 @@ let default_conf : conf =
     nosem = true;
     strict = false;
     symbol_analysis = false;
-    fips_mode = false;
   }
 
 (*****************************************************************************)
@@ -162,7 +160,6 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
    (* TODO *)
    dataflow_traces = _;
    symbol_analysis;
-   fips_mode;
   } ->
       (* We do our own output in osemgrep, no need for Core_scan.scan() output *)
       let output_format = Core_scan_config.NoOutput in
@@ -189,7 +186,6 @@ let core_scan_config_of_conf (conf : conf) : Core_scan_config.t =
         max_match_per_file = Core_scan_config.default.max_match_per_file;
         telemetry = None;
         symbol_analysis;
-        fips_mode;
         use_eio = false;
         par_conf = None;
       }

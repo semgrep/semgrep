@@ -8,12 +8,7 @@ val syntactic_id : Out.cli_match -> string
     Gitlab_secrets output. *)
 
 val match_based_id_partial :
-  (module Digestif.S) ->
-  Rule.t ->
-  Rule_ID.t ->
-  Out.metavars option ->
-  string ->
-  string
+  Rule.t -> Rule_ID.t -> Out.metavars option -> string -> string
 (** The fingerprint used to uniquely identify a match. Since this is used by the
     backend, it is crucial to have identical output as in pysemgrep. *)
 

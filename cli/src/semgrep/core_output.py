@@ -88,12 +88,13 @@ def core_error_to_semgrep_error(err: out.CoreError) -> SemgrepCoreError:
 
 
 def core_matches_to_rule_matches(
-    rules: List[Rule], res: out.CoreOutput, fips_mode: bool
+    rules: List[Rule], res: out.CoreOutput
 ) -> Dict[Rule, List[RuleMatch]]:
     """
-    Converts `CoreMatch`s into `RuleMatch`es that the rest of the codebase
-    interacts with, taking into account whether we are running in a
-    FIPS-controlled environment.
+    Convert core_match objects into RuleMatch objects that the rest of the codebase
+    interacts with.
+
+    For now assumes that all matches encapsulated by this object are from the same rule
     """
     rule_table = {rule.id: rule for rule in rules}
 
@@ -113,9 +114,11 @@ def core_matches_to_rule_matches(
             metadata=metadata,
             severity=match.extra.severity if match.extra.severity else rule.severity,
             fix=match.extra.fix,
-            fips_mode=fips_mode,
         )
 
+    # TODO: Dict[out.RuleId, RuleMatches]
+    # We used to deduplicate by `cli_unique_key` here, but now no longer need to,
+    # because it is deduplicated in semgrep-core as core_unique_key!
     findings: Dict[Rule, RuleMatches] = {rule: RuleMatches(rule) for rule in rules}
     for match in res.results:
         rule_match = convert_to_rule_match(match)
@@ -124,5 +127,5 @@ def core_matches_to_rule_matches(
 
     # Sort results so as to guarantee the same results across different
     # runs. Results may arrive in a different order due to parallelism
-    # (-j option)
+    # (-j option).
     return {rule: sorted(matches) for rule, matches in findings.items()}

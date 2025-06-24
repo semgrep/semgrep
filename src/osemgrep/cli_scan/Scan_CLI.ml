@@ -1424,7 +1424,6 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
         show_dataflow_traces = dataflow_traces;
         strict;
         fixed_lines = dryrun;
-        fips_mode = false;
         skipped_files =
           (match common.logging_level with
           | Some (Info | Debug) -> true
@@ -1470,7 +1469,6 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
            the `Core_runner_conf.t`
         *)
         symbol_analysis = Core_runner.default_conf.symbol_analysis;
-        fips_mode = Core_runner.default_conf.fips_mode;
       }
     in
     let include_ =
