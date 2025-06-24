@@ -79,6 +79,11 @@ class RuleMatch:
     # set (evolved) in ci.py when match_based_id part of app_blocked_mids
     blocked_by_app: bool = False
 
+    # set by core_output.py when the app's `scan_response` indicates this is to
+    # take place in a FIPS-compliant environment, where we have to use specific
+    # hash functions for fingerprint generation taken from the FIPS allowlist.
+    fips_mode: bool = False
+
     # derived attributes (implemented below via some @xxx.default methods)
     lines: List[str] = field(init=False, repr=False)
     previous_line: str = field(init=False, repr=False)
@@ -323,7 +328,13 @@ class RuleMatch:
     def get_match_based_id(self) -> str:
         match_id = self.get_match_based_key()
         match_id_str = str(match_id)
-        code = f"{hashlib.blake2b(str.encode(match_id_str)).hexdigest()}_{str(self.match_based_index)}"
+
+        if self.fips_mode:
+            hashed = hashlib.sha256(str.encode(match_id_str)).hexdigest()
+        else:
+            hashed = hashlib.blake2b(str.encode(match_id_str)).hexdigest()
+
+        code = f"{hashed}_{str(self.match_based_index)}"
         logger.debug(f"match_key = {match_id_str} match_id = {code}")
         return code
 

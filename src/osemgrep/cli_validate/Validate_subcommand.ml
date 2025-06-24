@@ -191,8 +191,8 @@ let check_targets_rules (caps : < caps ; .. >) ~token_opt targets_rules
         let res = Core_runner.mk_result metarules result in
         (* TODO? sanity check errors below too? *)
         let Out.{ results; errors = _; _ } : Out.cli_output =
-          Cli_json_output.cli_output_of_runner_result ~fixed_lines:false
-            res.core res.hrules res.scanned
+          Cli_json_output.cli_output_of_runner_result ~fips_mode:false
+            ~fixed_lines:false res.core res.hrules res.scanned
         in
         (* TOPORT?
                           ... run -check_rules in semgrep-core ...

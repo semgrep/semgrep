@@ -256,7 +256,8 @@ let mk_file_match_hook (conf : Scan_CLI.conf) (rules : Rule.rules)
                    (spf "could not find the rule with rule_ID %s"
                       (Rule_ID.show cm.check_id))
            in
-           Cli_json_output.cli_match_of_core_match fixed_env_opt rule cm)
+           Cli_json_output.cli_match_of_core_match
+             ~fips_mode:conf.core_runner_conf.fips_mode fixed_env_opt rule cm)
     |> List_.exclude (fun (m : Out.cli_match) -> m.extra.is_ignored ||| false)
   in
   if cli_matches <> [] then (

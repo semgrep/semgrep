@@ -162,7 +162,9 @@ let run_semgrep ?(targets : Fpath.t list option) ?rules ?git_ref
       in
       (* Do reporting *)
       let (cli_output : Out.cli_output) =
-        Output.preprocess_result ~fixed_lines:false res
+        (* TODO: is it okay to assume that the LSP will never care about
+          running in a FIPS environment?  I believe so, however...*)
+        Output.preprocess_result ~fips_mode:false ~fixed_lines:false res
       in
       let errors =
         cli_output.errors
