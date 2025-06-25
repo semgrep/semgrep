@@ -31,6 +31,3 @@ val information_density : string -> float
 *)
 val score : string -> int
 val has_high_score : string -> bool
-
-(* Set in Data_init.init() from data in Entropy_data.ml *)
-val english_trigrams_ref : (string * int) array ref

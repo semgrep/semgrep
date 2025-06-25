@@ -223,7 +223,6 @@ let main (caps : Cap.all_caps) base : unit =
   Testutil_files.with_chdir project_root (fun () ->
       (* coupling: partial copy of the content of CLI.main() *)
       Core_CLI.register_exception_printers ();
-      Data_init.init ();
       Http_helpers.set_client_ref (module Cohttp_lwt_unix.Client);
       let reset () =
         (* Some tests change this configuration so we have to reset
