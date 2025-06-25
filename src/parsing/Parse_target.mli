@@ -31,10 +31,8 @@ val parse_and_resolve_name_fail_if_partial :
    parser inserted missing tokens (or any future kind of error or warning) *)
 val parse_and_resolve_name_strict : Lang.t -> Fpath.t -> AST_generic.program
 
-(* to be set dynamically with the right set of language parsers.
- * hack to reduce the size of the engine.js file.
- *)
-val just_parse_with_lang_ref : (Lang.t -> Fpath.t -> Parsing_result2.t) ref
-
 (* returns a Output_from_core.PartialParsing error *)
 val errors_from_skipped_tokens : Tok.location list -> Core_error.ErrorSet.t
+
+(* used by Parse_pattern2 *)
+val lang_to_python_parsing_mode : Lang.t -> Parse_python.parsing_mode

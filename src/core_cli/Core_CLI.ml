@@ -739,7 +739,6 @@ let main_exn (caps : Cap.all_caps) base (argv : string array) : unit =
    * coupling: if you add an init() call here, you probably need to modify
    * also tests/Test.ml, CLI.ml, and Pro_core_CLI.ml
    *)
-  Parsing_init.init ();
   Data_init.init ();
   Proxy.configure_proxy (Proxy.settings_from_env ());
   Http_helpers.set_client_ref (module Cohttp_lwt_unix.Client);
