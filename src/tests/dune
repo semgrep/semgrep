@@ -25,7 +25,6 @@
     semgrep.fixing.tests
     semgrep.metachecking
     semgrep.parsing
-    semgrep.parsing_languages
     semgrep.matching
     semgrep.engine
     parser_python.menhir parser_python.ast_generic

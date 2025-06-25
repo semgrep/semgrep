@@ -174,10 +174,6 @@ let handle_single_request (caps : < caps ; .. >) =
 (*****************************************************************************)
 
 let main (caps : < caps ; .. >) =
-  (* For some requests, such as SARIF formatting, we need to parse rules
-   * so we need to init the parsers as well. *)
-  Parsing_init.init ();
-
   Proxy.configure_proxy (Proxy.settings_from_env ());
   Http_helpers.set_client_ref (module Cohttp_lwt_unix.Client);
 
