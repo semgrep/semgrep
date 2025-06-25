@@ -28,7 +28,6 @@
     semgrep.matching
     semgrep.engine
     parser_python.menhir parser_python.ast_generic
-    semgrep.data
 
     semgrep.legacy_language_server
 

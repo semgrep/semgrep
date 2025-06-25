@@ -29,10 +29,7 @@ let normalize_string s =
              Buffer.add_char buf c);
   Buffer.contents buf
 
-(* Set in Data_init.init() from data in Entropy_data.ml
- * The intermediate variable below is used to save space in engine.js
- *)
-let english_trigrams_ref = ref [||]
+let english_trigrams = Entropy_data.english_trigrams
 
 (*
    Load trigrams:
@@ -44,7 +41,7 @@ let english_trigrams_ref = ref [||]
    end of strings where we don't have full trigrams.
 *)
 let load_trigrams () =
-  let ar = !english_trigrams_ref in
+  let ar = english_trigrams in
   (* Load trigram frequencies *)
   let trigram_entropies = Hashtbl.create (Array.length ar) in
   (* we explicitly use int64 here to avoid overflow *)

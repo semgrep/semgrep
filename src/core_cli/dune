@@ -23,7 +23,6 @@
     semgrep.parsing ; Test_parsing.parsing_stats
     semgrep.analyzing.tests ; Test_analyze_generic.actions
     semgrep.engine.tests
-    semgrep.data
     semgrep_rpc
 
     ; experiments

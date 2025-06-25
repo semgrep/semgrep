@@ -319,8 +319,6 @@ let main (caps : caps) (argv : string array) : Exit_code.t =
   if profile then Profiling.profile := Profiling.ProfAll;
 
   (* coupling: Core_CLI.ml and Pro_core_CLI.ml *)
-  (* hacks for having a smaller engine.js file *)
-  Data_init.init ();
   Proxy.configure_proxy (Proxy.settings_from_env ());
   Http_helpers.set_client_ref (module Cohttp_lwt_unix.Client);
 

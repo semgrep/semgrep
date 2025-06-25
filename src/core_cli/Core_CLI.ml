@@ -735,11 +735,9 @@ let main_exn (caps : Cap.all_caps) base (argv : string array) : unit =
   Logs.info (fun m -> m "Executed as: %s" (argv |> String.concat " "));
   Logs.info (fun m -> m "Version: %s" Version.version);
 
-  (* hacks to reduce the size of engine.js
-   * coupling: if you add an init() call here, you probably need to modify
+  (* coupling: if you add an init() call here, you probably need to modify
    * also tests/Test.ml, CLI.ml, and Pro_core_CLI.ml
    *)
-  Data_init.init ();
   Proxy.configure_proxy (Proxy.settings_from_env ());
   Http_helpers.set_client_ref (module Cohttp_lwt_unix.Client);
 
