@@ -26,7 +26,6 @@ module Attributes : sig
   val deployment_environment_name : string
   val vcs_ref_head_revision : string
   val vcs_ref_head_name : string
-  val thread_id : string
   val scan_engine : string
   val scan_source : string
   val experiment_name : string

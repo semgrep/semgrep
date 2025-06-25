@@ -73,21 +73,33 @@ let core_error_of_path_exc (internal_path : Fpath.t) (e : Exception.t) :
    :)
 *)
 
-let init job =
+let init _job =
+  (* With the OCaml 5 upgrade we started sporadically seeing strange Parmap
+   * errors again when tracing is enabled. This remains somewhat mysterious.
+   * Disable tracing in child processes for now. Fortunately OCaml 5 gives us
+   * more options for a couple pieces of this unfortunate area so hopefully we
+   * will be able to replace some of the problematic components soon.
+   *
+   * TODO Re-enable tracing (and update initialize below!) *)
+  (*
   (* Set a global attribute to the job number so we know when we look at
      traces/logs/metrics which job it came from! *)
+  Tracing.add_global_attribute Trace_data.Attributes.job (`Int job);
   (* Restart tracing as it is paused before forking below in both
      map_targets___* funcs *)
   (* NOTE: this only restarts tracing in the child *)
-  Tracing.add_global_attribute Telemetry.Attributes.thread_id (`Int job);
-
-  Telemetry.restart_otel ();
+  Tracing.restart_otel ()
+  *)
   ()
 
 let finalize () =
   (* Stop tracing to ensure traces are flushed *)
   (* NOTE: this only stops tracing in the child *)
-  Telemetry.stop_otel ()
+  (* TODO See note in init *)
+  (*
+  Tracing.stop_otel ()
+  *)
+  ()
 
 (* Run jobs in parallel, using number of cores specified with -j *)
 let map_targets__run_in_forked_process_do_not_modify_globals caps
