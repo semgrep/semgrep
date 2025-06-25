@@ -426,7 +426,7 @@ let all_actions (caps : Cap.all_caps) () =
     ( "-dump_tree_sitter_pattern_cst",
       " <file>",
       Arg_.mk_action_1_conv Fpath.v (fun file ->
-          Parse_pattern2.dump_tree_sitter_pattern_cst (Lang.of_opt_exn !lang)
+          Parse_pattern.dump_tree_sitter_pattern_cst (Lang.of_opt_exn !lang)
             file) );
     ( "-dump_pfff_ast",
       " <file> dump the generic AST obtained from a pfff parser",

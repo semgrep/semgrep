@@ -32,6 +32,47 @@
    semgrep_targeting ; for Input_to_core.atd
    parallelism
 
+   ; has an xxx.ast, xxx.menhir, xxx.tree_sitter, xxx.generic
+   parser_go.menhir parser_go.tree_sitter parser_go.ast_generic
+   parser_ocaml.menhir parser_ocaml.tree_sitter parser_ocaml.ast_generic
+   parser_java.menhir parser_java.tree_sitter parser_java.ast_generic
+   parser_python.menhir parser_python.tree_sitter parser_python.ast_generic
+   parser_cpp.menhir parser_cpp.tree_sitter parser_cpp.ast_generic
+   parser_php.menhir parser_php.tree_sitter parser_php.ast_generic
+   ; no tree_sitter (use the one for typescript)
+   parser_javascript.menhir parser_javascript.ast_generic
+   ; no ast_generic (use the one for javascript)
+   parser_typescript.tree_sitter
+   ; no tree_sitter
+   parser_scala.recursive_descent parser_scala.ast_generic
+   parser_yaml.ast parser_yaml.parser
+   ; no menhir
+   parser_bash.tree_sitter parser_bash.ast_generic
+   parser_dockerfile.tree_sitter parser_dockerfile.ast_generic
+   parser_jsonnet.tree_sitter parser_jsonnet.ast_generic
+   parser_terraform.tree_sitter parser_terraform.ast_generic
+   parser_ruby.tree_sitter parser_ruby.ast_generic
+   parser_ql.tree_sitter parser_ql.ast_generic
+   ; directly to generic AST
+   parser_dart.ast_generic
+   parser_cairo.ast_generic
+   parser_lisp.tree_sitter
+   parser_solidity.ast_generic
+   parser_csharp.ast_generic
+   parser_rust.ast_generic
+   parser_lua.ast_generic
+   parser_kotlin.ast_generic
+   parser_swift.ast_generic
+   parser_julia.ast_generic
+   parser_r.ast_generic
+   parser_hack.ast_generic
+   parser_html.ast_generic
+   parser_promql.ast_generic
+   parser_protobuf.ast_generic
+   parser_move_on_sui.ast_generic
+   parser_move_on_aptos.ast_generic
+   parser_circom.ast_generic
+
  )
  (preprocess (pps ppx_profiling ppx_deriving.show))
 )

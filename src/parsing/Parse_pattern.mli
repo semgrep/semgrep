@@ -4,5 +4,4 @@ val parse_pattern :
   string ->
   (Pattern.t, string) Result.t
 
-val parse_pattern_ref :
-  (Rule_options_t.t option -> Lang.t -> string -> Pattern.t) ref
+val dump_tree_sitter_pattern_cst : Lang.t -> Fpath.t -> unit
