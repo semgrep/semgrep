@@ -100,6 +100,9 @@ let (inout_to_str : ('env -> string) -> 'env inout -> string) =
   spf "IN= %15s  OUT = %15s" (env_to_str inout.in_env)
     (env_to_str inout.out_env)
 
+let times_dataflow_run = Atomic.make 0
+let get_times_dataflow_run () = Atomic.get times_dataflow_run
+
 (*****************************************************************************)
 (* Main generic entry point *)
 (*****************************************************************************)
@@ -180,6 +183,7 @@ module Make (F : Flow) = struct
         forward:bool ->
         'env mapping * [ `Ok | `Timeout ]) =
    fun ~timeout ~eq_env ~init ~trans ~flow ~forward ->
+    Atomic.incr times_dataflow_run;
     let succs = if forward then forward_succs else backward_succs in
     let work =
       (* This prevents dead code from getting analyzed. *)

@@ -55,3 +55,6 @@ module Make (F : Flow) : sig
   (* debugging output *)
   val display_mapping : F.flow -> 'env mapping -> ('env -> string) -> unit
 end
+
+val get_times_dataflow_run : unit -> int
+(** [get_times_dataflow_run ()] returns the total number of times fixpoint has been called in total. This is mostly for debugging and benchmarking purposes. *)
