@@ -219,6 +219,7 @@ and expr =
    * that requires semantic information about the type of x and y.
    *)
   | Dot of expr * Tok.t * ident
+  | DotEllipsis of expr * Tok.t (* ... *)
   | ArrayAccess of expr * expr bracket
   | Unary of AST_generic.operator (* +/-/~/! *) wrap * expr
   | Postfix of expr * AST_generic.incr_decr wrap

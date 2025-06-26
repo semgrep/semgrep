@@ -812,7 +812,7 @@ and field_access (env : env) ((v1, v2, v3, v4) : CST.field_access) =
   in
   let v2 =
     match v2 with
-    | Some (v1bis, v2bis) ->
+    | Some (v1bis, v2bis) -> (
         let v1bis =
           token env v1bis
           (* "." *)
@@ -821,8 +821,16 @@ and field_access (env : env) ((v1, v2, v3, v4) : CST.field_access) =
           super_id_field env v2bis
           (* "super" *)
         in
-        fun v3 v4 -> Dot (Dot (v1, v1bis, v2bis), v3, v4)
-    | None -> fun v3 v4 -> Dot (v1, v3, v4)
+        let base = Dot (v1, v1bis, v2bis) in
+        fun v_dot v_after ->
+          match v_after with
+          | Left s -> Dot (base, v_dot, s)
+          | Right tok -> DotEllipsis (base, tok))
+    | None -> (
+        fun v_dot v_after ->
+          match v_after with
+          | Left s -> Dot (v1, v_dot, s)
+          | Right t -> DotEllipsis (v1, t))
   in
   let v3 =
     token env v3
@@ -831,10 +839,11 @@ and field_access (env : env) ((v1, v2, v3, v4) : CST.field_access) =
 
   let v4 =
     match v4 with
-    | `Id tok -> str env tok (* pattern [a-zA-Z_]\w* *)
-    | `Rese_id x -> reserved_identifier env x
-    | `This tok -> str env tok
+    | `Id tok -> Left (str env tok (* pattern [a-zA-Z_]\w* *))
+    | `Rese_id x -> Left (reserved_identifier env x)
+    | `This tok -> Left (str env tok)
     (* "this" *)
+    | `DOTDOTDOT tok -> Right (token env tok)
   in
   v2 v3 v4
 
@@ -965,6 +974,16 @@ and stmt1 tok = function
   | [ x ] -> x
   | xs -> Block (Tok.fake_bracket tok xs)
 
+and typed_metavariable_declaration (env : env) ty id eq rhs =
+  let ty = type_ env ty in
+  let id =
+    (* pattern [\p{XID_Start}_$][\p{XID_Continue}\u00A2_$]* *) str env id
+  in
+  let eq = token env eq in
+  let rhs = expression env rhs in
+  let lhs = TypedMetavar (id, ty) in
+  Assign (lhs, eq, rhs)
+
 and statement (env : env) ~tok (x : CST.statement) : Ast_java.stmt =
   statement_aux env x |> stmt1 tok
 
@@ -974,6 +993,13 @@ and statement_aux (env : env) (x : CST.statement) : Ast_java.stmt list =
       let tok = (* "..." *) token env tok in
       [ Expr (Ellipsis tok, AST_generic.sc) ]
   | `Semg_named_ellips tok -> [ Expr (name_of_id env tok, AST_generic.sc) ]
+  | `Typed_meta_decl (_v_lparen, v_ty, v_id, _v_rparen, v_eq, v_rhs, _v_semi_opt)
+    ->
+      [
+        Expr
+          ( typed_metavariable_declaration env v_ty v_id v_eq v_rhs,
+            AST_generic.sc );
+      ]
   | `Choice_decl x -> (
       match x with
       | `Decl x -> [ declaration env x ]
@@ -1022,7 +1048,7 @@ and statement_aux (env : env) (x : CST.statement) : Ast_java.stmt list =
           let v2 = parenthesized_expression env v2 in
           let v3 = statement env ~tok:v1 v3 in
           [ While (v1, v2, v3) ]
-      | `For_stmt (v1, v2, v3, v4, v5, v6, v7, v8) ->
+      | `For_stmt (v1, v2, v3, v4, v5) ->
           let v1 =
             token env v1
             (* "for" *)
@@ -1033,12 +1059,49 @@ and statement_aux (env : env) (x : CST.statement) : Ast_java.stmt list =
           in
           let v3 =
             match v3 with
-            | `Local_var_decl x ->
-                let xs, _sc = local_variable_declaration env x in
-                ForInitVars xs
-            | `Opt_exp_rep_COMMA_exp_SEMI (v1, v2) ->
+            | `Choice_local_var_decl_opt_exp_SEMI_opt_exp_rep_COMMA_exp
+                (v1, v2, v3, v4) ->
                 let v1 =
                   match v1 with
+                  | `Local_var_decl x ->
+                      let xs, _sc = local_variable_declaration env x in
+                      ForInitVars xs
+                  | `Opt_exp_rep_COMMA_exp_SEMI (v1, v2) ->
+                      let v1 =
+                        match v1 with
+                        | Some (v1, v2) ->
+                            let v1 = expression env v1 in
+                            let v2 =
+                              List_.map
+                                (fun (v1, v2) ->
+                                  let _v1 =
+                                    token env v1
+                                    (* "," *)
+                                  in
+                                  let v2 = expression env v2 in
+                                  v2)
+                                v2
+                            in
+                            v1 :: v2
+                        | None -> []
+                      in
+                      let _v2 =
+                        token env v2
+                        (* ";" *)
+                      in
+                      ForInitExprs v1
+                in
+                let v2 =
+                  match v2 with
+                  | Some x -> [ expression env x ]
+                  | None -> []
+                in
+                let _v3 =
+                  token env v3
+                  (* ";" *)
+                in
+                let v4 =
+                  match v4 with
                   | Some (v1, v2) ->
                       let v1 = expression env v1 in
                       let v2 =
@@ -1055,45 +1118,12 @@ and statement_aux (env : env) (x : CST.statement) : Ast_java.stmt list =
                       v1 :: v2
                   | None -> []
                 in
-                let _v2 =
-                  token env v2
-                  (* ";" *)
-                in
-                ForInitExprs v1
+                ForClassic (v1, v2, v4)
+            | `Semg_ellips tok -> ForEllipsis (token env tok)
           in
-          let v4 =
-            match v4 with
-            | Some x -> [ expression env x ]
-            | None -> []
-          in
-          let _v5 =
-            token env v5
-            (* ";" *)
-          in
-          let v6 =
-            match v6 with
-            | Some (v1, v2) ->
-                let v1 = expression env v1 in
-                let v2 =
-                  List_.map
-                    (fun (v1, v2) ->
-                      let _v1 =
-                        token env v1
-                        (* "," *)
-                      in
-                      let v2 = expression env v2 in
-                      v2)
-                    v2
-                in
-                v1 :: v2
-            | None -> []
-          in
-          let v7 =
-            token env v7
-            (* ")" *)
-          in
-          let v8 = statement env ~tok:v7 v8 in
-          [ For (v1, ForClassic (v3, v4, v6), v8) ]
+          let _v4 = (* ")" *) token env v4 in
+          let v5 = statement env ~tok:v1 v5 in
+          [ For (v1, v3, v5) ]
       | `Enha_for_stmt (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
           let v1 =
             token env v1
@@ -1409,13 +1439,15 @@ and catch_clause (env : env) ((v1, v2, v3, v4, v5) : CST.catch_clause) =
   let v5 = block env v5 in
   (v1, v3, v5)
 
-and catch_formal_parameter (env : env)
-    ((v1, v2, v3) : CST.catch_formal_parameter) =
-  let v1 = modifiers_opt env v1 in
-  let vtyp, vothertyps = catch_type env v2 in
-  let v3 = variable_declarator_id env v3 in
-  let vdef = canon_var v1 (Some vtyp) v3 in
-  CatchParam (vdef, vothertyps)
+and catch_formal_parameter (env : env) (x : CST.catch_formal_parameter) =
+  match x with
+  | `Opt_modifs_catch_type_var_decl_id (v1, v2, v3) ->
+      let v1 = modifiers_opt env v1 in
+      let vtyp, vothertyps = catch_type env v2 in
+      let v3 = variable_declarator_id env v3 in
+      let vdef = canon_var v1 (Some vtyp) v3 in
+      CatchParam (vdef, vothertyps)
+  | `Semg_ellips tok -> CatchEllipsis ((* "..." *) token env tok)
 
 and catch_type (env : env) ((v1, v2) : CST.catch_type) =
   let v1 = unannotated_type env v1 in
@@ -1559,7 +1591,7 @@ and annotation_argument_list (env : env)
     | `Opt_elem_value_pair_rep_COMMA_elem_value_pair opt -> (
         match opt with
         | Some (v1, v2) ->
-            let v1 = AnnotPair (element_value_pair env v1) in
+            let v1 = element_value_pair env v1 in
             let v2 =
               List_.map
                 (fun (v1, v2) ->
@@ -1567,7 +1599,7 @@ and annotation_argument_list (env : env)
                     token env v1
                     (* "," *)
                   in
-                  let v2 = AnnotPair (element_value_pair env v2) in
+                  let v2 = element_value_pair env v2 in
                   v2)
                 v2
             in
@@ -1580,14 +1612,17 @@ and annotation_argument_list (env : env)
   in
   (v1, v2, v3)
 
-and element_value_pair (env : env) ((v1, v2, v3) : CST.element_value_pair) =
-  let v1 = anon_choice_id_662bcdc env v1 in
-  let _v2 =
-    token env v2
-    (* "=" *)
-  in
-  let v3 = element_value env v3 in
-  (v1, v3)
+and element_value_pair (env : env) (x : CST.element_value_pair) =
+  match x with
+  | `Choice_id_EQ_elem_value (v1, v2, v3) ->
+      let v1 = anon_choice_id_662bcdc env v1 in
+      let _v2 =
+        token env v2
+        (* "=" *)
+      in
+      let v3 = element_value env v3 in
+      AnnotPair (v1, v3)
+  | `Semg_ellips tok -> AnnotPairEllipsis ((* "..." *) token env tok)
 
 and element_value (env : env) (x : CST.element_value) =
   match x with
@@ -1821,13 +1856,16 @@ and class_body_decl env (x : CST.class_body_declaration) =
   | `Semg_ellips tok -> [ DeclEllipsis (token env tok) ]
   | `Semg_named_ellips tok -> [ DeclMetavarEllipsis (str env tok) ]
 
-and enum_body_declarations (env : env) ((v1, v2) : CST.enum_body_declarations) =
-  let _v1 =
-    token env v1
-    (* ";" *)
-  in
-  let v2 = List_.map (fun x -> class_body_decl env x) v2 in
-  List_.flatten v2
+and enum_body_declarations (env : env) (x : CST.enum_body_declarations) =
+  match x with
+  | `SEMI_rep_choice_choice_field_decl (v1, v2) ->
+      let _v1 =
+        token env v1
+        (* ";" *)
+      in
+      let v2 = List_.map (fun x -> class_body_decl env x) v2 in
+      List_.flatten v2
+  | `Semg_ellips tok -> [ DeclEllipsis (token env tok) ]
 
 and enum_constant (env : env) ((v1, v2, v3, v4) : CST.enum_constant) =
   let _v1 = modifiers_opt env v1 in
@@ -1951,19 +1989,24 @@ and type_parameters (env : env) ((v1, v2, v3, v4) : CST.type_parameters) =
   in
   v2 :: v3
 
-and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) :
-    type_parameter =
-  let _v1 = List_.map (annotation env) v1 in
-  let v2 =
-    identifier env v2
-    (* pattern [a-zA-Z_]\w* *)
-  in
-  let v3 =
-    match v3 with
-    | Some x -> type_bound env x
-    | None -> []
-  in
-  TParam (v2, v3)
+and type_parameter (env : env) (x : CST.type_parameter) : type_parameter =
+  match x with
+  | `Rep_anno_id_opt_type_bound (v1, v2, v3) ->
+      let _v1 = List_.map (annotation env) v1 in
+      let v2 =
+        identifier env v2
+        (* pattern [a-zA-Z_]\w* *)
+      in
+      let v3 =
+        match v3 with
+        | Some x -> type_bound env x
+        | None -> []
+      in
+      TParam (v2, v3)
+  | `Semg_ellips tok -> TParamEllipsis (token env tok)
+  | `Semg_named_ellips tok ->
+      let v1 = str env tok in
+      TParam (v1, [])
 
 and type_bound (env : env) ((v1, v2, v3) : CST.type_bound) =
   let _v1 =
@@ -2223,34 +2266,37 @@ and annotation_type_body (env : env) ((v1, v2, v3) : CST.annotation_type_body) =
   (v1, List_.flatten v2, v3)
 
 and annotation_type_element_declaration (env : env)
-    ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.annotation_type_element_declaration)
-    =
-  let _v1 = modifiers_opt env v1 in
-  let _v2 = unannotated_type env v2 in
-  let _, v3 = anon_choice_id_662bcdc env v3 in
-  let _v4 =
-    token env v4
-    (* "(" *)
-  in
-  let _v5 =
-    token env v5
-    (* ")" *)
-  in
-  let _v6 =
-    match v6 with
-    | Some x -> dimensions env x
-    | None -> []
-  in
-  let _v7 =
-    match v7 with
-    | Some x -> Some (default_value env x)
-    | None -> None
-  in
-  let _v8 =
-    token env v8
-    (* ";" *)
-  in
-  AnnotationTypeElementTodo v3
+    (x : CST.annotation_type_element_declaration) =
+  match x with
+  | `Opt_modifs_unan_type_choice_id_LPAR_RPAR_opt_dimens_opt_defa_value_SEMI
+      (v1, v2, v3, v4, v5, v6, v7, v8) ->
+      let _v1 = modifiers_opt env v1 in
+      let _v2 = unannotated_type env v2 in
+      let _, v3 = anon_choice_id_662bcdc env v3 in
+      let _v4 =
+        token env v4
+        (* "(" *)
+      in
+      let _v5 =
+        token env v5
+        (* ")" *)
+      in
+      let _v6 =
+        match v6 with
+        | Some x -> dimensions env x
+        | None -> []
+      in
+      let _v7 =
+        match v7 with
+        | Some x -> Some (default_value env x)
+        | None -> None
+      in
+      let _v8 =
+        token env v8
+        (* ";" *)
+      in
+      AnnotationTypeElementTodo v3
+  | `Semg_ellips tok -> DeclEllipsis (token env tok)
 
 and default_value (env : env) ((v1, v2) : CST.default_value) =
   let v1 =
@@ -2322,7 +2368,8 @@ and interface_body (env : env) ((v1, v2, v3) : CST.interface_body) =
         | `Inte_decl x -> [ Class (interface_declaration env x) ]
         | `Record_decl x -> [ Class (record_declaration env x) ]
         | `Anno_type_decl x -> [ Class (annotation_type_declaration env x) ]
-        | `SEMI tok -> [ EmptyDecl (token env tok) (* ";" *) ])
+        | `SEMI tok -> [ EmptyDecl (token env tok) (* ";" *) ]
+        | `Semg_ellips tok -> [ DeclEllipsis (token env tok) ])
       v2
   in
   let v3 =
@@ -2736,12 +2783,31 @@ let partials (env : env) (x : CST.partials) =
       let v2 = method_header env v2 in
       let v3 = EmptyStmt (Tok.unsafe_fake_tok "") in
       let _tparams, t, id, params, throws = v2 in
-      PartialDecl
-        (Method
-           {
-             (AST.method_header v1 t (IdentDecl id, params) throws) with
-             m_body = v3;
-           })
+      Partial
+        (PartialDecl
+           (Method
+              {
+                (AST.method_header v1 t (IdentDecl id, params) throws) with
+                m_body = v3;
+              }))
+  | `Anno_ (v1, v2, v3) ->
+      let _tok, annot =
+        let v1 =
+          token env v1
+          (* "@" *)
+        in
+        let v2 = name env v2 in
+        let v3 = annotation_argument_list env v3 in
+        (v1, (v1, v2, Some v3))
+      in
+      AMod (Annotation annot, G.sc)
+  | `Fina_clause x ->
+      let v1 = finally_clause env x in
+      Partial (PartialFinally v1)
+  | `Part_try_stmt (v1, v2) ->
+      let v1 = (* "try" *) token env v1 in
+      let v2 = block env v2 in
+      Partial (PartialTry (v1, v2))
 
 let toplevel_statement (env : env) ~tok (x : CST.toplevel_statement) =
   match x with
@@ -2754,8 +2820,50 @@ let program (env : env) (file : Fpath.t) (x : CST.program) =
       let tok = Tok.first_tok_of_file file in
       AProgram (List_.map (toplevel_statement env ~tok) xs)
   | `Cons_decl x -> AStmt (DeclStmt (Method (constructor_declaration env x)))
+  | `Enum_decl x -> AStmt (DeclStmt (Enum (enum_declaration env x)))
+  | `Static_init x -> AStmt (DeclStmt (static_initializer env x))
+  | `Anno_type_decl x ->
+      AStmt (DeclStmt (Class (annotation_type_declaration env x)))
   | `Exp x -> AExpr (expression env x)
-  | `Partis x -> Partial (partials env x)
+  | `Partis x -> partials env x
+  | `Topl_typed_meta_decl
+      (_v_lparen, v_ty, v_id, _v_rparen, v_eq, v_rhs, _v_semi_opt) ->
+      AExpr (typed_metavariable_declaration env v_ty v_id v_eq v_rhs)
+  | `Topl_expl_cons_invo (v1, v2, v3) ->
+      let v1 =
+        match v1 with
+        | `Opt_type_args_choice_this (v1, v2) ->
+            let _v1TODO = option (type_arguments env) v1 in
+            let v2 =
+              match v2 with
+              | `This tok -> This (token env tok) (* "this" *)
+              | `Super tok -> super env tok
+              (* "super" *)
+            in
+            v2
+        | `Choice_prim_exp_DOT_opt_type_args_super (v1, v2, v3, v4) ->
+            let v1 =
+              match v1 with
+              | `Prim_exp x -> primary_expression env x
+            in
+            let v2 =
+              token env v2
+              (* "." *)
+            in
+            let _v3 = option (type_arguments env) v3 in
+            let v4 =
+              super_id_field env v4
+              (* "super" *)
+            in
+            Dot (v1, v2, v4)
+      in
+      let v2 = argument_list env v2 in
+      let _v3 =
+        match v3 with
+        | Some tok -> Some (token env tok)
+        | None -> None
+      in
+      AExpr (Call (v1, v2))
 
 (*****************************************************************************)
 (* Entry point *)

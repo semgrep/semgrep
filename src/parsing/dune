@@ -35,7 +35,6 @@
    ; has an xxx.ast, xxx.menhir, xxx.tree_sitter, xxx.generic
    parser_go.menhir parser_go.tree_sitter parser_go.ast_generic
    parser_ocaml.menhir parser_ocaml.tree_sitter parser_ocaml.ast_generic
-   parser_java.menhir parser_java.tree_sitter parser_java.ast_generic
    parser_python.menhir parser_python.tree_sitter parser_python.ast_generic
    parser_cpp.menhir parser_cpp.tree_sitter parser_cpp.ast_generic
    parser_php.menhir parser_php.tree_sitter parser_php.ast_generic
@@ -49,6 +48,7 @@
    ; no menhir
    parser_bash.tree_sitter parser_bash.ast_generic
    parser_dockerfile.tree_sitter parser_dockerfile.ast_generic
+   parser_java.tree_sitter parser_java.ast_generic
    parser_jsonnet.tree_sitter parser_jsonnet.ast_generic
    parser_terraform.tree_sitter parser_terraform.ast_generic
    parser_ruby.tree_sitter parser_ruby.ast_generic

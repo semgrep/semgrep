@@ -331,6 +331,9 @@ and expr e =
   | Dot (v1, t, v2) ->
       let v1 = expr v1 and t = info t and v2 = ident v2 in
       G.DotAccess (v1, t, G.FN (G.Id (v2, G.empty_id_info ())))
+  | DotEllipsis (v1, t) ->
+      let v1 = expr v1 and t = info t in
+      G.DotAccessEllipsis (v1, t)
   | ArrayAccess (v1, v2) ->
       let v1 = expr v1 and v2 = bracket expr v2 in
       G.ArrayAccess (v1, v2)

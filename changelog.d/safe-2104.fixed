@@ -1,0 +1,4 @@
+Java: Deprecated `class $A` partial class pattern, in favor of
+```
+class $A { ... }
+```
