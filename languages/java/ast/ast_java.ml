@@ -554,6 +554,7 @@ let tok_of_name_or_class_type (x : name_or_class_type) : Tok.t =
  *)
 
 type var_decl_id = IdentDecl of ident | ArrayDecl of var_decl_id
+[@@deriving show]
 
 let rec tok_of_var = function
   | IdentDecl i -> snd i

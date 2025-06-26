@@ -587,6 +587,19 @@ and new_id env tok = str env tok
 
 and primary_expression (env : env) (x : CST.primary_expression) =
   match x with
+  | `Typed_meta (v1, v2, v3, v4) ->
+      let _v1 = (* "(" *) token env v1 in
+      let v2 = type_ env v2 in
+      let v3 =
+        (* pattern [\p{XID_Start}_$][\p{XID_Continue}\u00A2_$]* *) str env v3
+      in
+      let _v4 = (* ")" *) token env v4 in
+      TypedMetavar (v3, v2)
+  | `Deep_ellips (v1, v2, v3) ->
+      let v1 = (* "<..." *) token env v1 in
+      let v2 = expression env v2 in
+      let v3 = (* "...>" *) token env v3 in
+      DeepEllipsis (v1, v2, v3)
   | `Semg_ellips tok ->
       let tok = (* "..." *) token env tok in
       Ellipsis tok
@@ -2557,11 +2570,27 @@ and formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) =
 
 and formal_parameter (env : env) (x : CST.formal_parameter) =
   match x with
-  | `Opt_modifs_unan_type_var_decl_id (v1, v2, v3) ->
+  | `Opt_modifs_unan_type_var_decl_id (v1, v2, v3) -> (
       let v1 = modifiers_opt env v1 in
       let v2 = unannotated_type env v2 in
       let v3 = variable_declarator_id env v3 in
-      ParamClassic (AST.canon_var v1 (Some v2) v3)
+      match (v2, v3) with
+      (* This sometimes happens when a rule-writer writes something they shouldn't, which is a metavariable
+         parameter to a method which has no type.
+
+         Like:
+         ```
+         $TY $FUNC(..., $ARG, ...) { ... }
+         ```
+
+         In this, we end up with a type which is the metavariable, and a variable with an empty name.
+
+         The lowest-friction thing to do is to just fix it in translation here.
+       *)
+      | TClass [ (ty, _) ], IdentDecl id
+        when AST_generic.is_metavar_name (fst ty) && fst id =*= "" ->
+          ParamClassic { name = ty; type_ = None; mods = [] }
+      | _ -> ParamClassic (AST.canon_var v1 (Some v2) v3))
   | `Semg_ellips tok ->
       let tok = (* "..." *) token env tok in
       ParamEllipsis tok
