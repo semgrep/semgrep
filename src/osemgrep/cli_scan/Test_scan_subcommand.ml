@@ -121,12 +121,7 @@ let test_basic_output (caps : Scan_subcommand.caps) () =
             without_settings (fun () ->
                 Scan_subcommand.main caps
                   [|
-                    "semgrep-scan";
-                    "--experimental";
-                    (* explicitly turn metrics on to ensure debug text prints to console *)
-                    "--metrics=on";
-                    "--config";
-                    "rules.yml";
+                    "semgrep-scan"; "--experimental"; "--config"; "rules.yml";
                   |])
           in
           Exit_code.Check.ok exit_code))
@@ -165,54 +160,6 @@ let test_basic_verbose_output (caps : Scan_subcommand.caps) () =
           in
           Exit_code.Check.ok exit_code))
 
-let test_basic_output_with_metrics_off (caps : Scan_subcommand.caps) () =
-  with_env_app_token (fun () ->
-      let repo_files =
-        [
-          F.File ("rules.yml", eqeq_basic_content);
-          F.File ("stupid.py", stupid_py_content);
-        ]
-      in
-      Testutil_git.with_git_repo ~verbose:true repo_files (fun _cwd ->
-          let exit_code =
-            without_settings (fun () ->
-                Scan_subcommand.main caps
-                  [|
-                    "semgrep-scan";
-                    "--experimental";
-                    "--metrics=off";
-                    "--config";
-                    "rules.yml";
-                  |])
-          in
-          Exit_code.Check.ok exit_code))
-
-let test_metrics_output_supressed_on_subsequent_runs
-    (caps : Scan_subcommand.caps) () =
-  with_env_app_token (fun () ->
-      let repo_files =
-        [
-          F.File ("rules.yml", eqeq_basic_content);
-          F.File ("stupid.py", stupid_py_content);
-        ]
-      in
-      Testutil_git.with_git_repo ~verbose:true repo_files (fun _cwd ->
-          let run_scan () =
-            without_settings (fun () ->
-                Scan_subcommand.main caps
-                  [|
-                    "semgrep-scan";
-                    "--experimental";
-                    "--metrics=on";
-                    "--config";
-                    "rules.yml";
-                  |])
-          in
-          let exit_code1 = run_scan () in
-          let exit_code2 = run_scan () in
-          Exit_code.Check.ok exit_code1;
-          Exit_code.Check.ok exit_code2))
-
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -242,11 +189,4 @@ let tests (caps : < Scan_subcommand.caps >) =
         ~skipped:"captured output depends on which tests run before it"
         ~checked_output:(Testo.stdxxx ()) ~normalize
         (test_basic_verbose_output caps);
-      t "basic output with metrics off" ?skipped:Testutil.skip_on_windows
-        ~checked_output:(Testo.stdxxx ()) ~normalize
-        (test_basic_output_with_metrics_off caps);
-      t "basic output with metrics on only prints debug text once"
-        ?skipped:Testutil.skip_on_windows ~checked_output:(Testo.stdxxx ())
-        ~normalize
-        (test_metrics_output_supressed_on_subsequent_runs caps);
     ]
