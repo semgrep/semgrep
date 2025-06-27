@@ -324,6 +324,12 @@ let dump_lang_ast (lang : Lang.t) (file : Fpath.t) : unit =
       in
       let s = AST_ocaml.show_program ast in
       UCommon.pr2 s
+  | Lang.Cpp ->
+      let ast =
+        let res = Parse_cpp_tree_sitter.parse file in
+        res.program |> List_.optlist_to_list
+      in
+      UCommon.pr2 (Ast_cpp.show_program ast)
   | _else_ ->
       failwith (spf "dumper not supported yet for lang: %s" (Lang.show lang))
 
