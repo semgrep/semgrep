@@ -66,10 +66,7 @@ let add_project_and_config_metrics (conf : Scan_CLI.conf) : unit =
   | Pattern _ -> ()
 
 let notify_user_about_metrics_once (settings : Semgrep_settings.t) : unit =
-  if
-    Metrics_.is_enabled ()
-    && not (settings.has_shown_metrics_notification =*= Some true)
-  then (
+  if not (settings.has_shown_metrics_notification =*= Some true) then (
     (* python compatibility: the 22m and 24m are "normal color or intensity",
        and "underline off". It doesn't change how the text is rendered
        but allows us to produce the same exact output as pysemgrep.
