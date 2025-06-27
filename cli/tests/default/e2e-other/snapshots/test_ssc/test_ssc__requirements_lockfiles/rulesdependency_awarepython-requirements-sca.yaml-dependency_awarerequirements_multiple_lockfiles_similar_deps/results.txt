@@ -108,22 +108,7 @@
     }
   ],
   "skipped_rules": [],
-  "time": {
-    "max_memory_bytes": "<masked in tests>",
-    "parsing_time": {
-      "per_file_time": {
-        "mean": "<masked in tests>",
-        "std_dev": "<masked in tests>"
-      },
-      "total_time": "<masked in tests>",
-      "very_slow_files": "<masked in tests>"
-    },
-    "profiling_times": "<masked in tests>",
-    "rules": [],
-    "rules_parse_time": "<masked in tests>",
-    "targets": [],
-    "total_bytes": 0
-  },
+  "time": "<masked in tests>",
   "version": "0.42"
 }
 === end of stdout - plain
