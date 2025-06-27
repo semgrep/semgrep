@@ -1,0 +1,59 @@
+--- begin input files ---
+rules.yml
+stupid.py
+--- end input files ---
+[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' 'init' '-b' 'main'
+Initialized empty Git repository in <TMP>/<MASKED>/.git/
+[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' 'config' 'user.name' 'Tester'
+[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' 'config' 'user.email' 'tester@example.com'
+[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' 'add' '.'
+[<MASKED TIMESTAMP>][INFO]: Running external command: 'git' 'commit' '-m' 'Add files'
+[main (root-commit) <MASKED>] Add files
+ 2 files changed, 11 insertions(+)
+ create mode 100644 rules.yml
+ create mode 100644 stupid.py
+
+┌──── [32m○○○[39m ────┐
+│ Semgrep CLI │
+└─────────────┘
+
+✔ Semgrep OSS
+  ✔ Basic security coverage for first-party code vulnerabilities.
+
+✔ Semgrep Code (SAST)
+  ✔ Find and fix vulnerabilities in the code you write with advanced scanning and expert security rules.
+
+✘ Semgrep Secrets
+  ✘ Detect and validate potential secrets in your code.
+
+
+  Loading rules from local config...
+
+
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 2 files tracked by git with 1 Code rule:
+  Scanning 2 files.
+
+
+┌────────────────┐
+│ 1 Code Finding │
+└────────────────┘
+
+    stupid.py
+   ❯❯❱ eqeq-bad
+          useless comparison
+
+            3┆ return a + b == a + b
+
+
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+Some files were skipped or only partially analyzed.
+  Scan was limited to files tracked by git.
+
+Ran 1 rule on 1 file: 1 finding.
+ASSERT exit code
