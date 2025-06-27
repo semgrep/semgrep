@@ -184,16 +184,11 @@ def _clean_output_if_json(output_json: str, clean_fingerprint: bool) -> str:
     except json.decoder.JSONDecodeError:
         return output_json
 
+    # coupling: tests/cli_e2e/conftest.py
     masked_keys = [
         "tool.driver.semanticVersion",
         "results.*.checks.*.matches",
-        "time.max_memory_bytes",
-        "time.profiling_times",
-        "time.rules_parse_time",
-        "time.*.total_time",
-        "time.*.very_slow_files",
-        "time.*.*.mean",
-        "time.*.*.std_dev",
+        "time",
     ]
     for path in masked_keys:
         mark_masked(output, path)
