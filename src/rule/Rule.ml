@@ -454,7 +454,7 @@ and extract_reduction = Separate | Concat [@@deriving show]
  * it to not be abstract for metavariable substitution.
  *)
 
-type header = { name : string; value : string } [@@deriving show]
+type header = { name : string; value : string } [@@deriving show, eq]
 type meth = [ `DELETE | `GET | `POST | `HEAD | `PUT ] [@@deriving show]
 
 (* Used to request additional auth headers are computed and added automatically,
