@@ -237,6 +237,8 @@ def test_metrics_payload(tmp_path, snapshot, mocker, monkeypatch, pro_flag):
     payload = json.loads(mock_post.call_args.kwargs["data"])
     payload["environment"]["version"] = _mask_digits(payload["environment"]["version"])
     payload["environment"]["isAuthenticated"] = False
+    payload["environment"]["os"] = "<MASKED>"
+
     payload["performance"]["maxMemoryBytes"] = _mask_digits(
         str(payload["performance"]["maxMemoryBytes"])
     )
