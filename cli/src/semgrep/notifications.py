@@ -12,8 +12,7 @@ logger = getLogger(__name__)
 def possibly_notify_user() -> None:
     from semgrep.state import get_state
 
-    state = get_state()
-    settings, metrics = state.settings, state.metrics
+    settings = get_state().settings
 
     has_shown = False
     try:
@@ -21,7 +20,7 @@ def possibly_notify_user() -> None:
     except PermissionError:
         logger.debug("Semgrep does not have access to user settings file")
 
-    if metrics.is_enabled and not has_shown:
+    if not has_shown:
         logger.warning(
             with_color(
                 Colors.yellow,
