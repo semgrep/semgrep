@@ -6,6 +6,15 @@
 
 <!-- insertion point -->
 
+## [1.127.1](https://github.com/semgrep/semgrep/releases/tag/v1.127.1) - 2025-07-25
+
+
+### Fixed
+
+
+- Fixed an issue where Semgrep would segfault if `--trace` was passed and the
+  number of jobs was greater than 1
+
 ## [1.127.0](https://github.com/semgrep/semgrep/releases/tag/v1.127.0) - 2025-06-24
 
 
