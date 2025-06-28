@@ -2,7 +2,7 @@
 # Overview
 ###############################################################################
 # Dockerfile to build the semgrep/semgrep:canary docker image
-# (see .github/workflows/{build-test-docker,push-docker}.jsonnet).
+# (see .github/workflows/build-test-docker.jsonnet).
 #
 # First, we build a fully *static* 'semgrep-core' binary on Alpine. This
 # binary does not even depend on Glibc because Alpine uses Musl instead
