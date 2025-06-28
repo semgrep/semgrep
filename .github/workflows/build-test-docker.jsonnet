@@ -1,8 +1,5 @@
 // Build and validate our (multi-arch) semgrep docker image defined in our
 // Dockerfile and save it as a GHA artifact.
-//
-// Note that the actual push to https://hub.docker.com/r/semgrep/semgrep
-// is done in the push-docker.jsonnet workflow, not here.
 
 local gha = import 'libs/gha.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
