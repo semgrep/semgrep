@@ -14,7 +14,7 @@
   "subprojects": [
     {
       "dependency_sources": [
-        "targets/dependency_aware/gradle-no-lockfile/build.gradle"
+        "targets/dependency_aware/gradle_multi_project_no_lockfile/settings.gradle.kts"
       ],
       "resolved": false,
       "unresolved_reason": "disabled"
@@ -31,7 +31,7 @@
 ┌─────────────┐
 │ Scan Status │
 └─────────────┘
-  Scanning 8 files tracked by git with 0 Code rules:
+  Scanning 11 files tracked by git with 0 Code rules:
   Nothing to scan.
 
 
@@ -43,7 +43,9 @@
  • Rules run: 1
  • Targets scanned: 0
  • Parsed lines: an unknown percentage
- • No ignore information available
+ • Scan skipped:
+   ◦ Files matching .semgrepignore patterns: 1
+ • For a detailed list of skipped files and lines, run semgrep with the --verbose flag
 Ran 1 rule on 0 files: 0 findings.
 
 === end of stderr - plain
