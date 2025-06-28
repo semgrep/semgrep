@@ -68,19 +68,35 @@ PARSERS_BY_LOCKFILE_KIND: Dict[out.LockfileKind, Union[DependencyParser, None]] 
     out.LockfileKind(out.BunLock()): None,  # No parser support yet
 }
 
-PTT_OCAML_PARSER_SUBPROJECT_KINDS = [
+SubprojectKind = Union[
+    Tuple[out.ManifestKind, None],
+    Tuple[None, out.LockfileKind],
+    Tuple[out.ManifestKind, out.LockfileKind],
+]
+
+PTT_OCAML_PARSER_SUBPROJECT_KINDS: List[SubprojectKind] = [
     (out.ManifestKind(out.PackageJson()), out.LockfileKind(out.NpmPackageLockJson())),
     (out.ManifestKind(out.Csproj()), out.LockfileKind(out.NugetPackagesLockJson())),
     # TODO: (out.ManifestKind(out.PackageJson()), out.LockfileKind(out.YarnLock())),
 ]
 
-# Subproject kinds that we use ocaml parsers for only when dependency paths are
-# enabled.
-PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS = [
+# subproject kinds that can only be resolved via dynamic resolution. Generally
+# these are subprojects where we have no lockfile available.
+ALWAYS_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS: List[SubprojectKind] = [
     (out.ManifestKind(out.PomXml()), None),
     (out.ManifestKind(out.BuildGradle()), None),
-    (out.ManifestKind(out.BuildGradle()), out.LockfileKind(out.GradleLockfile())),
+    (out.ManifestKind(out.SettingsGradle()), None),
+    (
+        out.ManifestKind(out.SetupPy()),
+        None,
+    ),
     (out.ManifestKind(out.Csproj()), None),
+]
+
+# Subproject kinds that we use ocaml parsers for only when dependency paths are
+# enabled.
+PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS: List[SubprojectKind] = [
+    (out.ManifestKind(out.BuildGradle()), out.LockfileKind(out.GradleLockfile())),
     (
         out.ManifestKind(out.RequirementsIn()),
         out.LockfileKind(out.PipRequirementsTxt()),
@@ -93,21 +109,17 @@ PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS = [
         out.ManifestKind(out.Pipfile()),
         out.LockfileKind(out.PipfileLock()),
     ),
-    (
-        out.ManifestKind(out.SetupPy()),
-        None,
-    ),
 ]
 
 # Subproject kinds that we use ocaml parsers for only when transitive reachability is
 # enabled.
-TR_OCAML_RESOLVER_SUBPROJECT_KINDS = [
+TR_OCAML_RESOLVER_SUBPROJECT_KINDS: List[SubprojectKind] = [
     (out.ManifestKind(out.PackageJson()), out.LockfileKind(out.NpmPackageLockJson())),
     (out.ManifestKind(out.PyprojectToml()), out.LockfileKind(out.UvLock())),
 ]
 
 # Subproject kinds that we use ocaml parsers for always.
-ALWAYS_OCAML_PARSER_SUBPROJECT_KINDS = [
+ALWAYS_OCAML_PARSER_SUBPROJECT_KINDS: List[SubprojectKind] = [
     (out.ManifestKind(out.PyprojectToml()), out.LockfileKind(out.UvLock()))
 ]
 
@@ -413,13 +425,15 @@ def resolve_dependency_source(
             dep_source_,
             config,
         )
-    elif (
-        isinstance(dep_source_, out.ManifestOnly)
-        and config.allow_local_builds
-        and (
-            (dep_source_.value.kind, None) in PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS
-            or config.download_dependency_source_code
+    elif isinstance(dep_source_, out.ManifestOnly) and (
+        (dep_source_.value.kind, None) in ALWAYS_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS
+        or (
+            config.ptt_enabled
+            and (dep_source_.value.kind, None)
+            in PTT_DYNAMIC_RESOLUTION_SUBPROJECT_KINDS
         )
+        # if we are downloading dependency source code, we always need to use ocaml
+        or config.download_dependency_source_code
     ):
         if config.allow_local_builds:
             return _handle_manifest_only_source(dep_source_, config)
