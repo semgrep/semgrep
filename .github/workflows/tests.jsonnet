@@ -315,15 +315,6 @@ local benchmarks_full_job = {
   ],
 };
 
-local trigger_semgrep_comparison_argo = {
-  'if': "${{ github.event_name == 'pull_request' && !startsWith(github.event.pull_request.base.ref, 'release') && !startsWith(github.head_ref, 'release') }}",
-  secrets: 'inherit',
-  needs: [
-    'push-docker-returntocorp',
-  ],
-  uses: './.github/workflows/trigger-semgrep-comparison-argo.yml',
-};
-
 // ----------------------------------------------------------------------------
 // Docker
 // ----------------------------------------------------------------------------
@@ -408,17 +399,6 @@ local build_test_docker_other_target_job(suffix, target) = {
 local right_ref_and_right_event =
   "github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))";
 
-local push_docker_job(artifact_name, repository_name) = {
-  uses: './.github/workflows/push-docker.yml',
-  'if': right_ref_and_right_event,
-  secrets: 'inherit',
-  with: {
-    'artifact-name': artifact_name,
-    'repository-name': repository_name,
-    'dry-run': false,
-  },
-};
-
 // ----------------------------------------------------------------------------
 // The Workflow
 // ----------------------------------------------------------------------------
@@ -460,19 +440,8 @@ local ignore_md = {
     // 'benchmarks-full': benchmarks_full_job,
     // Docker stuff
     'build-test-docker': build_test_docker_job,
-    'push-docker-returntocorp':
-      push_docker_job(docker_artifact_name, docker_repository_name) +
-      { needs: ['build-test-docker'] },
-    // No need to push those variant docker images. This is useful in
-    // release.jsonnet, but not so much here.
-    // old:
-    //  'push-docker-semgrep': push_docker_job(..., 'semgrep/semgrep') + { ... }
-    //  'push-docker-nonroot-returntocorp': ...
     'build-test-docker-performance-tests':
       build_test_docker_other_target_job('-performance-tests', 'performance-tests'),
-    //'push-docker-performance-tests': ...
-    // trigger argo workflows
-    'trigger-semgrep-comparison-argo': trigger_semgrep_comparison_argo,
     // The inherit jobs also included from releases.yml
     'build-test-core-x86': {
       uses: './.github/workflows/build-test-core-x86.yml',
