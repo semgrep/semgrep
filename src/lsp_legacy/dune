@@ -1,6 +1,6 @@
 (library
  (public_name semgrep.legacy_language_server)
- (name osemgrep_language_server)
+ (name osemgrep_legacy_language_server)
  (libraries
    semgrep.legacy_language_server.requests
    semgrep.legacy_language_server.notifications
@@ -9,7 +9,7 @@
    testo
    testo-lwt
  )
- (implements language_server)
+ (wrapped false)
  (preprocess
   (pps
     lwt_ppx

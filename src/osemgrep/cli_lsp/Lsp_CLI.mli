@@ -6,7 +6,7 @@
    The result of parsing a 'semgrep lsp' command.
 *)
 
-type conf = { common : CLI_common.conf } [@@deriving show]
+type conf = { common : CLI_common.conf; x_eio_ls : bool } [@@deriving show]
 
 (*
    Usage: parse_argv [| "semgrep-lsp"; <args> |]

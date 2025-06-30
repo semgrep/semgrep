@@ -29,7 +29,7 @@
     semgrep.engine
     parser_python.menhir parser_python.ast_generic
 
-    semgrep.legacy_language_server
+    osemgrep_legacy_language_server
 
     osemgrep_cli_login
     semgrep.osemgrep_tests

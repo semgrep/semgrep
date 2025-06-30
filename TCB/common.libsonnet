@@ -8,6 +8,7 @@
     '*_main.ml',
     'Main.ml',
     'Test*.ml',
+    'Legacy*.ml',
     'Unit_*.ml',
     // TODO: we should check those modules are only
     // called from testing code
