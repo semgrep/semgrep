@@ -1,6 +1,8 @@
 type caps =
   < Core_scan.caps ; Cap.random ; Cap.network ; Cap.tmp ; Cap.readdir >
 
+val hook_pro_language_server : (caps -> unit) option Hook.t
+
 (*
    Parse a semgrep-lsp command, execute it and exit.
 

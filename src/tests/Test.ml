@@ -156,7 +156,7 @@ let tests (caps : Cap.all_caps) base =
       Unit_jsonnet.tests (caps :> < Cap.time_limit >);
       Unit_metachecking.tests (caps :> < Core_scan.caps ; Cap.readdir >);
       (* osemgrep unit tests *)
-      Unit_LS.tests (caps :> Session.caps);
+      Legacy_unit_ls.tests (caps :> Legacy_session.caps);
       Unit_Login.tests caps;
       Unit_Fetching.tests (caps :> < Cap.network ; Cap.tmp ; Cap.readdir >);
       Unit_reporting.tests (caps :> < >);
@@ -173,7 +173,7 @@ let tests (caps : Cap.all_caps) base =
       (* Networking tests disabled as they will get rate limited sometimes *)
       (* And the SSL issues they've been testing have been stable *)
       (*Unit_Networking.tests;*)
-      Test_LS_e2e.tests (caps :> Lsp_subcommand.caps);
+      Legacy_test_ls_e2e.tests (caps :> Lsp_subcommand.caps);
       (* End osemgrep tests *)
       Spacegrep_tests.Test.tests ();
       Aliengrep.Unit_tests.tests;
@@ -216,7 +216,7 @@ let tests_with_delayed_error caps base =
 let main (caps : Cap.all_caps) base : unit =
   (* find the root of the semgrep repo as many of our tests rely on
      'let test_path = "tests/"' to find their test files *)
-  let project_root = Test_LS_e2e.project_root () in
+  let project_root = Legacy_test_ls_e2e.project_root () in
   (* Don't read ~/.gitconfig since it varies from one developer to another,
      resulting in variable output *)
   Unix.putenv "GIT_CONFIG_NOGLOBAL" "true";
