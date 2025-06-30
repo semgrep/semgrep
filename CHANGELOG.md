@@ -6,7 +6,7 @@
 
 <!-- insertion point -->
 
-## [1.127.1](https://github.com/semgrep/semgrep/releases/tag/v1.127.1) - 2025-07-25
+## [1.127.1](https://github.com/semgrep/semgrep/releases/tag/v1.127.1) - 2025-06-25
 
 
 ### Fixed
