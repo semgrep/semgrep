@@ -127,10 +127,10 @@ class GradleMatcher(SubprojectMatcher):
                     path=out.Fpath(str(build_path)),
                 )
             elif settings_path is not None:
-                # Gradle doesn't really have a manifest, but we treat both build.gradle and settings.gradle the same,
-                # so just classify them both as BuildGradle
+                # Gradle doesn't really have a manifest, but we treat both build.gradle and settings.gradle both as manifests
+                # depending on what's available.
                 manifest = out.Manifest(
-                    kind=out.ManifestKind(out.BuildGradle()),
+                    kind=out.ManifestKind(out.SettingsGradle()),
                     path=out.Fpath(str(settings_path)),
                 )
 

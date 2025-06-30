@@ -294,6 +294,10 @@ def test_ssc(run_semgrep_on_copied_files: RunSemgrep, snapshot, rule, target):
             "rules/dependency_aware/java-gradle-sca.yaml",
             "dependency_aware/gradle-no-lockfile",
         ),
+        (
+            "rules/dependency_aware/java-gradle-sca.yaml",
+            "dependency_aware/gradle_multi_project_no_lockfile",
+        ),
     ],
 )
 @pytest.mark.osemfail

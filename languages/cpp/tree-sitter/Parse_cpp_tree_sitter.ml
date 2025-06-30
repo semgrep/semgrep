@@ -2699,12 +2699,13 @@ and map_catch_clause (env : env) ((v1, v2, v3) : CST.catch_clause) : handler =
   in
   (v1, (l, ExnDecl param, r), v3)
 
-and map_class_declaration (env : env) ((v1, v2, v3, v4) : CST.class_declaration)
-    cwrap =
+and map_class_declaration ?(inside_type = false) (env : env)
+    ((v1, v2, v3, v4) : CST.class_declaration) cwrap =
   (* We need to add specifiers in more locations. Currently it does not
      fit into ClasName or ClassDec, which is a more radical change than
      I would like to make right now.
   *)
+  (* NOTE: see map_class_declaration_item as to why we need the optional param*)
   let _specs_TODO =
     let v1 =
       List_.map
@@ -2724,10 +2725,10 @@ and map_class_declaration (env : env) ((v1, v2, v3, v4) : CST.class_declaration)
     in
     v1 @ v2 @ v3
   in
-  let v4 = map_class_declaration_item env v4 cwrap in
+  let v4 = map_class_declaration_item ~inside_type env v4 cwrap in
   (nQ, v4)
 
-and map_class_declaration_item (env : env)
+and map_class_declaration_item ~inside_type (env : env)
     ((v1, v2) : CST.class_declaration_item) cwrap =
   let v1 =
     match v1 with
@@ -2761,7 +2762,23 @@ and map_class_declaration_item (env : env)
               c_members = v4;
             } )
         in
-        ClassDef cdef
+        (* NOTE: In instances where this occurs inside a type, we would make
+         * the error of assiging a ClassDef and it's entire contents as the
+         * type of all the fields of this class, as classs decls could occur in
+         * types. see: saf-2016
+         *)
+        let get_type_from_class () =
+          match v1 with
+          | Some name -> ClassName (cwrap, name)
+          | None ->
+              (* No ClassName available :( *)
+              Log.debug (fun m ->
+                  m
+                    "class has no name; could not assign the class's name as \
+                     type");
+              TypeTodo (("NoName Class", fake "ClassDef lacks name"), [])
+        in
+        if inside_type then get_type_from_class () else ClassDef cdef
   in
   let _v2_TODO =
     match v2 with
@@ -3152,9 +3169,18 @@ and map_declaration_list (env : env) ((v1, v2, v3) : CST.declaration_list) :
 and map_declaration_specifiers (env : env)
     ((v1, v2, v3) : CST.declaration_specifiers) : type_ * specifier list =
   let specs1 = List_.map (map_declaration_modifiers env) v1 in
-  let t = map_type_specifier env v2 in
+  (* As we construct the [t] type here, we run the risk of bumping into
+   * [`Opt_class_name_opt_virt_spec_opt_base_class_clause_field_decl_list]
+   * in the case that [v2] is some sort of class definition (i.e a struct
+   * or class). This makes it so that we inject the entire struct/class def
+   * as the type (i.e v_type) of all the variables inside the class, causing
+   * an exponential growth in the size of the AST
+   * see:
+   * - [1]: saf-2016
+   * - [2]: OSS/tests/parsing_partial/cpp/saf-2016.cpp
+   *)
+  let t = map_type_specifier ~inside_type:true env v2 in
   let specs2 = List_.map (map_declaration_modifiers env) v3 in
-
   (* adjustments for 'const int foo', where the const
    * actually applies to the type (this is what we do in parse_cpp.mly)
    * not the decl *)
@@ -5668,21 +5694,22 @@ and map_type_descriptor (env : env) ((v1, v2, v3, v4) : CST.type_descriptor) :
   in
   v4 t
 
-and map_type_specifier (env : env) (x : CST.type_specifier) : type_ =
+and map_type_specifier ?(inside_type = false) (env : env)
+    (x : CST.type_specifier) : type_ =
   match x with
   | `Struct_spec (v1, v2) ->
       let v1 =
         token env v1
         (* "struct" *)
       in
-      let v2 = map_class_declaration env v2 in
+      let v2 = map_class_declaration ~inside_type env v2 in
       v2 (Struct, v1)
   | `Union_spec (v1, v2) ->
       let v1 =
         token env v1
         (* "union" *)
       in
-      let v2 = map_class_declaration env v2 in
+      let v2 = map_class_declaration ~inside_type env v2 in
       v2 (Union, v1)
   | `Enum_spec (v1, v2, v3, v4) ->
       let tenum =
@@ -5729,7 +5756,7 @@ and map_type_specifier (env : env) (x : CST.type_specifier) : type_ =
         token env v1
         (* "class" *)
       in
-      let v2 = map_class_declaration env v2 in
+      let v2 = map_class_declaration ~inside_type env v2 in
       v2 (Class, v1)
   | `Sized_type_spec x ->
       let x = map_sized_type_specifier env x in

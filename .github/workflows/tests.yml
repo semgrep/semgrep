@@ -84,16 +84,6 @@ jobs:
   build-test-windows-x86:
     secrets: inherit
     uses: ./.github/workflows/build-test-windows-x86.yml
-  push-docker-returntocorp:
-    if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
-    needs:
-      - build-test-docker
-    secrets: inherit
-    uses: ./.github/workflows/push-docker.yml
-    with:
-      artifact-name: semgrep-docker-image-artifact
-      dry-run: false
-      repository-name: semgrep/semgrep
   test-cli:
     name: test semgrep-cli
     needs:
@@ -308,12 +298,6 @@ jobs:
       - if: github.ref == 'refs/heads/develop'
         name: Report Number of Tests Stats
         run: ./scripts/report_test_metrics.sh
-  trigger-semgrep-comparison-argo:
-    if: ${{ github.event_name == 'pull_request' && !startsWith(github.event.pull_request.base.ref, 'release') && !startsWith(github.head_ref, 'release') }}
-    needs:
-      - push-docker-returntocorp
-    secrets: inherit
-    uses: ./.github/workflows/trigger-semgrep-comparison-argo.yml
 name: tests
 on:
   pull_request:
