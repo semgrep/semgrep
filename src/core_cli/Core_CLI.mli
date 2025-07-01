@@ -9,7 +9,6 @@ val main_exn : Cap.all_caps -> Eio_unix.Stdenv.base -> string array -> unit
 val lang : Lang.t option ref
 val num_jobs : Core_scan_config.num_jobs ref
 val debug : bool ref
-val profile : bool ref
 val log_to_file : Fpath.t option ref
 val trace : bool ref
 val env_extra : string

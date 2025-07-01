@@ -110,6 +110,7 @@ val with_ : 'a t -> 'a -> (unit -> 'b) -> unit -> 'b
  * whether the "right" value should be the scoped one or the unscoped one!
  *)
 module Arg : sig
+  val unit : 'a t -> (unit -> 'a) -> Arg.spec
   val bool : bool t -> Arg.spec
   val int : int t -> Arg.spec
   val str : string t -> Arg.spec

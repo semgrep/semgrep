@@ -3,9 +3,7 @@
  *)
 type prof = ProfAll | ProfNone | ProfSome of string list
 
-val profile : prof ref
-val show_trace_profile : bool ref
-val _profile_table : (string, float ref * int ref) Hashtbl.t ref
+val profile : prof Hook.t
 val profile_code : string -> (unit -> 'a) -> 'a
 val profile_diagnostic : unit -> string
 val profile_code_exclusif : string -> (unit -> 'a) -> 'a

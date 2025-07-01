@@ -52,7 +52,6 @@ let log_to_file = ref None
  * see also verbose/... flags in Flag_semgrep.ml
  *)
 let debug = ref false
-let profile = ref false
 let trace = ref false
 let trace_endpoint = ref None
 
@@ -568,17 +567,12 @@ let options caps (actions : unit -> Arg_.cmdline_actions) =
       " url endpoint for collecting tracing information" );
   ]
   @ Flag_parsing_cpp.cmdline_flags_macrofile ()
+  @ Profiling.flags ()
   (* inlining of: Common2.cmdline_flags_devel () @ *)
   @ [
       ( "-debugger",
         Arg.Set Common.debugger,
         " option to set if launched inside ocamldebug" );
-      ( "-profile",
-        Arg.Unit
-          (fun () ->
-            Profiling.profile := Profiling.ProfAll;
-            profile := true),
-        " output profiling information" );
       ( "-keep_tmp_files",
         (* nosemgrep: forbid-tmp *)
         Arg.Set UTmp.save_temp_files,
@@ -759,7 +753,7 @@ let main_exn (caps : Cap.all_caps) base (argv : string array) : unit =
           let config = mk_config () in
           Core_profiling.profiling := config.report_time;
           let num_jobs : Core_scan_config.num_jobs =
-            if !profile then (
+            if Hook.get Profiling.profile =*= Profiling.ProfAll then (
               Logs.info (fun m -> m "Profile mode On");
               Logs.info (fun m -> m "disabling -j when in profiling mode");
               Default 1)

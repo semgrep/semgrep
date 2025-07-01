@@ -316,8 +316,9 @@ let main (caps : caps) (argv : string array) : Exit_code.t =
   Logs_.setup_basic ();
   (* TOADAPT: profile_start := Unix.gettimeofday (); *)
   (* pad poor's man profiler *)
-  if profile then Profiling.profile := Profiling.ProfAll;
-
+  Hook.with_hook_set Profiling.profile
+    (if profile then Profiling.ProfAll else Profiling.ProfNone)
+  @@ fun () ->
   (* coupling: Core_CLI.ml and Pro_core_CLI.ml *)
   Proxy.configure_proxy (Proxy.settings_from_env ());
   Http_helpers.set_client_ref (module Cohttp_lwt_unix.Client);

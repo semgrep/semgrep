@@ -34,24 +34,26 @@ type prof = ProfAll | ProfNone | ProfSome of string list
 (* Globals *)
 (*****************************************************************************)
 
-let profile = ref ProfNone
-let show_trace_profile = ref false
+let profile = Hook.create ProfNone
+let show_trace_profile = Hook.create false
 
 let check_profile category =
-  match !profile with
+  match Hook.get profile with
   | ProfAll -> true
   | ProfNone -> false
   | ProfSome l -> List.mem category l
 
-let _profile_table = ref (Hashtbl.create 100)
+let _table_lock = Mutex.create ()
+let _profile_table = Hashtbl.create 100
 
 let adjust_profile_entry category difftime =
+  Mutex.protect _table_lock @@ fun () ->
   let xtime, xcount =
-    try Hashtbl.find !_profile_table category with
+    try Hashtbl.find _profile_table category with
     | Not_found ->
         let xtime = ref 0.0 in
         let xcount = ref 0 in
-        Hashtbl.add !_profile_table category (xtime, xcount);
+        Hashtbl.add _profile_table category (xtime, xcount);
         (xtime, xcount)
   in
   xtime := !xtime +. difftime;
@@ -71,7 +73,7 @@ let adjust_profile_entry category difftime =
 let profile_code category f =
   if not (check_profile category) then f ()
   else (
-    if !show_trace_profile then Logs.debug (fun m -> m "> %s" category);
+    if Hook.get show_trace_profile then Logs.debug (fun m -> m "> %s" category);
     let t = Unix.gettimeofday () in
     let res, prefix =
       try (Ok (f ()), "") with
@@ -84,7 +86,7 @@ let profile_code category f =
     (* add a '*' to indicate timeout func *)
     let t' = Unix.gettimeofday () in
 
-    if !show_trace_profile then Logs.debug (fun m -> m "< %s" category);
+    if Hook.get show_trace_profile then Logs.debug (fun m -> m "< %s" category);
 
     adjust_profile_entry category (t' -. t);
     match res with
@@ -113,10 +115,11 @@ let profile_code_inside_exclusif_ok _category _f = failwith "Todo"
 
 (* todo: also put  % ? also add % to see if coherent numbers *)
 let profile_diagnostic () : string =
-  if !profile =*= ProfNone then ""
+  if Hook.get profile =*= ProfNone then ""
   else
+    Mutex.protect _table_lock @@ fun () ->
     let xs =
-      Hashtbl.fold (fun k v acc -> (k, v) :: acc) !_profile_table []
+      Hashtbl.fold (fun k v acc -> (k, v) :: acc) _profile_table []
       |> List.sort (fun (_k1, (t1, _n1)) (_k2, (t2, _n2)) -> compare t2 t1)
     in
     Buffer_.with_buffer_to_string (fun buf ->
@@ -143,12 +146,12 @@ let warn_if_take_time timethreshold s f =
 
 let profile_code2 category f =
   profile_code category (fun () ->
-      if !profile =*= ProfAll then
+      if Hook.get profile =*= ProfAll then
         Logs.info (fun m -> m "starting: %s" category);
       let t = Unix.gettimeofday () in
       let res = f () in
       let t' = Unix.gettimeofday () in
-      if !profile =*= ProfAll then
+      if Hook.get profile =*= ProfAll then
         Logs.info (fun m -> m "ending: %s, %fs" category (t' -. t));
       res)
 
@@ -158,9 +161,9 @@ let profile_code2 category f =
 let flags () =
   [
     ( "-profile",
-      Arg.Unit (fun () -> profile := ProfAll),
+      Hook.Arg.unit profile (const ProfAll),
       " output profiling information" );
-    ("-show_trace_profile", Arg.Set show_trace_profile, " show trace");
+    ("-show_trace_profile", Hook.Arg.set show_trace_profile, " show trace");
   ]
 
 let log_diagnostics_and_gc_stats () =
@@ -170,5 +173,6 @@ let log_diagnostics_and_gc_stats () =
 (* ugly *)
 let _ =
   UCommon.before_exit :=
-    (fun () -> if !profile <> ProfNone then log_diagnostics_and_gc_stats ())
+    (fun () ->
+      if Hook.get profile <> ProfNone then log_diagnostics_and_gc_stats ())
     :: !UCommon.before_exit

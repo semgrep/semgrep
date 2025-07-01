@@ -113,6 +113,7 @@ module Arg = struct
       failwith "Must not call [unscoped_set] after [with_hook_set]"
     else Proc.unsafe_set proc_scope v
 
+  let unit h f = Arg.Unit (fun () -> unscoped_set h (f ()))
   let bool h = Arg.Bool (unscoped_set h)
   let set h = Arg.Unit (fun () -> unscoped_set h true)
   let clear h = Arg.Unit (fun () -> unscoped_set h false)
