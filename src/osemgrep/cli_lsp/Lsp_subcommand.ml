@@ -12,6 +12,8 @@
 type caps =
   < Core_scan.caps ; Cap.random ; Cap.network ; Cap.tmp ; Cap.readdir >
 
+let hook_pro_language_server : (caps -> unit) option Hook.t = Hook.create None
+
 (*****************************************************************************)
 (* Main logic *)
 (*****************************************************************************)
@@ -21,8 +23,19 @@ type caps =
 let run_conf (caps : < caps ; .. >) (conf : Lsp_CLI.conf) : Exit_code.t =
   CLI_common.setup_logging ~force_color:false ~level:conf.common.logging_level;
   Logs.debug (fun m -> m "Starting semgrep-lsp");
-  Language_server.start (caps :> Language_server.caps);
-  Exit_code.ok ~__LOC__
+  match Hook.get hook_pro_language_server with
+  | Some run_pro_language_server when conf.x_eio_ls ->
+      run_pro_language_server (caps :> Legacy_language_server.caps);
+      Exit_code.ok ~__LOC__
+  | None when conf.x_eio_ls ->
+      Logs.err (fun m ->
+          m
+            "Eio-based language server is not configured--make sure you are \
+             using the proprietary semgrep binary.");
+      Exit_code.fatal ~__LOC__
+  | _ ->
+      Legacy_language_server.start (caps :> Legacy_language_server.caps);
+      Exit_code.ok ~__LOC__
 
 (*****************************************************************************)
 (* Entry point *)

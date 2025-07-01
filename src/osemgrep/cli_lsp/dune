@@ -11,7 +11,7 @@
     osemgrep_core
     osemgrep_configuring
     lwt_platform
-    language_server
+    osemgrep_legacy_language_server
   )
  (preprocess
    (pps

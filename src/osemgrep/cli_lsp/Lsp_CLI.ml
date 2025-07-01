@@ -1,5 +1,6 @@
 module Term = Cmdliner.Term
 module Cmd = Cmdliner.Cmd
+module H = Cmdliner_
 
 (*****************************************************************************)
 (* Prelude *)
@@ -12,15 +13,21 @@ module Cmd = Cmdliner.Cmd
 (* Types and constants *)
 (*****************************************************************************)
 
-type conf = { common : CLI_common.conf } [@@deriving show]
+type conf = { common : CLI_common.conf; x_eio_ls : bool } [@@deriving show]
 
 (*************************************************************************)
 (* Command-line parsing: turn argv into conf *)
 (*************************************************************************)
 
+(* TODO: deprecate this once we are ready to switch to Eio finally *)
+let o_x_eio_ls : bool Term.t =
+  H.negatable_flag [ "x-eio-ls" ] ~neg_options:[ "no-x-eio-ls" ] ~default:false
+    ~doc:
+      {|Run with '--x-eio-ls' to use the new, experimental `Eio`-based language server.|}
+
 let cmdline_term : conf Term.t =
-  let combine common = { common } in
-  Term.(const combine $ CLI_common.o_common)
+  let combine common x_eio_ls = { common; x_eio_ls } in
+  Term.(const combine $ CLI_common.o_common $ o_x_eio_ls)
 
 let doc = "Language server mode!!"
 
