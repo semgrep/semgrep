@@ -27,28 +27,33 @@ open Common
 (* Types *)
 (*****************************************************************************)
 
-type t = (string, value) Hashtbl.t
+type t = { ht : (string, value) Hashtbl.t; mtx : Mutex.t }
 and value = Start of float | Recorded of float
 
 (*****************************************************************************)
 (* API *)
 (*****************************************************************************)
 
-let make () = Hashtbl.create 0x100
+let make () = { ht = Hashtbl.create 0x100; mtx = Mutex.create () }
 
-let start profiler ~name =
-  match Hashtbl.find_opt profiler name with
+let start { ht; mtx } ~name =
+  Mutex.protect mtx @@ fun () ->
+  match Hashtbl.find_opt ht name with
   | Some (Start start_time) ->
       let now = Unix.gettimeofday () in
-      Hashtbl.replace profiler name (Recorded (now -. start_time))
+      Hashtbl.replace ht name (Recorded (now -. start_time))
   | Some (Recorded _) -> invalid_arg "%s was already profiled"
   | None ->
       let now = Unix.gettimeofday () in
-      Hashtbl.add profiler name (Start now)
+      Hashtbl.add ht name (Start now)
 
 let stop profiler ~name =
-  match Hashtbl.find_opt profiler name with
-  | Some (Start _) -> start profiler ~name
+  let { ht; mtx } = profiler in
+  Mutex.protect mtx @@ fun () ->
+  match Hashtbl.find_opt ht name with
+  | Some (Start _) ->
+      let now = Unix.gettimeofday () in
+      Hashtbl.add ht name (Start now)
   | Some (Recorded _) ->
       invalid_arg (spf "Profiler.stop: %s already recorded" name)
   | None -> invalid_arg (spf "Profiler.stop: %s does not exist" name)
@@ -58,17 +63,19 @@ let stop_ign profiler ~name =
   | _ -> ()
 
 let record profiler ~name fn =
+  let { ht; mtx } = profiler in
   let t0 = Unix.gettimeofday () in
   let finally () =
     let t1 = Unix.gettimeofday () in
-    Hashtbl.add profiler name (Recorded (t1 -. t0))
+    Mutex.protect mtx @@ fun () -> Hashtbl.add ht name (Recorded (t1 -. t0))
   in
   Common.protect ~finally fn
 
-let dump profiler =
+let dump { ht; mtx } =
+  Mutex.protect mtx @@ fun () ->
   Hashtbl.fold
     (fun name value acc ->
       match value with
       | Recorded time -> (name, time) :: acc
       | _ -> acc)
-    profiler []
+    ht []
