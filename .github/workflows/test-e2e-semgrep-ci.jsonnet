@@ -1,5 +1,5 @@
 // Daily cron to check end-to-end (e2e) that the 'semgrep ci' subcommand,
-// run from a semgrep/semgrep:develop docker image, works correctly.
+// run from a semgrep/semgrep-nightly:develop docker image, works correctly.
 // This is very important because 'semgrep ci' and our docker images
 // are the main things the users of our Semgrep WebApp are using in their CIs.
 // This cron also double checks that "fail-open" is working as expected, that is
@@ -28,7 +28,7 @@ local pr_number = '${{ needs.semgrep-ci-on-pr.outputs.pr-number }}';
 local docker_tag_input = {
   inputs: {
     docker_tag: {
-      description: 'Docker Tag to Run. Default: develop',
+      description: 'Docker Tag to Run. Default: develop (must be in the `semgrep/semgrep-nightly` namespace)',
       required: false,
       //TODO? could propose choice with 'canary' also
       default: 'develop',
@@ -81,7 +81,7 @@ local semgrep_ci_job = {
   },
   needs: 'get-inputs',
   container: {
-    image: 'semgrep/semgrep:' + docker_tag,
+    image: 'semgrep/semgrep-nightly:' + docker_tag,
   },
   steps:
     actions.checkout() +
@@ -105,7 +105,7 @@ local semgrep_ci_fail_open_job = {
   },
   needs: 'get-inputs',
   container: {
-    image: 'semgrep/semgrep:' + docker_tag,
+    image: 'semgrep/semgrep-nightly:' + docker_tag,
   },
   steps:
     actions.checkout() +
@@ -140,7 +140,7 @@ local semgrep_ci_fail_open_blocking_findings_job = {
   },
   needs: 'get-inputs',
   container: {
-    image: 'semgrep/semgrep:' + docker_tag,
+    image: 'semgrep/semgrep-nightly:' + docker_tag,
   },
   steps:
     actions.checkout() +

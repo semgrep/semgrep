@@ -36,7 +36,7 @@ jobs:
            }"
   semgrep-ci:
     container:
-      image: semgrep/semgrep:${{ needs.get-inputs.outputs.docker_tag }}
+      image: semgrep/semgrep-nightly:${{ needs.get-inputs.outputs.docker_tag }}
     env:
       SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_E2E_APP_TOKEN }}
     needs: get-inputs
@@ -46,7 +46,7 @@ jobs:
       - run: semgrep ci
   semgrep-ci-fail-open:
     container:
-      image: semgrep/semgrep:${{ needs.get-inputs.outputs.docker_tag }}
+      image: semgrep/semgrep-nightly:${{ needs.get-inputs.outputs.docker_tag }}
     env:
       SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_E2E_APP_TOKEN }}
       SEMGREP_APP_URL: https://staging.semgrep.dev
@@ -62,7 +62,7 @@ jobs:
       - run: semgrep ci --suppress-errors
   semgrep-ci-fail-open-blocking-findings:
     container:
-      image: semgrep/semgrep:${{ needs.get-inputs.outputs.docker_tag }}
+      image: semgrep/semgrep-nightly:${{ needs.get-inputs.outputs.docker_tag }}
     env:
       SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_E2E_APP_TOKEN }}
       SEMGREP_USER_AGENT_APPEND: semgrep-ci-e2e
@@ -188,5 +188,5 @@ on:
     inputs:
       docker_tag:
         default: develop
-        description: 'Docker Tag to Run. Default: develop'
+        description: 'Docker Tag to Run. Default: develop (must be in the `semgrep/semgrep-nightly` namespace)'
         required: false
