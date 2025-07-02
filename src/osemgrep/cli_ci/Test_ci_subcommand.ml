@@ -75,7 +75,7 @@ let test_sms_scan_id (caps : Ci_subcommand.caps) =
             Effect.perform (Return body)
         | url -> Alcotest.fail (spf "unexpected request: %s" url)
       in
-      Http_mock_client.with_testing_client make_response_fn
+      Http_mock_client.with_mocked_http make_response_fn
         (fun () ->
           Semgrep_envvars.with_envvar "SEMGREP_MANAGED_SCAN_ID" sms_scan_id
             (fun () ->

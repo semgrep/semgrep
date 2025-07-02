@@ -21,7 +21,7 @@
         | _ -> Alcotest.fail "unexpected request"
     )
     in
-    Http_mock_client.with_testing_client make_response_fn
+    Http_mock_client.with_mocked_http make_response_fn
    ...
 
    let test_foo = ... in
@@ -43,6 +43,18 @@ type make_response_fn =
   * (see [test_response]).
   *)
 
+type test_response_eio = {
+  response : Cohttp.Response.t;
+  body : Cohttp_eio.Body.t;
+}
+
+type make_response_fn_eio =
+  Cohttp.Request.t -> Cohttp_eio.Body.t -> test_response_eio
+(** [make_response_fn_eio request body] takes in a request and its body, and
+    * must return a response (see [basic_response_eio]), and a body
+    * (see [test_response_eio]).
+    *)
+
 val basic_response :
   ?status:int -> ?headers:Cohttp.Header.t -> Cohttp_lwt.Body.t -> test_response
 (** [basic_response ~status ~headers body] creates a [test_response]
@@ -50,11 +62,27 @@ val basic_response :
   * Example: [basic_response "{ \"api_code\": 304, \"info\": \"example\" }"].
   *)
 
+val basic_response_eio :
+  ?status:int ->
+  ?headers:Cohttp.Header.t ->
+  Cohttp_eio.Body.t ->
+  test_response_eio
+(** [basic_response_eio ~status ~headers body] creates a [test_response]
+  * with optional status and headers.
+  * Example: [basic_response_eio "{ \"api_code\": 304, \"info\": \"example\" }"].
+  *)
+
 val body_of_file : ?trim:bool -> Fpath.t -> Cohttp_lwt.Body.t
 (** [body_of_file trim path_to_body] will return a body which is the exact bytes
   * of the file [path_to_body], unless [trim] is true, in which case the bytes
   * will be trimmed of leading and trailing whitespace.
   *)
+
+val body_of_file_eio : ?trim:bool -> Fpath.t -> Cohttp_eio.Body.t
+(** [body_of_file trim path_to_body] will return a body which is the exact bytes
+    * of the file [path_to_body], unless [trim] is true, in which case the bytes
+    * will be trimmed of leading and trailing whitespace.
+    *)
 
 val check_body : Cohttp_lwt.Body.t -> Cohttp_lwt.Body.t -> unit Lwt.t
 (** [check_body expected_body actual_body] will check a request/response has the
@@ -86,13 +114,15 @@ val get_header : Cohttp.Request.t -> string -> string option
   * Example: [get_header request "Authorization"]
   *)
 
-val with_testing_client : make_response_fn -> (unit -> 'a) -> unit -> 'a
-(** [with_testing_client make_response_fn f ()]
+val with_mocked_http : make_response_fn -> (unit -> 'a) -> unit -> 'a
+(** [with_mocked_http make_response_fn f ()]
   * will modify the [http_helpers] client to not actually make
   * http requests, but instead will replace it with a client
   * that uses [make_response_fn] to respond.
   * Any code inside [f] will be run with this modified client.
   *)
+
+val with_eio_mocked_http : make_response_fn_eio -> (unit -> 'a) -> unit -> 'a
 
 val client_from_file :
   Fpath.t ->

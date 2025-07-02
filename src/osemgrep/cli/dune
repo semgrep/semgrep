@@ -10,6 +10,7 @@
     ocolor
     commons
     cohttp-lwt-unix
+    cohttp-eio
 
     ; Internal libraries
     osemgrep_cli_scan

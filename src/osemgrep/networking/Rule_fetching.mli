@@ -94,6 +94,13 @@ val rules_from_dashdash_config_async :
   Rules_config.t ->
   (rules_and_origin list * Rule_error.t list) Lwt.t
 
+val rules_from_dashdash_config_eio :
+  rewrite_rule_ids:bool ->
+  token_opt:Auth.token option ->
+  < caps ; .. > ->
+  Rules_config.t ->
+  rules_and_origin list * Rule_error.t list
+
 (* [rules_from_dashdash_config] returns a list of rules_and_origin
  * because the [Rules_config.t] can be a [Dir], in which case we return one
  * rules_and_origin per files in this folder.

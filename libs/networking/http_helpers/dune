@@ -7,6 +7,9 @@
     uri
     cohttp-lwt
     profiling
+    cohttp-eio
+    ca-certs
+    tls-eio
   )
   (preprocess
     (pps

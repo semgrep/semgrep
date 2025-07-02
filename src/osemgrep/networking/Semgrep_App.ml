@@ -288,6 +288,7 @@ let report_failure caps ~scan_id exit_code =
  * to start a scan but now everything is done in one via start_scan().
  * pysemgrep: called get_deployment_from_token
  *)
+(* coupling(eio-port): if you change this you must change the eio version *)
 let deployment_config_async caps : Out.deployment_config option Lwt.t =
   let headers =
     [
@@ -316,6 +317,36 @@ let deployment_config_async caps : Out.deployment_config option Lwt.t =
         None
   in
   Lwt.return deployment_opt
+
+(* coupling(eio-port): if you change this you must change the lwt version *)
+let deployment_config_eio caps : Out.deployment_config option =
+  let headers =
+    [
+      (* The agent is needed by many endpoints in our backend guarded by
+       * @require_supported_cli_version()
+       * alt: use Metrics_.string_of_user_agent()
+       *)
+      ("User-Agent", spf "Semgrep/%s" Version.version);
+      Auth.auth_header_of_token caps#token;
+    ]
+  in
+  let url = Uri.with_path !Semgrep_envvars.v.semgrep_url deployment_route in
+  let response = Http_helpers.get_eio ~headers caps#network url in
+  let deployment_opt =
+    match response with
+    | Ok { body = Ok body; _ } ->
+        let x = Out.deployment_response_of_string body in
+        Some x.deployment
+    | Ok { body = Error msg; code; _ } ->
+        Logs.err (fun m ->
+            m "error while retrieving deployment, %s returned %u: %s"
+              (Uri.to_string url) code msg);
+        None
+    | Error e ->
+        Logs.err (fun m -> m "error while retrieving deployment: %s" e);
+        None
+  in
+  deployment_opt
 
 (* from auth.py *)
 let deployment_config token = Lwt_platform.run (deployment_config_async token)
@@ -355,7 +386,7 @@ let url_for_policy caps =
                "Need to set env var SEMGREP_REPO_NAME to use `--config policy`")
       | Some repo_name -> scan_config_uri repo_name)
 
-(* used by semgrep lsp *)
+(* coupling(eio-port): if you change this you must change the eio version *)
 let fetch_scan_config_string_async ~dry_run ~sca ~full_scan ~repository caps :
     (string, string) result Lwt.t =
   (* TODO? seems like there are 2 ways to get a config, with the scan_params
@@ -391,6 +422,43 @@ let fetch_scan_config_string_async ~dry_run ~sca ~full_scan ~repository caps :
   in
   Logs.debug (fun m -> m "finished downloading from %s" (Uri.to_string url));
   Lwt.return conf_string
+
+(* coupling(eio-port): if you change this you must change the eio version *)
+let fetch_scan_config_string_eio ~dry_run ~sca ~full_scan ~repository caps :
+    (string, string) result =
+  (* TODO? seems like there are 2 ways to get a config, with the scan_params
+   * or with a scan_id.
+   * python:
+   *   if self.dry_run:
+   *    app_get_config_url = f"{state.env.semgrep_url}/{DEFAULT_SEMGREP_APP_CONFIG_URL}?{self._scan_params}"
+   *   else:
+   *    app_get_config_url = f"{state.env.semgrep_url}/api/agent/deployments/scans/{self.scan_id}/config"
+   *)
+  let url = scan_config_uri ~sca ~dry_run ~full_scan repository in
+  let headers =
+    [
+      ("User-Agent", spf "Semgrep/%s" Version.version);
+      Auth.auth_header_of_token caps#token;
+    ]
+  in
+  let conf_string =
+    let response = Http_helpers.get_eio ~headers caps#network url in
+    let results =
+      match response with
+      | Ok { body = Ok body; _ } -> Ok body
+      | Ok { body = Error msg; code; _ } ->
+          Error
+            (Printf.sprintf "Failed to download config, %s returned %u: %s"
+               (Uri.to_string url) code msg)
+      | Error e ->
+          Error
+            (Printf.sprintf "Failed to download config from %s: %s"
+               (Uri.to_string url) e)
+    in
+    results
+  in
+  Logs.debug (fun m -> m "finished downloading from %s" (Uri.to_string url));
+  conf_string
 
 (*****************************************************************************)
 (* Other endpoints *)

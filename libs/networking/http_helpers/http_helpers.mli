@@ -41,6 +41,17 @@ val call_client :
     has to be handled directly on the stream. By default it will convert the
     body to a string *)
 
+val call_eio_client :
+  ?body:Cohttp.Body.t ->
+  ?headers:(string * string) list ->
+  ?chunked:bool ->
+  ?resp_handler:
+    (Cohttp.Response.t * Cohttp_eio.Body.t ->
+    (Cohttp.Response.t * string, string) result) ->
+  Cohttp.Code.meth ->
+  Uri.t ->
+  (Cohttp.Response.t * string, string) result
+
 val get :
   ?headers:(string * string) list ->
   Cap.Network.t ->
@@ -52,6 +63,9 @@ val get :
     If a temporary redirect (307) is returned, this function will automatically
     re-query and resolve the redirection.
    *)
+
+val get_eio :
+  ?headers:(string * string) list -> Cap.Network.t -> Uri.t -> client_result
 
 val post :
   body:string ->
@@ -73,6 +87,14 @@ val post :
     The returned value is a promise of either [Ok body] if the request was
     successful, or an [Error (code, msg)], including the HTTP status [code]
     and a message. *)
+
+val post_eio :
+  body:string ->
+  ?headers:(string * string) list ->
+  ?chunked:bool ->
+  Cap.Network.t ->
+  Uri.t ->
+  client_result
 
 val put :
   body:string ->
@@ -109,3 +131,17 @@ val with_client_ref : (module Cohttp_lwt.S.Client) -> ('a -> 'b) -> 'a -> 'b
     NOTE: This function is not thread-safe. We need to refactor this module to
     require BYO client to support robust thread-safety (and/or just use
     Eio-based networking). *)
+
+type eio_call_fn =
+  sw:Eio.Switch.t ->
+  headers:Cohttp.Header.t ->
+  body:Cohttp_eio.Body.t ->
+  chunked:bool ->
+  Http.Method.t ->
+  Uri.t ->
+  Cohttp.Response.t * Cohttp_eio.Body.t
+
+val hook_eio_call_fn : eio_call_fn option Hook.t
+val with_hook_eio_call_fn_set : eio_call_fn -> (unit -> 'a) -> 'a
+val mk_eio_call_fn : Cohttp_eio.Client.t -> eio_call_fn
+val mk_eio_client : Eio_unix.Stdenv.base -> Cohttp_eio.Client.t

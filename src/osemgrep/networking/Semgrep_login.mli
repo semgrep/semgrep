@@ -27,6 +27,11 @@ val save_token_async :
   < network : Cap.Network.t ; token : Auth.token > ->
   (Semgrep_output_v1_t.deployment_config, string) result Lwt.t
 
+val save_token_eio :
+  ?ident:string ->
+  < network : Cap.Network.t ; token : Auth.token > ->
+  (Semgrep_output_v1_t.deployment_config, string) result
+
 val save_token :
   ?ident:string ->
   < network : Cap.Network.t ; token : Auth.token > ->
@@ -70,12 +75,24 @@ val fetch_token_async :
   * to login [wait_hook] is a function that will be called before each retry
   *)
 
+val fetch_token_eio :
+  ?min_wait_ms:int ->
+  ?next_wait_ms:int ->
+  ?max_retries:int ->
+  ?wait_hook:(int -> unit) ->
+  < network : Cap.Network.t ; .. > ->
+  shared_secret ->
+  (Auth.token * string, string) result
+
 val verify_token_async :
   < network : Cap.Network.t ; token : Auth.token > -> bool Lwt.t
 (** [verify_token_async] verifies that a token is valid with the Semgrep App. *)
 
 val verify_token : < network : Cap.Network.t ; token : Auth.token > -> bool
 (** [verify_token] verifies that a token is valid with the Semgrep App. *)
+
+val verify_token_eio : < network : Cap.Network.t ; token : Auth.token > -> bool
+(** [verify_token_async] verifies that a token is valid with the Semgrep App. *)
 
 val is_logged_in_weak : unit -> bool
 (** this does not really check whether the user is logged in; it just checks

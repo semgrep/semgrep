@@ -142,6 +142,7 @@ For more information see https://semgrep.dev
     (uuidm (>= 0.9.9))
     (cohttp (>= 6.1.0))
     cohttp-lwt-unix
+    cohttp-eio
     tls-lwt ; needed for TLS support in the cohttp HTTP client (only TLS 1.3 seems to work)
     emile
     (digestif (>= 1.0.0))
@@ -159,6 +160,7 @@ For more information see https://semgrep.dev
     ; Eio
     eio
     eio_main ; Picks a suitable backend (i.e eio_{posix, linux, windows})
+    tls-eio
   )
 )
 

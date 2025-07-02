@@ -232,6 +232,7 @@ let default =
  * are mutable.
  *)
 let g = default
+let g_mutex = Eio.Mutex.create ()
 
 (*****************************************************************************)
 (* Metrics config *)

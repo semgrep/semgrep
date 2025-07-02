@@ -85,6 +85,10 @@ val deployment_config :
   < Cap.network ; Auth.cap_token ; .. > ->
   Semgrep_output_v1_t.deployment_config option
 
+val deployment_config_eio :
+  < Cap.network ; Auth.cap_token ; .. > ->
+  Semgrep_output_v1_t.deployment_config option
+
 (* used by 'semgrep show identity' *)
 val get_identity_async : < Cap.network ; Auth.cap_token ; .. > -> string Lwt.t
 
@@ -96,7 +100,15 @@ val fetch_scan_config_string_async :
   repository:string ->
   < Cap.network ; Auth.cap_token ; .. > ->
   (string, string) result Lwt.t
-(** [fetch_scan_config_string ~token ~sca ~dry_run ~full_scan repo] returns the
+
+val fetch_scan_config_string_eio :
+  dry_run:bool ->
+  sca:bool ->
+  full_scan:bool ->
+  repository:string ->
+  < Cap.network ; Auth.cap_token ; .. > ->
+  (string, string) result
+(** [fetch_scan_config_string_eio ~token ~sca ~dry_run ~full_scan repo] returns the
     rules (as a RAW string containing JSON data) for the provided
     configuration. *)
 

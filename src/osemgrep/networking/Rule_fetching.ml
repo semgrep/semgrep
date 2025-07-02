@@ -119,6 +119,7 @@ let partition_rules_and_invalid (xs : rules_and_origin list) :
   in
   (rules, invalid_rules)
 
+(* coupling(eio-port): if you change this you must change the eio version *)
 let fetch_content_from_url_async ?token_opt caps (url : Uri.t) : string Lwt.t =
   (* TOPORT? _nice_semgrep_url() *)
   Logs.info (fun m -> m "trying to download from %s" (Uri.to_string url));
@@ -142,9 +143,37 @@ let fetch_content_from_url_async ?token_opt caps (url : Uri.t) : string Lwt.t =
   Logs.info (fun m -> m "finished downloading from %s" (Uri.to_string url));
   content
 
+(* coupling(eio-port): if you change this you must change the lwt version *)
+let fetch_content_from_url_eio ?token_opt caps (url : Uri.t) : string =
+  (* TOPORT? _nice_semgrep_url() *)
+  Logs.info (fun m -> m "trying to download from %s" (Uri.to_string url));
+  let content =
+    let headers =
+      match token_opt with
+      | None -> None
+      | Some token -> Some [ Auth.auth_header_of_token token ]
+    in
+    match Http_helpers.get_eio ?headers caps#network url with
+    | Ok { body = Ok body; _ } -> body
+    | Ok { body = Error error; code; _ } ->
+        Error.abort
+          (spf "Failed to download config from %s, returned code %u: %s"
+             (Uri.to_string url) code error)
+    | Error e ->
+        (* was raise Semgrep_error, but equivalent to abort now *)
+        Error.abort
+          (spf "Failed to download config from %s: %s" (Uri.to_string url) e)
+  in
+  Logs.info (fun m -> m "finished downloading from %s" (Uri.to_string url));
+  content
+
 let fetch_content_from_registry_url_async ~token_opt caps url =
   Metrics_.g.is_using_registry <- true;
   fetch_content_from_url_async ?token_opt caps url
+
+let fetch_content_from_registry_url_eio ~token_opt caps url =
+  Metrics_.g.is_using_registry <- true;
+  fetch_content_from_url_eio ?token_opt caps url
 
 let fetch_content_from_registry_url ~token_opt caps url =
   Lwt_platform.run (fetch_content_from_registry_url_async ~token_opt caps url)
@@ -328,6 +357,7 @@ let load_rules_from_file ~rewrite_rule_ids ~origin caps (file : Fpath.t) :
      *)
     Error.abort (spf "file %s does not exist anymore" !!file)
 
+(* coupling(eio-port): if you change this you must change the eio version *)
 let load_rules_from_url_async ~origin ?token_opt ?(ext = "yaml") caps url :
     (rules_and_origin, Rule_error.t) result Lwt.t =
   let%lwt contents = fetch_content_from_url_async ?token_opt caps url in
@@ -349,12 +379,106 @@ let load_rules_from_url_async ~origin ?token_opt ?(ext = "yaml") caps url :
       load_rules_from_file ~rewrite_rule_ids:false ~origin caps file)
   |> Lwt.return
 
+(* coupling(eio-port): if you change this you must change the lwt version *)
+let load_rules_from_url_eio ~origin ?token_opt ?(ext = "yaml") caps url :
+    (rules_and_origin, Rule_error.t) result =
+  let contents = fetch_content_from_url_eio ?token_opt caps url in
+  let ext, contents =
+    if ext = "policy" then
+      (* project rule_config, from config_resolver.py in _make_config_request *)
+      try
+        match Yojson.Basic.from_string contents with
+        | `Assoc e -> (
+            match List.assoc "rule_config" e with
+            | `String e -> ("json", e)
+            | _else -> (ext, contents))
+        | _else -> (ext, contents)
+      with
+      | _failure -> (ext, contents)
+    else (ext, contents)
+  in
+  CapTmp.with_temp_file caps#tmp ~contents ~suffix:("." ^ ext) (fun file ->
+      load_rules_from_file ~rewrite_rule_ids:false ~origin caps file)
+
 let load_rules_from_url ~origin ?token_opt ?(ext = "yaml") caps url :
     (rules_and_origin, Rule_error.t) result =
   Lwt_platform.run (load_rules_from_url_async ~origin ?token_opt ~ext caps url)
 [@@profiling]
 
 (* TODO: merge caps and token_opt and caps_opt? *)
+(* coupling(eio-port): if you change this you must change the lwt version *)
+let rules_from_dashdash_config_eio ~rewrite_rule_ids ~token_opt
+    (caps : < caps ; .. >) kind :
+    (* alt: (rules_and_origin list, Rule.Error.t list) result
+       here and below:
+       we could do this, but it lacks flexibility compared with this output type
+       for instance, Validate_subcommand and Publish_subcommand pool together the
+       invalid rule errors (located inside each `rules_and_origin`) and the fatal
+       rule errors (the `Rule.Error.t`s), and decides to fail if either are present
+
+       if we split each into a sum, we never have either at the same time. this
+       breaks the code's behavior *
+    *)
+    rules_and_origin list * Rule_error.t list =
+  match kind with
+  | C.File path ->
+      Result_.partition
+        (load_rules_from_file ~rewrite_rule_ids ~origin:(Local_file path) caps)
+        [ path ]
+  | C.Dir dir ->
+      (* We used to skip dot files under [dir], but keeping rules/.semgrep.yml,
+       * but not path/.github/foo.yml, but keeping src/.semgrep/bad_pattern.yml
+       * but not ./.pre-commit-config.yaml, ... This was mainly because
+       * we used to fetch rules from ~/.semgrep/ implicitely when --config
+       * was not given, but this feature was removed, so now we can KISS.
+       *)
+      List_files.list caps dir
+      |> List.filter Rule_file.is_valid_rule_filename
+      |> List_.map (fun file ->
+             load_rules_from_file ~rewrite_rule_ids ~origin:(Local_file file)
+               caps file)
+      |> Result_.partition Fun.id
+  | C.URL url ->
+      (* TODO: Re-enable passing in our token to trusted remote urls.
+       * This is currently disabled because we don't want to pass our token
+       * to untrusted endpoints. There should be a relatively painless way
+       * to do this, but this can be addressed in a follow-up PR.
+       *)
+      let rules =
+        load_rules_from_url_eio ~origin:(Untrusted_remote url) caps url
+      in
+      [ rules ] |> Result_.partition Fun.id
+  | C.R rkind ->
+      let url = Semgrep_Registry.url_of_registry_config_kind rkind in
+      let contents = fetch_content_from_registry_url_eio ~token_opt caps url in
+      CapTmp.with_temp_file caps#tmp ~contents ~suffix:".yaml" (fun file ->
+          [ load_rules_from_file ~rewrite_rule_ids ~origin:Registry caps file ])
+      |> Result_.partition Fun.id
+  | C.A Policy ->
+      let token =
+        match token_opt with
+        | None ->
+            Error.abort
+              (spf
+                 "Cannot to download rules from policy without authorization \
+                  token")
+        | Some token -> token
+      in
+      let caps' = Auth.cap_token_and_network token caps in
+      let uri = Semgrep_App.url_for_policy caps' in
+      let caps'' = Auth.cap_token_and_network_and_tmp token caps in
+      let rules_and_errors =
+        load_rules_from_url_eio ?token_opt ~ext:"policy" ~origin:Registry caps''
+          uri
+      in
+      Metrics_.g.is_using_app <- true;
+      [ rules_and_errors ] |> Result_.partition Fun.id
+  | C.A SupplyChain ->
+      Metrics_.g.is_using_app <- true;
+      failwith "TODO: SupplyChain not handled yet"
+
+(* TODO: merge caps and token_opt and caps_opt? *)
+(* coupling(eio-port): if you change this you must change the eio version *)
 let rules_from_dashdash_config_async ~rewrite_rule_ids ~token_opt
     (caps : < caps ; .. >) kind :
     (* alt: (rules_and_origin list, Rule.Error.t list) result

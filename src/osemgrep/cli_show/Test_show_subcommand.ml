@@ -105,7 +105,7 @@ let with_fake_identity_response return_value f =
         Lwt.return Http_mock_client.(basic_response response_body)
     | url -> Alcotest.fail (spf "unexpected request: %s" url)
   in
-  Http_mock_client.with_testing_client make_response_fn f ()
+  Http_mock_client.with_mocked_http make_response_fn f ()
 
 let fake_identity = {|{"identity":"cli_fake_user_valid-from-fake-date"}|}
 
@@ -122,7 +122,7 @@ let with_fake_deployment_response return_value f =
         Lwt.return Http_mock_client.(basic_response response_body)
     | url -> Alcotest.fail (spf "unexpected request: %s" url)
   in
-  Http_mock_client.with_testing_client make_response_fn f ()
+  Http_mock_client.with_mocked_http make_response_fn f ()
 
 let fake_deployment = {|{"deployment":{"id":42,"name":"fake_deployment"}}|}
 
