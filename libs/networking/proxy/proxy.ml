@@ -35,12 +35,33 @@ let getenv k =
   | None -> Sys.getenv_opt (String.uppercase_ascii k)
   | v -> v
 
+(* In the instance where the user supplied e.g HTTP_PROXY=abc.xyz.
+ * Cohttp requires that the supplied URI has a scheme. *)
+let uri_of_env_with_scheme scheme var =
+  let open Common in
+  let* uri_string = getenv var in
+  let uri = Uri.of_string uri_string in
+  (* NOTE that [Uri.scheme domain.com:port] evaluates to [Some domain.com];
+   * checking for a host lets us validate if there was a scheme and a host.
+   *)
+  match Uri.host uri with
+  | Some _ ->
+      (* NOTE we'd still want to accept [HTTP_PROXY=https://...]*)
+      Some uri
+  | None ->
+      let new_uri_string = Printf.sprintf "%s://%s" scheme uri_string in
+      (* nosemgrep: no-logs-in-library *)
+      Logs.warn (fun m ->
+          m "%s was supplied a URI with no scheme; augmenting it as %s" var
+            new_uri_string);
+      Some (Uri.of_string uri_string)
+
 let uri_of_env var = Option.map Uri.of_string (getenv var)
 
 let settings_from_env () =
   {
-    http_proxy = uri_of_env env_http_proxy;
-    https_proxy = uri_of_env env_https_proxy;
+    http_proxy = uri_of_env_with_scheme "http" env_http_proxy;
+    https_proxy = uri_of_env_with_scheme "https" env_https_proxy;
     all_proxy = uri_of_env env_all_proxy;
     no_proxy = getenv env_no_proxy;
     credentials =
