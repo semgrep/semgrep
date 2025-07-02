@@ -2827,8 +2827,14 @@ let program (env : env) (file : Fpath.t) (x : CST.program) =
   | `Exp x -> AExpr (expression env x)
   | `Partis x -> partials env x
   | `Topl_typed_meta_decl
-      (_v_lparen, v_ty, v_id, _v_rparen, v_eq, v_rhs, _v_semi_opt) ->
-      AExpr (typed_metavariable_declaration env v_ty v_id v_eq v_rhs)
+      (_v_lparen, v_ty, v_id, _v_rparen, v_eq, v_rhs, v_semi_opt) ->
+      let semi =
+        match v_semi_opt with
+        | Some tok -> token env tok
+        | None -> G.sc
+      in
+      AStmt
+        (Expr (typed_metavariable_declaration env v_ty v_id v_eq v_rhs, semi))
   | `Topl_expl_cons_invo (v1, v2, v3) ->
       let v1 =
         match v1 with
