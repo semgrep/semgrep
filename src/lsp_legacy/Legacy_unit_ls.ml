@@ -279,7 +279,7 @@ let ci_tests caps =
       in
       Lwt.return Http_mock_client.(basic_response body)
     in
-    Http_mock_client.with_testing_client make_fn
+    Http_mock_client.with_mocked_http make_fn
   in
   let test_cache_session () =
     let session = mock_session caps in

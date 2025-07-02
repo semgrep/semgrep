@@ -45,6 +45,10 @@ type t = {
  *)
 val g : t
 
+(* Because this resource is global and may be accessed from multiple
+   LSP tasks, we need to protect it with a mutex. *)
+val g_mutex : Eio.Mutex.t
+
 (* set g.config *)
 val configure : config -> unit
 

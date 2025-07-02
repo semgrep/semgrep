@@ -37,13 +37,14 @@ let t = Testo.create ?skipped:Testutil.skip_on_windows
 (*****************************************************************************)
 
 (* no need for a token to access public rules in the registry *)
-let test_scan_config_registry_no_token (caps : CLI.caps) =
+let test_scan_config_registry_no_token (caps : CLI.caps)
+    (base : Eio_unix.Stdenv.base) =
   t __FUNCTION__
     (* Ensure that we are somewhere with a new settings file so we don't reuse
        them across tests *)
     (Testutil_login.with_login_test_env ~chdir:true (fun _tmp_path ->
          let exit_code =
-           CLI.main caps
+           CLI.main caps base
              [|
                "semgrep";
                "scan";
@@ -185,11 +186,11 @@ let test_named_pipe (caps : Scan_subcommand.caps) =
 (* Entry point *)
 (*****************************************************************************)
 
-let tests (caps : CLI.caps) =
+let tests (caps : CLI.caps) (base : Eio_unix.Stdenv.base) =
   let scan_caps = (caps :> Scan_subcommand.caps) in
   Testo.categorize "Osemgrep multi subcommands (e2e)"
     [
-      test_scan_config_registry_no_token caps;
+      test_scan_config_registry_no_token caps base;
       test_scan_config_registry_with_invalid_token caps;
       test_absolute_target_path scan_caps;
       test_named_pipe scan_caps;

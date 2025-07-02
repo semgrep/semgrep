@@ -27,6 +27,8 @@ module Header = Cohttp.Header
 
 type test_response = { response : Response.t; body : Body.t }
 type make_response_fn = Request.t -> Body.t -> test_response Lwt.t
+type test_response_eio = { response : Response.t; body : Cohttp_eio.Body.t }
+type make_response_fn_eio = Request.t -> Cohttp_eio.Body.t -> test_response_eio
 
 module type S = sig
   val make_response : make_response_fn
@@ -121,12 +123,24 @@ end
 let basic_response ?(status = 200) ?(headers = Header.init ()) body =
   let status = Cohttp.Code.status_of_code status in
   let response = Response.make ~status ~headers () in
-  { response; body }
+  let res : test_response = { response; body } in
+  res
+
+let basic_response_eio ?(status = 200) ?(headers = Header.init ()) body =
+  let status = Cohttp.Code.status_of_code status in
+  let response = Response.make ~status ~headers () in
+  let res : test_response_eio = { response; body } in
+  res
 
 let body_of_file ?(trim = false) (path : Fpath.t) =
   let content = UFile.read_file path in
   let content = if trim then String.trim content else content in
   Cohttp_lwt.Body.of_string content
+
+let body_of_file_eio ?(trim = false) (path : Fpath.t) =
+  let content = UFile.read_file path in
+  let content = if trim then String.trim content else content in
+  Cohttp_eio.Body.of_string content
 
 let check_body expected_body actual_body =
   let%lwt actual_body_content = Cohttp_lwt.Body.to_string actual_body in
@@ -227,13 +241,21 @@ let get_header req header =
 (* Entrypoint *)
 (*****************************************************************************)
 
-let with_testing_client make_fn test_fn () =
+let with_mocked_http make_fn test_fn () =
   let new_client : (module Cohttp_lwt.S.Client) =
     (module Make (struct
       let make_response = make_fn
     end))
   in
   Http_helpers.with_client_ref new_client test_fn ()
+
+let with_eio_mocked_http (make_fn : make_response_fn_eio) test_fn () =
+  Http_helpers.with_hook_eio_call_fn_set
+    (fun ~sw:_ ~headers ~body ~chunked meth uri ->
+      let req = Request.make_for_client ~headers ~chunked meth uri in
+      let response = make_fn req body in
+      (response.response, response.body))
+    test_fn
 
 (*****************************************************************************)
 (* Saved Request/Reponse Mocking *)
@@ -339,7 +361,7 @@ let client_from_file (req_resp_file : Fpath.t) =
   let pairs = go contents [] in
   let new_client : (module Cohttp_lwt.S.Client) =
     (module Make (struct
-      let make_response (req : Request.t) body =
+      let make_response (req : Request.t) body : test_response Lwt.t =
         match
           List.find_opt
             (fun (((req' : Request.t), _), _, used) ->
@@ -358,7 +380,8 @@ let client_from_file (req_resp_file : Fpath.t) =
             check_method expected_req.meth req.meth;
             check_headers req.headers expected_req.headers;
             used := true;
-            Lwt.return { response; body = response_body }
+            let resp : test_response = { response; body = response_body } in
+            Lwt.return resp
         | None -> Alcotest.fail "Given request does not match any resources"
     end))
   in

@@ -61,7 +61,7 @@ let with_fake_deployment_response return_value f =
         Lwt.return Http_mock_client.(basic_response response_body)
     | url -> Alcotest.fail (spf "unexpected request: %s" url)
   in
-  Http_mock_client.with_testing_client make_response_fn f ()
+  Http_mock_client.with_mocked_http make_response_fn f ()
 
 let with_semgrep_logged_in f =
   Semgrep_envvars.with_envvar "SEMGREP_APP_TOKEN" fake_token (fun () ->

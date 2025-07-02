@@ -73,6 +73,7 @@ depends: [
   "uuidm" {>= "0.9.9"}
   "cohttp" {>= "6.1.0"}
   "cohttp-lwt-unix"
+  "cohttp-eio"
   "tls-lwt"
   "emile"
   "digestif" {>= "1.0.0"}
@@ -83,6 +84,7 @@ depends: [
   "git-unix"
   "eio"
   "eio_main"
+  "tls-eio"
   "odoc" {with-doc}
 ]
 build: [

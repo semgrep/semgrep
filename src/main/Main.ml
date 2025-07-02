@@ -121,8 +121,9 @@ let () =
                 (* adding --experimemtal so we don't default back to pysemgrep *)
                 CLI.main
                   (caps :> CLI.caps)
+                  base
                   (Array.append argv [| "--experimental" |])
-            | _else_ -> CLI.main (caps :> CLI.caps) argv
+            | _else_ -> CLI.main (caps :> CLI.caps) base argv
           in
           if not (Exit_code.Equal.ok exit_code) then
             Logs.info (fun m ->

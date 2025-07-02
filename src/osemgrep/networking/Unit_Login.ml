@@ -60,7 +60,7 @@ let with_mock_normal_responses =
                 (Fpath.v "./tests/login/token_response.json")))
     | _ -> failwith ("Unexpected path: " ^ Uri.path uri)
   in
-  Http_mock_client.with_testing_client make_fn
+  Http_mock_client.with_mocked_http make_fn
 
 let with_mock_four_o_four_responses =
   let make_fn req body =
@@ -70,7 +70,7 @@ let with_mock_four_o_four_responses =
       Http_mock_client.(
         basic_response ~status:404 (Cohttp_lwt.Body.of_string ""))
   in
-  Http_mock_client.with_testing_client make_fn
+  Http_mock_client.with_mocked_http make_fn
 
 let with_mock_envvars f () =
   UTmp.with_temp_file ~contents:fake_settings ~suffix:".yml"
