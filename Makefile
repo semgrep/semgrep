@@ -461,11 +461,11 @@ check:
 check_for_emacs:
 	./bin/osemgrep$(EXE) $(SEMGREP_ARGS) --emacs --quiet
 
-DOCKER_IMAGE=semgrep/semgrep:develop
+DOCKER_IMAGE=semgrep/semgrep-nightly:develop
 
 # If you get parsing errors while running this command, maybe you have an old
 # cached version of the docker image. You can invalidate the cache with
-#   'docker rmi semgrep/semgrep:develop`
+#   'docker rmi semgrep/semgrep-nightly:develop`
 check_with_docker:
 	docker run --rm -v "${PWD}:/src" $(DOCKER_IMAGE) semgrep $(SEMGREP_ARGS)
 
