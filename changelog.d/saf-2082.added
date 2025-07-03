@@ -1,1 +1,0 @@
-`HTTP{,S}_PROXY=...` now accepts URIs without a scheme (e.g `HTTP_PROXY=domain.com:port`)
