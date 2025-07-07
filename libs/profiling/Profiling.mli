@@ -3,7 +3,7 @@
  *)
 type prof = ProfAll | ProfNone | ProfSome of string list
 
-val profile : prof Hook.t
+val profile : prof ref
 val profile_code : string -> (unit -> 'a) -> 'a
 val profile_diagnostic : unit -> string
 val profile_code_exclusif : string -> (unit -> 'a) -> 'a

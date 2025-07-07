@@ -222,7 +222,7 @@ let check ~matches_hook ~(timeout : timeout_config option)
     xtarget
   in
   Log.info (fun m -> m "checking %s with %d rules" !!file (List.length rules));
-  (match (Hook.get Profiling.profile, analyzer) with
+  (match (!Profiling.profile, analyzer) with
   (* coupling: see Run_semgrep.xtarget_of_file() *)
   | Profiling.ProfAll, Analyzer.L (_lang, []) ->
       Log.debug (fun m ->

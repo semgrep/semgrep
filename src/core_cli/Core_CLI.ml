@@ -753,7 +753,7 @@ let main_exn (caps : Cap.all_caps) base (argv : string array) : unit =
           let config = mk_config () in
           Core_profiling.profiling := config.report_time;
           let num_jobs : Core_scan_config.num_jobs =
-            if Hook.get Profiling.profile =*= Profiling.ProfAll then (
+            if !Profiling.profile =*= Profiling.ProfAll then (
               Logs.info (fun m -> m "Profile mode On");
               Logs.info (fun m -> m "disabling -j when in profiling mode");
               Default 1)

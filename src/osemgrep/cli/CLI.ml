@@ -318,9 +318,8 @@ let main (caps : caps) (base : Eio_unix.Stdenv.base) (argv : string array) :
   Logs_.setup_basic ();
   (* TOADAPT: profile_start := Unix.gettimeofday (); *)
   (* pad poor's man profiler *)
-  Hook.with_hook_set Profiling.profile
-    (if profile then Profiling.ProfAll else Profiling.ProfNone)
-  @@ fun () ->
+  if profile then Profiling.profile := Profiling.ProfAll;
+
   (* coupling: Core_CLI.ml and Pro_core_CLI.ml *)
   Proxy.configure_proxy (Proxy.settings_from_env ());
   Http_helpers.set_client_ref (module Cohttp_lwt_unix.Client);
