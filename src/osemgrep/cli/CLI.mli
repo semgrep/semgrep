@@ -25,7 +25,7 @@ type caps =
    Exceptions are caught and turned into an appropriate exit code
    (unless you used --debug).
 *)
-val main : caps -> Eio_unix.Stdenv.base -> string array -> Exit_code.t
+val main : caps -> string array -> Exit_code.t
 
 val hook_semgrep_publish :
   (< Cap.stdout ; Cap.network > -> string array -> Exit_code.t) Hook.t

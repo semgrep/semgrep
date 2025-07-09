@@ -116,7 +116,7 @@ let cleanup_before_each_test (reset : unit -> unit) (tests : Testo.t list) :
    explicitly by calling a function. These functions are roughly those
    that call 'Common2.glob'.
 *)
-let tests (caps : Cap.all_caps) base =
+let tests (caps : Cap.all_caps) =
   List_.flatten
     [
       Commons_tests.tests;
@@ -168,8 +168,8 @@ let tests (caps : Cap.all_caps) base =
       Test_ci_subcommand.tests (caps :> Ci_subcommand.caps);
       Unit_test_subcommand.tests (caps :> Test_subcommand.caps);
       Test_show_subcommand.tests (caps :> Show_subcommand.caps);
-      Test_osemgrep.tests (caps :> CLI.caps) base;
-      Test_target_selection.tests (caps :> CLI.caps) base;
+      Test_osemgrep.tests (caps :> CLI.caps);
+      Test_target_selection.tests (caps :> CLI.caps);
       (* Networking tests disabled as they will get rate limited sometimes *)
       (* And the SSL issues they've been testing have been stable *)
       (*Unit_Networking.tests;*)
@@ -178,12 +178,12 @@ let tests (caps : Cap.all_caps) base =
       Spacegrep_tests.Test.tests ();
       Aliengrep.Unit_tests.tests;
       Unit_core_json_output.tests;
-      Test_core_CLI.tests (caps :> Cap.all_caps) base;
+      Test_core_CLI.tests (caps :> Cap.all_caps);
       (* Inline tests *)
       Testo.get_registered_tests ();
       (* Parallelism tests must come last, as previous tests require forking
        * and an exception is raised if a fork follows a domain spawn *)
-      Parallelism_tests.tests base;
+      Parallelism_tests.tests;
     ]
 
 (*****************************************************************************)
@@ -197,12 +197,10 @@ let tests (caps : Cap.all_caps) base =
    See https://github.com/mirage/alcotest/issues/358 for a request
    to allow what we want without this workaround.
 *)
-let tests_with_delayed_error caps base =
+let tests_with_delayed_error caps =
   try
     Printf.printf "Gathering tests from %s...\n%!" (Sys.getcwd ());
-    let tests =
-      tests caps base |> List_.map (with_env_check ~ignore_empty:true)
-    in
+    let tests = tests caps |> List_.map (with_env_check ~ignore_empty:true) in
     Printf.printf "Done gathering tests.\n%!";
     tests
   with
@@ -213,7 +211,7 @@ let tests_with_delayed_error caps base =
             Exception.reraise exn);
       ]
 
-let main (caps : Cap.all_caps) base : unit =
+let main (caps : Cap.all_caps) : unit =
   (* find the root of the semgrep repo as many of our tests rely on
      'let test_path = "tests/"' to find their test files *)
   let project_root = Legacy_test_ls_e2e.project_root () in
@@ -236,6 +234,6 @@ let main (caps : Cap.all_caps) base : unit =
       reset ();
       (* let's go *)
       Testo.interpret_argv ~project_name:"semgrep-core" (fun _env ->
-          tests_with_delayed_error caps base |> cleanup_before_each_test reset))
+          tests_with_delayed_error caps |> cleanup_before_each_test reset))
 
-let () = Cap.main main
+let () = Cap.main (fun all_caps -> main all_caps)

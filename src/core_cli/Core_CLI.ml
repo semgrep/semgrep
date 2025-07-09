@@ -666,17 +666,21 @@ let run caps (config : Core_scan_config.t) : unit =
     (caps :> < Cap.stdout ; Cap.stderr ; Cap.exit >)
     res config
 
-let decide_if_eio caps base (config : Core_scan_config.t) =
+(* We want to only run the Eio async runtime (i.e Eio_main.run) iff --x-eio is
+ * set. coupling: Pro_CLI.ml
+ *)
+let decide_if_eio caps (config : Core_scan_config.t) =
   if config.use_eio then (
+    Eio_main.run @@ fun env ->
     Logs_threaded.enable ();
-    let par_conf = Some (Parallelism_config.create base) in
+    let par_conf = Some (Parallelism_config.create env) in
     run caps { config with par_conf })
   else run caps config
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
 
-let main_exn (caps : Cap.all_caps) base (argv : string array) : unit =
+let main_exn (caps : Cap.all_caps) (argv : string array) : unit =
   (* coupling: lots of similarities with what we do in CLI.main *)
   register_exception_printers ();
 
@@ -784,7 +788,7 @@ let main_exn (caps : Cap.all_caps) base (argv : string array) : unit =
              able to instrument the pre- and post-scan code in the same way.
           *)
           match config.telemetry with
-          | None -> decide_if_eio caps base config
+          | None -> decide_if_eio caps config
           | Some tracing ->
               let resource_attrs =
                 (* Let's make sure all traces/logs/metrics etc. are tagged as
@@ -801,8 +805,8 @@ let main_exn (caps : Cap.all_caps) base (argv : string array) : unit =
                   let telemetry =
                     { tracing with top_level_scope = Some scope }
                   in
-                  decide_if_eio caps base
-                    { config with telemetry = Some telemetry })))
+                  decide_if_eio caps { config with telemetry = Some telemetry })
+          ))
 
-let main (caps : Cap.all_caps) base (argv : string array) : unit =
-  UCommon.main_boilerplate (fun () -> main_exn caps base argv)
+let main (caps : Cap.all_caps) (argv : string array) : unit =
+  UCommon.main_boilerplate (fun () -> main_exn caps argv)

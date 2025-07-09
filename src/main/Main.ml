@@ -100,7 +100,7 @@ let eprint_experimental_windows (cap : Cap.Console.stderr) : unit =
  * semgrep-core or osemgrep (or semgrep) behavior.
  *)
 let () =
-  Cap.main (fun (caps : Cap.all_caps) base ->
+  Cap.main (fun (caps : Cap.all_caps) ->
       let argv = CapSys.argv caps#argv in
       let argv0 =
         (* remove the possible ".exe" extension for Windows and ".bc" *)
@@ -121,9 +121,8 @@ let () =
                 (* adding --experimemtal so we don't default back to pysemgrep *)
                 CLI.main
                   (caps :> CLI.caps)
-                  base
                   (Array.append argv [| "--experimental" |])
-            | _else_ -> CLI.main (caps :> CLI.caps) base argv
+            | _else_ -> CLI.main (caps :> CLI.caps) argv
           in
           if not (Exit_code.Equal.ok exit_code) then
             Logs.info (fun m ->
@@ -137,5 +136,5 @@ let () =
            * appears to yield similar performance to the default value of space_overhead
            * under OCaml 4. *)
           Gc.set { (Gc.get ()) with space_overhead = 40 };
-          Core_CLI.main caps base argv
+          Core_CLI.main caps argv
         end)

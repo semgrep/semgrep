@@ -19,17 +19,16 @@ let list_targets_internal ?(conf = Find_targets.default_conf) ?roots caps =
   printf "Target files:\n";
   selected |> List.iter (fun fpath -> printf "  %s\n" (Fpath.to_string fpath))
 
-let run_osemgrep caps base argv =
+let run_osemgrep caps argv =
   printf "RUN %s\n%!" (argv |> Array.to_list |> String.concat " ");
-  CLI.main caps base argv
+  CLI.main caps argv
 
 (*
    List targets by going through the full semgrep command.
 *)
-let osemgrep_ls caps base =
+let osemgrep_ls caps =
   let exit_code =
-    run_osemgrep caps base
-      [| "semgrep"; "scan"; "--experimental"; "--x-ls"; "." |]
+    run_osemgrep caps [| "semgrep"; "scan"; "--experimental"; "--x-ls"; "." |]
   in
   Alcotest.(check int) "exit code" 0 (Exit_code.to_int exit_code)
 
@@ -44,18 +43,18 @@ let semgrepignore lines : Testutil_files.t =
 type repo_with_tests = {
   repo_name : string;
   repo_files : Testutil_files.t list;
-  tests : (string * (CLI.caps -> Eio_unix.Stdenv.base -> unit)) list;
+  tests : (string * (CLI.caps -> unit)) list;
 }
 
 let test_list_from_project_root =
   ( "list target files from project root (internal)",
-    fun caps _base -> list_targets_internal caps )
+    fun caps -> list_targets_internal caps )
 
 let test_cli_list_from_project_root =
-  ("list target files from project root", fun caps base -> osemgrep_ls caps base)
+  ("list target files from project root", fun caps -> osemgrep_ls caps)
 
 let test_list_targets_from_subdir ?roots cwd =
-  let func caps _base =
+  let func caps =
     Testutil_files.with_chdir cwd (fun () ->
         printf "cwd: %s\n" (Sys.getcwd ());
         list_targets_internal ?roots caps)
@@ -116,7 +115,7 @@ let normalize =
 (*
    Create a list of tests for each test repo.
 *)
-let tests caps base : Testo.t list =
+let tests caps : Testo.t list =
   repos_with_tests
   |> List_.map (fun { repo_name; repo_files; tests } ->
          tests
@@ -129,5 +128,5 @@ let tests caps base : Testo.t list =
                        files even if they're gitignored *)
                     Testutil_git.with_git_repo ~verbose:true
                       ~honor_gitignore:false repo_files (fun _cwd ->
-                        test_func caps base))))
+                        test_func caps))))
   |> List_.flatten

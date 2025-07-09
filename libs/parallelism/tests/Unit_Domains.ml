@@ -32,10 +32,10 @@ let test_hook_inherit_val () =
         (fun () -> H.get h) |> Domain.spawn |> Domain.join)
   in
   Alcotest.(check int) __LOC__ 99 (H.get h);
-  Alcotest.(check int) __LOC__ 99 n
+  Alcotest.(check int) __LOC__ 1 n
 
 (* Ensures that Domains.map plays well with hooked per-fiber values. *)
-let test_fiber_local_domains_map base () =
+let test_fiber_local_domains_map () =
   let h = H.create 0 in
   let procs = 4 in
 
@@ -52,7 +52,8 @@ let test_fiber_local_domains_map base () =
     assert (H.get h = 0)
   in
 
-  let conf = Parallelism_config.create base in
+  Eio_main.run @@ fun env ->
+  let conf = Parallelism_config.create env in
 
   let l = List.init procs (fun i -> i + 1) in
   let res = Domains.map ~conf ~domain_count:2 f l in
@@ -61,12 +62,13 @@ let test_fiber_local_domains_map base () =
   Alcotest.(check int) __LOC__ 0 (H.get h)
 
 (* Ensures that we can set a deadline on a fiber with the exceptions-oriented API. *)
-let test_wrap_timeout_exn base () =
+let test_wrap_timeout_exn () =
   let result_of_exn f () =
     try Ok (f ()) with
     | e -> Error e
   in
-  let clock = Eio.Stdenv.clock base in
+  Eio_main.run @@ fun env ->
+  let clock = Eio.Stdenv.clock env in
   let forty_two () =
     Eio.Time.sleep clock 0.25;
     42
@@ -90,8 +92,9 @@ let test_wrap_timeout_exn base () =
   Alcotest.(check (result int exnt)) __LOC__ (res ()) (Ok 42)
 
 (* Ensures that we can set a deadline on a fiber with the result-oriented API. *)
-let test_wrap_timeout base () =
-  let clock = Eio.Stdenv.clock base in
+let test_wrap_timeout () =
+  Eio_main.run @@ fun env ->
+  let clock = Eio.Stdenv.clock env in
   let forty_two () =
     Eio.Time.sleep clock 0.25;
     42
@@ -113,9 +116,11 @@ let test_wrap_timeout base () =
   let f = Domains.wrap_timeout ~clock 0.5 forty_two in
   Alcotest.(check (result int timeout)) __LOC__ (f ()) (Ok 42)
 
-let test_domain_map_timeouts base () =
-  let conf = Parallelism_config.create base in
-  let clock = Eio.Stdenv.clock base in
+let test_domain_map_timeouts () =
+  Eio_main.run @@ fun env ->
+  let conf = Parallelism_config.create env in
+  let clock = Eio.Stdenv.clock env in
+
   let sleep s =
     Eio.Time.sleep clock s;
     s
@@ -143,8 +148,9 @@ let test_domain_map_timeouts base () =
     __LOC__ res
     [ Ok 0.1; Error Eio.Time.Timeout; Ok 0.2; Error Eio.Time.Timeout ]
 
-let test_burn base () =
-  let clock = Eio.Stdenv.clock base in
+let test_burn () =
+  Eio_main.run @@ fun env ->
+  let clock = Eio.Stdenv.clock env in
 
   (* Unlike the operation that sleeps, as above, this is "pure computation" and
    * does not call back into the Eio runtime automatically, unless we manually
@@ -166,13 +172,13 @@ let test_burn base () =
   let res = f () in
   Alcotest.(check (result int timeout)) __LOC__ res (Error `Timeout)
 
-let tests base =
+let tests =
   Testo.categorize "Domains"
     [
       t "test_hook_inherit_val" test_hook_inherit_val;
-      t "Fiber with Domains.map" (test_fiber_local_domains_map base);
-      t "test_wrap_timeout_exn" (test_wrap_timeout_exn base);
-      t "test_wrap_timeout" (test_wrap_timeout base);
-      t "test_domain_map_timeouts" (test_domain_map_timeouts base);
-      t "test_burn" (test_burn base);
+      t "Fiber with Domains.map" test_fiber_local_domains_map;
+      t "test_wrap_timeout_exn" test_wrap_timeout_exn;
+      t "test_wrap_timeout" test_wrap_timeout;
+      t "test_domain_map_timeouts" test_domain_map_timeouts;
+      t "test_burn" test_burn;
     ]

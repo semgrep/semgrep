@@ -134,8 +134,7 @@ let known_subcommands =
     "validate";
   ]
 
-let dispatch_subcommand (caps : caps) (base : Eio_unix.Stdenv.base)
-    (argv : string array) =
+let dispatch_subcommand (caps : caps) (argv : string array) =
   match Array.to_list argv with
   (* impossible because argv[0] contains the program name *)
   | [] -> assert false
@@ -203,7 +202,7 @@ let dispatch_subcommand (caps : caps) (base : Eio_unix.Stdenv.base)
         | "install-semgrep-pro" ->
             Install_semgrep_pro_subcommand.main caps subcmd_argv
         (* osemgrep-only: and by default! no need experimental! *)
-        | "lsp" -> Lsp_subcommand.main caps base subcmd_argv
+        | "lsp" -> Lsp_subcommand.main caps subcmd_argv
         | "logout" ->
             Logout_subcommand.main (caps :> < Cap.stdout >) subcmd_argv
         | "install-ci" -> Install_ci_subcommand.main caps subcmd_argv
@@ -268,8 +267,7 @@ let before_exit ~profile caps : unit =
  * profiling, debugging, and metrics initializations before calling
  * dispatch_subcommand().
  *)
-let main (caps : caps) (base : Eio_unix.Stdenv.base) (argv : string array) :
-    Exit_code.t =
+let main (caps : caps) (argv : string array) : Exit_code.t =
   Printexc.record_backtrace true;
   let debug = Array.mem "--debug" argv in
   let profile = Array.mem "--profile" argv in
@@ -330,9 +328,7 @@ let main (caps : caps) (base : Eio_unix.Stdenv.base) (argv : string array) :
   (* TOADAPT? adapt more of Common.boilerplate? *)
 
   (* !The main call! dispatching a subcommand *)
-  let exit_code =
-    safe_run ~debug (fun () -> dispatch_subcommand caps base argv)
-  in
+  let exit_code = safe_run ~debug (fun () -> dispatch_subcommand caps argv) in
 
   Metrics_.add_exit_code exit_code;
   send_metrics (caps :> < Cap.network >);

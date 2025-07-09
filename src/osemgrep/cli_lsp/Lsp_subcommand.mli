@@ -11,8 +11,7 @@ val hook_pro_language_server :
 
    This function returns an exit code to be passed to the 'exit' function.
 *)
-val main : < caps ; .. > -> Eio_unix.Stdenv.base -> string array -> Exit_code.t
+val main : < caps ; .. > -> string array -> Exit_code.t
 
 (* internal *)
-val run_conf :
-  < caps ; .. > -> Eio_unix.Stdenv.base -> Lsp_CLI.conf -> Exit_code.t
+val run_conf : < caps ; .. > -> Lsp_CLI.conf -> Exit_code.t
