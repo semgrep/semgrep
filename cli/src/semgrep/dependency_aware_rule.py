@@ -21,8 +21,10 @@ from semdep.package_restrictions import dependencies_range_match_any
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
+from semgrep.sca_subproject_support import TRANSITIVE_REACHABILITY_SUBPROJECT_KINDS
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Ecosystem
 from semgrep.semgrep_interfaces.semgrep_output_v1 import Pypi
+from semgrep.subproject import dep_source_to_subproject_kind
 from semgrep.subproject import find_closest_resolved_subproject
 from semgrep.subproject import iter_dependencies
 from semgrep.subproject import iter_found_dependencies
@@ -92,6 +94,9 @@ def generate_unreachable_sca_findings(
     match_based_keys: Dict[tuple[str, Path, str], int] = defaultdict(int)
     for ecosystem in ecosystems:
         for subproject in resolved_deps.get(ecosystem, []):
+            subproject_kind = dep_source_to_subproject_kind(
+                subproject.info.dependency_source
+            )
             deps: List[out.FoundDependency] = list(
                 iter_found_dependencies(subproject.resolved_dependencies)
             )
@@ -158,8 +163,12 @@ def generate_unreachable_sca_findings(
                 match_based_keys[rule_match.match_based_key] += 1
                 subproject_matches.append(new_rule_match)
 
-            if x_tr:
+            if x_tr and subproject_kind in TRANSITIVE_REACHABILITY_SUBPROJECT_KINDS:
                 # TODO: consider only the matches with reachable rules
+                # For now we run TR only for supported subproject kinds. If TR
+                # RPC perf were better, we would ideally remove this duplication
+                # of logic and just rely on the RPC to do the right thing regardless
+                # of whether the subproject kind is supported.
                 transitive_findings = [
                     out.TransitiveFinding(m=rm.match) for rm in subproject_matches
                 ]
