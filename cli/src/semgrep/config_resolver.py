@@ -477,7 +477,10 @@ def parse_config_files(
             )
             future_to_config_id_and_path[validation_future] = config_id, config_path
         for future in concurrent.futures.as_completed(
-            future_to_config_id_and_path, timeout=5 * 60
+            future_to_config_id_and_path
+            # Timeout temporarily removed as part of SAF-2099.  Once completed,
+            # reintroduce and possibly readjust.
+            # , timeout=5 * 60
         ):
             config_id, config_path = future_to_config_id_and_path[future]
             try:
