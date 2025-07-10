@@ -12,7 +12,6 @@
 
     ; unix platform stuff
     lwt_platform.unix
-    telemetry.unix
     cohttp-lwt-unix
 
     commons.tests

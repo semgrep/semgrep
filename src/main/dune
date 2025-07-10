@@ -11,7 +11,7 @@
   ; implementations of dune virtual modules
   lwt_platform.unix
   semgrep.legacy_language_server
-  telemetry.unix)
+  )
  (preprocess
   (pps ppx_profiling))
  ; 'byte' is for ocamldebug

@@ -3,14 +3,16 @@
  (public_name telemetry)
  (wrapped false)
   (libraries
+    commons
     uri
     yojson
     logs
     opentelemetry
+    opentelemetry-client-ocurl
+    ambient-context-lwt
   )
- (virtual_modules telemetry tracing logging ometrics)
- (default_implementation telemetry.unix)
   (preprocess (pps
       ppx_deriving.show
+      ppx_deriving_yojson
    ))
 )
