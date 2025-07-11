@@ -154,6 +154,7 @@ let union le1 le2 =
       VarSet.empty;
     var_was_touched = None;
   }
+[@@profiling]
 
 let union_list ?(default = empty) les = List.fold_left union default les
 
