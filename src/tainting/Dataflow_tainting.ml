@@ -1763,6 +1763,7 @@ let input_env ~enter_env ~(flow : F.cfg) mapping ni =
       | [] -> Lval_env.empty
       | [ penv ] -> penv
       | penv1 :: penvs -> List.fold_left Lval_env.union penv1 penvs)
+[@@profiling]
 
 let rec transfer : env -> fun_cfg:F.fun_cfg -> Lval_env.t D.transfn =
  fun enter_env ~fun_cfg
