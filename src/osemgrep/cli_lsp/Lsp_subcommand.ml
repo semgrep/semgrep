@@ -13,7 +13,7 @@ type caps =
   < Core_scan.caps ; Cap.random ; Cap.network ; Cap.tmp ; Cap.readdir >
 
 let hook_pro_language_server :
-    (caps -> Eio_unix.Stdenv.base -> unit) option Hook.t =
+    (caps -> Eio_unix.Stdenv.base -> Lsp_CLI.conf -> unit) option Hook.t =
   Hook.create None
 
 (*****************************************************************************)
@@ -28,7 +28,7 @@ let run_conf (caps : < caps ; .. >) (conf : Lsp_CLI.conf) : Exit_code.t =
   match Hook.get hook_pro_language_server with
   | Some run_pro_language_server when conf.x_eio_ls ->
       Eio_main.run (fun env ->
-          run_pro_language_server (caps :> Legacy_language_server.caps) env;
+          run_pro_language_server (caps :> Legacy_language_server.caps) env conf;
           Exit_code.ok ~__LOC__)
   | None when conf.x_eio_ls ->
       Logs.err (fun m ->

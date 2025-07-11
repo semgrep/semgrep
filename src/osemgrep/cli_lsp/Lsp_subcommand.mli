@@ -2,7 +2,7 @@ type caps =
   < Core_scan.caps ; Cap.random ; Cap.network ; Cap.tmp ; Cap.readdir >
 
 val hook_pro_language_server :
-  (caps -> Eio_unix.Stdenv.base -> unit) option Hook.t
+  (caps -> Eio_unix.Stdenv.base -> Lsp_CLI.conf -> unit) option Hook.t
 
 (*
    Parse a semgrep-lsp command, execute it and exit.
