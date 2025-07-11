@@ -56,8 +56,6 @@ type conf = {
   version_check : bool;
   (* Debugging/logging/profiling options *)
   common : CLI_common.conf;
-  trace : bool;
-  trace_endpoint : string option;
   (* Ugly: should be in separate subcommands *)
   version : bool;
   show : Show_CLI.conf option;
@@ -94,9 +92,8 @@ let default : conf =
         logging_level = Some Logs.Warning;
         maturity = Maturity.Default;
         x_eio = false;
+        telemetry = None;
       };
-    trace = false;
-    trace_endpoint = None;
     engine_type = OSS;
     output = None;
     output_conf = Output.default;
@@ -500,27 +497,6 @@ let o_time : bool Term.t =
       {|Include a timing summary with the results. If output format is json,
  provides times for each pair (rule, target). This feature is meant for internal use and may be changed or removed without warning. At the current moment, --trace is better supported.
 |}
-
-let o_trace : bool Term.t =
-  H.negatable_flag [ "trace" ] ~neg_options:[ "no-trace" ]
-    ~default:default.trace
-    ~doc:
-      {|Record traces from Semgrep scans to help debugging. This feature is
-meant for internal use and may be changed or removed without warning.
-|}
-
-let o_trace_endpoint : string option Term.t =
-  let info =
-    Arg.info [ "trace-endpoint" ]
-      ~env:(Cmd.Env.info "SEMGREP_OTEL_ENDPOINT")
-      ~doc:
-        {|Endpoint to send OpenTelemetry traces to, if `--trace` is present.
-The value may be `semgrep-prod` (default), `semgrep-dev`,
-`semgrep-local`, or any valid URL.  This feature is meant for
-internal use and may be changed or removed without warning.
-|}
-  in
-  Arg.value (Arg.opt Arg.(some string) None info)
 
 let o_nosem : bool Term.t =
   H.negatable_flag ~default:true [ "enable-nosem" ]
@@ -1374,9 +1350,9 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       scan_unknown_extensions secrets semgrepignore_filename severity
       show_supported_languages strict target_roots test test_ignore_todo text
       text_outputs time_flag timeout _timeout_interfileTODO timeout_threshold
-      trace trace_endpoint use_git _use_semgrepignore_v2 validate version
-      version_check vim vim_outputs x_ignore_semgrepignore_files x_ls x_ls_long
-      x_tr x_pro_naming =
+      use_git _use_semgrepignore_v2 validate version version_check vim
+      vim_outputs x_ignore_semgrepignore_files x_ls x_ls_long x_tr x_pro_naming
+      =
     (* Print a warning if any of the internal or experimental options.
        We don't want users to start relying on these. *)
     if
@@ -1550,12 +1526,6 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
             "Paths that match both --include and --exclude will be skipped by \
              Semgrep.");
 
-    if trace_endpoint <> None && not trace then
-      Logs.warn (fun m ->
-          m
-            "The --trace-endpoint flag or SEMGREP_OTEL_ENDPOINT environment \
-             variable is specified without --trace.\n\
-             If you intend to enable tracing, please also add the --trace flag.");
     let ls, ls_format =
       (* --x-ls-long implies --x-ls *)
       if x_ls_long then (true, Ls_subcommand.Long)
@@ -1583,8 +1553,6 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
       show;
       validate;
       test;
-      trace;
-      trace_endpoint;
       ls;
       ls_format;
     }
@@ -1611,10 +1579,10 @@ let cmdline_term caps ~allow_empty_config : conf Term.t =
     $ o_secrets $ o_semgrepignore_filename $ o_severity
     $ o_show_supported_languages $ o_strict $ o_target_roots $ o_test
     $ Test_CLI.o_test_ignore_todo $ o_text $ o_text_outputs $ o_time $ o_timeout
-    $ o_timeout_interfile $ o_timeout_threshold $ o_trace $ o_trace_endpoint
-    $ o_use_git $ o_use_semgrepignore_v2 $ o_validate $ o_version
-    $ o_version_check $ o_vim $ o_vim_outputs $ o_x_ignore_semgrepignore_files
-    $ o_x_ls $ o_x_ls_long $ o_x_tr $ o_x_pro_naming)
+    $ o_timeout_interfile $ o_timeout_threshold $ o_use_git
+    $ o_use_semgrepignore_v2 $ o_validate $ o_version $ o_version_check $ o_vim
+    $ o_vim_outputs $ o_x_ignore_semgrepignore_files $ o_x_ls $ o_x_ls_long
+    $ o_x_tr $ o_x_pro_naming)
 
 let doc = "run semgrep rules on files"
 

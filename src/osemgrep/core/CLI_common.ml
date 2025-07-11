@@ -1,4 +1,5 @@
 open Cmdliner
+module H = Cmdliner_
 
 (*************************************************************************)
 (* Prelude *)
@@ -20,12 +21,20 @@ type conf = {
   (* osemgrep-only: mix of --experimental, --legacy, --develop *)
   maturity : Maturity.t;
   x_eio : bool;
+  (* Telemetry *)
+  (* currently only used by `semgrep lsp` *)
+  telemetry : Telemetry.config option;
 }
 [@@deriving show]
 
 let blurb_pro =
   "Requires Semgrep Pro Engine. See https://semgrep.dev/products/pro-engine/ \
    for more."
+
+(* Coupling: these need to be kept in sync with tracing.py *)
+let default_trace_endpoint = Uri.of_string "https://telemetry.semgrep.dev"
+let default_dev_endpoint = Uri.of_string "https://telemetry.dev2.semgrep.dev"
+let default_local_endpoint = Uri.of_string "http://localhost:4318"
 
 (*************************************************************************)
 (* Verbosity options (mutually exclusive) *)
@@ -109,14 +118,75 @@ let o_profile : bool Term.t =
   Arg.value (Arg.flag info)
 
 (*************************************************************************)
+(* Telemetry options *)
+(*************************************************************************)
+
+let o_trace : bool Term.t =
+  H.negatable_flag [ "trace" ] ~neg_options:[ "no-trace" ] ~default:true
+    ~doc:
+      {|Record traces from Semgrep scans to help debugging. This feature is
+meant for internal use and may be changed or removed without warning.
+
+Currently only used by `semgrep lsp`.
+|}
+
+let o_trace_endpoint : string option Term.t =
+  let info =
+    Arg.info [ "trace-endpoint" ]
+      ~doc:
+        {|Endpoint to send OpenTelemetry traces to, if `--trace` is present.
+The value may be `semgrep-prod` (default), `semgrep-dev`,
+`semgrep-local`, or any valid URL.  This feature is meant for
+internal use and may be changed or removed without warning.
+
+Currently only used by `semgrep lsp`.
+|}
+  in
+  Arg.value (Arg.opt Arg.(some string) None info)
+
+let o_telemetry : Telemetry.config option Term.t =
+  let combine trace trace_endpoint =
+    match (trace, trace_endpoint) with
+    | true, Some url ->
+        let endpoint, env =
+          match url with
+          (* coupling: cli/src/semgrep/tracing.py _ENV_ALIASES *)
+          | "semgrep-prod" -> (default_trace_endpoint, Some "prod")
+          | "semgrep-dev" -> (default_dev_endpoint, Some "dev2")
+          | "semgrep-local" -> (default_local_endpoint, Some "local")
+          | _ -> (Uri.of_string url, None)
+        in
+        Some { Telemetry.endpoint; top_level_scope = None; env }
+    | true, None ->
+        Some
+          {
+            endpoint = default_trace_endpoint;
+            top_level_scope = None;
+            env = None;
+          }
+    | false, Some _ ->
+        Logs.warn (fun m ->
+            m
+              "The --trace-endpoint flag or SEMGREP_OTEL_ENDPOINT environment \
+               variable is specified without --trace.\n\
+               If you intend to enable tracing, please also add the --trace \
+               flag.");
+        None
+    | false, None -> None
+  in
+  Term.(const combine $ o_trace $ o_trace_endpoint)
+
+(*************************************************************************)
 (* Term for all common CLI flags *)
 (*************************************************************************)
 
 let o_common : conf Term.t =
-  let combine logging profile maturity x_eio =
-    { logging_level = logging; profile; maturity; x_eio }
+  let combine logging profile maturity x_eio telemetry =
+    { logging_level = logging; profile; maturity; x_eio; telemetry }
   in
-  Term.(const combine $ o_logging $ o_profile $ Maturity.o_maturity $ o_eio)
+  Term.(
+    const combine $ o_logging $ o_profile $ Maturity.o_maturity $ o_eio
+    $ o_telemetry)
 
 (*************************************************************************)
 (* Misc *)
