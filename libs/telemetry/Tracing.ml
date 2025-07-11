@@ -194,7 +194,7 @@ let log_trace_message () =
 (* Entry points for setting up tracing *)
 (*****************************************************************************)
 
-let with_tracing fname data f =
+let with_tracing ?(stop_otel_after = true) fname data f =
   (* This sets up the OTel collector and runs the given function.
    * Note that the function is traced by default. This makes sure we
      always trace the given function; it also ensures that all the spans from
@@ -223,8 +223,10 @@ let with_tracing fname data f =
     log_trace_message ();
     f sp
   in
-  (* coupling: [restart_otel] *)
-  Common.protect ~finally:stop_otel f'
+  if stop_otel_after then
+    (* coupling: [restart_otel] *)
+    Common.protect ~finally:stop_otel f'
+  else f' ()
 
 (* TODO: switch to otel eio once we are on multicore/it is supported by the otel
    lib *)
