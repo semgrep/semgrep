@@ -4,6 +4,7 @@
 
 === stdout - plain
 {
+  "engine_requested": "OSS",
   "errors": [],
   "paths": {
     "scanned": [
