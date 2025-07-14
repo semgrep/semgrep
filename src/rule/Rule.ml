@@ -800,9 +800,10 @@ let show_id rule = rule.id |> fst |> Rule_ID.to_string
 (* This is used to let the user know which rule the engine was using when
  * a Timeout or OutOfMemory exn occured.
  * TODO: relation with Match_patterns.last_matched_rule?
- * TODO(SAF-1854, SAF-1939): This will race on multicore.
+ * SAFETY: see comment block for Match_patterns.last_matched_rule.
  *)
-let last_matched_rule : Rule_ID.t option ref = ref None
+let last_matched_rule : Rule_ID.t option Domain.DLS.key =
+  Domain.DLS.new_key (Fun.const None)
 
 (*****************************************************************************)
 (* Visitor/extractor *)
