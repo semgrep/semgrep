@@ -514,7 +514,7 @@ let log_scan_results (config : Core_scan_config.t) (res : Core_result.t)
  *)
 let get_context_for_memory_limit target () =
   let origin = Target.origin target in
-  match !Rule.last_matched_rule with
+  match Domain.DLS.get Rule.last_matched_rule with
   | None -> Origin.to_string origin
   | Some rule_id ->
       spf "%s on %s" (Rule_ID.to_string rule_id) (Origin.to_string origin)
@@ -523,7 +523,7 @@ let log_critical_exn_and_last_rule () =
   (* TODO? why we use Match_patters.last_matched_rule here
    * and below Rule.last_matched_rule?
    *)
-  match !Match_patterns.last_matched_rule with
+  match Domain.DLS.get Match_patterns.last_matched_rule with
   | None -> ()
   | Some rule ->
       Logs.warn (fun m ->
@@ -555,11 +555,15 @@ let errors_of_timeout_or_memory_exn (exn : exn) (target : Target.t) : ESet.t =
   | Out_of_memory ->
       Logs.warn (fun m -> m "OutOfMemory on %s" (Origin.to_string origin));
       ESet.singleton
-        (E.mk_error ?rule_id:!Rule.last_matched_rule ~loc Out.OutOfMemory)
+        (E.mk_error
+           ?rule_id:(Domain.DLS.get Rule.last_matched_rule)
+           ~loc Out.OutOfMemory)
   | Stack_overflow ->
       Logs.warn (fun m -> m "StackOverflow on %s" (Origin.to_string origin));
       ESet.singleton
-        (E.mk_error ?rule_id:!Rule.last_matched_rule ~loc Out.StackOverflow)
+        (E.mk_error
+           ?rule_id:(Domain.DLS.get Rule.last_matched_rule)
+           ~loc Out.StackOverflow)
   | _ -> raise Impossible
 
 (*****************************************************************************)
