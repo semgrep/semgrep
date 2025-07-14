@@ -57,6 +57,7 @@ def to_CliOutput(
         paths=cli_output_extra.paths,
         time=cli_output_extra.time,
         explanations=cli_output_extra.explanations,
+        engine_requested=cli_output_extra.engine_requested,
         interfile_languages_used=cli_output_extra.interfile_languages_used,
         skipped_rules=[],  # TODO: concatenate skipped_rules field from core responses
         subprojects=cli_output_extra.subprojects,
