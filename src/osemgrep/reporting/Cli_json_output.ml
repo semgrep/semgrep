@@ -528,11 +528,11 @@ let cli_output_of_runner_result ~fips_mode ~fixed_lines (core : Out.core_output)
      };
    skipped_rules;
    explanations;
+   engine_requested;
    interfile_languages_used;
    time;
    (* LATER *)
    rules_by_engine = _;
-   engine_requested = _;
    (* We deliberately choose not to embed the symbol analysis into the CLI
       output, as it is conceivably quite large and irrelevant information
       for the actual Semgrep scan.
@@ -593,11 +593,11 @@ let cli_output_of_runner_result ~fips_mode ~fixed_lines (core : Out.core_output)
         paths;
         skipped_rules;
         explanations;
+        engine_requested;
         interfile_languages_used;
         time;
         (* LATER *)
         rules_by_engine = None;
-        engine_requested = None;
         subprojects = None;
       }
 
