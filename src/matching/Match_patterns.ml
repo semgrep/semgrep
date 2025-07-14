@@ -48,11 +48,19 @@ type env = {
 
 (* This is used to let the user know which rule the engine was using when
  * a Timeout or OutOfMemory exn occured.
+ *
+ * SAFETY: this is a bit tricky to handle in the multicore world, because the *
+ * only abstraction we have for fiber-local state must be scoped, so we can't *
+ * keep the old value around if we raise an exn.  So, for * now, make this a
+ * Domain-local value.  So long as a pattern-matching rule * is never
+ * overscheduled on the same domain (which is a contract that * Domains.map
+ * promises), two fibers should not stomp over each other.
  *)
-let (last_matched_rule : Mini_rule.t option ref) = ref None
+let (last_matched_rule : Mini_rule.t option Domain.DLS.key) =
+  Domain.DLS.new_key (fun () -> None)
 
 let set_last_matched_rule (rule : Mini_rule.t) f =
-  last_matched_rule := Some rule;
+  Domain.DLS.set last_matched_rule (Some rule);
   (* note that if this raise an exn, last_matched_rule will not be
    * reset to None and that's what we want!
    *)
@@ -61,7 +69,7 @@ let set_last_matched_rule (rule : Mini_rule.t) f =
       Profiling.profile_code ("rule:" ^ Rule_ID.to_string rule.id) f
     else f ()
   in
-  last_matched_rule := None;
+  Domain.DLS.set last_matched_rule None;
   res
 
 (*****************************************************************************)
