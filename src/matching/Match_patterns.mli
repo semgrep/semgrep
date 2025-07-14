@@ -24,7 +24,7 @@ val check :
   Fpath.t * Origin.t * Lang.t * AST_generic.program ->
   Core_match.t list
 
-val last_matched_rule : Mini_rule.t option ref
+val last_matched_rule : Mini_rule.t option Domain.DLS.key
 
 (* used by tainting *)
 val match_e_e : Mini_rule.t -> AST_generic.expr Matching_generic.matcher
