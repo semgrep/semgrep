@@ -8,6 +8,7 @@
 # coupling: src/rpc/RPC.handle_call()
 # coupling: semgrep_output_v1.atd which defines the CallXxx and RetXxx
 import subprocess
+from datetime import datetime
 from typing import IO
 from typing import Optional
 from typing import Type
@@ -114,6 +115,8 @@ def rpc_call(call: out.FunctionCall, cls: Type[T]) -> Optional[T]:
     # appropriately handle the case where the pro function is not available and
     # to ensure that pro RPC methods are only called during a pro scan.
     semgrep_core_path = SemgrepCore.pro_path() or SemgrepCore.executable_path()
+    start = datetime.now()
+
     with subprocess.Popen(
         [semgrep_core_path, "-rpc"],
         stdin=subprocess.PIPE,
@@ -152,6 +155,8 @@ def rpc_call(call: out.FunctionCall, cls: Type[T]) -> Optional[T]:
                 return None
             # Check that we got the correct kind of response
             if isinstance(ret.value, cls):
+                secs = (datetime.now() - start).total_seconds()
+                logger.debug(f"RPC completed in: {secs}s")
                 return ret.value
             else:
                 logger.error(f"Received an incorrect kind of RPC response")
