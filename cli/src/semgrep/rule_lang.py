@@ -584,11 +584,10 @@ def validate_yaml(
                     raise NotImplementedError(
                         "Cannot execute RPC validation without a rules_tmp_path"
                     )
-                with tracing.TRACER.start_as_current_span("rpc.validate"):
-                    run_rpc_validate(rules_tmp_path=rules_tmp_path)
-                    logger.debug("RPC validation succeeded")
-                    # If we reach this line, the RPC-based validation passed and we can early return
-                    return errors
+                run_rpc_validate(rules_tmp_path=rules_tmp_path)
+                logger.debug("RPC validation succeeded")
+                # If we reach this line, the RPC-based validation passed and we can early return
+                return errors
             except (RpcValidationError, NotImplementedError) as e:
                 logger.debug(f"run_rpc_validate failed: {e}")
 
