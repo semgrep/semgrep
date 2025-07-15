@@ -352,19 +352,34 @@ let deployment_config_eio caps : Out.deployment_config option =
 let deployment_config token = Lwt_platform.run (deployment_config_async token)
 
 (* deprecated? *)
-let scan_config_uri ?(sca = false) ?(dry_run = true) ?(full_scan = true)
-    repo_name =
+let scan_config_uri ?(secrets = false) ?(sca = false) ?(dry_run = true)
+    ?(full_scan = true) repo_name =
   let json_bool_to_string b = JSON.(string_of_json (Bool b)) in
+  let base_query_params =
+    [
+      ("is_secrets_scan", json_bool_to_string secrets);
+      ("sca", json_bool_to_string sca);
+      ("dry_run", json_bool_to_string dry_run);
+      ("full_scan", json_bool_to_string full_scan);
+      ("repo_name", repo_name);
+      ("semgrep_version", Version.version);
+    ]
+  in
+  (* In principle, there is no reason why we should have to do this, but
+      the backend is configured to default to _all_ products unless _some_
+      product is specified positively.
+      So if we want to filter out SCA rules, we need to add a query param
+      explicitly requesting something else, like code rules.
+    *)
+  let query_params =
+    if not sca then
+      base_query_params @ [ ("is_code_scan", json_bool_to_string true) ]
+    else base_query_params
+  in
   Uri.(
     add_query_params'
       (with_path !Semgrep_envvars.v.semgrep_url scan_config_route)
-      [
-        ("sca", json_bool_to_string sca);
-        ("dry_run", json_bool_to_string dry_run);
-        ("full_scan", json_bool_to_string full_scan);
-        ("repo_name", repo_name);
-        ("semgrep_version", Version.version);
-      ])
+      query_params)
 
 (* Returns a url with scan config encoded via search params based on a magic
  * environment variable *)
