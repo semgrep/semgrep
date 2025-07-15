@@ -1,0 +1,3 @@
+CLI: Only log a sample of the response from the `get_targets` endpoint.
+Previously, scanning large repos with the debug flag significantly ballooned
+the size of the output log.
