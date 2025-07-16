@@ -1,7 +1,7 @@
 { src ? ./cli }:
 { pkgs, semgrep }:
 let
-  pythonPkgs = pkgs.python311Packages;
+  pythonPkgs = pkgs.python312Packages;
 
   # pysemgrep inputs pulled from pipfile
   pydepsFromPipfile = setupPy: pipfile: type:
